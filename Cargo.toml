@@ -1,0 +1,15 @@
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+default-members = ["crates/cli"]
+
+[workspace.dependencies]
+clap = "4.1.4"
+clap_complete = "4.1.1"
+console = "0.15.5"
+reqwest = "0.11.14"
+rustc-hash = "1.1.0"
+serde = { version = "1.0.152", features = ["derive"] }
+serde_json = "1.0.93"
+thiserror = "1.0.38"
+tokio = { version = "1.25.0", features = ["full", "tracing"] }
