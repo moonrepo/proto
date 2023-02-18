@@ -2,6 +2,12 @@
 name = "proto"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+description = "A language agnostic version manager."
+homepage = "https://moonrepo.dev/proto"
+repository = "https://github.com/moonrepo/proto"
+keywords = ["language", "installer", "version-manager", "dependency-manager", "package-manager"]
+categories = ["development-tools"]
 
 [lib]
 name = "proto"
