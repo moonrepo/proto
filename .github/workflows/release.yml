@@ -112,7 +112,7 @@ jobs:
         name: Upload artifact
         with:
           name: binary-${{ matrix.target }}
-          path: ./target/release/${{ matrix.binary }}
+          path: ./target/${{ matrix.target }}/release/${{ matrix.binary }}
           if-no-files-found: error
 
   test:
