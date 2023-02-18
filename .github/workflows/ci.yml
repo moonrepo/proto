@@ -17,12 +17,9 @@ jobs:
       - uses: actions-rs/toolchain@v1
         name: Setup toolchain
         with:
-          toolchain: 1.67.0
+          toolchain: 1.66.0
           profile: minimal
           components: rustfmt
-      - uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: ci
       - uses: actions-rs/cargo@v1
         name: Check formatting
         with:
@@ -40,14 +37,11 @@ jobs:
       - uses: actions-rs/toolchain@v1
         name: Setup toolchain
         with:
-          toolchain: 1.67.0
+          toolchain: 1.66.0
           profile: minimal
           components: clippy
-      - uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: ci
       - uses: actions-rs/cargo@v1
-        name: Check formatting
+        name: Run linter
         with:
           command: clippy
           args: --workspace --all-targets
@@ -63,7 +57,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         name: Setup toolchain
         with:
-          toolchain: 1.67.0
+          toolchain: 1.66.0
           profile: minimal
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
