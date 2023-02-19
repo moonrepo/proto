@@ -2,6 +2,10 @@
 name = "proto_core"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+description = "Core proto APIs for languages to implement."
+homepage = "https://moonrepo.dev/proto"
+repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
 async-trait = "0.1.61"
@@ -10,7 +14,7 @@ console = { workspace = true }
 dirs = "4.0.0"
 flate2 = "1.0.25"
 lenient_semver = { version = "0.4.2", features = ["version_lite", "version_serde"] }
-log = "0.4.17"
+log = { workspace = true }
 reqwest = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

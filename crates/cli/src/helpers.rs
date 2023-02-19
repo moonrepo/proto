@@ -30,7 +30,7 @@ pub async fn detect_version_from_environment(
     if version.is_none() {
         if let Ok(session_version) = env::var(&env_var) {
             debug!(
-                target: "proto:version",
+                target: "proto:detect",
                 "Detected version {} from environment variable {}",
                 session_version,
                 env_var
@@ -40,7 +40,7 @@ pub async fn detect_version_from_environment(
         }
     } else {
         debug!(
-            target: "proto:version",
+            target: "proto:detect",
             "Using explicit version {} passed on the command line",
             version.as_ref().unwrap(),
         );
@@ -49,7 +49,7 @@ pub async fn detect_version_from_environment(
     // Traverse upwards and attempt to detect a local version
     if let Ok(working_dir) = env::current_dir() {
         trace!(
-            target: "proto:version",
+            target: "proto:detect",
             "Attempting to find local version"
         );
 
@@ -57,7 +57,7 @@ pub async fn detect_version_from_environment(
 
         while let Some(dir) = &current_dir {
             trace!(
-                target: "proto:version",
+                target: "proto:detect",
                 "Checking in directory {}",
                 color::path(dir)
             );
@@ -69,7 +69,7 @@ pub async fn detect_version_from_environment(
 
             // Detect from our config file
             trace!(
-                target: "proto:version",
+                target: "proto:detect",
                 "Checking proto configuration file"
             );
 
@@ -80,7 +80,7 @@ pub async fn detect_version_from_environment(
 
                 if let Some(config_version) = config.tools.get(tool_type) {
                     debug!(
-                        target: "proto:version",
+                        target: "proto:detect",
                         "Detected version {} from configuration file {}",
                         config_version,
                         color::path(&config_file)
@@ -93,13 +93,13 @@ pub async fn detect_version_from_environment(
 
             // Detect using the tool
             trace!(
-                target: "proto:version",
+                target: "proto:detect",
                 "Detecting from the tool's ecosystem"
             );
 
             if let Some(eco_version) = tool.detect_version_from(dir).await? {
                 debug!(
-                    target: "proto:version",
+                    target: "proto:detect",
                     "Detected version {} from tool's ecosystem",
                     eco_version,
                 );
@@ -115,7 +115,7 @@ pub async fn detect_version_from_environment(
     // If still no version, load the global version
     if version.is_none() {
         trace!(
-            target: "proto:version",
+            target: "proto:detect",
             "Attempting to find global version"
         );
 
@@ -125,7 +125,7 @@ pub async fn detect_version_from_environment(
             let global_version = load_version_file(&global_file)?;
 
             debug!(
-                target: "proto:version",
+                target: "proto:detect",
                 "Detected global version {} from {}",
                 global_version,
                 color::path(&global_file)

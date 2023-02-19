@@ -2,11 +2,15 @@
 name = "proto_node"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+description = "Node.js support for proto."
+homepage = "https://moonrepo.dev/proto"
+repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
-proto_core = { path = "../core" }
+proto_core = { version = "0.1.0", path = "../core" }
 clean-path = "0.2.1"
-log = "0.4.17"
+log = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

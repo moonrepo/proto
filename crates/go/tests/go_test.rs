@@ -1,7 +1,6 @@
 use assert_fs::prelude::{FileWriteStr, PathChild};
-use lenient_semver::Version;
 use proto_core::{
-    Detector, Downloadable, Executable, Installable, Proto, Resolvable, Tool, Verifiable,
+    Detector, Downloadable, Executable, Installable, Proto, Resolvable, Tool, Verifiable, Version,
 };
 use proto_go::GoLanguage;
 use std::fs;

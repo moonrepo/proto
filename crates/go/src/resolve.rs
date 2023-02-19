@@ -1,10 +1,9 @@
 use crate::GoLanguage;
 use core::str;
-use lenient_semver::Version;
 use log::debug;
 use proto_core::{
     async_trait, is_offline, is_semantic_version, remove_v_prefix, Describable, ProtoError,
-    Resolvable, VersionManifest, VersionManifestEntry,
+    Resolvable, Version, VersionManifest, VersionManifestEntry,
 };
 use std::collections::BTreeMap;
 use std::process::Command;

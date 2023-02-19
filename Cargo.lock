@@ -1227,7 +1227,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "proto"
+name = "proto_cli"
 version = "0.1.0"
 dependencies = [
  "clap",
@@ -1270,7 +1270,6 @@ name = "proto_go"
 version = "0.1.0"
 dependencies = [
  "assert_fs",
- "lenient_semver",
  "log",
  "proto_core",
  "serde",

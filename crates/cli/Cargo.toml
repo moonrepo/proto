@@ -1,5 +1,5 @@
 [package]
-name = "proto"
+name = "proto_cli"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
@@ -18,14 +18,14 @@ name = "proto"
 path = "src/bin.rs"
 
 [dependencies]
-proto_core = { path = "../core" }
-proto_node = { path = "../node" }
-proto_go = { path = "../go" }
+proto_core = { version = "0.1.0", path = "../core" }
+proto_node = { version = "0.1.0", path = "../node" }
+proto_go = { version = "0.1.0", path = "../go" }
 clap = { workspace = true, features = ["derive"] }
 clap_complete = { workspace = true }
 env_logger = "0.10.0"
 human-sort = "0.2.2"
-log = "0.4.17"
+log = { workspace = true }
 rustc-hash = { workspace = true }
 tokio = { workspace = true }
 toml = "0.7.0"
