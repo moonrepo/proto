@@ -4,6 +4,7 @@ members = ["crates/*"]
 default-members = ["crates/cli"]
 
 [workspace.dependencies]
+cached = "0.42.0"
 clap = "4.1.4"
 clap_complete = "4.1.1"
 console = "0.15.5"
