@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  format:
+    name: Format
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        name: Setup toolchain
+        with:
+          toolchain: 1.67.0
+          profile: minimal
+          components: rustfmt
+      - uses: actions-rs/cargo@v1
+        name: Check formatting
+        with:
+          command: fmt
+          args: --all --check
+  lint:
+    name: Lint
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        name: Setup toolchain
+        with:
+          toolchain: 1.67.0
+          profile: minimal
+          components: clippy
+      - uses: actions-rs/cargo@v1
+        name: Run linter
+        with:
+          command: clippy
+          args: --workspace --all-targets
+  test:
+    name: Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        name: Setup toolchain
+        with:
+          toolchain: 1.67.0
+          profile: minimal
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: ci
+      - uses: actions-rs/cargo@v1
+        name: Run tests
+        with:
+          command: test
+          args: --workspace

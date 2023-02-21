@@ -1,0 +1,165 @@
+name: Release
+
+on:
+  # Manually release crates
+  workflow_dispatch:
+  # Test on master to ensure PRs are good
+  # push:
+  #   branches:
+  #     - master
+  #     - develop-*
+  #     - release-*
+  # Uncomment to test in PRs (its safe)
+  # pull_request:
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            host: ubuntu-20.04
+            binary: proto
+            docker-target: bin-gnu
+            docker-platform: linux/amd64
+
+          - target: x86_64-unknown-linux-musl
+            host: ubuntu-20.04
+            binary: proto
+            docker-target: bin-musl
+            docker-platform: linux/amd64
+
+          - target: aarch64-unknown-linux-gnu
+            host: ubuntu-20.04
+            binary: proto
+            docker-target: bin-gnu
+            docker-platform: linux/arm64
+
+          - target: aarch64-unknown-linux-musl
+            host: ubuntu-20.04
+            binary: proto
+            docker-target: bin-musl
+            docker-platform: linux/arm64
+
+          - target: x86_64-apple-darwin
+            host: macos-latest
+            binary: proto
+            setup: |
+              export MACOSX_DEPLOYMENT_TARGET="10.13";
+
+          - target: aarch64-apple-darwin
+            host: macos-12
+            binary: proto
+            setup: |
+              export CC=$(xcrun -f clang);
+              export CXX=$(xcrun -f clang++);
+              export SDKROOT=$(xcrun -sdk macosx --show-sdk-path);
+              export CFLAGS="-isysroot $SDKROOT -isystem $SDKROOT";
+              export MACOSX_DEPLOYMENT_TARGET=$(xcrun -sdk macosx --show-sdk-platform-version);
+
+          - target: x86_64-pc-windows-msvc
+            host: windows-2022
+            binary: proto.exe
+    name: Stable - ${{ matrix.target }}
+    runs-on: ${{ matrix.host }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        if: ${{ !matrix.docker-target }}
+        with:
+          override: true
+          profile: minimal
+          target: ${{ matrix.target }}
+          toolchain: stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: release
+      - name: Generate lockfile
+        uses: actions-rs/cargo@v1
+        if: ${{ !matrix.docker-target }}
+        with:
+          command: generate-lockfile
+      - name: Setup toolchain
+        if: ${{ matrix.setup }}
+        run: ${{ matrix.setup }}
+      - name: Add target
+        if: ${{ !matrix.docker-target }}
+        run: rustup target add ${{ matrix.target }}
+      - name: Build binary
+        uses: actions-rs/cargo@v1
+        if: ${{ !matrix.docker-target }}
+        with:
+          command: build
+          args: --release --target ${{ matrix.target }}
+      - name: Install Depot CLI
+        if: ${{ matrix.docker-target }}
+        uses: depot/setup-action@v1
+      - name: Build binary with Docker / Depot
+        if: ${{ matrix.docker-target }}
+        uses: depot/build-push-action@v1
+        with:
+          context: .
+          file: ./release/Dockerfile
+          target: ${{ matrix.docker-target }}
+          platforms: ${{ matrix.docker-platform }}
+          outputs: type=local,dest=.
+      - uses: actions/upload-artifact@v2
+        name: Upload artifact
+        with:
+          name: binary-${{ matrix.target }}
+          path: ./target/${{ matrix.target }}/release/${{ matrix.binary }}
+          if-no-files-found: error
+
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            host: ubuntu-20.04
+
+          - target: x86_64-unknown-linux-musl
+            host: ubuntu-20.04
+            image: clux/muslrust:stable
+
+          - target: x86_64-apple-darwin
+            host: macos-latest
+
+          - target: x86_64-pc-windows-msvc
+            host: windows-latest
+    needs:
+      - build
+    name: Test - ${{ matrix.target }}
+    runs-on: ${{ matrix.host }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: proto
+      - name: Setup toolchain
+        if: ${{ matrix.setup }}
+        run: ${{ matrix.setup }}
+      - uses: actions/download-artifact@v2
+        name: Download artifacts
+        with:
+          path: artifacts
+      - name: List packages
+        run: ls -lR ./artifacts
+        shell: bash
+      - name: Test binary
+        if: ${{ !matrix.image }}
+        run: bash ./scripts/release/testBinary.sh
+        env:
+          TARGET: ${{ matrix.target }}
+      - name: Test binary with Docker
+        if: ${{ matrix.image }}
+        uses: mosteo-actions/docker-run@v1
+        with:
+          image: ${{ matrix.image }}
+          params: -e TARGET=${{ matrix.target }}
+          command: bash ./scripts/release/testBinary.sh
