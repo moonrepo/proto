@@ -1,11 +1,9 @@
 use crate::GoLanguage;
-use core::str;
 use log::debug;
 use proto_core::{
-    async_trait, is_offline, is_semantic_version, load_git_tags, remove_v_prefix, Describable,
-    ProtoError, Resolvable, Version, VersionManifest, VersionManifestEntry,
+    async_trait, create_version_manifest_from_tags, is_offline, is_semantic_version, load_git_tags,
+    remove_v_prefix, Describable, ProtoError, Resolvable, Version, VersionManifest,
 };
-use std::collections::BTreeMap;
 
 trait BaseVersion {
     fn base_version(&self) -> String;
@@ -20,62 +18,31 @@ impl<'a> BaseVersion for Version<'a> {
 #[async_trait]
 impl Resolvable<'_> for GoLanguage {
     fn get_resolved_version(&self) -> &str {
-        let v = self.version.as_ref().unwrap();
-        match v.strip_suffix(".0") {
-            Some(s) => s,
-            None => v,
+        match self.version.as_ref() {
+            Some(version) => version,
+            None => "latest",
         }
     }
 
     async fn load_manifest(&self) -> Result<VersionManifest, ProtoError> {
-        let mut alias_max = BTreeMap::new();
-        let mut latest = Version::new(0, 0, 0);
+        let tags = load_git_tags("https://github.com/golang/go")
+            .await?
+            .iter()
+            .filter(|t| t.starts_with("go"))
+            .map(|t| {
+                t.strip_prefix("go")
+                    .unwrap()
+                    // go1.4rc1, go1.19beta, etc
+                    .replace("alpha", ".0-alpha")
+                    .replace("beta", ".0-beta")
+                    .replace("rc", ".0-rc")
+                    .to_owned()
+            })
+            .collect::<Vec<_>>();
 
-        let mut aliases = BTreeMap::new();
-        let mut versions = BTreeMap::new();
+        let manifest = create_version_manifest_from_tags(tags);
 
-        let tags = load_git_tags("https://github.com/golang/go").await?;
-
-        for tag in &tags {
-            if !tag.starts_with("go") {
-                continue;
-            }
-
-            let ver_str = tag.strip_prefix("go").unwrap();
-
-            if let Ok(ver) = Version::parse(ver_str) {
-                let entry = VersionManifestEntry {
-                    alias: None,
-                    version: String::from(ver_str),
-                };
-                let base_version = ver.base_version();
-
-                if latest < ver {
-                    latest = ver.clone();
-                }
-
-                let current: Option<&Version> = alias_max.get(&base_version);
-
-                match current {
-                    Some(current_version) => {
-                        if current_version < &ver {
-                            aliases.insert(base_version.clone(), entry.version.clone());
-                            alias_max.insert(base_version, ver);
-                        }
-                    }
-                    None => {
-                        aliases.insert(base_version.clone(), entry.version.clone());
-                        alias_max.insert(base_version, ver);
-                    }
-                }
-
-                versions.insert(entry.version.clone(), entry);
-            }
-        }
-
-        aliases.insert("latest".into(), latest.to_string());
-
-        Ok(VersionManifest { aliases, versions })
+        Ok(manifest)
     }
 
     async fn resolve_version(&mut self, initial_version: &str) -> Result<String, ProtoError> {
@@ -100,6 +67,7 @@ impl Resolvable<'_> for GoLanguage {
         );
 
         let manifest = self.load_manifest().await?;
+
         let candidate = if initial_version.contains("rc") || initial_version.contains("beta") {
             manifest.get_version(&initial_version)?
         } else {

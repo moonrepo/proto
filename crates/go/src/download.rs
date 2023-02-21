@@ -68,9 +68,16 @@ impl Downloadable<'_> for GoLanguage {
     }
 
     fn get_download_url(&self) -> Result<String, ProtoError> {
+        let version = self.get_resolved_version();
+
+        let version = match version.strip_suffix(".0") {
+            Some(s) => s,
+            None => version,
+        };
+
         Ok(format!(
             "https://dl.google.com/go/{}",
-            get_archive_file(self.get_resolved_version())?
+            get_archive_file(version)?
         ))
     }
 }

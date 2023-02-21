@@ -142,8 +142,6 @@ where
 
     tags.sort_by(|a, d| compare(&a, &d));
 
-    // dbg!("load_git_tags", &tags);
-
     Ok(tags)
 }
 
@@ -154,20 +152,13 @@ pub fn create_version_manifest_from_tags(tags: Vec<String>) -> VersionManifest {
 
     for tag in &tags {
         if let Ok(version) = Version::parse(tag) {
-            let mut entry = VersionManifestEntry {
+            let entry = VersionManifestEntry {
                 alias: None,
-                version: tag.to_owned(),
+                version: version.to_string(),
             };
 
             if version > latest {
                 latest = version.clone();
-            }
-
-            if version.pre.is_defined() {
-                let alias = version.pre.as_ref().to_owned();
-
-                entry.alias = Some(alias.clone());
-                aliases.insert(alias, tag.to_owned());
             }
 
             versions.insert(entry.version.clone(), entry);
