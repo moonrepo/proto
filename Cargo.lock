@@ -1236,6 +1236,7 @@ dependencies = [
  "human-sort",
  "log",
  "proto_core",
+ "proto_deno",
  "proto_go",
  "proto_node",
  "rustc-hash",
