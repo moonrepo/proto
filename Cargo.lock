@@ -1253,6 +1253,7 @@ dependencies = [
  "console",
  "dirs",
  "flate2",
+ "human-sort",
  "lenient_semver",
  "log",
  "reqwest",

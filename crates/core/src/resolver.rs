@@ -1,6 +1,7 @@
 use crate::errors::ProtoError;
 use crate::{color, is_offline};
 use crate::{get_temp_dir, is_version_alias, remove_v_prefix};
+use human_sort::compare;
 use lenient_semver::Version;
 use log::trace;
 use serde::de::DeserializeOwned;
@@ -8,6 +9,7 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::time::{Duration, SystemTime};
 use std::{fs, io};
+use tokio::process::Command;
 
 #[derive(Debug)]
 pub struct VersionManifestEntry {
@@ -89,6 +91,96 @@ pub trait Resolvable<'tool>: Send + Sync {
 
     /// Explicitly set the resolved version.
     fn set_version(&mut self, version: &str);
+}
+
+pub async fn load_git_tags<U>(url: U) -> Result<Vec<String>, ProtoError>
+where
+    U: AsRef<str>,
+{
+    let url = url.as_ref();
+
+    let output = match Command::new("git")
+        .args(["ls-remote", "--tags", "--sort", "version:refname", url])
+        .output()
+        .await
+    {
+        Ok(o) => o,
+        Err(e) => {
+            return Err(ProtoError::DownloadFailed(
+                url.to_string(),
+                format!("Could not list versions from git: {}", e.to_string()),
+            ));
+        }
+    };
+
+    let Ok(raw) = String::from_utf8(output.stdout) else {
+        return Err(ProtoError::DownloadFailed(
+            url.to_string(),
+            "Failed to parse version list.".into(),
+        ));
+    };
+
+    let mut tags: Vec<String> = vec![];
+
+    for line in raw.split('\n') {
+        let parts: Vec<&str> = line.split('\t').collect();
+
+        if parts.len() < 2 {
+            continue;
+        }
+
+        let tag: Vec<&str> = parts[1].split('/').collect();
+
+        if tag.len() < 3 {
+            continue;
+        }
+
+        if let Some(last) = tag.last() {
+            tags.push((**last).to_owned());
+        }
+    }
+
+    tags.sort_by(|a, d| compare(&a, &d));
+
+    // dbg!("load_git_tags", &tags);
+
+    Ok(tags)
+}
+
+pub fn create_version_manifest_from_tags(tags: Vec<String>) -> VersionManifest {
+    let mut latest = Version::new(0, 0, 0);
+    let mut aliases = BTreeMap::new();
+    let mut versions = BTreeMap::new();
+
+    for tag in &tags {
+        if let Ok(version) = Version::parse(tag) {
+            let mut entry = VersionManifestEntry {
+                alias: None,
+                version: tag.to_owned(),
+            };
+
+            if version > latest {
+                latest = version.clone();
+            }
+
+            if version.pre.is_defined() {
+                let alias = version.pre.as_ref().to_owned();
+
+                entry.alias = Some(alias.clone());
+                aliases.insert(alias, tag.to_owned());
+            }
+
+            versions.insert(entry.version.clone(), entry);
+        }
+    }
+
+    if let Some(latest_version) = versions.get_mut(&latest.to_string()) {
+        latest_version.alias = Some("latest".into());
+    }
+
+    aliases.insert("latest".into(), latest.to_string());
+
+    VersionManifest { aliases, versions }
 }
 
 pub async fn load_versions_manifest<T, U>(url: U) -> Result<T, ProtoError>

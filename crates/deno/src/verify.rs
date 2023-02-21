@@ -5,11 +5,11 @@ use std::path::{Path, PathBuf};
 #[async_trait]
 impl Verifiable<'_> for DenoLanguage {
     fn get_checksum_path(&self) -> Result<PathBuf, ProtoError> {
-        Ok(self.temp_dir.join("deno-checksum"))
+        Ok(self.temp_dir.join("checksum"))
     }
 
-    fn get_checksum_url(&self) -> Result<String, ProtoError> {
-        Ok("".into())
+    fn get_checksum_url(&self) -> Result<Option<String>, ProtoError> {
+        Ok(None)
     }
 
     async fn verify_checksum(

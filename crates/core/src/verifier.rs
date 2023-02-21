@@ -15,7 +15,7 @@ pub trait Verifiable<'tool>: Send + Sync + Downloadable<'tool> {
     fn get_checksum_path(&self) -> Result<PathBuf, ProtoError>;
 
     /// Return a URL to download the tool's checksum manifest from a registry.
-    fn get_checksum_url(&self) -> Result<String, ProtoError>;
+    fn get_checksum_url(&self) -> Result<Option<String>, ProtoError>;
 
     /// If applicable, download all files necessary for verifying checksums.
     async fn download_checksum(
@@ -30,8 +30,13 @@ pub trait Verifiable<'tool>: Send + Sync + Downloadable<'tool> {
         }
 
         let from_url = match from_url {
-            Some(url) => url.to_owned(),
+            Some(url) => Some(url.to_owned()),
             None => self.get_checksum_url()?,
+        };
+
+        // Not all tools requires a checksum!
+        let Some(from_url) = from_url else {
+            return Ok(true);
         };
 
         debug!(

@@ -16,11 +16,11 @@ impl Verifiable<'_> for GoLanguage {
             .join(format!("{}-SHASUMS256.txt", self.get_resolved_version())))
     }
 
-    fn get_checksum_url(&self) -> Result<String, ProtoError> {
-        Ok(format!(
+    fn get_checksum_url(&self) -> Result<Option<String>, ProtoError> {
+        Ok(Some(format!(
             "https://dl.google.com/go/{}.sha256",
             get_archive_file(self.get_resolved_version())?
-        ))
+        )))
     }
 
     async fn verify_checksum(
