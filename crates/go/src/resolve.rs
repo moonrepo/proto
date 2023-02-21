@@ -36,7 +36,6 @@ impl Resolvable<'_> for GoLanguage {
                     .replace("alpha", ".0-alpha")
                     .replace("beta", ".0-beta")
                     .replace("rc", ".0-rc")
-                    .to_owned()
             })
             .collect::<Vec<_>>();
 

@@ -24,7 +24,9 @@ pub struct VersionManifest {
 }
 
 impl VersionManifest {
-    pub fn find_version(&self, version: &str) -> Result<&String, ProtoError> {
+    pub fn find_version<V: AsRef<str>>(&self, version: V) -> Result<&String, ProtoError> {
+        let version = version.as_ref();
+
         if is_version_alias(version) {
             return self.find_version_from_alias(version);
         }
@@ -40,6 +42,8 @@ impl VersionManifest {
         // We also parse versions instead of using starts with, as we need to ensure
         // "10.1" matches "10.1.*" and not "10.10.*"!
         let find_version = parse_version(version)?;
+        let mut latest_matching_version = Version::new(0, 0, 0);
+        let mut matched = false;
 
         for entry in self.versions.values().rev() {
             let entry_version = parse_version(&entry.version)?;
@@ -56,7 +60,16 @@ impl VersionManifest {
                 continue;
             }
 
-            return Ok(&entry.version);
+            // Find the latest (highest) matching version
+            if entry_version > latest_matching_version {
+                latest_matching_version = entry_version;
+                matched = true;
+            }
+        }
+
+        // Find again using an explicit match
+        if matched {
+            return self.find_version(latest_matching_version.to_string());
         }
 
         Err(ProtoError::VersionResolveFailed(version.to_owned()))
@@ -108,7 +121,7 @@ where
         Err(e) => {
             return Err(ProtoError::DownloadFailed(
                 url.to_string(),
-                format!("Could not list versions from git: {}", e.to_string()),
+                format!("Could not list versions from git: {e}"),
             ));
         }
     };
@@ -140,7 +153,7 @@ where
         }
     }
 
-    tags.sort_by(|a, d| compare(&a, &d));
+    tags.sort_by(|a, d| compare(a, d));
 
     Ok(tags)
 }

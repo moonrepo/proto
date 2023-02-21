@@ -220,7 +220,10 @@ mod resolver {
     async fn resolve_rc_version() {
         let (mut tool, _fixture) = create_tool();
 
-        assert_eq!(tool.resolve_version("1.9rc2").await.unwrap(), "1.9rc2");
+        assert_eq!(
+            tool.resolve_version("1.9.0-rc2").await.unwrap(),
+            "1.9.0-rc2"
+        );
     }
 
     #[tokio::test]
