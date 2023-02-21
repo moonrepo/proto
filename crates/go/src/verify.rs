@@ -17,9 +17,16 @@ impl Verifiable<'_> for GoLanguage {
     }
 
     fn get_checksum_url(&self) -> Result<Option<String>, ProtoError> {
+        let version = self.get_resolved_version();
+
+        let version = match version.strip_suffix(".0") {
+            Some(s) => s,
+            None => version,
+        };
+
         Ok(Some(format!(
             "https://dl.google.com/go/{}.sha256",
-            get_archive_file(self.get_resolved_version())?
+            get_archive_file(version)?
         )))
     }
 

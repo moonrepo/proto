@@ -24,6 +24,7 @@ impl Resolvable<'_> for GoLanguage {
         }
     }
 
+    // https://go.dev/dl/?mode=json&include=all
     async fn load_manifest(&self) -> Result<VersionManifest, ProtoError> {
         let tags = load_git_tags("https://github.com/golang/go")
             .await?
