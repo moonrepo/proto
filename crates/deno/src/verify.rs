@@ -1,15 +1,11 @@
-use crate::depman::NodeDependencyManager;
-use proto_core::{async_trait, ProtoError, Resolvable, Verifiable};
+use crate::DenoLanguage;
+use proto_core::{async_trait, ProtoError, Verifiable};
 use std::path::{Path, PathBuf};
 
-// TODO: implement PGP/ECDSA signature verify
-// https://docs.npmjs.com/about-registry-signatures
 #[async_trait]
-impl Verifiable<'_> for NodeDependencyManager {
+impl Verifiable<'_> for DenoLanguage {
     fn get_checksum_path(&self) -> Result<PathBuf, ProtoError> {
-        Ok(self
-            .temp_dir
-            .join(format!("{}.pub", self.get_resolved_version())))
+        Ok(self.temp_dir.join("checksum"))
     }
 
     fn get_checksum_url(&self) -> Result<Option<String>, ProtoError> {
@@ -21,6 +17,7 @@ impl Verifiable<'_> for NodeDependencyManager {
         _checksum_file: &Path,
         _download_file: &Path,
     ) -> Result<bool, ProtoError> {
+        // Deno doesn't have checksums!
         Ok(true)
     }
 }

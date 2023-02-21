@@ -13,6 +13,7 @@ cached = { workspace = true }
 console = { workspace = true }
 dirs = "4.0.0"
 flate2 = "1.0.25"
+human-sort = "0.2.2"
 lenient_semver = { version = "0.4.2", features = ["version_lite", "version_serde"] }
 log = { workspace = true }
 reqwest = { workspace = true }

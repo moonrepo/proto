@@ -277,7 +277,7 @@ mod resolver {
             NodeDependencyManagerType::Npm,
         );
 
-        assert_eq!(tool.resolve_version("6").await.unwrap(), "6.9.2");
+        assert_eq!(tool.resolve_version("6").await.unwrap(), "6.14.18");
     }
 
     #[tokio::test]

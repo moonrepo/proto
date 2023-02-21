@@ -1236,6 +1236,7 @@ dependencies = [
  "human-sort",
  "log",
  "proto_core",
+ "proto_deno",
  "proto_go",
  "proto_node",
  "rustc-hash",
@@ -1252,6 +1253,7 @@ dependencies = [
  "console",
  "dirs",
  "flate2",
+ "human-sort",
  "lenient_semver",
  "log",
  "reqwest",
@@ -1263,6 +1265,18 @@ dependencies = [
  "tinytemplate",
  "tokio",
  "zip",
+]
+
+[[package]]
+name = "proto_deno"
+version = "0.1.0"
+dependencies = [
+ "assert_fs",
+ "log",
+ "proto_core",
+ "serde",
+ "serde_json",
+ "tokio",
 ]
 
 [[package]]

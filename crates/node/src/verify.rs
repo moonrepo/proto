@@ -15,11 +15,11 @@ impl Verifiable<'_> for NodeLanguage {
             .join(format!("{}-SHASUMS256.txt", self.get_resolved_version())))
     }
 
-    fn get_checksum_url(&self) -> Result<String, ProtoError> {
-        Ok(format!(
+    fn get_checksum_url(&self) -> Result<Option<String>, ProtoError> {
+        Ok(Some(format!(
             "https://nodejs.org/dist/v{}/SHASUMS256.txt",
             self.get_resolved_version()
-        ))
+        )))
     }
 
     async fn verify_checksum(

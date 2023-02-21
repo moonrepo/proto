@@ -1,6 +1,7 @@
 use crate::errors::ProtoError;
 use crate::{color, is_offline};
 use crate::{get_temp_dir, is_version_alias, remove_v_prefix};
+use human_sort::compare;
 use lenient_semver::Version;
 use log::trace;
 use serde::de::DeserializeOwned;
@@ -8,6 +9,7 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::time::{Duration, SystemTime};
 use std::{fs, io};
+use tokio::process::Command;
 
 #[derive(Debug)]
 pub struct VersionManifestEntry {
@@ -22,7 +24,9 @@ pub struct VersionManifest {
 }
 
 impl VersionManifest {
-    pub fn find_version(&self, version: &str) -> Result<&String, ProtoError> {
+    pub fn find_version<V: AsRef<str>>(&self, version: V) -> Result<&String, ProtoError> {
+        let version = version.as_ref();
+
         if is_version_alias(version) {
             return self.find_version_from_alias(version);
         }
@@ -38,6 +42,8 @@ impl VersionManifest {
         // We also parse versions instead of using starts with, as we need to ensure
         // "10.1" matches "10.1.*" and not "10.10.*"!
         let find_version = parse_version(version)?;
+        let mut latest_matching_version = Version::new(0, 0, 0);
+        let mut matched = false;
 
         for entry in self.versions.values().rev() {
             let entry_version = parse_version(&entry.version)?;
@@ -54,7 +60,16 @@ impl VersionManifest {
                 continue;
             }
 
-            return Ok(&entry.version);
+            // Find the latest (highest) matching version
+            if entry_version > latest_matching_version {
+                latest_matching_version = entry_version;
+                matched = true;
+            }
+        }
+
+        // Find again using an explicit match
+        if matched {
+            return self.find_version(latest_matching_version.to_string());
         }
 
         Err(ProtoError::VersionResolveFailed(version.to_owned()))
@@ -89,6 +104,87 @@ pub trait Resolvable<'tool>: Send + Sync {
 
     /// Explicitly set the resolved version.
     fn set_version(&mut self, version: &str);
+}
+
+pub async fn load_git_tags<U>(url: U) -> Result<Vec<String>, ProtoError>
+where
+    U: AsRef<str>,
+{
+    let url = url.as_ref();
+
+    let output = match Command::new("git")
+        .args(["ls-remote", "--tags", "--sort", "version:refname", url])
+        .output()
+        .await
+    {
+        Ok(o) => o,
+        Err(e) => {
+            return Err(ProtoError::DownloadFailed(
+                url.to_string(),
+                format!("Could not list versions from git: {e}"),
+            ));
+        }
+    };
+
+    let Ok(raw) = String::from_utf8(output.stdout) else {
+        return Err(ProtoError::DownloadFailed(
+            url.to_string(),
+            "Failed to parse version list.".into(),
+        ));
+    };
+
+    let mut tags: Vec<String> = vec![];
+
+    for line in raw.split('\n') {
+        let parts: Vec<&str> = line.split('\t').collect();
+
+        if parts.len() < 2 {
+            continue;
+        }
+
+        let tag: Vec<&str> = parts[1].split('/').collect();
+
+        if tag.len() < 3 {
+            continue;
+        }
+
+        if let Some(last) = tag.last() {
+            tags.push((**last).to_owned());
+        }
+    }
+
+    tags.sort_by(|a, d| compare(a, d));
+
+    Ok(tags)
+}
+
+pub fn create_version_manifest_from_tags(tags: Vec<String>) -> VersionManifest {
+    let mut latest = Version::new(0, 0, 0);
+    let mut aliases = BTreeMap::new();
+    let mut versions = BTreeMap::new();
+
+    for tag in &tags {
+        if let Ok(version) = Version::parse(tag) {
+            let entry = VersionManifestEntry {
+                alias: None,
+                version: version.to_string(),
+            };
+
+            if version > latest {
+                latest = version.clone();
+            }
+
+            versions.insert(entry.version.clone(), entry);
+        }
+    }
+
+    if let Some(latest_version) = versions.get_mut(&latest.to_string()) {
+        latest_version.alias = Some("latest".into());
+    }
+
+    aliases.insert("latest".into(), latest.to_string());
+
+    VersionManifest { aliases, versions }
 }
 
 pub async fn load_versions_manifest<T, U>(url: U) -> Result<T, ProtoError>
