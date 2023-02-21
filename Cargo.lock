@@ -1266,6 +1266,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "proto_deno"
+version = "0.1.0"
+dependencies = [
+ "assert_fs",
+ "log",
+ "proto_core",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "proto_go"
 version = "0.1.0"
 dependencies = [
