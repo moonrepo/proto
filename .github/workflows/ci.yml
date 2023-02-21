@@ -19,7 +19,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         name: Setup toolchain
         with:
-          toolchain: 1.66.0
+          toolchain: 1.67.0
           profile: minimal
           components: rustfmt
       - uses: actions-rs/cargo@v1
@@ -39,7 +39,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         name: Setup toolchain
         with:
-          toolchain: 1.66.0
+          toolchain: 1.67.0
           profile: minimal
           components: clippy
       - uses: actions-rs/cargo@v1
@@ -59,7 +59,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         name: Setup toolchain
         with:
-          toolchain: 1.66.0
+          toolchain: 1.67.0
           profile: minimal
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2

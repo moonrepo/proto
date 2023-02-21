@@ -4,13 +4,13 @@ on:
   # Manually release crates
   workflow_dispatch:
   # Test on master to ensure PRs are good
-  push:
-    branches:
-      - master
-      - develop-*
-      - release-*
+  # push:
+  #   branches:
+  #     - master
+  #     - develop-*
+  #     - release-*
   # Uncomment to test in PRs (its safe)
-  pull_request:
+  # pull_request:
 
 permissions:
   contents: write
@@ -53,7 +53,7 @@ jobs:
               export MACOSX_DEPLOYMENT_TARGET="10.13";
 
           - target: aarch64-apple-darwin
-            host: macos-latest
+            host: macos-12
             binary: proto
             setup: |
               export CC=$(xcrun -f clang);
@@ -63,7 +63,7 @@ jobs:
               export MACOSX_DEPLOYMENT_TARGET=$(xcrun -sdk macosx --show-sdk-platform-version);
 
           - target: x86_64-pc-windows-msvc
-            host: windows-latest
+            host: windows-2022
             binary: proto.exe
     name: Stable - ${{ matrix.target }}
     runs-on: ${{ matrix.host }}
