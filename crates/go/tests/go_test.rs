@@ -19,11 +19,12 @@ async fn downloads_verifies_installs_tool() {
 
     std::env::set_var("PROTO_ROOT", fixture.path().to_string_lossy().to_string());
 
-    tool.setup("1.17.3").await.unwrap();
+    // Test zero patches because they are weird (go1.20)
+    tool.setup("1.20.0").await.unwrap();
 
     assert!(tool.get_install_dir().unwrap().exists());
 
-    let base_dir = proto.tools_dir.join("go/1.17.3");
+    let base_dir = proto.tools_dir.join("go/1.20.0");
     let global_shim = proto.shims_dir.join("go");
 
     if cfg!(windows) {
