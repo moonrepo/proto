@@ -74,7 +74,7 @@ mod downloader {
             Proto::from(fixture.path())
                 .temp_dir
                 .join("deno")
-                .join(format!("1.28.3-{}", get_archive_file().unwrap()))
+                .join(format!("v1.28.3-{}", get_archive_file().unwrap()))
         );
     }
 

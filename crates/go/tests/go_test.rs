@@ -252,7 +252,7 @@ mod verifier {
             Proto::from(fixture.path())
                 .temp_dir
                 .join("go")
-                .join("1.17.1-SHASUMS256.txt")
+                .join("v1.17.1-SHASUMS256.txt")
         );
     }
 

@@ -224,7 +224,7 @@ mod downloader {
             Proto::from(fixture.path())
                 .temp_dir
                 .join("npm")
-                .join("9.0.0.tgz")
+                .join("v9.0.0.tgz")
         );
     }
 
