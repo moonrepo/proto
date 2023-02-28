@@ -1,4 +1,4 @@
-use crate::NodeLanguage;
+use crate::BunLanguage;
 use log::debug;
 use proto_core::{
     async_trait, color, get_sha256_hash_of_file, Describable, ProtoError, Resolvable, Verifiable,
@@ -8,7 +8,7 @@ use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 
 #[async_trait]
-impl Verifiable<'_> for NodeLanguage {
+impl Verifiable<'_> for BunLanguage {
     fn get_checksum_path(&self) -> Result<PathBuf, ProtoError> {
         Ok(self
             .temp_dir
@@ -17,7 +17,7 @@ impl Verifiable<'_> for NodeLanguage {
 
     fn get_checksum_url(&self) -> Result<Option<String>, ProtoError> {
         Ok(Some(format!(
-            "https://nodejs.org/dist/v{}/SHASUMS256.txt",
+            "https://github.com/oven-sh/bun/releases/download/bun-v{}/SHASUMS256.txt",
             self.get_resolved_version()
         )))
     }

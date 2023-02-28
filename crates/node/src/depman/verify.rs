@@ -9,7 +9,7 @@ impl Verifiable<'_> for NodeDependencyManager {
     fn get_checksum_path(&self) -> Result<PathBuf, ProtoError> {
         Ok(self
             .temp_dir
-            .join(format!("{}.pub", self.get_resolved_version())))
+            .join(format!("v{}.pub", self.get_resolved_version())))
     }
 
     fn get_checksum_url(&self) -> Result<Option<String>, ProtoError> {

@@ -7,7 +7,7 @@ impl Downloadable<'_> for NodeDependencyManager {
     fn get_download_path(&self) -> Result<PathBuf, ProtoError> {
         Ok(self
             .temp_dir
-            .join(format!("{}.tgz", self.get_resolved_version())))
+            .join(format!("v{}.tgz", self.get_resolved_version())))
     }
 
     fn get_download_url(&self) -> Result<String, ProtoError> {
