@@ -1,3 +1,4 @@
+use crate::download::get_archive_file;
 use crate::BunLanguage;
 use log::debug;
 use proto_core::{
@@ -38,15 +39,11 @@ impl Verifiable<'_> for BunLanguage {
 
         let file = File::open(checksum_file)
             .map_err(|e| ProtoError::Fs(checksum_file.to_path_buf(), e.to_string()))?;
-        let file_name = download_file
-            .file_name()
-            .unwrap_or_default()
-            .to_str()
-            .unwrap_or_default();
+        let file_name = get_archive_file()?;
 
         for line in BufReader::new(file).lines().flatten() {
-            // <checksum>  node-v<version>-<os>-<arch>.tar.gz
-            if line.starts_with(&checksum) && line.ends_with(file_name) {
+            // <checksum>  bun-<os>-<arch>.zip
+            if line.starts_with(&checksum) && line.ends_with(&file_name) {
                 debug!(target: self.get_log_target(), "Successfully verified, checksum matches");
 
                 return Ok(true);

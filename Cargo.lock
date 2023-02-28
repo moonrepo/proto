@@ -1240,13 +1240,14 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "clap",
  "clap_complete",
  "env_logger",
  "human-sort",
  "log",
+ "proto_bun",
  "proto_core",
  "proto_deno",
  "proto_go",

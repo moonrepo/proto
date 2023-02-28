@@ -19,7 +19,7 @@ pub struct App {
     pub command: Commands,
 }
 
-// TODO: alias, unalias, shell completions
+// TODO: alias, unalias
 #[derive(Debug, Subcommand)]
 pub enum Commands {
     #[command(
