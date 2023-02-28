@@ -12,6 +12,8 @@ fn create_tool() -> (BunLanguage, assert_fs::TempDir) {
     (tool, fixture)
 }
 
+// Bun doesn't support windows yet!
+#[cfg(not(windows))]
 mod bun {
     use super::*;
 
@@ -125,6 +127,7 @@ mod bun {
         #[tokio::test]
         async fn resolve_base_version() {
             let (mut tool, _fixture) = create_tool();
+            tool.version = None;
 
             assert_ne!(tool.resolve_version("0.4").await.unwrap(), "0.4");
         }
@@ -132,6 +135,7 @@ mod bun {
         #[tokio::test]
         async fn resolve_alias_version() {
             let (mut tool, _fixture) = create_tool();
+            tool.version = None;
 
             assert_eq!(tool.resolve_version("0.4").await.unwrap(), "0.4.0");
         }
@@ -139,6 +143,7 @@ mod bun {
         #[tokio::test]
         async fn resolve_specific_version() {
             let (mut tool, _fixture) = create_tool();
+            tool.version = None;
 
             assert_eq!(tool.resolve_version("0.5.1").await.unwrap(), "0.5.1");
         }
@@ -146,6 +151,7 @@ mod bun {
         #[tokio::test]
         async fn resolve_latest_version() {
             let (mut tool, _fixture) = create_tool();
+            tool.version = None;
 
             let latest = tool.resolve_version("latest").await.unwrap();
             let latest_version = Version::parse(latest.as_str()).unwrap();

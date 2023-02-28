@@ -11,178 +11,182 @@ fn create_tool() -> (DenoLanguage, assert_fs::TempDir) {
     (tool, fixture)
 }
 
-#[tokio::test]
-async fn downloads_verifies_installs_tool() {
-    let fixture = assert_fs::TempDir::new().unwrap();
-    let proto = Proto::from(fixture.path());
-    let mut tool = DenoLanguage::new(&proto);
-
-    std::env::set_var("PROTO_ROOT", fixture.path().to_string_lossy().to_string());
-
-    tool.setup("1.17.3").await.unwrap();
-
-    assert!(tool.get_install_dir().unwrap().exists());
-
-    let base_dir = proto.tools_dir.join("deno/1.17.3");
-    let global_shim = proto.shims_dir.join("deno");
-
-    if cfg!(windows) {
-        assert_eq!(tool.get_bin_path().unwrap(), &base_dir.join("deno.exe"));
-        assert!(!global_shim.exists());
-    } else {
-        assert_eq!(tool.get_bin_path().unwrap(), &base_dir.join("deno"));
-        assert!(global_shim.exists());
-    }
-}
-
-mod detector {
+mod deno {
     use super::*;
 
     #[tokio::test]
-    async fn doesnt_match_if_no_files() {
-        let (tool, fixture) = create_tool();
+    async fn downloads_verifies_installs_tool() {
+        let fixture = assert_fs::TempDir::new().unwrap();
+        let proto = Proto::from(fixture.path());
+        let mut tool = DenoLanguage::new(&proto);
 
-        assert_eq!(
-            tool.detect_version_from(fixture.path()).await.unwrap(),
-            None
-        );
+        std::env::set_var("PROTO_ROOT", fixture.path().to_string_lossy().to_string());
+
+        tool.setup("1.17.3").await.unwrap();
+
+        assert!(tool.get_install_dir().unwrap().exists());
+
+        let base_dir = proto.tools_dir.join("deno/1.17.3");
+        let global_shim = proto.shims_dir.join("deno");
+
+        if cfg!(windows) {
+            assert_eq!(tool.get_bin_path().unwrap(), &base_dir.join("deno.exe"));
+            assert!(!global_shim.exists());
+        } else {
+            assert_eq!(tool.get_bin_path().unwrap(), &base_dir.join("deno"));
+            assert!(global_shim.exists());
+        }
     }
 
-    #[tokio::test]
-    async fn detects_dvmrc() {
-        let (tool, fixture) = create_tool();
+    mod detector {
+        use super::*;
 
-        fixture.child(".dvmrc").write_str("1.30.1").unwrap();
+        #[tokio::test]
+        async fn doesnt_match_if_no_files() {
+            let (tool, fixture) = create_tool();
 
-        assert_eq!(
-            tool.detect_version_from(fixture.path()).await.unwrap(),
-            Some("1.30.1".into())
-        );
-    }
-}
+            assert_eq!(
+                tool.detect_version_from(fixture.path()).await.unwrap(),
+                None
+            );
+        }
 
-mod downloader {
-    use super::*;
-    use proto_deno::download::get_archive_file;
+        #[tokio::test]
+        async fn detects_dvmrc() {
+            let (tool, fixture) = create_tool();
 
-    #[tokio::test]
-    async fn sets_path_to_temp() {
-        let (mut tool, fixture) = create_tool();
-        tool.version = Some(String::from("1.28.3"));
-        assert_eq!(
-            tool.get_download_path().unwrap(),
-            Proto::from(fixture.path())
-                .temp_dir
-                .join("deno")
-                .join(format!("v1.28.3-{}", get_archive_file().unwrap()))
-        );
+            fixture.child(".dvmrc").write_str("1.30.1").unwrap();
+
+            assert_eq!(
+                tool.detect_version_from(fixture.path()).await.unwrap(),
+                Some("1.30.1".into())
+            );
+        }
     }
 
-    #[tokio::test]
-    async fn downloads_to_temp() {
-        let (mut tool, _fixture) = create_tool();
-        tool.version = Some(String::from("1.28.3"));
+    mod downloader {
+        use super::*;
+        use proto_deno::download::get_archive_file;
 
-        let to_file = tool.get_download_path().unwrap();
+        #[tokio::test]
+        async fn sets_path_to_temp() {
+            let (mut tool, fixture) = create_tool();
+            tool.version = Some(String::from("1.28.3"));
+            assert_eq!(
+                tool.get_download_path().unwrap(),
+                Proto::from(fixture.path())
+                    .temp_dir
+                    .join("deno")
+                    .join(format!("v1.28.3-{}", get_archive_file().unwrap()))
+            );
+        }
 
-        assert!(!to_file.exists());
+        #[tokio::test]
+        async fn downloads_to_temp() {
+            let (mut tool, _fixture) = create_tool();
+            tool.version = Some(String::from("1.28.3"));
 
-        tool.download(&to_file, None).await.unwrap();
+            let to_file = tool.get_download_path().unwrap();
 
-        assert!(to_file.exists());
+            assert!(!to_file.exists());
+
+            tool.download(&to_file, None).await.unwrap();
+
+            assert!(to_file.exists());
+        }
+
+        #[tokio::test]
+        async fn doesnt_download_if_file_exists() {
+            let (mut tool, _fixture) = create_tool();
+            tool.version = Some(String::from("1.28.3"));
+
+            let to_file = tool.get_download_path().unwrap();
+
+            assert!(tool.download(&to_file, None).await.unwrap());
+            assert!(!tool.download(&to_file, None).await.unwrap());
+        }
     }
 
-    #[tokio::test]
-    async fn doesnt_download_if_file_exists() {
-        let (mut tool, _fixture) = create_tool();
-        tool.version = Some(String::from("1.28.3"));
+    mod installer {
+        use super::*;
 
-        let to_file = tool.get_download_path().unwrap();
+        #[tokio::test]
+        async fn sets_dir_to_tools() {
+            let (mut tool, fixture) = create_tool();
+            tool.version = Some(String::from("1.28.3"));
 
-        assert!(tool.download(&to_file, None).await.unwrap());
-        assert!(!tool.download(&to_file, None).await.unwrap());
-    }
-}
+            assert_eq!(
+                tool.get_install_dir().unwrap(),
+                Proto::from(fixture.path())
+                    .tools_dir
+                    .join("deno")
+                    .join("1.28.3")
+            );
+        }
 
-mod installer {
-    use super::*;
+        #[tokio::test]
+        #[should_panic(expected = "InstallMissingDownload(\"Deno\")")]
+        async fn errors_for_missing_download() {
+            let (mut tool, _fixture) = create_tool();
+            tool.version = Some(String::from("1.28.3"));
 
-    #[tokio::test]
-    async fn sets_dir_to_tools() {
-        let (mut tool, fixture) = create_tool();
-        tool.version = Some(String::from("1.28.3"));
+            let dir = tool.get_install_dir().unwrap();
 
-        assert_eq!(
-            tool.get_install_dir().unwrap(),
-            Proto::from(fixture.path())
-                .tools_dir
-                .join("deno")
-                .join("1.28.3")
-        );
-    }
+            tool.install(&dir, &tool.get_download_path().unwrap())
+                .await
+                .unwrap();
+        }
 
-    #[tokio::test]
-    #[should_panic(expected = "InstallMissingDownload(\"Deno\")")]
-    async fn errors_for_missing_download() {
-        let (mut tool, _fixture) = create_tool();
-        tool.version = Some(String::from("1.28.3"));
+        #[tokio::test]
+        async fn doesnt_install_if_dir_exists() {
+            let (mut tool, _fixture) = create_tool();
+            tool.version = Some(String::from("1.28.3"));
 
-        let dir = tool.get_install_dir().unwrap();
+            let dir = tool.get_install_dir().unwrap();
 
-        tool.install(&dir, &tool.get_download_path().unwrap())
-            .await
-            .unwrap();
-    }
+            fs::create_dir_all(&dir).unwrap();
 
-    #[tokio::test]
-    async fn doesnt_install_if_dir_exists() {
-        let (mut tool, _fixture) = create_tool();
-        tool.version = Some(String::from("1.28.3"));
-
-        let dir = tool.get_install_dir().unwrap();
-
-        fs::create_dir_all(&dir).unwrap();
-
-        assert!(!tool
-            .install(&dir, &tool.get_download_path().unwrap())
-            .await
-            .unwrap());
-    }
-}
-
-mod resolver {
-    use super::*;
-
-    #[tokio::test]
-    async fn resolve_base_version() {
-        let (mut tool, _fixture) = create_tool();
-
-        assert_ne!(tool.resolve_version("1.19").await.unwrap(), "1.19");
-        assert_ne!(tool.resolve_version("1.19").await.unwrap(), "1.19.0");
+            assert!(!tool
+                .install(&dir, &tool.get_download_path().unwrap())
+                .await
+                .unwrap());
+        }
     }
 
-    #[tokio::test]
-    async fn resolve_alias_version() {
-        let (mut tool, _fixture) = create_tool();
+    mod resolver {
+        use super::*;
 
-        assert_eq!(tool.resolve_version("1.11").await.unwrap(), "1.11.5");
-    }
+        #[tokio::test]
+        async fn resolve_base_version() {
+            let (mut tool, _fixture) = create_tool();
 
-    #[tokio::test]
-    async fn resolve_specific_version() {
-        let (mut tool, _fixture) = create_tool();
+            assert_ne!(tool.resolve_version("1.19").await.unwrap(), "1.19");
+            assert_ne!(tool.resolve_version("1.19").await.unwrap(), "1.19.0");
+        }
 
-        assert_eq!(tool.resolve_version("1.9.2").await.unwrap(), "1.9.2");
-    }
+        #[tokio::test]
+        async fn resolve_alias_version() {
+            let (mut tool, _fixture) = create_tool();
 
-    #[tokio::test]
-    async fn resolve_latest_version() {
-        let (mut tool, _fixture) = create_tool();
+            assert_eq!(tool.resolve_version("1.11").await.unwrap(), "1.11.5");
+        }
 
-        let latest = tool.resolve_version("latest").await.unwrap();
-        let latest_version = Version::parse(latest.as_str()).unwrap();
-        let current_latest_version = Version::parse("1.19.5").unwrap();
+        #[tokio::test]
+        async fn resolve_specific_version() {
+            let (mut tool, _fixture) = create_tool();
 
-        assert!(latest_version > current_latest_version);
+            assert_eq!(tool.resolve_version("1.9.2").await.unwrap(), "1.9.2");
+        }
+
+        #[tokio::test]
+        async fn resolve_latest_version() {
+            let (mut tool, _fixture) = create_tool();
+
+            let latest = tool.resolve_version("latest").await.unwrap();
+            let latest_version = Version::parse(latest.as_str()).unwrap();
+            let current_latest_version = Version::parse("1.19.5").unwrap();
+
+            assert!(latest_version > current_latest_version);
+        }
     }
 }

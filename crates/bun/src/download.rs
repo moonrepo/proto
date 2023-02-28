@@ -33,6 +33,8 @@ pub fn get_archive_file_path() -> Result<String, ProtoError> {
 
 #[cfg(target_os = "windows")]
 pub fn get_archive_file_path() -> Result<String, ProtoError> {
+    let arch = BunArch::from_os_arch()?;
+
     return Err(ProtoError::UnsupportedArchitecture(
         "Bun".into(),
         arch.to_string(),
