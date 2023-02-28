@@ -13,7 +13,7 @@ impl Verifiable<'_> for GoLanguage {
     fn get_checksum_path(&self) -> Result<PathBuf, ProtoError> {
         Ok(self
             .temp_dir
-            .join(format!("{}-SHASUMS256.txt", self.get_resolved_version())))
+            .join(format!("v{}-SHASUMS256.txt", self.get_resolved_version())))
     }
 
     fn get_checksum_url(&self) -> Result<Option<String>, ProtoError> {

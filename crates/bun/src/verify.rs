@@ -1,4 +1,5 @@
-use crate::NodeLanguage;
+use crate::download::get_archive_file;
+use crate::BunLanguage;
 use log::debug;
 use proto_core::{
     async_trait, color, get_sha256_hash_of_file, Describable, ProtoError, Resolvable, Verifiable,
@@ -8,7 +9,7 @@ use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 
 #[async_trait]
-impl Verifiable<'_> for NodeLanguage {
+impl Verifiable<'_> for BunLanguage {
     fn get_checksum_path(&self) -> Result<PathBuf, ProtoError> {
         Ok(self
             .temp_dir
@@ -17,7 +18,7 @@ impl Verifiable<'_> for NodeLanguage {
 
     fn get_checksum_url(&self) -> Result<Option<String>, ProtoError> {
         Ok(Some(format!(
-            "https://nodejs.org/dist/v{}/SHASUMS256.txt",
+            "https://github.com/oven-sh/bun/releases/download/bun-v{}/SHASUMS256.txt",
             self.get_resolved_version()
         )))
     }
@@ -38,15 +39,11 @@ impl Verifiable<'_> for NodeLanguage {
 
         let file = File::open(checksum_file)
             .map_err(|e| ProtoError::Fs(checksum_file.to_path_buf(), e.to_string()))?;
-        let file_name = download_file
-            .file_name()
-            .unwrap_or_default()
-            .to_str()
-            .unwrap_or_default();
+        let file_name = get_archive_file()?;
 
         for line in BufReader::new(file).lines().flatten() {
-            // <checksum>  node-v<version>-<os>-<arch>.tar.gz
-            if line.starts_with(&checksum) && line.ends_with(file_name) {
+            // <checksum>  bun-<os>-<arch>.zip
+            if line.starts_with(&checksum) && line.ends_with(&file_name) {
                 debug!(target: self.get_log_target(), "Successfully verified, checksum matches");
 
                 return Ok(true);

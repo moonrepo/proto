@@ -1227,14 +1227,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "proto_bun"
+version = "0.1.0"
+dependencies = [
+ "assert_fs",
+ "log",
+ "proto_core",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "proto_cli"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "clap",
  "clap_complete",
  "env_logger",
  "human-sort",
  "log",
+ "proto_bun",
  "proto_core",
  "proto_deno",
  "proto_go",

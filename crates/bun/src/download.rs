@@ -1,48 +1,44 @@
-use crate::platform::DenoArch;
-use crate::DenoLanguage;
+use crate::platform::BunArch;
+use crate::BunLanguage;
 use proto_core::{async_trait, Downloadable, ProtoError, Resolvable};
 use std::path::PathBuf;
 
 #[cfg(target_os = "macos")]
 pub fn get_archive_file_path() -> Result<String, ProtoError> {
-    let arch = DenoArch::from_os_arch()?;
+    let arch = BunArch::from_os_arch()?;
 
-    if !matches!(arch, DenoArch::X64 | DenoArch::Arm64) {
+    if !matches!(arch, BunArch::X64 | BunArch::Arm64) {
         return Err(ProtoError::UnsupportedArchitecture(
-            "Deno".into(),
+            "Bun".into(),
             arch.to_string(),
         ));
     }
 
-    Ok(format!("deno-{arch}-apple-darwin"))
+    Ok(format!("bun-darwin-{arch}"))
 }
 
 #[cfg(all(unix, not(target_os = "macos")))]
 pub fn get_archive_file_path() -> Result<String, ProtoError> {
-    let arch = DenoArch::from_os_arch()?;
+    let arch = BunArch::from_os_arch()?;
 
-    if !matches!(arch, DenoArch::X64) {
+    if !matches!(arch, BunArch::X64 | BunArch::Arm64) {
         return Err(ProtoError::UnsupportedArchitecture(
-            "Deno".into(),
+            "Bun".into(),
             arch.to_string(),
         ));
     }
 
-    Ok(format!("deno-{arch}-unknown-linux-gnu"))
+    Ok(format!("bun-linux-{arch}"))
 }
 
 #[cfg(target_os = "windows")]
 pub fn get_archive_file_path() -> Result<String, ProtoError> {
-    let arch = DenoArch::from_os_arch()?;
+    let arch = BunArch::from_os_arch()?;
 
-    if !matches!(arch, DenoArch::X64) {
-        return Err(ProtoError::UnsupportedArchitecture(
-            "Deno".into(),
-            arch.to_string(),
-        ));
-    }
-
-    Ok(format!("deno-{arch}-pc-windows-msvc"))
+    return Err(ProtoError::UnsupportedArchitecture(
+        "Bun".into(),
+        arch.to_string(),
+    ));
 }
 
 pub fn get_archive_file() -> Result<String, ProtoError> {
@@ -50,7 +46,7 @@ pub fn get_archive_file() -> Result<String, ProtoError> {
 }
 
 #[async_trait]
-impl Downloadable<'_> for DenoLanguage {
+impl Downloadable<'_> for BunLanguage {
     fn get_download_path(&self) -> Result<PathBuf, ProtoError> {
         Ok(self.temp_dir.join(format!(
             "v{}-{}",
@@ -61,7 +57,7 @@ impl Downloadable<'_> for DenoLanguage {
 
     fn get_download_url(&self) -> Result<String, ProtoError> {
         Ok(format!(
-            "https://github.com/denoland/deno/releases/download/v{}/{}",
+            "https://github.com/oven-sh/bun/releases/download/bun-v{}/{}",
             self.get_resolved_version(),
             get_archive_file()?
         ))

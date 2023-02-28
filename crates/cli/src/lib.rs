@@ -1,6 +1,7 @@
 use clap::ValueEnum;
 use std::str::FromStr;
 
+pub use proto_bun as bun;
 pub use proto_core::*;
 pub use proto_deno as deno;
 pub use proto_go as go;
@@ -9,6 +10,8 @@ pub use proto_node as node;
 #[derive(Clone, Debug, Eq, Hash, PartialEq, ValueEnum)]
 #[value(rename_all = "lowercase")]
 pub enum ToolType {
+    // Bun
+    Bun,
     // Deno
     Deno,
     // Go
@@ -25,12 +28,17 @@ impl FromStr for ToolType {
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         match value.to_lowercase().as_ref() {
+            // Bun
+            "bun" => Ok(Self::Bun),
+            // Deno
             "deno" => Ok(Self::Deno),
+            // Go
+            "go" => Ok(Self::Go),
+            // Node.js
             "node" => Ok(Self::Node),
             "npm" => Ok(Self::Npm),
             "pnpm" => Ok(Self::Pnpm),
-            "yarn" => Ok(Self::Yarn),
-            "go" => Ok(Self::Go),
+            "yarn" | "yarnpkg" => Ok(Self::Yarn),
             _ => Err(ProtoError::UnsupportedTool(value.to_owned())),
         }
     }
@@ -40,6 +48,8 @@ pub fn create_tool(tool: &ToolType) -> Result<Box<dyn Tool<'static>>, ProtoError
     let proto = Proto::new()?;
 
     Ok(match tool {
+        // Bun
+        ToolType::Bun => Box::new(bun::BunLanguage::new(&proto)),
         // Deno
         ToolType::Deno => Box::new(deno::DenoLanguage::new(&proto)),
         // Go
