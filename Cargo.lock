@@ -1228,7 +1228,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "clap",
  "clap_complete",
@@ -1246,7 +1246,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "cached",
@@ -1281,7 +1281,7 @@ dependencies = [
 
 [[package]]
 name = "proto_go"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "assert_fs",
  "log",
@@ -1293,7 +1293,7 @@ dependencies = [
 
 [[package]]
 name = "proto_node"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "assert_fs",
  "clean-path",
