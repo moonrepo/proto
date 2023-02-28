@@ -17,7 +17,7 @@ pub fn get_archive_file_path() -> Result<String, ProtoError> {
     Ok(format!("deno-{arch}-apple-darwin"))
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(all(unix, not(target_os = "macos")))]
 pub fn get_archive_file_path() -> Result<String, ProtoError> {
     let arch = DenoArch::from_os_arch()?;
 
