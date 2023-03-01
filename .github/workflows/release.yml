@@ -40,6 +40,7 @@ on:
   push:
     tags:
       - "*-?v[0-9]+*"
+  pull_request:
 
 jobs:
   # Create the Github Release™ so the packages have something to be uploaded to
@@ -105,6 +106,7 @@ jobs:
       - name: Install cargo-dist
         run: ${{ matrix.install-dist }}
       - name: Run cargo-dist
+        if: ${{ !github.event.issue.pull_request }}
         # This logic is a bit janky because it's trying to be a polyglot between
         # powershell and bash since this will run on windows, macos, and linux!
         # The two platforms don't agree on how to talk about env vars but they
@@ -126,12 +128,13 @@ jobs:
   publish-release:
     # Only run after all the other tasks, but it's ok if upload-artifacts was skipped
     needs: [create-release, upload-artifacts]
-    if: ${{ always() && needs.create-release.result == 'success' && (needs.upload-artifacts.result == 'skipped' || needs.upload-artifacts.result == 'success') }}
+    if: ${{ !github.event.issue.pull_request }}
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v3
       - name: mark release as non-draft
+        if: ${{ always() && needs.create-release.result == 'success' && (needs.upload-artifacts.result == 'skipped' || needs.upload-artifacts.result == 'success') }}
         run: |
           gh release edit ${{ github.ref_name }} --draft=false
