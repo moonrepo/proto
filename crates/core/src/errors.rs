@@ -33,6 +33,9 @@ pub enum ProtoError {
     #[error("Unable to determine your home directory.")]
     MissingHomeDir,
 
+    #[error("Unable to determine PATH.")]
+    MissingPathEnv,
+
     #[error("{0} has not been configured or installed, unable to proceed.")]
     MissingTool(String),
 
@@ -65,6 +68,9 @@ pub enum ProtoError {
 
     #[error("Failed to resolve a semantic version for {0}.")]
     VersionResolveFailed(String),
+
+    #[error("Failed to write to PATH.")]
+    WritePathFailed,
 
     #[error("Failed zip archive. {0}")]
     Zip(String),

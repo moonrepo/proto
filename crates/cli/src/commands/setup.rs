@@ -1,16 +1,37 @@
+use crate::helpers::enable_logging;
 use clap_complete::Shell;
 use dirs::home_dir;
-use proto::{get_root, ProtoError};
+use log::{debug, info, trace};
+use proto::{color, get_root, ProtoError};
 use std::io::{self, BufRead, Write};
+use std::process::Command;
 use std::{env, fs, path::PathBuf};
 
-fn write_profile(profiles: &[PathBuf], contents: String) -> Result<(), ProtoError> {
+fn write_profile(shell: &Shell, profiles: &[PathBuf], contents: String) -> Result<(), ProtoError> {
     for profile in profiles {
+        trace!(target: "proto:setup", "Checking if profile {} exists", color::path(&profile));
+
         if !profile.exists() {
             continue;
         }
 
-        let file = fs::File::open(profile)
+        trace!(target: "proto:setup", "Exists, checking if proto already setup");
+
+        let profile_path = if profile.is_symlink() {
+            let original = fs::canonicalize(profile).unwrap();
+
+            trace!(
+                target: "proto:setup",
+                "Found a symlink, resolved to {}",
+                color::path(&original),
+            );
+
+            original
+        } else {
+            profile.to_path_buf()
+        };
+
+        let file = fs::File::open(profile_path)
             .map_err(|e| ProtoError::Fs(profile.to_path_buf(), e.to_string()))?;
 
         let has_setup = io::BufReader::new(file)
@@ -20,6 +41,8 @@ fn write_profile(profiles: &[PathBuf], contents: String) -> Result<(), ProtoErro
 
         // proto has already been setup in a profile, so avoid writing
         if has_setup {
+            info!(target: "proto:setup", "proto has already been setup for {}", shell);
+
             return Ok(());
         }
     }
@@ -29,28 +52,43 @@ fn write_profile(profiles: &[PathBuf], contents: String) -> Result<(), ProtoErro
     let last_profile = profiles.last().unwrap();
     let handle_error = |e: io::Error| ProtoError::Fs(last_profile.to_path_buf(), e.to_string());
 
+    trace!(
+        target: "proto:setup",
+        "Found no profile, create and writing PATH to {}",
+        color::path(&last_profile),
+    );
+
     let mut file = fs::File::create(last_profile).map_err(handle_error)?;
 
     write!(file, "{}", contents).map_err(handle_error)?;
+
+    info!(target: "proto:setup", "Setup proto for {}", shell);
 
     Ok(())
 }
 
 pub async fn setup(shell: Option<Shell>) -> Result<(), ProtoError> {
     let Some(shell) = shell.or_else(Shell::from_env) else {
-      return Err(ProtoError::UnsupportedShell);
+        return Err(ProtoError::UnsupportedShell);
     };
+
+    let Ok(paths) = env::var("PATH") else {
+        return Err(ProtoError::MissingPathEnv);
+    };
+
+    enable_logging();
 
     let home_dir = home_dir().expect("Invalid home directory.");
     let proto_dir = get_root()?;
+    let mut paths = env::split_paths(&paths).collect::<Vec<_>>();
 
-    if let Ok(paths) = env::var("PATH") {
-        if env::split_paths(&paths).any(|p| p == proto_dir) {
-            println!("Skipping setup, PROTO_ROOT already exists in PATH.");
+    if paths.iter().any(|p| p == &proto_dir) {
+        println!("Skipping setup, PROTO_ROOT already exists in PATH.");
 
-            return Ok(());
-        }
+        return Ok(());
     }
+
+    debug!(target: "proto:setup", "Setting PATH in {} shell", shell);
 
     let proto_root = "$HOME/.proto";
     let mut profiles = vec![home_dir.join(".profile")];
@@ -66,13 +104,13 @@ pub async fn setup(shell: Option<Shell>) -> Result<(), ProtoError> {
             profiles.extend([home_dir.join(".bash_profile"), home_dir.join(".bashrc")]);
 
             write_profile(
+                &shell,
                 &profiles,
                 format!(
                     r#"
 # proto
 export PROTO_ROOT="{}"
-export PATH="$PROTO_ROOT/shims:$PATH"
-                    "#,
+export PATH="$PROTO_ROOT/shims:$PATH""#,
                     proto_root
                 ),
             )?;
@@ -91,13 +129,13 @@ export PATH="$PROTO_ROOT/shims:$PATH"
             }
 
             write_profile(
+                &shell,
                 &profiles,
                 format!(
                     r#"
 # proto
 set-env PROTO_ROOT {}
-set-env PATH (str:join ':' [$E:PATH $PROTO_ROOT/shims])
-                    "#,
+set-env PATH (str:join ':' [$E:PATH $PROTO_ROOT/shims])"#,
                     proto_root
                 ),
             )?;
@@ -106,19 +144,16 @@ set-env PATH (str:join ':' [$E:PATH $PROTO_ROOT/shims])
             profiles.push(home_dir.join(".config/fish/config.fish"));
 
             write_profile(
+                &shell,
                 &profiles,
                 format!(
                     r#"
 # proto
 set -gx PROTO_ROOT "{}"
-set -gx PATH "$PROTO_ROOT/shims" $PATH
-                    "#,
+set -gx PATH "$PROTO_ROOT/shims" $PATH"#,
                     proto_root
                 ),
             )?;
-        }
-        Shell::PowerShell => {
-            // TODO
         }
         Shell::Zsh => {
             let zdot_dir = if let Ok(dir) = env::var("ZDOTDIR") {
@@ -130,16 +165,47 @@ set -gx PATH "$PROTO_ROOT/shims" $PATH
             profiles.extend([zdot_dir.join(".zprofile"), zdot_dir.join(".zshrc")]);
 
             write_profile(
+                &shell,
                 &profiles,
                 format!(
                     r#"
 # proto
 export PROTO_ROOT="{}"
-export PATH="$PROTO_ROOT/shims:$PATH"
-                    "#,
+export PATH="$PROTO_ROOT/shims:$PATH""#,
                     proto_root
                 ),
             )?;
+        }
+        // Windows does not support setting environment variables from a shell,
+        // so we're going to execute the `setx` command instead!
+        Shell::PowerShell => {
+            paths.push(proto_dir.join("shims"));
+
+            debug!(target: "proto:setup", "Using {} command", color::shell("setx"));
+
+            let mut command = Command::new("setx");
+            command.arg("PATH");
+            command.arg(env::join_paths(paths).unwrap());
+
+            let output = command
+                .output()
+                .map_err(|e| ProtoError::Message(e.to_string()))?;
+
+            if !output.status.success() {
+                trace!(
+                    target: "proto:setup",
+                    "STDERR: {}",
+                    String::from_utf8_lossy(&output.stderr),
+                );
+
+                trace!(
+                    target: "proto:setup",
+                    "STDOUT: {}",
+                    String::from_utf8_lossy(&output.stdout),
+                );
+
+                return Err(ProtoError::WritePathFailed);
+            }
         }
         _ => {}
     };
