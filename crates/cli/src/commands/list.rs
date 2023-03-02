@@ -31,7 +31,7 @@ pub async fn list(tool_type: ToolType) -> Result<(), ProtoError> {
     if versions.is_empty() {
         eprintln!("No versions installed");
     } else {
-        versions.sort_by(|a, d| compare(&a, &d));
+        versions.sort_by(|a, d| compare(a, d));
 
         println!("{}", versions.join("\n"));
     }
