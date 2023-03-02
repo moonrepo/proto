@@ -3,6 +3,7 @@ use clap_complete::Shell;
 use dirs::home_dir;
 use log::{debug, info, trace};
 use proto::{color, get_root, ProtoError};
+use std::fs::OpenOptions;
 use std::io::{self, BufRead, Write};
 use std::process::Command;
 use std::{env, fs, path::PathBuf};
@@ -17,21 +18,7 @@ fn write_profile(shell: &Shell, profiles: &[PathBuf], contents: String) -> Resul
 
         trace!(target: "proto:setup", "Exists, checking if proto already setup");
 
-        let profile_path = if profile.is_symlink() {
-            let original = fs::canonicalize(profile).unwrap();
-
-            trace!(
-                target: "proto:setup",
-                "Found a symlink, resolved to {}",
-                color::path(&original),
-            );
-
-            original
-        } else {
-            profile.to_path_buf()
-        };
-
-        let file = fs::File::open(profile_path)
+        let file = fs::File::open(profile)
             .map_err(|e| ProtoError::Fs(profile.to_path_buf(), e.to_string()))?;
 
         let has_setup = io::BufReader::new(file)
@@ -41,10 +28,16 @@ fn write_profile(shell: &Shell, profiles: &[PathBuf], contents: String) -> Resul
 
         // proto has already been setup in a profile, so avoid writing
         if has_setup {
-            info!(target: "proto:setup", "proto has already been setup for {}", shell);
+            info!(
+                target: "proto:setup",
+                "proto has already been setup in {}",
+                color::path(&profile),
+            );
 
             return Ok(());
         }
+
+        trace!(target: "proto:setup", "Not setup, continuing");
     }
 
     // Create a profile if none found. Use the last profile in the list
@@ -52,17 +45,22 @@ fn write_profile(shell: &Shell, profiles: &[PathBuf], contents: String) -> Resul
     let last_profile = profiles.last().unwrap();
     let handle_error = |e: io::Error| ProtoError::Fs(last_profile.to_path_buf(), e.to_string());
 
-    trace!(
+    debug!(
         target: "proto:setup",
-        "Found no profile, create and writing PATH to {}",
+        "Found no configured profile, writing PATH to {}",
         color::path(&last_profile),
     );
 
-    let mut file = fs::File::create(last_profile).map_err(handle_error)?;
+    let mut options = OpenOptions::new();
+    options.read(true);
+    options.append(true);
+    options.create(true);
+
+    let mut file = options.open(last_profile).map_err(handle_error)?;
 
     write!(file, "{}", contents).map_err(handle_error)?;
 
-    info!(target: "proto:setup", "Setup proto for {}", shell);
+    info!(target: "proto:setup", "Setup {} at {}", shell, color::path(&last_profile));
 
     Ok(())
 }
