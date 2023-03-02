@@ -1,6 +1,6 @@
 [package]
 name = "proto_cli"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 license = "MIT"
 description = "A language agnostic version manager."
@@ -25,6 +25,7 @@ proto_node = { version = "0.1.2", path = "../node" }
 proto_go = { version = "0.1.2", path = "../go" }
 clap = { workspace = true, features = ["derive"] }
 clap_complete = { workspace = true }
+dirs = "4.0.0"
 env_logger = "0.10.0"
 human-sort = "0.2.2"
 log = { workspace = true }

@@ -6,6 +6,7 @@ mod list;
 mod list_remote;
 mod local;
 mod run;
+mod setup;
 mod uninstall;
 
 pub use bin::*;
@@ -16,4 +17,5 @@ pub use list::*;
 pub use list_remote::*;
 pub use local::*;
 pub use run::*;
+pub use setup::*;
 pub use uninstall::*;

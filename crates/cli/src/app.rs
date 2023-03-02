@@ -128,6 +128,12 @@ pub enum Commands {
         passthrough: Vec<String>,
     },
 
+    #[command(name = "setup", about = "Setup proto for your current shell.")]
+    Setup {
+        #[arg(long, help = "Shell to setup for")]
+        shell: Option<Shell>,
+    },
+
     #[command(
         name = "uninstall",
         about = "Uninstall a tool.",

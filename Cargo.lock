@@ -1240,10 +1240,11 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "clap",
  "clap_complete",
+ "dirs",
  "env_logger",
  "human-sort",
  "log",
@@ -1259,7 +1260,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "async-trait",
  "cached",
