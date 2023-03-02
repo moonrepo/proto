@@ -85,6 +85,9 @@ jobs:
       matrix:
         # For these target platforms
         include:
+          - os: ubuntu-20.04
+            dist-args: --artifacts=global
+            install-dist: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/download/v0.0.3/cargo-dist-v0.0.3-installer.sh | sh
           - os: macos-12
             dist-args: --artifacts=local --target=x86_64-apple-darwin
             install-dist: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/download/v0.0.3/cargo-dist-v0.0.3-installer.sh | sh

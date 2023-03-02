@@ -134,10 +134,10 @@ pub enum Commands {
         long_about = "Uninstall a tool and remove the installation from ~/.proto/tools."
     )]
     Uninstall {
-        #[arg(required = true, value_enum, help = "Type of tool to uninstall")]
+        #[arg(required = true, value_enum, help = "Type of tool")]
         tool: ToolType,
 
-        #[arg(required = true, help = "Version of tool to uninstall")]
+        #[arg(required = true, help = "Version of tool")]
         semver: String,
     },
 }

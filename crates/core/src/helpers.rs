@@ -79,7 +79,7 @@ pub fn is_offline() -> bool {
     ]);
 
     for address in addresses {
-        if TcpStream::connect_timeout(&address, Duration::new(3, 0)).is_ok() {
+        if TcpStream::connect_timeout(&address, Duration::new(1, 0)).is_ok() {
             return false;
         }
     }

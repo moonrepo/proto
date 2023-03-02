@@ -7,13 +7,30 @@ pub async fn uninstall(tool_type: ToolType, version: String) -> Result<(), Proto
 
     let mut tool = create_tool(&tool_type)?;
 
-    info!(target: "proto:uninstall", "Uninstalling {:#?} with version \"{}\"", tool_type, version);
-
     if tool.is_setup(&version).await? {
-        tool.teardown().await?;
-    }
+        info!(
+            target: "proto:uninstall",
+            "Uninstalling {} with version \"{}\"",
+            tool.get_name(),
+            version,
+        );
 
-    info!(target: "proto:uninstall", "{:#?} has been uninstalled!", tool_type);
+        tool.teardown().await?;
+
+        info!(
+            target: "proto:uninstall",
+            "{} v{} has been uninstalled!",
+            tool.get_name(),
+            tool.get_resolved_version(),
+        );
+    } else {
+        info!(
+            target: "proto:uninstall",
+            "{} v{} does not exist!",
+            tool.get_name(),
+            tool.get_resolved_version(),
+        );
+    }
 
     Ok(())
 }
