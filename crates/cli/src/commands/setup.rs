@@ -204,6 +204,8 @@ export PATH="$PROTO_ROOT/shims:$PATH""#,
 
                 return Err(ProtoError::WritePathFailed);
             }
+
+            info!(target: "proto:setup", "Setup {} by modifying PATH", shell);
         }
         _ => {}
     };

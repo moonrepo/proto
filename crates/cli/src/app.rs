@@ -130,7 +130,7 @@ pub enum Commands {
 
     #[command(name = "setup", about = "Setup proto for your current shell.")]
     Setup {
-        #[arg(long, help = "Shell to generate for")]
+        #[arg(long, help = "Shell to setup for")]
         shell: Option<Shell>,
     },
 
