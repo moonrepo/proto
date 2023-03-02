@@ -1244,6 +1244,7 @@ version = "0.1.3"
 dependencies = [
  "clap",
  "clap_complete",
+ "dirs",
  "env_logger",
  "human-sort",
  "log",
