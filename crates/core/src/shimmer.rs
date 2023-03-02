@@ -1,6 +1,6 @@
 use crate::errors::ProtoError;
 use crate::helpers::get_root;
-use crate::{color, get_shims_dir};
+use crate::{color, get_bin_dir};
 use log::debug;
 use serde::Serialize;
 use serde_json::Value;
@@ -115,7 +115,7 @@ impl ShimBuilder {
     }
 
     pub fn create_global_shim(&self) -> Result<PathBuf, ProtoError> {
-        let shim_path = get_shims_dir()?.join(get_shim_file_name(&self.name));
+        let shim_path = get_bin_dir()?.join(get_shim_file_name(&self.name));
 
         self.do_create(shim_path, true)
     }

@@ -28,7 +28,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 pub struct Proto {
-    pub shims_dir: PathBuf,
+    pub bin_dir: PathBuf,
     pub temp_dir: PathBuf,
     pub tools_dir: PathBuf,
 }
@@ -38,7 +38,7 @@ impl Proto {
         let root = get_root()?;
 
         Ok(Proto {
-            shims_dir: root.join("shims"),
+            bin_dir: root.join("bin"),
             temp_dir: root.join("temp"),
             tools_dir: root.join("tools"),
         })
@@ -46,7 +46,7 @@ impl Proto {
 
     pub fn from(root: &Path) -> Self {
         Proto {
-            shims_dir: root.join("shims"),
+            bin_dir: root.join("bin"),
             temp_dir: root.join("temp"),
             tools_dir: root.join("tools"),
         }

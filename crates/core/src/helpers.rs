@@ -15,8 +15,8 @@ pub fn get_root() -> Result<PathBuf, ProtoError> {
     Err(ProtoError::MissingHomeDir)
 }
 
-pub fn get_shims_dir() -> Result<PathBuf, ProtoError> {
-    Ok(get_root()?.join("shims"))
+pub fn get_bin_dir() -> Result<PathBuf, ProtoError> {
+    Ok(get_root()?.join("bin"))
 }
 
 pub fn get_temp_dir() -> Result<PathBuf, ProtoError> {

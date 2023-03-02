@@ -20,7 +20,7 @@ mod node {
         assert!(tool.get_install_dir().unwrap().exists());
 
         let base_dir = proto.tools_dir.join("node/18.0.0");
-        let global_shim = proto.shims_dir.join("node");
+        let global_shim = proto.bin_dir.join("node");
 
         if cfg!(windows) {
             assert_eq!(tool.get_bin_path().unwrap(), &base_dir.join("node.exe"));
