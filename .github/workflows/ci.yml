@@ -42,6 +42,10 @@ jobs:
           toolchain: 1.67.1
           profile: minimal
           components: clippy
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: ci
       - uses: actions-rs/cargo@v1
         name: Run linter
         with:
