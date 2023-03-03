@@ -19,7 +19,7 @@ mod node_depman {
 
         assert!(tool.get_install_dir().unwrap().exists());
 
-        let global_shim = proto.shims_dir.join("npm");
+        let global_shim = proto.bin_dir.join("npm");
 
         assert_eq!(
             tool.get_bin_path().unwrap(),

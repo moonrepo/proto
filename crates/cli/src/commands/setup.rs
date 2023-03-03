@@ -108,7 +108,7 @@ pub async fn setup(shell: Option<Shell>) -> Result<(), ProtoError> {
                     r#"
 # proto
 export PROTO_ROOT="{}"
-export PATH="$PROTO_ROOT/shims:$PATH""#,
+export PATH="$PROTO_ROOT/bin:$PATH""#,
                     proto_root
                 ),
             )?;
@@ -133,7 +133,7 @@ export PATH="$PROTO_ROOT/shims:$PATH""#,
                     r#"
 # proto
 set-env PROTO_ROOT {}
-set-env PATH (str:join ':' [$E:PATH $PROTO_ROOT/shims])"#,
+set-env PATH (str:join ':' [$E:PATH $PROTO_ROOT/bin])"#,
                     proto_root
                 ),
             )?;
@@ -148,7 +148,7 @@ set-env PATH (str:join ':' [$E:PATH $PROTO_ROOT/shims])"#,
                     r#"
 # proto
 set -gx PROTO_ROOT "{}"
-set -gx PATH "$PROTO_ROOT/shims" $PATH"#,
+set -gx PATH "$PROTO_ROOT/bin" $PATH"#,
                     proto_root
                 ),
             )?;
@@ -169,7 +169,7 @@ set -gx PATH "$PROTO_ROOT/shims" $PATH"#,
                     r#"
 # proto
 export PROTO_ROOT="{}"
-export PATH="$PROTO_ROOT/shims:$PATH""#,
+export PATH="$PROTO_ROOT/bin:$PATH""#,
                     proto_root
                 ),
             )?;
@@ -177,7 +177,7 @@ export PATH="$PROTO_ROOT/shims:$PATH""#,
         // Windows does not support setting environment variables from a shell,
         // so we're going to execute the `setx` command instead!
         Shell::PowerShell => {
-            paths.push(proto_dir.join("shims"));
+            paths.push(proto_dir.join("bin"));
 
             debug!(target: "proto:setup", "Using {} command", color::shell("setx"));
 

@@ -30,7 +30,7 @@ mod bun {
         assert!(tool.get_install_dir().unwrap().exists());
 
         let base_dir = proto.tools_dir.join("bun/0.5.7");
-        let global_shim = proto.shims_dir.join("bun");
+        let global_shim = proto.bin_dir.join("bun");
 
         assert_eq!(tool.get_bin_path().unwrap(), &base_dir.join("bun"));
         assert!(global_shim.exists());
