@@ -10,7 +10,7 @@ use std::{env, fs, path::PathBuf};
 
 fn write_profile(shell: &Shell, profiles: &[PathBuf], contents: String) -> Result<(), ProtoError> {
     for profile in profiles {
-        trace!(target: "proto:setup", "Checking if profile {} exists", color::path(&profile));
+        trace!(target: "proto:setup", "Checking if profile {} exists", color::path(profile));
 
         if !profile.exists() {
             continue;
@@ -31,7 +31,7 @@ fn write_profile(shell: &Shell, profiles: &[PathBuf], contents: String) -> Resul
             info!(
                 target: "proto:setup",
                 "proto has already been setup in {}",
-                color::path(&profile),
+                color::path(profile),
             );
 
             return Ok(());
@@ -48,7 +48,7 @@ fn write_profile(shell: &Shell, profiles: &[PathBuf], contents: String) -> Resul
     debug!(
         target: "proto:setup",
         "Found no configured profile, writing PATH to {}",
-        color::path(&last_profile),
+        color::path(last_profile),
     );
 
     let mut options = OpenOptions::new();
@@ -58,9 +58,9 @@ fn write_profile(shell: &Shell, profiles: &[PathBuf], contents: String) -> Resul
 
     let mut file = options.open(last_profile).map_err(handle_error)?;
 
-    write!(file, "{}", contents).map_err(handle_error)?;
+    write!(file, "{contents}").map_err(handle_error)?;
 
-    info!(target: "proto:setup", "Setup {} at {}", shell, color::path(&last_profile));
+    info!(target: "proto:setup", "Setup {} at {}", shell, color::path(last_profile));
 
     Ok(())
 }
@@ -107,9 +107,8 @@ pub async fn setup(shell: Option<Shell>) -> Result<(), ProtoError> {
                 format!(
                     r#"
 # proto
-export PROTO_ROOT="{}"
+export PROTO_ROOT="{proto_root}"
 export PATH="$PROTO_ROOT/bin:$PATH""#,
-                    proto_root
                 ),
             )?;
         }
@@ -132,9 +131,8 @@ export PATH="$PROTO_ROOT/bin:$PATH""#,
                 format!(
                     r#"
 # proto
-set-env PROTO_ROOT {}
-set-env PATH (str:join ':' [$E:PATH $PROTO_ROOT/bin])"#,
-                    proto_root
+set-env PROTO_ROOT {proto_root}
+set-env PATH (str:join ':' [$E:PATH $PROTO_ROOT/bin])"#
                 ),
             )?;
         }
@@ -147,9 +145,8 @@ set-env PATH (str:join ':' [$E:PATH $PROTO_ROOT/bin])"#,
                 format!(
                     r#"
 # proto
-set -gx PROTO_ROOT "{}"
-set -gx PATH "$PROTO_ROOT/bin" $PATH"#,
-                    proto_root
+set -gx PROTO_ROOT "{proto_root}"
+set -gx PATH "$PROTO_ROOT/bin" $PATH"#
                 ),
             )?;
         }
@@ -168,9 +165,8 @@ set -gx PATH "$PROTO_ROOT/bin" $PATH"#,
                 format!(
                     r#"
 # proto
-export PROTO_ROOT="{}"
-export PATH="$PROTO_ROOT/bin:$PATH""#,
-                    proto_root
+export PROTO_ROOT="{proto_root}"
+export PATH="$PROTO_ROOT/bin:$PATH""#
                 ),
             )?;
         }
