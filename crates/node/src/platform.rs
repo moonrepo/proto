@@ -1,6 +1,9 @@
-use proto_core::ProtoError;
+use proto_core::{load_version_file, ProtoError};
+use rustc_hash::FxHashMap;
+use serde::Deserialize;
 use std::env::consts;
 use std::fmt;
+use std::path::Path;
 
 // Not everything is supported at the moment...
 // https://nodejs.org/api/process.html#processarch
@@ -53,5 +56,20 @@ impl fmt::Display for NodeArch {
                 NodeArch::X86 => "x86",
             }
         )
+    }
+}
+
+#[derive(Deserialize)]
+pub struct PackageJson {
+    pub engines: Option<FxHashMap<String, String>>,
+
+    #[serde(rename = "packageManager")]
+    pub package_manager: Option<String>,
+}
+
+impl PackageJson {
+    pub fn load(path: &Path) -> Result<Self, ProtoError> {
+        serde_json::from_str(&load_version_file(&path)?)
+            .map_err(|e| ProtoError::Json(path.to_path_buf(), e.to_string()))
     }
 }

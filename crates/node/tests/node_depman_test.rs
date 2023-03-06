@@ -145,6 +145,57 @@ mod node_depman {
         }
 
         #[tokio::test]
+        async fn doesnt_match_if_engines_caret() {
+            let fixture = assert_fs::TempDir::new().unwrap();
+
+            fixture
+                .child("package.json")
+                .write_str(r#"{"engines":{"npm":"^1.2.3"}}"#)
+                .unwrap();
+
+            let tool = create_depman(fixture.path());
+
+            assert_eq!(
+                tool.detect_version_from(fixture.path()).await.unwrap(),
+                None
+            );
+        }
+
+        #[tokio::test]
+        async fn doesnt_match_if_engines_tilde() {
+            let fixture = assert_fs::TempDir::new().unwrap();
+
+            fixture
+                .child("package.json")
+                .write_str(r#"{"engines":{"npm":"~1.2.3"}}"#)
+                .unwrap();
+
+            let tool = create_depman(fixture.path());
+
+            assert_eq!(
+                tool.detect_version_from(fixture.path()).await.unwrap(),
+                None
+            );
+        }
+
+        #[tokio::test]
+        async fn doesnt_match_if_engines_range() {
+            let fixture = assert_fs::TempDir::new().unwrap();
+
+            fixture
+                .child("package.json")
+                .write_str(r#"{"engines":{"npm":">=1.2.3"}}"#)
+                .unwrap();
+
+            let tool = create_depman(fixture.path());
+
+            assert_eq!(
+                tool.detect_version_from(fixture.path()).await.unwrap(),
+                None
+            );
+        }
+
+        #[tokio::test]
         async fn defaults_to_latest_version() {
             let fixture = assert_fs::TempDir::new().unwrap();
 
@@ -162,12 +213,63 @@ mod node_depman {
         }
 
         #[tokio::test]
+        async fn matches_pm_partial_version() {
+            let fixture = assert_fs::TempDir::new().unwrap();
+
+            fixture
+                .child("package.json")
+                .write_str(r#"{"packageManager":"npm@1"}"#)
+                .unwrap();
+
+            let tool = create_depman(fixture.path());
+
+            assert_eq!(
+                tool.detect_version_from(fixture.path()).await.unwrap(),
+                Some("1".into())
+            );
+        }
+
+        #[tokio::test]
+        async fn matches_engines_partial_version() {
+            let fixture = assert_fs::TempDir::new().unwrap();
+
+            fixture
+                .child("package.json")
+                .write_str(r#"{"engines":{"npm":"1.2"}}"#)
+                .unwrap();
+
+            let tool = create_depman(fixture.path());
+
+            assert_eq!(
+                tool.detect_version_from(fixture.path()).await.unwrap(),
+                Some("1.2".into())
+            );
+        }
+
+        #[tokio::test]
         async fn detects_npm() {
             let fixture = assert_fs::TempDir::new().unwrap();
 
             fixture
                 .child("package.json")
                 .write_str(r#"{"packageManager":"npm@1.2.3"}"#)
+                .unwrap();
+
+            let tool = create_depman(fixture.path());
+
+            assert_eq!(
+                tool.detect_version_from(fixture.path()).await.unwrap(),
+                Some("1.2.3".into())
+            );
+        }
+
+        #[tokio::test]
+        async fn detects_npm_from_engines() {
+            let fixture = assert_fs::TempDir::new().unwrap();
+
+            fixture
+                .child("package.json")
+                .write_str(r#"{"engines":{"npm":"1.2.3"}}"#)
                 .unwrap();
 
             let tool = create_depman(fixture.path());
@@ -197,12 +299,48 @@ mod node_depman {
         }
 
         #[tokio::test]
+        async fn detects_pnpm_from_engines() {
+            let fixture = assert_fs::TempDir::new().unwrap();
+
+            fixture
+                .child("package.json")
+                .write_str(r#"{"engines":{"pnpm":"=4.5.6"}}"#)
+                .unwrap();
+
+            let proto = Proto::from(fixture.path());
+            let tool = NodeDependencyManager::new(&proto, NodeDependencyManagerType::Pnpm);
+
+            assert_eq!(
+                tool.detect_version_from(fixture.path()).await.unwrap(),
+                Some("4.5.6".into())
+            );
+        }
+
+        #[tokio::test]
         async fn detects_yarn() {
             let fixture = assert_fs::TempDir::new().unwrap();
 
             fixture
                 .child("package.json")
                 .write_str(r#"{"packageManager":"yarn@7.8.9"}"#)
+                .unwrap();
+
+            let proto = Proto::from(fixture.path());
+            let tool = NodeDependencyManager::new(&proto, NodeDependencyManagerType::Yarn);
+
+            assert_eq!(
+                tool.detect_version_from(fixture.path()).await.unwrap(),
+                Some("7.8.9".into())
+            );
+        }
+
+        #[tokio::test]
+        async fn detects_yarn_from_engines() {
+            let fixture = assert_fs::TempDir::new().unwrap();
+
+            fixture
+                .child("package.json")
+                .write_str(r#"{"engines":{"yarn":"7.8.9"}}"#)
                 .unwrap();
 
             let proto = Proto::from(fixture.path());

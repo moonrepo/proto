@@ -79,6 +79,38 @@ mod node {
                 Some("4.5.6".into())
             );
         }
+
+        #[tokio::test]
+        async fn detects_engines() {
+            let fixture = assert_fs::TempDir::new().unwrap();
+            let tool = create_node(fixture.path());
+
+            fixture
+                .child("package.json")
+                .write_str(r#"{"engines":{"node":"16.2.*"}}"#)
+                .unwrap();
+
+            assert_eq!(
+                tool.detect_version_from(fixture.path()).await.unwrap(),
+                Some("16.2".into())
+            );
+        }
+
+        #[tokio::test]
+        async fn doesnt_match_engines_caret() {
+            let fixture = assert_fs::TempDir::new().unwrap();
+            let tool = create_node(fixture.path());
+
+            fixture
+                .child("package.json")
+                .write_str(r#"{"engines":{"node":"^16"}}"#)
+                .unwrap();
+
+            assert_eq!(
+                tool.detect_version_from(fixture.path()).await.unwrap(),
+                None
+            );
+        }
     }
 
     mod downloader {
