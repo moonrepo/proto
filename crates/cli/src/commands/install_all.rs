@@ -17,9 +17,7 @@ pub async fn install_all() -> Result<(), ProtoError> {
         futures.push(install(tool, Some(version)));
     }
 
-    for future in futures {
-        future.await?;
-    }
+    futures::future::try_join_all(futures).await?;
 
     Ok(())
 }
