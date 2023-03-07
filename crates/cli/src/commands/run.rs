@@ -12,7 +12,11 @@ pub async fn run(
     let version = detect_version_from_environment(&tool, &tool_type, forced_version).await?;
 
     if !tool.is_setup(&version).await? {
-        return Err(ProtoError::MissingTool(tool.get_name()));
+        return Err(ProtoError::MissingToolForRun(
+            tool.get_name(),
+            version.to_owned(),
+            format!("proto install {} {}", tool.get_bin_name(), version),
+        ));
     }
 
     let status = Command::new(tool.get_bin_path()?)
