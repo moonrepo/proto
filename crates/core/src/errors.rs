@@ -30,6 +30,9 @@ pub enum ProtoError {
     #[error("{0}")]
     Message(String),
 
+    #[error("Could not locate a {0} configuration file.")]
+    MissingConfig(String),
+
     #[error("Unable to determine your home directory.")]
     MissingHomeDir,
 

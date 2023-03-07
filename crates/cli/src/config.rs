@@ -12,6 +12,23 @@ pub struct Config {
 }
 
 impl Config {
+    pub fn find_upwards<P>(dir: P) -> Result<Option<Self>, ProtoError>
+    where
+        P: AsRef<Path>,
+    {
+        let dir = dir.as_ref();
+        let findable = dir.join(CONFIG_NAME);
+
+        if findable.exists() {
+            return Ok(Some(Self::load(&findable)?));
+        }
+
+        match dir.parent() {
+            Some(parent_dir) => Self::find_upwards(parent_dir),
+            None => Ok(None),
+        }
+    }
+
     pub fn load(path: &Path) -> Result<Self, ProtoError> {
         let contents = fs::read_to_string(path)
             .map_err(|e| ProtoError::Fs(path.to_path_buf(), e.to_string()))?;
