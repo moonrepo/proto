@@ -29,6 +29,7 @@ async fn main() {
         } => commands::run(tool, semver, passthrough).await,
         Commands::Setup { shell } => commands::setup(shell).await,
         Commands::Uninstall { tool, semver } => commands::uninstall(tool, semver).await,
+        Commands::Use => commands::install_all().await,
     };
 
     if let Err(error) = result {

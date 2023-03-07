@@ -146,4 +146,10 @@ pub enum Commands {
         #[arg(required = true, help = "Version of tool")]
         semver: String,
     },
+
+    #[command(
+        name = "use",
+        about = "Download and install all tools from the closest .prototools."
+    )]
+    Use,
 }
