@@ -24,7 +24,7 @@ fn write_profile(shell: &Shell, profiles: &[PathBuf], contents: String) -> Resul
         let has_setup = io::BufReader::new(file)
             .lines()
             .map(|l| l.unwrap_or_default())
-            .any(|l| l.contains("# proto") || l.contains("PROTO_ROOT"));
+            .any(|l| l.contains("PROTO_ROOT"));
 
         // proto has already been setup in a profile, so avoid writing
         if has_setup {
@@ -134,7 +134,7 @@ export PATH="$PROTO_ROOT/bin:$PATH""#,
                     r#"
 # proto
 set-env PROTO_ROOT {proto_root}
-set-env PATH (str:join ':' [$E:PATH $PROTO_ROOT/bin])"#
+set-env PATH (str:join ':' [$PROTO_ROOT/bin $E:PATH])"#
                 ),
             )?;
         }

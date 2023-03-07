@@ -39,6 +39,11 @@ pub enum ProtoError {
     #[error("{0} has not been configured or installed, unable to proceed.")]
     MissingTool(String),
 
+    #[error(
+        "Attempted to run {0} v{1}, but this version has not been installed. Install it with `{2}`!"
+    )]
+    MissingToolForRun(String, String, String),
+
     #[error("Failed shim: {0}")]
     Shim(String),
 
