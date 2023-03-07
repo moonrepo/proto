@@ -1,6 +1,6 @@
 [package]
 name = "proto_node"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 license = "MIT"
 description = "Node.js support for proto."
@@ -8,7 +8,7 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
-proto_core = { version = "0.1.2", path = "../core" }
+proto_core = { version = "0.1.4", path = "../core" }
 clean-path = "0.2.1"
 log = { workspace = true }
 rustc-hash = { workspace = true }
