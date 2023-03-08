@@ -11,7 +11,7 @@ pub async fn install(tool_type: ToolType, version: Option<String>) -> Result<(),
     if tool.is_setup(&version).await? {
         info!(
             target: "proto:install",
-            "{} has already been installed to {}",
+            "{} has already been installed at {}",
             tool.get_name(),
             color::path(tool.get_install_dir()?),
         );
@@ -26,7 +26,7 @@ pub async fn install(tool_type: ToolType, version: Option<String>) -> Result<(),
         tool.setup(&version).await?;
 
         info!(
-            target: "proto:install", "{} has been installed to {}!",
+            target: "proto:install", "{} has been installed at {}!",
             tool.get_name(),
             color::path(tool.get_install_dir()?),
         );

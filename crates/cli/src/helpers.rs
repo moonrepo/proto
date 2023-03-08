@@ -14,11 +14,10 @@ pub fn enable_logging() {
             env::set_var("PROTO_LOG", format!("proto={level}"));
         }
     } else {
-        env::set_var("PROTO_LOG", "proto=debug");
+        env::set_var("PROTO_LOG", "proto=info");
     }
 
     env_logger::Builder::from_env("PROTO_LOG")
-        .write_style(write_style)
         .format_timestamp(None)
         .init();
 }
