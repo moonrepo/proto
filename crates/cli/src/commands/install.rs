@@ -1,6 +1,7 @@
 use crate::helpers::enable_logging;
+use crate::tools::{create_tool, ToolType};
 use log::info;
-use proto::{color, create_tool, ProtoError, ToolType};
+use proto_core::{color, ProtoError};
 
 pub async fn install(tool_type: ToolType, version: Option<String>) -> Result<(), ProtoError> {
     enable_logging();

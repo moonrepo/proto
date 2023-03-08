@@ -1,6 +1,7 @@
 use crate::helpers::enable_logging;
+use crate::tools::{create_tool, ToolType};
 use log::info;
-use proto::{create_tool, ProtoError, ToolType};
+use proto_core::ProtoError;
 
 pub async fn uninstall(tool_type: ToolType, version: String) -> Result<(), ProtoError> {
     enable_logging();

@@ -1,7 +1,8 @@
 use crate::helpers::enable_logging;
+use crate::tools::{create_tool, ToolType};
 use human_sort::compare;
 use log::{debug, info};
-use proto::{color, create_tool, ProtoError, ToolType};
+use proto_core::{color, ProtoError};
 use std::fs;
 
 pub async fn list(tool_type: ToolType) -> Result<(), ProtoError> {

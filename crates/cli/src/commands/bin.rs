@@ -1,5 +1,6 @@
 use crate::helpers::detect_version_from_environment;
-use proto::{create_tool, ProtoError, ToolType};
+use crate::tools::{create_tool, ToolType};
+use proto_core::ProtoError;
 
 pub async fn bin(
     tool_type: ToolType,

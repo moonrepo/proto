@@ -2,6 +2,7 @@ mod app;
 mod commands;
 mod config;
 mod helpers;
+pub mod tools;
 
 use app::{App, Commands};
 use clap::Parser;

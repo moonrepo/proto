@@ -1,8 +1,9 @@
 #![allow(clippy::borrowed_box)]
 
 use crate::config::{Config, CONFIG_NAME};
+use crate::tools::ToolType;
 use log::{debug, trace};
-use proto::{color, get_tools_dir, load_version_file, ProtoError, Tool, ToolType};
+use proto_core::{color, get_tools_dir, load_version_file, ProtoError, Tool};
 use std::{
     env,
     path::{Path, PathBuf},

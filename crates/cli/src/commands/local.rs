@@ -1,9 +1,8 @@
-use crate::{
-    config::{Config, CONFIG_NAME},
-    helpers::enable_logging,
-};
+use crate::config::{Config, CONFIG_NAME};
+use crate::helpers::enable_logging;
+use crate::tools::{create_tool, ToolType};
 use log::{info, trace};
-use proto::{color, create_tool, ProtoError, ToolType};
+use proto_core::{color, ProtoError};
 use std::{env, path::PathBuf};
 
 pub async fn local(tool_type: ToolType, version: String) -> Result<(), ProtoError> {

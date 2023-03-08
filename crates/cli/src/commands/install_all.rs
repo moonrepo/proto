@@ -2,7 +2,7 @@ use std::env;
 
 use crate::commands::install::install;
 use crate::config::{Config, CONFIG_NAME};
-use proto::ProtoError;
+use proto_core::ProtoError;
 
 pub async fn install_all() -> Result<(), ProtoError> {
     let current_dir = env::current_dir().expect("Invalid working directory!");

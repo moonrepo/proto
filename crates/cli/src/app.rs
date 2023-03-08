@@ -1,6 +1,6 @@
+use crate::tools::ToolType;
 use clap::{Parser, Subcommand};
 use clap_complete::Shell;
-use proto::ToolType;
 
 #[derive(Debug, Parser)]
 #[command(
