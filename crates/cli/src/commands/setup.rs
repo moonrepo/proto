@@ -2,7 +2,7 @@ use crate::helpers::enable_logging;
 use clap_complete::Shell;
 use dirs::home_dir;
 use log::{debug, info, trace};
-use proto::{color, get_root, ProtoError};
+use proto_core::{color, get_root, ProtoError};
 use std::fs::OpenOptions;
 use std::io::{self, BufRead, Write};
 use std::process::Command;

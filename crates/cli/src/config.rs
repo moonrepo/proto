@@ -1,5 +1,6 @@
+use crate::tools::ToolType;
 use clap::ValueEnum;
-use proto::{ProtoError, ToolType};
+use proto_core::ProtoError;
 use rustc_hash::FxHashMap;
 use std::{fs, path::Path};
 use toml::{map::Map, Value};

@@ -1,6 +1,7 @@
 use crate::helpers::{enable_logging, get_global_version_path};
+use crate::tools::{create_tool, ToolType};
 use log::{info, trace};
-use proto::{color, create_tool, ProtoError, ToolType};
+use proto_core::{color, ProtoError};
 use std::fs;
 
 pub async fn global(tool_type: ToolType, version: String) -> Result<(), ProtoError> {

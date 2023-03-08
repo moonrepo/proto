@@ -2,10 +2,11 @@ mod app;
 mod commands;
 mod config;
 mod helpers;
+pub mod tools;
 
 use app::{App, Commands};
 use clap::Parser;
-use proto::color;
+use proto_core::color;
 use std::process::exit;
 
 #[tokio::main]
