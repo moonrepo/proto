@@ -15,7 +15,6 @@ pub struct BunLanguage {
     pub base_dir: PathBuf,
     pub bin_path: Option<PathBuf>,
     pub log_target: String,
-    pub shim_path: Option<PathBuf>,
     pub temp_dir: PathBuf,
     pub version: Option<String>,
 }
@@ -26,7 +25,6 @@ impl BunLanguage {
             base_dir: proto.tools_dir.join("bun"),
             bin_path: None,
             log_target: "proto:tool:bun".into(),
-            shim_path: None,
             temp_dir: proto.temp_dir.join("bun"),
             version: None,
         }

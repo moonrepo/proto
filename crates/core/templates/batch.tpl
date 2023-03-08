@@ -1,7 +1,6 @@
 @ECHO OFF
 
 SETLOCAL
-SET "PROTO_ROOT={root}"
 
 {{ if install_dir }}
 SET "PROTO_{name | uppercase}_DIR={install_dir}"

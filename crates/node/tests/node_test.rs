@@ -1,5 +1,5 @@
 use proto_core::{
-    Detector, Downloadable, Executable, Installable, Proto, Resolvable, Shimable, Tool, Verifiable,
+    Detector, Downloadable, Executable, Installable, Proto, Resolvable, Tool, Verifiable,
 };
 use proto_node::NodeLanguage;
 use std::{fs, path::Path};
@@ -20,16 +20,13 @@ mod node {
         assert!(tool.get_install_dir().unwrap().exists());
 
         let base_dir = proto.tools_dir.join("node/18.0.0");
-        let global_shim = proto.bin_dir.join("node");
 
         if cfg!(windows) {
             assert_eq!(tool.get_bin_path().unwrap(), &base_dir.join("node.exe"));
-            assert_eq!(tool.get_shim_path(), None); // &base_dir.join("node.bat"));
-            assert!(!global_shim.exists());
+            assert!(proto.bin_dir.join("node.ps1").exists());
         } else {
             assert_eq!(tool.get_bin_path().unwrap(), &base_dir.join("bin/node"));
-            assert_eq!(tool.get_shim_path().unwrap(), &base_dir.join("shims/node"));
-            assert!(global_shim.exists());
+            assert!(proto.bin_dir.join("node").exists());
         }
     }
 

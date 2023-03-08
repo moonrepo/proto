@@ -27,14 +27,13 @@ mod deno {
         assert!(tool.get_install_dir().unwrap().exists());
 
         let base_dir = proto.tools_dir.join("deno/1.17.3");
-        let global_shim = proto.bin_dir.join("deno");
 
         if cfg!(windows) {
             assert_eq!(tool.get_bin_path().unwrap(), &base_dir.join("deno.exe"));
-            assert!(!global_shim.exists());
+            assert!(proto.bin_dir.join("deno.ps1").exists());
         } else {
             assert_eq!(tool.get_bin_path().unwrap(), &base_dir.join("deno"));
-            assert!(global_shim.exists());
+            assert!(proto.bin_dir.join("deno").exists());
         }
     }
 

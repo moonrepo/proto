@@ -19,8 +19,6 @@ mod node_depman {
 
         assert!(tool.get_install_dir().unwrap().exists());
 
-        let global_shim = proto.bin_dir.join("npm");
-
         assert_eq!(
             tool.get_bin_path().unwrap(),
             &proto.tools_dir.join("npm/9.0.0/bin/npm-cli.js")
@@ -28,17 +26,16 @@ mod node_depman {
 
         if cfg!(windows) {
             assert_eq!(
-                tool.get_shim_path(),
-                None,
-                // &proto.tools_dir.join("npm\\9.0.0\\npm.bat")
+                tool.get_shim_path().unwrap(),
+                &proto.tools_dir.join("npm\\9.0.0\\shims\\npm.ps1")
             );
-            assert!(!global_shim.exists());
+            assert!(proto.bin_dir.join("npm.ps1").exists());
         } else {
             assert_eq!(
                 tool.get_shim_path().unwrap(),
                 &proto.tools_dir.join("npm/9.0.0/shims/npm")
             );
-            assert!(global_shim.exists());
+            assert!(proto.bin_dir.join("npm").exists());
         }
     }
 

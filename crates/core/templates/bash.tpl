@@ -2,8 +2,6 @@
 set -e
 [ -n "$PROTO_DEBUG" ] && set -x
 
-export PROTO_ROOT="{root}"
-
 {{ if install_dir }}
 export PROTO_{name | uppercase}_DIR="{install_dir}"
 {{ endif }}
