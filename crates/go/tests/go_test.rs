@@ -28,14 +28,13 @@ mod go {
         assert!(tool.get_install_dir().unwrap().exists());
 
         let base_dir = proto.tools_dir.join("go/1.20.0");
-        let global_shim = proto.bin_dir.join("go");
 
         if cfg!(windows) {
             assert_eq!(tool.get_bin_path().unwrap(), &base_dir.join("bin/go.exe"));
-            assert!(!global_shim.exists());
+            assert!(proto.bin_dir.join("go.ps1").exists());
         } else {
             assert_eq!(tool.get_bin_path().unwrap(), &base_dir.join("bin/go"));
-            assert!(global_shim.exists());
+            assert!(proto.bin_dir.join("go").exists());
         }
     }
 

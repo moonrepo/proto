@@ -15,7 +15,6 @@ pub struct DenoLanguage {
     pub base_dir: PathBuf,
     pub bin_path: Option<PathBuf>,
     pub log_target: String,
-    pub shim_path: Option<PathBuf>,
     pub temp_dir: PathBuf,
     pub version: Option<String>,
 }
@@ -26,7 +25,6 @@ impl DenoLanguage {
             base_dir: proto.tools_dir.join("deno"),
             bin_path: None,
             log_target: "proto:tool:deno".into(),
-            shim_path: None,
             temp_dir: proto.temp_dir.join("deno"),
             version: None,
         }

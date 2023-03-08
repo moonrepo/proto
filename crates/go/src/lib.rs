@@ -15,7 +15,6 @@ pub struct GoLanguage {
     pub base_dir: PathBuf,
     pub bin_path: Option<PathBuf>,
     pub log_target: String,
-    pub shim_path: Option<PathBuf>,
     pub temp_dir: PathBuf,
     pub version: Option<String>,
 }
@@ -26,7 +25,6 @@ impl GoLanguage {
             base_dir: proto.tools_dir.join("go"),
             bin_path: None,
             log_target: "proto:tool:go".into(),
-            shim_path: None,
             temp_dir: proto.temp_dir.join("go"),
             version: None,
         }
