@@ -10,8 +10,6 @@ use std::process::exit;
 
 #[tokio::main]
 async fn main() {
-    env_logger::builder().format_timestamp(None).init();
-
     let app = App::parse();
 
     let result = match app.command {

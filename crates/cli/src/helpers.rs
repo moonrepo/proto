@@ -9,9 +9,18 @@ use std::{
 };
 
 pub fn enable_logging() {
-    if env::var("RUST_LOG").is_err() {
-        env::set_var("RUST_LOG", "proto=debug");
+    if let Ok(level) = env::var("PROTO_LOG") {
+        if !level.starts_with("proto=") {
+            env::set_var("PROTO_LOG", format!("proto={level}"));
+        }
+    } else {
+        env::set_var("PROTO_LOG", "proto=debug");
     }
+
+    env_logger::Builder::from_env("PROTO_LOG")
+        .write_style(write_style)
+        .format_timestamp(None)
+        .init();
 }
 
 pub fn get_global_version_path(tool: &Box<dyn Tool<'_>>) -> Result<PathBuf, ProtoError> {
