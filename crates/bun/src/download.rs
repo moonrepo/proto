@@ -35,10 +35,10 @@ pub fn get_archive_file_path() -> Result<String, ProtoError> {
 pub fn get_archive_file_path() -> Result<String, ProtoError> {
     let arch = BunArch::from_os_arch()?;
 
-    return Err(ProtoError::UnsupportedArchitecture(
+    Err(ProtoError::UnsupportedArchitecture(
         "Bun".into(),
         arch.to_string(),
-    ));
+    ))
 }
 
 pub fn get_archive_file() -> Result<String, ProtoError> {

@@ -71,7 +71,7 @@ fn build_shim_file(builder: &ShimBuilder, global: bool) -> Result<String, ProtoE
 
 #[cfg(windows)]
 fn get_shim_file_name(name: &str) -> String {
-    format!("{}.ps1", name)
+    format!("{name}.ps1")
 }
 
 #[cfg(not(windows))]

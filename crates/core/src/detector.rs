@@ -27,8 +27,8 @@ pub fn get_fixed_version(version: &str) -> Option<String> {
         return None;
     }
 
-    let maybe_semver = if version.starts_with('=') {
-        &version[1..]
+    let maybe_semver = if let Some(value) = version.strip_prefix('=') {
+        value
     } else {
         version
     };

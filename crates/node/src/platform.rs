@@ -69,7 +69,7 @@ pub struct PackageJson {
 
 impl PackageJson {
     pub fn load(path: &Path) -> Result<Self, ProtoError> {
-        serde_json::from_str(&load_version_file(&path)?)
+        serde_json::from_str(&load_version_file(path)?)
             .map_err(|e| ProtoError::Json(path.to_path_buf(), e.to_string()))
     }
 }
