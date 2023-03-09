@@ -25,7 +25,13 @@ fn returns_path_if_installed() {
     let mut cmd = create_proto_command(temp.path());
     let assert = cmd.arg("bin").arg("npm").arg("9.0.0").assert();
 
-    assert.stdout(predicate::str::contains("tools/npm/9.0.0/bin/npm-cli.js"));
+    if cfg!(windows) {
+        assert.stdout(predicate::str::contains(
+            "tools\\npm\\9.0.0\\bin\\npm-cli.js",
+        ));
+    } else {
+        assert.stdout(predicate::str::contains("tools/npm/9.0.0/bin/npm-cli.js"));
+    }
 
     // With shims
     let mut cmd = create_proto_command(temp.path());
@@ -36,5 +42,9 @@ fn returns_path_if_installed() {
         .arg("--shim")
         .assert();
 
-    assert.stdout(predicate::str::contains("tools/npm/9.0.0/shims/npm"));
+    if cfg!(windows) {
+        assert.stdout(predicate::str::contains("tools\\npm\\9.0.0\\shims\\npm"));
+    } else {
+        assert.stdout(predicate::str::contains("tools/npm/9.0.0/shims/npm"));
+    }
 }
