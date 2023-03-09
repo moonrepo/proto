@@ -21,7 +21,7 @@ pub fn create_proto_command<T: AsRef<Path>>(path: T) -> assert_cmd::Command {
     cmd
 }
 
-pub fn debug_assert(assert: assert_cmd::assert::Assert) {
+pub fn debug_assert(assert: &assert_cmd::assert::Assert) {
     let output = assert.get_output();
 
     println!("STDOUT:\n{}\n", output_to_string(&output.stdout));
