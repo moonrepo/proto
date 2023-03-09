@@ -11,11 +11,7 @@ fn writes_local_version_file() {
     assert!(!version_file.exists());
 
     let mut cmd = create_proto_command(temp.path());
-    cmd.current_dir(temp.path())
-        .arg("local")
-        .arg("node")
-        .arg("19.0.0")
-        .assert();
+    cmd.arg("local").arg("node").arg("19.0.0").assert();
 
     assert!(version_file.exists());
     assert_eq!(
@@ -30,18 +26,10 @@ fn appends_multiple_tools() {
     let version_file = temp.join(".prototools");
 
     let mut cmd = create_proto_command(temp.path());
-    cmd.current_dir(temp.path())
-        .arg("local")
-        .arg("node")
-        .arg("19.0.0")
-        .assert();
+    cmd.arg("local").arg("node").arg("19.0.0").assert();
 
     let mut cmd = create_proto_command(temp.path());
-    cmd.current_dir(temp.path())
-        .arg("local")
-        .arg("npm")
-        .arg("9.0.0")
-        .assert();
+    cmd.arg("local").arg("npm").arg("9.0.0").assert();
 
     assert_eq!(
         fs::read_to_string(version_file).unwrap(),
@@ -65,11 +53,7 @@ npm = "9.0.0"
     .unwrap();
 
     let mut cmd = create_proto_command(temp.path());
-    cmd.current_dir(temp.path())
-        .arg("local")
-        .arg("node")
-        .arg("19.0.0")
-        .assert();
+    cmd.arg("local").arg("node").arg("19.0.0").assert();
 
     assert_eq!(
         fs::read_to_string(version_file).unwrap(),
