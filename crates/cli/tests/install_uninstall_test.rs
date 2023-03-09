@@ -51,5 +51,5 @@ fn doesnt_uninstall_tool_if_doesnt_exist() {
     let mut cmd = create_proto_command(temp.path());
     let assert = cmd.arg("uninstall").arg("node").arg("19.0.0").assert();
 
-    assert.stderr(predicate::str::contains("Node.js v19.0.0  does not exist!"));
+    assert.stderr(predicate::str::contains("Node.js v19.0.0 does not exist!"));
 }
