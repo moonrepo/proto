@@ -14,7 +14,7 @@ fn errors_if_not_installed() {
     debug_assert(&assert);
 
     assert.stderr(predicate::str::contains(
-        "Unable to find an executable binary for Node.js",
+        "Attempted to run Node.js v19.0.0, but this version has not been installed. Install it with `proto install node 19.0.0`!",
     ));
 }
 
