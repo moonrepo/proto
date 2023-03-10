@@ -11,7 +11,7 @@ pub const MANIFEST_NAME: &str = "manifest.json";
 #[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Manifest {
-    pub default_version: String,
+    pub default_version: Option<String>,
     pub installed_versions: FxHashSet<String>,
 
     #[serde(skip)]
@@ -20,7 +20,9 @@ pub struct Manifest {
 
 impl Manifest {
     pub fn load_for_tool(tool: &Box<dyn Tool<'_>>) -> Result<Self, ProtoError> {
-        Self::load_from(get_tools_dir()?.join(tool.get_bin_name()))
+        let dir = get_tools_dir()?.join(tool.get_bin_name());
+
+        Self::load_from(dir)
     }
 
     pub fn load_from<P: AsRef<Path>>(dir: P) -> Result<Self, ProtoError> {
@@ -30,15 +32,15 @@ impl Manifest {
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self, ProtoError> {
         let path = path.as_ref();
 
-        if !path.exists() {
-            return Ok(Manifest::default());
-        }
+        let mut manifest: Manifest = if path.exists() {
+            let contents = fs::read_to_string(path)
+                .map_err(|e| ProtoError::Fs(path.to_path_buf(), e.to_string()))?;
 
-        let contents = fs::read_to_string(path)
-            .map_err(|e| ProtoError::Fs(path.to_path_buf(), e.to_string()))?;
-
-        let mut manifest: Manifest = serde_json::from_str(&contents)
-            .map_err(|e| ProtoError::Json(path.to_path_buf(), e.to_string()))?;
+            serde_json::from_str(&contents)
+                .map_err(|e| ProtoError::Json(path.to_path_buf(), e.to_string()))?
+        } else {
+            Manifest::default()
+        };
 
         manifest.path = path.to_owned();
 
@@ -52,7 +54,10 @@ impl Manifest {
         let handle_error =
             |e: std::io::Error| ProtoError::Fs(self.path.to_path_buf(), e.to_string());
 
-        fs::create_dir_all(self.path.parent().unwrap()).map_err(handle_error)?;
+        if let Some(parent) = self.path.parent() {
+            fs::create_dir_all(parent).map_err(handle_error)?;
+        }
+
         fs::write(&self.path, data).map_err(handle_error)?;
 
         Ok(())

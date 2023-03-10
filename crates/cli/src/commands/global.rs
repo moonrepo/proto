@@ -12,7 +12,7 @@ pub async fn global(tool_type: ToolType, version: String) -> Result<(), ProtoErr
     tool.resolve_version(&version).await?;
 
     let mut manifest = Manifest::load_for_tool(&tool)?;
-    manifest.default_version = tool.get_resolved_version().to_owned();
+    manifest.default_version = Some(tool.get_resolved_version().to_owned());
     manifest.save()?;
 
     trace!(

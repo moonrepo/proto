@@ -42,7 +42,10 @@ impl Config {
         let path = path.as_ref();
 
         if !path.exists() {
-            return Ok(Config::default());
+            return Ok(Config {
+                path: path.to_owned(),
+                ..Config::default()
+            });
         }
 
         let contents = fs::read_to_string(path)

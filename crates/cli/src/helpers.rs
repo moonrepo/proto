@@ -1,6 +1,6 @@
 #![allow(clippy::borrowed_box)]
 
-use crate::config::{Config, CONFIG_NAME};
+use crate::config::Config;
 use crate::tools::ToolType;
 use log::{debug, trace};
 use proto::Manifest;
@@ -84,18 +84,17 @@ pub async fn detect_version_from_environment(
                 "Checking proto configuration file"
             );
 
-            let config_file = dir.join(CONFIG_NAME);
-            let config = Config::load(&config_file)?;
+            let config = Config::load_from(&dir)?;
 
-            if let Some(config_version) = config.tools.get(tool_type) {
+            if let Some(local_version) = config.tools.get(tool_type) {
                 debug!(
                     target: "proto:detect",
                     "Detected version {} from configuration file {}",
-                    config_version,
-                    color::path(&config_file)
+                    local_version,
+                    color::path(&config.path)
                 );
 
-                version = Some(config_version.to_owned());
+                version = Some(local_version.to_owned());
                 break;
             }
 
@@ -129,15 +128,15 @@ pub async fn detect_version_from_environment(
 
         let manifest = Manifest::load_for_tool(&tool)?;
 
-        if !manifest.default_version.is_empty() {
+        if let Some(global_version) = manifest.default_version {
             debug!(
                 target: "proto:detect",
                 "Detected global version {} from {}",
-                &manifest.default_version,
+               global_version,
                 color::path(&manifest.path)
             );
 
-            version = Some(manifest.default_version);
+            version = Some(global_version);
         }
     }
 

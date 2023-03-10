@@ -51,7 +51,9 @@ fn write_profile(shell: &Shell, profiles: &[PathBuf], contents: String) -> Resul
         color::path(last_profile),
     );
 
-    fs::create_dir_all(last_profile.parent().unwrap()).map_err(handle_error)?;
+    if let Some(parent) = last_profile.parent() {
+        fs::create_dir_all(parent).map_err(handle_error)?;
+    }
 
     let mut options = OpenOptions::new();
     options.read(true);
