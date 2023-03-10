@@ -21,7 +21,7 @@ pub struct Manifest {
 
 impl Manifest {
     pub fn insert_version(path: PathBuf, version: &str) -> Result<(), ProtoError> {
-        let mut manifest = Manifest::load(&path)?;
+        let mut manifest = Manifest::load(path)?;
 
         if manifest.default_version.is_none() {
             manifest.default_version = Some(version.to_owned());
@@ -34,12 +34,12 @@ impl Manifest {
     }
 
     pub fn remove_version(path: PathBuf, version: &str) -> Result<(), ProtoError> {
-        let mut manifest = Manifest::load(&path)?;
+        let mut manifest = Manifest::load(path)?;
 
         manifest.installed_versions.remove(version);
 
         // Remove default version if nothing available
-        if manifest.installed_versions.is_empty()
+        if (manifest.installed_versions.is_empty() && manifest.default_version.is_some())
             || manifest.default_version.as_ref() == Some(&version.to_owned())
         {
             info!(target: "proto:uninstall", "Unpinning default global version");
@@ -52,6 +52,7 @@ impl Manifest {
         Ok(())
     }
 
+    #[allow(clippy::borrowed_box)]
     pub fn load_for_tool(tool: &Box<dyn Tool<'_>>) -> Result<Self, ProtoError> {
         let dir = get_tools_dir()?.join(tool.get_bin_name());
 
