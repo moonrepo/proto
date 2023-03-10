@@ -1303,7 +1303,7 @@ dependencies = [
 
 [[package]]
 name = "proto_bun"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "assert_fs",
  "log",
@@ -1315,7 +1315,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "assert_cmd",
  "assert_fs",
@@ -1339,7 +1339,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "async-trait",
  "cached",
@@ -1363,7 +1363,7 @@ dependencies = [
 
 [[package]]
 name = "proto_deno"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "assert_fs",
  "log",
@@ -1375,7 +1375,7 @@ dependencies = [
 
 [[package]]
 name = "proto_go"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "assert_fs",
  "log",
@@ -1387,7 +1387,7 @@ dependencies = [
 
 [[package]]
 name = "proto_node"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "assert_fs",
  "clean-path",
