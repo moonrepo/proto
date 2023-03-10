@@ -1,4 +1,4 @@
-use crate::config::{Config, CONFIG_NAME};
+use crate::config::Config;
 use crate::helpers::enable_logging;
 use crate::tools::{create_tool, ToolType};
 use log::{info, trace};
@@ -12,21 +12,14 @@ pub async fn local(tool_type: ToolType, version: String) -> Result<(), ProtoErro
 
     tool.resolve_version(&version).await?;
 
-    let local_path = env::current_dir()
-        .unwrap_or_else(|_| PathBuf::from("."))
-        .join(CONFIG_NAME);
-
-    let mut config = if local_path.exists() {
-        Config::load(&local_path)?
-    } else {
-        Config::default()
-    };
+    let local_path = env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    let mut config = Config::load_from(&local_path)?;
 
     config
         .tools
         .insert(tool_type, tool.get_resolved_version().to_owned());
 
-    config.save(&local_path)?;
+    config.save()?;
 
     trace!(
         target: "proto:local",

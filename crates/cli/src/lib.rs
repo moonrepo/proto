@@ -1,7 +1,9 @@
 pub mod config;
+pub mod manifest;
 pub mod tools;
 
 pub use config::*;
+pub use manifest::*;
 pub use proto_bun as bun;
 pub use proto_core::*;
 pub use proto_deno as deno;

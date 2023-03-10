@@ -2,7 +2,10 @@ use crate::tools::ToolType;
 use clap::ValueEnum;
 use proto_core::ProtoError;
 use rustc_hash::FxHashMap;
-use std::{fs, path::Path};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 use toml::{map::Map, Value};
 
 pub const CONFIG_NAME: &str = ".prototools";
@@ -10,10 +13,11 @@ pub const CONFIG_NAME: &str = ".prototools";
 #[derive(Debug, Default)]
 pub struct Config {
     pub tools: FxHashMap<ToolType, String>,
+    pub path: PathBuf,
 }
 
 impl Config {
-    pub fn find_upwards<P>(dir: P) -> Result<Option<Self>, ProtoError>
+    pub fn load_upwards<P>(dir: P) -> Result<Option<Self>, ProtoError>
     where
         P: AsRef<Path>,
     {
@@ -25,12 +29,25 @@ impl Config {
         }
 
         match dir.parent() {
-            Some(parent_dir) => Self::find_upwards(parent_dir),
+            Some(parent_dir) => Self::load_upwards(parent_dir),
             None => Ok(None),
         }
     }
 
-    pub fn load(path: &Path) -> Result<Self, ProtoError> {
+    pub fn load_from<P: AsRef<Path>>(dir: P) -> Result<Self, ProtoError> {
+        Self::load(dir.as_ref().join(CONFIG_NAME))
+    }
+
+    pub fn load<P: AsRef<Path>>(path: P) -> Result<Self, ProtoError> {
+        let path = path.as_ref();
+
+        if !path.exists() {
+            return Ok(Config {
+                path: path.to_owned(),
+                ..Config::default()
+            });
+        }
+
         let contents = fs::read_to_string(path)
             .map_err(|e| ProtoError::Fs(path.to_path_buf(), e.to_string()))?;
 
@@ -60,10 +77,13 @@ impl Config {
             ));
         }
 
-        Ok(Config { tools })
+        Ok(Config {
+            tools,
+            path: path.to_owned(),
+        })
     }
 
-    pub fn save(&self, path: &Path) -> Result<(), ProtoError> {
+    pub fn save(&self) -> Result<(), ProtoError> {
         let mut map = Map::with_capacity(self.tools.len());
 
         for (tool, version) in &self.tools {
@@ -74,9 +94,10 @@ impl Config {
         }
 
         let data = toml::to_string_pretty(&Value::Table(map))
-            .map_err(|e| ProtoError::Toml(path.to_path_buf(), e.to_string()))?;
+            .map_err(|e| ProtoError::Toml(self.path.to_path_buf(), e.to_string()))?;
 
-        fs::write(path, data).map_err(|e| ProtoError::Fs(path.to_path_buf(), e.to_string()))?;
+        fs::write(&self.path, data)
+            .map_err(|e| ProtoError::Fs(self.path.to_path_buf(), e.to_string()))?;
 
         Ok(())
     }

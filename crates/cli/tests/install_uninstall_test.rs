@@ -53,3 +53,35 @@ fn doesnt_uninstall_tool_if_doesnt_exist() {
 
     assert.stderr(predicate::str::contains("Node.js v19.0.0 does not exist!"));
 }
+
+#[test]
+fn updates_the_manifest_when_installing() {
+    let temp = create_temp_dir();
+    let manifest_file = temp.join("tools/node/manifest.json");
+
+    // Install
+    let mut cmd = create_proto_command(temp.path());
+    cmd.arg("install").arg("node").arg("19.0.0").assert();
+
+    assert_eq!(
+        std::fs::read_to_string(&manifest_file).unwrap(),
+        r#"{
+  "default_version": "19.0.0",
+  "installed_versions": [
+    "19.0.0"
+  ]
+}"#
+    );
+
+    // Uninstall
+    let mut cmd = create_proto_command(temp.path());
+    cmd.arg("uninstall").arg("node").arg("19.0.0").assert();
+
+    assert_eq!(
+        std::fs::read_to_string(&manifest_file).unwrap(),
+        r#"{
+  "default_version": null,
+  "installed_versions": []
+}"#
+    );
+}
