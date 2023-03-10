@@ -142,7 +142,7 @@ mod node_depman {
         }
 
         #[tokio::test]
-        async fn doesnt_match_if_engines_caret() {
+        async fn matches_if_engines_caret() {
             let fixture = assert_fs::TempDir::new().unwrap();
 
             fixture
@@ -154,12 +154,12 @@ mod node_depman {
 
             assert_eq!(
                 tool.detect_version_from(fixture.path()).await.unwrap(),
-                None
+                Some("1.2.3".into())
             );
         }
 
         #[tokio::test]
-        async fn doesnt_match_if_engines_tilde() {
+        async fn matches_engines_tilde() {
             let fixture = assert_fs::TempDir::new().unwrap();
 
             fixture
@@ -171,24 +171,24 @@ mod node_depman {
 
             assert_eq!(
                 tool.detect_version_from(fixture.path()).await.unwrap(),
-                None
+                Some("1.2.3".into())
             );
         }
 
         #[tokio::test]
-        async fn doesnt_match_if_engines_range() {
+        async fn matches_engines_range() {
             let fixture = assert_fs::TempDir::new().unwrap();
 
             fixture
                 .child("package.json")
-                .write_str(r#"{"engines":{"npm":">=1.2.3"}}"#)
+                .write_str(r#"{"engines":{"npm":">=1.2"}}"#)
                 .unwrap();
 
             let tool = create_depman(fixture.path());
 
             assert_eq!(
                 tool.detect_version_from(fixture.path()).await.unwrap(),
-                None
+                Some("1.2".into())
             );
         }
 
@@ -239,7 +239,7 @@ mod node_depman {
 
             assert_eq!(
                 tool.detect_version_from(fixture.path()).await.unwrap(),
-                Some("1.2".into())
+                Some("1.2.0".into())
             );
         }
 
