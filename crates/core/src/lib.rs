@@ -6,6 +6,7 @@ mod errors;
 mod executor;
 mod helpers;
 mod installer;
+mod manifest;
 mod resolver;
 mod shimmer;
 mod verifier;
@@ -19,6 +20,7 @@ pub use executor::*;
 pub use helpers::*;
 pub use installer::*;
 pub use lenient_semver::Version;
+pub use manifest::*;
 pub use resolver::*;
 pub use shimmer::*;
 pub use verifier::*;
@@ -66,6 +68,12 @@ pub trait Tool<'tool>:
     + Executable<'tool>
     + Shimable<'tool>
 {
+    fn get_manifest_path(&self) -> Result<PathBuf, ProtoError> {
+        Ok(get_tools_dir()?
+            .join(self.get_bin_name())
+            .join(MANIFEST_NAME))
+    }
+
     async fn before_setup(&mut self) -> Result<(), ProtoError> {
         Ok(())
     }
@@ -95,6 +103,9 @@ pub trait Tool<'tool>:
 
         // Create shims after paths are found
         self.create_shims().await?;
+
+        // Update the manifest
+        Manifest::insert_version(self.get_manifest_path()?, self.get_resolved_version())?;
 
         self.after_setup().await?;
 
@@ -187,6 +198,9 @@ pub trait Tool<'tool>:
 
             fs::remove_dir_all(&install_dir)
                 .map_err(|e| ProtoError::Fs(install_dir, e.to_string()))?;
+
+            // Update the manifest
+            Manifest::remove_version(self.get_manifest_path()?, self.get_resolved_version())?;
         }
 
         self.after_teardown().await?;

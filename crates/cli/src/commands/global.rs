@@ -1,8 +1,7 @@
 use crate::helpers::enable_logging;
-use crate::manifest::Manifest;
 use crate::tools::{create_tool, ToolType};
 use log::{info, trace};
-use proto_core::{color, ProtoError};
+use proto_core::{color, Manifest, ProtoError};
 
 pub async fn global(tool_type: ToolType, version: String) -> Result<(), ProtoError> {
     enable_logging();

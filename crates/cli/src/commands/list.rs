@@ -1,9 +1,8 @@
 use crate::helpers::enable_logging;
-use crate::manifest::Manifest;
 use crate::tools::{create_tool, ToolType};
 use human_sort::compare;
 use log::{debug, info};
-use proto_core::{color, ProtoError};
+use proto_core::{color, Manifest, ProtoError};
 
 pub async fn list(tool_type: ToolType) -> Result<(), ProtoError> {
     enable_logging();

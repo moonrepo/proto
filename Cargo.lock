@@ -1320,8 +1320,6 @@ dependencies = [
  "proto_go",
  "proto_node",
  "rustc-hash",
- "serde",
- "serde_json",
  "tokio",
  "toml",
 ]
@@ -1339,6 +1337,7 @@ dependencies = [
  "lenient_semver",
  "log",
  "reqwest",
+ "rustc-hash",
  "serde",
  "serde_json",
  "sha2",
