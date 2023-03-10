@@ -1,17 +1,13 @@
 #![allow(clippy::borrowed_box)]
 
 use crate::config::{Config, CONFIG_NAME};
-use crate::manifest::MANIFEST_NAME;
 use crate::tools::ToolType;
 use log::{debug, trace};
 use proto::Manifest;
-use proto_core::{color, get_tools_dir, ProtoError, Tool};
+use proto_core::{color, ProtoError, Tool};
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::Relaxed;
-use std::{
-    env,
-    path::{Path, PathBuf},
-};
+use std::{env, path::Path};
 
 pub fn enable_logging() {
     static ENABLED: AtomicBool = AtomicBool::new(false);
@@ -31,12 +27,6 @@ pub fn enable_logging() {
 
         ENABLED.store(true, Relaxed);
     }
-}
-
-pub fn get_manifest_path(tool: &Box<dyn Tool<'_>>) -> Result<PathBuf, ProtoError> {
-    Ok(get_tools_dir()?
-        .join(tool.get_bin_name())
-        .join(MANIFEST_NAME))
 }
 
 pub async fn detect_version_from_environment(
@@ -137,15 +127,14 @@ pub async fn detect_version_from_environment(
             "Attempting to find global version"
         );
 
-        let manifest_file = get_manifest_path(tool)?;
-        let manifest = Manifest::load(&manifest_file)?;
+        let manifest = Manifest::load_for_tool(&tool)?;
 
         if !manifest.default_version.is_empty() {
             debug!(
                 target: "proto:detect",
                 "Detected global version {} from {}",
                 &manifest.default_version,
-                color::path(&manifest_file)
+                color::path(&manifest.path)
             );
 
             version = Some(manifest.default_version);

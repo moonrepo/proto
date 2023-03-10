@@ -10,7 +10,7 @@ pub async fn install_all() -> Result<(), ProtoError> {
 
     let current_dir = env::current_dir().expect("Invalid working directory!");
 
-    let Some(config) = Config::find_upwards(&current_dir)? else {
+    let Some(config) = Config::load_upwards(&current_dir)? else {
         return Err(ProtoError::MissingConfig(CONFIG_NAME.to_owned()));
     };
 

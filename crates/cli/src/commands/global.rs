@@ -1,4 +1,4 @@
-use crate::helpers::{enable_logging, get_manifest_path};
+use crate::helpers::enable_logging;
 use crate::manifest::Manifest;
 use crate::tools::{create_tool, ToolType};
 use log::{info, trace};
@@ -11,16 +11,14 @@ pub async fn global(tool_type: ToolType, version: String) -> Result<(), ProtoErr
 
     tool.resolve_version(&version).await?;
 
-    let manifest_path = get_manifest_path(&tool)?;
-
-    let mut manifest = Manifest::load(&manifest_path)?;
+    let mut manifest = Manifest::load_for_tool(&tool)?;
     manifest.default_version = tool.get_resolved_version().to_owned();
-    manifest.save(&manifest_path)?;
+    manifest.save()?;
 
     trace!(
         target: "proto:global",
         "Wrote the global version to {}",
-        color::path(&manifest_path),
+        color::path(&manifest.path),
     );
 
     info!(
