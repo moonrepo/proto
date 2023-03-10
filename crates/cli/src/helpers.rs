@@ -4,23 +4,31 @@ use crate::config::{Config, CONFIG_NAME};
 use crate::tools::ToolType;
 use log::{debug, trace};
 use proto_core::{color, get_tools_dir, load_version_file, ProtoError, Tool};
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering::Relaxed;
 use std::{
     env,
     path::{Path, PathBuf},
 };
 
 pub fn enable_logging() {
-    if let Ok(level) = env::var("PROTO_LOG") {
-        if !level.starts_with("proto=") {
-            env::set_var("PROTO_LOG", format!("proto={level}"));
-        }
-    } else {
-        env::set_var("PROTO_LOG", "proto=info");
-    }
+    static ENABLED: AtomicBool = AtomicBool::new(false);
 
-    env_logger::Builder::from_env("PROTO_LOG")
-        .format_timestamp(None)
-        .init();
+    if !ENABLED.load(Relaxed) {
+        if let Ok(level) = env::var("PROTO_LOG") {
+            if !level.starts_with("proto=") {
+                env::set_var("PROTO_LOG", format!("proto={level}"));
+            }
+        } else {
+            env::set_var("PROTO_LOG", "proto=info");
+        }
+
+        env_logger::Builder::from_env("PROTO_LOG")
+            .format_timestamp(None)
+            .init();
+
+        ENABLED.store(true, Relaxed);
+    }
 }
 
 pub fn get_global_version_path(tool: &Box<dyn Tool<'_>>) -> Result<PathBuf, ProtoError> {

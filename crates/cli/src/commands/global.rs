@@ -12,9 +12,10 @@ pub async fn global(tool_type: ToolType, version: String) -> Result<(), ProtoErr
     tool.resolve_version(&version).await?;
 
     let global_path = get_global_version_path(&tool)?;
+    let handle_error = |e: std::io::Error| ProtoError::Fs(global_path.to_path_buf(), e.to_string());
 
-    fs::write(&global_path, tool.get_resolved_version())
-        .map_err(|e| ProtoError::Fs(global_path.to_path_buf(), e.to_string()))?;
+    fs::create_dir_all(global_path.parent().unwrap()).map_err(handle_error)?;
+    fs::write(&global_path, tool.get_resolved_version()).map_err(handle_error)?;
 
     trace!(
         target: "proto:global",
