@@ -14,11 +14,11 @@ rustc-hash = "1.1.0"
 serde = { version = "1.0.152", features = ["derive"] }
 serde_json = "1.0.93"
 thiserror = "1.0.38"
-tokio = { version = "1.25.0", features = ["full", "tracing"] }
+tokio = { version = "1.26.0", features = ["full", "tracing"] }
 
 [workspace.metadata.dist]
 cargo-dist-version = "0.0.4"
-rust-toolchain-version = "1.67.0"
+rust-toolchain-version = "1.68.0"
 ci = ["github"]
 # installers = ["shell", "powershell"]
 targets = ["x86_64-unknown-linux-gnu", "x86_64-apple-darwin", "aarch64-apple-darwin", "x86_64-pc-windows-msvc"]
