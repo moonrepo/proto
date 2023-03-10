@@ -58,12 +58,15 @@ pub enum Commands {
 
         #[arg(default_value = "latest", help = "Version of tool")]
         semver: Option<String>,
+
+        #[arg(long, help = "Pin version as the global default")]
+        pin: bool,
     },
 
     #[command(
         name = "global",
         about = "Set the global default version of a tool.",
-        long_about = "Set the global default version of a tool. This will create a version file in the ~/.proto/tools installation directory."
+        long_about = "Set the global default version of a tool. This will pin the version in the ~/.proto/tools installation directory."
     )]
     Global {
         #[arg(required = true, value_enum, help = "Type of tool")]

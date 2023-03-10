@@ -1,6 +1,7 @@
 mod utils;
 
 use predicates::prelude::*;
+use std::fs;
 use utils::*;
 
 #[test]
@@ -34,7 +35,11 @@ fn doesnt_install_tool_if_exists() {
     let temp = create_temp_dir();
 
     let mut cmd = create_proto_command(temp.path());
-    cmd.arg("install").arg("node").arg("19.0.0").assert();
+    cmd.arg("install")
+        .arg("node")
+        .arg("19.0.0")
+        .assert()
+        .success();
 
     let mut cmd = create_proto_command(temp.path());
     let assert = cmd.arg("install").arg("node").arg("19.0.0").assert();
@@ -61,10 +66,14 @@ fn updates_the_manifest_when_installing() {
 
     // Install
     let mut cmd = create_proto_command(temp.path());
-    cmd.arg("install").arg("node").arg("19.0.0").assert();
+    cmd.arg("install")
+        .arg("node")
+        .arg("19.0.0")
+        .assert()
+        .success();
 
     assert_eq!(
-        std::fs::read_to_string(&manifest_file).unwrap(),
+        fs::read_to_string(&manifest_file).unwrap(),
         r#"{
   "default_version": "19.0.0",
   "installed_versions": [
@@ -75,13 +84,53 @@ fn updates_the_manifest_when_installing() {
 
     // Uninstall
     let mut cmd = create_proto_command(temp.path());
-    cmd.arg("uninstall").arg("node").arg("19.0.0").assert();
+    cmd.arg("uninstall")
+        .arg("node")
+        .arg("19.0.0")
+        .assert()
+        .success();
 
     assert_eq!(
-        std::fs::read_to_string(&manifest_file).unwrap(),
+        fs::read_to_string(&manifest_file).unwrap(),
         r#"{
   "default_version": null,
   "installed_versions": []
+}"#
+    );
+}
+
+#[test]
+fn can_pin_when_installing() {
+    let temp = create_temp_dir();
+    let manifest_file = temp.join("tools/node/manifest.json");
+
+    fs::create_dir_all(manifest_file.parent().unwrap()).unwrap();
+    fs::write(
+        &manifest_file,
+        r#"{
+  "default_version": "18.0.0",
+  "installed_versions": [
+    "18.0.0"
+  ]
+}"#,
+    )
+    .unwrap();
+
+    let mut cmd = create_proto_command(temp.path());
+    cmd.arg("install")
+        .arg("node")
+        .arg("19.0.0")
+        .arg("--pin")
+        .assert();
+
+    assert_eq!(
+        fs::read_to_string(&manifest_file).unwrap(),
+        r#"{
+  "default_version": "19.0.0",
+  "installed_versions": [
+    "18.0.0",
+    "19.0.0"
+  ]
 }"#
     );
 }

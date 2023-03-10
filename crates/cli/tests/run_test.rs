@@ -11,8 +11,6 @@ fn errors_if_not_installed() {
     let mut cmd = create_proto_command(temp.path());
     let assert = cmd.arg("run").arg("node").arg("19.0.0").assert();
 
-    debug_assert(&assert);
-
     assert.stderr(predicate::str::contains(
         "Attempted to run Node.js v19.0.0, but this version has not been installed. Install it with `proto install node 19.0.0`!",
     ));
@@ -25,8 +23,6 @@ fn errors_if_no_version_detected() {
     let mut cmd = create_proto_command(temp.path());
     let assert = cmd.arg("run").arg("node").assert();
 
-    debug_assert(&assert);
-
     assert.stderr(predicate::str::contains(
         "Unable to detect an applicable version",
     ));
@@ -37,7 +33,11 @@ fn runs_a_tool() {
     let temp = create_temp_dir();
 
     let mut cmd = create_proto_command(temp.path());
-    cmd.arg("install").arg("node").arg("19.0.0").assert();
+    cmd.arg("install")
+        .arg("node")
+        .arg("19.0.0")
+        .assert()
+        .success();
 
     let mut cmd = create_proto_command(temp.path());
     let assert = cmd
@@ -56,7 +56,11 @@ fn runs_a_tool_using_version_detection() {
     let temp = create_temp_dir();
 
     let mut cmd = create_proto_command(temp.path());
-    cmd.arg("install").arg("node").arg("19.0.0").assert();
+    cmd.arg("install")
+        .arg("node")
+        .arg("19.0.0")
+        .assert()
+        .success();
 
     // Arg
     let mut cmd = create_proto_command(temp.path());

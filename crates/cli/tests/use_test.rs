@@ -37,7 +37,7 @@ deno = "1.30.0"
     assert!(!deno_path.exists());
 
     let mut cmd = create_proto_command(temp.path());
-    cmd.arg("use").assert();
+    cmd.arg("use").assert().success();
 
     assert!(node_path.exists());
     assert!(npm_path.exists());
