@@ -19,7 +19,7 @@ pub async fn local(tool_type: ToolType, version: String) -> Result<(), ProtoErro
         .tools
         .insert(tool_type, tool.get_resolved_version().to_owned());
 
-    config.save(&local_path)?;
+    config.save_to(&local_path)?;
 
     trace!(
         target: "proto:local",

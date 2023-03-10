@@ -1,8 +1,8 @@
-use crate::helpers::{enable_logging, get_global_version_path};
+use crate::helpers::enable_logging;
+use crate::manifest::{Manifest, MANIFEST_NAME};
 use crate::tools::{create_tool, ToolType};
 use log::{info, trace};
-use proto_core::{color, ProtoError};
-use std::fs;
+use proto_core::{color, get_tools_dir, ProtoError};
 
 pub async fn global(tool_type: ToolType, version: String) -> Result<(), ProtoError> {
     enable_logging();
@@ -11,16 +11,18 @@ pub async fn global(tool_type: ToolType, version: String) -> Result<(), ProtoErr
 
     tool.resolve_version(&version).await?;
 
-    let global_path = get_global_version_path(&tool)?;
-    let handle_error = |e: std::io::Error| ProtoError::Fs(global_path.to_path_buf(), e.to_string());
+    let manifest_path = get_tools_dir()?
+        .join(tool.get_bin_name())
+        .join(MANIFEST_NAME);
 
-    fs::create_dir_all(global_path.parent().unwrap()).map_err(handle_error)?;
-    fs::write(&global_path, tool.get_resolved_version()).map_err(handle_error)?;
+    let mut manifest = Manifest::load(&manifest_path)?;
+    manifest.default_version = tool.get_resolved_version().to_owned();
+    manifest.save(&manifest_path)?;
 
     trace!(
         target: "proto:global",
         "Wrote the global version to {}",
-        color::path(&global_path),
+        color::path(&manifest_path),
     );
 
     info!(

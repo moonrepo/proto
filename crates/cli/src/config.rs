@@ -73,7 +73,14 @@ impl Config {
         Ok(Config { tools })
     }
 
-    pub fn save(&self, path: &Path) -> Result<(), ProtoError> {
+    pub fn save_to<P: AsRef<Path>>(&self, dir: P) -> Result<(), ProtoError> {
+        self.save(dir.as_ref().join(CONFIG_NAME))?;
+
+        Ok(())
+    }
+
+    pub fn save<P: AsRef<Path>>(&self, path: P) -> Result<(), ProtoError> {
+        let path = path.as_ref();
         let mut map = Map::with_capacity(self.tools.len());
 
         for (tool, version) in &self.tools {

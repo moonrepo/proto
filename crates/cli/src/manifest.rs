@@ -31,4 +31,24 @@ impl Manifest {
 
         Ok(manifest)
     }
+
+    pub fn save_to<P: AsRef<Path>>(&self, dir: P) -> Result<(), ProtoError> {
+        self.save(dir.as_ref().join(MANIFEST_NAME))?;
+
+        Ok(())
+    }
+
+    pub fn save<P: AsRef<Path>>(&self, path: P) -> Result<(), ProtoError> {
+        let path = path.as_ref();
+
+        let data = serde_json::to_string_pretty(self)
+            .map_err(|e| ProtoError::Json(path.to_path_buf(), e.to_string()))?;
+
+        let handle_error = |e: std::io::Error| ProtoError::Fs(path.to_path_buf(), e.to_string());
+
+        fs::create_dir_all(path.parent().unwrap()).map_err(handle_error)?;
+        fs::write(path, data).map_err(handle_error)?;
+
+        Ok(())
+    }
 }
