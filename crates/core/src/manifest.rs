@@ -1,4 +1,5 @@
-use proto_core::{get_tools_dir, ProtoError, Tool};
+use crate::{get_tools_dir, ProtoError, Tool};
+use log::info;
 use rustc_hash::FxHashSet;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -19,6 +20,39 @@ pub struct Manifest {
 }
 
 impl Manifest {
+    pub fn insert_version(path: PathBuf, version: &str) -> Result<(), ProtoError> {
+        let mut manifest = Manifest::load(path)?;
+
+        if manifest.default_version.is_none() {
+            manifest.default_version = Some(version.to_owned());
+        }
+
+        manifest.installed_versions.insert(version.to_owned());
+        manifest.save()?;
+
+        Ok(())
+    }
+
+    pub fn remove_version(path: PathBuf, version: &str) -> Result<(), ProtoError> {
+        let mut manifest = Manifest::load(path)?;
+
+        manifest.installed_versions.remove(version);
+
+        // Remove default version if nothing available
+        if (manifest.installed_versions.is_empty() && manifest.default_version.is_some())
+            || manifest.default_version.as_ref() == Some(&version.to_owned())
+        {
+            info!(target: "proto:uninstall", "Unpinning default global version");
+
+            manifest.default_version = None;
+        }
+
+        manifest.save()?;
+
+        Ok(())
+    }
+
+    #[allow(clippy::borrowed_box)]
     pub fn load_for_tool(tool: &Box<dyn Tool<'_>>) -> Result<Self, ProtoError> {
         let dir = get_tools_dir()?.join(tool.get_bin_name());
 

@@ -84,7 +84,7 @@ pub async fn detect_version_from_environment(
                 "Checking proto configuration file"
             );
 
-            let config = Config::load_from(&dir)?;
+            let config = Config::load_from(dir)?;
 
             if let Some(local_version) = config.tools.get(tool_type) {
                 debug!(
@@ -126,7 +126,7 @@ pub async fn detect_version_from_environment(
             "Attempting to find global version"
         );
 
-        let manifest = Manifest::load_for_tool(&tool)?;
+        let manifest = Manifest::load_for_tool(tool)?;
 
         if let Some(global_version) = manifest.default_version {
             debug!(

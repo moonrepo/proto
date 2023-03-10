@@ -31,8 +31,6 @@ futures = "0.3.26"
 human-sort = "0.2.2"
 log = { workspace = true }
 rustc-hash = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
 tokio = { workspace = true }
 toml = "0.7.0"
 
