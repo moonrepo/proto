@@ -35,7 +35,11 @@ fn doesnt_install_tool_if_exists() {
     let temp = create_temp_dir();
 
     let mut cmd = create_proto_command(temp.path());
-    cmd.arg("install").arg("node").arg("19.0.0").assert();
+    cmd.arg("install")
+        .arg("node")
+        .arg("19.0.0")
+        .assert()
+        .success();
 
     let mut cmd = create_proto_command(temp.path());
     let assert = cmd.arg("install").arg("node").arg("19.0.0").assert();
@@ -62,7 +66,11 @@ fn updates_the_manifest_when_installing() {
 
     // Install
     let mut cmd = create_proto_command(temp.path());
-    cmd.arg("install").arg("node").arg("19.0.0").assert();
+    cmd.arg("install")
+        .arg("node")
+        .arg("19.0.0")
+        .assert()
+        .success();
 
     assert_eq!(
         fs::read_to_string(&manifest_file).unwrap(),
@@ -76,7 +84,11 @@ fn updates_the_manifest_when_installing() {
 
     // Uninstall
     let mut cmd = create_proto_command(temp.path());
-    cmd.arg("uninstall").arg("node").arg("19.0.0").assert();
+    cmd.arg("uninstall")
+        .arg("node")
+        .arg("19.0.0")
+        .assert()
+        .success();
 
     assert_eq!(
         fs::read_to_string(&manifest_file).unwrap(),

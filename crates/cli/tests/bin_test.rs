@@ -20,7 +20,11 @@ fn returns_path_if_installed() {
     let temp = create_temp_dir();
 
     let mut cmd = create_proto_command(temp.path());
-    cmd.arg("install").arg("npm").arg("9.0.0").assert();
+    cmd.arg("install")
+        .arg("npm")
+        .arg("9.0.0")
+        .assert()
+        .success();
 
     let mut cmd = create_proto_command(temp.path());
     let assert = cmd.arg("bin").arg("npm").arg("9.0.0").assert();

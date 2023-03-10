@@ -10,7 +10,11 @@ fn updates_manifest_file() {
     assert!(!manifest_file.exists());
 
     let mut cmd = create_proto_command(temp.path());
-    cmd.arg("global").arg("node").arg("19.0.0").assert();
+    cmd.arg("global")
+        .arg("node")
+        .arg("19.0.0")
+        .assert()
+        .success();
 
     assert!(manifest_file.exists());
     assert_eq!(
