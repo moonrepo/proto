@@ -22,7 +22,7 @@ pub fn get_fixed_version(version: &str) -> Option<String> {
         return Some("latest".into());
     }
 
-    let version = version.replace(" ", "");
+    let version = version.replace(' ', "");
     let version_without_stars = version.replace(".*", "");
     let mut explicit = false;
     let mut drop_patch = false;
