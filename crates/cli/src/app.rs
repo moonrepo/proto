@@ -58,6 +58,9 @@ pub enum Commands {
 
         #[arg(default_value = "latest", help = "Version of tool")]
         semver: Option<String>,
+
+        #[arg(help = "Pin version as the global default")]
+        pin: bool,
     },
 
     #[command(
