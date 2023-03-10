@@ -30,7 +30,17 @@ impl Config {
         }
     }
 
-    pub fn load(path: &Path) -> Result<Self, ProtoError> {
+    pub fn load_from<P: AsRef<Path>>(dir: P) -> Result<Self, ProtoError> {
+        Self::load(dir.as_ref().join(CONFIG_NAME))
+    }
+
+    pub fn load<P: AsRef<Path>>(path: P) -> Result<Self, ProtoError> {
+        let path = path.as_ref();
+
+        if !path.exists() {
+            return Ok(Config::default());
+        }
+
         let contents = fs::read_to_string(path)
             .map_err(|e| ProtoError::Fs(path.to_path_buf(), e.to_string()))?;
 

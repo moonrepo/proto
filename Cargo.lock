@@ -1320,6 +1320,8 @@ dependencies = [
  "proto_go",
  "proto_node",
  "rustc-hash",
+ "serde",
+ "serde_json",
  "tokio",
  "toml",
 ]
