@@ -6,12 +6,14 @@ use std::{fs, path::Path};
 pub const MANIFEST_NAME: &str = "manifest.json";
 
 #[derive(Debug, Default, Deserialize, Serialize)]
+#[serde(default)]
 pub struct Manifest {
     pub default_version: String,
     pub installed_versions: FxHashSet<String>,
 }
 
 impl Manifest {
+    #[allow(dead_code)]
     pub fn load_from<P: AsRef<Path>>(dir: P) -> Result<Self, ProtoError> {
         Self::load(dir.as_ref().join(MANIFEST_NAME))
     }
@@ -32,6 +34,7 @@ impl Manifest {
         Ok(manifest)
     }
 
+    #[allow(dead_code)]
     pub fn save_to<P: AsRef<Path>>(&self, dir: P) -> Result<(), ProtoError> {
         self.save(dir.as_ref().join(MANIFEST_NAME))?;
 

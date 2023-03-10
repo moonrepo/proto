@@ -1,8 +1,8 @@
-use crate::helpers::enable_logging;
-use crate::manifest::{Manifest, MANIFEST_NAME};
+use crate::helpers::{enable_logging, get_manifest_path};
+use crate::manifest::Manifest;
 use crate::tools::{create_tool, ToolType};
 use log::{info, trace};
-use proto_core::{color, get_tools_dir, ProtoError};
+use proto_core::{color, ProtoError};
 
 pub async fn global(tool_type: ToolType, version: String) -> Result<(), ProtoError> {
     enable_logging();
@@ -11,9 +11,7 @@ pub async fn global(tool_type: ToolType, version: String) -> Result<(), ProtoErr
 
     tool.resolve_version(&version).await?;
 
-    let manifest_path = get_tools_dir()?
-        .join(tool.get_bin_name())
-        .join(MANIFEST_NAME);
+    let manifest_path = get_manifest_path(&tool)?;
 
     let mut manifest = Manifest::load(&manifest_path)?;
     manifest.default_version = tool.get_resolved_version().to_owned();

@@ -117,7 +117,11 @@ fn runs_a_tool_using_version_detection() {
     fs::remove_file(temp.path().join("package.json")).unwrap();
 
     // Global version
-    fs::write(temp.path().join("tools/node/version"), "19.0.0").unwrap();
+    fs::write(
+        temp.path().join("tools/node/manifest.json"),
+        r#"{ "default_version": "19.0.0" }"#,
+    )
+    .unwrap();
 
     let mut cmd = create_proto_command(temp.path());
     let assert = cmd
@@ -129,5 +133,5 @@ fn runs_a_tool_using_version_detection() {
 
     assert.stdout(predicate::str::contains("19.0.0"));
 
-    fs::remove_file(temp.path().join("tools/node/version")).unwrap();
+    fs::remove_file(temp.path().join("tools/node/manifest.json")).unwrap();
 }

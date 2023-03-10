@@ -1,9 +1,11 @@
 #![allow(clippy::borrowed_box)]
 
 use crate::config::{Config, CONFIG_NAME};
+use crate::manifest::MANIFEST_NAME;
 use crate::tools::ToolType;
 use log::{debug, trace};
-use proto_core::{color, get_tools_dir, load_version_file, ProtoError, Tool};
+use proto::Manifest;
+use proto_core::{color, get_tools_dir, ProtoError, Tool};
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::Relaxed;
 use std::{
@@ -31,8 +33,10 @@ pub fn enable_logging() {
     }
 }
 
-pub fn get_global_version_path(tool: &Box<dyn Tool<'_>>) -> Result<PathBuf, ProtoError> {
-    Ok(get_tools_dir()?.join(tool.get_bin_name()).join("version"))
+pub fn get_manifest_path(tool: &Box<dyn Tool<'_>>) -> Result<PathBuf, ProtoError> {
+    Ok(get_tools_dir()?
+        .join(tool.get_bin_name())
+        .join(MANIFEST_NAME))
 }
 
 pub async fn detect_version_from_environment(
@@ -91,21 +95,18 @@ pub async fn detect_version_from_environment(
             );
 
             let config_file = dir.join(CONFIG_NAME);
+            let config = Config::load(&config_file)?;
 
-            if config_file.exists() {
-                let config = Config::load(&config_file)?;
+            if let Some(config_version) = config.tools.get(tool_type) {
+                debug!(
+                    target: "proto:detect",
+                    "Detected version {} from configuration file {}",
+                    config_version,
+                    color::path(&config_file)
+                );
 
-                if let Some(config_version) = config.tools.get(tool_type) {
-                    debug!(
-                        target: "proto:detect",
-                        "Detected version {} from configuration file {}",
-                        config_version,
-                        color::path(&config_file)
-                    );
-
-                    version = Some(config_version.to_owned());
-                    break;
-                }
+                version = Some(config_version.to_owned());
+                break;
             }
 
             // Detect using the tool
@@ -136,19 +137,18 @@ pub async fn detect_version_from_environment(
             "Attempting to find global version"
         );
 
-        let global_file = get_global_version_path(tool)?;
+        let manifest_file = get_manifest_path(tool)?;
+        let manifest = Manifest::load(&manifest_file)?;
 
-        if global_file.exists() {
-            let global_version = load_version_file(&global_file)?;
-
+        if !manifest.default_version.is_empty() {
             debug!(
                 target: "proto:detect",
                 "Detected global version {} from {}",
-                global_version,
-                color::path(&global_file)
+                &manifest.default_version,
+                color::path(&manifest_file)
             );
 
-            version = Some(global_version);
+            version = Some(manifest.default_version);
         }
     }
 
