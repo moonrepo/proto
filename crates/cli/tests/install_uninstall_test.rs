@@ -61,9 +61,7 @@ fn updates_the_manifest_when_installing() {
 
     // Install
     let mut cmd = create_proto_command(temp.path());
-    let a = cmd.arg("install").arg("node").arg("19.0.0").assert();
-
-    debug_assert(&a);
+    cmd.arg("install").arg("node").arg("19.0.0").assert();
 
     assert_eq!(
         std::fs::read_to_string(&manifest_file).unwrap(),

@@ -14,7 +14,7 @@ pub fn enable_logging() {
 
     if !ENABLED.load(Relaxed) {
         if let Ok(level) = env::var("PROTO_LOG") {
-            if !level.starts_with("proto=") {
+            if !level.starts_with("proto=") && level != "off" {
                 env::set_var("PROTO_LOG", format!("proto={level}"));
             }
         } else {
