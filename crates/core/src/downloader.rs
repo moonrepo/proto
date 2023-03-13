@@ -2,10 +2,9 @@ use crate::errors::ProtoError;
 use crate::resolver::Resolvable;
 use crate::{color, is_offline, Describable};
 use log::{debug, trace};
-use std::fs::File;
+use std::fs::{self, File};
 use std::io;
 use std::path::{Path, PathBuf};
-use tokio::fs;
 
 #[async_trait::async_trait]
 pub trait Downloadable<'tool>: Send + Sync + Describable<'tool> + Resolvable<'tool> {
@@ -70,7 +69,7 @@ where
 
     // Ensure parent directories exist
     if let Some(parent) = dest_file.parent() {
-        fs::create_dir_all(parent).await.map_err(handle_io_error)?;
+        fs::create_dir_all(parent).map_err(handle_io_error)?;
     }
 
     // Fetch the file from the HTTP source
