@@ -65,6 +65,8 @@ pub struct PackageJson {
 
     #[serde(rename = "packageManager")]
     pub package_manager: Option<String>,
+
+    pub version: Option<String>,
 }
 
 impl PackageJson {

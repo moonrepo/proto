@@ -9,6 +9,7 @@ mod shim;
 mod verify;
 
 pub use depman::*;
+pub use platform::PackageJson;
 use proto_core::{Describable, Proto, Tool};
 use std::path::PathBuf;
 

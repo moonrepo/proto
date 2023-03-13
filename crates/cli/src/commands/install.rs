@@ -1,8 +1,11 @@
 use crate::helpers::enable_logging;
 use crate::tools::{create_tool, ToolType};
-use log::info;
+use async_recursion::async_recursion;
+use log::{debug, info};
 use proto_core::{color, Manifest, ProtoError};
+use proto_node::PackageJson;
 
+#[async_recursion]
 pub async fn install(
     tool_type: ToolType,
     version: Option<String>,
@@ -44,6 +47,34 @@ pub async fn install(
         tool.get_name(),
         color::path(tool.get_install_dir()?),
     );
+
+    // Support post install actions that are not coupled to the
+    // `Tool` trait. Right now we are hard-coding this, but we
+    // should provide a better API.
+    match tool_type {
+        ToolType::Node => {
+            debug!(
+                target: "proto:install", "Installing npm that comes bundled with {}",
+                tool.get_name(),
+            );
+
+            let npm_package_path = tool
+                .get_install_dir()?
+                .join(if cfg!(windows) {
+                    "node_modules"
+                } else {
+                    "lib/node_modules"
+                })
+                .join("npm/package.json");
+
+            if let Ok(npm_package) = PackageJson::load(&npm_package_path) {
+                if let Some(npm_version) = npm_package.version {
+                    install(ToolType::Npm, Some(npm_version), pin_version).await?;
+                }
+            }
+        }
+        _ => {}
+    }
 
     Ok(())
 }
