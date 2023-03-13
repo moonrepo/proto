@@ -8,7 +8,7 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
-async-trait = "0.1.61"
+async-trait = "0.1.66"
 cached = { workspace = true }
 console = { workspace = true }
 dirs = "4.0.0"
@@ -25,4 +25,4 @@ tar = "0.4.38"
 tinytemplate = "1.2.1"
 thiserror = { workspace = true }
 tokio = { workspace = true }
-zip = "0.6.3"
+zip = "0.6.4"
