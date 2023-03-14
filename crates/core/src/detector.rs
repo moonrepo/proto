@@ -24,8 +24,8 @@ pub fn load_version_file(path: &Path) -> Result<String, ProtoError> {
         .to_owned())
 }
 
-pub async fn detect_version_from_environment(
-    tool: &Box<dyn Tool<'_>>,
+pub async fn detect_version_from_environment<'l, T: Tool<'l> + ?Sized>(
+    tool: &Box<T>,
     forced_version: Option<String>,
 ) -> Result<String, ProtoError> {
     let mut version = forced_version;
