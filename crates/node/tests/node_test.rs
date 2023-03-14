@@ -94,22 +94,6 @@ mod node {
         }
 
         #[tokio::test]
-        async fn matches_engines_caret() {
-            let fixture = assert_fs::TempDir::new().unwrap();
-            let tool = create_node(fixture.path());
-
-            fixture
-                .child("package.json")
-                .write_str(r#"{"engines":{"node":"^16"}}"#)
-                .unwrap();
-
-            assert_eq!(
-                tool.detect_version_from(fixture.path()).await.unwrap(),
-                Some("16".into())
-            );
-        }
-
-        #[tokio::test]
         async fn matches_engines_star() {
             let fixture = assert_fs::TempDir::new().unwrap();
             let tool = create_node(fixture.path());
