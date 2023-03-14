@@ -65,10 +65,11 @@ pub fn write_profile_if_not_setup(
         trace!(target: "proto:shell", "Checking if shell profile {} exists", color::path(profile));
 
         if !profile.exists() {
+            trace!(target: "proto:shell", "Not found, continuing");
             continue;
         }
 
-        trace!(target: "proto:shell", "Exists, checking if already setup for {}", env_var);
+        trace!(target: "proto:shell", "Exists, checking if already setup");
 
         let file = fs::File::open(profile)
             .map_err(|e| ProtoError::Fs(profile.to_path_buf(), e.to_string()))?;
@@ -80,6 +81,13 @@ pub fn write_profile_if_not_setup(
 
         // Already setup profile, so avoid writing
         if has_setup {
+            debug!(
+                target: "proto:shell",
+                "Profile {} already setup for {}",
+                color::path(profile),
+                env_var,
+            );
+
             return Ok(None);
         }
 
@@ -93,7 +101,7 @@ pub fn write_profile_if_not_setup(
 
     debug!(
         target: "proto:shell",
-        "Found no configured profile, creating {}",
+        "Found no configured profile, updating {}",
         color::path(last_profile),
     );
 
@@ -109,6 +117,13 @@ pub fn write_profile_if_not_setup(
     let mut file = options.open(last_profile).map_err(handle_error)?;
 
     write!(file, "{contents}").map_err(handle_error)?;
+
+    debug!(
+        target: "proto:shell",
+        "Setup profile {} with {}",
+        color::path(last_profile),
+        env_var,
+    );
 
     Ok(Some(last_profile.to_path_buf()))
 }
