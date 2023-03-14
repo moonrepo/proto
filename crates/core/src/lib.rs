@@ -1,4 +1,5 @@
 pub mod color;
+mod config;
 mod describer;
 mod detector;
 mod downloader;
@@ -12,6 +13,7 @@ mod shimmer;
 mod verifier;
 
 pub use async_trait::async_trait;
+pub use config::*;
 pub use describer::*;
 pub use detector::*;
 pub use downloader::*;

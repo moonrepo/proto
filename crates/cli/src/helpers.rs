@@ -1,10 +1,9 @@
 #![allow(clippy::borrowed_box)]
 
-use crate::config::Config;
 use crate::tools::ToolType;
 use log::{debug, trace};
 use proto::Manifest;
-use proto_core::{color, ProtoError, Tool};
+use proto_core::{color, Config, ProtoError, Tool};
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::Relaxed;
 use std::{env, path::Path};
