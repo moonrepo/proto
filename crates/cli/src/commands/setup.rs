@@ -6,7 +6,7 @@ use proto_core::{color, get_root, ProtoError};
 use std::env;
 use std::process::Command;
 
-pub async fn setup(shell: Option<Shell>) -> Result<(), ProtoError> {
+pub async fn setup(shell: Option<Shell>, print_profile: bool) -> Result<(), ProtoError> {
     let Some(shell) = shell.or_else(Shell::from_env) else {
         return Err(ProtoError::UnsupportedShell);
     };
@@ -102,7 +102,11 @@ export PATH="$PROTO_ROOT/bin:$PATH""#
 
     let profiles = find_profiles(&shell)?;
 
-    write_profile_if_not_setup(&profiles, content, "PROTO_ROOT")?;
+    if let Some(updated_profile) = write_profile_if_not_setup(&profiles, content, "PROTO_ROOT")? {
+        if print_profile {
+            println!("{}", updated_profile.to_string_lossy());
+        }
+    }
 
     Ok(())
 }

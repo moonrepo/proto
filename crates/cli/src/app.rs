@@ -138,6 +138,9 @@ pub enum Commands {
     Setup {
         #[arg(long, help = "Shell to setup for")]
         shell: Option<Shell>,
+
+        #[arg(long, help = "Return the profile path if setup")]
+        profile: bool,
     },
 
     #[command(

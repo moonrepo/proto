@@ -31,7 +31,7 @@ async fn main() {
             semver,
             passthrough,
         } => commands::run(tool, semver, passthrough).await,
-        Commands::Setup { shell } => commands::setup(shell).await,
+        Commands::Setup { shell, profile } => commands::setup(shell, profile).await,
         Commands::Uninstall { tool, semver } => commands::uninstall(tool, semver).await,
         Commands::Use => commands::install_all().await,
     };
