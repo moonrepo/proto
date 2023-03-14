@@ -4,6 +4,7 @@ use proto_core::*;
 use proto_deno as deno;
 use proto_go as go;
 use proto_node as node;
+use std::fmt;
 use std::str::FromStr;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq, ValueEnum)]
@@ -20,6 +21,12 @@ pub enum ToolType {
     Npm,
     Pnpm,
     Yarn,
+}
+
+impl fmt::Display for ToolType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", format!("{:?}", self).to_lowercase())
+    }
 }
 
 impl FromStr for ToolType {

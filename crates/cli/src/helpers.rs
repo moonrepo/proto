@@ -35,6 +35,7 @@ pub async fn detect_version_from_environment(
 ) -> Result<String, ProtoError> {
     let mut version = forced_version;
     let env_var = format!("PROTO_{}_VERSION", tool.get_bin_name().to_uppercase());
+    let tool_name = tool_type.to_string();
 
     // Env var takes highest priority
     if version.is_none() {
@@ -85,7 +86,7 @@ pub async fn detect_version_from_environment(
 
             let config = Config::load_from(dir)?;
 
-            if let Some(local_version) = config.tools.get(tool_type) {
+            if let Some(local_version) = config.tools.get(&tool_name) {
                 debug!(
                     target: "proto:detect",
                     "Detected version {} from configuration file {}",

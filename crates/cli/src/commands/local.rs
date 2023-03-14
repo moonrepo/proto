@@ -14,9 +14,10 @@ pub async fn local(tool_type: ToolType, version: String) -> Result<(), ProtoErro
     let local_path = env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
     let mut config = Config::load_from(&local_path)?;
 
-    config
-        .tools
-        .insert(tool_type, tool.get_resolved_version().to_owned());
+    config.tools.insert(
+        tool_type.to_string(),
+        tool.get_resolved_version().to_owned(),
+    );
 
     config.save()?;
 
