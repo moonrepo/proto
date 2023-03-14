@@ -1,4 +1,4 @@
-use crate::{get_tools_dir, ProtoError, Tool};
+use crate::{get_tools_dir, ProtoError};
 use log::info;
 use rustc_hash::FxHashSet;
 use serde::{Deserialize, Serialize};
@@ -52,11 +52,8 @@ impl Manifest {
         Ok(())
     }
 
-    #[allow(clippy::borrowed_box)]
-    pub fn load_for_tool(tool: &Box<dyn Tool<'_>>) -> Result<Self, ProtoError> {
-        let dir = get_tools_dir()?.join(tool.get_bin_name());
-
-        Self::load_from(dir)
+    pub fn load_for_tool(bin: &str) -> Result<Self, ProtoError> {
+        Self::load_from(get_tools_dir()?.join(bin))
     }
 
     pub fn load_from<P: AsRef<Path>>(dir: P) -> Result<Self, ProtoError> {

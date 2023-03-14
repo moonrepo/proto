@@ -3,7 +3,6 @@ use crate::tools::{create_tool, ToolType};
 use async_recursion::async_recursion;
 use log::{debug, info};
 use proto_core::{color, Manifest, ProtoError};
-use proto_node::PackageJson;
 
 #[async_recursion]
 pub async fn install(
@@ -38,7 +37,7 @@ pub async fn install(
     tool.setup(&version).await?;
 
     if pin_version {
-        let mut manifest = Manifest::load_for_tool(&tool)?;
+        let mut manifest = Manifest::load_for_tool(tool.get_bin_name())?;
         manifest.default_version = Some(tool.get_resolved_version().to_owned());
         manifest.save()?;
     }
@@ -54,30 +53,19 @@ pub async fn install(
     // should provide a better API.
     match tool_type {
         ToolType::Node => {
-            if passthrough.contains(&"--no-bundled-npm".to_string()) {
-                debug!(
-                    target: "proto:install", "Skipping install of bundled npm version",
-                );
-            } else {
+            if !passthrough.contains(&"--no-bundled-npm".to_string()) {
                 debug!(
                     target: "proto:install", "Installing npm that comes bundled with {}",
                     tool.get_name(),
                 );
 
-                let npm_package_path = tool
-                    .get_install_dir()?
-                    .join(if cfg!(windows) {
-                        "node_modules"
-                    } else {
-                        "lib/node_modules"
-                    })
-                    .join("npm/package.json");
-
-                if let Ok(npm_package) = PackageJson::load(&npm_package_path) {
-                    if let Some(npm_version) = npm_package.version {
-                        install(ToolType::Npm, Some(npm_version), pin_version, passthrough).await?;
-                    }
-                }
+                install(
+                    ToolType::Npm,
+                    Some("bundled".into()),
+                    pin_version,
+                    passthrough,
+                )
+                .await?;
             }
         }
         _ => {}
