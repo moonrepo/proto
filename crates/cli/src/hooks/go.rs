@@ -5,6 +5,11 @@ use proto_core::{color, ProtoError};
 use rustc_hash::FxHashMap;
 
 pub fn post_install(passthrough: &[String]) -> Result<(), ProtoError> {
+    dbg!(
+        &passthrough,
+        passthrough.contains(&"--no-gobin".to_string())
+    );
+
     if passthrough.contains(&"--no-gobin".to_string()) {
         return Ok(());
     }
