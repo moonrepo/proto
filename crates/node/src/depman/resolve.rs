@@ -1,8 +1,10 @@
 use crate::depman::{NodeDependencyManager, NodeDependencyManagerType};
+use crate::platform::PackageJson;
 use log::debug;
 use proto_core::{
     async_trait, is_offline, is_semantic_version, load_versions_manifest, parse_version,
-    remove_v_prefix, Describable, ProtoError, Resolvable, VersionManifest, VersionManifestEntry,
+    remove_v_prefix, Describable, Manifest, ProtoError, Resolvable, VersionManifest,
+    VersionManifestEntry,
 };
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
@@ -78,25 +80,57 @@ impl Resolvable<'_> for NodeDependencyManager {
 
         let mut initial_version = remove_v_prefix(initial_version);
 
-        // Yarn is installed through npm, but only v1 exists in the npm registry,
-        // even if a consumer is using Yarn 2/3. https://www.npmjs.com/package/yarn
-        // Yarn >= 2 work differently than normal packages, as their runtime code
-        // is stored *within* the repository, and the v1 package detects it.
-        // Because of this, we need to always install the v1 package!
-        if matches!(&self.type_of, NodeDependencyManagerType::Yarn)
-            && !initial_version.starts_with('1')
-        {
-            debug!(
-                target: self.get_log_target(),
-                "Found Yarn v2+, installing latest v1 from registry for compatibility"
-            );
+        match &self.type_of {
+            // When the alias "bundled" is provided, we should install the npm
+            // version that comes bundled with the default Node.js version.
+            NodeDependencyManagerType::Npm => {
+                if initial_version == "bundled" {
+                    let manifest = Manifest::load_for_tool("node")?;
 
-            initial_version = if is_offline() {
-                "1.22.19".to_owned() // This may change upstream!
-            } else {
-                "latest".to_owned()
-            };
-        }
+                    if let Some(node_version) = manifest.default_version {
+                        let npm_package_path = manifest
+                            .path
+                            .parent()
+                            .unwrap()
+                            .join(node_version)
+                            .join(if cfg!(windows) {
+                                "node_modules"
+                            } else {
+                                "lib/node_modules"
+                            })
+                            .join("npm/package.json");
+
+                        if let Ok(npm_package) = PackageJson::load(&npm_package_path) {
+                            if let Some(npm_version) = npm_package.version {
+                                initial_version = npm_version;
+                            }
+                        }
+                    }
+                }
+            }
+
+            NodeDependencyManagerType::Pnpm => {}
+
+            // Yarn is installed through npm, but only v1 exists in the npm registry,
+            // even if a consumer is using Yarn 2/3. https://www.npmjs.com/package/yarn
+            // Yarn >= 2 works differently than normal packages, as their runtime code
+            // is stored *within* the repository, and the v1 package detects it.
+            // Because of this, we need to always install the v1 package!
+            NodeDependencyManagerType::Yarn => {
+                if !initial_version.starts_with('1') {
+                    debug!(
+                        target: self.get_log_target(),
+                        "Found Yarn v2+, installing latest v1 from registry for compatibility"
+                    );
+
+                    initial_version = if is_offline() {
+                        "1.22.19".to_owned() // This may change upstream!
+                    } else {
+                        "latest".to_owned()
+                    };
+                }
+            }
+        };
 
         // If offline but we have a fully qualified semantic version,
         // exit early and assume the version is legitimate

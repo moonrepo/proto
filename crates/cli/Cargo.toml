@@ -23,6 +23,7 @@ proto_core = { version = "0.2.1", path = "../core" }
 proto_deno = { version = "0.2.1", path = "../deno" }
 proto_node = { version = "0.2.1", path = "../node" }
 proto_go = { version = "0.2.1", path = "../go" }
+async-recursion = "1.0.2"
 clap = { workspace = true, features = ["derive"] }
 clap_complete = { workspace = true }
 dirs = "4.0.0"

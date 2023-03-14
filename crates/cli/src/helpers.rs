@@ -126,7 +126,7 @@ pub async fn detect_version_from_environment(
             "Attempting to find global version"
         );
 
-        let manifest = Manifest::load_for_tool(tool)?;
+        let manifest = Manifest::load_for_tool(tool.get_bin_name())?;
 
         if let Some(global_version) = manifest.default_version {
             debug!(

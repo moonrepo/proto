@@ -8,7 +8,7 @@ pub async fn list(tool_type: ToolType) -> Result<(), ProtoError> {
     enable_logging();
 
     let tool = create_tool(&tool_type)?;
-    let manifest = Manifest::load_for_tool(&tool)?;
+    let manifest = Manifest::load_for_tool(tool.get_bin_name())?;
 
     debug!(target: "proto:list", "Using versions from {}", color::path(&manifest.path));
 
