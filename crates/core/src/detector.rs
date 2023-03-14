@@ -1,10 +1,10 @@
 #![allow(clippy::borrowed_box)]
 
-use crate::color;
 use crate::config::{Config, CONFIG_NAME};
 use crate::errors::ProtoError;
 use crate::manifest::{Manifest, MANIFEST_NAME};
 use crate::tool::Tool;
+use crate::{color, is_version_alias};
 use lenient_semver::Version;
 use log::{debug, trace};
 use std::{env, fs, path::Path};
@@ -149,37 +149,52 @@ pub fn detect_fixed_version<P: AsRef<Path>>(
     version: &str,
     manifest_path: P,
 ) -> Result<Option<String>, ProtoError> {
-    let version = version.replace(' ', "");
-    let version_without_stars = version.replace(".*", "");
+    if is_version_alias(&version) {
+        return Ok(None);
+    }
+
+    let version = version.replace(".*", "");
     let mut maybe_version = String::new();
 
-    match &version[0..1] {
-        "^" | "~" | ">" | "<" | "*" => {
-            let req = semver::VersionReq::parse(&version)
-                .map_err(|e| ProtoError::Semver(version.to_owned(), e.to_string()))?;
-            let manifest = Manifest::load(manifest_path.as_ref())?;
+    let mut check_manifest = |check_version: String| -> Result<bool, ProtoError> {
+        let req = semver::VersionReq::parse(&check_version)
+            .map_err(|e| ProtoError::Semver(check_version.to_owned(), e.to_string()))?;
+        let manifest = Manifest::load(manifest_path.as_ref())?;
 
-            for installed_version in manifest.installed_versions {
-                let version_inst = semver::Version::parse(&installed_version)
-                    .map_err(|e| ProtoError::Semver(installed_version.to_owned(), e.to_string()))?;
+        for installed_version in manifest.installed_versions {
+            let version_inst = semver::Version::parse(&installed_version)
+                .map_err(|e| ProtoError::Semver(installed_version.to_owned(), e.to_string()))?;
 
-                if req.matches(&version_inst) {
-                    maybe_version = installed_version;
-                    break;
-                }
+            if req.matches(&version_inst) {
+                maybe_version = installed_version;
+
+                return Ok(true);
             }
         }
-        "=" => {
-            maybe_version = version_without_stars[1..].to_owned();
-        }
-        _ => {
-            maybe_version = if version.contains('*') {
-                version_without_stars
-            } else {
-                version
-            };
-        }
+
+        Ok(false)
     };
+
+    // npm
+    if version.contains("||") {
+        for split_version in version.split("||") {
+            if check_manifest(split_version.trim().to_owned())? {
+                break;
+            }
+        }
+    } else {
+        match &version[0..1] {
+            "^" | "~" | ">" | "<" | "*" => {
+                check_manifest(version)?;
+            }
+            "=" => {
+                maybe_version = version[1..].to_owned();
+            }
+            _ => {
+                maybe_version = version;
+            }
+        };
+    }
 
     if maybe_version.is_empty() {
         return Ok(None);
@@ -214,23 +229,21 @@ mod tests {
         let manifest_path = dir.join(MANIFEST_NAME);
         let manifest_str = serde_json::to_string_pretty(&manifest).unwrap();
 
-        dbg!(&manifest_str);
-
         std::fs::write(&manifest_path, manifest_str).unwrap();
 
         manifest_path
     }
 
     mod fixed_version {
+        use super::*;
         use rustc_hash::FxHashSet;
 
-        use super::*;
+        #[test]
+        fn ignores_invalid() {
+            let temp = create_temp_dir();
 
-        // #[test]
-        // fn ignores_invalid() {
-        //     assert_eq!(detect_fixed_version("unknown"), None);
-        //     assert_eq!(detect_fixed_version("1 || 2"), None);
-        // }
+            assert_eq!(detect_fixed_version("unknown", temp.path()).unwrap(), None);
+        }
 
         #[test]
         fn handles_explicit() {
@@ -590,6 +603,29 @@ mod tests {
             // Failures
             assert_eq!(detect_fixed_version(">1.6", &manifest_path).unwrap(), None);
             assert_eq!(detect_fixed_version(">=2", &manifest_path).unwrap(), None);
+        }
+
+        #[test]
+        fn handles_multi() {
+            let temp = create_temp_dir();
+            let manifest_path = create_manifest(
+                temp.path(),
+                Manifest {
+                    installed_versions: FxHashSet::from_iter(["1.5.9".into()]),
+                    ..Manifest::default()
+                },
+            );
+
+            assert_eq!(
+                detect_fixed_version("^1.2.3 || ^2", &manifest_path)
+                    .unwrap()
+                    .unwrap(),
+                "1.5.9"
+            );
+            assert_eq!(
+                detect_fixed_version("^1.6 || ^2", &manifest_path).unwrap(),
+                None
+            );
         }
     }
 }
