@@ -1,11 +1,9 @@
 use crate::helpers::enable_logging;
-use crate::shell;
+use crate::hooks::go as go_hooks;
 use crate::tools::{create_tool, ToolType};
 use async_recursion::async_recursion;
-use clap_complete::Shell;
 use log::{debug, info};
 use proto_core::{color, Manifest, ProtoError};
-use rustc_hash::FxHashMap;
 
 #[async_recursion]
 pub async fn install(
@@ -56,25 +54,7 @@ pub async fn install(
     // should provide a better API.
     match tool_type {
         ToolType::Go => {
-            if !passthrough.contains(&"--no-gobin".to_string()) {
-                if let Some(shell) = Shell::from_env() {
-                    let env_vars = FxHashMap::from_iter([
-                        ("GOBIN".to_string(), "$HOME/go/bin".to_string()),
-                        ("PATH".to_string(), "$GOBIN".to_string()),
-                    ]);
-
-                    if let Some(content) = shell::format_env_vars(&shell, "go", env_vars) {
-                        if let Some(updated_profile) =
-                            shell::write_profile_if_not_setup(&shell, content, "GOBIN")?
-                        {
-                            info!(
-                                target: "proto:install", "Added GOBIN to your shell profile {}",
-                                color::path(updated_profile)
-                            );
-                        }
-                    }
-                }
-            }
+            go_hooks::post_install(&passthrough)?;
         }
         ToolType::Node => {
             if !passthrough.contains(&"--no-bundled-npm".to_string()) {
