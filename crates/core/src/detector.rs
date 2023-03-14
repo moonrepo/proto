@@ -149,7 +149,7 @@ pub fn detect_fixed_version<P: AsRef<Path>>(
     version: &str,
     manifest_path: P,
 ) -> Result<Option<String>, ProtoError> {
-    if is_version_alias(&version) {
+    if is_version_alias(version) {
         return Ok(None);
     }
 

@@ -2,6 +2,7 @@ use clap_complete::Shell;
 use dirs::home_dir;
 use log::{debug, trace};
 use proto_core::{color, ProtoError};
+use rustc_hash::FxHashMap;
 use std::{
     env,
     fs::{self, OpenOptions},
@@ -54,6 +55,43 @@ pub fn find_profiles(shell: &Shell) -> Result<Vec<PathBuf>, ProtoError> {
     };
 
     Ok(profiles)
+}
+
+pub fn format_env_vars(
+    shell: &Shell,
+    comment: &str,
+    vars: FxHashMap<String, String>,
+) -> Option<String> {
+    let mut lines = vec![format!("\n# {comment}")];
+
+    for (key, value) in vars {
+        match shell {
+            Shell::Bash | Shell::Zsh => {
+                if key == "PATH" {
+                    lines.push(format!(r#"export PATH="{value}:$PATH""#));
+                } else {
+                    lines.push(format!(r#"export {key}="{value}""#));
+                }
+            }
+            Shell::Elvish => {
+                if key == "PATH" {
+                    lines.push(format!(r#"set-env PATH (str:join ':' [{value} $E:PATH])"#));
+                } else {
+                    lines.push(format!(r#"set-env {key} {value}"#));
+                }
+            }
+            Shell::Fish => {
+                if key == "PATH" {
+                    lines.push(format!(r#"set -gx PATH "{value}" $PATH"#));
+                } else {
+                    lines.push(format!(r#"set -gx {key} "{value}""#));
+                }
+            }
+            _ => return None,
+        }
+    }
+
+    Some(lines.join("\n"))
 }
 
 pub fn write_profile_if_not_setup(

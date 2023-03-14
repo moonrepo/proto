@@ -1,8 +1,9 @@
 use crate::helpers::enable_logging;
-use crate::shell::{find_profiles, write_profile_if_not_setup};
+use crate::shell::{find_profiles, format_env_vars, write_profile_if_not_setup};
 use clap_complete::Shell;
 use log::{debug, trace};
 use proto_core::{color, get_root, ProtoError};
+use rustc_hash::FxHashMap;
 use std::env;
 use std::process::Command;
 
@@ -26,85 +27,56 @@ pub async fn setup(shell: Option<Shell>, print_profile: bool) -> Result<(), Prot
         return Ok(());
     }
 
-    debug!(target: "proto:setup", "Setting PATH in {} shell", shell);
+    debug!(target: "proto:setup", "Updating PATH in {} shell", shell);
 
-    let proto_root = "$HOME/.proto";
-    let content = match shell {
-        Shell::Bash => {
-            format!(
-                r#"
-# proto
-export PROTO_ROOT="{proto_root}"
-export PATH="$PROTO_ROOT/bin:$PATH""#,
-            )
+    // Windows does not support setting environment variables from a shell,
+    // so we're going to execute the `setx` command instead!
+    if matches!(shell, Shell::PowerShell) {
+        paths.push(proto_dir.join("bin"));
+
+        debug!(target: "proto:setup", "Using {} command", color::shell("setx"));
+
+        let mut command = Command::new("setx");
+        command.arg("PATH");
+        command.arg(env::join_paths(paths).unwrap());
+
+        let output = command
+            .output()
+            .map_err(|e| ProtoError::Message(e.to_string()))?;
+
+        if !output.status.success() {
+            trace!(
+                target: "proto:setup",
+                "STDERR: {}",
+                String::from_utf8_lossy(&output.stderr),
+            );
+
+            trace!(
+                target: "proto:setup",
+                "STDOUT: {}",
+                String::from_utf8_lossy(&output.stdout),
+            );
+
+            return Err(ProtoError::WritePathFailed);
         }
-        Shell::Elvish => {
-            format!(
-                r#"
-# proto
-set-env PROTO_ROOT {proto_root}
-set-env PATH (str:join ':' [$PROTO_ROOT/bin $E:PATH])"#
-            )
-        }
-        Shell::Fish => {
-            format!(
-                r#"
-# proto
-set -gx PROTO_ROOT "{proto_root}"
-set -gx PATH "$PROTO_ROOT/bin" $PATH"#
-            )
-        }
-        Shell::Zsh => {
-            format!(
-                r#"
-# proto
-export PROTO_ROOT="{proto_root}"
-export PATH="$PROTO_ROOT/bin:$PATH""#
-            )
-        }
-        // Windows does not support setting environment variables from a shell,
-        // so we're going to execute the `setx` command instead!
-        Shell::PowerShell => {
-            paths.push(proto_dir.join("bin"));
 
-            debug!(target: "proto:setup", "Using {} command", color::shell("setx"));
+        return Ok(());
+    }
 
-            let mut command = Command::new("setx");
-            command.arg("PATH");
-            command.arg(env::join_paths(paths).unwrap());
+    // For other shells, write environment variable(s) to an applicable profile!
+    let env_vars = FxHashMap::from_iter([
+        ("PROTO_ROOT".to_string(), "$HOME/.proto".to_string()),
+        ("PATH".to_string(), "$PROTO_ROOT/bin".to_string()),
+    ]);
 
-            let output = command
-                .output()
-                .map_err(|e| ProtoError::Message(e.to_string()))?;
+    if let Some(content) = format_env_vars(&shell, "proto", env_vars) {
+        let profiles = find_profiles(&shell)?;
 
-            if !output.status.success() {
-                trace!(
-                    target: "proto:setup",
-                    "STDERR: {}",
-                    String::from_utf8_lossy(&output.stderr),
-                );
-
-                trace!(
-                    target: "proto:setup",
-                    "STDOUT: {}",
-                    String::from_utf8_lossy(&output.stdout),
-                );
-
-                return Err(ProtoError::WritePathFailed);
+        if let Some(updated_profile) = write_profile_if_not_setup(&profiles, content, "PROTO_ROOT")?
+        {
+            if print_profile {
+                println!("{}", updated_profile.to_string_lossy());
             }
-
-            return Ok(());
-        }
-        _ => {
-            return Ok(());
-        }
-    };
-
-    let profiles = find_profiles(&shell)?;
-
-    if let Some(updated_profile) = write_profile_if_not_setup(&profiles, content, "PROTO_ROOT")? {
-        if print_profile {
-            println!("{}", updated_profile.to_string_lossy());
         }
     }
 
