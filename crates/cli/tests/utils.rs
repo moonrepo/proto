@@ -18,6 +18,7 @@ pub fn create_proto_command<T: AsRef<Path>>(path: T) -> assert_cmd::Command {
     cmd.current_dir(path);
     cmd.env("RUST_BACKTRACE", "1");
     cmd.env("PROTO_ROOT", path.as_os_str());
+    cmd.env("PROTO_LOG", "trace");
     cmd
 }
 
