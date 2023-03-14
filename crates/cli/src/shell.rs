@@ -95,11 +95,13 @@ pub fn format_env_vars(
 }
 
 pub fn write_profile_if_not_setup(
-    profiles: &[PathBuf],
+    shell: &Shell,
     contents: String,
     env_var: &str,
 ) -> Result<Option<PathBuf>, ProtoError> {
-    for profile in profiles {
+    let profiles = find_profiles(shell)?;
+
+    for profile in &profiles {
         trace!(target: "proto:shell", "Checking if shell profile {} exists", color::path(profile));
 
         if !profile.exists() {

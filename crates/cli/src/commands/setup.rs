@@ -1,5 +1,5 @@
 use crate::helpers::enable_logging;
-use crate::shell::{find_profiles, format_env_vars, write_profile_if_not_setup};
+use crate::shell::{format_env_vars, write_profile_if_not_setup};
 use clap_complete::Shell;
 use log::{debug, trace};
 use proto_core::{color, get_root, ProtoError};
@@ -70,10 +70,7 @@ pub async fn setup(shell: Option<Shell>, print_profile: bool) -> Result<(), Prot
     ]);
 
     if let Some(content) = format_env_vars(&shell, "proto", env_vars) {
-        let profiles = find_profiles(&shell)?;
-
-        if let Some(updated_profile) = write_profile_if_not_setup(&profiles, content, "PROTO_ROOT")?
-        {
+        if let Some(updated_profile) = write_profile_if_not_setup(&shell, content, "PROTO_ROOT")? {
             if print_profile {
                 println!("{}", updated_profile.to_string_lossy());
             }
