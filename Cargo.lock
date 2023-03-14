@@ -1239,6 +1239,7 @@ dependencies = [
 name = "proto_core"
 version = "0.2.1"
 dependencies = [
+ "assert_fs",
  "async-trait",
  "cached",
  "console",

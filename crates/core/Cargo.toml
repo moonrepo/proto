@@ -28,3 +28,6 @@ thiserror = { workspace = true }
 tokio = { workspace = true }
 toml = "0.7.0"
 zip = "0.6.4"
+
+[dev-dependencies]
+assert_fs = { workspace = true }
