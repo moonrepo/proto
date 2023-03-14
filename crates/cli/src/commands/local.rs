@@ -15,7 +15,7 @@ pub async fn local(tool_type: ToolType, version: String) -> Result<(), ProtoErro
     let mut config = Config::load_from(&local_path)?;
 
     config.tools.insert(
-        tool_type.to_string(),
+        tool.get_bin_name().to_owned(),
         tool.get_resolved_version().to_owned(),
     );
 

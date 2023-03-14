@@ -1,6 +1,5 @@
-use crate::helpers::detect_version_from_environment;
 use crate::tools::{create_tool, ToolType};
-use proto_core::ProtoError;
+use proto_core::{detect_version_from_environment, ProtoError};
 
 pub async fn bin(
     tool_type: ToolType,
@@ -8,7 +7,7 @@ pub async fn bin(
     use_shim: bool,
 ) -> Result<(), ProtoError> {
     let mut tool = create_tool(&tool_type)?;
-    let version = detect_version_from_environment(&tool, &tool_type, forced_version).await?;
+    let version = detect_version_from_environment(&tool, forced_version).await?;
 
     tool.resolve_version(&version).await?;
     tool.find_bin_path().await?;

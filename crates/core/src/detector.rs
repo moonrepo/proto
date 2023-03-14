@@ -1,3 +1,5 @@
+#![allow(clippy::borrowed_box)]
+
 use crate::color;
 use crate::config::{Config, CONFIG_NAME};
 use crate::errors::ProtoError;
