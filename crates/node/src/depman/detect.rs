@@ -1,6 +1,6 @@
 use crate::depman::NodeDependencyManager;
 use crate::platform::PackageJson;
-use proto_core::{async_trait, get_fixed_version, Detector, ProtoError};
+use proto_core::{async_trait, detect_fixed_version, Detector, ProtoError, Tool};
 use std::path::Path;
 
 // https://nodejs.org/api/packages.html#packagemanager
@@ -23,7 +23,7 @@ impl Detector<'_> for NodeDependencyManager {
 
             if let Some(engines) = package_json.engines {
                 if let Some(constraint) = engines.get(&self.package_name) {
-                    return Ok(get_fixed_version(constraint));
+                    return detect_fixed_version(constraint, self.get_manifest_path()?);
                 }
             }
         }

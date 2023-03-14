@@ -145,9 +145,9 @@ pub async fn detect_version_from_environment<'l, T: Tool<'l> + ?Sized>(
     }
 }
 
-pub fn detect_fixed_version(
+pub fn detect_fixed_version<P: AsRef<Path>>(
     version: &str,
-    manifest_path: &Path,
+    manifest_path: P,
 ) -> Result<Option<String>, ProtoError> {
     let version = version.replace(' ', "");
     let version_without_stars = version.replace(".*", "");
@@ -157,7 +157,7 @@ pub fn detect_fixed_version(
         "^" | "~" | ">" | "<" | "*" => {
             let req = semver::VersionReq::parse(&version)
                 .map_err(|e| ProtoError::Semver(version.to_owned(), e.to_string()))?;
-            let manifest = Manifest::load_from(manifest_path)?;
+            let manifest = Manifest::load_from(manifest_path.as_ref())?;
 
             for installed_version in manifest.installed_versions {
                 let version_inst = semver::Version::parse(&installed_version)

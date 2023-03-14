@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+#### 💥 Breaking
+
+- When detecting a version and proto encounters a range/requirement using `^`, `~`, `>=`, etc, proto will now resolve the version against the currently installed versions in `~/.proto`, instead of resolving to an arbitray fixed version.
+
 #### 🚀 Updates
 
 - Added "bundled" as a supported alias for `npm`.
