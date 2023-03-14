@@ -154,6 +154,7 @@ pub fn detect_fixed_version<P: AsRef<Path>>(
     }
 
     let version = version.replace(".*", "");
+    let mut fully_qualified = false;
     let mut maybe_version = String::new();
 
     let mut check_manifest = |check_version: String| -> Result<bool, ProtoError> {
@@ -166,6 +167,7 @@ pub fn detect_fixed_version<P: AsRef<Path>>(
                 .map_err(|e| ProtoError::Semver(installed_version.to_owned(), e.to_string()))?;
 
             if req.matches(&version_inst) {
+                fully_qualified = true;
                 maybe_version = installed_version;
 
                 return Ok(true);
@@ -185,13 +187,13 @@ pub fn detect_fixed_version<P: AsRef<Path>>(
     } else {
         match &version[0..1] {
             "^" | "~" | ">" | "<" | "*" => {
-                check_manifest(version)?;
+                check_manifest(version.clone())?;
             }
             "=" => {
                 maybe_version = version[1..].to_owned();
             }
             _ => {
-                maybe_version = version;
+                maybe_version = version.clone();
             }
         };
     }
@@ -202,12 +204,14 @@ pub fn detect_fixed_version<P: AsRef<Path>>(
 
     let semver = Version::parse(&maybe_version)
         .map_err(|e| ProtoError::Semver(maybe_version.to_owned(), e.to_string()))?;
+
+    let version_parts = version.split('.').collect::<Vec<_>>();
     let mut matched_version = semver.major.to_string();
 
-    if semver.minor != 0 {
+    if version_parts.get(1).is_some() || fully_qualified {
         matched_version = format!("{matched_version}.{}", semver.minor);
 
-        if semver.patch != 0 {
+        if version_parts.get(2).is_some() || fully_qualified {
             matched_version = format!("{matched_version}.{}", semver.patch);
         }
     }
@@ -261,7 +265,7 @@ mod tests {
             );
             assert_eq!(
                 detect_fixed_version("1.2.0", temp.path()).unwrap().unwrap(),
-                "1.2"
+                "1.2.0"
             );
             assert_eq!(
                 detect_fixed_version("1.2", temp.path()).unwrap().unwrap(),
@@ -269,7 +273,7 @@ mod tests {
             );
             assert_eq!(
                 detect_fixed_version("1.0", temp.path()).unwrap().unwrap(),
-                "1"
+                "1.0"
             );
             assert_eq!(
                 detect_fixed_version("1", temp.path()).unwrap().unwrap(),
@@ -292,7 +296,7 @@ mod tests {
                 detect_fixed_version("v1.2.0", temp.path())
                     .unwrap()
                     .unwrap(),
-                "1.2"
+                "1.2.0"
             );
             assert_eq!(
                 detect_fixed_version("V1.2", temp.path()).unwrap().unwrap(),
@@ -300,7 +304,7 @@ mod tests {
             );
             assert_eq!(
                 detect_fixed_version("v1.0", temp.path()).unwrap().unwrap(),
-                "1"
+                "1.0"
             );
             assert_eq!(
                 detect_fixed_version("V1", temp.path()).unwrap().unwrap(),
@@ -328,7 +332,7 @@ mod tests {
                 detect_fixed_version("=1.2.0", temp.path())
                     .unwrap()
                     .unwrap(),
-                "1.2"
+                "1.2.0"
             );
             assert_eq!(
                 detect_fixed_version("=1.2", temp.path()).unwrap().unwrap(),
@@ -336,7 +340,7 @@ mod tests {
             );
             assert_eq!(
                 detect_fixed_version("=1.0", temp.path()).unwrap().unwrap(),
-                "1"
+                "1.0"
             );
             assert_eq!(
                 detect_fixed_version("=1", temp.path()).unwrap().unwrap(),
