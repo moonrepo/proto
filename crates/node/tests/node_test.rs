@@ -31,7 +31,7 @@ mod node {
     }
 
     fn create_node(dir: &Path) -> NodeLanguage {
-        let mut tool = NodeLanguage::new(&Proto::from(dir));
+        let mut tool = NodeLanguage::new(Proto::from(dir));
         tool.version = Some("18.0.0".into());
         tool
     }
@@ -222,7 +222,7 @@ mod node {
         #[tokio::test]
         async fn updates_struct_version() {
             let fixture = assert_fs::TempDir::new().unwrap();
-            let mut tool = NodeLanguage::new(&Proto::from(fixture.path()));
+            let mut tool = NodeLanguage::new(Proto::from(fixture.path()));
 
             assert_ne!(tool.resolve_version("node").await.unwrap(), "node");
             assert_ne!(tool.get_resolved_version(), "node");
@@ -231,7 +231,7 @@ mod node {
         #[tokio::test]
         async fn resolve_latest() {
             let fixture = assert_fs::TempDir::new().unwrap();
-            let mut tool = NodeLanguage::new(&Proto::from(fixture.path()));
+            let mut tool = NodeLanguage::new(Proto::from(fixture.path()));
 
             assert_ne!(tool.resolve_version("latest").await.unwrap(), "latest");
         }
@@ -239,7 +239,7 @@ mod node {
         #[tokio::test]
         async fn resolve_stable() {
             let fixture = assert_fs::TempDir::new().unwrap();
-            let mut tool = NodeLanguage::new(&Proto::from(fixture.path()));
+            let mut tool = NodeLanguage::new(Proto::from(fixture.path()));
 
             assert_ne!(tool.resolve_version("stable").await.unwrap(), "stable");
         }
@@ -247,7 +247,7 @@ mod node {
         #[tokio::test]
         async fn resolve_lts_wild() {
             let fixture = assert_fs::TempDir::new().unwrap();
-            let mut tool = NodeLanguage::new(&Proto::from(fixture.path()));
+            let mut tool = NodeLanguage::new(Proto::from(fixture.path()));
 
             assert_ne!(tool.resolve_version("lts-*").await.unwrap(), "lts-*");
         }
@@ -255,7 +255,7 @@ mod node {
         #[tokio::test]
         async fn resolve_lts_dash() {
             let fixture = assert_fs::TempDir::new().unwrap();
-            let mut tool = NodeLanguage::new(&Proto::from(fixture.path()));
+            let mut tool = NodeLanguage::new(Proto::from(fixture.path()));
 
             assert_ne!(
                 tool.resolve_version("lts-gallium").await.unwrap(),
@@ -266,7 +266,7 @@ mod node {
         #[tokio::test]
         async fn resolve_lts_slash() {
             let fixture = assert_fs::TempDir::new().unwrap();
-            let mut tool = NodeLanguage::new(&Proto::from(fixture.path()));
+            let mut tool = NodeLanguage::new(Proto::from(fixture.path()));
 
             assert_ne!(
                 tool.resolve_version("lts/gallium").await.unwrap(),
@@ -277,7 +277,7 @@ mod node {
         #[tokio::test]
         async fn resolve_alias() {
             let fixture = assert_fs::TempDir::new().unwrap();
-            let mut tool = NodeLanguage::new(&Proto::from(fixture.path()));
+            let mut tool = NodeLanguage::new(Proto::from(fixture.path()));
 
             assert_ne!(tool.resolve_version("Gallium").await.unwrap(), "Gallium");
         }
@@ -285,7 +285,7 @@ mod node {
         #[tokio::test]
         async fn resolve_version() {
             let fixture = assert_fs::TempDir::new().unwrap();
-            let mut tool = NodeLanguage::new(&Proto::from(fixture.path()));
+            let mut tool = NodeLanguage::new(Proto::from(fixture.path()));
 
             assert_eq!(tool.resolve_version("18.0.0").await.unwrap(), "18.0.0");
         }
@@ -293,7 +293,7 @@ mod node {
         #[tokio::test]
         async fn resolve_partial_version() {
             let fixture = assert_fs::TempDir::new().unwrap();
-            let mut tool = NodeLanguage::new(&Proto::from(fixture.path()));
+            let mut tool = NodeLanguage::new(Proto::from(fixture.path()));
 
             assert_eq!(tool.resolve_version("10.1").await.unwrap(), "10.1.0");
         }
@@ -301,7 +301,7 @@ mod node {
         #[tokio::test]
         async fn resolve_version_with_prefix() {
             let fixture = assert_fs::TempDir::new().unwrap();
-            let mut tool = NodeLanguage::new(&Proto::from(fixture.path()));
+            let mut tool = NodeLanguage::new(Proto::from(fixture.path()));
 
             assert_eq!(tool.resolve_version("v18.0.0").await.unwrap(), "18.0.0");
         }
@@ -310,7 +310,7 @@ mod node {
         #[should_panic(expected = "VersionUnknownAlias(\"unknown\")")]
         async fn errors_invalid_lts() {
             let fixture = assert_fs::TempDir::new().unwrap();
-            let mut tool = NodeLanguage::new(&Proto::from(fixture.path()));
+            let mut tool = NodeLanguage::new(Proto::from(fixture.path()));
 
             tool.resolve_version("lts-unknown").await.unwrap();
         }
@@ -319,7 +319,7 @@ mod node {
         #[should_panic(expected = "VersionUnknownAlias(\"unknown\")")]
         async fn errors_invalid_alias() {
             let fixture = assert_fs::TempDir::new().unwrap();
-            let mut tool = NodeLanguage::new(&Proto::from(fixture.path()));
+            let mut tool = NodeLanguage::new(Proto::from(fixture.path()));
 
             tool.resolve_version("unknown").await.unwrap();
         }
@@ -328,7 +328,7 @@ mod node {
         #[should_panic(expected = "VersionResolveFailed(\"99.99.99\")")]
         async fn errors_invalid_version() {
             let fixture = assert_fs::TempDir::new().unwrap();
-            let mut tool = NodeLanguage::new(&Proto::from(fixture.path()));
+            let mut tool = NodeLanguage::new(Proto::from(fixture.path()));
 
             tool.resolve_version("99.99.99").await.unwrap();
         }

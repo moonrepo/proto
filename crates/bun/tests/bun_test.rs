@@ -6,7 +6,7 @@ use std::fs;
 
 fn create_tool() -> (BunLanguage, assert_fs::TempDir) {
     let fixture = assert_fs::TempDir::new().unwrap();
-    let mut tool = BunLanguage::new(&Proto::from(fixture.path()));
+    let mut tool = BunLanguage::new(Proto::from(fixture.path()));
     tool.version = Some(String::from("0.5.7"));
 
     (tool, fixture)

@@ -7,7 +7,7 @@ use std::fs;
 
 fn create_tool() -> (GoLanguage, assert_fs::TempDir) {
     let fixture = assert_fs::TempDir::new().unwrap();
-    let tool = GoLanguage::new(&Proto::from(fixture.path()));
+    let tool = GoLanguage::new(Proto::from(fixture.path()));
     (tool, fixture)
 }
 

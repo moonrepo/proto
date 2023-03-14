@@ -86,7 +86,7 @@ impl Resolvable<'_> for NodeDependencyManager {
             // version that comes bundled with the default Node.js version.
             NodeDependencyManagerType::Npm => {
                 if initial_version == "bundled" {
-                    let node_tool = Box::new(NodeLanguage::new(&Proto::new()?));
+                    let node_tool = Box::new(NodeLanguage::new(Proto::new()?));
 
                     if let Ok(node_version) =
                         detect_version_from_environment(&node_tool, None).await

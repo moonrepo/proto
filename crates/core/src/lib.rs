@@ -56,3 +56,9 @@ impl Proto {
         }
     }
 }
+
+impl AsRef<Proto> for Proto {
+    fn as_ref(&self) -> &Proto {
+        self
+    }
+}

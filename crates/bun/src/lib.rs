@@ -20,7 +20,9 @@ pub struct BunLanguage {
 }
 
 impl BunLanguage {
-    pub fn new(proto: &Proto) -> Self {
+    pub fn new<P: AsRef<Proto>>(proto: P) -> Self {
+        let proto = proto.as_ref();
+
         BunLanguage {
             base_dir: proto.tools_dir.join("bun"),
             bin_path: None,

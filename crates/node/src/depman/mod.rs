@@ -41,7 +41,8 @@ pub struct NodeDependencyManager {
 }
 
 impl NodeDependencyManager {
-    pub fn new(proto: &Proto, type_of: NodeDependencyManagerType) -> Self {
+    pub fn new<P: AsRef<Proto>>(proto: P, type_of: NodeDependencyManagerType) -> Self {
+        let proto = proto.as_ref();
         let package_name = type_of.get_package_name();
 
         NodeDependencyManager {
