@@ -1,6 +1,7 @@
 mod app;
 mod commands;
 mod helpers;
+mod shell;
 pub mod tools;
 
 use app::{App, Commands};

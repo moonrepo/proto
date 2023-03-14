@@ -1,3 +1,4 @@
+pub mod shell;
 pub mod tools;
 
 pub use proto_bun as bun;
