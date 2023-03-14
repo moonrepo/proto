@@ -20,7 +20,9 @@ pub struct DenoLanguage {
 }
 
 impl DenoLanguage {
-    pub fn new(proto: &Proto) -> Self {
+    pub fn new<P: AsRef<Proto>>(proto: P) -> Self {
+        let proto = proto.as_ref();
+
         DenoLanguage {
             base_dir: proto.tools_dir.join("deno"),
             bin_path: None,

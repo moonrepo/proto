@@ -89,8 +89,7 @@ mod node_depman {
     }
 
     fn create_depman(dir: &Path) -> NodeDependencyManager {
-        let mut tool =
-            NodeDependencyManager::new(&Proto::from(dir), NodeDependencyManagerType::Npm);
+        let mut tool = NodeDependencyManager::new(Proto::from(dir), NodeDependencyManagerType::Npm);
         tool.version = Some("9.0.0".into());
         tool
     }
@@ -287,7 +286,7 @@ mod node_depman {
                 .unwrap();
 
             let proto = Proto::from(fixture.path());
-            let tool = NodeDependencyManager::new(&proto, NodeDependencyManagerType::Pnpm);
+            let tool = NodeDependencyManager::new(proto, NodeDependencyManagerType::Pnpm);
 
             assert_eq!(
                 tool.detect_version_from(fixture.path()).await.unwrap(),
@@ -305,7 +304,7 @@ mod node_depman {
                 .unwrap();
 
             let proto = Proto::from(fixture.path());
-            let tool = NodeDependencyManager::new(&proto, NodeDependencyManagerType::Pnpm);
+            let tool = NodeDependencyManager::new(proto, NodeDependencyManagerType::Pnpm);
 
             assert_eq!(
                 tool.detect_version_from(fixture.path()).await.unwrap(),
@@ -323,7 +322,7 @@ mod node_depman {
                 .unwrap();
 
             let proto = Proto::from(fixture.path());
-            let tool = NodeDependencyManager::new(&proto, NodeDependencyManagerType::Yarn);
+            let tool = NodeDependencyManager::new(proto, NodeDependencyManagerType::Yarn);
 
             assert_eq!(
                 tool.detect_version_from(fixture.path()).await.unwrap(),
@@ -341,7 +340,7 @@ mod node_depman {
                 .unwrap();
 
             let proto = Proto::from(fixture.path());
-            let tool = NodeDependencyManager::new(&proto, NodeDependencyManagerType::Yarn);
+            let tool = NodeDependencyManager::new(proto, NodeDependencyManagerType::Yarn);
 
             assert_eq!(
                 tool.detect_version_from(fixture.path()).await.unwrap(),
@@ -400,7 +399,7 @@ mod node_depman {
         async fn resolve_latest() {
             let fixture = assert_fs::TempDir::new().unwrap();
             let mut tool = NodeDependencyManager::new(
-                &Proto::from(fixture.path()),
+                Proto::from(fixture.path()),
                 NodeDependencyManagerType::Npm,
             );
 
@@ -412,7 +411,7 @@ mod node_depman {
         async fn resolve_partial_version() {
             let fixture = assert_fs::TempDir::new().unwrap();
             let mut tool = NodeDependencyManager::new(
-                &Proto::from(fixture.path()),
+                Proto::from(fixture.path()),
                 NodeDependencyManagerType::Npm,
             );
 
@@ -423,7 +422,7 @@ mod node_depman {
         async fn resolve_version_with_prefix() {
             let fixture = assert_fs::TempDir::new().unwrap();
             let mut tool = NodeDependencyManager::new(
-                &Proto::from(fixture.path()),
+                Proto::from(fixture.path()),
                 NodeDependencyManagerType::Npm,
             );
 
@@ -434,7 +433,7 @@ mod node_depman {
         async fn resolve_custom_dist() {
             let fixture = assert_fs::TempDir::new().unwrap();
             let mut tool = NodeDependencyManager::new(
-                &Proto::from(fixture.path()),
+                Proto::from(fixture.path()),
                 NodeDependencyManagerType::Yarn,
             );
 
@@ -445,7 +444,7 @@ mod node_depman {
         async fn handles_npm() {
             let fixture = assert_fs::TempDir::new().unwrap();
             let mut tool = NodeDependencyManager::new(
-                &Proto::from(fixture.path()),
+                Proto::from(fixture.path()),
                 NodeDependencyManagerType::Npm,
             );
 
@@ -456,7 +455,7 @@ mod node_depman {
         async fn handles_pnpm() {
             let fixture = assert_fs::TempDir::new().unwrap();
             let mut tool = NodeDependencyManager::new(
-                &Proto::from(fixture.path()),
+                Proto::from(fixture.path()),
                 NodeDependencyManagerType::Pnpm,
             );
 
@@ -467,7 +466,7 @@ mod node_depman {
         async fn handles_yarn() {
             let fixture = assert_fs::TempDir::new().unwrap();
             let mut tool = NodeDependencyManager::new(
-                &Proto::from(fixture.path()),
+                Proto::from(fixture.path()),
                 NodeDependencyManagerType::Yarn,
             );
 
@@ -479,7 +478,7 @@ mod node_depman {
         async fn errors_invalid_alias() {
             let fixture = assert_fs::TempDir::new().unwrap();
             let mut tool = NodeDependencyManager::new(
-                &Proto::from(fixture.path()),
+                Proto::from(fixture.path()),
                 NodeDependencyManagerType::Npm,
             );
 
@@ -491,7 +490,7 @@ mod node_depman {
         async fn errors_invalid_version() {
             let fixture = assert_fs::TempDir::new().unwrap();
             let mut tool = NodeDependencyManager::new(
-                &Proto::from(fixture.path()),
+                Proto::from(fixture.path()),
                 NodeDependencyManagerType::Npm,
             );
 

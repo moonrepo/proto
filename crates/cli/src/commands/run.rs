@@ -1,6 +1,5 @@
-use crate::helpers::detect_version_from_environment;
 use crate::tools::{create_tool, ToolType};
-use proto_core::ProtoError;
+use proto_core::{detect_version_from_environment, ProtoError};
 use std::process::exit;
 use tokio::process::Command;
 
@@ -10,7 +9,7 @@ pub async fn run(
     args: Vec<String>,
 ) -> Result<(), ProtoError> {
     let mut tool = create_tool(&tool_type)?;
-    let version = detect_version_from_environment(&tool, &tool_type, forced_version).await?;
+    let version = detect_version_from_environment(&tool, forced_version).await?;
 
     if !tool.is_setup(&version).await? {
         return Err(ProtoError::MissingToolForRun(

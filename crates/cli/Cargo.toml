@@ -33,7 +33,6 @@ human-sort = "0.2.2"
 log = { workspace = true }
 rustc-hash = { workspace = true }
 tokio = { workspace = true }
-toml = "0.7.0"
 
 [dev-dependencies]
 assert_cmd = "2.0.8"

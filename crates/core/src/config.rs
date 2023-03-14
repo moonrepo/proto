@@ -1,6 +1,4 @@
-use crate::tools::ToolType;
-use clap::ValueEnum;
-use proto_core::ProtoError;
+use crate::errors::ProtoError;
 use rustc_hash::FxHashMap;
 use std::{
     fs,
@@ -12,7 +10,7 @@ pub const CONFIG_NAME: &str = ".prototools";
 
 #[derive(Debug, Default)]
 pub struct Config {
-    pub tools: FxHashMap<ToolType, String>,
+    pub tools: FxHashMap<String, String>,
     pub path: PathBuf,
 }
 
@@ -59,10 +57,8 @@ impl Config {
 
         if let Value::Table(table) = config {
             for (key, value) in table {
-                let tool_type = key.parse::<ToolType>()?;
-
                 if let Value::String(version) = value {
-                    tools.insert(tool_type, version);
+                    tools.insert(key, version);
                 } else {
                     return Err(ProtoError::InvalidConfig(
                         path.to_path_buf(),
@@ -87,10 +83,7 @@ impl Config {
         let mut map = Map::with_capacity(self.tools.len());
 
         for (tool, version) in &self.tools {
-            map.insert(
-                tool.to_possible_value().unwrap().get_name().to_owned(),
-                Value::String(version.to_owned()),
-            );
+            map.insert(tool.to_owned(), Value::String(version.to_owned()));
         }
 
         let data = toml::to_string_pretty(&Value::Table(map))

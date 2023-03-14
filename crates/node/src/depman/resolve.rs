@@ -1,10 +1,11 @@
 use crate::depman::{NodeDependencyManager, NodeDependencyManagerType};
 use crate::platform::PackageJson;
+use crate::NodeLanguage;
 use log::debug;
 use proto_core::{
-    async_trait, is_offline, is_semantic_version, load_versions_manifest, parse_version,
-    remove_v_prefix, Describable, Manifest, ProtoError, Resolvable, VersionManifest,
-    VersionManifestEntry,
+    async_trait, detect_version_from_environment, is_offline, is_semantic_version,
+    load_versions_manifest, parse_version, remove_v_prefix, Describable, Proto, ProtoError,
+    Resolvable, VersionManifest, VersionManifestEntry,
 };
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
@@ -85,13 +86,13 @@ impl Resolvable<'_> for NodeDependencyManager {
             // version that comes bundled with the default Node.js version.
             NodeDependencyManagerType::Npm => {
                 if initial_version == "bundled" {
-                    let manifest = Manifest::load_for_tool("node")?;
+                    let node_tool = Box::new(NodeLanguage::new(Proto::new()?));
 
-                    if let Some(node_version) = manifest.default_version {
-                        let npm_package_path = manifest
-                            .path
-                            .parent()
-                            .unwrap()
+                    if let Ok(node_version) =
+                        detect_version_from_environment(&node_tool, None).await
+                    {
+                        let npm_package_path = node_tool
+                            .base_dir
                             .join(node_version)
                             .join(if cfg!(windows) {
                                 "node_modules"

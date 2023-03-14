@@ -48,23 +48,23 @@ pub fn create_tool(tool: &ToolType) -> Result<Box<dyn Tool<'static>>, ProtoError
 
     Ok(match tool {
         // Bun
-        ToolType::Bun => Box::new(bun::BunLanguage::new(&proto)),
+        ToolType::Bun => Box::new(bun::BunLanguage::new(proto)),
         // Deno
-        ToolType::Deno => Box::new(deno::DenoLanguage::new(&proto)),
+        ToolType::Deno => Box::new(deno::DenoLanguage::new(proto)),
         // Go
-        ToolType::Go => Box::new(go::GoLanguage::new(&proto)),
+        ToolType::Go => Box::new(go::GoLanguage::new(proto)),
         // Node.js
-        ToolType::Node => Box::new(node::NodeLanguage::new(&proto)),
+        ToolType::Node => Box::new(node::NodeLanguage::new(proto)),
         ToolType::Npm => Box::new(node::NodeDependencyManager::new(
-            &proto,
+            proto,
             node::NodeDependencyManagerType::Npm,
         )),
         ToolType::Pnpm => Box::new(node::NodeDependencyManager::new(
-            &proto,
+            proto,
             node::NodeDependencyManagerType::Pnpm,
         )),
         ToolType::Yarn => Box::new(node::NodeDependencyManager::new(
-            &proto,
+            proto,
             node::NodeDependencyManagerType::Yarn,
         )),
     })

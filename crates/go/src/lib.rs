@@ -20,7 +20,9 @@ pub struct GoLanguage {
 }
 
 impl GoLanguage {
-    pub fn new(proto: &Proto) -> Self {
+    pub fn new<P: AsRef<Proto>>(proto: P) -> Self {
+        let proto = proto.as_ref();
+
         GoLanguage {
             base_dir: proto.tools_dir.join("go"),
             bin_path: None,

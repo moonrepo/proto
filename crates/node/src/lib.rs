@@ -23,7 +23,9 @@ pub struct NodeLanguage {
 }
 
 impl NodeLanguage {
-    pub fn new(proto: &Proto) -> Self {
+    pub fn new<P: AsRef<Proto>>(proto: P) -> Self {
+        let proto = proto.as_ref();
+
         NodeLanguage {
             base_dir: proto.tools_dir.join("node"),
             bin_path: None,

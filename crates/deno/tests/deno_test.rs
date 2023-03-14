@@ -7,7 +7,7 @@ use std::fs;
 
 fn create_tool() -> (DenoLanguage, assert_fs::TempDir) {
     let fixture = assert_fs::TempDir::new().unwrap();
-    let tool = DenoLanguage::new(&Proto::from(fixture.path()));
+    let tool = DenoLanguage::new(Proto::from(fixture.path()));
     (tool, fixture)
 }
 

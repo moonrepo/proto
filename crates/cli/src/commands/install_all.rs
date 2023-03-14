@@ -1,9 +1,8 @@
-use std::env;
-
 use crate::commands::install::install;
-use crate::config::{Config, CONFIG_NAME};
 use crate::helpers::enable_logging;
-use proto_core::ProtoError;
+use crate::tools::ToolType;
+use proto_core::{Config, ProtoError, CONFIG_NAME};
+use std::{env, str::FromStr};
 
 pub async fn install_all() -> Result<(), ProtoError> {
     enable_logging();
@@ -17,7 +16,12 @@ pub async fn install_all() -> Result<(), ProtoError> {
     let mut futures = vec![];
 
     for (tool, version) in config.tools {
-        futures.push(install(tool, Some(version), false, vec![]));
+        futures.push(install(
+            ToolType::from_str(&tool)?,
+            Some(version),
+            false,
+            vec![],
+        ));
     }
 
     futures::future::try_join_all(futures).await?;
