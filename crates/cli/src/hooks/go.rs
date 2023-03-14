@@ -1,3 +1,5 @@
+use std::env;
+
 use crate::shell;
 use clap_complete::Shell;
 use log::info;
@@ -5,7 +7,7 @@ use proto_core::{color, ProtoError};
 use rustc_hash::FxHashMap;
 
 pub fn post_install(passthrough: &[String]) -> Result<(), ProtoError> {
-    if passthrough.contains(&"--no-gobin".to_string()) {
+    if passthrough.contains(&"--no-gobin".to_string()) || env::var("GOBIN").is_ok() {
         return Ok(());
     }
 

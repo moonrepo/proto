@@ -14,12 +14,14 @@ mod go {
 
         let mut cmd = create_proto_command(temp.path());
 
-        cmd.env("TEST_PROFILE", &profile)
+        let assert = cmd
+            .env("TEST_PROFILE", &profile)
             .arg("install")
             .arg("go")
             .arg("1.20.0")
-            .assert()
-            .success();
+            .assert();
+
+        debug_assert(&assert);
 
         let output = fs::read_to_string(profile).unwrap();
 
@@ -33,18 +35,18 @@ mod go {
 
         let mut cmd = create_proto_command(temp.path());
 
-        cmd.env("TEST_PROFILE", &profile)
+        let assert = cmd
+            .env("TEST_PROFILE", &profile)
             .arg("install")
             .arg("go")
             .arg("1.20.0")
             .arg("--")
             .arg("--no-gobin")
-            .assert()
-            .success();
+            .assert();
 
-        let output = fs::read_to_string(profile).unwrap();
+        debug_assert(&assert);
 
-        assert!(!predicate::str::contains("GOBIN=\"$HOME/go/bin\"").eval(&output));
+        assert!(!profile.exists());
     }
 }
 
