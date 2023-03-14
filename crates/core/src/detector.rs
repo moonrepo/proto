@@ -1,10 +1,10 @@
 #![allow(clippy::borrowed_box)]
 
-use crate::color;
 use crate::config::{Config, CONFIG_NAME};
 use crate::errors::ProtoError;
 use crate::manifest::{Manifest, MANIFEST_NAME};
 use crate::tool::Tool;
+use crate::{color, is_version_alias};
 use lenient_semver::Version;
 use log::{debug, trace};
 use std::{env, fs, path::Path};
@@ -145,174 +145,491 @@ pub async fn detect_version_from_environment<'l, T: Tool<'l> + ?Sized>(
     }
 }
 
-pub fn get_fixed_version(version: &str) -> Option<String> {
-    if version == "*" {
-        return Some("latest".into());
+pub fn detect_fixed_version<P: AsRef<Path>>(
+    version: &str,
+    manifest_path: P,
+) -> Result<Option<String>, ProtoError> {
+    if is_version_alias(&version) {
+        return Ok(None);
     }
 
-    let version = version.replace(' ', "");
-    let version_without_stars = version.replace(".*", "");
-    let mut explicit = false;
-    let mut drop_patch = false;
+    let version = version.replace(".*", "");
+    let mut fully_qualified = false;
+    let mut maybe_version = String::new();
 
-    // Multiple versions, unable to parse
-    if version.contains('|') {
-        return None;
+    let mut check_manifest = |check_version: String| -> Result<bool, ProtoError> {
+        let req = semver::VersionReq::parse(&check_version)
+            .map_err(|e| ProtoError::Semver(check_version.to_owned(), e.to_string()))?;
+        let manifest = Manifest::load(manifest_path.as_ref())?;
+
+        for installed_version in manifest.installed_versions {
+            let version_inst = semver::Version::parse(&installed_version)
+                .map_err(|e| ProtoError::Semver(installed_version.to_owned(), e.to_string()))?;
+
+            if req.matches(&version_inst) {
+                fully_qualified = true;
+                maybe_version = installed_version;
+
+                return Ok(true);
+            }
+        }
+
+        Ok(false)
+    };
+
+    // npm
+    if version.contains("||") {
+        for split_version in version.split("||") {
+            if check_manifest(split_version.trim().to_owned())? {
+                break;
+            }
+        }
+    } else {
+        match &version[0..1] {
+            "^" | "~" | ">" | "<" | "*" => {
+                check_manifest(version.clone())?;
+            }
+            "=" => {
+                maybe_version = version[1..].to_owned();
+            }
+            _ => {
+                maybe_version = version.clone();
+            }
+        };
     }
 
-    let semver = match &version[0..1] {
-        "^" | "~" => Version::parse(&version[1..]),
-        ">" => {
-            if let Some(v) = version.strip_prefix(">=") {
-                Version::parse(v)
-            } else {
-                drop_patch = true;
-                Version::parse(&version[1..])
-            }
-        }
-        "<" => {
-            explicit = true;
+    if maybe_version.is_empty() {
+        return Ok(None);
+    }
 
-            if let Some(v) = version.strip_prefix("<=") {
-                Version::parse(v)
-            } else {
-                // TODO: This isn't correct
-                Version::parse(&version[1..])
-            }
-        }
-        "=" => {
-            explicit = true;
-            Version::parse(&version_without_stars[1..])
-        }
-        _ => {
-            if version.contains('*') {
-                Version::parse(&version_without_stars)
-            } else {
-                explicit = true;
-                Version::parse(&version)
-            }
-        }
-    };
+    let semver = Version::parse(&maybe_version)
+        .map_err(|e| ProtoError::Semver(maybe_version.to_owned(), e.to_string()))?;
 
-    let Ok(semver) = semver else {
-        return None;
-    };
-
+    let version_parts = version.split('.').collect::<Vec<_>>();
     let mut matched_version = semver.major.to_string();
 
-    if semver.minor != 0 || explicit {
+    if version_parts.get(1).is_some() || fully_qualified {
         matched_version = format!("{matched_version}.{}", semver.minor);
 
-        if (semver.patch != 0 || explicit) && !drop_patch {
+        if version_parts.get(2).is_some() || fully_qualified {
             matched_version = format!("{matched_version}.{}", semver.patch);
         }
     }
 
-    Some(matched_version)
+    Ok(Some(matched_version))
 }
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
     use super::*;
+
+    pub fn create_temp_dir() -> assert_fs::TempDir {
+        assert_fs::TempDir::new().unwrap()
+    }
+
+    pub fn create_manifest(dir: &Path, manifest: Manifest) -> PathBuf {
+        let manifest_path = dir.join(MANIFEST_NAME);
+        let manifest_str = serde_json::to_string_pretty(&manifest).unwrap();
+
+        std::fs::write(&manifest_path, manifest_str).unwrap();
+
+        manifest_path
+    }
 
     mod fixed_version {
         use super::*;
+        use rustc_hash::FxHashSet;
 
         #[test]
         fn ignores_invalid() {
-            assert_eq!(get_fixed_version("unknown"), None);
-            assert_eq!(get_fixed_version("1 || 2"), None);
+            let temp = create_temp_dir();
+
+            assert_eq!(detect_fixed_version("unknown", temp.path()).unwrap(), None);
         }
 
         #[test]
         fn handles_explicit() {
-            assert_eq!(get_fixed_version("1.2.3-alpha").unwrap(), "1.2.3"); // ?
-            assert_eq!(get_fixed_version("1.2.3").unwrap(), "1.2.3");
-            assert_eq!(get_fixed_version("1.2.0").unwrap(), "1.2.0");
-            assert_eq!(get_fixed_version("1.2").unwrap(), "1.2.0");
-            assert_eq!(get_fixed_version("1.0").unwrap(), "1.0.0");
-            assert_eq!(get_fixed_version("1").unwrap(), "1.0.0");
+            let temp = create_temp_dir();
 
-            assert_eq!(get_fixed_version("v1.2.3-alpha").unwrap(), "1.2.3"); // ?
-            assert_eq!(get_fixed_version("V1.2.3").unwrap(), "1.2.3");
-            assert_eq!(get_fixed_version("v1.2.0").unwrap(), "1.2.0");
-            assert_eq!(get_fixed_version("V1.2").unwrap(), "1.2.0");
-            assert_eq!(get_fixed_version("v1.0").unwrap(), "1.0.0");
-            assert_eq!(get_fixed_version("V1").unwrap(), "1.0.0");
+            assert_eq!(
+                detect_fixed_version("1.2.3-alpha", temp.path())
+                    .unwrap()
+                    .unwrap(),
+                "1.2.3"
+            ); // ?
+            assert_eq!(
+                detect_fixed_version("1.2.3", temp.path()).unwrap().unwrap(),
+                "1.2.3"
+            );
+            assert_eq!(
+                detect_fixed_version("1.2.0", temp.path()).unwrap().unwrap(),
+                "1.2.0"
+            );
+            assert_eq!(
+                detect_fixed_version("1.2", temp.path()).unwrap().unwrap(),
+                "1.2"
+            );
+            assert_eq!(
+                detect_fixed_version("1.0", temp.path()).unwrap().unwrap(),
+                "1.0"
+            );
+            assert_eq!(
+                detect_fixed_version("1", temp.path()).unwrap().unwrap(),
+                "1"
+            );
+
+            assert_eq!(
+                detect_fixed_version("v1.2.3-alpha", temp.path())
+                    .unwrap()
+                    .unwrap(),
+                "1.2.3"
+            ); // ?
+            assert_eq!(
+                detect_fixed_version("V1.2.3", temp.path())
+                    .unwrap()
+                    .unwrap(),
+                "1.2.3"
+            );
+            assert_eq!(
+                detect_fixed_version("v1.2.0", temp.path())
+                    .unwrap()
+                    .unwrap(),
+                "1.2.0"
+            );
+            assert_eq!(
+                detect_fixed_version("V1.2", temp.path()).unwrap().unwrap(),
+                "1.2"
+            );
+            assert_eq!(
+                detect_fixed_version("v1.0", temp.path()).unwrap().unwrap(),
+                "1.0"
+            );
+            assert_eq!(
+                detect_fixed_version("V1", temp.path()).unwrap().unwrap(),
+                "1"
+            );
         }
 
         #[test]
         fn handles_equals() {
-            assert_eq!(get_fixed_version("=1.2.3-alpha").unwrap(), "1.2.3"); // ?
-            assert_eq!(get_fixed_version("=1.2.3").unwrap(), "1.2.3");
-            assert_eq!(get_fixed_version("=1.2.0").unwrap(), "1.2.0");
-            assert_eq!(get_fixed_version("=1.2").unwrap(), "1.2.0");
-            assert_eq!(get_fixed_version("=1.0").unwrap(), "1.0.0");
-            assert_eq!(get_fixed_version("=1").unwrap(), "1.0.0");
+            let temp = create_temp_dir();
+
+            assert_eq!(
+                detect_fixed_version("=1.2.3-alpha", temp.path())
+                    .unwrap()
+                    .unwrap(),
+                "1.2.3"
+            ); // ?
+            assert_eq!(
+                detect_fixed_version("=1.2.3", temp.path())
+                    .unwrap()
+                    .unwrap(),
+                "1.2.3"
+            );
+            assert_eq!(
+                detect_fixed_version("=1.2.0", temp.path())
+                    .unwrap()
+                    .unwrap(),
+                "1.2.0"
+            );
+            assert_eq!(
+                detect_fixed_version("=1.2", temp.path()).unwrap().unwrap(),
+                "1.2"
+            );
+            assert_eq!(
+                detect_fixed_version("=1.0", temp.path()).unwrap().unwrap(),
+                "1.0"
+            );
+            assert_eq!(
+                detect_fixed_version("=1", temp.path()).unwrap().unwrap(),
+                "1"
+            );
         }
 
         #[test]
         fn handles_star() {
-            assert_eq!(get_fixed_version("=1.2.*").unwrap(), "1.2.0");
-            assert_eq!(get_fixed_version("=1.*").unwrap(), "1.0.0");
-            assert_eq!(get_fixed_version("1.2.*").unwrap(), "1.2");
-            assert_eq!(get_fixed_version("1.*").unwrap(), "1");
-            assert_eq!(get_fixed_version("*").unwrap(), "latest");
+            let temp = create_temp_dir();
+
+            assert_eq!(
+                detect_fixed_version("=1.2.*", temp.path())
+                    .unwrap()
+                    .unwrap(),
+                "1.2"
+            );
+            assert_eq!(
+                detect_fixed_version("=1.*", temp.path()).unwrap().unwrap(),
+                "1"
+            );
+            assert_eq!(
+                detect_fixed_version("1.2.*", temp.path()).unwrap().unwrap(),
+                "1.2"
+            );
+            assert_eq!(
+                detect_fixed_version("1.*", temp.path()).unwrap().unwrap(),
+                "1"
+            );
+        }
+
+        #[test]
+        fn handles_star_all() {
+            let temp = create_temp_dir();
+
+            let manifest_path = create_manifest(temp.path(), Manifest::default());
+
+            assert_eq!(detect_fixed_version("*", manifest_path).unwrap(), None);
+
+            let manifest_path = create_manifest(
+                temp.path(),
+                Manifest {
+                    installed_versions: FxHashSet::from_iter(["1.2.3".into()]),
+                    ..Manifest::default()
+                },
+            );
+
+            assert_eq!(
+                detect_fixed_version("*", manifest_path).unwrap().unwrap(),
+                "1.2.3"
+            );
         }
 
         #[test]
         fn handles_caret() {
-            assert_eq!(get_fixed_version("^1.2.3-alpha").unwrap(), "1.2.3"); // ?
-            assert_eq!(get_fixed_version("^1.2.3").unwrap(), "1.2.3");
-            assert_eq!(get_fixed_version("^1.2.0").unwrap(), "1.2");
-            assert_eq!(get_fixed_version("^1.2").unwrap(), "1.2");
-            assert_eq!(get_fixed_version("^1.0").unwrap(), "1");
-            assert_eq!(get_fixed_version("^1").unwrap(), "1");
+            let temp = create_temp_dir();
+            let manifest_path = create_manifest(
+                temp.path(),
+                Manifest {
+                    installed_versions: FxHashSet::from_iter(["1.5.9".into()]),
+                    ..Manifest::default()
+                },
+            );
+
+            assert_eq!(
+                detect_fixed_version("^1.2.3-alpha", &manifest_path)
+                    .unwrap()
+                    .unwrap(),
+                "1.5.9"
+            );
+            assert_eq!(
+                detect_fixed_version("^1.2.3", &manifest_path)
+                    .unwrap()
+                    .unwrap(),
+                "1.5.9"
+            );
+            assert_eq!(
+                detect_fixed_version("^1.2.0", &manifest_path)
+                    .unwrap()
+                    .unwrap(),
+                "1.5.9"
+            );
+            assert_eq!(
+                detect_fixed_version("^1.2", &manifest_path)
+                    .unwrap()
+                    .unwrap(),
+                "1.5.9"
+            );
+            assert_eq!(
+                detect_fixed_version("^1.0", &manifest_path)
+                    .unwrap()
+                    .unwrap(),
+                "1.5.9"
+            );
+            assert_eq!(
+                detect_fixed_version("^1", &manifest_path).unwrap().unwrap(),
+                "1.5.9"
+            );
+
+            // Failures
+            assert_eq!(detect_fixed_version("^1.6", &manifest_path).unwrap(), None);
+            assert_eq!(detect_fixed_version("^2", &manifest_path).unwrap(), None);
+            assert_eq!(detect_fixed_version("^0", &manifest_path).unwrap(), None);
         }
 
         #[test]
         fn handles_tilde() {
-            assert_eq!(get_fixed_version("~1.2.3-alpha").unwrap(), "1.2.3"); // ?
-            assert_eq!(get_fixed_version("~1.2.3").unwrap(), "1.2.3");
-            assert_eq!(get_fixed_version("~1.2.0").unwrap(), "1.2");
-            assert_eq!(get_fixed_version("~1.2").unwrap(), "1.2");
-            assert_eq!(get_fixed_version("~1.0").unwrap(), "1");
-            assert_eq!(get_fixed_version("~1").unwrap(), "1");
+            let temp = create_temp_dir();
+            let manifest_path = create_manifest(
+                temp.path(),
+                Manifest {
+                    installed_versions: FxHashSet::from_iter(["1.2.9".into()]),
+                    ..Manifest::default()
+                },
+            );
+
+            assert_eq!(
+                detect_fixed_version("~1.2.3-alpha", &manifest_path)
+                    .unwrap()
+                    .unwrap(),
+                "1.2.9"
+            );
+            assert_eq!(
+                detect_fixed_version("~1.2.3", &manifest_path)
+                    .unwrap()
+                    .unwrap(),
+                "1.2.9"
+            );
+            assert_eq!(
+                detect_fixed_version("~1.2.0", &manifest_path)
+                    .unwrap()
+                    .unwrap(),
+                "1.2.9"
+            );
+            assert_eq!(
+                detect_fixed_version("~1.2", &manifest_path)
+                    .unwrap()
+                    .unwrap(),
+                "1.2.9"
+            );
+            assert_eq!(
+                detect_fixed_version("~1", &manifest_path).unwrap().unwrap(),
+                "1.2.9"
+            );
+
+            // Failures
+            assert_eq!(detect_fixed_version("~1.3", &manifest_path).unwrap(), None);
+            assert_eq!(detect_fixed_version("~1.1", &manifest_path).unwrap(), None);
+            assert_eq!(detect_fixed_version("~1.0", &manifest_path).unwrap(), None);
+            assert_eq!(detect_fixed_version("~2", &manifest_path).unwrap(), None);
+            assert_eq!(detect_fixed_version("~0", &manifest_path).unwrap(), None);
         }
 
         #[test]
         fn handles_gt() {
-            assert_eq!(get_fixed_version(">1.2.3-alpha").unwrap(), "1.2"); // ?
-            assert_eq!(get_fixed_version(">1.2.3").unwrap(), "1.2");
-            assert_eq!(get_fixed_version(">1.2.0").unwrap(), "1.2");
-            assert_eq!(get_fixed_version(">1.2").unwrap(), "1.2");
-            assert_eq!(get_fixed_version(">1.0").unwrap(), "1");
-            assert_eq!(get_fixed_version(">1").unwrap(), "1");
+            let temp = create_temp_dir();
+            let manifest_path = create_manifest(
+                temp.path(),
+                Manifest {
+                    installed_versions: FxHashSet::from_iter(["1.5.9".into()]),
+                    ..Manifest::default()
+                },
+            );
 
-            assert_eq!(get_fixed_version(">=1.2.3-alpha").unwrap(), "1.2.3"); // ?
-            assert_eq!(get_fixed_version(">=1.2.3").unwrap(), "1.2.3");
-            assert_eq!(get_fixed_version(">=1.2.0").unwrap(), "1.2");
-            assert_eq!(get_fixed_version(">=1.2").unwrap(), "1.2");
-            assert_eq!(get_fixed_version(">=1.0").unwrap(), "1");
-            assert_eq!(get_fixed_version(">=1").unwrap(), "1");
+            assert_eq!(
+                detect_fixed_version(">1.2.3-alpha", &manifest_path)
+                    .unwrap()
+                    .unwrap(),
+                "1.5.9"
+            );
+            assert_eq!(
+                detect_fixed_version(">1.2.3", &manifest_path)
+                    .unwrap()
+                    .unwrap(),
+                "1.5.9"
+            );
+            assert_eq!(
+                detect_fixed_version(">1.2.0", &manifest_path)
+                    .unwrap()
+                    .unwrap(),
+                "1.5.9"
+            );
+            assert_eq!(
+                detect_fixed_version(">1.2", &manifest_path)
+                    .unwrap()
+                    .unwrap(),
+                "1.5.9"
+            );
+            assert_eq!(
+                detect_fixed_version(">1.0", &manifest_path)
+                    .unwrap()
+                    .unwrap(),
+                "1.5.9"
+            );
+            assert_eq!(
+                detect_fixed_version(">0", &manifest_path).unwrap().unwrap(),
+                "1.5.9"
+            );
+
+            // Failures
+            assert_eq!(detect_fixed_version(">1.6", &manifest_path).unwrap(), None);
+            assert_eq!(
+                detect_fixed_version(">1.5.9", &manifest_path).unwrap(),
+                None
+            );
+            assert_eq!(detect_fixed_version(">2", &manifest_path).unwrap(), None);
+            assert_eq!(detect_fixed_version(">1", &manifest_path).unwrap(), None);
         }
 
         #[test]
-        fn handles_lt() {
-            // THIS IS WRONG, best solution? Does this even happen?
-            assert_eq!(get_fixed_version("<1.2.3-alpha").unwrap(), "1.2.3"); // ?
-            assert_eq!(get_fixed_version("<1.2.3").unwrap(), "1.2.3");
-            assert_eq!(get_fixed_version("<1.2.0").unwrap(), "1.2.0");
-            assert_eq!(get_fixed_version("<1.2").unwrap(), "1.2.0");
-            assert_eq!(get_fixed_version("<1.0").unwrap(), "1.0.0");
-            assert_eq!(get_fixed_version("<1").unwrap(), "1.0.0");
+        fn handles_gte() {
+            let temp = create_temp_dir();
+            let manifest_path = create_manifest(
+                temp.path(),
+                Manifest {
+                    installed_versions: FxHashSet::from_iter(["1.5.9".into()]),
+                    ..Manifest::default()
+                },
+            );
 
-            assert_eq!(get_fixed_version("<=1.2.3-alpha").unwrap(), "1.2.3"); // ?
-            assert_eq!(get_fixed_version("<=1.2.3").unwrap(), "1.2.3");
-            assert_eq!(get_fixed_version("<=1.2.0").unwrap(), "1.2.0");
-            assert_eq!(get_fixed_version("<=1.2").unwrap(), "1.2.0");
-            assert_eq!(get_fixed_version("<=1.0").unwrap(), "1.0.0");
-            assert_eq!(get_fixed_version("<=1").unwrap(), "1.0.0");
+            assert_eq!(
+                detect_fixed_version(">=1.2.3-alpha", &manifest_path)
+                    .unwrap()
+                    .unwrap(),
+                "1.5.9"
+            );
+            assert_eq!(
+                detect_fixed_version(">=1.2.3", &manifest_path)
+                    .unwrap()
+                    .unwrap(),
+                "1.5.9"
+            );
+            assert_eq!(
+                detect_fixed_version(">=1.2.0", &manifest_path)
+                    .unwrap()
+                    .unwrap(),
+                "1.5.9"
+            );
+            assert_eq!(
+                detect_fixed_version(">=1.2", &manifest_path)
+                    .unwrap()
+                    .unwrap(),
+                "1.5.9"
+            );
+            assert_eq!(
+                detect_fixed_version(">=1.0", &manifest_path)
+                    .unwrap()
+                    .unwrap(),
+                "1.5.9"
+            );
+            assert_eq!(
+                detect_fixed_version(">=1", &manifest_path)
+                    .unwrap()
+                    .unwrap(),
+                "1.5.9"
+            );
+            assert_eq!(
+                detect_fixed_version(">=0", &manifest_path)
+                    .unwrap()
+                    .unwrap(),
+                "1.5.9"
+            );
+
+            // Failures
+            assert_eq!(detect_fixed_version(">1.6", &manifest_path).unwrap(), None);
+            assert_eq!(detect_fixed_version(">=2", &manifest_path).unwrap(), None);
+        }
+
+        #[test]
+        fn handles_multi() {
+            let temp = create_temp_dir();
+            let manifest_path = create_manifest(
+                temp.path(),
+                Manifest {
+                    installed_versions: FxHashSet::from_iter(["1.5.9".into()]),
+                    ..Manifest::default()
+                },
+            );
+
+            assert_eq!(
+                detect_fixed_version("^1.2.3 || ^2", &manifest_path)
+                    .unwrap()
+                    .unwrap(),
+                "1.5.9"
+            );
+            assert_eq!(
+                detect_fixed_version("^1.6 || ^2", &manifest_path).unwrap(),
+                None
+            );
         }
     }
 }

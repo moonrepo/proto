@@ -14,10 +14,11 @@ console = { workspace = true }
 dirs = "4.0.0"
 flate2 = "1.0.25"
 human-sort = "0.2.2"
-lenient_semver = { version = "0.4.2", features = ["version_lite", "version_serde"] }
+lenient_semver = { version = "0.4.2", default-features = false, features = ["version_lite"] }
 log = { workspace = true }
 reqwest = { workspace = true }
 rustc-hash = { workspace = true }
+semver = "1.0.17"
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = "0.10.6"
@@ -27,3 +28,6 @@ thiserror = { workspace = true }
 tokio = { workspace = true }
 toml = "0.7.0"
 zip = "0.6.4"
+
+[dev-dependencies]
+assert_fs = { workspace = true }

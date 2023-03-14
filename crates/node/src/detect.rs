@@ -1,6 +1,8 @@
 use crate::platform::PackageJson;
 use crate::NodeLanguage;
-use proto_core::{async_trait, get_fixed_version, load_version_file, Detector, ProtoError};
+use proto_core::{
+    async_trait, detect_fixed_version, load_version_file, Detector, ProtoError, Tool,
+};
 use std::path::Path;
 
 #[async_trait]
@@ -25,7 +27,7 @@ impl Detector<'_> for NodeLanguage {
 
             if let Some(engines) = package_json.engines {
                 if let Some(constraint) = engines.get("node") {
-                    return Ok(get_fixed_version(constraint));
+                    return detect_fixed_version(constraint, self.get_manifest_path()?);
                 }
             }
         }
