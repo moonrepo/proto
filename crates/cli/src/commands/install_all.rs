@@ -17,7 +17,7 @@ pub async fn install_all() -> Result<(), ProtoError> {
     let mut futures = vec![];
 
     for (tool, version) in config.tools {
-        futures.push(install(tool, Some(version), false));
+        futures.push(install(tool, Some(version), false, vec![]));
     }
 
     futures::future::try_join_all(futures).await?;

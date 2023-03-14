@@ -11,8 +11,7 @@ use clap_complete::Shell;
     disable_colored_help = true,
     disable_help_subcommand = true,
     propagate_version = true,
-    next_line_help = false,
-    rename_all = "camelCase"
+    next_line_help = false
 )]
 pub struct App {
     #[command(subcommand)]
@@ -61,6 +60,10 @@ pub enum Commands {
 
         #[arg(long, help = "Pin version as the global default")]
         pin: bool,
+
+        // Passthrough args (after --)
+        #[arg(last = true, help = "Unique arguments to pass to each tool")]
+        passthrough: Vec<String>,
     },
 
     #[command(

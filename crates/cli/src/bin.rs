@@ -16,7 +16,12 @@ async fn main() {
     let result = match app.command {
         Commands::Bin { tool, semver, shim } => commands::bin(tool, semver, shim).await,
         Commands::Completions { shell } => commands::completions(shell).await,
-        Commands::Install { tool, semver, pin } => commands::install(tool, semver, pin).await,
+        Commands::Install {
+            tool,
+            semver,
+            pin,
+            passthrough,
+        } => commands::install(tool, semver, pin, passthrough).await,
         Commands::Global { tool, semver } => commands::global(tool, semver).await,
         Commands::List { tool } => commands::list(tool).await,
         Commands::ListRemote { tool } => commands::list_remote(tool).await,
