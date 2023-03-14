@@ -1,7 +1,52 @@
 mod utils;
 
 use predicates::prelude::*;
+use std::fs;
 use utils::*;
+
+mod go {
+    use super::*;
+
+    #[test]
+    fn sets_gobin_to_shell() {
+        let temp = create_temp_dir();
+        let profile = temp.path().join(".profile");
+
+        let mut cmd = create_proto_command(temp.path());
+
+        cmd.env("TEST_PROFILE", &profile)
+            .arg("install")
+            .arg("go")
+            .arg("1.20.0")
+            .assert()
+            .success();
+
+        let output = fs::read_to_string(profile).unwrap();
+
+        assert!(predicate::str::contains("GOBIN=\"$HOME/go/bin\"").eval(&output));
+    }
+
+    #[test]
+    fn doesnt_set_gobin() {
+        let temp = create_temp_dir();
+        let profile = temp.path().join(".profile");
+
+        let mut cmd = create_proto_command(temp.path());
+
+        cmd.env("TEST_PROFILE", &profile)
+            .arg("install")
+            .arg("go")
+            .arg("1.20.0")
+            .arg("--")
+            .arg("--no-gobin")
+            .assert()
+            .success();
+
+        let output = fs::read_to_string(profile).unwrap();
+
+        assert!(!predicate::str::contains("GOBIN=\"$HOME/go/bin\"").eval(&output));
+    }
+}
 
 mod node {
     use super::*;

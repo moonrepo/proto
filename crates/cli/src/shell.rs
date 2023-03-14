@@ -13,6 +13,10 @@ use std::{
 pub fn find_profiles(shell: &Shell) -> Result<Vec<PathBuf>, ProtoError> {
     debug!(target: "proto:shell", "Finding profile files for {}", shell);
 
+    if let Ok(profile_env) = env::var("TEST_PROFILE") {
+        return Ok(vec![PathBuf::from(profile_env)]);
+    }
+
     let home_dir = home_dir().expect("Invalid home directory.");
     let mut profiles = vec![home_dir.join(".profile")];
 
