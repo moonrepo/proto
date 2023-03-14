@@ -54,7 +54,6 @@ pub async fn install(
     // should provide a better API.
     match tool_type {
         ToolType::Go => {
-            dbg!(&tool_type);
             go_hooks::post_install(&passthrough)?;
         }
         ToolType::Node => {
@@ -78,8 +77,6 @@ pub async fn install(
         }
         _ => {}
     }
-
-    dbg!("END");
 
     Ok(())
 }

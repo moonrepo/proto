@@ -5,19 +5,11 @@ use proto_core::{color, ProtoError};
 use rustc_hash::FxHashMap;
 
 pub fn post_install(passthrough: &[String]) -> Result<(), ProtoError> {
-    dbg!(
-        &passthrough,
-        passthrough.contains(&"--no-gobin".to_string())
-    );
-
     if passthrough.contains(&"--no-gobin".to_string()) {
         return Ok(());
     }
 
-    let Some(shell) = Shell::from_env() else {
-        return Ok(());
-    };
-
+    let shell = Shell::from_env().unwrap_or(Shell::Bash);
     let env_vars = FxHashMap::from_iter([
         ("GOBIN".to_string(), "$HOME/go/bin".to_string()),
         ("PATH".to_string(), "$GOBIN".to_string()),
