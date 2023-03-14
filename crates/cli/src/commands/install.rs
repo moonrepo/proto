@@ -59,6 +59,9 @@ pub async fn install(
                     tool.get_name(),
                 );
 
+                // This ensures that the correct version is used by the npm tool
+                std::env::set_var("PROTO_NODE_VERSION", tool.get_resolved_version());
+
                 install(
                     ToolType::Npm,
                     Some("bundled".into()),
