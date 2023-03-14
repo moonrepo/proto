@@ -145,6 +145,61 @@ pub async fn detect_version_from_environment<'l, T: Tool<'l> + ?Sized>(
     }
 }
 
+pub fn detect_fixed_version(
+    version: &str,
+    manifest_path: &Path,
+) -> Result<Option<String>, ProtoError> {
+    let version = version.replace(' ', "");
+    let version_without_stars = version.replace(".*", "");
+    let mut maybe_version = String::new();
+
+    match &version[0..1] {
+        "^" | "~" | ">" | "<" | "*" => {
+            let req = semver::VersionReq::parse(&version)
+                .map_err(|e| ProtoError::Semver(version.to_owned(), e.to_string()))?;
+            let manifest = Manifest::load_from(manifest_path)?;
+
+            for installed_version in manifest.installed_versions {
+                let version_inst = semver::Version::parse(&installed_version)
+                    .map_err(|e| ProtoError::Semver(installed_version.to_owned(), e.to_string()))?;
+
+                if req.matches(&version_inst) {
+                    maybe_version = installed_version;
+                    break;
+                }
+            }
+        }
+        "=" => {
+            maybe_version = version_without_stars[1..].to_owned();
+        }
+        _ => {
+            maybe_version = if version.contains('*') {
+                version_without_stars
+            } else {
+                version
+            };
+        }
+    };
+
+    if maybe_version.is_empty() {
+        return Ok(None);
+    }
+
+    let semver = Version::parse(&maybe_version)
+        .map_err(|e| ProtoError::Semver(maybe_version.to_owned(), e.to_string()))?;
+    let mut matched_version = semver.major.to_string();
+
+    if semver.minor != 0 {
+        matched_version = format!("{matched_version}.{}", semver.minor);
+
+        if semver.patch != 0 {
+            matched_version = format!("{matched_version}.{}", semver.patch);
+        }
+    }
+
+    Ok(Some(matched_version))
+}
+
 pub fn get_fixed_version(version: &str) -> Option<String> {
     if version == "*" {
         return Some("latest".into());

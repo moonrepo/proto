@@ -47,6 +47,9 @@ pub enum ProtoError {
     )]
     MissingToolForRun(String, String, String),
 
+    #[error("Invalid version {0}: {1}")]
+    Semver(String, String),
+
     #[error("Failed shim: {0}")]
     Shim(String),
 
