@@ -44,6 +44,14 @@ struct NDMManifest {
 
 #[async_trait]
 impl Resolvable<'_> for NodeDependencyManager {
+    fn get_default_version(&self) -> Option<&str> {
+        if matches!(self.type_of, NodeDependencyManagerType::Npm) {
+            Some("bundled")
+        } else {
+            None
+        }
+    }
+
     fn get_resolved_version(&self) -> &str {
         match self.version.as_ref() {
             Some(version) => version,
