@@ -20,11 +20,15 @@ pub struct Manifest {
 }
 
 impl Manifest {
-    pub fn insert_version(path: PathBuf, version: &str) -> Result<(), ProtoError> {
+    pub fn insert_version(
+        path: PathBuf,
+        version: &str,
+        default_version: Option<&str>,
+    ) -> Result<(), ProtoError> {
         let mut manifest = Manifest::load(path)?;
 
         if manifest.default_version.is_none() {
-            manifest.default_version = Some(version.to_owned());
+            manifest.default_version = Some(default_version.unwrap_or(version).to_owned());
         }
 
         manifest.installed_versions.insert(version.to_owned());

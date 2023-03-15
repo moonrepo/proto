@@ -51,7 +51,7 @@ impl Resolvable<'_> for NodeDependencyManager {
         }
     }
 
-    async fn load_manifest(&self) -> Result<VersionManifest, ProtoError> {
+    async fn load_version_manifest(&self) -> Result<VersionManifest, ProtoError> {
         let mut versions = BTreeMap::new();
         let response: NDMManifest =
             load_versions_manifest(format!("https://registry.npmjs.org/{}/", self.package_name))
@@ -147,7 +147,7 @@ impl Resolvable<'_> for NodeDependencyManager {
             initial_version,
         );
 
-        let manifest = self.load_manifest().await?;
+        let manifest = self.load_version_manifest().await?;
         let version = parse_version(manifest.find_version(&initial_version)?)?.to_string();
 
         debug!(target: self.get_log_target(), "Resolved to {}", version);

@@ -25,7 +25,7 @@ impl Resolvable<'_> for GoLanguage {
     }
 
     // https://go.dev/dl/?mode=json&include=all
-    async fn load_manifest(&self) -> Result<VersionManifest, ProtoError> {
+    async fn load_version_manifest(&self) -> Result<VersionManifest, ProtoError> {
         let tags = load_git_tags("https://github.com/golang/go")
             .await?
             .iter()
@@ -66,7 +66,7 @@ impl Resolvable<'_> for GoLanguage {
             initial_version,
         );
 
-        let manifest = self.load_manifest().await?;
+        let manifest = self.load_version_manifest().await?;
 
         let candidate = if initial_version.contains("rc") || initial_version.contains("beta") {
             manifest.get_version(&initial_version)?

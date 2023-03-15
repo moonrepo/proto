@@ -92,11 +92,16 @@ impl VersionManifest {
 
 #[async_trait::async_trait]
 pub trait Resolvable<'tool>: Send + Sync {
+    /// Return the version to be used as the global default.
+    fn get_default_version(&self) -> Option<&str> {
+        None
+    }
+
     /// Return the resolved version.
     fn get_resolved_version(&self) -> &str;
 
     /// Load the upstream version and release manifest.
-    async fn load_manifest(&self) -> Result<VersionManifest, ProtoError>;
+    async fn load_version_manifest(&self) -> Result<VersionManifest, ProtoError>;
 
     /// Given an initial version, resolve it to a fully qualifed and semantic version
     /// according to the tool's ecosystem.
