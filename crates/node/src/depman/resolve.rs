@@ -44,6 +44,14 @@ struct NDMManifest {
 
 #[async_trait]
 impl Resolvable<'_> for NodeDependencyManager {
+    fn get_default_version(&self) -> Option<&str> {
+        if matches!(self.type_of, NodeDependencyManagerType::Npm) {
+            Some("bundled")
+        } else {
+            None
+        }
+    }
+
     fn get_resolved_version(&self) -> &str {
         match self.version.as_ref() {
             Some(version) => version,
@@ -51,7 +59,7 @@ impl Resolvable<'_> for NodeDependencyManager {
         }
     }
 
-    async fn load_manifest(&self) -> Result<VersionManifest, ProtoError> {
+    async fn load_version_manifest(&self) -> Result<VersionManifest, ProtoError> {
         let mut versions = BTreeMap::new();
         let response: NDMManifest =
             load_versions_manifest(format!("https://registry.npmjs.org/{}/", self.package_name))
@@ -147,7 +155,7 @@ impl Resolvable<'_> for NodeDependencyManager {
             initial_version,
         );
 
-        let manifest = self.load_manifest().await?;
+        let manifest = self.load_version_manifest().await?;
         let version = parse_version(manifest.find_version(&initial_version)?)?.to_string();
 
         debug!(target: self.get_log_target(), "Resolved to {}", version);

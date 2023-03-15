@@ -29,7 +29,7 @@ impl Resolvable<'_> for NodeLanguage {
         }
     }
 
-    async fn load_manifest(&self) -> Result<VersionManifest, ProtoError> {
+    async fn load_version_manifest(&self) -> Result<VersionManifest, ProtoError> {
         let mut aliases = BTreeMap::new();
         let mut versions = BTreeMap::new();
         let response: Vec<NodeDistVersion> =
@@ -89,7 +89,7 @@ impl Resolvable<'_> for NodeLanguage {
             initial_version,
         );
 
-        let manifest = self.load_manifest().await?;
+        let manifest = self.load_version_manifest().await?;
         let candidate;
 
         // Latest version is always at the top

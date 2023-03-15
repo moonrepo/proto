@@ -64,7 +64,11 @@ pub trait Tool<'tool>:
         self.create_shims().await?;
 
         // Update the manifest
-        Manifest::insert_version(self.get_manifest_path()?, self.get_resolved_version())?;
+        Manifest::insert_version(
+            self.get_manifest_path()?,
+            self.get_resolved_version(),
+            self.get_default_version(),
+        )?;
 
         self.after_setup().await?;
 

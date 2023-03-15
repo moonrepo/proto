@@ -43,7 +43,7 @@ pub enum ProtoError {
     MissingTool(String),
 
     #[error(
-        "Attempted to run {0} v{1}, but this version has not been installed. Install it with `{2}`!"
+        "This project requires {0} {1}, but this version has not been installed. Install it with `{2}`!"
     )]
     MissingToolForRun(String, String, String),
 

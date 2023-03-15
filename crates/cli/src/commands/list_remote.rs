@@ -13,7 +13,7 @@ pub async fn list_remote(tool_type: ToolType) -> Result<(), ProtoError> {
 
     debug!(target: "proto:list-remote", "Loading manifest");
 
-    let manifest = tool.load_manifest().await?;
+    let manifest = tool.load_version_manifest().await?;
 
     info!(target: "proto:list-remote", "Available versions:");
 

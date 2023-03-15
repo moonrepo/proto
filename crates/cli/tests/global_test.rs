@@ -25,3 +25,27 @@ fn updates_manifest_file() {
 }"#
     );
 }
+
+#[test]
+fn can_set_aliases() {
+    let temp = create_temp_dir();
+    let manifest_file = temp.join("tools/npm/manifest.json");
+
+    assert!(!manifest_file.exists());
+
+    let mut cmd = create_proto_command(temp.path());
+    cmd.arg("global")
+        .arg("npm")
+        .arg("bundled")
+        .assert()
+        .success();
+
+    assert!(manifest_file.exists());
+    assert_eq!(
+        std::fs::read_to_string(manifest_file).unwrap(),
+        r#"{
+  "default_version": "bundled",
+  "installed_versions": []
+}"#
+    );
+}

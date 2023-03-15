@@ -7,17 +7,14 @@ use std::{env, path::PathBuf};
 pub async fn local(tool_type: ToolType, version: String) -> Result<(), ProtoError> {
     enable_logging();
 
-    let mut tool = create_tool(&tool_type)?;
-
-    tool.resolve_version(&version).await?;
+    let tool = create_tool(&tool_type)?;
 
     let local_path = env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
     let mut config = Config::load_from(&local_path)?;
 
-    config.tools.insert(
-        tool.get_bin_name().to_owned(),
-        tool.get_resolved_version().to_owned(),
-    );
+    config
+        .tools
+        .insert(tool.get_bin_name().to_owned(), version.clone());
 
     config.save()?;
 
@@ -31,7 +28,7 @@ pub async fn local(tool_type: ToolType, version: String) -> Result<(), ProtoErro
         target: "proto:local",
         "Set the local {} version to {}",
         tool.get_name(),
-        tool.get_resolved_version(),
+        version,
     );
 
     Ok(())

@@ -15,14 +15,12 @@ mod go {
 
         let mut cmd = create_proto_command(temp.path());
 
-        let assert = cmd
-            .env("TEST_PROFILE", &profile)
+        cmd.env("TEST_PROFILE", &profile)
             .arg("install")
             .arg("go")
             .arg("1.20.0")
-            .assert();
-
-        debug_assert(&assert);
+            .assert()
+            .success();
 
         let output = fs::read_to_string(profile).unwrap();
 
@@ -37,16 +35,14 @@ mod go {
 
         let mut cmd = create_proto_command(temp.path());
 
-        let assert = cmd
-            .env("TEST_PROFILE", &profile)
+        cmd.env("TEST_PROFILE", &profile)
             .arg("install")
             .arg("go")
             .arg("1.20.0")
             .arg("--")
             .arg("--no-gobin")
-            .assert();
-
-        debug_assert(&assert);
+            .assert()
+            .success();
 
         assert!(!profile.exists());
     }
@@ -69,6 +65,16 @@ mod node {
 
         assert!(temp.join("tools/node/19.0.0").exists());
         assert!(temp.join("tools/npm/8.19.2").exists());
+
+        assert_eq!(
+            fs::read_to_string(temp.join("tools/npm/manifest.json")).unwrap(),
+            r#"{
+  "default_version": "bundled",
+  "installed_versions": [
+    "8.19.2"
+  ]
+}"#
+        );
     }
 
     #[test]
