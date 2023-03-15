@@ -1,4 +1,5 @@
 use crate::helpers::enable_logging;
+use crate::hooks::go as go_hooks;
 use crate::tools::{create_tool, ToolType};
 use async_recursion::async_recursion;
 use log::{debug, info};
@@ -52,6 +53,9 @@ pub async fn install(
     // `Tool` trait. Right now we are hard-coding this, but we
     // should provide a better API.
     match tool_type {
+        ToolType::Go => {
+            go_hooks::post_install(&passthrough)?;
+        }
         ToolType::Node => {
             if !passthrough.contains(&"--no-bundled-npm".to_string()) {
                 debug!(

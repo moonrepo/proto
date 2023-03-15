@@ -1,6 +1,8 @@
 mod app;
 mod commands;
 mod helpers;
+mod hooks;
+mod shell;
 pub mod tools;
 
 use app::{App, Commands};
@@ -30,7 +32,7 @@ async fn main() {
             semver,
             passthrough,
         } => commands::run(tool, semver, passthrough).await,
-        Commands::Setup { shell } => commands::setup(shell).await,
+        Commands::Setup { shell, profile } => commands::setup(shell, profile).await,
         Commands::Uninstall { tool, semver } => commands::uninstall(tool, semver).await,
         Commands::Use => commands::install_all().await,
     };
