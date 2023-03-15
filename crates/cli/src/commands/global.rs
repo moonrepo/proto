@@ -6,12 +6,10 @@ use proto_core::{color, Manifest, ProtoError};
 pub async fn global(tool_type: ToolType, version: String) -> Result<(), ProtoError> {
     enable_logging();
 
-    let mut tool = create_tool(&tool_type)?;
-
-    tool.resolve_version(&version).await?;
+    let tool = create_tool(&tool_type)?;
 
     let mut manifest = Manifest::load_for_tool(tool.get_bin_name())?;
-    manifest.default_version = Some(tool.get_resolved_version().to_owned());
+    manifest.default_version = Some(version.clone());
     manifest.save()?;
 
     trace!(
@@ -24,7 +22,7 @@ pub async fn global(tool_type: ToolType, version: String) -> Result<(), ProtoErr
         target: "proto:global",
         "Set the global {} version to {}",
         tool.get_name(),
-        tool.get_resolved_version(),
+        version,
     );
 
     Ok(())

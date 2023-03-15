@@ -74,3 +74,24 @@ npm = "9.0.0"
 "#
     )
 }
+
+#[test]
+fn can_set_aliases() {
+    let temp = create_temp_dir();
+    let version_file = temp.join(".prototools");
+
+    assert!(!version_file.exists());
+
+    let mut cmd = create_proto_command(temp.path());
+    cmd.arg("local")
+        .arg("npm")
+        .arg("bundled")
+        .assert()
+        .success();
+
+    assert!(version_file.exists());
+    assert_eq!(
+        fs::read_to_string(version_file).unwrap(),
+        "npm = \"bundled\"\n"
+    )
+}

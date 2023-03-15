@@ -9,6 +9,7 @@
 #### 🚀 Updates
 
 - Added "bundled" as a supported alias for `npm`.
+- Updated `proto local` and `proto global` to support aliases as well as versions.
 - Updated `go` to automatically set `GOBIN` in your shell profile if has not been.
 - Updated `node` to automatically install the `npm` version that comes bundled with Node.js.
 
