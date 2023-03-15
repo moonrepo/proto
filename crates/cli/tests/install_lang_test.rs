@@ -7,6 +7,7 @@ use utils::*;
 mod go {
     use super::*;
 
+    #[cfg(not(windows))]
     #[test]
     fn sets_gobin_to_shell() {
         let temp = create_temp_dir();
@@ -28,6 +29,7 @@ mod go {
         assert!(predicate::str::contains("GOBIN=\"$HOME/go/bin\"").eval(&output));
     }
 
+    #[cfg(not(windows))]
     #[test]
     fn doesnt_set_gobin() {
         let temp = create_temp_dir();
@@ -60,13 +62,13 @@ mod node {
         let mut cmd = create_proto_command(temp.path());
         let assert = cmd.arg("install").arg("node").arg("19.0.0").assert();
 
-        assert!(temp.join("tools/node/19.0.0").exists());
-        assert!(temp.join("tools/npm/8.19.2").exists());
-
         let output = output_to_string(&assert.get_output().stderr.to_vec());
 
         assert!(predicate::str::contains("Node.js has been installed at").eval(&output));
         assert!(predicate::str::contains("npm has been installed at").eval(&output));
+
+        assert!(temp.join("tools/node/19.0.0").exists());
+        assert!(temp.join("tools/npm/8.19.2").exists());
     }
 
     #[test]
@@ -82,12 +84,12 @@ mod node {
             .arg("--no-bundled-npm")
             .assert();
 
-        assert!(temp.join("tools/node/19.0.0").exists());
-        assert!(!temp.join("tools/npm/8.19.2").exists());
-
         let output = output_to_string(&assert.get_output().stderr.to_vec());
 
         assert!(predicate::str::contains("Node.js has been installed at").eval(&output));
         assert!(!predicate::str::contains("npm has been installed at").eval(&output));
+
+        assert!(temp.join("tools/node/19.0.0").exists());
+        assert!(!temp.join("tools/npm/8.19.2").exists());
     }
 }
