@@ -4,6 +4,7 @@ use proto_core::{
     Shimable,
 };
 
+#[cfg(not(windows))]
 fn npx_template() -> String {
     r#"# npx comes bundled with node, so first determine the node path...
 node_bin=$(proto bin node)
@@ -12,6 +13,18 @@ node_bin=$(proto bin node)
 npx_bin=$(echo "$node_bin" | sed 's/bin\/node/bin\/npx/')
 
 exec "$npx_bin" -- "$@""#
+        .to_owned()
+}
+
+#[cfg(windows)]
+fn npx_template() -> String {
+    r#"# npx comes bundled with node, so first determine the node path...
+$NodeBin = proto.exe bin node
+
+# ...and then replace the node bin with npx. Simple but works!
+$NpxBin = $NodeBin.replace("node.exe", "npx.cmd")
+
+& $NpxBin -- $args"#
         .to_owned()
 }
 
