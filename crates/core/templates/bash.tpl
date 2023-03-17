@@ -1,7 +1,3 @@
-#!/usr/bin/env bash
-set -e
-[ -n "$PROTO_DEBUG" ] && set -x
-
 {{ if install_dir }}
 export PROTO_{name | uppercase}_DIR="{install_dir}"
 {{ endif }}

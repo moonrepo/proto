@@ -1,10 +1,3 @@
-#!/usr/bin/env pwsh
-$ErrorActionPreference = 'Stop'
-
-if (Test-Path env:PROTO_DEBUG) \{
-    $DebugPreference = 'Continue'
-}
-
 {{ if install_dir }}
 [Environment]::SetEnvironmentVariable('PROTO_{name | uppercase}_DIR', '{install_dir}', 'Process')
 {{ endif }}

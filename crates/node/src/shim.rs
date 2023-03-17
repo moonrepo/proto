@@ -15,7 +15,14 @@ impl Shimable<'_> for NodeLanguage {
 
         shimmer.create_global_shim()?;
 
-        // No tool shim
+        // npx
+        let mut shimmer = ShimBuilder::new("npx", self.get_bin_path()?);
+
+        shimmer
+            .dir(self.get_install_dir()?)
+            .version(self.get_resolved_version());
+
+        shimmer.create_global_shim()?;
 
         Ok(())
     }

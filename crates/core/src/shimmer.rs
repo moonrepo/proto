@@ -41,27 +41,38 @@ fn format_uppercase(value: &Value, output: &mut String) -> Result<(), TemplateEr
     Ok(())
 }
 
+fn get_template_header<'l>() -> &'l str {
+    if cfg!(windows) {
+        include_str!("../templates/pwsh_header.tpl")
+    } else {
+        include_str!("../templates/bash_header.tpl")
+    }
+}
+
+fn get_template<'l>(global: bool) -> &'l str {
+    if cfg!(windows) {
+        if global {
+            include_str!("../templates/pwsh_global.tpl")
+        } else {
+            include_str!("../templates/pwsh.tpl")
+        }
+    } else if global {
+        include_str!("../templates/bash_global.tpl")
+    } else {
+        include_str!("../templates/bash.tpl")
+    }
+}
+
 fn build_shim_file(builder: &ShimBuilder, global: bool) -> Result<String, ProtoError> {
     let handle_error = |e: TemplateError| ProtoError::Shim(e.to_string());
     let mut template = TinyTemplate::new();
 
     template.add_formatter("uppercase", format_uppercase);
 
+    let contents = format!("{}\n\n{}", get_template_header(), get_template(global));
+
     template
-        .add_template(
-            "shim",
-            if cfg!(windows) {
-                if global {
-                    include_str!("../templates/pwsh_global.tpl")
-                } else {
-                    include_str!("../templates/pwsh.tpl")
-                }
-            } else if global {
-                include_str!("../templates/bash_global.tpl")
-            } else {
-                include_str!("../templates/bash.tpl")
-            },
-        )
+        .add_template("shim", &contents)
         .map_err(handle_error)?;
 
     template
