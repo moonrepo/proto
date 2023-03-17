@@ -1,6 +1,12 @@
 # Changelog
 
-## Unreleased
+## 0.3.1
+
+#### 🐞 Fixes
+
+- Fixed the `npx` shim not being created.
+
+## 0.3.0
 
 #### 💥 Breaking
 

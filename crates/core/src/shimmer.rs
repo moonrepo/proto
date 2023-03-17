@@ -41,27 +41,38 @@ fn format_uppercase(value: &Value, output: &mut String) -> Result<(), TemplateEr
     Ok(())
 }
 
-fn build_shim_file(builder: &ShimBuilder, global: bool) -> Result<String, ProtoError> {
+fn get_template_header<'l>() -> &'l str {
+    if cfg!(windows) {
+        include_str!("../templates/pwsh_header.tpl")
+    } else {
+        include_str!("../templates/bash_header.tpl")
+    }
+}
+
+fn get_template<'l>(global: bool) -> &'l str {
+    if cfg!(windows) {
+        if global {
+            include_str!("../templates/pwsh_global.tpl")
+        } else {
+            include_str!("../templates/pwsh.tpl")
+        }
+    } else if global {
+        include_str!("../templates/bash_global.tpl")
+    } else {
+        include_str!("../templates/bash.tpl")
+    }
+}
+
+fn build_shim_file(builder: &ShimBuilder, contents: &str) -> Result<String, ProtoError> {
     let handle_error = |e: TemplateError| ProtoError::Shim(e.to_string());
     let mut template = TinyTemplate::new();
 
     template.add_formatter("uppercase", format_uppercase);
 
+    let contents = format!("{}\n\n{}", get_template_header(), contents);
+
     template
-        .add_template(
-            "shim",
-            if cfg!(windows) {
-                if global {
-                    include_str!("../templates/pwsh_global.tpl")
-                } else {
-                    include_str!("../templates/pwsh.tpl")
-                }
-            } else if global {
-                include_str!("../templates/bash_global.tpl")
-            } else {
-                include_str!("../templates/bash.tpl")
-            },
-        )
+        .add_template("shim", &contents)
         .map_err(handle_error)?;
 
     template
@@ -85,6 +96,8 @@ pub struct ShimBuilder {
     pub install_dir: Option<PathBuf>,
     pub parent_name: Option<String>,
     pub version: Option<String>,
+    pub global_template: Option<String>,
+    pub local_template: Option<String>,
 }
 
 impl ShimBuilder {
@@ -95,6 +108,8 @@ impl ShimBuilder {
             install_dir: None,
             parent_name: None,
             version: None,
+            global_template: None,
+            local_template: None,
         }
     }
 
@@ -113,10 +128,27 @@ impl ShimBuilder {
         self
     }
 
+    pub fn set_global_template(&mut self, template: String) -> &mut Self {
+        self.global_template = Some(template);
+        self
+    }
+
+    pub fn set_tool_template(&mut self, template: String) -> &mut Self {
+        self.local_template = Some(template);
+        self
+    }
+
     pub fn create_global_shim(&self) -> Result<PathBuf, ProtoError> {
         let shim_path = get_bin_dir()?.join(get_shim_file_name(&self.name));
 
-        self.do_create(shim_path, true)
+        self.do_create(
+            shim_path,
+            if let Some(template) = &self.global_template {
+                template
+            } else {
+                get_template(true)
+            },
+        )
     }
 
     pub fn create_tool_shim(&self) -> Result<PathBuf, ProtoError> {
@@ -127,7 +159,14 @@ impl ShimBuilder {
             .join("shims")
             .join(get_shim_file_name(&self.name));
 
-        self.do_create(shim_path, false)
+        self.do_create(
+            shim_path,
+            if let Some(template) = &self.local_template {
+                template
+            } else {
+                get_template(false)
+            },
+        )
     }
 
     pub fn create_context(&self) -> Result<Context, ProtoError> {
@@ -141,7 +180,7 @@ impl ShimBuilder {
         })
     }
 
-    fn do_create(&self, shim_path: PathBuf, global: bool) -> Result<PathBuf, ProtoError> {
+    fn do_create(&self, shim_path: PathBuf, contents: &str) -> Result<PathBuf, ProtoError> {
         let shim_exists = shim_path.exists();
 
         let handle_error =
@@ -153,7 +192,7 @@ impl ShimBuilder {
             }
         }
 
-        fs::write(&shim_path, build_shim_file(self, global)?).map_err(handle_error)?;
+        fs::write(&shim_path, build_shim_file(self, contents)?).map_err(handle_error)?;
 
         // Make executable
         #[cfg(unix)]
