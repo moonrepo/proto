@@ -5,6 +5,7 @@
 #### 🐞 Fixes
 
 - Fixed the `npx` shim not being created.
+- Fixed Windows installation issues.
 
 ## 0.3.0
 
