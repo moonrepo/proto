@@ -1,21 +1,20 @@
-use proto_bun::BunLanguage;
-use proto_core::{
-    Downloadable, Executable, Installable, Proto, Resolvable, Tool, Verifiable, Version,
-};
-use std::fs;
-
-fn create_tool() -> (BunLanguage, assert_fs::TempDir) {
-    let fixture = assert_fs::TempDir::new().unwrap();
-    let mut tool = BunLanguage::new(Proto::from(fixture.path()));
-    tool.version = Some(String::from("0.5.7"));
-
-    (tool, fixture)
-}
-
 // Bun doesn't support windows yet!
 #[cfg(not(windows))]
 mod bun {
     use super::*;
+    use proto_bun::BunLanguage;
+    use proto_core::{
+        Downloadable, Executable, Installable, Proto, Resolvable, Tool, Verifiable, Version,
+    };
+    use std::fs;
+
+    fn create_tool() -> (BunLanguage, assert_fs::TempDir) {
+        let fixture = assert_fs::TempDir::new().unwrap();
+        let mut tool = BunLanguage::new(Proto::from(fixture.path()));
+        tool.version = Some(String::from("0.5.7"));
+
+        (tool, fixture)
+    }
 
     #[tokio::test]
     async fn downloads_verifies_installs_tool() {
