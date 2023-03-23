@@ -1,7 +1,7 @@
 use crate::helpers::enable_logging;
 use crate::tools::{create_tool, ToolType};
 use log::{info, trace};
-use proto_core::{color, Config, ProtoError};
+use proto_core::{color, ProtoError, ToolsConfig};
 use std::{env, path::PathBuf};
 
 pub async fn local(tool_type: ToolType, version: String) -> Result<(), ProtoError> {
@@ -10,7 +10,7 @@ pub async fn local(tool_type: ToolType, version: String) -> Result<(), ProtoErro
     let tool = create_tool(&tool_type)?;
 
     let local_path = env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-    let mut config = Config::load_from(&local_path)?;
+    let mut config = ToolsConfig::load_from(&local_path)?;
 
     config
         .tools

@@ -11,7 +11,7 @@ use std::{
 };
 
 pub fn detect_shell(shell: Option<Shell>) -> Shell {
-    shell.or_else(Shell::from_env).unwrap_or_else(|| {
+    shell.or_else(Shell::from_env).unwrap_or({
         if cfg!(windows) {
             Shell::PowerShell
         } else {

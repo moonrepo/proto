@@ -1,9 +1,9 @@
 #![allow(clippy::borrowed_box)]
 
-use crate::config::{Config, CONFIG_NAME};
 use crate::errors::ProtoError;
 use crate::manifest::{Manifest, MANIFEST_NAME};
 use crate::tool::Tool;
+use crate::tools_config::{ToolsConfig, CONFIG_NAME};
 use crate::{color, is_version_alias};
 use lenient_semver::Version;
 use log::{debug, trace};
@@ -79,7 +79,7 @@ pub async fn detect_version_from_environment<'l, T: Tool<'l> + ?Sized>(
                 CONFIG_NAME
             );
 
-            let config = Config::load_from(dir)?;
+            let config = ToolsConfig::load_from(dir)?;
 
             if let Some(local_version) = config.tools.get(tool.get_bin_name()) {
                 debug!(
