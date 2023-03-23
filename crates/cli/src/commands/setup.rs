@@ -1,7 +1,7 @@
 use crate::helpers::enable_logging;
-use crate::shell::{detect_shell};
+use crate::shell::detect_shell;
 use clap_complete::Shell;
-use log::{debug};
+use log::debug;
 use proto_core::{color, get_root, ProtoError};
 use std::env;
 use std::path::PathBuf;
