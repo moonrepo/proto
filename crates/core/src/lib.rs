@@ -1,5 +1,4 @@
 pub mod color;
-mod config;
 mod describer;
 mod detector;
 mod downloader;
@@ -11,10 +10,10 @@ mod manifest;
 mod resolver;
 mod shimmer;
 mod tool;
+mod tools_config;
 mod verifier;
 
 pub use async_trait::async_trait;
-pub use config::*;
 pub use describer::*;
 pub use detector::*;
 pub use downloader::*;
@@ -27,6 +26,7 @@ pub use manifest::*;
 pub use resolver::*;
 pub use shimmer::*;
 pub use tool::*;
+pub use tools_config::*;
 pub use verifier::*;
 
 use std::path::{Path, PathBuf};

@@ -9,12 +9,12 @@ use toml::{map::Map, Value};
 pub const CONFIG_NAME: &str = ".prototools";
 
 #[derive(Debug, Default)]
-pub struct Config {
+pub struct ToolsConfig {
     pub tools: FxHashMap<String, String>,
     pub path: PathBuf,
 }
 
-impl Config {
+impl ToolsConfig {
     pub fn load_upwards<P>(dir: P) -> Result<Option<Self>, ProtoError>
     where
         P: AsRef<Path>,
@@ -40,9 +40,9 @@ impl Config {
         let path = path.as_ref();
 
         if !path.exists() {
-            return Ok(Config {
+            return Ok(ToolsConfig {
                 path: path.to_owned(),
-                ..Config::default()
+                ..ToolsConfig::default()
             });
         }
 
@@ -73,7 +73,7 @@ impl Config {
             ));
         }
 
-        Ok(Config {
+        Ok(ToolsConfig {
             tools,
             path: path.to_owned(),
         })
