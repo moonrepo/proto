@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Updated `proto setup` on Windows to use the Windows registry when updating `PATH`.
+
 ## 0.3.2
 
 #### 🐞 Fixes

@@ -4,10 +4,10 @@ use predicates::prelude::*;
 use std::fs;
 use utils::*;
 
+#[cfg(not(windows))]
 mod go {
     use super::*;
 
-    #[cfg(not(windows))]
     #[test]
     fn sets_gobin_to_shell() {
         let temp = create_temp_dir();
@@ -27,7 +27,6 @@ mod go {
         assert!(predicate::str::contains("GOBIN=\"$HOME/go/bin\"").eval(&output));
     }
 
-    #[cfg(not(windows))]
     #[test]
     fn doesnt_set_gobin() {
         let temp = create_temp_dir();
