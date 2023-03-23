@@ -5,6 +5,7 @@ use log::{debug, trace};
 use proto_core::{color, get_root, ProtoError};
 use rustc_hash::FxHashMap;
 use std::env;
+use std::path::PathBuf;
 use std::process::Command;
 
 pub async fn setup(shell: Option<Shell>, print_profile: bool) -> Result<(), ProtoError> {
@@ -17,9 +18,10 @@ pub async fn setup(shell: Option<Shell>, print_profile: bool) -> Result<(), Prot
     enable_logging();
 
     let proto_dir = get_root()?;
-    let mut paths = env::split_paths(&paths).collect::<Vec<_>>();
+    let bin_dir = proto_dir.join("bin");
+    let paths = env::split_paths(&paths).collect::<Vec<_>>();
 
-    if paths.iter().any(|p| p == &proto_dir) {
+    if paths.contains(&bin_dir) {
         debug!(target: "proto:setup", "Skipping setup, PROTO_ROOT already exists in PATH.");
 
         return Ok(());
@@ -29,36 +31,8 @@ pub async fn setup(shell: Option<Shell>, print_profile: bool) -> Result<(), Prot
 
     // Windows does not support setting environment variables from a shell,
     // so we're going to execute the `setx` command instead!
-    if matches!(shell, Shell::PowerShell) {
-        paths.push(proto_dir.join("bin"));
-
-        debug!(target: "proto:setup", "Using {} command", color::shell("setx"));
-
-        let mut command = Command::new("setx");
-        command.arg("PATH");
-        command.arg(env::join_paths(paths).unwrap());
-
-        let output = command
-            .output()
-            .map_err(|e| ProtoError::Message(e.to_string()))?;
-
-        if !output.status.success() {
-            trace!(
-                target: "proto:setup",
-                "STDERR: {}",
-                String::from_utf8_lossy(&output.stderr),
-            );
-
-            trace!(
-                target: "proto:setup",
-                "STDOUT: {}",
-                String::from_utf8_lossy(&output.stdout),
-            );
-
-            return Err(ProtoError::WritePathFailed);
-        }
-
-        return Ok(());
+    if cfg!(windows) {
+        return setup_windows(bin_dir);
     }
 
     // For other shells, write environment variable(s) to an applicable profile!
@@ -73,6 +47,62 @@ pub async fn setup(shell: Option<Shell>, print_profile: bool) -> Result<(), Prot
                 println!("{}", updated_profile.to_string_lossy());
             }
         }
+    }
+
+    Ok(())
+}
+
+#[cfg(windows)]
+fn setup_windows(bin_dir: PathBuf) -> Result<(), ProtoError> {
+    use log::warn;
+    use winreg::enums::HKEY_CURRENT_USER;
+    use winreg::RegKey;
+
+    let cu = RegKey::predef(HKEY_CURRENT_USER);
+
+    let Ok(env) = cu.open_subkey("Environment") else {
+        warn!(target: "proto:setup", "Failed to read current user environment");
+        return Ok(());
+    };
+
+    let Ok(path) = env.get_value::<String, &str>("Path") else {
+        warn!(target: "proto:setup", "Failed to read PATH from environment");
+        return Ok(());
+    };
+
+    let cu_paths = env::split_paths(&path).collect::<Vec<_>>();
+
+    if cu_paths.contains(&bin_dir) {
+        return Ok(());
+    }
+
+    debug!(target: "proto:setup", "Updating PATH with {} command", color::shell("setx"));
+
+    let mut paths = vec![bin_dir];
+    paths.extend(cu_paths);
+
+    let mut command = Command::new("setx");
+    command.arg("PATH");
+    command.arg(env::join_paths(paths).unwrap());
+
+    let output = command
+        .output()
+        .map_err(|e| ProtoError::Message(e.to_string()))?;
+
+    if !output.status.success() {
+        warn!(target: "proto:setup", "Failed to update PATH");
+
+        trace!(
+            target: "proto:setup",
+            "STDERR: {}",
+            String::from_utf8_lossy(&output.stderr),
+        );
+
+        trace!(
+            target: "proto:setup",
+            "STDOUT: {}",
+            String::from_utf8_lossy(&output.stdout),
+        );
     }
 
     Ok(())
