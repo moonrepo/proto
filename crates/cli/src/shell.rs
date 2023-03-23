@@ -10,6 +10,16 @@ use std::{
     path::PathBuf,
 };
 
+pub fn detect_shell(shell: Option<Shell>) -> Shell {
+    shell.or_else(Shell::from_env).unwrap_or_else(|| {
+        if cfg!(windows) {
+            Shell::PowerShell
+        } else {
+            Shell::Bash
+        }
+    })
+}
+
 pub fn find_profiles(shell: &Shell) -> Result<Vec<PathBuf>, ProtoError> {
     debug!(target: "proto:shell", "Finding profile files for {}", shell);
 
