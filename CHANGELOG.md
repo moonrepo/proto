@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.2
+
+#### 🐞 Fixes
+
+- Fixed `proto setup` to fallback to a shell instead of failing.
+
 ## 0.3.1
 
 #### 🐞 Fixes
