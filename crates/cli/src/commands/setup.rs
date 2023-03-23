@@ -1,5 +1,5 @@
 use crate::helpers::enable_logging;
-use crate::shell::{format_env_vars, write_profile_if_not_setup};
+use crate::shell::{detect_shell, format_env_vars, write_profile_if_not_setup};
 use clap_complete::Shell;
 use log::{debug, trace};
 use proto_core::{color, get_root, ProtoError};
@@ -8,9 +8,7 @@ use std::env;
 use std::process::Command;
 
 pub async fn setup(shell: Option<Shell>, print_profile: bool) -> Result<(), ProtoError> {
-    let Some(shell) = shell.or_else(Shell::from_env) else {
-        return Err(ProtoError::UnsupportedShell);
-    };
+    let shell = detect_shell(shell);
 
     let Ok(paths) = env::var("PATH") else {
         return Err(ProtoError::MissingPathEnv);

@@ -1,5 +1,4 @@
 use crate::shell;
-use clap_complete::Shell;
 use log::info;
 use proto_core::{color, ProtoError};
 use rustc_hash::FxHashMap;
@@ -9,7 +8,7 @@ pub fn post_install(passthrough: &[String]) -> Result<(), ProtoError> {
         return Ok(());
     }
 
-    let shell = Shell::from_env().unwrap_or(Shell::Bash);
+    let shell = shell::detect_shell(None);
     let env_vars = FxHashMap::from_iter([
         ("GOBIN".to_string(), "$HOME/go/bin".to_string()),
         ("PATH".to_string(), "$GOBIN".to_string()),
