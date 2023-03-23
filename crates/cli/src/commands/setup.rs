@@ -1,9 +1,8 @@
 use crate::helpers::enable_logging;
-use crate::shell::{detect_shell, format_env_vars, write_profile_if_not_setup};
+use crate::shell::{detect_shell};
 use clap_complete::Shell;
-use log::{debug, trace};
+use log::{debug};
 use proto_core::{color, get_root, ProtoError};
-use rustc_hash::FxHashMap;
 use std::env;
 use std::path::PathBuf;
 use std::process::Command;
@@ -27,15 +26,17 @@ pub async fn setup(shell: Option<Shell>, print_profile: bool) -> Result<(), Prot
         return Ok(());
     }
 
+    do_setup(shell, bin_dir, print_profile)
+}
+
+// For other shells, write environment variable(s) to an applicable profile!
+#[cfg(not(windows))]
+fn do_setup(shell: Shell, _bin_dir: PathBuf, print_profile: bool) -> Result<(), ProtoError> {
+    use crate::shell::{format_env_vars, write_profile_if_not_setup};
+    use rustc_hash::FxHashMap;
+
     debug!(target: "proto:setup", "Updating PATH in {} shell", shell);
 
-    // Windows does not support setting environment variables from a shell,
-    // so we're going to execute the `setx` command instead!
-    if cfg!(windows) {
-        return setup_windows(bin_dir);
-    }
-
-    // For other shells, write environment variable(s) to an applicable profile!
     let env_vars = FxHashMap::from_iter([
         ("PROTO_ROOT".to_string(), "$HOME/.proto".to_string()),
         ("PATH".to_string(), "$PROTO_ROOT/bin".to_string()),
@@ -52,9 +53,11 @@ pub async fn setup(shell: Option<Shell>, print_profile: bool) -> Result<(), Prot
     Ok(())
 }
 
+// Windows does not support setting environment variables from a shell,
+// so we're going to execute the `setx` command instead!
 #[cfg(windows)]
-fn setup_windows(bin_dir: PathBuf) -> Result<(), ProtoError> {
-    use log::warn;
+fn do_setup(shell: Shell, bin_dir: PathBuf, print_profile: bool) -> Result<(), ProtoError> {
+    use log::{trace, warn};
     use winreg::enums::HKEY_CURRENT_USER;
     use winreg::RegKey;
 
@@ -103,6 +106,8 @@ fn setup_windows(bin_dir: PathBuf) -> Result<(), ProtoError> {
             "STDOUT: {}",
             String::from_utf8_lossy(&output.stdout),
         );
+    } else if print_profile {
+        println!("{}", shell);
     }
 
     Ok(())
