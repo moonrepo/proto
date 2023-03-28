@@ -139,3 +139,35 @@ fn runs_a_tool_using_version_detection() {
 
     fs::remove_file(temp.path().join("tools/node/manifest.json")).unwrap();
 }
+
+#[test]
+fn auto_installs_if_missing() {
+    let temp = create_temp_dir();
+
+    std::fs::write(temp.path().join("config.toml"), "auto-install = true").unwrap();
+
+    let mut cmd = create_proto_command(temp.path());
+    let assert = cmd
+        .arg("run")
+        .arg("node")
+        .arg("19.0.0")
+        .arg("--")
+        .arg("--version")
+        .assert();
+
+    assert.stdout(predicate::str::contains("19.0.0"));
+}
+
+#[test]
+fn doesnt_auto_install_if_false() {
+    let temp = create_temp_dir();
+
+    std::fs::write(temp.path().join("config.toml"), "auto-install = false").unwrap();
+
+    let mut cmd = create_proto_command(temp.path());
+    let assert = cmd.arg("run").arg("node").arg("19.0.0").assert();
+
+    assert.stderr(predicate::str::contains(
+        "This project requires Node.js 19.0.0, but this version has not been installed. Install it with `proto install node 19.0.0`!",
+    ));
+}

@@ -1,7 +1,7 @@
 // Bun doesn't support windows yet!
 #[cfg(not(windows))]
 mod bun {
-    use super::*;
+    // use super::*;
     use proto_bun::BunLanguage;
     use proto_core::{
         Downloadable, Executable, Installable, Proto, Resolvable, Tool, Verifiable, Version,

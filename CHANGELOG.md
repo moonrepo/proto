@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Added a global user config at `~/.proto/config.toml`.
+  - Added a new setting `auto-install`, that will automatically install a missing tool when `proto run` is executed.
+
 #### 🐞 Fixes
 
 - Updated `proto setup` on Windows to use the Windows registry when updating `PATH`.
