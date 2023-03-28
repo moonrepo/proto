@@ -11,6 +11,10 @@
 
 - Updated `proto setup` on Windows to use the Windows registry when updating `PATH`.
 
+#### ⚙️ Internal
+
+- Added support for `.tar.xz` archives.
+
 ## 0.3.2
 
 #### 🐞 Fixes

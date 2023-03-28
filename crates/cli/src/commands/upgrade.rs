@@ -1,52 +1,30 @@
 use crate::helpers::enable_logging;
-use futures::StreamExt;
-use indicatif::{ProgressBar, ProgressStyle};
 use log::{debug, info};
-use proto::get_temp_dir;
-use proto_core::{color, is_offline, ProtoError};
+use proto_core::{color, get_bin_dir, get_temp_dir, is_offline, load_git_tags, unpack, ProtoError};
 use semver::Version;
-use serde::Deserialize;
-use std::cmp::min;
-use std::io::Write;
-use std::{
-    env::{self, consts},
-    fs::File,
+use std::env::consts;
+use std::fs;
+use trauma::{
+    download::Download,
+    downloader::{DownloaderBuilder, ProgressBarOpts, StyleOptions},
 };
 
-#[derive(Deserialize)]
-struct Meta {
-    #[serde(rename = "crate")]
-    crate_data: MetaCrate,
-}
-
-#[derive(Deserialize)]
-struct MetaCrate {
-    newest_version: String,
-}
-
 async fn fetch_version() -> Result<String, ProtoError> {
-    let url = "https://crates.io/api/v1/crates/proto_cli";
+    let tags = load_git_tags("https://github.com/moonrepo/proto")
+        .await?
+        .into_iter()
+        .filter(|t| t.starts_with('v'))
+        .collect::<Vec<_>>();
 
-    debug!(
-        target: "proto:upgrade",
-        "Fetching latest version from {}",
-        color::url(&url),
-    );
-
-    let res = reqwest::get(url)
-        .await
-        .map_err(|e| ProtoError::Http(url.to_owned(), e.to_string()))?
-        .json::<Meta>()
-        .await
-        .map_err(|e| ProtoError::Http(url.to_owned(), e.to_string()))?;
+    let latest = tags.last().unwrap().strip_prefix('v').unwrap().to_owned();
 
     debug!(
         target: "proto:upgrade",
         "Found latest version {}",
-        color::id(&res.crate_data.newest_version),
+        color::id(&latest),
     );
 
-    Ok(res.crate_data.newest_version)
+    Ok(latest)
 }
 
 pub async fn upgrade() -> Result<(), ProtoError> {
@@ -61,8 +39,18 @@ pub async fn upgrade() -> Result<(), ProtoError> {
     let version = env!("CARGO_PKG_VERSION");
     let new_version = fetch_version().await?;
 
+    debug!(
+        target: "proto:upgrade",
+        "Comparing latest version {} to local version {}",
+        color::id(&new_version),
+        color::id(version),
+    );
+
     if Version::parse(&new_version).unwrap() <= Version::parse(version).unwrap() {
-        println!("You're already on the latest version of proto!");
+        info!(
+            target: "proto:upgrade",
+            "You're already on the latest version of proto!",
+        );
 
         return Ok(());
     }
@@ -73,63 +61,76 @@ pub async fn upgrade() -> Result<(), ProtoError> {
         ("macos", arch) => format!("{arch}-apple-darwin"),
         ("windows", "x86_64") => "x86_64-pc-windows-msvc".to_owned(),
         (_, arch) => {
-            return Err(
-                ProtoError::UnsupportedArchitecture("proto".to_owned(), arch.to_owned()).into(),
-            );
+            return Err(ProtoError::UnsupportedArchitecture(
+                "proto".to_owned(),
+                arch.to_owned(),
+            ));
         }
     };
-    let target_file = format!(
-        "proto_cli-v{new_version}-{target}.{}",
-        if consts::OS == "windows" {
-            "zip"
-        } else {
-            "tar.xz"
-        }
-    );
+    let target_ext = if cfg!(windows) { "zip" } else { "tar.xz" };
+    let target_file = format!("proto_cli-v{new_version}-{target}");
 
     debug!(
         target: "proto:upgrade",
-        "Target: {}",
-        &target,
-    );
-
-    debug!(
-        target: "proto:upgrade",
-        "Target file name: {}",
+        "Download target: {}",
         &target_file,
     );
 
-    let current_bin_path = env::current_exe().expect("TODO");
-
     // Download the file and show a progress bar
-    let file_download_url =
-        format!("https://github.com/moonrepo/proto/releases/download/v{new_version}/{target_file}");
-    let response = reqwest::get(&file_download_url)
-        .await
-        .map_err(|e| ProtoError::Http(file_download_url.to_owned(), e.to_string()))?;
-    let file_size = response.content_length().unwrap_or(0);
+    let temp_dir = get_temp_dir()?;
+    let download_file = format!("{target_file}.{target_ext}");
+    let download_url = format!(
+        "https://github.com/moonrepo/proto/releases/download/v{new_version}/{download_file}"
+    );
 
-    let pb = ProgressBar::new(file_size);
-    pb.set_style(ProgressStyle::default_bar()
-        .template("{msg}\n{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})").unwrap()
-        .progress_chars("#>-"));
-    pb.set_message(format!("Downloading proto v{new_version}..."));
+    let bar_styles = ProgressBarOpts::new(
+        Some("{bar:80.183/black} | {bytes:.239} / {total_bytes:.248} | {bytes_per_sec:.183} | eta {eta}".into()),
+        Some(ProgressBarOpts::CHARS_LINE.into()),
+        true,
+        true,
+    );
 
-    let temp_file_path = get_temp_dir()?.join(&target_file);
-    let mut temp_file = File::create(&temp_file_path).expect("TODO");
-    let mut stream = response.bytes_stream();
-    let mut downloaded: u64 = 0;
+    let mut parent_styles = bar_styles.clone();
+    parent_styles.set_clear(true);
 
-    while let Some(item) = stream.next().await {
-        let chunk = item.unwrap();
-        temp_file.write_all(&chunk).unwrap();
+    let downloader = DownloaderBuilder::new()
+        .directory(temp_dir.clone())
+        .retries(3)
+        .style_options(StyleOptions::new(parent_styles, bar_styles))
+        .build();
 
-        let progress = min(downloaded + (chunk.len() as u64), file_size);
-        downloaded = progress;
-        pb.set_position(progress);
+    downloader
+        .download(&[Download::try_from(download_url.as_str()).unwrap()])
+        .await;
+
+    // Unpack the downloaded file
+    unpack(
+        temp_dir.join(download_file),
+        &temp_dir, // Wraps with the archive name
+        None,
+    )?;
+
+    // Move the new binary to the bins directory
+    let bin_name = if cfg!(windows) { "proto.exe" } else { "proto" };
+    let bin_path = get_bin_dir()?.join(bin_name);
+    let handle_error = |e: std::io::Error| ProtoError::Fs(bin_path.to_path_buf(), e.to_string());
+
+    fs::copy(temp_dir.join(target_file).join(bin_name), &bin_path).map_err(handle_error)?;
+
+    #[cfg(target_family = "unix")]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let file = fs::File::open(&bin_path).map_err(handle_error)?;
+        let mut perms = file.metadata().map_err(handle_error)?.permissions();
+        perms.set_mode(0o755);
+        file.set_permissions(perms).map_err(handle_error)?;
     }
 
-    pb.finish_with_message("Download complete!");
+    info!(
+        target: "proto:upgrade",
+        "Upgraded proto to v{}!",
+        new_version
+    );
 
     Ok(())
 }

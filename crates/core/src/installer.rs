@@ -1,9 +1,8 @@
 use crate::errors::ProtoError;
 use crate::{color, Describable};
-use flate2::read::GzDecoder;
 use log::{debug, trace};
 use std::fs::{self, File};
-use std::io;
+use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 use tar::Archive;
 use zip::result::ZipError;
@@ -43,11 +42,7 @@ pub trait Installable<'tool>: Send + Sync + Describable<'tool> {
             color::path(install_dir),
         );
 
-        if download_path.extension().unwrap_or_default() == "zip" {
-            unzip(download_path, install_dir, prefix)?;
-        } else {
-            untar(download_path, install_dir, prefix)?;
-        }
+        unpack(download_path, install_dir, prefix)?;
 
         debug!(target: self.get_log_target(), "Successfully installed tool");
 
@@ -55,10 +50,30 @@ pub trait Installable<'tool>: Send + Sync + Describable<'tool> {
     }
 }
 
-pub fn untar<I: AsRef<Path>, O: AsRef<Path>>(
+pub fn unpack<I: AsRef<Path>, O: AsRef<Path>>(
     input_file: I,
     output_dir: O,
     remove_prefix: Option<String>,
+) -> Result<(), ProtoError> {
+    let input_file = input_file.as_ref();
+    let ext = input_file.extension().unwrap_or_default().to_string_lossy();
+
+    match ext.as_ref() {
+        "zip" => unzip(input_file, output_dir, remove_prefix),
+        "gz" => untar_gzip(input_file, output_dir, remove_prefix),
+        "xz" => untar_xzip(input_file, output_dir, remove_prefix),
+        _ => Err(ProtoError::UnsupportedArchiveFormat(
+            input_file.to_path_buf(),
+            ext.to_string(),
+        )),
+    }
+}
+
+pub fn untar<I: AsRef<Path>, O: AsRef<Path>, R: FnOnce(File) -> D, D: Read>(
+    input_file: I,
+    output_dir: O,
+    remove_prefix: Option<String>,
+    decoder: R,
 ) -> Result<(), ProtoError> {
     let input_file = input_file.as_ref();
     let output_dir = output_dir.as_ref();
@@ -81,7 +96,7 @@ pub fn untar<I: AsRef<Path>, O: AsRef<Path>>(
     let tar_gz = File::open(input_file).map_err(handle_input_error)?;
 
     // Decompress to .tar
-    let tar = GzDecoder::new(tar_gz);
+    let tar = decoder(tar_gz);
 
     // Unpack the archive into the output dir
     let mut archive = Archive::new(tar);
@@ -111,6 +126,26 @@ pub fn untar<I: AsRef<Path>, O: AsRef<Path>>(
     }
 
     Ok(())
+}
+
+pub fn untar_gzip<I: AsRef<Path>, O: AsRef<Path>>(
+    input_file: I,
+    output_dir: O,
+    remove_prefix: Option<String>,
+) -> Result<(), ProtoError> {
+    untar(input_file, output_dir, remove_prefix, |file| {
+        flate2::read::GzDecoder::new(file)
+    })
+}
+
+pub fn untar_xzip<I: AsRef<Path>, O: AsRef<Path>>(
+    input_file: I,
+    output_dir: O,
+    remove_prefix: Option<String>,
+) -> Result<(), ProtoError> {
+    untar(input_file, output_dir, remove_prefix, |file| {
+        xz2::read::XzDecoder::new(file)
+    })
 }
 
 pub fn unzip<I: AsRef<Path>, O: AsRef<Path>>(
