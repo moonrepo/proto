@@ -2,10 +2,9 @@ use crate::helpers::enable_logging;
 use crate::shell::detect_shell;
 use clap_complete::Shell;
 use log::debug;
-use proto_core::{color, get_root, ProtoError};
+use proto_core::{get_root, ProtoError};
 use std::env;
 use std::path::PathBuf;
-use std::process::Command;
 
 pub async fn setup(shell: Option<Shell>, print_profile: bool) -> Result<(), ProtoError> {
     let shell = detect_shell(shell);
@@ -58,6 +57,7 @@ fn do_setup(shell: Shell, _bin_dir: PathBuf, print_profile: bool) -> Result<(), 
 #[cfg(windows)]
 fn do_setup(shell: Shell, bin_dir: PathBuf, print_profile: bool) -> Result<(), ProtoError> {
     use log::{trace, warn};
+    use std::process::Command;
     use winreg::enums::HKEY_CURRENT_USER;
     use winreg::RegKey;
 
@@ -79,7 +79,11 @@ fn do_setup(shell: Shell, bin_dir: PathBuf, print_profile: bool) -> Result<(), P
         return Ok(());
     }
 
-    debug!(target: "proto:setup", "Updating PATH with {} command", color::shell("setx"));
+    debug!(
+        target: "proto:setup",
+        "Updating PATH with {} command",
+        proto_core::color::shell("setx"),
+    );
 
     let mut paths = vec![bin_dir];
     paths.extend(cu_paths);

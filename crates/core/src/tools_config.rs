@@ -6,7 +6,7 @@ use std::{
 };
 use toml::{map::Map, Value};
 
-pub const CONFIG_NAME: &str = ".prototools";
+pub const TOOLS_CONFIG_NAME: &str = ".prototools";
 
 #[derive(Debug, Default)]
 pub struct ToolsConfig {
@@ -20,7 +20,7 @@ impl ToolsConfig {
         P: AsRef<Path>,
     {
         let dir = dir.as_ref();
-        let findable = dir.join(CONFIG_NAME);
+        let findable = dir.join(TOOLS_CONFIG_NAME);
 
         if findable.exists() {
             return Ok(Some(Self::load(&findable)?));
@@ -33,7 +33,7 @@ impl ToolsConfig {
     }
 
     pub fn load_from<P: AsRef<Path>>(dir: P) -> Result<Self, ProtoError> {
-        Self::load(dir.as_ref().join(CONFIG_NAME))
+        Self::load(dir.as_ref().join(TOOLS_CONFIG_NAME))
     }
 
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self, ProtoError> {

@@ -2,7 +2,7 @@ use crate::{errors::ProtoError, get_root};
 use serde::Deserialize;
 use std::fs;
 
-pub const CONFIG_NAME: &str = "config.toml";
+pub const USER_CONFIG_NAME: &str = "config.toml";
 
 #[derive(Debug, Default, Deserialize)]
 #[serde(default)]
@@ -12,7 +12,7 @@ pub struct UserConfig {
 
 impl UserConfig {
     pub fn load() -> Result<Self, ProtoError> {
-        let path = get_root()?.join(CONFIG_NAME);
+        let path = get_root()?.join(USER_CONFIG_NAME);
 
         if !path.exists() {
             return Ok(UserConfig::default());
