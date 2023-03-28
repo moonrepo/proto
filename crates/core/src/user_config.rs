@@ -5,7 +5,7 @@ use std::fs;
 pub const USER_CONFIG_NAME: &str = "config.toml";
 
 #[derive(Debug, Default, Deserialize)]
-#[serde(default)]
+#[serde(default, rename_all = "kebab-case")]
 pub struct UserConfig {
     pub auto_install: bool,
 }
