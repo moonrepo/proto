@@ -60,8 +60,8 @@ pub fn unpack<I: AsRef<Path>, O: AsRef<Path>>(
 
     match ext.as_ref() {
         "zip" => unzip(input_file, output_dir, remove_prefix),
-        "gz" => untar_gzip(input_file, output_dir, remove_prefix),
-        "xz" => untar_xzip(input_file, output_dir, remove_prefix),
+        "tgz" | "gz" => untar_gzip(input_file, output_dir, remove_prefix),
+        "txz" | "xz" => untar_xzip(input_file, output_dir, remove_prefix),
         _ => Err(ProtoError::UnsupportedArchiveFormat(
             input_file.to_path_buf(),
             ext.to_string(),
