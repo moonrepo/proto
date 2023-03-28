@@ -11,6 +11,7 @@ mod resolver;
 mod shimmer;
 mod tool;
 mod tools_config;
+mod user_config;
 mod verifier;
 
 pub use async_trait::async_trait;
@@ -27,6 +28,7 @@ pub use resolver::*;
 pub use shimmer::*;
 pub use tool::*;
 pub use tools_config::*;
+pub use user_config::*;
 pub use verifier::*;
 
 use std::path::{Path, PathBuf};
