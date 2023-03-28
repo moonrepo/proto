@@ -9,6 +9,7 @@ mod local;
 mod run;
 mod setup;
 mod uninstall;
+mod upgrade;
 
 pub use bin::*;
 pub use completions::*;
@@ -21,3 +22,4 @@ pub use local::*;
 pub use run::*;
 pub use setup::*;
 pub use uninstall::*;
+pub use upgrade::*;

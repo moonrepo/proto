@@ -156,6 +156,9 @@ pub enum Commands {
         semver: String,
     },
 
+    #[command(name = "upgrade", about = "Upgrade proto to the latest version.")]
+    Upgrade,
+
     #[command(
         name = "use",
         about = "Download and install all tools from the closest .prototools."

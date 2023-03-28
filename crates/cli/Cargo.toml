@@ -30,9 +30,12 @@ dirs = "4.0.0"
 env_logger = "0.10.0"
 futures = "0.3.27"
 human-sort = "0.2.2"
+# indicatif = "0.17.3"
 log = { workspace = true }
 rustc-hash = { workspace = true }
+semver = "1.0.17"
 tokio = { workspace = true }
+trauma = "2.2.1"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.11.0"

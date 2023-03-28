@@ -6,10 +6,15 @@
 
 - Added a global user config at `~/.proto/config.toml`.
   - Added a new setting `auto-install`, that will automatically install a missing tool when `proto run` is executed.
+- Added a `proto upgrade` command for upgrading the proto binary to latest.
 
 #### 🐞 Fixes
 
 - Updated `proto setup` on Windows to use the Windows registry when updating `PATH`.
+
+#### ⚙️ Internal
+
+- Added support for `.tar.xz` archives.
 
 ## 0.3.2
 
