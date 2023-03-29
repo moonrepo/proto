@@ -35,7 +35,7 @@ pub async fn install(
         version,
     );
 
-    let done = create_progress_bar(format!(
+    let pb = create_progress_bar(format!(
         "Installing {} v{}",
         tool.get_name(),
         tool.get_resolved_version()
@@ -49,7 +49,7 @@ pub async fn install(
         manifest.save()?;
     }
 
-    done();
+    pb.finish_and_clear();
 
     info!(
         target: "proto:install", "{} has been installed at {}!",

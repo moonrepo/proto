@@ -24,8 +24,13 @@ pub fn enable_logging() {
     }
 }
 
-pub fn create_progress_bar<S: AsRef<str>>(start: S) -> impl FnOnce() {
-    let pb = ProgressBar::new_spinner();
+pub fn create_progress_bar<S: AsRef<str>>(start: S) -> ProgressBar {
+    let pb = if env::var("PROTO_NO_PROGRESS").is_ok() {
+        ProgressBar::hidden()
+    } else {
+        ProgressBar::new_spinner()
+    };
+
     pb.enable_steady_tick(Duration::from_millis(100));
     pb.set_message(start.as_ref().to_owned());
     pb.set_style(
@@ -44,8 +49,5 @@ pub fn create_progress_bar<S: AsRef<str>>(start: S) -> impl FnOnce() {
                 "━━━━━━━━━━",
             ]),
     );
-
-    move || {
-        pb.finish_and_clear();
-    }
+    pb
 }

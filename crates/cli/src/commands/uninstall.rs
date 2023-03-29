@@ -1,6 +1,6 @@
-use crate::helpers::enable_logging;
+use crate::helpers::{create_progress_bar, enable_logging};
 use crate::tools::{create_tool, ToolType};
-use log::info;
+use log::{debug, info};
 use proto_core::ProtoError;
 
 pub async fn uninstall(tool_type: ToolType, version: String) -> Result<(), ProtoError> {
@@ -19,14 +19,22 @@ pub async fn uninstall(tool_type: ToolType, version: String) -> Result<(), Proto
         return Ok(());
     }
 
-    info!(
+    debug!(
         target: "proto:uninstall",
         "Uninstalling {} with version \"{}\"",
         tool.get_name(),
         version,
     );
 
+    let pb = create_progress_bar(format!(
+        "Uninstalling {} v{}",
+        tool.get_name(),
+        tool.get_resolved_version()
+    ));
+
     tool.teardown().await?;
+
+    pb.finish_and_clear();
 
     info!(
         target: "proto:uninstall",
