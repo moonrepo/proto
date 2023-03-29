@@ -1660,6 +1660,7 @@ dependencies = [
  "env_logger",
  "futures",
  "human-sort",
+ "indicatif",
  "log",
  "predicates",
  "proto_bun",

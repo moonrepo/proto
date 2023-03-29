@@ -1,4 +1,4 @@
-use crate::helpers::enable_logging;
+use crate::helpers::{create_progress_bar, enable_logging};
 use crate::hooks::go as go_hooks;
 use crate::tools::{create_tool, ToolType};
 use async_recursion::async_recursion;
@@ -28,12 +28,18 @@ pub async fn install(
         return Ok(());
     }
 
-    info!(
+    debug!(
         target: "proto:install",
         "Installing {} with version \"{}\"",
         tool.get_name(),
         version,
     );
+
+    let done = create_progress_bar(format!(
+        "Installing {} v{}",
+        tool.get_name(),
+        tool.get_resolved_version()
+    ));
 
     tool.setup(&version).await?;
 
@@ -42,6 +48,8 @@ pub async fn install(
         manifest.default_version = Some(tool.get_resolved_version().to_owned());
         manifest.save()?;
     }
+
+    done();
 
     info!(
         target: "proto:install", "{} has been installed at {}!",
@@ -58,7 +66,7 @@ pub async fn install(
         }
         ToolType::Node => {
             if !passthrough.contains(&"--no-bundled-npm".to_string()) {
-                debug!(
+                info!(
                     target: "proto:install", "Installing npm that comes bundled with {}",
                     tool.get_name(),
                 );

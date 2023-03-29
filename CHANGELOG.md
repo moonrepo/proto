@@ -7,6 +7,7 @@
 - Added a global user config at `~/.proto/config.toml`.
   - Added a new setting `auto-install`, that will automatically install a missing tool when `proto run` is executed.
 - Added a `proto upgrade` command for upgrading the proto binary to latest.
+- Updated Node.js to download `.tar.xz` archives, resulting in smaller files and less bandwidth.
 
 #### 🐞 Fixes
 

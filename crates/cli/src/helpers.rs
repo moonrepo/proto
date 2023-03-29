@@ -1,6 +1,8 @@
+use indicatif::{ProgressBar, ProgressStyle};
 use std::env;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::Relaxed;
+use std::time::Duration;
 
 pub fn enable_logging() {
     static ENABLED: AtomicBool = AtomicBool::new(false);
@@ -19,5 +21,31 @@ pub fn enable_logging() {
             .init();
 
         ENABLED.store(true, Relaxed);
+    }
+}
+
+pub fn create_progress_bar<S: AsRef<str>>(start: S) -> impl FnOnce() {
+    let pb = ProgressBar::new_spinner();
+    pb.enable_steady_tick(Duration::from_millis(100));
+    pb.set_message(start.as_ref().to_owned());
+    pb.set_style(
+        ProgressStyle::with_template("{spinner:.183} {msg}")
+            .unwrap()
+            .tick_strings(&[
+                "━         ",
+                "━━        ",
+                "━━━       ",
+                "━━━━      ",
+                "━━━━━     ",
+                "━━━━━━    ",
+                "━━━━━━━   ",
+                "━━━━━━━━  ",
+                "━━━━━━━━━ ",
+                "━━━━━━━━━━",
+            ]),
+    );
+
+    move || {
+        pb.finish_and_clear();
     }
 }

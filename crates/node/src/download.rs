@@ -53,7 +53,7 @@ pub fn get_archive_file(version: &str) -> Result<String, ProtoError> {
     let ext = if consts::OS == "windows" {
         "zip"
     } else {
-        "tar.gz"
+        "tar.xz"
     };
 
     Ok(format!("{}.{}", get_archive_file_path(version)?, ext))
