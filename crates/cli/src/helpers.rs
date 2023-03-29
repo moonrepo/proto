@@ -72,7 +72,7 @@ pub async fn download_to_temp_with_progress_bar(
 
     // Create progress bar
     let pb = ProgressBar::new(total_size);
-    pb.set_style(ProgressStyle::default_bar().template(
+    pb.set_style(ProgressStyle::default_bar().progress_chars("━╾─").template(
         "{bar:80.183/black} | {bytes:.239} / {total_bytes:.248} | {bytes_per_sec:.183} | eta {eta}",
     ).unwrap());
 
