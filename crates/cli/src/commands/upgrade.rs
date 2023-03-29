@@ -1,13 +1,9 @@
-use crate::helpers::enable_logging;
+use crate::helpers::{download_to_temp_with_progress_bar, enable_logging};
 use log::{debug, info};
 use proto_core::{color, get_bin_dir, get_temp_dir, is_offline, load_git_tags, unpack, ProtoError};
 use semver::Version;
 use std::env::consts;
 use std::fs;
-use trauma::{
-    download::Download,
-    downloader::{DownloaderBuilder, ProgressBarOpts, StyleOptions},
-};
 
 async fn fetch_version() -> Result<String, ProtoError> {
     let tags = load_git_tags("https://github.com/moonrepo/proto")
@@ -77,38 +73,15 @@ pub async fn upgrade() -> Result<(), ProtoError> {
     );
 
     // Download the file and show a progress bar
-    let temp_dir = get_temp_dir()?;
     let download_file = format!("{target_file}.{target_ext}");
     let download_url = format!(
         "https://github.com/moonrepo/proto/releases/download/v{new_version}/{download_file}"
     );
-
-    let bar_styles = ProgressBarOpts::new(
-        Some("{bar:80.183/black} | {bytes:.239} / {total_bytes:.248} | {bytes_per_sec:.183} | eta {eta}".into()),
-        Some(ProgressBarOpts::CHARS_LINE.into()),
-        true,
-        true,
-    );
-
-    let mut parent_styles = bar_styles.clone();
-    parent_styles.set_clear(true);
-
-    let downloader = DownloaderBuilder::new()
-        .directory(temp_dir.clone())
-        .retries(3)
-        .style_options(StyleOptions::new(parent_styles, bar_styles))
-        .build();
-
-    downloader
-        .download(&[Download::try_from(download_url.as_str()).unwrap()])
-        .await;
+    let temp_file = download_to_temp_with_progress_bar(&download_url, &download_file).await?;
+    let temp_dir = get_temp_dir()?;
 
     // Unpack the downloaded file
-    unpack(
-        temp_dir.join(download_file),
-        &temp_dir, // Wraps with the archive name
-        None,
-    )?;
+    unpack(temp_file, &temp_dir, None)?;
 
     // Move the new binary to the bins directory
     let bin_name = if cfg!(windows) { "proto.exe" } else { "proto" };
@@ -120,10 +93,10 @@ pub async fn upgrade() -> Result<(), ProtoError> {
     #[cfg(target_family = "unix")]
     {
         use std::os::unix::fs::PermissionsExt;
+
         let file = fs::File::open(&bin_path).map_err(handle_error)?;
-        let mut perms = file.metadata().map_err(handle_error)?.permissions();
-        perms.set_mode(0o755);
-        file.set_permissions(perms).map_err(handle_error)?;
+        file.set_permissions(fs::Permissions::from_mode(0o755))
+            .map_err(handle_error)?;
     }
 
     info!(
