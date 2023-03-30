@@ -30,6 +30,10 @@ pub fn enable_logging() {
     }
 }
 
+pub fn disable_progress_bars() {
+    env::set_var("PROTO_NO_PROGRESS", "1");
+}
+
 pub fn create_progress_bar<S: AsRef<str>>(start: S) -> ProgressBar {
     let pb = if env::var("PROTO_NO_PROGRESS").is_ok() {
         ProgressBar::hidden()

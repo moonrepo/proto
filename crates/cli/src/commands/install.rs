@@ -1,4 +1,4 @@
-use crate::helpers::{create_progress_bar, enable_logging};
+use crate::helpers::{create_progress_bar, disable_progress_bars, enable_logging};
 use crate::hooks::go as go_hooks;
 use crate::tools::{create_tool, ToolType};
 use async_recursion::async_recursion;
@@ -26,6 +26,11 @@ pub async fn install(
         );
 
         return Ok(());
+    }
+
+    // Rust doesn't download files but runs commands
+    if matches!(tool_type, ToolType::Rust) {
+        disable_progress_bars();
     }
 
     debug!(
