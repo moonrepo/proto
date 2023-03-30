@@ -1,4 +1,4 @@
-use crate::helpers::enable_logging;
+use crate::helpers::{disable_progress_bars, enable_logging};
 use crate::tools::ToolType;
 use crate::{commands::install::install, helpers::create_progress_bar};
 use proto_core::{ProtoError, ToolsConfig, TOOLS_CONFIG_NAME};
@@ -21,7 +21,7 @@ pub async fn install_all() -> Result<(), ProtoError> {
     ));
 
     // Don't show inner progress bars
-    env::set_var("PROTO_NO_PROGRESS", "1");
+    disable_progress_bars();
 
     for (tool, version) in config.tools {
         futures.push(install(

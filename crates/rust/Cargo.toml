@@ -1,0 +1,14 @@
+[package]
+name = "proto_rust"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Rust support for proto."
+homepage = "https://moonrepo.dev/proto"
+repository = "https://github.com/moonrepo/proto"
+
+[dependencies]
+proto_core = { version = "0.3.1", path = "../core" }
+log = { workspace = true }
+tokio = { workspace = true }
+

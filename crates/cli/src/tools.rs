@@ -4,6 +4,7 @@ use proto_core::*;
 use proto_deno as deno;
 use proto_go as go;
 use proto_node as node;
+use proto_rust as rust;
 use std::str::FromStr;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq, ValueEnum)]
@@ -20,6 +21,8 @@ pub enum ToolType {
     Npm,
     Pnpm,
     Yarn,
+    // Rust
+    Rust,
 }
 
 impl FromStr for ToolType {
@@ -38,6 +41,8 @@ impl FromStr for ToolType {
             "npm" => Ok(Self::Npm),
             "pnpm" => Ok(Self::Pnpm),
             "yarn" | "yarnpkg" => Ok(Self::Yarn),
+            // Rust
+            "rust" => Ok(Self::Rust),
             _ => Err(ProtoError::UnsupportedTool(value.to_owned())),
         }
     }
@@ -67,5 +72,7 @@ pub fn create_tool(tool: &ToolType) -> Result<Box<dyn Tool<'static>>, ProtoError
             proto,
             node::NodeDependencyManagerType::Yarn,
         )),
+        // Rust
+        ToolType::Rust => Box::new(rust::RustLanguage::new(proto)),
     })
 }

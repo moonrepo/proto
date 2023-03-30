@@ -1267,6 +1267,7 @@ dependencies = [
  "proto_deno",
  "proto_go",
  "proto_node",
+ "proto_rust",
  "reqwest",
  "rustc-hash",
  "semver",
@@ -1337,6 +1338,15 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "proto_rust"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "proto_core",
  "tokio",
 ]
 

@@ -1,6 +1,7 @@
 use crate::ProtoError;
 use cached::proc_macro::cached;
 use dirs::home_dir;
+use std::process::Command;
 use std::{env, path::PathBuf};
 
 pub fn get_root() -> Result<PathBuf, ProtoError> {
@@ -8,11 +9,11 @@ pub fn get_root() -> Result<PathBuf, ProtoError> {
         return Ok(root.into());
     }
 
-    if let Some(dir) = home_dir() {
-        return Ok(dir.join(".proto"));
-    }
+    Ok(get_home_dir()?.join(".proto"))
+}
 
-    Err(ProtoError::MissingHomeDir)
+pub fn get_home_dir() -> Result<PathBuf, ProtoError> {
+    home_dir().ok_or(ProtoError::MissingHomeDir)
 }
 
 pub fn get_bin_dir() -> Result<PathBuf, ProtoError> {
@@ -85,4 +86,16 @@ pub fn is_offline() -> bool {
     }
 
     true
+}
+
+pub fn has_command(command: &str) -> bool {
+    Command::new(if cfg!(windows) {
+        "Get-Command"
+    } else {
+        "which"
+    })
+    .arg(command)
+    .output()
+    .map(|output| output.status.success() && !output.stdout.is_empty())
+    .unwrap_or(false)
 }
