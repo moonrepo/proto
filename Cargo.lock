@@ -1341,6 +1341,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "proto_rust"
+version = "0.1.0"
+dependencies = [
+ "assert_fs",
+ "log",
+ "proto_core",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
