@@ -10,7 +10,7 @@ impl Resolvable<'_> for RustLanguage {
     fn get_resolved_version(&self) -> &str {
         match self.version.as_ref() {
             Some(version) => version,
-            None => "latest",
+            None => "stable",
         }
     }
 
@@ -48,9 +48,21 @@ impl Resolvable<'_> for RustLanguage {
         );
 
         let manifest = self.load_version_manifest().await?;
-        let candidate = manifest.find_version(&initial_version)?;
 
-        debug!(target: self.get_log_target(), "Resolved to {}", candidate);
+        let candidate = if initial_version == "stable"
+            || initial_version == "beta"
+            || initial_version == "nightly"
+        {
+            debug!(target: self.get_log_target(), "Using channel {}", initial_version);
+
+            &initial_version
+        } else {
+            let candidate = manifest.find_version(&initial_version)?;
+
+            debug!(target: self.get_log_target(), "Resolved to {}", candidate);
+
+            candidate
+        };
 
         self.set_version(&candidate);
 
