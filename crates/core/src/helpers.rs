@@ -1,6 +1,7 @@
 use crate::ProtoError;
 use cached::proc_macro::cached;
 use dirs::home_dir;
+use std::process::Command;
 use std::{env, path::PathBuf};
 
 pub fn get_root() -> Result<PathBuf, ProtoError> {
@@ -85,4 +86,16 @@ pub fn is_offline() -> bool {
     }
 
     true
+}
+
+pub fn has_command(command: &str) -> bool {
+    Command::new(if cfg!(windows) {
+        "Get-Command"
+    } else {
+        "which"
+    })
+    .arg(command)
+    .output()
+    .map(|output| output.status.success() && output.stdout.len() > 0)
+    .unwrap_or(false)
 }

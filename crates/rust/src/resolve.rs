@@ -1,7 +1,7 @@
 use crate::RustLanguage;
 use log::debug;
 use proto_core::{
-    async_trait, create_version_manifest_from_tags, is_offline, is_semantic_version,
+    async_trait, create_version_manifest_from_tags, is_offline, is_semantic_version, load_git_tags,
     remove_v_prefix, Describable, ProtoError, Resolvable, VersionManifest,
 };
 
@@ -15,7 +15,13 @@ impl Resolvable<'_> for RustLanguage {
     }
 
     async fn load_version_manifest(&self) -> Result<VersionManifest, ProtoError> {
-        let manifest = create_version_manifest_from_tags(vec![]);
+        let tags = load_git_tags("https://github.com/rust-lang/rust")
+            .await?
+            .into_iter()
+            .filter(|t| !t.ends_with("^{}"))
+            .collect::<Vec<_>>();
+
+        let manifest = create_version_manifest_from_tags(tags);
 
         Ok(manifest)
     }
@@ -41,7 +47,8 @@ impl Resolvable<'_> for RustLanguage {
             initial_version,
         );
 
-        let candidate = initial_version;
+        let manifest = self.load_version_manifest().await?;
+        let candidate = manifest.find_version(&initial_version)?;
 
         debug!(target: self.get_log_target(), "Resolved to {}", candidate);
 
