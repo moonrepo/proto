@@ -1267,6 +1267,7 @@ dependencies = [
  "proto_deno",
  "proto_go",
  "proto_node",
+ "proto_rust",
  "reqwest",
  "rustc-hash",
  "semver",
