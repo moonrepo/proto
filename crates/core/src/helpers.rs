@@ -9,11 +9,11 @@ pub fn get_root() -> Result<PathBuf, ProtoError> {
         return Ok(root.into());
     }
 
-    if let Some(dir) = home_dir() {
-        return Ok(dir.join(".proto"));
-    }
+    Ok(get_home_dir()?.join(".proto"))
+}
 
-    Err(ProtoError::MissingHomeDir)
+pub fn get_home_dir() -> Result<PathBuf, ProtoError> {
+    home_dir().ok_or(ProtoError::MissingHomeDir)
 }
 
 pub fn get_bin_dir() -> Result<PathBuf, ProtoError> {

@@ -23,7 +23,7 @@ impl RustLanguage {
         let proto = proto.as_ref();
 
         RustLanguage {
-            base_dir: proto.tools_dir.join("rust"),
+            base_dir: proto.home_dir.join(".rustup").join("toolchains"),
             bin_path: None,
             log_target: "proto:tool:rust".into(),
             temp_dir: proto.temp_dir.join("rust"),

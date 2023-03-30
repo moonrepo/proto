@@ -13,7 +13,7 @@ impl Downloadable<'_> for RustLanguage {
         Ok("https://www.rust-lang.org/tools/install".to_string())
     }
 
-    // Since we won't download Rust for the user, we instead check that `rustup`
+    // Since we don't download Rust for the user, we instead check that `rustup`
     // exists on their machine, as we'll require that command for the install step.
     async fn download(&self, _to_file: &Path, _from_url: Option<&str>) -> Result<bool, ProtoError> {
         debug!(target: self.get_log_target(), "Checking if rustup exists");

@@ -13,19 +13,6 @@ fn is_musl() -> bool {
     String::from_utf8_lossy(&output.stdout).contains("musl")
 }
 
-fn get_target() -> Result<String, ProtoError> {
-    match consts::OS {
-        "linux" => Ok(format!(
-            "{}-unknown-linux-{}",
-            consts::ARCH,
-            if is_musl() { "musl" } else { "gnu" }
-        )),
-        "macos" => Ok(format!("{}-apple-darwin", consts::ARCH)),
-        "windows" => Ok(format!("{}-pc-windows-msvc", consts::ARCH)),
-        other => return Err(ProtoError::UnsupportedPlatform("Rust".into(), other.into())),
-    }
-}
-
 #[async_trait]
 impl Installable<'_> for RustLanguage {
     fn get_archive_prefix(&self) -> Result<Option<String>, ProtoError> {
@@ -33,14 +20,24 @@ impl Installable<'_> for RustLanguage {
     }
 
     fn get_install_dir(&self) -> Result<PathBuf, ProtoError> {
-        Ok(self.base_dir.join(self.get_resolved_version()))
+        let target = match consts::OS {
+            "linux" => format!(
+                "{}-unknown-linux-{}",
+                consts::ARCH,
+                if is_musl() { "musl" } else { "gnu" }
+            ),
+            "macos" => format!("{}-apple-darwin", consts::ARCH),
+            "windows" => format!("{}-pc-windows-msvc", consts::ARCH),
+            other => return Err(ProtoError::UnsupportedPlatform("Rust".into(), other.into())),
+        };
+
+        // ~/.rustup/toolchains/1.68.0-aarch64-apple-darwin
+        Ok(self
+            .base_dir
+            .join(format!("{}-{}", self.get_resolved_version(), target)))
     }
 
-    async fn install(
-        &self,
-        _install_dir: &Path,
-        _download_path: &Path,
-    ) -> Result<bool, ProtoError> {
+    async fn install(&self, install_dir: &Path, _download_path: &Path) -> Result<bool, ProtoError> {
         let handle_error = |e: std::io::Error| {
             ProtoError::Message(format!(
                 "Failed to run {}: {}",
@@ -56,7 +53,11 @@ impl Installable<'_> for RustLanguage {
             .map_err(handle_error)?;
 
         let installed_list = String::from_utf8_lossy(&output.stdout);
-        let install_target = get_target()?;
+        let install_target = install_dir
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .to_string();
 
         if installed_list.contains(&install_target) {
             debug!(target: self.get_log_target(), "Toolchain already installed, continuing");
