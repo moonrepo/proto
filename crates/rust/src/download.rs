@@ -1,5 +1,5 @@
 use crate::RustLanguage;
-use proto_core::{async_trait, has_command, Downloadable, ProtoError};
+use proto_core::{async_trait, color, has_command, Downloadable, ProtoError};
 use std::path::{Path, PathBuf};
 
 #[async_trait]
@@ -19,6 +19,10 @@ impl Downloadable<'_> for RustLanguage {
             return Ok(true);
         }
 
-        Err(ProtoError::Message("proto requires `rustup` to be installed and available on `PATH` to use Rust. Please install it and try again.".into()))
+        Err(ProtoError::Message(format!(
+            "proto requires {} to be installed and available on {} to use Rust. Please install it and try again.",
+            color::shell("rustup"),
+            color::id("PATH"),
+        )))
     }
 }

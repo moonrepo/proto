@@ -1344,11 +1344,8 @@ dependencies = [
 name = "proto_rust"
 version = "0.1.0"
 dependencies = [
- "assert_fs",
  "log",
  "proto_core",
- "serde",
- "serde_json",
  "tokio",
 ]
 

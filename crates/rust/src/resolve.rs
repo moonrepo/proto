@@ -64,7 +64,7 @@ impl Resolvable<'_> for RustLanguage {
             candidate
         };
 
-        self.set_version(&candidate);
+        self.set_version(candidate);
 
         Ok(candidate.to_owned())
     }

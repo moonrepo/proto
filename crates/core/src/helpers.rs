@@ -96,6 +96,6 @@ pub fn has_command(command: &str) -> bool {
     })
     .arg(command)
     .output()
-    .map(|output| output.status.success() && output.stdout.len() > 0)
+    .map(|output| output.status.success() && !output.stdout.is_empty())
     .unwrap_or(false)
 }
