@@ -4,6 +4,8 @@
 
 #### 🚀 Updates
 
+- Added Rust as a supported language.
+  - Requires `rustup` to be installed globally.
 - Added a global user config at `~/.proto/config.toml`.
   - Added a new setting `auto-install`, that will automatically install a missing tool when `proto run` is executed.
 - Added a `proto upgrade` command for upgrading the proto binary to latest.
