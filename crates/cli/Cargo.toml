@@ -19,7 +19,7 @@ path = "src/bin.rs"
 
 [dependencies]
 proto_bun = { version = "0.3.2", path = "../bun" }
-proto_core = { version = "0.4.0", path = "../core" }
+proto_core = { version = "0.4.1", path = "../core" }
 proto_deno = { version = "0.3.2", path = "../deno" }
 proto_go = { version = "0.3.2", path = "../go" }
 proto_node = { version = "0.3.2", path = "../node" }
