@@ -56,23 +56,26 @@ pub trait Tool<'tool>:
 
         // Install the tool
         let install_dir = self.get_install_dir()?;
-        let installed = self.install(&install_dir, &download_path).await?;
 
-        self.find_bin_path().await?;
+        if self.install(&install_dir, &download_path).await? {
+            self.find_bin_path().await?;
 
-        // Create shims after paths are found
-        self.create_shims().await?;
+            // Create shims after paths are found
+            self.create_shims().await?;
 
-        // Update the manifest
-        Manifest::insert_version(
-            self.get_manifest_path()?,
-            self.get_resolved_version(),
-            self.get_default_version(),
-        )?;
+            // Update the manifest
+            Manifest::insert_version(
+                self.get_manifest_path()?,
+                self.get_resolved_version(),
+                self.get_default_version(),
+            )?;
 
-        self.after_setup().await?;
+            self.after_setup().await?;
 
-        Ok(installed)
+            return Ok(true);
+        }
+
+        Ok(false)
     }
 
     async fn is_setup(&mut self, initial_version: &str) -> Result<bool, ProtoError> {
@@ -145,7 +148,7 @@ pub trait Tool<'tool>:
         Ok(())
     }
 
-    async fn teardown(&mut self) -> Result<(), ProtoError> {
+    async fn teardown(&mut self) -> Result<bool, ProtoError> {
         self.before_teardown().await?;
 
         self.cleanup().await?;
@@ -156,9 +159,11 @@ pub trait Tool<'tool>:
             Manifest::remove_version(self.get_manifest_path()?, self.get_resolved_version())?;
 
             self.after_teardown().await?;
+
+            return Ok(true);
         }
 
-        Ok(())
+        Ok(false)
     }
 
     async fn after_teardown(&mut self) -> Result<(), ProtoError> {
