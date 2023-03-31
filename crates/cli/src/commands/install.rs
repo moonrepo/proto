@@ -47,6 +47,7 @@ pub async fn install(
     ));
 
     tool.setup(&version).await?;
+    tool.cleanup().await?;
 
     if pin_version {
         let mut manifest = Manifest::load_for_tool(tool.get_bin_name())?;

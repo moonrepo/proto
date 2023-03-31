@@ -34,7 +34,7 @@ impl RustLanguage {
 
 impl Describable<'_> for RustLanguage {
     fn get_bin_name(&self) -> &str {
-        "rustc"
+        "rust"
     }
 
     fn get_log_target(&self) -> &str {
