@@ -60,10 +60,10 @@ pub trait Installable<'tool>: Send + Sync + Describable<'tool> {
         debug!(
             target: self.get_log_target(),
             "Deleting install directory {}",
-            color::path(&install_dir)
+            color::path(install_dir)
         );
 
-        fs::remove_dir_all(&install_dir)
+        fs::remove_dir_all(install_dir)
             .map_err(|e| ProtoError::Fs(install_dir.to_path_buf(), e.to_string()))?;
 
         debug!(target: self.get_log_target(), "Successfully uninstalled tool");
