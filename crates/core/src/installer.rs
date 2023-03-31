@@ -48,6 +48,28 @@ pub trait Installable<'tool>: Send + Sync + Describable<'tool> {
 
         Ok(true)
     }
+
+    /// Uninstall the tool by deleting the install directory.
+    async fn uninstall(&self, install_dir: &Path) -> Result<bool, ProtoError> {
+        if !install_dir.exists() {
+            debug!(target: self.get_log_target(), "Tool has not been installed, aborting");
+
+            return Ok(false);
+        }
+
+        debug!(
+            target: self.get_log_target(),
+            "Deleting install directory {}",
+            color::path(&install_dir)
+        );
+
+        fs::remove_dir_all(&install_dir)
+            .map_err(|e| ProtoError::Fs(install_dir.to_path_buf(), e.to_string()))?;
+
+        debug!(target: self.get_log_target(), "Successfully uninstalled tool");
+
+        Ok(true)
+    }
 }
 
 pub fn unpack<I: AsRef<Path>, O: AsRef<Path>>(

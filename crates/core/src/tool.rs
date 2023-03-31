@@ -152,21 +152,11 @@ pub trait Tool<'tool>:
 
         let install_dir = self.get_install_dir()?;
 
-        if install_dir.exists() {
-            debug!(
-                target: self.get_log_target(),
-                "Deleting install directory {}",
-                color::path(&install_dir)
-            );
-
-            fs::remove_dir_all(&install_dir)
-                .map_err(|e| ProtoError::Fs(install_dir, e.to_string()))?;
-
-            // Update the manifest
+        if self.uninstall(&install_dir).await? {
             Manifest::remove_version(self.get_manifest_path()?, self.get_resolved_version())?;
-        }
 
-        self.after_teardown().await?;
+            self.after_teardown().await?;
+        }
 
         Ok(())
     }
