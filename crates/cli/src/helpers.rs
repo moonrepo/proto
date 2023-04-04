@@ -1,6 +1,6 @@
 use futures::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
-use proto::{get_temp_dir, ProtoError};
+use proto_core::{get_temp_dir, ProtoError};
 use std::cmp;
 use std::env;
 use std::fs;

@@ -1,8 +1,7 @@
 use crate::helpers::{create_progress_bar, enable_logging};
 use crate::tools::{create_tool, ToolType};
 use log::{debug, info, trace};
-use proto::{get_home_dir, get_tools_dir, Tool};
-use proto_core::{color, ProtoError};
+use proto_core::{color, get_home_dir, get_tools_dir, ProtoError, Tool};
 use std::env;
 use std::path::PathBuf;
 use tokio::process::Command;
@@ -18,15 +17,11 @@ pub async fn install_global(tool_type: ToolType, dependency: String) -> Result<(
     enable_logging();
 
     let tool = create_tool(&tool_type)?;
+    let label = format!("Installing {} for {}", dependency, tool.get_name());
     let global_dir;
     let mut command;
 
-    debug!(
-        target: "proto:install-global",
-        "Installing \"{}\" for {}",
-        dependency,
-        tool.get_name(),
-    );
+    debug!(target: "proto:install-global", "{}", label);
 
     match tool_type {
         ToolType::Bun => {
@@ -88,7 +83,7 @@ pub async fn install_global(tool_type: ToolType, dependency: String) -> Result<(
         }
     };
 
-    let pb = create_progress_bar(format!("Installing {}", dependency));
+    let pb = create_progress_bar(label);
 
     let output = command
         .output()
@@ -97,18 +92,18 @@ pub async fn install_global(tool_type: ToolType, dependency: String) -> Result<(
 
     pb.finish_and_clear();
 
-    trace!(
-        target: "proto:install-global",
-        "[stdout] {}",
-        String::from_utf8_lossy(&output.stdout)
-    );
-
     let stderr = String::from_utf8_lossy(&output.stderr);
 
     trace!(
         target: "proto:install-global",
         "[stderr] {}",
         stderr
+    );
+
+    trace!(
+        target: "proto:install-global",
+        "[stdout] {}",
+        String::from_utf8_lossy(&output.stdout)
     );
 
     if !output.status.success() {
