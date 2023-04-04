@@ -14,7 +14,7 @@ async fn get_bin_or_fallback(mut tool: Box<dyn Tool<'_>>) -> Result<PathBuf, Pro
     })
 }
 
-pub async fn install_global(tool_type: ToolType, package: String) -> Result<(), ProtoError> {
+pub async fn install_global(tool_type: ToolType, dependency: String) -> Result<(), ProtoError> {
     enable_logging();
 
     let tool = create_tool(&tool_type)?;
@@ -24,7 +24,7 @@ pub async fn install_global(tool_type: ToolType, package: String) -> Result<(), 
     debug!(
         target: "proto:install-global",
         "Installing \"{}\" for {}",
-        package,
+        dependency,
         tool.get_name(),
     );
 
@@ -33,7 +33,7 @@ pub async fn install_global(tool_type: ToolType, package: String) -> Result<(), 
             global_dir = get_home_dir()?.join("bun");
 
             command = Command::new(get_bin_or_fallback(tool).await?);
-            command.args(["add", "--global"]).arg(&package);
+            command.args(["add", "--global"]).arg(&dependency);
         }
 
         ToolType::Deno => {
@@ -45,7 +45,7 @@ pub async fn install_global(tool_type: ToolType, package: String) -> Result<(), 
             command = Command::new(get_bin_or_fallback(tool).await?);
             command
                 .args(["install", "--allow-net", "--allow-read"])
-                .arg(&package);
+                .arg(&dependency);
         }
 
         ToolType::Go => {
@@ -55,7 +55,7 @@ pub async fn install_global(tool_type: ToolType, package: String) -> Result<(), 
             };
 
             command = Command::new(get_bin_or_fallback(tool).await?);
-            command.arg("install").arg(&package);
+            command.arg("install").arg(&dependency);
         }
 
         ToolType::Node | ToolType::Npm | ToolType::Pnpm | ToolType::Yarn => {
@@ -73,7 +73,7 @@ pub async fn install_global(tool_type: ToolType, package: String) -> Result<(), 
                     "--no-audit",
                     "--no-update-notifier",
                 ])
-                .arg(&package)
+                .arg(&dependency)
                 .env("PREFIX", &global_dir);
         }
 
@@ -84,11 +84,11 @@ pub async fn install_global(tool_type: ToolType, package: String) -> Result<(), 
             };
 
             command = Command::new("cargo");
-            command.arg("install").arg("--force").arg(&package);
+            command.arg("install").arg("--force").arg(&dependency);
         }
     };
 
-    let pb = create_progress_bar(format!("Installing {}", package));
+    let pb = create_progress_bar(format!("Installing {}", dependency));
 
     let output = command
         .output()
@@ -117,7 +117,7 @@ pub async fn install_global(tool_type: ToolType, package: String) -> Result<(), 
 
     info!(
         target: "proto:install-global", "{} has been installed at {}!",
-        package,
+        dependency,
         color::path(global_dir),
     );
 
