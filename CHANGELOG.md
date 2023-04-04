@@ -4,6 +4,12 @@
 
 #### 🚀 Updates
 
+- Added a `proto install-global` command, for installing global packages for a tool.
+
+## 0.4.0
+
+#### 🚀 Updates
+
 - Added Rust as a supported language.
   - Requires `rustup` to be installed globally.
 - Added a global user config at `~/.proto/config.toml`.

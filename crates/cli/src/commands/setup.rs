@@ -101,13 +101,13 @@ fn do_setup(shell: Shell, bin_dir: PathBuf, print_profile: bool) -> Result<(), P
 
         trace!(
             target: "proto:setup",
-            "STDERR: {}",
+            "[stderr]: {}",
             String::from_utf8_lossy(&output.stderr),
         );
 
         trace!(
             target: "proto:setup",
-            "STDOUT: {}",
+            "[stdout]: {}",
             String::from_utf8_lossy(&output.stdout),
         );
     } else if print_profile {

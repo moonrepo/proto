@@ -1,8 +1,7 @@
 use crate::commands::install::install;
 use crate::tools::{create_tool, ToolType};
 use log::debug;
-use proto::UserConfig;
-use proto_core::{detect_version_from_environment, ProtoError};
+use proto_core::{color, detect_version_from_environment, ProtoError, UserConfig};
 use std::process::exit;
 use tokio::process::Command;
 
@@ -21,7 +20,7 @@ pub async fn run(
             return Err(ProtoError::MissingToolForRun(
                 tool.get_name(),
                 version.to_owned(),
-                format!("proto install {} {}", tool.get_bin_name(), version),
+                color::shell(format!("proto install {} {}", tool.get_bin_name(), version)),
             ));
         }
 
