@@ -17,8 +17,9 @@ async fn get_bin_or_fallback(mut tool: Box<dyn Tool<'_>>) -> Result<PathBuf, Pro
 pub async fn install_global(tool_type: ToolType, package: String) -> Result<(), ProtoError> {
     enable_logging();
 
-    let mut tool = create_tool(&tool_type)?;
+    let tool = create_tool(&tool_type)?;
     let global_dir;
+    let mut command;
 
     debug!(
         target: "proto:install-global",
@@ -27,13 +28,12 @@ pub async fn install_global(tool_type: ToolType, package: String) -> Result<(), 
         tool.get_name(),
     );
 
-    let command = match tool_type {
+    match tool_type {
         ToolType::Bun => {
             global_dir = get_home_dir()?.join("bun");
 
-            Command::new(get_bin_or_fallback(tool).await?)
-                .args(["add", "--global"])
-                .arg(&package)
+            command = Command::new(get_bin_or_fallback(tool).await?);
+            command.args(["add", "--global"]).arg(&package);
         }
 
         ToolType::Deno => {
@@ -42,9 +42,10 @@ pub async fn install_global(tool_type: ToolType, package: String) -> Result<(), 
                 Err(_) => get_home_dir()?.join(".deno"),
             };
 
-            Command::new(get_bin_or_fallback(tool).await?)
+            command = Command::new(get_bin_or_fallback(tool).await?);
+            command
                 .args(["install", "--allow-net", "--allow-read"])
-                .arg(&package)
+                .arg(&package);
         }
 
         ToolType::Go => {
@@ -53,9 +54,8 @@ pub async fn install_global(tool_type: ToolType, package: String) -> Result<(), 
                 Err(_) => get_home_dir()?.join("go"),
             };
 
-            Command::new(get_bin_or_fallback(tool).await?)
-                .arg("install")
-                .arg(&package)
+            command = Command::new(get_bin_or_fallback(tool).await?);
+            command.arg("install").arg(&package);
         }
 
         ToolType::Node | ToolType::Npm | ToolType::Pnpm | ToolType::Yarn => {
@@ -63,7 +63,8 @@ pub async fn install_global(tool_type: ToolType, package: String) -> Result<(), 
 
             let npm = create_tool(&ToolType::Npm)?;
 
-            Command::new(get_bin_or_fallback(npm).await?)
+            command = Command::new(get_bin_or_fallback(npm).await?);
+            command
                 .args([
                     "install",
                     "--global",
@@ -73,7 +74,7 @@ pub async fn install_global(tool_type: ToolType, package: String) -> Result<(), 
                     "--no-update-notifier",
                 ])
                 .arg(&package)
-                .env("PREFIX", &global_dir)
+                .env("PREFIX", &global_dir);
         }
 
         ToolType::Rust => {
@@ -82,10 +83,8 @@ pub async fn install_global(tool_type: ToolType, package: String) -> Result<(), 
                 Err(_) => get_home_dir()?.join(".cargo"),
             };
 
-            Command::new("cargo")
-                .arg("install")
-                .arg("--force")
-                .arg(&package)
+            command = Command::new("cargo");
+            command.arg("install").arg("--force").arg(&package);
         }
     };
 

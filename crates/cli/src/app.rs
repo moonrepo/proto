@@ -47,6 +47,7 @@ pub enum Commands {
     },
 
     #[command(
+        alias = "i",
         name = "install",
         about = "Download and install a tool.",
         long_about = "Download and install a tool by unpacking the archive to ~/.proto/tools."
@@ -64,6 +65,20 @@ pub enum Commands {
         // Passthrough args (after --)
         #[arg(last = true, help = "Unique arguments to pass to each tool")]
         passthrough: Vec<String>,
+    },
+
+    #[command(
+        alias = "ig",
+        name = "install-global",
+        about = "Install a global dependency for the specified tool.",
+        long_about = "Install a global dependency for the specified tool. Depending on the tool, the dependency will either be installed to ~/.proto/tools/<tool>/globals or ~/<tool>."
+    )]
+    InstallGlobal {
+        #[arg(required = true, value_enum, help = "Type of tool")]
+        tool: ToolType,
+
+        #[arg(required = true, help = "Dependency and optional version to install")]
+        dependency: String,
     },
 
     #[command(
@@ -115,6 +130,7 @@ pub enum Commands {
     },
 
     #[command(
+        alias = "r",
         name = "run",
         about = "Run a tool after detecting a version from the environment.",
         long_about = "Run a tool after detecting a version from the environment. In order of priority,\na version will be resolved from a provided CLI argument, a PROTO_VERSION environment variable,\na local version file (.prototools), and lastly a global version file (~/.proto/tools/version).\n\nIf no version can be found, the program will exit with an error."
@@ -144,6 +160,7 @@ pub enum Commands {
     },
 
     #[command(
+        name = "ui",
         name = "uninstall",
         about = "Uninstall a tool.",
         long_about = "Uninstall a tool and remove the installation from ~/.proto/tools."
@@ -156,10 +173,15 @@ pub enum Commands {
         semver: String,
     },
 
-    #[command(name = "upgrade", about = "Upgrade proto to the latest version.")]
+    #[command(
+        alias = "up",
+        name = "upgrade",
+        about = "Upgrade proto to the latest version."
+    )]
     Upgrade,
 
     #[command(
+        alias = "u",
         name = "use",
         about = "Download and install all tools from the closest .prototools."
     )]
