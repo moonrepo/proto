@@ -97,8 +97,6 @@ impl Resolvable<'_> for NodeLanguage {
         let manifest = self.load_version_manifest().await?;
         let candidate;
 
-        dbg!(&manifest);
-
         // Latest version is always at the top
         if initial_version == "node" || initial_version == "latest" {
             candidate = manifest.get_version_from_alias("latest")?;

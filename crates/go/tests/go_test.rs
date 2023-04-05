@@ -230,6 +230,18 @@ mod go {
         }
 
         #[tokio::test]
+        async fn resolve_custom_alias() {
+            let (mut tool, fixture) = create_tool();
+
+            fixture
+                .child("tools/go/manifest.json")
+                .write_str(r#"{"aliases":{"example":"1.20.0"}}"#)
+                .unwrap();
+
+            assert_eq!(tool.resolve_version("example").await.unwrap(), "1.20.0");
+        }
+
+        #[tokio::test]
         async fn resolve_latest_version() {
             let (mut tool, _fixture) = create_tool();
 

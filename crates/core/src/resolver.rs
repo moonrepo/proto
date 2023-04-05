@@ -39,15 +39,22 @@ impl VersionManifest {
             return Ok(&entry.version);
         }
 
+        // If all 3 parts of a version were provided, find an exact match
+        let exact_match = prefixless_version.split('.').collect::<Vec<_>>().len() >= 3;
+
         // Match against a partial minor/patch range, for example, "10" -> "10.1.2".
         // We also parse versions instead of using starts with, as we need to ensure
         // "10.1" matches "10.1.*" and not "10.10.*"!
-        let find_version = parse_version(version)?;
+        let find_version = parse_version(&prefixless_version)?;
         let mut latest_matching_version = Version::new(0, 0, 0);
         let mut matched = false;
 
         for entry in self.versions.values().rev() {
             let entry_version = parse_version(&entry.version)?;
+
+            if exact_match && entry_version == find_version {
+                return Ok(&entry.version);
+            }
 
             if entry_version.major != find_version.major {
                 continue;
@@ -73,7 +80,9 @@ impl VersionManifest {
             return self.find_version(latest_matching_version.to_string());
         }
 
-        Err(ProtoError::VersionResolveFailed(version.to_owned()))
+        Err(ProtoError::VersionResolveFailed(
+            prefixless_version.to_owned(),
+        ))
     }
 
     pub fn get_version_from_alias(&self, alias: &str) -> Result<&String, ProtoError> {

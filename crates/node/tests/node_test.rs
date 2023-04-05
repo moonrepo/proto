@@ -289,10 +289,10 @@ mod node {
 
             fixture
                 .child("tools/node/manifest.json")
-                .write_str(r#"{"aliases":{"example":"1.2.3"}}"#)
+                .write_str(r#"{"aliases":{"example":"10.0.0"}}"#)
                 .unwrap();
 
-            assert_ne!(tool.resolve_version("example").await.unwrap(), "1.2.3");
+            assert_eq!(tool.resolve_version("example").await.unwrap(), "10.0.0");
         }
 
         #[tokio::test]

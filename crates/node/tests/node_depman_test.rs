@@ -1,3 +1,4 @@
+use assert_fs::prelude::{FileWriteStr, PathChild};
 use proto_core::{
     Detector, Downloadable, Executable, Installable, Proto, Resolvable, Shimable, Tool,
 };
@@ -387,6 +388,22 @@ mod node_depman {
             );
 
             assert_ne!(tool.resolve_version("berry").await.unwrap(), "berry");
+        }
+
+        #[tokio::test]
+        async fn resolve_custom_alias() {
+            let fixture = assert_fs::TempDir::new().unwrap();
+            let mut tool = NodeDependencyManager::new(
+                Proto::from(fixture.path()),
+                NodeDependencyManagerType::Npm,
+            );
+
+            fixture
+                .child("tools/npm/manifest.json")
+                .write_str(r#"{"aliases":{"example":"9.0.0"}}"#)
+                .unwrap();
+
+            assert_eq!(tool.resolve_version("example").await.unwrap(), "9.0.0");
         }
 
         #[tokio::test]
