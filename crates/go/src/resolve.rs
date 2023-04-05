@@ -2,7 +2,7 @@ use crate::GoLanguage;
 use log::debug;
 use proto_core::{
     async_trait, create_version_manifest_from_tags, is_offline, is_semantic_version, load_git_tags,
-    remove_v_prefix, Describable, ProtoError, Resolvable, Version, VersionManifest,
+    remove_v_prefix, Describable, Manifest, ProtoError, Resolvable, Tool, Version, VersionManifest,
 };
 
 trait BaseVersion {
@@ -40,7 +40,9 @@ impl Resolvable<'_> for GoLanguage {
             })
             .collect::<Vec<_>>();
 
-        let manifest = create_version_manifest_from_tags(tags);
+        let mut manifest = create_version_manifest_from_tags(tags);
+
+        manifest.inherit_aliases(&Manifest::load(self.get_manifest_path())?.aliases);
 
         Ok(manifest)
     }
@@ -71,10 +73,7 @@ impl Resolvable<'_> for GoLanguage {
         let candidate = if initial_version.contains("rc") || initial_version.contains("beta") {
             manifest.get_version(&initial_version)?
         } else {
-            match manifest.find_version_from_alias(&initial_version) {
-                Ok(found) => found,
-                _ => manifest.find_version(&initial_version)?,
-            }
+            manifest.find_version(&initial_version)?
         };
 
         debug!(target: self.get_log_target(), "Resolved to {}", candidate);

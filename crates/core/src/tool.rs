@@ -4,7 +4,6 @@ use crate::detector::*;
 use crate::downloader::*;
 use crate::errors::*;
 use crate::executor::*;
-use crate::helpers::*;
 use crate::installer::*;
 use crate::manifest::*;
 use crate::resolver::*;
@@ -12,7 +11,7 @@ use crate::shimmer::*;
 use crate::verifier::*;
 use log::debug;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[async_trait::async_trait]
 pub trait Tool<'tool>:
@@ -27,11 +26,11 @@ pub trait Tool<'tool>:
     + Executable<'tool>
     + Shimable<'tool>
 {
-    fn get_manifest_path(&self) -> Result<PathBuf, ProtoError> {
-        Ok(get_tools_dir()?
-            .join(self.get_bin_name())
-            .join(MANIFEST_NAME))
+    fn get_manifest_path(&self) -> PathBuf {
+        self.get_tool_dir().join(MANIFEST_NAME)
     }
+
+    fn get_tool_dir(&self) -> &Path;
 
     async fn before_setup(&mut self) -> Result<(), ProtoError> {
         Ok(())
@@ -65,7 +64,7 @@ pub trait Tool<'tool>:
 
             // Update the manifest
             Manifest::insert_version(
-                self.get_manifest_path()?,
+                self.get_manifest_path(),
                 self.get_resolved_version(),
                 self.get_default_version(),
             )?;
@@ -156,7 +155,7 @@ pub trait Tool<'tool>:
         let install_dir = self.get_install_dir()?;
 
         if self.uninstall(&install_dir).await? {
-            Manifest::remove_version(self.get_manifest_path()?, self.get_resolved_version())?;
+            Manifest::remove_version(self.get_manifest_path(), self.get_resolved_version())?;
 
             self.after_teardown().await?;
 

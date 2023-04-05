@@ -187,5 +187,17 @@ mod deno {
 
             assert!(latest_version > current_latest_version);
         }
+
+        #[tokio::test]
+        async fn resolve_custom_alias() {
+            let (mut tool, fixture) = create_tool();
+
+            fixture
+                .child("tools/deno/manifest.json")
+                .write_str(r#"{"aliases":{"example":"1.30.0"}}"#)
+                .unwrap();
+
+            assert_eq!(tool.resolve_version("example").await.unwrap(), "1.30.0");
+        }
     }
 }

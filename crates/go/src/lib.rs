@@ -8,7 +8,7 @@ mod shim;
 mod verify;
 
 use proto_core::{Describable, Proto, Tool};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
 pub struct GoLanguage {
@@ -47,4 +47,8 @@ impl Describable<'_> for GoLanguage {
     }
 }
 
-impl Tool<'_> for GoLanguage {}
+impl Tool<'_> for GoLanguage {
+    fn get_tool_dir(&self) -> &Path {
+        &self.base_dir
+    }
+}

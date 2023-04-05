@@ -1,3 +1,4 @@
+use assert_fs::prelude::{FileWriteStr, PathChild};
 use proto_core::{
     Detector, Downloadable, Executable, Installable, Proto, Resolvable, Tool, Verifiable,
 };
@@ -38,7 +39,6 @@ mod node {
 
     mod detector {
         use super::*;
-        use assert_fs::prelude::{FileWriteStr, PathChild};
 
         #[tokio::test]
         async fn doesnt_match_if_no_files() {
@@ -280,6 +280,19 @@ mod node {
             let mut tool = NodeLanguage::new(Proto::from(fixture.path()));
 
             assert_eq!(tool.resolve_version("10.1").await.unwrap(), "10.1.0");
+        }
+
+        #[tokio::test]
+        async fn resolve_custom_alias() {
+            let fixture = assert_fs::TempDir::new().unwrap();
+            let mut tool = NodeLanguage::new(Proto::from(fixture.path()));
+
+            fixture
+                .child("tools/node/manifest.json")
+                .write_str(r#"{"aliases":{"example":"10.0.0"}}"#)
+                .unwrap();
+
+            assert_eq!(tool.resolve_version("example").await.unwrap(), "10.0.0");
         }
 
         #[tokio::test]

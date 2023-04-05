@@ -18,9 +18,25 @@ pub struct App {
     pub command: Commands,
 }
 
-// TODO: alias, unalias
 #[derive(Debug, Subcommand)]
 pub enum Commands {
+    #[command(
+        name = "a",
+        name = "alias",
+        about = "Add an alias to a tool.",
+        long_about = "Add an alias to a tool, that maps to a specific version, or another alias."
+    )]
+    Alias {
+        #[arg(required = true, value_enum, help = "Type of tool")]
+        tool: ToolType,
+
+        #[arg(required = true, help = "Alias name")]
+        alias: String,
+
+        #[arg(required = true, help = "Version (or alias) to associate with")]
+        semver: String,
+    },
+
     #[command(
         name = "bin",
         about = "Display the absolute path to a tools binary.",
@@ -157,6 +173,15 @@ pub enum Commands {
 
         #[arg(long, help = "Return the profile path if setup")]
         profile: bool,
+    },
+
+    #[command(name = "ua", name = "unalias", about = "Remove an alias from a tool.")]
+    Unalias {
+        #[arg(required = true, value_enum, help = "Type of tool")]
+        tool: ToolType,
+
+        #[arg(required = true, help = "Alias name")]
+        alias: String,
     },
 
     #[command(

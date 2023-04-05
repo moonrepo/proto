@@ -1,9 +1,10 @@
 use crate::errors::ProtoError;
 use crate::{color, is_offline};
-use crate::{get_temp_dir, is_version_alias, remove_v_prefix};
+use crate::{get_temp_dir, is_alias_name, remove_v_prefix};
 use human_sort::compare;
 use lenient_semver::Version;
 use log::trace;
+use rustc_hash::FxHashMap;
 use serde::de::DeserializeOwned;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
@@ -17,7 +18,7 @@ pub struct VersionManifestEntry {
     pub version: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct VersionManifest {
     pub aliases: BTreeMap<String, String>,
     pub versions: BTreeMap<String, VersionManifestEntry>,
@@ -25,10 +26,10 @@ pub struct VersionManifest {
 
 impl VersionManifest {
     pub fn find_version<V: AsRef<str>>(&self, version: V) -> Result<&String, ProtoError> {
-        let version = version.as_ref();
+        let mut version = version.as_ref();
 
-        if is_version_alias(version) {
-            return self.find_version_from_alias(version);
+        if is_alias_name(version) {
+            version = self.get_version_from_alias(version)?;
         }
 
         let prefixless_version = remove_v_prefix(version);
@@ -38,15 +39,22 @@ impl VersionManifest {
             return Ok(&entry.version);
         }
 
+        // If all 3 parts of a version were provided, find an exact match
+        let exact_match = prefixless_version.split('.').collect::<Vec<_>>().len() >= 3;
+
         // Match against a partial minor/patch range, for example, "10" -> "10.1.2".
         // We also parse versions instead of using starts with, as we need to ensure
         // "10.1" matches "10.1.*" and not "10.10.*"!
-        let find_version = parse_version(version)?;
+        let find_version = parse_version(&prefixless_version)?;
         let mut latest_matching_version = Version::new(0, 0, 0);
         let mut matched = false;
 
         for entry in self.versions.values().rev() {
             let entry_version = parse_version(&entry.version)?;
+
+            if exact_match && entry_version == find_version {
+                return Ok(&entry.version);
+            }
 
             if entry_version.major != find_version.major {
                 continue;
@@ -72,13 +80,22 @@ impl VersionManifest {
             return self.find_version(latest_matching_version.to_string());
         }
 
-        Err(ProtoError::VersionResolveFailed(version.to_owned()))
+        Err(ProtoError::VersionResolveFailed(
+            prefixless_version.to_owned(),
+        ))
     }
 
-    pub fn find_version_from_alias(&self, alias: &str) -> Result<&String, ProtoError> {
-        self.aliases
+    pub fn get_version_from_alias(&self, alias: &str) -> Result<&String, ProtoError> {
+        let version = self
+            .aliases
             .get(alias)
-            .ok_or_else(|| ProtoError::VersionUnknownAlias(alias.to_owned()))
+            .ok_or_else(|| ProtoError::VersionUnknownAlias(alias.to_owned()))?;
+
+        if is_alias_name(version) {
+            return self.get_version_from_alias(version);
+        }
+
+        Ok(version)
     }
 
     pub fn get_version(&self, version: &str) -> Result<&String, ProtoError> {
@@ -87,6 +104,12 @@ impl VersionManifest {
         }
 
         Err(ProtoError::VersionResolveFailed(version.to_owned()))
+    }
+
+    pub fn inherit_aliases(&mut self, aliases: &FxHashMap<String, String>) {
+        for (alias, version) in aliases {
+            self.aliases.insert(alias.to_owned(), version.to_owned());
+        }
     }
 }
 

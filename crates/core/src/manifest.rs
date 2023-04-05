@@ -1,6 +1,6 @@
-use crate::{get_tools_dir, ProtoError};
-use log::info;
-use rustc_hash::FxHashSet;
+use crate::{color, ProtoError};
+use log::{info, trace};
+use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use std::{
     fs,
@@ -12,6 +12,7 @@ pub const MANIFEST_NAME: &str = "manifest.json";
 #[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Manifest {
+    pub aliases: FxHashMap<String, String>,
     pub default_version: Option<String>,
     pub installed_versions: FxHashSet<String>,
 
@@ -46,7 +47,7 @@ impl Manifest {
         if (manifest.installed_versions.is_empty() && manifest.default_version.is_some())
             || manifest.default_version.as_ref() == Some(&version.to_owned())
         {
-            info!(target: "proto:uninstall", "Unpinning default global version");
+            info!(target: "proto:manifest", "Unpinning default global version");
 
             manifest.default_version = None;
         }
@@ -56,16 +57,14 @@ impl Manifest {
         Ok(())
     }
 
-    pub fn load_for_tool(bin: &str) -> Result<Self, ProtoError> {
-        Self::load_from(get_tools_dir()?.join(bin))
-    }
-
     pub fn load_from<P: AsRef<Path>>(dir: P) -> Result<Self, ProtoError> {
         Self::load(dir.as_ref().join(MANIFEST_NAME))
     }
 
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self, ProtoError> {
         let path = path.as_ref();
+
+        trace!(target: "proto:manifest", "Loading manifest {}", color::path(path));
 
         let mut manifest: Manifest = if path.exists() {
             let contents = fs::read_to_string(path)
@@ -83,6 +82,8 @@ impl Manifest {
     }
 
     pub fn save(&self) -> Result<(), ProtoError> {
+        trace!(target: "proto:manifest", "Saving manifest {}", color::path(&self.path));
+
         let data = serde_json::to_string_pretty(self)
             .map_err(|e| ProtoError::Json(self.path.to_path_buf(), e.to_string()))?;
 

@@ -2,7 +2,8 @@ use crate::NodeLanguage;
 use log::debug;
 use proto_core::{
     async_trait, is_offline, is_semantic_version, load_versions_manifest, parse_version,
-    remove_v_prefix, Describable, ProtoError, Resolvable, VersionManifest, VersionManifestEntry,
+    remove_v_prefix, Describable, Manifest, ProtoError, Resolvable, Tool, VersionManifest,
+    VersionManifestEntry,
 };
 use serde::Deserialize;
 use std::collections::BTreeMap;
@@ -65,7 +66,11 @@ impl Resolvable<'_> for NodeLanguage {
             versions.insert(entry.version.clone(), entry);
         }
 
-        Ok(VersionManifest { aliases, versions })
+        let mut manifest = VersionManifest { aliases, versions };
+
+        manifest.inherit_aliases(&Manifest::load(self.get_manifest_path())?.aliases);
+
+        Ok(manifest)
     }
 
     async fn resolve_version(&mut self, initial_version: &str) -> Result<String, ProtoError> {
@@ -94,18 +99,18 @@ impl Resolvable<'_> for NodeLanguage {
 
         // Latest version is always at the top
         if initial_version == "node" || initial_version == "latest" {
-            candidate = manifest.find_version_from_alias("latest")?;
+            candidate = manifest.get_version_from_alias("latest")?;
 
         // Stable version is the first with an LTS
         } else if initial_version == "stable"
             || initial_version == "lts-*"
             || initial_version == "lts/*"
         {
-            candidate = manifest.find_version_from_alias("stable")?;
+            candidate = manifest.get_version_from_alias("stable")?;
 
             // Find the first version with a matching LTS
         } else if initial_version.starts_with("lts-") || initial_version.starts_with("lts/") {
-            candidate = manifest.find_version_from_alias(&initial_version[4..])?;
+            candidate = manifest.get_version_from_alias(&initial_version[4..])?;
 
             // Either an alias or version
         } else {

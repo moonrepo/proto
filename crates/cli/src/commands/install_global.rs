@@ -25,7 +25,7 @@ pub async fn install_global(tool_type: ToolType, dependency: String) -> Result<(
 
     match tool_type {
         ToolType::Bun => {
-            global_dir = get_home_dir()?.join("bun");
+            global_dir = get_home_dir()?.join(".bun");
 
             command = Command::new(get_bin_or_fallback(tool).await?);
             command.args(["add", "--global"]).arg(&dependency);

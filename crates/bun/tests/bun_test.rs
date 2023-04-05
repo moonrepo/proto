@@ -2,6 +2,7 @@
 #[cfg(not(windows))]
 mod bun {
     // use super::*;
+    use assert_fs::prelude::{FileWriteStr, PathChild};
     use proto_bun::BunLanguage;
     use proto_core::{
         Downloadable, Executable, Installable, Proto, Resolvable, Tool, Verifiable, Version,
@@ -157,6 +158,19 @@ mod bun {
             let current_latest_version = Version::parse("0.5.7").unwrap();
 
             assert!(latest_version >= current_latest_version);
+        }
+
+        #[tokio::test]
+        async fn resolve_custom_alias() {
+            let (mut tool, fixture) = create_tool();
+            tool.version = None;
+
+            fixture
+                .child("tools/bun/manifest.json")
+                .write_str(r#"{"aliases":{"example":"0.5.0"}}"#)
+                .unwrap();
+
+            assert_eq!(tool.resolve_version("example").await.unwrap(), "0.5.0");
         }
     }
 

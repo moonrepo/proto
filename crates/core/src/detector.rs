@@ -4,7 +4,7 @@ use crate::errors::ProtoError;
 use crate::manifest::{Manifest, MANIFEST_NAME};
 use crate::tool::Tool;
 use crate::tools_config::{ToolsConfig, TOOLS_CONFIG_NAME};
-use crate::{color, is_version_alias};
+use crate::{color, is_alias_name};
 use lenient_semver::Version;
 use log::{debug, trace};
 use std::{env, fs, path::Path};
@@ -122,7 +122,7 @@ pub async fn detect_version_from_environment<'l, T: Tool<'l> + ?Sized>(
             MANIFEST_NAME
         );
 
-        let manifest = Manifest::load_for_tool(tool.get_bin_name())?;
+        let manifest = Manifest::load(tool.get_manifest_path())?;
 
         if let Some(global_version) = manifest.default_version {
             debug!(
@@ -149,7 +149,7 @@ pub fn detect_fixed_version<P: AsRef<Path>>(
     version: &str,
     manifest_path: P,
 ) -> Result<Option<String>, ProtoError> {
-    if is_version_alias(version) {
+    if is_alias_name(version) {
         return Ok(None);
     }
 

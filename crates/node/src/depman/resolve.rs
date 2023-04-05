@@ -4,8 +4,8 @@ use crate::NodeLanguage;
 use log::debug;
 use proto_core::{
     async_trait, detect_version_from_environment, is_offline, is_semantic_version,
-    load_versions_manifest, parse_version, remove_v_prefix, Describable, Proto, ProtoError,
-    Resolvable, VersionManifest, VersionManifestEntry,
+    load_versions_manifest, remove_v_prefix, Describable, Manifest, Proto, ProtoError, Resolvable,
+    Tool, VersionManifest, VersionManifestEntry,
 };
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
@@ -75,11 +75,15 @@ impl Resolvable<'_> for NodeDependencyManager {
             );
         }
 
-        Ok(VersionManifest {
+        let mut manifest = VersionManifest {
             // Aliases map to dist tags
             aliases: BTreeMap::from_iter(response.dist_tags),
             versions,
-        })
+        };
+
+        manifest.inherit_aliases(&Manifest::load(self.get_manifest_path())?.aliases);
+
+        Ok(manifest)
     }
 
     async fn resolve_version(&mut self, initial_version: &str) -> Result<String, ProtoError> {
@@ -156,11 +160,11 @@ impl Resolvable<'_> for NodeDependencyManager {
         );
 
         let manifest = self.load_version_manifest().await?;
-        let version = parse_version(manifest.find_version(&initial_version)?)?.to_string();
+        let candidate = manifest.find_version(&initial_version)?;
 
-        debug!(target: self.get_log_target(), "Resolved to {}", version);
+        debug!(target: self.get_log_target(), "Resolved to {}", candidate);
 
-        self.set_version(&version);
+        self.set_version(candidate);
 
         // Extract dist information for use in downloading and verifying
         // self.dist = Some(
@@ -172,7 +176,7 @@ impl Resolvable<'_> for NodeDependencyManager {
         //         .clone(),
         // );
 
-        Ok(version)
+        Ok(candidate.to_owned())
     }
 
     fn set_version(&mut self, version: &str) {

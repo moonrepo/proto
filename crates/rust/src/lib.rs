@@ -7,7 +7,7 @@ mod shim;
 mod verify;
 
 use proto_core::{Describable, Proto, Tool};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
 pub struct RustLanguage {
@@ -46,4 +46,8 @@ impl Describable<'_> for RustLanguage {
     }
 }
 
-impl Tool<'_> for RustLanguage {}
+impl Tool<'_> for RustLanguage {
+    fn get_tool_dir(&self) -> &Path {
+        &self.base_dir
+    }
+}

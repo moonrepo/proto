@@ -75,6 +75,7 @@ fn updates_the_manifest_when_installing() {
     assert_eq!(
         fs::read_to_string(&manifest_file).unwrap(),
         r#"{
+  "aliases": {},
   "default_version": "19.0.0",
   "installed_versions": [
     "19.0.0"
@@ -93,6 +94,7 @@ fn updates_the_manifest_when_installing() {
     assert_eq!(
         fs::read_to_string(&manifest_file).unwrap(),
         r#"{
+  "aliases": {},
   "default_version": null,
   "installed_versions": []
 }"#
@@ -108,6 +110,7 @@ fn can_pin_when_installing() {
     fs::write(
         &manifest_file,
         r#"{
+  "aliases": {},
   "default_version": "18.0.0",
   "installed_versions": [
     "18.0.0"
@@ -126,6 +129,7 @@ fn can_pin_when_installing() {
     assert_eq!(
         fs::read_to_string(&manifest_file).unwrap(),
         r#"{
+  "aliases": {},
   "default_version": "19.0.0",
   "installed_versions": [
     "18.0.0",

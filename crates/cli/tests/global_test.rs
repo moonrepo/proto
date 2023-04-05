@@ -20,6 +20,7 @@ fn updates_manifest_file() {
     assert_eq!(
         std::fs::read_to_string(manifest_file).unwrap(),
         r#"{
+  "aliases": {},
   "default_version": "19.0.0",
   "installed_versions": []
 }"#
@@ -27,7 +28,7 @@ fn updates_manifest_file() {
 }
 
 #[test]
-fn can_set_aliases() {
+fn can_set_alias_as_default() {
     let temp = create_temp_dir();
     let manifest_file = temp.join("tools/npm/manifest.json");
 
@@ -44,6 +45,7 @@ fn can_set_aliases() {
     assert_eq!(
         std::fs::read_to_string(manifest_file).unwrap(),
         r#"{
+  "aliases": {},
   "default_version": "bundled",
   "installed_versions": []
 }"#

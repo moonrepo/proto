@@ -8,7 +8,7 @@ mod shim;
 mod verify;
 
 use proto_core::{Describable, Proto, Tool};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
 pub struct DenoLanguage {
@@ -47,4 +47,8 @@ impl Describable<'_> for DenoLanguage {
     }
 }
 
-impl Tool<'_> for DenoLanguage {}
+impl Tool<'_> for DenoLanguage {
+    fn get_tool_dir(&self) -> &Path {
+        &self.base_dir
+    }
+}

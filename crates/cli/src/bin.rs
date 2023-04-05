@@ -15,6 +15,11 @@ async fn main() {
     let app = App::parse();
 
     let result = match app.command {
+        Commands::Alias {
+            tool,
+            alias,
+            semver,
+        } => commands::alias(tool, alias, semver).await,
         Commands::Bin { tool, semver, shim } => commands::bin(tool, semver, shim).await,
         Commands::Completions { shell } => commands::completions(shell).await,
         Commands::Install {
@@ -36,6 +41,7 @@ async fn main() {
             passthrough,
         } => commands::run(tool, semver, passthrough).await,
         Commands::Setup { shell, profile } => commands::setup(shell, profile).await,
+        Commands::Unalias { tool, alias } => commands::unalias(tool, alias).await,
         Commands::Uninstall { tool, semver } => commands::uninstall(tool, semver).await,
         Commands::Upgrade => commands::upgrade().await,
         Commands::Use => commands::install_all().await,
