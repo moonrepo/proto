@@ -8,10 +8,10 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
-async-trait = "0.1.66"
+async-trait = "0.1.68"
 cached = { workspace = true }
 console = { workspace = true }
-dirs = "4.0.0"
+dirs = "5.0.0"
 flate2 = "1.0.25"
 human-sort = "0.2.2"
 lenient_semver = { version = "0.4.2", default-features = false, features = ["version_lite"] }
