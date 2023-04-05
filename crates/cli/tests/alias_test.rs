@@ -86,7 +86,7 @@ fn errors_when_using_version() {
         .assert();
 
     assert.stderr(predicate::str::contains(
-        "Versions cannot be aliases. Use alpha-only words instead.",
+        "Versions cannot be aliases. Use alphanumeric words instead.",
     ));
 }
 

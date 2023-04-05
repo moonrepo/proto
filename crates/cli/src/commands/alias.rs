@@ -1,8 +1,7 @@
 use crate::helpers::enable_logging;
 use crate::tools::{create_tool, ToolType};
 use log::info;
-use proto::is_alias_name;
-use proto_core::{color, Manifest, ProtoError};
+use proto_core::{color, is_alias_name, Manifest, ProtoError};
 
 pub async fn alias(tool_type: ToolType, alias: String, version: String) -> Result<(), ProtoError> {
     enable_logging();
@@ -13,7 +12,7 @@ pub async fn alias(tool_type: ToolType, alias: String, version: String) -> Resul
 
     if !is_alias_name(&alias) {
         return Err(ProtoError::Message(
-            "Versions cannot be aliases. Use alpha-only words instead.".into(),
+            "Versions cannot be aliases. Use alphanumeric words instead.".into(),
         ));
     }
 

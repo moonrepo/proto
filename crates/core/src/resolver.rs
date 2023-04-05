@@ -18,7 +18,7 @@ pub struct VersionManifestEntry {
     pub version: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct VersionManifest {
     pub aliases: BTreeMap<String, String>,
     pub versions: BTreeMap<String, VersionManifestEntry>,
