@@ -4,6 +4,7 @@ use crate::{get_temp_dir, is_alias_name, remove_v_prefix};
 use human_sort::compare;
 use lenient_semver::Version;
 use log::trace;
+use rustc_hash::FxHashMap;
 use serde::de::DeserializeOwned;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
@@ -94,6 +95,12 @@ impl VersionManifest {
         }
 
         Err(ProtoError::VersionResolveFailed(version.to_owned()))
+    }
+
+    pub fn inherit_aliases(&mut self, aliases: &FxHashMap<String, String>) {
+        for (alias, version) in aliases {
+            self.aliases.insert(alias.to_owned(), version.to_owned());
+        }
     }
 }
 

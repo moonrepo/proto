@@ -4,7 +4,7 @@ use crate::NodeLanguage;
 use log::debug;
 use proto_core::{
     async_trait, detect_version_from_environment, is_offline, is_semantic_version,
-    load_versions_manifest, remove_v_prefix, Describable, Proto, ProtoError, Resolvable,
+    load_versions_manifest, remove_v_prefix, Describable, Manifest, Proto, ProtoError, Resolvable,
     VersionManifest, VersionManifestEntry,
 };
 use rustc_hash::FxHashMap;
@@ -75,11 +75,15 @@ impl Resolvable<'_> for NodeDependencyManager {
             );
         }
 
-        Ok(VersionManifest {
+        let mut manifest = VersionManifest {
             // Aliases map to dist tags
             aliases: BTreeMap::from_iter(response.dist_tags),
             versions,
-        })
+        };
+
+        manifest.inherit_aliases(&Manifest::load_for_tool(self.get_bin_name())?.aliases);
+
+        Ok(manifest)
     }
 
     async fn resolve_version(&mut self, initial_version: &str) -> Result<String, ProtoError> {

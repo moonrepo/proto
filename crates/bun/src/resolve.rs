@@ -3,7 +3,7 @@ use core::str;
 use log::debug;
 use proto_core::{
     async_trait, create_version_manifest_from_tags, is_offline, is_semantic_version, load_git_tags,
-    remove_v_prefix, Describable, ProtoError, Resolvable, VersionManifest,
+    remove_v_prefix, Describable, Manifest, ProtoError, Resolvable, VersionManifest,
 };
 
 #[async_trait]
@@ -23,7 +23,9 @@ impl Resolvable<'_> for BunLanguage {
             .map(|t| t.strip_prefix("bun-v").unwrap().to_owned())
             .collect::<Vec<_>>();
 
-        let manifest = create_version_manifest_from_tags(tags);
+        let mut manifest = create_version_manifest_from_tags(tags);
+
+        manifest.inherit_aliases(&Manifest::load_for_tool(self.get_bin_name())?.aliases);
 
         Ok(manifest)
     }
