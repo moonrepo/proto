@@ -50,12 +50,7 @@ impl Resolvable<'_> for BunLanguage {
         );
 
         let manifest = self.load_version_manifest().await?;
-
-        let candidate = if initial_version == "latest" {
-            manifest.find_version_from_alias(&initial_version)?
-        } else {
-            manifest.find_version(&initial_version)?
-        };
+        let candidate = manifest.find_version(&initial_version)?;
 
         debug!(target: self.get_log_target(), "Resolved to {}", candidate);
 

@@ -71,10 +71,7 @@ impl Resolvable<'_> for GoLanguage {
         let candidate = if initial_version.contains("rc") || initial_version.contains("beta") {
             manifest.get_version(&initial_version)?
         } else {
-            match manifest.find_version_from_alias(&initial_version) {
-                Ok(found) => found,
-                _ => manifest.find_version(&initial_version)?,
-            }
+            manifest.find_version(&initial_version)?
         };
 
         debug!(target: self.get_log_target(), "Resolved to {}", candidate);

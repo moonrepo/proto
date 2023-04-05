@@ -94,18 +94,18 @@ impl Resolvable<'_> for NodeLanguage {
 
         // Latest version is always at the top
         if initial_version == "node" || initial_version == "latest" {
-            candidate = manifest.find_version_from_alias("latest")?;
+            candidate = manifest.get_version_from_alias("latest")?;
 
         // Stable version is the first with an LTS
         } else if initial_version == "stable"
             || initial_version == "lts-*"
             || initial_version == "lts/*"
         {
-            candidate = manifest.find_version_from_alias("stable")?;
+            candidate = manifest.get_version_from_alias("stable")?;
 
             // Find the first version with a matching LTS
         } else if initial_version.starts_with("lts-") || initial_version.starts_with("lts/") {
-            candidate = manifest.find_version_from_alias(&initial_version[4..])?;
+            candidate = manifest.get_version_from_alias(&initial_version[4..])?;
 
             // Either an alias or version
         } else {

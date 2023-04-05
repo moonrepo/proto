@@ -29,7 +29,7 @@ pub fn get_tools_dir() -> Result<PathBuf, ProtoError> {
 }
 
 // Aliases are words that map to version. For example, "latest" -> "1.2.3".
-pub fn is_version_alias(value: &str) -> bool {
+pub fn is_alias_name(value: &str) -> bool {
     value
         .chars()
         .all(|c| char::is_ascii_alphabetic(&c) || c == '-')

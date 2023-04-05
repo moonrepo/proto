@@ -4,7 +4,7 @@ use crate::errors::ProtoError;
 use crate::manifest::{Manifest, MANIFEST_NAME};
 use crate::tool::Tool;
 use crate::tools_config::{ToolsConfig, TOOLS_CONFIG_NAME};
-use crate::{color, is_version_alias};
+use crate::{color, is_alias_name};
 use lenient_semver::Version;
 use log::{debug, trace};
 use std::{env, fs, path::Path};
@@ -149,7 +149,7 @@ pub fn detect_fixed_version<P: AsRef<Path>>(
     version: &str,
     manifest_path: P,
 ) -> Result<Option<String>, ProtoError> {
-    if is_version_alias(version) {
+    if is_alias_name(version) {
         return Ok(None);
     }
 

@@ -1,6 +1,6 @@
 use crate::errors::ProtoError;
 use crate::{color, is_offline};
-use crate::{get_temp_dir, is_version_alias, remove_v_prefix};
+use crate::{get_temp_dir, is_alias_name, remove_v_prefix};
 use human_sort::compare;
 use lenient_semver::Version;
 use log::trace;
@@ -25,10 +25,10 @@ pub struct VersionManifest {
 
 impl VersionManifest {
     pub fn find_version<V: AsRef<str>>(&self, version: V) -> Result<&String, ProtoError> {
-        let version = version.as_ref();
+        let mut version = version.as_ref();
 
-        if is_version_alias(version) {
-            return self.find_version_from_alias(version);
+        if is_alias_name(version) {
+            version = self.get_version_from_alias(version)?;
         }
 
         let prefixless_version = remove_v_prefix(version);
@@ -75,10 +75,17 @@ impl VersionManifest {
         Err(ProtoError::VersionResolveFailed(version.to_owned()))
     }
 
-    pub fn find_version_from_alias(&self, alias: &str) -> Result<&String, ProtoError> {
-        self.aliases
+    pub fn get_version_from_alias(&self, alias: &str) -> Result<&String, ProtoError> {
+        let version = self
+            .aliases
             .get(alias)
-            .ok_or_else(|| ProtoError::VersionUnknownAlias(alias.to_owned()))
+            .ok_or_else(|| ProtoError::VersionUnknownAlias(alias.to_owned()))?;
+
+        if is_alias_name(version) {
+            return self.get_version_from_alias(version);
+        }
+
+        Ok(version)
     }
 
     pub fn get_version(&self, version: &str) -> Result<&String, ProtoError> {

@@ -71,6 +71,26 @@ fn can_overwrite_existing_alias() {
 }
 
 #[test]
+fn errors_when_using_version() {
+    let temp = create_temp_dir();
+    let manifest_file = temp.join("tools/node/manifest.json");
+
+    assert!(!manifest_file.exists());
+
+    let mut cmd = create_proto_command(temp.path());
+    let assert = cmd
+        .arg("alias")
+        .arg("node")
+        .arg("1.2.3")
+        .arg("4.5.6")
+        .assert();
+
+    assert.stderr(predicate::str::contains(
+        "Versions cannot be aliases. Use alpha-only words instead.",
+    ));
+}
+
+#[test]
 fn errors_when_aliasing_self() {
     let temp = create_temp_dir();
     let manifest_file = temp.join("tools/node/manifest.json");
