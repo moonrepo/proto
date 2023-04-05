@@ -10,6 +10,12 @@ keywords = ["language", "installer", "version-manager", "dependency-manager", "p
 categories = ["development-tools"]
 readme = "../../README.md"
 
+[package.metadata.release]
+pre-release-replacements = [
+	{ file = "../../version", search = "^(.+)$", replace = "{{version}}" },
+	{ file = "../../CHANGELOG.md", search = "Unreleased", replace = "{{version}}" }
+]
+
 [lib]
 name = "proto"
 path = "src/lib.rs"
