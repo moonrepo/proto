@@ -19,7 +19,7 @@ pub async fn alias(tool_type: ToolType, alias: String, version: String) -> Resul
 
     let tool = create_tool(&tool_type)?;
 
-    let mut manifest = Manifest::load_for_tool(tool.get_bin_name())?;
+    let mut manifest = Manifest::load(tool.get_manifest_path())?;
     manifest.aliases.insert(alias.clone(), version.clone());
     manifest.save()?;
 

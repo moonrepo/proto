@@ -122,7 +122,7 @@ pub async fn detect_version_from_environment<'l, T: Tool<'l> + ?Sized>(
             MANIFEST_NAME
         );
 
-        let manifest = Manifest::load_for_tool(tool.get_bin_name())?;
+        let manifest = Manifest::load(tool.get_manifest_path())?;
 
         if let Some(global_version) = manifest.default_version {
             debug!(

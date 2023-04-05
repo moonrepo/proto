@@ -2,7 +2,7 @@ use crate::NodeLanguage;
 use log::debug;
 use proto_core::{
     async_trait, is_offline, is_semantic_version, load_versions_manifest, parse_version,
-    remove_v_prefix, Describable, Manifest, ProtoError, Resolvable, VersionManifest,
+    remove_v_prefix, Describable, Manifest, ProtoError, Resolvable, Tool, VersionManifest,
     VersionManifestEntry,
 };
 use serde::Deserialize;
@@ -68,7 +68,7 @@ impl Resolvable<'_> for NodeLanguage {
 
         let mut manifest = VersionManifest { aliases, versions };
 
-        manifest.inherit_aliases(&Manifest::load_for_tool(self.get_bin_name())?.aliases);
+        manifest.inherit_aliases(&Manifest::load(self.get_manifest_path())?.aliases);
 
         Ok(manifest)
     }
@@ -96,6 +96,8 @@ impl Resolvable<'_> for NodeLanguage {
 
         let manifest = self.load_version_manifest().await?;
         let candidate;
+
+        dbg!(&manifest);
 
         // Latest version is always at the top
         if initial_version == "node" || initial_version == "latest" {

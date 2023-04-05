@@ -10,7 +10,7 @@ mod verify;
 
 pub use depman::*;
 use proto_core::{Describable, Proto, Tool};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
 pub struct NodeLanguage {
@@ -51,4 +51,8 @@ impl Describable<'_> for NodeLanguage {
     }
 }
 
-impl Tool<'_> for NodeLanguage {}
+impl Tool<'_> for NodeLanguage {
+    fn get_tool_dir(&self) -> &Path {
+        &self.base_dir
+    }
+}

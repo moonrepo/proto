@@ -5,7 +5,7 @@ use log::debug;
 use proto_core::{
     async_trait, detect_version_from_environment, is_offline, is_semantic_version,
     load_versions_manifest, remove_v_prefix, Describable, Manifest, Proto, ProtoError, Resolvable,
-    VersionManifest, VersionManifestEntry,
+    Tool, VersionManifest, VersionManifestEntry,
 };
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
@@ -81,7 +81,7 @@ impl Resolvable<'_> for NodeDependencyManager {
             versions,
         };
 
-        manifest.inherit_aliases(&Manifest::load_for_tool(self.get_bin_name())?.aliases);
+        manifest.inherit_aliases(&Manifest::load(self.get_manifest_path())?.aliases);
 
         Ok(manifest)
     }

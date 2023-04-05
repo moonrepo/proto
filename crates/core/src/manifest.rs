@@ -1,4 +1,4 @@
-use crate::{color, get_tools_dir, ProtoError};
+use crate::{color, ProtoError};
 use log::{info, trace};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
@@ -55,10 +55,6 @@ impl Manifest {
         manifest.save()?;
 
         Ok(())
-    }
-
-    pub fn load_for_tool(bin: &str) -> Result<Self, ProtoError> {
-        Self::load_from(get_tools_dir()?.join(bin))
     }
 
     pub fn load_from<P: AsRef<Path>>(dir: P) -> Result<Self, ProtoError> {
