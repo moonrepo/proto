@@ -1,3 +1,4 @@
+mod alias;
 mod bin;
 mod completions;
 mod global;
@@ -9,9 +10,11 @@ mod list_remote;
 mod local;
 mod run;
 mod setup;
+mod unalias;
 mod uninstall;
 mod upgrade;
 
+pub use alias::*;
 pub use bin::*;
 pub use completions::*;
 pub use global::*;
@@ -23,5 +26,6 @@ pub use list_remote::*;
 pub use local::*;
 pub use run::*;
 pub use setup::*;
+pub use unalias::*;
 pub use uninstall::*;
 pub use upgrade::*;
