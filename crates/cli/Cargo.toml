@@ -8,6 +8,7 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 keywords = ["language", "installer", "version-manager", "dependency-manager", "package-manager"]
 categories = ["development-tools"]
+readme = "../../README.md"
 
 [lib]
 name = "proto"
