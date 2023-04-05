@@ -4,7 +4,8 @@
 
 #### 🚀 Updates
 
-- Added a `proto install-global` command, for installing global packages for a tool.
+- Added a `proto install-global` command for installing global packages for a tool.
+- Added `proto alias` and `proto unalias` commands for creating custom version aliases.
 
 ## 0.4.0
 
