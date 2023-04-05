@@ -68,6 +68,7 @@ mod node {
         assert_eq!(
             fs::read_to_string(temp.join("tools/npm/manifest.json")).unwrap(),
             r#"{
+  "aliases": {},
   "default_version": "bundled",
   "installed_versions": [
     "8.19.2"

@@ -11,6 +11,7 @@ fn lists_local_versions() {
     fs::write(
         temp.join("tools/node/manifest.json"),
         r#"{
+  "aliases": {},
   "default_version": "19.0.0",
   "installed_versions": [
     "19.0.0",
