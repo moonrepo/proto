@@ -1,4 +1,5 @@
 use crate::commands::install::install;
+use crate::helpers::enable_logging_with_level;
 use crate::tools::{create_tool, ToolType};
 use log::debug;
 use proto_core::{color, detect_version_from_environment, ProtoError, UserConfig};
@@ -10,6 +11,8 @@ pub async fn run(
     forced_version: Option<String>,
     args: Vec<String>,
 ) -> Result<(), ProtoError> {
+    enable_logging_with_level("warn");
+
     let mut tool = create_tool(&tool_type)?;
     let version = detect_version_from_environment(&tool, forced_version).await?;
 

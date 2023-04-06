@@ -7,6 +7,10 @@
 - Added a `proto install-global` command for installing global packages for a tool.
 - Added `proto alias` and `proto unalias` commands for creating custom version aliases.
 
+#### 🐞 Fixes
+
+- Fixed an issue where `PROTO_LOG` logs were not always shown.
+
 #### ⚙️ Internal
 
 - Updated cargo dependencies.

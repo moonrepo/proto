@@ -11,6 +11,10 @@ use std::sync::atomic::Ordering::Relaxed;
 use std::time::Duration;
 
 pub fn enable_logging() {
+    enable_logging_with_level("info");
+}
+
+pub fn enable_logging_with_level(level: &str) {
     static ENABLED: AtomicBool = AtomicBool::new(false);
 
     if !ENABLED.load(Relaxed) {
@@ -19,7 +23,7 @@ pub fn enable_logging() {
                 env::set_var("PROTO_LOG", format!("proto={level}"));
             }
         } else {
-            env::set_var("PROTO_LOG", "proto=info");
+            env::set_var("PROTO_LOG", format!("proto={level}"));
         }
 
         env_logger::Builder::from_env("PROTO_LOG")

@@ -1,4 +1,7 @@
-use crate::tools::{create_tool, ToolType};
+use crate::{
+    helpers::enable_logging_with_level,
+    tools::{create_tool, ToolType},
+};
 use proto_core::{detect_version_from_environment, ProtoError};
 
 pub async fn bin(
@@ -6,6 +9,8 @@ pub async fn bin(
     forced_version: Option<String>,
     use_shim: bool,
 ) -> Result<(), ProtoError> {
+    enable_logging_with_level("warn");
+
     let mut tool = create_tool(&tool_type)?;
     let version = detect_version_from_environment(&tool, forced_version).await?;
 
