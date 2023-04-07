@@ -1,15 +1,15 @@
 use crate::errors::ProtoError;
-use crate::{color, is_offline};
-use crate::{get_temp_dir, is_alias_name, remove_v_prefix};
+use crate::helpers::{get_temp_dir, is_alias_name, is_offline, remove_v_prefix};
 use human_sort::compare;
 use lenient_semver::Version;
 use log::trace;
 use rustc_hash::FxHashMap;
 use serde::de::DeserializeOwned;
 use sha2::{Digest, Sha256};
+use starbase_styles::color;
+use starbase_utils::{fs, json, json::JsonError};
 use std::collections::BTreeMap;
 use std::time::{Duration, SystemTime};
-use std::{fs, io};
 use tokio::process::Command;
 
 #[derive(Debug)]
@@ -226,12 +226,14 @@ where
 
     let temp_dir = get_temp_dir()?;
     let temp_file = temp_dir.join(format!("{:x}.json", sha.finalize()));
-    let handle_http_error = |e: reqwest::Error| ProtoError::Http(url.to_owned(), e.to_string());
-    let handle_io_error = |e: io::Error| ProtoError::Fs(temp_file.to_path_buf(), e.to_string());
+    let handle_http_error = |error: reqwest::Error| ProtoError::Http {
+        url: url.to_owned(),
+        error,
+    };
     let offline = is_offline();
 
     if temp_file.exists() {
-        let metadata = fs::metadata(&temp_file).map_err(handle_io_error)?;
+        let metadata = fs::metadata(&temp_file)?;
 
         // When offline, always read the temp file as we can't download the manifest
         let read_temp = if offline {
@@ -250,10 +252,9 @@ where
                 color::path(&temp_file),
             );
 
-            let contents = fs::read_to_string(&temp_file).map_err(handle_io_error)?;
+            let contents: T = json::read_file(&temp_file)?;
 
-            return serde_json::from_str(&contents)
-                .map_err(|e| ProtoError::Fs(temp_file.to_path_buf(), e.to_string()));
+            return Ok(contents);
         }
     }
 
@@ -271,15 +272,22 @@ where
     let response = reqwest::get(url).await.map_err(handle_http_error)?;
     let contents = response.text().await.map_err(handle_http_error)?;
 
-    fs::create_dir_all(&temp_dir).map_err(handle_io_error)?;
-    fs::write(&temp_file, &contents).map_err(handle_io_error)?;
+    fs::create_dir_all(&temp_dir)?;
+    fs::write_file(&temp_file, &contents)?;
 
-    serde_json::from_str(&contents).map_err(|e| ProtoError::Http(url.to_owned(), e.to_string()))
+    let data: T = serde_json::from_str(&contents).map_err(|error| JsonError::ReadFile {
+        path: temp_file.to_path_buf(),
+        error,
+    })?;
+
+    Ok(data)
 }
 
 pub fn parse_version(version: &str) -> Result<Version, ProtoError> {
-    Version::parse(version)
-        .map_err(|e| ProtoError::VersionParseFailed(version.to_owned(), e.to_string()))
+    Version::parse(version).map_err(|error| ProtoError::SemverLenient {
+        version: version.to_owned(),
+        error: error.owned(),
+    })
 }
 
 pub fn is_semantic_version(version: &str) -> bool {

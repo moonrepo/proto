@@ -1,4 +1,4 @@
-use crate::ProtoError;
+use crate::errors::ProtoError;
 use cached::proc_macro::cached;
 use dirs::home_dir;
 use std::process::Command;

@@ -1,11 +1,10 @@
-use crate::{color, ProtoError};
+use crate::errors::ProtoError;
 use log::{info, trace};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use starbase_styles::color;
+use starbase_utils::{fs, json};
+use std::path::{Path, PathBuf};
 
 pub const MANIFEST_NAME: &str = "manifest.json";
 
@@ -67,11 +66,7 @@ impl Manifest {
         trace!(target: "proto:manifest", "Loading manifest {}", color::path(path));
 
         let mut manifest: Manifest = if path.exists() {
-            let contents = fs::read_to_string(path)
-                .map_err(|e| ProtoError::Fs(path.to_path_buf(), e.to_string()))?;
-
-            serde_json::from_str(&contents)
-                .map_err(|e| ProtoError::Json(path.to_path_buf(), e.to_string()))?
+            json::read_file(path)?
         } else {
             Manifest::default()
         };
@@ -84,17 +79,11 @@ impl Manifest {
     pub fn save(&self) -> Result<(), ProtoError> {
         trace!(target: "proto:manifest", "Saving manifest {}", color::path(&self.path));
 
-        let data = serde_json::to_string_pretty(self)
-            .map_err(|e| ProtoError::Json(self.path.to_path_buf(), e.to_string()))?;
-
-        let handle_error =
-            |e: std::io::Error| ProtoError::Fs(self.path.to_path_buf(), e.to_string());
-
         if let Some(parent) = self.path.parent() {
-            fs::create_dir_all(parent).map_err(handle_error)?;
+            fs::create_dir_all(parent)?;
         }
 
-        fs::write(&self.path, data).map_err(handle_error)?;
+        json::write_file(&self.path, self, true)?;
 
         Ok(())
     }

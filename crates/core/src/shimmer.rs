@@ -1,14 +1,12 @@
 use crate::errors::ProtoError;
-use crate::helpers::get_root;
-use crate::{color, get_bin_dir};
+use crate::helpers::{get_bin_dir, get_root};
 use log::debug;
 use serde::Serialize;
 use serde_json::Value;
+use starbase_styles::color;
+use starbase_utils::fs;
 use std::fmt::Write;
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 use tinytemplate::error::Error as TemplateError;
 use tinytemplate::TinyTemplate;
 
@@ -64,7 +62,6 @@ fn get_template<'l>(global: bool) -> &'l str {
 }
 
 fn build_shim_file(builder: &ShimBuilder, contents: &str) -> Result<String, ProtoError> {
-    let handle_error = |e: TemplateError| ProtoError::Shim(e.to_string());
     let mut template = TinyTemplate::new();
 
     template.add_formatter("uppercase", format_uppercase);
@@ -73,11 +70,11 @@ fn build_shim_file(builder: &ShimBuilder, contents: &str) -> Result<String, Prot
 
     template
         .add_template("shim", &contents)
-        .map_err(handle_error)?;
+        .map_err(ProtoError::Shim)?;
 
     template
         .render("shim", &builder.create_context()?)
-        .map_err(handle_error)
+        .map_err(ProtoError::Shim)
 }
 
 #[cfg(windows)]
@@ -183,25 +180,12 @@ impl ShimBuilder {
     fn do_create(&self, shim_path: PathBuf, contents: &str) -> Result<PathBuf, ProtoError> {
         let shim_exists = shim_path.exists();
 
-        let handle_error =
-            |e: std::io::Error| ProtoError::Fs(shim_path.to_path_buf(), e.to_string());
-
         if let Some(parent) = shim_path.parent() {
-            if !parent.exists() {
-                fs::create_dir_all(parent).map_err(handle_error)?;
-            }
+            fs::create_dir_all(parent)?;
         }
 
-        fs::write(&shim_path, build_shim_file(self, contents)?).map_err(handle_error)?;
-
-        // Make executable
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-
-            fs::set_permissions(&shim_path, fs::Permissions::from_mode(0o755))
-                .map_err(handle_error)?;
-        }
+        fs::write_file(&shim_path, build_shim_file(self, contents)?)?;
+        fs::update_perms(&shim_path, None)?;
 
         // Only log the first time it happens
         if !shim_exists {

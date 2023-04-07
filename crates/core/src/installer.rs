@@ -1,11 +1,12 @@
+use crate::describer::Describable;
 use crate::errors::ProtoError;
-use crate::{color, Describable};
 use log::{debug, trace};
-use std::fs::{self, File};
+use starbase_styles::color;
+use starbase_utils::fs::{self, FsError};
+use std::fs::File;
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 use tar::Archive;
-use zip::result::ZipError;
 use zip::ZipArchive;
 
 #[async_trait::async_trait]
@@ -63,8 +64,7 @@ pub trait Installable<'tool>: Send + Sync + Describable<'tool> {
             color::path(install_dir)
         );
 
-        fs::remove_dir_all(install_dir)
-            .map_err(|e| ProtoError::Fs(install_dir.to_path_buf(), e.to_string()))?;
+        fs::remove_dir_all(install_dir)?;
 
         debug!(target: self.get_log_target(), "Successfully uninstalled tool");
 
@@ -99,9 +99,10 @@ pub fn untar<I: AsRef<Path>, O: AsRef<Path>, R: FnOnce(File) -> D, D: Read>(
 ) -> Result<(), ProtoError> {
     let input_file = input_file.as_ref();
     let output_dir = output_dir.as_ref();
-    let handle_input_error = |e: io::Error| ProtoError::Fs(input_file.to_path_buf(), e.to_string());
-    let handle_output_error =
-        |e: io::Error| ProtoError::Fs(output_dir.to_path_buf(), e.to_string());
+    let handle_input_error = |error: io::Error| FsError::Read {
+        path: input_file.to_path_buf(),
+        error,
+    };
 
     trace!(
         target: "proto:installer",
@@ -111,11 +112,11 @@ pub fn untar<I: AsRef<Path>, O: AsRef<Path>, R: FnOnce(File) -> D, D: Read>(
     );
 
     if !output_dir.exists() {
-        fs::create_dir_all(output_dir).map_err(handle_output_error)?;
+        fs::create_dir_all(output_dir)?;
     }
 
     // Open .tar.gz file
-    let tar_gz = File::open(input_file).map_err(handle_input_error)?;
+    let tar_gz = fs::open_file(input_file)?;
 
     // Decompress to .tar
     let tar = decoder(tar_gz);
@@ -138,13 +139,13 @@ pub fn untar<I: AsRef<Path>, O: AsRef<Path>, R: FnOnce(File) -> D, D: Read>(
 
         // Create parent dirs
         if let Some(parent_dir) = output_path.parent() {
-            fs::create_dir_all(parent_dir)
-                .map_err(|e| ProtoError::Fs(parent_dir.to_path_buf(), e.to_string()))?;
+            fs::create_dir_all(parent_dir)?;
         }
 
-        entry
-            .unpack(&output_path)
-            .map_err(|e| ProtoError::Fs(output_path.to_path_buf(), e.to_string()))?;
+        entry.unpack(&output_path).map_err(|error| FsError::Write {
+            path: output_path.to_path_buf(),
+            error,
+        })?;
     }
 
     Ok(())
@@ -177,10 +178,6 @@ pub fn unzip<I: AsRef<Path>, O: AsRef<Path>>(
 ) -> Result<(), ProtoError> {
     let input_file = input_file.as_ref();
     let output_dir = output_dir.as_ref();
-    let handle_input_error = |e: io::Error| ProtoError::Fs(input_file.to_path_buf(), e.to_string());
-    let handle_output_error =
-        |e: io::Error| ProtoError::Fs(output_dir.to_path_buf(), e.to_string());
-    let handle_zip_error = |e: ZipError| ProtoError::Zip(e.to_string());
 
     trace!(
         target: "proto:installer",
@@ -190,17 +187,17 @@ pub fn unzip<I: AsRef<Path>, O: AsRef<Path>>(
     );
 
     if !output_dir.exists() {
-        fs::create_dir_all(output_dir).map_err(handle_output_error)?;
+        fs::create_dir_all(output_dir)?;
     }
 
     // Open .zip file
-    let zip = File::open(input_file).map_err(handle_input_error)?;
+    let zip = fs::open_file(input_file)?;
 
     // Unpack the archive into the output dir
-    let mut archive = ZipArchive::new(zip).map_err(handle_zip_error)?;
+    let mut archive = ZipArchive::new(zip).map_err(ProtoError::Zip)?;
 
     for i in 0..archive.len() {
-        let mut file = archive.by_index(i).map_err(handle_zip_error)?;
+        let mut file = archive.by_index(i).map_err(ProtoError::Zip)?;
 
         let mut path = match file.enclosed_name() {
             Some(path) => path.to_owned(),
@@ -215,35 +212,27 @@ pub fn unzip<I: AsRef<Path>, O: AsRef<Path>>(
         }
 
         let output_path = output_dir.join(&path);
-        let handle_error = |e: io::Error| ProtoError::Fs(output_path.to_path_buf(), e.to_string());
 
         // Create parent dirs
         if let Some(parent_dir) = &output_path.parent() {
-            fs::create_dir_all(parent_dir)
-                .map_err(|e| ProtoError::Fs(parent_dir.to_path_buf(), e.to_string()))?;
+            fs::create_dir_all(parent_dir)?;
         }
 
         // If a folder, create the dir
         if file.is_dir() {
-            fs::create_dir_all(&output_path).map_err(handle_error)?;
+            fs::create_dir_all(&output_path)?;
         }
 
         // If a file, copy it to the output dir
         if file.is_file() {
-            let mut out = File::create(&output_path).map_err(handle_error)?;
+            let mut out = fs::create_file(&output_path)?;
 
-            io::copy(&mut file, &mut out).map_err(handle_error)?;
+            io::copy(&mut file, &mut out).map_err(|error| FsError::Write {
+                path: output_path.to_path_buf(),
+                error,
+            })?;
 
-            // Update permissions when on a nix machine
-            #[cfg(unix)]
-            {
-                use std::os::unix::fs::PermissionsExt;
-
-                if let Some(mode) = file.unix_mode() {
-                    fs::set_permissions(&output_path, fs::Permissions::from_mode(mode))
-                        .map_err(handle_error)?;
-                }
-            }
+            fs::update_perms(&output_path, file.unix_mode())?;
         }
     }
 

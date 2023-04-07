@@ -1,13 +1,15 @@
 #![allow(clippy::borrowed_box)]
 
 use crate::errors::ProtoError;
+use crate::helpers::is_alias_name;
 use crate::manifest::{Manifest, MANIFEST_NAME};
 use crate::tool::Tool;
 use crate::tools_config::{ToolsConfig, TOOLS_CONFIG_NAME};
-use crate::{color, is_alias_name};
 use lenient_semver::Version;
 use log::{debug, trace};
-use std::{env, fs, path::Path};
+use starbase_styles::color;
+use starbase_utils::fs;
+use std::{env, path::Path};
 
 #[async_trait::async_trait]
 pub trait Detector<'tool>: Send + Sync {
@@ -18,10 +20,7 @@ pub trait Detector<'tool>: Send + Sync {
 }
 
 pub fn load_version_file(path: &Path) -> Result<String, ProtoError> {
-    Ok(fs::read_to_string(path)
-        .map_err(|e| ProtoError::Fs(path.to_path_buf(), e.to_string()))?
-        .trim()
-        .to_owned())
+    Ok(fs::read_file(path)?.trim().to_owned())
 }
 
 pub async fn detect_version_from_environment<'l, T: Tool<'l> + ?Sized>(
@@ -128,7 +127,7 @@ pub async fn detect_version_from_environment<'l, T: Tool<'l> + ?Sized>(
             debug!(
                 target: "proto:detector",
                 "Detected global version {} from {}",
-               global_version,
+                global_version,
                 color::path(&manifest.path)
             );
 
@@ -158,13 +157,19 @@ pub fn detect_fixed_version<P: AsRef<Path>>(
     let mut maybe_version = String::new();
 
     let mut check_manifest = |check_version: String| -> Result<bool, ProtoError> {
-        let req = semver::VersionReq::parse(&check_version)
-            .map_err(|e| ProtoError::Semver(check_version.to_owned(), e.to_string()))?;
+        let req =
+            semver::VersionReq::parse(&check_version).map_err(|error| ProtoError::Semver {
+                version: check_version.to_owned(),
+                error,
+            })?;
         let manifest = Manifest::load(manifest_path.as_ref())?;
 
         for installed_version in manifest.installed_versions {
-            let version_inst = semver::Version::parse(&installed_version)
-                .map_err(|e| ProtoError::Semver(installed_version.to_owned(), e.to_string()))?;
+            let version_inst =
+                semver::Version::parse(&installed_version).map_err(|error| ProtoError::Semver {
+                    version: installed_version.to_owned(),
+                    error,
+                })?;
 
             if req.matches(&version_inst) {
                 fully_qualified = true;
@@ -202,8 +207,7 @@ pub fn detect_fixed_version<P: AsRef<Path>>(
         return Ok(None);
     }
 
-    let semver = Version::parse(&maybe_version)
-        .map_err(|e| ProtoError::Semver(maybe_version.to_owned(), e.to_string()))?;
+    let semver = Version::parse(&maybe_version).map_err(|e| ProtoError::Message(e.to_string()))?;
 
     let version_parts = version.split('.').collect::<Vec<_>>();
     let mut matched_version = semver.major.to_string();
@@ -221,9 +225,8 @@ pub fn detect_fixed_version<P: AsRef<Path>>(
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
-
     use super::*;
+    use std::path::PathBuf;
 
     pub fn create_temp_dir() -> assert_fs::TempDir {
         assert_fs::TempDir::new().unwrap()
@@ -231,9 +234,8 @@ mod tests {
 
     pub fn create_manifest(dir: &Path, manifest: Manifest) -> PathBuf {
         let manifest_path = dir.join(MANIFEST_NAME);
-        let manifest_str = serde_json::to_string_pretty(&manifest).unwrap();
 
-        std::fs::write(&manifest_path, manifest_str).unwrap();
+        starbase_utils::json::write_file(&manifest_path, &manifest, true).unwrap();
 
         manifest_path
     }

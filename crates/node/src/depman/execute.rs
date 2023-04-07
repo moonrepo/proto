@@ -2,7 +2,7 @@ use crate::depman::NodeDependencyManager;
 use clean_path::Clean;
 use proto_core::{async_trait, Describable, Executable, Installable, ProtoError};
 use serde_json::Value;
-use std::fs;
+use starbase_utils::json;
 use std::path::{Path, PathBuf};
 
 pub fn extract_bin_from_package_json(
@@ -10,12 +10,7 @@ pub fn extract_bin_from_package_json(
     bin_name: &str,
 ) -> Result<Option<String>, ProtoError> {
     let mut bin_path = None;
-
-    let data = fs::read_to_string(&package_path)
-        .map_err(|e| ProtoError::Fs(package_path.clone(), e.to_string()))?;
-
-    let json: Value =
-        serde_json::from_str(&data).map_err(|e| ProtoError::Json(package_path, e.to_string()))?;
+    let json: Value = json::read_file(package_path)?;
 
     if let Some(bin_field) = json.get("bin") {
         match bin_field {

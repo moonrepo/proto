@@ -1,8 +1,10 @@
+use crate::describer::Describable;
 use crate::errors::ProtoError;
+use crate::helpers::is_offline;
 use crate::resolver::Resolvable;
-use crate::{color, is_offline, Describable};
 use log::{debug, trace};
-use std::fs::{self, File};
+use starbase_styles::color;
+use starbase_utils::fs::{self, FsError};
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -57,8 +59,14 @@ where
 
     let url = url.as_ref();
     let dest_file = dest_file.as_ref();
-    let handle_io_error = |e: io::Error| ProtoError::Fs(dest_file.to_path_buf(), e.to_string());
-    let handle_http_error = |e: reqwest::Error| ProtoError::Http(url.to_owned(), e.to_string());
+    let handle_io_error = |error: io::Error| FsError::Create {
+        path: dest_file.to_path_buf(),
+        error,
+    };
+    let handle_http_error = |error: reqwest::Error| ProtoError::Http {
+        url: url.to_owned(),
+        error,
+    };
 
     trace!(
         target: "proto:downloader",
@@ -69,7 +77,7 @@ where
 
     // Ensure parent directories exist
     if let Some(parent) = dest_file.parent() {
-        fs::create_dir_all(parent).map_err(handle_io_error)?;
+        fs::create_dir_all(parent)?;
     }
 
     // Fetch the file from the HTTP source
@@ -85,7 +93,7 @@ where
 
     // Write the bytes to our local file
     let mut contents = io::Cursor::new(response.bytes().await.map_err(handle_http_error)?);
-    let mut file = File::create(dest_file).map_err(handle_io_error)?;
+    let mut file = fs::create_file(dest_file)?;
 
     io::copy(&mut contents, &mut file).map_err(handle_io_error)?;
 

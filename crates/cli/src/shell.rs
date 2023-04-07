@@ -3,9 +3,10 @@ use dirs::home_dir;
 use log::{debug, trace};
 use proto_core::{color, ProtoError};
 use rustc_hash::FxHashMap;
+use starbase_utils::fs::{self, FsError};
 use std::{
     env,
-    fs::{self, OpenOptions},
+    fs::OpenOptions,
     io::{self, BufRead, Write},
     path::PathBuf,
 };
@@ -125,8 +126,7 @@ pub fn write_profile_if_not_setup(
 
         trace!(target: "proto:shell", "Exists, checking if already setup");
 
-        let file = fs::File::open(profile)
-            .map_err(|e| ProtoError::Fs(profile.to_path_buf(), e.to_string()))?;
+        let file = fs::open_file(profile)?;
 
         let has_setup = io::BufReader::new(file)
             .lines()
@@ -151,7 +151,10 @@ pub fn write_profile_if_not_setup(
     // Create a profile if none found. Use the last profile in the list
     // as it's the "most common", and is typically the interactive shell.
     let last_profile = profiles.last().unwrap();
-    let handle_error = |e: io::Error| ProtoError::Fs(last_profile.to_path_buf(), e.to_string());
+    let handle_error = |error: io::Error| FsError::Write {
+        path: last_profile.to_path_buf(),
+        error,
+    };
 
     debug!(
         target: "proto:shell",
@@ -160,7 +163,7 @@ pub fn write_profile_if_not_setup(
     );
 
     if let Some(parent) = last_profile.parent() {
-        fs::create_dir_all(parent).map_err(handle_error)?;
+        fs::create_dir_all(parent)?;
     }
 
     let mut options = OpenOptions::new();
