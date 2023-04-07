@@ -70,7 +70,10 @@ pub async fn download_to_temp_with_progress_bar(
     url: &str,
     file_name: &str,
 ) -> Result<PathBuf, ProtoError> {
-    let handle_error = |e: reqwest::Error| ProtoError::Http(url.to_owned(), e.to_string());
+    let handle_error = |error: reqwest::Error| ProtoError::Http {
+        url: url.to_owned(),
+        error,
+    };
     let response = reqwest::Client::new()
         .get(url)
         .send()

@@ -15,6 +15,7 @@ flate2 = "1.0.25"
 human-sort = "0.2.2"
 lenient_semver = { version = "0.4.2", default-features = false, features = ["version_lite"] }
 log = { workspace = true }
+miette = { workspace = true }
 reqwest = { workspace = true }
 rustc-hash = { workspace = true }
 semver = "1.0.17"
@@ -22,6 +23,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = "0.10.6"
 starbase_styles = "0.1.0"
+starbase_utils = { version = "0.1.0", features = ["json"] }
 tar = "0.4.38"
 tinytemplate = "1.2.1"
 thiserror = { workspace = true }

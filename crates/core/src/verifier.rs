@@ -3,6 +3,7 @@ use crate::errors::ProtoError;
 use log::{debug, trace};
 use sha2::{Digest, Sha256};
 use starbase_styles::color;
+use starbase_utils::fs::FsError;
 use std::fs::File;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -63,7 +64,10 @@ pub trait Verifiable<'tool>: Send + Sync + Downloadable<'tool> {
 
 pub fn get_sha256_hash_of_file<P: AsRef<Path>>(path: P) -> Result<String, ProtoError> {
     let path = path.as_ref();
-    let handle_error = |e: io::Error| ProtoError::Fs(path.to_path_buf(), e.to_string());
+    let handle_error = |error: io::Error| FsError::Read {
+        path: path.to_path_buf(),
+        error,
+    };
 
     trace!(
         target: "proto:verifier",

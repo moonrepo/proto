@@ -7,9 +7,9 @@ use rustc_hash::FxHashMap;
 use serde::de::DeserializeOwned;
 use sha2::{Digest, Sha256};
 use starbase_styles::color;
+use starbase_utils::{fs, json};
 use std::collections::BTreeMap;
 use std::time::{Duration, SystemTime};
-use std::{fs, io};
 use tokio::process::Command;
 
 #[derive(Debug)]
@@ -226,12 +226,14 @@ where
 
     let temp_dir = get_temp_dir()?;
     let temp_file = temp_dir.join(format!("{:x}.json", sha.finalize()));
-    let handle_http_error = |e: reqwest::Error| ProtoError::Http(url.to_owned(), e.to_string());
-    let handle_io_error = |e: io::Error| ProtoError::Fs(temp_file.to_path_buf(), e.to_string());
+    let handle_http_error = |error: reqwest::Error| ProtoError::Http {
+        url: url.to_owned(),
+        error,
+    };
     let offline = is_offline();
 
     if temp_file.exists() {
-        let metadata = fs::metadata(&temp_file).map_err(handle_io_error)?;
+        let metadata = fs::metadata(&temp_file)?;
 
         // When offline, always read the temp file as we can't download the manifest
         let read_temp = if offline {
@@ -250,10 +252,9 @@ where
                 color::path(&temp_file),
             );
 
-            let contents = fs::read_to_string(&temp_file).map_err(handle_io_error)?;
+            let contents: T = json::read(&temp_file)?;
 
-            return serde_json::from_str(&contents)
-                .map_err(|e| ProtoError::Fs(temp_file.to_path_buf(), e.to_string()));
+            return Ok(contents);
         }
     }
 
@@ -271,10 +272,10 @@ where
     let response = reqwest::get(url).await.map_err(handle_http_error)?;
     let contents = response.text().await.map_err(handle_http_error)?;
 
-    fs::create_dir_all(&temp_dir).map_err(handle_io_error)?;
-    fs::write(&temp_file, &contents).map_err(handle_io_error)?;
+    fs::create_dir_all(&temp_dir)?;
+    fs::write(&temp_file, &contents)?;
 
-    serde_json::from_str(&contents).map_err(|e| ProtoError::Http(url.to_owned(), e.to_string()))
+    serde_json::from_str(&contents).map_err(|e| ProtoError::Message(e.to_string()))
 }
 
 pub fn parse_version(version: &str) -> Result<Version, ProtoError> {
