@@ -1376,7 +1376,6 @@ dependencies = [
  "thiserror",
  "tinytemplate",
  "tokio",
- "toml",
  "xz2",
  "zip",
 ]

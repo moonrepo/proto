@@ -1,6 +1,6 @@
 use crate::{errors::ProtoError, helpers::get_root};
 use serde::Deserialize;
-use starbase_utils::fs;
+use starbase_utils::toml;
 
 pub const USER_CONFIG_NAME: &str = "config.toml";
 
@@ -18,12 +18,7 @@ impl UserConfig {
             return Ok(UserConfig::default());
         }
 
-        let contents = fs::read_file(&path)?;
-
-        let config: UserConfig = toml::from_str(&contents).map_err(|error| ProtoError::Toml {
-            path: path.to_path_buf(),
-            error,
-        })?;
+        let config: UserConfig = toml::read_file(&path)?;
 
         Ok(config)
     }

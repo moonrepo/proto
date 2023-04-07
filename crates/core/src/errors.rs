@@ -12,6 +12,10 @@ pub enum ProtoError {
     #[error(transparent)]
     Json(#[from] starbase_utils::json::JsonError),
 
+    #[diagnostic(code(proto::toml))]
+    #[error(transparent)]
+    Toml(#[from] starbase_utils::toml::TomlError),
+
     #[diagnostic(code(proto::download::failed))]
     #[error("Failed to download tool from {0}: {1}")]
     DownloadFailed(String, String),
@@ -85,20 +89,6 @@ pub enum ProtoError {
     #[diagnostic(code(proto::shim::failed))]
     #[error("Failed shim: {0}")]
     Shim(#[source] tinytemplate::error::Error),
-
-    #[diagnostic(code(proto::toml::parse))]
-    #[error("Failed to parse TOML file {path}: {error}")]
-    Toml {
-        path: PathBuf,
-        error: toml::de::Error,
-    },
-
-    #[diagnostic(code(proto::toml::stringify))]
-    #[error("Failed to stringify TOML file {path}: {error}")]
-    TomlStringify {
-        path: PathBuf,
-        error: toml::ser::Error,
-    },
 
     #[diagnostic(code(proto::unsupported::archive))]
     #[error("Unable to unpack {0}, unsupported archive format {1}.")]

@@ -28,7 +28,6 @@ tar = "0.4.38"
 tinytemplate = "1.2.1"
 thiserror = { workspace = true }
 tokio = { workspace = true }
-toml = "0.7.0"
 xz2 = "0.1.7"
 zip = "0.6.4"
 

@@ -1,8 +1,7 @@
 use crate::errors::ProtoError;
 use rustc_hash::FxHashMap;
-use starbase_utils::fs;
+use starbase_utils::toml::{self, value::Table, value::Value};
 use std::path::{Path, PathBuf};
-use toml::{map::Map, Value};
 
 pub const TOOLS_CONFIG_NAME: &str = ".prototools";
 
@@ -44,15 +43,7 @@ impl ToolsConfig {
             });
         }
 
-        let contents = fs::read_file(path)?;
-
-        let config = contents
-            .parse::<Value>()
-            .map_err(|error| ProtoError::Toml {
-                path: path.to_path_buf(),
-                error,
-            })?;
-
+        let config: Value = toml::read_file(path)?;
         let mut tools = FxHashMap::default();
 
         if let Value::Table(table) = config {
@@ -80,20 +71,13 @@ impl ToolsConfig {
     }
 
     pub fn save(&self) -> Result<(), ProtoError> {
-        let mut map = Map::with_capacity(self.tools.len());
+        let mut map = Table::with_capacity(self.tools.len());
 
         for (tool, version) in &self.tools {
             map.insert(tool.to_owned(), Value::String(version.to_owned()));
         }
 
-        let data = toml::to_string_pretty(&Value::Table(map)).map_err(|error| {
-            ProtoError::TomlStringify {
-                path: self.path.to_path_buf(),
-                error,
-            }
-        })?;
-
-        fs::write_file(&self.path, data)?;
+        toml::write_file(&self.path, &Value::Table(map), true)?;
 
         Ok(())
     }
