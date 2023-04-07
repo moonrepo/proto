@@ -1,12 +1,13 @@
 #![allow(clippy::borrowed_box)]
 
 use crate::errors::ProtoError;
+use crate::helpers::is_alias_name;
 use crate::manifest::{Manifest, MANIFEST_NAME};
 use crate::tool::Tool;
 use crate::tools_config::{ToolsConfig, TOOLS_CONFIG_NAME};
-use crate::{color, is_alias_name};
 use lenient_semver::Version;
 use log::{debug, trace};
+use starbase_styles::color;
 use std::{env, fs, path::Path};
 
 #[async_trait::async_trait]

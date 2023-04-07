@@ -1,8 +1,8 @@
-use crate::color;
 use crate::downloader::{download_from_url, Downloadable};
 use crate::errors::ProtoError;
 use log::{debug, trace};
 use sha2::{Digest, Sha256};
+use starbase_styles::color;
 use std::fs::File;
 use std::io;
 use std::path::{Path, PathBuf};

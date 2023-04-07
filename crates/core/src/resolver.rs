@@ -1,12 +1,12 @@
 use crate::errors::ProtoError;
-use crate::{color, is_offline};
-use crate::{get_temp_dir, is_alias_name, remove_v_prefix};
+use crate::helpers::{get_temp_dir, is_alias_name, is_offline, remove_v_prefix};
 use human_sort::compare;
 use lenient_semver::Version;
 use log::trace;
 use rustc_hash::FxHashMap;
 use serde::de::DeserializeOwned;
 use sha2::{Digest, Sha256};
+use starbase_styles::color;
 use std::collections::BTreeMap;
 use std::time::{Duration, SystemTime};
 use std::{fs, io};

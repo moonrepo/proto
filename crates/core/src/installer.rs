@@ -1,6 +1,7 @@
+use crate::describer::Describable;
 use crate::errors::ProtoError;
-use crate::{color, Describable};
 use log::{debug, trace};
+use starbase_styles::color;
 use std::fs::{self, File};
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};

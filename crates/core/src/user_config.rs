@@ -1,4 +1,4 @@
-use crate::{errors::ProtoError, get_root};
+use crate::{errors::ProtoError, helpers::get_root};
 use serde::Deserialize;
 use std::fs;
 

@@ -1,9 +1,9 @@
 use crate::errors::ProtoError;
-use crate::helpers::get_root;
-use crate::{color, get_bin_dir};
+use crate::helpers::{get_bin_dir, get_root};
 use log::debug;
 use serde::Serialize;
 use serde_json::Value;
+use starbase_styles::color;
 use std::fmt::Write;
 use std::{
     fs,

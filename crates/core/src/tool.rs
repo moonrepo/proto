@@ -1,4 +1,3 @@
-use crate::color;
 use crate::describer::*;
 use crate::detector::*;
 use crate::downloader::*;
@@ -10,6 +9,7 @@ use crate::resolver::*;
 use crate::shimmer::*;
 use crate::verifier::*;
 use log::debug;
+use starbase_styles::color;
 use std::fs;
 use std::path::{Path, PathBuf};
 

@@ -1,7 +1,8 @@
-use crate::{color, ProtoError};
+use crate::errors::ProtoError;
 use log::{info, trace};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
+use starbase_styles::color;
 use std::{
     fs,
     path::{Path, PathBuf},

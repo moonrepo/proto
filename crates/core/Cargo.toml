@@ -10,7 +10,6 @@ repository = "https://github.com/moonrepo/proto"
 [dependencies]
 async-trait = "0.1.68"
 cached = { workspace = true }
-console = { workspace = true }
 dirs = "5.0.0"
 flate2 = "1.0.25"
 human-sort = "0.2.2"
@@ -22,6 +21,7 @@ semver = "1.0.17"
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = "0.10.6"
+starbase_styles = "0.1.0"
 tar = "0.4.38"
 tinytemplate = "1.2.1"
 thiserror = { workspace = true }

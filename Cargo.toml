@@ -8,7 +8,6 @@ assert_fs = "1.0.12"
 cached = "0.42.0"
 clap = "4.2.1"
 clap_complete = "4.2.0"
-console = "0.15.5"
 log = "0.4.17"
 reqwest = { version = "0.11.16", default-features = false, features = ["rustls-tls"] }
 rustc-hash = "1.1.0"

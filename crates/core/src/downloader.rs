@@ -1,7 +1,9 @@
+use crate::describer::Describable;
 use crate::errors::ProtoError;
+use crate::helpers::is_offline;
 use crate::resolver::Resolvable;
-use crate::{color, is_offline, Describable};
 use log::{debug, trace};
+use starbase_styles::color;
 use std::fs::{self, File};
 use std::io;
 use std::path::{Path, PathBuf};

@@ -1,4 +1,3 @@
-pub mod color;
 mod describer;
 mod detector;
 mod downloader;
@@ -26,6 +25,7 @@ pub use lenient_semver::Version;
 pub use manifest::*;
 pub use resolver::*;
 pub use shimmer::*;
+pub use starbase_styles::color;
 pub use tool::*;
 pub use tools_config::*;
 pub use user_config::*;
