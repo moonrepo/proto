@@ -212,10 +212,6 @@ pub fn unzip<I: AsRef<Path>, O: AsRef<Path>>(
         }
 
         let output_path = output_dir.join(&path);
-        let handle_error = |error: io::Error| FsError::Write {
-            path: output_path.to_path_buf(),
-            error,
-        };
 
         // Create parent dirs
         if let Some(parent_dir) = &output_path.parent() {
@@ -231,7 +227,11 @@ pub fn unzip<I: AsRef<Path>, O: AsRef<Path>>(
         if file.is_file() {
             let mut out = fs::create_file(&output_path)?;
 
-            io::copy(&mut file, &mut out).map_err(handle_error)?;
+            io::copy(&mut file, &mut out).map_err(|error| FsError::Write {
+                path: output_path.to_path_buf(),
+                error,
+            })?;
+
             fs::update_perms(&output_path, file.unix_mode())?;
         }
     }

@@ -17,15 +17,15 @@ pub enum ProtoError {
     Toml(#[from] starbase_utils::toml::TomlError),
 
     #[diagnostic(code(proto::download::failed))]
-    #[error("Failed to download tool from {0}: {1}")]
+    #[error("Failed to download tool from <url>{0}</url>: {1}")]
     DownloadFailed(String, String),
 
     #[diagnostic(code(proto::execute::missing_bin))]
-    #[error("Unable to find an executable binary for {0}, expected file {1} does not exist.")]
+    #[error("Unable to find an executable binary for {0}, expected file <path>{1}</path> does not exist.")]
     ExecuteMissingBin(String, PathBuf),
 
-    #[diagnostic(code(proto::fs))]
-    #[error("HTTP failure for {url}: {error}")]
+    #[diagnostic(code(proto::http))]
+    #[error("Failure for <url>{url}</url>")]
     Http {
         url: String,
         #[source]
@@ -41,7 +41,7 @@ pub enum ProtoError {
     InternetConnectionRequired,
 
     #[diagnostic(code(proto::config::invalid))]
-    #[error("Invalid configuration for {0}: {1}")]
+    #[error("Invalid configuration for <path>{0}</path>: {1}")]
     InvalidConfig(PathBuf, String),
 
     #[diagnostic(code(proto::misc))]
@@ -49,7 +49,7 @@ pub enum ProtoError {
     Message(String),
 
     #[diagnostic(code(proto::config::missing))]
-    #[error("Could not locate a {0} configuration file.")]
+    #[error("Could not locate a <file>{0}</file> configuration file.")]
     MissingConfig(String),
 
     #[diagnostic(code(proto::env::home_dir))]
@@ -71,7 +71,7 @@ pub enum ProtoError {
     MissingToolForRun(String, String, String),
 
     #[diagnostic(code(proto::version::invalid))]
-    #[error("Invalid version {version}: {error}")]
+    #[error("Invalid version {version}")]
     Semver {
         version: String,
         #[source]
@@ -79,19 +79,19 @@ pub enum ProtoError {
     },
 
     #[diagnostic(code(proto::version::invalid))]
-    #[error("Invalid version {version}: {error}")]
+    #[error("Invalid version {version}")]
     SemverLenient {
         version: String,
         #[source]
-        error: lenient_semver::parser::Error<'static>,
+        error: lenient_semver::parser::OwnedError,
     },
 
     #[diagnostic(code(proto::shim::failed))]
-    #[error("Failed shim: {0}")]
+    #[error("Failed to create shim")]
     Shim(#[source] tinytemplate::error::Error),
 
     #[diagnostic(code(proto::unsupported::archive))]
-    #[error("Unable to unpack {0}, unsupported archive format {1}.")]
+    #[error("Unable to unpack <path>{0}</path>, unsupported archive format {1}.")]
     UnsupportedArchiveFormat(PathBuf, String),
 
     #[diagnostic(code(proto::unsupported::arch))]
@@ -111,16 +111,14 @@ pub enum ProtoError {
     UnsupportedTool(String),
 
     #[diagnostic(code(proto::verify::invalid_checksum))]
-    #[error("Checksum has failed for {0}, which was verified using {1}.")]
+    #[error(
+        "Checksum has failed for <path>{0}</path>, which was verified using <path>{1}</path>."
+    )]
     VerifyInvalidChecksum(PathBuf, PathBuf),
 
     #[diagnostic(code(proto::alias::unknown))]
-    #[error("Version alias \"{0}\" could not be found in the manifest.")]
+    #[error("Version alias <id>{0}</id> could not be found in the manifest.")]
     VersionUnknownAlias(String),
-
-    #[diagnostic(code(proto::version::failed))]
-    #[error("Failed to parse version {0}. {1}")]
-    VersionParseFailed(String, String),
 
     #[diagnostic(code(proto::version::unresolved))]
     #[error("Failed to resolve a semantic version for {0}.")]
@@ -131,6 +129,6 @@ pub enum ProtoError {
     WritePathFailed,
 
     #[diagnostic(code(proto::zip::failed))]
-    #[error("Failed zip archive. {0}")]
+    #[error("Failed using zip archive.")]
     Zip(#[from] zip::result::ZipError),
 }

@@ -284,8 +284,10 @@ where
 }
 
 pub fn parse_version(version: &str) -> Result<Version, ProtoError> {
-    Version::parse(version)
-        .map_err(|e| ProtoError::VersionParseFailed(version.to_owned(), e.to_string()))
+    Version::parse(version).map_err(|error| ProtoError::SemverLenient {
+        version: version.to_owned(),
+        error: error.owned(),
+    })
 }
 
 pub fn is_semantic_version(version: &str) -> bool {

@@ -3,7 +3,7 @@ use log::{info, trace};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use starbase_styles::color;
-use starbase_utils::json;
+use starbase_utils::{fs, json};
 use std::path::{Path, PathBuf};
 
 pub const MANIFEST_NAME: &str = "manifest.json";
@@ -78,6 +78,10 @@ impl Manifest {
 
     pub fn save(&self) -> Result<(), ProtoError> {
         trace!(target: "proto:manifest", "Saving manifest {}", color::path(&self.path));
+
+        if let Some(parent) = self.path.parent() {
+            fs::create_dir_all(parent)?;
+        }
 
         json::write_file(&self.path, self, true)?;
 
