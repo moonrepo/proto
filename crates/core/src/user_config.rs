@@ -18,7 +18,7 @@ impl UserConfig {
             return Ok(UserConfig::default());
         }
 
-        let contents = fs::read(&path)?;
+        let contents = fs::read_file(&path)?;
 
         let config: UserConfig = toml::from_str(&contents).map_err(|error| ProtoError::Toml {
             path: path.to_path_buf(),

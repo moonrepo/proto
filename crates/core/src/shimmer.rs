@@ -4,7 +4,7 @@ use log::debug;
 use serde::Serialize;
 use serde_json::Value;
 use starbase_styles::color;
-use starbase_utils::fs::{self, FsError};
+use starbase_utils::fs;
 use std::fmt::Write;
 use std::path::{Path, PathBuf};
 use tinytemplate::error::Error as TemplateError;
@@ -181,27 +181,12 @@ impl ShimBuilder {
     fn do_create(&self, shim_path: PathBuf, contents: &str) -> Result<PathBuf, ProtoError> {
         let shim_exists = shim_path.exists();
 
-        let handle_error = |error: std::io::Error| FsError::Create {
-            path: shim_path.to_path_buf(),
-            error,
-        };
-
         if let Some(parent) = shim_path.parent() {
-            if !parent.exists() {
-                fs::create_dir_all(parent)?;
-            }
+            fs::create_dir_all(parent)?;
         }
 
-        fs::write(&shim_path, build_shim_file(self, contents)?)?;
-
-        // Make executable
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-
-            std::fs::set_permissions(&shim_path, std::fs::Permissions::from_mode(0o755))
-                .map_err(handle_error)?;
-        }
+        fs::write_file(&shim_path, build_shim_file(self, contents)?)?;
+        fs::update_perms(&shim_path, None)?;
 
         // Only log the first time it happens
         if !shim_exists {

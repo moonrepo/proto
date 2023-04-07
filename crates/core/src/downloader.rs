@@ -5,7 +5,6 @@ use crate::resolver::Resolvable;
 use log::{debug, trace};
 use starbase_styles::color;
 use starbase_utils::fs::{self, FsError};
-use std::fs::File;
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -94,7 +93,7 @@ where
 
     // Write the bytes to our local file
     let mut contents = io::Cursor::new(response.bytes().await.map_err(handle_http_error)?);
-    let mut file = File::create(dest_file).map_err(handle_io_error)?;
+    let mut file = fs::create_file(dest_file)?;
 
     io::copy(&mut contents, &mut file).map_err(handle_io_error)?;
 

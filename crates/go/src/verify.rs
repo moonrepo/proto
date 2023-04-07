@@ -4,7 +4,7 @@ use log::debug;
 use proto_core::{
     async_trait, color, get_sha256_hash_of_file, Describable, ProtoError, Resolvable, Verifiable,
 };
-use std::fs::File;
+use starbase_utils::fs;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 
@@ -43,9 +43,7 @@ impl Verifiable<'_> for GoLanguage {
         );
 
         let checksum = get_sha256_hash_of_file(download_file)?;
-
-        let file = File::open(checksum_file)
-            .map_err(|e| ProtoError::Fs(checksum_file.to_path_buf(), e.to_string()))?;
+        let file = fs::open_file(checksum_file)?;
 
         for line in BufReader::new(file).lines().flatten() {
             if line.starts_with(&checksum) {

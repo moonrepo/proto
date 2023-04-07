@@ -7,7 +7,7 @@ use rustc_hash::FxHashMap;
 use serde::de::DeserializeOwned;
 use sha2::{Digest, Sha256};
 use starbase_styles::color;
-use starbase_utils::{fs, json};
+use starbase_utils::{fs, json, json::JsonError};
 use std::collections::BTreeMap;
 use std::time::{Duration, SystemTime};
 use tokio::process::Command;
@@ -252,7 +252,7 @@ where
                 color::path(&temp_file),
             );
 
-            let contents: T = json::read(&temp_file)?;
+            let contents: T = json::read_file(&temp_file)?;
 
             return Ok(contents);
         }
@@ -273,9 +273,14 @@ where
     let contents = response.text().await.map_err(handle_http_error)?;
 
     fs::create_dir_all(&temp_dir)?;
-    fs::write(&temp_file, &contents)?;
+    fs::write_file(&temp_file, &contents)?;
 
-    serde_json::from_str(&contents).map_err(|e| ProtoError::Message(e.to_string()))
+    let data: T = serde_json::from_str(&contents).map_err(|error| JsonError::ReadFile {
+        path: temp_file.to_path_buf(),
+        error,
+    })?;
+
+    Ok(data)
 }
 
 pub fn parse_version(version: &str) -> Result<Version, ProtoError> {

@@ -20,7 +20,7 @@ pub trait Detector<'tool>: Send + Sync {
 }
 
 pub fn load_version_file(path: &Path) -> Result<String, ProtoError> {
-    Ok(fs::read(path)?.trim().to_owned())
+    Ok(fs::read_file(path)?.trim().to_owned())
 }
 
 pub async fn detect_version_from_environment<'l, T: Tool<'l> + ?Sized>(
@@ -235,7 +235,7 @@ mod tests {
     pub fn create_manifest(dir: &Path, manifest: Manifest) -> PathBuf {
         let manifest_path = dir.join(MANIFEST_NAME);
 
-        starbase_utils::json::write(&manifest_path, &manifest, true).unwrap();
+        starbase_utils::json::write_file(&manifest_path, &manifest, true).unwrap();
 
         manifest_path
     }

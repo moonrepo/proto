@@ -117,7 +117,7 @@ pub fn untar<I: AsRef<Path>, O: AsRef<Path>, R: FnOnce(File) -> D, D: Read>(
     }
 
     // Open .tar.gz file
-    let tar_gz = File::open(input_file).map_err(handle_input_error)?;
+    let tar_gz = fs::open_file(input_file)?;
 
     // Decompress to .tar
     let tar = decoder(tar_gz);
@@ -179,10 +179,6 @@ pub fn unzip<I: AsRef<Path>, O: AsRef<Path>>(
 ) -> Result<(), ProtoError> {
     let input_file = input_file.as_ref();
     let output_dir = output_dir.as_ref();
-    let handle_input_error = |error: io::Error| FsError::Read {
-        path: input_file.to_path_buf(),
-        error,
-    };
     let handle_zip_error = |e: ZipError| ProtoError::Zip(e);
 
     trace!(
@@ -197,7 +193,7 @@ pub fn unzip<I: AsRef<Path>, O: AsRef<Path>>(
     }
 
     // Open .zip file
-    let zip = File::open(input_file).map_err(handle_input_error)?;
+    let zip = fs::open_file(input_file)?;
 
     // Unpack the archive into the output dir
     let mut archive = ZipArchive::new(zip).map_err(handle_zip_error)?;
@@ -235,20 +231,10 @@ pub fn unzip<I: AsRef<Path>, O: AsRef<Path>>(
 
         // If a file, copy it to the output dir
         if file.is_file() {
-            let mut out = File::create(&output_path).map_err(handle_error)?;
+            let mut out = fs::create_file(&output_path)?;
 
             io::copy(&mut file, &mut out).map_err(handle_error)?;
-
-            // Update permissions when on a nix machine
-            #[cfg(unix)]
-            {
-                use std::os::unix::fs::PermissionsExt;
-
-                if let Some(mode) = file.unix_mode() {
-                    std::fs::set_permissions(&output_path, std::fs::Permissions::from_mode(mode))
-                        .map_err(handle_error)?;
-                }
-            }
+            fs::update_perms(&output_path, file.unix_mode())?;
         }
     }
 

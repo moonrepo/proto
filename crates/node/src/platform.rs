@@ -1,6 +1,7 @@
-use proto_core::{load_version_file, ProtoError};
+use proto_core::ProtoError;
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
+use starbase_utils::json;
 use std::env::consts;
 use std::fmt;
 use std::path::Path;
@@ -71,7 +72,6 @@ pub struct PackageJson {
 
 impl PackageJson {
     pub fn load(path: &Path) -> Result<Self, ProtoError> {
-        serde_json::from_str(&load_version_file(path)?)
-            .map_err(|e| ProtoError::Json(path.to_path_buf(), e.to_string()))
+        Ok(json::read_file(path)?)
     }
 }

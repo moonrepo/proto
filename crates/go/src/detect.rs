@@ -1,7 +1,6 @@
 use crate::GoLanguage;
-use log::error;
 use proto_core::{async_trait, Detector, ProtoError};
-use std::fs::File;
+use starbase_utils::fs;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 
@@ -31,22 +30,15 @@ impl Detector<'_> for GoLanguage {
 }
 
 fn scan_for_go_version(path: &Path) -> Option<String> {
-    match File::open(path) {
-        Ok(file) => {
-            let buffered = BufReader::new(file);
-            for line in buffered.lines().flatten() {
-                if let Some(version) = line.strip_prefix(GOPREFIX) {
-                    return Some(version.into());
-                }
+    if let Ok(file) = fs::open_file(path) {
+        let buffered = BufReader::new(file);
+
+        for line in buffered.lines().flatten() {
+            if let Some(version) = line.strip_prefix(GOPREFIX) {
+                return Some(version.into());
             }
         }
-        Err(e) => {
-            error!("{} failed to load {}", path.to_str().unwrap(), e);
-            return None;
-        }
     }
-
-    error!("no go version found in {}", path.to_str().unwrap());
 
     None
 }

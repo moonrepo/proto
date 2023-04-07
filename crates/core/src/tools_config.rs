@@ -44,7 +44,7 @@ impl ToolsConfig {
             });
         }
 
-        let contents = fs::read(path)?;
+        let contents = fs::read_file(path)?;
 
         let config = contents
             .parse::<Value>()
@@ -93,7 +93,7 @@ impl ToolsConfig {
             }
         })?;
 
-        fs::write(&self.path, data)?;
+        fs::write_file(&self.path, data)?;
 
         Ok(())
     }

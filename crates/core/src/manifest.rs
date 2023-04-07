@@ -66,7 +66,7 @@ impl Manifest {
         trace!(target: "proto:manifest", "Loading manifest {}", color::path(path));
 
         let mut manifest: Manifest = if path.exists() {
-            json::read(path)?
+            json::read_file(path)?
         } else {
             Manifest::default()
         };
@@ -79,7 +79,7 @@ impl Manifest {
     pub fn save(&self) -> Result<(), ProtoError> {
         trace!(target: "proto:manifest", "Saving manifest {}", color::path(&self.path));
 
-        json::write(&self.path, self, true)?;
+        json::write_file(&self.path, self, true)?;
 
         Ok(())
     }
