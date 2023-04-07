@@ -1346,6 +1346,7 @@ dependencies = [
  "reqwest",
  "rustc-hash",
  "semver",
+ "starbase_utils",
  "tokio",
  "winreg 0.50.0",
 ]

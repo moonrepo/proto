@@ -10,7 +10,7 @@ pub fn extract_bin_from_package_json(
     bin_name: &str,
 ) -> Result<Option<String>, ProtoError> {
     let mut bin_path = None;
-    let json: Value = json::read_file(&package_path)?;
+    let json: Value = json::read_file(package_path)?;
 
     if let Some(bin_field) = json.get("bin") {
         match bin_field {

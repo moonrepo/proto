@@ -2,8 +2,8 @@ use crate::helpers::{download_to_temp_with_progress_bar, enable_logging};
 use log::{debug, info};
 use proto_core::{color, get_bin_dir, get_temp_dir, is_offline, load_git_tags, unpack, ProtoError};
 use semver::Version;
+use starbase_utils::fs;
 use std::env::consts;
-use std::fs;
 
 async fn fetch_version() -> Result<String, ProtoError> {
     let tags = load_git_tags("https://github.com/moonrepo/proto")
@@ -86,18 +86,9 @@ pub async fn upgrade() -> Result<(), ProtoError> {
     // Move the new binary to the bins directory
     let bin_name = if cfg!(windows) { "proto.exe" } else { "proto" };
     let bin_path = get_bin_dir()?.join(bin_name);
-    let handle_error = |e: std::io::Error| ProtoError::Fs(bin_path.to_path_buf(), e.to_string());
 
-    fs::copy(temp_dir.join(target_file).join(bin_name), &bin_path).map_err(handle_error)?;
-
-    #[cfg(target_family = "unix")]
-    {
-        use std::os::unix::fs::PermissionsExt;
-
-        let file = fs::File::open(&bin_path).map_err(handle_error)?;
-        file.set_permissions(fs::Permissions::from_mode(0o755))
-            .map_err(handle_error)?;
-    }
+    fs::copy_file(temp_dir.join(target_file).join(bin_name), &bin_path)?;
+    fs::update_perms(&bin_path, None)?;
 
     info!(
         target: "proto:upgrade",

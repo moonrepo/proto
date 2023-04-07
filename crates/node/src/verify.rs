@@ -37,7 +37,7 @@ impl Verifiable<'_> for NodeLanguage {
         let checksum = get_sha256_hash_of_file(download_file)?;
 
         let file = fs::open_file(checksum_file)?;
-        let file_name = fs::file_name(&download_file);
+        let file_name = fs::file_name(download_file);
 
         for line in BufReader::new(file).lines().flatten() {
             // <checksum>  node-v<version>-<os>-<arch>.tar.gz

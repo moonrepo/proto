@@ -7,7 +7,6 @@ use std::fs::File;
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 use tar::Archive;
-use zip::result::ZipError;
 use zip::ZipArchive;
 
 #[async_trait::async_trait]
@@ -179,7 +178,6 @@ pub fn unzip<I: AsRef<Path>, O: AsRef<Path>>(
 ) -> Result<(), ProtoError> {
     let input_file = input_file.as_ref();
     let output_dir = output_dir.as_ref();
-    let handle_zip_error = |e: ZipError| ProtoError::Zip(e);
 
     trace!(
         target: "proto:installer",
@@ -196,10 +194,10 @@ pub fn unzip<I: AsRef<Path>, O: AsRef<Path>>(
     let zip = fs::open_file(input_file)?;
 
     // Unpack the archive into the output dir
-    let mut archive = ZipArchive::new(zip).map_err(handle_zip_error)?;
+    let mut archive = ZipArchive::new(zip).map_err(ProtoError::Zip)?;
 
     for i in 0..archive.len() {
-        let mut file = archive.by_index(i).map_err(handle_zip_error)?;
+        let mut file = archive.by_index(i).map_err(ProtoError::Zip)?;
 
         let mut path = match file.enclosed_name() {
             Some(path) => path.to_owned(),

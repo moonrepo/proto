@@ -1,9 +1,9 @@
 use futures::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
 use proto_core::{get_temp_dir, ProtoError};
+use starbase_utils::fs;
 use std::cmp;
 use std::env;
-use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
@@ -89,8 +89,7 @@ pub async fn download_to_temp_with_progress_bar(
 
     // Download in chunks
     let temp_file = get_temp_dir()?.join(file_name);
-    let mut file = fs::File::create(&temp_file)
-        .map_err(|e| ProtoError::Fs(temp_file.clone(), e.to_string()))?;
+    let mut file = fs::create_file(&temp_file)?;
     let mut stream = response.bytes_stream();
     let mut downloaded: u64 = 0;
 

@@ -62,7 +62,6 @@ fn get_template<'l>(global: bool) -> &'l str {
 }
 
 fn build_shim_file(builder: &ShimBuilder, contents: &str) -> Result<String, ProtoError> {
-    let handle_error = |e: TemplateError| ProtoError::Shim(e);
     let mut template = TinyTemplate::new();
 
     template.add_formatter("uppercase", format_uppercase);
@@ -71,11 +70,11 @@ fn build_shim_file(builder: &ShimBuilder, contents: &str) -> Result<String, Prot
 
     template
         .add_template("shim", &contents)
-        .map_err(handle_error)?;
+        .map_err(ProtoError::Shim)?;
 
     template
         .render("shim", &builder.create_context()?)
-        .map_err(handle_error)
+        .map_err(ProtoError::Shim)
 }
 
 #[cfg(windows)]

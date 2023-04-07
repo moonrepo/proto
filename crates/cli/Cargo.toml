@@ -43,6 +43,7 @@ log = { workspace = true }
 reqwest = { workspace = true, features = ["stream"] }
 rustc-hash = { workspace = true }
 semver = "1.0.17"
+starbase_utils = { workspace = true }
 tokio = { workspace = true }
 
 [target.'cfg(windows)'.dependencies]
