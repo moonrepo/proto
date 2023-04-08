@@ -86,6 +86,7 @@ pub fn unpack<I: AsRef<Path>, O: AsRef<Path>>(
     }
 }
 
+#[tracing::instrument(skip_all)]
 pub fn untar<I: AsRef<Path>, O: AsRef<Path>, R: FnOnce(File) -> D, D: Read>(
     input_file: I,
     output_dir: O,
@@ -165,6 +166,7 @@ pub fn untar_xzip<I: AsRef<Path>, O: AsRef<Path>>(
     })
 }
 
+#[tracing::instrument(skip_all)]
 pub fn unzip<I: AsRef<Path>, O: AsRef<Path>>(
     input_file: I,
     output_dir: O,

@@ -61,6 +61,7 @@ fn get_template<'l>(global: bool) -> &'l str {
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn build_shim_file(builder: &ShimBuilder, contents: &str) -> Result<String, ProtoError> {
     let mut template = TinyTemplate::new();
 

@@ -60,6 +60,7 @@ impl Manifest {
         Self::load(dir.as_ref().join(MANIFEST_NAME))
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self, ProtoError> {
         let path = path.as_ref();
 
@@ -76,6 +77,7 @@ impl Manifest {
         Ok(manifest)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn save(&self) -> Result<(), ProtoError> {
         trace!("Saving manifest {}", color::path(&self.path));
 

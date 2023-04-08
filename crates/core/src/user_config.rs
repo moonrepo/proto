@@ -11,6 +11,7 @@ pub struct UserConfig {
 }
 
 impl UserConfig {
+    #[tracing::instrument(skip_all)]
     pub fn load() -> Result<Self, ProtoError> {
         let path = get_root()?.join(USER_CONFIG_NAME);
 

@@ -23,6 +23,7 @@ pub fn load_version_file(path: &Path) -> Result<String, ProtoError> {
     Ok(fs::read_file(path)?.trim().to_owned())
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn detect_version_from_environment<'l, T: Tool<'l> + ?Sized>(
     tool: &Box<T>,
     forced_version: Option<String>,
@@ -120,6 +121,7 @@ pub async fn detect_version_from_environment<'l, T: Tool<'l> + ?Sized>(
     }
 }
 
+#[tracing::instrument(skip_all)]
 pub fn detect_fixed_version<P: AsRef<Path>>(
     version: &str,
     manifest_path: P,

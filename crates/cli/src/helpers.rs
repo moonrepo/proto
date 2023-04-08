@@ -14,21 +14,19 @@ pub fn enable_logging() {
     enable_logging_with_level("info");
 }
 
-pub fn enable_logging_with_level(level: &str) {
+pub fn enable_logging_with_level(max_level: &str) {
     static ENABLED: AtomicBool = AtomicBool::new(false);
 
     if !ENABLED.load(Relaxed) {
-        if let Ok(level) = env::var("PROTO_LOG") {
-            if !level.starts_with("proto=") && level != "off" {
-                env::set_var("PROTO_LOG", format!("proto={level}"));
-            }
-        } else {
-            env::set_var("PROTO_LOG", format!("proto={level}"));
-        }
-
-        env_logger::Builder::from_env("PROTO_LOG")
-            .format_timestamp(None)
-            .init();
+        // if let Ok(level) = env::var("PROTO_LOG") {
+        //     if !level.starts_with("proto=") && level != "off" {
+        //         env::set_var("RUST_LOG", format!("proto={level}"));
+        //     } else {
+        //         env::set_var("RUST_LOG", level);
+        //     }
+        // } else {
+        //     env::set_var("RUST_LOG", format!("proto={max_level}"));
+        // }
 
         ENABLED.store(true, Relaxed);
     }

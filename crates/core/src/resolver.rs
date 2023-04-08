@@ -134,6 +134,7 @@ pub trait Resolvable<'tool>: Send + Sync {
     fn set_version(&mut self, version: &str);
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn load_git_tags<U>(url: U) -> Result<Vec<String>, ProtoError>
 where
     U: AsRef<str>,
@@ -186,6 +187,7 @@ where
     Ok(tags)
 }
 
+#[tracing::instrument(skip_all)]
 pub fn create_version_manifest_from_tags(tags: Vec<String>) -> VersionManifest {
     let mut latest = Version::new(0, 0, 0);
     let mut aliases = BTreeMap::new();
@@ -215,6 +217,7 @@ pub fn create_version_manifest_from_tags(tags: Vec<String>) -> VersionManifest {
     VersionManifest { aliases, versions }
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn load_versions_manifest<T, U>(url: U) -> Result<T, ProtoError>
 where
     T: DeserializeOwned,

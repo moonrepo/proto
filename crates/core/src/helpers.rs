@@ -56,6 +56,7 @@ pub fn remove_v_prefix(value: &str) -> String {
 }
 
 #[cached(time = 300)]
+#[tracing::instrument]
 pub fn is_offline() -> bool {
     if let Ok(value) = env::var("PROTO_OFFLINE") {
         match value.as_ref() {
@@ -92,6 +93,7 @@ pub fn is_offline() -> bool {
     true
 }
 
+#[tracing::instrument]
 pub fn has_command(command: &str) -> bool {
     Command::new(if cfg!(windows) {
         "Get-Command"

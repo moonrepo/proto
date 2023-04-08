@@ -60,6 +60,7 @@ pub trait Verifiable<'tool>: Send + Sync + Downloadable<'tool> {
     ) -> Result<bool, ProtoError>;
 }
 
+#[tracing::instrument(skip_all)]
 pub fn get_sha256_hash_of_file<P: AsRef<Path>>(path: P) -> Result<String, ProtoError> {
     let path = path.as_ref();
 

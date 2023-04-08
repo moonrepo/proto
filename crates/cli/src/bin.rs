@@ -5,14 +5,18 @@ mod hooks;
 mod shell;
 pub mod tools;
 
-use app::{App, Commands};
+use app::{App as CLI, Commands};
 use clap::Parser;
-use proto_core::color;
-use std::process::exit;
+use starbase::{diagnose::IntoDiagnostic, App, MainResult};
 
 #[tokio::main]
-async fn main() {
-    let app = App::parse();
+async fn main() -> MainResult {
+    std::env::set_var("RUST_LOG", "trace");
+    tracing_subscriber::fmt::init();
+
+    App::setup_hooks();
+
+    let app = CLI::parse();
 
     let result = match app.command {
         Commands::Alias {
@@ -47,8 +51,5 @@ async fn main() {
         Commands::Use => commands::install_all().await,
     };
 
-    if let Err(error) = result {
-        eprintln!("{}", color::failure(error.to_string()));
-        exit(1);
-    }
+    result.into_diagnostic()
 }

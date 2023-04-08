@@ -44,6 +44,7 @@ pub trait Downloadable<'tool>: Send + Sync + Describable<'tool> + Resolvable<'to
     }
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn download_from_url<U, F>(url: U, dest_file: F) -> Result<(), ProtoError>
 where
     U: AsRef<str>,
