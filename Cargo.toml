@@ -8,7 +8,6 @@ assert_fs = "1.0.12"
 cached = "0.42.0"
 clap = "4.2.1"
 clap_complete = "4.2.0"
-log = "0.4.17"
 miette = "5.7.0"
 reqwest = { version = "0.11.16", default-features = false, features = ["rustls-tls"] }
 rustc-hash = "1.1.0"
@@ -17,6 +16,7 @@ serde_json = "1.0.95"
 starbase_utils = { version = "0.2.0", default-features = false, features = ["json", "toml"] }
 thiserror = "1.0.40"
 tokio = { version = "1.27.0", features = ["full", "tracing"] }
+tracing = "0.1.37"
 
 [workspace.metadata.dist]
 cargo-dist-version = "0.0.5"

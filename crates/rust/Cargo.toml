@@ -9,6 +9,6 @@ repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
 proto_core = { version = "0.5.0", path = "../core" }
-log = { workspace = true }
 tokio = { workspace = true }
+tracing = { workspace = true }
 

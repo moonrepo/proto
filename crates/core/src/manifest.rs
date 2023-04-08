@@ -1,10 +1,10 @@
 use crate::errors::ProtoError;
-use log::{info, trace};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use starbase_styles::color;
 use starbase_utils::{fs, json};
 use std::path::{Path, PathBuf};
+use tracing::{info, trace};
 
 pub const MANIFEST_NAME: &str = "manifest.json";
 
@@ -46,7 +46,7 @@ impl Manifest {
         if (manifest.installed_versions.is_empty() && manifest.default_version.is_some())
             || manifest.default_version.as_ref() == Some(&version.to_owned())
         {
-            info!(target: "proto:manifest", "Unpinning default global version");
+            info!("Unpinning default global version");
 
             manifest.default_version = None;
         }
@@ -63,7 +63,7 @@ impl Manifest {
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self, ProtoError> {
         let path = path.as_ref();
 
-        trace!(target: "proto:manifest", "Loading manifest {}", color::path(path));
+        trace!("Loading manifest {}", color::path(path));
 
         let mut manifest: Manifest = if path.exists() {
             json::read_file(path)?
@@ -77,7 +77,7 @@ impl Manifest {
     }
 
     pub fn save(&self) -> Result<(), ProtoError> {
-        trace!(target: "proto:manifest", "Saving manifest {}", color::path(&self.path));
+        trace!("Saving manifest {}", color::path(&self.path));
 
         if let Some(parent) = self.path.parent() {
             fs::create_dir_all(parent)?;

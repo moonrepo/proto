@@ -2,8 +2,8 @@ use crate::helpers::{create_progress_bar, disable_progress_bars, enable_logging}
 use crate::hooks::go as go_hooks;
 use crate::tools::{create_tool, ToolType};
 use async_recursion::async_recursion;
-use log::{debug, info};
 use proto_core::{color, Manifest, ProtoError};
+use tracing::{debug, info};
 
 #[async_recursion]
 pub async fn install(
@@ -19,7 +19,6 @@ pub async fn install(
 
     if tool.is_setup(&version).await? {
         info!(
-            target: "proto:install",
             "{} has already been installed at {}",
             tool.get_name(),
             color::path(tool.get_install_dir()?),
@@ -34,7 +33,6 @@ pub async fn install(
     }
 
     debug!(
-        target: "proto:install",
         "Installing {} with version \"{}\"",
         tool.get_name(),
         version,
@@ -58,7 +56,7 @@ pub async fn install(
     pb.finish_and_clear();
 
     info!(
-        target: "proto:install", "{} has been installed at {}!",
+        "{} has been installed at {}!",
         tool.get_name(),
         color::path(tool.get_install_dir()?),
     );
@@ -72,10 +70,7 @@ pub async fn install(
         }
         ToolType::Node => {
             if !passthrough.contains(&"--no-bundled-npm".to_string()) {
-                info!(
-                    target: "proto:install", "Installing npm that comes bundled with {}",
-                    tool.get_name(),
-                );
+                info!("Installing npm that comes bundled with {}", tool.get_name(),);
 
                 // This ensures that the correct version is used by the npm tool
                 std::env::set_var("PROTO_NODE_VERSION", tool.get_resolved_version());

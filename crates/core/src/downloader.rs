@@ -2,11 +2,11 @@ use crate::describer::Describable;
 use crate::errors::ProtoError;
 use crate::helpers::is_offline;
 use crate::resolver::Resolvable;
-use log::{debug, trace};
 use starbase_styles::color;
 use starbase_utils::fs::{self, FsError};
 use std::io;
 use std::path::{Path, PathBuf};
+use tracing::{debug, trace};
 
 #[async_trait::async_trait]
 pub trait Downloadable<'tool>: Send + Sync + Describable<'tool> + Resolvable<'tool> {
@@ -24,7 +24,7 @@ pub trait Downloadable<'tool>: Send + Sync + Describable<'tool> + Resolvable<'to
     /// provided as the 2nd argument.
     async fn download(&self, to_file: &Path, from_url: Option<&str>) -> Result<bool, ProtoError> {
         if to_file.exists() {
-            debug!(target: self.get_log_target(), "Tool already downloaded, continuing");
+            debug!("Tool already downloaded, continuing");
 
             return Ok(false);
         }
@@ -34,15 +34,11 @@ pub trait Downloadable<'tool>: Send + Sync + Describable<'tool> + Resolvable<'to
             None => self.get_download_url()?,
         };
 
-        debug!(
-            target: self.get_log_target(),
-            "Attempting to download tool from {}",
-            color::url(&from_url),
-        );
+        debug!("Attempting to download tool from {}", color::url(&from_url),);
 
         download_from_url(&from_url, &to_file).await?;
 
-        debug!(target: self.get_log_target(), "Successfully downloaded tool");
+        debug!("Successfully downloaded tool");
 
         Ok(true)
     }
@@ -69,7 +65,6 @@ where
     };
 
     trace!(
-        target: "proto:downloader",
         "Downloading {} from {}",
         color::path(dest_file),
         color::url(url)

@@ -8,10 +8,10 @@ use crate::manifest::*;
 use crate::resolver::*;
 use crate::shimmer::*;
 use crate::verifier::*;
-use log::debug;
 use starbase_styles::color;
 use std::fs;
 use std::path::{Path, PathBuf};
+use tracing::debug;
 
 #[async_trait::async_trait]
 pub trait Tool<'tool>:
@@ -82,11 +82,7 @@ pub trait Tool<'tool>:
 
         let install_dir = self.get_install_dir()?;
 
-        debug!(
-            target: self.get_log_target(),
-            "Checking for tool in {}",
-            color::path(&install_dir),
-        );
+        debug!("Checking for tool in {}", color::path(&install_dir),);
 
         if install_dir.exists() {
             self.find_bin_path().await?;
@@ -100,7 +96,6 @@ pub trait Tool<'tool>:
 
             if bin_path.exists() {
                 debug!(
-                    target: self.get_log_target(),
                     "Tool has already been installed at {}",
                     color::path(&install_dir)
                 );
@@ -110,10 +105,7 @@ pub trait Tool<'tool>:
                 return Ok(true);
             }
         } else {
-            debug!(
-                target: self.get_log_target(),
-                "Tool has not been installed"
-            );
+            debug!("Tool has not been installed");
         }
 
         Ok(false)
@@ -124,10 +116,7 @@ pub trait Tool<'tool>:
     }
 
     async fn cleanup(&mut self) -> Result<(), ProtoError> {
-        debug!(
-            target: self.get_log_target(),
-            "Cleaning up temporary files and downloads"
-        );
+        debug!("Cleaning up temporary files and downloads");
 
         let download_path = self.get_download_path()?;
         let checksum_path = self.get_checksum_path()?;

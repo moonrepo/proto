@@ -1,9 +1,9 @@
 use crate::RustLanguage;
-use log::debug;
-use proto_core::{async_trait, color, Describable, Installable, ProtoError, Resolvable};
+use proto_core::{async_trait, color, Installable, ProtoError, Resolvable};
 use std::env::consts;
 use std::path::{Path, PathBuf};
 use tokio::process::Command;
+use tracing::debug;
 
 fn handle_error(e: std::io::Error) -> ProtoError {
     ProtoError::Message(format!(
@@ -76,28 +76,28 @@ impl Installable<'_> for RustLanguage {
 
     async fn install(&self, install_dir: &Path, _download_path: &Path) -> Result<bool, ProtoError> {
         if is_installed_in_rustup(install_dir).await? {
-            debug!(target: self.get_log_target(), "Toolchain already installed, continuing");
+            debug!("Toolchain already installed, continuing");
 
             return Ok(false);
         }
 
         let success = run_rustup_toolchain("install", self.get_resolved_version()).await?;
 
-        debug!(target: self.get_log_target(), "Successfully installed tool");
+        debug!("Successfully installed tool");
 
         Ok(success)
     }
 
     async fn uninstall(&self, install_dir: &Path) -> Result<bool, ProtoError> {
         if !is_installed_in_rustup(install_dir).await? {
-            debug!(target: self.get_log_target(), "Tool has not been installed, aborting");
+            debug!("Tool has not been installed, aborting");
 
             return Ok(false);
         }
 
         let success = run_rustup_toolchain("uninstall", self.get_resolved_version()).await?;
 
-        debug!(target: self.get_log_target(), "Successfully uninstalled tool");
+        debug!("Successfully uninstalled tool");
 
         Ok(success)
     }

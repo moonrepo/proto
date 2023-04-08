@@ -1,9 +1,9 @@
 use crate::GoLanguage;
-use log::debug;
 use proto_core::{
     async_trait, create_version_manifest_from_tags, is_offline, is_semantic_version, load_git_tags,
-    remove_v_prefix, Describable, Manifest, ProtoError, Resolvable, Tool, Version, VersionManifest,
+    remove_v_prefix, Manifest, ProtoError, Resolvable, Tool, Version, VersionManifest,
 };
+use tracing::debug;
 
 trait BaseVersion {
     fn base_version(&self) -> String;
@@ -62,11 +62,7 @@ impl Resolvable<'_> for GoLanguage {
             return Ok(initial_version);
         }
 
-        debug!(
-            target: self.get_log_target(),
-            "Resolving a semantic version for \"{}\"",
-            initial_version,
-        );
+        debug!("Resolving a semantic version for \"{}\"", initial_version,);
 
         let manifest = self.load_version_manifest().await?;
 
@@ -76,7 +72,7 @@ impl Resolvable<'_> for GoLanguage {
             manifest.find_version(&initial_version)?
         };
 
-        debug!(target: self.get_log_target(), "Resolved to {}", candidate);
+        debug!("Resolved to {}", candidate);
 
         self.set_version(candidate);
 

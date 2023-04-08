@@ -1,10 +1,10 @@
 use crate::helpers::{create_progress_bar, enable_logging};
 use crate::tools::{create_tool, ToolType};
-use log::{debug, info, trace};
 use proto_core::{color, get_home_dir, get_tools_dir, ProtoError, Tool};
 use std::env;
 use std::path::PathBuf;
 use tokio::process::Command;
+use tracing::{debug, info, trace};
 
 async fn get_bin_or_fallback(mut tool: Box<dyn Tool<'_>>) -> Result<PathBuf, ProtoError> {
     Ok(match tool.find_bin_path().await {
@@ -25,7 +25,7 @@ pub async fn install_global(
         let global_dir;
         let mut command;
 
-        debug!(target: "proto:install-global", "{}", label);
+        debug!("{}", label);
 
         match tool_type {
             ToolType::Bun => {
@@ -115,7 +115,7 @@ pub async fn install_global(
         }
 
         info!(
-            target: "proto:install-global", "{} has been installed at {}!",
+            "{} has been installed at {}!",
             dependency,
             color::path(global_dir),
         );

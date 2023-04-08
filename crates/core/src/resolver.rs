@@ -2,7 +2,6 @@ use crate::errors::ProtoError;
 use crate::helpers::{get_temp_dir, is_alias_name, is_offline, remove_v_prefix};
 use human_sort::compare;
 use lenient_semver::Version;
-use log::trace;
 use rustc_hash::FxHashMap;
 use serde::de::DeserializeOwned;
 use sha2::{Digest, Sha256};
@@ -11,6 +10,7 @@ use starbase_utils::{fs, json, json::JsonError};
 use std::collections::BTreeMap;
 use std::time::{Duration, SystemTime};
 use tokio::process::Command;
+use tracing::trace;
 
 #[derive(Debug)]
 pub struct VersionManifestEntry {
@@ -247,7 +247,6 @@ where
 
         if read_temp {
             trace!(
-                target: "proto:resolver",
                 "Loading versions manifest from locally cached {}",
                 color::path(&temp_file),
             );
@@ -263,11 +262,7 @@ where
     }
 
     // Otherwise, request the resource and cache it
-    trace!(
-        target: "proto:resolver",
-        "Loading versions manifest from {}",
-        color::url(url),
-    );
+    trace!("Loading versions manifest from {}", color::url(url),);
 
     let response = reqwest::get(url).await.map_err(handle_http_error)?;
     let contents = response.text().await.map_err(handle_http_error)?;

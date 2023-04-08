@@ -1,10 +1,10 @@
 use crate::commands::install::install;
 use crate::helpers::enable_logging_with_level;
 use crate::tools::{create_tool, ToolType};
-use log::debug;
 use proto_core::{color, detect_version_from_environment, ProtoError, UserConfig};
 use std::process::exit;
 use tokio::process::Command;
+use tracing::debug;
 
 pub async fn run(
     tool_type: ToolType,
@@ -28,10 +28,7 @@ pub async fn run(
         }
 
         // Install the tool
-        debug!(
-            target: tool.get_log_target(),
-            "Auto-install setting is configured, attempting to install"
-        );
+        debug!("Auto-install setting is configured, attempting to install");
 
         install(
             tool_type,

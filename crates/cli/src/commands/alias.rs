@@ -1,7 +1,7 @@
 use crate::helpers::enable_logging;
 use crate::tools::{create_tool, ToolType};
-use log::info;
 use proto_core::{color, is_alias_name, Manifest, ProtoError};
+use tracing::info;
 
 pub async fn alias(tool_type: ToolType, alias: String, version: String) -> Result<(), ProtoError> {
     enable_logging();
@@ -23,7 +23,6 @@ pub async fn alias(tool_type: ToolType, alias: String, version: String) -> Resul
     manifest.save()?;
 
     info!(
-        target: "proto:alias",
         "Added alias {} ({}) for {}",
         color::id(alias),
         color::muted_light(version),

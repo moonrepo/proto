@@ -1,8 +1,8 @@
 use crate::helpers::enable_logging;
 use crate::tools::{create_tool, ToolType};
-use log::{info, trace};
 use proto_core::{color, ProtoError, ToolsConfig};
 use std::{env, path::PathBuf};
+use tracing::{info, trace};
 
 pub async fn local(tool_type: ToolType, version: String) -> Result<(), ProtoError> {
     enable_logging();
@@ -18,18 +18,9 @@ pub async fn local(tool_type: ToolType, version: String) -> Result<(), ProtoErro
 
     config.save()?;
 
-    trace!(
-        target: "proto:local",
-        "Wrote the local version to {}",
-        color::path(&local_path),
-    );
+    trace!("Wrote the local version to {}", color::path(&local_path),);
 
-    info!(
-        target: "proto:local",
-        "Set the local {} version to {}",
-        tool.get_name(),
-        version,
-    );
+    info!("Set the local {} version to {}", tool.get_name(), version,);
 
     Ok(())
 }

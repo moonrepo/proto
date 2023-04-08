@@ -1,7 +1,7 @@
 use crate::helpers::enable_logging;
 use crate::tools::{create_tool, ToolType};
-use log::info;
 use proto_core::{color, Manifest, ProtoError};
+use tracing::info;
 
 pub async fn unalias(tool_type: ToolType, alias: String) -> Result<(), ProtoError> {
     enable_logging();
@@ -14,7 +14,6 @@ pub async fn unalias(tool_type: ToolType, alias: String) -> Result<(), ProtoErro
 
     if let Some(version) = value {
         info!(
-            target: "proto:unalias",
             "Removed alias {} ({}) from {}",
             color::id(alias),
             color::muted_light(version),
@@ -22,7 +21,6 @@ pub async fn unalias(tool_type: ToolType, alias: String) -> Result<(), ProtoErro
         );
     } else {
         info!(
-            target: "proto:unalias",
             "Alias {} not found for {}",
             color::id(alias),
             tool.get_name(),

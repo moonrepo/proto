@@ -1,11 +1,11 @@
 use crate::downloader::{download_from_url, Downloadable};
 use crate::errors::ProtoError;
-use log::{debug, trace};
 use sha2::{Digest, Sha256};
 use starbase_styles::color;
 use starbase_utils::fs::{self, FsError};
 use std::io;
 use std::path::{Path, PathBuf};
+use tracing::{debug, trace};
 
 #[async_trait::async_trait]
 pub trait Verifiable<'tool>: Send + Sync + Downloadable<'tool> {
@@ -24,7 +24,7 @@ pub trait Verifiable<'tool>: Send + Sync + Downloadable<'tool> {
         from_url: Option<&str>,
     ) -> Result<bool, ProtoError> {
         if to_file.exists() {
-            debug!(target: self.get_log_target(), "Checksum already downloaded, continuing");
+            debug!("Checksum already downloaded, continuing");
 
             return Ok(false);
         }
@@ -40,14 +40,13 @@ pub trait Verifiable<'tool>: Send + Sync + Downloadable<'tool> {
         };
 
         debug!(
-            target: self.get_log_target(),
             "Attempting to download checksum from {}",
             color::url(&from_url),
         );
 
         download_from_url(&from_url, &to_file).await?;
 
-        debug!(target: self.get_log_target(), "Successfully downloaded checksum");
+        debug!("Successfully downloaded checksum");
 
         Ok(true)
     }
@@ -64,11 +63,7 @@ pub trait Verifiable<'tool>: Send + Sync + Downloadable<'tool> {
 pub fn get_sha256_hash_of_file<P: AsRef<Path>>(path: P) -> Result<String, ProtoError> {
     let path = path.as_ref();
 
-    trace!(
-        target: "proto:verifier",
-        "Calculating SHA256 checksum for file {}",
-        color::path(path)
-    );
+    trace!("Calculating SHA256 checksum for file {}", color::path(path));
 
     let mut file = fs::open_file(path)?;
     let mut sha = Sha256::new();
@@ -80,11 +75,7 @@ pub fn get_sha256_hash_of_file<P: AsRef<Path>>(path: P) -> Result<String, ProtoE
 
     let hash = format!("{:x}", sha.finalize());
 
-    trace!(
-        target: "proto:verifier",
-        "Calculated hash {}",
-        color::symbol(&hash)
-    );
+    trace!("Calculated hash {}", color::symbol(&hash));
 
     Ok(hash)
 }

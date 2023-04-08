@@ -1,7 +1,7 @@
 use crate::shell;
-use log::info;
 use proto_core::{color, ProtoError};
 use rustc_hash::FxHashMap;
+use tracing::info;
 
 pub fn post_install(passthrough: &[String]) -> Result<(), ProtoError> {
     if passthrough.contains(&"--no-gobin".to_string()) {
@@ -18,7 +18,7 @@ pub fn post_install(passthrough: &[String]) -> Result<(), ProtoError> {
         if let Some(updated_profile) = shell::write_profile_if_not_setup(&shell, content, "GOBIN")?
         {
             info!(
-                target: "proto:install", "Added GOBIN to your shell profile {}",
+                "Added GOBIN to your shell profile {}",
                 color::path(updated_profile)
             );
         }

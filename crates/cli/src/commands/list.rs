@@ -1,8 +1,8 @@
 use crate::helpers::enable_logging;
 use crate::tools::{create_tool, ToolType};
 use human_sort::compare;
-use log::{debug, info};
 use proto_core::{color, Manifest, ProtoError};
+use tracing::{debug, info};
 
 pub async fn list(tool_type: ToolType) -> Result<(), ProtoError> {
     enable_logging();
@@ -10,9 +10,9 @@ pub async fn list(tool_type: ToolType) -> Result<(), ProtoError> {
     let tool = create_tool(&tool_type)?;
     let manifest = Manifest::load(tool.get_manifest_path())?;
 
-    debug!(target: "proto:list", "Using versions from {}", color::path(&manifest.path));
+    debug!("Using versions from {}", color::path(&manifest.path));
 
-    info!(target: "proto:list", "Locally installed versions:");
+    info!("Locally installed versions:");
 
     let mut versions = Vec::from_iter(manifest.installed_versions);
 
