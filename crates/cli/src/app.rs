@@ -93,8 +93,8 @@ pub enum Commands {
         #[arg(required = true, value_enum, help = "Type of tool")]
         tool: ToolType,
 
-        #[arg(required = true, help = "Dependency and optional version to install")]
-        dependency: String,
+        #[arg(required = true, help = "Dependencies and optional version to install")]
+        dependencies: Vec<String>,
     },
 
     #[command(
