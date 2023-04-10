@@ -1,6 +1,7 @@
 use crate::helpers::{download_to_temp_with_progress_bar, enable_logging};
 use proto_core::{color, get_bin_dir, get_temp_dir, is_offline, load_git_tags, unpack, ProtoError};
 use semver::Version;
+use starbase::SystemResult;
 use starbase_utils::fs;
 use std::env::consts;
 use tracing::{debug, info};
@@ -19,13 +20,13 @@ async fn fetch_version() -> Result<String, ProtoError> {
     Ok(latest)
 }
 
-pub async fn upgrade() -> Result<(), ProtoError> {
+pub async fn upgrade() -> SystemResult {
     enable_logging();
 
     if is_offline() {
         return Err(ProtoError::Message(
             "Upgrading proto requires an internet connection!".into(),
-        ));
+        ))?;
     }
 
     let version = env!("CARGO_PKG_VERSION");
@@ -52,7 +53,7 @@ pub async fn upgrade() -> Result<(), ProtoError> {
             return Err(ProtoError::UnsupportedArchitecture(
                 "proto".to_owned(),
                 arch.to_owned(),
-            ));
+            ))?;
         }
     };
     let target_ext = if cfg!(windows) { "zip" } else { "tar.xz" };

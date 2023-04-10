@@ -2,15 +2,16 @@ use crate::helpers::enable_logging;
 use crate::shell::detect_shell;
 use clap_complete::Shell;
 use proto_core::{get_root, ProtoError};
+use starbase::SystemResult;
 use std::env;
 use std::path::PathBuf;
 use tracing::debug;
 
-pub async fn setup(shell: Option<Shell>, print_profile: bool) -> Result<(), ProtoError> {
+pub async fn setup(shell: Option<Shell>, print_profile: bool) -> SystemResult {
     let shell = detect_shell(shell);
 
     let Ok(paths) = env::var("PATH") else {
-        return Err(ProtoError::MissingPathEnv);
+        return Err(ProtoError::MissingPathEnv)?;
     };
 
     enable_logging();
@@ -25,7 +26,9 @@ pub async fn setup(shell: Option<Shell>, print_profile: bool) -> Result<(), Prot
         return Ok(());
     }
 
-    do_setup(shell, bin_dir, print_profile)
+    do_setup(shell, bin_dir, print_profile)?;
+
+    Ok(())
 }
 
 // For other shells, write environment variable(s) to an applicable profile!

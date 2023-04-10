@@ -1,9 +1,10 @@
 use crate::helpers::enable_logging;
 use crate::tools::{create_tool, ToolType};
-use proto_core::{color, Manifest, ProtoError};
+use proto_core::{color, Manifest};
+use starbase::SystemResult;
 use tracing::{info, trace};
 
-pub async fn global(tool_type: ToolType, version: String) -> Result<(), ProtoError> {
+pub async fn global(tool_type: ToolType, version: String) -> SystemResult {
     enable_logging();
 
     let tool = create_tool(&tool_type)?;

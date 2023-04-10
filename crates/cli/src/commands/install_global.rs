@@ -1,6 +1,7 @@
 use crate::helpers::{create_progress_bar, enable_logging};
 use crate::tools::{create_tool, ToolType};
 use proto_core::{color, get_home_dir, get_tools_dir, ProtoError, Tool};
+use starbase::SystemResult;
 use std::env;
 use std::path::PathBuf;
 use tokio::process::Command;
@@ -13,10 +14,7 @@ async fn get_bin_or_fallback(mut tool: Box<dyn Tool<'_>>) -> Result<PathBuf, Pro
     })
 }
 
-pub async fn install_global(
-    tool_type: ToolType,
-    dependencies: Vec<String>,
-) -> Result<(), ProtoError> {
+pub async fn install_global(tool_type: ToolType, dependencies: Vec<String>) -> SystemResult {
     enable_logging();
 
     for dependency in dependencies {
@@ -111,7 +109,7 @@ pub async fn install_global(
         );
 
         if !output.status.success() {
-            return Err(ProtoError::Message(stderr.to_string()));
+            return Err(ProtoError::Message(stderr.to_string()))?;
         }
 
         info!(

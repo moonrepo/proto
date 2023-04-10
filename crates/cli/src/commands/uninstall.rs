@@ -1,9 +1,9 @@
 use crate::helpers::{create_progress_bar, enable_logging};
 use crate::tools::{create_tool, ToolType};
-use proto_core::ProtoError;
+use starbase::SystemResult;
 use tracing::{debug, info};
 
-pub async fn uninstall(tool_type: ToolType, version: String) -> Result<(), ProtoError> {
+pub async fn uninstall(tool_type: ToolType, version: String) -> SystemResult {
     enable_logging();
 
     let mut tool = create_tool(&tool_type)?;

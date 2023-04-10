@@ -2,7 +2,8 @@ use crate::helpers::{create_progress_bar, disable_progress_bars, enable_logging}
 use crate::hooks::go as go_hooks;
 use crate::tools::{create_tool, ToolType};
 use async_recursion::async_recursion;
-use proto_core::{color, Manifest, ProtoError};
+use proto_core::{color, Manifest};
+use starbase::SystemResult;
 use tracing::{debug, info};
 
 #[async_recursion]
@@ -11,7 +12,7 @@ pub async fn install(
     version: Option<String>,
     pin_version: bool,
     passthrough: Vec<String>,
-) -> Result<(), ProtoError> {
+) -> SystemResult {
     enable_logging();
 
     let version = version.unwrap_or_else(|| "latest".into());

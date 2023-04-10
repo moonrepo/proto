@@ -1,10 +1,11 @@
 use crate::helpers::enable_logging;
 use crate::tools::{create_tool, ToolType};
 use human_sort::compare;
-use proto_core::{color, Manifest, ProtoError};
+use proto_core::{color, Manifest};
+use starbase::SystemResult;
 use tracing::{debug, info};
 
-pub async fn list(tool_type: ToolType) -> Result<(), ProtoError> {
+pub async fn list(tool_type: ToolType) -> SystemResult {
     enable_logging();
 
     let tool = create_tool(&tool_type)?;
