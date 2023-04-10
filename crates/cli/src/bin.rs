@@ -11,10 +11,7 @@ use starbase::{diagnose::IntoDiagnostic, App, MainResult};
 
 #[tokio::main]
 async fn main() -> MainResult {
-    std::env::set_var("RUST_LOG", "trace");
-    tracing_subscriber::fmt::init();
-
-    App::setup_hooks();
+    App::setup_hooks("PROTO_LOG");
 
     let app = CLI::parse();
 

@@ -1,4 +1,5 @@
 use miette::Diagnostic;
+use starbase_styles::{Style, Stylize};
 use std::path::PathBuf;
 use thiserror::Error;
 
@@ -17,15 +18,15 @@ pub enum ProtoError {
     Toml(#[from] starbase_utils::toml::TomlError),
 
     #[diagnostic(code(proto::download::failed))]
-    #[error("Failed to download tool from <url>{0}</url>: {1}")]
+    #[error("Failed to download tool from {}: {1}", .0.style(Style::Url))]
     DownloadFailed(String, String),
 
     #[diagnostic(code(proto::execute::missing_bin))]
-    #[error("Unable to find an executable binary for {0}, expected file <path>{1}</path> does not exist.")]
+    #[error("Unable to find an executable binary for {0}, expected file {} does not exist.", .1.style(Style::Path))]
     ExecuteMissingBin(String, PathBuf),
 
     #[diagnostic(code(proto::http))]
-    #[error("Failure for <url>{url}</url>")]
+    #[error("Failure for {}", .url.style(Style::Url))]
     Http {
         url: String,
         #[source]
@@ -41,7 +42,7 @@ pub enum ProtoError {
     InternetConnectionRequired,
 
     #[diagnostic(code(proto::config::invalid))]
-    #[error("Invalid configuration for <path>{0}</path>: {1}")]
+    #[error("Invalid configuration for {}: {1}", .0.style(Style::Path))]
     InvalidConfig(PathBuf, String),
 
     #[diagnostic(code(proto::misc))]
@@ -49,7 +50,7 @@ pub enum ProtoError {
     Message(String),
 
     #[diagnostic(code(proto::config::missing))]
-    #[error("Could not locate a <file>{0}</file> configuration file.")]
+    #[error("Could not locate a {} configuration file.", .0.style(Style::File))]
     MissingConfig(String),
 
     #[diagnostic(code(proto::env::home_dir))]
@@ -91,7 +92,7 @@ pub enum ProtoError {
     Shim(#[source] tinytemplate::error::Error),
 
     #[diagnostic(code(proto::unsupported::archive))]
-    #[error("Unable to unpack <path>{0}</path>, unsupported archive format {1}.")]
+    #[error("Unable to unpack {}, unsupported archive format {1}.", .0.style(Style::Path))]
     UnsupportedArchiveFormat(PathBuf, String),
 
     #[diagnostic(code(proto::unsupported::arch))]
@@ -112,12 +113,12 @@ pub enum ProtoError {
 
     #[diagnostic(code(proto::verify::invalid_checksum))]
     #[error(
-        "Checksum has failed for <path>{0}</path>, which was verified using <path>{1}</path>."
+        "Checksum has failed for {}, which was verified using {}.", .0.style(Style::Path), .1.style(Style::Path)
     )]
     VerifyInvalidChecksum(PathBuf, PathBuf),
 
     #[diagnostic(code(proto::alias::unknown))]
-    #[error("Version alias <id>{0}</id> could not be found in the manifest.")]
+    #[error("Version alias {} could not be found in the manifest.", .0.style(Style::Id))]
     VersionUnknownAlias(String),
 
     #[diagnostic(code(proto::version::unresolved))]

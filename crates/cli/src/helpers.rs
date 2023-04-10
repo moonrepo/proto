@@ -18,15 +18,15 @@ pub fn enable_logging_with_level(max_level: &str) {
     static ENABLED: AtomicBool = AtomicBool::new(false);
 
     if !ENABLED.load(Relaxed) {
-        // if let Ok(level) = env::var("PROTO_LOG") {
-        //     if !level.starts_with("proto=") && level != "off" {
-        //         env::set_var("RUST_LOG", format!("proto={level}"));
-        //     } else {
-        //         env::set_var("RUST_LOG", level);
-        //     }
-        // } else {
-        //     env::set_var("RUST_LOG", format!("proto={max_level}"));
-        // }
+        if let Ok(level) = env::var("PROTO_LOG") {
+            if !level.starts_with("proto=") && level != "off" {
+                env::set_var("PROTO_LOG", format!("proto={level}"));
+            } else {
+                env::set_var("PROTO_LOG", level);
+            }
+        } else {
+            env::set_var("PROTO_LOG", format!("proto={max_level}"));
+        }
 
         ENABLED.store(true, Relaxed);
     }
