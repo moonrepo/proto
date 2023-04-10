@@ -13,7 +13,6 @@ use std::path::{Path, PathBuf};
 pub struct RustLanguage {
     pub base_dir: PathBuf,
     pub bin_path: Option<PathBuf>,
-    pub log_target: String,
     pub temp_dir: PathBuf,
     pub version: Option<String>,
 }
@@ -25,7 +24,6 @@ impl RustLanguage {
         RustLanguage {
             base_dir: proto.home_dir.join(".rustup").join("toolchains"),
             bin_path: None,
-            log_target: "proto:tool:rust".into(),
             temp_dir: proto.temp_dir.join("rust"),
             version: None,
         }
@@ -35,10 +33,6 @@ impl RustLanguage {
 impl Describable<'_> for RustLanguage {
     fn get_bin_name(&self) -> &str {
         "rust"
-    }
-
-    fn get_log_target(&self) -> &str {
-        &self.log_target
     }
 
     fn get_name(&self) -> String {

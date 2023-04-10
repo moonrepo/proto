@@ -1,6 +1,5 @@
 use clap_complete::Shell;
 use dirs::home_dir;
-use log::{debug, trace};
 use proto_core::{color, ProtoError};
 use rustc_hash::FxHashMap;
 use starbase_utils::fs::{self, FsError};
@@ -10,6 +9,7 @@ use std::{
     io::{self, BufRead, Write},
     path::PathBuf,
 };
+use tracing::{debug, trace};
 
 pub fn detect_shell(shell: Option<Shell>) -> Shell {
     shell.or_else(Shell::from_env).unwrap_or({
@@ -22,7 +22,7 @@ pub fn detect_shell(shell: Option<Shell>) -> Shell {
 }
 
 pub fn find_profiles(shell: &Shell) -> Result<Vec<PathBuf>, ProtoError> {
-    debug!(target: "proto:shell", "Finding profile files for {}", shell);
+    debug!("Finding profile files for {}", shell);
 
     if let Ok(profile_env) = env::var("TEST_PROFILE") {
         return Ok(vec![PathBuf::from(profile_env)]);
@@ -117,14 +117,14 @@ pub fn write_profile_if_not_setup(
     let profiles = find_profiles(shell)?;
 
     for profile in &profiles {
-        trace!(target: "proto:shell", "Checking if shell profile {} exists", color::path(profile));
+        trace!("Checking if shell profile {} exists", color::path(profile));
 
         if !profile.exists() {
-            trace!(target: "proto:shell", "Not found, continuing");
+            trace!("Not found, continuing");
             continue;
         }
 
-        trace!(target: "proto:shell", "Exists, checking if already setup");
+        trace!("Exists, checking if already setup");
 
         let file = fs::open_file(profile)?;
 
@@ -136,7 +136,6 @@ pub fn write_profile_if_not_setup(
         // Already setup profile, so avoid writing
         if has_setup {
             debug!(
-                target: "proto:shell",
                 "Profile {} already setup for {}",
                 color::path(profile),
                 env_var,
@@ -145,7 +144,7 @@ pub fn write_profile_if_not_setup(
             return Ok(None);
         }
 
-        trace!(target: "proto:shell", "Not setup, continuing");
+        trace!("Not setup, continuing");
     }
 
     // Create a profile if none found. Use the last profile in the list
@@ -157,7 +156,6 @@ pub fn write_profile_if_not_setup(
     };
 
     debug!(
-        target: "proto:shell",
         "Found no configured profile, updating {}",
         color::path(last_profile),
     );
@@ -176,7 +174,6 @@ pub fn write_profile_if_not_setup(
     write!(file, "{contents}").map_err(handle_error)?;
 
     debug!(
-        target: "proto:shell",
         "Setup profile {} with {}",
         color::path(last_profile),
         env_var,

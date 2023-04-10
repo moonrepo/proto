@@ -14,7 +14,6 @@ use std::path::{Path, PathBuf};
 pub struct DenoLanguage {
     pub base_dir: PathBuf,
     pub bin_path: Option<PathBuf>,
-    pub log_target: String,
     pub temp_dir: PathBuf,
     pub version: Option<String>,
 }
@@ -26,7 +25,6 @@ impl DenoLanguage {
         DenoLanguage {
             base_dir: proto.tools_dir.join("deno"),
             bin_path: None,
-            log_target: "proto:tool:deno".into(),
             temp_dir: proto.temp_dir.join("deno"),
             version: None,
         }
@@ -36,10 +34,6 @@ impl DenoLanguage {
 impl Describable<'_> for DenoLanguage {
     fn get_bin_name(&self) -> &str {
         "deno"
-    }
-
-    fn get_log_target(&self) -> &str {
-        &self.log_target
     }
 
     fn get_name(&self) -> String {

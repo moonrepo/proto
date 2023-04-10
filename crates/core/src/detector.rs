@@ -6,10 +6,10 @@ use crate::manifest::{Manifest, MANIFEST_NAME};
 use crate::tool::Tool;
 use crate::tools_config::{ToolsConfig, TOOLS_CONFIG_NAME};
 use lenient_semver::Version;
-use log::{debug, trace};
 use starbase_styles::color;
 use starbase_utils::fs;
 use std::{env, path::Path};
+use tracing::{debug, trace};
 
 #[async_trait::async_trait]
 pub trait Detector<'tool>: Send + Sync {
@@ -23,7 +23,8 @@ pub fn load_version_file(path: &Path) -> Result<String, ProtoError> {
     Ok(fs::read_file(path)?.trim().to_owned())
 }
 
-pub async fn detect_version_from_environment<'l, T: Tool<'l> + ?Sized>(
+#[tracing::instrument(skip_all)]
+pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
     tool: &Box<T>,
     forced_version: Option<String>,
 ) -> Result<String, ProtoError> {
@@ -34,17 +35,14 @@ pub async fn detect_version_from_environment<'l, T: Tool<'l> + ?Sized>(
     if version.is_none() {
         if let Ok(session_version) = env::var(&env_var) {
             debug!(
-                target: "proto:detector",
                 "Detected version {} from environment variable {}",
-                session_version,
-                env_var
+                session_version, env_var
             );
 
             version = Some(session_version);
         }
     } else {
         debug!(
-            target: "proto:detector",
             "Using explicit version {} passed on the command line",
             version.as_ref().unwrap(),
         );
@@ -52,19 +50,12 @@ pub async fn detect_version_from_environment<'l, T: Tool<'l> + ?Sized>(
 
     // Traverse upwards and attempt to detect a local version
     if let Ok(working_dir) = env::current_dir() {
-        trace!(
-            target: "proto:detector",
-            "Attempting to find local version"
-        );
+        trace!("Attempting to find local version");
 
         let mut current_dir: Option<&Path> = Some(&working_dir);
 
         while let Some(dir) = &current_dir {
-            trace!(
-                target: "proto:detector",
-                "Checking in directory {}",
-                color::path(dir)
-            );
+            trace!("Checking in directory {}", color::path(dir));
 
             // We already found a version, so exit
             if version.is_some() {
@@ -72,17 +63,12 @@ pub async fn detect_version_from_environment<'l, T: Tool<'l> + ?Sized>(
             }
 
             // Detect from our config file
-            trace!(
-                target: "proto:detector",
-                "Checking proto configuration file ({})",
-                TOOLS_CONFIG_NAME
-            );
+            trace!("Checking proto configuration file ({})", TOOLS_CONFIG_NAME);
 
             let config = ToolsConfig::load_from(dir)?;
 
             if let Some(local_version) = config.tools.get(tool.get_bin_name()) {
                 debug!(
-                    target: "proto:detector",
                     "Detected version {} from configuration file {}",
                     local_version,
                     color::path(&config.path)
@@ -93,17 +79,10 @@ pub async fn detect_version_from_environment<'l, T: Tool<'l> + ?Sized>(
             }
 
             // Detect using the tool
-            trace!(
-                target: "proto:detector",
-                "Detecting from the tool's ecosystem"
-            );
+            trace!("Detecting from the tool's ecosystem");
 
             if let Some(eco_version) = tool.detect_version_from(dir).await? {
-                debug!(
-                    target: "proto:detector",
-                    "Detected version {} from tool's ecosystem",
-                    eco_version,
-                );
+                debug!("Detected version {} from tool's ecosystem", eco_version);
 
                 version = Some(eco_version);
                 break;
@@ -116,7 +95,6 @@ pub async fn detect_version_from_environment<'l, T: Tool<'l> + ?Sized>(
     // If still no version, load the global version
     if version.is_none() {
         trace!(
-            target: "proto:detector",
             "Attempting to find global version in manifest ({})",
             MANIFEST_NAME
         );
@@ -125,7 +103,6 @@ pub async fn detect_version_from_environment<'l, T: Tool<'l> + ?Sized>(
 
         if let Some(global_version) = manifest.default_version {
             debug!(
-                target: "proto:detector",
                 "Detected global version {} from {}",
                 global_version,
                 color::path(&manifest.path)
@@ -144,6 +121,7 @@ pub async fn detect_version_from_environment<'l, T: Tool<'l> + ?Sized>(
     }
 }
 
+#[tracing::instrument(skip_all)]
 pub fn detect_fixed_version<P: AsRef<Path>>(
     version: &str,
     manifest_path: P,

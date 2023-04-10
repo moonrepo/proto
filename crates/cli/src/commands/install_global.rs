@@ -1,10 +1,11 @@
-use crate::helpers::{create_progress_bar, enable_logging};
+use crate::helpers::create_progress_bar;
 use crate::tools::{create_tool, ToolType};
-use log::{debug, info, trace};
 use proto_core::{color, get_home_dir, get_tools_dir, ProtoError, Tool};
+use starbase::SystemResult;
 use std::env;
 use std::path::PathBuf;
 use tokio::process::Command;
+use tracing::{debug, info, trace};
 
 async fn get_bin_or_fallback(mut tool: Box<dyn Tool<'_>>) -> Result<PathBuf, ProtoError> {
     Ok(match tool.find_bin_path().await {
@@ -13,19 +14,14 @@ async fn get_bin_or_fallback(mut tool: Box<dyn Tool<'_>>) -> Result<PathBuf, Pro
     })
 }
 
-pub async fn install_global(
-    tool_type: ToolType,
-    dependencies: Vec<String>,
-) -> Result<(), ProtoError> {
-    enable_logging();
-
+pub async fn install_global(tool_type: ToolType, dependencies: Vec<String>) -> SystemResult {
     for dependency in dependencies {
         let tool = create_tool(&tool_type)?;
         let label = format!("Installing {} for {}", dependency, tool.get_name());
         let global_dir;
         let mut command;
 
-        debug!(target: "proto:install-global", "{}", label);
+        debug!("{}", label);
 
         match tool_type {
             ToolType::Bun => {
@@ -111,11 +107,11 @@ pub async fn install_global(
         );
 
         if !output.status.success() {
-            return Err(ProtoError::Message(stderr.to_string()));
+            return Err(ProtoError::Message(stderr.to_string()))?;
         }
 
         info!(
-            target: "proto:install-global", "{} has been installed at {}!",
+            "{} has been installed at {}!",
             dependency,
             color::path(global_dir),
         );

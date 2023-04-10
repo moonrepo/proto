@@ -12,7 +12,7 @@ fn errors_if_no_config() {
     let assert = cmd.arg("use").assert();
 
     assert.stderr(predicate::str::contains(
-        "Could not locate a <file>.prototools</file> configuration file.",
+        "Could not locate a .prototools configuration file.",
     ));
 }
 

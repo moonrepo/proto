@@ -1,6 +1,6 @@
 use crate::errors::ProtoError;
 use rustc_hash::FxHashMap;
-use starbase_utils::toml::{self, value::Table, value::Value};
+use starbase_utils::toml::{self, TomlTable, TomlValue};
 use std::path::{Path, PathBuf};
 
 pub const TOOLS_CONFIG_NAME: &str = ".prototools";
@@ -33,6 +33,7 @@ impl ToolsConfig {
         Self::load(dir.as_ref().join(TOOLS_CONFIG_NAME))
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self, ProtoError> {
         let path = path.as_ref();
 
@@ -43,12 +44,12 @@ impl ToolsConfig {
             });
         }
 
-        let config: Value = toml::read_file(path)?;
+        let config: TomlValue = toml::read_file(path)?;
         let mut tools = FxHashMap::default();
 
-        if let Value::Table(table) = config {
+        if let TomlValue::Table(table) = config {
             for (key, value) in table {
-                if let Value::String(version) = value {
+                if let TomlValue::String(version) = value {
                     tools.insert(key, version);
                 } else {
                     return Err(ProtoError::InvalidConfig(
@@ -70,14 +71,15 @@ impl ToolsConfig {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn save(&self) -> Result<(), ProtoError> {
-        let mut map = Table::with_capacity(self.tools.len());
+        let mut map = TomlTable::with_capacity(self.tools.len());
 
         for (tool, version) in &self.tools {
-            map.insert(tool.to_owned(), Value::String(version.to_owned()));
+            map.insert(tool.to_owned(), TomlValue::String(version.to_owned()));
         }
 
-        toml::write_file(&self.path, &Value::Table(map), true)?;
+        toml::write_file(&self.path, &TomlValue::Table(map), true)?;
 
         Ok(())
     }

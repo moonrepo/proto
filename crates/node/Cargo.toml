@@ -10,11 +10,11 @@ repository = "https://github.com/moonrepo/proto"
 [dependencies]
 proto_core = { version = "0.5.0", path = "../core" }
 clean-path = "0.2.1"
-log = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 starbase_utils = { workspace = true }
+tracing = { workspace = true }
 
 [dev-dependencies]
 assert_fs = { workspace = true }

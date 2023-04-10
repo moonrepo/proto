@@ -1,6 +1,5 @@
 use crate::errors::ProtoError;
 use crate::helpers::{get_bin_dir, get_root};
-use log::debug;
 use serde::Serialize;
 use serde_json::Value;
 use starbase_styles::color;
@@ -9,6 +8,7 @@ use std::fmt::Write;
 use std::path::{Path, PathBuf};
 use tinytemplate::error::Error as TemplateError;
 use tinytemplate::TinyTemplate;
+use tracing::debug;
 
 #[derive(Serialize)]
 pub struct Context {
@@ -61,6 +61,7 @@ fn get_template<'l>(global: bool) -> &'l str {
     }
 }
 
+#[tracing::instrument(skip_all)]
 fn build_shim_file(builder: &ShimBuilder, contents: &str) -> Result<String, ProtoError> {
     let mut template = TinyTemplate::new();
 
@@ -189,7 +190,7 @@ impl ShimBuilder {
 
         // Only log the first time it happens
         if !shim_exists {
-            debug!(target: "proto:shimmer", "Created shim at {}", color::path(&shim_path));
+            debug!("Created shim at {}", color::path(&shim_path));
         }
 
         Ok(shim_path)

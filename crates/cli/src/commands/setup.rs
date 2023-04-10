@@ -1,31 +1,31 @@
-use crate::helpers::enable_logging;
 use crate::shell::detect_shell;
 use clap_complete::Shell;
-use log::debug;
 use proto_core::{get_root, ProtoError};
+use starbase::SystemResult;
 use std::env;
 use std::path::PathBuf;
+use tracing::debug;
 
-pub async fn setup(shell: Option<Shell>, print_profile: bool) -> Result<(), ProtoError> {
+pub async fn setup(shell: Option<Shell>, print_profile: bool) -> SystemResult {
     let shell = detect_shell(shell);
 
     let Ok(paths) = env::var("PATH") else {
-        return Err(ProtoError::MissingPathEnv);
+        return Err(ProtoError::MissingPathEnv)?;
     };
-
-    enable_logging();
 
     let proto_dir = get_root()?;
     let bin_dir = proto_dir.join("bin");
     let paths = env::split_paths(&paths).collect::<Vec<_>>();
 
     if paths.contains(&bin_dir) {
-        debug!(target: "proto:setup", "Skipping setup, PROTO_ROOT already exists in PATH.");
+        debug!("Skipping setup, PROTO_ROOT already exists in PATH.");
 
         return Ok(());
     }
 
-    do_setup(shell, bin_dir, print_profile)
+    do_setup(shell, bin_dir, print_profile)?;
+
+    Ok(())
 }
 
 // For other shells, write environment variable(s) to an applicable profile!
@@ -34,7 +34,7 @@ fn do_setup(shell: Shell, _bin_dir: PathBuf, print_profile: bool) -> Result<(), 
     use crate::shell::{format_env_vars, write_profile_if_not_setup};
     use rustc_hash::FxHashMap;
 
-    debug!(target: "proto:setup", "Updating PATH in {} shell", shell);
+    debug!("Updating PATH in {} shell", shell);
 
     let env_vars = FxHashMap::from_iter([
         ("PROTO_ROOT".to_string(), "$HOME/.proto".to_string()),
@@ -56,20 +56,20 @@ fn do_setup(shell: Shell, _bin_dir: PathBuf, print_profile: bool) -> Result<(), 
 // so we're going to execute the `setx` command instead!
 #[cfg(windows)]
 fn do_setup(shell: Shell, bin_dir: PathBuf, print_profile: bool) -> Result<(), ProtoError> {
-    use log::{trace, warn};
     use std::process::Command;
+    use tracing::{trace, warn};
     use winreg::enums::HKEY_CURRENT_USER;
     use winreg::RegKey;
 
     let cu = RegKey::predef(HKEY_CURRENT_USER);
 
     let Ok(env) = cu.open_subkey("Environment") else {
-        warn!(target: "proto:setup", "Failed to read current user environment");
+        warn!("Failed to read current user environment");
         return Ok(());
     };
 
     let Ok(path) = env.get_value::<String, &str>("Path") else {
-        warn!(target: "proto:setup", "Failed to read PATH from environment");
+        warn!("Failed to read PATH from environment");
         return Ok(());
     };
 
@@ -80,7 +80,6 @@ fn do_setup(shell: Shell, bin_dir: PathBuf, print_profile: bool) -> Result<(), P
     }
 
     debug!(
-        target: "proto:setup",
         "Updating PATH with {} command",
         proto_core::color::shell("setx"),
     );
@@ -97,19 +96,9 @@ fn do_setup(shell: Shell, bin_dir: PathBuf, print_profile: bool) -> Result<(), P
         .map_err(|e| ProtoError::Message(e.to_string()))?;
 
     if !output.status.success() {
-        warn!(target: "proto:setup", "Failed to update PATH");
-
-        trace!(
-            target: "proto:setup",
-            "[stderr]: {}",
-            String::from_utf8_lossy(&output.stderr),
-        );
-
-        trace!(
-            target: "proto:setup",
-            "[stdout]: {}",
-            String::from_utf8_lossy(&output.stdout),
-        );
+        warn!("Failed to update PATH");
+        trace!("[stderr]: {}", String::from_utf8_lossy(&output.stderr));
+        trace!("[stdout]: {}", String::from_utf8_lossy(&output.stdout));
     } else if print_profile {
         println!("{}", shell);
     }

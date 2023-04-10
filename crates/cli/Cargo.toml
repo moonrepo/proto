@@ -35,16 +35,16 @@ async-recursion = "1.0.4"
 clap = { workspace = true, features = ["derive"] }
 clap_complete = { workspace = true }
 dirs = "5.0.0"
-env_logger = "0.10.0"
 futures = "0.3.28"
 human-sort = "0.2.2"
 indicatif = "0.17.3"
-log = { workspace = true }
 reqwest = { workspace = true, features = ["stream"] }
 rustc-hash = { workspace = true }
 semver = "1.0.17"
+starbase = "0.1.4"
 starbase_utils = { workspace = true }
 tokio = { workspace = true }
+tracing = { workspace = true }
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.50.0"

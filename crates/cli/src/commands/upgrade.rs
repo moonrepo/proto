@@ -1,9 +1,10 @@
-use crate::helpers::{download_to_temp_with_progress_bar, enable_logging};
-use log::{debug, info};
+use crate::helpers::download_to_temp_with_progress_bar;
 use proto_core::{color, get_bin_dir, get_temp_dir, is_offline, load_git_tags, unpack, ProtoError};
 use semver::Version;
+use starbase::SystemResult;
 use starbase_utils::fs;
 use std::env::consts;
+use tracing::{debug, info};
 
 async fn fetch_version() -> Result<String, ProtoError> {
     let tags = load_git_tags("https://github.com/moonrepo/proto")
@@ -14,39 +15,29 @@ async fn fetch_version() -> Result<String, ProtoError> {
 
     let latest = tags.last().unwrap().strip_prefix('v').unwrap().to_owned();
 
-    debug!(
-        target: "proto:upgrade",
-        "Found latest version {}",
-        color::id(&latest),
-    );
+    debug!("Found latest version {}", color::id(&latest));
 
     Ok(latest)
 }
 
-pub async fn upgrade() -> Result<(), ProtoError> {
-    enable_logging();
-
+pub async fn upgrade() -> SystemResult {
     if is_offline() {
         return Err(ProtoError::Message(
             "Upgrading proto requires an internet connection!".into(),
-        ));
+        ))?;
     }
 
     let version = env!("CARGO_PKG_VERSION");
     let new_version = fetch_version().await?;
 
     debug!(
-        target: "proto:upgrade",
         "Comparing latest version {} to local version {}",
         color::id(&new_version),
         color::id(version),
     );
 
     if Version::parse(&new_version).unwrap() <= Version::parse(version).unwrap() {
-        info!(
-            target: "proto:upgrade",
-            "You're already on the latest version of proto!",
-        );
+        info!("You're already on the latest version of proto!");
 
         return Ok(());
     }
@@ -60,17 +51,13 @@ pub async fn upgrade() -> Result<(), ProtoError> {
             return Err(ProtoError::UnsupportedArchitecture(
                 "proto".to_owned(),
                 arch.to_owned(),
-            ));
+            ))?;
         }
     };
     let target_ext = if cfg!(windows) { "zip" } else { "tar.xz" };
     let target_file = format!("proto_cli-v{new_version}-{target}");
 
-    debug!(
-        target: "proto:upgrade",
-        "Download target: {}",
-        &target_file,
-    );
+    debug!("Download target: {}", &target_file);
 
     // Download the file and show a progress bar
     let download_file = format!("{target_file}.{target_ext}");
@@ -90,11 +77,7 @@ pub async fn upgrade() -> Result<(), ProtoError> {
     fs::copy_file(temp_dir.join(target_file).join(bin_name), &bin_path)?;
     fs::update_perms(&bin_path, None)?;
 
-    info!(
-        target: "proto:upgrade",
-        "Upgraded proto to v{}!",
-        new_version
-    );
+    info!("Upgraded proto to v{}!", new_version);
 
     Ok(())
 }

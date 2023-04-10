@@ -1,12 +1,10 @@
 use crate::download::get_archive_file;
 use crate::GoLanguage;
-use log::debug;
-use proto_core::{
-    async_trait, color, get_sha256_hash_of_file, Describable, ProtoError, Resolvable, Verifiable,
-};
+use proto_core::{async_trait, color, get_sha256_hash_of_file, ProtoError, Resolvable, Verifiable};
 use starbase_utils::fs;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
+use tracing::debug;
 
 #[async_trait]
 impl Verifiable<'_> for GoLanguage {
@@ -36,7 +34,6 @@ impl Verifiable<'_> for GoLanguage {
         download_file: &Path,
     ) -> Result<bool, ProtoError> {
         debug!(
-            target: self.get_log_target(),
             "Verifiying checksum of downloaded file {} using {}",
             color::path(download_file),
             color::path(checksum_file),
@@ -47,7 +44,7 @@ impl Verifiable<'_> for GoLanguage {
 
         for line in BufReader::new(file).lines().flatten() {
             if line.starts_with(&checksum) {
-                debug!(target: self.get_log_target(), "Successfully verified, checksum matches");
+                debug!("Successfully verified, checksum matches");
 
                 return Ok(true);
             }

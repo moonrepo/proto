@@ -1,12 +1,12 @@
 use crate::describer::Describable;
 use crate::errors::ProtoError;
-use log::{debug, trace};
 use starbase_styles::color;
 use starbase_utils::fs::{self, FsError};
 use std::fs::File;
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 use tar::Archive;
+use tracing::{debug, trace};
 use zip::ZipArchive;
 
 #[async_trait::async_trait]
@@ -25,7 +25,7 @@ pub trait Installable<'tool>: Send + Sync + Describable<'tool> {
     /// This is typically unzipping an archive, and running any installers/binaries.
     async fn install(&self, install_dir: &Path, download_path: &Path) -> Result<bool, ProtoError> {
         if install_dir.exists() {
-            debug!(target: self.get_log_target(), "Tool already installed, continuing");
+            debug!("Tool already installed, continuing");
 
             return Ok(false);
         }
@@ -37,7 +37,6 @@ pub trait Installable<'tool>: Send + Sync + Describable<'tool> {
         let prefix = self.get_archive_prefix()?;
 
         debug!(
-            target: self.get_log_target(),
             "Attempting to install {} to {}",
             color::path(download_path),
             color::path(install_dir),
@@ -45,7 +44,7 @@ pub trait Installable<'tool>: Send + Sync + Describable<'tool> {
 
         unpack(download_path, install_dir, prefix)?;
 
-        debug!(target: self.get_log_target(), "Successfully installed tool");
+        debug!("Successfully installed tool");
 
         Ok(true)
     }
@@ -53,20 +52,16 @@ pub trait Installable<'tool>: Send + Sync + Describable<'tool> {
     /// Uninstall the tool by deleting the install directory.
     async fn uninstall(&self, install_dir: &Path) -> Result<bool, ProtoError> {
         if !install_dir.exists() {
-            debug!(target: self.get_log_target(), "Tool has not been installed, aborting");
+            debug!("Tool has not been installed, aborting");
 
             return Ok(false);
         }
 
-        debug!(
-            target: self.get_log_target(),
-            "Deleting install directory {}",
-            color::path(install_dir)
-        );
+        debug!("Deleting install directory {}", color::path(install_dir));
 
         fs::remove_dir_all(install_dir)?;
 
-        debug!(target: self.get_log_target(), "Successfully uninstalled tool");
+        debug!("Successfully uninstalled tool");
 
         Ok(true)
     }
@@ -91,6 +86,7 @@ pub fn unpack<I: AsRef<Path>, O: AsRef<Path>>(
     }
 }
 
+#[tracing::instrument(skip_all)]
 pub fn untar<I: AsRef<Path>, O: AsRef<Path>, R: FnOnce(File) -> D, D: Read>(
     input_file: I,
     output_dir: O,
@@ -105,7 +101,6 @@ pub fn untar<I: AsRef<Path>, O: AsRef<Path>, R: FnOnce(File) -> D, D: Read>(
     };
 
     trace!(
-        target: "proto:installer",
         "Unpacking tar archive {} to {}",
         color::path(input_file),
         color::path(output_dir),
@@ -171,6 +166,7 @@ pub fn untar_xzip<I: AsRef<Path>, O: AsRef<Path>>(
     })
 }
 
+#[tracing::instrument(skip_all)]
 pub fn unzip<I: AsRef<Path>, O: AsRef<Path>>(
     input_file: I,
     output_dir: O,
@@ -180,7 +176,6 @@ pub fn unzip<I: AsRef<Path>, O: AsRef<Path>>(
     let output_dir = output_dir.as_ref();
 
     trace!(
-        target: "proto:installer",
         "Unzipping zip archive {} to {}",
         color::path(input_file),
         color::path(output_dir),

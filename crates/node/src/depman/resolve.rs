@@ -1,15 +1,15 @@
 use crate::depman::{NodeDependencyManager, NodeDependencyManagerType};
 use crate::platform::PackageJson;
 use crate::NodeLanguage;
-use log::debug;
 use proto_core::{
-    async_trait, detect_version_from_environment, is_offline, is_semantic_version,
-    load_versions_manifest, remove_v_prefix, Describable, Manifest, Proto, ProtoError, Resolvable,
-    Tool, VersionManifest, VersionManifestEntry,
+    async_trait, detect_version, is_offline, is_semantic_version, load_versions_manifest,
+    remove_v_prefix, Manifest, Proto, ProtoError, Resolvable, Tool, VersionManifest,
+    VersionManifestEntry,
 };
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
 use std::collections::BTreeMap;
+use tracing::debug;
 
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct NDMVersionDistSignature {
@@ -100,9 +100,7 @@ impl Resolvable<'_> for NodeDependencyManager {
                 if initial_version == "bundled" {
                     let node_tool = Box::new(NodeLanguage::new(Proto::new()?));
 
-                    if let Ok(node_version) =
-                        detect_version_from_environment(&node_tool, None).await
-                    {
+                    if let Ok(node_version) = detect_version(&node_tool, None).await {
                         let npm_package_path = node_tool
                             .base_dir
                             .join(node_version)
@@ -131,10 +129,7 @@ impl Resolvable<'_> for NodeDependencyManager {
             // Because of this, we need to always install the v1 package!
             NodeDependencyManagerType::Yarn => {
                 if !initial_version.starts_with('1') {
-                    debug!(
-                        target: self.get_log_target(),
-                        "Found Yarn v2+, installing latest v1 from registry for compatibility"
-                    );
+                    debug!("Found Yarn v2+, installing latest v1 from registry for compatibility");
 
                     initial_version = if is_offline() {
                         "1.22.19".to_owned() // This may change upstream!
@@ -153,16 +148,12 @@ impl Resolvable<'_> for NodeDependencyManager {
             return Ok(initial_version);
         }
 
-        debug!(
-            target: self.get_log_target(),
-            "Resolving a semantic version for \"{}\"",
-            initial_version,
-        );
+        debug!("Resolving a semantic version for \"{}\"", initial_version);
 
         let manifest = self.load_version_manifest().await?;
         let candidate = manifest.find_version(&initial_version)?;
 
-        debug!(target: self.get_log_target(), "Resolved to {}", candidate);
+        debug!("Resolved to {}", candidate);
 
         self.set_version(candidate);
 

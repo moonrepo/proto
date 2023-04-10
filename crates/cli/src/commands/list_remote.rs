@@ -1,21 +1,18 @@
-use crate::helpers::enable_logging;
 use crate::tools::{create_tool, ToolType};
 use human_sort::compare;
-use log::{debug, info};
-use proto_core::ProtoError;
+use starbase::SystemResult;
 use std::io::{self, Write};
+use tracing::{debug, info};
 
 // TODO: only show LTS, dont show pre-releases?
-pub async fn list_remote(tool_type: ToolType) -> Result<(), ProtoError> {
-    enable_logging();
-
+pub async fn list_remote(tool_type: ToolType) -> SystemResult {
     let tool = create_tool(&tool_type)?;
 
-    debug!(target: "proto:list-remote", "Loading manifest");
+    debug!("Loading manifest");
 
     let manifest = tool.load_version_manifest().await?;
 
-    info!(target: "proto:list-remote", "Available versions:");
+    info!("Available versions:");
 
     let stdout = io::stdout();
     let mut handle = io::BufWriter::new(stdout);
