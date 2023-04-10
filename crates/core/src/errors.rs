@@ -5,18 +5,6 @@ use thiserror::Error;
 
 #[derive(Error, Debug, Diagnostic)]
 pub enum ProtoError {
-    #[diagnostic(code(proto::fs))]
-    #[error(transparent)]
-    Fs(#[from] starbase_utils::fs::FsError),
-
-    #[diagnostic(code(proto::json))]
-    #[error(transparent)]
-    Json(#[from] starbase_utils::json::JsonError),
-
-    #[diagnostic(code(proto::toml))]
-    #[error(transparent)]
-    Toml(#[from] starbase_utils::toml::TomlError),
-
     #[diagnostic(code(proto::download::failed))]
     #[error("Failed to download tool from {}: {1}", .0.style(Style::Url))]
     DownloadFailed(String, String),
@@ -132,4 +120,16 @@ pub enum ProtoError {
     #[diagnostic(code(proto::zip::failed))]
     #[error("Failed using zip archive.")]
     Zip(#[from] zip::result::ZipError),
+
+    #[diagnostic(code(proto::fs))]
+    #[error(transparent)]
+    Fs(#[from] starbase_utils::fs::FsError),
+
+    #[diagnostic(code(proto::json))]
+    #[error(transparent)]
+    Json(#[from] starbase_utils::json::JsonError),
+
+    #[diagnostic(code(proto::toml))]
+    #[error(transparent)]
+    Toml(#[from] starbase_utils::toml::TomlError),
 }

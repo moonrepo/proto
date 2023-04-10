@@ -56,8 +56,8 @@ fn do_setup(shell: Shell, _bin_dir: PathBuf, print_profile: bool) -> Result<(), 
 // so we're going to execute the `setx` command instead!
 #[cfg(windows)]
 fn do_setup(shell: Shell, bin_dir: PathBuf, print_profile: bool) -> Result<(), ProtoError> {
-    use log::{trace, warn};
     use std::process::Command;
+    use tracing::{trace, warn};
     use winreg::enums::HKEY_CURRENT_USER;
     use winreg::RegKey;
 
