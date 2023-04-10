@@ -28,8 +28,8 @@ async fn main() {
             pin,
             passthrough,
         } => commands::install(tool, semver, pin, passthrough).await,
-        Commands::InstallGlobal { tool, dependency } => {
-            commands::install_global(tool, dependency).await
+        Commands::InstallGlobal { tool, dependencies } => {
+            commands::install_global(tool, dependencies).await
         }
         Commands::Global { tool, semver } => commands::global(tool, semver).await,
         Commands::List { tool } => commands::list(tool).await,
