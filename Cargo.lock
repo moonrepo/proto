@@ -1975,9 +1975,9 @@ checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
 
 [[package]]
 name = "starbase"
-version = "0.1.3"
+version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a68ad660d6adf51b70fbb4c803bcf671581ac926b62bf89401c4dd53932e254"
+checksum = "f2c4b6e6968816177b34e902db84d952573c0ef425c90b391aee280424c5011f"
 dependencies = [
  "async-trait",
  "chrono",
@@ -2019,9 +2019,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_styles"
-version = "0.1.2"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "655d866434fba647380f0dbf2ec6a71ff30390b415e62a1729ac4ef84ba90240"
+checksum = "ac7677a4dfa4c81c0972b9fc227c0a7d339a2d3d360bc7fef4c5a7cb328b2cab"
 dependencies = [
  "dirs",
  "miette",

@@ -65,7 +65,7 @@ pub enum ProtoError {
     #[error("{0} has not been configured or installed, unable to proceed.")]
     MissingTool(String),
 
-    #[diagnostic(code(proto::tool::missing_run))]
+    #[diagnostic(code(proto::tool::required))]
     #[error(
         "This project requires {0} {1}, but this version has not been installed. Install it with {2}!"
     )]

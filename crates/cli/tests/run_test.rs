@@ -12,7 +12,7 @@ fn errors_if_not_installed() {
     let assert = cmd.arg("run").arg("node").arg("19.0.0").assert();
 
     assert.stderr(predicate::str::contains(
-        "This project requires Node.js 19.0.0, but this version has not been installed.",
+        "This project requires Node.js 19.0.0",
     ));
 }
 
@@ -168,6 +168,6 @@ fn doesnt_auto_install_if_false() {
     let assert = cmd.arg("run").arg("node").arg("19.0.0").assert();
 
     assert.stderr(predicate::str::contains(
-        "This project requires Node.js 19.0.0, but this version has not been installed.",
+        "This project requires Node.js 19.0.0",
     ));
 }

@@ -21,7 +21,7 @@ semver = "1.0.17"
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = "0.10.6"
-starbase_styles = "0.1.0"
+starbase_styles = "0.1.3"
 starbase_utils = { workspace = true }
 tar = "0.4.38"
 tinytemplate = "1.2.1"

@@ -41,7 +41,7 @@ indicatif = "0.17.3"
 reqwest = { workspace = true, features = ["stream"] }
 rustc-hash = { workspace = true }
 semver = "1.0.17"
-starbase = "0.1.3"
+starbase = "0.1.4"
 starbase_utils = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
