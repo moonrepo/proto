@@ -18,7 +18,7 @@ pub struct App {
     pub command: Commands,
 }
 
-#[derive(Debug, Subcommand)]
+#[derive(Clone, Debug, Subcommand)]
 pub enum Commands {
     #[command(
         name = "a",

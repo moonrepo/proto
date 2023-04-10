@@ -7,16 +7,26 @@ pub mod tools;
 
 use app::{App as CLI, Commands};
 use clap::Parser;
+use helpers::{enable_logging, enable_logging_with_level};
 use starbase::{system, App, MainResult, State};
 
 #[derive(State)]
 pub struct CliCommand(pub Commands);
 
 #[system]
-async fn run_command() {
-    let cli = CLI::parse();
+async fn setup_logging(command: StateRef<CliCommand>) {
+    if matches!(command.0, Commands::Bin { .. } | Commands::Run { .. }) {
+        enable_logging_with_level("warn");
+    } else if matches!(command.0, Commands::Completions { .. }) {
+        // Nothing
+    } else {
+        enable_logging();
+    }
+}
 
-    match cli.command {
+#[system]
+async fn run_command(command: StateMut<CliCommand>) {
+    match command.0.clone() {
         Commands::Alias {
             tool,
             alias,
@@ -56,6 +66,7 @@ async fn main() -> MainResult {
 
     let mut app = App::new();
     app.set_state(CliCommand(CLI::parse().command));
+    app.startup(setup_logging);
     app.execute(run_command);
     app.run().await?;
 

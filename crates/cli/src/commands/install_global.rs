@@ -1,4 +1,4 @@
-use crate::helpers::{create_progress_bar, enable_logging};
+use crate::helpers::create_progress_bar;
 use crate::tools::{create_tool, ToolType};
 use proto_core::{color, get_home_dir, get_tools_dir, ProtoError, Tool};
 use starbase::SystemResult;
@@ -15,8 +15,6 @@ async fn get_bin_or_fallback(mut tool: Box<dyn Tool<'_>>) -> Result<PathBuf, Pro
 }
 
 pub async fn install_global(tool_type: ToolType, dependencies: Vec<String>) -> SystemResult {
-    enable_logging();
-
     for dependency in dependencies {
         let tool = create_tool(&tool_type)?;
         let label = format!("Installing {} for {}", dependency, tool.get_name());

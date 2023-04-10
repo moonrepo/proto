@@ -1,4 +1,4 @@
-use crate::helpers::{create_progress_bar, disable_progress_bars, enable_logging};
+use crate::helpers::{create_progress_bar, disable_progress_bars};
 use crate::hooks::go as go_hooks;
 use crate::tools::{create_tool, ToolType};
 use async_recursion::async_recursion;
@@ -13,8 +13,6 @@ pub async fn install(
     pin_version: bool,
     passthrough: Vec<String>,
 ) -> SystemResult {
-    enable_logging();
-
     let version = version.unwrap_or_else(|| "latest".into());
     let mut tool = create_tool(&tool_type)?;
 

@@ -1,4 +1,3 @@
-use crate::helpers::enable_logging;
 use crate::tools::{create_tool, ToolType};
 use human_sort::compare;
 use starbase::SystemResult;
@@ -7,8 +6,6 @@ use tracing::{debug, info};
 
 // TODO: only show LTS, dont show pre-releases?
 pub async fn list_remote(tool_type: ToolType) -> SystemResult {
-    enable_logging();
-
     let tool = create_tool(&tool_type)?;
 
     debug!("Loading manifest");

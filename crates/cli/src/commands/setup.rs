@@ -1,4 +1,3 @@
-use crate::helpers::enable_logging;
 use crate::shell::detect_shell;
 use clap_complete::Shell;
 use proto_core::{get_root, ProtoError};
@@ -13,8 +12,6 @@ pub async fn setup(shell: Option<Shell>, print_profile: bool) -> SystemResult {
     let Ok(paths) = env::var("PATH") else {
         return Err(ProtoError::MissingPathEnv)?;
     };
-
-    enable_logging();
 
     let proto_dir = get_root()?;
     let bin_dir = proto_dir.join("bin");

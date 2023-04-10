@@ -1,4 +1,4 @@
-use crate::helpers::{disable_progress_bars, enable_logging};
+use crate::helpers::disable_progress_bars;
 use crate::tools::ToolType;
 use crate::{commands::install::install, helpers::create_progress_bar};
 use proto_core::{ProtoError, ToolsConfig, TOOLS_CONFIG_NAME};
@@ -6,8 +6,6 @@ use starbase::SystemResult;
 use std::{env, str::FromStr};
 
 pub async fn install_all() -> SystemResult {
-    enable_logging();
-
     let current_dir = env::current_dir().expect("Invalid working directory!");
 
     let Some(config) = ToolsConfig::load_upwards(&current_dir)? else {

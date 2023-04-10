@@ -1,12 +1,9 @@
-use crate::helpers::enable_logging;
 use crate::tools::{create_tool, ToolType};
 use proto_core::{color, is_alias_name, Manifest, ProtoError};
 use starbase::SystemResult;
 use tracing::info;
 
 pub async fn alias(tool_type: ToolType, alias: String, version: String) -> SystemResult {
-    enable_logging();
-
     if alias == version {
         return Err(ProtoError::Message("Cannot map an alias to itself.".into()))?;
     }

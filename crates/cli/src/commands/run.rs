@@ -1,5 +1,4 @@
 use crate::commands::install::install;
-use crate::helpers::enable_logging_with_level;
 use crate::tools::{create_tool, ToolType};
 use proto_core::{color, detect_version_from_environment, ProtoError, UserConfig};
 use starbase::SystemResult;
@@ -12,8 +11,6 @@ pub async fn run(
     forced_version: Option<String>,
     args: Vec<String>,
 ) -> SystemResult {
-    enable_logging_with_level("warn");
-
     let mut tool = create_tool(&tool_type)?;
     let version = detect_version_from_environment(&tool, forced_version).await?;
 
