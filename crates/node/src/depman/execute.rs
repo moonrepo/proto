@@ -62,4 +62,14 @@ impl Executable<'_> for NodeDependencyManager {
             None => Err(ProtoError::MissingTool(self.get_name())),
         }
     }
+
+    fn get_globals_bin_dir(&self) -> Result<PathBuf, ProtoError> {
+        Ok(self
+            .base_dir
+            .parent()
+            .unwrap()
+            .join("node")
+            .join("globals")
+            .join("bin"))
+    }
 }
