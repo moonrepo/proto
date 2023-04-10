@@ -45,7 +45,6 @@ starbase = "0.1.4"
 starbase_utils = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
-tracing-subscriber = "0.3.16"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.50.0"

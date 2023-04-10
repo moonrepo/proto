@@ -34,7 +34,7 @@ pub trait Downloadable<'tool>: Send + Sync + Describable<'tool> + Resolvable<'to
             None => self.get_download_url()?,
         };
 
-        debug!("Attempting to download tool from {}", color::url(&from_url),);
+        debug!("Attempting to download tool from {}", color::url(&from_url));
 
         download_from_url(&from_url, &to_file).await?;
 

@@ -265,7 +265,7 @@ where
     }
 
     // Otherwise, request the resource and cache it
-    trace!("Loading versions manifest from {}", color::url(url),);
+    trace!("Loading versions manifest from {}", color::url(url));
 
     let response = reqwest::get(url).await.map_err(handle_http_error)?;
     let contents = response.text().await.map_err(handle_http_error)?;

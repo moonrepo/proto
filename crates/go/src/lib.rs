@@ -14,7 +14,6 @@ use std::path::{Path, PathBuf};
 pub struct GoLanguage {
     pub base_dir: PathBuf,
     pub bin_path: Option<PathBuf>,
-    pub log_target: String,
     pub temp_dir: PathBuf,
     pub version: Option<String>,
 }
@@ -26,7 +25,6 @@ impl GoLanguage {
         GoLanguage {
             base_dir: proto.tools_dir.join("go"),
             bin_path: None,
-            log_target: "proto:tool:go".into(),
             temp_dir: proto.temp_dir.join("go"),
             version: None,
         }
@@ -36,10 +34,6 @@ impl GoLanguage {
 impl Describable<'_> for GoLanguage {
     fn get_bin_name(&self) -> &str {
         "go"
-    }
-
-    fn get_log_target(&self) -> &str {
-        &self.log_target
     }
 
     fn get_name(&self) -> String {

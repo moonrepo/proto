@@ -45,7 +45,7 @@ impl Resolvable<'_> for DenoLanguage {
             return Ok(initial_version);
         }
 
-        debug!("Resolving a semantic version for \"{}\"", initial_version,);
+        debug!("Resolving a semantic version for \"{}\"", initial_version);
 
         let manifest = self.load_version_manifest().await?;
         let candidate = manifest.find_version(&initial_version)?;

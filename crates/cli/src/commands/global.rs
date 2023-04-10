@@ -15,7 +15,7 @@ pub async fn global(tool_type: ToolType, version: String) -> SystemResult {
         color::path(&manifest.path),
     );
 
-    info!("Set the global {} version to {}", tool.get_name(), version,);
+    info!("Set the global {} version to {}", tool.get_name(), version);
 
     Ok(())
 }

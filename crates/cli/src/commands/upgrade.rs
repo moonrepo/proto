@@ -15,7 +15,7 @@ async fn fetch_version() -> Result<String, ProtoError> {
 
     let latest = tags.last().unwrap().strip_prefix('v').unwrap().to_owned();
 
-    debug!("Found latest version {}", color::id(&latest),);
+    debug!("Found latest version {}", color::id(&latest));
 
     Ok(latest)
 }
@@ -37,7 +37,7 @@ pub async fn upgrade() -> SystemResult {
     );
 
     if Version::parse(&new_version).unwrap() <= Version::parse(version).unwrap() {
-        info!("You're already on the latest version of proto!",);
+        info!("You're already on the latest version of proto!");
 
         return Ok(());
     }
@@ -57,7 +57,7 @@ pub async fn upgrade() -> SystemResult {
     let target_ext = if cfg!(windows) { "zip" } else { "tar.xz" };
     let target_file = format!("proto_cli-v{new_version}-{target}");
 
-    debug!("Download target: {}", &target_file,);
+    debug!("Download target: {}", &target_file);
 
     // Download the file and show a progress bar
     let download_file = format!("{target_file}.{target_ext}");

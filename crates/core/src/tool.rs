@@ -82,7 +82,7 @@ pub trait Tool<'tool>:
 
         let install_dir = self.get_install_dir()?;
 
-        debug!("Checking for tool in {}", color::path(&install_dir),);
+        debug!("Checking for tool in {}", color::path(&install_dir));
 
         if install_dir.exists() {
             self.find_bin_path().await?;

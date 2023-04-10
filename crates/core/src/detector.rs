@@ -82,7 +82,7 @@ pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
             trace!("Detecting from the tool's ecosystem");
 
             if let Some(eco_version) = tool.detect_version_from(dir).await? {
-                debug!("Detected version {} from tool's ecosystem", eco_version,);
+                debug!("Detected version {} from tool's ecosystem", eco_version);
 
                 version = Some(eco_version);
                 break;

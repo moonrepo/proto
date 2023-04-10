@@ -32,7 +32,6 @@ pub struct NodeDependencyManager {
     pub base_dir: PathBuf,
     pub bin_path: Option<PathBuf>,
     // pub dist: Option<NDMVersionDist>,
-    pub log_target: String,
     pub package_name: String,
     pub shim_path: Option<PathBuf>,
     pub temp_dir: PathBuf,
@@ -49,7 +48,6 @@ impl NodeDependencyManager {
             base_dir: proto.tools_dir.join(&package_name),
             bin_path: None,
             // dist: None,
-            log_target: format!("proto:tool:{}", &package_name),
             shim_path: None,
             temp_dir: proto.temp_dir.join(&package_name),
             type_of,
@@ -68,10 +66,6 @@ impl NodeDependencyManager {
 impl Describable<'_> for NodeDependencyManager {
     fn get_bin_name(&self) -> &str {
         &self.package_name
-    }
-
-    fn get_log_target(&self) -> &str {
-        &self.log_target
     }
 
     fn get_name(&self) -> String {

@@ -14,7 +14,7 @@ use starbase::{system, App, MainResult, State};
 pub struct CliCommand(pub Commands);
 
 #[system]
-async fn run(command: StateMut<CliCommand>) {
+async fn run(command: StateRef<CliCommand>) {
     match command.0.clone() {
         Commands::Alias {
             tool,

@@ -16,9 +16,9 @@ pub async fn local(tool_type: ToolType, version: String) -> SystemResult {
 
     config.save()?;
 
-    trace!("Wrote the local version to {}", color::path(&local_path),);
+    trace!("Wrote the local version to {}", color::path(&local_path));
 
-    info!("Set the local {} version to {}", tool.get_name(), version,);
+    info!("Set the local {} version to {}", tool.get_name(), version);
 
     Ok(())
 }
