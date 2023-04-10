@@ -1,5 +1,5 @@
 use crate::tools::{create_tool, ToolType};
-use proto_core::detect_version_from_environment;
+use proto_core::detect_version;
 use starbase::SystemResult;
 
 pub async fn bin(
@@ -8,7 +8,7 @@ pub async fn bin(
     use_shim: bool,
 ) -> SystemResult {
     let mut tool = create_tool(&tool_type)?;
-    let version = detect_version_from_environment(&tool, forced_version).await?;
+    let version = detect_version(&tool, forced_version).await?;
 
     tool.resolve_version(&version).await?;
     tool.find_bin_path().await?;

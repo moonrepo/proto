@@ -24,7 +24,7 @@ pub fn load_version_file(path: &Path) -> Result<String, ProtoError> {
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn detect_version_from_environment<'l, T: Tool<'l> + ?Sized>(
+pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
     tool: &Box<T>,
     forced_version: Option<String>,
 ) -> Result<String, ProtoError> {

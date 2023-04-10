@@ -14,18 +14,7 @@ use starbase::{system, App, MainResult, State};
 pub struct CliCommand(pub Commands);
 
 #[system]
-async fn setup_logging(command: StateRef<CliCommand>) {
-    if matches!(command.0, Commands::Bin { .. } | Commands::Run { .. }) {
-        enable_logging_with_level("warn");
-    } else if matches!(command.0, Commands::Completions { .. }) {
-        // Nothing
-    } else {
-        enable_logging();
-    }
-}
-
-#[system]
-async fn run_command(command: StateMut<CliCommand>) {
+async fn run(command: StateMut<CliCommand>) {
     match command.0.clone() {
         Commands::Alias {
             tool,
@@ -62,12 +51,19 @@ async fn run_command(command: StateMut<CliCommand>) {
 
 #[tokio::main]
 async fn main() -> MainResult {
+    let cli = CLI::parse();
+
+    if matches!(cli.command, Commands::Bin { .. } | Commands::Run { .. }) {
+        enable_logging_with_level("warn");
+    } else if !matches!(cli.command, Commands::Completions { .. }) {
+        enable_logging();
+    }
+
     App::setup_hooks("PROTO_LOG");
 
     let mut app = App::new();
-    app.set_state(CliCommand(CLI::parse().command));
-    app.startup(setup_logging);
-    app.execute(run_command);
+    app.set_state(CliCommand(cli.command));
+    app.execute(run);
     app.run().await?;
 
     Ok(())

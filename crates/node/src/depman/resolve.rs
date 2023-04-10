@@ -2,9 +2,9 @@ use crate::depman::{NodeDependencyManager, NodeDependencyManagerType};
 use crate::platform::PackageJson;
 use crate::NodeLanguage;
 use proto_core::{
-    async_trait, detect_version_from_environment, is_offline, is_semantic_version,
-    load_versions_manifest, remove_v_prefix, Manifest, Proto, ProtoError, Resolvable, Tool,
-    VersionManifest, VersionManifestEntry,
+    async_trait, detect_version, is_offline, is_semantic_version, load_versions_manifest,
+    remove_v_prefix, Manifest, Proto, ProtoError, Resolvable, Tool, VersionManifest,
+    VersionManifestEntry,
 };
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
@@ -100,9 +100,7 @@ impl Resolvable<'_> for NodeDependencyManager {
                 if initial_version == "bundled" {
                     let node_tool = Box::new(NodeLanguage::new(Proto::new()?));
 
-                    if let Ok(node_version) =
-                        detect_version_from_environment(&node_tool, None).await
-                    {
+                    if let Ok(node_version) = detect_version(&node_tool, None).await {
                         let npm_package_path = node_tool
                             .base_dir
                             .join(node_version)
