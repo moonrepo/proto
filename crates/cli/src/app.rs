@@ -55,7 +55,7 @@ pub enum Commands {
 
     #[command(
         name = "clean",
-        about = "Clean the proto directory by removing stale and old tools."
+        about = "Clean the ~/.proto directory by removing stale and old tools."
     )]
     Clean {
         #[arg(long, help = "Clean tools older than the specified number of days")]

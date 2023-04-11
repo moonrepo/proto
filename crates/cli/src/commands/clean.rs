@@ -71,6 +71,11 @@ pub async fn clean(days: Option<u8>) -> SystemResult {
                 continue;
             }
 
+            if metadata.no_clean {
+                debug!("Version {} is marked as not to clean, skipping", version);
+                continue;
+            }
+
             // None may mean a few things:
             // - It was recently installed but not used yet
             // - It was installed before we started tracking last used timestamps
@@ -78,7 +83,7 @@ pub async fn clean(days: Option<u8>) -> SystemResult {
             if let Some(last_used) = metadata.last_used_at {
                 if is_older_than_days(now, last_used, days) {
                     debug!(
-                        "Version {} hasnt been used in over {} days, removing",
+                        "Version {} hasn't been used in over {} days, removing",
                         version, days
                     );
 
