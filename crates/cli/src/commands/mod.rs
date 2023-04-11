@@ -1,5 +1,6 @@
 mod alias;
 mod bin;
+mod clean;
 mod completions;
 mod global;
 mod install;
@@ -17,6 +18,7 @@ mod upgrade;
 
 pub use alias::*;
 pub use bin::*;
+pub use clean::*;
 pub use completions::*;
 pub use global::*;
 pub use install::*;

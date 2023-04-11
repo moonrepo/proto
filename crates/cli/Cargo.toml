@@ -34,6 +34,7 @@ proto_rust = { version = "0.2.0", path = "../rust" }
 async-recursion = "1.0.4"
 clap = { workspace = true, features = ["derive"] }
 clap_complete = { workspace = true }
+dialoguer = "0.10.4"
 dirs = "5.0.0"
 futures = "0.3.28"
 human-sort = "0.2.2"
