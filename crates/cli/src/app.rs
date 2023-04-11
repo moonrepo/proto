@@ -122,9 +122,20 @@ pub enum Commands {
     },
 
     #[command(
+        name = "list-global",
+        alias = "lsg",
+        about = "List installed globals.",
+        long_about = "List installed globals by scanning the global bins installation directory. Will return the canonical source path."
+    )]
+    ListGlobal {
+        #[arg(required = true, value_enum, help = "Type of tool")]
+        tool: ToolType,
+    },
+
+    #[command(
         name = "list-remote",
         alias = "lsr",
-        about = "List available versions",
+        about = "List available versions.",
         long_about = "List available versions by resolving versions from the tool's remote release manifest."
     )]
     ListRemote {
