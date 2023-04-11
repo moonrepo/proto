@@ -12,7 +12,7 @@ pub async fn run(
     args: Vec<String>,
 ) -> SystemResult {
     let mut tool = create_tool(&tool_type)?;
-    let manifest = Manifest::load(tool.get_manifest_path())?;
+    let mut manifest = Manifest::load(tool.get_manifest_path())?;
     let version = detect_version(&tool, &manifest, forced_version).await?;
 
     if !tool.is_setup(&version).await? {
@@ -41,6 +41,11 @@ pub async fn run(
         tool.find_bin_path().await?;
     }
 
+    // Update the last used timestamp
+    manifest.track_used_at(tool.get_resolved_version());
+    manifest.save()?;
+
+    // Run the command
     let status = Command::new(tool.get_bin_path()?)
         .args(&args)
         .env(

@@ -1,6 +1,7 @@
 mod utils;
 
 use predicates::prelude::*;
+use proto_core::Manifest;
 use std::fs;
 use utils::*;
 
@@ -48,6 +49,8 @@ mod go {
 }
 
 mod node {
+    use rustc_hash::FxHashSet;
+
     use super::*;
 
     #[test]
@@ -65,15 +68,12 @@ mod node {
         assert!(temp.join("tools/node/19.0.0").exists());
         assert!(temp.join("tools/npm/8.19.2").exists());
 
+        let manifest = Manifest::load(temp.join("tools/npm/manifest.json")).unwrap();
+
+        assert_eq!(manifest.default_version, Some("bundled".into()));
         assert_eq!(
-            fs::read_to_string(temp.join("tools/npm/manifest.json")).unwrap(),
-            r#"{
-  "aliases": {},
-  "default_version": "bundled",
-  "installed_versions": [
-    "8.19.2"
-  ]
-}"#
+            manifest.installed_versions,
+            FxHashSet::from_iter(["8.19.2".into()])
         );
     }
 

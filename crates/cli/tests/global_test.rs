@@ -1,5 +1,6 @@
 mod utils;
 
+use proto_core::Manifest;
 use utils::*;
 
 #[test]
@@ -17,14 +18,10 @@ fn updates_manifest_file() {
         .success();
 
     assert!(manifest_file.exists());
-    assert_eq!(
-        std::fs::read_to_string(manifest_file).unwrap(),
-        r#"{
-  "aliases": {},
-  "default_version": "19.0.0",
-  "installed_versions": []
-}"#
-    );
+
+    let manifest = Manifest::load(manifest_file).unwrap();
+
+    assert_eq!(manifest.default_version, Some("19.0.0".into()));
 }
 
 #[test]
@@ -42,12 +39,8 @@ fn can_set_alias_as_default() {
         .success();
 
     assert!(manifest_file.exists());
-    assert_eq!(
-        std::fs::read_to_string(manifest_file).unwrap(),
-        r#"{
-  "aliases": {},
-  "default_version": "bundled",
-  "installed_versions": []
-}"#
-    );
+
+    let manifest = Manifest::load(manifest_file).unwrap();
+
+    assert_eq!(manifest.default_version, Some("bundled".into()));
 }

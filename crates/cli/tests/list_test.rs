@@ -1,26 +1,18 @@
 mod utils;
 
-use std::fs;
+use proto_core::Manifest;
 use utils::*;
 
 #[test]
 fn lists_local_versions() {
     let temp = create_temp_dir();
 
-    fs::create_dir_all(temp.join("tools/node")).unwrap();
-    fs::write(
-        temp.join("tools/node/manifest.json"),
-        r#"{
-  "aliases": {},
-  "default_version": "19.0.0",
-  "installed_versions": [
-    "19.0.0",
-    "18.0.0",
-    "17.0.0"
-  ]
-}"#,
-    )
-    .unwrap();
+    let mut manifest = Manifest::load(temp.join("tools/node/manifest.json")).unwrap();
+    manifest.default_version = Some("19.0.0".into());
+    manifest.installed_versions.insert("19.0.0".into());
+    manifest.installed_versions.insert("18.0.0".into());
+    manifest.installed_versions.insert("17.0.0".into());
+    manifest.save().unwrap();
 
     let mut cmd = create_proto_command(temp.path());
     let assert = cmd.arg("list").arg("node").assert();
