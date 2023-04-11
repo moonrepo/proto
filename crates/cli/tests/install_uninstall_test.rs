@@ -80,6 +80,7 @@ fn updates_the_manifest_when_installing() {
         manifest.installed_versions,
         FxHashSet::from_iter(["19.0.0".into()])
     );
+    assert!(manifest.versions.contains_key("19.0.0"));
 
     // Uninstall
     let mut cmd = create_proto_command(temp.path());
@@ -93,6 +94,7 @@ fn updates_the_manifest_when_installing() {
 
     assert_eq!(manifest.default_version, None);
     assert_eq!(manifest.installed_versions, FxHashSet::default());
+    assert!(!manifest.versions.contains_key("19.0.0"));
 }
 
 #[test]

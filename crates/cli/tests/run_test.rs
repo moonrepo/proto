@@ -1,6 +1,7 @@
 mod utils;
 
 use predicates::prelude::*;
+use proto_core::Manifest;
 use std::fs;
 use utils::*;
 
@@ -138,6 +139,48 @@ fn runs_a_tool_using_version_detection() {
     assert.stdout(predicate::str::contains("19.0.0"));
 
     fs::remove_file(temp.path().join("tools/node/manifest.json")).unwrap();
+}
+
+#[test]
+fn updates_last_used_at() {
+    let temp = create_temp_dir();
+    let manifest_file = temp.join("tools/node/manifest.json");
+
+    let mut cmd = create_proto_command(temp.path());
+    cmd.arg("install")
+        .arg("node")
+        .arg("19.0.0")
+        .assert()
+        .success();
+
+    let mut cmd = create_proto_command(temp.path());
+    cmd.arg("run")
+        .arg("node")
+        .arg("19.0.0")
+        .arg("--")
+        .arg("--version")
+        .assert();
+
+    let manifest = Manifest::load(&manifest_file).unwrap();
+    let last_used_at = manifest.versions.get("19.0.0").unwrap().last_used_at;
+
+    assert!(last_used_at.is_some());
+
+    // Run again and make sure timestamps update
+    let mut cmd = create_proto_command(temp.path());
+    cmd.arg("run")
+        .arg("node")
+        .arg("19.0.0")
+        .arg("--")
+        .arg("--version")
+        .assert();
+
+    let manifest = Manifest::load(&manifest_file).unwrap();
+
+    assert_ne!(
+        last_used_at,
+        manifest.versions.get("19.0.0").unwrap().last_used_at
+    );
 }
 
 #[test]

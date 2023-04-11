@@ -2,6 +2,7 @@ mod utils;
 
 use predicates::prelude::*;
 use proto_core::Manifest;
+use rustc_hash::FxHashSet;
 use std::fs;
 use utils::*;
 
@@ -49,8 +50,6 @@ mod go {
 }
 
 mod node {
-    use rustc_hash::FxHashSet;
-
     use super::*;
 
     #[test]
