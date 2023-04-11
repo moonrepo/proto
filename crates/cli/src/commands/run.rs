@@ -1,6 +1,6 @@
 use crate::commands::install::install;
 use crate::tools::{create_tool, ToolType};
-use proto_core::{color, detect_version, ProtoError, UserConfig};
+use proto_core::{color, detect_version, Manifest, ProtoError, UserConfig};
 use starbase::SystemResult;
 use std::process::exit;
 use tokio::process::Command;
@@ -12,7 +12,8 @@ pub async fn run(
     args: Vec<String>,
 ) -> SystemResult {
     let mut tool = create_tool(&tool_type)?;
-    let version = detect_version(&tool, forced_version).await?;
+    let mut manifest = Manifest::load(tool.get_manifest_path())?;
+    let version = detect_version(&tool, &manifest, forced_version).await?;
 
     if !tool.is_setup(&version).await? {
         let config = UserConfig::load()?;
@@ -40,6 +41,14 @@ pub async fn run(
         tool.find_bin_path().await?;
     }
 
+    // Update the last used timestamp
+    manifest.track_used_at(tool.get_resolved_version());
+
+    // Ignore errors in case of race conditions...
+    // this timestamp isn't *super* important
+    let _ = manifest.save();
+
+    // Run the command
     let status = Command::new(tool.get_bin_path()?)
         .args(&args)
         .env(

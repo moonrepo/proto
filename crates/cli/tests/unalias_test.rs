@@ -1,6 +1,7 @@
 mod utils;
 
-use std::fs;
+use proto_core::Manifest;
+use rustc_hash::FxHashMap;
 use utils::*;
 
 #[test]
@@ -8,18 +9,9 @@ fn removes_existing_alias() {
     let temp = create_temp_dir();
     let manifest_file = temp.join("tools/node/manifest.json");
 
-    fs::create_dir_all(manifest_file.parent().unwrap()).unwrap();
-    fs::write(
-        &manifest_file,
-        r#"{
-  "aliases": {
-    "example": "19.0.0"
-  },
-  "default_version": null,
-  "installed_versions": []
-}"#,
-    )
-    .unwrap();
+    let mut manifest = Manifest::load(&manifest_file).unwrap();
+    manifest.aliases.insert("example".into(), "19.0.0".into());
+    manifest.save().unwrap();
 
     let mut cmd = create_proto_command(temp.path());
     cmd.arg("unalias")
@@ -28,14 +20,9 @@ fn removes_existing_alias() {
         .assert()
         .success();
 
-    assert_eq!(
-        fs::read_to_string(manifest_file).unwrap(),
-        r#"{
-  "aliases": {},
-  "default_version": null,
-  "installed_versions": []
-}"#
-    );
+    let manifest = Manifest::load(&manifest_file).unwrap();
+
+    assert!(manifest.aliases.is_empty());
 }
 
 #[test]
@@ -43,18 +30,9 @@ fn does_nothing_for_unknown_alias() {
     let temp = create_temp_dir();
     let manifest_file = temp.join("tools/node/manifest.json");
 
-    fs::create_dir_all(manifest_file.parent().unwrap()).unwrap();
-    fs::write(
-        &manifest_file,
-        r#"{
-  "aliases": {
-    "example": "19.0.0"
-  },
-  "default_version": null,
-  "installed_versions": []
-}"#,
-    )
-    .unwrap();
+    let mut manifest = Manifest::load(&manifest_file).unwrap();
+    manifest.aliases.insert("example".into(), "19.0.0".into());
+    manifest.save().unwrap();
 
     let mut cmd = create_proto_command(temp.path());
     cmd.arg("unalias")
@@ -63,14 +41,10 @@ fn does_nothing_for_unknown_alias() {
         .assert()
         .success();
 
+    let manifest = Manifest::load(manifest_file).unwrap();
+
     assert_eq!(
-        fs::read_to_string(manifest_file).unwrap(),
-        r#"{
-  "aliases": {
-    "example": "19.0.0"
-  },
-  "default_version": null,
-  "installed_versions": []
-}"#
+        manifest.aliases,
+        FxHashMap::from_iter([("example".into(), "19.0.0".into())])
     );
 }

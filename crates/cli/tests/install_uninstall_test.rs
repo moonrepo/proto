@@ -1,7 +1,8 @@
 mod utils;
 
 use predicates::prelude::*;
-use std::fs;
+use proto_core::Manifest;
+use rustc_hash::FxHashSet;
 use utils::*;
 
 #[test]
@@ -72,16 +73,14 @@ fn updates_the_manifest_when_installing() {
         .assert()
         .success();
 
+    let manifest = Manifest::load(&manifest_file).unwrap();
+
+    assert_eq!(manifest.default_version, Some("19.0.0".into()));
     assert_eq!(
-        fs::read_to_string(&manifest_file).unwrap(),
-        r#"{
-  "aliases": {},
-  "default_version": "19.0.0",
-  "installed_versions": [
-    "19.0.0"
-  ]
-}"#
+        manifest.installed_versions,
+        FxHashSet::from_iter(["19.0.0".into()])
     );
+    assert!(manifest.versions.contains_key("19.0.0"));
 
     // Uninstall
     let mut cmd = create_proto_command(temp.path());
@@ -91,14 +90,11 @@ fn updates_the_manifest_when_installing() {
         .assert()
         .success();
 
-    assert_eq!(
-        fs::read_to_string(&manifest_file).unwrap(),
-        r#"{
-  "aliases": {},
-  "default_version": null,
-  "installed_versions": []
-}"#
-    );
+    let manifest = Manifest::load(&manifest_file).unwrap();
+
+    assert_eq!(manifest.default_version, None);
+    assert_eq!(manifest.installed_versions, FxHashSet::default());
+    assert!(!manifest.versions.contains_key("19.0.0"));
 }
 
 #[test]
@@ -106,18 +102,10 @@ fn can_pin_when_installing() {
     let temp = create_temp_dir();
     let manifest_file = temp.join("tools/node/manifest.json");
 
-    fs::create_dir_all(manifest_file.parent().unwrap()).unwrap();
-    fs::write(
-        &manifest_file,
-        r#"{
-  "aliases": {},
-  "default_version": "18.0.0",
-  "installed_versions": [
-    "18.0.0"
-  ]
-}"#,
-    )
-    .unwrap();
+    let mut manifest = Manifest::load(&manifest_file).unwrap();
+    manifest.default_version = Some("18.0.0".into());
+    manifest.installed_versions.insert("18.0.0".into());
+    manifest.save().unwrap();
 
     let mut cmd = create_proto_command(temp.path());
     cmd.arg("install")
@@ -126,15 +114,11 @@ fn can_pin_when_installing() {
         .arg("--pin")
         .assert();
 
+    let manifest = Manifest::load(&manifest_file).unwrap();
+
+    assert_eq!(manifest.default_version, Some("19.0.0".into()));
     assert_eq!(
-        fs::read_to_string(&manifest_file).unwrap(),
-        r#"{
-  "aliases": {},
-  "default_version": "19.0.0",
-  "installed_versions": [
-    "18.0.0",
-    "19.0.0"
-  ]
-}"#
+        manifest.installed_versions,
+        FxHashSet::from_iter(["18.0.0".into(), "19.0.0".into()])
     );
 }

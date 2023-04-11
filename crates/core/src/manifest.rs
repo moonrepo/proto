@@ -3,10 +3,27 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use starbase_styles::color;
 use starbase_utils::{fs, json};
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    time::SystemTime,
+};
 use tracing::{info, trace};
 
+fn now() -> u128 {
+    SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0)
+}
+
 pub const MANIFEST_NAME: &str = "manifest.json";
+
+#[derive(Debug, Default, Deserialize, Serialize)]
+#[serde(default)]
+pub struct ManifestVersion {
+    pub installed_at: u128,
+    pub last_used_at: Option<u128>,
+}
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(default)]
@@ -14,6 +31,7 @@ pub struct Manifest {
     pub aliases: FxHashMap<String, String>,
     pub default_version: Option<String>,
     pub installed_versions: FxHashSet<String>,
+    pub versions: FxHashMap<String, ManifestVersion>,
 
     #[serde(skip)]
     pub path: PathBuf,
@@ -32,6 +50,15 @@ impl Manifest {
         }
 
         manifest.installed_versions.insert(version.to_owned());
+
+        manifest.versions.insert(
+            version.to_owned(),
+            ManifestVersion {
+                installed_at: now(),
+                ..ManifestVersion::default()
+            },
+        );
+
         manifest.save()?;
 
         Ok(())
@@ -50,6 +77,8 @@ impl Manifest {
 
             manifest.default_version = None;
         }
+
+        manifest.versions.remove(version);
 
         manifest.save()?;
 
@@ -88,5 +117,17 @@ impl Manifest {
         json::write_file(&self.path, self, true)?;
 
         Ok(())
+    }
+
+    pub fn track_used_at(&mut self, version: &str) {
+        self.versions
+            .entry(version.to_owned())
+            .and_modify(|v| {
+                v.last_used_at = Some(now());
+            })
+            .or_insert(ManifestVersion {
+                last_used_at: Some(now()),
+                ..ManifestVersion::default()
+            });
     }
 }

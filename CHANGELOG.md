@@ -10,6 +10,7 @@
 #### ⚙️ Internal
 
 - Greatly improved error messages.
+- We now track install/last used timestamps for future functionality.
 
 ## 0.5.0
 
