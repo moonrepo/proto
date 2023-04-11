@@ -1,6 +1,6 @@
 use crate::commands::install::install;
 use crate::tools::{create_tool, ToolType};
-use proto_core::{color, detect_version, ProtoError, UserConfig};
+use proto_core::{color, detect_version, Manifest, ProtoError, UserConfig};
 use starbase::SystemResult;
 use std::process::exit;
 use tokio::process::Command;
@@ -12,7 +12,8 @@ pub async fn run(
     args: Vec<String>,
 ) -> SystemResult {
     let mut tool = create_tool(&tool_type)?;
-    let version = detect_version(&tool, forced_version).await?;
+    let manifest = Manifest::load(tool.get_manifest_path())?;
+    let version = detect_version(&tool, &manifest, forced_version).await?;
 
     if !tool.is_setup(&version).await? {
         let config = UserConfig::load()?;

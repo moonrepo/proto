@@ -99,8 +99,10 @@ impl Resolvable<'_> for NodeDependencyManager {
             NodeDependencyManagerType::Npm => {
                 if initial_version == "bundled" {
                     let node_tool = Box::new(NodeLanguage::new(Proto::new()?));
+                    let node_manifest = Manifest::load(node_tool.get_manifest_path())?;
 
-                    if let Ok(node_version) = detect_version(&node_tool, None).await {
+                    if let Ok(node_version) = detect_version(&node_tool, &node_manifest, None).await
+                    {
                         let npm_package_path = node_tool
                             .base_dir
                             .join(node_version)

@@ -26,6 +26,7 @@ pub fn load_version_file(path: &Path) -> Result<String, ProtoError> {
 #[tracing::instrument(skip_all)]
 pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
     tool: &Box<T>,
+    manifest: &Manifest,
     forced_version: Option<String>,
 ) -> Result<String, ProtoError> {
     let mut version = forced_version;
@@ -99,16 +100,14 @@ pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
             MANIFEST_NAME
         );
 
-        let manifest = Manifest::load(tool.get_manifest_path())?;
-
-        if let Some(global_version) = manifest.default_version {
+        if let Some(global_version) = &manifest.default_version {
             debug!(
                 "Detected global version {} from {}",
                 global_version,
                 color::path(&manifest.path)
             );
 
-            version = Some(global_version);
+            version = Some(global_version.to_owned());
         }
     }
 
