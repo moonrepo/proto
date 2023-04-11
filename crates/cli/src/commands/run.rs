@@ -43,7 +43,10 @@ pub async fn run(
 
     // Update the last used timestamp
     manifest.track_used_at(tool.get_resolved_version());
-    manifest.save()?;
+
+    // Ignore errors in case of race conditions...
+    // this timestamp isn't *super* important
+    let _ = manifest.save();
 
     // Run the command
     let status = Command::new(tool.get_bin_path()?)
