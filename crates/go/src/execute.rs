@@ -1,6 +1,9 @@
 use crate::GoLanguage;
-use proto_core::{async_trait, Describable, Executable, Installable, ProtoError};
-use std::path::Path;
+use proto_core::{async_trait, get_home_dir, Describable, Executable, Installable, ProtoError};
+use std::{
+    env,
+    path::{Path, PathBuf},
+};
 
 #[cfg(target_os = "windows")]
 pub fn get_bin_name<T: AsRef<str>>(name: T) -> String {
@@ -33,5 +36,21 @@ impl Executable<'_> for GoLanguage {
             Some(bin) => Ok(bin),
             None => Err(ProtoError::MissingTool(self.get_name())),
         }
+    }
+
+    fn get_globals_bin_dir(&self) -> Result<PathBuf, ProtoError> {
+        if let Ok(root) = env::var("GOBIN") {
+            return Ok(PathBuf::from(root));
+        }
+
+        let root = if let Ok(root) = env::var("GOROOT") {
+            PathBuf::from(root)
+        } else if let Ok(root) = env::var("GOPATH") {
+            PathBuf::from(root)
+        } else {
+            get_home_dir()?.join("go")
+        };
+
+        Ok(root.join("bin"))
     }
 }

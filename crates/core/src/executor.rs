@@ -1,5 +1,5 @@
 use crate::errors::ProtoError;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[async_trait::async_trait]
 pub trait Executable<'tool>: Send + Sync {
@@ -11,4 +11,8 @@ pub trait Executable<'tool>: Send + Sync {
 
     /// Return an absolute file path to the executable binary for the tool.
     fn get_bin_path(&self) -> Result<&Path, ProtoError>;
+
+    /// Return an absolute file path to the directory containing all
+    /// globally installed packages.
+    fn get_globals_bin_dir(&self) -> Result<PathBuf, ProtoError>;
 }

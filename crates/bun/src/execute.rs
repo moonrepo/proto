@@ -1,6 +1,6 @@
 use crate::BunLanguage;
-use proto_core::{async_trait, Describable, Executable, Installable, ProtoError};
-use std::path::Path;
+use proto_core::{async_trait, get_home_dir, Describable, Executable, Installable, ProtoError};
+use std::path::{Path, PathBuf};
 
 #[cfg(target_os = "windows")]
 pub fn get_bin_name<T: AsRef<str>>(name: T) -> String {
@@ -33,5 +33,9 @@ impl Executable<'_> for BunLanguage {
             Some(bin) => Ok(bin),
             None => Err(ProtoError::MissingTool(self.get_name())),
         }
+    }
+
+    fn get_globals_bin_dir(&self) -> Result<PathBuf, ProtoError> {
+        Ok(get_home_dir()?.join(".bun").join("bin"))
     }
 }
