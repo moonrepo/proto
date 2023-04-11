@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added a `proto list-global` command for listing all installed global packages for a tool.
+- Updated `proto install-global` to support installing multiple globals.
+
+#### ⚙️ Internal
+
+- Greatly improved error messages.
+
 ## 0.5.0
 
 #### 🚀 Updates
