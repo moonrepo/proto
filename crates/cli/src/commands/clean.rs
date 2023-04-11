@@ -19,14 +19,23 @@ pub async fn clean(days: Option<u8>) -> SystemResult {
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap()
         .as_millis();
-    let mut paths_to_clean = FxHashSet::default();
+    let mut clean_count = 0;
 
     info!("Finding tools to clean up...");
 
     for tool_type in ToolType::value_variants() {
-        info!("Checking {:?}", tool_type);
-
         let mut tool = create_tool(tool_type)?;
+
+        if matches!(tool_type, ToolType::Rust) {
+            info!(
+                "Skipping {}, use rustup instead",
+                color::shell(tool.get_name())
+            );
+
+            continue;
+        } else {
+            info!("Checking {}", color::shell(tool.get_name()));
+        }
 
         if !tool.get_tool_dir().exists() {
             debug!("Not being used, skipping");
@@ -50,7 +59,6 @@ pub async fn clean(days: Option<u8>) -> SystemResult {
                 if version != "globals" && !manifest.versions.contains_key(&version) {
                     debug!("Version {} not found in manifest, removing", version);
 
-                    paths_to_clean.insert(dir_path);
                     versions_to_clean.insert(version);
                 }
             }
@@ -74,16 +82,22 @@ pub async fn clean(days: Option<u8>) -> SystemResult {
                         version, days
                     );
 
-                    paths_to_clean.insert(tool.get_tool_dir().join(&version));
                     versions_to_clean.insert(version);
                 }
             }
         }
 
+        let count = versions_to_clean.len();
+
+        if count == 0 {
+            debug!("No versions to remove, continuing to next tool");
+            continue;
+        }
+
         if Confirm::new()
             .with_prompt(format!(
                 "Found {} versions, remove {}?",
-                versions_to_clean.len(),
+                count,
                 versions_to_clean
                     .iter()
                     .map(|v| color::id(v))
@@ -97,9 +111,15 @@ pub async fn clean(days: Option<u8>) -> SystemResult {
                 tool.set_version(&version);
                 tool.teardown().await?;
             }
+
+            clean_count += count;
         } else {
             debug!("Skipping remove, continuing to next tool");
         }
+    }
+
+    if clean_count > 0 {
+        info!("Successfully cleaned up {} versions", clean_count);
     }
 
     Ok(())
