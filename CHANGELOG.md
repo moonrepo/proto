@@ -4,6 +4,7 @@
 
 #### 🚀 Updates
 
+- Added a `proto clean` command for removing old/stale tool installations.
 - Added a `proto list-global` command for listing all installed global packages for a tool.
 - Updated `proto install-global` to support installing multiple globals.
 

@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use starbase_styles::color;
 use starbase_utils::{fs, json};
 use std::{
+    env,
     path::{Path, PathBuf},
     time::SystemTime,
 };
@@ -21,6 +22,7 @@ pub const MANIFEST_NAME: &str = "manifest.json";
 #[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct ManifestVersion {
+    pub no_clean: bool,
     pub installed_at: u128,
     pub last_used_at: Option<u128>,
 }
@@ -55,6 +57,7 @@ impl Manifest {
             version.to_owned(),
             ManifestVersion {
                 installed_at: now(),
+                no_clean: env::var("PROTO_NO_CLEAN").is_ok(),
                 ..ManifestVersion::default()
             },
         );
