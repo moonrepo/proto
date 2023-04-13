@@ -49,6 +49,10 @@ impl ToolSchema {
         self.platform.arch.get(consts::ARCH).or_else(consts::ARCH)
     }
 
+    pub fn get_download_ext(&self) -> &str {
+        self.install.download_ext.get(consts::OS).or_else("")
+    }
+
     pub fn get_os(&self) -> &str {
         self.platform.os.get(consts::OS).or_else(consts::OS)
     }

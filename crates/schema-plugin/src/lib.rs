@@ -1,12 +1,11 @@
 mod detect;
 mod download;
 // mod execute;
-// mod install;
-// mod platform;
+mod install;
 // mod resolve;
 mod schema;
 // mod shim;
-// mod verify;
+mod verify;
 
 use proto_core::{Describable, Proto, Tool};
 pub use schema::*;
@@ -35,6 +34,14 @@ impl SchemaPlugin {
             version: None,
             schema,
         }
+    }
+
+    pub fn format_string(&self, value: &str) -> String {
+        value
+            .replace("{version}", self.get_resolved_version())
+            .replace("{arch}", self.schema.get_arch())
+            .replace("{os}", self.schema.get_os())
+            .replace("{ext}", self.schema.get_download_ext())
     }
 }
 
