@@ -1,0 +1,19 @@
+[package]
+name = "proto_schema_plugin"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "TODO"
+homepage = "https://moonrepo.dev/proto"
+repository = "https://github.com/moonrepo/proto"
+
+[dependencies]
+proto_core = { version = "0.6.0", path = "../core" }
+rustc-hash = { workspace = true }
+serde = { workspace = true }
+starbase_utils = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+assert_fs = { workspace = true }
+tokio = { workspace = true }

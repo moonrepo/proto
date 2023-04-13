@@ -1658,6 +1658,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "proto_schema_plugin"
+version = "0.1.0"
+dependencies = [
+ "assert_fs",
+ "proto_core",
+ "rustc-hash",
+ "serde",
+ "starbase_utils",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
