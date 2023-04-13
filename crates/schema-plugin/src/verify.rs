@@ -15,7 +15,7 @@ impl Verifiable<'_> for SchemaPlugin {
 
     fn get_checksum_url(&self) -> Result<Option<String>, ProtoError> {
         if let Some(url) = &self.schema.install.checksum_url {
-            return Ok(Some(self.format_string(url)));
+            return Ok(Some(self.interpolate_tokens(url)));
         }
 
         Ok(None)

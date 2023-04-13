@@ -81,7 +81,7 @@ pub enum ToolType {
 #[derive(Debug, Default, Deserialize)]
 #[serde(default, rename_all = "kebab-case")]
 pub struct ToolSchema {
-    pub id: String,
+    pub bin: String,
     pub name: String,
     #[serde(rename = "type")]
     pub type_of: ToolType,

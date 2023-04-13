@@ -14,6 +14,6 @@ impl Downloadable<'_> for SchemaPlugin {
     }
 
     fn get_download_url(&self) -> Result<String, ProtoError> {
-        Ok(self.format_string(&self.schema.install.download_url))
+        Ok(self.interpolate_tokens(&self.schema.install.download_url))
     }
 }

@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use crate::SchemaPlugin;
 use proto_core::{
     async_trait, create_version_manifest_from_tags, load_git_tags, load_versions_manifest,
@@ -7,6 +5,7 @@ use proto_core::{
     VersionManifestEntry,
 };
 use starbase_utils::json::JsonValue;
+use std::collections::BTreeMap;
 
 #[async_trait]
 impl Resolvable<'_> for SchemaPlugin {

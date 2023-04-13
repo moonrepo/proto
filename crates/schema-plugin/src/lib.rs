@@ -27,16 +27,16 @@ impl SchemaPlugin {
         let proto = proto.as_ref();
 
         SchemaPlugin {
-            base_dir: proto.tools_dir.join(&schema.id),
+            base_dir: proto.tools_dir.join(&schema.bin),
             bin_path: None,
             shim_path: None,
-            temp_dir: proto.temp_dir.join(&schema.id),
+            temp_dir: proto.temp_dir.join(&schema.bin),
             version: None,
             schema,
         }
     }
 
-    pub fn format_string(&self, value: &str) -> String {
+    pub fn interpolate_tokens(&self, value: &str) -> String {
         value
             .replace("{version}", self.get_resolved_version())
             .replace("{arch}", self.schema.get_arch())
@@ -47,7 +47,7 @@ impl SchemaPlugin {
 
 impl Describable<'_> for SchemaPlugin {
     fn get_bin_name(&self) -> &str {
-        &self.schema.id
+        &self.schema.bin
     }
 
     fn get_name(&self) -> String {
