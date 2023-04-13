@@ -1,6 +1,6 @@
 mod detect;
 mod download;
-// mod execute;
+mod execute;
 mod install;
 // mod resolve;
 mod schema;

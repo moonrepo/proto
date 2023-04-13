@@ -17,6 +17,13 @@ pub struct DetectorSchema {
 
 #[derive(Default, Deserialize)]
 #[serde(default, rename_all = "kebab-case")]
+pub struct ExecuteSchema {
+    pub bin_path: Option<FxHashMap<String, String>>,
+    pub globals_dir: Vec<String>,
+}
+
+#[derive(Default, Deserialize)]
+#[serde(default, rename_all = "kebab-case")]
 pub struct InstallSchema {
     pub archive_prefix: Option<String>,
     pub checksum_url: Option<String>,
@@ -59,20 +66,21 @@ pub struct ToolSchema {
     pub platform: PlatformSchema,
 
     pub detect: DetectorSchema,
+    pub execute: ExecuteSchema,
     pub install: InstallSchema,
     pub shim: ShimSchema,
 }
 
 impl ToolSchema {
     pub fn get_arch(&self) -> &str {
-        self.platform.arch.get(consts::ARCH).or_else(consts::ARCH)
+        self.platform.arch.get(consts::ARCH).unwrap_or(consts::ARCH)
     }
 
     pub fn get_download_ext(&self) -> &str {
-        self.install.download_ext.get(consts::OS).or_else("")
+        self.install.download_ext.get(consts::OS).unwrap_or("")
     }
 
     pub fn get_os(&self) -> &str {
-        self.platform.os.get(consts::OS).or_else(consts::OS)
+        self.platform.os.get(consts::OS).unwrap_or(consts::OS)
     }
 }
