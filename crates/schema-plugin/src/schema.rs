@@ -24,6 +24,24 @@ pub struct InstallSchema {
     pub download_url: String,
 }
 
+#[derive(Deserialize)]
+#[serde(default, rename_all = "kebab-case")]
+pub struct ShimSchema {
+    pub local: bool,
+    pub global: bool,
+    pub parent_bin: Option<String>,
+}
+
+impl Default for ShimSchema {
+    fn default() -> Self {
+        ShimSchema {
+            local: false,
+            global: true,
+            parent_bin: None,
+        }
+    }
+}
+
 #[derive(Default, Deserialize)]
 pub enum ToolType {
     #[default]
@@ -42,6 +60,7 @@ pub struct ToolSchema {
 
     pub detect: DetectorSchema,
     pub install: InstallSchema,
+    pub shim: ShimSchema,
 }
 
 impl ToolSchema {
