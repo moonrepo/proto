@@ -10,7 +10,7 @@ use starbase_utils::{fs, json, json::JsonError};
 use std::collections::BTreeMap;
 use std::time::{Duration, SystemTime};
 use tokio::process::Command;
-use tracing::trace;
+use tracing::{debug, trace};
 
 #[derive(Debug)]
 pub struct VersionManifestEntry {
@@ -128,7 +128,32 @@ pub trait Resolvable<'tool>: Send + Sync {
 
     /// Given an initial version, resolve it to a fully qualifed and semantic version
     /// according to the tool's ecosystem.
-    async fn resolve_version(&mut self, initial_version: &str) -> Result<String, ProtoError>;
+    async fn resolve_version(&mut self, initial_version: &str) -> Result<String, ProtoError> {
+        // if let Some(version) = &self.version {
+        //     return Ok(version.to_owned());
+        // }
+
+        let initial_version = remove_v_prefix(initial_version).to_lowercase();
+
+        // If offline but we have a fully qualified semantic version,
+        // exit early and assume the version is legitimate
+        if is_semantic_version(&initial_version) && is_offline() {
+            self.set_version(&initial_version);
+
+            return Ok(initial_version);
+        }
+
+        debug!("Resolving a semantic version for \"{}\"", initial_version);
+
+        let manifest = self.load_version_manifest().await?;
+        let candidate = manifest.find_version(&initial_version)?;
+
+        debug!("Resolved to {}", candidate);
+
+        self.set_version(candidate);
+
+        Ok(candidate.to_owned())
+    }
 
     /// Explicitly set the resolved version.
     fn set_version(&mut self, version: &str);

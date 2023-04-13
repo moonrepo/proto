@@ -2,12 +2,12 @@ mod detect;
 mod download;
 mod execute;
 mod install;
-// mod resolve;
+mod resolve;
 mod schema;
 mod shim;
 mod verify;
 
-use proto_core::{Describable, Proto, Tool};
+use proto_core::{Describable, Proto, Resolvable, Tool};
 pub use schema::*;
 use std::path::{Path, PathBuf};
 
@@ -51,7 +51,7 @@ impl Describable<'_> for SchemaPlugin {
     }
 
     fn get_name(&self) -> String {
-        self.schema.name.into()
+        self.schema.name.clone()
     }
 }
 

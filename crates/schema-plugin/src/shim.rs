@@ -15,7 +15,7 @@ impl Shimable<'_> for SchemaPlugin {
             .dir(self.get_install_dir()?)
             .version(self.get_resolved_version());
 
-        if let Some(parent_bin) = schema.parent_bin {
+        if let Some(parent_bin) = &schema.parent_bin {
             shimmer.parent(parent_bin);
         }
 

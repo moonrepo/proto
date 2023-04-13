@@ -11,8 +11,8 @@ impl Executable<'_> for SchemaPlugin {
         let bin = if let Some(bin_paths) = &self.schema.execute.bin_path {
             bin_paths
                 .get(consts::OS)
-                .unwrap_or(self.get_bin_name())
-                .to_owned()
+                .map(|b| b.to_owned())
+                .unwrap_or(self.get_bin_name().to_owned())
         } else if cfg!(windows) {
             format!("{}.exe", self.get_bin_name())
         } else {
@@ -57,6 +57,8 @@ impl Executable<'_> for SchemaPlugin {
                     break;
                 }
             }
+
+            let dir = PathBuf::from(dir);
 
             if dir.exists() {
                 globals_dir = dir;
