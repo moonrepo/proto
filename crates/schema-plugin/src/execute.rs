@@ -39,7 +39,7 @@ impl Executable<'_> for SchemaPlugin {
 
     fn get_globals_bin_dir(&self) -> Result<PathBuf, ProtoError> {
         let home_dir = get_home_dir()?;
-        let env_var_pattern = regex::Regex::new("$([A-Z0-9_]+)").unwrap();
+        let env_var_pattern = regex::Regex::new(r"\$([A-Z0-9_]+)").unwrap();
 
         for dir in &self.schema.execute.globals_dir {
             let dir = env_var_pattern.replace_all(dir, |cap: &regex::Captures| {

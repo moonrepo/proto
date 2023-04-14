@@ -1,15 +1,19 @@
 use assert_fs::prelude::{FileWriteStr, PathChild};
 use proto_core::{
-    Detector, Downloadable, Executable, Installable, Proto, Resolvable, Tool, Verifiable,
+    get_home_dir, Detector, Downloadable, Executable, Installable, Proto, Resolvable, Shimable,
+    Tool, Verifiable,
 };
-use proto_schema_plugin::InstallSchema;
-use proto_schema_plugin::{DetectSchema, Schema, SchemaPlugin};
+use proto_schema_plugin::{DetectSchema, ExecuteSchema, InstallSchema, Schema, SchemaPlugin};
 use rustc_hash::FxHashMap;
 use starbase_utils::string_vec;
-use std::env::consts;
+use std::env::{self, consts};
+use std::fs;
 use std::path::Path;
 
-fn create_plugin(dir: &Path, schema: Schema) -> SchemaPlugin {
+fn create_plugin(dir: &Path, mut schema: Schema) -> SchemaPlugin {
+    schema.name = "moon".into();
+    schema.bin = "moon".into();
+
     let mut tool = SchemaPlugin::new(Proto::from(dir), schema);
     tool.version = Some("1.0.0".into());
     tool
@@ -67,7 +71,6 @@ mod schema_plugin {
 
         fn create_download_schema() -> Schema {
             Schema {
-                bin: "moon".into(),
                 install: InstallSchema {
                     download_url: "https://github.com/moonrepo/moon/releases/download/v{version}/{download_file}".into(),
                     download_file: FxHashMap::from_iter([
@@ -88,17 +91,17 @@ mod schema_plugin {
 
             if cfg!(target_os = "windows") {
                 assert_eq!(
-                    tool.get_download_file(),
+                    tool.get_download_file().unwrap(),
                     format!("moon-{}-pc-windows-msvc.exe", consts::ARCH)
                 );
             } else if cfg!(target_os = "macos") {
                 assert_eq!(
-                    tool.get_download_file(),
+                    tool.get_download_file().unwrap(),
                     format!("moon-{}-apple-darwin", consts::ARCH)
                 );
             } else {
                 assert_eq!(
-                    tool.get_download_file(),
+                    tool.get_download_file().unwrap(),
                     format!("moon-{}-unknown-linux-gnu", consts::ARCH)
                 );
             }
@@ -108,14 +111,14 @@ mod schema_plugin {
                 Proto::from(fixture.path())
                     .temp_dir
                     .join("moon")
-                    .join(tool.get_download_file())
+                    .join(tool.get_download_file().unwrap())
             );
 
             assert_eq!(
                 tool.get_download_url().unwrap(),
                 format!(
                     "https://github.com/moonrepo/moon/releases/download/v1.0.0/{}",
-                    tool.get_download_file()
+                    tool.get_download_file().unwrap()
                 )
             );
         }
@@ -143,6 +146,187 @@ mod schema_plugin {
 
             assert!(tool.download(&to_file, None).await.unwrap());
             assert!(!tool.download(&to_file, None).await.unwrap());
+        }
+    }
+
+    mod executor {
+        use super::*;
+
+        #[tokio::test]
+        async fn uses_bin_in_cwd_by_default() {
+            let fixture = assert_fs::TempDir::new().unwrap();
+            let mut tool = create_plugin(fixture.path(), Schema::default());
+
+            let bin_path = tool.get_install_dir().unwrap().join(if cfg!(windows) {
+                "moon.exe"
+            } else {
+                "moon"
+            });
+
+            fs::create_dir_all(bin_path.parent().unwrap()).unwrap();
+            fs::write(&bin_path, "").unwrap();
+
+            tool.find_bin_path().await.unwrap();
+
+            assert_eq!(tool.get_bin_path().unwrap(), bin_path);
+        }
+
+        #[tokio::test]
+        async fn can_customize_based_on_os() {
+            let fixture = assert_fs::TempDir::new().unwrap();
+            let mut tool = create_plugin(
+                fixture.path(),
+                Schema {
+                    execute: ExecuteSchema {
+                        bin_path: Some(FxHashMap::from_iter([
+                            ("linux".into(), "lin/moon".into()),
+                            ("macos".into(), "mac/moon".into()),
+                            ("windows".into(), "win/moon.exe".into()),
+                        ])),
+                        ..ExecuteSchema::default()
+                    },
+                    ..Schema::default()
+                },
+            );
+
+            let bin_name = if cfg!(target_os = "windows") {
+                "win/moon.exe"
+            } else if cfg!(target_os = "macos") {
+                "mac/moon"
+            } else {
+                "lin/moon"
+            };
+
+            let bin_path = tool.get_install_dir().unwrap().join(bin_name);
+
+            fs::create_dir_all(bin_path.parent().unwrap()).unwrap();
+            fs::write(&bin_path, "").unwrap();
+
+            tool.find_bin_path().await.unwrap();
+
+            assert_eq!(tool.get_bin_path().unwrap(), bin_path);
+        }
+
+        mod globals {
+            use super::*;
+
+            #[tokio::test]
+            async fn defaults_to_some_home_dir() {
+                let fixture = assert_fs::TempDir::new().unwrap();
+                let tool = create_plugin(fixture.path(), Schema::default());
+
+                assert_eq!(
+                    tool.get_globals_bin_dir().unwrap(),
+                    get_home_dir().unwrap().join(".moon/bin")
+                );
+            }
+
+            #[tokio::test]
+            async fn expands_home_dir() {
+                let fixture = assert_fs::TempDir::new().unwrap();
+                let tool = create_plugin(
+                    fixture.path(),
+                    Schema {
+                        execute: ExecuteSchema {
+                            globals_dir: string_vec!["~/.moon/bin"],
+                            ..ExecuteSchema::default()
+                        },
+                        ..Schema::default()
+                    },
+                );
+                let bin_dir = get_home_dir().unwrap().join(".moon/bin");
+
+                fs::create_dir_all(&bin_dir).unwrap();
+
+                assert_eq!(tool.get_globals_bin_dir().unwrap(), bin_dir);
+            }
+
+            #[tokio::test]
+            async fn expands_home_env_var() {
+                let fixture = assert_fs::TempDir::new().unwrap();
+                let tool = create_plugin(
+                    fixture.path(),
+                    Schema {
+                        execute: ExecuteSchema {
+                            globals_dir: string_vec!["$HOME/.moon/bin"],
+                            ..ExecuteSchema::default()
+                        },
+                        ..Schema::default()
+                    },
+                );
+                let bin_dir = get_home_dir().unwrap().join(".moon/bin");
+
+                fs::create_dir_all(&bin_dir).unwrap();
+
+                assert_eq!(tool.get_globals_bin_dir().unwrap(), bin_dir);
+            }
+
+            #[tokio::test]
+            async fn supports_env_vars() {
+                let fixture = assert_fs::TempDir::new().unwrap();
+                let tool = create_plugin(
+                    fixture.path(),
+                    Schema {
+                        execute: ExecuteSchema {
+                            globals_dir: string_vec!["$PROTO_TEST_DIR/bin"],
+                            ..ExecuteSchema::default()
+                        },
+                        ..Schema::default()
+                    },
+                );
+                let bin_dir = fixture.path().join("bin");
+
+                fs::create_dir_all(&bin_dir).unwrap();
+
+                env::set_var("PROTO_TEST_DIR", fixture.path());
+                assert_eq!(tool.get_globals_bin_dir().unwrap(), bin_dir);
+                env::remove_var("PROTO_TEST_DIR");
+            }
+        }
+    }
+
+    mod shimmer {
+        use super::*;
+
+        #[tokio::test]
+        async fn creates_global_shim() {
+            let fixture = assert_fs::TempDir::new().unwrap();
+            let proto = Proto::from(fixture.path());
+            let mut tool = create_plugin(fixture.path(), Schema::default());
+
+            tool.bin_path = Some(proto.bin_dir.join("moon"));
+            tool.schema.shim.global = true;
+
+            env::set_var("PROTO_ROOT", fixture.path());
+            tool.create_shims().await.unwrap();
+            env::remove_var("PROTO_ROOT");
+
+            if cfg!(windows) {
+                assert!(proto.bin_dir.join("moon.ps1").exists());
+            } else {
+                assert!(proto.bin_dir.join("moon").exists());
+            }
+        }
+
+        #[tokio::test]
+        async fn creates_local_shim() {
+            let fixture = assert_fs::TempDir::new().unwrap();
+            let proto = Proto::from(fixture.path());
+            let mut tool = create_plugin(fixture.path(), Schema::default());
+
+            tool.bin_path = Some(proto.bin_dir.join("moon"));
+            tool.schema.shim.local = true;
+            tool.create_shims().await.unwrap();
+
+            if cfg!(windows) {
+                assert!(tool
+                    .get_install_dir()
+                    .unwrap()
+                    .join("shims\\moon.ps1")
+                    .exists());
+            } else {
+                assert!(tool.get_install_dir().unwrap().join("shims/moon").exists());
+            }
         }
     }
 

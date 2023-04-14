@@ -7,7 +7,7 @@ mod schema;
 mod shim;
 mod verify;
 
-use proto_core::{Describable, Proto, Resolvable, Tool};
+use proto_core::{Describable, Proto, ProtoError, Resolvable, Tool};
 pub use schema::*;
 use std::{
     env::consts,
@@ -47,17 +47,16 @@ impl SchemaPlugin {
         }
     }
 
-    pub fn get_download_file(&self) -> String {
-        self.interpolate_tokens(
+    pub fn get_download_file(&self) -> Result<String, ProtoError> {
+        Ok(self.interpolate_tokens(
             self.schema
                 .install
                 .download_file
                 .get(consts::OS)
-                .expect(&format!(
-                    "No `download_file` configured for `{}`",
-                    consts::OS
-                )),
-        )
+                .ok_or_else(|| {
+                    ProtoError::UnsupportedPlatform(self.get_name(), consts::OS.to_owned())
+                })?,
+        ))
     }
 
     pub fn interpolate_tokens(&self, value: &str) -> String {
