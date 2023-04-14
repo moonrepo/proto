@@ -2,7 +2,14 @@ use rustc_hash::FxHashMap;
 use serde::Deserialize;
 use std::env::consts;
 
-pub type OsMapper = FxHashMap<String, String>;
+#[derive(Debug, Default, Deserialize)]
+#[serde(default, rename_all = "kebab-case")]
+pub struct PlatformMapper {
+    pub archive_prefix: Option<String>,
+    pub bin_path: Option<String>,
+    pub checksum_file: Option<String>,
+    pub download_file: String,
+}
 
 #[derive(Debug, Default, Deserialize)]
 #[serde(default, rename_all = "kebab-case")]
@@ -13,18 +20,14 @@ pub struct DetectSchema {
 #[derive(Debug, Default, Deserialize)]
 #[serde(default, rename_all = "kebab-case")]
 pub struct ExecuteSchema {
-    pub bin_path: Option<OsMapper>,
     pub globals_dir: Vec<String>,
 }
 
 #[derive(Debug, Default, Deserialize)]
 #[serde(default, rename_all = "kebab-case")]
 pub struct InstallSchema {
-    pub arch: OsMapper,
-    pub archive_prefix: Option<OsMapper>,
-    pub checksum_file: OsMapper,
+    pub arch: FxHashMap<String, String>,
     pub checksum_url: Option<String>,
-    pub download_file: OsMapper,
     pub download_url: String,
 }
 
@@ -82,6 +85,7 @@ pub struct Schema {
     pub name: String,
     #[serde(rename = "type")]
     pub type_of: ToolType,
+    pub platform: FxHashMap<String, PlatformMapper>,
 
     pub detect: DetectSchema,
     pub execute: ExecuteSchema,

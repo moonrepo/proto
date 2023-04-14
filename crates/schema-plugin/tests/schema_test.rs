@@ -3,7 +3,9 @@ use proto_core::{
     get_home_dir, Detector, Downloadable, Executable, Installable, Proto, Resolvable, Shimable,
     Tool, Verifiable,
 };
-use proto_schema_plugin::{DetectSchema, ExecuteSchema, InstallSchema, Schema, SchemaPlugin};
+use proto_schema_plugin::{
+    DetectSchema, ExecuteSchema, InstallSchema, PlatformMapper, Schema, SchemaPlugin,
+};
 use rustc_hash::FxHashMap;
 use starbase_utils::string_vec;
 use std::env::{self, consts};
@@ -71,13 +73,31 @@ mod schema_plugin {
 
         fn create_download_schema() -> Schema {
             Schema {
+                platform: FxHashMap::from_iter([
+                    (
+                        "linux".into(),
+                        PlatformMapper {
+                            download_file: "moon-{arch}-unknown-linux-{libc}".into(),
+                                ..PlatformMapper::default()
+                        }
+                    ),
+                    (
+                        "macos".into(),
+                        PlatformMapper {
+                            download_file: "moon-{arch}-apple-darwin".into(),
+                            ..PlatformMapper::default()
+                        }
+                    ),
+                    (
+                        "windows".into(),
+                        PlatformMapper {
+                            download_file:"moon-{arch}-pc-windows-msvc.exe".into(),
+                            ..PlatformMapper::default()
+                        }
+                    ),
+                ]),
                 install: InstallSchema {
                     download_url: "https://github.com/moonrepo/moon/releases/download/v{version}/{download_file}".into(),
-                    download_file: FxHashMap::from_iter([
-                      ("linux".into(), "moon-{arch}-unknown-linux-{libc}".into()),
-                      ("macos".into(), "moon-{arch}-apple-darwin".into()),
-                      ("windows".into(), "moon-{arch}-pc-windows-msvc.exe".into()),
-                    ]),
                     ..InstallSchema::default()
                 },
                 ..Schema::default()
@@ -177,14 +197,29 @@ mod schema_plugin {
             let mut tool = create_plugin(
                 fixture.path(),
                 Schema {
-                    execute: ExecuteSchema {
-                        bin_path: Some(FxHashMap::from_iter([
-                            ("linux".into(), "lin/moon".into()),
-                            ("macos".into(), "mac/moon".into()),
-                            ("windows".into(), "win/moon.exe".into()),
-                        ])),
-                        ..ExecuteSchema::default()
-                    },
+                    platform: FxHashMap::from_iter([
+                        (
+                            "linux".into(),
+                            PlatformMapper {
+                                bin_path: Some("lin/moon".into()),
+                                ..PlatformMapper::default()
+                            },
+                        ),
+                        (
+                            "macos".into(),
+                            PlatformMapper {
+                                bin_path: Some("mac/moon".into()),
+                                ..PlatformMapper::default()
+                            },
+                        ),
+                        (
+                            "windows".into(),
+                            PlatformMapper {
+                                bin_path: Some("win/moon.exe".into()),
+                                ..PlatformMapper::default()
+                            },
+                        ),
+                    ]),
                     ..Schema::default()
                 },
             );
@@ -229,7 +264,6 @@ mod schema_plugin {
                     Schema {
                         execute: ExecuteSchema {
                             globals_dir: string_vec!["~/.moon/bin"],
-                            ..ExecuteSchema::default()
                         },
                         ..Schema::default()
                     },
@@ -249,7 +283,6 @@ mod schema_plugin {
                     Schema {
                         execute: ExecuteSchema {
                             globals_dir: string_vec!["$HOME/.moon/bin"],
-                            ..ExecuteSchema::default()
                         },
                         ..Schema::default()
                     },
@@ -269,7 +302,6 @@ mod schema_plugin {
                     Schema {
                         execute: ExecuteSchema {
                             globals_dir: string_vec!["$PROTO_TEST_DIR/bin"],
-                            ..ExecuteSchema::default()
                         },
                         ..Schema::default()
                     },
@@ -335,14 +367,22 @@ mod schema_plugin {
 
         fn create_verify_schema() -> Schema {
             Schema {
-                bin: "moon".into(),
+                platform: FxHashMap::from_iter([
+                    ("linux".into(), PlatformMapper {
+                        checksum_file: Some("moon-{arch}-unknown-linux-{libc}.sha256".into()),
+                        ..PlatformMapper::default()
+                    }),
+                    ("macos".into(), PlatformMapper {
+                        checksum_file: Some("moon-{arch}-apple-darwin.sha256".into()),
+                        ..PlatformMapper::default()
+                    }),
+                    ("windows".into(), PlatformMapper {
+                        checksum_file:Some("moon-{arch}-pc-windows-msvc.sha256".into()),
+                        ..PlatformMapper::default()
+                    }),
+                ]),
                 install: InstallSchema {
                     checksum_url: Some("https://github.com/moonrepo/moon/releases/download/v{version}/{checksum_file}".into()),
-                    checksum_file: FxHashMap::from_iter([
-                      ("linux".into(), "moon-{arch}-unknown-linux-{libc}.sha256".into()),
-                      ("macos".into(), "moon-{arch}-apple-darwin.sha256".into()),
-                      ("windows".into(), "moon-{arch}-pc-windows-msvc.sha256".into()),
-                    ]),
                     ..InstallSchema::default()
                 },
                 ..Schema::default()
@@ -356,17 +396,17 @@ mod schema_plugin {
 
             if cfg!(target_os = "windows") {
                 assert_eq!(
-                    tool.get_checksum_file(),
+                    tool.get_checksum_file().unwrap(),
                     format!("moon-{}-pc-windows-msvc.sha256", consts::ARCH)
                 );
             } else if cfg!(target_os = "macos") {
                 assert_eq!(
-                    tool.get_checksum_file(),
+                    tool.get_checksum_file().unwrap(),
                     format!("moon-{}-apple-darwin.sha256", consts::ARCH)
                 );
             } else {
                 assert_eq!(
-                    tool.get_checksum_file(),
+                    tool.get_checksum_file().unwrap(),
                     format!("moon-{}-unknown-linux-gnu.sha256", consts::ARCH)
                 );
             }
@@ -376,14 +416,14 @@ mod schema_plugin {
                 Proto::from(fixture.path())
                     .temp_dir
                     .join("moon")
-                    .join(tool.get_checksum_file())
+                    .join(tool.get_checksum_file().unwrap())
             );
 
             assert_eq!(
                 tool.get_checksum_url().unwrap().unwrap(),
                 format!(
                     "https://github.com/moonrepo/moon/releases/download/v1.0.0/{}",
-                    tool.get_checksum_file()
+                    tool.get_checksum_file().unwrap()
                 )
             );
         }

@@ -5,7 +5,7 @@ use std::path::PathBuf;
 #[async_trait]
 impl Installable<'_> for SchemaPlugin {
     fn get_archive_prefix(&self) -> Result<Option<String>, ProtoError> {
-        if let Some(prefix) = &self.schema.install.archive_prefix {
+        if let Some(prefix) = &self.get_platform()?.archive_prefix {
             return Ok(Some(self.interpolate_tokens(prefix)));
         }
 

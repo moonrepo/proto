@@ -8,14 +8,14 @@ use tracing::debug;
 #[async_trait]
 impl Verifiable<'_> for SchemaPlugin {
     fn get_checksum_path(&self) -> Result<PathBuf, ProtoError> {
-        Ok(self.temp_dir.join(self.get_checksum_file()))
+        Ok(self.temp_dir.join(self.get_checksum_file()?))
     }
 
     fn get_checksum_url(&self) -> Result<Option<String>, ProtoError> {
         if let Some(url) = &self.schema.install.checksum_url {
             return Ok(Some(
                 self.interpolate_tokens(url)
-                    .replace("{checksum_file}", &self.get_checksum_file()),
+                    .replace("{checksum_file}", &self.get_checksum_file()?),
             ));
         }
 

@@ -1,25 +1,30 @@
 use crate::SchemaPlugin;
 use proto_core::{async_trait, get_home_dir, Describable, Executable, Installable, ProtoError};
 use std::{
-    env::{self, consts},
+    env,
     path::{Path, PathBuf},
 };
 
 #[async_trait]
 impl Executable<'_> for SchemaPlugin {
     async fn find_bin_path(&mut self) -> Result<(), ProtoError> {
-        let bin = if let Some(bin_paths) = &self.schema.execute.bin_path {
-            bin_paths
-                .get(consts::OS)
-                .map(|b| b.to_owned())
-                .unwrap_or(self.get_bin_name().to_owned())
-        } else if cfg!(windows) {
-            format!("{}.exe", self.get_bin_name())
-        } else {
-            self.get_bin_name().to_owned()
-        };
+        let mut bin = None;
 
-        let bin_path = self.get_install_dir()?.join(bin);
+        if let Ok(platform) = self.get_platform() {
+            if let Some(bin_path) = &platform.bin_path {
+                bin = Some(bin_path.to_owned());
+            }
+        }
+
+        if bin.is_none() {
+            bin = Some(if cfg!(windows) {
+                format!("{}.exe", self.get_bin_name())
+            } else {
+                self.get_bin_name().to_owned()
+            });
+        }
+
+        let bin_path = self.get_install_dir()?.join(bin.unwrap());
 
         if bin_path.exists() {
             self.bin_path = Some(bin_path);

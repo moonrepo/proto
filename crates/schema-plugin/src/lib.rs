@@ -39,24 +39,23 @@ impl SchemaPlugin {
         }
     }
 
-    pub fn get_checksum_file(&self) -> String {
-        if let Some(file) = self.schema.install.checksum_file.get(consts::OS) {
+    pub fn get_platform(&self) -> Result<&PlatformMapper, ProtoError> {
+        self.schema
+            .platform
+            .get(consts::OS)
+            .ok_or_else(|| ProtoError::UnsupportedPlatform(self.get_name(), consts::OS.to_owned()))
+    }
+
+    pub fn get_checksum_file(&self) -> Result<String, ProtoError> {
+        Ok(if let Some(file) = &self.get_platform()?.checksum_file {
             self.interpolate_tokens(file)
         } else {
             format!("v{}-SHASUMS256.txt", self.get_resolved_version())
-        }
+        })
     }
 
     pub fn get_download_file(&self) -> Result<String, ProtoError> {
-        Ok(self.interpolate_tokens(
-            self.schema
-                .install
-                .download_file
-                .get(consts::OS)
-                .ok_or_else(|| {
-                    ProtoError::UnsupportedPlatform(self.get_name(), consts::OS.to_owned())
-                })?,
-        ))
+        Ok(self.interpolate_tokens(&self.get_platform()?.download_file))
     }
 
     pub fn interpolate_tokens(&self, value: &str) -> String {
