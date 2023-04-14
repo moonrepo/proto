@@ -2,7 +2,10 @@ use crate::errors::ProtoError;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use starbase_styles::color;
-use starbase_utils::{fs, json};
+use starbase_utils::{
+    fs,
+    json::{self, JsonError},
+};
 use std::{
     env,
     path::{Path, PathBuf},
@@ -111,13 +114,25 @@ impl Manifest {
 
     #[tracing::instrument(skip_all)]
     pub fn save(&self) -> Result<(), ProtoError> {
+        use std::io::prelude::*;
+
         trace!("Saving manifest {}", color::path(&self.path));
 
         if let Some(parent) = self.path.parent() {
             fs::create_dir_all(parent)?;
         }
 
-        json::write_file(&self.path, self, true)?;
+        let mut file = fd_lock::RwLock::new(fs::open_file(&self.path)?);
+        let mut handle = file
+            .write()
+            .map_err(|e| ProtoError::Message(e.to_string()))?;
+
+        let data = json::to_string_pretty(&self).map_err(|error| JsonError::StringifyFile {
+            path: self.path.to_path_buf(),
+            error,
+        })?;
+
+        write!(handle, "{}", data).map_err(|e| ProtoError::Message(e.to_string()))?;
 
         Ok(())
     }

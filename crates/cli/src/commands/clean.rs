@@ -105,7 +105,7 @@ pub async fn clean(days: Option<u8>) -> SystemResult {
                 count,
                 versions_to_clean
                     .iter()
-                    .map(|v| color::id(v))
+                    .map(color::id)
                     .collect::<Vec<_>>()
                     .join(", ")
             ))
