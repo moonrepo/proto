@@ -4,7 +4,7 @@ use std::env::consts;
 
 #[derive(Debug, Default, Deserialize)]
 #[serde(default, rename_all = "kebab-case")]
-pub struct DetectorSchema {
+pub struct DetectSchema {
     pub version_files: Option<Vec<String>>,
 }
 
@@ -75,20 +75,20 @@ pub enum ToolType {
 
 #[derive(Debug, Default, Deserialize)]
 #[serde(default, rename_all = "kebab-case")]
-pub struct ToolSchema {
+pub struct Schema {
     pub bin: String,
     pub name: String,
     #[serde(rename = "type")]
     pub type_of: ToolType,
 
-    pub detect: DetectorSchema,
+    pub detect: DetectSchema,
     pub execute: ExecuteSchema,
     pub install: InstallSchema,
     pub resolve: ResolveSchema,
     pub shim: ShimSchema,
 }
 
-impl ToolSchema {
+impl Schema {
     pub fn get_arch(&self) -> &str {
         self.install
             .arch

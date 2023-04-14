@@ -16,7 +16,7 @@ use std::{
 
 #[derive(Debug)]
 pub struct SchemaPlugin {
-    pub schema: ToolSchema,
+    pub schema: Schema,
 
     pub base_dir: PathBuf,
     pub bin_path: Option<PathBuf>,
@@ -26,7 +26,7 @@ pub struct SchemaPlugin {
 }
 
 impl SchemaPlugin {
-    pub fn new<P: AsRef<Proto>>(proto: P, schema: ToolSchema) -> Self {
+    pub fn new<P: AsRef<Proto>>(proto: P, schema: Schema) -> Self {
         let proto = proto.as_ref();
 
         SchemaPlugin {
