@@ -9,7 +9,10 @@ mod verify;
 
 use proto_core::{Describable, Proto, Resolvable, Tool};
 pub use schema::*;
-use std::path::{Path, PathBuf};
+use std::{
+    env::consts,
+    path::{Path, PathBuf},
+};
 
 #[derive(Debug)]
 pub struct SchemaPlugin {
@@ -36,12 +39,32 @@ impl SchemaPlugin {
         }
     }
 
+    pub fn get_checksum_file(&self) -> String {
+        if let Some(file) = self.schema.install.checksum_file.get(consts::OS) {
+            self.interpolate_tokens(file)
+        } else {
+            format!("v{}-SHASUMS256.txt", self.get_resolved_version())
+        }
+    }
+
+    pub fn get_download_file(&self) -> String {
+        self.interpolate_tokens(
+            self.schema
+                .install
+                .download_file
+                .get(consts::OS)
+                .expect(&format!(
+                    "No `download_file` configured for `{}`",
+                    consts::OS
+                )),
+        )
+    }
+
     pub fn interpolate_tokens(&self, value: &str) -> String {
         value
             .replace("{version}", self.get_resolved_version())
             .replace("{arch}", self.schema.get_arch())
-            .replace("{os}", self.schema.get_os())
-            .replace("{ext}", self.schema.get_download_ext())
+            .replace("{libc}", self.schema.get_libc())
     }
 }
 

@@ -4,13 +4,6 @@ use std::env::consts;
 
 #[derive(Debug, Default, Deserialize)]
 #[serde(default, rename_all = "kebab-case")]
-pub struct PlatformSchema {
-    pub arch: FxHashMap<String, String>,
-    pub os: FxHashMap<String, String>,
-}
-
-#[derive(Debug, Default, Deserialize)]
-#[serde(default, rename_all = "kebab-case")]
 pub struct DetectorSchema {
     pub version_files: Option<Vec<String>>,
 }
@@ -25,9 +18,11 @@ pub struct ExecuteSchema {
 #[derive(Debug, Default, Deserialize)]
 #[serde(default, rename_all = "kebab-case")]
 pub struct InstallSchema {
+    pub arch: FxHashMap<String, String>,
     pub archive_prefix: Option<String>,
+    pub checksum_file: FxHashMap<String, String>,
     pub checksum_url: Option<String>,
-    pub download_ext: FxHashMap<String, String>,
+    pub download_file: FxHashMap<String, String>,
     pub download_url: String,
 }
 
@@ -48,7 +43,7 @@ impl Default for ResolveSchema {
             manifest_url: None,
             manifest_version_key: "version".to_string(),
             git_url: None,
-            git_tag_pattern: r"(\d+)\.(\d+)\.(\d+)".to_string(),
+            git_tag_pattern: r"^v?(\d+)\.(\d+)\.(\d+)".to_string(),
         }
     }
 }
@@ -85,7 +80,6 @@ pub struct ToolSchema {
     pub name: String,
     #[serde(rename = "type")]
     pub type_of: ToolType,
-    pub platform: PlatformSchema,
 
     pub detect: DetectorSchema,
     pub execute: ExecuteSchema,
@@ -96,26 +90,14 @@ pub struct ToolSchema {
 
 impl ToolSchema {
     pub fn get_arch(&self) -> &str {
-        self.platform
+        self.install
             .arch
             .get(consts::ARCH)
             .map(|v| v.as_ref())
             .unwrap_or(consts::ARCH)
     }
 
-    pub fn get_download_ext(&self) -> &str {
-        self.install
-            .download_ext
-            .get(consts::OS)
-            .map(|v| v.as_ref())
-            .unwrap_or("")
-    }
-
-    pub fn get_os(&self) -> &str {
-        self.platform
-            .os
-            .get(consts::OS)
-            .map(|v| v.as_ref())
-            .unwrap_or(consts::OS)
+    pub fn get_libc(&self) -> &str {
+        ""
     }
 }

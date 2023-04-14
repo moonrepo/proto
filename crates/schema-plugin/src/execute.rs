@@ -39,33 +39,26 @@ impl Executable<'_> for SchemaPlugin {
 
     fn get_globals_bin_dir(&self) -> Result<PathBuf, ProtoError> {
         let home_dir = get_home_dir()?;
-        let mut globals_dir = home_dir.join(format!(".{}", self.get_bin_name()));
+        let env_var_pattern = regex::Regex::new("$([A-Z0-9_]+)").unwrap();
 
         for dir in &self.schema.execute.globals_dir {
-            if let Some(env_var) = dir.strip_prefix('$') {
-                if let Ok(value) = env::var(env_var) {
-                    globals_dir = PathBuf::from(value);
-                    break;
-                }
-            }
+            let dir = env_var_pattern.replace_all(dir, |cap: &regex::Captures| {
+                env::var(cap.get(1).unwrap().as_str()).unwrap_or_default()
+            });
 
-            if let Some(home_suffix) = dir.strip_prefix('~') {
-                let maybe_dir = home_dir.join(home_suffix);
+            let dir_path = if let Some(dir_suffix) = dir.strip_prefix('~') {
+                home_dir.join(dir_suffix)
+            } else {
+                PathBuf::from(dir.to_string())
+            };
 
-                if maybe_dir.exists() {
-                    globals_dir = maybe_dir;
-                    break;
-                }
-            }
-
-            let dir = PathBuf::from(dir);
-
-            if dir.exists() {
-                globals_dir = dir;
-                break;
+            if dir_path.exists() {
+                return Ok(dir_path);
             }
         }
 
-        Ok(globals_dir.join("bin"))
+        Ok(home_dir
+            .join(format!(".{}", self.get_bin_name()))
+            .join("bin"))
     }
 }
