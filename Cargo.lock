@@ -649,17 +649,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "errno"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4bcfec3a70f97c962c307b2d2c56e358cf1d00b558d74262b5f929ee8cc7e73a"
-dependencies = [
- "errno-dragonfly",
- "libc",
- "windows-sys 0.48.0",
-]
-
-[[package]]
 name = "errno-dragonfly"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -676,17 +665,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e51093e27b0797c359783294ca4f0a911c270184cb10f85783b118614a1501be"
 dependencies = [
  "instant",
-]
-
-[[package]]
-name = "fd-lock"
-version = "3.0.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39ae6b3d9530211fb3b12a95374b8b0823be812f53d09e18c5675c0146b09642"
-dependencies = [
- "cfg-if",
- "rustix 0.37.7",
- "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -733,6 +711,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a9c384f161156f5260c24a097c56119f9be8c798586aecc13afbcbe7b7e26bf8"
 dependencies = [
  "percent-encoding",
+]
+
+[[package]]
+name = "fs4"
+version = "0.6.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8ea55201cc351fdb478217c0fb641b59813da9b4efe4c414a9d8f989a657d149"
+dependencies = [
+ "libc",
+ "rustix 0.35.13",
+ "winapi",
 ]
 
 [[package]]
@@ -1106,6 +1095,12 @@ dependencies = [
 
 [[package]]
 name = "io-lifetimes"
+version = "0.7.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "59ce5ef949d49ee85593fc4d3f3f95ad61657076395cbbce23e2121fc5542074"
+
+[[package]]
+name = "io-lifetimes"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cfa919a82ea574332e2de6e74b4c36e74d41982b335080fa59d4ef31be20fdf3"
@@ -1127,7 +1122,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "21b6b32576413a8e69b90e952e4a026476040d81017b80445deda5f2d3921857"
 dependencies = [
  "hermit-abi 0.3.1",
- "io-lifetimes",
+ "io-lifetimes 1.0.6",
  "rustix 0.36.9",
  "windows-sys 0.45.0",
 ]
@@ -1235,15 +1230,15 @@ dependencies = [
 
 [[package]]
 name = "linux-raw-sys"
-version = "0.1.4"
+version = "0.0.46"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f051f77a7c8e6957c0696eac88f26b0117e54f52d3fc682ab19397a8812846a4"
+checksum = "d4d2456c373231a208ad294c33dc5bff30051eafd954cd4caae83a712b12854d"
 
 [[package]]
 name = "linux-raw-sys"
-version = "0.3.1"
+version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d59d8c75012853d2e872fb56bc8a2e53718e2cafe1a4c823143141c6d90c322f"
+checksum = "f051f77a7c8e6957c0696eac88f26b0117e54f52d3fc682ab19397a8812846a4"
 
 [[package]]
 name = "lock_api"
@@ -1585,8 +1580,8 @@ dependencies = [
  "async-trait",
  "cached",
  "dirs",
- "fd-lock",
  "flate2",
+ "fs4",
  "human-sort",
  "lenient_semver",
  "miette",
@@ -1793,29 +1788,29 @@ checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
 
 [[package]]
 name = "rustix"
+version = "0.35.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "727a1a6d65f786ec22df8a81ca3121107f235970dc1705ed681d3e6e8b9cd5f9"
+dependencies = [
+ "bitflags",
+ "errno",
+ "io-lifetimes 0.7.5",
+ "libc",
+ "linux-raw-sys 0.0.46",
+ "windows-sys 0.42.0",
+]
+
+[[package]]
+name = "rustix"
 version = "0.36.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fd5c6ff11fecd55b40746d1995a02f2eb375bf8c00d192d521ee09f42bef37bc"
 dependencies = [
  "bitflags",
- "errno 0.2.8",
- "io-lifetimes",
+ "errno",
+ "io-lifetimes 1.0.6",
  "libc",
  "linux-raw-sys 0.1.4",
- "windows-sys 0.45.0",
-]
-
-[[package]]
-name = "rustix"
-version = "0.37.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2aae838e49b3d63e9274e1c01833cc8139d3fec468c3b84688c628f44b1ae11d"
-dependencies = [
- "bitflags",
- "errno 0.3.1",
- "io-lifetimes",
- "libc",
- "linux-raw-sys 0.3.1",
  "windows-sys 0.45.0",
 ]
 

@@ -3,7 +3,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use starbase_styles::color;
 use starbase_utils::{
-    fs,
+    fs::{self, FsError},
     json::{self, JsonError},
 };
 use std::{
@@ -102,7 +102,23 @@ impl Manifest {
         trace!("Loading manifest {}", color::path(path));
 
         let mut manifest: Manifest = if path.exists() {
-            json::read_file(path)?
+            use fs4::FileExt;
+
+            let file = fs::open_file(path)?;
+
+            file.lock_shared().map_err(|error| FsError::Read {
+                path: path.to_path_buf(),
+                error,
+            })?;
+
+            let data = json::read_file(path)?;
+
+            file.unlock().map_err(|error| FsError::Read {
+                path: path.to_path_buf(),
+                error,
+            })?;
+
+            data
         } else {
             Manifest::default()
         };
@@ -114,6 +130,7 @@ impl Manifest {
 
     #[tracing::instrument(skip_all)]
     pub fn save(&self) -> Result<(), ProtoError> {
+        use fs4::FileExt;
         use std::io::prelude::*;
 
         trace!("Saving manifest {}", color::path(&self.path));
@@ -122,17 +139,24 @@ impl Manifest {
             fs::create_dir_all(parent)?;
         }
 
-        let mut file = fd_lock::RwLock::new(fs::open_file(&self.path)?);
-        let mut handle = file
-            .write()
-            .map_err(|e| ProtoError::Message(e.to_string()))?;
+        let mut file = fs::create_file(&self.path)?;
+
+        file.lock_exclusive().map_err(|error| FsError::Write {
+            path: self.path.to_path_buf(),
+            error,
+        })?;
 
         let data = json::to_string_pretty(&self).map_err(|error| JsonError::StringifyFile {
             path: self.path.to_path_buf(),
             error,
         })?;
 
-        write!(handle, "{}", data).map_err(|e| ProtoError::Message(e.to_string()))?;
+        write!(file, "{}", data).unwrap();
+
+        file.unlock().map_err(|error| FsError::Write {
+            path: self.path.to_path_buf(),
+            error,
+        })?;
 
         Ok(())
     }
