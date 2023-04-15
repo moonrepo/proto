@@ -1,5 +1,9 @@
 # Changelog
 
+#### ⚙️ Internal
+
+- Added read/write file locking for the `manifest.json` file.
+
 ## 0.6.0
 
 #### 🚀 Updates
