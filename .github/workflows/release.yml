@@ -52,6 +52,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: moonrepo/setup-rust@v0
+        with:
+          cache: false
       - name: Install cargo-dist
         run: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/download/v0.0.5/cargo-dist-v0.0.5-installer.sh | sh
       - id: create-release
@@ -100,6 +102,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: moonrepo/setup-rust@v0
+        with:
+          cache: false
       - name: Install cargo-dist
         run: ${{ matrix.install-dist }}
       - name: Run cargo-dist
