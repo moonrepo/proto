@@ -42,7 +42,7 @@ indicatif = "0.17.3"
 reqwest = { workspace = true, features = ["stream"] }
 rustc-hash = { workspace = true }
 semver = "1.0.17"
-starbase = "0.1.4"
+starbase = "0.1.6"
 starbase_utils = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
@@ -51,6 +51,6 @@ tracing = { workspace = true }
 winreg = "0.50.0"
 
 [dev-dependencies]
-assert_cmd = "2.0.10"
+assert_cmd = "2.0.11"
 assert_fs = { workspace = true }
-predicates = "3.0.2"
+predicates = "3.0.3"
