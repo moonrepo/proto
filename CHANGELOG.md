@@ -1,5 +1,7 @@
 # Changelog
 
+## Unreleased
+
 #### ⚙️ Internal
 
 - Added read/write file locking for the `manifest.json` file.
