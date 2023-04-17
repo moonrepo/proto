@@ -7,8 +7,12 @@ pub mod tools;
 
 use app::{App as CLI, Commands};
 use clap::Parser;
-use helpers::{enable_logging, enable_logging_with_level};
-use starbase::{system, App, MainResult, State};
+use starbase::{
+    system,
+    tracing::{metadata::LevelFilter, TracingOptions},
+    App, MainResult, State,
+};
+use starbase_utils::string_vec;
 
 #[derive(State)]
 pub struct CliCommand(pub Commands);
@@ -55,13 +59,20 @@ async fn run(command: StateRef<CliCommand>) {
 async fn main() -> MainResult {
     let cli = CLI::parse();
 
-    if matches!(cli.command, Commands::Bin { .. } | Commands::Run { .. }) {
-        enable_logging_with_level("warn");
-    } else if !matches!(cli.command, Commands::Completions { .. }) {
-        enable_logging();
-    }
+    App::setup_diagnostics();
 
-    App::setup_hooks("PROTO_LOG");
+    App::setup_tracing_with_options(TracingOptions {
+        default_level: if matches!(cli.command, Commands::Bin { .. } | Commands::Run { .. }) {
+            LevelFilter::WARN
+        } else if matches!(cli.command, Commands::Completions { .. }) {
+            LevelFilter::OFF
+        } else {
+            LevelFilter::INFO
+        },
+        env_name: "PROTO_LOG".into(),
+        filter_modules: string_vec!["proto", "starbase"],
+        ..TracingOptions::default()
+    });
 
     let mut app = App::new();
     app.set_state(CliCommand(cli.command));

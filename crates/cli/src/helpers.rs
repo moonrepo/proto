@@ -6,29 +6,7 @@ use std::cmp;
 use std::env;
 use std::io::Write;
 use std::path::PathBuf;
-use std::sync::atomic::AtomicBool;
-use std::sync::atomic::Ordering::Relaxed;
 use std::time::Duration;
-
-pub fn enable_logging() {
-    enable_logging_with_level("info");
-}
-
-pub fn enable_logging_with_level(max_level: &str) {
-    static ENABLED: AtomicBool = AtomicBool::new(false);
-
-    if !ENABLED.load(Relaxed) {
-        if let Ok(level) = env::var("PROTO_LOG") {
-            if !level.contains('=') && !level.contains(',') && level != "off" {
-                env::set_var("PROTO_LOG", format!("proto={level}"));
-            }
-        } else {
-            env::set_var("PROTO_LOG", format!("proto={max_level}"));
-        }
-
-        ENABLED.store(true, Relaxed);
-    }
-}
 
 pub fn disable_progress_bars() {
     env::set_var("PROTO_NO_PROGRESS", "1");

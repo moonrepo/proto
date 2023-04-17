@@ -5,7 +5,7 @@ use clap::ValueEnum;
 use dialoguer::Confirm;
 use proto_core::{color, Manifest};
 use rustc_hash::FxHashSet;
-use starbase::{diagnose::IntoDiagnostic, SystemResult};
+use starbase::{diagnostics::IntoDiagnostic, SystemResult};
 use starbase_utils::fs;
 use tracing::{debug, info};
 

@@ -1,7 +1,7 @@
 use crate::tools::{create_tool, ToolType};
 use human_sort::compare;
 use proto_core::color;
-use starbase::{diagnose::IntoDiagnostic, SystemResult};
+use starbase::{diagnostics::IntoDiagnostic, SystemResult};
 use starbase_utils::fs;
 use tracing::debug;
 

@@ -16,17 +16,10 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
-        name: Setup toolchain
+      - uses: moonrepo/setup-rust@v0
         with:
-          toolchain: 1.68.2
-          profile: minimal
           components: rustfmt
-      - uses: actions-rs/cargo@v1
-        name: Check formatting
-        with:
-          command: fmt
-          args: --all --check
+      - run: cargo fmt --all --check
   lint:
     name: Lint
     runs-on: ${{ matrix.os }}
@@ -36,21 +29,14 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
-        name: Setup toolchain
+      - uses: moonrepo/setup-rust@v0
         with:
-          toolchain: 1.68.2
-          profile: minimal
           components: clippy
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: ci
-      - uses: actions-rs/cargo@v1
-        name: Run linter
-        with:
-          command: clippy
-          args: --workspace --all-targets
+      - run: cargo clippy --workspace --all-targets
   test:
     name: Test
     runs-on: ${{ matrix.os }}
@@ -60,17 +46,9 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
-        name: Setup toolchain
-        with:
-          toolchain: 1.68.2
-          profile: minimal
+      - uses: moonrepo/setup-rust@v0
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: ci
-      - uses: actions-rs/cargo@v1
-        name: Run tests
-        with:
-          command: test
-          args: --workspace
+      - run: cargo test --workspace
