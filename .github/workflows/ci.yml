@@ -1,3 +1,5 @@
+# Bump!
+
 name: CI
 
 on:
@@ -32,10 +34,6 @@ jobs:
       - uses: moonrepo/setup-rust@v0
         with:
           components: clippy
-      - name: Cache cargo
-        uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: ci
       - run: cargo clippy --workspace --all-targets
   test:
     name: Test
@@ -47,8 +45,4 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: moonrepo/setup-rust@v0
-      - name: Cache cargo
-        uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: ci
       - run: cargo test --workspace
