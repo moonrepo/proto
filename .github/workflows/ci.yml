@@ -7,6 +7,11 @@ on:
   pull_request:
 
 jobs:
+  env:
+    name: Env
+    runs-on: ubuntu-latest
+    steps:
+      - run: printenv
   format:
     name: Format
     runs-on: ${{ matrix.os }}
