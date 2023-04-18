@@ -4,7 +4,7 @@ use proto_core::{
     Tool, Verifiable,
 };
 use proto_schema_plugin::{
-    DetectSchema, ExecuteSchema, InstallSchema, PlatformMapper, Schema, SchemaPlugin,
+    DetectSchema, ExecuteSchema, InstallSchema, PlatformMapper, ResolveSchema, Schema, SchemaPlugin,
 };
 use rustc_hash::FxHashMap;
 use starbase_utils::string_vec;
@@ -356,6 +356,51 @@ mod schema_plugin {
             let prefix = format!("{}-{}", consts::OS, tool.schema.get_arch());
 
             assert_eq!(tool.get_archive_prefix().unwrap(), Some(prefix));
+        }
+    }
+
+    mod resolver {
+        use super::*;
+
+        #[tokio::test]
+        async fn resolves_git_tags() {
+            let fixture = assert_fs::TempDir::new().unwrap();
+            let tool = create_plugin(
+                fixture.path(),
+                Schema {
+                    resolve: ResolveSchema {
+                        git_url: Some("https://github.com/moonrepo/moon".into()),
+                        ..ResolveSchema::default()
+                    },
+                    ..Schema::default()
+                },
+            );
+
+            let manifest = tool.load_version_manifest().await.unwrap();
+
+            assert!(!manifest.versions.is_empty());
+            assert!(manifest.versions.contains_key("1.0.0"));
+        }
+
+        #[tokio::test]
+        async fn resolves_git_tags_with_custom_pattern() {
+            let fixture = assert_fs::TempDir::new().unwrap();
+            let tool = create_plugin(
+                fixture.path(),
+                Schema {
+                    resolve: ResolveSchema {
+                        git_url: Some("https://github.com/moonrepo/moon".into()),
+                        git_tag_pattern: r"^@moonrepo/cli@((\d+)\.(\d+)\.(\d+))".into(),
+                        ..ResolveSchema::default()
+                    },
+                    ..Schema::default()
+                },
+            );
+
+            let manifest = tool.load_version_manifest().await.unwrap();
+
+            assert!(!manifest.versions.is_empty());
+            assert!(manifest.versions.contains_key("1.0.0"));
         }
     }
 

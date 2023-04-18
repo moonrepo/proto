@@ -196,15 +196,17 @@ where
             continue;
         }
 
-        let tag: Vec<&str> = parts[1].split('/').collect();
+        tags.push(parts[1].strip_prefix("refs/tags/").unwrap().to_owned());
 
-        if tag.len() < 3 {
-            continue;
-        }
+        // let tag: Vec<&str> = parts[1].split('/').collect();
 
-        if let Some(last) = tag.last() {
-            tags.push((**last).to_owned());
-        }
+        // if tag.len() < 3 {
+        //     continue;
+        // }
+
+        // if let Some(last) = tag.last() {
+        //     tags.push((**last).to_owned());
+        // }
     }
 
     tags.sort_by(|a, d| compare(a, d));

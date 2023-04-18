@@ -26,8 +26,8 @@ impl Resolvable<'_> for SchemaPlugin {
                 .await?
                 .into_iter()
                 .filter_map(|t| {
-                   tag_pattern.captures(&t)
-                    .map(|captures| remove_v_prefix(captures.get(0).unwrap().as_str()))
+                    tag_pattern.captures(&t)
+                        .map(|captures| remove_v_prefix(captures.get(1).unwrap().as_str()))
                 })
                 .collect::<Vec<_>>();
 

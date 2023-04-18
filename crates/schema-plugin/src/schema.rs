@@ -48,7 +48,7 @@ impl Default for ResolveSchema {
             manifest_url: None,
             manifest_version_key: "version".to_string(),
             git_url: None,
-            git_tag_pattern: r"^v?(\d+)\.(\d+)\.(\d+)".to_string(),
+            git_tag_pattern: r"^v?((\d+)\.(\d+)\.(\d+))".to_string(),
         }
     }
 }
