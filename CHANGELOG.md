@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added a `--yes` option to `proto clean`, allowing prompts to be bypassed.
+
 ## 0.6.1
 
 #### ⚙️ Internal
