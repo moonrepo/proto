@@ -104,6 +104,11 @@ impl Schema {
     }
 
     pub fn get_libc(&self) -> &str {
+        #[cfg(all(unix, not(target_os = "macos")))]
+        {
+            return if proto_core::is_musl() { "musl" } else { "gnu" };
+        }
+
         ""
     }
 }

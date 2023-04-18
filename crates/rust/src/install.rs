@@ -1,5 +1,5 @@
 use crate::RustLanguage;
-use proto_core::{async_trait, color, Installable, ProtoError, Resolvable};
+use proto_core::{async_trait, color, is_musl, Installable, ProtoError, Resolvable};
 use std::env::consts;
 use std::path::{Path, PathBuf};
 use tokio::process::Command;
@@ -11,14 +11,6 @@ fn handle_error(e: std::io::Error) -> ProtoError {
         color::shell("rustup"),
         color::muted_light(e.to_string())
     ))
-}
-
-fn is_musl() -> bool {
-    let Ok(output) = std::process::Command::new("ldd").arg("--version").output() else {
-        return false;
-    };
-
-    String::from_utf8_lossy(&output.stdout).contains("musl")
 }
 
 async fn is_installed_in_rustup(install_dir: &Path) -> Result<bool, ProtoError> {

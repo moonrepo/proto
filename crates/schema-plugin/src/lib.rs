@@ -59,10 +59,16 @@ impl SchemaPlugin {
     }
 
     pub fn interpolate_tokens(&self, value: &str) -> String {
-        value
+        let mut value = value
             .replace("{version}", self.get_resolved_version())
-            .replace("{arch}", self.schema.get_arch())
-            .replace("{libc}", self.schema.get_libc())
+            .replace("{arch}", self.schema.get_arch());
+
+        // Avoid detecting musl unless requested
+        if value.contains("{libc}") {
+            value = value.replace("{libc}", self.schema.get_libc());
+        }
+
+        value
     }
 }
 
