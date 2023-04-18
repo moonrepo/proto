@@ -105,3 +105,12 @@ pub fn has_command(command: &str) -> bool {
     .map(|output| output.status.success() && !output.stdout.is_empty())
     .unwrap_or(false)
 }
+
+#[cached]
+pub fn is_musl() -> bool {
+    let Ok(output) = Command::new("ldd").arg("--version").output() else {
+        return false;
+    };
+
+    String::from_utf8_lossy(&output.stdout).contains("musl")
+}
