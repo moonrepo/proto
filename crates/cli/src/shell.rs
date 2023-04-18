@@ -9,7 +9,7 @@ use std::{
     io::{self, BufRead, Write},
     path::PathBuf,
 };
-use tracing::{debug, trace};
+use tracing::debug;
 
 pub fn detect_shell(shell: Option<Shell>) -> Shell {
     shell.or_else(Shell::from_env).unwrap_or({
@@ -117,14 +117,14 @@ pub fn write_profile_if_not_setup(
     let profiles = find_profiles(shell)?;
 
     for profile in &profiles {
-        trace!("Checking if shell profile {} exists", color::path(profile));
+        debug!("Checking if shell profile {} exists", color::path(profile));
 
         if !profile.exists() {
-            trace!("Not found, continuing");
+            debug!("Not found, continuing");
             continue;
         }
 
-        trace!("Exists, checking if already setup");
+        debug!("Exists, checking if already setup");
 
         let file = fs::open_file(profile)?;
 
@@ -144,7 +144,7 @@ pub fn write_profile_if_not_setup(
             return Ok(None);
         }
 
-        trace!("Not setup, continuing");
+        debug!("Not setup, continuing");
     }
 
     // Create a profile if none found. Use the last profile in the list

@@ -1,7 +1,7 @@
 use crate::tools::{create_tool, ToolType};
 use proto_core::{color, Manifest};
 use starbase::SystemResult;
-use tracing::{info, trace};
+use tracing::{debug, info};
 
 pub async fn global(tool_type: ToolType, version: String) -> SystemResult {
     let tool = create_tool(&tool_type)?;
@@ -10,7 +10,7 @@ pub async fn global(tool_type: ToolType, version: String) -> SystemResult {
     manifest.default_version = Some(version.clone());
     manifest.save()?;
 
-    trace!(
+    debug!(
         "Wrote the global version to {}",
         color::path(&manifest.path),
     );

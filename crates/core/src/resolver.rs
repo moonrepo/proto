@@ -10,7 +10,7 @@ use starbase_utils::{fs, json, json::JsonError};
 use std::collections::BTreeMap;
 use std::time::{Duration, SystemTime};
 use tokio::process::Command;
-use tracing::{debug, trace};
+use tracing::debug;
 
 #[derive(Debug)]
 pub struct VersionManifestEntry {
@@ -276,9 +276,9 @@ where
         };
 
         if read_temp {
-            trace!(
-                "Loading versions manifest from locally cached {}",
-                color::path(&temp_file),
+            debug!(
+                cache_file = %temp_file.display(),
+                "Loading versions manifest from local cache",
             );
 
             let contents: T = json::read_file(&temp_file)?;
@@ -292,7 +292,7 @@ where
     }
 
     // Otherwise, request the resource and cache it
-    trace!("Loading versions manifest from {}", color::url(url));
+    debug!("Loading versions manifest from {}", color::url(url));
 
     let response = reqwest::get(url).await.map_err(handle_http_error)?;
     let contents = response.text().await.map_err(handle_http_error)?;

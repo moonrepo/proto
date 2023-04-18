@@ -1,5 +1,5 @@
 use crate::NodeLanguage;
-use proto_core::{async_trait, color, get_sha256_hash_of_file, ProtoError, Resolvable, Verifiable};
+use proto_core::{async_trait, get_sha256_hash_of_file, ProtoError, Resolvable, Verifiable};
 use starbase_utils::fs;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
@@ -26,9 +26,9 @@ impl Verifiable<'_> for NodeLanguage {
         download_file: &Path,
     ) -> Result<bool, ProtoError> {
         debug!(
-            "Verifiying checksum of downloaded file {} using {}",
-            color::path(download_file),
-            color::path(checksum_file),
+            download_file = %download_file.display(),
+            checksum_file = %checksum_file.display(),
+            "Verifiying checksum of downloaded file"
         );
 
         let checksum = get_sha256_hash_of_file(download_file)?;

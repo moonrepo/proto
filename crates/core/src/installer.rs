@@ -1,12 +1,11 @@
 use crate::describer::Describable;
 use crate::errors::ProtoError;
-use starbase_styles::color;
 use starbase_utils::fs::{self, FsError};
 use std::fs::File;
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 use tar::Archive;
-use tracing::{debug, trace};
+use tracing::debug;
 use zip::ZipArchive;
 
 #[async_trait::async_trait]
@@ -37,9 +36,9 @@ pub trait Installable<'tool>: Send + Sync + Describable<'tool> {
         let prefix = self.get_archive_prefix()?;
 
         debug!(
-            "Attempting to install {} to {}",
-            color::path(download_path),
-            color::path(install_dir),
+            download_file = %download_path.display(),
+            install_dir = %install_dir.display(),
+            "Attempting to install tool",
         );
 
         unpack(download_path, install_dir, prefix)?;
@@ -57,7 +56,10 @@ pub trait Installable<'tool>: Send + Sync + Describable<'tool> {
             return Ok(false);
         }
 
-        debug!("Deleting install directory {}", color::path(install_dir));
+        debug!(
+            install_dir = %install_dir.display(),
+            "Deleting install directory"
+        );
 
         fs::remove_dir_all(install_dir)?;
 
@@ -100,10 +102,10 @@ pub fn untar<I: AsRef<Path>, O: AsRef<Path>, R: FnOnce(File) -> D, D: Read>(
         error,
     };
 
-    trace!(
-        "Unpacking tar archive {} to {}",
-        color::path(input_file),
-        color::path(output_dir),
+    debug!(
+        input_file = %input_file.display(),
+        output_dir = %output_dir.display(),
+        "Unpacking tar archive",
     );
 
     if !output_dir.exists() {
@@ -175,10 +177,10 @@ pub fn unzip<I: AsRef<Path>, O: AsRef<Path>>(
     let input_file = input_file.as_ref();
     let output_dir = output_dir.as_ref();
 
-    trace!(
-        "Unzipping zip archive {} to {}",
-        color::path(input_file),
-        color::path(output_dir),
+    debug!(
+        input_file = %input_file.display(),
+        output_dir = %output_dir.display(),
+        "Unzipping zip archive"
     );
 
     if !output_dir.exists() {

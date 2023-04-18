@@ -2,7 +2,7 @@ use crate::tools::{create_tool, ToolType};
 use proto_core::{color, ToolsConfig};
 use starbase::SystemResult;
 use std::{env, path::PathBuf};
-use tracing::{info, trace};
+use tracing::{debug, info};
 
 pub async fn local(tool_type: ToolType, version: String) -> SystemResult {
     let tool = create_tool(&tool_type)?;
@@ -16,7 +16,7 @@ pub async fn local(tool_type: ToolType, version: String) -> SystemResult {
 
     config.save()?;
 
-    trace!("Wrote the local version to {}", color::path(&local_path));
+    debug!("Wrote the local version to {}", color::path(&local_path));
 
     info!("Set the local {} version to {}", tool.get_name(), version);
 

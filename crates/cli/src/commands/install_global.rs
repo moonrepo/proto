@@ -4,7 +4,7 @@ use proto_core::{color, ProtoError, Tool};
 use starbase::SystemResult;
 use std::path::PathBuf;
 use tokio::process::Command;
-use tracing::{debug, info, trace};
+use tracing::{debug, info};
 
 async fn get_bin_or_fallback(mut tool: Box<dyn Tool<'_>>) -> Result<PathBuf, ProtoError> {
     Ok(match tool.find_bin_path().await {
@@ -75,8 +75,8 @@ pub async fn install_global(tool_type: ToolType, dependencies: Vec<String>) -> S
 
         let stderr = String::from_utf8_lossy(&output.stderr);
 
-        trace!("[stderr] {}", stderr);
-        trace!("[stdout] {}", String::from_utf8_lossy(&output.stdout));
+        debug!("[stderr] {}", stderr);
+        debug!("[stdout] {}", String::from_utf8_lossy(&output.stdout));
 
         if !output.status.success() {
             return Err(ProtoError::Message(stderr.to_string()))?;
