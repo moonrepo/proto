@@ -13,7 +13,7 @@ fn is_older_than_days(now: u128, other: u128, days: u8) -> bool {
     (now - other) > ((days as u128) * 24 * 60 * 60 * 1000)
 }
 
-pub async fn clean(days: Option<u8>) -> SystemResult {
+pub async fn clean(days: Option<u8>, yes: bool) -> SystemResult {
     let days = days.unwrap_or(30);
     let now = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
@@ -99,18 +99,19 @@ pub async fn clean(days: Option<u8>) -> SystemResult {
             continue;
         }
 
-        if Confirm::new()
-            .with_prompt(format!(
-                "Found {} versions, remove {}?",
-                count,
-                versions_to_clean
-                    .iter()
-                    .map(color::id)
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ))
-            .interact()
-            .into_diagnostic()?
+        if yes
+            || Confirm::new()
+                .with_prompt(format!(
+                    "Found {} versions, remove {}?",
+                    count,
+                    versions_to_clean
+                        .iter()
+                        .map(color::id)
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ))
+                .interact()
+                .into_diagnostic()?
         {
             for version in versions_to_clean {
                 tool.set_version(&version);

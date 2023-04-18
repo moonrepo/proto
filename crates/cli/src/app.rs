@@ -60,6 +60,9 @@ pub enum Commands {
     Clean {
         #[arg(long, help = "Clean tools older than the specified number of days")]
         days: Option<u8>,
+
+        #[arg(long, help = "Avoid and force confirm prompts")]
+        yes: bool,
     },
 
     #[command(

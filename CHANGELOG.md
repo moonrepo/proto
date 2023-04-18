@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added a `--yes` option to `proto clean`, allowing prompts to be bypassed.
+- Added a `auto-clean` setting to `~/.proto/config.toml`, enabling automatic cleaning when `proto use` is ran.
+
 ## 0.6.1
 
 #### ⚙️ Internal

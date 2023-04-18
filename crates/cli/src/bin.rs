@@ -26,7 +26,7 @@ async fn run(command: StateRef<CliCommand>) {
             semver,
         } => commands::alias(tool, alias, semver).await?,
         Commands::Bin { tool, semver, shim } => commands::bin(tool, semver, shim).await?,
-        Commands::Clean { days } => commands::clean(days).await?,
+        Commands::Clean { days, yes } => commands::clean(days, yes).await?,
         Commands::Completions { shell } => commands::completions(shell).await?,
         Commands::Install {
             tool,

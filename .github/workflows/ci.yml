@@ -45,4 +45,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: moonrepo/setup-rust@v0
-      - run: cargo test --workspace
+        with:
+          bins: nextest
+      - run: cargo nextest run --workspace
