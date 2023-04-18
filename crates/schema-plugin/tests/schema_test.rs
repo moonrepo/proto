@@ -1,7 +1,7 @@
 use assert_fs::prelude::{FileWriteStr, PathChild};
 use proto_core::{
     get_home_dir, Detector, Downloadable, Executable, Installable, Proto, Resolvable, Shimable,
-    Tool, Verifiable,
+    Verifiable,
 };
 use proto_schema_plugin::{
     DetectSchema, ExecuteSchema, InstallSchema, PlatformMapper, ResolveSchema, Schema, SchemaPlugin,
@@ -380,6 +380,7 @@ mod schema_plugin {
 
             assert!(!manifest.versions.is_empty());
             assert!(manifest.versions.contains_key("1.0.0"));
+            assert!(manifest.aliases.contains_key("latest"));
         }
 
         #[tokio::test]
@@ -401,6 +402,51 @@ mod schema_plugin {
 
             assert!(!manifest.versions.is_empty());
             assert!(manifest.versions.contains_key("1.0.0"));
+            assert!(manifest.aliases.contains_key("latest"));
+        }
+
+        #[tokio::test]
+        async fn resolves_endpoint() {
+            let fixture = assert_fs::TempDir::new().unwrap();
+            let tool = create_plugin(
+                fixture.path(),
+                Schema {
+                    resolve: ResolveSchema {
+                        manifest_url: Some("https://nodejs.org/dist/index.json".into()),
+                        ..ResolveSchema::default()
+                    },
+                    ..Schema::default()
+                },
+            );
+
+            let manifest = tool.load_version_manifest().await.unwrap();
+
+            assert!(!manifest.versions.is_empty());
+            assert!(manifest.versions.contains_key("19.0.0"));
+            assert!(manifest.aliases.contains_key("latest"));
+        }
+
+        #[tokio::test]
+        async fn resolves_endpoint_with_custom_key() {
+            let fixture = assert_fs::TempDir::new().unwrap();
+            let tool = create_plugin(
+                fixture.path(),
+                Schema {
+                    resolve: ResolveSchema {
+                        manifest_url: Some("https://nodejs.org/dist/index.json".into()),
+                        manifest_version_key: "npm".into(),
+                        ..ResolveSchema::default()
+                    },
+                    ..Schema::default()
+                },
+            );
+
+            let manifest = tool.load_version_manifest().await.unwrap();
+
+            assert!(!manifest.versions.is_empty());
+            // npm hasn't hit v19 yet!
+            assert!(!manifest.versions.contains_key("19.0.0"));
+            assert!(manifest.aliases.contains_key("latest"));
         }
     }
 

@@ -1,7 +1,7 @@
 use crate::SchemaPlugin;
 use proto_core::{
     async_trait, create_version_manifest_from_tags, load_git_tags, load_versions_manifest,
-    remove_v_prefix, Describable, Manifest, ProtoError, Resolvable, Tool, VersionManifest,
+    remove_v_prefix, Describable, Manifest, ProtoError, Resolvable, Tool, Version, VersionManifest,
     VersionManifestEntry,
 };
 use starbase_utils::json::JsonValue;
@@ -36,28 +36,33 @@ impl Resolvable<'_> for SchemaPlugin {
         // From manifest JSON response
         } else if let Some(manifest_url) = &self.schema.resolve.manifest_url {
             let response: Vec<JsonValue> = load_versions_manifest(manifest_url).await?;
-
             let version_key = &self.schema.resolve.manifest_version_key;
+            let mut aliases = BTreeMap::new();
             let mut versions = BTreeMap::new();
+
+            let mut add_version = |v: &str| {
+                if let Ok(version) = Version::parse(&remove_v_prefix(v)) {
+                    let entry = VersionManifestEntry {
+                        alias: None,
+                        version: version.to_string(),
+                    };
+
+                    aliases.entry("latest".to_owned()).and_modify(|v| {
+                        *v = version.to_string();
+                    }).or_insert(version.to_string());
+
+                    versions.insert(version.to_string(), entry);
+                }
+            };
 
             for row in response {
                 match row {
                     JsonValue::String(v) => {
-                        let version = remove_v_prefix(&v);
-
-                        versions.insert(version.clone(), VersionManifestEntry {
-                            alias: None,
-                            version,
-                        });
+                        add_version(&v);
                     },
                     JsonValue::Object(o) => {
                         if let Some(JsonValue::String(v)) = o.get(version_key) {
-                            let version = remove_v_prefix(v);
-
-                            versions.insert(version.clone(), VersionManifestEntry {
-                                alias: None,
-                                version,
-                            });
+                            add_version(v);
                         }
                     },
                     _ => {},
@@ -65,8 +70,8 @@ impl Resolvable<'_> for SchemaPlugin {
             }
 
             VersionManifest {
+                aliases,
                 versions,
-                ..VersionManifest::default()
             }
 
             // Invalid schema
