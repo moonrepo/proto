@@ -7,12 +7,9 @@ pub mod tools;
 
 use app::{App as CLI, Commands};
 use clap::Parser;
-use starbase::{
-    system,
-    tracing::{metadata::LevelFilter, TracingOptions},
-    App, MainResult, State,
-};
+use starbase::{system, tracing::TracingOptions, App, MainResult, State};
 use starbase_utils::string_vec;
+use tracing::metadata::LevelFilter;
 
 #[derive(State)]
 pub struct CliCommand(pub Commands);
@@ -69,8 +66,9 @@ async fn main() -> MainResult {
         } else {
             LevelFilter::INFO
         },
-        env_name: "PROTO_LOG".into(),
         filter_modules: string_vec!["proto", "starbase"],
+        log_env: "PROTO_LOG".into(),
+        test_env: "PROTO_TEST".into(),
         ..TracingOptions::default()
     });
 
