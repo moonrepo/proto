@@ -129,9 +129,9 @@ pub trait Resolvable<'tool>: Send + Sync {
     /// Given an initial version, resolve it to a fully qualifed and semantic version
     /// according to the tool's ecosystem.
     async fn resolve_version(&mut self, initial_version: &str) -> Result<String, ProtoError> {
-        // if let Some(version) = &self.version {
-        //     return Ok(version.to_owned());
-        // }
+        if self.get_resolved_version() != "latest" {
+            return Ok(self.get_resolved_version().to_owned());
+        }
 
         let initial_version = remove_v_prefix(initial_version).to_lowercase();
 

@@ -317,6 +317,48 @@ mod schema_plugin {
         }
     }
 
+    mod installer {
+        use super::*;
+
+        #[tokio::test]
+        async fn can_customize_prefix_based_on_os() {
+            let fixture = assert_fs::TempDir::new().unwrap();
+            let tool = create_plugin(
+                fixture.path(),
+                Schema {
+                    platform: FxHashMap::from_iter([
+                        (
+                            "linux".into(),
+                            PlatformMapper {
+                                archive_prefix: Some("linux-{arch}".into()),
+                                ..PlatformMapper::default()
+                            },
+                        ),
+                        (
+                            "macos".into(),
+                            PlatformMapper {
+                                archive_prefix: Some("macos-{arch}".into()),
+                                ..PlatformMapper::default()
+                            },
+                        ),
+                        (
+                            "windows".into(),
+                            PlatformMapper {
+                                archive_prefix: Some("windows-{arch}".into()),
+                                ..PlatformMapper::default()
+                            },
+                        ),
+                    ]),
+                    ..Schema::default()
+                },
+            );
+
+            let prefix = format!("{}-{}", consts::OS, tool.schema.get_arch());
+
+            assert_eq!(tool.get_archive_prefix().unwrap(), Some(prefix));
+        }
+    }
+
     mod shimmer {
         use super::*;
 
