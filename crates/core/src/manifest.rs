@@ -98,7 +98,7 @@ impl Manifest {
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self, ProtoError> {
         let path = path.as_ref();
 
-        debug!(path = %path.display(), "Loading manifest");
+        debug!(file = %path.display(), "Loading manifest");
 
         let mut manifest: Manifest = if path.exists() {
             use fs4::FileExt;
@@ -132,7 +132,7 @@ impl Manifest {
         use fs4::FileExt;
         use std::io::prelude::*;
 
-        debug!(path = %self.path.display(), "Saving manifest");
+        debug!(file = %self.path.display(), "Saving manifest");
 
         if let Some(parent) = self.path.parent() {
             fs::create_dir_all(parent)?;

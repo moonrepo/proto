@@ -189,7 +189,7 @@ impl ShimBuilder {
 
         // Only log the first time it happens
         if !shim_exists {
-            debug!(path = %shim_path.display(), "Created shim");
+            debug!(file = %shim_path.display(), "Created shim");
         }
 
         Ok(shim_path)
