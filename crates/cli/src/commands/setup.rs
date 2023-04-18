@@ -57,7 +57,7 @@ fn do_setup(shell: Shell, _bin_dir: PathBuf, print_profile: bool) -> Result<(), 
 #[cfg(windows)]
 fn do_setup(shell: Shell, bin_dir: PathBuf, print_profile: bool) -> Result<(), ProtoError> {
     use std::process::Command;
-    use tracing::{trace, warn};
+    use tracing::{debug, warn};
     use winreg::enums::HKEY_CURRENT_USER;
     use winreg::RegKey;
 
@@ -97,8 +97,8 @@ fn do_setup(shell: Shell, bin_dir: PathBuf, print_profile: bool) -> Result<(), P
 
     if !output.status.success() {
         warn!("Failed to update PATH");
-        trace!("[stderr]: {}", String::from_utf8_lossy(&output.stderr));
-        trace!("[stdout]: {}", String::from_utf8_lossy(&output.stdout));
+        debug!("[stderr]: {}", String::from_utf8_lossy(&output.stderr));
+        debug!("[stdout]: {}", String::from_utf8_lossy(&output.stdout));
     } else if print_profile {
         println!("{}", shell);
     }

@@ -8,7 +8,6 @@ use crate::manifest::*;
 use crate::resolver::*;
 use crate::shimmer::*;
 use crate::verifier::*;
-use starbase_styles::color;
 use std::fs;
 use std::path::{Path, PathBuf};
 use tracing::debug;
@@ -82,7 +81,10 @@ pub trait Tool<'tool>:
 
         let install_dir = self.get_install_dir()?;
 
-        debug!("Checking for tool in {}", color::path(&install_dir));
+        debug!(
+            install_dir = %install_dir.display(),
+            "Checking if tool is installed",
+        );
 
         if install_dir.exists() {
             self.find_bin_path().await?;
@@ -96,8 +98,8 @@ pub trait Tool<'tool>:
 
             if bin_path.exists() {
                 debug!(
-                    "Tool has already been installed at {}",
-                    color::path(&install_dir)
+                    install_dir = %install_dir.display(),
+                    "Tool has already been installed",
                 );
 
                 self.create_shims().await?;

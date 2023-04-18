@@ -1,7 +1,6 @@
 use crate::errors::ProtoError;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
-use starbase_styles::color;
 use starbase_utils::{
     fs::{self, FsError},
     json::{self, JsonError},
@@ -11,7 +10,7 @@ use std::{
     path::{Path, PathBuf},
     time::SystemTime,
 };
-use tracing::{info, trace};
+use tracing::{debug, info};
 
 fn now() -> u128 {
     SystemTime::now()
@@ -99,7 +98,7 @@ impl Manifest {
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self, ProtoError> {
         let path = path.as_ref();
 
-        trace!("Loading manifest {}", color::path(path));
+        debug!(file = %path.display(), "Loading manifest");
 
         let mut manifest: Manifest = if path.exists() {
             use fs4::FileExt;
@@ -133,7 +132,7 @@ impl Manifest {
         use fs4::FileExt;
         use std::io::prelude::*;
 
-        trace!("Saving manifest {}", color::path(&self.path));
+        debug!(file = %self.path.display(), "Saving manifest");
 
         if let Some(parent) = self.path.parent() {
             fs::create_dir_all(parent)?;

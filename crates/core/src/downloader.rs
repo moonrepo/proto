@@ -2,11 +2,10 @@ use crate::describer::Describable;
 use crate::errors::ProtoError;
 use crate::helpers::is_offline;
 use crate::resolver::Resolvable;
-use starbase_styles::color;
 use starbase_utils::fs::{self, FsError};
 use std::io;
 use std::path::{Path, PathBuf};
-use tracing::{debug, trace};
+use tracing::debug;
 
 #[async_trait::async_trait]
 pub trait Downloadable<'tool>: Send + Sync + Describable<'tool> + Resolvable<'tool> {
@@ -34,7 +33,7 @@ pub trait Downloadable<'tool>: Send + Sync + Describable<'tool> + Resolvable<'to
             None => self.get_download_url()?,
         };
 
-        debug!("Attempting to download tool from {}", color::url(&from_url));
+        debug!(url = from_url, "Attempting to download tool from URL");
 
         download_from_url(&from_url, &to_file).await?;
 
@@ -65,10 +64,10 @@ where
         error,
     };
 
-    trace!(
-        "Downloading {} from {}",
-        color::path(dest_file),
-        color::url(url)
+    debug!(
+        dest_file = %dest_file.display(),
+        url,
+        "Downloading file from URL",
     );
 
     // Ensure parent directories exist

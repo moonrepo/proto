@@ -2,7 +2,6 @@ use crate::errors::ProtoError;
 use crate::helpers::{get_bin_dir, get_root};
 use serde::Serialize;
 use serde_json::Value;
-use starbase_styles::color;
 use starbase_utils::fs;
 use std::fmt::Write;
 use std::path::{Path, PathBuf};
@@ -190,7 +189,7 @@ impl ShimBuilder {
 
         // Only log the first time it happens
         if !shim_exists {
-            debug!("Created shim at {}", color::path(&shim_path));
+            debug!(file = %shim_path.display(), "Created shim");
         }
 
         Ok(shim_path)

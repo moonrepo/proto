@@ -1,11 +1,10 @@
 use crate::downloader::{download_from_url, Downloadable};
 use crate::errors::ProtoError;
 use sha2::{Digest, Sha256};
-use starbase_styles::color;
 use starbase_utils::fs::{self, FsError};
 use std::io;
 use std::path::{Path, PathBuf};
-use tracing::{debug, trace};
+use tracing::debug;
 
 #[async_trait::async_trait]
 pub trait Verifiable<'tool>: Send + Sync + Downloadable<'tool> {
@@ -39,10 +38,7 @@ pub trait Verifiable<'tool>: Send + Sync + Downloadable<'tool> {
             return Ok(true);
         };
 
-        debug!(
-            "Attempting to download checksum from {}",
-            color::url(&from_url),
-        );
+        debug!(url = from_url, "Attempting to download checksum from URL",);
 
         download_from_url(&from_url, &to_file).await?;
 
@@ -64,7 +60,7 @@ pub trait Verifiable<'tool>: Send + Sync + Downloadable<'tool> {
 pub fn get_sha256_hash_of_file<P: AsRef<Path>>(path: P) -> Result<String, ProtoError> {
     let path = path.as_ref();
 
-    trace!("Calculating SHA256 checksum for file {}", color::path(path));
+    debug!(file = %path.display(), "Calculating SHA256 checksum");
 
     let mut file = fs::open_file(path)?;
     let mut sha = Sha256::new();
@@ -76,7 +72,7 @@ pub fn get_sha256_hash_of_file<P: AsRef<Path>>(path: P) -> Result<String, ProtoE
 
     let hash = format!("{:x}", sha.finalize());
 
-    trace!("Calculated hash {}", color::symbol(&hash));
+    debug!(hash, "Calculated hash");
 
     Ok(hash)
 }

@@ -6,10 +6,9 @@ use crate::manifest::{Manifest, MANIFEST_NAME};
 use crate::tool::Tool;
 use crate::tools_config::{ToolsConfig, TOOLS_CONFIG_NAME};
 use lenient_semver::Version;
-use starbase_styles::color;
 use starbase_utils::fs;
 use std::{env, path::Path};
-use tracing::{debug, trace};
+use tracing::debug;
 
 #[async_trait::async_trait]
 pub trait Detector<'tool>: Send + Sync {
@@ -36,27 +35,28 @@ pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
     if version.is_none() {
         if let Ok(session_version) = env::var(&env_var) {
             debug!(
-                "Detected version {} from environment variable {}",
-                session_version, env_var
+                env_var,
+                version = session_version,
+                "Detected version from environment variable",
             );
 
             version = Some(session_version);
         }
     } else {
         debug!(
-            "Using explicit version {} passed on the command line",
-            version.as_ref().unwrap(),
+            version = version.as_ref().unwrap(),
+            "Using explicit version passed on the command line",
         );
     }
 
     // Traverse upwards and attempt to detect a local version
     if let Ok(working_dir) = env::current_dir() {
-        trace!("Attempting to find local version");
+        debug!("Attempting to find local version");
 
         let mut current_dir: Option<&Path> = Some(&working_dir);
 
         while let Some(dir) = &current_dir {
-            trace!("Checking in directory {}", color::path(dir));
+            debug!(dir = %dir.display(), "Checking in directory");
 
             // We already found a version, so exit
             if version.is_some() {
@@ -64,15 +64,15 @@ pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
             }
 
             // Detect from our config file
-            trace!("Checking proto configuration file ({})", TOOLS_CONFIG_NAME);
+            debug!("Checking proto configuration file ({})", TOOLS_CONFIG_NAME);
 
             let config = ToolsConfig::load_from(dir)?;
 
             if let Some(local_version) = config.tools.get(tool.get_bin_name()) {
                 debug!(
-                    "Detected version {} from configuration file {}",
-                    local_version,
-                    color::path(&config.path)
+                    version = local_version,
+                    file = %config.path.display(),
+                    "Detected version from configuration file",
                 );
 
                 version = Some(local_version.to_owned());
@@ -80,10 +80,13 @@ pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
             }
 
             // Detect using the tool
-            trace!("Detecting from the tool's ecosystem");
+            debug!("Detecting from the tool's ecosystem");
 
             if let Some(eco_version) = tool.detect_version_from(dir).await? {
-                debug!("Detected version {} from tool's ecosystem", eco_version);
+                debug!(
+                    version = eco_version,
+                    "Detected version from tool's ecosystem"
+                );
 
                 version = Some(eco_version);
                 break;
@@ -95,16 +98,16 @@ pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
 
     // If still no version, load the global version
     if version.is_none() {
-        trace!(
+        debug!(
             "Attempting to find global version in manifest ({})",
             MANIFEST_NAME
         );
 
         if let Some(global_version) = &manifest.default_version {
             debug!(
-                "Detected global version {} from {}",
-                global_version,
-                color::path(&manifest.path)
+                version = global_version,
+                file = %manifest.path.display(),
+                "Detected global version from manifest",
             );
 
             version = Some(global_version.to_owned());
