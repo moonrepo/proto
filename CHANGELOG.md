@@ -8,6 +8,10 @@
 - Added a `auto-clean` setting to `~/.proto/config.toml`, enabling automatic cleaning when `proto use` is ran.
 - Added a `[plugins]` section to `~/.proto/config.toml` and `.prototools`.
 
+#### ⚙️ Internal
+
+- Updated tool and plugin names to be kebab-case.
+
 ## 0.6.1
 
 #### ⚙️ Internal

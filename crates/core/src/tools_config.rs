@@ -36,6 +36,7 @@ impl ToolsConfig {
         Self::load(dir.as_ref().join(TOOLS_CONFIG_NAME))
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self, ProtoError> {
         let path = path.as_ref();
 
