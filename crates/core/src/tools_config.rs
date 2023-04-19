@@ -82,7 +82,7 @@ impl ToolsConfig {
         } else {
             return Err(ProtoError::InvalidConfig(
                 path.to_path_buf(),
-                "Expected a mapping of tools to versions.".into(),
+                "Expected a mapping of tools or plugins.".into(),
             ));
         }
 
