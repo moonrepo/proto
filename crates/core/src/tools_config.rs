@@ -1,4 +1,5 @@
 use crate::{errors::ProtoError, plugin::PluginLocator};
+use convert_case::{Case, Casing};
 use rustc_hash::FxHashMap;
 use starbase_utils::toml::{self, TomlTable, TomlValue};
 use std::path::{Path, PathBuf};
@@ -58,7 +59,10 @@ impl ToolsConfig {
                     TomlValue::Table(plugins_table) => {
                         for (plugin, locator) in plugins_table {
                             if let TomlValue::String(locator) = locator {
-                                plugins.insert(plugin, PluginLocator::from_str(&locator)?);
+                                plugins.insert(
+                                    plugin.to_case(Case::Kebab),
+                                    PluginLocator::from_str(&locator)?,
+                                );
                             } else {
                                 return Err(ProtoError::InvalidConfig(
                                     path.to_path_buf(),
@@ -99,6 +103,16 @@ impl ToolsConfig {
 
         for (tool, version) in &self.tools {
             map.insert(tool.to_owned(), TomlValue::String(version.to_owned()));
+        }
+
+        if !self.plugins.is_empty() {
+            let mut plugins = TomlTable::with_capacity(self.plugins.len());
+
+            for (plugin, locator) in &self.plugins {
+                plugins.insert(plugin.to_owned(), TomlValue::String(locator.to_string()));
+            }
+
+            map.insert("plugins".to_owned(), TomlValue::Table(plugins));
         }
 
         toml::write_file(&self.path, &TomlValue::Table(map), true)?;

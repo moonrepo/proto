@@ -15,7 +15,7 @@ fn errors_for_non_version_string() {
 }
 
 #[test]
-fn supports_plugins_table() {
+fn parses_plugins_table() {
     let fixture = assert_fs::TempDir::new().unwrap();
     fixture
         .child(".prototools")
@@ -25,6 +25,7 @@ node = "12.0.0"
 
 [plugins]
 foo = "schema:./test.toml"
+camelCase = "schema:./camel.toml"
 "#,
         )
         .unwrap();
@@ -38,6 +39,33 @@ foo = "schema:./test.toml"
 
     assert_eq!(
         config.plugins,
-        FxHashMap::from_iter([("foo".into(), PluginLocator::Schema("./test.toml".into()))])
+        FxHashMap::from_iter([
+            ("foo".into(), PluginLocator::Schema("./test.toml".into())),
+            (
+                "camel-case".into(),
+                PluginLocator::Schema("./camel.toml".into())
+            )
+        ])
+    );
+}
+
+#[test]
+fn formats_plugins_table() {
+    let fixture = assert_fs::TempDir::new().unwrap();
+
+    let mut config = ToolsConfig::load_from(fixture.path()).unwrap();
+    config.tools.insert("node".into(), "12.0.0".into());
+    config
+        .plugins
+        .insert("foo".into(), PluginLocator::Schema("./test.toml".into()));
+    config.save().unwrap();
+
+    assert_eq!(
+        std::fs::read_to_string(config.path).unwrap(),
+        r#"node = "12.0.0"
+
+[plugins]
+foo = "schema:./test.toml"
+"#,
     );
 }

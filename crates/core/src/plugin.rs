@@ -1,6 +1,6 @@
 use crate::errors::ProtoError;
 use serde::{Deserialize, Deserializer, Serialize};
-use std::str::FromStr;
+use std::{fmt::Display, str::FromStr};
 
 #[derive(Debug, PartialEq)]
 pub enum PluginLocator {
@@ -46,6 +46,16 @@ impl FromStr for PluginLocator {
     }
 }
 
+impl Display for PluginLocator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PluginLocator::Schema(s) => write!(f, "schema:{}", s),
+            // PluginLocator::Source(s) => write!(f, "source:{}", s),
+            // PluginLocator::GitHub(s) => write!(f, "github:{}", s),
+        }
+    }
+}
+
 fn is_url_or_path(value: &str) -> bool {
     value.starts_with("https://")
         || value.starts_with("./")
@@ -58,11 +68,7 @@ impl Serialize for PluginLocator {
     where
         S: serde::Serializer,
     {
-        match self {
-            PluginLocator::Schema(s) => serializer.serialize_str(&format!("schema:{}", s)),
-            // PluginLocator::Source(s) => serializer.serialize_str(&format!("source:{}", s)),
-            // PluginLocator::GitHub(s) => serializer.serialize_str(&format!("github:{}", s)),
-        }
+        serializer.serialize_str(&format!("{}", self))
     }
 }
 
