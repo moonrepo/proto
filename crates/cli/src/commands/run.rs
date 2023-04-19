@@ -1,6 +1,7 @@
 use crate::commands::install::install;
+use crate::states::UserConfig;
 use crate::tools::{create_tool, ToolType};
-use proto_core::{color, detect_version, Manifest, ProtoError, UserConfig};
+use proto_core::{color, detect_version, Manifest, ProtoError};
 use starbase::SystemResult;
 use std::process::exit;
 use tokio::process::Command;
@@ -10,15 +11,14 @@ pub async fn run(
     tool_type: ToolType,
     forced_version: Option<String>,
     args: Vec<String>,
+    user_config: &UserConfig,
 ) -> SystemResult {
     let mut tool = create_tool(&tool_type)?;
     let mut manifest = Manifest::load(tool.get_manifest_path())?;
     let version = detect_version(&tool, &manifest, forced_version).await?;
 
     if !tool.is_setup(&version).await? {
-        let config = UserConfig::load()?;
-
-        if !config.auto_install {
+        if !user_config.auto_install {
             return Err(ProtoError::MissingToolForRun(
                 tool.get_name(),
                 version.to_owned(),

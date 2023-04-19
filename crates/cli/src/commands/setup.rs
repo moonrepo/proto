@@ -57,7 +57,7 @@ fn do_setup(shell: Shell, _bin_dir: PathBuf, print_profile: bool) -> Result<(), 
 #[cfg(windows)]
 fn do_setup(shell: Shell, bin_dir: PathBuf, print_profile: bool) -> Result<(), ProtoError> {
     use std::process::Command;
-    use tracing::{debug, warn};
+    use tracing::warn;
     use winreg::enums::HKEY_CURRENT_USER;
     use winreg::RegKey;
 

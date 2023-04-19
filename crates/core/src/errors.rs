@@ -33,6 +33,18 @@ pub enum ProtoError {
     #[error("Invalid configuration for {}: {1}", .0.style(Style::Path))]
     InvalidConfig(PathBuf, String),
 
+    #[diagnostic(code(proto::plugin::invalid_protocol))]
+    #[error("Invalid plugin protocol {}", .0.style(Style::Label))]
+    InvalidPluginProtocol(String),
+
+    #[diagnostic(code(proto::plugin::invalid_locator))]
+    #[error("Invalid plugin locator, must be a relative file path or an HTTPS URL.")]
+    InvalidPluginLocator,
+
+    #[diagnostic(code(proto::plugin::invalid_ext))]
+    #[error("Invalid plugin locator, must have a {0} extension.")]
+    InvalidPluginLocatorExt(String),
+
     #[diagnostic(code(proto::misc))]
     #[error("{0}")]
     Message(String),

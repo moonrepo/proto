@@ -1,16 +1,15 @@
 use crate::helpers::disable_progress_bars;
+use crate::states::ToolsConfig;
 use crate::tools::ToolType;
 use crate::{commands::clean::clean, commands::install::install, helpers::create_progress_bar};
 use proto::UserConfig;
-use proto_core::{ProtoError, ToolsConfig, TOOLS_CONFIG_NAME};
+use proto_core::{ProtoError, TOOLS_CONFIG_NAME};
 use starbase::SystemResult;
-use std::{env, str::FromStr};
+use std::str::FromStr;
 use tracing::info;
 
-pub async fn install_all() -> SystemResult {
-    let current_dir = env::current_dir().expect("Invalid working directory!");
-
-    let Some(config) = ToolsConfig::load_upwards(&current_dir)? else {
+pub async fn install_all(tools_config: &ToolsConfig) -> SystemResult {
+    let Some(config) = &tools_config.0 else {
         return Err(ProtoError::MissingConfig(TOOLS_CONFIG_NAME.to_owned()))?;
     };
 
@@ -24,10 +23,10 @@ pub async fn install_all() -> SystemResult {
     // Don't show inner progress bars
     disable_progress_bars();
 
-    for (tool, version) in config.tools {
+    for (tool, version) in &config.tools {
         futures.push(install(
-            ToolType::from_str(&tool)?,
-            Some(version),
+            ToolType::from_str(tool)?,
+            Some(version.to_owned()),
             false,
             vec![],
         ));

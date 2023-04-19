@@ -3,19 +3,36 @@ mod commands;
 mod helpers;
 mod hooks;
 mod shell;
+mod states;
 pub mod tools;
 
 use app::{App as CLI, Commands};
 use clap::Parser;
+use proto_core::{ToolsConfig as InnerToolsConfig, UserConfig as InnerUserConfig};
 use starbase::{system, tracing::TracingOptions, App, MainResult, State};
 use starbase_utils::string_vec;
+use states::{ToolsConfig, UserConfig};
+use std::env;
 use tracing::metadata::LevelFilter;
 
 #[derive(State)]
 pub struct CliCommand(pub Commands);
 
 #[system]
-async fn run(command: StateRef<CliCommand>) {
+pub fn load_configs(state: StatesMut) {
+    state.set(UserConfig(InnerUserConfig::load()?));
+
+    state.set(ToolsConfig(InnerToolsConfig::load_upwards(
+        env::current_dir().expect("Missing current directory."),
+    )?));
+}
+
+#[system]
+async fn run(
+    command: StateRef<CliCommand>,
+    tools_config: StateRef<ToolsConfig>,
+    user_config: StateRef<UserConfig>,
+) {
     match command.0.clone() {
         Commands::Alias {
             tool,
@@ -43,20 +60,20 @@ async fn run(command: StateRef<CliCommand>) {
             tool,
             semver,
             passthrough,
-        } => commands::run(tool, semver, passthrough).await?,
+        } => commands::run(tool, semver, passthrough, user_config).await?,
         Commands::Setup { shell, profile } => commands::setup(shell, profile).await?,
         Commands::Unalias { tool, alias } => commands::unalias(tool, alias).await?,
         Commands::Uninstall { tool, semver } => commands::uninstall(tool, semver).await?,
         Commands::Upgrade => commands::upgrade().await?,
-        Commands::Use => commands::install_all().await?,
+        Commands::Use => commands::install_all(tools_config).await?,
     };
 }
 
 #[tokio::main]
 async fn main() -> MainResult {
-    let cli = CLI::parse();
-
     App::setup_diagnostics();
+
+    let cli = CLI::parse();
 
     App::setup_tracing_with_options(TracingOptions {
         default_level: if matches!(cli.command, Commands::Bin { .. } | Commands::Run { .. }) {
@@ -74,6 +91,7 @@ async fn main() -> MainResult {
 
     let mut app = App::new();
     app.set_state(CliCommand(cli.command));
+    app.startup(load_configs);
     app.execute(run);
     app.run().await?;
 

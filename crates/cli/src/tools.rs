@@ -8,7 +8,7 @@ use proto_rust as rust;
 use std::str::FromStr;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq, ValueEnum)]
-#[value(rename_all = "lowercase")]
+#[value(rename_all = "kebab-case")]
 pub enum ToolType {
     // Bun
     Bun,
