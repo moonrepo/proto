@@ -33,6 +33,10 @@ pub enum ProtoError {
     #[error("Invalid configuration for {}: {1}", .0.style(Style::Path))]
     InvalidConfig(PathBuf, String),
 
+    #[diagnostic(code(proto::plugin::invalid_locator))]
+    #[error("Invalid plugin protocol {}", .0.style(Style::Label))]
+    InvalidPluginProtocol(String),
+
     #[diagnostic(code(proto::misc))]
     #[error("{0}")]
     Message(String),

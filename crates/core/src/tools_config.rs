@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 
 pub const TOOLS_CONFIG_NAME: &str = ".prototools";
 
+
 #[derive(Debug, Default)]
 pub struct ToolsConfig {
     pub tools: FxHashMap<String, String>,
