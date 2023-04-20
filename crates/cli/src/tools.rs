@@ -57,6 +57,32 @@ impl FromStr for ToolType {
     }
 }
 
+pub async fn create_plugin_from_locator(
+    plugin: &str,
+    proto: Proto,
+    locator: PluginLocator,
+    source_dir: PathBuf,
+) -> Result<Box<dyn Tool<'static>>, ProtoError> {
+    match locator {
+        PluginLocator::Schema(location) => {
+            let schema: schema_plugin::Schema = match location {
+                PluginLocation::File(file) => {
+                    let file_path = source_dir.join(file);
+
+                    if !file_path.exists() {
+                        return Err(ProtoError::PluginFileMissing(file_path));
+                    }
+
+                    toml::read_file(file_path)?
+                }
+                PluginLocation::Url(url) => toml::read_file(download_plugin(plugin, url).await?)?,
+            };
+
+            Ok(Box::new(schema_plugin::SchemaPlugin::new(proto, schema)))
+        }
+    }
+}
+
 pub async fn create_plugin_tool(
     plugin: &str,
     proto: Proto,
@@ -95,16 +121,7 @@ pub async fn create_plugin_tool(
         return Err(ProtoError::MissingPlugin(plugin.to_owned()));
     };
 
-    match locator {
-        PluginLocator::Schema(location) => {
-            let schema: schema_plugin::Schema = match location {
-                PluginLocation::File(file) => toml::read_file(parent_dir.join(file))?,
-                PluginLocation::Url(url) => toml::read_file(download_plugin(plugin, url).await?)?,
-            };
-
-            Ok(Box::new(schema_plugin::SchemaPlugin::new(proto, schema)))
-        }
-    }
+    create_plugin_from_locator(plugin, proto, locator, parent_dir).await
 }
 
 pub async fn create_tool(tool: &ToolType) -> Result<Box<dyn Tool<'static>>, ProtoError> {

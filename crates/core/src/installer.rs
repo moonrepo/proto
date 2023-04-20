@@ -44,7 +44,11 @@ pub trait Installable<'tool>: Send + Sync + Describable<'tool> {
         if unpack(download_path, install_dir, prefix)? {
             // Unpacked archive
         } else {
-            let install_path = install_dir.join(self.get_bin_name());
+            let install_path = install_dir.join(if cfg!(windows) {
+                format!("{}.exe", self.get_bin_name())
+            } else {
+                self.get_bin_name().to_string()
+            });
 
             // Not an archive, assume a binary and copy
             fs::rename(download_path, &install_path)?;

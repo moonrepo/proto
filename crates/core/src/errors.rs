@@ -77,6 +77,10 @@ pub enum ProtoError {
     )]
     MissingToolForRun(String, String, String),
 
+    #[diagnostic(code(proto::plugin::missing_file))]
+    #[error("Plugin file {} does not exist.", .0.style(Style::Path))]
+    PluginFileMissing(PathBuf),
+
     #[diagnostic(code(proto::version::invalid))]
     #[error("Invalid version {version}")]
     Semver {
