@@ -10,6 +10,7 @@
 
 #### ⚙️ Internal
 
+- Updated Rust to v1.69.
 - Updated tool and plugin names to be kebab-case.
 
 ## 0.6.1
