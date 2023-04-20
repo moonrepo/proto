@@ -78,7 +78,11 @@ pub async fn create_plugin_from_locator(
                 PluginLocation::Url(url) => toml::read_file(download_plugin(plugin, url).await?)?,
             };
 
-            Ok(Box::new(schema_plugin::SchemaPlugin::new(proto, schema)))
+            Ok(Box::new(schema_plugin::SchemaPlugin::new(
+                proto,
+                plugin.to_owned(),
+                schema,
+            )))
         }
     }
 }

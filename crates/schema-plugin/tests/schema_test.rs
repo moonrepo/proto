@@ -16,7 +16,7 @@ fn create_plugin(dir: &Path, mut schema: Schema) -> SchemaPlugin {
     schema.name = "moon".into();
     schema.bin = "moon".into();
 
-    let mut tool = SchemaPlugin::new(Proto::from(dir), schema);
+    let mut tool = SchemaPlugin::new(Proto::from(dir), "moon".into(), schema);
     tool.version = Some("1.0.0".into());
     tool
 }
