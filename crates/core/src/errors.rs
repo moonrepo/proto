@@ -139,8 +139,8 @@ pub enum ProtoError {
         code(proto::version::undetected),
         help = "Has the tool been installed?"
     )]
-    #[error("Unable to detect an applicable version to run with. Try pinning a local or global version, or passing the version as an argument.")]
-    VersionDetectFailed,
+    #[error("Failed to detect an applicable version to run {} with. Try pinning a local or global version, or passing the version as an argument.", .0.style(Style::Shell))]
+    VersionDetectFailed(String),
 
     #[diagnostic(code(proto::env::path_failed))]
     #[error("Failed to write to PATH.")]

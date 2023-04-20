@@ -43,10 +43,8 @@ impl SchemaPlugin {
         let mut platform = self.schema.platform.get(consts::OS);
 
         // Fallback to linux for other OSes
-        if platform.is_none() {
-            if consts::OS.ends_with("bsd") {
-                platform = self.schema.platform.get("linux");
-            }
+        if platform.is_none() && consts::OS.ends_with("bsd") {
+            platform = self.schema.platform.get("linux");
         }
 
         platform

@@ -73,7 +73,7 @@ impl Default for ShimSchema {
 
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub enum ToolType {
+pub enum SchemaToolType {
     #[default]
     Language,
     DependencyManager,
@@ -86,7 +86,7 @@ pub struct Schema {
     pub bin: String,
     pub name: String,
     #[serde(rename = "type")]
-    pub type_of: ToolType,
+    pub type_of: SchemaToolType,
     pub platform: FxHashMap<String, PlatformMapper>,
 
     pub detect: DetectSchema,

@@ -117,7 +117,9 @@ pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
     // We didn't find anything!
     match version {
         Some(ver) => Ok(ver),
-        None => Err(ProtoError::VersionDetectFailed),
+        None => Err(ProtoError::VersionDetectFailed(
+            tool.get_bin_name().to_owned(),
+        )),
     }
 }
 
