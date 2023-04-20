@@ -6,7 +6,7 @@ use tracing::debug;
 
 // TODO: only show LTS, dont show pre-releases?
 pub async fn list_remote(tool_type: ToolType) -> SystemResult {
-    let tool = create_tool(&tool_type)?;
+    let tool = create_tool(&tool_type).await?;
 
     debug!("Loading manifest");
 

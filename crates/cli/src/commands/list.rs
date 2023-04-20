@@ -5,7 +5,7 @@ use starbase::SystemResult;
 use tracing::debug;
 
 pub async fn list(tool_type: ToolType) -> SystemResult {
-    let tool = create_tool(&tool_type)?;
+    let tool = create_tool(&tool_type).await?;
     let manifest = Manifest::load(tool.get_manifest_path())?;
 
     debug!("Using versions from {}", color::path(&manifest.path));

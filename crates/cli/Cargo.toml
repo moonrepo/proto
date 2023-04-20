@@ -34,6 +34,7 @@ proto_rust = { version = "0.3.1", path = "../rust" }
 async-recursion = "1.0.4"
 clap = { workspace = true, features = ["derive"] }
 clap_complete = { workspace = true }
+convert_case = { workspace = true }
 dialoguer = "0.10.4"
 dirs = "5.0.0"
 futures = "0.3.28"
@@ -44,6 +45,7 @@ rustc-hash = { workspace = true }
 semver ={ workspace = true }
 starbase = "0.1.7"
 starbase_utils = { workspace = true }
+strum = { version = "0.24.1", features = ["derive"] }
 tokio = { workspace = true }
 tracing = { workspace = true }
 

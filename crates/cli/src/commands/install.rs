@@ -14,7 +14,7 @@ pub async fn install(
     passthrough: Vec<String>,
 ) -> SystemResult {
     let version = version.unwrap_or_else(|| "latest".into());
-    let mut tool = create_tool(&tool_type)?;
+    let mut tool = create_tool(&tool_type).await?;
 
     if tool.is_setup(&version).await? {
         info!(

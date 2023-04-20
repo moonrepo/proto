@@ -1,4 +1,4 @@
-use clap::ValueEnum;
+use convert_case::{Case, Casing};
 use proto_bun as bun;
 use proto_core::*;
 use proto_deno as deno;
@@ -6,9 +6,9 @@ use proto_go as go;
 use proto_node as node;
 use proto_rust as rust;
 use std::str::FromStr;
+use strum::EnumIter;
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq, ValueEnum)]
-#[value(rename_all = "kebab-case")]
+#[derive(Clone, Debug, Eq, EnumIter, Hash, PartialEq)]
 pub enum ToolType {
     // Bun
     Bun,
@@ -23,6 +23,8 @@ pub enum ToolType {
     Yarn,
     // Rust
     Rust,
+    // Plugins
+    Plugin(String),
 }
 
 impl FromStr for ToolType {
@@ -43,12 +45,13 @@ impl FromStr for ToolType {
             "yarn" | "yarnpkg" => Ok(Self::Yarn),
             // Rust
             "rust" => Ok(Self::Rust),
-            _ => Err(ProtoError::UnsupportedTool(value.to_owned())),
+            // Plugins
+            name => Ok(Self::Plugin(name.to_case(Case::Kebab))),
         }
     }
 }
 
-pub fn create_tool(tool: &ToolType) -> Result<Box<dyn Tool<'static>>, ProtoError> {
+pub async fn create_tool(tool: &ToolType) -> Result<Box<dyn Tool<'static>>, ProtoError> {
     let proto = Proto::new()?;
 
     Ok(match tool {
@@ -74,5 +77,7 @@ pub fn create_tool(tool: &ToolType) -> Result<Box<dyn Tool<'static>>, ProtoError
         )),
         // Rust
         ToolType::Rust => Box::new(rust::RustLanguage::new(proto)),
+        // Plugins
+        ToolType::Plugin(_) => Box::new(rust::RustLanguage::new(proto)),
     })
 }

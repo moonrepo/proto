@@ -13,7 +13,7 @@ pub async fn run(
     args: Vec<String>,
     user_config: &UserConfig,
 ) -> SystemResult {
-    let mut tool = create_tool(&tool_type)?;
+    let mut tool = create_tool(&tool_type).await?;
     let mut manifest = Manifest::load(tool.get_manifest_path())?;
     let version = detect_version(&tool, &manifest, forced_version).await?;
 

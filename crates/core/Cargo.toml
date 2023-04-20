@@ -10,7 +10,7 @@ repository = "https://github.com/moonrepo/proto"
 [dependencies]
 async-trait = "0.1.68"
 cached = { workspace = true }
-convert_case = "0.6.0"
+convert_case = { workspace = true }
 dirs = "5.0.0"
 # fd-lock = "3.0.12"
 flate2 = "1.0.25"
