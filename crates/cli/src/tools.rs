@@ -91,19 +91,20 @@ pub async fn create_plugin_tool(
         }
     }
 
-    // TODO
     let Some(locator) = locator else {
-        return Err(ProtoError::WritePathFailed);
+        return Err(ProtoError::MissingPlugin(plugin.to_owned()));
     };
 
-    let schema: schema_plugin::Schema = match locator {
-        PluginLocator::Schema(location) => match location {
-            PluginLocation::File(file) => toml::read_file(parent_dir.join(file))?,
-            PluginLocation::Url(url) => toml::read_file(download_plugin(plugin, url).await?)?,
-        },
-    };
+    match locator {
+        PluginLocator::Schema(location) => {
+            let schema: schema_plugin::Schema = match location {
+                PluginLocation::File(file) => toml::read_file(parent_dir.join(file))?,
+                PluginLocation::Url(url) => toml::read_file(download_plugin(plugin, url).await?)?,
+            };
 
-    Ok(Box::new(schema_plugin::SchemaPlugin::new(proto, schema)))
+            Ok(Box::new(schema_plugin::SchemaPlugin::new(proto, schema)))
+        }
+    }
 }
 
 pub async fn create_tool(tool: &ToolType) -> Result<Box<dyn Tool<'static>>, ProtoError> {

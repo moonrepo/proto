@@ -40,9 +40,16 @@ impl SchemaPlugin {
     }
 
     pub fn get_platform(&self) -> Result<&PlatformMapper, ProtoError> {
-        self.schema
-            .platform
-            .get(consts::OS)
+        let mut platform = self.schema.platform.get(consts::OS);
+
+        // Fallback to linux for other OSes
+        if platform.is_none() {
+            if consts::OS.ends_with("bsd") {
+                platform = self.schema.platform.get("linux");
+            }
+        }
+
+        platform
             .ok_or_else(|| ProtoError::UnsupportedPlatform(self.get_name(), consts::OS.to_owned()))
     }
 

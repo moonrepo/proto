@@ -131,6 +131,7 @@ mod schema_plugin {
                 Proto::from(fixture.path())
                     .temp_dir
                     .join("moon")
+                    .join("1.0.0")
                     .join(tool.get_download_file().unwrap())
             );
 
@@ -549,6 +550,7 @@ mod schema_plugin {
                 Proto::from(fixture.path())
                     .temp_dir
                     .join("moon")
+                    .join("1.0.0")
                     .join(tool.get_checksum_file().unwrap())
             );
 

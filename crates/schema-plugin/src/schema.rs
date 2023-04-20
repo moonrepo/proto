@@ -72,10 +72,12 @@ impl Default for ShimSchema {
 }
 
 #[derive(Debug, Default, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum ToolType {
     #[default]
     Language,
     DependencyManager,
+    Cli,
 }
 
 #[derive(Debug, Default, Deserialize)]

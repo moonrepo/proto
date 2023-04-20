@@ -61,6 +61,12 @@ pub enum ProtoError {
     #[error("Unable to determine PATH.")]
     MissingPathEnv,
 
+    #[diagnostic(code(proto::plugin::missing))]
+    #[error(
+        "{0} is not a built-in tool and has not been configured as a plugin, unable to proceed."
+    )]
+    MissingPlugin(String),
+
     #[diagnostic(code(proto::tool::missing))]
     #[error("{0} has not been configured or installed, unable to proceed.")]
     MissingTool(String),
@@ -124,6 +130,13 @@ pub enum ProtoError {
     #[diagnostic(code(proto::version::unresolved))]
     #[error("Failed to resolve a semantic version for {0}.")]
     VersionResolveFailed(String),
+
+    #[diagnostic(
+        code(proto::version::undetected),
+        help = "Has the tool been installed?"
+    )]
+    #[error("Unable to detect an applicable version to run with. Try pinning a local or global version, or passing the version as an argument.")]
+    VersionDetectFailed,
 
     #[diagnostic(code(proto::env::path_failed))]
     #[error("Failed to write to PATH.")]
