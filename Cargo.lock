@@ -1588,6 +1588,7 @@ dependencies = [
  "proto_go",
  "proto_node",
  "proto_rust",
+ "proto_schema_plugin",
  "reqwest",
  "rustc-hash",
  "semver",

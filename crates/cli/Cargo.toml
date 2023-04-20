@@ -31,6 +31,7 @@ proto_deno = { version = "0.5.1", path = "../deno" }
 proto_go = { version = "0.5.1", path = "../go" }
 proto_node = { version = "0.5.1", path = "../node" }
 proto_rust = { version = "0.3.1", path = "../rust" }
+proto_schema_plugin = { version = "0.1.0", path = "../schema-plugin" }
 async-recursion = "1.0.4"
 clap = { workspace = true, features = ["derive"] }
 clap_complete = { workspace = true }

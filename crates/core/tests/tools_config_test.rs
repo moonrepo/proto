@@ -1,5 +1,5 @@
 use assert_fs::prelude::{FileWriteStr, PathChild};
-use proto_core::{PluginLocator, ToolsConfig};
+use proto_core::{PluginLocation, PluginLocator, ToolsConfig};
 use rustc_hash::FxHashMap;
 
 #[test]
@@ -40,10 +40,13 @@ camelCase = "schema:./camel.toml"
     assert_eq!(
         config.plugins,
         FxHashMap::from_iter([
-            ("foo".into(), PluginLocator::Schema("./test.toml".into())),
+            (
+                "foo".into(),
+                PluginLocator::Schema(PluginLocation::File("./test.toml".into()))
+            ),
             (
                 "camel-case".into(),
-                PluginLocator::Schema("./camel.toml".into())
+                PluginLocator::Schema(PluginLocation::File("./camel.toml".into()))
             )
         ])
     );
@@ -55,9 +58,10 @@ fn formats_plugins_table() {
 
     let mut config = ToolsConfig::load_from(fixture.path()).unwrap();
     config.tools.insert("node".into(), "12.0.0".into());
-    config
-        .plugins
-        .insert("foo".into(), PluginLocator::Schema("./test.toml".into()));
+    config.plugins.insert(
+        "foo".into(),
+        PluginLocator::Schema(PluginLocation::File("./test.toml".into())),
+    );
     config.save().unwrap();
 
     assert_eq!(

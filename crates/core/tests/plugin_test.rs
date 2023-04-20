@@ -1,4 +1,4 @@
-use proto_core::PluginLocator;
+use proto_core::{PluginLocation, PluginLocator};
 use std::str::FromStr;
 
 mod config {
@@ -11,15 +11,17 @@ mod config {
 
         assert_eq!(
             value,
-            PluginLocator::Schema("https://foo.com/file.toml".into())
+            PluginLocator::Schema(PluginLocation::Url("https://foo.com/file.toml".into()))
         );
     }
 
     #[test]
     fn ser_to_string() {
         assert_eq!(
-            serde_json::to_string(&PluginLocator::Schema("https://foo.com/file.toml".into()))
-                .unwrap(),
+            serde_json::to_string(&PluginLocator::Schema(PluginLocation::Url(
+                "https://foo.com/file.toml".into()
+            )))
+            .unwrap(),
             "\"schema:https://foo.com/file.toml\""
         );
     }

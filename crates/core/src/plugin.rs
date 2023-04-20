@@ -1,10 +1,26 @@
-use crate::errors::ProtoError;
+use crate::{download_from_url, errors::ProtoError, get_plugins_dir};
 use serde::{Deserialize, Deserializer, Serialize};
-use std::{fmt::Display, str::FromStr};
+use sha2::{Digest, Sha256};
+use std::{fmt::Display, path::PathBuf, str::FromStr};
+use tracing::debug;
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
+pub enum PluginLocation {
+    File(String),
+    Url(String),
+}
+
+impl Display for PluginLocation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PluginLocation::File(s) | PluginLocation::Url(s) => write!(f, "{}", s),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum PluginLocator {
-    Schema(String),
+    Schema(PluginLocation),
     // Source(String),
     // GitHub(String),
 }
@@ -35,7 +51,11 @@ impl FromStr for PluginLocator {
                     return Err(ProtoError::InvalidPluginLocatorExt(".toml".into()));
                 }
 
-                PluginLocator::Schema(location.to_owned())
+                PluginLocator::Schema(if location.starts_with('.') {
+                    PluginLocation::File(location.to_owned())
+                } else {
+                    PluginLocation::Url(location.to_owned())
+                })
             }
             other => {
                 return Err(ProtoError::InvalidPluginProtocol(other.to_owned()));
@@ -82,4 +102,36 @@ impl<'de> Deserialize<'de> for PluginLocator {
 
         Ok(locator)
     }
+}
+
+#[tracing::instrument(skip_all)]
+pub async fn download_plugin<P, U>(name: P, url: U) -> Result<PathBuf, ProtoError>
+where
+    P: AsRef<str>,
+    U: AsRef<str>,
+{
+    let url = url.as_ref();
+    let mut sha = Sha256::new();
+    sha.update(url.as_bytes());
+
+    let mut file_name = format!("{}-{:x}", name.as_ref(), sha.finalize());
+
+    if url.ends_with(".wasm") {
+        file_name.push_str(".wasm");
+    } else if url.ends_with(".toml") {
+        file_name.push_str(".toml");
+    }
+
+    let plugin_path = get_plugins_dir()?.join(file_name);
+
+    if !plugin_path.exists() {
+        debug!(
+            plugin = name.as_ref(),
+            "Plugin does not exist in cache, attempting to download"
+        );
+
+        download_from_url(url, &plugin_path).await?;
+    }
+
+    Ok(plugin_path)
 }

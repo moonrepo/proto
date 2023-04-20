@@ -5,7 +5,13 @@ use proto_deno as deno;
 use proto_go as go;
 use proto_node as node;
 use proto_rust as rust;
-use std::str::FromStr;
+use proto_schema_plugin as schema_plugin;
+use starbase_utils::toml;
+use std::{
+    env,
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 use strum::EnumIter;
 
 #[derive(Clone, Debug, Eq, EnumIter, Hash, PartialEq)]
@@ -51,6 +57,55 @@ impl FromStr for ToolType {
     }
 }
 
+pub async fn create_plugin_tool(
+    plugin: &str,
+    proto: Proto,
+) -> Result<Box<dyn Tool<'static>>, ProtoError> {
+    let mut locator = None;
+    let mut parent_dir = PathBuf::new();
+
+    // Traverse upwards checking each `.prototools` for a plugin
+    if let Ok(working_dir) = env::current_dir() {
+        let mut current_dir: Option<&Path> = Some(&working_dir);
+
+        while let Some(dir) = &current_dir {
+            let tools_config = ToolsConfig::load_from(dir)?;
+
+            if let Some(maybe_locator) = tools_config.plugins.get(plugin) {
+                locator = Some(maybe_locator.to_owned());
+                parent_dir = dir.to_path_buf();
+                break;
+            }
+
+            current_dir = dir.parent();
+        }
+    }
+
+    // Otherwise fallback to the user's config
+    if locator.is_none() {
+        let user_config = UserConfig::load()?;
+
+        if let Some(maybe_locator) = user_config.plugins.get(plugin) {
+            locator = Some(maybe_locator.to_owned());
+            parent_dir = get_root()?;
+        }
+    }
+
+    // TODO
+    let Some(locator) = locator else {
+        return Err(ProtoError::WritePathFailed);
+    };
+
+    let schema: schema_plugin::Schema = match locator {
+        PluginLocator::Schema(location) => match location {
+            PluginLocation::File(file) => toml::read_file(parent_dir.join(file))?,
+            PluginLocation::Url(url) => toml::read_file(download_plugin(plugin, url).await?)?,
+        },
+    };
+
+    Ok(Box::new(schema_plugin::SchemaPlugin::new(proto, schema)))
+}
+
 pub async fn create_tool(tool: &ToolType) -> Result<Box<dyn Tool<'static>>, ProtoError> {
     let proto = Proto::new()?;
 
@@ -78,6 +133,6 @@ pub async fn create_tool(tool: &ToolType) -> Result<Box<dyn Tool<'static>>, Prot
         // Rust
         ToolType::Rust => Box::new(rust::RustLanguage::new(proto)),
         // Plugins
-        ToolType::Plugin(_) => Box::new(rust::RustLanguage::new(proto)),
+        ToolType::Plugin(plugin) => create_plugin_tool(plugin, proto).await?,
     })
 }
