@@ -8,7 +8,10 @@ mod shim;
 mod verify;
 
 use proto_core::{Describable, Proto, Tool};
-use std::path::{Path, PathBuf};
+use std::{
+    any::Any,
+    path::{Path, PathBuf},
+};
 
 #[derive(Debug)]
 pub struct BunLanguage {
@@ -42,6 +45,10 @@ impl Describable<'_> for BunLanguage {
 }
 
 impl Tool<'_> for BunLanguage {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
     fn get_tool_dir(&self) -> &Path {
         &self.base_dir
     }

@@ -109,6 +109,10 @@ pub enum ProtoError {
     #[error("Unable to install {0}, unsupported architecture {1}.")]
     UnsupportedArchitecture(String, String),
 
+    #[diagnostic(code(proto::unsupported::globals))]
+    #[error("{0} does not support global binaries.")]
+    UnsupportedGlobals(String),
+
     #[diagnostic(code(proto::unsupported::platform))]
     #[error("Unable to install {0}, unsupported platform {1}.")]
     UnsupportedPlatform(String, String),
