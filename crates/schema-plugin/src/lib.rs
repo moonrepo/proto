@@ -10,6 +10,7 @@ mod verify;
 use proto_core::{Describable, Proto, ProtoError, Resolvable, Tool};
 pub use schema::*;
 use std::{
+    any::Any,
     env::consts,
     path::{Path, PathBuf},
 };
@@ -89,6 +90,10 @@ impl Describable<'_> for SchemaPlugin {
 }
 
 impl Tool<'_> for SchemaPlugin {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
     fn get_tool_dir(&self) -> &Path {
         &self.base_dir
     }

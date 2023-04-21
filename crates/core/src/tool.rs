@@ -8,6 +8,7 @@ use crate::manifest::*;
 use crate::resolver::*;
 use crate::shimmer::*;
 use crate::verifier::*;
+use std::any::Any;
 use std::fs;
 use std::path::{Path, PathBuf};
 use tracing::debug;
@@ -25,6 +26,8 @@ pub trait Tool<'tool>:
     + Executable<'tool>
     + Shimable<'tool>
 {
+    fn as_any(&self) -> &dyn Any;
+
     fn get_manifest_path(&self) -> PathBuf {
         self.get_tool_dir().join(MANIFEST_NAME)
     }

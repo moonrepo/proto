@@ -8,7 +8,10 @@ mod verify;
 
 use proto_core::{Describable, Proto, Tool};
 // use resolve::NDMVersionDist;
-use std::path::{Path, PathBuf};
+use std::{
+    any::Any,
+    path::{Path, PathBuf},
+};
 
 #[derive(Debug)]
 pub enum NodeDependencyManagerType {
@@ -74,6 +77,10 @@ impl Describable<'_> for NodeDependencyManager {
 }
 
 impl Tool<'_> for NodeDependencyManager {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
     fn get_tool_dir(&self) -> &Path {
         &self.base_dir
     }

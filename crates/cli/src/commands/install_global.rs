@@ -1,12 +1,14 @@
 use crate::helpers::create_progress_bar;
 use crate::tools::{create_tool, ToolType};
+use proto::Describable;
 use proto_core::{color, ProtoError, Tool};
+use proto_schema_plugin::SchemaPlugin;
 use starbase::SystemResult;
 use std::path::PathBuf;
 use tokio::process::Command;
 use tracing::{debug, info};
 
-async fn get_bin_or_fallback(mut tool: Box<dyn Tool<'_>>) -> Result<PathBuf, ProtoError> {
+async fn get_bin_or_fallback(tool: &mut Box<dyn Tool<'_>>) -> Result<PathBuf, ProtoError> {
     Ok(match tool.find_bin_path().await {
         Ok(_) => tool.get_bin_path()?.to_path_buf(),
         Err(_) => PathBuf::from(tool.get_bin_name()),
@@ -15,7 +17,7 @@ async fn get_bin_or_fallback(mut tool: Box<dyn Tool<'_>>) -> Result<PathBuf, Pro
 
 pub async fn install_global(tool_type: ToolType, dependencies: Vec<String>) -> SystemResult {
     for dependency in dependencies {
-        let tool = create_tool(&tool_type).await?;
+        let mut tool = create_tool(&tool_type).await?;
         let label = format!("Installing {} for {}", dependency, tool.get_name());
         let global_dir = tool.get_globals_bin_dir()?;
         let mut command;
@@ -24,26 +26,26 @@ pub async fn install_global(tool_type: ToolType, dependencies: Vec<String>) -> S
 
         match tool_type {
             ToolType::Bun => {
-                command = Command::new(get_bin_or_fallback(tool).await?);
+                command = Command::new(get_bin_or_fallback(&mut tool).await?);
                 command.args(["add", "--global"]).arg(&dependency);
             }
 
             ToolType::Deno => {
-                command = Command::new(get_bin_or_fallback(tool).await?);
+                command = Command::new(get_bin_or_fallback(&mut tool).await?);
                 command
                     .args(["install", "--allow-net", "--allow-read"])
                     .arg(&dependency);
             }
 
             ToolType::Go => {
-                command = Command::new(get_bin_or_fallback(tool).await?);
+                command = Command::new(get_bin_or_fallback(&mut tool).await?);
                 command.arg("install").arg(&dependency);
             }
 
             ToolType::Node | ToolType::Npm | ToolType::Pnpm | ToolType::Yarn => {
-                let npm = create_tool(&ToolType::Npm).await?;
+                let mut npm = create_tool(&ToolType::Npm).await?;
 
-                command = Command::new(get_bin_or_fallback(npm).await?);
+                command = Command::new(get_bin_or_fallback(&mut npm).await?);
                 command
                     .args([
                         "install",
@@ -64,8 +66,21 @@ pub async fn install_global(tool_type: ToolType, dependencies: Vec<String>) -> S
             }
 
             ToolType::Plugin(_) => {
-                // TODO
-                return Ok(());
+                command = Command::new(get_bin_or_fallback(&mut tool).await?);
+
+                let plugin = tool.as_any().downcast_ref::<SchemaPlugin>().unwrap();
+
+                let Some(args) = &plugin.schema.install.global_args else {
+                    return Err(ProtoError::UnsupportedGlobals(plugin.get_name()))?;
+                };
+
+                for arg in args {
+                    if arg == "{dependency}" {
+                        command.arg(&dependency);
+                    } else {
+                        command.arg(arg);
+                    }
+                }
             }
         };
 
