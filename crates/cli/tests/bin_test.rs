@@ -68,10 +68,12 @@ fn returns_path_for_plugin() {
     let assert = cmd.arg("bin").arg("moon-test").arg("1.0.0").assert();
 
     if cfg!(windows) {
-        assert.stdout(predicate::str::contains(
-            "tools\\moon-test\\1.0.0\\moon.exe",
+        assert.stdout(predicate::str::ends_with(
+            "tools\\moon-test\\1.0.0\\moon-test.exe\n",
         ));
     } else {
-        assert.stdout(predicate::str::contains("tools/moon-test/1.0.0/moon"));
+        assert.stdout(predicate::str::ends_with(
+            "tools/moon-test/1.0.0/moon-test\n",
+        ));
     }
 }
