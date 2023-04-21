@@ -93,7 +93,7 @@ pub fn unpack<I: AsRef<Path>, O: AsRef<Path>>(
         Some("zip") => unzip(input_file, output_dir, remove_prefix)?,
         Some("tgz" | "gz") => untar_gzip(input_file, output_dir, remove_prefix)?,
         Some("txz" | "xz") => untar_xzip(input_file, output_dir, remove_prefix)?,
-        None => {
+        Some("exe") | None => {
             return Ok(false);
         }
         _ => {
