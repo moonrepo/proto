@@ -17,7 +17,7 @@ use std::{
 #[derive(Debug)]
 pub struct SchemaPlugin {
     pub schema: Schema,
-
+    pub id: String,
     pub base_dir: PathBuf,
     pub bin_path: Option<PathBuf>,
     pub shim_path: Option<PathBuf>,
@@ -26,23 +26,29 @@ pub struct SchemaPlugin {
 }
 
 impl SchemaPlugin {
-    pub fn new<P: AsRef<Proto>>(proto: P, schema: Schema) -> Self {
+    pub fn new<P: AsRef<Proto>>(proto: P, id: String, schema: Schema) -> Self {
         let proto = proto.as_ref();
 
         SchemaPlugin {
-            base_dir: proto.tools_dir.join(&schema.bin),
+            base_dir: proto.tools_dir.join(&id),
             bin_path: None,
             shim_path: None,
-            temp_dir: proto.temp_dir.join(&schema.bin),
+            temp_dir: proto.temp_dir.join(&id),
             version: None,
+            id,
             schema,
         }
     }
 
     pub fn get_platform(&self) -> Result<&PlatformMapper, ProtoError> {
-        self.schema
-            .platform
-            .get(consts::OS)
+        let mut platform = self.schema.platform.get(consts::OS);
+
+        // Fallback to linux for other OSes
+        if platform.is_none() && consts::OS.ends_with("bsd") {
+            platform = self.schema.platform.get("linux");
+        }
+
+        platform
             .ok_or_else(|| ProtoError::UnsupportedPlatform(self.get_name(), consts::OS.to_owned()))
     }
 
@@ -74,7 +80,7 @@ impl SchemaPlugin {
 
 impl Describable<'_> for SchemaPlugin {
     fn get_bin_name(&self) -> &str {
-        &self.schema.bin
+        &self.id
     }
 
     fn get_name(&self) -> String {

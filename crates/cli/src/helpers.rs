@@ -8,6 +8,10 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::time::Duration;
 
+pub fn enable_progress_bars() {
+    env::remove_var("PROTO_NO_PROGRESS");
+}
+
 pub fn disable_progress_bars() {
     env::set_var("PROTO_NO_PROGRESS", "1");
 }

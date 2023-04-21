@@ -31,6 +31,31 @@ fn updates_manifest_file() {
 }
 
 #[test]
+fn updates_manifest_file_for_plugin() {
+    let temp = create_temp_dir_with_tools();
+    let manifest_file = temp.join("tools/moon-test/manifest.json");
+
+    assert!(!manifest_file.exists());
+
+    let mut cmd = create_proto_command(temp.path());
+    cmd.arg("alias")
+        .arg("moon-test")
+        .arg("example")
+        .arg("1.0.0")
+        .assert()
+        .success();
+
+    assert!(manifest_file.exists());
+
+    let manifest = Manifest::load(manifest_file).unwrap();
+
+    assert_eq!(
+        manifest.aliases,
+        FxHashMap::from_iter([("example".into(), "1.0.0".into())])
+    );
+}
+
+#[test]
 fn can_overwrite_existing_alias() {
     let temp = create_temp_dir();
     let manifest_file = temp.join("tools/node/manifest.json");

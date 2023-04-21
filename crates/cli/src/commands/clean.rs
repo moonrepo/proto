@@ -1,12 +1,11 @@
-use std::time::SystemTime;
-
 use crate::tools::{create_tool, ToolType};
-use clap::ValueEnum;
 use dialoguer::Confirm;
 use proto_core::{color, Manifest};
 use rustc_hash::FxHashSet;
 use starbase::{diagnostics::IntoDiagnostic, SystemResult};
 use starbase_utils::fs;
+use std::time::SystemTime;
+use strum::IntoEnumIterator;
 use tracing::{debug, info};
 
 fn is_older_than_days(now: u128, other: u128, days: u8) -> bool {
@@ -23,8 +22,8 @@ pub async fn clean(days: Option<u8>, yes: bool) -> SystemResult {
 
     info!("Finding tools to clean up...");
 
-    for tool_type in ToolType::value_variants() {
-        let mut tool = create_tool(tool_type)?;
+    for tool_type in ToolType::iter() {
+        let mut tool = create_tool(&tool_type).await?;
 
         if matches!(tool_type, ToolType::Rust) {
             info!(

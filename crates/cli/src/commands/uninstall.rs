@@ -4,7 +4,7 @@ use starbase::SystemResult;
 use tracing::{debug, info};
 
 pub async fn uninstall(tool_type: ToolType, version: String) -> SystemResult {
-    let mut tool = create_tool(&tool_type)?;
+    let mut tool = create_tool(&tool_type).await?;
 
     if !tool.is_setup(&version).await? {
         info!(

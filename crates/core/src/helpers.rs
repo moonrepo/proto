@@ -28,6 +28,10 @@ pub fn get_tools_dir() -> Result<PathBuf, ProtoError> {
     Ok(get_root()?.join("tools"))
 }
 
+pub fn get_plugins_dir() -> Result<PathBuf, ProtoError> {
+    Ok(get_root()?.join("plugins"))
+}
+
 // Aliases are words that map to version. For example, "latest" -> "1.2.3".
 pub fn is_alias_name(value: &str) -> bool {
     value.chars().enumerate().all(|(i, c)| {

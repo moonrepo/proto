@@ -5,7 +5,7 @@ use std::{env, path::PathBuf};
 use tracing::{debug, info};
 
 pub async fn local(tool_type: ToolType, version: String) -> SystemResult {
-    let tool = create_tool(&tool_type)?;
+    let tool = create_tool(&tool_type).await?;
 
     let local_path = env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
     let mut config = ToolsConfig::load_from(&local_path)?;

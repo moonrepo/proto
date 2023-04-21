@@ -6,7 +6,7 @@ use starbase_utils::fs;
 use tracing::debug;
 
 pub async fn list_global(tool_type: ToolType) -> SystemResult {
-    let tool = create_tool(&tool_type)?;
+    let tool = create_tool(&tool_type).await?;
     let bin_dir = tool.get_globals_bin_dir()?;
 
     debug!("Finding globals from {}", color::path(&bin_dir));

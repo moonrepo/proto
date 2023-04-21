@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use assert_fs::prelude::*;
 use std::path::Path;
 
 pub fn output_to_string(data: &[u8]) -> String {
@@ -8,6 +9,19 @@ pub fn output_to_string(data: &[u8]) -> String {
 
 pub fn create_temp_dir() -> assert_fs::TempDir {
     assert_fs::TempDir::new().unwrap()
+}
+
+pub fn create_temp_dir_with_tools() -> assert_fs::TempDir {
+    let temp = assert_fs::TempDir::new().unwrap();
+
+    temp.child(".prototools").write_str(r#"
+moon-test = "1.0.0"
+
+[plugins]
+moon-test = "schema:https://raw.githubusercontent.com/moonrepo/moon/1.3-proto-schema/proto-schema.toml"
+"#).unwrap();
+
+    temp
 }
 
 pub fn create_proto_command<T: AsRef<Path>>(path: T) -> assert_cmd::Command {

@@ -43,3 +43,16 @@ deno = "1.30.0"
     assert!(npm_path.exists());
     assert!(deno_path.exists());
 }
+
+#[test]
+fn installs_all_plugins() {
+    let temp = create_temp_dir_with_tools();
+    let moon_path = temp.join("tools/moon-test/1.0.0");
+
+    assert!(!moon_path.exists());
+
+    let mut cmd = create_proto_command(temp.path());
+    cmd.arg("use").assert().success();
+
+    assert!(moon_path.exists());
+}

@@ -15,7 +15,7 @@ async fn get_bin_or_fallback(mut tool: Box<dyn Tool<'_>>) -> Result<PathBuf, Pro
 
 pub async fn install_global(tool_type: ToolType, dependencies: Vec<String>) -> SystemResult {
     for dependency in dependencies {
-        let tool = create_tool(&tool_type)?;
+        let tool = create_tool(&tool_type).await?;
         let label = format!("Installing {} for {}", dependency, tool.get_name());
         let global_dir = tool.get_globals_bin_dir()?;
         let mut command;
@@ -41,7 +41,7 @@ pub async fn install_global(tool_type: ToolType, dependencies: Vec<String>) -> S
             }
 
             ToolType::Node | ToolType::Npm | ToolType::Pnpm | ToolType::Yarn => {
-                let npm = create_tool(&ToolType::Npm)?;
+                let npm = create_tool(&ToolType::Npm).await?;
 
                 command = Command::new(get_bin_or_fallback(npm).await?);
                 command
@@ -61,6 +61,11 @@ pub async fn install_global(tool_type: ToolType, dependencies: Vec<String>) -> S
             ToolType::Rust => {
                 command = Command::new("cargo");
                 command.arg("install").arg("--force").arg(&dependency);
+            }
+
+            ToolType::Plugin(_) => {
+                // TODO
+                return Ok(());
             }
         };
 

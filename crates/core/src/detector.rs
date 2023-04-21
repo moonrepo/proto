@@ -117,8 +117,8 @@ pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
     // We didn't find anything!
     match version {
         Some(ver) => Ok(ver),
-        None => Err(ProtoError::Message(
-            "Unable to detect an applicable version. Try setting a local or global version, or passing a command line argument.".into(),
+        None => Err(ProtoError::VersionDetectFailed(
+            tool.get_bin_name().to_owned(),
         )),
     }
 }

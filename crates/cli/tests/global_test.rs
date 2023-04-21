@@ -25,6 +25,27 @@ fn updates_manifest_file() {
 }
 
 #[test]
+fn updates_manifest_file_for_plugin() {
+    let temp = create_temp_dir_with_tools();
+    let manifest_file = temp.join("tools/moon-test/manifest.json");
+
+    assert!(!manifest_file.exists());
+
+    let mut cmd = create_proto_command(temp.path());
+    cmd.arg("global")
+        .arg("moon-test")
+        .arg("1.0.0")
+        .assert()
+        .success();
+
+    assert!(manifest_file.exists());
+
+    let manifest = Manifest::load(manifest_file).unwrap();
+
+    assert_eq!(manifest.default_version, Some("1.0.0".into()));
+}
+
+#[test]
 fn can_set_alias_as_default() {
     let temp = create_temp_dir();
     let manifest_file = temp.join("tools/npm/manifest.json");

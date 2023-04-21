@@ -4,9 +4,11 @@
 
 #### 🚀 Updates
 
+- Added TOML schema based plugins support, allowing for custom tools/CLIs to be managed in proto.
+- Added a `[plugins]` section to `~/.proto/config.toml` and `.prototools`.
 - Added a `--yes` option to `proto clean`, allowing prompts to be bypassed.
 - Added a `auto-clean` setting to `~/.proto/config.toml`, enabling automatic cleaning when `proto use` is ran.
-- Added a `[plugins]` section to `~/.proto/config.toml` and `.prototools`.
+- Updated `proto use` to also install configured plugins.
 
 #### ⚙️ Internal
 

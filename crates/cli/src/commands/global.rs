@@ -4,7 +4,7 @@ use starbase::SystemResult;
 use tracing::{debug, info};
 
 pub async fn global(tool_type: ToolType, version: String) -> SystemResult {
-    let tool = create_tool(&tool_type)?;
+    let tool = create_tool(&tool_type).await?;
 
     let mut manifest = Manifest::load(tool.get_manifest_path())?;
     manifest.default_version = Some(version.clone());

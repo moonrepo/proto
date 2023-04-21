@@ -37,6 +37,7 @@ use std::path::{Path, PathBuf};
 
 pub struct Proto {
     pub bin_dir: PathBuf,
+    pub plugins_dir: PathBuf,
     pub temp_dir: PathBuf,
     pub tools_dir: PathBuf,
     pub home_dir: PathBuf,
@@ -48,6 +49,7 @@ impl Proto {
 
         Ok(Proto {
             bin_dir: root.join("bin"),
+            plugins_dir: root.join("plugins"),
             temp_dir: root.join("temp"),
             tools_dir: root.join("tools"),
             home_dir: get_home_dir()?,
@@ -57,6 +59,7 @@ impl Proto {
     pub fn from(root: &Path) -> Self {
         Proto {
             bin_dir: root.join("bin"),
+            plugins_dir: root.join("plugins"),
             temp_dir: root.join("temp"),
             tools_dir: root.join("tools"),
             home_dir: get_home_dir().expect("Missing home directory."),

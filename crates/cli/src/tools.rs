@@ -1,14 +1,20 @@
-use clap::ValueEnum;
+use convert_case::{Case, Casing};
 use proto_bun as bun;
 use proto_core::*;
 use proto_deno as deno;
 use proto_go as go;
 use proto_node as node;
 use proto_rust as rust;
-use std::str::FromStr;
+use proto_schema_plugin as schema_plugin;
+use starbase_utils::toml;
+use std::{
+    env,
+    path::{Path, PathBuf},
+    str::FromStr,
+};
+use strum::EnumIter;
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq, ValueEnum)]
-#[value(rename_all = "kebab-case")]
+#[derive(Clone, Debug, Eq, EnumIter, Hash, PartialEq)]
 pub enum ToolType {
     // Bun
     Bun,
@@ -23,6 +29,8 @@ pub enum ToolType {
     Yarn,
     // Rust
     Rust,
+    // Plugins
+    Plugin(String),
 }
 
 impl FromStr for ToolType {
@@ -43,12 +51,84 @@ impl FromStr for ToolType {
             "yarn" | "yarnpkg" => Ok(Self::Yarn),
             // Rust
             "rust" => Ok(Self::Rust),
-            _ => Err(ProtoError::UnsupportedTool(value.to_owned())),
+            // Plugins
+            name => Ok(Self::Plugin(name.to_case(Case::Kebab))),
         }
     }
 }
 
-pub fn create_tool(tool: &ToolType) -> Result<Box<dyn Tool<'static>>, ProtoError> {
+pub async fn create_plugin_from_locator(
+    plugin: &str,
+    proto: impl AsRef<Proto>,
+    locator: impl AsRef<PluginLocator>,
+    source_dir: impl AsRef<Path>,
+) -> Result<Box<dyn Tool<'static>>, ProtoError> {
+    match locator.as_ref() {
+        PluginLocator::Schema(location) => {
+            let schema: schema_plugin::Schema = match location {
+                PluginLocation::File(file) => {
+                    let file_path = source_dir.as_ref().join(file);
+
+                    if !file_path.exists() {
+                        return Err(ProtoError::PluginFileMissing(file_path));
+                    }
+
+                    toml::read_file(file_path)?
+                }
+                PluginLocation::Url(url) => toml::read_file(download_plugin(plugin, url).await?)?,
+            };
+
+            Ok(Box::new(schema_plugin::SchemaPlugin::new(
+                proto,
+                plugin.to_owned(),
+                schema,
+            )))
+        }
+    }
+}
+
+pub async fn create_plugin_tool(
+    plugin: &str,
+    proto: Proto,
+) -> Result<Box<dyn Tool<'static>>, ProtoError> {
+    let mut locator = None;
+    let mut parent_dir = PathBuf::new();
+
+    // Traverse upwards checking each `.prototools` for a plugin
+    if let Ok(working_dir) = env::current_dir() {
+        let mut current_dir: Option<&Path> = Some(&working_dir);
+
+        while let Some(dir) = &current_dir {
+            let tools_config = ToolsConfig::load_from(dir)?;
+
+            if let Some(maybe_locator) = tools_config.plugins.get(plugin) {
+                locator = Some(maybe_locator.to_owned());
+                parent_dir = dir.to_path_buf();
+                break;
+            }
+
+            current_dir = dir.parent();
+        }
+    }
+
+    // Otherwise fallback to the user's config
+    if locator.is_none() {
+        let user_config = UserConfig::load()?;
+
+        if let Some(maybe_locator) = user_config.plugins.get(plugin) {
+            locator = Some(maybe_locator.to_owned());
+            parent_dir = get_root()?;
+        }
+    }
+
+    let Some(locator) = locator else {
+        return Err(ProtoError::MissingPlugin(plugin.to_owned()));
+    };
+
+    create_plugin_from_locator(plugin, proto, locator, parent_dir).await
+}
+
+pub async fn create_tool(tool: &ToolType) -> Result<Box<dyn Tool<'static>>, ProtoError> {
     let proto = Proto::new()?;
 
     Ok(match tool {
@@ -74,5 +154,7 @@ pub fn create_tool(tool: &ToolType) -> Result<Box<dyn Tool<'static>>, ProtoError
         )),
         // Rust
         ToolType::Rust => Box::new(rust::RustLanguage::new(proto)),
+        // Plugins
+        ToolType::Plugin(plugin) => create_plugin_tool(plugin, proto).await?,
     })
 }

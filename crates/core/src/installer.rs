@@ -41,7 +41,19 @@ pub trait Installable<'tool>: Send + Sync + Describable<'tool> {
             "Attempting to install tool",
         );
 
-        unpack(download_path, install_dir, prefix)?;
+        if unpack(download_path, install_dir, prefix)? {
+            // Unpacked archive
+        } else {
+            let install_path = install_dir.join(if cfg!(windows) {
+                format!("{}.exe", self.get_bin_name())
+            } else {
+                self.get_bin_name().to_string()
+            });
+
+            // Not an archive, assume a binary and copy
+            fs::rename(download_path, &install_path)?;
+            fs::update_perms(install_path, None)?;
+        }
 
         debug!("Successfully installed tool");
 
@@ -73,19 +85,26 @@ pub fn unpack<I: AsRef<Path>, O: AsRef<Path>>(
     input_file: I,
     output_dir: O,
     remove_prefix: Option<String>,
-) -> Result<(), ProtoError> {
+) -> Result<bool, ProtoError> {
     let input_file = input_file.as_ref();
-    let ext = input_file.extension().unwrap_or_default().to_string_lossy();
+    let ext = input_file.extension().map(|e| e.to_str().unwrap());
 
-    match ext.as_ref() {
-        "zip" => unzip(input_file, output_dir, remove_prefix),
-        "tgz" | "gz" => untar_gzip(input_file, output_dir, remove_prefix),
-        "txz" | "xz" => untar_xzip(input_file, output_dir, remove_prefix),
-        _ => Err(ProtoError::UnsupportedArchiveFormat(
-            input_file.to_path_buf(),
-            ext.to_string(),
-        )),
-    }
+    match ext {
+        Some("zip") => unzip(input_file, output_dir, remove_prefix)?,
+        Some("tgz" | "gz") => untar_gzip(input_file, output_dir, remove_prefix)?,
+        Some("txz" | "xz") => untar_xzip(input_file, output_dir, remove_prefix)?,
+        Some("exe") | None => {
+            return Ok(false);
+        }
+        _ => {
+            return Err(ProtoError::UnsupportedArchiveFormat(
+                input_file.to_path_buf(),
+                ext.unwrap_or_default().to_string(),
+            ))
+        }
+    };
+
+    Ok(true)
 }
 
 #[tracing::instrument(skip_all)]
