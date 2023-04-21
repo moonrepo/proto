@@ -8,6 +8,7 @@
 - Added a `[plugins]` section to `~/.proto/config.toml` and `.prototools`.
 - Added a `--yes` option to `proto clean`, allowing prompts to be bypassed.
 - Added a `auto-clean` setting to `~/.proto/config.toml`, enabling automatic cleaning when `proto use` is ran.
+- Updated `proto use` to also install configured plugins.
 
 #### ⚙️ Internal
 

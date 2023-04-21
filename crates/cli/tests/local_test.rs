@@ -25,6 +25,23 @@ fn writes_local_version_file() {
 }
 
 #[test]
+fn writes_local_version_file_for_plugin() {
+    let temp = create_temp_dir_with_tools();
+    let version_file = temp.join(".prototools");
+
+    let mut cmd = create_proto_command(temp.path());
+    cmd.arg("local")
+        .arg("moon-test")
+        .arg("1.0.0")
+        .assert()
+        .success();
+
+    assert!(fs::read_to_string(version_file)
+        .unwrap()
+        .contains("moon-test = \"1.0.0\""),)
+}
+
+#[test]
 fn appends_multiple_tools() {
     let temp = create_temp_dir();
     let version_file = temp.join(".prototools");

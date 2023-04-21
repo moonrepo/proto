@@ -59,15 +59,15 @@ impl FromStr for ToolType {
 
 pub async fn create_plugin_from_locator(
     plugin: &str,
-    proto: Proto,
-    locator: PluginLocator,
-    source_dir: PathBuf,
+    proto: impl AsRef<Proto>,
+    locator: impl AsRef<PluginLocator>,
+    source_dir: impl AsRef<Path>,
 ) -> Result<Box<dyn Tool<'static>>, ProtoError> {
-    match locator {
+    match locator.as_ref() {
         PluginLocator::Schema(location) => {
             let schema: schema_plugin::Schema = match location {
                 PluginLocation::File(file) => {
-                    let file_path = source_dir.join(file);
+                    let file_path = source_dir.as_ref().join(file);
 
                     if !file_path.exists() {
                         return Err(ProtoError::PluginFileMissing(file_path));

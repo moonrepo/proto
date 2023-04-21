@@ -214,3 +214,38 @@ fn doesnt_auto_install_if_false() {
         "This project requires Node.js 19.0.0",
     ));
 }
+
+#[test]
+fn runs_a_plugin() {
+    let temp = create_temp_dir_with_tools();
+
+    let mut cmd = create_proto_command(temp.path());
+    cmd.arg("install")
+        .arg("moon-test")
+        .arg("1.0.0")
+        .assert()
+        .success();
+
+    let mut cmd = create_proto_command(temp.path());
+    let assert = cmd
+        .arg("run")
+        .arg("moon-test")
+        .arg("1.0.0")
+        .arg("--")
+        .arg("--version")
+        .assert();
+
+    assert.stdout(predicate::str::contains("1.0.0"));
+}
+
+#[test]
+fn errors_if_plugin_not_configured() {
+    let temp = create_temp_dir();
+
+    let mut cmd = create_proto_command(temp.path());
+    let assert = cmd.arg("run").arg("plugin-name").arg("1.0.0").assert();
+
+    assert.stderr(predicate::str::contains(
+        "plugin-name is not a built-in tool and has not been configured",
+    ));
+}

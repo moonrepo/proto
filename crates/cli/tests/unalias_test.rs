@@ -26,6 +26,27 @@ fn removes_existing_alias() {
 }
 
 #[test]
+fn removes_existing_alias_for_plugin() {
+    let temp = create_temp_dir_with_tools();
+    let manifest_file = temp.join("tools/moon-test/manifest.json");
+
+    let mut manifest = Manifest::load(&manifest_file).unwrap();
+    manifest.aliases.insert("example".into(), "1.0.0".into());
+    manifest.save().unwrap();
+
+    let mut cmd = create_proto_command(temp.path());
+    cmd.arg("unalias")
+        .arg("moon-test")
+        .arg("example")
+        .assert()
+        .success();
+
+    let manifest = Manifest::load(&manifest_file).unwrap();
+
+    assert!(manifest.aliases.is_empty());
+}
+
+#[test]
 fn does_nothing_for_unknown_alias() {
     let temp = create_temp_dir();
     let manifest_file = temp.join("tools/node/manifest.json");

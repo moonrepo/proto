@@ -25,6 +25,12 @@ pub enum PluginLocator {
     // GitHub(String),
 }
 
+impl AsRef<PluginLocator> for PluginLocator {
+    fn as_ref(&self) -> &PluginLocator {
+        self
+    }
+}
+
 impl FromStr for PluginLocator {
     type Err = ProtoError;
 
