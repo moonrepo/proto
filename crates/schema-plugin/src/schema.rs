@@ -19,16 +19,13 @@ pub struct DetectSchema {
 
 #[derive(Debug, Default, Deserialize)]
 #[serde(default, rename_all = "kebab-case")]
-pub struct ExecuteSchema {
-    pub globals_dir: Vec<String>,
-}
-
-#[derive(Debug, Default, Deserialize)]
-#[serde(default, rename_all = "kebab-case")]
 pub struct InstallSchema {
     pub arch: FxHashMap<String, String>,
     pub checksum_url: Option<String>,
     pub download_url: String,
+    // Global bins
+    pub global_args: Option<Vec<String>>,
+    pub globals_dir: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -90,7 +87,6 @@ pub struct Schema {
     pub platform: FxHashMap<String, PlatformMapper>,
 
     pub detect: DetectSchema,
-    pub execute: ExecuteSchema,
     pub install: InstallSchema,
     pub resolve: ResolveSchema,
     pub shim: ShimSchema,

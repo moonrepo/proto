@@ -46,7 +46,7 @@ impl Executable<'_> for SchemaPlugin {
         let home_dir = get_home_dir()?;
         let env_var_pattern = regex::Regex::new(r"\$([A-Z0-9_]+)").unwrap();
 
-        for dir in &self.schema.execute.globals_dir {
+        for dir in &self.schema.install.globals_dir {
             let dir = env_var_pattern.replace_all(dir, |cap: &regex::Captures| {
                 env::var(cap.get(1).unwrap().as_str()).unwrap_or_default()
             });

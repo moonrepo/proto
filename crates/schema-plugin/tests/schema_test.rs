@@ -4,7 +4,7 @@ use proto_core::{
     Verifiable,
 };
 use proto_schema_plugin::{
-    DetectSchema, ExecuteSchema, InstallSchema, PlatformMapper, ResolveSchema, Schema, SchemaPlugin,
+    DetectSchema, InstallSchema, PlatformMapper, ResolveSchema, Schema, SchemaPlugin,
 };
 use rustc_hash::FxHashMap;
 use starbase_utils::string_vec;
@@ -263,8 +263,9 @@ mod schema_plugin {
                 let tool = create_plugin(
                     fixture.path(),
                     Schema {
-                        execute: ExecuteSchema {
+                        install: InstallSchema {
                             globals_dir: string_vec!["~/.moon/bin"],
+                            ..InstallSchema::default()
                         },
                         ..Schema::default()
                     },
@@ -282,8 +283,9 @@ mod schema_plugin {
                 let tool = create_plugin(
                     fixture.path(),
                     Schema {
-                        execute: ExecuteSchema {
+                        install: InstallSchema {
                             globals_dir: string_vec!["$HOME/.moon/bin"],
+                            ..InstallSchema::default()
                         },
                         ..Schema::default()
                     },
@@ -301,8 +303,9 @@ mod schema_plugin {
                 let tool = create_plugin(
                     fixture.path(),
                     Schema {
-                        execute: ExecuteSchema {
+                        install: InstallSchema {
                             globals_dir: string_vec!["$PROTO_TEST_DIR/bin"],
+                            ..InstallSchema::default()
                         },
                         ..Schema::default()
                     },
