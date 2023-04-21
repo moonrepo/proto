@@ -25,7 +25,7 @@ fn errors_if_no_version_detected() {
     let assert = cmd.arg("run").arg("node").assert();
 
     assert.stderr(predicate::str::contains(
-        "Unable to detect an applicable version",
+        "Failed to detect an applicable version",
     ));
 }
 
