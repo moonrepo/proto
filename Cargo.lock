@@ -1555,7 +1555,7 @@ dependencies = [
 
 [[package]]
 name = "proto_bun"
-version = "0.5.1"
+version = "0.6.0"
 dependencies = [
  "assert_fs",
  "proto_core",
@@ -1568,7 +1568,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.6.1"
+version = "0.7.0"
 dependencies = [
  "assert_cmd",
  "assert_fs",
@@ -1602,7 +1602,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.6.1"
+version = "0.7.0"
 dependencies = [
  "assert_fs",
  "async-trait",
@@ -1633,7 +1633,7 @@ dependencies = [
 
 [[package]]
 name = "proto_deno"
-version = "0.5.1"
+version = "0.6.0"
 dependencies = [
  "assert_fs",
  "proto_core",
@@ -1645,7 +1645,7 @@ dependencies = [
 
 [[package]]
 name = "proto_go"
-version = "0.5.1"
+version = "0.6.0"
 dependencies = [
  "assert_fs",
  "proto_core",
@@ -1658,7 +1658,7 @@ dependencies = [
 
 [[package]]
 name = "proto_node"
-version = "0.5.1"
+version = "0.6.0"
 dependencies = [
  "assert_fs",
  "clean-path",
@@ -1673,7 +1673,7 @@ dependencies = [
 
 [[package]]
 name = "proto_rust"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "proto_core",
  "tokio",
@@ -1682,7 +1682,7 @@ dependencies = [
 
 [[package]]
 name = "proto_schema_plugin"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "assert_fs",
  "proto_core",
