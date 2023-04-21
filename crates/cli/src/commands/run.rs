@@ -3,6 +3,7 @@ use crate::states::UserConfig;
 use crate::tools::{create_tool, ToolType};
 use proto_core::{color, detect_version, Manifest, ProtoError};
 use starbase::SystemResult;
+use std::env;
 use std::process::exit;
 use tokio::process::Command;
 use tracing::debug;
@@ -42,11 +43,13 @@ pub async fn run(
     }
 
     // Update the last used timestamp
-    manifest.track_used_at(tool.get_resolved_version());
+    if env::var("PROTO_SKIP_USED_AT").is_err() {
+        manifest.track_used_at(tool.get_resolved_version());
 
-    // Ignore errors in case of race conditions...
-    // this timestamp isn't *super* important
-    let _ = manifest.save();
+        // Ignore errors in case of race conditions...
+        // this timestamp isn't *super* important
+        let _ = manifest.save();
+    }
 
     // Run the command
     let status = Command::new(tool.get_bin_path()?)
