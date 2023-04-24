@@ -67,13 +67,12 @@ async fn errors_for_missing_file() {
 async fn downloads_and_installs_plugin_from_url() {
     run_tests(|root| {
         create_plugin_from_locator(
-          "moon",
-          Proto::from(root),
-          PluginLocator::Schema(PluginLocation::Url(
-              "https://raw.githubusercontent.com/moonrepo/moon/1.3-proto-schema/proto-schema.toml"
-                  .into(),
-          )),
-          PathBuf::new(),
+            "moon",
+            Proto::from(root),
+            PluginLocator::Schema(PluginLocation::Url(
+                "https://raw.githubusercontent.com/moonrepo/moon/master/proto-plugin.toml".into(),
+            )),
+            PathBuf::new(),
         )
     })
     .await;
