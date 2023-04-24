@@ -1,30 +1,61 @@
 use crate::helpers::{disable_progress_bars, enable_progress_bars};
-use crate::states::ToolsConfig;
-use crate::tools::ToolType;
+use crate::states::{ToolsConfig, UserConfig};
+use crate::tools::{create_plugin_from_locator, create_tool, ToolType};
 use crate::{commands::clean::clean, commands::install::install, helpers::create_progress_bar};
 use futures::future::try_join_all;
-use proto::{create_plugin_from_locator, Proto, UserConfig};
-use proto_core::{ProtoError, TOOLS_CONFIG_NAME};
+use proto_core::Proto;
+use rustc_hash::FxHashMap;
 use starbase::SystemResult;
+use std::env;
+use std::path::PathBuf;
 use std::str::FromStr;
-use tracing::info;
+use strum::IntoEnumIterator;
+use tracing::{debug, info};
 
-pub async fn install_all(tools_config: &ToolsConfig) -> SystemResult {
-    let Some(config) = &tools_config.0 else {
-        return Err(ProtoError::MissingConfig(TOOLS_CONFIG_NAME.to_owned()))?;
-    };
+pub async fn install_all(tools_config: &ToolsConfig, user_config: &UserConfig) -> SystemResult {
+    let mut tools = FxHashMap::default();
+    let mut plugins = FxHashMap::default();
+    let mut config_dir = PathBuf::new();
+    let working_dir = env::current_dir().expect("Missing current directory.");
 
-    if !config.tools.is_empty() {
+    // Inherit from .prototools
+    if let Some(config) = &tools_config.0 {
+        debug!(config = %config.path.display(), "Detecting tools and plugins from .prototools");
+
+        if !config.tools.is_empty() {
+            tools.extend(config.tools.clone());
+        }
+
+        if !config.plugins.is_empty() {
+            plugins.extend(config.plugins.clone());
+            config_dir = config.path.parent().unwrap().to_path_buf();
+        }
+    }
+
+    // Detect from working dir
+    debug!("Detecting tools from environment");
+
+    for tool_type in ToolType::iter() {
+        let tool = create_tool(&tool_type).await?;
+
+        if let Some(version) = tool.detect_version_from(&working_dir).await? {
+            debug!(version, "Detected version for {}", tool.get_name());
+
+            tools.insert(tool.get_bin_name().to_owned(), version);
+        }
+    }
+
+    if !tools.is_empty() {
         let mut futures = vec![];
         let pb = create_progress_bar(format!(
             "Installing {} tools: {}",
-            config.tools.len(),
-            config.tools.keys().cloned().collect::<Vec<_>>().join(", ")
+            tools.len(),
+            tools.keys().cloned().collect::<Vec<_>>().join(", ")
         ));
 
         disable_progress_bars();
 
-        for (tool, version) in &config.tools {
+        for (tool, version) in &tools {
             futures.push(install(
                 ToolType::from_str(tool)?,
                 Some(version.to_owned()),
@@ -34,30 +65,27 @@ pub async fn install_all(tools_config: &ToolsConfig) -> SystemResult {
         }
 
         try_join_all(futures).await?;
+
         enable_progress_bars();
 
         pb.finish_and_clear();
     }
 
-    if !config.plugins.is_empty() {
+    if !plugins.is_empty() {
+        let proto = Proto::new()?;
         let mut futures = vec![];
         let pb = create_progress_bar(format!(
             "Installing {} plugins: {}",
-            config.plugins.len(),
-            config
-                .plugins
-                .keys()
-                .cloned()
-                .collect::<Vec<_>>()
-                .join(", ")
+            plugins.len(),
+            plugins.keys().cloned().collect::<Vec<_>>().join(", ")
         ));
 
-        for (name, locator) in &config.plugins {
+        for (name, locator) in &plugins {
             futures.push(create_plugin_from_locator(
                 name,
-                Proto::new()?,
+                &proto,
                 locator,
-                config.path.parent().unwrap(),
+                &config_dir,
             ));
         }
 
@@ -66,7 +94,7 @@ pub async fn install_all(tools_config: &ToolsConfig) -> SystemResult {
         pb.finish_and_clear();
     }
 
-    if UserConfig::load()?.auto_clean {
+    if user_config.0.auto_clean {
         info!("Auto-clean enabled");
         clean(None, true).await?;
     }

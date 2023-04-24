@@ -65,7 +65,7 @@ async fn run(
         Commands::Unalias { tool, alias } => commands::unalias(tool, alias).await?,
         Commands::Uninstall { tool, semver } => commands::uninstall(tool, semver).await?,
         Commands::Upgrade => commands::upgrade().await?,
-        Commands::Use => commands::install_all(tools_config).await?,
+        Commands::Use => commands::install_all(tools_config, user_config).await?,
     };
 }
 
