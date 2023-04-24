@@ -102,20 +102,25 @@ impl Manifest {
 
         let mut manifest: Manifest = if path.exists() {
             use fs4::FileExt;
+            use std::io::prelude::*;
 
-            let file = fs::open_file(path)?;
+            let handle_error = |error: std::io::Error| FsError::Read {
+                path: path.to_path_buf(),
+                error,
+            };
 
-            file.lock_shared().map_err(|error| FsError::Read {
+            let mut file = fs::open_file(path)?;
+            let mut buffer = String::new();
+
+            file.lock_shared().map_err(handle_error)?;
+            file.read_to_string(&mut buffer).map_err(handle_error)?;
+
+            let data = json::from_str(&buffer).map_err(|error| JsonError::ReadFile {
                 path: path.to_path_buf(),
                 error,
             })?;
 
-            let data = json::read_file(path)?;
-
-            file.unlock().map_err(|error| FsError::Read {
-                path: path.to_path_buf(),
-                error,
-            })?;
+            file.unlock().map_err(handle_error)?;
 
             data
         } else {
@@ -130,7 +135,7 @@ impl Manifest {
     #[tracing::instrument(skip_all)]
     pub fn save(&self) -> Result<(), ProtoError> {
         use fs4::FileExt;
-        use std::io::prelude::*;
+        use std::io::{prelude::*, SeekFrom};
 
         debug!(file = %self.path.display(), "Saving manifest");
 
@@ -138,24 +143,32 @@ impl Manifest {
             fs::create_dir_all(parent)?;
         }
 
-        let mut file = fs::create_file(&self.path)?;
-
-        file.lock_exclusive().map_err(|error| FsError::Write {
+        let handle_error = |error: std::io::Error| FsError::Write {
             path: self.path.to_path_buf(),
             error,
-        })?;
+        };
+
+        // Don't use fs::create_file() as it truncates!
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .open(&self.path)
+            .map_err(handle_error)?;
+
+        file.lock_exclusive().map_err(handle_error)?;
 
         let data = json::to_string_pretty(&self).map_err(|error| JsonError::StringifyFile {
             path: self.path.to_path_buf(),
             error,
         })?;
 
-        write!(file, "{}", data).unwrap();
+        // Truncate then write file
+        file.set_len(0).map_err(handle_error)?;
+        file.seek(SeekFrom::Start(0)).map_err(handle_error)?;
 
-        file.unlock().map_err(|error| FsError::Write {
-            path: self.path.to_path_buf(),
-            error,
-        })?;
+        write!(file, "{}", data).map_err(handle_error)?;
+
+        file.unlock().map_err(handle_error)?;
 
         Ok(())
     }

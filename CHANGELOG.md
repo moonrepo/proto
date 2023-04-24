@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Attempt to fix an issue where `manifest.json` would fail to parse while running concurrent processes.
+
 ## 0.7.0
 
 #### 🚀 Updates

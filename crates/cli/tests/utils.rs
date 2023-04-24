@@ -14,12 +14,16 @@ pub fn create_temp_dir() -> assert_fs::TempDir {
 pub fn create_temp_dir_with_tools() -> assert_fs::TempDir {
     let temp = assert_fs::TempDir::new().unwrap();
 
-    temp.child(".prototools").write_str(r#"
+    temp.child(".prototools")
+        .write_str(
+            r#"
 moon-test = "1.0.0"
 
 [plugins]
-moon-test = "schema:https://raw.githubusercontent.com/moonrepo/moon/1.3-proto-schema/proto-schema.toml"
-"#).unwrap();
+moon-test = "schema:https://raw.githubusercontent.com/moonrepo/moon/master/proto-plugin.toml"
+"#,
+        )
+        .unwrap();
 
     temp
 }
