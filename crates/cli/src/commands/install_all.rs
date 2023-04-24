@@ -36,6 +36,10 @@ pub async fn install_all(tools_config: &ToolsConfig, user_config: &UserConfig) -
     debug!("Detecting tools from environment");
 
     for tool_type in ToolType::iter() {
+        if matches!(tool_type, ToolType::Plugin(_)) {
+            continue;
+        }
+
         let tool = create_tool(&tool_type).await?;
 
         if let Some(version) = tool.detect_version_from(&working_dir).await? {
@@ -94,8 +98,14 @@ pub async fn install_all(tools_config: &ToolsConfig, user_config: &UserConfig) -
         pb.finish_and_clear();
     }
 
+    if tools.is_empty() && plugins.is_empty() {
+        info!("Nothing to install!")
+    } else {
+        info!("Successfully installed tools and plugins");
+    }
+
     if user_config.0.auto_clean {
-        info!("Auto-clean enabled");
+        debug!("Auto-clean enabled, starting clean");
         clean(None, true).await?;
     }
 
