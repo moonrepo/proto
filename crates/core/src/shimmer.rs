@@ -180,6 +180,11 @@ impl ShimBuilder {
     fn do_create(&self, shim_path: PathBuf, contents: &str) -> Result<PathBuf, ProtoError> {
         let shim_exists = shim_path.exists();
 
+        // Temporary until we can version shims!
+        if shim_exists {
+            return Ok(shim_path);
+        }
+
         if let Some(parent) = shim_path.parent() {
             fs::create_dir_all(parent)?;
         }
