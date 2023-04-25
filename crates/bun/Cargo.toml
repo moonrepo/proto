@@ -1,6 +1,6 @@
 [package]
 name = "proto_bun"
-version = "0.6.1"
+version = "0.6.2"
 edition = "2021"
 license = "MIT"
 description = "Bun support for proto."
@@ -8,7 +8,7 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
-proto_core = { version = "0.7.1", path = "../core" }
+proto_core = { version = "0.7.2", path = "../core" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 starbase_utils = { workspace = true }
