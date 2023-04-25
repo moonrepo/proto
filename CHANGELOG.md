@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Temporary fix for "text file busy" error when creating shims.
+
 ## 0.7.1
 
 #### 🐞 Fixes
