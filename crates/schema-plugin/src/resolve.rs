@@ -1,7 +1,7 @@
 use crate::SchemaPlugin;
 use proto_core::{
     async_trait, create_version_manifest_from_tags, load_git_tags, load_versions_manifest,
-    remove_v_prefix, Describable, Manifest, ProtoError, Resolvable, Tool, Version, VersionManifest,
+    remove_v_prefix, Describable, ProtoError, Resolvable, Tool, Version, VersionManifest,
     VersionManifestEntry,
 };
 use starbase_utils::json::JsonValue;
@@ -79,7 +79,7 @@ impl Resolvable<'_> for SchemaPlugin {
             return Err(ProtoError::Message(format!("Unable to resolve versions for {}. Schema either requires a `git_url` or `manifest_url`.", self.get_name())));
         };
 
-        manifest.inherit_aliases(&Manifest::load(self.get_manifest_path())?.aliases);
+        manifest.inherit_aliases(&self.get_manifest()?.aliases);
 
         Ok(manifest)
     }

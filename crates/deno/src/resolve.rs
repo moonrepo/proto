@@ -1,8 +1,8 @@
 use crate::DenoLanguage;
 use core::str;
 use proto_core::{
-    async_trait, create_version_manifest_from_tags, load_git_tags, remove_v_prefix, Manifest,
-    ProtoError, Resolvable, Tool, VersionManifest,
+    async_trait, create_version_manifest_from_tags, load_git_tags, remove_v_prefix, ProtoError,
+    Resolvable, Tool, VersionManifest,
 };
 
 #[async_trait]
@@ -24,7 +24,7 @@ impl Resolvable<'_> for DenoLanguage {
 
         let mut manifest = create_version_manifest_from_tags(tags);
 
-        manifest.inherit_aliases(&Manifest::load(self.get_manifest_path())?.aliases);
+        manifest.inherit_aliases(&self.get_manifest()?.aliases);
 
         Ok(manifest)
     }

@@ -1,6 +1,6 @@
 use crate::tools::{create_tool, ToolType};
 use dialoguer::Confirm;
-use proto_core::{color, Manifest};
+use proto_core::color;
 use rustc_hash::FxHashSet;
 use starbase::{diagnostics::IntoDiagnostic, SystemResult};
 use starbase_utils::fs;
@@ -41,7 +41,7 @@ pub async fn clean(days: Option<u8>, yes: bool) -> SystemResult {
             continue;
         }
 
-        let manifest = Manifest::load(tool.get_manifest_path())?;
+        let manifest = tool.get_manifest()?;
         let mut versions_to_clean = FxHashSet::default();
 
         debug!("Scanning file system for stale and untracked versions");
@@ -65,8 +65,8 @@ pub async fn clean(days: Option<u8>, yes: bool) -> SystemResult {
 
         debug!("Comparing last used timestamps from manifest");
 
-        for (version, metadata) in manifest.versions {
-            if versions_to_clean.contains(&version) {
+        for (version, metadata) in &manifest.versions {
+            if versions_to_clean.contains(version) {
                 continue;
             }
 
@@ -86,7 +86,7 @@ pub async fn clean(days: Option<u8>, yes: bool) -> SystemResult {
                         version, days
                     );
 
-                    versions_to_clean.insert(version);
+                    versions_to_clean.insert(version.to_owned());
                 }
             }
         }

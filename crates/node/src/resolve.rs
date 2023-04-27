@@ -1,7 +1,7 @@
 use crate::NodeLanguage;
 use proto_core::{
     async_trait, is_offline, is_semantic_version, load_versions_manifest, parse_version,
-    remove_v_prefix, Manifest, ProtoError, Resolvable, Tool, VersionManifest, VersionManifestEntry,
+    remove_v_prefix, ProtoError, Resolvable, Tool, VersionManifest, VersionManifestEntry,
 };
 use serde::Deserialize;
 use std::collections::BTreeMap;
@@ -67,7 +67,7 @@ impl Resolvable<'_> for NodeLanguage {
 
         let mut manifest = VersionManifest { aliases, versions };
 
-        manifest.inherit_aliases(&Manifest::load(self.get_manifest_path())?.aliases);
+        manifest.inherit_aliases(&self.get_manifest()?.aliases);
 
         Ok(manifest)
     }

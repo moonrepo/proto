@@ -1,8 +1,8 @@
 use crate::BunLanguage;
 use core::str;
 use proto_core::{
-    async_trait, create_version_manifest_from_tags, load_git_tags, Manifest, ProtoError,
-    Resolvable, Tool, VersionManifest,
+    async_trait, create_version_manifest_from_tags, load_git_tags, ProtoError, Resolvable, Tool,
+    VersionManifest,
 };
 
 #[async_trait]
@@ -24,7 +24,7 @@ impl Resolvable<'_> for BunLanguage {
 
         let mut manifest = create_version_manifest_from_tags(tags);
 
-        manifest.inherit_aliases(&Manifest::load(self.get_manifest_path())?.aliases);
+        manifest.inherit_aliases(&self.get_manifest()?.aliases);
 
         Ok(manifest)
     }

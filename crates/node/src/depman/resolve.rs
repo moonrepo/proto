@@ -3,8 +3,7 @@ use crate::platform::PackageJson;
 use crate::NodeLanguage;
 use proto_core::{
     async_trait, detect_version, is_offline, is_semantic_version, load_versions_manifest,
-    remove_v_prefix, Manifest, Proto, ProtoError, Resolvable, Tool, VersionManifest,
-    VersionManifestEntry,
+    remove_v_prefix, Proto, ProtoError, Resolvable, Tool, VersionManifest, VersionManifestEntry,
 };
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
@@ -81,7 +80,7 @@ impl Resolvable<'_> for NodeDependencyManager {
             versions,
         };
 
-        manifest.inherit_aliases(&Manifest::load(self.get_manifest_path())?.aliases);
+        manifest.inherit_aliases(&self.get_manifest()?.aliases);
 
         Ok(manifest)
     }
@@ -99,9 +98,9 @@ impl Resolvable<'_> for NodeDependencyManager {
             NodeDependencyManagerType::Npm => {
                 if initial_version == "bundled" {
                     let node_tool = Box::new(NodeLanguage::new(Proto::new()?));
-                    let node_manifest = Manifest::load(node_tool.get_manifest_path())?;
+                    let node_manifest = node_tool.get_manifest()?;
 
-                    if let Ok(node_version) = detect_version(&node_tool, &node_manifest, None).await
+                    if let Ok(node_version) = detect_version(&node_tool, node_manifest, None).await
                     {
                         let npm_package_path = node_tool
                             .base_dir
