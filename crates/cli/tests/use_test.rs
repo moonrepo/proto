@@ -1,6 +1,5 @@
 mod utils;
 
-use predicates::prelude::*;
 use std::fs;
 use utils::*;
 

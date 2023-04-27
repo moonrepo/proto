@@ -25,7 +25,6 @@ pub fn load_version_file(path: &Path) -> Result<String, ProtoError> {
 #[tracing::instrument(skip_all)]
 pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
     tool: &Box<T>,
-    manifest: &Manifest,
     forced_version: Option<String>,
 ) -> Result<String, ProtoError> {
     let mut version = forced_version;
@@ -83,6 +82,9 @@ pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
             debug!("Detecting from the tool's ecosystem");
 
             if let Some(eco_version) = tool.detect_version_from(dir).await? {
+                let eco_version = detect_fixed_version(&eco_version, tool.get_manifest()?)?
+                    .unwrap_or(eco_version);
+
                 debug!(
                     version = eco_version,
                     "Detected version from tool's ecosystem"
@@ -102,6 +104,8 @@ pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
             "Attempting to find global version in manifest ({})",
             MANIFEST_NAME
         );
+
+        let manifest = tool.get_manifest()?;
 
         if let Some(global_version) = &manifest.default_version {
             debug!(
@@ -129,7 +133,7 @@ pub fn detect_fixed_version(
     manifest: &Manifest,
 ) -> Result<Option<String>, ProtoError> {
     if is_alias_name(version) {
-        return Ok(None);
+        return Ok(Some(version.to_owned()));
     }
 
     let version = version.replace(".*", "");
