@@ -90,11 +90,11 @@ pub trait Tool<'tool>:
         if force || is_outdated {
             debug!("Creating shims as they either do not exist, or are outdated");
 
-            self.create_shims().await?;
-
             let manifest = self.get_manifest_mut()?;
             manifest.shim_version = SHIM_VERSION;
             manifest.save()?;
+
+            self.create_shims().await?;
         }
 
         Ok(())
