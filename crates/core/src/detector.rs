@@ -184,7 +184,7 @@ pub fn expand_detected_version(
             _ => {
                 // Only use an exact match when fully qualified,
                 // otherwise check the manifest against the partial.
-                let dot_count = version.match_indices(".").collect::<Vec<_>>().len();
+                let dot_count = version.match_indices('.').collect::<Vec<_>>().len();
 
                 if dot_count == 2 || !check_manifest(format!("^{version}"))? {
                     maybe_version = version.clone();

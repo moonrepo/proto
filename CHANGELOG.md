@@ -4,6 +4,9 @@
 
 #### 🚀 Updates
 
+- Improved version detection to scan locally installed versions more often, instead of resolving to the latest remote version.
+  - This will result in far less "version not installed" errors.
+  - Fully-qualified semantic versions are still used as-is.
 - Updated `proto use` to also install tools based on environment/ecosystem config in the current working directory.
   - For example, will install a `packageManager` from `package.json`.
   - This is pseudo replacement for `corepack`.
