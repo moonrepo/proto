@@ -8,7 +8,7 @@ mod shim;
 mod verify;
 
 use once_cell::sync::OnceCell;
-use proto_core::{Describable, Manifest, Proto, ProtoError, Resolvable, Tool};
+use proto_core::{impl_tool, Describable, Manifest, Proto, ProtoError, Resolvable, Tool};
 pub use schema::*;
 use std::{
     any::Any,
@@ -93,17 +93,4 @@ impl Describable<'_> for SchemaPlugin {
     }
 }
 
-impl Tool<'_> for SchemaPlugin {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn get_manifest(&self) -> Result<&Manifest, ProtoError> {
-        self.manifest
-            .get_or_try_init(|| Manifest::load(self.get_manifest_path()))
-    }
-
-    fn get_tool_dir(&self) -> &Path {
-        &self.base_dir
-    }
-}
+impl_tool!(SchemaPlugin);

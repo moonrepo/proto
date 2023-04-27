@@ -8,7 +8,7 @@ mod shim;
 mod verify;
 
 use once_cell::sync::OnceCell;
-use proto_core::{Describable, Manifest, Proto, ProtoError, Tool};
+use proto_core::{impl_tool, Describable, Manifest, Proto, ProtoError, Tool};
 use std::{
     any::Any,
     path::{Path, PathBuf},
@@ -48,17 +48,4 @@ impl Describable<'_> for DenoLanguage {
     }
 }
 
-impl Tool<'_> for DenoLanguage {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn get_manifest(&self) -> Result<&Manifest, ProtoError> {
-        self.manifest
-            .get_or_try_init(|| Manifest::load(self.get_manifest_path()))
-    }
-
-    fn get_tool_dir(&self) -> &Path {
-        &self.base_dir
-    }
-}
+impl_tool!(DenoLanguage);
