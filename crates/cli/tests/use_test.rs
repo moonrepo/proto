@@ -56,3 +56,18 @@ fn installs_all_plugins() {
 
     assert!(moon_path.exists());
 }
+
+#[test]
+fn installs_tool_via_detection() {
+    let temp = create_temp_dir();
+    let node_path = temp.join("tools/node/19.0.0");
+
+    fs::write(temp.path().join(".nvmrc"), "19.0.0").unwrap();
+
+    assert!(!node_path.exists());
+
+    let mut cmd = create_proto_command(temp.path());
+    cmd.arg("use").assert().success();
+
+    assert!(node_path.exists());
+}
