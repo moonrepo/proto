@@ -166,11 +166,11 @@ pub fn expand_detected_version(
         Ok(false)
     };
 
-    // npm
     if version.contains("||") {
         for split_version in version.split("||") {
-            if check_manifest(split_version.trim().to_owned())? {
-                break;
+            if let Some(matched_version) = expand_detected_version(split_version.trim(), manifest)?
+            {
+                return Ok(Some(matched_version));
             }
         }
     } else {
@@ -193,7 +193,6 @@ pub fn expand_detected_version(
         };
     }
 
-    // Couldn't find an explicit match so just return the initial value
     if maybe_version.is_empty() {
         if version == "*" {
             return Ok(Some("latest".to_owned()));
