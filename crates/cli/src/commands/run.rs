@@ -15,7 +15,7 @@ pub async fn run(
     user_config: &UserConfig,
 ) -> SystemResult {
     let mut tool = create_tool(&tool_type).await?;
-    let version = detect_version(&tool, tool.get_manifest()?, forced_version).await?;
+    let version = detect_version(&tool, forced_version).await?;
 
     if !tool.is_setup(&version).await? {
         if !user_config.auto_install {

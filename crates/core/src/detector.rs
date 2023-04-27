@@ -1,7 +1,7 @@
 #![allow(clippy::borrowed_box)]
 
 use crate::errors::ProtoError;
-use crate::helpers::is_alias_name;
+use crate::helpers::{is_alias_name, remove_v_prefix};
 use crate::manifest::{Manifest, MANIFEST_NAME};
 use crate::tool::Tool;
 use crate::tools_config::{ToolsConfig, TOOLS_CONFIG_NAME};
@@ -25,7 +25,6 @@ pub fn load_version_file(path: &Path) -> Result<String, ProtoError> {
 #[tracing::instrument(skip_all)]
 pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
     tool: &Box<T>,
-    manifest: &Manifest,
     forced_version: Option<String>,
 ) -> Result<String, ProtoError> {
     let mut version = forced_version;
@@ -83,13 +82,17 @@ pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
             debug!("Detecting from the tool's ecosystem");
 
             if let Some(eco_version) = tool.detect_version_from(dir).await? {
-                debug!(
-                    version = eco_version,
-                    "Detected version from tool's ecosystem"
-                );
+                if let Some(eco_version) =
+                    expand_detected_version(&eco_version, tool.get_manifest()?)?
+                {
+                    debug!(
+                        version = eco_version,
+                        "Detected version from tool's ecosystem"
+                    );
 
-                version = Some(eco_version);
-                break;
+                    version = Some(eco_version);
+                    break;
+                }
             }
 
             current_dir = dir.parent();
@@ -102,6 +105,8 @@ pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
             "Attempting to find global version in manifest ({})",
             MANIFEST_NAME
         );
+
+        let manifest = tool.get_manifest()?;
 
         if let Some(global_version) = &manifest.default_version {
             debug!(
@@ -124,15 +129,15 @@ pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
 }
 
 #[tracing::instrument(skip_all)]
-pub fn detect_fixed_version(
+pub fn expand_detected_version(
     version: &str,
     manifest: &Manifest,
 ) -> Result<Option<String>, ProtoError> {
     if is_alias_name(version) {
-        return Ok(None);
+        return Ok(Some(version.to_owned()));
     }
 
-    let version = version.replace(".*", "");
+    let version = remove_v_prefix(&version.replace(".*", ""));
     let mut fully_qualified = false;
     let mut maybe_version = String::new();
 
@@ -161,11 +166,11 @@ pub fn detect_fixed_version(
         Ok(false)
     };
 
-    // npm
     if version.contains("||") {
         for split_version in version.split("||") {
-            if check_manifest(split_version.trim().to_owned())? {
-                break;
+            if let Some(matched_version) = expand_detected_version(split_version.trim(), manifest)?
+            {
+                return Ok(Some(matched_version));
             }
         }
     } else {
@@ -177,12 +182,22 @@ pub fn detect_fixed_version(
                 maybe_version = version[1..].to_owned();
             }
             _ => {
-                maybe_version = version.clone();
+                // Only use an exact match when fully qualified,
+                // otherwise check the manifest against the partial.
+                let dot_count = version.match_indices('.').collect::<Vec<_>>().len();
+
+                if dot_count == 2 || !check_manifest(format!("^{version}"))? {
+                    maybe_version = version.clone();
+                }
             }
         };
     }
 
     if maybe_version.is_empty() {
+        if version == "*" {
+            return Ok(Some("latest".to_owned()));
+        }
+
         return Ok(None);
     }
 

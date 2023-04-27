@@ -3,7 +3,7 @@ use crate::states::{ToolsConfig, UserConfig};
 use crate::tools::{create_plugin_from_locator, create_tool, ToolType};
 use crate::{commands::clean::clean, commands::install::install, helpers::create_progress_bar};
 use futures::future::try_join_all;
-use proto_core::Proto;
+use proto_core::{expand_detected_version, Proto};
 use rustc_hash::FxHashMap;
 use starbase::SystemResult;
 use std::env;
@@ -43,9 +43,11 @@ pub async fn install_all(tools_config: &ToolsConfig, user_config: &UserConfig) -
         let tool = create_tool(&tool_type).await?;
 
         if let Some(version) = tool.detect_version_from(&working_dir).await? {
-            debug!(version, "Detected version for {}", tool.get_name());
+            if let Some(version) = expand_detected_version(&version, tool.get_manifest()?)? {
+                debug!(version, "Detected version for {}", tool.get_name());
 
-            tools.insert(tool.get_bin_name().to_owned(), version);
+                tools.insert(tool.get_bin_name().to_owned(), version);
+            }
         }
     }
 

@@ -258,7 +258,7 @@ mod node_depman {
 
             assert_eq!(
                 tool.detect_version_from(fixture.path()).await.unwrap(),
-                Some("4.5.6".into())
+                Some("=4.5.6".into())
             );
         }
 

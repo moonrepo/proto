@@ -8,8 +8,7 @@ pub async fn bin(
     use_shim: bool,
 ) -> SystemResult {
     let mut tool = create_tool(&tool_type).await?;
-    let manifest = tool.get_manifest()?;
-    let version = detect_version(&tool, manifest, forced_version).await?;
+    let version = detect_version(&tool, forced_version).await?;
 
     tool.resolve_version(&version).await?;
     tool.find_bin_path().await?;
