@@ -6,7 +6,8 @@ mod resolve;
 mod shim;
 mod verify;
 
-use proto_core::{Describable, Proto, Tool};
+use once_cell::sync::OnceCell;
+use proto_core::{Describable, Manifest, Proto, ProtoError, Tool};
 use std::{
     any::Any,
     path::{Path, PathBuf},
@@ -18,6 +19,8 @@ pub struct RustLanguage {
     pub bin_path: Option<PathBuf>,
     pub temp_dir: PathBuf,
     pub version: Option<String>,
+
+    manifest: OnceCell<Manifest>,
 }
 
 impl RustLanguage {
@@ -27,6 +30,7 @@ impl RustLanguage {
         RustLanguage {
             base_dir: proto.home_dir.join(".rustup").join("toolchains"),
             bin_path: None,
+            manifest: OnceCell::new(),
             temp_dir: proto.temp_dir.join("rust"),
             version: None,
         }
@@ -46,6 +50,11 @@ impl Describable<'_> for RustLanguage {
 impl Tool<'_> for RustLanguage {
     fn as_any(&self) -> &dyn Any {
         self
+    }
+
+    fn get_manifest(&self) -> Result<&Manifest, ProtoError> {
+        self.manifest
+            .get_or_try_init(|| Manifest::load(self.get_manifest_path()))
     }
 
     fn get_tool_dir(&self) -> &Path {

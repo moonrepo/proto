@@ -28,6 +28,8 @@ pub trait Tool<'tool>:
 {
     fn as_any(&self) -> &dyn Any;
 
+    fn get_manifest(&self) -> Result<&Manifest, ProtoError>;
+
     fn get_manifest_path(&self) -> PathBuf {
         self.get_tool_dir().join(MANIFEST_NAME)
     }

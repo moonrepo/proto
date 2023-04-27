@@ -6,7 +6,8 @@ mod resolve;
 mod shim;
 mod verify;
 
-use proto_core::{Describable, Proto, Tool};
+use once_cell::sync::OnceCell;
+use proto_core::{Describable, Manifest, Proto, ProtoError, Tool};
 // use resolve::NDMVersionDist;
 use std::{
     any::Any,
@@ -40,6 +41,8 @@ pub struct NodeDependencyManager {
     pub temp_dir: PathBuf,
     pub type_of: NodeDependencyManagerType,
     pub version: Option<String>,
+
+    manifest: OnceCell<Manifest>,
 }
 
 impl NodeDependencyManager {
@@ -51,6 +54,7 @@ impl NodeDependencyManager {
             base_dir: proto.tools_dir.join(&package_name),
             bin_path: None,
             // dist: None,
+            manifest: OnceCell::new(),
             shim_path: None,
             temp_dir: proto.temp_dir.join(&package_name),
             type_of,
@@ -79,6 +83,11 @@ impl Describable<'_> for NodeDependencyManager {
 impl Tool<'_> for NodeDependencyManager {
     fn as_any(&self) -> &dyn Any {
         self
+    }
+
+    fn get_manifest(&self) -> Result<&Manifest, ProtoError> {
+        self.manifest
+            .get_or_try_init(|| Manifest::load(self.get_manifest_path()))
     }
 
     fn get_tool_dir(&self) -> &Path {
