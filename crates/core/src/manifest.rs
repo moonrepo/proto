@@ -35,6 +35,7 @@ pub struct Manifest {
     pub aliases: FxHashMap<String, String>,
     pub default_version: Option<String>,
     pub installed_versions: FxHashSet<String>,
+    pub shim_version: u8,
     pub versions: FxHashMap<String, ManifestVersion>,
 
     #[serde(skip)]

@@ -15,7 +15,7 @@ pub async fn bin(
     tool.find_bin_path().await?;
 
     if use_shim {
-        tool.create_shims().await?;
+        tool.setup_shims(true).await?;
 
         if let Some(shim_path) = tool.get_shim_path() {
             println!("{}", shim_path.to_string_lossy());

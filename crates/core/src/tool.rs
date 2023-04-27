@@ -66,7 +66,7 @@ pub trait Tool<'tool>:
             self.find_bin_path().await?;
 
             // Create shims after paths are found
-            self.create_shims().await?;
+            self.setup_shims(true).await?;
 
             // Update the manifest
             {
@@ -82,6 +82,22 @@ pub trait Tool<'tool>:
         }
 
         Ok(false)
+    }
+
+    async fn setup_shims(&mut self, force: bool) -> Result<(), ProtoError> {
+        let is_outdated = { self.get_manifest_mut()?.shim_version != SHIM_VERSION };
+
+        if force || is_outdated {
+            debug!("Creating shims as they either do not exist, or are outdated");
+
+            self.create_shims().await?;
+
+            let manifest = self.get_manifest_mut()?;
+            manifest.shim_version = SHIM_VERSION;
+            manifest.save()?;
+        }
+
+        Ok(())
     }
 
     async fn is_setup(&mut self, initial_version: &str) -> Result<bool, ProtoError> {
@@ -110,7 +126,7 @@ pub trait Tool<'tool>:
                     "Tool has already been installed",
                 );
 
-                self.create_shims().await?;
+                self.setup_shims(false).await?;
 
                 return Ok(true);
             }
