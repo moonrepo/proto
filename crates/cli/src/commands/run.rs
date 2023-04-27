@@ -1,7 +1,7 @@
 use crate::commands::install::install;
 use crate::states::UserConfig;
 use crate::tools::{create_tool, ToolType};
-use proto_core::{color, detect_version, Manifest, ProtoError};
+use proto_core::{color, detect_version, ProtoError};
 use starbase::SystemResult;
 use std::env;
 use std::process::exit;
@@ -15,8 +15,7 @@ pub async fn run(
     user_config: &UserConfig,
 ) -> SystemResult {
     let mut tool = create_tool(&tool_type).await?;
-    let mut manifest = Manifest::load(tool.get_manifest_path())?;
-    let version = detect_version(&tool, &manifest, forced_version).await?;
+    let version = detect_version(&tool, tool.get_manifest()?, forced_version).await?;
 
     if !tool.is_setup(&version).await? {
         if !user_config.auto_install {
@@ -42,9 +41,12 @@ pub async fn run(
         tool.find_bin_path().await?;
     }
 
+    let resolved_version = tool.get_resolved_version().to_owned();
+
     // Update the last used timestamp
     if env::var("PROTO_SKIP_USED_AT").is_err() {
-        manifest.track_used_at(tool.get_resolved_version());
+        let manifest = tool.get_manifest_mut()?;
+        manifest.track_used_at(&resolved_version);
 
         // Ignore errors in case of race conditions...
         // this timestamp isn't *super* important

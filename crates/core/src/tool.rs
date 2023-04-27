@@ -46,7 +46,7 @@ pub trait Tool<'tool>:
         self.before_setup().await?;
 
         // Resolve a semantic version
-        self.resolve_version(initial_version).await?;
+        let version = self.resolve_version(initial_version).await?;
 
         // Download the archive
         let download_path = self.get_download_path()?;
@@ -69,11 +69,12 @@ pub trait Tool<'tool>:
             self.create_shims().await?;
 
             // Update the manifest
-            Manifest::insert_version(
-                self.get_manifest_path(),
-                self.get_resolved_version(),
-                self.get_default_version(),
-            )?;
+            {
+                let default_version = self.get_default_version().map(|v| v.to_owned());
+
+                self.get_manifest_mut()?
+                    .insert_version(&version, default_version)?;
+            }
 
             self.after_setup().await?;
 
@@ -153,7 +154,9 @@ pub trait Tool<'tool>:
         let install_dir = self.get_install_dir()?;
 
         if self.uninstall(&install_dir).await? {
-            Manifest::remove_version(self.get_manifest_path(), self.get_resolved_version())?;
+            let version = self.get_resolved_version().to_owned();
+
+            self.get_manifest_mut()?.remove_version(&version)?;
 
             self.after_teardown().await?;
 

@@ -1,5 +1,5 @@
 use crate::tools::{create_tool, ToolType};
-use proto_core::{color, is_alias_name, Manifest, ProtoError};
+use proto_core::{color, is_alias_name, ProtoError};
 use starbase::SystemResult;
 use tracing::info;
 
@@ -14,9 +14,9 @@ pub async fn alias(tool_type: ToolType, alias: String, version: String) -> Syste
         ))?;
     }
 
-    let tool = create_tool(&tool_type).await?;
+    let mut tool = create_tool(&tool_type).await?;
 
-    let mut manifest = Manifest::load(tool.get_manifest_path())?;
+    let manifest = tool.get_manifest_mut()?;
     manifest.aliases.insert(alias.clone(), version.clone());
     manifest.save()?;
 
