@@ -5,18 +5,6 @@ use std::fs;
 use utils::*;
 
 #[test]
-fn errors_if_no_config() {
-    let temp = create_temp_dir();
-
-    let mut cmd = create_proto_command(temp.path());
-    let assert = cmd.arg("use").assert();
-
-    assert.stderr(predicate::str::contains(
-        "Could not locate a .prototools configuration file.",
-    ));
-}
-
-#[test]
 fn installs_all_tools() {
     let temp = create_temp_dir();
     let node_path = temp.join("tools/node/19.0.0");
@@ -55,4 +43,19 @@ fn installs_all_plugins() {
     cmd.arg("use").assert().success();
 
     assert!(moon_path.exists());
+}
+
+#[test]
+fn installs_tool_via_detection() {
+    let temp = create_temp_dir();
+    let node_path = temp.join("tools/node/19.0.0");
+
+    fs::write(temp.path().join(".nvmrc"), "19.0.0").unwrap();
+
+    assert!(!node_path.exists());
+
+    let mut cmd = create_proto_command(temp.path());
+    cmd.arg("use").assert().success();
+
+    assert!(node_path.exists());
 }

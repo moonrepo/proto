@@ -4,6 +4,8 @@
 
 #### 🚀 Updates
 
+- Updated `proto use` to also install tools based on environment/ecosystem config in the current working directory.
+  - For example, will install a `packageManager` from `package.json`.
 - Updated shims to only be created on initial install, or when the internal API changes, instead of always.
 
 #### 🐞 Fixes
