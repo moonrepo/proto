@@ -28,6 +28,10 @@ pub trait Tool<'tool>:
 {
     fn as_any(&self) -> &dyn Any;
 
+    fn get_manifest(&self) -> Result<&Manifest, ProtoError>;
+
+    fn get_manifest_mut(&mut self) -> Result<&mut Manifest, ProtoError>;
+
     fn get_manifest_path(&self) -> PathBuf {
         self.get_tool_dir().join(MANIFEST_NAME)
     }
@@ -42,7 +46,7 @@ pub trait Tool<'tool>:
         self.before_setup().await?;
 
         // Resolve a semantic version
-        self.resolve_version(initial_version).await?;
+        let version = self.resolve_version(initial_version).await?;
 
         // Download the archive
         let download_path = self.get_download_path()?;
@@ -62,14 +66,15 @@ pub trait Tool<'tool>:
             self.find_bin_path().await?;
 
             // Create shims after paths are found
-            self.create_shims().await?;
+            self.setup_shims(true).await?;
 
             // Update the manifest
-            Manifest::insert_version(
-                self.get_manifest_path(),
-                self.get_resolved_version(),
-                self.get_default_version(),
-            )?;
+            {
+                let default_version = self.get_default_version().map(|v| v.to_owned());
+
+                self.get_manifest_mut()?
+                    .insert_version(&version, default_version)?;
+            }
 
             self.after_setup().await?;
 
@@ -77,6 +82,22 @@ pub trait Tool<'tool>:
         }
 
         Ok(false)
+    }
+
+    async fn setup_shims(&mut self, force: bool) -> Result<(), ProtoError> {
+        let is_outdated = { self.get_manifest_mut()?.shim_version != SHIM_VERSION };
+
+        if force || is_outdated {
+            debug!("Creating shims as they either do not exist, or are outdated");
+
+            let manifest = self.get_manifest_mut()?;
+            manifest.shim_version = SHIM_VERSION;
+            manifest.save()?;
+
+            self.create_shims().await?;
+        }
+
+        Ok(())
     }
 
     async fn is_setup(&mut self, initial_version: &str) -> Result<bool, ProtoError> {
@@ -105,7 +126,7 @@ pub trait Tool<'tool>:
                     "Tool has already been installed",
                 );
 
-                self.create_shims().await?;
+                self.setup_shims(false).await?;
 
                 return Ok(true);
             }
@@ -149,7 +170,9 @@ pub trait Tool<'tool>:
         let install_dir = self.get_install_dir()?;
 
         if self.uninstall(&install_dir).await? {
-            Manifest::remove_version(self.get_manifest_path(), self.get_resolved_version())?;
+            let version = self.get_resolved_version().to_owned();
+
+            self.get_manifest_mut()?.remove_version(&version)?;
 
             self.after_teardown().await?;
 
@@ -162,4 +185,33 @@ pub trait Tool<'tool>:
     async fn after_teardown(&mut self) -> Result<(), ProtoError> {
         Ok(())
     }
+}
+
+#[macro_export]
+macro_rules! impl_tool {
+    ($tool:ident) => {
+        impl Tool<'_> for $tool {
+            fn as_any(&self) -> &dyn Any {
+                self
+            }
+
+            fn get_manifest(&self) -> Result<&Manifest, ProtoError> {
+                self.manifest
+                    .get_or_try_init(|| Manifest::load(self.get_manifest_path()))
+            }
+
+            fn get_manifest_mut(&mut self) -> Result<&mut Manifest, ProtoError> {
+                {
+                    // Ensure that the manifest has been initialized
+                    self.get_manifest()?;
+                }
+
+                Ok(self.manifest.get_mut().unwrap())
+            }
+
+            fn get_tool_dir(&self) -> &Path {
+                &self.base_dir
+            }
+        }
+    };
 }

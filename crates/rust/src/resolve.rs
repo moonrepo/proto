@@ -1,7 +1,7 @@
 use crate::RustLanguage;
 use proto_core::{
     async_trait, create_version_manifest_from_tags, is_offline, is_semantic_version, load_git_tags,
-    remove_v_prefix, Manifest, ProtoError, Resolvable, Tool, VersionManifest,
+    remove_v_prefix, ProtoError, Resolvable, Tool, VersionManifest,
 };
 use tracing::debug;
 
@@ -23,7 +23,7 @@ impl Resolvable<'_> for RustLanguage {
 
         let mut manifest = create_version_manifest_from_tags(tags);
 
-        manifest.inherit_aliases(&Manifest::load(self.get_manifest_path())?.aliases);
+        manifest.inherit_aliases(&self.get_manifest()?.aliases);
 
         Ok(manifest)
     }

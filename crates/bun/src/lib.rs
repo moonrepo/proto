@@ -7,7 +7,8 @@ mod resolve;
 mod shim;
 mod verify;
 
-use proto_core::{Describable, Proto, Tool};
+use once_cell::sync::OnceCell;
+use proto_core::{impl_tool, Describable, Manifest, Proto, ProtoError, Tool};
 use std::{
     any::Any,
     path::{Path, PathBuf},
@@ -19,6 +20,8 @@ pub struct BunLanguage {
     pub bin_path: Option<PathBuf>,
     pub temp_dir: PathBuf,
     pub version: Option<String>,
+
+    manifest: OnceCell<Manifest>,
 }
 
 impl BunLanguage {
@@ -28,6 +31,7 @@ impl BunLanguage {
         BunLanguage {
             base_dir: proto.tools_dir.join("bun"),
             bin_path: None,
+            manifest: OnceCell::new(),
             temp_dir: proto.temp_dir.join("bun"),
             version: None,
         }
@@ -44,12 +48,4 @@ impl Describable<'_> for BunLanguage {
     }
 }
 
-impl Tool<'_> for BunLanguage {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn get_tool_dir(&self) -> &Path {
-        &self.base_dir
-    }
-}
+impl_tool!(BunLanguage);

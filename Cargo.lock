@@ -1558,6 +1558,7 @@ name = "proto_bun"
 version = "0.6.2"
 dependencies = [
  "assert_fs",
+ "once_cell",
  "proto_core",
  "serde",
  "serde_json",
@@ -1636,6 +1637,7 @@ name = "proto_deno"
 version = "0.6.2"
 dependencies = [
  "assert_fs",
+ "once_cell",
  "proto_core",
  "serde",
  "serde_json",
@@ -1648,6 +1650,7 @@ name = "proto_go"
 version = "0.6.2"
 dependencies = [
  "assert_fs",
+ "once_cell",
  "proto_core",
  "serde",
  "serde_json",
@@ -1662,6 +1665,7 @@ version = "0.6.2"
 dependencies = [
  "assert_fs",
  "clean-path",
+ "once_cell",
  "proto_core",
  "rustc-hash",
  "serde",
@@ -1675,6 +1679,7 @@ dependencies = [
 name = "proto_rust"
 version = "0.4.2"
 dependencies = [
+ "once_cell",
  "proto_core",
  "tokio",
  "tracing",
@@ -1685,6 +1690,7 @@ name = "proto_schema_plugin"
 version = "0.2.2"
 dependencies = [
  "assert_fs",
+ "once_cell",
  "proto_core",
  "regex",
  "rustc-hash",

@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Updated shims to only be created on initial install, or when the internal API changes, instead of always.
+
+#### 🐞 Fixes
+
+- Fixed an issue with `npx` not handling args correctly.
+
 ## 0.7.2
 
 #### 🐞 Fixes

@@ -35,6 +35,7 @@ pub struct Manifest {
     pub aliases: FxHashMap<String, String>,
     pub default_version: Option<String>,
     pub installed_versions: FxHashSet<String>,
+    pub shim_version: u8,
     pub versions: FxHashMap<String, ManifestVersion>,
 
     #[serde(skip)]
@@ -42,54 +43,6 @@ pub struct Manifest {
 }
 
 impl Manifest {
-    pub fn insert_version(
-        path: PathBuf,
-        version: &str,
-        default_version: Option<&str>,
-    ) -> Result<(), ProtoError> {
-        let mut manifest = Manifest::load(path)?;
-
-        if manifest.default_version.is_none() {
-            manifest.default_version = Some(default_version.unwrap_or(version).to_owned());
-        }
-
-        manifest.installed_versions.insert(version.to_owned());
-
-        manifest.versions.insert(
-            version.to_owned(),
-            ManifestVersion {
-                installed_at: now(),
-                no_clean: env::var("PROTO_NO_CLEAN").is_ok(),
-                ..ManifestVersion::default()
-            },
-        );
-
-        manifest.save()?;
-
-        Ok(())
-    }
-
-    pub fn remove_version(path: PathBuf, version: &str) -> Result<(), ProtoError> {
-        let mut manifest = Manifest::load(path)?;
-
-        manifest.installed_versions.remove(version);
-
-        // Remove default version if nothing available
-        if (manifest.installed_versions.is_empty() && manifest.default_version.is_some())
-            || manifest.default_version.as_ref() == Some(&version.to_owned())
-        {
-            info!("Unpinning default global version");
-
-            manifest.default_version = None;
-        }
-
-        manifest.versions.remove(version);
-
-        manifest.save()?;
-
-        Ok(())
-    }
-
     pub fn load_from<P: AsRef<Path>>(dir: P) -> Result<Self, ProtoError> {
         Self::load(dir.as_ref().join(MANIFEST_NAME))
     }
@@ -169,6 +122,50 @@ impl Manifest {
         write!(file, "{}", data).map_err(handle_error)?;
 
         file.unlock().map_err(handle_error)?;
+
+        Ok(())
+    }
+
+    pub fn insert_version(
+        &mut self,
+        version: &str,
+        default_version: Option<String>,
+    ) -> Result<(), ProtoError> {
+        if self.default_version.is_none() {
+            self.default_version = Some(default_version.unwrap_or(version.to_owned()));
+        }
+
+        self.installed_versions.insert(version.to_owned());
+
+        self.versions.insert(
+            version.to_owned(),
+            ManifestVersion {
+                installed_at: now(),
+                no_clean: env::var("PROTO_NO_CLEAN").is_ok(),
+                ..ManifestVersion::default()
+            },
+        );
+
+        self.save()?;
+
+        Ok(())
+    }
+
+    pub fn remove_version(&mut self, version: &str) -> Result<(), ProtoError> {
+        self.installed_versions.remove(version);
+
+        // Remove default version if nothing available
+        if (self.installed_versions.is_empty() && self.default_version.is_some())
+            || self.default_version.as_ref() == Some(&version.to_owned())
+        {
+            info!("Unpinning default global version");
+
+            self.default_version = None;
+        }
+
+        self.versions.remove(version);
+
+        self.save()?;
 
         Ok(())
     }

@@ -9,6 +9,7 @@ repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
 proto_core = { version = "0.7.2", path = "../core" }
+once_cell = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tracing = { workspace = true }

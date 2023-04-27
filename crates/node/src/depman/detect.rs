@@ -23,7 +23,7 @@ impl Detector<'_> for NodeDependencyManager {
 
             if let Some(engines) = package_json.engines {
                 if let Some(constraint) = engines.get(&self.package_name) {
-                    return detect_fixed_version(constraint, self.get_manifest_path());
+                    return detect_fixed_version(constraint, self.get_manifest()?);
                 }
             }
         }

@@ -2,7 +2,7 @@ use crate::helpers::{create_progress_bar, disable_progress_bars};
 use crate::hooks::go as go_hooks;
 use crate::tools::{create_tool, ToolType};
 use async_recursion::async_recursion;
-use proto_core::{color, Manifest};
+use proto_core::color;
 use starbase::SystemResult;
 use tracing::{debug, info};
 
@@ -47,8 +47,9 @@ pub async fn install(
     tool.cleanup().await?;
 
     if pin_version {
-        let mut manifest = Manifest::load(tool.get_manifest_path())?;
-        manifest.default_version = Some(tool.get_resolved_version().to_owned());
+        let version = tool.get_resolved_version().to_owned();
+        let manifest = tool.get_manifest_mut()?;
+        manifest.default_version = Some(version);
         manifest.save()?;
     }
 

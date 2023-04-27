@@ -27,7 +27,7 @@ impl Detector<'_> for NodeLanguage {
 
             if let Some(engines) = package_json.engines {
                 if let Some(constraint) = engines.get("node") {
-                    return detect_fixed_version(constraint, self.get_manifest_path());
+                    return detect_fixed_version(constraint, self.get_manifest()?);
                 }
             }
         }

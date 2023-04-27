@@ -1,7 +1,7 @@
 use crate::GoLanguage;
 use proto_core::{
-    async_trait, create_version_manifest_from_tags, load_git_tags, Manifest, ProtoError,
-    Resolvable, Tool, Version, VersionManifest,
+    async_trait, create_version_manifest_from_tags, load_git_tags, ProtoError, Resolvable, Tool,
+    Version, VersionManifest,
 };
 
 trait BaseVersion {
@@ -41,7 +41,7 @@ impl Resolvable<'_> for GoLanguage {
 
         let mut manifest = create_version_manifest_from_tags(tags);
 
-        manifest.inherit_aliases(&Manifest::load(self.get_manifest_path())?.aliases);
+        manifest.inherit_aliases(&self.get_manifest()?.aliases);
 
         Ok(manifest)
     }

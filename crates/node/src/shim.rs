@@ -12,7 +12,7 @@ node_bin=$(proto bin node)
 # ...and then replace the node bin with npx. Simple but works!
 npx_bin=$(echo "$node_bin" | sed 's/bin\/node/bin\/npx/')
 
-exec "$npx_bin" -- "$@""#
+exec "$npx_bin" "$@""#
         .to_owned()
 }
 
@@ -24,7 +24,7 @@ $NodeBin = proto.exe bin node
 # ...and then replace the node bin with npx. Simple but works!
 $NpxBin = $NodeBin.replace("node.exe", "npx.cmd")
 
-& $NpxBin -- $args"#
+& $NpxBin $args"#
         .to_owned()
 }
 
