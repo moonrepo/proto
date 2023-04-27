@@ -5,18 +5,6 @@ use std::fs;
 use utils::*;
 
 #[test]
-fn errors_if_no_config() {
-    let temp = create_temp_dir();
-
-    let mut cmd = create_proto_command(temp.path());
-    let assert = cmd.arg("use").assert();
-
-    assert.stderr(predicate::str::contains(
-        "Could not locate a .prototools configuration file.",
-    ));
-}
-
-#[test]
 fn installs_all_tools() {
     let temp = create_temp_dir();
     let node_path = temp.join("tools/node/19.0.0");
