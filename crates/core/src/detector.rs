@@ -1,7 +1,7 @@
 #![allow(clippy::borrowed_box)]
 
 use crate::errors::ProtoError;
-use crate::helpers::is_alias_name;
+use crate::helpers::{is_alias_name, remove_v_prefix};
 use crate::manifest::{Manifest, MANIFEST_NAME};
 use crate::tool::Tool;
 use crate::tools_config::{ToolsConfig, TOOLS_CONFIG_NAME};
@@ -82,16 +82,17 @@ pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
             debug!("Detecting from the tool's ecosystem");
 
             if let Some(eco_version) = tool.detect_version_from(dir).await? {
-                let eco_version = detect_fixed_version(&eco_version, tool.get_manifest()?)?
-                    .unwrap_or(eco_version);
+                if let Some(eco_version) =
+                    expand_detected_version(&eco_version, tool.get_manifest()?)?
+                {
+                    debug!(
+                        version = eco_version,
+                        "Detected version from tool's ecosystem"
+                    );
 
-                debug!(
-                    version = eco_version,
-                    "Detected version from tool's ecosystem"
-                );
-
-                version = Some(eco_version);
-                break;
+                    version = Some(eco_version);
+                    break;
+                }
             }
 
             current_dir = dir.parent();
@@ -128,7 +129,7 @@ pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
 }
 
 #[tracing::instrument(skip_all)]
-pub fn detect_fixed_version(
+pub fn expand_detected_version(
     version: &str,
     manifest: &Manifest,
 ) -> Result<Option<String>, ProtoError> {
@@ -136,7 +137,7 @@ pub fn detect_fixed_version(
         return Ok(Some(version.to_owned()));
     }
 
-    let version = version.replace(".*", "");
+    let version = remove_v_prefix(&version.replace(".*", ""));
     let mut fully_qualified = false;
     let mut maybe_version = String::new();
 
@@ -181,12 +182,23 @@ pub fn detect_fixed_version(
                 maybe_version = version[1..].to_owned();
             }
             _ => {
-                maybe_version = version.clone();
+                // Only use an exact match when fully qualified,
+                // otherwise check the manifest against the partial.
+                let dot_count = version.match_indices(".").collect::<Vec<_>>().len();
+
+                if dot_count == 2 || !check_manifest(format!("^{version}"))? {
+                    maybe_version = version.clone();
+                }
             }
         };
     }
 
+    // Couldn't find an explicit match so just return the initial value
     if maybe_version.is_empty() {
+        if version == "*" {
+            return Ok(Some("latest".to_owned()));
+        }
+
         return Ok(None);
     }
 

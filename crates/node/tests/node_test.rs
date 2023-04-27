@@ -89,7 +89,7 @@ mod node {
 
             assert_eq!(
                 tool.detect_version_from(fixture.path()).await.unwrap(),
-                Some("16.2".into())
+                Some("16.2.*".into())
             );
         }
 
@@ -105,7 +105,7 @@ mod node {
 
             assert_eq!(
                 tool.detect_version_from(fixture.path()).await.unwrap(),
-                Some("16".into())
+                Some("16.*".into())
             );
         }
     }

@@ -13,17 +13,19 @@ pub fn create_manifest(dir: &Path, manifest: Manifest) -> PathBuf {
     manifest_path
 }
 
-mod fixed_version {
+mod expanded_version {
     use super::*;
     use rustc_hash::FxHashSet;
 
     #[test]
-    fn ignores_invalid() {
+    fn returns_alias() {
         let temp = create_temp_dir();
 
         assert_eq!(
-            detect_fixed_version("unknown", &Manifest::load_from(temp.path()).unwrap()).unwrap(),
-            None
+            expand_detected_version("unknown", &Manifest::load_from(temp.path()).unwrap())
+                .unwrap()
+                .unwrap(),
+            "unknown"
         );
     }
 
@@ -32,74 +34,74 @@ mod fixed_version {
         let temp = create_temp_dir();
 
         assert_eq!(
-            detect_fixed_version("1.2.3-alpha", &Manifest::load_from(temp.path()).unwrap())
+            expand_detected_version("1.2.3-alpha", &Manifest::load_from(temp.path()).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.2.3"
         ); // ?
         assert_eq!(
-            detect_fixed_version("1.2.3", &Manifest::load_from(temp.path()).unwrap())
+            expand_detected_version("1.2.3", &Manifest::load_from(temp.path()).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.2.3"
         );
         assert_eq!(
-            detect_fixed_version("1.2.0", &Manifest::load_from(temp.path()).unwrap())
+            expand_detected_version("1.2.0", &Manifest::load_from(temp.path()).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.2.0"
         );
         assert_eq!(
-            detect_fixed_version("1.2", &Manifest::load_from(temp.path()).unwrap())
+            expand_detected_version("1.2", &Manifest::load_from(temp.path()).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.2"
         );
         assert_eq!(
-            detect_fixed_version("1.0", &Manifest::load_from(temp.path()).unwrap())
+            expand_detected_version("1.0", &Manifest::load_from(temp.path()).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.0"
         );
         assert_eq!(
-            detect_fixed_version("1", &Manifest::load_from(temp.path()).unwrap())
+            expand_detected_version("1", &Manifest::load_from(temp.path()).unwrap())
                 .unwrap()
                 .unwrap(),
             "1"
         );
 
         assert_eq!(
-            detect_fixed_version("v1.2.3-alpha", &Manifest::load_from(temp.path()).unwrap())
+            expand_detected_version("v1.2.3-alpha", &Manifest::load_from(temp.path()).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.2.3"
         ); // ?
         assert_eq!(
-            detect_fixed_version("V1.2.3", &Manifest::load_from(temp.path()).unwrap())
+            expand_detected_version("V1.2.3", &Manifest::load_from(temp.path()).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.2.3"
         );
         assert_eq!(
-            detect_fixed_version("v1.2.0", &Manifest::load_from(temp.path()).unwrap())
+            expand_detected_version("v1.2.0", &Manifest::load_from(temp.path()).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.2.0"
         );
         assert_eq!(
-            detect_fixed_version("V1.2", &Manifest::load_from(temp.path()).unwrap())
+            expand_detected_version("V1.2", &Manifest::load_from(temp.path()).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.2"
         );
         assert_eq!(
-            detect_fixed_version("v1.0", &Manifest::load_from(temp.path()).unwrap())
+            expand_detected_version("v1.0", &Manifest::load_from(temp.path()).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.0"
         );
         assert_eq!(
-            detect_fixed_version("V1", &Manifest::load_from(temp.path()).unwrap())
+            expand_detected_version("V1", &Manifest::load_from(temp.path()).unwrap())
                 .unwrap()
                 .unwrap(),
             "1"
@@ -111,37 +113,37 @@ mod fixed_version {
         let temp = create_temp_dir();
 
         assert_eq!(
-            detect_fixed_version("=1.2.3-alpha", &Manifest::load_from(temp.path()).unwrap())
+            expand_detected_version("=1.2.3-alpha", &Manifest::load_from(temp.path()).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.2.3"
         ); // ?
         assert_eq!(
-            detect_fixed_version("=1.2.3", &Manifest::load_from(temp.path()).unwrap())
+            expand_detected_version("=1.2.3", &Manifest::load_from(temp.path()).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.2.3"
         );
         assert_eq!(
-            detect_fixed_version("=1.2.0", &Manifest::load_from(temp.path()).unwrap())
+            expand_detected_version("=1.2.0", &Manifest::load_from(temp.path()).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.2.0"
         );
         assert_eq!(
-            detect_fixed_version("=1.2", &Manifest::load_from(temp.path()).unwrap())
+            expand_detected_version("=1.2", &Manifest::load_from(temp.path()).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.2"
         );
         assert_eq!(
-            detect_fixed_version("=1.0", &Manifest::load_from(temp.path()).unwrap())
+            expand_detected_version("=1.0", &Manifest::load_from(temp.path()).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.0"
         );
         assert_eq!(
-            detect_fixed_version("=1", &Manifest::load_from(temp.path()).unwrap())
+            expand_detected_version("=1", &Manifest::load_from(temp.path()).unwrap())
                 .unwrap()
                 .unwrap(),
             "1"
@@ -153,25 +155,25 @@ mod fixed_version {
         let temp = create_temp_dir();
 
         assert_eq!(
-            detect_fixed_version("=1.2.*", &Manifest::load_from(temp.path()).unwrap())
+            expand_detected_version("=1.2.*", &Manifest::load_from(temp.path()).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.2"
         );
         assert_eq!(
-            detect_fixed_version("=1.*", &Manifest::load_from(temp.path()).unwrap())
+            expand_detected_version("=1.*", &Manifest::load_from(temp.path()).unwrap())
                 .unwrap()
                 .unwrap(),
             "1"
         );
         assert_eq!(
-            detect_fixed_version("1.2.*", &Manifest::load_from(temp.path()).unwrap())
+            expand_detected_version("1.2.*", &Manifest::load_from(temp.path()).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.2"
         );
         assert_eq!(
-            detect_fixed_version("1.*", &Manifest::load_from(temp.path()).unwrap())
+            expand_detected_version("1.*", &Manifest::load_from(temp.path()).unwrap())
                 .unwrap()
                 .unwrap(),
             "1"
@@ -185,8 +187,10 @@ mod fixed_version {
         let manifest_path = create_manifest(temp.path(), Manifest::default());
 
         assert_eq!(
-            detect_fixed_version("*", &Manifest::load(manifest_path).unwrap()).unwrap(),
-            None
+            expand_detected_version("*", &Manifest::load(manifest_path).unwrap())
+                .unwrap()
+                .unwrap(),
+            "latest"
         );
 
         let manifest_path = create_manifest(
@@ -198,7 +202,7 @@ mod fixed_version {
         );
 
         assert_eq!(
-            detect_fixed_version("*", &Manifest::load(manifest_path).unwrap())
+            expand_detected_version("*", &Manifest::load(manifest_path).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.2.3"
@@ -217,37 +221,37 @@ mod fixed_version {
         );
 
         assert_eq!(
-            detect_fixed_version("^1.2.3-alpha", &Manifest::load(&manifest_path).unwrap())
+            expand_detected_version("^1.2.3-alpha", &Manifest::load(&manifest_path).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.5.9"
         );
         assert_eq!(
-            detect_fixed_version("^1.2.3", &Manifest::load(&manifest_path).unwrap())
+            expand_detected_version("^1.2.3", &Manifest::load(&manifest_path).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.5.9"
         );
         assert_eq!(
-            detect_fixed_version("^1.2.0", &Manifest::load(&manifest_path).unwrap())
+            expand_detected_version("^1.2.0", &Manifest::load(&manifest_path).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.5.9"
         );
         assert_eq!(
-            detect_fixed_version("^1.2", &Manifest::load(&manifest_path).unwrap())
+            expand_detected_version("^1.2", &Manifest::load(&manifest_path).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.5.9"
         );
         assert_eq!(
-            detect_fixed_version("^1.0", &Manifest::load(&manifest_path).unwrap())
+            expand_detected_version("^1.0", &Manifest::load(&manifest_path).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.5.9"
         );
         assert_eq!(
-            detect_fixed_version("^1", &Manifest::load(&manifest_path).unwrap())
+            expand_detected_version("^1", &Manifest::load(&manifest_path).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.5.9"
@@ -255,15 +259,15 @@ mod fixed_version {
 
         // Failures
         assert_eq!(
-            detect_fixed_version("^1.6", &Manifest::load(&manifest_path).unwrap()).unwrap(),
+            expand_detected_version("^1.6", &Manifest::load(&manifest_path).unwrap()).unwrap(),
             None
         );
         assert_eq!(
-            detect_fixed_version("^2", &Manifest::load(&manifest_path).unwrap()).unwrap(),
+            expand_detected_version("^2", &Manifest::load(&manifest_path).unwrap()).unwrap(),
             None
         );
         assert_eq!(
-            detect_fixed_version("^0", &Manifest::load(&manifest_path).unwrap()).unwrap(),
+            expand_detected_version("^0", &Manifest::load(&manifest_path).unwrap()).unwrap(),
             None
         );
     }
@@ -280,31 +284,31 @@ mod fixed_version {
         );
 
         assert_eq!(
-            detect_fixed_version("~1.2.3-alpha", &Manifest::load(&manifest_path).unwrap())
+            expand_detected_version("~1.2.3-alpha", &Manifest::load(&manifest_path).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.2.9"
         );
         assert_eq!(
-            detect_fixed_version("~1.2.3", &Manifest::load(&manifest_path).unwrap())
+            expand_detected_version("~1.2.3", &Manifest::load(&manifest_path).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.2.9"
         );
         assert_eq!(
-            detect_fixed_version("~1.2.0", &Manifest::load(&manifest_path).unwrap())
+            expand_detected_version("~1.2.0", &Manifest::load(&manifest_path).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.2.9"
         );
         assert_eq!(
-            detect_fixed_version("~1.2", &Manifest::load(&manifest_path).unwrap())
+            expand_detected_version("~1.2", &Manifest::load(&manifest_path).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.2.9"
         );
         assert_eq!(
-            detect_fixed_version("~1", &Manifest::load(&manifest_path).unwrap())
+            expand_detected_version("~1", &Manifest::load(&manifest_path).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.2.9"
@@ -312,23 +316,23 @@ mod fixed_version {
 
         // Failures
         assert_eq!(
-            detect_fixed_version("~1.3", &Manifest::load(&manifest_path).unwrap()).unwrap(),
+            expand_detected_version("~1.3", &Manifest::load(&manifest_path).unwrap()).unwrap(),
             None
         );
         assert_eq!(
-            detect_fixed_version("~1.1", &Manifest::load(&manifest_path).unwrap()).unwrap(),
+            expand_detected_version("~1.1", &Manifest::load(&manifest_path).unwrap()).unwrap(),
             None
         );
         assert_eq!(
-            detect_fixed_version("~1.0", &Manifest::load(&manifest_path).unwrap()).unwrap(),
+            expand_detected_version("~1.0", &Manifest::load(&manifest_path).unwrap()).unwrap(),
             None
         );
         assert_eq!(
-            detect_fixed_version("~2", &Manifest::load(&manifest_path).unwrap()).unwrap(),
+            expand_detected_version("~2", &Manifest::load(&manifest_path).unwrap()).unwrap(),
             None
         );
         assert_eq!(
-            detect_fixed_version("~0", &Manifest::load(&manifest_path).unwrap()).unwrap(),
+            expand_detected_version("~0", &Manifest::load(&manifest_path).unwrap()).unwrap(),
             None
         );
     }
@@ -345,37 +349,37 @@ mod fixed_version {
         );
 
         assert_eq!(
-            detect_fixed_version(">1.2.3-alpha", &Manifest::load(&manifest_path).unwrap())
+            expand_detected_version(">1.2.3-alpha", &Manifest::load(&manifest_path).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.5.9"
         );
         assert_eq!(
-            detect_fixed_version(">1.2.3", &Manifest::load(&manifest_path).unwrap())
+            expand_detected_version(">1.2.3", &Manifest::load(&manifest_path).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.5.9"
         );
         assert_eq!(
-            detect_fixed_version(">1.2.0", &Manifest::load(&manifest_path).unwrap())
+            expand_detected_version(">1.2.0", &Manifest::load(&manifest_path).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.5.9"
         );
         assert_eq!(
-            detect_fixed_version(">1.2", &Manifest::load(&manifest_path).unwrap())
+            expand_detected_version(">1.2", &Manifest::load(&manifest_path).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.5.9"
         );
         assert_eq!(
-            detect_fixed_version(">1.0", &Manifest::load(&manifest_path).unwrap())
+            expand_detected_version(">1.0", &Manifest::load(&manifest_path).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.5.9"
         );
         assert_eq!(
-            detect_fixed_version(">0", &Manifest::load(&manifest_path).unwrap())
+            expand_detected_version(">0", &Manifest::load(&manifest_path).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.5.9"
@@ -383,19 +387,19 @@ mod fixed_version {
 
         // Failures
         assert_eq!(
-            detect_fixed_version(">1.6", &Manifest::load(&manifest_path).unwrap()).unwrap(),
+            expand_detected_version(">1.6", &Manifest::load(&manifest_path).unwrap()).unwrap(),
             None
         );
         assert_eq!(
-            detect_fixed_version(">1.5.9", &Manifest::load(&manifest_path).unwrap()).unwrap(),
+            expand_detected_version(">1.5.9", &Manifest::load(&manifest_path).unwrap()).unwrap(),
             None
         );
         assert_eq!(
-            detect_fixed_version(">2", &Manifest::load(&manifest_path).unwrap()).unwrap(),
+            expand_detected_version(">2", &Manifest::load(&manifest_path).unwrap()).unwrap(),
             None
         );
         assert_eq!(
-            detect_fixed_version(">1", &Manifest::load(&manifest_path).unwrap()).unwrap(),
+            expand_detected_version(">1", &Manifest::load(&manifest_path).unwrap()).unwrap(),
             None
         );
     }
@@ -412,43 +416,43 @@ mod fixed_version {
         );
 
         assert_eq!(
-            detect_fixed_version(">=1.2.3-alpha", &Manifest::load(&manifest_path).unwrap())
+            expand_detected_version(">=1.2.3-alpha", &Manifest::load(&manifest_path).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.5.9"
         );
         assert_eq!(
-            detect_fixed_version(">=1.2.3", &Manifest::load(&manifest_path).unwrap())
+            expand_detected_version(">=1.2.3", &Manifest::load(&manifest_path).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.5.9"
         );
         assert_eq!(
-            detect_fixed_version(">=1.2.0", &Manifest::load(&manifest_path).unwrap())
+            expand_detected_version(">=1.2.0", &Manifest::load(&manifest_path).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.5.9"
         );
         assert_eq!(
-            detect_fixed_version(">=1.2", &Manifest::load(&manifest_path).unwrap())
+            expand_detected_version(">=1.2", &Manifest::load(&manifest_path).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.5.9"
         );
         assert_eq!(
-            detect_fixed_version(">=1.0", &Manifest::load(&manifest_path).unwrap())
+            expand_detected_version(">=1.0", &Manifest::load(&manifest_path).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.5.9"
         );
         assert_eq!(
-            detect_fixed_version(">=1", &Manifest::load(&manifest_path).unwrap())
+            expand_detected_version(">=1", &Manifest::load(&manifest_path).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.5.9"
         );
         assert_eq!(
-            detect_fixed_version(">=0", &Manifest::load(&manifest_path).unwrap())
+            expand_detected_version(">=0", &Manifest::load(&manifest_path).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.5.9"
@@ -456,11 +460,11 @@ mod fixed_version {
 
         // Failures
         assert_eq!(
-            detect_fixed_version(">1.6", &Manifest::load(&manifest_path).unwrap()).unwrap(),
+            expand_detected_version(">1.6", &Manifest::load(&manifest_path).unwrap()).unwrap(),
             None
         );
         assert_eq!(
-            detect_fixed_version(">=2", &Manifest::load(&manifest_path).unwrap()).unwrap(),
+            expand_detected_version(">=2", &Manifest::load(&manifest_path).unwrap()).unwrap(),
             None
         );
     }
@@ -477,13 +481,14 @@ mod fixed_version {
         );
 
         assert_eq!(
-            detect_fixed_version("^1.2.3 || ^2", &Manifest::load(&manifest_path).unwrap())
+            expand_detected_version("^1.2.3 || ^2", &Manifest::load(&manifest_path).unwrap())
                 .unwrap()
                 .unwrap(),
             "1.5.9"
         );
         assert_eq!(
-            detect_fixed_version("^1.6 || ^2", &Manifest::load(&manifest_path).unwrap()).unwrap(),
+            expand_detected_version("^1.6 || ^2", &Manifest::load(&manifest_path).unwrap())
+                .unwrap(),
             None
         );
     }
