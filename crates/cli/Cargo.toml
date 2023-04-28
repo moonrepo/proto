@@ -1,6 +1,6 @@
 [package]
 name = "proto_cli"
-version = "0.7.2"
+version = "0.8.0"
 edition = "2021"
 license = "MIT"
 description = "A language agnostic version manager."
@@ -25,13 +25,13 @@ name = "proto"
 path = "src/bin.rs"
 
 [dependencies]
-proto_bun = { version = "0.6.2", path = "../bun" }
-proto_core = { version = "0.7.2", path = "../core" }
-proto_deno = { version = "0.6.2", path = "../deno" }
-proto_go = { version = "0.6.2", path = "../go" }
-proto_node = { version = "0.6.2", path = "../node" }
-proto_rust = { version = "0.4.2", path = "../rust" }
-proto_schema_plugin = { version = "0.2.2", path = "../schema-plugin" }
+proto_bun = { version = "0.7.0", path = "../bun" }
+proto_core = { version = "0.8.0", path = "../core" }
+proto_deno = { version = "0.7.0", path = "../deno" }
+proto_go = { version = "0.7.0", path = "../go" }
+proto_node = { version = "0.7.0", path = "../node" }
+proto_rust = { version = "0.5.0", path = "../rust" }
+proto_schema_plugin = { version = "0.3.0", path = "../schema-plugin" }
 async-recursion = "1.0.4"
 clap = { workspace = true, features = ["derive"] }
 clap_complete = { workspace = true }
