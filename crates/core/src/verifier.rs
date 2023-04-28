@@ -10,7 +10,7 @@ use tracing::{debug, trace};
 pub trait Verifiable<'tool>: Send + Sync + Downloadable<'tool> {
     /// Return an absolute file path to the checksum file.
     /// This may not exist, as the path is composed ahead of time.
-    /// This is typically ~/.prove/temp/<file>.
+    /// This is typically `~/.proto/temp/<file>`.
     fn get_checksum_path(&self) -> Result<PathBuf, ProtoError>;
 
     /// Return a URL to download the tool's checksum manifest from a registry.

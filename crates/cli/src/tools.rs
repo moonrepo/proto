@@ -6,6 +6,7 @@ use proto_go as go;
 use proto_node as node;
 use proto_rust as rust;
 use proto_schema_plugin as schema_plugin;
+use proto_wasm_plugin as wasm_plugin;
 use starbase_utils::toml;
 use std::{
     env,
@@ -13,6 +14,7 @@ use std::{
     str::FromStr,
 };
 use strum::EnumIter;
+use tracing::debug;
 
 #[derive(Clone, Debug, Eq, EnumIter, Hash, PartialEq)]
 pub enum ToolType {
@@ -65,6 +67,8 @@ pub async fn create_plugin_from_locator(
 ) -> Result<Box<dyn Tool<'static>>, ProtoError> {
     match locator.as_ref() {
         PluginLocator::Schema(location) => {
+            debug!(location = %location, "Loading TOML plugin");
+
             let schema: schema_plugin::Schema = match location {
                 PluginLocation::File(file) => {
                     let file_path = source_dir.as_ref().join(file);
@@ -83,6 +87,28 @@ pub async fn create_plugin_from_locator(
                 plugin.to_owned(),
                 schema,
             )))
+        }
+        PluginLocator::Source(location) => {
+            debug!(location = %location, "Loading WASM plugin");
+
+            let wasm_path: PathBuf = match location {
+                PluginLocation::File(file) => {
+                    let file_path = source_dir.as_ref().join(file);
+
+                    if !file_path.exists() {
+                        return Err(ProtoError::PluginFileMissing(file_path));
+                    }
+
+                    file_path
+                }
+                PluginLocation::Url(url) => download_plugin(plugin, url).await?,
+            };
+
+            Ok(Box::new(wasm_plugin::WasmPlugin::new(
+                proto,
+                plugin.to_owned(),
+                wasm_path,
+            )?))
         }
     }
 }

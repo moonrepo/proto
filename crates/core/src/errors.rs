@@ -84,6 +84,14 @@ pub enum ProtoError {
     )]
     MissingToolForRun(String, String, String),
 
+    #[diagnostic(code(proto::plugin::wasm_create_failed))]
+    #[error("Failed to load WASM plugin. {0}")]
+    PluginWasmCreateFailed(String),
+
+    #[diagnostic(code(proto::plugin::wasm_call_failed))]
+    #[error("Failed to call WASM plugin function. {0}")]
+    PluginWasmCallFailed(String),
+
     #[diagnostic(code(proto::plugin::missing_file))]
     #[error("Plugin file {} does not exist.", .0.style(Style::Path))]
     PluginFileMissing(PathBuf),

@@ -21,7 +21,7 @@ impl Display for PluginLocation {
 #[derive(Clone, Debug, PartialEq)]
 pub enum PluginLocator {
     Schema(PluginLocation),
-    // Source(String),
+    Source(PluginLocation),
     // GitHub(String),
 }
 
@@ -63,6 +63,19 @@ impl FromStr for PluginLocator {
                     PluginLocation::Url(location.to_owned())
                 })
             }
+            "source" => {
+                if !is_url_or_path(location) {
+                    return Err(ProtoError::InvalidPluginLocator);
+                } else if !location.ends_with(".wasm") {
+                    return Err(ProtoError::InvalidPluginLocatorExt(".wasm".into()));
+                }
+
+                PluginLocator::Source(if location.starts_with('.') {
+                    PluginLocation::File(location.to_owned())
+                } else {
+                    PluginLocation::Url(location.to_owned())
+                })
+            }
             other => {
                 return Err(ProtoError::InvalidPluginProtocol(other.to_owned()));
             }
@@ -76,7 +89,7 @@ impl Display for PluginLocator {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             PluginLocator::Schema(s) => write!(f, "schema:{}", s),
-            // PluginLocator::Source(s) => write!(f, "source:{}", s),
+            PluginLocator::Source(s) => write!(f, "source:{}", s),
             // PluginLocator::GitHub(s) => write!(f, "github:{}", s),
         }
     }

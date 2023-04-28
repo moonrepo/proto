@@ -63,7 +63,7 @@ pub async fn run(
     let mut bin_path = tool.get_bin_path()?.to_path_buf();
 
     if let Some(alt_bin) = alt_bin {
-        let alt_bin_path = bin_path.parent().unwrap().join(&alt_bin);
+        let alt_bin_path = tool.get_install_dir()?.join(&alt_bin);
 
         if alt_bin_path.exists() {
             bin_path = alt_bin_path;

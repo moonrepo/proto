@@ -34,6 +34,7 @@ proto_go = { version = "0.10.0", path = "../go" }
 proto_node = { version = "0.10.0", path = "../node" }
 proto_rust = { version = "0.8.0", path = "../rust" }
 proto_schema_plugin = { version = "0.6.0", path = "../schema-plugin" }
+proto_wasm_plugin = { version = "0.1.0", path = "../wasm-plugin" }
 async-recursion = "1.0.4"
 clap = { workspace = true, features = ["derive", "env"] }
 clap_complete = { workspace = true }

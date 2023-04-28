@@ -11,14 +11,14 @@ use tracing::{debug, trace};
 pub trait Downloadable<'tool>: Send + Sync + Describable<'tool> + Resolvable<'tool> {
     /// Return an absolute file path to the downloaded file.
     /// This may not exist, as the path is composed ahead of time.
-    /// This is typically ~/.proto/temp/<file>.
+    /// This is typically `~/.proto/temp/<file>`.
     fn get_download_path(&self) -> Result<PathBuf, ProtoError>;
 
     /// Return a URL to download the tool's archive from a registry.
     fn get_download_url(&self) -> Result<String, ProtoError>;
 
     /// Download the tool (as an archive) from its distribution registry
-    /// into the ~/.proto/temp folder and return an absolute file path.
+    /// into the `~/.proto/temp` folder and return an absolute file path.
     /// A custom URL that points to the downloadable archive can be
     /// provided as the 2nd argument.
     async fn download(&self, to_file: &Path, from_url: Option<&str>) -> Result<bool, ProtoError> {
