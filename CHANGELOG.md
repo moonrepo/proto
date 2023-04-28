@@ -15,6 +15,7 @@
 #### 🐞 Fixes
 
 - Fixed an issue with `npx` not handling args correctly.
+- Fixed an issue where `moon clean` would fail on an empty/missing plugin.
 
 ## 0.7.2
 

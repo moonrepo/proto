@@ -23,6 +23,10 @@ pub async fn clean(days: Option<u8>, yes: bool) -> SystemResult {
     info!("Finding tools to clean up...");
 
     for tool_type in ToolType::iter() {
+        if matches!(tool_type, ToolType::Plugin(_)) {
+            continue;
+        }
+
         let mut tool = create_tool(&tool_type).await?;
 
         if matches!(tool_type, ToolType::Rust) {
