@@ -1604,7 +1604,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "assert_fs",
  "async-trait",
