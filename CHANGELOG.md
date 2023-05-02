@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Installed versions are now sorted during detection, so that latest versions are always used first.
+
 ## 0.8.0
 
 #### 🚀 Updates
