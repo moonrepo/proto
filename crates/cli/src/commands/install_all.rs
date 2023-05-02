@@ -1,5 +1,5 @@
 use crate::helpers::{disable_progress_bars, enable_progress_bars};
-use crate::states::{ToolsConfig, UserConfig};
+use crate::states::{PluginList, ToolsConfig, UserConfig};
 use crate::tools::{create_plugin_from_locator, create_tool, ToolType};
 use crate::{commands::clean::clean, commands::install::install, helpers::create_progress_bar};
 use futures::future::try_join_all;
@@ -12,7 +12,11 @@ use std::str::FromStr;
 use strum::IntoEnumIterator;
 use tracing::{debug, info};
 
-pub async fn install_all(tools_config: &ToolsConfig, user_config: &UserConfig) -> SystemResult {
+pub async fn install_all(
+    tools_config: &ToolsConfig,
+    user_config: &UserConfig,
+    plugin_list: &PluginList,
+) -> SystemResult {
     let mut tools = FxHashMap::default();
     let mut plugins = FxHashMap::default();
     let mut config_dir = PathBuf::new();
@@ -108,7 +112,7 @@ pub async fn install_all(tools_config: &ToolsConfig, user_config: &UserConfig) -
 
     if user_config.0.auto_clean {
         debug!("Auto-clean enabled, starting clean");
-        clean(None, true, &[]).await?;
+        clean(None, true, plugin_list).await?;
     }
 
     Ok(())

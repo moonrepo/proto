@@ -7,5 +7,5 @@ pub struct ToolsConfig(pub Option<InnerToolsConfig>);
 #[derive(State)]
 pub struct UserConfig(pub InnerUserConfig);
 
-#[derive(State)]
+#[derive(Debug, State)]
 pub struct PluginList(pub Vec<String>);

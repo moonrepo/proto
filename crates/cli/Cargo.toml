@@ -45,7 +45,7 @@ miette = { workspace = true }
 reqwest = { workspace = true, features = ["stream"] }
 rustc-hash = { workspace = true }
 semver ={ workspace = true }
-starbase = "0.1.7"
+starbase = "0.1.8"
 starbase_utils = { workspace = true }
 strum = { version = "0.24.1", features = ["derive"] }
 tokio = { workspace = true }

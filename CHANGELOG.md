@@ -5,6 +5,7 @@
 #### 🐞 Fixes
 
 - Installed versions are now sorted during detection, so that latest versions are always used first.
+- Updated `proto clean` to properly handle cleaning installed plugins.
 
 ## 0.8.0
 
