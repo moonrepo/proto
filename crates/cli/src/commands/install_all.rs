@@ -108,7 +108,7 @@ pub async fn install_all(tools_config: &ToolsConfig, user_config: &UserConfig) -
 
     if user_config.0.auto_clean {
         debug!("Auto-clean enabled, starting clean");
-        clean(None, true).await?;
+        clean(None, true, &[]).await?;
     }
 
     Ok(())

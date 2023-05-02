@@ -1582,6 +1582,7 @@ dependencies = [
  "futures",
  "human-sort",
  "indicatif",
+ "miette",
  "predicates",
  "proto_bun",
  "proto_core",

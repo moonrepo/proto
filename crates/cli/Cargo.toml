@@ -41,6 +41,7 @@ dirs = "5.0.0"
 futures = "0.3.28"
 human-sort = "0.2.2"
 indicatif = "0.17.3"
+miette = { workspace = true }
 reqwest = { workspace = true, features = ["stream"] }
 rustc-hash = { workspace = true }
 semver ={ workspace = true }
