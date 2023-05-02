@@ -5,6 +5,7 @@ use crate::helpers::{is_alias_name, remove_v_prefix};
 use crate::manifest::{Manifest, MANIFEST_NAME};
 use crate::tool::Tool;
 use crate::tools_config::{ToolsConfig, TOOLS_CONFIG_NAME};
+use human_sort::compare;
 use lenient_semver::Version;
 use starbase_utils::fs;
 use std::{env, path::Path};
@@ -141,6 +142,16 @@ pub fn expand_detected_version(
     let mut fully_qualified = false;
     let mut maybe_version = String::new();
 
+    // Sort the installed versions in descending order, so that v20
+    // is preferred over v2, and v19 for a requirement like >=15.
+    let mut installed_versions = manifest
+        .installed_versions
+        .iter()
+        .map(|v| v.to_owned())
+        .collect::<Vec<String>>();
+
+    installed_versions.sort_by(|a, d| compare(d, a));
+
     let mut check_manifest = |check_version: String| -> Result<bool, ProtoError> {
         let req =
             semver::VersionReq::parse(&check_version).map_err(|error| ProtoError::Semver {
@@ -148,7 +159,7 @@ pub fn expand_detected_version(
                 error,
             })?;
 
-        for installed_version in &manifest.installed_versions {
+        for installed_version in &installed_versions {
             let version_inst =
                 semver::Version::parse(installed_version).map_err(|error| ProtoError::Semver {
                     version: installed_version.to_owned(),
