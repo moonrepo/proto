@@ -27,7 +27,7 @@ fn removes_existing_alias() {
 
 #[test]
 fn removes_existing_alias_for_plugin() {
-    let temp = create_sandbox_with_tools();
+    let temp = create_empty_sandbox_with_tools();
     let manifest_file = temp.path().join("tools/moon-test/manifest.json");
 
     let mut manifest = Manifest::load(&manifest_file).unwrap();

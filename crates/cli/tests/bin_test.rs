@@ -55,7 +55,7 @@ fn returns_path_if_installed() {
 
 #[test]
 fn returns_path_for_plugin() {
-    let temp = create_sandbox_with_tools();
+    let temp = create_empty_sandbox_with_tools();
 
     let mut cmd = create_proto_command(temp.path());
     cmd.arg("install")

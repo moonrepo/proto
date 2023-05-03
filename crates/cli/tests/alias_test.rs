@@ -32,7 +32,7 @@ fn updates_manifest_file() {
 
 #[test]
 fn updates_manifest_file_for_plugin() {
-    let temp = create_sandbox_with_tools();
+    let temp = create_empty_sandbox_with_tools();
     let manifest_file = temp.path().join("tools/moon-test/manifest.json");
 
     assert!(!manifest_file.exists());

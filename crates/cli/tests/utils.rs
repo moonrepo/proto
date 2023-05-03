@@ -1,14 +1,10 @@
 #![allow(dead_code)]
 
 use starbase_sandbox::create_command_with_name;
-pub use starbase_sandbox::{assert_cmd, create_empty_sandbox, Sandbox};
+pub use starbase_sandbox::{assert_cmd, create_empty_sandbox, output_to_string, Sandbox};
 use std::path::Path;
 
-pub fn output_to_string(data: &[u8]) -> String {
-    String::from_utf8(data.to_vec()).unwrap_or_default()
-}
-
-pub fn create_sandbox_with_tools() -> Sandbox {
+pub fn create_empty_sandbox_with_tools() -> Sandbox {
     let temp = create_empty_sandbox();
 
     temp.create_file(

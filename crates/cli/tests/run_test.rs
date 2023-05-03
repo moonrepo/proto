@@ -88,7 +88,7 @@ fn runs_a_tool_using_version_detection() {
     assert.stdout(predicate::str::contains("19.0.0"));
 
     // Local version
-    fs::write(temp.path().join(".prototools"), "node = \"19.0.0\"").unwrap();
+    temp.create_file(".prototools", "node = \"19.0.0\"");
 
     let mut cmd = create_proto_command(temp.path());
     let assert = cmd
@@ -103,11 +103,7 @@ fn runs_a_tool_using_version_detection() {
     fs::remove_file(temp.path().join(".prototools")).unwrap();
 
     // Ecosystem
-    fs::write(
-        temp.path().join("package.json"),
-        r#"{ "engines": { "node": "19.0.0" }}"#,
-    )
-    .unwrap();
+    temp.create_file("package.json", r#"{ "engines": { "node": "19.0.0" }}"#);
 
     let mut cmd = create_proto_command(temp.path());
     let assert = cmd
@@ -122,11 +118,10 @@ fn runs_a_tool_using_version_detection() {
     fs::remove_file(temp.path().join("package.json")).unwrap();
 
     // Global version
-    fs::write(
-        temp.path().join("tools/node/manifest.json"),
+    temp.create_file(
+        "tools/node/manifest.json",
         r#"{ "default_version": "19.0.0" }"#,
-    )
-    .unwrap();
+    );
 
     let mut cmd = create_proto_command(temp.path());
     let assert = cmd
@@ -187,7 +182,7 @@ fn updates_last_used_at() {
 fn auto_installs_if_missing() {
     let temp = create_empty_sandbox();
 
-    std::fs::write(temp.path().join("config.toml"), "auto-install = true").unwrap();
+    temp.create_file("config.toml", "auto-install = true");
 
     let mut cmd = create_proto_command(temp.path());
     let assert = cmd
@@ -205,7 +200,7 @@ fn auto_installs_if_missing() {
 fn doesnt_auto_install_if_false() {
     let temp = create_empty_sandbox();
 
-    std::fs::write(temp.path().join("config.toml"), "auto-install = false").unwrap();
+    temp.create_file("config.toml", "auto-install = false");
 
     let mut cmd = create_proto_command(temp.path());
     let assert = cmd.arg("run").arg("node").arg("19.0.0").assert();
@@ -217,7 +212,7 @@ fn doesnt_auto_install_if_false() {
 
 #[test]
 fn runs_a_plugin() {
-    let temp = create_sandbox_with_tools();
+    let temp = create_empty_sandbox_with_tools();
 
     let mut cmd = create_proto_command(temp.path());
     cmd.arg("install")
