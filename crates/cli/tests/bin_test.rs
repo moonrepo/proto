@@ -1,11 +1,11 @@
 mod utils;
 
-use predicates::prelude::*;
+use starbase_sandbox::predicates::prelude::*;
 use utils::*;
 
 #[test]
 fn errors_if_not_installed() {
-    let temp = create_temp_dir();
+    let temp = create_empty_sandbox();
 
     let mut cmd = create_proto_command(temp.path());
     let assert = cmd.arg("bin").arg("npm").arg("9.0.0").assert();
@@ -17,7 +17,7 @@ fn errors_if_not_installed() {
 
 #[test]
 fn returns_path_if_installed() {
-    let temp = create_temp_dir();
+    let temp = create_empty_sandbox();
 
     let mut cmd = create_proto_command(temp.path());
     cmd.arg("install")
@@ -55,7 +55,7 @@ fn returns_path_if_installed() {
 
 #[test]
 fn returns_path_for_plugin() {
-    let temp = create_temp_dir_with_tools();
+    let temp = create_empty_sandbox_with_tools();
 
     let mut cmd = create_proto_command(temp.path());
     cmd.arg("install")

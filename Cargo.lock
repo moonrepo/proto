@@ -121,11 +121,11 @@ dependencies = [
 
 [[package]]
 name = "assert_fs"
-version = "1.0.12"
+version = "1.0.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e9d5bf7e5441c6393b5a9670a5036abe6b4847612f594b870f7332dbf10cf6fa"
+checksum = "f070617a68e5c2ed5d06ee8dd620ee18fb72b99f6c094bed34cf8ab07c875b48"
 dependencies = [
- "anstyle 0.3.5",
+ "anstyle 1.0.0",
  "doc-comment",
  "globwalk",
  "predicates",
@@ -508,6 +508,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ctor"
+version = "0.1.26"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6d2301688392eb071b0bf1a37be05c469d3cc4dbbd95df672fe28ab021e6a096"
+dependencies = [
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
 name = "cxx"
 version = "1.0.94"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -597,6 +607,12 @@ dependencies = [
  "tempfile",
  "zeroize",
 ]
+
+[[package]]
+name = "diff"
+version = "0.1.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "56254986775e3233ffa9c4d7d3faaf6d36a2c09d30b20687e9f88bc8bafc16c8"
 
 [[package]]
 name = "difflib"
@@ -1110,6 +1126,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "insta"
+version = "1.29.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9a28d25139df397cbca21408bb742cf6837e04cdbebf1b07b760caf971d6a972"
+dependencies = [
+ "console",
+ "lazy_static",
+ "linked-hash-map",
+ "similar",
+ "yaml-rust",
+]
+
+[[package]]
 name = "instant"
 version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1252,6 +1281,12 @@ checksum = "ecd207c9c713c34f95a097a5b029ac2ce6010530c7b49d7fea24d977dede04f5"
 dependencies = [
  "cc",
 ]
+
+[[package]]
+name = "linked-hash-map"
+version = "0.5.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0717cef1bc8b636c6e1c1bbdefc09e6322da8a9321966e8928ef80d20f7f770f"
 
 [[package]]
 name = "linux-raw-sys"
@@ -1432,6 +1467,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 
 [[package]]
+name = "output_vt100"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "628223faebab4e3e40667ee0b2336d34a5b960ff60ea743ddfdbcf7770bcfb66"
+dependencies = [
+ "winapi",
+]
+
+[[package]]
 name = "owo-colors"
 version = "3.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1545,6 +1589,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "pretty_assertions"
+version = "1.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a25e9bcb20aa780fd0bb16b72403a9064d6b3f22f026946029acb941a50af755"
+dependencies = [
+ "ctor",
+ "diff",
+ "output_vt100",
+ "yansi",
+]
+
+[[package]]
 name = "proc-macro2"
 version = "1.0.56"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1557,11 +1613,11 @@ dependencies = [
 name = "proto_bun"
 version = "0.7.0"
 dependencies = [
- "assert_fs",
  "once_cell",
  "proto_core",
  "serde",
  "serde_json",
+ "starbase_sandbox",
  "starbase_utils",
  "tokio",
  "tracing",
@@ -1571,8 +1627,6 @@ dependencies = [
 name = "proto_cli"
 version = "0.8.1"
 dependencies = [
- "assert_cmd",
- "assert_fs",
  "async-recursion",
  "clap",
  "clap_complete",
@@ -1583,7 +1637,6 @@ dependencies = [
  "human-sort",
  "indicatif",
  "miette",
- "predicates",
  "proto_bun",
  "proto_core",
  "proto_deno",
@@ -1595,6 +1648,7 @@ dependencies = [
  "rustc-hash",
  "semver",
  "starbase",
+ "starbase_sandbox",
  "starbase_utils",
  "strum",
  "tokio",
@@ -1606,7 +1660,6 @@ dependencies = [
 name = "proto_core"
 version = "0.8.1"
 dependencies = [
- "assert_fs",
  "async-trait",
  "cached",
  "convert_case",
@@ -1622,6 +1675,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "starbase_sandbox",
  "starbase_styles",
  "starbase_utils",
  "tar",
@@ -1637,11 +1691,11 @@ dependencies = [
 name = "proto_deno"
 version = "0.7.0"
 dependencies = [
- "assert_fs",
  "once_cell",
  "proto_core",
  "serde",
  "serde_json",
+ "starbase_sandbox",
  "tokio",
  "tracing",
 ]
@@ -1650,11 +1704,11 @@ dependencies = [
 name = "proto_go"
 version = "0.7.0"
 dependencies = [
- "assert_fs",
  "once_cell",
  "proto_core",
  "serde",
  "serde_json",
+ "starbase_sandbox",
  "starbase_utils",
  "tokio",
  "tracing",
@@ -1664,13 +1718,13 @@ dependencies = [
 name = "proto_node"
 version = "0.7.0"
 dependencies = [
- "assert_fs",
  "clean-path",
  "once_cell",
  "proto_core",
  "rustc-hash",
  "serde",
  "serde_json",
+ "starbase_sandbox",
  "starbase_utils",
  "tokio",
  "tracing",
@@ -1690,12 +1744,12 @@ dependencies = [
 name = "proto_schema_plugin"
 version = "0.3.0"
 dependencies = [
- "assert_fs",
  "once_cell",
  "proto_core",
  "regex",
  "rustc-hash",
  "serde",
+ "starbase_sandbox",
  "starbase_utils",
  "tokio",
  "tracing",
@@ -2033,6 +2087,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "similar"
+version = "2.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "420acb44afdae038210c99e69aae24109f32f15500aa708e81d46c9f29d55fcf"
+
+[[package]]
 name = "slab"
 version = "0.4.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2113,6 +2173,22 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "starbase_sandbox"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "63b408d2da5e58a2a70153838cea5526c810cb5bffc7a6b206b82a79a707667a"
+dependencies = [
+ "assert_cmd",
+ "assert_fs",
+ "clean-path",
+ "insta",
+ "once_cell",
+ "predicates",
+ "pretty_assertions",
+ "starbase_utils",
 ]
 
 [[package]]
@@ -3005,6 +3081,21 @@ checksum = "388c44dc09d76f1536602ead6d325eb532f5c122f17782bd57fb47baeeb767e2"
 dependencies = [
  "lzma-sys",
 ]
+
+[[package]]
+name = "yaml-rust"
+version = "0.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "56c1936c4cc7a1c9ab21a1ebb602eb942ba868cbd44a99cb7cdc5892335e1c85"
+dependencies = [
+ "linked-hash-map",
+]
+
+[[package]]
+name = "yansi"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09041cd90cf85f7f8b2df60c646f853b7f535ce68f85244eb6731cf89fa498ec"
 
 [[package]]
 name = "zeroize"

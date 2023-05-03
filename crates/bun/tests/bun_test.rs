@@ -2,15 +2,15 @@
 #[cfg(not(windows))]
 mod bun {
     // use super::*;
-    use assert_fs::prelude::{FileWriteStr, PathChild};
     use proto_bun::BunLanguage;
     use proto_core::{
         Downloadable, Executable, Installable, Proto, Resolvable, Tool, Verifiable, Version,
     };
+    use starbase_sandbox::{create_empty_sandbox, Sandbox};
     use std::fs;
 
-    fn create_tool() -> (BunLanguage, assert_fs::TempDir) {
-        let fixture = assert_fs::TempDir::new().unwrap();
+    fn create_tool() -> (BunLanguage, Sandbox) {
+        let fixture = create_empty_sandbox();
         let mut tool = BunLanguage::new(Proto::from(fixture.path()));
         tool.version = Some(String::from("0.5.7"));
 
@@ -19,7 +19,7 @@ mod bun {
 
     #[tokio::test]
     async fn downloads_verifies_installs_tool() {
-        let fixture = assert_fs::TempDir::new().unwrap();
+        let fixture = create_empty_sandbox();
         let proto = Proto::from(fixture.path());
         let mut tool = BunLanguage::new(&proto);
 
@@ -165,10 +165,10 @@ mod bun {
             let (mut tool, fixture) = create_tool();
             tool.version = None;
 
-            fixture
-                .child("tools/bun/manifest.json")
-                .write_str(r#"{"aliases":{"example":"0.5.0"}}"#)
-                .unwrap();
+            fixture.create_file(
+                "tools/bun/manifest.json",
+                r#"{"aliases":{"example":"0.5.0"}}"#,
+            );
 
             assert_eq!(tool.resolve_version("example").await.unwrap(), "0.5.0");
         }

@@ -1,13 +1,13 @@
 mod utils;
 
-use predicates::prelude::*;
 use proto_core::Manifest;
+use starbase_sandbox::predicates::prelude::*;
 use std::fs;
 use utils::*;
 
 #[test]
 fn errors_if_not_installed() {
-    let temp = create_temp_dir();
+    let temp = create_empty_sandbox();
 
     let mut cmd = create_proto_command(temp.path());
     let assert = cmd.arg("run").arg("node").arg("19.0.0").assert();
@@ -19,7 +19,7 @@ fn errors_if_not_installed() {
 
 #[test]
 fn errors_if_no_version_detected() {
-    let temp = create_temp_dir();
+    let temp = create_empty_sandbox();
 
     let mut cmd = create_proto_command(temp.path());
     let assert = cmd.arg("run").arg("node").assert();
@@ -31,7 +31,7 @@ fn errors_if_no_version_detected() {
 
 #[test]
 fn runs_a_tool() {
-    let temp = create_temp_dir();
+    let temp = create_empty_sandbox();
 
     let mut cmd = create_proto_command(temp.path());
     cmd.arg("install")
@@ -54,7 +54,7 @@ fn runs_a_tool() {
 
 #[test]
 fn runs_a_tool_using_version_detection() {
-    let temp = create_temp_dir();
+    let temp = create_empty_sandbox();
 
     let mut cmd = create_proto_command(temp.path());
     cmd.arg("install")
@@ -88,7 +88,7 @@ fn runs_a_tool_using_version_detection() {
     assert.stdout(predicate::str::contains("19.0.0"));
 
     // Local version
-    fs::write(temp.path().join(".prototools"), "node = \"19.0.0\"").unwrap();
+    temp.create_file(".prototools", "node = \"19.0.0\"");
 
     let mut cmd = create_proto_command(temp.path());
     let assert = cmd
@@ -103,11 +103,7 @@ fn runs_a_tool_using_version_detection() {
     fs::remove_file(temp.path().join(".prototools")).unwrap();
 
     // Ecosystem
-    fs::write(
-        temp.path().join("package.json"),
-        r#"{ "engines": { "node": "19.0.0" }}"#,
-    )
-    .unwrap();
+    temp.create_file("package.json", r#"{ "engines": { "node": "19.0.0" }}"#);
 
     let mut cmd = create_proto_command(temp.path());
     let assert = cmd
@@ -122,11 +118,10 @@ fn runs_a_tool_using_version_detection() {
     fs::remove_file(temp.path().join("package.json")).unwrap();
 
     // Global version
-    fs::write(
-        temp.path().join("tools/node/manifest.json"),
+    temp.create_file(
+        "tools/node/manifest.json",
         r#"{ "default_version": "19.0.0" }"#,
-    )
-    .unwrap();
+    );
 
     let mut cmd = create_proto_command(temp.path());
     let assert = cmd
@@ -143,8 +138,8 @@ fn runs_a_tool_using_version_detection() {
 
 #[test]
 fn updates_last_used_at() {
-    let temp = create_temp_dir();
-    let manifest_file = temp.join("tools/node/manifest.json");
+    let temp = create_empty_sandbox();
+    let manifest_file = temp.path().join("tools/node/manifest.json");
 
     let mut cmd = create_proto_command(temp.path());
     cmd.arg("install")
@@ -185,9 +180,9 @@ fn updates_last_used_at() {
 
 #[test]
 fn auto_installs_if_missing() {
-    let temp = create_temp_dir();
+    let temp = create_empty_sandbox();
 
-    std::fs::write(temp.path().join("config.toml"), "auto-install = true").unwrap();
+    temp.create_file("config.toml", "auto-install = true");
 
     let mut cmd = create_proto_command(temp.path());
     let assert = cmd
@@ -203,9 +198,9 @@ fn auto_installs_if_missing() {
 
 #[test]
 fn doesnt_auto_install_if_false() {
-    let temp = create_temp_dir();
+    let temp = create_empty_sandbox();
 
-    std::fs::write(temp.path().join("config.toml"), "auto-install = false").unwrap();
+    temp.create_file("config.toml", "auto-install = false");
 
     let mut cmd = create_proto_command(temp.path());
     let assert = cmd.arg("run").arg("node").arg("19.0.0").assert();
@@ -217,7 +212,7 @@ fn doesnt_auto_install_if_false() {
 
 #[test]
 fn runs_a_plugin() {
-    let temp = create_temp_dir_with_tools();
+    let temp = create_empty_sandbox_with_tools();
 
     let mut cmd = create_proto_command(temp.path());
     cmd.arg("install")
@@ -240,7 +235,7 @@ fn runs_a_plugin() {
 
 #[test]
 fn errors_if_plugin_not_configured() {
-    let temp = create_temp_dir();
+    let temp = create_empty_sandbox();
 
     let mut cmd = create_proto_command(temp.path());
     let assert = cmd.arg("run").arg("plugin-name").arg("1.0.0").assert();

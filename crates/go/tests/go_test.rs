@@ -1,12 +1,12 @@
-use assert_fs::prelude::{FileWriteStr, PathChild};
 use proto_core::{
     Detector, Downloadable, Executable, Installable, Proto, Resolvable, Tool, Verifiable, Version,
 };
 use proto_go::GoLanguage;
+use starbase_sandbox::{create_empty_sandbox, Sandbox};
 use std::fs;
 
-fn create_tool() -> (GoLanguage, assert_fs::TempDir) {
-    let fixture = assert_fs::TempDir::new().unwrap();
+fn create_tool() -> (GoLanguage, Sandbox) {
+    let fixture = create_empty_sandbox();
     let tool = GoLanguage::new(Proto::from(fixture.path()));
     (tool, fixture)
 }
@@ -16,7 +16,7 @@ mod go {
 
     #[tokio::test]
     async fn downloads_verifies_installs_tool() {
-        let fixture = assert_fs::TempDir::new().unwrap();
+        let fixture = create_empty_sandbox();
         let proto = Proto::from(fixture.path());
         let mut tool = GoLanguage::new(&proto);
 
@@ -55,7 +55,7 @@ mod go {
         async fn detects_gomod() {
             let (tool, fixture) = create_tool();
 
-            fixture.child("go.mod").write_str("go 1.19").unwrap();
+            fixture.create_file("go.mod", "go 1.19");
 
             assert_eq!(
                 tool.detect_version_from(fixture.path()).await.unwrap(),
@@ -67,8 +67,8 @@ mod go {
         async fn detects_gowork() {
             let (tool, fixture) = create_tool();
 
-            fixture.child("go.work").write_str("go 1.19").unwrap();
-            fixture.child("go.mod").write_str("go 1.18").unwrap();
+            fixture.create_file("go.work", "go 1.19");
+            fixture.create_file("go.mod", "go 1.18");
 
             assert_eq!(
                 tool.detect_version_from(fixture.path()).await.unwrap(),
@@ -80,10 +80,10 @@ mod go {
         async fn detects_multiline() {
             let (tool, fixture) = create_tool();
 
-            fixture
-                .child("go.mod")
-                .write_str("module github.com/moonbase/go_example/server\n\ngo 1.19\n")
-                .unwrap();
+            fixture.create_file(
+                "go.mod",
+                "module github.com/moonbase/go_example/server\n\ngo 1.19\n",
+            );
 
             assert_eq!(
                 tool.detect_version_from(fixture.path()).await.unwrap(),
@@ -100,6 +100,7 @@ mod go {
         async fn sets_path_to_temp() {
             let (mut tool, fixture) = create_tool();
             tool.version = Some(String::from("1.17.1"));
+
             assert_eq!(
                 tool.get_download_path().unwrap(),
                 Proto::from(fixture.path())
@@ -233,10 +234,10 @@ mod go {
         async fn resolve_custom_alias() {
             let (mut tool, fixture) = create_tool();
 
-            fixture
-                .child("tools/go/manifest.json")
-                .write_str(r#"{"aliases":{"example":"1.20.0"}}"#)
-                .unwrap();
+            fixture.create_file(
+                "tools/go/manifest.json",
+                r#"{"aliases":{"example":"1.20.0"}}"#,
+            );
 
             assert_eq!(tool.resolve_version("example").await.unwrap(), "1.20.0");
         }

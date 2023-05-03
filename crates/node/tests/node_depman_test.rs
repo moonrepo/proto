@@ -1,8 +1,8 @@
-use assert_fs::prelude::{FileWriteStr, PathChild};
 use proto_core::{
     Detector, Downloadable, Executable, Installable, Proto, Resolvable, Shimable, Tool,
 };
 use proto_node::{NodeDependencyManager, NodeDependencyManagerType};
+use starbase_sandbox::create_empty_sandbox;
 use std::path::Path;
 
 mod node_depman {
@@ -10,7 +10,7 @@ mod node_depman {
 
     #[tokio::test]
     async fn downloads_verifies_installs_npm() {
-        let fixture = assert_fs::TempDir::new().unwrap();
+        let fixture = create_empty_sandbox();
         let proto = Proto::from(fixture.path());
         let mut tool = NodeDependencyManager::new(&proto, NodeDependencyManagerType::Npm);
 
@@ -42,7 +42,7 @@ mod node_depman {
 
     #[tokio::test]
     async fn downloads_verifies_installs_pnpm() {
-        let fixture = assert_fs::TempDir::new().unwrap();
+        let fixture = create_empty_sandbox();
         let proto = Proto::from(fixture.path());
         let mut tool = NodeDependencyManager::new(&proto, NodeDependencyManagerType::Pnpm);
 
@@ -58,7 +58,7 @@ mod node_depman {
 
     #[tokio::test]
     async fn downloads_verifies_installs_yarn_classic() {
-        let fixture = assert_fs::TempDir::new().unwrap();
+        let fixture = create_empty_sandbox();
         let proto = Proto::from(fixture.path());
         let mut tool = NodeDependencyManager::new(&proto, NodeDependencyManagerType::Yarn);
 
@@ -74,7 +74,7 @@ mod node_depman {
 
     #[tokio::test]
     async fn downloads_verifies_installs_yarn_berry() {
-        let fixture = assert_fs::TempDir::new().unwrap();
+        let fixture = create_empty_sandbox();
         let proto = Proto::from(fixture.path());
         let mut tool = NodeDependencyManager::new(&proto, NodeDependencyManagerType::Yarn);
 
@@ -97,11 +97,10 @@ mod node_depman {
 
     mod detector {
         use super::*;
-        use assert_fs::prelude::{FileWriteStr, PathChild};
 
         #[tokio::test]
         async fn doesnt_match_if_no_json_file() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let tool = create_depman(fixture.path());
 
             assert_eq!(
@@ -112,9 +111,9 @@ mod node_depman {
 
         #[tokio::test]
         async fn doesnt_match_if_no_field() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
 
-            fixture.child("package.json").write_str(r#"{}"#).unwrap();
+            fixture.create_file("package.json", r#"{}"#);
 
             let tool = create_depman(fixture.path());
 
@@ -126,12 +125,9 @@ mod node_depman {
 
         #[tokio::test]
         async fn doesnt_match_if_diff_package_name() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
 
-            fixture
-                .child("package.json")
-                .write_str(r#"{"packageManager":"yarn@1.2.3"}"#)
-                .unwrap();
+            fixture.create_file("package.json", r#"{"packageManager":"yarn@1.2.3"}"#);
 
             let tool = create_depman(fixture.path());
 
@@ -143,12 +139,9 @@ mod node_depman {
 
         #[tokio::test]
         async fn defaults_to_latest_version() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
 
-            fixture
-                .child("package.json")
-                .write_str(r#"{"packageManager":"npm"}"#)
-                .unwrap();
+            fixture.create_file("package.json", r#"{"packageManager":"npm"}"#);
 
             let tool = create_depman(fixture.path());
 
@@ -160,12 +153,9 @@ mod node_depman {
 
         #[tokio::test]
         async fn matches_pm_partial_version() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
 
-            fixture
-                .child("package.json")
-                .write_str(r#"{"packageManager":"npm@1"}"#)
-                .unwrap();
+            fixture.create_file("package.json", r#"{"packageManager":"npm@1"}"#);
 
             let tool = create_depman(fixture.path());
 
@@ -177,12 +167,9 @@ mod node_depman {
 
         #[tokio::test]
         async fn matches_engines_partial_version() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
 
-            fixture
-                .child("package.json")
-                .write_str(r#"{"engines":{"npm":"1.2"}}"#)
-                .unwrap();
+            fixture.create_file("package.json", r#"{"engines":{"npm":"1.2"}}"#);
 
             let tool = create_depman(fixture.path());
 
@@ -194,12 +181,9 @@ mod node_depman {
 
         #[tokio::test]
         async fn detects_npm() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
 
-            fixture
-                .child("package.json")
-                .write_str(r#"{"packageManager":"npm@1.2.3"}"#)
-                .unwrap();
+            fixture.create_file("package.json", r#"{"packageManager":"npm@1.2.3"}"#);
 
             let tool = create_depman(fixture.path());
 
@@ -211,12 +195,9 @@ mod node_depman {
 
         #[tokio::test]
         async fn detects_npm_from_engines() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
 
-            fixture
-                .child("package.json")
-                .write_str(r#"{"engines":{"npm":"1.2.3"}}"#)
-                .unwrap();
+            fixture.create_file("package.json", r#"{"engines":{"npm":"1.2.3"}}"#);
 
             let tool = create_depman(fixture.path());
 
@@ -228,12 +209,9 @@ mod node_depman {
 
         #[tokio::test]
         async fn detects_pnpm() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
 
-            fixture
-                .child("package.json")
-                .write_str(r#"{"packageManager":"pnpm@4.5.6"}"#)
-                .unwrap();
+            fixture.create_file("package.json", r#"{"packageManager":"pnpm@4.5.6"}"#);
 
             let proto = Proto::from(fixture.path());
             let tool = NodeDependencyManager::new(proto, NodeDependencyManagerType::Pnpm);
@@ -246,12 +224,9 @@ mod node_depman {
 
         #[tokio::test]
         async fn detects_pnpm_from_engines() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
 
-            fixture
-                .child("package.json")
-                .write_str(r#"{"engines":{"pnpm":"=4.5.6"}}"#)
-                .unwrap();
+            fixture.create_file("package.json", r#"{"engines":{"pnpm":"=4.5.6"}}"#);
 
             let proto = Proto::from(fixture.path());
             let tool = NodeDependencyManager::new(proto, NodeDependencyManagerType::Pnpm);
@@ -264,12 +239,9 @@ mod node_depman {
 
         #[tokio::test]
         async fn detects_yarn() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
 
-            fixture
-                .child("package.json")
-                .write_str(r#"{"packageManager":"yarn@7.8.9"}"#)
-                .unwrap();
+            fixture.create_file("package.json", r#"{"packageManager":"yarn@7.8.9"}"#);
 
             let proto = Proto::from(fixture.path());
             let tool = NodeDependencyManager::new(proto, NodeDependencyManagerType::Yarn);
@@ -282,12 +254,9 @@ mod node_depman {
 
         #[tokio::test]
         async fn detects_yarn_from_engines() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
 
-            fixture
-                .child("package.json")
-                .write_str(r#"{"engines":{"yarn":"7.8.9"}}"#)
-                .unwrap();
+            fixture.create_file("package.json", r#"{"engines":{"yarn":"7.8.9"}}"#);
 
             let proto = Proto::from(fixture.path());
             let tool = NodeDependencyManager::new(proto, NodeDependencyManagerType::Yarn);
@@ -304,7 +273,7 @@ mod node_depman {
 
         #[tokio::test]
         async fn sets_path_to_temp() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let tool = create_depman(fixture.path());
 
             assert_eq!(
@@ -318,7 +287,7 @@ mod node_depman {
 
         #[tokio::test]
         async fn downloads_to_temp() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let tool = create_depman(fixture.path());
 
             let to_file = tool.get_download_path().unwrap();
@@ -332,7 +301,7 @@ mod node_depman {
 
         #[tokio::test]
         async fn doesnt_download_if_file_exists() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let tool = create_depman(fixture.path());
 
             let to_file = tool.get_download_path().unwrap();
@@ -347,7 +316,7 @@ mod node_depman {
 
         #[tokio::test]
         async fn resolve_latest() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let mut tool = NodeDependencyManager::new(
                 Proto::from(fixture.path()),
                 NodeDependencyManagerType::Npm,
@@ -359,7 +328,7 @@ mod node_depman {
 
         #[tokio::test]
         async fn resolve_partial_version() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let mut tool = NodeDependencyManager::new(
                 Proto::from(fixture.path()),
                 NodeDependencyManagerType::Npm,
@@ -370,7 +339,7 @@ mod node_depman {
 
         #[tokio::test]
         async fn resolve_version_with_prefix() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let mut tool = NodeDependencyManager::new(
                 Proto::from(fixture.path()),
                 NodeDependencyManagerType::Npm,
@@ -381,7 +350,7 @@ mod node_depman {
 
         #[tokio::test]
         async fn resolve_custom_dist() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let mut tool = NodeDependencyManager::new(
                 Proto::from(fixture.path()),
                 NodeDependencyManagerType::Yarn,
@@ -392,23 +361,23 @@ mod node_depman {
 
         #[tokio::test]
         async fn resolve_custom_alias() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let mut tool = NodeDependencyManager::new(
                 Proto::from(fixture.path()),
                 NodeDependencyManagerType::Npm,
             );
 
-            fixture
-                .child("tools/npm/manifest.json")
-                .write_str(r#"{"aliases":{"example":"9.0.0"}}"#)
-                .unwrap();
+            fixture.create_file(
+                "tools/npm/manifest.json",
+                r#"{"aliases":{"example":"9.0.0"}}"#,
+            );
 
             assert_eq!(tool.resolve_version("example").await.unwrap(), "9.0.0");
         }
 
         #[tokio::test]
         async fn handles_npm() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let mut tool = NodeDependencyManager::new(
                 Proto::from(fixture.path()),
                 NodeDependencyManagerType::Npm,
@@ -419,7 +388,7 @@ mod node_depman {
 
         #[tokio::test]
         async fn handles_pnpm() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let mut tool = NodeDependencyManager::new(
                 Proto::from(fixture.path()),
                 NodeDependencyManagerType::Pnpm,
@@ -430,7 +399,7 @@ mod node_depman {
 
         #[tokio::test]
         async fn handles_yarn() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let mut tool = NodeDependencyManager::new(
                 Proto::from(fixture.path()),
                 NodeDependencyManagerType::Yarn,
@@ -442,7 +411,7 @@ mod node_depman {
         #[tokio::test]
         #[should_panic(expected = "VersionUnknownAlias(\"unknown\")")]
         async fn errors_invalid_alias() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let mut tool = NodeDependencyManager::new(
                 Proto::from(fixture.path()),
                 NodeDependencyManagerType::Npm,
@@ -454,7 +423,7 @@ mod node_depman {
         #[tokio::test]
         #[should_panic(expected = "VersionResolveFailed(\"99.99.99\")")]
         async fn errors_invalid_version() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let mut tool = NodeDependencyManager::new(
                 Proto::from(fixture.path()),
                 NodeDependencyManagerType::Npm,

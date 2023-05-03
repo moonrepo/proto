@@ -5,8 +5,8 @@ use utils::*;
 
 #[test]
 fn writes_local_version_file() {
-    let temp = create_temp_dir();
-    let version_file = temp.join(".prototools");
+    let temp = create_empty_sandbox();
+    let version_file = temp.path().join(".prototools");
 
     assert!(!version_file.exists());
 
@@ -26,8 +26,8 @@ fn writes_local_version_file() {
 
 #[test]
 fn writes_local_version_file_for_plugin() {
-    let temp = create_temp_dir_with_tools();
-    let version_file = temp.join(".prototools");
+    let temp = create_empty_sandbox_with_tools();
+    let version_file = temp.path().join(".prototools");
 
     let mut cmd = create_proto_command(temp.path());
     cmd.arg("local")
@@ -43,8 +43,8 @@ fn writes_local_version_file_for_plugin() {
 
 #[test]
 fn appends_multiple_tools() {
-    let temp = create_temp_dir();
-    let version_file = temp.join(".prototools");
+    let temp = create_empty_sandbox();
+    let version_file = temp.path().join(".prototools");
 
     let mut cmd = create_proto_command(temp.path());
     cmd.arg("local")
@@ -66,16 +66,15 @@ npm = "9.0.0"
 
 #[test]
 fn will_overwrite_by_name() {
-    let temp = create_temp_dir();
-    let version_file = temp.join(".prototools");
+    let temp = create_empty_sandbox();
+    let version_file = temp.path().join(".prototools");
 
-    fs::write(
-        &version_file,
+    temp.create_file(
+        ".prototools",
         r#"node = "16.0.0"
 npm = "9.0.0"
 "#,
-    )
-    .unwrap();
+    );
 
     let mut cmd = create_proto_command(temp.path());
     cmd.arg("local")
@@ -94,8 +93,8 @@ npm = "9.0.0"
 
 #[test]
 fn can_set_aliases() {
-    let temp = create_temp_dir();
-    let version_file = temp.join(".prototools");
+    let temp = create_empty_sandbox();
+    let version_file = temp.path().join(".prototools");
 
     assert!(!version_file.exists());
 

@@ -1,14 +1,14 @@
 mod utils;
 
-use predicates::prelude::*;
 use proto_core::Manifest;
 use rustc_hash::FxHashMap;
+use starbase_sandbox::predicates::prelude::*;
 use utils::*;
 
 #[test]
 fn updates_manifest_file() {
-    let temp = create_temp_dir();
-    let manifest_file = temp.join("tools/node/manifest.json");
+    let temp = create_empty_sandbox();
+    let manifest_file = temp.path().join("tools/node/manifest.json");
 
     assert!(!manifest_file.exists());
 
@@ -32,8 +32,8 @@ fn updates_manifest_file() {
 
 #[test]
 fn updates_manifest_file_for_plugin() {
-    let temp = create_temp_dir_with_tools();
-    let manifest_file = temp.join("tools/moon-test/manifest.json");
+    let temp = create_empty_sandbox_with_tools();
+    let manifest_file = temp.path().join("tools/moon-test/manifest.json");
 
     assert!(!manifest_file.exists());
 
@@ -57,8 +57,8 @@ fn updates_manifest_file_for_plugin() {
 
 #[test]
 fn can_overwrite_existing_alias() {
-    let temp = create_temp_dir();
-    let manifest_file = temp.join("tools/node/manifest.json");
+    let temp = create_empty_sandbox();
+    let manifest_file = temp.path().join("tools/node/manifest.json");
 
     let mut manifest = Manifest::load(&manifest_file).unwrap();
     manifest.aliases.insert("example".into(), "19.0.0".into());
@@ -82,8 +82,8 @@ fn can_overwrite_existing_alias() {
 
 #[test]
 fn errors_when_using_version() {
-    let temp = create_temp_dir();
-    let manifest_file = temp.join("tools/node/manifest.json");
+    let temp = create_empty_sandbox();
+    let manifest_file = temp.path().join("tools/node/manifest.json");
 
     assert!(!manifest_file.exists());
 
@@ -102,8 +102,8 @@ fn errors_when_using_version() {
 
 #[test]
 fn errors_when_aliasing_self() {
-    let temp = create_temp_dir();
-    let manifest_file = temp.join("tools/node/manifest.json");
+    let temp = create_empty_sandbox();
+    let manifest_file = temp.path().join("tools/node/manifest.json");
 
     assert!(!manifest_file.exists());
 

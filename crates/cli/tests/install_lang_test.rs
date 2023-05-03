@@ -1,8 +1,8 @@
 mod utils;
 
-use predicates::prelude::*;
 use proto_core::Manifest;
 use rustc_hash::FxHashSet;
+use starbase_sandbox::predicates::prelude::*;
 use std::fs;
 use utils::*;
 
@@ -12,7 +12,7 @@ mod go {
 
     #[test]
     fn sets_gobin_to_shell() {
-        let temp = create_temp_dir();
+        let temp = create_empty_sandbox();
         let profile = temp.path().join(".profile");
 
         let mut cmd = create_proto_command(temp.path());
@@ -31,7 +31,7 @@ mod go {
 
     #[test]
     fn doesnt_set_gobin() {
-        let temp = create_temp_dir();
+        let temp = create_empty_sandbox();
         let profile = temp.path().join(".profile");
 
         let mut cmd = create_proto_command(temp.path());
@@ -54,7 +54,7 @@ mod node {
 
     #[test]
     fn installs_bundled_npm() {
-        let temp = create_temp_dir();
+        let temp = create_empty_sandbox();
 
         let mut cmd = create_proto_command(temp.path());
         let assert = cmd.arg("install").arg("node").arg("19.0.0").assert();
@@ -64,10 +64,10 @@ mod node {
         assert!(predicate::str::contains("Node.js has been installed at").eval(&output));
         assert!(predicate::str::contains("npm has been installed at").eval(&output));
 
-        assert!(temp.join("tools/node/19.0.0").exists());
-        assert!(temp.join("tools/npm/8.19.2").exists());
+        assert!(temp.path().join("tools/node/19.0.0").exists());
+        assert!(temp.path().join("tools/npm/8.19.2").exists());
 
-        let manifest = Manifest::load(temp.join("tools/npm/manifest.json")).unwrap();
+        let manifest = Manifest::load(temp.path().join("tools/npm/manifest.json")).unwrap();
 
         assert_eq!(manifest.default_version, Some("bundled".into()));
         assert_eq!(
@@ -78,7 +78,7 @@ mod node {
 
     #[test]
     fn skips_bundled_npm() {
-        let temp = create_temp_dir();
+        let temp = create_empty_sandbox();
 
         let mut cmd = create_proto_command(temp.path());
         let assert = cmd
@@ -94,7 +94,7 @@ mod node {
         assert!(predicate::str::contains("Node.js has been installed at").eval(&output));
         assert!(!predicate::str::contains("npm has been installed at").eval(&output));
 
-        assert!(temp.join("tools/node/19.0.0").exists());
-        assert!(!temp.join("tools/npm/8.19.2").exists());
+        assert!(temp.path().join("tools/node/19.0.0").exists());
+        assert!(!temp.path().join("tools/npm/8.19.2").exists());
     }
 }

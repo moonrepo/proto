@@ -1,34 +1,29 @@
-use assert_fs::prelude::{FileWriteStr, PathChild};
 use proto_core::{PluginLocation, PluginLocator, ToolsConfig};
 use rustc_hash::FxHashMap;
+use starbase_sandbox::create_empty_sandbox;
 
 #[test]
 #[should_panic(expected = "InvalidConfig")]
 fn errors_for_non_version_string() {
-    let fixture = assert_fs::TempDir::new().unwrap();
-    fixture
-        .child(".prototools")
-        .write_str("node = 123")
-        .unwrap();
+    let fixture = create_empty_sandbox();
+    fixture.create_file(".prototools", "node = 123");
 
     ToolsConfig::load_from(fixture.path()).unwrap();
 }
 
 #[test]
 fn parses_plugins_table() {
-    let fixture = assert_fs::TempDir::new().unwrap();
-    fixture
-        .child(".prototools")
-        .write_str(
-            r#"
+    let fixture = create_empty_sandbox();
+    fixture.create_file(
+        ".prototools",
+        r#"
 node = "12.0.0"
 
 [plugins]
 foo = "schema:./test.toml"
 camelCase = "schema:./camel.toml"
 "#,
-        )
-        .unwrap();
+    );
 
     let config = ToolsConfig::load_from(fixture.path()).unwrap();
 
@@ -54,7 +49,7 @@ camelCase = "schema:./camel.toml"
 
 #[test]
 fn formats_plugins_table() {
-    let fixture = assert_fs::TempDir::new().unwrap();
+    let fixture = create_empty_sandbox();
 
     let mut config = ToolsConfig::load_from(fixture.path()).unwrap();
     config.tools.insert("node".into(), "12.0.0".into());
