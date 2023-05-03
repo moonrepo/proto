@@ -1,6 +1,6 @@
 mod utils;
 
-use starbase_sandbox::{create_empty_sandbox, predicates::prelude::*};
+use starbase_sandbox::predicates::prelude::*;
 use utils::*;
 
 #[test]

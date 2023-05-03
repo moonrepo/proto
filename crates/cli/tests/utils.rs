@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
-use starbase_sandbox::create_command_with_name;
-pub use starbase_sandbox::{assert_cmd, create_empty_sandbox, output_to_string, Sandbox};
+use starbase_sandbox::{assert_cmd, create_command_with_name};
+pub use starbase_sandbox::{create_empty_sandbox, output_to_string, Sandbox};
 use std::path::Path;
 
 pub fn create_empty_sandbox_with_tools() -> Sandbox {

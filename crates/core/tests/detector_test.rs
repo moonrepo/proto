@@ -1,5 +1,5 @@
 use proto_core::*;
-use starbase_sandbox::create_temp_dir;
+use starbase_sandbox::create_empty_sandbox;
 use std::path::{Path, PathBuf};
 
 pub fn create_manifest(dir: &Path, manifest: Manifest) -> PathBuf {
@@ -16,7 +16,7 @@ mod expanded_version {
 
     #[test]
     fn returns_alias() {
-        let temp = create_temp_dir();
+        let temp = create_empty_sandbox();
 
         assert_eq!(
             expand_detected_version("unknown", &Manifest::load_from(temp.path()).unwrap())
@@ -28,7 +28,7 @@ mod expanded_version {
 
     #[test]
     fn handles_explicit() {
-        let temp = create_temp_dir();
+        let temp = create_empty_sandbox();
 
         assert_eq!(
             expand_detected_version("1.2.3-alpha", &Manifest::load_from(temp.path()).unwrap())
@@ -107,7 +107,7 @@ mod expanded_version {
 
     #[test]
     fn handles_equals() {
-        let temp = create_temp_dir();
+        let temp = create_empty_sandbox();
 
         assert_eq!(
             expand_detected_version("=1.2.3-alpha", &Manifest::load_from(temp.path()).unwrap())
@@ -149,7 +149,7 @@ mod expanded_version {
 
     #[test]
     fn handles_star() {
-        let temp = create_temp_dir();
+        let temp = create_empty_sandbox();
 
         assert_eq!(
             expand_detected_version("=1.2.*", &Manifest::load_from(temp.path()).unwrap())
@@ -179,7 +179,7 @@ mod expanded_version {
 
     #[test]
     fn handles_star_all() {
-        let temp = create_temp_dir();
+        let temp = create_empty_sandbox();
 
         let manifest_path = create_manifest(temp.path(), Manifest::default());
 
@@ -208,7 +208,7 @@ mod expanded_version {
 
     #[test]
     fn handles_caret() {
-        let temp = create_temp_dir();
+        let temp = create_empty_sandbox();
         let manifest_path = create_manifest(
             temp.path(),
             Manifest {
@@ -271,7 +271,7 @@ mod expanded_version {
 
     #[test]
     fn handles_tilde() {
-        let temp = create_temp_dir();
+        let temp = create_empty_sandbox();
         let manifest_path = create_manifest(
             temp.path(),
             Manifest {
@@ -336,7 +336,7 @@ mod expanded_version {
 
     #[test]
     fn handles_gt() {
-        let temp = create_temp_dir();
+        let temp = create_empty_sandbox();
         let manifest_path = create_manifest(
             temp.path(),
             Manifest {
@@ -403,7 +403,7 @@ mod expanded_version {
 
     #[test]
     fn handles_gte() {
-        let temp = create_temp_dir();
+        let temp = create_empty_sandbox();
         let manifest_path = create_manifest(
             temp.path(),
             Manifest {
@@ -468,7 +468,7 @@ mod expanded_version {
 
     #[test]
     fn handles_multi() {
-        let temp = create_temp_dir();
+        let temp = create_empty_sandbox();
         let manifest_path = create_manifest(
             temp.path(),
             Manifest {

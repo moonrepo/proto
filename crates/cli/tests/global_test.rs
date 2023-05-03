@@ -1,7 +1,6 @@
 mod utils;
 
 use proto_core::Manifest;
-use starbase_sandbox::create_empty_sandbox;
 use utils::*;
 
 #[test]

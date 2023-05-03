@@ -6,7 +6,7 @@ mod bun {
     use proto_core::{
         Downloadable, Executable, Installable, Proto, Resolvable, Tool, Verifiable, Version,
     };
-    use starbase_sandbox::{create_empty_sandbox, create_temp_dir, Sandbox};
+    use starbase_sandbox::{create_empty_sandbox, Sandbox};
     use std::fs;
 
     fn create_tool() -> (BunLanguage, Sandbox) {
@@ -19,7 +19,7 @@ mod bun {
 
     #[tokio::test]
     async fn downloads_verifies_installs_tool() {
-        let fixture = create_temp_dir();
+        let fixture = create_empty_sandbox();
         let proto = Proto::from(fixture.path());
         let mut tool = BunLanguage::new(&proto);
 
