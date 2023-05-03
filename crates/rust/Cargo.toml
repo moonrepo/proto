@@ -12,4 +12,3 @@ proto_core = { version = "0.8.1", path = "../core" }
 once_cell = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
-

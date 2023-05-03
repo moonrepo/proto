@@ -4,7 +4,7 @@ use utils::*;
 
 #[test]
 fn lists_remote_versions() {
-    let temp = create_temp_dir();
+    let temp = create_empty_sandbox();
 
     let mut cmd = create_proto_command(temp.path());
     let assert = cmd.arg("list-remote").arg("node").assert();
@@ -16,7 +16,7 @@ fn lists_remote_versions() {
 
 #[test]
 fn lists_remote_versions_for_plugin() {
-    let temp = create_temp_dir_with_tools();
+    let temp = create_sandbox_with_tools();
 
     let mut cmd = create_proto_command(temp.path());
     let assert = cmd.arg("list-remote").arg("moon-test").assert();

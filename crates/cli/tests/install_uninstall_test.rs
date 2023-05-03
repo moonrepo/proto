@@ -1,14 +1,14 @@
 mod utils;
 
-use predicates::prelude::*;
 use proto_core::Manifest;
 use rustc_hash::FxHashSet;
+use starbase_sandbox::predicates::prelude::*;
 use utils::*;
 
 #[test]
 fn installs_and_uninstalls_tool() {
-    let temp = create_temp_dir();
-    let tool_dir = temp.join("tools/node/19.0.0");
+    let temp = create_empty_sandbox();
+    let tool_dir = temp.path().join("tools/node/19.0.0");
 
     assert!(!tool_dir.exists());
 
@@ -33,7 +33,7 @@ fn installs_and_uninstalls_tool() {
 
 #[test]
 fn doesnt_install_tool_if_exists() {
-    let temp = create_temp_dir();
+    let temp = create_empty_sandbox();
 
     let mut cmd = create_proto_command(temp.path());
     cmd.arg("install")
@@ -52,7 +52,7 @@ fn doesnt_install_tool_if_exists() {
 
 #[test]
 fn doesnt_uninstall_tool_if_doesnt_exist() {
-    let temp = create_temp_dir();
+    let temp = create_empty_sandbox();
 
     let mut cmd = create_proto_command(temp.path());
     let assert = cmd.arg("uninstall").arg("node").arg("19.0.0").assert();
@@ -62,8 +62,8 @@ fn doesnt_uninstall_tool_if_doesnt_exist() {
 
 #[test]
 fn updates_the_manifest_when_installing() {
-    let temp = create_temp_dir();
-    let manifest_file = temp.join("tools/node/manifest.json");
+    let temp = create_empty_sandbox();
+    let manifest_file = temp.path().join("tools/node/manifest.json");
 
     // Install
     let mut cmd = create_proto_command(temp.path());
@@ -99,8 +99,8 @@ fn updates_the_manifest_when_installing() {
 
 #[test]
 fn can_pin_when_installing() {
-    let temp = create_temp_dir();
-    let manifest_file = temp.join("tools/node/manifest.json");
+    let temp = create_empty_sandbox();
+    let manifest_file = temp.path().join("tools/node/manifest.json");
 
     let mut manifest = Manifest::load(&manifest_file).unwrap();
     manifest.default_version = Some("18.0.0".into());

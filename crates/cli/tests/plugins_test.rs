@@ -1,14 +1,17 @@
+mod utils;
+
 use futures::Future;
 use proto::{tools::create_plugin_from_locator, ProtoError};
 use proto_core::{PluginLocation, PluginLocator, Proto, Tool};
 use std::path::{Path, PathBuf};
+use utils::*;
 
 async fn run_tests<F, Fut>(factory: F)
 where
     F: FnOnce(&Path) -> Fut,
     Fut: Future<Output = Result<Box<dyn Tool<'static>>, ProtoError>>,
 {
-    let fixture = assert_fs::TempDir::new().unwrap();
+    let fixture = create_empty_sandbox();
     let proto = Proto::from(fixture.path());
 
     let mut tool = factory(fixture.path()).await.unwrap();

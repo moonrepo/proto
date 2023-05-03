@@ -1,4 +1,3 @@
-use assert_fs::prelude::{FileWriteStr, PathChild};
 use proto_core::{
     get_home_dir, Detector, Downloadable, Executable, Installable, Proto, Resolvable, Shimable,
     Verifiable,
@@ -7,6 +6,7 @@ use proto_schema_plugin::{
     DetectSchema, InstallSchema, PlatformMapper, ResolveSchema, Schema, SchemaPlugin,
 };
 use rustc_hash::FxHashMap;
+use starbase_sandbox::create_empty_sandbox;
 use starbase_utils::string_vec;
 use std::env::{self, consts};
 use std::fs;
@@ -29,7 +29,7 @@ mod schema_plugin {
 
         #[tokio::test]
         async fn doesnt_match_if_no_files() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let tool = create_plugin(
                 fixture.path(),
                 Schema {
@@ -48,7 +48,7 @@ mod schema_plugin {
 
         #[tokio::test]
         async fn detects_nvm() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let tool = create_plugin(
                 fixture.path(),
                 Schema {
@@ -59,7 +59,7 @@ mod schema_plugin {
                 },
             );
 
-            fixture.child(".version").write_str("1.2.3").unwrap();
+            fixture.create_file(".version", "1.2.3");
 
             assert_eq!(
                 tool.detect_version_from(fixture.path()).await.unwrap(),
@@ -106,7 +106,7 @@ mod schema_plugin {
 
         #[tokio::test]
         async fn sets_correct_files_urls() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let tool = create_plugin(fixture.path(), create_download_schema());
 
             if cfg!(target_os = "windows") {
@@ -146,7 +146,7 @@ mod schema_plugin {
 
         #[tokio::test]
         async fn downloads_to_temp() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let tool = create_plugin(fixture.path(), create_download_schema());
 
             let to_file = tool.get_download_path().unwrap();
@@ -160,7 +160,7 @@ mod schema_plugin {
 
         #[tokio::test]
         async fn doesnt_download_if_file_exists() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let tool = create_plugin(fixture.path(), create_download_schema());
 
             let to_file = tool.get_download_path().unwrap();
@@ -175,7 +175,7 @@ mod schema_plugin {
 
         #[tokio::test]
         async fn uses_bin_in_cwd_by_default() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let mut tool = create_plugin(fixture.path(), Schema::default());
 
             let bin_path = tool.get_install_dir().unwrap().join(if cfg!(windows) {
@@ -194,7 +194,7 @@ mod schema_plugin {
 
         #[tokio::test]
         async fn can_customize_based_on_os() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let mut tool = create_plugin(
                 fixture.path(),
                 Schema {
@@ -248,7 +248,7 @@ mod schema_plugin {
 
             #[tokio::test]
             async fn defaults_to_some_home_dir() {
-                let fixture = assert_fs::TempDir::new().unwrap();
+                let fixture = create_empty_sandbox();
                 let tool = create_plugin(fixture.path(), Schema::default());
 
                 assert_eq!(
@@ -259,7 +259,7 @@ mod schema_plugin {
 
             #[tokio::test]
             async fn expands_home_dir() {
-                let fixture = assert_fs::TempDir::new().unwrap();
+                let fixture = create_empty_sandbox();
                 let tool = create_plugin(
                     fixture.path(),
                     Schema {
@@ -279,7 +279,7 @@ mod schema_plugin {
 
             #[tokio::test]
             async fn expands_home_env_var() {
-                let fixture = assert_fs::TempDir::new().unwrap();
+                let fixture = create_empty_sandbox();
                 let tool = create_plugin(
                     fixture.path(),
                     Schema {
@@ -299,7 +299,7 @@ mod schema_plugin {
 
             #[tokio::test]
             async fn supports_env_vars() {
-                let fixture = assert_fs::TempDir::new().unwrap();
+                let fixture = create_empty_sandbox();
                 let tool = create_plugin(
                     fixture.path(),
                     Schema {
@@ -326,7 +326,7 @@ mod schema_plugin {
 
         #[tokio::test]
         async fn can_customize_prefix_based_on_os() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let tool = create_plugin(
                 fixture.path(),
                 Schema {
@@ -368,7 +368,7 @@ mod schema_plugin {
 
         #[tokio::test]
         async fn resolves_git_tags() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let tool = create_plugin(
                 fixture.path(),
                 Schema {
@@ -389,7 +389,7 @@ mod schema_plugin {
 
         #[tokio::test]
         async fn resolves_git_tags_with_custom_pattern() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let tool = create_plugin(
                 fixture.path(),
                 Schema {
@@ -411,7 +411,7 @@ mod schema_plugin {
 
         #[tokio::test]
         async fn resolves_endpoint() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let tool = create_plugin(
                 fixture.path(),
                 Schema {
@@ -432,7 +432,7 @@ mod schema_plugin {
 
         #[tokio::test]
         async fn resolves_endpoint_with_custom_key() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let tool = create_plugin(
                 fixture.path(),
                 Schema {
@@ -459,7 +459,7 @@ mod schema_plugin {
 
         #[tokio::test]
         async fn creates_global_shim() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let proto = Proto::from(fixture.path());
             let mut tool = create_plugin(fixture.path(), Schema::default());
 
@@ -479,7 +479,7 @@ mod schema_plugin {
 
         #[tokio::test]
         async fn creates_local_shim() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let proto = Proto::from(fixture.path());
             let mut tool = create_plugin(fixture.path(), Schema::default());
 
@@ -528,7 +528,7 @@ mod schema_plugin {
 
         #[tokio::test]
         async fn sets_correct_files_urls() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let tool = create_plugin(fixture.path(), create_verify_schema());
 
             if cfg!(target_os = "windows") {

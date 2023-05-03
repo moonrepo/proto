@@ -55,6 +55,4 @@ tracing = { workspace = true }
 winreg = "0.50.0"
 
 [dev-dependencies]
-assert_cmd = "2.0.11"
-assert_fs = { workspace = true }
-predicates = "3.0.3"
+starbase_sandbox = { workspace = true }

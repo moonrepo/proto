@@ -1,9 +1,6 @@
 use proto_core::*;
+use starbase_sandbox::create_temp_dir;
 use std::path::{Path, PathBuf};
-
-pub fn create_temp_dir() -> assert_fs::TempDir {
-    assert_fs::TempDir::new().unwrap()
-}
 
 pub fn create_manifest(dir: &Path, manifest: Manifest) -> PathBuf {
     let manifest_path = dir.join(MANIFEST_NAME);

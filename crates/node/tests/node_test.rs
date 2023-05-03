@@ -1,8 +1,8 @@
-use assert_fs::prelude::{FileWriteStr, PathChild};
 use proto_core::{
     Detector, Downloadable, Executable, Installable, Proto, Resolvable, Tool, Verifiable,
 };
 use proto_node::NodeLanguage;
+use starbase_sandbox::create_empty_sandbox;
 use std::{fs, path::Path};
 
 mod node {
@@ -10,7 +10,7 @@ mod node {
 
     #[tokio::test]
     async fn downloads_verifies_installs_tool() {
-        let fixture = assert_fs::TempDir::new().unwrap();
+        let fixture = create_empty_sandbox();
         let proto = Proto::from(fixture.path());
         let mut tool = NodeLanguage::new(&proto);
 
@@ -42,7 +42,7 @@ mod node {
 
         #[tokio::test]
         async fn doesnt_match_if_no_files() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let tool = create_node(fixture.path());
 
             assert_eq!(
@@ -53,10 +53,10 @@ mod node {
 
         #[tokio::test]
         async fn detects_nvm() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let tool = create_node(fixture.path());
 
-            fixture.child(".nvmrc").write_str("1.2.3").unwrap();
+            fixture.create_file(".nvmrc", "1.2.3");
 
             assert_eq!(
                 tool.detect_version_from(fixture.path()).await.unwrap(),
@@ -66,10 +66,10 @@ mod node {
 
         #[tokio::test]
         async fn detects_nodenv() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let tool = create_node(fixture.path());
 
-            fixture.child(".node-version").write_str("4.5.6\n").unwrap();
+            fixture.create_file(".node-version", "4.5.6\n");
 
             assert_eq!(
                 tool.detect_version_from(fixture.path()).await.unwrap(),
@@ -79,13 +79,10 @@ mod node {
 
         #[tokio::test]
         async fn detects_engines() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let tool = create_node(fixture.path());
 
-            fixture
-                .child("package.json")
-                .write_str(r#"{"engines":{"node":"16.2.*"}}"#)
-                .unwrap();
+            fixture.create_file("package.json", r#"{"engines":{"node":"16.2.*"}}"#);
 
             assert_eq!(
                 tool.detect_version_from(fixture.path()).await.unwrap(),
@@ -95,13 +92,10 @@ mod node {
 
         #[tokio::test]
         async fn matches_engines_star() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let tool = create_node(fixture.path());
 
-            fixture
-                .child("package.json")
-                .write_str(r#"{"engines":{"node":"16.*"}}"#)
-                .unwrap();
+            fixture.create_file("package.json", r#"{"engines":{"node":"16.*"}}"#);
 
             assert_eq!(
                 tool.detect_version_from(fixture.path()).await.unwrap(),
@@ -116,7 +110,7 @@ mod node {
 
         #[tokio::test]
         async fn sets_path_to_temp() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let tool = create_node(fixture.path());
 
             assert_eq!(
@@ -130,7 +124,7 @@ mod node {
 
         #[tokio::test]
         async fn downloads_to_temp() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let tool = create_node(fixture.path());
 
             let to_file = tool.get_download_path().unwrap();
@@ -144,7 +138,7 @@ mod node {
 
         #[tokio::test]
         async fn doesnt_download_if_file_exists() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let tool = create_node(fixture.path());
 
             let to_file = tool.get_download_path().unwrap();
@@ -159,7 +153,7 @@ mod node {
 
         #[tokio::test]
         async fn sets_dir_to_tools() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let tool = create_node(fixture.path());
 
             assert_eq!(
@@ -174,7 +168,7 @@ mod node {
         #[tokio::test]
         #[should_panic(expected = "InstallMissingDownload(\"Node.js\")")]
         async fn errors_for_missing_download() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let tool = create_node(fixture.path());
 
             let dir = tool.get_install_dir().unwrap();
@@ -186,7 +180,7 @@ mod node {
 
         #[tokio::test]
         async fn doesnt_install_if_dir_exists() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let tool = create_node(fixture.path());
 
             let dir = tool.get_install_dir().unwrap();
@@ -205,7 +199,7 @@ mod node {
 
         #[tokio::test]
         async fn updates_struct_version() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let mut tool = NodeLanguage::new(Proto::from(fixture.path()));
 
             assert_ne!(tool.resolve_version("node").await.unwrap(), "node");
@@ -214,7 +208,7 @@ mod node {
 
         #[tokio::test]
         async fn resolve_latest() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let mut tool = NodeLanguage::new(Proto::from(fixture.path()));
 
             assert_ne!(tool.resolve_version("latest").await.unwrap(), "latest");
@@ -222,7 +216,7 @@ mod node {
 
         #[tokio::test]
         async fn resolve_stable() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let mut tool = NodeLanguage::new(Proto::from(fixture.path()));
 
             assert_ne!(tool.resolve_version("stable").await.unwrap(), "stable");
@@ -230,7 +224,7 @@ mod node {
 
         #[tokio::test]
         async fn resolve_lts_wild() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let mut tool = NodeLanguage::new(Proto::from(fixture.path()));
 
             assert_ne!(tool.resolve_version("lts-*").await.unwrap(), "lts-*");
@@ -238,7 +232,7 @@ mod node {
 
         #[tokio::test]
         async fn resolve_lts_dash() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let mut tool = NodeLanguage::new(Proto::from(fixture.path()));
 
             assert_ne!(
@@ -249,7 +243,7 @@ mod node {
 
         #[tokio::test]
         async fn resolve_lts_slash() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let mut tool = NodeLanguage::new(Proto::from(fixture.path()));
 
             assert_ne!(
@@ -260,7 +254,7 @@ mod node {
 
         #[tokio::test]
         async fn resolve_alias() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let mut tool = NodeLanguage::new(Proto::from(fixture.path()));
 
             assert_ne!(tool.resolve_version("Gallium").await.unwrap(), "Gallium");
@@ -268,7 +262,7 @@ mod node {
 
         #[tokio::test]
         async fn resolve_version() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let mut tool = NodeLanguage::new(Proto::from(fixture.path()));
 
             assert_eq!(tool.resolve_version("18.0.0").await.unwrap(), "18.0.0");
@@ -276,7 +270,7 @@ mod node {
 
         #[tokio::test]
         async fn resolve_partial_version() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let mut tool = NodeLanguage::new(Proto::from(fixture.path()));
 
             assert_eq!(tool.resolve_version("10.1").await.unwrap(), "10.1.0");
@@ -284,20 +278,20 @@ mod node {
 
         #[tokio::test]
         async fn resolve_custom_alias() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let mut tool = NodeLanguage::new(Proto::from(fixture.path()));
 
-            fixture
-                .child("tools/node/manifest.json")
-                .write_str(r#"{"aliases":{"example":"10.0.0"}}"#)
-                .unwrap();
+            fixture.create_file(
+                "tools/node/manifest.json",
+                r#"{"aliases":{"example":"10.0.0"}}"#,
+            );
 
             assert_eq!(tool.resolve_version("example").await.unwrap(), "10.0.0");
         }
 
         #[tokio::test]
         async fn resolve_version_with_prefix() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let mut tool = NodeLanguage::new(Proto::from(fixture.path()));
 
             assert_eq!(tool.resolve_version("v18.0.0").await.unwrap(), "18.0.0");
@@ -306,7 +300,7 @@ mod node {
         #[tokio::test]
         #[should_panic(expected = "VersionUnknownAlias(\"unknown\")")]
         async fn errors_invalid_lts() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let mut tool = NodeLanguage::new(Proto::from(fixture.path()));
 
             tool.resolve_version("lts-unknown").await.unwrap();
@@ -315,7 +309,7 @@ mod node {
         #[tokio::test]
         #[should_panic(expected = "VersionUnknownAlias(\"unknown\")")]
         async fn errors_invalid_alias() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let mut tool = NodeLanguage::new(Proto::from(fixture.path()));
 
             tool.resolve_version("unknown").await.unwrap();
@@ -324,7 +318,7 @@ mod node {
         #[tokio::test]
         #[should_panic(expected = "VersionResolveFailed(\"99.99.99\")")]
         async fn errors_invalid_version() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let mut tool = NodeLanguage::new(Proto::from(fixture.path()));
 
             tool.resolve_version("99.99.99").await.unwrap();
@@ -336,7 +330,7 @@ mod node {
 
         #[tokio::test]
         async fn sets_path_to_temp() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let tool = create_node(fixture.path());
 
             assert_eq!(
@@ -350,7 +344,7 @@ mod node {
 
         #[tokio::test]
         async fn downloads_to_temp() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let tool = create_node(fixture.path());
 
             let to_file = tool.get_checksum_path().unwrap();
@@ -364,7 +358,7 @@ mod node {
 
         #[tokio::test]
         async fn doesnt_download_if_file_exists() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let tool = create_node(fixture.path());
 
             let to_file = tool.get_checksum_path().unwrap();
@@ -376,7 +370,7 @@ mod node {
         #[tokio::test]
         #[should_panic(expected = "VerifyInvalidChecksum")]
         async fn errors_for_checksum_mismatch() {
-            let fixture = assert_fs::TempDir::new().unwrap();
+            let fixture = create_empty_sandbox();
             let tool = create_node(fixture.path());
             let dl_path = tool.get_download_path().unwrap();
             let cs_path = tool.get_checksum_path().unwrap();

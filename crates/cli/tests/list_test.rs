@@ -5,9 +5,9 @@ use utils::*;
 
 #[test]
 fn lists_local_versions() {
-    let temp = create_temp_dir();
+    let temp = create_empty_sandbox();
 
-    let mut manifest = Manifest::load(temp.join("tools/node/manifest.json")).unwrap();
+    let mut manifest = Manifest::load(temp.path().join("tools/node/manifest.json")).unwrap();
     manifest.default_version = Some("19.0.0".into());
     manifest.installed_versions.insert("19.0.0".into());
     manifest.installed_versions.insert("18.0.0".into());

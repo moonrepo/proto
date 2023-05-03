@@ -1,12 +1,12 @@
-use assert_fs::prelude::{FileWriteStr, PathChild};
 use proto_core::{
     Detector, Downloadable, Executable, Installable, Proto, Resolvable, Tool, Version,
 };
 use proto_deno::DenoLanguage;
+use starbase_sandbox::{create_empty_sandbox, Sandbox};
 use std::fs;
 
-fn create_tool() -> (DenoLanguage, assert_fs::TempDir) {
-    let fixture = assert_fs::TempDir::new().unwrap();
+fn create_tool() -> (DenoLanguage, Sandbox) {
+    let fixture = create_empty_sandbox();
     let tool = DenoLanguage::new(Proto::from(fixture.path()));
     (tool, fixture)
 }
@@ -16,7 +16,7 @@ mod deno {
 
     #[tokio::test]
     async fn downloads_verifies_installs_tool() {
-        let fixture = assert_fs::TempDir::new().unwrap();
+        let fixture = create_empty_sandbox();
         let proto = Proto::from(fixture.path());
         let mut tool = DenoLanguage::new(&proto);
 
@@ -54,7 +54,7 @@ mod deno {
         async fn detects_dvmrc() {
             let (tool, fixture) = create_tool();
 
-            fixture.child(".dvmrc").write_str("1.30.1").unwrap();
+            fixture.create_file(".dvmrc", "1.30.1");
 
             assert_eq!(
                 tool.detect_version_from(fixture.path()).await.unwrap(),
@@ -71,6 +71,7 @@ mod deno {
         async fn sets_path_to_temp() {
             let (mut tool, fixture) = create_tool();
             tool.version = Some(String::from("1.28.3"));
+
             assert_eq!(
                 tool.get_download_path().unwrap(),
                 Proto::from(fixture.path())
@@ -192,10 +193,10 @@ mod deno {
         async fn resolve_custom_alias() {
             let (mut tool, fixture) = create_tool();
 
-            fixture
-                .child("tools/deno/manifest.json")
-                .write_str(r#"{"aliases":{"example":"1.30.0"}}"#)
-                .unwrap();
+            fixture.create_file(
+                "tools/deno/manifest.json",
+                r#"{"aliases":{"example":"1.30.0"}}"#,
+            );
 
             assert_eq!(tool.resolve_version("example").await.unwrap(), "1.30.0");
         }
