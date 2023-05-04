@@ -17,6 +17,7 @@ use std::{
 pub struct RustLanguage {
     pub base_dir: PathBuf,
     pub bin_path: Option<PathBuf>,
+    pub rustup_dir: PathBuf,
     pub temp_dir: PathBuf,
     pub version: Option<String>,
 
@@ -28,9 +29,10 @@ impl RustLanguage {
         let proto = proto.as_ref();
 
         RustLanguage {
-            base_dir: proto.home_dir.join(".rustup").join("toolchains"),
+            base_dir: proto.tools_dir.join("rust"),
             bin_path: None,
             manifest: OnceCell::new(),
+            rustup_dir: proto.home_dir.join(".rustup").join("toolchains"),
             temp_dir: proto.temp_dir.join("rust"),
             version: None,
         }
@@ -38,6 +40,7 @@ impl RustLanguage {
 }
 
 impl Describable<'_> for RustLanguage {
+    // This is actually an ID, not the actual bin name... revisit!
     fn get_bin_name(&self) -> &str {
         "rust"
     }
