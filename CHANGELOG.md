@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+#### 🐞 Fixes
+
+##### Rust
+
+- Fixed an issue where "is installed" checks would sometimes fail.
+- Fixed an issue where it would load the manifest cache from the wrong path.
+
+#### ⚙️ Internal
+
+- Migrated to a new sandbox implementation for testing.
+
 ## 0.8.1
 
 #### 🐞 Fixes

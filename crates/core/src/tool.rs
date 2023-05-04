@@ -113,14 +113,7 @@ pub trait Tool<'tool>:
         if install_dir.exists() {
             self.find_bin_path().await?;
 
-            let bin_path = {
-                match self.get_bin_path() {
-                    Ok(bin) => bin,
-                    Err(_) => return Ok(false),
-                }
-            };
-
-            if bin_path.exists() {
+            if self.get_bin_path().is_ok() {
                 debug!(
                     install_dir = %install_dir.display(),
                     "Tool has already been installed",
