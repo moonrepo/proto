@@ -62,7 +62,7 @@ impl Installable<'_> for RustLanguage {
 
         // ~/.rustup/toolchains/1.68.0-aarch64-apple-darwin
         Ok(self
-            .base_dir
+            .rustup_dir
             .join(format!("{}-{}", self.get_resolved_version(), target)))
     }
 
