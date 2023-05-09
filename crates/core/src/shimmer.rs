@@ -24,7 +24,7 @@ pub struct Context {
 #[async_trait::async_trait]
 pub trait Shimable<'tool>: Send + Sync {
     /// Create one or many shims in the root of the tool's install directory.
-    async fn create_shims(&mut self) -> Result<(), ProtoError>;
+    async fn create_shims(&mut self, find_only: bool) -> Result<(), ProtoError>;
 
     /// Return an absolute path to the shim file if utilizing shims.
     fn get_shim_path(&self) -> Option<&Path> {
@@ -147,10 +147,11 @@ impl ShimBuilder {
             } else {
                 get_template(true)
             },
+            false,
         )
     }
 
-    pub fn create_tool_shim(&self) -> Result<PathBuf, ProtoError> {
+    pub fn create_tool_shim(&self, find_only: bool) -> Result<PathBuf, ProtoError> {
         let shim_path = self
             .install_dir
             .as_ref()
@@ -165,6 +166,7 @@ impl ShimBuilder {
             } else {
                 get_template(false)
             },
+            find_only,
         )
     }
 
@@ -179,8 +181,17 @@ impl ShimBuilder {
         })
     }
 
-    fn do_create(&self, shim_path: PathBuf, contents: &str) -> Result<PathBuf, ProtoError> {
+    fn do_create(
+        &self,
+        shim_path: PathBuf,
+        contents: &str,
+        find_only: bool,
+    ) -> Result<PathBuf, ProtoError> {
         let shim_exists = shim_path.exists();
+
+        if find_only && shim_exists {
+            return Ok(shim_path);
+        }
 
         if let Some(parent) = shim_path.parent() {
             fs::create_dir_all(parent)?;
@@ -189,10 +200,7 @@ impl ShimBuilder {
         fs::write_file(&shim_path, build_shim_file(self, contents)?)?;
         fs::update_perms(&shim_path, None)?;
 
-        // Only log the first time it happens
-        if !shim_exists {
-            debug!(file = %shim_path.display(), "Created shim");
-        }
+        debug!(file = %shim_path.display(), "Created shim");
 
         Ok(shim_path)
     }

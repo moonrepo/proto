@@ -6,7 +6,7 @@ use std::path::Path;
 
 #[async_trait]
 impl Shimable<'_> for NodeDependencyManager {
-    async fn create_shims(&mut self) -> Result<(), ProtoError> {
+    async fn create_shims(&mut self, find_only: bool) -> Result<(), ProtoError> {
         let mut shimmer = ShimBuilder::new(&self.package_name, self.get_bin_path()?);
 
         shimmer
@@ -16,7 +16,7 @@ impl Shimable<'_> for NodeDependencyManager {
 
         shimmer.create_global_shim()?;
 
-        self.shim_path = Some(shimmer.create_tool_shim()?);
+        self.shim_path = Some(shimmer.create_tool_shim(find_only)?);
 
         Ok(())
     }

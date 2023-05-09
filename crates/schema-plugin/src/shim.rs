@@ -7,7 +7,7 @@ use std::path::Path;
 
 #[async_trait]
 impl Shimable<'_> for SchemaPlugin {
-    async fn create_shims(&mut self) -> Result<(), ProtoError> {
+    async fn create_shims(&mut self, find_only: bool) -> Result<(), ProtoError> {
         let mut shimmer = ShimBuilder::new(self.get_bin_name(), self.get_bin_path()?);
         let schema = &self.schema.shim;
 
@@ -24,7 +24,7 @@ impl Shimable<'_> for SchemaPlugin {
         }
 
         if schema.local {
-            self.shim_path = Some(shimmer.create_tool_shim()?);
+            self.shim_path = Some(shimmer.create_tool_shim(find_only)?);
         }
 
         Ok(())
