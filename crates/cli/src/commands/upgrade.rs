@@ -55,7 +55,7 @@ pub async fn upgrade() -> SystemResult {
         }
     };
     let target_ext = if cfg!(windows) { "zip" } else { "tar.xz" };
-    let target_file = format!("proto_cli-v{new_version}-{target}");
+    let target_file = format!("proto_cli-{target}");
 
     debug!("Download target: {}", &target_file);
 
