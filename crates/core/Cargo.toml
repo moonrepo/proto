@@ -11,10 +11,9 @@ repository = "https://github.com/moonrepo/proto"
 async-trait = "0.1.68"
 cached = { workspace = true }
 convert_case = { workspace = true }
-dirs = "5.0.0"
-# fd-lock = "3.0.12"
-flate2 = "1.0.25"
-fs4 = { version = "0.6.3", features = ["sync"] }
+dirs = "5.0.1"
+flate2 = "1.0.26"
+fs4 = { version = "0.6.4", features = ["sync"] }
 human-sort = "0.2.2"
 lenient_semver = { version = "0.4.2", default-features = false, features = ["version_lite"] }
 miette = { workspace = true }
@@ -32,7 +31,7 @@ thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 xz2 = "0.1.7"
-zip = "0.6.4"
+zip = "0.6.5"
 
 [dev-dependencies]
 starbase_sandbox = { workspace = true }

@@ -86,16 +86,17 @@ pub trait Tool<'tool>:
 
     async fn setup_shims(&mut self, force: bool) -> Result<(), ProtoError> {
         let is_outdated = { self.get_manifest_mut()?.shim_version != SHIM_VERSION };
+        let do_create = force || is_outdated;
 
-        if force || is_outdated {
+        if do_create {
             debug!("Creating shims as they either do not exist, or are outdated");
 
             let manifest = self.get_manifest_mut()?;
             manifest.shim_version = SHIM_VERSION;
             manifest.save()?;
-
-            self.create_shims().await?;
         }
+
+        self.create_shims(!do_create).await?;
 
         Ok(())
     }

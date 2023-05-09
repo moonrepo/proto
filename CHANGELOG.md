@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed an issue where shim files would sometimes not be found.
+
+#### ⚙️ Internal
+
+- Updated Cargo dependencies.
+- Updated to `cargo-dist` v0.0.6.
+
 ## 0.8.2
 
 #### 🐞 Fixes
