@@ -42,15 +42,9 @@ mod node_depman {
         // Also check node-gyp
 
         if cfg!(windows) {
-            assert!(proto
-                .tools_dir
-                .join("npm/9.0.0/bin/node-gyp-bin/node-gyp.cmd")
-                .exists());
+            assert!(proto.bin_dir.join("node-gyp.ps1").exists());
         } else {
-            assert!(proto
-                .tools_dir
-                .join("npm/9.0.0/bin/node-gyp-bin/node-gyp")
-                .exists());
+            assert!(proto.bin_dir.join("node-gyp").exists());
         }
     }
 
