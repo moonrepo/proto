@@ -13,7 +13,6 @@ clean-path = "0.2.1"
 once_cell = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
-serde_json = { workspace = true }
 starbase_utils = { workspace = true }
 tracing = { workspace = true }
 

@@ -4,6 +4,30 @@ use proto_core::{
 };
 use std::path::Path;
 
+#[cfg(not(windows))]
+fn node_gyp_template() -> String {
+    r#"# node-gyp comes bundled with npm, so first determine the npm path...
+npm_bin=$(proto bin npm)
+
+# ...and then replace the npm bin with node-gyp. Simple but works!
+node_gyp_bin=$(echo "$npm_bin" | sed 's/bin\/npm-cli.js/bin\/node-gyp-bin\/node-gyp/')
+
+exec "$node_gyp_bin" "$@""#
+        .to_owned()
+}
+
+#[cfg(windows)]
+fn node_gyp_template() -> String {
+    r#"# node-gyp comes bundled with npm, so first determine the npm path...
+$NpmBin = proto.exe bin npm
+
+# ...and then replace the npm bin with node-gyp. Simple but works!
+$NodeGypBin = $NpmBin.replace("node.exe", "npx.cmd")
+
+& $NodeGypBin $args"#
+        .to_owned()
+}
+
 #[async_trait]
 impl Shimable<'_> for NodeDependencyManager {
     async fn create_shims(&mut self, find_only: bool) -> Result<(), ProtoError> {
