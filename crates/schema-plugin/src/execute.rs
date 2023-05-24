@@ -1,5 +1,7 @@
 use crate::SchemaPlugin;
-use proto_core::{async_trait, get_home_dir, Describable, Executable, Installable, ProtoError};
+use proto_core::{
+    async_trait, get_bin_name, get_home_dir, Describable, Executable, Installable, ProtoError,
+};
 use std::{
     env,
     path::{Path, PathBuf},
@@ -17,11 +19,7 @@ impl Executable<'_> for SchemaPlugin {
         }
 
         if bin.is_none() {
-            bin = Some(if cfg!(windows) {
-                format!("{}.exe", self.get_bin_name())
-            } else {
-                self.get_bin_name().to_owned()
-            });
+            bin = Some(get_bin_name(self.get_id()));
         }
 
         let bin_path = self.get_install_dir()?.join(bin.unwrap());
@@ -62,8 +60,6 @@ impl Executable<'_> for SchemaPlugin {
             }
         }
 
-        Ok(home_dir
-            .join(format!(".{}", self.get_bin_name()))
-            .join("bin"))
+        Ok(home_dir.join(format!(".{}", self.get_id())).join("bin"))
     }
 }

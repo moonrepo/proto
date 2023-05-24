@@ -12,7 +12,7 @@ pub async fn local(tool_type: ToolType, version: String) -> SystemResult {
 
     config
         .tools
-        .insert(tool.get_bin_name().to_owned(), version.clone());
+        .insert(tool.get_id().to_owned(), version.clone());
 
     config.save()?;
 

@@ -41,7 +41,7 @@ impl RustLanguage {
 
 impl Describable<'_> for RustLanguage {
     // This is actually an ID, not the actual bin name... revisit!
-    fn get_bin_name(&self) -> &str {
+    fn get_id(&self) -> &str {
         "rust"
     }
 

@@ -71,7 +71,7 @@ impl NodeDependencyManager {
 }
 
 impl Describable<'_> for NodeDependencyManager {
-    fn get_bin_name(&self) -> &str {
+    fn get_id(&self) -> &str {
         &self.package_name
     }
 

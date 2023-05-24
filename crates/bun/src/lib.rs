@@ -39,7 +39,7 @@ impl BunLanguage {
 }
 
 impl Describable<'_> for BunLanguage {
-    fn get_bin_name(&self) -> &str {
+    fn get_id(&self) -> &str {
         "bun"
     }
 

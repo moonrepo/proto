@@ -11,7 +11,7 @@ use tracing::{debug, info};
 async fn get_bin_or_fallback(tool: &mut Box<dyn Tool<'_>>) -> Result<PathBuf, ProtoError> {
     Ok(match tool.find_bin_path().await {
         Ok(_) => tool.get_bin_path()?.to_path_buf(),
-        Err(_) => PathBuf::from(tool.get_bin_name()),
+        Err(_) => PathBuf::from(tool.get_id()),
     })
 }
 

@@ -45,9 +45,9 @@ pub trait Installable<'tool>: Send + Sync + Describable<'tool> {
             // Unpacked archive
         } else {
             let install_path = install_dir.join(if cfg!(windows) {
-                format!("{}.exe", self.get_bin_name())
+                format!("{}.exe", self.get_id())
             } else {
-                self.get_bin_name().to_string()
+                self.get_id().to_string()
             });
 
             // Not an archive, assume a binary and copy
