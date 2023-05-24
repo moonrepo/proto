@@ -1,38 +1,57 @@
-use crate::depman::{NodeDependencyManager, NodeDependencyManagerType};
+use crate::depman::NodeDependencyManager;
 use clean_path::Clean;
 use proto_core::{async_trait, Describable, Executable, Installable, ProtoError};
+use starbase_utils::json::{self, JsonValue};
 use std::path::{Path, PathBuf};
 
-#[cfg(not(windows))]
-fn get_bin_name(bin: &str) -> String {
-    bin.to_owned()
-}
+pub fn extract_bin_from_package_json(
+    package_path: PathBuf,
+    bin_name: &str,
+) -> Result<Option<String>, ProtoError> {
+    let mut bin_path = None;
+    let json: JsonValue = json::read_file(package_path)?;
 
-#[cfg(windows)]
-fn get_bin_name(bin: &str) -> String {
-    format!("{}.cmd", bin)
+    if let Some(bin_field) = json.get("bin") {
+        match bin_field {
+            JsonValue::String(bin) => {
+                bin_path = Some(bin.to_owned());
+            }
+            JsonValue::Object(bins) => {
+                if let Some(bin) = bins.get(bin_name) {
+                    bin_path = Some(bin.as_str().unwrap_or_default().to_string());
+                }
+            }
+            _ => {}
+        };
+    }
+
+    if bin_path.is_none() {
+        if let Some(main_field) = json.get("main") {
+            bin_path = Some(main_field.as_str().unwrap_or_default().to_string());
+        }
+    }
+
+    Ok(bin_path)
 }
 
 #[async_trait]
 impl Executable<'_> for NodeDependencyManager {
     async fn find_bin_path(&mut self) -> Result<(), ProtoError> {
         let install_dir = self.get_install_dir()?;
+        let bin_name = &self.package_name;
+        let package_json = install_dir.join("package.json");
 
-        let bin_path = install_dir.join(match self.type_of {
-            NodeDependencyManagerType::Npm => format!("bin/{}", get_bin_name("npm")),
-            NodeDependencyManagerType::Pnpm => "bin/pnpm.cjs".to_owned(),
-            NodeDependencyManagerType::Yarn => format!("bin/{}", get_bin_name("yarn")),
-        });
+        if package_json.exists() {
+            if let Some(bin_path) = extract_bin_from_package_json(package_json, bin_name)? {
+                self.bin_path = Some(install_dir.join(bin_path).clean());
 
-        if bin_path.exists() {
-            self.bin_path = Some(bin_path.clean());
-
-            return Ok(());
+                return Ok(());
+            }
         }
 
         return Err(ProtoError::ExecuteMissingBin(
             self.get_name(),
-            install_dir.join(format!("bin/{}", self.package_name)),
+            install_dir.join(format!("bin/{bin_name}.js")),
         ));
     }
 

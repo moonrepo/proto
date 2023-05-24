@@ -20,21 +20,18 @@ mod node_depman {
 
         assert!(tool.get_install_dir().unwrap().exists());
 
+        assert_eq!(
+            tool.get_bin_path().unwrap(),
+            &proto.tools_dir.join("npm/9.0.0/bin/npm-cli.js")
+        );
+
         if cfg!(windows) {
-            assert_eq!(
-                tool.get_bin_path().unwrap(),
-                &proto.tools_dir.join("npm/9.0.0/bin/npm.cmd")
-            );
             assert_eq!(
                 tool.get_shim_path().unwrap(),
                 &proto.tools_dir.join("npm\\9.0.0\\shims\\npm.ps1")
             );
             assert!(proto.bin_dir.join("npm.ps1").exists());
         } else {
-            assert_eq!(
-                tool.get_bin_path().unwrap(),
-                &proto.tools_dir.join("npm/9.0.0/bin/npm")
-            );
             assert_eq!(
                 tool.get_shim_path().unwrap(),
                 &proto.tools_dir.join("npm/9.0.0/shims/npm")
@@ -83,17 +80,10 @@ mod node_depman {
 
         assert!(tool.get_install_dir().unwrap().exists());
 
-        if cfg!(windows) {
-            assert_eq!(
-                tool.get_bin_path().unwrap(),
-                &proto.tools_dir.join("yarn\\1.22.0\\bin\\yarn.cmd")
-            );
-        } else {
-            assert_eq!(
-                tool.get_bin_path().unwrap(),
-                &proto.tools_dir.join("yarn/1.22.0/bin/yarn")
-            );
-        }
+        assert_eq!(
+            tool.get_bin_path().unwrap(),
+            &proto.tools_dir.join("yarn/1.22.0/bin/yarn.js")
+        );
     }
 
     #[tokio::test]
@@ -109,7 +99,7 @@ mod node_depman {
         assert_eq!(tool.get_resolved_version(), "1.22.19");
         assert_eq!(
             tool.get_bin_path().unwrap(),
-            &proto.tools_dir.join("yarn/1.22.19/bin/yarn")
+            &proto.tools_dir.join("yarn/1.22.19/bin/yarn.js")
         );
     }
 
