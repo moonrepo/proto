@@ -94,7 +94,6 @@ pub enum SchemaToolType {
 #[derive(Debug, Default, Deserialize)]
 #[serde(default, rename_all = "kebab-case")]
 pub struct Schema {
-    pub bin: String,
     pub name: String,
     #[serde(rename = "type")]
     pub type_of: SchemaToolType,
