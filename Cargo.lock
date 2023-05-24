@@ -1673,7 +1673,7 @@ dependencies = [
 
 [[package]]
 name = "proto_bun"
-version = "0.7.2"
+version = "0.8.0"
 dependencies = [
  "once_cell",
  "proto_core",
@@ -1687,7 +1687,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.8.3"
+version = "0.9.0"
 dependencies = [
  "async-recursion",
  "clap",
@@ -1720,7 +1720,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.8.3"
+version = "0.9.0"
 dependencies = [
  "async-trait",
  "cached",
@@ -1751,7 +1751,7 @@ dependencies = [
 
 [[package]]
 name = "proto_deno"
-version = "0.7.2"
+version = "0.8.0"
 dependencies = [
  "once_cell",
  "proto_core",
@@ -1764,7 +1764,7 @@ dependencies = [
 
 [[package]]
 name = "proto_go"
-version = "0.7.2"
+version = "0.8.0"
 dependencies = [
  "once_cell",
  "proto_core",
@@ -1778,7 +1778,7 @@ dependencies = [
 
 [[package]]
 name = "proto_node"
-version = "0.7.2"
+version = "0.8.0"
 dependencies = [
  "clean-path",
  "once_cell",
@@ -1793,7 +1793,7 @@ dependencies = [
 
 [[package]]
 name = "proto_rust"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
  "once_cell",
  "proto_core",
@@ -1803,7 +1803,7 @@ dependencies = [
 
 [[package]]
 name = "proto_schema_plugin"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "once_cell",
  "proto_core",
