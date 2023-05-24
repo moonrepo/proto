@@ -38,6 +38,14 @@ mod node_depman {
             );
             assert!(proto.bin_dir.join("npm").exists());
         }
+
+        // Also check node-gyp
+
+        if cfg!(windows) {
+            assert!(proto.bin_dir.join("node-gyp.ps1").exists());
+        } else {
+            assert!(proto.bin_dir.join("node-gyp").exists());
+        }
     }
 
     #[tokio::test]

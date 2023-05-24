@@ -4,7 +4,12 @@
 
 #### 🚀 Updates
 
-- Added `install.unpack` setting to TOML plugin.
+- Added `install.unpack` setting to TOML plugin schema.
+- Updated `npm` to also create a `node-gyp` global shim.
+
+#### ⚙️ Internal
+
+- Updated Cargo dependencies.
 
 ## 0.8.3
 

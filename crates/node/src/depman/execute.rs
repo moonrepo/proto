@@ -1,8 +1,7 @@
 use crate::depman::NodeDependencyManager;
 use clean_path::Clean;
 use proto_core::{async_trait, Describable, Executable, Installable, ProtoError};
-use serde_json::Value;
-use starbase_utils::json;
+use starbase_utils::json::{self, JsonValue};
 use std::path::{Path, PathBuf};
 
 pub fn extract_bin_from_package_json(
@@ -10,14 +9,14 @@ pub fn extract_bin_from_package_json(
     bin_name: &str,
 ) -> Result<Option<String>, ProtoError> {
     let mut bin_path = None;
-    let json: Value = json::read_file(package_path)?;
+    let json: JsonValue = json::read_file(package_path)?;
 
     if let Some(bin_field) = json.get("bin") {
         match bin_field {
-            Value::String(bin) => {
+            JsonValue::String(bin) => {
                 bin_path = Some(bin.to_owned());
             }
-            Value::Object(bins) => {
+            JsonValue::Object(bins) => {
                 if let Some(bin) = bins.get(bin_name) {
                     bin_path = Some(bin.as_str().unwrap_or_default().to_string());
                 }
