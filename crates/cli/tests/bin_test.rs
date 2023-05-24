@@ -30,11 +30,9 @@ fn returns_path_if_installed() {
     let assert = cmd.arg("bin").arg("npm").arg("9.0.0").assert();
 
     if cfg!(windows) {
-        assert.stdout(predicate::str::contains(
-            "tools\\npm\\9.0.0\\bin\\npm-cli.js",
-        ));
+        assert.stdout(predicate::str::contains("tools\\npm\\9.0.0\\bin\\npm.cmd"));
     } else {
-        assert.stdout(predicate::str::contains("tools/npm/9.0.0/bin/npm-cli.js"));
+        assert.stdout(predicate::str::contains("tools/npm/9.0.0/bin/npm"));
     }
 
     // With shims

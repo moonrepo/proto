@@ -26,6 +26,8 @@ impl Executable<'_> for NodeDependencyManager {
 
         if bin_path.exists() {
             self.bin_path = Some(bin_path.clean());
+
+            return Ok(());
         }
 
         return Err(ProtoError::ExecuteMissingBin(
