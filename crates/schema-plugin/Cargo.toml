@@ -10,7 +10,7 @@ repository = "https://github.com/moonrepo/proto"
 [dependencies]
 proto_core = { version = "0.8.3", path = "../core" }
 once_cell = { workspace = true }
-regex = "1.8.1"
+regex = "1.8.2"
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 starbase_utils = { workspace = true }
