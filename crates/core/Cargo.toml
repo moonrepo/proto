@@ -23,7 +23,7 @@ semver = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = "0.10.6"
-starbase_styles = "0.1.6"
+starbase_styles = "0.1.8"
 starbase_utils = { workspace = true }
 tar = "0.4.38"
 tinytemplate = "1.2.1"
@@ -31,7 +31,7 @@ thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 xz2 = "0.1.7"
-zip = "0.6.5"
+zip = "0.6.6"
 
 [dev-dependencies]
 starbase_sandbox = { workspace = true }
