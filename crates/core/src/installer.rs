@@ -41,7 +41,7 @@ pub trait Installable<'tool>: Send + Sync + Describable<'tool> {
             "Attempting to install tool",
         );
 
-        if unpack(download_path, install_dir, prefix)? {
+        if self.should_unpack() && unpack(download_path, install_dir, prefix)? {
             // Unpacked archive
         } else {
             let install_path = install_dir.join(if cfg!(windows) {
@@ -58,6 +58,11 @@ pub trait Installable<'tool>: Send + Sync + Describable<'tool> {
         debug!("Successfully installed tool");
 
         Ok(true)
+    }
+
+    /// Whether or not the downloaded file should be unpacked before installing.
+    fn should_unpack(&self) -> bool {
+        true
     }
 
     /// Uninstall the tool by deleting the install directory.
