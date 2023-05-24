@@ -6,7 +6,6 @@
 
 - Added `install.unpack` setting to TOML plugin schema.
 - Updated `npm` to also create a `node-gyp` global shim.
-- Updated `npm` and `yarn` binaries to use the shell scripts instead of `.js` files.
 
 #### ⚙️ Internal
 

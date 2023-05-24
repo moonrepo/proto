@@ -11,7 +11,7 @@ fn node_gyp_template() -> String {
 npm_bin=$(proto bin npm)
 
 # ...and then replace the npm bin with node-gyp. Simple but works!
-node_gyp_bin=$(echo "$npm_bin" | sed 's/bin\/npm/bin\/node-gyp-bin\/node-gyp/')
+node_gyp_bin=$(echo "$npm_bin" | sed 's/npm-cli.js/node-gyp-bin\/node-gyp/')
 
 exec "$node_gyp_bin" "$@""#
         .to_owned()
@@ -23,7 +23,7 @@ fn node_gyp_template() -> String {
 $NpmBin = proto.exe bin npm
 
 # ...and then replace the npm bin with node-gyp. Simple but works!
-$NodeGypBin = $NpmBin.replace("npm.cmd", "node-gyp-bin/node-gyp.cmd")
+$NodeGypBin = $NpmBin.replace("npm-cli.js", "node-gyp-bin\\node-gyp.cmd")
 
 & $NodeGypBin $args"#
         .to_owned()
