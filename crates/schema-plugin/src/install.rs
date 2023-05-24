@@ -15,4 +15,8 @@ impl Installable<'_> for SchemaPlugin {
     fn get_install_dir(&self) -> Result<PathBuf, ProtoError> {
         Ok(self.base_dir.join(self.get_resolved_version()))
     }
+
+    fn should_unpack(&self) -> bool {
+        self.schema.install.unpack
+    }
 }

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added `install.unpack` setting to TOML plugin.
+
 ## 0.8.3
 
 #### 🐞 Fixes

@@ -17,15 +17,29 @@ pub struct DetectSchema {
     pub version_files: Option<Vec<String>>,
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(default, rename_all = "kebab-case")]
 pub struct InstallSchema {
     pub arch: FxHashMap<String, String>,
     pub checksum_url: Option<String>,
     pub download_url: String,
+    pub unpack: bool,
     // Global bins
     pub global_args: Option<Vec<String>>,
     pub globals_dir: Vec<String>,
+}
+
+impl Default for InstallSchema {
+    fn default() -> Self {
+        InstallSchema {
+            arch: FxHashMap::default(),
+            checksum_url: None,
+            download_url: String::new(),
+            unpack: true,
+            global_args: None,
+            globals_dir: vec![],
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]
