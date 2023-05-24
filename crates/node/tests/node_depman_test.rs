@@ -83,10 +83,17 @@ mod node_depman {
 
         assert!(tool.get_install_dir().unwrap().exists());
 
-        assert_eq!(
-            tool.get_bin_path().unwrap(),
-            &proto.tools_dir.join("yarn/1.22.0/bin/yarn")
-        );
+        if cfg!(windows) {
+            assert_eq!(
+                tool.get_bin_path().unwrap(),
+                &proto.tools_dir.join("yarn\\1.22.0\\bin\\yarn.cmd")
+            );
+        } else {
+            assert_eq!(
+                tool.get_bin_path().unwrap(),
+                &proto.tools_dir.join("yarn/1.22.0/bin/yarn")
+            );
+        }
     }
 
     #[tokio::test]
