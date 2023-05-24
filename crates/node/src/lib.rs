@@ -44,7 +44,7 @@ impl NodeLanguage {
 }
 
 impl Describable<'_> for NodeLanguage {
-    fn get_bin_name(&self) -> &str {
+    fn get_id(&self) -> &str {
         "node"
     }
 

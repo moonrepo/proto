@@ -1,6 +1,5 @@
-use crate::RustLanguage;
-use proto_core::{async_trait, color, is_musl, Installable, ProtoError, Resolvable};
-use std::env::consts;
+use crate::{get_triple_target, RustLanguage};
+use proto_core::{async_trait, color, Installable, ProtoError, Resolvable};
 use std::path::{Path, PathBuf};
 use tokio::process::Command;
 use tracing::debug;
@@ -49,16 +48,7 @@ impl Installable<'_> for RustLanguage {
     }
 
     fn get_install_dir(&self) -> Result<PathBuf, ProtoError> {
-        let target = match consts::OS {
-            "linux" => format!(
-                "{}-unknown-linux-{}",
-                consts::ARCH,
-                if is_musl() { "musl" } else { "gnu" }
-            ),
-            "macos" => format!("{}-apple-darwin", consts::ARCH),
-            "windows" => format!("{}-pc-windows-msvc", consts::ARCH),
-            other => return Err(ProtoError::UnsupportedPlatform("Rust".into(), other.into())),
-        };
+        let target = get_triple_target()?;
 
         // ~/.rustup/toolchains/1.68.0-aarch64-apple-darwin
         Ok(self

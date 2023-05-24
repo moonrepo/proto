@@ -7,9 +7,10 @@ mod shim;
 mod verify;
 
 use once_cell::sync::OnceCell;
-use proto_core::{impl_tool, Describable, Manifest, Proto, ProtoError, Tool};
+use proto_core::{impl_tool, is_musl, Describable, Manifest, Proto, ProtoError, Tool};
 use std::{
     any::Any,
+    env::consts,
     path::{Path, PathBuf},
 };
 
@@ -41,7 +42,7 @@ impl RustLanguage {
 
 impl Describable<'_> for RustLanguage {
     // This is actually an ID, not the actual bin name... revisit!
-    fn get_bin_name(&self) -> &str {
+    fn get_id(&self) -> &str {
         "rust"
     }
 
@@ -51,3 +52,16 @@ impl Describable<'_> for RustLanguage {
 }
 
 impl_tool!(RustLanguage);
+
+pub fn get_triple_target() -> Result<String, ProtoError> {
+    Ok(match consts::OS {
+        "linux" => format!(
+            "{}-unknown-linux-{}",
+            consts::ARCH,
+            if is_musl() { "musl" } else { "gnu" }
+        ),
+        "macos" => format!("{}-apple-darwin", consts::ARCH),
+        "windows" => format!("{}-pc-windows-msvc", consts::ARCH),
+        other => return Err(ProtoError::UnsupportedPlatform("Rust".into(), other.into())),
+    })
+}

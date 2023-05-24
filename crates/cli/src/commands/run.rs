@@ -22,7 +22,7 @@ pub async fn run(
             return Err(ProtoError::MissingToolForRun(
                 tool.get_name(),
                 version.to_owned(),
-                color::shell(format!("proto install {} {}", tool.get_bin_name(), version)),
+                color::shell(format!("proto install {} {}", tool.get_id(), version)),
             ))?;
         }
 
@@ -57,11 +57,11 @@ pub async fn run(
     let status = Command::new(tool.get_bin_path()?)
         .args(&args)
         .env(
-            format!("PROTO_{}_VERSION", tool.get_bin_name().to_uppercase()),
+            format!("PROTO_{}_VERSION", tool.get_id().to_uppercase()),
             tool.get_resolved_version(),
         )
         .env(
-            format!("PROTO_{}_BIN", tool.get_bin_name().to_uppercase()),
+            format!("PROTO_{}_BIN", tool.get_id().to_uppercase()),
             tool.get_bin_path()?.to_string_lossy().to_string(),
         )
         .spawn()

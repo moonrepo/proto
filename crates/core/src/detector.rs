@@ -29,7 +29,7 @@ pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
     forced_version: Option<String>,
 ) -> Result<String, ProtoError> {
     let mut version = forced_version;
-    let env_var = format!("PROTO_{}_VERSION", tool.get_bin_name().to_uppercase());
+    let env_var = format!("PROTO_{}_VERSION", tool.get_id().to_uppercase());
 
     // Env var takes highest priority
     if version.is_none() {
@@ -68,7 +68,7 @@ pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
 
             let config = ToolsConfig::load_from(dir)?;
 
-            if let Some(local_version) = config.tools.get(tool.get_bin_name()) {
+            if let Some(local_version) = config.tools.get(tool.get_id()) {
                 debug!(
                     version = local_version,
                     file = %config.path.display(),
@@ -123,9 +123,7 @@ pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
     // We didn't find anything!
     match version {
         Some(ver) => Ok(ver),
-        None => Err(ProtoError::VersionDetectFailed(
-            tool.get_bin_name().to_owned(),
-        )),
+        None => Err(ProtoError::VersionDetectFailed(tool.get_id().to_owned())),
     }
 }
 

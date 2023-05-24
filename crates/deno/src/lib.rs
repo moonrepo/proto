@@ -39,7 +39,7 @@ impl DenoLanguage {
 }
 
 impl Describable<'_> for DenoLanguage {
-    fn get_bin_name(&self) -> &str {
+    fn get_id(&self) -> &str {
         "deno"
     }
 

@@ -16,3 +16,13 @@ pub trait Executable<'tool>: Send + Sync {
     /// globally installed packages.
     fn get_globals_bin_dir(&self) -> Result<PathBuf, ProtoError>;
 }
+
+#[cfg(target_os = "windows")]
+pub fn get_bin_name(name: &str) -> String {
+    format!("{}.exe", name)
+}
+
+#[cfg(not(target_os = "windows"))]
+pub fn get_bin_name(name: &str) -> String {
+    name.to_string()
+}

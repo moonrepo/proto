@@ -1,26 +1,16 @@
 use crate::DenoLanguage;
-use proto_core::{async_trait, get_home_dir, Describable, Executable, Installable, ProtoError};
+use proto_core::{
+    async_trait, get_bin_name, get_home_dir, Describable, Executable, Installable, ProtoError,
+};
 use std::{
     env,
     path::{Path, PathBuf},
 };
 
-#[cfg(target_os = "windows")]
-pub fn get_bin_name<T: AsRef<str>>(name: T) -> String {
-    format!("{}.exe", name.as_ref())
-}
-
-#[cfg(not(target_os = "windows"))]
-pub fn get_bin_name<T: AsRef<str>>(name: T) -> String {
-    name.as_ref().to_string()
-}
-
 #[async_trait]
 impl Executable<'_> for DenoLanguage {
     async fn find_bin_path(&mut self) -> Result<(), ProtoError> {
-        let bin_path = self
-            .get_install_dir()?
-            .join(get_bin_name(self.get_bin_name()));
+        let bin_path = self.get_install_dir()?.join(get_bin_name("deno"));
 
         if bin_path.exists() {
             self.bin_path = Some(bin_path);

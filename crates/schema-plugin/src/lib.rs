@@ -84,7 +84,7 @@ impl SchemaPlugin {
 }
 
 impl Describable<'_> for SchemaPlugin {
-    fn get_bin_name(&self) -> &str {
+    fn get_id(&self) -> &str {
         &self.id
     }
 

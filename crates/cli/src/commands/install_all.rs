@@ -50,7 +50,7 @@ pub async fn install_all(
             if let Some(version) = expand_detected_version(&version, tool.get_manifest()?)? {
                 debug!(version, "Detected version for {}", tool.get_name());
 
-                tools.insert(tool.get_bin_name().to_owned(), version);
+                tools.insert(tool.get_id().to_owned(), version);
             }
         }
     }
