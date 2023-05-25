@@ -62,6 +62,8 @@ pub async fn run(
 
         if alt_bin_path.exists() {
             bin_path = alt_bin_path;
+
+            debug!(alt_bin, "Received an alternate binary to run with");
         } else {
             return Err(ProtoError::Message(format!(
                 "Alternate binary {} does not exist.",
@@ -69,6 +71,8 @@ pub async fn run(
             )))?;
         }
     }
+
+    debug!(bin = %bin_path.display(), "Running {}", tool.get_name());
 
     // Run the command
     let status = Command::new(bin_path)

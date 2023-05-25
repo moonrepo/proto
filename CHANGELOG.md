@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+#### ⚙️ Internal
+
+- Improved handling of alternate tool binaries, like `npx` and `node-gyp`.
+
 ## 0.9.0
 
 #### 🚀 Updates
