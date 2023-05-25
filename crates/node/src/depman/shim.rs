@@ -32,7 +32,7 @@ $NodeGypBin = $NpmBin.replace("npm-cli.js", "node-gyp-bin\\node-gyp.cmd")
 #[async_trait]
 impl Shimable<'_> for NodeDependencyManager {
     async fn create_shims(&mut self, find_only: bool) -> Result<(), ProtoError> {
-        let mut shimmer = ShimBuilder::new(&self.package_name, self.get_bin_path()?);
+        let mut shimmer = ShimBuilder::new(&self.package_name, self.get_bin_path()?)?;
 
         shimmer
             .dir(self.get_install_dir()?)
@@ -52,7 +52,7 @@ impl Shimable<'_> for NodeDependencyManager {
                     .parent()
                     .unwrap()
                     .join("node-gyp-bin/node-gyp"),
-            );
+            )?;
 
             shimmer
                 .dir(self.get_install_dir()?)
