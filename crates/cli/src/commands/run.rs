@@ -11,6 +11,7 @@ use tracing::debug;
 pub async fn run(
     tool_type: ToolType,
     forced_version: Option<String>,
+    alt_bin: Option<String>,
     args: Vec<String>,
     user_config: &UserConfig,
 ) -> SystemResult {
@@ -53,8 +54,24 @@ pub async fn run(
         let _ = manifest.save();
     }
 
+    // Determine the binary path
+    let mut bin_path = tool.get_bin_path()?.to_path_buf();
+
+    if let Some(alt_bin) = alt_bin {
+        let alt_bin_path = bin_path.parent().unwrap().join(&alt_bin);
+
+        if alt_bin_path.exists() {
+            bin_path = alt_bin_path;
+        } else {
+            return Err(ProtoError::Message(format!(
+                "Alternate binary {} does not exist.",
+                color::file(&alt_bin)
+            )))?;
+        }
+    }
+
     // Run the command
-    let status = Command::new(tool.get_bin_path()?)
+    let status = Command::new(bin_path)
         .args(&args)
         .env(
             format!("PROTO_{}_VERSION", tool.get_id().to_uppercase()),

@@ -181,6 +181,9 @@ pub enum Commands {
         #[arg(help = "Version of tool")]
         semver: Option<String>,
 
+        #[arg(long, help = "Path to an alternate binary to run")]
+        bin: Option<String>,
+
         // Passthrough args (after --)
         #[arg(
             last = true,
