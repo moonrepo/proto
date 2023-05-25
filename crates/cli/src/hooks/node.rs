@@ -34,7 +34,7 @@ pub async fn pre_run(tool_type: ToolType, args: &[String]) -> Result<(), ProtoEr
             "Global binaries must be installed with {} and {} should be added to your {}!\nLearn more: {}",
             color::shell(format!("proto install-global {}", tool.get_id())),
             color::path(tool.get_globals_bin_dir()?),
-            color::symbol("PATH"),
+            color::shell("PATH"),
 						color::url("https://moonrepo.dev/docs/proto/faq#how-can-i-install-a-global-binary-for-a-language")
         )))?;
     }

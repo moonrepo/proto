@@ -76,7 +76,7 @@ pub async fn run(
     debug!(bin = %bin_path.display(), "Running {}", tool.get_name());
 
     // Trigger before hook
-    if tool_type == ToolType::Node {
+    if matches!(tool_type, ToolType::Npm | ToolType::Pnpm | ToolType::Yarn) {
         node_hooks::pre_run(tool_type, &args).await?;
     }
 
