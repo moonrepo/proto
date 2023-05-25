@@ -1,4 +1,5 @@
 use crate::commands::install::install;
+use crate::hooks::node as node_hooks;
 use crate::states::UserConfig;
 use crate::tools::{create_tool, ToolType};
 use proto_core::{color, detect_version, ProtoError};
@@ -31,7 +32,7 @@ pub async fn run(
         debug!("Auto-install setting is configured, attempting to install");
 
         install(
-            tool_type,
+            tool_type.clone(),
             Some(tool.get_resolved_version().to_owned()),
             false,
             vec![],
@@ -73,6 +74,11 @@ pub async fn run(
     }
 
     debug!(bin = %bin_path.display(), "Running {}", tool.get_name());
+
+    // Trigger before hook
+    if tool_type == ToolType::Node {
+        node_hooks::pre_run(tool_type, &args).await?;
+    }
 
     // Run the command
     let status = Command::new(bin_path)
