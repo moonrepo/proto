@@ -5,30 +5,6 @@ use proto_core::{
 };
 use std::path::Path;
 
-#[cfg(not(windows))]
-fn node_gyp_template() -> String {
-    r#"# node-gyp comes bundled with npm, so first determine the npm path...
-npm_bin=$(proto bin npm)
-
-# ...and then replace the npm bin with node-gyp. Simple but works!
-node_gyp_bin=$(echo "$npm_bin" | sed 's/npm-cli.js/node-gyp-bin\/node-gyp/')
-
-exec "$node_gyp_bin" "$@""#
-        .to_owned()
-}
-
-#[cfg(windows)]
-fn node_gyp_template() -> String {
-    r#"# node-gyp comes bundled with npm, so first determine the npm path...
-$NpmBin = proto.exe bin npm
-
-# ...and then replace the npm bin with node-gyp. Simple but works!
-$NodeGypBin = $NpmBin.replace("npm-cli.js", "node-gyp-bin\\node-gyp.cmd")
-
-& $NodeGypBin $args"#
-        .to_owned()
-}
-
 #[async_trait]
 impl Shimable<'_> for NodeDependencyManager {
     async fn create_shims(&mut self, find_only: bool) -> Result<(), ProtoError> {
@@ -45,19 +21,16 @@ impl Shimable<'_> for NodeDependencyManager {
 
         // node-gyp
         if matches!(self.type_of, NodeDependencyManagerType::Npm) {
-            let mut shimmer = ShimBuilder::new(
-                "node-gyp",
-                &self
-                    .get_bin_path()?
-                    .parent()
-                    .unwrap()
-                    .join("node-gyp-bin/node-gyp"),
-            )?;
+            let mut shimmer = ShimBuilder::new("node-gyp", self.get_bin_path()?)?;
 
             shimmer
+                .alt_bin(if cfg!(windows) {
+                    "node-gyp-bin/node-gyp.cmd"
+                } else {
+                    "node-gyp-bin/node-gyp"
+                })
                 .dir(self.get_install_dir()?)
-                .version(self.get_resolved_version())
-                .set_global_template(node_gyp_template());
+                .version(self.get_resolved_version());
 
             shimmer.create_global_shim()?;
         }
