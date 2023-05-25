@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Updated npm/pnpm/yarn to error when attempting to install a global binary. Use `proto install-global` instead.
+
 #### ⚙️ Internal
 
 - Improved handling of alternate tool binaries, like `npx` and `node-gyp`.
