@@ -137,6 +137,31 @@ fn runs_a_tool_using_version_detection() {
 }
 
 #[test]
+fn runs_a_tool_alt_bin() {
+    let temp = create_empty_sandbox();
+
+    let mut cmd = create_proto_command(temp.path());
+    cmd.arg("install")
+        .arg("node")
+        .arg("19.0.0")
+        .assert()
+        .success();
+
+    let mut cmd = create_proto_command(temp.path());
+    let assert = cmd
+        .arg("run")
+        .arg("node")
+        .arg("19.0.0")
+        .arg("--bin")
+        .arg("npx")
+        .arg("--")
+        .arg("--version")
+        .assert();
+
+    assert.stdout(predicate::str::contains("8.19.2"));
+}
+
+#[test]
 fn updates_last_used_at() {
     let temp = create_empty_sandbox();
     let manifest_file = temp.path().join("tools/node/manifest.json");
