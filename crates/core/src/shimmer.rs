@@ -11,8 +11,9 @@ use tracing::debug;
 
 pub const SHIM_VERSION: u8 = 2;
 
-#[derive(Serialize)]
+#[derive(Default, Serialize)]
 pub struct Context {
+    alt_bin: Option<String>,
     bin_path: PathBuf,
     install_dir: Option<PathBuf>,
     name: String,
@@ -75,7 +76,7 @@ fn build_shim_file(builder: &ShimBuilder, contents: &str) -> Result<String, Prot
         .map_err(ProtoError::Shim)?;
 
     template
-        .render("shim", &builder.create_context()?)
+        .render("shim", &builder.context)
         .map_err(ProtoError::Shim)
 }
 
@@ -90,40 +91,42 @@ fn get_shim_file_name(name: &str) -> String {
 }
 
 pub struct ShimBuilder {
-    pub name: String,
-    pub bin_path: PathBuf,
-    pub install_dir: Option<PathBuf>,
-    pub parent_name: Option<String>,
-    pub version: Option<String>,
+    pub context: Context,
     pub global_template: Option<String>,
     pub local_template: Option<String>,
 }
 
 impl ShimBuilder {
-    pub fn new(name: &str, bin_path: &Path) -> Self {
-        ShimBuilder {
-            name: name.to_owned(),
-            bin_path: bin_path.to_path_buf(),
-            install_dir: None,
-            parent_name: None,
-            version: None,
+    pub fn new(name: &str, bin_path: &Path) -> Result<Self, ProtoError> {
+        Ok(ShimBuilder {
+            context: Context {
+                bin_path: bin_path.to_owned(),
+                name: name.to_owned(),
+                root: get_root()?,
+                ..Context::default()
+            },
             global_template: None,
             local_template: None,
-        }
+        })
+    }
+
+    pub fn alt_bin<V: AsRef<str>>(&mut self, bin: V) -> &mut Self {
+        self.context.alt_bin = Some(bin.as_ref().to_owned());
+        self
     }
 
     pub fn dir<P: AsRef<Path>>(&mut self, path: P) -> &mut Self {
-        self.install_dir = Some(path.as_ref().to_path_buf());
+        self.context.install_dir = Some(path.as_ref().to_path_buf());
         self
     }
 
     pub fn parent<V: AsRef<str>>(&mut self, name: V) -> &mut Self {
-        self.parent_name = Some(name.as_ref().to_owned());
+        self.context.parent_name = Some(name.as_ref().to_owned());
         self
     }
 
     pub fn version<V: AsRef<str>>(&mut self, version: V) -> &mut Self {
-        self.version = Some(version.as_ref().to_owned());
+        self.context.version = Some(version.as_ref().to_owned());
         self
     }
 
@@ -138,7 +141,7 @@ impl ShimBuilder {
     }
 
     pub fn create_global_shim(&self) -> Result<PathBuf, ProtoError> {
-        let shim_path = get_bin_dir()?.join(get_shim_file_name(&self.name));
+        let shim_path = get_bin_dir()?.join(get_shim_file_name(&self.context.name));
 
         self.do_create(
             shim_path,
@@ -153,11 +156,12 @@ impl ShimBuilder {
 
     pub fn create_tool_shim(&self, find_only: bool) -> Result<PathBuf, ProtoError> {
         let shim_path = self
+            .context
             .install_dir
             .as_ref()
             .unwrap()
             .join("shims")
-            .join(get_shim_file_name(&self.name));
+            .join(get_shim_file_name(&self.context.name));
 
         self.do_create(
             shim_path,
@@ -168,17 +172,6 @@ impl ShimBuilder {
             },
             find_only,
         )
-    }
-
-    pub fn create_context(&self) -> Result<Context, ProtoError> {
-        Ok(Context {
-            bin_path: self.bin_path.clone(),
-            install_dir: self.install_dir.clone(),
-            name: self.name.clone(),
-            parent_name: self.parent_name.clone(),
-            root: get_root()?,
-            version: self.version.clone(),
-        })
     }
 
     fn do_create(

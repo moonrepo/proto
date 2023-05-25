@@ -74,8 +74,9 @@ async fn run(
         Commands::Run {
             tool,
             semver,
+            bin,
             passthrough,
-        } => commands::run(tool, semver, passthrough, user_config).await?,
+        } => commands::run(tool, semver, bin, passthrough, user_config).await?,
         Commands::Setup { shell, profile } => commands::setup(shell, profile).await?,
         Commands::Unalias { tool, alias } => commands::unalias(tool, alias).await?,
         Commands::Uninstall { tool, semver } => commands::uninstall(tool, semver).await?,

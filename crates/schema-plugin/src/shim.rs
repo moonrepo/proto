@@ -8,7 +8,7 @@ use std::path::Path;
 #[async_trait]
 impl Shimable<'_> for SchemaPlugin {
     async fn create_shims(&mut self, find_only: bool) -> Result<(), ProtoError> {
-        let mut shimmer = ShimBuilder::new(self.get_id(), self.get_bin_path()?);
+        let mut shimmer = ShimBuilder::new(self.get_id(), self.get_bin_path()?)?;
         let schema = &self.schema.shim;
 
         shimmer

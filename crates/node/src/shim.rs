@@ -4,34 +4,10 @@ use proto_core::{
     Shimable,
 };
 
-#[cfg(not(windows))]
-fn npx_template() -> String {
-    r#"# npx comes bundled with node, so first determine the node path...
-node_bin=$(proto bin node)
-
-# ...and then replace the node bin with npx. Simple but works!
-npx_bin=$(echo "$node_bin" | sed 's/bin\/node/bin\/npx/')
-
-exec "$npx_bin" "$@""#
-        .to_owned()
-}
-
-#[cfg(windows)]
-fn npx_template() -> String {
-    r#"# npx comes bundled with node, so first determine the node path...
-$NodeBin = proto.exe bin node
-
-# ...and then replace the node bin with npx. Simple but works!
-$NpxBin = $NodeBin.replace("node.exe", "npx.cmd")
-
-& $NpxBin $args"#
-        .to_owned()
-}
-
 #[async_trait]
 impl Shimable<'_> for NodeLanguage {
     async fn create_shims(&mut self, _find_only: bool) -> Result<(), ProtoError> {
-        let mut shimmer = ShimBuilder::new(self.get_id(), self.get_bin_path()?);
+        let mut shimmer = ShimBuilder::new(self.get_id(), self.get_bin_path()?)?;
 
         shimmer
             .dir(self.get_install_dir()?)
@@ -40,13 +16,13 @@ impl Shimable<'_> for NodeLanguage {
         shimmer.create_global_shim()?;
 
         // npx
-        let mut shimmer =
-            ShimBuilder::new("npx", &self.get_bin_path()?.parent().unwrap().join("npx"));
+        let mut shimmer = ShimBuilder::new("npx", self.get_bin_path()?)?;
 
         shimmer
+            .alt_bin(if cfg!(windows) { "npx.cmd" } else { "npx" })
             .dir(self.get_install_dir()?)
             .version(self.get_resolved_version())
-            .set_global_template(npx_template());
+            .parent("node");
 
         shimmer.create_global_shim()?;
 
