@@ -30,7 +30,8 @@ impl Shimable<'_> for NodeDependencyManager {
                     "node-gyp-bin/node-gyp"
                 })
                 .dir(self.get_install_dir()?)
-                .version(self.get_resolved_version());
+                .version(self.get_resolved_version())
+                .parent("npm");
 
             shimmer.create_global_shim()?;
         }

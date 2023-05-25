@@ -21,7 +21,8 @@ impl Shimable<'_> for NodeLanguage {
         shimmer
             .alt_bin(if cfg!(windows) { "npx.cmd" } else { "npx" })
             .dir(self.get_install_dir()?)
-            .version(self.get_resolved_version());
+            .version(self.get_resolved_version())
+            .parent("node");
 
         shimmer.create_global_shim()?;
 
