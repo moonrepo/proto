@@ -41,9 +41,13 @@ fn format_uppercase(value: &Value, output: &mut String) -> Result<(), TemplateEr
     Ok(())
 }
 
-fn get_template_header<'l>() -> &'l str {
+fn get_template_header<'l>(global: bool) -> &'l str {
     if cfg!(windows) {
-        include_str!("../templates/pwsh_header.tpl")
+        if global {
+            include_str!("../templates/cmd_header.tpl")
+        } else {
+            include_str!("../templates/pwsh_header.tpl")
+        }
     } else {
         include_str!("../templates/bash_header.tpl")
     }
@@ -52,24 +56,24 @@ fn get_template_header<'l>() -> &'l str {
 fn get_template<'l>(global: bool) -> &'l str {
     if cfg!(windows) {
         if global {
-            include_str!("../templates/pwsh_global.tpl")
+            include_str!("../templates/cmd_global.tpl")
         } else {
-            include_str!("../templates/pwsh.tpl")
+            include_str!("../templates/pwsh_local.tpl")
         }
     } else if global {
         include_str!("../templates/bash_global.tpl")
     } else {
-        include_str!("../templates/bash.tpl")
+        include_str!("../templates/bash_local.tpl")
     }
 }
 
 #[tracing::instrument(skip_all)]
-fn build_shim_file(builder: &ShimBuilder, contents: &str) -> Result<String, ProtoError> {
+fn build_shim_file(builder: &ShimBuilder, contents: &str, global: bool) -> Result<String, ProtoError> {
     let mut template = TinyTemplate::new();
 
     template.add_formatter("uppercase", format_uppercase);
 
-    let contents = format!("{}\n\n{}", get_template_header(), contents);
+    let contents = format!("{}\n\n{}", get_template_header(global), contents);
 
     template
         .add_template("shim", &contents)
@@ -150,6 +154,7 @@ impl ShimBuilder {
             } else {
                 get_template(true)
             },
+            true,
             false,
         )
     }
@@ -170,6 +175,7 @@ impl ShimBuilder {
             } else {
                 get_template(false)
             },
+            false,
             find_only,
         )
     }
@@ -178,6 +184,7 @@ impl ShimBuilder {
         &self,
         shim_path: PathBuf,
         contents: &str,
+        global: bool,
         find_only: bool,
     ) -> Result<PathBuf, ProtoError> {
         let shim_exists = shim_path.exists();
@@ -190,7 +197,7 @@ impl ShimBuilder {
             fs::create_dir_all(parent)?;
         }
 
-        fs::write_file(&shim_path, build_shim_file(self, contents)?)?;
+        fs::write_file(&shim_path, build_shim_file(self, contents, global)?)?;
         fs::update_perms(&shim_path, None)?;
 
         debug!(file = %shim_path.display(), "Created shim");
