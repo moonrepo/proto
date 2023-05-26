@@ -24,7 +24,7 @@ mod node {
 
         if cfg!(windows) {
             assert_eq!(tool.get_bin_path().unwrap(), &base_dir.join("node.exe"));
-            assert!(proto.bin_dir.join("node.ps1").exists());
+            assert!(proto.bin_dir.join("node.cmd").exists());
         } else {
             assert_eq!(tool.get_bin_path().unwrap(), &base_dir.join("bin/node"));
             assert!(proto.bin_dir.join("node").exists());

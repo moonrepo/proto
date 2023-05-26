@@ -68,7 +68,11 @@ fn get_template<'l>(global: bool) -> &'l str {
 }
 
 #[tracing::instrument(skip_all)]
-fn build_shim_file(builder: &ShimBuilder, contents: &str, global: bool) -> Result<String, ProtoError> {
+fn build_shim_file(
+    builder: &ShimBuilder,
+    contents: &str,
+    global: bool,
+) -> Result<String, ProtoError> {
     let mut template = TinyTemplate::new();
 
     template.add_formatter("uppercase", format_uppercase);
@@ -85,12 +89,12 @@ fn build_shim_file(builder: &ShimBuilder, contents: &str, global: bool) -> Resul
 }
 
 #[cfg(windows)]
-fn get_shim_file_name(name: &str) -> String {
-    format!("{name}.ps1")
+fn get_shim_file_name(name: &str, global: bool) -> String {
+    format!("{name}.{}", if global { "cmd" } else { "ps1" })
 }
 
 #[cfg(not(windows))]
-fn get_shim_file_name(name: &str) -> String {
+fn get_shim_file_name(name: &str, _global: bool) -> String {
     name.to_owned()
 }
 
@@ -145,7 +149,7 @@ impl ShimBuilder {
     }
 
     pub fn create_global_shim(&self) -> Result<PathBuf, ProtoError> {
-        let shim_path = get_bin_dir()?.join(get_shim_file_name(&self.context.name));
+        let shim_path = get_bin_dir()?.join(get_shim_file_name(&self.context.name, true));
 
         self.do_create(
             shim_path,
@@ -166,7 +170,7 @@ impl ShimBuilder {
             .as_ref()
             .unwrap()
             .join("shims")
-            .join(get_shim_file_name(&self.context.name));
+            .join(get_shim_file_name(&self.context.name, false));
 
         self.do_create(
             shim_path,

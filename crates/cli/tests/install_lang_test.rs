@@ -3,12 +3,12 @@ mod utils;
 use proto_core::Manifest;
 use rustc_hash::FxHashSet;
 use starbase_sandbox::predicates::prelude::*;
-use std::fs;
 use utils::*;
 
 #[cfg(not(windows))]
 mod go {
     use super::*;
+    use std::fs;
 
     #[test]
     fn sets_gobin_to_shell() {

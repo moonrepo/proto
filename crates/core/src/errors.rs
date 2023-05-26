@@ -154,15 +154,15 @@ pub enum ProtoError {
     #[error("Failed using zip archive.")]
     Zip(#[from] zip::result::ZipError),
 
-    #[diagnostic(code(proto::fs))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Fs(#[from] starbase_utils::fs::FsError),
 
-    #[diagnostic(code(proto::json))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Json(#[from] starbase_utils::json::JsonError),
 
-    #[diagnostic(code(proto::toml))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Toml(#[from] starbase_utils::toml::TomlError),
 }

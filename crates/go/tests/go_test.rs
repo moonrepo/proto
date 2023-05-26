@@ -31,7 +31,7 @@ mod go {
 
         if cfg!(windows) {
             assert_eq!(tool.get_bin_path().unwrap(), &base_dir.join("bin/go.exe"));
-            assert!(proto.bin_dir.join("go.ps1").exists());
+            assert!(proto.bin_dir.join("go.cmd").exists());
         } else {
             assert_eq!(tool.get_bin_path().unwrap(), &base_dir.join("bin/go"));
             assert!(proto.bin_dir.join("go").exists());

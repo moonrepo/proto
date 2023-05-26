@@ -26,7 +26,7 @@ where
 
     if cfg!(windows) {
         assert_eq!(tool.get_bin_path().unwrap(), &base_dir.join("moon.exe"));
-        assert!(proto.bin_dir.join("moon.ps1").exists());
+        assert!(proto.bin_dir.join("moon.cmd").exists());
     } else {
         assert_eq!(tool.get_bin_path().unwrap(), &base_dir.join("moon"));
         assert!(proto.bin_dir.join("moon").exists());
