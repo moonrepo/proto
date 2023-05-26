@@ -10,7 +10,7 @@
 if (Test-Path env:PROTO_{parent_name | uppercase}_BIN) \{
     $parent = $Env:PROTO_{parent_name | uppercase}_BIN
 } else \{
-    $parent = "{parent_name}.exe"
+    $parent = "{parent_name}"
 }
 
 & "$parent" "{bin_path}" $args
