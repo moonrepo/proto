@@ -71,8 +71,20 @@ pub async fn upgrade() -> SystemResult {
     unpack(temp_file, &temp_dir, None)?;
 
     // Move the new binary to the bins directory
+    let bin_dir = get_bin_dir()?;
     let bin_name = if cfg!(windows) { "proto.exe" } else { "proto" };
-    let bin_path = get_bin_dir()?.join(bin_name);
+    let bin_path = bin_dir.join(bin_name);
+
+    if bin_path.exists() {
+        fs::rename(
+            &bin_path,
+            bin_dir.join(if cfg!(windows) {
+                "proto-old.exe"
+            } else {
+                "proto-old"
+            }),
+        )?;
+    }
 
     fs::copy_file(temp_dir.join(target_file).join(bin_name), &bin_path)?;
     fs::update_perms(&bin_path, None)?;

@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed an issue with Windows shims not being ran correctly.
+- An attempt to fix "proto killed" errors after running `proto upgrade`.
+
 ## 0.9.1
 
 #### 🚀 Updates
