@@ -4,6 +4,7 @@
 
 #### 🐞 Fixes
 
+- Fixed an index out of bounds issue with `yarn`.
 - Fixed an issue with Windows shims not being ran correctly.
 - An attempt to fix "proto killed" errors after running `proto upgrade`.
 

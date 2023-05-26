@@ -2,6 +2,10 @@ use crate::tools::{create_tool, ToolType};
 use proto_core::{color, ProtoError};
 
 pub async fn pre_run(tool_type: ToolType, args: &[String]) -> Result<(), ProtoError> {
+    if args.len() < 3 {
+        return Ok(());
+    }
+
     let mut is_install_command = false;
     let mut is_global = false;
 
@@ -35,7 +39,7 @@ pub async fn pre_run(tool_type: ToolType, args: &[String]) -> Result<(), ProtoEr
             color::shell(format!("proto install-global {}", tool.get_id())),
             color::path(tool.get_globals_bin_dir()?),
             color::shell("PATH"),
-						color::url("https://moonrepo.dev/docs/proto/faq#how-can-i-install-a-global-binary-for-a-language")
+            color::url("https://moonrepo.dev/docs/proto/faq#how-can-i-install-a-global-binary-for-a-language")
         )))?;
     }
 
