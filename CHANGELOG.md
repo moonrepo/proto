@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+#### 💥 Breaking
+
+- Updated Windows `~/.proto/bin` shims to use `.cmd` files instead of `.ps1` files. This will interop better with the default `PATHEXT` environment variable.
+
 ## 0.9.2
 
 #### 🐞 Fixes

@@ -9,7 +9,7 @@ use tinytemplate::error::Error as TemplateError;
 use tinytemplate::TinyTemplate;
 use tracing::debug;
 
-pub const SHIM_VERSION: u8 = 2;
+pub const SHIM_VERSION: u8 = 3;
 
 #[derive(Default, Serialize)]
 pub struct Context {
@@ -41,9 +41,13 @@ fn format_uppercase(value: &Value, output: &mut String) -> Result<(), TemplateEr
     Ok(())
 }
 
-fn get_template_header<'l>() -> &'l str {
+fn get_template_header<'l>(global: bool) -> &'l str {
     if cfg!(windows) {
-        include_str!("../templates/pwsh_header.tpl")
+        if global {
+            include_str!("../templates/cmd_header.tpl")
+        } else {
+            include_str!("../templates/pwsh_header.tpl")
+        }
     } else {
         include_str!("../templates/bash_header.tpl")
     }
@@ -52,24 +56,28 @@ fn get_template_header<'l>() -> &'l str {
 fn get_template<'l>(global: bool) -> &'l str {
     if cfg!(windows) {
         if global {
-            include_str!("../templates/pwsh_global.tpl")
+            include_str!("../templates/cmd_global.tpl")
         } else {
-            include_str!("../templates/pwsh.tpl")
+            include_str!("../templates/pwsh_local.tpl")
         }
     } else if global {
         include_str!("../templates/bash_global.tpl")
     } else {
-        include_str!("../templates/bash.tpl")
+        include_str!("../templates/bash_local.tpl")
     }
 }
 
 #[tracing::instrument(skip_all)]
-fn build_shim_file(builder: &ShimBuilder, contents: &str) -> Result<String, ProtoError> {
+fn build_shim_file(
+    builder: &ShimBuilder,
+    contents: &str,
+    global: bool,
+) -> Result<String, ProtoError> {
     let mut template = TinyTemplate::new();
 
     template.add_formatter("uppercase", format_uppercase);
 
-    let contents = format!("{}\n\n{}", get_template_header(), contents);
+    let contents = format!("{}\n\n{}", get_template_header(global), contents);
 
     template
         .add_template("shim", &contents)
@@ -81,12 +89,12 @@ fn build_shim_file(builder: &ShimBuilder, contents: &str) -> Result<String, Prot
 }
 
 #[cfg(windows)]
-fn get_shim_file_name(name: &str) -> String {
-    format!("{name}.ps1")
+fn get_shim_file_name(name: &str, global: bool) -> String {
+    format!("{name}.{}", if global { "cmd" } else { "ps1" })
 }
 
 #[cfg(not(windows))]
-fn get_shim_file_name(name: &str) -> String {
+fn get_shim_file_name(name: &str, _global: bool) -> String {
     name.to_owned()
 }
 
@@ -141,7 +149,7 @@ impl ShimBuilder {
     }
 
     pub fn create_global_shim(&self) -> Result<PathBuf, ProtoError> {
-        let shim_path = get_bin_dir()?.join(get_shim_file_name(&self.context.name));
+        let shim_path = get_bin_dir()?.join(get_shim_file_name(&self.context.name, true));
 
         self.do_create(
             shim_path,
@@ -150,6 +158,7 @@ impl ShimBuilder {
             } else {
                 get_template(true)
             },
+            true,
             false,
         )
     }
@@ -161,7 +170,7 @@ impl ShimBuilder {
             .as_ref()
             .unwrap()
             .join("shims")
-            .join(get_shim_file_name(&self.context.name));
+            .join(get_shim_file_name(&self.context.name, false));
 
         self.do_create(
             shim_path,
@@ -170,6 +179,7 @@ impl ShimBuilder {
             } else {
                 get_template(false)
             },
+            false,
             find_only,
         )
     }
@@ -178,6 +188,7 @@ impl ShimBuilder {
         &self,
         shim_path: PathBuf,
         contents: &str,
+        global: bool,
         find_only: bool,
     ) -> Result<PathBuf, ProtoError> {
         let shim_exists = shim_path.exists();
@@ -190,7 +201,7 @@ impl ShimBuilder {
             fs::create_dir_all(parent)?;
         }
 
-        fs::write_file(&shim_path, build_shim_file(self, contents)?)?;
+        fs::write_file(&shim_path, build_shim_file(self, contents, global)?)?;
         fs::update_perms(&shim_path, None)?;
 
         debug!(file = %shim_path.display(), "Created shim");

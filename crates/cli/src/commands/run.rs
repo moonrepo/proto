@@ -9,6 +9,10 @@ use std::process::exit;
 use tokio::process::Command;
 use tracing::debug;
 
+fn is_windows_script(path: &str) -> bool {
+    path.ends_with(".ps1") || path.ends_with(".cmd") || path.ends_with(".bat")
+}
+
 pub async fn run(
     tool_type: ToolType,
     forced_version: Option<String>,
@@ -71,6 +75,10 @@ pub async fn run(
                 color::file(&alt_bin)
             )))?;
         }
+    } else if let Some(shim_path) = tool.get_shim_path() {
+        bin_path = shim_path.to_path_buf();
+
+        debug!(alt_bin, "Using local shim for tool");
     }
 
     debug!(bin = %bin_path.display(), "Running {}", tool.get_name());
@@ -81,7 +89,15 @@ pub async fn run(
     }
 
     // Run the command
-    let status = Command::new(bin_path)
+    let mut command = if is_windows_script(bin_path.to_str().unwrap_or_default()) {
+        let mut cmd = Command::new("powershell.exe");
+        cmd.arg("-C").arg(bin_path);
+        cmd
+    } else {
+        Command::new(bin_path)
+    };
+
+    let status = command
         .args(&args)
         .env(
             format!("PROTO_{}_VERSION", tool.get_id().to_uppercase()),

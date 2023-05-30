@@ -30,7 +30,7 @@ mod node_depman {
                 tool.get_shim_path().unwrap(),
                 &proto.tools_dir.join("npm\\9.0.0\\shims\\npm.ps1")
             );
-            assert!(proto.bin_dir.join("npm.ps1").exists());
+            assert!(proto.bin_dir.join("npm.cmd").exists());
         } else {
             assert_eq!(
                 tool.get_shim_path().unwrap(),
@@ -42,7 +42,7 @@ mod node_depman {
         // Also check node-gyp
 
         if cfg!(windows) {
-            assert!(proto.bin_dir.join("node-gyp.ps1").exists());
+            assert!(proto.bin_dir.join("node-gyp.cmd").exists());
         } else {
             assert!(proto.bin_dir.join("node-gyp").exists());
         }

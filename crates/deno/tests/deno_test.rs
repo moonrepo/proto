@@ -30,7 +30,7 @@ mod deno {
 
         if cfg!(windows) {
             assert_eq!(tool.get_bin_path().unwrap(), &base_dir.join("deno.exe"));
-            assert!(proto.bin_dir.join("deno.ps1").exists());
+            assert!(proto.bin_dir.join("deno.cmd").exists());
         } else {
             assert_eq!(tool.get_bin_path().unwrap(), &base_dir.join("deno"));
             assert!(proto.bin_dir.join("deno").exists());

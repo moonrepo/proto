@@ -470,7 +470,7 @@ mod schema_plugin {
             env::remove_var("PROTO_ROOT");
 
             if cfg!(windows) {
-                assert!(proto.bin_dir.join("moon.ps1").exists());
+                assert!(proto.bin_dir.join("moon.cmd").exists());
             } else {
                 assert!(proto.bin_dir.join("moon").exists());
             }
