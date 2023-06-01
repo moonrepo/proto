@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed an issue where `proto install-global` for Node.js would recursively call and fail.
+
 ## 0.10.0
 
 #### 💥 Breaking

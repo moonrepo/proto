@@ -1,8 +1,9 @@
 use crate::tools::{create_tool, ToolType};
 use proto_core::{color, ProtoError};
+use std::env;
 
 pub async fn pre_run(tool_type: ToolType, args: &[String]) -> Result<(), ProtoError> {
-    if args.len() < 3 {
+    if args.len() < 3 || env::var("PROTO_INSTALL_GLOBAL").is_ok() {
         return Ok(());
     }
 
