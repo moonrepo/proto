@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed an issue where `proto upgrade` would fail on Windows.
+
 ## 0.10.2
 
 #### 🐞 Fixes
