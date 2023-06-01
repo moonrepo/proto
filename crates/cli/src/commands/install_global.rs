@@ -87,6 +87,7 @@ pub async fn install_global(tool_type: ToolType, dependencies: Vec<String>) -> S
         let pb = create_progress_bar(label);
 
         let output = command
+            .env("PROTO_INSTALL_GLOBAL", "true")
             .output()
             .await
             .map_err(|e| ProtoError::Message(e.to_string()))?;
@@ -103,7 +104,7 @@ pub async fn install_global(tool_type: ToolType, dependencies: Vec<String>) -> S
         }
 
         info!(
-            "{} has been installed at {}!",
+            "{} has been installed to {}!",
             dependency,
             color::path(global_dir),
         );
