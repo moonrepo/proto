@@ -4,6 +4,12 @@
 
 #### 🐞 Fixes
 
+- Fixed a bad release.
+
+## 0.10.1
+
+#### 🐞 Fixes
+
 - Fixed an issue where `proto install-global` for Node.js would recursively call and fail.
 
 ## 0.10.0
