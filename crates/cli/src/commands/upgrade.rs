@@ -4,6 +4,7 @@ use semver::Version;
 use starbase::SystemResult;
 use starbase_utils::fs;
 use std::env::consts;
+use std::path::PathBuf;
 use tracing::{debug, info};
 
 async fn fetch_version() -> Result<String, ProtoError> {
@@ -70,7 +71,7 @@ pub async fn upgrade() -> SystemResult {
     // Unpack the downloaded file
     unpack(temp_file, &temp_dir, None)?;
 
-    // Move the new binary to the bins directory
+    // Move the old binary
     let bin_dir = get_bin_dir()?;
     let bin_name = if cfg!(windows) { "proto.exe" } else { "proto" };
     let bin_path = bin_dir.join(bin_name);
@@ -86,10 +87,27 @@ pub async fn upgrade() -> SystemResult {
         )?;
     }
 
-    fs::copy_file(temp_dir.join(target_file).join(bin_name), &bin_path)?;
-    fs::update_perms(&bin_path, None)?;
+    // Move the new binary to the bins directory
+    let lookup_paths = vec![
+        PathBuf::from(target_file).join(bin_name),
+        PathBuf::from(bin_name),
+    ];
 
-    info!("Upgraded proto to v{}!", new_version);
+    for lookup_path in lookup_paths {
+        let temp_path = temp_dir.join(lookup_path);
 
-    Ok(())
+        if temp_path.exists() {
+            fs::copy_file(temp_path, &bin_path)?;
+            fs::update_perms(&bin_path, None)?;
+
+            info!("Upgraded proto to v{}!", new_version);
+
+            return Ok(());
+        }
+    }
+
+    return Err(ProtoError::Message(format!(
+        "Failed to upgrade proto, {} could not be located after download!",
+        color::shell("proto.exe")
+    )))?;
 }
