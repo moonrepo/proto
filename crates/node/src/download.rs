@@ -6,6 +6,8 @@ use std::path::PathBuf;
 
 #[cfg(target_os = "macos")]
 pub fn get_archive_file_path(version: &str) -> Result<String, ProtoError> {
+    use proto_core::parse_version;
+
     let arch = NodeArch::from_os_arch()?;
 
     if !matches!(arch, NodeArch::X64 | NodeArch::Arm64) {
@@ -15,7 +17,13 @@ pub fn get_archive_file_path(version: &str) -> Result<String, ProtoError> {
         ));
     }
 
-    Ok(format!("node-v{version}-darwin-{arch}"))
+    let parsed_version = parse_version(version)?;
+
+    if parsed_version.major < 16 {
+        Ok(format!("node-v{version}-darwin-x64"))
+    } else {
+        Ok(format!("node-v{version}-darwin-{arch}"))
+    }
 }
 
 #[cfg(all(unix, not(target_os = "macos")))]
