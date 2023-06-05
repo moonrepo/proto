@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Improved error messages for missing or unsupported downloads.
+
 #### 🐞 Fixes
 
 - Fixed an issue where `proto upgrade` would fail on Windows.

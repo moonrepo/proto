@@ -82,7 +82,7 @@ async fn downloads_and_installs_plugin_from_url() {
 }
 
 #[tokio::test]
-#[should_panic(expected = "DownloadFailed")]
+#[should_panic(expected = "DownloadNotFound")]
 async fn errors_for_broken_url() {
     run_tests(|root| {
         create_plugin_from_locator(

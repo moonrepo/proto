@@ -79,6 +79,10 @@ where
     let response = reqwest::get(url).await.map_err(handle_http_error)?;
     let status = response.status();
 
+    if status.as_u16() == 404 {
+        return Err(ProtoError::DownloadNotFound(url.to_owned()));
+    }
+
     if !status.is_success() {
         return Err(ProtoError::DownloadFailed(
             url.to_owned(),
