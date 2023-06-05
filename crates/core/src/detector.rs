@@ -175,6 +175,7 @@ pub fn expand_detected_version(
         Ok(false)
     };
 
+    // ^18 || ^20
     if version.contains("||") {
         for split_version in version.split("||") {
             if let Some(matched_version) = expand_detected_version(split_version.trim(), manifest)?
@@ -182,6 +183,17 @@ pub fn expand_detected_version(
                 return Ok(Some(matched_version));
             }
         }
+
+        // >=18, <20
+    } else if version.contains(", ") {
+        check_manifest(version.clone())?;
+
+        // >=18 <20
+    } else if version.contains(' ') {
+        // Node.js doesn't require the comma, but Rust does
+        check_manifest(version.replace(' ', ", "))?;
+
+        // ^18, ~17, >16, ...
     } else {
         match &version[0..1] {
             "^" | "~" | ">" | "<" | "*" => {

@@ -1,4 +1,5 @@
 use proto_core::*;
+use rustc_hash::FxHashSet;
 use starbase_sandbox::create_empty_sandbox;
 use std::path::{Path, PathBuf};
 
@@ -12,7 +13,6 @@ pub fn create_manifest(dir: &Path, manifest: Manifest) -> PathBuf {
 
 mod expanded_version {
     use super::*;
-    use rustc_hash::FxHashSet;
 
     #[test]
     fn returns_alias() {
@@ -487,6 +487,31 @@ mod expanded_version {
             expand_detected_version("^1.6 || ^2", &Manifest::load(&manifest_path).unwrap())
                 .unwrap(),
             None
+        );
+    }
+
+    #[test]
+    fn handles_range_with_space() {
+        let temp = create_empty_sandbox();
+        let manifest_path = create_manifest(
+            temp.path(),
+            Manifest {
+                installed_versions: FxHashSet::from_iter(["1.5.9".into()]),
+                ..Manifest::default()
+            },
+        );
+
+        assert_eq!(
+            expand_detected_version(">=1.2.3 <2", &Manifest::load(&manifest_path).unwrap())
+                .unwrap()
+                .unwrap(),
+            "1.5.9"
+        );
+        assert_eq!(
+            expand_detected_version(">=1.2.3, <2", &Manifest::load(&manifest_path).unwrap())
+                .unwrap()
+                .unwrap(),
+            "1.5.9"
         );
     }
 }
