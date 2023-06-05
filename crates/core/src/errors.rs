@@ -5,6 +5,13 @@ use thiserror::Error;
 
 #[derive(Error, Debug, Diagnostic)]
 pub enum ProtoError {
+    #[diagnostic(
+        code(proto::download::missing),
+        help = "Please refer to the tool's official documentation."
+    )]
+    #[error("Tool download {} does not exist. This version may not be supported for your current operating system or architecture.", .0.style(Style::Url))]
+    DownloadNotFound(String),
+
     #[diagnostic(code(proto::download::failed))]
     #[error("Failed to download tool from {}: {1}", .0.style(Style::Url))]
     DownloadFailed(String, String),
