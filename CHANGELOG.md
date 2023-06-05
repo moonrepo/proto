@@ -5,6 +5,7 @@
 #### 🐞 Fixes
 
 - Fixed an issue where `proto upgrade` would fail on Windows.
+- Fixed an issue where version requirement `>=0.0.0 <0.0.0` would fail to parse.
 
 ## 0.10.2
 

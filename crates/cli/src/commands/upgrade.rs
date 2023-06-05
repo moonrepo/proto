@@ -106,8 +106,8 @@ pub async fn upgrade() -> SystemResult {
         }
     }
 
-    return Err(ProtoError::Message(format!(
+    Err(ProtoError::Message(format!(
         "Failed to upgrade proto, {} could not be located after download!",
         color::shell("proto.exe")
-    )))?;
+    )))?
 }
