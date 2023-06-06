@@ -171,7 +171,7 @@ pub fn write_profile_if_not_setup(
 
     let mut file = options.open(last_profile).map_err(handle_error)?;
 
-    write!(file, "{contents}").map_err(handle_error)?;
+    writeln!(file, "{contents}").map_err(handle_error)?;
 
     debug!(
         "Setup profile {} with {}",
