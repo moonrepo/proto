@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Updated Node.js to use x64 on arm64 machines when arm64 is not available (<16).
+
+#### 🐞 Fixes
+
+- Fixed an issue where writing to shells would omit a trailing newline.
+
 ## 0.10.3
 
 #### 🚀 Updates
