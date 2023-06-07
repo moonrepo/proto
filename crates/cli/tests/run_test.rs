@@ -2,7 +2,7 @@ mod utils;
 
 use proto_core::Manifest;
 use starbase_sandbox::predicates::prelude::*;
-use std::fs;
+use std::{env, fs};
 use utils::*;
 
 #[test]
@@ -219,6 +219,26 @@ fn auto_installs_if_missing() {
         .assert();
 
     assert.stdout(predicate::str::contains("19.0.0"));
+}
+
+#[test]
+fn auto_installs_if_missing_with_env_var() {
+    let temp = create_empty_sandbox();
+
+    env::set_var("PROTO_AUTO_INSTALL", "true");
+
+    let mut cmd = create_proto_command(temp.path());
+    let assert = cmd
+        .arg("run")
+        .arg("node")
+        .arg("19.0.0")
+        .arg("--")
+        .arg("--version")
+        .assert();
+
+    assert.stdout(predicate::str::contains("19.0.0"));
+
+    env::remove_var("PROTO_AUTO_INSTALL");
 }
 
 #[test]
