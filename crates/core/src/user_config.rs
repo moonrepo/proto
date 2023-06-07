@@ -2,10 +2,11 @@ use crate::{errors::ProtoError, helpers::get_root, plugin::PluginLocator};
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
 use starbase_utils::toml;
+use std::env;
 
 pub const USER_CONFIG_NAME: &str = "config.toml";
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(default, rename_all = "kebab-case")]
 pub struct UserConfig {
     pub auto_clean: bool,
@@ -25,5 +26,15 @@ impl UserConfig {
         let config: UserConfig = toml::read_file(&path)?;
 
         Ok(config)
+    }
+}
+
+impl Default for UserConfig {
+    fn default() -> Self {
+        Self {
+            auto_clean: env::var("PROTO_AUTO_CLEAN").is_ok(),
+            auto_install: env::var("PROTO_AUTO_INSTALL").is_ok(),
+            plugins: FxHashMap::default(),
+        }
     }
 }
