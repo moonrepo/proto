@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added `PROTO_AUTO_CLEAN` and `PROTO_AUTO_INSTALL` environment variables.
+
 ## 0.10.4
 
 #### 🚀 Updates
