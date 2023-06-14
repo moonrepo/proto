@@ -32,7 +32,7 @@ impl UserConfig {
 
 fn from_var(name: &str, fallback: bool) -> bool {
     if let Ok(value) = env::var(name) {
-        return value == "1" || value == "true";
+        return value == "1" || value == "true" || value == "on";
     }
 
     fallback

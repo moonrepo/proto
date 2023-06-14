@@ -1,6 +1,7 @@
 mod utils;
 
 use starbase_sandbox::predicates::prelude::*;
+use std::env;
 use utils::*;
 
 mod npm {
@@ -28,6 +29,37 @@ mod npm {
         assert.stderr(predicate::str::contains(
             "Global binaries must be installed with proto install-global npm",
         ));
+    }
+
+    #[test]
+    fn can_bypass_global_check() {
+        let temp = create_empty_sandbox();
+
+        let mut cmd = create_proto_command(temp.path());
+        cmd.arg("install")
+            .arg("npm")
+            .arg("latest")
+            .assert()
+            .success();
+
+        env::set_var("PROTO_NODE_INTERCEPT_GLOBALS", "0");
+
+        let mut cmd = create_proto_command(temp.path());
+        let assert = cmd
+            .arg("run")
+            .arg("npm")
+            .arg("latest")
+            .args(["--", "install", "-g", "typescript"])
+            .assert();
+
+        env::remove_var("PROTO_NODE_INTERCEPT_GLOBALS");
+
+        assert.stderr(
+            predicate::str::contains(
+                "Global binaries must be installed with proto install-global npm",
+            )
+            .not(),
+        );
     }
 }
 
