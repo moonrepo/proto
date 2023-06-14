@@ -11,7 +11,19 @@ pub const USER_CONFIG_NAME: &str = "config.toml";
 pub struct UserConfig {
     pub auto_clean: bool,
     pub auto_install: bool,
+    pub node_intercept_globals: bool,
     pub plugins: FxHashMap<String, PluginLocator>,
+}
+
+impl Default for UserConfig {
+    fn default() -> Self {
+        Self {
+            auto_clean: false,
+            auto_install: false,
+            node_intercept_globals: true,
+            plugins: FxHashMap::default(),
+        }
+    }
 }
 
 impl UserConfig {
