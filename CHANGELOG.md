@@ -4,7 +4,7 @@
 
 #### 🚀 Updates
 
-- Added `PROTO_AUTO_CLEAN` and `PROTO_AUTO_INSTALL` environment variables.
+- Added `PROTO_AUTO_CLEAN`, `PROTO_AUTO_INSTALL`, and `PROTO_NODE_INTERCEPT_GLOBALS` environment variables.
 - Added a `node-intercept-globals` setting to control the Node.js/npm/etc globals behavior.
 
 ## 0.10.4
