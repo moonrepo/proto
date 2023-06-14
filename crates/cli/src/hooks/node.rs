@@ -1,9 +1,16 @@
 use crate::tools::{create_tool, ToolType};
-use proto_core::{color, ProtoError};
+use proto_core::{color, ProtoError, UserConfig};
 use std::env;
 
-pub async fn pre_run(tool_type: ToolType, args: &[String]) -> Result<(), ProtoError> {
-    if args.len() < 3 || env::var("PROTO_INSTALL_GLOBAL").is_ok() {
+pub async fn pre_run(
+    tool_type: ToolType,
+    args: &[String],
+    user_config: &UserConfig,
+) -> Result<(), ProtoError> {
+    if args.len() < 3
+        || env::var("PROTO_INSTALL_GLOBAL").is_ok()
+        || !user_config.node_intercept_globals
+    {
         return Ok(());
     }
 
@@ -36,11 +43,12 @@ pub async fn pre_run(tool_type: ToolType, args: &[String]) -> Result<(), ProtoEr
         let tool = create_tool(&tool_type).await?;
 
         return Err(ProtoError::Message(format!(
-            "Global binaries must be installed with {} and {} should be added to your {}!\nLearn more: {}",
+            "Global binaries must be installed with {} and {} should be added to your {}!\nLearn more: {}\n\nOpt-out of this functionality with {}.",
             color::shell(format!("proto install-global {}", tool.get_id())),
             color::path(tool.get_globals_bin_dir()?),
             color::shell("PATH"),
-            color::url("https://moonrepo.dev/docs/proto/faq#how-can-i-install-a-global-binary-for-a-language")
+            color::url("https://moonrepo.dev/docs/proto/faq#how-can-i-install-a-global-binary-for-a-language"),
+            color::symbol("node-intercept-globals = false")
         )))?;
     }
 

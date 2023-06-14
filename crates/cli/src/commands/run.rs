@@ -85,7 +85,7 @@ pub async fn run(
 
     // Trigger before hook
     if matches!(tool_type, ToolType::Npm | ToolType::Pnpm | ToolType::Yarn) {
-        node_hooks::pre_run(tool_type, &args).await?;
+        node_hooks::pre_run(tool_type, &args, user_config).await?;
     }
 
     // Run the command
