@@ -118,3 +118,9 @@ pub fn is_musl() -> bool {
 
     String::from_utf8_lossy(&output.stdout).contains("musl")
 }
+
+pub fn is_cache_enabled() -> bool {
+    env::var("PROTO_CACHE").map_or(true, |value| {
+        value != "0" && value != "false" && value != "no" && value != "off"
+    })
+}
