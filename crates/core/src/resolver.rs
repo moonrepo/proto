@@ -1,5 +1,5 @@
 use crate::errors::ProtoError;
-use crate::helpers::{get_temp_dir, is_alias_name, is_offline, remove_v_prefix};
+use crate::helpers::{get_temp_dir, is_alias_name, is_cache_enabled, is_offline, remove_v_prefix};
 use human_sort::compare;
 use lenient_semver::Version;
 use rustc_hash::FxHashMap;
@@ -262,7 +262,7 @@ where
     };
     let offline = is_offline();
 
-    if temp_file.exists() {
+    if temp_file.exists() && is_cache_enabled() {
         let metadata = fs::metadata(&temp_file)?;
 
         // When offline, always read the temp file as we can't download the manifest

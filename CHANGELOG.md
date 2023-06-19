@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added `PROTO_CACHE` environment variable to control whether to read from temporary cache or not.
+
 ## 0.10.5
 
 #### 🚀 Updates
