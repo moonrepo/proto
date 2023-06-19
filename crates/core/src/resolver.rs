@@ -1,6 +1,5 @@
 use crate::errors::ProtoError;
-use crate::helpers::{get_temp_dir, is_alias_name, is_offline, remove_v_prefix};
-use crate::is_cache_enabled;
+use crate::helpers::{get_temp_dir, is_alias_name, is_cache_enabled, is_offline, remove_v_prefix};
 use human_sort::compare;
 use lenient_semver::Version;
 use rustc_hash::FxHashMap;
