@@ -2,7 +2,7 @@ use crate::{download_from_url, errors::ProtoError, get_plugins_dir};
 use serde::{Deserialize, Deserializer, Serialize};
 use sha2::{Digest, Sha256};
 use std::{fmt::Display, path::PathBuf, str::FromStr};
-use tracing::debug;
+use tracing::trace;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum PluginLocation {
@@ -131,7 +131,7 @@ where
     let plugin_path = get_plugins_dir()?.join(file_name);
 
     if !plugin_path.exists() {
-        debug!(
+        trace!(
             plugin = name.as_ref(),
             "Plugin does not exist in cache, attempting to download"
         );

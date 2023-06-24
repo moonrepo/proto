@@ -1,7 +1,8 @@
 use crate::NodeLanguage;
 use proto_core::{
     async_trait, is_offline, is_semantic_version, load_versions_manifest, parse_version,
-    remove_v_prefix, ProtoError, Resolvable, Tool, VersionManifest, VersionManifestEntry,
+    remove_v_prefix, Describable, ProtoError, Resolvable, Tool, VersionManifest,
+    VersionManifestEntry,
 };
 use serde::Deserialize;
 use std::collections::BTreeMap;
@@ -87,7 +88,12 @@ impl Resolvable<'_> for NodeLanguage {
             return Ok(initial_version);
         }
 
-        debug!("Resolving a semantic version for \"{}\"", initial_version);
+        debug!(
+            tool = self.get_id(),
+            initial_version = initial_version,
+            "Resolving a semantic version for \"{}\"",
+            initial_version
+        );
 
         let manifest = self.load_version_manifest().await?;
         let candidate;
@@ -114,7 +120,12 @@ impl Resolvable<'_> for NodeLanguage {
 
         let version = parse_version(candidate)?.to_string();
 
-        debug!("Resolved to {}", version);
+        debug!(
+            tool = self.get_id(),
+            version = candidate,
+            "Resolved to {}",
+            version
+        );
 
         self.set_version(&version);
 

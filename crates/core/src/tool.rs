@@ -89,7 +89,10 @@ pub trait Tool<'tool>:
         let do_create = force || is_outdated;
 
         if do_create {
-            debug!("Creating shims as they either do not exist, or are outdated");
+            debug!(
+                tool = self.get_id(),
+                "Creating shims as they either do not exist, or are outdated"
+            );
 
             let manifest = self.get_manifest_mut()?;
             manifest.shim_version = SHIM_VERSION;
@@ -107,7 +110,8 @@ pub trait Tool<'tool>:
         let install_dir = self.get_install_dir()?;
 
         debug!(
-            install_dir = %install_dir.display(),
+            tool = self.get_id(),
+            install_dir = ?install_dir,
             "Checking if tool is installed",
         );
 
@@ -116,7 +120,8 @@ pub trait Tool<'tool>:
 
             if self.get_bin_path().is_ok() {
                 debug!(
-                    install_dir = %install_dir.display(),
+                    tool = self.get_id(),
+                    install_dir = ?install_dir,
                     "Tool has already been installed",
                 );
 
@@ -125,7 +130,7 @@ pub trait Tool<'tool>:
                 return Ok(true);
             }
         } else {
-            debug!("Tool has not been installed");
+            debug!(tool = self.get_id(), "Tool has not been installed");
         }
 
         Ok(false)
@@ -136,7 +141,10 @@ pub trait Tool<'tool>:
     }
 
     async fn cleanup(&mut self) -> Result<(), ProtoError> {
-        debug!("Cleaning up temporary files and downloads");
+        debug!(
+            tool = self.get_id(),
+            "Cleaning up temporary files and downloads"
+        );
 
         let download_path = self.get_download_path()?;
         let checksum_path = self.get_checksum_path()?;

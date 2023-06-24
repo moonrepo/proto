@@ -1,5 +1,7 @@
 use crate::NodeLanguage;
-use proto_core::{async_trait, get_sha256_hash_of_file, ProtoError, Resolvable, Verifiable};
+use proto_core::{
+    async_trait, get_sha256_hash_of_file, Describable, ProtoError, Resolvable, Verifiable,
+};
 use starbase_utils::fs;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
@@ -26,8 +28,9 @@ impl Verifiable<'_> for NodeLanguage {
         download_file: &Path,
     ) -> Result<bool, ProtoError> {
         debug!(
-            download_file = %download_file.display(),
-            checksum_file = %checksum_file.display(),
+            tool = self.get_id(),
+            download_file = ?download_file,
+            checksum_file = ?checksum_file,
             "Verifiying checksum of downloaded file"
         );
 
@@ -39,7 +42,10 @@ impl Verifiable<'_> for NodeLanguage {
         for line in BufReader::new(file).lines().flatten() {
             // <checksum>  node-v<version>-<os>-<arch>.tar.gz
             if line.starts_with(&checksum) && line.ends_with(&file_name) {
-                debug!("Successfully verified, checksum matches");
+                debug!(
+                    tool = self.get_id(),
+                    "Successfully verified, checksum matches"
+                );
 
                 return Ok(true);
             }

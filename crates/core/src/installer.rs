@@ -5,7 +5,7 @@ use std::fs::File;
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 use tar::Archive;
-use tracing::debug;
+use tracing::{debug, trace};
 use zip::ZipArchive;
 
 #[async_trait::async_trait]
@@ -24,7 +24,7 @@ pub trait Installable<'tool>: Send + Sync + Describable<'tool> {
     /// This is typically unzipping an archive, and running any installers/binaries.
     async fn install(&self, install_dir: &Path, download_path: &Path) -> Result<bool, ProtoError> {
         if install_dir.exists() {
-            debug!("Tool already installed, continuing");
+            debug!(tool = self.get_id(), "Tool already installed, continuing");
 
             return Ok(false);
         }
@@ -36,8 +36,9 @@ pub trait Installable<'tool>: Send + Sync + Describable<'tool> {
         let prefix = self.get_archive_prefix()?;
 
         debug!(
-            download_file = %download_path.display(),
-            install_dir = %install_dir.display(),
+            tool = self.get_id(),
+            download_file = ?download_path,
+            install_dir = ?install_dir,
             "Attempting to install tool",
         );
 
@@ -55,7 +56,7 @@ pub trait Installable<'tool>: Send + Sync + Describable<'tool> {
             fs::update_perms(install_path, None)?;
         }
 
-        debug!("Successfully installed tool");
+        debug!(tool = self.get_id(), "Successfully installed tool");
 
         Ok(true)
     }
@@ -68,19 +69,23 @@ pub trait Installable<'tool>: Send + Sync + Describable<'tool> {
     /// Uninstall the tool by deleting the install directory.
     async fn uninstall(&self, install_dir: &Path) -> Result<bool, ProtoError> {
         if !install_dir.exists() {
-            debug!("Tool has not been installed, aborting");
+            debug!(
+                tool = self.get_id(),
+                "Tool has not been installed, aborting"
+            );
 
             return Ok(false);
         }
 
         debug!(
-            install_dir = %install_dir.display(),
+            tool = self.get_id(),
+            install_dir = ?install_dir,
             "Deleting install directory"
         );
 
         fs::remove_dir_all(install_dir)?;
 
-        debug!("Successfully uninstalled tool");
+        debug!(tool = self.get_id(), "Successfully uninstalled tool");
 
         Ok(true)
     }
@@ -126,9 +131,9 @@ pub fn untar<I: AsRef<Path>, O: AsRef<Path>, R: FnOnce(File) -> D, D: Read>(
         error,
     };
 
-    debug!(
-        input_file = %input_file.display(),
-        output_dir = %output_dir.display(),
+    trace!(
+        input_file = ?input_file,
+        output_dir = ?output_dir,
         "Unpacking tar archive",
     );
 
@@ -201,9 +206,9 @@ pub fn unzip<I: AsRef<Path>, O: AsRef<Path>>(
     let input_file = input_file.as_ref();
     let output_dir = output_dir.as_ref();
 
-    debug!(
-        input_file = %input_file.display(),
-        output_dir = %output_dir.display(),
+    trace!(
+        input_file = ?input_file,
+        output_dir = ?output_dir,
         "Unzipping zip archive"
     );
 

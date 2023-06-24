@@ -9,7 +9,7 @@ use human_sort::compare;
 use lenient_semver::Version;
 use starbase_utils::fs;
 use std::{env, path::Path};
-use tracing::debug;
+use tracing::{debug, trace};
 
 #[async_trait::async_trait]
 pub trait Detector<'tool>: Send + Sync {
@@ -51,12 +51,12 @@ pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
 
     // Traverse upwards and attempt to detect a local version
     if let Ok(working_dir) = env::current_dir() {
-        debug!("Attempting to find local version");
+        trace!("Attempting to find local version");
 
         let mut current_dir: Option<&Path> = Some(&working_dir);
 
         while let Some(dir) = &current_dir {
-            debug!(dir = %dir.display(), "Checking in directory");
+            trace!(dir = ?dir, "Checking in directory");
 
             // We already found a version, so exit
             if version.is_some() {
@@ -64,14 +64,14 @@ pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
             }
 
             // Detect from our config file
-            debug!("Checking proto configuration file ({})", TOOLS_CONFIG_NAME);
+            trace!("Checking proto configuration file ({})", TOOLS_CONFIG_NAME);
 
             let config = ToolsConfig::load_from(dir)?;
 
             if let Some(local_version) = config.tools.get(tool.get_id()) {
                 debug!(
                     version = local_version,
-                    file = %config.path.display(),
+                    file = ?config.path,
                     "Detected version from configuration file",
                 );
 
@@ -80,7 +80,7 @@ pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
             }
 
             // Detect using the tool
-            debug!("Detecting from the tool's ecosystem");
+            trace!("Detecting from the tool's ecosystem");
 
             if let Some(eco_version) = tool.detect_version_from(dir).await? {
                 if let Some(eco_version) =
@@ -102,7 +102,7 @@ pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
 
     // If still no version, load the global version
     if version.is_none() {
-        debug!(
+        trace!(
             "Attempting to find global version in manifest ({})",
             MANIFEST_NAME
         );
@@ -112,7 +112,7 @@ pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
         if let Some(global_version) = &manifest.default_version {
             debug!(
                 version = global_version,
-                file = %manifest.path.display(),
+                file = ?manifest.path,
                 "Detected global version from manifest",
             );
 

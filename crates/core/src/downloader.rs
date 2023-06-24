@@ -5,7 +5,7 @@ use crate::resolver::Resolvable;
 use starbase_utils::fs::{self, FsError};
 use std::io;
 use std::path::{Path, PathBuf};
-use tracing::debug;
+use tracing::{debug, trace};
 
 #[async_trait::async_trait]
 pub trait Downloadable<'tool>: Send + Sync + Describable<'tool> + Resolvable<'tool> {
@@ -23,7 +23,7 @@ pub trait Downloadable<'tool>: Send + Sync + Describable<'tool> + Resolvable<'to
     /// provided as the 2nd argument.
     async fn download(&self, to_file: &Path, from_url: Option<&str>) -> Result<bool, ProtoError> {
         if to_file.exists() {
-            debug!("Tool already downloaded, continuing");
+            debug!(tool = self.get_id(), "Tool already downloaded, continuing");
 
             return Ok(false);
         }
@@ -33,11 +33,15 @@ pub trait Downloadable<'tool>: Send + Sync + Describable<'tool> + Resolvable<'to
             None => self.get_download_url()?,
         };
 
-        debug!(url = from_url, "Attempting to download tool from URL");
+        debug!(
+            tool = self.get_id(),
+            url = from_url,
+            "Attempting to download tool from URL"
+        );
 
         download_from_url(&from_url, &to_file).await?;
 
-        debug!("Successfully downloaded tool");
+        debug!(tool = self.get_id(), "Successfully downloaded tool");
 
         Ok(true)
     }
@@ -64,8 +68,8 @@ where
         error,
     };
 
-    debug!(
-        dest_file = %dest_file.display(),
+    trace!(
+        dest_file = ?dest_file,
         url,
         "Downloading file from URL",
     );

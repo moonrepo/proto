@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 use starbase_utils::fs::{self, FsError};
 use std::io;
 use std::path::{Path, PathBuf};
-use tracing::debug;
+use tracing::{debug, trace};
 
 #[async_trait::async_trait]
 pub trait Verifiable<'tool>: Send + Sync + Downloadable<'tool> {
@@ -23,7 +23,10 @@ pub trait Verifiable<'tool>: Send + Sync + Downloadable<'tool> {
         from_url: Option<&str>,
     ) -> Result<bool, ProtoError> {
         if to_file.exists() {
-            debug!("Checksum already downloaded, continuing");
+            debug!(
+                tool = self.get_id(),
+                "Checksum already downloaded, continuing"
+            );
 
             return Ok(false);
         }
@@ -38,11 +41,15 @@ pub trait Verifiable<'tool>: Send + Sync + Downloadable<'tool> {
             return Ok(true);
         };
 
-        debug!(url = from_url, "Attempting to download checksum from URL",);
+        debug!(
+            tool = self.get_id(),
+            url = from_url,
+            "Attempting to download checksum from URL",
+        );
 
         download_from_url(&from_url, &to_file).await?;
 
-        debug!("Successfully downloaded checksum");
+        debug!(tool = self.get_id(), "Successfully downloaded checksum");
 
         Ok(true)
     }
@@ -60,7 +67,7 @@ pub trait Verifiable<'tool>: Send + Sync + Downloadable<'tool> {
 pub fn get_sha256_hash_of_file<P: AsRef<Path>>(path: P) -> Result<String, ProtoError> {
     let path = path.as_ref();
 
-    debug!(file = %path.display(), "Calculating SHA256 checksum");
+    trace!(file = ?path, "Calculating SHA256 checksum");
 
     let mut file = fs::open_file(path)?;
     let mut sha = Sha256::new();
@@ -72,7 +79,7 @@ pub fn get_sha256_hash_of_file<P: AsRef<Path>>(path: P) -> Result<String, ProtoE
 
     let hash = format!("{:x}", sha.finalize());
 
-    debug!(hash, "Calculated hash");
+    trace!(hash, "Calculated hash");
 
     Ok(hash)
 }

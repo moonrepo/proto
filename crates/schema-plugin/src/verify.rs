@@ -1,5 +1,7 @@
 use crate::SchemaPlugin;
-use proto_core::{async_trait, color, get_sha256_hash_of_file, ProtoError, Resolvable, Verifiable};
+use proto_core::{
+    async_trait, get_sha256_hash_of_file, Describable, ProtoError, Resolvable, Verifiable,
+};
 use starbase_utils::fs;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
@@ -35,9 +37,10 @@ impl Verifiable<'_> for SchemaPlugin {
         }
 
         debug!(
-            "Verifiying checksum of downloaded file {} using {}",
-            color::path(download_file),
-            color::path(checksum_file),
+            tool = self.get_id(),
+            download_file = ?download_file,
+            checksum_file = ?checksum_file,
+            "Verifiying checksum of downloaded file",
         );
 
         let checksum = get_sha256_hash_of_file(download_file)?;
@@ -52,7 +55,10 @@ impl Verifiable<'_> for SchemaPlugin {
             // <checksum>
             line == checksum
             {
-                debug!("Successfully verified, checksum matches");
+                debug!(
+                    tool = self.get_id(),
+                    "Successfully verified, checksum matches"
+                );
 
                 return Ok(true);
             }

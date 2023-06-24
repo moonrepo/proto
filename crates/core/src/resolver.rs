@@ -1,11 +1,11 @@
 use crate::errors::ProtoError;
 use crate::helpers::{get_temp_dir, is_alias_name, is_cache_enabled, is_offline, remove_v_prefix};
+use crate::Describable;
 use human_sort::compare;
 use lenient_semver::Version;
 use rustc_hash::FxHashMap;
 use serde::de::DeserializeOwned;
 use sha2::{Digest, Sha256};
-use starbase_styles::color;
 use starbase_utils::{fs, json, json::JsonError};
 use std::collections::BTreeMap;
 use std::time::{Duration, SystemTime};
@@ -114,7 +114,7 @@ impl VersionManifest {
 }
 
 #[async_trait::async_trait]
-pub trait Resolvable<'tool>: Send + Sync {
+pub trait Resolvable<'tool>: Describable<'tool> + Send + Sync {
     /// Return the version to be used as the global default.
     fn get_default_version(&self) -> Option<&str> {
         None
@@ -143,12 +143,22 @@ pub trait Resolvable<'tool>: Send + Sync {
             return Ok(initial_version);
         }
 
-        debug!("Resolving a semantic version for \"{}\"", initial_version);
+        debug!(
+            tool = self.get_id(),
+            initial_version = initial_version,
+            "Resolving a semantic version for \"{}\"",
+            initial_version
+        );
 
         let manifest = self.load_version_manifest().await?;
         let candidate = manifest.find_version(&initial_version)?;
 
-        debug!("Resolved to {}", candidate);
+        debug!(
+            tool = self.get_id(),
+            version = candidate,
+            "Resolved to {}",
+            candidate
+        );
 
         self.set_version(candidate);
 
@@ -277,7 +287,7 @@ where
 
         if read_temp {
             debug!(
-                cache_file = %temp_file.display(),
+                cache_file = ?temp_file,
                 "Loading versions manifest from local cache",
             );
 
@@ -292,7 +302,7 @@ where
     }
 
     // Otherwise, request the resource and cache it
-    debug!("Loading versions manifest from {}", color::url(url));
+    debug!(url = url, "Loading versions manifest");
 
     let response = reqwest::get(url).await.map_err(handle_http_error)?;
     let contents = response.text().await.map_err(handle_http_error)?;
