@@ -81,7 +81,7 @@ pub async fn run(
         debug!(alt_bin, "Using local shim for tool");
     }
 
-    debug!(bin = %bin_path.display(), "Running {}", tool.get_name());
+    debug!(bin = ?bin_path, "Running {}", tool.get_name());
 
     // Trigger before hook
     if matches!(tool_type, ToolType::Npm | ToolType::Pnpm | ToolType::Yarn) {

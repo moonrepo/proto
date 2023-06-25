@@ -204,7 +204,7 @@ impl ShimBuilder {
         fs::write_file(&shim_path, build_shim_file(self, contents, global)?)?;
         fs::update_perms(&shim_path, None)?;
 
-        debug!(file = %shim_path.display(), "Created shim");
+        debug!(tool = &self.context.name, file = ?shim_path, "Created shim");
 
         Ok(shim_path)
     }

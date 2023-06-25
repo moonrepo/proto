@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Improved tracing log messages.
+
+#### ⚙️ Internal
+
+- Updated Cargo dependencies.
+
 ## 0.10.6
 
 #### 🚀 Updates

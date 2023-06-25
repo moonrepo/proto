@@ -1,5 +1,5 @@
 use crate::RustLanguage;
-use proto_core::{async_trait, color, has_command, Downloadable, ProtoError};
+use proto_core::{async_trait, color, has_command, Describable, Downloadable, ProtoError};
 use std::path::{Path, PathBuf};
 use tracing::debug;
 
@@ -16,7 +16,7 @@ impl Downloadable<'_> for RustLanguage {
     // Since we don't download Rust for the user, we instead check that `rustup`
     // exists on their machine, as we'll require that command for the install step.
     async fn download(&self, _to_file: &Path, _from_url: Option<&str>) -> Result<bool, ProtoError> {
-        debug!("Checking if rustup exists");
+        debug!(tool = self.get_id(), "Checking if rustup exists");
 
         if has_command("rustup") {
             return Ok(true);

@@ -1,5 +1,5 @@
 use crate::{get_triple_target, RustLanguage};
-use proto_core::{async_trait, color, Installable, ProtoError, Resolvable};
+use proto_core::{async_trait, color, Describable, Installable, ProtoError, Resolvable};
 use std::path::{Path, PathBuf};
 use tokio::process::Command;
 use tracing::debug;
@@ -58,28 +58,34 @@ impl Installable<'_> for RustLanguage {
 
     async fn install(&self, install_dir: &Path, _download_path: &Path) -> Result<bool, ProtoError> {
         if is_installed_in_rustup(install_dir).await? {
-            debug!("Toolchain already installed, continuing");
+            debug!(
+                tool = self.get_id(),
+                "Toolchain already installed, continuing"
+            );
 
             return Ok(false);
         }
 
         let success = run_rustup_toolchain("install", self.get_resolved_version()).await?;
 
-        debug!("Successfully installed tool");
+        debug!(tool = self.get_id(), "Successfully installed tool");
 
         Ok(success)
     }
 
     async fn uninstall(&self, install_dir: &Path) -> Result<bool, ProtoError> {
         if !is_installed_in_rustup(install_dir).await? {
-            debug!("Tool has not been installed, aborting");
+            debug!(
+                tool = self.get_id(),
+                "Tool has not been installed, aborting"
+            );
 
             return Ok(false);
         }
 
         let success = run_rustup_toolchain("uninstall", self.get_resolved_version()).await?;
 
-        debug!("Successfully uninstalled tool");
+        debug!(tool = self.get_id(), "Successfully uninstalled tool");
 
         Ok(success)
     }

@@ -3,7 +3,8 @@ use crate::platform::PackageJson;
 use crate::NodeLanguage;
 use proto_core::{
     async_trait, detect_version, is_offline, is_semantic_version, load_versions_manifest,
-    remove_v_prefix, Proto, ProtoError, Resolvable, Tool, VersionManifest, VersionManifestEntry,
+    remove_v_prefix, Describable, Proto, ProtoError, Resolvable, Tool, VersionManifest,
+    VersionManifestEntry,
 };
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
@@ -128,7 +129,10 @@ impl Resolvable<'_> for NodeDependencyManager {
             // Because of this, we need to always install the v1 package!
             NodeDependencyManagerType::Yarn => {
                 if !initial_version.starts_with('1') {
-                    debug!("Found Yarn v2+, installing latest v1 from registry for compatibility");
+                    debug!(
+                        tool = self.get_id(),
+                        "Found Yarn v2+, installing latest v1 from registry for compatibility"
+                    );
 
                     initial_version = if is_offline() {
                         "1.22.19".to_owned() // This may change upstream!
@@ -147,12 +151,22 @@ impl Resolvable<'_> for NodeDependencyManager {
             return Ok(initial_version);
         }
 
-        debug!("Resolving a semantic version for \"{}\"", initial_version);
+        debug!(
+            tool = self.get_id(),
+            initial_version = initial_version,
+            "Resolving a semantic version for \"{}\"",
+            initial_version
+        );
 
         let manifest = self.load_version_manifest().await?;
         let candidate = manifest.find_version(&initial_version)?;
 
-        debug!("Resolved to {}", candidate);
+        debug!(
+            tool = self.get_id(),
+            version = candidate,
+            "Resolved to {}",
+            candidate
+        );
 
         self.set_version(candidate);
 
