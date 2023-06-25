@@ -35,6 +35,7 @@ pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
     if version.is_none() {
         if let Ok(session_version) = env::var(&env_var) {
             debug!(
+                tool = tool.get_id(),
                 env_var,
                 version = session_version,
                 "Detected version from environment variable",
@@ -44,6 +45,7 @@ pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
         }
     } else {
         debug!(
+            tool = tool.get_id(),
             version = version.as_ref().unwrap(),
             "Using explicit version passed on the command line",
         );
@@ -51,12 +53,16 @@ pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
 
     // Traverse upwards and attempt to detect a local version
     if let Ok(working_dir) = env::current_dir() {
-        trace!("Attempting to find local version");
+        trace!(tool = tool.get_id(), "Attempting to find local version");
 
         let mut current_dir: Option<&Path> = Some(&working_dir);
 
         while let Some(dir) = &current_dir {
-            trace!(dir = ?dir, "Checking in directory");
+            trace!(
+                tool = tool.get_id(),
+                dir = ?dir,
+                "Checking in directory",
+            );
 
             // We already found a version, so exit
             if version.is_some() {
@@ -64,12 +70,17 @@ pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
             }
 
             // Detect from our config file
-            trace!("Checking proto configuration file ({})", TOOLS_CONFIG_NAME);
+            trace!(
+                tool = tool.get_id(),
+                "Checking proto configuration file ({})",
+                TOOLS_CONFIG_NAME
+            );
 
             let config = ToolsConfig::load_from(dir)?;
 
             if let Some(local_version) = config.tools.get(tool.get_id()) {
                 debug!(
+                    tool = tool.get_id(),
                     version = local_version,
                     file = ?config.path,
                     "Detected version from configuration file",
@@ -80,13 +91,14 @@ pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
             }
 
             // Detect using the tool
-            trace!("Detecting from the tool's ecosystem");
+            trace!(tool = tool.get_id(), "Detecting from the tool's ecosystem");
 
             if let Some(eco_version) = tool.detect_version_from(dir).await? {
                 if let Some(eco_version) =
                     expand_detected_version(&eco_version, tool.get_manifest()?)?
                 {
                     debug!(
+                        tool = tool.get_id(),
                         version = eco_version,
                         "Detected version from tool's ecosystem"
                     );
@@ -103,6 +115,7 @@ pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
     // If still no version, load the global version
     if version.is_none() {
         trace!(
+            tool = tool.get_id(),
             "Attempting to find global version in manifest ({})",
             MANIFEST_NAME
         );
@@ -111,6 +124,7 @@ pub async fn detect_version<'l, T: Tool<'l> + ?Sized>(
 
         if let Some(global_version) = &manifest.default_version {
             debug!(
+                tool = tool.get_id(),
                 version = global_version,
                 file = ?manifest.path,
                 "Detected global version from manifest",

@@ -24,7 +24,7 @@ pub async fn install_all(
 
     // Inherit from .prototools
     if let Some(config) = &tools_config.0 {
-        debug!(config = %config.path.display(), "Detecting tools and plugins from .prototools");
+        debug!(config = ?config.path, "Detecting tools and plugins from .prototools");
 
         if !config.tools.is_empty() {
             tools.extend(config.tools.clone());
