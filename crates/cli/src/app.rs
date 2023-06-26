@@ -1,6 +1,17 @@
 use crate::tools::ToolType;
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use clap_complete::Shell;
+
+#[derive(ValueEnum, Clone, Debug, Default)]
+pub enum LogLevel {
+    Off,
+    Error,
+    Warn,
+    #[default]
+    Info,
+    Debug,
+    Trace,
+}
 
 #[derive(Debug, Parser)]
 #[command(
@@ -11,9 +22,19 @@ use clap_complete::Shell;
     disable_colored_help = true,
     disable_help_subcommand = true,
     propagate_version = true,
-    next_line_help = false
+    next_line_help = false,
+    rename_all = "camelCase"
 )]
 pub struct App {
+    #[arg(
+        value_enum,
+        long,
+        global = true,
+        env = "PROTO_LOG",
+        help = "Lowest log level to output"
+    )]
+    pub log: Option<LogLevel>,
+
     #[command(subcommand)]
     pub command: Commands,
 }

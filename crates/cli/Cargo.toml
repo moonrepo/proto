@@ -5,7 +5,7 @@ name = "proto_cli"
 version = "0.10.6"
 edition = "2021"
 license = "MIT"
-description = "A language agnostic version manager."
+description = "A multi-language toolchain and version manager."
 homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 keywords = ["language", "installer", "version-manager", "dependency-manager", "package-manager"]
@@ -35,7 +35,7 @@ proto_node = { version = "0.9.3", path = "../node" }
 proto_rust = { version = "0.7.2", path = "../rust" }
 proto_schema_plugin = { version = "0.5.2", path = "../schema-plugin" }
 async-recursion = "1.0.4"
-clap = { workspace = true, features = ["derive"] }
+clap = { workspace = true, features = ["derive", "env"] }
 clap_complete = { workspace = true }
 convert_case = { workspace = true }
 dialoguer = "0.10.4"

@@ -161,7 +161,7 @@ pub fn create_global_shim<'tool, C: AsRef<ShimContext<'tool>>>(
     create_global_shim_with_name(context.as_ref(), context.as_ref().bin)
 }
 
-#[tracing::instrument(skip_all)]
+#[tracing::instrument(name = "create_global_shim", skip_all)]
 pub fn create_global_shim_with_name<'tool, C: AsRef<ShimContext<'tool>>>(
     context: C,
     name: &str,
