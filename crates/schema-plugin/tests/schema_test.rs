@@ -283,13 +283,13 @@ mod schema_plugin {
                     fixture.path(),
                     Schema {
                         install: InstallSchema {
-                            globals_dir: string_vec!["$HOME/.moon/bin"],
+                            globals_dir: string_vec!["$HOME/.moon-test/bin"],
                             ..InstallSchema::default()
                         },
                         ..Schema::default()
                     },
                 );
-                let bin_dir = get_home_dir().unwrap().join(".moon/bin");
+                let bin_dir = get_home_dir().unwrap().join(".moon-test/bin");
 
                 fs::create_dir_all(&bin_dir).unwrap();
 
