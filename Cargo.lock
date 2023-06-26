@@ -1676,7 +1676,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.11.0"
+version = "0.11.1"
 dependencies = [
  "async-recursion",
  "clap",
