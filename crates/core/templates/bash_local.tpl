@@ -1,13 +1,13 @@
-{{ if install_dir }}
-export PROTO_{name | uppercase}_DIR="{install_dir}"
+{{ if tool_dir }}
+export PROTO_{bin | uppercase}_DIR="{tool_dir}"
 {{ endif }}
 
-{{ if version }}
-export PROTO_{name | uppercase}_VERSION="{version}"
+{{ if tool_version }}
+export PROTO_{bin | uppercase}_VERSION="{tool_version}"
 {{ endif }}
 
-{{ if parent_name }}
-parent="$\{PROTO_{parent_name | uppercase}_BIN:-{parent_name}}"
+{{ if parent_bin }}
+parent="$\{PROTO_{parent_bin | uppercase}_BIN:-{parent_bin}}"
 
 exec "$parent" "{bin_path}" "$@"
 {{ else }}

@@ -12,6 +12,24 @@ use tracing::debug;
 pub const SHIM_VERSION: u8 = 3;
 
 #[derive(Default, Serialize)]
+pub struct ShimContext {
+    // BINARY INFO
+    /// Name of the binary to execute.
+    bin: String,
+    /// Path to the binary to execute.
+    bin_path: PathBuf,
+    /// Name or relative path to an alternative binary file to execute.
+    alt_bin: Option<String>,
+    /// Name of a parent binary required to execute the current binary.
+    parent_bin: Option<String>,
+
+    // TOOL INFO
+    /// Path to the proto tool installation directory.
+    tool_dir: Option<PathBuf>,
+    tool_version: Option<String>,
+}
+
+#[derive(Default, Serialize)]
 pub struct Context {
     alt_bin: Option<String>,
     bin_path: PathBuf,
