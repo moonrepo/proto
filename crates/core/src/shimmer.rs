@@ -1,5 +1,5 @@
 use crate::errors::ProtoError;
-use crate::helpers::{get_bin_dir, get_root};
+use crate::helpers::get_bin_dir;
 use serde::Serialize;
 use serde_json::Value;
 use starbase_utils::fs;
@@ -9,17 +9,56 @@ use tinytemplate::error::Error as TemplateError;
 use tinytemplate::TinyTemplate;
 use tracing::debug;
 
-pub const SHIM_VERSION: u8 = 3;
+pub const SHIM_VERSION: u8 = 4;
 
 #[derive(Default, Serialize)]
-pub struct Context {
-    alt_bin: Option<String>,
-    bin_path: PathBuf,
-    install_dir: Option<PathBuf>,
-    name: String,
-    parent_name: Option<String>,
-    root: PathBuf,
-    version: Option<String>,
+pub struct ShimContext<'tool> {
+    // BINARY INFO
+    /// Name of the binary to execute.
+    pub bin: &'tool str,
+    /// Path to the binary to execute.
+    pub bin_path: Option<&'tool Path>,
+    /// Name or relative path to an alternative binary file to execute.
+    pub alt_bin: Option<&'tool str>,
+    /// Name of a parent binary required to execute the current binary.
+    pub parent_bin: Option<&'tool str>,
+
+    // TOOL INFO
+    /// Path to the proto tool installation directory.
+    pub tool_dir: Option<&'tool Path>,
+    pub tool_version: Option<&'tool str>,
+}
+
+impl<'tool> ShimContext<'tool> {
+    pub fn new_global(bin: &'tool str) -> Self {
+        ShimContext {
+            bin,
+            ..ShimContext::default()
+        }
+    }
+
+    pub fn new_global_alt(parent_bin: &'tool str, bin: &'tool str, alt_bin: &'tool str) -> Self {
+        ShimContext {
+            bin,
+            parent_bin: Some(parent_bin),
+            alt_bin: Some(alt_bin),
+            ..ShimContext::default()
+        }
+    }
+
+    pub fn new_local(bin: &'tool str, bin_path: &'tool Path) -> Self {
+        ShimContext {
+            bin,
+            bin_path: Some(bin_path),
+            ..ShimContext::default()
+        }
+    }
+}
+
+impl<'tool> AsRef<ShimContext<'tool>> for ShimContext<'tool> {
+    fn as_ref(&self) -> &ShimContext<'tool> {
+        self
+    }
 }
 
 #[async_trait::async_trait]
@@ -68,144 +107,76 @@ fn get_template<'l>(global: bool) -> &'l str {
 }
 
 #[tracing::instrument(skip_all)]
-fn build_shim_file(
-    builder: &ShimBuilder,
-    contents: &str,
-    global: bool,
-) -> Result<String, ProtoError> {
+fn build_shim_file(context: &ShimContext, global: bool) -> Result<String, ProtoError> {
     let mut template = TinyTemplate::new();
 
     template.add_formatter("uppercase", format_uppercase);
 
-    let contents = format!("{}\n\n{}", get_template_header(global), contents);
+    let contents = format!(
+        "{}\n\n{}",
+        get_template_header(global),
+        get_template(global)
+    );
 
     template
         .add_template("shim", &contents)
         .map_err(ProtoError::Shim)?;
 
-    template
-        .render("shim", &builder.context)
-        .map_err(ProtoError::Shim)
+    template.render("shim", context).map_err(ProtoError::Shim)
 }
 
 #[cfg(windows)]
-fn get_shim_file_name(name: &str, global: bool) -> String {
+pub fn get_shim_file_name(name: &str, global: bool) -> String {
     format!("{name}.{}", if global { "cmd" } else { "ps1" })
 }
 
 #[cfg(not(windows))]
-fn get_shim_file_name(name: &str, _global: bool) -> String {
+pub fn get_shim_file_name(name: &str, _global: bool) -> String {
     name.to_owned()
 }
 
-pub struct ShimBuilder {
-    pub context: Context,
-    pub global_template: Option<String>,
-    pub local_template: Option<String>,
+fn create_shim(
+    context: &ShimContext,
+    shim_path: PathBuf,
+    global: bool,
+    find_only: bool,
+) -> Result<PathBuf, ProtoError> {
+    if find_only && shim_path.exists() {
+        return Ok(shim_path);
+    }
+
+    fs::write_file(&shim_path, build_shim_file(context, global)?)?;
+    fs::update_perms(&shim_path, None)?;
+
+    Ok(shim_path)
 }
 
-impl ShimBuilder {
-    pub fn new(name: &str, bin_path: &Path) -> Result<Self, ProtoError> {
-        Ok(ShimBuilder {
-            context: Context {
-                bin_path: bin_path.to_owned(),
-                name: name.to_owned(),
-                root: get_root()?,
-                ..Context::default()
-            },
-            global_template: None,
-            local_template: None,
-        })
-    }
+#[tracing::instrument(skip_all)]
+pub fn create_global_shim<'tool, C: AsRef<ShimContext<'tool>>>(
+    context: C,
+) -> Result<PathBuf, ProtoError> {
+    let context = context.as_ref();
+    let shim_path = get_bin_dir()?.join(get_shim_file_name(context.bin, true));
 
-    pub fn alt_bin<V: AsRef<str>>(&mut self, bin: V) -> &mut Self {
-        self.context.alt_bin = Some(bin.as_ref().to_owned());
-        self
-    }
+    debug!(tool = context.bin, file = ?shim_path, "Creating global shim");
 
-    pub fn dir<P: AsRef<Path>>(&mut self, path: P) -> &mut Self {
-        self.context.install_dir = Some(path.as_ref().to_path_buf());
-        self
-    }
+    create_shim(context, shim_path, true, false)
+}
 
-    pub fn parent<V: AsRef<str>>(&mut self, name: V) -> &mut Self {
-        self.context.parent_name = Some(name.as_ref().to_owned());
-        self
-    }
+#[tracing::instrument(skip_all)]
+pub fn create_local_shim<'tool, C: AsRef<ShimContext<'tool>>>(
+    context: C,
+    find_only: bool,
+) -> Result<PathBuf, ProtoError> {
+    let context = context.as_ref();
+    let shim_path = context
+        .tool_dir
+        .as_ref()
+        .unwrap()
+        .join("shims")
+        .join(get_shim_file_name(context.bin, false));
 
-    pub fn version<V: AsRef<str>>(&mut self, version: V) -> &mut Self {
-        self.context.version = Some(version.as_ref().to_owned());
-        self
-    }
+    debug!(tool = context.bin, file = ?shim_path, "Creating local shim");
 
-    pub fn set_global_template(&mut self, template: String) -> &mut Self {
-        self.global_template = Some(template);
-        self
-    }
-
-    pub fn set_tool_template(&mut self, template: String) -> &mut Self {
-        self.local_template = Some(template);
-        self
-    }
-
-    pub fn create_global_shim(&self) -> Result<PathBuf, ProtoError> {
-        let shim_path = get_bin_dir()?.join(get_shim_file_name(&self.context.name, true));
-
-        self.do_create(
-            shim_path,
-            if let Some(template) = &self.global_template {
-                template
-            } else {
-                get_template(true)
-            },
-            true,
-            false,
-        )
-    }
-
-    pub fn create_tool_shim(&self, find_only: bool) -> Result<PathBuf, ProtoError> {
-        let shim_path = self
-            .context
-            .install_dir
-            .as_ref()
-            .unwrap()
-            .join("shims")
-            .join(get_shim_file_name(&self.context.name, false));
-
-        self.do_create(
-            shim_path,
-            if let Some(template) = &self.local_template {
-                template
-            } else {
-                get_template(false)
-            },
-            false,
-            find_only,
-        )
-    }
-
-    fn do_create(
-        &self,
-        shim_path: PathBuf,
-        contents: &str,
-        global: bool,
-        find_only: bool,
-    ) -> Result<PathBuf, ProtoError> {
-        let shim_exists = shim_path.exists();
-
-        if find_only && shim_exists {
-            return Ok(shim_path);
-        }
-
-        if let Some(parent) = shim_path.parent() {
-            fs::create_dir_all(parent)?;
-        }
-
-        fs::write_file(&shim_path, build_shim_file(self, contents, global)?)?;
-        fs::update_perms(&shim_path, None)?;
-
-        debug!(tool = &self.context.name, file = ?shim_path, "Created shim");
-
-        Ok(shim_path)
-    }
+    create_shim(context, shim_path, false, find_only)
 }

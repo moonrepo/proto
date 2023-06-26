@@ -4,6 +4,7 @@
 
 #### 🚀 Updates
 
+- Refactored shims from the ground up for easier maintenance.
 - Improved tracing log messages.
 
 #### ⚙️ Internal

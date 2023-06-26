@@ -1,5 +1,5 @@
-bin = "moon"
-name = "moon"
+bin = "moon-test"
+name = "moon-test"
 type = "cli"
 
 [platform.linux]
