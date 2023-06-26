@@ -4,12 +4,13 @@
 
 #### 🚀 Updates
 
-- Refactored shims from the ground up for easier maintenance.
+- Added shim support for `bunx` (bun), `pnpx` (pnpm), and `yarnpkg` (yarn).
 - Improved tracing log messages.
 
 #### ⚙️ Internal
 
 - Updated Cargo dependencies.
+- Refactored shims from the ground up for easier maintenance.
 
 ## 0.10.6
 
