@@ -13,6 +13,7 @@ use starbase::{system, tracing::TracingOptions, App, MainResult, State};
 use starbase_utils::string_vec;
 use states::{PluginList, ToolsConfig, UserConfig};
 use std::env;
+use std::str::FromStr;
 use tracing::metadata::LevelFilter;
 
 #[derive(State)]
@@ -92,7 +93,9 @@ async fn main() -> MainResult {
     let cli = CLI::parse();
 
     App::setup_tracing_with_options(TracingOptions {
-        default_level: if matches!(cli.command, Commands::Bin { .. } | Commands::Run { .. }) {
+        default_level: if let Some(level) = cli.log {
+            LevelFilter::from_str(&format!("{:?}", level)).unwrap()
+        } else if matches!(cli.command, Commands::Bin { .. } | Commands::Run { .. }) {
             LevelFilter::WARN
         } else if matches!(cli.command, Commands::Completions { .. }) {
             LevelFilter::OFF
