@@ -8,6 +8,7 @@ pub mod tools;
 
 use app::{App as CLI, Commands};
 use clap::Parser;
+use miette::IntoDiagnostic;
 use proto_core::{ToolsConfig as InnerToolsConfig, UserConfig as InnerUserConfig};
 use starbase::{system, tracing::TracingOptions, App, MainResult, State};
 use starbase_utils::string_vec;
@@ -94,7 +95,7 @@ async fn main() -> MainResult {
 
     App::setup_tracing_with_options(TracingOptions {
         default_level: if let Some(level) = cli.log {
-            LevelFilter::from_str(&format!("{:?}", level)).unwrap()
+            LevelFilter::from_str(format!("{:?}", level).as_ref()).into_diagnostic()?
         } else if matches!(cli.command, Commands::Bin { .. } | Commands::Run { .. }) {
             LevelFilter::WARN
         } else if matches!(cli.command, Commands::Completions { .. }) {

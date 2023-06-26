@@ -5,6 +5,7 @@
 #### 🚀 Updates
 
 - Added shim support for `bunx` (bun), `pnpx` (pnpm), and `yarnpkg` (yarn).
+- Added a global `--log` option to all commands.
 - Improved tracing log messages.
 
 #### ⚙️ Internal
