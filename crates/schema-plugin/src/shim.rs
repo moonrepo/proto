@@ -22,7 +22,7 @@ impl Shimable<'_> for SchemaPlugin {
             context.tool_dir = Some(&install_dir);
             context.tool_version = Some(self.get_resolved_version());
 
-            create_local_shim(context, find_only)?;
+            self.shim_path = Some(create_local_shim(context, find_only)?);
         }
 
         Ok(())
