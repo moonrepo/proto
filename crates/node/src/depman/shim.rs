@@ -1,8 +1,8 @@
 use crate::depman::NodeDependencyManagerType;
 use crate::NodeDependencyManager;
 use proto_core::{
-    async_trait, create_global_shim, create_local_shim, Executable, Installable, ProtoError,
-    Resolvable, ShimContext, Shimable,
+    async_trait, create_global_shim, create_global_shim_with_name, create_local_shim, Executable,
+    Installable, ProtoError, Resolvable, ShimContext, Shimable,
 };
 use std::path::Path;
 
@@ -22,18 +22,30 @@ impl Shimable<'_> for NodeDependencyManager {
 
         self.shim_path = Some(create_local_shim(context, find_only)?);
 
-        // node-gyp
-        if matches!(self.type_of, NodeDependencyManagerType::Npm) {
-            create_global_shim(ShimContext::new_global_alt(
-                "npm",
-                "node-gyp",
-                if cfg!(windows) {
-                    "node-gyp-bin/node-gyp.cmd"
-                } else {
-                    "node-gyp-bin/node-gyp"
-                },
-            ))?;
-        }
+        match self.type_of {
+            // node-gyp
+            NodeDependencyManagerType::Npm => {
+                create_global_shim(ShimContext::new_global_alt(
+                    "npm",
+                    "node-gyp",
+                    if cfg!(windows) {
+                        "node-gyp-bin/node-gyp.cmd"
+                    } else {
+                        "node-gyp-bin/node-gyp"
+                    },
+                ))?;
+            }
+
+            // pnpx
+            NodeDependencyManagerType::Pnpm => {
+                let mut context = ShimContext::new_global("pnpm");
+                context.before_args = Some("dlx");
+
+                create_global_shim_with_name(context, "pnpx")?;
+            }
+
+            _ => {}
+        };
 
         Ok(())
     }

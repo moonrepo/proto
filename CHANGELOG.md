@@ -4,6 +4,7 @@
 
 #### 🚀 Updates
 
+- Added support for `bunx` (bun), `pnpx` (pnpm).
 - Refactored shims from the ground up for easier maintenance.
 - Improved tracing log messages.
 
