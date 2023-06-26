@@ -1,21 +1,10 @@
 use crate::DenoLanguage;
-use proto_core::{
-    async_trait, Describable, Executable, Installable, ProtoError, Resolvable, ShimBuilder,
-    Shimable,
-};
+use proto_core::{async_trait, create_global_shim, Describable, ProtoError, ShimContext, Shimable};
 
 #[async_trait]
 impl Shimable<'_> for DenoLanguage {
     async fn create_shims(&mut self, _find_only: bool) -> Result<(), ProtoError> {
-        let mut shimmer = ShimBuilder::new(self.get_id(), self.get_bin_path()?)?;
-
-        shimmer
-            .dir(self.get_install_dir()?)
-            .version(self.get_resolved_version());
-
-        shimmer.create_global_shim()?;
-
-        // No tool shim
+        create_global_shim(ShimContext::new_global(self.get_id()))?;
 
         Ok(())
     }

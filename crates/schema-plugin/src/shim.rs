@@ -1,30 +1,31 @@
 use crate::SchemaPlugin;
 use proto_core::{
-    async_trait, Describable, Executable, Installable, ProtoError, Resolvable, ShimBuilder,
-    Shimable,
+    async_trait, create_global_shim, create_local_shim, Describable, Executable, Installable,
+    ProtoError, Resolvable, ShimContext, Shimable,
 };
 use std::path::Path;
 
 #[async_trait]
 impl Shimable<'_> for SchemaPlugin {
     async fn create_shims(&mut self, find_only: bool) -> Result<(), ProtoError> {
-        let mut shimmer = ShimBuilder::new(self.get_id(), self.get_bin_path()?)?;
         let schema = &self.schema.shim;
 
-        shimmer
-            .dir(self.get_install_dir()?)
-            .version(self.get_resolved_version());
-
-        if let Some(parent_bin) = &schema.parent_bin {
-            shimmer.parent(parent_bin);
-        }
-
         if schema.global {
-            shimmer.create_global_shim()?;
+            create_global_shim(ShimContext::new_global(self.get_id()))?;
         }
 
         if schema.local {
-            self.shim_path = Some(shimmer.create_tool_shim(find_only)?);
+            let install_dir = self.get_install_dir()?;
+
+            let mut context = ShimContext::new_local(
+                self.get_bin_path()?,
+                &install_dir,
+                self.get_resolved_version(),
+            );
+
+            context.parent_bin = schema.parent_bin.as_ref().map(|s| s.as_str());
+
+            create_local_shim(context, find_only)?;
         }
 
         Ok(())
