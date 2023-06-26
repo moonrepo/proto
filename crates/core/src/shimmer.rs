@@ -22,6 +22,10 @@ pub struct ShimContext<'tool> {
     pub alt_bin: Option<&'tool str>,
     /// Name of a parent binary required to execute the current binary.
     pub parent_bin: Option<&'tool str>,
+    /// Args to prepend to user-provided args.
+    pub before_args: Option<&'tool str>,
+    /// Args to append to user-provided args.
+    pub after_args: Option<&'tool str>,
 
     // TOOL INFO
     /// Path to the proto tool installation directory.
@@ -151,12 +155,19 @@ fn create_shim(
     Ok(shim_path)
 }
 
-#[tracing::instrument(skip_all)]
 pub fn create_global_shim<'tool, C: AsRef<ShimContext<'tool>>>(
     context: C,
 ) -> Result<PathBuf, ProtoError> {
+    create_global_shim_with_name(context.as_ref(), context.as_ref().bin)
+}
+
+#[tracing::instrument(skip_all)]
+pub fn create_global_shim_with_name<'tool, C: AsRef<ShimContext<'tool>>>(
+    context: C,
+    name: &str,
+) -> Result<PathBuf, ProtoError> {
     let context = context.as_ref();
-    let shim_path = get_bin_dir()?.join(get_shim_file_name(context.bin, true));
+    let shim_path = get_bin_dir()?.join(get_shim_file_name(name, true));
 
     debug!(tool = context.bin, file = ?shim_path, "Creating global shim");
 

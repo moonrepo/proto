@@ -13,10 +13,10 @@ if (Test-Path env:PROTO_{parent_bin | uppercase}_BIN) \{
     $parent = "{parent_bin}"
 }
 
-& "$parent" "{bin_path}" $args
+& "$parent" "{bin_path}" {before_args} $args {after_args}
 {{ else }}
 
-& "{bin_path}" $args
+& "{bin_path}" {before_args} $args {after_args}
 {{ endif }}
 
 exit $LASTEXITCODE

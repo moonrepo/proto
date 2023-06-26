@@ -1,5 +1,5 @@
 {{ if alt_bin }}
-proto.exe run {parent_bin} --bin "{alt_bin}" -- %*
+proto.exe run {parent_bin} --bin "{alt_bin}" -- {before_args} %* {after_args}
 {{ else }}
-proto.exe run {bin} -- %*
+proto.exe run {bin} -- {before_args} %* {after_args}
 {{ endif }}

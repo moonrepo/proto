@@ -9,8 +9,8 @@ export PROTO_{bin | uppercase}_VERSION="{tool_version}"
 {{ if parent_bin }}
 parent="$\{PROTO_{parent_bin | uppercase}_BIN:-{parent_bin}}"
 
-exec "$parent" "{bin_path}" "$@"
+exec "$parent" "{bin_path}" {before_args} $@ {after_args}
 {{ else }}
 
-exec "{bin_path}" "$@"
+exec "{bin_path}" {before_args} $@ {after_args}
 {{ endif }}
