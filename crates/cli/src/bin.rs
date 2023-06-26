@@ -8,13 +8,11 @@ pub mod tools;
 
 use app::{App as CLI, Commands};
 use clap::Parser;
-use miette::IntoDiagnostic;
 use proto_core::{ToolsConfig as InnerToolsConfig, UserConfig as InnerUserConfig};
 use starbase::{system, tracing::TracingOptions, App, MainResult, State};
 use starbase_utils::string_vec;
 use states::{PluginList, ToolsConfig, UserConfig};
 use std::env;
-use std::str::FromStr;
 use tracing::metadata::LevelFilter;
 
 #[derive(State)]
@@ -93,10 +91,14 @@ async fn main() -> MainResult {
 
     let cli = CLI::parse();
 
+    if let Some(level) = cli.log {
+        env::set_var("STARBASE_LOG", level.to_string());
+    } else if let Ok(level) = env::var("PROTO_LOG") {
+        env::set_var("STARBASE_LOG", level);
+    }
+
     App::setup_tracing_with_options(TracingOptions {
-        default_level: if let Some(level) = cli.log {
-            LevelFilter::from_str(format!("{:?}", level).as_ref()).into_diagnostic()?
-        } else if matches!(cli.command, Commands::Bin { .. } | Commands::Run { .. }) {
+        default_level: if matches!(cli.command, Commands::Bin { .. } | Commands::Run { .. }) {
             LevelFilter::WARN
         } else if matches!(cli.command, Commands::Completions { .. }) {
             LevelFilter::OFF
@@ -104,7 +106,7 @@ async fn main() -> MainResult {
             LevelFilter::INFO
         },
         filter_modules: string_vec!["proto", "starbase"],
-        log_env: "PROTO_LOG".into(),
+        log_env: "STARBASE_LOG".into(),
         test_env: "PROTO_TEST".into(),
         ..TracingOptions::default()
     });

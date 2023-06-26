@@ -1,6 +1,7 @@
 use crate::tools::ToolType;
 use clap::{Parser, Subcommand, ValueEnum};
 use clap_complete::Shell;
+use std::fmt::{Display, Error, Formatter};
 
 #[derive(ValueEnum, Clone, Debug, Default)]
 pub enum LogLevel {
@@ -11,6 +12,25 @@ pub enum LogLevel {
     Info,
     Debug,
     Trace,
+}
+
+impl Display for LogLevel {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+        write!(
+            f,
+            "{}",
+            match self {
+                LogLevel::Off => "off",
+                LogLevel::Error => "error",
+                LogLevel::Warn => "warn",
+                LogLevel::Info => "info",
+                LogLevel::Debug => "debug",
+                LogLevel::Trace => "trace",
+            }
+        )?;
+
+        Ok(())
+    }
 }
 
 #[derive(Debug, Parser)]

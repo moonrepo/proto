@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed an issue where `--log` would fail with an invalid value when running a tool.
+
 ## 0.11.0
 
 #### 🚀 Updates
