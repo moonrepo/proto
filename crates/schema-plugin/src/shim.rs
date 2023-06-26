@@ -17,13 +17,10 @@ impl Shimable<'_> for SchemaPlugin {
         if schema.local {
             let install_dir = self.get_install_dir()?;
 
-            let mut context = ShimContext::new_local(
-                self.get_bin_path()?,
-                &install_dir,
-                self.get_resolved_version(),
-            );
-
-            context.parent_bin = schema.parent_bin.as_ref().map(|s| s.as_str());
+            let mut context = ShimContext::new_local(self.get_id(), self.get_bin_path()?);
+            context.parent_bin = schema.parent_bin.as_deref();
+            context.tool_dir = Some(&install_dir);
+            context.tool_version = Some(self.get_resolved_version());
 
             create_local_shim(context, find_only)?;
         }

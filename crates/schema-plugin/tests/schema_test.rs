@@ -13,9 +13,9 @@ use std::fs;
 use std::path::Path;
 
 fn create_plugin(dir: &Path, mut schema: Schema) -> SchemaPlugin {
-    schema.name = "moon".into();
+    schema.name = "moon-test".into();
 
-    let mut tool = SchemaPlugin::new(Proto::from(dir), "moon".into(), schema);
+    let mut tool = SchemaPlugin::new(Proto::from(dir), "moon-test".into(), schema);
     tool.version = Some("1.0.0".into());
     tool
 }
@@ -129,7 +129,7 @@ mod schema_plugin {
                 tool.get_download_path().unwrap(),
                 Proto::from(fixture.path())
                     .temp_dir
-                    .join("moon")
+                    .join("moon-test")
                     .join("1.0.0")
                     .join(tool.get_download_file().unwrap())
             );
@@ -178,9 +178,9 @@ mod schema_plugin {
             let mut tool = create_plugin(fixture.path(), Schema::default());
 
             let bin_path = tool.get_install_dir().unwrap().join(if cfg!(windows) {
-                "moon.exe"
+                "moon-test.exe"
             } else {
-                "moon"
+                "moon-test"
             });
 
             fs::create_dir_all(bin_path.parent().unwrap()).unwrap();
@@ -252,7 +252,7 @@ mod schema_plugin {
 
                 assert_eq!(
                     tool.get_globals_bin_dir().unwrap(),
-                    get_home_dir().unwrap().join(".moon/bin")
+                    get_home_dir().unwrap().join(".moon-test/bin")
                 );
             }
 
@@ -263,13 +263,13 @@ mod schema_plugin {
                     fixture.path(),
                     Schema {
                         install: InstallSchema {
-                            globals_dir: string_vec!["~/.moon/bin"],
+                            globals_dir: string_vec!["~/.moon-test/bin"],
                             ..InstallSchema::default()
                         },
                         ..Schema::default()
                     },
                 );
-                let bin_dir = get_home_dir().unwrap().join(".moon/bin");
+                let bin_dir = get_home_dir().unwrap().join(".moon-test/bin");
 
                 fs::create_dir_all(&bin_dir).unwrap();
 
@@ -462,7 +462,7 @@ mod schema_plugin {
             let proto = Proto::from(fixture.path());
             let mut tool = create_plugin(fixture.path(), Schema::default());
 
-            tool.bin_path = Some(proto.bin_dir.join("moon"));
+            tool.bin_path = Some(proto.bin_dir.join("moon-test"));
             tool.schema.shim.global = true;
 
             env::set_var("PROTO_ROOT", fixture.path());
@@ -470,9 +470,9 @@ mod schema_plugin {
             env::remove_var("PROTO_ROOT");
 
             if cfg!(windows) {
-                assert!(proto.bin_dir.join("moon.cmd").exists());
+                assert!(proto.bin_dir.join("moon-test.cmd").exists());
             } else {
-                assert!(proto.bin_dir.join("moon").exists());
+                assert!(proto.bin_dir.join("moon-test").exists());
             }
         }
 
@@ -482,7 +482,7 @@ mod schema_plugin {
             let proto = Proto::from(fixture.path());
             let mut tool = create_plugin(fixture.path(), Schema::default());
 
-            tool.bin_path = Some(proto.bin_dir.join("moon"));
+            tool.bin_path = Some(proto.bin_dir.join("moon-test"));
             tool.schema.shim.local = true;
             tool.create_shims(false).await.unwrap();
 
@@ -490,10 +490,14 @@ mod schema_plugin {
                 assert!(tool
                     .get_install_dir()
                     .unwrap()
-                    .join("shims\\moon.ps1")
+                    .join("shims\\moon-test.ps1")
                     .exists());
             } else {
-                assert!(tool.get_install_dir().unwrap().join("shims/moon").exists());
+                assert!(tool
+                    .get_install_dir()
+                    .unwrap()
+                    .join("shims/moon-test")
+                    .exists());
             }
         }
     }
@@ -551,7 +555,7 @@ mod schema_plugin {
                 tool.get_checksum_path().unwrap(),
                 Proto::from(fixture.path())
                     .temp_dir
-                    .join("moon")
+                    .join("moon-test")
                     .join("1.0.0")
                     .join(tool.get_checksum_file().unwrap())
             );

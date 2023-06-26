@@ -37,17 +37,27 @@ impl<'tool> ShimContext<'tool> {
         }
     }
 
-    pub fn new_local(
-        bin_path: &'tool Path,
-        tool_dir: &'tool Path,
-        tool_version: &'tool str,
-    ) -> Self {
+    pub fn new_global_alt(parent_bin: &'tool str, bin: &'tool str, alt_bin: &'tool str) -> Self {
         ShimContext {
-            bin_path: Some(bin_path),
-            tool_dir: Some(tool_dir),
-            tool_version: Some(tool_version),
+            bin,
+            parent_bin: Some(parent_bin),
+            alt_bin: Some(alt_bin),
             ..ShimContext::default()
         }
+    }
+
+    pub fn new_local(bin: &'tool str, bin_path: &'tool Path) -> Self {
+        ShimContext {
+            bin,
+            bin_path: Some(bin_path),
+            ..ShimContext::default()
+        }
+    }
+}
+
+impl<'tool> AsRef<ShimContext<'tool>> for ShimContext<'tool> {
+    fn as_ref(&self) -> &ShimContext<'tool> {
+        self
     }
 }
 
@@ -141,23 +151,32 @@ fn create_shim(
     Ok(shim_path)
 }
 
-pub fn create_global_shim(context: ShimContext) -> Result<PathBuf, ProtoError> {
-    let shim_path = get_bin_dir()?.join(get_shim_file_name(&context.bin, true));
+#[tracing::instrument(skip_all)]
+pub fn create_global_shim<'tool, C: AsRef<ShimContext<'tool>>>(
+    context: C,
+) -> Result<PathBuf, ProtoError> {
+    let context = context.as_ref();
+    let shim_path = get_bin_dir()?.join(get_shim_file_name(context.bin, true));
 
-    debug!(tool = &context.bin, file = ?shim_path, "Creating global shim");
+    debug!(tool = context.bin, file = ?shim_path, "Creating global shim");
 
-    create_shim(&context, shim_path, true, false)
+    create_shim(context, shim_path, true, false)
 }
 
-pub fn create_local_shim(context: ShimContext, find_only: bool) -> Result<PathBuf, ProtoError> {
+#[tracing::instrument(skip_all)]
+pub fn create_local_shim<'tool, C: AsRef<ShimContext<'tool>>>(
+    context: C,
+    find_only: bool,
+) -> Result<PathBuf, ProtoError> {
+    let context = context.as_ref();
     let shim_path = context
         .tool_dir
         .as_ref()
         .unwrap()
         .join("shims")
-        .join(get_shim_file_name(&context.bin, false));
+        .join(get_shim_file_name(context.bin, false));
 
-    debug!(tool = &context.bin, file = ?shim_path, "Creating local shim");
+    debug!(tool = context.bin, file = ?shim_path, "Creating local shim");
 
-    create_shim(&context, shim_path, false, find_only)
+    create_shim(context, shim_path, false, find_only)
 }

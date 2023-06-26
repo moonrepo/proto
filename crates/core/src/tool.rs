@@ -9,6 +9,7 @@ use crate::resolver::*;
 use crate::shimmer::*;
 use crate::verifier::*;
 use std::any::Any;
+use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 use tracing::debug;
@@ -86,7 +87,7 @@ pub trait Tool<'tool>:
 
     async fn setup_shims(&mut self, force: bool) -> Result<(), ProtoError> {
         let is_outdated = { self.get_manifest_mut()?.shim_version != SHIM_VERSION };
-        let do_create = force || is_outdated;
+        let do_create = force || is_outdated || env::var("CI").is_ok();
 
         if do_create {
             debug!(
