@@ -11,16 +11,11 @@ impl Shimable<'_> for NodeDependencyManager {
     async fn create_shims(&mut self, find_only: bool) -> Result<(), ProtoError> {
         let install_dir = self.get_install_dir()?;
 
-        // npm
+        // npm, pnpm, yarn
         let mut context = ShimContext::new_local(&self.package_name, self.get_bin_path()?);
         context.parent_bin = Some("node");
 
         create_global_shim(&context)?;
-
-        context.tool_dir = Some(&install_dir);
-        context.tool_version = Some(self.get_resolved_version());
-
-        self.shim_path = Some(create_local_shim(context, find_only)?);
 
         match self.type_of {
             // node-gyp
@@ -41,11 +36,19 @@ impl Shimable<'_> for NodeDependencyManager {
                 let mut context = ShimContext::new_global("pnpm");
                 context.before_args = Some("dlx");
 
-                create_global_shim_with_name(context, "pnpx")?;
+                create_global_shim_with_name(&context, "pnpx")?;
             }
 
-            _ => {}
+            // yarnpkg
+            NodeDependencyManagerType::Yarn => {
+                create_global_shim_with_name(&context, "yarnpkg")?;
+            }
         };
+
+        context.tool_dir = Some(&install_dir);
+        context.tool_version = Some(self.get_resolved_version());
+
+        self.shim_path = Some(create_local_shim(&context, find_only)?);
 
         Ok(())
     }
