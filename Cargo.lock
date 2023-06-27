@@ -1709,7 +1709,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.11.0"
+version = "0.11.1"
 dependencies = [
  "async-trait",
  "cached",
