@@ -46,7 +46,9 @@ fn map_arch(arch: &str) -> String {
 }
 
 #[plugin_fn]
-pub fn create_install_params(Json(input): Json<EnvironmentInput>) -> FnResult<Json<InstallParams>> {
+pub fn register_install_params(
+    Json(input): Json<EnvironmentInput>,
+) -> FnResult<Json<InstallParams>> {
     let version = input.version;
     let arch = map_arch(&input.arch);
 
@@ -81,13 +83,10 @@ pub fn create_install_params(Json(input): Json<EnvironmentInput>) -> FnResult<Js
 // Shimmer
 
 #[plugin_fn]
-pub fn create_shims(_: ()) -> FnResult<Json<ShimParams>> {
+pub fn register_shims(_: ()) -> FnResult<Json<ShimParams>> {
     Ok(Json(ShimParams {
-        global_shims: Some(HashMap::from_iter([(
-            "global1".into(),
-            "bin/global1".into(),
-        )])),
-        local_shims: Some(HashMap::from_iter([
+        global_shims: HashMap::from_iter([("global1".into(), "bin/global1".into())]),
+        local_shims: HashMap::from_iter([
             (
                 "local1".into(),
                 ShimConfig {
@@ -104,7 +103,7 @@ pub fn create_shims(_: ()) -> FnResult<Json<ShimParams>> {
                     ..Default::default()
                 },
             ),
-        ])),
+        ]),
         ..ShimParams::default()
     }))
 }

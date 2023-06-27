@@ -7,7 +7,7 @@ use std::path::PathBuf;
 impl Downloadable<'_> for WasmPlugin {
     fn get_download_path(&self) -> Result<PathBuf, ProtoError> {
         let params: InstallParams =
-            self.cache_func_with("create_install_params", self.get_env_input())?;
+            self.cache_func_with("register_install_params", self.get_env_input())?;
 
         let filename = match &params.download_file {
             Some(file) => file.to_owned(),
@@ -28,7 +28,7 @@ impl Downloadable<'_> for WasmPlugin {
 
     fn get_download_url(&self) -> Result<String, ProtoError> {
         let params: InstallParams =
-            self.cache_func_with("create_install_params", self.get_env_input())?;
+            self.cache_func_with("register_install_params", self.get_env_input())?;
 
         Ok(params.download_url)
     }

@@ -73,10 +73,10 @@ fn map_arch(os: &str, arch: &str) -> Result<String, PluginError> {
         "x86_64" => "x64".into(),
         "x86" => "x86".into(),
         other => {
-            return Err(PluginError::UnsupportedArchitecture(
-                NAME.into(),
-                other.into(),
-            ))
+            return Err(PluginError::UnsupportedArchitecture {
+                tool: NAME.into(),
+                arch: other.into(),
+            });
         }
     };
 
@@ -84,7 +84,9 @@ fn map_arch(os: &str, arch: &str) -> Result<String, PluginError> {
 }
 
 #[plugin_fn]
-pub fn create_install_params(Json(input): Json<EnvironmentInput>) -> FnResult<Json<InstallParams>> {
+pub fn register_install_params(
+    Json(input): Json<EnvironmentInput>,
+) -> FnResult<Json<InstallParams>> {
     let version = input.version;
     let arch = map_arch(&input.os, &input.arch)?;
 
@@ -93,7 +95,10 @@ pub fn create_install_params(Json(input): Json<EnvironmentInput>) -> FnResult<Js
         "macos" => format!("node-v{version}-darwin-{arch}"),
         "windows" => format!("node-v{version}-win-{arch}"),
         other => {
-            return Err(PluginError::UnsupportedPlatform(NAME.into(), other.into()))?;
+            return Err(PluginError::UnsupportedPlatform {
+                tool: NAME.into(),
+                platform: other.into(),
+            })?;
         }
     };
 
@@ -115,16 +120,16 @@ pub fn create_install_params(Json(input): Json<EnvironmentInput>) -> FnResult<Js
 // Shimmer
 
 #[plugin_fn]
-pub fn create_shims(Json(input): Json<EnvironmentInput>) -> FnResult<Json<ShimParams>> {
+pub fn register_shims(Json(input): Json<EnvironmentInput>) -> FnResult<Json<ShimParams>> {
     Ok(Json(ShimParams {
-        global_shims: Some(HashMap::from_iter([(
+        global_shims: HashMap::from_iter([(
             "npx".into(),
             if input.os == "windows" {
                 "npx.cmd".into()
             } else {
                 "bin/npx".into()
             },
-        )])),
+        )]),
         ..ShimParams::default()
     }))
 }

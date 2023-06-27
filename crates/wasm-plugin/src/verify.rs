@@ -19,7 +19,7 @@ impl Verifiable<'_> for WasmPlugin {
 
     fn get_checksum_url(&self) -> Result<Option<String>, ProtoError> {
         let params: InstallParams =
-            self.cache_func_with("create_install_params", self.get_env_input())?;
+            self.cache_func_with("register_install_params", self.get_env_input())?;
 
         Ok(params.checksum_url)
     }

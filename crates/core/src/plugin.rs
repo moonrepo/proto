@@ -57,10 +57,10 @@ impl FromStr for PluginLocator {
                     return Err(ProtoError::InvalidPluginLocatorExt(".toml".into()));
                 }
 
-                PluginLocator::Schema(if location.starts_with('.') {
-                    PluginLocation::File(location.to_owned())
-                } else {
+                PluginLocator::Schema(if location.starts_with("https") {
                     PluginLocation::Url(location.to_owned())
+                } else {
+                    PluginLocation::File(location.to_owned())
                 })
             }
             "source" => {
@@ -70,10 +70,10 @@ impl FromStr for PluginLocator {
                     return Err(ProtoError::InvalidPluginLocatorExt(".wasm".into()));
                 }
 
-                PluginLocator::Source(if location.starts_with('.') {
-                    PluginLocation::File(location.to_owned())
-                } else {
+                PluginLocator::Source(if location.starts_with("https") {
                     PluginLocation::Url(location.to_owned())
+                } else {
+                    PluginLocation::File(location.to_owned())
                 })
             }
             other => {

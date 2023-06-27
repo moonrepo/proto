@@ -106,6 +106,6 @@ pub struct ShimConfig {
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct ShimParams {
     pub primary: Option<ShimConfig>,
-    pub global_shims: Option<HashMap<String, String>>,
-    pub local_shims: Option<HashMap<String, ShimConfig>>,
+    pub global_shims: HashMap<String, String>,
+    pub local_shims: HashMap<String, ShimConfig>,
 }

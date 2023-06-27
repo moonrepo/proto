@@ -18,9 +18,9 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 starbase_utils = { workspace = true }
 tracing = { workspace = true }
-url = "2.3.1"
+url = "2.4.0"
 
 [dev-dependencies]
-log = "0.4.17"
+log = "0.4.19"
 starbase_sandbox = { workspace = true }
 tokio = { workspace = true }
