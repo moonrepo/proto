@@ -157,6 +157,52 @@ mod wasm_plugin {
         }
     }
 
+    mod installer {
+        use super::*;
+
+        #[tokio::test]
+        async fn sets_dir_to_tools() {
+            let fixture = create_empty_sandbox();
+            let tool = create_plugin(fixture.path());
+
+            assert_eq!(
+                tool.get_install_dir().unwrap(),
+                Proto::from(fixture.path())
+                    .tools_dir
+                    .join("wasm")
+                    .join("20.0.0")
+            );
+        }
+
+        #[tokio::test]
+        #[should_panic(expected = "InstallMissingDownload(\"WASM Test\")")]
+        async fn errors_for_missing_download() {
+            let fixture = create_empty_sandbox();
+            let tool = create_plugin(fixture.path());
+
+            let dir = tool.get_install_dir().unwrap();
+
+            tool.install(&dir, &tool.get_download_path().unwrap())
+                .await
+                .unwrap();
+        }
+
+        #[tokio::test]
+        async fn doesnt_install_if_dir_exists() {
+            let fixture = create_empty_sandbox();
+            let tool = create_plugin(fixture.path());
+
+            let dir = tool.get_install_dir().unwrap();
+
+            fs::create_dir_all(&dir).unwrap();
+
+            assert!(!tool
+                .install(&dir, &tool.get_download_path().unwrap())
+                .await
+                .unwrap());
+        }
+    }
+
     mod shimmer {
         use super::*;
 

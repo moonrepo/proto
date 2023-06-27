@@ -2,6 +2,9 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum PluginError {
+    #[error("{0}")]
+    Message(String),
+
     #[error("Unable to install {tool}, unsupported architecture {arch}.")]
     UnsupportedArchitecture { tool: String, arch: String },
 
