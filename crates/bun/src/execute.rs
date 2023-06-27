@@ -25,7 +25,7 @@ impl Executable<'_> for BunLanguage {
         }
     }
 
-    fn get_globals_bin_dir(&self) -> Result<PathBuf, ProtoError> {
-        Ok(get_home_dir()?.join(".bun").join("bin"))
+    fn get_globals_bin_dir(&self) -> Result<Option<PathBuf>, ProtoError> {
+        Ok(Some(get_home_dir()?.join(".bun").join("bin")))
     }
 }

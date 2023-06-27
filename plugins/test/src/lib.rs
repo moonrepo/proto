@@ -67,6 +67,11 @@ pub fn register_install_params(
 
     Ok(Json(InstallParams {
         archive_prefix: Some(prefix),
+        bin_path: Some(if input.os == "windows" {
+            "node.exe".into()
+        } else {
+            "bin/node".into()
+        }),
         download_url: format!("https://nodejs.org/dist/v{version}/{filename}"),
         download_file: Some(filename),
         checksum_url: Some(format!("https://nodejs.org/dist/v{version}/SHASUMS256.txt")),
@@ -79,6 +84,14 @@ pub fn register_install_params(
 //     untar(input.download_path, input.install_dir)?;
 //     Ok(())
 // }
+
+#[plugin_fn]
+pub fn find_bins(Json(_): Json<ExecuteInput>) -> FnResult<Json<ExecuteParams>> {
+    Ok(Json(ExecuteParams {
+        globals_dir: vec!["$WASM_ROOT/bin".into(), "$HOME/.wasm/bin".into()],
+        ..ExecuteParams::default()
+    }))
+}
 
 // Shimmer
 

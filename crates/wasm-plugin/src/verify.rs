@@ -45,8 +45,8 @@ impl Verifiable<'_> for WasmPlugin {
             let params: VerifyChecksum = self.call_func_with(
                 "verify_checksum",
                 VerifyChecksumInput {
-                    checksum_path: self.to_wasi_virtual_path(checksum_file)?,
-                    download_path: self.to_wasi_virtual_path(download_file)?,
+                    checksum_path: self.to_wasi_virtual_path(checksum_file),
+                    download_path: self.to_wasi_virtual_path(download_file),
                     version: self.get_resolved_version().to_owned(),
                 },
             )?;

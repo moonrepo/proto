@@ -1,4 +1,6 @@
-use proto_core::{Detector, Downloadable, Executable, Installable, Proto, Shimable, Verifiable};
+use proto_core::{
+    Detector, Downloadable, Executable, Installable, Proto, Shimable, Tool, Verifiable,
+};
 use proto_wasm_plugin::WasmPlugin;
 use starbase_sandbox::create_empty_sandbox;
 use std::env::{self, consts};
@@ -201,6 +203,72 @@ mod wasm_plugin {
                 .await
                 .unwrap());
         }
+
+        #[tokio::test]
+        async fn installs_and_unpacks() {
+            let fixture = create_empty_sandbox();
+            let mut tool = create_plugin(fixture.path());
+
+            let dir = tool.get_install_dir().unwrap();
+
+            assert!(!dir.exists());
+
+            tool.setup("20.0.0").await.unwrap();
+
+            assert!(dir.exists());
+        }
+    }
+
+    mod executor {
+        use super::*;
+
+        mod globals {
+            use super::*;
+
+            #[tokio::test]
+            async fn returns_nothing_if_no_matching_vars() {
+                let fixture = create_empty_sandbox();
+                let tool = create_plugin(fixture.path());
+
+                assert_eq!(tool.get_globals_bin_dir().unwrap(), None);
+            }
+
+            #[tokio::test]
+            async fn expands_home_env_var() {
+                let fixture = create_empty_sandbox();
+                let tool = create_plugin(fixture.path());
+
+                env::set_var("HOME", fixture.path().to_string_lossy().to_string());
+
+                // Dir must exist!
+                fixture.create_file(".wasm/bin/test", "");
+
+                assert_eq!(
+                    tool.get_globals_bin_dir().unwrap().unwrap(),
+                    fixture.path().join(".wasm/bin")
+                );
+
+                env::remove_var("HOME");
+            }
+
+            #[tokio::test]
+            async fn expands_custom_env_var() {
+                let fixture = create_empty_sandbox();
+                let tool = create_plugin(fixture.path());
+
+                env::set_var("WASM_ROOT", fixture.path().to_string_lossy().to_string());
+
+                // Dir must exist!
+                fixture.create_file("bin/test", "");
+
+                assert_eq!(
+                    tool.get_globals_bin_dir().unwrap().unwrap(),
+                    fixture.path().join("bin")
+                );
+
+                env::remove_var("WASM_ROOT");
+            }
+        }
     }
 
     mod shimmer {
@@ -211,7 +279,7 @@ mod wasm_plugin {
             let fixture = create_empty_sandbox();
             let mut tool = create_plugin(fixture.path());
 
-            tool.find_bin_path().await.unwrap();
+            // tool.find_bin_path().await.unwrap();
             tool.create_shims(false).await.unwrap();
 
             let g1 = fixture.path().join("bin/global1");
@@ -230,7 +298,7 @@ mod wasm_plugin {
             let fixture = create_empty_sandbox();
             let mut tool = create_plugin(fixture.path());
 
-            tool.find_bin_path().await.unwrap();
+            // tool.find_bin_path().await.unwrap();
             tool.create_shims(false).await.unwrap();
 
             let l1 = fixture.path().join("tools/wasm/20.0.0/shims/local1");
@@ -266,7 +334,7 @@ mod wasm_plugin {
             let fixture = create_empty_sandbox();
             let mut tool = create_plugin(fixture.path());
 
-            tool.find_bin_path().await.unwrap();
+            // tool.find_bin_path().await.unwrap();
             tool.create_shims(false).await.unwrap();
 
             let l1 = fixture.path().join("tools/wasm/20.0.0/shims/local1.ps1");

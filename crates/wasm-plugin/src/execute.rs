@@ -1,11 +1,51 @@
 use crate::WasmPlugin;
-use proto_core::{async_trait, Describable, Executable, ProtoError};
+use proto_core::{
+    async_trait, get_home_dir, get_root, Describable, Executable, Installable, ProtoError,
+};
+use proto_pdk::{ExecuteInput, ExecuteParams, InstallParams};
+use std::env;
 use std::path::{Path, PathBuf};
 
 #[async_trait]
 impl Executable<'_> for WasmPlugin {
     async fn find_bin_path(&mut self) -> Result<(), ProtoError> {
-        self.bin_path = Some(PathBuf::from("wasm-plugin")); // TODO
+        let install_dir = self.get_install_dir()?;
+        let mut bin_path = None;
+
+        if self.has_func("find_bins") {
+            let execute_params: ExecuteParams = self.cache_func_with(
+                "find_bins",
+                ExecuteInput {
+                    env: self.get_env_input(),
+                    tool_dir: self.to_wasi_virtual_path(&install_dir),
+                },
+            )?;
+
+            if let Some(bin) = &execute_params.bin_path {
+                bin_path = Some(install_dir.join(bin));
+            }
+        }
+
+        if bin_path.is_none() {
+            let install_params: InstallParams =
+                self.cache_func_with("register_install_params", self.get_env_input())?;
+
+            bin_path = Some(if let Some(bin) = &install_params.bin_path {
+                install_dir.join(bin)
+            } else {
+                install_dir.join(self.get_id())
+            });
+        }
+
+        if bin_path.as_ref().is_some_and(|p| p.exists()) {
+            self.bin_path = bin_path;
+        } else {
+            return Err(ProtoError::ExecuteMissingBin(
+                self.get_name(),
+                bin_path.unwrap(),
+            ));
+        }
+
         Ok(())
     }
 
@@ -16,7 +56,61 @@ impl Executable<'_> for WasmPlugin {
         }
     }
 
-    fn get_globals_bin_dir(&self) -> Result<PathBuf, ProtoError> {
-        Ok(PathBuf::new())
+    fn get_globals_bin_dir(&self) -> Result<Option<PathBuf>, ProtoError> {
+        if !self.has_func("find_bins") {
+            return Ok(None);
+        }
+
+        let home_dir = get_home_dir()?;
+        let root_dir = get_root()?;
+        let install_dir = self.get_install_dir()?;
+        let env_var_pattern = regex::Regex::new(r"\$([A-Z0-9_]+)").unwrap();
+
+        let params: ExecuteParams = self.cache_func_with(
+            "find_bins",
+            ExecuteInput {
+                env: self.get_env_input(),
+                tool_dir: self.to_wasi_virtual_path(&install_dir),
+            },
+        )?;
+
+        dbg!(&params);
+
+        'outer: for dir_lookup in params.globals_dir {
+            let mut dir = dir_lookup.clone();
+
+            // If a lookup contains an env var, find and replace it.
+            // If the var is not defined or is empty, skip this lookup.
+            for cap in env_var_pattern.captures_iter(&dir_lookup) {
+                let var = cap.get(0).unwrap().as_str();
+
+                let var_value = match var.as_ref() {
+                    "$HOME" => home_dir.to_string_lossy().to_string(),
+                    "$PROTO_ROOT" => root_dir.to_string_lossy().to_string(),
+                    "$TOOL_DIR" => install_dir.to_string_lossy().to_string(),
+                    _ => env::var(cap.get(1).unwrap().as_str()).unwrap_or_default(),
+                };
+
+                if var_value.is_empty() {
+                    continue 'outer;
+                }
+
+                dir = dir.replace(var, &var_value);
+
+                dbg!(&cap, &dir);
+            }
+
+            let dir_path = if let Some(dir_suffix) = dir.strip_prefix('~') {
+                home_dir.join(dir_suffix)
+            } else {
+                PathBuf::from(dir)
+            };
+
+            if dir_path.exists() {
+                return Ok(Some(dir_path));
+            }
+        }
+
+        Ok(None)
     }
 }

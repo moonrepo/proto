@@ -14,7 +14,7 @@ pub trait Executable<'tool>: Send + Sync {
 
     /// Return an absolute file path to the directory containing all
     /// globally installed packages.
-    fn get_globals_bin_dir(&self) -> Result<PathBuf, ProtoError>;
+    fn get_globals_bin_dir(&self) -> Result<Option<PathBuf>, ProtoError>;
 }
 
 #[cfg(target_os = "windows")]

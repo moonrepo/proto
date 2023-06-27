@@ -7,7 +7,10 @@ use tracing::debug;
 
 pub async fn list_global(tool_type: ToolType) -> SystemResult {
     let tool = create_tool(&tool_type).await?;
-    let bin_dir = tool.get_globals_bin_dir()?;
+
+    let Some(bin_dir) = tool.get_globals_bin_dir()? else {
+        return Ok(());
+    };
 
     debug!("Finding globals from {}", color::path(&bin_dir));
 

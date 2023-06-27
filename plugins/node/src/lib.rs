@@ -110,6 +110,11 @@ pub fn register_install_params(
 
     Ok(Json(InstallParams {
         archive_prefix: Some(prefix),
+        bin_path: Some(if input.os == "windows" {
+            format!("{}.exe", BIN)
+        } else {
+            format!("bin/{}", BIN)
+        }),
         download_url: format!("https://nodejs.org/dist/v{version}/{filename}"),
         download_file: Some(filename),
         checksum_url: Some(format!("https://nodejs.org/dist/v{version}/SHASUMS256.txt")),

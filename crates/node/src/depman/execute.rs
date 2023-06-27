@@ -62,13 +62,14 @@ impl Executable<'_> for NodeDependencyManager {
         }
     }
 
-    fn get_globals_bin_dir(&self) -> Result<PathBuf, ProtoError> {
-        Ok(self
-            .base_dir
-            .parent()
-            .unwrap()
-            .join("node")
-            .join("globals")
-            .join("bin"))
+    fn get_globals_bin_dir(&self) -> Result<Option<PathBuf>, ProtoError> {
+        Ok(Some(
+            self.base_dir
+                .parent()
+                .unwrap()
+                .join("node")
+                .join("globals")
+                .join("bin"),
+        ))
     }
 }

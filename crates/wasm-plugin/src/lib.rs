@@ -94,14 +94,14 @@ impl WasmPlugin {
         )
     }
 
-    fn to_wasi_virtual_path(&self, path: &Path) -> Result<PathBuf, ProtoError> {
+    fn to_wasi_virtual_path(&self, path: &Path) -> PathBuf {
         for (virtual_path, real_path) in &self.plugin_paths {
             if path.starts_with(real_path) {
-                return Ok(virtual_path.join(path.strip_prefix(real_path).unwrap()));
+                return virtual_path.join(path.strip_prefix(real_path).unwrap());
             }
         }
 
-        Ok(path.to_owned())
+        path.to_owned()
     }
 }
 

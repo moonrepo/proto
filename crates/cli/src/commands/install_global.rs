@@ -19,10 +19,15 @@ pub async fn install_global(tool_type: ToolType, dependencies: Vec<String>) -> S
     for dependency in dependencies {
         let mut tool = create_tool(&tool_type).await?;
         let label = format!("Installing {} for {}", dependency, tool.get_name());
-        let global_dir = tool.get_globals_bin_dir()?;
-        let mut command;
 
         debug!("{}", label);
+
+        let Some(global_dir) = tool.get_globals_bin_dir()? else {
+            debug!("Skipping as it does not support globals");
+            continue;
+        };
+
+        let mut command;
 
         match tool_type {
             ToolType::Bun => {

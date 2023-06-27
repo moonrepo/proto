@@ -245,16 +245,16 @@ mod schema_plugin {
         mod globals {
             use super::*;
 
-            #[tokio::test]
-            async fn defaults_to_some_home_dir() {
-                let fixture = create_empty_sandbox();
-                let tool = create_plugin(fixture.path(), Schema::default());
+            // #[tokio::test]
+            // async fn defaults_to_some_home_dir() {
+            //     let fixture = create_empty_sandbox();
+            //     let tool = create_plugin(fixture.path(), Schema::default());
 
-                assert_eq!(
-                    tool.get_globals_bin_dir().unwrap(),
-                    get_home_dir().unwrap().join(".moon-test/bin")
-                );
-            }
+            //     assert_eq!(
+            //         tool.get_globals_bin_dir().unwrap(),
+            //         get_home_dir().unwrap().join(".moon-test/bin")
+            //     );
+            // }
 
             #[tokio::test]
             async fn expands_home_dir() {
@@ -273,7 +273,7 @@ mod schema_plugin {
 
                 fs::create_dir_all(&bin_dir).unwrap();
 
-                assert_eq!(tool.get_globals_bin_dir().unwrap(), bin_dir);
+                assert_eq!(tool.get_globals_bin_dir().unwrap().unwrap(), bin_dir);
             }
 
             #[tokio::test]
@@ -293,7 +293,7 @@ mod schema_plugin {
 
                 fs::create_dir_all(&bin_dir).unwrap();
 
-                assert_eq!(tool.get_globals_bin_dir().unwrap(), bin_dir);
+                assert_eq!(tool.get_globals_bin_dir().unwrap().unwrap(), bin_dir);
             }
 
             #[tokio::test]
@@ -314,7 +314,7 @@ mod schema_plugin {
                 fs::create_dir_all(&bin_dir).unwrap();
 
                 env::set_var("PROTO_TEST_DIR", fixture.path());
-                assert_eq!(tool.get_globals_bin_dir().unwrap(), bin_dir);
+                assert_eq!(tool.get_globals_bin_dir().unwrap().unwrap(), bin_dir);
                 env::remove_var("PROTO_TEST_DIR");
             }
         }

@@ -60,6 +60,7 @@ pub struct ParseVersion {
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct InstallParams {
     pub archive_prefix: Option<String>,
+    pub bin_path: Option<String>,
     pub checksum_file: Option<String>,
     pub checksum_url: Option<String>,
     pub download_file: Option<String>,
@@ -82,6 +83,20 @@ pub struct VerifyChecksumInput {
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct VerifyChecksum {
     pub verified: bool,
+}
+
+// Executor
+
+#[derive(Debug, Default, Deserialize, Serialize)]
+pub struct ExecuteInput {
+    pub env: EnvironmentInput,
+    pub tool_dir: PathBuf,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize)]
+pub struct ExecuteParams {
+    pub bin_path: Option<String>,
+    pub globals_dir: Vec<String>,
 }
 
 // Shimmer

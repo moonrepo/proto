@@ -40,7 +40,7 @@ impl Executable<'_> for SchemaPlugin {
         }
     }
 
-    fn get_globals_bin_dir(&self) -> Result<PathBuf, ProtoError> {
+    fn get_globals_bin_dir(&self) -> Result<Option<PathBuf>, ProtoError> {
         let home_dir = get_home_dir()?;
         let env_var_pattern = regex::Regex::new(r"\$([A-Z0-9_]+)").unwrap();
 
@@ -56,10 +56,10 @@ impl Executable<'_> for SchemaPlugin {
             };
 
             if dir_path.exists() {
-                return Ok(dir_path);
+                return Ok(Some(dir_path));
             }
         }
 
-        Ok(home_dir.join(format!(".{}", self.get_id())).join("bin"))
+        Ok(None)
     }
 }

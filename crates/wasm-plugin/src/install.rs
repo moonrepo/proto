@@ -42,8 +42,8 @@ impl Installable<'_> for WasmPlugin {
             self.call_func_with(
                 "unpack_archive",
                 UnpackArchiveInput {
-                    download_path: self.to_wasi_virtual_path(download_path)?,
-                    install_dir: self.to_wasi_virtual_path(install_dir)?,
+                    download_path: self.to_wasi_virtual_path(download_path),
+                    install_dir: self.to_wasi_virtual_path(install_dir),
                 },
             )?;
         } else if self.should_unpack() && unpack(download_path, install_dir, prefix)? {

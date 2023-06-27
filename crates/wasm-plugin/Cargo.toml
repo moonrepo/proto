@@ -13,6 +13,7 @@ proto_pdk = { version = "0.1.0", path = "../pdk" }
 extism = "0.4.0"
 once_cell = { workspace = true }
 once_map = "0.4.6"
+regex ={ workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
