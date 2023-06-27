@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed an args escaping issue for Unix based shims.
+
 ## 0.11.1
 
 #### 🐞 Fixes
