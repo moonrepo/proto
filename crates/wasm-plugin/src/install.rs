@@ -1,6 +1,6 @@
 use crate::WasmPlugin;
 use proto_core::{async_trait, unpack, Describable, Installable, ProtoError, Resolvable};
-use proto_pdk::{InstallParams, UnpackArchiveInput};
+use proto_pdk::UnpackArchiveInput;
 use starbase_utils::fs;
 use std::path::{Path, PathBuf};
 use tracing::debug;
@@ -8,10 +8,7 @@ use tracing::debug;
 #[async_trait]
 impl Installable<'_> for WasmPlugin {
     fn get_archive_prefix(&self) -> Result<Option<String>, ProtoError> {
-        let params: InstallParams =
-            self.cache_func_with("register_install_params", self.get_env_input())?;
-
-        Ok(params.archive_prefix)
+        Ok(self.get_install_params()?.archive_prefix)
     }
 
     fn get_install_dir(&self) -> Result<PathBuf, ProtoError> {
@@ -42,8 +39,9 @@ impl Installable<'_> for WasmPlugin {
             self.call_func_with(
                 "unpack_archive",
                 UnpackArchiveInput {
-                    download_path: self.to_wasi_virtual_path(download_path),
-                    install_dir: self.to_wasi_virtual_path(install_dir),
+                    input_file: self.to_wasi_virtual_path(download_path),
+                    env: self.get_environment(),
+                    output_dir: self.to_wasi_virtual_path(install_dir),
                 },
             )?;
         } else if self.should_unpack() && unpack(download_path, install_dir, prefix)? {

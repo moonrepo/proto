@@ -1,6 +1,6 @@
 use crate::WasmPlugin;
 use proto_core::{async_trait, load_version_file, Detector, ProtoError};
-use proto_pdk::{DetectVersionFiles, ParseVersion, ParseVersionInput};
+use proto_pdk::{DetectVersionOutput, ParseVersionInput, ParseVersionOutput};
 use starbase_utils::fs;
 use std::path::Path;
 
@@ -12,7 +12,7 @@ impl Detector<'_> for WasmPlugin {
         }
 
         let has_parser = self.has_func("parse_version_file");
-        let result: DetectVersionFiles = self.cache_func("detect_version_files")?;
+        let result: DetectVersionOutput = self.cache_func("detect_version_files")?;
 
         for file in result.files {
             let file_path = working_dir.join(&file);
@@ -22,10 +22,11 @@ impl Detector<'_> for WasmPlugin {
             }
 
             if has_parser {
-                let result: ParseVersion = self.call_func_with(
+                let result: ParseVersionOutput = self.call_func_with(
                     "parse_version_file",
                     ParseVersionInput {
                         content: fs::read_file(&file_path)?,
+                        env: self.get_environment(),
                         file: file.clone(),
                     },
                 )?;

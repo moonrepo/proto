@@ -2,7 +2,7 @@ use crate::WasmPlugin;
 use proto_core::{
     async_trait, get_sha256_hash_of_file, Describable, ProtoError, Resolvable, Verifiable,
 };
-use proto_pdk::{InstallParams, VerifyChecksum, VerifyChecksumInput};
+use proto_pdk::{VerifyChecksumInput, VerifyChecksumOutput};
 use starbase_utils::fs;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
@@ -18,10 +18,7 @@ impl Verifiable<'_> for WasmPlugin {
     }
 
     fn get_checksum_url(&self) -> Result<Option<String>, ProtoError> {
-        let params: InstallParams =
-            self.cache_func_with("register_install_params", self.get_env_input())?;
-
-        Ok(params.checksum_url)
+        Ok(self.get_install_params()?.checksum_url)
     }
 
     async fn verify_checksum(
@@ -42,12 +39,12 @@ impl Verifiable<'_> for WasmPlugin {
 
         // Allow plugin to provide their own checksum verification method
         if self.has_func("verify_checksum") {
-            let params: VerifyChecksum = self.call_func_with(
+            let params: VerifyChecksumOutput = self.call_func_with(
                 "verify_checksum",
                 VerifyChecksumInput {
-                    checksum_path: self.to_wasi_virtual_path(checksum_file),
-                    download_path: self.to_wasi_virtual_path(download_file),
-                    version: self.get_resolved_version().to_owned(),
+                    checksum_file: self.to_wasi_virtual_path(checksum_file),
+                    download_file: self.to_wasi_virtual_path(download_file),
+                    env: self.get_environment(),
                 },
             )?;
 

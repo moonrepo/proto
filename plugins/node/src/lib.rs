@@ -17,18 +17,19 @@ pub struct PackageJson {
 // Metadata
 
 #[plugin_fn]
-pub fn register_tool(Json(_input): Json<ParseVersionInput>) -> FnResult<Json<ToolMetadata>> {
-    Ok(Json(ToolMetadata {
+pub fn register_tool(Json(_input): Json<ToolMetadataInput>) -> FnResult<Json<ToolMetadataOutput>> {
+    Ok(Json(ToolMetadataOutput {
         name: NAME.into(),
         type_of: PluginType::Language,
+        ..ToolMetadataOutput::default()
     }))
 }
 
 // Detector
 
 #[plugin_fn]
-pub fn detect_version_files(_: ()) -> FnResult<Json<DetectVersionFiles>> {
-    Ok(Json(DetectVersionFiles {
+pub fn detect_version_files(_: ()) -> FnResult<Json<DetectVersionOutput>> {
+    Ok(Json(DetectVersionOutput {
         files: vec![
             ".nvmrc".into(),
             ".node-version".into(),
@@ -38,7 +39,9 @@ pub fn detect_version_files(_: ()) -> FnResult<Json<DetectVersionFiles>> {
 }
 
 #[plugin_fn]
-pub fn parse_version_file(Json(input): Json<ParseVersionInput>) -> FnResult<Json<ParseVersion>> {
+pub fn parse_version_file(
+    Json(input): Json<ParseVersionInput>,
+) -> FnResult<Json<ParseVersionOutput>> {
     let mut version = None;
 
     if input.file == "package.json" {
@@ -53,7 +56,7 @@ pub fn parse_version_file(Json(input): Json<ParseVersionInput>) -> FnResult<Json
         version = Some(input.content.trim().to_owned());
     }
 
-    Ok(Json(ParseVersion { version }))
+    Ok(Json(ParseVersionOutput { version }))
 }
 
 // Downloader
@@ -84,13 +87,13 @@ fn map_arch(os: &str, arch: &str) -> Result<String, PluginError> {
 }
 
 #[plugin_fn]
-pub fn register_install_params(
-    Json(input): Json<EnvironmentInput>,
-) -> FnResult<Json<InstallParams>> {
-    let version = input.version;
-    let arch = map_arch(&input.os, &input.arch)?;
+pub fn register_install(
+    Json(input): Json<InstallParamsInput>,
+) -> FnResult<Json<InstallParamsOutput>> {
+    let version = input.env.version;
+    let arch = map_arch(&input.env.os, &input.env.arch)?;
 
-    let prefix = match input.os.as_str() {
+    let prefix = match input.env.os.as_str() {
         "linux" => format!("node-v{version}-linux-{arch}"),
         "macos" => format!("node-v{version}-darwin-{arch}"),
         "windows" => format!("node-v{version}-win-{arch}"),
@@ -102,39 +105,39 @@ pub fn register_install_params(
         }
     };
 
-    let filename = if input.os == "windows" {
+    let filename = if input.env.os == "windows" {
         format!("{prefix}.zip")
     } else {
         format!("{prefix}.tar.xz")
     };
 
-    Ok(Json(InstallParams {
+    Ok(Json(InstallParamsOutput {
         archive_prefix: Some(prefix),
-        bin_path: Some(if input.os == "windows" {
+        bin_path: Some(if input.env.os == "windows" {
             format!("{}.exe", BIN)
         } else {
             format!("bin/{}", BIN)
         }),
         download_url: format!("https://nodejs.org/dist/v{version}/{filename}"),
-        download_file: Some(filename),
+        download_name: Some(filename),
         checksum_url: Some(format!("https://nodejs.org/dist/v{version}/SHASUMS256.txt")),
-        ..InstallParams::default()
+        ..InstallParamsOutput::default()
     }))
 }
 
 // Shimmer
 
 #[plugin_fn]
-pub fn register_shims(Json(input): Json<EnvironmentInput>) -> FnResult<Json<ShimParams>> {
-    Ok(Json(ShimParams {
+pub fn register_shims(Json(input): Json<ShimParamsInput>) -> FnResult<Json<ShimParamsOutput>> {
+    Ok(Json(ShimParamsOutput {
         global_shims: HashMap::from_iter([(
             "npx".into(),
-            if input.os == "windows" {
+            if input.env.os == "windows" {
                 "npx.cmd".into()
             } else {
                 "bin/npx".into()
             },
         )]),
-        ..ShimParams::default()
+        ..ShimParamsOutput::default()
     }))
 }

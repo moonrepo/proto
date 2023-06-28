@@ -11,7 +11,10 @@ use extism::{manifest::Wasm, Manifest as PluginManifest, Plugin};
 use once_cell::sync::OnceCell;
 use once_map::OnceMap;
 use proto_core::{impl_tool, Describable, Manifest, Proto, ProtoError, Resolvable, Tool};
-use proto_pdk::{EmptyInput, EnvironmentInput, ToolMetadata, ToolMetadataInput};
+use proto_pdk::{
+    EmptyInput, Environment, InstallParamsInput, InstallParamsOutput, ToolMetadataInput,
+    ToolMetadataOutput,
+};
 use rustc_hash::FxHashMap;
 use serde::{de::DeserializeOwned, Serialize};
 use std::{
@@ -34,6 +37,7 @@ pub struct WasmPlugin {
     manifest: OnceCell<Manifest>,
     plugin: Arc<RwLock<Plugin<'static>>>,
     plugin_paths: FxHashMap<PathBuf, PathBuf>,
+    env_cache: OnceCell<Environment>,
     func_cache: OnceMap<String, Vec<u8>>,
 }
 
@@ -68,6 +72,7 @@ impl WasmPlugin {
             id,
             plugin: Arc::new(RwLock::new(plugin)),
             plugin_paths,
+            env_cache: OnceCell::new(),
             func_cache: OnceMap::new(),
         };
 
@@ -77,19 +82,38 @@ impl WasmPlugin {
         Ok(wasm_plugin)
     }
 
-    fn get_env_input(&self) -> EnvironmentInput {
-        EnvironmentInput {
-            arch: consts::ARCH.to_string(),
-            os: consts::OS.to_string(),
-            version: self.get_resolved_version().to_owned(),
-        }
+    fn get_environment(&self) -> Environment {
+        self.env_cache
+            .get_or_init(|| Environment {
+                arch: consts::ARCH.to_string(),
+                os: consts::OS.to_string(),
+                vars: self
+                    .get_metadata()
+                    .unwrap()
+                    .env_vars
+                    .iter()
+                    .filter_map(|var| env::var(var).ok().map(|value| (var.to_owned(), value)))
+                    .collect(),
+                version: self.get_resolved_version().to_owned(),
+            })
+            .to_owned()
     }
 
-    fn get_metadata(&self) -> Result<ToolMetadata, ProtoError> {
+    fn get_install_params(&self) -> Result<InstallParamsOutput, ProtoError> {
+        self.cache_func_with(
+            "register_install",
+            InstallParamsInput {
+                env: self.get_environment(),
+            },
+        )
+    }
+
+    fn get_metadata(&self) -> Result<ToolMetadataOutput, ProtoError> {
         self.cache_func_with(
             "register_tool",
             ToolMetadataInput {
                 id: self.get_id().to_owned(),
+                env: self.get_environment(),
             },
         )
     }

@@ -2,7 +2,7 @@ use crate::WasmPlugin;
 use proto_core::{
     async_trait, get_home_dir, get_root, Describable, Executable, Installable, ProtoError,
 };
-use proto_pdk::{ExecuteInput, ExecuteParams, InstallParams};
+use proto_pdk::{ExecuteParamsInput, ExecuteParamsOutput};
 use std::env;
 use std::path::{Path, PathBuf};
 
@@ -13,10 +13,10 @@ impl Executable<'_> for WasmPlugin {
         let mut bin_path = None;
 
         if self.has_func("find_bins") {
-            let execute_params: ExecuteParams = self.cache_func_with(
+            let execute_params: ExecuteParamsOutput = self.cache_func_with(
                 "find_bins",
-                ExecuteInput {
-                    env: self.get_env_input(),
+                ExecuteParamsInput {
+                    env: self.get_environment(),
                     tool_dir: self.to_wasi_virtual_path(&install_dir),
                 },
             )?;
@@ -27,8 +27,7 @@ impl Executable<'_> for WasmPlugin {
         }
 
         if bin_path.is_none() {
-            let install_params: InstallParams =
-                self.cache_func_with("register_install_params", self.get_env_input())?;
+            let install_params = self.get_install_params()?;
 
             bin_path = Some(if let Some(bin) = &install_params.bin_path {
                 install_dir.join(bin)
@@ -63,20 +62,18 @@ impl Executable<'_> for WasmPlugin {
 
         let home_dir = get_home_dir()?;
         let root_dir = get_root()?;
-        let install_dir = self.get_install_dir()?;
+        let tool_dir = self.get_install_dir()?;
         let env_var_pattern = regex::Regex::new(r"\$([A-Z0-9_]+)").unwrap();
 
-        let params: ExecuteParams = self.cache_func_with(
+        let params: ExecuteParamsOutput = self.cache_func_with(
             "find_bins",
-            ExecuteInput {
-                env: self.get_env_input(),
-                tool_dir: self.to_wasi_virtual_path(&install_dir),
+            ExecuteParamsInput {
+                env: self.get_environment(),
+                tool_dir: self.to_wasi_virtual_path(&tool_dir),
             },
         )?;
 
-        dbg!(&params);
-
-        'outer: for dir_lookup in params.globals_dir {
+        'outer: for dir_lookup in params.globals_lookup_dirs {
             let mut dir = dir_lookup.clone();
 
             // If a lookup contains an env var, find and replace it.
@@ -87,7 +84,7 @@ impl Executable<'_> for WasmPlugin {
                 let var_value = match var.as_ref() {
                     "$HOME" => home_dir.to_string_lossy().to_string(),
                     "$PROTO_ROOT" => root_dir.to_string_lossy().to_string(),
-                    "$TOOL_DIR" => install_dir.to_string_lossy().to_string(),
+                    "$TOOL_DIR" => tool_dir.to_string_lossy().to_string(),
                     _ => env::var(cap.get(1).unwrap().as_str()).unwrap_or_default(),
                 };
 
@@ -96,8 +93,6 @@ impl Executable<'_> for WasmPlugin {
                 }
 
                 dir = dir.replace(var, &var_value);
-
-                dbg!(&cap, &dir);
             }
 
             let dir_path = if let Some(dir_suffix) = dir.strip_prefix('~') {

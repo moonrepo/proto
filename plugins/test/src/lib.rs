@@ -3,24 +3,27 @@ use proto_pdk::*;
 use std::collections::HashMap;
 
 #[plugin_fn]
-pub fn register_tool(_: ()) -> FnResult<Json<ToolMetadata>> {
-    Ok(Json(ToolMetadata {
+pub fn register_tool(_: ()) -> FnResult<Json<ToolMetadataOutput>> {
+    Ok(Json(ToolMetadataOutput {
         name: "WASM Test".into(),
         type_of: PluginType::CLI,
+        ..ToolMetadataOutput::default()
     }))
 }
 
 // Detector
 
 #[plugin_fn]
-pub fn detect_version_files(_: ()) -> FnResult<Json<DetectVersionFiles>> {
-    Ok(Json(DetectVersionFiles {
+pub fn detect_version_files(_: ()) -> FnResult<Json<DetectVersionOutput>> {
+    Ok(Json(DetectVersionOutput {
         files: vec![".proto-wasm-version".into(), ".protowasmrc".into()],
     }))
 }
 
 #[plugin_fn]
-pub fn parse_version_file(Json(input): Json<ParseVersionInput>) -> FnResult<Json<ParseVersion>> {
+pub fn parse_version_file(
+    Json(input): Json<ParseVersionInput>,
+) -> FnResult<Json<ParseVersionOutput>> {
     let mut version = None;
 
     if input.file == ".proto-wasm-version" {
@@ -31,7 +34,7 @@ pub fn parse_version_file(Json(input): Json<ParseVersionInput>) -> FnResult<Json
         version = Some(input.content);
     }
 
-    Ok(Json(ParseVersion { version }))
+    Ok(Json(ParseVersionOutput { version }))
 }
 
 // Downloader
@@ -46,36 +49,36 @@ fn map_arch(arch: &str) -> String {
 }
 
 #[plugin_fn]
-pub fn register_install_params(
-    Json(input): Json<EnvironmentInput>,
-) -> FnResult<Json<InstallParams>> {
-    let version = input.version;
-    let arch = map_arch(&input.arch);
+pub fn register_install(
+    Json(input): Json<InstallParamsInput>,
+) -> FnResult<Json<InstallParamsOutput>> {
+    let version = input.env.version;
+    let arch = map_arch(&input.env.arch);
 
-    let prefix = match input.os.as_str() {
+    let prefix = match input.env.os.as_str() {
         "linux" => format!("node-v{version}-linux-{arch}"),
         "macos" => format!("node-v{version}-darwin-{arch}"),
         "windows" => format!("node-v{version}-win-{arch}"),
         _ => unimplemented!(),
     };
 
-    let filename = if input.os == "windows" {
+    let filename = if input.env.os == "windows" {
         format!("{prefix}.zip")
     } else {
         format!("{prefix}.tar.xz")
     };
 
-    Ok(Json(InstallParams {
+    Ok(Json(InstallParamsOutput {
         archive_prefix: Some(prefix),
-        bin_path: Some(if input.os == "windows" {
+        bin_path: Some(if input.env.os == "windows" {
             "node.exe".into()
         } else {
             "bin/node".into()
         }),
         download_url: format!("https://nodejs.org/dist/v{version}/{filename}"),
-        download_file: Some(filename),
+        download_name: Some(filename),
         checksum_url: Some(format!("https://nodejs.org/dist/v{version}/SHASUMS256.txt")),
-        checksum_file: None,
+        checksum_name: None,
     }))
 }
 
@@ -86,18 +89,18 @@ pub fn register_install_params(
 // }
 
 #[plugin_fn]
-pub fn find_bins(Json(_): Json<ExecuteInput>) -> FnResult<Json<ExecuteParams>> {
-    Ok(Json(ExecuteParams {
-        globals_dir: vec!["$WASM_ROOT/bin".into(), "$HOME/.wasm/bin".into()],
-        ..ExecuteParams::default()
+pub fn find_bins(Json(_): Json<ExecuteParamsInput>) -> FnResult<Json<ExecuteParamsOutput>> {
+    Ok(Json(ExecuteParamsOutput {
+        globals_lookup_dirs: vec!["$WASM_ROOT/bin".into(), "$HOME/.wasm/bin".into()],
+        ..ExecuteParamsOutput::default()
     }))
 }
 
 // Shimmer
 
 #[plugin_fn]
-pub fn register_shims(_: ()) -> FnResult<Json<ShimParams>> {
-    Ok(Json(ShimParams {
+pub fn register_shims(_: ()) -> FnResult<Json<ShimParamsOutput>> {
+    Ok(Json(ShimParamsOutput {
         global_shims: HashMap::from_iter([("global1".into(), "bin/global1".into())]),
         local_shims: HashMap::from_iter([
             (
@@ -117,22 +120,24 @@ pub fn register_shims(_: ()) -> FnResult<Json<ShimParams>> {
                 },
             ),
         ]),
-        ..ShimParams::default()
+        ..ShimParamsOutput::default()
     }))
 }
 
 // Verifier
 
 #[plugin_fn]
-pub fn verify_checksum(Json(input): Json<VerifyChecksumInput>) -> FnResult<Json<VerifyChecksum>> {
+pub fn verify_checksum(
+    Json(input): Json<VerifyChecksumInput>,
+) -> FnResult<Json<VerifyChecksumOutput>> {
     info!(
         "Verifying checksum of {:?} using {:?}",
-        input.download_path, input.checksum_path
+        input.download_file, input.checksum_file
     );
 
-    Ok(Json(VerifyChecksum {
-        verified: input.download_path.exists()
-            && input.checksum_path.exists()
-            && input.version == "20.0.0",
+    Ok(Json(VerifyChecksumOutput {
+        verified: input.download_file.exists()
+            && input.checksum_file.exists()
+            && input.env.version == "20.0.0",
     }))
 }
