@@ -37,7 +37,6 @@ pub struct WasmPlugin {
     manifest: OnceCell<Manifest>,
     plugin: Arc<RwLock<Plugin<'static>>>,
     plugin_paths: FxHashMap<PathBuf, PathBuf>,
-    env_cache: OnceCell<Environment>,
     func_cache: OnceMap<String, Vec<u8>>,
 }
 
@@ -72,7 +71,6 @@ impl WasmPlugin {
             id,
             plugin: Arc::new(RwLock::new(plugin)),
             plugin_paths,
-            env_cache: OnceCell::new(),
             func_cache: OnceMap::new(),
         };
 
@@ -82,28 +80,35 @@ impl WasmPlugin {
         Ok(wasm_plugin)
     }
 
-    fn get_environment(&self) -> Environment {
-        self.env_cache
-            .get_or_init(|| Environment {
-                arch: consts::ARCH.to_string(),
-                os: consts::OS.to_string(),
-                vars: self
-                    .get_metadata()
-                    .unwrap()
-                    .env_vars
-                    .iter()
-                    .filter_map(|var| env::var(var).ok().map(|value| (var.to_owned(), value)))
-                    .collect(),
-                version: self.get_resolved_version().to_owned(),
-            })
-            .to_owned()
+    fn get_environment(&self) -> Result<Environment, ProtoError> {
+        let version = self.get_resolved_version();
+
+        let env = self
+            .func_cache
+            .try_insert_cloned(format!("env-{version}"), |_| {
+                let env = Environment {
+                    arch: consts::ARCH.to_string(),
+                    os: consts::OS.to_string(),
+                    vars: self
+                        .get_metadata()?
+                        .env_vars
+                        .iter()
+                        .filter_map(|var| env::var(var).ok().map(|value| (var.to_owned(), value)))
+                        .collect(),
+                    version: version.to_owned(),
+                };
+
+                Ok::<Vec<u8>, ProtoError>(self.format_input(env)?.as_bytes().to_vec())
+            })?;
+
+        self.parse_output(&env)
     }
 
     fn get_install_params(&self) -> Result<InstallParamsOutput, ProtoError> {
         self.cache_func_with(
             "register_install",
             InstallParamsInput {
-                env: self.get_environment(),
+                env: self.get_environment()?,
             },
         )
     }
@@ -113,7 +118,11 @@ impl WasmPlugin {
             "register_tool",
             ToolMetadataInput {
                 id: self.get_id().to_owned(),
-                env: self.get_environment(),
+                env: Environment {
+                    arch: consts::ARCH.to_string(),
+                    os: consts::OS.to_string(),
+                    ..Environment::default()
+                },
             },
         )
     }

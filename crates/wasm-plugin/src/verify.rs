@@ -44,7 +44,7 @@ impl Verifiable<'_> for WasmPlugin {
                 VerifyChecksumInput {
                     checksum_file: self.to_wasi_virtual_path(checksum_file),
                     download_file: self.to_wasi_virtual_path(download_file),
-                    env: self.get_environment(),
+                    env: self.get_environment()?,
                 },
             )?;
 

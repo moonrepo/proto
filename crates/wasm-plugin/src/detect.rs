@@ -26,7 +26,7 @@ impl Detector<'_> for WasmPlugin {
                     "parse_version_file",
                     ParseVersionInput {
                         content: fs::read_file(&file_path)?,
-                        env: self.get_environment(),
+                        env: self.get_environment()?,
                         file: file.clone(),
                     },
                 )?;

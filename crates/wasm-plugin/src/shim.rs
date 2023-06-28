@@ -16,7 +16,7 @@ impl Shimable<'_> for WasmPlugin {
             let shim_configs: ShimParamsOutput = self.cache_func_with(
                 "register_shims",
                 ShimParamsInput {
-                    env: self.get_environment(),
+                    env: self.get_environment()?,
                 },
             )?;
 

@@ -40,7 +40,7 @@ impl Installable<'_> for WasmPlugin {
                 "unpack_archive",
                 UnpackArchiveInput {
                     input_file: self.to_wasi_virtual_path(download_path),
-                    env: self.get_environment(),
+                    env: self.get_environment()?,
                     output_dir: self.to_wasi_virtual_path(install_dir),
                 },
             )?;

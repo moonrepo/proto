@@ -16,7 +16,7 @@ impl Executable<'_> for WasmPlugin {
             let execute_params: ExecuteParamsOutput = self.cache_func_with(
                 "find_bins",
                 ExecuteParamsInput {
-                    env: self.get_environment(),
+                    env: self.get_environment()?,
                     tool_dir: self.to_wasi_virtual_path(&install_dir),
                 },
             )?;
@@ -68,7 +68,7 @@ impl Executable<'_> for WasmPlugin {
         let params: ExecuteParamsOutput = self.cache_func_with(
             "find_bins",
             ExecuteParamsInput {
-                env: self.get_environment(),
+                env: self.get_environment()?,
                 tool_dir: self.to_wasi_virtual_path(&tool_dir),
             },
         )?;
