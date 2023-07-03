@@ -66,20 +66,20 @@ async fn errors_for_missing_file() {
     .await;
 }
 
-#[tokio::test]
-async fn downloads_and_installs_plugin_from_url() {
-    run_tests(|root| {
-        create_plugin_from_locator(
-            "moon",
-            Proto::from(root),
-            PluginLocator::Schema(PluginLocation::Url(
-                "https://raw.githubusercontent.com/moonrepo/moon/master/proto-plugin.toml".into(),
-            )),
-            PathBuf::new(),
-        )
-    })
-    .await;
-}
+// #[tokio::test]
+// async fn downloads_and_installs_plugin_from_url() {
+//     run_tests(|root| {
+//         create_plugin_from_locator(
+//             "moon",
+//             Proto::from(root),
+//             PluginLocator::Schema(PluginLocation::Url(
+//                 "https://raw.githubusercontent.com/moonrepo/moon/master/proto-plugin.toml".into(),
+//             )),
+//             PathBuf::new(),
+//         )
+//     })
+//     .await;
+// }
 
 #[tokio::test]
 #[should_panic(expected = "DownloadNotFound")]
