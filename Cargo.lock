@@ -1693,6 +1693,7 @@ dependencies = [
  "proto_deno",
  "proto_go",
  "proto_node",
+ "proto_python",
  "proto_rust",
  "proto_schema_plugin",
  "reqwest",
@@ -1774,6 +1775,20 @@ dependencies = [
  "proto_core",
  "rustc-hash",
  "serde",
+ "starbase_sandbox",
+ "starbase_utils",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "proto_python"
+version = "0.1.0"
+dependencies = [
+ "once_cell",
+ "proto_core",
+ "serde",
+ "serde_json",
  "starbase_sandbox",
  "starbase_utils",
  "tokio",

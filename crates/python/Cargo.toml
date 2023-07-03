@@ -1,0 +1,20 @@
+[package]
+name = "proto_python"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Python support for proto."
+homepage = "https://moonrepo.dev/proto"
+repository = "https://github.com/moonrepo/proto"
+
+[dependencies]
+proto_core = { version = "0.11.1", path = "../core" }
+once_cell = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+starbase_utils = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+starbase_sandbox = { workspace = true }
