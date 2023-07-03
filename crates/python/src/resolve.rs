@@ -1,6 +1,10 @@
 use crate::PythonLanguage;
-use proto_core::{async_trait, ProtoError, Resolvable, VersionManifest, VersionManifestEntry};
+use proto_core::{
+    async_trait, color, create_version_manifest_from_tags, load_git_tags, ProtoError, Resolvable,
+    Tool, Version, VersionManifest,
+};
 use std::collections::BTreeMap;
+use tokio::process::Command;
 
 #[async_trait]
 impl Resolvable<'_> for PythonLanguage {
@@ -12,25 +16,38 @@ impl Resolvable<'_> for PythonLanguage {
     }
 
     async fn load_version_manifest(&self) -> Result<VersionManifest, ProtoError> {
-        // https://api.github.com/repos/indygreg/python-build-standalone/releases
-        // lets just hard code latest while I learn
-        // eventually use same strategy as rye with above link
-        // or we could use CLI directly to list available versions
-        // `rye toolchain list --include-downloadable`
+        let output = match Command::new("rye")
+            .args(["toolchain", "list", "--include-downloadable"])
+            .output()
+            .await
+        {
+            Ok(o) => o,
+            Err(_) => {
+                return Err(ProtoError::Message(format!(
+            "proto requires {} to be installed and available on {} to use Python. Please install it and try again.",
+            color::shell("rye"),
+            color::id("PATH"),
+        )));
+            }
+        };
 
-        let mut aliases = BTreeMap::new();
-        let mut versions = BTreeMap::new();
+        let available_versions = String::from_utf8_lossy(&output.stdout)
+            .lines()
+            .into_iter()
+            .filter(|line| line.starts_with("cpython"))
+            .map(|line| {
+                let v = if let Some((version, _)) = line.split_once(" ") {
+                    version
+                } else {
+                    line
+                };
+                return v.strip_prefix("cpython@").unwrap().to_owned();
+            })
+            .collect::<Vec<String>>();
 
-        versions.insert(
-            "3.11.3".into(),
-            VersionManifestEntry {
-                alias: None,
-                version: "3.11.3".into(),
-            },
-        );
-        aliases.insert("latest".into(), "3.11.3".into());
+        let mut manifest = create_version_manifest_from_tags(available_versions);
+        manifest.inherit_aliases(&self.get_manifest()?.aliases);
 
-        let manifest = VersionManifest { aliases, versions };
         Ok(manifest)
     }
 
