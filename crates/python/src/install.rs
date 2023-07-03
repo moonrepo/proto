@@ -48,13 +48,10 @@ impl Installable<'_> for PythonLanguage {
     }
 
     fn get_install_dir(&self) -> Result<PathBuf, ProtoError> {
-        // TODO ??
-        let target = "3.11.3".to_owned();
-
-        // ~/.rustup/toolchains/1.68.0-aarch64-apple-darwin
+        // ~/.rye/shim/1.68.0-aarch64-apple-darwin
         Ok(self
             .rye_dir
-            .join(format!("{}-{}", self.get_resolved_version(), target)))
+            .join(format!("py/cpython@{}", self.get_resolved_version())))
     }
 
     async fn install(&self, install_dir: &Path, _download_path: &Path) -> Result<bool, ProtoError> {

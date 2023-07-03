@@ -31,7 +31,7 @@ impl PythonLanguage {
             base_dir: proto.tools_dir.join("python"),
             bin_path: None,
             manifest: OnceCell::new(),
-            rye_dir: proto.home_dir.join(".rye").join("self"),
+            rye_dir: proto.home_dir.join(".rye"),
             temp_dir: proto.temp_dir.join("python"),
             version: None,
         }

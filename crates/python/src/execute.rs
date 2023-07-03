@@ -10,7 +10,11 @@ use std::{
 #[async_trait]
 impl Executable<'_> for PythonLanguage {
     async fn find_bin_path(&mut self) -> Result<(), ProtoError> {
-        let bin_path = self.get_install_dir()?.join("bin").join("rye");
+        let bin_path = self
+            .get_install_dir()?
+            .join("install")
+            .join("bin")
+            .join("python3");
 
         if bin_path.exists() {
             self.bin_path = Some(bin_path);
