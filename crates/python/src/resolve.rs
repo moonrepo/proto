@@ -30,7 +30,7 @@ impl Resolvable<'_> for PythonLanguage {
         );
         aliases.insert("latest".into(), "3.11.3".into());
 
-        let mut manifest = VersionManifest { aliases, versions };
+        let manifest = VersionManifest { aliases, versions };
         Ok(manifest)
     }
 

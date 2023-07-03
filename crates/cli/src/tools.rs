@@ -4,6 +4,7 @@ use proto_core::*;
 use proto_deno as deno;
 use proto_go as go;
 use proto_node as node;
+use proto_python as python;
 use proto_rust as rust;
 use proto_schema_plugin as schema_plugin;
 use starbase_utils::toml;
@@ -27,6 +28,8 @@ pub enum ToolType {
     Npm,
     Pnpm,
     Yarn,
+    // Python
+    Python,
     // Rust
     Rust,
     // Plugins
@@ -49,6 +52,8 @@ impl FromStr for ToolType {
             "npm" => Ok(Self::Npm),
             "pnpm" => Ok(Self::Pnpm),
             "yarn" | "yarnpkg" => Ok(Self::Yarn),
+            // Python
+            "python" => Ok(Self::Python),
             // Rust
             "rust" => Ok(Self::Rust),
             // Plugins
@@ -152,6 +157,8 @@ pub async fn create_tool(tool: &ToolType) -> Result<Box<dyn Tool<'static>>, Prot
             proto,
             node::NodeDependencyManagerType::Yarn,
         )),
+        // Python
+        ToolType::Python => Box::new(python::PythonLanguage::new(proto)),
         // Rust
         ToolType::Rust => Box::new(rust::RustLanguage::new(proto)),
         // Plugins

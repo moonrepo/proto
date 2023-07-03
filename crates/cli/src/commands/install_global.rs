@@ -59,6 +59,10 @@ pub async fn install_global(tool_type: ToolType, dependencies: Vec<String>) -> S
                     // Remove the /bin component
                     .env("PREFIX", global_dir.parent().unwrap());
             }
+            ToolType::Python => {
+                command = Command::new("rye");
+                command.arg("sync").arg("--force").arg(&dependency);
+            }
 
             ToolType::Rust => {
                 command = Command::new("cargo");
