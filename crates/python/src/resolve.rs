@@ -1,9 +1,8 @@
 use crate::PythonLanguage;
 use proto_core::{
-    async_trait, color, create_version_manifest_from_tags, load_git_tags, ProtoError, Resolvable,
-    Tool, Version, VersionManifest,
+    async_trait, color, create_version_manifest_from_tags, ProtoError, Resolvable, Tool,
+    VersionManifest,
 };
-use std::collections::BTreeMap;
 use tokio::process::Command;
 
 #[async_trait]
