@@ -6,7 +6,7 @@ use std::{
 };
 
 // These methods are only used for "is setup" detection,
-// and are not actually used for execution. Rely on `~/.cargo/bin` instead.
+// and are not actually used for execution. Rely on `~/.rye/shims` instead.
 #[async_trait]
 impl Executable<'_> for PythonLanguage {
     async fn find_bin_path(&mut self) -> Result<(), ProtoError> {

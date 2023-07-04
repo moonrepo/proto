@@ -23,7 +23,7 @@ impl Downloadable<'_> for PythonLanguage {
         }
 
         Err(ProtoError::Message(format!(
-            "proto requires {} to be installed and available on {} to use Rust. Please install it and try again.",
+            "proto requires {} to be installed and available on {} to use Python. Please install it and try again.",
             color::shell("rye"),
             color::id("PATH"),
         )))
