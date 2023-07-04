@@ -48,10 +48,10 @@ impl Installable<'_> for PythonLanguage {
     }
 
     fn get_install_dir(&self) -> Result<PathBuf, ProtoError> {
-        // ~/.rye/shim/1.68.0-aarch64-apple-darwin
         Ok(self
             .rye_dir
-            .join(format!("py/cpython@{}", self.get_resolved_version())))
+            .join("py")
+            .join(format!("cpython@{}", self.get_resolved_version())))
     }
 
     async fn install(&self, install_dir: &Path, _download_path: &Path) -> Result<bool, ProtoError> {
