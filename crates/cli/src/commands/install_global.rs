@@ -61,7 +61,7 @@ pub async fn install_global(tool_type: ToolType, dependencies: Vec<String>) -> S
             }
             ToolType::Python => {
                 command = Command::new("rye");
-                command.arg("sync").arg("--force").arg(&dependency);
+                command.arg("install").arg("--force").arg(&dependency);
             }
 
             ToolType::Rust => {
