@@ -1,8 +1,5 @@
 use crate::PythonLanguage;
 
-// .join("install")
-// .join("bin")
-// .join("python3");
 use proto_core::{async_trait, get_home_dir, Describable, Executable, Installable, ProtoError};
 use std::{
     env,
