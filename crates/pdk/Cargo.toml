@@ -3,10 +3,13 @@ name = "proto_pdk"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
+description = "A plugin development kit for creating proto WASM plugins."
+homepage = "https://moonrepo.dev/proto"
+repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
 anyhow = "1.0.71"
-extism-pdk = "0.3.3"
+extism-pdk = { workspace = true }
 semver = { workspace = true, features = ["serde"] }
 serde = { workspace = true }
 thiserror = { workspace = true }

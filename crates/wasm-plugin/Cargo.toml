@@ -10,7 +10,7 @@ repository = "https://github.com/moonrepo/proto"
 [dependencies]
 proto_core = { version = "0.11.0", path = "../core" }
 proto_pdk = { version = "0.1.0", path = "../pdk" }
-extism = "0.4.0"
+extism = { workspace = true }
 human-sort = { workspace = true }
 once_cell = { workspace = true }
 once_map = "0.4.6"

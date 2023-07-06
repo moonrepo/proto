@@ -48,8 +48,8 @@ jobs:
         with:
           bins: cargo-wasi, cargo-nextest
       - run: cargo wasi build -p proto_test_plugin
-        if: ${{ runner.os != 'Windows' }}
+      #   if: ${{ runner.os != 'Windows' }}
       - run: cargo nextest run --workspace
-        if: ${{ runner.os != 'Windows' }}
-      - run: cargo nextest run --workspace --exclude proto_wasm_plugin
-        if: ${{ runner.os == 'Windows' }}
+      #   if: ${{ runner.os != 'Windows' }}
+      # - run: cargo nextest run --workspace --exclude proto_wasm_plugin --exclude proto_node_plugin --exclude proto_test_plugin
+      #   if: ${{ runner.os == 'Windows' }}
