@@ -260,10 +260,10 @@ mod wasm_plugin {
                 let fixture = create_empty_sandbox();
                 let tool = create_plugin(fixture.path());
 
-                env::set_var("HOME", fixture.path().to_string_lossy().to_string());
-
                 // Dir must exist!
                 fixture.create_file(".wasm/bin/test", "");
+
+                env::set_var("HOME", fixture.path().to_string_lossy().to_string());
 
                 assert_eq!(
                     tool.get_globals_bin_dir().unwrap().unwrap(),

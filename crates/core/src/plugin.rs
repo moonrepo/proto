@@ -20,7 +20,6 @@ impl Display for PluginLocation {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum PluginLocator {
-    Schema(PluginLocation),
     Source(PluginLocation),
     // GitHub(String),
 }
@@ -50,24 +49,11 @@ impl FromStr for PluginLocator {
         }
 
         let locator = match protocol.as_ref() {
-            "schema" => {
-                if !is_url_or_path(location) {
-                    return Err(ProtoError::InvalidPluginLocator);
-                } else if !location.ends_with(".toml") {
-                    return Err(ProtoError::InvalidPluginLocatorExt(".toml".into()));
-                }
-
-                PluginLocator::Schema(if location.starts_with("https") {
-                    PluginLocation::Url(location.to_owned())
-                } else {
-                    PluginLocation::File(location.to_owned())
-                })
-            }
             "source" => {
                 if !is_url_or_path(location) {
                     return Err(ProtoError::InvalidPluginLocator);
-                } else if !location.ends_with(".wasm") {
-                    return Err(ProtoError::InvalidPluginLocatorExt(".wasm".into()));
+                } else if !location.ends_with(".wasm") && !location.ends_with(".toml") {
+                    return Err(ProtoError::InvalidPluginLocatorExt(".wasm OR .toml".into()));
                 }
 
                 PluginLocator::Source(if location.starts_with("https") {
@@ -88,7 +74,6 @@ impl FromStr for PluginLocator {
 impl Display for PluginLocator {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            PluginLocator::Schema(s) => write!(f, "schema:{}", s),
             PluginLocator::Source(s) => write!(f, "source:{}", s),
             // PluginLocator::GitHub(s) => write!(f, "github:{}", s),
         }
@@ -100,6 +85,7 @@ fn is_url_or_path(value: &str) -> bool {
         || value.starts_with("./")
         || value.starts_with(".\\")
         || value.starts_with("..")
+        || value.contains('/')
 }
 
 impl Serialize for PluginLocator {

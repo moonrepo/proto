@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+#### 💥 Breaking
+
+- Removed `schema:` as a prefix for TOML based plugins. Use `source:` instead.
+
+#### 🚀 Updates
+
+- Added experimental support for WASM based plugins.
+- Added `source:` as a plugin prefix.
+
 ## 0.11.2
 
 #### 🐞 Fixes

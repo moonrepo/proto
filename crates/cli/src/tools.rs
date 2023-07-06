@@ -66,32 +66,8 @@ pub async fn create_plugin_from_locator(
     source_dir: impl AsRef<Path>,
 ) -> Result<Box<dyn Tool<'static>>, ProtoError> {
     match locator.as_ref() {
-        PluginLocator::Schema(location) => {
-            debug!(location = %location, "Loading TOML plugin");
-
-            let schema: schema_plugin::Schema = match location {
-                PluginLocation::File(file) => {
-                    let file_path = source_dir.as_ref().join(file);
-
-                    if !file_path.exists() {
-                        return Err(ProtoError::PluginFileMissing(file_path));
-                    }
-
-                    toml::read_file(file_path)?
-                }
-                PluginLocation::Url(url) => toml::read_file(download_plugin(plugin, url).await?)?,
-            };
-
-            Ok(Box::new(schema_plugin::SchemaPlugin::new(
-                proto,
-                plugin.to_owned(),
-                schema,
-            )))
-        }
         PluginLocator::Source(location) => {
-            debug!(location = %location, "Loading WASM plugin");
-
-            let wasm_path: PathBuf = match location {
+            let (is_toml, source_path) = match location {
                 PluginLocation::File(file) => {
                     let file_path = source_dir.as_ref().join(file);
 
@@ -99,15 +75,29 @@ pub async fn create_plugin_from_locator(
                         return Err(ProtoError::PluginFileMissing(file_path));
                     }
 
-                    file_path
+                    (file.ends_with(".toml"), file_path)
                 }
-                PluginLocation::Url(url) => download_plugin(plugin, url).await?,
+                PluginLocation::Url(url) => {
+                    (url.ends_with(".toml"), download_plugin(plugin, url).await?)
+                }
             };
+
+            if is_toml {
+                debug!(source = ?source_path, "Loading TOML plugin");
+
+                return Ok(Box::new(schema_plugin::SchemaPlugin::new(
+                    proto,
+                    plugin.to_owned(),
+                    toml::read_file(source_path)?,
+                )));
+            }
+
+            debug!(source = ?source_path, "Loading WASM plugin");
 
             Ok(Box::new(wasm_plugin::WasmPlugin::new(
                 proto,
                 plugin.to_owned(),
-                wasm_path,
+                source_path,
             )?))
         }
     }

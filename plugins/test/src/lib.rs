@@ -94,7 +94,6 @@ pub fn locate_bins(Json(input): Json<LocateBinsInput>) -> FnResult<Json<LocateBi
             "bin/node".into()
         }),
         globals_lookup_dirs: vec!["$WASM_ROOT/bin".into(), "$HOME/.wasm/bin".into()],
-        ..LocateBinsOutput::default()
     }))
 }
 
