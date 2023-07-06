@@ -41,7 +41,7 @@ where
     let mut tags: Vec<String> = vec![];
 
     for line in raw.split('\n') {
-        let parts: Vec<&str> = line.split('\t').collect();
+        let parts = line.split('\t').collect::<Vec<_>>();
 
         if parts.len() < 2 {
             continue;

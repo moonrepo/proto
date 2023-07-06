@@ -18,7 +18,7 @@ pub struct Environment {
     pub os: HostOS,
     /// Requested environment variables. Only non-empty values are included.
     pub vars: HashMap<String, String>,
-    /// Current resolved version.
+    /// Current resolved version. Will be empty if not resolved.
     pub version: String,
 }
 
@@ -202,6 +202,7 @@ pub struct ResolveVersionOutput {
 
 // Shimmer
 
+/// Configuration for individual shim files.
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct ShimConfig {
     /// Relative path from the tool directory to the binary to execute.

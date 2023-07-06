@@ -2,6 +2,7 @@ use crate::error::PluginError;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
+/// Architecture of the host environment.
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum HostArch {
@@ -38,6 +39,7 @@ impl FromStr for HostArch {
     }
 }
 
+/// Operating system of the host environment.
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum HostOS {
