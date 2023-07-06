@@ -14,7 +14,7 @@ extism = { workspace = true }
 human-sort = { workspace = true }
 once_cell = { workspace = true }
 once_map = "0.4.6"
-regex ={ workspace = true }
+regex = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

@@ -47,7 +47,7 @@ indicatif = "0.17.5"
 miette = { workspace = true }
 reqwest = { workspace = true, features = ["stream"] }
 rustc-hash = { workspace = true }
-semver ={ workspace = true }
+semver = { workspace = true }
 starbase = "0.1.12"
 starbase_utils = { workspace = true }
 strum = { version = "0.25.0", features = ["derive"] }
