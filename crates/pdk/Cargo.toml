@@ -5,5 +5,8 @@ edition = "2021"
 license = "MIT"
 
 [dependencies]
+anyhow = "1.0.71"
+extism-pdk = "0.3.3"
+human-sort = "0.2.2"
 serde = { workspace = true }
 thiserror = { workspace = true }

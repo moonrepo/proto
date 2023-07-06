@@ -4,6 +4,7 @@ use std::path::PathBuf;
 
 // HOST FUNCTIONS
 
+/// Represents an empty input.
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct EmptyInput {}
 
@@ -11,6 +12,7 @@ pub struct EmptyInput {}
 
 // Common
 
+/// Information about the host environment (the current runtime).
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Environment {
     /// Current architecture.
@@ -23,6 +25,7 @@ pub struct Environment {
     pub version: String,
 }
 
+/// Supported types of plugins.
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub enum PluginType {
     #[default]
