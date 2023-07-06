@@ -156,9 +156,10 @@ impl WasmPlugin {
         let input = input.as_ref();
 
         trace!(
-            method = func,
+            tool = self.get_id(),
+            func,
             input = %String::from_utf8_lossy(input),
-            "Calling method on plugin"
+            "Calling function on plugin"
         );
 
         let output = self
@@ -170,9 +171,10 @@ impl WasmPlugin {
 
         if !output.is_empty() {
             trace!(
-                method = func,
+                tool = self.get_id(),
+                func,
                 output = %String::from_utf8_lossy(output),
-                "Received method response"
+                "Received function response"
             );
         }
 

@@ -153,7 +153,7 @@ fn runs_a_tool_alt_bin() {
         .arg("node")
         .arg("19.0.0")
         .arg("--bin")
-        .arg(if cfg!(windows) { "npx.cmd" } else { "npx" })
+        .arg(if cfg!(windows) { "npx.cmd" } else { "bin/npx" })
         .arg("--")
         .arg("--version")
         .assert();
