@@ -174,6 +174,27 @@ pub fn load_versions(Json(_): Json<LoadVersionsInput>) -> FnResult<Json<LoadVers
     Ok(Json(output))
 }
 
+#[plugin_fn]
+pub fn resolve_version(
+    Json(input): Json<ResolveVersionInput>,
+) -> FnResult<Json<ResolveVersionOutput>> {
+    let mut output = ResolveVersionOutput::default();
+
+    if input.initial == "node" {
+        output.candidate = Some("latest".into());
+
+    // Stable version is the first with an LTS
+    } else if input.initial == "lts-*" || input.initial == "lts/*" {
+        output.candidate = Some("stable".into());
+
+        // Find the first version with a matching LTS
+    } else if input.initial.starts_with("lts-") || input.initial.starts_with("lts/") {
+        output.candidate = Some(input.initial[4..].to_owned());
+    }
+
+    Ok(Json(output))
+}
+
 // Shimmer
 
 #[plugin_fn]

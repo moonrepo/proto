@@ -181,6 +181,24 @@ pub struct LoadVersionsOutput {
     pub canary_versions: Vec<Version>,
 }
 
+/// Input passed to the `resolve_version` function.
+#[derive(Debug, Default, Deserialize, Serialize)]
+pub struct ResolveVersionInput {
+    /// Current resolved version candidate. Will be used if no replacement version is provided.
+    // pub candidate: String,
+    /// The alias or version currently being resolved.
+    pub initial: String,
+    /// Current environment.
+    pub env: Environment,
+}
+
+/// Output returned by the `resolve_version` function.
+#[derive(Debug, Default, Deserialize, Serialize)]
+pub struct ResolveVersionOutput {
+    /// New alias or version candidate.
+    pub candidate: Option<String>,
+}
+
 // Shimmer
 
 #[derive(Debug, Default, Deserialize, Serialize)]

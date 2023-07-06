@@ -122,6 +122,19 @@ pub fn load_versions(Json(_): Json<LoadVersionsInput>) -> FnResult<Json<LoadVers
     Ok(Json(output))
 }
 
+#[plugin_fn]
+pub fn resolve_version(
+    Json(input): Json<ResolveVersionInput>,
+) -> FnResult<Json<ResolveVersionOutput>> {
+    let mut output = ResolveVersionOutput::default();
+
+    if input.initial == "node" {
+        output.candidate = Some("latest".into());
+    }
+
+    Ok(Json(output))
+}
+
 // Shimmer
 
 #[plugin_fn]

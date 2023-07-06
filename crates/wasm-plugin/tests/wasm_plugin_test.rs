@@ -40,6 +40,12 @@ fn create_plugin(dir: &Path) -> WasmPlugin {
     tool
 }
 
+fn create_plugin_without_version(dir: &Path) -> WasmPlugin {
+    let mut tool = create_plugin(dir);
+    tool.version = None;
+    tool
+}
+
 fn get_arch() -> String {
     match consts::ARCH {
         "aarch64" => "arm64".into(),
@@ -282,6 +288,56 @@ mod wasm_plugin {
 
             assert!(!manifest.versions.is_empty());
             assert!(manifest.aliases.get("latest").is_some())
+        }
+
+        #[tokio::test]
+        async fn resolve_latest() {
+            let fixture = create_empty_sandbox();
+            let mut tool = create_plugin_without_version(fixture.path());
+
+            assert_ne!(tool.resolve_version("latest").await.unwrap(), "latest");
+        }
+
+        #[tokio::test]
+        async fn resolve_node_alias() {
+            let fixture = create_empty_sandbox();
+            let mut tool = create_plugin_without_version(fixture.path());
+
+            assert_ne!(tool.resolve_version("node").await.unwrap(), "node");
+        }
+
+        #[tokio::test]
+        async fn resolve_version() {
+            let fixture = create_empty_sandbox();
+            let mut tool = create_plugin_without_version(fixture.path());
+
+            assert_eq!(tool.resolve_version("18.0.0").await.unwrap(), "18.0.0");
+        }
+
+        #[tokio::test]
+        async fn resolve_partial_version() {
+            let fixture = create_empty_sandbox();
+            let mut tool = create_plugin_without_version(fixture.path());
+
+            assert_eq!(tool.resolve_version("10.1").await.unwrap(), "10.1.0");
+        }
+
+        #[tokio::test]
+        #[should_panic(expected = "VersionUnknownAlias(\"unknown\")")]
+        async fn errors_invalid_alias() {
+            let fixture = create_empty_sandbox();
+            let mut tool = create_plugin_without_version(fixture.path());
+
+            tool.resolve_version("unknown").await.unwrap();
+        }
+
+        #[tokio::test]
+        #[should_panic(expected = "VersionResolveFailed(\"99.99.99\")")]
+        async fn errors_invalid_version() {
+            let fixture = create_empty_sandbox();
+            let mut tool = create_plugin_without_version(fixture.path());
+
+            tool.resolve_version("99.99.99").await.unwrap();
         }
     }
 
