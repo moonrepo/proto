@@ -71,15 +71,11 @@ pub fn register_install(
 
     Ok(Json(InstallParamsOutput {
         archive_prefix: Some(prefix),
-        bin_path: Some(if input.env.os == "windows" {
-            "node.exe".into()
-        } else {
-            "bin/node".into()
-        }),
         download_url: format!("https://nodejs.org/dist/v{version}/{filename}"),
         download_name: Some(filename),
         checksum_url: Some(format!("https://nodejs.org/dist/v{version}/SHASUMS256.txt")),
         checksum_name: None,
+        ..InstallParamsOutput::default()
     }))
 }
 
@@ -90,10 +86,15 @@ pub fn register_install(
 // }
 
 #[plugin_fn]
-pub fn find_bins(Json(_): Json<ExecuteParamsInput>) -> FnResult<Json<ExecuteParamsOutput>> {
-    Ok(Json(ExecuteParamsOutput {
+pub fn locate_bins(Json(input): Json<LocateBinsInput>) -> FnResult<Json<LocateBinsOutput>> {
+    Ok(Json(LocateBinsOutput {
+        bin_path: Some(if input.env.os == "windows" {
+            "node.exe".into()
+        } else {
+            "bin/node".into()
+        }),
         globals_lookup_dirs: vec!["$WASM_ROOT/bin".into(), "$HOME/.wasm/bin".into()],
-        ..ExecuteParamsOutput::default()
+        ..LocateBinsOutput::default()
     }))
 }
 

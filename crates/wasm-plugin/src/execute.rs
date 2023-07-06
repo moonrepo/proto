@@ -2,7 +2,7 @@ use crate::WasmPlugin;
 use proto_core::{
     async_trait, get_home_dir, get_root, Describable, Executable, Installable, ProtoError,
 };
-use proto_pdk::{ExecuteParamsInput, ExecuteParamsOutput};
+use proto_pdk::{LocateBinsInput, LocateBinsOutput};
 use std::env;
 use std::path::{Path, PathBuf};
 
@@ -12,10 +12,10 @@ impl Executable<'_> for WasmPlugin {
         let install_dir = self.get_install_dir()?;
         let mut bin_path = None;
 
-        if self.has_func("find_bins") {
-            let execute_params: ExecuteParamsOutput = self.cache_func_with(
-                "find_bins",
-                ExecuteParamsInput {
+        if self.has_func("locate_bins") {
+            let execute_params: LocateBinsOutput = self.cache_func_with(
+                "locate_bins",
+                LocateBinsInput {
                     env: self.get_environment()?,
                     tool_dir: self.to_wasi_virtual_path(&install_dir),
                 },
@@ -56,7 +56,7 @@ impl Executable<'_> for WasmPlugin {
     }
 
     fn get_globals_bin_dir(&self) -> Result<Option<PathBuf>, ProtoError> {
-        if !self.has_func("find_bins") {
+        if !self.has_func("locate_bins") {
             return Ok(None);
         }
 
@@ -65,9 +65,9 @@ impl Executable<'_> for WasmPlugin {
         let tool_dir = self.get_install_dir()?;
         let env_var_pattern = regex::Regex::new(r"\$([A-Z0-9_]+)").unwrap();
 
-        let params: ExecuteParamsOutput = self.cache_func_with(
-            "find_bins",
-            ExecuteParamsInput {
+        let params: LocateBinsOutput = self.cache_func_with(
+            "locate_bins",
+            LocateBinsInput {
                 env: self.get_environment()?,
                 tool_dir: self.to_wasi_virtual_path(&tool_dir),
             },

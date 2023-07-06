@@ -228,6 +228,22 @@ mod wasm_plugin {
     mod executor {
         use super::*;
 
+        #[tokio::test]
+        async fn returns_bin_path() {
+            let fixture = create_empty_sandbox();
+            let mut tool = create_plugin(fixture.path());
+
+            tool.setup("20.0.0").await.unwrap();
+
+            let bin = tool.get_bin_path().unwrap();
+
+            if cfg!(windows) {
+                assert_eq!(bin, tool.get_install_dir().unwrap().join("node.exe"));
+            } else {
+                assert_eq!(bin, tool.get_install_dir().unwrap().join("bin/node"));
+            }
+        }
+
         mod globals {
             use super::*;
 

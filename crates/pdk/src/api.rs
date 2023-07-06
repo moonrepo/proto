@@ -140,18 +140,18 @@ pub struct VerifyChecksumOutput {
 
 // Executor
 
-/// Input passed to the `find_bins` function.
+/// Input passed to the `locate_bins` function.
 #[derive(Debug, Default, Deserialize, Serialize)]
-pub struct ExecuteParamsInput {
+pub struct LocateBinsInput {
     /// Current environment.
     pub env: Environment,
     /// Virtual path to the tool's installation directory.
     pub tool_dir: PathBuf,
 }
 
-/// Output returned by the `find_bins` function.
+/// Output returned by the `locate_bins` function.
 #[derive(Debug, Default, Deserialize, Serialize)]
-pub struct ExecuteParamsOutput {
+pub struct LocateBinsOutput {
     /// Relative path from the tool directory to the binary to execute.
     pub bin_path: Option<PathBuf>,
     /// List of directory paths to find the globals installation directory.
