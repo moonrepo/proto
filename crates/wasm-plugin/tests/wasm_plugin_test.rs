@@ -360,6 +360,7 @@ mod wasm_plugin {
     mod shimmer {
         use super::*;
 
+        #[cfg(not(windows))]
         #[tokio::test]
         async fn creates_alt_globals() {
             let fixture = create_empty_sandbox();
@@ -376,6 +377,25 @@ mod wasm_plugin {
             let g1 = fs::read_to_string(g1).unwrap();
 
             assert!(g1.contains(r#"exec proto run wasm --bin "bin/global1" --  "$@""#));
+        }
+
+        #[cfg(windows)]
+        #[tokio::test]
+        async fn creates_alt_globals() {
+            let fixture = create_empty_sandbox();
+            let mut tool = create_plugin(fixture.path());
+
+            // tool.find_bin_path().await.unwrap();
+            tool.create_shims(false).await.unwrap();
+
+            let g1 = fixture.path().join("bin/global1.cmd");
+
+            assert!(fixture.path().join("bin/wasm.cmd").exists());
+            assert!(g1.exists());
+
+            let g1 = fs::read_to_string(g1).unwrap();
+
+            assert!(g1.contains(r#"proto.exe run wasm --bin "bin/global1" --  %*"#));
         }
 
         #[cfg(not(windows))]
@@ -434,7 +454,7 @@ mod wasm_plugin {
 
             assert!(l1.contains(r#"$parent = "node""#));
             assert!(l1.contains(&format!(
-                r#"& "$parent" "{}" $args"#,
+                r#"& "$parent" "{}"  $args"#,
                 tool.get_install_dir()
                     .unwrap()
                     .join("bin/local1")
@@ -442,7 +462,7 @@ mod wasm_plugin {
             )));
 
             assert!(l2.contains(&format!(
-                r#"& "{}" $args"#,
+                r#"& "{}"  $args"#,
                 tool.get_install_dir()
                     .unwrap()
                     .join("local2.js")
