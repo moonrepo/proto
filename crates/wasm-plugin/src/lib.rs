@@ -53,6 +53,7 @@ impl WasmPlugin {
         ]);
 
         let mut manifest = PluginManifest::new([Wasm::file(wasm_file)]);
+        manifest = manifest.with_allowed_host("*");
 
         for (virtual_path, real_path) in &plugin_paths {
             manifest = manifest.with_allowed_path(real_path, virtual_path);

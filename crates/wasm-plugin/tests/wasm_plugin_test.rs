@@ -1,5 +1,5 @@
 use proto_core::{
-    Detector, Downloadable, Executable, Installable, Proto, Shimable, Tool, Verifiable,
+    Detector, Downloadable, Executable, Installable, Proto, Resolvable, Shimable, Tool, Verifiable,
 };
 use proto_wasm_plugin::WasmPlugin;
 use starbase_sandbox::create_empty_sandbox;
@@ -268,6 +268,20 @@ mod wasm_plugin {
 
                 env::remove_var("WASM_ROOT");
             }
+        }
+    }
+
+    mod resolver {
+        use super::*;
+
+        #[tokio::test]
+        async fn loads_version_manifest() {
+            let fixture = create_empty_sandbox();
+            let tool = create_plugin(fixture.path());
+            let manifest = tool.load_version_manifest().await.unwrap();
+
+            assert!(!manifest.versions.is_empty());
+            assert!(manifest.aliases.get("latest").is_some())
         }
     }
 

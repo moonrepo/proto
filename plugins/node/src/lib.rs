@@ -2,6 +2,7 @@ use extism_pdk::*;
 use proto_pdk::*;
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 static NAME: &str = "Node.js";
 static BIN: &str = "node";
@@ -59,7 +60,7 @@ pub fn parse_version_file(
     Ok(Json(ParseVersionOutput { version }))
 }
 
-// Downloader
+// Installer
 
 fn map_arch(os: &str, arch: &str) -> Result<String, PluginError> {
     let arch = match arch {
@@ -113,16 +114,64 @@ pub fn register_install(
 
     Ok(Json(InstallParamsOutput {
         archive_prefix: Some(prefix),
-        bin_path: Some(if input.env.os == "windows" {
+        bin_path: Some(PathBuf::from(if input.env.os == "windows" {
             format!("{}.exe", BIN)
         } else {
             format!("bin/{}", BIN)
-        }),
+        })),
         download_url: format!("https://nodejs.org/dist/v{version}/{filename}"),
         download_name: Some(filename),
         checksum_url: Some(format!("https://nodejs.org/dist/v{version}/SHASUMS256.txt")),
         ..InstallParamsOutput::default()
     }))
+}
+
+// Resolver
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum NodeDistLTS {
+    Name(String),
+    State(bool),
+}
+
+#[derive(Deserialize)]
+struct NodeDistVersion {
+    lts: NodeDistLTS,
+    version: String, // Starts with v
+}
+
+#[plugin_fn]
+pub fn load_versions(Json(_): Json<LoadVersionsInput>) -> FnResult<Json<LoadVersionsOutput>> {
+    let mut output = LoadVersionsOutput::default();
+    let response: Vec<NodeDistVersion> = fetch_url("https://nodejs.org/dist/index.json")?;
+
+    for (index, item) in response.iter().enumerate() {
+        let version = Version::parse(&item.version[1..])?;
+
+        // First item is always the latest
+        if index == 0 {
+            output.latest = Some(version.clone());
+        }
+
+        if let NodeDistLTS::Name(alias) = &item.lts {
+            let alias = alias.to_lowercase();
+
+            // The first encounter of an lts in general is the latest stable
+            if !output.aliases.contains_key("stable") {
+                output.aliases.insert("stable".into(), version.clone());
+            }
+
+            // The first encounter of an lts is the latest version for that alias
+            if !output.aliases.contains_key(&alias) {
+                output.aliases.insert(alias.clone(), version.clone());
+            }
+        }
+
+        output.versions.push(version);
+    }
+
+    Ok(Json(output))
 }
 
 // Shimmer

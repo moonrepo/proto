@@ -11,3 +11,4 @@ crate-type = ['cdylib']
 [dependencies]
 proto_pdk = { version = "0.1.0", path = "../../crates/pdk" }
 extism-pdk = "0.3.2"
+serde = { workspace = true }

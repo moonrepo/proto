@@ -81,7 +81,7 @@ impl Executable<'_> for WasmPlugin {
             for cap in env_var_pattern.captures_iter(&dir_lookup) {
                 let var = cap.get(0).unwrap().as_str();
 
-                let var_value = match var.as_ref() {
+                let var_value = match var {
                     "$HOME" => home_dir.to_string_lossy().to_string(),
                     "$PROTO_ROOT" => root_dir.to_string_lossy().to_string(),
                     "$TOOL_DIR" => tool_dir.to_string_lossy().to_string(),

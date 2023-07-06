@@ -1,6 +1,5 @@
 use extism_pdk::http::request;
 use extism_pdk::HttpRequest;
-use human_sort::compare;
 use serde::de::DeserializeOwned;
 use std::process::Command;
 
@@ -52,8 +51,6 @@ where
             tags.push(tag.to_owned());
         }
     }
-
-    tags.sort_by(|a, d| compare(a, d));
 
     Ok(tags)
 }

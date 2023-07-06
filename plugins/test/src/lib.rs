@@ -1,5 +1,6 @@
 use extism_pdk::*;
 use proto_pdk::*;
+use serde::Deserialize;
 use std::collections::HashMap;
 
 #[plugin_fn]
@@ -94,6 +95,31 @@ pub fn find_bins(Json(_): Json<ExecuteParamsInput>) -> FnResult<Json<ExecutePara
         globals_lookup_dirs: vec!["$WASM_ROOT/bin".into(), "$HOME/.wasm/bin".into()],
         ..ExecuteParamsOutput::default()
     }))
+}
+
+// Resolver
+
+#[derive(Deserialize)]
+struct NodeDistVersion {
+    version: String, // Starts with v
+}
+
+#[plugin_fn]
+pub fn load_versions(Json(_): Json<LoadVersionsInput>) -> FnResult<Json<LoadVersionsOutput>> {
+    let mut output = LoadVersionsOutput::default();
+    let response: Vec<NodeDistVersion> = fetch_url("https://nodejs.org/dist/index.json")?;
+
+    for (index, item) in response.iter().enumerate() {
+        let version = Version::parse(&item.version[1..])?;
+
+        if index == 0 {
+            output.latest = Some(version.clone());
+        }
+
+        output.versions.push(version);
+    }
+
+    Ok(Json(output))
 }
 
 // Shimmer

@@ -2,15 +2,11 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-// HOST FUNCTIONS
+pub use semver::{Version, VersionReq};
 
 /// Represents an empty input.
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct EmptyInput {}
-
-// PLUGIN API
-
-// Common
 
 /// Information about the host environment (the current runtime).
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -79,6 +75,7 @@ pub struct ParseVersionInput {
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct ParseVersionOutput {
     /// The version that was extracted from the file.
+    /// Can be a semantic version or a version requirement/range.
     pub version: Option<String>,
 }
 
@@ -99,7 +96,7 @@ pub struct InstallParamsOutput {
     pub archive_prefix: Option<String>,
     /// Relative path from the installation directory to the binary.
     /// If not provided, will use the tool `id` as the binary name.
-    pub bin_path: Option<String>,
+    pub bin_path: Option<PathBuf>,
     /// File name of the checksum to download. If not provided,
     /// will attempt to extract it from the URL.
     pub checksum_name: Option<String>,
@@ -156,10 +153,32 @@ pub struct ExecuteParamsInput {
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct ExecuteParamsOutput {
     /// Relative path from the tool directory to the binary to execute.
-    pub bin_path: Option<String>,
+    pub bin_path: Option<PathBuf>,
     /// List of directory paths to find the globals installation directory.
     /// Each path supports environment variable expansion.
     pub globals_lookup_dirs: Vec<String>,
+}
+
+// Resolver
+
+/// Input passed to the `load_versions` function.
+#[derive(Debug, Default, Deserialize, Serialize)]
+pub struct LoadVersionsInput {
+    /// Current environment.
+    pub env: Environment,
+}
+
+/// Output returned by the `load_versions` function.
+#[derive(Debug, Default, Deserialize, Serialize)]
+pub struct LoadVersionsOutput {
+    /// Latest stable version.
+    pub latest: Option<Version>,
+    /// Mapping of aliases (channels, etc) to a version.
+    pub aliases: HashMap<String, Version>,
+    /// List of available production versions to install.
+    pub versions: Vec<Version>,
+    /// List of available canary versions to install.
+    pub canary_versions: Vec<Version>,
 }
 
 // Shimmer
@@ -167,7 +186,7 @@ pub struct ExecuteParamsOutput {
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct ShimConfig {
     /// Relative path from the tool directory to the binary to execute.
-    pub bin_path: String,
+    pub bin_path: PathBuf,
     /// Name of a parent binary that's required for this shim to work.
     /// For example, `npm` requires `node`.
     pub parent_bin: Option<String>,

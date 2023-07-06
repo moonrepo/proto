@@ -42,7 +42,7 @@ convert_case = { workspace = true }
 dialoguer = "0.10.4"
 dirs = "5.0.1"
 futures = "0.3.28"
-human-sort = "0.2.2"
+human-sort = { workspace = true }
 indicatif = "0.17.5"
 miette = { workspace = true }
 reqwest = { workspace = true, features = ["stream"] }
