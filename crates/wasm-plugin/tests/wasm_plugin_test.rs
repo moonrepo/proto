@@ -375,7 +375,7 @@ mod wasm_plugin {
 
             let g1 = fs::read_to_string(g1).unwrap();
 
-            assert!(g1.contains(r#"exec proto run wasm --bin "bin/global1" --  $@"#));
+            assert!(g1.contains(r#"exec proto run wasm --bin "bin/global1" --  "$@""#));
         }
 
         #[cfg(not(windows))]
@@ -398,7 +398,7 @@ mod wasm_plugin {
 
             assert!(l1.contains(r#"parent="${PROTO_NODE_BIN:-node}""#));
             assert!(l1.contains(&format!(
-                r#"exec "$parent" "{}"  $@"#,
+                r#"exec "$parent" "{}"  "$@""#,
                 tool.get_install_dir()
                     .unwrap()
                     .join("bin/local1")
@@ -406,7 +406,7 @@ mod wasm_plugin {
             )));
 
             assert!(l2.contains(&format!(
-                r#"exec "{}"  $@"#,
+                r#"exec "{}"  "$@""#,
                 tool.get_install_dir()
                     .unwrap()
                     .join("local2.js")
@@ -416,7 +416,7 @@ mod wasm_plugin {
 
         #[cfg(windows)]
         #[tokio::test]
-        async fn creates_locals2() {
+        async fn creates_locals() {
             let fixture = create_empty_sandbox();
             let mut tool = create_plugin(fixture.path());
 
