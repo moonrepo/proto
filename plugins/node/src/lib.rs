@@ -62,24 +62,24 @@ pub fn parse_version_file(
 
 // Installer
 
-fn map_arch(os: &str, arch: &str) -> Result<String, PluginError> {
+fn map_arch(os: HostOS, arch: HostArch) -> Result<String, PluginError> {
     let arch = match arch {
-        "arm" => "armv7l".into(),
-        "aarch64" => "arm64".into(),
-        "powerpc64" => {
-            if os == "linux" {
+        HostArch::Arm => "armv7l".into(),
+        HostArch::Arm64 => "arm64".into(),
+        HostArch::Powerpc64 => {
+            if os == HostOS::Linux {
                 "ppc64le".into()
             } else {
                 "ppc64".into()
             }
         }
-        "s390x" => "s390x".into(),
-        "x86_64" => "x64".into(),
-        "x86" => "x86".into(),
+        HostArch::S390x => "s390x".into(),
+        HostArch::X64 => "x64".into(),
+        HostArch::X86 => "x86".into(),
         other => {
             return Err(PluginError::UnsupportedArchitecture {
                 tool: NAME.into(),
-                arch: other.into(),
+                arch: format!("{:?}", other),
             });
         }
     };
@@ -92,21 +92,21 @@ pub fn register_install(
     Json(input): Json<InstallParamsInput>,
 ) -> FnResult<Json<InstallParamsOutput>> {
     let version = input.env.version;
-    let arch = map_arch(&input.env.os, &input.env.arch)?;
+    let arch = map_arch(input.env.os, input.env.arch)?;
 
-    let prefix = match input.env.os.as_str() {
-        "linux" => format!("node-v{version}-linux-{arch}"),
-        "macos" => format!("node-v{version}-darwin-{arch}"),
-        "windows" => format!("node-v{version}-win-{arch}"),
+    let prefix = match input.env.os {
+        HostOS::Linux => format!("node-v{version}-linux-{arch}"),
+        HostOS::MacOS => format!("node-v{version}-darwin-{arch}"),
+        HostOS::Windows => format!("node-v{version}-win-{arch}"),
         other => {
             return Err(PluginError::UnsupportedPlatform {
                 tool: NAME.into(),
-                platform: other.into(),
+                platform: format!("{:?}", other),
             })?;
         }
     };
 
-    let filename = if input.env.os == "windows" {
+    let filename = if input.env.os == HostOS::Windows {
         format!("{prefix}.zip")
     } else {
         format!("{prefix}.tar.xz")
@@ -114,7 +114,7 @@ pub fn register_install(
 
     Ok(Json(InstallParamsOutput {
         archive_prefix: Some(prefix),
-        bin_path: Some(PathBuf::from(if input.env.os == "windows" {
+        bin_path: Some(PathBuf::from(if input.env.os == HostOS::Windows {
             format!("{}.exe", BIN)
         } else {
             format!("bin/{}", BIN)
@@ -202,7 +202,7 @@ pub fn register_shims(Json(input): Json<ShimParamsInput>) -> FnResult<Json<ShimP
     Ok(Json(ShimParamsOutput {
         global_shims: HashMap::from_iter([(
             "npx".into(),
-            if input.env.os == "windows" {
+            if input.env.os == HostOS::Windows {
                 "npx.cmd".into()
             } else {
                 "bin/npx".into()

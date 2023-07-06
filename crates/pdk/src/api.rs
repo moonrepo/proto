@@ -1,3 +1,4 @@
+use crate::host::{HostArch, HostOS};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -12,9 +13,9 @@ pub struct EmptyInput {}
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Environment {
     /// Current architecture.
-    pub arch: String,
+    pub arch: HostArch,
     /// Current operating system.
-    pub os: String,
+    pub os: HostOS,
     /// Requested environment variables. Only non-empty values are included.
     pub vars: HashMap<String, String>,
     /// Current resolved version.

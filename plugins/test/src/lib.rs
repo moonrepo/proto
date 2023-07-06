@@ -40,12 +40,12 @@ pub fn parse_version_file(
 
 // Downloader
 
-fn map_arch(arch: &str) -> String {
+fn map_arch(arch: HostArch) -> String {
     match arch {
-        "aarch64" => "arm64".into(),
-        "x86_64" => "x64".into(),
-        "x86" => "x86".into(),
-        other => other.into(),
+        HostArch::Arm64 => "arm64".into(),
+        HostArch::X64 => "x64".into(),
+        HostArch::X86 => "x86".into(),
+        _ => unimplemented!(),
     }
 }
 
@@ -54,16 +54,16 @@ pub fn register_install(
     Json(input): Json<InstallParamsInput>,
 ) -> FnResult<Json<InstallParamsOutput>> {
     let version = input.env.version;
-    let arch = map_arch(&input.env.arch);
+    let arch = map_arch(input.env.arch);
 
-    let prefix = match input.env.os.as_str() {
-        "linux" => format!("node-v{version}-linux-{arch}"),
-        "macos" => format!("node-v{version}-darwin-{arch}"),
-        "windows" => format!("node-v{version}-win-{arch}"),
+    let prefix = match input.env.os {
+        HostOS::Linux => format!("node-v{version}-linux-{arch}"),
+        HostOS::MacOS => format!("node-v{version}-darwin-{arch}"),
+        HostOS::Windows => format!("node-v{version}-win-{arch}"),
         _ => unimplemented!(),
     };
 
-    let filename = if input.env.os == "windows" {
+    let filename = if input.env.os == HostOS::Windows {
         format!("{prefix}.zip")
     } else {
         format!("{prefix}.tar.xz")
@@ -88,7 +88,7 @@ pub fn register_install(
 #[plugin_fn]
 pub fn locate_bins(Json(input): Json<LocateBinsInput>) -> FnResult<Json<LocateBinsOutput>> {
     Ok(Json(LocateBinsOutput {
-        bin_path: Some(if input.env.os == "windows" {
+        bin_path: Some(if input.env.os == HostOS::Windows {
             "node.exe".into()
         } else {
             "bin/node".into()

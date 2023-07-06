@@ -12,8 +12,8 @@ use once_cell::sync::OnceCell;
 use once_map::OnceMap;
 use proto_core::{impl_tool, Describable, Manifest, Proto, ProtoError, Resolvable, Tool};
 use proto_pdk::{
-    EmptyInput, Environment, InstallParamsInput, InstallParamsOutput, ToolMetadataInput,
-    ToolMetadataOutput,
+    EmptyInput, Environment, HostArch, HostOS, InstallParamsInput, InstallParamsOutput,
+    ToolMetadataInput, ToolMetadataOutput,
 };
 use rustc_hash::FxHashMap;
 use serde::{de::DeserializeOwned, Serialize};
@@ -22,6 +22,7 @@ use std::{
     env::{self, consts},
     fmt::Debug,
     path::{Path, PathBuf},
+    str::FromStr,
     sync::{Arc, RwLock},
 };
 use tracing::trace;
@@ -88,8 +89,10 @@ impl WasmPlugin {
             .func_cache
             .try_insert_cloned(format!("env-{version}"), |_| {
                 let env = Environment {
-                    arch: consts::ARCH.to_string(),
-                    os: consts::OS.to_string(),
+                    arch: HostArch::from_str(consts::ARCH)
+                        .map_err(|e| ProtoError::Message(e.to_string()))?,
+                    os: HostOS::from_str(consts::OS)
+                        .map_err(|e| ProtoError::Message(e.to_string()))?,
                     vars: self
                         .get_metadata()?
                         .env_vars
@@ -120,8 +123,10 @@ impl WasmPlugin {
             ToolMetadataInput {
                 id: self.get_id().to_owned(),
                 env: Environment {
-                    arch: consts::ARCH.to_string(),
-                    os: consts::OS.to_string(),
+                    arch: HostArch::from_str(consts::ARCH)
+                        .map_err(|e| ProtoError::Message(e.to_string()))?,
+                    os: HostOS::from_str(consts::OS)
+                        .map_err(|e| ProtoError::Message(e.to_string()))?,
                     ..Environment::default()
                 },
             },
