@@ -1,6 +1,6 @@
 use crate::WasmPlugin;
 use proto_core::{async_trait, unpack, Describable, Installable, ProtoError, Resolvable};
-use proto_pdk::UnpackArchiveInput;
+use proto_pdk_api::UnpackArchiveInput;
 use starbase_utils::fs;
 use std::path::{Path, PathBuf};
 use tracing::debug;

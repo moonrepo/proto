@@ -3,7 +3,7 @@ use proto_core::{
     async_trait, create_global_shim, create_local_shim, Describable, Installable, ProtoError,
     ShimContext, Shimable,
 };
-use proto_pdk::{CreateShimsInput, CreateShimsOutput};
+use proto_pdk_api::{CreateShimsInput, CreateShimsOutput};
 use std::path::Path;
 
 #[async_trait]

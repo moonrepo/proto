@@ -2490,6 +2490,14 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "extism-pdk",
+ "proto_pdk_api",
+ "serde",
+]
+
+[[package]]
+name = "proto_pdk_api"
+version = "0.1.0"
+dependencies = [
  "semver",
  "serde",
  "thiserror",
@@ -2539,7 +2547,7 @@ dependencies = [
  "once_cell",
  "once_map",
  "proto_core",
- "proto_pdk",
+ "proto_pdk_api",
  "regex",
  "rustc-hash",
  "serde",

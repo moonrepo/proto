@@ -2,7 +2,7 @@ use crate::WasmPlugin;
 use proto_core::{
     async_trait, get_home_dir, get_root, Describable, Executable, Installable, ProtoError,
 };
-use proto_pdk::{LocateBinsInput, LocateBinsOutput};
+use proto_pdk_api::{LocateBinsInput, LocateBinsOutput};
 use std::env;
 use std::path::{Path, PathBuf};
 

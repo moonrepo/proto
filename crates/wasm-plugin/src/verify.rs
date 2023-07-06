@@ -2,7 +2,7 @@ use crate::WasmPlugin;
 use proto_core::{
     async_trait, get_sha256_hash_of_file, Describable, ProtoError, Resolvable, Verifiable,
 };
-use proto_pdk::{VerifyChecksumInput, VerifyChecksumOutput};
+use proto_pdk_api::{VerifyChecksumInput, VerifyChecksumOutput};
 use starbase_utils::fs;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};

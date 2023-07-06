@@ -1,6 +1,6 @@
 use crate::WasmPlugin;
 use proto_core::{async_trait, load_version_file, Detector, ProtoError};
-use proto_pdk::{DetectVersionOutput, ParseVersionInput, ParseVersionOutput};
+use proto_pdk_api::{DetectVersionOutput, ParseVersionInput, ParseVersionOutput};
 use starbase_utils::fs;
 use std::path::Path;
 

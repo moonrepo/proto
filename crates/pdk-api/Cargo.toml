@@ -1,0 +1,13 @@
+[package]
+name = "proto_pdk_api"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Core APIs for creating proto WASM plugins."
+homepage = "https://moonrepo.dev/proto"
+repository = "https://github.com/moonrepo/proto"
+
+[dependencies]
+semver = { workspace = true, features = ["serde"] }
+serde = { workspace = true }
+thiserror = { workspace = true }

@@ -1,9 +1,4 @@
-mod api;
-mod error;
 mod helpers;
-mod host;
 
-pub use api::*;
-pub use error::*;
+pub use proto_pdk_api::*;
 pub use helpers::*;
-pub use host::*;

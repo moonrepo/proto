@@ -3,7 +3,7 @@ use proto_core::{
     async_trait, is_offline, is_semantic_version, remove_v_prefix, Describable, ProtoError,
     Resolvable, Tool, VersionManifest, VersionManifestEntry,
 };
-use proto_pdk::{LoadVersionsInput, LoadVersionsOutput, ResolveVersionInput, ResolveVersionOutput};
+use proto_pdk_api::{LoadVersionsInput, LoadVersionsOutput, ResolveVersionInput, ResolveVersionOutput};
 use tracing::debug;
 
 #[async_trait]

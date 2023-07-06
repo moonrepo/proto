@@ -11,7 +11,7 @@ use extism::{manifest::Wasm, Manifest as PluginManifest, Plugin};
 use once_cell::sync::OnceCell;
 use once_map::OnceMap;
 use proto_core::{impl_tool, Describable, Manifest, Proto, ProtoError, Resolvable, Tool};
-use proto_pdk::{
+use proto_pdk_api::{
     DownloadPrebuiltInput, DownloadPrebuiltOutput, EmptyInput, Environment, HostArch, HostOS,
     ToolMetadataInput, ToolMetadataOutput,
 };
