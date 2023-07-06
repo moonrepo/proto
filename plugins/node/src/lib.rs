@@ -88,9 +88,9 @@ fn map_arch(os: HostOS, arch: HostArch) -> Result<String, PluginError> {
 }
 
 #[plugin_fn]
-pub fn register_install(
-    Json(input): Json<InstallParamsInput>,
-) -> FnResult<Json<InstallParamsOutput>> {
+pub fn download_prebuilt(
+    Json(input): Json<DownloadPrebuiltInput>,
+) -> FnResult<Json<DownloadPrebuiltOutput>> {
     let version = input.env.version;
     let arch = map_arch(input.env.os, input.env.arch)?;
 
@@ -112,7 +112,7 @@ pub fn register_install(
         format!("{prefix}.tar.xz")
     };
 
-    Ok(Json(InstallParamsOutput {
+    Ok(Json(DownloadPrebuiltOutput {
         archive_prefix: Some(prefix),
         bin_path: Some(PathBuf::from(if input.env.os == HostOS::Windows {
             format!("{}.exe", BIN)
@@ -122,7 +122,7 @@ pub fn register_install(
         download_url: format!("https://nodejs.org/dist/v{version}/{filename}"),
         download_name: Some(filename),
         checksum_url: Some(format!("https://nodejs.org/dist/v{version}/SHASUMS256.txt")),
-        ..InstallParamsOutput::default()
+        ..DownloadPrebuiltOutput::default()
     }))
 }
 
@@ -198,8 +198,8 @@ pub fn resolve_version(
 // Shimmer
 
 #[plugin_fn]
-pub fn register_shims(Json(input): Json<ShimParamsInput>) -> FnResult<Json<ShimParamsOutput>> {
-    Ok(Json(ShimParamsOutput {
+pub fn create_shims(Json(input): Json<CreateShimsInput>) -> FnResult<Json<CreateShimsOutput>> {
+    Ok(Json(CreateShimsOutput {
         global_shims: HashMap::from_iter([(
             "npx".into(),
             if input.env.os == HostOS::Windows {
@@ -208,6 +208,6 @@ pub fn register_shims(Json(input): Json<ShimParamsInput>) -> FnResult<Json<ShimP
                 "bin/npx".into()
             },
         )]),
-        ..ShimParamsOutput::default()
+        ..CreateShimsOutput::default()
     }))
 }

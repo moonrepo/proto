@@ -3,7 +3,7 @@ use proto_core::{
     async_trait, create_global_shim, create_local_shim, Describable, Installable, ProtoError,
     ShimContext, Shimable,
 };
-use proto_pdk::{ShimParamsInput, ShimParamsOutput};
+use proto_pdk::{CreateShimsInput, CreateShimsOutput};
 use std::path::Path;
 
 #[async_trait]
@@ -12,10 +12,10 @@ impl Shimable<'_> for WasmPlugin {
         let install_dir = self.get_install_dir()?;
         let mut created_primary = false;
 
-        if self.has_func("register_shims") {
-            let shim_configs: ShimParamsOutput = self.cache_func_with(
-                "register_shims",
-                ShimParamsInput {
+        if self.has_func("create_shims") {
+            let shim_configs: CreateShimsOutput = self.cache_func_with(
+                "create_shims",
+                CreateShimsInput {
                     env: self.get_environment()?,
                 },
             )?;

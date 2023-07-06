@@ -50,9 +50,9 @@ fn map_arch(arch: HostArch) -> String {
 }
 
 #[plugin_fn]
-pub fn register_install(
-    Json(input): Json<InstallParamsInput>,
-) -> FnResult<Json<InstallParamsOutput>> {
+pub fn download_prebuilt(
+    Json(input): Json<DownloadPrebuiltInput>,
+) -> FnResult<Json<DownloadPrebuiltOutput>> {
     let version = input.env.version;
     let arch = map_arch(input.env.arch);
 
@@ -69,13 +69,13 @@ pub fn register_install(
         format!("{prefix}.tar.xz")
     };
 
-    Ok(Json(InstallParamsOutput {
+    Ok(Json(DownloadPrebuiltOutput {
         archive_prefix: Some(prefix),
         download_url: format!("https://nodejs.org/dist/v{version}/{filename}"),
         download_name: Some(filename),
         checksum_url: Some(format!("https://nodejs.org/dist/v{version}/SHASUMS256.txt")),
         checksum_name: None,
-        ..InstallParamsOutput::default()
+        ..DownloadPrebuiltOutput::default()
     }))
 }
 
@@ -138,8 +138,8 @@ pub fn resolve_version(
 // Shimmer
 
 #[plugin_fn]
-pub fn register_shims(_: ()) -> FnResult<Json<ShimParamsOutput>> {
-    Ok(Json(ShimParamsOutput {
+pub fn create_shims(_: ()) -> FnResult<Json<CreateShimsOutput>> {
+    Ok(Json(CreateShimsOutput {
         global_shims: HashMap::from_iter([("global1".into(), "bin/global1".into())]),
         local_shims: HashMap::from_iter([
             (
@@ -159,7 +159,7 @@ pub fn register_shims(_: ()) -> FnResult<Json<ShimParamsOutput>> {
                 },
             ),
         ]),
-        ..ShimParamsOutput::default()
+        ..CreateShimsOutput::default()
     }))
 }
 

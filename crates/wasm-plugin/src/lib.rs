@@ -12,7 +12,7 @@ use once_cell::sync::OnceCell;
 use once_map::OnceMap;
 use proto_core::{impl_tool, Describable, Manifest, Proto, ProtoError, Resolvable, Tool};
 use proto_pdk::{
-    EmptyInput, Environment, HostArch, HostOS, InstallParamsInput, InstallParamsOutput,
+    DownloadPrebuiltInput, DownloadPrebuiltOutput, EmptyInput, Environment, HostArch, HostOS,
     ToolMetadataInput, ToolMetadataOutput,
 };
 use rustc_hash::FxHashMap;
@@ -108,10 +108,10 @@ impl WasmPlugin {
         self.parse_output(&env)
     }
 
-    fn get_install_params(&self) -> Result<InstallParamsOutput, ProtoError> {
+    fn get_install_params(&self) -> Result<DownloadPrebuiltOutput, ProtoError> {
         self.cache_func_with(
-            "register_install",
-            InstallParamsInput {
+            "download_prebuilt",
+            DownloadPrebuiltInput {
                 env: self.get_environment()?,
             },
         )

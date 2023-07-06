@@ -82,16 +82,16 @@ pub struct ParseVersionOutput {
 
 // Downloader, Installer, Verifier
 
-/// Input passed to the `register_install` function.
+/// Input passed to the `download_prebuilt` function.
 #[derive(Debug, Default, Deserialize, Serialize)]
-pub struct InstallParamsInput {
+pub struct DownloadPrebuiltInput {
     /// Current environment.
     pub env: Environment,
 }
 
-/// Output returned by the `register_install` function.
+/// Output returned by the `download_prebuilt` function.
 #[derive(Debug, Default, Deserialize, Serialize)]
-pub struct InstallParamsOutput {
+pub struct DownloadPrebuiltOutput {
     /// Name of the direct folder within the archive that contains the tool,
     /// and will be removed when unpacking the archive.
     pub archive_prefix: Option<String>,
@@ -215,16 +215,16 @@ pub struct ShimConfig {
     pub after_args: Option<String>,
 }
 
-/// Input passed to the `register_shims` function.
+/// Input passed to the `create_shims` function.
 #[derive(Debug, Default, Deserialize, Serialize)]
-pub struct ShimParamsInput {
+pub struct CreateShimsInput {
     /// Current environment.
     pub env: Environment,
 }
 
-/// Output returned by the `register_shims` function.
+/// Output returned by the `create_shims` function.
 #[derive(Debug, Default, Deserialize, Serialize)]
-pub struct ShimParamsOutput {
+pub struct CreateShimsOutput {
     /// Configures the default/primary global shim.
     pub primary: Option<ShimConfig>,
     /// Additional global shims to create in the `~/.proto/bin` directory.
