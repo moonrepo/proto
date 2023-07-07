@@ -9,6 +9,6 @@ publish = false
 crate-type = ['cdylib']
 
 [dependencies]
-proto_pdk = { version = "0.1.0", path = "../../crates/pdk" }
+proto_pdk = { version = "0.1.0", path = "../pdk" }
 extism-pdk = { workspace = true }
 serde = { workspace = true }
