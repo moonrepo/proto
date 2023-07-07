@@ -97,7 +97,7 @@ pub struct DownloadPrebuiltOutput {
     pub archive_prefix: Option<String>,
     /// Relative path from the installation directory to the binary.
     /// If not provided, will use the tool `id` as the binary name.
-    pub bin_path: Option<PathBuf>,
+    pub bin_path: Option<String>,
     /// File name of the checksum to download. If not provided,
     /// will attempt to extract it from the URL.
     pub checksum_name: Option<String>,
@@ -154,7 +154,7 @@ pub struct LocateBinsInput {
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct LocateBinsOutput {
     /// Relative path from the tool directory to the binary to execute.
-    pub bin_path: Option<PathBuf>,
+    pub bin_path: Option<String>,
     /// List of directory paths to find the globals installation directory.
     /// Each path supports environment variable expansion.
     pub globals_lookup_dirs: Vec<String>,
@@ -206,7 +206,7 @@ pub struct ResolveVersionOutput {
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct ShimConfig {
     /// Relative path from the tool directory to the binary to execute.
-    pub bin_path: PathBuf,
+    pub bin_path: Option<String>,
     /// Name of a parent binary that's required for this shim to work.
     /// For example, `npm` requires `node`.
     pub parent_bin: Option<String>,
@@ -230,7 +230,7 @@ pub struct CreateShimsOutput {
     pub primary: Option<ShimConfig>,
     /// Additional global shims to create in the `~/.proto/bin` directory.
     /// Maps a shim name to a relative binary path.
-    pub global_shims: HashMap<String, String>,
+    pub global_shims: HashMap<String, ShimConfig>,
     /// Local shims to create in the `~/.proto/tools/<id>/<version>/shims` directory.
     /// Maps a shim name to its configuration.
     pub local_shims: HashMap<String, ShimConfig>,

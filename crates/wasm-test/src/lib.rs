@@ -140,12 +140,18 @@ pub fn resolve_version(
 #[plugin_fn]
 pub fn create_shims(_: ()) -> FnResult<Json<CreateShimsOutput>> {
     Ok(Json(CreateShimsOutput {
-        global_shims: HashMap::from_iter([("global1".into(), "bin/global1".into())]),
+        global_shims: HashMap::from_iter([(
+            "global1".into(),
+            ShimConfig {
+                bin_path: Some("bin/global1".into()),
+                ..Default::default()
+            },
+        )]),
         local_shims: HashMap::from_iter([
             (
                 "local1".into(),
                 ShimConfig {
-                    bin_path: "bin/local1".into(),
+                    bin_path: Some("bin/local1".into()),
                     parent_bin: Some("node".into()),
                     ..Default::default()
                 },
@@ -153,7 +159,7 @@ pub fn create_shims(_: ()) -> FnResult<Json<CreateShimsOutput>> {
             (
                 "local2".into(),
                 ShimConfig {
-                    bin_path: "local2.js".into(),
+                    bin_path: Some("local2.js".into()),
                     parent_bin: None,
                     ..Default::default()
                 },
