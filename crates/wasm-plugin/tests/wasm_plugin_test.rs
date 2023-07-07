@@ -11,7 +11,7 @@ static mut LOGGING: bool = false;
 
 fn create_plugin(dir: &Path) -> WasmPlugin {
     let wasm_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../target/wasm32-wasi/debug")
+        .join("../../plugins/target/wasm32-wasi/debug")
         .canonicalize()
         .unwrap();
 
