@@ -61,8 +61,6 @@ mod node {
 
         let output = output_to_string(&assert.get_output().stderr.to_vec());
 
-        println!("{}", output);
-
         assert!(predicate::str::contains("Node.js has been installed at").eval(&output));
         assert!(predicate::str::contains("npm has been installed at").eval(&output));
 
@@ -92,8 +90,6 @@ mod node {
             .assert();
 
         let output = output_to_string(&assert.get_output().stderr.to_vec());
-
-        println!("{}", output);
 
         assert!(predicate::str::contains("Node.js has been installed at").eval(&output));
         assert!(!predicate::str::contains("npm has been installed at").eval(&output));
