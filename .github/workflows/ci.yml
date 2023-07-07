@@ -47,8 +47,8 @@ jobs:
       - uses: moonrepo/setup-rust@v0
         with:
           bins: cargo-wasi, cargo-nextest
-      - run: cargo wasi build -p proto_test_plugin
-      - run: cargo nextest run --workspace --exclude proto_test_plugin
+      - run: cargo wasi build -p proto_wasm_test
+      - run: cargo nextest run --workspace --exclude proto_wasm_test
   run:
     name: Run
     runs-on: ${{ matrix.os }}
@@ -61,7 +61,7 @@ jobs:
       - uses: moonrepo/setup-rust@v0
         with:
           bins: cargo-wasi
-      - run: cargo wasi build -p proto_test_plugin --release
+      - run: cargo wasi build -p proto_wasm_test --release
       - run: cargo run -- --help
       - run: cargo run -- list-remote node
       - run: cargo run -- list-remote wasm-test

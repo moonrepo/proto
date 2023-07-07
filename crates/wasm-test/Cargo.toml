@@ -1,5 +1,5 @@
 [package]
-name = "proto_test_plugin"
+name = "proto_wasm_test"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"

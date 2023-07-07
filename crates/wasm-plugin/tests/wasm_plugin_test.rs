@@ -19,10 +19,7 @@ fn create_plugin(dir: &Path) -> WasmPlugin {
         if !LOGGING {
             LOGGING = true;
 
-            extism::set_log_file(
-                wasm_dir.join("proto_test_plugin.log"),
-                Some(log::Level::Info),
-            );
+            extism::set_log_file(wasm_dir.join("proto_wasm_test.log"), Some(log::Level::Info));
         }
     };
 
@@ -31,7 +28,7 @@ fn create_plugin(dir: &Path) -> WasmPlugin {
     let mut tool = WasmPlugin::new(
         Proto::from(dir),
         "wasm".into(),
-        wasm_dir.join("proto_test_plugin.wasm"),
+        wasm_dir.join("proto_wasm_test.wasm"),
     )
     .unwrap();
 

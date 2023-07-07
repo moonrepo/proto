@@ -2520,15 +2520,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "proto_test_plugin"
-version = "0.1.0"
-dependencies = [
- "extism-pdk",
- "proto_pdk",
- "serde",
-]
-
-[[package]]
 name = "proto_wasm_plugin"
 version = "0.1.0"
 dependencies = [
@@ -2548,6 +2539,15 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
+]
+
+[[package]]
+name = "proto_wasm_test"
+version = "0.1.0"
+dependencies = [
+ "extism-pdk",
+ "proto_pdk",
+ "serde",
 ]
 
 [[package]]
