@@ -3,8 +3,8 @@ use proto_core::{
 };
 use proto_go::GoLanguage;
 use starbase_sandbox::{create_empty_sandbox, Sandbox};
-use std::fs;
 use std::env;
+use std::fs;
 
 fn create_tool() -> (GoLanguage, Sandbox) {
     let fixture = create_empty_sandbox();
@@ -25,7 +25,7 @@ mod go {
 
         // Test zero patches because they are weird (go1.20)
         tool.setup("1.20.0").await.unwrap();
-        
+
         env::remove_var("PROTO_ROOT");
 
         assert!(tool.get_install_dir().unwrap().exists());

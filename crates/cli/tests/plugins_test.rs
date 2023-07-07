@@ -3,9 +3,9 @@ mod utils;
 use futures::Future;
 use proto::{tools::create_plugin_from_locator, ProtoError};
 use proto_core::{PluginLocation, PluginLocator, Proto, Tool};
+use std::env;
 use std::path::{Path, PathBuf};
 use utils::*;
-use std::env;
 
 async fn run_tests<F, Fut>(factory: F)
 where

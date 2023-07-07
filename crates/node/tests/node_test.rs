@@ -3,8 +3,8 @@ use proto_core::{
 };
 use proto_node::NodeLanguage;
 use starbase_sandbox::create_empty_sandbox;
-use std::{fs, path::Path};
 use std::env;
+use std::{fs, path::Path};
 
 mod node {
     use super::*;
@@ -18,7 +18,7 @@ mod node {
         env::set_var("PROTO_ROOT", fixture.path().to_string_lossy().to_string());
 
         tool.setup("18.0.0").await.unwrap();
-        
+
         env::remove_var("PROTO_ROOT");
 
         assert!(tool.get_install_dir().unwrap().exists());

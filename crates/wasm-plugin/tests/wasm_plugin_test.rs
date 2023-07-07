@@ -72,7 +72,7 @@ mod wasm_plugin {
         env::set_var("PROTO_ROOT", fixture.path().to_string_lossy().to_string());
 
         tool.setup("20.0.0").await.unwrap();
-        
+
         env::remove_var("PROTO_ROOT");
 
         let bin = tool.get_bin_path().unwrap();

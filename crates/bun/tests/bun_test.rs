@@ -7,8 +7,8 @@ mod bun {
         Downloadable, Executable, Installable, Proto, Resolvable, Tool, Verifiable, Version,
     };
     use starbase_sandbox::{create_empty_sandbox, Sandbox};
-    use std::fs;
     use std::env;
+    use std::fs;
 
     fn create_tool() -> (BunLanguage, Sandbox) {
         let fixture = create_empty_sandbox();

@@ -3,8 +3,8 @@ use proto_core::{
 };
 use proto_deno::DenoLanguage;
 use starbase_sandbox::{create_empty_sandbox, Sandbox};
-use std::fs;
 use std::env;
+use std::fs;
 
 fn create_tool() -> (DenoLanguage, Sandbox) {
     let fixture = create_empty_sandbox();
@@ -24,7 +24,7 @@ mod deno {
         env::set_var("PROTO_ROOT", fixture.path().to_string_lossy().to_string());
 
         tool.setup("1.17.3").await.unwrap();
-        
+
         env::remove_var("PROTO_ROOT");
 
         assert!(tool.get_install_dir().unwrap().exists());

@@ -3,8 +3,8 @@ use proto_core::{
 };
 use proto_node::{NodeDependencyManager, NodeDependencyManagerType};
 use starbase_sandbox::create_empty_sandbox;
-use std::path::Path;
 use std::env;
+use std::path::Path;
 
 mod node_depman {
     use super::*;
