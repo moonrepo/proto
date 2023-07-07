@@ -9,8 +9,12 @@
 #### 🚀 Updates
 
 - Added experimental support for WASM based plugins.
-  - Not supported on Windows at this time.
 - Added `source:` as a plugin prefix.
+
+#### ⚙️ Internal
+
+- Updated Cargo dependencies.
+- Updated to `cargo-dist` v0.0.6.
 
 ## 0.11.2
 

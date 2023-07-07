@@ -140,7 +140,7 @@ impl WasmPlugin {
 
                 // Only forward slashes are allowed in WASI
                 return if cfg!(windows) {
-                    PathBuf::from(path.to_string_lossy().replace("\\", "/"))
+                    PathBuf::from(path.to_string_lossy().replace('\\', "/"))
                 } else {
                     path
                 };
