@@ -1,6 +1,6 @@
 [package]
 name = "proto_wasm_test"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "MIT"
 publish = false
@@ -9,6 +9,6 @@ publish = false
 crate-type = ['cdylib']
 
 [dependencies]
-proto_pdk = { version = "0.1.0", path = "../pdk" }
+proto_pdk = { version = "0.2.0", path = "../pdk" }
 extism-pdk = { workspace = true }
 serde = { workspace = true }

@@ -1,6 +1,6 @@
 [package]
 name = "proto_wasm_plugin"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "MIT"
 description = "A WASM plugin for proto."
@@ -8,8 +8,8 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
-proto_core = { version = "0.11.1", path = "../core" }
-proto_pdk_api = { version = "0.1.0", path = "../pdk-api" }
+proto_core = { version = "0.12.0", path = "../core" }
+proto_pdk_api = { version = "0.2.0", path = "../pdk-api" }
 extism = { workspace = true }
 human-sort = { workspace = true }
 once_cell = { workspace = true }
