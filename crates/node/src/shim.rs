@@ -11,7 +11,7 @@ impl Shimable<'_> for NodeLanguage {
         create_global_shim(ShimContext::new_global_alt(
             self.get_id(),
             "npx",
-            if cfg!(windows) { "npx.cmd" } else { "npx" },
+            if cfg!(windows) { "npx.cmd" } else { "bin/npx" },
         ))?;
 
         Ok(())

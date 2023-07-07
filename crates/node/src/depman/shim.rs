@@ -24,9 +24,9 @@ impl Shimable<'_> for NodeDependencyManager {
                     "npm",
                     "node-gyp",
                     if cfg!(windows) {
-                        "node-gyp-bin/node-gyp.cmd"
+                        "bin/node-gyp-bin/node-gyp.cmd"
                     } else {
-                        "node-gyp-bin/node-gyp"
+                        "bin/node-gyp-bin/node-gyp"
                     },
                 ))?;
             }

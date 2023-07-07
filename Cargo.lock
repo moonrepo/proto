@@ -2476,15 +2476,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "proto_node_plugin"
-version = "0.1.0"
-dependencies = [
- "extism-pdk",
- "proto_pdk",
- "serde",
-]
-
-[[package]]
 name = "proto_pdk"
 version = "0.1.0"
 dependencies = [

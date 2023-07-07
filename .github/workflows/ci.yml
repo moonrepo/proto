@@ -48,7 +48,7 @@ jobs:
         with:
           bins: cargo-wasi, cargo-nextest
       - run: cargo wasi build -p proto_test_plugin
-      - run: cargo nextest run --workspace --exclude proto_node_plugin --exclude proto_test_plugin
+      - run: cargo nextest run --workspace --exclude proto_test_plugin
   run:
     name: Run
     runs-on: ${{ matrix.os }}
