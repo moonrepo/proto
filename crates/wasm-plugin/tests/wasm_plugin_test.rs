@@ -23,8 +23,6 @@ fn create_plugin(dir: &Path) -> WasmPlugin {
         }
     };
 
-    env::set_var("PROTO_ROOT", dir.to_string_lossy().to_string());
-
     let mut tool = WasmPlugin::new(
         Proto::from(dir),
         "wasm".into(),
@@ -65,6 +63,26 @@ fn get_file() -> String {
 
 mod wasm_plugin {
     use super::*;
+
+    #[tokio::test]
+    async fn downloads_verifies_installs_tool() {
+        let fixture = create_empty_sandbox();
+        let mut tool = create_plugin(fixture.path());
+
+        env::set_var("PROTO_ROOT", fixture.path().to_string_lossy().to_string());
+
+        tool.setup("20.0.0").await.unwrap();
+        
+        env::remove_var("PROTO_ROOT");
+
+        let bin = tool.get_bin_path().unwrap();
+
+        if cfg!(windows) {
+            assert_eq!(bin, tool.get_install_dir().unwrap().join("node.exe"));
+        } else {
+            assert_eq!(bin, tool.get_install_dir().unwrap().join("bin/node"));
+        }
+    }
 
     mod detector {
         use super::*;
@@ -225,22 +243,6 @@ mod wasm_plugin {
     mod executor {
         use super::*;
 
-        #[tokio::test]
-        async fn returns_bin_path() {
-            let fixture = create_empty_sandbox();
-            let mut tool = create_plugin(fixture.path());
-
-            tool.setup("20.0.0").await.unwrap();
-
-            let bin = tool.get_bin_path().unwrap();
-
-            if cfg!(windows) {
-                assert_eq!(bin, tool.get_install_dir().unwrap().join("node.exe"));
-            } else {
-                assert_eq!(bin, tool.get_install_dir().unwrap().join("bin/node"));
-            }
-        }
-
         mod globals {
             use super::*;
 
@@ -260,13 +262,17 @@ mod wasm_plugin {
                 // Dir must exist!
                 fixture.create_file(".wasm/bin/test", "");
 
+                fixture.debug_files();
+
                 env::set_var("HOME", fixture.path().to_string_lossy().to_string());
+                env::set_var("PROTO_ROOT", fixture.path().to_string_lossy().to_string());
 
                 assert_eq!(
                     tool.get_globals_bin_dir().unwrap().unwrap(),
                     fixture.path().join(".wasm/bin")
                 );
 
+                env::remove_var("PROTO_ROOT");
                 env::remove_var("HOME");
             }
 
@@ -363,8 +369,12 @@ mod wasm_plugin {
             let fixture = create_empty_sandbox();
             let mut tool = create_plugin(fixture.path());
 
+            env::set_var("PROTO_ROOT", fixture.path().to_string_lossy().to_string());
+
             // tool.find_bin_path().await.unwrap();
             tool.create_shims(false).await.unwrap();
+
+            env::remove_var("PROTO_ROOT");
 
             let g1 = fixture.path().join("bin/global1");
 
@@ -382,8 +392,12 @@ mod wasm_plugin {
             let fixture = create_empty_sandbox();
             let mut tool = create_plugin(fixture.path());
 
+            env::set_var("PROTO_ROOT", fixture.path().to_string_lossy().to_string());
+
             // tool.find_bin_path().await.unwrap();
             tool.create_shims(false).await.unwrap();
+
+            env::remove_var("PROTO_ROOT");
 
             let g1 = fixture.path().join("bin/global1.cmd");
 

@@ -4,6 +4,7 @@ use proto_core::{
 use proto_node::{NodeDependencyManager, NodeDependencyManagerType};
 use starbase_sandbox::create_empty_sandbox;
 use std::path::Path;
+use std::env;
 
 mod node_depman {
     use super::*;
@@ -14,9 +15,11 @@ mod node_depman {
         let proto = Proto::from(fixture.path());
         let mut tool = NodeDependencyManager::new(&proto, NodeDependencyManagerType::Npm);
 
-        std::env::set_var("PROTO_ROOT", fixture.path().to_string_lossy().to_string());
+        env::set_var("PROTO_ROOT", fixture.path().to_string_lossy().to_string());
 
         tool.setup("9.0.0").await.unwrap();
+
+        env::remove_var("PROTO_ROOT");
 
         assert!(tool.get_install_dir().unwrap().exists());
 

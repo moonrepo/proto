@@ -82,7 +82,7 @@ impl Executable<'_> for WasmPlugin {
                 let var = cap.get(0).unwrap().as_str();
 
                 let var_value = match var {
-                    "$HOME" => home_dir.to_string_lossy().to_string(),
+                    "$HOME" => env::var("HOME").unwrap_or_else(|_| home_dir.to_string_lossy().to_string()),
                     "$PROTO_ROOT" => root_dir.to_string_lossy().to_string(),
                     "$TOOL_DIR" => tool_dir.to_string_lossy().to_string(),
                     _ => env::var(cap.get(1).unwrap().as_str()).unwrap_or_default(),

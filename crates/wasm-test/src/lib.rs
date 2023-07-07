@@ -176,8 +176,12 @@ pub fn verify_checksum(
     Json(input): Json<VerifyChecksumInput>,
 ) -> FnResult<Json<VerifyChecksumOutput>> {
     info!(
-        "Verifying checksum of {:?} using {:?}",
-        input.download_file, input.checksum_file
+        "Verifying checksum of {:?} ({}) using {:?} ({}) ({})",
+        input.download_file,
+        input.download_file.exists(),
+        input.checksum_file,
+        input.checksum_file.exists(),
+        input.env.version
     );
 
     Ok(Json(VerifyChecksumOutput {

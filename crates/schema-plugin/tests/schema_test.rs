@@ -441,7 +441,9 @@ mod schema_plugin {
             tool.schema.shim.global = true;
 
             env::set_var("PROTO_ROOT", fixture.path());
+            
             tool.create_shims(false).await.unwrap();
+
             env::remove_var("PROTO_ROOT");
 
             if cfg!(windows) {

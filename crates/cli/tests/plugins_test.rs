@@ -5,6 +5,7 @@ use proto::{tools::create_plugin_from_locator, ProtoError};
 use proto_core::{PluginLocation, PluginLocator, Proto, Tool};
 use std::path::{Path, PathBuf};
 use utils::*;
+use std::env;
 
 async fn run_tests<F, Fut>(factory: F)
 where
@@ -16,9 +17,11 @@ where
 
     let mut tool = factory(fixture.path()).await.unwrap();
 
-    std::env::set_var("PROTO_ROOT", fixture.path().to_string_lossy().to_string());
+    env::set_var("PROTO_ROOT", fixture.path().to_string_lossy().to_string());
 
     tool.setup("1.0.0").await.unwrap();
+
+    env::remove_var("PROTO_ROOT");
 
     assert!(tool.get_install_dir().unwrap().exists());
 

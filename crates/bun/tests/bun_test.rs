@@ -8,6 +8,7 @@ mod bun {
     };
     use starbase_sandbox::{create_empty_sandbox, Sandbox};
     use std::fs;
+    use std::env;
 
     fn create_tool() -> (BunLanguage, Sandbox) {
         let fixture = create_empty_sandbox();
@@ -23,9 +24,11 @@ mod bun {
         let proto = Proto::from(fixture.path());
         let mut tool = BunLanguage::new(&proto);
 
-        std::env::set_var("PROTO_ROOT", fixture.path().to_string_lossy().to_string());
+        env::set_var("PROTO_ROOT", fixture.path().to_string_lossy().to_string());
 
         tool.setup("0.5.7").await.unwrap();
+
+        env::remove_var("PROTO_ROOT");
 
         assert!(tool.get_install_dir().unwrap().exists());
 
