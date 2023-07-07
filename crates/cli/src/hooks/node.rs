@@ -45,7 +45,7 @@ pub async fn pre_run(
         return Err(ProtoError::Message(format!(
             "Global binaries must be installed with {} and {} should be added to your {}!\nLearn more: {}\n\nOpt-out of this functionality with {}.",
             color::shell(format!("proto install-global {}", tool.get_id())),
-            color::path(tool.get_globals_bin_dir()?),
+            color::path(tool.get_globals_bin_dir()?.unwrap()),
             color::shell("PATH"),
             color::url("https://moonrepo.dev/docs/proto/faq#how-can-i-install-a-global-binary-for-a-language"),
             color::symbol("node-intercept-globals = false")

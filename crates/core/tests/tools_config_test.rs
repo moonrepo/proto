@@ -20,8 +20,8 @@ fn parses_plugins_table() {
 node = "12.0.0"
 
 [plugins]
-foo = "schema:./test.toml"
-camelCase = "schema:./camel.toml"
+foo = "source:./test.toml"
+camelCase = "source:./camel.toml"
 "#,
     );
 
@@ -37,11 +37,11 @@ camelCase = "schema:./camel.toml"
         FxHashMap::from_iter([
             (
                 "foo".into(),
-                PluginLocator::Schema(PluginLocation::File("./test.toml".into()))
+                PluginLocator::Source(PluginLocation::File("./test.toml".into()))
             ),
             (
                 "camel-case".into(),
-                PluginLocator::Schema(PluginLocation::File("./camel.toml".into()))
+                PluginLocator::Source(PluginLocation::File("./camel.toml".into()))
             )
         ])
     );
@@ -55,7 +55,7 @@ fn formats_plugins_table() {
     config.tools.insert("node".into(), "12.0.0".into());
     config.plugins.insert(
         "foo".into(),
-        PluginLocator::Schema(PluginLocation::File("./test.toml".into())),
+        PluginLocator::Source(PluginLocation::File("./test.toml".into())),
     );
     config.save().unwrap();
 
@@ -64,7 +64,7 @@ fn formats_plugins_table() {
         r#"node = "12.0.0"
 
 [plugins]
-foo = "schema:./test.toml"
+foo = "source:./test.toml"
 "#,
     );
 }

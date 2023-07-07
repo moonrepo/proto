@@ -28,7 +28,7 @@ impl Executable<'_> for DenoLanguage {
         }
     }
 
-    fn get_globals_bin_dir(&self) -> Result<PathBuf, ProtoError> {
+    fn get_globals_bin_dir(&self) -> Result<Option<PathBuf>, ProtoError> {
         let root = if let Ok(root) = env::var("DENO_INSTALL_ROOT") {
             PathBuf::from(root)
         } else if let Ok(root) = env::var("DENO_HOME") {
@@ -37,6 +37,6 @@ impl Executable<'_> for DenoLanguage {
             get_home_dir()?.join(".deno")
         };
 
-        Ok(root.join("bin"))
+        Ok(Some(root.join("bin")))
     }
 }

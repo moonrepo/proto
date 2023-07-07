@@ -17,7 +17,7 @@ pub trait Installable<'tool>: Send + Sync + Describable<'tool> {
     }
 
     /// Return an absolute file path to the directory containing the installed tool.
-    /// This is typically ~/.proto/tools/<tool>/<version>.
+    /// This is typically `~/.proto/tools/<tool>/<version>`.
     fn get_install_dir(&self) -> Result<PathBuf, ProtoError>;
 
     /// Run any installation steps after downloading and verifying the tool.

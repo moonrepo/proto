@@ -13,7 +13,7 @@ pub fn create_empty_sandbox_with_tools() -> Sandbox {
 moon-test = "1.0.0"
 
 [plugins]
-moon-test = "schema:https://raw.githubusercontent.com/moonrepo/moon/master/proto-plugin.toml"
+moon-test = "source:https://raw.githubusercontent.com/moonrepo/moon/master/proto-plugin.toml"
 "#,
     );
 

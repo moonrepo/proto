@@ -1,0 +1,14 @@
+[package]
+name = "proto_pdk"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "A plugin development kit for creating proto WASM plugins."
+homepage = "https://moonrepo.dev/proto"
+repository = "https://github.com/moonrepo/proto"
+
+[dependencies]
+proto_pdk_api = { version = "0.1.0", path = "../pdk-api" }
+anyhow = "1.0.71"
+extism-pdk = { workspace = true }
+serde = { workspace = true }

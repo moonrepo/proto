@@ -3,6 +3,7 @@ mod utils;
 use futures::Future;
 use proto::{tools::create_plugin_from_locator, ProtoError};
 use proto_core::{PluginLocation, PluginLocator, Proto, Tool};
+use std::env;
 use std::path::{Path, PathBuf};
 use utils::*;
 
@@ -16,9 +17,11 @@ where
 
     let mut tool = factory(fixture.path()).await.unwrap();
 
-    std::env::set_var("PROTO_ROOT", fixture.path().to_string_lossy().to_string());
+    env::set_var("PROTO_ROOT", fixture.path().to_string_lossy().to_string());
 
     tool.setup("1.0.0").await.unwrap();
+
+    env::remove_var("PROTO_ROOT");
 
     assert!(tool.get_install_dir().unwrap().exists());
 
@@ -41,7 +44,7 @@ async fn downloads_and_installs_plugin_from_file() {
         create_plugin_from_locator(
             "moon",
             Proto::from(root),
-            PluginLocator::Schema(PluginLocation::File(
+            PluginLocator::Source(PluginLocation::File(
                 "./tests/fixtures/moon-schema.toml".into(),
             )),
             root_dir,
@@ -59,7 +62,7 @@ async fn errors_for_missing_file() {
         create_plugin_from_locator(
             "moon",
             Proto::from(root),
-            PluginLocator::Schema(PluginLocation::File("./some/fake/path.toml".into())),
+            PluginLocator::Source(PluginLocation::File("./some/fake/path.toml".into())),
             root_dir,
         )
     })
@@ -72,7 +75,7 @@ async fn downloads_and_installs_plugin_from_url() {
         create_plugin_from_locator(
             "moon",
             Proto::from(root),
-            PluginLocator::Schema(PluginLocation::Url(
+            PluginLocator::Source(PluginLocation::Url(
                 "https://raw.githubusercontent.com/moonrepo/moon/master/proto-plugin.toml".into(),
             )),
             PathBuf::new(),
@@ -88,7 +91,7 @@ async fn errors_for_broken_url() {
         create_plugin_from_locator(
             "moon",
             Proto::from(root),
-            PluginLocator::Schema(PluginLocation::Url(
+            PluginLocator::Source(PluginLocation::Url(
                 "https://raw.githubusercontent.com/moonrepo/moon/some/fake/path.toml".into(),
             )),
             PathBuf::new(),

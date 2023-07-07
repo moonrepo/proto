@@ -1,6 +1,5 @@
 use proto_core::{
-    get_home_dir, Detector, Downloadable, Executable, Installable, Proto, Resolvable, Shimable,
-    Verifiable,
+    Detector, Downloadable, Executable, Installable, Proto, Resolvable, Shimable, Verifiable,
 };
 use proto_schema_plugin::{
     DetectSchema, InstallSchema, PlatformMapper, ResolveSchema, Schema, SchemaPlugin,
@@ -246,37 +245,6 @@ mod schema_plugin {
             use super::*;
 
             #[tokio::test]
-            async fn defaults_to_some_home_dir() {
-                let fixture = create_empty_sandbox();
-                let tool = create_plugin(fixture.path(), Schema::default());
-
-                assert_eq!(
-                    tool.get_globals_bin_dir().unwrap(),
-                    get_home_dir().unwrap().join(".moon-test/bin")
-                );
-            }
-
-            #[tokio::test]
-            async fn expands_home_dir() {
-                let fixture = create_empty_sandbox();
-                let tool = create_plugin(
-                    fixture.path(),
-                    Schema {
-                        install: InstallSchema {
-                            globals_dir: string_vec!["~/.moon-test/bin"],
-                            ..InstallSchema::default()
-                        },
-                        ..Schema::default()
-                    },
-                );
-                let bin_dir = get_home_dir().unwrap().join(".moon-test/bin");
-
-                fs::create_dir_all(&bin_dir).unwrap();
-
-                assert_eq!(tool.get_globals_bin_dir().unwrap(), bin_dir);
-            }
-
-            #[tokio::test]
             async fn expands_home_env_var() {
                 let fixture = create_empty_sandbox();
                 let tool = create_plugin(
@@ -289,11 +257,18 @@ mod schema_plugin {
                         ..Schema::default()
                     },
                 );
-                let bin_dir = get_home_dir().unwrap().join(".moon-test/bin");
 
-                fs::create_dir_all(&bin_dir).unwrap();
+                // Dir must exist!
+                fixture.create_file(".moon-test/bin", "");
 
-                assert_eq!(tool.get_globals_bin_dir().unwrap(), bin_dir);
+                env::set_var("HOME", fixture.path().to_string_lossy().to_string());
+
+                assert_eq!(
+                    tool.get_globals_bin_dir().unwrap().unwrap(),
+                    fixture.path().join(".moon-test/bin")
+                );
+
+                env::remove_var("HOME");
             }
 
             #[tokio::test]
@@ -314,7 +289,7 @@ mod schema_plugin {
                 fs::create_dir_all(&bin_dir).unwrap();
 
                 env::set_var("PROTO_TEST_DIR", fixture.path());
-                assert_eq!(tool.get_globals_bin_dir().unwrap(), bin_dir);
+                assert_eq!(tool.get_globals_bin_dir().unwrap().unwrap(), bin_dir);
                 env::remove_var("PROTO_TEST_DIR");
             }
         }
@@ -466,7 +441,9 @@ mod schema_plugin {
             tool.schema.shim.global = true;
 
             env::set_var("PROTO_ROOT", fixture.path());
+
             tool.create_shims(false).await.unwrap();
+
             env::remove_var("PROTO_ROOT");
 
             if cfg!(windows) {

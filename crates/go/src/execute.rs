@@ -28,9 +28,9 @@ impl Executable<'_> for GoLanguage {
         }
     }
 
-    fn get_globals_bin_dir(&self) -> Result<PathBuf, ProtoError> {
+    fn get_globals_bin_dir(&self) -> Result<Option<PathBuf>, ProtoError> {
         if let Ok(root) = env::var("GOBIN") {
-            return Ok(PathBuf::from(root));
+            return Ok(Some(PathBuf::from(root)));
         }
 
         let root = if let Ok(root) = env::var("GOROOT") {
@@ -41,6 +41,6 @@ impl Executable<'_> for GoLanguage {
             get_home_dir()?.join("go")
         };
 
-        Ok(root.join("bin"))
+        Ok(Some(root.join("bin")))
     }
 }

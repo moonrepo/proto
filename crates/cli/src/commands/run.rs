@@ -63,12 +63,12 @@ pub async fn run(
     let mut bin_path = tool.get_bin_path()?.to_path_buf();
 
     if let Some(alt_bin) = alt_bin {
-        let alt_bin_path = bin_path.parent().unwrap().join(&alt_bin);
+        let alt_bin_path = tool.get_install_dir()?.join(&alt_bin);
+
+        debug!(bin = alt_bin, path = ?alt_bin_path, "Received an alternate binary to run with");
 
         if alt_bin_path.exists() {
             bin_path = alt_bin_path;
-
-            debug!(alt_bin, "Received an alternate binary to run with");
         } else {
             return Err(ProtoError::Message(format!(
                 "Alternate binary {} does not exist.",
@@ -78,7 +78,7 @@ pub async fn run(
     } else if let Some(shim_path) = tool.get_shim_path() {
         bin_path = shim_path.to_path_buf();
 
-        debug!(alt_bin, "Using local shim for tool");
+        debug!(shim = ?shim_path, "Using local shim for tool");
     }
 
     debug!(bin = ?bin_path, "Running {}", tool.get_name());

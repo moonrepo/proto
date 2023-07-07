@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 #[cfg(target_os = "windows")]
 pub fn get_bin_name<T: AsRef<str>>(name: T) -> String {
-    format!("{}.{}", name.as_ref(), "exe")
+    format!("{}.exe", name.as_ref())
 }
 
 #[cfg(not(target_os = "windows"))]
@@ -33,7 +33,7 @@ impl Executable<'_> for NodeLanguage {
         }
     }
 
-    fn get_globals_bin_dir(&self) -> Result<PathBuf, ProtoError> {
-        Ok(self.base_dir.join("globals").join("bin"))
+    fn get_globals_bin_dir(&self) -> Result<Option<PathBuf>, ProtoError> {
+        Ok(Some(self.base_dir.join("globals").join("bin")))
     }
 }

@@ -34,6 +34,7 @@ proto_go = { version = "0.10.0", path = "../go" }
 proto_node = { version = "0.10.0", path = "../node" }
 proto_rust = { version = "0.8.0", path = "../rust" }
 proto_schema_plugin = { version = "0.6.0", path = "../schema-plugin" }
+proto_wasm_plugin = { version = "0.1.0", path = "../wasm-plugin" }
 async-recursion = "1.0.4"
 clap = { workspace = true, features = ["derive", "env"] }
 clap_complete = { workspace = true }
@@ -41,12 +42,12 @@ convert_case = { workspace = true }
 dialoguer = "0.10.4"
 dirs = "5.0.1"
 futures = "0.3.28"
-human-sort = "0.2.2"
+human-sort = { workspace = true }
 indicatif = "0.17.5"
 miette = { workspace = true }
 reqwest = { workspace = true, features = ["stream"] }
 rustc-hash = { workspace = true }
-semver ={ workspace = true }
+semver = { workspace = true }
 starbase = "0.1.12"
 starbase_utils = { workspace = true }
 strum = { version = "0.25.0", features = ["derive"] }

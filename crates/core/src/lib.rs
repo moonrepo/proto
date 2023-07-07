@@ -41,6 +41,7 @@ pub struct Proto {
     pub temp_dir: PathBuf,
     pub tools_dir: PathBuf,
     pub home_dir: PathBuf,
+    pub root: PathBuf,
 }
 
 impl Proto {
@@ -53,6 +54,7 @@ impl Proto {
             temp_dir: root.join("temp"),
             tools_dir: root.join("tools"),
             home_dir: get_home_dir()?,
+            root,
         })
     }
 
@@ -63,6 +65,7 @@ impl Proto {
             temp_dir: root.join("temp"),
             tools_dir: root.join("tools"),
             home_dir: get_home_dir().expect("Missing home directory."),
+            root: root.to_owned(),
         }
     }
 }
