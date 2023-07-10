@@ -3,8 +3,8 @@ use proto_core::{async_trait, create_global_shim, Describable, ProtoError, ShimC
 
 #[async_trait]
 impl Shimable<'_> for DenoLanguage {
-    async fn create_shims(&mut self, _find_only: bool) -> Result<(), ProtoError> {
-        create_global_shim(ShimContext::new_global(self.get_id()))?;
+    async fn create_shims(&mut self, find_only: bool) -> Result<(), ProtoError> {
+        create_global_shim(ShimContext::new_global(self.get_id()), find_only)?;
 
         Ok(())
     }

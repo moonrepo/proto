@@ -11,6 +11,10 @@
   - Added `fallback_last_globals_dir` field to `LocateBinsOutput`.
   - Updated `load_git_tags` to use the new `exec_command` function.
 
+#### 🐞 Fixes
+
+- Fixed an issue where shims were always being created.
+
 ## 0.12.0
 
 #### 💥 Breaking
