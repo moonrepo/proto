@@ -1,11 +1,11 @@
 mod detect;
 mod download;
 mod execute;
+mod host_funcs;
 mod install;
 mod resolve;
 mod shim;
 mod verify;
-mod wasm;
 
 use extism::{manifest::Wasm, Manifest as PluginManifest, Plugin};
 use once_cell::sync::OnceCell;
@@ -60,7 +60,7 @@ impl WasmPlugin {
             manifest = manifest.with_allowed_path(real_path, virtual_path);
         }
 
-        let plugin = Plugin::create_with_manifest(&manifest, wasm::create_functions(), true)
+        let plugin = Plugin::create_with_manifest(&manifest, host_funcs::create_functions(), true)
             .map_err(|e| ProtoError::PluginWasmCreateFailed(e.to_string()))?;
 
         let wasm_plugin = WasmPlugin {

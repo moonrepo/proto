@@ -1,7 +1,13 @@
 use extism_pdk::http::request;
-use extism_pdk::HttpRequest;
+use extism_pdk::*;
+use proto_pdk_api::{ExecCommandInput, ExecCommandOutput};
 use serde::de::DeserializeOwned;
-use std::process::Command;
+use std::vec;
+
+#[host_fn]
+extern "ExtismHost" {
+    fn exec_command(input: Json<ExecCommandInput>) -> Json<ExecCommandOutput>;
+}
 
 /// Fetch the provided request and deserialize the response as JSON.
 pub fn fetch<R>(req: HttpRequest) -> anyhow::Result<R>
@@ -28,19 +34,23 @@ pub fn load_git_tags<U>(url: U) -> anyhow::Result<Vec<String>>
 where
     U: AsRef<str>,
 {
-    let url = url.as_ref();
-
-    let output = Command::new("git")
-        .args(["ls-remote", "--tags", "--sort", "version:refname", url])
-        .output()
-        .map_err(|e| anyhow::anyhow!("Could not list git tags: {e}"))?;
-
-    let raw = String::from_utf8(output.stdout)
-        .map_err(|e| anyhow::anyhow!("Could not parse git tags: {e}"))?;
+    let output = unsafe {
+        exec_command(Json(ExecCommandInput::new(
+            "git",
+            [
+                "ls-remote",
+                "--tags",
+                "--sort",
+                "version:refname",
+                url.as_ref(),
+            ],
+        )))?
+        .0
+    };
 
     let mut tags: Vec<String> = vec![];
 
-    for line in raw.split('\n') {
+    for line in output.stdout.split('\n') {
         let parts = line.split('\t').collect::<Vec<_>>();
 
         if parts.len() < 2 {

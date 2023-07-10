@@ -80,7 +80,7 @@ impl Executable<'_> for WasmPlugin {
 
             // If a lookup contains an env var, find and replace it.
             // If the var is not defined or is empty, skip this lookup.
-            for cap in env_var_pattern.captures_iter(&dir_lookup) {
+            for cap in env_var_pattern.captures_iter(dir_lookup) {
                 let var = cap.get(0).unwrap().as_str();
 
                 let var_value = match var {
