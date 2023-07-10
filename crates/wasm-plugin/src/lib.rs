@@ -51,6 +51,7 @@ impl WasmPlugin {
         let proto = proto.as_ref();
         let working_dir = env::current_dir().unwrap();
         let plugin_paths = FxHashMap::from_iter([
+            (PathBuf::from("/home"), proto.home_dir.clone()),
             (PathBuf::from("/proto"), proto.root.clone()),
             (PathBuf::from("/workspace"), working_dir.clone()),
         ]);
