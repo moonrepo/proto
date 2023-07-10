@@ -1,5 +1,6 @@
 use crate::error::PluginError;
 use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 use std::str::FromStr;
 
 /// Architecture of the host environment.
@@ -16,6 +17,12 @@ pub enum HostArch {
     Powerpc,
     Powerpc64,
     S390x,
+}
+
+impl Display for HostArch {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", format!("{:?}", self).to_lowercase())
+    }
 }
 
 impl FromStr for HostArch {
@@ -50,6 +57,12 @@ pub enum HostOS {
     NetBSD,
     OpenBSD,
     Windows,
+}
+
+impl Display for HostOS {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", format!("{:?}", self).to_lowercase())
+    }
 }
 
 impl FromStr for HostOS {
