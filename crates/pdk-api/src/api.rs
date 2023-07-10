@@ -14,10 +14,13 @@ pub struct EmptyInput {}
 pub struct Environment {
     /// Current architecture.
     pub arch: HostArch,
+
     /// Current operating system.
     pub os: HostOS,
+
     /// Requested environment variables. Only non-empty values are included.
     pub vars: HashMap<String, String>,
+
     /// Current resolved version. Will be empty if not resolved.
     pub version: String,
 }
@@ -36,6 +39,7 @@ pub enum PluginType {
 pub struct ToolMetadataInput {
     /// ID of the tool, as it was configured.
     pub id: String,
+
     /// Current environment.
     pub env: Environment,
 }
@@ -46,8 +50,10 @@ pub struct ToolMetadataOutput {
     /// Environment variables that should be extracted
     /// and passed to other function call inputs.
     pub env_vars: Vec<String>,
+
     /// Human readable name of the tool.
     pub name: String,
+
     /// Type of the tool.
     pub type_of: PluginType,
 }
@@ -66,8 +72,10 @@ pub struct DetectVersionOutput {
 pub struct ParseVersionInput {
     /// File contents to parse/extract a version from.
     pub content: String,
+
     /// Current environment.
     pub env: Environment,
+
     /// Name of file that's being parsed.
     pub file: String,
 }
@@ -77,6 +85,7 @@ pub struct ParseVersionInput {
 pub struct ParseVersionOutput {
     /// The version that was extracted from the file.
     /// Can be a semantic version or a version requirement/range.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
 }
 
@@ -94,19 +103,29 @@ pub struct DownloadPrebuiltInput {
 pub struct DownloadPrebuiltOutput {
     /// Name of the direct folder within the archive that contains the tool,
     /// and will be removed when unpacking the archive.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub archive_prefix: Option<String>,
+
     /// Relative path from the installation directory to the binary.
     /// If not provided, will use the tool `id` as the binary name.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub bin_path: Option<String>,
+
     /// File name of the checksum to download. If not provided,
     /// will attempt to extract it from the URL.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub checksum_name: Option<String>,
+
     /// A secure URL to download the checksum file for verification.
     /// If the tool does not support checksum verification, this setting can be omitted.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub checksum_url: Option<String>,
+
     /// File name of the archive to download. If not provided,
     /// will attempt to extract it from the URL.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub download_name: Option<String>,
+
     /// A secure URL to download the tool/archive.
     pub download_url: String,
 }
@@ -116,8 +135,10 @@ pub struct DownloadPrebuiltOutput {
 pub struct UnpackArchiveInput {
     /// Virtual path to the downloaded file.
     pub input_file: PathBuf,
+
     /// Current environment.
     pub env: Environment,
+
     /// Virtual directory to unpack the archive into, or copy the binary to.
     pub output_dir: PathBuf,
 }
@@ -127,8 +148,10 @@ pub struct UnpackArchiveInput {
 pub struct VerifyChecksumInput {
     /// Virtual path to the checksum file.
     pub checksum_file: PathBuf,
+
     /// Virtual path to the downloaded file.
     pub download_file: PathBuf,
+
     /// Current environment.
     pub env: Environment,
 }
@@ -146,6 +169,7 @@ pub struct VerifyChecksumOutput {
 pub struct LocateBinsInput {
     /// Current environment.
     pub env: Environment,
+
     /// Virtual path to the tool's installation directory.
     pub tool_dir: PathBuf,
 }
@@ -154,7 +178,9 @@ pub struct LocateBinsInput {
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct LocateBinsOutput {
     /// Relative path from the tool directory to the binary to execute.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub bin_path: Option<String>,
+
     /// List of directory paths to find the globals installation directory.
     /// Each path supports environment variable expansion.
     pub globals_lookup_dirs: Vec<String>,
@@ -173,11 +199,15 @@ pub struct LoadVersionsInput {
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct LoadVersionsOutput {
     /// Latest stable version.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub latest: Option<Version>,
+
     /// Mapping of aliases (channels, etc) to a version.
     pub aliases: HashMap<String, Version>,
+
     /// List of available production versions to install.
     pub versions: Vec<Version>,
+
     /// List of available canary versions to install.
     pub canary_versions: Vec<Version>,
 }
@@ -189,6 +219,7 @@ pub struct ResolveVersionInput {
     // pub candidate: String,
     /// The alias or version currently being resolved.
     pub initial: String,
+
     /// Current environment.
     pub env: Environment,
 }
@@ -197,6 +228,7 @@ pub struct ResolveVersionInput {
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct ResolveVersionOutput {
     /// New alias or version candidate.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub candidate: Option<String>,
 }
 
@@ -206,13 +238,20 @@ pub struct ResolveVersionOutput {
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct ShimConfig {
     /// Relative path from the tool directory to the binary to execute.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub bin_path: Option<String>,
+
     /// Name of a parent binary that's required for this shim to work.
     /// For example, `npm` requires `node`.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub parent_bin: Option<String>,
+
     /// Custom args to prepend to user-provided args.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub before_args: Option<String>,
+
     /// Custom args to append to user-provided args.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub after_args: Option<String>,
 }
 
@@ -227,10 +266,13 @@ pub struct CreateShimsInput {
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct CreateShimsOutput {
     /// Configures the default/primary global shim.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub primary: Option<ShimConfig>,
+
     /// Additional global shims to create in the `~/.proto/bin` directory.
     /// Maps a shim name to a relative binary path.
     pub global_shims: HashMap<String, ShimConfig>,
+
     /// Local shims to create in the `~/.proto/tools/<id>/<version>/shims` directory.
     /// Maps a shim name to its configuration.
     pub local_shims: HashMap<String, ShimConfig>,
