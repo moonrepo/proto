@@ -11,4 +11,5 @@ repository = "https://github.com/moonrepo/proto"
 anyhow = "1.0.71"
 semver = { workspace = true, features = ["serde"] }
 serde = { workspace = true }
+serde_json = { workspace = true }
 thiserror = { workspace = true }

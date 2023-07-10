@@ -212,6 +212,7 @@ dependencies = [
  "anyhow",
  "semver",
  "serde",
+ "serde_json",
  "thiserror",
 ]
 

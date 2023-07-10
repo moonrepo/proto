@@ -1,5 +1,5 @@
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
-use proto_pdk_api::{ExecCommandInput, ExecCommandOutput};
+use proto_pdk_api::{ExecCommandInput, ExecCommandOutput, TraceInput};
 use std::path::PathBuf;
 use std::process::Command;
 use tracing::trace;
@@ -11,7 +11,7 @@ pub struct HostData {
 
 pub fn create_functions(data: HostData) -> Vec<Function> {
     vec![
-        Function::new("log", [], [], None, log),
+        Function::new("trace", [ValType::I64], [], None, log_trace),
         Function::new(
             "exec_command",
             [ValType::I64],
@@ -24,22 +24,36 @@ pub fn create_functions(data: HostData) -> Vec<Function> {
 
 // Logging
 
-pub fn log(
-    _plugin: &mut CurrentPlugin,
-    _inputs: &[Val],
+pub fn log_trace(
+    plugin: &mut CurrentPlugin,
+    inputs: &[Val],
     _outputs: &mut [Val],
     _user_data: UserData,
 ) -> Result<(), Error> {
-    println!("Hello from Rust!");
-    dbg!(_inputs);
-    dbg!(_outputs);
-    // outputs[0] = inputs[0].clone();
+    let input_str = unsafe { (*plugin.memory).get_str(inputs[0].unwrap_i64() as usize)? };
+    let input: TraceInput = serde_json::from_str(input_str)?;
+
+    match input {
+        TraceInput::Message(message) => {
+            trace!(
+                target: "proto::wasm::trace",
+                "{}", message,
+            );
+        }
+        TraceInput::Fields { data, message } => {
+            trace!(
+                target: "proto::wasm::trace",
+                data = ?data,
+                "{}", message,
+            );
+        }
+    };
+
     Ok(())
 }
 
 // Commands
 
-#[tracing::instrument(skip_all)]
 fn exec_command(
     plugin: &mut CurrentPlugin,
     inputs: &[Val],
@@ -50,6 +64,7 @@ fn exec_command(
     let input: ExecCommandInput = serde_json::from_str(input_str)?;
 
     trace!(
+        target: "proto::wasm::exec_command",
         command = &input.command,
         args = ?input.args,
         env_vars = ?input.env_vars,
@@ -72,6 +87,7 @@ fn exec_command(
     };
 
     trace!(
+        target: "proto::wasm::exec_command",
         command = &input.command,
         exit_code = output.exit_code,
         stderr_len = output.stderr.len(),

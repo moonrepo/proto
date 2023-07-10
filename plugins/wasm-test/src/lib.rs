@@ -3,8 +3,18 @@ use proto_pdk::*;
 use serde::Deserialize;
 use std::collections::HashMap;
 
+#[host_fn]
+extern "ExtismHost" {
+    fn trace(input: Json<TraceInput>);
+    fn exec_command(input: Json<ExecCommandInput>) -> Json<ExecCommandOutput>;
+}
+
 #[plugin_fn]
 pub fn register_tool(_: ()) -> FnResult<Json<ToolMetadataOutput>> {
+    unsafe {
+        trace(Json("Registering tool".into()))?;
+    }
+
     Ok(Json(ToolMetadataOutput {
         name: "WASM Test".into(),
         type_of: PluginType::CLI,

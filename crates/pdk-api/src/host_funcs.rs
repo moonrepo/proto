@@ -1,6 +1,28 @@
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use serde::{Deserialize, Serialize};
+/// Input passed to the `trace` host function.
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum TraceInput {
+    Message(String),
+    Fields {
+        data: HashMap<String, serde_json::Value>,
+        message: String,
+    },
+}
+
+impl From<&str> for TraceInput {
+    fn from(message: &str) -> Self {
+        TraceInput::Message(message.to_owned())
+    }
+}
+
+impl From<String> for TraceInput {
+    fn from(message: String) -> Self {
+        TraceInput::Message(message)
+    }
+}
 
 /// Input passed to the `exec_command` host function.
 #[derive(Debug, Default, Deserialize, Serialize)]
