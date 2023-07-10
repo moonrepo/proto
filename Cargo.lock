@@ -2500,6 +2500,7 @@ dependencies = [
 name = "proto_pdk_api"
 version = "0.2.0"
 dependencies = [
+ "anyhow",
  "semver",
  "serde",
  "thiserror",

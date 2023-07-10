@@ -8,6 +8,7 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
+anyhow = "1.0.71"
 semver = { workspace = true, features = ["serde"] }
 serde = { workspace = true }
 thiserror = { workspace = true }

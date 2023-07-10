@@ -181,6 +181,10 @@ pub struct LocateBinsOutput {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub bin_path: Option<String>,
 
+    /// When true, the last item in `globals_lookup_dirs` will be used,
+    /// regardless if it exists on the file system or not.
+    pub fallback_last_globals_dir: bool,
+
     /// List of directory paths to find the globals installation directory.
     /// Each path supports environment variable expansion.
     pub globals_lookup_dirs: Vec<String>,
@@ -212,11 +216,33 @@ pub struct LoadVersionsOutput {
     pub canary_versions: Vec<Version>,
 }
 
+impl LoadVersionsOutput {
+    pub fn from_tags(tags: &[String]) -> anyhow::Result<Self> {
+        let mut output = LoadVersionsOutput::default();
+        let mut latest = Version::new(0, 0, 0);
+
+        for tag in tags {
+            let version = Version::parse(tag)?;
+
+            if version > latest {
+                latest = version.clone();
+            }
+
+            output.versions.push(version);
+        }
+
+        output.aliases.insert("latest".into(), latest);
+
+        Ok(output)
+    }
+}
+
 /// Input passed to the `resolve_version` function.
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct ResolveVersionInput {
     /// Current resolved version candidate. Will be used if no replacement version is provided.
     // pub candidate: String,
+
     /// The alias or version currently being resolved.
     pub initial: String,
 
