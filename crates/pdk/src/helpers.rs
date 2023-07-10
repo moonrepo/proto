@@ -11,7 +11,7 @@ extern "ExtismHost" {
     fn exec_command(input: Json<ExecCommandInput>) -> Json<ExecCommandOutput>;
 }
 
-pub static FETCH_CACHE: Lazy<OnceMap<String, Vec<u8>>> = Lazy::new(|| OnceMap::new());
+pub static FETCH_CACHE: Lazy<OnceMap<String, Vec<u8>>> = Lazy::new(OnceMap::new);
 
 /// Fetch the provided request and deserialize the response as JSON.
 pub fn fetch<R>(req: HttpRequest, body: Option<String>, cache: bool) -> anyhow::Result<R>
@@ -29,7 +29,7 @@ where
 
     // Only cache GET requests
     if cache && (req.method.is_none() || req.method.is_some_and(|m| m.to_uppercase() == "GET")) {
-        FETCH_CACHE.insert(req.url.clone(), |_| res.body());
+        FETCH_CACHE.insert(req.url, |_| res.body());
     }
 
     res.json()

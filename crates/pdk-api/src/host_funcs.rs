@@ -32,7 +32,7 @@ impl ExecCommandInput {
 /// Output returned from the `exec_command` host function.
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct ExecCommandOutput {
-    pub exit_code: u32,
+    pub exit_code: i32,
     pub stderr: String,
     pub stdout: String,
 }
