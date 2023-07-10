@@ -105,7 +105,7 @@ impl Executable<'_> for WasmPlugin {
                 PathBuf::from(dir)
             };
 
-            if dir_path.exists() || index == lookup_count {
+            if dir_path.exists() || (index == lookup_count && params.fallback_last_globals_dir) {
                 return Ok(Some(dir_path));
             }
         }

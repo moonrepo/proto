@@ -8,6 +8,7 @@ mod shim;
 mod verify;
 
 use extism::{manifest::Wasm, Manifest as PluginManifest, Plugin};
+use host_funcs::HostData;
 use once_cell::sync::OnceCell;
 use once_map::OnceMap;
 use proto_core::{impl_tool, Describable, Manifest, Proto, ProtoError, Resolvable, Tool};
@@ -48,9 +49,10 @@ impl WasmPlugin {
         wasm_file: L,
     ) -> Result<Self, ProtoError> {
         let proto = proto.as_ref();
+        let working_dir = env::current_dir().unwrap();
         let plugin_paths = FxHashMap::from_iter([
             (PathBuf::from("/proto"), proto.root.clone()),
-            (PathBuf::from("/workspace"), env::current_dir().unwrap()),
+            (PathBuf::from("/workspace"), working_dir.clone()),
         ]);
 
         let mut manifest = PluginManifest::new([Wasm::file(wasm_file)]);
@@ -60,8 +62,10 @@ impl WasmPlugin {
             manifest = manifest.with_allowed_path(real_path, virtual_path);
         }
 
-        let plugin = Plugin::create_with_manifest(&manifest, host_funcs::create_functions(), true)
-            .map_err(|e| ProtoError::PluginWasmCreateFailed(e.to_string()))?;
+        let host_data = HostData { working_dir };
+        let plugin =
+            Plugin::create_with_manifest(&manifest, host_funcs::create_functions(host_data), true)
+                .map_err(|e| ProtoError::PluginWasmCreateFailed(e.to_string()))?;
 
         let wasm_plugin = WasmPlugin {
             base_dir: proto.tools_dir.join(&id),

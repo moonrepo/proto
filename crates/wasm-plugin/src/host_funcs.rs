@@ -1,16 +1,22 @@
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
 use proto_pdk_api::{ExecCommandInput, ExecCommandOutput};
+use std::path::PathBuf;
 use std::process::Command;
 use tracing::trace;
 
-pub fn create_functions() -> Vec<Function> {
+#[derive(Debug)]
+pub struct HostData {
+    pub working_dir: PathBuf,
+}
+
+pub fn create_functions(data: HostData) -> Vec<Function> {
     vec![
         Function::new("log", [], [], None, log),
         Function::new(
             "exec_command",
             [ValType::I64],
             [ValType::I64],
-            None,
+            Some(UserData::new(data)),
             exec_command,
         ),
     ]
@@ -33,6 +39,7 @@ pub fn log(
 
 // Commands
 
+#[tracing::instrument(skip_all)]
 fn exec_command(
     plugin: &mut CurrentPlugin,
     inputs: &[Val],
@@ -49,12 +56,14 @@ fn exec_command(
         "Executing command",
     );
 
+    // let data = user_data.any().unwrap();
+    // let data = data.downcast_ref::<HostData>().unwrap();
+
     let result = Command::new(&input.command)
         .args(input.args)
         .envs(input.env_vars)
+        // .current_dir(&data.working_dir)
         .output()?;
-
-    // TODO cwd
 
     let output = ExecCommandOutput {
         exit_code: result.status.code().unwrap_or(0),
