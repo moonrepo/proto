@@ -217,6 +217,8 @@ pub struct LoadVersionsOutput {
 }
 
 impl LoadVersionsOutput {
+    /// Create the output from a list of Git tags, as semantic versions.
+    /// The latest version will be the highest version number.
     pub fn from_tags(tags: &[String]) -> anyhow::Result<Self> {
         let mut output = LoadVersionsOutput::default();
         let mut latest = Version::new(0, 0, 0);
@@ -253,9 +255,14 @@ pub struct ResolveVersionInput {
 /// Output returned by the `resolve_version` function.
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct ResolveVersionOutput {
-    /// New alias or version candidate.
+    /// New alias or version candidate to resolve.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub candidate: Option<String>,
+
+    /// An explicitly resolved version to be used as-is.
+    /// Note: Only use this field if you know what you're doing!
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
 }
 
 // Shimmer
@@ -279,6 +286,58 @@ pub struct ShimConfig {
     /// Custom args to append to user-provided args.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub after_args: Option<String>,
+}
+
+impl ShimConfig {
+    /// Create a global shim that executes the parent tool,
+    /// but uses the provided binary as the entry point.
+    pub fn global_with_alt_bin<B>(bin_path: B) -> ShimConfig
+    where
+        B: AsRef<str>,
+    {
+        ShimConfig {
+            bin_path: Some(bin_path.as_ref().to_owned()),
+            ..ShimConfig::default()
+        }
+    }
+
+    /// Create a global shim that executes the parent tool,
+    /// but prefixes the user-provided arguments with the
+    /// provided arguments (typically a sub-command).
+    pub fn global_with_sub_command<A>(args: A) -> ShimConfig
+    where
+        A: AsRef<str>,
+    {
+        ShimConfig {
+            before_args: Some(args.as_ref().to_owned()),
+            ..ShimConfig::default()
+        }
+    }
+
+    /// Create a local shim that executes the provided binary.
+    pub fn local<B>(bin_path: B) -> ShimConfig
+    where
+        B: AsRef<str>,
+    {
+        ShimConfig {
+            bin_path: Some(bin_path.as_ref().to_owned()),
+            ..ShimConfig::default()
+        }
+    }
+
+    /// Create a local shim that executes the provided binary
+    /// through the context of the configured parent.
+    pub fn local_with_parent<B, P>(bin_path: B, parent: P) -> ShimConfig
+    where
+        B: AsRef<str>,
+        P: AsRef<str>,
+    {
+        ShimConfig {
+            bin_path: Some(bin_path.as_ref().to_owned()),
+            parent_bin: Some(parent.as_ref().to_owned()),
+            ..ShimConfig::default()
+        }
+    }
 }
 
 /// Input passed to the `create_shims` function.
