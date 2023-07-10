@@ -94,6 +94,7 @@ pub fn locate_bins(Json(input): Json<LocateBinsInput>) -> FnResult<Json<LocateBi
             "bin/node".into()
         }),
         globals_lookup_dirs: vec!["$WASM_ROOT/bin".into(), "$HOME/.wasm/bin".into()],
+        ..LocateBinsOutput::default()
     }))
 }
 
@@ -107,7 +108,8 @@ struct NodeDistVersion {
 #[plugin_fn]
 pub fn load_versions(Json(_): Json<LoadVersionsInput>) -> FnResult<Json<LoadVersionsOutput>> {
     let mut output = LoadVersionsOutput::default();
-    let response: Vec<NodeDistVersion> = fetch_url("https://nodejs.org/dist/index.json")?;
+    let response: Vec<NodeDistVersion> =
+        fetch_url_with_cache("https://nodejs.org/dist/index.json")?;
 
     for (index, item) in response.iter().enumerate() {
         let version = Version::parse(&item.version[1..])?;

@@ -1,5 +1,7 @@
 use extism_pdk::http::request;
 use extism_pdk::*;
+use once_cell::sync::Lazy;
+use once_map::OnceMap;
 use proto_pdk_api::{ExecCommandInput, ExecCommandOutput};
 use serde::de::DeserializeOwned;
 use std::vec;
@@ -9,14 +11,28 @@ extern "ExtismHost" {
     fn exec_command(input: Json<ExecCommandInput>) -> Json<ExecCommandOutput>;
 }
 
+pub static FETCH_CACHE: Lazy<OnceMap<String, Vec<u8>>> = Lazy::new(|| OnceMap::new());
+
 /// Fetch the provided request and deserialize the response as JSON.
-pub fn fetch<R>(req: HttpRequest) -> anyhow::Result<R>
+pub fn fetch<R>(req: HttpRequest, body: Option<String>, cache: bool) -> anyhow::Result<R>
 where
     R: DeserializeOwned,
 {
-    request::<String>(&req, None)
-        .map_err(|e| anyhow::anyhow!("Failed to make request to {}: {e}", req.url))?
-        .json()
+    if cache {
+        if let Some(body) = FETCH_CACHE.get(&req.url) {
+            return Ok(json::from_slice(body)?);
+        }
+    }
+
+    let res = request(&req, body)
+        .map_err(|e| anyhow::anyhow!("Failed to make request to {}: {e}", req.url))?;
+
+    // Only cache GET requests
+    if cache && (req.method.is_none() || req.method.is_some_and(|m| m.to_uppercase() == "GET")) {
+        FETCH_CACHE.insert(req.url.clone(), |_| res.body());
+    }
+
+    res.json()
 }
 
 /// Fetch the provided URL and deserialize the response as JSON.
@@ -25,7 +41,17 @@ where
     R: DeserializeOwned,
     U: AsRef<str>,
 {
-    fetch(HttpRequest::new(url.as_ref()))
+    fetch(HttpRequest::new(url.as_ref()), None, false)
+}
+
+/// Fetch the provided URL, deserialize the response as JSON,
+/// and cache the response in memory for the duration of the WASM instance.
+pub fn fetch_url_with_cache<R, U>(url: U) -> anyhow::Result<R>
+where
+    R: DeserializeOwned,
+    U: AsRef<str>,
+{
+    fetch(HttpRequest::new(url.as_ref()), None, true)
 }
 
 /// Load all git tags from the provided remote URL.
