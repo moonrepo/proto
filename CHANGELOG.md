@@ -7,6 +7,7 @@
 - WASM API
   - Added a `format_bin_name` function.
   - Added `checksum` field to `VerifyChecksumInput`.
+  - Renamed `ParseVersion*` to `ParseVersionFile*`.
 
 ## 0.12.1
 

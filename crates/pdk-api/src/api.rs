@@ -6,11 +6,11 @@ use std::path::PathBuf;
 pub use semver::{Version, VersionReq};
 
 /// Represents an empty input.
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct EmptyInput {}
 
 /// Information about the host environment (the current runtime).
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Environment {
     /// Current architecture.
     pub arch: HostArch,
@@ -25,8 +25,18 @@ pub struct Environment {
     pub version: String,
 }
 
+impl Environment {
+    pub fn create(os: HostOS, arch: HostArch) -> Self {
+        Environment {
+            arch,
+            os,
+            ..Environment::default()
+        }
+    }
+}
+
 /// Supported types of plugins.
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub enum PluginType {
     #[default]
     Language,
@@ -35,7 +45,7 @@ pub enum PluginType {
 }
 
 /// Input passed to the `register_tool` function.
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ToolMetadataInput {
     /// ID of the tool, as it was configured.
     pub id: String,
@@ -45,7 +55,7 @@ pub struct ToolMetadataInput {
 }
 
 /// Output returned by the `register_tool` function.
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ToolMetadataOutput {
     /// Environment variables that should be extracted
     /// and passed to other function call inputs.
@@ -61,15 +71,15 @@ pub struct ToolMetadataOutput {
 // Detector
 
 /// Output returned by the `detect_version_files` function.
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct DetectVersionOutput {
     /// List of files that should be checked for version information.
     pub files: Vec<String>,
 }
 
 /// Input passed to the `parse_version_file` function.
-#[derive(Debug, Default, Deserialize, Serialize)]
-pub struct ParseVersionInput {
+#[derive(Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub struct ParseVersionFileInput {
     /// File contents to parse/extract a version from.
     pub content: String,
 
@@ -81,8 +91,8 @@ pub struct ParseVersionInput {
 }
 
 /// Output returned by the `parse_version_file` function.
-#[derive(Debug, Default, Deserialize, Serialize)]
-pub struct ParseVersionOutput {
+#[derive(Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub struct ParseVersionFileOutput {
     /// The version that was extracted from the file.
     /// Can be a semantic version or a version requirement/range.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -92,14 +102,14 @@ pub struct ParseVersionOutput {
 // Downloader, Installer, Verifier
 
 /// Input passed to the `download_prebuilt` function.
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct DownloadPrebuiltInput {
     /// Current environment.
     pub env: Environment,
 }
 
 /// Output returned by the `download_prebuilt` function.
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct DownloadPrebuiltOutput {
     /// Name of the direct folder within the archive that contains the tool,
     /// and will be removed when unpacking the archive.
@@ -131,7 +141,7 @@ pub struct DownloadPrebuiltOutput {
 }
 
 /// Input passed to the `unpack_archive` function.
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct UnpackArchiveInput {
     /// Virtual path to the downloaded file.
     pub input_file: PathBuf,
@@ -144,7 +154,7 @@ pub struct UnpackArchiveInput {
 }
 
 /// Output returned by the `verify_checksum` function.
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct VerifyChecksumInput {
     /// The SHA-256 hash of the downloaded file.
     pub checksum: String,
@@ -160,7 +170,7 @@ pub struct VerifyChecksumInput {
 }
 
 /// Output returned by the `verify_checksum` function.
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct VerifyChecksumOutput {
     pub verified: bool,
 }
@@ -168,7 +178,7 @@ pub struct VerifyChecksumOutput {
 // Executor
 
 /// Input passed to the `locate_bins` function.
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct LocateBinsInput {
     /// Current environment.
     pub env: Environment,
@@ -178,7 +188,7 @@ pub struct LocateBinsInput {
 }
 
 /// Output returned by the `locate_bins` function.
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct LocateBinsOutput {
     /// Relative path from the tool directory to the binary to execute.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -196,14 +206,14 @@ pub struct LocateBinsOutput {
 // Resolver
 
 /// Input passed to the `load_versions` function.
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct LoadVersionsInput {
     /// Current environment.
     pub env: Environment,
 }
 
 /// Output returned by the `load_versions` function.
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct LoadVersionsOutput {
     /// Latest stable version.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -236,6 +246,7 @@ impl LoadVersionsOutput {
             output.versions.push(version);
         }
 
+        output.latest = Some(latest.clone());
         output.aliases.insert("latest".into(), latest);
 
         Ok(output)
@@ -243,7 +254,7 @@ impl LoadVersionsOutput {
 }
 
 /// Input passed to the `resolve_version` function.
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ResolveVersionInput {
     /// Current resolved version candidate. Will be used if no replacement version is provided.
     // pub candidate: String,
@@ -256,7 +267,7 @@ pub struct ResolveVersionInput {
 }
 
 /// Output returned by the `resolve_version` function.
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ResolveVersionOutput {
     /// New alias or version candidate to resolve.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -271,7 +282,7 @@ pub struct ResolveVersionOutput {
 // Shimmer
 
 /// Configuration for individual shim files.
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ShimConfig {
     /// Relative path from the tool directory to the binary to execute.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -344,14 +355,14 @@ impl ShimConfig {
 }
 
 /// Input passed to the `create_shims` function.
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct CreateShimsInput {
     /// Current environment.
     pub env: Environment,
 }
 
 /// Output returned by the `create_shims` function.
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct CreateShimsOutput {
     /// Configures the default/primary global shim.
     #[serde(skip_serializing_if = "Option::is_none")]

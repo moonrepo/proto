@@ -2510,6 +2510,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "proto_pdk_test_utils"
+version = "0.1.0"
+dependencies = [
+ "extism",
+ "proto_core",
+ "proto_pdk_api",
+ "proto_wasm_plugin",
+]
+
+[[package]]
 name = "proto_rust"
 version = "0.9.1"
 dependencies = [

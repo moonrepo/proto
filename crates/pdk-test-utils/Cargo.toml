@@ -1,0 +1,14 @@
+[package]
+name = "proto_pdk_test_utils"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Utilities for testing proto WASM plugins."
+homepage = "https://moonrepo.dev/proto"
+repository = "https://github.com/moonrepo/proto"
+
+[dependencies]
+proto_core = { version = "0.12.1", path = "../core" }
+proto_pdk_api = { version = "0.2.1", path = "../pdk-api" }
+proto_wasm_plugin = { version = "0.2.1", path = "../wasm-plugin" }
+extism = { workspace = true }
