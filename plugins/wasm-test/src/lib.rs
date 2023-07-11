@@ -3,8 +3,18 @@ use proto_pdk::*;
 use serde::Deserialize;
 use std::collections::HashMap;
 
+#[host_fn]
+extern "ExtismHost" {
+    fn trace(input: Json<TraceInput>);
+    fn exec_command(input: Json<ExecCommandInput>) -> Json<ExecCommandOutput>;
+}
+
 #[plugin_fn]
 pub fn register_tool(_: ()) -> FnResult<Json<ToolMetadataOutput>> {
+    unsafe {
+        trace(Json("Registering tool".into()))?;
+    }
+
     Ok(Json(ToolMetadataOutput {
         name: "WASM Test".into(),
         type_of: PluginType::CLI,
@@ -94,6 +104,7 @@ pub fn locate_bins(Json(input): Json<LocateBinsInput>) -> FnResult<Json<LocateBi
             "bin/node".into()
         }),
         globals_lookup_dirs: vec!["$WASM_ROOT/bin".into(), "$HOME/.wasm/bin".into()],
+        ..LocateBinsOutput::default()
     }))
 }
 
@@ -107,7 +118,8 @@ struct NodeDistVersion {
 #[plugin_fn]
 pub fn load_versions(Json(_): Json<LoadVersionsInput>) -> FnResult<Json<LoadVersionsOutput>> {
     let mut output = LoadVersionsOutput::default();
-    let response: Vec<NodeDistVersion> = fetch_url("https://nodejs.org/dist/index.json")?;
+    let response: Vec<NodeDistVersion> =
+        fetch_url_with_cache("https://nodejs.org/dist/index.json")?;
 
     for (index, item) in response.iter().enumerate() {
         let version = Version::parse(&item.version[1..])?;

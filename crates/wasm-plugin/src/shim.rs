@@ -26,7 +26,7 @@ impl Shimable<'_> for WasmPlugin {
                 context.before_args = primary_config.before_args.as_deref();
                 context.after_args = primary_config.after_args.as_deref();
 
-                create_global_shim(context)?;
+                create_global_shim(context, find_only)?;
 
                 created_primary = true;
             }
@@ -42,9 +42,9 @@ impl Shimable<'_> for WasmPlugin {
                 context.after_args = config.after_args.as_deref();
 
                 if config.bin_path.is_some() {
-                    create_global_shim(context)?;
+                    create_global_shim(context, find_only)?;
                 } else {
-                    create_global_shim_with_name(context, name)?;
+                    create_global_shim_with_name(context, name, find_only)?;
                 }
             }
 
@@ -68,7 +68,7 @@ impl Shimable<'_> for WasmPlugin {
         // We must always create a primary global shim, so if the plugin did not configure one,
         // we will create one automatically using the information we have.
         if !created_primary {
-            create_global_shim(ShimContext::new_global(self.get_id()))?;
+            create_global_shim(ShimContext::new_global(self.get_id()), find_only)?;
         }
 
         Ok(())

@@ -73,12 +73,14 @@ impl Executable<'_> for WasmPlugin {
             },
         )?;
 
-        'outer: for dir_lookup in params.globals_lookup_dirs {
+        let lookup_count = params.globals_lookup_dirs.len() - 1;
+
+        'outer: for (index, dir_lookup) in params.globals_lookup_dirs.iter().enumerate() {
             let mut dir = dir_lookup.clone();
 
             // If a lookup contains an env var, find and replace it.
             // If the var is not defined or is empty, skip this lookup.
-            for cap in env_var_pattern.captures_iter(&dir_lookup) {
+            for cap in env_var_pattern.captures_iter(dir_lookup) {
                 let var = cap.get(0).unwrap().as_str();
 
                 let var_value = match var {
@@ -103,7 +105,7 @@ impl Executable<'_> for WasmPlugin {
                 PathBuf::from(dir)
             };
 
-            if dir_path.exists() {
+            if dir_path.exists() || (index == lookup_count && params.fallback_last_globals_dir) {
                 return Ok(Some(dir_path));
             }
         }

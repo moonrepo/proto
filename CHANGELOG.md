@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+#### 🚀 Updates
+
+- WASM API
+  - Added a `trace` host function, for logging trace messages via the host machine.
+  - Added an `exec_command` host function, for executing system commands on the host machine.
+  - Added an `fetch_url_with_cache` function, for making an HTTP request and caching the response.
+  - Added `fallback_last_globals_dir` field to `LocateBinsOutput`.
+  - Updated `load_git_tags` to use the new `exec_command` function.
+
+#### 🐞 Fixes
+
+- Fixed an issue where shims were always being created.
+
 ## 0.12.0
 
 #### 💥 Breaking

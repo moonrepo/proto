@@ -11,7 +11,7 @@ impl Shimable<'_> for SchemaPlugin {
         let schema = &self.schema.shim;
 
         if schema.global {
-            create_global_shim(ShimContext::new_global(self.get_id()))?;
+            create_global_shim(ShimContext::new_global(self.get_id()), find_only)?;
         }
 
         if schema.local {

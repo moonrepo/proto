@@ -15,20 +15,23 @@ impl Shimable<'_> for NodeDependencyManager {
         let mut context = ShimContext::new_local(&self.package_name, self.get_bin_path()?);
         context.parent_bin = Some("node");
 
-        create_global_shim(&context)?;
+        create_global_shim(&context, find_only)?;
 
         match self.type_of {
             // node-gyp
             NodeDependencyManagerType::Npm => {
-                create_global_shim(ShimContext::new_global_alt(
-                    "npm",
-                    "node-gyp",
-                    if cfg!(windows) {
-                        "bin/node-gyp-bin/node-gyp.cmd"
-                    } else {
-                        "bin/node-gyp-bin/node-gyp"
-                    },
-                ))?;
+                create_global_shim(
+                    ShimContext::new_global_alt(
+                        "npm",
+                        "node-gyp",
+                        if cfg!(windows) {
+                            "bin/node-gyp-bin/node-gyp.cmd"
+                        } else {
+                            "bin/node-gyp-bin/node-gyp"
+                        },
+                    ),
+                    find_only,
+                )?;
             }
 
             // pnpx
@@ -36,12 +39,12 @@ impl Shimable<'_> for NodeDependencyManager {
                 let mut context = ShimContext::new_global("pnpm");
                 context.before_args = Some("dlx");
 
-                create_global_shim_with_name(&context, "pnpx")?;
+                create_global_shim_with_name(&context, "pnpx", find_only)?;
             }
 
             // yarnpkg
             NodeDependencyManagerType::Yarn => {
-                create_global_shim_with_name(&context, "yarnpkg")?;
+                create_global_shim_with_name(&context, "yarnpkg", find_only)?;
             }
         };
 

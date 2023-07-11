@@ -9,7 +9,7 @@ use tinytemplate::error::Error as TemplateError;
 use tinytemplate::TinyTemplate;
 use tracing::debug;
 
-pub const SHIM_VERSION: u8 = 5;
+pub const SHIM_VERSION: u8 = 6;
 
 #[derive(Default, Serialize)]
 pub struct ShimContext<'tool> {
@@ -157,21 +157,25 @@ fn create_shim(
 
 pub fn create_global_shim<'tool, C: AsRef<ShimContext<'tool>>>(
     context: C,
+    find_only: bool,
 ) -> Result<PathBuf, ProtoError> {
-    create_global_shim_with_name(context.as_ref(), context.as_ref().bin)
+    create_global_shim_with_name(context.as_ref(), context.as_ref().bin, find_only)
 }
 
 #[tracing::instrument(name = "create_global_shim", skip_all)]
 pub fn create_global_shim_with_name<'tool, C: AsRef<ShimContext<'tool>>>(
     context: C,
     name: &str,
+    find_only: bool,
 ) -> Result<PathBuf, ProtoError> {
     let context = context.as_ref();
     let shim_path = get_bin_dir()?.join(get_shim_file_name(name, true));
 
-    debug!(tool = context.bin, file = ?shim_path, "Creating global shim");
+    if !find_only {
+        debug!(tool = context.bin, file = ?shim_path, "Creating global shim");
+    }
 
-    create_shim(context, shim_path, true, false)
+    create_shim(context, shim_path, true, find_only)
 }
 
 #[tracing::instrument(skip_all)]
@@ -187,7 +191,9 @@ pub fn create_local_shim<'tool, C: AsRef<ShimContext<'tool>>>(
         .join("shims")
         .join(get_shim_file_name(context.bin, false));
 
-    debug!(tool = context.bin, file = ?shim_path, "Creating local shim");
+    if !find_only {
+        debug!(tool = context.bin, file = ?shim_path, "Creating local shim");
+    }
 
     create_shim(context, shim_path, false, find_only)
 }
