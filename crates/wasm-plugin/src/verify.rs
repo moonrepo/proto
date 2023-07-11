@@ -37,11 +37,14 @@ impl Verifiable<'_> for WasmPlugin {
             "Verifiying checksum of downloaded file",
         );
 
+        let checksum = get_sha256_hash_of_file(download_file)?;
+
         // Allow plugin to provide their own checksum verification method
         if self.has_func("verify_checksum") {
             let params: VerifyChecksumOutput = self.call_func_with(
                 "verify_checksum",
                 VerifyChecksumInput {
+                    checksum,
                     checksum_file: self.to_wasi_virtual_path(checksum_file),
                     download_file: self.to_wasi_virtual_path(download_file),
                     env: self.get_environment()?,
@@ -59,7 +62,6 @@ impl Verifiable<'_> for WasmPlugin {
         }
 
         // Otherwise attempt to verify it ourselves
-        let checksum = get_sha256_hash_of_file(download_file)?;
         let file = fs::open_file(checksum_file)?;
         let file_name = fs::file_name(download_file);
 

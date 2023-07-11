@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+#### 🚀 Updates
+
+- WASM API
+  - Added a `format_bin_name` function.
+  - Added `checksum` field to `VerifyChecksumInput`.
+
 ## 0.12.1
 
 #### 🚀 Updates

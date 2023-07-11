@@ -146,6 +146,9 @@ pub struct UnpackArchiveInput {
 /// Output returned by the `verify_checksum` function.
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct VerifyChecksumInput {
+    /// The SHA-256 hash of the downloaded file.
+    pub checksum: String,
+
     /// Virtual path to the checksum file.
     pub checksum_file: PathBuf,
 

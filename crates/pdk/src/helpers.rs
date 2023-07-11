@@ -2,7 +2,7 @@ use extism_pdk::http::request;
 use extism_pdk::*;
 use once_cell::sync::Lazy;
 use once_map::OnceMap;
-use proto_pdk_api::{ExecCommandInput, ExecCommandOutput};
+use proto_pdk_api::{ExecCommandInput, ExecCommandOutput, HostOS};
 use serde::de::DeserializeOwned;
 use std::vec;
 
@@ -89,4 +89,14 @@ where
     }
 
     Ok(tags)
+}
+
+/// Return the name of the binary for the provided name and OS.
+/// On Windows, will append ".exe", and keep as-is on other OS's.
+pub fn format_bin_name(name: &str, os: HostOS) -> String {
+    if os == HostOS::Windows {
+        return format!("{}.exe", name);
+    }
+
+    name.to_owned()
 }
