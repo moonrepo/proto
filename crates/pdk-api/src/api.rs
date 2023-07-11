@@ -226,7 +226,7 @@ impl LoadVersionsOutput {
         for tag in tags {
             let version = Version::parse(tag)?;
 
-            if version > latest {
+            if version.pre.is_empty() && version.build.is_empty() && version > latest {
                 latest = version.clone();
             }
 
