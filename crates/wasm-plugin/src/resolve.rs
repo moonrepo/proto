@@ -92,6 +92,12 @@ impl Resolvable<'_> for WasmPlugin {
             )?;
 
             if let Some(candidate) = resolved.candidate {
+                debug!(
+                    tool = self.get_id(),
+                    candidate = &candidate,
+                    "Received a candidate version or alias to use instead",
+                );
+
                 version = manifest.find_version(candidate)?;
             }
         }

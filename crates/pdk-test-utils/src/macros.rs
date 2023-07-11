@@ -1,12 +1,15 @@
 #[macro_export]
 macro_rules! generate_download_install_tests {
-    ($name:expr, $version:expr) => {
+    ($name:literal, $version:literal) => {
+        generate_download_install_tests!($name, $name, $version);
+    };
+    ($name:literal, $id:literal, $version:literal) => {
         #[tokio::test]
         async fn downloads_verifies_installs_tool() {
             use proto_core::*;
 
             let sandbox = create_empty_sandbox();
-            let plugin = create_plugin($name, sandbox.path());
+            let plugin = create_plugin($name, $id, sandbox.path());
             let bin_params = plugin.locate_bins(LocateBinsInput {
                 env: plugin.tool.get_environment().unwrap(),
                 ..LocateBinsInput::default()
@@ -22,7 +25,7 @@ macro_rules! generate_download_install_tests {
             std::env::remove_var("PROTO_ROOT");
 
             // Check install dir exists
-            let base_dir = proto.tools_dir.join($name).join($version);
+            let base_dir = proto.tools_dir.join($id).join($version);
 
             assert_eq!(tool.get_install_dir().unwrap(), base_dir);
             assert!(base_dir.exists());
@@ -30,16 +33,16 @@ macro_rules! generate_download_install_tests {
             // Check bin path exists
             assert_eq!(
                 tool.get_bin_path().unwrap(),
-                &base_dir.join(bin_params.bin_path.unwrap_or($name.into()))
+                &base_dir.join(bin_params.bin_path.unwrap_or($id.into()))
             );
 
             // Check global bin exists
             assert!(proto
                 .bin_dir
                 .join(if cfg!(windows) {
-                    format!("{}.cmd", $name)
+                    format!("{}.cmd", $id)
                 } else {
-                    $name.into()
+                    $id.into()
                 })
                 .exists());
         }
@@ -49,7 +52,7 @@ macro_rules! generate_download_install_tests {
             use proto_core::*;
 
             let sandbox = create_empty_sandbox();
-            let plugin = create_plugin($name, sandbox.path());
+            let plugin = create_plugin($name, $id, sandbox.path());
             let mut tool = plugin.tool;
 
             tool.version = Some(String::from($version));
@@ -76,7 +79,7 @@ macro_rules! generate_download_install_tests {
             use proto_core::*;
 
             let sandbox = create_empty_sandbox();
-            let plugin = create_plugin($name, sandbox.path());
+            let plugin = create_plugin($name, $id, sandbox.path());
             let mut tool = plugin.tool;
 
             tool.version = Some(String::from($version));
@@ -99,7 +102,7 @@ macro_rules! generate_download_install_tests {
             use proto_core::*;
 
             let sandbox = create_empty_sandbox();
-            let plugin = create_plugin($name, sandbox.path());
+            let plugin = create_plugin($name, $id, sandbox.path());
             let mut tool = plugin.tool;
 
             tool.version = Some(String::from($version));
@@ -116,7 +119,7 @@ macro_rules! generate_download_install_tests {
             use proto_core::*;
 
             let sandbox = create_empty_sandbox();
-            let plugin = create_plugin($name, sandbox.path());
+            let plugin = create_plugin($name, $id, sandbox.path());
             let tool = plugin.tool;
 
             let dir = tool.get_install_dir().unwrap();
@@ -135,7 +138,7 @@ macro_rules! generate_download_install_tests {
             use proto_core::*;
 
             let sandbox = create_empty_sandbox();
-            let plugin = create_plugin($name, sandbox.path());
+            let plugin = create_plugin($name, $id, sandbox.path());
             let mut tool = plugin.tool;
 
             if tool.get_checksum_url().unwrap().is_none() {
@@ -156,6 +159,98 @@ macro_rules! generate_download_install_tests {
             tool.verify_checksum(&download_file, &checksum_file)
                 .await
                 .unwrap();
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! generate_resolve_versions_tests {
+    ($name:literal, { $( $k:literal => $v:literal, )* }) => {
+        generate_resolve_versions_tests!($name, $name, { $($k => $v,)* });
+    };
+    ($name:literal, $id:literal, { $( $k:literal => $v:literal, )* }) => {
+        #[tokio::test]
+        async fn updates_plugin_version() {
+            use proto_core::*;
+
+            let sandbox = create_empty_sandbox();
+            let mut plugin = create_plugin($name, $id, sandbox.path());
+
+            assert_ne!(
+                plugin.tool.resolve_version("latest").await.unwrap(),
+                "latest"
+            );
+            assert_ne!(plugin.tool.get_resolved_version(), "latest");
+        }
+
+        #[tokio::test]
+        async fn resolve_version_or_alias() {
+            use proto_core::*;
+
+            let sandbox = create_empty_sandbox();
+            let mut plugin = create_plugin($name, $id, sandbox.path());
+
+            $(
+                assert_eq!(
+                    plugin.tool.resolve_version($k).await.unwrap(),
+                    $v
+                );
+                plugin.tool.version = None;
+            )*
+        }
+
+        #[tokio::test]
+        async fn resolve_latest_alias() {
+            use proto_core::*;
+
+            let sandbox = create_empty_sandbox();
+            let mut plugin = create_plugin($name, $id, sandbox.path());
+
+            assert_ne!(
+                plugin.tool.resolve_version("latest").await.unwrap(),
+                "latest"
+            );
+        }
+
+        #[tokio::test]
+        async fn resolve_custom_alias() {
+            use proto_core::*;
+
+            let sandbox = create_empty_sandbox();
+
+            sandbox.create_file(
+                format!("tools/{}/manifest.json", $id),
+                r#"{"aliases":{"example":"1.0.0"}}"#,
+            );
+
+            let mut plugin = create_plugin($name, $id, sandbox.path());
+
+            assert_eq!(
+                plugin.tool.resolve_version("example").await.unwrap(),
+                "1.0.0"
+            );
+        }
+
+        #[tokio::test]
+        #[should_panic(expected = "VersionUnknownAlias(\"unknown\")")]
+        async fn errors_invalid_alias() {
+            use proto_core::*;
+
+            let sandbox = create_empty_sandbox();
+            let mut plugin = create_plugin($name, $id, sandbox.path());
+
+            plugin.tool.resolve_version("unknown").await.unwrap();
+        }
+
+        #[tokio::test]
+        #[should_panic(expected = "VersionResolveFailed(\"99.99.99\")")]
+        async fn errors_invalid_version() {
+            use proto_core::*;
+
+            let sandbox = create_empty_sandbox();
+            let mut plugin = create_plugin($name, $id, sandbox.path());
+
+            plugin.tool.resolve_version("99.99.99").await.unwrap();
         }
     };
 }

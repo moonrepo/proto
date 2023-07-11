@@ -11,7 +11,7 @@ use wrapper::WasmTestWrapper;
 
 static mut LOGGING: bool = false;
 
-pub fn create_plugin(name: &str, sandbox: &Path) -> WasmTestWrapper {
+pub fn create_plugin(name: &str, id: &str, sandbox: &Path) -> WasmTestWrapper {
     let mut wasm_target_dir =
         PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("Missing CARGO_MANIFEST_DIR!"));
 
@@ -47,6 +47,6 @@ pub fn create_plugin(name: &str, sandbox: &Path) -> WasmTestWrapper {
     }
 
     WasmTestWrapper {
-        tool: WasmPlugin::new(Proto::from(sandbox), name.into(), wasm_file).unwrap(),
+        tool: WasmPlugin::new(Proto::from(sandbox), id.into(), wasm_file).unwrap(),
     }
 }
