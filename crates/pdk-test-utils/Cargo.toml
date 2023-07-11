@@ -11,4 +11,4 @@ repository = "https://github.com/moonrepo/proto"
 proto_core = { version = "0.12.1", path = "../core" }
 proto_pdk_api = { version = "0.2.1", path = "../pdk-api" }
 proto_wasm_plugin = { version = "0.2.1", path = "../wasm-plugin" }
-extism = { workspace = true }
+# extism = { workspace = true }
