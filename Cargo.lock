@@ -2367,7 +2367,7 @@ dependencies = [
 
 [[package]]
 name = "proto_bun"
-version = "0.11.0"
+version = "0.11.1"
 dependencies = [
  "once_cell",
  "proto_core",
@@ -2381,7 +2381,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "async-recursion",
  "clap 4.3.11",
@@ -2415,7 +2415,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "async-trait",
  "cached",
@@ -2446,7 +2446,7 @@ dependencies = [
 
 [[package]]
 name = "proto_deno"
-version = "0.11.0"
+version = "0.11.1"
 dependencies = [
  "once_cell",
  "proto_core",
@@ -2459,7 +2459,7 @@ dependencies = [
 
 [[package]]
 name = "proto_go"
-version = "0.11.0"
+version = "0.11.1"
 dependencies = [
  "once_cell",
  "proto_core",
@@ -2473,7 +2473,7 @@ dependencies = [
 
 [[package]]
 name = "proto_node"
-version = "0.11.0"
+version = "0.11.1"
 dependencies = [
  "clean-path",
  "once_cell",
@@ -2488,7 +2488,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "extism-pdk",
@@ -2500,7 +2500,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "semver",
@@ -2511,7 +2511,7 @@ dependencies = [
 
 [[package]]
 name = "proto_rust"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "once_cell",
  "proto_core",
@@ -2521,7 +2521,7 @@ dependencies = [
 
 [[package]]
 name = "proto_schema_plugin"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "once_cell",
  "proto_core",
@@ -2536,7 +2536,7 @@ dependencies = [
 
 [[package]]
 name = "proto_wasm_plugin"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "extism",
  "human-sort",
