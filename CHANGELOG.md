@@ -8,6 +8,7 @@
   - Added a `format_bin_name` function.
   - Added `checksum` field to `VerifyChecksumInput`.
   - Renamed `ParseVersion*` to `ParseVersionFile*`.
+  - Published a `proto_pdk_test_utils` package for writing tests.
 
 ## 0.12.1
 

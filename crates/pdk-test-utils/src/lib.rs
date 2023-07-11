@@ -2,12 +2,12 @@ mod macros;
 mod wrapper;
 
 pub use macros::*;
+pub use proto_wasm_plugin::WasmPlugin;
+pub use wrapper::WasmTestWrapper;
 
 use proto_core::Proto;
-use proto_wasm_plugin::WasmPlugin;
 use std::env;
 use std::path::{Path, PathBuf};
-use wrapper::WasmTestWrapper;
 
 static mut LOGGING: bool = false;
 

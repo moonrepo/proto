@@ -25,16 +25,6 @@ pub struct Environment {
     pub version: String,
 }
 
-impl Environment {
-    pub fn create(os: HostOS, arch: HostArch) -> Self {
-        Environment {
-            arch,
-            os,
-            ..Environment::default()
-        }
-    }
-}
-
 /// Supported types of plugins.
 #[derive(Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub enum PluginType {
