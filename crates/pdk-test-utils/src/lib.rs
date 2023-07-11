@@ -1,4 +1,7 @@
+mod macros;
 mod wrapper;
+
+pub use macros::*;
 
 use proto_core::Proto;
 use proto_wasm_plugin::WasmPlugin;
@@ -44,6 +47,6 @@ pub fn create_plugin(name: &str, sandbox: &Path) -> WasmTestWrapper {
     }
 
     WasmTestWrapper {
-        plugin: WasmPlugin::new(Proto::from(sandbox), name.into(), wasm_file).unwrap(),
+        tool: WasmPlugin::new(Proto::from(sandbox), name.into(), wasm_file).unwrap(),
     }
 }

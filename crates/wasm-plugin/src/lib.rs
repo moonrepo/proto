@@ -87,7 +87,7 @@ impl WasmPlugin {
         Ok(wasm_plugin)
     }
 
-    fn get_environment(&self) -> Result<Environment, ProtoError> {
+    pub fn get_environment(&self) -> Result<Environment, ProtoError> {
         let version = self.get_resolved_version();
 
         let env = self
@@ -113,7 +113,7 @@ impl WasmPlugin {
         self.parse_output(&env)
     }
 
-    fn get_install_params(&self) -> Result<DownloadPrebuiltOutput, ProtoError> {
+    pub fn get_install_params(&self) -> Result<DownloadPrebuiltOutput, ProtoError> {
         self.cache_func_with(
             "download_prebuilt",
             DownloadPrebuiltInput {
@@ -122,7 +122,7 @@ impl WasmPlugin {
         )
     }
 
-    fn get_metadata(&self) -> Result<ToolMetadataOutput, ProtoError> {
+    pub fn get_metadata(&self) -> Result<ToolMetadataOutput, ProtoError> {
         self.cache_func_with(
             "register_tool",
             ToolMetadataInput {
