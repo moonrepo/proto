@@ -199,6 +199,6 @@ pub fn verify_checksum(
     Ok(Json(VerifyChecksumOutput {
         verified: input.download_file.exists()
             && input.checksum_file.exists()
-            && input.env.version == "20.0.0",
+            && input.env.version != "19.0.0",
     }))
 }

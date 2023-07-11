@@ -36,13 +36,13 @@ pub fn log_trace(
     match input {
         TraceInput::Message(message) => {
             trace!(
-                target: "proto::wasm::trace",
+                target: "proto_wasm::trace",
                 "{}", message,
             );
         }
         TraceInput::Fields { data, message } => {
             trace!(
-                target: "proto::wasm::trace",
+                target: "proto_wasm::trace",
                 data = ?data,
                 "{}", message,
             );
@@ -64,7 +64,7 @@ fn exec_command(
     let input: ExecCommandInput = serde_json::from_str(input_str)?;
 
     trace!(
-        target: "proto::wasm::exec_command",
+        target: "proto_wasm::exec_command",
         command = &input.command,
         args = ?input.args,
         env_vars = ?input.env_vars,
@@ -87,7 +87,7 @@ fn exec_command(
     };
 
     trace!(
-        target: "proto::wasm::exec_command",
+        target: "proto_wasm::exec_command",
         command = &input.command,
         exit_code = output.exit_code,
         stderr_len = output.stderr.len(),

@@ -9,7 +9,7 @@ use proto_core::Proto;
 use std::env;
 use std::path::{Path, PathBuf};
 
-// static mut LOGGING: bool = false;
+static mut LOGGING: bool = false;
 
 pub fn create_plugin(name: &str, id: &str, sandbox: &Path) -> WasmTestWrapper {
     let mut wasm_target_dir =
@@ -29,13 +29,13 @@ pub fn create_plugin(name: &str, id: &str, sandbox: &Path) -> WasmTestWrapper {
         };
     }
 
-    // unsafe {
-    //     if !LOGGING {
-    //         LOGGING = true;
+    unsafe {
+        if !LOGGING {
+            LOGGING = true;
 
-    //         extism::set_log_file(wasm_target_dir.join(format!("{name}.log")), None);
-    //     }
-    // };
+            extism::set_log_file(wasm_target_dir.join(format!("{name}.log")), None);
+        }
+    };
 
     let wasm_file = wasm_target_dir.join(format!("{name}.wasm"));
 
