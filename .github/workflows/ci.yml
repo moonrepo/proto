@@ -51,12 +51,8 @@ jobs:
         if: ${{ runner.os != 'Windows' }}
         # Windows runs out of disk space
       - run: |
-          cd plugins;
-          cargo wasi build -p proto_wasm_test;
-          del /f /s /q "%GITHUB_WORKSPACE%\target\debug";
-          del /f /s /q "%GITHUB_WORKSPACE%\target\wasm32-wasi\debug\.fingerprint";
-          del /f /s /q "%GITHUB_WORKSPACE%\target\wasm32-wasi\debug\build";
-          del /f /s /q "%GITHUB_WORKSPACE%\target\wasm32-wasi\debug\deps";
+          cd plugins && cargo wasi build -p proto_wasm_test;
+          node .github/actions/delete-target-files.js;
         if: ${{ runner.os == 'Windows' }}
       - run: cargo nextest run --workspace --exclude proto_pdk
   run:
