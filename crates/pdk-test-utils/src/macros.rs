@@ -271,9 +271,9 @@ macro_rules! generate_global_shims_test {
             $(
                 assert_snapshot!(std::fs::read_to_string(
                     sandbox.path().join(".proto/bin").join(if cfg!(windows) {
-                        format!("{}.cmd", $id)
+                        format!("{}.cmd", $bin)
                     } else {
-                        $id.to_string()
+                        $bin.to_string()
                     })
                 ).unwrap());
             )*
