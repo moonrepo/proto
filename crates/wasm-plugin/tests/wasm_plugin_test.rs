@@ -24,7 +24,7 @@ fn create_plugin(dir: &Path) -> WasmPlugin {
     };
 
     let mut tool = WasmPlugin::new(
-        Proto::from(dir),
+        Proto::new_testing(dir),
         "wasm".into(),
         wasm_dir.join("proto_wasm_test.wasm"),
     )
@@ -260,20 +260,16 @@ mod wasm_plugin {
                 let tool = create_plugin(fixture.path());
 
                 // Dir must exist!
-                fixture.create_file(".wasm/bin/test", "");
+                fixture.create_file(".home/.wasm/bin/test", "");
 
-                fixture.debug_files();
-
-                env::set_var("HOME", fixture.path().to_string_lossy().to_string());
                 env::set_var("PROTO_ROOT", fixture.path().to_string_lossy().to_string());
 
                 assert_eq!(
                     tool.get_globals_bin_dir().unwrap().unwrap(),
-                    fixture.path().join(".wasm/bin")
+                    fixture.path().join(".home/.wasm/bin")
                 );
 
                 env::remove_var("PROTO_ROOT");
-                env::remove_var("HOME");
             }
 
             #[tokio::test]

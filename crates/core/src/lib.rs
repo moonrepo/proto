@@ -59,6 +59,17 @@ impl Proto {
         })
     }
 
+    pub fn new_testing(root: &Path) -> Self {
+        Proto {
+            bin_dir: root.join("bin"),
+            plugins_dir: root.join("plugins"),
+            temp_dir: root.join("temp"),
+            tools_dir: root.join("tools"),
+            home: root.join(".home"),
+            root: root.to_owned(),
+        }
+    }
+
     pub fn from(root: &Path) -> Self {
         Proto {
             bin_dir: root.join("bin"),
