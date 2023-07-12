@@ -1,7 +1,5 @@
 use crate::SchemaPlugin;
-use proto_core::{
-    async_trait, get_bin_name, get_home_dir, Describable, Executable, Installable, ProtoError,
-};
+use proto_core::{async_trait, get_bin_name, Describable, Executable, Installable, ProtoError};
 use std::{
     env,
     path::{Path, PathBuf},
@@ -41,7 +39,7 @@ impl Executable<'_> for SchemaPlugin {
     }
 
     fn get_globals_bin_dir(&self) -> Result<Option<PathBuf>, ProtoError> {
-        let home_dir = get_home_dir()?;
+        let home_dir = &self.proto.home;
         let env_var_pattern = regex::Regex::new(r"\$([A-Z0-9_]+)").unwrap();
 
         for dir in &self.schema.install.globals_dir {

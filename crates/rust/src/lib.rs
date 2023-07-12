@@ -33,7 +33,7 @@ impl RustLanguage {
             base_dir: proto.tools_dir.join("rust"),
             bin_path: None,
             manifest: OnceCell::new(),
-            rustup_dir: proto.home_dir.join(".rustup").join("toolchains"),
+            rustup_dir: proto.home.join(".rustup").join("toolchains"),
             temp_dir: proto.temp_dir.join("rust"),
             version: None,
         }

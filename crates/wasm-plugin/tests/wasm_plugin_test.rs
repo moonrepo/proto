@@ -23,8 +23,11 @@ fn create_plugin(dir: &Path) -> WasmPlugin {
         }
     };
 
+    fs::create_dir_all(dir.join(".home")).unwrap();
+    fs::create_dir_all(dir.join(".proto")).unwrap();
+
     let mut tool = WasmPlugin::new(
-        Proto::from(dir),
+        Proto::new_testing(dir),
         "wasm".into(),
         wasm_dir.join("proto_wasm_test.wasm"),
     )
@@ -161,7 +164,10 @@ mod wasm_plugin {
 
             assert_eq!(
                 tool.get_download_path().unwrap(),
-                fixture.path().join("temp/wasm/20.0.0").join(get_file())
+                fixture
+                    .path()
+                    .join(".proto/temp/wasm/20.0.0")
+                    .join(get_file())
             );
         }
 
@@ -190,10 +196,7 @@ mod wasm_plugin {
 
             assert_eq!(
                 tool.get_install_dir().unwrap(),
-                Proto::from(fixture.path())
-                    .tools_dir
-                    .join("wasm")
-                    .join("20.0.0")
+                fixture.path().join(".proto/tools/wasm/20.0.0")
             );
         }
 
@@ -260,20 +263,16 @@ mod wasm_plugin {
                 let tool = create_plugin(fixture.path());
 
                 // Dir must exist!
-                fixture.create_file(".wasm/bin/test", "");
+                fixture.create_file(".home/.wasm/bin/test", "");
 
-                fixture.debug_files();
-
-                env::set_var("HOME", fixture.path().to_string_lossy().to_string());
                 env::set_var("PROTO_ROOT", fixture.path().to_string_lossy().to_string());
 
                 assert_eq!(
                     tool.get_globals_bin_dir().unwrap().unwrap(),
-                    fixture.path().join(".wasm/bin")
+                    fixture.path().join(".home/.wasm/bin")
                 );
 
                 env::remove_var("PROTO_ROOT");
-                env::remove_var("HOME");
             }
 
             #[tokio::test]
@@ -376,9 +375,9 @@ mod wasm_plugin {
 
             env::remove_var("PROTO_ROOT");
 
-            let g1 = fixture.path().join("bin/global1");
+            let g1 = fixture.path().join(".proto/bin/global1");
 
-            assert!(fixture.path().join("bin/wasm").exists());
+            assert!(fixture.path().join(".proto/bin/wasm").exists());
             assert!(g1.exists());
 
             let g1 = fs::read_to_string(g1).unwrap();
@@ -399,9 +398,9 @@ mod wasm_plugin {
 
             env::remove_var("PROTO_ROOT");
 
-            let g1 = fixture.path().join("bin/global1.cmd");
+            let g1 = fixture.path().join(".proto/bin/global1.cmd");
 
-            assert!(fixture.path().join("bin/wasm.cmd").exists());
+            assert!(fixture.path().join(".proto/bin/wasm.cmd").exists());
             assert!(g1.exists());
 
             let g1 = fs::read_to_string(g1).unwrap();
@@ -418,8 +417,8 @@ mod wasm_plugin {
             // tool.find_bin_path().await.unwrap();
             tool.create_shims(false).await.unwrap();
 
-            let l1 = fixture.path().join("tools/wasm/20.0.0/shims/local1");
-            let l2 = fixture.path().join("tools/wasm/20.0.0/shims/local2");
+            let l1 = fixture.path().join(".proto/tools/wasm/20.0.0/shims/local1");
+            let l2 = fixture.path().join(".proto/tools/wasm/20.0.0/shims/local2");
 
             assert!(l1.exists());
             assert!(l2.exists());
@@ -454,8 +453,12 @@ mod wasm_plugin {
             // tool.find_bin_path().await.unwrap();
             tool.create_shims(false).await.unwrap();
 
-            let l1 = fixture.path().join("tools/wasm/20.0.0/shims/local1.ps1");
-            let l2 = fixture.path().join("tools/wasm/20.0.0/shims/local2.ps1");
+            let l1 = fixture
+                .path()
+                .join(".proto/tools/wasm/20.0.0/shims/local1.ps1");
+            let l2 = fixture
+                .path()
+                .join(".proto/tools/wasm/20.0.0/shims/local2.ps1");
 
             assert!(l1.exists());
             assert!(l2.exists());
@@ -503,7 +506,7 @@ mod wasm_plugin {
 
             assert_eq!(
                 tool.get_checksum_path().unwrap(),
-                fixture.path().join("temp/wasm/20.0.0/CHECKSUM.txt")
+                fixture.path().join(".proto/temp/wasm/20.0.0/CHECKSUM.txt")
             );
         }
 

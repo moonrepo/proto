@@ -25,6 +25,7 @@ impl Shimable<'_> for WasmPlugin {
                 context.parent_bin = primary_config.parent_bin.as_deref();
                 context.before_args = primary_config.before_args.as_deref();
                 context.after_args = primary_config.after_args.as_deref();
+                context.globals_bin_dir = Some(&self.proto.bin_dir);
 
                 create_global_shim(context, find_only)?;
 
@@ -40,6 +41,7 @@ impl Shimable<'_> for WasmPlugin {
 
                 context.before_args = config.before_args.as_deref();
                 context.after_args = config.after_args.as_deref();
+                context.globals_bin_dir = Some(&self.proto.bin_dir);
 
                 if config.bin_path.is_some() {
                     create_global_shim(context, find_only)?;
@@ -68,7 +70,10 @@ impl Shimable<'_> for WasmPlugin {
         // We must always create a primary global shim, so if the plugin did not configure one,
         // we will create one automatically using the information we have.
         if !created_primary {
-            create_global_shim(ShimContext::new_global(self.get_id()), find_only)?;
+            let mut context = ShimContext::new_global(self.get_id());
+            context.globals_bin_dir = Some(&self.proto.bin_dir);
+
+            create_global_shim(context, find_only)?;
         }
 
         Ok(())

@@ -28,6 +28,8 @@ pub struct ShimContext<'tool> {
     pub after_args: Option<&'tool str>,
 
     // TOOL INFO
+    /// Path to the `~/.proto/bin` directory.
+    pub globals_bin_dir: Option<&'tool Path>,
     /// Path to the proto tool installation directory.
     pub tool_dir: Option<&'tool Path>,
     pub tool_version: Option<&'tool str>,
@@ -169,7 +171,11 @@ pub fn create_global_shim_with_name<'tool, C: AsRef<ShimContext<'tool>>>(
     find_only: bool,
 ) -> Result<PathBuf, ProtoError> {
     let context = context.as_ref();
-    let shim_path = get_bin_dir()?.join(get_shim_file_name(name, true));
+    let globals_dir = get_bin_dir()?;
+    let shim_path = context
+        .globals_bin_dir
+        .unwrap_or(globals_dir.as_path())
+        .join(get_shim_file_name(name, true));
 
     if !find_only {
         debug!(tool = context.bin, file = ?shim_path, "Creating global shim");
@@ -187,7 +193,7 @@ pub fn create_local_shim<'tool, C: AsRef<ShimContext<'tool>>>(
     let shim_path = context
         .tool_dir
         .as_ref()
-        .unwrap()
+        .expect("Missing tool dir for shims.")
         .join("shims")
         .join(get_shim_file_name(context.bin, false));
 

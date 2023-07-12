@@ -11,7 +11,10 @@ impl Shimable<'_> for SchemaPlugin {
         let schema = &self.schema.shim;
 
         if schema.global {
-            create_global_shim(ShimContext::new_global(self.get_id()), find_only)?;
+            let mut context = ShimContext::new_global(self.get_id());
+            context.globals_bin_dir = Some(&self.proto.bin_dir);
+
+            create_global_shim(context, find_only)?;
         }
 
         if schema.local {

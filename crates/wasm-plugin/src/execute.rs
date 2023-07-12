@@ -1,7 +1,5 @@
 use crate::WasmPlugin;
-use proto_core::{
-    async_trait, get_home_dir, get_root, Describable, Executable, Installable, ProtoError,
-};
+use proto_core::{async_trait, Describable, Executable, Installable, ProtoError};
 use proto_pdk_api::{LocateBinsInput, LocateBinsOutput};
 use std::env;
 use std::path::{Path, PathBuf};
@@ -60,8 +58,8 @@ impl Executable<'_> for WasmPlugin {
             return Ok(None);
         }
 
-        let home_dir = get_home_dir()?;
-        let root_dir = get_root()?;
+        let home_dir = &self.proto.home;
+        let root_dir = &self.proto.root;
         let tool_dir = self.get_install_dir()?;
         let env_var_pattern = regex::Regex::new(r"\$([A-Z0-9_]+)").unwrap();
 
@@ -84,9 +82,7 @@ impl Executable<'_> for WasmPlugin {
                 let var = cap.get(0).unwrap().as_str();
 
                 let var_value = match var {
-                    "$HOME" => {
-                        env::var("HOME").unwrap_or_else(|_| home_dir.to_string_lossy().to_string())
-                    }
+                    "$HOME" => home_dir.to_string_lossy().to_string(),
                     "$PROTO_ROOT" => root_dir.to_string_lossy().to_string(),
                     "$TOOL_DIR" => tool_dir.to_string_lossy().to_string(),
                     _ => env::var(cap.get(1).unwrap().as_str()).unwrap_or_default(),
