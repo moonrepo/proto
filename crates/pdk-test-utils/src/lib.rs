@@ -11,9 +11,10 @@ use std::path::{Path, PathBuf};
 
 static mut LOGGING: bool = false;
 
-pub fn create_plugin(name: &str, id: &str, sandbox: &Path) -> WasmTestWrapper {
+pub fn create_plugin(id: &str, sandbox: &Path) -> WasmTestWrapper {
     let mut wasm_target_dir =
         PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("Missing CARGO_MANIFEST_DIR!"));
+    let wasm_file_name = env::var("CARGO_PKG_NAME").expect("Missing CARGO_PKG_NAME!");
 
     loop {
         let next_target = wasm_target_dir.join("target/wasm32-wasi/debug");
@@ -33,11 +34,11 @@ pub fn create_plugin(name: &str, id: &str, sandbox: &Path) -> WasmTestWrapper {
         if !LOGGING {
             LOGGING = true;
 
-            extism::set_log_file(wasm_target_dir.join(format!("{name}.log")), None);
+            extism::set_log_file(wasm_target_dir.join(format!("{wasm_file_name}.log")), None);
         }
     };
 
-    let wasm_file = wasm_target_dir.join(format!("{name}.wasm"));
+    let wasm_file = wasm_target_dir.join(format!("{wasm_file_name}.wasm"));
 
     if !wasm_file.exists() {
         panic!(

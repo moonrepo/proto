@@ -27,6 +27,7 @@ pub struct SchemaPlugin {
     pub version: Option<String>,
 
     manifest: OnceCell<Manifest>,
+    proto: Proto,
 }
 
 impl SchemaPlugin {
@@ -42,6 +43,7 @@ impl SchemaPlugin {
             version: None,
             id,
             schema,
+            proto: proto.to_owned(),
         }
     }
 

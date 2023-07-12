@@ -35,12 +35,13 @@ pub use verifier::*;
 
 use std::path::{Path, PathBuf};
 
+#[derive(Clone, Debug)]
 pub struct Proto {
     pub bin_dir: PathBuf,
     pub plugins_dir: PathBuf,
     pub temp_dir: PathBuf,
     pub tools_dir: PathBuf,
-    pub home_dir: PathBuf,
+    pub home: PathBuf,
     pub root: PathBuf,
 }
 
@@ -53,7 +54,7 @@ impl Proto {
             plugins_dir: root.join("plugins"),
             temp_dir: root.join("temp"),
             tools_dir: root.join("tools"),
-            home_dir: get_home_dir()?,
+            home: get_home_dir()?,
             root,
         })
     }
@@ -64,7 +65,7 @@ impl Proto {
             plugins_dir: root.join("plugins"),
             temp_dir: root.join("temp"),
             tools_dir: root.join("tools"),
-            home_dir: get_home_dir().expect("Missing home directory."),
+            home: get_home_dir().expect("Missing home directory."),
             root: root.to_owned(),
         }
     }

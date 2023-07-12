@@ -39,6 +39,7 @@ pub struct WasmPlugin {
     manifest: OnceCell<Manifest>,
     plugin: Arc<RwLock<Plugin<'static>>>,
     plugin_paths: FxHashMap<PathBuf, PathBuf>,
+    proto: Proto,
     func_cache: OnceMap<String, Vec<u8>>,
 }
 
@@ -51,7 +52,7 @@ impl WasmPlugin {
         let proto = proto.as_ref();
         let working_dir = env::current_dir().unwrap();
         let plugin_paths = FxHashMap::from_iter([
-            (PathBuf::from("/home"), proto.home_dir.clone()),
+            (PathBuf::from("/home"), proto.home.clone()),
             (PathBuf::from("/proto"), proto.root.clone()),
             (PathBuf::from("/workspace"), working_dir.clone()),
         ]);
@@ -78,6 +79,7 @@ impl WasmPlugin {
             id,
             plugin: Arc::new(RwLock::new(plugin)),
             plugin_paths,
+            proto: proto.to_owned(),
             func_cache: OnceMap::new(),
         };
 
