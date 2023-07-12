@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Input passed to the `trace` host function.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum TraceInput {
     Message(String),
@@ -25,7 +25,7 @@ impl From<String> for TraceInput {
 }
 
 /// Input passed to the `exec_command` host function.
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ExecCommandInput {
     /// Arguments to pass to the command.
     pub args: Vec<String>,
@@ -52,7 +52,7 @@ impl ExecCommandInput {
 }
 
 /// Output returned from the `exec_command` host function.
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ExecCommandOutput {
     pub exit_code: i32,
     pub stderr: String,

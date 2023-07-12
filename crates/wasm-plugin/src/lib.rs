@@ -87,7 +87,7 @@ impl WasmPlugin {
         Ok(wasm_plugin)
     }
 
-    fn get_environment(&self) -> Result<Environment, ProtoError> {
+    pub fn get_environment(&self) -> Result<Environment, ProtoError> {
         let version = self.get_resolved_version();
 
         let env = self
@@ -113,7 +113,7 @@ impl WasmPlugin {
         self.parse_output(&env)
     }
 
-    fn get_install_params(&self) -> Result<DownloadPrebuiltOutput, ProtoError> {
+    pub fn get_install_params(&self) -> Result<DownloadPrebuiltOutput, ProtoError> {
         self.cache_func_with(
             "download_prebuilt",
             DownloadPrebuiltInput {
@@ -122,7 +122,7 @@ impl WasmPlugin {
         )
     }
 
-    fn get_metadata(&self) -> Result<ToolMetadataOutput, ProtoError> {
+    pub fn get_metadata(&self) -> Result<ToolMetadataOutput, ProtoError> {
         self.cache_func_with(
             "register_tool",
             ToolMetadataInput {
@@ -138,7 +138,7 @@ impl WasmPlugin {
         )
     }
 
-    fn to_wasi_virtual_path(&self, path: &Path) -> PathBuf {
+    pub fn to_wasi_virtual_path(&self, path: &Path) -> PathBuf {
         for (virtual_path, real_path) in &self.plugin_paths {
             if path.starts_with(real_path) {
                 let path = virtual_path.join(path.strip_prefix(real_path).unwrap());
@@ -206,14 +206,14 @@ impl WasmPlugin {
         serde_json::from_slice(data).map_err(|e| ProtoError::PluginWasmCallFailed(e.to_string()))
     }
 
-    fn cache_func<O>(&self, func: &str) -> Result<O, ProtoError>
+    pub fn cache_func<O>(&self, func: &str) -> Result<O, ProtoError>
     where
         O: Debug + DeserializeOwned,
     {
         self.cache_func_with(func, EmptyInput::default())
     }
 
-    fn cache_func_with<I, O>(&self, func: &str, input: I) -> Result<O, ProtoError>
+    pub fn cache_func_with<I, O>(&self, func: &str, input: I) -> Result<O, ProtoError>
     where
         I: Debug + Serialize,
         O: Debug + DeserializeOwned,
@@ -237,14 +237,14 @@ impl WasmPlugin {
         Ok(output)
     }
 
-    // fn call_func<O>(&self, func: &str) -> Result<O, ProtoError>
-    // where
-    //     O: Debug + DeserializeOwned,
-    // {
-    //     self.call_func_with(func, EmptyInput::default())
-    // }
+    pub fn call_func<O>(&self, func: &str) -> Result<O, ProtoError>
+    where
+        O: Debug + DeserializeOwned,
+    {
+        self.call_func_with(func, EmptyInput::default())
+    }
 
-    fn call_func_with<I, O>(&self, func: &str, input: I) -> Result<O, ProtoError>
+    pub fn call_func_with<I, O>(&self, func: &str, input: I) -> Result<O, ProtoError>
     where
         I: Debug + Serialize,
         O: Debug + DeserializeOwned,
@@ -252,7 +252,7 @@ impl WasmPlugin {
         self.parse_output(self.call(func, self.format_input(input)?)?)
     }
 
-    fn has_func(&self, func: &str) -> bool {
+    pub fn has_func(&self, func: &str) -> bool {
         self.plugin.read().unwrap().has_function(func)
     }
 }

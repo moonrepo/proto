@@ -33,8 +33,8 @@ pub fn detect_version_files(_: ()) -> FnResult<Json<DetectVersionOutput>> {
 
 #[plugin_fn]
 pub fn parse_version_file(
-    Json(input): Json<ParseVersionInput>,
-) -> FnResult<Json<ParseVersionOutput>> {
+    Json(input): Json<ParseVersionFileInput>,
+) -> FnResult<Json<ParseVersionFileOutput>> {
     let mut version = None;
 
     if input.file == ".proto-wasm-version" {
@@ -45,7 +45,7 @@ pub fn parse_version_file(
         version = Some(input.content);
     }
 
-    Ok(Json(ParseVersionOutput { version }))
+    Ok(Json(ParseVersionFileOutput { version }))
 }
 
 // Downloader
@@ -199,6 +199,6 @@ pub fn verify_checksum(
     Ok(Json(VerifyChecksumOutput {
         verified: input.download_file.exists()
             && input.checksum_file.exists()
-            && input.env.version == "20.0.0",
+            && input.env.version != "19.0.0",
     }))
 }
