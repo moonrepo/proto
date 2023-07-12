@@ -53,10 +53,10 @@ jobs:
       - run: |
           cd plugins;
           cargo wasi build -p proto_wasm_test;
-          del /f /s /q .\target\debug;
-          del /f /s /q .\target\wasm32-wasi\debug\.fingerprint;
-          del /f /s /q .\target\wasm32-wasi\debug\build;
-          del /f /s /q .\target\wasm32-wasi\debug\deps;
+          del /f /s /q "%GITHUB_WORKSPACE%\target\debug";
+          del /f /s /q "%GITHUB_WORKSPACE%\target\wasm32-wasi\debug\.fingerprint";
+          del /f /s /q "%GITHUB_WORKSPACE%\target\wasm32-wasi\debug\build";
+          del /f /s /q "%GITHUB_WORKSPACE%\target\wasm32-wasi\debug\deps";
         if: ${{ runner.os == 'Windows' }}
       - run: cargo nextest run --workspace --exclude proto_pdk
   run:
