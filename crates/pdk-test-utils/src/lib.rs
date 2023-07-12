@@ -6,8 +6,8 @@ pub use proto_wasm_plugin::WasmPlugin;
 pub use wrapper::WasmTestWrapper;
 
 use proto_core::Proto;
-use std::env;
 use std::path::{Path, PathBuf};
+use std::{env, fs};
 
 static mut LOGGING: bool = false;
 
@@ -46,6 +46,10 @@ pub fn create_plugin(id: &str, sandbox: &Path) -> WasmTestWrapper {
             wasm_file
         );
     }
+
+    // Folders must exists for WASM to compile correctly!
+    fs::create_dir_all(sandbox.join(".home")).unwrap();
+    fs::create_dir_all(sandbox.join(".proto")).unwrap();
 
     WasmTestWrapper {
         tool: WasmPlugin::new(Proto::new_testing(sandbox), id.into(), wasm_file).unwrap(),

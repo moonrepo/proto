@@ -59,13 +59,15 @@ impl Proto {
         })
     }
 
-    pub fn new_testing(root: &Path) -> Self {
+    pub fn new_testing(sandbox: &Path) -> Self {
+        let root = sandbox.join(".proto");
+
         Proto {
             bin_dir: root.join("bin"),
             plugins_dir: root.join("plugins"),
             temp_dir: root.join("temp"),
             tools_dir: root.join("tools"),
-            home: root.join(".home"),
+            home: sandbox.join(".home"),
             root: root.to_owned(),
         }
     }
