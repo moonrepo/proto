@@ -47,7 +47,10 @@ pub fn create_plugin(id: &str, sandbox: &Path) -> WasmTestWrapper {
         );
     }
 
+    let mut proto = Proto::from(sandbox);
+    proto.home = sandbox.join(".home");
+
     WasmTestWrapper {
-        tool: WasmPlugin::new(Proto::from(sandbox), id.into(), wasm_file).unwrap(),
+        tool: WasmPlugin::new(proto, id.into(), wasm_file).unwrap(),
     }
 }
