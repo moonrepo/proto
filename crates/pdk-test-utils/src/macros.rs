@@ -13,16 +13,11 @@ macro_rules! generate_download_install_tests {
             });
 
             let mut tool = plugin.tool;
-            let proto = Proto::from(sandbox.path());
-
-            std::env::set_var("PROTO_ROOT", sandbox.path().to_string_lossy().to_string());
 
             tool.setup($version).await.unwrap();
 
-            std::env::remove_var("PROTO_ROOT");
-
             // Check install dir exists
-            let base_dir = proto.tools_dir.join($id).join($version);
+            let base_dir = sandbox.path().join(".proto/tools").join($id).join($version);
 
             assert_eq!(tool.get_install_dir().unwrap(), base_dir);
             assert!(base_dir.exists());
@@ -34,8 +29,9 @@ macro_rules! generate_download_install_tests {
             );
 
             // Check global bin exists
-            assert!(proto
-                .bin_dir
+            assert!(sandbox
+                .path()
+                .join(".proto/bin")
                 .join(if cfg!(windows) {
                     format!("{}.cmd", $id)
                 } else {
@@ -213,7 +209,7 @@ macro_rules! generate_resolve_versions_tests {
             let sandbox = create_empty_sandbox();
 
             sandbox.create_file(
-                format!("tools/{}/manifest.json", $id),
+                format!(".proto/tools/{}/manifest.json", $id),
                 r#"{"aliases":{"example":"1.0.0"}}"#,
             );
 
