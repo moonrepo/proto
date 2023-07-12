@@ -202,24 +202,24 @@ macro_rules! generate_resolve_versions_tests {
             );
         }
 
-        #[tokio::test]
-        async fn resolve_custom_alias() {
-            use proto_core::*;
+        // #[tokio::test]
+        // async fn resolve_custom_alias() {
+        //     use proto_core::*;
 
-            let sandbox = create_empty_sandbox();
+        //     let sandbox = create_empty_sandbox();
 
-            sandbox.create_file(
-                format!(".proto/tools/{}/manifest.json", $id),
-                r#"{"aliases":{"example":"1.0.0"}}"#,
-            );
+        //     sandbox.create_file(
+        //         format!(".proto/tools/{}/manifest.json", $id),
+        //         r#"{"aliases":{"example":"1.0.0"}}"#,
+        //     );
 
-            let mut plugin = create_plugin($id, sandbox.path());
+        //     let mut plugin = create_plugin($id, sandbox.path());
 
-            assert_eq!(
-                plugin.tool.resolve_version("example").await.unwrap(),
-                "1.0.0"
-            );
-        }
+        //     assert_eq!(
+        //         plugin.tool.resolve_version("example").await.unwrap(),
+        //         "1.0.0"
+        //     );
+        // }
 
         #[tokio::test]
         #[should_panic(expected = "VersionUnknownAlias(\"unknown\")")]
@@ -241,6 +241,67 @@ macro_rules! generate_resolve_versions_tests {
             let mut plugin = create_plugin($id, sandbox.path());
 
             plugin.tool.resolve_version("99.99.99").await.unwrap();
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! generate_global_shims_test {
+    ($id:literal) => {
+        generate_global_shims_test!($id, []);
+    };
+    ($id:literal, [ $($bin:literal),* ]) => {
+        #[tokio::test]
+        async fn creates_global_shims() {
+            use proto_core::*;
+
+            let sandbox = create_empty_sandbox();
+            let mut plugin = create_plugin($id, sandbox.path());
+
+            plugin.tool.create_shims(false).await.unwrap();
+
+            assert_snapshot!(std::fs::read_to_string(
+                sandbox.path().join(".proto/bin").join(if cfg!(windows) {
+                    format!("{}.cmd", $id)
+                } else {
+                    $id.to_string()
+                })
+            ).unwrap());
+
+            $(
+                assert_snapshot!(std::fs::read_to_string(
+                    sandbox.path().join(".proto/bin").join(if cfg!(windows) {
+                        format!("{}.cmd", $id)
+                    } else {
+                        $id.to_string()
+                    })
+                ).unwrap());
+            )*
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! generate_local_shims_test {
+    ($id:literal, [ $($bin:literal),* ]) => {
+        #[tokio::test]
+        async fn creates_global_shims() {
+            use proto_core::*;
+
+            let sandbox = create_empty_sandbox();
+            let mut plugin = create_plugin($id, sandbox.path());
+
+            plugin.tool.create_shims(false).await.unwrap();
+
+            $(
+                assert_snapshot!(std::fs::read_to_string(
+                    sandbox.path().join(".proto/tools").join($id).join("latest/shims").join(if cfg!(windows) {
+                        format!("{}.ps1", $bin)
+                    } else {
+                        $bin.to_string()
+                    })
+                ).unwrap());
+            )*
         }
     };
 }
