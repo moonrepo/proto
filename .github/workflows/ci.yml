@@ -51,8 +51,9 @@ jobs:
         if: ${{ runner.os != 'Windows' }}
         # Windows runs out of disk space
       - run: |
-          cd plugins && cargo wasi build -p proto_wasm_test;
-          node .github/actions/delete-target-files.js;
+          cd plugins;
+          cargo wasi build -p proto_wasm_test;
+          node ../.github/actions/delete-target-files.js;
         if: ${{ runner.os == 'Windows' }}
       - run: cargo nextest run --workspace --exclude proto_pdk
   run:
