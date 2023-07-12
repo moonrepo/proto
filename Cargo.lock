@@ -2415,7 +2415,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.12.1"
+version = "0.12.2"
 dependencies = [
  "async-trait",
  "cached",
@@ -2488,7 +2488,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "anyhow",
  "extism-pdk",
@@ -2521,7 +2521,7 @@ dependencies = [
 
 [[package]]
 name = "proto_rust"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "once_cell",
  "proto_core",
@@ -2531,7 +2531,7 @@ dependencies = [
 
 [[package]]
 name = "proto_schema_plugin"
-version = "0.7.1"
+version = "0.7.2"
 dependencies = [
  "once_cell",
  "proto_core",
@@ -2546,7 +2546,7 @@ dependencies = [
 
 [[package]]
 name = "proto_wasm_plugin"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "extism",
  "human-sort",
