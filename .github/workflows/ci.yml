@@ -47,8 +47,13 @@ jobs:
       - uses: moonrepo/setup-rust@v0
         with:
           bins: cargo-wasi, cargo-nextest
-      - run: cd plugins && cargo wasi build -p proto_wasm_test
-      - run: rm -rf plugins/target
+      - run: |
+          cd plugins;
+          cargo wasi build -p proto_wasm_test;
+          rm -rf target/debug;
+          rm -rf target/wasm32-wasi/debug/.fingerprint;
+          rm -rf target/wasm32-wasi/debug/build;
+          rm -rf target/wasm32-wasi/debug/deps;
       - run: cargo nextest run --workspace --exclude proto_pdk
   run:
     name: Run
