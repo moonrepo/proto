@@ -4,7 +4,10 @@
 
 #### 🚀 Updates
 
-- Updated `proto clean` and `proto use` to load and merge all `.prototools` from the current directory and up.
+- [Bun](https://github.com/moonrepo/bun-plugin), [Deno](https://github.com/moonrepo/deno-plugin), and [Go](https://github.com/moonrepo/go-plugin) are now powered by WASM plugins, and have been removed from core.
+  - This is an experiment before we migrate Node.js and Rust to WASM.
+  - Please report any issues you encounter or discrepancies from the previous release!
+- Updated `proto clean` and `proto use` to load and merge all `.prototools` from the current directory and upwards.
 - WASM API
   - Added a `format_bin_name` function.
   - Added a `check_supported_os_and_arch` function.
