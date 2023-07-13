@@ -15,21 +15,34 @@ pub struct ToolsConfig {
 }
 
 impl ToolsConfig {
-    pub fn load_upwards<P>(dir: P) -> Result<Option<Self>, ProtoError>
+    pub fn load_upwards<P>(starting_dir: P) -> Result<Self, ProtoError>
     where
         P: AsRef<Path>,
     {
-        let dir = dir.as_ref();
-        let findable = dir.join(TOOLS_CONFIG_NAME);
+        let mut current_dir = Some(starting_dir.as_ref());
+        let mut config = ToolsConfig::default();
 
-        if findable.exists() {
-            return Ok(Some(Self::load(&findable)?));
+        while let Some(dir) = current_dir {
+            let path = dir.join(TOOLS_CONFIG_NAME);
+
+            if path.exists() {
+                let mut parent_config = Self::load(&path)?;
+                parent_config.merge(config);
+
+                config = parent_config;
+            }
+
+            match dir.parent() {
+                Some(parent) => {
+                    current_dir = Some(parent);
+                }
+                None => {
+                    break;
+                }
+            };
         }
 
-        match dir.parent() {
-            Some(parent_dir) => Self::load_upwards(parent_dir),
-            None => Ok(None),
-        }
+        Ok(config)
     }
 
     pub fn load_from<P: AsRef<Path>>(dir: P) -> Result<Self, ProtoError> {
@@ -96,6 +109,11 @@ impl ToolsConfig {
             plugins,
             path: path.to_owned(),
         })
+    }
+
+    pub fn merge(&mut self, other: ToolsConfig) {
+        self.tools.extend(other.tools);
+        self.plugins.extend(other.plugins);
     }
 
     #[tracing::instrument(skip_all)]

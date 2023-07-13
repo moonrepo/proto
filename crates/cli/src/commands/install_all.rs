@@ -1,9 +1,9 @@
 use crate::helpers::{disable_progress_bars, enable_progress_bars};
-use crate::states::{PluginList, ToolsConfig, UserConfig};
+use crate::states::{PluginList, UserConfig};
 use crate::tools::{create_plugin_from_locator, create_tool, ToolType};
 use crate::{commands::clean::clean, commands::install::install, helpers::create_progress_bar};
 use futures::future::try_join_all;
-use proto_core::{expand_detected_version, Proto};
+use proto_core::{expand_detected_version, Proto, ToolsConfig};
 use rustc_hash::FxHashMap;
 use starbase::SystemResult;
 use std::env;
@@ -12,28 +12,24 @@ use std::str::FromStr;
 use strum::IntoEnumIterator;
 use tracing::{debug, info};
 
-pub async fn install_all(
-    tools_config: &ToolsConfig,
-    user_config: &UserConfig,
-    plugin_list: &PluginList,
-) -> SystemResult {
+pub async fn install_all(user_config: &UserConfig, plugin_list: &PluginList) -> SystemResult {
     let mut tools = FxHashMap::default();
     let mut plugins = FxHashMap::default();
     let mut config_dir = PathBuf::new();
     let working_dir = env::current_dir().expect("Missing current directory.");
 
-    // Inherit from .prototools
-    if let Some(config) = &tools_config.0 {
-        debug!(config = ?config.path, "Detecting tools and plugins from .prototools");
+    // Inherit from .prototools (only from current dir)
+    let config = ToolsConfig::load_from(&working_dir)?;
 
-        if !config.tools.is_empty() {
-            tools.extend(config.tools.clone());
-        }
+    debug!(config = ?config.path, "Detecting tools and plugins from .prototools");
 
-        if !config.plugins.is_empty() {
-            plugins.extend(config.plugins.clone());
-            config_dir = config.path.parent().unwrap().to_path_buf();
-        }
+    if !config.tools.is_empty() {
+        tools.extend(config.tools.clone());
+    }
+
+    if !config.plugins.is_empty() {
+        plugins.extend(config.plugins.clone());
+        config_dir = config.path.parent().unwrap().to_path_buf();
     }
 
     // Detect from working dir
