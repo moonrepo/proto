@@ -3,15 +3,12 @@ mod commands;
 mod helpers;
 mod hooks;
 mod shell;
-mod states;
 pub mod tools;
 
 use app::{App as CLI, Commands};
 use clap::Parser;
-use proto_core::{ToolsConfig as InnerToolsConfig, UserConfig as InnerUserConfig};
 use starbase::{system, tracing::TracingOptions, App, MainResult, State};
 use starbase_utils::string_vec;
-use states::{PluginList, ToolsConfig, UserConfig};
 use std::env;
 use tracing::metadata::LevelFilter;
 
@@ -19,35 +16,7 @@ use tracing::metadata::LevelFilter;
 pub struct CliCommand(pub Commands);
 
 #[system]
-pub fn load_configs(state: StatesMut) {
-    let mut plugin_list = vec![];
-    let user_config = InnerUserConfig::load()?;
-
-    if !user_config.plugins.is_empty() {
-        plugin_list.extend(user_config.plugins.keys().cloned());
-    }
-
-    let tools_config =
-        InnerToolsConfig::load_upwards(env::current_dir().expect("Missing current directory."))?;
-
-    if let Some(config) = &tools_config {
-        if !config.plugins.is_empty() {
-            plugin_list.extend(config.plugins.keys().cloned());
-        }
-    }
-
-    state.set(UserConfig(user_config));
-    state.set(ToolsConfig(tools_config));
-    state.set(PluginList(plugin_list));
-}
-
-#[system]
-async fn run(
-    command: StateRef<CliCommand>,
-    tools_config: StateRef<ToolsConfig>,
-    user_config: StateRef<UserConfig>,
-    plugin_list: StateRef<PluginList>,
-) {
+async fn run(command: StateRef<CliCommand>) {
     match command.0.clone() {
         Commands::Alias {
             tool,
@@ -55,7 +24,7 @@ async fn run(
             semver,
         } => commands::alias(tool, alias, semver).await?,
         Commands::Bin { tool, semver, shim } => commands::bin(tool, semver, shim).await?,
-        Commands::Clean { days, yes } => commands::clean(days, yes, plugin_list).await?,
+        Commands::Clean { days, yes } => commands::clean(days, yes).await?,
         Commands::Completions { shell } => commands::completions(shell).await?,
         Commands::Install {
             tool,
@@ -76,12 +45,12 @@ async fn run(
             semver,
             bin,
             passthrough,
-        } => commands::run(tool, semver, bin, passthrough, user_config).await?,
+        } => commands::run(tool, semver, bin, passthrough).await?,
         Commands::Setup { shell, profile } => commands::setup(shell, profile).await?,
         Commands::Unalias { tool, alias } => commands::unalias(tool, alias).await?,
         Commands::Uninstall { tool, semver } => commands::uninstall(tool, semver).await?,
         Commands::Upgrade => commands::upgrade().await?,
-        Commands::Use => commands::install_all(tools_config, user_config, plugin_list).await?,
+        Commands::Use => commands::install_all().await?,
     };
 }
 
@@ -113,7 +82,6 @@ async fn main() -> MainResult {
 
     let mut app = App::new();
     app.set_state(CliCommand(cli.command));
-    app.startup(load_configs);
     app.execute(run);
     app.run().await?;
 

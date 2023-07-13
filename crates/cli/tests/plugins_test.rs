@@ -45,9 +45,8 @@ async fn downloads_and_installs_plugin_from_file() {
             "moon",
             Proto::from(root),
             PluginLocator::Source(PluginLocation::File(
-                "./tests/fixtures/moon-schema.toml".into(),
+                root_dir.join("./tests/fixtures/moon-schema.toml"),
             )),
-            root_dir,
         )
     })
     .await;
@@ -62,8 +61,7 @@ async fn errors_for_missing_file() {
         create_plugin_from_locator(
             "moon",
             Proto::from(root),
-            PluginLocator::Source(PluginLocation::File("./some/fake/path.toml".into())),
-            root_dir,
+            PluginLocator::Source(PluginLocation::File(root_dir.join("./some/fake/path.toml"))),
         )
     })
     .await;
@@ -78,7 +76,6 @@ async fn downloads_and_installs_plugin_from_url() {
             PluginLocator::Source(PluginLocation::Url(
                 "https://raw.githubusercontent.com/moonrepo/moon/master/proto-plugin.toml".into(),
             )),
-            PathBuf::new(),
         )
     })
     .await;
@@ -94,7 +91,6 @@ async fn errors_for_broken_url() {
             PluginLocator::Source(PluginLocation::Url(
                 "https://raw.githubusercontent.com/moonrepo/moon/some/fake/path.toml".into(),
             )),
-            PathBuf::new(),
         )
     })
     .await;

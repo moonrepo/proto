@@ -1,40 +1,21 @@
 use crate::helpers::{disable_progress_bars, enable_progress_bars};
-use crate::states::{PluginList, ToolsConfig, UserConfig};
 use crate::tools::{create_plugin_from_locator, create_tool, ToolType};
 use crate::{commands::clean::clean, commands::install::install, helpers::create_progress_bar};
 use futures::future::try_join_all;
-use proto_core::{expand_detected_version, Proto};
-use rustc_hash::FxHashMap;
+use proto_core::{expand_detected_version, Proto, ToolsConfig, UserConfig};
 use starbase::SystemResult;
 use std::env;
-use std::path::PathBuf;
 use std::str::FromStr;
 use strum::IntoEnumIterator;
 use tracing::{debug, info};
 
-pub async fn install_all(
-    tools_config: &ToolsConfig,
-    user_config: &UserConfig,
-    plugin_list: &PluginList,
-) -> SystemResult {
-    let mut tools = FxHashMap::default();
-    let mut plugins = FxHashMap::default();
-    let mut config_dir = PathBuf::new();
+pub async fn install_all() -> SystemResult {
     let working_dir = env::current_dir().expect("Missing current directory.");
 
     // Inherit from .prototools
-    if let Some(config) = &tools_config.0 {
-        debug!(config = ?config.path, "Detecting tools and plugins from .prototools");
+    debug!("Detecting tools and plugins from .prototools");
 
-        if !config.tools.is_empty() {
-            tools.extend(config.tools.clone());
-        }
-
-        if !config.plugins.is_empty() {
-            plugins.extend(config.plugins.clone());
-            config_dir = config.path.parent().unwrap().to_path_buf();
-        }
-    }
+    let mut config = ToolsConfig::load_upwards()?;
 
     // Detect from working dir
     debug!("Detecting tools from environment");
@@ -50,10 +31,13 @@ pub async fn install_all(
             if let Some(version) = expand_detected_version(&version, tool.get_manifest()?)? {
                 debug!(version, "Detected version for {}", tool.get_name());
 
-                tools.insert(tool.get_id().to_owned(), version);
+                config.tools.insert(tool.get_id().to_owned(), version);
             }
         }
     }
+
+    let tools = config.tools;
+    let plugins = config.plugins;
 
     if !tools.is_empty() {
         let mut futures = vec![];
@@ -91,12 +75,7 @@ pub async fn install_all(
         ));
 
         for (name, locator) in &plugins {
-            futures.push(create_plugin_from_locator(
-                name,
-                &proto,
-                locator,
-                &config_dir,
-            ));
+            futures.push(create_plugin_from_locator(name, &proto, locator));
         }
 
         try_join_all(futures).await?;
@@ -110,9 +89,9 @@ pub async fn install_all(
         info!("Successfully installed tools and plugins");
     }
 
-    if user_config.0.auto_clean {
+    if UserConfig::load()?.auto_clean {
         debug!("Auto-clean enabled, starting clean");
-        clean(None, true, plugin_list).await?;
+        clean(None, true).await?;
     }
 
     Ok(())

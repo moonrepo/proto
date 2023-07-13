@@ -8,11 +8,7 @@ use proto_rust as rust;
 use proto_schema_plugin as schema_plugin;
 use proto_wasm_plugin as wasm_plugin;
 use starbase_utils::toml;
-use std::{
-    env,
-    path::{Path, PathBuf},
-    str::FromStr,
-};
+use std::{env, path::Path, str::FromStr};
 use strum::EnumIter;
 use tracing::debug;
 
@@ -63,19 +59,19 @@ pub async fn create_plugin_from_locator(
     plugin: &str,
     proto: impl AsRef<Proto>,
     locator: impl AsRef<PluginLocator>,
-    source_dir: impl AsRef<Path>,
 ) -> Result<Box<dyn Tool<'static>>, ProtoError> {
     match locator.as_ref() {
         PluginLocator::Source(location) => {
             let (is_toml, source_path) = match location {
                 PluginLocation::File(file) => {
-                    let file_path = source_dir.as_ref().join(file);
-
-                    if !file_path.exists() {
-                        return Err(ProtoError::PluginFileMissing(file_path));
+                    if !file.exists() {
+                        return Err(ProtoError::PluginFileMissing(file.to_path_buf()));
                     }
 
-                    (file.ends_with(".toml"), file_path)
+                    (
+                        file.extension().is_some_and(|ext| ext == "toml"),
+                        file.to_path_buf(),
+                    )
                 }
                 PluginLocation::Url(url) => {
                     (url.ends_with(".toml"), download_plugin(plugin, url).await?)
@@ -108,7 +104,6 @@ pub async fn create_plugin_tool(
     proto: Proto,
 ) -> Result<Box<dyn Tool<'static>>, ProtoError> {
     let mut locator = None;
-    let mut parent_dir = PathBuf::new();
 
     // Traverse upwards checking each `.prototools` for a plugin
     if let Ok(working_dir) = env::current_dir() {
@@ -119,7 +114,6 @@ pub async fn create_plugin_tool(
 
             if let Some(maybe_locator) = tools_config.plugins.get(plugin) {
                 locator = Some(maybe_locator.to_owned());
-                parent_dir = dir.to_path_buf();
                 break;
             }
 
@@ -133,7 +127,6 @@ pub async fn create_plugin_tool(
 
         if let Some(maybe_locator) = user_config.plugins.get(plugin) {
             locator = Some(maybe_locator.to_owned());
-            parent_dir = get_root()?;
         }
     }
 
@@ -141,7 +134,7 @@ pub async fn create_plugin_tool(
         return Err(ProtoError::MissingPlugin(plugin.to_owned()));
     };
 
-    create_plugin_from_locator(plugin, proto, locator, parent_dir).await
+    create_plugin_from_locator(plugin, proto, locator).await
 }
 
 pub async fn create_tool(tool: &ToolType) -> Result<Box<dyn Tool<'static>>, ProtoError> {
