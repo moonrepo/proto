@@ -73,18 +73,21 @@ pub async fn install_global(tool_type: ToolType, dependencies: Vec<String>) -> S
             ToolType::Plugin(_) => {
                 command = Command::new(get_bin_or_fallback(&mut tool).await?);
 
-                let plugin = tool.as_any().downcast_ref::<SchemaPlugin>().unwrap();
+                if let Some(plugin) = tool.as_any().downcast_ref::<SchemaPlugin>() {
+                    let Some(args) = &plugin.schema.install.global_args else {
+                        return Err(ProtoError::UnsupportedGlobals(plugin.get_name()))?;
+                    };
 
-                let Some(args) = &plugin.schema.install.global_args else {
-                    return Err(ProtoError::UnsupportedGlobals(plugin.get_name()))?;
-                };
-
-                for arg in args {
-                    if arg == "{dependency}" {
-                        command.arg(&dependency);
-                    } else {
-                        command.arg(arg);
+                    for arg in args {
+                        if arg == "{dependency}" {
+                            command.arg(&dependency);
+                        } else {
+                            command.arg(arg);
+                        }
                     }
+                } else {
+                    // TODO wasm
+                    continue;
                 }
             }
         };

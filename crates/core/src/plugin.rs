@@ -6,14 +6,15 @@ use tracing::trace;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum PluginLocation {
-    File(String),
+    File(PathBuf),
     Url(String),
 }
 
 impl Display for PluginLocation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            PluginLocation::File(s) | PluginLocation::Url(s) => write!(f, "{}", s),
+            PluginLocation::File(s) => write!(f, "{}", s.display()),
+            PluginLocation::Url(s) => write!(f, "{}", s),
         }
     }
 }
@@ -59,7 +60,7 @@ impl FromStr for PluginLocator {
                 PluginLocator::Source(if location.starts_with("https") {
                     PluginLocation::Url(location.to_owned())
                 } else {
-                    PluginLocation::File(location.to_owned())
+                    PluginLocation::File(location.into())
                 })
             }
             other => {
