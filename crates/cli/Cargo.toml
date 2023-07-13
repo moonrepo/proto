@@ -27,10 +27,7 @@ name = "proto"
 path = "src/bin.rs"
 
 [dependencies]
-proto_bun = { version = "0.11.2", path = "../bun" }
 proto_core = { version = "0.12.2", path = "../core" }
-proto_deno = { version = "0.11.2", path = "../deno" }
-proto_go = { version = "0.11.2", path = "../go" }
 proto_node = { version = "0.11.1", path = "../node" }
 proto_rust = { version = "0.9.2", path = "../rust" }
 proto_schema_plugin = { version = "0.7.2", path = "../schema-plugin" }

@@ -65,9 +65,6 @@ pub async fn install(
     // `Tool` trait. Right now we are hard-coding this, but we
     // should provide a better API.
     match tool_type {
-        ToolType::Go => {
-            go_hooks::post_install(&passthrough)?;
-        }
         ToolType::Node => {
             if !passthrough.contains(&"--no-bundled-npm".to_string()) {
                 info!("Installing npm that comes bundled with {}", tool.get_name());
@@ -82,6 +79,11 @@ pub async fn install(
                     passthrough,
                 )
                 .await?;
+            }
+        }
+        ToolType::Plugin(name) => {
+            if name == "go" {
+                go_hooks::post_install(&passthrough)?;
             }
         }
         _ => {}

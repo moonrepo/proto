@@ -2372,20 +2372,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "proto_bun"
-version = "0.11.2"
-dependencies = [
- "once_cell",
- "proto_core",
- "serde",
- "serde_json",
- "starbase_sandbox",
- "starbase_utils",
- "tokio",
- "tracing",
-]
-
-[[package]]
 name = "proto_cli"
 version = "0.12.1"
 dependencies = [
@@ -2399,10 +2385,7 @@ dependencies = [
  "human-sort",
  "indicatif",
  "miette",
- "proto_bun",
  "proto_core",
- "proto_deno",
- "proto_go",
  "proto_node",
  "proto_rust",
  "proto_schema_plugin",
@@ -2449,33 +2432,6 @@ dependencies = [
  "tracing",
  "xz2",
  "zip",
-]
-
-[[package]]
-name = "proto_deno"
-version = "0.11.2"
-dependencies = [
- "once_cell",
- "proto_core",
- "serde",
- "serde_json",
- "starbase_sandbox",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "proto_go"
-version = "0.11.2"
-dependencies = [
- "once_cell",
- "proto_core",
- "serde",
- "serde_json",
- "starbase_sandbox",
- "starbase_utils",
- "tokio",
- "tracing",
 ]
 
 [[package]]
