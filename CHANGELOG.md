@@ -6,7 +6,8 @@
 
 - WASM API
   - Added a `format_bin_name` function.
-  - Added `checksum` field to `VerifyChecksumInput`.
+  - Added a `check_supported_os_and_arch` function.
+  - Added a `checksum` field to `VerifyChecksumInput`.
   - Renamed `ParseVersion*` to `ParseVersionFile*`.
   - Published a `proto_pdk_test_utils` package for writing tests.
 

@@ -4,7 +4,7 @@ use std::fmt::Display;
 use std::str::FromStr;
 
 /// Architecture of the host environment.
-#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum HostArch {
     X86,
@@ -47,7 +47,7 @@ impl FromStr for HostArch {
 }
 
 /// Operating system of the host environment.
-#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum HostOS {
     #[default]

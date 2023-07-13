@@ -6,8 +6,15 @@ pub enum PluginError {
     Message(String),
 
     #[error("Unable to install {tool}, unsupported architecture {arch}.")]
-    UnsupportedArchitecture { tool: String, arch: String },
+    UnsupportedArch { tool: String, arch: String },
 
-    #[error("Unable to install {tool}, unsupported platform {platform}.")]
-    UnsupportedPlatform { tool: String, platform: String },
+    #[error("Unable to install {tool}, unsupported OS {os}.")]
+    UnsupportedOS { tool: String, os: String },
+
+    #[error("Unable to install {tool}, unsupported architecture {arch} for {os}.")]
+    UnsupportedTarget {
+        tool: String,
+        arch: String,
+        os: String,
+    },
 }
