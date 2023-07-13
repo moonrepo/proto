@@ -17,6 +17,7 @@ fs4 = { version = "0.6.6", features = ["sync"] }
 human-sort = { workspace = true }
 lenient_semver = { version = "0.4.2", default-features = false, features = ["version_lite"] }
 miette = { workspace = true }
+pathdiff = "0.2.1"
 reqwest = { workspace = true }
 rustc-hash = { workspace = true }
 semver = { workspace = true }

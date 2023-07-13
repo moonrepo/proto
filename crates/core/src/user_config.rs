@@ -1,4 +1,8 @@
-use crate::{errors::ProtoError, helpers::get_root, plugin::PluginLocator};
+use crate::{
+    errors::ProtoError,
+    helpers::get_root,
+    plugin::{PluginLocation, PluginLocator},
+};
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
 use starbase_utils::toml;
@@ -18,13 +22,21 @@ pub struct UserConfig {
 impl UserConfig {
     #[tracing::instrument(skip_all)]
     pub fn load() -> Result<Self, ProtoError> {
-        let path = get_root()?.join(USER_CONFIG_NAME);
+        let root = get_root()?;
+        let path = root.join(USER_CONFIG_NAME);
 
         if !path.exists() {
             return Ok(UserConfig::default());
         }
 
-        let config: UserConfig = toml::read_file(&path)?;
+        let mut config: UserConfig = toml::read_file(&path)?;
+
+        // Update plugin file paths to be absolute
+        for locator in config.plugins.values_mut() {
+            if let PluginLocator::Source(PluginLocation::File(ref mut file)) = locator {
+                *file = root.join(&file);
+            }
+        }
 
         Ok(config)
     }
