@@ -106,11 +106,20 @@ pub async fn create_plugin_tool(
         }
     }
 
-    // Otherwise fallback to the user's config
+    // Then check the user's config
     if locator.is_none() {
         let user_config = UserConfig::load()?;
 
         if let Some(maybe_locator) = user_config.plugins.get(plugin) {
+            locator = Some(maybe_locator.to_owned());
+        }
+    }
+
+    // And finally the builtin plugins
+    if locator.is_none() {
+        let builtin_plugins = ToolsConfig::builtin_plugins();
+
+        if let Some(maybe_locator) = builtin_plugins.get(plugin) {
             locator = Some(maybe_locator.to_owned());
         }
     }
