@@ -174,13 +174,6 @@ impl WasmPlugin {
     fn call(&self, func: &str, input: impl AsRef<[u8]>) -> Result<&[u8], ProtoError> {
         let input = input.as_ref();
 
-        trace!(
-            tool = self.get_id(),
-            func,
-            input = %String::from_utf8_lossy(input),
-            "Calling function on plugin"
-        );
-
         let output = self
             .plugin
             .write()
@@ -188,14 +181,13 @@ impl WasmPlugin {
             .call(func, input)
             .map_err(|e| ProtoError::PluginWasmCallFailed(e.to_string()))?;
 
-        if !output.is_empty() {
-            trace!(
-                tool = self.get_id(),
-                func,
-                output = %String::from_utf8_lossy(output),
-                "Received function response"
-            );
-        }
+        trace!(
+            tool = self.get_id(),
+            func,
+            input = %String::from_utf8_lossy(input),
+            output = %String::from_utf8_lossy(output),
+            "Called function on plugin"
+        );
 
         Ok(output)
     }
