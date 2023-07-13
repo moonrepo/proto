@@ -4,6 +4,7 @@
 
 #### 🚀 Updates
 
+- Updated `proto clean` and `proto use` to load and merge all `.prototools` from the current directory and up.
 - WASM API
   - Added a `format_bin_name` function.
   - Added a `check_supported_os_and_arch` function.
