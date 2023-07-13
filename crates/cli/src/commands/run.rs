@@ -1,8 +1,7 @@
 use crate::commands::install::install;
 use crate::hooks::node as node_hooks;
-use crate::states::UserConfig;
 use crate::tools::{create_tool, ToolType};
-use proto_core::{color, detect_version, ProtoError};
+use proto_core::{color, detect_version, ProtoError, UserConfig};
 use starbase::SystemResult;
 use std::env;
 use std::process::exit;
@@ -18,10 +17,10 @@ pub async fn run(
     forced_version: Option<String>,
     alt_bin: Option<String>,
     args: Vec<String>,
-    user_config: &UserConfig,
 ) -> SystemResult {
     let mut tool = create_tool(&tool_type).await?;
     let version = detect_version(&tool, forced_version).await?;
+    let user_config = UserConfig::load()?;
 
     if !tool.is_setup(&version).await? {
         if !user_config.auto_install {
@@ -85,7 +84,7 @@ pub async fn run(
 
     // Trigger before hook
     if matches!(tool_type, ToolType::Npm | ToolType::Pnpm | ToolType::Yarn) {
-        node_hooks::pre_run(tool_type, &args, user_config).await?;
+        node_hooks::pre_run(tool_type, &args, &user_config).await?;
     }
 
     // Run the command

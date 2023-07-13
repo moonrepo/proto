@@ -1,9 +1,6 @@
-use crate::{
-    states::PluginList,
-    tools::{create_tool, ToolType},
-};
+use crate::tools::{create_tool, ToolType};
 use dialoguer::Confirm;
-use proto_core::{color, Tool};
+use proto_core::{color, Tool, ToolsConfig};
 use rustc_hash::FxHashSet;
 use starbase::{diagnostics::IntoDiagnostic, SystemResult};
 use starbase_utils::fs;
@@ -113,7 +110,7 @@ pub async fn do_clean(
     Ok(clean_count)
 }
 
-pub async fn clean(days: Option<u8>, yes: bool, plugin_list: &PluginList) -> SystemResult {
+pub async fn clean(days: Option<u8>, yes: bool) -> SystemResult {
     let days = days.unwrap_or(30);
     let now = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
@@ -142,10 +139,12 @@ pub async fn clean(days: Option<u8>, yes: bool, plugin_list: &PluginList) -> Sys
         clean_count += do_clean(tool, now, days, yes).await?;
     }
 
-    if !plugin_list.0.is_empty() {
-        info!("Finding plugins to clean up...");
+    info!("Finding plugins to clean up...");
 
-        for plugin_name in &plugin_list.0 {
+    let tools_config = ToolsConfig::load_upwards()?;
+
+    if !tools_config.plugins.is_empty() {
+        for plugin_name in tools_config.plugins.keys() {
             let tool = create_tool(&ToolType::Plugin(plugin_name.to_owned())).await?;
             clean_count += do_clean(tool, now, days, yes).await?;
         }

@@ -2,6 +2,7 @@ use crate::{errors::ProtoError, plugin::PluginLocator};
 use convert_case::{Case, Casing};
 use rustc_hash::FxHashMap;
 use starbase_utils::toml::{self, TomlTable, TomlValue};
+use std::env;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
@@ -15,11 +16,9 @@ pub struct ToolsConfig {
 }
 
 impl ToolsConfig {
-    pub fn load_upwards<P>(starting_dir: P) -> Result<Self, ProtoError>
-    where
-        P: AsRef<Path>,
-    {
-        let mut current_dir = Some(starting_dir.as_ref());
+    pub fn load_upwards() -> Result<Self, ProtoError> {
+        let working_dir = env::current_dir().expect("Unknown current working directory!");
+        let mut current_dir = Some(working_dir.as_path());
         let mut config = ToolsConfig::default();
 
         while let Some(dir) = current_dir {

@@ -1,9 +1,8 @@
 use crate::helpers::{disable_progress_bars, enable_progress_bars};
-use crate::states::{PluginList, UserConfig};
 use crate::tools::{create_plugin_from_locator, create_tool, ToolType};
 use crate::{commands::clean::clean, commands::install::install, helpers::create_progress_bar};
 use futures::future::try_join_all;
-use proto_core::{expand_detected_version, Proto, ToolsConfig};
+use proto_core::{expand_detected_version, Proto, ToolsConfig, UserConfig};
 use rustc_hash::FxHashMap;
 use starbase::SystemResult;
 use std::env;
@@ -12,7 +11,7 @@ use std::str::FromStr;
 use strum::IntoEnumIterator;
 use tracing::{debug, info};
 
-pub async fn install_all(user_config: &UserConfig, plugin_list: &PluginList) -> SystemResult {
+pub async fn install_all() -> SystemResult {
     let mut tools = FxHashMap::default();
     let mut plugins = FxHashMap::default();
     let mut config_dir = PathBuf::new();
@@ -106,9 +105,9 @@ pub async fn install_all(user_config: &UserConfig, plugin_list: &PluginList) -> 
         info!("Successfully installed tools and plugins");
     }
 
-    if user_config.0.auto_clean {
+    if UserConfig::load()?.auto_clean {
         debug!("Auto-clean enabled, starting clean");
-        clean(None, true, plugin_list).await?;
+        clean(None, true).await?;
     }
 
     Ok(())
