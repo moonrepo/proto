@@ -2373,7 +2373,7 @@ dependencies = [
 
 [[package]]
 name = "proto_bun"
-version = "0.11.1"
+version = "0.11.2"
 dependencies = [
  "once_cell",
  "proto_core",
@@ -2453,7 +2453,7 @@ dependencies = [
 
 [[package]]
 name = "proto_deno"
-version = "0.11.1"
+version = "0.11.2"
 dependencies = [
  "once_cell",
  "proto_core",
@@ -2466,7 +2466,7 @@ dependencies = [
 
 [[package]]
 name = "proto_go"
-version = "0.11.1"
+version = "0.11.2"
 dependencies = [
  "once_cell",
  "proto_core",
