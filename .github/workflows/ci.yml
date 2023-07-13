@@ -69,6 +69,7 @@ jobs:
       - uses: moonrepo/setup-rust@v0
         with:
           bins: cargo-wasi
+          cache: false
       - run: cd plugins && cargo wasi build -p proto_wasm_test
       - run: cargo run -- --help
       - run: cargo run -- list-remote node
