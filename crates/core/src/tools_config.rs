@@ -5,6 +5,7 @@ use starbase_utils::toml::{self, TomlTable, TomlValue};
 use std::env;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use tracing::trace;
 
 pub const TOOLS_CONFIG_NAME: &str = ".prototools";
 
@@ -17,6 +18,8 @@ pub struct ToolsConfig {
 
 impl ToolsConfig {
     pub fn load_upwards() -> Result<Self, ProtoError> {
+        trace!("Traversing upwards and loading all .prototools files");
+
         let working_dir = env::current_dir().expect("Unknown current working directory!");
         let mut current_dir = Some(working_dir.as_path());
         let mut config = ToolsConfig::default();

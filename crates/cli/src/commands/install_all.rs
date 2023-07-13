@@ -17,17 +17,17 @@ pub async fn install_all() -> SystemResult {
     let mut config_dir = PathBuf::new();
     let working_dir = env::current_dir().expect("Missing current directory.");
 
-    // Inherit from .prototools (only from current dir)
-    let config = ToolsConfig::load_from(&working_dir)?;
+    // Inherit from .prototools
+    let config = ToolsConfig::load_upwards()?;
 
     debug!(config = ?config.path, "Detecting tools and plugins from .prototools");
 
     if !config.tools.is_empty() {
-        tools.extend(config.tools.clone());
+        tools.extend(config.tools);
     }
 
     if !config.plugins.is_empty() {
-        plugins.extend(config.plugins.clone());
+        plugins.extend(config.plugins);
         config_dir = config.path.parent().unwrap().to_path_buf();
     }
 
