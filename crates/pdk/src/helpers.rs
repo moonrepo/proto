@@ -2,8 +2,11 @@ use extism_pdk::http::request;
 use extism_pdk::*;
 use once_cell::sync::Lazy;
 use once_map::OnceMap;
-use proto_pdk_api::{ExecCommandInput, ExecCommandOutput, HostOS};
+use proto_pdk_api::{
+    Environment, ExecCommandInput, ExecCommandOutput, HostArch, HostOS, PluginError,
+};
 use serde::de::DeserializeOwned;
+use std::collections::HashMap;
 use std::vec;
 
 #[host_fn]
@@ -99,4 +102,31 @@ pub fn format_bin_name(name: &str, os: HostOS) -> String {
     }
 
     name.to_owned()
+}
+
+/// Validate the current host OS and architecture against the
+/// supported list of target permutations.
+pub fn check_supported_os_and_arch(
+    tool: &str,
+    env: &Environment,
+    permutations: HashMap<HostOS, Vec<HostArch>>,
+) -> anyhow::Result<()> {
+    if let Some(archs) = permutations.get(&env.os) {
+        if !archs.contains(&env.arch) {
+            return Err(PluginError::UnsupportedTarget {
+                tool: tool.to_owned(),
+                arch: env.arch.to_string(),
+                os: env.os.to_string(),
+            }
+            .into());
+        }
+    } else {
+        return Err(PluginError::UnsupportedOS {
+            tool: tool.to_owned(),
+            os: env.os.to_string(),
+        }
+        .into());
+    }
+
+    Ok(())
 }
