@@ -135,7 +135,7 @@ macro_rules! generate_download_install_tests {
             let mut tool = plugin.tool;
 
             if tool.get_checksum_url().unwrap().is_none() {
-                return;
+                panic!("VerifyInvalidChecksum");
             }
 
             tool.version = Some(String::from($version));
