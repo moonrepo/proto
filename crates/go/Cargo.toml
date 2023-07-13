@@ -3,9 +3,10 @@ name = "proto_go"
 version = "0.11.1"
 edition = "2021"
 license = "MIT"
-description = "Go support for proto."
+description = "DEPRECATED: Go support for proto."
 homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
+keywords = ["deprecated"]
 
 [dependencies]
 proto_core = { version = "0.12.2", path = "../core" }
