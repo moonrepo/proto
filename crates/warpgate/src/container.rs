@@ -1,28 +1,49 @@
 use crate::api::Empty;
 use crate::error::WarpgateError;
-use extism::Plugin;
+use extism::{Function, Manifest, Plugin};
 use once_map::OnceMap;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::fmt::Debug;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 use tracing::trace;
 
 pub struct PluginContainer<'plugin> {
-    pub plugin: Arc<RwLock<Plugin<'plugin>>>,
     pub name: String,
+    pub manifest: Manifest,
 
     func_cache: OnceMap<String, Vec<u8>>,
+    plugin: Arc<RwLock<Plugin<'plugin>>>,
 }
 
+unsafe impl<'plugin> Send for PluginContainer<'plugin> {}
+unsafe impl<'plugin> Sync for PluginContainer<'plugin> {}
+
 impl<'plugin> PluginContainer<'plugin> {
-    /// Create a new container with the provided plugin.
-    pub fn new<'new>(name: &str, plugin: Plugin<'new>) -> PluginContainer<'new> {
-        PluginContainer {
+    /// Create a new container with the provided manifest and host functions.
+    pub fn new<'new>(
+        name: &str,
+        manifest: Manifest,
+        functions: impl IntoIterator<Item = Function>,
+    ) -> miette::Result<PluginContainer<'new>> {
+        let plugin = Plugin::create_with_manifest(&manifest, functions, true)
+            .map_err(|error| WarpgateError::PluginCreateFailed { error })?;
+
+        Ok(PluginContainer {
+            manifest,
             plugin: Arc::new(RwLock::new(plugin)),
             name: name.to_owned(),
             func_cache: OnceMap::new(),
-        }
+        })
+    }
+
+    /// Create a new container with the provided manifest.
+    pub fn new_without_functions<'new>(
+        name: &str,
+        manifest: Manifest,
+    ) -> miette::Result<PluginContainer<'new>> {
+        Self::new(name, manifest, [])
     }
 
     /// Call a function on the plugin with no input and cache the output before returning it.
@@ -89,6 +110,29 @@ impl<'plugin> PluginContainer<'plugin> {
                 .as_str(),
             )
             .has_function(func)
+    }
+
+    /// Convert the provided absolute host path to a virtual guest path suitable
+    /// for WASI sandboxed runtimes.
+    pub fn to_virtual_path(&self, path: &Path) -> PathBuf {
+        let Some(virtual_paths) = self.manifest.allowed_paths.as_ref() else {
+            return path.to_path_buf();
+        };
+
+        for (guest_path, host_path) in virtual_paths {
+            if path.starts_with(host_path) {
+                let path = guest_path.join(path.strip_prefix(host_path).unwrap());
+
+                // Only forward slashes are allowed in WASI
+                return if cfg!(windows) {
+                    PathBuf::from(path.to_string_lossy().replace('\\', "/"))
+                } else {
+                    path
+                };
+            }
+        }
+
+        path.to_owned()
     }
 
     fn call(&self, func: &str, input: impl AsRef<[u8]>) -> miette::Result<&[u8]> {

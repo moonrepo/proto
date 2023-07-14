@@ -1,7 +1,7 @@
 mod detect;
 mod download;
 mod execute;
-mod host_funcs;
+pub mod host_funcs;
 mod install;
 mod resolve;
 mod shim;
