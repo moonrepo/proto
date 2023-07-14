@@ -3,7 +3,7 @@ name = "warpgate"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
-description = ""
+description = "A registry for downloading and managing Extism WASM plugins."
 repository = "https://github.com/moonrepo/warpgate"
 
 [dependencies]
@@ -14,7 +14,7 @@ once_map = { workspace = true }
 reqwest = { workspace = true, features = ["json"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
-sha2 = "0.10.7"
+sha2 = { workspace = true }
 starbase_utils = { workspace = true }
 starbase_styles = { workspace = true }
 thiserror = { workspace = true }
