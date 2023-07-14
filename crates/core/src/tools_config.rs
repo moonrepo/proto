@@ -20,6 +20,12 @@ pub struct ToolsConfig {
 }
 
 impl ToolsConfig {
+    pub fn builtin_plugins() -> FxHashMap<String, PluginLocator> {
+        let mut config = ToolsConfig::default();
+        config.inherit_builtin_plugins();
+        config.plugins
+    }
+
     pub fn load_upwards() -> Result<Self, ProtoError> {
         let working_dir = env::current_dir().expect("Unknown current working directory!");
 
@@ -136,6 +142,30 @@ impl ToolsConfig {
             plugins,
             path: path.to_owned(),
         })
+    }
+
+    pub fn inherit_builtin_plugins(&mut self) {
+        for (plugin, source) in [
+            (
+                "bun",
+                "https://github.com/moonrepo/bun-plugin/releases/download/v0.0.3/bun_plugin.wasm",
+            ),
+            (
+                "deno",
+                "https://github.com/moonrepo/deno-plugin/releases/download/v0.0.2/deno_plugin.wasm",
+            ),
+            (
+                "go",
+                "https://github.com/moonrepo/go-plugin/releases/download/v0.0.3/go_plugin.wasm",
+            ),
+        ] {
+            if !self.plugins.contains_key(plugin) {
+                self.plugins.insert(
+                    plugin.into(),
+                    PluginLocator::Source(PluginLocation::Url(source.into())),
+                );
+            }
+        }
     }
 
     pub fn merge(&mut self, other: ToolsConfig) {

@@ -29,24 +29,7 @@ pub async fn install_global(tool_type: ToolType, dependencies: Vec<String>) -> S
 
         let mut command;
 
-        match tool_type {
-            ToolType::Bun => {
-                command = Command::new(get_bin_or_fallback(&mut tool).await?);
-                command.args(["add", "--global"]).arg(&dependency);
-            }
-
-            ToolType::Deno => {
-                command = Command::new(get_bin_or_fallback(&mut tool).await?);
-                command
-                    .args(["install", "--allow-net", "--allow-read"])
-                    .arg(&dependency);
-            }
-
-            ToolType::Go => {
-                command = Command::new(get_bin_or_fallback(&mut tool).await?);
-                command.arg("install").arg(&dependency);
-            }
-
+        match &tool_type {
             ToolType::Node | ToolType::Npm | ToolType::Pnpm | ToolType::Yarn => {
                 let mut npm = create_tool(&ToolType::Npm).await?;
 
@@ -70,25 +53,41 @@ pub async fn install_global(tool_type: ToolType, dependencies: Vec<String>) -> S
                 command.arg("install").arg("--force").arg(&dependency);
             }
 
-            ToolType::Plugin(_) => {
+            ToolType::Plugin(name) => {
                 command = Command::new(get_bin_or_fallback(&mut tool).await?);
 
-                if let Some(plugin) = tool.as_any().downcast_ref::<SchemaPlugin>() {
-                    let Some(args) = &plugin.schema.install.global_args else {
-                        return Err(ProtoError::UnsupportedGlobals(plugin.get_name()))?;
-                    };
+                // TODO move into plugins
+                match name.as_ref() {
+                    "bun" => {
+                        command.args(["add", "--global"]).arg(&dependency);
+                    }
+                    "deno" => {
+                        command
+                            .args(["install", "--allow-net", "--allow-read"])
+                            .arg(&dependency);
+                    }
+                    "go" => {
+                        command.arg("install").arg(&dependency);
+                    }
+                    _ => {
+                        if let Some(plugin) = tool.as_any().downcast_ref::<SchemaPlugin>() {
+                            let Some(args) = &plugin.schema.install.global_args else {
+                                return Err(ProtoError::UnsupportedGlobals(plugin.get_name()))?;
+                            };
 
-                    for arg in args {
-                        if arg == "{dependency}" {
-                            command.arg(&dependency);
+                            for arg in args {
+                                if arg == "{dependency}" {
+                                    command.arg(&dependency);
+                                } else {
+                                    command.arg(arg);
+                                }
+                            }
                         } else {
-                            command.arg(arg);
+                            // TODO wasm
+                            continue;
                         }
                     }
-                } else {
-                    // TODO wasm
-                    continue;
-                }
+                };
             }
         };
 
