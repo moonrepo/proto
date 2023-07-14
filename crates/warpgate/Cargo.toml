@@ -1,0 +1,15 @@
+[package]
+name = "warpgate"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = ""
+repository = "https://github.com/moonrepo/warpgate"
+
+[dependencies]
+miette = { workspace = true }
+reqwest = { workspace = true, features = ["json"] }
+serde = { workspace = true }
+sha2 = "0.10.7"
+starbase_styles = { workspace = true }
+thiserror = { workspace = true }

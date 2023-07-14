@@ -3829,6 +3829,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "warpgate"
+version = "0.1.0"
+dependencies = [
+ "miette",
+ "reqwest",
+ "serde",
+ "sha2",
+ "starbase_styles",
+ "thiserror",
+]
+
+[[package]]
 name = "wasi"
 version = "0.10.0+wasi-snapshot-preview1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
