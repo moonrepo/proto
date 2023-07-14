@@ -48,32 +48,33 @@ pub async fn create_plugin_from_locator(
 ) -> Result<Box<dyn Tool<'static>>, ProtoError> {
     let proto = proto.as_ref();
     let locator = locator.as_ref();
-    let mut registry = PluginRegistry::new(&proto.plugins_dir, &proto.temp_dir);
 
-    match locator {
-        PluginLocator::SourceFile { file, path } => {
-            let wasm_path = registry.load_plugin(plugin, locator).await?;
+    let plugin_path = PluginRegistry::new(&proto.plugins_dir, &proto.temp_dir)
+        .load_plugin(plugin, locator)
+        .await
+        .map_err(|e| ProtoError::Message(e.to_string()))?;
+    let is_toml = plugin_path
+        .extension()
+        .map(|e| e == "toml")
+        .unwrap_or(false);
 
-            if file.ends_with(".toml") {
-                debug!(source = ?wasm_path, "Loading TOML plugin");
+    if is_toml {
+        debug!(source = ?plugin_path, "Loading TOML plugin");
 
-                return Ok(Box::new(schema_plugin::SchemaPlugin::new(
-                    proto,
-                    plugin.to_owned(),
-                    toml::read_file(wasm_path)?,
-                )));
-            }
-
-            debug!(source = ?wasm_path, "Loading WASM plugin");
-
-            Ok(Box::new(wasm_plugin::WasmPlugin::new(
-                proto,
-                plugin.to_owned(),
-                wasm_path,
-            )?))
-        }
-        _ => unimplemented!(),
+        return Ok(Box::new(schema_plugin::SchemaPlugin::new(
+            proto,
+            plugin.to_owned(),
+            toml::read_file(plugin_path)?,
+        )));
     }
+
+    debug!(source = ?plugin_path, "Loading WASM plugin");
+
+    Ok(Box::new(wasm_plugin::WasmPlugin::new(
+        proto,
+        plugin.to_owned(),
+        plugin_path,
+    )?))
 }
 
 pub async fn create_plugin_tool(

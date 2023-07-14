@@ -8,24 +8,31 @@ pub enum WarpgateError {
     #[error("{0}")]
     Serde(String),
 
+    #[diagnostic(code(plugin::http))]
+    #[error("Failed to make HTTP request.")]
+    Http {
+        #[source]
+        error: reqwest::Error,
+    },
+
     #[diagnostic(code(plugin::source::file_missing))]
     #[error("Cannot load plugin, source file {} does not exist.", .0.style(Style::Url))]
     SourceFileMissing(PathBuf),
 
     #[diagnostic(code(plugin::github::asset_missing))]
     #[error(
-			"Cannot download plugin {} from GitHub, no applicable asset found for release {}.",
-			.repo_slug.style(Style::Id),
-			.tag,
-		)]
+        "Cannot download plugin {} from GitHub, no applicable asset found for release {}.",
+        .repo_slug.style(Style::Id),
+        .tag,
+    )]
     GitHubAssetMissing { repo_slug: String, tag: String },
 
     #[diagnostic(code(plugin::wapm::module_missing))]
     #[error(
-			"Cannot download plugin {} from wamp.io, no applicable module found for release {}.",
-			.package.style(Style::Id),
-			.version,
-		)]
+        "Cannot download plugin {} from wamp.io, no applicable module found for release {}.",
+        .package.style(Style::Id),
+        .version,
+    )]
     WapmModuleMissing { package: String, version: String },
 
     #[diagnostic(code(plugin::create::failed))]
@@ -58,4 +65,15 @@ pub enum WarpgateError {
         #[source]
         error: serde_json::Error,
     },
+
+    #[diagnostic(
+        code(plugin::download::missing),
+        help = "Please refer to the plugin's official documentation."
+    )]
+    #[error("Plugin download {} does not exist. This version may not be supported for your current operating system or architecture.", .url.style(Style::Url))]
+    DownloadNotFound { url: String },
+
+    #[diagnostic(code(plugin::download::failed))]
+    #[error("Failed to download plugin from {} ({status}).", .url.style(Style::Url))]
+    DownloadFailed { url: String, status: String },
 }

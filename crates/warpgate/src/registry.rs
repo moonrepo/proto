@@ -1,6 +1,9 @@
 use crate::api::*;
 use crate::error::WarpgateError;
-use crate::helpers::extract_prefix_from_slug;
+use crate::helpers::{
+    determine_cache_extension, download_url_to_temp, extract_prefix_from_slug,
+    move_or_unpack_download,
+};
 use crate::locator::{GitHubLocator, PluginLocator, WapmLocator};
 use miette::IntoDiagnostic;
 use sha2::{Digest, Sha256};
@@ -71,8 +74,22 @@ impl PluginRegistry {
         let mut sha = Sha256::new();
         sha.update(seed);
 
-        self.plugins_dir
-            .join(format!("{}-{:x}.wasm", name, sha.finalize()))
+        self.plugins_dir.join(format!(
+            "{}-{:x}{}",
+            name,
+            sha.finalize(),
+            determine_cache_extension(seed)
+        ))
+    }
+
+    fn is_cached(&self, name: &str, path: &Path) -> bool {
+        if path.exists() {
+            trace!(plugin = name, path = ?path, "Plugin already downloaded and cached");
+
+            true
+        } else {
+            false
+        }
     }
 
     async fn download_plugin(
@@ -81,7 +98,7 @@ impl PluginRegistry {
         source_url: &str,
         dest_path: PathBuf,
     ) -> miette::Result<PathBuf> {
-        if dest_path.exists() {
+        if self.is_cached(name, &dest_path) {
             return Ok(dest_path);
         }
 
@@ -90,6 +107,11 @@ impl PluginRegistry {
             url = source_url,
             "Downloading plugin from URL",
         );
+
+        move_or_unpack_download(
+            &download_url_to_temp(source_url, &self.temp_dir).await?,
+            &dest_path,
+        )?;
 
         Ok(dest_path)
     }
@@ -128,7 +150,7 @@ impl PluginRegistry {
         // so that we can avoid making unnecessary HTTP requests.
         let plugin_path = self.create_cache_path(name, &api_url);
 
-        if plugin_path.exists() {
+        if self.is_cached(name, &plugin_path) {
             return Ok(plugin_path);
         }
 
@@ -204,7 +226,7 @@ impl PluginRegistry {
         // so that we can avoid making unnecessary HTTP requests.
         let plugin_path = self.create_cache_path(name, &fake_api_url);
 
-        if plugin_path.exists() {
+        if self.is_cached(name, &plugin_path) {
             return Ok(plugin_path);
         }
 
