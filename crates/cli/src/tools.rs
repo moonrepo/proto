@@ -1,8 +1,5 @@
 use convert_case::{Case, Casing};
-use proto_bun as bun;
 use proto_core::*;
-use proto_deno as deno;
-use proto_go as go;
 use proto_node as node;
 use proto_rust as rust;
 use proto_schema_plugin as schema_plugin;
@@ -14,12 +11,6 @@ use tracing::debug;
 
 #[derive(Clone, Debug, Eq, EnumIter, Hash, PartialEq)]
 pub enum ToolType {
-    // Bun
-    Bun,
-    // Deno
-    Deno,
-    // Go
-    Go,
     // Node.js
     Node,
     Npm,
@@ -36,12 +27,6 @@ impl FromStr for ToolType {
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         match value.to_lowercase().as_ref() {
-            // Bun
-            "bun" => Ok(Self::Bun),
-            // Deno
-            "deno" => Ok(Self::Deno),
-            // Go
-            "go" => Ok(Self::Go),
             // Node.js
             "node" => Ok(Self::Node),
             "npm" => Ok(Self::Npm),
@@ -121,11 +106,20 @@ pub async fn create_plugin_tool(
         }
     }
 
-    // Otherwise fallback to the user's config
+    // Then check the user's config
     if locator.is_none() {
         let user_config = UserConfig::load()?;
 
         if let Some(maybe_locator) = user_config.plugins.get(plugin) {
+            locator = Some(maybe_locator.to_owned());
+        }
+    }
+
+    // And finally the builtin plugins
+    if locator.is_none() {
+        let builtin_plugins = ToolsConfig::builtin_plugins();
+
+        if let Some(maybe_locator) = builtin_plugins.get(plugin) {
             locator = Some(maybe_locator.to_owned());
         }
     }
@@ -141,12 +135,6 @@ pub async fn create_tool(tool: &ToolType) -> Result<Box<dyn Tool<'static>>, Prot
     let proto = Proto::new()?;
 
     Ok(match tool {
-        // Bun
-        ToolType::Bun => Box::new(bun::BunLanguage::new(proto)),
-        // Deno
-        ToolType::Deno => Box::new(deno::DenoLanguage::new(proto)),
-        // Go
-        ToolType::Go => Box::new(go::GoLanguage::new(proto)),
         // Node.js
         ToolType::Node => Box::new(node::NodeLanguage::new(proto)),
         ToolType::Npm => Box::new(node::NodeDependencyManager::new(
