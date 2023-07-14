@@ -7,9 +7,15 @@ description = ""
 repository = "https://github.com/moonrepo/warpgate"
 
 [dependencies]
+extism = { workspace = true }
 miette = { workspace = true }
+once_cell = { workspace = true }
+once_map = { workspace = true }
 reqwest = { workspace = true, features = ["json"] }
 serde = { workspace = true }
+serde_json = { workspace = true }
 sha2 = "0.10.7"
+starbase_utils = { workspace = true }
 starbase_styles = { workspace = true }
 thiserror = { workspace = true }
+tracing = { workspace = true }

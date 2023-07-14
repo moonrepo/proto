@@ -27,4 +27,28 @@ pub enum WarpgateError {
 			.version,
 		)]
     WapmModuleMissing { package: String, version: String },
+
+    #[diagnostic(code(plugin::call_func::failed))]
+    #[error("Failed to call plugin function {}.", .func.style(Style::Id))]
+    PluginCallFailed {
+        func: String,
+        #[source]
+        error: extism::Error,
+    },
+
+    #[diagnostic(code(plugin::call_func::format_input))]
+    #[error("Failed to format input for plugin function {} call.", .func.style(Style::Id))]
+    FormatInputFailed {
+        func: String,
+        #[source]
+        error: serde_json::Error,
+    },
+
+    #[diagnostic(code(plugin::call_func::parse_output))]
+    #[error("Failed to parse output of plugin function {} call.", .func.style(Style::Id))]
+    ParseOutputFailed {
+        func: String,
+        #[source]
+        error: serde_json::Error,
+    },
 }

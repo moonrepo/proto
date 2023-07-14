@@ -3832,12 +3832,18 @@ dependencies = [
 name = "warpgate"
 version = "0.1.0"
 dependencies = [
+ "extism",
  "miette",
+ "once_cell",
+ "once_map",
  "reqwest",
  "serde",
+ "serde_json",
  "sha2",
  "starbase_styles",
+ "starbase_utils",
  "thiserror",
+ "tracing",
 ]
 
 [[package]]
