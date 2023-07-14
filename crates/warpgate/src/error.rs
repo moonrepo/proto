@@ -5,23 +5,26 @@ use thiserror::Error;
 
 #[derive(Debug, Diagnostic, Error)]
 pub enum WarpgateError {
+    #[error("{0}")]
+    Serde(String),
+
     #[diagnostic(code(plugin::source::file_missing))]
     #[error("Cannot load plugin, source file {} does not exist.", .0.style(Style::Url))]
     SourceFileMissing(PathBuf),
 
     #[diagnostic(code(plugin::github::asset_missing))]
     #[error(
-			"Cannot download plugin from {} on GitHub, no applicable asset found for release {}.",
+			"Cannot download plugin {} from GitHub, no applicable asset found for release {}.",
 			.repo_slug.style(Style::Id),
-			.release,
+			.tag,
 		)]
-    GitHubAssetMissing { repo_slug: String, release: String },
+    GitHubAssetMissing { repo_slug: String, tag: String },
 
     #[diagnostic(code(plugin::wapm::module_missing))]
     #[error(
-			"Cannot download plugin from {} on wamp.io, no applicable module found for release {}.",
+			"Cannot download plugin {} from wamp.io, no applicable module found for release {}.",
 			.package.style(Style::Id),
-			.release,
+			.version,
 		)]
-    WapmModuleMissing { package: String, release: String },
+    WapmModuleMissing { package: String, version: String },
 }

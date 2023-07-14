@@ -1,5 +1,6 @@
 mod api;
 mod error;
+mod helpers;
 mod locator;
 mod registry;
 

@@ -1,5 +1,6 @@
 use crate::api::*;
 use crate::error::WarpgateError;
+use crate::helpers::extract_owner_from_slug;
 use crate::locator::{GitHubLocator, PluginLocator, WapmLocator};
 use miette::IntoDiagnostic;
 use sha2::{Digest, Sha256};
@@ -68,13 +69,13 @@ impl PluginRegistry {
         name: &str,
         github: &GitHubLocator,
     ) -> miette::Result<PathBuf> {
-        let (api_url, release_tag) = if let Some(version) = &github.version {
+        let (api_url, release_tag) = if let Some(tag) = &github.tag {
             (
                 format!(
-                    "https://api.github.com/repos/{}/releases/tags/v{version}",
+                    "https://api.github.com/repos/{}/releases/tags/{tag}",
                     github.repo_slug,
                 ),
-                format!("v{version}"),
+                tag.to_owned(),
             )
         } else {
             (
@@ -110,8 +111,8 @@ impl PluginRegistry {
 
         // Otherwise an asset with a matching name and supported extension
         for asset in release.assets {
-            if asset.name == github.asset_name
-                || (asset.name.starts_with(&github.asset_name)
+            if asset.name == github.file_stem
+                || (asset.name.starts_with(&github.file_stem)
                     && (asset.name.ends_with(".tar")
                         | asset.name.ends_with(".tar.gz")
                         | asset.name.ends_with(".tgz")
@@ -127,7 +128,7 @@ impl PluginRegistry {
 
         Err(WarpgateError::GitHubAssetMissing {
             repo_slug: github.repo_slug.to_owned(),
-            release: release_tag,
+            tag: release_tag,
         }
         .into())
     }
@@ -159,7 +160,7 @@ impl PluginRegistry {
                 query: WAPM_GQL_QUERY.to_owned(),
                 variables: WapmPackageRequestVariables {
                     name: wapm.package_name.to_owned(),
-                    owner: extract_owner_from_package(&wapm.package_name).to_owned(),
+                    owner: extract_owner_from_slug(&wapm.package_name).to_owned(),
                     version: version.to_owned(),
                 },
             })
@@ -180,7 +181,7 @@ impl PluginRegistry {
         if let Some(release_module) = modules.iter().find(|module| {
             module
                 .public_url
-                .ends_with(&format!("release/{}.wasm", wapm.wasm_name))
+                .ends_with(&format!("release/{}.wasm", wapm.file_stem))
         }) {
             return self
                 .download_plugin(&release_module.public_url, plugin_path)
@@ -188,7 +189,7 @@ impl PluginRegistry {
         }
 
         if let Some(fallback_module) = modules.iter().find(|module| {
-            module.name == wapm.wasm_name || module.name == format!("{}.wasm", wapm.wasm_name)
+            module.name == wapm.file_stem || module.name == format!("{}.wasm", wapm.file_stem)
         }) {
             return self
                 .download_plugin(&fallback_module.public_url, plugin_path)
@@ -202,15 +203,8 @@ impl PluginRegistry {
 
         Err(WarpgateError::WapmModuleMissing {
             package: wapm.package_name.to_owned(),
-            release: version.to_owned(),
+            version: version.to_owned(),
         }
         .into())
     }
-}
-
-fn extract_owner_from_package(package: &str) -> &str {
-    package
-        .split('/')
-        .next()
-        .expect("Expected package to have an owner scope!")
 }
