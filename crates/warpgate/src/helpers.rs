@@ -1,8 +1,8 @@
-pub fn extract_owner_from_slug(slug: &str) -> &str {
+pub fn extract_prefix_from_slug(slug: &str) -> &str {
     slug.split('/').next().expect("Expected an owner scope!")
 }
 
-pub fn extract_item_from_slug(slug: &str) -> &str {
+pub fn extract_suffix_from_slug(slug: &str) -> &str {
     slug.split('/')
         .nth(1)
         .expect("Expected a package or repository name!")

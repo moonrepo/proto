@@ -56,17 +56,17 @@ pub struct WapmPackageResponse {
 
 pub const WAPM_GQL_QUERY: &str = r#"
 query PackageQuery($name: String!  $version: String = "latest") {
-	packageVersion: getPackageVersion(name: $name, version: $version) {
-		distribution {
-			downloadUrl
-		}
-		modules {
-			name
-			publicUrl
-			source
-			abi
-		}
-	}
+    packageVersion: getPackageVersion(name: $name, version: $version) {
+        distribution {
+            downloadUrl
+        }
+        modules {
+            name
+            publicUrl
+            source
+            abi
+        }
+    }
 }"#;
 
 #[derive(Default, Serialize)]

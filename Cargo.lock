@@ -2399,6 +2399,7 @@ dependencies = [
  "strum",
  "tokio",
  "tracing",
+ "warpgate",
  "winreg 0.50.0",
 ]
 
@@ -2430,6 +2431,7 @@ dependencies = [
  "tinytemplate",
  "tokio",
  "tracing",
+ "warpgate",
  "xz2",
  "zip",
 ]

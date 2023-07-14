@@ -8,6 +8,7 @@ use starbase_utils::toml;
 use std::{env, path::Path, str::FromStr};
 use strum::EnumIter;
 use tracing::debug;
+use warpgate::{PluginLocator, PluginRegistry};
 
 #[derive(Clone, Debug, Eq, EnumIter, Hash, PartialEq)]
 pub enum ToolType {
@@ -45,42 +46,33 @@ pub async fn create_plugin_from_locator(
     proto: impl AsRef<Proto>,
     locator: impl AsRef<PluginLocator>,
 ) -> Result<Box<dyn Tool<'static>>, ProtoError> {
-    match locator.as_ref() {
-        PluginLocator::Source(location) => {
-            let (is_toml, source_path) = match location {
-                PluginLocation::File(file) => {
-                    if !file.exists() {
-                        return Err(ProtoError::PluginFileMissing(file.to_path_buf()));
-                    }
+    let proto = proto.as_ref();
+    let locator = locator.as_ref();
+    let mut registry = PluginRegistry::new(&proto.plugins_dir, &proto.temp_dir);
 
-                    (
-                        file.extension().is_some_and(|ext| ext == "toml"),
-                        file.to_path_buf(),
-                    )
-                }
-                PluginLocation::Url(url) => {
-                    (url.ends_with(".toml"), download_plugin(plugin, url).await?)
-                }
-            };
+    match locator {
+        PluginLocator::SourceFile { file, path } => {
+            let wasm_path = registry.load_plugin(plugin, locator).await?;
 
-            if is_toml {
-                debug!(source = ?source_path, "Loading TOML plugin");
+            if file.ends_with(".toml") {
+                debug!(source = ?wasm_path, "Loading TOML plugin");
 
                 return Ok(Box::new(schema_plugin::SchemaPlugin::new(
                     proto,
                     plugin.to_owned(),
-                    toml::read_file(source_path)?,
+                    toml::read_file(wasm_path)?,
                 )));
             }
 
-            debug!(source = ?source_path, "Loading WASM plugin");
+            debug!(source = ?wasm_path, "Loading WASM plugin");
 
             Ok(Box::new(wasm_plugin::WasmPlugin::new(
                 proto,
                 plugin.to_owned(),
-                source_path,
+                wasm_path,
             )?))
         }
+        _ => unimplemented!(),
     }
 }
 

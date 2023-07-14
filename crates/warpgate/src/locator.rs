@@ -1,25 +1,24 @@
+use crate::helpers::{create_wasm_file_stem, extract_suffix_from_slug};
+use crate::WarpgateError;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use std::path::PathBuf;
 
-use crate::helpers::{create_wasm_file_stem, extract_item_from_slug};
-use crate::WarpgateError;
-
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct GitHubLocator {
     pub file_stem: String, // Without extension
     pub repo_slug: String,
     pub tag: Option<String>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct WapmLocator {
     pub file_stem: String, // Without extension
     pub package_name: String,
     pub version: Option<String>,
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged, into = "String", try_from = "String")]
 pub enum PluginLocator {
     // source:path/to/file.wasm
@@ -107,7 +106,7 @@ impl TryFrom<String> for PluginLocator {
                 let tag = parts.next().map(|t| t.to_owned());
 
                 Ok(PluginLocator::GitHub(GitHubLocator {
-                    file_stem: create_wasm_file_stem(extract_item_from_slug(&repo_slug)),
+                    file_stem: create_wasm_file_stem(extract_suffix_from_slug(&repo_slug)),
                     repo_slug,
                     tag,
                 }))
@@ -125,7 +124,7 @@ impl TryFrom<String> for PluginLocator {
                 let version = parts.next().map(|t| t.to_owned());
 
                 Ok(PluginLocator::Wapm(WapmLocator {
-                    file_stem: create_wasm_file_stem(extract_item_from_slug(&package_name)),
+                    file_stem: create_wasm_file_stem(extract_suffix_from_slug(&package_name)),
                     package_name,
                     version,
                 }))
@@ -140,5 +139,11 @@ impl TryFrom<String> for PluginLocator {
 impl From<PluginLocator> for String {
     fn from(locator: PluginLocator) -> Self {
         locator.to_string()
+    }
+}
+
+impl AsRef<PluginLocator> for PluginLocator {
+    fn as_ref(&self) -> &Self {
+        self
     }
 }
