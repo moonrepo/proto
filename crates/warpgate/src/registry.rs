@@ -5,7 +5,6 @@ use crate::helpers::{
     move_or_unpack_download,
 };
 use crate::locator::{GitHubLocator, PluginLocator, WapmLocator};
-use miette::IntoDiagnostic;
 use sha2::{Digest, Sha256};
 use starbase_styles::color;
 use std::path::{Path, PathBuf};
@@ -15,11 +14,12 @@ pub struct PluginRegistry {
     /// Location where downloaded .wasm plugins are stored.
     plugins_dir: PathBuf,
 
-    // Location where temporary files (like archives) are stored.
+    /// Location where temporary files (like archives) are stored.
     temp_dir: PathBuf,
 }
 
 impl PluginRegistry {
+    /// Create a new registry that stores plugins and downloads in the provided directories.
     pub fn new(plugins_dir: &Path, temp_dir: &Path) -> Self {
         trace!(cache_dir = ?plugins_dir, "Creating plugin registry");
 
@@ -29,18 +29,20 @@ impl PluginRegistry {
         }
     }
 
+    /// Load a plugin using the provided locator. File system plugins are loaded directly,
+    /// while remote plugins are downloaded and cached.
     pub async fn load_plugin<T: AsRef<str>>(
         &mut self,
-        name: T,
+        id: T,
         locator: &PluginLocator,
     ) -> miette::Result<PathBuf> {
-        let name = name.as_ref();
+        let id = id.as_ref();
 
         trace!(
-            plugin = name,
+            plugin = id,
             locator = locator.to_string(),
             "Loading plugin {}",
-            color::id(name)
+            color::id(id)
         );
 
         match locator {
@@ -51,7 +53,7 @@ impl PluginRegistry {
 
                 if path.exists() {
                     trace!(
-                        plugin = name,
+                        plugin = id,
                         path = ?path,
                         "Using source file",
                     );
@@ -62,29 +64,29 @@ impl PluginRegistry {
                 }
             }
             PluginLocator::SourceUrl { url } => {
-                self.download_plugin(name, url, self.create_cache_path(name, url))
+                self.download_plugin(id, url, self.create_cache_path(id, url))
                     .await
             }
-            PluginLocator::GitHub(github) => self.download_plugin_from_github(name, github).await,
-            PluginLocator::Wapm(wapm) => self.download_plugin_from_wapm(name, wapm).await,
+            PluginLocator::GitHub(github) => self.download_plugin_from_github(id, github).await,
+            PluginLocator::Wapm(wapm) => self.download_plugin_from_wapm(id, wapm).await,
         }
     }
 
-    fn create_cache_path(&self, name: &str, seed: &str) -> PathBuf {
+    fn create_cache_path(&self, id: &str, seed: &str) -> PathBuf {
         let mut sha = Sha256::new();
         sha.update(seed);
 
         self.plugins_dir.join(format!(
             "{}-{:x}{}",
-            name,
+            id,
             sha.finalize(),
             determine_cache_extension(seed)
         ))
     }
 
-    fn is_cached(&self, name: &str, path: &Path) -> bool {
+    fn is_cached(&self, id: &str, path: &Path) -> bool {
         if path.exists() {
-            trace!(plugin = name, path = ?path, "Plugin already downloaded and cached");
+            trace!(plugin = id, path = ?path, "Plugin already downloaded and cached");
 
             true
         } else {
@@ -94,19 +96,15 @@ impl PluginRegistry {
 
     async fn download_plugin(
         &mut self,
-        name: &str,
+        id: &str,
         source_url: &str,
         dest_path: PathBuf,
     ) -> miette::Result<PathBuf> {
-        if self.is_cached(name, &dest_path) {
+        if self.is_cached(id, &dest_path) {
             return Ok(dest_path);
         }
 
-        trace!(
-            plugin = name,
-            url = source_url,
-            "Downloading plugin from URL",
-        );
+        trace!(plugin = id, url = source_url, "Downloading plugin from URL",);
 
         move_or_unpack_download(
             &download_url_to_temp(source_url, &self.temp_dir).await?,
@@ -118,7 +116,7 @@ impl PluginRegistry {
 
     async fn download_plugin_from_github(
         &mut self,
-        name: &str,
+        id: &str,
         github: &GitHubLocator,
     ) -> miette::Result<PathBuf> {
         let (api_url, release_tag) = if let Some(tag) = &github.tag {
@@ -139,37 +137,46 @@ impl PluginRegistry {
             )
         };
 
+        // Check the cache first using the API URL as the seed,
+        // so that we can avoid making unnecessary HTTP requests.
+        let plugin_path = self.create_cache_path(id, &api_url);
+
+        if self.is_cached(id, &plugin_path) {
+            return Ok(plugin_path);
+        }
+
         trace!(
-            plugin = name,
+            plugin = id,
             api_url = &api_url,
             release_tag = &release_tag,
             "Attempting to download plugin from GitHub release",
         );
 
-        // Check the cache first using the API URL as the seed,
-        // so that we can avoid making unnecessary HTTP requests.
-        let plugin_path = self.create_cache_path(name, &api_url);
-
-        if self.is_cached(name, &plugin_path) {
-            return Ok(plugin_path);
-        }
-
         // Otherwise make an HTTP request to the GitHub releases API,
         // and loop through the assets to find a matching one.
-        let response = reqwest::get(api_url).await.into_diagnostic()?;
-        let release: GitHubApiRelease = response.json().await.into_diagnostic()?;
+        let client = reqwest::Client::new();
+        let response = client
+            .get(api_url)
+            .header("User-Agent", "moonrepo")
+            .send()
+            .await
+            .map_err(|error| WarpgateError::Http { error })?;
+        let release: GitHubApiRelease = response
+            .json()
+            .await
+            .map_err(|error| WarpgateError::Http { error })?;
 
         // Find a direct WASM asset first
         for asset in &release.assets {
             if asset.content_type == "application/wasm" || asset.name.ends_with(".wasm") {
                 trace!(
-                    plugin = name,
+                    plugin = id,
                     asset = &asset.name,
                     "Found WASM asset with `application/wasm` content type"
                 );
 
                 return self
-                    .download_plugin(name, &asset.browser_download_url, plugin_path)
+                    .download_plugin(id, &asset.browser_download_url, plugin_path)
                     .await;
             }
         }
@@ -186,13 +193,13 @@ impl PluginRegistry {
                         | asset.name.ends_with(".zip")))
             {
                 trace!(
-                    plugin = name,
+                    plugin = id,
                     asset = &asset.name,
                     "Found possible asset as an archive"
                 );
 
                 return self
-                    .download_plugin(name, &asset.browser_download_url, plugin_path)
+                    .download_plugin(id, &asset.browser_download_url, plugin_path)
                     .await;
             }
         }
@@ -206,7 +213,7 @@ impl PluginRegistry {
 
     async fn download_plugin_from_wapm(
         &mut self,
-        name: &str,
+        id: &str,
         wapm: &WapmLocator,
     ) -> miette::Result<PathBuf> {
         let version = wapm.version.as_deref().unwrap_or("latest");
@@ -215,20 +222,20 @@ impl PluginRegistry {
             wapm.package_name, version
         );
 
+        // Check the cache first using the API URL as the seed,
+        // so that we can avoid making unnecessary HTTP requests.
+        let plugin_path = self.create_cache_path(id, &fake_api_url);
+
+        if self.is_cached(id, &plugin_path) {
+            return Ok(plugin_path);
+        }
+
         trace!(
-            plugin = name,
+            plugin = id,
             api_url = &fake_api_url,
             version,
             "Attempting to download plugin from wamp.io",
         );
-
-        // Check the cache first using the API URL as the seed,
-        // so that we can avoid making unnecessary HTTP requests.
-        let plugin_path = self.create_cache_path(name, &fake_api_url);
-
-        if self.is_cached(name, &plugin_path) {
-            return Ok(plugin_path);
-        }
 
         // Otherwise make a GraphQL request to the WAPM registry API.
         let client = reqwest::Client::new();
@@ -244,9 +251,12 @@ impl PluginRegistry {
             })
             .send()
             .await
-            .into_diagnostic()?;
+            .map_err(|error| WarpgateError::Http { error })?;
 
-        let package: WapmPackageResponse = response.json().await.into_diagnostic()?;
+        let package: WapmPackageResponse = response
+            .json()
+            .await
+            .map_err(|error| WarpgateError::Http { error })?;
         let package = package.data.package_version;
 
         // Check modules first for a direct WASM file to use
@@ -262,13 +272,13 @@ impl PluginRegistry {
                 .ends_with(&format!("release/{}.wasm", wapm.file_stem))
         }) {
             trace!(
-                plugin = name,
+                plugin = id,
                 module = &release_module.name,
                 "Found possible module compiled for release mode"
             );
 
             return self
-                .download_plugin(name, &release_module.public_url, plugin_path)
+                .download_plugin(id, &release_module.public_url, plugin_path)
                 .await;
         }
 
@@ -276,24 +286,24 @@ impl PluginRegistry {
             module.name == wapm.file_stem || module.name == format!("{}.wasm", wapm.file_stem)
         }) {
             trace!(
-                plugin = name,
+                plugin = id,
                 module = &fallback_module.name,
                 "Found possible module with matching file name"
             );
 
             return self
-                .download_plugin(name, &fallback_module.public_url, plugin_path)
+                .download_plugin(id, &fallback_module.public_url, plugin_path)
                 .await;
         }
 
         // Otherwise use the distribution download, which is typically an archive
         if let Some(download_url) = &package.distribution.download_url {
             trace!(
-                plugin = name,
+                plugin = id,
                 "Using the distribution archive as a last resort"
             );
 
-            return self.download_plugin(name, download_url, plugin_path).await;
+            return self.download_plugin(id, download_url, plugin_path).await;
         }
 
         Err(WarpgateError::WapmModuleMissing {

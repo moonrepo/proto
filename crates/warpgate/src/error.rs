@@ -21,7 +21,7 @@ pub enum WarpgateError {
 
     #[diagnostic(code(plugin::github::asset_missing))]
     #[error(
-        "Cannot download plugin {} from GitHub, no applicable asset found for release {}.",
+        "Cannot download plugin from GitHub ({}), no applicable asset found for release {}.",
         .repo_slug.style(Style::Id),
         .tag,
     )]
@@ -29,7 +29,7 @@ pub enum WarpgateError {
 
     #[diagnostic(code(plugin::wapm::module_missing))]
     #[error(
-        "Cannot download plugin {} from wamp.io, no applicable module found for release {}.",
+        "Cannot download plugin from wamp.io ({}), no applicable module found for release {}.",
         .package.style(Style::Id),
         .version,
     )]

@@ -4,21 +4,21 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use std::path::PathBuf;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GitHubLocator {
     pub file_stem: String, // Without extension
     pub repo_slug: String,
     pub tag: Option<String>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WapmLocator {
     pub file_stem: String, // Without extension
     pub package_name: String,
     pub version: Option<String>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(untagged, into = "String", try_from = "String")]
 pub enum PluginLocator {
     // source:path/to/file.wasm

@@ -142,27 +142,20 @@ impl ToolsConfig {
     }
 
     pub fn inherit_builtin_plugins(&mut self) {
-        for (plugin, source) in [
-            (
-                "bun",
-                "https://github.com/moonrepo/bun-plugin/releases/download/v0.0.3/bun_plugin.wasm",
-            ),
-            (
-                "deno",
-                "https://github.com/moonrepo/deno-plugin/releases/download/v0.0.2/deno_plugin.wasm",
-            ),
-            (
-                "go",
-                "https://github.com/moonrepo/go-plugin/releases/download/v0.0.3/go_plugin.wasm",
-            ),
-        ] {
-            if !self.plugins.contains_key(plugin) {
-                self.plugins.insert(
-                    plugin.into(),
-                    PluginLocator::SourceUrl { url: source.into() },
-                );
-            }
-        }
+        self.plugins.insert(
+            "bun".into(),
+            PluginLocator::try_from("source:https://github.com/moonrepo/bun-plugin/releases/download/v0.0.3/bun_plugin.wasm".to_owned()).unwrap(),
+        );
+
+        self.plugins.insert(
+            "deno".into(),
+            PluginLocator::try_from("source:https://github.com/moonrepo/deno-plugin/releases/download/v0.0.2/deno_plugin.wasm".to_owned()).unwrap(),
+        );
+
+        self.plugins.insert(
+            "go".into(),
+            PluginLocator::try_from("source:https://github.com/moonrepo/go-plugin/releases/download/v0.0.3/go_plugin.wasm".to_owned()).unwrap(),
+        );
     }
 
     pub fn merge(&mut self, other: ToolsConfig) {

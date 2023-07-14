@@ -10,7 +10,7 @@ use std::sync::{Arc, RwLock};
 use tracing::trace;
 
 pub struct PluginContainer<'plugin> {
-    pub name: String,
+    pub id: String,
     pub manifest: Manifest,
 
     func_cache: OnceMap<String, Vec<u8>>,
@@ -23,7 +23,7 @@ unsafe impl<'plugin> Sync for PluginContainer<'plugin> {}
 impl<'plugin> PluginContainer<'plugin> {
     /// Create a new container with the provided manifest and host functions.
     pub fn new<'new>(
-        name: &str,
+        id: &str,
         manifest: Manifest,
         functions: impl IntoIterator<Item = Function>,
     ) -> miette::Result<PluginContainer<'new>> {
@@ -33,17 +33,17 @@ impl<'plugin> PluginContainer<'plugin> {
         Ok(PluginContainer {
             manifest,
             plugin: Arc::new(RwLock::new(plugin)),
-            name: name.to_owned(),
+            id: id.to_owned(),
             func_cache: OnceMap::new(),
         })
     }
 
     /// Create a new container with the provided manifest.
     pub fn new_without_functions<'new>(
-        name: &str,
+        id: &str,
         manifest: Manifest,
     ) -> miette::Result<PluginContainer<'new>> {
-        Self::new(name, manifest, [])
+        Self::new(id, manifest, [])
     }
 
     /// Call a function on the plugin with no input and cache the output before returning it.
@@ -98,14 +98,14 @@ impl<'plugin> PluginContainer<'plugin> {
         self.parse_output(func, self.call(func, self.format_input(func, input)?)?)
     }
 
-    /// Return true if the plugin has a function with the given name.
+    /// Return true if the plugin has a function with the given id.
     pub fn has_func(&self, func: &str) -> bool {
         self.plugin
             .read()
             .unwrap_or_else(|_| {
                 panic!(
                     "Unable to acquire read access to `{}` WASM plugin.",
-                    self.name
+                    self.id
                 )
             })
             .has_function(func)
@@ -143,7 +143,7 @@ impl<'plugin> PluginContainer<'plugin> {
             .unwrap_or_else(|_| {
                 panic!(
                     "Unable to acquire write access to `{}` WASM plugin.",
-                    self.name
+                    self.id
                 )
             })
             .call(func, input)
@@ -153,7 +153,7 @@ impl<'plugin> PluginContainer<'plugin> {
             })?;
 
         trace!(
-            plugin = self.name,
+            plugin = self.id,
             func,
             input = %String::from_utf8_lossy(input),
             output = %String::from_utf8_lossy(output),
