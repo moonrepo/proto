@@ -36,11 +36,11 @@ impl PluginRegistry {
                 }
             }
             PluginLocator::SourceUrl { url } => {
-                self.download_plugin(&url, self.create_cache_path(name, &url))
+                self.download_plugin(url, self.create_cache_path(name, url))
                     .await
             }
-            PluginLocator::GitHub(github) => self.download_plugin_from_github(name, &github).await,
-            PluginLocator::Wapm(wapm) => self.download_plugin_from_wapm(name, &wapm).await,
+            PluginLocator::GitHub(github) => self.download_plugin_from_github(name, github).await,
+            PluginLocator::Wapm(wapm) => self.download_plugin_from_wapm(name, wapm).await,
         }
     }
 
@@ -54,7 +54,7 @@ impl PluginRegistry {
 
     async fn download_plugin(
         &mut self,
-        source_url: &str,
+        _source_url: &str,
         dest_path: PathBuf,
     ) -> miette::Result<PathBuf> {
         if dest_path.exists() {

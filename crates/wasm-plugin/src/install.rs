@@ -35,15 +35,17 @@ impl Installable<'_> for WasmPlugin {
             "Attempting to install tool",
         );
 
-        if self.has_func("unpack_archive") {
-            self.call_func_with(
-                "unpack_archive",
-                UnpackArchiveInput {
-                    input_file: self.to_wasi_virtual_path(download_path),
-                    env: self.get_environment()?,
-                    output_dir: self.to_wasi_virtual_path(install_dir),
-                },
-            )?;
+        if self.container.has_func("unpack_archive") {
+            self.container
+                .call_func_with(
+                    "unpack_archive",
+                    UnpackArchiveInput {
+                        input_file: self.container.to_virtual_path(download_path),
+                        env: self.get_environment()?,
+                        output_dir: self.container.to_virtual_path(install_dir),
+                    },
+                )
+                .map_err(|e| ProtoError::Message(e.to_string()))?;
         } else if self.should_unpack() && unpack(download_path, install_dir, prefix)? {
             // Unpacked archive
         } else {

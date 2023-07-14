@@ -40,16 +40,19 @@ impl Verifiable<'_> for WasmPlugin {
         let checksum = get_sha256_hash_of_file(download_file)?;
 
         // Allow plugin to provide their own checksum verification method
-        if self.has_func("verify_checksum") {
-            let params: VerifyChecksumOutput = self.call_func_with(
-                "verify_checksum",
-                VerifyChecksumInput {
-                    checksum,
-                    checksum_file: self.to_wasi_virtual_path(checksum_file),
-                    download_file: self.to_wasi_virtual_path(download_file),
-                    env: self.get_environment()?,
-                },
-            )?;
+        if self.container.has_func("verify_checksum") {
+            let params: VerifyChecksumOutput = self
+                .container
+                .call_func_with(
+                    "verify_checksum",
+                    VerifyChecksumInput {
+                        checksum,
+                        checksum_file: self.container.to_virtual_path(checksum_file),
+                        download_file: self.container.to_virtual_path(download_file),
+                        env: self.get_environment()?,
+                    },
+                )
+                .map_err(|e| ProtoError::Message(e.to_string()))?;
 
             if params.verified {
                 return Ok(true);

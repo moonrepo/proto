@@ -102,13 +102,12 @@ impl<'plugin> PluginContainer<'plugin> {
     pub fn has_func(&self, func: &str) -> bool {
         self.plugin
             .read()
-            .expect(
-                format!(
+            .unwrap_or_else(|_| {
+                panic!(
                     "Unable to acquire read access to `{}` WASM plugin.",
                     self.name
                 )
-                .as_str(),
-            )
+            })
             .has_function(func)
     }
 
@@ -141,13 +140,12 @@ impl<'plugin> PluginContainer<'plugin> {
         let output = self
             .plugin
             .write()
-            .expect(
-                format!(
+            .unwrap_or_else(|_| {
+                panic!(
                     "Unable to acquire write access to `{}` WASM plugin.",
                     self.name
                 )
-                .as_str(),
-            )
+            })
             .call(func, input)
             .map_err(|error| WarpgateError::PluginCallFailed {
                 func: func.to_owned(),
