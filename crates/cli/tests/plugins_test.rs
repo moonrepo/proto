@@ -100,3 +100,37 @@ async fn errors_for_broken_url() {
     })
     .await;
 }
+
+mod builtins {
+    use super::*;
+
+    #[test]
+    fn supports_bun() {
+        let temp = create_empty_sandbox();
+
+        let mut cmd = create_proto_command(temp.path());
+        let assert = cmd.arg("install").arg("bun").assert();
+
+        assert.success();
+    }
+
+    #[test]
+    fn supports_deno() {
+        let temp = create_empty_sandbox();
+
+        let mut cmd = create_proto_command(temp.path());
+        let assert = cmd.arg("install").arg("deno").assert();
+
+        assert.success();
+    }
+
+    #[test]
+    fn supports_go() {
+        let temp = create_empty_sandbox();
+
+        let mut cmd = create_proto_command(temp.path());
+        let assert = cmd.arg("install").arg("go").assert();
+
+        assert.success();
+    }
+}

@@ -3837,7 +3837,6 @@ version = "0.1.0"
 dependencies = [
  "extism",
  "miette",
- "once_cell",
  "once_map",
  "reqwest",
  "serde",

@@ -9,7 +9,6 @@ repository = "https://github.com/moonrepo/warpgate"
 [dependencies]
 extism = { workspace = true }
 miette = { workspace = true }
-once_cell = { workspace = true }
 once_map = { workspace = true }
 reqwest = { workspace = true, features = ["json"] }
 serde = { workspace = true }

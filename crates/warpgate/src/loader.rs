@@ -78,8 +78,8 @@ impl PluginLoader {
         }
     }
 
-    /// Create an absolute path to the plugin destination file, located in the plugins directory.
-    /// We hash the source URL to ensure uniqueness of each plugin + version.
+    /// Create an absolute path to the plugin's destination file, located in the plugins directory.
+    /// Hash the source URL to ensure uniqueness of each plugin + version combination.
     fn create_cache_path(&self, id: &str, url: &str, is_latest: bool) -> PathBuf {
         let mut sha = Sha256::new();
         sha.update(url);
@@ -102,19 +102,23 @@ impl PluginLoader {
             return Ok(false);
         }
 
-        let mut cached = false;
+        let mut cached = true;
 
         // If latest, cache only lasts for 7 days
         if fs::file_name(path).contains("-latest-") {
             let metadata = fs::metadata(path)?;
 
-            if let Ok(filetime) = metadata.created().or_else(|_| metadata.modified()) {
-                cached = filetime > SystemTime::now() - Duration::from_secs(86400 * 7);
-            }
+            cached = if let Ok(filetime) = metadata.created().or_else(|_| metadata.modified()) {
+                filetime > SystemTime::now() - Duration::from_secs(86400 * 7)
+            } else {
+                false
+            };
 
-            // If not latest, always use the cache
-        } else {
-            cached = true;
+            if !cached {
+                trace!(plugin = id, path = ?path, "Deleting stale cache");
+
+                fs::remove_file(path)?;
+            }
         }
 
         if cached {
@@ -136,7 +140,7 @@ impl PluginLoader {
             return Ok(dest_path);
         }
 
-        trace!(plugin = id, url = source_url, "Downloading plugin from URL",);
+        trace!(plugin = id, url = source_url, "Downloading plugin from URL");
 
         move_or_unpack_download(
             &download_url_to_temp(source_url, &self.temp_dir).await?,
@@ -204,7 +208,7 @@ impl PluginLoader {
                 trace!(
                     plugin = id,
                     asset = &asset.name,
-                    "Found WASM asset with `application/wasm` content type"
+                    "Found WASM asset with application/wasm content type"
                 );
 
                 return self
