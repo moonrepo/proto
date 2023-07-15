@@ -142,20 +142,26 @@ impl ToolsConfig {
     }
 
     pub fn inherit_builtin_plugins(&mut self) {
-        self.plugins.insert(
-            "bun".into(),
-            PluginLocator::try_from("github:moonrepo/bun-plugin".to_owned()).unwrap(),
-        );
+        if !self.plugins.contains_key("bun") {
+            self.plugins.insert(
+                "bun".into(),
+                PluginLocator::try_from("github:moonrepo/bun-plugin".to_owned()).unwrap(),
+            );
+        }
 
-        self.plugins.insert(
-            "deno".into(),
-            PluginLocator::try_from("github:moonrepo/deno-plugin".to_owned()).unwrap(),
-        );
+        if !self.plugins.contains_key("deno") {
+            self.plugins.insert(
+                "deno".into(),
+                PluginLocator::try_from("github:moonrepo/deno-plugin".to_owned()).unwrap(),
+            );
+        }
 
-        self.plugins.insert(
-            "go".into(),
-            PluginLocator::try_from("github:moonrepo/go-plugin".to_owned()).unwrap(),
-        );
+        if !self.plugins.contains_key("go") {
+            self.plugins.insert(
+                "go".into(),
+                PluginLocator::try_from("github:moonrepo/go-plugin".to_owned()).unwrap(),
+            );
+        }
     }
 
     pub fn merge(&mut self, other: ToolsConfig) {
