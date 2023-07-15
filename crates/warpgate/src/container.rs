@@ -118,7 +118,7 @@ impl<'plugin> PluginContainer<'plugin> {
             return path.to_path_buf();
         };
 
-        for (guest_path, host_path) in virtual_paths {
+        for (host_path, guest_path) in virtual_paths {
             if path.starts_with(host_path) {
                 let path = guest_path.join(path.strip_prefix(host_path).unwrap());
 
