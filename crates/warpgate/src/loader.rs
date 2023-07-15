@@ -7,10 +7,12 @@ use crate::helpers::{
 use crate::locator::{GitHubLocator, PluginLocator, WapmLocator};
 use sha2::{Digest, Sha256};
 use starbase_styles::color;
+use starbase_utils::fs;
 use std::path::{Path, PathBuf};
+use std::time::{Duration, SystemTime};
 use tracing::trace;
 
-pub struct PluginRegistry {
+pub struct PluginLoader {
     /// Location where downloaded .wasm plugins are stored.
     plugins_dir: PathBuf,
 
@@ -18,10 +20,10 @@ pub struct PluginRegistry {
     temp_dir: PathBuf,
 }
 
-impl PluginRegistry {
-    /// Create a new registry that stores plugins and downloads in the provided directories.
+impl PluginLoader {
+    /// Create a new loader that stores plugins and downloads in the provided directories.
     pub fn new(plugins_dir: &Path, temp_dir: &Path) -> Self {
-        trace!(cache_dir = ?plugins_dir, "Creating plugin registry");
+        trace!(cache_dir = ?plugins_dir, "Creating plugin loader");
 
         Self {
             plugins_dir: plugins_dir.to_owned(),
@@ -30,7 +32,7 @@ impl PluginRegistry {
     }
 
     /// Load a plugin using the provided locator. File system plugins are loaded directly,
-    /// while remote plugins are downloaded and cached.
+    /// while remote/URL plugins are downloaded and cached.
     pub async fn load_plugin<T: AsRef<str>>(
         &mut self,
         id: T,
@@ -64,34 +66,64 @@ impl PluginRegistry {
                 }
             }
             PluginLocator::SourceUrl { url } => {
-                self.download_plugin(id, url, self.create_cache_path(id, url))
-                    .await
+                self.download_plugin(
+                    id,
+                    url,
+                    self.create_cache_path(id, url, url.contains("latest")),
+                )
+                .await
             }
             PluginLocator::GitHub(github) => self.download_plugin_from_github(id, github).await,
             PluginLocator::Wapm(wapm) => self.download_plugin_from_wapm(id, wapm).await,
         }
     }
 
-    fn create_cache_path(&self, id: &str, seed: &str) -> PathBuf {
+    /// Create an absolute path to the plugin destination file, located in the plugins directory.
+    /// We hash the source URL to ensure uniqueness of each plugin + version.
+    fn create_cache_path(&self, id: &str, url: &str, is_latest: bool) -> PathBuf {
         let mut sha = Sha256::new();
-        sha.update(seed);
+        sha.update(url);
 
         self.plugins_dir.join(format!(
-            "{}-{:x}{}",
-            id,
+            "{id}{}{:x}{}",
+            if is_latest { "-latest-" } else { "-" },
             sha.finalize(),
-            determine_cache_extension(seed)
+            determine_cache_extension(url)
         ))
     }
 
-    fn is_cached(&self, id: &str, path: &Path) -> bool {
-        if path.exists() {
-            trace!(plugin = id, path = ?path, "Plugin already downloaded and cached");
+    /// Check if the plugin has been downloaded and is cached.
+    /// If using a latest strategy (no explicit version or tag), the cache
+    /// is only valid for 7 days (to ensure not stale), otherwise forever.
+    fn is_cached(&self, id: &str, path: &Path) -> miette::Result<bool> {
+        if !path.exists() {
+            trace!(plugin = id, "Plugin not cached, downloading");
 
-            true
-        } else {
-            false
+            return Ok(false);
         }
+
+        let mut cached = false;
+
+        // If latest, cache only lasts for 7 days
+        if fs::file_name(path).contains("-latest-") {
+            let metadata = fs::metadata(path)?;
+
+            if let Ok(filetime) = metadata.created().or_else(|_| metadata.modified()) {
+                cached = filetime > SystemTime::now() - Duration::from_secs(86400 * 7);
+            }
+
+            // If not latest, always use the cache
+        } else {
+            cached = true;
+        }
+
+        if cached {
+            trace!(plugin = id, path = ?path, "Plugin already downloaded and cached");
+        } else {
+            trace!(plugin = id, path = ?path, "Plugin cached but stale, re-downloading");
+        }
+
+        Ok(cached)
     }
 
     async fn download_plugin(
@@ -100,7 +132,7 @@ impl PluginRegistry {
         source_url: &str,
         dest_path: PathBuf,
     ) -> miette::Result<PathBuf> {
-        if self.is_cached(id, &dest_path) {
+        if self.is_cached(id, &dest_path)? {
             return Ok(dest_path);
         }
 
@@ -139,9 +171,9 @@ impl PluginRegistry {
 
         // Check the cache first using the API URL as the seed,
         // so that we can avoid making unnecessary HTTP requests.
-        let plugin_path = self.create_cache_path(id, &api_url);
+        let plugin_path = self.create_cache_path(id, &api_url, release_tag == "latest");
 
-        if self.is_cached(id, &plugin_path) {
+        if self.is_cached(id, &plugin_path)? {
             return Ok(plugin_path);
         }
 
@@ -224,9 +256,9 @@ impl PluginRegistry {
 
         // Check the cache first using the API URL as the seed,
         // so that we can avoid making unnecessary HTTP requests.
-        let plugin_path = self.create_cache_path(id, &fake_api_url);
+        let plugin_path = self.create_cache_path(id, &fake_api_url, version == "latest");
 
-        if self.is_cached(id, &plugin_path) {
+        if self.is_cached(id, &plugin_path)? {
             return Ok(plugin_path);
         }
 

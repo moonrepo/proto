@@ -8,7 +8,7 @@ use starbase_utils::toml;
 use std::{env, path::Path, str::FromStr};
 use strum::EnumIter;
 use tracing::debug;
-use warpgate::{PluginLocator, PluginRegistry};
+use warpgate::{PluginLoader, PluginLocator};
 
 #[derive(Clone, Debug, Eq, EnumIter, Hash, PartialEq)]
 pub enum ToolType {
@@ -49,7 +49,7 @@ pub async fn create_plugin_from_locator(
     let proto = proto.as_ref();
     let locator = locator.as_ref();
 
-    let plugin_path = PluginRegistry::new(&proto.plugins_dir, &proto.temp_dir)
+    let plugin_path = PluginLoader::new(&proto.plugins_dir, &proto.temp_dir)
         .load_plugin(plugin, locator)
         .await
         .map_err(|e| ProtoError::Message(e.to_string()))?;

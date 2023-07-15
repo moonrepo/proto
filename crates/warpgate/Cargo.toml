@@ -3,7 +3,7 @@ name = "warpgate"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
-description = "A registry for downloading and managing Extism WASM plugins."
+description = "Download and manage Extism WASM plugins."
 repository = "https://github.com/moonrepo/warpgate"
 
 [dependencies]

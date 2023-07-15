@@ -2,10 +2,10 @@ mod api;
 mod container;
 mod error;
 mod helpers;
+mod loader;
 mod locator;
-mod registry;
 
 pub use container::*;
 pub use error::*;
+pub use loader::*;
 pub use locator::*;
-pub use registry::*;
