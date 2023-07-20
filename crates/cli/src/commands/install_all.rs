@@ -21,6 +21,10 @@ pub async fn install_all() -> SystemResult {
     debug!("Detecting tools from environment");
 
     for tool_type in ToolType::iter() {
+        if let ToolType::Plugin(_) = tool_type {
+            continue;
+        }
+
         let tool = create_tool(&tool_type).await?;
 
         if let Some(version) = tool.detect_version_from(&working_dir).await? {
