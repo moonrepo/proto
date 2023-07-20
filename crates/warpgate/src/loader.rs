@@ -8,6 +8,7 @@ use crate::locator::{GitHubLocator, PluginLocator, WapmLocator};
 use sha2::{Digest, Sha256};
 use starbase_styles::color;
 use starbase_utils::fs;
+use std::env;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 use tracing::trace;
@@ -191,9 +192,13 @@ impl PluginLoader {
         // Otherwise make an HTTP request to the GitHub releases API,
         // and loop through the assets to find a matching one.
         let client = reqwest::Client::new();
-        let response = client
-            .get(api_url)
-            .header("User-Agent", "moonrepo/proto")
+        let mut request = client.get(api_url).header("User-Agent", "moonrepo/proto");
+
+        if let Ok(auth_token) = env::var("GITHUB_TOKEN") {
+            request = request.bearer_auth(auth_token);
+        }
+
+        let response = request
             .send()
             .await
             .map_err(|error| WarpgateError::Http { error })?;

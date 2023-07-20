@@ -104,6 +104,8 @@ async fn errors_for_broken_url() {
 mod builtins {
     use super::*;
 
+    // Bun doesn't support Windows
+    #[cfg(not(windows))]
     #[test]
     fn supports_bun() {
         let temp = create_empty_sandbox();

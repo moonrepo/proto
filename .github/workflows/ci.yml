@@ -50,6 +50,8 @@ jobs:
           cache: false
       - run: cd plugins && cargo wasi build -p proto_wasm_test
         if: ${{ runner.os != 'Windows' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         # Windows runs out of disk space
       - run: |
           cd plugins;
@@ -57,6 +59,8 @@ jobs:
           node ../.github/actions/delete-target-files.js;
         if: ${{ runner.os == 'Windows' }}
       - run: cargo nextest run --workspace --exclude proto_pdk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   run:
     name: Run
     runs-on: ${{ matrix.os }}
