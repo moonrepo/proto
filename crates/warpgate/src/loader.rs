@@ -117,8 +117,6 @@ impl PluginLoader {
             };
 
             if !cached {
-                trace!(plugin = id, path = ?path, "Deleting stale cache");
-
                 fs::remove_file(path)?;
             }
         }

@@ -111,6 +111,21 @@ impl<'plugin> PluginContainer<'plugin> {
             .has_function(func)
     }
 
+    /// Convert the provided virtual guest path to an absolute host path.
+    pub fn from_virtual_path(&self, path: &Path) -> PathBuf {
+        let Some(virtual_paths) = self.manifest.allowed_paths.as_ref() else {
+            return path.to_path_buf();
+        };
+
+        for (host_path, guest_path) in virtual_paths {
+            if let Ok(rel_path) = path.strip_prefix(guest_path) {
+                return host_path.join(rel_path);
+            }
+        }
+
+        path.to_owned() // ?
+    }
+
     /// Convert the provided absolute host path to a virtual guest path suitable
     /// for WASI sandboxed runtimes.
     pub fn to_virtual_path(&self, path: &Path) -> PathBuf {
@@ -131,7 +146,7 @@ impl<'plugin> PluginContainer<'plugin> {
             }
         }
 
-        path.to_owned()
+        path.to_owned() // ?
     }
 
     fn call(&self, func: &str, input: impl AsRef<[u8]>) -> miette::Result<&[u8]> {
