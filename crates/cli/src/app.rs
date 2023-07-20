@@ -209,6 +209,9 @@ pub enum Commands {
         semver: String,
     },
 
+    #[command(name = "plugins", about = "List all active and configured plugins.")]
+    Plugins,
+
     #[command(
         alias = "r",
         name = "run",

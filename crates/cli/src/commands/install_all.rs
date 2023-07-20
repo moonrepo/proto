@@ -21,10 +21,6 @@ pub async fn install_all() -> SystemResult {
     debug!("Detecting tools from environment");
 
     for tool_type in ToolType::iter() {
-        if matches!(tool_type, ToolType::Plugin(_)) {
-            continue;
-        }
-
         let tool = create_tool(&tool_type).await?;
 
         if let Some(version) = tool.detect_version_from(&working_dir).await? {
@@ -38,6 +34,24 @@ pub async fn install_all() -> SystemResult {
 
     let tools = config.tools;
     let plugins = config.plugins;
+
+    if !plugins.is_empty() {
+        let proto = Proto::new()?;
+        let mut futures = vec![];
+        let pb = create_progress_bar(format!(
+            "Installing {} plugins: {}",
+            plugins.len(),
+            plugins.keys().cloned().collect::<Vec<_>>().join(", ")
+        ));
+
+        for (name, locator) in &plugins {
+            futures.push(create_plugin_from_locator(name, &proto, locator));
+        }
+
+        try_join_all(futures).await?;
+
+        pb.finish_and_clear();
+    }
 
     if !tools.is_empty() {
         let mut futures = vec![];
@@ -61,24 +75,6 @@ pub async fn install_all() -> SystemResult {
         try_join_all(futures).await?;
 
         enable_progress_bars();
-
-        pb.finish_and_clear();
-    }
-
-    if !plugins.is_empty() {
-        let proto = Proto::new()?;
-        let mut futures = vec![];
-        let pb = create_progress_bar(format!(
-            "Installing {} plugins: {}",
-            plugins.len(),
-            plugins.keys().cloned().collect::<Vec<_>>().join(", ")
-        ));
-
-        for (name, locator) in &plugins {
-            futures.push(create_plugin_from_locator(name, &proto, locator));
-        }
-
-        try_join_all(futures).await?;
 
         pb.finish_and_clear();
     }
