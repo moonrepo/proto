@@ -48,7 +48,12 @@ mod loader {
                 .await
                 .unwrap();
 
-            assert_eq!(path, fixture.join("test.wasm"));
+            // Path is UNC prefixed
+            if cfg!(windows) {
+                assert!(path.ends_with("loader\\test.wasm"));
+            } else {
+                assert_eq!(path, fixture.join("test.wasm"));
+            }
         }
     }
 

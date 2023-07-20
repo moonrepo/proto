@@ -8,6 +8,10 @@ pub struct WasmTestWrapper {
 }
 
 impl WasmTestWrapper {
+    pub fn from_virtual_path(&self, path: &Path) -> PathBuf {
+        self.tool.container.from_virtual_path(path)
+    }
+
     pub fn to_virtual_path(&self, path: &Path) -> PathBuf {
         self.tool.container.to_virtual_path(path)
     }
