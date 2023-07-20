@@ -40,6 +40,7 @@ async fn run(command: StateRef<CliCommand>) {
         Commands::ListGlobal { tool } => commands::list_global(tool).await?,
         Commands::ListRemote { tool } => commands::list_remote(tool).await?,
         Commands::Local { tool, semver } => commands::local(tool, semver).await?,
+        Commands::Plugins { json } => commands::plugins(json).await?,
         Commands::Run {
             tool,
             semver,
@@ -76,7 +77,7 @@ async fn main() -> MainResult {
         },
         filter_modules: string_vec!["proto", "starbase", "warpgate"],
         log_env: "STARBASE_LOG".into(),
-        test_env: "PROTO_TEST".into(),
+        // test_env: "PROTO_TEST".into(),
         ..TracingOptions::default()
     });
 

@@ -209,6 +209,12 @@ pub enum Commands {
         semver: String,
     },
 
+    #[command(name = "plugins", about = "List all active and configured plugins.")]
+    Plugins {
+        #[arg(long, help = "Print the list in JSON format")]
+        json: bool,
+    },
+
     #[command(
         alias = "r",
         name = "run",
