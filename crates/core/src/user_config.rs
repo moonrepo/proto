@@ -1,12 +1,9 @@
-use crate::{
-    errors::ProtoError,
-    helpers::get_root,
-    plugin::{PluginLocation, PluginLocator},
-};
+use crate::{errors::ProtoError, helpers::get_root};
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
 use starbase_utils::toml;
 use std::env;
+use warpgate::PluginLocator;
 
 pub const USER_CONFIG_NAME: &str = "config.toml";
 
@@ -33,8 +30,12 @@ impl UserConfig {
 
         // Update plugin file paths to be absolute
         for locator in config.plugins.values_mut() {
-            if let PluginLocator::Source(PluginLocation::File(ref mut file)) = locator {
-                *file = root.join(&file);
+            if let PluginLocator::SourceFile {
+                path: ref mut source_path,
+                ..
+            } = locator
+            {
+                *source_path = root.join(&source_path);
             }
         }
 

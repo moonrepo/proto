@@ -38,7 +38,7 @@ fn writes_local_version_file_for_plugin() {
 
     assert!(fs::read_to_string(version_file)
         .unwrap()
-        .contains("moon-test = \"1.0.0\""),)
+        .contains("moon-test = \"1.0.0\""))
 }
 
 #[test]

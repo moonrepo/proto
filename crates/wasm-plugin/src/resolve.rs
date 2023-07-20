@@ -18,12 +18,15 @@ impl Resolvable<'_> for WasmPlugin {
     }
 
     async fn load_version_manifest(&self) -> Result<VersionManifest, ProtoError> {
-        let mut available: LoadVersionsOutput = self.cache_func_with(
-            "load_versions",
-            LoadVersionsInput {
-                env: self.get_environment()?,
-            },
-        )?;
+        let mut available: LoadVersionsOutput = self
+            .container
+            .cache_func_with(
+                "load_versions",
+                LoadVersionsInput {
+                    env: self.get_environment()?,
+                },
+            )
+            .map_err(|e| ProtoError::Message(e.to_string()))?;
 
         available.versions.sort_by(|a, d| d.cmp(a));
         available.canary_versions.sort_by(|a, d| d.cmp(a));
@@ -82,14 +85,17 @@ impl Resolvable<'_> for WasmPlugin {
         let manifest = self.load_version_manifest().await?;
         let mut version = "";
 
-        if self.has_func("resolve_version") {
-            let resolved: ResolveVersionOutput = self.call_func_with(
-                "resolve_version",
-                ResolveVersionInput {
-                    initial: initial_version.to_owned(),
-                    env: self.get_environment()?,
-                },
-            )?;
+        if self.container.has_func("resolve_version") {
+            let resolved: ResolveVersionOutput = self
+                .container
+                .call_func_with(
+                    "resolve_version",
+                    ResolveVersionInput {
+                        initial: initial_version.to_owned(),
+                        env: self.get_environment()?,
+                    },
+                )
+                .map_err(|e| ProtoError::Message(e.to_string()))?;
 
             if let Some(candidate) = resolved.candidate {
                 debug!(

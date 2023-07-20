@@ -1,4 +1,4 @@
-use proto_core::{PluginLocation, PluginLocator, ToolsConfig};
+use proto_core::{PluginLocator, ToolsConfig};
 use rustc_hash::FxHashMap;
 use starbase_sandbox::create_empty_sandbox;
 
@@ -46,11 +46,17 @@ camelCase = "source:./camel.toml"
         FxHashMap::from_iter([
             (
                 "foo".into(),
-                PluginLocator::Source(PluginLocation::File(fixture.path().join("./test.toml")))
+                PluginLocator::SourceFile {
+                    file: "./test.toml".into(),
+                    path: fixture.path().join("./test.toml")
+                }
             ),
             (
                 "camel-case".into(),
-                PluginLocator::Source(PluginLocation::File(fixture.path().join("./camel.toml")))
+                PluginLocator::SourceFile {
+                    file: "./camel.toml".into(),
+                    path: fixture.path().join("./camel.toml")
+                }
             )
         ])
     );
@@ -64,7 +70,10 @@ fn formats_plugins_table() {
     config.tools.insert("node".into(), "12.0.0".into());
     config.plugins.insert(
         "foo".into(),
-        PluginLocator::Source(PluginLocation::File(fixture.path().join("./test.toml"))),
+        PluginLocator::SourceFile {
+            file: "./test.toml".into(),
+            path: fixture.path().join("./test.toml"),
+        },
     );
     config.save().unwrap();
 
@@ -73,7 +82,7 @@ fn formats_plugins_table() {
         r#"node = "12.0.0"
 
 [plugins]
-foo = "source:test.toml"
+foo = "source:./test.toml"
 "#,
     );
 }
@@ -134,15 +143,17 @@ deno = "7.8.9"
         FxHashMap::from_iter([
             (
                 "node".into(),
-                PluginLocator::Source(PluginLocation::File(
-                    fixture.path().join("one/two/three/./node.toml")
-                ))
+                PluginLocator::SourceFile {
+                    file: "./node.toml".into(),
+                    path: fixture.path().join("one/two/three/./node.toml")
+                }
             ),
             (
                 "bun".into(),
-                PluginLocator::Source(PluginLocation::File(
-                    fixture.path().join("one/two/../bun.wasm")
-                ))
+                PluginLocator::SourceFile {
+                    file: "../bun.wasm".into(),
+                    path: fixture.path().join("one/two/../bun.wasm")
+                }
             )
         ])
     );
