@@ -2388,6 +2388,7 @@ dependencies = [
  "reqwest",
  "rustc-hash",
  "semver",
+ "serde",
  "starbase",
  "starbase_sandbox",
  "starbase_utils",

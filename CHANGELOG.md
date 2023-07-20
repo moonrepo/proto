@@ -8,6 +8,7 @@
   - This is an experiment before we migrate Node.js and Rust to WASM.
   - Please report any issues you encounter or discrepancies from the previous release!
 - Added a new plugin configuration locator, `github:org/repo`.
+- Added a `proto plugins` command, for listing all active and configured plugins.
 - Updated `proto clean` and `proto use` to load and merge all `.prototools` from the current directory and upwards.
 - WASM API
   - Added a `format_bin_name` function.
