@@ -70,7 +70,7 @@ pub enum WarpgateError {
         code(plugin::download::missing),
         help = "Please refer to the plugin's official documentation."
     )]
-    #[error("Plugin download {} does not exist. This version may not be supported for your current operating system or architecture.", .url.style(Style::Url))]
+    #[error("Plugin download {} does not exist. This version may not be supported for your current operating system or architecture, or the URL is incorrect.", .url.style(Style::Url))]
     DownloadNotFound { url: String },
 
     #[diagnostic(code(plugin::download::failed))]

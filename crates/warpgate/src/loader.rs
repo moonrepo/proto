@@ -22,12 +22,14 @@ pub struct PluginLoader {
 
 impl PluginLoader {
     /// Create a new loader that stores plugins and downloads in the provided directories.
-    pub fn new(plugins_dir: &Path, temp_dir: &Path) -> Self {
+    pub fn new<P: AsRef<Path>, T: AsRef<Path>>(plugins_dir: P, temp_dir: T) -> Self {
+        let plugins_dir = plugins_dir.as_ref();
+
         trace!(cache_dir = ?plugins_dir, "Creating plugin loader");
 
         Self {
             plugins_dir: plugins_dir.to_owned(),
-            temp_dir: temp_dir.to_owned(),
+            temp_dir: temp_dir.as_ref().to_owned(),
         }
     }
 
