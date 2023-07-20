@@ -69,12 +69,18 @@ impl TryFrom<String> for PluginLocator {
         let mut parts = value.splitn(2, ':');
 
         let Some(scope) = parts.next() else {
-            return Err(WarpgateError::Serde("Missing plugin scope (before :).".into()));
+            return Err(WarpgateError::Serde("Missing plugin scope or location.".into()));
         };
 
         let Some(location) = parts.next() else {
-            return Err(WarpgateError::Serde("Missing plugin locator (after :).".into()));
+            return Err(WarpgateError::Serde("Missing plugin scope or location.".into()));
         };
+
+        if location.is_empty() {
+            return Err(WarpgateError::Serde(
+                "Missing plugin location (after :).".into(),
+            ));
+        }
 
         match scope {
             "source" => {

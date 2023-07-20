@@ -193,7 +193,7 @@ impl PluginLoader {
         let client = reqwest::Client::new();
         let response = client
             .get(api_url)
-            .header("User-Agent", "moonrepo")
+            .header("User-Agent", "moonrepo/proto")
             .send()
             .await
             .map_err(|error| WarpgateError::Http { error })?;
