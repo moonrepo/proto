@@ -1,7 +1,10 @@
 use crate::tools::create_plugin_from_locator;
+use miette::IntoDiagnostic;
 use proto_core::{color, Proto, ToolsConfig, UserConfig};
 use rustc_hash::FxHashMap;
+use serde::Serialize;
 use starbase::SystemResult;
+use starbase_utils::json;
 use tracing::debug;
 use warpgate::PluginLocator;
 
@@ -13,6 +16,7 @@ fn render_entry<V: AsRef<str>>(label: &str, value: V) {
     );
 }
 
+#[derive(Serialize)]
 pub struct PluginItem {
     id: String,
     name: String,
@@ -20,7 +24,7 @@ pub struct PluginItem {
     locator: PluginLocator,
 }
 
-pub async fn plugins() -> SystemResult {
+pub async fn plugins(json: bool) -> SystemResult {
     let proto = Proto::new()?;
     let user_config = UserConfig::load()?;
     let mut tools_config = ToolsConfig::load_upwards()?;
@@ -46,6 +50,12 @@ pub async fn plugins() -> SystemResult {
     }
 
     items.sort_by(|a, d| a.id.cmp(&d.id));
+
+    if json {
+        println!("{}", json::to_string_pretty(&items).into_diagnostic()?);
+
+        return Ok(());
+    }
 
     for item in items {
         println!("{} {} {}", color::id(item.id), color::muted("-"), item.name);

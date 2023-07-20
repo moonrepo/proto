@@ -40,7 +40,7 @@ async fn run(command: StateRef<CliCommand>) {
         Commands::ListGlobal { tool } => commands::list_global(tool).await?,
         Commands::ListRemote { tool } => commands::list_remote(tool).await?,
         Commands::Local { tool, semver } => commands::local(tool, semver).await?,
-        Commands::Plugins => commands::plugins().await?,
+        Commands::Plugins { json } => commands::plugins(json).await?,
         Commands::Run {
             tool,
             semver,

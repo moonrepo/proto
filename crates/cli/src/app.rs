@@ -210,7 +210,10 @@ pub enum Commands {
     },
 
     #[command(name = "plugins", about = "List all active and configured plugins.")]
-    Plugins,
+    Plugins {
+        #[arg(long, help = "Print the list in JSON format")]
+        json: bool,
+    },
 
     #[command(
         alias = "r",
