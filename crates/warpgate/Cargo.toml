@@ -1,0 +1,24 @@
+[package]
+name = "warpgate"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Download and manage Extism WASM plugins."
+repository = "https://github.com/moonrepo/warpgate"
+
+[dependencies]
+extism = { workspace = true }
+miette = { workspace = true }
+once_map = { workspace = true }
+reqwest = { workspace = true, features = ["json"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+starbase_utils = { workspace = true }
+starbase_styles = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+starbase_sandbox = { workspace = true }
+tokio = { workspace = true}

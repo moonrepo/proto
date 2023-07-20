@@ -10,14 +10,17 @@ impl Executable<'_> for WasmPlugin {
         let install_dir = self.get_install_dir()?;
         let mut bin_path = None;
 
-        if self.has_func("locate_bins") {
-            let execute_params: LocateBinsOutput = self.cache_func_with(
-                "locate_bins",
-                LocateBinsInput {
-                    env: self.get_environment()?,
-                    tool_dir: self.to_wasi_virtual_path(&install_dir),
-                },
-            )?;
+        if self.container.has_func("locate_bins") {
+            let execute_params: LocateBinsOutput = self
+                .container
+                .cache_func_with(
+                    "locate_bins",
+                    LocateBinsInput {
+                        env: self.get_environment()?,
+                        tool_dir: self.container.to_virtual_path(&install_dir),
+                    },
+                )
+                .map_err(|e| ProtoError::Message(e.to_string()))?;
 
             if let Some(bin) = &execute_params.bin_path {
                 bin_path = Some(install_dir.join(bin));
@@ -54,7 +57,7 @@ impl Executable<'_> for WasmPlugin {
     }
 
     fn get_globals_bin_dir(&self) -> Result<Option<PathBuf>, ProtoError> {
-        if !self.has_func("locate_bins") {
+        if !self.container.has_func("locate_bins") {
             return Ok(None);
         }
 
@@ -63,13 +66,16 @@ impl Executable<'_> for WasmPlugin {
         let tool_dir = self.get_install_dir()?;
         let env_var_pattern = regex::Regex::new(r"\$([A-Z0-9_]+)").unwrap();
 
-        let params: LocateBinsOutput = self.cache_func_with(
-            "locate_bins",
-            LocateBinsInput {
-                env: self.get_environment()?,
-                tool_dir: self.to_wasi_virtual_path(&tool_dir),
-            },
-        )?;
+        let params: LocateBinsOutput = self
+            .container
+            .cache_func_with(
+                "locate_bins",
+                LocateBinsInput {
+                    env: self.get_environment()?,
+                    tool_dir: self.container.to_virtual_path(&tool_dir),
+                },
+            )
+            .map_err(|e| ProtoError::Message(e.to_string()))?;
 
         let lookup_count = params.globals_lookup_dirs.len() - 1;
 

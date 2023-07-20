@@ -1,14 +1,11 @@
-use crate::{
-    errors::ProtoError,
-    plugin::{PluginLocation, PluginLocator},
-};
+use crate::errors::ProtoError;
 use convert_case::{Case, Casing};
 use rustc_hash::FxHashMap;
 use starbase_utils::toml::{self, TomlTable, TomlValue};
 use std::env;
 use std::path::{Path, PathBuf};
-use std::str::FromStr;
 use tracing::trace;
+use warpgate::PluginLocator;
 
 pub const TOOLS_CONFIG_NAME: &str = ".prototools";
 
@@ -99,11 +96,11 @@ impl ToolsConfig {
 
                         for (plugin, location) in plugins_table {
                             if let TomlValue::String(location) = location {
-                                let mut locator = PluginLocator::from_str(&location)?;
+                                let mut locator = PluginLocator::try_from(location).map_err(|e| ProtoError::Message(e.to_string()))?;
 
                                 // Update file paths to be absolute
-                                if let PluginLocator::Source(PluginLocation::File(ref mut file)) = locator {
-                                    *file = path.parent().unwrap().join(&file);
+                                if let PluginLocator::SourceFile { path: ref mut source_path, .. } = locator {
+                                    *source_path = path.parent().unwrap().join(&source_path);
                                 }
 
                                 plugins.insert(
@@ -145,26 +142,25 @@ impl ToolsConfig {
     }
 
     pub fn inherit_builtin_plugins(&mut self) {
-        for (plugin, source) in [
-            (
-                "bun",
-                "https://github.com/moonrepo/bun-plugin/releases/download/v0.0.3/bun_plugin.wasm",
-            ),
-            (
-                "deno",
-                "https://github.com/moonrepo/deno-plugin/releases/download/v0.0.2/deno_plugin.wasm",
-            ),
-            (
-                "go",
-                "https://github.com/moonrepo/go-plugin/releases/download/v0.0.3/go_plugin.wasm",
-            ),
-        ] {
-            if !self.plugins.contains_key(plugin) {
-                self.plugins.insert(
-                    plugin.into(),
-                    PluginLocator::Source(PluginLocation::Url(source.into())),
-                );
-            }
+        if !self.plugins.contains_key("bun") {
+            self.plugins.insert(
+                "bun".into(),
+                PluginLocator::try_from("github:moonrepo/bun-plugin".to_owned()).unwrap(),
+            );
+        }
+
+        if !self.plugins.contains_key("deno") {
+            self.plugins.insert(
+                "deno".into(),
+                PluginLocator::try_from("github:moonrepo/deno-plugin".to_owned()).unwrap(),
+            );
+        }
+
+        if !self.plugins.contains_key("go") {
+            self.plugins.insert(
+                "go".into(),
+                PluginLocator::try_from("github:moonrepo/go-plugin".to_owned()).unwrap(),
+            );
         }
     }
 
@@ -184,23 +180,7 @@ impl ToolsConfig {
             let mut plugins = TomlTable::with_capacity(self.plugins.len());
 
             for (plugin, locator) in &self.plugins {
-                // Convert files back to relative paths
-                let location = match locator {
-                    PluginLocator::Source(source) => format!(
-                        "source:{}",
-                        match source {
-                            PluginLocation::File(file) => {
-                                pathdiff::diff_paths(file, self.path.parent().unwrap())
-                                    .unwrap_or(file.to_path_buf())
-                                    .to_string_lossy()
-                                    .to_string()
-                            }
-                            PluginLocation::Url(url) => url.to_owned(),
-                        }
-                    ),
-                };
-
-                plugins.insert(plugin.to_owned(), TomlValue::String(location));
+                plugins.insert(plugin.to_owned(), TomlValue::String(locator.to_string()));
             }
 
             map.insert("plugins".to_owned(), TomlValue::Table(plugins));

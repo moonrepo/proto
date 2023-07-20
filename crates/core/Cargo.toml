@@ -8,6 +8,7 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
+warpgate = { path = "../warpgate" }
 async-trait = "0.1.71"
 cached = { workspace = true }
 convert_case = { workspace = true }
@@ -23,8 +24,8 @@ rustc-hash = { workspace = true }
 semver = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-sha2 = "0.10.7"
-starbase_styles = "0.1.11"
+sha2 = { workspace = true }
+starbase_styles = { workspace = true }
 starbase_utils = { workspace = true }
 tar = "0.4.38"
 tinytemplate = "1.2.1"

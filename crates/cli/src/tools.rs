@@ -8,6 +8,7 @@ use starbase_utils::toml;
 use std::{env, path::Path, str::FromStr};
 use strum::EnumIter;
 use tracing::debug;
+use warpgate::{PluginLoader, PluginLocator};
 
 #[derive(Clone, Debug, Eq, EnumIter, Hash, PartialEq)]
 pub enum ToolType {
@@ -45,43 +46,35 @@ pub async fn create_plugin_from_locator(
     proto: impl AsRef<Proto>,
     locator: impl AsRef<PluginLocator>,
 ) -> Result<Box<dyn Tool<'static>>, ProtoError> {
-    match locator.as_ref() {
-        PluginLocator::Source(location) => {
-            let (is_toml, source_path) = match location {
-                PluginLocation::File(file) => {
-                    if !file.exists() {
-                        return Err(ProtoError::PluginFileMissing(file.to_path_buf()));
-                    }
+    let proto = proto.as_ref();
+    let locator = locator.as_ref();
 
-                    (
-                        file.extension().is_some_and(|ext| ext == "toml"),
-                        file.to_path_buf(),
-                    )
-                }
-                PluginLocation::Url(url) => {
-                    (url.ends_with(".toml"), download_plugin(plugin, url).await?)
-                }
-            };
+    let plugin_path = PluginLoader::new(&proto.plugins_dir, &proto.temp_dir)
+        .load_plugin(plugin, locator)
+        .await
+        .map_err(|e| ProtoError::Message(e.to_string()))?;
+    let is_toml = plugin_path
+        .extension()
+        .map(|e| e == "toml")
+        .unwrap_or(false);
 
-            if is_toml {
-                debug!(source = ?source_path, "Loading TOML plugin");
+    if is_toml {
+        debug!(source = ?plugin_path, "Loading TOML plugin");
 
-                return Ok(Box::new(schema_plugin::SchemaPlugin::new(
-                    proto,
-                    plugin.to_owned(),
-                    toml::read_file(source_path)?,
-                )));
-            }
-
-            debug!(source = ?source_path, "Loading WASM plugin");
-
-            Ok(Box::new(wasm_plugin::WasmPlugin::new(
-                proto,
-                plugin.to_owned(),
-                source_path,
-            )?))
-        }
+        return Ok(Box::new(schema_plugin::SchemaPlugin::new(
+            proto,
+            plugin.to_owned(),
+            toml::read_file(plugin_path)?,
+        )));
     }
+
+    debug!(source = ?plugin_path, "Loading WASM plugin");
+
+    Ok(Box::new(wasm_plugin::WasmPlugin::new(
+        proto,
+        plugin.to_owned(),
+        plugin_path,
+    )?))
 }
 
 pub async fn create_plugin_tool(

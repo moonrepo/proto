@@ -20,8 +20,10 @@ rustc-hash = "1.1.0"
 semver = "1.0.17"
 serde = { version = "1.0.167", features = ["derive"] }
 serde_json = "1.0.100"
-starbase_sandbox = { version = "0.1.5" }
-starbase_utils = { version = "0.2.13", default-features = false, features = ["json", "toml"] }
+sha2 = "0.10.7"
+starbase_sandbox = { version = "0.1.6" }
+starbase_styles = "0.1.12"
+starbase_utils = { version = "0.2.14", default-features = false, features = ["json", "toml"] }
 thiserror = "1.0.40"
 tokio = { version = "1.29.1", features = ["full", "tracing"] }
 tracing = "0.1.37"

@@ -12,13 +12,16 @@ impl Shimable<'_> for WasmPlugin {
         let install_dir = self.get_install_dir()?;
         let mut created_primary = false;
 
-        if self.has_func("create_shims") {
-            let shim_configs: CreateShimsOutput = self.cache_func_with(
-                "create_shims",
-                CreateShimsInput {
-                    env: self.get_environment()?,
-                },
-            )?;
+        if self.container.has_func("create_shims") {
+            let shim_configs: CreateShimsOutput = self
+                .container
+                .cache_func_with(
+                    "create_shims",
+                    CreateShimsInput {
+                        env: self.get_environment()?,
+                    },
+                )
+                .map_err(|e| ProtoError::Message(e.to_string()))?;
 
             if let Some(primary_config) = &shim_configs.primary {
                 let mut context = ShimContext::new_global(self.get_id());

@@ -2,7 +2,7 @@ mod utils;
 
 use futures::Future;
 use proto::{tools::create_plugin_from_locator, ProtoError};
-use proto_core::{PluginLocation, PluginLocator, Proto, Tool};
+use proto_core::{PluginLocator, Proto, Tool};
 use std::env;
 use std::path::{Path, PathBuf};
 use utils::*;
@@ -44,16 +44,17 @@ async fn downloads_and_installs_plugin_from_file() {
         create_plugin_from_locator(
             "moon",
             Proto::from(root),
-            PluginLocator::Source(PluginLocation::File(
-                root_dir.join("./tests/fixtures/moon-schema.toml"),
-            )),
+            PluginLocator::SourceFile {
+                file: "./tests/fixtures/moon-schema.toml".into(),
+                path: root_dir.join("./tests/fixtures/moon-schema.toml"),
+            },
         )
     })
     .await;
 }
 
 #[tokio::test]
-#[should_panic(expected = "PluginFileMissing")]
+#[should_panic(expected = "does not exist")]
 async fn errors_for_missing_file() {
     run_tests(|root| {
         let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -61,7 +62,10 @@ async fn errors_for_missing_file() {
         create_plugin_from_locator(
             "moon",
             Proto::from(root),
-            PluginLocator::Source(PluginLocation::File(root_dir.join("./some/fake/path.toml"))),
+            PluginLocator::SourceFile {
+                file: "./some/fake/path.toml".into(),
+                path: root_dir.join("./some/fake/path.toml"),
+            },
         )
     })
     .await;
@@ -73,25 +77,62 @@ async fn downloads_and_installs_plugin_from_url() {
         create_plugin_from_locator(
             "moon",
             Proto::from(root),
-            PluginLocator::Source(PluginLocation::Url(
-                "https://raw.githubusercontent.com/moonrepo/moon/master/proto-plugin.toml".into(),
-            )),
+            PluginLocator::SourceUrl {
+                url: "https://raw.githubusercontent.com/moonrepo/moon/master/proto-plugin.toml"
+                    .into(),
+            },
         )
     })
     .await;
 }
 
 #[tokio::test]
-#[should_panic(expected = "DownloadNotFound")]
+#[should_panic(expected = "does not exist")]
 async fn errors_for_broken_url() {
     run_tests(|root| {
         create_plugin_from_locator(
             "moon",
             Proto::from(root),
-            PluginLocator::Source(PluginLocation::Url(
-                "https://raw.githubusercontent.com/moonrepo/moon/some/fake/path.toml".into(),
-            )),
+            PluginLocator::SourceUrl {
+                url: "https://raw.githubusercontent.com/moonrepo/moon/some/fake/path.toml".into(),
+            },
         )
     })
     .await;
+}
+
+mod builtins {
+    use super::*;
+
+    // Bun doesn't support Windows
+    #[cfg(not(windows))]
+    #[test]
+    fn supports_bun() {
+        let temp = create_empty_sandbox();
+
+        let mut cmd = create_proto_command(temp.path());
+        let assert = cmd.arg("install").arg("bun").assert();
+
+        assert.success();
+    }
+
+    #[test]
+    fn supports_deno() {
+        let temp = create_empty_sandbox();
+
+        let mut cmd = create_proto_command(temp.path());
+        let assert = cmd.arg("install").arg("deno").assert();
+
+        assert.success();
+    }
+
+    #[test]
+    fn supports_go() {
+        let temp = create_empty_sandbox();
+
+        let mut cmd = create_proto_command(temp.path());
+        let assert = cmd.arg("install").arg("go").assert();
+
+        assert.success();
+    }
 }

@@ -74,7 +74,7 @@ async fn main() -> MainResult {
         } else {
             LevelFilter::INFO
         },
-        filter_modules: string_vec!["proto", "starbase"],
+        filter_modules: string_vec!["proto", "starbase", "warpgate"],
         log_env: "STARBASE_LOG".into(),
         test_env: "PROTO_TEST".into(),
         ..TracingOptions::default()
