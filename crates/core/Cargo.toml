@@ -19,6 +19,7 @@ human-sort = { workspace = true }
 lenient_semver = { version = "0.4.2", default-features = false, features = ["version_lite"] }
 miette = { workspace = true }
 pathdiff = "0.2.1"
+regex = { workspace = true }
 reqwest = { workspace = true }
 rustc-hash = { workspace = true }
 semver = { workspace = true }

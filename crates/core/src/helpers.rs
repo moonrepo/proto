@@ -59,6 +59,11 @@ pub fn remove_v_prefix(value: &str) -> String {
     value.to_owned()
 }
 
+pub fn remove_space_after_gtlt(value: &str) -> String {
+    let pattern = regex::Regex::new(r"([><]=?)\s+(\d)").unwrap();
+    pattern.replace_all(value, "$1$2").to_string()
+}
+
 #[cached(time = 300)]
 #[tracing::instrument]
 pub fn is_offline() -> bool {
