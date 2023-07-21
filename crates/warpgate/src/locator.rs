@@ -3,34 +3,52 @@ use crate::WarpgateError;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use std::path::PathBuf;
+use std::str::FromStr;
 
+/// A GitHub release locator.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GitHubLocator {
-    pub file_stem: String, // Without extension
+    /// Name of asset without extension.
+    /// Defaults to `<repo>_plugin`.
+    pub file_stem: String,
+
+    /// Organization and repository slug: `owner/repo`.
     pub repo_slug: String,
+
+    /// Release tag to use. Defaults to `latest`.
     pub tag: Option<String>,
 }
 
+/// A wapm.io package locator.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WapmLocator {
-    pub file_stem: String, // Without extension
+    /// Name of module without extension.
+    /// Defaults to `<name>_plugin`.
+    pub file_stem: String,
+
+    /// Owner and package name: `owner/name`.
     pub package_name: String,
+
+    /// Version to use. Defaults to `latest`.
     pub version: Option<String>,
 }
 
+/// Strategies for locating plugins.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(untagged, into = "String", try_from = "String")]
 pub enum PluginLocator {
-    // source:path/to/file.wasm
+    /// source:path/to/file.wasm
     SourceFile { file: String, path: PathBuf },
 
-    // source:https://url/to/file.wasm
+    /// source:https://url/to/file.wasm
     SourceUrl { url: String },
 
-    // github:owner/repo@tag
+    /// github:owner/repo
+    /// github:owner/repo@tag
     GitHub(GitHubLocator),
 
-    // wapm:package/name@version
+    /// wapm:package/name
+    /// wapm:package/name@version
     Wapm(WapmLocator),
 }
 
@@ -62,6 +80,14 @@ impl Display for PluginLocator {
     }
 }
 
+impl FromStr for PluginLocator {
+    type Err = WarpgateError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        PluginLocator::try_from(value.to_owned())
+    }
+}
+
 impl TryFrom<String> for PluginLocator {
     type Error = WarpgateError;
 
@@ -86,7 +112,7 @@ impl TryFrom<String> for PluginLocator {
             "source" => {
                 if location.starts_with("http:") {
                     Err(WarpgateError::Serde(
-                        "Only https:// URLs are supported for source plugins.".into(),
+                        "Only https URLs are supported for source plugins.".into(),
                     ))
                 } else if location.starts_with("https:") {
                     Ok(PluginLocator::SourceUrl {

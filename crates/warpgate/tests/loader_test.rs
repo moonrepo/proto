@@ -18,7 +18,7 @@ mod loader {
         #[tokio::test]
         #[should_panic(expected = "Cannot load plugin, source file fake-file does not exist.")]
         async fn errors_missing_file() {
-            let (_sandbox, mut loader) = create_loader();
+            let (_sandbox, loader) = create_loader();
 
             loader
                 .load_plugin(
@@ -34,7 +34,7 @@ mod loader {
 
         #[tokio::test]
         async fn returns_path_asis() {
-            let (_sandbox, mut loader) = create_loader();
+            let (_sandbox, loader) = create_loader();
             let fixture = locate_fixture("loader");
 
             let path = loader
@@ -63,7 +63,7 @@ mod loader {
         #[tokio::test]
         #[should_panic(expected = "does not exist")]
         async fn errors_broken_url() {
-            let (_sandbox, mut loader) = create_loader();
+            let (_sandbox, loader) = create_loader();
 
             loader
                 .load_plugin("test", &PluginLocator::SourceUrl { url: "https://github.com/moonrepo/deno-plugin/releases/download/v0.0.2/deno_plugin_invalid_name.wasm".into() })
@@ -73,7 +73,7 @@ mod loader {
 
         #[tokio::test]
         async fn downloads_to_plugins() {
-            let (sandbox, mut loader) = create_loader();
+            let (sandbox, loader) = create_loader();
 
             let path = loader
                 .load_plugin("test", &PluginLocator::SourceUrl { url: "https://github.com/moonrepo/deno-plugin/releases/download/v0.0.2/deno_plugin.wasm".into() })
@@ -85,7 +85,7 @@ mod loader {
 
         #[tokio::test]
         async fn supports_latest() {
-            let (sandbox, mut loader) = create_loader();
+            let (sandbox, loader) = create_loader();
 
             let path = loader
                 .load_plugin("test", &PluginLocator::SourceUrl { url: "https://github.com/moonrepo/deno-plugin/releases/latest/download/deno_plugin.wasm".into() })
@@ -102,7 +102,7 @@ mod loader {
         #[tokio::test]
         #[should_panic(expected = "Cannot download plugin from GitHub (moonrepo/invalid-repo)")]
         async fn errors_invalid_slug() {
-            let (_sandbox, mut loader) = create_loader();
+            let (_sandbox, loader) = create_loader();
 
             loader
                 .load_plugin(
@@ -119,7 +119,7 @@ mod loader {
 
         #[tokio::test]
         async fn downloads_to_plugins() {
-            let (sandbox, mut loader) = create_loader();
+            let (sandbox, loader) = create_loader();
 
             let path = loader
                 .load_plugin(
@@ -138,7 +138,7 @@ mod loader {
 
         #[tokio::test]
         async fn supports_latest() {
-            let (sandbox, mut loader) = create_loader();
+            let (sandbox, loader) = create_loader();
 
             let path = loader
                 .load_plugin(

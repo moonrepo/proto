@@ -9,6 +9,9 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 use tracing::trace;
 
+/// A container around Extism's [`Plugin`] and [`Manifest`] types that provides convenience
+/// methods for calling and caching functions from the WASM plugin. It also provides
+/// additional methods for easily working with WASI and virtual paths.
 pub struct PluginContainer<'plugin> {
     pub id: String,
     pub manifest: Manifest,
@@ -149,7 +152,8 @@ impl<'plugin> PluginContainer<'plugin> {
         path.to_owned() // ?
     }
 
-    fn call(&self, func: &str, input: impl AsRef<[u8]>) -> miette::Result<&[u8]> {
+    /// Call a function on the plugin with the given raw input and return the raw output.
+    pub fn call(&self, func: &str, input: impl AsRef<[u8]>) -> miette::Result<&[u8]> {
         let input = input.as_ref();
 
         let output = self
