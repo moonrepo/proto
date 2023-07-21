@@ -13,6 +13,8 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 use tracing::trace;
 
+/// A system for loading plugins from a locator strategy,
+/// and caching the `.wasm` file to the host's file system.
 pub struct PluginLoader {
     /// Location where downloaded .wasm plugins are stored.
     plugins_dir: PathBuf,
@@ -36,12 +38,13 @@ impl PluginLoader {
 
     /// Load a plugin using the provided locator. File system plugins are loaded directly,
     /// while remote/URL plugins are downloaded and cached.
-    pub async fn load_plugin<T: AsRef<str>>(
-        &mut self,
+    pub async fn load_plugin<T: AsRef<str>, L: AsRef<PluginLocator>>(
+        &self,
         id: T,
-        locator: &PluginLocator,
+        locator: L,
     ) -> miette::Result<PathBuf> {
         let id = id.as_ref();
+        let locator = locator.as_ref();
 
         trace!(
             plugin = id,
@@ -83,7 +86,7 @@ impl PluginLoader {
 
     /// Create an absolute path to the plugin's destination file, located in the plugins directory.
     /// Hash the source URL to ensure uniqueness of each plugin + version combination.
-    fn create_cache_path(&self, id: &str, url: &str, is_latest: bool) -> PathBuf {
+    pub fn create_cache_path(&self, id: &str, url: &str, is_latest: bool) -> PathBuf {
         let mut sha = Sha256::new();
         sha.update(url);
 
@@ -98,7 +101,7 @@ impl PluginLoader {
     /// Check if the plugin has been downloaded and is cached.
     /// If using a latest strategy (no explicit version or tag), the cache
     /// is only valid for 7 days (to ensure not stale), otherwise forever.
-    fn is_cached(&self, id: &str, path: &Path) -> miette::Result<bool> {
+    pub fn is_cached(&self, id: &str, path: &Path) -> miette::Result<bool> {
         if !path.exists() {
             trace!(plugin = id, "Plugin not cached, downloading");
 
@@ -132,7 +135,7 @@ impl PluginLoader {
     }
 
     async fn download_plugin(
-        &mut self,
+        &self,
         id: &str,
         source_url: &str,
         dest_path: PathBuf,
@@ -152,7 +155,7 @@ impl PluginLoader {
     }
 
     async fn download_plugin_from_github(
-        &mut self,
+        &self,
         id: &str,
         github: &GitHubLocator,
     ) -> miette::Result<PathBuf> {
@@ -253,7 +256,7 @@ impl PluginLoader {
     }
 
     async fn download_plugin_from_wapm(
-        &mut self,
+        &self,
         id: &str,
         wapm: &WapmLocator,
     ) -> miette::Result<PathBuf> {

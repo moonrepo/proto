@@ -3,8 +3,8 @@ name = "warpgate"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
-description = "Download and manage Extism WASM plugins."
-repository = "https://github.com/moonrepo/warpgate"
+description = "Download and manage Extism WASM plugins at runtime."
+repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
 extism = { workspace = true }

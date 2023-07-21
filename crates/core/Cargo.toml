@@ -8,7 +8,7 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
-warpgate = { path = "../warpgate" }
+warpgate = { version = "0.1.0", path = "../warpgate" }
 async-trait = "0.1.71"
 cached = { workspace = true }
 convert_case = { workspace = true }

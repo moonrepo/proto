@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use std::path::PathBuf;
 
+/// A GitHub release locator.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GitHubLocator {
     pub file_stem: String, // Without extension
@@ -11,6 +12,7 @@ pub struct GitHubLocator {
     pub tag: Option<String>,
 }
 
+/// A wapm.io package locator.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WapmLocator {
     pub file_stem: String, // Without extension
@@ -18,6 +20,7 @@ pub struct WapmLocator {
     pub version: Option<String>,
 }
 
+/// Strategies for locating plugins.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(untagged, into = "String", try_from = "String")]
 pub enum PluginLocator {
