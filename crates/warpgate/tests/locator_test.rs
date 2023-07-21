@@ -98,7 +98,7 @@ mod locator {
         use super::*;
 
         #[test]
-        #[should_panic(expected = "Only https:// URLs are supported for source plugins.")]
+        #[should_panic(expected = "Only https URLs are supported for source plugins.")]
         fn errors_http_source() {
             PluginLocator::try_from("source:http://domain.com/file.wasm".to_string()).unwrap();
         }

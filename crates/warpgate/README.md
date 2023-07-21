@@ -2,7 +2,7 @@
 
 ![Crates.io](https://img.shields.io/crates/v/warpgate) ![Crates.io](https://img.shields.io/crates/d/warpgate)
 
-Warpgate is a library for downloading, loading, and managing [Extism](https://extism.org/) powered WASM plugins at runtime.
+Warpgate is a library for downloading, resolving, and managing [Extism][extism] powered WASM plugins at runtime.
 
 The warp in warpgate stands for Web Assembly Runtime Plugins. Pretty stellar huh.
 
@@ -64,6 +64,8 @@ PluginLocator::SourceUrl {
 
 Download an asset from a GitHub release. This approach communicates with the GitHub API, and requires a `.wasm` file to be attached as an asset.
 
+Defining a `GITHUB_TOKEN` environment variable is recommended to avoid rate limiting.
+
 ```rust
 // github:org/repo
 // github:org/repo@v1.2.3
@@ -74,4 +76,39 @@ PluginLocator::GitHub(GitHubLocator{
 })
 ```
 
-> The `file_stem` cannot be configured via the string format, and defaults to the repository name in snake_case, suffixed with `_plugin`.
+> The `file_stem` cannot be configured with the string format, and defaults to the repository name in snake_case, suffixed with `_plugin`.
+
+## Extism plugin containers
+
+Another mechanism of this library is providing the `PluginContainer` struct; a wrapper around [Extism][extism]'s `Plugin` and `Manifest` types. The container provides convenience methods for calling functions with serde compatible input and output types, _and_ caching the result for subsequent calls. This is extremely useful in avoiding unnecessary overhead when communicating between the WASM guest and host.
+
+To make use of the container, instantiate an instance with a `Manifest`, and optional host functions.
+
+```rust
+use extism::{Manifest, Wasm};
+use warpgate::PluginContainer;
+
+// Load the plugin and create a manifest
+let wasm_file = loader.load_plugin(locator);
+let manifest = Manifest::new([Wasm::file(wasm_file)]);
+
+// Create a container
+let container = PluginContainer::new("id", manifest, [host, funcs])?;
+// Or
+let container = PluginContainer::new_without_functions("id", manifest)?;
+```
+
+From here, you can call functions on the plugin with the `call_func` (no input) and `call_func_with` methods. To call _and_ cache functions, use the alternative `cache_func` and `cache_func_with` methods.
+
+Furthermore, these methods require a serde struct for outputs, and optionally for inputs. Non-serde based functions can be handled with the `call` method.
+
+```rust
+let output: AddOutput = container.cache_func_with("add", AddInput {
+	left: 10,
+	right: 20,
+})?;
+
+dbg!(output.sum);
+```
+
+[extism]: https://extism.org/
