@@ -2,7 +2,7 @@
 
 [package]
 name = "proto_cli"
-version = "0.12.1"
+version = "0.13.0"
 edition = "2021"
 license = "MIT"
 description = "A multi-language toolchain and version manager."
@@ -27,12 +27,12 @@ name = "proto"
 path = "src/bin.rs"
 
 [dependencies]
-proto_core = { version = "0.12.2", path = "../core" }
-proto_node = { version = "0.11.1", path = "../node" }
-proto_rust = { version = "0.9.2", path = "../rust" }
-proto_schema_plugin = { version = "0.7.2", path = "../schema-plugin" }
-proto_wasm_plugin = { version = "0.2.3", path = "../wasm-plugin" }
-warpgate = { version = "0.1.0", path = "../warpgate" }
+proto_core = { version = "0.13.0", path = "../core" }
+proto_node = { version = "0.12.0", path = "../node" }
+proto_rust = { version = "0.10.0", path = "../rust" }
+proto_schema_plugin = { version = "0.8.0", path = "../schema-plugin" }
+proto_wasm_plugin = { version = "0.3.0", path = "../wasm-plugin" }
+warpgate = { version = "0.2.0", path = "../warpgate" }
 async-recursion = "1.0.4"
 clap = { workspace = true, features = ["derive", "env"] }
 clap_complete = { workspace = true }
