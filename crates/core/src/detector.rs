@@ -1,7 +1,7 @@
 #![allow(clippy::borrowed_box)]
 
 use crate::errors::ProtoError;
-use crate::helpers::{is_alias_name, remove_v_prefix};
+use crate::helpers::{is_alias_name, remove_space_after_gtlt, remove_v_prefix};
 use crate::manifest::Manifest;
 use crate::tool::Tool;
 use crate::tools_config::ToolsConfig;
@@ -144,7 +144,7 @@ pub fn expand_detected_version(
         return Ok(Some(version.to_owned()));
     }
 
-    let version = remove_v_prefix(&version.replace(".*", ""));
+    let version = remove_space_after_gtlt(&remove_v_prefix(&version.replace(".*", "")));
     let mut fully_qualified = false;
     let mut maybe_version = String::new();
 

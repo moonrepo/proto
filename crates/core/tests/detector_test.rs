@@ -467,6 +467,69 @@ mod expanded_version {
     }
 
     #[test]
+    fn handles_gt_gte_with_space() {
+        let temp = create_empty_sandbox();
+        let manifest_path = create_manifest(
+            temp.path(),
+            Manifest {
+                installed_versions: FxHashSet::from_iter(["1.5.9".into()]),
+                ..Manifest::default()
+            },
+        );
+
+        assert_eq!(
+            expand_detected_version(">= 1.5.9", &Manifest::load(&manifest_path).unwrap())
+                .unwrap()
+                .unwrap(),
+            "1.5.9"
+        );
+        assert_eq!(
+            expand_detected_version("> 1.5.0", &Manifest::load(&manifest_path).unwrap())
+                .unwrap()
+                .unwrap(),
+            "1.5.9"
+        );
+        assert_eq!(
+            expand_detected_version(">= 1.2", &Manifest::load(&manifest_path).unwrap())
+                .unwrap()
+                .unwrap(),
+            "1.5.9"
+        );
+        assert_eq!(
+            expand_detected_version("> 1.2", &Manifest::load(&manifest_path).unwrap())
+                .unwrap()
+                .unwrap(),
+            "1.5.9"
+        );
+        assert_eq!(
+            expand_detected_version(">= 0", &Manifest::load(&manifest_path).unwrap())
+                .unwrap()
+                .unwrap(),
+            "1.5.9"
+        );
+        assert_eq!(
+            expand_detected_version("> 0", &Manifest::load(&manifest_path).unwrap())
+                .unwrap()
+                .unwrap(),
+            "1.5.9"
+        );
+
+        // Failures
+        assert_eq!(
+            expand_detected_version("> 1.6", &Manifest::load(&manifest_path).unwrap()).unwrap(),
+            None
+        );
+        assert_eq!(
+            expand_detected_version(">= 2", &Manifest::load(&manifest_path).unwrap()).unwrap(),
+            None
+        );
+        assert_eq!(
+            expand_detected_version("> 1.5.9", &Manifest::load(&manifest_path).unwrap()).unwrap(),
+            None
+        );
+    }
+
+    #[test]
     fn handles_multi() {
         let temp = create_empty_sandbox();
         let manifest_path = create_manifest(

@@ -2413,6 +2413,7 @@ dependencies = [
  "lenient_semver",
  "miette",
  "pathdiff",
+ "regex",
  "reqwest",
  "rustc-hash",
  "semver",
