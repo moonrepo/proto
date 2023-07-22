@@ -15,6 +15,9 @@ pub struct Environment {
     /// Current architecture.
     pub arch: HostArch,
 
+    /// ID of the current plugin.
+    pub id: String,
+
     /// Current operating system.
     pub os: HostOS,
 
@@ -200,6 +203,9 @@ pub struct LocateBinsOutput {
 pub struct LoadVersionsInput {
     /// Current environment.
     pub env: Environment,
+
+    /// The alias or version currently being resolved.
+    pub initial: String,
 }
 
 /// Output returned by the `load_versions` function.

@@ -6,25 +6,25 @@ macro_rules! generate_download_install_tests {
             use proto_core::*;
 
             let sandbox = create_empty_sandbox();
-            let plugin = create_plugin($id, sandbox.path());
-            let bin_params = plugin.locate_bins(LocateBinsInput {
-                env: plugin.tool.get_environment().unwrap(),
-                ..LocateBinsInput::default()
-            });
+            let mut plugin = create_plugin($id, sandbox.path());
 
-            let mut tool = plugin.tool;
-
-            tool.setup($version).await.unwrap();
+            plugin.tool.setup($version).await.unwrap();
 
             // Check install dir exists
             let base_dir = sandbox.path().join(".proto/tools").join($id).join($version);
+            let tool_dir = plugin.tool.get_install_dir().unwrap();
 
-            assert_eq!(tool.get_install_dir().unwrap(), base_dir);
+            assert_eq!(tool_dir, base_dir);
             assert!(base_dir.exists());
 
             // Check bin path exists
+            let bin_params = plugin.locate_bins(LocateBinsInput {
+                env: plugin.tool.get_environment().unwrap(),
+                tool_dir,
+            });
+
             assert_eq!(
-                tool.get_bin_path().unwrap(),
+                plugin.tool.get_bin_path().unwrap(),
                 &base_dir.join(bin_params.bin_path.unwrap_or($id.into()))
             );
 

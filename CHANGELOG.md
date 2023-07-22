@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+#### 🚀 Updates
+
+- WASM API
+  - Added the plugin `id` to every `env` field.
+  - Added `initial` to `LoadVersionsInput`.
+
+#### 🐞 Fixes
+
+- Fixed an issue where version requirements using `>`, `>=`, `<`, or `<=` wouldn't parse correctly.
+
 ## 0.13.0
 
 #### 🚀 Updates

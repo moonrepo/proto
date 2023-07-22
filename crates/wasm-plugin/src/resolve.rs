@@ -24,6 +24,7 @@ impl Resolvable<'_> for WasmPlugin {
                 "load_versions",
                 LoadVersionsInput {
                     env: self.get_environment()?,
+                    initial: self.get_resolved_version().to_owned(),
                 },
             )
             .map_err(|e| ProtoError::Message(e.to_string()))?;
@@ -67,11 +68,11 @@ impl Resolvable<'_> for WasmPlugin {
 
         let initial_version = remove_v_prefix(initial_version).to_lowercase();
 
+        self.set_version(&initial_version);
+
         // If offline but we have a fully qualified semantic version,
         // exit early and assume the version is legitimate
         if is_semantic_version(&initial_version) && is_offline() {
-            self.set_version(&initial_version);
-
             return Ok(initial_version);
         }
 

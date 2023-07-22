@@ -83,6 +83,7 @@ impl WasmPlugin {
         Ok(Environment {
             arch: HostArch::from_str(consts::ARCH)
                 .map_err(|e| ProtoError::Message(e.to_string()))?,
+            id: self.id.clone(),
             os: HostOS::from_str(consts::OS).map_err(|e| ProtoError::Message(e.to_string()))?,
             vars: self
                 .get_metadata()?
