@@ -1,6 +1,6 @@
 [package]
 name = "proto_schema_plugin"
-version = "0.8.0"
+version = "0.8.1"
 edition = "2021"
 license = "MIT"
 description = "A schema plugin for proto, with TOML support."
@@ -8,7 +8,7 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
-proto_core = { version = "0.13.0", path = "../core" }
+proto_core = { version = "0.13.1", path = "../core" }
 once_cell = { workspace = true }
 regex = { workspace = true }
 rustc-hash = { workspace = true }
