@@ -1,7 +1,7 @@
 #![allow(clippy::borrowed_box)]
 
 use crate::errors::ProtoError;
-use crate::helpers::{is_alias_name, remove_v_prefix, remove_space_after_gtlt};
+use crate::helpers::{is_alias_name, remove_space_after_gtlt, remove_v_prefix};
 use crate::manifest::Manifest;
 use crate::tool::Tool;
 use crate::tools_config::ToolsConfig;
