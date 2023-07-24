@@ -64,30 +64,26 @@ pub async fn install(
     // Support post install actions that are not coupled to the
     // `Tool` trait. Right now we are hard-coding this, but we
     // should provide a better API.
-    match tool_type {
-        ToolType::Plugin(name) => {
-            if name == "go" {
-                go_hooks::post_install(&passthrough)?;
-            }
 
-            if name == "node" {
-                if !passthrough.contains(&"--no-bundled-npm".to_string()) {
-                    info!("Installing npm that comes bundled with {}", tool.get_name());
-
-                    // This ensures that the correct version is used by the npm tool
-                    std::env::set_var("PROTO_NODE_VERSION", tool.get_resolved_version());
-
-                    install(
-                        ToolType::Plugin("npm".into()),
-                        Some("bundled".into()),
-                        pin_version,
-                        passthrough,
-                    )
-                    .await?;
-                }
-            }
+    if let ToolType::Plugin(id) = tool_type {
+        if id == "go" {
+            go_hooks::post_install(&passthrough)?;
         }
-        _ => {}
+
+        if id == "node" && !passthrough.contains(&"--no-bundled-npm".to_string()) {
+            info!("Installing npm that comes bundled with {}", tool.get_name());
+
+            // This ensures that the correct version is used by the npm tool
+            std::env::set_var("PROTO_NODE_VERSION", tool.get_resolved_version());
+
+            install(
+                ToolType::Plugin("npm".into()),
+                Some("bundled".into()),
+                pin_version,
+                passthrough,
+            )
+            .await?;
+        }
     }
 
     Ok(())

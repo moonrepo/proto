@@ -2433,21 +2433,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "proto_node"
-version = "0.12.2"
-dependencies = [
- "clean-path",
- "once_cell",
- "proto_core",
- "rustc-hash",
- "serde",
- "starbase_sandbox",
- "starbase_utils",
- "tokio",
- "tracing",
-]
-
-[[package]]
 name = "proto_pdk"
 version = "0.3.1"
 dependencies = [
