@@ -2434,7 +2434,7 @@ dependencies = [
 
 [[package]]
 name = "proto_node"
-version = "0.12.1"
+version = "0.12.2"
 dependencies = [
  "clean-path",
  "once_cell",
