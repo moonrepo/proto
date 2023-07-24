@@ -135,4 +135,44 @@ mod builtins {
 
         assert.success();
     }
+
+    #[test]
+    fn supports_node() {
+        let temp = create_empty_sandbox();
+
+        let mut cmd = create_proto_command(temp.path());
+        let assert = cmd.arg("install").arg("node").assert();
+
+        assert.success();
+    }
+
+    #[test]
+    fn supports_npm() {
+        let temp = create_empty_sandbox();
+
+        let mut cmd = create_proto_command(temp.path());
+        let assert = cmd.arg("install").arg("npm").assert();
+
+        assert.success();
+    }
+
+    #[test]
+    fn supports_pnpm() {
+        let temp = create_empty_sandbox();
+
+        let mut cmd = create_proto_command(temp.path());
+        let assert = cmd.arg("install").arg("pnpm").assert();
+
+        assert.success();
+    }
+
+    #[test]
+    fn supports_yarn() {
+        let temp = create_empty_sandbox();
+
+        let mut cmd = create_proto_command(temp.path());
+        let assert = cmd.arg("install").arg("yarn").assert();
+
+        assert.success();
+    }
 }
