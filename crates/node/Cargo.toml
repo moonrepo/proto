@@ -3,7 +3,8 @@ name = "proto_node"
 version = "0.12.1"
 edition = "2021"
 license = "MIT"
-description = "Node.js support for proto."
+description = "DEPRECATED: Node.js support for proto."
+keywords = ["deprecated"]
 homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
