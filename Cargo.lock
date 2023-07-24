@@ -2381,7 +2381,6 @@ dependencies = [
  "indicatif",
  "miette",
  "proto_core",
- "proto_node",
  "proto_rust",
  "proto_schema_plugin",
  "proto_wasm_plugin",

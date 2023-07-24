@@ -28,7 +28,6 @@ path = "src/bin.rs"
 
 [dependencies]
 proto_core = { version = "0.13.1", path = "../core" }
-proto_node = { version = "0.12.1", path = "../node" }
 proto_rust = { version = "0.10.1", path = "../rust" }
 proto_schema_plugin = { version = "0.8.1", path = "../schema-plugin" }
 proto_wasm_plugin = { version = "0.3.1", path = "../wasm-plugin" }

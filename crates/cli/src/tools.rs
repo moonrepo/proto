@@ -1,6 +1,5 @@
 use convert_case::{Case, Casing};
 use proto_core::*;
-use proto_node as node;
 use proto_rust as rust;
 use proto_schema_plugin as schema_plugin;
 use proto_wasm_plugin as wasm_plugin;
@@ -12,11 +11,6 @@ use warpgate::{PluginLoader, PluginLocator};
 
 #[derive(Clone, Debug, Eq, EnumIter, Hash, PartialEq)]
 pub enum ToolType {
-    // Node.js
-    Node,
-    Npm,
-    Pnpm,
-    Yarn,
     // Rust
     Rust,
     // Plugins
@@ -28,11 +22,6 @@ impl FromStr for ToolType {
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         match value.to_lowercase().as_ref() {
-            // Node.js
-            "node" => Ok(Self::Node),
-            "npm" => Ok(Self::Npm),
-            "pnpm" => Ok(Self::Pnpm),
-            "yarn" | "yarnpkg" => Ok(Self::Yarn),
             // Rust
             "rust" => Ok(Self::Rust),
             // Plugins
@@ -128,20 +117,6 @@ pub async fn create_tool(tool: &ToolType) -> Result<Box<dyn Tool<'static>>, Prot
     let proto = Proto::new()?;
 
     Ok(match tool {
-        // Node.js
-        ToolType::Node => Box::new(node::NodeLanguage::new(proto)),
-        ToolType::Npm => Box::new(node::NodeDependencyManager::new(
-            proto,
-            node::NodeDependencyManagerType::Npm,
-        )),
-        ToolType::Pnpm => Box::new(node::NodeDependencyManager::new(
-            proto,
-            node::NodeDependencyManagerType::Pnpm,
-        )),
-        ToolType::Yarn => Box::new(node::NodeDependencyManager::new(
-            proto,
-            node::NodeDependencyManagerType::Yarn,
-        )),
         // Rust
         ToolType::Rust => Box::new(rust::RustLanguage::new(proto)),
         // Plugins
