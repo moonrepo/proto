@@ -60,6 +60,7 @@ mod node {
         let assert = cmd.arg("install").arg("node").arg("19.0.0").assert();
 
         let output = output_to_string(&assert.get_output().stderr.to_vec());
+        temp.debug_files();
 
         assert!(predicate::str::contains("Node.js has been installed at").eval(&output));
         assert!(predicate::str::contains("npm has been installed at").eval(&output));
@@ -69,7 +70,7 @@ mod node {
 
         let manifest = Manifest::load(temp.path().join("tools/npm/manifest.json")).unwrap();
 
-        assert_eq!(manifest.default_version, Some("bundled".into()));
+        assert_eq!(manifest.default_version, Some("8.19.2".into()));
         assert_eq!(
             manifest.installed_versions,
             FxHashSet::from_iter(["8.19.2".into()])

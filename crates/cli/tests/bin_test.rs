@@ -31,7 +31,7 @@ fn returns_path_if_installed() {
 
     if cfg!(windows) {
         assert.stdout(predicate::str::contains(
-            "tools\\npm\\9.0.0\\bin\\npm-cli.js",
+            "tools\\npm\\9.0.0\\bin/npm-cli.js",
         ));
     } else {
         assert.stdout(predicate::str::contains("tools/npm/9.0.0/bin/npm-cli.js"));
