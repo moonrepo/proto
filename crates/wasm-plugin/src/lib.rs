@@ -21,6 +21,7 @@ use std::{
     env::{self, consts},
     path::{Path, PathBuf},
     str::FromStr,
+    time::Duration,
 };
 use warpgate::PluginContainer;
 
@@ -53,6 +54,11 @@ impl WasmPlugin {
 
         let mut manifest = PluginManifest::new([Wasm::file(wasm_file)]);
         manifest = manifest.with_allowed_host("*");
+
+        #[cfg(debug_assertions)]
+        {
+            manifest = manifest.with_timeout(Duration::from_secs(90));
+        }
 
         for (virtual_path, real_path) in &plugin_paths {
             manifest = manifest.with_allowed_path(real_path, virtual_path);
