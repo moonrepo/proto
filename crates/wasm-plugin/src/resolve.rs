@@ -107,6 +107,16 @@ impl Resolvable<'_> for WasmPlugin {
 
                 version = manifest.find_version(candidate)?;
             }
+
+            if let Some(candidate) = resolved.version {
+                debug!(
+                    tool = self.get_id(),
+                    version = &candidate,
+                    "Received an explicit version to use",
+                );
+
+                version = manifest.find_version(candidate)?;
+            }
         }
 
         if version.is_empty() {
