@@ -16,6 +16,7 @@ pub async fn install_all() -> SystemResult {
     debug!("Detecting tools and plugins from .prototools");
 
     let mut config = ToolsConfig::load_upwards()?;
+    config.inherit_builtin_plugins();
 
     // Detect from working dir
     debug!("Detecting tools from environment");
@@ -36,12 +37,10 @@ pub async fn install_all() -> SystemResult {
         }
     }
 
-    let tools = config.tools;
     let plugins = config.plugins;
 
     if !plugins.is_empty() {
         let proto = Proto::new()?;
-        let mut futures = vec![];
         let pb = create_progress_bar(format!(
             "Installing {} plugins: {}",
             plugins.len(),
@@ -49,13 +48,21 @@ pub async fn install_all() -> SystemResult {
         ));
 
         for (name, locator) in &plugins {
-            futures.push(create_plugin_from_locator(name, &proto, locator));
-        }
+            let plugin = create_plugin_from_locator(name, &proto, locator).await?;
 
-        try_join_all(futures).await?;
+            if let Some(version) = plugin.detect_version_from(&working_dir).await? {
+                if let Some(version) = expand_detected_version(&version, plugin.get_manifest()?)? {
+                    debug!(version, "Detected version for {}", plugin.get_name());
+
+                    config.tools.insert(plugin.get_id().to_owned(), version);
+                }
+            }
+        }
 
         pb.finish_and_clear();
     }
+
+    let tools = config.tools;
 
     if !tools.is_empty() {
         let mut futures = vec![];
