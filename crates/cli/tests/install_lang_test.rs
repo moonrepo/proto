@@ -60,9 +60,6 @@ mod node {
         let assert = cmd.arg("install").arg("node").arg("19.0.0").assert();
 
         let output = output_to_string(&assert.get_output().stderr.to_vec());
-        temp.debug_files();
-
-        println!("\n\n{output}");
 
         assert!(predicate::str::contains("Node.js has been installed at").eval(&output));
         assert!(predicate::str::contains("npm has been installed at").eval(&output));
