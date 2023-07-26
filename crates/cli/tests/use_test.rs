@@ -42,6 +42,7 @@ fn installs_all_plugins() {
     assert!(moon_path.exists());
 }
 
+//
 // #[test]
 // fn installs_tool_via_detection() {
 //     let temp = create_empty_sandbox_with_tools();
