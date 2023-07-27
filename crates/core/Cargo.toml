@@ -9,14 +9,15 @@ repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
 warpgate = { version = "0.2.0", path = "../warpgate" }
-async-trait = "0.1.71"
+async-trait = "0.1.72"
 cached = { workspace = true }
 convert_case = { workspace = true }
 dirs = "5.0.1"
-flate2 = "1.0.26"
 fs4 = { version = "0.6.6", features = ["sync"] }
 human-sort = { workspace = true }
-lenient_semver = { version = "0.4.2", default-features = false, features = ["version_lite"] }
+lenient_semver = { version = "0.4.2", default-features = false, features = [
+	"version_lite",
+] }
 miette = { workspace = true }
 pathdiff = "0.2.1"
 regex = { workspace = true }
@@ -26,15 +27,13 @@ semver = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
+starbase_archive = { workspace = true }
 starbase_styles = { workspace = true }
 starbase_utils = { workspace = true }
-tar = "0.4.38"
 tinytemplate = "1.2.1"
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
-xz2 = "0.1.7"
-zip = "0.6.6"
 
 [dev-dependencies]
 starbase_sandbox = { workspace = true }

@@ -165,10 +165,6 @@ pub enum ProtoError {
     #[error("Failed to write to PATH.")]
     WritePathFailed,
 
-    #[diagnostic(code(proto::zip::failed))]
-    #[error("Failed using zip archive.")]
-    Zip(#[from] zip::result::ZipError),
-
     #[diagnostic(transparent)]
     #[error(transparent)]
     Fs(#[from] starbase_utils::fs::FsError),
