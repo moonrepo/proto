@@ -17,10 +17,10 @@ pub async fn pre_run(
     let mut is_install_command = false;
     let mut is_global = false;
 
-    match tool_type {
+    if let ToolType::Plugin(id) = &tool_type {
         // npm install -g <dep>
         // pnpm add -g <dep>
-        ToolType::Npm | ToolType::Pnpm => {
+        if id == "npm" || id == "pnpm" {
             is_install_command = args[0] == "install" || args[0] == "i" || args[0] == "add";
 
             for arg in args {
@@ -32,11 +32,10 @@ pub async fn pre_run(
         }
 
         // yarn global add <dep>
-        ToolType::Yarn => {
+        if id == "yarn" {
             is_global = args[0] == "global";
             is_install_command = args[1] == "add";
         }
-        _ => {}
     };
 
     if is_install_command && is_global {

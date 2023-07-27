@@ -1,12 +1,11 @@
 use crate::helpers::{disable_progress_bars, enable_progress_bars};
-use crate::tools::{create_plugin_from_locator, create_tool, ToolType};
+use crate::tools::{create_plugin_from_locator, ToolType};
 use crate::{commands::clean::clean, commands::install::install, helpers::create_progress_bar};
 use futures::future::try_join_all;
 use proto_core::{expand_detected_version, Proto, ToolsConfig, UserConfig};
 use starbase::SystemResult;
 use std::env;
 use std::str::FromStr;
-use strum::IntoEnumIterator;
 use tracing::{debug, info};
 
 pub async fn install_all() -> SystemResult {
@@ -16,46 +15,30 @@ pub async fn install_all() -> SystemResult {
     debug!("Detecting tools and plugins from .prototools");
 
     let mut config = ToolsConfig::load_upwards()?;
+    config.inherit_builtin_plugins();
 
     // Detect from working dir
-    debug!("Detecting tools from environment");
+    debug!("Detecting tool versions from environment");
 
-    for tool_type in ToolType::iter() {
-        if let ToolType::Plugin(_) = tool_type {
-            continue;
-        }
+    let plugins = config.plugins;
 
-        let tool = create_tool(&tool_type).await?;
+    if !plugins.is_empty() {
+        let proto = Proto::new()?;
 
-        if let Some(version) = tool.detect_version_from(&working_dir).await? {
-            if let Some(version) = expand_detected_version(&version, tool.get_manifest()?)? {
-                debug!(version, "Detected version for {}", tool.get_name());
+        for (name, locator) in plugins {
+            let tool = create_plugin_from_locator(&name, &proto, &locator).await?;
 
-                config.tools.insert(tool.get_id().to_owned(), version);
+            if let Some(version) = tool.detect_version_from(&working_dir).await? {
+                if let Some(version) = expand_detected_version(&version, tool.get_manifest()?)? {
+                    debug!(version, "Detected version for {}", tool.get_name());
+
+                    config.tools.insert(tool.get_id().to_owned(), version);
+                }
             }
         }
     }
 
     let tools = config.tools;
-    let plugins = config.plugins;
-
-    if !plugins.is_empty() {
-        let proto = Proto::new()?;
-        let mut futures = vec![];
-        let pb = create_progress_bar(format!(
-            "Installing {} plugins: {}",
-            plugins.len(),
-            plugins.keys().cloned().collect::<Vec<_>>().join(", ")
-        ));
-
-        for (name, locator) in &plugins {
-            futures.push(create_plugin_from_locator(name, &proto, locator));
-        }
-
-        try_join_all(futures).await?;
-
-        pb.finish_and_clear();
-    }
 
     if !tools.is_empty() {
         let mut futures = vec![];
@@ -83,7 +66,7 @@ pub async fn install_all() -> SystemResult {
         pb.finish_and_clear();
     }
 
-    if tools.is_empty() && plugins.is_empty() {
+    if tools.is_empty() {
         info!("Nothing to install!")
     } else {
         info!("Successfully installed tools and plugins");

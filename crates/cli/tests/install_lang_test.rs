@@ -69,7 +69,7 @@ mod node {
 
         let manifest = Manifest::load(temp.path().join("tools/npm/manifest.json")).unwrap();
 
-        assert_eq!(manifest.default_version, Some("bundled".into()));
+        assert_eq!(manifest.default_version, Some("8.19.2".into()));
         assert_eq!(
             manifest.installed_versions,
             FxHashSet::from_iter(["8.19.2".into()])

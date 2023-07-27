@@ -2381,7 +2381,6 @@ dependencies = [
  "indicatif",
  "miette",
  "proto_core",
- "proto_node",
  "proto_rust",
  "proto_schema_plugin",
  "proto_wasm_plugin",
@@ -2431,21 +2430,6 @@ dependencies = [
  "warpgate",
  "xz2",
  "zip",
-]
-
-[[package]]
-name = "proto_node"
-version = "0.12.1"
-dependencies = [
- "clean-path",
- "once_cell",
- "proto_core",
- "rustc-hash",
- "serde",
- "starbase_sandbox",
- "starbase_utils",
- "tokio",
- "tracing",
 ]
 
 [[package]]

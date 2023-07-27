@@ -36,14 +36,14 @@ pub enum WarpgateError {
     WapmModuleMissing { package: String, version: String },
 
     #[diagnostic(code(plugin::create::failed))]
-    #[error("Failed to load and create WASM plugin.")]
+    #[error("Failed to load and create WASM plugin: {error}")]
     PluginCreateFailed {
         #[source]
         error: extism::Error,
     },
 
     #[diagnostic(code(plugin::call_func::failed))]
-    #[error("Failed to call plugin function {}.", .func.style(Style::Id))]
+    #[error("Failed to call plugin function {}: {error}", .func.style(Style::Id))]
     PluginCallFailed {
         func: String,
         #[source]
