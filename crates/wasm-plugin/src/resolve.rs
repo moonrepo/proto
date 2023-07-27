@@ -84,7 +84,7 @@ impl Resolvable<'_> for WasmPlugin {
         );
 
         let manifest = self.load_version_manifest().await?;
-        let mut version = "";
+        let mut version = String::new();
 
         if self.container.has_func("resolve_version") {
             let resolved: ResolveVersionOutput = self
@@ -105,19 +105,29 @@ impl Resolvable<'_> for WasmPlugin {
                     "Received a candidate version or alias to use instead",
                 );
 
-                version = manifest.find_version(candidate)?;
+                version = manifest.find_version(candidate)?.to_owned();
+            }
+
+            if let Some(candidate) = resolved.version {
+                debug!(
+                    tool = self.get_id(),
+                    version = &candidate,
+                    "Received an explicit version to use",
+                );
+
+                version = candidate;
             }
         }
 
         if version.is_empty() {
-            version = manifest.find_version(&initial_version)?;
+            version = manifest.find_version(&initial_version)?.to_owned();
         }
 
         debug!(tool = self.get_id(), version, "Resolved to {}", version);
 
-        self.set_version(version);
+        self.set_version(&version);
 
-        Ok(version.to_owned())
+        Ok(version)
     }
 
     fn set_version(&mut self, version: &str) {

@@ -145,22 +145,48 @@ impl ToolsConfig {
         if !self.plugins.contains_key("bun") {
             self.plugins.insert(
                 "bun".into(),
-                PluginLocator::try_from("github:moonrepo/bun-plugin".to_owned()).unwrap(),
+                PluginLocator::SourceUrl {
+                    url: "https://github.com/moonrepo/bun-plugin/releases/latest/download/bun_plugin.wasm".into()
+                }
             );
         }
 
         if !self.plugins.contains_key("deno") {
             self.plugins.insert(
                 "deno".into(),
-                PluginLocator::try_from("github:moonrepo/deno-plugin".to_owned()).unwrap(),
+                PluginLocator::SourceUrl {
+                    url: "https://github.com/moonrepo/deno-plugin/releases/latest/download/deno_plugin.wasm".into()
+                }
             );
         }
 
         if !self.plugins.contains_key("go") {
             self.plugins.insert(
                 "go".into(),
-                PluginLocator::try_from("github:moonrepo/go-plugin".to_owned()).unwrap(),
+                PluginLocator::SourceUrl {
+                    url: "https://github.com/moonrepo/go-plugin/releases/latest/download/go_plugin.wasm".into()
+                }
             );
+        }
+
+        if !self.plugins.contains_key("node") {
+            self.plugins.insert(
+                "node".into(),
+                PluginLocator::SourceUrl {
+                    url: "https://github.com/moonrepo/node-plugin/releases/latest/download/node_plugin.wasm".into()
+                }
+            );
+        }
+
+        for depman in ["npm", "pnpm", "yarn"] {
+            if !self.plugins.contains_key(depman) {
+                self.plugins.insert(
+                    depman.into(),
+                    PluginLocator::SourceUrl {
+                        url: "https://github.com/moonrepo/node-plugin/releases/latest/download/node_depman_plugin.wasm".into()
+                    }
+                );
+            }
         }
     }
 

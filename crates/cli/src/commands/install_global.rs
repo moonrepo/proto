@@ -30,24 +30,6 @@ pub async fn install_global(tool_type: ToolType, dependencies: Vec<String>) -> S
         let mut command;
 
         match &tool_type {
-            ToolType::Node | ToolType::Npm | ToolType::Pnpm | ToolType::Yarn => {
-                let mut npm = create_tool(&ToolType::Npm).await?;
-
-                command = Command::new(get_bin_or_fallback(&mut npm).await?);
-                command
-                    .args([
-                        "install",
-                        "--global",
-                        "--loglevel",
-                        "warn",
-                        "--no-audit",
-                        "--no-update-notifier",
-                    ])
-                    .arg(&dependency)
-                    // Remove the /bin component
-                    .env("PREFIX", global_dir.parent().unwrap());
-            }
-
             ToolType::Rust => {
                 command = Command::new("cargo");
                 command.arg("install").arg("--force").arg(&dependency);
@@ -68,6 +50,23 @@ pub async fn install_global(tool_type: ToolType, dependencies: Vec<String>) -> S
                     }
                     "go" => {
                         command.arg("install").arg(&dependency);
+                    }
+                    "node" | "npm" | "pnpm" | "yarn" => {
+                        let mut npm = create_tool(&ToolType::Plugin("npm".into())).await?;
+
+                        command = Command::new(get_bin_or_fallback(&mut npm).await?);
+                        command
+                            .args([
+                                "install",
+                                "--global",
+                                "--loglevel",
+                                "warn",
+                                "--no-audit",
+                                "--no-update-notifier",
+                            ])
+                            .arg(&dependency)
+                            // Remove the /bin component
+                            .env("PREFIX", global_dir.parent().unwrap());
                     }
                     _ => {
                         if let Some(plugin) = tool.as_any().downcast_ref::<SchemaPlugin>() {

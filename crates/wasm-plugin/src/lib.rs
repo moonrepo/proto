@@ -21,6 +21,7 @@ use std::{
     env::{self, consts},
     path::{Path, PathBuf},
     str::FromStr,
+    time::Duration,
 };
 use warpgate::PluginContainer;
 
@@ -53,6 +54,11 @@ impl WasmPlugin {
 
         let mut manifest = PluginManifest::new([Wasm::file(wasm_file)]);
         manifest = manifest.with_allowed_host("*");
+
+        #[cfg(debug_assertions)]
+        {
+            manifest = manifest.with_timeout(Duration::from_secs(90));
+        }
 
         for (virtual_path, real_path) in &plugin_paths {
             manifest = manifest.with_allowed_path(real_path, virtual_path);
@@ -111,10 +117,11 @@ impl WasmPlugin {
             .cache_func_with(
                 "register_tool",
                 ToolMetadataInput {
-                    id: self.get_id().to_owned(),
+                    id: self.id.clone(),
                     env: Environment {
                         arch: HostArch::from_str(consts::ARCH)
                             .map_err(|e| ProtoError::Message(e.to_string()))?,
+                        id: self.id.clone(),
                         os: HostOS::from_str(consts::OS)
                             .map_err(|e| ProtoError::Message(e.to_string()))?,
                         ..Environment::default()

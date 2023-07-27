@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+#### 🚀 Updates
+
+- [Node.js (and package managers)](https://github.com/moonrepo/node-plugin) are now powered by WASM plugins, and have been removed from core.
+  - Please report any issues you encounter or discrepancies from the previous release!
+
 ## 0.13.1
 
 #### 🚀 Updates
