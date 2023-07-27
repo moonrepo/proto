@@ -3813,6 +3813,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "starbase_archive",
  "starbase_sandbox",
  "starbase_styles",
  "starbase_utils",

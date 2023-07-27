@@ -1,7 +1,9 @@
 use crate::error::WarpgateError;
 use miette::IntoDiagnostic;
 use reqwest::Url;
+use starbase_archive::Archiver;
 use starbase_utils::fs::{self, FsError};
+use starbase_utils::glob;
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -90,7 +92,31 @@ pub fn move_or_unpack_download(temp_path: &Path, dest_path: &Path) -> miette::Re
 
         // Unpack archives to temp and move the wasm file
         Some("tar" | "gz" | "xz" | "tgz" | "txz" | "zip") => {
-            unimplemented!();
+            let out_dir = temp_path.parent().unwrap().join("out");
+
+            Archiver::new(&out_dir, dest_path).unpack_from_ext()?;
+
+            let wasm_files = glob::walk_files(&out_dir, ["**/*.wasm"])?;
+
+            if wasm_files.is_empty() {
+                return Err(miette::miette!(
+                    "No applicable `.wasm` file could be found in downloaded plugin.",
+                ));
+
+                // Find a release file first, as some archives include the target folder
+            } else if let Some(release_wasm) = wasm_files
+                .iter()
+                .find(|f| f.to_string_lossy().contains("release"))
+            {
+                fs::rename(release_wasm, dest_path)?;
+
+                // Otherwise, move the first wasm file available
+            } else {
+                fs::rename(&wasm_files[0], dest_path)?;
+            }
+
+            fs::remove_file(temp_path)?;
+            fs::remove_dir_all(out_dir)?;
         }
 
         Some(x) => {
