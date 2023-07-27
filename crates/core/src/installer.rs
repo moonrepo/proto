@@ -1,7 +1,5 @@
 use crate::describer::Describable;
 use crate::errors::ProtoError;
-use starbase_archive::tar::TarUnpacker;
-use starbase_archive::zip::ZipUnpacker;
 use starbase_archive::Archiver;
 use starbase_utils::fs::{self};
 use std::path::{Path, PathBuf};
@@ -97,41 +95,21 @@ pub fn unpack<I: AsRef<Path>, O: AsRef<Path>>(
 ) -> Result<bool, ProtoError> {
     let input_file = input_file.as_ref();
     let ext = input_file.extension().map(|e| e.to_str().unwrap());
-    let mut archiver = Archiver::new(output_dir.as_ref(), input_file);
-
-    if let Some(prefix) = remove_prefix.as_ref() {
-        archiver.set_prefix(prefix);
-    }
 
     match ext {
-        Some("zip") => {
-            archiver
-                .unpack(ZipUnpacker::new)
-                .map_err(|e| ProtoError::Message(e.to_string()))?;
-        }
-        Some("tar") => {
-            archiver
-                .unpack(TarUnpacker::new)
-                .map_err(|e| ProtoError::Message(e.to_string()))?;
-        }
-        Some("tgz" | "gz") => {
-            archiver
-                .unpack(TarUnpacker::new_gz)
-                .map_err(|e| ProtoError::Message(e.to_string()))?;
-        }
-        Some("txz" | "xz") => {
-            archiver
-                .unpack(TarUnpacker::new_xz)
-                .map_err(|e| ProtoError::Message(e.to_string()))?;
-        }
         Some("exe") | None => {
             return Ok(false);
         }
         _ => {
-            return Err(ProtoError::UnsupportedArchiveFormat(
-                input_file.to_path_buf(),
-                ext.unwrap_or_default().to_string(),
-            ))
+            let mut archiver = Archiver::new(output_dir.as_ref(), input_file);
+
+            if let Some(prefix) = remove_prefix.as_ref() {
+                archiver.set_prefix(prefix);
+            }
+
+            archiver
+                .unpack_from_ext()
+                .map_err(|e| ProtoError::Message(e.to_string()))?;
         }
     };
 
