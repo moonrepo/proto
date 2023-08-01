@@ -3089,9 +3089,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_archive"
-version = "0.1.3"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1986ab2e27ea3f47ac126110701ce034c59208a5bec3d5751e7b0b3016801a9"
+checksum = "371ffc9597a89d5c308e1be2f42a5faccceeb61c9de6a6bc315a898ba70d5929"
 dependencies = [
  "flate2",
  "miette",
@@ -3131,9 +3131,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_sandbox"
-version = "0.1.7"
+version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7036c1b4246536d5036d9351f53b7b7e9dd9bd5fa835ef8b3c6cf6db15721e95"
+checksum = "e03cea8d1fd34d42fc47979aa670e28f276f395c70a6e446b6e68c8136dd2ae2"
 dependencies = [
  "assert_cmd",
  "assert_fs",
