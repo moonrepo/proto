@@ -24,4 +24,8 @@ impl Downloadable<'_> for WasmPlugin {
     fn get_download_url(&self) -> Result<String, ProtoError> {
         Ok(self.get_install_params()?.download_url)
     }
+
+    fn should_skip_download(&self) -> Result<bool, ProtoError> {
+        Ok(self.get_install_params()?.skip_download)
+    }
 }

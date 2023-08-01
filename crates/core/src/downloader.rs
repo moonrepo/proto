@@ -17,11 +17,19 @@ pub trait Downloadable<'tool>: Send + Sync + Describable<'tool> + Resolvable<'to
     /// Return a URL to download the tool's archive from a registry.
     fn get_download_url(&self) -> Result<String, ProtoError>;
 
+    fn should_skip_download(&self) -> Result<bool, ProtoError> {
+        Ok(false)
+    }
+
     /// Download the tool (as an archive) from its distribution registry
     /// into the `~/.proto/temp` folder and return an absolute file path.
     /// A custom URL that points to the downloadable archive can be
     /// provided as the 2nd argument.
     async fn download(&self, to_file: &Path, from_url: Option<&str>) -> Result<bool, ProtoError> {
+        if self.should_skip_download()? {
+            return Ok(true);
+        }
+
         if to_file.exists() {
             debug!(tool = self.get_id(), "Tool already downloaded, continuing");
 

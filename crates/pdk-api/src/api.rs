@@ -94,6 +94,23 @@ pub struct ParseVersionFileOutput {
 
 // Downloader, Installer, Verifier
 
+/// Input passed to the `native_install` function.
+#[derive(Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub struct NativeInstallInput {
+    /// Current environment.
+    pub env: Environment,
+
+    /// Virtual directory to the user's home directory.
+    pub home_dir: PathBuf,
+
+    /// Virtual directory to the tool's installation directory.
+    pub tool_dir: PathBuf,
+}
+
+/// Output returned by the `native_install` function.
+#[derive(Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub struct NativeInstallOutput {}
+
 /// Input passed to the `download_prebuilt` function.
 #[derive(Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct DownloadPrebuiltInput {
@@ -131,6 +148,9 @@ pub struct DownloadPrebuiltOutput {
 
     /// A secure URL to download the tool/archive.
     pub download_url: String,
+
+    /// Skip downloading the pre-built. This is an advanced escape hatch!
+    pub skip_download: bool,
 }
 
 /// Input passed to the `unpack_archive` function.
@@ -360,6 +380,9 @@ pub struct CreateShimsInput {
 /// Output returned by the `create_shims` function.
 #[derive(Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct CreateShimsOutput {
+    /// Avoid creating the global shim.
+    pub no_primary_global: bool,
+
     /// Configures the default/primary global shim.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub primary: Option<ShimConfig>,

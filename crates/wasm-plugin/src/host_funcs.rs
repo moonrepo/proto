@@ -1,5 +1,5 @@
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
-use proto_pdk_api::{ExecCommandInput, ExecCommandOutput, TraceInput};
+use proto_pdk_api::{ExecCommandInput, ExecCommandOutput, PluginError, TraceInput};
 use std::path::PathBuf;
 use std::process::Command;
 use tracing::trace;
@@ -88,6 +88,19 @@ fn exec_command(
         stdout_len = output.stdout.len(),
         "Executed command from plugin"
     );
+
+    if output.exit_code != 0 {
+        let mut command_line = vec![input.command];
+        command_line.extend(input.args);
+
+        return Err(PluginError::Message(format!(
+            "Command `{}` failed with {} exit code: {}",
+            command_line.join(" "),
+            output.exit_code,
+            output.stderr
+        ))
+        .into());
+    }
 
     let output_str = serde_json::to_string(&output)?;
     let ptr = unsafe { (*plugin.memory).alloc_bytes(output_str)? };
