@@ -14,14 +14,19 @@ pub enum ToolType {
     Plugin(String),
 }
 
+impl ToolType {
+    pub fn is(&self, id: &str) -> bool {
+        match self {
+            Self::Plugin(name) => name == id,
+        }
+    }
+}
+
 impl FromStr for ToolType {
     type Err = ProtoError;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
-        match value.to_lowercase().as_ref() {
-            // Plugins
-            name => Ok(Self::Plugin(name.to_case(Case::Kebab))),
-        }
+        Ok(Self::Plugin(value.to_lowercase().to_case(Case::Kebab)))
     }
 }
 

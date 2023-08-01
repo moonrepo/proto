@@ -83,10 +83,8 @@ pub async fn run(
     debug!(bin = ?bin_path, "Running {}", tool.get_name());
 
     // Trigger before hook
-    if let ToolType::Plugin(id) = &tool_type {
-        if id == "npm" || id == "pnpm" || id == "yarn" {
-            node_hooks::pre_run(tool_type, &args, &user_config).await?;
-        }
+    if tool_type.is("npm") || tool_type.is("pnpm") || tool_type.is("yarn") {
+        node_hooks::pre_run(tool_type, &args, &user_config).await?;
     }
 
     // Run the command
