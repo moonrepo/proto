@@ -2381,7 +2381,6 @@ dependencies = [
  "indicatif",
  "miette",
  "proto_core",
- "proto_rust",
  "proto_schema_plugin",
  "proto_wasm_plugin",
  "reqwest",
@@ -2463,16 +2462,6 @@ dependencies = [
  "proto_core",
  "proto_pdk_api",
  "proto_wasm_plugin",
-]
-
-[[package]]
-name = "proto_rust"
-version = "0.10.1"
-dependencies = [
- "once_cell",
- "proto_core",
- "tokio",
- "tracing",
 ]
 
 [[package]]

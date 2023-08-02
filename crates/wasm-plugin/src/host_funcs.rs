@@ -1,5 +1,5 @@
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
-use proto_pdk_api::{ExecCommandInput, ExecCommandOutput, TraceInput};
+use proto_pdk_api::{ExecCommandInput, ExecCommandOutput, HostLogInput, PluginError};
 use std::path::PathBuf;
 use std::process::Command;
 use tracing::trace;
@@ -11,7 +11,7 @@ pub struct HostData {
 
 pub fn create_functions(data: HostData) -> Vec<Function> {
     vec![
-        Function::new("trace", [ValType::I64], [], None, log_trace),
+        Function::new("host_log", [ValType::I64], [], None, host_log),
         Function::new(
             "exec_command",
             [ValType::I64],
@@ -19,30 +19,32 @@ pub fn create_functions(data: HostData) -> Vec<Function> {
             Some(UserData::new(data)),
             exec_command,
         ),
+        // Backwards compatibility
+        Function::new("trace", [ValType::I64], [], None, host_log),
     ]
 }
 
 // Logging
 
-pub fn log_trace(
+pub fn host_log(
     plugin: &mut CurrentPlugin,
     inputs: &[Val],
     _outputs: &mut [Val],
     _user_data: UserData,
 ) -> Result<(), Error> {
     let input_str = unsafe { (*plugin.memory).get_str(inputs[0].unwrap_i64() as usize)? };
-    let input: TraceInput = serde_json::from_str(input_str)?;
+    let input: HostLogInput = serde_json::from_str(input_str)?;
 
     match input {
-        TraceInput::Message(message) => {
+        HostLogInput::Message(message) => {
             trace!(
-                target: "proto_wasm::trace",
+                target: "proto_wasm::log",
                 "{}", message,
             );
         }
-        TraceInput::Fields { data, message } => {
+        HostLogInput::Fields { data, message } => {
             trace!(
-                target: "proto_wasm::trace",
+                target: "proto_wasm::log",
                 data = ?data,
                 "{}", message,
             );
@@ -66,16 +68,27 @@ fn exec_command(
     // let data = user_data.any().unwrap();
     // let data = data.downcast_ref::<HostData>().unwrap();
 
-    let result = Command::new(&input.command)
-        .args(&input.args)
-        .envs(&input.env_vars)
-        // .current_dir(&data.working_dir)
-        .output()?;
+    let mut command = Command::new(&input.command);
+    command.args(&input.args);
+    command.envs(&input.env_vars);
+    // command.current_dir(&data.working_dir)
 
-    let output = ExecCommandOutput {
-        exit_code: result.status.code().unwrap_or(0),
-        stderr: String::from_utf8_lossy(&result.stderr).to_string(),
-        stdout: String::from_utf8_lossy(&result.stdout).to_string(),
+    let output = if input.stream {
+        let result = command.spawn()?.wait()?;
+
+        ExecCommandOutput {
+            exit_code: result.code().unwrap_or(0),
+            stderr: String::new(),
+            stdout: String::new(),
+        }
+    } else {
+        let result = command.output()?;
+
+        ExecCommandOutput {
+            exit_code: result.status.code().unwrap_or(0),
+            stderr: String::from_utf8_lossy(&result.stderr).to_string(),
+            stdout: String::from_utf8_lossy(&result.stdout).to_string(),
+        }
     };
 
     trace!(
@@ -88,6 +101,19 @@ fn exec_command(
         stdout_len = output.stdout.len(),
         "Executed command from plugin"
     );
+
+    if output.exit_code != 0 {
+        let mut command_line = vec![input.command];
+        command_line.extend(input.args);
+
+        return Err(PluginError::Message(format!(
+            "Command `{}` failed with a {} exit code: {}",
+            command_line.join(" "),
+            output.exit_code,
+            output.stderr
+        ))
+        .into());
+    }
 
     let output_str = serde_json::to_string(&output)?;
     let ptr = unsafe { (*plugin.memory).alloc_bytes(output_str)? };

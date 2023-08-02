@@ -17,6 +17,7 @@ pub async fn pre_run(
     let mut is_install_command = false;
     let mut is_global = false;
 
+    #[allow(irrefutable_let_patterns)]
     if let ToolType::Plugin(id) = &tool_type {
         // npm install -g <dep>
         // pnpm add -g <dep>

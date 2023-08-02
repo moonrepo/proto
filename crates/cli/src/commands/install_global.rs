@@ -30,11 +30,6 @@ pub async fn install_global(tool_type: ToolType, dependencies: Vec<String>) -> S
         let mut command;
 
         match &tool_type {
-            ToolType::Rust => {
-                command = Command::new("cargo");
-                command.arg("install").arg("--force").arg(&dependency);
-            }
-
             ToolType::Plugin(name) => {
                 command = Command::new(get_bin_or_fallback(&mut tool).await?);
 
@@ -67,6 +62,10 @@ pub async fn install_global(tool_type: ToolType, dependencies: Vec<String>) -> S
                             .arg(&dependency)
                             // Remove the /bin component
                             .env("PREFIX", global_dir.parent().unwrap());
+                    }
+                    "rust" => {
+                        command = Command::new("cargo");
+                        command.arg("install").arg("--force").arg(&dependency);
                     }
                     _ => {
                         if let Some(plugin) = tool.as_any().downcast_ref::<SchemaPlugin>() {

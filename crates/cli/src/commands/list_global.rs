@@ -25,18 +25,12 @@ pub async fn list_global(tool_type: ToolType) -> SystemResult {
             let file_path = file.path();
             let mut file_name = fs::file_name(&file_path);
 
-            #[allow(clippy::single_match)]
-            match tool_type {
-                ToolType::Rust => {
-                    if let Some(cargo_bin) = file_name.strip_prefix("cargo-") {
-                        file_name = cargo_bin.to_owned();
-                    } else {
-                        // Non-cargo binaries are in this directory
-                        continue;
-                    }
-                }
-                _ => {
-                    // Do nothing!
+            if tool_type.is("rust") {
+                if let Some(cargo_bin) = file_name.strip_prefix("cargo-") {
+                    file_name = cargo_bin.to_owned();
+                } else {
+                    // Non-cargo binaries are in this directory
+                    continue;
                 }
             }
 

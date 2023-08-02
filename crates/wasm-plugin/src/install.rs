@@ -1,6 +1,6 @@
 use crate::WasmPlugin;
 use proto_core::{async_trait, unpack, Describable, Installable, ProtoError, Resolvable};
-use proto_pdk_api::UnpackArchiveInput;
+use proto_pdk_api::{NativeInstallInput, UnpackArchiveInput};
 use starbase_utils::fs;
 use std::path::{Path, PathBuf};
 use tracing::debug;
@@ -22,6 +22,21 @@ impl Installable<'_> for WasmPlugin {
             return Ok(false);
         }
 
+        if self.container.has_func("native_install") {
+            self.container
+                .call_func_without_output(
+                    "native_install",
+                    NativeInstallInput {
+                        env: self.get_environment()?,
+                        home_dir: self.container.to_virtual_path(&self.proto.home),
+                        tool_dir: self.container.to_virtual_path(install_dir),
+                    },
+                )
+                .map_err(|e| ProtoError::Message(e.to_string()))?;
+
+            return Ok(true);
+        }
+
         if !download_path.exists() {
             return Err(ProtoError::InstallMissingDownload(self.get_name()));
         }
@@ -37,7 +52,7 @@ impl Installable<'_> for WasmPlugin {
 
         if self.container.has_func("unpack_archive") {
             self.container
-                .call_func_with(
+                .call_func_without_output(
                     "unpack_archive",
                     UnpackArchiveInput {
                         input_file: self.container.to_virtual_path(download_path),

@@ -27,7 +27,7 @@ pub async fn install(
     }
 
     // Rust doesn't download files but runs commands
-    if matches!(tool_type, ToolType::Rust) {
+    if tool_type.is("rust") {
         disable_progress_bars();
     }
 
@@ -65,25 +65,23 @@ pub async fn install(
     // `Tool` trait. Right now we are hard-coding this, but we
     // should provide a better API.
 
-    if let ToolType::Plugin(id) = tool_type {
-        if id == "go" {
-            go_hooks::post_install(&passthrough)?;
-        }
+    if tool_type.is("go") {
+        go_hooks::post_install(&passthrough)?;
+    }
 
-        if id == "node" && !passthrough.contains(&"--no-bundled-npm".to_string()) {
-            info!("Installing npm that comes bundled with {}", tool.get_name());
+    if tool_type.is("node") && !passthrough.contains(&"--no-bundled-npm".to_string()) {
+        info!("Installing npm that comes bundled with {}", tool.get_name());
 
-            // This ensures that the correct version is used by the npm tool
-            std::env::set_var("PROTO_NODE_VERSION", tool.get_resolved_version());
+        // This ensures that the correct version is used by the npm tool
+        std::env::set_var("PROTO_NODE_VERSION", tool.get_resolved_version());
 
-            install(
-                ToolType::Plugin("npm".into()),
-                Some("bundled".into()),
-                pin_version,
-                passthrough,
-            )
-            .await?;
-        }
+        install(
+            ToolType::Plugin("npm".into()),
+            Some("bundled".into()),
+            pin_version,
+            passthrough,
+        )
+        .await?;
     }
 
     Ok(())
