@@ -2436,14 +2436,17 @@ name = "proto_core2"
 version = "0.13.1"
 dependencies = [
  "cached",
+ "extism",
  "fs4",
  "miette",
- "once_cell",
  "proto_pdk_api",
+ "regex",
  "rustc-hash",
  "semver",
  "serde",
+ "starbase_styles",
  "starbase_utils",
+ "thiserror",
  "tracing",
  "warpgate",
 ]

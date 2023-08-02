@@ -1,10 +1,9 @@
-use crate::errors::ProtoError;
+use crate::error::ProtoError;
 use cached::proc_macro::cached;
-use dirs::home_dir;
-use std::process::Command;
+use starbase_utils::dirs::home_dir;
 use std::{env, path::PathBuf};
 
-pub fn get_root() -> Result<PathBuf, ProtoError> {
+pub fn get_root() -> miette::Result<PathBuf> {
     if let Ok(root) = env::var("PROTO_ROOT") {
         return Ok(root.into());
     }
@@ -12,23 +11,23 @@ pub fn get_root() -> Result<PathBuf, ProtoError> {
     Ok(get_home_dir()?.join(".proto"))
 }
 
-pub fn get_home_dir() -> Result<PathBuf, ProtoError> {
-    home_dir().ok_or(ProtoError::MissingHomeDir)
+pub fn get_home_dir() -> miette::Result<PathBuf> {
+    Ok(home_dir().ok_or(ProtoError::MissingHomeDir)?)
 }
 
-pub fn get_bin_dir() -> Result<PathBuf, ProtoError> {
+pub fn get_bin_dir() -> miette::Result<PathBuf> {
     Ok(get_root()?.join("bin"))
 }
 
-pub fn get_temp_dir() -> Result<PathBuf, ProtoError> {
+pub fn get_temp_dir() -> miette::Result<PathBuf> {
     Ok(get_root()?.join("temp"))
 }
 
-pub fn get_tools_dir() -> Result<PathBuf, ProtoError> {
+pub fn get_tools_dir() -> miette::Result<PathBuf> {
     Ok(get_root()?.join("tools"))
 }
 
-pub fn get_plugins_dir() -> Result<PathBuf, ProtoError> {
+pub fn get_plugins_dir() -> miette::Result<PathBuf> {
     Ok(get_root()?.join("plugins"))
 }
 
@@ -100,28 +99,6 @@ pub fn is_offline() -> bool {
     }
 
     true
-}
-
-#[tracing::instrument]
-pub fn has_command(command: &str) -> bool {
-    Command::new(if cfg!(windows) {
-        "Get-Command"
-    } else {
-        "which"
-    })
-    .arg(command)
-    .output()
-    .map(|output| output.status.success() && !output.stdout.is_empty())
-    .unwrap_or(false)
-}
-
-#[cached]
-pub fn is_musl() -> bool {
-    let Ok(output) = Command::new("ldd").arg("--version").output() else {
-        return false;
-    };
-
-    String::from_utf8_lossy(&output.stdout).contains("musl")
 }
 
 pub fn is_cache_enabled() -> bool {

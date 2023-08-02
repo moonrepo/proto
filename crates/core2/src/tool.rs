@@ -1,10 +1,11 @@
 use crate::manifest::Manifest;
+use crate::proto::ProtoEnvironment;
+use extism::Manifest as PluginManifest;
 use miette::IntoDiagnostic;
-use once_cell::sync::OnceCell;
 use proto_pdk_api::*;
 use starbase_utils::fs;
 use std::env::{self, consts};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use warpgate::PluginContainer;
 
@@ -12,16 +13,47 @@ pub struct Tool {
     pub id: String,
     pub plugin: PluginContainer<'static>,
 
-    manifest: OnceCell<Manifest>,
+    manifest: Manifest,
+    proto: ProtoEnvironment,
 }
 
 // HELPERS
 
 impl Tool {
+    pub fn load(id: &str, proto: &ProtoEnvironment) -> miette::Result<Self> {
+        let manifest = Manifest::load_from(proto.tools_dir.join(id))?;
+
+        // TODO
+        let plugin = PluginContainer::new_without_functions(id, PluginManifest::default())?;
+
+        Ok(Tool {
+            id: id.to_owned(),
+            manifest,
+            plugin,
+            proto: proto.to_owned(),
+        })
+    }
+
     pub fn get_id(&self) -> &str {
         &self.id
     }
 
+    pub fn get_manifest(&self) -> &Manifest {
+        &self.manifest
+    }
+
+    pub fn get_manifest_mut(&mut self) -> &mut Manifest {
+        &mut self.manifest
+    }
+
+    pub fn get_tool_dir(&self) -> PathBuf {
+        self.proto.tools_dir.join(self.get_id())
+    }
+}
+
+// APIs
+
+impl Tool {
     pub fn get_environment(&self) -> miette::Result<Environment> {
         Ok(Environment {
             arch: HostArch::from_str(consts::ARCH).into_diagnostic()?,
@@ -36,20 +68,6 @@ impl Tool {
             // TODO
             version: String::new(), // self.get_resolved_version().to_owned(),
         })
-    }
-
-    fn get_manifest(&self) -> miette::Result<&Manifest> {
-        self.manifest
-            .get_or_try_init(|| Manifest::load(self.get_manifest_path()))
-    }
-
-    fn get_manifest_mut(&mut self) -> miette::Result<&mut Manifest> {
-        {
-            // Ensure that the manifest has been initialized
-            self.get_manifest()?;
-        }
-
-        Ok(self.manifest.get_mut().unwrap())
     }
 
     pub fn get_metadata(&self) -> miette::Result<ToolMetadataOutput> {
