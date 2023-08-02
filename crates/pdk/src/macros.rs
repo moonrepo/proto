@@ -32,6 +32,11 @@ macro_rules! exec_command {
 
 #[macro_export]
 macro_rules! host_log {
+    ($($arg:tt)+) => {
+        unsafe {
+            host_log(Json(format!($($arg)+).into()))?;
+        }
+    };
     ($msg:literal) => {
         unsafe {
             host_log(Json($msg.into()))?;
@@ -42,22 +47,17 @@ macro_rules! host_log {
             host_log(Json($input))?;
         }
     };
-    ($($arg:tt)+) => {
-        unsafe {
-            host_log(Json(format!($($arg)+).into()))?;
-        }
-    };
 }
 
 #[macro_export]
 macro_rules! err {
+    ($msg:expr) => {
+        Err(WithReturnCode::new(PluginError::Message($msg).into(), 1))
+    };
     ($msg:expr, $code:expr) => {
         Err(WithReturnCode::new(
             PluginError::Message($msg).into(),
             $code,
         ))
-    };
-    ($msg:expr) => {
-        Err(WithReturnCode::new(PluginError::Message($msg).into(), 1))
     };
 }

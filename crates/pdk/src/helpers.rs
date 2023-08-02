@@ -64,7 +64,7 @@ where
     U: AsRef<str>,
 {
     let output = unsafe {
-        exec_command(Json(ExecCommandInput::new(
+        exec_command(Json(ExecCommandInput::pipe(
             "git",
             [
                 "ls-remote",

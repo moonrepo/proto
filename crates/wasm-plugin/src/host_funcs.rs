@@ -107,7 +107,7 @@ fn exec_command(
         command_line.extend(input.args);
 
         return Err(PluginError::Message(format!(
-            "Command `{}` failed with {} exit code: {}",
+            "Command `{}` failed with a {} exit code: {}",
             command_line.join(" "),
             output.exit_code,
             output.stderr

@@ -41,7 +41,8 @@ pub struct ExecCommandInput {
 }
 
 impl ExecCommandInput {
-    pub fn new<I, V>(command: &str, args: I) -> ExecCommandInput
+    /// Create a new command that pipes and captures the output.
+    pub fn pipe<I, V>(command: &str, args: I) -> ExecCommandInput
     where
         I: IntoIterator<Item = V>,
         V: AsRef<str>,
@@ -54,12 +55,13 @@ impl ExecCommandInput {
         }
     }
 
-    pub fn stream<I, V>(command: &str, args: I) -> ExecCommandInput
+    /// Create a new command that inherits and streams the output.
+    pub fn inherit<I, V>(command: &str, args: I) -> ExecCommandInput
     where
         I: IntoIterator<Item = V>,
         V: AsRef<str>,
     {
-        let mut input = Self::new(command, args);
+        let mut input = Self::pipe(command, args);
         input.stream = true;
         input
     }
