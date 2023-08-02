@@ -1,4 +1,6 @@
+use crate::manifest::Manifest;
 use miette::IntoDiagnostic;
+use once_cell::sync::OnceCell;
 use proto_pdk_api::*;
 use starbase_utils::fs;
 use std::env::{self, consts};
@@ -9,7 +11,11 @@ use warpgate::PluginContainer;
 pub struct Tool {
     pub id: String,
     pub plugin: PluginContainer<'static>,
+
+    manifest: OnceCell<Manifest>,
 }
+
+// HELPERS
 
 impl Tool {
     pub fn get_id(&self) -> &str {
@@ -32,6 +38,20 @@ impl Tool {
         })
     }
 
+    fn get_manifest(&self) -> miette::Result<&Manifest> {
+        self.manifest
+            .get_or_try_init(|| Manifest::load(self.get_manifest_path()))
+    }
+
+    fn get_manifest_mut(&mut self) -> miette::Result<&mut Manifest> {
+        {
+            // Ensure that the manifest has been initialized
+            self.get_manifest()?;
+        }
+
+        Ok(self.manifest.get_mut().unwrap())
+    }
+
     pub fn get_metadata(&self) -> miette::Result<ToolMetadataOutput> {
         self.plugin.cache_func_with(
             "register_tool",
@@ -46,7 +66,11 @@ impl Tool {
             },
         )
     }
+}
 
+// DETECTION
+
+impl Tool {
     /// Attempt to detect an applicable version from the provided working directory.
     pub async fn detect_version_from(&self, working_dir: &Path) -> miette::Result<Option<String>> {
         if !self.plugin.has_func("detect_version_files") {

@@ -11,6 +11,11 @@ repository = "https://github.com/moonrepo/proto"
 proto_pdk_api = { version = "0.3.1", path = "../pdk-api" }
 warpgate = { version = "0.2.0", path = "../warpgate" }
 cached = { workspace = true }
+fs4 = { version = "0.6.6", features = ["sync"] }
 miette = { workspace = true }
+once_cell = { workspace = true }
+rustc-hash = { workspace = true }
+semver = { workspace = true }
+serde = { workspace = true }
 starbase_utils = { workspace = true }
 tracing = { workspace = true }
