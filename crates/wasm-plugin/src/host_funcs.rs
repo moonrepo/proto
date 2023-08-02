@@ -68,16 +68,27 @@ fn exec_command(
     // let data = user_data.any().unwrap();
     // let data = data.downcast_ref::<HostData>().unwrap();
 
-    let result = Command::new(&input.command)
-        .args(&input.args)
-        .envs(&input.env_vars)
-        // .current_dir(&data.working_dir)
-        .output()?;
+    let mut command = Command::new(&input.command);
+    command.args(&input.args);
+    command.envs(&input.env_vars);
+    // command.current_dir(&data.working_dir)
 
-    let output = ExecCommandOutput {
-        exit_code: result.status.code().unwrap_or(0),
-        stderr: String::from_utf8_lossy(&result.stderr).to_string(),
-        stdout: String::from_utf8_lossy(&result.stdout).to_string(),
+    let output = if input.stream {
+        let result = command.spawn()?.wait()?;
+
+        ExecCommandOutput {
+            exit_code: result.code().unwrap_or(0),
+            stderr: String::new(),
+            stdout: String::new(),
+        }
+    } else {
+        let result = command.output()?;
+
+        ExecCommandOutput {
+            exit_code: result.status.code().unwrap_or(0),
+            stderr: String::from_utf8_lossy(&result.stderr).to_string(),
+            stdout: String::from_utf8_lossy(&result.stdout).to_string(),
+        }
     };
 
     trace!(

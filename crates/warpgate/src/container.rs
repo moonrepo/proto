@@ -101,6 +101,15 @@ impl<'plugin> PluginContainer<'plugin> {
         self.parse_output(func, self.call(func, self.format_input(func, input)?)?)
     }
 
+    /// Call a function on the plugin with the given input and ignore the output.
+    pub fn call_func_without_output<I>(&self, func: &str, input: I) -> miette::Result<()>
+    where
+        I: Debug + Serialize,
+    {
+        self.call(func, self.format_input(func, input)?)?;
+        Ok(())
+    }
+
     /// Return true if the plugin has a function with the given id.
     pub fn has_func(&self, func: &str) -> bool {
         self.plugin

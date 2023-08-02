@@ -35,6 +35,9 @@ pub struct ExecCommandInput {
 
     /// Environment variables to pass to the command.
     pub env_vars: HashMap<String, String>,
+
+    /// Stream the output instead of capturing it.
+    pub stream: bool,
 }
 
 impl ExecCommandInput {
@@ -47,7 +50,18 @@ impl ExecCommandInput {
             command: command.to_string(),
             args: args.into_iter().map(|a| a.as_ref().to_owned()).collect(),
             env_vars: HashMap::new(),
+            stream: false,
         }
+    }
+
+    pub fn stream<I, V>(command: &str, args: I) -> ExecCommandInput
+    where
+        I: IntoIterator<Item = V>,
+        V: AsRef<str>,
+    {
+        let mut input = Self::new(command, args);
+        input.stream = true;
+        input
     }
 }
 

@@ -107,10 +107,6 @@ pub struct NativeInstallInput {
     pub tool_dir: PathBuf,
 }
 
-/// Output returned by the `native_install` function.
-#[derive(Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-pub struct NativeInstallOutput {}
-
 /// Input passed to the `download_prebuilt` function.
 #[derive(Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct DownloadPrebuiltInput {

@@ -32,6 +32,11 @@ macro_rules! exec_command {
 
 #[macro_export]
 macro_rules! host_log {
+    ($msg:literal) => {
+        unsafe {
+            host_log(Json($msg.into()))?;
+        }
+    };
     ($input:expr) => {
         unsafe {
             host_log(Json($input))?;

@@ -9,6 +9,7 @@
 - WASM API
   - Renamed host function `trace` to `host_log`.
   - Added `host_log!` and `exec_command!` macros for working with host functions.
+  - Updated `exec_command` with stream/inherit support.
 
 ## 0.13.1
 

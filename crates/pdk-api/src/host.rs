@@ -19,6 +19,16 @@ pub enum HostArch {
     S390x,
 }
 
+impl HostArch {
+    pub fn to_rust_arch(&self) -> String {
+        match self {
+            Self::X64 => "x86_64".into(),
+            Self::Arm64 => "aarch64".into(),
+            _ => self.to_string(),
+        }
+    }
+}
+
 impl Display for HostArch {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", format!("{:?}", self).to_lowercase())

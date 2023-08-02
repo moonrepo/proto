@@ -24,7 +24,7 @@ impl Installable<'_> for WasmPlugin {
 
         if self.container.has_func("native_install") {
             self.container
-                .call_func_with(
+                .call_func_without_output(
                     "native_install",
                     NativeInstallInput {
                         env: self.get_environment()?,
@@ -52,7 +52,7 @@ impl Installable<'_> for WasmPlugin {
 
         if self.container.has_func("unpack_archive") {
             self.container
-                .call_func_with(
+                .call_func_without_output(
                     "unpack_archive",
                     UnpackArchiveInput {
                         input_file: self.container.to_virtual_path(download_path),
