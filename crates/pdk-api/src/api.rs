@@ -5,7 +5,8 @@ use std::path::PathBuf;
 
 pub use semver::{Version, VersionReq};
 
-macro_rules! json {
+#[macro_export]
+macro_rules! json_struct {
     ($struct:item) => {
         #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
         #[serde(default)]
@@ -13,19 +14,20 @@ macro_rules! json {
     };
 }
 
+#[macro_export]
 macro_rules! json_enum {
     ($struct:item) => {
-        #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+        #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
         $struct
     };
 }
 
-json!(
+json_struct!(
     /// Represents an empty input.
     pub struct EmptyInput {}
 );
 
-json!(
+json_struct!(
     /// Information about the host environment (the current runtime).
     pub struct Environment {
         /// Current architecture.
@@ -47,6 +49,7 @@ json!(
 
 json_enum!(
     /// Supported types of plugins.
+    #[derive(Default)]
     pub enum PluginType {
         #[default]
         Language,
@@ -55,7 +58,7 @@ json_enum!(
     }
 );
 
-json!(
+json_struct!(
     /// Input passed to the `register_tool` function.
     pub struct ToolMetadataInput {
         /// ID of the tool, as it was configured.
@@ -66,7 +69,7 @@ json!(
     }
 );
 
-json!(
+json_struct!(
     /// Output returned by the `register_tool` function.
     pub struct ToolMetadataOutput {
         /// Environment variables that should be extracted
@@ -83,7 +86,7 @@ json!(
 
 // Detector
 
-json!(
+json_struct!(
     /// Output returned by the `detect_version_files` function.
     pub struct DetectVersionOutput {
         /// List of files that should be checked for version information.
@@ -91,7 +94,7 @@ json!(
     }
 );
 
-json!(
+json_struct!(
     /// Input passed to the `parse_version_file` function.
     pub struct ParseVersionFileInput {
         /// File contents to parse/extract a version from.
@@ -105,7 +108,7 @@ json!(
     }
 );
 
-json!(
+json_struct!(
     /// Output returned by the `parse_version_file` function.
     pub struct ParseVersionFileOutput {
         /// The version that was extracted from the file.
@@ -117,7 +120,7 @@ json!(
 
 // Downloader, Installer, Verifier
 
-json!(
+json_struct!(
     /// Input passed to the `native_install` function.
     pub struct NativeInstallInput {
         /// Current environment.
@@ -131,7 +134,7 @@ json!(
     }
 );
 
-json!(
+json_struct!(
     /// Input passed to the `download_prebuilt` function.
     pub struct DownloadPrebuiltInput {
         /// Current environment.
@@ -139,7 +142,7 @@ json!(
     }
 );
 
-json!(
+json_struct!(
     /// Output returned by the `download_prebuilt` function.
     pub struct DownloadPrebuiltOutput {
         /// Name of the direct folder within the archive that contains the tool,
@@ -175,7 +178,7 @@ json!(
     }
 );
 
-json!(
+json_struct!(
     /// Input passed to the `unpack_archive` function.
     pub struct UnpackArchiveInput {
         /// Virtual path to the downloaded file.
@@ -189,7 +192,7 @@ json!(
     }
 );
 
-json!(
+json_struct!(
     /// Output returned by the `verify_checksum` function.
     pub struct VerifyChecksumInput {
         /// The SHA-256 hash of the downloaded file.
@@ -206,7 +209,7 @@ json!(
     }
 );
 
-json!(
+json_struct!(
     /// Output returned by the `verify_checksum` function.
     pub struct VerifyChecksumOutput {
         pub verified: bool,
@@ -215,7 +218,7 @@ json!(
 
 // Executor
 
-json!(
+json_struct!(
     /// Input passed to the `locate_bins` function.
     pub struct LocateBinsInput {
         /// Current environment.
@@ -226,7 +229,7 @@ json!(
     }
 );
 
-json!(
+json_struct!(
     /// Output returned by the `locate_bins` function.
     pub struct LocateBinsOutput {
         /// Relative path from the tool directory to the binary to execute.
@@ -245,7 +248,7 @@ json!(
 
 // Resolver
 
-json!(
+json_struct!(
     /// Input passed to the `load_versions` function.
     pub struct LoadVersionsInput {
         /// Current environment.
@@ -256,7 +259,7 @@ json!(
     }
 );
 
-json!(
+json_struct!(
     /// Output returned by the `load_versions` function.
     pub struct LoadVersionsOutput {
         /// Latest stable version.
@@ -298,7 +301,7 @@ impl LoadVersionsOutput {
     }
 }
 
-json!(
+json_struct!(
     /// Input passed to the `resolve_version` function.
     pub struct ResolveVersionInput {
         /// Current resolved version candidate. Will be used if no replacement version is provided.
@@ -312,7 +315,7 @@ json!(
     }
 );
 
-json!(
+json_struct!(
     /// Output returned by the `resolve_version` function.
     pub struct ResolveVersionOutput {
         /// New alias or version candidate to resolve.
@@ -328,7 +331,7 @@ json!(
 
 // Shimmer
 
-json!(
+json_struct!(
     /// Configuration for individual shim files.
     pub struct ShimConfig {
         /// Relative path from the tool directory to the binary to execute.
@@ -402,7 +405,7 @@ impl ShimConfig {
     }
 }
 
-json!(
+json_struct!(
     /// Input passed to the `create_shims` function.
     pub struct CreateShimsInput {
         /// Current environment.
@@ -410,7 +413,7 @@ json!(
     }
 );
 
-json!(
+json_struct!(
     /// Output returned by the `create_shims` function.
     pub struct CreateShimsOutput {
         /// Avoid creating the global shim.
