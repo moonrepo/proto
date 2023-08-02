@@ -4,8 +4,10 @@ use crate::errors::ProtoError;
 use crate::helpers::{is_alias_name, remove_space_after_gtlt, remove_v_prefix};
 use crate::manifest::Manifest;
 use crate::tool::Tool;
-use human_sort::compare;
-use lenient_semver::Version;
+use miette::IntoDiagnostic;
+// use human_sort::compare;
+// use lenient_semver::Version;
+use semver::Version;
 use starbase_utils::fs;
 use std::{env, path::Path};
 use tracing::{debug, trace};
@@ -14,18 +16,15 @@ pub fn load_version_file(path: &Path) -> miette::Result<String> {
     Ok(fs::read_file(path)?.trim().to_owned())
 }
 
-pub async fn detect_version(
-    tool: &Tool,
-    forced_version: Option<String>,
-) -> Result<String, ProtoError> {
+pub async fn detect_version(tool: &Tool, forced_version: Option<String>) -> miette::Result<String> {
     let mut version = forced_version;
-    let env_var = format!("PROTO_{}_VERSION", tool.get_id().to_uppercase());
+    let env_var = format!("PROTO_{}_VERSION", tool.id.to_uppercase());
 
     // Env var takes highest priority
     if version.is_none() {
         if let Ok(session_version) = env::var(&env_var) {
             debug!(
-                tool = tool.get_id(),
+                tool = &tool.id,
                 env_var,
                 version = session_version,
                 "Detected version from environment variable",
@@ -34,13 +33,13 @@ pub async fn detect_version(
             version = Some(session_version);
         } else {
             trace!(
-                tool = tool.get_id(),
+                tool = &tool.id,
                 "Attempting to find local version from config files"
             );
         }
     } else {
         debug!(
-            tool = tool.get_id(),
+            tool = &tool.id,
             version = version.as_ref().unwrap(),
             "Using explicit version passed on the command line",
         );
@@ -57,7 +56,7 @@ pub async fn detect_version(
             }
 
             trace!(
-                tool = tool.get_id(),
+                tool = &tool.id,
                 dir = ?dir,
                 "Checking directory",
             );
@@ -67,7 +66,7 @@ pub async fn detect_version(
 
             if let Some(local_version) = config.tools.get(tool.get_id()) {
                 debug!(
-                    tool = tool.get_id(),
+                    tool = &tool.id,
                     version = local_version,
                     file = ?config.path,
                     "Detected version from .prototools file",
@@ -125,27 +124,27 @@ pub async fn detect_version(
     }
 }
 
+// Sort the installed versions in descending order, so that v20
+// is preferred over v2, and v19 for a requirement like >=15.
+// let mut installed_versions = manifest
+//     .installed_versions
+//     .iter()
+//     .map(|v| v.to_owned())
+//     .collect::<Vec<_>>();
+
+// installed_versions.sort_by(|a, d| compare(d, a));
+
 pub fn expand_detected_version(
     version: &str,
-    manifest: &Manifest,
-) -> Result<Option<String>, ProtoError> {
+    installed_versions: &[Version],
+) -> miette::Result<Option<String>> {
     if is_alias_name(version) {
         return Ok(Some(version.to_owned()));
     }
 
-    let version = remove_space_after_gtlt(&remove_v_prefix(&version.replace(".*", "")));
+    let version = remove_space_after_gtlt(remove_v_prefix(version.replace(".*", "")));
     let mut fully_qualified = false;
     let mut maybe_version = String::new();
-
-    // Sort the installed versions in descending order, so that v20
-    // is preferred over v2, and v19 for a requirement like >=15.
-    let mut installed_versions = manifest
-        .installed_versions
-        .iter()
-        .map(|v| v.to_owned())
-        .collect::<Vec<String>>();
-
-    installed_versions.sort_by(|a, d| compare(d, a));
 
     let mut check_manifest = |check_version: String| -> Result<bool, ProtoError> {
         let req =
@@ -154,16 +153,10 @@ pub fn expand_detected_version(
                 error,
             })?;
 
-        for installed_version in &installed_versions {
-            let version_inst =
-                semver::Version::parse(installed_version).map_err(|error| ProtoError::Semver {
-                    version: installed_version.to_owned(),
-                    error,
-                })?;
-
-            if req.matches(&version_inst) {
+        for installed_version in installed_versions {
+            if req.matches(&installed_version) {
                 fully_qualified = true;
-                maybe_version = installed_version.to_owned();
+                maybe_version = installed_version.to_string();
 
                 return Ok(true);
             }
@@ -175,7 +168,8 @@ pub fn expand_detected_version(
     // ^18 || ^20
     if version.contains("||") {
         for split_version in version.split("||") {
-            if let Some(matched_version) = expand_detected_version(split_version.trim(), manifest)?
+            if let Some(matched_version) =
+                expand_detected_version(split_version.trim(), installed_versions)?
             {
                 return Ok(Some(matched_version));
             }
@@ -219,8 +213,7 @@ pub fn expand_detected_version(
         return Ok(None);
     }
 
-    let semver = Version::parse(&maybe_version).map_err(|e| ProtoError::Message(e.to_string()))?;
-
+    let semver = Version::parse(&maybe_version).into_diagnostic()?;
     let version_parts = version.split('.').collect::<Vec<_>>();
     let mut matched_version = semver.major.to_string();
 

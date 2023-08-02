@@ -11,10 +11,9 @@ use warpgate::PluginContainer;
 
 pub struct Tool {
     pub id: String,
+    pub manifest: Manifest,
     pub plugin: PluginContainer<'static>,
-
-    manifest: Manifest,
-    proto: ProtoEnvironment,
+    pub proto: ProtoEnvironment,
 }
 
 // HELPERS
@@ -34,20 +33,8 @@ impl Tool {
         })
     }
 
-    pub fn get_id(&self) -> &str {
-        &self.id
-    }
-
-    pub fn get_manifest(&self) -> &Manifest {
-        &self.manifest
-    }
-
-    pub fn get_manifest_mut(&mut self) -> &mut Manifest {
-        &mut self.manifest
-    }
-
     pub fn get_tool_dir(&self) -> PathBuf {
-        self.proto.tools_dir.join(self.get_id())
+        self.proto.tools_dir.join(&self.id)
     }
 }
 
@@ -89,8 +76,8 @@ impl Tool {
 // DETECTION
 
 impl Tool {
-    /// Attempt to detect an applicable version from the provided working directory.
-    pub async fn detect_version_from(&self, working_dir: &Path) -> miette::Result<Option<String>> {
+    /// Attempt to detect an applicable version from the provided directory.
+    pub async fn detect_version_from(&self, current_dir: &Path) -> miette::Result<Option<String>> {
         if !self.plugin.has_func("detect_version_files") {
             return Ok(None);
         }
@@ -99,7 +86,7 @@ impl Tool {
         let result: DetectVersionOutput = self.plugin.cache_func("detect_version_files")?;
 
         for file in result.files {
-            let file_path = working_dir.join(&file);
+            let file_path = current_dir.join(&file);
 
             if !file_path.exists() {
                 continue;

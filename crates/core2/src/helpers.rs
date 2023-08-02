@@ -32,7 +32,9 @@ pub fn get_plugins_dir() -> miette::Result<PathBuf> {
 }
 
 // Aliases are words that map to version. For example, "latest" -> "1.2.3".
-pub fn is_alias_name(value: &str) -> bool {
+pub fn is_alias_name<T: AsRef<str>>(value: T) -> bool {
+    let value = value.as_ref();
+
     value.chars().enumerate().all(|(i, c)| {
         if i == 0 {
             char::is_ascii_alphabetic(&c) && c != 'v' && c != 'V'
@@ -42,7 +44,9 @@ pub fn is_alias_name(value: &str) -> bool {
     })
 }
 
-pub fn add_v_prefix(value: &str) -> String {
+pub fn add_v_prefix<T: AsRef<str>>(value: T) -> String {
+    let value = value.as_ref();
+
     if value.starts_with('v') || value.starts_with('V') {
         return value.to_lowercase();
     }
@@ -50,7 +54,9 @@ pub fn add_v_prefix(value: &str) -> String {
     format!("v{value}")
 }
 
-pub fn remove_v_prefix(value: &str) -> String {
+pub fn remove_v_prefix<T: AsRef<str>>(value: T) -> String {
+    let value = value.as_ref();
+
     if value.starts_with('v') || value.starts_with('V') {
         return value[1..].to_owned();
     }
@@ -58,7 +64,8 @@ pub fn remove_v_prefix(value: &str) -> String {
     value.to_owned()
 }
 
-pub fn remove_space_after_gtlt(value: &str) -> String {
+pub fn remove_space_after_gtlt<T: AsRef<str>>(value: T) -> String {
+    let value = value.as_ref();
     let pattern = regex::Regex::new(r"([><]=?)\s+(\d)").unwrap();
     pattern.replace_all(value, "$1$2").to_string()
 }
