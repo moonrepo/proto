@@ -11,7 +11,7 @@ extern "ExtismHost" {
 
 #[plugin_fn]
 pub fn register_tool(_: ()) -> FnResult<Json<ToolMetadataOutput>> {
-    host_log!("Registering tool".into());
+    host_log!("Registering tool");
 
     Ok(Json(ToolMetadataOutput {
         name: "WASM Test".into(),
