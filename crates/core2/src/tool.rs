@@ -1,6 +1,6 @@
 use crate::proto::ProtoEnvironment;
 use crate::tool_manifest::ToolManifest;
-use crate::version::VersionType;
+use crate::version::DetectedVersion;
 use extism::Manifest as PluginManifest;
 use miette::IntoDiagnostic;
 use proto_pdk_api::*;
@@ -81,7 +81,7 @@ impl Tool {
     pub async fn detect_version_from(
         &self,
         current_dir: &Path,
-    ) -> miette::Result<Option<VersionType>> {
+    ) -> miette::Result<Option<DetectedVersion>> {
         if !self.plugin.has_func("detect_version_files") {
             return Ok(None);
         }
@@ -117,7 +117,7 @@ impl Tool {
                 content
             };
 
-            return Ok(Some(VersionType::try_from(version)?));
+            return Ok(Some(DetectedVersion::try_from(version)?));
         }
 
         Ok(None)

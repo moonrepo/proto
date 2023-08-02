@@ -3,7 +3,7 @@ name = "proto_core2"
 version = "0.13.1"
 edition = "2021"
 license = "MIT"
-description = "Core proto APIs for languages to implement."
+description = "Core proto APIs."
 homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
@@ -23,3 +23,6 @@ starbase_styles = { workspace = true }
 starbase_utils = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
+
+[dev-dependencies]
+starbase_sandbox = { workspace = true }

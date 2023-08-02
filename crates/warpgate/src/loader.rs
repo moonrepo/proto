@@ -227,8 +227,8 @@ impl PluginLoader {
 
         // Otherwise an asset with a matching name and supported extension
         for asset in release.assets {
-            if asset.name == github.file_stem
-                || (asset.name.starts_with(&github.file_stem)
+            if asset.name == github.file_prefix
+                || (asset.name.starts_with(&github.file_prefix)
                     && (asset.name.ends_with(".tar")
                         | asset.name.ends_with(".tar.gz")
                         | asset.name.ends_with(".tgz")

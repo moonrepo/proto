@@ -108,7 +108,7 @@ mod loader {
                 .load_plugin(
                     "test",
                     &PluginLocator::GitHub(GitHubLocator {
-                        file_stem: "bun_plugin.wasm".into(),
+                        file_prefix: "bun_plugin.wasm".into(),
                         repo_slug: "moonrepo/invalid-repo".into(),
                         tag: None,
                     }),
@@ -125,7 +125,7 @@ mod loader {
                 .load_plugin(
                     "test",
                     &PluginLocator::GitHub(GitHubLocator {
-                        file_stem: "bun_plugin.wasm".into(),
+                        file_prefix: "bun_plugin.wasm".into(),
                         repo_slug: "moonrepo/bun-plugin".into(),
                         tag: Some("v0.0.3".into()),
                     }),
@@ -144,7 +144,7 @@ mod loader {
                 .load_plugin(
                     "test",
                     &PluginLocator::GitHub(GitHubLocator {
-                        file_stem: "bun_plugin.wasm".into(),
+                        file_prefix: "bun_plugin.wasm".into(),
                         repo_slug: "moonrepo/bun-plugin".into(),
                         tag: None,
                     }),

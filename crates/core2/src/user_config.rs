@@ -3,11 +3,12 @@ use rustc_hash::FxHashMap;
 use serde::Deserialize;
 use starbase_utils::toml;
 use std::env;
+use std::path::Path;
 use warpgate::PluginLocator;
 
 pub const USER_CONFIG_NAME: &str = "config.toml";
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, PartialEq)]
 #[serde(default, rename_all = "kebab-case")]
 pub struct UserConfig {
     pub auto_clean: bool,
@@ -17,10 +18,9 @@ pub struct UserConfig {
 }
 
 impl UserConfig {
-    #[tracing::instrument(skip_all)]
-    pub fn load() -> miette::Result<Self> {
-        let root = get_root()?;
-        let path = root.join(USER_CONFIG_NAME);
+    pub fn load_from<P: AsRef<Path>>(dir: P) -> miette::Result<Self> {
+        let dir = dir.as_ref();
+        let path = dir.join(USER_CONFIG_NAME);
 
         if !path.exists() {
             return Ok(UserConfig::default());
@@ -35,20 +35,17 @@ impl UserConfig {
                 ..
             } = locator
             {
-                *source_path = root.join(&source_path);
+                *source_path = dir.join(&source_path);
             }
         }
 
         Ok(config)
     }
-}
 
-fn from_var(name: &str, fallback: bool) -> bool {
-    if let Ok(value) = env::var(name) {
-        return value == "1" || value == "true" || value == "on";
+    #[tracing::instrument(skip_all)]
+    pub fn load() -> miette::Result<Self> {
+        Self::load_from(get_root()?)
     }
-
-    fallback
 }
 
 impl Default for UserConfig {
@@ -60,4 +57,12 @@ impl Default for UserConfig {
             plugins: FxHashMap::default(),
         }
     }
+}
+
+fn from_var(name: &str, fallback: bool) -> bool {
+    if let Ok(value) = env::var(name) {
+        return value == "1" || value == "true" || value == "on";
+    }
+
+    fallback
 }

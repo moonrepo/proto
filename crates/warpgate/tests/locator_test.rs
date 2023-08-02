@@ -25,7 +25,7 @@ mod locator {
 
         assert_eq!(
             PluginLocator::GitHub(GitHubLocator {
-                file_stem: "proto_plugin".into(),
+                file_prefix: "proto_plugin".into(),
                 repo_slug: "moonrepo/proto".into(),
                 tag: None,
             })
@@ -35,7 +35,7 @@ mod locator {
 
         assert_eq!(
             PluginLocator::GitHub(GitHubLocator {
-                file_stem: "proto_plugin".into(),
+                file_prefix: "proto_plugin".into(),
                 repo_slug: "moonrepo/proto".into(),
                 tag: Some("latest".into()),
             })
@@ -159,7 +159,7 @@ mod locator {
             assert_eq!(
                 PluginLocator::try_from("github:moonrepo/bun".to_string()).unwrap(),
                 PluginLocator::GitHub(GitHubLocator {
-                    file_stem: "bun_plugin".into(),
+                    file_prefix: "bun_plugin".into(),
                     repo_slug: "moonrepo/bun".into(),
                     tag: None,
                 })
@@ -171,7 +171,7 @@ mod locator {
             assert_eq!(
                 PluginLocator::try_from("github:moonrepo/bun-plugin@latest".to_string()).unwrap(),
                 PluginLocator::GitHub(GitHubLocator {
-                    file_stem: "bun_plugin".into(),
+                    file_prefix: "bun_plugin".into(),
                     repo_slug: "moonrepo/bun-plugin".into(),
                     tag: Some("latest".into()),
                 })
@@ -183,7 +183,7 @@ mod locator {
             assert_eq!(
                 PluginLocator::try_from("github:moonrepo/bun_plugin@v1.2.3".to_string()).unwrap(),
                 PluginLocator::GitHub(GitHubLocator {
-                    file_stem: "bun_plugin".into(),
+                    file_prefix: "bun_plugin".into(),
                     repo_slug: "moonrepo/bun_plugin".into(),
                     tag: Some("v1.2.3".into()),
                 })

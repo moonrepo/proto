@@ -1,26 +1,26 @@
 use crate::error::ProtoError;
-use crate::helpers::is_alias_name;
+use crate::helpers::{is_alias_name, remove_space_after_gtlt, remove_v_prefix};
 use semver::{Version, VersionReq};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(untagged, into = "String", try_from = "String")]
-pub enum VersionType {
+pub enum DetectedVersion {
     Alias(String),
     ReqAll(VersionReq),
     ReqAny(Vec<VersionReq>),
     Version(Version),
 }
 
-impl FromStr for VersionType {
+impl FromStr for DetectedVersion {
     type Err = ProtoError;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
-        let value = value.trim();
+        let value = remove_space_after_gtlt(remove_v_prefix(value.trim().replace(".*", "")));
 
-        if is_alias_name(value) {
-            return Ok(VersionType::Alias(value.to_owned()));
+        if is_alias_name(&value) {
+            return Ok(DetectedVersion::Alias(value));
         }
 
         let handle_error = |error: semver::Error| ProtoError::Semver {
@@ -36,26 +36,41 @@ impl FromStr for VersionType {
                 any.push(VersionReq::parse(req.trim()).map_err(handle_error)?);
             }
 
-            return Ok(VersionType::ReqAny(any));
+            return Ok(DetectedVersion::ReqAny(any));
         }
 
         // AND requirements
         if value.contains(',') {
-            return Ok(VersionType::ReqAll(
-                VersionReq::parse(value).map_err(handle_error)?,
+            return Ok(DetectedVersion::ReqAll(
+                VersionReq::parse(&value).map_err(handle_error)?,
+            ));
+        } else if value.contains(' ') {
+            return Ok(DetectedVersion::ReqAll(
+                VersionReq::parse(&value.replace(' ', ", ")).map_err(handle_error)?,
             ));
         }
 
         Ok(match value.chars().next().unwrap() {
             '=' | '^' | '~' | '>' | '<' | '*' => {
-                VersionType::ReqAll(VersionReq::parse(value).map_err(handle_error)?)
+                DetectedVersion::ReqAll(VersionReq::parse(&value).map_err(handle_error)?)
             }
-            _ => VersionType::Version(Version::parse(value).map_err(handle_error)?),
+            _ => {
+                let dot_count = value.match_indices('.').collect::<Vec<_>>().len();
+
+                // If not fully qualified, match using a requirement
+                if dot_count < 2 {
+                    DetectedVersion::ReqAll(
+                        VersionReq::parse(&format!("^{value}")).map_err(handle_error)?,
+                    )
+                } else {
+                    DetectedVersion::Version(Version::parse(&value).map_err(handle_error)?)
+                }
+            }
         })
     }
 }
 
-impl TryFrom<String> for VersionType {
+impl TryFrom<String> for DetectedVersion {
     type Error = ProtoError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
@@ -63,7 +78,7 @@ impl TryFrom<String> for VersionType {
     }
 }
 
-impl Into<String> for VersionType {
+impl Into<String> for DetectedVersion {
     fn into(self) -> String {
         match self {
             Self::Alias(alias) => alias,
@@ -89,15 +104,15 @@ impl FromStr for AliasOrVersion {
     type Err = ProtoError;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
-        let value = value.trim();
+        let value = remove_space_after_gtlt(remove_v_prefix(value.trim().replace(".*", "")));
 
-        if is_alias_name(value) {
-            return Ok(AliasOrVersion::Alias(value.to_owned()));
+        if is_alias_name(&value) {
+            return Ok(AliasOrVersion::Alias(value));
         }
 
-        Ok(AliasOrVersion::Version(Version::parse(value).map_err(
+        Ok(AliasOrVersion::Version(Version::parse(&value).map_err(
             |error| ProtoError::Semver {
-                version: value.to_owned(),
+                version: value,
                 error,
             },
         )?))

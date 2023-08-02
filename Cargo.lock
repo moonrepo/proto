@@ -2445,6 +2445,7 @@ dependencies = [
  "rustc-hash",
  "semver",
  "serde",
+ "starbase_sandbox",
  "starbase_styles",
  "starbase_utils",
  "thiserror",
