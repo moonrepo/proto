@@ -4,7 +4,7 @@ use std::collections::HashMap;
 /// Input passed to the `trace` host function.
 #[derive(Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(untagged)]
-pub enum TraceInput {
+pub enum HostLogInput {
     Message(String),
     Fields {
         data: HashMap<String, serde_json::Value>,
@@ -12,15 +12,15 @@ pub enum TraceInput {
     },
 }
 
-impl From<&str> for TraceInput {
+impl From<&str> for HostLogInput {
     fn from(message: &str) -> Self {
-        TraceInput::Message(message.to_owned())
+        HostLogInput::Message(message.to_owned())
     }
 }
 
-impl From<String> for TraceInput {
+impl From<String> for HostLogInput {
     fn from(message: String) -> Self {
-        TraceInput::Message(message)
+        HostLogInput::Message(message)
     }
 }
 

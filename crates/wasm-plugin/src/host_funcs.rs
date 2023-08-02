@@ -1,5 +1,5 @@
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
-use proto_pdk_api::{ExecCommandInput, ExecCommandOutput, PluginError, TraceInput};
+use proto_pdk_api::{ExecCommandInput, ExecCommandOutput, HostLogInput, PluginError};
 use std::path::PathBuf;
 use std::process::Command;
 use tracing::trace;
@@ -11,7 +11,7 @@ pub struct HostData {
 
 pub fn create_functions(data: HostData) -> Vec<Function> {
     vec![
-        Function::new("trace", [ValType::I64], [], None, log_trace),
+        Function::new("host_log", [ValType::I64], [], None, host_log),
         Function::new(
             "exec_command",
             [ValType::I64],
@@ -19,30 +19,32 @@ pub fn create_functions(data: HostData) -> Vec<Function> {
             Some(UserData::new(data)),
             exec_command,
         ),
+        // Backwards compatibility
+        Function::new("trace", [ValType::I64], [], None, host_log),
     ]
 }
 
 // Logging
 
-pub fn log_trace(
+pub fn host_log(
     plugin: &mut CurrentPlugin,
     inputs: &[Val],
     _outputs: &mut [Val],
     _user_data: UserData,
 ) -> Result<(), Error> {
     let input_str = unsafe { (*plugin.memory).get_str(inputs[0].unwrap_i64() as usize)? };
-    let input: TraceInput = serde_json::from_str(input_str)?;
+    let input: HostLogInput = serde_json::from_str(input_str)?;
 
     match input {
-        TraceInput::Message(message) => {
+        HostLogInput::Message(message) => {
             trace!(
-                target: "proto_wasm::trace",
+                target: "proto_wasm::log",
                 "{}", message,
             );
         }
-        TraceInput::Fields { data, message } => {
+        HostLogInput::Fields { data, message } => {
             trace!(
-                target: "proto_wasm::trace",
+                target: "proto_wasm::log",
                 data = ?data,
                 "{}", message,
             );
