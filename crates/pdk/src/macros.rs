@@ -50,8 +50,8 @@ macro_rules! host_log {
 }
 
 #[macro_export]
-macro_rules! return_err {
-    ($msg:expr, $code:literal) => {
+macro_rules! err {
+    ($msg:expr, $code:expr) => {
         Err(WithReturnCode::new(
             PluginError::Message($msg).into(),
             $code,

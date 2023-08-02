@@ -1,7 +1,6 @@
 [workspace]
 resolver = "2"
 members = ["crates/*"]
-exclude = ["crates/rust"]
 default-members = ["crates/cli"]
 
 [workspace.dependencies]

@@ -4,7 +4,7 @@
 
 #### 🚀 Updates
 
-- [Node.js (and package managers)](https://github.com/moonrepo/node-plugin) are now powered by WASM plugins, and have been removed from core.
+- [Node.js (and package managers)](https://github.com/moonrepo/node-plugin) and [Rust](https://github.com/moonrepo/rust-plugin) are now powered by WASM plugins, and have been removed from core.
   - Please report any issues you encounter or discrepancies from the previous release!
 - WASM API
   - Renamed host function `trace` to `host_log`.
