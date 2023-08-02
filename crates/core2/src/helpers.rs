@@ -1,7 +1,11 @@
 use crate::error::ProtoError;
 use cached::proc_macro::cached;
+use once_cell::sync::Lazy;
+use regex::Regex;
 use starbase_utils::dirs::home_dir;
 use std::{env, path::PathBuf};
+
+static CLEAN_VERSION_REQ: Lazy<Regex> = Lazy::new(|| Regex::new(r"([><]=?)\s+(\d)").unwrap());
 
 pub fn get_root() -> miette::Result<PathBuf> {
     if let Ok(root) = env::var("PROTO_ROOT") {
@@ -65,9 +69,9 @@ pub fn remove_v_prefix<T: AsRef<str>>(value: T) -> String {
 }
 
 pub fn remove_space_after_gtlt<T: AsRef<str>>(value: T) -> String {
-    let value = value.as_ref();
-    let pattern = regex::Regex::new(r"([><]=?)\s+(\d)").unwrap();
-    pattern.replace_all(value, "$1$2").to_string()
+    CLEAN_VERSION_REQ
+        .replace_all(value.as_ref(), "$1$2")
+        .to_string()
 }
 
 #[cached(time = 300)]

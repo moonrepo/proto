@@ -1,5 +1,3 @@
-#![allow(clippy::borrowed_box)]
-
 use crate::errors::ProtoError;
 use crate::helpers::{is_alias_name, remove_space_after_gtlt, remove_v_prefix};
 use crate::manifest::Manifest;
@@ -11,10 +9,6 @@ use semver::Version;
 use starbase_utils::fs;
 use std::{env, path::Path};
 use tracing::{debug, trace};
-
-pub fn load_version_file(path: &Path) -> miette::Result<String> {
-    Ok(fs::read_file(path)?.trim().to_owned())
-}
 
 pub async fn detect_version(tool: &Tool, forced_version: Option<String>) -> miette::Result<String> {
     let mut version = forced_version;

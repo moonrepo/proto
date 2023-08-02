@@ -1,3 +1,4 @@
+use crate::version::AliasOrVersion;
 use rustc_hash::{FxHashMap, FxHashSet};
 use semver::Version;
 use serde::{Deserialize, Serialize};
@@ -32,8 +33,8 @@ pub struct ToolManifestVersion {
 #[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct ToolManifest {
-    pub aliases: FxHashMap<String, Version>,
-    pub default_version: Option<Version>,
+    pub aliases: FxHashMap<String, AliasOrVersion>,
+    pub default_version: Option<AliasOrVersion>,
     pub installed_versions: FxHashSet<Version>,
     pub shim_version: u8,
     pub versions: FxHashMap<Version, ToolManifestVersion>,
@@ -129,10 +130,12 @@ impl ToolManifest {
     pub fn insert_version(
         &mut self,
         version: &Version,
-        default_version: Option<Version>,
+        default_version: Option<AliasOrVersion>,
     ) -> miette::Result<()> {
         if self.default_version.is_none() {
-            self.default_version = Some(default_version.unwrap_or(version.to_owned()));
+            self.default_version = Some(
+                default_version.unwrap_or_else(|| AliasOrVersion::Version(version.to_owned())),
+            );
         }
 
         self.installed_versions.insert(version.to_owned());

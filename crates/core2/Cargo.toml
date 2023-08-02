@@ -14,6 +14,7 @@ cached = { workspace = true }
 extism = { workspace = true }
 fs4 = { version = "0.6.6", features = ["sync"] }
 miette = { workspace = true }
+once_cell = { workspace = true }
 regex = { workspace = true }
 rustc-hash = { workspace = true }
 semver = { workspace = true }

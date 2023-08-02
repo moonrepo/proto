@@ -1,5 +1,6 @@
 use crate::proto::ProtoEnvironment;
 use crate::tool_manifest::ToolManifest;
+use crate::version::VersionType;
 use extism::Manifest as PluginManifest;
 use miette::IntoDiagnostic;
 use proto_pdk_api::*;
@@ -77,7 +78,10 @@ impl Tool {
 
 impl Tool {
     /// Attempt to detect an applicable version from the provided directory.
-    pub async fn detect_version_from(&self, current_dir: &Path) -> miette::Result<Option<String>> {
+    pub async fn detect_version_from(
+        &self,
+        current_dir: &Path,
+    ) -> miette::Result<Option<VersionType>> {
         if !self.plugin.has_func("detect_version_files") {
             return Ok(None);
         }
@@ -92,11 +96,13 @@ impl Tool {
                 continue;
             }
 
-            if has_parser {
+            let content = fs::read_file(&file_path)?;
+
+            let version = if has_parser {
                 let result: ParseVersionFileOutput = self.plugin.call_func_with(
                     "parse_version_file",
                     ParseVersionFileInput {
-                        content: fs::read_file(&file_path)?,
+                        content,
                         env: self.get_environment()?,
                         file: file.clone(),
                     },
@@ -106,11 +112,12 @@ impl Tool {
                     continue;
                 }
 
-                return Ok(result.version);
-            }
+                result.version.unwrap()
+            } else {
+                content
+            };
 
-            // TODO
-            // return Ok(Some(load_version_file(&file_path)?));
+            return Ok(Some(VersionType::try_from(version)?));
         }
 
         Ok(None)

@@ -1,3 +1,4 @@
+use crate::version::AliasOrVersion;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use starbase_utils::toml;
@@ -12,7 +13,7 @@ pub struct ToolsConfig {
     pub plugins: FxHashMap<String, PluginLocator>,
 
     #[serde(flatten)]
-    pub tools: FxHashMap<String, String>,
+    pub tools: FxHashMap<String, AliasOrVersion>,
 
     #[serde(skip)]
     pub path: PathBuf,
