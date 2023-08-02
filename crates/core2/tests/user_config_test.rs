@@ -1,6 +1,6 @@
 use proto_core2::UserConfig;
-use rustc_hash::FxHashMap;
 use starbase_sandbox::create_empty_sandbox;
+use std::collections::BTreeMap;
 use std::env;
 use warpgate::{GitHubLocator, PluginLocator};
 
@@ -18,7 +18,7 @@ mod user_config {
                 auto_clean: false,
                 auto_install: false,
                 node_intercept_globals: true,
-                plugins: FxHashMap::default()
+                plugins: BTreeMap::default()
             }
         );
     }
@@ -43,7 +43,7 @@ node-intercept-globals = false
                 auto_clean: true,
                 auto_install: true,
                 node_intercept_globals: false,
-                plugins: FxHashMap::default()
+                plugins: BTreeMap::default()
             }
         );
     }
@@ -65,7 +65,7 @@ node-intercept-globals = false
                 auto_clean: true,
                 auto_install: true,
                 node_intercept_globals: false,
-                plugins: FxHashMap::default()
+                plugins: BTreeMap::default()
             }
         );
 
@@ -90,7 +90,13 @@ bar = "source:https://moonrepo.dev/path/file.wasm"
 
         assert_eq!(
             config.plugins,
-            FxHashMap::from_iter([
+            BTreeMap::from_iter([
+                (
+                    "bar".into(),
+                    PluginLocator::SourceUrl {
+                        url: "https://moonrepo.dev/path/file.wasm".into()
+                    }
+                ),
                 (
                     "foo".into(),
                     PluginLocator::GitHub(GitHubLocator {
@@ -98,12 +104,6 @@ bar = "source:https://moonrepo.dev/path/file.wasm"
                         repo_slug: "moonrepo/foo".into(),
                         tag: None,
                     })
-                ),
-                (
-                    "bar".into(),
-                    PluginLocator::SourceUrl {
-                        url: "https://moonrepo.dev/path/file.wasm".into()
-                    }
                 ),
             ])
         );
@@ -124,7 +124,7 @@ foo = "source:../file.wasm"
 
         assert_eq!(
             config.plugins,
-            FxHashMap::from_iter([(
+            BTreeMap::from_iter([(
                 "foo".into(),
                 PluginLocator::SourceFile {
                     file: "../file.wasm".into(),

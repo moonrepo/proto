@@ -1,9 +1,10 @@
 use crate::helpers::get_root;
-use rustc_hash::FxHashMap;
 use serde::Deserialize;
 use starbase_utils::toml;
+use std::collections::BTreeMap;
 use std::env;
 use std::path::Path;
+use tracing::debug;
 use warpgate::PluginLocator;
 
 pub const USER_CONFIG_NAME: &str = "config.toml";
@@ -14,7 +15,7 @@ pub struct UserConfig {
     pub auto_clean: bool,
     pub auto_install: bool,
     pub node_intercept_globals: bool,
-    pub plugins: FxHashMap<String, PluginLocator>,
+    pub plugins: BTreeMap<String, PluginLocator>,
 }
 
 impl UserConfig {
@@ -25,6 +26,8 @@ impl UserConfig {
         if !path.exists() {
             return Ok(UserConfig::default());
         }
+
+        debug!(file = ?path, "Loading {}", USER_CONFIG_NAME);
 
         let mut config: UserConfig = toml::read_file(&path)?;
 
@@ -54,7 +57,7 @@ impl Default for UserConfig {
             auto_clean: from_var("PROTO_AUTO_CLEAN", false),
             auto_install: from_var("PROTO_AUTO_INSTALL", false),
             node_intercept_globals: from_var("PROTO_NODE_INTERCEPT_GLOBALS", true),
-            plugins: FxHashMap::default(),
+            plugins: BTreeMap::default(),
         }
     }
 }

@@ -1,7 +1,7 @@
 use crate::version::AliasOrVersion;
-use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use starbase_utils::toml;
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use tracing::debug;
 use warpgate::PluginLocator;
@@ -9,18 +9,19 @@ use warpgate::PluginLocator;
 pub const TOOLS_CONFIG_NAME: &str = ".prototools";
 
 #[derive(Debug, Default, Deserialize, Serialize)]
+#[serde(default, rename_all = "kebab-case")]
 pub struct ToolsConfig {
-    pub plugins: FxHashMap<String, PluginLocator>,
-
     #[serde(flatten)]
-    pub tools: FxHashMap<String, AliasOrVersion>,
+    pub tools: BTreeMap<String, AliasOrVersion>,
+
+    pub plugins: BTreeMap<String, PluginLocator>,
 
     #[serde(skip)]
     pub path: PathBuf,
 }
 
 impl ToolsConfig {
-    pub fn builtin_plugins() -> FxHashMap<String, PluginLocator> {
+    pub fn builtin_plugins() -> BTreeMap<String, PluginLocator> {
         let mut config = ToolsConfig::default();
         config.inherit_builtin_plugins();
         config.plugins
@@ -34,7 +35,7 @@ impl ToolsConfig {
     pub fn load<P: AsRef<Path>>(path: P) -> miette::Result<Self> {
         let path = path.as_ref();
 
-        debug!(file = ?path, "Loading .prototools");
+        debug!(file = ?path, "Loading {}", TOOLS_CONFIG_NAME);
 
         let mut config: ToolsConfig = if path.exists() {
             toml::read_file(path)?
