@@ -1,26 +1,29 @@
+#![allow(clippy::from_over_into)]
+
 use crate::error::ProtoError;
 use crate::helpers::{is_alias_name, remove_space_after_gtlt, remove_v_prefix};
+use human_sort::compare;
 use semver::{Version, VersionReq};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(untagged, into = "String", try_from = "String")]
-pub enum DetectedVersion {
+pub enum VersionType {
     Alias(String),
     ReqAll(VersionReq),
     ReqAny(Vec<VersionReq>),
     Version(Version),
 }
 
-impl FromStr for DetectedVersion {
+impl FromStr for VersionType {
     type Err = ProtoError;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         let value = remove_space_after_gtlt(remove_v_prefix(value.trim().replace(".*", "")));
 
         if is_alias_name(&value) {
-            return Ok(DetectedVersion::Alias(value));
+            return Ok(VersionType::Alias(value));
         }
 
         let handle_error = |error: semver::Error| ProtoError::Semver {
@@ -31,46 +34,50 @@ impl FromStr for DetectedVersion {
         // OR requirements
         if value.contains("||") {
             let mut any = vec![];
+            let mut parts = value.split("||").map(|p| p.trim()).collect::<Vec<_>>();
 
-            for req in value.split("||") {
-                any.push(VersionReq::parse(req.trim()).map_err(handle_error)?);
+            // Try and sort from highest to lowest range
+            parts.sort_by(|a, d| compare(d, a));
+
+            for req in parts {
+                any.push(VersionReq::parse(req).map_err(handle_error)?);
             }
 
-            return Ok(DetectedVersion::ReqAny(any));
+            return Ok(VersionType::ReqAny(any));
         }
 
         // AND requirements
         if value.contains(',') {
-            return Ok(DetectedVersion::ReqAll(
+            return Ok(VersionType::ReqAll(
                 VersionReq::parse(&value).map_err(handle_error)?,
             ));
         } else if value.contains(' ') {
-            return Ok(DetectedVersion::ReqAll(
+            return Ok(VersionType::ReqAll(
                 VersionReq::parse(&value.replace(' ', ", ")).map_err(handle_error)?,
             ));
         }
 
         Ok(match value.chars().next().unwrap() {
             '=' | '^' | '~' | '>' | '<' | '*' => {
-                DetectedVersion::ReqAll(VersionReq::parse(&value).map_err(handle_error)?)
+                VersionType::ReqAll(VersionReq::parse(&value).map_err(handle_error)?)
             }
             _ => {
                 let dot_count = value.match_indices('.').collect::<Vec<_>>().len();
 
                 // If not fully qualified, match using a requirement
                 if dot_count < 2 {
-                    DetectedVersion::ReqAll(
+                    VersionType::ReqAll(
                         VersionReq::parse(&format!("^{value}")).map_err(handle_error)?,
                     )
                 } else {
-                    DetectedVersion::Version(Version::parse(&value).map_err(handle_error)?)
+                    VersionType::Version(Version::parse(&value).map_err(handle_error)?)
                 }
             }
         })
     }
 }
 
-impl TryFrom<String> for DetectedVersion {
+impl TryFrom<String> for VersionType {
     type Error = ProtoError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
@@ -78,7 +85,7 @@ impl TryFrom<String> for DetectedVersion {
     }
 }
 
-impl Into<String> for DetectedVersion {
+impl Into<String> for VersionType {
     fn into(self) -> String {
         match self {
             Self::Alias(alias) => alias,

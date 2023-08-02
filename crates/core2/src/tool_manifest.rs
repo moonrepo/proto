@@ -52,7 +52,7 @@ impl ToolManifest {
     pub fn load<P: AsRef<Path>>(path: P) -> miette::Result<Self> {
         let path = path.as_ref();
 
-        debug!(file = ?path, "Loading manifest");
+        debug!(file = ?path, "Loading {}", MANIFEST_NAME);
 
         let mut manifest: ToolManifest = if path.exists() {
             use fs4::FileExt;

@@ -7,6 +7,7 @@ mod tool_manifest;
 mod tools_config;
 mod user_config;
 mod version;
+mod version_resolver;
 
 pub use error::*;
 pub use proto::*;
