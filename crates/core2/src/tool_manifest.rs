@@ -23,7 +23,7 @@ pub const MANIFEST_NAME: &str = "manifest.json";
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(default)]
-pub struct ManifestVersion {
+pub struct ToolManifestVersion {
     pub no_clean: bool,
     pub installed_at: u128,
     pub last_used_at: Option<u128>,
@@ -31,18 +31,18 @@ pub struct ManifestVersion {
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(default)]
-pub struct Manifest {
+pub struct ToolManifest {
     pub aliases: FxHashMap<String, Version>,
     pub default_version: Option<Version>,
     pub installed_versions: FxHashSet<Version>,
     pub shim_version: u8,
-    pub versions: FxHashMap<Version, ManifestVersion>,
+    pub versions: FxHashMap<Version, ToolManifestVersion>,
 
     #[serde(skip)]
     pub path: PathBuf,
 }
 
-impl Manifest {
+impl ToolManifest {
     pub fn load_from<P: AsRef<Path>>(dir: P) -> miette::Result<Self> {
         Self::load(dir.as_ref().join(MANIFEST_NAME))
     }
@@ -53,7 +53,7 @@ impl Manifest {
 
         debug!(file = ?path, "Loading manifest");
 
-        let mut manifest: Manifest = if path.exists() {
+        let mut manifest: ToolManifest = if path.exists() {
             use fs4::FileExt;
             use std::io::prelude::*;
 
@@ -77,7 +77,7 @@ impl Manifest {
 
             data
         } else {
-            Manifest::default()
+            ToolManifest::default()
         };
 
         manifest.path = path.to_owned();
@@ -139,10 +139,10 @@ impl Manifest {
 
         self.versions.insert(
             version.to_owned(),
-            ManifestVersion {
+            ToolManifestVersion {
                 installed_at: now(),
                 no_clean: env::var("PROTO_NO_CLEAN").is_ok(),
-                ..ManifestVersion::default()
+                ..ToolManifestVersion::default()
             },
         );
 
@@ -176,9 +176,9 @@ impl Manifest {
             .and_modify(|v| {
                 v.last_used_at = Some(now());
             })
-            .or_insert(ManifestVersion {
+            .or_insert(ToolManifestVersion {
                 last_used_at: Some(now()),
-                ..ManifestVersion::default()
+                ..ToolManifestVersion::default()
             });
     }
 }

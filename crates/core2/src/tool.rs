@@ -1,5 +1,5 @@
-use crate::manifest::Manifest;
 use crate::proto::ProtoEnvironment;
+use crate::tool_manifest::ToolManifest;
 use extism::Manifest as PluginManifest;
 use miette::IntoDiagnostic;
 use proto_pdk_api::*;
@@ -11,7 +11,7 @@ use warpgate::PluginContainer;
 
 pub struct Tool {
     pub id: String,
-    pub manifest: Manifest,
+    pub manifest: ToolManifest,
     pub plugin: PluginContainer<'static>,
     pub proto: ProtoEnvironment,
 }
@@ -20,7 +20,7 @@ pub struct Tool {
 
 impl Tool {
     pub fn load(id: &str, proto: &ProtoEnvironment) -> miette::Result<Self> {
-        let manifest = Manifest::load_from(proto.tools_dir.join(id))?;
+        let manifest = ToolManifest::load_from(proto.tools_dir.join(id))?;
 
         // TODO
         let plugin = PluginContainer::new_without_functions(id, PluginManifest::default())?;
