@@ -23,6 +23,8 @@ impl Shimable<'_> for WasmPlugin {
                 )
                 .map_err(|e| ProtoError::Message(e.to_string()))?;
 
+            created_primary = shim_configs.no_primary_global;
+
             if let Some(primary_config) = &shim_configs.primary {
                 let mut context = ShimContext::new_global(self.get_id());
                 context.parent_bin = primary_config.parent_bin.as_deref();
@@ -30,7 +32,9 @@ impl Shimable<'_> for WasmPlugin {
                 context.after_args = primary_config.after_args.as_deref();
                 context.globals_bin_dir = Some(&self.proto.bin_dir);
 
-                create_global_shim(context, find_only)?;
+                if !shim_configs.no_primary_global {
+                    create_global_shim(context, find_only)?;
+                }
 
                 created_primary = true;
             }

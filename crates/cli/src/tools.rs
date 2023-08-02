@@ -1,6 +1,5 @@
 use convert_case::{Case, Casing};
 use proto_core::*;
-use proto_rust as rust;
 use proto_schema_plugin as schema_plugin;
 use proto_wasm_plugin as wasm_plugin;
 use starbase_utils::toml;
@@ -11,22 +10,23 @@ use warpgate::{PluginLoader, PluginLocator};
 
 #[derive(Clone, Debug, Eq, EnumIter, Hash, PartialEq)]
 pub enum ToolType {
-    // Rust
-    Rust,
     // Plugins
     Plugin(String),
+}
+
+impl ToolType {
+    pub fn is(&self, id: &str) -> bool {
+        match self {
+            Self::Plugin(name) => name == id,
+        }
+    }
 }
 
 impl FromStr for ToolType {
     type Err = ProtoError;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
-        match value.to_lowercase().as_ref() {
-            // Rust
-            "rust" => Ok(Self::Rust),
-            // Plugins
-            name => Ok(Self::Plugin(name.to_case(Case::Kebab))),
-        }
+        Ok(Self::Plugin(value.to_lowercase().to_case(Case::Kebab)))
     }
 }
 
@@ -117,8 +117,6 @@ pub async fn create_tool(tool: &ToolType) -> Result<Box<dyn Tool<'static>>, Prot
     let proto = Proto::new()?;
 
     Ok(match tool {
-        // Rust
-        ToolType::Rust => Box::new(rust::RustLanguage::new(proto)),
         // Plugins
         ToolType::Plugin(plugin) => create_plugin_tool(plugin, proto).await?,
     })

@@ -5,7 +5,6 @@ use rustc_hash::FxHashSet;
 use starbase::{diagnostics::IntoDiagnostic, SystemResult};
 use starbase_utils::fs;
 use std::time::SystemTime;
-use strum::IntoEnumIterator;
 use tracing::{debug, info};
 
 fn is_older_than_days(now: u128, other: u128, days: u8) -> bool {
@@ -119,27 +118,6 @@ pub async fn clean(days: Option<u8>, yes: bool) -> SystemResult {
     let mut clean_count = 0;
 
     info!("Finding tools to clean up...");
-
-    for tool_type in ToolType::iter() {
-        if matches!(tool_type, ToolType::Plugin(_)) {
-            continue;
-        }
-
-        let tool = create_tool(&tool_type).await?;
-
-        if matches!(tool_type, ToolType::Rust) {
-            info!(
-                "Skipping {}, use rustup instead",
-                color::shell(tool.get_name())
-            );
-
-            continue;
-        }
-
-        clean_count += do_clean(tool, now, days, yes).await?;
-    }
-
-    info!("Finding plugins to clean up...");
 
     let tools_config = ToolsConfig::load_upwards()?;
 
