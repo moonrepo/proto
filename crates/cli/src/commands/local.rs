@@ -17,9 +17,13 @@ pub async fn local(tool_id: String, version: String) -> SystemResult {
 
     config.save()?;
 
-    debug!("Wrote the local version to {}", color::path(&local_path));
+    debug!(config = ?local_path, "Wrote the local version");
 
-    info!("Set the local {} version to {}", tool.get_name(), version);
+    info!(
+        "Set the local {} version to {}",
+        tool.get_name(),
+        color::hash(version)
+    );
 
     Ok(())
 }

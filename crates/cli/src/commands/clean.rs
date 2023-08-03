@@ -43,7 +43,10 @@ pub async fn do_clean(mut tool: Tool, now: u128, days: u8, yes: bool) -> miette:
             let version = Version::parse(&dir_name).into_diagnostic()?;
 
             if !tool.manifest.versions.contains_key(&version) {
-                debug!("Version {} not found in manifest, removing", version);
+                debug!(
+                    "Version {} not found in manifest, removing",
+                    color::hash(version.to_string())
+                );
 
                 versions_to_clean.insert(version);
             }
@@ -58,7 +61,11 @@ pub async fn do_clean(mut tool: Tool, now: u128, days: u8, yes: bool) -> miette:
         }
 
         if metadata.no_clean {
-            debug!("Version {} is marked as not to clean, skipping", version);
+            debug!(
+                "Version {} is marked as not to clean, skipping",
+                color::hash(version.to_string())
+            );
+
             continue;
         }
 
@@ -70,7 +77,8 @@ pub async fn do_clean(mut tool: Tool, now: u128, days: u8, yes: bool) -> miette:
             if is_older_than_days(now, last_used, days) {
                 debug!(
                     "Version {} hasn't been used in over {} days, removing",
-                    version, days
+                    color::hash(version.to_string()),
+                    days
                 );
 
                 versions_to_clean.insert(version.to_owned());
@@ -83,6 +91,7 @@ pub async fn do_clean(mut tool: Tool, now: u128, days: u8, yes: bool) -> miette:
 
     if count == 0 {
         debug!("No versions to remove, continuing to next tool");
+
         return Ok(0);
     }
 

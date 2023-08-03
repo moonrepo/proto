@@ -12,7 +12,7 @@ pub async fn list_global(tool_type: ToolType) -> SystemResult {
         return Ok(());
     };
 
-    debug!("Finding globals from {}", color::path(&bin_dir));
+    debug!(globals_dir = ?bin_dir, "Finding globals");
 
     let mut bins = vec![];
 

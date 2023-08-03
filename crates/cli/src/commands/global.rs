@@ -11,11 +11,15 @@ pub async fn global(tool_id: String, version: String) -> SystemResult {
     tool.manifest.save()?;
 
     debug!(
-        "Wrote the global version to {}",
-        color::path(&tool.manifest.path),
+        manifest = ?tool.manifest.path,
+        "Wrote the global version",
     );
 
-    info!("Set the global {} version to {}", tool.get_name(), version);
+    info!(
+        "Set the global {} version to {}",
+        tool.get_name(),
+        color::hash(version)
+    );
 
     Ok(())
 }
