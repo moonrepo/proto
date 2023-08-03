@@ -1,15 +1,17 @@
-use crate::helpers::{is_offline, remove_v_prefix};
+use crate::helpers::{is_cache_enabled, is_offline, remove_v_prefix};
 use crate::proto::ProtoEnvironment;
 use crate::tool_manifest::ToolManifest;
 use crate::version::{AliasOrVersion, VersionType};
 use crate::version_resolver::VersionResolver;
+use crate::ProtoError;
 use extism::Manifest as PluginManifest;
 use miette::IntoDiagnostic;
 use proto_pdk_api::*;
-use starbase_utils::fs;
+use starbase_utils::{fs, json};
 use std::env::{self, consts};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use std::time::{Duration, SystemTime};
 use tracing::debug;
 use warpgate::PluginContainer;
 
@@ -43,6 +45,11 @@ impl Tool {
     /// Return the prefix for environment variable names.
     pub fn get_env_var_prefix(&self) -> String {
         format!("PROTO_{}", self.id.to_uppercase().replace('-', "_"))
+    }
+
+    /// Return a human readable name for the tool.
+    pub fn get_name(&self) -> String {
+        self.get_metadata().unwrap().name
     }
 
     /// Return the resolved version or "latest".
@@ -96,39 +103,60 @@ impl Tool {
 
 impl Tool {
     /// Load the available versions to install and return a resolver instance.
+    /// To reduce network overhead, cache the results for 24 hours.
     pub async fn load_version_resolver(
         &self,
         initial_version: &str,
     ) -> miette::Result<VersionResolver> {
         debug!(tool = &self.id, "Loading available versions");
 
-        let mut available: LoadVersionsOutput = self.plugin.cache_func_with(
-            "load_versions",
-            LoadVersionsInput {
-                env: self.get_environment()?,
-                initial: initial_version.to_owned(),
-            },
-        )?;
+        let mut versions: Option<LoadVersionsOutput> = None;
+        let cache_path = self
+            .proto
+            .temp_dir
+            .join(format!("{}-versions.json", self.id));
 
-        // Sort from newest to oldest
-        available.versions.sort_by(|a, d| d.cmp(a));
-        available.canary_versions.sort_by(|a, d| d.cmp(a));
+        // Attempt to read from the cache first
+        if cache_path.exists() && (is_cache_enabled() || is_offline()) {
+            let metadata = fs::metadata(&cache_path)?;
 
-        let mut resolver = VersionResolver::default();
-        resolver.versions.extend(available.versions);
-        resolver.aliases.extend(self.manifest.aliases.clone());
+            // If offline, always use the cache, otherwise only within the last 24 hours
+            let read_cache = if is_offline() {
+                true
+            } else if let Ok(modified_time) = metadata.modified().or_else(|_| metadata.created()) {
+                modified_time > SystemTime::now() - Duration::from_secs(60 * 60 * 24)
+            } else {
+                false
+            };
 
-        for (alias, version) in available.aliases {
-            resolver
-                .aliases
-                .insert(alias, AliasOrVersion::Version(version));
+            if read_cache {
+                debug!(tool = &self.id, cache = ?cache_path, "Loading from local cache");
+
+                versions = Some(json::read_file(&cache_path)?);
+            }
         }
 
-        if let Some(latest) = available.latest {
-            resolver
-                .aliases
-                .insert("latest".into(), AliasOrVersion::Version(latest));
+        // Nothing cached, so load from the plugin
+        if versions.is_none() {
+            if is_offline() {
+                return Err(ProtoError::InternetConnectionRequired.into());
+            }
+
+            versions = Some(self.plugin.cache_func_with(
+                "load_versions",
+                LoadVersionsInput {
+                    env: self.get_environment()?,
+                    initial: initial_version.to_owned(),
+                },
+            )?);
         }
+
+        // Cache the results and create a resolver
+        let versions = versions.unwrap();
+        json::write_file(cache_path, &versions, false)?;
+
+        let mut resolver = VersionResolver::from_output(versions);
+        resolver.inherit_aliases(&self.manifest);
 
         Ok(resolver)
     }

@@ -1,5 +1,6 @@
 use crate::version::{AliasOrVersion, VersionType};
-use crate::ProtoError;
+use crate::{ProtoError, ToolManifest};
+use proto_pdk_api::LoadVersionsOutput;
 use semver::{Version, VersionReq};
 use std::collections::BTreeMap;
 use std::str::FromStr;
@@ -11,6 +12,38 @@ pub struct VersionResolver {
 }
 
 impl VersionResolver {
+    pub fn from_output(output: LoadVersionsOutput) -> Self {
+        let mut resolver = Self::default();
+        resolver.versions.extend(output.versions);
+
+        for (alias, version) in output.aliases {
+            resolver
+                .aliases
+                .insert(alias, AliasOrVersion::Version(version));
+        }
+
+        if let Some(latest) = output.latest {
+            resolver
+                .aliases
+                .insert("latest".into(), AliasOrVersion::Version(latest));
+        }
+
+        // Sort from newest to oldest
+        resolver.versions.sort_by(|a, d| d.cmp(a));
+        // resolver.canary_versions.sort_by(|a, d| d.cmp(a));
+
+        resolver
+    }
+
+    pub fn inherit_aliases(&mut self, manifest: &ToolManifest) {
+        for (alias, version) in &manifest.aliases {
+            // Don't override existing aliases
+            self.aliases
+                .entry(alias.to_owned())
+                .or_insert_with(|| version.to_owned());
+        }
+    }
+
     pub fn resolve<V: AsRef<str>>(&self, candidate: V) -> miette::Result<Version> {
         resolve_version(
             &VersionType::from_str(candidate.as_ref())?,

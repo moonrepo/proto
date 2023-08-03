@@ -4,6 +4,10 @@ use thiserror::Error;
 
 #[derive(Error, Debug, Diagnostic)]
 pub enum ProtoError {
+    #[diagnostic(code(proto::misc::offline))]
+    #[error("Internet connection required, unable to download and install tools.")]
+    InternetConnectionRequired,
+
     #[diagnostic(code(proto::env::home_dir))]
     #[error("Unable to determine your home directory.")]
     MissingHomeDir,
