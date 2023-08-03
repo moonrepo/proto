@@ -75,12 +75,12 @@ pub fn resolve_version(
     match &candidate {
         VersionType::Alias(alias) => {
             if let Some(alias_or_version) = aliases.get(alias) {
-                return match alias_or_version {
-                    AliasOrVersion::Alias(alias) => {
-                        resolve_version(&VersionType::Alias(alias.to_owned()), versions, aliases)
-                    }
-                    AliasOrVersion::Version(version) => Ok(version.to_owned()),
+                let candidate = match alias_or_version {
+                    AliasOrVersion::Alias(alias) => VersionType::Alias(alias.to_owned()),
+                    AliasOrVersion::Version(version) => VersionType::Version(version.to_owned()),
                 };
+
+                return resolve_version(&candidate, versions, aliases);
             }
         }
         VersionType::ReqAll(req) => {

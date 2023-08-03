@@ -1,5 +1,5 @@
 use crate::error::ProtoError;
-use crate::tool::Tool;
+use crate::ProtoEnvironment;
 use serde::Serialize;
 use serde_json::Value;
 use starbase_utils::fs;
@@ -11,7 +11,7 @@ use tracing::debug;
 
 pub const SHIM_VERSION: u8 = 7;
 
-#[derive(Default, Serialize)]
+#[derive(Debug, Default, Serialize)]
 pub struct ShimContext<'tool> {
     /// Name of the shim file.
     pub shim_file: &'tool str,
@@ -34,6 +34,9 @@ pub struct ShimContext<'tool> {
     pub after_args: Option<&'tool str>,
 
     // TOOL INFO
+    /// ID of the tool, for logging purposes.
+    pub tool_id: &'tool str,
+
     /// Path to the proto tool installation directory.
     pub tool_dir: Option<PathBuf>,
 
@@ -140,25 +143,23 @@ fn create_shim(
 }
 
 pub fn create_global_shim<'tool, C: AsRef<ShimContext<'tool>>>(
-    tool: &Tool,
+    proto: &ProtoEnvironment,
     context: C,
     find_only: bool,
 ) -> miette::Result<PathBuf> {
     let context = context.as_ref();
-    let shim_path = tool
-        .proto
+    let shim_path = proto
         .bin_dir
         .join(get_shim_file_name(context.shim_file, true));
 
     if !find_only {
-        debug!(tool = &tool.id, shim = ?shim_path, "Creating global shim");
+        debug!(tool = &context.tool_id, shim = ?shim_path, "Creating global shim");
     }
 
     create_shim(context, shim_path, true, find_only)
 }
 
 pub fn create_local_shim<'tool, C: AsRef<ShimContext<'tool>>>(
-    tool: &Tool,
     context: C,
     find_only: bool,
 ) -> miette::Result<PathBuf> {
@@ -171,7 +172,7 @@ pub fn create_local_shim<'tool, C: AsRef<ShimContext<'tool>>>(
         .join(get_shim_file_name(context.shim_file, false));
 
     if !find_only {
-        debug!(tool = &tool.id, shim = ?shim_path, "Creating local shim");
+        debug!(tool = &context.tool_id, shim = ?shim_path, "Creating local shim");
     }
 
     create_shim(context, shim_path, false, find_only)

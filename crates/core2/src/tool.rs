@@ -319,6 +319,7 @@ impl Tool {
         let mut context = ShimContext {
             shim_file: &self.id,
             bin: &self.id,
+            tool_id: &self.id,
             tool_dir: Some(self.get_tool_dir()),
             ..ShimContext::default()
         };
@@ -337,7 +338,7 @@ impl Tool {
 
         // If not configured from the plugin, always create the primary global
         if !self.plugin.has_func("create_shims") {
-            create_global_shim(self, primary_context, find_only)?;
+            create_global_shim(&self.proto, primary_context, find_only)?;
 
             return Ok(());
         }
@@ -356,7 +357,7 @@ impl Tool {
         }
 
         if !shim_configs.no_primary_global {
-            create_global_shim(self, primary_context, find_only)?;
+            create_global_shim(&self.proto, primary_context, find_only)?;
         }
 
         // Create alternate/secondary global shims
@@ -367,7 +368,7 @@ impl Tool {
             context.before_args = config.before_args.as_deref();
             context.after_args = config.after_args.as_deref();
 
-            create_global_shim(self, context, find_only)?;
+            create_global_shim(&self.proto, context, find_only)?;
         }
 
         // Create local shims
@@ -385,7 +386,7 @@ impl Tool {
             context.before_args = config.before_args.as_deref();
             context.after_args = config.after_args.as_deref();
 
-            create_local_shim(self, context, find_only)?;
+            create_local_shim(context, find_only)?;
         }
 
         Ok(())

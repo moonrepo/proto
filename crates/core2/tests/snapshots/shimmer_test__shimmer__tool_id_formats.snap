@@ -1,0 +1,23 @@
+---
+source: crates/core2/tests/shimmer_test.rs
+expression: "read_shim(&shim, sandbox.path())"
+---
+#!/usr/bin/env bash
+set -e
+[ -n "$PROTO_DEBUG" ] && set -x
+
+
+
+export PROTO_TOOL_NAME_DIR="/.proto/tools/tool-name/1.2.3"
+
+
+
+export PROTO_TOOL_NAME_VERSION="1.2.3"
+
+
+
+parent="${PROTO_PARENTNAME_BIN:-parentName}"
+
+exec "$parent" "bin/tool"  "$@" 
+
+
