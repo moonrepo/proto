@@ -5,12 +5,12 @@ use std::collections::BTreeMap;
 use std::str::FromStr;
 
 #[derive(Debug, Default)]
-pub struct VersionRegistry {
+pub struct VersionResolver {
     pub aliases: BTreeMap<String, AliasOrVersion>,
     pub versions: Vec<Version>,
 }
 
-impl VersionRegistry {
+impl VersionResolver {
     pub fn resolve<V: AsRef<str>>(&self, candidate: V) -> miette::Result<Version> {
         let candidate = candidate.as_ref();
 

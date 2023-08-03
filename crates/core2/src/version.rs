@@ -5,6 +5,7 @@ use crate::helpers::{is_alias_name, remove_space_after_gtlt, remove_v_prefix};
 use human_sort::compare;
 use semver::{Version, VersionReq};
 use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 use std::str::FromStr;
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -136,9 +137,15 @@ impl TryFrom<String> for AliasOrVersion {
 
 impl Into<String> for AliasOrVersion {
     fn into(self) -> String {
+        self.to_string()
+    }
+}
+
+impl Display for AliasOrVersion {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Alias(alias) => alias,
-            Self::Version(version) => version.to_string(),
+            Self::Alias(alias) => write!(f, "{}", alias),
+            Self::Version(version) => write!(f, "{}", version),
         }
     }
 }

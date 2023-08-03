@@ -2,8 +2,7 @@ use crate::helpers::{is_offline, remove_v_prefix};
 use crate::proto::ProtoEnvironment;
 use crate::tool_manifest::ToolManifest;
 use crate::version::{AliasOrVersion, VersionType};
-use crate::version_resolver::VersionRegistry;
-use crate::ProtoError;
+use crate::version_resolver::VersionResolver;
 use extism::Manifest as PluginManifest;
 use miette::IntoDiagnostic;
 use proto_pdk_api::*;
@@ -20,7 +19,7 @@ pub struct Tool {
     pub plugin: PluginContainer<'static>,
     pub proto: ProtoEnvironment,
 
-    version: Option<Version>,
+    version: Option<AliasOrVersion>,
 }
 
 // HELPERS
@@ -39,6 +38,13 @@ impl Tool {
             proto: proto.to_owned(),
             version: None,
         })
+    }
+
+    /// Return the resolved version or "latest".
+    pub fn get_resolved_version(&self) -> AliasOrVersion {
+        self.version
+            .clone()
+            .unwrap_or_else(|| AliasOrVersion::Alias("latest".into()))
     }
 
     /// Return an absolute path to the tool's directory that contains version installations.
@@ -61,8 +67,7 @@ impl Tool {
                 .iter()
                 .filter_map(|var| env::var(var).ok().map(|value| (var.to_owned(), value)))
                 .collect(),
-            // TODO
-            version: String::new(), // self.get_resolved_version().to_owned(),
+            version: self.get_resolved_version().to_string(),
         })
     }
 
@@ -85,11 +90,11 @@ impl Tool {
 // VERSION RESOLUTION
 
 impl Tool {
-    /// Load the available versions to install and return a registry.
-    pub async fn load_version_registry(
+    /// Load the available versions to install and return a resolver instance.
+    pub async fn load_version_resolver(
         &self,
         initial_version: &str,
-    ) -> miette::Result<VersionRegistry> {
+    ) -> miette::Result<VersionResolver> {
         debug!(tool = &self.id, "Loading available versions");
 
         let mut available: LoadVersionsOutput = self.plugin.cache_func_with(
@@ -104,28 +109,31 @@ impl Tool {
         available.versions.sort_by(|a, d| d.cmp(a));
         available.canary_versions.sort_by(|a, d| d.cmp(a));
 
-        let mut registry = VersionRegistry::default();
-        registry.versions.extend(available.versions);
-        registry.aliases.extend(self.manifest.aliases.clone());
+        let mut resolver = VersionResolver::default();
+        resolver.versions.extend(available.versions);
+        resolver.aliases.extend(self.manifest.aliases.clone());
 
         for (alias, version) in available.aliases {
-            registry
+            resolver
                 .aliases
                 .insert(alias, AliasOrVersion::Version(version));
         }
 
         if let Some(latest) = available.latest {
-            registry
+            resolver
                 .aliases
                 .insert("latest".into(), AliasOrVersion::Version(latest));
         }
 
-        Ok(registry)
+        Ok(resolver)
     }
 
     /// Given an initial version, resolve it to a fully qualifed and semantic version
-    /// according to the tool's ecosystem.
-    pub async fn resolve_version(&mut self, initial_version: &str) -> miette::Result<Version> {
+    /// (or alias) according to the tool's ecosystem.
+    pub async fn resolve_version(
+        &mut self,
+        initial_version: &str,
+    ) -> miette::Result<AliasOrVersion> {
         if let Some(version) = &self.version {
             return Ok(version.to_owned());
         }
@@ -136,7 +144,7 @@ impl Tool {
         // exit early and assume the version is legitimate!
         if is_offline() {
             if let Ok(version) = Version::parse(&initial_version) {
-                return Ok(version);
+                return Ok(AliasOrVersion::Version(version));
             }
         }
 
@@ -146,8 +154,8 @@ impl Tool {
             "Resolving a semantic version",
         );
 
-        let registry = self.load_version_registry(&initial_version).await?;
-        let mut version = Version::new(0, 0, 0);
+        let resolver = self.load_version_resolver(&initial_version).await?;
+        let mut version = AliasOrVersion::Alias("latest".into());
         let mut resolved = false;
 
         if self.plugin.has_func("resolve_version") {
@@ -167,26 +175,23 @@ impl Tool {
                 );
 
                 resolved = true;
-                version = registry.resolve(candidate)?;
+                version = AliasOrVersion::Version(resolver.resolve(candidate)?);
             }
 
             if let Some(candidate) = result.version {
                 debug!(
                     tool = &self.id,
                     version = &candidate,
-                    "Received an explicit version to use",
+                    "Received an explicit version or alias to use",
                 );
 
                 resolved = true;
-                version = Version::parse(&candidate).map_err(|error| ProtoError::Semver {
-                    version: candidate,
-                    error,
-                })?;
+                version = AliasOrVersion::try_from(candidate).into_diagnostic()?;
             }
         }
 
         if !resolved {
-            version = registry.resolve(initial_version)?;
+            version = AliasOrVersion::Version(resolver.resolve(initial_version)?);
         }
 
         debug!(
