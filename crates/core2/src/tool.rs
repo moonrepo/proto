@@ -311,6 +311,14 @@ impl Tool {
     }
 }
 
+// INSTALLATION
+
+impl Tool {
+    async fn setup(&mut self, initial_version: &str) -> miette::Result<bool> {
+        Ok(true)
+    }
+}
+
 // SHIMMER
 
 impl Tool {

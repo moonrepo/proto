@@ -1,4 +1,4 @@
-use proto_core2::UserConfig;
+use proto_core::UserConfig;
 use starbase_sandbox::create_empty_sandbox;
 use std::collections::BTreeMap;
 use std::env;

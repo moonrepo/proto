@@ -27,21 +27,7 @@ pub trait Tool<'tool>:
     + Executable<'tool>
     + Shimable<'tool>
 {
-    fn as_any(&self) -> &dyn Any;
 
-    fn get_manifest(&self) -> Result<&Manifest, ProtoError>;
-
-    fn get_manifest_mut(&mut self) -> Result<&mut Manifest, ProtoError>;
-
-    fn get_manifest_path(&self) -> PathBuf {
-        self.get_tool_dir().join(MANIFEST_NAME)
-    }
-
-    fn get_tool_dir(&self) -> &Path;
-
-    async fn before_setup(&mut self) -> Result<(), ProtoError> {
-        Ok(())
-    }
 
     async fn setup(&mut self, initial_version: &str) -> Result<bool, ProtoError> {
         self.before_setup().await?;
@@ -188,33 +174,4 @@ pub trait Tool<'tool>:
     async fn after_teardown(&mut self) -> Result<(), ProtoError> {
         Ok(())
     }
-}
-
-#[macro_export]
-macro_rules! impl_tool {
-    ($tool:ident) => {
-        impl Tool<'_> for $tool {
-            fn as_any(&self) -> &dyn Any {
-                self
-            }
-
-            fn get_manifest(&self) -> Result<&Manifest, ProtoError> {
-                self.manifest
-                    .get_or_try_init(|| Manifest::load(self.get_manifest_path()))
-            }
-
-            fn get_manifest_mut(&mut self) -> Result<&mut Manifest, ProtoError> {
-                {
-                    // Ensure that the manifest has been initialized
-                    self.get_manifest()?;
-                }
-
-                Ok(self.manifest.get_mut().unwrap())
-            }
-
-            fn get_tool_dir(&self) -> &Path {
-                &self.base_dir
-            }
-        }
-    };
 }

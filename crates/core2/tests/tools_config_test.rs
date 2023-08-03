@@ -1,4 +1,4 @@
-use proto_core2::{AliasOrVersion, ToolsConfig};
+use proto_core::{AliasOrVersion, ToolsConfig};
 use starbase_sandbox::create_empty_sandbox;
 use std::collections::BTreeMap;
 use std::str::FromStr;

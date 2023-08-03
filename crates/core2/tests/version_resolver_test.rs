@@ -1,4 +1,4 @@
-use proto_core2::{resolve_version, AliasOrVersion, VersionType};
+use proto_core::{resolve_version, AliasOrVersion, VersionType};
 use semver::{Version, VersionReq};
 use std::collections::BTreeMap;
 use std::str::FromStr;

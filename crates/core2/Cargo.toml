@@ -1,5 +1,5 @@
 [package]
-name = "proto_core2"
+name = "proto_core"
 version = "0.13.1"
 edition = "2021"
 license = "MIT"

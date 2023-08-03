@@ -1,4 +1,4 @@
-use proto_core2::{create_global_shim, create_local_shim, ProtoEnvironment, ShimContext};
+use proto_core::{create_global_shim, create_local_shim, ProtoEnvironment, ShimContext};
 use starbase_sandbox::{assert_snapshot, create_empty_sandbox};
 use std::fs;
 use std::path::{Path, PathBuf};

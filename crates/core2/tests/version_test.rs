@@ -1,4 +1,4 @@
-use proto_core2::VersionType;
+use proto_core::VersionType;
 use semver::{Version, VersionReq};
 use std::str::FromStr;
 
