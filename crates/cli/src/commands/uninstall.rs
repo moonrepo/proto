@@ -1,14 +1,14 @@
 use crate::helpers::create_progress_bar;
-use crate::tools::{create_tool, ToolType};
+use crate::tools::create_tool;
 use starbase::SystemResult;
 use tracing::{debug, info};
 
-pub async fn uninstall(tool_type: ToolType, version: String) -> SystemResult {
-    let mut tool = create_tool(&tool_type).await?;
+pub async fn uninstall(tool_id: String, version: String) -> SystemResult {
+    let mut tool = create_tool(&tool_id).await?;
 
     if !tool.is_setup(&version).await? {
         info!(
-            "{} v{} does not exist!",
+            "{} {} does not exist!",
             tool.get_name(),
             tool.get_resolved_version(),
         );
@@ -23,7 +23,7 @@ pub async fn uninstall(tool_type: ToolType, version: String) -> SystemResult {
     );
 
     let pb = create_progress_bar(format!(
-        "Uninstalling {} v{}",
+        "Uninstalling {} {}",
         tool.get_name(),
         tool.get_resolved_version()
     ));
@@ -33,7 +33,7 @@ pub async fn uninstall(tool_type: ToolType, version: String) -> SystemResult {
     pb.finish_and_clear();
 
     info!(
-        "{} v{} has been uninstalled!",
+        "{} {} has been uninstalled!",
         tool.get_name(),
         tool.get_resolved_version(),
     );

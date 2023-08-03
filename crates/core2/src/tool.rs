@@ -1,15 +1,17 @@
 use crate::error::ProtoError;
-use crate::helpers::{is_cache_enabled, is_offline, remove_v_prefix};
+use crate::helpers::{hash_file_contents, is_cache_enabled, is_offline, remove_v_prefix};
 use crate::proto::ProtoEnvironment;
 use crate::shimmer::{create_global_shim, create_local_shim, ShimContext};
 use crate::tool_manifest::ToolManifest;
 use crate::version::{AliasOrVersion, VersionType};
 use crate::version_resolver::VersionResolver;
+use crate::{download_from_url, is_archive_file};
 use extism::Manifest as PluginManifest;
 use miette::IntoDiagnostic;
 use proto_pdk_api::*;
 use starbase_utils::{fs, json};
 use std::env::{self, consts};
+use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::time::{Duration, SystemTime};
@@ -64,6 +66,11 @@ impl Tool {
         self.version
             .clone()
             .unwrap_or_else(|| AliasOrVersion::Alias("latest".into()))
+    }
+
+    /// Return an absolute path to a temp directory solely for this tool.
+    pub fn get_temp_dir(&self) -> PathBuf {
+        self.proto.temp_dir.join(&self.id)
     }
 
     /// Return an absolute path to the tool's install directory for the currently resolved version.
@@ -319,11 +326,213 @@ impl Tool {
 // INSTALLATION
 
 impl Tool {
-    pub async fn setup(&mut self, initial_version: &str) -> miette::Result<bool> {
+    /// Verify the downloaded file using the checksum strategy for the tool.
+    /// Common strategies are SHA256 and MD5.
+    async fn verify_checksum(
+        &self,
+        checksum_file: &Path,
+        download_file: &Path,
+    ) -> miette::Result<bool> {
+        debug!(
+            tool = &self.id,
+            download_file = ?download_file,
+            checksum_file = ?checksum_file,
+            "Verifiying checksum of downloaded file",
+        );
+
+        let checksum = hash_file_contents(download_file)?;
+
+        // Allow plugin to provide their own checksum verification method
+        if self.plugin.has_func("verify_checksum") {
+            let result: VerifyChecksumOutput = self.plugin.call_func_with(
+                "verify_checksum",
+                VerifyChecksumInput {
+                    checksum,
+                    checksum_file: self.plugin.to_virtual_path(checksum_file),
+                    download_file: self.plugin.to_virtual_path(download_file),
+                    env: self.get_environment()?,
+                },
+            )?;
+
+            if result.verified {
+                return Ok(true);
+            }
+
+        // Otherwise attempt to verify it ourselves
+        } else {
+            let file = fs::open_file(checksum_file)?;
+            let file_name = fs::file_name(download_file);
+
+            for line in BufReader::new(file).lines().flatten() {
+                if
+                // <checksum>  <file>
+                line.starts_with(&checksum) && line.ends_with(&file_name) ||
+                // <checksum>
+                line == checksum
+                {
+                    debug!(tool = &self.id, "Successfully verified, checksum matches");
+
+                    return Ok(true);
+                }
+            }
+        }
+
+        Err(ProtoError::InvalidChecksum {
+            checksum: checksum_file.to_path_buf(),
+            download: download_file.to_path_buf(),
+        }
+        .into())
+    }
+
+    /// Download the tool (as an archive) from its distribution registry
+    /// into the `~/.proto/temp` folder, and optionally verify checksums.
+    pub async fn install_from_prebuilt(&self, install_dir: &Path) -> miette::Result<PathBuf> {
+        debug!(tool = &self.id, "Installing tool from a pre-built archive");
+
+        let temp_dir = self
+            .get_temp_dir()
+            .join(self.get_resolved_version().to_string());
+
+        let options: DownloadPrebuiltOutput = self.plugin.cache_func_with(
+            "download_prebuilt",
+            DownloadPrebuiltInput {
+                env: self.get_environment()?,
+            },
+        )?;
+
+        // Download the prebuilt
+        let download_url = options.download_url;
+        let download_file = match options.download_name {
+            Some(name) => temp_dir.join(name),
+            None => {
+                let url = url::Url::parse(&download_url).into_diagnostic()?;
+                let segments = url.path_segments().unwrap();
+
+                temp_dir.join(segments.last().unwrap())
+            }
+        };
+
+        if download_file.exists() {
+            debug!(tool = &self.id, "Tool already downloaded, continuing");
+        } else {
+            debug!(tool = &self.id, "Tool not downloaded, downloading");
+
+            download_from_url(&download_url, &download_file).await?;
+        }
+
+        // Verify the checksum if applicable
+        if let Some(checksum_url) = options.checksum_url {
+            let checksum_file =
+                temp_dir.join(options.checksum_name.unwrap_or("CHECKSUM.txt".to_owned()));
+
+            if !checksum_file.exists() {
+                debug!(tool = &self.id, "Checksum does not exist, downloading");
+
+                download_from_url(&checksum_url, &checksum_file).await?;
+            }
+
+            self.verify_checksum(&checksum_file, &download_file).await?;
+        }
+
+        // Attempt to unpack the archive
+        debug!(
+            tool = &self.id,
+            download_file = ?download_file,
+            install_dir = ?install_dir,
+            "Attempting to unpack archive",
+        );
+
+        if self.plugin.has_func("unpack_archive") {
+            self.plugin.call_func_without_output(
+                "unpack_archive",
+                UnpackArchiveInput {
+                    env: self.get_environment()?,
+                    input_file: self.plugin.to_virtual_path(&download_file),
+                    output_dir: self.plugin.to_virtual_path(install_dir),
+                },
+            )?;
+
+            // Is an archive, unpack it
+        } else if is_archive_file(&download_file) {
+            // TODO
+
+            // Not an archive, assume a binary and copy
+        } else {
+            let install_path = install_dir.join(if cfg!(windows) {
+                format!("{}.exe", self.id)
+            } else {
+                self.id.clone()
+            });
+
+            fs::rename(&download_file, &install_path)?;
+            fs::update_perms(install_path, None)?;
+        }
+
+        Ok(download_file)
+    }
+
+    /// Install a tool into proto, either by downloading and unpacking
+    /// a pre-built archive, or by using a native installation method.
+    pub async fn install(&mut self) -> miette::Result<bool> {
+        let install_dir = self.get_tool_dir();
+
+        if install_dir.exists() {
+            debug!(tool = &self.id, "Tool already installed, continuing");
+
+            return Ok(false);
+        }
+
+        // If this function is defined, it acts like an escape hatch and
+        // takes precedence over all other install strategies
+        if self.plugin.has_func("native_install") {
+            debug!(tool = &self.id, "Installing tool natively");
+
+            let result: NativeInstallOutput = self.plugin.call_func_with(
+                "native_install",
+                NativeInstallInput {
+                    env: self.get_environment()?,
+                    home_dir: self.plugin.to_virtual_path(&self.proto.home),
+                    tool_dir: self.plugin.to_virtual_path(&install_dir),
+                },
+            )?;
+
+            return Ok(result.installed);
+        }
+
+        // Install from a prebuilt archive
+        self.install_from_prebuilt(&install_dir).await?;
+
+        // TODO support install/build from source
+
+        debug!(
+            tool = &self.id,
+            install_dir = ?install_dir,
+            "Successfully installed tool",
+        );
+
         Ok(true)
     }
 
-    pub async fn teardown(&mut self) -> miette::Result<bool> {
+    /// Uninstall the tool by deleting the current install directory.
+    pub async fn uninstall(&self) -> miette::Result<bool> {
+        let install_dir = self.get_tool_dir();
+
+        if !install_dir.exists() {
+            debug!(tool = &self.id, "Tool has not been installed, aborting");
+
+            return Ok(false);
+        }
+
+        debug!(
+            tool = &self.id,
+            install_dir = ?install_dir,
+            "Deleting install directory"
+        );
+
+        fs::remove_dir_all(install_dir)?;
+
+        debug!(tool = &self.id, "Successfully uninstalled tool");
+
         Ok(true)
     }
 }
@@ -407,5 +616,21 @@ impl Tool {
         }
 
         Ok(())
+    }
+}
+
+// OPERATIONS
+
+impl Tool {
+    pub async fn is_setup(&mut self, initial_version: &str) -> miette::Result<bool> {
+        Ok(true)
+    }
+
+    pub async fn setup(&mut self, initial_version: &str) -> miette::Result<bool> {
+        Ok(true)
+    }
+
+    pub async fn teardown(&mut self) -> miette::Result<bool> {
+        Ok(true)
     }
 }

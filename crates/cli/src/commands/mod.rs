@@ -14,7 +14,7 @@ mod plugins;
 // mod run;
 mod setup;
 mod unalias;
-// mod uninstall;
+mod uninstall;
 mod upgrade;
 
 pub use alias::*;
@@ -33,5 +33,5 @@ pub use plugins::*;
 // pub use run::*;
 pub use setup::*;
 pub use unalias::*;
-// pub use uninstall::*;
+pub use uninstall::*;
 pub use upgrade::*;

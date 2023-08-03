@@ -31,7 +31,7 @@ mod shimmer {
 
         let proto = ProtoEnvironment::new_testing(sandbox.path());
         let context = create_context("primary", &proto);
-        let shim = create_global_shim(&proto, &context, true).unwrap();
+        let shim = create_global_shim(&proto, context, true).unwrap();
 
         assert_eq!(shim, proto.bin_dir.join("primary"));
         assert_eq!(read_shim(&shim, sandbox.path()), "test");

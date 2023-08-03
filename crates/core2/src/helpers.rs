@@ -2,8 +2,13 @@ use crate::error::ProtoError;
 use cached::proc_macro::cached;
 use once_cell::sync::Lazy;
 use regex::Regex;
+use sha2::{Digest, Sha256};
 use starbase_utils::dirs::home_dir;
+use starbase_utils::fs::{self, FsError};
+use std::io;
+use std::path::Path;
 use std::{env, path::PathBuf};
+use tracing::trace;
 
 static CLEAN_VERSION_REQ: Lazy<Regex> = Lazy::new(|| Regex::new(r"([><]=?)\s+(\d)").unwrap());
 
@@ -116,4 +121,90 @@ pub fn is_cache_enabled() -> bool {
     env::var("PROTO_CACHE").map_or(true, |value| {
         value != "0" && value != "false" && value != "no" && value != "off"
     })
+}
+
+pub fn is_archive_file<P: AsRef<Path>>(path: P) -> bool {
+    path.as_ref().extension().map_or(false, |ext| {
+        ext == "zip" || ext == "tar" || ext == "gz" || ext == "tgz" || ext == "xz" || ext == "txz"
+    })
+}
+
+pub fn hash_file_contents<P: AsRef<Path>>(path: P) -> miette::Result<String> {
+    let path = path.as_ref();
+
+    trace!(file = ?path, "Calculating SHA256 checksum");
+
+    let mut file = fs::open_file(path)?;
+    let mut sha = Sha256::new();
+
+    io::copy(&mut file, &mut sha).map_err(|error| FsError::Read {
+        path: path.to_path_buf(),
+        error,
+    })?;
+
+    let hash = format!("{:x}", sha.finalize());
+
+    trace!(hash, "Calculated hash");
+
+    Ok(hash)
+}
+
+#[tracing::instrument(skip_all)]
+pub async fn download_from_url<U, F>(url: U, dest_file: F) -> miette::Result<()>
+where
+    U: AsRef<str>,
+    F: AsRef<Path>,
+{
+    if is_offline() {
+        return Err(ProtoError::InternetConnectionRequired.into());
+    }
+
+    let url = url.as_ref();
+    let dest_file = dest_file.as_ref();
+    let handle_io_error = |error: io::Error| FsError::Create {
+        path: dest_file.to_path_buf(),
+        error,
+    };
+    let handle_http_error = |error: reqwest::Error| ProtoError::Http {
+        url: url.to_owned(),
+        error,
+    };
+
+    trace!(
+        dest_file = ?dest_file,
+        url,
+        "Downloading file from URL",
+    );
+
+    // Ensure parent directories exist
+    if let Some(parent) = dest_file.parent() {
+        fs::create_dir_all(parent)?;
+    }
+
+    // Fetch the file from the HTTP source
+    let response = reqwest::get(url).await.map_err(handle_http_error)?;
+    let status = response.status();
+
+    if status.as_u16() == 404 {
+        return Err(ProtoError::DownloadNotFound {
+            url: url.to_owned(),
+        }
+        .into());
+    }
+
+    if !status.is_success() {
+        return Err(ProtoError::DownloadFailed {
+            url: url.to_owned(),
+            status: status.to_string(),
+        }
+        .into());
+    }
+
+    // Write the bytes to our local file
+    let mut contents = io::Cursor::new(response.bytes().await.map_err(handle_http_error)?);
+    let mut file = fs::create_file(dest_file)?;
+
+    io::copy(&mut contents, &mut file).map_err(handle_io_error)?;
+
+    Ok(())
 }

@@ -136,6 +136,14 @@ json_struct!(
 );
 
 json_struct!(
+    /// Output returned by the `native_install` function.
+    pub struct NativeInstallOutput {
+        /// Wheterh the install was successful.
+        pub installed: bool,
+    }
+);
+
+json_struct!(
     /// Input passed to the `download_prebuilt` function.
     pub struct DownloadPrebuiltInput {
         /// Current environment.
@@ -150,11 +158,6 @@ json_struct!(
         /// and will be removed when unpacking the archive.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub archive_prefix: Option<String>,
-
-        /// Relative path from the installation directory to the binary.
-        /// If not provided, will use the tool `id` as the binary name.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub bin_path: Option<String>,
 
         /// File name of the checksum to download. If not provided,
         /// will attempt to extract it from the URL.
@@ -173,9 +176,6 @@ json_struct!(
 
         /// A secure URL to download the tool/archive.
         pub download_url: String,
-
-        /// Skip downloading the pre-built. This is an advanced escape hatch!
-        pub skip_download: bool,
     }
 );
 

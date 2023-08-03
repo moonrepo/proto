@@ -9,9 +9,29 @@ pub enum ProtoError {
     #[error("{0}")]
     Message(String),
 
+    #[diagnostic(
+        code(proto::download::missing),
+        help = "Please refer to the tool's official documentation."
+    )]
+    #[error("Tool download {} does not exist. This version may not be supported for your current operating system or architecture.", .url.style(Style::Url))]
+    DownloadNotFound { url: String },
+
+    #[diagnostic(code(proto::download::failed))]
+    #[error("Failed to download tool from {}: {status}", .url.style(Style::Url))]
+    DownloadFailed { url: String, status: String },
+
     #[diagnostic(code(proto::misc::offline))]
     #[error("Internet connection required, unable to download and install tools.")]
     InternetConnectionRequired,
+
+    #[diagnostic(code(proto::verify::invalid_checksum))]
+    #[error(
+        "Checksum has failed for {}, which was verified using {}.", .download.style(Style::Path), .checksum.style(Style::Path)
+    )]
+    InvalidChecksum {
+        checksum: PathBuf,
+        download: PathBuf,
+    },
 
     #[diagnostic(code(proto::env::home_dir))]
     #[error("Unable to determine your home directory.")]
@@ -37,6 +57,14 @@ pub enum ProtoError {
     #[diagnostic(code(proto::version::unresolved))]
     #[error("Failed to resolve a semantic version for {}.", .version.style(Style::Hash))]
     VersionResolveFailed { version: String },
+
+    #[diagnostic(code(proto::http))]
+    #[error("Failure for {}", .url.style(Style::Url))]
+    Http {
+        url: String,
+        #[source]
+        error: reqwest::Error,
+    },
 
     #[diagnostic(code(proto::version::invalid))]
     #[error("Invalid version or requirement {}.", .version.style(Style::Hash))]
