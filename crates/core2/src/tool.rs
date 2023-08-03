@@ -1,9 +1,10 @@
+use crate::error::ProtoError;
 use crate::helpers::{is_cache_enabled, is_offline, remove_v_prefix};
 use crate::proto::ProtoEnvironment;
+use crate::shimmer::ShimContext;
 use crate::tool_manifest::ToolManifest;
 use crate::version::{AliasOrVersion, VersionType};
 use crate::version_resolver::VersionResolver;
-use crate::ProtoError;
 use extism::Manifest as PluginManifest;
 use miette::IntoDiagnostic;
 use proto_pdk_api::*;
@@ -47,6 +48,12 @@ impl Tool {
         format!("PROTO_{}", self.id.to_uppercase().replace('-', "_"))
     }
 
+    /// Return an absolute path to the tool's root directory that contains installed versions,
+    /// the manifest, possible globals, and more.
+    pub fn get_inventory_dir(&self) -> PathBuf {
+        self.proto.tools_dir.join(&self.id)
+    }
+
     /// Return a human readable name for the tool.
     pub fn get_name(&self) -> String {
         self.get_metadata().unwrap().name
@@ -59,9 +66,10 @@ impl Tool {
             .unwrap_or_else(|| AliasOrVersion::Alias("latest".into()))
     }
 
-    /// Return an absolute path to the tool's directory that contains version installations.
+    /// Return an absolute path to the tool's install directory for the currently resolved version.
     pub fn get_tool_dir(&self) -> PathBuf {
-        self.proto.tools_dir.join(&self.id)
+        self.get_inventory_dir()
+            .join(self.get_resolved_version().to_string())
     }
 }
 
@@ -300,5 +308,25 @@ impl Tool {
         }
 
         Ok(None)
+    }
+}
+
+// SHIMMER
+
+impl Tool {
+    /// Create the context object required for creating shim files.
+    pub fn create_shim_context(&self) -> ShimContext {
+        let mut context = ShimContext {
+            shim_file: &self.id,
+            bin: &self.id,
+            tool_dir: Some(self.get_tool_dir()),
+            ..ShimContext::default()
+        };
+
+        if let AliasOrVersion::Version(version) = self.get_resolved_version() {
+            context.tool_version = Some(version.to_string());
+        }
+
+        context
     }
 }

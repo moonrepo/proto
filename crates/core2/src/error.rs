@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use miette::Diagnostic;
 use starbase_styles::{Style, Stylize};
 use thiserror::Error;
@@ -29,5 +31,13 @@ pub enum ProtoError {
         version: String,
         #[source]
         error: semver::Error,
+    },
+
+    #[diagnostic(code(proto::shim::failed))]
+    #[error("Failed to create shim {}.", .path.style(Style::Path))]
+    Shim {
+        path: PathBuf,
+        #[source]
+        error: tinytemplate::error::Error,
     },
 }

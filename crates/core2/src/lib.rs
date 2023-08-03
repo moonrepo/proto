@@ -1,6 +1,7 @@
 mod error;
 mod helpers;
 mod proto;
+mod shimmer;
 mod tool;
 mod tool_manifest;
 mod tools_config;
