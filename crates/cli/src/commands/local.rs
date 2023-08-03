@@ -1,18 +1,19 @@
-use crate::tools::{create_tool, ToolType};
-use proto_core::{color, ToolsConfig};
+use crate::tools::create_tool;
+use proto_core::{AliasOrVersion, ToolsConfig};
 use starbase::SystemResult;
+use starbase_styles::color;
 use std::{env, path::PathBuf};
 use tracing::{debug, info};
 
-pub async fn local(tool_type: ToolType, version: String) -> SystemResult {
-    let tool = create_tool(&tool_type).await?;
-
+pub async fn local(tool_id: String, version: String) -> SystemResult {
+    let tool = create_tool(&tool_id).await?;
     let local_path = env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+
     let mut config = ToolsConfig::load_from(&local_path)?;
 
     config
         .tools
-        .insert(tool.get_id().to_owned(), version.clone());
+        .insert(tool.id.clone(), AliasOrVersion::parse(&version)?);
 
     config.save()?;
 

@@ -23,6 +23,10 @@ pub enum ProtoError {
     )]
     UnknownPlugin { id: String },
 
+    #[diagnostic(code(proto::unsupported::shell))]
+    #[error("Unable to detect shell.")]
+    UnsupportedShell,
+
     #[diagnostic(
         code(proto::version::undetected),
         help = "Has the tool been installed?"

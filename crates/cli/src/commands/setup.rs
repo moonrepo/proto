@@ -1,6 +1,6 @@
 use crate::shell::detect_shell;
 use clap_complete::Shell;
-use proto_core::{get_root, ProtoError};
+use proto_core::ProtoEnvironment;
 use starbase::SystemResult;
 use std::env;
 use std::path::PathBuf;
@@ -8,29 +8,25 @@ use tracing::debug;
 
 pub async fn setup(shell: Option<Shell>, print_profile: bool) -> SystemResult {
     let shell = detect_shell(shell);
+    let proto = ProtoEnvironment::new()?;
 
-    let Ok(paths) = env::var("PATH") else {
-        return Err(ProtoError::MissingPathEnv)?;
-    };
-
-    let proto_dir = get_root()?;
-    let bin_dir = proto_dir.join("bin");
+    let paths = env::var("PATH").expect("Missing PATH!");
     let paths = env::split_paths(&paths).collect::<Vec<_>>();
 
-    if paths.contains(&bin_dir) {
+    if paths.contains(&proto.bin_dir) {
         debug!("Skipping setup, PROTO_ROOT already exists in PATH.");
 
         return Ok(());
     }
 
-    do_setup(shell, bin_dir, print_profile)?;
+    do_setup(shell, proto.bin_dir, print_profile)?;
 
     Ok(())
 }
 
 // For other shells, write environment variable(s) to an applicable profile!
 #[cfg(not(windows))]
-fn do_setup(shell: Shell, _bin_dir: PathBuf, print_profile: bool) -> Result<(), ProtoError> {
+fn do_setup(shell: Shell, _bin_dir: PathBuf, print_profile: bool) -> miette::Result<()> {
     use crate::shell::{format_env_vars, write_profile_if_not_setup};
     use rustc_hash::FxHashMap;
 
@@ -55,7 +51,7 @@ fn do_setup(shell: Shell, _bin_dir: PathBuf, print_profile: bool) -> Result<(), 
 // Windows does not support setting environment variables from a shell,
 // so we're going to execute the `setx` command instead!
 #[cfg(windows)]
-fn do_setup(shell: Shell, bin_dir: PathBuf, print_profile: bool) -> Result<(), ProtoError> {
+fn do_setup(shell: Shell, bin_dir: PathBuf, print_profile: bool) -> miette::Result<()> {
     use std::process::Command;
     use tracing::warn;
     use winreg::enums::HKEY_CURRENT_USER;

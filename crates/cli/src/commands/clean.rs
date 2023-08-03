@@ -1,6 +1,6 @@
 use crate::tools::create_tool;
 use dialoguer::Confirm;
-use proto_core::{Tool, ToolsConfig};
+use proto_core::{AliasOrVersion, Tool, ToolsConfig};
 use rustc_hash::FxHashSet;
 use semver::Version;
 use starbase::{diagnostics::IntoDiagnostic, SystemResult};
@@ -101,9 +101,8 @@ pub async fn do_clean(mut tool: Tool, now: u128, days: u8, yes: bool) -> miette:
             .into_diagnostic()?
     {
         for version in versions_to_clean {
-            // TODO
-            // tool.set_version(&version);
-            // tool.teardown().await?;
+            tool.set_version(AliasOrVersion::Version(version));
+            tool.teardown().await?;
         }
 
         clean_count += count;

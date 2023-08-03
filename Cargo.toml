@@ -3,7 +3,7 @@ resolver = "2"
 # members = ["crates/*"]
 # default-members = ["crates/cli"]
 members = [
-	"crates/cli",
+	# "crates/cli",
 	"crates/core2",
 	"crates/pdk",
 	"crates/pdk-api",

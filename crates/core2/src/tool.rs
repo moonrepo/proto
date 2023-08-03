@@ -71,6 +71,11 @@ impl Tool {
         self.get_inventory_dir()
             .join(self.get_resolved_version().to_string())
     }
+
+    /// Explicitly set the version to use.
+    pub fn set_version(&mut self, version: AliasOrVersion) {
+        self.version = Some(version);
+    }
 }
 
 // APIs
@@ -314,7 +319,11 @@ impl Tool {
 // INSTALLATION
 
 impl Tool {
-    async fn setup(&mut self, initial_version: &str) -> miette::Result<bool> {
+    pub async fn setup(&mut self, initial_version: &str) -> miette::Result<bool> {
+        Ok(true)
+    }
+
+    pub async fn teardown(&mut self) -> miette::Result<bool> {
         Ok(true)
     }
 }
