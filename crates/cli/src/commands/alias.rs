@@ -1,9 +1,10 @@
-use crate::tools::{create_tool, ToolType};
-use proto_core::{color, is_alias_name, ProtoError};
+use crate::tools::create_tool;
+use proto_core::{is_alias_name, AliasOrVersion, ProtoError};
 use starbase::SystemResult;
+use starbase_styles::color;
 use tracing::info;
 
-pub async fn alias(tool_type: ToolType, alias: String, version: String) -> SystemResult {
+pub async fn alias(tool_id: String, alias: String, version: String) -> SystemResult {
     if alias == version {
         return Err(ProtoError::Message("Cannot map an alias to itself.".into()))?;
     }
@@ -14,11 +15,12 @@ pub async fn alias(tool_type: ToolType, alias: String, version: String) -> Syste
         ))?;
     }
 
-    let mut tool = create_tool(&tool_type).await?;
+    let mut tool = create_tool(&tool_id).await?;
 
-    let manifest = tool.get_manifest_mut()?;
-    manifest.aliases.insert(alias.clone(), version.clone());
-    manifest.save()?;
+    tool.manifest
+        .aliases
+        .insert(alias.clone(), AliasOrVersion::parse(&version)?);
+    tool.manifest.save()?;
 
     info!(
         "Added alias {} ({}) for {}",

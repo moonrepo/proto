@@ -1,75 +1,51 @@
 use convert_case::{Case, Casing};
 use proto_core::*;
-use proto_schema_plugin as schema_plugin;
-use proto_wasm_plugin as wasm_plugin;
+// use proto_schema_plugin as schema_plugin;
+// use proto_wasm_plugin as wasm_plugin;
 use starbase_utils::toml;
-use std::{env, path::Path, str::FromStr};
-use strum::EnumIter;
+use std::{env, path::Path};
 use tracing::debug;
 use warpgate::{PluginLoader, PluginLocator};
 
-#[derive(Clone, Debug, Eq, EnumIter, Hash, PartialEq)]
-pub enum ToolType {
-    // Plugins
-    Plugin(String),
-}
-
-impl ToolType {
-    pub fn is(&self, id: &str) -> bool {
-        match self {
-            Self::Plugin(name) => name == id,
-        }
-    }
-}
-
-impl FromStr for ToolType {
-    type Err = ProtoError;
-
-    fn from_str(value: &str) -> Result<Self, Self::Err> {
-        Ok(Self::Plugin(value.to_lowercase().to_case(Case::Kebab)))
-    }
-}
-
-pub async fn create_plugin_from_locator(
-    plugin: &str,
-    proto: impl AsRef<Proto>,
+pub async fn create_tool_from_plugin(
+    id: &str,
+    proto: impl AsRef<ProtoEnvironment>,
     locator: impl AsRef<PluginLocator>,
-) -> Result<Box<dyn Tool<'static>>, ProtoError> {
+) -> miette::Result<Tool> {
     let proto = proto.as_ref();
     let locator = locator.as_ref();
 
     let plugin_path = PluginLoader::new(&proto.plugins_dir, &proto.temp_dir)
-        .load_plugin(plugin, locator)
-        .await
-        .map_err(|e| ProtoError::Message(e.to_string()))?;
+        .load_plugin(id, locator)
+        .await?;
     let is_toml = plugin_path
         .extension()
-        .map(|e| e == "toml")
+        .map(|ext| ext == "toml")
         .unwrap_or(false);
 
-    if is_toml {
-        debug!(source = ?plugin_path, "Loading TOML plugin");
+    // if is_toml {
+    //     debug!(source = ?plugin_path, "Loading TOML plugin");
 
-        return Ok(Box::new(schema_plugin::SchemaPlugin::new(
-            proto,
-            plugin.to_owned(),
-            toml::read_file(plugin_path)?,
-        )));
-    }
+    //     return Ok(Box::new(schema_plugin::SchemaPlugin::new(
+    //         proto,
+    //         plugin.to_owned(),
+    //         toml::read_file(plugin_path)?,
+    //     )));
+    // }
 
     debug!(source = ?plugin_path, "Loading WASM plugin");
 
-    Ok(Box::new(wasm_plugin::WasmPlugin::new(
-        proto,
-        plugin.to_owned(),
-        plugin_path,
-    )?))
+    // Ok(Box::new(wasm_plugin::WasmPlugin::new(
+    //     proto,
+    //     plugin.to_owned(),
+    //     plugin_path,
+    // )?))
+
+    Ok(Tool::load(id, proto)?)
 }
 
-pub async fn create_plugin_tool(
-    plugin: &str,
-    proto: Proto,
-) -> Result<Box<dyn Tool<'static>>, ProtoError> {
+pub async fn create_tool(id: &str) -> miette::Result<Tool> {
+    let proto = ProtoEnvironment::new()?;
     let mut locator = None;
 
     // Traverse upwards checking each `.prototools` for a plugin
@@ -79,7 +55,7 @@ pub async fn create_plugin_tool(
         while let Some(dir) = &current_dir {
             let tools_config = ToolsConfig::load_from(dir)?;
 
-            if let Some(maybe_locator) = tools_config.plugins.get(plugin) {
+            if let Some(maybe_locator) = tools_config.plugins.get(id) {
                 locator = Some(maybe_locator.to_owned());
                 break;
             }
@@ -92,7 +68,7 @@ pub async fn create_plugin_tool(
     if locator.is_none() {
         let user_config = UserConfig::load()?;
 
-        if let Some(maybe_locator) = user_config.plugins.get(plugin) {
+        if let Some(maybe_locator) = user_config.plugins.get(id) {
             locator = Some(maybe_locator.to_owned());
         }
     }
@@ -101,23 +77,14 @@ pub async fn create_plugin_tool(
     if locator.is_none() {
         let builtin_plugins = ToolsConfig::builtin_plugins();
 
-        if let Some(maybe_locator) = builtin_plugins.get(plugin) {
+        if let Some(maybe_locator) = builtin_plugins.get(id) {
             locator = Some(maybe_locator.to_owned());
         }
     }
 
     let Some(locator) = locator else {
-        return Err(ProtoError::MissingPlugin(plugin.to_owned()));
+        return Err(ProtoError::UnknownPlugin { id: id.to_owned() }.into());
     };
 
-    create_plugin_from_locator(plugin, proto, locator).await
-}
-
-pub async fn create_tool(tool: &ToolType) -> Result<Box<dyn Tool<'static>>, ProtoError> {
-    let proto = Proto::new()?;
-
-    Ok(match tool {
-        // Plugins
-        ToolType::Plugin(plugin) => create_plugin_tool(plugin, proto).await?,
-    })
+    Ok(create_tool_from_plugin(id, proto, locator).await?)
 }

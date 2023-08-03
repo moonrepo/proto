@@ -1,8 +1,10 @@
-use crate::tools::{create_tool, ToolType};
+use crate::tools::create_tool;
 use dialoguer::Confirm;
-use proto_core::{color, Tool, ToolsConfig};
+use proto_core::{Tool, ToolsConfig};
 use rustc_hash::FxHashSet;
+use semver::Version;
 use starbase::{diagnostics::IntoDiagnostic, SystemResult};
+use starbase_styles::color;
 use starbase_utils::fs;
 use std::time::SystemTime;
 use tracing::{debug, info};
@@ -11,34 +13,36 @@ fn is_older_than_days(now: u128, other: u128, days: u8) -> bool {
     (now - other) > ((days as u128) * 24 * 60 * 60 * 1000)
 }
 
-pub async fn do_clean(
-    mut tool: Box<dyn Tool<'_>>,
-    now: u128,
-    days: u8,
-    yes: bool,
-) -> miette::Result<usize> {
+pub async fn do_clean(mut tool: Tool, now: u128, days: u8, yes: bool) -> miette::Result<usize> {
     info!("Checking {}", color::shell(tool.get_name()));
 
     if !tool.get_tool_dir().exists() {
         debug!("Not being used, skipping");
+
         return Ok(0);
     }
 
-    let manifest = tool.get_manifest()?;
-    let mut versions_to_clean = FxHashSet::default();
+    let mut versions_to_clean = FxHashSet::<Version>::default();
 
     debug!("Scanning file system for stale and untracked versions");
 
     for dir in fs::read_dir(tool.get_tool_dir())? {
         let dir_path = dir.path();
+
         let Ok(dir_type) = dir.file_type() else {
             continue;
         };
 
         if dir_type.is_dir() {
-            let version = fs::file_name(&dir_path);
+            let dir_name = fs::file_name(&dir_path);
 
-            if version != "globals" && !manifest.versions.contains_key(&version) {
+            if dir_name == "globals" {
+                continue;
+            }
+
+            let version = Version::parse(&dir_name).into_diagnostic()?;
+
+            if !tool.manifest.versions.contains_key(&version) {
                 debug!("Version {} not found in manifest, removing", version);
 
                 versions_to_clean.insert(version);
@@ -48,7 +52,7 @@ pub async fn do_clean(
 
     debug!("Comparing last used timestamps from manifest");
 
-    for (version, metadata) in &manifest.versions {
+    for (version, metadata) in &tool.manifest.versions {
         if versions_to_clean.contains(version) {
             continue;
         }
@@ -89,7 +93,7 @@ pub async fn do_clean(
                 count,
                 versions_to_clean
                     .iter()
-                    .map(color::id)
+                    .map(|v| color::hash(v.to_string()))
                     .collect::<Vec<_>>()
                     .join(", ")
             ))
@@ -97,8 +101,9 @@ pub async fn do_clean(
             .into_diagnostic()?
     {
         for version in versions_to_clean {
-            tool.set_version(&version);
-            tool.teardown().await?;
+            // TODO
+            // tool.set_version(&version);
+            // tool.teardown().await?;
         }
 
         clean_count += count;
@@ -119,12 +124,12 @@ pub async fn clean(days: Option<u8>, yes: bool) -> SystemResult {
 
     info!("Finding tools to clean up...");
 
-    let tools_config = ToolsConfig::load_upwards()?;
+    let mut tools_config = ToolsConfig::load_upwards()?;
+    tools_config.inherit_builtin_plugins();
 
     if !tools_config.plugins.is_empty() {
-        for plugin_name in tools_config.plugins.keys() {
-            let tool = create_tool(&ToolType::Plugin(plugin_name.to_owned())).await?;
-            clean_count += do_clean(tool, now, days, yes).await?;
+        for id in tools_config.plugins.keys() {
+            clean_count += do_clean(create_tool(id).await?, now, days, yes).await?;
         }
     }
 

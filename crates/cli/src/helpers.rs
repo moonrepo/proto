@@ -47,7 +47,7 @@ pub fn create_progress_bar<S: AsRef<str>>(start: S) -> ProgressBar {
 pub async fn download_to_temp_with_progress_bar(
     url: &str,
     file_name: &str,
-) -> Result<PathBuf, ProtoError> {
+) -> miette::Result<PathBuf> {
     let handle_error = |error: reqwest::Error| ProtoError::Http {
         url: url.to_owned(),
         error,

@@ -1,7 +1,7 @@
 mod utils;
 
 use futures::Future;
-use proto::{tools::create_plugin_from_locator, ProtoError};
+use proto::{tools::create_tool_from_plugin, ProtoError};
 use proto_core::{PluginLocator, Proto, Tool};
 use std::env;
 use std::path::{Path, PathBuf};
@@ -41,7 +41,7 @@ async fn downloads_and_installs_plugin_from_file() {
     run_tests(|root| {
         let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
-        create_plugin_from_locator(
+        create_tool_from_plugin(
             "moon",
             Proto::from(root),
             PluginLocator::SourceFile {
@@ -59,7 +59,7 @@ async fn errors_for_missing_file() {
     run_tests(|root| {
         let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
-        create_plugin_from_locator(
+        create_tool_from_plugin(
             "moon",
             Proto::from(root),
             PluginLocator::SourceFile {
@@ -74,7 +74,7 @@ async fn errors_for_missing_file() {
 #[tokio::test]
 async fn downloads_and_installs_plugin_from_url() {
     run_tests(|root| {
-        create_plugin_from_locator(
+        create_tool_from_plugin(
             "moon",
             Proto::from(root),
             PluginLocator::SourceUrl {
@@ -90,7 +90,7 @@ async fn downloads_and_installs_plugin_from_url() {
 #[should_panic(expected = "does not exist")]
 async fn errors_for_broken_url() {
     run_tests(|root| {
-        create_plugin_from_locator(
+        create_tool_from_plugin(
             "moon",
             Proto::from(root),
             PluginLocator::SourceUrl {

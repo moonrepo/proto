@@ -33,9 +33,9 @@ name = "proto"
 path = "src/bin.rs"
 
 [dependencies]
-proto_core = { version = "0.13.1", path = "../core" }
-proto_schema_plugin = { version = "0.8.1", path = "../schema-plugin" }
-proto_wasm_plugin = { version = "0.3.1", path = "../wasm-plugin" }
+proto_core = { version = "0.13.1", path = "../core2" }
+# proto_schema_plugin = { version = "0.8.1", path = "../schema-plugin" }
+# proto_wasm_plugin = { version = "0.3.1", path = "../wasm-plugin" }
 warpgate = { version = "0.2.0", path = "../warpgate" }
 async-recursion = "1.0.4"
 clap = { workspace = true, features = ["derive", "env"] }
@@ -52,6 +52,7 @@ rustc-hash = { workspace = true }
 semver = { workspace = true }
 serde = { workspace = true }
 starbase = "0.1.12"
+starbase_styles = { workspace = true }
 starbase_utils = { workspace = true }
 strum = { version = "0.25.0", features = ["derive"] }
 tokio = { workspace = true }

@@ -6,6 +6,9 @@ use thiserror::Error;
 
 #[derive(Error, Debug, Diagnostic)]
 pub enum ProtoError {
+    #[error("{0}")]
+    Message(String),
+
     #[diagnostic(code(proto::misc::offline))]
     #[error("Internet connection required, unable to download and install tools.")]
     InternetConnectionRequired,
@@ -13,6 +16,12 @@ pub enum ProtoError {
     #[diagnostic(code(proto::env::home_dir))]
     #[error("Unable to determine your home directory.")]
     MissingHomeDir,
+
+    #[diagnostic(code(proto::plugin::unknown))]
+    #[error(
+        "{} is not a built-in tool or has not been configured as a plugin, unable to proceed.", .id.style(Style::Id)
+    )]
+    UnknownPlugin { id: String },
 
     #[diagnostic(
         code(proto::version::undetected),

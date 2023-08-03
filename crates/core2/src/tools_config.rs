@@ -2,8 +2,9 @@ use crate::version::AliasOrVersion;
 use serde::{Deserialize, Serialize};
 use starbase_utils::toml;
 use std::collections::BTreeMap;
+use std::env;
 use std::path::{Path, PathBuf};
-use tracing::debug;
+use tracing::{debug, trace};
 use warpgate::PluginLocator;
 
 pub const TOOLS_CONFIG_NAME: &str = ".prototools";
@@ -54,6 +55,44 @@ impl ToolsConfig {
             {
                 *source_path = path.parent().unwrap().join(&source_path);
             }
+        }
+
+        Ok(config)
+    }
+
+    pub fn load_upwards() -> miette::Result<Self> {
+        let working_dir = env::current_dir().expect("Unknown current working directory!");
+
+        Self::load_upwards_from(working_dir)
+    }
+
+    pub fn load_upwards_from<P>(starting_dir: P) -> miette::Result<Self>
+    where
+        P: AsRef<Path>,
+    {
+        trace!("Traversing upwards and loading all .prototools files");
+
+        let mut current_dir = Some(starting_dir.as_ref());
+        let mut config = ToolsConfig::default();
+
+        while let Some(dir) = current_dir {
+            let path = dir.join(TOOLS_CONFIG_NAME);
+
+            if path.exists() {
+                let mut parent_config = Self::load(&path)?;
+                parent_config.merge(config);
+
+                config = parent_config;
+            }
+
+            match dir.parent() {
+                Some(parent) => {
+                    current_dir = Some(parent);
+                }
+                None => {
+                    break;
+                }
+            };
         }
 
         Ok(config)

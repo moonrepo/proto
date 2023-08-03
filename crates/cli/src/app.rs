@@ -1,4 +1,3 @@
-use crate::tools::ToolType;
 use clap::{Parser, Subcommand, ValueEnum};
 use clap_complete::Shell;
 use std::fmt::{Display, Error, Formatter};
@@ -68,8 +67,8 @@ pub enum Commands {
         long_about = "Add an alias to a tool, that maps to a specific version, or another alias."
     )]
     Alias {
-        #[arg(required = true, help = "Type of tool")]
-        tool: ToolType,
+        #[arg(required = true, help = "ID of tool")]
+        tool: String,
 
         #[arg(required = true, help = "Alias name")]
         alias: String,
@@ -84,8 +83,8 @@ pub enum Commands {
         long_about = "Display the absolute path to a tools binary. If no version is provided,\nit will detected from the current environment."
     )]
     Bin {
-        #[arg(required = true, help = "Type of tool")]
-        tool: ToolType,
+        #[arg(required = true, help = "ID of tool")]
+        tool: String,
 
         #[arg(help = "Version of tool")]
         semver: Option<String>,
@@ -122,8 +121,8 @@ pub enum Commands {
         long_about = "Download and install a tool by unpacking the archive to ~/.proto/tools."
     )]
     Install {
-        #[arg(required = true, help = "Type of tool")]
-        tool: ToolType,
+        #[arg(required = true, help = "ID of tool")]
+        tool: String,
 
         #[arg(default_value = "latest", help = "Version of tool")]
         semver: Option<String>,
@@ -143,8 +142,8 @@ pub enum Commands {
         long_about = "Install a global dependency for the specified tool. Depending on the tool, the dependency will either be installed to ~/.proto/tools/<tool>/globals or ~/<tool>."
     )]
     InstallGlobal {
-        #[arg(required = true, help = "Type of tool")]
-        tool: ToolType,
+        #[arg(required = true, help = "ID of tool")]
+        tool: String,
 
         #[arg(required = true, help = "Dependencies and optional version to install")]
         dependencies: Vec<String>,
@@ -156,8 +155,8 @@ pub enum Commands {
         long_about = "Set the global default version of a tool. This will pin the version in the ~/.proto/tools installation directory."
     )]
     Global {
-        #[arg(required = true, help = "Type of tool")]
-        tool: ToolType,
+        #[arg(required = true, help = "ID of tool")]
+        tool: String,
 
         #[arg(required = true, help = "Version of tool")]
         semver: String,
@@ -170,8 +169,8 @@ pub enum Commands {
         long_about = "List installed versions by scanning the ~/.proto/tools directory for possible versions."
     )]
     List {
-        #[arg(required = true, help = "Type of tool")]
-        tool: ToolType,
+        #[arg(required = true, help = "ID of tool")]
+        tool: String,
     },
 
     #[command(
@@ -181,8 +180,8 @@ pub enum Commands {
         long_about = "List installed globals by scanning the global bins installation directory. Will return the canonical source path."
     )]
     ListGlobal {
-        #[arg(required = true, help = "Type of tool")]
-        tool: ToolType,
+        #[arg(required = true, help = "ID of tool")]
+        tool: String,
     },
 
     #[command(
@@ -192,8 +191,8 @@ pub enum Commands {
         long_about = "List available versions by resolving versions from the tool's remote release manifest."
     )]
     ListRemote {
-        #[arg(required = true, help = "Type of tool")]
-        tool: ToolType,
+        #[arg(required = true, help = "ID of tool")]
+        tool: String,
     },
 
     #[command(
@@ -202,8 +201,8 @@ pub enum Commands {
         long_about = "Set the local version of a tool. This will create a .prototools file (if it does not exist)\nin the current working directory with the appropriate tool and version."
     )]
     Local {
-        #[arg(required = true, help = "Type of tool")]
-        tool: ToolType,
+        #[arg(required = true, help = "ID of tool")]
+        tool: String,
 
         #[arg(required = true, help = "Version of tool")]
         semver: String,
@@ -222,8 +221,8 @@ pub enum Commands {
         long_about = "Run a tool after detecting a version from the environment. In order of priority,\na version will be resolved from a provided CLI argument, a PROTO_VERSION environment variable,\na local version file (.prototools), and lastly a global version file (~/.proto/tools/version).\n\nIf no version can be found, the program will exit with an error."
     )]
     Run {
-        #[arg(required = true, help = "Type of tool")]
-        tool: ToolType,
+        #[arg(required = true, help = "ID of tool")]
+        tool: String,
 
         #[arg(help = "Version of tool")]
         semver: Option<String>,
@@ -250,8 +249,8 @@ pub enum Commands {
 
     #[command(name = "ua", name = "unalias", about = "Remove an alias from a tool.")]
     Unalias {
-        #[arg(required = true, help = "Type of tool")]
-        tool: ToolType,
+        #[arg(required = true, help = "ID of tool")]
+        tool: String,
 
         #[arg(required = true, help = "Alias name")]
         alias: String,
@@ -264,8 +263,8 @@ pub enum Commands {
         long_about = "Uninstall a tool and remove the installation from ~/.proto/tools."
     )]
     Uninstall {
-        #[arg(required = true, help = "Type of tool")]
-        tool: ToolType,
+        #[arg(required = true, help = "ID of tool")]
+        tool: String,
 
         #[arg(required = true, help = "Version of tool")]
         semver: String,

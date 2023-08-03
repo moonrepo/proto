@@ -117,6 +117,12 @@ pub enum AliasOrVersion {
     Version(Version),
 }
 
+impl AliasOrVersion {
+    pub fn parse<T: AsRef<str>>(value: T) -> miette::Result<Self> {
+        Ok(Self::from_str(value.as_ref())?)
+    }
+}
+
 impl FromStr for AliasOrVersion {
     type Err = ProtoError;
 

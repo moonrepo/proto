@@ -1,9 +1,9 @@
 use crate::shell;
-use proto_core::{color, ProtoError};
 use rustc_hash::FxHashMap;
+use starbase_styles::color;
 use tracing::info;
 
-pub fn post_install(passthrough: &[String]) -> Result<(), ProtoError> {
+pub fn post_install(passthrough: &[String]) -> miette::Result<()> {
     if passthrough.contains(&"--no-gobin".to_string()) {
         return Ok(());
     }
