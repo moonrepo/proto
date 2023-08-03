@@ -37,6 +37,10 @@ pub enum ProtoError {
     #[error("Unable to determine your home directory.")]
     MissingHomeDir,
 
+    #[diagnostic(code(proto::execute::missing_bin))]
+    #[error("Unable to find an executable binary for {tool}, expected file {} does not exist.", .bin.style(Style::Path))]
+    MissingToolBin { tool: String, bin: PathBuf },
+
     #[diagnostic(code(proto::plugin::unknown))]
     #[error(
         "{} is not a built-in tool or has not been configured as a plugin, unable to proceed.", .id.style(Style::Id)

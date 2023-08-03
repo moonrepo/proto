@@ -36,16 +36,14 @@ pub async fn install_all() -> SystemResult {
         }
     }
 
-    let tools = config.tools;
-
-    if tools.is_empty() {
+    if config.tools.is_empty() {
         info!("Nothing to install!");
     } else {
-        let mut futures = vec![];
         let pb = create_progress_bar(format!(
             "Installing {} tools: {}",
-            tools.len(),
-            tools
+            config.tools.len(),
+            config
+                .tools
                 .keys()
                 .map(|k| color::id(k))
                 .collect::<Vec<_>>()
@@ -54,8 +52,10 @@ pub async fn install_all() -> SystemResult {
 
         disable_progress_bars();
 
-        for (id, version) in tools {
-            futures.push(install(id, Some(version.to_string()), false, vec![]));
+        let mut futures = vec![];
+
+        for (id, version) in config.tools {
+            futures.push(install(id, Some(version), false, vec![]));
         }
 
         try_join_all(futures).await?;

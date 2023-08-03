@@ -123,6 +123,12 @@ impl AliasOrVersion {
     }
 }
 
+impl Default for AliasOrVersion {
+    fn default() -> Self {
+        Self::Alias("latest".into())
+    }
+}
+
 impl FromStr for AliasOrVersion {
     type Err = ProtoError;
 
@@ -166,7 +172,7 @@ impl Display for AliasOrVersion {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Alias(alias) => write!(f, "{}", alias),
-            Self::Version(version) => write!(f, "{}", version),
+            Self::Version(version) => write!(f, "v{}", version),
         }
     }
 }

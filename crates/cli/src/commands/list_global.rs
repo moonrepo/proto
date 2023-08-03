@@ -1,23 +1,24 @@
-use crate::tools::{create_tool, ToolType};
+use crate::tools::create_tool;
 use human_sort::compare;
-use proto_core::color;
 use starbase::{diagnostics::IntoDiagnostic, SystemResult};
+use starbase_styles::color;
 use starbase_utils::fs;
+use std::process;
 use tracing::debug;
 
-pub async fn list_global(tool_type: ToolType) -> SystemResult {
-    let tool = create_tool(&tool_type).await?;
+pub async fn list_global(tool_id: String) -> SystemResult {
+    let tool = create_tool(&tool_id).await?;
 
-    let Some(bin_dir) = tool.get_globals_bin_dir()? else {
+    let Some(globals_dir) = tool.get_globals_bin_dir() else {
         return Ok(());
     };
 
-    debug!(globals_dir = ?bin_dir, "Finding globals");
+    debug!(globals_dir = ?globals_dir, "Finding global packages");
 
     let mut bins = vec![];
 
-    if bin_dir.exists() {
-        for file in fs::read_dir(&bin_dir)? {
+    if globals_dir.exists() {
+        for file in fs::read_dir(&globals_dir)? {
             if file.file_type().into_diagnostic()?.is_dir() {
                 continue;
             }
@@ -25,7 +26,7 @@ pub async fn list_global(tool_type: ToolType) -> SystemResult {
             let file_path = file.path();
             let mut file_name = fs::file_name(&file_path);
 
-            if tool_type.is("rust") {
+            if tool_id == "rust" {
                 if let Some(cargo_bin) = file_name.strip_prefix("cargo-") {
                     file_name = cargo_bin.to_owned();
                 } else {
@@ -42,11 +43,14 @@ pub async fn list_global(tool_type: ToolType) -> SystemResult {
         }
     }
 
-    if !bins.is_empty() {
-        bins.sort_by(|a, d| compare(a, d));
-
-        println!("{}", bins.join("\n"));
+    if bins.is_empty() {
+        eprintln!("No global packages installed");
+        process::exit(1);
     }
+
+    bins.sort_by(|a, d| compare(a, d));
+
+    println!("{}", bins.join("\n"));
 
     Ok(())
 }

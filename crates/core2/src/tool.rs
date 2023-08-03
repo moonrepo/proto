@@ -5,7 +5,7 @@ use crate::shimmer::{create_global_shim, create_local_shim, ShimContext};
 use crate::tool_manifest::ToolManifest;
 use crate::version::{AliasOrVersion, VersionType};
 use crate::version_resolver::VersionResolver;
-use crate::{download_from_url, is_archive_file};
+use crate::{download_from_url, is_archive_file, ENV_VAR};
 use extism::Manifest as PluginManifest;
 use miette::IntoDiagnostic;
 use proto_pdk_api::*;
@@ -24,10 +24,10 @@ pub struct Tool {
     pub plugin: PluginContainer<'static>,
     pub proto: ProtoEnvironment,
 
+    bin_path: Option<PathBuf>,
+    globals_dir: Option<PathBuf>,
     version: Option<AliasOrVersion>,
 }
-
-// HELPERS
 
 impl Tool {
     pub fn load(id: &str, proto: &ProtoEnvironment) -> miette::Result<Self> {
@@ -38,6 +38,8 @@ impl Tool {
 
         Ok(Tool {
             id: id.to_owned(),
+            bin_path: None,
+            globals_dir: None,
             manifest,
             plugin,
             proto: proto.to_owned(),
@@ -45,9 +47,25 @@ impl Tool {
         })
     }
 
+    /// Return an absolute path to the executable binary for the tool.
+    pub fn get_bin_path(&self) -> miette::Result<&Path> {
+        match self.bin_path.as_ref() {
+            Some(bin) => Ok(bin),
+            None => Err(ProtoError::UnknownPlugin {
+                id: self.id.clone(),
+            }
+            .into()),
+        }
+    }
+
     /// Return the prefix for environment variable names.
     pub fn get_env_var_prefix(&self) -> String {
         format!("PROTO_{}", self.id.to_uppercase().replace('-', "_"))
+    }
+
+    /// Return an absolute path to the globals directory in which packages are installed to.
+    pub fn get_globals_bin_dir(&self) -> Option<&Path> {
+        self.globals_dir.as_deref()
     }
 
     /// Return an absolute path to the tool's root directory that contains installed versions,
@@ -82,6 +100,11 @@ impl Tool {
     /// Explicitly set the version to use.
     pub fn set_version(&mut self, version: AliasOrVersion) {
         self.version = Some(version);
+    }
+
+    /// Disable progress bars when installing or uninstalling the tool.
+    pub fn disable_progress_bars(&self) -> bool {
+        false
     }
 }
 
@@ -502,6 +525,9 @@ impl Tool {
         // Install from a prebuilt archive
         self.install_from_prebuilt(&install_dir).await?;
 
+        // Locate binaries after an install
+        self.locate_bins(&install_dir).await?;
+
         // TODO support install/build from source
 
         debug!(
@@ -534,6 +560,85 @@ impl Tool {
         debug!(tool = &self.id, "Successfully uninstalled tool");
 
         Ok(true)
+    }
+
+    /// Find the absolute file path to the tool's binary that will be executed,
+    /// and optionally find the directory globals are installed to.
+    pub async fn locate_bins(&mut self, install_dir: &Path) -> miette::Result<()> {
+        let mut options = LocateBinsOutput::default();
+
+        if self.plugin.has_func("locate_bins") {
+            options = self.plugin.cache_func_with(
+                "locate_bins",
+                LocateBinsInput {
+                    env: self.get_environment()?,
+                    home_dir: self.plugin.to_virtual_path(&self.proto.home),
+                    tool_dir: self.plugin.to_virtual_path(&install_dir),
+                },
+            )?;
+        }
+
+        // Find the executable binary for the tool
+        let bin_path = if let Some(bin) = options.bin_path {
+            let bin = self.plugin.from_virtual_path(&bin);
+
+            if bin.is_absolute() {
+                bin
+            } else {
+                install_dir.join(bin)
+            }
+        } else {
+            install_dir.join(&self.id)
+        };
+
+        if bin_path.exists() {
+            self.bin_path = Some(bin_path);
+        } else {
+            return Err(ProtoError::MissingToolBin {
+                tool: self.get_name(),
+                bin: bin_path,
+            }
+            .into());
+        }
+
+        // Find a globals directory packages are installed to
+        let lookup_count = options.globals_lookup_dirs.len() - 1;
+
+        'outer: for (index, dir_lookup) in options.globals_lookup_dirs.iter().enumerate() {
+            let mut dir = dir_lookup.clone();
+
+            // If a lookup contains an env var, find and replace it.
+            // If the var is not defined or is empty, skip this lookup.
+            for cap in ENV_VAR.captures_iter(dir_lookup) {
+                let var = cap.get(0).unwrap().as_str();
+
+                let var_value = match var {
+                    "$HOME" => self.proto.home.to_string_lossy().to_string(),
+                    "$PROTO_ROOT" => self.proto.root.to_string_lossy().to_string(),
+                    "$TOOL_DIR" => install_dir.to_string_lossy().to_string(),
+                    _ => env::var(cap.get(1).unwrap().as_str()).unwrap_or_default(),
+                };
+
+                if var_value.is_empty() {
+                    continue 'outer;
+                }
+
+                dir = dir.replace(var, &var_value);
+            }
+
+            let dir_path = if let Some(dir_suffix) = dir.strip_prefix('~') {
+                self.proto.home.join(dir_suffix)
+            } else {
+                PathBuf::from(dir)
+            };
+
+            if dir_path.exists() || (index == lookup_count && options.fallback_last_globals_dir) {
+                self.globals_dir = Some(dir_path);
+                break;
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -622,15 +727,23 @@ impl Tool {
 // OPERATIONS
 
 impl Tool {
-    pub async fn is_setup(&mut self, initial_version: &str) -> miette::Result<bool> {
+    pub async fn is_setup(&mut self, initial_version: &AliasOrVersion) -> miette::Result<bool> {
         Ok(true)
     }
 
-    pub async fn setup(&mut self, initial_version: &str) -> miette::Result<bool> {
+    pub async fn setup(&mut self, initial_version: &AliasOrVersion) -> miette::Result<bool> {
         Ok(true)
     }
 
     pub async fn teardown(&mut self) -> miette::Result<bool> {
         Ok(true)
+    }
+
+    pub async fn cleanup(&mut self) -> miette::Result<()> {
+        debug!(tool = &self.id, "Cleaning up temporary files and downloads");
+
+        let _ = fs::remove_file(self.get_temp_dir());
+
+        Ok(())
     }
 }

@@ -127,10 +127,10 @@ json_struct!(
         /// Current environment.
         pub env: Environment,
 
-        /// Virtual directory to the user's home directory.
+        /// Virtual path to the user's home directory.
         pub home_dir: PathBuf,
 
-        /// Virtual directory to the tool's installation directory.
+        /// Virtual path to the tool's installation directory.
         pub tool_dir: PathBuf,
     }
 );
@@ -224,6 +224,9 @@ json_struct!(
     pub struct LocateBinsInput {
         /// Current environment.
         pub env: Environment,
+
+        /// Virtual path to the user's home directory.
+        pub home_dir: PathBuf,
 
         /// Virtual path to the tool's installation directory.
         pub tool_dir: PathBuf,

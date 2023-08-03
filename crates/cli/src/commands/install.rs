@@ -2,6 +2,7 @@ use crate::helpers::{create_progress_bar, disable_progress_bars};
 use crate::hooks::go as go_hooks;
 use crate::tools::create_tool;
 use async_recursion::async_recursion;
+use proto_core::AliasOrVersion;
 use starbase::SystemResult;
 use starbase_styles::color;
 use tracing::{debug, info};
@@ -9,11 +10,11 @@ use tracing::{debug, info};
 #[async_recursion]
 pub async fn install(
     tool_id: String,
-    version: Option<String>,
+    version: Option<AliasOrVersion>,
     pin_version: bool,
     passthrough: Vec<String>,
 ) -> SystemResult {
-    let version = version.unwrap_or_else(|| "latest".into());
+    let version = version.unwrap_or_default();
     let mut tool = create_tool(&tool_id).await?;
 
     if tool.is_setup(&version).await? {
@@ -26,17 +27,11 @@ pub async fn install(
         return Ok(());
     }
 
-    // Rust doesn't download files but runs commands
-    // TODO move to plugin?
-    if tool_id == "rust" {
+    if tool.disable_progress_bars() {
         disable_progress_bars();
     }
 
-    debug!(
-        "Installing {} with version \"{}\"",
-        tool.get_name(),
-        version,
-    );
+    debug!("Installing {} with version {}", tool.get_name(), version);
 
     let pb = create_progress_bar(format!(
         "Installing {} {}",
@@ -45,8 +40,7 @@ pub async fn install(
     ));
 
     tool.setup(&version).await?;
-    // TODO
-    // tool.cleanup().await?;
+    tool.cleanup().await?;
 
     if pin_version {
         tool.manifest.default_version = Some(tool.get_resolved_version());
@@ -80,7 +74,7 @@ pub async fn install(
 
         install(
             "npm".into(),
-            Some("bundled".into()),
+            Some(AliasOrVersion::Alias("bundled".into())),
             pin_version,
             passthrough,
         )

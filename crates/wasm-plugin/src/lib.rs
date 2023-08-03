@@ -1,29 +1,6 @@
-mod detect;
-mod download;
-mod execute;
-pub mod host_funcs;
-mod install;
-mod resolve;
-mod shim;
-mod verify;
+mod host_funcs;
 
-use extism::{manifest::Wasm, Manifest as PluginManifest};
-use host_funcs::HostData;
-use once_cell::sync::OnceCell;
-use proto_core::{impl_tool, Describable, Manifest, Proto, ProtoError, Resolvable, Tool};
-use proto_pdk_api::{
-    DownloadPrebuiltInput, DownloadPrebuiltOutput, Environment, HostArch, HostOS,
-    ToolMetadataInput, ToolMetadataOutput,
-};
-use rustc_hash::FxHashMap;
-use std::{
-    any::Any,
-    env::{self, consts},
-    path::{Path, PathBuf},
-    str::FromStr,
-    time::Duration,
-};
-use warpgate::PluginContainer;
+pub use host_funcs::*;
 
 pub struct WasmPlugin {
     pub id: String,

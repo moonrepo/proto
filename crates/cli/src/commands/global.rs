@@ -4,10 +4,10 @@ use starbase::SystemResult;
 use starbase_styles::color;
 use tracing::{debug, info};
 
-pub async fn global(tool_id: String, version: String) -> SystemResult {
+pub async fn global(tool_id: String, version: AliasOrVersion) -> SystemResult {
     let mut tool = create_tool(&tool_id).await?;
 
-    tool.manifest.default_version = Some(AliasOrVersion::parse(&version)?);
+    tool.manifest.default_version = Some(version.clone());
     tool.manifest.save()?;
 
     debug!(
@@ -18,7 +18,7 @@ pub async fn global(tool_id: String, version: String) -> SystemResult {
     info!(
         "Set the global {} version to {}",
         tool.get_name(),
-        color::hash(version)
+        color::hash(version.to_string())
     );
 
     Ok(())

@@ -10,7 +10,8 @@ use std::path::Path;
 use std::{env, path::PathBuf};
 use tracing::trace;
 
-static CLEAN_VERSION_REQ: Lazy<Regex> = Lazy::new(|| Regex::new(r"([><]=?)\s+(\d)").unwrap());
+pub static CLEAN_VERSION: Lazy<Regex> = Lazy::new(|| Regex::new(r"([><]=?)\s+(\d)").unwrap());
+pub static ENV_VAR: Lazy<Regex> = Lazy::new(|| Regex::new(r"\$([A-Z0-9_]+)").unwrap());
 
 pub fn get_root() -> miette::Result<PathBuf> {
     if let Ok(root) = env::var("PROTO_ROOT") {
@@ -74,7 +75,7 @@ pub fn remove_v_prefix<T: AsRef<str>>(value: T) -> String {
 }
 
 pub fn remove_space_after_gtlt<T: AsRef<str>>(value: T) -> String {
-    CLEAN_VERSION_REQ
+    CLEAN_VERSION
         .replace_all(value.as_ref(), "$1$2")
         .to_string()
 }

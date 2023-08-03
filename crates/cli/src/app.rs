@@ -1,5 +1,6 @@
 use clap::{Parser, Subcommand, ValueEnum};
 use clap_complete::Shell;
+use proto_core::AliasOrVersion;
 use std::fmt::{Display, Error, Formatter};
 
 #[derive(ValueEnum, Clone, Debug, Default)]
@@ -71,10 +72,10 @@ pub enum Commands {
         tool: String,
 
         #[arg(required = true, help = "Alias name")]
-        alias: String,
+        alias: AliasOrVersion,
 
         #[arg(required = true, help = "Version (or alias) to associate with")]
-        semver: String,
+        semver: AliasOrVersion,
     },
 
     #[command(
@@ -86,8 +87,8 @@ pub enum Commands {
         #[arg(required = true, help = "ID of tool")]
         tool: String,
 
-        #[arg(help = "Version of tool")]
-        semver: Option<String>,
+        #[arg(help = "Version or alias of tool")]
+        semver: Option<AliasOrVersion>,
 
         #[arg(long, help = "Display shim path when available")]
         shim: bool,
@@ -124,8 +125,8 @@ pub enum Commands {
         #[arg(required = true, help = "ID of tool")]
         tool: String,
 
-        #[arg(default_value = "latest", help = "Version of tool")]
-        semver: Option<String>,
+        #[arg(default_value = "latest", help = "Version or alias of tool")]
+        semver: Option<AliasOrVersion>,
 
         #[arg(long, help = "Pin version as the global default")]
         pin: bool,
@@ -158,8 +159,8 @@ pub enum Commands {
         #[arg(required = true, help = "ID of tool")]
         tool: String,
 
-        #[arg(required = true, help = "Version of tool")]
-        semver: String,
+        #[arg(required = true, help = "Version or alias of tool")]
+        semver: AliasOrVersion,
     },
 
     #[command(
@@ -204,8 +205,8 @@ pub enum Commands {
         #[arg(required = true, help = "ID of tool")]
         tool: String,
 
-        #[arg(required = true, help = "Version of tool")]
-        semver: String,
+        #[arg(required = true, help = "Version or alias of tool")]
+        semver: AliasOrVersion,
     },
 
     #[command(name = "plugins", about = "List all active and configured plugins.")]
@@ -224,8 +225,8 @@ pub enum Commands {
         #[arg(required = true, help = "ID of tool")]
         tool: String,
 
-        #[arg(help = "Version of tool")]
-        semver: Option<String>,
+        #[arg(help = "Version or alias of tool")]
+        semver: Option<AliasOrVersion>,
 
         #[arg(long, help = "Path to an alternate binary to run")]
         bin: Option<String>,
@@ -266,8 +267,8 @@ pub enum Commands {
         #[arg(required = true, help = "ID of tool")]
         tool: String,
 
-        #[arg(required = true, help = "Version of tool")]
-        semver: String,
+        #[arg(required = true, help = "Version or alias of tool")]
+        semver: AliasOrVersion,
     },
 
     #[command(
