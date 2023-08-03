@@ -1,5 +1,5 @@
 use crate::version::AliasOrVersion;
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashSet;
 use semver::Version;
 use serde::{Deserialize, Serialize};
 use starbase_utils::{
@@ -7,6 +7,7 @@ use starbase_utils::{
     json::{self, JsonError},
 };
 use std::{
+    collections::BTreeMap,
     env,
     path::{Path, PathBuf},
     time::SystemTime,
@@ -33,11 +34,11 @@ pub struct ToolManifestVersion {
 #[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct ToolManifest {
-    pub aliases: FxHashMap<String, AliasOrVersion>,
+    pub aliases: BTreeMap<String, AliasOrVersion>,
     pub default_version: Option<AliasOrVersion>,
     pub installed_versions: FxHashSet<Version>,
     pub shim_version: u8,
-    pub versions: FxHashMap<Version, ToolManifestVersion>,
+    pub versions: BTreeMap<Version, ToolManifestVersion>,
 
     #[serde(skip)]
     pub path: PathBuf,

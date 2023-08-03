@@ -40,6 +40,11 @@ impl Tool {
         })
     }
 
+    /// Return the prefix for environment variable names.
+    pub fn get_env_var_prefix(&self) -> String {
+        format!("PROTO_{}", self.id.to_uppercase().replace('-', "_"))
+    }
+
     /// Return the resolved version or "latest".
     pub fn get_resolved_version(&self) -> AliasOrVersion {
         self.version
