@@ -1,7 +1,7 @@
 use crate::error::ProtoError;
 use crate::helpers::{is_cache_enabled, is_offline, remove_v_prefix};
 use crate::proto::ProtoEnvironment;
-use crate::shimmer::ShimContext;
+use crate::shimmer::{create_global_shim, create_local_shim, ShimContext};
 use crate::tool_manifest::ToolManifest;
 use crate::version::{AliasOrVersion, VersionType};
 use crate::version_resolver::VersionResolver;
@@ -328,5 +328,66 @@ impl Tool {
         }
 
         context
+    }
+
+    /// Create global and local shim files for the current tool.
+    /// If find only is enabled, will only check if they exist, and not create.
+    pub fn create_shims(&self, find_only: bool) -> miette::Result<()> {
+        let mut primary_context = self.create_shim_context();
+
+        // If not configured from the plugin, always create the primary global
+        if !self.plugin.has_func("create_shims") {
+            create_global_shim(self, primary_context, find_only)?;
+
+            return Ok(());
+        }
+
+        let shim_configs: CreateShimsOutput = self.plugin.cache_func_with(
+            "create_shims",
+            CreateShimsInput {
+                env: self.get_environment()?,
+            },
+        )?;
+
+        // Create the primary global shim
+        if let Some(primary_config) = &shim_configs.primary {
+            primary_context.before_args = primary_config.before_args.as_deref();
+            primary_context.after_args = primary_config.after_args.as_deref();
+        }
+
+        if !shim_configs.no_primary_global {
+            create_global_shim(self, primary_context, find_only)?;
+        }
+
+        // Create alternate/secondary global shims
+        for (name, config) in &shim_configs.global_shims {
+            let mut context = self.create_shim_context();
+            context.shim_file = name;
+            context.bin_path = config.bin_path.as_deref();
+            context.before_args = config.before_args.as_deref();
+            context.after_args = config.after_args.as_deref();
+
+            create_global_shim(self, context, find_only)?;
+        }
+
+        // Create local shims
+        for (name, config) in &shim_configs.local_shims {
+            let bin_path = if let Some(path) = &config.bin_path {
+                self.get_tool_dir().join(path)
+            } else {
+                self.get_tool_dir().join(&self.id)
+            };
+
+            let mut context = self.create_shim_context();
+            context.shim_file = name;
+            context.bin_path = Some(&bin_path);
+            context.parent_bin = config.parent_bin.as_deref();
+            context.before_args = config.before_args.as_deref();
+            context.after_args = config.after_args.as_deref();
+
+            create_local_shim(self, context, find_only)?;
+        }
+
+        Ok(())
     }
 }

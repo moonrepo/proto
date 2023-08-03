@@ -41,18 +41,6 @@ pub struct ShimContext<'tool> {
     pub tool_version: Option<String>,
 }
 
-impl<'tool> ShimContext<'tool> {
-    pub fn for_alt_global(&mut self, name: &'tool str, bin_path: &'tool Path) {
-        self.shim_file = name;
-        self.bin_path = Some(bin_path);
-    }
-
-    pub fn for_local(&mut self, name: &'tool str, bin_path: &'tool Path) {
-        self.shim_file = name;
-        self.bin_path = Some(bin_path);
-    }
-}
-
 impl<'tool> AsRef<ShimContext<'tool>> for ShimContext<'tool> {
     fn as_ref(&self) -> &ShimContext<'tool> {
         self
