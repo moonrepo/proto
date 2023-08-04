@@ -4,19 +4,21 @@ use miette::IntoDiagnostic;
 use proto_core::ProtoError;
 use starbase::SystemResult;
 use starbase_styles::color;
+use std::process;
 use tokio::process::Command;
 use tracing::{debug, info};
 
 pub async fn install_global(tool_id: String, dependencies: Vec<String>) -> SystemResult {
-    let tool = create_tool(&tool_id).await?;
+    let mut tool = create_tool(&tool_id).await?;
+    tool.locate_globals_dir().await?;
 
-    for dependency in dependencies {
+    let Some(globals_dir) = tool.get_globals_bin_dir() else {
+        eprintln!("{} does not support global packages", tool.get_name());
+        process::exit(1);
+    };
+
+    for dependency in &dependencies {
         debug!(tool = &tool.id, dependency, "Installing global dependency");
-
-        let Some(globals_dir) = tool.get_globals_bin_dir() else {
-            debug!("Skipping as {} it does not support globals", tool.get_name());
-            continue;
-        };
 
         let mut command = Command::new(&tool.id);
 
@@ -75,13 +77,22 @@ pub async fn install_global(tool_id: String, dependencies: Vec<String>) -> Syste
         if !output.status.success() {
             return Err(ProtoError::Message(stderr.to_string()))?;
         }
-
-        info!(
-            "{} has been installed to {}!",
-            dependency,
-            color::path(globals_dir),
-        );
     }
+
+    info!(
+        "{} {} been installed to {}!",
+        dependencies
+            .iter()
+            .map(|d| color::id(d))
+            .collect::<Vec<_>>()
+            .join(", "),
+        if dependencies.len() == 1 {
+            "has"
+        } else {
+            "have"
+        },
+        color::path(globals_dir),
+    );
 
     Ok(())
 }

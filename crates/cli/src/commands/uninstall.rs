@@ -17,11 +17,7 @@ pub async fn uninstall(tool_id: String, version: AliasOrVersion) -> SystemResult
         return Ok(());
     }
 
-    debug!(
-        "Uninstalling {} with version \"{}\"",
-        tool.get_name(),
-        version,
-    );
+    debug!("Uninstalling {} with version {}", tool.get_name(), version,);
 
     if tool.disable_progress_bars() {
         disable_progress_bars();
