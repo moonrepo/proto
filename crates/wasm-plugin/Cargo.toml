@@ -8,22 +8,7 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
-proto_core = { version = "0.13.1", path = "../core" }
 proto_pdk_api = { version = "0.3.1", path = "../pdk-api" }
-warpgate = { version = "0.2.0", path = "../warpgate" }
 extism = { workspace = true }
-human-sort = { workspace = true }
-once_cell = { workspace = true }
-once_map = { workspace = true }
-regex = { workspace = true }
-rustc-hash = { workspace = true }
-serde = { workspace = true }
 serde_json = { workspace = true }
-starbase_utils = { workspace = true }
 tracing = { workspace = true }
-url = "2.4.0"
-
-[dev-dependencies]
-log = "0.4.19"
-starbase_sandbox = { workspace = true }
-tokio = { workspace = true }

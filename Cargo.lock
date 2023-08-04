@@ -2204,6 +2204,7 @@ dependencies = [
  "indicatif",
  "miette",
  "proto_core",
+ "proto_wasm_plugin",
  "reqwest",
  "rustc-hash",
  "semver",
@@ -2230,6 +2231,7 @@ dependencies = [
  "miette",
  "once_cell",
  "proto_pdk_api",
+ "proto_wasm_plugin",
  "regex",
  "reqwest",
  "rustc-hash",
@@ -2268,6 +2270,16 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
+]
+
+[[package]]
+name = "proto_wasm_plugin"
+version = "0.3.1"
+dependencies = [
+ "extism",
+ "proto_pdk_api",
+ "serde_json",
+ "tracing",
 ]
 
 [[package]]

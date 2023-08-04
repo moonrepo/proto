@@ -8,9 +8,10 @@ use crate::tool_manifest::ToolManifest;
 use crate::version::{AliasOrVersion, VersionType};
 use crate::version_resolver::VersionResolver;
 use crate::{download_from_url, is_archive_file, ENV_VAR};
-use extism::Manifest as PluginManifest;
+use extism::{manifest::Wasm, Manifest as PluginManifest};
 use miette::IntoDiagnostic;
 use proto_pdk_api::*;
+use proto_wasm_plugin::{create_host_functions, HostData};
 use starbase_utils::{fs, json};
 use std::env::{self, consts};
 use std::io::{BufRead, BufReader};
@@ -32,11 +33,9 @@ pub struct Tool {
 }
 
 impl Tool {
-    pub fn load(id: &str, proto: &ProtoEnvironment) -> miette::Result<Self> {
+    pub fn load(id: &str, proto: &ProtoEnvironment, wasm: Wasm) -> miette::Result<Self> {
         let manifest = ToolManifest::load_from(proto.tools_dir.join(id))?;
-
-        // TODO
-        let plugin = PluginContainer::new_without_functions(id, PluginManifest::default())?;
+        let plugin = Self::load_plugin(id, proto, wasm)?;
 
         Ok(Tool {
             id: id.to_owned(),
@@ -47,6 +46,31 @@ impl Tool {
             proto: proto.to_owned(),
             version: None,
         })
+    }
+
+    pub fn load_plugin<'l>(
+        id: &str,
+        proto: &ProtoEnvironment,
+        wasm: Wasm,
+    ) -> miette::Result<PluginContainer<'l>> {
+        let working_dir = env::current_dir().expect("Unable to determine working directory!");
+
+        let mut manifest = PluginManifest::new([wasm]);
+        manifest = manifest.with_allowed_host("*");
+
+        #[cfg(debug_assertions)]
+        {
+            manifest = manifest.with_timeout(Duration::from_secs(90));
+        }
+
+        manifest = manifest.with_allowed_path(working_dir.clone(), "/workspace");
+        manifest = manifest.with_allowed_path(proto.home.clone(), "/home");
+        manifest = manifest.with_allowed_path(proto.root.clone(), "/proto");
+
+        let host_data = HostData { working_dir };
+        let plugin = PluginContainer::new(id, manifest, create_host_functions(host_data))?;
+
+        Ok(plugin)
     }
 
     /// Return an absolute path to the executable binary for the tool.

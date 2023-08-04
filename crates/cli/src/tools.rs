@@ -1,8 +1,8 @@
-use convert_case::{Case, Casing};
+// use convert_case::{Case, Casing};
 use proto_core::*;
 // use proto_schema_plugin as schema_plugin;
-// use proto_wasm_plugin as wasm_plugin;
-use starbase_utils::toml;
+use proto_wasm_plugin::Wasm;
+// use starbase_utils::toml;
 use std::{env, path::Path};
 use tracing::debug;
 use warpgate::{PluginLoader, PluginLocator};
@@ -18,10 +18,10 @@ pub async fn create_tool_from_plugin(
     let plugin_path = PluginLoader::new(&proto.plugins_dir, &proto.temp_dir)
         .load_plugin(id, locator)
         .await?;
-    let is_toml = plugin_path
-        .extension()
-        .map(|ext| ext == "toml")
-        .unwrap_or(false);
+    // let is_toml = plugin_path
+    //     .extension()
+    //     .map(|ext| ext == "toml")
+    //     .unwrap_or(false);
 
     // if is_toml {
     //     debug!(source = ?plugin_path, "Loading TOML plugin");
@@ -35,13 +35,7 @@ pub async fn create_tool_from_plugin(
 
     debug!(source = ?plugin_path, "Loading WASM plugin");
 
-    // Ok(Box::new(wasm_plugin::WasmPlugin::new(
-    //     proto,
-    //     plugin.to_owned(),
-    //     plugin_path,
-    // )?))
-
-    Ok(Tool::load(id, proto)?)
+    Ok(Tool::load(id, proto, Wasm::file(plugin_path))?)
 }
 
 pub async fn create_tool(id: &str) -> miette::Result<Tool> {
