@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::ToolManifest;
+use proto_core::{AliasOrVersion, ToolManifest, Version};
 use utils::*;
 
 #[test]
@@ -8,10 +8,16 @@ fn lists_local_versions() {
     let temp = create_empty_sandbox();
 
     let mut manifest = ToolManifest::load(temp.path().join("tools/node/manifest.json")).unwrap();
-    manifest.default_version = Some("19.0.0".into());
-    manifest.installed_versions.insert("19.0.0".into());
-    manifest.installed_versions.insert("18.0.0".into());
-    manifest.installed_versions.insert("17.0.0".into());
+    manifest.default_version = Some(AliasOrVersion::parse("19.0.0").unwrap());
+    manifest
+        .installed_versions
+        .insert(Version::parse("19.0.0").unwrap());
+    manifest
+        .installed_versions
+        .insert(Version::parse("18.0.0").unwrap());
+    manifest
+        .installed_versions
+        .insert(Version::parse("17.0.0").unwrap());
     manifest.save().unwrap();
 
     let mut cmd = create_proto_command(temp.path());

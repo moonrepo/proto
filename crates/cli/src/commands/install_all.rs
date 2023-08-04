@@ -45,7 +45,7 @@ pub async fn install_all() -> SystemResult {
             config
                 .tools
                 .keys()
-                .map(|k| color::id(k))
+                .map(color::id)
                 .collect::<Vec<_>>()
                 .join(", ")
         ));

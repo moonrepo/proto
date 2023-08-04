@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::ToolManifest;
+use proto_core::{ToolManifest, Version};
 use rustc_hash::FxHashSet;
 use starbase_sandbox::predicates::prelude::*;
 use utils::*;
@@ -50,6 +50,8 @@ mod go {
 }
 
 mod node {
+    use proto_core::AliasOrVersion;
+
     use super::*;
 
     #[test]
@@ -69,10 +71,13 @@ mod node {
 
         let manifest = ToolManifest::load(temp.path().join("tools/npm/manifest.json")).unwrap();
 
-        assert_eq!(manifest.default_version, Some("8.19.2".into()));
+        assert_eq!(
+            manifest.default_version,
+            Some(AliasOrVersion::parse("8.19.2").unwrap())
+        );
         assert_eq!(
             manifest.installed_versions,
-            FxHashSet::from_iter(["8.19.2".into()])
+            FxHashSet::from_iter([Version::parse("8.19.2").unwrap()])
         );
     }
 

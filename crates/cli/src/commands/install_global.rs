@@ -25,15 +25,15 @@ pub async fn install_global(tool_id: String, dependencies: Vec<String>) -> Syste
         // TODO move into plugins
         match tool.id.as_ref() {
             "bun" => {
-                command.args(["add", "--global"]).arg(&dependency);
+                command.args(["add", "--global"]).arg(dependency);
             }
             "deno" => {
                 command
                     .args(["install", "--allow-net", "--allow-read"])
-                    .arg(&dependency);
+                    .arg(dependency);
             }
             "go" => {
-                command.arg("install").arg(&dependency);
+                command.arg("install").arg(dependency);
             }
             "node" | "npm" | "pnpm" | "yarn" => {
                 command = Command::new("npm");
@@ -46,13 +46,13 @@ pub async fn install_global(tool_id: String, dependencies: Vec<String>) -> Syste
                         "--no-audit",
                         "--no-update-notifier",
                     ])
-                    .arg(&dependency)
+                    .arg(dependency)
                     // Remove the /bin component
                     .env("PREFIX", globals_dir.parent().unwrap());
             }
             "rust" => {
                 command = Command::new("cargo");
-                command.arg("install").arg("--force").arg(&dependency);
+                command.arg("install").arg("--force").arg(dependency);
             }
             _ => {
                 continue;
@@ -83,7 +83,7 @@ pub async fn install_global(tool_id: String, dependencies: Vec<String>) -> Syste
         "{} {} been installed to {}!",
         dependencies
             .iter()
-            .map(|d| color::id(d))
+            .map(color::id)
             .collect::<Vec<_>>()
             .join(", "),
         if dependencies.len() == 1 {

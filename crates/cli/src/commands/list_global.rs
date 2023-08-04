@@ -20,7 +20,7 @@ pub async fn list_global(tool_id: String) -> SystemResult {
     let mut bins = vec![];
 
     if globals_dir.exists() {
-        for file in fs::read_dir(&globals_dir)? {
+        for file in fs::read_dir(globals_dir)? {
             if file.file_type().into_diagnostic()?.is_dir() {
                 continue;
             }

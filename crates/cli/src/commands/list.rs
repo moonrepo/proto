@@ -15,7 +15,7 @@ pub async fn list(tool_id: String) -> SystemResult {
         process::exit(1);
     }
 
-    versions.sort_by(|a, d| a.cmp(d));
+    versions.sort();
 
     println!(
         "{}",

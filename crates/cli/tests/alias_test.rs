@@ -1,8 +1,8 @@
 mod utils;
 
-use proto_core::ToolManifest;
-use rustc_hash::FxHashMap;
+use proto_core::{ToolManifest, VersionType};
 use starbase_sandbox::predicates::prelude::*;
+use std::collections::BTreeMap;
 use utils::*;
 
 #[test]
@@ -26,7 +26,7 @@ fn updates_manifest_file() {
 
     assert_eq!(
         manifest.aliases,
-        FxHashMap::from_iter([("example".into(), "19.0.0".into())])
+        BTreeMap::from_iter([("example".into(), VersionType::parse("19.0.0").unwrap())])
     );
 }
 
@@ -51,7 +51,7 @@ fn updates_manifest_file_for_plugin() {
 
     assert_eq!(
         manifest.aliases,
-        FxHashMap::from_iter([("example".into(), "1.0.0".into())])
+        BTreeMap::from_iter([("example".into(), VersionType::parse("1.0.0").unwrap())])
     );
 }
 
@@ -61,7 +61,9 @@ fn can_overwrite_existing_alias() {
     let manifest_file = temp.path().join("tools/node/manifest.json");
 
     let mut manifest = ToolManifest::load(&manifest_file).unwrap();
-    manifest.aliases.insert("example".into(), "19.0.0".into());
+    manifest
+        .aliases
+        .insert("example".into(), VersionType::parse("19.0.0").unwrap());
     manifest.save().unwrap();
 
     let mut cmd = create_proto_command(temp.path());
@@ -76,7 +78,7 @@ fn can_overwrite_existing_alias() {
 
     assert_eq!(
         manifest.aliases,
-        FxHashMap::from_iter([("example".into(), "20.0.0".into())])
+        BTreeMap::from_iter([("example".into(), VersionType::parse("20.0.0").unwrap())])
     );
 }
 

@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::ToolManifest;
+use proto_core::{ToolManifest, Version};
 use starbase_sandbox::predicates::prelude::*;
 use std::{env, fs};
 use utils::*;
@@ -182,7 +182,9 @@ fn updates_last_used_at() {
         .assert();
 
     let manifest = ToolManifest::load(&manifest_file).unwrap();
-    let last_used_at = manifest.versions.get("19.0.0").unwrap().last_used_at;
+    let version = Version::parse("19.0.0").unwrap();
+
+    let last_used_at = manifest.versions.get(&version).unwrap().last_used_at;
 
     assert!(last_used_at.is_some());
 
@@ -199,7 +201,7 @@ fn updates_last_used_at() {
 
     assert_ne!(
         last_used_at,
-        manifest.versions.get("19.0.0").unwrap().last_used_at
+        manifest.versions.get(&version).unwrap().last_used_at
     );
 }
 

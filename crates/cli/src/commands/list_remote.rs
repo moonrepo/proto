@@ -20,7 +20,7 @@ pub async fn list_remote(tool_id: String) -> SystemResult {
         process::exit(1);
     }
 
-    versions.sort_by(|a, d| a.cmp(d));
+    versions.sort();
 
     println!(
         "{}",

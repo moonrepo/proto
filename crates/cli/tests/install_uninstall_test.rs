@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::ToolManifest;
+use proto_core::{AliasOrVersion, ToolManifest, Version};
 use rustc_hash::FxHashSet;
 use starbase_sandbox::predicates::prelude::*;
 use utils::*;
@@ -75,12 +75,17 @@ fn updates_the_manifest_when_installing() {
 
     let manifest = ToolManifest::load(&manifest_file).unwrap();
 
-    assert_eq!(manifest.default_version, Some("19.0.0".into()));
+    assert_eq!(
+        manifest.default_version,
+        Some(AliasOrVersion::parse("19.0.0").unwrap())
+    );
     assert_eq!(
         manifest.installed_versions,
-        FxHashSet::from_iter(["19.0.0".into()])
+        FxHashSet::from_iter([Version::parse("19.0.0").unwrap()])
     );
-    assert!(manifest.versions.contains_key("19.0.0"));
+    assert!(manifest
+        .versions
+        .contains_key(&Version::parse("19.0.0").unwrap()));
 
     // Uninstall
     let mut cmd = create_proto_command(temp.path());
@@ -94,7 +99,9 @@ fn updates_the_manifest_when_installing() {
 
     assert_eq!(manifest.default_version, None);
     assert_eq!(manifest.installed_versions, FxHashSet::default());
-    assert!(!manifest.versions.contains_key("19.0.0"));
+    assert!(!manifest
+        .versions
+        .contains_key(&Version::parse("19.0.0").unwrap()));
 }
 
 #[test]
@@ -103,8 +110,10 @@ fn can_pin_when_installing() {
     let manifest_file = temp.path().join("tools/node/manifest.json");
 
     let mut manifest = ToolManifest::load(&manifest_file).unwrap();
-    manifest.default_version = Some("18.0.0".into());
-    manifest.installed_versions.insert("18.0.0".into());
+    manifest.default_version = Some(AliasOrVersion::parse("18.0.0").unwrap());
+    manifest
+        .installed_versions
+        .insert(Version::parse("18.0.0").unwrap());
     manifest.save().unwrap();
 
     let mut cmd = create_proto_command(temp.path());
@@ -116,9 +125,15 @@ fn can_pin_when_installing() {
 
     let manifest = ToolManifest::load(&manifest_file).unwrap();
 
-    assert_eq!(manifest.default_version, Some("19.0.0".into()));
+    assert_eq!(
+        manifest.default_version,
+        Some(AliasOrVersion::parse("19.0.0").unwrap())
+    );
     assert_eq!(
         manifest.installed_versions,
-        FxHashSet::from_iter(["18.0.0".into(), "19.0.0".into()])
+        FxHashSet::from_iter([
+            Version::parse("18.0.0").unwrap(),
+            Version::parse("19.0.0").unwrap(),
+        ])
     );
 }

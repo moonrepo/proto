@@ -35,7 +35,7 @@ pub async fn create_tool_from_plugin(
 
     debug!(source = ?plugin_path, "Loading WASM plugin");
 
-    Ok(Tool::load(id, proto, Wasm::file(plugin_path))?)
+    Tool::load(id, proto, Wasm::file(plugin_path))
 }
 
 pub async fn create_tool(id: &str) -> miette::Result<Tool> {
@@ -82,5 +82,5 @@ pub async fn create_tool(id: &str) -> miette::Result<Tool> {
         return Err(ProtoError::UnknownTool { id: id.to_owned() }.into());
     };
 
-    Ok(create_tool_from_plugin(id, proto, locator).await?)
+    create_tool_from_plugin(id, proto, locator).await
 }

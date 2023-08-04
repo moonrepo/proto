@@ -9,7 +9,7 @@ pub async fn local(tool_id: String, version: AliasOrVersion) -> SystemResult {
     let tool = create_tool(&tool_id).await?;
     let local_path = env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
 
-    let mut config = ToolsConfig::load_from(&local_path)?;
+    let mut config = ToolsConfig::load_from(local_path)?;
     config.tools.insert(tool.id.clone(), version.clone());
     config.save()?;
 

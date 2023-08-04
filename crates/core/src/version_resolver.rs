@@ -81,7 +81,7 @@ pub fn resolve_version(
     match &candidate {
         VersionType::Alias(alias) => {
             if let Some(alias_type) = aliases.get(alias) {
-                return resolve_version(&alias_type, versions, aliases);
+                return resolve_version(alias_type, versions, aliases);
             }
         }
         VersionType::ReqAll(req) => {

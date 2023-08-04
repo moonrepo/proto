@@ -277,7 +277,7 @@ impl Tool {
             "Resolving a semantic version",
         );
 
-        let resolver = self.load_version_resolver(&initial_version).await?;
+        let resolver = self.load_version_resolver(initial_version).await?;
         let mut version = initial_version.to_owned();
         let mut resolved = false;
 
@@ -524,7 +524,7 @@ impl Tool {
 
             // Is an archive, unpack it
         } else if is_archive_file(&download_file) {
-            let mut archiver = Archiver::new(&install_dir, &download_file);
+            let mut archiver = Archiver::new(install_dir, &download_file);
 
             if let Some(prefix) = &options.archive_prefix {
                 archiver.set_prefix(prefix);
