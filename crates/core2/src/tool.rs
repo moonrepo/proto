@@ -36,8 +36,7 @@ impl Tool {
     pub fn load(id: &str, proto: &ProtoEnvironment, wasm: Wasm) -> miette::Result<Self> {
         let manifest = ToolManifest::load_from(proto.tools_dir.join(id))?;
         let plugin = Self::load_plugin(id, proto, wasm)?;
-
-        Ok(Tool {
+        let tool = Tool {
             id: id.to_owned(),
             bin_path: None,
             globals_dir: None,
@@ -45,7 +44,12 @@ impl Tool {
             plugin,
             proto: proto.to_owned(),
             version: None,
-        })
+        };
+
+        // Load metadata on load and make available
+        tool.get_metadata()?;
+
+        Ok(tool)
     }
 
     pub fn load_plugin<'l>(
@@ -602,11 +606,12 @@ impl Tool {
         Ok(true)
     }
 
-    /// Find the absolute file path to the tool's binary that will be executed,
-    /// and optionally find the directory globals are installed to.
+    /// Find the absolute file path to the tool's binary that will be executed.
     pub async fn locate_bins(&mut self) -> miette::Result<()> {
         let mut options = LocateBinsOutput::default();
         let install_dir = self.get_tool_dir();
+
+        debug!(tool = &self.id, "Locating binaries for tool");
 
         if self.plugin.has_func("locate_bins") {
             options = self.plugin.cache_func_with(
@@ -619,7 +624,6 @@ impl Tool {
             )?;
         }
 
-        // Find the executable binary for the tool
         let bin_path = if let Some(bin) = options.bin_path {
             let bin = self.plugin.from_virtual_path(&bin);
 
@@ -632,15 +636,38 @@ impl Tool {
             install_dir.join(&self.id)
         };
 
+        debug!(tool = &self.id, bin_path = ?bin_path, "Found a potential binary");
+
         if bin_path.exists() {
             self.bin_path = Some(bin_path);
-        } else {
-            return Err(ProtoError::MissingToolBin {
-                tool: self.get_name(),
-                bin: bin_path,
-            }
-            .into());
+
+            return Ok(());
         }
+
+        Err(ProtoError::MissingToolBin {
+            tool: self.get_name(),
+            bin: bin_path,
+        }
+        .into())
+    }
+
+    /// Find the directory global packages are installed to.
+    pub async fn locate_globals_dir(&mut self) -> miette::Result<()> {
+        if !self.plugin.has_func("locate_bins") {
+            return Ok(());
+        }
+
+        debug!(tool = &self.id, "Locating globals bin directory for tool");
+
+        let install_dir = self.get_tool_dir();
+        let options: LocateBinsOutput = self.plugin.cache_func_with(
+            "locate_bins",
+            LocateBinsInput {
+                env: self.get_environment()?,
+                home_dir: self.plugin.to_virtual_path(&self.proto.home),
+                tool_dir: self.plugin.to_virtual_path(&install_dir),
+            },
+        )?;
 
         // Find a globals directory that packages are installed to
         let lookup_count = options.globals_lookup_dirs.len() - 1;
@@ -674,6 +701,8 @@ impl Tool {
             };
 
             if dir_path.exists() || (index == lookup_count && options.fallback_last_globals_dir) {
+                debug!(tool = &self.id, bin_dir = ?dir_path, "Found a globals directory");
+
                 self.globals_dir = Some(dir_path);
                 break;
             }

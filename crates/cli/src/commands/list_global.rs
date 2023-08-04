@@ -7,10 +7,12 @@ use std::process;
 use tracing::debug;
 
 pub async fn list_global(tool_id: String) -> SystemResult {
-    let tool = create_tool(&tool_id).await?;
+    let mut tool = create_tool(&tool_id).await?;
+    tool.locate_globals_dir().await?;
 
     let Some(globals_dir) = tool.get_globals_bin_dir() else {
-        return Ok(());
+        eprintln!("{} does not support global packages", tool.get_name());
+        process::exit(1);
     };
 
     debug!(globals_dir = ?globals_dir, "Finding global packages");

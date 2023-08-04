@@ -42,6 +42,8 @@ pub async fn create_tool(id: &str) -> miette::Result<Tool> {
     let proto = ProtoEnvironment::new()?;
     let mut locator = None;
 
+    debug!(tool = id, "Traversing upwards to find a configured plugin");
+
     // Traverse upwards checking each `.prototools` for a plugin
     if let Ok(working_dir) = env::current_dir() {
         let mut current_dir: Option<&Path> = Some(&working_dir);

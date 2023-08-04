@@ -36,9 +36,9 @@ impl ToolsConfig {
     pub fn load<P: AsRef<Path>>(path: P) -> miette::Result<Self> {
         let path = path.as_ref();
 
-        debug!(file = ?path, "Loading {}", TOOLS_CONFIG_NAME);
-
         let mut config: ToolsConfig = if path.exists() {
+            debug!(file = ?path, "Loading {}", TOOLS_CONFIG_NAME);
+
             toml::read_file(path)?
         } else {
             ToolsConfig::default()
