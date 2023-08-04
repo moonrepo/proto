@@ -1,4 +1,4 @@
-use crate::version::AliasOrVersion;
+use crate::version::{AliasOrVersion, VersionType};
 use rustc_hash::FxHashSet;
 use semver::Version;
 use serde::{Deserialize, Serialize};
@@ -34,7 +34,7 @@ pub struct ToolManifestVersion {
 #[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct ToolManifest {
-    pub aliases: BTreeMap<String, AliasOrVersion>,
+    pub aliases: BTreeMap<String, VersionType>,
     pub default_version: Option<AliasOrVersion>,
     pub installed_versions: FxHashSet<Version>,
     pub shim_version: u8,

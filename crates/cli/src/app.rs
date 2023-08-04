@@ -72,10 +72,10 @@ pub enum Commands {
         tool: String,
 
         #[arg(required = true, help = "Alias name")]
-        alias: AliasOrVersion,
+        alias: String,
 
         #[arg(required = true, help = "Version (or alias) to associate with")]
-        semver: AliasOrVersion,
+        semver: String,
     },
 
     #[command(

@@ -17,6 +17,12 @@ pub enum VersionType {
     Version(Version),
 }
 
+impl VersionType {
+    pub fn parse<T: AsRef<str>>(value: T) -> miette::Result<Self> {
+        Ok(Self::from_str(value.as_ref())?)
+    }
+}
+
 impl FromStr for VersionType {
     type Err = ProtoError;
 

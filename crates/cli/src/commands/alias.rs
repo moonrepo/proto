@@ -1,40 +1,32 @@
 use crate::tools::create_tool;
-use proto_core::{AliasOrVersion, ProtoError};
+use proto_core::{is_alias_name, ProtoError, VersionType};
 use starbase::SystemResult;
 use starbase_styles::color;
 use tracing::info;
 
-pub async fn alias(
-    tool_id: String,
-    alias: AliasOrVersion,
-    version: AliasOrVersion,
-) -> SystemResult {
+pub async fn alias(tool_id: String, alias: String, version: String) -> SystemResult {
+    if alias == version {
+        return Err(ProtoError::Message("Cannot map an alias to itself.".into()))?;
+    }
+
+    if !is_alias_name(&alias) {
+        return Err(ProtoError::Message(
+            "Versions cannot be aliases. Use alphanumeric words instead.".into(),
+        ))?;
+    }
+
     let mut tool = create_tool(&tool_id).await?;
 
-    match &alias {
-        AliasOrVersion::Alias(alias) => {
-            if let AliasOrVersion::Alias(to_alias) = &version {
-                if alias == to_alias {
-                    return Err(ProtoError::Message("Cannot map an alias to itself.".into()))?;
-                }
-            }
+    tool.manifest
+        .aliases
+        .insert(alias.clone(), VersionType::parse(&version)?);
 
-            tool.manifest
-                .aliases
-                .insert(alias.to_owned(), version.clone());
-            tool.manifest.save()?;
-        }
-        AliasOrVersion::Version(_) => {
-            return Err(ProtoError::Message(
-                "Versions cannot be aliases. Use alphanumeric words instead.".into(),
-            ))?;
-        }
-    };
+    tool.manifest.save()?;
 
     info!(
         "Added alias {} ({}) for {}",
-        color::id(alias.to_string()),
-        color::muted_light(version.to_string()),
+        color::id(alias),
+        color::muted_light(version),
         tool.get_name(),
     );
 

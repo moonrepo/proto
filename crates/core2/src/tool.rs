@@ -247,7 +247,7 @@ impl Tool {
         json::write_file(cache_path, &versions, false)?;
 
         let mut resolver = VersionResolver::from_output(versions);
-        resolver.inherit_aliases(&self.manifest);
+        resolver.inherit_aliases(&self.manifest)?;
 
         Ok(resolver)
     }

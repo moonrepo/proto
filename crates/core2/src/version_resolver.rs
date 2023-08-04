@@ -6,7 +6,7 @@ use std::collections::BTreeMap;
 
 #[derive(Debug, Default)]
 pub struct VersionResolver {
-    pub aliases: BTreeMap<String, AliasOrVersion>,
+    pub aliases: BTreeMap<String, VersionType>,
     pub versions: Vec<Version>,
 }
 
@@ -18,13 +18,13 @@ impl VersionResolver {
         for (alias, version) in output.aliases {
             resolver
                 .aliases
-                .insert(alias, AliasOrVersion::Version(version));
+                .insert(alias, VersionType::Version(version));
         }
 
         if let Some(latest) = output.latest {
             resolver
                 .aliases
-                .insert("latest".into(), AliasOrVersion::Version(latest));
+                .insert("latest".into(), VersionType::Version(latest));
         }
 
         // Sort from newest to oldest
@@ -34,13 +34,15 @@ impl VersionResolver {
         resolver
     }
 
-    pub fn inherit_aliases(&mut self, manifest: &ToolManifest) {
+    pub fn inherit_aliases(&mut self, manifest: &ToolManifest) -> miette::Result<()> {
         for (alias, version) in &manifest.aliases {
             // Don't override existing aliases
             self.aliases
                 .entry(alias.to_owned())
                 .or_insert_with(|| version.to_owned());
         }
+
+        Ok(())
     }
 
     pub fn resolve(&self, candidate: &AliasOrVersion) -> miette::Result<Version> {
@@ -74,17 +76,12 @@ pub fn match_highest_version(req: &VersionReq, versions: &[&Version]) -> Option<
 pub fn resolve_version(
     candidate: &VersionType,
     versions: &[&Version],
-    aliases: &BTreeMap<String, AliasOrVersion>,
+    aliases: &BTreeMap<String, VersionType>,
 ) -> miette::Result<Version> {
     match &candidate {
         VersionType::Alias(alias) => {
-            if let Some(alias_or_version) = aliases.get(alias) {
-                let candidate = match alias_or_version {
-                    AliasOrVersion::Alias(alias) => VersionType::Alias(alias.to_owned()),
-                    AliasOrVersion::Version(version) => VersionType::Version(version.to_owned()),
-                };
-
-                return resolve_version(&candidate, versions, aliases);
+            if let Some(alias_type) = aliases.get(alias) {
+                return resolve_version(&alias_type, versions, aliases);
             }
         }
         VersionType::ReqAll(req) => {
