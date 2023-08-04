@@ -48,7 +48,6 @@ human-sort = { workspace = true }
 indicatif = "0.17.5"
 miette = { workspace = true }
 reqwest = { workspace = true, features = ["stream"] }
-rustc-hash = { workspace = true }
 semver = { workspace = true }
 serde = { workspace = true }
 starbase = "0.2.0"

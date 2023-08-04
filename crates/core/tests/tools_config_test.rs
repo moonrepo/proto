@@ -103,75 +103,75 @@ foo = "source:./test.toml"
         );
     }
 
-    //     #[test]
-    //     fn merges_traversing_upwards() {
-    //         let sandbox = create_empty_sandbox();
+    #[test]
+    fn merges_traversing_upwards() {
+        let sandbox = create_empty_sandbox();
 
-    //         sandbox.create_file(
-    //             "one/two/three/.prototools",
-    //             r#"
-    // node = "1.2.3"
+        sandbox.create_file(
+            "one/two/three/.prototools",
+            r#"
+    node = "1.2.3"
 
-    // [plugins]
-    // node = "source:./node.toml"
-    // "#,
-    //         );
+    [plugins]
+    node = "source:./node.toml"
+    "#,
+        );
 
-    //         sandbox.create_file(
-    //             "one/two/.prototools",
-    //             r#"
-    // [plugins]
-    // bun = "source:../bun.wasm"
-    // "#,
-    //         );
+        sandbox.create_file(
+            "one/two/.prototools",
+            r#"
+    [plugins]
+    bun = "source:../bun.wasm"
+    "#,
+        );
 
-    //         sandbox.create_file(
-    //             "one/.prototools",
-    //             r#"
-    // bun = "4.5.6"
+        sandbox.create_file(
+            "one/.prototools",
+            r#"
+    bun = "4.5.6"
 
-    // [plugins]
-    // node = "source:../node.toml"
-    // "#,
-    //         );
+    [plugins]
+    node = "source:../node.toml"
+    "#,
+        );
 
-    //         sandbox.create_file(
-    //             ".prototools",
-    //             r#"
-    // node = "7.8.9"
-    // deno = "7.8.9"
-    // "#,
-    //         );
+        sandbox.create_file(
+            ".prototools",
+            r#"
+    node = "7.8.9"
+    deno = "7.8.9"
+    "#,
+        );
 
-    //         let config = ToolsConfig::load_upwards_from(sandbox.path().join("one/two/three")).unwrap();
+        let config = ToolsConfig::load_upwards_from(sandbox.path().join("one/two/three")).unwrap();
 
-    //         assert_eq!(
-    //             config.tools,
-    //             FxHashMap::from_iter([
-    //                 ("node".into(), "1.2.3".into()),
-    //                 ("bun".into(), "4.5.6".into()),
-    //                 ("deno".into(), "7.8.9".into()),
-    //             ])
-    //         );
+        assert_eq!(
+            config.tools,
+            BTreeMap::from_iter([
+                ("node".into(), AliasOrVersion::parse("1.2.3").unwrap()),
+                ("bun".into(), AliasOrVersion::parse("4.5.6").unwrap()),
+                ("deno".into(), AliasOrVersion::parse("7.8.9").unwrap()),
+            ])
+        );
 
-    //         assert_eq!(
-    //             config.plugins,
-    //             FxHashMap::from_iter([
-    //                 (
-    //                     "node".into(),
-    //                     PluginLocator::SourceFile {
-    //                         file: "./node.toml".into(),
-    //                         path: sandbox.path().join("one/two/three/./node.toml")
-    //                     }
-    //                 ),
-    //                 (
-    //                     "bun".into(),
-    //                     PluginLocator::SourceFile {
-    //                         file: "../bun.wasm".into(),
-    //                         path: sandbox.path().join("one/two/../bun.wasm")
-    //                     }
-    //                 )
-    //             ])
-    //         );
-    //     }
+        assert_eq!(
+            config.plugins,
+            BTreeMap::from_iter([
+                (
+                    "node".into(),
+                    PluginLocator::SourceFile {
+                        file: "./node.toml".into(),
+                        path: sandbox.path().join("one/two/three/./node.toml")
+                    }
+                ),
+                (
+                    "bun".into(),
+                    PluginLocator::SourceFile {
+                        file: "../bun.wasm".into(),
+                        path: sandbox.path().join("one/two/../bun.wasm")
+                    }
+                )
+            ])
+        );
+    }
 }

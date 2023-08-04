@@ -1,8 +1,8 @@
 mod utils;
 
 use proto_core::{AliasOrVersion, ToolManifest, Version};
-use rustc_hash::FxHashSet;
 use starbase_sandbox::predicates::prelude::*;
+use std::collections::HashSet;
 use utils::*;
 
 #[test]
@@ -81,7 +81,7 @@ fn updates_the_manifest_when_installing() {
     );
     assert_eq!(
         manifest.installed_versions,
-        FxHashSet::from_iter([Version::parse("19.0.0").unwrap()])
+        HashSet::from_iter([Version::parse("19.0.0").unwrap()])
     );
     assert!(manifest
         .versions
@@ -98,7 +98,7 @@ fn updates_the_manifest_when_installing() {
     let manifest = ToolManifest::load(&manifest_file).unwrap();
 
     assert_eq!(manifest.default_version, None);
-    assert_eq!(manifest.installed_versions, FxHashSet::default());
+    assert_eq!(manifest.installed_versions, HashSet::default());
     assert!(!manifest
         .versions
         .contains_key(&Version::parse("19.0.0").unwrap()));
@@ -131,7 +131,7 @@ fn can_pin_when_installing() {
     );
     assert_eq!(
         manifest.installed_versions,
-        FxHashSet::from_iter([
+        HashSet::from_iter([
             Version::parse("18.0.0").unwrap(),
             Version::parse("19.0.0").unwrap(),
         ])

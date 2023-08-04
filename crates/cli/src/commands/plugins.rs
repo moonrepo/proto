@@ -1,11 +1,11 @@
 use crate::tools::create_tool_from_plugin;
 use miette::IntoDiagnostic;
 use proto_core::{ProtoEnvironment, ToolsConfig, UserConfig};
-use rustc_hash::FxHashMap;
 use serde::Serialize;
 use starbase::SystemResult;
 use starbase_styles::color;
 use starbase_utils::json;
+use std::collections::HashMap;
 use tracing::debug;
 use warpgate::PluginLocator;
 
@@ -32,7 +32,7 @@ pub async fn plugins(json: bool) -> SystemResult {
     let mut tools_config = ToolsConfig::load_upwards()?;
     tools_config.inherit_builtin_plugins();
 
-    let mut plugins = FxHashMap::default();
+    let mut plugins = HashMap::new();
     plugins.extend(user_config.plugins);
     plugins.extend(tools_config.plugins);
 

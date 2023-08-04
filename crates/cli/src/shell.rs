@@ -1,8 +1,8 @@
 use clap_complete::Shell;
 use dirs::home_dir;
-use rustc_hash::FxHashMap;
 use starbase_styles::color;
 use starbase_utils::fs::{self, FsError};
+use std::collections::HashMap;
 use std::{
     env,
     fs::OpenOptions,
@@ -75,7 +75,7 @@ pub fn find_profiles(shell: &Shell) -> miette::Result<Vec<PathBuf>> {
 pub fn format_env_vars(
     shell: &Shell,
     comment: &str,
-    vars: FxHashMap<String, String>,
+    vars: HashMap<String, String>,
 ) -> Option<String> {
     let mut lines = vec![format!("\n# {comment}")];
 

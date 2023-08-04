@@ -1,6 +1,6 @@
 use crate::shell;
-use rustc_hash::FxHashMap;
 use starbase_styles::color;
+use std::collections::HashMap;
 use tracing::info;
 
 pub fn post_install(passthrough: &[String]) -> miette::Result<()> {
@@ -9,7 +9,7 @@ pub fn post_install(passthrough: &[String]) -> miette::Result<()> {
     }
 
     let shell = shell::detect_shell(None);
-    let env_vars = FxHashMap::from_iter([
+    let env_vars = HashMap::from_iter([
         ("GOBIN".to_string(), "$HOME/go/bin".to_string()),
         ("PATH".to_string(), "$GOBIN".to_string()),
     ]);

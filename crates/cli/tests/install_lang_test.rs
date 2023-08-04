@@ -1,8 +1,8 @@
 mod utils;
 
 use proto_core::{ToolManifest, Version};
-use rustc_hash::FxHashSet;
 use starbase_sandbox::predicates::prelude::*;
+use std::collections::HashSet;
 use utils::*;
 
 #[cfg(not(windows))]
@@ -77,7 +77,7 @@ mod node {
         );
         assert_eq!(
             manifest.installed_versions,
-            FxHashSet::from_iter([Version::parse("8.19.2").unwrap()])
+            HashSet::from_iter([Version::parse("8.19.2").unwrap()])
         );
     }
 

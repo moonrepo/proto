@@ -28,11 +28,11 @@ pub async fn setup(shell: Option<Shell>, print_profile: bool) -> SystemResult {
 #[cfg(not(windows))]
 fn do_setup(shell: Shell, _bin_dir: PathBuf, print_profile: bool) -> miette::Result<()> {
     use crate::shell::{format_env_vars, write_profile_if_not_setup};
-    use rustc_hash::FxHashMap;
+    use std::collections::HashMap;
 
     debug!("Updating PATH in {} shell", shell);
 
-    let env_vars = FxHashMap::from_iter([
+    let env_vars = HashMap::from_iter([
         ("PROTO_ROOT".to_string(), "$HOME/.proto".to_string()),
         ("PATH".to_string(), "$PROTO_ROOT/bin".to_string()),
     ]);

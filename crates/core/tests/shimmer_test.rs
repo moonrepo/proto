@@ -3,6 +3,7 @@ use starbase_sandbox::{assert_snapshot, create_empty_sandbox};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+// Windows generates different snapshots
 #[cfg(not(windows))]
 mod shimmer {
     use super::*;
