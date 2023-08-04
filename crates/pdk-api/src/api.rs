@@ -73,6 +73,9 @@ json_struct!(
 json_struct!(
     /// Output returned by the `register_tool` function.
     pub struct ToolMetadataOutput {
+        /// Default alias or version to use as a fallback.
+        pub default_version: Option<String>,
+
         /// Environment variables that should be extracted
         /// and passed to other function call inputs.
         pub env_vars: Vec<String>,

@@ -12,6 +12,7 @@ use extism::{manifest::Wasm, Manifest as PluginManifest};
 use miette::IntoDiagnostic;
 use proto_pdk_api::*;
 use proto_wasm_plugin::{create_host_functions, HostData};
+use starbase_archive::Archiver;
 use starbase_utils::{fs, json};
 use std::env::{self, consts};
 use std::io::{BufRead, BufReader};
@@ -523,7 +524,13 @@ impl Tool {
 
             // Is an archive, unpack it
         } else if is_archive_file(&download_file) {
-            // TODO
+            let mut archiver = Archiver::new(&install_dir, &download_file);
+
+            if let Some(prefix) = &options.archive_prefix {
+                archiver.set_prefix(prefix);
+            }
+
+            archiver.unpack_from_ext()?;
 
             // Not an archive, assume a binary and copy
         } else {
@@ -570,8 +577,6 @@ impl Tool {
 
         // Install from a prebuilt archive
         self.install_from_prebuilt(&install_dir).await?;
-
-        // TODO support install/build from source
 
         debug!(
             tool = &self.id,
@@ -839,7 +844,14 @@ impl Tool {
 
             // Only insert if a version
             if let AliasOrVersion::Version(version) = self.get_resolved_version() {
-                self.manifest.insert_version(&version, None)?; // TODO default version
+                let options = self.get_metadata()?;
+                let mut default = None;
+
+                if let Some(default_version) = options.default_version {
+                    default = Some(AliasOrVersion::parse(default_version)?);
+                }
+
+                self.manifest.insert_version(&version, default)?;
             }
 
             return Ok(true);

@@ -32,9 +32,10 @@ semver = "1.0.17"
 serde = { version = "1.0.167", features = ["derive"] }
 serde_json = "1.0.100"
 sha2 = "0.10.7"
-starbase_sandbox = { version = "0.1.6" }
+starbase_archive = { version = "0.1.7", features = ["tar-gz", "tar-xz", "zip"] }
+starbase_sandbox = { version = "0.1.8" }
 starbase_styles = "0.1.12"
-starbase_utils = { version = "0.2.14", default-features = false, features = [
+starbase_utils = { version = "0.2.17", default-features = false, features = [
 	"json",
 	"toml",
 ] }

@@ -3,6 +3,7 @@ use miette::IntoDiagnostic;
 use proto_core::{get_bin_dir, get_temp_dir, is_offline, ProtoError};
 use semver::Version;
 use starbase::SystemResult;
+use starbase_archive::Archiver;
 use starbase_styles::color;
 use starbase_utils::fs;
 use std::env::consts;
@@ -69,11 +70,10 @@ pub async fn upgrade() -> SystemResult {
         "https://github.com/moonrepo/proto/releases/download/v{new_version}/{download_file}"
     );
     let temp_file = download_to_temp_with_progress_bar(&download_url, &download_file).await?;
-    let temp_dir = get_temp_dir()?;
+    let temp_dir = get_temp_dir()?.join(&target_file);
 
     // Unpack the downloaded file
-    // TODO
-    // unpack(temp_file, &temp_dir, None)?;
+    Archiver::new(&temp_dir, &temp_file).unpack_from_ext()?;
 
     // Move the old binary
     let bin_dir = get_bin_dir()?;
@@ -98,11 +98,14 @@ pub async fn upgrade() -> SystemResult {
     ];
 
     for lookup_path in lookup_paths {
-        let temp_path = temp_dir.join(lookup_path);
+        let possible_bin_path = temp_dir.join(lookup_path);
 
-        if temp_path.exists() {
-            fs::copy_file(temp_path, &bin_path)?;
+        if possible_bin_path.exists() {
+            fs::copy_file(possible_bin_path, &bin_path)?;
             fs::update_perms(&bin_path, None)?;
+
+            fs::remove(temp_dir)?;
+            fs::remove(temp_file)?;
 
             info!("Upgraded proto to v{}!", new_version);
 
