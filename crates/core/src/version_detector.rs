@@ -123,6 +123,8 @@ pub fn expand_detected_version(
     candidate: &VersionType,
     manifest: &ToolManifest,
 ) -> miette::Result<Option<AliasOrVersion>> {
+    // We don't resolve explicit aliases as some languages require them.
+    // For example, "stable" or "nightly" in Rust.
     if let VersionType::Alias(alias) = candidate {
         return Ok(Some(AliasOrVersion::Alias(alias.to_owned())));
     }

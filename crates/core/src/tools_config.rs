@@ -9,12 +9,17 @@ use warpgate::PluginLocator;
 
 pub const TOOLS_CONFIG_NAME: &str = ".prototools";
 
+fn is_empty<T>(map: &BTreeMap<String, T>) -> bool {
+    map.is_empty()
+}
+
 #[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all = "kebab-case")]
 pub struct ToolsConfig {
-    #[serde(flatten)]
+    #[serde(flatten, skip_serializing_if = "is_empty")]
     pub tools: BTreeMap<String, AliasOrVersion>,
 
+    #[serde(skip_serializing_if = "is_empty")]
     pub plugins: BTreeMap<String, PluginLocator>,
 
     #[serde(skip)]

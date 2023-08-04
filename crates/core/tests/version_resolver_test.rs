@@ -1,7 +1,6 @@
 use proto_core::{resolve_version, VersionType};
-use semver::{Version, VersionReq};
+use semver::Version;
 use std::collections::BTreeMap;
-use std::str::FromStr;
 
 mod version_resolver {
     use super::*;
@@ -11,6 +10,7 @@ mod version_resolver {
             Version::new(1, 0, 0),
             Version::new(1, 2, 3),
             Version::new(1, 1, 1),
+            Version::new(1, 5, 9),
             Version::new(1, 10, 5),
             Version::new(4, 5, 6),
             Version::new(7, 8, 9),
@@ -129,6 +129,68 @@ mod version_resolver {
     }
 
     #[test]
+    fn resolves_partial_versions() {
+        let versions = create_versions();
+        let aliases = create_aliases();
+
+        assert_eq!(
+            resolve_version(
+                &VersionType::parse("1.2").unwrap(),
+                &versions.iter().collect::<Vec<_>>(),
+                &aliases
+            )
+            .unwrap(),
+            Version::new(1, 10, 5)
+        );
+
+        assert_eq!(
+            resolve_version(
+                &VersionType::parse("1.0").unwrap(),
+                &versions.iter().collect::<Vec<_>>(),
+                &aliases
+            )
+            .unwrap(),
+            Version::new(1, 10, 5)
+        );
+
+        assert_eq!(
+            resolve_version(
+                &VersionType::parse("1").unwrap(),
+                &versions.iter().collect::<Vec<_>>(),
+                &aliases
+            )
+            .unwrap(),
+            Version::new(1, 10, 5)
+        );
+    }
+
+    #[test]
+    fn removes_v_prefix() {
+        let versions = create_versions();
+        let aliases = create_aliases();
+
+        assert_eq!(
+            resolve_version(
+                &VersionType::parse("v8.0.0").unwrap(),
+                &versions.iter().collect::<Vec<_>>(),
+                &aliases
+            )
+            .unwrap(),
+            Version::new(8, 0, 0)
+        );
+
+        assert_eq!(
+            resolve_version(
+                &VersionType::parse("V8").unwrap(),
+                &versions.iter().collect::<Vec<_>>(),
+                &aliases
+            )
+            .unwrap(),
+            Version::new(8, 0, 0)
+        );
+    }
+
+    #[test]
     #[should_panic(expected = "Failed to resolve a semantic version for 20.0.0.")]
     fn errors_unknown_version() {
         let versions = create_versions();
@@ -149,7 +211,7 @@ mod version_resolver {
 
         assert_eq!(
             resolve_version(
-                &VersionType::ReqAll(VersionReq::parse("^8").unwrap()),
+                &VersionType::parse("^8").unwrap(),
                 &versions.iter().collect::<Vec<_>>(),
                 &aliases
             )
@@ -159,7 +221,7 @@ mod version_resolver {
 
         assert_eq!(
             resolve_version(
-                &VersionType::ReqAll(VersionReq::parse("~1.1").unwrap()),
+                &VersionType::parse("~1.1").unwrap(),
                 &versions.iter().collect::<Vec<_>>(),
                 &aliases
             )
@@ -169,7 +231,17 @@ mod version_resolver {
 
         assert_eq!(
             resolve_version(
-                &VersionType::ReqAll(VersionReq::parse(">1, <10").unwrap()),
+                &VersionType::parse(">1 <10").unwrap(),
+                &versions.iter().collect::<Vec<_>>(),
+                &aliases
+            )
+            .unwrap(),
+            Version::new(8, 0, 0)
+        );
+
+        assert_eq!(
+            resolve_version(
+                &VersionType::parse(">1, <10").unwrap(),
                 &versions.iter().collect::<Vec<_>>(),
                 &aliases
             )
@@ -180,7 +252,7 @@ mod version_resolver {
         // Highest match
         assert_eq!(
             resolve_version(
-                &VersionType::ReqAll(VersionReq::parse("^1").unwrap()),
+                &VersionType::parse("^1").unwrap(),
                 &versions.iter().collect::<Vec<_>>(),
                 &aliases
             )
@@ -191,7 +263,7 @@ mod version_resolver {
         // Star (latest)
         assert_eq!(
             resolve_version(
-                &VersionType::ReqAll(VersionReq::parse("*").unwrap()),
+                &VersionType::parse("*").unwrap(),
                 &versions.iter().collect::<Vec<_>>(),
                 &aliases
             )
@@ -207,7 +279,7 @@ mod version_resolver {
         let aliases = create_aliases();
 
         resolve_version(
-            &VersionType::ReqAll(VersionReq::parse("^20").unwrap()),
+            &VersionType::parse("^20").unwrap(),
             &versions.iter().collect::<Vec<_>>(),
             &aliases,
         )
@@ -221,7 +293,7 @@ mod version_resolver {
 
         assert_eq!(
             resolve_version(
-                &VersionType::from_str("^1 || ^6 || ^8").unwrap(),
+                &VersionType::parse("^1 || ^6 || ^8").unwrap(),
                 &versions.iter().collect::<Vec<_>>(),
                 &aliases
             )
@@ -237,10 +309,25 @@ mod version_resolver {
         let aliases = create_aliases();
 
         resolve_version(
-            &VersionType::from_str("^3 || ^5 || ^9").unwrap(),
+            &VersionType::parse("^3 || ^5 || ^9").unwrap(),
             &versions.iter().collect::<Vec<_>>(),
             &aliases,
         )
         .unwrap();
+    }
+
+    #[test]
+    fn handles_gt_lt_with_space() {
+        let versions = create_versions();
+        let aliases = create_aliases();
+
+        for req in [">= 1.5.9", "> 1.5.0", ">= 1.2", "> 1.2", "< 1.2", "<= 1.2"] {
+            resolve_version(
+                &VersionType::parse(req).unwrap(),
+                &versions.iter().collect::<Vec<_>>(),
+                &aliases,
+            )
+            .unwrap();
+        }
     }
 }
