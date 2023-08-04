@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::Manifest;
+use proto_core::ToolManifest;
 use rustc_hash::FxHashSet;
 use starbase_sandbox::predicates::prelude::*;
 use utils::*;
@@ -73,7 +73,7 @@ fn updates_the_manifest_when_installing() {
         .assert()
         .success();
 
-    let manifest = Manifest::load(&manifest_file).unwrap();
+    let manifest = ToolManifest::load(&manifest_file).unwrap();
 
     assert_eq!(manifest.default_version, Some("19.0.0".into()));
     assert_eq!(
@@ -90,7 +90,7 @@ fn updates_the_manifest_when_installing() {
         .assert()
         .success();
 
-    let manifest = Manifest::load(&manifest_file).unwrap();
+    let manifest = ToolManifest::load(&manifest_file).unwrap();
 
     assert_eq!(manifest.default_version, None);
     assert_eq!(manifest.installed_versions, FxHashSet::default());
@@ -102,7 +102,7 @@ fn can_pin_when_installing() {
     let temp = create_empty_sandbox();
     let manifest_file = temp.path().join("tools/node/manifest.json");
 
-    let mut manifest = Manifest::load(&manifest_file).unwrap();
+    let mut manifest = ToolManifest::load(&manifest_file).unwrap();
     manifest.default_version = Some("18.0.0".into());
     manifest.installed_versions.insert("18.0.0".into());
     manifest.save().unwrap();
@@ -114,7 +114,7 @@ fn can_pin_when_installing() {
         .arg("--pin")
         .assert();
 
-    let manifest = Manifest::load(&manifest_file).unwrap();
+    let manifest = ToolManifest::load(&manifest_file).unwrap();
 
     assert_eq!(manifest.default_version, Some("19.0.0".into()));
     assert_eq!(

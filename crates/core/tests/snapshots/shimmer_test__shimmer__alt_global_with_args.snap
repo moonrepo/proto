@@ -1,5 +1,5 @@
 ---
-source: crates/core2/tests/shimmer_test.rs
+source: crates/core/tests/shimmer_test.rs
 expression: "read_shim(&shim, sandbox.path())"
 ---
 #!/usr/bin/env bash
@@ -8,6 +8,6 @@ set -e
 
 
 
-exec proto run primary -- --a -b "$@" ./file
+exec proto run primary --bin "other/bin/path" -- --a -b "$@" ./file
 
 

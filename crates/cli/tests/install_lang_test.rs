@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::Manifest;
+use proto_core::ToolManifest;
 use rustc_hash::FxHashSet;
 use starbase_sandbox::predicates::prelude::*;
 use utils::*;
@@ -67,7 +67,7 @@ mod node {
         assert!(temp.path().join("tools/node/19.0.0").exists());
         assert!(temp.path().join("tools/npm/8.19.2").exists());
 
-        let manifest = Manifest::load(temp.path().join("tools/npm/manifest.json")).unwrap();
+        let manifest = ToolManifest::load(temp.path().join("tools/npm/manifest.json")).unwrap();
 
         assert_eq!(manifest.default_version, Some("8.19.2".into()));
         assert_eq!(

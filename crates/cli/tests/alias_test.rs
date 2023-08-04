@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::Manifest;
+use proto_core::ToolManifest;
 use rustc_hash::FxHashMap;
 use starbase_sandbox::predicates::prelude::*;
 use utils::*;
@@ -22,7 +22,7 @@ fn updates_manifest_file() {
 
     assert!(manifest_file.exists());
 
-    let manifest = Manifest::load(manifest_file).unwrap();
+    let manifest = ToolManifest::load(manifest_file).unwrap();
 
     assert_eq!(
         manifest.aliases,
@@ -47,7 +47,7 @@ fn updates_manifest_file_for_plugin() {
 
     assert!(manifest_file.exists());
 
-    let manifest = Manifest::load(manifest_file).unwrap();
+    let manifest = ToolManifest::load(manifest_file).unwrap();
 
     assert_eq!(
         manifest.aliases,
@@ -60,7 +60,7 @@ fn can_overwrite_existing_alias() {
     let temp = create_empty_sandbox();
     let manifest_file = temp.path().join("tools/node/manifest.json");
 
-    let mut manifest = Manifest::load(&manifest_file).unwrap();
+    let mut manifest = ToolManifest::load(&manifest_file).unwrap();
     manifest.aliases.insert("example".into(), "19.0.0".into());
     manifest.save().unwrap();
 
@@ -72,7 +72,7 @@ fn can_overwrite_existing_alias() {
         .assert()
         .success();
 
-    let manifest = Manifest::load(&manifest_file).unwrap();
+    let manifest = ToolManifest::load(&manifest_file).unwrap();
 
     assert_eq!(
         manifest.aliases,

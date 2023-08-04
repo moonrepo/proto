@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::Manifest;
+use proto_core::ToolManifest;
 use utils::*;
 
 #[test]
@@ -19,7 +19,7 @@ fn updates_manifest_file() {
 
     assert!(manifest_file.exists());
 
-    let manifest = Manifest::load(manifest_file).unwrap();
+    let manifest = ToolManifest::load(manifest_file).unwrap();
 
     assert_eq!(manifest.default_version, Some("19.0.0".into()));
 }
@@ -40,7 +40,7 @@ fn updates_manifest_file_for_plugin() {
 
     assert!(manifest_file.exists());
 
-    let manifest = Manifest::load(manifest_file).unwrap();
+    let manifest = ToolManifest::load(manifest_file).unwrap();
 
     assert_eq!(manifest.default_version, Some("1.0.0".into()));
 }
@@ -61,7 +61,7 @@ fn can_set_alias_as_default() {
 
     assert!(manifest_file.exists());
 
-    let manifest = Manifest::load(manifest_file).unwrap();
+    let manifest = ToolManifest::load(manifest_file).unwrap();
 
     assert_eq!(manifest.default_version, Some("bundled".into()));
 }

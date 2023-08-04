@@ -1,5 +1,5 @@
 ---
-source: crates/core2/tests/shimmer_test.rs
+source: crates/core/tests/shimmer_test.rs
 expression: "read_shim(&shim, sandbox.path())"
 ---
 #!/usr/bin/env bash
@@ -16,8 +16,7 @@ export PROTO_TOOL_VERSION="1.2.3"
 
 
 
-parent="${PROTO_NODE_BIN:-node}"
 
-exec "$parent" "bin/tool"  "$@" 
+exec "bin/tool"  "$@"
 
 

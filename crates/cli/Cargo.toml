@@ -33,7 +33,7 @@ name = "proto"
 path = "src/bin.rs"
 
 [dependencies]
-proto_core = { version = "0.13.1", path = "../core2" }
+proto_core = { version = "0.13.1", path = "../core" }
 # proto_schema_plugin = { version = "0.8.1", path = "../schema-plugin" }
 proto_wasm_plugin = { version = "0.3.1", path = "../wasm-plugin" }
 warpgate = { version = "0.2.0", path = "../warpgate" }

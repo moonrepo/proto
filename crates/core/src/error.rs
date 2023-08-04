@@ -1,7 +1,6 @@
-use std::path::PathBuf;
-
 use miette::Diagnostic;
 use starbase_styles::{Style, Stylize};
+use std::path::PathBuf;
 use thiserror::Error;
 
 #[derive(Error, Debug, Diagnostic)]
@@ -75,7 +74,7 @@ pub enum ProtoError {
     VersionResolveFailed { version: String },
 
     #[diagnostic(code(proto::http))]
-    #[error("Failure for {}", .url.style(Style::Url))]
+    #[error("Failed to request {}.", .url.style(Style::Url))]
     Http {
         url: String,
         #[source]

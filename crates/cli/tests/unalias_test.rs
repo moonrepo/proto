@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::Manifest;
+use proto_core::ToolManifest;
 use rustc_hash::FxHashMap;
 use utils::*;
 
@@ -9,7 +9,7 @@ fn removes_existing_alias() {
     let temp = create_empty_sandbox();
     let manifest_file = temp.path().join("tools/node/manifest.json");
 
-    let mut manifest = Manifest::load(&manifest_file).unwrap();
+    let mut manifest = ToolManifest::load(&manifest_file).unwrap();
     manifest.aliases.insert("example".into(), "19.0.0".into());
     manifest.save().unwrap();
 
@@ -20,7 +20,7 @@ fn removes_existing_alias() {
         .assert()
         .success();
 
-    let manifest = Manifest::load(&manifest_file).unwrap();
+    let manifest = ToolManifest::load(&manifest_file).unwrap();
 
     assert!(manifest.aliases.is_empty());
 }
@@ -30,7 +30,7 @@ fn removes_existing_alias_for_plugin() {
     let temp = create_empty_sandbox_with_tools();
     let manifest_file = temp.path().join("tools/moon-test/manifest.json");
 
-    let mut manifest = Manifest::load(&manifest_file).unwrap();
+    let mut manifest = ToolManifest::load(&manifest_file).unwrap();
     manifest.aliases.insert("example".into(), "1.0.0".into());
     manifest.save().unwrap();
 
@@ -41,7 +41,7 @@ fn removes_existing_alias_for_plugin() {
         .assert()
         .success();
 
-    let manifest = Manifest::load(&manifest_file).unwrap();
+    let manifest = ToolManifest::load(&manifest_file).unwrap();
 
     assert!(manifest.aliases.is_empty());
 }
@@ -51,7 +51,7 @@ fn does_nothing_for_unknown_alias() {
     let temp = create_empty_sandbox();
     let manifest_file = temp.path().join("tools/node/manifest.json");
 
-    let mut manifest = Manifest::load(&manifest_file).unwrap();
+    let mut manifest = ToolManifest::load(&manifest_file).unwrap();
     manifest.aliases.insert("example".into(), "19.0.0".into());
     manifest.save().unwrap();
 
@@ -62,7 +62,7 @@ fn does_nothing_for_unknown_alias() {
         .assert()
         .success();
 
-    let manifest = Manifest::load(manifest_file).unwrap();
+    let manifest = ToolManifest::load(manifest_file).unwrap();
 
     assert_eq!(
         manifest.aliases,

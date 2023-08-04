@@ -1,4 +1,4 @@
-use proto_core::{resolve_version, AliasOrVersion, VersionType};
+use proto_core::{resolve_version, VersionType};
 use semver::{Version, VersionReq};
 use std::collections::BTreeMap;
 use std::str::FromStr;
@@ -19,18 +19,18 @@ mod version_resolver {
         ]
     }
 
-    fn create_aliases() -> BTreeMap<String, AliasOrVersion> {
+    fn create_aliases() -> BTreeMap<String, VersionType> {
         BTreeMap::from_iter([
             (
                 "latest".into(),
-                AliasOrVersion::Version(Version::new(10, 0, 0)),
+                VersionType::Version(Version::new(10, 0, 0)),
             ),
-            ("stable".into(), AliasOrVersion::Alias("latest".into())),
+            ("stable".into(), VersionType::Alias("latest".into())),
             (
                 "no-version".into(),
-                AliasOrVersion::Version(Version::new(20, 0, 0)),
+                VersionType::Version(Version::new(20, 0, 0)),
             ),
-            ("no-alias".into(), AliasOrVersion::Alias("missing".into())),
+            ("no-alias".into(), VersionType::Alias("missing".into())),
         ])
     }
 

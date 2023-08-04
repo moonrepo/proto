@@ -4,7 +4,7 @@ resolver = "2"
 # default-members = ["crates/cli"]
 members = [
 	"crates/cli",
-	"crates/core2",
+	"crates/core",
 	"crates/pdk",
 	"crates/pdk-api",
 	# "crates/pdk-test-utils",
