@@ -1,4 +1,4 @@
-use crate::helpers::create_progress_bar;
+use crate::helpers::{create_progress_bar, disable_progress_bars};
 use crate::tools::create_tool;
 use proto_core::AliasOrVersion;
 use starbase::SystemResult;

@@ -1,4 +1,5 @@
 use crate::tools::create_tool;
+use proto_core::AliasOrVersion;
 use starbase::SystemResult;
 use std::process;
 use tracing::debug;
@@ -9,7 +10,9 @@ pub async fn list_remote(tool_id: String) -> SystemResult {
 
     debug!("Loading versions");
 
-    let resolver = tool.load_version_resolver("latest").await?;
+    let resolver = tool
+        .load_version_resolver(&AliasOrVersion::default())
+        .await?;
     let mut versions = resolver.versions;
 
     if versions.is_empty() {

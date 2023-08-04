@@ -41,11 +41,23 @@ pub enum ProtoError {
     #[error("Unable to find an executable binary for {tool}, expected file {} does not exist.", .bin.style(Style::Path))]
     MissingToolBin { tool: String, bin: PathBuf },
 
-    #[diagnostic(code(proto::plugin::unknown))]
+    #[diagnostic(code(proto::tool::required))]
+    #[error(
+        "This project requires {tool} {}, but this version has not been installed. Install it with {}!",
+        .version.style(Style::Hash),
+        .command.style(Style::Shell),
+    )]
+    MissingToolForRun {
+        tool: String,
+        version: String,
+        command: String,
+    },
+
+    #[diagnostic(code(proto::tool::unknown))]
     #[error(
         "{} is not a built-in tool or has not been configured as a plugin, unable to proceed.", .id.style(Style::Id)
     )]
-    UnknownPlugin { id: String },
+    UnknownTool { id: String },
 
     #[diagnostic(code(proto::unsupported::shell))]
     #[error("Unable to detect shell.")]

@@ -3,7 +3,6 @@ use crate::{ProtoError, ToolManifest};
 use proto_pdk_api::LoadVersionsOutput;
 use semver::{Version, VersionReq};
 use std::collections::BTreeMap;
-use std::str::FromStr;
 
 #[derive(Debug, Default)]
 pub struct VersionResolver {
@@ -44,9 +43,14 @@ impl VersionResolver {
         }
     }
 
-    pub fn resolve<V: AsRef<str>>(&self, candidate: V) -> miette::Result<Version> {
+    pub fn resolve(&self, candidate: &AliasOrVersion) -> miette::Result<Version> {
+        let candidate = match candidate {
+            AliasOrVersion::Alias(alias) => VersionType::Alias(alias.to_owned()),
+            AliasOrVersion::Version(version) => VersionType::Version(version.to_owned()),
+        };
+
         resolve_version(
-            &VersionType::from_str(candidate.as_ref())?,
+            &candidate,
             &self.versions.iter().collect::<Vec<_>>(),
             &self.aliases,
         )

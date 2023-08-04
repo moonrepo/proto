@@ -83,7 +83,7 @@ pub async fn create_tool(id: &str) -> miette::Result<Tool> {
     }
 
     let Some(locator) = locator else {
-        return Err(ProtoError::UnknownPlugin { id: id.to_owned() }.into());
+        return Err(ProtoError::UnknownTool { id: id.to_owned() }.into());
     };
 
     Ok(create_tool_from_plugin(id, proto, locator).await?)

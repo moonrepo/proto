@@ -1,7 +1,9 @@
 use crate::error::ProtoError;
-use crate::helpers::{hash_file_contents, is_cache_enabled, is_offline, remove_v_prefix};
+use crate::helpers::{hash_file_contents, is_cache_enabled, is_offline};
 use crate::proto::ProtoEnvironment;
-use crate::shimmer::{create_global_shim, create_local_shim, ShimContext};
+use crate::shimmer::{
+    create_global_shim, create_local_shim, get_shim_file_name, ShimContext, SHIM_VERSION,
+};
 use crate::tool_manifest::ToolManifest;
 use crate::version::{AliasOrVersion, VersionType};
 use crate::version_resolver::VersionResolver;
@@ -49,13 +51,12 @@ impl Tool {
 
     /// Return an absolute path to the executable binary for the tool.
     pub fn get_bin_path(&self) -> miette::Result<&Path> {
-        match self.bin_path.as_ref() {
-            Some(bin) => Ok(bin),
-            None => Err(ProtoError::UnknownPlugin {
+        self.bin_path.as_deref().ok_or_else(|| {
+            ProtoError::UnknownTool {
                 id: self.id.clone(),
             }
-            .into()),
-        }
+            .into()
+        })
     }
 
     /// Return the prefix for environment variable names.
@@ -68,8 +69,8 @@ impl Tool {
         self.globals_dir.as_deref()
     }
 
-    /// Return an absolute path to the tool's root directory that contains installed versions,
-    /// the manifest, possible globals, and more.
+    /// Return an absolute path to the tool's inventory directory. The inventory houses
+    /// installed versions, the manifest, and more.
     pub fn get_inventory_dir(&self) -> PathBuf {
         self.proto.tools_dir.join(&self.id)
     }
@@ -84,6 +85,26 @@ impl Tool {
         self.version
             .clone()
             .unwrap_or_else(|| AliasOrVersion::Alias("latest".into()))
+    }
+
+    /// Return a path to a local shim file if it exists.
+    pub fn get_shim_path(&self) -> Option<PathBuf> {
+        let local = self
+            .get_tool_dir()
+            .join("shims")
+            .join(get_shim_file_name(&self.id, false));
+
+        if local.exists() {
+            return Some(local);
+        }
+
+        // let global = self.proto.bin_dir.join(get_shim_file_name(&self.id, true));
+
+        // if global.exists() {
+        //     return Some(global);
+        // }
+
+        None
     }
 
     /// Return an absolute path to a temp directory solely for this tool.
@@ -111,6 +132,7 @@ impl Tool {
 // APIs
 
 impl Tool {
+    /// Return environment information to pass to WASM plugin functions.
     pub fn get_environment(&self) -> miette::Result<Environment> {
         Ok(Environment {
             arch: HostArch::from_str(consts::ARCH).into_diagnostic()?,
@@ -126,6 +148,7 @@ impl Tool {
         })
     }
 
+    /// Return metadata about the tool and plugin
     pub fn get_metadata(&self) -> miette::Result<ToolMetadataOutput> {
         self.plugin.cache_func_with(
             "register_tool",
@@ -145,19 +168,16 @@ impl Tool {
 // VERSION RESOLUTION
 
 impl Tool {
-    /// Load the available versions to install and return a resolver instance.
-    /// To reduce network overhead, cache the results for 24 hours.
+    /// Load available versions to install and return a resolver instance.
+    /// To reduce network overhead, results will be cached for 24 hours.
     pub async fn load_version_resolver(
         &self,
-        initial_version: &str,
+        initial_version: &AliasOrVersion,
     ) -> miette::Result<VersionResolver> {
         debug!(tool = &self.id, "Loading available versions");
 
         let mut versions: Option<LoadVersionsOutput> = None;
-        let cache_path = self
-            .proto
-            .temp_dir
-            .join(format!("{}-versions.json", self.id));
+        let cache_path = self.get_temp_dir().join("versions.json");
 
         // Attempt to read from the cache first
         if cache_path.exists() && (is_cache_enabled() || is_offline()) {
@@ -189,7 +209,7 @@ impl Tool {
                 "load_versions",
                 LoadVersionsInput {
                     env: self.get_environment()?,
-                    initial: initial_version.to_owned(),
+                    initial: initial_version.to_string(),
                 },
             )?);
         }
@@ -208,30 +228,28 @@ impl Tool {
     /// (or alias) according to the tool's ecosystem.
     pub async fn resolve_version(
         &mut self,
-        initial_version: &str,
-    ) -> miette::Result<AliasOrVersion> {
-        if let Some(version) = &self.version {
-            return Ok(version.to_owned());
+        initial_version: &AliasOrVersion,
+    ) -> miette::Result<()> {
+        if self.version.is_some() {
+            return Ok(());
         }
-
-        let initial_version = remove_v_prefix(initial_version).to_lowercase();
 
         // If offline but we have a fully qualified semantic version,
         // exit early and assume the version is legitimate!
-        if is_offline() {
-            if let Ok(version) = Version::parse(&initial_version) {
-                return Ok(AliasOrVersion::Version(version));
-            }
+        if is_offline() && matches!(initial_version, AliasOrVersion::Version(_)) {
+            self.version = Some(initial_version.to_owned());
+
+            return Ok(());
         }
 
         debug!(
             tool = &self.id,
-            initial_version = initial_version,
+            initial_version = initial_version.to_string(),
             "Resolving a semantic version",
         );
 
         let resolver = self.load_version_resolver(&initial_version).await?;
-        let mut version = AliasOrVersion::Alias("latest".into());
+        let mut version = initial_version.to_owned();
         let mut resolved = false;
 
         if self.plugin.has_func("resolve_version") {
@@ -239,7 +257,7 @@ impl Tool {
                 "resolve_version",
                 ResolveVersionInput {
                     env: self.get_environment()?,
-                    initial: initial_version.to_owned(),
+                    initial: initial_version.to_string(),
                 },
             )?;
 
@@ -251,7 +269,8 @@ impl Tool {
                 );
 
                 resolved = true;
-                version = AliasOrVersion::Version(resolver.resolve(candidate)?);
+                version =
+                    AliasOrVersion::Version(resolver.resolve(&AliasOrVersion::parse(candidate)?)?);
             }
 
             if let Some(candidate) = result.version {
@@ -262,7 +281,7 @@ impl Tool {
                 );
 
                 resolved = true;
-                version = AliasOrVersion::try_from(candidate).into_diagnostic()?;
+                version = AliasOrVersion::parse(candidate)?;
             }
         }
 
@@ -277,9 +296,9 @@ impl Tool {
             version
         );
 
-        self.version = Some(version.clone());
+        self.version = Some(version);
 
-        Ok(version)
+        Ok(())
     }
 }
 
@@ -525,9 +544,6 @@ impl Tool {
         // Install from a prebuilt archive
         self.install_from_prebuilt(&install_dir).await?;
 
-        // Locate binaries after an install
-        self.locate_bins(&install_dir).await?;
-
         // TODO support install/build from source
 
         debug!(
@@ -564,8 +580,9 @@ impl Tool {
 
     /// Find the absolute file path to the tool's binary that will be executed,
     /// and optionally find the directory globals are installed to.
-    pub async fn locate_bins(&mut self, install_dir: &Path) -> miette::Result<()> {
+    pub async fn locate_bins(&mut self) -> miette::Result<()> {
         let mut options = LocateBinsOutput::default();
+        let install_dir = self.get_tool_dir();
 
         if self.plugin.has_func("locate_bins") {
             options = self.plugin.cache_func_with(
@@ -601,7 +618,7 @@ impl Tool {
             .into());
         }
 
-        // Find a globals directory packages are installed to
+        // Find a globals directory that packages are installed to
         let lookup_count = options.globals_lookup_dirs.len() - 1;
 
         'outer: for (index, dir_lookup) in options.globals_lookup_dirs.iter().enumerate() {
@@ -664,7 +681,7 @@ impl Tool {
 
     /// Create global and local shim files for the current tool.
     /// If find only is enabled, will only check if they exist, and not create.
-    pub fn create_shims(&self, find_only: bool) -> miette::Result<()> {
+    pub async fn create_shims(&self, find_only: bool) -> miette::Result<()> {
         let mut primary_context = self.create_shim_context();
 
         // If not configured from the plugin, always create the primary global
@@ -727,22 +744,100 @@ impl Tool {
 // OPERATIONS
 
 impl Tool {
+    /// Return true if the tool has been setup (installed and binaries are located).
     pub async fn is_setup(&mut self, initial_version: &AliasOrVersion) -> miette::Result<bool> {
-        Ok(true)
+        self.resolve_version(initial_version).await?;
+
+        let install_dir = self.get_tool_dir();
+
+        debug!(
+            tool = &self.id,
+            install_dir = ?install_dir,
+            "Checking if tool is installed",
+        );
+
+        if install_dir.exists() {
+            debug!(
+                tool = &self.id,
+                install_dir = ?install_dir,
+                "Tool has already been installed, locating binaries and shims",
+            );
+
+            if self.bin_path.is_none() {
+                self.locate_bins().await?;
+                self.setup_shims(false).await?;
+            }
+
+            return Ok(true);
+        } else {
+            debug!(tool = &self.id, "Tool has not been installed");
+        }
+
+        Ok(false)
     }
 
+    /// Setup the tool by resolving a semantic version, installing the tool,
+    /// locating binaries, creating shims, and more.
     pub async fn setup(&mut self, initial_version: &AliasOrVersion) -> miette::Result<bool> {
-        Ok(true)
+        self.resolve_version(initial_version).await?;
+
+        if self.install().await? {
+            self.locate_bins().await?;
+            self.setup_shims(true).await?;
+
+            // Only insert if a version
+            if let AliasOrVersion::Version(version) = self.get_resolved_version() {
+                self.manifest.insert_version(&version, None)?; // TODO default version
+            }
+
+            return Ok(true);
+        }
+
+        Ok(false)
     }
 
+    /// Setup shims if they are missing or out of date.
+    pub async fn setup_shims(&mut self, force: bool) -> miette::Result<()> {
+        let is_outdated = self.manifest.shim_version != SHIM_VERSION;
+        let do_create = force || is_outdated || env::var("CI").is_ok();
+
+        if do_create {
+            debug!(
+                tool = &self.id,
+                "Creating shims as they either do not exist, or are outdated"
+            );
+
+            self.manifest.shim_version = SHIM_VERSION;
+            self.manifest.save()?;
+        }
+
+        self.create_shims(!do_create).await?;
+
+        Ok(())
+    }
+
+    /// Teardown the tool by uninstalling the current version, removing the version
+    /// from the manifest, and cleaning up temporary files. Return true if the teardown occurred.
     pub async fn teardown(&mut self) -> miette::Result<bool> {
-        Ok(true)
+        self.cleanup().await?;
+
+        if self.uninstall().await? {
+            // Only remove if uninstall was successful
+            if let AliasOrVersion::Version(version) = self.get_resolved_version() {
+                self.manifest.remove_version(&version)?;
+            }
+
+            return Ok(true);
+        }
+
+        Ok(false)
     }
 
+    /// Delete temporary files and downloads for the current version.
     pub async fn cleanup(&mut self) -> miette::Result<()> {
         debug!(tool = &self.id, "Cleaning up temporary files and downloads");
 
-        let _ = fs::remove_file(self.get_temp_dir());
+        let _ = fs::remove(self.get_temp_dir());
 
         Ok(())
     }

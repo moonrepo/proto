@@ -16,7 +16,7 @@ fn is_older_than_days(now: u128, other: u128, days: u8) -> bool {
 pub async fn do_clean(mut tool: Tool, now: u128, days: u8, yes: bool) -> miette::Result<usize> {
     info!("Checking {}", color::shell(tool.get_name()));
 
-    if !tool.get_tool_dir().exists() {
+    if !tool.get_inventory_dir().exists() {
         debug!("Not being used, skipping");
 
         return Ok(0);
@@ -26,7 +26,7 @@ pub async fn do_clean(mut tool: Tool, now: u128, days: u8, yes: bool) -> miette:
 
     debug!("Scanning file system for stale and untracked versions");
 
-    for dir in fs::read_dir(tool.get_tool_dir())? {
+    for dir in fs::read_dir(tool.get_inventory_dir())? {
         let dir_path = dir.path();
 
         let Ok(dir_type) = dir.file_type() else {
