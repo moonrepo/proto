@@ -178,7 +178,7 @@ impl Display for AliasOrVersion {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Alias(alias) => write!(f, "{}", alias),
-            Self::Version(version) => write!(f, "v{}", version),
+            Self::Version(version) => write!(f, "{}", version),
         }
     }
 }

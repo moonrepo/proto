@@ -19,7 +19,7 @@ async fn fetch_version() -> miette::Result<String> {
         .trim()
         .to_string();
 
-    debug!("Found latest version {}", color::id(&version));
+    debug!("Found latest version {}", color::hash(&version));
 
     Ok(version)
 }
@@ -36,8 +36,8 @@ pub async fn upgrade() -> SystemResult {
 
     debug!(
         "Comparing latest version {} to local version {}",
-        color::id(&new_version),
-        color::id(version),
+        color::hash(&new_version),
+        color::hash(version),
     );
 
     if Version::parse(&new_version).unwrap() <= Version::parse(version).unwrap() {

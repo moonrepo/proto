@@ -18,7 +18,7 @@ use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::time::{Duration, SystemTime};
-use tracing::debug;
+use tracing::{debug, trace};
 use warpgate::PluginContainer;
 
 pub struct Tool {
@@ -345,10 +345,9 @@ impl Tool {
         let has_parser = self.plugin.has_func("parse_version_file");
         let result: DetectVersionOutput = self.plugin.cache_func("detect_version_files")?;
 
-        debug!(
+        trace!(
             tool = &self.id,
             dir = ?current_dir,
-            files = ?result.files,
             "Attempting to detect a version from directory"
         );
 
