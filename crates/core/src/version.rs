@@ -204,6 +204,15 @@ impl Display for AliasOrVersion {
     }
 }
 
+impl PartialEq<&str> for AliasOrVersion {
+    fn eq(&self, other: &&str) -> bool {
+        match self {
+            Self::Alias(alias) => alias == other,
+            Self::Version(version) => version.to_string() == *other,
+        }
+    }
+}
+
 impl PartialEq<Version> for AliasOrVersion {
     fn eq(&self, other: &Version) -> bool {
         match self {

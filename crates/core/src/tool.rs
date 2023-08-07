@@ -27,10 +27,10 @@ pub struct Tool {
     pub manifest: ToolManifest,
     pub plugin: PluginContainer<'static>,
     pub proto: ProtoEnvironment,
+    pub version: Option<AliasOrVersion>,
 
     bin_path: Option<PathBuf>,
     globals_dir: Option<PathBuf>,
-    version: Option<AliasOrVersion>,
 }
 
 impl Tool {
@@ -395,7 +395,7 @@ impl Tool {
 impl Tool {
     /// Verify the downloaded file using the checksum strategy for the tool.
     /// Common strategies are SHA256 and MD5.
-    async fn verify_checksum(
+    pub async fn verify_checksum(
         &self,
         checksum_file: &Path,
         download_file: &Path,

@@ -7,7 +7,7 @@ members = [
 	"crates/core",
 	"crates/pdk",
 	"crates/pdk-api",
-	# "crates/pdk-test-utils",
+	"crates/pdk-test-utils",
 	"crates/warpgate",
 	"crates/wasm-plugin",
 ]
