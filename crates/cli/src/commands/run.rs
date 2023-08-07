@@ -10,7 +10,6 @@ use std::process::exit;
 use tokio::process::Command;
 use tracing::debug;
 
-
 pub async fn run(
     tool_id: String,
     forced_version: Option<VersionType>,
@@ -102,7 +101,7 @@ pub async fn run(
             cmd.arg("/q").arg("/c").arg(bin_path);
             cmd
         }
-        _ =>  Command::new(bin_path),
+        _ => Command::new(bin_path),
     };
 
     let status = command
