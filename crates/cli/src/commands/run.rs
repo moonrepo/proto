@@ -1,5 +1,5 @@
 use crate::commands::install::install;
-// use crate::hooks::node as node_hooks;
+use crate::hooks::node as node_hooks;
 use crate::tools::create_tool;
 use miette::IntoDiagnostic;
 use proto_core::{detect_version, AliasOrVersion, ProtoError, UserConfig, VersionType};
@@ -29,7 +29,7 @@ pub async fn run(
             return Err(ProtoError::MissingToolForRun {
                 tool: tool.get_name(),
                 version: version.to_string(),
-                command: format!("proto install {} {}", tool.id, version),
+                command: format!("proto install {} {}", tool.id, tool.get_resolved_version()),
             }
             .into());
         }
@@ -90,7 +90,7 @@ pub async fn run(
 
     // Trigger before hook
     if tool_id == "npm" || tool_id == "pnpm" || tool_id == "yarn" {
-        // node_hooks::pre_run(tool_type, &args, &user_config).await?;
+        node_hooks::pre_run(&tool_id, &args, &user_config).await?;
     }
 
     // Run the command
@@ -106,7 +106,7 @@ pub async fn run(
         .args(&args)
         .env(
             format!("{}_VERSION", tool.get_env_var_prefix()),
-            tool.get_resolved_version().to_string(),
+            resolved_version.to_string(),
         )
         .env(
             format!("{}_BIN", tool.get_env_var_prefix()),

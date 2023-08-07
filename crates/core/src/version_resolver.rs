@@ -47,7 +47,7 @@ impl VersionResolver {
 
     pub fn resolve(&self, candidate: &VersionType) -> miette::Result<Version> {
         resolve_version(
-            &candidate,
+            candidate,
             &self.versions.iter().collect::<Vec<_>>(),
             &self.aliases,
         )

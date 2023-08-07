@@ -5,289 +5,270 @@ use starbase_sandbox::predicates::prelude::*;
 use std::{env, fs};
 use utils::*;
 
-#[test]
-fn errors_if_not_installed() {
-    let temp = create_empty_sandbox();
+mod run {
+    use super::*;
 
-    let mut cmd = create_proto_command(temp.path());
-    let assert = cmd.arg("run").arg("node").arg("19.0.0").assert();
+    #[test]
+    fn errors_if_not_installed() {
+        let temp = create_empty_sandbox();
 
-    assert.stderr(predicate::str::contains(
-        "This project requires Node.js 19.0.0",
-    ));
-}
+        let mut cmd = create_proto_command(temp.path());
+        let assert = cmd.arg("run").arg("node").arg("19.0.0").assert();
 
-#[test]
-fn errors_if_no_version_detected() {
-    let temp = create_empty_sandbox();
+        assert.stderr(predicate::str::contains(
+            "This project requires Node.js 19.0.0",
+        ));
+    }
 
-    let mut cmd = create_proto_command(temp.path());
-    let assert = cmd.arg("run").arg("node").assert();
+    #[test]
+    fn errors_if_no_version_detected() {
+        let temp = create_empty_sandbox();
 
-    assert.stderr(predicate::str::contains(
-        "Failed to detect an applicable version",
-    ));
-}
+        let mut cmd = create_proto_command(temp.path());
+        let assert = cmd.arg("run").arg("node").assert();
 
-#[test]
-fn runs_a_tool() {
-    let temp = create_empty_sandbox();
+        assert.stderr(predicate::str::contains(
+            "Failed to detect an applicable version",
+        ));
+    }
 
-    let mut cmd = create_proto_command(temp.path());
-    cmd.arg("install")
-        .arg("node")
-        .arg("19.0.0")
-        .assert()
-        .success();
+    #[test]
+    fn runs_a_tool() {
+        let temp = create_empty_sandbox();
 
-    let mut cmd = create_proto_command(temp.path());
-    let assert = cmd
-        .arg("run")
-        .arg("node")
-        .arg("19.0.0")
-        .arg("--")
-        .arg("--version")
-        .assert();
+        let mut cmd = create_proto_command(temp.path());
+        cmd.arg("install")
+            .arg("node")
+            .arg("19.0.0")
+            .assert()
+            .success();
 
-    assert.stdout(predicate::str::contains("19.0.0"));
-}
+        let mut cmd = create_proto_command(temp.path());
+        let assert = cmd
+            .arg("run")
+            .arg("node")
+            .arg("19.0.0")
+            .arg("--")
+            .arg("--version")
+            .assert();
 
-#[test]
-fn runs_a_tool_using_version_detection() {
-    let temp = create_empty_sandbox();
+        assert.stdout(predicate::str::contains("19.0.0"));
+    }
 
-    let mut cmd = create_proto_command(temp.path());
-    cmd.arg("install")
-        .arg("node")
-        .arg("19.0.0")
-        .assert()
-        .success();
+    #[test]
+    fn runs_a_tool_using_version_detection() {
+        let temp = create_empty_sandbox();
 
-    // Arg
-    let mut cmd = create_proto_command(temp.path());
-    let assert = cmd
-        .arg("run")
-        .arg("node")
-        .arg("19.0.0")
-        .arg("--")
-        .arg("--version")
-        .assert();
+        let mut cmd = create_proto_command(temp.path());
+        cmd.arg("install")
+            .arg("node")
+            .arg("19.0.0")
+            .assert()
+            .success();
 
-    assert.stdout(predicate::str::contains("19.0.0"));
+        // Arg
+        let mut cmd = create_proto_command(temp.path());
+        let assert = cmd
+            .arg("run")
+            .arg("node")
+            .arg("19.0.0")
+            .arg("--")
+            .arg("--version")
+            .assert();
 
-    // Env var
-    let mut cmd = create_proto_command(temp.path());
-    let assert = cmd
-        .env("PROTO_NODE_VERSION", "19.0.0")
-        .arg("run")
-        .arg("node")
-        .arg("--")
-        .arg("--version")
-        .assert();
+        assert.stdout(predicate::str::contains("19.0.0"));
 
-    assert.stdout(predicate::str::contains("19.0.0"));
+        // Env var
+        let mut cmd = create_proto_command(temp.path());
+        let assert = cmd
+            .env("PROTO_NODE_VERSION", "19.0.0")
+            .arg("run")
+            .arg("node")
+            .arg("--")
+            .arg("--version")
+            .assert();
 
-    // Local version
-    temp.create_file(".prototools", "node = \"19.0.0\"");
+        assert.stdout(predicate::str::contains("19.0.0"));
 
-    let mut cmd = create_proto_command(temp.path());
-    let assert = cmd
-        .arg("run")
-        .arg("node")
-        .arg("--")
-        .arg("--version")
-        .assert();
+        // Local version
+        temp.create_file(".prototools", "node = \"19.0.0\"");
 
-    assert.stdout(predicate::str::contains("19.0.0"));
+        let mut cmd = create_proto_command(temp.path());
+        let assert = cmd
+            .arg("run")
+            .arg("node")
+            .arg("--")
+            .arg("--version")
+            .assert();
 
-    fs::remove_file(temp.path().join(".prototools")).unwrap();
+        assert.stdout(predicate::str::contains("19.0.0"));
 
-    // Ecosystem
-    temp.create_file("package.json", r#"{ "engines": { "node": "19.0.0" }}"#);
+        fs::remove_file(temp.path().join(".prototools")).unwrap();
 
-    let mut cmd = create_proto_command(temp.path());
-    let assert = cmd
-        .arg("run")
-        .arg("node")
-        .arg("--")
-        .arg("--version")
-        .assert();
+        // Ecosystem
+        temp.create_file("package.json", r#"{ "engines": { "node": "19.0.0" }}"#);
 
-    assert.stdout(predicate::str::contains("19.0.0"));
+        let mut cmd = create_proto_command(temp.path());
+        let assert = cmd
+            .arg("run")
+            .arg("node")
+            .arg("--")
+            .arg("--version")
+            .assert();
 
-    fs::remove_file(temp.path().join("package.json")).unwrap();
+        assert.stdout(predicate::str::contains("19.0.0"));
 
-    // Global version
-    temp.create_file(
-        "tools/node/manifest.json",
-        r#"{ "default_version": "19.0.0" }"#,
-    );
+        fs::remove_file(temp.path().join("package.json")).unwrap();
 
-    let mut cmd = create_proto_command(temp.path());
-    let assert = cmd
-        .arg("run")
-        .arg("node")
-        .arg("--")
-        .arg("--version")
-        .assert();
+        // Global version
+        temp.create_file(
+            "tools/node/manifest.json",
+            r#"{ "default_version": "19.0.0" }"#,
+        );
 
-    assert.stdout(predicate::str::contains("19.0.0"));
+        let mut cmd = create_proto_command(temp.path());
+        let assert = cmd
+            .arg("run")
+            .arg("node")
+            .arg("--")
+            .arg("--version")
+            .assert();
 
-    fs::remove_file(temp.path().join("tools/node/manifest.json")).unwrap();
-}
+        assert.stdout(predicate::str::contains("19.0.0"));
 
-#[test]
-fn runs_a_tool_alt_bin() {
-    let temp = create_empty_sandbox();
+        fs::remove_file(temp.path().join("tools/node/manifest.json")).unwrap();
+    }
 
-    let mut cmd = create_proto_command(temp.path());
-    cmd.arg("install")
-        .arg("node")
-        .arg("19.0.0")
-        .assert()
-        .success();
+    #[test]
+    fn runs_a_tool_alt_bin() {
+        let temp = create_empty_sandbox();
 
-    let mut cmd = create_proto_command(temp.path());
-    let assert = cmd
-        .arg("run")
-        .arg("node")
-        .arg("19.0.0")
-        .arg("--bin")
-        .arg(if cfg!(windows) { "npx.cmd" } else { "bin/npx" })
-        .arg("--")
-        .arg("--version")
-        .assert();
+        let mut cmd = create_proto_command(temp.path());
+        cmd.arg("install")
+            .arg("node")
+            .arg("19.0.0")
+            .assert()
+            .success();
 
-    assert.stdout(predicate::str::contains("8.19.2"));
-}
+        let mut cmd = create_proto_command(temp.path());
+        let assert = cmd
+            .arg("run")
+            .arg("node")
+            .arg("19.0.0")
+            .arg("--bin")
+            .arg(if cfg!(windows) { "npx.cmd" } else { "bin/npx" })
+            .arg("--")
+            .arg("--version")
+            .assert();
 
-#[test]
-fn updates_last_used_at() {
-    let temp = create_empty_sandbox();
-    let manifest_file = temp.path().join("tools/node/manifest.json");
+        assert.stdout(predicate::str::contains("8.19.2"));
+    }
 
-    let mut cmd = create_proto_command(temp.path());
-    cmd.arg("install")
-        .arg("node")
-        .arg("19.0.0")
-        .assert()
-        .success();
+    #[test]
+    fn updates_last_used_at() {
+        let temp = create_empty_sandbox();
+        let manifest_file = temp.path().join("tools/node/manifest.json");
 
-    let mut cmd = create_proto_command(temp.path());
-    cmd.arg("run")
-        .arg("node")
-        .arg("19.0.0")
-        .arg("--")
-        .arg("--version")
-        .assert();
+        let mut cmd = create_proto_command(temp.path());
+        cmd.arg("install")
+            .arg("node")
+            .arg("19.0.0")
+            .assert()
+            .success();
 
-    let manifest = ToolManifest::load(&manifest_file).unwrap();
-    let version = Version::parse("19.0.0").unwrap();
+        let mut cmd = create_proto_command(temp.path());
+        cmd.arg("run")
+            .arg("node")
+            .arg("19.0.0")
+            .arg("--")
+            .arg("--version")
+            .assert();
 
-    let last_used_at = manifest.versions.get(&version).unwrap().last_used_at;
+        let manifest = ToolManifest::load(&manifest_file).unwrap();
+        let version = Version::parse("19.0.0").unwrap();
 
-    assert!(last_used_at.is_some());
+        let last_used_at = manifest.versions.get(&version).unwrap().last_used_at;
 
-    // Run again and make sure timestamps update
-    let mut cmd = create_proto_command(temp.path());
-    cmd.arg("run")
-        .arg("node")
-        .arg("19.0.0")
-        .arg("--")
-        .arg("--version")
-        .assert();
+        assert!(last_used_at.is_some());
 
-    let manifest = ToolManifest::load(&manifest_file).unwrap();
+        // Run again and make sure timestamps update
+        let mut cmd = create_proto_command(temp.path());
+        cmd.arg("run")
+            .arg("node")
+            .arg("19.0.0")
+            .arg("--")
+            .arg("--version")
+            .assert();
 
-    assert_ne!(
-        last_used_at,
-        manifest.versions.get(&version).unwrap().last_used_at
-    );
-}
+        let manifest = ToolManifest::load(&manifest_file).unwrap();
 
-#[test]
-fn auto_installs_if_missing() {
-    let temp = create_empty_sandbox();
+        assert_ne!(
+            last_used_at,
+            manifest.versions.get(&version).unwrap().last_used_at
+        );
+    }
 
-    temp.create_file("config.toml", "auto-install = true");
+    #[test]
+    fn auto_installs_if_missing() {
+        let temp = create_empty_sandbox();
 
-    let mut cmd = create_proto_command(temp.path());
-    let assert = cmd
-        .arg("run")
-        .arg("node")
-        .arg("19.0.0")
-        .arg("--")
-        .arg("--version")
-        .assert();
+        temp.create_file("config.toml", "auto-install = true");
 
-    assert.stdout(predicate::str::contains("19.0.0"));
-}
+        let mut cmd = create_proto_command(temp.path());
+        let assert = cmd
+            .arg("run")
+            .arg("node")
+            .arg("19.0.0")
+            .arg("--")
+            .arg("--version")
+            .assert();
 
-#[test]
-fn auto_installs_if_missing_with_env_var() {
-    let temp = create_empty_sandbox();
+        assert.stdout(predicate::str::contains("19.0.0"));
+    }
 
-    env::set_var("PROTO_AUTO_INSTALL", "true");
+    #[test]
+    fn auto_installs_if_missing_with_env_var() {
+        let temp = create_empty_sandbox();
 
-    let mut cmd = create_proto_command(temp.path());
-    let assert = cmd
-        .arg("run")
-        .arg("node")
-        .arg("19.0.0")
-        .arg("--")
-        .arg("--version")
-        .assert();
+        env::set_var("PROTO_AUTO_INSTALL", "true");
 
-    assert.stdout(predicate::str::contains("19.0.0"));
+        let mut cmd = create_proto_command(temp.path());
+        let assert = cmd
+            .arg("run")
+            .arg("node")
+            .arg("19.0.0")
+            .arg("--")
+            .arg("--version")
+            .assert();
 
-    env::remove_var("PROTO_AUTO_INSTALL");
-}
+        assert.stdout(predicate::str::contains("19.0.0"));
 
-#[test]
-fn doesnt_auto_install_if_false() {
-    let temp = create_empty_sandbox();
+        env::remove_var("PROTO_AUTO_INSTALL");
+    }
 
-    temp.create_file("config.toml", "auto-install = false");
+    #[test]
+    fn doesnt_auto_install_if_false() {
+        let temp = create_empty_sandbox();
 
-    let mut cmd = create_proto_command(temp.path());
-    let assert = cmd.arg("run").arg("node").arg("19.0.0").assert();
+        temp.create_file("config.toml", "auto-install = false");
 
-    assert.stderr(predicate::str::contains(
-        "This project requires Node.js 19.0.0",
-    ));
-}
+        let mut cmd = create_proto_command(temp.path());
+        let assert = cmd.arg("run").arg("node").arg("19.0.0").assert();
 
-#[test]
-fn runs_a_plugin() {
-    let temp = create_empty_sandbox_with_tools();
+        assert.stderr(predicate::str::contains(
+            "This project requires Node.js 19.0.0",
+        ));
+    }
 
-    let mut cmd = create_proto_command(temp.path());
-    cmd.arg("install")
-        .arg("moon-test")
-        .arg("1.0.0")
-        .assert()
-        .success();
+    #[test]
+    fn errors_if_plugin_not_configured() {
+        let temp = create_empty_sandbox();
 
-    let mut cmd = create_proto_command(temp.path());
-    let assert = cmd
-        .arg("run")
-        .arg("moon-test")
-        .arg("1.0.0")
-        .arg("--")
-        .arg("--version")
-        .assert();
+        let mut cmd = create_proto_command(temp.path());
+        let assert = cmd.arg("run").arg("plugin-name").arg("1.0.0").assert();
 
-    assert.stdout(predicate::str::contains("1.0.0"));
-}
-
-#[test]
-fn errors_if_plugin_not_configured() {
-    let temp = create_empty_sandbox();
-
-    let mut cmd = create_proto_command(temp.path());
-    let assert = cmd.arg("run").arg("plugin-name").arg("1.0.0").assert();
-
-    assert.stderr(predicate::str::contains(
-        "plugin-name is not a built-in tool and has not been configured",
-    ));
+        assert.stderr(predicate::str::contains(
+            "plugin-name is not a built-in tool or has not been configured as a plugin",
+        ));
+    }
 }
