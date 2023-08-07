@@ -1,8 +1,8 @@
 use clap_complete::Shell;
 use dirs::home_dir;
-use proto_core::{color, ProtoError};
-use rustc_hash::FxHashMap;
+use starbase_styles::color;
 use starbase_utils::fs::{self, FsError};
+use std::collections::HashMap;
 use std::{
     env,
     fs::OpenOptions,
@@ -21,7 +21,7 @@ pub fn detect_shell(shell: Option<Shell>) -> Shell {
     })
 }
 
-pub fn find_profiles(shell: &Shell) -> Result<Vec<PathBuf>, ProtoError> {
+pub fn find_profiles(shell: &Shell) -> miette::Result<Vec<PathBuf>> {
     debug!("Finding profile files for {}", shell);
 
     if let Ok(profile_env) = env::var("TEST_PROFILE") {
@@ -75,7 +75,7 @@ pub fn find_profiles(shell: &Shell) -> Result<Vec<PathBuf>, ProtoError> {
 pub fn format_env_vars(
     shell: &Shell,
     comment: &str,
-    vars: FxHashMap<String, String>,
+    vars: HashMap<String, String>,
 ) -> Option<String> {
     let mut lines = vec![format!("\n# {comment}")];
 
@@ -113,7 +113,7 @@ pub fn write_profile_if_not_setup(
     shell: &Shell,
     contents: String,
     env_var: &str,
-) -> Result<Option<PathBuf>, ProtoError> {
+) -> miette::Result<Option<PathBuf>> {
     let profiles = find_profiles(shell)?;
 
     for profile in &profiles {

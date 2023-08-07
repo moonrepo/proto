@@ -1,26 +1,33 @@
-use crate::tools::{create_tool, ToolType};
-use human_sort::compare;
+use crate::tools::create_tool;
+use proto_core::VersionType;
 use starbase::SystemResult;
-use std::io::{self, Write};
+use std::process;
 use tracing::debug;
 
 // TODO: only show LTS, dont show pre-releases?
-pub async fn list_remote(tool_type: ToolType) -> SystemResult {
-    let tool = create_tool(&tool_type).await?;
+pub async fn list_remote(tool_id: String) -> SystemResult {
+    let tool = create_tool(&tool_id).await?;
 
-    debug!("Loading manifest");
+    debug!("Loading versions");
 
-    let manifest = tool.load_version_manifest().await?;
+    let resolver = tool.load_version_resolver(&VersionType::default()).await?;
+    let mut versions = resolver.versions;
 
-    let stdout = io::stdout();
-    let mut handle = io::BufWriter::new(stdout);
-    let mut releases = manifest.versions.values().collect::<Vec<_>>();
-
-    releases.sort_by(|a, d| compare(&a.version, &d.version));
-
-    for release in releases {
-        writeln!(handle, "{}", release.version).unwrap();
+    if versions.is_empty() {
+        eprintln!("No versions available");
+        process::exit(1);
     }
+
+    versions.sort();
+
+    println!(
+        "{}",
+        versions
+            .iter()
+            .map(|v| v.to_string())
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
 
     Ok(())
 }

@@ -1,76 +1,83 @@
-use proto_core::Installable;
+use proto_core::Tool;
 use proto_pdk_api::*;
-use proto_wasm_plugin::WasmPlugin;
 use std::path::{Path, PathBuf};
 
 pub struct WasmTestWrapper {
-    pub tool: WasmPlugin,
+    pub tool: Tool,
 }
 
 impl WasmTestWrapper {
     pub fn from_virtual_path(&self, path: &Path) -> PathBuf {
-        self.tool.container.from_virtual_path(path)
+        self.tool.plugin.from_virtual_path(path)
     }
 
     pub fn to_virtual_path(&self, path: &Path) -> PathBuf {
-        self.tool.container.to_virtual_path(path)
+        self.tool.plugin.to_virtual_path(path)
     }
 
     pub fn create_shims(&self, input: CreateShimsInput) -> CreateShimsOutput {
         self.tool
-            .container
+            .plugin
             .call_func_with("create_shims", input)
             .unwrap()
     }
 
     pub fn detect_version(&self) -> DetectVersionOutput {
-        self.tool.container.call_func("detect_version").unwrap()
+        self.tool.plugin.call_func("detect_version").unwrap()
     }
 
     pub fn download_prebuilt(&self, input: DownloadPrebuiltInput) -> DownloadPrebuiltOutput {
         self.tool
-            .container
+            .plugin
             .call_func_with("download_prebuilt", input)
             .unwrap()
     }
 
     pub fn load_versions(&self, input: LoadVersionsInput) -> LoadVersionsOutput {
         self.tool
-            .container
+            .plugin
             .call_func_with("load_versions", input)
             .unwrap()
     }
 
     pub fn locate_bins(&self, mut input: LocateBinsInput) -> LocateBinsOutput {
         if input.tool_dir.components().count() == 0 {
-            input.tool_dir = self.tool.get_install_dir().unwrap();
+            input.tool_dir = self.tool.get_tool_dir();
         }
 
+        input.home_dir = self.to_virtual_path(&input.home_dir);
         input.tool_dir = self.to_virtual_path(&input.tool_dir);
 
-        self.tool
-            .container
+        let mut output: LocateBinsOutput = self
+            .tool
+            .plugin
             .call_func_with("locate_bins", input)
-            .unwrap()
+            .unwrap();
+
+        if let Some(bin_path) = output.bin_path {
+            output.bin_path = Some(self.from_virtual_path(&bin_path));
+        }
+
+        output
     }
 
     pub fn parse_version_file(&self, input: ParseVersionFileInput) -> ParseVersionFileOutput {
         self.tool
-            .container
+            .plugin
             .call_func_with("parse_version_file", input)
             .unwrap()
     }
 
     pub fn register_tool(&self, input: ToolMetadataInput) -> ToolMetadataOutput {
         self.tool
-            .container
+            .plugin
             .call_func_with("register_tool", input)
             .unwrap()
     }
 
     pub fn resolve_version(&self, input: ResolveVersionInput) -> ResolveVersionOutput {
         self.tool
-            .container
+            .plugin
             .call_func_with("resolve_version", input)
             .unwrap()
     }
@@ -81,7 +88,7 @@ impl WasmTestWrapper {
 
         let _: EmptyInput = self
             .tool
-            .container
+            .plugin
             .call_func_with("unpack_archive", input)
             .unwrap();
     }
@@ -91,7 +98,7 @@ impl WasmTestWrapper {
         input.download_file = self.to_virtual_path(&input.download_file);
 
         self.tool
-            .container
+            .plugin
             .call_func_with("verify_checksum", input)
             .unwrap()
     }

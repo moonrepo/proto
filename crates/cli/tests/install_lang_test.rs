@@ -1,8 +1,8 @@
 mod utils;
 
-use proto_core::Manifest;
-use rustc_hash::FxHashSet;
+use proto_core::{ToolManifest, Version};
 use starbase_sandbox::predicates::prelude::*;
+use std::collections::HashSet;
 use utils::*;
 
 #[cfg(not(windows))]
@@ -51,6 +51,7 @@ mod go {
 
 mod node {
     use super::*;
+    use proto_core::AliasOrVersion;
 
     #[test]
     fn installs_bundled_npm() {
@@ -61,18 +62,21 @@ mod node {
 
         let output = output_to_string(&assert.get_output().stderr.to_vec());
 
-        assert!(predicate::str::contains("Node.js has been installed at").eval(&output));
-        assert!(predicate::str::contains("npm has been installed at").eval(&output));
+        assert!(predicate::str::contains("Node.js has been installed").eval(&output));
+        assert!(predicate::str::contains("npm has been installed").eval(&output));
 
         assert!(temp.path().join("tools/node/19.0.0").exists());
         assert!(temp.path().join("tools/npm/8.19.2").exists());
 
-        let manifest = Manifest::load(temp.path().join("tools/npm/manifest.json")).unwrap();
+        let manifest = ToolManifest::load(temp.path().join("tools/npm/manifest.json")).unwrap();
 
-        assert_eq!(manifest.default_version, Some("8.19.2".into()));
+        assert_eq!(
+            manifest.default_version,
+            Some(AliasOrVersion::parse("8.19.2").unwrap())
+        );
         assert_eq!(
             manifest.installed_versions,
-            FxHashSet::from_iter(["8.19.2".into()])
+            HashSet::from_iter([Version::parse("8.19.2").unwrap()])
         );
     }
 
@@ -91,8 +95,8 @@ mod node {
 
         let output = output_to_string(&assert.get_output().stderr.to_vec());
 
-        assert!(predicate::str::contains("Node.js has been installed at").eval(&output));
-        assert!(!predicate::str::contains("npm has been installed at").eval(&output));
+        assert!(predicate::str::contains("Node.js has been installed").eval(&output));
+        assert!(!predicate::str::contains("npm has been installed").eval(&output));
 
         assert!(temp.path().join("tools/node/19.0.0").exists());
         assert!(!temp.path().join("tools/npm/8.19.2").exists());

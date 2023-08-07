@@ -1,101 +1,71 @@
 use crate::helpers::create_progress_bar;
-use crate::tools::{create_tool, ToolType};
-use proto::Describable;
-use proto_core::{color, ProtoError, Tool};
-use proto_schema_plugin::SchemaPlugin;
+use crate::tools::create_tool;
+use miette::IntoDiagnostic;
+use proto_core::ProtoError;
 use starbase::SystemResult;
-use std::path::PathBuf;
+use starbase_styles::color;
+use std::process;
 use tokio::process::Command;
 use tracing::{debug, info};
 
-async fn get_bin_or_fallback(tool: &mut Box<dyn Tool<'_>>) -> Result<PathBuf, ProtoError> {
-    Ok(match tool.find_bin_path().await {
-        Ok(_) => tool.get_bin_path()?.to_path_buf(),
-        Err(_) => PathBuf::from(tool.get_id()),
-    })
-}
+pub async fn install_global(tool_id: String, dependencies: Vec<String>) -> SystemResult {
+    let mut tool = create_tool(&tool_id).await?;
+    tool.locate_globals_dir().await?;
 
-pub async fn install_global(tool_type: ToolType, dependencies: Vec<String>) -> SystemResult {
-    for dependency in dependencies {
-        let mut tool = create_tool(&tool_type).await?;
-        let label = format!("Installing {} for {}", dependency, tool.get_name());
+    let Some(globals_dir) = tool.get_globals_bin_dir() else {
+        eprintln!("{} does not support global packages", tool.get_name());
+        process::exit(1);
+    };
 
-        debug!("{}", label);
+    for dependency in &dependencies {
+        debug!(tool = &tool.id, dependency, "Installing global dependency");
 
-        let Some(global_dir) = tool.get_globals_bin_dir()? else {
-            debug!("Skipping as it does not support globals");
-            continue;
-        };
+        let mut command = Command::new(&tool.id);
 
-        let mut command;
-
-        match &tool_type {
-            ToolType::Plugin(name) => {
-                command = Command::new(get_bin_or_fallback(&mut tool).await?);
-
-                // TODO move into plugins
-                match name.as_ref() {
-                    "bun" => {
-                        command.args(["add", "--global"]).arg(&dependency);
-                    }
-                    "deno" => {
-                        command
-                            .args(["install", "--allow-net", "--allow-read"])
-                            .arg(&dependency);
-                    }
-                    "go" => {
-                        command.arg("install").arg(&dependency);
-                    }
-                    "node" | "npm" | "pnpm" | "yarn" => {
-                        let mut npm = create_tool(&ToolType::Plugin("npm".into())).await?;
-
-                        command = Command::new(get_bin_or_fallback(&mut npm).await?);
-                        command
-                            .args([
-                                "install",
-                                "--global",
-                                "--loglevel",
-                                "warn",
-                                "--no-audit",
-                                "--no-update-notifier",
-                            ])
-                            .arg(&dependency)
-                            // Remove the /bin component
-                            .env("PREFIX", global_dir.parent().unwrap());
-                    }
-                    "rust" => {
-                        command = Command::new("cargo");
-                        command.arg("install").arg("--force").arg(&dependency);
-                    }
-                    _ => {
-                        if let Some(plugin) = tool.as_any().downcast_ref::<SchemaPlugin>() {
-                            let Some(args) = &plugin.schema.install.global_args else {
-                                return Err(ProtoError::UnsupportedGlobals(plugin.get_name()))?;
-                            };
-
-                            for arg in args {
-                                if arg == "{dependency}" {
-                                    command.arg(&dependency);
-                                } else {
-                                    command.arg(arg);
-                                }
-                            }
-                        } else {
-                            // TODO wasm
-                            continue;
-                        }
-                    }
-                };
+        // TODO move into plugins
+        match tool.id.as_ref() {
+            "bun" => {
+                command.args(["add", "--global"]).arg(dependency);
+            }
+            "deno" => {
+                command
+                    .args(["install", "--allow-net", "--allow-read"])
+                    .arg(dependency);
+            }
+            "go" => {
+                command.arg("install").arg(dependency);
+            }
+            "node" | "npm" | "pnpm" | "yarn" => {
+                command = Command::new("npm");
+                command
+                    .args([
+                        "install",
+                        "--global",
+                        "--loglevel",
+                        "warn",
+                        "--no-audit",
+                        "--no-update-notifier",
+                    ])
+                    .arg(dependency)
+                    // Remove the /bin component
+                    .env("PREFIX", globals_dir.parent().unwrap());
+            }
+            "rust" => {
+                command = Command::new("cargo");
+                command.arg("install").arg("--force").arg(dependency);
+            }
+            _ => {
+                continue;
             }
         };
 
-        let pb = create_progress_bar(label);
+        let pb = create_progress_bar(format!("Installing {} for {}", dependency, tool.get_name()));
 
         let output = command
             .env("PROTO_INSTALL_GLOBAL", "true")
             .output()
             .await
-            .map_err(|e| ProtoError::Message(e.to_string()))?;
+            .into_diagnostic()?;
 
         pb.finish_and_clear();
 
@@ -107,13 +77,17 @@ pub async fn install_global(tool_type: ToolType, dependencies: Vec<String>) -> S
         if !output.status.success() {
             return Err(ProtoError::Message(stderr.to_string()))?;
         }
-
-        info!(
-            "{} has been installed to {}!",
-            dependency,
-            color::path(global_dir),
-        );
     }
+
+    info!(
+        "Installed {} to {}!",
+        dependencies
+            .iter()
+            .map(color::id)
+            .collect::<Vec<_>>()
+            .join(", "),
+        color::path(globals_dir),
+    );
 
     Ok(())
 }

@@ -2,14 +2,22 @@
 
 ## Unreleased
 
+#### 💥 Breaking
+
+- Versions defined in `.prototools` must be fully-qualified semantic versions. Partial versions (missing patch or minor) are no longer supported. This may change in the future based on feedback.
+
 #### 🚀 Updates
 
 - [Node.js (and package managers)](https://github.com/moonrepo/node-plugin) and [Rust](https://github.com/moonrepo/rust-plugin) are now powered by WASM plugins, and have been removed from core.
   - Please report any issues you encounter or discrepancies from the previous release!
+  - Yarn 2+ is now installed using `@yarnpkg/cli-dist`. We no longer downgrade to the latest v1.
 - WASM API
   - Renamed host function `trace` to `host_log`.
   - Added `host_log!` and `exec_command!` macros for working with host functions.
+  - Added `default_version` field to `ToolMetadataOutput`.
+  - Added `home_dir` field to `LocateBinsInput`.
   - Updated `exec_command` with stream/inherit support.
+  - Updated `bin_path` in `LocateBinsOutput` and `ShimConfig` to a `PathBuf`.
 
 ## 0.13.1
 

@@ -2,10 +2,10 @@ mod macros;
 mod wrapper;
 
 pub use macros::*;
-pub use proto_wasm_plugin::WasmPlugin;
+pub use proto_core::{AliasOrVersion, ProtoEnvironment, Tool, VersionType};
 pub use wrapper::WasmTestWrapper;
 
-use proto_core::Proto;
+use proto_wasm_plugin::Wasm;
 use std::path::{Path, PathBuf};
 use std::{env, fs};
 
@@ -52,6 +52,11 @@ pub fn create_plugin(id: &str, sandbox: &Path) -> WasmTestWrapper {
     fs::create_dir_all(sandbox.join(".proto")).unwrap();
 
     WasmTestWrapper {
-        tool: WasmPlugin::new(Proto::new_testing(sandbox), id.into(), wasm_file).unwrap(),
+        tool: Tool::load(
+            id,
+            &ProtoEnvironment::new_testing(sandbox),
+            Wasm::file(wasm_file),
+        )
+        .unwrap(),
     }
 }

@@ -1,23 +1,34 @@
 mod utils;
 
-use proto_core::Manifest;
+use proto_core::{AliasOrVersion, ToolManifest, Version};
 use utils::*;
 
-#[test]
-fn lists_local_versions() {
-    let temp = create_empty_sandbox();
+mod list {
+    use super::*;
 
-    let mut manifest = Manifest::load(temp.path().join("tools/node/manifest.json")).unwrap();
-    manifest.default_version = Some("19.0.0".into());
-    manifest.installed_versions.insert("19.0.0".into());
-    manifest.installed_versions.insert("18.0.0".into());
-    manifest.installed_versions.insert("17.0.0".into());
-    manifest.save().unwrap();
+    #[test]
+    fn lists_local_versions() {
+        let temp = create_empty_sandbox();
 
-    let mut cmd = create_proto_command(temp.path());
-    let assert = cmd.arg("list").arg("node").assert();
+        let mut manifest =
+            ToolManifest::load(temp.path().join("tools/node/manifest.json")).unwrap();
+        manifest.default_version = Some(AliasOrVersion::parse("19.0.0").unwrap());
+        manifest
+            .installed_versions
+            .insert(Version::parse("19.0.0").unwrap());
+        manifest
+            .installed_versions
+            .insert(Version::parse("18.0.0").unwrap());
+        manifest
+            .installed_versions
+            .insert(Version::parse("17.0.0").unwrap());
+        manifest.save().unwrap();
 
-    let output = output_to_string(&assert.get_output().stdout);
+        let mut cmd = create_proto_command(temp.path());
+        let assert = cmd.arg("list").arg("node").assert();
 
-    assert_eq!(output.split('\n').collect::<Vec<_>>().len(), 4); // includes header
+        let output = output_to_string(&assert.get_output().stdout);
+
+        assert_eq!(output.split('\n').collect::<Vec<_>>().len(), 4); // includes header
+    }
 }

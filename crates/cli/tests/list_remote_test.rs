@@ -2,26 +2,18 @@ mod utils;
 
 use utils::*;
 
-#[test]
-fn lists_remote_versions() {
-    let temp = create_empty_sandbox();
+mod list_remote {
+    use super::*;
 
-    let mut cmd = create_proto_command(temp.path());
-    let assert = cmd.arg("list-remote").arg("node").assert();
+    #[test]
+    fn lists_remote_versions() {
+        let temp = create_empty_sandbox();
 
-    let output = output_to_string(&assert.get_output().stdout);
+        let mut cmd = create_proto_command(temp.path());
+        let assert = cmd.arg("list-remote").arg("npm").assert();
 
-    assert!(output.split('\n').collect::<Vec<_>>().len() > 1);
-}
+        let output = output_to_string(&assert.get_output().stdout);
 
-#[test]
-fn lists_remote_versions_for_plugin() {
-    let temp = create_empty_sandbox_with_tools();
-
-    let mut cmd = create_proto_command(temp.path());
-    let assert = cmd.arg("list-remote").arg("moon-test").assert();
-
-    let output = output_to_string(&assert.get_output().stdout);
-
-    assert!(output.split('\n').collect::<Vec<_>>().len() > 1);
+        assert!(output.split('\n').collect::<Vec<_>>().len() > 1);
+    }
 }

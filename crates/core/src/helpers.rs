@@ -1,10 +1,19 @@
-use crate::errors::ProtoError;
+use crate::error::ProtoError;
 use cached::proc_macro::cached;
-use dirs::home_dir;
-use std::process::Command;
+use once_cell::sync::Lazy;
+use regex::Regex;
+use sha2::{Digest, Sha256};
+use starbase_utils::dirs::home_dir;
+use starbase_utils::fs::{self, FsError};
+use std::io;
+use std::path::Path;
 use std::{env, path::PathBuf};
+use tracing::trace;
 
-pub fn get_root() -> Result<PathBuf, ProtoError> {
+pub static CLEAN_VERSION: Lazy<Regex> = Lazy::new(|| Regex::new(r"([><]=?)\s+(\d)").unwrap());
+pub static ENV_VAR: Lazy<Regex> = Lazy::new(|| Regex::new(r"\$([A-Z0-9_]+)").unwrap());
+
+pub fn get_root() -> miette::Result<PathBuf> {
     if let Ok(root) = env::var("PROTO_ROOT") {
         return Ok(root.into());
     }
@@ -12,28 +21,30 @@ pub fn get_root() -> Result<PathBuf, ProtoError> {
     Ok(get_home_dir()?.join(".proto"))
 }
 
-pub fn get_home_dir() -> Result<PathBuf, ProtoError> {
-    home_dir().ok_or(ProtoError::MissingHomeDir)
+pub fn get_home_dir() -> miette::Result<PathBuf> {
+    Ok(home_dir().ok_or(ProtoError::MissingHomeDir)?)
 }
 
-pub fn get_bin_dir() -> Result<PathBuf, ProtoError> {
+pub fn get_bin_dir() -> miette::Result<PathBuf> {
     Ok(get_root()?.join("bin"))
 }
 
-pub fn get_temp_dir() -> Result<PathBuf, ProtoError> {
+pub fn get_temp_dir() -> miette::Result<PathBuf> {
     Ok(get_root()?.join("temp"))
 }
 
-pub fn get_tools_dir() -> Result<PathBuf, ProtoError> {
+pub fn get_tools_dir() -> miette::Result<PathBuf> {
     Ok(get_root()?.join("tools"))
 }
 
-pub fn get_plugins_dir() -> Result<PathBuf, ProtoError> {
+pub fn get_plugins_dir() -> miette::Result<PathBuf> {
     Ok(get_root()?.join("plugins"))
 }
 
 // Aliases are words that map to version. For example, "latest" -> "1.2.3".
-pub fn is_alias_name(value: &str) -> bool {
+pub fn is_alias_name<T: AsRef<str>>(value: T) -> bool {
+    let value = value.as_ref();
+
     value.chars().enumerate().all(|(i, c)| {
         if i == 0 {
             char::is_ascii_alphabetic(&c) && c != 'v' && c != 'V'
@@ -43,7 +54,9 @@ pub fn is_alias_name(value: &str) -> bool {
     })
 }
 
-pub fn add_v_prefix(value: &str) -> String {
+pub fn add_v_prefix<T: AsRef<str>>(value: T) -> String {
+    let value = value.as_ref();
+
     if value.starts_with('v') || value.starts_with('V') {
         return value.to_lowercase();
     }
@@ -51,7 +64,9 @@ pub fn add_v_prefix(value: &str) -> String {
     format!("v{value}")
 }
 
-pub fn remove_v_prefix(value: &str) -> String {
+pub fn remove_v_prefix<T: AsRef<str>>(value: T) -> String {
+    let value = value.as_ref();
+
     if value.starts_with('v') || value.starts_with('V') {
         return value[1..].to_owned();
     }
@@ -59,9 +74,10 @@ pub fn remove_v_prefix(value: &str) -> String {
     value.to_owned()
 }
 
-pub fn remove_space_after_gtlt(value: &str) -> String {
-    let pattern = regex::Regex::new(r"([><]=?)\s+(\d)").unwrap();
-    pattern.replace_all(value, "$1$2").to_string()
+pub fn remove_space_after_gtlt<T: AsRef<str>>(value: T) -> String {
+    CLEAN_VERSION
+        .replace_all(value.as_ref(), "$1$2")
+        .to_string()
 }
 
 #[cached(time = 300)]
@@ -102,30 +118,94 @@ pub fn is_offline() -> bool {
     true
 }
 
-#[tracing::instrument]
-pub fn has_command(command: &str) -> bool {
-    Command::new(if cfg!(windows) {
-        "Get-Command"
-    } else {
-        "which"
-    })
-    .arg(command)
-    .output()
-    .map(|output| output.status.success() && !output.stdout.is_empty())
-    .unwrap_or(false)
-}
-
-#[cached]
-pub fn is_musl() -> bool {
-    let Ok(output) = Command::new("ldd").arg("--version").output() else {
-        return false;
-    };
-
-    String::from_utf8_lossy(&output.stdout).contains("musl")
-}
-
 pub fn is_cache_enabled() -> bool {
     env::var("PROTO_CACHE").map_or(true, |value| {
         value != "0" && value != "false" && value != "no" && value != "off"
     })
+}
+
+pub fn is_archive_file<P: AsRef<Path>>(path: P) -> bool {
+    path.as_ref().extension().map_or(false, |ext| {
+        ext == "zip" || ext == "tar" || ext == "gz" || ext == "tgz" || ext == "xz" || ext == "txz"
+    })
+}
+
+pub fn hash_file_contents<P: AsRef<Path>>(path: P) -> miette::Result<String> {
+    let path = path.as_ref();
+
+    trace!(file = ?path, "Calculating SHA256 checksum");
+
+    let mut file = fs::open_file(path)?;
+    let mut sha = Sha256::new();
+
+    io::copy(&mut file, &mut sha).map_err(|error| FsError::Read {
+        path: path.to_path_buf(),
+        error,
+    })?;
+
+    let hash = format!("{:x}", sha.finalize());
+
+    trace!(hash, "Calculated hash");
+
+    Ok(hash)
+}
+
+#[tracing::instrument(skip_all)]
+pub async fn download_from_url<U, F>(url: U, dest_file: F) -> miette::Result<()>
+where
+    U: AsRef<str>,
+    F: AsRef<Path>,
+{
+    if is_offline() {
+        return Err(ProtoError::InternetConnectionRequired.into());
+    }
+
+    let url = url.as_ref();
+    let dest_file = dest_file.as_ref();
+    let handle_io_error = |error: io::Error| FsError::Create {
+        path: dest_file.to_path_buf(),
+        error,
+    };
+    let handle_http_error = |error: reqwest::Error| ProtoError::Http {
+        url: url.to_owned(),
+        error,
+    };
+
+    trace!(
+        dest_file = ?dest_file,
+        url,
+        "Downloading file from URL",
+    );
+
+    // Ensure parent directories exist
+    if let Some(parent) = dest_file.parent() {
+        fs::create_dir_all(parent)?;
+    }
+
+    // Fetch the file from the HTTP source
+    let response = reqwest::get(url).await.map_err(handle_http_error)?;
+    let status = response.status();
+
+    if status.as_u16() == 404 {
+        return Err(ProtoError::DownloadNotFound {
+            url: url.to_owned(),
+        }
+        .into());
+    }
+
+    if !status.is_success() {
+        return Err(ProtoError::DownloadFailed {
+            url: url.to_owned(),
+            status: status.to_string(),
+        }
+        .into());
+    }
+
+    // Write the bytes to our local file
+    let mut contents = io::Cursor::new(response.bytes().await.map_err(handle_http_error)?);
+    let mut file = fs::create_file(dest_file)?;
+
+    io::copy(&mut contents, &mut file).map_err(handle_io_error)?;
+
+    Ok(())
 }

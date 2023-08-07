@@ -1,20 +1,19 @@
-use crate::tools::{create_tool, ToolType};
-use proto_core::color;
+use crate::tools::create_tool;
 use starbase::SystemResult;
+use starbase_styles::color;
 use tracing::info;
 
-pub async fn unalias(tool_type: ToolType, alias: String) -> SystemResult {
-    let mut tool = create_tool(&tool_type).await?;
+pub async fn unalias(tool_id: String, alias: String) -> SystemResult {
+    let mut tool = create_tool(&tool_id).await?;
 
-    let manifest = tool.get_manifest_mut()?;
-    let value = manifest.aliases.remove(&alias);
-    manifest.save()?;
+    let value = tool.manifest.aliases.remove(&alias);
+    tool.manifest.save()?;
 
     if let Some(version) = value {
         info!(
             "Removed alias {} ({}) from {}",
             color::id(alias),
-            color::muted_light(version),
+            color::muted_light(version.to_string()),
             tool.get_name(),
         );
     } else {

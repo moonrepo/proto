@@ -1,6 +1,7 @@
 use crate::host::{HostArch, HostOS};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::ffi::OsStr;
 use std::path::PathBuf;
 
 pub use semver::{Version, VersionReq};
@@ -72,6 +73,9 @@ json_struct!(
 json_struct!(
     /// Output returned by the `register_tool` function.
     pub struct ToolMetadataOutput {
+        /// Default alias or version to use as a fallback.
+        pub default_version: Option<String>,
+
         /// Environment variables that should be extracted
         /// and passed to other function call inputs.
         pub env_vars: Vec<String>,
@@ -126,11 +130,19 @@ json_struct!(
         /// Current environment.
         pub env: Environment,
 
-        /// Virtual directory to the user's home directory.
+        /// Virtual path to the user's home directory.
         pub home_dir: PathBuf,
 
-        /// Virtual directory to the tool's installation directory.
+        /// Virtual path to the tool's installation directory.
         pub tool_dir: PathBuf,
+    }
+);
+
+json_struct!(
+    /// Output returned by the `native_install` function.
+    pub struct NativeInstallOutput {
+        /// Wheterh the install was successful.
+        pub installed: bool,
     }
 );
 
@@ -150,11 +162,6 @@ json_struct!(
         #[serde(skip_serializing_if = "Option::is_none")]
         pub archive_prefix: Option<String>,
 
-        /// Relative path from the installation directory to the binary.
-        /// If not provided, will use the tool `id` as the binary name.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub bin_path: Option<String>,
-
         /// File name of the checksum to download. If not provided,
         /// will attempt to extract it from the URL.
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -172,9 +179,6 @@ json_struct!(
 
         /// A secure URL to download the tool/archive.
         pub download_url: String,
-
-        /// Skip downloading the pre-built. This is an advanced escape hatch!
-        pub skip_download: bool,
     }
 );
 
@@ -224,6 +228,9 @@ json_struct!(
         /// Current environment.
         pub env: Environment,
 
+        /// Virtual path to the user's home directory.
+        pub home_dir: PathBuf,
+
         /// Virtual path to the tool's installation directory.
         pub tool_dir: PathBuf,
     }
@@ -234,7 +241,7 @@ json_struct!(
     pub struct LocateBinsOutput {
         /// Relative path from the tool directory to the binary to execute.
         #[serde(skip_serializing_if = "Option::is_none")]
-        pub bin_path: Option<String>,
+        pub bin_path: Option<PathBuf>,
 
         /// When true, the last item in `globals_lookup_dirs` will be used,
         /// regardless if it exists on the file system or not.
@@ -304,9 +311,6 @@ impl LoadVersionsOutput {
 json_struct!(
     /// Input passed to the `resolve_version` function.
     pub struct ResolveVersionInput {
-        /// Current resolved version candidate. Will be used if no replacement version is provided.
-        // pub candidate: String,
-
         /// The alias or version currently being resolved.
         pub initial: String,
 
@@ -336,7 +340,7 @@ json_struct!(
     pub struct ShimConfig {
         /// Relative path from the tool directory to the binary to execute.
         #[serde(skip_serializing_if = "Option::is_none")]
-        pub bin_path: Option<String>,
+        pub bin_path: Option<PathBuf>,
 
         /// Name of a parent binary that's required for this shim to work.
         /// For example, `npm` requires `node`.
@@ -358,10 +362,10 @@ impl ShimConfig {
     /// but uses the provided binary as the entry point.
     pub fn global_with_alt_bin<B>(bin_path: B) -> ShimConfig
     where
-        B: AsRef<str>,
+        B: AsRef<OsStr>,
     {
         ShimConfig {
-            bin_path: Some(bin_path.as_ref().to_owned()),
+            bin_path: Some(bin_path.as_ref().into()),
             ..ShimConfig::default()
         }
     }
@@ -382,10 +386,10 @@ impl ShimConfig {
     /// Create a local shim that executes the provided binary.
     pub fn local<B>(bin_path: B) -> ShimConfig
     where
-        B: AsRef<str>,
+        B: AsRef<OsStr>,
     {
         ShimConfig {
-            bin_path: Some(bin_path.as_ref().to_owned()),
+            bin_path: Some(bin_path.as_ref().into()),
             ..ShimConfig::default()
         }
     }
@@ -394,11 +398,11 @@ impl ShimConfig {
     /// through the context of the configured parent.
     pub fn local_with_parent<B, P>(bin_path: B, parent: P) -> ShimConfig
     where
-        B: AsRef<str>,
+        B: AsRef<OsStr>,
         P: AsRef<str>,
     {
         ShimConfig {
-            bin_path: Some(bin_path.as_ref().to_owned()),
+            bin_path: Some(bin_path.as_ref().into()),
             parent_bin: Some(parent.as_ref().to_owned()),
             ..ShimConfig::default()
         }

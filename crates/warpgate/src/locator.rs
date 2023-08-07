@@ -10,7 +10,7 @@ use std::str::FromStr;
 pub struct GitHubLocator {
     /// Name of asset without extension.
     /// Defaults to `<repo>_plugin`.
-    pub file_stem: String,
+    pub file_prefix: String,
 
     /// Organization and repository slug: `owner/repo`.
     pub repo_slug: String,
@@ -138,7 +138,7 @@ impl TryFrom<String> for PluginLocator {
                 let tag = parts.next().map(|t| t.to_owned());
 
                 Ok(PluginLocator::GitHub(GitHubLocator {
-                    file_stem: create_wasm_file_stem(extract_suffix_from_slug(&repo_slug)),
+                    file_prefix: create_wasm_file_stem(extract_suffix_from_slug(&repo_slug)),
                     repo_slug,
                     tag,
                 }))

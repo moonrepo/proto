@@ -1,119 +1,115 @@
 mod utils;
 
-use proto_core::Manifest;
-use rustc_hash::FxHashMap;
+use proto_core::{ToolManifest, VersionType};
 use starbase_sandbox::predicates::prelude::*;
+use std::collections::BTreeMap;
 use utils::*;
 
-#[test]
-fn updates_manifest_file() {
-    let temp = create_empty_sandbox();
-    let manifest_file = temp.path().join("tools/node/manifest.json");
+mod alias {
+    use super::*;
 
-    assert!(!manifest_file.exists());
+    #[test]
+    fn errors_unknown_tool() {
+        let sandbox = create_empty_sandbox();
 
-    let mut cmd = create_proto_command(temp.path());
-    cmd.arg("alias")
-        .arg("node")
-        .arg("example")
-        .arg("19.0.0")
-        .assert()
-        .success();
+        let mut cmd = create_proto_command(sandbox.path());
+        let assert = cmd
+            .arg("alias")
+            .arg("unknown")
+            .arg("alias")
+            .arg("1.2.3")
+            .assert();
 
-    assert!(manifest_file.exists());
+        assert.stderr(predicate::str::contains("unknown is not a built-in tool"));
+    }
 
-    let manifest = Manifest::load(manifest_file).unwrap();
+    #[test]
+    fn updates_manifest_file() {
+        let sandbox = create_empty_sandbox();
+        let manifest_file = sandbox.path().join("tools/node/manifest.json");
 
-    assert_eq!(
-        manifest.aliases,
-        FxHashMap::from_iter([("example".into(), "19.0.0".into())])
-    );
-}
+        assert!(!manifest_file.exists());
 
-#[test]
-fn updates_manifest_file_for_plugin() {
-    let temp = create_empty_sandbox_with_tools();
-    let manifest_file = temp.path().join("tools/moon-test/manifest.json");
+        let mut cmd = create_proto_command(sandbox.path());
+        cmd.arg("alias")
+            .arg("node")
+            .arg("example")
+            .arg("19.0.0")
+            .assert()
+            .success();
 
-    assert!(!manifest_file.exists());
+        assert!(manifest_file.exists());
 
-    let mut cmd = create_proto_command(temp.path());
-    cmd.arg("alias")
-        .arg("moon-test")
-        .arg("example")
-        .arg("1.0.0")
-        .assert()
-        .success();
+        let manifest = ToolManifest::load(manifest_file).unwrap();
 
-    assert!(manifest_file.exists());
+        assert_eq!(
+            manifest.aliases,
+            BTreeMap::from_iter([("example".into(), VersionType::parse("19.0.0").unwrap())])
+        );
+    }
 
-    let manifest = Manifest::load(manifest_file).unwrap();
+    #[test]
+    fn can_overwrite_existing_alias() {
+        let sandbox = create_empty_sandbox();
+        let manifest_file = sandbox.path().join("tools/node/manifest.json");
 
-    assert_eq!(
-        manifest.aliases,
-        FxHashMap::from_iter([("example".into(), "1.0.0".into())])
-    );
-}
+        let mut manifest = ToolManifest::load(&manifest_file).unwrap();
+        manifest
+            .aliases
+            .insert("example".into(), VersionType::parse("19.0.0").unwrap());
+        manifest.save().unwrap();
 
-#[test]
-fn can_overwrite_existing_alias() {
-    let temp = create_empty_sandbox();
-    let manifest_file = temp.path().join("tools/node/manifest.json");
+        let mut cmd = create_proto_command(sandbox.path());
+        cmd.arg("alias")
+            .arg("node")
+            .arg("example")
+            .arg("20.0.0")
+            .assert()
+            .success();
 
-    let mut manifest = Manifest::load(&manifest_file).unwrap();
-    manifest.aliases.insert("example".into(), "19.0.0".into());
-    manifest.save().unwrap();
+        let manifest = ToolManifest::load(&manifest_file).unwrap();
 
-    let mut cmd = create_proto_command(temp.path());
-    cmd.arg("alias")
-        .arg("node")
-        .arg("example")
-        .arg("20.0.0")
-        .assert()
-        .success();
+        assert_eq!(
+            manifest.aliases,
+            BTreeMap::from_iter([("example".into(), VersionType::parse("20.0.0").unwrap())])
+        );
+    }
 
-    let manifest = Manifest::load(&manifest_file).unwrap();
+    #[test]
+    fn errors_when_using_version() {
+        let sandbox = create_empty_sandbox();
+        let manifest_file = sandbox.path().join("tools/node/manifest.json");
 
-    assert_eq!(
-        manifest.aliases,
-        FxHashMap::from_iter([("example".into(), "20.0.0".into())])
-    );
-}
+        assert!(!manifest_file.exists());
 
-#[test]
-fn errors_when_using_version() {
-    let temp = create_empty_sandbox();
-    let manifest_file = temp.path().join("tools/node/manifest.json");
+        let mut cmd = create_proto_command(sandbox.path());
+        let assert = cmd
+            .arg("alias")
+            .arg("node")
+            .arg("1.2.3")
+            .arg("4.5.6")
+            .assert();
 
-    assert!(!manifest_file.exists());
+        assert.stderr(predicate::str::contains(
+            "Versions cannot be aliases. Use alphanumeric words instead.",
+        ));
+    }
 
-    let mut cmd = create_proto_command(temp.path());
-    let assert = cmd
-        .arg("alias")
-        .arg("node")
-        .arg("1.2.3")
-        .arg("4.5.6")
-        .assert();
+    #[test]
+    fn errors_when_aliasing_self() {
+        let sandbox = create_empty_sandbox();
+        let manifest_file = sandbox.path().join("tools/node/manifest.json");
 
-    assert.stderr(predicate::str::contains(
-        "Versions cannot be aliases. Use alphanumeric words instead.",
-    ));
-}
+        assert!(!manifest_file.exists());
 
-#[test]
-fn errors_when_aliasing_self() {
-    let temp = create_empty_sandbox();
-    let manifest_file = temp.path().join("tools/node/manifest.json");
+        let mut cmd = create_proto_command(sandbox.path());
+        let assert = cmd
+            .arg("alias")
+            .arg("node")
+            .arg("example")
+            .arg("example")
+            .assert();
 
-    assert!(!manifest_file.exists());
-
-    let mut cmd = create_proto_command(temp.path());
-    let assert = cmd
-        .arg("alias")
-        .arg("node")
-        .arg("example")
-        .arg("example")
-        .assert();
-
-    assert.stderr(predicate::str::contains("Cannot map an alias to itself."));
+        assert.stderr(predicate::str::contains("Cannot map an alias to itself."));
+    }
 }
