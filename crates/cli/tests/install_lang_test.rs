@@ -50,9 +50,8 @@ mod go {
 }
 
 mod node {
-    use proto_core::AliasOrVersion;
-
     use super::*;
+    use proto_core::AliasOrVersion;
 
     #[test]
     fn installs_bundled_npm() {
@@ -63,8 +62,8 @@ mod node {
 
         let output = output_to_string(&assert.get_output().stderr.to_vec());
 
-        assert!(predicate::str::contains("Node.js has been installed at").eval(&output));
-        assert!(predicate::str::contains("npm has been installed at").eval(&output));
+        assert!(predicate::str::contains("Node.js has been installed").eval(&output));
+        assert!(predicate::str::contains("npm has been installed").eval(&output));
 
         assert!(temp.path().join("tools/node/19.0.0").exists());
         assert!(temp.path().join("tools/npm/8.19.2").exists());
@@ -96,8 +95,8 @@ mod node {
 
         let output = output_to_string(&assert.get_output().stderr.to_vec());
 
-        assert!(predicate::str::contains("Node.js has been installed at").eval(&output));
-        assert!(!predicate::str::contains("npm has been installed at").eval(&output));
+        assert!(predicate::str::contains("Node.js has been installed").eval(&output));
+        assert!(!predicate::str::contains("npm has been installed").eval(&output));
 
         assert!(temp.path().join("tools/node/19.0.0").exists());
         assert!(!temp.path().join("tools/npm/8.19.2").exists());

@@ -88,7 +88,7 @@ impl FromStr for VersionType {
                 // If not fully qualified, match using a requirement
                 if dot_count < 2 {
                     VersionType::ReqAll(
-                        VersionReq::parse(&format!("^{value}")).map_err(handle_error)?,
+                        VersionReq::parse(&format!("~{value}")).map_err(handle_error)?,
                     )
                 } else {
                     VersionType::Version(Version::parse(&value).map_err(handle_error)?)

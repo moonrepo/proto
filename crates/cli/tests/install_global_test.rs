@@ -2,23 +2,27 @@
 
 // use utils::*;
 
-// #[test]
-// fn installs_node_global() {
-//     let temp = create_empty_sandbox();
+// mod install_global {
+//     use super::*;
 
-//     let mut cmd = create_proto_command(temp.path());
-//     cmd.arg("install").arg("npm").arg("latest").assert();
+//     #[test]
+//     fn installs_node_global() {
+//         let temp = create_empty_sandbox();
 
-//     let mut cmd = create_proto_command(temp.path());
-//     let assert = cmd
-//         .arg("install-global")
-//         .arg("node")
-//         .arg("typescript")
-//         .assert();
+//         let mut cmd = create_proto_command(temp.path());
+//         cmd.arg("install").arg("npm").arg("latest").assert();
 
-//     let output = output_to_string(&assert.get_output().stderr.to_vec());
+//         let mut cmd = create_proto_command(temp.path());
+//         let assert = cmd
+//             .arg("install-global")
+//             .arg("npm")
+//             .arg("typescript")
+//             .assert();
 
-//     dbg!(&output);
+//         let output = output_to_string(&assert.get_output().stderr.to_vec());
 
-//     assert!(temp.path().join("tools/node/globals/bin/tsc").exists());
+//         println!("{}", &output);
+
+//         assert!(temp.path().join("tools/node/globals/bin/tsc").exists());
+//     }
 // }

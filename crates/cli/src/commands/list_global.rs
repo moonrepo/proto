@@ -1,5 +1,4 @@
 use crate::tools::create_tool;
-use human_sort::compare;
 use starbase::{diagnostics::IntoDiagnostic, SystemResult};
 use starbase_styles::color;
 use starbase_utils::fs;
@@ -50,7 +49,7 @@ pub async fn list_global(tool_id: String) -> SystemResult {
         process::exit(1);
     }
 
-    bins.sort_by(|a, d| compare(a, d));
+    bins.sort();
 
     println!("{}", bins.join("\n"));
 

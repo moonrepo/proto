@@ -140,7 +140,7 @@ mod version_resolver {
                 &aliases
             )
             .unwrap(),
-            Version::new(1, 10, 5)
+            Version::new(1, 2, 3)
         );
 
         assert_eq!(
@@ -150,7 +150,7 @@ mod version_resolver {
                 &aliases
             )
             .unwrap(),
-            Version::new(1, 10, 5)
+            Version::new(1, 0, 0)
         );
 
         assert_eq!(

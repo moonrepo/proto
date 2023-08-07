@@ -80,17 +80,12 @@ pub async fn install_global(tool_id: String, dependencies: Vec<String>) -> Syste
     }
 
     info!(
-        "{} {} been installed to {}!",
+        "Installed {} to {}!",
         dependencies
             .iter()
             .map(color::id)
             .collect::<Vec<_>>()
             .join(", "),
-        if dependencies.len() == 1 {
-            "has"
-        } else {
-            "have"
-        },
         color::path(globals_dir),
     );
 
