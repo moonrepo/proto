@@ -102,7 +102,7 @@ mod version_type {
     fn no_patch_becomes_req() {
         assert_eq!(
             VersionType::from_str("1.2").unwrap(),
-            VersionType::ReqAll(VersionReq::parse("^1.2").unwrap())
+            VersionType::ReqAll(VersionReq::parse("~1.2").unwrap())
         );
     }
 
@@ -110,7 +110,7 @@ mod version_type {
     fn no_minor_becomes_req() {
         assert_eq!(
             VersionType::from_str("1").unwrap(),
-            VersionType::ReqAll(VersionReq::parse("^1").unwrap())
+            VersionType::ReqAll(VersionReq::parse("~1").unwrap())
         );
     }
 }

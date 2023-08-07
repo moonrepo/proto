@@ -10,6 +10,7 @@
 
 - [Node.js (and package managers)](https://github.com/moonrepo/node-plugin) and [Rust](https://github.com/moonrepo/rust-plugin) are now powered by WASM plugins, and have been removed from core.
   - Please report any issues you encounter or discrepancies from the previous release!
+  - Yarn 2+ is now installed using `@yarnpkg/cli-dist`. We no longer downgrade to the latest v1.
 - WASM API
   - Renamed host function `trace` to `host_log`.
   - Added `host_log!` and `exec_command!` macros for working with host functions.

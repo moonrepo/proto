@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 json_enum!(
-    /// Input passed to the `trace` host function.
+    /// Input passed to the `host_log` host function.
     #[serde(untagged)]
     pub enum HostLogInput {
         Message(String),
