@@ -55,7 +55,7 @@ pub async fn install_all() -> SystemResult {
         let mut futures = vec![];
 
         for (id, version) in config.tools {
-            futures.push(install(id, Some(version), false, vec![]));
+            futures.push(install(id, Some(version.to_implicit_type()), false, vec![]));
         }
 
         try_join_all(futures).await?;

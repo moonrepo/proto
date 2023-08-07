@@ -2,7 +2,7 @@ use crate::commands::install::install;
 // use crate::hooks::node as node_hooks;
 use crate::tools::create_tool;
 use miette::IntoDiagnostic;
-use proto_core::{detect_version, AliasOrVersion, ProtoError, UserConfig};
+use proto_core::{detect_version, AliasOrVersion, ProtoError, UserConfig, VersionType};
 use starbase::SystemResult;
 use starbase_styles::color;
 use std::env;
@@ -16,7 +16,7 @@ fn is_windows_script(path: &str) -> bool {
 
 pub async fn run(
     tool_id: String,
-    forced_version: Option<AliasOrVersion>,
+    forced_version: Option<VersionType>,
     alt_bin: Option<String>,
     args: Vec<String>,
 ) -> SystemResult {
@@ -39,7 +39,7 @@ pub async fn run(
 
         install(
             tool_id.clone(),
-            Some(tool.get_resolved_version()),
+            Some(tool.get_resolved_version().to_implicit_type()),
             false,
             vec![],
         )

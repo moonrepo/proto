@@ -21,6 +21,20 @@ impl VersionType {
     pub fn parse<T: AsRef<str>>(value: T) -> miette::Result<Self> {
         Ok(Self::from_str(value.as_ref())?)
     }
+
+    pub fn to_explicit_version(&self) -> AliasOrVersion {
+        match self {
+            VersionType::Alias(alias) => AliasOrVersion::Alias(alias.to_owned()),
+            VersionType::Version(version) => AliasOrVersion::Version(version.to_owned()),
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl Default for VersionType {
+    fn default() -> Self {
+        Self::Alias("latest".into())
+    }
 }
 
 impl FromStr for VersionType {
@@ -126,6 +140,13 @@ pub enum AliasOrVersion {
 impl AliasOrVersion {
     pub fn parse<T: AsRef<str>>(value: T) -> miette::Result<Self> {
         Ok(Self::from_str(value.as_ref())?)
+    }
+
+    pub fn to_implicit_type(&self) -> VersionType {
+        match self {
+            Self::Alias(alias) => VersionType::Alias(alias.to_owned()),
+            Self::Version(version) => VersionType::Version(version.to_owned()),
+        }
     }
 }
 

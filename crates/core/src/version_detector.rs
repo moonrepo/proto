@@ -9,8 +9,8 @@ use tracing::{debug, trace};
 
 pub async fn detect_version(
     tool: &Tool,
-    forced_version: Option<AliasOrVersion>,
-) -> miette::Result<AliasOrVersion> {
+    forced_version: Option<VersionType>,
+) -> miette::Result<VersionType> {
     let mut candidate = forced_version;
 
     // Env var takes highest priority
@@ -25,7 +25,7 @@ pub async fn detect_version(
                 "Detected version from environment variable",
             );
 
-            candidate = Some(AliasOrVersion::try_from(session_version)?);
+            candidate = Some(VersionType::parse(session_version)?);
         } else {
             trace!(
                 tool = &tool.id,
@@ -67,7 +67,7 @@ pub async fn detect_version(
                     "Detected version from .prototools file",
                 );
 
-                candidate = Some(local_version.to_owned());
+                candidate = Some(local_version.to_implicit_type());
                 break;
             }
 
@@ -82,7 +82,7 @@ pub async fn detect_version(
                         "Detected version from tool's ecosystem"
                     );
 
-                    candidate = Some(eco_version);
+                    candidate = Some(eco_version.to_implicit_type());
                     break;
                 }
             }
@@ -106,7 +106,7 @@ pub async fn detect_version(
                 "Detected global version from manifest",
             );
 
-            candidate = Some(global_version.to_owned());
+            candidate = Some(global_version.to_implicit_type());
         }
     }
 

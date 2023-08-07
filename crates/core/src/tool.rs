@@ -201,7 +201,7 @@ impl Tool {
     /// To reduce network overhead, results will be cached for 24 hours.
     pub async fn load_version_resolver(
         &self,
-        initial_version: &AliasOrVersion,
+        initial_version: &VersionType,
     ) -> miette::Result<VersionResolver> {
         debug!(tool = &self.id, "Loading available versions");
 
@@ -255,18 +255,15 @@ impl Tool {
 
     /// Given an initial version, resolve it to a fully qualifed and semantic version
     /// (or alias) according to the tool's ecosystem.
-    pub async fn resolve_version(
-        &mut self,
-        initial_version: &AliasOrVersion,
-    ) -> miette::Result<()> {
+    pub async fn resolve_version(&mut self, initial_version: &VersionType) -> miette::Result<()> {
         if self.version.is_some() {
             return Ok(());
         }
 
         // If offline but we have a fully qualified semantic version,
         // exit early and assume the version is legitimate!
-        if is_offline() && matches!(initial_version, AliasOrVersion::Version(_)) {
-            self.version = Some(initial_version.to_owned());
+        if is_offline() && matches!(initial_version, VersionType::Version(_)) {
+            self.version = Some(initial_version.to_explicit_version());
 
             return Ok(());
         }
@@ -278,7 +275,7 @@ impl Tool {
         );
 
         let resolver = self.load_version_resolver(initial_version).await?;
-        let mut version = initial_version.to_owned();
+        let mut version = AliasOrVersion::default();
         let mut resolved = false;
 
         if self.plugin.has_func("resolve_version") {
@@ -299,7 +296,7 @@ impl Tool {
 
                 resolved = true;
                 version =
-                    AliasOrVersion::Version(resolver.resolve(&AliasOrVersion::parse(candidate)?)?);
+                    AliasOrVersion::Version(resolver.resolve(&VersionType::parse(candidate)?)?);
             }
 
             if let Some(candidate) = result.version {
@@ -802,7 +799,7 @@ impl Tool {
 
 impl Tool {
     /// Return true if the tool has been setup (installed and binaries are located).
-    pub async fn is_setup(&mut self, initial_version: &AliasOrVersion) -> miette::Result<bool> {
+    pub async fn is_setup(&mut self, initial_version: &VersionType) -> miette::Result<bool> {
         self.resolve_version(initial_version).await?;
 
         let install_dir = self.get_tool_dir();
@@ -835,7 +832,7 @@ impl Tool {
 
     /// Setup the tool by resolving a semantic version, installing the tool,
     /// locating binaries, creating shims, and more.
-    pub async fn setup(&mut self, initial_version: &AliasOrVersion) -> miette::Result<bool> {
+    pub async fn setup(&mut self, initial_version: &VersionType) -> miette::Result<bool> {
         self.resolve_version(initial_version).await?;
 
         if self.install().await? {

@@ -1,4 +1,4 @@
-use crate::version::{AliasOrVersion, VersionType};
+use crate::version::VersionType;
 use crate::{ProtoError, ToolManifest};
 use proto_pdk_api::LoadVersionsOutput;
 use semver::{Version, VersionReq};
@@ -45,12 +45,7 @@ impl VersionResolver {
         Ok(())
     }
 
-    pub fn resolve(&self, candidate: &AliasOrVersion) -> miette::Result<Version> {
-        let candidate = match candidate {
-            AliasOrVersion::Alias(alias) => VersionType::Alias(alias.to_owned()),
-            AliasOrVersion::Version(version) => VersionType::Version(version.to_owned()),
-        };
-
+    pub fn resolve(&self, candidate: &VersionType) -> miette::Result<Version> {
         resolve_version(
             &candidate,
             &self.versions.iter().collect::<Vec<_>>(),

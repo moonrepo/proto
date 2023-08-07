@@ -1,10 +1,10 @@
 use crate::helpers::{create_progress_bar, disable_progress_bars};
 use crate::tools::create_tool;
-use proto_core::AliasOrVersion;
+use proto_core::VersionType;
 use starbase::SystemResult;
 use tracing::{debug, info};
 
-pub async fn uninstall(tool_id: String, version: AliasOrVersion) -> SystemResult {
+pub async fn uninstall(tool_id: String, version: VersionType) -> SystemResult {
     let mut tool = create_tool(&tool_id).await?;
 
     if !tool.is_setup(&version).await? {

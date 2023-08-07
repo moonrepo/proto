@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand, ValueEnum};
 use clap_complete::Shell;
-use proto_core::AliasOrVersion;
+use proto_core::{AliasOrVersion, VersionType};
 use std::fmt::{Display, Error, Formatter};
 
 #[derive(ValueEnum, Clone, Debug, Default)]
@@ -74,8 +74,8 @@ pub enum Commands {
         #[arg(required = true, help = "Alias name")]
         alias: String,
 
-        #[arg(required = true, help = "Version (or alias) to associate with")]
-        semver: String,
+        #[arg(required = true, help = "Version or alias to associate with")]
+        semver: VersionType,
     },
 
     #[command(
@@ -88,7 +88,7 @@ pub enum Commands {
         tool: String,
 
         #[arg(help = "Version or alias of tool")]
-        semver: Option<AliasOrVersion>,
+        semver: Option<VersionType>,
 
         #[arg(long, help = "Display shim path when available")]
         shim: bool,
@@ -126,7 +126,7 @@ pub enum Commands {
         tool: String,
 
         #[arg(default_value = "latest", help = "Version or alias of tool")]
-        semver: Option<AliasOrVersion>,
+        semver: Option<VersionType>,
 
         #[arg(long, help = "Pin version as the global default")]
         pin: bool,
@@ -226,7 +226,7 @@ pub enum Commands {
         tool: String,
 
         #[arg(help = "Version or alias of tool")]
-        semver: Option<AliasOrVersion>,
+        semver: Option<VersionType>,
 
         #[arg(long, help = "Path to an alternate binary to run")]
         bin: Option<String>,
@@ -268,7 +268,7 @@ pub enum Commands {
         tool: String,
 
         #[arg(required = true, help = "Version or alias of tool")]
-        semver: AliasOrVersion,
+        semver: VersionType,
     },
 
     #[command(
