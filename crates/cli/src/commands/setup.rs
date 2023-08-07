@@ -52,6 +52,7 @@ fn do_setup(shell: Shell, _bin_dir: PathBuf, print_profile: bool) -> miette::Res
 // so we're going to execute the `setx` command instead!
 #[cfg(windows)]
 fn do_setup(shell: Shell, bin_dir: PathBuf, print_profile: bool) -> miette::Result<()> {
+    use miette::IntoDiagnostic;
     use std::process::Command;
     use tracing::warn;
     use winreg::enums::HKEY_CURRENT_USER;
@@ -77,7 +78,7 @@ fn do_setup(shell: Shell, bin_dir: PathBuf, print_profile: bool) -> miette::Resu
 
     debug!(
         "Updating PATH with {} command",
-        proto_core::color::shell("setx"),
+        starbase_styles::color::shell("setx"),
     );
 
     let mut paths = vec![bin_dir];
@@ -87,9 +88,7 @@ fn do_setup(shell: Shell, bin_dir: PathBuf, print_profile: bool) -> miette::Resu
     command.arg("PATH");
     command.arg(env::join_paths(paths).unwrap());
 
-    let output = command
-        .output()
-        .map_err(|e| ProtoError::Message(e.to_string()))?;
+    let output = command.output().into_diagnostic()?;
 
     if !output.status.success() {
         warn!("Failed to update PATH");
