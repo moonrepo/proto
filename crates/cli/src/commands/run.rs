@@ -10,9 +10,6 @@ use std::process::exit;
 use tokio::process::Command;
 use tracing::debug;
 
-fn is_windows_script(path: &str) -> bool {
-    path.ends_with(".ps1") || path.ends_with(".cmd") || path.ends_with(".bat")
-}
 
 pub async fn run(
     tool_id: String,
@@ -94,12 +91,18 @@ pub async fn run(
     }
 
     // Run the command
-    let mut command = if is_windows_script(bin_path.to_str().unwrap_or_default()) {
-        let mut cmd = Command::new("powershell.exe");
-        cmd.arg("-C").arg(bin_path);
-        cmd
-    } else {
-        Command::new(bin_path)
+    let mut command = match bin_path.extension().map(|e| e.to_str().unwrap()) {
+        Some("ps1") => {
+            let mut cmd = Command::new("powershell");
+            cmd.arg("--File").arg(bin_path);
+            cmd
+        }
+        Some("cmd" | "bat") => {
+            let mut cmd = Command::new("cmd");
+            cmd.arg("/q").arg("/c").arg(bin_path);
+            cmd
+        }
+        _ =>  Command::new(bin_path),
     };
 
     let status = command

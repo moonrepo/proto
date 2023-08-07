@@ -1,12 +1,10 @@
-use proto_core::{create_global_shim, create_local_shim, ProtoEnvironment, ShimContext};
-use starbase_sandbox::{assert_snapshot, create_empty_sandbox};
-use std::fs;
-use std::path::{Path, PathBuf};
-
 // Windows generates different snapshots
 #[cfg(not(windows))]
 mod shimmer {
-    use super::*;
+    use proto_core::{create_global_shim, create_local_shim, ProtoEnvironment, ShimContext};
+    use starbase_sandbox::{assert_snapshot, create_empty_sandbox};
+    use std::fs;
+    use std::path::{Path, PathBuf};
 
     fn create_context<'l>(id: &'l str, proto: &'l ProtoEnvironment) -> ShimContext<'l> {
         ShimContext {
