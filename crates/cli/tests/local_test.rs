@@ -3,111 +3,98 @@ mod utils;
 use std::fs;
 use utils::*;
 
-#[test]
-fn writes_local_version_file() {
-    let temp = create_empty_sandbox();
-    let version_file = temp.path().join(".prototools");
+mod local {
+    use super::*;
 
-    assert!(!version_file.exists());
+    #[test]
+    fn writes_local_version_file() {
+        let temp = create_empty_sandbox();
+        let version_file = temp.path().join(".prototools");
 
-    let mut cmd = create_proto_command(temp.path());
-    cmd.arg("local")
-        .arg("node")
-        .arg("19.0.0")
-        .assert()
-        .success();
+        assert!(!version_file.exists());
 
-    assert!(version_file.exists());
-    assert_eq!(
-        fs::read_to_string(version_file).unwrap(),
-        "node = \"19.0.0\"\n"
-    )
-}
+        let mut cmd = create_proto_command(temp.path());
+        cmd.arg("local")
+            .arg("node")
+            .arg("19.0.0")
+            .assert()
+            .success();
 
-#[test]
-fn writes_local_version_file_for_plugin() {
-    let temp = create_empty_sandbox_with_tools();
-    let version_file = temp.path().join(".prototools");
+        assert!(version_file.exists());
+        assert_eq!(
+            fs::read_to_string(version_file).unwrap(),
+            "node = \"19.0.0\"\n"
+        )
+    }
 
-    let mut cmd = create_proto_command(temp.path());
-    cmd.arg("local")
-        .arg("moon-test")
-        .arg("1.0.0")
-        .assert()
-        .success();
+    #[test]
+    fn appends_multiple_tools() {
+        let temp = create_empty_sandbox();
+        let version_file = temp.path().join(".prototools");
 
-    assert!(fs::read_to_string(version_file)
-        .unwrap()
-        .contains("moon-test = \"1.0.0\""))
-}
+        let mut cmd = create_proto_command(temp.path());
+        cmd.arg("local")
+            .arg("node")
+            .arg("19.0.0")
+            .assert()
+            .success();
 
-#[test]
-fn appends_multiple_tools() {
-    let temp = create_empty_sandbox();
-    let version_file = temp.path().join(".prototools");
+        let mut cmd = create_proto_command(temp.path());
+        cmd.arg("local").arg("npm").arg("9.0.0").assert().success();
 
-    let mut cmd = create_proto_command(temp.path());
-    cmd.arg("local")
-        .arg("node")
-        .arg("19.0.0")
-        .assert()
-        .success();
-
-    let mut cmd = create_proto_command(temp.path());
-    cmd.arg("local").arg("npm").arg("9.0.0").assert().success();
-
-    assert_eq!(
-        fs::read_to_string(version_file).unwrap(),
-        r#"node = "19.0.0"
+        assert_eq!(
+            fs::read_to_string(version_file).unwrap(),
+            r#"node = "19.0.0"
 npm = "9.0.0"
 "#
-    )
-}
+        )
+    }
 
-#[test]
-fn will_overwrite_by_name() {
-    let temp = create_empty_sandbox();
-    let version_file = temp.path().join(".prototools");
+    #[test]
+    fn will_overwrite_by_name() {
+        let temp = create_empty_sandbox();
+        let version_file = temp.path().join(".prototools");
 
-    temp.create_file(
-        ".prototools",
-        r#"node = "16.0.0"
+        temp.create_file(
+            ".prototools",
+            r#"node = "16.0.0"
 npm = "9.0.0"
 "#,
-    );
+        );
 
-    let mut cmd = create_proto_command(temp.path());
-    cmd.arg("local")
-        .arg("node")
-        .arg("19.0.0")
-        .assert()
-        .success();
+        let mut cmd = create_proto_command(temp.path());
+        cmd.arg("local")
+            .arg("node")
+            .arg("19.0.0")
+            .assert()
+            .success();
 
-    assert_eq!(
-        fs::read_to_string(version_file).unwrap(),
-        r#"node = "19.0.0"
+        assert_eq!(
+            fs::read_to_string(version_file).unwrap(),
+            r#"node = "19.0.0"
 npm = "9.0.0"
 "#
-    )
-}
+        )
+    }
 
-#[test]
-fn can_set_aliases() {
-    let temp = create_empty_sandbox();
-    let version_file = temp.path().join(".prototools");
+    #[test]
+    fn can_set_aliases() {
+        let temp = create_empty_sandbox();
+        let version_file = temp.path().join(".prototools");
 
-    assert!(!version_file.exists());
+        assert!(!version_file.exists());
 
-    let mut cmd = create_proto_command(temp.path());
-    cmd.arg("local")
-        .arg("npm")
-        .arg("bundled")
-        .assert()
-        .success();
+        let mut cmd = create_proto_command(temp.path());
+        cmd.arg("local")
+            .arg("npm")
+            .arg("bundled")
+            .assert()
+            .success();
 
-    assert!(version_file.exists());
-    assert_eq!(
-        fs::read_to_string(version_file).unwrap(),
-        "npm = \"bundled\"\n"
-    )
+        assert!(version_file.exists());
+        assert_eq!(
+            fs::read_to_string(version_file).unwrap(),
+            "npm = \"bundled\"\n"
+        )
+    }
 }

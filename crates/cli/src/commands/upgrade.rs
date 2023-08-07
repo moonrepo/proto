@@ -1,24 +1,28 @@
 use crate::helpers::download_to_temp_with_progress_bar;
-use proto_core::{color, get_bin_dir, get_temp_dir, is_offline, load_git_tags, unpack, ProtoError};
+use miette::IntoDiagnostic;
+use proto_core::{get_bin_dir, get_temp_dir, is_offline, ProtoError};
 use semver::Version;
 use starbase::SystemResult;
+use starbase_archive::Archiver;
+use starbase_styles::color;
 use starbase_utils::fs;
 use std::env::consts;
 use std::path::PathBuf;
 use tracing::{debug, info};
 
-async fn fetch_version() -> Result<String, ProtoError> {
-    let tags = load_git_tags("https://github.com/moonrepo/proto")
-        .await?
-        .into_iter()
-        .filter(|t| t.starts_with('v'))
-        .collect::<Vec<_>>();
+async fn fetch_version() -> miette::Result<String> {
+    let version = reqwest::get("https://raw.githubusercontent.com/moonrepo/proto/master/version")
+        .await
+        .into_diagnostic()?
+        .text()
+        .await
+        .into_diagnostic()?
+        .trim()
+        .to_string();
 
-    let latest = tags.last().unwrap().strip_prefix('v').unwrap().to_owned();
+    debug!("Found latest version {}", color::hash(&version));
 
-    debug!("Found latest version {}", color::id(&latest));
-
-    Ok(latest)
+    Ok(version)
 }
 
 pub async fn upgrade() -> SystemResult {
@@ -33,8 +37,8 @@ pub async fn upgrade() -> SystemResult {
 
     debug!(
         "Comparing latest version {} to local version {}",
-        color::id(&new_version),
-        color::id(version),
+        color::hash(&new_version),
+        color::hash(version),
     );
 
     if Version::parse(&new_version).unwrap() <= Version::parse(version).unwrap() {
@@ -48,11 +52,11 @@ pub async fn upgrade() -> SystemResult {
         ("linux", arch) => format!("{arch}-unknown-linux-gnu"),
         ("macos", arch) => format!("{arch}-apple-darwin"),
         ("windows", "x86_64") => "x86_64-pc-windows-msvc".to_owned(),
-        (_, arch) => {
-            return Err(ProtoError::UnsupportedArchitecture(
-                "proto".to_owned(),
-                arch.to_owned(),
-            ))?;
+        (os, arch) => {
+            return Err(ProtoError::Message(format!(
+                "Unable to upgrade proto, unsupported platform {} + {}.",
+                os, arch
+            )))?;
         }
     };
     let target_ext = if cfg!(windows) { "zip" } else { "tar.xz" };
@@ -66,10 +70,10 @@ pub async fn upgrade() -> SystemResult {
         "https://github.com/moonrepo/proto/releases/download/v{new_version}/{download_file}"
     );
     let temp_file = download_to_temp_with_progress_bar(&download_url, &download_file).await?;
-    let temp_dir = get_temp_dir()?;
+    let temp_dir = get_temp_dir()?.join(&target_file);
 
     // Unpack the downloaded file
-    unpack(temp_file, &temp_dir, None)?;
+    Archiver::new(&temp_dir, &temp_file).unpack_from_ext()?;
 
     // Move the old binary
     let bin_dir = get_bin_dir()?;
@@ -94,11 +98,14 @@ pub async fn upgrade() -> SystemResult {
     ];
 
     for lookup_path in lookup_paths {
-        let temp_path = temp_dir.join(lookup_path);
+        let possible_bin_path = temp_dir.join(lookup_path);
 
-        if temp_path.exists() {
-            fs::copy_file(temp_path, &bin_path)?;
+        if possible_bin_path.exists() {
+            fs::copy_file(possible_bin_path, &bin_path)?;
             fs::update_perms(&bin_path, None)?;
+
+            fs::remove(temp_dir)?;
+            fs::remove(temp_file)?;
 
             info!("Upgraded proto to v{}!", new_version);
 
@@ -108,6 +115,6 @@ pub async fn upgrade() -> SystemResult {
 
     Err(ProtoError::Message(format!(
         "Failed to upgrade proto, {} could not be located after download!",
-        color::shell("proto.exe")
+        color::shell(bin_name)
     )))?
 }

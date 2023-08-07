@@ -1,10 +1,11 @@
-use crate::tools::create_plugin_from_locator;
+use crate::tools::create_tool_from_plugin;
 use miette::IntoDiagnostic;
-use proto_core::{color, Proto, ToolsConfig, UserConfig};
-use rustc_hash::FxHashMap;
+use proto_core::{ProtoEnvironment, ToolsConfig, UserConfig};
 use serde::Serialize;
 use starbase::SystemResult;
+use starbase_styles::color;
 use starbase_utils::json;
+use std::collections::HashMap;
 use tracing::debug;
 use warpgate::PluginLocator;
 
@@ -25,12 +26,13 @@ pub struct PluginItem {
 }
 
 pub async fn plugins(json: bool) -> SystemResult {
-    let proto = Proto::new()?;
+    let proto = ProtoEnvironment::new()?;
     let user_config = UserConfig::load()?;
+
     let mut tools_config = ToolsConfig::load_upwards()?;
     tools_config.inherit_builtin_plugins();
 
-    let mut plugins = FxHashMap::default();
+    let mut plugins = HashMap::new();
     plugins.extend(user_config.plugins);
     plugins.extend(tools_config.plugins);
 
@@ -39,7 +41,7 @@ pub async fn plugins(json: bool) -> SystemResult {
     let mut items = vec![];
 
     for (id, locator) in plugins {
-        let tool = create_plugin_from_locator(&id, &proto, &locator).await?;
+        let tool = create_tool_from_plugin(&id, &proto, &locator).await?;
 
         items.push(PluginItem {
             id,

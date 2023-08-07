@@ -1,17 +1,17 @@
-use crate::tools::{create_tool, ToolType};
-use proto_core::detect_version;
+use crate::tools::create_tool;
+use proto_core::{detect_version, VersionType};
 use starbase::SystemResult;
 
 pub async fn bin(
-    tool_type: ToolType,
-    forced_version: Option<String>,
+    tool_id: String,
+    forced_version: Option<VersionType>,
     use_shim: bool,
 ) -> SystemResult {
-    let mut tool = create_tool(&tool_type).await?;
+    let mut tool = create_tool(&tool_id).await?;
     let version = detect_version(&tool, forced_version).await?;
 
     tool.resolve_version(&version).await?;
-    tool.find_bin_path().await?;
+    tool.locate_bins().await?;
 
     if use_shim {
         tool.setup_shims(true).await?;

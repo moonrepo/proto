@@ -3,38 +3,33 @@ name = "proto_core"
 version = "0.13.1"
 edition = "2021"
 license = "MIT"
-description = "Core proto APIs for languages to implement."
+description = "Core proto APIs."
 homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
+proto_pdk_api = { version = "0.3.1", path = "../pdk-api" }
+proto_wasm_plugin = { version = "0.3.1", path = "../wasm-plugin" }
 warpgate = { version = "0.2.0", path = "../warpgate" }
-async-trait = "0.1.71"
 cached = { workspace = true }
-convert_case = { workspace = true }
-dirs = "5.0.1"
-flate2 = "1.0.26"
+extism = { workspace = true }
 fs4 = { version = "0.6.6", features = ["sync"] }
 human-sort = { workspace = true }
-lenient_semver = { version = "0.4.2", default-features = false, features = ["version_lite"] }
 miette = { workspace = true }
-pathdiff = "0.2.1"
+once_cell = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true }
-rustc-hash = { workspace = true }
 semver = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
+starbase_archive = { workspace = true }
 starbase_styles = { workspace = true }
 starbase_utils = { workspace = true }
-tar = "0.4.38"
-tinytemplate = "1.2.1"
 thiserror = { workspace = true }
-tokio = { workspace = true }
+tinytemplate = "1.2.1"
 tracing = { workspace = true }
-xz2 = "0.1.7"
-zip = "0.6.6"
+url = "2.4.0"
 
 [dev-dependencies]
 starbase_sandbox = { workspace = true }

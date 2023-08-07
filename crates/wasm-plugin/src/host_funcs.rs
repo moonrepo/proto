@@ -9,7 +9,7 @@ pub struct HostData {
     pub working_dir: PathBuf,
 }
 
-pub fn create_functions(data: HostData) -> Vec<Function> {
+pub fn create_host_functions(data: HostData) -> Vec<Function> {
     vec![
         Function::new("host_log", [ValType::I64], [], None, host_log),
         Function::new(

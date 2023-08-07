@@ -1,30 +1,33 @@
-use crate::{errors::ProtoError, helpers::get_root};
-use rustc_hash::FxHashMap;
+use crate::helpers::get_root;
 use serde::Deserialize;
 use starbase_utils::toml;
+use std::collections::BTreeMap;
 use std::env;
+use std::path::Path;
+use tracing::debug;
 use warpgate::PluginLocator;
 
 pub const USER_CONFIG_NAME: &str = "config.toml";
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, PartialEq)]
 #[serde(default, rename_all = "kebab-case")]
 pub struct UserConfig {
     pub auto_clean: bool,
     pub auto_install: bool,
     pub node_intercept_globals: bool,
-    pub plugins: FxHashMap<String, PluginLocator>,
+    pub plugins: BTreeMap<String, PluginLocator>,
 }
 
 impl UserConfig {
-    #[tracing::instrument(skip_all)]
-    pub fn load() -> Result<Self, ProtoError> {
-        let root = get_root()?;
-        let path = root.join(USER_CONFIG_NAME);
+    pub fn load_from<P: AsRef<Path>>(dir: P) -> miette::Result<Self> {
+        let dir = dir.as_ref();
+        let path = dir.join(USER_CONFIG_NAME);
 
         if !path.exists() {
             return Ok(UserConfig::default());
         }
+
+        debug!(file = ?path, "Loading {}", USER_CONFIG_NAME);
 
         let mut config: UserConfig = toml::read_file(&path)?;
 
@@ -35,11 +38,27 @@ impl UserConfig {
                 ..
             } = locator
             {
-                *source_path = root.join(&source_path);
+                *source_path = dir.join(&source_path);
             }
         }
 
         Ok(config)
+    }
+
+    #[tracing::instrument(skip_all)]
+    pub fn load() -> miette::Result<Self> {
+        Self::load_from(get_root()?)
+    }
+}
+
+impl Default for UserConfig {
+    fn default() -> Self {
+        Self {
+            auto_clean: from_var("PROTO_AUTO_CLEAN", false),
+            auto_install: from_var("PROTO_AUTO_INSTALL", false),
+            node_intercept_globals: from_var("PROTO_NODE_INTERCEPT_GLOBALS", true),
+            plugins: BTreeMap::default(),
+        }
     }
 }
 
@@ -49,15 +68,4 @@ fn from_var(name: &str, fallback: bool) -> bool {
     }
 
     fallback
-}
-
-impl Default for UserConfig {
-    fn default() -> Self {
-        Self {
-            auto_clean: from_var("PROTO_AUTO_CLEAN", false),
-            auto_install: from_var("PROTO_AUTO_INSTALL", false),
-            node_intercept_globals: from_var("PROTO_NODE_INTERCEPT_GLOBALS", true),
-            plugins: FxHashMap::default(),
-        }
-    }
 }

@@ -1,35 +1,77 @@
-use crate::errors::ProtoError;
-use convert_case::{Case, Casing};
-use rustc_hash::FxHashMap;
-use starbase_utils::toml::{self, TomlTable, TomlValue};
+use crate::version::AliasOrVersion;
+use serde::{Deserialize, Serialize};
+use starbase_utils::toml;
+use std::collections::BTreeMap;
 use std::env;
 use std::path::{Path, PathBuf};
-use tracing::trace;
+use tracing::{debug, trace};
 use warpgate::PluginLocator;
 
 pub const TOOLS_CONFIG_NAME: &str = ".prototools";
 
-#[derive(Debug, Default)]
+fn is_empty<T>(map: &BTreeMap<String, T>) -> bool {
+    map.is_empty()
+}
+
+#[derive(Debug, Default, Deserialize, Serialize)]
+#[serde(default, rename_all = "kebab-case")]
 pub struct ToolsConfig {
-    pub tools: FxHashMap<String, String>,
-    pub plugins: FxHashMap<String, PluginLocator>,
+    #[serde(flatten, skip_serializing_if = "is_empty")]
+    pub tools: BTreeMap<String, AliasOrVersion>,
+
+    #[serde(skip_serializing_if = "is_empty")]
+    pub plugins: BTreeMap<String, PluginLocator>,
+
+    #[serde(skip)]
     pub path: PathBuf,
 }
 
 impl ToolsConfig {
-    pub fn builtin_plugins() -> FxHashMap<String, PluginLocator> {
+    pub fn builtin_plugins() -> BTreeMap<String, PluginLocator> {
         let mut config = ToolsConfig::default();
         config.inherit_builtin_plugins();
         config.plugins
     }
 
-    pub fn load_upwards() -> Result<Self, ProtoError> {
+    pub fn load_from<P: AsRef<Path>>(dir: P) -> miette::Result<Self> {
+        Self::load(dir.as_ref().join(TOOLS_CONFIG_NAME))
+    }
+
+    #[tracing::instrument(skip_all)]
+    pub fn load<P: AsRef<Path>>(path: P) -> miette::Result<Self> {
+        let path = path.as_ref();
+
+        let mut config: ToolsConfig = if path.exists() {
+            debug!(file = ?path, "Loading {}", TOOLS_CONFIG_NAME);
+
+            toml::read_file(path)?
+        } else {
+            ToolsConfig::default()
+        };
+
+        config.path = path.to_owned();
+
+        // Update plugin file paths to be absolute
+        for locator in config.plugins.values_mut() {
+            if let PluginLocator::SourceFile {
+                path: ref mut source_path,
+                ..
+            } = locator
+            {
+                *source_path = path.parent().unwrap().join(&source_path);
+            }
+        }
+
+        Ok(config)
+    }
+
+    pub fn load_upwards() -> miette::Result<Self> {
         let working_dir = env::current_dir().expect("Unknown current working directory!");
 
         Self::load_upwards_from(working_dir)
     }
 
-    pub fn load_upwards_from<P>(starting_dir: P) -> Result<Self, ProtoError>
+    pub fn load_upwards_from<P>(starting_dir: P) -> miette::Result<Self>
     where
         P: AsRef<Path>,
     {
@@ -61,84 +103,10 @@ impl ToolsConfig {
         Ok(config)
     }
 
-    pub fn load_from<P: AsRef<Path>>(dir: P) -> Result<Self, ProtoError> {
-        Self::load(dir.as_ref().join(TOOLS_CONFIG_NAME))
-    }
+    pub fn save(&self) -> miette::Result<()> {
+        toml::write_file(&self.path, self, true)?;
 
-    #[tracing::instrument(skip_all)]
-    pub fn load<P: AsRef<Path>>(path: P) -> Result<Self, ProtoError> {
-        let path = path.as_ref();
-
-        if !path.exists() {
-            return Ok(ToolsConfig {
-                path: path.to_owned(),
-                ..ToolsConfig::default()
-            });
-        }
-
-        let config: TomlValue = toml::read_file(path)?;
-        let mut tools = FxHashMap::default();
-        let mut plugins = FxHashMap::default();
-
-        if let TomlValue::Table(table) = config {
-            for (key, value) in table {
-                match value {
-                    TomlValue::String(version) => {
-                        tools.insert(key, version);
-                    }
-                    TomlValue::Table(plugins_table) => {
-                        if key != "plugins" {
-                            return Err(ProtoError::InvalidConfig(
-                                path.to_path_buf(),
-                                "Expected a [plugins] map.".into(),
-                            ));
-                        }
-
-                        for (plugin, location) in plugins_table {
-                            if let TomlValue::String(location) = location {
-                                let mut locator = PluginLocator::try_from(location).map_err(|e| ProtoError::Message(e.to_string()))?;
-
-                                // Update file paths to be absolute
-                                if let PluginLocator::SourceFile { path: ref mut source_path, .. } = locator {
-                                    *source_path = path.parent().unwrap().join(&source_path);
-                                }
-
-                                plugins.insert(
-                                    plugin.to_case(Case::Kebab),
-                                    locator,
-                                );
-                            } else {
-                                return Err(ProtoError::InvalidConfig(
-                                    path.to_path_buf(),
-                                    format!(
-                                        "Invalid plugin \"{plugin}\", expected a locator string."
-                                    ),
-                                ));
-                            }
-                        }
-                    }
-                    _ => {
-                        return Err(ProtoError::InvalidConfig(
-                            path.to_path_buf(),
-                            format!(
-                                "Invalid field \"{key}\", expected a mapped tool version, or a [plugins] map."
-                            ),
-                        ))
-                    }
-                }
-            }
-        } else {
-            return Err(ProtoError::InvalidConfig(
-                path.to_path_buf(),
-                "Expected a mapping of tools or plugins.".into(),
-            ));
-        }
-
-        Ok(ToolsConfig {
-            tools,
-            plugins,
-            path: path.to_owned(),
-        })
+        Ok(())
     }
 
     pub fn inherit_builtin_plugins(&mut self) {
@@ -193,27 +161,5 @@ impl ToolsConfig {
     pub fn merge(&mut self, other: ToolsConfig) {
         self.tools.extend(other.tools);
         self.plugins.extend(other.plugins);
-    }
-
-    pub fn save(&self) -> Result<(), ProtoError> {
-        let mut map = TomlTable::with_capacity(self.tools.len());
-
-        for (tool, version) in &self.tools {
-            map.insert(tool.to_owned(), TomlValue::String(version.to_owned()));
-        }
-
-        if !self.plugins.is_empty() {
-            let mut plugins = TomlTable::with_capacity(self.plugins.len());
-
-            for (plugin, locator) in &self.plugins {
-                plugins.insert(plugin.to_owned(), TomlValue::String(locator.to_string()));
-            }
-
-            map.insert("plugins".to_owned(), TomlValue::Table(plugins));
-        }
-
-        toml::write_file(&self.path, &TomlValue::Table(map), true)?;
-
-        Ok(())
     }
 }

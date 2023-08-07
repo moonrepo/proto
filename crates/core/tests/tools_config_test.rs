@@ -1,160 +1,177 @@
-use proto_core::{PluginLocator, ToolsConfig};
-use rustc_hash::FxHashMap;
+use proto_core::{AliasOrVersion, ToolsConfig};
 use starbase_sandbox::create_empty_sandbox;
+use std::collections::BTreeMap;
+use std::str::FromStr;
+use warpgate::PluginLocator;
 
-#[test]
-#[should_panic(expected = "InvalidConfig")]
-fn errors_for_non_version_string() {
-    let fixture = create_empty_sandbox();
-    fixture.create_file(".prototools", "node = 123");
+mod tools_config {
+    use super::*;
 
-    ToolsConfig::load_from(fixture.path()).unwrap();
-}
+    #[test]
+    #[should_panic(expected = "invalid type: integer `123`, expected a string")]
+    fn errors_for_non_version_string() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "node = 123");
 
-#[test]
-#[should_panic(expected = "InvalidConfig")]
-fn errors_for_non_plugins_table() {
-    let fixture = create_empty_sandbox();
-    fixture.create_file(".prototools", "[other]\nkey = 123");
+        ToolsConfig::load_from(sandbox.path()).unwrap();
+    }
 
-    ToolsConfig::load_from(fixture.path()).unwrap();
-}
+    #[test]
+    #[should_panic(expected = "invalid type: map, expected a string")]
+    fn errors_for_non_plugins_table() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "[other]\nkey = 123");
 
-#[test]
-fn parses_plugins_table() {
-    let fixture = create_empty_sandbox();
-    fixture.create_file(
-        ".prototools",
-        r#"
+        ToolsConfig::load_from(sandbox.path()).unwrap();
+    }
+
+    #[test]
+    fn parses_plugins_table() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(
+            ".prototools",
+            r#"
 node = "12.0.0"
+rust = "stable"
 
 [plugins]
 foo = "source:./test.toml"
 camelCase = "source:./camel.toml"
 "#,
-    );
+        );
 
-    let config = ToolsConfig::load_from(fixture.path()).unwrap();
+        let config = ToolsConfig::load_from(sandbox.path()).unwrap();
 
-    assert_eq!(
-        config.tools,
-        FxHashMap::from_iter([("node".into(), "12.0.0".into())])
-    );
+        assert_eq!(
+            config.tools,
+            BTreeMap::from_iter([
+                ("node".into(), AliasOrVersion::from_str("12.0.0").unwrap()),
+                ("rust".into(), AliasOrVersion::Alias("stable".into())),
+            ])
+        );
 
-    assert_eq!(
-        config.plugins,
-        FxHashMap::from_iter([
-            (
-                "foo".into(),
-                PluginLocator::SourceFile {
-                    file: "./test.toml".into(),
-                    path: fixture.path().join("./test.toml")
-                }
-            ),
-            (
-                "camel-case".into(),
-                PluginLocator::SourceFile {
-                    file: "./camel.toml".into(),
-                    path: fixture.path().join("./camel.toml")
-                }
-            )
-        ])
-    );
-}
+        assert_eq!(
+            config.plugins,
+            BTreeMap::from_iter([
+                (
+                    "foo".into(),
+                    PluginLocator::SourceFile {
+                        file: "./test.toml".into(),
+                        path: sandbox.path().join("./test.toml")
+                    }
+                ),
+                (
+                    "camelCase".into(),
+                    PluginLocator::SourceFile {
+                        file: "./camel.toml".into(),
+                        path: sandbox.path().join("./camel.toml")
+                    }
+                )
+            ])
+        );
+    }
 
-#[test]
-fn formats_plugins_table() {
-    let fixture = create_empty_sandbox();
+    #[test]
+    fn formats_plugins_table() {
+        let sandbox = create_empty_sandbox();
+        let mut config = ToolsConfig::load_from(sandbox.path()).unwrap();
 
-    let mut config = ToolsConfig::load_from(fixture.path()).unwrap();
-    config.tools.insert("node".into(), "12.0.0".into());
-    config.plugins.insert(
-        "foo".into(),
-        PluginLocator::SourceFile {
-            file: "./test.toml".into(),
-            path: fixture.path().join("./test.toml"),
-        },
-    );
-    config.save().unwrap();
+        config
+            .tools
+            .insert("node".into(), AliasOrVersion::from_str("12.0.0").unwrap());
+        config
+            .tools
+            .insert("rust".into(), AliasOrVersion::Alias("stable".into()));
 
-    assert_eq!(
-        std::fs::read_to_string(config.path).unwrap(),
-        r#"node = "12.0.0"
+        config.plugins.insert(
+            "foo".into(),
+            PluginLocator::SourceFile {
+                file: "./test.toml".into(),
+                path: sandbox.path().join("./test.toml"),
+            },
+        );
+        config.save().unwrap();
+
+        assert_eq!(
+            std::fs::read_to_string(config.path).unwrap(),
+            r#"node = "12.0.0"
+rust = "stable"
 
 [plugins]
 foo = "source:./test.toml"
 "#,
-    );
-}
+        );
+    }
 
-#[test]
-fn merges_traversing_upwards() {
-    let fixture = create_empty_sandbox();
+    #[test]
+    fn merges_traversing_upwards() {
+        let sandbox = create_empty_sandbox();
 
-    fixture.create_file(
-        "one/two/three/.prototools",
-        r#"
-node = "1.2.3"
+        sandbox.create_file(
+            "one/two/three/.prototools",
+            r#"
+    node = "1.2.3"
 
-[plugins]
-node = "source:./node.toml"
-"#,
-    );
+    [plugins]
+    node = "source:./node.toml"
+    "#,
+        );
 
-    fixture.create_file(
-        "one/two/.prototools",
-        r#"
-[plugins]
-bun = "source:../bun.wasm"
-"#,
-    );
+        sandbox.create_file(
+            "one/two/.prototools",
+            r#"
+    [plugins]
+    bun = "source:../bun.wasm"
+    "#,
+        );
 
-    fixture.create_file(
-        "one/.prototools",
-        r#"
-bun = "4.5.6"
+        sandbox.create_file(
+            "one/.prototools",
+            r#"
+    bun = "4.5.6"
 
-[plugins]
-node = "source:../node.toml"
-"#,
-    );
+    [plugins]
+    node = "source:../node.toml"
+    "#,
+        );
 
-    fixture.create_file(
-        ".prototools",
-        r#"
-node = "7.8.9"
-deno = "7.8.9"
-"#,
-    );
+        sandbox.create_file(
+            ".prototools",
+            r#"
+    node = "7.8.9"
+    deno = "7.8.9"
+    "#,
+        );
 
-    let config = ToolsConfig::load_upwards_from(fixture.path().join("one/two/three")).unwrap();
+        let config = ToolsConfig::load_upwards_from(sandbox.path().join("one/two/three")).unwrap();
 
-    assert_eq!(
-        config.tools,
-        FxHashMap::from_iter([
-            ("node".into(), "1.2.3".into()),
-            ("bun".into(), "4.5.6".into()),
-            ("deno".into(), "7.8.9".into()),
-        ])
-    );
+        assert_eq!(
+            config.tools,
+            BTreeMap::from_iter([
+                ("node".into(), AliasOrVersion::parse("1.2.3").unwrap()),
+                ("bun".into(), AliasOrVersion::parse("4.5.6").unwrap()),
+                ("deno".into(), AliasOrVersion::parse("7.8.9").unwrap()),
+            ])
+        );
 
-    assert_eq!(
-        config.plugins,
-        FxHashMap::from_iter([
-            (
-                "node".into(),
-                PluginLocator::SourceFile {
-                    file: "./node.toml".into(),
-                    path: fixture.path().join("one/two/three/./node.toml")
-                }
-            ),
-            (
-                "bun".into(),
-                PluginLocator::SourceFile {
-                    file: "../bun.wasm".into(),
-                    path: fixture.path().join("one/two/../bun.wasm")
-                }
-            )
-        ])
-    );
+        assert_eq!(
+            config.plugins,
+            BTreeMap::from_iter([
+                (
+                    "node".into(),
+                    PluginLocator::SourceFile {
+                        file: "./node.toml".into(),
+                        path: sandbox.path().join("one/two/three/./node.toml")
+                    }
+                ),
+                (
+                    "bun".into(),
+                    PluginLocator::SourceFile {
+                        file: "../bun.wasm".into(),
+                        path: sandbox.path().join("one/two/../bun.wasm")
+                    }
+                )
+            ])
+        );
+    }
 }
