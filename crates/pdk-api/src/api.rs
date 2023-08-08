@@ -67,6 +67,26 @@ json_struct!(
 
         /// Current environment.
         pub env: Environment,
+
+        /// Virtual path to the user's home directory.
+        pub home_dir: PathBuf,
+    }
+);
+
+json_struct!(
+    /// Controls aspects of the tool inventory.
+    pub struct ToolInventoryMetadata {
+        /// Disable progress bars when installing or uninstalling tools.
+        pub disable_progress_bars: bool,
+
+        /// Override the tool inventory directory (where all versions are installed).
+        /// This is an advanced feature and should only be used when absolutely necessary.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub override_dir: Option<PathBuf>,
+
+        /// Suffix to append to all versions when labeling directories.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub version_suffix: Option<String>,
     }
 );
 
@@ -74,11 +94,15 @@ json_struct!(
     /// Output returned by the `register_tool` function.
     pub struct ToolMetadataOutput {
         /// Default alias or version to use as a fallback.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub default_version: Option<String>,
 
         /// Environment variables that should be extracted
         /// and passed to other function call inputs.
         pub env_vars: Vec<String>,
+
+        /// Controls aspects of the tool inventory.
+        pub inventory: ToolInventoryMetadata,
 
         /// Human readable name of the tool.
         pub name: String,
@@ -251,7 +275,9 @@ json_struct!(
         /// Each path supports environment variable expansion.
         pub globals_lookup_dirs: Vec<String>,
 
-        /// A prefix that all global binaries are prefixed with, and will be removed.
+        /// A string that all global binaries are prefixed with, and will be removed
+        /// when listing and filtering available globals.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub globals_prefix: Option<String>,
     }
 );

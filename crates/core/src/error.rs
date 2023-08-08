@@ -8,6 +8,10 @@ pub enum ProtoError {
     #[error("{0}")]
     Message(String),
 
+    #[diagnostic(code(proto::tool::invalid_dir))]
+    #[error("Tool inventory directory has been overridden but is not an absolute path. Only absolute paths are supported.")]
+    AbsoluteInventoryDir,
+
     #[diagnostic(
         code(proto::download::missing),
         help = "Please refer to the tool's official documentation."

@@ -45,7 +45,7 @@ pub async fn plugins(json: bool) -> SystemResult {
 
         items.push(PluginItem {
             id,
-            name: tool.get_name(),
+            name: tool.get_name().to_owned(),
             // version: String::new(),
             locator,
         });

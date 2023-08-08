@@ -25,6 +25,7 @@ use warpgate::PluginContainer;
 pub struct Tool {
     pub id: String,
     pub manifest: ToolManifest,
+    pub metadata: ToolMetadataOutput,
     pub plugin: PluginContainer<'static>,
     pub proto: ProtoEnvironment,
     pub version: Option<AliasOrVersion>,
@@ -38,19 +39,20 @@ impl Tool {
     pub fn load(id: &str, proto: &ProtoEnvironment, wasm: Wasm) -> miette::Result<Self> {
         let manifest = ToolManifest::load_from(proto.tools_dir.join(id))?;
         let plugin = Self::load_plugin(id, proto, wasm)?;
-        let tool = Tool {
-            id: id.to_owned(),
+
+        let mut tool = Tool {
             bin_path: None,
             globals_dir: None,
             globals_prefix: None,
+            id: id.to_owned(),
             manifest,
+            metadata: ToolMetadataOutput::default(),
             plugin,
             proto: proto.to_owned(),
             version: None,
         };
 
-        // Load metadata on load and make available
-        tool.get_metadata()?;
+        tool.register_tool()?;
 
         Ok(tool)
     }
@@ -108,12 +110,16 @@ impl Tool {
     /// Return an absolute path to the tool's inventory directory. The inventory houses
     /// installed versions, the manifest, and more.
     pub fn get_inventory_dir(&self) -> PathBuf {
+        if let Some(dir) = &self.metadata.inventory.override_dir {
+            return dir.to_owned();
+        }
+
         self.proto.tools_dir.join(&self.id)
     }
 
     /// Return a human readable name for the tool.
-    pub fn get_name(&self) -> String {
-        self.get_metadata().unwrap().name
+    pub fn get_name(&self) -> &str {
+        &self.metadata.name
     }
 
     /// Return the resolved version or "latest".
@@ -134,12 +140,6 @@ impl Tool {
             return Some(local);
         }
 
-        // let global = self.proto.bin_dir.join(get_shim_file_name(&self.id, true));
-
-        // if global.exists() {
-        //     return Some(global);
-        // }
-
         None
     }
 
@@ -150,8 +150,13 @@ impl Tool {
 
     /// Return an absolute path to the tool's install directory for the currently resolved version.
     pub fn get_tool_dir(&self) -> PathBuf {
-        self.get_inventory_dir()
-            .join(self.get_resolved_version().to_string())
+        let mut version = self.get_resolved_version().to_string();
+
+        if let Some(suffix) = &self.metadata.inventory.version_suffix {
+            version = format!("{}{}", version, suffix);
+        }
+
+        self.get_inventory_dir().join(version)
     }
 
     /// Explicitly set the version to use.
@@ -161,7 +166,7 @@ impl Tool {
 
     /// Disable progress bars when installing or uninstalling the tool.
     pub fn disable_progress_bars(&self) -> bool {
-        false
+        self.metadata.inventory.disable_progress_bars
     }
 }
 
@@ -169,13 +174,13 @@ impl Tool {
 
 impl Tool {
     /// Return environment information to pass to WASM plugin functions.
-    pub fn get_environment(&self) -> miette::Result<Environment> {
+    pub fn create_environment(&self) -> miette::Result<Environment> {
         Ok(Environment {
             arch: HostArch::from_str(consts::ARCH).into_diagnostic()?,
             id: self.id.clone(),
             os: HostOS::from_str(consts::OS).into_diagnostic()?,
             vars: self
-                .get_metadata()?
+                .metadata
                 .env_vars
                 .iter()
                 .filter_map(|var| env::var(var).ok().map(|value| (var.to_owned(), value)))
@@ -184,20 +189,30 @@ impl Tool {
         })
     }
 
-    /// Return metadata about the tool and plugin
-    pub fn get_metadata(&self) -> miette::Result<ToolMetadataOutput> {
-        self.plugin.cache_func_with(
+    /// Register the tool by loading initial metadata and persisting it.
+    pub fn register_tool(&mut self) -> miette::Result<()> {
+        let mut metadata: ToolMetadataOutput = self.plugin.cache_func_with(
             "register_tool",
             ToolMetadataInput {
                 id: self.id.clone(),
-                env: Environment {
-                    arch: HostArch::from_str(consts::ARCH).into_diagnostic()?,
-                    id: self.id.clone(),
-                    os: HostOS::from_str(consts::OS).into_diagnostic()?,
-                    ..Environment::default()
-                },
+                env: self.create_environment()?,
+                home_dir: self.plugin.to_virtual_path(&self.proto.home),
             },
-        )
+        )?;
+
+        if let Some(override_dir) = &metadata.inventory.override_dir {
+            let inventory_dir = self.plugin.from_virtual_path(override_dir);
+
+            if inventory_dir.is_absolute() {
+                metadata.inventory.override_dir = Some(inventory_dir);
+            } else {
+                return Err(ProtoError::AbsoluteInventoryDir.into());
+            }
+        }
+
+        self.metadata = metadata;
+
+        Ok(())
     }
 }
 
@@ -244,7 +259,7 @@ impl Tool {
             versions = Some(self.plugin.cache_func_with(
                 "load_versions",
                 LoadVersionsInput {
-                    env: self.get_environment()?,
+                    env: self.create_environment()?,
                     initial: initial_version.to_string(),
                 },
             )?);
@@ -289,7 +304,7 @@ impl Tool {
             let result: ResolveVersionOutput = self.plugin.call_func_with(
                 "resolve_version",
                 ResolveVersionInput {
-                    env: self.get_environment()?,
+                    env: self.create_environment()?,
                     initial: initial_version.to_string(),
                 },
             )?;
@@ -370,7 +385,7 @@ impl Tool {
                     "parse_version_file",
                     ParseVersionFileInput {
                         content,
-                        env: self.get_environment()?,
+                        env: self.create_environment()?,
                         file: file.clone(),
                     },
                 )?;
@@ -424,7 +439,7 @@ impl Tool {
                     checksum,
                     checksum_file: self.plugin.to_virtual_path(checksum_file),
                     download_file: self.plugin.to_virtual_path(download_file),
-                    env: self.get_environment()?,
+                    env: self.create_environment()?,
                 },
             )?;
 
@@ -470,7 +485,7 @@ impl Tool {
         let options: DownloadPrebuiltOutput = self.plugin.cache_func_with(
             "download_prebuilt",
             DownloadPrebuiltInput {
-                env: self.get_environment()?,
+                env: self.create_environment()?,
             },
         )?;
 
@@ -520,7 +535,7 @@ impl Tool {
             self.plugin.call_func_without_output(
                 "unpack_archive",
                 UnpackArchiveInput {
-                    env: self.get_environment()?,
+                    env: self.create_environment()?,
                     input_file: self.plugin.to_virtual_path(&download_file),
                     output_dir: self.plugin.to_virtual_path(install_dir),
                 },
@@ -570,7 +585,7 @@ impl Tool {
             let result: NativeInstallOutput = self.plugin.call_func_with(
                 "native_install",
                 NativeInstallInput {
-                    env: self.get_environment()?,
+                    env: self.create_environment()?,
                     home_dir: self.plugin.to_virtual_path(&self.proto.home),
                     tool_dir: self.plugin.to_virtual_path(&install_dir),
                 },
@@ -617,7 +632,7 @@ impl Tool {
     /// Find the absolute file path to the tool's binary that will be executed.
     pub async fn locate_bins(&mut self) -> miette::Result<()> {
         let mut options = LocateBinsOutput::default();
-        let install_dir = self.get_tool_dir();
+        let tool_dir = self.get_tool_dir();
 
         debug!(tool = &self.id, "Locating binaries for tool");
 
@@ -625,9 +640,9 @@ impl Tool {
             options = self.plugin.cache_func_with(
                 "locate_bins",
                 LocateBinsInput {
-                    env: self.get_environment()?,
+                    env: self.create_environment()?,
                     home_dir: self.plugin.to_virtual_path(&self.proto.home),
-                    tool_dir: self.plugin.to_virtual_path(&install_dir),
+                    tool_dir: self.plugin.to_virtual_path(&tool_dir),
                 },
             )?;
         }
@@ -638,10 +653,10 @@ impl Tool {
             if bin.is_absolute() {
                 bin
             } else {
-                install_dir.join(bin)
+                tool_dir.join(bin)
             }
         } else {
-            install_dir.join(&self.id)
+            tool_dir.join(&self.id)
         };
 
         debug!(tool = &self.id, bin_path = ?bin_path, "Found a potential binary");
@@ -653,7 +668,7 @@ impl Tool {
         }
 
         Err(ProtoError::MissingToolBin {
-            tool: self.get_name(),
+            tool: self.get_name().to_owned(),
             bin: bin_path,
         }
         .into())
@@ -671,7 +686,7 @@ impl Tool {
         let options: LocateBinsOutput = self.plugin.cache_func_with(
             "locate_bins",
             LocateBinsInput {
-                env: self.get_environment()?,
+                env: self.create_environment()?,
                 home_dir: self.plugin.to_virtual_path(&self.proto.home),
                 tool_dir: self.plugin.to_virtual_path(&install_dir),
             },
@@ -757,7 +772,7 @@ impl Tool {
         let shim_configs: CreateShimsOutput = self.plugin.cache_func_with(
             "create_shims",
             CreateShimsInput {
-                env: self.get_environment()?,
+                env: self.create_environment()?,
             },
         )?;
 
@@ -850,10 +865,9 @@ impl Tool {
 
             // Only insert if a version
             if let AliasOrVersion::Version(version) = self.get_resolved_version() {
-                let options = self.get_metadata()?;
                 let mut default = None;
 
-                if let Some(default_version) = options.default_version {
+                if let Some(default_version) = &self.metadata.default_version {
                     default = Some(AliasOrVersion::parse(default_version)?);
                 }
 
