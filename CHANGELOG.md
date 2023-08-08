@@ -15,8 +15,8 @@
 - WASM API
   - Renamed host function `trace` to `host_log`.
   - Added `host_log!` and `exec_command!` macros for working with host functions.
-  - Added `default_version` field to `ToolMetadataOutput`.
-  - Added `home_dir` field to `LocateBinsInput`.
+  - Added `default_version` and `inventory` fields to `ToolMetadataOutput`.
+  - Added `home_dir` field to `ToolMetadataInput` and `LocateBinsInput`.
   - Added `globals_prefix` field to `LocateBinsOutput`.
   - Updated `exec_command` with stream/inherit support.
   - Updated `bin_path` in `LocateBinsOutput` and `ShimConfig` to a `PathBuf`.
