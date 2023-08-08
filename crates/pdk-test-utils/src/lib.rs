@@ -3,6 +3,7 @@ mod wrapper;
 
 pub use macros::*;
 pub use proto_core::{AliasOrVersion, ProtoEnvironment, Tool, VersionType};
+pub use proto_pdk_api::*;
 pub use wrapper::WasmTestWrapper;
 
 use proto_wasm_plugin::Wasm;
