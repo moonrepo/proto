@@ -11,6 +11,7 @@ pub async fn global(tool_id: String, version: AliasOrVersion) -> SystemResult {
     tool.manifest.save()?;
 
     debug!(
+        version = version.to_string(),
         manifest = ?tool.manifest.path,
         "Wrote the global version",
     );
