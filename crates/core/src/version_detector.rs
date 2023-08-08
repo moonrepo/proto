@@ -1,9 +1,7 @@
 use crate::error::ProtoError;
 use crate::tool::Tool;
-use crate::tool_manifest::ToolManifest;
 use crate::tools_config::ToolsConfig;
-use crate::version::{AliasOrVersion, VersionType};
-use crate::version_resolver::resolve_version;
+use crate::version::VersionType;
 use std::{env, path::Path};
 use tracing::{debug, trace};
 
@@ -73,18 +71,14 @@ pub async fn detect_version(
 
             // Detect using the tool
             if let Some(detected_version) = tool.detect_version_from(dir).await? {
-                if let Some(eco_version) =
-                    expand_detected_version(&detected_version, &tool.manifest)?
-                {
-                    debug!(
-                        tool = &tool.id,
-                        version = ?eco_version,
-                        "Detected version from tool's ecosystem"
-                    );
+                debug!(
+                    tool = &tool.id,
+                    version = ?detected_version,
+                    "Detected version from tool's ecosystem"
+                );
 
-                    candidate = Some(eco_version.to_implicit_type());
-                    break;
-                }
+                candidate = Some(detected_version);
+                break;
             }
 
             current_dir = dir.parent();
@@ -117,23 +111,4 @@ pub async fn detect_version(
         }
         .into()
     })
-}
-
-pub fn expand_detected_version(
-    candidate: &VersionType,
-    manifest: &ToolManifest,
-) -> miette::Result<Option<AliasOrVersion>> {
-    // We don't resolve explicit aliases as some languages require them.
-    // For example, "stable" or "nightly" in Rust.
-    if let VersionType::Alias(alias) = candidate {
-        return Ok(Some(AliasOrVersion::Alias(alias.to_owned())));
-    }
-
-    let versions = manifest.installed_versions.iter().collect::<Vec<_>>();
-
-    if let Ok(version) = resolve_version(candidate, &versions, &manifest.aliases) {
-        return Ok(Some(AliasOrVersion::Version(version)));
-    }
-
-    Ok(None)
 }

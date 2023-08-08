@@ -23,7 +23,7 @@ pub async fn run(
     if !tool.is_setup(&version).await? {
         if !user_config.auto_install {
             return Err(ProtoError::MissingToolForRun {
-                tool: tool.get_name(),
+                tool: tool.get_name().to_owned(),
                 version: version.to_string(),
                 command: format!("proto install {} {}", tool.id, tool.get_resolved_version()),
             }

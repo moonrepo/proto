@@ -42,8 +42,9 @@ mod version_resolver {
         assert_eq!(
             resolve_version(
                 &VersionType::Alias("latest".into()),
-                &versions.iter().collect::<Vec<_>>(),
-                &aliases
+                &versions,
+                &aliases,
+                None,
             )
             .unwrap(),
             Version::new(10, 0, 0)
@@ -52,8 +53,9 @@ mod version_resolver {
         assert_eq!(
             resolve_version(
                 &VersionType::Alias("stable".into()),
-                &versions.iter().collect::<Vec<_>>(),
-                &aliases
+                &versions,
+                &aliases,
+                None,
             )
             .unwrap(),
             Version::new(10, 0, 0)
@@ -68,8 +70,9 @@ mod version_resolver {
 
         resolve_version(
             &VersionType::Alias("unknown".into()),
-            &versions.iter().collect::<Vec<_>>(),
+            &versions,
             &aliases,
+            None,
         )
         .unwrap();
     }
@@ -82,8 +85,9 @@ mod version_resolver {
 
         resolve_version(
             &VersionType::Alias("no-alias".into()),
-            &versions.iter().collect::<Vec<_>>(),
+            &versions,
             &aliases,
+            None,
         )
         .unwrap();
     }
@@ -96,8 +100,9 @@ mod version_resolver {
 
         resolve_version(
             &VersionType::Alias("no-version".into()),
-            &versions.iter().collect::<Vec<_>>(),
+            &versions,
             &aliases,
+            None,
         )
         .unwrap();
     }
@@ -110,8 +115,9 @@ mod version_resolver {
         assert_eq!(
             resolve_version(
                 &VersionType::Version(Version::new(1, 10, 5)),
-                &versions.iter().collect::<Vec<_>>(),
-                &aliases
+                &versions,
+                &aliases,
+                None,
             )
             .unwrap(),
             Version::new(1, 10, 5)
@@ -120,8 +126,9 @@ mod version_resolver {
         assert_eq!(
             resolve_version(
                 &VersionType::Version(Version::new(8, 0, 0)),
-                &versions.iter().collect::<Vec<_>>(),
-                &aliases
+                &versions,
+                &aliases,
+                None,
             )
             .unwrap(),
             Version::new(8, 0, 0)
@@ -136,8 +143,9 @@ mod version_resolver {
         assert_eq!(
             resolve_version(
                 &VersionType::parse("1.2").unwrap(),
-                &versions.iter().collect::<Vec<_>>(),
-                &aliases
+                &versions,
+                &aliases,
+                None,
             )
             .unwrap(),
             Version::new(1, 2, 3)
@@ -146,20 +154,16 @@ mod version_resolver {
         assert_eq!(
             resolve_version(
                 &VersionType::parse("1.0").unwrap(),
-                &versions.iter().collect::<Vec<_>>(),
-                &aliases
+                &versions,
+                &aliases,
+                None,
             )
             .unwrap(),
             Version::new(1, 0, 0)
         );
 
         assert_eq!(
-            resolve_version(
-                &VersionType::parse("1").unwrap(),
-                &versions.iter().collect::<Vec<_>>(),
-                &aliases
-            )
-            .unwrap(),
+            resolve_version(&VersionType::parse("1").unwrap(), &versions, &aliases, None,).unwrap(),
             Version::new(1, 10, 5)
         );
     }
@@ -172,8 +176,9 @@ mod version_resolver {
         assert_eq!(
             resolve_version(
                 &VersionType::parse("v8.0.0").unwrap(),
-                &versions.iter().collect::<Vec<_>>(),
-                &aliases
+                &versions,
+                &aliases,
+                None,
             )
             .unwrap(),
             Version::new(8, 0, 0)
@@ -182,8 +187,9 @@ mod version_resolver {
         assert_eq!(
             resolve_version(
                 &VersionType::parse("V8").unwrap(),
-                &versions.iter().collect::<Vec<_>>(),
-                &aliases
+                &versions,
+                &aliases,
+                None,
             )
             .unwrap(),
             Version::new(8, 0, 0)
@@ -198,8 +204,9 @@ mod version_resolver {
 
         resolve_version(
             &VersionType::Version(Version::new(20, 0, 0)),
-            &versions.iter().collect::<Vec<_>>(),
+            &versions,
             &aliases,
+            None,
         )
         .unwrap();
     }
@@ -212,8 +219,9 @@ mod version_resolver {
         assert_eq!(
             resolve_version(
                 &VersionType::parse("^8").unwrap(),
-                &versions.iter().collect::<Vec<_>>(),
-                &aliases
+                &versions,
+                &aliases,
+                None,
             )
             .unwrap(),
             Version::new(8, 0, 0)
@@ -222,8 +230,9 @@ mod version_resolver {
         assert_eq!(
             resolve_version(
                 &VersionType::parse("~1.1").unwrap(),
-                &versions.iter().collect::<Vec<_>>(),
-                &aliases
+                &versions,
+                &aliases,
+                None,
             )
             .unwrap(),
             Version::new(1, 1, 1)
@@ -232,8 +241,9 @@ mod version_resolver {
         assert_eq!(
             resolve_version(
                 &VersionType::parse(">1 <10").unwrap(),
-                &versions.iter().collect::<Vec<_>>(),
-                &aliases
+                &versions,
+                &aliases,
+                None,
             )
             .unwrap(),
             Version::new(8, 0, 0)
@@ -242,8 +252,9 @@ mod version_resolver {
         assert_eq!(
             resolve_version(
                 &VersionType::parse(">1, <10").unwrap(),
-                &versions.iter().collect::<Vec<_>>(),
-                &aliases
+                &versions,
+                &aliases,
+                None,
             )
             .unwrap(),
             Version::new(8, 0, 0)
@@ -253,8 +264,9 @@ mod version_resolver {
         assert_eq!(
             resolve_version(
                 &VersionType::parse("^1").unwrap(),
-                &versions.iter().collect::<Vec<_>>(),
-                &aliases
+                &versions,
+                &aliases,
+                None,
             )
             .unwrap(),
             Version::new(1, 10, 5)
@@ -262,12 +274,7 @@ mod version_resolver {
 
         // Star (latest)
         assert_eq!(
-            resolve_version(
-                &VersionType::parse("*").unwrap(),
-                &versions.iter().collect::<Vec<_>>(),
-                &aliases
-            )
-            .unwrap(),
+            resolve_version(&VersionType::parse("*").unwrap(), &versions, &aliases, None,).unwrap(),
             Version::new(10, 0, 0)
         );
     }
@@ -280,8 +287,9 @@ mod version_resolver {
 
         resolve_version(
             &VersionType::parse("^20").unwrap(),
-            &versions.iter().collect::<Vec<_>>(),
+            &versions,
             &aliases,
+            None,
         )
         .unwrap();
     }
@@ -294,8 +302,9 @@ mod version_resolver {
         assert_eq!(
             resolve_version(
                 &VersionType::parse("^1 || ^6 || ^8").unwrap(),
-                &versions.iter().collect::<Vec<_>>(),
-                &aliases
+                &versions,
+                &aliases,
+                None,
             )
             .unwrap(),
             Version::new(8, 0, 0)
@@ -310,8 +319,9 @@ mod version_resolver {
 
         resolve_version(
             &VersionType::parse("^3 || ^5 || ^9").unwrap(),
-            &versions.iter().collect::<Vec<_>>(),
+            &versions,
             &aliases,
+            None,
         )
         .unwrap();
     }
@@ -322,12 +332,7 @@ mod version_resolver {
         let aliases = create_aliases();
 
         for req in [">= 1.5.9", "> 1.5.0", ">= 1.2", "> 1.2", "< 1.2", "<= 1.2"] {
-            resolve_version(
-                &VersionType::parse(req).unwrap(),
-                &versions.iter().collect::<Vec<_>>(),
-                &aliases,
-            )
-            .unwrap();
+            resolve_version(&VersionType::parse(req).unwrap(), &versions, &aliases, None).unwrap();
         }
     }
 }

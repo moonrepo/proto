@@ -17,6 +17,7 @@ pub async fn list_global(tool_id: String) -> SystemResult {
     debug!(globals_dir = ?globals_dir, "Finding global packages");
 
     let mut bins = vec![];
+    let globals_prefix = tool.get_globals_prefix();
 
     if globals_dir.exists() {
         for file in fs::read_dir(globals_dir)? {
@@ -27,11 +28,10 @@ pub async fn list_global(tool_id: String) -> SystemResult {
             let file_path = file.path();
             let mut file_name = fs::file_name(&file_path);
 
-            if tool_id == "rust" {
-                if let Some(cargo_bin) = file_name.strip_prefix("cargo-") {
-                    file_name = cargo_bin.to_owned();
+            if let Some(prefix) = globals_prefix {
+                if let Some(prefixless) = file_name.strip_prefix(prefix) {
+                    file_name = prefixless.to_owned();
                 } else {
-                    // Non-cargo binaries are in this directory
                     continue;
                 }
             }

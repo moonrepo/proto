@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v3
-      - uses: moonrepo/setup-rust@v0
+      - uses: moonrepo/setup-rust@v1
         with:
           components: rustfmt
       - run: cargo fmt --all --check
@@ -31,7 +31,7 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v3
-      - uses: moonrepo/setup-rust@v0
+      - uses: moonrepo/setup-rust@v1
         with:
           components: clippy
       - run: cargo clippy --workspace --all-targets
@@ -44,7 +44,7 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v3
-      - uses: moonrepo/setup-rust@v0
+      - uses: moonrepo/setup-rust@v1
         with:
           bins: cargo-wasi, cargo-nextest
           cache: false
@@ -70,7 +70,7 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v3
-      - uses: moonrepo/setup-rust@v0
+      - uses: moonrepo/setup-rust@v1
         with:
           bins: cargo-wasi
           cache: false

@@ -13,7 +13,11 @@ pub async fn local(tool_id: String, version: AliasOrVersion) -> SystemResult {
     config.tools.insert(tool_id, version.clone());
     config.save()?;
 
-    debug!(config = ?config.path, "Wrote the local version");
+    debug!(
+        version = version.to_string(),
+        config = ?config.path,
+        "Wrote the local version",
+    );
 
     info!(
         "Set the local {} version to {}",
