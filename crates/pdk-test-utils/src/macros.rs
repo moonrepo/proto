@@ -21,7 +21,7 @@ macro_rules! generate_download_install_tests {
 
             // Check bin path exists
             let bin_params = plugin.locate_bins(LocateBinsInput {
-                env: plugin.tool.get_environment().unwrap(),
+                env: plugin.tool.create_environment().unwrap(),
                 home_dir: sandbox.path().join(".home"),
                 tool_dir,
             });
