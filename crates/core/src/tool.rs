@@ -31,6 +31,7 @@ pub struct Tool {
 
     bin_path: Option<PathBuf>,
     globals_dir: Option<PathBuf>,
+    globals_prefix: Option<String>,
 }
 
 impl Tool {
@@ -41,6 +42,7 @@ impl Tool {
             id: id.to_owned(),
             bin_path: None,
             globals_dir: None,
+            globals_prefix: None,
             manifest,
             plugin,
             proto: proto.to_owned(),
@@ -96,6 +98,11 @@ impl Tool {
     /// Return an absolute path to the globals directory in which packages are installed to.
     pub fn get_globals_bin_dir(&self) -> Option<&Path> {
         self.globals_dir.as_deref()
+    }
+
+    /// Return a string that all globals are prefixed with. Will be used for filtering and listing.
+    pub fn get_globals_prefix(&self) -> Option<&str> {
+        self.globals_prefix.as_deref()
     }
 
     /// Return an absolute path to the tool's inventory directory. The inventory houses
@@ -248,7 +255,7 @@ impl Tool {
         json::write_file(cache_path, &versions, false)?;
 
         let mut resolver = VersionResolver::from_output(versions);
-        resolver.inherit_aliases(&self.manifest)?;
+        resolver.with_manifest(&self.manifest)?;
 
         Ok(resolver)
     }
@@ -356,7 +363,7 @@ impl Tool {
                 continue;
             }
 
-            let content = fs::read_file(&file_path)?;
+            let content = fs::read_file(&file_path)?.trim().to_owned();
 
             let version = if has_parser {
                 let result: ParseVersionFileOutput = self.plugin.call_func_with(
@@ -669,6 +676,8 @@ impl Tool {
                 tool_dir: self.plugin.to_virtual_path(&install_dir),
             },
         )?;
+
+        self.globals_prefix = options.globals_prefix;
 
         // Find a globals directory that packages are installed to
         let lookup_count = options.globals_lookup_dirs.len() - 1;

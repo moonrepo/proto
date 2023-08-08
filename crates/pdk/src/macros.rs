@@ -20,7 +20,7 @@ macro_rules! permutations {
 macro_rules! exec_command {
     ($cmd:expr, [ $($arg:expr),* ]) => {
         unsafe {
-          exec_command(Json(ExecCommandInput::new($cmd, [
+          exec_command(Json(ExecCommandInput::pipe($cmd, [
               $($arg),*
           ])))?.0
         }

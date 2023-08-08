@@ -250,6 +250,9 @@ json_struct!(
         /// List of directory paths to find the globals installation directory.
         /// Each path supports environment variable expansion.
         pub globals_lookup_dirs: Vec<String>,
+
+        /// A prefix that all global binaries are prefixed with, and will be removed.
+        pub globals_prefix: Option<String>,
     }
 );
 
