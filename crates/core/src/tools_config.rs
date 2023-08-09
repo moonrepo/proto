@@ -112,7 +112,7 @@ impl ToolsConfig {
     pub fn inherit_builtin_plugins(&mut self) {
         if !self.plugins.contains_key("bun") {
             self.plugins.insert(
-                Id::new("bun").unwrap(),
+                Id::raw("bun"),
                 PluginLocator::SourceUrl {
                     url: "https://github.com/moonrepo/bun-plugin/releases/latest/download/bun_plugin.wasm".into()
                 }
@@ -121,7 +121,7 @@ impl ToolsConfig {
 
         if !self.plugins.contains_key("deno") {
             self.plugins.insert(
-                 Id::new("deno").unwrap(),
+                Id::raw("deno"),
                 PluginLocator::SourceUrl {
                     url: "https://github.com/moonrepo/deno-plugin/releases/latest/download/deno_plugin.wasm".into()
                 }
@@ -130,7 +130,7 @@ impl ToolsConfig {
 
         if !self.plugins.contains_key("go") {
             self.plugins.insert(
-                 Id::new("go").unwrap(),
+                Id::raw("go"),
                 PluginLocator::SourceUrl {
                     url: "https://github.com/moonrepo/go-plugin/releases/latest/download/go_plugin.wasm".into()
                 }
@@ -139,7 +139,7 @@ impl ToolsConfig {
 
         if !self.plugins.contains_key("node") {
             self.plugins.insert(
-                 Id::new("node").unwrap(),
+                Id::raw("node"),
                 PluginLocator::SourceUrl {
                     url: "https://github.com/moonrepo/node-plugin/releases/latest/download/node_plugin.wasm".into()
                 }
@@ -149,7 +149,7 @@ impl ToolsConfig {
         for depman in ["npm", "pnpm", "yarn"] {
             if !self.plugins.contains_key(depman) {
                 self.plugins.insert(
-                     Id::new(depman).unwrap(),
+                    Id::raw(depman),
                     PluginLocator::SourceUrl {
                         url: "https://github.com/moonrepo/node-plugin/releases/latest/download/node_depman_plugin.wasm".into()
                     }

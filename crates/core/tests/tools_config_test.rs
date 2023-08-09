@@ -26,6 +26,17 @@ mod tools_config {
     }
 
     #[test]
+    #[should_panic(
+        expected = "Invalid plugin identifier fooBar, must be a valid kebab-case string."
+    )]
+    fn errors_for_non_kebab_id() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "fooBar = \"1.2.3\"");
+
+        ToolsConfig::load_from(sandbox.path()).unwrap();
+    }
+
+    #[test]
     fn parses_plugins_table() {
         let sandbox = create_empty_sandbox();
         sandbox.create_file(
