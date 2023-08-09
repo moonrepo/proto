@@ -39,12 +39,12 @@ impl PluginLoader {
 
     /// Load a plugin using the provided locator. File system plugins are loaded directly,
     /// while remote/URL plugins are downloaded and cached.
-    pub async fn load_plugin<T: AsRef<str>, L: AsRef<PluginLocator>>(
+    pub async fn load_plugin<I: AsRef<Id>, L: AsRef<PluginLocator>>(
         &self,
-        id: T,
+        id: I,
         locator: L,
     ) -> miette::Result<PathBuf> {
-        let id = Id::new(id.as_ref())?;
+        let id = id.as_ref();
         let locator = locator.as_ref();
 
         trace!(

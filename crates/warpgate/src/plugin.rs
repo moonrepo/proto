@@ -27,8 +27,8 @@ unsafe impl<'plugin> Sync for PluginContainer<'plugin> {}
 
 impl<'plugin> PluginContainer<'plugin> {
     /// Create a new container with the provided manifest and host functions.
-    pub fn new<'new, I: AsRef<str>>(
-        id: I,
+    pub fn new<'new>(
+        id: Id,
         manifest: Manifest,
         functions: impl IntoIterator<Item = Function>,
     ) -> miette::Result<PluginContainer<'new>> {
@@ -38,14 +38,14 @@ impl<'plugin> PluginContainer<'plugin> {
         Ok(PluginContainer {
             manifest,
             plugin: Arc::new(RwLock::new(plugin)),
-            id: Id::new(id)?,
+            id,
             func_cache: OnceMap::new(),
         })
     }
 
     /// Create a new container with the provided manifest.
-    pub fn new_without_functions<'new, I: AsRef<str>>(
-        id: I,
+    pub fn new_without_functions<'new>(
+        id: Id,
         manifest: Manifest,
     ) -> miette::Result<PluginContainer<'new>> {
         Self::new(id, manifest, [])

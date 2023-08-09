@@ -5,11 +5,11 @@ use std::collections::BTreeMap;
 use std::env;
 use std::path::{Path, PathBuf};
 use tracing::{debug, trace};
-use warpgate::PluginLocator;
+use warpgate::{Id, PluginLocator};
 
 pub const TOOLS_CONFIG_NAME: &str = ".prototools";
 
-fn is_empty<T>(map: &BTreeMap<String, T>) -> bool {
+fn is_empty<T>(map: &BTreeMap<Id, T>) -> bool {
     map.is_empty()
 }
 
@@ -17,17 +17,17 @@ fn is_empty<T>(map: &BTreeMap<String, T>) -> bool {
 #[serde(default, rename_all = "kebab-case")]
 pub struct ToolsConfig {
     #[serde(flatten, skip_serializing_if = "is_empty")]
-    pub tools: BTreeMap<String, AliasOrVersion>,
+    pub tools: BTreeMap<Id, AliasOrVersion>,
 
     #[serde(skip_serializing_if = "is_empty")]
-    pub plugins: BTreeMap<String, PluginLocator>,
+    pub plugins: BTreeMap<Id, PluginLocator>,
 
     #[serde(skip)]
     pub path: PathBuf,
 }
 
 impl ToolsConfig {
-    pub fn builtin_plugins() -> BTreeMap<String, PluginLocator> {
+    pub fn builtin_plugins() -> BTreeMap<Id, PluginLocator> {
         let mut config = ToolsConfig::default();
         config.inherit_builtin_plugins();
         config.plugins
@@ -112,7 +112,7 @@ impl ToolsConfig {
     pub fn inherit_builtin_plugins(&mut self) {
         if !self.plugins.contains_key("bun") {
             self.plugins.insert(
-                "bun".into(),
+                Id::new("bun").unwrap(),
                 PluginLocator::SourceUrl {
                     url: "https://github.com/moonrepo/bun-plugin/releases/latest/download/bun_plugin.wasm".into()
                 }
@@ -121,7 +121,7 @@ impl ToolsConfig {
 
         if !self.plugins.contains_key("deno") {
             self.plugins.insert(
-                "deno".into(),
+                 Id::new("deno").unwrap(),
                 PluginLocator::SourceUrl {
                     url: "https://github.com/moonrepo/deno-plugin/releases/latest/download/deno_plugin.wasm".into()
                 }
@@ -130,7 +130,7 @@ impl ToolsConfig {
 
         if !self.plugins.contains_key("go") {
             self.plugins.insert(
-                "go".into(),
+                 Id::new("go").unwrap(),
                 PluginLocator::SourceUrl {
                     url: "https://github.com/moonrepo/go-plugin/releases/latest/download/go_plugin.wasm".into()
                 }
@@ -139,7 +139,7 @@ impl ToolsConfig {
 
         if !self.plugins.contains_key("node") {
             self.plugins.insert(
-                "node".into(),
+                 Id::new("node").unwrap(),
                 PluginLocator::SourceUrl {
                     url: "https://github.com/moonrepo/node-plugin/releases/latest/download/node_plugin.wasm".into()
                 }
@@ -149,7 +149,7 @@ impl ToolsConfig {
         for depman in ["npm", "pnpm", "yarn"] {
             if !self.plugins.contains_key(depman) {
                 self.plugins.insert(
-                    depman.into(),
+                     Id::new(depman).unwrap(),
                     PluginLocator::SourceUrl {
                         url: "https://github.com/moonrepo/node-plugin/releases/latest/download/node_depman_plugin.wasm".into()
                     }

@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use std::env;
 use std::path::Path;
 use tracing::debug;
-use warpgate::PluginLocator;
+use warpgate::{Id, PluginLocator};
 
 pub const USER_CONFIG_NAME: &str = "config.toml";
 
@@ -15,7 +15,7 @@ pub struct UserConfig {
     pub auto_clean: bool,
     pub auto_install: bool,
     pub node_intercept_globals: bool,
-    pub plugins: BTreeMap<String, PluginLocator>,
+    pub plugins: BTreeMap<Id, PluginLocator>,
 }
 
 impl UserConfig {

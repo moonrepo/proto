@@ -5,18 +5,19 @@ use proto_wasm_plugin::Wasm;
 // use starbase_utils::toml;
 use std::{env, path::Path};
 use tracing::debug;
-use warpgate::{PluginLoader, PluginLocator};
+use warpgate::{Id, PluginLoader, PluginLocator};
 
 pub async fn create_tool_from_plugin(
     id: &str,
     proto: impl AsRef<ProtoEnvironment>,
     locator: impl AsRef<PluginLocator>,
 ) -> miette::Result<Tool> {
+    let id = Id::new(id)?;
     let proto = proto.as_ref();
     let locator = locator.as_ref();
 
     let plugin_path = PluginLoader::new(&proto.plugins_dir, &proto.temp_dir)
-        .load_plugin(id, locator)
+        .load_plugin(&id, locator)
         .await?;
     // let is_toml = plugin_path
     //     .extension()
@@ -39,10 +40,14 @@ pub async fn create_tool_from_plugin(
 }
 
 pub async fn create_tool(id: &str) -> miette::Result<Tool> {
+    let id = Id::new(id)?;
     let proto = ProtoEnvironment::new()?;
     let mut locator = None;
 
-    debug!(tool = id, "Traversing upwards to find a configured plugin");
+    debug!(
+        tool = id.as_str(),
+        "Traversing upwards to find a configured plugin"
+    );
 
     // Traverse upwards checking each `.prototools` for a plugin
     if let Ok(working_dir) = env::current_dir() {
@@ -51,7 +56,7 @@ pub async fn create_tool(id: &str) -> miette::Result<Tool> {
         while let Some(dir) = &current_dir {
             let tools_config = ToolsConfig::load_from(dir)?;
 
-            if let Some(maybe_locator) = tools_config.plugins.get(id) {
+            if let Some(maybe_locator) = tools_config.plugins.get(&id) {
                 locator = Some(maybe_locator.to_owned());
                 break;
             }
@@ -64,7 +69,7 @@ pub async fn create_tool(id: &str) -> miette::Result<Tool> {
     if locator.is_none() {
         let user_config = UserConfig::load()?;
 
-        if let Some(maybe_locator) = user_config.plugins.get(id) {
+        if let Some(maybe_locator) = user_config.plugins.get(&id) {
             locator = Some(maybe_locator.to_owned());
         }
     }
@@ -73,7 +78,7 @@ pub async fn create_tool(id: &str) -> miette::Result<Tool> {
     if locator.is_none() {
         let builtin_plugins = ToolsConfig::builtin_plugins();
 
-        if let Some(maybe_locator) = builtin_plugins.get(id) {
+        if let Some(maybe_locator) = builtin_plugins.get(&id) {
             locator = Some(maybe_locator.to_owned());
         }
     }
@@ -82,5 +87,5 @@ pub async fn create_tool(id: &str) -> miette::Result<Tool> {
         return Err(ProtoError::UnknownTool { id: id.to_owned() }.into());
     };
 
-    create_tool_from_plugin(id, proto, locator).await
+    create_tool_from_plugin(id.as_str(), proto, locator).await
 }
