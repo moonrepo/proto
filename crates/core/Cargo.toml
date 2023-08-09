@@ -1,6 +1,6 @@
 [package]
 name = "proto_core"
-version = "0.14.1"
+version = "0.14.2"
 edition = "2021"
 license = "MIT"
 description = "Core proto APIs."
@@ -8,9 +8,9 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
-proto_pdk_api = { version = "0.4.1", path = "../pdk-api" }
-proto_wasm_plugin = { version = "0.4.1", path = "../wasm-plugin" }
-warpgate = { version = "0.3.1", path = "../warpgate" }
+proto_pdk_api = { version = "0.4.2", path = "../pdk-api" }
+proto_wasm_plugin = { version = "0.4.2", path = "../wasm-plugin" }
+warpgate = { version = "0.3.2", path = "../warpgate" }
 cached = { workspace = true }
 extism = { workspace = true }
 fs4 = { version = "0.6.6", features = ["sync"] }

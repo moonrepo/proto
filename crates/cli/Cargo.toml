@@ -33,9 +33,9 @@ name = "proto"
 path = "src/bin.rs"
 
 [dependencies]
-proto_core = { version = "0.14.1", path = "../core" }
+proto_core = { version = "0.14.2", path = "../core" }
 # proto_schema_plugin = { version = "0.8.1", path = "../schema-plugin" }
-proto_wasm_plugin = { version = "0.4.1", path = "../wasm-plugin" }
+proto_wasm_plugin = { version = "0.4.2", path = "../wasm-plugin" }
 async-recursion = "1.0.4"
 clap = { workspace = true, features = ["derive", "env"] }
 clap_complete = { workspace = true }
