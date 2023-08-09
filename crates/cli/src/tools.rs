@@ -7,11 +7,11 @@ use std::{env, path::Path};
 use tracing::debug;
 
 pub async fn create_tool_from_plugin(
-    id: &Id,
+    id: impl AsRef<Id>,
     proto: impl AsRef<ProtoEnvironment>,
     locator: impl AsRef<PluginLocator>,
 ) -> miette::Result<Tool> {
-    let id = Id::new(id)?;
+    let id = id.as_ref();
     let proto = proto.as_ref();
     let locator = locator.as_ref();
 

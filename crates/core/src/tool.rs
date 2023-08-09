@@ -44,7 +44,7 @@ impl Tool {
         let id = id.as_ref();
         let proto = proto.as_ref();
         let manifest = ToolManifest::load_from(proto.tools_dir.join(id.as_str()))?;
-        let plugin = Self::load_plugin(&id, proto, wasm)?;
+        let plugin = Self::load_plugin(id, proto, wasm)?;
 
         let mut tool = Tool {
             bin_path: None,

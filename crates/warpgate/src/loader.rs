@@ -74,14 +74,14 @@ impl PluginLoader {
             }
             PluginLocator::SourceUrl { url } => {
                 self.download_plugin(
-                    &id,
+                    id,
                     url,
-                    self.create_cache_path(&id, url, url.contains("latest")),
+                    self.create_cache_path(id, url, url.contains("latest")),
                 )
                 .await
             }
-            PluginLocator::GitHub(github) => self.download_plugin_from_github(&id, github).await,
-            PluginLocator::Wapm(wapm) => self.download_plugin_from_wapm(&id, wapm).await,
+            PluginLocator::GitHub(github) => self.download_plugin_from_github(id, github).await,
+            PluginLocator::Wapm(wapm) => self.download_plugin_from_wapm(id, wapm).await,
         }
     }
 
