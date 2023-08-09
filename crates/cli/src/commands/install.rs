@@ -2,14 +2,14 @@ use crate::helpers::{create_progress_bar, disable_progress_bars};
 use crate::hooks::go as go_hooks;
 use crate::tools::create_tool;
 use async_recursion::async_recursion;
-use proto_core::VersionType;
+use proto_core::{Id, VersionType};
 use starbase::SystemResult;
 use starbase_styles::color;
 use tracing::{debug, info};
 
 #[async_recursion]
 pub async fn install(
-    tool_id: String,
+    tool_id: Id,
     version: Option<VersionType>,
     pin_version: bool,
     passthrough: Vec<String>,
@@ -73,7 +73,7 @@ pub async fn install(
         );
 
         install(
-            "npm".into(),
+            Id::new("npm")?,
             Some(VersionType::Alias("bundled".into())),
             pin_version,
             passthrough,

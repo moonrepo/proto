@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand, ValueEnum};
 use clap_complete::Shell;
-use proto_core::{AliasOrVersion, VersionType};
+use proto_core::{AliasOrVersion, Id, VersionType};
 use std::fmt::{Display, Error, Formatter};
 
 #[derive(ValueEnum, Clone, Debug, Default)]
@@ -69,7 +69,7 @@ pub enum Commands {
     )]
     Alias {
         #[arg(required = true, help = "ID of tool")]
-        tool: String,
+        id: Id,
 
         #[arg(required = true, help = "Alias name")]
         alias: String,
@@ -85,7 +85,7 @@ pub enum Commands {
     )]
     Bin {
         #[arg(required = true, help = "ID of tool")]
-        tool: String,
+        id: Id,
 
         #[arg(help = "Version or alias of tool")]
         semver: Option<VersionType>,
@@ -123,7 +123,7 @@ pub enum Commands {
     )]
     Install {
         #[arg(required = true, help = "ID of tool")]
-        tool: String,
+        id: Id,
 
         #[arg(default_value = "latest", help = "Version or alias of tool")]
         semver: Option<VersionType>,
@@ -144,7 +144,7 @@ pub enum Commands {
     )]
     InstallGlobal {
         #[arg(required = true, help = "ID of tool")]
-        tool: String,
+        id: Id,
 
         #[arg(required = true, help = "Dependencies and optional version to install")]
         dependencies: Vec<String>,
@@ -157,7 +157,7 @@ pub enum Commands {
     )]
     Global {
         #[arg(required = true, help = "ID of tool")]
-        tool: String,
+        id: Id,
 
         #[arg(required = true, help = "Version or alias of tool")]
         semver: AliasOrVersion,
@@ -171,7 +171,7 @@ pub enum Commands {
     )]
     List {
         #[arg(required = true, help = "ID of tool")]
-        tool: String,
+        id: Id,
     },
 
     #[command(
@@ -182,7 +182,7 @@ pub enum Commands {
     )]
     ListGlobal {
         #[arg(required = true, help = "ID of tool")]
-        tool: String,
+        id: Id,
     },
 
     #[command(
@@ -193,7 +193,7 @@ pub enum Commands {
     )]
     ListRemote {
         #[arg(required = true, help = "ID of tool")]
-        tool: String,
+        id: Id,
     },
 
     #[command(
@@ -203,7 +203,7 @@ pub enum Commands {
     )]
     Local {
         #[arg(required = true, help = "ID of tool")]
-        tool: String,
+        id: Id,
 
         #[arg(required = true, help = "Version or alias of tool")]
         semver: AliasOrVersion,
@@ -223,7 +223,7 @@ pub enum Commands {
     )]
     Run {
         #[arg(required = true, help = "ID of tool")]
-        tool: String,
+        id: Id,
 
         #[arg(help = "Version or alias of tool")]
         semver: Option<VersionType>,
@@ -251,7 +251,7 @@ pub enum Commands {
     #[command(name = "ua", name = "unalias", about = "Remove an alias from a tool.")]
     Unalias {
         #[arg(required = true, help = "ID of tool")]
-        tool: String,
+        id: Id,
 
         #[arg(required = true, help = "Alias name")]
         alias: String,
@@ -265,7 +265,7 @@ pub enum Commands {
     )]
     Uninstall {
         #[arg(required = true, help = "ID of tool")]
-        tool: String,
+        id: Id,
 
         #[arg(required = true, help = "Version or alias of tool")]
         semver: VersionType,

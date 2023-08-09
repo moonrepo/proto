@@ -5,6 +5,7 @@
 #### 💥 Breaking
 
 - Versions defined in `.prototools` must be fully-qualified semantic versions. Partial versions (missing patch or minor) are no longer supported. This may change in the future based on feedback.
+- Tool and plugin names must now be in kebab-case.
 
 #### 🚀 Updates
 

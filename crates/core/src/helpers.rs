@@ -47,21 +47,16 @@ pub fn is_alias_name<T: AsRef<str>>(value: T) -> bool {
 
     value.chars().enumerate().all(|(i, c)| {
         if i == 0 {
-            char::is_ascii_alphabetic(&c) && c != 'v' && c != 'V'
+            char::is_ascii_alphabetic(&c)
         } else {
-            char::is_ascii_alphanumeric(&c) || c == '-'
+            char::is_ascii_alphanumeric(&c)
+                || c == '-'
+                || c == '_'
+                || c == '/'
+                || c == '.'
+                || c == '*'
         }
     })
-}
-
-pub fn add_v_prefix<T: AsRef<str>>(value: T) -> String {
-    let value = value.as_ref();
-
-    if value.starts_with('v') || value.starts_with('V') {
-        return value.to_lowercase();
-    }
-
-    format!("v{value}")
 }
 
 pub fn remove_v_prefix<T: AsRef<str>>(value: T) -> String {

@@ -2335,7 +2335,6 @@ dependencies = [
  "strum",
  "tokio",
  "tracing",
- "warpgate",
  "winreg 0.50.0",
 ]
 
@@ -3715,7 +3714,9 @@ version = "0.3.1"
 dependencies = [
  "extism",
  "miette",
+ "once_cell",
  "once_map",
+ "regex",
  "reqwest",
  "serde",
  "serde_json",

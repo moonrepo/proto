@@ -22,3 +22,4 @@ pub use user_config::*;
 pub use version::*;
 pub use version_detector::*;
 pub use version_resolver::*;
+pub use warpgate::*;

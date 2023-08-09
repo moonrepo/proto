@@ -70,13 +70,13 @@ Defining a `GITHUB_TOKEN` environment variable is recommended to avoid rate limi
 // github:org/repo
 // github:org/repo@v1.2.3
 PluginLocator::GitHub(GitHubLocator{
-	file_stem: "file_stem".into(),
+	file_prefix: "file_prefix".into(),
 	repo_slug: "org/repo".into(),
 	tag: Some("v1.2.3".into()), // Latest if `None`
 })
 ```
 
-> The `file_stem` cannot be configured with the string format, and defaults to the repository name in snake_case, suffixed with `_plugin`.
+> The `file_prefix` cannot be configured with the string format, and defaults to the repository name in snake_case, suffixed with `_plugin`.
 
 ## Extism plugin containers
 

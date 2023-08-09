@@ -1,9 +1,10 @@
 use crate::tools::create_tool;
+use proto_core::Id;
 use starbase::SystemResult;
 use starbase_styles::color;
 use tracing::info;
 
-pub async fn unalias(tool_id: String, alias: String) -> SystemResult {
+pub async fn unalias(tool_id: Id, alias: String) -> SystemResult {
     let mut tool = create_tool(&tool_id).await?;
 
     let value = tool.manifest.aliases.remove(&alias);

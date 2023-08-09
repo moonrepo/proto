@@ -5,18 +5,18 @@ use proto_wasm_plugin::Wasm;
 // use starbase_utils::toml;
 use std::{env, path::Path};
 use tracing::debug;
-use warpgate::{PluginLoader, PluginLocator};
 
 pub async fn create_tool_from_plugin(
-    id: &str,
+    id: impl AsRef<Id>,
     proto: impl AsRef<ProtoEnvironment>,
     locator: impl AsRef<PluginLocator>,
 ) -> miette::Result<Tool> {
+    let id = id.as_ref();
     let proto = proto.as_ref();
     let locator = locator.as_ref();
 
     let plugin_path = PluginLoader::new(&proto.plugins_dir, &proto.temp_dir)
-        .load_plugin(id, locator)
+        .load_plugin(&id, locator)
         .await?;
     // let is_toml = plugin_path
     //     .extension()
@@ -38,11 +38,14 @@ pub async fn create_tool_from_plugin(
     Tool::load(id, proto, Wasm::file(plugin_path))
 }
 
-pub async fn create_tool(id: &str) -> miette::Result<Tool> {
+pub async fn create_tool(id: &Id) -> miette::Result<Tool> {
     let proto = ProtoEnvironment::new()?;
     let mut locator = None;
 
-    debug!(tool = id, "Traversing upwards to find a configured plugin");
+    debug!(
+        tool = id.as_str(),
+        "Traversing upwards to find a configured plugin"
+    );
 
     // Traverse upwards checking each `.prototools` for a plugin
     if let Ok(working_dir) = env::current_dir() {

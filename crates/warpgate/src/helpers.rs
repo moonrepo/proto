@@ -27,7 +27,7 @@ pub fn determine_cache_extension(value: &str) -> &str {
     ".wasm"
 }
 
-pub fn create_wasm_file_stem(name: &str) -> String {
+pub fn create_wasm_file_prefix(name: &str) -> String {
     let mut name = name.to_lowercase().replace('-', "_");
 
     if !name.ends_with("_plugin") {

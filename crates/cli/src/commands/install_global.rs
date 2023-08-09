@@ -1,14 +1,14 @@
 use crate::helpers::create_progress_bar;
 use crate::tools::create_tool;
 use miette::IntoDiagnostic;
-use proto_core::ProtoError;
+use proto_core::{Id, ProtoError};
 use starbase::SystemResult;
 use starbase_styles::color;
 use std::process;
 use tokio::process::Command;
 use tracing::{debug, info};
 
-pub async fn install_global(tool_id: String, dependencies: Vec<String>) -> SystemResult {
+pub async fn install_global(tool_id: Id, dependencies: Vec<String>) -> SystemResult {
     let mut tool = create_tool(&tool_id).await?;
     tool.locate_globals_dir().await?;
 
@@ -18,9 +18,12 @@ pub async fn install_global(tool_id: String, dependencies: Vec<String>) -> Syste
     };
 
     for dependency in &dependencies {
-        debug!(tool = &tool.id, dependency, "Installing global dependency");
+        debug!(
+            tool = tool.id.as_str(),
+            dependency, "Installing global dependency"
+        );
 
-        let mut command = Command::new(&tool.id);
+        let mut command = Command::new(tool.id.as_str());
 
         // TODO move into plugins
         match tool.id.as_ref() {

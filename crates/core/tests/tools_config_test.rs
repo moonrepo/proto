@@ -2,7 +2,7 @@ use proto_core::{AliasOrVersion, ToolsConfig};
 use starbase_sandbox::create_empty_sandbox;
 use std::collections::BTreeMap;
 use std::str::FromStr;
-use warpgate::PluginLocator;
+use warpgate::{Id, PluginLocator};
 
 mod tools_config {
     use super::*;
@@ -26,6 +26,17 @@ mod tools_config {
     }
 
     #[test]
+    #[should_panic(
+        expected = "Invalid plugin identifier fooBar, must be a valid kebab-case string."
+    )]
+    fn errors_for_non_kebab_id() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", "fooBar = \"1.2.3\"");
+
+        ToolsConfig::load_from(sandbox.path()).unwrap();
+    }
+
+    #[test]
     fn parses_plugins_table() {
         let sandbox = create_empty_sandbox();
         sandbox.create_file(
@@ -36,7 +47,7 @@ rust = "stable"
 
 [plugins]
 foo = "source:./test.toml"
-camelCase = "source:./camel.toml"
+kebab-case = "source:./camel.toml"
 "#,
         );
 
@@ -45,8 +56,8 @@ camelCase = "source:./camel.toml"
         assert_eq!(
             config.tools,
             BTreeMap::from_iter([
-                ("node".into(), AliasOrVersion::from_str("12.0.0").unwrap()),
-                ("rust".into(), AliasOrVersion::Alias("stable".into())),
+                (Id::raw("node"), AliasOrVersion::from_str("12.0.0").unwrap()),
+                (Id::raw("rust"), AliasOrVersion::Alias("stable".into())),
             ])
         );
 
@@ -54,14 +65,14 @@ camelCase = "source:./camel.toml"
             config.plugins,
             BTreeMap::from_iter([
                 (
-                    "foo".into(),
+                    Id::raw("foo"),
                     PluginLocator::SourceFile {
                         file: "./test.toml".into(),
                         path: sandbox.path().join("./test.toml")
                     }
                 ),
                 (
-                    "camelCase".into(),
+                    Id::raw("kebab-case"),
                     PluginLocator::SourceFile {
                         file: "./camel.toml".into(),
                         path: sandbox.path().join("./camel.toml")
@@ -78,13 +89,13 @@ camelCase = "source:./camel.toml"
 
         config
             .tools
-            .insert("node".into(), AliasOrVersion::from_str("12.0.0").unwrap());
+            .insert(Id::raw("node"), AliasOrVersion::from_str("12.0.0").unwrap());
         config
             .tools
-            .insert("rust".into(), AliasOrVersion::Alias("stable".into()));
+            .insert(Id::raw("rust"), AliasOrVersion::Alias("stable".into()));
 
         config.plugins.insert(
-            "foo".into(),
+            Id::raw("foo"),
             PluginLocator::SourceFile {
                 file: "./test.toml".into(),
                 path: sandbox.path().join("./test.toml"),
@@ -148,9 +159,9 @@ foo = "source:./test.toml"
         assert_eq!(
             config.tools,
             BTreeMap::from_iter([
-                ("node".into(), AliasOrVersion::parse("1.2.3").unwrap()),
-                ("bun".into(), AliasOrVersion::parse("4.5.6").unwrap()),
-                ("deno".into(), AliasOrVersion::parse("7.8.9").unwrap()),
+                (Id::raw("node"), AliasOrVersion::parse("1.2.3").unwrap()),
+                (Id::raw("bun"), AliasOrVersion::parse("4.5.6").unwrap()),
+                (Id::raw("deno"), AliasOrVersion::parse("7.8.9").unwrap()),
             ])
         );
 
@@ -158,14 +169,14 @@ foo = "source:./test.toml"
             config.plugins,
             BTreeMap::from_iter([
                 (
-                    "node".into(),
+                    Id::raw("node"),
                     PluginLocator::SourceFile {
                         file: "./node.toml".into(),
                         path: sandbox.path().join("one/two/three/./node.toml")
                     }
                 ),
                 (
-                    "bun".into(),
+                    Id::raw("bun"),
                     PluginLocator::SourceFile {
                         file: "../bun.wasm".into(),
                         path: sandbox.path().join("one/two/../bun.wasm")

@@ -2,11 +2,10 @@ mod utils;
 
 use futures::Future;
 use proto::tools::create_tool_from_plugin;
-use proto_core::{ProtoEnvironment, Tool, VersionType};
+use proto_core::{Id, PluginLocator, ProtoEnvironment, Tool, VersionType};
 use std::env;
 use std::path::{Path, PathBuf};
 use utils::*;
-use warpgate::PluginLocator;
 
 async fn run_tests<F, Fut>(factory: F)
 where
@@ -63,7 +62,7 @@ async fn errors_for_missing_file() {
         let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
         create_tool_from_plugin(
-            "moon",
+            Id::raw("moon"),
             ProtoEnvironment::from(root).unwrap(),
             PluginLocator::SourceFile {
                 file: "./some/fake/path.toml".into(),
@@ -94,7 +93,7 @@ async fn errors_for_missing_file() {
 async fn errors_for_broken_url() {
     run_tests(|root| {
         create_tool_from_plugin(
-            "moon",
+            Id::raw("moon"),
             ProtoEnvironment::from(root).unwrap(),
             PluginLocator::SourceUrl {
                 url: "https://raw.githubusercontent.com/moonrepo/moon/some/fake/path.toml".into(),
