@@ -2,7 +2,7 @@ use proto_core::UserConfig;
 use starbase_sandbox::create_empty_sandbox;
 use std::collections::BTreeMap;
 use std::env;
-use warpgate::{GitHubLocator, PluginLocator};
+use warpgate::{GitHubLocator, Id, PluginLocator};
 
 mod user_config {
     use super::*;
@@ -92,13 +92,13 @@ bar = "source:https://moonrepo.dev/path/file.wasm"
             config.plugins,
             BTreeMap::from_iter([
                 (
-                    "bar".into(),
+                    Id::raw("bar"),
                     PluginLocator::SourceUrl {
                         url: "https://moonrepo.dev/path/file.wasm".into()
                     }
                 ),
                 (
-                    "foo".into(),
+                    Id::raw("foo"),
                     PluginLocator::GitHub(GitHubLocator {
                         file_prefix: "foo_plugin".into(),
                         repo_slug: "moonrepo/foo".into(),
@@ -125,7 +125,7 @@ foo = "source:../file.wasm"
         assert_eq!(
             config.plugins,
             BTreeMap::from_iter([(
-                "foo".into(),
+                Id::raw("foo"),
                 PluginLocator::SourceFile {
                     file: "../file.wasm".into(),
                     path: sandbox.path().join("../file.wasm")

@@ -20,10 +20,10 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::time::{Duration, SystemTime};
 use tracing::{debug, trace};
-use warpgate::PluginContainer;
+use warpgate::{Id, PluginContainer};
 
 pub struct Tool {
-    pub id: String,
+    pub id: Id,
     pub manifest: ToolManifest,
     pub metadata: ToolMetadataOutput,
     pub plugin: PluginContainer<'static>,
@@ -36,8 +36,14 @@ pub struct Tool {
 }
 
 impl Tool {
-    pub fn load(id: &str, proto: &ProtoEnvironment, wasm: Wasm) -> miette::Result<Self> {
-        let manifest = ToolManifest::load_from(proto.tools_dir.join(id))?;
+    pub fn load<I: AsRef<Id>, P: AsRef<ProtoEnvironment>>(
+        id: I,
+        proto: P,
+        wasm: Wasm,
+    ) -> miette::Result<Self> {
+        let id = id.as_ref();
+        let proto = proto.as_ref();
+        let manifest = ToolManifest::load_from(proto.tools_dir.join(id.as_str()))?;
         let plugin = Self::load_plugin(id, proto, wasm)?;
 
         let mut tool = Tool {
@@ -57,11 +63,12 @@ impl Tool {
         Ok(tool)
     }
 
-    pub fn load_plugin<'l>(
-        id: &str,
-        proto: &ProtoEnvironment,
+    pub fn load_plugin<'l, I: AsRef<Id>, P: AsRef<ProtoEnvironment>>(
+        id: I,
+        proto: P,
         wasm: Wasm,
     ) -> miette::Result<PluginContainer<'l>> {
+        let proto = proto.as_ref();
         let working_dir = env::current_dir().expect("Unable to determine working directory!");
 
         let mut manifest = PluginManifest::new([wasm]);
@@ -77,7 +84,12 @@ impl Tool {
         manifest = manifest.with_allowed_path(proto.root.clone(), "/proto");
 
         let host_data = HostData { working_dir };
-        let plugin = PluginContainer::new(id, manifest, create_host_functions(host_data))?;
+
+        let plugin = PluginContainer::new(
+            id.as_ref().to_owned(),
+            manifest,
+            create_host_functions(host_data),
+        )?;
 
         Ok(plugin)
     }
@@ -114,7 +126,7 @@ impl Tool {
             return dir.to_owned();
         }
 
-        self.proto.tools_dir.join(&self.id)
+        self.proto.tools_dir.join(self.id.as_str())
     }
 
     /// Return a human readable name for the tool.
@@ -145,7 +157,7 @@ impl Tool {
 
     /// Return an absolute path to a temp directory solely for this tool.
     pub fn get_temp_dir(&self) -> PathBuf {
-        self.proto.temp_dir.join(&self.id)
+        self.proto.temp_dir.join(self.id.as_str())
     }
 
     /// Return an absolute path to the tool's install directory for the currently resolved version.
@@ -177,7 +189,7 @@ impl Tool {
     pub fn create_environment(&self) -> miette::Result<Environment> {
         Ok(Environment {
             arch: HostArch::from_str(consts::ARCH).into_diagnostic()?,
-            id: self.id.clone(),
+            id: self.id.to_string(),
             os: HostOS::from_str(consts::OS).into_diagnostic()?,
             vars: self
                 .metadata
@@ -194,7 +206,7 @@ impl Tool {
         let mut metadata: ToolMetadataOutput = self.plugin.cache_func_with(
             "register_tool",
             ToolMetadataInput {
-                id: self.id.clone(),
+                id: self.id.to_string(),
                 env: self.create_environment()?,
                 home_dir: self.plugin.to_virtual_path(&self.proto.home),
             },
@@ -225,7 +237,7 @@ impl Tool {
         &self,
         initial_version: &VersionType,
     ) -> miette::Result<VersionResolver> {
-        debug!(tool = &self.id, "Loading available versions");
+        debug!(tool = self.id.as_str(), "Loading available versions");
 
         let mut versions: Option<LoadVersionsOutput> = None;
         let cache_path = self.get_temp_dir().join("versions.json");
@@ -244,7 +256,7 @@ impl Tool {
             };
 
             if read_cache {
-                debug!(tool = &self.id, cache = ?cache_path, "Loading from local cache");
+                debug!(tool = self.id.as_str(), cache = ?cache_path, "Loading from local cache");
 
                 versions = Some(json::read_file(&cache_path)?);
             }
@@ -291,7 +303,7 @@ impl Tool {
         }
 
         debug!(
-            tool = &self.id,
+            tool = self.id.as_str(),
             initial_version = initial_version.to_string(),
             "Resolving a semantic version",
         );
@@ -311,7 +323,7 @@ impl Tool {
 
             if let Some(candidate) = result.candidate {
                 debug!(
-                    tool = &self.id,
+                    tool = self.id.as_str(),
                     candidate = &candidate,
                     "Received a possible version or alias to use",
                 );
@@ -323,7 +335,7 @@ impl Tool {
 
             if let Some(candidate) = result.version {
                 debug!(
-                    tool = &self.id,
+                    tool = self.id.as_str(),
                     version = &candidate,
                     "Received an explicit version or alias to use",
                 );
@@ -338,7 +350,7 @@ impl Tool {
         }
 
         debug!(
-            tool = &self.id,
+            tool = self.id.as_str(),
             version = version.to_string(),
             "Resolved to {}",
             version
@@ -366,7 +378,7 @@ impl Tool {
         let result: DetectVersionOutput = self.plugin.cache_func("detect_version_files")?;
 
         trace!(
-            tool = &self.id,
+            tool = self.id.as_str(),
             dir = ?current_dir,
             "Attempting to detect a version from directory"
         );
@@ -400,7 +412,7 @@ impl Tool {
             };
 
             debug!(
-                tool = &self.id,
+                tool = self.id.as_str(),
                 file = ?file_path,
                 "Detected a version"
             );
@@ -423,7 +435,7 @@ impl Tool {
         download_file: &Path,
     ) -> miette::Result<bool> {
         debug!(
-            tool = &self.id,
+            tool = self.id.as_str(),
             download_file = ?download_file,
             checksum_file = ?checksum_file,
             "Verifiying checksum of downloaded file",
@@ -459,7 +471,10 @@ impl Tool {
                 // <checksum>
                 line == checksum
                 {
-                    debug!(tool = &self.id, "Successfully verified, checksum matches");
+                    debug!(
+                        tool = self.id.as_str(),
+                        "Successfully verified, checksum matches"
+                    );
 
                     return Ok(true);
                 }
@@ -476,7 +491,10 @@ impl Tool {
     /// Download the tool (as an archive) from its distribution registry
     /// into the `~/.proto/temp` folder, and optionally verify checksums.
     pub async fn install_from_prebuilt(&self, install_dir: &Path) -> miette::Result<PathBuf> {
-        debug!(tool = &self.id, "Installing tool from a pre-built archive");
+        debug!(
+            tool = self.id.as_str(),
+            "Installing tool from a pre-built archive"
+        );
 
         let temp_dir = self
             .get_temp_dir()
@@ -502,9 +520,12 @@ impl Tool {
         };
 
         if download_file.exists() {
-            debug!(tool = &self.id, "Tool already downloaded, continuing");
+            debug!(
+                tool = self.id.as_str(),
+                "Tool already downloaded, continuing"
+            );
         } else {
-            debug!(tool = &self.id, "Tool not downloaded, downloading");
+            debug!(tool = self.id.as_str(), "Tool not downloaded, downloading");
 
             download_from_url(&download_url, &download_file).await?;
         }
@@ -515,7 +536,10 @@ impl Tool {
                 temp_dir.join(options.checksum_name.unwrap_or("CHECKSUM.txt".to_owned()));
 
             if !checksum_file.exists() {
-                debug!(tool = &self.id, "Checksum does not exist, downloading");
+                debug!(
+                    tool = self.id.as_str(),
+                    "Checksum does not exist, downloading"
+                );
 
                 download_from_url(&checksum_url, &checksum_file).await?;
             }
@@ -525,7 +549,7 @@ impl Tool {
 
         // Attempt to unpack the archive
         debug!(
-            tool = &self.id,
+            tool = self.id.as_str(),
             download_file = ?download_file,
             install_dir = ?install_dir,
             "Attempting to unpack archive",
@@ -556,7 +580,7 @@ impl Tool {
             let install_path = install_dir.join(if cfg!(windows) {
                 format!("{}.exe", self.id)
             } else {
-                self.id.clone()
+                self.id.to_string()
             });
 
             fs::rename(&download_file, &install_path)?;
@@ -572,7 +596,10 @@ impl Tool {
         let install_dir = self.get_tool_dir();
 
         if install_dir.exists() {
-            debug!(tool = &self.id, "Tool already installed, continuing");
+            debug!(
+                tool = self.id.as_str(),
+                "Tool already installed, continuing"
+            );
 
             return Ok(false);
         }
@@ -580,7 +607,7 @@ impl Tool {
         // If this function is defined, it acts like an escape hatch and
         // takes precedence over all other install strategies
         if self.plugin.has_func("native_install") {
-            debug!(tool = &self.id, "Installing tool natively");
+            debug!(tool = self.id.as_str(), "Installing tool natively");
 
             let result: NativeInstallOutput = self.plugin.call_func_with(
                 "native_install",
@@ -598,7 +625,7 @@ impl Tool {
         self.install_from_prebuilt(&install_dir).await?;
 
         debug!(
-            tool = &self.id,
+            tool = self.id.as_str(),
             install_dir = ?install_dir,
             "Successfully installed tool",
         );
@@ -611,20 +638,23 @@ impl Tool {
         let install_dir = self.get_tool_dir();
 
         if !install_dir.exists() {
-            debug!(tool = &self.id, "Tool has not been installed, aborting");
+            debug!(
+                tool = self.id.as_str(),
+                "Tool has not been installed, aborting"
+            );
 
             return Ok(false);
         }
 
         debug!(
-            tool = &self.id,
+            tool = self.id.as_str(),
             install_dir = ?install_dir,
             "Deleting install directory"
         );
 
         fs::remove_dir_all(install_dir)?;
 
-        debug!(tool = &self.id, "Successfully uninstalled tool");
+        debug!(tool = self.id.as_str(), "Successfully uninstalled tool");
 
         Ok(true)
     }
@@ -634,7 +664,7 @@ impl Tool {
         let mut options = LocateBinsOutput::default();
         let tool_dir = self.get_tool_dir();
 
-        debug!(tool = &self.id, "Locating binaries for tool");
+        debug!(tool = self.id.as_str(), "Locating binaries for tool");
 
         if self.plugin.has_func("locate_bins") {
             options = self.plugin.cache_func_with(
@@ -656,10 +686,10 @@ impl Tool {
                 tool_dir.join(bin)
             }
         } else {
-            tool_dir.join(&self.id)
+            tool_dir.join(self.id.as_str())
         };
 
-        debug!(tool = &self.id, bin_path = ?bin_path, "Found a potential binary");
+        debug!(tool = self.id.as_str(), bin_path = ?bin_path, "Found a potential binary");
 
         if bin_path.exists() {
             self.bin_path = Some(bin_path);
@@ -680,7 +710,10 @@ impl Tool {
             return Ok(());
         }
 
-        debug!(tool = &self.id, "Locating globals bin directory for tool");
+        debug!(
+            tool = self.id.as_str(),
+            "Locating globals bin directory for tool"
+        );
 
         let install_dir = self.get_tool_dir();
         let options: LocateBinsOutput = self.plugin.cache_func_with(
@@ -726,7 +759,7 @@ impl Tool {
             };
 
             if dir_path.exists() || (index == lookup_count && options.fallback_last_globals_dir) {
-                debug!(tool = &self.id, bin_dir = ?dir_path, "Found a globals directory");
+                debug!(tool = self.id.as_str(), bin_dir = ?dir_path, "Found a globals directory");
 
                 self.globals_dir = Some(dir_path);
                 break;
@@ -802,7 +835,7 @@ impl Tool {
             let bin_path = if let Some(path) = &config.bin_path {
                 self.get_tool_dir().join(path)
             } else {
-                self.get_tool_dir().join(&self.id)
+                self.get_tool_dir().join(self.id.as_str())
             };
 
             let mut context = self.create_shim_context();
@@ -829,14 +862,14 @@ impl Tool {
         let install_dir = self.get_tool_dir();
 
         debug!(
-            tool = &self.id,
+            tool = self.id.as_str(),
             install_dir = ?install_dir,
             "Checking if tool is installed",
         );
 
         if install_dir.exists() {
             debug!(
-                tool = &self.id,
+                tool = self.id.as_str(),
                 install_dir = ?install_dir,
                 "Tool has already been installed, locating binaries and shims",
             );
@@ -848,7 +881,7 @@ impl Tool {
 
             return Ok(true);
         } else {
-            debug!(tool = &self.id, "Tool has not been installed");
+            debug!(tool = self.id.as_str(), "Tool has not been installed");
         }
 
         Ok(false)
@@ -887,7 +920,7 @@ impl Tool {
 
         if do_create {
             debug!(
-                tool = &self.id,
+                tool = self.id.as_str(),
                 "Creating shims as they either do not exist, or are outdated"
             );
 
@@ -919,7 +952,10 @@ impl Tool {
 
     /// Delete temporary files and downloads for the current version.
     pub async fn cleanup(&mut self) -> miette::Result<()> {
-        debug!(tool = &self.id, "Cleaning up temporary files and downloads");
+        debug!(
+            tool = self.id.as_str(),
+            "Cleaning up temporary files and downloads"
+        );
 
         let _ = fs::remove(self.get_temp_dir());
 

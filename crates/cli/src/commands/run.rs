@@ -2,7 +2,7 @@ use crate::commands::install::install;
 use crate::hooks::node as node_hooks;
 use crate::tools::create_tool;
 use miette::IntoDiagnostic;
-use proto_core::{detect_version, AliasOrVersion, ProtoError, UserConfig, VersionType};
+use proto_core::{detect_version, AliasOrVersion, Id, ProtoError, UserConfig, VersionType};
 use starbase::SystemResult;
 use starbase_styles::color;
 use std::env;
@@ -11,7 +11,7 @@ use tokio::process::Command;
 use tracing::debug;
 
 pub async fn run(
-    tool_id: String,
+    tool_id: Id,
     forced_version: Option<VersionType>,
     alt_bin: Option<String>,
     args: Vec<String>,

@@ -2,6 +2,7 @@ use miette::Diagnostic;
 use starbase_styles::{Style, Stylize};
 use std::path::PathBuf;
 use thiserror::Error;
+use warpgate::Id;
 
 #[derive(Error, Debug, Diagnostic)]
 pub enum ProtoError {
@@ -60,7 +61,7 @@ pub enum ProtoError {
     #[error(
         "{} is not a built-in tool or has not been configured as a plugin, unable to proceed.", .id.style(Style::Id)
     )]
-    UnknownTool { id: String },
+    UnknownTool { id: Id },
 
     #[diagnostic(code(proto::unsupported::shell))]
     #[error("Unable to detect shell.")]
@@ -71,7 +72,7 @@ pub enum ProtoError {
         help = "Has the tool been installed?"
     )]
     #[error("Failed to detect an applicable version to run {} with. Try pinning a local or global version, or passing the version as an argument.", .tool.style(Style::Id))]
-    VersionDetectFailed { tool: String },
+    VersionDetectFailed { tool: Id },
 
     #[diagnostic(code(proto::version::unresolved))]
     #[error("Failed to resolve a semantic version for {}.", .version.style(Style::Hash))]

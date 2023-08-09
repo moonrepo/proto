@@ -45,7 +45,7 @@ mod locator {
 
         assert_eq!(
             PluginLocator::Wapm(WapmLocator {
-                file_stem: "proto_plugin".into(),
+                file_prefix: "proto_plugin".into(),
                 package_name: "moonrepo/proto".into(),
                 version: None,
             })
@@ -55,7 +55,7 @@ mod locator {
 
         assert_eq!(
             PluginLocator::Wapm(WapmLocator {
-                file_stem: "proto_plugin".into(),
+                file_prefix: "proto_plugin".into(),
                 package_name: "moonrepo/proto".into(),
                 version: Some("1.2.3".into()),
             })
@@ -207,7 +207,7 @@ mod locator {
             assert_eq!(
                 PluginLocator::try_from("wapm:moonrepo/bun".to_string()).unwrap(),
                 PluginLocator::Wapm(WapmLocator {
-                    file_stem: "bun_plugin".into(),
+                    file_prefix: "bun_plugin".into(),
                     package_name: "moonrepo/bun".into(),
                     version: None,
                 })
@@ -219,7 +219,7 @@ mod locator {
             assert_eq!(
                 PluginLocator::try_from("wapm:moonrepo/bun-plugin@latest".to_string()).unwrap(),
                 PluginLocator::Wapm(WapmLocator {
-                    file_stem: "bun_plugin".into(),
+                    file_prefix: "bun_plugin".into(),
                     package_name: "moonrepo/bun-plugin".into(),
                     version: Some("latest".into()),
                 })
@@ -231,7 +231,7 @@ mod locator {
             assert_eq!(
                 PluginLocator::try_from("wapm:moonrepo/bun_plugin@1.2.3".to_string()).unwrap(),
                 PluginLocator::Wapm(WapmLocator {
-                    file_stem: "bun_plugin".into(),
+                    file_prefix: "bun_plugin".into(),
                     package_name: "moonrepo/bun_plugin".into(),
                     version: Some("1.2.3".into()),
                 })

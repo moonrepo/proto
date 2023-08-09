@@ -1,4 +1,4 @@
-use crate::helpers::{create_wasm_file_stem, extract_suffix_from_slug};
+use crate::helpers::{create_wasm_file_prefix, extract_suffix_from_slug};
 use crate::WarpgateError;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
@@ -24,7 +24,7 @@ pub struct GitHubLocator {
 pub struct WapmLocator {
     /// Name of module without extension.
     /// Defaults to `<name>_plugin`.
-    pub file_stem: String,
+    pub file_prefix: String,
 
     /// Owner and package name: `owner/name`.
     pub package_name: String,
@@ -138,7 +138,7 @@ impl TryFrom<String> for PluginLocator {
                 let tag = parts.next().map(|t| t.to_owned());
 
                 Ok(PluginLocator::GitHub(GitHubLocator {
-                    file_prefix: create_wasm_file_stem(extract_suffix_from_slug(&repo_slug)),
+                    file_prefix: create_wasm_file_prefix(extract_suffix_from_slug(&repo_slug)),
                     repo_slug,
                     tag,
                 }))
@@ -156,7 +156,7 @@ impl TryFrom<String> for PluginLocator {
                 let version = parts.next().map(|t| t.to_owned());
 
                 Ok(PluginLocator::Wapm(WapmLocator {
-                    file_stem: create_wasm_file_stem(extract_suffix_from_slug(&package_name)),
+                    file_prefix: create_wasm_file_prefix(extract_suffix_from_slug(&package_name)),
                     package_name,
                     version,
                 }))

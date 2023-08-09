@@ -1,10 +1,10 @@
 use crate::tools::create_tool;
-use proto_core::{is_alias_name, ProtoError, VersionType};
+use proto_core::{is_alias_name, Id, ProtoError, VersionType};
 use starbase::SystemResult;
 use starbase_styles::color;
 use tracing::info;
 
-pub async fn alias(tool_id: String, alias: String, version: VersionType) -> SystemResult {
+pub async fn alias(tool_id: Id, alias: String, version: VersionType) -> SystemResult {
     if let VersionType::Alias(inner_alias) = &version {
         if &alias == inner_alias {
             return Err(ProtoError::Message("Cannot map an alias to itself.".into()))?;

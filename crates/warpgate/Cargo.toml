@@ -9,7 +9,9 @@ repository = "https://github.com/moonrepo/proto"
 [dependencies]
 extism = { workspace = true }
 miette = { workspace = true }
+once_cell = { workspace = true }
 once_map = { workspace = true }
+regex = { workspace = true }
 reqwest = { workspace = true, features = ["json"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
