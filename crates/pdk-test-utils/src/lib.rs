@@ -2,6 +2,7 @@ mod macros;
 mod wrapper;
 
 pub use macros::*;
+use proto_core::Id;
 pub use proto_core::{AliasOrVersion, ProtoEnvironment, Tool, VersionType};
 pub use proto_pdk_api::*;
 pub use wrapper::WasmTestWrapper;
@@ -54,8 +55,8 @@ pub fn create_plugin(id: &str, sandbox: &Path) -> WasmTestWrapper {
 
     WasmTestWrapper {
         tool: Tool::load(
-            id,
-            &ProtoEnvironment::new_testing(sandbox),
+            Id::new(id).unwrap(),
+            ProtoEnvironment::new_testing(sandbox),
             Wasm::file(wasm_file),
         )
         .unwrap(),

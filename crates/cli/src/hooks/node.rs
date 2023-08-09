@@ -1,10 +1,10 @@
 use crate::tools::create_tool;
-use proto_core::{ProtoError, UserConfig};
+use proto_core::{Id, ProtoError, UserConfig};
 use starbase_styles::color;
 use std::env;
 
 pub async fn pre_run(
-    tool_id: &str,
+    tool_id: &Id,
     args: &[String],
     user_config: &UserConfig,
 ) -> miette::Result<()> {

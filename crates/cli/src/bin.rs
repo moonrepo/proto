@@ -18,38 +18,34 @@ pub struct CliCommand(pub Commands);
 #[system]
 async fn run(command: StateRef<CliCommand>) {
     match command.0.clone() {
-        Commands::Alias {
-            tool,
-            alias,
-            semver,
-        } => commands::alias(tool, alias, semver).await?,
-        Commands::Bin { tool, semver, shim } => commands::bin(tool, semver, shim).await?,
+        Commands::Alias { id, alias, semver } => commands::alias(id, alias, semver).await?,
+        Commands::Bin { id, semver, shim } => commands::bin(id, semver, shim).await?,
         Commands::Clean { days, yes } => commands::clean(days, yes).await?,
         Commands::Completions { shell } => commands::completions(shell).await?,
         Commands::Install {
-            tool,
+            id,
             semver,
             pin,
             passthrough,
-        } => commands::install(tool, semver, pin, passthrough).await?,
-        Commands::InstallGlobal { tool, dependencies } => {
-            commands::install_global(tool, dependencies).await?
+        } => commands::install(id, semver, pin, passthrough).await?,
+        Commands::InstallGlobal { id, dependencies } => {
+            commands::install_global(id, dependencies).await?
         }
-        Commands::Global { tool, semver } => commands::global(tool, semver).await?,
-        Commands::List { tool } => commands::list(tool).await?,
-        Commands::ListGlobal { tool } => commands::list_global(tool).await?,
-        Commands::ListRemote { tool } => commands::list_remote(tool).await?,
-        Commands::Local { tool, semver } => commands::local(tool, semver).await?,
+        Commands::Global { id, semver } => commands::global(id, semver).await?,
+        Commands::List { id } => commands::list(id).await?,
+        Commands::ListGlobal { id } => commands::list_global(id).await?,
+        Commands::ListRemote { id } => commands::list_remote(id).await?,
+        Commands::Local { id, semver } => commands::local(id, semver).await?,
         Commands::Plugins { json } => commands::plugins(json).await?,
         Commands::Run {
-            tool,
+            id,
             semver,
             bin,
             passthrough,
-        } => commands::run(tool, semver, bin, passthrough).await?,
+        } => commands::run(id, semver, bin, passthrough).await?,
         Commands::Setup { shell, profile } => commands::setup(shell, profile).await?,
-        Commands::Unalias { tool, alias } => commands::unalias(tool, alias).await?,
-        Commands::Uninstall { tool, semver } => commands::uninstall(tool, semver).await?,
+        Commands::Unalias { id, alias } => commands::unalias(id, alias).await?,
+        Commands::Uninstall { id, semver } => commands::uninstall(id, semver).await?,
         Commands::Upgrade => commands::upgrade().await?,
         Commands::Use => commands::install_all().await?,
     };

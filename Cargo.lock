@@ -2335,7 +2335,6 @@ dependencies = [
  "strum",
  "tokio",
  "tracing",
- "warpgate",
  "winreg 0.50.0",
 ]
 

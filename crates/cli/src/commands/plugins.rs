@@ -1,13 +1,12 @@
 use crate::tools::create_tool_from_plugin;
 use miette::IntoDiagnostic;
-use proto_core::{ProtoEnvironment, ToolsConfig, UserConfig};
+use proto_core::{Id, PluginLocator, ProtoEnvironment, ToolsConfig, UserConfig};
 use serde::Serialize;
 use starbase::SystemResult;
 use starbase_styles::color;
 use starbase_utils::json;
 use std::collections::HashMap;
 use tracing::debug;
-use warpgate::PluginLocator;
 
 fn render_entry<V: AsRef<str>>(label: &str, value: V) {
     println!(
@@ -19,7 +18,7 @@ fn render_entry<V: AsRef<str>>(label: &str, value: V) {
 
 #[derive(Serialize)]
 pub struct PluginItem {
-    id: String,
+    id: Id,
     name: String,
     // version: String,
     locator: PluginLocator,

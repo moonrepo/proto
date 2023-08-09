@@ -1,11 +1,12 @@
 use crate::tools::create_tool;
+use proto_core::Id;
 use starbase::{diagnostics::IntoDiagnostic, SystemResult};
 use starbase_styles::color;
 use starbase_utils::fs;
 use std::process;
 use tracing::debug;
 
-pub async fn list_global(tool_id: String) -> SystemResult {
+pub async fn list_global(tool_id: Id) -> SystemResult {
     let mut tool = create_tool(&tool_id).await?;
     tool.locate_globals_dir().await?;
 

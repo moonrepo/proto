@@ -5,10 +5,9 @@ use proto_wasm_plugin::Wasm;
 // use starbase_utils::toml;
 use std::{env, path::Path};
 use tracing::debug;
-use warpgate::{Id, PluginLoader, PluginLocator};
 
 pub async fn create_tool_from_plugin(
-    id: &str,
+    id: &Id,
     proto: impl AsRef<ProtoEnvironment>,
     locator: impl AsRef<PluginLocator>,
 ) -> miette::Result<Tool> {
@@ -39,8 +38,7 @@ pub async fn create_tool_from_plugin(
     Tool::load(id, proto, Wasm::file(plugin_path))
 }
 
-pub async fn create_tool(id: &str) -> miette::Result<Tool> {
-    let id = Id::new(id)?;
+pub async fn create_tool(id: &Id) -> miette::Result<Tool> {
     let proto = ProtoEnvironment::new()?;
     let mut locator = None;
 
@@ -56,7 +54,7 @@ pub async fn create_tool(id: &str) -> miette::Result<Tool> {
         while let Some(dir) = &current_dir {
             let tools_config = ToolsConfig::load_from(dir)?;
 
-            if let Some(maybe_locator) = tools_config.plugins.get(&id) {
+            if let Some(maybe_locator) = tools_config.plugins.get(id) {
                 locator = Some(maybe_locator.to_owned());
                 break;
             }
@@ -69,7 +67,7 @@ pub async fn create_tool(id: &str) -> miette::Result<Tool> {
     if locator.is_none() {
         let user_config = UserConfig::load()?;
 
-        if let Some(maybe_locator) = user_config.plugins.get(&id) {
+        if let Some(maybe_locator) = user_config.plugins.get(id) {
             locator = Some(maybe_locator.to_owned());
         }
     }
@@ -78,7 +76,7 @@ pub async fn create_tool(id: &str) -> miette::Result<Tool> {
     if locator.is_none() {
         let builtin_plugins = ToolsConfig::builtin_plugins();
 
-        if let Some(maybe_locator) = builtin_plugins.get(&id) {
+        if let Some(maybe_locator) = builtin_plugins.get(id) {
             locator = Some(maybe_locator.to_owned());
         }
     }
@@ -87,5 +85,5 @@ pub async fn create_tool(id: &str) -> miette::Result<Tool> {
         return Err(ProtoError::UnknownTool { id: id.to_owned() }.into());
     };
 
-    create_tool_from_plugin(id.as_str(), proto, locator).await
+    create_tool_from_plugin(id, proto, locator).await
 }
