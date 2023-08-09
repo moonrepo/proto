@@ -1,9 +1,11 @@
 use crate::api::Empty;
 use crate::error::WarpgateError;
+use crate::id::Id;
 use extism::{Function, Manifest, Plugin};
 use once_map::OnceMap;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
+use starbase_styles::color;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
@@ -13,7 +15,7 @@ use tracing::trace;
 /// methods for calling and caching functions from the WASM plugin. It also provides
 /// additional methods for easily working with WASI and virtual paths.
 pub struct PluginContainer<'plugin> {
-    pub id: String,
+    pub id: Id,
     pub manifest: Manifest,
 
     func_cache: OnceMap<String, Vec<u8>>,
@@ -25,8 +27,8 @@ unsafe impl<'plugin> Sync for PluginContainer<'plugin> {}
 
 impl<'plugin> PluginContainer<'plugin> {
     /// Create a new container with the provided manifest and host functions.
-    pub fn new<'new>(
-        id: &str,
+    pub fn new<'new, I: AsRef<str>>(
+        id: I,
         manifest: Manifest,
         functions: impl IntoIterator<Item = Function>,
     ) -> miette::Result<PluginContainer<'new>> {
@@ -36,14 +38,14 @@ impl<'plugin> PluginContainer<'plugin> {
         Ok(PluginContainer {
             manifest,
             plugin: Arc::new(RwLock::new(plugin)),
-            id: id.to_owned(),
+            id: Id::new(id)?,
             func_cache: OnceMap::new(),
         })
     }
 
     /// Create a new container with the provided manifest.
-    pub fn new_without_functions<'new>(
-        id: &str,
+    pub fn new_without_functions<'new, I: AsRef<str>>(
+        id: I,
         manifest: Manifest,
     ) -> miette::Result<PluginContainer<'new>> {
         Self::new(id, manifest, [])
@@ -135,7 +137,7 @@ impl<'plugin> PluginContainer<'plugin> {
             }
         }
 
-        path.to_owned() // ?
+        path.to_owned()
     }
 
     /// Convert the provided absolute host path to a virtual guest path suitable
@@ -158,7 +160,7 @@ impl<'plugin> PluginContainer<'plugin> {
             }
         }
 
-        path.to_owned() // ?
+        path.to_owned()
     }
 
     /// Call a function on the plugin with the given raw input and return the raw output.
@@ -181,11 +183,12 @@ impl<'plugin> PluginContainer<'plugin> {
             })?;
 
         trace!(
-            plugin = self.id,
+            plugin = self.id.as_str(),
             func,
             input = %String::from_utf8_lossy(input),
             output = %String::from_utf8_lossy(output),
-            "Called plugin function"
+            "Called plugin function {}",
+            color::label(func),
         );
 
         Ok(output)

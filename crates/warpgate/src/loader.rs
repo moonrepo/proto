@@ -4,6 +4,7 @@ use crate::helpers::{
     determine_cache_extension, download_url_to_temp, extract_prefix_from_slug,
     move_or_unpack_download,
 };
+use crate::id::Id;
 use crate::locator::{GitHubLocator, PluginLocator, WapmLocator};
 use sha2::{Digest, Sha256};
 use starbase_styles::color;
@@ -43,14 +44,14 @@ impl PluginLoader {
         id: T,
         locator: L,
     ) -> miette::Result<PathBuf> {
-        let id = id.as_ref();
+        let id = Id::new(id.as_ref())?;
         let locator = locator.as_ref();
 
         trace!(
-            plugin = id,
+            plugin = id.as_str(),
             locator = locator.to_string(),
             "Loading plugin {}",
-            color::id(id)
+            color::id(id.as_str())
         );
 
         match locator {
@@ -61,7 +62,7 @@ impl PluginLoader {
 
                 if path.exists() {
                     trace!(
-                        plugin = id,
+                        plugin = id.as_str(),
                         path = ?path,
                         "Using source file",
                     );
@@ -73,20 +74,20 @@ impl PluginLoader {
             }
             PluginLocator::SourceUrl { url } => {
                 self.download_plugin(
-                    id,
+                    &id,
                     url,
-                    self.create_cache_path(id, url, url.contains("latest")),
+                    self.create_cache_path(&id, url, url.contains("latest")),
                 )
                 .await
             }
-            PluginLocator::GitHub(github) => self.download_plugin_from_github(id, github).await,
-            PluginLocator::Wapm(wapm) => self.download_plugin_from_wapm(id, wapm).await,
+            PluginLocator::GitHub(github) => self.download_plugin_from_github(&id, github).await,
+            PluginLocator::Wapm(wapm) => self.download_plugin_from_wapm(&id, wapm).await,
         }
     }
 
     /// Create an absolute path to the plugin's destination file, located in the plugins directory.
     /// Hash the source URL to ensure uniqueness of each plugin + version combination.
-    pub fn create_cache_path(&self, id: &str, url: &str, is_latest: bool) -> PathBuf {
+    pub fn create_cache_path(&self, id: &Id, url: &str, is_latest: bool) -> PathBuf {
         let mut sha = Sha256::new();
         sha.update(url);
 
@@ -101,9 +102,9 @@ impl PluginLoader {
     /// Check if the plugin has been downloaded and is cached.
     /// If using a latest strategy (no explicit version or tag), the cache
     /// is only valid for 7 days (to ensure not stale), otherwise forever.
-    pub fn is_cached(&self, id: &str, path: &Path) -> miette::Result<bool> {
+    pub fn is_cached(&self, id: &Id, path: &Path) -> miette::Result<bool> {
         if !path.exists() {
-            trace!(plugin = id, "Plugin not cached, downloading");
+            trace!(plugin = id.as_str(), "Plugin not cached, downloading");
 
             return Ok(false);
         }
@@ -126,9 +127,9 @@ impl PluginLoader {
         }
 
         if cached {
-            trace!(plugin = id, path = ?path, "Plugin already downloaded and cached");
+            trace!(plugin = id.as_str(), path = ?path, "Plugin already downloaded and cached");
         } else {
-            trace!(plugin = id, path = ?path, "Plugin cached but stale, re-downloading");
+            trace!(plugin = id.as_str(), path = ?path, "Plugin cached but stale, re-downloading");
         }
 
         Ok(cached)
@@ -136,7 +137,7 @@ impl PluginLoader {
 
     async fn download_plugin(
         &self,
-        id: &str,
+        id: &Id,
         source_url: &str,
         dest_path: PathBuf,
     ) -> miette::Result<PathBuf> {
@@ -144,7 +145,11 @@ impl PluginLoader {
             return Ok(dest_path);
         }
 
-        trace!(plugin = id, url = source_url, "Downloading plugin from URL");
+        trace!(
+            plugin = id.as_str(),
+            url = source_url,
+            "Downloading plugin from URL"
+        );
 
         move_or_unpack_download(
             &download_url_to_temp(source_url, &self.temp_dir).await?,
@@ -156,7 +161,7 @@ impl PluginLoader {
 
     async fn download_plugin_from_github(
         &self,
-        id: &str,
+        id: &Id,
         github: &GitHubLocator,
     ) -> miette::Result<PathBuf> {
         let (api_url, release_tag) = if let Some(tag) = &github.tag {
@@ -186,7 +191,7 @@ impl PluginLoader {
         }
 
         trace!(
-            plugin = id,
+            plugin = id.as_str(),
             api_url = &api_url,
             release_tag = &release_tag,
             "Attempting to download plugin from GitHub release",
@@ -214,7 +219,7 @@ impl PluginLoader {
         for asset in &release.assets {
             if asset.content_type == "application/wasm" || asset.name.ends_with(".wasm") {
                 trace!(
-                    plugin = id,
+                    plugin = id.as_str(),
                     asset = &asset.name,
                     "Found WASM asset with application/wasm content type"
                 );
@@ -237,7 +242,7 @@ impl PluginLoader {
                         | asset.name.ends_with(".zip")))
             {
                 trace!(
-                    plugin = id,
+                    plugin = id.as_str(),
                     asset = &asset.name,
                     "Found possible asset as an archive"
                 );
@@ -257,7 +262,7 @@ impl PluginLoader {
 
     async fn download_plugin_from_wapm(
         &self,
-        id: &str,
+        id: &Id,
         wapm: &WapmLocator,
     ) -> miette::Result<PathBuf> {
         let version = wapm.version.as_deref().unwrap_or("latest");
@@ -275,7 +280,7 @@ impl PluginLoader {
         }
 
         trace!(
-            plugin = id,
+            plugin = id.as_str(),
             api_url = &fake_api_url,
             version,
             "Attempting to download plugin from wamp.io",
@@ -313,10 +318,10 @@ impl PluginLoader {
         if let Some(release_module) = modules.iter().find(|module| {
             module
                 .public_url
-                .ends_with(&format!("release/{}.wasm", wapm.file_stem))
+                .ends_with(&format!("release/{}.wasm", wapm.file_prefix))
         }) {
             trace!(
-                plugin = id,
+                plugin = id.as_str(),
                 module = &release_module.name,
                 "Found possible module compiled for release mode"
             );
@@ -327,10 +332,10 @@ impl PluginLoader {
         }
 
         if let Some(fallback_module) = modules.iter().find(|module| {
-            module.name == wapm.file_stem || module.name == format!("{}.wasm", wapm.file_stem)
+            module.name == wapm.file_prefix || module.name == format!("{}.wasm", wapm.file_prefix)
         }) {
             trace!(
-                plugin = id,
+                plugin = id.as_str(),
                 module = &fallback_module.name,
                 "Found possible module with matching file name"
             );
@@ -343,7 +348,7 @@ impl PluginLoader {
         // Otherwise use the distribution download, which is typically an archive
         if let Some(download_url) = &package.distribution.download_url {
             trace!(
-                plugin = id,
+                plugin = id.as_str(),
                 "Using the distribution archive as a last resort"
             );
 
