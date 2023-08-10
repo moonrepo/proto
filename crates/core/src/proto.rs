@@ -1,9 +1,11 @@
 use crate::helpers::{get_home_dir, get_root};
+use std::env;
 use std::path::{Path, PathBuf};
 
 #[derive(Clone, Debug)]
 pub struct ProtoEnvironment {
     pub bin_dir: PathBuf,
+    pub cwd: PathBuf,
     pub plugins_dir: PathBuf,
     pub temp_dir: PathBuf,
     pub tools_dir: PathBuf,
@@ -18,6 +20,7 @@ impl ProtoEnvironment {
 
     pub fn new_testing(sandbox: &Path) -> Self {
         let mut env = Self::from(sandbox.join(".proto")).unwrap();
+        env.cwd = sandbox.to_path_buf();
         env.home = sandbox.join(".home");
         env
     }
@@ -27,6 +30,7 @@ impl ProtoEnvironment {
 
         Ok(ProtoEnvironment {
             bin_dir: root.join("bin"),
+            cwd: env::current_dir().expect("Unable to determine working directory!"),
             plugins_dir: root.join("plugins"),
             temp_dir: root.join("temp"),
             tools_dir: root.join("tools"),

@@ -33,6 +33,13 @@ impl ToolsConfig {
         config.plugins
     }
 
+    pub fn schema_plugin() -> PluginLocator {
+        PluginLocator::SourceUrl {
+            url: "https://github.com/moonrepo/go-plugin/releases/latest/download/go_plugin.wasm"
+                .into(),
+        }
+    }
+
     pub fn load_from<P: AsRef<Path>>(dir: P) -> miette::Result<Self> {
         Self::load(dir.as_ref().join(TOOLS_CONFIG_NAME))
     }
