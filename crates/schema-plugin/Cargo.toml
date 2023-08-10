@@ -9,7 +9,3 @@ repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
 serde = { workspace = true }
-
-# [dev-dependencies]
-# starbase_sandbox = { workspace = true }
-# tokio = { workspace = true }
