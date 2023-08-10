@@ -6,6 +6,10 @@
 
 - Versions defined in `.prototools` must be fully-qualified semantic versions. Partial versions (missing patch or minor) are no longer supported. This may change in the future based on feedback.
 - Tool and plugin names must now be in kebab-case.
+- TOML API
+  - Moved `install.global-args` to `globals.install-args`.
+  - Moved `install.globals-dir` to `globals.lookup-dirs`.
+  - Removed `install.unpack` (proto should be smart enough now to figure this out).
 
 #### 🚀 Updates
 
@@ -16,6 +20,8 @@
   - Yarn 2+ is now installed using `@yarnpkg/cli-dist`. We no longer downgrade to the latest v1.
 - Rust
   - Will now detect a version/channel from `rust-toolchain.toml` and `rust-toolchain`.
+- TOML API
+  - Added new `globals` section.
 - WASM API
   - Renamed host function `trace` to `host_log`.
   - Added `host_log!` and `exec_command!` macros for working with host functions.

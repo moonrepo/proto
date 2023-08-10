@@ -3,7 +3,7 @@ name = "proto_schema_plugin"
 version = "0.8.1"
 edition = "2021"
 license = "MIT"
-description = "A schema plugin for proto, with TOML support."
+description = "Utilities for working with proto's TOML plugins."
 homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
