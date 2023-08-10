@@ -72,7 +72,7 @@ mod node {
 
         assert_eq!(
             manifest.default_version,
-            Some(AliasOrVersion::parse("8.19.2").unwrap())
+            Some(AliasOrVersion::parse("bundled").unwrap())
         );
         assert_eq!(
             manifest.installed_versions,
