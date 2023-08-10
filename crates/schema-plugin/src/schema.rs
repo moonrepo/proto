@@ -1,6 +1,5 @@
-use rustc_hash::FxHashMap;
 use serde::Deserialize;
-use std::env::consts;
+use std::collections::HashMap;
 
 #[derive(Debug, Default, Deserialize)]
 #[serde(default, rename_all = "kebab-case")]
@@ -20,24 +19,35 @@ pub struct DetectSchema {
 #[derive(Debug, Deserialize)]
 #[serde(default, rename_all = "kebab-case")]
 pub struct InstallSchema {
-    pub arch: FxHashMap<String, String>,
+    pub arch: HashMap<String, String>,
     pub checksum_url: Option<String>,
     pub download_url: String,
-    pub unpack: bool,
-    // Global bins
-    pub global_args: Option<Vec<String>>,
-    pub globals_dir: Vec<String>,
 }
 
 impl Default for InstallSchema {
     fn default() -> Self {
         InstallSchema {
-            arch: FxHashMap::default(),
+            arch: HashMap::default(),
             checksum_url: None,
             download_url: String::new(),
-            unpack: true,
-            global_args: None,
-            globals_dir: vec![],
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(default, rename_all = "kebab-case")]
+pub struct GlobalsSchema {
+    pub install_args: Option<Vec<String>>,
+    pub lookup_dirs: Vec<String>,
+    pub package_prefix: Option<String>,
+}
+
+impl Default for GlobalsSchema {
+    fn default() -> Self {
+        GlobalsSchema {
+            install_args: None,
+            lookup_dirs: vec![],
+            package_prefix: None,
         }
     }
 }
@@ -84,7 +94,7 @@ impl Default for ShimSchema {
 
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub enum SchemaToolType {
+pub enum SchemaType {
     #[default]
     Language,
     DependencyManager,
@@ -96,30 +106,12 @@ pub enum SchemaToolType {
 pub struct Schema {
     pub name: String,
     #[serde(rename = "type")]
-    pub type_of: SchemaToolType,
-    pub platform: FxHashMap<String, PlatformMapper>,
+    pub type_of: SchemaType,
+    pub platform: HashMap<String, PlatformMapper>,
 
     pub detect: DetectSchema,
     pub install: InstallSchema,
+    pub globals: GlobalsSchema,
     pub resolve: ResolveSchema,
     pub shim: ShimSchema,
-}
-
-impl Schema {
-    pub fn get_arch(&self) -> &str {
-        self.install
-            .arch
-            .get(consts::ARCH)
-            .map(|v| v.as_ref())
-            .unwrap_or(consts::ARCH)
-    }
-
-    pub fn get_libc(&self) -> &str {
-        #[cfg(all(unix, not(target_os = "macos")))]
-        {
-            return if proto_core::is_musl() { "musl" } else { "gnu" };
-        }
-
-        ""
-    }
 }

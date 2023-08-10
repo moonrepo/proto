@@ -1,16 +1,7 @@
 [workspace]
 resolver = "2"
-# members = ["crates/*"]
-# default-members = ["crates/cli"]
-members = [
-	"crates/cli",
-	"crates/core",
-	"crates/pdk",
-	"crates/pdk-api",
-	"crates/pdk-test-utils",
-	"crates/warpgate",
-	"crates/wasm-plugin",
-]
+members = ["crates/*"]
+default-members = ["crates/cli"]
 
 [workspace.dependencies]
 cached = "0.44.0"
