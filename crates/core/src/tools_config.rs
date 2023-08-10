@@ -148,7 +148,8 @@ impl ToolsConfig {
             self.plugins.insert(
                 Id::raw("node"),
                 PluginLocator::SourceUrl {
-                    url: "https://github.com/moonrepo/node-plugin/releases/latest/download/node_plugin.wasm".into()
+                    // url: "https://github.com/moonrepo/node-plugin/releases/latest/download/node_plugin.wasm".into()
+                    url: "https://github.com/moonrepo/node-plugin/releases/download/v0.1.0-rc.0/node_plugin.wasm".into()
                 }
             );
         }
@@ -158,10 +159,20 @@ impl ToolsConfig {
                 self.plugins.insert(
                     Id::raw(depman),
                     PluginLocator::SourceUrl {
-                        url: "https://github.com/moonrepo/node-plugin/releases/latest/download/node_depman_plugin.wasm".into()
+                        // url: "https://github.com/moonrepo/node-plugin/releases/latest/download/node_depman_plugin.wasm".into()
+                        url: "https://github.com/moonrepo/node-plugin/releases/download/v0.1.0-rc.0/node_depman_plugin.wasm".into()
                     }
                 );
             }
+        }
+
+        if !self.plugins.contains_key("rust") {
+            self.plugins.insert(
+                Id::raw("rust"),
+                PluginLocator::SourceUrl {
+                    url: "https://github.com/moonrepo/rust-plugin/releases/latest/download/rust_plugin.wasm".into()
+                }
+            );
         }
     }
 

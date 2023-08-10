@@ -46,7 +46,7 @@ mod install_uninstall {
             .assert()
             .success();
 
-        assert!(temp.path().join("tools/node/16.20.1").exists());
+        assert!(temp.path().join("tools/node/16.20.2").exists());
     }
 
     #[test]
