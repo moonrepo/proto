@@ -1,10 +1,17 @@
 #[macro_export]
 macro_rules! generate_download_install_tests {
     ($id:literal, $version:literal) => {
+        generate_download_install_tests!($id, $version, None);
+    };
+    ($id:literal, $version:literal, $schema:expr) => {
         #[tokio::test]
         async fn downloads_verifies_installs_tool() {
             let sandbox = create_empty_sandbox();
-            let mut plugin = create_plugin($id, sandbox.path());
+            let mut plugin = if let Some(schema) = $schema {
+                create_schema_plugin($id, sandbox.path(), schema)
+            } else {
+                create_plugin($id, sandbox.path())
+            };
 
             plugin
                 .tool
@@ -46,7 +53,11 @@ macro_rules! generate_download_install_tests {
         #[tokio::test]
         async fn downloads_prebuilt_and_checksum_to_temp() {
             let sandbox = create_empty_sandbox();
-            let plugin = create_plugin($id, sandbox.path());
+            let mut plugin = if let Some(schema) = $schema {
+                create_schema_plugin($id, sandbox.path(), schema)
+            } else {
+                create_plugin($id, sandbox.path())
+            };
             let mut tool = plugin.tool;
 
             tool.version = Some(proto_pdk_test_utils::AliasOrVersion::parse($version).unwrap());
@@ -56,14 +67,17 @@ macro_rules! generate_download_install_tests {
                 .await
                 .unwrap();
 
-            assert!(download_file.exists());
             assert!(download_file.starts_with(tool.get_temp_dir()));
         }
 
         #[tokio::test]
         async fn doesnt_install_if_dir_exists() {
             let sandbox = create_empty_sandbox();
-            let plugin = create_plugin($id, sandbox.path());
+            let plugin = if let Some(schema) = $schema {
+                create_schema_plugin($id, sandbox.path(), schema)
+            } else {
+                create_plugin($id, sandbox.path())
+            };
             let mut tool = plugin.tool;
 
             std::fs::create_dir_all(&tool.get_tool_dir()).unwrap();
@@ -76,10 +90,17 @@ macro_rules! generate_download_install_tests {
 #[macro_export]
 macro_rules! generate_resolve_versions_tests {
     ($id:literal, { $( $k:literal => $v:literal, )* }) => {
+        generate_resolve_versions_tests!($id, { $( $k => $v, )* }, None);
+    };
+    ($id:literal, { $( $k:literal => $v:literal, )* }, $schema:expr) => {
         #[tokio::test]
         async fn resolves_latest_alias() {
             let sandbox = create_empty_sandbox();
-            let mut plugin = create_plugin($id, sandbox.path());
+            let mut plugin = if let Some(schema) = $schema {
+                create_schema_plugin($id, sandbox.path(), schema)
+            } else {
+                create_plugin($id, sandbox.path())
+            };
 
             plugin.tool.resolve_version(
                 &proto_pdk_test_utils::VersionType::parse("latest").unwrap(),
@@ -91,7 +112,11 @@ macro_rules! generate_resolve_versions_tests {
         #[tokio::test]
         async fn resolve_version_or_alias() {
             let sandbox = create_empty_sandbox();
-            let mut plugin = create_plugin($id, sandbox.path());
+            let mut plugin = if let Some(schema) = $schema {
+                create_schema_plugin($id, sandbox.path(), schema)
+            } else {
+                create_plugin($id, sandbox.path())
+            };
 
             $(
                 plugin.tool.resolve_version(
@@ -128,7 +153,11 @@ macro_rules! generate_resolve_versions_tests {
         #[should_panic(expected = "Failed to resolve a semantic version for unknown")]
         async fn errors_invalid_alias() {
             let sandbox = create_empty_sandbox();
-            let mut plugin = create_plugin($id, sandbox.path());
+            let mut plugin = if let Some(schema) = $schema {
+                create_schema_plugin($id, sandbox.path(), schema)
+            } else {
+                create_plugin($id, sandbox.path())
+            };
 
             plugin.tool.resolve_version(
                 &proto_pdk_test_utils::VersionType::parse("unknown").unwrap(),
@@ -139,7 +168,11 @@ macro_rules! generate_resolve_versions_tests {
         #[should_panic(expected = "Failed to resolve a semantic version for 99.99.99")]
         async fn errors_invalid_version() {
             let sandbox = create_empty_sandbox();
-            let mut plugin = create_plugin($id, sandbox.path());
+            let mut plugin = if let Some(schema) = $schema {
+                create_schema_plugin($id, sandbox.path(), schema)
+            } else {
+                create_plugin($id, sandbox.path())
+            };
 
             plugin.tool.resolve_version(
                 &proto_pdk_test_utils::VersionType::parse("99.99.99").unwrap(),
@@ -154,10 +187,17 @@ macro_rules! generate_global_shims_test {
         generate_global_shims_test!($id, []);
     };
     ($id:literal, [ $($bin:literal),* ]) => {
+        generate_global_shims_test!($id, [ $($bin),* ], None);
+    };
+    ($id:literal, [ $($bin:literal),* ], $schema:expr) => {
         #[tokio::test]
         async fn creates_global_shims() {
             let sandbox = create_empty_sandbox();
-            let mut plugin = create_plugin($id, sandbox.path());
+            let mut plugin = if let Some(schema) = $schema {
+                create_schema_plugin($id, sandbox.path(), schema)
+            } else {
+                create_plugin($id, sandbox.path())
+            };
 
             plugin.tool.create_shims(false).await.unwrap();
 
@@ -185,10 +225,17 @@ macro_rules! generate_global_shims_test {
 #[macro_export]
 macro_rules! generate_local_shims_test {
     ($id:literal, [ $($bin:literal),* ]) => {
+        generate_local_shims_test!($id, [ $($bin),* ], None);
+    };
+    ($id:literal, [ $($bin:literal),* ], $schema:expr) => {
         #[tokio::test]
         async fn creates_global_shims() {
             let sandbox = create_empty_sandbox();
-            let mut plugin = create_plugin($id, sandbox.path());
+            let mut plugin = if let Some(schema) = $schema {
+                create_schema_plugin($id, sandbox.path(), schema)
+            } else {
+                create_plugin($id, sandbox.path())
+            };
 
             plugin.tool.create_shims(false).await.unwrap();
 

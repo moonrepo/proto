@@ -1,8 +1,7 @@
-// use convert_case::{Case, Casing};
 use proto_core::*;
-// use proto_schema_plugin as schema_plugin;
 use proto_wasm_plugin::Wasm;
-// use starbase_utils::toml;
+use starbase_utils::fs;
+use std::collections::HashMap;
 use std::{env, path::Path};
 use tracing::debug;
 
@@ -14,25 +13,31 @@ pub async fn create_tool_from_plugin(
     let id = id.as_ref();
     let proto = proto.as_ref();
     let locator = locator.as_ref();
+    let loader = PluginLoader::new(&proto.plugins_dir, &proto.temp_dir);
 
-    let plugin_path = PluginLoader::new(&proto.plugins_dir, &proto.temp_dir)
-        .load_plugin(&id, locator)
-        .await?;
-    // let is_toml = plugin_path
-    //     .extension()
-    //     .map(|ext| ext == "toml")
-    //     .unwrap_or(false);
+    let plugin_path = loader.load_plugin(&id, locator).await?;
 
-    // if is_toml {
-    //     debug!(source = ?plugin_path, "Loading TOML plugin");
+    // If a TOML plugin, we need to load the WASM plugin for it,
+    // wrap it, and modify the plugin manifest.
+    if plugin_path
+        .extension()
+        .map(|ext| ext == "toml")
+        .unwrap_or(false)
+    {
+        debug!(source = ?plugin_path, "Loading TOML plugin");
 
-    //     return Ok(Box::new(schema_plugin::SchemaPlugin::new(
-    //         proto,
-    //         plugin.to_owned(),
-    //         toml::read_file(plugin_path)?,
-    //     )));
-    // }
+        let mut config = HashMap::new();
+        config.insert("schema".to_string(), fs::read_file(plugin_path)?);
 
+        let plugin_path = loader.load_plugin(id, ToolsConfig::schema_plugin()).await?;
+
+        let mut manifest = Tool::create_plugin_manifest(proto, Wasm::file(plugin_path))?;
+        manifest = manifest.with_config(config.into_iter());
+
+        return Tool::load_from_manifest(id, proto, manifest);
+    }
+
+    // Otherwise, just use the WASM plugin as is
     debug!(source = ?plugin_path, "Loading WASM plugin");
 
     Tool::load(id, proto, Wasm::file(plugin_path))
