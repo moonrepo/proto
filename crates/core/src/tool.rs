@@ -14,6 +14,7 @@ use proto_pdk_api::*;
 use proto_wasm_plugin::{create_host_functions, HostData};
 use starbase_archive::Archiver;
 use starbase_utils::{fs, json};
+use std::collections::{BTreeMap, HashSet};
 use std::env::{self, consts};
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
@@ -79,7 +80,7 @@ impl Tool {
         Ok(tool)
     }
 
-    pub fn create_plugin_manifest<'l, P: AsRef<ProtoEnvironment>>(
+    pub fn create_plugin_manifest<P: AsRef<ProtoEnvironment>>(
         proto: P,
         wasm: Wasm,
     ) -> miette::Result<PluginManifest> {
@@ -229,6 +230,56 @@ impl Tool {
         }
 
         self.metadata = metadata;
+
+        Ok(())
+    }
+
+    /// Sync the local tool manifest with changes from the plugin.
+    pub fn sync_manifest(&mut self) -> miette::Result<()> {
+        if !self.plugin.has_func("sync_manifest") {
+            return Ok(());
+        }
+
+        debug!(tool = self.id.as_str(), "Syncing manifest with changes");
+
+        let sync_changes: SyncManifestOutput = self.plugin.call_func_with(
+            "sync_manifest",
+            SyncManifestInput {
+                env: self.create_environment()?,
+                home_dir: self.plugin.to_virtual_path(&self.proto.home),
+                tool_dir: self.plugin.to_virtual_path(&self.get_tool_dir()),
+            },
+        )?;
+        let mut modified = false;
+
+        if let Some(default) = sync_changes.default_version {
+            modified = true;
+            self.manifest.default_version = Some(AliasOrVersion::parse(&default)?);
+        }
+
+        if let Some(versions) = sync_changes.versions {
+            modified = true;
+
+            let mut entries = BTreeMap::new();
+
+            for version in &versions {
+                entries.insert(
+                    version.to_owned(),
+                    self.manifest
+                        .versions
+                        .get(version)
+                        .cloned()
+                        .unwrap_or_default(),
+                );
+            }
+
+            self.manifest.versions = entries;
+            self.manifest.installed_versions = HashSet::from_iter(versions);
+        }
+
+        if modified {
+            self.manifest.save()?;
+        }
 
         Ok(())
     }
@@ -912,6 +963,9 @@ impl Tool {
 
                 self.manifest.insert_version(&version, default)?;
             }
+
+            // Allow plugins to override manifest
+            self.sync_manifest()?;
 
             return Ok(true);
         }

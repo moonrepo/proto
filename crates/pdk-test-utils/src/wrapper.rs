@@ -22,8 +22,8 @@ impl WasmTestWrapper {
             .unwrap()
     }
 
-    pub fn detect_version(&self) -> DetectVersionOutput {
-        self.tool.plugin.call_func("detect_version").unwrap()
+    pub fn detect_version_files(&self) -> DetectVersionOutput {
+        self.tool.plugin.call_func("detect_version_files").unwrap()
     }
 
     pub fn download_prebuilt(&self, input: DownloadPrebuiltInput) -> DownloadPrebuiltOutput {
@@ -41,12 +41,8 @@ impl WasmTestWrapper {
     }
 
     pub fn locate_bins(&self, mut input: LocateBinsInput) -> LocateBinsOutput {
-        if input.tool_dir.components().count() == 0 {
-            input.tool_dir = self.tool.get_tool_dir();
-        }
-
         input.home_dir = self.to_virtual_path(&input.home_dir);
-        input.tool_dir = self.to_virtual_path(&input.tool_dir);
+        input.tool_dir = self.prepare_tool_dir(input.tool_dir);
 
         let mut output: LocateBinsOutput = self
             .tool
@@ -61,6 +57,16 @@ impl WasmTestWrapper {
         output
     }
 
+    pub fn native_install(&self, mut input: NativeInstallInput) -> NativeInstallOutput {
+        input.home_dir = self.to_virtual_path(&input.home_dir);
+        input.tool_dir = self.prepare_tool_dir(input.tool_dir);
+
+        self.tool
+            .plugin
+            .call_func_with("native_install", input)
+            .unwrap()
+    }
+
     pub fn parse_version_file(&self, input: ParseVersionFileInput) -> ParseVersionFileOutput {
         self.tool
             .plugin
@@ -68,7 +74,9 @@ impl WasmTestWrapper {
             .unwrap()
     }
 
-    pub fn register_tool(&self, input: ToolMetadataInput) -> ToolMetadataOutput {
+    pub fn register_tool(&self, mut input: ToolMetadataInput) -> ToolMetadataOutput {
+        input.home_dir = self.to_virtual_path(&input.home_dir);
+
         self.tool
             .plugin
             .call_func_with("register_tool", input)
@@ -79,6 +87,16 @@ impl WasmTestWrapper {
         self.tool
             .plugin
             .call_func_with("resolve_version", input)
+            .unwrap()
+    }
+
+    pub fn sync_manifest(&self, mut input: SyncManifestInput) -> SyncManifestOutput {
+        input.home_dir = self.to_virtual_path(&input.home_dir);
+        input.tool_dir = self.prepare_tool_dir(input.tool_dir);
+
+        self.tool
+            .plugin
+            .call_func_with("sync_manifest", input)
             .unwrap()
     }
 
@@ -101,5 +119,15 @@ impl WasmTestWrapper {
             .plugin
             .call_func_with("verify_checksum", input)
             .unwrap()
+    }
+
+    fn prepare_tool_dir(&self, path: PathBuf) -> PathBuf {
+        let dir = if path.components().count() == 0 {
+            self.tool.get_tool_dir()
+        } else {
+            path
+        };
+
+        self.to_virtual_path(&dir)
     }
 }
