@@ -73,7 +73,7 @@ pub async fn detect_version(
             if let Some(detected_version) = tool.detect_version_from(dir).await? {
                 debug!(
                     tool = tool.id.as_str(),
-                    version = ?detected_version,
+                    version = detected_version.to_string(),
                     "Detected version from tool's ecosystem"
                 );
 

@@ -22,12 +22,22 @@ fn now() -> u128 {
 
 pub const MANIFEST_NAME: &str = "manifest.json";
 
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(default)]
 pub struct ToolManifestVersion {
     pub no_clean: bool,
     pub installed_at: u128,
     pub last_used_at: Option<u128>,
+}
+
+impl Default for ToolManifestVersion {
+    fn default() -> Self {
+        Self {
+            no_clean: env::var("PROTO_NO_CLEAN").is_ok(),
+            installed_at: now(),
+            last_used_at: None,
+        }
+    }
 }
 
 #[derive(Debug, Default, Deserialize, Serialize)]
@@ -140,14 +150,8 @@ impl ToolManifest {
 
         self.installed_versions.insert(version.to_owned());
 
-        self.versions.insert(
-            version.to_owned(),
-            ToolManifestVersion {
-                installed_at: now(),
-                no_clean: env::var("PROTO_NO_CLEAN").is_ok(),
-                ..ToolManifestVersion::default()
-            },
-        );
+        self.versions
+            .insert(version.to_owned(), ToolManifestVersion::default());
 
         self.save()?;
 

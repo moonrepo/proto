@@ -465,3 +465,29 @@ json_struct!(
         pub local_shims: HashMap<String, ShimConfig>,
     }
 );
+
+json_struct!(
+    /// Input passed to the `sync_manifest` function.
+    pub struct SyncManifestInput {
+        /// Current environment.
+        pub env: Environment,
+
+        /// Virtual path to the user's home directory.
+        pub home_dir: PathBuf,
+
+        /// Virtual path to the tool's installation directory.
+        pub tool_dir: PathBuf,
+    }
+);
+
+json_struct!(
+    /// Output returned by the `sync_manifest` function.
+    pub struct SyncManifestOutput {
+        /// Override the default version with a new alias or version.
+        pub default_version: Option<String>,
+
+        /// List of versions that are currently installed. Will replace
+        /// what is currently in the manifest.
+        pub versions: Option<Vec<Version>>,
+    }
+);
