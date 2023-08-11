@@ -472,6 +472,9 @@ json_struct!(
         /// Current environment.
         pub env: Environment,
 
+        /// Virtual path to the user's home directory.
+        pub home_dir: PathBuf,
+
         /// Virtual path to the tool's installation directory.
         pub tool_dir: PathBuf,
     }

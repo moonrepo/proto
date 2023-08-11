@@ -246,6 +246,7 @@ impl Tool {
             "sync_manifest",
             SyncManifestInput {
                 env: self.create_environment()?,
+                home_dir: self.plugin.to_virtual_path(&self.proto.home),
                 tool_dir: self.plugin.to_virtual_path(&self.get_tool_dir()),
             },
         )?;
