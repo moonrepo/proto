@@ -80,7 +80,7 @@ impl Tool {
         Ok(tool)
     }
 
-    pub fn create_plugin_manifest<'l, P: AsRef<ProtoEnvironment>>(
+    pub fn create_plugin_manifest<P: AsRef<ProtoEnvironment>>(
         proto: P,
         wasm: Wasm,
     ) -> miette::Result<PluginManifest> {

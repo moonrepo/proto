@@ -16,7 +16,7 @@ pub struct DetectSchema {
     pub version_files: Option<Vec<String>>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, Deserialize)]
 #[serde(default, rename_all = "kebab-case")]
 pub struct InstallSchema {
     pub arch: HashMap<String, String>,
@@ -24,32 +24,12 @@ pub struct InstallSchema {
     pub download_url: String,
 }
 
-impl Default for InstallSchema {
-    fn default() -> Self {
-        InstallSchema {
-            arch: HashMap::default(),
-            checksum_url: None,
-            download_url: String::new(),
-        }
-    }
-}
-
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, Deserialize)]
 #[serde(default, rename_all = "kebab-case")]
 pub struct GlobalsSchema {
     pub install_args: Option<Vec<String>>,
     pub lookup_dirs: Vec<String>,
     pub package_prefix: Option<String>,
-}
-
-impl Default for GlobalsSchema {
-    fn default() -> Self {
-        GlobalsSchema {
-            install_args: None,
-            lookup_dirs: vec![],
-            package_prefix: None,
-        }
-    }
 }
 
 #[derive(Debug, Deserialize)]
