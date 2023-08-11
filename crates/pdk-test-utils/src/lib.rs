@@ -8,12 +8,13 @@ pub use proto_pdk_api::*;
 pub use wrapper::WasmTestWrapper;
 
 use proto_wasm_plugin::Wasm;
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::{env, fs};
 
 static mut LOGGING: bool = false;
 
-pub fn create_plugin(id: &str, sandbox: &Path) -> WasmTestWrapper {
+pub fn find_wasm_file(sandbox: &Path) -> PathBuf {
     let mut wasm_target_dir =
         PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("Missing CARGO_MANIFEST_DIR!"));
     let wasm_file_name = env::var("CARGO_PKG_NAME").expect("Missing CARGO_PKG_NAME!");
@@ -53,6 +54,12 @@ pub fn create_plugin(id: &str, sandbox: &Path) -> WasmTestWrapper {
     fs::create_dir_all(sandbox.join(".home")).unwrap();
     fs::create_dir_all(sandbox.join(".proto")).unwrap();
 
+    wasm_file
+}
+
+pub fn create_plugin(id: &str, sandbox: &Path) -> WasmTestWrapper {
+    let wasm_file = find_wasm_file(sandbox);
+
     WasmTestWrapper {
         tool: Tool::load(
             Id::new(id).unwrap(),
@@ -60,5 +67,20 @@ pub fn create_plugin(id: &str, sandbox: &Path) -> WasmTestWrapper {
             Wasm::file(wasm_file),
         )
         .unwrap(),
+    }
+}
+
+pub fn create_schema_plugin(id: &str, sandbox: &Path, schema: PathBuf) -> WasmTestWrapper {
+    let wasm_file = find_wasm_file(sandbox);
+    let proto = ProtoEnvironment::new_testing(sandbox);
+
+    let mut config = HashMap::new();
+    config.insert("schema".to_string(), fs::read_to_string(schema).unwrap());
+
+    let mut manifest = Tool::create_plugin_manifest(&proto, Wasm::file(wasm_file)).unwrap();
+    manifest = manifest.with_config(config.into_iter());
+
+    WasmTestWrapper {
+        tool: Tool::load_from_manifest(Id::new(id).unwrap(), proto, manifest).unwrap(),
     }
 }

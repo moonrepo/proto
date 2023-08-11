@@ -3,18 +3,9 @@ name = "proto_schema_plugin"
 version = "0.8.1"
 edition = "2021"
 license = "MIT"
-description = "A schema plugin for proto, with TOML support."
+description = "Utilities for working with proto's TOML plugins."
 homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
-proto_core = { version = "0.13.1", path = "../core" }
-once_cell = { workspace = true }
-regex = { workspace = true }
 serde = { workspace = true }
-starbase_utils = { workspace = true }
-tracing = { workspace = true }
-
-[dev-dependencies]
-starbase_sandbox = { workspace = true }
-tokio = { workspace = true }

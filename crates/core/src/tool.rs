@@ -41,19 +41,35 @@ impl Tool {
         proto: P,
         wasm: Wasm,
     ) -> miette::Result<Self> {
+        let proto = proto.as_ref();
+
+        Self::load_from_manifest(id, proto, Self::create_plugin_manifest(proto, wasm)?)
+    }
+
+    pub fn load_from_manifest<I: AsRef<Id>, P: AsRef<ProtoEnvironment>>(
+        id: I,
+        proto: P,
+        manifest: PluginManifest,
+    ) -> miette::Result<Self> {
         let id = id.as_ref();
         let proto = proto.as_ref();
-        let manifest = ToolManifest::load_from(proto.tools_dir.join(id.as_str()))?;
-        let plugin = Self::load_plugin(id, proto, wasm)?;
+
+        let host_data = HostData {
+            working_dir: proto.cwd.clone(),
+        };
 
         let mut tool = Tool {
             bin_path: None,
             globals_dir: None,
             globals_prefix: None,
             id: id.to_owned(),
-            manifest,
+            manifest: ToolManifest::load_from(proto.tools_dir.join(id.as_str()))?,
             metadata: ToolMetadataOutput::default(),
-            plugin,
+            plugin: PluginContainer::new(
+                id.to_owned(),
+                manifest,
+                create_host_functions(host_data),
+            )?,
             proto: proto.to_owned(),
             version: None,
         };
@@ -63,13 +79,11 @@ impl Tool {
         Ok(tool)
     }
 
-    pub fn load_plugin<'l, I: AsRef<Id>, P: AsRef<ProtoEnvironment>>(
-        id: I,
+    pub fn create_plugin_manifest<'l, P: AsRef<ProtoEnvironment>>(
         proto: P,
         wasm: Wasm,
-    ) -> miette::Result<PluginContainer<'l>> {
+    ) -> miette::Result<PluginManifest> {
         let proto = proto.as_ref();
-        let working_dir = env::current_dir().expect("Unable to determine working directory!");
 
         let mut manifest = PluginManifest::new([wasm]);
         manifest = manifest.with_allowed_host("*");
@@ -79,19 +93,11 @@ impl Tool {
             manifest = manifest.with_timeout(Duration::from_secs(90));
         }
 
-        manifest = manifest.with_allowed_path(working_dir.clone(), "/workspace");
+        manifest = manifest.with_allowed_path(proto.cwd.clone(), "/workspace");
         manifest = manifest.with_allowed_path(proto.home.clone(), "/home");
         manifest = manifest.with_allowed_path(proto.root.clone(), "/proto");
 
-        let host_data = HostData { working_dir };
-
-        let plugin = PluginContainer::new(
-            id.as_ref().to_owned(),
-            manifest,
-            create_host_functions(host_data),
-        )?;
-
-        Ok(plugin)
+        Ok(manifest)
     }
 
     /// Return an absolute path to the executable binary for the tool.
