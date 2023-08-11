@@ -263,14 +263,14 @@ impl Tool {
             let mut entries = BTreeMap::new();
 
             for version in &versions {
-                let entry = self
-                    .manifest
-                    .versions
-                    .get(version)
-                    .cloned()
-                    .unwrap_or_default();
-
-                entries.insert(version.to_owned(), entry);
+                entries.insert(
+                    version.to_owned(),
+                    self.manifest
+                        .versions
+                        .get(version)
+                        .cloned()
+                        .unwrap_or_default(),
+                );
             }
 
             self.manifest.versions = entries;
