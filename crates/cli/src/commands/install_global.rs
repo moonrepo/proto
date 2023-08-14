@@ -1,7 +1,6 @@
 use crate::helpers::create_progress_bar;
 use crate::tools::create_tool;
-use proto_core::{Id, ProtoError};
-use proto_pdk_api::{InstallGlobalInput, InstallGlobalOutput};
+use proto_core::Id;
 use starbase::SystemResult;
 use starbase_styles::color;
 use std::process;
@@ -32,22 +31,9 @@ pub async fn install_global(tool_id: Id, dependencies: Vec<String>) -> SystemRes
 
         let pb = create_progress_bar(format!("Installing {} for {}", dependency, tool.get_name()));
 
-        let result: InstallGlobalOutput = tool.plugin.call_func_with(
-            "install_global",
-            InstallGlobalInput {
-                env: tool.create_environment()?,
-                dependency,
-                globals_dir: tool.plugin.to_virtual_path(globals_dir.as_ref().unwrap()),
-            },
-        )?;
+        tool.install_global(dependency).await?;
 
         pb.finish_and_clear();
-
-        if !result.installed {
-            return Err(ProtoError::Message(
-                result.error.unwrap_or("Unknown failure!".into()),
-            ))?;
-        }
     }
 
     info!(

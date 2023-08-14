@@ -108,6 +108,7 @@ json_struct!(
         pub name: String,
 
         /// Version of the plugin.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub plugin_version: Option<String>,
 
         /// Type of the tool.
@@ -328,6 +329,7 @@ json_struct!(
         pub installed: bool,
 
         /// Error message if the install failed.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub error: Option<String>,
     }
 );
@@ -353,6 +355,7 @@ json_struct!(
         pub uninstalled: bool,
 
         /// Error message if the uninstall failed.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub error: Option<String>,
     }
 );
@@ -389,15 +392,30 @@ json_struct!(
 );
 
 impl LoadVersionsOutput {
-    /// Create the output from a list of Git tags, as semantic versions.
-    /// The latest version will be the highest version number.
+    #[deprecated = "Use from() instead."]
     pub fn from_tags(tags: &[String]) -> anyhow::Result<Self> {
+        Self::from(tags.to_vec())
+    }
+
+    /// Create the output from a list of strings that'll be parsed as versions.
+    /// The latest version will be the highest version number.
+    pub fn from(values: Vec<String>) -> anyhow::Result<Self> {
+        let mut versions = vec![];
+
+        for value in values {
+            versions.push(Version::parse(&value)?);
+        }
+
+        Self::from_versions(versions)
+    }
+
+    /// Create the output from a list of versions.
+    /// The latest version will be the highest version number.
+    pub fn from_versions(versions: Vec<Version>) -> anyhow::Result<Self> {
         let mut output = LoadVersionsOutput::default();
         let mut latest = Version::new(0, 0, 0);
 
-        for tag in tags {
-            let version = Version::parse(tag)?;
-
+        for version in versions {
             if version.pre.is_empty() && version.build.is_empty() && version > latest {
                 latest = version.clone();
             }
@@ -561,10 +579,12 @@ json_struct!(
     /// Output returned by the `sync_manifest` function.
     pub struct SyncManifestOutput {
         /// Override the default version with a new alias or version.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub default_version: Option<String>,
 
         /// List of versions that are currently installed. Will replace
         /// what is currently in the manifest.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub versions: Option<Vec<Version>>,
     }
 );

@@ -1,7 +1,6 @@
 use crate::helpers::create_progress_bar;
 use crate::tools::create_tool;
-use proto_core::{Id, ProtoError};
-use proto_pdk_api::{UninstallGlobalInput, UninstallGlobalOutput};
+use proto_core::Id;
 use starbase::SystemResult;
 use starbase_styles::color;
 use std::process;
@@ -36,22 +35,9 @@ pub async fn uninstall_global(tool_id: Id, dependencies: Vec<String>) -> SystemR
             tool.get_name()
         ));
 
-        let result: UninstallGlobalOutput = tool.plugin.call_func_with(
-            "uninstall_global",
-            UninstallGlobalInput {
-                env: tool.create_environment()?,
-                dependency,
-                globals_dir: tool.plugin.to_virtual_path(globals_dir.as_ref().unwrap()),
-            },
-        )?;
+        tool.uninstall_global(dependency).await?;
 
         pb.finish_and_clear();
-
-        if !result.uninstalled {
-            return Err(ProtoError::Message(
-                result.error.unwrap_or("Unknown failure!".into()),
-            ))?;
-        }
     }
 
     info!(
