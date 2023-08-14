@@ -107,6 +107,9 @@ json_struct!(
         /// Human readable name of the tool.
         pub name: String,
 
+        /// Version of the plugin.
+        pub plugin_version: Option<String>,
+
         /// Type of the tool.
         pub type_of: PluginType,
     }
