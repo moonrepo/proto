@@ -703,6 +703,23 @@ impl Tool {
             return Ok(false);
         }
 
+        if self.plugin.has_func("native_uninstall") {
+            debug!(tool = self.id.as_str(), "Uninstalling tool natively");
+
+            let result: NativeUninstallOutput = self.plugin.call_func_with(
+                "native_uninstall",
+                NativeUninstallInput {
+                    env: self.create_environment()?,
+                    home_dir: self.plugin.to_virtual_path(&self.proto.home),
+                    tool_dir: self.plugin.to_virtual_path(&install_dir),
+                },
+            )?;
+
+            if !result.uninstalled {
+                return Ok(false);
+            }
+        }
+
         debug!(
             tool = self.id.as_str(),
             install_dir = ?install_dir,
