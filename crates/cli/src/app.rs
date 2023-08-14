@@ -272,6 +272,19 @@ pub enum Commands {
     },
 
     #[command(
+        alias = "ug",
+        name = "uninstall-global",
+        about = "Uninstall a global dependency from the specified tool."
+    )]
+    UninstallGlobal {
+        #[arg(required = true, help = "ID of tool")]
+        id: Id,
+
+        #[arg(required = true, help = "Dependencies to uninstall")]
+        dependencies: Vec<String>,
+    },
+
+    #[command(
         alias = "up",
         name = "upgrade",
         about = "Upgrade proto to the latest version."

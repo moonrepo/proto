@@ -251,3 +251,44 @@ macro_rules! generate_local_shims_test {
         }
     };
 }
+
+#[macro_export]
+macro_rules! generate_globals_test {
+    ($id:literal, $dep:literal) => {
+        generate_globals_test!($id, $dep, None);
+    };
+    ($id:literal, $dep:literal, $schema:expr) => {
+        #[tokio::test]
+        async fn installs_and_uninstalls_globals() {
+            let sandbox = create_empty_sandbox();
+            let mut plugin = if let Some(schema) = $schema {
+                create_schema_plugin($id, sandbox.path(), schema)
+            } else {
+                create_plugin($id, sandbox.path())
+            };
+
+            let globals_dir = plugin
+                .tool
+                .get_globals_bin_dir()
+                .expect("Globals directory required for testing!");
+
+            let exts = if cfg!(windows) {
+                vec![".exe", ".ps1", ".cmd"]
+            } else {
+                vec!["", ".sh"]
+            };
+
+            plugin.tool.install_global($dep).await.unwrap();
+
+            assert!(exts
+                .iter()
+                .any(|ext| globals_dir.join(format!("{}{ext}", $dep)).exists()));
+
+            plugin.tool.uninstall_global($dep).await.unwrap();
+
+            assert!(exts
+                .iter()
+                .all(|ext| !globals_dir.join(format!("{}{ext}", $dep)).exists()));
+        }
+    };
+}

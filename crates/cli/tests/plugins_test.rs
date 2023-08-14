@@ -177,4 +177,24 @@ mod builtins {
 
         assert.success();
     }
+
+    #[test]
+    fn supports_rust() {
+        let temp = create_empty_sandbox();
+
+        let mut cmd = create_proto_command(temp.path());
+        let assert = cmd.arg("install").arg("rust").assert();
+
+        assert.success();
+    }
+
+    #[test]
+    fn supports_toml_schema() {
+        let temp = create_empty_sandbox_with_tools();
+
+        let mut cmd = create_proto_command(temp.path());
+        let assert = cmd.arg("install").arg("moon-test").assert();
+
+        assert.success();
+    }
 }
