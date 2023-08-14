@@ -1,13 +1,12 @@
 use crate::helpers::{create_progress_bar, disable_progress_bars};
-use crate::hooks::go as go_hooks;
 use crate::tools::create_tool;
-use async_recursion::async_recursion;
 use proto_core::{Id, VersionType};
+use proto_pdk_api::InstallHook;
 use starbase::SystemResult;
 use starbase_styles::color;
+use std::env;
 use tracing::{debug, info};
 
-#[async_recursion]
 pub async fn install(
     tool_id: Id,
     version: Option<VersionType>,
@@ -31,6 +30,25 @@ pub async fn install(
         disable_progress_bars();
     }
 
+    let resolved_version = tool.get_resolved_version();
+
+    // This ensures that the correct version is used by other processes
+    env::set_var(
+        format!("{}_VERSION", tool.get_env_var_prefix()),
+        resolved_version.to_string(),
+    );
+
+    // Run before hook
+    tool.run_hook(
+        "pre_install",
+        InstallHook {
+            passthrough_args: passthrough.clone(),
+            pinned: pin_version,
+            resolved_version: resolved_version.to_string(),
+        },
+    )?;
+
+    // Install the tool
     debug!("Installing {} with version {}", tool.get_name(), version);
 
     let pb = create_progress_bar(format!(
@@ -55,31 +73,15 @@ pub async fn install(
         color::path(tool.get_tool_dir()),
     );
 
-    // Support post install actions that are not coupled to the
-    // `Tool` trait. Right now we are hard-coding this, but we
-    // should provide a better API.
-
-    if tool_id == "go" {
-        go_hooks::post_install(&passthrough)?;
-    }
-
-    if tool_id == "node" && !passthrough.contains(&"--no-bundled-npm".to_string()) {
-        info!("Installing npm that comes bundled with {}", tool.get_name());
-
-        // This ensures that the correct version is used by the npm tool
-        std::env::set_var(
-            "PROTO_NODE_VERSION",
-            tool.get_resolved_version().to_string(),
-        );
-
-        install(
-            Id::new("npm")?,
-            Some(VersionType::Alias("bundled".into())),
-            pin_version,
-            passthrough,
-        )
-        .await?;
-    }
+    // Run after hook
+    tool.run_hook(
+        "post_install",
+        InstallHook {
+            passthrough_args: passthrough,
+            pinned: pin_version,
+            resolved_version: resolved_version.to_string(),
+        },
+    )?;
 
     Ok(())
 }
