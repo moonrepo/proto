@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed an issue where `proto setup` would sometimes not initialize.
+
 ## 0.14.0
 
 #### 💥 Breaking
