@@ -13,6 +13,7 @@ pub async fn install_all() -> SystemResult {
 
     debug!("Loading tools and plugins from .prototools");
 
+    let user_config = UserConfig::load()?;
     let mut config = ToolsConfig::load_upwards()?;
     config.inherit_builtin_plugins();
 
@@ -25,7 +26,7 @@ pub async fn install_all() -> SystemResult {
             continue;
         }
 
-        let tool = create_tool_from_plugin(&name, &proto, &locator).await?;
+        let tool = create_tool_from_plugin(&name, &proto, &locator, &user_config).await?;
 
         if let Some(candidate) = tool.detect_version_from(&working_dir).await? {
             let resolver = tool.load_version_resolver(&candidate).await?;

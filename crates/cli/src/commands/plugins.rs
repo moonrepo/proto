@@ -32,19 +32,19 @@ pub async fn plugins(json: bool) -> SystemResult {
     tools_config.inherit_builtin_plugins();
 
     let mut plugins = HashMap::new();
-    plugins.extend(user_config.plugins);
-    plugins.extend(tools_config.plugins);
+    plugins.extend(&user_config.plugins);
+    plugins.extend(&tools_config.plugins);
 
     debug!("Loading plugins");
 
     let mut items = vec![];
 
     for (id, locator) in plugins {
-        let tool = create_tool_from_plugin(&id, &proto, &locator).await?;
+        let tool = create_tool_from_plugin(&id, &proto, &locator, &user_config).await?;
 
         items.push(PluginItem {
-            id,
-            locator,
+            id: id.to_owned(),
+            locator: locator.to_owned(),
             name: tool.metadata.name,
             version: tool.metadata.plugin_version,
         });
