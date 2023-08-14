@@ -19,9 +19,9 @@ fn render_entry<V: AsRef<str>>(label: &str, value: V) {
 #[derive(Serialize)]
 pub struct PluginItem {
     id: Id,
-    name: String,
-    // version: String,
     locator: PluginLocator,
+    name: String,
+    version: Option<String>,
 }
 
 pub async fn plugins(json: bool) -> SystemResult {
@@ -44,9 +44,9 @@ pub async fn plugins(json: bool) -> SystemResult {
 
         items.push(PluginItem {
             id,
-            name: tool.get_name().to_owned(),
-            // version: String::new(),
             locator,
+            name: tool.metadata.name,
+            version: tool.metadata.plugin_version,
         });
     }
 
@@ -59,7 +59,17 @@ pub async fn plugins(json: bool) -> SystemResult {
     }
 
     for item in items {
-        println!("{} {} {}", color::id(item.id), color::muted("-"), item.name);
+        println!(
+            "{} {} {} {}",
+            color::id(item.id),
+            color::muted("-"),
+            item.name,
+            color::muted_light(if let Some(version) = item.version {
+                format!("v{version}")
+            } else {
+                "".into()
+            })
+        );
 
         match item.locator {
             PluginLocator::SourceFile { path, .. } => {

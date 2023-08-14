@@ -2323,6 +2323,7 @@ dependencies = [
  "indicatif",
  "miette",
  "proto_core",
+ "proto_pdk_api",
  "proto_schema_plugin",
  "proto_wasm_plugin",
  "reqwest",

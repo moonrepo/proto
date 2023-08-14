@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added a `proto uninstall-global` command for uninstalling a global dependency from a tool.
+- Updated the `proto plugins` command to include the plugin's version when applicable.
+- WASM API
+  - Added `install_global`, `uninstall_global`, and `native_uninstall` plugin functions.
+  - Added `plugin_version` field to `ToolMetadataOutput`.
+
 ## 0.14.2
 
 #### 🐞 Fixes

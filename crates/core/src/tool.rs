@@ -693,6 +693,34 @@ impl Tool {
         Ok(true)
     }
 
+    /// Install a global dependency/package for the tool.
+    pub async fn install_global(&self, dependency: String) -> miette::Result<bool> {
+        let globals_dir = self.get_globals_bin_dir();
+
+        if !self.plugin.has_func("install_global") || globals_dir.is_none() {
+            return Ok(false);
+        }
+
+        let result: InstallGlobalOutput = self.plugin.call_func_with(
+            "install_global",
+            InstallGlobalInput {
+                env: self.create_environment()?,
+                dependency,
+                globals_dir: self.plugin.to_virtual_path(globals_dir.as_ref().unwrap()),
+            },
+        )?;
+
+        if !result.installed {
+            return Err(ProtoError::Message(
+                result
+                    .error
+                    .unwrap_or_else(|| "Unknown failure!".to_string()),
+            ))?;
+        }
+
+        Ok(result.installed)
+    }
+
     /// Uninstall the tool by deleting the current install directory.
     pub async fn uninstall(&self) -> miette::Result<bool> {
         let install_dir = self.get_tool_dir();
@@ -734,6 +762,34 @@ impl Tool {
         debug!(tool = self.id.as_str(), "Successfully uninstalled tool");
 
         Ok(true)
+    }
+
+    /// Uninstall a global dependency/package from the tool.
+    pub async fn uninstall_global(&self, dependency: String) -> miette::Result<bool> {
+        let globals_dir = self.get_globals_bin_dir();
+
+        if !self.plugin.has_func("uninstall_global") || globals_dir.is_none() {
+            return Ok(false);
+        }
+
+        let result: UninstallGlobalOutput = self.plugin.call_func_with(
+            "uninstall_global",
+            UninstallGlobalInput {
+                env: self.create_environment()?,
+                dependency,
+                globals_dir: self.plugin.to_virtual_path(globals_dir.as_ref().unwrap()),
+            },
+        )?;
+
+        if !result.uninstalled {
+            return Err(ProtoError::Message(
+                result
+                    .error
+                    .unwrap_or_else(|| "Unknown failure!".to_string()),
+            ))?;
+        }
+
+        Ok(result.uninstalled)
     }
 
     /// Find the absolute file path to the tool's binary that will be executed.

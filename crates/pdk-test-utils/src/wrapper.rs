@@ -33,6 +33,15 @@ impl WasmTestWrapper {
             .unwrap()
     }
 
+    pub fn install_global(&self, mut input: InstallGlobalInput) -> InstallGlobalOutput {
+        input.globals_dir = self.to_virtual_path(&input.globals_dir);
+
+        self.tool
+            .plugin
+            .call_func_with("install_global", input)
+            .unwrap()
+    }
+
     pub fn load_versions(&self, input: LoadVersionsInput) -> LoadVersionsOutput {
         self.tool
             .plugin
@@ -67,6 +76,16 @@ impl WasmTestWrapper {
             .unwrap()
     }
 
+    pub fn native_uninstall(&self, mut input: NativeUninstallInput) -> NativeUninstallOutput {
+        input.home_dir = self.to_virtual_path(&input.home_dir);
+        input.tool_dir = self.prepare_tool_dir(input.tool_dir);
+
+        self.tool
+            .plugin
+            .call_func_with("native_uninstall", input)
+            .unwrap()
+    }
+
     pub fn parse_version_file(&self, input: ParseVersionFileInput) -> ParseVersionFileOutput {
         self.tool
             .plugin
@@ -97,6 +116,15 @@ impl WasmTestWrapper {
         self.tool
             .plugin
             .call_func_with("sync_manifest", input)
+            .unwrap()
+    }
+
+    pub fn uninstall_global(&self, mut input: UninstallGlobalInput) -> UninstallGlobalOutput {
+        input.globals_dir = self.to_virtual_path(&input.globals_dir);
+
+        self.tool
+            .plugin
+            .call_func_with("uninstall_global", input)
             .unwrap()
     }
 

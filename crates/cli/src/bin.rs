@@ -46,6 +46,9 @@ async fn run(command: StateRef<CliCommand>) {
         Commands::Setup { shell, profile } => commands::setup(shell, profile).await?,
         Commands::Unalias { id, alias } => commands::unalias(id, alias).await?,
         Commands::Uninstall { id, semver } => commands::uninstall(id, semver).await?,
+        Commands::UninstallGlobal { id, dependencies } => {
+            commands::uninstall_global(id, dependencies).await?
+        }
         Commands::Upgrade => commands::upgrade().await?,
         Commands::Use => commands::install_all().await?,
     };
