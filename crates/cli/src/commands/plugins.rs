@@ -64,7 +64,7 @@ pub async fn plugins(json: bool) -> SystemResult {
             color::id(item.id),
             color::muted("-"),
             item.name,
-            color::muted(if let Some(version) = item.version {
+            color::muted_light(if let Some(version) = item.version {
                 format!("v{version}")
             } else {
                 "".into()

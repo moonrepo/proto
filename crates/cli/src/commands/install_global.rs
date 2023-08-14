@@ -11,14 +11,20 @@ pub async fn install_global(tool_id: Id, dependencies: Vec<String>) -> SystemRes
     let mut tool = create_tool(&tool_id).await?;
     tool.locate_globals_dir().await?;
 
-    let Some(globals_dir) = tool.get_globals_bin_dir() else {
-        eprintln!("{} does not support global dependencies", tool.get_name());
-        process::exit(1);
-    };
-
+    let globals_dir = tool.get_globals_bin_dir();
     let mut log_list = vec![];
 
+    if !tool.plugin.has_func("install_global") || globals_dir.is_none() {
+        eprintln!(
+            "{} does not support installing global dependencies",
+            tool.get_name()
+        );
+        process::exit(1);
+    }
+
     for dependency in dependencies {
+        log_list.push(color::id(&dependency));
+
         debug!(
             tool = tool.id.as_str(),
             dependency, "Installing global dependency"
@@ -26,14 +32,12 @@ pub async fn install_global(tool_id: Id, dependencies: Vec<String>) -> SystemRes
 
         let pb = create_progress_bar(format!("Installing {} for {}", dependency, tool.get_name()));
 
-        log_list.push(color::id(&dependency));
-
         let result: InstallGlobalOutput = tool.plugin.call_func_with(
             "install_global",
             InstallGlobalInput {
                 env: tool.create_environment()?,
                 dependency,
-                globals_dir: tool.plugin.to_virtual_path(globals_dir),
+                globals_dir: tool.plugin.to_virtual_path(globals_dir.as_ref().unwrap()),
             },
         )?;
 
@@ -49,7 +53,7 @@ pub async fn install_global(tool_id: Id, dependencies: Vec<String>) -> SystemRes
     info!(
         "Installed {} to {}!",
         log_list.join(", "),
-        color::path(globals_dir),
+        color::path(globals_dir.as_ref().unwrap()),
     );
 
     Ok(())

@@ -11,14 +11,20 @@ pub async fn uninstall_global(tool_id: Id, dependencies: Vec<String>) -> SystemR
     let mut tool = create_tool(&tool_id).await?;
     tool.locate_globals_dir().await?;
 
-    let Some(globals_dir) = tool.get_globals_bin_dir() else {
-        eprintln!("{} does not support global dependencies", tool.get_name());
-        process::exit(1);
-    };
-
+    let globals_dir = tool.get_globals_bin_dir();
     let mut log_list = vec![];
 
+    if !tool.plugin.has_func("uninstall_global") || globals_dir.is_none() {
+        eprintln!(
+            "{} does not support uninstalling global dependencies",
+            tool.get_name()
+        );
+        process::exit(1);
+    }
+
     for dependency in dependencies {
+        log_list.push(color::id(&dependency));
+
         debug!(
             tool = tool.id.as_str(),
             dependency, "Uninstalling global dependency"
@@ -30,14 +36,12 @@ pub async fn uninstall_global(tool_id: Id, dependencies: Vec<String>) -> SystemR
             tool.get_name()
         ));
 
-        log_list.push(color::id(&dependency));
-
         let result: UninstallGlobalOutput = tool.plugin.call_func_with(
             "uninstall_global",
             UninstallGlobalInput {
                 env: tool.create_environment()?,
                 dependency,
-                globals_dir: tool.plugin.to_virtual_path(globals_dir),
+                globals_dir: tool.plugin.to_virtual_path(globals_dir.as_ref().unwrap()),
             },
         )?;
 
@@ -53,7 +57,7 @@ pub async fn uninstall_global(tool_id: Id, dependencies: Vec<String>) -> SystemR
     info!(
         "Uninstalled {} from {}!",
         log_list.join(", "),
-        color::path(globals_dir),
+        color::path(globals_dir.as_ref().unwrap()),
     );
 
     Ok(())
