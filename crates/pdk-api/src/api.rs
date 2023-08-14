@@ -165,8 +165,30 @@ json_struct!(
 json_struct!(
     /// Output returned by the `native_install` function.
     pub struct NativeInstallOutput {
-        /// Wheterh the install was successful.
+        /// Whether the install was successful.
         pub installed: bool,
+    }
+);
+
+json_struct!(
+    /// Input passed to the `native_uninstall` function.
+    pub struct NativeUninstallInput {
+        /// Current environment.
+        pub env: Environment,
+
+        /// Virtual path to the user's home directory.
+        pub home_dir: PathBuf,
+
+        /// Virtual path to the tool's installation directory.
+        pub tool_dir: PathBuf,
+    }
+);
+
+json_struct!(
+    /// Output returned by the `native_uninstall` function.
+    pub struct NativeUninstallOutput {
+        /// Whether the install was successful.
+        pub uninstalled: bool,
     }
 );
 
