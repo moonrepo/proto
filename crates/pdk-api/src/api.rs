@@ -313,7 +313,7 @@ json_struct!(
         /// Name (and optional version) of the global dependency to install.
         pub dependency: String,
 
-        /// Virtual path to the globals's installation directory.
+        /// Virtual path to the global's installation directory.
         pub globals_dir: PathBuf,
     }
 );
@@ -325,6 +325,31 @@ json_struct!(
         pub installed: bool,
 
         /// Error message if the install failed.
+        pub error: Option<String>,
+    }
+);
+
+json_struct!(
+    /// Input passed to the `uninstall_global` function.
+    pub struct UninstallGlobalInput {
+        /// Current environment.
+        pub env: Environment,
+
+        /// Name (and optional version) of the global dependency to uninstall.
+        pub dependency: String,
+
+        /// Virtual path to the global's installation directory.
+        pub globals_dir: PathBuf,
+    }
+);
+
+json_struct!(
+    /// Output returned by the `uninstall_global` function.
+    pub struct UninstallGlobalOutput {
+        /// Whether the uninstall was successful.
+        pub uninstalled: bool,
+
+        /// Error message if the uninstall failed.
         pub error: Option<String>,
     }
 );
