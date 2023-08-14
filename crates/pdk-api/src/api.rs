@@ -304,6 +304,31 @@ json_struct!(
     }
 );
 
+json_struct!(
+    /// Input passed to the `install_global` function.
+    pub struct InstallGlobalInput {
+        /// Current environment.
+        pub env: Environment,
+
+        /// Name (and optional version) of the global dependency to install.
+        pub dependency: String,
+
+        /// Virtual path to the globals's installation directory.
+        pub globals_dir: PathBuf,
+    }
+);
+
+json_struct!(
+    /// Output returned by the `install_global` function.
+    pub struct InstallGlobalOutput {
+        /// Whether the install was successful.
+        pub installed: bool,
+
+        /// Error message if the install failed.
+        pub error: Option<String>,
+    }
+);
+
 // Resolver
 
 json_struct!(
@@ -487,6 +512,8 @@ json_struct!(
         pub local_shims: HashMap<String, ShimConfig>,
     }
 );
+
+// Misc
 
 json_struct!(
     /// Input passed to the `sync_manifest` function.

@@ -34,6 +34,7 @@ path = "src/bin.rs"
 
 [dependencies]
 proto_core = { version = "0.14.5", path = "../core" }
+proto_pdk_api = { version = "0.4.5", path = "../pdk-api" }
 proto_schema_plugin = { version = "0.9.3", path = "../schema-plugin" }
 proto_wasm_plugin = { version = "0.4.4", path = "../wasm-plugin" }
 async-recursion = "1.0.4"
