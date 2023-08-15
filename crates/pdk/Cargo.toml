@@ -8,7 +8,7 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
-proto_pdk_api = { version = "0.4.6", path = "../pdk-api" }
+proto_pdk_api = { version = "0.4.7", path = "../pdk-api" }
 anyhow = "1.0.72"
 extism-pdk = { workspace = true }
 once_cell = { workspace = true }
