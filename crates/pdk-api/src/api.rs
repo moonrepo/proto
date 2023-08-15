@@ -1,4 +1,5 @@
 use crate::host::{HostArch, HostOS};
+use crate::host_funcs::ExecCommandOutput;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ffi::OsStr;
@@ -334,6 +335,22 @@ json_struct!(
     }
 );
 
+impl InstallGlobalOutput {
+    pub fn from_exec_command(result: ExecCommandOutput) -> Self {
+        if result.exit_code == 0 {
+            return Self {
+                installed: true,
+                error: None,
+            };
+        }
+
+        Self {
+            installed: false,
+            error: Some(result.stderr),
+        }
+    }
+}
+
 json_struct!(
     /// Input passed to the `uninstall_global` function.
     pub struct UninstallGlobalInput {
@@ -359,6 +376,22 @@ json_struct!(
         pub error: Option<String>,
     }
 );
+
+impl UninstallGlobalOutput {
+    pub fn from_exec_command(result: ExecCommandOutput) -> Self {
+        if result.exit_code == 0 {
+            return Self {
+                uninstalled: true,
+                error: None,
+            };
+        }
+
+        Self {
+            uninstalled: false,
+            error: Some(result.stderr),
+        }
+    }
+}
 
 // Resolver
 

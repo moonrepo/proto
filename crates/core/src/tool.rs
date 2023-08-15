@@ -705,7 +705,7 @@ impl Tool {
     }
 
     /// Install a global dependency/package for the tool.
-    pub async fn install_global(&self, dependency: String) -> miette::Result<bool> {
+    pub async fn install_global(&self, dependency: &str) -> miette::Result<bool> {
         let globals_dir = self.get_globals_bin_dir();
 
         if !self.plugin.has_func("install_global") || globals_dir.is_none() {
@@ -716,7 +716,7 @@ impl Tool {
             "install_global",
             InstallGlobalInput {
                 env: self.create_environment()?,
-                dependency,
+                dependency: dependency.to_owned(),
                 globals_dir: self.plugin.to_virtual_path(globals_dir.as_ref().unwrap()),
             },
         )?;
@@ -776,7 +776,7 @@ impl Tool {
     }
 
     /// Uninstall a global dependency/package from the tool.
-    pub async fn uninstall_global(&self, dependency: String) -> miette::Result<bool> {
+    pub async fn uninstall_global(&self, dependency: &str) -> miette::Result<bool> {
         let globals_dir = self.get_globals_bin_dir();
 
         if !self.plugin.has_func("uninstall_global") || globals_dir.is_none() {
@@ -787,7 +787,7 @@ impl Tool {
             "uninstall_global",
             UninstallGlobalInput {
                 env: self.create_environment()?,
-                dependency,
+                dependency: dependency.to_owned(),
                 globals_dir: self.plugin.to_virtual_path(globals_dir.as_ref().unwrap()),
             },
         )?;

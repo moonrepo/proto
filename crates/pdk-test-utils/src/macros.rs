@@ -254,10 +254,10 @@ macro_rules! generate_local_shims_test {
 
 #[macro_export]
 macro_rules! generate_globals_test {
-    ($id:literal, $dep:literal) => {
-        generate_globals_test!($id, $dep, None);
+    ($id:literal, $dep:literal, { $( $k:literal => $v:literal, )* },) => {
+        generate_globals_test!($id, $dep, { $( $k => $v, )* }, None);
     };
-    ($id:literal, $dep:literal, $schema:expr) => {
+    ($id:literal, $dep:literal, { $( $k:literal => $v:literal, )* }, $schema:expr) => {
         #[tokio::test]
         async fn installs_and_uninstalls_globals() {
             let sandbox = create_empty_sandbox();
@@ -266,6 +266,12 @@ macro_rules! generate_globals_test {
             } else {
                 create_plugin($id, sandbox.path())
             };
+
+            $(
+                std::env::set_var($k.into(), $v.into());
+            )*
+
+            plugin.tool.locate_globals_dir().await.unwrap();
 
             let globals_dir = plugin
                 .tool
@@ -289,6 +295,10 @@ macro_rules! generate_globals_test {
             assert!(exts
                 .iter()
                 .all(|ext| !globals_dir.join(format!("{}{ext}", $dep)).exists()));
+
+            $(
+                std::env::remove_var($k.into());
+            )*
         }
     };
 }

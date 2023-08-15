@@ -36,7 +36,7 @@ pub async fn install_global(tool_id: Id, dependencies: Vec<String>) -> SystemRes
 
         let pb = create_progress_bar(format!("Installing {} for {}", dependency, tool.get_name()));
 
-        tool.install_global(dependency).await?;
+        tool.install_global(&dependency).await?;
 
         pb.finish_and_clear();
     }
