@@ -1,7 +1,7 @@
 name: Bug report
 description: File a bug report!
-title: "bug: "
 labels: [bug]
+assignees: [milesj]
 body:
   - type: markdown
     attributes:
@@ -10,21 +10,29 @@ body:
         - [Bun](https://github.com/moonrepo/bun-plugin)
         - [Deno](https://github.com/moonrepo/deno-plugin)
         - [Go](https://github.com/moonrepo/go-plugin)
-        - [Node](https://github.com/moonrepo/node-plugin) (npm, pnpm, yarn)
+        - [Node](https://github.com/moonrepo/node-plugin)
         - [Rust](https://github.com/moonrepo/rust-plugin)
         - [Schema](https://github.com/moonrepo/schema-plugin)
   - type: input
     attributes:
+      label: What version?
+      description: What version of `proto` are you using?
+      placeholder: "0.14.0"
+  - type: input
+    attributes:
       label: Which command?
-      description: What `proto` command are you reporting the issue for?
+      description: Which `proto` command are you reporting the issue for?
       placeholder: proto install
   - type: textarea
     attributes:
       label: What happened?
-      description: Please describe the issue and what you expect to happen?
-      placeholder: Tell us what you see!
+      description: Please describe the issue you're having and what you expect to happen?
     validations:
       required: true
+  - type: textarea
+    attributes:
+      label: Any logs?
+      description: If applicable, paste the `--log trace` (or `PROTO_LOG=trace`) output.
   - type: dropdown
     attributes:
       label: Operating system?
