@@ -1,7 +1,6 @@
 mod app;
 mod commands;
 mod helpers;
-mod hooks;
 mod shell;
 pub mod tools;
 

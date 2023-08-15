@@ -1,4 +1,5 @@
 use crate::error::PluginError;
+use crate::json_struct;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use std::str::FromStr;
@@ -69,6 +70,20 @@ pub enum HostOS {
     Windows,
 }
 
+impl HostOS {
+    pub fn is_bsd(&self) -> bool {
+        matches!(self, Self::FreeBSD | Self::NetBSD | Self::OpenBSD)
+    }
+
+    pub fn is_linux(&self) -> bool {
+        !matches!(self, Self::MacOS | Self::Windows)
+    }
+
+    pub fn to_rust_os(&self) -> String {
+        self.to_string()
+    }
+}
+
 impl Display for HostOS {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", format!("{:?}", self).to_lowercase())
@@ -92,3 +107,11 @@ impl FromStr for HostOS {
         }
     }
 }
+
+json_struct!(
+    pub struct UserConfigSettings {
+        pub auto_clean: bool,
+        pub auto_install: bool,
+        pub node_intercept_globals: bool,
+    }
+);

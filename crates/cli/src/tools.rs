@@ -1,6 +1,8 @@
+use miette::IntoDiagnostic;
 use proto_core::*;
+use proto_pdk_api::UserConfigSettings;
 use proto_wasm_plugin::Wasm;
-use starbase_utils::fs;
+use starbase_utils::{fs, json};
 use std::collections::HashMap;
 use std::{env, path::Path};
 use tracing::debug;
@@ -9,6 +11,7 @@ pub async fn create_tool_from_plugin(
     id: impl AsRef<Id>,
     proto: impl AsRef<ProtoEnvironment>,
     locator: impl AsRef<PluginLocator>,
+    user_config: &UserConfig,
 ) -> miette::Result<Tool> {
     let id = id.as_ref();
     let proto = proto.as_ref();
@@ -16,35 +19,49 @@ pub async fn create_tool_from_plugin(
     let loader = PluginLoader::new(&proto.plugins_dir, &proto.temp_dir);
 
     let plugin_path = loader.load_plugin(&id, locator).await?;
+    let mut config = HashMap::new();
 
     // If a TOML plugin, we need to load the WASM plugin for it,
     // wrap it, and modify the plugin manifest.
-    if plugin_path
+    let mut manifest = if plugin_path
         .extension()
         .map(|ext| ext == "toml")
         .unwrap_or(false)
     {
         debug!(source = ?plugin_path, "Loading TOML plugin");
 
-        let mut config = HashMap::new();
         config.insert("schema".to_string(), fs::read_file(plugin_path)?);
 
-        let plugin_path = loader.load_plugin(id, ToolsConfig::schema_plugin()).await?;
+        Tool::create_plugin_manifest(
+            proto,
+            Wasm::file(loader.load_plugin(id, ToolsConfig::schema_plugin()).await?),
+        )?
 
-        let mut manifest = Tool::create_plugin_manifest(proto, Wasm::file(plugin_path))?;
-        manifest = manifest.with_config(config.into_iter());
+        // Otherwise, just use the WASM plugin as is
+    } else {
+        debug!(source = ?plugin_path, "Loading WASM plugin");
 
-        return Tool::load_from_manifest(id, proto, manifest);
-    }
+        Tool::create_plugin_manifest(proto, Wasm::file(plugin_path))?
+    };
 
-    // Otherwise, just use the WASM plugin as is
-    debug!(source = ?plugin_path, "Loading WASM plugin");
+    config.insert(
+        "proto_user_config".to_string(),
+        json::to_string(&UserConfigSettings {
+            auto_clean: user_config.auto_clean,
+            auto_install: user_config.auto_install,
+            node_intercept_globals: user_config.node_intercept_globals,
+        })
+        .into_diagnostic()?,
+    );
 
-    Tool::load(id, proto, Wasm::file(plugin_path))
+    manifest = manifest.with_config(config.into_iter());
+
+    Tool::load_from_manifest(id, proto, manifest)
 }
 
 pub async fn create_tool(id: &Id) -> miette::Result<Tool> {
     let proto = ProtoEnvironment::new()?;
+    let user_config = UserConfig::load()?;
     let mut locator = None;
 
     debug!(
@@ -70,8 +87,6 @@ pub async fn create_tool(id: &Id) -> miette::Result<Tool> {
 
     // Then check the user's config
     if locator.is_none() {
-        let user_config = UserConfig::load()?;
-
         if let Some(maybe_locator) = user_config.plugins.get(id) {
             locator = Some(maybe_locator.to_owned());
         }
@@ -90,5 +105,5 @@ pub async fn create_tool(id: &Id) -> miette::Result<Tool> {
         return Err(ProtoError::UnknownTool { id: id.to_owned() }.into());
     };
 
-    create_tool_from_plugin(id, proto, locator).await
+    create_tool_from_plugin(id, proto, locator, &user_config).await
 }

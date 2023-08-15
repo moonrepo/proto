@@ -12,10 +12,12 @@ use extism::{manifest::Wasm, Manifest as PluginManifest};
 use miette::IntoDiagnostic;
 use proto_pdk_api::*;
 use proto_wasm_plugin::{create_host_functions, HostData};
+use serde::Serialize;
 use starbase_archive::Archiver;
 use starbase_utils::{fs, json};
 use std::collections::{BTreeMap, HashSet};
 use std::env::{self, consts};
+use std::fmt::Debug;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
@@ -230,6 +232,18 @@ impl Tool {
         }
 
         self.metadata = metadata;
+
+        Ok(())
+    }
+
+    /// Run a hook with the provided name and input.
+    pub fn run_hook<I>(&self, hook: &str, input: I) -> miette::Result<()>
+    where
+        I: Debug + Serialize,
+    {
+        if self.plugin.has_func(hook) {
+            self.plugin.call_func_without_output(hook, input)?;
+        }
 
         Ok(())
     }

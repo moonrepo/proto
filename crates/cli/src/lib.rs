@@ -1,4 +1,3 @@
-pub mod hooks;
 pub mod shell;
 pub mod tools;
 
