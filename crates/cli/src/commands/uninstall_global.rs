@@ -35,7 +35,7 @@ pub async fn uninstall_global(tool_id: Id, dependencies: Vec<String>) -> SystemR
             tool.get_name()
         ));
 
-        tool.uninstall_global(dependency).await?;
+        tool.uninstall_global(&dependency).await?;
 
         pb.finish_and_clear();
     }
