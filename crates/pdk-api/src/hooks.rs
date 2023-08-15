@@ -15,3 +15,15 @@ json_struct!(
         pub resolved_version: String,
     }
 );
+
+json_struct!(
+    /// Input passed to the `pre_run` and `post_run` hooks,
+    /// while a `proto run` command or language binary is running.
+    pub struct RunHook {
+        /// Arguments passed after `--` that was directly passed to the tool's binary.
+        pub passthrough_args: Vec<String>,
+
+        /// Resolved and semantic version of tool running.
+        pub resolved_version: String,
+    }
+);

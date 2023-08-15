@@ -38,6 +38,8 @@ pub async fn install(
         resolved_version.to_string(),
     );
 
+    env::set_var("PROTO_INSTALL", tool_id.to_string());
+
     // Run before hook
     tool.run_hook(
         "pre_install",
