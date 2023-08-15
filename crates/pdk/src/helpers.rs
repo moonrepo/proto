@@ -4,6 +4,7 @@ use once_cell::sync::Lazy;
 use once_map::OnceMap;
 use proto_pdk_api::{
     Environment, ExecCommandInput, ExecCommandOutput, HostArch, HostOS, PluginError,
+    UserConfigSettings,
 };
 use serde::de::DeserializeOwned;
 use std::collections::HashMap;
@@ -129,4 +130,12 @@ pub fn check_supported_os_and_arch(
     }
 
     Ok(())
+}
+
+/// Return the loaded proto user configuration (`~/.proto/config.toml`). Does not include plugins!
+pub fn get_proto_user_config() -> anyhow::Result<UserConfigSettings> {
+    let config = config::get("proto_user_config").expect("Missing proto user configuration!");
+    let config: UserConfigSettings = json::from_str(&config)?;
+
+    Ok(config)
 }

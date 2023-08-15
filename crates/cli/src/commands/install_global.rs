@@ -3,7 +3,7 @@ use crate::tools::create_tool;
 use proto_core::Id;
 use starbase::SystemResult;
 use starbase_styles::color;
-use std::process;
+use std::{env, process};
 use tracing::{debug, info};
 
 pub async fn install_global(tool_id: Id, dependencies: Vec<String>) -> SystemResult {
@@ -22,6 +22,11 @@ pub async fn install_global(tool_id: Id, dependencies: Vec<String>) -> SystemRes
     }
 
     for dependency in dependencies {
+        env::set_var(
+            "PROTO_INSTALL_GLOBAL",
+            format!("{}:{}", tool_id, dependency),
+        );
+
         log_list.push(color::id(&dependency));
 
         debug!(
