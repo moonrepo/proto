@@ -1,0 +1,45 @@
+name: Bug report
+description: File a bug report!
+title: "bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If you're reporting an issue for a specific language/tool and not for proto itself, please report the issue on their official repository.
+        - [Bun](https://github.com/moonrepo/bun-plugin)
+        - [Deno](https://github.com/moonrepo/deno-plugin)
+        - [Go](https://github.com/moonrepo/go-plugin)
+        - [Node](https://github.com/moonrepo/node-plugin) (npm, pnpm, yarn)
+        - [Rust](https://github.com/moonrepo/rust-plugin)
+        - [Schema](https://github.com/moonrepo/schema-plugin)
+  - type: input
+    attributes:
+      label: Which command?
+      description: What `proto` command are you reporting the issue for?
+      placeholder: proto install
+  - type: textarea
+    attributes:
+      label: What happened?
+      description: Please describe the issue and what you expect to happen?
+      placeholder: Tell us what you see!
+    validations:
+      required: true
+  - type: dropdown
+    attributes:
+      label: Operating system?
+      options:
+        - Linux
+        - MacOS
+        - Windows
+    validations:
+      required: true
+  - type: dropdown
+    attributes:
+      label: Architecture?
+      options:
+        - x64
+        - Arm64
+        - Other
+    validations:
+      required: true

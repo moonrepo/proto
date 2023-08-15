@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Discord Support
+    url: https://github.com/orgs/community/discussions
+    about: Get immediate help from the community.
