@@ -283,18 +283,19 @@ macro_rules! generate_globals_test {
                 .get_globals_bin_dir()
                 .expect("Globals directory required for testing!");
 
-            let exts = if cfg!(windows) {
+            let mut exts = if cfg!(windows) {
                 vec![".exe", ".ps1", ".cmd"]
             } else {
-                vec!["", ".sh", ".ts", ".js", ".mjs", ".cjs"]
+                vec!["", ".sh"]
             };
+            exts.extend(vec![".ts", ".js", ".mjs", ".cjs"]);
 
-            let dep_path = $dep; // URL, path, or string
+            let dep = $dep; // URL, path, or string
 
-            let dep_name = if let Some(index) = dep_path.rfind("/") {
-                &dep_path[index + 1..]
+            let dep_name = if let Some(index) = dep.rfind("/") {
+                &dep[index + 1..]
             } else {
-                &dep_path
+                &dep
             };
 
             let dep_name_without_version = if let Some(index) = dep_name.find("@") {
@@ -303,21 +304,30 @@ macro_rules! generate_globals_test {
                 &dep_name
             };
 
-            dbg!(&dep_path, &dep_name, &dep_name_without_version);
+            // This is left in for debugging purposes
+            dbg!(&dep, &dep_name, &dep_name_without_version);
 
-            plugin.tool.install_global(dep_path).await.unwrap();
-
-            sandbox.debug_files();
+            plugin.tool.install_global(dep).await.unwrap();
 
             assert!(exts.iter().any(|ext| globals_dir
                 .join(format!("{}{ext}", dep_name_without_version))
-                .exists()));
+                .exists()
+                || globals_dir
+                    .join(format!("bin/{}{ext}", dep_name_without_version))
+                    .exists()));
 
-            plugin.tool.uninstall_global(dep_path).await.unwrap();
+            plugin
+                .tool
+                .uninstall_global(dep_name_without_version)
+                .await
+                .unwrap();
 
             assert!(exts.iter().all(|ext| !globals_dir
                 .join(format!("{}{ext}", dep_name_without_version))
-                .exists()));
+                .exists()
+                && !globals_dir
+                    .join(format!("bin/{}{ext}", dep_name_without_version))
+                    .exists()));
 
             if let Some(var) = &env_var {
                 std::env::remove_var(var.to_owned());

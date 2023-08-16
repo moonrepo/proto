@@ -730,7 +730,7 @@ impl Tool {
             return Err(ProtoError::Message(
                 result
                     .error
-                    .unwrap_or_else(|| "Unknown failure!".to_string()),
+                    .unwrap_or_else(|| "Unknown install failure!".to_string()),
             ))?;
         }
 
@@ -801,7 +801,7 @@ impl Tool {
             return Err(ProtoError::Message(
                 result
                     .error
-                    .unwrap_or_else(|| "Unknown failure!".to_string()),
+                    .unwrap_or_else(|| "Unknown uninstall failure!".to_string()),
             ))?;
         }
 
