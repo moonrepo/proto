@@ -264,6 +264,11 @@ impl Tool {
                 tool_dir: self.plugin.to_virtual_path(&self.get_tool_dir()),
             },
         )?;
+
+        if sync_changes.skip_sync {
+            return Ok(());
+        }
+
         let mut modified = false;
 
         if let Some(default) = sync_changes.default_version {
