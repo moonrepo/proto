@@ -254,10 +254,13 @@ macro_rules! generate_local_shims_test {
 
 #[macro_export]
 macro_rules! generate_globals_test {
-    ($id:literal, $dep:literal, { $( $k:literal => $v:literal, )* },) => {
-        generate_globals_test!($id, $dep, { $( $k => $v, )* }, None);
+    ($id:literal, $dep:literal) => {
+        generate_globals_test!($id, $dep, None, None);
     };
-    ($id:literal, $dep:literal, { $( $k:literal => $v:literal, )* }, $schema:expr) => {
+    ($id:literal, $dep:literal, $env:literal) => {
+        generate_globals_test!($id, $dep, Some($env.to_string()), None);
+    };
+    ($id:literal, $dep:literal, $env:expr, $schema:expr) => {
         #[tokio::test]
         async fn installs_and_uninstalls_globals() {
             let sandbox = create_empty_sandbox();
@@ -267,9 +270,11 @@ macro_rules! generate_globals_test {
                 create_plugin($id, sandbox.path())
             };
 
-            $(
-                std::env::set_var($k.into(), $v.into());
-            )*
+            let env_var: Option<String> = $env;
+
+            if let Some(var) = &env_var {
+                std::env::set_var(var.to_owned(), sandbox.path().to_string_lossy().to_string());
+            }
 
             plugin.tool.locate_globals_dir().await.unwrap();
 
@@ -281,24 +286,42 @@ macro_rules! generate_globals_test {
             let exts = if cfg!(windows) {
                 vec![".exe", ".ps1", ".cmd"]
             } else {
-                vec!["", ".sh"]
+                vec!["", ".sh", ".ts", ".js", ".mjs", ".cjs"]
             };
 
-            plugin.tool.install_global($dep).await.unwrap();
+            let dep_path = $dep; // URL, path, or string
 
-            assert!(exts
-                .iter()
-                .any(|ext| globals_dir.join(format!("{}{ext}", $dep)).exists()));
+            let dep_name = if let Some(index) = dep_path.rfind("/") {
+                &dep_path[index + 1..]
+            } else {
+                &dep_path
+            };
 
-            plugin.tool.uninstall_global($dep).await.unwrap();
+            let dep_name_without_version = if let Some(index) = dep_name.find("@") {
+                &dep_name[0..index]
+            } else {
+                &dep_name
+            };
 
-            assert!(exts
-                .iter()
-                .all(|ext| !globals_dir.join(format!("{}{ext}", $dep)).exists()));
+            dbg!(&dep_path, &dep_name, &dep_name_without_version);
 
-            $(
-                std::env::remove_var($k.into());
-            )*
+            plugin.tool.install_global(dep_path).await.unwrap();
+
+            sandbox.debug_files();
+
+            assert!(exts.iter().any(|ext| globals_dir
+                .join(format!("{}{ext}", dep_name_without_version))
+                .exists()));
+
+            plugin.tool.uninstall_global(dep_path).await.unwrap();
+
+            assert!(exts.iter().all(|ext| !globals_dir
+                .join(format!("{}{ext}", dep_name_without_version))
+                .exists()));
+
+            if let Some(var) = &env_var {
+                std::env::remove_var(var.to_owned());
+            }
         }
     };
 }
