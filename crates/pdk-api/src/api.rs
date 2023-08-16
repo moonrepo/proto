@@ -619,5 +619,39 @@ json_struct!(
         /// what is currently in the manifest.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub versions: Option<Vec<Version>>,
+
+        /// Whether to skip the syncing process or not.
+        pub skip_sync: bool,
+    }
+);
+
+json_struct!(
+    /// Input passed to the `sync_shell_profile` function.
+    pub struct SyncShellProfileInput {
+        /// Current environment.
+        pub env: Environment,
+
+        /// Arguments passed after `--` that was directly passed to the tool's binary.
+        pub passthrough_args: Vec<String>,
+    }
+);
+
+json_struct!(
+    /// Output returned by the `sync_shell_profile` function.
+    pub struct SyncShellProfileOutput {
+        /// An environment variable to check for in the shell profile.
+        /// If the variable exists, injecting path and exports will be avoided.
+        pub check_var: String,
+
+        /// A mapping of environment variables that will be injected as exports.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub export_vars: Option<HashMap<String, String>>,
+
+        /// A list of paths to prepend to the `PATH` environment variable.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub extend_path: Option<Vec<String>>,
+
+        /// Whether to skip the syncing process or not.
+        pub skip_sync: bool,
     }
 );
