@@ -2330,7 +2330,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.14.7"
+version = "0.14.8"
 dependencies = [
  "cached",
  "extism",
@@ -2359,7 +2359,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.4.5"
+version = "0.4.6"
 dependencies = [
  "anyhow",
  "extism-pdk",
@@ -2371,7 +2371,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.4.7"
+version = "0.4.8"
 dependencies = [
  "anyhow",
  "semver",
