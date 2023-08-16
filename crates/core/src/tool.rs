@@ -726,6 +726,7 @@ impl Tool {
                 env: self.create_environment()?,
                 dependency: dependency.to_owned(),
                 globals_dir: self.plugin.to_virtual_path(globals_dir.as_ref().unwrap()),
+                globals_dir_real: globals_dir.as_ref().unwrap().to_path_buf(),
             },
         )?;
 
@@ -797,6 +798,7 @@ impl Tool {
                 env: self.create_environment()?,
                 dependency: dependency.to_owned(),
                 globals_dir: self.plugin.to_virtual_path(globals_dir.as_ref().unwrap()),
+                globals_dir_real: globals_dir.as_ref().unwrap().to_path_buf(),
             },
         )?;
 

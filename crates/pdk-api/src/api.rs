@@ -320,6 +320,10 @@ json_struct!(
 
         /// Virtual path to the global's installation directory.
         pub globals_dir: PathBuf,
+
+        /// Real path to the global's installation directory.
+        /// This can't be read/written, but can be used as a value.
+        pub globals_dir_real: PathBuf,
     }
 );
 
@@ -362,6 +366,10 @@ json_struct!(
 
         /// Virtual path to the global's installation directory.
         pub globals_dir: PathBuf,
+
+        /// Real path to the global's installation directory.
+        /// This can't be read/written, but can be used as a value.
+        pub globals_dir_real: PathBuf,
     }
 );
 
