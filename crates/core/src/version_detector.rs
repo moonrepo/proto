@@ -95,7 +95,7 @@ pub async fn detect_version(
         if let Some(global_version) = &tool.manifest.default_version {
             debug!(
                 tool = tool.id.as_str(),
-                version = ?global_version,
+                version = global_version.to_string(),
                 file = ?tool.manifest.path,
                 "Detected global version from manifest",
             );

@@ -11,8 +11,8 @@ impl WasmTestWrapper {
         self.tool.plugin.from_virtual_path(path)
     }
 
-    pub fn to_virtual_path(&self, path: &Path) -> PathBuf {
-        self.tool.plugin.to_virtual_path(path)
+    pub fn to_virtual_path(&self, path: &Path) -> VirtualPath {
+        self.tool.to_virtual_path(path)
     }
 
     pub fn create_shims(&self, input: CreateShimsInput) -> CreateShimsOutput {
@@ -149,11 +149,11 @@ impl WasmTestWrapper {
             .unwrap()
     }
 
-    fn prepare_tool_dir(&self, path: PathBuf) -> PathBuf {
-        let dir = if path.components().count() == 0 {
+    fn prepare_tool_dir(&self, path: VirtualPath) -> VirtualPath {
+        let dir = if path.real_path().components().count() == 0 {
             self.tool.get_tool_dir()
         } else {
-            path
+            path.real_path().to_path_buf()
         };
 
         self.to_virtual_path(&dir)

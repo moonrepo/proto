@@ -1,4 +1,4 @@
-use crate::host::{HostArch, HostOS};
+use crate::host::{HostArch, HostOS, VirtualPath};
 use crate::host_funcs::ExecCommandOutput;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -70,7 +70,7 @@ json_struct!(
         pub env: Environment,
 
         /// Virtual path to the user's home directory.
-        pub home_dir: PathBuf,
+        pub home_dir: VirtualPath,
     }
 );
 
@@ -160,10 +160,10 @@ json_struct!(
         pub env: Environment,
 
         /// Virtual path to the user's home directory.
-        pub home_dir: PathBuf,
+        pub home_dir: VirtualPath,
 
         /// Virtual path to the tool's installation directory.
-        pub tool_dir: PathBuf,
+        pub tool_dir: VirtualPath,
     }
 );
 
@@ -182,10 +182,10 @@ json_struct!(
         pub env: Environment,
 
         /// Virtual path to the user's home directory.
-        pub home_dir: PathBuf,
+        pub home_dir: VirtualPath,
 
         /// Virtual path to the tool's installation directory.
-        pub tool_dir: PathBuf,
+        pub tool_dir: VirtualPath,
     }
 );
 
@@ -237,13 +237,13 @@ json_struct!(
     /// Input passed to the `unpack_archive` function.
     pub struct UnpackArchiveInput {
         /// Virtual path to the downloaded file.
-        pub input_file: PathBuf,
+        pub input_file: VirtualPath,
 
         /// Current environment.
         pub env: Environment,
 
         /// Virtual directory to unpack the archive into, or copy the binary to.
-        pub output_dir: PathBuf,
+        pub output_dir: VirtualPath,
     }
 );
 
@@ -254,10 +254,10 @@ json_struct!(
         pub checksum: String,
 
         /// Virtual path to the checksum file.
-        pub checksum_file: PathBuf,
+        pub checksum_file: VirtualPath,
 
         /// Virtual path to the downloaded file.
-        pub download_file: PathBuf,
+        pub download_file: VirtualPath,
 
         /// Current environment.
         pub env: Environment,
@@ -280,10 +280,10 @@ json_struct!(
         pub env: Environment,
 
         /// Virtual path to the user's home directory.
-        pub home_dir: PathBuf,
+        pub home_dir: VirtualPath,
 
         /// Virtual path to the tool's installation directory.
-        pub tool_dir: PathBuf,
+        pub tool_dir: VirtualPath,
     }
 );
 
@@ -319,11 +319,7 @@ json_struct!(
         pub dependency: String,
 
         /// Virtual path to the global's installation directory.
-        pub globals_dir: PathBuf,
-
-        /// Real path to the global's installation directory.
-        /// This can't be read/written, but can be used as a value.
-        pub globals_dir_real: PathBuf,
+        pub globals_dir: VirtualPath,
     }
 );
 
@@ -365,11 +361,7 @@ json_struct!(
         pub dependency: String,
 
         /// Virtual path to the global's installation directory.
-        pub globals_dir: PathBuf,
-
-        /// Real path to the global's installation directory.
-        /// This can't be read/written, but can be used as a value.
-        pub globals_dir_real: PathBuf,
+        pub globals_dir: VirtualPath,
     }
 );
 
@@ -609,10 +601,10 @@ json_struct!(
         pub env: Environment,
 
         /// Virtual path to the user's home directory.
-        pub home_dir: PathBuf,
+        pub home_dir: VirtualPath,
 
         /// Virtual path to the tool's installation directory.
-        pub tool_dir: PathBuf,
+        pub tool_dir: VirtualPath,
     }
 );
 

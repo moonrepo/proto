@@ -192,6 +192,22 @@ impl Tool {
     pub fn disable_progress_bars(&self) -> bool {
         self.metadata.inventory.disable_progress_bars
     }
+
+    pub fn from_virtual_path(&self, path: &Path) -> PathBuf {
+        self.plugin.from_virtual_path(path)
+    }
+
+    pub fn to_virtual_path(&self, path: &Path) -> VirtualPath {
+        // This is a temporary hack. Only newer plugins support the `VirtualPath`
+        // type, so we need to check if the plugin has a version or not, which
+        // is a newer feature. Otherwise, old plugins would fail to parse the
+        // `VirtualPath` type and crash.
+        if self.metadata.plugin_version.is_some() {
+            VirtualPath::new(self.plugin.to_virtual_path(path), path)
+        } else {
+            VirtualPath::compat(self.plugin.to_virtual_path(path))
+        }
+    }
 }
 
 // APIs
@@ -220,12 +236,12 @@ impl Tool {
             ToolMetadataInput {
                 id: self.id.to_string(),
                 env: self.create_environment()?,
-                home_dir: self.plugin.to_virtual_path(&self.proto.home),
+                home_dir: self.to_virtual_path(&self.proto.home),
             },
         )?;
 
         if let Some(override_dir) = &metadata.inventory.override_dir {
-            let inventory_dir = self.plugin.from_virtual_path(override_dir);
+            let inventory_dir = self.from_virtual_path(override_dir);
 
             if inventory_dir.is_absolute() {
                 metadata.inventory.override_dir = Some(inventory_dir);
@@ -263,8 +279,8 @@ impl Tool {
             "sync_manifest",
             SyncManifestInput {
                 env: self.create_environment()?,
-                home_dir: self.plugin.to_virtual_path(&self.proto.home),
-                tool_dir: self.plugin.to_virtual_path(&self.get_tool_dir()),
+                home_dir: self.to_virtual_path(&self.proto.home),
+                tool_dir: self.to_virtual_path(&self.get_tool_dir()),
             },
         )?;
 
@@ -528,8 +544,8 @@ impl Tool {
                 "verify_checksum",
                 VerifyChecksumInput {
                     checksum,
-                    checksum_file: self.plugin.to_virtual_path(checksum_file),
-                    download_file: self.plugin.to_virtual_path(download_file),
+                    checksum_file: self.to_virtual_path(checksum_file),
+                    download_file: self.to_virtual_path(download_file),
                     env: self.create_environment()?,
                 },
             )?;
@@ -639,8 +655,8 @@ impl Tool {
                 "unpack_archive",
                 UnpackArchiveInput {
                     env: self.create_environment()?,
-                    input_file: self.plugin.to_virtual_path(&download_file),
-                    output_dir: self.plugin.to_virtual_path(install_dir),
+                    input_file: self.to_virtual_path(&download_file),
+                    output_dir: self.to_virtual_path(install_dir),
                 },
             )?;
 
@@ -692,8 +708,8 @@ impl Tool {
                 "native_install",
                 NativeInstallInput {
                     env: self.create_environment()?,
-                    home_dir: self.plugin.to_virtual_path(&self.proto.home),
-                    tool_dir: self.plugin.to_virtual_path(&install_dir),
+                    home_dir: self.to_virtual_path(&self.proto.home),
+                    tool_dir: self.to_virtual_path(&install_dir),
                 },
             )?;
 
@@ -725,8 +741,7 @@ impl Tool {
             InstallGlobalInput {
                 env: self.create_environment()?,
                 dependency: dependency.to_owned(),
-                globals_dir: self.plugin.to_virtual_path(globals_dir.as_ref().unwrap()),
-                globals_dir_real: globals_dir.as_ref().unwrap().to_path_buf(),
+                globals_dir: self.to_virtual_path(globals_dir.as_ref().unwrap()),
             },
         )?;
 
@@ -761,8 +776,8 @@ impl Tool {
                 "native_uninstall",
                 NativeUninstallInput {
                     env: self.create_environment()?,
-                    home_dir: self.plugin.to_virtual_path(&self.proto.home),
-                    tool_dir: self.plugin.to_virtual_path(&install_dir),
+                    home_dir: self.to_virtual_path(&self.proto.home),
+                    tool_dir: self.to_virtual_path(&install_dir),
                 },
             )?;
 
@@ -797,8 +812,7 @@ impl Tool {
             UninstallGlobalInput {
                 env: self.create_environment()?,
                 dependency: dependency.to_owned(),
-                globals_dir: self.plugin.to_virtual_path(globals_dir.as_ref().unwrap()),
-                globals_dir_real: globals_dir.as_ref().unwrap().to_path_buf(),
+                globals_dir: self.to_virtual_path(globals_dir.as_ref().unwrap()),
             },
         )?;
 
@@ -825,14 +839,14 @@ impl Tool {
                 "locate_bins",
                 LocateBinsInput {
                     env: self.create_environment()?,
-                    home_dir: self.plugin.to_virtual_path(&self.proto.home),
-                    tool_dir: self.plugin.to_virtual_path(&tool_dir),
+                    home_dir: self.to_virtual_path(&self.proto.home),
+                    tool_dir: self.to_virtual_path(&tool_dir),
                 },
             )?;
         }
 
         let bin_path = if let Some(bin) = options.bin_path {
-            let bin = self.plugin.from_virtual_path(&bin);
+            let bin = self.from_virtual_path(&bin);
 
             if bin.is_absolute() {
                 bin
@@ -874,8 +888,8 @@ impl Tool {
             "locate_bins",
             LocateBinsInput {
                 env: self.create_environment()?,
-                home_dir: self.plugin.to_virtual_path(&self.proto.home),
-                tool_dir: self.plugin.to_virtual_path(&install_dir),
+                home_dir: self.to_virtual_path(&self.proto.home),
+                tool_dir: self.to_virtual_path(&install_dir),
             },
         )?;
 
