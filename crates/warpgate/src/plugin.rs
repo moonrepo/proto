@@ -1,5 +1,6 @@
 use crate::endpoints::Empty;
 use crate::error::WarpgateError;
+use crate::id::Id;
 use extism::{Function, Manifest, Plugin};
 use once_map::OnceMap;
 use serde::de::DeserializeOwned;
@@ -9,7 +10,7 @@ use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 use tracing::trace;
-use warpgate_api::{Id, VirtualPath};
+use warpgate_api::VirtualPath;
 
 /// A container around Extism's [`Plugin`] and [`Manifest`] types that provides convenience
 /// methods for calling and caching functions from the WASM plugin. It also provides
