@@ -7,6 +7,7 @@ mod locator;
 mod plugin;
 
 pub use error::*;
+pub use helpers::*;
 pub use id::*;
 pub use loader::*;
 pub use locator::*;

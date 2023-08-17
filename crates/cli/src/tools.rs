@@ -56,7 +56,7 @@ pub async fn create_tool_from_plugin(
         .into_diagnostic()?,
     );
 
-    manifest = manifest.with_config(config.into_iter());
+    manifest.config.extend(config);
 
     Tool::load_from_manifest(id, proto, manifest)
 }

@@ -3,8 +3,8 @@ use extism_pdk::*;
 use once_cell::sync::Lazy;
 use once_map::OnceMap;
 use proto_pdk_api::{
-    Environment, ExecCommandInput, ExecCommandOutput, HostArch, HostOS, PluginError,
-    UserConfigSettings,
+    Environment, ExecCommandInput, ExecCommandOutput, HostArch, HostEnvironment, HostOS,
+    PluginError, UserConfigSettings,
 };
 use serde::de::DeserializeOwned;
 use std::collections::HashMap;
@@ -130,6 +130,27 @@ pub fn check_supported_os_and_arch(
     }
 
     Ok(())
+}
+
+/// Get the active tool ID for the current WASM instance.
+pub fn get_tool_id() -> anyhow::Result<String> {
+    Ok(var::get::<String>("proto_tool_id")
+        .expect("Tool ID has not been set.")
+        .unwrap())
+}
+
+/// Set the active tool ID for the current WASM instance.
+pub fn set_tool_id(id: String) -> anyhow::Result<()> {
+    var::set("proto_tool_id", id)?;
+    Ok(())
+}
+
+/// Return information about proto and the host environment.
+pub fn get_proto_environment() -> anyhow::Result<HostEnvironment> {
+    let config = config::get("proto_environment").expect("Missing proto environment!");
+    let config: HostEnvironment = json::from_str(&config)?;
+
+    Ok(config)
 }
 
 /// Return the loaded proto user configuration (`~/.proto/config.toml`). Does not include plugins!

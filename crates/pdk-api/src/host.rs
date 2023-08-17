@@ -3,6 +3,7 @@ use crate::json_struct;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
+use warpgate_api::VirtualPath;
 
 /// Architecture of the host environment.
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
@@ -109,6 +110,17 @@ impl FromStr for HostOS {
 }
 
 json_struct!(
+    /// Information about the host environment (the current runtime).
+    pub struct HostEnvironment {
+        pub arch: HostArch,
+        pub os: HostOS,
+        pub home_dir: VirtualPath,
+        pub proto_dir: VirtualPath,
+    }
+);
+
+json_struct!(
+    /// The current user's proto configuration.
     pub struct UserConfigSettings {
         pub auto_clean: bool,
         pub auto_install: bool,

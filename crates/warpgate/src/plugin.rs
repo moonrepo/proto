@@ -1,5 +1,6 @@
 use crate::endpoints::Empty;
 use crate::error::WarpgateError;
+use crate::helpers::{from_virtual_path, to_virtual_path};
 use crate::id::Id;
 use extism::{Function, Manifest, Plugin};
 use once_map::OnceMap;
@@ -128,46 +129,13 @@ impl<'plugin> PluginContainer<'plugin> {
 
     /// Convert the provided virtual guest path to an absolute host path.
     pub fn from_virtual_path(&self, path: &Path) -> PathBuf {
-        let Some(virtual_paths) = self.manifest.allowed_paths.as_ref() else {
-            return path.to_path_buf();
-        };
-
-        for (host_path, guest_path) in virtual_paths {
-            if let Ok(rel_path) = path.strip_prefix(guest_path) {
-                return host_path.join(rel_path);
-            }
-        }
-
-        path.to_owned()
+        from_virtual_path(&self.manifest, path)
     }
 
     /// Convert the provided absolute host path to a virtual guest path suitable
     /// for WASI sandboxed runtimes.
     pub fn to_virtual_path(&self, path: &Path) -> VirtualPath {
-        let Some(virtual_paths) = self.manifest.allowed_paths.as_ref() else {
-            return VirtualPath::Only( path.to_path_buf());
-        };
-
-        for (host_path, guest_path) in virtual_paths {
-            if let Ok(rel_path) = path.strip_prefix(host_path) {
-                let path = guest_path.join(rel_path);
-
-                // Only forward slashes are allowed in WASI
-                let path = if cfg!(windows) {
-                    PathBuf::from(path.to_string_lossy().replace('\\', "/"))
-                } else {
-                    path
-                };
-
-                return VirtualPath::WithReal {
-                    path,
-                    virtual_prefix: guest_path.to_path_buf(),
-                    real_prefix: host_path.to_path_buf(),
-                };
-            }
-        }
-
-        VirtualPath::Only(path.to_owned())
+        to_virtual_path(&self.manifest, path)
     }
 
     /// Call a function on the plugin with the given raw input and return the raw output.

@@ -26,7 +26,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::time::{Duration, SystemTime};
 use tracing::{debug, trace};
-use warpgate::{Id, PluginContainer, VirtualPath};
+use warpgate::{to_virtual_path, Id, PluginContainer, VirtualPath};
 
 pub struct Tool {
     pub id: Id,
@@ -102,6 +102,17 @@ impl Tool {
         manifest = manifest.with_allowed_path(proto.cwd.clone(), "/workspace");
         manifest = manifest.with_allowed_path(proto.home.clone(), "/home");
         manifest = manifest.with_allowed_path(proto.root.clone(), "/proto");
+
+        manifest.config.insert(
+            "proto_environment".into(),
+            json::to_string(&HostEnvironment {
+                arch: HostArch::from_str(consts::ARCH).into_diagnostic()?,
+                os: HostOS::from_str(consts::OS).into_diagnostic()?,
+                home_dir: to_virtual_path(&manifest, &proto.home),
+                proto_dir: to_virtual_path(&manifest, &proto.root),
+            })
+            .into_diagnostic()?,
+        );
 
         Ok(manifest)
     }
