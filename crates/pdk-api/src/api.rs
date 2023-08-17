@@ -1,4 +1,3 @@
-use crate::host::{HostArch, HostOS};
 use crate::host_funcs::ExecCommandOutput;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -31,21 +30,18 @@ json_struct!(
 );
 
 json_struct!(
-    /// Information about the host environment (the current runtime).
-    pub struct Environment {
-        /// Current architecture.
-        pub arch: HostArch,
-
+    /// Information about the current state of the tool.
+    pub struct ToolState {
         /// ID of the current plugin.
         pub id: String,
 
-        /// Current operating system.
-        pub os: HostOS,
-
         /// Requested environment variables. Only non-empty values are included.
-        pub vars: HashMap<String, String>,
+        pub env_vars: HashMap<String, String>,
 
-        /// Current resolved version. Will be empty if not resolved.
+        /// Virtual path to the tool's installation directory.
+        pub tool_dir: VirtualPath,
+
+        /// Current version. Will be empty if not resolved.
         pub version: String,
     }
 );
@@ -66,12 +62,6 @@ json_struct!(
     pub struct ToolMetadataInput {
         /// ID of the tool, as it was configured.
         pub id: String,
-
-        /// Current environment.
-        pub env: Environment,
-
-        /// Virtual path to the user's home directory.
-        pub home_dir: VirtualPath,
     }
 );
 
@@ -134,9 +124,6 @@ json_struct!(
         /// File contents to parse/extract a version from.
         pub content: String,
 
-        /// Current environment.
-        pub env: Environment,
-
         /// Name of file that's being parsed.
         pub file: String,
     }
@@ -157,14 +144,8 @@ json_struct!(
 json_struct!(
     /// Input passed to the `native_install` function.
     pub struct NativeInstallInput {
-        /// Current environment.
-        pub env: Environment,
-
-        /// Virtual path to the user's home directory.
-        pub home_dir: VirtualPath,
-
-        /// Virtual path to the tool's installation directory.
-        pub tool_dir: VirtualPath,
+        /// Current tool state.
+        pub state: ToolState,
     }
 );
 
@@ -179,14 +160,8 @@ json_struct!(
 json_struct!(
     /// Input passed to the `native_uninstall` function.
     pub struct NativeUninstallInput {
-        /// Current environment.
-        pub env: Environment,
-
-        /// Virtual path to the user's home directory.
-        pub home_dir: VirtualPath,
-
-        /// Virtual path to the tool's installation directory.
-        pub tool_dir: VirtualPath,
+        /// Current tool state.
+        pub state: ToolState,
     }
 );
 
@@ -201,8 +176,8 @@ json_struct!(
 json_struct!(
     /// Input passed to the `download_prebuilt` function.
     pub struct DownloadPrebuiltInput {
-        /// Current environment.
-        pub env: Environment,
+        /// Current tool state.
+        pub state: ToolState,
     }
 );
 
@@ -240,11 +215,11 @@ json_struct!(
         /// Virtual path to the downloaded file.
         pub input_file: VirtualPath,
 
-        /// Current environment.
-        pub env: Environment,
-
         /// Virtual directory to unpack the archive into, or copy the binary to.
         pub output_dir: VirtualPath,
+
+        /// Current tool state.
+        pub state: ToolState,
     }
 );
 
@@ -260,8 +235,8 @@ json_struct!(
         /// Virtual path to the downloaded file.
         pub download_file: VirtualPath,
 
-        /// Current environment.
-        pub env: Environment,
+        /// Current tool state.
+        pub state: ToolState,
     }
 );
 
@@ -277,14 +252,8 @@ json_struct!(
 json_struct!(
     /// Input passed to the `locate_bins` function.
     pub struct LocateBinsInput {
-        /// Current environment.
-        pub env: Environment,
-
-        /// Virtual path to the user's home directory.
-        pub home_dir: VirtualPath,
-
-        /// Virtual path to the tool's installation directory.
-        pub tool_dir: VirtualPath,
+        /// Current tool state.
+        pub state: ToolState,
     }
 );
 
@@ -313,14 +282,14 @@ json_struct!(
 json_struct!(
     /// Input passed to the `install_global` function.
     pub struct InstallGlobalInput {
-        /// Current environment.
-        pub env: Environment,
-
         /// Name (and optional version) of the global dependency to install.
         pub dependency: String,
 
         /// Virtual path to the global's installation directory.
         pub globals_dir: VirtualPath,
+
+        /// Current tool state.
+        pub state: ToolState,
     }
 );
 
@@ -355,14 +324,14 @@ impl InstallGlobalOutput {
 json_struct!(
     /// Input passed to the `uninstall_global` function.
     pub struct UninstallGlobalInput {
-        /// Current environment.
-        pub env: Environment,
-
         /// Name (and optional version) of the global dependency to uninstall.
         pub dependency: String,
 
         /// Virtual path to the global's installation directory.
         pub globals_dir: VirtualPath,
+
+        /// Current tool state.
+        pub state: ToolState,
     }
 );
 
@@ -399,11 +368,11 @@ impl UninstallGlobalOutput {
 json_struct!(
     /// Input passed to the `load_versions` function.
     pub struct LoadVersionsInput {
-        /// Current environment.
-        pub env: Environment,
-
         /// The alias or version currently being resolved.
         pub initial: String,
+
+        /// Current tool state.
+        pub state: ToolState,
     }
 );
 
@@ -470,8 +439,8 @@ json_struct!(
         /// The alias or version currently being resolved.
         pub initial: String,
 
-        /// Current environment.
-        pub env: Environment,
+        /// Current tool state.
+        pub state: ToolState,
     }
 );
 
@@ -568,8 +537,8 @@ impl ShimConfig {
 json_struct!(
     /// Input passed to the `create_shims` function.
     pub struct CreateShimsInput {
-        /// Current environment.
-        pub env: Environment,
+        /// Current tool state.
+        pub state: ToolState,
     }
 );
 
@@ -598,14 +567,8 @@ json_struct!(
 json_struct!(
     /// Input passed to the `sync_manifest` function.
     pub struct SyncManifestInput {
-        /// Current environment.
-        pub env: Environment,
-
-        /// Virtual path to the user's home directory.
-        pub home_dir: VirtualPath,
-
-        /// Virtual path to the tool's installation directory.
-        pub tool_dir: VirtualPath,
+        /// Current tool state.
+        pub state: ToolState,
     }
 );
 
@@ -629,11 +592,11 @@ json_struct!(
 json_struct!(
     /// Input passed to the `sync_shell_profile` function.
     pub struct SyncShellProfileInput {
-        /// Current environment.
-        pub env: Environment,
-
         /// Arguments passed after `--` that was directly passed to the tool's binary.
         pub passthrough_args: Vec<String>,
+
+        /// Current tool state.
+        pub state: ToolState,
     }
 );
 

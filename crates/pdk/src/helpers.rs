@@ -3,8 +3,8 @@ use extism_pdk::*;
 use once_cell::sync::Lazy;
 use once_map::OnceMap;
 use proto_pdk_api::{
-    Environment, ExecCommandInput, ExecCommandOutput, HostArch, HostEnvironment, HostOS,
-    PluginError, UserConfigSettings,
+    ExecCommandInput, ExecCommandOutput, HostArch, HostEnvironment, HostOS, PluginError,
+    UserConfigSettings,
 };
 use serde::de::DeserializeOwned;
 use std::collections::HashMap;
@@ -109,7 +109,7 @@ pub fn format_bin_name(name: &str, os: HostOS) -> String {
 /// supported list of target permutations.
 pub fn check_supported_os_and_arch(
     tool: &str,
-    env: &Environment,
+    env: &HostEnvironment,
     permutations: HashMap<HostOS, Vec<HostArch>>,
 ) -> anyhow::Result<()> {
     if let Some(archs) = permutations.get(&env.os) {

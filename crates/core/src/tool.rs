@@ -227,18 +227,17 @@ impl Tool {
 // APIs
 
 impl Tool {
-    /// Return environment information to pass to WASM plugin functions.
-    pub fn create_environment(&self) -> miette::Result<Environment> {
-        Ok(Environment {
-            arch: HostArch::from_str(consts::ARCH).into_diagnostic()?,
+    /// Return state information to pass to WASM plugin functions.
+    pub fn create_state(&self) -> miette::Result<ToolState> {
+        Ok(ToolState {
             id: self.id.to_string(),
-            os: HostOS::from_str(consts::OS).into_diagnostic()?,
-            vars: self
+            env_vars: self
                 .metadata
                 .env_vars
                 .iter()
                 .filter_map(|var| env::var(var).ok().map(|value| (var.to_owned(), value)))
                 .collect(),
+            tool_dir: self.to_virtual_path(&self.get_tool_dir()),
             version: self.get_resolved_version().to_string(),
         })
     }
@@ -249,8 +248,6 @@ impl Tool {
             "register_tool",
             ToolMetadataInput {
                 id: self.id.to_string(),
-                env: self.create_environment()?,
-                home_dir: self.to_virtual_path(&self.proto.home),
             },
         )?;
 
@@ -292,9 +289,7 @@ impl Tool {
         let sync_changes: SyncManifestOutput = self.plugin.call_func_with(
             "sync_manifest",
             SyncManifestInput {
-                env: self.create_environment()?,
-                home_dir: self.to_virtual_path(&self.proto.home),
-                tool_dir: self.to_virtual_path(&self.get_tool_dir()),
+                state: self.create_state()?,
             },
         )?;
 
@@ -380,8 +375,8 @@ impl Tool {
             versions = Some(self.plugin.cache_func_with(
                 "load_versions",
                 LoadVersionsInput {
-                    env: self.create_environment()?,
                     initial: initial_version.to_string(),
+                    state: self.create_state()?,
                 },
             )?);
         }
@@ -425,8 +420,8 @@ impl Tool {
             let result: ResolveVersionOutput = self.plugin.call_func_with(
                 "resolve_version",
                 ResolveVersionInput {
-                    env: self.create_environment()?,
                     initial: initial_version.to_string(),
+                    state: self.create_state()?,
                 },
             )?;
 
@@ -506,7 +501,6 @@ impl Tool {
                     "parse_version_file",
                     ParseVersionFileInput {
                         content,
-                        env: self.create_environment()?,
                         file: file.clone(),
                     },
                 )?;
@@ -560,7 +554,7 @@ impl Tool {
                     checksum,
                     checksum_file: self.to_virtual_path(checksum_file),
                     download_file: self.to_virtual_path(download_file),
-                    env: self.create_environment()?,
+                    state: self.create_state()?,
                 },
             )?;
 
@@ -612,7 +606,7 @@ impl Tool {
         let options: DownloadPrebuiltOutput = self.plugin.cache_func_with(
             "download_prebuilt",
             DownloadPrebuiltInput {
-                env: self.create_environment()?,
+                state: self.create_state()?,
             },
         )?;
 
@@ -668,9 +662,9 @@ impl Tool {
             self.plugin.call_func_without_output(
                 "unpack_archive",
                 UnpackArchiveInput {
-                    env: self.create_environment()?,
                     input_file: self.to_virtual_path(&download_file),
                     output_dir: self.to_virtual_path(install_dir),
+                    state: self.create_state()?,
                 },
             )?;
 
@@ -721,9 +715,7 @@ impl Tool {
             let result: NativeInstallOutput = self.plugin.call_func_with(
                 "native_install",
                 NativeInstallInput {
-                    env: self.create_environment()?,
-                    home_dir: self.to_virtual_path(&self.proto.home),
-                    tool_dir: self.to_virtual_path(&install_dir),
+                    state: self.create_state()?,
                 },
             )?;
 
@@ -753,9 +745,9 @@ impl Tool {
         let result: InstallGlobalOutput = self.plugin.call_func_with(
             "install_global",
             InstallGlobalInput {
-                env: self.create_environment()?,
                 dependency: dependency.to_owned(),
                 globals_dir: self.to_virtual_path(globals_dir.as_ref().unwrap()),
+                state: self.create_state()?,
             },
         )?;
 
@@ -789,9 +781,7 @@ impl Tool {
             let result: NativeUninstallOutput = self.plugin.call_func_with(
                 "native_uninstall",
                 NativeUninstallInput {
-                    env: self.create_environment()?,
-                    home_dir: self.to_virtual_path(&self.proto.home),
-                    tool_dir: self.to_virtual_path(&install_dir),
+                    state: self.create_state()?,
                 },
             )?;
 
@@ -824,9 +814,9 @@ impl Tool {
         let result: UninstallGlobalOutput = self.plugin.call_func_with(
             "uninstall_global",
             UninstallGlobalInput {
-                env: self.create_environment()?,
                 dependency: dependency.to_owned(),
                 globals_dir: self.to_virtual_path(globals_dir.as_ref().unwrap()),
+                state: self.create_state()?,
             },
         )?;
 
@@ -852,9 +842,7 @@ impl Tool {
             options = self.plugin.cache_func_with(
                 "locate_bins",
                 LocateBinsInput {
-                    env: self.create_environment()?,
-                    home_dir: self.to_virtual_path(&self.proto.home),
-                    tool_dir: self.to_virtual_path(&tool_dir),
+                    state: self.create_state()?,
                 },
             )?;
         }
@@ -901,9 +889,7 @@ impl Tool {
         let options: LocateBinsOutput = self.plugin.cache_func_with(
             "locate_bins",
             LocateBinsInput {
-                env: self.create_environment()?,
-                home_dir: self.to_virtual_path(&self.proto.home),
-                tool_dir: self.to_virtual_path(&install_dir),
+                state: self.create_state()?,
             },
         )?;
 
@@ -987,7 +973,7 @@ impl Tool {
         let shim_configs: CreateShimsOutput = self.plugin.cache_func_with(
             "create_shims",
             CreateShimsInput {
-                env: self.create_environment()?,
+                state: self.create_state()?,
             },
         )?;
 
