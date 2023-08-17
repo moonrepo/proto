@@ -15,8 +15,16 @@ impl WasmTestWrapper {
         self.tool.to_virtual_path(path)
     }
 
+    pub fn set_environment(&mut self, env: HostEnvironment) {
+        self.tool.plugin.manifest.config.insert(
+            "proto_environment".to_owned(),
+            serde_json::to_string(&env).unwrap(),
+        );
+        self.tool.plugin.reload_config().unwrap();
+    }
+
     pub fn create_shims(&self, mut input: CreateShimsInput) -> CreateShimsOutput {
-        input.state = self.prepare_state(input.state);
+        input.context = self.prepare_context(input.context);
 
         self.tool
             .plugin
@@ -29,7 +37,7 @@ impl WasmTestWrapper {
     }
 
     pub fn download_prebuilt(&self, mut input: DownloadPrebuiltInput) -> DownloadPrebuiltOutput {
-        input.state = self.prepare_state(input.state);
+        input.context = self.prepare_context(input.context);
 
         self.tool
             .plugin
@@ -39,7 +47,7 @@ impl WasmTestWrapper {
 
     pub fn install_global(&self, mut input: InstallGlobalInput) -> InstallGlobalOutput {
         input.globals_dir = self.to_virtual_path(&input.globals_dir);
-        input.state = self.prepare_state(input.state);
+        input.context = self.prepare_context(input.context);
 
         self.tool
             .plugin
@@ -48,7 +56,7 @@ impl WasmTestWrapper {
     }
 
     pub fn load_versions(&self, mut input: LoadVersionsInput) -> LoadVersionsOutput {
-        input.state = self.prepare_state(input.state);
+        input.context = self.prepare_context(input.context);
 
         self.tool
             .plugin
@@ -57,7 +65,7 @@ impl WasmTestWrapper {
     }
 
     pub fn locate_bins(&self, mut input: LocateBinsInput) -> LocateBinsOutput {
-        input.state = self.prepare_state(input.state);
+        input.context = self.prepare_context(input.context);
 
         let mut output: LocateBinsOutput = self
             .tool
@@ -73,7 +81,7 @@ impl WasmTestWrapper {
     }
 
     pub fn native_install(&self, mut input: NativeInstallInput) -> NativeInstallOutput {
-        input.state = self.prepare_state(input.state);
+        input.context = self.prepare_context(input.context);
 
         self.tool
             .plugin
@@ -82,7 +90,7 @@ impl WasmTestWrapper {
     }
 
     pub fn native_uninstall(&self, mut input: NativeUninstallInput) -> NativeUninstallOutput {
-        input.state = self.prepare_state(input.state);
+        input.context = self.prepare_context(input.context);
 
         self.tool
             .plugin
@@ -105,7 +113,7 @@ impl WasmTestWrapper {
     }
 
     pub fn resolve_version(&self, mut input: ResolveVersionInput) -> ResolveVersionOutput {
-        input.state = self.prepare_state(input.state);
+        input.context = self.prepare_context(input.context);
 
         self.tool
             .plugin
@@ -114,7 +122,7 @@ impl WasmTestWrapper {
     }
 
     pub fn sync_manifest(&self, mut input: SyncManifestInput) -> SyncManifestOutput {
-        input.state = self.prepare_state(input.state);
+        input.context = self.prepare_context(input.context);
 
         self.tool
             .plugin
@@ -152,16 +160,16 @@ impl WasmTestWrapper {
             .unwrap()
     }
 
-    fn prepare_state(&self, state: ToolState) -> ToolState {
-        let dir = if state.tool_dir.real_path().components().count() == 0 {
+    fn prepare_context(&self, context: ToolContext) -> ToolContext {
+        let dir = if context.tool_dir.virtual_path().components().count() == 0 {
             self.tool.get_tool_dir()
         } else {
-            state.tool_dir.real_path().to_path_buf()
+            context.tool_dir.virtual_path().to_path_buf()
         };
 
-        ToolState {
+        ToolContext {
             tool_dir: self.to_virtual_path(&dir),
-            ..state
+            ..context
         }
     }
 }

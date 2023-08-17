@@ -101,8 +101,8 @@ fn update_shell(tool: Tool, passthrough_args: Vec<String>) -> miette::Result<()>
     let output: SyncShellProfileOutput = tool.plugin.call_func_with(
         "sync_shell_profile",
         SyncShellProfileInput {
+            context: tool.create_context()?,
             passthrough_args,
-            state: tool.create_state()?,
         },
     )?;
 

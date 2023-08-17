@@ -15,7 +15,7 @@ extern "ExtismHost" {
     fn exec_command(input: Json<ExecCommandInput>) -> Json<ExecCommandOutput>;
 }
 
-pub static FETCH_CACHE: Lazy<OnceMap<String, Vec<u8>>> = Lazy::new(OnceMap::new);
+static FETCH_CACHE: Lazy<OnceMap<String, Vec<u8>>> = Lazy::new(OnceMap::new);
 
 /// Fetch the provided request and deserialize the response as JSON.
 pub fn fetch<R>(req: HttpRequest, body: Option<String>, cache: bool) -> anyhow::Result<R>
@@ -133,16 +133,8 @@ pub fn check_supported_os_and_arch(
 }
 
 /// Get the active tool ID for the current WASM instance.
-pub fn get_tool_id() -> anyhow::Result<String> {
-    Ok(var::get::<String>("proto_tool_id")
-        .expect("Tool ID has not been set.")
-        .unwrap())
-}
-
-/// Set the active tool ID for the current WASM instance.
-pub fn set_tool_id(id: String) -> anyhow::Result<()> {
-    var::set("proto_tool_id", id)?;
-    Ok(())
+pub fn get_tool_id() -> String {
+    config::get("proto_tool_id").expect("Missing tool ID!")
 }
 
 /// Return information about proto and the host environment.

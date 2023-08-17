@@ -31,10 +31,7 @@ json_struct!(
 
 json_struct!(
     /// Information about the current state of the tool.
-    pub struct ToolState {
-        /// ID of the current plugin.
-        pub id: String,
-
+    pub struct ToolContext {
         /// Requested environment variables. Only non-empty values are included.
         pub env_vars: HashMap<String, String>,
 
@@ -144,8 +141,8 @@ json_struct!(
 json_struct!(
     /// Input passed to the `native_install` function.
     pub struct NativeInstallInput {
-        /// Current tool state.
-        pub state: ToolState,
+        /// Current tool context.
+        pub context: ToolContext,
     }
 );
 
@@ -160,8 +157,8 @@ json_struct!(
 json_struct!(
     /// Input passed to the `native_uninstall` function.
     pub struct NativeUninstallInput {
-        /// Current tool state.
-        pub state: ToolState,
+        /// Current tool context.
+        pub context: ToolContext,
     }
 );
 
@@ -176,8 +173,8 @@ json_struct!(
 json_struct!(
     /// Input passed to the `download_prebuilt` function.
     pub struct DownloadPrebuiltInput {
-        /// Current tool state.
-        pub state: ToolState,
+        /// Current tool context.
+        pub context: ToolContext,
     }
 );
 
@@ -212,20 +209,23 @@ json_struct!(
 json_struct!(
     /// Input passed to the `unpack_archive` function.
     pub struct UnpackArchiveInput {
+        /// Current tool context.
+        pub context: ToolContext,
+
         /// Virtual path to the downloaded file.
         pub input_file: VirtualPath,
 
         /// Virtual directory to unpack the archive into, or copy the binary to.
         pub output_dir: VirtualPath,
-
-        /// Current tool state.
-        pub state: ToolState,
     }
 );
 
 json_struct!(
     /// Output returned by the `verify_checksum` function.
     pub struct VerifyChecksumInput {
+        /// Current tool context.
+        pub context: ToolContext,
+
         /// The SHA-256 hash of the downloaded file.
         pub checksum: String,
 
@@ -234,9 +234,6 @@ json_struct!(
 
         /// Virtual path to the downloaded file.
         pub download_file: VirtualPath,
-
-        /// Current tool state.
-        pub state: ToolState,
     }
 );
 
@@ -252,8 +249,8 @@ json_struct!(
 json_struct!(
     /// Input passed to the `locate_bins` function.
     pub struct LocateBinsInput {
-        /// Current tool state.
-        pub state: ToolState,
+        /// Current tool context.
+        pub context: ToolContext,
     }
 );
 
@@ -282,14 +279,14 @@ json_struct!(
 json_struct!(
     /// Input passed to the `install_global` function.
     pub struct InstallGlobalInput {
+        /// Current tool context.
+        pub context: ToolContext,
+
         /// Name (and optional version) of the global dependency to install.
         pub dependency: String,
 
         /// Virtual path to the global's installation directory.
         pub globals_dir: VirtualPath,
-
-        /// Current tool state.
-        pub state: ToolState,
     }
 );
 
@@ -324,14 +321,14 @@ impl InstallGlobalOutput {
 json_struct!(
     /// Input passed to the `uninstall_global` function.
     pub struct UninstallGlobalInput {
+        /// Current tool context.
+        pub context: ToolContext,
+
         /// Name (and optional version) of the global dependency to uninstall.
         pub dependency: String,
 
         /// Virtual path to the global's installation directory.
         pub globals_dir: VirtualPath,
-
-        /// Current tool state.
-        pub state: ToolState,
     }
 );
 
@@ -368,11 +365,11 @@ impl UninstallGlobalOutput {
 json_struct!(
     /// Input passed to the `load_versions` function.
     pub struct LoadVersionsInput {
+        /// Current tool context.
+        pub context: ToolContext,
+
         /// The alias or version currently being resolved.
         pub initial: String,
-
-        /// Current tool state.
-        pub state: ToolState,
     }
 );
 
@@ -436,11 +433,11 @@ impl LoadVersionsOutput {
 json_struct!(
     /// Input passed to the `resolve_version` function.
     pub struct ResolveVersionInput {
+        /// Current tool context.
+        pub context: ToolContext,
+
         /// The alias or version currently being resolved.
         pub initial: String,
-
-        /// Current tool state.
-        pub state: ToolState,
     }
 );
 
@@ -537,8 +534,8 @@ impl ShimConfig {
 json_struct!(
     /// Input passed to the `create_shims` function.
     pub struct CreateShimsInput {
-        /// Current tool state.
-        pub state: ToolState,
+        /// Current tool context.
+        pub context: ToolContext,
     }
 );
 
@@ -567,8 +564,8 @@ json_struct!(
 json_struct!(
     /// Input passed to the `sync_manifest` function.
     pub struct SyncManifestInput {
-        /// Current tool state.
-        pub state: ToolState,
+        /// Current tool context.
+        pub context: ToolContext,
     }
 );
 
@@ -592,11 +589,11 @@ json_struct!(
 json_struct!(
     /// Input passed to the `sync_shell_profile` function.
     pub struct SyncShellProfileInput {
+        /// Current tool context.
+        pub context: ToolContext,
+
         /// Arguments passed after `--` that was directly passed to the tool's binary.
         pub passthrough_args: Vec<String>,
-
-        /// Current tool state.
-        pub state: ToolState,
     }
 );
 

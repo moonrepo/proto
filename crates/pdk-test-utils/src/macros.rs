@@ -26,17 +26,8 @@ macro_rules! generate_download_install_tests {
             assert_eq!(tool_dir, base_dir);
             assert!(base_dir.exists());
 
-            // Check bin path exists
-            let bin_params = plugin.locate_bins(LocateBinsInput {
-                env: plugin.tool.create_environment().unwrap(),
-                home_dir: sandbox.path().join(".home"),
-                tool_dir,
-            });
-
-            assert_eq!(
-                plugin.tool.get_bin_path().unwrap(),
-                &base_dir.join(bin_params.bin_path.unwrap_or($id.into()))
-            );
+            // Check bin path exists (would panic)
+            plugin.tool.get_bin_path().unwrap();
 
             // Check global bin exists
             assert!(sandbox

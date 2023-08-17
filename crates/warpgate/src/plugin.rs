@@ -7,6 +7,7 @@ use once_map::OnceMap;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use starbase_styles::color;
+use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
@@ -51,6 +52,24 @@ impl<'plugin> PluginContainer<'plugin> {
         manifest: Manifest,
     ) -> miette::Result<PluginContainer<'new>> {
         Self::new(id, manifest, [])
+    }
+
+    /// Reload the plugin's configuration from the manifest.
+    pub fn reload_config(&mut self) -> miette::Result<()> {
+        let config = self
+            .manifest
+            .config
+            .iter()
+            .map(|(k, v)| (k.to_owned(), Some(v.to_owned())))
+            .collect::<BTreeMap<_, _>>();
+
+        self.plugin
+            .write()
+            .expect("Failed to acquire write access!")
+            .set_config(&config)
+            .unwrap();
+
+        Ok(())
     }
 
     /// Call a function on the plugin with no input and cache the output before returning it.

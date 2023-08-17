@@ -12,3 +12,4 @@ proto_core = { version = "0.14.9", path = "../core" }
 proto_pdk_api = { version = "0.4.5", path = "../pdk-api" }
 proto_wasm_plugin = { version = "0.4.4", path = "../wasm-plugin" }
 extism = { workspace = true }
+serde_json = { workspace = true }

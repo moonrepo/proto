@@ -2388,6 +2388,7 @@ dependencies = [
  "proto_core",
  "proto_pdk_api",
  "proto_wasm_plugin",
+ "serde_json",
 ]
 
 [[package]]

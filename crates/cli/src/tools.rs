@@ -46,6 +46,8 @@ pub async fn create_tool_from_plugin(
         Tool::create_plugin_manifest(proto, Wasm::file(plugin_path))?
     };
 
+    config.insert("proto_tool_id".to_string(), id.to_string());
+
     config.insert(
         "proto_user_config".to_string(),
         json::to_string(&UserConfigSettings {
