@@ -16,7 +16,9 @@ pub async fn create_tool_from_plugin(
     let id = id.as_ref();
     let proto = proto.as_ref();
     let locator = locator.as_ref();
-    let loader = PluginLoader::new(&proto.plugins_dir, &proto.temp_dir);
+
+    let mut loader = PluginLoader::new(&proto.plugins_dir, &proto.temp_dir);
+    loader.set_seed(env!("CARGO_PKG_VERSION"));
 
     let plugin_path = loader.load_plugin(&id, locator).await?;
     let mut config = HashMap::new();

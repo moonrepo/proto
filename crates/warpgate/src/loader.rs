@@ -22,6 +22,9 @@ pub struct PluginLoader {
 
     /// Location where temporary files (like archives) are stored.
     temp_dir: PathBuf,
+
+    /// A unique seed for generating hashes.
+    seed: Option<String>,
 }
 
 impl PluginLoader {
@@ -34,6 +37,7 @@ impl PluginLoader {
         Self {
             plugins_dir: plugins_dir.to_owned(),
             temp_dir: temp_dir.as_ref().to_owned(),
+            seed: None,
         }
     }
 
@@ -91,6 +95,10 @@ impl PluginLoader {
         let mut sha = Sha256::new();
         sha.update(url);
 
+        if let Some(seed) = &self.seed {
+            sha.update(seed);
+        }
+
         self.plugins_dir.join(format!(
             "{id}{}{:x}{}",
             if is_latest { "-latest-" } else { "-" },
@@ -133,6 +141,11 @@ impl PluginLoader {
         }
 
         Ok(cached)
+    }
+
+    /// Set the provided as a seed for generating hashes.
+    pub fn set_seed(&mut self, value: &str) {
+        self.seed = Some(value.to_owned());
     }
 
     async fn download_plugin(
