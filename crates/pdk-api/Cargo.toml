@@ -8,6 +8,7 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
+warpgate_api = { path = "../warpgate-api" }
 anyhow = "1.0.72"
 semver = { workspace = true, features = ["serde"] }
 serde = { workspace = true }

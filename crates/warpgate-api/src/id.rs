@@ -1,4 +1,3 @@
-use crate::error::WarpgateError;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{de, Deserialize, Deserializer, Serialize};
@@ -8,18 +7,24 @@ use std::{
     ops::Deref,
     str::FromStr,
 };
+use thiserror::Error;
 
 pub static ID_PATTERN: Lazy<Regex> = Lazy::new(|| Regex::new("^[a-z][a-z0-9-]*$").unwrap());
 
+#[derive(Debug, Error)]
+#[error("Invalid plugin identifier {0}, must be a valid kebab-case string.")]
+pub struct IdError(pub String);
+
+/// A unique plugin identifier.
 #[derive(Clone, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct Id(String);
 
 impl Id {
-    pub fn new<S: AsRef<str>>(id: S) -> Result<Id, WarpgateError> {
+    pub fn new<S: AsRef<str>>(id: S) -> Result<Id, IdError> {
         let id = id.as_ref();
 
         if !ID_PATTERN.is_match(id) {
-            return Err(WarpgateError::InvalidID(id.to_owned()));
+            return Err(IdError(id.to_owned()));
         }
 
         Ok(Self::raw(id))
@@ -101,7 +106,7 @@ impl Borrow<str> for Id {
 // Parsing values
 
 impl FromStr for Id {
-    type Err = WarpgateError;
+    type Err = IdError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Id::new(s)

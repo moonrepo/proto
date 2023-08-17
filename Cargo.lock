@@ -2377,6 +2377,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
+ "warpgate_api",
 ]
 
 [[package]]
@@ -3734,6 +3735,17 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
+ "warpgate_api",
+]
+
+[[package]]
+name = "warpgate_api"
+version = "0.1.0"
+dependencies = [
+ "once_cell",
+ "regex",
+ "serde",
+ "thiserror",
 ]
 
 [[package]]

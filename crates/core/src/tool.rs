@@ -26,7 +26,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::time::{Duration, SystemTime};
 use tracing::{debug, trace};
-use warpgate::{Id, PluginContainer};
+use warpgate::{Id, PluginContainer, VirtualPath};
 
 pub struct Tool {
     pub id: Id,
@@ -203,9 +203,12 @@ impl Tool {
         // is a newer feature. Otherwise, old plugins would fail to parse the
         // `VirtualPath` type and crash.
         if self.metadata.plugin_version.is_some() {
-            VirtualPath::new(self.plugin.to_virtual_path(path), path)
+            self.plugin.to_virtual_path(path)
         } else {
-            VirtualPath::compat(self.plugin.to_virtual_path(path))
+            match self.plugin.to_virtual_path(path) {
+                VirtualPath::WithReal { path, .. } => VirtualPath::Only(path),
+                VirtualPath::Only(path) => VirtualPath::Only(path),
+            }
         }
     }
 }

@@ -1,10 +1,9 @@
-use crate::api::*;
+use crate::endpoints::*;
 use crate::error::WarpgateError;
 use crate::helpers::{
     determine_cache_extension, download_url_to_temp, extract_prefix_from_slug,
     move_or_unpack_download,
 };
-use crate::id::Id;
 use crate::locator::{GitHubLocator, PluginLocator, WapmLocator};
 use sha2::{Digest, Sha256};
 use starbase_styles::color;
@@ -13,11 +12,12 @@ use std::env;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 use tracing::trace;
+use warpgate_api::Id;
 
 /// A system for loading plugins from a locator strategy,
 /// and caching the `.wasm` file to the host's file system.
 pub struct PluginLoader {
-    /// Location where downloaded .wasm plugins are stored.
+    /// Location where downloaded `.wasm` plugins are stored.
     plugins_dir: PathBuf,
 
     /// Location where temporary files (like archives) are stored.

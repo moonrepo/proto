@@ -2,8 +2,6 @@ use crate::error::PluginError;
 use crate::json_struct;
 use serde::{Deserialize, Serialize};
 use std::fmt;
-use std::ops::{Deref, DerefMut};
-use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 /// Architecture of the host environment.
@@ -107,85 +105,6 @@ impl FromStr for HostOS {
                 "Unsupported operating system {os}."
             ))),
         }
-    }
-}
-
-/// Container for WASI virtual paths that also keep a reference to the original real path.
-#[derive(Clone, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
-#[serde(into = "String", from = "String")]
-pub struct VirtualPath {
-    virt: PathBuf,
-    real: Option<PathBuf>,
-}
-
-impl VirtualPath {
-    pub fn new(virt: impl Into<PathBuf>, real: impl Into<PathBuf>) -> Self {
-        Self {
-            virt: virt.into(),
-            real: Some(real.into()),
-        }
-    }
-
-    pub fn compat(virt: impl Into<PathBuf>) -> Self {
-        Self {
-            virt: virt.into(),
-            real: None,
-        }
-    }
-
-    pub fn real_path(&self) -> &Path {
-        self.real.as_ref().expect("No real path.")
-    }
-
-    pub fn virtual_path(&self) -> &Path {
-        &self.virt
-    }
-}
-
-impl Deref for VirtualPath {
-    type Target = PathBuf;
-
-    fn deref(&self) -> &Self::Target {
-        &self.virt
-    }
-}
-
-impl DerefMut for VirtualPath {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.virt
-    }
-}
-
-impl From<String> for VirtualPath {
-    fn from(path: String) -> Self {
-        let mut parts = path.splitn(2, "::");
-
-        Self {
-            virt: parts.next().unwrap_or_default().into(),
-            real: parts.next().map(|p| p.into()),
-        }
-    }
-}
-
-impl From<VirtualPath> for String {
-    fn from(path: VirtualPath) -> Self {
-        if let Some(real) = &path.real {
-            format!("{}::{}", path.virt.display(), real.display())
-        } else {
-            format!("{}", path.virt.display())
-        }
-    }
-}
-
-impl fmt::Display for VirtualPath {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.virt.display())
-    }
-}
-
-impl fmt::Debug for VirtualPath {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.to_string())
     }
 }
 

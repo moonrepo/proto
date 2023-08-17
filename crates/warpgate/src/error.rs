@@ -15,10 +15,6 @@ pub enum WarpgateError {
         error: reqwest::Error,
     },
 
-    #[diagnostic(code(plugin::invalid_id))]
-    #[error("Invalid plugin identifier {}, must be a valid kebab-case string.", .0.style(Style::Id))]
-    InvalidID(String),
-
     #[diagnostic(code(plugin::source::file_missing))]
     #[error("Cannot load plugin, source file {} does not exist.", .0.style(Style::Url))]
     SourceFileMissing(PathBuf),

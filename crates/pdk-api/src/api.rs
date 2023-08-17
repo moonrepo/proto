@@ -1,9 +1,10 @@
-use crate::host::{HostArch, HostOS, VirtualPath};
+use crate::host::{HostArch, HostOS};
 use crate::host_funcs::ExecCommandOutput;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::path::PathBuf;
+use warpgate_api::VirtualPath;
 
 pub use semver::{Version, VersionReq};
 

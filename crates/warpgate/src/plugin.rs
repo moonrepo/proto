@@ -1,6 +1,5 @@
-use crate::api::Empty;
+use crate::endpoints::Empty;
 use crate::error::WarpgateError;
-use crate::id::Id;
 use extism::{Function, Manifest, Plugin};
 use once_map::OnceMap;
 use serde::de::DeserializeOwned;
@@ -10,6 +9,7 @@ use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 use tracing::trace;
+use warpgate_api::{Id, VirtualPath};
 
 /// A container around Extism's [`Plugin`] and [`Manifest`] types that provides convenience
 /// methods for calling and caching functions from the WASM plugin. It also provides
@@ -142,9 +142,9 @@ impl<'plugin> PluginContainer<'plugin> {
 
     /// Convert the provided absolute host path to a virtual guest path suitable
     /// for WASI sandboxed runtimes.
-    pub fn to_virtual_path(&self, path: &Path) -> PathBuf {
+    pub fn to_virtual_path(&self, path: &Path) -> VirtualPath {
         let Some(virtual_paths) = self.manifest.allowed_paths.as_ref() else {
-            return path.to_path_buf();
+            return VirtualPath::Only( path.to_path_buf());
         };
 
         for (host_path, guest_path) in virtual_paths {
@@ -152,15 +152,21 @@ impl<'plugin> PluginContainer<'plugin> {
                 let path = guest_path.join(rel_path);
 
                 // Only forward slashes are allowed in WASI
-                return if cfg!(windows) {
+                let path = if cfg!(windows) {
                     PathBuf::from(path.to_string_lossy().replace('\\', "/"))
                 } else {
                     path
                 };
+
+                return VirtualPath::WithReal {
+                    path,
+                    virtual_prefix: guest_path.to_path_buf(),
+                    real_prefix: host_path.to_path_buf(),
+                };
             }
         }
 
-        path.to_owned()
+        VirtualPath::Only(path.to_owned())
     }
 
     /// Call a function on the plugin with the given raw input and return the raw output.
