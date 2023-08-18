@@ -14,7 +14,7 @@ use tracing::metadata::LevelFilter;
 #[derive(State)]
 pub struct CliCommand(pub Commands);
 
-#[system]
+#[system(instrument = false)]
 async fn run(command: StateRef<CliCommand>) {
     match command.0.clone() {
         Commands::Alias { id, alias, semver } => commands::alias(id, alias, semver).await?,

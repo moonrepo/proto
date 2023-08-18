@@ -49,7 +49,7 @@ miette = { workspace = true }
 reqwest = { workspace = true, features = ["stream"] }
 semver = { workspace = true }
 serde = { workspace = true }
-starbase = "0.2.0"
+starbase = "0.2.1"
 starbase_archive = { workspace = true }
 starbase_styles = { workspace = true }
 starbase_utils = { workspace = true }

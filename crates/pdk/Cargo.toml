@@ -9,7 +9,7 @@ repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
 proto_pdk_api = { version = "0.4.8", path = "../pdk-api" }
-anyhow = "1.0.72"
+anyhow = "1.0.75"
 extism-pdk = { workspace = true }
 once_cell = { workspace = true }
 once_map = { workspace = true }

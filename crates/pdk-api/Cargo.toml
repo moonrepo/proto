@@ -9,7 +9,7 @@ repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
 warpgate_api = { path = "../warpgate-api" }
-anyhow = "1.0.72"
+anyhow = "1.0.75"
 semver = { workspace = true, features = ["serde"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
