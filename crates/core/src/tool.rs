@@ -17,7 +17,7 @@ use proto_pdk_api::*;
 use proto_wasm_plugin::{create_host_functions, HostData};
 use serde::Serialize;
 use starbase_archive::Archiver;
-use starbase_utils::fs;
+use starbase_utils::{fs, json};
 use std::collections::{BTreeMap, HashSet};
 use std::env::{self, consts};
 use std::fmt::Debug;

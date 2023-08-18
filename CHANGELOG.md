@@ -5,6 +5,7 @@
 #### 🚀 Updates
 
 - Added a `proto uninstall-global` command for uninstalling a global dependency from a tool.
+- Added file locking for `versions.json`, to help with race conditions.
 - Updated the `proto plugins` command to include the plugin's version when applicable.
 - WASM API
   - Added `install_global`, `uninstall_global`, `native_uninstall`, and `sync_shell_profile` plugin functions.
