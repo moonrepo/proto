@@ -2,9 +2,12 @@ use crate::error::ProtoError;
 use cached::proc_macro::cached;
 use once_cell::sync::Lazy;
 use regex::Regex;
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 use sha2::{Digest, Sha256};
 use starbase_utils::dirs::home_dir;
 use starbase_utils::fs::{self, FsError};
+use starbase_utils::json::{self, JsonError};
 use std::io;
 use std::path::Path;
 use std::{env, path::PathBuf};
@@ -201,6 +204,34 @@ where
     let mut file = fs::create_file(dest_file)?;
 
     io::copy(&mut contents, &mut file).map_err(handle_io_error)?;
+
+    Ok(())
+}
+
+pub fn read_json_file_with_lock<T: DeserializeOwned>(path: impl AsRef<Path>) -> miette::Result<T> {
+    let path = path.as_ref();
+    let content = fs::read_file_with_lock(path)?;
+
+    let data: T = json::from_str(&content).map_err(|error| JsonError::ReadFile {
+        path: path.to_path_buf(),
+        error,
+    })?;
+
+    Ok(data)
+}
+
+pub fn write_json_file_with_lock<T: Serialize>(
+    path: impl AsRef<Path>,
+    data: &T,
+) -> miette::Result<()> {
+    let path = path.as_ref();
+
+    let data = json::to_string_pretty(data).map_err(|error| JsonError::StringifyFile {
+        path: path.to_path_buf(),
+        error,
+    })?;
+
+    fs::write_file_with_lock(path, data)?;
 
     Ok(())
 }

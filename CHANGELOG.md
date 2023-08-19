@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Added file locking around the remote versions cache to avoid fs race conditions.
+
 ## 0.14.1
 
 #### 🐞 Fixes

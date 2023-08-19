@@ -1,10 +1,11 @@
-use crate::version::{AliasOrVersion, VersionType};
+use crate::{
+    read_json_file_with_lock,
+    version::{AliasOrVersion, VersionType},
+    write_json_file_with_lock,
+};
 use semver::Version;
 use serde::{Deserialize, Serialize};
-use starbase_utils::{
-    fs::{self, FsError},
-    json::{self, JsonError},
-};
+use starbase_utils::fs;
 use std::{
     collections::{BTreeMap, HashSet},
     env,
@@ -65,28 +66,7 @@ impl ToolManifest {
         debug!(file = ?path, "Loading {}", MANIFEST_NAME);
 
         let mut manifest: ToolManifest = if path.exists() {
-            use fs4::FileExt;
-            use std::io::prelude::*;
-
-            let handle_error = |error: std::io::Error| FsError::Read {
-                path: path.to_path_buf(),
-                error,
-            };
-
-            let mut file = fs::open_file(path)?;
-            let mut buffer = String::new();
-
-            file.lock_shared().map_err(handle_error)?;
-            file.read_to_string(&mut buffer).map_err(handle_error)?;
-
-            let data = json::from_str(&buffer).map_err(|error| JsonError::ReadFile {
-                path: path.to_path_buf(),
-                error,
-            })?;
-
-            file.unlock().map_err(handle_error)?;
-
-            data
+            read_json_file_with_lock(path)?
         } else {
             ToolManifest::default()
         };
@@ -98,41 +78,13 @@ impl ToolManifest {
 
     #[tracing::instrument(skip_all)]
     pub fn save(&self) -> miette::Result<()> {
-        use fs4::FileExt;
-        use std::io::{prelude::*, SeekFrom};
-
         debug!(file = ?self.path, "Saving manifest");
 
         if let Some(parent) = self.path.parent() {
             fs::create_dir_all(parent)?;
         }
 
-        let handle_error = |error: std::io::Error| FsError::Write {
-            path: self.path.to_path_buf(),
-            error,
-        };
-
-        // Don't use fs::create_file() as it truncates!
-        let mut file = std::fs::OpenOptions::new()
-            .write(true)
-            .create(true)
-            .open(&self.path)
-            .map_err(handle_error)?;
-
-        file.lock_exclusive().map_err(handle_error)?;
-
-        let data = json::to_string_pretty(&self).map_err(|error| JsonError::StringifyFile {
-            path: self.path.to_path_buf(),
-            error,
-        })?;
-
-        // Truncate then write file
-        file.set_len(0).map_err(handle_error)?;
-        file.seek(SeekFrom::Start(0)).map_err(handle_error)?;
-
-        write!(file, "{}", data).map_err(handle_error)?;
-
-        file.unlock().map_err(handle_error)?;
+        write_json_file_with_lock(&self.path, self)?;
 
         Ok(())
     }
