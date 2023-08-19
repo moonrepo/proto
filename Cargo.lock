@@ -2345,7 +2345,6 @@ version = "0.14.5"
 dependencies = [
  "cached",
  "extism",
- "fs4",
  "human-sort",
  "miette",
  "once_cell",
@@ -3086,11 +3085,12 @@ dependencies = [
 
 [[package]]
 name = "starbase_utils"
-version = "0.2.17"
+version = "0.2.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0bdab61b7ab5c4185c6aaa6f62464a62bd792b9979f6e48f2855e324dbe334f2"
+checksum = "2d3838378ebcb7a591ff5ffdd286f9bff94662b223ed50fa879eee72cdb430e4"
 dependencies = [
  "dirs 5.0.1",
+ "fs4",
  "json_comments",
  "miette",
  "once_cell",
