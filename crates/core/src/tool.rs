@@ -7,13 +7,16 @@ use crate::shimmer::{
 use crate::tool_manifest::ToolManifest;
 use crate::version::{AliasOrVersion, VersionType};
 use crate::version_resolver::VersionResolver;
-use crate::{download_from_url, is_archive_file, ENV_VAR};
+use crate::{
+    download_from_url, is_archive_file, read_json_file_with_lock, write_json_file_with_lock,
+    ENV_VAR,
+};
 use extism::{manifest::Wasm, Manifest as PluginManifest};
 use miette::IntoDiagnostic;
 use proto_pdk_api::*;
 use proto_wasm_plugin::{create_host_functions, HostData};
 use starbase_archive::Archiver;
-use starbase_utils::{fs, json};
+use starbase_utils::fs;
 use std::collections::{BTreeMap, HashSet};
 use std::env::{self, consts};
 use std::io::{BufRead, BufReader};
@@ -297,7 +300,7 @@ impl Tool {
         debug!(tool = self.id.as_str(), "Loading available versions");
 
         let mut versions: Option<LoadVersionsOutput> = None;
-        let cache_path = self.get_temp_dir().join("versions.json");
+        let cache_path = self.get_inventory_dir().join("remote-versions.json");
 
         // Attempt to read from the cache first
         if cache_path.exists() && (is_cache_enabled() || is_offline()) {
@@ -315,7 +318,7 @@ impl Tool {
             if read_cache {
                 debug!(tool = self.id.as_str(), cache = ?cache_path, "Loading from local cache");
 
-                versions = Some(json::read_file(&cache_path)?);
+                versions = Some(read_json_file_with_lock(&cache_path)?);
             }
         }
 
@@ -336,7 +339,7 @@ impl Tool {
 
         // Cache the results and create a resolver
         let versions = versions.unwrap();
-        json::write_file(cache_path, &versions, false)?;
+        write_json_file_with_lock(cache_path, &versions)?;
 
         let mut resolver = VersionResolver::from_output(versions);
         resolver.with_manifest(&self.manifest)?;
