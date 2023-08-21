@@ -12,6 +12,10 @@
   - Added `pre_install`, `post_install`, `pre_run`, and `post_run` plugin hooks.
   - Added `plugin_version` field to `ToolMetadataOutput`.
 
+#### ⚙️ Internal
+
+- The `proto_cli` crate can no longer be used as a library, use `proto_core` instead.
+
 ## 0.14.2
 
 #### 🐞 Fixes
