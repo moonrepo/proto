@@ -3064,9 +3064,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_styles"
-version = "0.1.12"
+version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e5c30719b6118d1946b56a506a164b5d2cee97f10148e86125f94093c727253"
+checksum = "bad293ee0bf20cc69aced802167871210db53994bb6dd4206d9cf48dd7517cd2"
 dependencies = [
  "dirs 5.0.1",
  "miette",
@@ -3076,9 +3076,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_utils"
-version = "0.2.19"
+version = "0.2.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d3838378ebcb7a591ff5ffdd286f9bff94662b223ed50fa879eee72cdb430e4"
+checksum = "465ca58c4b63cd1b36ac839c4e09d36e7979bda4d005f40adfcc14e50c2aeec8"
 dependencies = [
  "dirs 5.0.1",
  "fs4",

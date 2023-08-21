@@ -29,8 +29,8 @@ starbase_archive = { version = "0.2.0", features = [
 	"zip-deflate",
 ] }
 starbase_sandbox = { version = "0.1.8" }
-starbase_styles = "0.1.12"
-starbase_utils = { version = "0.2.19", default-features = false, features = [
+starbase_styles = "0.1.13"
+starbase_utils = { version = "0.2.20", default-features = false, features = [
 	"json",
 	"toml",
 ] }
