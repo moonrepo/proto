@@ -121,7 +121,8 @@ impl ToolsConfig {
             self.plugins.insert(
                 Id::raw("bun"),
                 PluginLocator::SourceUrl {
-                    url: "https://github.com/moonrepo/bun-plugin/releases/latest/download/bun_plugin.wasm".into()
+                    // url: "https://github.com/moonrepo/bun-plugin/releases/latest/download/bun_plugin.wasm".into()
+                    url: "https://github.com/moonrepo/bun-plugin/releases/download/v0.2.0-rc.0/bun_plugin.wasm".into(),
                 }
             );
         }
@@ -130,7 +131,8 @@ impl ToolsConfig {
             self.plugins.insert(
                 Id::raw("deno"),
                 PluginLocator::SourceUrl {
-                    url: "https://github.com/moonrepo/deno-plugin/releases/latest/download/deno_plugin.wasm".into()
+                    // url: "https://github.com/moonrepo/deno-plugin/releases/latest/download/deno_plugin.wasm".into()
+                    url: "https://github.com/moonrepo/deno-plugin/releases/download/v0.2.0-rc.0/deno_plugin.wasm".into(),
                 }
             );
         }
