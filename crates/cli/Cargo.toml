@@ -25,10 +25,10 @@ pre-release-replacements = [
 ]
 
 [dependencies]
-proto_core = { version = "0.14.9", path = "../core" }
-proto_pdk_api = { version = "0.4.8", path = "../pdk-api" }
-proto_schema_plugin = { version = "0.9.4", path = "../schema-plugin" }
-proto_wasm_plugin = { version = "0.4.5", path = "../wasm-plugin" }
+proto_core = { version = "0.15.0", path = "../core" }
+proto_pdk_api = { version = "0.5.0", path = "../pdk-api" }
+proto_schema_plugin = { version = "0.10.0", path = "../schema-plugin" }
+proto_wasm_plugin = { version = "0.5.0", path = "../wasm-plugin" }
 clap = { workspace = true, features = ["derive", "env"] }
 clap_complete = { workspace = true }
 convert_case = { workspace = true }
