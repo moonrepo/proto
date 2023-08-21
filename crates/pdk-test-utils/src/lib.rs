@@ -2,8 +2,10 @@ mod macros;
 mod wrapper;
 
 pub use macros::*;
-use proto_core::Id;
-pub use proto_core::{AliasOrVersion, ProtoEnvironment, Tool, VersionType};
+pub use proto_core::{
+    inject_default_manifest_config, AliasOrVersion, ProtoEnvironment, Tool, VersionType,
+};
+use proto_core::{Id, UserConfig};
 pub use proto_pdk_api::*;
 pub use wrapper::WasmTestWrapper;
 
@@ -58,27 +60,31 @@ pub fn find_wasm_file(sandbox: &Path) -> PathBuf {
 }
 
 pub fn create_plugin(id: &str, sandbox: &Path) -> WasmTestWrapper {
-    let wasm_file = find_wasm_file(sandbox);
-
-    WasmTestWrapper {
-        tool: Tool::load(
-            Id::new(id).unwrap(),
-            ProtoEnvironment::new_testing(sandbox),
-            Wasm::file(wasm_file),
-        )
-        .unwrap(),
-    }
+    internal_create_plugin(id, sandbox, HashMap::new())
 }
 
 pub fn create_schema_plugin(id: &str, sandbox: &Path, schema: PathBuf) -> WasmTestWrapper {
-    let wasm_file = find_wasm_file(sandbox);
-    let proto = ProtoEnvironment::new_testing(sandbox);
-
     let mut config = HashMap::new();
     config.insert("schema".to_string(), fs::read_to_string(schema).unwrap());
 
-    let mut manifest = Tool::create_plugin_manifest(&proto, Wasm::file(wasm_file)).unwrap();
-    manifest = manifest.with_config(config.into_iter());
+    internal_create_plugin(id, sandbox, config)
+}
+
+fn internal_create_plugin(
+    id: &str,
+    sandbox: &Path,
+    mut config: HashMap<String, String>,
+) -> WasmTestWrapper {
+    let id = Id::new(id).unwrap();
+    let proto = ProtoEnvironment::new_testing(sandbox);
+    let user_config = UserConfig::default();
+
+    let mut manifest =
+        Tool::create_plugin_manifest(&proto, Wasm::file(find_wasm_file(sandbox))).unwrap();
+
+    inject_default_manifest_config(&id, &proto, &user_config, &manifest, &mut config).unwrap();
+
+    manifest.config.extend(config);
 
     WasmTestWrapper {
         tool: Tool::load_from_manifest(Id::new(id).unwrap(), proto, manifest).unwrap(),

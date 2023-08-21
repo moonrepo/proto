@@ -1,13 +1,12 @@
 use crate::helpers::create_progress_bar;
-use crate::tools::create_tool;
-use proto_core::Id;
+use proto_core::{load_tool, Id};
 use starbase::SystemResult;
 use starbase_styles::color;
 use std::{env, process};
 use tracing::{debug, info};
 
 pub async fn install_global(tool_id: Id, dependencies: Vec<String>) -> SystemResult {
-    let mut tool = create_tool(&tool_id).await?;
+    let mut tool = load_tool(&tool_id).await?;
     tool.locate_globals_dir().await?;
 
     let globals_dir = tool.get_globals_bin_dir();

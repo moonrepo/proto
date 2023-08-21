@@ -1,8 +1,7 @@
 use crate::helpers::{create_progress_bar, disable_progress_bars};
 use crate::shell;
-use crate::tools::create_tool;
 use miette::IntoDiagnostic;
-use proto_core::{Id, Tool, VersionType};
+use proto_core::{load_tool, Id, Tool, VersionType};
 use proto_pdk_api::{InstallHook, SyncShellProfileInput, SyncShellProfileOutput};
 use starbase::SystemResult;
 use starbase_styles::color;
@@ -16,7 +15,7 @@ pub async fn install(
     passthrough: Vec<String>,
 ) -> SystemResult {
     let version = version.unwrap_or_default();
-    let mut tool = create_tool(&tool_id).await?;
+    let mut tool = load_tool(&tool_id).await?;
 
     if tool.is_setup(&version).await? {
         info!(

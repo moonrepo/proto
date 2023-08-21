@@ -1,8 +1,9 @@
 mod utils;
 
 use futures::Future;
-use proto::tools::create_tool_from_plugin;
-use proto_core::{Id, PluginLocator, ProtoEnvironment, Tool, UserConfig, VersionType};
+use proto_core::{
+    load_tool_from_locator, Id, PluginLocator, ProtoEnvironment, Tool, UserConfig, VersionType,
+};
 use std::env;
 use std::path::{Path, PathBuf};
 use utils::*;
@@ -63,7 +64,7 @@ async fn errors_for_missing_file() {
     run_tests(|root| {
         let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
-        create_tool_from_plugin(
+        load_tool_from_locator(
             Id::raw("moon"),
             ProtoEnvironment::from(root).unwrap(),
             PluginLocator::SourceFile {
@@ -97,7 +98,7 @@ async fn errors_for_broken_url() {
     let user_config = UserConfig::default();
 
     run_tests(|root| {
-        create_tool_from_plugin(
+        load_tool_from_locator(
             Id::raw("moon"),
             ProtoEnvironment::from(root).unwrap(),
             PluginLocator::SourceUrl {

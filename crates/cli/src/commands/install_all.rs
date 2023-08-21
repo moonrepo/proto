@@ -1,8 +1,9 @@
 use crate::helpers::{disable_progress_bars, enable_progress_bars};
-use crate::tools::create_tool_from_plugin;
 use crate::{commands::clean::clean, commands::install::install, helpers::create_progress_bar};
 use futures::future::try_join_all;
-use proto_core::{AliasOrVersion, ProtoEnvironment, ToolsConfig, UserConfig};
+use proto_core::{
+    load_tool_from_locator, AliasOrVersion, ProtoEnvironment, ToolsConfig, UserConfig,
+};
 use starbase::SystemResult;
 use starbase_styles::color;
 use std::env;
@@ -26,7 +27,7 @@ pub async fn install_all() -> SystemResult {
             continue;
         }
 
-        let tool = create_tool_from_plugin(&name, &proto, &locator, &user_config).await?;
+        let tool = load_tool_from_locator(&name, &proto, &locator, &user_config).await?;
 
         if let Some(candidate) = tool.detect_version_from(&working_dir).await? {
             let resolver = tool.load_version_resolver(&candidate).await?;

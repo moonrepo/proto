@@ -1,7 +1,8 @@
 use crate::commands::install::install;
-use crate::tools::create_tool;
 use miette::IntoDiagnostic;
-use proto_core::{detect_version, AliasOrVersion, Id, ProtoError, UserConfig, VersionType};
+use proto_core::{
+    detect_version, load_tool, AliasOrVersion, Id, ProtoError, UserConfig, VersionType,
+};
 use proto_pdk_api::RunHook;
 use starbase::SystemResult;
 use starbase_styles::color;
@@ -16,7 +17,7 @@ pub async fn run(
     alt_bin: Option<String>,
     args: Vec<String>,
 ) -> SystemResult {
-    let mut tool = create_tool(&tool_id).await?;
+    let mut tool = load_tool(&tool_id).await?;
     let version = detect_version(&tool, forced_version).await?;
     let user_config = UserConfig::load()?;
 

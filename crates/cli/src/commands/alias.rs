@@ -1,5 +1,4 @@
-use crate::tools::create_tool;
-use proto_core::{is_alias_name, Id, ProtoError, VersionType};
+use proto_core::{is_alias_name, load_tool, Id, ProtoError, VersionType};
 use starbase::SystemResult;
 use starbase_styles::color;
 use tracing::info;
@@ -17,7 +16,7 @@ pub async fn alias(tool_id: Id, alias: String, version: VersionType) -> SystemRe
         ))?;
     }
 
-    let mut tool = create_tool(&tool_id).await?;
+    let mut tool = load_tool(&tool_id).await?;
 
     tool.manifest.aliases.insert(alias.clone(), version.clone());
     tool.manifest.save()?;

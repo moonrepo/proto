@@ -1,9 +1,8 @@
-use crate::tools::create_tool;
-use proto_core::{detect_version, Id, VersionType};
+use proto_core::{detect_version, load_tool, Id, VersionType};
 use starbase::SystemResult;
 
 pub async fn bin(tool_id: Id, forced_version: Option<VersionType>, use_shim: bool) -> SystemResult {
-    let mut tool = create_tool(&tool_id).await?;
+    let mut tool = load_tool(&tool_id).await?;
     let version = detect_version(&tool, forced_version).await?;
 
     tool.resolve_version(&version).await?;
