@@ -18,7 +18,7 @@ macro_rules! permutations {
 
 #[macro_export]
 macro_rules! exec_command {
-    (pipe, $cmd:expr, [ $($arg:expr),* ]) => {
+    (pipe, $cmd:expr, [ $($arg:literal),* ]) => {
         exec_command!(pipe, $cmd, [ $($arg),* ])
     };
     (pipe, $cmd:expr, $args:expr) => {
@@ -26,7 +26,7 @@ macro_rules! exec_command {
           exec_command(Json(ExecCommandInput::pipe($cmd, $args)))?.0
         }
     };
-    (inherit, $cmd:expr, [ $($arg:expr),* ]) => {
+    (inherit, $cmd:expr, [ $($arg:literal),* ]) => {
         exec_command!(inherit, $cmd, [ $($arg),* ])
     };
     (inherit, $cmd:expr, $args:expr) => {
@@ -34,7 +34,7 @@ macro_rules! exec_command {
           exec_command(Json(ExecCommandInput::inherit($cmd, $args)))?.0
         }
     };
-    ($cmd:expr, [ $($arg:expr),* ]) => {
+    ($cmd:expr, [ $($arg:literal),* ]) => {
         exec_command!(pipe, $cmd, [ $($arg),* ])
     };
     ($input:expr) => {
