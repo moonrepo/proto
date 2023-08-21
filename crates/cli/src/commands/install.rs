@@ -45,9 +45,9 @@ pub async fn install(
     tool.run_hook(
         "pre_install",
         InstallHook {
+            context: tool.create_context()?,
             passthrough_args: passthrough.clone(),
             pinned: pin_version,
-            resolved_version: resolved_version.to_string(),
         },
     )?;
 
@@ -80,9 +80,9 @@ pub async fn install(
     tool.run_hook(
         "post_install",
         InstallHook {
+            context: tool.create_context()?,
             passthrough_args: passthrough.clone(),
             pinned: pin_version,
-            resolved_version: resolved_version.to_string(),
         },
     )?;
 

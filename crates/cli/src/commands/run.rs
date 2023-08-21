@@ -90,8 +90,8 @@ pub async fn run(
     tool.run_hook(
         "pre_run",
         RunHook {
+            context: tool.create_context()?,
             passthrough_args: args.clone(),
-            resolved_version: resolved_version.to_string(),
         },
     )?;
 
@@ -134,8 +134,8 @@ pub async fn run(
     tool.run_hook(
         "post_run",
         RunHook {
+            context: tool.create_context()?,
             passthrough_args: args,
-            resolved_version: resolved_version.to_string(),
         },
     )?;
 
