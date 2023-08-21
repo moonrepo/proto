@@ -2358,7 +2358,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "anyhow",
  "extism-pdk",
