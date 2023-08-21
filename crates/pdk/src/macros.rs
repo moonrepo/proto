@@ -18,12 +18,24 @@ macro_rules! permutations {
 
 #[macro_export]
 macro_rules! exec_command {
-    ($cmd:expr, [ $($arg:expr),* ]) => {
+    (pipe, $cmd:expr, [ $($arg:expr),* ]) => {
+        exec_command!(pipe, $cmd, [ $($arg),* ])
+    };
+    (pipe, $cmd:expr, $args:expr) => {
         unsafe {
-          exec_command(Json(ExecCommandInput::pipe($cmd, [
-              $($arg),*
-          ])))?.0
+          exec_command(Json(ExecCommandInput::pipe($cmd, $args)))?.0
         }
+    };
+    (inherit, $cmd:expr, [ $($arg:expr),* ]) => {
+        exec_command!(inherit, $cmd, [ $($arg),* ])
+    };
+    (inherit, $cmd:expr, $args:expr) => {
+        unsafe {
+          exec_command(Json(ExecCommandInput::inherit($cmd, $args)))?.0
+        }
+    };
+    ($cmd:expr, [ $($arg:expr),* ]) => {
+        exec_command!(pipe, $cmd, [ $($arg),* ])
     };
     ($input:expr) => {
         unsafe { exec_command(Json($input))?.0 }
