@@ -1,5 +1,5 @@
-# proto_wasm_plugin
+# warpgate_api
 
-![Crates.io](https://img.shields.io/crates/v/proto_wasm_plugin) ![Crates.io](https://img.shields.io/crates/d/proto_wasm_plugin)
+![Crates.io](https://img.shields.io/crates/v/warpgate_api) ![Crates.io](https://img.shields.io/crates/d/warpgate_api)
 
-A runtime WASM plugin wrapper for [proto](https://moonrepo.dev/proto).
+APIs for working with Warpgate plugins, especially from the WASM layer.

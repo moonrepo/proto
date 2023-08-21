@@ -141,8 +141,8 @@ pub fn move_or_unpack_download(temp_file: &Path, dest_file: &Path) -> miette::Re
 /// Convert the provided virtual guest path to an absolute host path.
 pub fn from_virtual_path(manifest: &Manifest, path: &Path) -> PathBuf {
     let Some(virtual_paths) = manifest.allowed_paths.as_ref() else {
-            return path.to_path_buf();
-        };
+        return path.to_path_buf();
+    };
 
     for (host_path, guest_path) in virtual_paths {
         if let Ok(rel_path) = path.strip_prefix(guest_path) {

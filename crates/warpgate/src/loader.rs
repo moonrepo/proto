@@ -143,7 +143,7 @@ impl PluginLoader {
         Ok(cached)
     }
 
-    /// Set the provided as a seed for generating hashes.
+    /// Set the provided value as a seed for generating hashes.
     pub fn set_seed(&mut self, value: &str) {
         self.seed = Some(value.to_owned());
     }

@@ -130,6 +130,15 @@ impl WasmTestWrapper {
             .unwrap()
     }
 
+    pub fn sync_shell_profile(&self, mut input: SyncShellProfileInput) -> SyncShellProfileOutput {
+        input.context = self.prepare_context(input.context);
+
+        self.tool
+            .plugin
+            .call_func_with("sync_shell_profile", input)
+            .unwrap()
+    }
+
     pub fn uninstall_global(&self, mut input: UninstallGlobalInput) -> UninstallGlobalOutput {
         input.globals_dir = self.to_virtual_path(&input.globals_dir);
 
