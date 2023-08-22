@@ -13,14 +13,13 @@ mod install_uninstall {
         let temp = create_empty_sandbox();
 
         let mut cmd = create_proto_command(temp.path());
-        let assert = cmd
-            .arg("install")
+        cmd.arg("install")
             .arg("node")
             .arg("18.12")
+            .arg("--")
+            .arg("--no-bundled-npm")
             .assert()
             .success();
-
-        println!("{}", assert);
 
         assert!(temp.path().join("tools/node/18.12.1").exists());
     }
@@ -30,7 +29,13 @@ mod install_uninstall {
         let temp = create_empty_sandbox();
 
         let mut cmd = create_proto_command(temp.path());
-        cmd.arg("install").arg("node").arg("17").assert().success();
+        cmd.arg("install")
+            .arg("node")
+            .arg("17")
+            .arg("--")
+            .arg("--no-bundled-npm")
+            .assert()
+            .success();
 
         assert!(temp.path().join("tools/node/17.9.1").exists());
     }
@@ -43,6 +48,8 @@ mod install_uninstall {
         cmd.arg("install")
             .arg("node")
             .arg("gallium")
+            .arg("--")
+            .arg("--no-bundled-npm")
             .assert()
             .success();
 
@@ -58,7 +65,13 @@ mod install_uninstall {
 
         // Install
         let mut cmd = create_proto_command(temp.path());
-        let assert = cmd.arg("install").arg("node").arg("19.0.0").assert();
+        let assert = cmd
+            .arg("install")
+            .arg("node")
+            .arg("19.0.0")
+            .arg("--")
+            .arg("--no-bundled-npm")
+            .assert();
 
         assert!(tool_dir.exists());
 
@@ -87,7 +100,13 @@ mod install_uninstall {
             .success();
 
         let mut cmd = create_proto_command(temp.path());
-        let assert = cmd.arg("install").arg("node").arg("19.0.0").assert();
+        let assert = cmd
+            .arg("install")
+            .arg("node")
+            .arg("19.0.0")
+            .arg("--")
+            .arg("--no-bundled-npm")
+            .assert();
 
         assert.stderr(predicate::str::contains(
             "Node.js has already been installed",
@@ -104,6 +123,8 @@ mod install_uninstall {
         cmd.arg("install")
             .arg("node")
             .arg("19.0.0")
+            .arg("--")
+            .arg("--no-bundled-npm")
             .assert()
             .success();
 
@@ -155,6 +176,8 @@ mod install_uninstall {
             .arg("node")
             .arg("19.0.0")
             .arg("--pin")
+            .arg("--")
+            .arg("--no-bundled-npm")
             .assert();
 
         let manifest = ToolManifest::load(&manifest_file).unwrap();
