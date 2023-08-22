@@ -105,6 +105,42 @@ impl WasmTestWrapper {
             .unwrap()
     }
 
+    pub fn pre_install(&self, mut input: InstallHook) {
+        input.context = self.prepare_context(input.context);
+
+        self.tool
+            .plugin
+            .call_func_without_output("pre_install", input)
+            .unwrap();
+    }
+
+    pub fn pre_run(&self, mut input: RunHook) {
+        input.context = self.prepare_context(input.context);
+
+        self.tool
+            .plugin
+            .call_func_without_output("pre_run", input)
+            .unwrap();
+    }
+
+    pub fn post_install(&self, mut input: InstallHook) {
+        input.context = self.prepare_context(input.context);
+
+        self.tool
+            .plugin
+            .call_func_without_output("post_install", input)
+            .unwrap();
+    }
+
+    pub fn post_run(&self, mut input: RunHook) {
+        input.context = self.prepare_context(input.context);
+
+        self.tool
+            .plugin
+            .call_func_without_output("post_run", input)
+            .unwrap();
+    }
+
     pub fn register_tool(&self, input: ToolMetadataInput) -> ToolMetadataOutput {
         self.tool
             .plugin
