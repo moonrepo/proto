@@ -52,7 +52,7 @@ targets = [
 	"x86_64-pc-windows-msvc",
 ]
 # The installers to generate for each app
-installers = ["shell", "powershell"]
+installers = [] # ["shell", "powershell"]
 # Path that installers should place binaries in
 install-path = "~/.proto/bin"
 

@@ -39,22 +39,25 @@ where
     }
 }
 
-// #[tokio::test]
-// async fn downloads_and_installs_plugin_from_file() {
-//     run_tests(|root| {
-//         let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+#[tokio::test]
+async fn downloads_and_installs_plugin_from_file() {
+    let user_config = UserConfig::default();
 
-//         create_tool_from_plugin(
-//             "moon",
-//             ProtoEnvironment::from(root).unwrap(),
-//             PluginLocator::SourceFile {
-//                 file: "./tests/fixtures/moon-schema.toml".into(),
-//                 path: root_dir.join("./tests/fixtures/moon-schema.toml"),
-//             },
-//         )
-//     })
-//     .await;
-// }
+    run_tests(|root| {
+        let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+
+        load_tool_from_locator(
+            Id::raw("moon"),
+            ProtoEnvironment::from(root).unwrap(),
+            PluginLocator::SourceFile {
+                file: "./tests/fixtures/moon-schema.toml".into(),
+                path: root_dir.join("./tests/fixtures/moon-schema.toml"),
+            },
+            &user_config,
+        )
+    })
+    .await;
+}
 
 #[tokio::test]
 #[should_panic(expected = "does not exist")]
@@ -77,20 +80,23 @@ async fn errors_for_missing_file() {
     .await;
 }
 
-// #[tokio::test]
-// async fn downloads_and_installs_plugin_from_url() {
-//     run_tests(|root| {
-//         create_tool_from_plugin(
-//             "moon",
-//             ProtoEnvironment::from(root).unwrap(),
-//             PluginLocator::SourceUrl {
-//                 url: "https://raw.githubusercontent.com/moonrepo/moon/master/proto-plugin.toml"
-//                     .into(),
-//             },
-//         )
-//     })
-//     .await;
-// }
+#[tokio::test]
+async fn downloads_and_installs_plugin_from_url() {
+    let user_config = UserConfig::default();
+
+    run_tests(|root| {
+        load_tool_from_locator(
+            Id::raw("moon"),
+            ProtoEnvironment::from(root).unwrap(),
+            PluginLocator::SourceUrl {
+                url: "https://raw.githubusercontent.com/moonrepo/moon/master/proto-plugin.toml"
+                    .into(),
+            },
+            &user_config,
+        )
+    })
+    .await;
+}
 
 #[tokio::test]
 #[should_panic(expected = "does not exist")]
