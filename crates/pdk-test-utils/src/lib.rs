@@ -2,13 +2,12 @@ mod macros;
 mod wrapper;
 
 pub use macros::*;
-pub use proto_core::{
-    inject_default_manifest_config, AliasOrVersion, ProtoEnvironment, Tool, VersionType,
-};
-use proto_core::{Id, UserConfig};
+pub use proto_core as core;
+pub use proto_core::{Id, ProtoEnvironment, Tool, ToolManifest, ToolsConfig, UserConfig};
 pub use proto_pdk_api::*;
 pub use wrapper::WasmTestWrapper;
 
+use proto_core::inject_default_manifest_config;
 use proto_wasm_plugin::Wasm;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
