@@ -296,7 +296,8 @@ macro_rules! generate_globals_test {
             };
 
             // This is left in for debugging purposes
-            dbg!(&dep, &dep_name, &dep_name_without_version);
+            dbg!(&globals_dir, &dep, &dep_name, &dep_name_without_version);
+            sandbox.debug_files();
 
             plugin.tool.install_global(dep).await.unwrap();
 
