@@ -24,6 +24,10 @@ pre-release-replacements = [
 	{ file = "../../CHANGELOG.md", search = "Unreleased", replace = "{{version}}" },
 ]
 
+[[bin]]
+name = "proto"
+path = "src/main.rs"
+
 [dependencies]
 proto_core = { version = "0.16.0", path = "../core" }
 proto_pdk_api = { version = "0.6.0", path = "../pdk-api" }

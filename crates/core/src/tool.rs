@@ -330,7 +330,8 @@ impl Tool {
     ) -> miette::Result<VersionResolver> {
         debug!(tool = self.id.as_str(), "Loading available versions");
 
-        let mut versions: Option<LoadVersionsOutput> = None;
+        let mut versions = LoadVersionsOutput::default();
+        let mut cached = false;
         let cache_path = self.get_inventory_dir().join("remote-versions.json");
 
         // Attempt to read from the cache first
@@ -349,29 +350,29 @@ impl Tool {
             if read_cache {
                 debug!(tool = self.id.as_str(), cache = ?cache_path, "Loading from local cache");
 
-                versions = Some(read_json_file_with_lock(&cache_path)?);
+                versions = read_json_file_with_lock(&cache_path)?;
+                cached = true;
             }
         }
 
         // Nothing cached, so load from the plugin
-        if versions.is_none() {
+        if !cached {
             if is_offline() {
                 return Err(ProtoError::InternetConnectionRequired.into());
             }
 
-            versions = Some(self.plugin.cache_func_with(
+            versions = self.plugin.cache_func_with(
                 "load_versions",
                 LoadVersionsInput {
                     initial: initial_version.to_string(),
                     context: self.create_context()?,
                 },
-            )?);
+            )?;
+
+            write_json_file_with_lock(cache_path, &versions)?;
         }
 
         // Cache the results and create a resolver
-        let versions = versions.unwrap();
-        write_json_file_with_lock(cache_path, &versions)?;
-
         let mut resolver = VersionResolver::from_output(versions);
         resolver.with_manifest(&self.manifest)?;
 
