@@ -171,9 +171,26 @@ impl<'plugin> PluginContainer<'plugin> {
                 )
             })
             .call(func, input)
-            .map_err(|error| WarpgateError::PluginCallFailed {
-                func: func.to_owned(),
-                error,
+            .map_err(|error| {
+                // When in debug mode, include more information around errors.
+                #[cfg(debug_assertions)]
+                {
+                    WarpgateError::PluginCallFailed {
+                        func: func.to_owned(),
+                        error,
+                    }
+                }
+                // When in release mode, errors don't render properly with the
+                // previous variant, so this is a special variant that renders as-is.
+                #[cfg(not(debug_assertions))]
+                {
+                    WarpgateError::PluginCallFailedRelease {
+                        error: error
+                            .to_string()
+                            .replace("\\\\n", "\n")
+                            .replace("\\n", "\n"),
+                    }
+                }
             })?;
 
         trace!(

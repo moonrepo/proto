@@ -22,6 +22,10 @@
   - Added a `get_tool_id` function for accessing the current plugin ID.
   - Added a `get_proto_environment` function for accessing information about the host and proto environment.
 
+#### 🐞 Fixes
+
+- Fixed an issue where some error messages would be obfuscated.
+
 #### ⚙️ Internal
 
 - The `proto_cli` crate can no longer be used as a library, use `proto_core` instead.

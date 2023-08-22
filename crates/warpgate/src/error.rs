@@ -5,6 +5,7 @@ use thiserror::Error;
 
 #[derive(Debug, Diagnostic, Error)]
 pub enum WarpgateError {
+    #[diagnostic(code(plugin::invalid_syntax))]
     #[error("{0}")]
     Serde(String),
 
@@ -47,12 +48,16 @@ pub enum WarpgateError {
     },
 
     #[diagnostic(code(plugin::call_func::failed))]
-    #[error("Failed to call plugin function {}: {error}", .func.style(Style::Id))]
+    #[error("Failed to call plugin function {}.", .func.style(Style::Id))]
     PluginCallFailed {
         func: String,
         #[source]
         error: extism::Error,
     },
+
+    #[diagnostic(code(plugin::failed))]
+    #[error("{error}")]
+    PluginCallFailedRelease { error: String },
 
     #[diagnostic(code(plugin::call_func::format_input))]
     #[error("Failed to format input for plugin function {} call.", .func.style(Style::Id))]
