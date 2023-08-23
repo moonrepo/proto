@@ -156,7 +156,12 @@ mod builtins {
         let temp = create_empty_sandbox();
 
         let mut cmd = create_proto_command(temp.path());
-        let assert = cmd.arg("install").arg("node").assert();
+        let assert = cmd
+            .arg("install")
+            .arg("node")
+            .arg("--")
+            .arg("--no-bundled-npm")
+            .assert();
 
         assert.success();
     }
