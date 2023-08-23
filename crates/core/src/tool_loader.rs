@@ -1,13 +1,56 @@
+use crate::error::ProtoError;
+use crate::proto::ProtoEnvironment;
+use crate::tool::Tool;
+use crate::tools_config::ToolsConfig;
+use crate::user_config::UserConfig;
+use extism::Manifest;
 use miette::IntoDiagnostic;
-use proto_core::*;
-use proto_pdk_api::UserConfigSettings;
+use proto_pdk_api::{HostArch, HostEnvironment, HostOS, UserConfigSettings};
 use proto_wasm_plugin::Wasm;
 use starbase_utils::{fs, json};
 use std::collections::HashMap;
-use std::{env, path::Path};
+use std::str::FromStr;
+use std::{
+    env::{self, consts},
+    path::Path,
+};
 use tracing::debug;
+use warpgate::{to_virtual_path, Id, PluginLoader, PluginLocator};
 
-pub async fn create_tool_from_plugin(
+pub fn inject_default_manifest_config(
+    id: &Id,
+    proto: &ProtoEnvironment,
+    user_config: &UserConfig,
+    manifest: &Manifest,
+    manifest_config: &mut HashMap<String, String>,
+) -> miette::Result<()> {
+    manifest_config.insert("proto_tool_id".to_string(), id.to_string());
+
+    manifest_config.insert(
+        "proto_user_config".to_string(),
+        json::to_string(&UserConfigSettings {
+            auto_clean: user_config.auto_clean,
+            auto_install: user_config.auto_install,
+            node_intercept_globals: user_config.node_intercept_globals,
+        })
+        .into_diagnostic()?,
+    );
+
+    manifest_config.insert(
+        "proto_environment".to_string(),
+        json::to_string(&HostEnvironment {
+            arch: HostArch::from_str(consts::ARCH).into_diagnostic()?,
+            os: HostOS::from_str(consts::OS).into_diagnostic()?,
+            home_dir: to_virtual_path(manifest, &proto.home),
+            proto_dir: to_virtual_path(manifest, &proto.root),
+        })
+        .into_diagnostic()?,
+    );
+
+    Ok(())
+}
+
+pub async fn load_tool_from_locator(
     id: impl AsRef<Id>,
     proto: impl AsRef<ProtoEnvironment>,
     locator: impl AsRef<PluginLocator>,
@@ -16,7 +59,9 @@ pub async fn create_tool_from_plugin(
     let id = id.as_ref();
     let proto = proto.as_ref();
     let locator = locator.as_ref();
-    let loader = PluginLoader::new(&proto.plugins_dir, &proto.temp_dir);
+
+    let mut loader = PluginLoader::new(&proto.plugins_dir, &proto.temp_dir);
+    loader.set_seed(env!("CARGO_PKG_VERSION"));
 
     let plugin_path = loader.load_plugin(&id, locator).await?;
     let mut config = HashMap::new();
@@ -44,22 +89,14 @@ pub async fn create_tool_from_plugin(
         Tool::create_plugin_manifest(proto, Wasm::file(plugin_path))?
     };
 
-    config.insert(
-        "proto_user_config".to_string(),
-        json::to_string(&UserConfigSettings {
-            auto_clean: user_config.auto_clean,
-            auto_install: user_config.auto_install,
-            node_intercept_globals: user_config.node_intercept_globals,
-        })
-        .into_diagnostic()?,
-    );
+    inject_default_manifest_config(id, proto, user_config, &manifest, &mut config)?;
 
-    manifest = manifest.with_config(config.into_iter());
+    manifest.config.extend(config);
 
     Tool::load_from_manifest(id, proto, manifest)
 }
 
-pub async fn create_tool(id: &Id) -> miette::Result<Tool> {
+pub async fn load_tool(id: &Id) -> miette::Result<Tool> {
     let proto = ProtoEnvironment::new()?;
     let user_config = UserConfig::load()?;
     let mut locator = None;
@@ -105,5 +142,5 @@ pub async fn create_tool(id: &Id) -> miette::Result<Tool> {
         return Err(ProtoError::UnknownTool { id: id.to_owned() }.into());
     };
 
-    create_tool_from_plugin(id, proto, locator, &user_config).await
+    load_tool_from_locator(id, proto, locator, &user_config).await
 }

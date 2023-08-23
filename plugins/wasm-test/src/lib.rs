@@ -61,17 +61,18 @@ fn map_arch(arch: HostArch) -> String {
 pub fn download_prebuilt(
     Json(input): Json<DownloadPrebuiltInput>,
 ) -> FnResult<Json<DownloadPrebuiltOutput>> {
-    let version = input.env.version;
-    let arch = map_arch(input.env.arch);
+    let env = get_proto_environment()?;
+    let version = input.context.version;
+    let arch = map_arch(env.arch);
 
-    let prefix = match input.env.os {
+    let prefix = match env.os {
         HostOS::Linux => format!("node-v{version}-linux-{arch}"),
         HostOS::MacOS => format!("node-v{version}-darwin-{arch}"),
         HostOS::Windows => format!("node-v{version}-win-{arch}"),
         _ => unimplemented!(),
     };
 
-    let filename = if input.env.os == HostOS::Windows {
+    let filename = if env.os == HostOS::Windows {
         format!("{prefix}.zip")
     } else {
         format!("{prefix}.tar.xz")
@@ -94,9 +95,11 @@ pub fn download_prebuilt(
 // }
 
 #[plugin_fn]
-pub fn locate_bins(Json(input): Json<LocateBinsInput>) -> FnResult<Json<LocateBinsOutput>> {
+pub fn locate_bins(Json(_): Json<LocateBinsInput>) -> FnResult<Json<LocateBinsOutput>> {
+    let env = get_proto_environment()?;
+
     Ok(Json(LocateBinsOutput {
-        bin_path: Some(if input.env.os == HostOS::Windows {
+        bin_path: Some(if env.os == HostOS::Windows {
             "node.exe".into()
         } else {
             "bin/node".into()
@@ -191,12 +194,12 @@ pub fn verify_checksum(
         input.download_file.exists(),
         input.checksum_file,
         input.checksum_file.exists(),
-        input.env.version
+        input.context.version
     );
 
     Ok(Json(VerifyChecksumOutput {
         verified: input.download_file.exists()
             && input.checksum_file.exists()
-            && input.env.version != "19.0.0",
+            && input.context.version != "19.0.0",
     }))
 }

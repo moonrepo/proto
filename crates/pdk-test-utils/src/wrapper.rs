@@ -11,11 +11,21 @@ impl WasmTestWrapper {
         self.tool.plugin.from_virtual_path(path)
     }
 
-    pub fn to_virtual_path(&self, path: &Path) -> PathBuf {
-        self.tool.plugin.to_virtual_path(path)
+    pub fn to_virtual_path(&self, path: &Path) -> VirtualPath {
+        self.tool.to_virtual_path(path)
     }
 
-    pub fn create_shims(&self, input: CreateShimsInput) -> CreateShimsOutput {
+    pub fn set_environment(&mut self, env: HostEnvironment) {
+        self.tool.plugin.manifest.config.insert(
+            "proto_environment".to_owned(),
+            serde_json::to_string(&env).unwrap(),
+        );
+        self.tool.plugin.reload_config().unwrap();
+    }
+
+    pub fn create_shims(&self, mut input: CreateShimsInput) -> CreateShimsOutput {
+        input.context = self.prepare_context(input.context);
+
         self.tool
             .plugin
             .call_func_with("create_shims", input)
@@ -26,7 +36,9 @@ impl WasmTestWrapper {
         self.tool.plugin.call_func("detect_version_files").unwrap()
     }
 
-    pub fn download_prebuilt(&self, input: DownloadPrebuiltInput) -> DownloadPrebuiltOutput {
+    pub fn download_prebuilt(&self, mut input: DownloadPrebuiltInput) -> DownloadPrebuiltOutput {
+        input.context = self.prepare_context(input.context);
+
         self.tool
             .plugin
             .call_func_with("download_prebuilt", input)
@@ -35,6 +47,7 @@ impl WasmTestWrapper {
 
     pub fn install_global(&self, mut input: InstallGlobalInput) -> InstallGlobalOutput {
         input.globals_dir = self.to_virtual_path(&input.globals_dir);
+        input.context = self.prepare_context(input.context);
 
         self.tool
             .plugin
@@ -42,7 +55,9 @@ impl WasmTestWrapper {
             .unwrap()
     }
 
-    pub fn load_versions(&self, input: LoadVersionsInput) -> LoadVersionsOutput {
+    pub fn load_versions(&self, mut input: LoadVersionsInput) -> LoadVersionsOutput {
+        input.context = self.prepare_context(input.context);
+
         self.tool
             .plugin
             .call_func_with("load_versions", input)
@@ -50,8 +65,7 @@ impl WasmTestWrapper {
     }
 
     pub fn locate_bins(&self, mut input: LocateBinsInput) -> LocateBinsOutput {
-        input.home_dir = self.to_virtual_path(&input.home_dir);
-        input.tool_dir = self.prepare_tool_dir(input.tool_dir);
+        input.context = self.prepare_context(input.context);
 
         let mut output: LocateBinsOutput = self
             .tool
@@ -67,8 +81,7 @@ impl WasmTestWrapper {
     }
 
     pub fn native_install(&self, mut input: NativeInstallInput) -> NativeInstallOutput {
-        input.home_dir = self.to_virtual_path(&input.home_dir);
-        input.tool_dir = self.prepare_tool_dir(input.tool_dir);
+        input.context = self.prepare_context(input.context);
 
         self.tool
             .plugin
@@ -77,8 +90,7 @@ impl WasmTestWrapper {
     }
 
     pub fn native_uninstall(&self, mut input: NativeUninstallInput) -> NativeUninstallOutput {
-        input.home_dir = self.to_virtual_path(&input.home_dir);
-        input.tool_dir = self.prepare_tool_dir(input.tool_dir);
+        input.context = self.prepare_context(input.context);
 
         self.tool
             .plugin
@@ -93,16 +105,52 @@ impl WasmTestWrapper {
             .unwrap()
     }
 
-    pub fn register_tool(&self, mut input: ToolMetadataInput) -> ToolMetadataOutput {
-        input.home_dir = self.to_virtual_path(&input.home_dir);
+    pub fn pre_install(&self, mut input: InstallHook) {
+        input.context = self.prepare_context(input.context);
 
+        self.tool
+            .plugin
+            .call_func_without_output("pre_install", input)
+            .unwrap();
+    }
+
+    pub fn pre_run(&self, mut input: RunHook) {
+        input.context = self.prepare_context(input.context);
+
+        self.tool
+            .plugin
+            .call_func_without_output("pre_run", input)
+            .unwrap();
+    }
+
+    pub fn post_install(&self, mut input: InstallHook) {
+        input.context = self.prepare_context(input.context);
+
+        self.tool
+            .plugin
+            .call_func_without_output("post_install", input)
+            .unwrap();
+    }
+
+    pub fn post_run(&self, mut input: RunHook) {
+        input.context = self.prepare_context(input.context);
+
+        self.tool
+            .plugin
+            .call_func_without_output("post_run", input)
+            .unwrap();
+    }
+
+    pub fn register_tool(&self, input: ToolMetadataInput) -> ToolMetadataOutput {
         self.tool
             .plugin
             .call_func_with("register_tool", input)
             .unwrap()
     }
 
-    pub fn resolve_version(&self, input: ResolveVersionInput) -> ResolveVersionOutput {
+    pub fn resolve_version(&self, mut input: ResolveVersionInput) -> ResolveVersionOutput {
+        input.context = self.prepare_context(input.context);
+
         self.tool
             .plugin
             .call_func_with("resolve_version", input)
@@ -110,12 +158,20 @@ impl WasmTestWrapper {
     }
 
     pub fn sync_manifest(&self, mut input: SyncManifestInput) -> SyncManifestOutput {
-        input.home_dir = self.to_virtual_path(&input.home_dir);
-        input.tool_dir = self.prepare_tool_dir(input.tool_dir);
+        input.context = self.prepare_context(input.context);
 
         self.tool
             .plugin
             .call_func_with("sync_manifest", input)
+            .unwrap()
+    }
+
+    pub fn sync_shell_profile(&self, mut input: SyncShellProfileInput) -> SyncShellProfileOutput {
+        input.context = self.prepare_context(input.context);
+
+        self.tool
+            .plugin
+            .call_func_with("sync_shell_profile", input)
             .unwrap()
     }
 
@@ -149,13 +205,16 @@ impl WasmTestWrapper {
             .unwrap()
     }
 
-    fn prepare_tool_dir(&self, path: PathBuf) -> PathBuf {
-        let dir = if path.components().count() == 0 {
+    fn prepare_context(&self, context: ToolContext) -> ToolContext {
+        let dir = if context.tool_dir.virtual_path().components().count() == 0 {
             self.tool.get_tool_dir()
         } else {
-            path
+            context.tool_dir.virtual_path().to_path_buf()
         };
 
-        self.to_virtual_path(&dir)
+        ToolContext {
+            tool_dir: self.to_virtual_path(&dir),
+            ..context
+        }
     }
 }

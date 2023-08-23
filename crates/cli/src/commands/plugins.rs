@@ -1,6 +1,7 @@
-use crate::tools::create_tool_from_plugin;
 use miette::IntoDiagnostic;
-use proto_core::{Id, PluginLocator, ProtoEnvironment, ToolsConfig, UserConfig};
+use proto_core::{
+    load_tool_from_locator, Id, PluginLocator, ProtoEnvironment, ToolsConfig, UserConfig,
+};
 use serde::Serialize;
 use starbase::SystemResult;
 use starbase_styles::color;
@@ -40,7 +41,7 @@ pub async fn plugins(json: bool) -> SystemResult {
     let mut items = vec![];
 
     for (id, locator) in plugins {
-        let tool = create_tool_from_plugin(&id, &proto, &locator, &user_config).await?;
+        let tool = load_tool_from_locator(&id, &proto, &locator, &user_config).await?;
 
         items.push(PluginItem {
             id: id.to_owned(),

@@ -1,11 +1,10 @@
-use crate::tools::create_tool;
-use proto_core::Id;
+use proto_core::{load_tool, Id};
 use starbase::SystemResult;
 use std::process;
 use tracing::debug;
 
 pub async fn list(tool_id: Id) -> SystemResult {
-    let tool = create_tool(&tool_id).await?;
+    let tool = load_tool(&tool_id).await?;
 
     debug!(manifest = ?tool.manifest.path, "Using versions from manifest");
 

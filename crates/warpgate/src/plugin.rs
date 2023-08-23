@@ -1,15 +1,18 @@
-use crate::api::Empty;
+use crate::endpoints::Empty;
 use crate::error::WarpgateError;
+use crate::helpers::{from_virtual_path, to_virtual_path};
 use crate::id::Id;
 use extism::{Function, Manifest, Plugin};
 use once_map::OnceMap;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use starbase_styles::color;
+use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 use tracing::trace;
+use warpgate_api::VirtualPath;
 
 /// A container around Extism's [`Plugin`] and [`Manifest`] types that provides convenience
 /// methods for calling and caching functions from the WASM plugin. It also provides
@@ -49,6 +52,24 @@ impl<'plugin> PluginContainer<'plugin> {
         manifest: Manifest,
     ) -> miette::Result<PluginContainer<'new>> {
         Self::new(id, manifest, [])
+    }
+
+    /// Reload the plugin's configuration from the manifest.
+    pub fn reload_config(&mut self) -> miette::Result<()> {
+        let config = self
+            .manifest
+            .config
+            .iter()
+            .map(|(k, v)| (k.to_owned(), Some(v.to_owned())))
+            .collect::<BTreeMap<_, _>>();
+
+        self.plugin
+            .write()
+            .expect("Failed to acquire write access!")
+            .set_config(&config)
+            .unwrap();
+
+        Ok(())
     }
 
     /// Call a function on the plugin with no input and cache the output before returning it.
@@ -127,40 +148,13 @@ impl<'plugin> PluginContainer<'plugin> {
 
     /// Convert the provided virtual guest path to an absolute host path.
     pub fn from_virtual_path(&self, path: &Path) -> PathBuf {
-        let Some(virtual_paths) = self.manifest.allowed_paths.as_ref() else {
-            return path.to_path_buf();
-        };
-
-        for (host_path, guest_path) in virtual_paths {
-            if let Ok(rel_path) = path.strip_prefix(guest_path) {
-                return host_path.join(rel_path);
-            }
-        }
-
-        path.to_owned()
+        from_virtual_path(&self.manifest, path)
     }
 
     /// Convert the provided absolute host path to a virtual guest path suitable
     /// for WASI sandboxed runtimes.
-    pub fn to_virtual_path(&self, path: &Path) -> PathBuf {
-        let Some(virtual_paths) = self.manifest.allowed_paths.as_ref() else {
-            return path.to_path_buf();
-        };
-
-        for (host_path, guest_path) in virtual_paths {
-            if let Ok(rel_path) = path.strip_prefix(host_path) {
-                let path = guest_path.join(rel_path);
-
-                // Only forward slashes are allowed in WASI
-                return if cfg!(windows) {
-                    PathBuf::from(path.to_string_lossy().replace('\\', "/"))
-                } else {
-                    path
-                };
-            }
-        }
-
-        path.to_owned()
+    pub fn to_virtual_path(&self, path: &Path) -> VirtualPath {
+        to_virtual_path(&self.manifest, path)
     }
 
     /// Call a function on the plugin with the given raw input and return the raw output.
@@ -177,9 +171,26 @@ impl<'plugin> PluginContainer<'plugin> {
                 )
             })
             .call(func, input)
-            .map_err(|error| WarpgateError::PluginCallFailed {
-                func: func.to_owned(),
-                error,
+            .map_err(|error| {
+                // When in debug mode, include more information around errors.
+                #[cfg(debug_assertions)]
+                {
+                    WarpgateError::PluginCallFailed {
+                        func: func.to_owned(),
+                        error,
+                    }
+                }
+                // When in release mode, errors don't render properly with the
+                // previous variant, so this is a special variant that renders as-is.
+                #[cfg(not(debug_assertions))]
+                {
+                    WarpgateError::PluginCallFailedRelease {
+                        error: error
+                            .to_string()
+                            .replace("\\\\n", "\n")
+                            .replace("\\n", "\n"),
+                    }
+                }
             })?;
 
         trace!(

@@ -1,11 +1,10 @@
 use clap_complete::Shell;
 use dirs::home_dir;
 use starbase_styles::color;
-use starbase_utils::fs::{self, FsError};
+use starbase_utils::fs;
 use std::{
     env,
-    fs::OpenOptions,
-    io::{self, BufRead, Write},
+    io::{self, BufRead},
     path::PathBuf,
 };
 use tracing::debug;
@@ -149,28 +148,13 @@ pub fn write_profile_if_not_setup(
     // Create a profile if none found. Use the last profile in the list
     // as it's the "most common", and is typically the interactive shell.
     let last_profile = profiles.last().unwrap();
-    let handle_error = |error: io::Error| FsError::Write {
-        path: last_profile.to_path_buf(),
-        error,
-    };
 
     debug!(
         "Found no configured profile, updating {}",
         color::path(last_profile),
     );
 
-    if let Some(parent) = last_profile.parent() {
-        fs::create_dir_all(parent)?;
-    }
-
-    let mut options = OpenOptions::new();
-    options.read(true);
-    options.append(true);
-    options.create(true);
-
-    let mut file = options.open(last_profile).map_err(handle_error)?;
-
-    writeln!(file, "{contents}").map_err(handle_error)?;
+    fs::append_file(last_profile, contents)?;
 
     debug!(
         "Setup profile {} with {}",

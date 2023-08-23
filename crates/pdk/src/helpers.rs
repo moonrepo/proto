@@ -3,7 +3,7 @@ use extism_pdk::*;
 use once_cell::sync::Lazy;
 use once_map::OnceMap;
 use proto_pdk_api::{
-    Environment, ExecCommandInput, ExecCommandOutput, HostArch, HostOS, PluginError,
+    ExecCommandInput, ExecCommandOutput, HostArch, HostEnvironment, HostOS, PluginError,
     UserConfigSettings,
 };
 use serde::de::DeserializeOwned;
@@ -15,7 +15,7 @@ extern "ExtismHost" {
     fn exec_command(input: Json<ExecCommandInput>) -> Json<ExecCommandOutput>;
 }
 
-pub static FETCH_CACHE: Lazy<OnceMap<String, Vec<u8>>> = Lazy::new(OnceMap::new);
+static FETCH_CACHE: Lazy<OnceMap<String, Vec<u8>>> = Lazy::new(OnceMap::new);
 
 /// Fetch the provided request and deserialize the response as JSON.
 pub fn fetch<R>(req: HttpRequest, body: Option<String>, cache: bool) -> anyhow::Result<R>
@@ -109,7 +109,7 @@ pub fn format_bin_name(name: &str, os: HostOS) -> String {
 /// supported list of target permutations.
 pub fn check_supported_os_and_arch(
     tool: &str,
-    env: &Environment,
+    env: &HostEnvironment,
     permutations: HashMap<HostOS, Vec<HostArch>>,
 ) -> anyhow::Result<()> {
     if let Some(archs) = permutations.get(&env.os) {
@@ -130,6 +130,19 @@ pub fn check_supported_os_and_arch(
     }
 
     Ok(())
+}
+
+/// Get the active tool ID for the current WASM instance.
+pub fn get_tool_id() -> String {
+    config::get("proto_tool_id").expect("Missing tool ID!")
+}
+
+/// Return information about proto and the host environment.
+pub fn get_proto_environment() -> anyhow::Result<HostEnvironment> {
+    let config = config::get("proto_environment").expect("Missing proto environment!");
+    let config: HostEnvironment = json::from_str(&config)?;
+
+    Ok(config)
 }
 
 /// Return the loaded proto user configuration (`~/.proto/config.toml`). Does not include plugins!

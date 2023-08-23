@@ -1,8 +1,9 @@
 use crate::error::PluginError;
 use crate::json_struct;
 use serde::{Deserialize, Serialize};
-use std::fmt::Display;
+use std::fmt;
 use std::str::FromStr;
+use warpgate_api::VirtualPath;
 
 /// Architecture of the host environment.
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
@@ -30,8 +31,8 @@ impl HostArch {
     }
 }
 
-impl Display for HostArch {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for HostArch {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", format!("{:?}", self).to_lowercase())
     }
 }
@@ -84,8 +85,8 @@ impl HostOS {
     }
 }
 
-impl Display for HostOS {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for HostOS {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", format!("{:?}", self).to_lowercase())
     }
 }
@@ -109,6 +110,17 @@ impl FromStr for HostOS {
 }
 
 json_struct!(
+    /// Information about the host environment (the current runtime).
+    pub struct HostEnvironment {
+        pub arch: HostArch,
+        pub os: HostOS,
+        pub home_dir: VirtualPath,
+        pub proto_dir: VirtualPath,
+    }
+);
+
+json_struct!(
+    /// The current user's proto configuration.
     pub struct UserConfigSettings {
         pub auto_clean: bool,
         pub auto_install: bool,

@@ -1,7 +1,8 @@
 use crate::helpers::{create_progress_bar, disable_progress_bars};
-use crate::tools::create_tool;
-use proto_core::{Id, VersionType};
-use proto_pdk_api::InstallHook;
+use crate::shell;
+use miette::IntoDiagnostic;
+use proto_core::{load_tool, Id, Tool, VersionType};
+use proto_pdk_api::{InstallHook, SyncShellProfileInput, SyncShellProfileOutput};
 use starbase::SystemResult;
 use starbase_styles::color;
 use std::env;
@@ -14,7 +15,7 @@ pub async fn install(
     passthrough: Vec<String>,
 ) -> SystemResult {
     let version = version.unwrap_or_default();
-    let mut tool = create_tool(&tool_id).await?;
+    let mut tool = load_tool(&tool_id).await?;
 
     if tool.is_setup(&version).await? {
         info!(
@@ -44,9 +45,9 @@ pub async fn install(
     tool.run_hook(
         "pre_install",
         InstallHook {
+            context: tool.create_context()?,
             passthrough_args: passthrough.clone(),
             pinned: pin_version,
-            resolved_version: resolved_version.to_string(),
         },
     )?;
 
@@ -79,11 +80,65 @@ pub async fn install(
     tool.run_hook(
         "post_install",
         InstallHook {
-            passthrough_args: passthrough,
+            context: tool.create_context()?,
+            passthrough_args: passthrough.clone(),
             pinned: pin_version,
-            resolved_version: resolved_version.to_string(),
         },
     )?;
+
+    // Sync shell profile
+    update_shell(tool, passthrough)?;
+
+    Ok(())
+}
+
+fn update_shell(tool: Tool, passthrough_args: Vec<String>) -> miette::Result<()> {
+    if !tool.plugin.has_func("sync_shell_profile") {
+        return Ok(());
+    }
+
+    let output: SyncShellProfileOutput = tool.plugin.call_func_with(
+        "sync_shell_profile",
+        SyncShellProfileInput {
+            context: tool.create_context()?,
+            passthrough_args,
+        },
+    )?;
+
+    if output.skip_sync {
+        return Ok(());
+    }
+
+    let shell_type = shell::detect_shell(None);
+    let mut env_vars = vec![];
+
+    if let Some(export_vars) = output.export_vars {
+        env_vars.extend(export_vars);
+    }
+
+    if let Some(extend_path) = output.extend_path {
+        env_vars.push((
+            "PATH".to_string(),
+            env::join_paths(extend_path)
+                .into_diagnostic()?
+                .to_string_lossy()
+                .to_string(),
+        ));
+    }
+
+    debug!(shell = ?shell_type, env_vars = ?env_vars, "Updating shell profile");
+
+    if let Some(content) = shell::format_env_vars(&shell_type, tool.id.as_str(), env_vars) {
+        if let Some(updated_profile) =
+            shell::write_profile_if_not_setup(&shell_type, content, &output.check_var)?
+        {
+            info!(
+                "Added {} to shell profile {}",
+                output.check_var,
+                color::path(updated_profile)
+            );
+        }
+    }
 
     Ok(())
 }

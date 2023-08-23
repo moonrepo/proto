@@ -24,19 +24,15 @@ pre-release-replacements = [
 	{ file = "../../CHANGELOG.md", search = "Unreleased", replace = "{{version}}" },
 ]
 
-[lib]
-name = "proto"
-path = "src/lib.rs"
-
 [[bin]]
 name = "proto"
-path = "src/bin.rs"
+path = "src/main.rs"
 
 [dependencies]
-proto_core = { version = "0.14.6", path = "../core" }
-proto_pdk_api = { version = "0.4.6", path = "../pdk-api" }
-proto_schema_plugin = { version = "0.9.4", path = "../schema-plugin" }
-proto_wasm_plugin = { version = "0.4.5", path = "../wasm-plugin" }
+proto_core = { version = "0.16.0", path = "../core" }
+proto_pdk_api = { version = "0.6.0", path = "../pdk-api" }
+proto_schema_plugin = { version = "0.11.0", path = "../schema-plugin" }
+proto_wasm_plugin = { version = "0.6.0", path = "../wasm-plugin" }
 clap = { workspace = true, features = ["derive", "env"] }
 clap_complete = { workspace = true }
 convert_case = { workspace = true }
@@ -49,7 +45,7 @@ miette = { workspace = true }
 reqwest = { workspace = true, features = ["stream"] }
 semver = { workspace = true }
 serde = { workspace = true }
-starbase = "0.2.0"
+starbase = "0.2.1"
 starbase_archive = { workspace = true }
 starbase_styles = { workspace = true }
 starbase_utils = { workspace = true }

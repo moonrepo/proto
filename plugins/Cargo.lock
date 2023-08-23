@@ -16,9 +16,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.72"
+version = "1.0.75"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b13c32d80ecc7ab747b80c3784bce54ee8a7a0cc4fbda9bf4cda2cf6fe90854"
+checksum = "a4668cab20f66d8d020e1fbc0ebe47217433c1b6c8f2040faf858554e394ace6"
 
 [[package]]
 name = "autocfg"
@@ -195,7 +195,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.4.2"
+version = "0.6.2"
 dependencies = [
  "anyhow",
  "extism-pdk",
@@ -207,13 +207,14 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.4.2"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "semver",
  "serde",
  "serde_json",
  "thiserror",
+ "warpgate_api",
 ]
 
 [[package]]
@@ -371,6 +372,13 @@ name = "version_check"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
+
+[[package]]
+name = "warpgate_api"
+version = "0.1.0"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "wasi"

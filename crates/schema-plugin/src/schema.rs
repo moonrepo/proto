@@ -30,6 +30,7 @@ pub struct GlobalsSchema {
     pub install_args: Option<Vec<String>>,
     pub lookup_dirs: Vec<String>,
     pub package_prefix: Option<String>,
+    pub uninstall_args: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize)]

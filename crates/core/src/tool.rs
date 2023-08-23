@@ -19,14 +19,13 @@ use serde::Serialize;
 use starbase_archive::Archiver;
 use starbase_utils::fs;
 use std::collections::{BTreeMap, HashSet};
-use std::env::{self, consts};
+use std::env;
 use std::fmt::Debug;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
-use std::str::FromStr;
 use std::time::{Duration, SystemTime};
 use tracing::{debug, trace};
-use warpgate::{Id, PluginContainer};
+use warpgate::{Id, PluginContainer, VirtualPath};
 
 pub struct Tool {
     pub id: Id,
@@ -192,23 +191,40 @@ impl Tool {
     pub fn disable_progress_bars(&self) -> bool {
         self.metadata.inventory.disable_progress_bars
     }
+
+    pub fn from_virtual_path(&self, path: &Path) -> PathBuf {
+        self.plugin.from_virtual_path(path)
+    }
+
+    pub fn to_virtual_path(&self, path: &Path) -> VirtualPath {
+        // This is a temporary hack. Only newer plugins support the `VirtualPath`
+        // type, so we need to check if the plugin has a version or not, which
+        // is a newer feature. Otherwise, old plugins would fail to parse the
+        // `VirtualPath` type and crash.
+        if self.metadata.plugin_version.is_some() {
+            self.plugin.to_virtual_path(path)
+        } else {
+            match self.plugin.to_virtual_path(path) {
+                VirtualPath::WithReal { path, .. } => VirtualPath::Only(path),
+                VirtualPath::Only(path) => VirtualPath::Only(path),
+            }
+        }
+    }
 }
 
 // APIs
 
 impl Tool {
-    /// Return environment information to pass to WASM plugin functions.
-    pub fn create_environment(&self) -> miette::Result<Environment> {
-        Ok(Environment {
-            arch: HostArch::from_str(consts::ARCH).into_diagnostic()?,
-            id: self.id.to_string(),
-            os: HostOS::from_str(consts::OS).into_diagnostic()?,
-            vars: self
+    /// Return contextual information to pass to WASM plugin functions.
+    pub fn create_context(&self) -> miette::Result<ToolContext> {
+        Ok(ToolContext {
+            env_vars: self
                 .metadata
                 .env_vars
                 .iter()
                 .filter_map(|var| env::var(var).ok().map(|value| (var.to_owned(), value)))
                 .collect(),
+            tool_dir: self.to_virtual_path(&self.get_tool_dir()),
             version: self.get_resolved_version().to_string(),
         })
     }
@@ -219,13 +235,11 @@ impl Tool {
             "register_tool",
             ToolMetadataInput {
                 id: self.id.to_string(),
-                env: self.create_environment()?,
-                home_dir: self.plugin.to_virtual_path(&self.proto.home),
             },
         )?;
 
         if let Some(override_dir) = &metadata.inventory.override_dir {
-            let inventory_dir = self.plugin.from_virtual_path(override_dir);
+            let inventory_dir = self.from_virtual_path(override_dir);
 
             if inventory_dir.is_absolute() {
                 metadata.inventory.override_dir = Some(inventory_dir);
@@ -262,11 +276,14 @@ impl Tool {
         let sync_changes: SyncManifestOutput = self.plugin.call_func_with(
             "sync_manifest",
             SyncManifestInput {
-                env: self.create_environment()?,
-                home_dir: self.plugin.to_virtual_path(&self.proto.home),
-                tool_dir: self.plugin.to_virtual_path(&self.get_tool_dir()),
+                context: self.create_context()?,
             },
         )?;
+
+        if sync_changes.skip_sync {
+            return Ok(());
+        }
+
         let mut modified = false;
 
         if let Some(default) = sync_changes.default_version {
@@ -313,7 +330,8 @@ impl Tool {
     ) -> miette::Result<VersionResolver> {
         debug!(tool = self.id.as_str(), "Loading available versions");
 
-        let mut versions: Option<LoadVersionsOutput> = None;
+        let mut versions = LoadVersionsOutput::default();
+        let mut cached = false;
         let cache_path = self.get_inventory_dir().join("remote-versions.json");
 
         // Attempt to read from the cache first
@@ -332,29 +350,29 @@ impl Tool {
             if read_cache {
                 debug!(tool = self.id.as_str(), cache = ?cache_path, "Loading from local cache");
 
-                versions = Some(read_json_file_with_lock(&cache_path)?);
+                versions = read_json_file_with_lock(&cache_path)?;
+                cached = true;
             }
         }
 
         // Nothing cached, so load from the plugin
-        if versions.is_none() {
+        if !cached {
             if is_offline() {
                 return Err(ProtoError::InternetConnectionRequired.into());
             }
 
-            versions = Some(self.plugin.cache_func_with(
+            versions = self.plugin.cache_func_with(
                 "load_versions",
                 LoadVersionsInput {
-                    env: self.create_environment()?,
                     initial: initial_version.to_string(),
+                    context: self.create_context()?,
                 },
-            )?);
+            )?;
+
+            write_json_file_with_lock(cache_path, &versions)?;
         }
 
         // Cache the results and create a resolver
-        let versions = versions.unwrap();
-        write_json_file_with_lock(cache_path, &versions)?;
-
         let mut resolver = VersionResolver::from_output(versions);
         resolver.with_manifest(&self.manifest)?;
 
@@ -390,8 +408,8 @@ impl Tool {
             let result: ResolveVersionOutput = self.plugin.call_func_with(
                 "resolve_version",
                 ResolveVersionInput {
-                    env: self.create_environment()?,
                     initial: initial_version.to_string(),
+                    context: self.create_context()?,
                 },
             )?;
 
@@ -471,7 +489,6 @@ impl Tool {
                     "parse_version_file",
                     ParseVersionFileInput {
                         content,
-                        env: self.create_environment()?,
                         file: file.clone(),
                     },
                 )?;
@@ -523,9 +540,9 @@ impl Tool {
                 "verify_checksum",
                 VerifyChecksumInput {
                     checksum,
-                    checksum_file: self.plugin.to_virtual_path(checksum_file),
-                    download_file: self.plugin.to_virtual_path(download_file),
-                    env: self.create_environment()?,
+                    checksum_file: self.to_virtual_path(checksum_file),
+                    download_file: self.to_virtual_path(download_file),
+                    context: self.create_context()?,
                 },
             )?;
 
@@ -577,7 +594,7 @@ impl Tool {
         let options: DownloadPrebuiltOutput = self.plugin.cache_func_with(
             "download_prebuilt",
             DownloadPrebuiltInput {
-                env: self.create_environment()?,
+                context: self.create_context()?,
             },
         )?;
 
@@ -633,9 +650,9 @@ impl Tool {
             self.plugin.call_func_without_output(
                 "unpack_archive",
                 UnpackArchiveInput {
-                    env: self.create_environment()?,
-                    input_file: self.plugin.to_virtual_path(&download_file),
-                    output_dir: self.plugin.to_virtual_path(install_dir),
+                    input_file: self.to_virtual_path(&download_file),
+                    output_dir: self.to_virtual_path(install_dir),
+                    context: self.create_context()?,
                 },
             )?;
 
@@ -686,9 +703,7 @@ impl Tool {
             let result: NativeInstallOutput = self.plugin.call_func_with(
                 "native_install",
                 NativeInstallInput {
-                    env: self.create_environment()?,
-                    home_dir: self.plugin.to_virtual_path(&self.proto.home),
-                    tool_dir: self.plugin.to_virtual_path(&install_dir),
+                    context: self.create_context()?,
                 },
             )?;
 
@@ -708,7 +723,7 @@ impl Tool {
     }
 
     /// Install a global dependency/package for the tool.
-    pub async fn install_global(&self, dependency: String) -> miette::Result<bool> {
+    pub async fn install_global(&self, dependency: &str) -> miette::Result<bool> {
         let globals_dir = self.get_globals_bin_dir();
 
         if !self.plugin.has_func("install_global") || globals_dir.is_none() {
@@ -718,9 +733,9 @@ impl Tool {
         let result: InstallGlobalOutput = self.plugin.call_func_with(
             "install_global",
             InstallGlobalInput {
-                env: self.create_environment()?,
-                dependency,
-                globals_dir: self.plugin.to_virtual_path(globals_dir.as_ref().unwrap()),
+                dependency: dependency.to_owned(),
+                globals_dir: self.to_virtual_path(globals_dir.as_ref().unwrap()),
+                context: self.create_context()?,
             },
         )?;
 
@@ -728,7 +743,7 @@ impl Tool {
             return Err(ProtoError::Message(
                 result
                     .error
-                    .unwrap_or_else(|| "Unknown failure!".to_string()),
+                    .unwrap_or_else(|| "Unknown install failure!".to_string()),
             ))?;
         }
 
@@ -754,9 +769,7 @@ impl Tool {
             let result: NativeUninstallOutput = self.plugin.call_func_with(
                 "native_uninstall",
                 NativeUninstallInput {
-                    env: self.create_environment()?,
-                    home_dir: self.plugin.to_virtual_path(&self.proto.home),
-                    tool_dir: self.plugin.to_virtual_path(&install_dir),
+                    context: self.create_context()?,
                 },
             )?;
 
@@ -779,7 +792,7 @@ impl Tool {
     }
 
     /// Uninstall a global dependency/package from the tool.
-    pub async fn uninstall_global(&self, dependency: String) -> miette::Result<bool> {
+    pub async fn uninstall_global(&self, dependency: &str) -> miette::Result<bool> {
         let globals_dir = self.get_globals_bin_dir();
 
         if !self.plugin.has_func("uninstall_global") || globals_dir.is_none() {
@@ -789,9 +802,9 @@ impl Tool {
         let result: UninstallGlobalOutput = self.plugin.call_func_with(
             "uninstall_global",
             UninstallGlobalInput {
-                env: self.create_environment()?,
-                dependency,
-                globals_dir: self.plugin.to_virtual_path(globals_dir.as_ref().unwrap()),
+                dependency: dependency.to_owned(),
+                globals_dir: self.to_virtual_path(globals_dir.as_ref().unwrap()),
+                context: self.create_context()?,
             },
         )?;
 
@@ -799,7 +812,7 @@ impl Tool {
             return Err(ProtoError::Message(
                 result
                     .error
-                    .unwrap_or_else(|| "Unknown failure!".to_string()),
+                    .unwrap_or_else(|| "Unknown uninstall failure!".to_string()),
             ))?;
         }
 
@@ -817,15 +830,13 @@ impl Tool {
             options = self.plugin.cache_func_with(
                 "locate_bins",
                 LocateBinsInput {
-                    env: self.create_environment()?,
-                    home_dir: self.plugin.to_virtual_path(&self.proto.home),
-                    tool_dir: self.plugin.to_virtual_path(&tool_dir),
+                    context: self.create_context()?,
                 },
             )?;
         }
 
         let bin_path = if let Some(bin) = options.bin_path {
-            let bin = self.plugin.from_virtual_path(&bin);
+            let bin = self.from_virtual_path(&bin);
 
             if bin.is_absolute() {
                 bin
@@ -866,9 +877,7 @@ impl Tool {
         let options: LocateBinsOutput = self.plugin.cache_func_with(
             "locate_bins",
             LocateBinsInput {
-                env: self.create_environment()?,
-                home_dir: self.plugin.to_virtual_path(&self.proto.home),
-                tool_dir: self.plugin.to_virtual_path(&install_dir),
+                context: self.create_context()?,
             },
         )?;
 
@@ -952,7 +961,7 @@ impl Tool {
         let shim_configs: CreateShimsOutput = self.plugin.cache_func_with(
             "create_shims",
             CreateShimsInput {
-                env: self.create_environment()?,
+                context: self.create_context()?,
             },
         )?;
 
