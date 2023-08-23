@@ -96,6 +96,8 @@ mod install_uninstall {
         cmd.arg("install")
             .arg("node")
             .arg("19.0.0")
+            .arg("--")
+            .arg("--no-bundled-npm")
             .assert()
             .success();
 
