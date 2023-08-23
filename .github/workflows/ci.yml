@@ -44,6 +44,7 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v3
+      - uses: moonrepo/setup-proto@v1
       - uses: moonrepo/setup-rust@v1
         with:
           bins: cargo-wasi, cargo-nextest
@@ -70,7 +71,6 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v3
-      - uses: moonrepo/setup-proto@v1
       - uses: moonrepo/setup-rust@v1
         with:
           bins: cargo-wasi
