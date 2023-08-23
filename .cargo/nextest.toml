@@ -2,3 +2,4 @@
 retries = 1
 test-threads = 1
 fail-fast = false
+slow-timeout = { period = "120s", terminate-after = 4 }

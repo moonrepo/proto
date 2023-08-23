@@ -1,9 +1,7 @@
 mod app;
 mod commands;
 mod helpers;
-mod hooks;
 mod shell;
-pub mod tools;
 
 use app::{App as CLI, Commands};
 use clap::Parser;
@@ -15,7 +13,7 @@ use tracing::metadata::LevelFilter;
 #[derive(State)]
 pub struct CliCommand(pub Commands);
 
-#[system]
+#[system(instrument = false)]
 async fn run(command: StateRef<CliCommand>) {
     match command.0.clone() {
         Commands::Alias { id, alias, semver } => commands::alias(id, alias, semver).await?,
@@ -46,6 +44,9 @@ async fn run(command: StateRef<CliCommand>) {
         Commands::Setup { shell, profile } => commands::setup(shell, profile).await?,
         Commands::Unalias { id, alias } => commands::unalias(id, alias).await?,
         Commands::Uninstall { id, semver } => commands::uninstall(id, semver).await?,
+        Commands::UninstallGlobal { id, dependencies } => {
+            commands::uninstall_global(id, dependencies).await?
+        }
         Commands::Upgrade => commands::upgrade().await?,
         Commands::Use => commands::install_all().await?,
     };

@@ -1,8 +1,9 @@
 use crate::commands::install::install;
-use crate::hooks::node as node_hooks;
-use crate::tools::create_tool;
 use miette::IntoDiagnostic;
-use proto_core::{detect_version, AliasOrVersion, Id, ProtoError, UserConfig, VersionType};
+use proto_core::{
+    detect_version, load_tool, AliasOrVersion, Id, ProtoError, UserConfig, VersionType,
+};
+use proto_pdk_api::RunHook;
 use starbase::SystemResult;
 use starbase_styles::color;
 use std::env;
@@ -16,10 +17,11 @@ pub async fn run(
     alt_bin: Option<String>,
     args: Vec<String>,
 ) -> SystemResult {
-    let mut tool = create_tool(&tool_id).await?;
+    let mut tool = load_tool(&tool_id).await?;
     let version = detect_version(&tool, forced_version).await?;
     let user_config = UserConfig::load()?;
 
+    // Check if installed or install
     if !tool.is_setup(&version).await? {
         if !user_config.auto_install {
             return Err(ProtoError::MissingToolForRun {
@@ -34,7 +36,7 @@ pub async fn run(
         debug!("Auto-install setting is configured, attempting to install");
 
         install(
-            tool_id.clone(),
+            tool_id,
             Some(tool.get_resolved_version().to_implicit_type()),
             false,
             vec![],
@@ -58,7 +60,7 @@ pub async fn run(
         }
     }
 
-    // Determine the binary path
+    // Determine the binary path to execute
     let tool_dir = tool.get_tool_dir();
     let mut bin_path = tool.get_bin_path()?.to_path_buf();
 
@@ -82,12 +84,16 @@ pub async fn run(
         debug!(shim = ?bin_path, "Using local shim for tool");
     }
 
-    debug!(bin = ?bin_path, "Running {}", tool.get_name());
+    debug!(bin = ?bin_path, args = ?args, "Running {}", tool.get_name());
 
-    // Trigger before hook
-    if tool_id == "npm" || tool_id == "pnpm" || tool_id == "yarn" {
-        node_hooks::pre_run(&tool_id, &args, &user_config).await?;
-    }
+    // Run before hook
+    tool.run_hook(
+        "pre_run",
+        RunHook {
+            context: tool.create_context()?,
+            passthrough_args: args.clone(),
+        },
+    )?;
 
     // Run the command
     let mut command = match bin_path.extension().map(|e| e.to_str().unwrap()) {
@@ -123,6 +129,15 @@ pub async fn run(
     if !status.success() {
         exit(status.code().unwrap_or(1));
     }
+
+    // Run after hook
+    tool.run_hook(
+        "post_run",
+        RunHook {
+            context: tool.create_context()?,
+            passthrough_args: args,
+        },
+    )?;
 
     Ok(())
 }

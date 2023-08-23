@@ -45,13 +45,14 @@ json_struct!(
 
 impl ExecCommandInput {
     /// Create a new command that pipes and captures the output.
-    pub fn pipe<I, V>(command: &str, args: I) -> ExecCommandInput
+    pub fn pipe<C, I, V>(command: C, args: I) -> ExecCommandInput
     where
+        C: AsRef<str>,
         I: IntoIterator<Item = V>,
         V: AsRef<str>,
     {
         ExecCommandInput {
-            command: command.to_string(),
+            command: command.as_ref().to_string(),
             args: args.into_iter().map(|a| a.as_ref().to_owned()).collect(),
             env_vars: HashMap::new(),
             stream: false,
@@ -59,8 +60,9 @@ impl ExecCommandInput {
     }
 
     /// Create a new command that inherits and streams the output.
-    pub fn inherit<I, V>(command: &str, args: I) -> ExecCommandInput
+    pub fn inherit<C, I, V>(command: C, args: I) -> ExecCommandInput
     where
+        C: AsRef<str>,
         I: IntoIterator<Item = V>,
         V: AsRef<str>,
     {

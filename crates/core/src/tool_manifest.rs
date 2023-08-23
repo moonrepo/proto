@@ -1,7 +1,6 @@
 use crate::{
-    read_json_file_with_lock,
+    helpers::{read_json_file_with_lock, write_json_file_with_lock},
     version::{AliasOrVersion, VersionType},
-    write_json_file_with_lock,
 };
 use semver::Version;
 use serde::{Deserialize, Serialize};

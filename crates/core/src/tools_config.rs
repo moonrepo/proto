@@ -35,8 +35,7 @@ impl ToolsConfig {
 
     pub fn schema_plugin() -> PluginLocator {
         PluginLocator::SourceUrl {
-            url: "https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm"
-                .into(),
+            url: "https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm".into()
         }
     }
 

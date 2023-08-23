@@ -1,4 +1,4 @@
-use crate::api::*;
+use crate::endpoints::*;
 use crate::error::WarpgateError;
 use crate::helpers::{
     determine_cache_extension, download_url_to_temp, extract_prefix_from_slug,
@@ -17,11 +17,14 @@ use tracing::trace;
 /// A system for loading plugins from a locator strategy,
 /// and caching the `.wasm` file to the host's file system.
 pub struct PluginLoader {
-    /// Location where downloaded .wasm plugins are stored.
+    /// Location where downloaded `.wasm` plugins are stored.
     plugins_dir: PathBuf,
 
     /// Location where temporary files (like archives) are stored.
     temp_dir: PathBuf,
+
+    /// A unique seed for generating hashes.
+    seed: Option<String>,
 }
 
 impl PluginLoader {
@@ -34,6 +37,7 @@ impl PluginLoader {
         Self {
             plugins_dir: plugins_dir.to_owned(),
             temp_dir: temp_dir.as_ref().to_owned(),
+            seed: None,
         }
     }
 
@@ -91,6 +95,10 @@ impl PluginLoader {
         let mut sha = Sha256::new();
         sha.update(url);
 
+        if let Some(seed) = &self.seed {
+            sha.update(seed);
+        }
+
         self.plugins_dir.join(format!(
             "{id}{}{:x}{}",
             if is_latest { "-latest-" } else { "-" },
@@ -133,6 +141,11 @@ impl PluginLoader {
         }
 
         Ok(cached)
+    }
+
+    /// Set the provided value as a seed for generating hashes.
+    pub fn set_seed(&mut self, value: &str) {
+        self.seed = Some(value.to_owned());
     }
 
     async fn download_plugin(

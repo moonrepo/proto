@@ -1,4 +1,5 @@
 use crate::error::WarpgateError;
+use extism::Manifest;
 use miette::IntoDiagnostic;
 use reqwest::Url;
 use starbase_archive::Archiver;
@@ -6,6 +7,7 @@ use starbase_utils::fs::{self, FsError};
 use starbase_utils::glob;
 use std::io;
 use std::path::{Path, PathBuf};
+use warpgate_api::VirtualPath;
 
 pub fn extract_prefix_from_slug(slug: &str) -> &str {
     slug.split('/').next().expect("Expected an owner scope!")
@@ -134,4 +136,48 @@ pub fn move_or_unpack_download(temp_file: &Path, dest_file: &Path) -> miette::Re
     };
 
     Ok(())
+}
+
+/// Convert the provided virtual guest path to an absolute host path.
+pub fn from_virtual_path(manifest: &Manifest, path: &Path) -> PathBuf {
+    let Some(virtual_paths) = manifest.allowed_paths.as_ref() else {
+        return path.to_path_buf();
+    };
+
+    for (host_path, guest_path) in virtual_paths {
+        if let Ok(rel_path) = path.strip_prefix(guest_path) {
+            return host_path.join(rel_path);
+        }
+    }
+
+    path.to_owned()
+}
+
+/// Convert the provided absolute host path to a virtual guest path suitable
+/// for WASI sandboxed runtimes.
+pub fn to_virtual_path(manifest: &Manifest, path: &Path) -> VirtualPath {
+    let Some(virtual_paths) = manifest.allowed_paths.as_ref() else {
+        return VirtualPath::Only( path.to_path_buf());
+    };
+
+    for (host_path, guest_path) in virtual_paths {
+        if let Ok(rel_path) = path.strip_prefix(host_path) {
+            let path = guest_path.join(rel_path);
+
+            // Only forward slashes are allowed in WASI
+            let path = if cfg!(windows) {
+                PathBuf::from(path.to_string_lossy().replace('\\', "/"))
+            } else {
+                path
+            };
+
+            return VirtualPath::WithReal {
+                path,
+                virtual_prefix: guest_path.to_path_buf(),
+                real_prefix: host_path.to_path_buf(),
+            };
+        }
+    }
+
+    VirtualPath::Only(path.to_owned())
 }

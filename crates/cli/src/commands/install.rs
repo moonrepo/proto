@@ -1,13 +1,13 @@
 use crate::helpers::{create_progress_bar, disable_progress_bars};
-use crate::hooks::go as go_hooks;
-use crate::tools::create_tool;
-use async_recursion::async_recursion;
-use proto_core::{Id, VersionType};
+use crate::shell;
+use miette::IntoDiagnostic;
+use proto_core::{load_tool, Id, Tool, VersionType};
+use proto_pdk_api::{InstallHook, SyncShellProfileInput, SyncShellProfileOutput};
 use starbase::SystemResult;
 use starbase_styles::color;
+use std::env;
 use tracing::{debug, info};
 
-#[async_recursion]
 pub async fn install(
     tool_id: Id,
     version: Option<VersionType>,
@@ -15,7 +15,7 @@ pub async fn install(
     passthrough: Vec<String>,
 ) -> SystemResult {
     let version = version.unwrap_or_default();
-    let mut tool = create_tool(&tool_id).await?;
+    let mut tool = load_tool(&tool_id).await?;
 
     if tool.is_setup(&version).await? {
         info!(
@@ -31,6 +31,27 @@ pub async fn install(
         disable_progress_bars();
     }
 
+    let resolved_version = tool.get_resolved_version();
+
+    // This ensures that the correct version is used by other processes
+    env::set_var(
+        format!("{}_VERSION", tool.get_env_var_prefix()),
+        resolved_version.to_string(),
+    );
+
+    env::set_var("PROTO_INSTALL", tool_id.to_string());
+
+    // Run before hook
+    tool.run_hook(
+        "pre_install",
+        InstallHook {
+            context: tool.create_context()?,
+            passthrough_args: passthrough.clone(),
+            pinned: pin_version,
+        },
+    )?;
+
+    // Install the tool
     debug!("Installing {} with version {}", tool.get_name(), version);
 
     let pb = create_progress_bar(format!(
@@ -55,30 +76,68 @@ pub async fn install(
         color::path(tool.get_tool_dir()),
     );
 
-    // Support post install actions that are not coupled to the
-    // `Tool` trait. Right now we are hard-coding this, but we
-    // should provide a better API.
+    // Run after hook
+    tool.run_hook(
+        "post_install",
+        InstallHook {
+            context: tool.create_context()?,
+            passthrough_args: passthrough.clone(),
+            pinned: pin_version,
+        },
+    )?;
 
-    if tool_id == "go" {
-        go_hooks::post_install(&passthrough)?;
+    // Sync shell profile
+    update_shell(tool, passthrough)?;
+
+    Ok(())
+}
+
+fn update_shell(tool: Tool, passthrough_args: Vec<String>) -> miette::Result<()> {
+    if !tool.plugin.has_func("sync_shell_profile") {
+        return Ok(());
     }
 
-    if tool_id == "node" && !passthrough.contains(&"--no-bundled-npm".to_string()) {
-        info!("Installing npm that comes bundled with {}", tool.get_name());
+    let output: SyncShellProfileOutput = tool.plugin.call_func_with(
+        "sync_shell_profile",
+        SyncShellProfileInput {
+            context: tool.create_context()?,
+            passthrough_args,
+        },
+    )?;
 
-        // This ensures that the correct version is used by the npm tool
-        std::env::set_var(
-            "PROTO_NODE_VERSION",
-            tool.get_resolved_version().to_string(),
-        );
+    if output.skip_sync {
+        return Ok(());
+    }
 
-        install(
-            Id::new("npm")?,
-            Some(VersionType::Alias("bundled".into())),
-            pin_version,
-            passthrough,
-        )
-        .await?;
+    let shell_type = shell::detect_shell(None);
+    let mut env_vars = vec![];
+
+    if let Some(export_vars) = output.export_vars {
+        env_vars.extend(export_vars);
+    }
+
+    if let Some(extend_path) = output.extend_path {
+        env_vars.push((
+            "PATH".to_string(),
+            env::join_paths(extend_path)
+                .into_diagnostic()?
+                .to_string_lossy()
+                .to_string(),
+        ));
+    }
+
+    debug!(shell = ?shell_type, env_vars = ?env_vars, "Updating shell profile");
+
+    if let Some(content) = shell::format_env_vars(&shell_type, tool.id.as_str(), env_vars) {
+        if let Some(updated_profile) =
+            shell::write_profile_if_not_setup(&shell_type, content, &output.check_var)?
+        {
+            info!(
+                "Added {} to shell profile {}",
+                output.check_var,
+                color::path(updated_profile)
+            );
+        }
     }
 
     Ok(())

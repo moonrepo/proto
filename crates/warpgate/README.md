@@ -86,16 +86,16 @@ To make use of the container, instantiate an instance with a `Manifest`, and opt
 
 ```rust
 use extism::{Manifest, Wasm};
-use warpgate::PluginContainer;
+use warpgate::{Id, PluginContainer};
 
 // Load the plugin and create a manifest
 let wasm_file = loader.load_plugin(locator);
 let manifest = Manifest::new([Wasm::file(wasm_file)]);
 
 // Create a container
-let container = PluginContainer::new("id", manifest, [host, funcs])?;
+let container = PluginContainer::new(Id::new("id")?, manifest, [host, funcs])?;
 // Or
-let container = PluginContainer::new_without_functions("id", manifest)?;
+let container = PluginContainer::new_without_functions(Id::new("id")?, manifest)?;
 ```
 
 From here, you can call functions on the plugin with the `call_func` (no input) and `call_func_with` methods. To call _and_ cache functions, use the alternative `cache_func` and `cache_func_with` methods.

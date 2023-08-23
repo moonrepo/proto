@@ -1,11 +1,10 @@
-use crate::tools::create_tool;
-use proto_core::{AliasOrVersion, Id};
+use proto_core::{load_tool, AliasOrVersion, Id};
 use starbase::SystemResult;
 use starbase_styles::color;
 use tracing::{debug, info};
 
 pub async fn global(tool_id: Id, version: AliasOrVersion) -> SystemResult {
-    let mut tool = create_tool(&tool_id).await?;
+    let mut tool = load_tool(&tool_id).await?;
 
     tool.manifest.default_version = Some(version.clone());
     tool.manifest.save()?;

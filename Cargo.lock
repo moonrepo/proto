@@ -119,9 +119,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.72"
+version = "1.0.75"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b13c32d80ecc7ab747b80c3784bce54ee8a7a0cc4fbda9bf4cda2cf6fe90854"
+checksum = "a4668cab20f66d8d020e1fbc0ebe47217433c1b6c8f2040faf858554e394ace6"
 
 [[package]]
 name = "arc-swap"
@@ -163,17 +163,6 @@ dependencies = [
  "predicates-core",
  "predicates-tree",
  "tempfile",
-]
-
-[[package]]
-name = "async-recursion"
-version = "1.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e97ce7de6cf12de5d7226c73f5ba9811622f4db3a5b91b55c53e987e5f91cba"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.28",
 ]
 
 [[package]]
@@ -1226,9 +1215,9 @@ dependencies = [
 
 [[package]]
 name = "flate2"
-version = "1.0.26"
+version = "1.0.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b9429470923de8e8cbd4d2dc513535400b4b3fef0319fb5c4e1f520a7bef743"
+checksum = "c6c98ee8095e9d1dcbf2fcc6d95acccb90d1c81db1e44725c6a984b1dbdfb010"
 dependencies = [
  "crc32fast",
  "miniz_oxide 0.7.1",
@@ -2312,7 +2301,6 @@ dependencies = [
 name = "proto_cli"
 version = "0.14.2"
 dependencies = [
- "async-recursion",
  "clap 4.3.21",
  "clap_complete",
  "convert_case",
@@ -2323,6 +2311,7 @@ dependencies = [
  "indicatif",
  "miette",
  "proto_core",
+ "proto_pdk_api",
  "proto_schema_plugin",
  "proto_wasm_plugin",
  "reqwest",
@@ -2341,7 +2330,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.14.9"
+version = "0.16.0"
 dependencies = [
  "cached",
  "extism",
@@ -2369,7 +2358,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.4.4"
+version = "0.6.2"
 dependencies = [
  "anyhow",
  "extism-pdk",
@@ -2381,35 +2370,37 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.4.5"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "semver",
  "serde",
  "serde_json",
  "thiserror",
+ "warpgate_api",
 ]
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.3.7"
+version = "0.5.5"
 dependencies = [
  "extism",
  "proto_core",
  "proto_pdk_api",
  "proto_wasm_plugin",
+ "serde_json",
 ]
 
 [[package]]
 name = "proto_schema_plugin"
-version = "0.9.3"
+version = "0.11.0"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "proto_wasm_plugin"
-version = "0.4.4"
+version = "0.6.0"
 dependencies = [
  "extism",
  "proto_pdk_api",
@@ -2993,9 +2984,9 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "starbase"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00aec49705ca0a52f3a07957ae38352d5ed080c95cdd22757cfdabf6ab9c6c68"
+checksum = "4a2db1cd6d96f39ceb8dc7d7256c783ffec60198167f086aadbd96bf146f5fca"
 dependencies = [
  "async-trait",
  "chrono",
@@ -3015,9 +3006,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_archive"
-version = "0.1.8"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eba85ebc36d6b2875094d2e1697b634ca4f9991b858e9cb5f72084e0900041ab"
+checksum = "12bb40d408fb474e6d0092eba4fa977aa40c85885931c62219bb12d512e515e8"
 dependencies = [
  "flate2",
  "miette",
@@ -3045,9 +3036,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_macros"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aaca08ddab0c9a6b02afa7a6a9cf745fb004004b3644e7165e0e126abeae73d1"
+checksum = "6bb6e2768648b90e29b6575f789a9adffb36b60c52d3242b36974e76a756aa30"
 dependencies = [
  "darling 0.20.3",
  "proc-macro2",
@@ -3073,9 +3064,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_styles"
-version = "0.1.12"
+version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e5c30719b6118d1946b56a506a164b5d2cee97f10148e86125f94093c727253"
+checksum = "bad293ee0bf20cc69aced802167871210db53994bb6dd4206d9cf48dd7517cd2"
 dependencies = [
  "dirs 5.0.1",
  "miette",
@@ -3085,9 +3076,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_utils"
-version = "0.2.19"
+version = "0.2.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d3838378ebcb7a591ff5ffdd286f9bff94662b223ed50fa879eee72cdb430e4"
+checksum = "465ca58c4b63cd1b36ac839c4e09d36e7979bda4d005f40adfcc14e50c2aeec8"
 dependencies = [
  "dirs 5.0.1",
  "fs4",
@@ -3727,7 +3718,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.3.4"
+version = "0.5.0"
 dependencies = [
  "extism",
  "miette",
@@ -3745,6 +3736,14 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
+ "warpgate_api",
+]
+
+[[package]]
+name = "warpgate_api"
+version = "0.1.0"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

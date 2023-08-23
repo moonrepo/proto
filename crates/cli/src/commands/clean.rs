@@ -1,6 +1,5 @@
-use crate::tools::create_tool;
 use dialoguer::Confirm;
-use proto_core::{AliasOrVersion, Tool, ToolsConfig};
+use proto_core::{load_tool, AliasOrVersion, Tool, ToolsConfig};
 use semver::Version;
 use starbase::{diagnostics::IntoDiagnostic, SystemResult};
 use starbase_styles::color;
@@ -137,7 +136,7 @@ pub async fn clean(days: Option<u8>, yes: bool) -> SystemResult {
 
     if !tools_config.plugins.is_empty() {
         for id in tools_config.plugins.keys() {
-            clean_count += do_clean(create_tool(id).await?, now, days, yes).await?;
+            clean_count += do_clean(load_tool(id).await?, now, days, yes).await?;
         }
     }
 

@@ -1,5 +1,35 @@
 # Changelog
 
+## Unreleased
+
+#### 💥 Breaking
+
+- WASM API
+  - Removed `env` from all inputs. Use `get_proto_environment` function or `context` input instead.
+
+#### 🚀 Updates
+
+- Added a `proto uninstall-global` command for uninstalling a global dependency from a tool.
+- Updated the `proto plugins` command to include the plugin's version when applicable.
+- TOML API
+  - Added `globals.uninstall-args` to schema, allowing globals to be uninstalled.
+- WASM API
+  - Added `install_global`, `uninstall_global`, `native_uninstall`, and `sync_shell_profile` plugin functions.
+  - Added `pre_install`, `post_install`, `pre_run`, and `post_run` plugin hooks.
+  - Added `plugin_version` field to `ToolMetadataOutput`.
+  - Added a `VirtualPath` enum for working with virtual and real paths. All `PathBuf` inputs have been updated to this new type.
+  - Added a `context` field to some inputs, that includes the plugin ID, tool directory, and current version.
+  - Added a `get_tool_id` function for accessing the current plugin ID.
+  - Added a `get_proto_environment` function for accessing information about the host and proto environment.
+
+#### 🐞 Fixes
+
+- Fixed an issue where some error messages would be obfuscated.
+
+#### ⚙️ Internal
+
+- The `proto_cli` crate can no longer be used as a library, use `proto_core` instead.
+
 ## 0.14.2
 
 #### 🐞 Fixes

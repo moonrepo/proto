@@ -1,6 +1,7 @@
-use crate::tools::create_tool_from_plugin;
 use miette::IntoDiagnostic;
-use proto_core::{Id, PluginLocator, ProtoEnvironment, ToolsConfig, UserConfig};
+use proto_core::{
+    load_tool_from_locator, Id, PluginLocator, ProtoEnvironment, ToolsConfig, UserConfig,
+};
 use serde::Serialize;
 use starbase::SystemResult;
 use starbase_styles::color;
@@ -19,9 +20,9 @@ fn render_entry<V: AsRef<str>>(label: &str, value: V) {
 #[derive(Serialize)]
 pub struct PluginItem {
     id: Id,
-    name: String,
-    // version: String,
     locator: PluginLocator,
+    name: String,
+    version: Option<String>,
 }
 
 pub async fn plugins(json: bool) -> SystemResult {
@@ -32,21 +33,21 @@ pub async fn plugins(json: bool) -> SystemResult {
     tools_config.inherit_builtin_plugins();
 
     let mut plugins = HashMap::new();
-    plugins.extend(user_config.plugins);
-    plugins.extend(tools_config.plugins);
+    plugins.extend(&user_config.plugins);
+    plugins.extend(&tools_config.plugins);
 
     debug!("Loading plugins");
 
     let mut items = vec![];
 
     for (id, locator) in plugins {
-        let tool = create_tool_from_plugin(&id, &proto, &locator).await?;
+        let tool = load_tool_from_locator(&id, &proto, &locator, &user_config).await?;
 
         items.push(PluginItem {
-            id,
-            name: tool.get_name().to_owned(),
-            // version: String::new(),
-            locator,
+            id: id.to_owned(),
+            locator: locator.to_owned(),
+            name: tool.metadata.name,
+            version: tool.metadata.plugin_version,
         });
     }
 
@@ -59,7 +60,17 @@ pub async fn plugins(json: bool) -> SystemResult {
     }
 
     for item in items {
-        println!("{} {} {}", color::id(item.id), color::muted("-"), item.name);
+        println!(
+            "{} {} {} {}",
+            color::id(item.id),
+            color::muted("-"),
+            item.name,
+            color::muted_light(if let Some(version) = item.version {
+                format!("v{version}")
+            } else {
+                "".into()
+            })
+        );
 
         match item.locator {
             PluginLocator::SourceFile { path, .. } => {

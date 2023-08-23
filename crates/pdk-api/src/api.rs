@@ -1,8 +1,9 @@
-use crate::host::{HostArch, HostOS};
+use crate::host_funcs::ExecCommandOutput;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::path::PathBuf;
+use warpgate_api::VirtualPath;
 
 pub use semver::{Version, VersionReq};
 
@@ -29,21 +30,15 @@ json_struct!(
 );
 
 json_struct!(
-    /// Information about the host environment (the current runtime).
-    pub struct Environment {
-        /// Current architecture.
-        pub arch: HostArch,
-
-        /// ID of the current plugin.
-        pub id: String,
-
-        /// Current operating system.
-        pub os: HostOS,
-
+    /// Information about the current state of the tool.
+    pub struct ToolContext {
         /// Requested environment variables. Only non-empty values are included.
-        pub vars: HashMap<String, String>,
+        pub env_vars: HashMap<String, String>,
 
-        /// Current resolved version. Will be empty if not resolved.
+        /// Virtual path to the tool's installation directory.
+        pub tool_dir: VirtualPath,
+
+        /// Current version. Will be empty if not resolved.
         pub version: String,
     }
 );
@@ -64,12 +59,6 @@ json_struct!(
     pub struct ToolMetadataInput {
         /// ID of the tool, as it was configured.
         pub id: String,
-
-        /// Current environment.
-        pub env: Environment,
-
-        /// Virtual path to the user's home directory.
-        pub home_dir: PathBuf,
     }
 );
 
@@ -107,6 +96,10 @@ json_struct!(
         /// Human readable name of the tool.
         pub name: String,
 
+        /// Version of the plugin.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub plugin_version: Option<String>,
+
         /// Type of the tool.
         pub type_of: PluginType,
     }
@@ -128,9 +121,6 @@ json_struct!(
         /// File contents to parse/extract a version from.
         pub content: String,
 
-        /// Current environment.
-        pub env: Environment,
-
         /// Name of file that's being parsed.
         pub file: String,
     }
@@ -151,30 +141,40 @@ json_struct!(
 json_struct!(
     /// Input passed to the `native_install` function.
     pub struct NativeInstallInput {
-        /// Current environment.
-        pub env: Environment,
-
-        /// Virtual path to the user's home directory.
-        pub home_dir: PathBuf,
-
-        /// Virtual path to the tool's installation directory.
-        pub tool_dir: PathBuf,
+        /// Current tool context.
+        pub context: ToolContext,
     }
 );
 
 json_struct!(
     /// Output returned by the `native_install` function.
     pub struct NativeInstallOutput {
-        /// Wheterh the install was successful.
+        /// Whether the install was successful.
         pub installed: bool,
+    }
+);
+
+json_struct!(
+    /// Input passed to the `native_uninstall` function.
+    pub struct NativeUninstallInput {
+        /// Current tool context.
+        pub context: ToolContext,
+    }
+);
+
+json_struct!(
+    /// Output returned by the `native_uninstall` function.
+    pub struct NativeUninstallOutput {
+        /// Whether the install was successful.
+        pub uninstalled: bool,
     }
 );
 
 json_struct!(
     /// Input passed to the `download_prebuilt` function.
     pub struct DownloadPrebuiltInput {
-        /// Current environment.
-        pub env: Environment,
+        /// Current tool context.
+        pub context: ToolContext,
     }
 );
 
@@ -209,31 +209,31 @@ json_struct!(
 json_struct!(
     /// Input passed to the `unpack_archive` function.
     pub struct UnpackArchiveInput {
-        /// Virtual path to the downloaded file.
-        pub input_file: PathBuf,
+        /// Current tool context.
+        pub context: ToolContext,
 
-        /// Current environment.
-        pub env: Environment,
+        /// Virtual path to the downloaded file.
+        pub input_file: VirtualPath,
 
         /// Virtual directory to unpack the archive into, or copy the binary to.
-        pub output_dir: PathBuf,
+        pub output_dir: VirtualPath,
     }
 );
 
 json_struct!(
     /// Output returned by the `verify_checksum` function.
     pub struct VerifyChecksumInput {
+        /// Current tool context.
+        pub context: ToolContext,
+
         /// The SHA-256 hash of the downloaded file.
         pub checksum: String,
 
         /// Virtual path to the checksum file.
-        pub checksum_file: PathBuf,
+        pub checksum_file: VirtualPath,
 
         /// Virtual path to the downloaded file.
-        pub download_file: PathBuf,
-
-        /// Current environment.
-        pub env: Environment,
+        pub download_file: VirtualPath,
     }
 );
 
@@ -249,14 +249,8 @@ json_struct!(
 json_struct!(
     /// Input passed to the `locate_bins` function.
     pub struct LocateBinsInput {
-        /// Current environment.
-        pub env: Environment,
-
-        /// Virtual path to the user's home directory.
-        pub home_dir: PathBuf,
-
-        /// Virtual path to the tool's installation directory.
-        pub tool_dir: PathBuf,
+        /// Current tool context.
+        pub context: ToolContext,
     }
 );
 
@@ -282,13 +276,97 @@ json_struct!(
     }
 );
 
+json_struct!(
+    /// Input passed to the `install_global` function.
+    pub struct InstallGlobalInput {
+        /// Current tool context.
+        pub context: ToolContext,
+
+        /// Name (and optional version) of the global dependency to install.
+        pub dependency: String,
+
+        /// Virtual path to the global's installation directory.
+        pub globals_dir: VirtualPath,
+    }
+);
+
+json_struct!(
+    /// Output returned by the `install_global` function.
+    pub struct InstallGlobalOutput {
+        /// Whether the install was successful.
+        pub installed: bool,
+
+        /// Error message if the install failed.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub error: Option<String>,
+    }
+);
+
+impl InstallGlobalOutput {
+    pub fn from_exec_command(result: ExecCommandOutput) -> Self {
+        if result.exit_code == 0 {
+            return Self {
+                installed: true,
+                error: None,
+            };
+        }
+
+        Self {
+            installed: false,
+            error: Some(result.stderr),
+        }
+    }
+}
+
+json_struct!(
+    /// Input passed to the `uninstall_global` function.
+    pub struct UninstallGlobalInput {
+        /// Current tool context.
+        pub context: ToolContext,
+
+        /// Name (and optional version) of the global dependency to uninstall.
+        pub dependency: String,
+
+        /// Virtual path to the global's installation directory.
+        pub globals_dir: VirtualPath,
+    }
+);
+
+json_struct!(
+    /// Output returned by the `uninstall_global` function.
+    pub struct UninstallGlobalOutput {
+        /// Whether the uninstall was successful.
+        pub uninstalled: bool,
+
+        /// Error message if the uninstall failed.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub error: Option<String>,
+    }
+);
+
+impl UninstallGlobalOutput {
+    pub fn from_exec_command(result: ExecCommandOutput) -> Self {
+        if result.exit_code == 0 {
+            return Self {
+                uninstalled: true,
+                error: None,
+            };
+        }
+
+        Self {
+            uninstalled: false,
+            error: Some(result.stderr),
+        }
+    }
+}
+
 // Resolver
 
 json_struct!(
     /// Input passed to the `load_versions` function.
     pub struct LoadVersionsInput {
-        /// Current environment.
-        pub env: Environment,
+        /// Current tool context.
+        pub context: ToolContext,
 
         /// The alias or version currently being resolved.
         pub initial: String,
@@ -314,15 +392,30 @@ json_struct!(
 );
 
 impl LoadVersionsOutput {
-    /// Create the output from a list of Git tags, as semantic versions.
-    /// The latest version will be the highest version number.
+    #[deprecated = "Use from() instead."]
     pub fn from_tags(tags: &[String]) -> anyhow::Result<Self> {
+        Self::from(tags.to_vec())
+    }
+
+    /// Create the output from a list of strings that'll be parsed as versions.
+    /// The latest version will be the highest version number.
+    pub fn from(values: Vec<String>) -> anyhow::Result<Self> {
+        let mut versions = vec![];
+
+        for value in values {
+            versions.push(Version::parse(&value)?);
+        }
+
+        Self::from_versions(versions)
+    }
+
+    /// Create the output from a list of versions.
+    /// The latest version will be the highest version number.
+    pub fn from_versions(versions: Vec<Version>) -> anyhow::Result<Self> {
         let mut output = LoadVersionsOutput::default();
         let mut latest = Version::new(0, 0, 0);
 
-        for tag in tags {
-            let version = Version::parse(tag)?;
-
+        for version in versions {
             if version.pre.is_empty() && version.build.is_empty() && version > latest {
                 latest = version.clone();
             }
@@ -340,11 +433,11 @@ impl LoadVersionsOutput {
 json_struct!(
     /// Input passed to the `resolve_version` function.
     pub struct ResolveVersionInput {
+        /// Current tool context.
+        pub context: ToolContext,
+
         /// The alias or version currently being resolved.
         pub initial: String,
-
-        /// Current environment.
-        pub env: Environment,
     }
 );
 
@@ -441,8 +534,8 @@ impl ShimConfig {
 json_struct!(
     /// Input passed to the `create_shims` function.
     pub struct CreateShimsInput {
-        /// Current environment.
-        pub env: Environment,
+        /// Current tool context.
+        pub context: ToolContext,
     }
 );
 
@@ -466,17 +559,13 @@ json_struct!(
     }
 );
 
+// Misc
+
 json_struct!(
     /// Input passed to the `sync_manifest` function.
     pub struct SyncManifestInput {
-        /// Current environment.
-        pub env: Environment,
-
-        /// Virtual path to the user's home directory.
-        pub home_dir: PathBuf,
-
-        /// Virtual path to the tool's installation directory.
-        pub tool_dir: PathBuf,
+        /// Current tool context.
+        pub context: ToolContext,
     }
 );
 
@@ -484,10 +573,46 @@ json_struct!(
     /// Output returned by the `sync_manifest` function.
     pub struct SyncManifestOutput {
         /// Override the default version with a new alias or version.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub default_version: Option<String>,
 
         /// List of versions that are currently installed. Will replace
         /// what is currently in the manifest.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub versions: Option<Vec<Version>>,
+
+        /// Whether to skip the syncing process or not.
+        pub skip_sync: bool,
+    }
+);
+
+json_struct!(
+    /// Input passed to the `sync_shell_profile` function.
+    pub struct SyncShellProfileInput {
+        /// Current tool context.
+        pub context: ToolContext,
+
+        /// Arguments passed after `--` that was directly passed to the tool's binary.
+        pub passthrough_args: Vec<String>,
+    }
+);
+
+json_struct!(
+    /// Output returned by the `sync_shell_profile` function.
+    pub struct SyncShellProfileOutput {
+        /// An environment variable to check for in the shell profile.
+        /// If the variable exists, injecting path and exports will be avoided.
+        pub check_var: String,
+
+        /// A mapping of environment variables that will be injected as exports.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub export_vars: Option<HashMap<String, String>>,
+
+        /// A list of paths to prepend to the `PATH` environment variable.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub extend_path: Option<Vec<String>>,
+
+        /// Whether to skip the syncing process or not.
+        pub skip_sync: bool,
     }
 );
