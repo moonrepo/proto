@@ -100,9 +100,9 @@ impl<'plugin> PluginContainer<'plugin> {
 
         // Otherwise call the function and cache the result
         let data = self.call(func, input)?;
-        let output: O = self.parse_output(func, data)?;
+        let output: O = self.parse_output(func, &data)?;
 
-        self.func_cache.insert(cache_key, |_| data.to_vec());
+        self.func_cache.insert(cache_key, |_| data);
 
         Ok(output)
     }
@@ -121,7 +121,7 @@ impl<'plugin> PluginContainer<'plugin> {
         I: Debug + Serialize,
         O: Debug + DeserializeOwned,
     {
-        self.parse_output(func, self.call(func, self.format_input(func, input)?)?)
+        self.parse_output(func, &self.call(func, self.format_input(func, input)?)?)
     }
 
     /// Call a function on the plugin with the given input and ignore the output.
@@ -158,7 +158,7 @@ impl<'plugin> PluginContainer<'plugin> {
     }
 
     /// Call a function on the plugin with the given raw input and return the raw output.
-    pub fn call(&self, func: &str, input: impl AsRef<[u8]>) -> miette::Result<&[u8]> {
+    pub fn call(&self, func: &str, input: impl AsRef<[u8]>) -> miette::Result<Vec<u8>> {
         let input = input.as_ref();
 
         trace!(
@@ -168,37 +168,34 @@ impl<'plugin> PluginContainer<'plugin> {
             color::label(func),
         );
 
-        let output = self
-            .plugin
-            .write()
-            .unwrap_or_else(|_| {
-                panic!(
-                    "Unable to acquire write access to `{}` WASM plugin.",
-                    self.id
-                )
-            })
-            .call(func, input)
-            .map_err(|error| {
-                // When in debug mode, include more information around errors.
-                #[cfg(debug_assertions)]
-                {
-                    WarpgateError::PluginCallFailed {
-                        func: func.to_owned(),
-                        error,
-                    }
+        let mut instance = self.plugin.write().unwrap_or_else(|_| {
+            panic!(
+                "Unable to acquire write access to `{}` WASM plugin.",
+                self.id
+            )
+        });
+
+        let output = instance.call(func, input).map_err(|error| {
+            // When in debug mode, include more information around errors.
+            #[cfg(debug_assertions)]
+            {
+                WarpgateError::PluginCallFailed {
+                    func: func.to_owned(),
+                    error,
                 }
-                // When in release mode, errors don't render properly with the
-                // previous variant, so this is a special variant that renders as-is.
-                #[cfg(not(debug_assertions))]
-                {
-                    WarpgateError::PluginCallFailedRelease {
-                        error: error
-                            .to_string()
-                            .replace("\\\\n", "\n")
-                            .replace("\\n", "\n"),
-                    }
+            }
+            // When in release mode, errors don't render properly with the
+            // previous variant, so this is a special variant that renders as-is.
+            #[cfg(not(debug_assertions))]
+            {
+                WarpgateError::PluginCallFailedRelease {
+                    error: error
+                        .to_string()
+                        .replace("\\\\n", "\n")
+                        .replace("\\n", "\n"),
                 }
-            })?;
+            }
+        })?;
 
         trace!(
             plugin = self.id.as_str(),
@@ -207,7 +204,7 @@ impl<'plugin> PluginContainer<'plugin> {
             color::label(func),
         );
 
-        Ok(output)
+        Ok(output.to_vec())
     }
 
     fn format_input<I: Serialize>(&self, func: &str, input: I) -> miette::Result<String> {
