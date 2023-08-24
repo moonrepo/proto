@@ -1,4 +1,4 @@
-use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
+use extism::{CurrentPlugin, Error, Function, InternalExt, UserData, Val, ValType};
 use proto_pdk_api::{ExecCommandInput, ExecCommandOutput, HostLogInput, PluginError};
 use std::path::PathBuf;
 use std::process::Command;
@@ -32,7 +32,7 @@ pub fn host_log(
     _outputs: &mut [Val],
     _user_data: UserData,
 ) -> Result<(), Error> {
-    let input_str = unsafe { (*plugin.memory).get_str(inputs[0].unwrap_i64() as usize)? };
+    let input_str = plugin.memory_read_str(inputs[0].unwrap_i64() as u64)?;
     let input: HostLogInput = serde_json::from_str(input_str)?;
 
     match input {
@@ -62,7 +62,7 @@ fn exec_command(
     outputs: &mut [Val],
     _user_data: UserData,
 ) -> Result<(), Error> {
-    let input_str = unsafe { (*plugin.memory).get_str(inputs[0].unwrap_i64() as usize)? };
+    let input_str = plugin.memory_read_str(inputs[0].unwrap_i64() as u64)?;
     let input: ExecCommandInput = serde_json::from_str(input_str)?;
 
     trace!(
@@ -122,9 +122,9 @@ fn exec_command(
     }
 
     let output_str = serde_json::to_string(&output)?;
-    let ptr = unsafe { (*plugin.memory).alloc_bytes(output_str)? };
+    let ptr = plugin.memory_alloc_bytes(output_str)?;
 
-    outputs[0] = Val::I64(ptr.offset as i64);
+    outputs[0] = Val::I64(ptr as i64);
 
     Ok(())
 }
