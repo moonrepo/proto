@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+#### 💥 Breaking
+
+- WASM API
+  - Requires `extism` >= v0.5.
+  - Requires `extism-pdk` >= v0.3.4.
+
 #### ⚙️ Internal
 
 - Updated Rust to v1.72.

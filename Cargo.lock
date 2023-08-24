@@ -1122,21 +1122,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e0fcd6ad10f959f7f35680feda30bdcb7c1f6e0584e8358b09d735ff2c232f58"
 dependencies = [
  "anyhow",
- "extism-manifest 0.5.0",
+ "extism-manifest",
  "extism-runtime",
  "log",
  "serde_json",
  "uuid",
-]
-
-[[package]]
-name = "extism-manifest"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92701e1645baaad9cc95df4eebca36eaed6ff03af43ec7cf13dea111db48a7d1"
-dependencies = [
- "base64 0.21.0",
- "serde",
 ]
 
 [[package]]
@@ -1151,13 +1141,13 @@ dependencies = [
 
 [[package]]
 name = "extism-pdk"
-version = "0.3.3"
+version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f5839680bf1d93a8f5f9b47d5017130f7888386a3e49e6630f78e1c93560f1e"
+checksum = "09c20fe9cafa572607e22192bf2040849e7456664895bdc589c89387876e2067"
 dependencies = [
  "anyhow",
  "base64 0.21.0",
- "extism-manifest 0.3.0",
+ "extism-manifest",
  "extism-pdk-derive",
  "rmp-serde",
  "serde",
@@ -1183,7 +1173,7 @@ checksum = "2be84fc8659ebaa268478a52f98e7066e4352fc7a90b74ec3aa52e7ac03eecd4"
 dependencies = [
  "anyhow",
  "cbindgen",
- "extism-manifest 0.5.0",
+ "extism-manifest",
  "glob",
  "libc",
  "log",
