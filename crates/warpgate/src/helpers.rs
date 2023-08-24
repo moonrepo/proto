@@ -157,7 +157,7 @@ pub fn from_virtual_path(manifest: &Manifest, path: &Path) -> PathBuf {
 /// for WASI sandboxed runtimes.
 pub fn to_virtual_path(manifest: &Manifest, path: &Path) -> VirtualPath {
     let Some(virtual_paths) = manifest.allowed_paths.as_ref() else {
-        return VirtualPath::Only( path.to_path_buf());
+        return VirtualPath::Only(path.to_path_buf());
     };
 
     for (host_path, guest_path) in virtual_paths {

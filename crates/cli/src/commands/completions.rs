@@ -6,7 +6,7 @@ use starbase::SystemResult;
 
 pub async fn completions(shell: Option<Shell>) -> SystemResult {
     let Some(shell) = shell.or_else(Shell::from_env) else {
-      return Err(ProtoError::UnsupportedShell)?;
+        return Err(ProtoError::UnsupportedShell)?;
     };
 
     let mut app = App::command();
