@@ -2330,7 +2330,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.16.1"
+version = "0.16.2"
 dependencies = [
  "cached",
  "extism",
