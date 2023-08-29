@@ -161,6 +161,13 @@ impl<'plugin> PluginContainer<'plugin> {
     pub fn call(&self, func: &str, input: impl AsRef<[u8]>) -> miette::Result<&[u8]> {
         let input = input.as_ref();
 
+        trace!(
+            plugin = self.id.as_str(),
+            input = %String::from_utf8_lossy(input),
+            "Calling plugin function {}",
+            color::label(func),
+        );
+
         let output = self
             .plugin
             .write()
@@ -195,8 +202,6 @@ impl<'plugin> PluginContainer<'plugin> {
 
         trace!(
             plugin = self.id.as_str(),
-            func,
-            input = %String::from_utf8_lossy(input),
             output = %String::from_utf8_lossy(output),
             "Called plugin function {}",
             color::label(func),

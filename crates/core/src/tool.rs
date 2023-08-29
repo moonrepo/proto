@@ -17,6 +17,7 @@ use proto_pdk_api::*;
 use proto_wasm_plugin::{create_host_functions, HostData};
 use serde::Serialize;
 use starbase_archive::Archiver;
+use starbase_styles::color;
 use starbase_utils::fs;
 use std::collections::{BTreeMap, HashSet};
 use std::env;
@@ -59,6 +60,11 @@ impl Tool {
         let id = id.as_ref();
         let proto = proto.as_ref();
 
+        debug!(
+            "Creating tool {} and instantiating plugin",
+            color::id(id.as_str())
+        );
+
         let host_data = HostData {
             working_dir: proto.cwd.clone(),
         };
@@ -78,6 +84,11 @@ impl Tool {
             proto: proto.to_owned(),
             version: None,
         };
+
+        debug!(
+            "Created tool {} and its WASM runtime",
+            color::id(id.as_str())
+        );
 
         tool.register_tool()?;
 
