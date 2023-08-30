@@ -4,6 +4,8 @@
 
 #### ⚙️ Internal
 
+- Improved file locking logic and scenarios.
+- Improved logging to pinpoint slow operations.
 - Updated Rust to v1.72.
 
 ## 0.15.0

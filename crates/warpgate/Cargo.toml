@@ -18,7 +18,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
 starbase_archive = { workspace = true }
-starbase_utils = { workspace = true, features = ["glob"] }
+starbase_utils = { workspace = true, features = ["fs-lock", "glob"] }
 starbase_styles = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }

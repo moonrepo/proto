@@ -160,10 +160,6 @@ where
 
     let url = url.as_ref();
     let dest_file = dest_file.as_ref();
-    let handle_io_error = |error: io::Error| FsError::Create {
-        path: dest_file.to_path_buf(),
-        error,
-    };
     let handle_http_error = |error: reqwest::Error| ProtoError::Http {
         url: url.to_owned(),
         error,
@@ -174,11 +170,6 @@ where
         url,
         "Downloading file from URL",
     );
-
-    // Ensure parent directories exist
-    if let Some(parent) = dest_file.parent() {
-        fs::create_dir_all(parent)?;
-    }
 
     // Fetch the file from the HTTP source
     let response = reqwest::get(url).await.map_err(handle_http_error)?;
@@ -200,10 +191,10 @@ where
     }
 
     // Write the bytes to our local file
-    let mut contents = io::Cursor::new(response.bytes().await.map_err(handle_http_error)?);
-    let mut file = fs::create_file(dest_file)?;
-
-    io::copy(&mut contents, &mut file).map_err(handle_io_error)?;
+    fs::write_file_with_lock(
+        dest_file,
+        response.bytes().await.map_err(handle_http_error)?,
+    )?;
 
     Ok(())
 }

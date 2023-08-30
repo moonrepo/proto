@@ -65,6 +65,14 @@ fn exec_command(
     let input_str = unsafe { (*plugin.memory).get_str(inputs[0].unwrap_i64() as usize)? };
     let input: ExecCommandInput = serde_json::from_str(input_str)?;
 
+    trace!(
+        target: "proto_wasm::exec_command",
+        command = &input.command,
+        args = ?input.args,
+        env_vars = ?input.env_vars,
+        "Executing command from plugin"
+    );
+
     // let data = user_data.any().unwrap();
     // let data = data.downcast_ref::<HostData>().unwrap();
 
@@ -94,8 +102,6 @@ fn exec_command(
     trace!(
         target: "proto_wasm::exec_command",
         command = &input.command,
-        args = ?input.args,
-        env_vars = ?input.env_vars,
         exit_code = output.exit_code,
         stderr_len = output.stderr.len(),
         stdout_len = output.stdout.len(),
