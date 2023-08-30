@@ -2298,7 +2298,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.15.0"
+version = "0.15.1"
 dependencies = [
  "clap 4.4.1",
  "clap_complete",
@@ -2329,7 +2329,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.16.2"
+version = "0.16.3"
 dependencies = [
  "cached",
  "extism",
@@ -2357,7 +2357,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.6.3"
+version = "0.6.4"
 dependencies = [
  "anyhow",
  "extism-pdk",
@@ -2369,7 +2369,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.6.1"
+version = "0.6.2"
 dependencies = [
  "anyhow",
  "semver",
@@ -2381,7 +2381,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.5.6"
+version = "0.5.7"
 dependencies = [
  "extism",
  "proto_core",
@@ -2392,14 +2392,14 @@ dependencies = [
 
 [[package]]
 name = "proto_schema_plugin"
-version = "0.11.1"
+version = "0.11.2"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "proto_wasm_plugin"
-version = "0.6.1"
+version = "0.6.2"
 dependencies = [
  "extism",
  "proto_pdk_api",
@@ -3717,7 +3717,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "extism",
  "miette",
@@ -3740,7 +3740,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_api"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "serde",
 ]
