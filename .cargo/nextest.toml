@@ -1,5 +1,5 @@
 [profile.ci]
 retries = 1
-test-threads = 1
+test-threads = 2
 fail-fast = false
 slow-timeout = { period = "120s", terminate-after = 4 }
