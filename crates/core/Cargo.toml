@@ -28,7 +28,7 @@ starbase_utils = { workspace = true, features = ["fs-lock"] }
 thiserror = { workspace = true }
 tinytemplate = "1.2.1"
 tracing = { workspace = true }
-url = "2.4.0"
+url = "2.4.1"
 
 [dev-dependencies]
 starbase_sandbox = { workspace = true }
