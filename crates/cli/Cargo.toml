@@ -54,7 +54,7 @@ tokio = { workspace = true }
 tracing = { workspace = true }
 
 [target.'cfg(windows)'.dependencies]
-winreg = "0.50.0"
+winreg = "0.51.0"
 
 [dev-dependencies]
 starbase_sandbox = { workspace = true }

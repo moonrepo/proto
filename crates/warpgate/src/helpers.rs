@@ -3,9 +3,7 @@ use extism::Manifest;
 use miette::IntoDiagnostic;
 use reqwest::Url;
 use starbase_archive::Archiver;
-use starbase_utils::fs::{self, FsError};
-use starbase_utils::glob;
-use std::io;
+use starbase_utils::{fs, glob};
 use std::path::{Path, PathBuf};
 use warpgate_api::VirtualPath;
 
@@ -65,20 +63,15 @@ pub async fn download_url_to_temp(raw_url: &str, temp_dir: &Path) -> miette::Res
     }
 
     // Write the bytes to our temporary file
-    let mut contents = io::Cursor::new(
+    let temp_file = temp_dir.join(filename);
+
+    fs::write_file_with_lock(
+        &temp_file,
         response
             .bytes()
             .await
             .map_err(|error| WarpgateError::Http { error })?,
-    );
-
-    let temp_file = temp_dir.join(filename);
-    let mut file = fs::create_file(&temp_file)?;
-
-    io::copy(&mut contents, &mut file).map_err(|error| FsError::Create {
-        path: temp_file.to_path_buf(),
-        error,
-    })?;
+    )?;
 
     Ok(temp_file)
 }

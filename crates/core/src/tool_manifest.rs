@@ -4,7 +4,6 @@ use crate::{
 };
 use semver::Version;
 use serde::{Deserialize, Serialize};
-use starbase_utils::fs;
 use std::{
     collections::{BTreeMap, HashSet},
     env,
@@ -78,10 +77,6 @@ impl ToolManifest {
     #[tracing::instrument(skip_all)]
     pub fn save(&self) -> miette::Result<()> {
         debug!(file = ?self.path, "Saving manifest");
-
-        if let Some(parent) = self.path.parent() {
-            fs::create_dir_all(parent)?;
-        }
 
         write_json_file_with_lock(&self.path, self)?;
 
