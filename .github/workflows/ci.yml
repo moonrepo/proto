@@ -59,7 +59,7 @@ jobs:
           cargo wasi build -p proto_wasm_test;
           node ../.github/actions/delete-target-files.js;
         if: ${{ runner.os == 'Windows' }}
-      - run: cargo nextest run --workspace --exclude proto_pdk --profile ci
+      - run: cargo nextest run --workspace --exclude proto_pdk --profile ci --config-file ./.cargo/nextest.toml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   run:
