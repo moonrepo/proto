@@ -8,12 +8,13 @@ use futures::future::try_join_all;
 use proto_core::{
     load_tool_from_locator, AliasOrVersion, ProtoEnvironment, ToolsConfig, UserConfig,
 };
-use starbase::SystemResult;
+use starbase::system;
 use starbase_styles::color;
 use std::env;
 use tracing::{debug, info};
 
-pub async fn install_all() -> SystemResult {
+#[system]
+pub async fn install_all() {
     let working_dir = env::current_dir().expect("Missing current directory.");
 
     debug!("Loading tools and plugins from .prototools");
@@ -88,6 +89,4 @@ pub async fn install_all() -> SystemResult {
         })
         .await?;
     }
-
-    Ok(())
 }
