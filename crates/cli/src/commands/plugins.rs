@@ -1,9 +1,10 @@
+use clap::Args;
 use miette::IntoDiagnostic;
 use proto_core::{
     load_tool_from_locator, Id, PluginLocator, ProtoEnvironment, ToolsConfig, UserConfig,
 };
 use serde::Serialize;
-use starbase::SystemResult;
+use starbase::system;
 use starbase_styles::color;
 use starbase_utils::json;
 use std::collections::HashMap;
@@ -25,7 +26,14 @@ pub struct PluginItem {
     version: Option<String>,
 }
 
-pub async fn plugins(json: bool) -> SystemResult {
+#[derive(Args, Clone, Debug)]
+pub struct PluginsArgs {
+    #[arg(long, help = "Print the list in JSON format")]
+    json: bool,
+}
+
+#[system]
+pub async fn plugins(args: ArgsRef<PluginsArgs>) {
     let proto = ProtoEnvironment::new()?;
     let user_config = UserConfig::load()?;
 
@@ -53,7 +61,7 @@ pub async fn plugins(json: bool) -> SystemResult {
 
     items.sort_by(|a, d| a.id.cmp(&d.id));
 
-    if json {
+    if args.json {
         println!("{}", json::to_string_pretty(&items).into_diagnostic()?);
 
         return Ok(());
@@ -91,6 +99,4 @@ pub async fn plugins(json: bool) -> SystemResult {
 
         println!();
     }
-
-    Ok(())
 }

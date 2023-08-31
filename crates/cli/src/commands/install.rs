@@ -1,21 +1,33 @@
 use crate::helpers::{create_progress_bar, disable_progress_bars};
 use crate::shell;
+use clap::Args;
 use miette::IntoDiagnostic;
 use proto_core::{load_tool, Id, Tool, VersionType};
 use proto_pdk_api::{InstallHook, SyncShellProfileInput, SyncShellProfileOutput};
-use starbase::SystemResult;
+use starbase::{system, SystemResult};
 use starbase_styles::color;
 use std::env;
 use tracing::{debug, info};
 
-pub async fn install(
-    tool_id: Id,
-    version: Option<VersionType>,
-    pin_version: bool,
-    passthrough: Vec<String>,
-) -> SystemResult {
-    let version = version.unwrap_or_default();
-    let mut tool = load_tool(&tool_id).await?;
+#[derive(Args, Clone, Debug)]
+pub struct InstallArgs {
+    #[arg(required = true, help = "ID of tool")]
+    pub id: Id,
+
+    #[arg(default_value = "latest", help = "Version or alias of tool")]
+    pub semver: Option<VersionType>,
+
+    #[arg(long, help = "Pin version as the global default")]
+    pub pin: bool,
+
+    // Passthrough args (after --)
+    #[arg(last = true, help = "Unique arguments to pass to each tool")]
+    pub passthrough: Vec<String>,
+}
+
+pub async fn internal_install(args: InstallArgs) -> SystemResult {
+    let version = args.semver.clone().unwrap_or_default();
+    let mut tool = load_tool(&args.id).await?;
 
     if tool.is_setup(&version).await? {
         info!(
@@ -39,15 +51,15 @@ pub async fn install(
         resolved_version.to_string(),
     );
 
-    env::set_var("PROTO_INSTALL", tool_id.to_string());
+    env::set_var("PROTO_INSTALL", args.id.to_string());
 
     // Run before hook
     tool.run_hook(
         "pre_install",
         InstallHook {
             context: tool.create_context()?,
-            passthrough_args: passthrough.clone(),
-            pinned: pin_version,
+            passthrough_args: args.passthrough.clone(),
+            pinned: args.pin,
         },
     )?;
 
@@ -63,7 +75,7 @@ pub async fn install(
     tool.setup(&version).await?;
     tool.cleanup().await?;
 
-    if pin_version {
+    if args.pin {
         tool.manifest.default_version = Some(tool.get_resolved_version());
         tool.manifest.save()?;
     }
@@ -81,13 +93,13 @@ pub async fn install(
         "post_install",
         InstallHook {
             context: tool.create_context()?,
-            passthrough_args: passthrough.clone(),
-            pinned: pin_version,
+            passthrough_args: args.passthrough.clone(),
+            pinned: args.pin,
         },
     )?;
 
     // Sync shell profile
-    update_shell(tool, passthrough)?;
+    update_shell(tool, args.passthrough.clone())?;
 
     Ok(())
 }
@@ -141,4 +153,9 @@ fn update_shell(tool: Tool, passthrough_args: Vec<String>) -> miette::Result<()>
     }
 
     Ok(())
+}
+
+#[system]
+pub async fn install(args: ArgsRef<InstallArgs>) {
+    internal_install(args.to_owned()).await?;
 }

@@ -1,11 +1,19 @@
+use clap::Args;
 use proto_core::{load_tool, Id, VersionType};
-use starbase::SystemResult;
+use starbase::system;
 use std::process;
 use tracing::debug;
 
+#[derive(Args, Clone, Debug)]
+pub struct ListRemoteArgs {
+    #[arg(required = true, help = "ID of tool")]
+    id: Id,
+}
+
 // TODO: only show LTS, dont show pre-releases?
-pub async fn list_remote(tool_id: Id) -> SystemResult {
-    let tool = load_tool(&tool_id).await?;
+#[system]
+pub async fn list_remote(args: ArgsRef<ListRemoteArgs>) {
+    let tool = load_tool(&args.id).await?;
 
     debug!("Loading versions");
 
@@ -27,6 +35,4 @@ pub async fn list_remote(tool_id: Id) -> SystemResult {
             .collect::<Vec<_>>()
             .join("\n")
     );
-
-    Ok(())
 }

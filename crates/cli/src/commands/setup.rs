@@ -1,13 +1,24 @@
 use crate::shell::detect_shell;
+use clap::Args;
 use clap_complete::Shell;
 use proto_core::ProtoEnvironment;
-use starbase::SystemResult;
+use starbase::system;
 use std::env;
 use std::path::PathBuf;
 use tracing::debug;
 
-pub async fn setup(shell: Option<Shell>, print_profile: bool) -> SystemResult {
-    let shell = detect_shell(shell);
+#[derive(Args, Clone, Debug)]
+pub struct SetupArgs {
+    #[arg(long, help = "Shell to setup for")]
+    shell: Option<Shell>,
+
+    #[arg(long, help = "Return the profile path if setup")]
+    profile: bool,
+}
+
+#[system]
+pub async fn setup(args: ArgsRef<SetupArgs>) {
+    let shell = detect_shell(args.shell);
     let proto = ProtoEnvironment::new()?;
 
     let paths = env::var("PATH").expect("Missing PATH!");
@@ -19,9 +30,7 @@ pub async fn setup(shell: Option<Shell>, print_profile: bool) -> SystemResult {
         return Ok(());
     }
 
-    do_setup(shell, proto.bin_dir, print_profile)?;
-
-    Ok(())
+    do_setup(shell, proto.bin_dir, args.profile)?;
 }
 
 // For other shells, write environment variable(s) to an applicable profile!

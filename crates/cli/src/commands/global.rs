@@ -1,16 +1,27 @@
+use clap::Args;
 use proto_core::{load_tool, AliasOrVersion, Id};
-use starbase::SystemResult;
+use starbase::system;
 use starbase_styles::color;
 use tracing::{debug, info};
 
-pub async fn global(tool_id: Id, version: AliasOrVersion) -> SystemResult {
-    let mut tool = load_tool(&tool_id).await?;
+#[derive(Args, Clone, Debug)]
+pub struct GlobalArgs {
+    #[arg(required = true, help = "ID of tool")]
+    id: Id,
 
-    tool.manifest.default_version = Some(version.clone());
+    #[arg(required = true, help = "Version or alias of tool")]
+    semver: AliasOrVersion,
+}
+
+#[system]
+pub async fn global(args: ArgsRef<GlobalArgs>) -> SystemResult {
+    let mut tool = load_tool(&args.id).await?;
+
+    tool.manifest.default_version = Some(args.semver.clone());
     tool.manifest.save()?;
 
     debug!(
-        version = version.to_string(),
+        version = args.semver.to_string(),
         manifest = ?tool.manifest.path,
         "Wrote the global version",
     );
@@ -18,8 +29,6 @@ pub async fn global(tool_id: Id, version: AliasOrVersion) -> SystemResult {
     info!(
         "Set the global {} version to {}",
         tool.get_name(),
-        color::hash(version.to_string())
+        color::hash(args.semver.to_string())
     );
-
-    Ok(())
 }

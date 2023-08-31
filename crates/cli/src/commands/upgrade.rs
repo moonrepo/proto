@@ -2,7 +2,7 @@ use crate::helpers::download_to_temp_with_progress_bar;
 use miette::IntoDiagnostic;
 use proto_core::{get_bin_dir, get_temp_dir, is_offline, ProtoError};
 use semver::Version;
-use starbase::SystemResult;
+use starbase::system;
 use starbase_archive::Archiver;
 use starbase_styles::color;
 use starbase_utils::fs;
@@ -25,7 +25,8 @@ async fn fetch_version() -> miette::Result<String> {
     Ok(version)
 }
 
-pub async fn upgrade() -> SystemResult {
+#[system]
+pub async fn upgrade() {
     if is_offline() {
         return Err(ProtoError::Message(
             "Upgrading proto requires an internet connection!".into(),

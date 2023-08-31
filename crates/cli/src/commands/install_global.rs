@@ -1,12 +1,23 @@
 use crate::helpers::create_progress_bar;
+use clap::Args;
 use proto_core::{load_tool, Id};
-use starbase::SystemResult;
+use starbase::system;
 use starbase_styles::color;
 use std::{env, process};
 use tracing::{debug, info};
 
-pub async fn install_global(tool_id: Id, dependencies: Vec<String>) -> SystemResult {
-    let mut tool = load_tool(&tool_id).await?;
+#[derive(Args, Clone, Debug)]
+pub struct InstallGlobalArgs {
+    #[arg(required = true, help = "ID of tool")]
+    id: Id,
+
+    #[arg(required = true, help = "Dependencies and optional version to install")]
+    dependencies: Vec<String>,
+}
+
+#[system]
+pub async fn install_global(args: ArgsRef<InstallGlobalArgs>) {
+    let mut tool = load_tool(&args.id).await?;
     tool.locate_globals_dir().await?;
 
     let globals_dir = tool.get_globals_bin_dir();
@@ -20,10 +31,10 @@ pub async fn install_global(tool_id: Id, dependencies: Vec<String>) -> SystemRes
         process::exit(1);
     }
 
-    for dependency in dependencies {
+    for dependency in &args.dependencies {
         env::set_var(
             "PROTO_INSTALL_GLOBAL",
-            format!("{}:{}", tool_id, dependency),
+            format!("{}:{}", args.id, dependency),
         );
 
         log_list.push(color::id(&dependency));
@@ -45,6 +56,4 @@ pub async fn install_global(tool_id: Id, dependencies: Vec<String>) -> SystemRes
         log_list.join(", "),
         color::path(globals_dir.as_ref().unwrap()),
     );
-
-    Ok(())
 }
