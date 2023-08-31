@@ -32,7 +32,7 @@ pub async fn uninstall_global(args: ArgsRef<UninstallGlobalArgs>) {
     }
 
     for dependency in &args.dependencies {
-        log_list.push(color::id(&dependency));
+        log_list.push(color::id(dependency));
 
         debug!(
             tool = tool.id.as_str(),
@@ -45,7 +45,7 @@ pub async fn uninstall_global(args: ArgsRef<UninstallGlobalArgs>) {
             tool.get_name()
         ));
 
-        tool.uninstall_global(&dependency).await?;
+        tool.uninstall_global(dependency).await?;
 
         pb.finish_and_clear();
     }

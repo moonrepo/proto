@@ -37,7 +37,7 @@ pub async fn install_global(args: ArgsRef<InstallGlobalArgs>) {
             format!("{}:{}", args.id, dependency),
         );
 
-        log_list.push(color::id(&dependency));
+        log_list.push(color::id(dependency));
 
         debug!(
             tool = tool.id.as_str(),
@@ -46,7 +46,7 @@ pub async fn install_global(args: ArgsRef<InstallGlobalArgs>) {
 
         let pb = create_progress_bar(format!("Installing {} for {}", dependency, tool.get_name()));
 
-        tool.install_global(&dependency).await?;
+        tool.install_global(dependency).await?;
 
         pb.finish_and_clear();
     }

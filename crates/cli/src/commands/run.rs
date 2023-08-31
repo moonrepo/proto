@@ -81,7 +81,7 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
     let mut bin_path = tool.get_bin_path()?.to_path_buf();
 
     if let Some(alt_bin) = &args.bin {
-        let alt_bin_path = tool_dir.join(&alt_bin);
+        let alt_bin_path = tool_dir.join(alt_bin);
 
         debug!(bin = alt_bin, path = ?alt_bin_path, "Received an alternate binary to run with");
 
@@ -90,7 +90,7 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
         } else {
             return Err(ProtoError::Message(format!(
                 "Alternate binary {} does not exist.",
-                color::file(&alt_bin)
+                color::file(alt_bin)
             ))
             .into());
         }
