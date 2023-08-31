@@ -2341,7 +2341,6 @@ dependencies = [
  "starbase_sandbox",
  "starbase_styles",
  "starbase_utils",
- "strum",
  "tokio",
  "tracing",
  "winreg 0.51.0",
@@ -2768,12 +2767,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustversion"
-version = "1.0.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ffc183a10b4478d04cbbbfc96d0873219d962dd5accaff2ffbd4ceb7df837f4"
-
-[[package]]
 name = "ryu"
 version = "1.0.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3010,9 +3003,9 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "starbase"
-version = "0.2.1"
+version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a2db1cd6d96f39ceb8dc7d7256c783ffec60198167f086aadbd96bf146f5fca"
+checksum = "328b77f92b09f8788a894d063cefd3f7876f0bef776baec6946bdd2e75f24117"
 dependencies = [
  "async-trait",
  "chrono",
@@ -3062,9 +3055,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_macros"
-version = "0.2.1"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6bb6e2768648b90e29b6575f789a9adffb36b60c52d3242b36974e76a756aa30"
+checksum = "cd2a77f76022474557803637dbefe72e38fa196564e9a1daf3c695c06b1ee222"
 dependencies = [
  "darling 0.20.3",
  "proc-macro2",
@@ -3127,28 +3120,6 @@ name = "strsim"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
-
-[[package]]
-name = "strum"
-version = "0.25.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "290d54ea6f91c969195bdbcd7442c8c2a2ba87da8bf60a7ee86a235d4bc1e125"
-dependencies = [
- "strum_macros",
-]
-
-[[package]]
-name = "strum_macros"
-version = "0.25.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6069ca09d878a33f883cc06aaa9718ede171841d3832450354410b718b097232"
-dependencies = [
- "heck",
- "proc-macro2",
- "quote",
- "rustversion",
- "syn 2.0.28",
-]
 
 [[package]]
 name = "supports-color"
