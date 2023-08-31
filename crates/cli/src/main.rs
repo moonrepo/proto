@@ -8,7 +8,7 @@ use clap::Parser;
 use starbase::{tracing::TracingOptions, App, MainResult};
 use starbase_utils::string_vec;
 use std::env;
-use tracing::metadata::LevelFilter;
+use tracing::{debug, metadata::LevelFilter};
 
 #[tokio::main]
 async fn main() -> MainResult {
@@ -35,6 +35,8 @@ async fn main() -> MainResult {
         test_env: "PROTO_TEST".into(),
         ..TracingOptions::default()
     });
+
+    debug!("Running proto v{}", env!("CARGO_PKG_VERSION"));
 
     let mut app = App::new();
 

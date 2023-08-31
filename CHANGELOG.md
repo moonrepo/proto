@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+#### 🚀 Updates
+
+- We now include the current proto version in logs.
+
 ## 0.15.1
 
 #### 💥 Breaking
