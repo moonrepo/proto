@@ -13,7 +13,7 @@ pub struct RemovePluginArgs {
 
     #[arg(
         long,
-        help = "Add to the global user config instead of local .prototools"
+        help = "Remove from the global user config instead of local .prototools"
     )]
     global: bool,
 }

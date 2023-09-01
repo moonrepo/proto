@@ -1,12 +1,10 @@
-use proto_core::UserConfig;
+use proto_core::{UserConfig, USER_CONFIG_NAME};
 use starbase_sandbox::create_empty_sandbox;
 use std::collections::BTreeMap;
 use std::env;
 use warpgate::{GitHubLocator, Id, PluginLocator};
 
 mod user_config {
-    use proto_core::USER_CONFIG_NAME;
-
     use super::*;
 
     #[test]
