@@ -2,21 +2,23 @@
 
 ## Unreleased
 
+#### 💥 Breaking
+
+- WASM API
+  - Requires `extism` >= v0.5.
+  - Requires `extism-pdk` >= v0.3.4.
+
 #### 🚀 Updates
 
 - We now include the current proto version in logs.
+- Added a `proto add-plugin` command for adding a plugin to a config file.
+- Added a `proto remove-plugin` command for removing a plugin from a config file.
 
 #### 🐞 Fixes
 
 - Fixed some commands where their shorthand alias was not being registered correctly.
 
 ## 0.15.1
-
-#### 💥 Breaking
-
-- WASM API
-  - Requires `extism` >= v0.5.
-  - Requires `extism-pdk` >= v0.3.4.
 
 #### ⚙️ Internal
 
