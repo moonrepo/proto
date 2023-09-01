@@ -1,12 +1,23 @@
+use clap::Args;
 use dialoguer::Confirm;
 use proto_core::{load_tool, AliasOrVersion, Tool, ToolsConfig};
 use semver::Version;
-use starbase::{diagnostics::IntoDiagnostic, SystemResult};
+use starbase::diagnostics::IntoDiagnostic;
+use starbase::{system, SystemResult};
 use starbase_styles::color;
 use starbase_utils::fs;
 use std::collections::HashSet;
 use std::time::SystemTime;
 use tracing::{debug, info};
+
+#[derive(Args, Clone, Debug)]
+pub struct CleanArgs {
+    #[arg(long, help = "Clean tools older than the specified number of days")]
+    pub days: Option<u8>,
+
+    #[arg(long, help = "Avoid and force confirm prompts")]
+    pub yes: bool,
+}
 
 fn is_older_than_days(now: u128, other: u128, days: u8) -> bool {
     (now - other) > ((days as u128) * 24 * 60 * 60 * 1000)
@@ -121,8 +132,8 @@ pub async fn do_clean(mut tool: Tool, now: u128, days: u8, yes: bool) -> miette:
     Ok(clean_count)
 }
 
-pub async fn clean(days: Option<u8>, yes: bool) -> SystemResult {
-    let days = days.unwrap_or(30);
+pub async fn internal_clean(args: &CleanArgs) -> SystemResult {
+    let days = args.days.unwrap_or(30);
     let now = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap()
@@ -136,7 +147,7 @@ pub async fn clean(days: Option<u8>, yes: bool) -> SystemResult {
 
     if !tools_config.plugins.is_empty() {
         for id in tools_config.plugins.keys() {
-            clean_count += do_clean(load_tool(id).await?, now, days, yes).await?;
+            clean_count += do_clean(load_tool(id).await?, now, days, args.yes).await?;
         }
     }
 
@@ -145,4 +156,9 @@ pub async fn clean(days: Option<u8>, yes: bool) -> SystemResult {
     }
 
     Ok(())
+}
+
+#[system]
+pub async fn clean(args: ArgsRef<CleanArgs>) {
+    internal_clean(args).await?;
 }

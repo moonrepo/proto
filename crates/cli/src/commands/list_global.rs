@@ -1,12 +1,21 @@
+use clap::Args;
 use proto_core::{load_tool, Id};
-use starbase::{diagnostics::IntoDiagnostic, SystemResult};
+use starbase::diagnostics::IntoDiagnostic;
+use starbase::system;
 use starbase_styles::color;
 use starbase_utils::fs;
 use std::process;
 use tracing::debug;
 
-pub async fn list_global(tool_id: Id) -> SystemResult {
-    let mut tool = load_tool(&tool_id).await?;
+#[derive(Args, Clone, Debug)]
+pub struct ListGlobalArgs {
+    #[arg(required = true, help = "ID of tool")]
+    id: Id,
+}
+
+#[system]
+pub async fn list_global(args: ArgsRef<ListGlobalArgs>) {
+    let mut tool = load_tool(&args.id).await?;
     tool.locate_globals_dir().await?;
 
     let Some(globals_dir) = tool.get_globals_bin_dir() else {
@@ -52,6 +61,4 @@ pub async fn list_global(tool_id: Id) -> SystemResult {
     bins.sort();
 
     println!("{}", bins.join("\n"));
-
-    Ok(())
 }

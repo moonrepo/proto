@@ -1,12 +1,23 @@
 use crate::helpers::create_progress_bar;
+use clap::Args;
 use proto_core::{load_tool, Id};
-use starbase::SystemResult;
+use starbase::system;
 use starbase_styles::color;
 use std::process;
 use tracing::{debug, info};
 
-pub async fn uninstall_global(tool_id: Id, dependencies: Vec<String>) -> SystemResult {
-    let mut tool = load_tool(&tool_id).await?;
+#[derive(Args, Clone, Debug)]
+pub struct UninstallGlobalArgs {
+    #[arg(required = true, help = "ID of tool")]
+    id: Id,
+
+    #[arg(required = true, help = "Dependencies to uninstall")]
+    dependencies: Vec<String>,
+}
+
+#[system]
+pub async fn uninstall_global(args: ArgsRef<UninstallGlobalArgs>) {
+    let mut tool = load_tool(&args.id).await?;
     tool.locate_globals_dir().await?;
 
     let globals_dir = tool.get_globals_bin_dir();
@@ -20,8 +31,8 @@ pub async fn uninstall_global(tool_id: Id, dependencies: Vec<String>) -> SystemR
         process::exit(1);
     }
 
-    for dependency in dependencies {
-        log_list.push(color::id(&dependency));
+    for dependency in &args.dependencies {
+        log_list.push(color::id(dependency));
 
         debug!(
             tool = tool.id.as_str(),
@@ -34,7 +45,7 @@ pub async fn uninstall_global(tool_id: Id, dependencies: Vec<String>) -> SystemR
             tool.get_name()
         ));
 
-        tool.uninstall_global(&dependency).await?;
+        tool.uninstall_global(dependency).await?;
 
         pb.finish_and_clear();
     }
@@ -44,6 +55,4 @@ pub async fn uninstall_global(tool_id: Id, dependencies: Vec<String>) -> SystemR
         log_list.join(", "),
         color::path(globals_dir.as_ref().unwrap()),
     );
-
-    Ok(())
 }
