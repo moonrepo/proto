@@ -6,6 +6,10 @@
 
 - We now include the current proto version in logs.
 
+#### 🐞 Fixes
+
+- Fixed some commands where their shorthand alias was not being registered correctly.
+
 ## 0.15.1
 
 #### 💥 Breaking

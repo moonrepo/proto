@@ -1,7 +1,7 @@
 use crate::commands::{
     AddPluginArgs, AliasArgs, BinArgs, CleanArgs, CompletionsArgs, GlobalArgs, InstallArgs,
-    InstallGlobalArgs, ListArgs, ListGlobalArgs, ListRemoteArgs, LocalArgs, PluginsArgs, RunArgs,
-    SetupArgs, UnaliasArgs, UninstallArgs, UninstallGlobalArgs,
+    InstallGlobalArgs, ListArgs, ListGlobalArgs, ListRemoteArgs, LocalArgs, PluginsArgs,
+    RemovePluginArgs, RunArgs, SetupArgs, UnaliasArgs, UninstallArgs, UninstallGlobalArgs,
 };
 use clap::{Parser, Subcommand, ValueEnum};
 use std::fmt::{Display, Error, Formatter};
@@ -65,15 +65,15 @@ pub struct App {
 #[derive(Clone, Debug, Subcommand)]
 pub enum Commands {
     #[command(
-        name = "ap",
+        alias = "ap",
         name = "add-plugin",
-        about = "Add a plugin to utilize.",
-        long_about = "Add a plugin to utilize, either by inserting into the local .prototools config, or global ~/.proto/config.toml config."
+        about = "Add a plugin.",
+        long_about = "Add a plugin to the local .prototools config, or global ~/.proto/config.toml config."
     )]
     AddPlugin(AddPluginArgs),
 
     #[command(
-        name = "a",
+        alias = "a",
         name = "alias",
         about = "Add an alias to a tool.",
         long_about = "Add an alias to a tool, that maps to a specific version, or another alias."
@@ -123,24 +123,24 @@ pub enum Commands {
     Global(GlobalArgs),
 
     #[command(
-        name = "list",
         alias = "ls",
+        name = "list",
         about = "List installed versions.",
         long_about = "List installed versions by scanning the ~/.proto/tools directory for possible versions."
     )]
     List(ListArgs),
 
     #[command(
-        name = "list-global",
         alias = "lsg",
+        name = "list-global",
         about = "List installed globals.",
         long_about = "List installed globals by scanning the global bins installation directory. Will return the canonical source path."
     )]
     ListGlobal(ListGlobalArgs),
 
     #[command(
-        name = "list-remote",
         alias = "lsr",
+        name = "list-remote",
         about = "List available versions.",
         long_about = "List available versions by resolving versions from the tool's remote release manifest."
     )]
@@ -157,6 +157,14 @@ pub enum Commands {
     Plugins(PluginsArgs),
 
     #[command(
+        alias = "rp",
+        name = "remove-plugin",
+        about = "Remove a plugin.",
+        long_about = "Remove a plugin from the local .prototools config, or global ~/.proto/config.toml config."
+    )]
+    RemovePlugin(RemovePluginArgs),
+
+    #[command(
         alias = "r",
         name = "run",
         about = "Run a tool after detecting a version from the environment.",
@@ -167,11 +175,11 @@ pub enum Commands {
     #[command(name = "setup", about = "Setup proto for your current shell.")]
     Setup(SetupArgs),
 
-    #[command(name = "ua", name = "unalias", about = "Remove an alias from a tool.")]
+    #[command(alias = "ua", name = "unalias", about = "Remove an alias from a tool.")]
     Unalias(UnaliasArgs),
 
     #[command(
-        name = "ui",
+        alias = "ui",
         name = "uninstall",
         about = "Uninstall a tool.",
         long_about = "Uninstall a tool and remove the installation from ~/.proto/tools."
