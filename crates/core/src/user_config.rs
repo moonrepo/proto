@@ -1,21 +1,24 @@
 use crate::helpers::get_root;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use starbase_utils::toml;
 use std::collections::BTreeMap;
 use std::env;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use tracing::debug;
 use warpgate::{Id, PluginLocator};
 
 pub const USER_CONFIG_NAME: &str = "config.toml";
 
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
 #[serde(default, rename_all = "kebab-case")]
 pub struct UserConfig {
     pub auto_clean: bool,
     pub auto_install: bool,
     pub node_intercept_globals: bool,
     pub plugins: BTreeMap<Id, PluginLocator>,
+
+    #[serde(skip)]
+    pub path: PathBuf,
 }
 
 impl UserConfig {
@@ -24,7 +27,10 @@ impl UserConfig {
         let path = dir.join(USER_CONFIG_NAME);
 
         if !path.exists() {
-            return Ok(UserConfig::default());
+            return Ok(UserConfig {
+                path,
+                ..UserConfig::default()
+            });
         }
 
         debug!(file = ?path, "Loading {}", USER_CONFIG_NAME);
@@ -42,12 +48,20 @@ impl UserConfig {
             }
         }
 
+        config.path = path;
+
         Ok(config)
     }
 
     #[tracing::instrument(skip_all)]
     pub fn load() -> miette::Result<Self> {
         Self::load_from(get_root()?)
+    }
+
+    pub fn save(&self) -> miette::Result<()> {
+        toml::write_file(&self.path, self, true)?;
+
+        Ok(())
     }
 }
 
@@ -58,6 +72,7 @@ impl Default for UserConfig {
             auto_install: from_var("PROTO_AUTO_INSTALL", false),
             node_intercept_globals: from_var("PROTO_NODE_INTERCEPT_GLOBALS", true),
             plugins: BTreeMap::default(),
+            path: PathBuf::new(),
         }
     }
 }
