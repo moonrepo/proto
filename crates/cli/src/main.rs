@@ -41,6 +41,7 @@ async fn main() -> MainResult {
     let mut app = App::new();
 
     match cli.command {
+        Commands::AddPlugin(args) => app.execute_with_args(commands::add_plugin, args),
         Commands::Alias(args) => app.execute_with_args(commands::alias, args),
         Commands::Bin(args) => app.execute_with_args(commands::bin, args),
         Commands::Clean(args) => app.execute_with_args(commands::clean, args),
@@ -53,6 +54,7 @@ async fn main() -> MainResult {
         Commands::ListRemote(args) => app.execute_with_args(commands::list_remote, args),
         Commands::Local(args) => app.execute_with_args(commands::local, args),
         Commands::Plugins(args) => app.execute_with_args(commands::plugins, args),
+        Commands::RemovePlugin(args) => app.execute_with_args(commands::remove_plugin, args),
         Commands::Run(args) => app.execute_with_args(commands::run, args),
         Commands::Setup(args) => app.execute_with_args(commands::setup, args),
         Commands::Unalias(args) => app.execute_with_args(commands::unalias, args),

@@ -1,3 +1,4 @@
+mod add_plugin;
 mod alias;
 mod bin;
 mod clean;
@@ -11,6 +12,7 @@ mod list_global;
 mod list_remote;
 mod local;
 mod plugins;
+mod remove_plugin;
 mod run;
 mod setup;
 mod unalias;
@@ -18,6 +20,7 @@ mod uninstall;
 mod uninstall_global;
 mod upgrade;
 
+pub use add_plugin::*;
 pub use alias::*;
 pub use bin::*;
 pub use clean::*;
@@ -31,6 +34,7 @@ pub use list_global::*;
 pub use list_remote::*;
 pub use local::*;
 pub use plugins::*;
+pub use remove_plugin::*;
 pub use run::*;
 pub use setup::*;
 pub use unalias::*;
