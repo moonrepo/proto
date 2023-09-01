@@ -75,7 +75,7 @@ pub fn create_schema_plugin(id: &str, sandbox: &Path, schema: PathBuf) -> WasmTe
 fn internal_create_plugin(
     id: &str,
     sandbox: &Path,
-    mut config: HashMap<String, String>,
+    config: HashMap<String, String>,
 ) -> WasmTestWrapper {
     let id = Id::new(id).unwrap();
     let proto = ProtoEnvironment::new_testing(sandbox);
@@ -84,7 +84,7 @@ fn internal_create_plugin(
     let mut manifest =
         Tool::create_plugin_manifest(&proto, Wasm::file(find_wasm_file(sandbox))).unwrap();
 
-    inject_default_manifest_config(&id, &proto, &user_config, &manifest, &mut config).unwrap();
+    inject_default_manifest_config(&id, &proto, &user_config, &mut manifest).unwrap();
 
     manifest.config.extend(config);
 

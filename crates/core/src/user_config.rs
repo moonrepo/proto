@@ -1,6 +1,7 @@
 use crate::helpers::get_root;
+use miette::IntoDiagnostic;
 use serde::{Deserialize, Serialize};
-use starbase_utils::toml;
+use starbase_utils::{fs, toml};
 use std::collections::BTreeMap;
 use std::env;
 use std::path::{Path, PathBuf};
@@ -35,7 +36,8 @@ impl UserConfig {
 
         debug!(file = ?path, "Loading {}", USER_CONFIG_NAME);
 
-        let mut config: UserConfig = toml::read_file(&path)?;
+        let contents = fs::read_file_with_lock(&path)?;
+        let mut config: UserConfig = toml::from_str(&contents).into_diagnostic()?;
 
         // Update plugin file paths to be absolute
         for locator in config.plugins.values_mut() {
@@ -59,7 +61,7 @@ impl UserConfig {
     }
 
     pub fn save(&self) -> miette::Result<()> {
-        toml::write_file(&self.path, self, true)?;
+        fs::write_file_with_lock(&self.path, toml::to_string_pretty(self).into_diagnostic()?)?;
 
         Ok(())
     }

@@ -136,7 +136,7 @@ fn create_shim(
         return Ok(shim_path);
     }
 
-    fs::write_file(&shim_path, build_shim_file(context, &shim_path, global)?)?;
+    fs::write_file_with_lock(&shim_path, build_shim_file(context, &shim_path, global)?)?;
     fs::update_perms(&shim_path, None)?;
 
     Ok(shim_path)
