@@ -1,6 +1,6 @@
 use clap::Args;
 use dialoguer::Confirm;
-use proto_core::{get_plugins_dir, load_tool, AliasOrVersion, Tool, ToolsConfig};
+use proto_core::{get_plugins_dir, load_tool, AliasOrVersion, Id, Tool, ToolsConfig};
 use semver::Version;
 use starbase::diagnostics::IntoDiagnostic;
 use starbase::{system, SystemResult};
@@ -10,10 +10,20 @@ use std::collections::HashSet;
 use std::time::SystemTime;
 use tracing::{debug, info};
 
-#[derive(Args, Clone, Debug)]
+#[derive(Args, Clone, Debug, Default)]
 pub struct CleanArgs {
     #[arg(long, help = "Clean tools older than the specified number of days")]
     pub days: Option<u8>,
+
+    #[arg(
+        long,
+        help = "Purge and delete the installed tool by ID",
+        group = "purge"
+    )]
+    pub purge: Option<Id>,
+
+    #[arg(long, help = "Purge and delete all installed plugins", group = "purge")]
+    pub purge_plugins: bool,
 
     #[arg(long, help = "Avoid and force confirm prompts")]
     pub yes: bool,
@@ -201,5 +211,48 @@ pub async fn internal_clean(args: &CleanArgs) -> SystemResult {
 
 #[system]
 pub async fn clean(args: ArgsRef<CleanArgs>) {
+    if let Some(id) = &args.purge {
+        let tool = load_tool(id).await?;
+        let inventory_dir = tool.get_inventory_dir();
+
+        if args.yes
+            || Confirm::new()
+                .with_prompt(format!(
+                    "Purge all of {} at {}?",
+                    tool.get_name(),
+                    color::path(&inventory_dir)
+                ))
+                .interact()
+                .into_diagnostic()?
+        {
+            fs::remove_dir_all(inventory_dir)?;
+
+            info!("Removed {}", tool.get_name());
+        }
+
+        return Ok(());
+    }
+
+    if args.purge_plugins {
+        let plugins_dir = get_plugins_dir()?;
+
+        if args.yes
+            || Confirm::new()
+                .with_prompt(format!(
+                    "Purge all plugins in {}?",
+                    color::path(&plugins_dir)
+                ))
+                .interact()
+                .into_diagnostic()?
+        {
+            fs::remove_dir_all(&plugins_dir)?;
+            fs::create_dir_all(plugins_dir)?;
+
+            info!("Removed all installed plugins");
+        }
+
+        return Ok(());
+    }
+
     internal_clean(args).await?;
 }
