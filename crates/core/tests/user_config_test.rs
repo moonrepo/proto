@@ -5,6 +5,8 @@ use std::env;
 use warpgate::{GitHubLocator, Id, PluginLocator};
 
 mod user_config {
+    use proto_core::USER_CONFIG_NAME;
+
     use super::*;
 
     #[test]
@@ -18,7 +20,8 @@ mod user_config {
                 auto_clean: false,
                 auto_install: false,
                 node_intercept_globals: true,
-                plugins: BTreeMap::default()
+                plugins: BTreeMap::default(),
+                path: sandbox.path().join(USER_CONFIG_NAME),
             }
         );
     }
@@ -43,7 +46,8 @@ node-intercept-globals = false
                 auto_clean: true,
                 auto_install: true,
                 node_intercept_globals: false,
-                plugins: BTreeMap::default()
+                plugins: BTreeMap::default(),
+                path: sandbox.path().join(USER_CONFIG_NAME),
             }
         );
     }
@@ -65,7 +69,8 @@ node-intercept-globals = false
                 auto_clean: true,
                 auto_install: true,
                 node_intercept_globals: false,
-                plugins: BTreeMap::default()
+                plugins: BTreeMap::default(),
+                path: sandbox.path().join(USER_CONFIG_NAME),
             }
         );
 

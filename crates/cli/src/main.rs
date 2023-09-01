@@ -41,6 +41,7 @@ async fn main() -> MainResult {
     let mut app = App::new();
 
     match cli.command {
+        Commands::AddPlugin(args) => app.execute_with_args(commands::add_plugin, args),
         Commands::Alias(args) => app.execute_with_args(commands::alias, args),
         Commands::Bin(args) => app.execute_with_args(commands::bin, args),
         Commands::Clean(args) => app.execute_with_args(commands::clean, args),

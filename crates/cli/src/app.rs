@@ -1,7 +1,7 @@
 use crate::commands::{
-    AliasArgs, BinArgs, CleanArgs, CompletionsArgs, GlobalArgs, InstallArgs, InstallGlobalArgs,
-    ListArgs, ListGlobalArgs, ListRemoteArgs, LocalArgs, PluginsArgs, RunArgs, SetupArgs,
-    UnaliasArgs, UninstallArgs, UninstallGlobalArgs,
+    AddPluginArgs, AliasArgs, BinArgs, CleanArgs, CompletionsArgs, GlobalArgs, InstallArgs,
+    InstallGlobalArgs, ListArgs, ListGlobalArgs, ListRemoteArgs, LocalArgs, PluginsArgs, RunArgs,
+    SetupArgs, UnaliasArgs, UninstallArgs, UninstallGlobalArgs,
 };
 use clap::{Parser, Subcommand, ValueEnum};
 use std::fmt::{Display, Error, Formatter};
@@ -64,6 +64,14 @@ pub struct App {
 
 #[derive(Clone, Debug, Subcommand)]
 pub enum Commands {
+    #[command(
+        name = "ap",
+        name = "add-plugin",
+        about = "Add a plugin to utilize.",
+        long_about = "Add a plugin to utilize, either by inserting into the local .prototools config, or global ~/.proto/config.toml config."
+    )]
+    AddPlugin(AddPluginArgs),
+
     #[command(
         name = "a",
         name = "alias",

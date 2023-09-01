@@ -1,30 +1,53 @@
-use proto_core::{load_tool, Id};
-use starbase::SystemResult;
-use std::process;
-use tracing::debug;
+use clap::Args;
+use proto_core::{Id, PluginLocator, ToolsConfig, UserConfig};
+use starbase::system;
+use starbase_styles::color;
+use std::env;
+use std::path::PathBuf;
+use tracing::info;
 
-pub async fn add_plugin(tool_id: Id) -> SystemResult {
-    let tool = load_tool(&tool_id).await?;
+#[derive(Args, Clone, Debug)]
+pub struct AddPluginArgs {
+    #[arg(required = true, help = "ID of plugin")]
+    id: Id,
 
-    debug!(manifest = ?tool.manifest.path, "Using versions from manifest");
+    #[arg(required = true, help = "Locator string to find and load the plugin")]
+    plugin: PluginLocator,
 
-    let mut versions = Vec::from_iter(tool.manifest.installed_versions);
+    #[arg(
+        long,
+        help = "Add to the global user config instead of local .prototools"
+    )]
+    global: bool,
+}
 
-    if versions.is_empty() {
-        eprintln!("No versions installed");
-        process::exit(1);
+#[system]
+pub async fn add_plugin(args: ArgsRef<AddPluginArgs>) {
+    if args.global {
+        let mut user_config = UserConfig::load()?;
+        user_config
+            .plugins
+            .insert(args.id.clone(), args.plugin.clone());
+        user_config.save()?;
+
+        info!(
+            "Added plugin {} to global {}",
+            color::id(&args.id),
+            color::path(&user_config.path),
+        );
+
+        return Ok(());
     }
 
-    versions.sort();
+    let local_path = env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
 
-    println!(
-        "{}",
-        versions
-            .iter()
-            .map(|v| v.to_string())
-            .collect::<Vec<_>>()
-            .join("\n")
+    let mut config = ToolsConfig::load_from(local_path)?;
+    config.plugins.insert(args.id.clone(), args.plugin.clone());
+    config.save()?;
+
+    info!(
+        "Added plugin {} to local {}",
+        color::id(&args.id),
+        color::path(&config.path)
     );
-
-    Ok(())
 }

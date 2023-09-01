@@ -1,3 +1,4 @@
+mod add_plugin;
 mod alias;
 mod bin;
 mod clean;
@@ -18,6 +19,7 @@ mod uninstall;
 mod uninstall_global;
 mod upgrade;
 
+pub use add_plugin::*;
 pub use alias::*;
 pub use bin::*;
 pub use clean::*;
