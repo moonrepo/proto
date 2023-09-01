@@ -13,6 +13,7 @@
 - We now include the current proto version in logs.
 - Added a `proto add-plugin` command for adding a plugin to a config file.
 - Added a `proto remove-plugin` command for removing a plugin from a config file.
+- Updated `proto clean` to also remove stale/unused plugins.
 
 #### 🐞 Fixes
 

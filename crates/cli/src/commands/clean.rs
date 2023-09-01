@@ -1,6 +1,6 @@
 use clap::Args;
 use dialoguer::Confirm;
-use proto_core::{load_tool, AliasOrVersion, Tool, ToolsConfig};
+use proto_core::{get_plugins_dir, load_tool, AliasOrVersion, Tool, ToolsConfig};
 use semver::Version;
 use starbase::diagnostics::IntoDiagnostic;
 use starbase::{system, SystemResult};
@@ -23,7 +23,7 @@ fn is_older_than_days(now: u128, other: u128, days: u8) -> bool {
     (now - other) > ((days as u128) * 24 * 60 * 60 * 1000)
 }
 
-pub async fn do_clean(mut tool: Tool, now: u128, days: u8, yes: bool) -> miette::Result<usize> {
+pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miette::Result<usize> {
     info!("Checking {}", color::shell(tool.get_name()));
 
     if !tool.get_inventory_dir().exists() {
@@ -132,6 +132,39 @@ pub async fn do_clean(mut tool: Tool, now: u128, days: u8, yes: bool) -> miette:
     Ok(clean_count)
 }
 
+pub async fn clean_plugins(now: u128, days: u8) -> miette::Result<usize> {
+    let mut clean_count = 0;
+
+    for file in fs::read_dir(get_plugins_dir()?)? {
+        let path = file.path();
+
+        if path.is_file() {
+            let metadata = fs::metadata(&path)?;
+            let last_used = metadata
+                .accessed()
+                .or_else(|_| metadata.modified())
+                .or_else(|_| metadata.created())
+                .unwrap_or_else(|_| SystemTime::now())
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .unwrap()
+                .as_millis();
+
+            if is_older_than_days(now, last_used, days) {
+                debug!(
+                    "Plugin {} hasn't been used in over {} days, removing",
+                    color::path(&path),
+                    days
+                );
+
+                fs::remove_file(path)?;
+                clean_count += 1;
+            }
+        }
+    }
+
+    Ok(clean_count)
+}
+
 pub async fn internal_clean(args: &CleanArgs) -> SystemResult {
     let days = args.days.unwrap_or(30);
     let now = SystemTime::now()
@@ -140,19 +173,27 @@ pub async fn internal_clean(args: &CleanArgs) -> SystemResult {
         .as_millis();
     let mut clean_count = 0;
 
-    info!("Finding tools to clean up...");
+    info!("Finding installed tools to clean up...");
 
     let mut tools_config = ToolsConfig::load_upwards()?;
     tools_config.inherit_builtin_plugins();
 
     if !tools_config.plugins.is_empty() {
         for id in tools_config.plugins.keys() {
-            clean_count += do_clean(load_tool(id).await?, now, days, args.yes).await?;
+            clean_count += clean_tool(load_tool(id).await?, now, days, args.yes).await?;
         }
     }
 
     if clean_count > 0 {
         info!("Successfully cleaned up {} versions", clean_count);
+    }
+
+    info!("Finding installed plugins to clean up...");
+
+    clean_count = clean_plugins(now, days).await?;
+
+    if clean_count > 0 {
+        info!("Successfully cleaned up {} plugins", clean_count);
     }
 
     Ok(())
