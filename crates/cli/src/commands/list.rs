@@ -1,10 +1,18 @@
+use clap::Args;
 use proto_core::{load_tool, Id};
-use starbase::SystemResult;
+use starbase::system;
 use std::process;
 use tracing::debug;
 
-pub async fn list(tool_id: Id) -> SystemResult {
-    let tool = load_tool(&tool_id).await?;
+#[derive(Args, Clone, Debug)]
+pub struct ListArgs {
+    #[arg(required = true, help = "ID of tool")]
+    id: Id,
+}
+
+#[system]
+pub async fn list(args: ArgsRef<ListArgs>) {
+    let tool = load_tool(&args.id).await?;
 
     debug!(manifest = ?tool.manifest.path, "Using versions from manifest");
 
@@ -25,6 +33,4 @@ pub async fn list(tool_id: Id) -> SystemResult {
             .collect::<Vec<_>>()
             .join("\n")
     );
-
-    Ok(())
 }

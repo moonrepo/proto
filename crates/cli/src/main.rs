@@ -5,52 +5,10 @@ mod shell;
 
 use app::{App as CLI, Commands};
 use clap::Parser;
-use starbase::{system, tracing::TracingOptions, App, MainResult, State};
+use starbase::{tracing::TracingOptions, App, MainResult};
 use starbase_utils::string_vec;
 use std::env;
-use tracing::metadata::LevelFilter;
-
-#[derive(State)]
-pub struct CliCommand(pub Commands);
-
-#[system(instrument = false)]
-async fn run(command: StateRef<CliCommand>) {
-    match command.0.clone() {
-        Commands::Alias { id, alias, semver } => commands::alias(id, alias, semver).await?,
-        Commands::Bin { id, semver, shim } => commands::bin(id, semver, shim).await?,
-        Commands::Clean { days, yes } => commands::clean(days, yes).await?,
-        Commands::Completions { shell } => commands::completions(shell).await?,
-        Commands::Install {
-            id,
-            semver,
-            pin,
-            passthrough,
-        } => commands::install(id, semver, pin, passthrough).await?,
-        Commands::InstallGlobal { id, dependencies } => {
-            commands::install_global(id, dependencies).await?
-        }
-        Commands::Global { id, semver } => commands::global(id, semver).await?,
-        Commands::List { id } => commands::list(id).await?,
-        Commands::ListGlobal { id } => commands::list_global(id).await?,
-        Commands::ListRemote { id } => commands::list_remote(id).await?,
-        Commands::Local { id, semver } => commands::local(id, semver).await?,
-        Commands::Plugins { json } => commands::plugins(json).await?,
-        Commands::Run {
-            id,
-            semver,
-            bin,
-            passthrough,
-        } => commands::run(id, semver, bin, passthrough).await?,
-        Commands::Setup { shell, profile } => commands::setup(shell, profile).await?,
-        Commands::Unalias { id, alias } => commands::unalias(id, alias).await?,
-        Commands::Uninstall { id, semver } => commands::uninstall(id, semver).await?,
-        Commands::UninstallGlobal { id, dependencies } => {
-            commands::uninstall_global(id, dependencies).await?
-        }
-        Commands::Upgrade => commands::upgrade().await?,
-        Commands::Use => commands::install_all().await?,
-    };
-}
+use tracing::{debug, metadata::LevelFilter};
 
 #[tokio::main]
 async fn main() -> MainResult {
@@ -78,9 +36,32 @@ async fn main() -> MainResult {
         ..TracingOptions::default()
     });
 
+    debug!("Running proto v{}", env!("CARGO_PKG_VERSION"));
+
     let mut app = App::new();
-    app.set_state(CliCommand(cli.command));
-    app.execute(run);
+
+    match cli.command {
+        Commands::Alias(args) => app.execute_with_args(commands::alias, args),
+        Commands::Bin(args) => app.execute_with_args(commands::bin, args),
+        Commands::Clean(args) => app.execute_with_args(commands::clean, args),
+        Commands::Completions(args) => app.execute_with_args(commands::completions, args),
+        Commands::Install(args) => app.execute_with_args(commands::install, args),
+        Commands::InstallGlobal(args) => app.execute_with_args(commands::install_global, args),
+        Commands::Global(args) => app.execute_with_args(commands::global, args),
+        Commands::List(args) => app.execute_with_args(commands::list, args),
+        Commands::ListGlobal(args) => app.execute_with_args(commands::list_global, args),
+        Commands::ListRemote(args) => app.execute_with_args(commands::list_remote, args),
+        Commands::Local(args) => app.execute_with_args(commands::local, args),
+        Commands::Plugins(args) => app.execute_with_args(commands::plugins, args),
+        Commands::Run(args) => app.execute_with_args(commands::run, args),
+        Commands::Setup(args) => app.execute_with_args(commands::setup, args),
+        Commands::Unalias(args) => app.execute_with_args(commands::unalias, args),
+        Commands::Uninstall(args) => app.execute_with_args(commands::uninstall, args),
+        Commands::UninstallGlobal(args) => app.execute_with_args(commands::uninstall_global, args),
+        Commands::Upgrade => app.execute(commands::upgrade),
+        Commands::Use => app.execute(commands::install_all),
+    };
+
     app.run().await?;
 
     Ok(())

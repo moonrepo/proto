@@ -1,24 +1,40 @@
-use crate::commands::install::install;
+use crate::commands::install::{internal_install, InstallArgs};
+use clap::Args;
 use miette::IntoDiagnostic;
 use proto_core::{
     detect_version, load_tool, AliasOrVersion, Id, ProtoError, UserConfig, VersionType,
 };
 use proto_pdk_api::RunHook;
-use starbase::SystemResult;
+use starbase::system;
 use starbase_styles::color;
 use std::env;
 use std::process::exit;
 use tokio::process::Command;
 use tracing::debug;
 
-pub async fn run(
-    tool_id: Id,
-    forced_version: Option<VersionType>,
-    alt_bin: Option<String>,
-    args: Vec<String>,
-) -> SystemResult {
-    let mut tool = load_tool(&tool_id).await?;
-    let version = detect_version(&tool, forced_version).await?;
+#[derive(Args, Clone, Debug)]
+pub struct RunArgs {
+    #[arg(required = true, help = "ID of tool")]
+    id: Id,
+
+    #[arg(help = "Version or alias of tool")]
+    semver: Option<VersionType>,
+
+    #[arg(long, help = "Path to an alternate binary to run")]
+    bin: Option<String>,
+
+    // Passthrough args (after --)
+    #[arg(
+        last = true,
+        help = "Arguments to pass through to the underlying command"
+    )]
+    passthrough: Vec<String>,
+}
+
+#[system]
+pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
+    let mut tool = load_tool(&args.id).await?;
+    let version = detect_version(&tool, args.semver.clone()).await?;
     let user_config = UserConfig::load()?;
 
     // Check if installed or install
@@ -35,12 +51,12 @@ pub async fn run(
         // Install the tool
         debug!("Auto-install setting is configured, attempting to install");
 
-        install(
-            tool_id,
-            Some(tool.get_resolved_version().to_implicit_type()),
-            false,
-            vec![],
-        )
+        internal_install(InstallArgs {
+            id: args.id.clone(),
+            semver: Some(tool.get_resolved_version().to_implicit_type()),
+            pin: false,
+            passthrough: vec![],
+        })
         .await?;
 
         // Find the new binaries
@@ -64,8 +80,8 @@ pub async fn run(
     let tool_dir = tool.get_tool_dir();
     let mut bin_path = tool.get_bin_path()?.to_path_buf();
 
-    if let Some(alt_bin) = alt_bin {
-        let alt_bin_path = tool_dir.join(&alt_bin);
+    if let Some(alt_bin) = &args.bin {
+        let alt_bin_path = tool_dir.join(alt_bin);
 
         debug!(bin = alt_bin, path = ?alt_bin_path, "Received an alternate binary to run with");
 
@@ -74,7 +90,7 @@ pub async fn run(
         } else {
             return Err(ProtoError::Message(format!(
                 "Alternate binary {} does not exist.",
-                color::file(&alt_bin)
+                color::file(alt_bin)
             ))
             .into());
         }
@@ -91,7 +107,7 @@ pub async fn run(
         "pre_run",
         RunHook {
             context: tool.create_context()?,
-            passthrough_args: args.clone(),
+            passthrough_args: args.passthrough.clone(),
         },
     )?;
 
@@ -111,7 +127,7 @@ pub async fn run(
     };
 
     let status = command
-        .args(&args)
+        .args(&args.passthrough)
         .env(
             format!("{}_VERSION", tool.get_env_var_prefix()),
             resolved_version.to_string(),
@@ -135,9 +151,7 @@ pub async fn run(
         "post_run",
         RunHook {
             context: tool.create_context()?,
-            passthrough_args: args,
+            passthrough_args: args.passthrough.clone(),
         },
     )?;
-
-    Ok(())
 }

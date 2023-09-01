@@ -1,15 +1,20 @@
 use crate::helpers::{disable_progress_bars, enable_progress_bars};
-use crate::{commands::clean::clean, commands::install::install, helpers::create_progress_bar};
+use crate::{
+    commands::clean::{internal_clean, CleanArgs},
+    commands::install::{internal_install, InstallArgs},
+    helpers::create_progress_bar,
+};
 use futures::future::try_join_all;
 use proto_core::{
     load_tool_from_locator, AliasOrVersion, ProtoEnvironment, ToolsConfig, UserConfig,
 };
-use starbase::SystemResult;
+use starbase::system;
 use starbase_styles::color;
 use std::env;
 use tracing::{debug, info};
 
-pub async fn install_all() -> SystemResult {
+#[system]
+pub async fn install_all() {
     let working_dir = env::current_dir().expect("Missing current directory.");
 
     debug!("Loading tools and plugins from .prototools");
@@ -58,7 +63,12 @@ pub async fn install_all() -> SystemResult {
         let mut futures = vec![];
 
         for (id, version) in config.tools {
-            futures.push(install(id, Some(version.to_implicit_type()), false, vec![]));
+            futures.push(internal_install(InstallArgs {
+                id,
+                semver: Some(version.to_implicit_type()),
+                pin: false,
+                passthrough: vec![],
+            }));
         }
 
         try_join_all(futures).await?;
@@ -72,8 +82,11 @@ pub async fn install_all() -> SystemResult {
 
     if UserConfig::load()?.auto_clean {
         debug!("Auto-clean enabled, starting clean");
-        clean(None, true).await?;
-    }
 
-    Ok(())
+        internal_clean(&CleanArgs {
+            days: None,
+            yes: true,
+        })
+        .await?;
+    }
 }
