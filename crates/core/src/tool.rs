@@ -908,6 +908,7 @@ impl Tool {
 
                 let var_value = match var {
                     "$HOME" => self.proto.home.to_string_lossy().to_string(),
+                    "$PROTO_HOME" => self.proto.root.to_string_lossy().to_string(),
                     "$PROTO_ROOT" => self.proto.root.to_string_lossy().to_string(),
                     "$TOOL_DIR" => install_dir.to_string_lossy().to_string(),
                     _ => env::var(cap.get(1).unwrap().as_str()).unwrap_or_default(),

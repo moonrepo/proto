@@ -13,6 +13,8 @@
 - We now include the current proto version in logs.
 - Added a `proto add-plugin` command for adding a plugin to a config file.
 - Added a `proto remove-plugin` command for removing a plugin from a config file.
+- Updated `proto clean` with `--purge` to completely remove a tool from proto.
+- Updated `proto clean` with `--purge-plugins` to remove all installed plugins.
 - Updated `proto clean` to also remove stale/unused plugins.
 
 #### 🐞 Fixes
@@ -22,6 +24,7 @@
 #### ⚙️ Internal
 
 - Added folder locking during tool installation to avoid colliding processes.
+- Renamed `PROTO_ROOT` to `PROTO_HOME`, but we'll support `PROTO_ROOT` for the time being.
 
 ## 0.15.1
 

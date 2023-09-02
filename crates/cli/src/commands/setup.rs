@@ -25,7 +25,7 @@ pub async fn setup(args: ArgsRef<SetupArgs>) {
     let paths = env::split_paths(&paths).collect::<Vec<_>>();
 
     if paths.contains(&proto.bin_dir) {
-        debug!("Skipping setup, PROTO_ROOT already exists in PATH.");
+        debug!("Skipping setup, PROTO_HOME already exists in PATH.");
 
         return Ok(());
     }
@@ -41,12 +41,12 @@ fn do_setup(shell: Shell, _bin_dir: PathBuf, print_profile: bool) -> miette::Res
     debug!("Updating PATH in {} shell", shell);
 
     let env_vars = vec![
-        ("PROTO_ROOT".to_string(), "$HOME/.proto".to_string()),
-        ("PATH".to_string(), "$PROTO_ROOT/bin".to_string()),
+        ("PROTO_HOME".to_string(), "$HOME/.proto".to_string()),
+        ("PATH".to_string(), "$PROTO_HOME/bin".to_string()),
     ];
 
     if let Some(content) = format_env_vars(&shell, "proto", env_vars) {
-        if let Some(updated_profile) = write_profile_if_not_setup(&shell, content, "PROTO_ROOT")? {
+        if let Some(updated_profile) = write_profile_if_not_setup(&shell, content, "PROTO_HOME")? {
             if print_profile {
                 println!("{}", updated_profile.to_string_lossy());
             }
