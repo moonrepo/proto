@@ -12,17 +12,25 @@ use tracing::{debug, info};
 
 #[derive(Args, Clone, Debug, Default)]
 pub struct CleanArgs {
-    #[arg(long, help = "Clean tools older than the specified number of days")]
+    #[arg(
+        long,
+        help = "Clean tools and plugins older than the specified number of days"
+    )]
     pub days: Option<u8>,
 
     #[arg(
         long,
         help = "Purge and delete the installed tool by ID",
-        group = "purge"
+        group = "purge-type",
+        value_name = "TOOL"
     )]
     pub purge: Option<Id>,
 
-    #[arg(long, help = "Purge and delete all installed plugins", group = "purge")]
+    #[arg(
+        long,
+        help = "Purge and delete all installed plugins",
+        group = "purge-type"
+    )]
     pub purge_plugins: bool,
 
     #[arg(long, help = "Avoid and force confirm prompts")]
