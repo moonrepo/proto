@@ -62,7 +62,7 @@ macro_rules! generate_download_install_tests {
         }
 
         #[tokio::test]
-        async fn doesnt_install_if_dir_exists() {
+        async fn doesnt_install_if_already_installed() {
             let sandbox = create_empty_sandbox();
             let plugin = if let Some(schema) = $schema {
                 create_schema_plugin($id, sandbox.path(), schema)
@@ -70,6 +70,13 @@ macro_rules! generate_download_install_tests {
                 create_plugin($id, sandbox.path())
             };
             let mut tool = plugin.tool;
+            let version_inst = proto_pdk_test_utils::Version::parse($version).unwrap();
+
+            tool.version = Some(proto_pdk_test_utils::AliasOrVersion::Version(
+                version_inst.clone(),
+            ));
+
+            tool.manifest.installed_versions.insert(version_inst);
 
             std::fs::create_dir_all(&tool.get_tool_dir()).unwrap();
 
