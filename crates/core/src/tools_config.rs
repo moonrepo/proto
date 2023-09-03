@@ -1,6 +1,7 @@
 use crate::version::AliasOrVersion;
+use miette::IntoDiagnostic;
 use serde::{Deserialize, Serialize};
-use starbase_utils::toml;
+use starbase_utils::{fs, toml};
 use std::collections::BTreeMap;
 use std::env;
 use std::path::{Path, PathBuf};
@@ -50,7 +51,7 @@ impl ToolsConfig {
         let mut config: ToolsConfig = if path.exists() {
             debug!(file = ?path, "Loading {}", TOOLS_CONFIG_NAME);
 
-            toml::read_file(path)?
+            toml::from_str(&fs::read_file_with_lock(path)?).into_diagnostic()?
         } else {
             ToolsConfig::default()
         };
@@ -110,7 +111,7 @@ impl ToolsConfig {
     }
 
     pub fn save(&self) -> miette::Result<()> {
-        toml::write_file(&self.path, self, true)?;
+        fs::write_file_with_lock(&self.path, toml::to_string_pretty(self).into_diagnostic()?)?;
 
         Ok(())
     }

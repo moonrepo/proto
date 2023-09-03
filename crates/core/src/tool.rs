@@ -696,8 +696,9 @@ impl Tool {
     /// a pre-built archive, or by using a native installation method.
     pub async fn install(&mut self) -> miette::Result<bool> {
         let install_dir = self.get_tool_dir();
+        let _install_lock = fs::lock_directory(&install_dir)?;
 
-        if install_dir.exists() {
+        if self.is_installed() {
             debug!(
                 tool = self.id.as_str(),
                 "Tool already installed, continuing"
@@ -1022,6 +1023,15 @@ impl Tool {
 // OPERATIONS
 
 impl Tool {
+    fn is_installed(&self) -> bool {
+        if let Some(AliasOrVersion::Version(version)) = &self.version {
+            return self.manifest.installed_versions.contains(version)
+                && self.get_tool_dir().exists();
+        }
+
+        false
+    }
+
     /// Return true if the tool has been setup (installed and binaries are located).
     pub async fn is_setup(&mut self, initial_version: &VersionType) -> miette::Result<bool> {
         self.resolve_version(initial_version).await?;
@@ -1034,7 +1044,7 @@ impl Tool {
             "Checking if tool is installed",
         );
 
-        if install_dir.exists() {
+        if self.is_installed() {
             debug!(
                 tool = self.id.as_str(),
                 install_dir = ?install_dir,
@@ -1127,7 +1137,7 @@ impl Tool {
             "Cleaning up temporary files and downloads"
         );
 
-        let _ = fs::remove(self.get_temp_dir());
+        fs::remove(self.get_temp_dir())?;
 
         Ok(())
     }
