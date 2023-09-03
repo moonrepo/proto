@@ -1,4 +1,4 @@
-use crate::helpers::{get_home_dir, get_root};
+use crate::helpers::{get_home_dir, get_proto_home};
 use std::env;
 use std::path::{Path, PathBuf};
 
@@ -9,13 +9,13 @@ pub struct ProtoEnvironment {
     pub plugins_dir: PathBuf,
     pub temp_dir: PathBuf,
     pub tools_dir: PathBuf,
-    pub home: PathBuf,
-    pub root: PathBuf,
+    pub home: PathBuf, // ~
+    pub root: PathBuf, // ~/.proto
 }
 
 impl ProtoEnvironment {
     pub fn new() -> miette::Result<Self> {
-        Self::from(get_root()?)
+        Self::from(get_proto_home()?)
     }
 
     pub fn new_testing(sandbox: &Path) -> Self {
@@ -30,7 +30,7 @@ impl ProtoEnvironment {
 
         Ok(ProtoEnvironment {
             bin_dir: root.join("bin"),
-            cwd: env::current_dir().expect("Unable to determine working directory!"),
+            cwd: env::current_dir().expect("Unable to determine current working directory!"),
             plugins_dir: root.join("plugins"),
             temp_dir: root.join("temp"),
             tools_dir: root.join("tools"),

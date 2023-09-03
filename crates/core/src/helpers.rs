@@ -16,7 +16,16 @@ use tracing::trace;
 pub static CLEAN_VERSION: Lazy<Regex> = Lazy::new(|| Regex::new(r"([><]=?)\s+(\d)").unwrap());
 pub static ENV_VAR: Lazy<Regex> = Lazy::new(|| Regex::new(r"\$([A-Z0-9_]+)").unwrap());
 
+#[deprecated = "Use `get_proto_home` instead."]
 pub fn get_root() -> miette::Result<PathBuf> {
+    get_proto_home()
+}
+
+pub fn get_proto_home() -> miette::Result<PathBuf> {
+    if let Ok(root) = env::var("PROTO_HOME") {
+        return Ok(root.into());
+    }
+
     if let Ok(root) = env::var("PROTO_ROOT") {
         return Ok(root.into());
     }
@@ -29,19 +38,19 @@ pub fn get_home_dir() -> miette::Result<PathBuf> {
 }
 
 pub fn get_bin_dir() -> miette::Result<PathBuf> {
-    Ok(get_root()?.join("bin"))
+    Ok(get_proto_home()?.join("bin"))
 }
 
 pub fn get_temp_dir() -> miette::Result<PathBuf> {
-    Ok(get_root()?.join("temp"))
+    Ok(get_proto_home()?.join("temp"))
 }
 
 pub fn get_tools_dir() -> miette::Result<PathBuf> {
-    Ok(get_root()?.join("tools"))
+    Ok(get_proto_home()?.join("tools"))
 }
 
 pub fn get_plugins_dir() -> miette::Result<PathBuf> {
-    Ok(get_root()?.join("plugins"))
+    Ok(get_proto_home()?.join("plugins"))
 }
 
 // Aliases are words that map to version. For example, "latest" -> "1.2.3".
