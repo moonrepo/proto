@@ -13,9 +13,9 @@ mod clean {
 
         let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("clean")
+            .arg("--yes")
             .arg("--purge")
             .arg("node")
-            .arg("--yes")
             .assert()
             .success();
 
@@ -30,7 +30,11 @@ mod clean {
         sandbox.create_file("plugins/npm_plugin.wasm", "");
 
         let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("clean").arg("--purge-plugins").assert().success();
+        cmd.arg("clean")
+            .arg("--yes")
+            .arg("--purge-plugins")
+            .assert()
+            .success();
 
         assert!(!sandbox.path().join("plugins/node_plugin.wasm").exists());
         assert!(!sandbox.path().join("plugins/npm_plugin.wasm").exists());

@@ -22,11 +22,11 @@ pub fn get_root() -> miette::Result<PathBuf> {
 }
 
 pub fn get_proto_home() -> miette::Result<PathBuf> {
-    if let Ok(root) = env::var("PROTO_ROOT") {
+    if let Ok(root) = env::var("PROTO_HOME") {
         return Ok(root.into());
     }
 
-    if let Ok(root) = env::var("PROTO_HOME") {
+    if let Ok(root) = env::var("PROTO_ROOT") {
         return Ok(root.into());
     }
 
