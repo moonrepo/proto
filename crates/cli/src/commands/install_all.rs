@@ -84,8 +84,8 @@ pub async fn install_all() {
         debug!("Auto-clean enabled, starting clean");
 
         internal_clean(&CleanArgs {
-            days: None,
             yes: true,
+            ..Default::default()
         })
         .await?;
     }

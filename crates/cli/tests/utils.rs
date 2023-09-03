@@ -25,7 +25,7 @@ pub fn create_proto_command<T: AsRef<Path>>(path: T) -> assert_cmd::Command {
 
     let mut cmd = create_command_with_name(path, "proto");
     cmd.timeout(std::time::Duration::from_secs(180));
-    cmd.env("PROTO_ROOT", path.as_os_str());
+    cmd.env("PROTO_HOME", path.as_os_str());
     cmd.env("PROTO_LOG", "debug");
     // cmd.env("PROTO_TEST", "true");
     cmd

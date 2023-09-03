@@ -18,13 +18,13 @@ where
 
     let mut tool = factory(fixture.path()).await.unwrap();
 
-    env::set_var("PROTO_ROOT", fixture.path().to_string_lossy().to_string());
+    env::set_var("PROTO_HOME", fixture.path().to_string_lossy().to_string());
 
     tool.setup(&VersionType::parse("1.0.0").unwrap())
         .await
         .unwrap();
 
-    env::remove_var("PROTO_ROOT");
+    env::remove_var("PROTO_HOME");
 
     assert!(tool.get_tool_dir().exists());
 

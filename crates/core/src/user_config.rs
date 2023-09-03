@@ -1,4 +1,4 @@
-use crate::helpers::get_root;
+use crate::helpers::get_proto_home;
 use miette::IntoDiagnostic;
 use serde::{Deserialize, Serialize};
 use starbase_utils::{fs, toml};
@@ -57,7 +57,7 @@ impl UserConfig {
 
     #[tracing::instrument(skip_all)]
     pub fn load() -> miette::Result<Self> {
-        Self::load_from(get_root()?)
+        Self::load_from(get_proto_home()?)
     }
 
     pub fn save(&self) -> miette::Result<()> {
