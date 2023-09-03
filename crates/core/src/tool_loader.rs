@@ -8,7 +8,6 @@ use miette::IntoDiagnostic;
 use proto_pdk_api::{HostArch, HostEnvironment, HostOS, UserConfigSettings};
 use proto_wasm_plugin::Wasm;
 use starbase_utils::{fs, json};
-use std::collections::HashMap;
 use std::str::FromStr;
 use std::{
     env::{self, consts},
@@ -21,12 +20,13 @@ pub fn inject_default_manifest_config(
     id: &Id,
     proto: &ProtoEnvironment,
     user_config: &UserConfig,
-    manifest: &Manifest,
-    manifest_config: &mut HashMap<String, String>,
+    manifest: &mut Manifest,
 ) -> miette::Result<()> {
-    manifest_config.insert("proto_tool_id".to_string(), id.to_string());
+    manifest
+        .config
+        .insert("proto_tool_id".to_string(), id.to_string());
 
-    manifest_config.insert(
+    manifest.config.insert(
         "proto_user_config".to_string(),
         json::to_string(&UserConfigSettings {
             auto_clean: user_config.auto_clean,
@@ -36,7 +36,7 @@ pub fn inject_default_manifest_config(
         .into_diagnostic()?,
     );
 
-    manifest_config.insert(
+    manifest.config.insert(
         "proto_environment".to_string(),
         json::to_string(&HostEnvironment {
             arch: HostArch::from_str(consts::ARCH).into_diagnostic()?,
@@ -64,7 +64,6 @@ pub async fn load_tool_from_locator(
     loader.set_seed(env!("CARGO_PKG_VERSION"));
 
     let plugin_path = loader.load_plugin(&id, locator).await?;
-    let mut config = HashMap::new();
 
     // If a TOML plugin, we need to load the WASM plugin for it,
     // wrap it, and modify the plugin manifest.
@@ -75,12 +74,16 @@ pub async fn load_tool_from_locator(
     {
         debug!(source = ?plugin_path, "Loading TOML plugin");
 
-        config.insert("schema".to_string(), fs::read_file(plugin_path)?);
-
-        Tool::create_plugin_manifest(
+        let mut manifest = Tool::create_plugin_manifest(
             proto,
             Wasm::file(loader.load_plugin(id, ToolsConfig::schema_plugin()).await?),
-        )?
+        )?;
+
+        manifest
+            .config
+            .insert("schema".to_string(), fs::read_file(plugin_path)?);
+
+        manifest
 
         // Otherwise, just use the WASM plugin as is
     } else {
@@ -89,9 +92,7 @@ pub async fn load_tool_from_locator(
         Tool::create_plugin_manifest(proto, Wasm::file(plugin_path))?
     };
 
-    inject_default_manifest_config(id, proto, user_config, &manifest, &mut config)?;
-
-    manifest.config.extend(config);
+    inject_default_manifest_config(id, proto, user_config, &mut manifest)?;
 
     Tool::load_from_manifest(id, proto, manifest)
 }

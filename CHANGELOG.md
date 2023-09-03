@@ -18,6 +18,10 @@
 
 - Fixed some commands where their shorthand alias was not being registered correctly.
 
+#### ⚙️ Internal
+
+- Added folder locking during tool installation to avoid colliding processes.
+
 ## 0.15.1
 
 #### ⚙️ Internal

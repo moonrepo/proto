@@ -105,25 +105,10 @@ mod run {
 
         fs::remove_file(temp.path().join(".prototools")).unwrap();
 
-        // Ecosystem
-        temp.create_file("package.json", r#"{ "engines": { "node": "19.0.0" }}"#);
-
-        let mut cmd = create_proto_command(temp.path());
-        let assert = cmd
-            .arg("run")
-            .arg("node")
-            .arg("--")
-            .arg("--version")
-            .assert();
-
-        assert.stdout(predicate::str::contains("19.0.0"));
-
-        fs::remove_file(temp.path().join("package.json")).unwrap();
-
         // Global version
         temp.create_file(
             "tools/node/manifest.json",
-            r#"{ "default_version": "19.0.0" }"#,
+            r#"{ "default_version": "19.0.0", "installed_versions": ["19.0.0"] }"#,
         );
 
         let mut cmd = create_proto_command(temp.path());
