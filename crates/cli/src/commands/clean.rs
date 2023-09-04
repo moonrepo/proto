@@ -204,18 +204,18 @@ async fn purge_tool(id: &Id, yes: bool) -> SystemResult {
         fs::remove_dir_all(inventory_dir)?;
 
         // Delete shims
+        fs::remove_file(
+            tool.proto
+                .bin_dir
+                .join(get_shim_file_name(id.as_str(), true)),
+        )?;
+
         if tool.plugin.has_func("create_shims") {
             let shim_configs: CreateShimsOutput = tool.plugin.cache_func_with(
                 "create_shims",
                 CreateShimsInput {
                     context: tool.create_context()?,
                 },
-            )?;
-
-            fs::remove_file(
-                tool.proto
-                    .bin_dir
-                    .join(get_shim_file_name(id.as_str(), true)),
             )?;
 
             for global_shim in shim_configs.global_shims.keys() {
