@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed an issue where `proto clean --purge` would not delete shims.
+
 ## 0.16.0
 
 #### 💥 Breaking

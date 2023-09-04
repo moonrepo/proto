@@ -24,6 +24,31 @@ mod clean {
     }
 
     #[test]
+    fn purges_tool_shims() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file("bin/node", "");
+        sandbox.create_file("bin/node.cmd", "");
+        sandbox.create_file("bin/npx", "");
+        sandbox.create_file("bin/npx.cmd", "");
+
+        let mut cmd = create_proto_command(sandbox.path());
+        cmd.arg("clean")
+            .arg("--yes")
+            .arg("--purge")
+            .arg("node")
+            .assert()
+            .success();
+
+        if cfg!(windows) {
+            assert!(!sandbox.path().join("bin/node.cmd").exists());
+            assert!(!sandbox.path().join("bin/npx.cmd").exists());
+        } else {
+            assert!(!sandbox.path().join("bin/node").exists());
+            assert!(!sandbox.path().join("bin/npx").exists());
+        }
+    }
+
+    #[test]
     fn purges_plugins() {
         let sandbox = create_empty_sandbox();
         sandbox.create_file("plugins/node_plugin.wasm", "");

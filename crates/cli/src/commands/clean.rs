@@ -1,6 +1,9 @@
 use clap::Args;
 use dialoguer::Confirm;
-use proto_core::{get_plugins_dir, load_tool, AliasOrVersion, Id, Tool, ToolsConfig};
+use proto_core::{
+    get_plugins_dir, get_shim_file_name, load_tool, AliasOrVersion, Id, Tool, ToolsConfig,
+};
+use proto_pdk_api::{CreateShimsInput, CreateShimsOutput};
 use semver::Version;
 use starbase::diagnostics::IntoDiagnostic;
 use starbase::{system, SystemResult};
@@ -183,6 +186,74 @@ pub async fn clean_plugins(now: u128, days: u8) -> miette::Result<usize> {
     Ok(clean_count)
 }
 
+async fn purge_tool(id: &Id, yes: bool) -> SystemResult {
+    let tool = load_tool(id).await?;
+    let inventory_dir = tool.get_inventory_dir();
+
+    if yes
+        || Confirm::new()
+            .with_prompt(format!(
+                "Purge all of {} at {}?",
+                tool.get_name(),
+                color::path(&inventory_dir)
+            ))
+            .interact()
+            .into_diagnostic()?
+    {
+        // Delete inventory
+        fs::remove_dir_all(inventory_dir)?;
+
+        // Delete shims
+        fs::remove_file(
+            tool.proto
+                .bin_dir
+                .join(get_shim_file_name(id.as_str(), true)),
+        )?;
+
+        if tool.plugin.has_func("create_shims") {
+            let shim_configs: CreateShimsOutput = tool.plugin.cache_func_with(
+                "create_shims",
+                CreateShimsInput {
+                    context: tool.create_context()?,
+                },
+            )?;
+
+            for global_shim in shim_configs.global_shims.keys() {
+                fs::remove_file(
+                    tool.proto
+                        .bin_dir
+                        .join(get_shim_file_name(global_shim, true)),
+                )?;
+            }
+        }
+
+        info!("Removed {}", tool.get_name());
+    }
+
+    Ok(())
+}
+
+async fn purge_plugins(yes: bool) -> SystemResult {
+    let plugins_dir = get_plugins_dir()?;
+
+    if yes
+        || Confirm::new()
+            .with_prompt(format!(
+                "Purge all plugins in {}?",
+                color::path(&plugins_dir)
+            ))
+            .interact()
+            .into_diagnostic()?
+    {
+        fs::remove_dir_all(&plugins_dir)?;
+        fs::create_dir_all(plugins_dir)?;
+
+        info!("Removed all downloaded plugins");
+    }
+
+    Ok(())
+}
+
 pub async fn internal_clean(args: &CleanArgs) -> SystemResult {
     let days = args.days.unwrap_or(30);
     let now = SystemTime::now()
@@ -220,46 +291,11 @@ pub async fn internal_clean(args: &CleanArgs) -> SystemResult {
 #[system]
 pub async fn clean(args: ArgsRef<CleanArgs>) {
     if let Some(id) = &args.purge {
-        let tool = load_tool(id).await?;
-        let inventory_dir = tool.get_inventory_dir();
-
-        if args.yes
-            || Confirm::new()
-                .with_prompt(format!(
-                    "Purge all of {} at {}?",
-                    tool.get_name(),
-                    color::path(&inventory_dir)
-                ))
-                .interact()
-                .into_diagnostic()?
-        {
-            fs::remove_dir_all(inventory_dir)?;
-
-            info!("Removed {}", tool.get_name());
-        }
-
-        return Ok(());
+        return purge_tool(id, args.yes).await;
     }
 
     if args.purge_plugins {
-        let plugins_dir = get_plugins_dir()?;
-
-        if args.yes
-            || Confirm::new()
-                .with_prompt(format!(
-                    "Purge all plugins in {}?",
-                    color::path(&plugins_dir)
-                ))
-                .interact()
-                .into_diagnostic()?
-        {
-            fs::remove_dir_all(&plugins_dir)?;
-            fs::create_dir_all(plugins_dir)?;
-
-            info!("Removed all installed plugins");
-        }
-
-        return Ok(());
+        return purge_plugins(args.yes).await;
     }
 
     internal_clean(args).await?;
