@@ -22,15 +22,16 @@ semver = "1.0.18"
 serde = { version = "1.0.188", features = ["derive"] }
 serde_json = "1.0.105"
 sha2 = "0.10.7"
-starbase_archive = { version = "0.2.0", features = [
+starbase_archive = { version = "0.2.1", features = [
 	"tar-gz",
 	"tar-xz",
+	"tar-zstd",
 	"zip",
 	"zip-deflate",
 ] }
-starbase_sandbox = { version = "0.1.8" }
-starbase_styles = "0.1.13"
-starbase_utils = { version = "0.2.21", default-features = false, features = [
+starbase_sandbox = { version = "0.1.9" }
+starbase_styles = "0.1.14"
+starbase_utils = { version = "0.2.22", default-features = false, features = [
 	"json",
 	"toml",
 ] }

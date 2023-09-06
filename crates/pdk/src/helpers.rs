@@ -132,6 +132,40 @@ pub fn check_supported_os_and_arch(
     Ok(())
 }
 
+/// Detect whether the current OS is utilizing musl instead of gnu.
+pub fn is_musl(env: &HostEnvironment) -> bool {
+    if !env.os.is_linux() {
+        return false;
+    }
+
+    unsafe {
+        match exec_command(Json(ExecCommandInput::pipe("ldd", ["--version"]))) {
+            Ok(res) => res.0.stdout.contains("musl"),
+            Err(_) => false,
+        }
+    }
+}
+
+/// Return a Rust target triple for the current host OS and architecture.
+pub fn get_target_triple(env: &HostEnvironment, name: &str) -> Result<String, PluginError> {
+    match env.os {
+        HostOS::Linux => Ok(format!(
+            "{}-unknown-linux-{}",
+            env.arch.to_rust_arch(),
+            if is_musl(env) { "musl" } else { "gnu" }
+        )),
+        HostOS::MacOS => Ok(format!("{}-apple-darwin", env.arch.to_rust_arch())),
+        HostOS::Windows => Ok(format!("{}-pc-windows-msvc", env.arch.to_rust_arch())),
+        _ => {
+            return Err(PluginError::UnsupportedTarget {
+                tool: name.into(),
+                arch: env.arch.to_string(),
+                os: env.os.to_string(),
+            })
+        }
+    }
+}
+
 /// Get the active tool ID for the current WASM instance.
 pub fn get_tool_id() -> String {
     config::get("proto_tool_id").expect("Missing tool ID!")
