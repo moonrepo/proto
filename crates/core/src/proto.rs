@@ -1,6 +1,8 @@
 use crate::helpers::{get_home_dir, get_proto_home};
+use once_cell::sync::OnceCell;
 use std::env;
 use std::path::{Path, PathBuf};
+use warpgate::PluginLoader;
 
 #[derive(Clone, Debug)]
 pub struct ProtoEnvironment {
@@ -11,6 +13,8 @@ pub struct ProtoEnvironment {
     pub tools_dir: PathBuf,
     pub home: PathBuf, // ~
     pub root: PathBuf, // ~/.proto
+
+    loader: OnceCell<PluginLoader>,
 }
 
 impl ProtoEnvironment {
@@ -36,6 +40,15 @@ impl ProtoEnvironment {
             tools_dir: root.join("tools"),
             home: get_home_dir()?,
             root: root.to_owned(),
+            loader: OnceCell::new(),
+        })
+    }
+
+    pub fn create_plugin_loader(&self) -> &PluginLoader {
+        self.loader.get_or_init(|| {
+            let mut loader = PluginLoader::new(&self.plugins_dir, &self.temp_dir);
+            loader.set_seed(env!("CARGO_PKG_VERSION"));
+            loader
         })
     }
 }

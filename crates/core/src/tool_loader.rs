@@ -14,7 +14,7 @@ use std::{
     path::Path,
 };
 use tracing::debug;
-use warpgate::{to_virtual_path, Id, PluginLoader, PluginLocator};
+use warpgate::{to_virtual_path, Id, PluginLocator};
 
 pub fn inject_default_manifest_config(
     id: &Id,
@@ -60,10 +60,8 @@ pub async fn load_tool_from_locator(
     let proto = proto.as_ref();
     let locator = locator.as_ref();
 
-    let mut loader = PluginLoader::new(&proto.plugins_dir, &proto.temp_dir);
-    loader.set_seed(env!("CARGO_PKG_VERSION"));
-
-    let plugin_path = loader.load_plugin(&id, locator).await?;
+    let plugin_loader = proto.create_plugin_loader();
+    let plugin_path = plugin_loader.load_plugin(&id, locator).await?;
 
     // If a TOML plugin, we need to load the WASM plugin for it,
     // wrap it, and modify the plugin manifest.
@@ -76,7 +74,11 @@ pub async fn load_tool_from_locator(
 
         let mut manifest = Tool::create_plugin_manifest(
             proto,
-            Wasm::file(loader.load_plugin(id, ToolsConfig::schema_plugin()).await?),
+            Wasm::file(
+                plugin_loader
+                    .load_plugin(id, ToolsConfig::schema_plugin())
+                    .await?,
+            ),
         )?;
 
         manifest
