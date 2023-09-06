@@ -5,6 +5,7 @@ use regex::Regex;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
+use starbase_archive::is_supported_archive_extension;
 use starbase_utils::dirs::home_dir;
 use starbase_utils::fs::{self, FsError};
 use starbase_utils::json::{self, JsonError};
@@ -132,9 +133,8 @@ pub fn is_cache_enabled() -> bool {
 }
 
 pub fn is_archive_file<P: AsRef<Path>>(path: P) -> bool {
-    path.as_ref().extension().map_or(false, |ext| {
-        ext == "zip" || ext == "tar" || ext == "gz" || ext == "tgz" || ext == "xz" || ext == "txz"
-    })
+    dbg!(path.as_ref().extension());
+    is_supported_archive_extension(path.as_ref())
 }
 
 pub fn hash_file_contents<P: AsRef<Path>>(path: P) -> miette::Result<String> {

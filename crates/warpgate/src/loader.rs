@@ -252,6 +252,8 @@ impl PluginLoader {
                         | asset.name.ends_with(".tgz")
                         | asset.name.ends_with(".tar.xz")
                         | asset.name.ends_with(".txz")
+                        | asset.name.ends_with(".zst")
+                        | asset.name.ends_with(".zstd")
                         | asset.name.ends_with(".zip")))
             {
                 trace!(
