@@ -1,4 +1,5 @@
 use crate::error::ProtoError;
+use crate::events::*;
 use crate::helpers::{hash_file_contents, is_cache_enabled, is_offline};
 use crate::proto::ProtoEnvironment;
 use crate::shimmer::{
@@ -17,6 +18,7 @@ use proto_pdk_api::*;
 use proto_wasm_plugin::{create_host_functions, HostData};
 use serde::Serialize;
 use starbase_archive::Archiver;
+use starbase_events::Emitter;
 use starbase_styles::color;
 use starbase_utils::fs;
 use std::collections::{BTreeMap, HashSet};
@@ -35,6 +37,15 @@ pub struct Tool {
     pub plugin: PluginContainer<'static>,
     pub proto: ProtoEnvironment,
     pub version: Option<AliasOrVersion>,
+
+    // Events
+    pub on_created_shims: Emitter<CreatedShimsEvent>,
+    pub on_installing: Emitter<InstallingEvent>,
+    pub on_installed: Emitter<InstalledEvent>,
+    pub on_installed_global: Emitter<InstalledGlobalEvent>,
+    pub on_uninstalling: Emitter<UninstallingEvent>,
+    pub on_uninstalled: Emitter<UninstalledEvent>,
+    pub on_uninstalled_global: Emitter<UninstalledGlobalEvent>,
 
     bin_path: Option<PathBuf>,
     globals_dir: Option<PathBuf>,
@@ -83,6 +94,15 @@ impl Tool {
             )?,
             proto: proto.to_owned(),
             version: None,
+
+            // Events
+            on_created_shims: Emitter::new(),
+            on_installing: Emitter::new(),
+            on_installed: Emitter::new(),
+            on_installed_global: Emitter::new(),
+            on_uninstalling: Emitter::new(),
+            on_uninstalled: Emitter::new(),
+            on_uninstalled_global: Emitter::new(),
         };
 
         debug!(
@@ -707,6 +727,12 @@ impl Tool {
             return Ok(false);
         }
 
+        self.on_installing
+            .emit(InstallingEvent {
+                version: self.get_resolved_version(),
+            })
+            .await?;
+
         // If this function is defined, it acts like an escape hatch and
         // takes precedence over all other install strategies
         if self.plugin.has_func("native_install") {
@@ -724,6 +750,12 @@ impl Tool {
 
         // Install from a prebuilt archive
         self.install_from_prebuilt(&install_dir).await?;
+
+        self.on_installed
+            .emit(InstalledEvent {
+                version: self.get_resolved_version(),
+            })
+            .await?;
 
         debug!(
             tool = self.id.as_str(),
@@ -759,6 +791,12 @@ impl Tool {
             ))?;
         }
 
+        self.on_installed_global
+            .emit(InstalledGlobalEvent {
+                dependency: dependency.to_owned(),
+            })
+            .await?;
+
         Ok(result.installed)
     }
 
@@ -774,6 +812,12 @@ impl Tool {
 
             return Ok(false);
         }
+
+        self.on_uninstalling
+            .emit(UninstallingEvent {
+                version: self.get_resolved_version(),
+            })
+            .await?;
 
         if self.plugin.has_func("native_uninstall") {
             debug!(tool = self.id.as_str(), "Uninstalling tool natively");
@@ -797,6 +841,12 @@ impl Tool {
         );
 
         fs::remove_dir_all(install_dir)?;
+
+        self.on_uninstalled
+            .emit(UninstalledEvent {
+                version: self.get_resolved_version(),
+            })
+            .await?;
 
         debug!(tool = self.id.as_str(), "Successfully uninstalled tool");
 
@@ -827,6 +877,12 @@ impl Tool {
                     .unwrap_or_else(|| "Unknown uninstall failure!".to_string()),
             ))?;
         }
+
+        self.on_uninstalled_global
+            .emit(UninstalledGlobalEvent {
+                dependency: dependency.to_owned(),
+            })
+            .await?;
 
         Ok(result.uninstalled)
     }
@@ -963,10 +1019,18 @@ impl Tool {
     /// If find only is enabled, will only check if they exist, and not create.
     pub async fn create_shims(&self, find_only: bool) -> miette::Result<()> {
         let mut primary_context = self.create_shim_context();
+        let mut shim_event = CreatedShimsEvent {
+            global: vec![],
+            local: vec![],
+        };
 
         // If not configured from the plugin, always create the primary global
         if !self.plugin.has_func("create_shims") {
             create_global_shim(&self.proto, primary_context, find_only)?;
+
+            shim_event.global.push(self.id.to_string());
+
+            self.on_created_shims.emit(shim_event).await?;
 
             return Ok(());
         }
@@ -986,6 +1050,7 @@ impl Tool {
 
         if !shim_configs.no_primary_global {
             create_global_shim(&self.proto, primary_context, find_only)?;
+            shim_event.global.push(self.id.to_string());
         }
 
         // Create alternate/secondary global shims
@@ -997,6 +1062,7 @@ impl Tool {
             context.after_args = config.after_args.as_deref();
 
             create_global_shim(&self.proto, context, find_only)?;
+            shim_event.global.push(name.to_owned());
         }
 
         // Create local shims
@@ -1015,7 +1081,10 @@ impl Tool {
             context.after_args = config.after_args.as_deref();
 
             create_local_shim(context, find_only)?;
+            shim_event.local.push(name.to_owned());
         }
+
+        self.on_created_shims.emit(shim_event).await?;
 
         Ok(())
     }
@@ -1025,12 +1094,9 @@ impl Tool {
 
 impl Tool {
     fn is_installed(&self) -> bool {
-        if let Some(AliasOrVersion::Version(version)) = &self.version {
-            return self.manifest.installed_versions.contains(version)
-                && self.get_tool_dir().exists();
-        }
+        let dir = self.get_tool_dir();
 
-        false
+        dir.exists() // && !dir.join(fs::LOCK_NAME).exists()
     }
 
     /// Return true if the tool has been setup (installed and binaries are located).

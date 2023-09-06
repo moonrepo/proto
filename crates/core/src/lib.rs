@@ -1,4 +1,5 @@
 mod error;
+mod events;
 mod helpers;
 mod proto;
 mod shimmer;
@@ -12,6 +13,7 @@ mod version_detector;
 mod version_resolver;
 
 pub use error::*;
+pub use events::*;
 pub use extism::{manifest::Wasm, Manifest as PluginManifest};
 pub use helpers::*;
 pub use proto::*;
