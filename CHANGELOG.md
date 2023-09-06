@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+#### 🚀 Updates
+
+- WASM API
+  - Added `is_musl` and `get_target_triple` helper functions.
+
+#### ⚙️ Internal
+
+- Now supports `.zst` (or `.zstd`) archive formats.
+
 ## 0.16.1
 
 #### 🐞 Fixes

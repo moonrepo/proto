@@ -86,7 +86,7 @@ pub fn move_or_unpack_download(temp_file: &Path, dest_file: &Path) -> miette::Re
         }
 
         // Unpack archives to temp and move the wasm file
-        Some("tar" | "gz" | "xz" | "tgz" | "txz" | "zip") => {
+        Some("tar" | "gz" | "xz" | "tgz" | "txz" | "zst" | "zstd" | "zip") => {
             let out_dir = temp_file.parent().unwrap().join("out");
 
             Archiver::new(&out_dir, dest_file).unpack_from_ext()?;
