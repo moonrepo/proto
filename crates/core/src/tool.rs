@@ -43,6 +43,7 @@ pub struct Tool {
     pub on_installing: Emitter<InstallingEvent>,
     pub on_installed: Emitter<InstalledEvent>,
     pub on_installed_global: Emitter<InstalledGlobalEvent>,
+    pub on_resolved_version: Emitter<ResolvedVersionEvent>,
     pub on_uninstalling: Emitter<UninstallingEvent>,
     pub on_uninstalled: Emitter<UninstalledEvent>,
     pub on_uninstalled_global: Emitter<UninstalledGlobalEvent>,
@@ -100,6 +101,7 @@ impl Tool {
             on_installing: Emitter::new(),
             on_installed: Emitter::new(),
             on_installed_global: Emitter::new(),
+            on_resolved_version: Emitter::new(),
             on_uninstalling: Emitter::new(),
             on_uninstalled: Emitter::new(),
             on_uninstalled_global: Emitter::new(),
@@ -420,7 +422,16 @@ impl Tool {
         // If offline but we have a fully qualified semantic version,
         // exit early and assume the version is legitimate!
         if is_offline() && matches!(initial_version, VersionType::Version(_)) {
-            self.version = Some(initial_version.to_explicit_version());
+            let version = initial_version.to_explicit_version();
+
+            self.on_resolved_version
+                .emit(ResolvedVersionEvent {
+                    candidate: initial_version.to_owned(),
+                    version: version.clone(),
+                })
+                .await?;
+
+            self.version = Some(version);
 
             return Ok(());
         }
@@ -478,6 +489,13 @@ impl Tool {
             "Resolved to {}",
             version
         );
+
+        self.on_resolved_version
+            .emit(ResolvedVersionEvent {
+                candidate: initial_version.to_owned(),
+                version: version.clone(),
+            })
+            .await?;
 
         self.version = Some(version);
 
@@ -1096,7 +1114,7 @@ impl Tool {
     fn is_installed(&self) -> bool {
         let dir = self.get_tool_dir();
 
-        dir.exists() // && !dir.join(fs::LOCK_NAME).exists()
+        dir.exists() && !dir.join(".lock").exists()
     }
 
     /// Return true if the tool has been setup (installed and binaries are located).

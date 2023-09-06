@@ -156,13 +156,11 @@ pub fn get_target_triple(env: &HostEnvironment, name: &str) -> Result<String, Pl
         )),
         HostOS::MacOS => Ok(format!("{}-apple-darwin", env.arch.to_rust_arch())),
         HostOS::Windows => Ok(format!("{}-pc-windows-msvc", env.arch.to_rust_arch())),
-        _ => {
-            return Err(PluginError::UnsupportedTarget {
-                tool: name.into(),
-                arch: env.arch.to_string(),
-                os: env.os.to_string(),
-            })
-        }
+        _ => Err(PluginError::UnsupportedTarget {
+            tool: name.into(),
+            arch: env.arch.to_string(),
+            os: env.os.to_string(),
+        }),
     }
 }
 

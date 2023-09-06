@@ -1,4 +1,4 @@
-use crate::version::AliasOrVersion;
+use crate::version::*;
 use starbase_events::Event;
 
 macro_rules! impl_event {
@@ -42,4 +42,9 @@ impl_event!(UninstalledGlobalEvent, {
 impl_event!(CreatedShimsEvent, {
     pub global: Vec<String>,
     pub local: Vec<String>,
+});
+
+impl_event!(ResolvedVersionEvent, {
+    pub candidate: VersionType,
+    pub version: AliasOrVersion,
 });
