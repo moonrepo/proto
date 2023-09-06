@@ -133,7 +133,6 @@ pub fn is_cache_enabled() -> bool {
 }
 
 pub fn is_archive_file<P: AsRef<Path>>(path: P) -> bool {
-    dbg!(path.as_ref().extension());
     is_supported_archive_extension(path.as_ref())
 }
 
