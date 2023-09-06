@@ -60,7 +60,7 @@ pub async fn load_tool_from_locator(
     let proto = proto.as_ref();
     let locator = locator.as_ref();
 
-    let plugin_loader = proto.create_plugin_loader();
+    let plugin_loader = proto.get_plugin_loader();
     let plugin_path = plugin_loader.load_plugin(&id, locator).await?;
 
     // If a TOML plugin, we need to load the WASM plugin for it,

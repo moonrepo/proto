@@ -44,7 +44,7 @@ impl ProtoEnvironment {
         })
     }
 
-    pub fn create_plugin_loader(&self) -> &PluginLoader {
+    pub fn get_plugin_loader(&self) -> &PluginLoader {
         self.loader.get_or_init(|| {
             let mut loader = PluginLoader::new(&self.plugins_dir, &self.temp_dir);
             loader.set_seed(env!("CARGO_PKG_VERSION"));
