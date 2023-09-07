@@ -6,7 +6,7 @@ macro_rules! generate_download_install_tests {
     ($id:literal, $version:literal, $schema:expr) => {
         #[tokio::test]
         async fn downloads_verifies_installs_tool() {
-            let sandbox = create_empty_sandbox();
+            let sandbox = starbase_sandbox::create_empty_sandbox();
             let mut plugin = if let Some(schema) = $schema {
                 create_schema_plugin($id, sandbox.path(), schema)
             } else {
@@ -43,7 +43,7 @@ macro_rules! generate_download_install_tests {
 
         #[tokio::test]
         async fn downloads_prebuilt_and_checksum_to_temp() {
-            let sandbox = create_empty_sandbox();
+            let sandbox = starbase_sandbox::create_empty_sandbox();
             let mut plugin = if let Some(schema) = $schema {
                 create_schema_plugin($id, sandbox.path(), schema)
             } else {
@@ -63,20 +63,17 @@ macro_rules! generate_download_install_tests {
 
         #[tokio::test]
         async fn doesnt_install_if_already_installed() {
-            let sandbox = create_empty_sandbox();
+            let sandbox = starbase_sandbox::create_empty_sandbox();
             let plugin = if let Some(schema) = $schema {
                 create_schema_plugin($id, sandbox.path(), schema)
             } else {
                 create_plugin($id, sandbox.path())
             };
             let mut tool = plugin.tool;
-            let version_inst = proto_pdk_test_utils::Version::parse($version).unwrap();
+            let spec = proto_pdk_test_utils::VersionSpec::parse($version).unwrap();
 
-            tool.version = Some(proto_pdk_test_utils::VersionSpec::Version(
-                version_inst.clone(),
-            ));
-
-            tool.manifest.installed_versions.insert(version_inst);
+            tool.version = Some(spec.clone());
+            tool.manifest.installed_versions.insert(spec);
 
             std::fs::create_dir_all(&tool.get_tool_dir()).unwrap();
 
@@ -93,7 +90,7 @@ macro_rules! generate_resolve_versions_tests {
     ($id:literal, { $( $k:literal => $v:literal, )* }, $schema:expr) => {
         #[tokio::test]
         async fn resolves_latest_alias() {
-            let sandbox = create_empty_sandbox();
+            let sandbox = starbase_sandbox::create_empty_sandbox();
             let mut plugin = if let Some(schema) = $schema {
                 create_schema_plugin($id, sandbox.path(), schema)
             } else {
@@ -109,7 +106,7 @@ macro_rules! generate_resolve_versions_tests {
 
         #[tokio::test]
         async fn resolve_version_or_alias() {
-            let sandbox = create_empty_sandbox();
+            let sandbox = starbase_sandbox::create_empty_sandbox();
             let mut plugin = if let Some(schema) = $schema {
                 create_schema_plugin($id, sandbox.path(), schema)
             } else {
@@ -132,7 +129,7 @@ macro_rules! generate_resolve_versions_tests {
         // #[tokio::test]
         // async fn resolve_custom_alias() {
         //
-        //     let sandbox = create_empty_sandbox();
+        //     let sandbox = starbase_sandbox::create_empty_sandbox();
 
         //     sandbox.create_file(
         //         format!(".proto/tools/{}/manifest.json", $id),
@@ -150,7 +147,7 @@ macro_rules! generate_resolve_versions_tests {
         #[tokio::test]
         #[should_panic(expected = "Failed to resolve a semantic version for unknown")]
         async fn errors_invalid_alias() {
-            let sandbox = create_empty_sandbox();
+            let sandbox = starbase_sandbox::create_empty_sandbox();
             let mut plugin = if let Some(schema) = $schema {
                 create_schema_plugin($id, sandbox.path(), schema)
             } else {
@@ -165,7 +162,7 @@ macro_rules! generate_resolve_versions_tests {
         #[tokio::test]
         #[should_panic(expected = "Failed to resolve a semantic version for 99.99.99")]
         async fn errors_invalid_version() {
-            let sandbox = create_empty_sandbox();
+            let sandbox = starbase_sandbox::create_empty_sandbox();
             let mut plugin = if let Some(schema) = $schema {
                 create_schema_plugin($id, sandbox.path(), schema)
             } else {
@@ -190,7 +187,7 @@ macro_rules! generate_global_shims_test {
     ($id:literal, [ $($bin:literal),* ], $schema:expr) => {
         #[tokio::test]
         async fn creates_global_shims() {
-            let sandbox = create_empty_sandbox();
+            let sandbox = starbase_sandbox::create_empty_sandbox();
             let mut plugin = if let Some(schema) = $schema {
                 create_schema_plugin($id, sandbox.path(), schema)
             } else {
@@ -199,7 +196,7 @@ macro_rules! generate_global_shims_test {
 
             plugin.tool.create_shims(false).await.unwrap();
 
-            assert_snapshot!(std::fs::read_to_string(
+            starbase_sandbox::assert_snapshot!(std::fs::read_to_string(
                 sandbox.path().join(".proto/bin").join(if cfg!(windows) {
                     format!("{}.cmd", $id)
                 } else {
@@ -208,7 +205,7 @@ macro_rules! generate_global_shims_test {
             ).unwrap());
 
             $(
-                assert_snapshot!(std::fs::read_to_string(
+                starbase_sandbox::assert_snapshot!(std::fs::read_to_string(
                     sandbox.path().join(".proto/bin").join(if cfg!(windows) {
                         format!("{}.cmd", $bin)
                     } else {
@@ -227,8 +224,8 @@ macro_rules! generate_local_shims_test {
     };
     ($id:literal, [ $($bin:literal),* ], $schema:expr) => {
         #[tokio::test]
-        async fn creates_global_shims() {
-            let sandbox = create_empty_sandbox();
+        async fn creates_local_shims() {
+            let sandbox = starbase_sandbox::create_empty_sandbox();
             let mut plugin = if let Some(schema) = $schema {
                 create_schema_plugin($id, sandbox.path(), schema)
             } else {
@@ -238,7 +235,7 @@ macro_rules! generate_local_shims_test {
             plugin.tool.create_shims(false).await.unwrap();
 
             $(
-                assert_snapshot!(std::fs::read_to_string(
+                starbase_sandbox::assert_snapshot!(std::fs::read_to_string(
                     sandbox.path().join(".proto/tools").join($id).join("latest/shims").join(if cfg!(windows) {
                         format!("{}.ps1", $bin)
                     } else {
@@ -261,7 +258,7 @@ macro_rules! generate_globals_test {
     ($id:literal, $dep:literal, $env:expr, $schema:expr) => {
         #[tokio::test]
         async fn installs_and_uninstalls_globals() {
-            let sandbox = create_empty_sandbox();
+            let sandbox = starbase_sandbox::create_empty_sandbox();
             let mut plugin = if let Some(schema) = $schema {
                 create_schema_plugin($id, sandbox.path(), schema)
             } else {
