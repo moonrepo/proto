@@ -31,6 +31,12 @@ impl<'tool> VersionResolver<'tool> {
                 .insert("latest".into(), UnresolvedVersionSpec::Version(latest));
         }
 
+        // if let Some(canary) = output.canary {
+        //     resolver
+        //         .aliases
+        //         .insert("canary".into(), UnresolvedVersionSpec::Version(canary));
+        // }
+
         // Sort from newest to oldest
         resolver.versions.sort_by(|a, d| d.cmp(a));
 

@@ -16,6 +16,7 @@
 #### ⚙️ Internal
 
 - Now supports `.zst` (or `.zstd`) archive formats.
+- Improved version, alias, and requirement handling.
 
 ## 0.16.1
 
