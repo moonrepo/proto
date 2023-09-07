@@ -130,6 +130,16 @@ impl Display for VersionType {
     }
 }
 
+impl PartialEq<AliasOrVersion> for VersionType {
+    fn eq(&self, other: &AliasOrVersion) -> bool {
+        match (self, other) {
+            (Self::Alias(a1), AliasOrVersion::Alias(a2)) => a1 == a2,
+            (Self::Version(v1), AliasOrVersion::Version(v2)) => v1 == v2,
+            _ => false,
+        }
+    }
+}
+
 #[derive(Clone, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(untagged, into = "String", try_from = "String")]
 pub enum AliasOrVersion {

@@ -1,5 +1,5 @@
 use clap::Args;
-use proto_core::{load_tool, AliasOrVersion, Id};
+use proto_core::{load_tool, Id, VersionType};
 use starbase::system;
 use starbase_styles::color;
 use tracing::{debug, info};
@@ -10,7 +10,7 @@ pub struct GlobalArgs {
     id: Id,
 
     #[arg(required = true, help = "Version or alias of tool")]
-    semver: AliasOrVersion,
+    semver: VersionType,
 }
 
 #[system]

@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::{AliasOrVersion, ToolManifest};
+use proto_core::{ToolManifest, VersionType};
 use utils::*;
 
 mod global {
@@ -26,7 +26,7 @@ mod global {
 
         assert_eq!(
             manifest.default_version,
-            Some(AliasOrVersion::parse("19.0.0").unwrap())
+            Some(VersionType::parse("19.0.0").unwrap())
         );
     }
 
@@ -50,7 +50,7 @@ mod global {
 
         assert_eq!(
             manifest.default_version,
-            Some(AliasOrVersion::Alias("bundled".into()))
+            Some(VersionType::Alias("bundled".into()))
         );
     }
 }

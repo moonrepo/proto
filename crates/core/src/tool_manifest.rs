@@ -41,8 +41,11 @@ impl Default for ToolManifestVersion {
 #[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct ToolManifest {
+    // Partial versions allowed
     pub aliases: BTreeMap<String, VersionType>,
-    pub default_version: Option<AliasOrVersion>,
+    pub default_version: Option<VersionType>,
+
+    // Full versions only
     pub installed_versions: HashSet<AliasOrVersion>,
     pub shim_version: u8,
     pub versions: BTreeMap<AliasOrVersion, ToolManifestVersion>,
@@ -85,10 +88,11 @@ impl ToolManifest {
     pub fn insert_version(
         &mut self,
         version: AliasOrVersion,
-        default_version: Option<AliasOrVersion>,
+        default_version: Option<VersionType>,
     ) -> miette::Result<()> {
         if self.default_version.is_none() {
-            self.default_version = Some(default_version.unwrap_or_else(|| version.clone()));
+            self.default_version =
+                Some(default_version.unwrap_or_else(|| version.to_implicit_type()));
         }
 
         self.installed_versions.insert(version.clone());

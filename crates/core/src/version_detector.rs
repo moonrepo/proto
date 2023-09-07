@@ -65,7 +65,7 @@ pub async fn detect_version(
                     "Detected version from .prototools file",
                 );
 
-                candidate = Some(local_version.to_implicit_type());
+                candidate = Some(local_version.to_owned());
                 break;
             }
 
@@ -100,7 +100,7 @@ pub async fn detect_version(
                 "Detected global version from manifest",
             );
 
-            candidate = Some(global_version.to_implicit_type());
+            candidate = Some(global_version.to_owned());
         }
     }
 

@@ -1,4 +1,4 @@
-use proto_core::{AliasOrVersion, ToolsConfig};
+use proto_core::{ToolsConfig, VersionType};
 use starbase_sandbox::create_empty_sandbox;
 use std::collections::BTreeMap;
 use std::str::FromStr;
@@ -56,8 +56,8 @@ kebab-case = "source:./camel.toml"
         assert_eq!(
             config.tools,
             BTreeMap::from_iter([
-                (Id::raw("node"), AliasOrVersion::from_str("12.0.0").unwrap()),
-                (Id::raw("rust"), AliasOrVersion::Alias("stable".into())),
+                (Id::raw("node"), VersionType::from_str("12.0.0").unwrap()),
+                (Id::raw("rust"), VersionType::Alias("stable".into())),
             ])
         );
 
@@ -89,10 +89,10 @@ kebab-case = "source:./camel.toml"
 
         config
             .tools
-            .insert(Id::raw("node"), AliasOrVersion::from_str("12.0.0").unwrap());
+            .insert(Id::raw("node"), VersionType::from_str("12.0.0").unwrap());
         config
             .tools
-            .insert(Id::raw("rust"), AliasOrVersion::Alias("stable".into()));
+            .insert(Id::raw("rust"), VersionType::Alias("stable".into()));
 
         config.plugins.insert(
             Id::raw("foo"),
@@ -159,9 +159,9 @@ foo = "source:./test.toml"
         assert_eq!(
             config.tools,
             BTreeMap::from_iter([
-                (Id::raw("node"), AliasOrVersion::parse("1.2.3").unwrap()),
-                (Id::raw("bun"), AliasOrVersion::parse("4.5.6").unwrap()),
-                (Id::raw("deno"), AliasOrVersion::parse("7.8.9").unwrap()),
+                (Id::raw("node"), VersionType::parse("1.2.3").unwrap()),
+                (Id::raw("bun"), VersionType::parse("4.5.6").unwrap()),
+                (Id::raw("deno"), VersionType::parse("7.8.9").unwrap()),
             ])
         );
 

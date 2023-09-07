@@ -76,7 +76,7 @@ pub async fn internal_install(args: InstallArgs) -> SystemResult {
     tool.cleanup().await?;
 
     if args.pin {
-        tool.manifest.default_version = Some(tool.get_resolved_version());
+        tool.manifest.default_version = Some(tool.get_resolved_version().to_implicit_type());
         tool.manifest.save()?;
     }
 

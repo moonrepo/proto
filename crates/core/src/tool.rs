@@ -319,7 +319,7 @@ impl Tool {
 
         if let Some(default) = sync_changes.default_version {
             modified = true;
-            self.manifest.default_version = Some(AliasOrVersion::parse(&default)?);
+            self.manifest.default_version = Some(VersionType::parse(&default)?);
         }
 
         if let Some(versions) = sync_changes.versions {
@@ -328,8 +328,8 @@ impl Tool {
             let mut entries = BTreeMap::new();
             let mut installed = HashSet::new();
 
-            for version in &versions {
-                let key = AliasOrVersion::Version(version.to_owned());
+            for version in versions {
+                let key = AliasOrVersion::Version(version);
                 let value = self
                     .manifest
                     .versions
@@ -558,7 +558,7 @@ impl Tool {
                 "Detected a version"
             );
 
-            return Ok(Some(VersionType::try_from(version)?));
+            return Ok(Some(VersionType::parse(version)?));
         }
 
         Ok(None)
@@ -735,7 +735,7 @@ impl Tool {
     /// a pre-built archive, or by using a native installation method.
     pub async fn install(&mut self) -> miette::Result<bool> {
         let install_dir = self.get_tool_dir();
-        let _install_lock = fs::lock_directory(&install_dir)?;
+        let _install_lock = fs::lock_directory(&install_dir).await?;
 
         if self.is_installed() {
             debug!(
@@ -1118,7 +1118,7 @@ impl Tool {
 
         self.version.as_ref().is_some_and(|v| !v.is_latest())
             && dir.exists()
-            && !dir.join(".lock").exists()
+            && !fs::is_dir_locked(dir)
     }
 
     /// Return true if the tool has been setup (installed and binaries are located).
@@ -1166,7 +1166,7 @@ impl Tool {
             let mut default = None;
 
             if let Some(default_version) = &self.metadata.default_version {
-                default = Some(AliasOrVersion::parse(default_version)?);
+                default = Some(VersionType::parse(default_version)?);
             }
 
             self.manifest

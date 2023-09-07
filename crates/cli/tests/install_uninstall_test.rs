@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::{AliasOrVersion, ToolManifest};
+use proto_core::{AliasOrVersion, ToolManifest, VersionType};
 use starbase_sandbox::predicates::prelude::*;
 use std::collections::HashSet;
 use utils::*;
@@ -134,7 +134,7 @@ mod install_uninstall {
 
         assert_eq!(
             manifest.default_version,
-            Some(AliasOrVersion::parse("19.0.0").unwrap())
+            Some(VersionType::parse("19.0.0").unwrap())
         );
         assert_eq!(
             manifest.installed_versions,
@@ -167,7 +167,7 @@ mod install_uninstall {
         let manifest_file = temp.path().join("tools/node/manifest.json");
 
         let mut manifest = ToolManifest::load(&manifest_file).unwrap();
-        manifest.default_version = Some(AliasOrVersion::parse("18.0.0").unwrap());
+        manifest.default_version = Some(VersionType::parse("18.0.0").unwrap());
         manifest
             .installed_versions
             .insert(AliasOrVersion::parse("18.0.0").unwrap());
@@ -186,7 +186,7 @@ mod install_uninstall {
 
         assert_eq!(
             manifest.default_version,
-            Some(AliasOrVersion::parse("19.0.0").unwrap())
+            Some(VersionType::parse("19.0.0").unwrap())
         );
         assert_eq!(
             manifest.installed_versions,

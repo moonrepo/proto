@@ -1,5 +1,5 @@
 use clap::Args;
-use proto_core::{load_tool, AliasOrVersion, Id, ToolsConfig};
+use proto_core::{load_tool, Id, ToolsConfig, VersionType};
 use starbase::system;
 use starbase_styles::color;
 use std::{env, path::PathBuf};
@@ -11,7 +11,7 @@ pub struct LocalArgs {
     id: Id,
 
     #[arg(required = true, help = "Version or alias of tool")]
-    semver: AliasOrVersion,
+    semver: VersionType,
 }
 
 #[system]
