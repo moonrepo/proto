@@ -3,5 +3,6 @@ resolver = "2"
 members = ["wasm-test"]
 
 [workspace.dependencies]
-extism-pdk = "0.3.3"
-serde = { version = "1.0.167", features = ["derive"] }
+extism-pdk = "0.3.4"
+serde = { version = "1.0.188", features = ["derive"] }
+tokio = "1.32.0"
