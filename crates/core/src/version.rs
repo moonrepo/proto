@@ -142,6 +142,13 @@ impl AliasOrVersion {
         Ok(Self::from_str(value.as_ref())?)
     }
 
+    pub fn is_latest(&self) -> bool {
+        match self {
+            Self::Alias(alias) => alias == "latest",
+            Self::Version(_) => false,
+        }
+    }
+
     pub fn to_implicit_type(&self) -> VersionType {
         match self {
             Self::Alias(alias) => VersionType::Alias(alias.to_owned()),

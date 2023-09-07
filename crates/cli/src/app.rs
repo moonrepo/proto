@@ -3,7 +3,9 @@ use crate::commands::{
     InstallGlobalArgs, ListArgs, ListGlobalArgs, ListRemoteArgs, LocalArgs, PluginsArgs,
     RemovePluginArgs, RunArgs, SetupArgs, UnaliasArgs, UninstallArgs, UninstallGlobalArgs,
 };
+use clap::builder::styling::{Color, Style, Styles};
 use clap::{Parser, Subcommand, ValueEnum};
+use starbase_styles::color::Color as ColorType;
 use std::fmt::{Display, Error, Formatter};
 
 #[derive(ValueEnum, Clone, Debug, Default)]
@@ -36,17 +38,31 @@ impl Display for LogLevel {
     }
 }
 
+fn fg(ty: ColorType) -> Style {
+    Style::new().fg_color(Some(Color::from(ty as u8)))
+}
+
+fn create_styles() -> Styles {
+    Styles::default()
+        .error(fg(ColorType::Red))
+        .header(Style::new().bold())
+        .invalid(fg(ColorType::Yellow))
+        .literal(fg(ColorType::Pink)) // args, options, etc
+        .placeholder(fg(ColorType::GrayLight))
+        .usage(fg(ColorType::Purple).bold())
+        .valid(fg(ColorType::Green))
+}
+
 #[derive(Debug, Parser)]
 #[command(
     name = "proto",
     version,
     about,
     long_about = None,
-    disable_colored_help = true,
     disable_help_subcommand = true,
     propagate_version = true,
     next_line_help = false,
-    rename_all = "camelCase"
+    styles = create_styles()
 )]
 pub struct App {
     #[arg(
