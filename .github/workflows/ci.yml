@@ -35,6 +35,7 @@ jobs:
         with:
           components: clippy
       - run: cargo clippy --workspace --all-targets
+      - run: cd plugins && cargo clippy --workspace --all-targets
   test:
     name: Test
     runs-on: ${{ matrix.os }}
@@ -49,16 +50,16 @@ jobs:
         with:
           bins: cargo-wasi, cargo-nextest
           cache: false
-      - run: cd plugins && cargo wasi build -p proto_wasm_test
-        if: ${{ runner.os != 'Windows' }}
+      - if: ${{ runner.os != 'Windows' }}
+        run: cd plugins && cargo wasi build -p proto_wasm_test
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         # Windows runs out of disk space
-      - run: |
+      - if: ${{ runner.os == 'Windows' }}
+        run: |
           cd plugins;
           cargo wasi build -p proto_wasm_test;
           node ../.github/actions/delete-target-files.js;
-        if: ${{ runner.os == 'Windows' }}
       - run: cargo nextest run --workspace --exclude proto_pdk --profile ci --config-file ./.cargo/nextest.toml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
