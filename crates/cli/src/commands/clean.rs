@@ -1,7 +1,7 @@
 use clap::Args;
 use dialoguer::Confirm;
 use proto_core::{
-    get_plugins_dir, get_shim_file_name, load_tool, AliasOrVersion, Id, Tool, ToolsConfig,
+    get_plugins_dir, get_shim_file_name, load_tool, Id, Tool, ToolsConfig, VersionSpec,
 };
 use proto_pdk_api::{CreateShimsInput, CreateShimsOutput};
 use starbase::diagnostics::IntoDiagnostic;
@@ -52,7 +52,7 @@ pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miett
         return Ok(0);
     }
 
-    let mut versions_to_clean = HashSet::<AliasOrVersion>::new();
+    let mut versions_to_clean = HashSet::<VersionSpec>::new();
 
     debug!("Scanning file system for stale and untracked versions");
 
@@ -70,7 +70,7 @@ pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miett
                 continue;
             }
 
-            let version = AliasOrVersion::parse(&dir_name)?;
+            let version = VersionSpec::parse(&dir_name)?;
 
             if !tool.manifest.versions.contains_key(&version) {
                 debug!(

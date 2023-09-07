@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::{AliasOrVersion, ToolManifest};
+use proto_core::{ToolManifest, VersionSpec};
 use starbase_sandbox::predicates::prelude::*;
 use std::{env, fs};
 use utils::*;
@@ -172,7 +172,7 @@ mod run {
             .assert();
 
         let manifest = ToolManifest::load(&manifest_file).unwrap();
-        let version = AliasOrVersion::parse("19.0.0").unwrap();
+        let version = VersionSpec::parse("19.0.0").unwrap();
 
         let last_used_at = manifest.versions.get(&version).unwrap().last_used_at;
 

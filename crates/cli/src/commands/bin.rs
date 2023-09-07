@@ -1,5 +1,5 @@
 use clap::Args;
-use proto_core::{detect_version, load_tool, Id, VersionType};
+use proto_core::{detect_version, load_tool, Id, UnresolvedVersionSpec};
 use starbase::system;
 
 #[derive(Args, Clone, Debug)]
@@ -8,7 +8,7 @@ pub struct BinArgs {
     id: Id,
 
     #[arg(help = "Version or alias of tool")]
-    semver: Option<VersionType>,
+    spec: Option<UnresolvedVersionSpec>,
 
     #[arg(long, help = "Display shim path when available")]
     shim: bool,
@@ -17,7 +17,7 @@ pub struct BinArgs {
 #[system]
 pub async fn bin(args: ArgsRef<BinArgs>) {
     let mut tool = load_tool(&args.id).await?;
-    let version = detect_version(&tool, args.semver.clone()).await?;
+    let version = detect_version(&tool, args.spec.clone()).await?;
 
     tool.resolve_version(&version).await?;
     tool.locate_bins().await?;

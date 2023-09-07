@@ -1,6 +1,6 @@
 use crate::{
     helpers::{read_json_file_with_lock, write_json_file_with_lock},
-    version::{AliasOrVersion, VersionType},
+    version::{UnresolvedVersionSpec, VersionSpec},
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -42,13 +42,13 @@ impl Default for ToolManifestVersion {
 #[serde(default)]
 pub struct ToolManifest {
     // Partial versions allowed
-    pub aliases: BTreeMap<String, VersionType>,
-    pub default_version: Option<VersionType>,
+    pub aliases: BTreeMap<String, UnresolvedVersionSpec>,
+    pub default_version: Option<UnresolvedVersionSpec>,
 
     // Full versions only
-    pub installed_versions: HashSet<AliasOrVersion>,
+    pub installed_versions: HashSet<VersionSpec>,
     pub shim_version: u8,
-    pub versions: BTreeMap<AliasOrVersion, ToolManifestVersion>,
+    pub versions: BTreeMap<VersionSpec, ToolManifestVersion>,
 
     #[serde(skip)]
     pub path: PathBuf,
@@ -87,8 +87,8 @@ impl ToolManifest {
 
     pub fn insert_version(
         &mut self,
-        version: AliasOrVersion,
-        default_version: Option<VersionType>,
+        version: VersionSpec,
+        default_version: Option<UnresolvedVersionSpec>,
     ) -> miette::Result<()> {
         if self.default_version.is_none() {
             self.default_version =
@@ -105,7 +105,7 @@ impl ToolManifest {
         Ok(())
     }
 
-    pub fn remove_version(&mut self, version: AliasOrVersion) -> miette::Result<()> {
+    pub fn remove_version(&mut self, version: VersionSpec) -> miette::Result<()> {
         self.installed_versions.remove(&version);
 
         // Remove default version if nothing available
@@ -124,7 +124,7 @@ impl ToolManifest {
         Ok(())
     }
 
-    pub fn track_used_at(&mut self, version: &AliasOrVersion) {
+    pub fn track_used_at(&mut self, version: &VersionSpec) {
         self.versions
             .entry(version.to_owned())
             .and_modify(|v| {

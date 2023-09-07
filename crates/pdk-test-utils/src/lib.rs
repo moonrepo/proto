@@ -4,8 +4,8 @@ mod wrapper;
 pub use macros::*;
 pub use proto_core as core;
 pub use proto_core::{
-    AliasOrVersion, Id, ProtoEnvironment, Tool, ToolManifest, ToolsConfig, UserConfig, Version,
-    VersionReq, VersionType,
+    Id, ProtoEnvironment, Tool, ToolManifest, ToolsConfig, UnresolvedVersionSpec, UserConfig,
+    Version, VersionReq, VersionSpec,
 };
 pub use proto_pdk_api::*;
 pub use wrapper::WasmTestWrapper;

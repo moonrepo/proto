@@ -1,5 +1,5 @@
 use clap::Args;
-use proto_core::{load_tool, Id, ToolsConfig, VersionType};
+use proto_core::{load_tool, Id, ToolsConfig, UnresolvedVersionSpec};
 use starbase::system;
 use starbase_styles::color;
 use std::{env, path::PathBuf};
@@ -11,7 +11,7 @@ pub struct LocalArgs {
     id: Id,
 
     #[arg(required = true, help = "Version or alias of tool")]
-    semver: VersionType,
+    spec: UnresolvedVersionSpec,
 }
 
 #[system]
@@ -20,11 +20,11 @@ pub async fn local(args: ArgsRef<LocalArgs>) {
     let local_path = env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
 
     let mut config = ToolsConfig::load_from(local_path)?;
-    config.tools.insert(args.id.clone(), args.semver.clone());
+    config.tools.insert(args.id.clone(), args.spec.clone());
     config.save()?;
 
     debug!(
-        version = args.semver.to_string(),
+        version = args.spec.to_string(),
         config = ?config.path,
         "Wrote the local version",
     );
@@ -32,6 +32,6 @@ pub async fn local(args: ArgsRef<LocalArgs>) {
     info!(
         "Set the local {} version to {}",
         tool.get_name(),
-        color::hash(args.semver.to_string())
+        color::hash(args.spec.to_string())
     );
 }

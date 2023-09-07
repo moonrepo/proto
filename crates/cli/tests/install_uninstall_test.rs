@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::{AliasOrVersion, ToolManifest, VersionType};
+use proto_core::{ToolManifest, UnresolvedVersionSpec, VersionSpec};
 use starbase_sandbox::predicates::prelude::*;
 use std::collections::HashSet;
 use utils::*;
@@ -134,15 +134,15 @@ mod install_uninstall {
 
         assert_eq!(
             manifest.default_version,
-            Some(VersionType::parse("19.0.0").unwrap())
+            Some(UnresolvedVersionSpec::parse("19.0.0").unwrap())
         );
         assert_eq!(
             manifest.installed_versions,
-            HashSet::from_iter([AliasOrVersion::parse("19.0.0").unwrap()])
+            HashSet::from_iter([VersionSpec::parse("19.0.0").unwrap()])
         );
         assert!(manifest
             .versions
-            .contains_key(&AliasOrVersion::parse("19.0.0").unwrap()));
+            .contains_key(&VersionSpec::parse("19.0.0").unwrap()));
 
         // Uninstall
         let mut cmd = create_proto_command(temp.path());
@@ -158,7 +158,7 @@ mod install_uninstall {
         assert_eq!(manifest.installed_versions, HashSet::default());
         assert!(!manifest
             .versions
-            .contains_key(&AliasOrVersion::parse("19.0.0").unwrap()));
+            .contains_key(&VersionSpec::parse("19.0.0").unwrap()));
     }
 
     #[test]
@@ -167,10 +167,10 @@ mod install_uninstall {
         let manifest_file = temp.path().join("tools/node/manifest.json");
 
         let mut manifest = ToolManifest::load(&manifest_file).unwrap();
-        manifest.default_version = Some(VersionType::parse("18.0.0").unwrap());
+        manifest.default_version = Some(UnresolvedVersionSpec::parse("18.0.0").unwrap());
         manifest
             .installed_versions
-            .insert(AliasOrVersion::parse("18.0.0").unwrap());
+            .insert(VersionSpec::parse("18.0.0").unwrap());
         manifest.save().unwrap();
 
         let mut cmd = create_proto_command(temp.path());
@@ -186,13 +186,13 @@ mod install_uninstall {
 
         assert_eq!(
             manifest.default_version,
-            Some(VersionType::parse("19.0.0").unwrap())
+            Some(UnresolvedVersionSpec::parse("19.0.0").unwrap())
         );
         assert_eq!(
             manifest.installed_versions,
             HashSet::from_iter([
-                AliasOrVersion::parse("18.0.0").unwrap(),
-                AliasOrVersion::parse("19.0.0").unwrap(),
+                VersionSpec::parse("18.0.0").unwrap(),
+                VersionSpec::parse("19.0.0").unwrap(),
             ])
         );
     }

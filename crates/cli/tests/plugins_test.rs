@@ -2,7 +2,8 @@ mod utils;
 
 use futures::Future;
 use proto_core::{
-    load_tool_from_locator, Id, PluginLocator, ProtoEnvironment, Tool, UserConfig, VersionType,
+    load_tool_from_locator, Id, PluginLocator, ProtoEnvironment, Tool, UnresolvedVersionSpec,
+    UserConfig,
 };
 use std::env;
 use std::path::{Path, PathBuf};
@@ -20,7 +21,7 @@ where
 
     env::set_var("PROTO_HOME", fixture.path().to_string_lossy().to_string());
 
-    tool.setup(&VersionType::parse("1.0.0").unwrap())
+    tool.setup(&UnresolvedVersionSpec::parse("1.0.0").unwrap())
         .await
         .unwrap();
 

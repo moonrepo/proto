@@ -63,15 +63,11 @@ npm = "9.0.0"
         );
 
         let mut cmd = create_proto_command(temp.path());
-        cmd.arg("local")
-            .arg("node")
-            .arg("19.0.0")
-            .assert()
-            .success();
+        cmd.arg("local").arg("node").arg("19").assert().success();
 
         assert_eq!(
             fs::read_to_string(version_file).unwrap(),
-            r#"node = "19.0.0"
+            r#"node = "19"
 npm = "9.0.0"
 "#
         )
@@ -96,5 +92,19 @@ npm = "9.0.0"
             fs::read_to_string(version_file).unwrap(),
             "npm = \"bundled\"\n"
         )
+    }
+
+    #[test]
+    fn can_set_partial_version() {
+        let temp = create_empty_sandbox();
+        let version_file = temp.path().join(".prototools");
+
+        assert!(!version_file.exists());
+
+        let mut cmd = create_proto_command(temp.path());
+        cmd.arg("local").arg("npm").arg("1.2").assert().success();
+
+        assert!(version_file.exists());
+        assert_eq!(fs::read_to_string(version_file).unwrap(), "npm = \"1.2\"\n")
     }
 }

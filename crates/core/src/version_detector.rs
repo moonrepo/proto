@@ -1,14 +1,14 @@
 use crate::error::ProtoError;
 use crate::tool::Tool;
 use crate::tools_config::ToolsConfig;
-use crate::version::VersionType;
+use crate::version::UnresolvedVersionSpec;
 use std::{env, path::Path};
 use tracing::{debug, trace};
 
 pub async fn detect_version(
     tool: &Tool,
-    forced_version: Option<VersionType>,
-) -> miette::Result<VersionType> {
+    forced_version: Option<UnresolvedVersionSpec>,
+) -> miette::Result<UnresolvedVersionSpec> {
     let mut candidate = forced_version;
 
     // Env var takes highest priority
@@ -23,7 +23,7 @@ pub async fn detect_version(
                 "Detected version from environment variable",
             );
 
-            candidate = Some(VersionType::parse(session_version)?);
+            candidate = Some(UnresolvedVersionSpec::parse(session_version)?);
         } else {
             trace!(
                 tool = tool.id.as_str(),

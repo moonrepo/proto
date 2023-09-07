@@ -1,4 +1,4 @@
-use proto_core::{resolve_version, VersionType};
+use proto_core::{resolve_version, UnresolvedVersionSpec};
 use semver::Version;
 use std::collections::BTreeMap;
 
@@ -19,18 +19,24 @@ mod version_resolver {
         ]
     }
 
-    fn create_aliases() -> BTreeMap<String, VersionType> {
+    fn create_aliases() -> BTreeMap<String, UnresolvedVersionSpec> {
         BTreeMap::from_iter([
             (
                 "latest".into(),
-                VersionType::Version(Version::new(10, 0, 0)),
+                UnresolvedVersionSpec::Version(Version::new(10, 0, 0)),
             ),
-            ("stable".into(), VersionType::Alias("latest".into())),
+            (
+                "stable".into(),
+                UnresolvedVersionSpec::Alias("latest".into()),
+            ),
             (
                 "no-version".into(),
-                VersionType::Version(Version::new(20, 0, 0)),
+                UnresolvedVersionSpec::Version(Version::new(20, 0, 0)),
             ),
-            ("no-alias".into(), VersionType::Alias("missing".into())),
+            (
+                "no-alias".into(),
+                UnresolvedVersionSpec::Alias("missing".into()),
+            ),
         ])
     }
 
@@ -41,7 +47,7 @@ mod version_resolver {
 
         assert_eq!(
             resolve_version(
-                &VersionType::Alias("latest".into()),
+                &UnresolvedVersionSpec::Alias("latest".into()),
                 &versions,
                 &aliases,
                 None,
@@ -52,7 +58,7 @@ mod version_resolver {
 
         assert_eq!(
             resolve_version(
-                &VersionType::Alias("stable".into()),
+                &UnresolvedVersionSpec::Alias("stable".into()),
                 &versions,
                 &aliases,
                 None,
@@ -69,7 +75,7 @@ mod version_resolver {
         let aliases = create_aliases();
 
         resolve_version(
-            &VersionType::Alias("unknown".into()),
+            &UnresolvedVersionSpec::Alias("unknown".into()),
             &versions,
             &aliases,
             None,
@@ -84,7 +90,7 @@ mod version_resolver {
         let aliases = create_aliases();
 
         resolve_version(
-            &VersionType::Alias("no-alias".into()),
+            &UnresolvedVersionSpec::Alias("no-alias".into()),
             &versions,
             &aliases,
             None,
@@ -99,7 +105,7 @@ mod version_resolver {
         let aliases = create_aliases();
 
         resolve_version(
-            &VersionType::Alias("no-version".into()),
+            &UnresolvedVersionSpec::Alias("no-version".into()),
             &versions,
             &aliases,
             None,
@@ -114,7 +120,7 @@ mod version_resolver {
 
         assert_eq!(
             resolve_version(
-                &VersionType::Version(Version::new(1, 10, 5)),
+                &UnresolvedVersionSpec::Version(Version::new(1, 10, 5)),
                 &versions,
                 &aliases,
                 None,
@@ -125,7 +131,7 @@ mod version_resolver {
 
         assert_eq!(
             resolve_version(
-                &VersionType::Version(Version::new(8, 0, 0)),
+                &UnresolvedVersionSpec::Version(Version::new(8, 0, 0)),
                 &versions,
                 &aliases,
                 None,
@@ -142,7 +148,7 @@ mod version_resolver {
 
         assert_eq!(
             resolve_version(
-                &VersionType::parse("1.2").unwrap(),
+                &UnresolvedVersionSpec::parse("1.2").unwrap(),
                 &versions,
                 &aliases,
                 None,
@@ -153,7 +159,7 @@ mod version_resolver {
 
         assert_eq!(
             resolve_version(
-                &VersionType::parse("1.0").unwrap(),
+                &UnresolvedVersionSpec::parse("1.0").unwrap(),
                 &versions,
                 &aliases,
                 None,
@@ -163,7 +169,13 @@ mod version_resolver {
         );
 
         assert_eq!(
-            resolve_version(&VersionType::parse("1").unwrap(), &versions, &aliases, None,).unwrap(),
+            resolve_version(
+                &UnresolvedVersionSpec::parse("1").unwrap(),
+                &versions,
+                &aliases,
+                None,
+            )
+            .unwrap(),
             Version::new(1, 10, 5)
         );
     }
@@ -175,7 +187,7 @@ mod version_resolver {
 
         assert_eq!(
             resolve_version(
-                &VersionType::parse("v8.0.0").unwrap(),
+                &UnresolvedVersionSpec::parse("v8.0.0").unwrap(),
                 &versions,
                 &aliases,
                 None,
@@ -186,7 +198,7 @@ mod version_resolver {
 
         assert_eq!(
             resolve_version(
-                &VersionType::parse("V8").unwrap(),
+                &UnresolvedVersionSpec::parse("V8").unwrap(),
                 &versions,
                 &aliases,
                 None,
@@ -203,7 +215,7 @@ mod version_resolver {
         let aliases = create_aliases();
 
         resolve_version(
-            &VersionType::Version(Version::new(20, 0, 0)),
+            &UnresolvedVersionSpec::Version(Version::new(20, 0, 0)),
             &versions,
             &aliases,
             None,
@@ -218,7 +230,7 @@ mod version_resolver {
 
         assert_eq!(
             resolve_version(
-                &VersionType::parse("^8").unwrap(),
+                &UnresolvedVersionSpec::parse("^8").unwrap(),
                 &versions,
                 &aliases,
                 None,
@@ -229,7 +241,7 @@ mod version_resolver {
 
         assert_eq!(
             resolve_version(
-                &VersionType::parse("~1.1").unwrap(),
+                &UnresolvedVersionSpec::parse("~1.1").unwrap(),
                 &versions,
                 &aliases,
                 None,
@@ -240,7 +252,7 @@ mod version_resolver {
 
         assert_eq!(
             resolve_version(
-                &VersionType::parse(">1 <10").unwrap(),
+                &UnresolvedVersionSpec::parse(">1 <10").unwrap(),
                 &versions,
                 &aliases,
                 None,
@@ -251,7 +263,7 @@ mod version_resolver {
 
         assert_eq!(
             resolve_version(
-                &VersionType::parse(">1, <10").unwrap(),
+                &UnresolvedVersionSpec::parse(">1, <10").unwrap(),
                 &versions,
                 &aliases,
                 None,
@@ -263,7 +275,7 @@ mod version_resolver {
         // Highest match
         assert_eq!(
             resolve_version(
-                &VersionType::parse("^1").unwrap(),
+                &UnresolvedVersionSpec::parse("^1").unwrap(),
                 &versions,
                 &aliases,
                 None,
@@ -274,7 +286,13 @@ mod version_resolver {
 
         // Star (latest)
         assert_eq!(
-            resolve_version(&VersionType::parse("*").unwrap(), &versions, &aliases, None,).unwrap(),
+            resolve_version(
+                &UnresolvedVersionSpec::parse("*").unwrap(),
+                &versions,
+                &aliases,
+                None,
+            )
+            .unwrap(),
             Version::new(10, 0, 0)
         );
     }
@@ -286,7 +304,7 @@ mod version_resolver {
         let aliases = create_aliases();
 
         resolve_version(
-            &VersionType::parse("^20").unwrap(),
+            &UnresolvedVersionSpec::parse("^20").unwrap(),
             &versions,
             &aliases,
             None,
@@ -301,7 +319,7 @@ mod version_resolver {
 
         assert_eq!(
             resolve_version(
-                &VersionType::parse("^1 || ^6 || ^8").unwrap(),
+                &UnresolvedVersionSpec::parse("^1 || ^6 || ^8").unwrap(),
                 &versions,
                 &aliases,
                 None,
@@ -318,7 +336,7 @@ mod version_resolver {
         let aliases = create_aliases();
 
         resolve_version(
-            &VersionType::parse("^3 || ^5 || ^9").unwrap(),
+            &UnresolvedVersionSpec::parse("^3 || ^5 || ^9").unwrap(),
             &versions,
             &aliases,
             None,
@@ -332,7 +350,13 @@ mod version_resolver {
         let aliases = create_aliases();
 
         for req in [">= 1.5.9", "> 1.5.0", ">= 1.2", "> 1.2", "< 1.2", "<= 1.2"] {
-            resolve_version(&VersionType::parse(req).unwrap(), &versions, &aliases, None).unwrap();
+            resolve_version(
+                &UnresolvedVersionSpec::parse(req).unwrap(),
+                &versions,
+                &aliases,
+                None,
+            )
+            .unwrap();
         }
     }
 }

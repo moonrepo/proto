@@ -2,7 +2,7 @@ use crate::helpers::{create_progress_bar, disable_progress_bars};
 use crate::shell;
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::{load_tool, Id, Tool, VersionType};
+use proto_core::{load_tool, Id, Tool, UnresolvedVersionSpec};
 use proto_pdk_api::{InstallHook, SyncShellProfileInput, SyncShellProfileOutput};
 use starbase::{system, SystemResult};
 use starbase_styles::color;
@@ -15,7 +15,7 @@ pub struct InstallArgs {
     pub id: Id,
 
     #[arg(default_value = "latest", help = "Version or alias of tool")]
-    pub semver: Option<VersionType>,
+    pub spec: Option<UnresolvedVersionSpec>,
 
     #[arg(long, help = "Pin version as the global default")]
     pub pin: bool,
@@ -26,7 +26,7 @@ pub struct InstallArgs {
 }
 
 pub async fn internal_install(args: InstallArgs) -> SystemResult {
-    let version = args.semver.clone().unwrap_or_default();
+    let version = args.spec.clone().unwrap_or_default();
     let mut tool = load_tool(&args.id).await?;
 
     if tool.is_setup(&version).await? {
