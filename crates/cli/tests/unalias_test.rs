@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::{ToolManifest, VersionType};
+use proto_core::{ToolManifest, UnresolvedVersionSpec};
 use starbase_sandbox::predicates::prelude::*;
 use std::collections::BTreeMap;
 use utils::*;
@@ -24,9 +24,10 @@ mod unalias {
         let manifest_file = sandbox.path().join("tools/node/manifest.json");
 
         let mut manifest = ToolManifest::load(&manifest_file).unwrap();
-        manifest
-            .aliases
-            .insert("example".into(), VersionType::parse("19.0.0").unwrap());
+        manifest.aliases.insert(
+            "example".into(),
+            UnresolvedVersionSpec::parse("19.0.0").unwrap(),
+        );
         manifest.save().unwrap();
 
         let mut cmd = create_proto_command(sandbox.path());
@@ -47,9 +48,10 @@ mod unalias {
         let manifest_file = sandbox.path().join("tools/node/manifest.json");
 
         let mut manifest = ToolManifest::load(&manifest_file).unwrap();
-        manifest
-            .aliases
-            .insert("example".into(), VersionType::parse("19.0.0").unwrap());
+        manifest.aliases.insert(
+            "example".into(),
+            UnresolvedVersionSpec::parse("19.0.0").unwrap(),
+        );
         manifest.save().unwrap();
 
         let mut cmd = create_proto_command(sandbox.path());
@@ -63,7 +65,10 @@ mod unalias {
 
         assert_eq!(
             manifest.aliases,
-            BTreeMap::from_iter([("example".into(), VersionType::parse("19.0.0").unwrap())])
+            BTreeMap::from_iter([(
+                "example".into(),
+                UnresolvedVersionSpec::parse("19.0.0").unwrap()
+            )])
         );
     }
 }

@@ -3026,9 +3026,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_archive"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "13f717bc785efa5d43255b3418f1a3c82c1506a78e7849bee8e04c96c688bf8e"
+checksum = "f85e565b134761413513c0091ed002ffb31ba448ca9542c4c41ca5968a29a9bb"
 dependencies = [
  "flate2",
  "miette",
@@ -3069,9 +3069,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_sandbox"
-version = "0.1.9"
+version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8715fbb4e5ea309784161fddca9b5abfc2425ad079ef624c1fc01c8eea8f7163"
+checksum = "62ec8301c49429d3da1105475f4e32ce8fa7c8cf1028c4e4535b0c010be2952a"
 dependencies = [
  "assert_cmd",
  "assert_fs",
@@ -3085,9 +3085,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_styles"
-version = "0.1.14"
+version = "0.1.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e6930eace291b6c6dc243074efc7a4c8bdebe0ffd94bcee0176472148f76205d"
+checksum = "251a45da918b41577ab62fb764c9683a0f50fb2b8999a629dbd6c25476a9c411"
 dependencies = [
  "dirs 5.0.1",
  "miette",
@@ -3097,9 +3097,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_utils"
-version = "0.2.22"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9bf684116f2b02df3926d3412c97c1d8caa4b9edc49c6b806ed6d8e33cdb8be"
+checksum = "032493983d1aaa0e6107219e8b17e2b315452f902f0f512c8bd5af6df6704b44"
 dependencies = [
  "dirs 5.0.1",
  "fs4",
@@ -3112,6 +3112,7 @@ dependencies = [
  "serde_json",
  "starbase_styles",
  "thiserror",
+ "tokio",
  "toml 0.7.6",
  "tracing",
  "wax",

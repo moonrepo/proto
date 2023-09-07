@@ -1,6 +1,6 @@
 use crate::helpers::{create_progress_bar, disable_progress_bars};
 use clap::Args;
-use proto_core::{load_tool, Id, VersionType};
+use proto_core::{load_tool, Id, UnresolvedVersionSpec};
 use starbase::system;
 use tracing::{debug, info};
 
@@ -10,7 +10,7 @@ pub struct UninstallArgs {
     id: Id,
 
     #[arg(required = true, help = "Version or alias of tool")]
-    semver: VersionType,
+    semver: UnresolvedVersionSpec,
 }
 
 #[system]

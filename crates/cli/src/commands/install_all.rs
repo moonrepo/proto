@@ -5,9 +5,7 @@ use crate::{
     helpers::create_progress_bar,
 };
 use futures::future::try_join_all;
-use proto_core::{
-    load_tool_from_locator, AliasOrVersion, ProtoEnvironment, ToolsConfig, UserConfig,
-};
+use proto_core::{load_tool_from_locator, ProtoEnvironment, ToolsConfig, UserConfig};
 use starbase::system;
 use starbase_styles::color;
 use std::env;
@@ -40,7 +38,7 @@ pub async fn install_all() {
 
             debug!("Detected version {} for {}", version, tool.get_name());
 
-            config.tools.insert(name, AliasOrVersion::Version(version));
+            config.tools.insert(name, version.to_unresolved_spec());
         }
     }
 
@@ -65,9 +63,9 @@ pub async fn install_all() {
         for (id, version) in config.tools {
             futures.push(internal_install(InstallArgs {
                 id,
-                semver: Some(version.to_implicit_type()),
                 pin: false,
                 passthrough: vec![],
+                spec: Some(version),
             }));
         }
 

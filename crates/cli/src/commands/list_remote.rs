@@ -1,5 +1,5 @@
 use clap::Args;
-use proto_core::{load_tool, Id, VersionType};
+use proto_core::{load_tool, Id, UnresolvedVersionSpec};
 use starbase::system;
 use std::process;
 use tracing::debug;
@@ -10,14 +10,15 @@ pub struct ListRemoteArgs {
     id: Id,
 }
 
-// TODO: only show LTS, dont show pre-releases?
 #[system]
 pub async fn list_remote(args: ArgsRef<ListRemoteArgs>) {
     let tool = load_tool(&args.id).await?;
 
     debug!("Loading versions");
 
-    let resolver = tool.load_version_resolver(&VersionType::default()).await?;
+    let resolver = tool
+        .load_version_resolver(&UnresolvedVersionSpec::default())
+        .await?;
     let mut versions = resolver.versions;
 
     if versions.is_empty() {

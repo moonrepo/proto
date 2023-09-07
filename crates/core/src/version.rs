@@ -10,41 +10,41 @@ use std::str::FromStr;
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(untagged, into = "String", try_from = "String")]
-pub enum VersionType {
+pub enum UnresolvedVersionSpec {
     Alias(String),
-    ReqAll(VersionReq),
+    Req(VersionReq),
     ReqAny(Vec<VersionReq>),
     Version(Version),
 }
 
-impl VersionType {
+impl UnresolvedVersionSpec {
     pub fn parse<T: AsRef<str>>(value: T) -> miette::Result<Self> {
         Ok(Self::from_str(value.as_ref())?)
     }
 
-    pub fn to_explicit_version(&self) -> AliasOrVersion {
+    pub fn to_spec(&self) -> VersionSpec {
         match self {
-            VersionType::Alias(alias) => AliasOrVersion::Alias(alias.to_owned()),
-            VersionType::Version(version) => AliasOrVersion::Version(version.to_owned()),
+            UnresolvedVersionSpec::Alias(alias) => VersionSpec::Alias(alias.to_owned()),
+            UnresolvedVersionSpec::Version(version) => VersionSpec::Version(version.to_owned()),
             _ => unreachable!(),
         }
     }
 }
 
-impl Default for VersionType {
+impl Default for UnresolvedVersionSpec {
     fn default() -> Self {
         Self::Alias("latest".into())
     }
 }
 
-impl FromStr for VersionType {
+impl FromStr for UnresolvedVersionSpec {
     type Err = ProtoError;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         let value = remove_space_after_gtlt(remove_v_prefix(value.trim().replace(".*", "")));
 
         if is_alias_name(&value) {
-            return Ok(VersionType::Alias(value));
+            return Ok(UnresolvedVersionSpec::Alias(value));
         }
 
         let handle_error = |error: semver::Error| ProtoError::Semver {
@@ -64,41 +64,41 @@ impl FromStr for VersionType {
                 any.push(VersionReq::parse(req).map_err(handle_error)?);
             }
 
-            return Ok(VersionType::ReqAny(any));
+            return Ok(UnresolvedVersionSpec::ReqAny(any));
         }
 
         // AND requirements
         if value.contains(',') {
-            return Ok(VersionType::ReqAll(
+            return Ok(UnresolvedVersionSpec::Req(
                 VersionReq::parse(&value).map_err(handle_error)?,
             ));
         } else if value.contains(' ') {
-            return Ok(VersionType::ReqAll(
+            return Ok(UnresolvedVersionSpec::Req(
                 VersionReq::parse(&value.replace(' ', ", ")).map_err(handle_error)?,
             ));
         }
 
         Ok(match value.chars().next().unwrap() {
             '=' | '^' | '~' | '>' | '<' | '*' => {
-                VersionType::ReqAll(VersionReq::parse(&value).map_err(handle_error)?)
+                UnresolvedVersionSpec::Req(VersionReq::parse(&value).map_err(handle_error)?)
             }
             _ => {
                 let dot_count = value.match_indices('.').collect::<Vec<_>>().len();
 
                 // If not fully qualified, match using a requirement
                 if dot_count < 2 {
-                    VersionType::ReqAll(
+                    UnresolvedVersionSpec::Req(
                         VersionReq::parse(&format!("~{value}")).map_err(handle_error)?,
                     )
                 } else {
-                    VersionType::Version(Version::parse(&value).map_err(handle_error)?)
+                    UnresolvedVersionSpec::Version(Version::parse(&value).map_err(handle_error)?)
                 }
             }
         })
     }
 }
 
-impl TryFrom<String> for VersionType {
+impl TryFrom<String> for UnresolvedVersionSpec {
     type Error = ProtoError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
@@ -106,17 +106,17 @@ impl TryFrom<String> for VersionType {
     }
 }
 
-impl Into<String> for VersionType {
+impl Into<String> for UnresolvedVersionSpec {
     fn into(self) -> String {
         self.to_string()
     }
 }
 
-impl Display for VersionType {
+impl Display for UnresolvedVersionSpec {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Alias(alias) => write!(f, "{}", alias),
-            Self::ReqAll(req) => write!(f, "{}", req),
+            Self::Req(req) => write!(f, "{}", req),
             Self::ReqAny(reqs) => write!(
                 f,
                 "{}",
@@ -130,16 +130,33 @@ impl Display for VersionType {
     }
 }
 
-#[derive(Clone, Deserialize, PartialEq, Serialize)]
+impl PartialEq<VersionSpec> for UnresolvedVersionSpec {
+    fn eq(&self, other: &VersionSpec) -> bool {
+        match (self, other) {
+            (Self::Alias(a1), VersionSpec::Alias(a2)) => a1 == a2,
+            (Self::Version(v1), VersionSpec::Version(v2)) => v1 == v2,
+            _ => false,
+        }
+    }
+}
+
+#[derive(Clone, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(untagged, into = "String", try_from = "String")]
-pub enum AliasOrVersion {
+pub enum VersionSpec {
     Alias(String),
     Version(Version),
 }
 
-impl AliasOrVersion {
+impl VersionSpec {
     pub fn parse<T: AsRef<str>>(value: T) -> miette::Result<Self> {
         Ok(Self::from_str(value.as_ref())?)
+    }
+
+    pub fn is_canary(&self) -> bool {
+        match self {
+            Self::Alias(alias) => alias == "canary",
+            Self::Version(_) => false,
+        }
     }
 
     pub fn is_latest(&self) -> bool {
@@ -149,31 +166,31 @@ impl AliasOrVersion {
         }
     }
 
-    pub fn to_implicit_type(&self) -> VersionType {
+    pub fn to_unresolved_spec(&self) -> UnresolvedVersionSpec {
         match self {
-            Self::Alias(alias) => VersionType::Alias(alias.to_owned()),
-            Self::Version(version) => VersionType::Version(version.to_owned()),
+            Self::Alias(alias) => UnresolvedVersionSpec::Alias(alias.to_owned()),
+            Self::Version(version) => UnresolvedVersionSpec::Version(version.to_owned()),
         }
     }
 }
 
-impl Default for AliasOrVersion {
+impl Default for VersionSpec {
     fn default() -> Self {
         Self::Alias("latest".into())
     }
 }
 
-impl FromStr for AliasOrVersion {
+impl FromStr for VersionSpec {
     type Err = ProtoError;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         let value = remove_space_after_gtlt(remove_v_prefix(value.trim().replace(".*", "")));
 
         if is_alias_name(&value) {
-            return Ok(AliasOrVersion::Alias(value));
+            return Ok(VersionSpec::Alias(value));
         }
 
-        Ok(AliasOrVersion::Version(Version::parse(&value).map_err(
+        Ok(VersionSpec::Version(Version::parse(&value).map_err(
             |error| ProtoError::Semver {
                 version: value,
                 error,
@@ -182,7 +199,7 @@ impl FromStr for AliasOrVersion {
     }
 }
 
-impl TryFrom<String> for AliasOrVersion {
+impl TryFrom<String> for VersionSpec {
     type Error = ProtoError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
@@ -190,19 +207,19 @@ impl TryFrom<String> for AliasOrVersion {
     }
 }
 
-impl Into<String> for AliasOrVersion {
+impl Into<String> for VersionSpec {
     fn into(self) -> String {
         self.to_string()
     }
 }
 
-impl Debug for AliasOrVersion {
+impl Debug for VersionSpec {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self)
     }
 }
 
-impl Display for AliasOrVersion {
+impl Display for VersionSpec {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Alias(alias) => write!(f, "{}", alias),
@@ -211,7 +228,7 @@ impl Display for AliasOrVersion {
     }
 }
 
-impl PartialEq<&str> for AliasOrVersion {
+impl PartialEq<&str> for VersionSpec {
     fn eq(&self, other: &&str) -> bool {
         match self {
             Self::Alias(alias) => alias == other,
@@ -220,7 +237,7 @@ impl PartialEq<&str> for AliasOrVersion {
     }
 }
 
-impl PartialEq<Version> for AliasOrVersion {
+impl PartialEq<Version> for VersionSpec {
     fn eq(&self, other: &Version) -> bool {
         match self {
             Self::Version(version) => version == other,
