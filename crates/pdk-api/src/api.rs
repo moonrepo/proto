@@ -151,6 +151,9 @@ json_struct!(
     pub struct NativeInstallOutput {
         /// Whether the install was successful.
         pub installed: bool,
+
+        /// Whether to skip the install process or not.
+        pub skip_install: bool,
     }
 );
 
@@ -167,6 +170,9 @@ json_struct!(
     pub struct NativeUninstallOutput {
         /// Whether the install was successful.
         pub uninstalled: bool,
+
+        /// Whether to skip the uninstall process or not.
+        pub skip_uninstall: bool,
     }
 );
 
