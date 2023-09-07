@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::{AliasOrVersion, ToolManifest, Version};
+use proto_core::{AliasOrVersion, ToolManifest};
 use starbase_sandbox::predicates::prelude::*;
 use std::collections::HashSet;
 use utils::*;
@@ -138,11 +138,11 @@ mod install_uninstall {
         );
         assert_eq!(
             manifest.installed_versions,
-            HashSet::from_iter([Version::parse("19.0.0").unwrap()])
+            HashSet::from_iter([AliasOrVersion::parse("19.0.0").unwrap()])
         );
         assert!(manifest
             .versions
-            .contains_key(&Version::parse("19.0.0").unwrap()));
+            .contains_key(&AliasOrVersion::parse("19.0.0").unwrap()));
 
         // Uninstall
         let mut cmd = create_proto_command(temp.path());
@@ -158,7 +158,7 @@ mod install_uninstall {
         assert_eq!(manifest.installed_versions, HashSet::default());
         assert!(!manifest
             .versions
-            .contains_key(&Version::parse("19.0.0").unwrap()));
+            .contains_key(&AliasOrVersion::parse("19.0.0").unwrap()));
     }
 
     #[test]
@@ -170,7 +170,7 @@ mod install_uninstall {
         manifest.default_version = Some(AliasOrVersion::parse("18.0.0").unwrap());
         manifest
             .installed_versions
-            .insert(Version::parse("18.0.0").unwrap());
+            .insert(AliasOrVersion::parse("18.0.0").unwrap());
         manifest.save().unwrap();
 
         let mut cmd = create_proto_command(temp.path());
@@ -191,8 +191,8 @@ mod install_uninstall {
         assert_eq!(
             manifest.installed_versions,
             HashSet::from_iter([
-                Version::parse("18.0.0").unwrap(),
-                Version::parse("19.0.0").unwrap(),
+                AliasOrVersion::parse("18.0.0").unwrap(),
+                AliasOrVersion::parse("19.0.0").unwrap(),
             ])
         );
     }

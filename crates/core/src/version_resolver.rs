@@ -1,9 +1,10 @@
 use crate::error::ProtoError;
 use crate::tool_manifest::ToolManifest;
 use crate::version::VersionType;
+use crate::AliasOrVersion;
 use proto_pdk_api::LoadVersionsOutput;
 use semver::{Version, VersionReq};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 
 #[derive(Debug, Default)]
 pub struct VersionResolver<'tool> {
@@ -32,7 +33,6 @@ impl<'tool> VersionResolver<'tool> {
 
         // Sort from newest to oldest
         resolver.versions.sort_by(|a, d| d.cmp(a));
-        // resolver.canary_versions.sort_by(|a, d| d.cmp(a));
 
         resolver
     }
@@ -65,6 +65,17 @@ where
     highest_match
 }
 
+// Filter out aliases because they cannot be matched against
+fn extract_installed_versions(installed: &HashSet<AliasOrVersion>) -> Vec<&Version> {
+    installed
+        .iter()
+        .filter_map(|item| match item {
+            AliasOrVersion::Alias(_) => None,
+            AliasOrVersion::Version(v) => Some(v),
+        })
+        .collect()
+}
+
 pub fn resolve_version(
     candidate: &VersionType,
     versions: &[Version],
@@ -73,14 +84,22 @@ pub fn resolve_version(
 ) -> miette::Result<Version> {
     match &candidate {
         VersionType::Alias(alias) => {
+            if let Some(manifest) = manifest {
+                if let Some(alias_type) = manifest.aliases.get(alias) {
+                    return resolve_version(alias_type, versions, aliases, Some(manifest));
+                }
+            }
+
             if let Some(alias_type) = aliases.get(alias) {
                 return resolve_version(alias_type, versions, aliases, manifest);
             }
         }
         VersionType::ReqAll(req) => {
-            // Prefer installed versions
             if let Some(manifest) = manifest {
-                if let Some(version) = match_highest_version(req, &manifest.installed_versions) {
+                if let Some(version) = match_highest_version(
+                    req,
+                    extract_installed_versions(&manifest.installed_versions),
+                ) {
                     return Ok(version);
                 }
             }
@@ -91,10 +110,11 @@ pub fn resolve_version(
         }
         VersionType::ReqAny(reqs) => {
             for req in reqs {
-                // Prefer installed versions
                 if let Some(manifest) = manifest {
-                    if let Some(version) = match_highest_version(req, &manifest.installed_versions)
-                    {
+                    if let Some(version) = match_highest_version(
+                        req,
+                        extract_installed_versions(&manifest.installed_versions),
+                    ) {
                         return Ok(version);
                     }
                 }

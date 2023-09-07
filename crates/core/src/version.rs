@@ -130,7 +130,7 @@ impl Display for VersionType {
     }
 }
 
-#[derive(Clone, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(untagged, into = "String", try_from = "String")]
 pub enum AliasOrVersion {
     Alias(String),
@@ -140,6 +140,13 @@ pub enum AliasOrVersion {
 impl AliasOrVersion {
     pub fn parse<T: AsRef<str>>(value: T) -> miette::Result<Self> {
         Ok(Self::from_str(value.as_ref())?)
+    }
+
+    pub fn is_canary(&self) -> bool {
+        match self {
+            Self::Alias(alias) => alias == "canary",
+            Self::Version(_) => false,
+        }
     }
 
     pub fn is_latest(&self) -> bool {

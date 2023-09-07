@@ -180,9 +180,7 @@ impl Tool {
 
     /// Return the resolved version or "latest".
     pub fn get_resolved_version(&self) -> AliasOrVersion {
-        self.version
-            .clone()
-            .unwrap_or_else(|| AliasOrVersion::Alias("latest".into()))
+        self.version.clone().unwrap_or_default()
     }
 
     /// Return a path to a local shim file if it exists.
@@ -328,20 +326,23 @@ impl Tool {
             modified = true;
 
             let mut entries = BTreeMap::new();
+            let mut installed = HashSet::new();
 
             for version in &versions {
-                entries.insert(
-                    version.to_owned(),
-                    self.manifest
-                        .versions
-                        .get(version)
-                        .cloned()
-                        .unwrap_or_default(),
-                );
+                let key = AliasOrVersion::Version(version.to_owned());
+                let value = self
+                    .manifest
+                    .versions
+                    .get(&key)
+                    .cloned()
+                    .unwrap_or_default();
+
+                installed.insert(key.clone());
+                entries.insert(key, value);
             }
 
             self.manifest.versions = entries;
-            self.manifest.installed_versions = HashSet::from_iter(versions);
+            self.manifest.installed_versions = installed;
         }
 
         if modified {
@@ -1024,19 +1025,14 @@ impl Tool {
 impl Tool {
     /// Create the context object required for creating shim files.
     pub fn create_shim_context(&self) -> ShimContext {
-        let mut context = ShimContext {
+        ShimContext {
             shim_file: &self.id,
             bin: &self.id,
             tool_id: &self.id,
             tool_dir: Some(self.get_tool_dir()),
+            tool_version: Some(self.get_resolved_version().to_string()),
             ..ShimContext::default()
-        };
-
-        if let AliasOrVersion::Version(version) = self.get_resolved_version() {
-            context.tool_version = Some(version.to_string());
         }
-
-        context
     }
 
     /// Create global and local shim files for the current tool.
@@ -1166,16 +1162,15 @@ impl Tool {
             self.locate_bins().await?;
             self.setup_shims(true).await?;
 
-            // Only insert if a version
-            if let AliasOrVersion::Version(version) = self.get_resolved_version() {
-                let mut default = None;
+            // Add version to manifest
+            let mut default = None;
 
-                if let Some(default_version) = &self.metadata.default_version {
-                    default = Some(AliasOrVersion::parse(default_version)?);
-                }
-
-                self.manifest.insert_version(&version, default)?;
+            if let Some(default_version) = &self.metadata.default_version {
+                default = Some(AliasOrVersion::parse(default_version)?);
             }
+
+            self.manifest
+                .insert_version(self.get_resolved_version(), default)?;
 
             // Allow plugins to override manifest
             self.sync_manifest()?;
@@ -1213,9 +1208,7 @@ impl Tool {
 
         if self.uninstall().await? {
             // Only remove if uninstall was successful
-            if let AliasOrVersion::Version(version) = self.get_resolved_version() {
-                self.manifest.remove_version(&version)?;
-            }
+            self.manifest.remove_version(self.get_resolved_version())?;
 
             return Ok(true);
         }

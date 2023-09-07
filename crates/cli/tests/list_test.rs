@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::{AliasOrVersion, ToolManifest, Version};
+use proto_core::{AliasOrVersion, ToolManifest};
 use utils::*;
 
 mod list {
@@ -15,13 +15,13 @@ mod list {
         manifest.default_version = Some(AliasOrVersion::parse("19.0.0").unwrap());
         manifest
             .installed_versions
-            .insert(Version::parse("19.0.0").unwrap());
+            .insert(AliasOrVersion::parse("19.0.0").unwrap());
         manifest
             .installed_versions
-            .insert(Version::parse("18.0.0").unwrap());
+            .insert(AliasOrVersion::parse("18.0.0").unwrap());
         manifest
             .installed_versions
-            .insert(Version::parse("17.0.0").unwrap());
+            .insert(AliasOrVersion::parse("17.0.0").unwrap());
         manifest.save().unwrap();
 
         let mut cmd = create_proto_command(temp.path());

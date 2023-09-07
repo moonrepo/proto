@@ -10,7 +10,6 @@ pub struct ListRemoteArgs {
     id: Id,
 }
 
-// TODO: only show LTS, dont show pre-releases?
 #[system]
 pub async fn list_remote(args: ArgsRef<ListRemoteArgs>) {
     let tool = load_tool(&args.id).await?;

@@ -1,9 +1,7 @@
 use crate::commands::install::{internal_install, InstallArgs};
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::{
-    detect_version, load_tool, AliasOrVersion, Id, ProtoError, UserConfig, VersionType,
-};
+use proto_core::{detect_version, load_tool, Id, ProtoError, UserConfig, VersionType};
 use proto_pdk_api::RunHook;
 use starbase::system;
 use starbase_styles::color;
@@ -67,13 +65,11 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
 
     // Update the last used timestamp
     if env::var("PROTO_SKIP_USED_AT").is_err() {
-        if let AliasOrVersion::Version(version) = &resolved_version {
-            tool.manifest.track_used_at(version);
+        tool.manifest.track_used_at(&resolved_version);
 
-            // Ignore errors in case of race conditions...
-            // this timestamp isn't *super* important
-            let _ = tool.manifest.save();
-        }
+        // Ignore errors in case of race conditions...
+        // this timestamp isn't *super* important
+        let _ = tool.manifest.save();
     }
 
     // Determine the binary path to execute

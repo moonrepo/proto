@@ -382,6 +382,10 @@ json_struct!(
 json_struct!(
     /// Output returned by the `load_versions` function.
     pub struct LoadVersionsOutput {
+        /// Latest canary version.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub canary: Option<Version>,
+
         /// Latest stable version.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub latest: Option<Version>,
@@ -391,9 +395,6 @@ json_struct!(
 
         /// List of available production versions to install.
         pub versions: Vec<Version>,
-
-        /// List of available canary versions to install.
-        pub canary_versions: Vec<Version>,
     }
 );
 

@@ -2,7 +2,6 @@ use crate::{
     helpers::{read_json_file_with_lock, write_json_file_with_lock},
     version::{AliasOrVersion, VersionType},
 };
-use semver::Version;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{BTreeMap, HashSet},
@@ -44,9 +43,9 @@ impl Default for ToolManifestVersion {
 pub struct ToolManifest {
     pub aliases: BTreeMap<String, VersionType>,
     pub default_version: Option<AliasOrVersion>,
-    pub installed_versions: HashSet<Version>,
+    pub installed_versions: HashSet<AliasOrVersion>,
     pub shim_version: u8,
-    pub versions: BTreeMap<Version, ToolManifestVersion>,
+    pub versions: BTreeMap<AliasOrVersion, ToolManifestVersion>,
 
     #[serde(skip)]
     pub path: PathBuf,
@@ -85,45 +84,43 @@ impl ToolManifest {
 
     pub fn insert_version(
         &mut self,
-        version: &Version,
+        version: AliasOrVersion,
         default_version: Option<AliasOrVersion>,
     ) -> miette::Result<()> {
         if self.default_version.is_none() {
-            self.default_version = Some(
-                default_version.unwrap_or_else(|| AliasOrVersion::Version(version.to_owned())),
-            );
+            self.default_version = Some(default_version.unwrap_or_else(|| version.clone()));
         }
 
-        self.installed_versions.insert(version.to_owned());
+        self.installed_versions.insert(version.clone());
 
         self.versions
-            .insert(version.to_owned(), ToolManifestVersion::default());
+            .insert(version, ToolManifestVersion::default());
 
         self.save()?;
 
         Ok(())
     }
 
-    pub fn remove_version(&mut self, version: &Version) -> miette::Result<()> {
-        self.installed_versions.remove(version);
+    pub fn remove_version(&mut self, version: AliasOrVersion) -> miette::Result<()> {
+        self.installed_versions.remove(&version);
 
         // Remove default version if nothing available
         if (self.installed_versions.is_empty() && self.default_version.is_some())
-            || self.default_version.as_ref().is_some_and(|v| v == version)
+            || self.default_version.as_ref().is_some_and(|v| v == &version)
         {
             info!("Unpinning default global version");
 
             self.default_version = None;
         }
 
-        self.versions.remove(version);
+        self.versions.remove(&version);
 
         self.save()?;
 
         Ok(())
     }
 
-    pub fn track_used_at(&mut self, version: &Version) {
+    pub fn track_used_at(&mut self, version: &AliasOrVersion) {
         self.versions
             .entry(version.to_owned())
             .and_modify(|v| {
