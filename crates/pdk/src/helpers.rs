@@ -132,6 +132,24 @@ pub fn check_supported_os_and_arch(
     Ok(())
 }
 
+/// Check whether a command exists or not on the host machine.
+pub fn command_exists(env: &HostEnvironment, command: &str) -> bool {
+    let result = if env.os == HostOS::Windows {
+        let line = format!("Get-Command {command}");
+
+        unsafe {
+            exec_command(Json(ExecCommandInput::pipe(
+                "powershell",
+                ["-Command", &line],
+            )))
+        }
+    } else {
+        unsafe { exec_command(Json(ExecCommandInput::pipe("which", [command]))) }
+    };
+
+    result.is_err() || result.is_ok_and(|out| out.0.exit_code != 0)
+}
+
 /// Detect whether the current OS is utilizing musl instead of gnu.
 pub fn is_musl(env: &HostEnvironment) -> bool {
     if !env.os.is_linux() {

@@ -67,7 +67,7 @@ npm = "9.0.0"
 
         assert_eq!(
             fs::read_to_string(version_file).unwrap(),
-            r#"node = "19"
+            r#"node = "~19"
 npm = "9.0.0"
 "#
         )
@@ -105,6 +105,9 @@ npm = "9.0.0"
         cmd.arg("local").arg("npm").arg("1.2").assert().success();
 
         assert!(version_file.exists());
-        assert_eq!(fs::read_to_string(version_file).unwrap(), "npm = \"1.2\"\n")
+        assert_eq!(
+            fs::read_to_string(version_file).unwrap(),
+            "npm = \"~1.2\"\n"
+        )
     }
 }

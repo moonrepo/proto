@@ -43,12 +43,12 @@ impl<'tool> VersionResolver<'tool> {
         Ok(())
     }
 
-    pub fn resolve(&self, candidate: &UnresolvedVersionSpec) -> miette::Result<Version> {
+    pub fn resolve(&self, candidate: &UnresolvedVersionSpec) -> miette::Result<VersionSpec> {
         resolve_version(candidate, &self.versions, &self.aliases, self.manifest)
     }
 }
 
-pub fn match_highest_version<'l, I>(req: &'l VersionReq, versions: I) -> Option<Version>
+pub fn match_highest_version<'l, I>(req: &'l VersionReq, versions: I) -> Option<VersionSpec>
 where
     I: IntoIterator<Item = &'l Version>,
 {
@@ -62,11 +62,11 @@ where
         }
     }
 
-    highest_match
+    highest_match.map(VersionSpec::Version)
 }
 
 // Filter out aliases because they cannot be matched against
-fn extract_installed_versions(installed: &HashSet<VersionSpec>) -> Vec<&Version> {
+fn extract_installed_versions(installed: &HashSet<VersionSpec>) -> HashSet<&Version> {
     installed
         .iter()
         .filter_map(|item| match item {
@@ -81,53 +81,67 @@ pub fn resolve_version(
     versions: &[Version],
     aliases: &BTreeMap<String, UnresolvedVersionSpec>,
     manifest: Option<&ToolManifest>,
-) -> miette::Result<Version> {
+) -> miette::Result<VersionSpec> {
+    let installed_versions = if let Some(manifest) = manifest {
+        extract_installed_versions(&manifest.installed_versions)
+    } else {
+        HashSet::new()
+    };
+
     match &candidate {
         UnresolvedVersionSpec::Alias(alias) => {
+            let mut alias_value = None;
+
             if let Some(manifest) = manifest {
-                if let Some(alias_type) = manifest.aliases.get(alias) {
-                    return resolve_version(alias_type, versions, aliases, Some(manifest));
-                }
+                alias_value = manifest.aliases.get(alias);
             }
 
-            if let Some(alias_type) = aliases.get(alias) {
-                return resolve_version(alias_type, versions, aliases, manifest);
+            if alias_value.is_none() {
+                alias_value = aliases.get(alias);
+            }
+
+            if let Some(value) = alias_value {
+                return resolve_version(value, versions, aliases, manifest);
             }
         }
         UnresolvedVersionSpec::Req(req) => {
-            if let Some(manifest) = manifest {
-                if let Some(version) = match_highest_version(
-                    req,
-                    extract_installed_versions(&manifest.installed_versions),
-                ) {
+            // Check locally installed versions first
+            if !installed_versions.is_empty() {
+                if let Some(version) = match_highest_version(req, installed_versions) {
                     return Ok(version);
                 }
             }
 
+            // Otherwise we'll need to download from remote
             if let Some(version) = match_highest_version(req, versions) {
                 return Ok(version);
             }
         }
         UnresolvedVersionSpec::ReqAny(reqs) => {
             for req in reqs {
-                if let Some(manifest) = manifest {
-                    if let Some(version) = match_highest_version(
-                        req,
-                        extract_installed_versions(&manifest.installed_versions),
-                    ) {
+                // Check locally installed versions first
+                if !installed_versions.is_empty() {
+                    if let Some(version) = match_highest_version(req, installed_versions.clone()) {
                         return Ok(version);
                     }
                 }
 
+                // Otherwise we'll need to download from remote
                 if let Some(version) = match_highest_version(req, versions) {
                     return Ok(version);
                 }
             }
         }
         UnresolvedVersionSpec::Version(ver) => {
+            // Check locally installed versions first
+            if installed_versions.contains(ver) {
+                return Ok(VersionSpec::Version(ver.to_owned()));
+            }
+
+            // Otherwise we'll need to download from remote
             for version in versions {
                 if ver == version {
-                    return Ok(ver.to_owned());
+                    return Ok(VersionSpec::Version(ver.to_owned()));
                 }
             }
         }

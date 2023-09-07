@@ -467,9 +467,7 @@ impl Tool {
                 );
 
                 resolved = true;
-                version = VersionSpec::Version(
-                    resolver.resolve(&UnresolvedVersionSpec::parse(candidate)?)?,
-                );
+                version = resolver.resolve(&UnresolvedVersionSpec::parse(candidate)?)?;
             }
 
             if let Some(candidate) = result.version {
@@ -485,7 +483,7 @@ impl Tool {
         }
 
         if !resolved {
-            version = VersionSpec::Version(resolver.resolve(initial_version)?);
+            version = resolver.resolve(initial_version)?;
         }
 
         debug!(
