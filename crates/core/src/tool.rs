@@ -763,7 +763,9 @@ impl Tool {
                 },
             )?;
 
-            return Ok(result.installed);
+            if !result.skip_install {
+                return Ok(result.installed);
+            }
         }
 
         // Install from a prebuilt archive
@@ -847,7 +849,7 @@ impl Tool {
                 },
             )?;
 
-            if !result.uninstalled {
+            if !result.skip_uninstall && !result.uninstalled {
                 return Ok(false);
             }
         }
@@ -907,6 +909,10 @@ impl Tool {
 
     /// Find the absolute file path to the tool's binary that will be executed.
     pub async fn locate_bins(&mut self) -> miette::Result<()> {
+        if self.bin_path.is_some() {
+            return Ok(());
+        }
+
         let mut options = LocateBinsOutput::default();
         let tool_dir = self.get_tool_dir();
 
@@ -950,7 +956,7 @@ impl Tool {
 
     /// Find the directory global packages are installed to.
     pub async fn locate_globals_dir(&mut self) -> miette::Result<()> {
-        if !self.plugin.has_func("locate_bins") {
+        if !self.plugin.has_func("locate_bins") || self.globals_dir.is_some() {
             return Ok(());
         }
 
@@ -1114,7 +1120,9 @@ impl Tool {
     fn is_installed(&self) -> bool {
         let dir = self.get_tool_dir();
 
-        dir.exists() && !dir.join(".lock").exists()
+        self.version.as_ref().is_some_and(|v| !v.is_latest())
+            && dir.exists()
+            && !dir.join(".lock").exists()
     }
 
     /// Return true if the tool has been setup (installed and binaries are located).
