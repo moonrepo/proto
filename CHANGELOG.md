@@ -5,12 +5,18 @@
 #### 🚀 Updates
 
 - Added colors to command line `--help` menus.
+- Updated the following locations to support partial versions and aliases:
+  - Tool versions in `.prototools`.
+  - Pinning a default version with `proto install --pin`.
+  - Setting global version with `proto global`.
+  - Setting local version with `proto local`.
 - WASM API
-  - Added `is_musl` and `get_target_triple` helper functions.
+  - Added `command_exists`, `is_musl`, and `get_target_triple` helper functions.
 
 #### ⚙️ Internal
 
 - Now supports `.zst` (or `.zstd`) archive formats.
+- Improved version, alias, and requirement handling.
 
 ## 0.16.1
 

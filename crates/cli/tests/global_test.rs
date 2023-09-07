@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::{AliasOrVersion, ToolManifest};
+use proto_core::{ToolManifest, UnresolvedVersionSpec};
 use utils::*;
 
 mod global {
@@ -26,7 +26,7 @@ mod global {
 
         assert_eq!(
             manifest.default_version,
-            Some(AliasOrVersion::parse("19.0.0").unwrap())
+            Some(UnresolvedVersionSpec::parse("19.0.0").unwrap())
         );
     }
 
@@ -50,7 +50,27 @@ mod global {
 
         assert_eq!(
             manifest.default_version,
-            Some(AliasOrVersion::Alias("bundled".into()))
+            Some(UnresolvedVersionSpec::Alias("bundled".into()))
+        );
+    }
+
+    #[test]
+    fn can_set_partial_version_as_default() {
+        let temp = create_empty_sandbox();
+        let manifest_file = temp.path().join("tools/npm/manifest.json");
+
+        assert!(!manifest_file.exists());
+
+        let mut cmd = create_proto_command(temp.path());
+        cmd.arg("global").arg("npm").arg("1.2").assert().success();
+
+        assert!(manifest_file.exists());
+
+        let manifest = ToolManifest::load(manifest_file).unwrap();
+
+        assert_eq!(
+            manifest.default_version,
+            Some(UnresolvedVersionSpec::parse("1.2").unwrap())
         );
     }
 }

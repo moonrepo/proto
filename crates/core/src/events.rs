@@ -16,11 +16,11 @@ macro_rules! impl_event {
 }
 
 impl_event!(InstallingEvent, {
-    pub version: AliasOrVersion,
+    pub version: VersionSpec,
 });
 
 impl_event!(InstalledEvent, {
-    pub version: AliasOrVersion,
+    pub version: VersionSpec,
 });
 
 impl_event!(InstalledGlobalEvent, {
@@ -28,11 +28,11 @@ impl_event!(InstalledGlobalEvent, {
 });
 
 impl_event!(UninstallingEvent, {
-    pub version: AliasOrVersion,
+    pub version: VersionSpec,
 });
 
 impl_event!(UninstalledEvent, {
-    pub version: AliasOrVersion,
+    pub version: VersionSpec,
 });
 
 impl_event!(UninstalledGlobalEvent, {
@@ -45,6 +45,6 @@ impl_event!(CreatedShimsEvent, {
 });
 
 impl_event!(ResolvedVersionEvent, {
-    pub candidate: VersionType,
-    pub version: AliasOrVersion,
+    pub candidate: UnresolvedVersionSpec,
+    pub version: VersionSpec,
 });

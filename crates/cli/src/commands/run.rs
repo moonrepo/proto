@@ -1,9 +1,7 @@
 use crate::commands::install::{internal_install, InstallArgs};
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::{
-    detect_version, load_tool, AliasOrVersion, Id, ProtoError, UserConfig, VersionType,
-};
+use proto_core::{detect_version, load_tool, Id, ProtoError, UnresolvedVersionSpec, UserConfig};
 use proto_pdk_api::RunHook;
 use starbase::system;
 use starbase_styles::color;
@@ -18,7 +16,7 @@ pub struct RunArgs {
     id: Id,
 
     #[arg(help = "Version or alias of tool")]
-    semver: Option<VersionType>,
+    spec: Option<UnresolvedVersionSpec>,
 
     #[arg(long, help = "Path to an alternate binary to run")]
     bin: Option<String>,
@@ -34,7 +32,7 @@ pub struct RunArgs {
 #[system]
 pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
     let mut tool = load_tool(&args.id).await?;
-    let version = detect_version(&tool, args.semver.clone()).await?;
+    let version = detect_version(&tool, args.spec.clone()).await?;
     let user_config = UserConfig::load()?;
 
     // Check if installed or install
@@ -53,7 +51,7 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
 
         internal_install(InstallArgs {
             id: args.id.clone(),
-            semver: Some(tool.get_resolved_version().to_implicit_type()),
+            spec: Some(tool.get_resolved_version().to_unresolved_spec()),
             pin: false,
             passthrough: vec![],
         })
@@ -67,13 +65,11 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
 
     // Update the last used timestamp
     if env::var("PROTO_SKIP_USED_AT").is_err() {
-        if let AliasOrVersion::Version(version) = &resolved_version {
-            tool.manifest.track_used_at(version);
+        tool.manifest.track_used_at(&resolved_version);
 
-            // Ignore errors in case of race conditions...
-            // this timestamp isn't *super* important
-            let _ = tool.manifest.save();
-        }
+        // Ignore errors in case of race conditions...
+        // this timestamp isn't *super* important
+        let _ = tool.manifest.save();
     }
 
     // Determine the binary path to execute

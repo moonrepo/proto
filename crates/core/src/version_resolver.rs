@@ -1,13 +1,14 @@
 use crate::error::ProtoError;
 use crate::tool_manifest::ToolManifest;
-use crate::version::VersionType;
+use crate::version::UnresolvedVersionSpec;
+use crate::VersionSpec;
 use proto_pdk_api::LoadVersionsOutput;
 use semver::{Version, VersionReq};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 
 #[derive(Debug, Default)]
 pub struct VersionResolver<'tool> {
-    pub aliases: BTreeMap<String, VersionType>,
+    pub aliases: BTreeMap<String, UnresolvedVersionSpec>,
     pub versions: Vec<Version>,
 
     manifest: Option<&'tool ToolManifest>,
@@ -21,18 +22,23 @@ impl<'tool> VersionResolver<'tool> {
         for (alias, version) in output.aliases {
             resolver
                 .aliases
-                .insert(alias, VersionType::Version(version));
+                .insert(alias, UnresolvedVersionSpec::Version(version));
         }
 
         if let Some(latest) = output.latest {
             resolver
                 .aliases
-                .insert("latest".into(), VersionType::Version(latest));
+                .insert("latest".into(), UnresolvedVersionSpec::Version(latest));
         }
+
+        // if let Some(canary) = output.canary {
+        //     resolver
+        //         .aliases
+        //         .insert("canary".into(), UnresolvedVersionSpec::Version(canary));
+        // }
 
         // Sort from newest to oldest
         resolver.versions.sort_by(|a, d| d.cmp(a));
-        // resolver.canary_versions.sort_by(|a, d| d.cmp(a));
 
         resolver
     }
@@ -43,12 +49,12 @@ impl<'tool> VersionResolver<'tool> {
         Ok(())
     }
 
-    pub fn resolve(&self, candidate: &VersionType) -> miette::Result<Version> {
+    pub fn resolve(&self, candidate: &UnresolvedVersionSpec) -> miette::Result<VersionSpec> {
         resolve_version(candidate, &self.versions, &self.aliases, self.manifest)
     }
 }
 
-pub fn match_highest_version<'l, I>(req: &'l VersionReq, versions: I) -> Option<Version>
+pub fn match_highest_version<'l, I>(req: &'l VersionReq, versions: I) -> Option<VersionSpec>
 where
     I: IntoIterator<Item = &'l Version>,
 {
@@ -62,52 +68,86 @@ where
         }
     }
 
-    highest_match
+    highest_match.map(VersionSpec::Version)
+}
+
+// Filter out aliases because they cannot be matched against
+fn extract_installed_versions(installed: &HashSet<VersionSpec>) -> HashSet<&Version> {
+    installed
+        .iter()
+        .filter_map(|item| match item {
+            VersionSpec::Alias(_) => None,
+            VersionSpec::Version(v) => Some(v),
+        })
+        .collect()
 }
 
 pub fn resolve_version(
-    candidate: &VersionType,
+    candidate: &UnresolvedVersionSpec,
     versions: &[Version],
-    aliases: &BTreeMap<String, VersionType>,
+    aliases: &BTreeMap<String, UnresolvedVersionSpec>,
     manifest: Option<&ToolManifest>,
-) -> miette::Result<Version> {
+) -> miette::Result<VersionSpec> {
+    let installed_versions = if let Some(manifest) = manifest {
+        extract_installed_versions(&manifest.installed_versions)
+    } else {
+        HashSet::new()
+    };
+
     match &candidate {
-        VersionType::Alias(alias) => {
-            if let Some(alias_type) = aliases.get(alias) {
-                return resolve_version(alias_type, versions, aliases, manifest);
+        UnresolvedVersionSpec::Alias(alias) => {
+            let mut alias_value = None;
+
+            if let Some(manifest) = manifest {
+                alias_value = manifest.aliases.get(alias);
+            }
+
+            if alias_value.is_none() {
+                alias_value = aliases.get(alias);
+            }
+
+            if let Some(value) = alias_value {
+                return resolve_version(value, versions, aliases, manifest);
             }
         }
-        VersionType::ReqAll(req) => {
-            // Prefer installed versions
-            if let Some(manifest) = manifest {
-                if let Some(version) = match_highest_version(req, &manifest.installed_versions) {
+        UnresolvedVersionSpec::Req(req) => {
+            // Check locally installed versions first
+            if !installed_versions.is_empty() {
+                if let Some(version) = match_highest_version(req, installed_versions) {
                     return Ok(version);
                 }
             }
 
+            // Otherwise we'll need to download from remote
             if let Some(version) = match_highest_version(req, versions) {
                 return Ok(version);
             }
         }
-        VersionType::ReqAny(reqs) => {
+        UnresolvedVersionSpec::ReqAny(reqs) => {
             for req in reqs {
-                // Prefer installed versions
-                if let Some(manifest) = manifest {
-                    if let Some(version) = match_highest_version(req, &manifest.installed_versions)
-                    {
+                // Check locally installed versions first
+                if !installed_versions.is_empty() {
+                    if let Some(version) = match_highest_version(req, installed_versions.clone()) {
                         return Ok(version);
                     }
                 }
 
+                // Otherwise we'll need to download from remote
                 if let Some(version) = match_highest_version(req, versions) {
                     return Ok(version);
                 }
             }
         }
-        VersionType::Version(ver) => {
+        UnresolvedVersionSpec::Version(ver) => {
+            // Check locally installed versions first
+            if installed_versions.contains(ver) {
+                return Ok(VersionSpec::Version(ver.to_owned()));
+            }
+
+            // Otherwise we'll need to download from remote
             for version in versions {
                 if ver == version {
-                    return Ok(ver.to_owned());
+                    return Ok(VersionSpec::Version(ver.to_owned()));
                 }
             }
         }

@@ -1,5 +1,5 @@
 use clap::Args;
-use proto_core::{is_alias_name, load_tool, Id, ProtoError, VersionType};
+use proto_core::{is_alias_name, load_tool, Id, ProtoError, UnresolvedVersionSpec};
 use starbase::system;
 use starbase_styles::color;
 use tracing::info;
@@ -13,12 +13,12 @@ pub struct AliasArgs {
     alias: String,
 
     #[arg(required = true, help = "Version or alias to associate with")]
-    semver: VersionType,
+    spec: UnresolvedVersionSpec,
 }
 
 #[system]
 pub async fn alias(args: ArgsRef<AliasArgs>) {
-    if let VersionType::Alias(inner_alias) = &args.semver {
+    if let UnresolvedVersionSpec::Alias(inner_alias) = &args.spec {
         if &args.alias == inner_alias {
             return Err(ProtoError::Message("Cannot map an alias to itself.".into()))?;
         }
@@ -34,13 +34,13 @@ pub async fn alias(args: ArgsRef<AliasArgs>) {
 
     tool.manifest
         .aliases
-        .insert(args.alias.clone(), args.semver.clone());
+        .insert(args.alias.clone(), args.spec.clone());
     tool.manifest.save()?;
 
     info!(
         "Added alias {} ({}) for {}",
         color::id(&args.alias),
-        color::muted_light(args.semver.to_string()),
+        color::muted_light(args.spec.to_string()),
         tool.get_name(),
     );
 }

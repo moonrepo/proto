@@ -6,7 +6,7 @@ use crate::shimmer::{
     create_global_shim, create_local_shim, get_shim_file_name, ShimContext, SHIM_VERSION,
 };
 use crate::tool_manifest::ToolManifest;
-use crate::version::{AliasOrVersion, VersionType};
+use crate::version::{UnresolvedVersionSpec, VersionSpec};
 use crate::version_resolver::VersionResolver;
 use crate::{
     download_from_url, is_archive_file, read_json_file_with_lock, write_json_file_with_lock,
@@ -36,7 +36,7 @@ pub struct Tool {
     pub metadata: ToolMetadataOutput,
     pub plugin: PluginContainer<'static>,
     pub proto: ProtoEnvironment,
-    pub version: Option<AliasOrVersion>,
+    pub version: Option<VersionSpec>,
 
     // Events
     pub on_created_shims: Emitter<CreatedShimsEvent>,
@@ -179,10 +179,8 @@ impl Tool {
     }
 
     /// Return the resolved version or "latest".
-    pub fn get_resolved_version(&self) -> AliasOrVersion {
-        self.version
-            .clone()
-            .unwrap_or_else(|| AliasOrVersion::Alias("latest".into()))
+    pub fn get_resolved_version(&self) -> VersionSpec {
+        self.version.clone().unwrap_or_default()
     }
 
     /// Return a path to a local shim file if it exists.
@@ -216,7 +214,7 @@ impl Tool {
     }
 
     /// Explicitly set the version to use.
-    pub fn set_version(&mut self, version: AliasOrVersion) {
+    pub fn set_version(&mut self, version: VersionSpec) {
         self.version = Some(version);
     }
 
@@ -321,27 +319,30 @@ impl Tool {
 
         if let Some(default) = sync_changes.default_version {
             modified = true;
-            self.manifest.default_version = Some(AliasOrVersion::parse(&default)?);
+            self.manifest.default_version = Some(UnresolvedVersionSpec::parse(&default)?);
         }
 
         if let Some(versions) = sync_changes.versions {
             modified = true;
 
             let mut entries = BTreeMap::new();
+            let mut installed = HashSet::new();
 
-            for version in &versions {
-                entries.insert(
-                    version.to_owned(),
-                    self.manifest
-                        .versions
-                        .get(version)
-                        .cloned()
-                        .unwrap_or_default(),
-                );
+            for version in versions {
+                let key = VersionSpec::Version(version);
+                let value = self
+                    .manifest
+                    .versions
+                    .get(&key)
+                    .cloned()
+                    .unwrap_or_default();
+
+                installed.insert(key.clone());
+                entries.insert(key, value);
             }
 
             self.manifest.versions = entries;
-            self.manifest.installed_versions = HashSet::from_iter(versions);
+            self.manifest.installed_versions = installed;
         }
 
         if modified {
@@ -359,7 +360,7 @@ impl Tool {
     /// To reduce network overhead, results will be cached for 24 hours.
     pub async fn load_version_resolver(
         &self,
-        initial_version: &VersionType,
+        initial_version: &UnresolvedVersionSpec,
     ) -> miette::Result<VersionResolver> {
         debug!(tool = self.id.as_str(), "Loading available versions");
 
@@ -414,15 +415,18 @@ impl Tool {
 
     /// Given an initial version, resolve it to a fully qualifed and semantic version
     /// (or alias) according to the tool's ecosystem.
-    pub async fn resolve_version(&mut self, initial_version: &VersionType) -> miette::Result<()> {
+    pub async fn resolve_version(
+        &mut self,
+        initial_version: &UnresolvedVersionSpec,
+    ) -> miette::Result<()> {
         if self.version.is_some() {
             return Ok(());
         }
 
         // If offline but we have a fully qualified semantic version,
         // exit early and assume the version is legitimate!
-        if is_offline() && matches!(initial_version, VersionType::Version(_)) {
-            let version = initial_version.to_explicit_version();
+        if is_offline() && matches!(initial_version, UnresolvedVersionSpec::Version(_)) {
+            let version = initial_version.to_spec();
 
             self.on_resolved_version
                 .emit(ResolvedVersionEvent {
@@ -443,7 +447,7 @@ impl Tool {
         );
 
         let resolver = self.load_version_resolver(initial_version).await?;
-        let mut version = AliasOrVersion::default();
+        let mut version = VersionSpec::default();
         let mut resolved = false;
 
         if self.plugin.has_func("resolve_version") {
@@ -463,8 +467,7 @@ impl Tool {
                 );
 
                 resolved = true;
-                version =
-                    AliasOrVersion::Version(resolver.resolve(&VersionType::parse(candidate)?)?);
+                version = resolver.resolve(&UnresolvedVersionSpec::parse(candidate)?)?;
             }
 
             if let Some(candidate) = result.version {
@@ -475,12 +478,12 @@ impl Tool {
                 );
 
                 resolved = true;
-                version = AliasOrVersion::parse(candidate)?;
+                version = VersionSpec::parse(candidate)?;
             }
         }
 
         if !resolved {
-            version = AliasOrVersion::Version(resolver.resolve(initial_version)?);
+            version = resolver.resolve(initial_version)?;
         }
 
         debug!(
@@ -510,7 +513,7 @@ impl Tool {
     pub async fn detect_version_from(
         &self,
         current_dir: &Path,
-    ) -> miette::Result<Option<VersionType>> {
+    ) -> miette::Result<Option<UnresolvedVersionSpec>> {
         if !self.plugin.has_func("detect_version_files") {
             return Ok(None);
         }
@@ -557,7 +560,7 @@ impl Tool {
                 "Detected a version"
             );
 
-            return Ok(Some(VersionType::try_from(version)?));
+            return Ok(Some(UnresolvedVersionSpec::parse(version)?));
         }
 
         Ok(None)
@@ -734,7 +737,7 @@ impl Tool {
     /// a pre-built archive, or by using a native installation method.
     pub async fn install(&mut self) -> miette::Result<bool> {
         let install_dir = self.get_tool_dir();
-        let _install_lock = fs::lock_directory(&install_dir)?;
+        let _install_lock = fs::lock_directory(&install_dir).await?;
 
         if self.is_installed() {
             debug!(
@@ -1024,19 +1027,14 @@ impl Tool {
 impl Tool {
     /// Create the context object required for creating shim files.
     pub fn create_shim_context(&self) -> ShimContext {
-        let mut context = ShimContext {
+        ShimContext {
             shim_file: &self.id,
             bin: &self.id,
             tool_id: &self.id,
             tool_dir: Some(self.get_tool_dir()),
+            tool_version: Some(self.get_resolved_version().to_string()),
             ..ShimContext::default()
-        };
-
-        if let AliasOrVersion::Version(version) = self.get_resolved_version() {
-            context.tool_version = Some(version.to_string());
         }
-
-        context
     }
 
     /// Create global and local shim files for the current tool.
@@ -1122,11 +1120,14 @@ impl Tool {
 
         self.version.as_ref().is_some_and(|v| !v.is_latest())
             && dir.exists()
-            && !dir.join(".lock").exists()
+            && !fs::is_dir_locked(dir)
     }
 
     /// Return true if the tool has been setup (installed and binaries are located).
-    pub async fn is_setup(&mut self, initial_version: &VersionType) -> miette::Result<bool> {
+    pub async fn is_setup(
+        &mut self,
+        initial_version: &UnresolvedVersionSpec,
+    ) -> miette::Result<bool> {
         self.resolve_version(initial_version).await?;
 
         let install_dir = self.get_tool_dir();
@@ -1159,23 +1160,22 @@ impl Tool {
 
     /// Setup the tool by resolving a semantic version, installing the tool,
     /// locating binaries, creating shims, and more.
-    pub async fn setup(&mut self, initial_version: &VersionType) -> miette::Result<bool> {
+    pub async fn setup(&mut self, initial_version: &UnresolvedVersionSpec) -> miette::Result<bool> {
         self.resolve_version(initial_version).await?;
 
         if self.install().await? {
             self.locate_bins().await?;
             self.setup_shims(true).await?;
 
-            // Only insert if a version
-            if let AliasOrVersion::Version(version) = self.get_resolved_version() {
-                let mut default = None;
+            // Add version to manifest
+            let mut default = None;
 
-                if let Some(default_version) = &self.metadata.default_version {
-                    default = Some(AliasOrVersion::parse(default_version)?);
-                }
-
-                self.manifest.insert_version(&version, default)?;
+            if let Some(default_version) = &self.metadata.default_version {
+                default = Some(UnresolvedVersionSpec::parse(default_version)?);
             }
+
+            self.manifest
+                .insert_version(self.get_resolved_version(), default)?;
 
             // Allow plugins to override manifest
             self.sync_manifest()?;
@@ -1213,9 +1213,7 @@ impl Tool {
 
         if self.uninstall().await? {
             // Only remove if uninstall was successful
-            if let AliasOrVersion::Version(version) = self.get_resolved_version() {
-                self.manifest.remove_version(&version)?;
-            }
+            self.manifest.remove_version(self.get_resolved_version())?;
 
             return Ok(true);
         }

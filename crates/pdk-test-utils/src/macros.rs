@@ -15,7 +15,7 @@ macro_rules! generate_download_install_tests {
 
             plugin
                 .tool
-                .setup(&proto_pdk_test_utils::VersionType::parse($version).unwrap())
+                .setup(&proto_pdk_test_utils::UnresolvedVersionSpec::parse($version).unwrap())
                 .await
                 .unwrap();
 
@@ -51,7 +51,7 @@ macro_rules! generate_download_install_tests {
             };
             let mut tool = plugin.tool;
 
-            tool.version = Some(proto_pdk_test_utils::AliasOrVersion::parse($version).unwrap());
+            tool.version = Some(proto_pdk_test_utils::VersionSpec::parse($version).unwrap());
 
             let download_file = tool
                 .install_from_prebuilt(&tool.get_tool_dir())
@@ -72,7 +72,7 @@ macro_rules! generate_download_install_tests {
             let mut tool = plugin.tool;
             let version_inst = proto_pdk_test_utils::Version::parse($version).unwrap();
 
-            tool.version = Some(proto_pdk_test_utils::AliasOrVersion::Version(
+            tool.version = Some(proto_pdk_test_utils::VersionSpec::Version(
                 version_inst.clone(),
             ));
 
@@ -101,7 +101,7 @@ macro_rules! generate_resolve_versions_tests {
             };
 
             plugin.tool.resolve_version(
-                &proto_pdk_test_utils::VersionType::parse("latest").unwrap(),
+                &proto_pdk_test_utils::UnresolvedVersionSpec::parse("latest").unwrap(),
             ).await.unwrap();
 
             assert_ne!(plugin.tool.get_resolved_version(), "latest");
@@ -118,7 +118,7 @@ macro_rules! generate_resolve_versions_tests {
 
             $(
                 plugin.tool.resolve_version(
-                    &proto_pdk_test_utils::VersionType::parse($k).unwrap(),
+                    &proto_pdk_test_utils::UnresolvedVersionSpec::parse($k).unwrap(),
                 ).await.unwrap();
 
                 assert_eq!(
@@ -158,7 +158,7 @@ macro_rules! generate_resolve_versions_tests {
             };
 
             plugin.tool.resolve_version(
-                &proto_pdk_test_utils::VersionType::parse("unknown").unwrap(),
+                &proto_pdk_test_utils::UnresolvedVersionSpec::parse("unknown").unwrap(),
             ).await.unwrap();
         }
 
@@ -173,7 +173,7 @@ macro_rules! generate_resolve_versions_tests {
             };
 
             plugin.tool.resolve_version(
-                &proto_pdk_test_utils::VersionType::parse("99.99.99").unwrap(),
+                &proto_pdk_test_utils::UnresolvedVersionSpec::parse("99.99.99").unwrap(),
             ).await.unwrap();
         }
     };

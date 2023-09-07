@@ -1,4 +1,4 @@
-use crate::version::AliasOrVersion;
+use crate::version::UnresolvedVersionSpec;
 use miette::IntoDiagnostic;
 use serde::{Deserialize, Serialize};
 use starbase_utils::{fs, toml};
@@ -18,7 +18,7 @@ fn is_empty<T>(map: &BTreeMap<Id, T>) -> bool {
 #[serde(default, rename_all = "kebab-case")]
 pub struct ToolsConfig {
     #[serde(flatten, skip_serializing_if = "is_empty")]
-    pub tools: BTreeMap<Id, AliasOrVersion>,
+    pub tools: BTreeMap<Id, UnresolvedVersionSpec>,
 
     #[serde(skip_serializing_if = "is_empty")]
     pub plugins: BTreeMap<Id, PluginLocator>,
