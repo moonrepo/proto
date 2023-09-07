@@ -426,7 +426,7 @@ impl Tool {
         // If offline but we have a fully qualified semantic version,
         // exit early and assume the version is legitimate!
         if is_offline() && matches!(initial_version, UnresolvedVersionSpec::Version(_)) {
-            let version = initial_version.to_explicit_version();
+            let version = initial_version.to_spec();
 
             self.on_resolved_version
                 .emit(ResolvedVersionEvent {

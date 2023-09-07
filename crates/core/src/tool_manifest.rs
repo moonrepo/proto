@@ -92,7 +92,7 @@ impl ToolManifest {
     ) -> miette::Result<()> {
         if self.default_version.is_none() {
             self.default_version =
-                Some(default_version.unwrap_or_else(|| version.to_implicit_type()));
+                Some(default_version.unwrap_or_else(|| version.to_unresolved_spec()));
         }
 
         self.installed_versions.insert(version.clone());

@@ -22,7 +22,7 @@ impl UnresolvedVersionSpec {
         Ok(Self::from_str(value.as_ref())?)
     }
 
-    pub fn to_explicit_version(&self) -> VersionSpec {
+    pub fn to_spec(&self) -> VersionSpec {
         match self {
             UnresolvedVersionSpec::Alias(alias) => VersionSpec::Alias(alias.to_owned()),
             UnresolvedVersionSpec::Version(version) => VersionSpec::Version(version.to_owned()),
@@ -166,7 +166,7 @@ impl VersionSpec {
         }
     }
 
-    pub fn to_implicit_type(&self) -> UnresolvedVersionSpec {
+    pub fn to_unresolved_spec(&self) -> UnresolvedVersionSpec {
         match self {
             Self::Alias(alias) => UnresolvedVersionSpec::Alias(alias.to_owned()),
             Self::Version(version) => UnresolvedVersionSpec::Version(version.to_owned()),

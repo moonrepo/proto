@@ -51,7 +51,7 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
 
         internal_install(InstallArgs {
             id: args.id.clone(),
-            spec: Some(tool.get_resolved_version().to_implicit_type()),
+            spec: Some(tool.get_resolved_version().to_unresolved_spec()),
             pin: false,
             passthrough: vec![],
         })

@@ -38,7 +38,7 @@ pub async fn install_all() {
 
             debug!("Detected version {} for {}", version, tool.get_name());
 
-            config.tools.insert(name, version.to_implicit_type());
+            config.tools.insert(name, version.to_unresolved_spec());
         }
     }
 
