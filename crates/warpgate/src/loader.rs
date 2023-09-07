@@ -16,6 +16,7 @@ use tracing::trace;
 
 /// A system for loading plugins from a locator strategy,
 /// and caching the `.wasm` file to the host's file system.
+#[derive(Clone, Debug)]
 pub struct PluginLoader {
     /// Location where downloaded `.wasm` plugins are stored.
     plugins_dir: PathBuf,
