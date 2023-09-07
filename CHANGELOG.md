@@ -4,6 +4,7 @@
 
 #### 🚀 Updates
 
+- Added colors to command line `--help` menus.
 - WASM API
   - Added `is_musl` and `get_target_triple` helper functions.
 
