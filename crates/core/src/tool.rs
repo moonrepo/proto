@@ -746,9 +746,6 @@ impl Tool {
     /// Install a tool into proto, either by downloading and unpacking
     /// a pre-built archive, or by using a native installation method.
     pub async fn install(&mut self) -> miette::Result<bool> {
-        let install_dir = self.get_tool_dir();
-        let _install_lock = fs::lock_directory(&install_dir).await?;
-
         if self.is_installed() {
             debug!(
                 tool = self.id.as_str(),
@@ -757,6 +754,9 @@ impl Tool {
 
             return Ok(false);
         }
+
+        let install_dir = self.get_tool_dir();
+        let _install_lock = fs::lock_directory(&install_dir).await?;
 
         self.on_installing
             .emit(InstallingEvent {
