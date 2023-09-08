@@ -57,13 +57,25 @@ macro_rules! host_log {
 
 #[macro_export]
 macro_rules! err {
-    ($msg:expr) => {
-        Err(WithReturnCode::new(PluginError::Message($msg).into(), 1))
-    };
-    ($msg:expr, $code:expr) => {
+    ($msg:literal) => {
         Err(WithReturnCode::new(
-            PluginError::Message($msg).into(),
+            PluginError::Message($msg.into()).into(),
+            1,
+        ))
+    };
+    ($msg:literal, $($arg:tt)*) => {
+        Err(WithReturnCode::new(
+            PluginError::Message(format!($msg, $($arg)*)).into(),
+            1,
+        ))
+    };
+    ($msg:literal, $code:expr) => {
+        Err(WithReturnCode::new(
+            PluginError::Message($msg.into()).into(),
             $code,
         ))
+    };
+    ($msg:expr) => {
+        Err(WithReturnCode::new($msg, 1))
     };
 }

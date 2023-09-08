@@ -17,6 +17,9 @@ pub struct InstallArgs {
     #[arg(default_value = "latest", help = "Version or alias of tool")]
     pub spec: Option<UnresolvedVersionSpec>,
 
+    #[arg(long, help = "Install a canary (next, nightly, etc) version")]
+    pub canary: bool,
+
     #[arg(long, help = "Pin version as the global default")]
     pub pin: bool,
 
@@ -26,10 +29,14 @@ pub struct InstallArgs {
 }
 
 pub async fn internal_install(args: InstallArgs) -> SystemResult {
-    let version = args.spec.clone().unwrap_or_default();
     let mut tool = load_tool(&args.id).await?;
+    let version = if args.canary {
+        UnresolvedVersionSpec::Canary
+    } else {
+        args.spec.clone().unwrap_or_default()
+    };
 
-    if tool.is_setup(&version).await? {
+    if !args.canary && tool.is_setup(&version).await? {
         info!(
             "{} has already been installed at {}",
             tool.get_name(),
