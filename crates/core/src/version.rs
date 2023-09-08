@@ -11,6 +11,7 @@ use std::str::FromStr;
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(untagged, into = "String", try_from = "String")]
 pub enum UnresolvedVersionSpec {
+    Canary,
     Alias(String),
     Req(VersionReq),
     ReqAny(Vec<VersionReq>),
@@ -24,6 +25,7 @@ impl UnresolvedVersionSpec {
 
     pub fn to_spec(&self) -> VersionSpec {
         match self {
+            UnresolvedVersionSpec::Canary => VersionSpec::Alias("canary".to_owned()),
             UnresolvedVersionSpec::Alias(alias) => VersionSpec::Alias(alias.to_owned()),
             UnresolvedVersionSpec::Version(version) => VersionSpec::Version(version.to_owned()),
             _ => unreachable!(),
@@ -42,6 +44,10 @@ impl FromStr for UnresolvedVersionSpec {
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         let value = remove_space_after_gtlt(remove_v_prefix(value.trim().replace(".*", "")));
+
+        if value == "canary" {
+            return Ok(UnresolvedVersionSpec::Canary);
+        }
 
         if is_alias_name(&value) {
             return Ok(UnresolvedVersionSpec::Alias(value));
@@ -115,6 +121,7 @@ impl Into<String> for UnresolvedVersionSpec {
 impl Display for UnresolvedVersionSpec {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::Canary => write!(f, "canary"),
             Self::Alias(alias) => write!(f, "{}", alias),
             Self::Req(req) => write!(f, "{}", req),
             Self::ReqAny(reqs) => write!(
@@ -133,6 +140,7 @@ impl Display for UnresolvedVersionSpec {
 impl PartialEq<VersionSpec> for UnresolvedVersionSpec {
     fn eq(&self, other: &VersionSpec) -> bool {
         match (self, other) {
+            (Self::Canary, VersionSpec::Alias(a)) => a == "canary",
             (Self::Alias(a1), VersionSpec::Alias(a2)) => a1 == a2,
             (Self::Version(v1), VersionSpec::Version(v2)) => v1 == v2,
             _ => false,

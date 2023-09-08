@@ -95,6 +95,9 @@ pub fn resolve_version(
     };
 
     match &candidate {
+        UnresolvedVersionSpec::Canary => {
+            return Ok(VersionSpec::Alias("canary".into()));
+        }
         UnresolvedVersionSpec::Alias(alias) => {
             let mut alias_value = None;
 
