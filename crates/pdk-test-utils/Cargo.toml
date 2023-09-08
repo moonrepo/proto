@@ -10,6 +10,6 @@ repository = "https://github.com/moonrepo/proto"
 [dependencies]
 proto_core = { version = "0.17.0", path = "../core" }
 proto_pdk_api = { version = "0.7.0", path = "../pdk-api" }
-proto_wasm_plugin = { version = "0.6.3", path = "../wasm-plugin" }
+proto_wasm_plugin = { version = "0.6.4", path = "../wasm-plugin" }
 extism = { workspace = true }
 serde_json = { workspace = true }
