@@ -8,7 +8,7 @@ pub enum PluginError {
     #[error("Unable to install {tool}, unsupported architecture {arch}.")]
     UnsupportedArch { tool: String, arch: String },
 
-    #[error("{tool} does not support canary versions or installations.")]
+    #[error("{tool} does not support canary/nightly versions.")]
     UnsupportedCanary { tool: String },
 
     #[error("Unable to install {tool}, unsupported OS {os}.")]

@@ -48,6 +48,18 @@ where
     fetch(HttpRequest::new(url.as_ref()), None, false)
 }
 
+/// Fetch the provided URL and return the text response.
+pub fn fetch_url_text<U>(url: U) -> anyhow::Result<String>
+where
+    U: AsRef<str>,
+{
+    let req = HttpRequest::new(url.as_ref());
+    let res = request::<String>(&req, None)
+        .map_err(|e| anyhow::anyhow!("Failed to make request to {}: {e}", req.url))?;
+
+    String::from_bytes(res.body())
+}
+
 /// Fetch the provided URL, deserialize the response as JSON,
 /// and cache the response in memory for the duration of the WASM instance.
 pub fn fetch_url_with_cache<R, U>(url: U) -> anyhow::Result<R>

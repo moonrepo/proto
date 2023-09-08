@@ -372,11 +372,11 @@ impl Tool {
         if cache_path.exists() && (is_cache_enabled() || is_offline()) {
             let metadata = fs::metadata(&cache_path)?;
 
-            // If offline, always use the cache, otherwise only within the last 24 hours
+            // If offline, always use the cache, otherwise only within the last 12 hours
             let read_cache = if is_offline() {
                 true
             } else if let Ok(modified_time) = metadata.modified().or_else(|_| metadata.created()) {
-                modified_time > SystemTime::now() - Duration::from_secs(60 * 60 * 24)
+                modified_time > SystemTime::now() - Duration::from_secs(60 * 60 * 12)
             } else {
                 false
             };
@@ -423,10 +423,26 @@ impl Tool {
             return Ok(());
         }
 
+        debug!(
+            tool = self.id.as_str(),
+            initial_version = initial_version.to_string(),
+            "Resolving a semantic version or alias",
+        );
+
         // If offline but we have a fully qualified semantic version,
-        // exit early and assume the version is legitimate!
-        if is_offline() && matches!(initial_version, UnresolvedVersionSpec::Version(_)) {
+        // exit early and assume the version is legitimate! Additionally,
+        // canary is a special type that we can simply just use.
+        if is_offline() && matches!(initial_version, UnresolvedVersionSpec::Version(_))
+            || matches!(initial_version, UnresolvedVersionSpec::Canary)
+        {
             let version = initial_version.to_spec();
+
+            debug!(
+                tool = self.id.as_str(),
+                version = version.to_string(),
+                "Resolved to {}",
+                version
+            );
 
             self.on_resolved_version
                 .emit(ResolvedVersionEvent {
@@ -439,12 +455,6 @@ impl Tool {
 
             return Ok(());
         }
-
-        debug!(
-            tool = self.id.as_str(),
-            initial_version = initial_version.to_string(),
-            "Resolving a semantic version",
-        );
 
         let resolver = self.load_version_resolver(initial_version).await?;
         let mut version = VersionSpec::default();

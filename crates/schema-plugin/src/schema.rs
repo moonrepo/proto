@@ -21,7 +21,9 @@ pub struct DetectSchema {
 pub struct InstallSchema {
     pub arch: HashMap<String, String>,
     pub checksum_url: Option<String>,
+    pub checksum_url_canary: Option<String>,
     pub download_url: String,
+    pub download_url_canary: Option<String>,
 }
 
 #[derive(Debug, Default, Deserialize)]
