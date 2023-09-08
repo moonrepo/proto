@@ -63,6 +63,11 @@ macro_rules! generate_download_install_tests {
 
         #[tokio::test]
         async fn doesnt_install_if_already_installed() {
+            if $version == "canary" {
+                // Canary always overwrites instead of aborting
+                return;
+            }
+
             let sandbox = starbase_sandbox::create_empty_sandbox();
             let plugin = if let Some(schema) = $schema {
                 create_schema_plugin($id, sandbox.path(), schema)
