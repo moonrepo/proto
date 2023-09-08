@@ -69,12 +69,6 @@ macro_rules! err {
             1,
         ))
     };
-    ($msg:literal, $code:expr) => {
-        Err(WithReturnCode::new(
-            PluginError::Message($msg.into()).into(),
-            $code,
-        ))
-    };
     ($msg:expr) => {
         Err(WithReturnCode::new($msg, 1))
     };

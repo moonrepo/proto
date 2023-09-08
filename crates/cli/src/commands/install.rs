@@ -14,10 +14,18 @@ pub struct InstallArgs {
     #[arg(required = true, help = "ID of tool")]
     pub id: Id,
 
-    #[arg(default_value = "latest", help = "Version or alias of tool")]
+    #[arg(
+        default_value = "latest",
+        help = "Version or alias of tool",
+        group = "version-type"
+    )]
     pub spec: Option<UnresolvedVersionSpec>,
 
-    #[arg(long, help = "Install a canary (next, nightly, etc) version")]
+    #[arg(
+        long,
+        help = "Install a canary (next, nightly, etc) version",
+        group = "version-type"
+    )]
     pub canary: bool,
 
     #[arg(long, help = "Pin version as the global default")]
@@ -36,7 +44,7 @@ pub async fn internal_install(args: InstallArgs) -> SystemResult {
         args.spec.clone().unwrap_or_default()
     };
 
-    if !args.canary && tool.is_setup(&version).await? {
+    if !version.is_canary() && tool.is_setup(&version).await? {
         info!(
             "{} has already been installed at {}",
             tool.get_name(),

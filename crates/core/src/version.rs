@@ -23,6 +23,10 @@ impl UnresolvedVersionSpec {
         Ok(Self::from_str(value.as_ref())?)
     }
 
+    pub fn is_canary(&self) -> bool {
+        matches!(self, UnresolvedVersionSpec::Canary)
+    }
+
     pub fn to_spec(&self) -> VersionSpec {
         match self {
             UnresolvedVersionSpec::Canary => VersionSpec::Alias("canary".to_owned()),

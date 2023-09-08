@@ -49,14 +49,12 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
         // Install the tool
         debug!("Auto-install setting is configured, attempting to install");
 
-        let resolved_version = tool.get_resolved_version();
-
         internal_install(InstallArgs {
-            canary: resolved_version.is_canary(),
+            canary: false,
             id: args.id.clone(),
             pin: false,
             passthrough: vec![],
-            spec: Some(resolved_version.to_unresolved_spec()),
+            spec: Some(tool.get_resolved_version().to_unresolved_spec()),
         })
         .await?;
 

@@ -5,13 +5,20 @@
 #### 🚀 Updates
 
 - Added colors to command line `--help` menus.
+- Added canary support to all applicable tools.
+  - New `--canary` flag for `proto install`.
+  - Canary release will always be the latest, and can be re-installed.
 - Updated the following locations to support partial versions and aliases:
   - Tool versions in `.prototools`.
   - Pinning a default version with `proto install --pin`.
   - Setting global version with `proto global`.
   - Setting local version with `proto local`.
+- TOML API
+  - Added `install.download_url_canary` and `install.checksum_url_canary` settings.
 - WASM API
   - Added `command_exists`, `is_musl`, and `get_target_triple` helper functions.
+  - Added `skip_install` field to `NativeInstallOutput`.
+  - Added `skip_uninstall` field to `NativeUninstallOutput`.
 
 #### ⚙️ Internal
 
