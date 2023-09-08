@@ -61,7 +61,8 @@ where
 }
 
 /// Fetch the provided URL, deserialize the response as JSON,
-/// and cache the response in memory for the duration of the WASM instance.
+/// and cache the response in memory for the duration of the WASM function call.
+/// Caches *does not* persist across function calls.
 pub fn fetch_url_with_cache<R, U>(url: U) -> anyhow::Result<R>
 where
     R: DeserializeOwned,
