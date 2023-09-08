@@ -1118,7 +1118,9 @@ impl Tool {
     fn is_installed(&self) -> bool {
         let dir = self.get_tool_dir();
 
-        self.version.as_ref().is_some_and(|v| !v.is_latest())
+        self.version
+            .as_ref()
+            .is_some_and(|v| !v.is_latest() && !v.is_canary())
             && dir.exists()
             && !fs::is_dir_locked(dir)
     }

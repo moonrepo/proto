@@ -62,6 +62,7 @@ pub async fn install_all() {
 
         for (id, version) in config.tools {
             futures.push(internal_install(InstallArgs {
+                canary: false,
                 id,
                 pin: false,
                 passthrough: vec![],

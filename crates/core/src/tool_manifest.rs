@@ -124,9 +124,9 @@ impl ToolManifest {
         Ok(())
     }
 
-    pub fn track_used_at(&mut self, version: &VersionSpec) {
+    pub fn track_used_at(&mut self, version: VersionSpec) {
         self.versions
-            .entry(version.to_owned())
+            .entry(version)
             .and_modify(|v| {
                 v.last_used_at = Some(now());
             })

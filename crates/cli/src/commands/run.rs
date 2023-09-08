@@ -49,11 +49,14 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
         // Install the tool
         debug!("Auto-install setting is configured, attempting to install");
 
+        let resolved_version = tool.get_resolved_version();
+
         internal_install(InstallArgs {
+            canary: resolved_version.is_canary(),
             id: args.id.clone(),
-            spec: Some(tool.get_resolved_version().to_unresolved_spec()),
             pin: false,
             passthrough: vec![],
+            spec: Some(resolved_version.to_unresolved_spec()),
         })
         .await?;
 
@@ -61,11 +64,9 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
         tool.locate_bins().await?;
     }
 
-    let resolved_version = tool.get_resolved_version();
-
     // Update the last used timestamp
     if env::var("PROTO_SKIP_USED_AT").is_err() {
-        tool.manifest.track_used_at(&resolved_version);
+        tool.manifest.track_used_at(tool.get_resolved_version());
 
         // Ignore errors in case of race conditions...
         // this timestamp isn't *super* important
@@ -126,7 +127,7 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
         .args(&args.passthrough)
         .env(
             format!("{}_VERSION", tool.get_env_var_prefix()),
-            resolved_version.to_string(),
+            tool.get_resolved_version().to_string(),
         )
         .env(
             format!("{}_BIN", tool.get_env_var_prefix()),
