@@ -27,8 +27,8 @@ name = "proto"
 path = "src/main.rs"
 
 [dependencies]
-proto_core = { version = "0.16.4", path = "../core" }
-proto_pdk_api = { version = "0.6.3", path = "../pdk-api" }
+proto_core = { version = "0.17.0", path = "../core" }
+proto_pdk_api = { version = "0.7.0", path = "../pdk-api" }
 proto_schema_plugin = { version = "0.11.4", path = "../schema-plugin" }
 proto_wasm_plugin = { version = "0.6.3", path = "../wasm-plugin" }
 clap = { workspace = true, features = ["derive", "env"] }
