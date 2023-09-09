@@ -1,5 +1,5 @@
 use extism::{CurrentPlugin, Error, Function, InternalExt, UserData, Val, ValType};
-use proto_pdk_api::{ExecCommandInput, ExecCommandOutput, HostLogInput, PluginError};
+use proto_pdk_api::{ExecCommandInput, ExecCommandOutput, HostLogInput};
 use std::path::PathBuf;
 use std::process::Command;
 use tracing::trace;
@@ -85,6 +85,7 @@ fn exec_command(
         let result = command.spawn()?.wait()?;
 
         ExecCommandOutput {
+            command: input.command.clone(),
             exit_code: result.code().unwrap_or(0),
             stderr: String::new(),
             stdout: String::new(),
@@ -93,6 +94,7 @@ fn exec_command(
         let result = command.output()?;
 
         ExecCommandOutput {
+            command: input.command.clone(),
             exit_code: result.status.code().unwrap_or(0),
             stderr: String::from_utf8_lossy(&result.stderr).to_string(),
             stdout: String::from_utf8_lossy(&result.stdout).to_string(),
@@ -107,19 +109,6 @@ fn exec_command(
         stdout_len = output.stdout.len(),
         "Executed command from plugin"
     );
-
-    if output.exit_code != 0 {
-        let mut command_line = vec![input.command];
-        command_line.extend(input.args);
-
-        return Err(PluginError::Message(format!(
-            "Command `{}` failed with a {} exit code: {}",
-            command_line.join(" "),
-            output.exit_code,
-            output.stderr
-        ))
-        .into());
-    }
 
     let output_str = serde_json::to_string(&output)?;
     let ptr = plugin.memory_alloc_bytes(output_str)?;
