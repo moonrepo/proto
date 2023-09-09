@@ -11,6 +11,7 @@ body:
         - [Deno](https://github.com/moonrepo/deno-plugin)
         - [Go](https://github.com/moonrepo/go-plugin)
         - [Node](https://github.com/moonrepo/node-plugin)
+        - [Python](https://github.com/moonrepo/python-plugin)
         - [Rust](https://github.com/moonrepo/rust-plugin)
         - [Schema](https://github.com/moonrepo/schema-plugin)
   - type: input

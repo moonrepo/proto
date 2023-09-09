@@ -164,6 +164,15 @@ impl ToolsConfig {
             }
         }
 
+        if !self.plugins.contains_key("python") {
+            self.plugins.insert(
+                Id::raw("python"),
+                PluginLocator::SourceUrl {
+                    url: "https://github.com/moonrepo/python-plugin/releases/latest/download/python_plugin.wasm".into()
+                }
+            );
+        }
+
         if !self.plugins.contains_key("rust") {
             self.plugins.insert(
                 Id::raw("rust"),

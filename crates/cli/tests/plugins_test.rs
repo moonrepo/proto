@@ -198,6 +198,16 @@ mod builtins {
     }
 
     #[test]
+    fn supports_python() {
+        let temp = create_empty_sandbox();
+
+        let mut cmd = create_proto_command(temp.path());
+        let assert = cmd.arg("install").arg("python").assert();
+
+        assert.success();
+    }
+
+    #[test]
     fn supports_rust() {
         let temp = create_empty_sandbox();
 

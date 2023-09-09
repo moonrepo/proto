@@ -19,6 +19,7 @@
 
 #### 🚀 Updates
 
+- Added Python language support via the `python` identifier.
 - Added colors to command line `--help` menus.
 - Added canary support to all applicable tools.
   - New `--canary` flag for `proto install`.
