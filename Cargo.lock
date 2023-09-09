@@ -2348,7 +2348,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.17.1"
+version = "0.17.2"
 dependencies = [
  "cached",
  "extism",
@@ -2377,7 +2377,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "anyhow",
  "extism-pdk",
@@ -2389,7 +2389,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "anyhow",
  "semver",
@@ -2401,7 +2401,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.6.1"
+version = "0.6.2"
 dependencies = [
  "extism",
  "proto_core",
@@ -2419,7 +2419,7 @@ dependencies = [
 
 [[package]]
 name = "proto_wasm_plugin"
-version = "0.6.4"
+version = "0.6.5"
 dependencies = [
  "extism",
  "proto_pdk_api",
