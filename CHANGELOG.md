@@ -1,9 +1,25 @@
 # Changelog
 
+## Plugin changelogs
+
+- [Bun](https://github.com/moonrepo/bun-plugin/blob/master/CHANGELOG.md)
+- [Deno](https://github.com/moonrepo/deno-plugin/blob/master/CHANGELOG.md)
+- [Go](https://github.com/moonrepo/go-plugin/blob/master/CHANGELOG.md)
+- [Node](https://github.com/moonrepo/node-plugin/blob/master/CHANGELOG.md)
+- [Python](https://github.com/moonrepo/python-plugin/blob/master/CHANGELOG.md)
+- [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
+- [Schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
+
 ## Unreleased
+
+#### 💥 Breaking
+
+- WASM API
+  - Updated `exec_command!` to no longer throw on non-zero exit codes. You'll now need to handle failure states manually.
 
 #### 🚀 Updates
 
+- Added Python language support via the `python` identifier.
 - Added colors to command line `--help` menus.
 - Added canary support to all applicable tools.
   - New `--canary` flag for `proto install`.

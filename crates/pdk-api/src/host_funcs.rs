@@ -75,6 +75,7 @@ impl ExecCommandInput {
 json_struct!(
     /// Output returned from the `exec_command` host function.
     pub struct ExecCommandOutput {
+        pub command: String,
         pub exit_code: i32,
         pub stderr: String,
         pub stdout: String,
