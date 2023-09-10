@@ -1,3 +1,4 @@
+use crate::exec_command;
 use extism_pdk::http::request;
 use extism_pdk::*;
 use once_cell::sync::Lazy;
@@ -77,21 +78,23 @@ pub fn load_git_tags<U>(url: U) -> anyhow::Result<Vec<String>>
 where
     U: AsRef<str>,
 {
-    let output = unsafe {
-        exec_command(Json(ExecCommandInput::pipe(
-            "git",
-            [
-                "ls-remote",
-                "--tags",
-                "--sort",
-                "version:refname",
-                url.as_ref(),
-            ],
-        )))?
-        .0
-    };
+    let output = exec_command!(
+        pipe,
+        "git",
+        [
+            "ls-remote",
+            "--tags",
+            "--sort",
+            "version:refname",
+            url.as_ref(),
+        ]
+    );
 
     let mut tags: Vec<String> = vec![];
+
+    if output.exit_code != 0 {
+        return Ok(tags);
+    }
 
     for line in output.stdout.split('\n') {
         let parts = line.split('\t').collect::<Vec<_>>();
@@ -150,17 +153,12 @@ pub fn command_exists(env: &HostEnvironment, command: &str) -> bool {
     let result = if env.os == HostOS::Windows {
         let line = format!("Get-Command {command}");
 
-        unsafe {
-            exec_command(Json(ExecCommandInput::pipe(
-                "powershell",
-                ["-Command", &line],
-            )))
-        }
+        exec_command!(raw, "powershell", ["-Command", &line])
     } else {
-        unsafe { exec_command(Json(ExecCommandInput::pipe("which", [command]))) }
+        exec_command!(raw, "which", [command])
     };
 
-    result.is_err() || result.is_ok_and(|out| out.0.exit_code != 0)
+    result.is_ok_and(|res| res.0.exit_code == 0)
 }
 
 /// Detect whether the current OS is utilizing musl instead of gnu.
@@ -169,12 +167,8 @@ pub fn is_musl(env: &HostEnvironment) -> bool {
         return false;
     }
 
-    unsafe {
-        match exec_command(Json(ExecCommandInput::pipe("ldd", ["--version"]))) {
-            Ok(res) => res.0.stdout.contains("musl"),
-            Err(_) => false,
-        }
-    }
+    exec_command!(raw, "ldd", ["--version"])
+        .is_ok_and(|res| res.0.exit_code == 0 && res.0.stdout.contains("musl"))
 }
 
 /// Return a Rust target triple for the current host OS and architecture.
