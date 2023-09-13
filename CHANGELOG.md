@@ -15,6 +15,7 @@
 #### 🚀 Updates
 
 - Updated `proto install --pin` to also pin even if the tool has already been installed.
+- Updated Windows to use `pwsh` when available.
 
 #### 🐞 Fixes
 
