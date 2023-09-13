@@ -132,6 +132,22 @@ pub fn is_cache_enabled() -> bool {
     })
 }
 
+#[cached]
+pub fn is_command_on_path(program_name: String) -> bool {
+    let Some(system_path) = env::var_os("PATH") else {
+        return false;
+    };
+
+    for path_dir in env::split_paths(&system_path) {
+        #[allow(clippy::needless_borrow)]
+        if path_dir.join(&program_name).exists() {
+            return true;
+        }
+    }
+
+    false
+}
+
 pub fn is_archive_file<P: AsRef<Path>>(path: P) -> bool {
     is_supported_archive_extension(path.as_ref())
 }

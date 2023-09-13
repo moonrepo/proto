@@ -1,7 +1,10 @@
 use crate::commands::install::{internal_install, InstallArgs};
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::{detect_version, load_tool, Id, ProtoError, UnresolvedVersionSpec, UserConfig};
+use proto_core::{
+    detect_version, is_command_on_path, load_tool, Id, ProtoError, UnresolvedVersionSpec,
+    UserConfig,
+};
 use proto_pdk_api::RunHook;
 use starbase::system;
 use starbase_styles::color;
@@ -109,20 +112,35 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
     // Run the command
     let mut command = match bin_path.extension().map(|e| e.to_str().unwrap()) {
         Some("ps1") => {
-            let mut cmd = Command::new("powershell");
-            cmd.arg("--File").arg(bin_path);
+            let mut cmd = Command::new(if is_command_on_path("pwsh.exe".into()) {
+                "pwsh"
+            } else {
+                "powershell"
+            });
+            cmd.arg("-Command").arg(format!(
+                "{} {}",
+                bin_path.display(),
+                args.passthrough.join(" ")
+            ));
             cmd
         }
         Some("cmd" | "bat") => {
             let mut cmd = Command::new("cmd");
-            cmd.arg("/q").arg("/c").arg(bin_path);
+            cmd.arg("/q").arg("/c").arg(format!(
+                "{} {}",
+                bin_path.display(),
+                args.passthrough.join(" ")
+            ));
             cmd
         }
-        _ => Command::new(bin_path),
+        _ => {
+            let mut cmd = Command::new(bin_path);
+            cmd.args(&args.passthrough);
+            cmd
+        }
     };
 
     let status = command
-        .args(&args.passthrough)
         .env(
             format!("{}_VERSION", tool.get_env_var_prefix()),
             tool.get_resolved_version().to_string(),
