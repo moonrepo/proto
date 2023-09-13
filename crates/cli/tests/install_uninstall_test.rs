@@ -196,4 +196,39 @@ mod install_uninstall {
             ])
         );
     }
+
+    #[test]
+    fn can_pin_when_already_installed() {
+        let temp = create_empty_sandbox();
+        let manifest_file = temp.path().join("tools/node/manifest.json");
+
+        let mut cmd = create_proto_command(temp.path());
+        cmd.arg("install")
+            .arg("node")
+            .arg("19.0.0")
+            .arg("--")
+            .arg("--no-bundled-npm")
+            .assert();
+
+        // Manually change it to something else
+        let mut manifest = ToolManifest::load(&manifest_file).unwrap();
+        manifest.default_version = Some(UnresolvedVersionSpec::parse("18.0.0").unwrap());
+        manifest.save().unwrap();
+
+        let mut cmd = create_proto_command(temp.path());
+        cmd.arg("install")
+            .arg("node")
+            .arg("19.0.0")
+            .arg("--pin")
+            .arg("--")
+            .arg("--no-bundled-npm")
+            .assert();
+
+        let manifest = ToolManifest::load(&manifest_file).unwrap();
+
+        assert_eq!(
+            manifest.default_version,
+            Some(UnresolvedVersionSpec::parse("19.0.0").unwrap())
+        );
+    }
 }

@@ -6,7 +6,7 @@ macro_rules! impl_event {
         impl_event!($name, (), $impl);
     };
 
-		($name:ident, $data:ty, $impl:tt) => {
+    ($name:ident, $data:ty, $impl:tt) => {
         pub struct $name $impl
 
         impl Event for $name {

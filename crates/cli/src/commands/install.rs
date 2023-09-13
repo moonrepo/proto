@@ -36,6 +36,13 @@ pub struct InstallArgs {
     pub passthrough: Vec<String>,
 }
 
+pub fn pin_global(tool: &mut Tool) -> SystemResult {
+    tool.manifest.default_version = Some(tool.get_resolved_version().to_unresolved_spec());
+    tool.manifest.save()?;
+
+    Ok(())
+}
+
 pub async fn internal_install(args: InstallArgs) -> SystemResult {
     let mut tool = load_tool(&args.id).await?;
     let version = if args.canary {
@@ -45,6 +52,10 @@ pub async fn internal_install(args: InstallArgs) -> SystemResult {
     };
 
     if !version.is_canary() && tool.is_setup(&version).await? {
+        if args.pin {
+            pin_global(&mut tool)?;
+        }
+
         info!(
             "{} has already been installed at {}",
             tool.get_name(),
@@ -91,8 +102,7 @@ pub async fn internal_install(args: InstallArgs) -> SystemResult {
     tool.cleanup().await?;
 
     if args.pin {
-        tool.manifest.default_version = Some(tool.get_resolved_version().to_unresolved_spec());
-        tool.manifest.save()?;
+        pin_global(&mut tool)?;
     }
 
     pb.finish_and_clear();
