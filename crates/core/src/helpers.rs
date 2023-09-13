@@ -135,10 +135,10 @@ pub fn is_cache_enabled() -> bool {
 #[cached]
 #[cfg(windows)]
 pub fn is_command_on_path(name: String) -> bool {
-    let Some(system_path) = env::var_os("PATH") else {
+    let Ok(system_path) = env::var("PATH") else {
         return false;
     };
-    let Some(path_ext) = env::var_os("PATHEXT") else {
+    let Ok(path_ext) = env::var("PATHEXT") else {
         return false;
     };
     let exts = path_ext.split(';').collect::<Vec<_>>();
@@ -157,7 +157,7 @@ pub fn is_command_on_path(name: String) -> bool {
 #[cached]
 #[cfg(not(windows))]
 pub fn is_command_on_path(name: String) -> bool {
-    let Some(system_path) = env::var_os("PATH") else {
+    let Ok(system_path) = env::var("PATH") else {
         return false;
     };
 
