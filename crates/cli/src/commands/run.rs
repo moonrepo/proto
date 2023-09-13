@@ -112,7 +112,7 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
     // Run the command
     let mut command = match bin_path.extension().map(|e| e.to_str().unwrap()) {
         Some("ps1") => {
-            let mut cmd = Command::new(if is_command_on_path("pwsh.exe".into()) {
+            let mut cmd = Command::new(if is_command_on_path("pwsh".into()) {
                 "pwsh"
             } else {
                 "powershell"

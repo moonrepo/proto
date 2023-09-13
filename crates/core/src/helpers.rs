@@ -133,14 +133,37 @@ pub fn is_cache_enabled() -> bool {
 }
 
 #[cached]
-pub fn is_command_on_path(program_name: String) -> bool {
+#[cfg(windows)]
+pub fn is_command_on_path(name: String) -> bool {
+    let Some(system_path) = env::var_os("PATH") else {
+        return false;
+    };
+    let Some(path_ext) = env::var_os("PATHEXT") else {
+        return false;
+    };
+    let exts = path_ext.split(';').collect::<Vec<_>>();
+
+    for path_dir in env::split_paths(&system_path) {
+        for ext in &exts {
+            if path_dir.join(format!("{name}{ext}")).exists() {
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
+#[cached]
+#[cfg(not(windows))]
+pub fn is_command_on_path(name: String) -> bool {
     let Some(system_path) = env::var_os("PATH") else {
         return false;
     };
 
     for path_dir in env::split_paths(&system_path) {
         #[allow(clippy::needless_borrow)]
-        if path_dir.join(&program_name).exists() {
+        if path_dir.join(&name).exists() {
             return true;
         }
     }
