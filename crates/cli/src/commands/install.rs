@@ -23,7 +23,7 @@ pub struct InstallArgs {
 
     #[arg(
         long,
-        help = "Install a canary (next, nightly, etc) version",
+        help = "Install a canary (nightly, etc) version",
         group = "version-type"
     )]
     pub canary: bool,
@@ -50,6 +50,9 @@ pub async fn internal_install(args: InstallArgs) -> SystemResult {
     } else {
         args.spec.clone().unwrap_or_default()
     };
+
+    // Disable version caching and always use the latest when installing
+    tool.disable_caching();
 
     if !version.is_canary() && tool.is_setup(&version).await? {
         if args.pin {

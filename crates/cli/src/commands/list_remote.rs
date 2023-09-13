@@ -12,7 +12,8 @@ pub struct ListRemoteArgs {
 
 #[system]
 pub async fn list_remote(args: ArgsRef<ListRemoteArgs>) {
-    let tool = load_tool(&args.id).await?;
+    let mut tool = load_tool(&args.id).await?;
+    tool.disable_caching();
 
     debug!("Loading versions");
 

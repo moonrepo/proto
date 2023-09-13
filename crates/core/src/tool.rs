@@ -48,6 +48,7 @@ pub struct Tool {
     pub on_uninstalled: Emitter<UninstalledEvent>,
     pub on_uninstalled_global: Emitter<UninstalledGlobalEvent>,
 
+    cache: bool,
     bin_path: Option<PathBuf>,
     globals_dir: Option<PathBuf>,
     globals_prefix: Option<String>,
@@ -83,6 +84,7 @@ impl Tool {
 
         let mut tool = Tool {
             bin_path: None,
+            cache: true,
             globals_dir: None,
             globals_prefix: None,
             id: id.to_owned(),
@@ -136,6 +138,11 @@ impl Tool {
         manifest = manifest.with_allowed_path(proto.root.clone(), "/proto");
 
         Ok(manifest)
+    }
+
+    /// Disable internal caching when applicable.
+    pub fn disable_caching(&mut self) {
+        self.cache = false;
     }
 
     /// Return an absolute path to the executable binary for the tool.
@@ -375,6 +382,8 @@ impl Tool {
             // If offline, always use the cache, otherwise only within the last 12 hours
             let read_cache = if is_offline() {
                 true
+            } else if !self.cache {
+                false
             } else if let Ok(modified_time) = metadata.modified().or_else(|_| metadata.created()) {
                 modified_time > SystemTime::now() - Duration::from_secs(60 * 60 * 12)
             } else {

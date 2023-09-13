@@ -16,6 +16,10 @@
 
 - Updated `proto install --pin` to also pin even if the tool has already been installed.
 
+#### 🐞 Fixes
+
+- Fixed an issue where `proto install` and `proto list-remote` would read from the cache and be unaware of newly released versions upstream.
+
 ## 0.17.0
 
 #### 💥 Breaking

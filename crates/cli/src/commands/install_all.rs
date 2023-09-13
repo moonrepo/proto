@@ -33,12 +33,9 @@ pub async fn install_all() {
         let tool = load_tool_from_locator(&name, &proto, &locator, &user_config).await?;
 
         if let Some(candidate) = tool.detect_version_from(&working_dir).await? {
-            let resolver = tool.load_version_resolver(&candidate).await?;
-            let version = resolver.resolve(&candidate)?;
+            debug!("Detected version {} for {}", candidate, tool.get_name());
 
-            debug!("Detected version {} for {}", version, tool.get_name());
-
-            config.tools.insert(name, version.to_unresolved_spec());
+            config.tools.insert(name, candidate);
         }
     }
 
@@ -79,7 +76,7 @@ pub async fn install_all() {
         info!("Successfully installed tools");
     }
 
-    if UserConfig::load()?.auto_clean {
+    if user_config.auto_clean {
         debug!("Auto-clean enabled, starting clean");
 
         internal_clean(&CleanArgs {
