@@ -76,7 +76,7 @@ pub async fn install_all() {
         info!("Successfully installed tools");
     }
 
-    if UserConfig::load()?.auto_clean {
+    if user_config.auto_clean {
         debug!("Auto-clean enabled, starting clean");
 
         internal_clean(&CleanArgs {
