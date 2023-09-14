@@ -1,6 +1,6 @@
-use crate::env::*;
 use crate::error::Error;
 use crate::pm_vendor::*;
+use crate::{env::*, DependencyConfig};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -113,12 +113,14 @@ impl PackageManager {
         Err(Error::MissingPackageManager)
     }
 
-    pub fn get_install_command(&self, dep: &str, version: Option<&str>) -> Vec<String> {
+    pub fn get_install_command(&self, dep_config: &DependencyConfig) -> Vec<String> {
         let mut args = vec![];
 
         for arg in &self.config.install_command {
             if arg == "$" {
-                if let Some(ver) = version {
+                let dep = "TODO";
+
+                if let Some(ver) = &dep_config.version {
                     match &self.config.version_arg {
                         VersionArgument::None => {}
                         VersionArgument::Inline(op) => {

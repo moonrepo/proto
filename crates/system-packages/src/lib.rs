@@ -13,41 +13,47 @@ use std::collections::HashMap;
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(untagged)]
-pub enum DependencyName {
-    Name(String),
-    Map(HashMap<String, String>),
+pub enum Dependency {
+    Single(String),
+    SingleMap(HashMap<String, String>),
+    Multiple(Vec<String>),
 }
 
-impl Default for DependencyName {
-    fn default() -> DependencyName {
-        DependencyName::Name(String::new())
+impl Default for Dependency {
+    fn default() -> Dependency {
+        Dependency::Single(String::new())
     }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(default)]
 pub struct DependencyConfig {
-    arch: Option<SystemArch>,
-    args: Vec<String>,
-    env: HashMap<String, String>,
-    manager: Option<SystemPackageManager>,
-    name: DependencyName,
-    optional: bool,
-    os: Option<SystemOS>,
-    sudo: bool,
-    version: Option<String>,
+    pub arch: Option<SystemArch>,
+    pub args: Vec<String>,
+    pub dep: Dependency,
+    pub env: HashMap<String, String>,
+    pub manager: Option<SystemPackageManager>,
+    pub optional: bool,
+    pub os: Option<SystemOS>,
+    pub sudo: bool,
+    pub version: Option<String>,
 }
 
 impl DependencyConfig {
-    pub fn get_name(&self, os: &SystemOS, pm: &SystemPackageManager) -> Result<&str, Error> {
-        match &self.name {
-            DependencyName::Name(name) => Ok(name),
-            DependencyName::Map(map) => map
+    pub fn get_package_names(
+        &self,
+        os: &SystemOS,
+        pm: &SystemPackageManager,
+    ) -> Result<Vec<String>, Error> {
+        match &self.dep {
+            Dependency::Single(name) => Ok(vec![name.to_owned()]),
+            Dependency::SingleMap(map) => map
                 .get(&pm.to_string())
                 .or_else(|| map.get(&os.to_string()))
                 .or_else(|| map.get("*"))
-                .map(|n| n.as_str())
+                .map(|name| vec![name.to_owned()])
                 .ok_or(Error::MissingName),
+            Dependency::Multiple(list) => Ok(list.clone()),
         }
     }
 
@@ -69,14 +75,35 @@ pub enum SystemDependency {
 }
 
 impl SystemDependency {
+    pub fn for_all(name: &str) -> SystemDependency {
+        SystemDependency::Name(name.to_owned())
+    }
+
+    pub fn for_os(name: &str, os: SystemOS) -> SystemDependency {
+        SystemDependency::Config(DependencyConfig {
+            dep: Dependency::Single(name.into()),
+            os: Some(os),
+            ..DependencyConfig::default()
+        })
+    }
+
+    pub fn for_os_arch(name: &str, os: SystemOS, arch: SystemArch) -> SystemDependency {
+        SystemDependency::Config(DependencyConfig {
+            arch: Some(arch),
+            dep: Dependency::Single(name.into()),
+            os: Some(os),
+            ..DependencyConfig::default()
+        })
+    }
+
     pub fn to_config(self) -> DependencyConfig {
         match self {
             Self::Name(name) => DependencyConfig {
-                name: DependencyName::Name(name),
+                dep: Dependency::Single(name),
                 ..DependencyConfig::default()
             },
             Self::Map(map) => DependencyConfig {
-                name: DependencyName::Map(map),
+                dep: Dependency::SingleMap(map),
                 ..DependencyConfig::default()
             },
             Self::Config(config) => config,

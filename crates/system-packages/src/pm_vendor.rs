@@ -22,7 +22,13 @@ pub fn apk() -> VendorConfig {
 
 pub fn apt() -> VendorConfig {
     VendorConfig {
-        install_command: vec!["apt".into(), "install".into(), "-y".into(), "$".into()],
+        install_command: vec![
+            "apt".into(),
+            "install".into(),
+            "--install-recommends".into(),
+            "-y".into(),
+            "$".into(),
+        ],
         update_index_command: Some(vec!["apt".into(), "update".into()]),
         version_arg: VersionArgument::Inline("=".into()),
     }

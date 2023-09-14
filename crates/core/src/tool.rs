@@ -712,7 +712,7 @@ impl Tool {
             }
 
             // Download from archive
-            SourceLocation::Archive(archive_url) => {
+            SourceLocation::Archive { url: archive_url } => {
                 let download_file = temp_dir.join(extract_filename_from_url(archive_url)?);
 
                 debug!(
@@ -729,7 +729,11 @@ impl Tool {
             }
 
             // Clone from Git repository
-            SourceLocation::Git(repo_url, ref_name) => {
+            SourceLocation::Git {
+                url: repo_url,
+                reference: ref_name,
+                submodules,
+            } => {
                 debug!(
                     tool = self.id.as_str(),
                     repo_url,
@@ -758,9 +762,21 @@ impl Tool {
                     Ok(())
                 };
 
+                // TODO, pull if already cloned
+
                 fs::create_dir_all(install_dir)?;
 
-                run_git(&["clone", repo_url, "."])?;
+                run_git(&[
+                    "clone",
+                    if *submodules {
+                        "--recurse-submodules"
+                    } else {
+                        ""
+                    },
+                    repo_url,
+                    ".",
+                ])?;
+
                 run_git(&["checkout", ref_name])?;
             }
         };

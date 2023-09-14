@@ -195,11 +195,29 @@ json_struct!(
 
 json_enum!(
     #[derive(Default)]
+    #[serde(tag = "type", rename_all = "lowercase")]
     pub enum SourceLocation {
         #[default]
         None,
-        Archive(String),
-        Git(String, String),
+        Archive {
+            url: String,
+        },
+        Git {
+            url: String,
+            reference: String,
+            submodules: bool,
+        },
+    }
+);
+
+json_enum!(
+    #[serde(tag = "type", rename_all = "lowercase")]
+    pub enum BuildInstruction {
+        Command {
+            bin: String,
+            args: Vec<String>,
+            env: HashMap<String, String>,
+        },
     }
 );
 
@@ -210,10 +228,13 @@ json_struct!(
         /// or Git repository.
         pub source: SourceLocation,
 
+        /// List of instructions to execute to build the tool, after system
+        /// dependencies have been installed.
+        pub instructions: Vec<BuildInstruction>,
+
         /// List of system dependencies that are required for building from source.
         /// If a dependency does not exist, it will be installed.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub system_dependencies: Option<Vec<SystemDependency>>,
+        pub system_dependencies: Vec<SystemDependency>,
     }
 );
 
