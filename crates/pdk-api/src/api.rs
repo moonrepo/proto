@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::path::PathBuf;
+use system_packages::SystemDependency;
 use warpgate_api::VirtualPath;
 
 pub use semver::{Version, VersionReq};
@@ -181,6 +182,38 @@ json_struct!(
 
         /// Whether to skip the uninstall process or not.
         pub skip_uninstall: bool,
+    }
+);
+
+json_struct!(
+    /// Input passed to the `build_instructions` function.
+    pub struct BuildInstructionsInput {
+        /// Current tool context.
+        pub context: ToolContext,
+    }
+);
+
+json_enum!(
+    #[derive(Default)]
+    pub enum SourceLocation {
+        #[default]
+        None,
+        Archive(String),
+        Git(String, String),
+    }
+);
+
+json_struct!(
+    /// Output returned by the `build_instructions` function.
+    pub struct BuildInstructionsOutput {
+        /// Location in which to acquire the source files. Can be an archive URL,
+        /// or Git repository.
+        pub source: SourceLocation,
+
+        /// List of system dependencies that are required for building from source.
+        /// If a dependency does not exist, it will be installed.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub system_dependencies: Option<Vec<SystemDependency>>,
     }
 );
 

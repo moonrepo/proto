@@ -21,7 +21,7 @@ where
 
     env::set_var("PROTO_HOME", fixture.path().to_string_lossy().to_string());
 
-    tool.setup(&UnresolvedVersionSpec::parse("1.0.0").unwrap())
+    tool.setup(&UnresolvedVersionSpec::parse("1.0.0").unwrap(), false)
         .await
         .unwrap();
 

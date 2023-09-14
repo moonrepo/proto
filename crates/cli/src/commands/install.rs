@@ -126,7 +126,7 @@ pub async fn internal_install(args: InstallArgs) -> SystemResult {
         tool.get_resolved_version()
     ));
 
-    let installed = tool.setup(&version).await?;
+    let installed = tool.setup(&version, false).await?;
 
     pb.finish_and_clear();
 

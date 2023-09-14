@@ -11,7 +11,7 @@ pub use pm_vendor::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum DependencyName {
     Name(String),
@@ -24,7 +24,7 @@ impl Default for DependencyName {
     }
 }
 
-#[derive(Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(default)]
 pub struct DependencyConfig {
     arch: Option<SystemArch>,
@@ -60,7 +60,7 @@ impl DependencyConfig {
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum SystemDependency {
     Name(String),

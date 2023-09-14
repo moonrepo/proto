@@ -24,6 +24,7 @@ use std::env;
 use std::fmt::Debug;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::time::{Duration, SystemTime};
 use tracing::{debug, trace};
 use version_spec::*;
@@ -680,6 +681,93 @@ impl Tool {
         .into())
     }
 
+    pub async fn build_from_source(&self, install_dir: &Path) -> miette::Result<()> {
+        debug!(
+            tool = self.id.as_str(),
+            "Installing tool by building from source"
+        );
+
+        if !self.plugin.has_func("build_instructions") {
+            return Err(ProtoError::UnsupportedBuildFromSource {
+                tool: self.id.clone(),
+            }
+            .into());
+        }
+
+        let temp_dir = self
+            .get_temp_dir()
+            .join(self.get_resolved_version().to_string());
+
+        let options: BuildInstructionsOutput = self.plugin.cache_func_with(
+            "build_instructions",
+            BuildInstructionsInput {
+                context: self.create_context()?,
+            },
+        )?;
+
+        match &options.source {
+            // Should this do anything?
+            SourceLocation::None => {
+                return Ok(());
+            }
+
+            // Download from archive
+            SourceLocation::Archive(archive_url) => {
+                let download_file = temp_dir.join(extract_filename_from_url(archive_url)?);
+
+                debug!(
+                    tool = self.id.as_str(),
+                    archive_url,
+                    download_file = ?download_file,
+                    install_dir = ?install_dir,
+                    "Attempting to download and unpack sources",
+                );
+
+                download_from_url(archive_url, &download_file).await?;
+
+                Archiver::new(install_dir, &download_file).unpack_from_ext()?;
+            }
+
+            // Clone from Git repository
+            SourceLocation::Git(repo_url, ref_name) => {
+                debug!(
+                    tool = self.id.as_str(),
+                    repo_url,
+                    ref_name,
+                    install_dir = ?install_dir,
+                    "Attempting to clone a Git repository",
+                );
+
+                let run_git = |args: &[&str]| -> miette::Result<()> {
+                    let status = Command::new("git")
+                        .args(args)
+                        .current_dir(install_dir)
+                        .spawn()
+                        .into_diagnostic()?
+                        .wait()
+                        .into_diagnostic()?;
+
+                    if !status.success() {
+                        return Err(ProtoError::BuildFailed {
+                            url: repo_url.clone(),
+                            status: format!("exit code {}", status),
+                        }
+                        .into());
+                    }
+
+                    Ok(())
+                };
+
+                fs::create_dir_all(install_dir)?;
+
+                run_git(&["clone", repo_url, "."])?;
+                run_git(&["checkout", ref_name])?;
+            }
+        };
+
+        Ok(())
+    }
+
     /// Download the tool (as an archive) from its distribution registry
     /// into the `~/.proto/temp` folder, and optionally verify checksums.
     pub async fn install_from_prebuilt(&self, install_dir: &Path) -> miette::Result<PathBuf> {
@@ -704,12 +792,7 @@ impl Tool {
         let download_url = options.download_url;
         let download_file = match options.download_name {
             Some(name) => temp_dir.join(name),
-            None => {
-                let url = url::Url::parse(&download_url).into_diagnostic()?;
-                let segments = url.path_segments().unwrap();
-
-                temp_dir.join(segments.last().unwrap())
-            }
+            None => temp_dir.join(extract_filename_from_url(&download_url)?),
         };
 
         if download_file.exists() {
@@ -785,7 +868,7 @@ impl Tool {
 
     /// Install a tool into proto, either by downloading and unpacking
     /// a pre-built archive, or by using a native installation method.
-    pub async fn install(&mut self) -> miette::Result<bool> {
+    pub async fn install(&mut self, build: bool) -> miette::Result<bool> {
         if self.is_installed() {
             debug!(
                 tool = self.id.as_str(),
@@ -834,9 +917,15 @@ impl Tool {
             }
         }
 
-        // Install from a prebuilt archive
         if !installed {
-            self.install_from_prebuilt(&install_dir).await?;
+            // Build the tool from source
+            if build {
+                self.build_from_source(&install_dir).await?;
+
+            // Install from a prebuilt archive
+            } else {
+                self.install_from_prebuilt(&install_dir).await?;
+            }
         }
 
         self.on_installed
@@ -1236,10 +1325,14 @@ impl Tool {
 
     /// Setup the tool by resolving a semantic version, installing the tool,
     /// locating binaries, creating shims, and more.
-    pub async fn setup(&mut self, initial_version: &UnresolvedVersionSpec) -> miette::Result<bool> {
+    pub async fn setup(
+        &mut self,
+        initial_version: &UnresolvedVersionSpec,
+        build: bool,
+    ) -> miette::Result<bool> {
         self.resolve_version(initial_version).await?;
 
-        if self.install().await? {
+        if self.install(build).await? {
             self.cleanup().await?;
             self.locate_bins().await?;
             self.setup_shims(true).await?;

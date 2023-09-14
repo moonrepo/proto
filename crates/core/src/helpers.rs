@@ -1,5 +1,6 @@
 use crate::error::ProtoError;
 use cached::proc_macro::cached;
+use miette::IntoDiagnostic;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::de::DeserializeOwned;
