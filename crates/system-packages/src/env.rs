@@ -67,8 +67,8 @@ impl SystemOS {
         )
     }
 
-    pub fn is_linux(&self) -> bool {
-        self.is_bsd() || matches!(self, Self::Linux)
+    pub fn is_unix(&self) -> bool {
+        self.is_bsd() || matches!(self, Self::Linux | Self::MacOS)
     }
 }
 
