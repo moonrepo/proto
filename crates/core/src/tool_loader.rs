@@ -8,11 +8,7 @@ use miette::IntoDiagnostic;
 use proto_pdk_api::{HostArch, HostEnvironment, HostOS, UserConfigSettings};
 use proto_wasm_plugin::Wasm;
 use starbase_utils::{json, toml};
-use std::str::FromStr;
-use std::{
-    env::{self, consts},
-    path::Path,
-};
+use std::{env, path::Path};
 use tracing::{debug, trace};
 use warpgate::{create_http_client_with_options, to_virtual_path, Id, PluginLocator};
 
@@ -42,8 +38,8 @@ pub fn inject_default_manifest_config(
         .insert("proto_user_config".to_string(), value);
 
     let value = json::to_string(&HostEnvironment {
-        arch: HostArch::from_str(consts::ARCH).into_diagnostic()?,
-        os: HostOS::from_str(consts::OS).into_diagnostic()?,
+        arch: HostArch::from_env(),
+        os: HostOS::from_env(),
         home_dir: to_virtual_path(manifest, &proto.home),
         proto_dir: to_virtual_path(manifest, &proto.root),
     })

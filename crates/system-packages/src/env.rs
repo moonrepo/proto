@@ -4,10 +4,11 @@ use std::env::{self, consts};
 use std::fmt;
 
 /// Architecture of the host environment.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum SystemArch {
     X86,
+    #[default]
     #[serde(alias = "x86_64")]
     X64,
     Arm,
@@ -30,6 +31,15 @@ impl SystemArch {
         serde_json::from_value(Value::String(consts::ARCH.to_owned()))
             .expect("Unknown architecture!")
     }
+
+    pub fn to_rust_arch(&self) -> String {
+        match self {
+            Self::X64 => "x86_64".into(),
+            Self::Arm64 => "aarch64".into(),
+            Self::LongArm64 => "loongarch64".into(),
+            _ => self.to_string(),
+        }
+    }
 }
 
 impl fmt::Display for SystemArch {
@@ -39,13 +49,14 @@ impl fmt::Display for SystemArch {
 }
 
 /// Operating system of the host environment.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum SystemOS {
     Android,
     Dragonfly,
     FreeBSD,
     IOS,
+    #[default]
     Linux,
     MacOS,
     NetBSD,
@@ -69,6 +80,10 @@ impl SystemOS {
 
     pub fn is_unix(&self) -> bool {
         self.is_bsd() || matches!(self, Self::Linux | Self::MacOS)
+    }
+
+    pub fn to_rust_os(&self) -> String {
+        self.to_string()
     }
 }
 

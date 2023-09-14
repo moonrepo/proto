@@ -2415,6 +2415,7 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
+ "system_packages",
  "thiserror",
  "warpgate_api",
 ]
