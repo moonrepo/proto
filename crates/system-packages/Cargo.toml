@@ -1,0 +1,12 @@
+[package]
+name = "system_packages"
+version = "0.0.1"
+edition = "2021"
+license = "MIT"
+description = "Utilities for installing system packages."
+homepage = "https://moonrepo.dev/proto"
+repository = "https://github.com/moonrepo/proto"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }

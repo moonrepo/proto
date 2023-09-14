@@ -3249,6 +3249,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "system_packages"
+version = "0.0.1"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "tar"
 version = "0.4.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
