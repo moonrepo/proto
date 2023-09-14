@@ -1,12 +1,12 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::env::consts;
+use std::env::{self, consts};
 use std::fmt;
 
 /// Architecture of the host environment.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
-pub enum Arch {
+pub enum SystemArch {
     X86,
     #[serde(alias = "x86_64")]
     X64,
@@ -25,14 +25,14 @@ pub enum Arch {
     Sparc64,
 }
 
-impl Arch {
-    pub fn from_env() -> Arch {
+impl SystemArch {
+    pub fn from_env() -> SystemArch {
         serde_json::from_value(Value::String(consts::ARCH.to_owned()))
             .expect("Unknown architecture!")
     }
 }
 
-impl fmt::Display for Arch {
+impl fmt::Display for SystemArch {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", format!("{:?}", self).to_lowercase())
     }
@@ -41,7 +41,7 @@ impl fmt::Display for Arch {
 /// Operating system of the host environment.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
-pub enum OS {
+pub enum SystemOS {
     Android,
     Dragonfly,
     FreeBSD,
@@ -54,8 +54,8 @@ pub enum OS {
     Windows,
 }
 
-impl OS {
-    pub fn from_env() -> OS {
+impl SystemOS {
+    pub fn from_env() -> SystemOS {
         serde_json::from_value(Value::String(consts::OS.to_owned()))
             .expect("Unknown operating system!")
     }
@@ -72,8 +72,44 @@ impl OS {
     }
 }
 
-impl fmt::Display for OS {
+impl fmt::Display for SystemOS {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", format!("{:?}", self).to_lowercase())
     }
+}
+
+#[cfg(windows)]
+pub fn is_command_on_path(name: &str) -> bool {
+    let Ok(system_path) = env::var("PATH") else {
+        return false;
+    };
+    let Ok(path_ext) = env::var("PATHEXT") else {
+        return false;
+    };
+    let exts = path_ext.split(';').collect::<Vec<_>>();
+
+    for path_dir in env::split_paths(&system_path) {
+        for ext in &exts {
+            if path_dir.join(format!("{name}{ext}")).exists() {
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
+#[cfg(not(windows))]
+pub fn is_command_on_path(name: &str) -> bool {
+    let Ok(system_path) = env::var("PATH") else {
+        return false;
+    };
+
+    for path_dir in env::split_paths(&system_path) {
+        if path_dir.join(name).exists() {
+            return true;
+        }
+    }
+
+    false
 }
