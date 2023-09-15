@@ -10,6 +10,15 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [Schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added an `http` setting to `~/.proto/config.toml` to control proxies and certificates when making http/https requests, primarily for downloading tools.
+  - New `allow-invalid-certs` setting for allowing invalid certificates (be careful).
+  - New `proxies` setting for customizing internal proxy URLs.
+  - New `root-cert` setting for providing a root certificate (great for corporate environments).
+
 ## 0.17.1
 
 #### 🚀 Updates

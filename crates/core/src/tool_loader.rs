@@ -14,7 +14,7 @@ use std::{
     path::Path,
 };
 use tracing::debug;
-use warpgate::{to_virtual_path, Id, PluginLocator};
+use warpgate::{create_http_client_with_options, to_virtual_path, Id, PluginLocator};
 
 pub fn inject_default_manifest_config(
     id: &Id,
@@ -60,8 +60,11 @@ pub async fn load_tool_from_locator(
     let proto = proto.as_ref();
     let locator = locator.as_ref();
 
+    let http_client = create_http_client_with_options(user_config.http.clone())?;
     let plugin_loader = proto.get_plugin_loader();
-    let plugin_path = plugin_loader.load_plugin(&id, locator).await?;
+    let plugin_path = plugin_loader
+        .load_plugin(&id, locator, &http_client)
+        .await?;
 
     // If a TOML plugin, we need to load the WASM plugin for it,
     // wrap it, and modify the plugin manifest.
@@ -76,7 +79,7 @@ pub async fn load_tool_from_locator(
             proto,
             Wasm::file(
                 plugin_loader
-                    .load_plugin(id, ToolsConfig::schema_plugin())
+                    .load_plugin(id, ToolsConfig::schema_plugin(), &http_client)
                     .await?,
             ),
         )?;

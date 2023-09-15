@@ -6,7 +6,7 @@ use std::collections::BTreeMap;
 use std::env;
 use std::path::{Path, PathBuf};
 use tracing::debug;
-use warpgate::{Id, PluginLocator};
+use warpgate::{HttpOptions, Id, PluginLocator};
 
 pub const USER_CONFIG_NAME: &str = "config.toml";
 
@@ -16,6 +16,7 @@ pub struct UserConfig {
     pub auto_clean: bool,
     pub auto_install: bool,
     pub node_intercept_globals: bool,
+    pub http: HttpOptions,
     pub plugins: BTreeMap<Id, PluginLocator>,
 
     #[serde(skip)]
@@ -39,6 +40,14 @@ impl UserConfig {
         let contents = fs::read_file_with_lock(&path)?;
         let mut config: UserConfig = toml::from_str(&contents).into_diagnostic()?;
 
+        let make_absolute = |file: &mut PathBuf| {
+            if file.is_absolute() {
+                file.to_owned()
+            } else {
+                dir.join(file)
+            }
+        };
+
         // Update plugin file paths to be absolute
         for locator in config.plugins.values_mut() {
             if let PluginLocator::SourceFile {
@@ -46,8 +55,12 @@ impl UserConfig {
                 ..
             } = locator
             {
-                *source_path = dir.join(&source_path);
+                *source_path = make_absolute(source_path);
             }
+        }
+
+        if let Some(root_cert) = &mut config.http.root_cert {
+            *root_cert = make_absolute(root_cert);
         }
 
         config.path = path;
@@ -73,6 +86,7 @@ impl Default for UserConfig {
             auto_clean: from_var("PROTO_AUTO_CLEAN", false),
             auto_install: from_var("PROTO_AUTO_INSTALL", false),
             node_intercept_globals: from_var("PROTO_NODE_INTERCEPT_GLOBALS", true),
+            http: HttpOptions::default(),
             plugins: BTreeMap::default(),
             path: PathBuf::new(),
         }

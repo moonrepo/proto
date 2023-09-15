@@ -1,6 +1,9 @@
 use crate::error::ProtoError;
 use crate::events::*;
-use crate::helpers::{hash_file_contents, is_cache_enabled, is_offline};
+use crate::helpers::{
+    hash_file_contents, is_archive_file, is_cache_enabled, is_offline, read_json_file_with_lock,
+    write_json_file_with_lock, ENV_VAR,
+};
 use crate::proto::ProtoEnvironment;
 use crate::shimmer::{
     create_global_shim, create_local_shim, get_shim_file_name, ShimContext, SHIM_VERSION,
@@ -8,10 +11,6 @@ use crate::shimmer::{
 use crate::tool_manifest::ToolManifest;
 use crate::version::{UnresolvedVersionSpec, VersionSpec};
 use crate::version_resolver::VersionResolver;
-use crate::{
-    download_from_url, is_archive_file, read_json_file_with_lock, write_json_file_with_lock,
-    ENV_VAR,
-};
 use extism::{manifest::Wasm, Manifest as PluginManifest};
 use miette::IntoDiagnostic;
 use proto_pdk_api::*;
@@ -28,7 +27,7 @@ use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 use tracing::{debug, trace};
-use warpgate::{Id, PluginContainer, VirtualPath};
+use warpgate::{download_from_url_to_file, Id, PluginContainer, VirtualPath};
 
 pub struct Tool {
     pub id: Id,
@@ -658,6 +657,7 @@ impl Tool {
             "Installing tool from a pre-built archive"
         );
 
+        let client = self.proto.get_http_client()?;
         let temp_dir = self
             .get_temp_dir()
             .join(self.get_resolved_version().to_string());
@@ -689,7 +689,7 @@ impl Tool {
         } else {
             debug!(tool = self.id.as_str(), "Tool not downloaded, downloading");
 
-            download_from_url(&download_url, &download_file).await?;
+            download_from_url_to_file(&download_url, &download_file, client).await?;
         }
 
         // Verify the checksum if applicable
@@ -703,7 +703,7 @@ impl Tool {
                     "Checksum does not exist, downloading"
                 );
 
-                download_from_url(&checksum_url, &checksum_file).await?;
+                download_from_url_to_file(&checksum_url, &checksum_file, client).await?;
             }
 
             self.verify_checksum(&checksum_file, &download_file).await?;
@@ -762,6 +762,10 @@ impl Tool {
             );
 
             return Ok(false);
+        }
+
+        if is_offline() {
+            return Err(ProtoError::InternetConnectionRequired.into());
         }
 
         let install_dir = self.get_tool_dir();

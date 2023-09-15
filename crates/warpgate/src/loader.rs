@@ -1,7 +1,7 @@
 use crate::endpoints::*;
 use crate::error::WarpgateError;
 use crate::helpers::{
-    determine_cache_extension, download_url_to_temp, extract_prefix_from_slug,
+    determine_cache_extension, download_from_url_to_file, extract_prefix_from_slug,
     move_or_unpack_download,
 };
 use crate::id::Id;
@@ -48,6 +48,7 @@ impl PluginLoader {
         &self,
         id: I,
         locator: L,
+        client: &reqwest::Client,
     ) -> miette::Result<PathBuf> {
         let id = id.as_ref();
         let locator = locator.as_ref();
@@ -82,11 +83,14 @@ impl PluginLoader {
                     id,
                     url,
                     self.create_cache_path(id, url, url.contains("latest")),
+                    client,
                 )
                 .await
             }
-            PluginLocator::GitHub(github) => self.download_plugin_from_github(id, github).await,
-            PluginLocator::Wapm(wapm) => self.download_plugin_from_wapm(id, wapm).await,
+            PluginLocator::GitHub(github) => {
+                self.download_plugin_from_github(id, github, client).await
+            }
+            PluginLocator::Wapm(wapm) => self.download_plugin_from_wapm(id, wapm, client).await,
         }
     }
 
@@ -153,30 +157,33 @@ impl PluginLoader {
         &self,
         id: &Id,
         source_url: &str,
-        dest_path: PathBuf,
+        dest_file: PathBuf,
+        client: &reqwest::Client,
     ) -> miette::Result<PathBuf> {
-        if self.is_cached(id, &dest_path)? {
-            return Ok(dest_path);
+        if self.is_cached(id, &dest_file)? {
+            return Ok(dest_file);
         }
 
         trace!(
             plugin = id.as_str(),
-            url = source_url,
+            from = source_url,
+            to = ?dest_file,
             "Downloading plugin from URL"
         );
 
-        move_or_unpack_download(
-            &download_url_to_temp(source_url, &self.temp_dir).await?,
-            &dest_path,
-        )?;
+        let temp_file = self.temp_dir.join(fs::file_name(&dest_file));
 
-        Ok(dest_path)
+        download_from_url_to_file(source_url, &temp_file, client).await?;
+        move_or_unpack_download(&temp_file, &dest_file)?;
+
+        Ok(dest_file)
     }
 
     async fn download_plugin_from_github(
         &self,
         id: &Id,
         github: &GitHubLocator,
+        client: &reqwest::Client,
     ) -> miette::Result<PathBuf> {
         let (api_url, release_tag) = if let Some(tag) = &github.tag {
             (
@@ -213,8 +220,7 @@ impl PluginLoader {
 
         // Otherwise make an HTTP request to the GitHub releases API,
         // and loop through the assets to find a matching one.
-        let client = reqwest::Client::new();
-        let mut request = client.get(api_url).header("User-Agent", "moonrepo/proto");
+        let mut request = client.get(api_url);
 
         if let Ok(auth_token) = env::var("GITHUB_TOKEN") {
             request = request.bearer_auth(auth_token);
@@ -239,7 +245,7 @@ impl PluginLoader {
                 );
 
                 return self
-                    .download_plugin(id, &asset.browser_download_url, plugin_path)
+                    .download_plugin(id, &asset.browser_download_url, plugin_path, client)
                     .await;
             }
         }
@@ -264,7 +270,7 @@ impl PluginLoader {
                 );
 
                 return self
-                    .download_plugin(id, &asset.browser_download_url, plugin_path)
+                    .download_plugin(id, &asset.browser_download_url, plugin_path, client)
                     .await;
             }
         }
@@ -280,6 +286,7 @@ impl PluginLoader {
         &self,
         id: &Id,
         wapm: &WapmLocator,
+        client: &reqwest::Client,
     ) -> miette::Result<PathBuf> {
         let version = wapm.version.as_deref().unwrap_or("latest");
         let fake_api_url = format!(
@@ -303,7 +310,6 @@ impl PluginLoader {
         );
 
         // Otherwise make a GraphQL request to the WAPM registry API.
-        let client = reqwest::Client::new();
         let response = client
             .post("https://registry.wapm.io/graphql")
             .json(&WapmPackageRequest {
@@ -343,7 +349,7 @@ impl PluginLoader {
             );
 
             return self
-                .download_plugin(id, &release_module.public_url, plugin_path)
+                .download_plugin(id, &release_module.public_url, plugin_path, client)
                 .await;
         }
 
@@ -357,7 +363,7 @@ impl PluginLoader {
             );
 
             return self
-                .download_plugin(id, &fallback_module.public_url, plugin_path)
+                .download_plugin(id, &fallback_module.public_url, plugin_path, client)
                 .await;
         }
 
@@ -368,7 +374,9 @@ impl PluginLoader {
                 "Using the distribution archive as a last resort"
             );
 
-            return self.download_plugin(id, download_url, plugin_path).await;
+            return self
+                .download_plugin(id, download_url, plugin_path, client)
+                .await;
         }
 
         Err(WarpgateError::WapmModuleMissing {
