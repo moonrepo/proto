@@ -37,12 +37,18 @@ pub fn create_wasm_file_prefix(name: &str) -> String {
     name
 }
 
-pub async fn download_url_to_temp(raw_url: &str, temp_dir: &Path) -> miette::Result<PathBuf> {
+pub async fn download_url_to_temp(
+    raw_url: &str,
+    temp_dir: &Path,
+    client: &reqwest::Client,
+) -> miette::Result<PathBuf> {
     let url = Url::parse(raw_url).into_diagnostic()?;
     let filename = url.path_segments().unwrap().last().unwrap().to_owned();
 
     // Fetch the file from the HTTP source
-    let response = reqwest::get(url)
+    let response = client
+        .get(url)
+        .send()
         .await
         .map_err(|error| WarpgateError::Http { error })?;
     let status = response.status();

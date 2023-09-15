@@ -6,13 +6,22 @@ use crate::helpers::{
 };
 use crate::id::Id;
 use crate::locator::{GitHubLocator, PluginLocator, WapmLocator};
+use miette::IntoDiagnostic;
+use reqwest::Url;
 use sha2::{Digest, Sha256};
 use starbase_styles::color;
 use starbase_utils::fs;
 use std::env;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
-use tracing::trace;
+use tracing::{trace, warn};
+
+#[derive(Default)]
+pub struct HttpOptions {
+    allow_invalid_certs: bool,
+    proxies: Vec<Url>,
+    root_cert: Option<PathBuf>,
+}
 
 /// A system for loading plugins from a locator strategy,
 /// and caching the `.wasm` file to the host's file system.
@@ -41,6 +50,67 @@ impl PluginLoader {
             seed: None,
         }
     }
+    /// Create an HTTP/HTTPS client that'll be used for downloading files.
+    pub fn create_http_client(&self) -> miette::Result<reqwest::Client> {
+        self.create_http_client_with_options(HttpOptions::default())
+    }
+
+    /// Create an HTTP/HTTPS client with the provided options, that'll be
+    /// used for downloading files.
+    pub fn create_http_client_with_options(
+        &self,
+        options: HttpOptions,
+    ) -> miette::Result<reqwest::Client> {
+        let mut client = reqwest::Client::builder()
+            .user_agent(format!("warpgate@{}", env!("CARGO_PKG_VERSION")))
+            .use_rustls_tls();
+
+        if options.allow_invalid_certs {
+            client = client.danger_accept_invalid_certs(true);
+        }
+
+        if let Some(root_cert) = options.root_cert {
+            let cert = fs::read_file_bytes(&root_cert)?;
+
+            match root_cert.extension().map(|e| e.to_str().unwrap()) {
+                Some("der") => {
+                    client = client.add_root_certificate(
+                        reqwest::Certificate::from_der(&cert).into_diagnostic()?,
+                    )
+                }
+                Some("pem") => {
+                    client = client.add_root_certificate(
+                        reqwest::Certificate::from_pem(&cert).into_diagnostic()?,
+                    )
+                }
+                _ => {
+                    warn!(
+                        root_cert = ?root_cert,
+                        "Invalid root certificate type, must be a DER or PEM file.",
+                    );
+                }
+            };
+        }
+
+        for proxy in options.proxies {
+            match proxy.scheme() {
+                "http" => {
+                    client = client.proxy(reqwest::Proxy::http(proxy).into_diagnostic()?);
+                }
+                "https" => {
+                    client = client.proxy(reqwest::Proxy::https(proxy).into_diagnostic()?);
+                }
+                _ => {
+                    warn!(
+                        proxy = proxy.to_string(),
+                        "Invalid proxy, only http or https URLs allowed."
+                    );
+                }
+            };
+        }
+
+        client.build().into_diagnostic()
+    }
 
     /// Load a plugin using the provided locator. File system plugins are loaded directly,
     /// while remote/URL plugins are downloaded and cached.
@@ -48,6 +118,7 @@ impl PluginLoader {
         &self,
         id: I,
         locator: L,
+        client: &reqwest::Client,
     ) -> miette::Result<PathBuf> {
         let id = id.as_ref();
         let locator = locator.as_ref();
@@ -82,11 +153,14 @@ impl PluginLoader {
                     id,
                     url,
                     self.create_cache_path(id, url, url.contains("latest")),
+                    client,
                 )
                 .await
             }
-            PluginLocator::GitHub(github) => self.download_plugin_from_github(id, github).await,
-            PluginLocator::Wapm(wapm) => self.download_plugin_from_wapm(id, wapm).await,
+            PluginLocator::GitHub(github) => {
+                self.download_plugin_from_github(id, github, client).await
+            }
+            PluginLocator::Wapm(wapm) => self.download_plugin_from_wapm(id, wapm, client).await,
         }
     }
 
@@ -154,6 +228,7 @@ impl PluginLoader {
         id: &Id,
         source_url: &str,
         dest_path: PathBuf,
+        client: &reqwest::Client,
     ) -> miette::Result<PathBuf> {
         if self.is_cached(id, &dest_path)? {
             return Ok(dest_path);
@@ -166,7 +241,7 @@ impl PluginLoader {
         );
 
         move_or_unpack_download(
-            &download_url_to_temp(source_url, &self.temp_dir).await?,
+            &download_url_to_temp(source_url, &self.temp_dir, client).await?,
             &dest_path,
         )?;
 
@@ -177,6 +252,7 @@ impl PluginLoader {
         &self,
         id: &Id,
         github: &GitHubLocator,
+        client: &reqwest::Client,
     ) -> miette::Result<PathBuf> {
         let (api_url, release_tag) = if let Some(tag) = &github.tag {
             (
@@ -213,8 +289,7 @@ impl PluginLoader {
 
         // Otherwise make an HTTP request to the GitHub releases API,
         // and loop through the assets to find a matching one.
-        let client = reqwest::Client::new();
-        let mut request = client.get(api_url).header("User-Agent", "moonrepo/proto");
+        let mut request = client.get(api_url);
 
         if let Ok(auth_token) = env::var("GITHUB_TOKEN") {
             request = request.bearer_auth(auth_token);
@@ -239,7 +314,7 @@ impl PluginLoader {
                 );
 
                 return self
-                    .download_plugin(id, &asset.browser_download_url, plugin_path)
+                    .download_plugin(id, &asset.browser_download_url, plugin_path, client)
                     .await;
             }
         }
@@ -264,7 +339,7 @@ impl PluginLoader {
                 );
 
                 return self
-                    .download_plugin(id, &asset.browser_download_url, plugin_path)
+                    .download_plugin(id, &asset.browser_download_url, plugin_path, client)
                     .await;
             }
         }
@@ -280,6 +355,7 @@ impl PluginLoader {
         &self,
         id: &Id,
         wapm: &WapmLocator,
+        client: &reqwest::Client,
     ) -> miette::Result<PathBuf> {
         let version = wapm.version.as_deref().unwrap_or("latest");
         let fake_api_url = format!(
@@ -303,7 +379,6 @@ impl PluginLoader {
         );
 
         // Otherwise make a GraphQL request to the WAPM registry API.
-        let client = reqwest::Client::new();
         let response = client
             .post("https://registry.wapm.io/graphql")
             .json(&WapmPackageRequest {
@@ -343,7 +418,7 @@ impl PluginLoader {
             );
 
             return self
-                .download_plugin(id, &release_module.public_url, plugin_path)
+                .download_plugin(id, &release_module.public_url, plugin_path, client)
                 .await;
         }
 
@@ -357,7 +432,7 @@ impl PluginLoader {
             );
 
             return self
-                .download_plugin(id, &fallback_module.public_url, plugin_path)
+                .download_plugin(id, &fallback_module.public_url, plugin_path, client)
                 .await;
         }
 
@@ -368,7 +443,9 @@ impl PluginLoader {
                 "Using the distribution archive as a last resort"
             );
 
-            return self.download_plugin(id, download_url, plugin_path).await;
+            return self
+                .download_plugin(id, download_url, plugin_path, client)
+                .await;
         }
 
         Err(WarpgateError::WapmModuleMissing {
