@@ -1,6 +1,6 @@
 use starbase_sandbox::{create_empty_sandbox, locate_fixture, Sandbox};
 use std::path::PathBuf;
-use warpgate::{GitHubLocator, Id, PluginLoader, PluginLocator};
+use warpgate::{create_http_client, GitHubLocator, Id, PluginLoader, PluginLocator};
 
 fn create_loader() -> (Sandbox, PluginLoader) {
     let sandbox = create_empty_sandbox();
@@ -27,7 +27,7 @@ mod loader {
                         file: "".into(),
                         path: PathBuf::from("fake-file"),
                     },
-                    &loader.create_http_client().unwrap(),
+                    &create_http_client().unwrap(),
                 )
                 .await
                 .unwrap();
@@ -45,7 +45,7 @@ mod loader {
                         file: "".into(),
                         path: fixture.join("test.wasm"),
                     },
-                    &loader.create_http_client().unwrap(),
+                    &create_http_client().unwrap(),
                 )
                 .await
                 .unwrap();
@@ -71,7 +71,7 @@ mod loader {
                 .load_plugin(
                     Id::raw("test"),
                     PluginLocator::SourceUrl { url: "https://github.com/moonrepo/deno-plugin/releases/download/v0.0.2/deno_plugin_invalid_name.wasm".into() },
-                    &loader.create_http_client().unwrap(),
+                    &create_http_client().unwrap(),
                 )
                 .await
                 .unwrap();
@@ -85,7 +85,7 @@ mod loader {
                 .load_plugin(
                     Id::raw("test"),
                     PluginLocator::SourceUrl { url: "https://github.com/moonrepo/deno-plugin/releases/download/v0.0.2/deno_plugin.wasm".into() },
-                    &loader.create_http_client().unwrap(),
+                    &create_http_client().unwrap(),
                 )
                 .await
                 .unwrap();
@@ -101,7 +101,7 @@ mod loader {
                 .load_plugin(
                     Id::raw("test"),
                     PluginLocator::SourceUrl { url: "https://github.com/moonrepo/deno-plugin/releases/latest/download/deno_plugin.wasm".into() },
-                    &loader.create_http_client().unwrap(),
+                    &create_http_client().unwrap(),
                 )
                 .await
                 .unwrap();
@@ -126,7 +126,7 @@ mod loader {
                         repo_slug: "moonrepo/invalid-repo".into(),
                         tag: None,
                     }),
-                    &loader.create_http_client().unwrap(),
+                    &create_http_client().unwrap(),
                 )
                 .await
                 .unwrap();
@@ -144,7 +144,7 @@ mod loader {
                         repo_slug: "moonrepo/bun-plugin".into(),
                         tag: Some("v0.0.3".into()),
                     }),
-                    &loader.create_http_client().unwrap(),
+                    &create_http_client().unwrap(),
                 )
                 .await
                 .unwrap();
@@ -164,7 +164,7 @@ mod loader {
                         repo_slug: "moonrepo/bun-plugin".into(),
                         tag: None,
                     }),
-                    &loader.create_http_client().unwrap(),
+                    &create_http_client().unwrap(),
                 )
                 .await
                 .unwrap();

@@ -4,7 +4,7 @@ use once_cell::sync::OnceCell;
 use std::env;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use warpgate::PluginLoader;
+use warpgate::{create_http_client_with_options, PluginLoader};
 
 #[derive(Clone, Debug)]
 pub struct ProtoEnvironment {
@@ -51,10 +51,7 @@ impl ProtoEnvironment {
     pub fn get_http_client(&self) -> miette::Result<&reqwest::Client> {
         self.client.get_or_try_init(|| {
             let user_config = UserConfig::load()?;
-
-            let client = self
-                .get_plugin_loader()
-                .create_http_client_with_options(user_config.http)?;
+            let client = create_http_client_with_options(user_config.http)?;
 
             Ok(client)
         })

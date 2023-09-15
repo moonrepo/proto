@@ -195,61 +195,6 @@ pub fn hash_file_contents<P: AsRef<Path>>(path: P) -> miette::Result<String> {
     Ok(hash)
 }
 
-#[tracing::instrument(skip_all)]
-pub async fn download_from_url<U, F>(
-    url: U,
-    dest_file: F,
-    client: &reqwest::Client,
-) -> miette::Result<()>
-where
-    U: AsRef<str>,
-    F: AsRef<Path>,
-{
-    if is_offline() {
-        return Err(ProtoError::InternetConnectionRequired.into());
-    }
-
-    let url = url.as_ref();
-    let dest_file = dest_file.as_ref();
-    let handle_http_error = |error: reqwest::Error| ProtoError::Http {
-        url: url.to_owned(),
-        error,
-    };
-
-    trace!(
-        dest_file = ?dest_file,
-        url,
-        "Downloading file from URL",
-    );
-
-    // Fetch the file from the HTTP source
-    let response = client.get(url).send().await.map_err(handle_http_error)?;
-    let status = response.status();
-
-    if status.as_u16() == 404 {
-        return Err(ProtoError::DownloadNotFound {
-            url: url.to_owned(),
-        }
-        .into());
-    }
-
-    if !status.is_success() {
-        return Err(ProtoError::DownloadFailed {
-            url: url.to_owned(),
-            status: status.to_string(),
-        }
-        .into());
-    }
-
-    // Write the bytes to our local file
-    fs::write_file_with_lock(
-        dest_file,
-        response.bytes().await.map_err(handle_http_error)?,
-    )?;
-
-    Ok(())
-}
-
 pub fn read_json_file_with_lock<T: DeserializeOwned>(path: impl AsRef<Path>) -> miette::Result<T> {
     let path = path.as_ref();
     let content = fs::read_file_with_lock(path)?;

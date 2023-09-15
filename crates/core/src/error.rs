@@ -13,17 +13,6 @@ pub enum ProtoError {
     #[error("Tool inventory directory has been overridden but is not an absolute path. Only absolute paths are supported.")]
     AbsoluteInventoryDir,
 
-    #[diagnostic(
-        code(proto::download::missing),
-        help = "Please refer to the tool's official documentation."
-    )]
-    #[error("Tool download {} does not exist. This version may not be supported for your current operating system or architecture.", .url.style(Style::Url))]
-    DownloadNotFound { url: String },
-
-    #[diagnostic(code(proto::download::failed))]
-    #[error("Failed to download tool from {}: {status}", .url.style(Style::Url))]
-    DownloadFailed { url: String, status: String },
-
     #[diagnostic(code(proto::misc::offline))]
     #[error("Internet connection required, unable to download and install tools.")]
     InternetConnectionRequired,

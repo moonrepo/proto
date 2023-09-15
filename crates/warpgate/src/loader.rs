@@ -1,28 +1,18 @@
 use crate::endpoints::*;
 use crate::error::WarpgateError;
 use crate::helpers::{
-    determine_cache_extension, download_url_to_temp, extract_prefix_from_slug,
+    determine_cache_extension, download_from_url_to_file, extract_prefix_from_slug,
     move_or_unpack_download,
 };
 use crate::id::Id;
 use crate::locator::{GitHubLocator, PluginLocator, WapmLocator};
-use miette::IntoDiagnostic;
-use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use starbase_styles::color;
 use starbase_utils::fs;
 use std::env;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
-use tracing::{trace, warn};
-
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
-#[serde(default, rename_all = "kebab-case")]
-pub struct HttpOptions {
-    allow_invalid_certs: bool,
-    proxies: Vec<String>,
-    root_cert: Option<PathBuf>,
-}
+use tracing::trace;
 
 /// A system for loading plugins from a locator strategy,
 /// and caching the `.wasm` file to the host's file system.
@@ -50,63 +40,6 @@ impl PluginLoader {
             temp_dir: temp_dir.as_ref().to_owned(),
             seed: None,
         }
-    }
-    /// Create an HTTP/HTTPS client that'll be used for downloading files.
-    pub fn create_http_client(&self) -> miette::Result<reqwest::Client> {
-        self.create_http_client_with_options(HttpOptions::default())
-    }
-
-    /// Create an HTTP/HTTPS client with the provided options, that'll be
-    /// used for downloading files.
-    pub fn create_http_client_with_options(
-        &self,
-        options: HttpOptions,
-    ) -> miette::Result<reqwest::Client> {
-        let mut client = reqwest::Client::builder()
-            .user_agent(format!("warpgate@{}", env!("CARGO_PKG_VERSION")))
-            .use_rustls_tls();
-
-        if options.allow_invalid_certs {
-            client = client.danger_accept_invalid_certs(true);
-        }
-
-        if let Some(root_cert) = options.root_cert {
-            match root_cert.extension().map(|e| e.to_str().unwrap()) {
-                Some("der") => {
-                    client = client.add_root_certificate(
-                        reqwest::Certificate::from_der(&fs::read_file_bytes(&root_cert)?)
-                            .into_diagnostic()?,
-                    )
-                }
-                Some("pem") => {
-                    client = client.add_root_certificate(
-                        reqwest::Certificate::from_pem(&fs::read_file_bytes(&root_cert)?)
-                            .into_diagnostic()?,
-                    )
-                }
-                _ => {
-                    warn!(
-                        root_cert = ?root_cert,
-                        "Invalid root certificate type, must be a DER or PEM file.",
-                    );
-                }
-            };
-        }
-
-        for proxy in options.proxies {
-            if proxy.starts_with("http:") {
-                client = client.proxy(reqwest::Proxy::http(proxy).into_diagnostic()?);
-            } else if proxy.starts_with("https:") {
-                client = client.proxy(reqwest::Proxy::https(proxy).into_diagnostic()?);
-            } else {
-                warn!(
-                    proxy = proxy.to_string(),
-                    "Invalid proxy, only http or https URLs allowed."
-                );
-            };
-        }
-
-        client.build().into_diagnostic()
     }
 
     /// Load a plugin using the provided locator. File system plugins are loaded directly,
@@ -224,25 +157,26 @@ impl PluginLoader {
         &self,
         id: &Id,
         source_url: &str,
-        dest_path: PathBuf,
+        dest_file: PathBuf,
         client: &reqwest::Client,
     ) -> miette::Result<PathBuf> {
-        if self.is_cached(id, &dest_path)? {
-            return Ok(dest_path);
+        if self.is_cached(id, &dest_file)? {
+            return Ok(dest_file);
         }
 
         trace!(
             plugin = id.as_str(),
-            url = source_url,
+            from = source_url,
+            to = ?dest_file,
             "Downloading plugin from URL"
         );
 
-        move_or_unpack_download(
-            &download_url_to_temp(source_url, &self.temp_dir, client).await?,
-            &dest_path,
-        )?;
+        let temp_file = self.temp_dir.join(fs::file_name(&dest_file));
 
-        Ok(dest_path)
+        download_from_url_to_file(source_url, &temp_file, client).await?;
+        move_or_unpack_download(&temp_file, &dest_file)?;
+
+        Ok(dest_file)
     }
 
     async fn download_plugin_from_github(

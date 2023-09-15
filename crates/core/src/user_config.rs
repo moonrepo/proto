@@ -40,6 +40,14 @@ impl UserConfig {
         let contents = fs::read_file_with_lock(&path)?;
         let mut config: UserConfig = toml::from_str(&contents).into_diagnostic()?;
 
+        let make_absolute = |file: &mut PathBuf| {
+            if file.is_absolute() {
+                file.to_owned()
+            } else {
+                dir.join(file)
+            }
+        };
+
         // Update plugin file paths to be absolute
         for locator in config.plugins.values_mut() {
             if let PluginLocator::SourceFile {
@@ -47,8 +55,12 @@ impl UserConfig {
                 ..
             } = locator
             {
-                *source_path = dir.join(&source_path);
+                *source_path = make_absolute(source_path);
             }
+        }
+
+        if let Some(root_cert) = &mut config.http.root_cert {
+            *root_cert = make_absolute(root_cert);
         }
 
         config.path = path;

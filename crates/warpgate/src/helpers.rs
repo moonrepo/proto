@@ -37,13 +37,12 @@ pub fn create_wasm_file_prefix(name: &str) -> String {
     name
 }
 
-pub async fn download_url_to_temp(
-    raw_url: &str,
-    temp_dir: &Path,
+pub async fn download_from_url_to_file(
+    source_url: &str,
+    temp_file: &Path,
     client: &reqwest::Client,
-) -> miette::Result<PathBuf> {
-    let url = Url::parse(raw_url).into_diagnostic()?;
-    let filename = url.path_segments().unwrap().last().unwrap().to_owned();
+) -> miette::Result<()> {
+    let url = Url::parse(source_url).into_diagnostic()?;
 
     // Fetch the file from the HTTP source
     let response = client
@@ -55,37 +54,33 @@ pub async fn download_url_to_temp(
 
     if status.as_u16() == 404 {
         return Err(WarpgateError::DownloadNotFound {
-            url: raw_url.to_owned(),
+            url: source_url.to_owned(),
         }
         .into());
     }
 
     if !status.is_success() {
         return Err(WarpgateError::DownloadFailed {
-            url: raw_url.to_owned(),
+            url: source_url.to_owned(),
             status: status.to_string(),
         }
         .into());
     }
 
     // Write the bytes to our temporary file
-    let temp_file = temp_dir.join(filename);
-
     fs::write_file_with_lock(
-        &temp_file,
+        temp_file,
         response
             .bytes()
             .await
             .map_err(|error| WarpgateError::Http { error })?,
     )?;
 
-    Ok(temp_file)
+    Ok(())
 }
 
 pub fn move_or_unpack_download(temp_file: &Path, dest_file: &Path) -> miette::Result<()> {
-    let ext = temp_file.extension().map(|e| e.to_str().unwrap());
-
-    match ext {
+    match temp_file.extension().map(|e| e.to_str().unwrap()) {
         // Move these files as-is
         Some("wasm" | "toml" | "json" | "yaml" | "yml") => {
             fs::rename(temp_file, dest_file)?;
