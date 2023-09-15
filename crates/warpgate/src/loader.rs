@@ -7,7 +7,7 @@ use crate::helpers::{
 use crate::id::Id;
 use crate::locator::{GitHubLocator, PluginLocator, WapmLocator};
 use miette::IntoDiagnostic;
-use reqwest::Url;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use starbase_styles::color;
 use starbase_utils::fs;
@@ -16,10 +16,11 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 use tracing::{trace, warn};
 
-#[derive(Default)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[serde(default, rename_all = "kebab-case")]
 pub struct HttpOptions {
     allow_invalid_certs: bool,
-    proxies: Vec<Url>,
+    proxies: Vec<String>,
     root_cert: Option<PathBuf>,
 }
 
@@ -70,17 +71,17 @@ impl PluginLoader {
         }
 
         if let Some(root_cert) = options.root_cert {
-            let cert = fs::read_file_bytes(&root_cert)?;
-
             match root_cert.extension().map(|e| e.to_str().unwrap()) {
                 Some("der") => {
                     client = client.add_root_certificate(
-                        reqwest::Certificate::from_der(&cert).into_diagnostic()?,
+                        reqwest::Certificate::from_der(&fs::read_file_bytes(&root_cert)?)
+                            .into_diagnostic()?,
                     )
                 }
                 Some("pem") => {
                     client = client.add_root_certificate(
-                        reqwest::Certificate::from_pem(&cert).into_diagnostic()?,
+                        reqwest::Certificate::from_pem(&fs::read_file_bytes(&root_cert)?)
+                            .into_diagnostic()?,
                     )
                 }
                 _ => {
@@ -93,19 +94,15 @@ impl PluginLoader {
         }
 
         for proxy in options.proxies {
-            match proxy.scheme() {
-                "http" => {
-                    client = client.proxy(reqwest::Proxy::http(proxy).into_diagnostic()?);
-                }
-                "https" => {
-                    client = client.proxy(reqwest::Proxy::https(proxy).into_diagnostic()?);
-                }
-                _ => {
-                    warn!(
-                        proxy = proxy.to_string(),
-                        "Invalid proxy, only http or https URLs allowed."
-                    );
-                }
+            if proxy.starts_with("http:") {
+                client = client.proxy(reqwest::Proxy::http(proxy).into_diagnostic()?);
+            } else if proxy.starts_with("https:") {
+                client = client.proxy(reqwest::Proxy::https(proxy).into_diagnostic()?);
+            } else {
+                warn!(
+                    proxy = proxy.to_string(),
+                    "Invalid proxy, only http or https URLs allowed."
+                );
             };
         }
 

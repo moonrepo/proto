@@ -2,7 +2,7 @@ use proto_core::{UserConfig, USER_CONFIG_NAME};
 use starbase_sandbox::create_empty_sandbox;
 use std::collections::BTreeMap;
 use std::env;
-use warpgate::{GitHubLocator, Id, PluginLocator};
+use warpgate::{GitHubLocator, HttpOptions, Id, PluginLocator};
 
 mod user_config {
     use super::*;
@@ -18,6 +18,7 @@ mod user_config {
                 auto_clean: false,
                 auto_install: false,
                 node_intercept_globals: true,
+                http: HttpOptions::default(),
                 plugins: BTreeMap::default(),
                 path: sandbox.path().join(USER_CONFIG_NAME),
             }
@@ -44,6 +45,7 @@ node-intercept-globals = false
                 auto_clean: true,
                 auto_install: true,
                 node_intercept_globals: false,
+                http: HttpOptions::default(),
                 plugins: BTreeMap::default(),
                 path: sandbox.path().join(USER_CONFIG_NAME),
             }
@@ -67,6 +69,7 @@ node-intercept-globals = false
                 auto_clean: true,
                 auto_install: true,
                 node_intercept_globals: false,
+                http: HttpOptions::default(),
                 plugins: BTreeMap::default(),
                 path: sandbox.path().join(USER_CONFIG_NAME),
             }

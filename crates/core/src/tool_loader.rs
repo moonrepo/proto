@@ -14,7 +14,7 @@ use std::{
     path::Path,
 };
 use tracing::debug;
-use warpgate::{to_virtual_path, HttpOptions, Id, PluginLocator};
+use warpgate::{to_virtual_path, Id, PluginLocator};
 
 pub fn inject_default_manifest_config(
     id: &Id,
@@ -61,7 +61,7 @@ pub async fn load_tool_from_locator(
     let locator = locator.as_ref();
 
     let plugin_loader = proto.get_plugin_loader();
-    let http_client = plugin_loader.create_http_client_with_options(HttpOptions::default())?;
+    let http_client = plugin_loader.create_http_client_with_options(user_config.http.clone())?;
 
     let plugin_path = plugin_loader
         .load_plugin(&id, locator, &http_client)

@@ -6,7 +6,7 @@ use std::collections::BTreeMap;
 use std::env;
 use std::path::{Path, PathBuf};
 use tracing::debug;
-use warpgate::{Id, PluginLocator};
+use warpgate::{HttpOptions, Id, PluginLocator};
 
 pub const USER_CONFIG_NAME: &str = "config.toml";
 
@@ -16,6 +16,7 @@ pub struct UserConfig {
     pub auto_clean: bool,
     pub auto_install: bool,
     pub node_intercept_globals: bool,
+    pub http: HttpOptions,
     pub plugins: BTreeMap<Id, PluginLocator>,
 
     #[serde(skip)]
@@ -73,6 +74,7 @@ impl Default for UserConfig {
             auto_clean: from_var("PROTO_AUTO_CLEAN", false),
             auto_install: from_var("PROTO_AUTO_INSTALL", false),
             node_intercept_globals: from_var("PROTO_NODE_INTERCEPT_GLOBALS", true),
+            http: HttpOptions::default(),
             plugins: BTreeMap::default(),
             path: PathBuf::new(),
         }
