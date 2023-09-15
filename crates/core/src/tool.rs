@@ -658,6 +658,7 @@ impl Tool {
             "Installing tool from a pre-built archive"
         );
 
+        let client = self.proto.get_http_client()?;
         let temp_dir = self
             .get_temp_dir()
             .join(self.get_resolved_version().to_string());
@@ -689,7 +690,7 @@ impl Tool {
         } else {
             debug!(tool = self.id.as_str(), "Tool not downloaded, downloading");
 
-            download_from_url(&download_url, &download_file).await?;
+            download_from_url(&download_url, &download_file, client).await?;
         }
 
         // Verify the checksum if applicable
@@ -703,7 +704,7 @@ impl Tool {
                     "Checksum does not exist, downloading"
                 );
 
-                download_from_url(&checksum_url, &checksum_file).await?;
+                download_from_url(&checksum_url, &checksum_file, client).await?;
             }
 
             self.verify_checksum(&checksum_file, &download_file).await?;

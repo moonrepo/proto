@@ -1,7 +1,9 @@
 use crate::helpers::{get_home_dir, get_proto_home};
+use crate::user_config::UserConfig;
 use once_cell::sync::OnceCell;
 use std::env;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use warpgate::PluginLoader;
 
 #[derive(Clone, Debug)]
@@ -14,7 +16,8 @@ pub struct ProtoEnvironment {
     pub home: PathBuf, // ~
     pub root: PathBuf, // ~/.proto
 
-    loader: OnceCell<PluginLoader>,
+    client: Arc<OnceCell<reqwest::Client>>,
+    loader: Arc<OnceCell<PluginLoader>>,
 }
 
 impl ProtoEnvironment {
@@ -40,7 +43,20 @@ impl ProtoEnvironment {
             tools_dir: root.join("tools"),
             home: get_home_dir()?,
             root: root.to_owned(),
-            loader: OnceCell::new(),
+            client: Arc::new(OnceCell::new()),
+            loader: Arc::new(OnceCell::new()),
+        })
+    }
+
+    pub fn get_http_client(&self) -> miette::Result<&reqwest::Client> {
+        self.client.get_or_try_init(|| {
+            let user_config = UserConfig::load()?;
+
+            let client = self
+                .get_plugin_loader()
+                .create_http_client_with_options(user_config.http)?;
+
+            Ok(client)
         })
     }
 

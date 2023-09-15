@@ -196,7 +196,11 @@ pub fn hash_file_contents<P: AsRef<Path>>(path: P) -> miette::Result<String> {
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn download_from_url<U, F>(url: U, dest_file: F) -> miette::Result<()>
+pub async fn download_from_url<U, F>(
+    url: U,
+    dest_file: F,
+    client: &reqwest::Client,
+) -> miette::Result<()>
 where
     U: AsRef<str>,
     F: AsRef<Path>,
@@ -219,7 +223,7 @@ where
     );
 
     // Fetch the file from the HTTP source
-    let response = reqwest::get(url).await.map_err(handle_http_error)?;
+    let response = client.get(url).send().await.map_err(handle_http_error)?;
     let status = response.status();
 
     if status.as_u16() == 404 {
