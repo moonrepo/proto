@@ -7,15 +7,8 @@ use starbase::system;
 use starbase_styles::color::{self, OwoStyle};
 use starbase_utils::json;
 use std::collections::HashSet;
+use std::io::{BufWriter, Write};
 use tracing::info;
-
-fn render_entry<V: AsRef<str>>(label: &str, value: V) {
-    println!(
-        "  {} {}",
-        color::muted_light(format!("{label}:")),
-        value.as_ref()
-    );
-}
 
 #[derive(Serialize)]
 pub struct PluginItem {
@@ -57,36 +50,59 @@ pub async fn plugins(args: ArgsRef<PluginsArgs>) {
         return Ok(());
     }
 
+    let stdout = std::io::stdout();
+    let mut buffer = BufWriter::new(stdout.lock());
+
     for item in items {
-        println!(
-            "{} {} {} {}",
+        writeln!(
+            buffer,
+            "{} {} {}",
             OwoStyle::new().bold().style(color::id(item.id)),
             color::muted("-"),
-            item.name,
             color::muted_light(if let Some(version) = item.version {
-                format!("v{version}")
+                format!("{} v{version}", item.name)
             } else {
-                "".into()
+                item.name
             })
-        );
+        )
+        .unwrap();
 
         match item.locator {
             PluginLocator::SourceFile { path, .. } => {
-                render_entry("Source", color::path(path.canonicalize().unwrap()));
+                writeln!(
+                    buffer,
+                    "  Source: {}",
+                    color::path(path.canonicalize().unwrap())
+                )
+                .unwrap();
             }
             PluginLocator::SourceUrl { url } => {
-                render_entry("Source", color::url(url));
+                writeln!(buffer, "  Source: {}", color::url(url)).unwrap();
             }
             PluginLocator::GitHub(github) => {
-                render_entry("GitHub", color::label(&github.repo_slug));
-                render_entry("Tag", github.tag.as_deref().unwrap_or("latest"));
+                writeln!(buffer, "  GitHub: {}", color::label(&github.repo_slug)).unwrap();
+
+                writeln!(
+                    buffer,
+                    "  Tag: {}",
+                    color::hash(github.tag.as_deref().unwrap_or("latest")),
+                )
+                .unwrap();
             }
             PluginLocator::Wapm(wapm) => {
-                render_entry("Package", color::label(&wapm.package_name));
-                render_entry("Version", wapm.version.as_deref().unwrap_or("latest"));
+                writeln!(buffer, "  Package: {}", color::label(&wapm.package_name)).unwrap();
+
+                writeln!(
+                    buffer,
+                    "  Version: {}",
+                    color::hash(wapm.version.as_deref().unwrap_or("latest")),
+                )
+                .unwrap();
             }
         };
 
-        println!();
+        writeln!(buffer).unwrap();
     }
+
+    buffer.flush().unwrap();
 }

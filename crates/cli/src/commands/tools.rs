@@ -7,6 +7,8 @@ use starbase::system;
 use starbase_styles::color::{self, OwoStyle};
 use starbase_utils::json;
 use std::collections::{HashMap, HashSet};
+use std::io::{BufWriter, Write};
+use std::process;
 use tracing::info;
 
 #[derive(Args, Clone, Debug)]
@@ -35,6 +37,11 @@ pub async fn tools(args: ArgsRef<ToolsArgs>) {
 
     tools.sort_by(|a, d| a.id.cmp(&d.id));
 
+    if tools.is_empty() {
+        eprintln!("No installed tools");
+        process::exit(1);
+    }
+
     if args.json {
         let items = tools
             .into_iter()
@@ -46,31 +53,38 @@ pub async fn tools(args: ArgsRef<ToolsArgs>) {
         return Ok(());
     }
 
+    let stdout = std::io::stdout();
+    let mut buffer = BufWriter::new(stdout.lock());
+
     for tool in tools {
-        println!(
+        writeln!(
+            buffer,
             "{} {} {}",
             OwoStyle::new().bold().style(color::id(&tool.id)),
             color::muted("-"),
-            tool.metadata.name,
-        );
+            color::muted_light(&tool.metadata.name),
+        )
+        .unwrap();
 
-        println!("  Store: {}", color::path(tool.get_inventory_dir()));
+        writeln!(buffer, "  Store: {}", color::path(tool.get_inventory_dir())).unwrap();
 
         if !tool.manifest.aliases.is_empty() {
-            println!("  Aliases:");
+            writeln!(buffer, "  Aliases:").unwrap();
 
             for (alias, version) in &tool.manifest.aliases {
-                println!(
+                writeln!(
+                    buffer,
                     "    {} {} {}",
                     color::hash(version.to_string()),
                     color::muted("="),
                     color::label(alias),
-                );
+                )
+                .unwrap();
             }
         }
 
         if !tool.manifest.installed_versions.is_empty() {
-            println!("  Versions:");
+            writeln!(buffer, "  Versions:").unwrap();
 
             let mut versions = tool.manifest.installed_versions.iter().collect::<Vec<_>>();
             versions.sort();
@@ -102,9 +116,10 @@ pub async fn tools(args: ArgsRef<ToolsArgs>) {
                 }
 
                 if comments.is_empty() {
-                    println!("    {}", color::hash(version.to_string()));
+                    writeln!(buffer, "    {}", color::hash(version.to_string())).unwrap();
                 } else {
-                    println!(
+                    writeln!(
+                        buffer,
                         "    {} {} {}",
                         if is_default {
                             color::symbol(version.to_string())
@@ -113,13 +128,16 @@ pub async fn tools(args: ArgsRef<ToolsArgs>) {
                         },
                         color::muted("-"),
                         color::muted_light(comments.join(", "))
-                    );
+                    )
+                    .unwrap();
                 }
             }
         }
 
-        println!();
+        writeln!(buffer).unwrap();
     }
+
+    buffer.flush().unwrap();
 }
 
 fn create_datetime(millis: u128) -> Option<NaiveDateTime> {
