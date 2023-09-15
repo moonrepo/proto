@@ -1,8 +1,12 @@
 use futures::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
-use proto_core::{get_temp_dir, ProtoError};
+use proto_core::{
+    get_temp_dir, load_tool_from_locator, Id, PluginLocator, ProtoEnvironment, ProtoError, Tool,
+    ToolsConfig, UserConfig,
+};
 use starbase_utils::fs;
 use std::cmp;
+use std::collections::{HashMap, HashSet};
 use std::env;
 use std::io::Write;
 use std::path::PathBuf;
@@ -82,4 +86,32 @@ pub async fn download_to_temp_with_progress_bar(
     pb.finish_and_clear();
 
     Ok(temp_file)
+}
+
+pub async fn load_configured_tools(
+    filter: HashSet<&Id>,
+    mut op: impl FnMut(Tool, PluginLocator),
+) -> miette::Result<()> {
+    let proto = ProtoEnvironment::new()?;
+    let mut user_config = UserConfig::load()?;
+
+    let mut tools_config = ToolsConfig::load_upwards()?;
+    tools_config.inherit_builtin_plugins();
+
+    let mut plugins = HashMap::new();
+    plugins.extend(std::mem::take(&mut user_config.plugins));
+    plugins.extend(tools_config.plugins);
+
+    for (id, locator) in plugins {
+        if !filter.is_empty() && !filter.contains(&id) {
+            continue;
+        }
+
+        op(
+            load_tool_from_locator(&id, &proto, &locator, &user_config).await?,
+            locator,
+        );
+    }
+
+    Ok(())
 }

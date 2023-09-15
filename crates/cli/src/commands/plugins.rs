@@ -1,14 +1,13 @@
+use crate::helpers::load_configured_tools;
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::{
-    load_tool_from_locator, Id, PluginLocator, ProtoEnvironment, ToolsConfig, UserConfig,
-};
+use proto_core::{Id, PluginLocator};
 use serde::Serialize;
 use starbase::system;
-use starbase_styles::color;
+use starbase_styles::color::{self, OwoStyle};
 use starbase_utils::json;
-use std::collections::HashMap;
-use tracing::debug;
+use std::collections::HashSet;
+use tracing::info;
 
 fn render_entry<V: AsRef<str>>(label: &str, value: V) {
     println!(
@@ -34,30 +33,21 @@ pub struct PluginsArgs {
 
 #[system]
 pub async fn plugins(args: ArgsRef<PluginsArgs>) {
-    let proto = ProtoEnvironment::new()?;
-    let user_config = UserConfig::load()?;
-
-    let mut tools_config = ToolsConfig::load_upwards()?;
-    tools_config.inherit_builtin_plugins();
-
-    let mut plugins = HashMap::new();
-    plugins.extend(&user_config.plugins);
-    plugins.extend(&tools_config.plugins);
-
-    debug!("Loading plugins");
+    if !args.json {
+        info!("Loading plugins...");
+    }
 
     let mut items = vec![];
 
-    for (id, locator) in plugins {
-        let tool = load_tool_from_locator(&id, &proto, &locator, &user_config).await?;
-
+    load_configured_tools(HashSet::new(), |tool, locator| {
         items.push(PluginItem {
-            id: id.to_owned(),
-            locator: locator.to_owned(),
+            id: tool.id.to_owned(),
+            locator,
             name: tool.metadata.name,
             version: tool.metadata.plugin_version,
         });
-    }
+    })
+    .await?;
 
     items.sort_by(|a, d| a.id.cmp(&d.id));
 
@@ -70,7 +60,7 @@ pub async fn plugins(args: ArgsRef<PluginsArgs>) {
     for item in items {
         println!(
             "{} {} {} {}",
-            color::id(item.id),
+            OwoStyle::new().bold().style(color::id(item.id)),
             color::muted("-"),
             item.name,
             color::muted_light(if let Some(version) = item.version {

@@ -57,6 +57,7 @@ async fn main() -> MainResult {
         Commands::RemovePlugin(args) => app.execute_with_args(commands::remove_plugin, args),
         Commands::Run(args) => app.execute_with_args(commands::run, args),
         Commands::Setup(args) => app.execute_with_args(commands::setup, args),
+        Commands::Tools(args) => app.execute_with_args(commands::tools, args),
         Commands::Unalias(args) => app.execute_with_args(commands::unalias, args),
         Commands::Uninstall(args) => app.execute_with_args(commands::uninstall, args),
         Commands::UninstallGlobal(args) => app.execute_with_args(commands::uninstall_global, args),
