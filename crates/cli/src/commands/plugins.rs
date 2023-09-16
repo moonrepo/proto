@@ -1,22 +1,14 @@
+use crate::helpers::load_configured_tools;
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::{
-    load_tool_from_locator, Id, PluginLocator, ProtoEnvironment, ToolsConfig, UserConfig,
-};
+use proto_core::{Id, PluginLocator};
 use serde::Serialize;
 use starbase::system;
-use starbase_styles::color;
+use starbase_styles::color::{self, OwoStyle};
 use starbase_utils::json;
-use std::collections::HashMap;
-use tracing::debug;
-
-fn render_entry<V: AsRef<str>>(label: &str, value: V) {
-    println!(
-        "  {} {}",
-        color::muted_light(format!("{label}:")),
-        value.as_ref()
-    );
-}
+use std::collections::HashSet;
+use std::io::{BufWriter, Write};
+use tracing::info;
 
 #[derive(Serialize)]
 pub struct PluginItem {
@@ -34,30 +26,21 @@ pub struct PluginsArgs {
 
 #[system]
 pub async fn plugins(args: ArgsRef<PluginsArgs>) {
-    let proto = ProtoEnvironment::new()?;
-    let user_config = UserConfig::load()?;
-
-    let mut tools_config = ToolsConfig::load_upwards()?;
-    tools_config.inherit_builtin_plugins();
-
-    let mut plugins = HashMap::new();
-    plugins.extend(&user_config.plugins);
-    plugins.extend(&tools_config.plugins);
-
-    debug!("Loading plugins");
+    if !args.json {
+        info!("Loading plugins...");
+    }
 
     let mut items = vec![];
 
-    for (id, locator) in plugins {
-        let tool = load_tool_from_locator(&id, &proto, &locator, &user_config).await?;
-
+    load_configured_tools(HashSet::new(), |tool, locator| {
         items.push(PluginItem {
-            id: id.to_owned(),
-            locator: locator.to_owned(),
+            id: tool.id.to_owned(),
+            locator,
             name: tool.metadata.name,
             version: tool.metadata.plugin_version,
         });
-    }
+    })
+    .await?;
 
     items.sort_by(|a, d| a.id.cmp(&d.id));
 
@@ -67,36 +50,59 @@ pub async fn plugins(args: ArgsRef<PluginsArgs>) {
         return Ok(());
     }
 
+    let stdout = std::io::stdout();
+    let mut buffer = BufWriter::new(stdout.lock());
+
     for item in items {
-        println!(
-            "{} {} {} {}",
-            color::id(item.id),
+        writeln!(
+            buffer,
+            "{} {} {}",
+            OwoStyle::new().bold().style(color::id(item.id)),
             color::muted("-"),
-            item.name,
             color::muted_light(if let Some(version) = item.version {
-                format!("v{version}")
+                format!("{} v{version}", item.name)
             } else {
-                "".into()
+                item.name
             })
-        );
+        )
+        .unwrap();
 
         match item.locator {
             PluginLocator::SourceFile { path, .. } => {
-                render_entry("Source", color::path(path.canonicalize().unwrap()));
+                writeln!(
+                    buffer,
+                    "  Source: {}",
+                    color::path(path.canonicalize().unwrap())
+                )
+                .unwrap();
             }
             PluginLocator::SourceUrl { url } => {
-                render_entry("Source", color::url(url));
+                writeln!(buffer, "  Source: {}", color::url(url)).unwrap();
             }
             PluginLocator::GitHub(github) => {
-                render_entry("GitHub", color::label(&github.repo_slug));
-                render_entry("Tag", github.tag.as_deref().unwrap_or("latest"));
+                writeln!(buffer, "  GitHub: {}", color::label(&github.repo_slug)).unwrap();
+
+                writeln!(
+                    buffer,
+                    "  Tag: {}",
+                    color::hash(github.tag.as_deref().unwrap_or("latest")),
+                )
+                .unwrap();
             }
             PluginLocator::Wapm(wapm) => {
-                render_entry("Package", color::label(&wapm.package_name));
-                render_entry("Version", wapm.version.as_deref().unwrap_or("latest"));
+                writeln!(buffer, "  Package: {}", color::label(&wapm.package_name)).unwrap();
+
+                writeln!(
+                    buffer,
+                    "  Version: {}",
+                    color::hash(wapm.version.as_deref().unwrap_or("latest")),
+                )
+                .unwrap();
             }
         };
 
-        println!();
+        writeln!(buffer).unwrap();
     }
+
+    buffer.flush().unwrap();
 }

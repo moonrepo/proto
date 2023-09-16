@@ -14,6 +14,7 @@
 
 #### 🚀 Updates
 
+- Added a `proto tools` command for listing all installed tools and their versions.
 - Added an `http` setting to `~/.proto/config.toml` to control proxies and certificates when making http/https requests, primarily for downloading tools.
   - New `allow-invalid-certs` setting for allowing invalid certificates (be careful).
   - New `proxies` setting for customizing internal proxy URLs.

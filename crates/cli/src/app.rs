@@ -1,7 +1,8 @@
 use crate::commands::{
     AddPluginArgs, AliasArgs, BinArgs, CleanArgs, CompletionsArgs, GlobalArgs, InstallArgs,
     InstallGlobalArgs, ListArgs, ListGlobalArgs, ListRemoteArgs, LocalArgs, PluginsArgs,
-    RemovePluginArgs, RunArgs, SetupArgs, UnaliasArgs, UninstallArgs, UninstallGlobalArgs,
+    RemovePluginArgs, RunArgs, SetupArgs, ToolsArgs, UnaliasArgs, UninstallArgs,
+    UninstallGlobalArgs,
 };
 use clap::builder::styling::{Color, Style, Styles};
 use clap::{Parser, Subcommand, ValueEnum};
@@ -190,6 +191,9 @@ pub enum Commands {
 
     #[command(name = "setup", about = "Setup proto for your current shell.")]
     Setup(SetupArgs),
+
+    #[command(name = "tools", about = "List all installed tools and their versions.")]
+    Tools(ToolsArgs),
 
     #[command(alias = "ua", name = "unalias", about = "Remove an alias from a tool.")]
     Unalias(UnaliasArgs),
