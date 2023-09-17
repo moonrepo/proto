@@ -27,7 +27,7 @@ name = "proto"
 path = "src/main.rs"
 
 [dependencies]
-proto_core = { version = "0.17.5", path = "../core" }
+proto_core = { version = "0.18.0", path = "../core" }
 proto_pdk_api = { version = "0.7.1", path = "../pdk-api" }
 proto_wasm_plugin = { version = "0.6.5", path = "../wasm-plugin" }
 chrono = "0.4.31"
