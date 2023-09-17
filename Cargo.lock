@@ -2343,7 +2343,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.17.4"
+version = "0.17.5"
 dependencies = [
  "cached",
  "extism",
@@ -2372,7 +2372,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.7.1"
+version = "0.7.2"
 dependencies = [
  "anyhow",
  "extism-pdk",
@@ -3702,7 +3702,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.5.4"
+version = "0.5.5"
 dependencies = [
  "extism",
  "miette",
