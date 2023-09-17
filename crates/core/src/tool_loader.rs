@@ -63,7 +63,7 @@ pub async fn load_tool_from_locator(
     let http_client = create_http_client_with_options(user_config.http.clone())?;
     let plugin_loader = proto.get_plugin_loader();
     let plugin_path = plugin_loader
-        .load_plugin(&id, locator, &http_client)
+        .load_plugin_with_client(&id, locator, &http_client)
         .await?;
 
     // If a TOML plugin, we need to load the WASM plugin for it,
@@ -79,7 +79,7 @@ pub async fn load_tool_from_locator(
             proto,
             Wasm::file(
                 plugin_loader
-                    .load_plugin(id, ToolsConfig::schema_plugin(), &http_client)
+                    .load_plugin_with_client(id, ToolsConfig::schema_plugin(), &http_client)
                     .await?,
             ),
         )?;

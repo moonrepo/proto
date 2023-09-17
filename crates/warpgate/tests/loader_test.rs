@@ -21,7 +21,7 @@ mod loader {
             let (_sandbox, loader) = create_loader();
 
             loader
-                .load_plugin(
+                .load_plugin_with_client(
                     Id::raw("test"),
                     PluginLocator::SourceFile {
                         file: "".into(),
@@ -39,7 +39,7 @@ mod loader {
             let fixture = locate_fixture("loader");
 
             let path = loader
-                .load_plugin(
+                .load_plugin_with_client(
                     Id::raw("test"),
                     PluginLocator::SourceFile {
                         file: "".into(),
@@ -68,7 +68,7 @@ mod loader {
             let (_sandbox, loader) = create_loader();
 
             loader
-                .load_plugin(
+                .load_plugin_with_client(
                     Id::raw("test"),
                     PluginLocator::SourceUrl { url: "https://github.com/moonrepo/deno-plugin/releases/download/v0.0.2/deno_plugin_invalid_name.wasm".into() },
                     &create_http_client().unwrap(),
@@ -82,7 +82,7 @@ mod loader {
             let (sandbox, loader) = create_loader();
 
             let path = loader
-                .load_plugin(
+                .load_plugin_with_client(
                     Id::raw("test"),
                     PluginLocator::SourceUrl { url: "https://github.com/moonrepo/deno-plugin/releases/download/v0.0.2/deno_plugin.wasm".into() },
                     &create_http_client().unwrap(),
@@ -98,7 +98,7 @@ mod loader {
             let (sandbox, loader) = create_loader();
 
             let path = loader
-                .load_plugin(
+                .load_plugin_with_client(
                     Id::raw("test"),
                     PluginLocator::SourceUrl { url: "https://github.com/moonrepo/deno-plugin/releases/latest/download/deno_plugin.wasm".into() },
                     &create_http_client().unwrap(),
@@ -119,7 +119,7 @@ mod loader {
             let (_sandbox, loader) = create_loader();
 
             loader
-                .load_plugin(
+                .load_plugin_with_client(
                     Id::raw("test"),
                     PluginLocator::GitHub(GitHubLocator {
                         file_prefix: "bun_plugin.wasm".into(),
@@ -137,7 +137,7 @@ mod loader {
             let (sandbox, loader) = create_loader();
 
             let path = loader
-                .load_plugin(
+                .load_plugin_with_client(
                     Id::raw("test"),
                     PluginLocator::GitHub(GitHubLocator {
                         file_prefix: "bun_plugin.wasm".into(),
@@ -157,7 +157,7 @@ mod loader {
             let (sandbox, loader) = create_loader();
 
             let path = loader
-                .load_plugin(
+                .load_plugin_with_client(
                     Id::raw("test"),
                     PluginLocator::GitHub(GitHubLocator {
                         file_prefix: "bun_plugin.wasm".into(),

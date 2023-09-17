@@ -1,3 +1,4 @@
+use crate::client::create_http_client;
 use crate::endpoints::*;
 use crate::error::WarpgateError;
 use crate::helpers::{
@@ -45,6 +46,17 @@ impl PluginLoader {
     /// Load a plugin using the provided locator. File system plugins are loaded directly,
     /// while remote/URL plugins are downloaded and cached.
     pub async fn load_plugin<I: AsRef<Id>, L: AsRef<PluginLocator>>(
+        &self,
+        id: I,
+        locator: L,
+    ) -> miette::Result<PathBuf> {
+        let client = create_http_client()?;
+
+        self.load_plugin_with_client(id, locator, &client).await
+    }
+
+    /// Load a plugin using the provided locator and HTTP client.
+    pub async fn load_plugin_with_client<I: AsRef<Id>, L: AsRef<PluginLocator>>(
         &self,
         id: I,
         locator: L,
