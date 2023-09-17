@@ -1,4 +1,6 @@
-# proto_schema_plugin
+# proto_schema_plugin (DEPRECATED)
+
+> Functionality has moved to the WASM [schema-plugin](https://github.com/moonrepo/schema-plugin).
 
 ![Crates.io](https://img.shields.io/crates/v/proto_schema_plugin) ![Crates.io](https://img.shields.io/crates/d/proto_schema_plugin)
 
