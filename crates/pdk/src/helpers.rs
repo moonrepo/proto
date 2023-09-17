@@ -97,6 +97,11 @@ where
     }
 
     for line in output.stdout.split('\n') {
+        // https://superuser.com/questions/1445823/what-does-mean-in-the-tags
+        if line.ends_with("^{}") {
+            continue;
+        }
+
         let parts = line.split('\t').collect::<Vec<_>>();
 
         if parts.len() < 2 {

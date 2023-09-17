@@ -20,6 +20,10 @@
   - New `proxies` setting for customizing internal proxy URLs.
   - New `root-cert` setting for providing a root certificate (great for corporate environments).
 
+#### 🐞 Fixes
+
+- Fixed `load_git_tags` by automatically filtering tags that end with `^{}` (dereferenced tags).
+
 ## 0.17.1
 
 #### 🚀 Updates
