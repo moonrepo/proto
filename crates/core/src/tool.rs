@@ -108,6 +108,11 @@ impl Tool {
             on_uninstalled_global: Emitter::new(),
         };
 
+        #[cfg(debug_assertions)]
+        {
+            extism::set_log_file(proto.cwd.join("wasm-debug.log"), None);
+        }
+
         debug!(
             "Created tool {} and its WASM runtime",
             color::id(id.as_str())
