@@ -7,7 +7,7 @@ use extism::Manifest;
 use miette::IntoDiagnostic;
 use proto_pdk_api::{HostArch, HostEnvironment, HostOS, UserConfigSettings};
 use proto_wasm_plugin::Wasm;
-use starbase_utils::{fs, json};
+use starbase_utils::{json, toml};
 use std::str::FromStr;
 use std::{
     env::{self, consts},
@@ -84,10 +84,11 @@ pub async fn load_tool_from_locator(
             ),
         )?;
 
-        manifest
-            .config
-            .insert("schema".to_string(), fs::read_file(plugin_path)?);
+        // Convert TOML to JSON
+        let schema: json::JsonValue = toml::read_file(plugin_path)?;
+        let schema = json::to_string(&schema).into_diagnostic()?;
 
+        manifest.config.insert("schema".to_string(), schema);
         manifest
 
         // Otherwise, just use the WASM plugin as is
