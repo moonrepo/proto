@@ -775,6 +775,7 @@ impl Tool {
 
         let install_dir = self.get_tool_dir();
         let _install_lock = fs::lock_directory(&install_dir).await?;
+        let mut installed = false;
 
         self.on_installing
             .emit(InstallingEvent {
@@ -800,10 +801,15 @@ impl Tool {
                     error: result.error.unwrap_or_default(),
                 }
                 .into());
+
+            // If native install fails, attempt other installers
+            } else {
+                installed = result.installed;
             }
+        }
 
         // Install from a prebuilt archive
-        } else {
+        if !installed {
             self.install_from_prebuilt(&install_dir).await?;
         }
 
