@@ -47,11 +47,13 @@ pub async fn uninstall(args: ArgsRef<UninstallArgs>) {
 
     pb.finish_and_clear();
 
-    if uninstalled {
-        info!(
-            "{} {} has been uninstalled!",
-            tool.get_name(),
-            tool.get_resolved_version(),
-        );
+    if !uninstalled {
+        return Ok(());
     }
+
+    info!(
+        "{} {} has been uninstalled!",
+        tool.get_name(),
+        tool.get_resolved_version(),
+    );
 }

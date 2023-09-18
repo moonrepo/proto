@@ -1204,6 +1204,7 @@ impl Tool {
         self.resolve_version(initial_version).await?;
 
         if self.install().await? {
+            self.cleanup().await?;
             self.locate_bins().await?;
             self.setup_shims(true).await?;
 

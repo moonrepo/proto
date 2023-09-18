@@ -103,16 +103,14 @@ pub async fn internal_install(args: InstallArgs) -> SystemResult {
 
     let installed = tool.setup(&version).await?;
 
-    tool.cleanup().await?;
-
-    if args.pin {
-        pin_global(&mut tool)?;
-    }
-
     pb.finish_and_clear();
 
     if !installed {
         return Ok(());
+    }
+
+    if args.pin {
+        pin_global(&mut tool)?;
     }
 
     info!(
