@@ -794,13 +794,18 @@ impl Tool {
                 },
             )?;
 
-            if !result.skip_install {
-                return Ok(result.installed);
+            if !result.installed && !result.skip_install {
+                return Err(ProtoError::InstallFailed {
+                    tool: self.get_name().to_owned(),
+                    error: result.error.unwrap_or_default(),
+                }
+                .into());
             }
-        }
 
         // Install from a prebuilt archive
-        self.install_from_prebuilt(&install_dir).await?;
+        } else {
+            self.install_from_prebuilt(&install_dir).await?;
+        }
 
         self.on_installed
             .emit(InstalledEvent {
@@ -835,11 +840,11 @@ impl Tool {
         )?;
 
         if !result.installed {
-            return Err(ProtoError::Message(
-                result
-                    .error
-                    .unwrap_or_else(|| "Unknown install failure!".to_string()),
-            ))?;
+            return Err(ProtoError::InstallFailed {
+                tool: dependency.to_owned(),
+                error: result.error.unwrap_or_default(),
+            }
+            .into());
         }
 
         self.on_installed_global
@@ -880,8 +885,12 @@ impl Tool {
                 },
             )?;
 
-            if !result.skip_uninstall && !result.uninstalled {
-                return Ok(false);
+            if !result.uninstalled && !result.skip_uninstall {
+                return Err(ProtoError::UninstallFailed {
+                    tool: self.get_name().to_owned(),
+                    error: result.error.unwrap_or_default(),
+                }
+                .into());
             }
         }
 
@@ -922,11 +931,11 @@ impl Tool {
         )?;
 
         if !result.uninstalled {
-            return Err(ProtoError::Message(
-                result
-                    .error
-                    .unwrap_or_else(|| "Unknown uninstall failure!".to_string()),
-            ))?;
+            return Err(ProtoError::UninstallFailed {
+                tool: dependency.to_owned(),
+                error: result.error.unwrap_or_default(),
+            }
+            .into());
         }
 
         self.on_uninstalled_global
@@ -1148,6 +1157,7 @@ impl Tool {
 
         self.version
             .as_ref()
+            // Canary can be overwritten so treat as not-installed
             .is_some_and(|v| !v.is_latest() && !v.is_canary())
             && dir.exists()
             && !fs::is_dir_locked(dir)
