@@ -101,7 +101,8 @@ pub async fn internal_install(args: InstallArgs) -> SystemResult {
         tool.get_resolved_version()
     ));
 
-    tool.setup(&version).await?;
+    let installed = tool.setup(&version).await?;
+
     tool.cleanup().await?;
 
     if args.pin {
@@ -109,6 +110,10 @@ pub async fn internal_install(args: InstallArgs) -> SystemResult {
     }
 
     pb.finish_and_clear();
+
+    if !installed {
+        return Ok(());
+    }
 
     info!(
         "{} has been installed to {}!",

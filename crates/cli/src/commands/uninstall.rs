@@ -43,13 +43,15 @@ pub async fn uninstall(args: ArgsRef<UninstallArgs>) {
         tool.get_resolved_version()
     ));
 
-    tool.teardown().await?;
+    let uninstalled = tool.teardown().await?;
 
     pb.finish_and_clear();
 
-    info!(
-        "{} {} has been uninstalled!",
-        tool.get_name(),
-        tool.get_resolved_version(),
-    );
+    if uninstalled {
+        info!(
+            "{} {} has been uninstalled!",
+            tool.get_name(),
+            tool.get_resolved_version(),
+        );
+    }
 }
