@@ -2358,7 +2358,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.18.0"
+version = "0.18.1"
 dependencies = [
  "cached",
  "extism",
@@ -3754,7 +3754,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.5.5"
+version = "0.5.6"
 dependencies = [
  "extism",
  "miette",
