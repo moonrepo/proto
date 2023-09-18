@@ -10,6 +10,16 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [Schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed an issue where failed installs/uninstalls would exit with a zero exit code.
+
+#### ⚙️ Internal
+
+- Fixed an issue where install/uninstall events weren't always firing.
+
 ## 0.18.1
 
 #### 🐞 Fixes

@@ -149,6 +149,10 @@ json_struct!(
 json_struct!(
     /// Output returned by the `native_install` function.
     pub struct NativeInstallOutput {
+        /// Error message if the install failed.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub error: Option<String>,
+
         /// Whether the install was successful.
         pub installed: bool,
 
@@ -168,6 +172,10 @@ json_struct!(
 json_struct!(
     /// Output returned by the `native_uninstall` function.
     pub struct NativeUninstallOutput {
+        /// Error message if the uninstall failed.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub error: Option<String>,
+
         /// Whether the install was successful.
         pub uninstalled: bool,
 
@@ -299,12 +307,12 @@ json_struct!(
 json_struct!(
     /// Output returned by the `install_global` function.
     pub struct InstallGlobalOutput {
-        /// Whether the install was successful.
-        pub installed: bool,
-
         /// Error message if the install failed.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub error: Option<String>,
+
+        /// Whether the install was successful.
+        pub installed: bool,
     }
 );
 
