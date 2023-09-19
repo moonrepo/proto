@@ -14,6 +14,7 @@
 
 #### 🐞 Fixes
 
+- Hopefully fixed an isse where WASM memory was running out of bounds.
 - Fixed an issue where failed installs/uninstalls would exit with a zero exit code.
 
 #### ⚙️ Internal
