@@ -1120,9 +1120,9 @@ dependencies = [
 
 [[package]]
 name = "extism"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e0fcd6ad10f959f7f35680feda30bdcb7c1f6e0584e8358b09d735ff2c232f58"
+checksum = "25944ee40692db74f53a65804c08f23b88c4f2b0903f3098e94bfcf6cbfd3d0f"
 dependencies = [
  "anyhow",
  "extism-manifest",
@@ -1170,9 +1170,9 @@ dependencies = [
 
 [[package]]
 name = "extism-runtime"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2be84fc8659ebaa268478a52f98e7066e4352fc7a90b74ec3aa52e7ac03eecd4"
+checksum = "b284fa52d9c9eed7c26bfaa348183f1c83f08e080859a392b481c70f3c0f848e"
 dependencies = [
  "anyhow",
  "cbindgen",
