@@ -18,6 +18,9 @@ miette = { workspace = true }
 once_cell = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true }
+schematic = { version = "0.11.6", default-features = false, features = [
+	"json",
+], optional = true }
 semver = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -33,3 +36,7 @@ url = "2.4.1"
 
 [dev-dependencies]
 starbase_sandbox = { workspace = true }
+
+[features]
+default = []
+schematic = ["dep:schematic"]

@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(untagged, into = "String", try_from = "String")]
 pub enum UnresolvedVersionSpec {
     Canary,
@@ -152,6 +152,13 @@ impl PartialEq<VersionSpec> for UnresolvedVersionSpec {
     }
 }
 
+#[cfg(feature = "schematic")]
+impl schematic::Schematic for UnresolvedVersionSpec {
+    fn generate_schema() -> schematic::SchemaType {
+        schematic::SchemaType::string()
+    }
+}
+
 #[derive(Clone, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(untagged, into = "String", try_from = "String")]
 pub enum VersionSpec {
@@ -255,5 +262,12 @@ impl PartialEq<Version> for VersionSpec {
             Self::Version(version) => version == other,
             _ => false,
         }
+    }
+}
+
+#[cfg(feature = "schematic")]
+impl schematic::Schematic for VersionSpec {
+    fn generate_schema() -> schematic::SchemaType {
+        schematic::SchemaType::string()
     }
 }
