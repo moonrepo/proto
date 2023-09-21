@@ -1,9 +1,9 @@
 use crate::error::ProtoError;
 use crate::tool::Tool;
 use crate::tools_config::ToolsConfig;
-use crate::version::UnresolvedVersionSpec;
 use std::{env, path::Path};
 use tracing::{debug, trace};
+use version_spec::*;
 
 pub async fn detect_version(
     tool: &Tool,
@@ -23,7 +23,14 @@ pub async fn detect_version(
                 "Detected version from environment variable",
             );
 
-            candidate = Some(UnresolvedVersionSpec::parse(session_version)?);
+            candidate = Some(
+                UnresolvedVersionSpec::parse(&session_version).map_err(|error| {
+                    ProtoError::Semver {
+                        version: session_version,
+                        error,
+                    }
+                })?,
+            );
         } else {
             trace!(
                 tool = tool.id.as_str(),

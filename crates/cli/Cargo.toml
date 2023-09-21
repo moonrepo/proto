@@ -40,7 +40,7 @@ futures = "0.3.28"
 human-sort = { workspace = true }
 indicatif = "0.17.6"
 miette = { workspace = true }
-reqwest = { workspace = true, features = ["stream"] }
+reqwest = { workspace = true, features = ["rustls-tls-native-roots", "stream"] }
 semver = { workspace = true }
 serde = { workspace = true }
 starbase = "0.2.6"

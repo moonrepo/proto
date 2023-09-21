@@ -14,7 +14,6 @@ use std::path::Path;
 use std::{env, path::PathBuf};
 use tracing::trace;
 
-pub static CLEAN_VERSION: Lazy<Regex> = Lazy::new(|| Regex::new(r"([><]=?)\s+(\d)").unwrap());
 pub static ENV_VAR: Lazy<Regex> = Lazy::new(|| Regex::new(r"\$([A-Z0-9_]+)").unwrap());
 
 #[deprecated = "Use `get_proto_home` instead."]
@@ -52,40 +51,6 @@ pub fn get_tools_dir() -> miette::Result<PathBuf> {
 
 pub fn get_plugins_dir() -> miette::Result<PathBuf> {
     Ok(get_proto_home()?.join("plugins"))
-}
-
-// Aliases are words that map to version. For example, "latest" -> "1.2.3".
-pub fn is_alias_name<T: AsRef<str>>(value: T) -> bool {
-    let value = value.as_ref();
-
-    value.chars().enumerate().all(|(i, c)| {
-        if i == 0 {
-            char::is_ascii_alphabetic(&c)
-        } else {
-            char::is_ascii_alphanumeric(&c)
-                || c == '-'
-                || c == '_'
-                || c == '/'
-                || c == '.'
-                || c == '*'
-        }
-    })
-}
-
-pub fn remove_v_prefix<T: AsRef<str>>(value: T) -> String {
-    let value = value.as_ref();
-
-    if value.starts_with('v') || value.starts_with('V') {
-        return value[1..].to_owned();
-    }
-
-    value.to_owned()
-}
-
-pub fn remove_space_after_gtlt<T: AsRef<str>>(value: T) -> String {
-    CLEAN_VERSION
-        .replace_all(value.as_ref(), "$1$2")
-        .to_string()
 }
 
 #[cached(time = 300)]

@@ -1,10 +1,10 @@
 use crate::error::ProtoError;
 use crate::tool_manifest::ToolManifest;
-use crate::version::UnresolvedVersionSpec;
 use crate::VersionSpec;
 use proto_pdk_api::LoadVersionsOutput;
 use semver::{Version, VersionReq};
 use std::collections::{BTreeMap, HashSet};
+use version_spec::*;
 
 #[derive(Debug, Default)]
 pub struct VersionResolver<'tool> {

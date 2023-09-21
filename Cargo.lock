@@ -1142,9 +1142,9 @@ dependencies = [
 
 [[package]]
 name = "extism"
-version = "0.5.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25944ee40692db74f53a65804c08f23b88c4f2b0903f3098e94bfcf6cbfd3d0f"
+checksum = "7a94848d5b49906bd97b83cf5a8bd25082dbc6f8bdfe98f12687910228734552"
 dependencies = [
  "anyhow",
  "extism-manifest",
@@ -1192,9 +1192,9 @@ dependencies = [
 
 [[package]]
 name = "extism-runtime"
-version = "0.5.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b284fa52d9c9eed7c26bfaa348183f1c83f08e080859a392b481c70f3c0f848e"
+checksum = "a3b0ba8ef6ecbf59c0f6e47fd2feea575ebc3a09e81603d06a41af92fe61cdfa"
 dependencies = [
  "anyhow",
  "cbindgen",
@@ -2416,7 +2416,6 @@ dependencies = [
  "proto_wasm_plugin",
  "regex",
  "reqwest",
- "schematic",
  "semver",
  "serde",
  "serde_json",
@@ -2430,6 +2429,7 @@ dependencies = [
  "tinytemplate",
  "tracing",
  "url",
+ "version_spec",
  "warpgate",
 ]
 
@@ -2862,18 +2862,16 @@ dependencies = [
 
 [[package]]
 name = "schematic"
-version = "0.11.6"
+version = "0.11.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8592df69240651bac26079f142ab7c796ed888f7b5c0c4cddb5efc34149ca79b"
+checksum = "fe561cb5c8380d36ef80bf81a7cc16acfde8a0d130dd3394cc0cb48809d065ab"
 dependencies = [
  "garde",
  "indexmap 2.0.0",
  "miette",
- "reqwest",
  "schematic_macros",
  "schematic_types",
  "serde",
- "serde_json",
  "serde_path_to_error",
  "starbase_styles",
  "thiserror",
@@ -3830,6 +3828,18 @@ name = "version_check"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
+
+[[package]]
+name = "version_spec"
+version = "0.1.0"
+dependencies = [
+ "human-sort",
+ "once_cell",
+ "regex",
+ "schematic",
+ "semver",
+ "serde",
+]
 
 [[package]]
 name = "wait-timeout"

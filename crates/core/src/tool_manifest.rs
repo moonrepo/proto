@@ -1,7 +1,4 @@
-use crate::{
-    helpers::{read_json_file_with_lock, write_json_file_with_lock},
-    version::{UnresolvedVersionSpec, VersionSpec},
-};
+use crate::helpers::{read_json_file_with_lock, write_json_file_with_lock};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{BTreeMap, HashSet},
@@ -10,6 +7,7 @@ use std::{
     time::SystemTime,
 };
 use tracing::{debug, info};
+use version_spec::*;
 
 fn now() -> u128 {
     SystemTime::now()

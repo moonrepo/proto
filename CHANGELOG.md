@@ -10,6 +10,13 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [Schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Another attempt at fixing WASM memory issues.
+- Fixed an issue where binaries sometimes could not be located for "installed" tools.
+
 ## 0.18.2
 
 #### 🐞 Fixes
