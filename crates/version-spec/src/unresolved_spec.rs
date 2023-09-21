@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(untagged, into = "String", try_from = "String")]
 pub enum UnresolvedVersionSpec {
     Canary,

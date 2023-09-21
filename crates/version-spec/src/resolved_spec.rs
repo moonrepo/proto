@@ -76,6 +76,7 @@ impl Into<String> for VersionSpec {
 
 impl Debug for VersionSpec {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // Debug version as a string instead of a struct
         write!(f, "{}", self)
     }
 }

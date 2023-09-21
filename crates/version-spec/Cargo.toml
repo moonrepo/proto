@@ -11,9 +11,7 @@ repository = "https://github.com/moonrepo/proto"
 human-sort = { workspace = true }
 once_cell = { workspace = true }
 regex = { workspace = true }
-schematic = { version = "0.11.6", default-features = false, features = [
-	"json",
-], optional = true }
+schematic = { version = "0.11.7", default-features = false, optional = true }
 semver = { workspace = true }
 serde = { workspace = true }
 
