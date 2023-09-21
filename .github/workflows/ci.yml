@@ -50,6 +50,8 @@ jobs:
         with:
           bins: cargo-wasi, cargo-nextest
           cache: false
+      - run: ls ~/.rustup/toolchains
+      - run: ls -R ~/.rustup/toolchains
       - if: ${{ runner.os != 'Windows' }}
         run: cd plugins && cargo wasi build -p proto_wasm_test
         env:
