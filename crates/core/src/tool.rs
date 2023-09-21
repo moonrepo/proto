@@ -384,7 +384,13 @@ impl Tool {
 
         let mut versions = LoadVersionsOutput::default();
         let mut cached = false;
-        let cache_path = self.get_inventory_dir().join("remote-versions.json");
+
+        // Don't use the overridden inventory path
+        let cache_path = self
+            .proto
+            .tools_dir
+            .join(self.id.as_str())
+            .join("remote-versions.json");
 
         // Attempt to read from the cache first
         if cache_path.exists() && (is_cache_enabled() || is_offline()) {
@@ -1182,7 +1188,9 @@ impl Tool {
         self.version
             .as_ref()
             // Canary can be overwritten so treat as not-installed
-            .is_some_and(|v| !v.is_latest() && !v.is_canary())
+            .is_some_and(|v| {
+                !v.is_latest() && !v.is_canary() && self.manifest.installed_versions.contains(v)
+            })
             && dir.exists()
             && !fs::is_dir_locked(dir)
     }
