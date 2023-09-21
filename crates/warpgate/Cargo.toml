@@ -13,7 +13,7 @@ miette = { workspace = true }
 once_cell = { workspace = true }
 once_map = { workspace = true }
 regex = { workspace = true }
-reqwest = { workspace = true, features = ["json"] }
+reqwest = { workspace = true, features = ["json", "rustls-tls-native-roots"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
