@@ -9,7 +9,6 @@ use crate::shimmer::{
     create_global_shim, create_local_shim, get_shim_file_name, ShimContext, SHIM_VERSION,
 };
 use crate::tool_manifest::ToolManifest;
-use crate::version::{UnresolvedVersionSpec, VersionSpec};
 use crate::version_resolver::VersionResolver;
 use extism::{manifest::Wasm, Manifest as PluginManifest};
 use miette::IntoDiagnostic;
@@ -27,6 +26,7 @@ use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 use tracing::{debug, trace};
+use version_spec::*;
 use warpgate::{download_from_url_to_file, Id, PluginContainer, VirtualPath};
 
 pub struct Tool {
@@ -330,7 +330,14 @@ impl Tool {
 
         if let Some(default) = sync_changes.default_version {
             modified = true;
-            self.manifest.default_version = Some(UnresolvedVersionSpec::parse(&default)?);
+
+            self.manifest.default_version =
+                Some(UnresolvedVersionSpec::parse(&default).map_err(|error| {
+                    ProtoError::Semver {
+                        version: default,
+                        error,
+                    }
+                })?);
         }
 
         if let Some(versions) = sync_changes.versions {
@@ -448,7 +455,7 @@ impl Tool {
         if is_offline() && matches!(initial_version, UnresolvedVersionSpec::Version(_))
             || matches!(initial_version, UnresolvedVersionSpec::Canary)
         {
-            let version = initial_version.to_spec();
+            let version = initial_version.to_resolved_spec();
 
             debug!(
                 tool = self.id.as_str(),
@@ -490,7 +497,12 @@ impl Tool {
                 );
 
                 resolved = true;
-                version = resolver.resolve(&UnresolvedVersionSpec::parse(candidate)?)?;
+                version = resolver.resolve(&UnresolvedVersionSpec::parse(&candidate).map_err(
+                    |error| ProtoError::Semver {
+                        version: candidate,
+                        error,
+                    },
+                )?)?;
             }
 
             if let Some(candidate) = result.version {
@@ -501,7 +513,10 @@ impl Tool {
                 );
 
                 resolved = true;
-                version = VersionSpec::parse(candidate)?;
+                version = VersionSpec::parse(&candidate).map_err(|error| ProtoError::Semver {
+                    version: candidate,
+                    error,
+                })?;
             }
         }
 
@@ -583,7 +598,10 @@ impl Tool {
                 "Detected a version"
             );
 
-            return Ok(Some(UnresolvedVersionSpec::parse(version)?));
+            return Ok(Some(
+                UnresolvedVersionSpec::parse(&version)
+                    .map_err(|error| ProtoError::Semver { version, error })?,
+            ));
         }
 
         Ok(None)
@@ -1218,7 +1236,14 @@ impl Tool {
             let mut default = None;
 
             if let Some(default_version) = &self.metadata.default_version {
-                default = Some(UnresolvedVersionSpec::parse(default_version)?);
+                default = Some(
+                    UnresolvedVersionSpec::parse(default_version).map_err(|error| {
+                        ProtoError::Semver {
+                            version: default_version.to_owned(),
+                            error,
+                        }
+                    })?,
+                );
             }
 
             self.manifest

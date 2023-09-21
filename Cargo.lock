@@ -2430,6 +2430,7 @@ dependencies = [
  "tinytemplate",
  "tracing",
  "url",
+ "version_spec",
  "warpgate",
 ]
 

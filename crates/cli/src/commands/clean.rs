@@ -1,7 +1,7 @@
 use clap::Args;
 use dialoguer::Confirm;
 use proto_core::{
-    get_plugins_dir, get_shim_file_name, load_tool, Id, Tool, ToolsConfig, VersionSpec,
+    get_plugins_dir, get_shim_file_name, load_tool, Id, ProtoError, Tool, ToolsConfig, VersionSpec,
 };
 use proto_pdk_api::{CreateShimsInput, CreateShimsOutput};
 use starbase::diagnostics::IntoDiagnostic;
@@ -70,7 +70,10 @@ pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miett
                 continue;
             }
 
-            let version = VersionSpec::parse(&dir_name)?;
+            let version = VersionSpec::parse(&dir_name).map_err(|error| ProtoError::Semver {
+                version: dir_name,
+                error,
+            })?;
 
             if !tool.manifest.versions.contains_key(&version) {
                 debug!(

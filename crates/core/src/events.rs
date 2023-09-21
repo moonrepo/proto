@@ -1,5 +1,5 @@
-use crate::version::*;
 use starbase_events::Event;
+use version_spec::*;
 
 macro_rules! impl_event {
     ($name:ident, $impl:tt) => {

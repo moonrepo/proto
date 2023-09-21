@@ -1,4 +1,3 @@
-use crate::version::UnresolvedVersionSpec;
 use miette::IntoDiagnostic;
 use serde::{Deserialize, Serialize};
 use starbase_utils::{fs, toml};
@@ -6,6 +5,7 @@ use std::collections::BTreeMap;
 use std::env;
 use std::path::{Path, PathBuf};
 use tracing::{debug, trace};
+use version_spec::*;
 use warpgate::{Id, PluginLocator};
 
 pub const TOOLS_CONFIG_NAME: &str = ".prototools";

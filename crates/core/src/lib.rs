@@ -8,7 +8,6 @@ mod tool_loader;
 mod tool_manifest;
 mod tools_config;
 mod user_config;
-mod version;
 mod version_detector;
 mod version_resolver;
 
@@ -24,7 +23,7 @@ pub use tool_loader::*;
 pub use tool_manifest::*;
 pub use tools_config::*;
 pub use user_config::*;
-pub use version::*;
 pub use version_detector::*;
 pub use version_resolver::*;
+pub use version_spec::*;
 pub use warpgate::*;
