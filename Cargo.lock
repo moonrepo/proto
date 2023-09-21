@@ -3832,6 +3832,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 
 [[package]]
+name = "version_spec"
+version = "0.0.1"
+dependencies = [
+ "human-sort",
+ "once_cell",
+ "regex",
+ "schematic",
+ "semver",
+ "serde",
+]
+
+[[package]]
 name = "wait-timeout"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

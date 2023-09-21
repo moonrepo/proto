@@ -1,0 +1,22 @@
+[package]
+name = "version_spec"
+version = "0.0.1"
+edition = "2021"
+license = "MIT"
+description = "A specification for working with partial, full, or aliased versions."
+homepage = "https://moonrepo.dev/proto"
+repository = "https://github.com/moonrepo/proto"
+
+[dependencies]
+human-sort = { workspace = true }
+once_cell = { workspace = true }
+regex = { workspace = true }
+schematic = { version = "0.11.6", default-features = false, features = [
+	"json",
+], optional = true }
+semver = { workspace = true }
+serde = { workspace = true }
+
+[features]
+default = []
+schematic = ["dep:schematic"]

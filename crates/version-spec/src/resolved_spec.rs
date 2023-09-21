@@ -1,3 +1,11 @@
+#![allow(clippy::from_over_into)]
+
+use crate::{clean_version_string, is_alias_name, UnresolvedVersionSpec};
+use semver::{Error, Version};
+use serde::{Deserialize, Serialize};
+use std::fmt::{Debug, Display};
+use std::str::FromStr;
+
 #[derive(Clone, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(untagged, into = "String", try_from = "String")]
 pub enum VersionSpec {
@@ -6,21 +14,21 @@ pub enum VersionSpec {
 }
 
 impl VersionSpec {
-    pub fn parse<T: AsRef<str>>(value: T) -> miette::Result<Self> {
-        Ok(Self::from_str(value.as_ref())?)
+    pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, Error> {
+        Self::from_str(value.as_ref())
     }
 
     pub fn is_canary(&self) -> bool {
         match self {
             Self::Alias(alias) => alias == "canary",
-            Self::Version(_) => false,
+            _ => false,
         }
     }
 
     pub fn is_latest(&self) -> bool {
         match self {
             Self::Alias(alias) => alias == "latest",
-            Self::Version(_) => false,
+            _ => false,
         }
     }
 
@@ -39,26 +47,21 @@ impl Default for VersionSpec {
 }
 
 impl FromStr for VersionSpec {
-    type Err = ProtoError;
+    type Err = Error;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
-        let value = remove_space_after_gtlt(remove_v_prefix(value.trim().replace(".*", "")));
+        let value = clean_version_string(value);
 
         if is_alias_name(&value) {
             return Ok(VersionSpec::Alias(value));
         }
 
-        Ok(VersionSpec::Version(Version::parse(&value).map_err(
-            |error| ProtoError::Semver {
-                version: value,
-                error,
-            },
-        )?))
+        Ok(VersionSpec::Version(Version::parse(&value)?))
     }
 }
 
 impl TryFrom<String> for VersionSpec {
-    type Error = ProtoError;
+    type Error = Error;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         Self::from_str(&value)

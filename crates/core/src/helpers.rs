@@ -72,16 +72,6 @@ pub fn is_alias_name<T: AsRef<str>>(value: T) -> bool {
     })
 }
 
-pub fn remove_v_prefix<T: AsRef<str>>(value: T) -> String {
-    let value = value.as_ref();
-
-    if value.starts_with('v') || value.starts_with('V') {
-        return value[1..].to_owned();
-    }
-
-    value.to_owned()
-}
-
 pub fn remove_space_after_gtlt<T: AsRef<str>>(value: T) -> String {
     CLEAN_VERSION
         .replace_all(value.as_ref(), "$1$2")
