@@ -10,7 +10,7 @@ repository = "https://github.com/moonrepo/proto"
 [dependencies]
 proto_pdk_api = { version = "0.7.2", path = "../pdk-api" }
 proto_wasm_plugin = { version = "0.6.6", path = "../wasm-plugin" }
-version_spec = { version = "0.0.1", path = "../version-spec" }
+version_spec = { version = "0.1.0", path = "../version-spec" }
 warpgate = { version = "0.5.7", path = "../warpgate" }
 cached = { workspace = true }
 extism = { workspace = true }
@@ -19,9 +19,6 @@ miette = { workspace = true }
 once_cell = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true }
-schematic = { version = "0.11.6", default-features = false, features = [
-	"json",
-], optional = true }
 semver = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -37,7 +34,3 @@ url = "2.4.1"
 
 [dev-dependencies]
 starbase_sandbox = { workspace = true }
-
-[features]
-default = []
-schematic = ["dep:schematic"]
