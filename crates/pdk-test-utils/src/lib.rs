@@ -65,9 +65,16 @@ pub fn create_plugin(id: &str, sandbox: &Path) -> WasmTestWrapper {
     internal_create_plugin(id, sandbox, HashMap::new())
 }
 
+#[cfg(feature = "schema")]
 pub fn create_schema_plugin(id: &str, sandbox: &Path, schema: PathBuf) -> WasmTestWrapper {
+    let schema = fs::read_to_string(schema).unwrap();
+    let schema: serde_json::Value = toml::from_str(&schema).unwrap();
+
     let mut config = HashMap::new();
-    config.insert("schema".to_string(), fs::read_to_string(schema).unwrap());
+    config.insert(
+        "schema".to_string(),
+        serde_json::to_string(&schema).unwrap(),
+    );
 
     internal_create_plugin(id, sandbox, config)
 }
