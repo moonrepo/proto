@@ -3246,9 +3246,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_utils"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "032493983d1aaa0e6107219e8b17e2b315452f902f0f512c8bd5af6df6704b44"
+checksum = "9e1665a9066fd0da6e608166a18dba7324734229b5554f6abff7b6a2761b5402"
 dependencies = [
  "dirs 5.0.1",
  "fs4",
@@ -3262,7 +3262,7 @@ dependencies = [
  "starbase_styles",
  "thiserror",
  "tokio",
- "toml 0.7.6",
+ "toml 0.8.0",
  "tracing",
  "wax",
 ]

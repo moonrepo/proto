@@ -1,3 +1,4 @@
+use super::clean::clean_plugins;
 use crate::helpers::{create_progress_bar, disable_progress_bars};
 use crate::shell;
 use clap::Args;
@@ -131,6 +132,11 @@ pub async fn internal_install(args: InstallArgs) -> SystemResult {
 
     // Sync shell profile
     update_shell(tool, args.passthrough.clone())?;
+
+    // Clean plugins
+    debug!("Auto-cleaning old plugins");
+
+    clean_plugins(7).await?;
 
     Ok(())
 }
