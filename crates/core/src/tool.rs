@@ -1182,7 +1182,9 @@ impl Tool {
 // OPERATIONS
 
 impl Tool {
-    fn is_installed(&self) -> bool {
+    /// Return true if the tool has been installed. This is less accurate than `is_setup`,
+    /// as it only checks for the existence of the inventory directory.
+    pub fn is_installed(&self) -> bool {
         let dir = self.get_tool_dir();
 
         self.version

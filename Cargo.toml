@@ -29,7 +29,7 @@ starbase_archive = { version = "0.2.2", features = [
 ] }
 starbase_sandbox = { version = "0.1.10" }
 starbase_styles = "0.1.15"
-starbase_utils = { version = "0.3.1", default-features = false, features = [
+starbase_utils = { version = "0.3.2", default-features = false, features = [
 	"json",
 	"toml",
 ] }
