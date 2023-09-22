@@ -214,6 +214,8 @@ mod builtins {
         let mut cmd = create_proto_command(temp.path());
         let assert = cmd.arg("install").arg("rust").assert();
 
+        println!("{}", String::from_utf8_lossy(&assert.get_output().stderr));
+
         assert.success();
     }
 
