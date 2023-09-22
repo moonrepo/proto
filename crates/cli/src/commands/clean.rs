@@ -155,17 +155,15 @@ pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miett
     Ok(clean_count)
 }
 
-pub async fn clean_plugins(days: u8) -> miette::Result<usize> {
+pub async fn clean_plugins(days: u64) -> miette::Result<usize> {
+    let duration = Duration::from_secs(86400 * days);
     let mut clean_count = 0;
 
     for file in fs::read_dir(get_plugins_dir()?)? {
         let path = file.path();
 
         if path.is_file() {
-            let bytes = fs::remove_file_if_older_than(
-                &path,
-                Duration::from_secs((days * 24 * 60 * 60) as u64),
-            )?;
+            let bytes = fs::remove_file_if_older_than(&path, duration)?;
 
             if bytes > 0 {
                 debug!(
@@ -275,7 +273,7 @@ pub async fn internal_clean(args: &CleanArgs) -> SystemResult {
 
     info!("Finding installed plugins to clean up...");
 
-    clean_count = clean_plugins(days).await?;
+    clean_count = clean_plugins(days as u64).await?;
 
     if clean_count > 0 {
         info!("Successfully cleaned up {} plugins", clean_count);
