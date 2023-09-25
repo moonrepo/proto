@@ -3,7 +3,7 @@ name = "system_packages"
 version = "0.0.1"
 edition = "2021"
 license = "MIT"
-description = "Utilities for installing system packages."
+description = "Utilities for installing OS system packages."
 homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 

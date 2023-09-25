@@ -4,11 +4,10 @@ use std::env::{self, consts};
 use std::fmt;
 
 /// Architecture of the host environment.
-#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum SystemArch {
     X86,
-    #[default]
     #[serde(alias = "x86_64")]
     X64,
     Arm,
@@ -42,6 +41,12 @@ impl SystemArch {
     }
 }
 
+impl Default for SystemArch {
+    fn default() -> Self {
+        SystemArch::from_env()
+    }
+}
+
 impl fmt::Display for SystemArch {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", format!("{:?}", self).to_lowercase())
@@ -49,14 +54,13 @@ impl fmt::Display for SystemArch {
 }
 
 /// Operating system of the host environment.
-#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum SystemOS {
     Android,
     Dragonfly,
     FreeBSD,
     IOS,
-    #[default]
     Linux,
     MacOS,
     NetBSD,
@@ -84,6 +88,12 @@ impl SystemOS {
 
     pub fn to_rust_os(&self) -> String {
         self.to_string()
+    }
+}
+
+impl Default for SystemOS {
+    fn default() -> Self {
+        SystemOS::from_env()
     }
 }
 

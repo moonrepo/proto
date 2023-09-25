@@ -1,3 +1,29 @@
+use std::collections::HashMap;
+
+macro_rules! string_vec {
+    ($($item:expr),+ $(,)?) => {{
+        vec![
+            $( String::from($item), )*
+        ]
+    }};
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum Command {
+    InstallPackage,
+    UpdateIndex,
+}
+
+#[derive(Clone, Debug)]
+pub enum PromptArgument {
+    None,
+    // -i
+    Interactive(String),
+    // -y
+    Skip(String),
+}
+
+#[derive(Clone, Debug)]
 pub enum VersionArgument {
     None,
     // pkg=1.2.3
@@ -6,107 +32,148 @@ pub enum VersionArgument {
     Separate(String),
 }
 
+#[derive(Clone, Debug)]
 pub struct VendorConfig {
-    pub install_command: Vec<String>,
-    pub update_index_command: Option<Vec<String>>,
+    pub commands: HashMap<Command, Vec<String>>,
+    pub prompt_arg: PromptArgument,
+    pub prompt_for: Vec<Command>,
     pub version_arg: VersionArgument,
 }
 
 pub fn apk() -> VendorConfig {
     VendorConfig {
-        install_command: vec!["apk".into(), "add".into(), "$".into()],
-        update_index_command: Some(vec!["apk".into(), "update".into()]),
+        commands: HashMap::from_iter([
+            (Command::InstallPackage, string_vec!["apk", "add", "$"]),
+            (Command::UpdateIndex, string_vec!["apk", "update"]),
+        ]),
+        prompt_arg: PromptArgument::Interactive("-i".into()),
+        prompt_for: vec![Command::InstallPackage, Command::UpdateIndex],
         version_arg: VersionArgument::Inline("=".into()),
     }
 }
 
 pub fn apt() -> VendorConfig {
     VendorConfig {
-        install_command: vec![
-            "apt".into(),
-            "install".into(),
-            "--install-recommends".into(),
-            "-y".into(),
-            "$".into(),
-        ],
-        update_index_command: Some(vec!["apt".into(), "update".into()]),
+        commands: HashMap::from_iter([
+            (
+                Command::InstallPackage,
+                string_vec!["apt", "install", "--install-recommends", "$"],
+            ),
+            (Command::UpdateIndex, string_vec!["apt", "update"]),
+        ]),
+        prompt_arg: PromptArgument::Skip("-y".into()),
+        prompt_for: vec![Command::InstallPackage, Command::UpdateIndex],
         version_arg: VersionArgument::Inline("=".into()),
     }
 }
 
 pub fn brew() -> VendorConfig {
     VendorConfig {
-        install_command: vec!["brew".into(), "install".into(), "$".into()],
-        update_index_command: Some(vec!["brew".into(), "update".into()]),
+        commands: HashMap::from_iter([
+            (Command::InstallPackage, string_vec!["brew", "install", "$"]),
+            (Command::UpdateIndex, string_vec!["brew", "update"]),
+        ]),
+        prompt_arg: PromptArgument::Interactive("-i".into()),
+        prompt_for: vec![Command::InstallPackage],
         version_arg: VersionArgument::Inline("@".into()),
     }
 }
 
 pub fn choco() -> VendorConfig {
     VendorConfig {
-        install_command: vec!["choco".into(), "install".into(), "-y".into(), "$".into()],
-        update_index_command: None,
+        commands: HashMap::from_iter([(
+            Command::InstallPackage,
+            string_vec!["choco", "install", "$"],
+        )]),
+        prompt_arg: PromptArgument::Skip("-y".into()),
+        prompt_for: vec![Command::InstallPackage],
         version_arg: VersionArgument::Separate("--version".into()),
     }
 }
 
 pub fn dnf() -> VendorConfig {
     VendorConfig {
-        install_command: vec!["dnf".into(), "install".into(), "-y".into(), "$".into()],
-        update_index_command: Some(vec!["dnf".into(), "check-update".into()]),
+        commands: HashMap::from_iter([
+            (Command::InstallPackage, string_vec!["dnf", "install", "$"]),
+            (Command::UpdateIndex, string_vec!["dnf", "check-update"]),
+        ]),
+        prompt_arg: PromptArgument::Skip("-y".into()),
+        prompt_for: vec![Command::InstallPackage, Command::UpdateIndex],
         version_arg: VersionArgument::Inline("-".into()),
     }
 }
 
 pub fn pacman() -> VendorConfig {
     VendorConfig {
-        install_command: vec![
-            "pacman".into(),
-            "-S".into(),
-            "--noconfirm".into(),
-            "$".into(),
-        ],
-        update_index_command: Some(vec!["pacman".into(), "-Syy".into()]),
+        commands: HashMap::from_iter([
+            (Command::InstallPackage, string_vec!["pacman", "-S", "$"]),
+            (Command::UpdateIndex, string_vec!["pacman", "-Syy"]),
+        ]),
+        prompt_arg: PromptArgument::Skip("--noconfirm".into()),
+        prompt_for: vec![Command::InstallPackage],
         version_arg: VersionArgument::Inline(">=".into()),
     }
 }
 
 pub fn pkg() -> VendorConfig {
     VendorConfig {
-        install_command: vec!["pkg".into(), "install".into(), "-y".into(), "$".into()],
-        update_index_command: Some(vec!["pkg".into(), "update".into()]),
+        commands: HashMap::from_iter([
+            (Command::InstallPackage, string_vec!["pkg", "install", "$"]),
+            (Command::UpdateIndex, string_vec!["pkg", "update"]),
+        ]),
+        prompt_arg: PromptArgument::Skip("-y".into()),
+        prompt_for: vec![Command::InstallPackage],
         version_arg: VersionArgument::None,
     }
 }
 
 pub fn pkg_alt() -> VendorConfig {
     VendorConfig {
-        install_command: vec!["pkg_add".into(), "$".into()],
-        update_index_command: None,
+        commands: HashMap::from_iter([(Command::InstallPackage, string_vec!["pkg_add", "$"])]),
+        prompt_arg: PromptArgument::Skip("-I".into()),
+        prompt_for: vec![Command::InstallPackage],
         version_arg: VersionArgument::None,
     }
 }
 
 pub fn pkgin() -> VendorConfig {
     VendorConfig {
-        install_command: vec!["pkgin".into(), "install".into(), "-y".into(), "$".into()],
-        update_index_command: Some(vec!["pkgin".into(), "update".into()]),
+        commands: HashMap::from_iter([
+            (
+                Command::InstallPackage,
+                string_vec!["pkgin", "install", "$"],
+            ),
+            (Command::UpdateIndex, string_vec!["pkgin", "update"]),
+        ]),
+        prompt_arg: PromptArgument::Skip("-y".into()),
+        prompt_for: vec![Command::InstallPackage, Command::UpdateIndex],
         version_arg: VersionArgument::Inline("-".into()),
     }
 }
 
 pub fn scoop() -> VendorConfig {
     VendorConfig {
-        install_command: vec!["scoop".into(), "install".into(), "$".into()],
-        update_index_command: Some(vec!["scoop".into(), "update".into()]),
+        commands: HashMap::from_iter([
+            (
+                Command::InstallPackage,
+                string_vec!["scoop", "install", "$"],
+            ),
+            (Command::UpdateIndex, string_vec!["scoop", "update"]),
+        ]),
+        prompt_arg: PromptArgument::None,
+        prompt_for: vec![],
         version_arg: VersionArgument::Inline("@".into()),
     }
 }
 
 pub fn yum() -> VendorConfig {
     VendorConfig {
-        install_command: vec!["yum".into(), "install".into(), "-y".into(), "$".into()],
-        update_index_command: Some(vec!["yum".into(), "check-update".into()]),
+        commands: HashMap::from_iter([
+            (Command::InstallPackage, string_vec!["yum", "install", "$"]),
+            (Command::UpdateIndex, string_vec!["yum", "check-update"]),
+        ]),
+        prompt_arg: PromptArgument::Skip("-y".into()),
+        prompt_for: vec![Command::InstallPackage],
         version_arg: VersionArgument::Inline("-".into()),
     }
 }
