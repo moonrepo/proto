@@ -1,8 +1,8 @@
 use crate::error::ProtoError;
 use crate::events::*;
 use crate::helpers::{
-    hash_file_contents, is_archive_file, is_cache_enabled, is_offline, read_json_file_with_lock,
-    write_json_file_with_lock, ENV_VAR,
+    extract_filename_from_url, hash_file_contents, is_archive_file, is_cache_enabled, is_offline,
+    read_json_file_with_lock, write_json_file_with_lock, ENV_VAR,
 };
 use crate::proto::ProtoEnvironment;
 use crate::shimmer::{
@@ -723,7 +723,12 @@ impl Tool {
                     "Attempting to download and unpack sources",
                 );
 
-                download_from_url(archive_url, &download_file).await?;
+                download_from_url_to_file(
+                    archive_url,
+                    &download_file,
+                    self.proto.get_http_client()?,
+                )
+                .await?;
 
                 Archiver::new(install_dir, &download_file).unpack_from_ext()?;
             }

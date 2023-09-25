@@ -156,6 +156,13 @@ pub fn hash_file_contents<P: AsRef<Path>>(path: P) -> miette::Result<String> {
     Ok(hash)
 }
 
+pub fn extract_filename_from_url<U: AsRef<str>>(url: U) -> miette::Result<String> {
+    let url = url::Url::parse(url.as_ref()).into_diagnostic()?;
+    let segments = url.path_segments().unwrap();
+
+    Ok(segments.last().unwrap().to_owned())
+}
+
 pub fn read_json_file_with_lock<T: DeserializeOwned>(path: impl AsRef<Path>) -> miette::Result<T> {
     let path = path.as_ref();
     let mut content = fs::read_file_with_lock(path)?;
