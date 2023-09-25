@@ -33,15 +33,15 @@ pub enum VersionArgument {
 }
 
 #[derive(Clone, Debug)]
-pub struct VendorConfig {
+pub struct PackageVendorConfig {
     pub commands: HashMap<Command, Vec<String>>,
     pub prompt_arg: PromptArgument,
     pub prompt_for: Vec<Command>,
     pub version_arg: VersionArgument,
 }
 
-pub fn apk() -> VendorConfig {
-    VendorConfig {
+pub fn apk() -> PackageVendorConfig {
+    PackageVendorConfig {
         commands: HashMap::from_iter([
             (Command::InstallPackage, string_vec!["apk", "add", "$"]),
             (Command::UpdateIndex, string_vec!["apk", "update"]),
@@ -52,8 +52,8 @@ pub fn apk() -> VendorConfig {
     }
 }
 
-pub fn apt() -> VendorConfig {
-    VendorConfig {
+pub fn apt() -> PackageVendorConfig {
+    PackageVendorConfig {
         commands: HashMap::from_iter([
             (
                 Command::InstallPackage,
@@ -67,8 +67,8 @@ pub fn apt() -> VendorConfig {
     }
 }
 
-pub fn brew() -> VendorConfig {
-    VendorConfig {
+pub fn brew() -> PackageVendorConfig {
+    PackageVendorConfig {
         commands: HashMap::from_iter([
             (Command::InstallPackage, string_vec!["brew", "install", "$"]),
             (Command::UpdateIndex, string_vec!["brew", "update"]),
@@ -79,8 +79,8 @@ pub fn brew() -> VendorConfig {
     }
 }
 
-pub fn choco() -> VendorConfig {
-    VendorConfig {
+pub fn choco() -> PackageVendorConfig {
+    PackageVendorConfig {
         commands: HashMap::from_iter([(
             Command::InstallPackage,
             string_vec!["choco", "install", "$"],
@@ -91,8 +91,8 @@ pub fn choco() -> VendorConfig {
     }
 }
 
-pub fn dnf() -> VendorConfig {
-    VendorConfig {
+pub fn dnf() -> PackageVendorConfig {
+    PackageVendorConfig {
         commands: HashMap::from_iter([
             (Command::InstallPackage, string_vec!["dnf", "install", "$"]),
             (Command::UpdateIndex, string_vec!["dnf", "check-update"]),
@@ -103,8 +103,8 @@ pub fn dnf() -> VendorConfig {
     }
 }
 
-pub fn pacman() -> VendorConfig {
-    VendorConfig {
+pub fn pacman() -> PackageVendorConfig {
+    PackageVendorConfig {
         commands: HashMap::from_iter([
             (Command::InstallPackage, string_vec!["pacman", "-S", "$"]),
             (Command::UpdateIndex, string_vec!["pacman", "-Syy"]),
@@ -115,8 +115,8 @@ pub fn pacman() -> VendorConfig {
     }
 }
 
-pub fn pkg() -> VendorConfig {
-    VendorConfig {
+pub fn pkg() -> PackageVendorConfig {
+    PackageVendorConfig {
         commands: HashMap::from_iter([
             (Command::InstallPackage, string_vec!["pkg", "install", "$"]),
             (Command::UpdateIndex, string_vec!["pkg", "update"]),
@@ -127,8 +127,8 @@ pub fn pkg() -> VendorConfig {
     }
 }
 
-pub fn pkg_alt() -> VendorConfig {
-    VendorConfig {
+pub fn pkg_alt() -> PackageVendorConfig {
+    PackageVendorConfig {
         commands: HashMap::from_iter([(Command::InstallPackage, string_vec!["pkg_add", "$"])]),
         prompt_arg: PromptArgument::Skip("-I".into()),
         prompt_for: vec![Command::InstallPackage],
@@ -136,8 +136,8 @@ pub fn pkg_alt() -> VendorConfig {
     }
 }
 
-pub fn pkgin() -> VendorConfig {
-    VendorConfig {
+pub fn pkgin() -> PackageVendorConfig {
+    PackageVendorConfig {
         commands: HashMap::from_iter([
             (
                 Command::InstallPackage,
@@ -151,8 +151,8 @@ pub fn pkgin() -> VendorConfig {
     }
 }
 
-pub fn scoop() -> VendorConfig {
-    VendorConfig {
+pub fn scoop() -> PackageVendorConfig {
+    PackageVendorConfig {
         commands: HashMap::from_iter([
             (
                 Command::InstallPackage,
@@ -166,8 +166,8 @@ pub fn scoop() -> VendorConfig {
     }
 }
 
-pub fn yum() -> VendorConfig {
-    VendorConfig {
+pub fn yum() -> PackageVendorConfig {
+    PackageVendorConfig {
         commands: HashMap::from_iter([
             (Command::InstallPackage, string_vec!["yum", "install", "$"]),
             (Command::UpdateIndex, string_vec!["yum", "check-update"]),
