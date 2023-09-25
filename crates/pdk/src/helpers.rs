@@ -118,12 +118,12 @@ where
 
 /// Return the name of the binary for the provided name and OS.
 /// On Windows, will append ".exe", and keep as-is on other OS's.
-pub fn format_bin_name(name: &str, os: HostOS) -> String {
+pub fn format_bin_name<T: AsRef<str>>(name: T, os: HostOS) -> String {
     if os == HostOS::Windows {
-        return format!("{}.exe", name);
+        return format!("{}.exe", name.as_ref());
     }
 
-    name.to_owned()
+    name.as_ref().to_owned()
 }
 
 /// Validate the current host OS and architecture against the

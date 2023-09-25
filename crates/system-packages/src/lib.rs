@@ -70,13 +70,30 @@ impl DependencyConfig {
 #[serde(untagged)]
 pub enum SystemDependency {
     Name(String),
+    Names(Vec<String>),
     Config(DependencyConfig),
     Map(HashMap<String, String>),
 }
 
 impl SystemDependency {
-    pub fn for_all(name: &str) -> SystemDependency {
+    pub fn name(name: &str) -> SystemDependency {
         SystemDependency::Name(name.to_owned())
+    }
+
+    pub fn names<I, V>(names: I) -> SystemDependency
+    where
+        I: IntoIterator<Item = V>,
+        V: AsRef<str>,
+    {
+        SystemDependency::Names(names.into_iter().map(|n| n.as_ref().to_owned()).collect())
+    }
+
+    pub fn for_arch(name: &str, arch: SystemArch) -> SystemDependency {
+        SystemDependency::Config(DependencyConfig {
+            arch: Some(arch),
+            dep: Dependency::Single(name.into()),
+            ..DependencyConfig::default()
+        })
     }
 
     pub fn for_os(name: &str, os: SystemOS) -> SystemDependency {
@@ -100,6 +117,10 @@ impl SystemDependency {
         match self {
             Self::Name(name) => DependencyConfig {
                 dep: Dependency::Single(name),
+                ..DependencyConfig::default()
+            },
+            Self::Names(names) => DependencyConfig {
+                dep: Dependency::Multiple(names),
                 ..DependencyConfig::default()
             },
             Self::Map(map) => DependencyConfig {

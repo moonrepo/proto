@@ -117,7 +117,11 @@ impl PackageManager {
         Err(Error::MissingPackageManager)
     }
 
-    pub fn get_install_command(&self, dep_config: &DependencyConfig) -> Result<Vec<String>, Error> {
+    pub fn get_install_command(
+        &self,
+        dep_config: &DependencyConfig,
+        interactive: bool,
+    ) -> Result<Vec<String>, Error> {
         let mut args = vec![];
         let host_os = dep_config.os.unwrap_or_default();
         let base_command = self
@@ -137,7 +141,7 @@ impl PackageManager {
                                 args.push(format!("{dep}{op}{ver}"));
                             }
                             VersionArgument::Separate(opt) => {
-                                args.push(dep.to_owned());
+                                args.push(dep);
                                 args.push(opt.to_owned());
                                 args.push(ver.to_owned());
                             }
@@ -151,10 +155,38 @@ impl PackageManager {
             }
         }
 
+        self.handle_interactive(Command::InstallPackage, &mut args, interactive);
+
         Ok(args)
     }
 
-    pub fn get_update_index_command(&self) -> Option<Vec<String>> {
-        self.config.commands.get(&Command::UpdateIndex).cloned()
+    pub fn get_update_index_command(&self, interactive: bool) -> Option<Vec<String>> {
+        if let Some(args) = self.config.commands.get(&Command::UpdateIndex) {
+            let mut args = args.to_owned();
+
+            self.handle_interactive(Command::UpdateIndex, &mut args, interactive);
+
+            return Some(args);
+        }
+
+        None
+    }
+
+    fn handle_interactive(&self, command: Command, args: &mut Vec<String>, interactive: bool) {
+        if self.config.prompt_for.contains(&command) {
+            match &self.config.prompt_arg {
+                PromptArgument::None => {}
+                PromptArgument::Interactive(i) => {
+                    if interactive {
+                        args.push(i.to_owned());
+                    }
+                }
+                PromptArgument::Skip(y) => {
+                    if !interactive {
+                        args.push(y.to_owned());
+                    }
+                }
+            };
+        }
     }
 }

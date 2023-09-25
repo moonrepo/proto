@@ -224,6 +224,9 @@ json_enum!(
 json_struct!(
     /// Output returned by the `build_instructions` function.
     pub struct BuildInstructionsOutput {
+        /// Link to the documentation/help.
+        pub help_url: Option<String>,
+
         /// Location in which to acquire the source files. Can be an archive URL,
         /// or Git repository.
         pub source: SourceLocation,
