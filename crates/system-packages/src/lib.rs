@@ -13,15 +13,15 @@ use std::collections::HashMap;
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(untagged)]
-pub enum Dependency {
+pub enum DependencyName {
     Single(String),
     SingleMap(HashMap<String, String>),
     Multiple(Vec<String>),
 }
 
-impl Default for Dependency {
-    fn default() -> Dependency {
-        Dependency::Single(String::new())
+impl Default for DependencyName {
+    fn default() -> DependencyName {
+        DependencyName::Single(String::new())
     }
 }
 
@@ -29,11 +29,9 @@ impl Default for Dependency {
 #[serde(default)]
 pub struct DependencyConfig {
     pub arch: Option<SystemArch>,
-    pub args: Vec<String>,
-    pub dep: Dependency,
-    pub env: HashMap<String, String>,
+    pub dep: DependencyName,
     pub manager: Option<SystemPackageManager>,
-    pub optional: bool,
+    // pub optional: bool,
     pub os: Option<SystemOS>,
     pub sudo: bool,
     pub version: Option<String>,
@@ -46,26 +44,27 @@ impl DependencyConfig {
         pm: &SystemPackageManager,
     ) -> Result<Vec<String>, Error> {
         match &self.dep {
-            Dependency::Single(name) => Ok(vec![name.to_owned()]),
-            Dependency::SingleMap(map) => map
+            DependencyName::Single(name) => Ok(vec![name.to_owned()]),
+            DependencyName::SingleMap(map) => map
                 .get(&pm.to_string())
                 .or_else(|| map.get(&os.to_string()))
                 .or_else(|| map.get("*"))
                 .map(|name| vec![name.to_owned()])
                 .ok_or(Error::MissingName),
-            Dependency::Multiple(list) => Ok(list.clone()),
+            DependencyName::Multiple(list) => Ok(list.clone()),
         }
     }
 
-    pub fn get_package_manager(&self) -> Result<PackageManager, Error> {
+    pub fn get_package_manager(&self) -> Result<PackageClient, Error> {
         if let Some(manager) = &self.manager {
-            return Ok(PackageManager::from(*manager));
+            return Ok(PackageClient::from(*manager));
         }
 
-        PackageManager::detect()
+        PackageClient::detect()
     }
 }
 
+// This shape is what users configure.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum SystemDependency {
@@ -91,14 +90,14 @@ impl SystemDependency {
     pub fn for_arch(name: &str, arch: SystemArch) -> SystemDependency {
         SystemDependency::Config(DependencyConfig {
             arch: Some(arch),
-            dep: Dependency::Single(name.into()),
+            dep: DependencyName::Single(name.into()),
             ..DependencyConfig::default()
         })
     }
 
     pub fn for_os(name: &str, os: SystemOS) -> SystemDependency {
         SystemDependency::Config(DependencyConfig {
-            dep: Dependency::Single(name.into()),
+            dep: DependencyName::Single(name.into()),
             os: Some(os),
             ..DependencyConfig::default()
         })
@@ -107,7 +106,7 @@ impl SystemDependency {
     pub fn for_os_arch(name: &str, os: SystemOS, arch: SystemArch) -> SystemDependency {
         SystemDependency::Config(DependencyConfig {
             arch: Some(arch),
-            dep: Dependency::Single(name.into()),
+            dep: DependencyName::Single(name.into()),
             os: Some(os),
             ..DependencyConfig::default()
         })
@@ -116,15 +115,15 @@ impl SystemDependency {
     pub fn to_config(self) -> DependencyConfig {
         match self {
             Self::Name(name) => DependencyConfig {
-                dep: Dependency::Single(name),
+                dep: DependencyName::Single(name),
                 ..DependencyConfig::default()
             },
             Self::Names(names) => DependencyConfig {
-                dep: Dependency::Multiple(names),
+                dep: DependencyName::Multiple(names),
                 ..DependencyConfig::default()
             },
             Self::Map(map) => DependencyConfig {
-                dep: Dependency::SingleMap(map),
+                dep: DependencyName::SingleMap(map),
                 ..DependencyConfig::default()
             },
             Self::Config(config) => config,

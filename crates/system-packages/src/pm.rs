@@ -34,20 +34,15 @@ impl fmt::Display for SystemPackageManager {
     }
 }
 
-pub struct PackageManager {
+pub struct PackageClient {
     config: VendorConfig,
     manager: SystemPackageManager,
 }
 
-impl PackageManager {
-    pub fn new(manager: SystemPackageManager, config: VendorConfig) -> Self {
-        Self { config, manager }
-    }
-
-    pub fn from(value: SystemPackageManager) -> Self {
-        Self::new(
-            value,
-            match value {
+impl PackageClient {
+    pub fn from(manager: SystemPackageManager) -> Self {
+        Self {
+            config: match manager {
                 SystemPackageManager::Apk => apk(),
                 SystemPackageManager::Apt => apt(),
                 SystemPackageManager::Dnf => dnf(),
@@ -59,7 +54,8 @@ impl PackageManager {
                 SystemPackageManager::Choco => choco(),
                 SystemPackageManager::Scoop => scoop(),
             },
-        )
+            manager,
+        }
     }
 
     pub fn detect() -> Result<Self, Error> {
@@ -136,7 +132,9 @@ impl PackageManager {
                 for dep in dep_config.get_package_names(&host_os, &self.manager)? {
                     if let Some(ver) = &dep_config.version {
                         match &self.config.version_arg {
-                            VersionArgument::None => {}
+                            VersionArgument::None => {
+                                args.push(dep);
+                            }
                             VersionArgument::Inline(op) => {
                                 args.push(format!("{dep}{op}{ver}"));
                             }

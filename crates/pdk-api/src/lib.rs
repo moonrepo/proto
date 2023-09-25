@@ -9,5 +9,7 @@ pub use error::*;
 pub use hooks::*;
 pub use host::*;
 pub use host_funcs::*;
-pub use system_packages::{Dependency, DependencyConfig, SystemDependency, SystemPackageManager};
+pub use system_packages::{
+    DependencyConfig, DependencyName, SystemDependency, SystemPackageManager,
+};
 pub use warpgate_api::*;
