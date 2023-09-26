@@ -68,13 +68,11 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
     // Update the last used timestamp in a separate task,
     // as to not interrupt this task incase something fails!
     if env::var("PROTO_SKIP_USED_AT").is_err() {
-        tool.manifest.track_used_at(tool.get_resolved_version());
-
-        let manifest = tool.manifest.clone();
+        let mut manifest = tool.manifest.clone();
+        let version = tool.get_resolved_version();
 
         tokio::spawn(async move {
-            // Ignore errors in case of race conditions...
-            // this timestamp isn't *super* important
+            manifest.track_used_at(version);
             let _ = manifest.save();
         });
     }
