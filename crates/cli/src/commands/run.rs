@@ -98,7 +98,7 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
         debug!(shim = ?bin_path, "Using local shim for tool");
     }
 
-    debug!(bin = ?bin_path, args = ?args, "Running {}", tool.get_name());
+    debug!(bin = ?bin_path, args = ?args.passthrough, "Running {}", tool.get_name());
 
     // Run before hook
     tool.run_hook(
