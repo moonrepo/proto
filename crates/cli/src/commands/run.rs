@@ -65,18 +65,6 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
         tool.locate_bins().await?;
     }
 
-    // Update the last used timestamp in a separate task,
-    // as to not interrupt this task incase something fails!
-    if env::var("PROTO_SKIP_USED_AT").is_err() {
-        let mut manifest = tool.manifest.clone();
-        let version = tool.get_resolved_version();
-
-        tokio::spawn(async move {
-            manifest.track_used_at(version);
-            let _ = manifest.save();
-        });
-    }
-
     // Determine the binary path to execute
     let tool_dir = tool.get_tool_dir();
     let mut bin_path = tool.get_bin_path()?.to_path_buf();
@@ -157,6 +145,18 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
         .wait()
         .await
         .into_diagnostic()?;
+
+    // Update the last used timestamp in a separate task,
+    // as to not interrupt this task incase something fails!
+    if env::var("PROTO_SKIP_USED_AT").is_err() {
+        let mut manifest = tool.manifest.clone();
+        let version = tool.get_resolved_version();
+
+        tokio::spawn(async move {
+            manifest.track_used_at(version);
+            let _ = manifest.save();
+        });
+    }
 
     if !status.success() {
         exit(status.code().unwrap_or(1));
