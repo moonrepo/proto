@@ -162,7 +162,15 @@ pub fn hash_file_contents<P: AsRef<Path>>(path: P) -> miette::Result<String> {
 
 pub fn read_json_file_with_lock<T: DeserializeOwned>(path: impl AsRef<Path>) -> miette::Result<T> {
     let path = path.as_ref();
-    let content = fs::read_file_with_lock(path)?;
+    let mut content = fs::read_file_with_lock(path)?;
+
+    // When multiple processes are ran in parallel, we may run into an issue where
+    // the file has been truncated, so JSON parsing fails. It's a rare race condition,
+    // and these file locks don't seem to catch it. If this happens, fallback to empty JSON.
+    // https://github.com/moonrepo/proto/issues/85
+    if content.is_empty() {
+        content = "{}".into();
+    }
 
     let data: T = json::from_str(&content).map_err(|error| JsonError::ReadFile {
         path: path.to_path_buf(),

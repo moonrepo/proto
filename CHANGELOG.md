@@ -10,6 +10,12 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [Schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Attempts to fix "Failed to parse JSON" errors in relation to the manifest or cached versions.
+
 ## 0.18.3
 
 #### 🐞 Fixes

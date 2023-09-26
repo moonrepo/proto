@@ -36,7 +36,7 @@ impl Default for ToolManifestVersion {
     }
 }
 
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct ToolManifest {
     // Partial versions allowed
