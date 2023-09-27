@@ -31,6 +31,8 @@ async fn main() -> MainResult {
             LevelFilter::INFO
         },
         filter_modules: string_vec!["proto", "starbase", "warpgate"],
+        // This swallows logs from extism when enabled
+        intercept_log: env::var("PROTO_WASM_LOG").is_err(),
         log_env: "STARBASE_LOG".into(),
         test_env: "PROTO_TEST".into(),
         ..TracingOptions::default()
