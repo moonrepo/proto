@@ -148,10 +148,3 @@ impl PartialEq<VersionSpec> for UnresolvedVersionSpec {
         }
     }
 }
-
-#[cfg(feature = "schematic")]
-impl schematic::Schematic for UnresolvedVersionSpec {
-    fn generate_schema() -> schematic::SchemaType {
-        schematic::SchemaType::string()
-    }
-}
