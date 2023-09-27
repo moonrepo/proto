@@ -1,8 +1,7 @@
 use crate::commands::{
-    AddPluginArgs, AliasArgs, BinArgs, CleanArgs, CompletionsArgs, GlobalArgs, InstallArgs,
-    InstallGlobalArgs, ListArgs, ListGlobalArgs, ListRemoteArgs, LocalArgs, PluginsArgs,
-    RemovePluginArgs, RunArgs, SetupArgs, ToolsArgs, UnaliasArgs, UninstallArgs,
-    UninstallGlobalArgs,
+    AddPluginArgs, AliasArgs, BinArgs, CleanArgs, CompletionsArgs, InstallArgs, InstallGlobalArgs,
+    ListArgs, ListGlobalArgs, ListRemoteArgs, PinArgs, PluginsArgs, RemovePluginArgs, RunArgs,
+    SetupArgs, ToolsArgs, UnaliasArgs, UninstallArgs, UninstallGlobalArgs,
 };
 use clap::builder::styling::{Color, Style, Styles};
 use clap::{Parser, Subcommand, ValueEnum};
@@ -133,13 +132,6 @@ pub enum Commands {
     InstallGlobal(InstallGlobalArgs),
 
     #[command(
-        name = "global",
-        about = "Set the global default version of a tool.",
-        long_about = "Set the global default version of a tool. This will pin the version in the ~/.proto/tools installation directory."
-    )]
-    Global(GlobalArgs),
-
-    #[command(
         alias = "ls",
         name = "list",
         about = "List installed versions.",
@@ -164,11 +156,12 @@ pub enum Commands {
     ListRemote(ListRemoteArgs),
 
     #[command(
-        name = "local",
-        about = "Set the local version of a tool.",
-        long_about = "Set the local version of a tool. This will create a .prototools file (if it does not exist)\nin the current working directory with the appropriate tool and version."
+        alias = "p",
+        name = "pin",
+        about = "Pin a default global or local version of a tool.",
+        long_about = "Pin a default version of a tool globally to ~/.proto/tools, or locally to .prototools (in the current working directory)."
     )]
-    Local(LocalArgs),
+    Pin(PinArgs),
 
     #[command(name = "plugins", about = "List all active and configured plugins.")]
     Plugins(PluginsArgs),
