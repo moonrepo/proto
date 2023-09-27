@@ -20,6 +20,7 @@
 #### 🚀 Updates
 
 - Added a `proto pin` command, which is a merge of the old `proto global` and `proto local` commands.
+- Added a `pin-latest` setting to `~/.proto/config.toml` that'll automatically pin tools when they're being installed with the "latest" version.
 - Updated `proto install` to auto-clean stale plugins after a successful installation.
 
 ## 0.18.5

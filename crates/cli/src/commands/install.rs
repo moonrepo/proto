@@ -1,9 +1,10 @@
 use super::clean::clean_plugins;
+use super::pin::{internal_pin, PinArgs};
 use crate::helpers::{create_progress_bar, disable_progress_bars};
 use crate::shell;
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::{load_tool, Id, Tool, UnresolvedVersionSpec};
+use proto_core::{load_tool, Id, PinType, Tool, UnresolvedVersionSpec, UserConfig};
 use proto_pdk_api::{InstallHook, SyncShellProfileInput, SyncShellProfileOutput};
 use starbase::{system, SystemResult};
 use starbase_styles::color;
@@ -37,9 +38,34 @@ pub struct InstallArgs {
     pub passthrough: Vec<String>,
 }
 
-pub fn pin_global(tool: &mut Tool) -> SystemResult {
-    tool.manifest.default_version = Some(tool.get_resolved_version().to_unresolved_spec());
-    tool.manifest.save()?;
+fn pin_version(
+    tool: &mut Tool,
+    initial_version: &UnresolvedVersionSpec,
+    global: bool,
+) -> SystemResult {
+    let mut args = PinArgs {
+        id: tool.id.clone(),
+        spec: tool.get_resolved_version().to_unresolved_spec(),
+        global: false,
+    };
+
+    // via `--pin` arg
+    if global {
+        args.global = true;
+
+        return internal_pin(tool, &args);
+    }
+
+    // via `pin-latest` setting
+    if initial_version.is_latest() {
+        let user_config = UserConfig::load()?;
+
+        if let Some(pin_type) = user_config.pin_latest {
+            args.global = matches!(pin_type, PinType::Global);
+
+            return internal_pin(tool, &args);
+        }
+    }
 
     Ok(())
 }
@@ -56,9 +82,7 @@ pub async fn internal_install(args: InstallArgs) -> SystemResult {
     tool.disable_caching();
 
     if !version.is_canary() && tool.is_setup(&version).await? {
-        if args.pin {
-            pin_global(&mut tool)?;
-        }
+        pin_version(&mut tool, &version, args.pin)?;
 
         info!(
             "{} has already been installed at {}",
@@ -110,9 +134,7 @@ pub async fn internal_install(args: InstallArgs) -> SystemResult {
         return Ok(());
     }
 
-    if args.pin {
-        pin_global(&mut tool)?;
-    }
+    pin_version(&mut tool, &version, args.pin)?;
 
     info!(
         "{} has been installed to {}!",
@@ -134,7 +156,7 @@ pub async fn internal_install(args: InstallArgs) -> SystemResult {
     update_shell(tool, args.passthrough.clone())?;
 
     // Clean plugins
-    debug!("Auto-cleaning old plugins");
+    debug!("Auto-cleaning plugins");
 
     clean_plugins(7).await?;
 
