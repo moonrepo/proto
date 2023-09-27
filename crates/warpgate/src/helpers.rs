@@ -49,7 +49,10 @@ pub async fn download_from_url_to_file(
         .get(url)
         .send()
         .await
-        .map_err(|error| WarpgateError::Http { error })?;
+        .map_err(|error| WarpgateError::Http {
+            error,
+            url: source_url.to_owned(),
+        })?;
     let status = response.status();
 
     if status.as_u16() == 404 {
@@ -73,7 +76,10 @@ pub async fn download_from_url_to_file(
         response
             .bytes()
             .await
-            .map_err(|error| WarpgateError::Http { error })?,
+            .map_err(|error| WarpgateError::Http {
+                error,
+                url: source_url.to_owned(),
+            })?,
     )?;
 
     Ok(())
