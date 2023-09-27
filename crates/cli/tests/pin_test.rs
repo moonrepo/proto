@@ -3,7 +3,7 @@ mod utils;
 use proto_core::{ToolManifest, UnresolvedVersionSpec};
 use utils::*;
 
-mod global {
+mod pin_global {
     use super::*;
 
     #[test]
@@ -14,7 +14,8 @@ mod global {
         assert!(!manifest_file.exists());
 
         let mut cmd = create_proto_command(temp.path());
-        cmd.arg("global")
+        cmd.arg("pin")
+            .arg("--global")
             .arg("node")
             .arg("19.0.0")
             .assert()
@@ -38,7 +39,8 @@ mod global {
         assert!(!manifest_file.exists());
 
         let mut cmd = create_proto_command(temp.path());
-        cmd.arg("global")
+        cmd.arg("pin")
+            .arg("--global")
             .arg("npm")
             .arg("bundled")
             .assert()
@@ -62,7 +64,12 @@ mod global {
         assert!(!manifest_file.exists());
 
         let mut cmd = create_proto_command(temp.path());
-        cmd.arg("global").arg("npm").arg("1.2").assert().success();
+        cmd.arg("pin")
+            .arg("--global")
+            .arg("npm")
+            .arg("1.2")
+            .assert()
+            .success();
 
         assert!(manifest_file.exists());
 

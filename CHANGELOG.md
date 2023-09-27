@@ -12,8 +12,13 @@
 
 ## Unreleased
 
+#### 💥 Breaking
+
+- Removed `proto global`, use `proto pin --global` instead.
+
 #### 🚀 Updates
 
+- Added a `proto pin` command, which is a merge of the old `proto global` and `proto local` commands.
 - Updated `proto install` to auto-clean stale plugins after a successful installation.
 
 ## 0.18.4
