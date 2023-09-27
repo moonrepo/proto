@@ -16,11 +16,6 @@ use tracing::trace;
 
 pub static ENV_VAR: Lazy<Regex> = Lazy::new(|| Regex::new(r"\$([A-Z0-9_]+)").unwrap());
 
-#[deprecated = "Use `get_proto_home` instead."]
-pub fn get_root() -> miette::Result<PathBuf> {
-    get_proto_home()
-}
-
 pub fn get_proto_home() -> miette::Result<PathBuf> {
     if let Ok(root) = env::var("PROTO_HOME") {
         return Ok(root.into());

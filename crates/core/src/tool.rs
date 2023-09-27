@@ -108,9 +108,11 @@ impl Tool {
             on_uninstalled_global: Emitter::new(),
         };
 
-        #[cfg(debug_assertions)]
-        {
-            extism::set_log_file(proto.cwd.join("wasm-debug.log"), None);
+        if let Ok(level) = env::var("PROTO_WASM_LOG") {
+            extism::set_log_file(
+                proto.cwd.join("wasm-debug.log"),
+                std::str::FromStr::from_str(&level).ok(),
+            );
         }
 
         debug!(
