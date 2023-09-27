@@ -23,6 +23,10 @@
 - Added a `pin-latest` setting to `~/.proto/config.toml` that'll automatically pin tools when they're being installed with the "latest" version.
 - Updated `proto install` to auto-clean stale plugins after a successful installation.
 
+#### ⚙️ Internal
+
+- Added `PROTO_WASM_LOG` environment variable to toggle the logging of messages from Extism and WASM plugins. Useful for debugging.
+
 ## 0.18.4
 
 #### 🐞 Fixes
