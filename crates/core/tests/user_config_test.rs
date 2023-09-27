@@ -5,6 +5,8 @@ use std::env;
 use warpgate::{GitHubLocator, HttpOptions, Id, PluginLocator};
 
 mod user_config {
+    use proto_core::PinType;
+
     use super::*;
 
     #[test]
@@ -19,6 +21,7 @@ mod user_config {
                 auto_install: false,
                 node_intercept_globals: true,
                 http: HttpOptions::default(),
+                pin_latest: None,
                 plugins: BTreeMap::default(),
                 path: sandbox.path().join(USER_CONFIG_NAME),
             }
@@ -26,7 +29,7 @@ mod user_config {
     }
 
     #[test]
-    fn can_set_booleans() {
+    fn can_set_values() {
         let sandbox = create_empty_sandbox();
         sandbox.create_file(
             "config.toml",
@@ -34,6 +37,7 @@ mod user_config {
 auto-clean = true
 auto-install = true
 node-intercept-globals = false
+pin-latest = "global"
 "#,
         );
 
@@ -46,6 +50,7 @@ node-intercept-globals = false
                 auto_install: true,
                 node_intercept_globals: false,
                 http: HttpOptions::default(),
+                pin_latest: Some(PinType::Global),
                 plugins: BTreeMap::default(),
                 path: sandbox.path().join(USER_CONFIG_NAME),
             }
@@ -70,6 +75,7 @@ node-intercept-globals = false
                 auto_install: true,
                 node_intercept_globals: false,
                 http: HttpOptions::default(),
+                pin_latest: None,
                 plugins: BTreeMap::default(),
                 path: sandbox.path().join(USER_CONFIG_NAME),
             }

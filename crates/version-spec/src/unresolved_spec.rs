@@ -26,11 +26,18 @@ impl UnresolvedVersionSpec {
         matches!(self, UnresolvedVersionSpec::Canary)
     }
 
+    pub fn is_latest(&self) -> bool {
+        match self {
+            Self::Alias(alias) => alias == "latest",
+            _ => false,
+        }
+    }
+
     pub fn to_resolved_spec(&self) -> VersionSpec {
         match self {
-            UnresolvedVersionSpec::Canary => VersionSpec::Alias("canary".to_owned()),
-            UnresolvedVersionSpec::Alias(alias) => VersionSpec::Alias(alias.to_owned()),
-            UnresolvedVersionSpec::Version(version) => VersionSpec::Version(version.to_owned()),
+            Self::Canary => VersionSpec::Alias("canary".to_owned()),
+            Self::Alias(alias) => VersionSpec::Alias(alias.to_owned()),
+            Self::Version(version) => VersionSpec::Version(version.to_owned()),
             _ => unreachable!(),
         }
     }
