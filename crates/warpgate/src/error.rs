@@ -10,8 +10,10 @@ pub enum WarpgateError {
     Serde(String),
 
     #[diagnostic(code(plugin::http))]
-    #[error("Failed to make HTTP request.")]
+    #[error("Failed to make HTTP request for {}.", .url.style(Style::Url))]
     Http {
+        url: String,
+
         #[source]
         error: reqwest::Error,
     },
