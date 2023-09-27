@@ -230,22 +230,21 @@ impl PluginLoader {
             "Attempting to download plugin from GitHub release",
         );
 
+        let handle_error = |error: reqwest::Error| WarpgateError::Http {
+            error,
+            url: api_url.clone(),
+        };
+
         // Otherwise make an HTTP request to the GitHub releases API,
         // and loop through the assets to find a matching one.
-        let mut request = client.get(api_url);
+        let mut request = client.get(&api_url);
 
         if let Ok(auth_token) = env::var("GITHUB_TOKEN") {
             request = request.bearer_auth(auth_token);
         }
 
-        let response = request
-            .send()
-            .await
-            .map_err(|error| WarpgateError::Http { error })?;
-        let release: GitHubApiRelease = response
-            .json()
-            .await
-            .map_err(|error| WarpgateError::Http { error })?;
+        let response = request.send().await.map_err(handle_error)?;
+        let release: GitHubApiRelease = response.json().await.map_err(handle_error)?;
 
         // Find a direct WASM asset first
         for asset in &release.assets {
@@ -322,8 +321,15 @@ impl PluginLoader {
         );
 
         // Otherwise make a GraphQL request to the WAPM registry API.
+        let url = "https://registry.wapm.io/graphql".to_owned();
+
+        let handle_error = |error: reqwest::Error| WarpgateError::Http {
+            error,
+            url: url.clone(),
+        };
+
         let response = client
-            .post("https://registry.wapm.io/graphql")
+            .post(&url)
             .json(&WapmPackageRequest {
                 query: WAPM_GQL_QUERY.to_owned(),
                 variables: WapmPackageRequestVariables {
@@ -334,12 +340,9 @@ impl PluginLoader {
             })
             .send()
             .await
-            .map_err(|error| WarpgateError::Http { error })?;
+            .map_err(handle_error)?;
 
-        let package: WapmPackageResponse = response
-            .json()
-            .await
-            .map_err(|error| WarpgateError::Http { error })?;
+        let package: WapmPackageResponse = response.json().await.map_err(handle_error)?;
         let package = package.data.package_version;
 
         // Check modules first for a direct WASM file to use
