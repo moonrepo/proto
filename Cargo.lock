@@ -410,15 +410,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "castaway"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a17ed5635fc8536268e5d4de1e22e81ac34419e5f052d4d51f4e01dcc263fcc"
-dependencies = [
- "rustversion",
-]
-
-[[package]]
 name = "cbindgen"
 version = "0.24.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -560,19 +551,6 @@ name = "colorchoice"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "acbf1af155f9b9ef647e42cdc158db4b64a1b61f743629225fde6f3e0be2a7c7"
-
-[[package]]
-name = "compact_str"
-version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f86b9c4c00838774a6d902ef931eff7470720c51d90c2e32cfe15dc304737b3f"
-dependencies = [
- "castaway",
- "cfg-if",
- "itoa",
- "ryu",
- "static_assertions",
-]
 
 [[package]]
 name = "console"
@@ -1426,31 +1404,6 @@ dependencies = [
  "fxhash",
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "garde"
-version = "0.15.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ae9eba929c46323014c5ec1adf6d2fa94d68ff1947c489c165fcd7f216b34f2"
-dependencies = [
- "compact_str",
- "garde_derive",
- "once_cell",
- "regex",
- "smallvec",
-]
-
-[[package]]
-name = "garde_derive"
-version = "0.15.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da663fa0f4a2bb40b93ee1b2f77656276b999df3b88574ddafe51d72fc1dfdd9"
-dependencies = [
- "proc-macro2",
- "quote",
- "regex",
- "syn 2.0.37",
 ]
 
 [[package]]
@@ -2832,12 +2785,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustversion"
-version = "1.0.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ffc183a10b4478d04cbbbfc96d0873219d962dd5accaff2ffbd4ceb7df837f4"
-
-[[package]]
 name = "ryu"
 version = "1.0.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2860,43 +2807,6 @@ checksum = "0c3733bf4cf7ea0880754e19cb5a462007c4a8c1914bff372ccc95b464f1df88"
 dependencies = [
  "windows-sys 0.48.0",
 ]
-
-[[package]]
-name = "schematic"
-version = "0.11.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe561cb5c8380d36ef80bf81a7cc16acfde8a0d130dd3394cc0cb48809d065ab"
-dependencies = [
- "garde",
- "indexmap 2.0.0",
- "miette",
- "schematic_macros",
- "schematic_types",
- "serde",
- "serde_path_to_error",
- "starbase_styles",
- "thiserror",
- "tracing",
-]
-
-[[package]]
-name = "schematic_macros"
-version = "0.11.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ccc05cf6b1a3cb5c631b2955e63581b6ab1386eee26f71d5f0472dda99c61f84"
-dependencies = [
- "convert_case",
- "darling 0.20.3",
- "proc-macro2",
- "quote",
- "syn 2.0.37",
-]
-
-[[package]]
-name = "schematic_types"
-version = "0.4.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2f0fb227e27447defdd9e26f121ac10836120b122c35d05b02c6e588a91353d"
 
 [[package]]
 name = "scopeguard"
@@ -2990,16 +2900,6 @@ checksum = "6b420ce6e3d8bd882e9b243c6eed35dbc9a6110c9769e74b584e0d68d1f20c65"
 dependencies = [
  "itoa",
  "ryu",
- "serde",
-]
-
-[[package]]
-name = "serde_path_to_error"
-version = "0.1.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4beec8bce849d58d06238cb50db2e1c417cfeafa4c63f692b15c82b7c80f8335"
-dependencies = [
- "itoa",
  "serde",
 ]
 
@@ -3266,12 +3166,6 @@ dependencies = [
  "tracing",
  "wax",
 ]
-
-[[package]]
-name = "static_assertions"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "strsim"
@@ -3862,7 +3756,6 @@ dependencies = [
  "human-sort",
  "once_cell",
  "regex",
- "schematic",
  "semver",
  "serde",
 ]

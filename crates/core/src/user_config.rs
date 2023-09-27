@@ -11,11 +11,19 @@ use warpgate::{HttpOptions, Id, PluginLocator};
 pub const USER_CONFIG_NAME: &str = "config.toml";
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum PinType {
+    Global,
+    Local,
+}
+
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
 #[serde(default, rename_all = "kebab-case")]
 pub struct UserConfig {
     pub auto_clean: bool,
     pub auto_install: bool,
     pub node_intercept_globals: bool,
+    pub pin_latest: Option<PinType>,
     pub http: HttpOptions,
     pub plugins: BTreeMap<Id, PluginLocator>,
 
@@ -85,8 +93,9 @@ impl Default for UserConfig {
         Self {
             auto_clean: from_var("PROTO_AUTO_CLEAN", false),
             auto_install: from_var("PROTO_AUTO_INSTALL", false),
-            node_intercept_globals: from_var("PROTO_NODE_INTERCEPT_GLOBALS", true),
             http: HttpOptions::default(),
+            node_intercept_globals: from_var("PROTO_NODE_INTERCEPT_GLOBALS", true),
+            pin_latest: None,
             plugins: BTreeMap::default(),
             path: PathBuf::new(),
         }

@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::{ToolManifest, UnresolvedVersionSpec, VersionSpec};
+use proto_core::{ToolManifest, ToolsConfig, UnresolvedVersionSpec, VersionSpec};
 use starbase_sandbox::predicates::prelude::*;
 use std::collections::HashSet;
 use utils::*;
@@ -230,5 +230,85 @@ mod install_uninstall {
             manifest.default_version,
             Some(UnresolvedVersionSpec::parse("19.0.0").unwrap())
         );
+    }
+
+    #[test]
+    fn can_pin_latest_locally_using_setting() {
+        let temp = create_empty_sandbox();
+        temp.create_file("config.toml", "pin-latest = \"local\"");
+
+        let manifest_file = temp.path().join("tools/node/manifest.json");
+
+        // We set a default version here to compare against later
+        let mut manifest = ToolManifest::load(&manifest_file).unwrap();
+        manifest.default_version = Some(UnresolvedVersionSpec::parse("18.0.0").unwrap());
+        manifest.save().unwrap();
+
+        let mut cmd = create_proto_command(temp.path());
+        cmd.arg("install")
+            .arg("node")
+            .arg("--")
+            .arg("--no-bundled-npm")
+            .assert();
+
+        let manifest = ToolManifest::load(&manifest_file).unwrap();
+
+        assert_eq!(
+            manifest.default_version.unwrap(),
+            UnresolvedVersionSpec::parse("18.0.0").unwrap()
+        );
+
+        let tools = ToolsConfig::load_from(temp.path()).unwrap();
+
+        assert!(tools.tools.get("node").is_some());
+    }
+
+    #[test]
+    fn can_pin_latest_globally_using_setting() {
+        let temp = create_empty_sandbox();
+        temp.create_file("config.toml", "pin-latest = \"global\"");
+
+        let manifest_file = temp.path().join("tools/node/manifest.json");
+
+        // We set a default version here to compare against later
+        let mut manifest = ToolManifest::load(&manifest_file).unwrap();
+        manifest.default_version = Some(UnresolvedVersionSpec::parse("18.0.0").unwrap());
+        manifest.save().unwrap();
+
+        let mut cmd = create_proto_command(temp.path());
+        cmd.arg("install")
+            .arg("node")
+            .arg("--")
+            .arg("--no-bundled-npm")
+            .assert();
+
+        let manifest = ToolManifest::load(&manifest_file).unwrap();
+
+        assert_ne!(
+            manifest.default_version.unwrap(),
+            UnresolvedVersionSpec::parse("18.0.0").unwrap()
+        );
+
+        let tools = ToolsConfig::load_from(temp.path()).unwrap();
+
+        assert!(tools.tools.get("node").is_none());
+    }
+
+    #[test]
+    fn doesnt_pin_using_setting_if_not_latest() {
+        let temp = create_empty_sandbox();
+        temp.create_file("config.toml", "pin-latest = \"local\"");
+
+        let mut cmd = create_proto_command(temp.path());
+        cmd.arg("install")
+            .arg("node")
+            .arg("20.0.0")
+            .arg("--")
+            .arg("--no-bundled-npm")
+            .assert();
+
+        let tools = ToolsConfig::load_from(temp.path()).unwrap();
+
+        assert!(tools.tools.get("node").is_none());
     }
 }
