@@ -15,6 +15,7 @@
 #### 💥 Breaking
 
 - Removed `proto global`, use `proto pin --global` instead.
+- Removed `proto local`, use `proto pin` instead.
 
 #### 🚀 Updates
 

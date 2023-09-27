@@ -1,5 +1,8 @@
+use std::env;
+use std::path::PathBuf;
+
 use clap::Args;
-use proto_core::{load_tool, Id, UnresolvedVersionSpec};
+use proto_core::{load_tool, Id, ToolsConfig, UnresolvedVersionSpec};
 use starbase::system;
 use starbase_styles::color;
 use tracing::{debug, info};
@@ -23,18 +26,38 @@ pub struct PinArgs {
 pub async fn pin(args: ArgsRef<PinArgs>) -> SystemResult {
     let mut tool = load_tool(&args.id).await?;
 
-    tool.manifest.default_version = Some(args.spec.clone());
-    tool.manifest.save()?;
+    if args.global {
+        tool.manifest.default_version = Some(args.spec.clone());
+        tool.manifest.save()?;
 
-    debug!(
-        version = args.spec.to_string(),
-        manifest = ?tool.manifest.path,
-        "Wrote the global version",
-    );
+        debug!(
+            version = args.spec.to_string(),
+            manifest = ?tool.manifest.path,
+            "Wrote the global version",
+        );
 
-    info!(
-        "Set the global {} version to {}",
-        tool.get_name(),
-        color::hash(args.spec.to_string())
-    );
+        info!(
+            "Set the global {} version to {}",
+            tool.get_name(),
+            color::hash(args.spec.to_string())
+        );
+    } else {
+        let local_path = env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+
+        let mut config = ToolsConfig::load_from(local_path)?;
+        config.tools.insert(args.id.clone(), args.spec.clone());
+        config.save()?;
+
+        debug!(
+            version = args.spec.to_string(),
+            config = ?config.path,
+            "Wrote the local version",
+        );
+
+        info!(
+            "Set the local {} version to {}",
+            tool.get_name(),
+            color::hash(args.spec.to_string())
+        );
+    }
 }
