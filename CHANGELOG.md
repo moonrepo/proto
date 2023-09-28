@@ -10,6 +10,13 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [Schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### ⚙️ Internal
+
+- Added `PROTO_DEBUG_COMMAND` to include all output when debugging command execution.
+- Added more logs to bubble up important information.
+
 ## 0.18.4
 
 #### 🐞 Fixes

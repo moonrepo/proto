@@ -13,7 +13,7 @@ use std::{
     env::{self, consts},
     path::Path,
 };
-use tracing::debug;
+use tracing::{debug, trace};
 use warpgate::{create_http_client_with_options, to_virtual_path, Id, PluginLocator};
 
 pub fn inject_default_manifest_config(
@@ -22,30 +22,38 @@ pub fn inject_default_manifest_config(
     user_config: &UserConfig,
     manifest: &mut Manifest,
 ) -> miette::Result<()> {
+    trace!(id = id.as_str(), "Storing tool identifier");
+
     manifest
         .config
         .insert("proto_tool_id".to_string(), id.to_string());
 
-    manifest.config.insert(
-        "proto_user_config".to_string(),
-        json::to_string(&UserConfigSettings {
-            auto_clean: user_config.auto_clean,
-            auto_install: user_config.auto_install,
-            node_intercept_globals: user_config.node_intercept_globals,
-        })
-        .into_diagnostic()?,
-    );
+    let value = json::to_string(&UserConfigSettings {
+        auto_clean: user_config.auto_clean,
+        auto_install: user_config.auto_install,
+        node_intercept_globals: user_config.node_intercept_globals,
+    })
+    .into_diagnostic()?;
 
-    manifest.config.insert(
-        "proto_environment".to_string(),
-        json::to_string(&HostEnvironment {
-            arch: HostArch::from_str(consts::ARCH).into_diagnostic()?,
-            os: HostOS::from_str(consts::OS).into_diagnostic()?,
-            home_dir: to_virtual_path(manifest, &proto.home),
-            proto_dir: to_virtual_path(manifest, &proto.root),
-        })
-        .into_diagnostic()?,
-    );
+    trace!(config = %value, "Storing user configuration");
+
+    manifest
+        .config
+        .insert("proto_user_config".to_string(), value);
+
+    let value = json::to_string(&HostEnvironment {
+        arch: HostArch::from_str(consts::ARCH).into_diagnostic()?,
+        os: HostOS::from_str(consts::OS).into_diagnostic()?,
+        home_dir: to_virtual_path(manifest, &proto.home),
+        proto_dir: to_virtual_path(manifest, &proto.root),
+    })
+    .into_diagnostic()?;
+
+    trace!(env = %value, "Storing proto environment");
+
+    manifest
+        .config
+        .insert("proto_environment".to_string(), value);
 
     Ok(())
 }
@@ -87,6 +95,8 @@ pub async fn load_tool_from_locator(
         // Convert TOML to JSON
         let schema: json::JsonValue = toml::read_file(plugin_path)?;
         let schema = json::to_string(&schema).into_diagnostic()?;
+
+        trace!(schema = %schema, "Storing schema settings");
 
         manifest.config.insert("schema".to_string(), schema);
         manifest

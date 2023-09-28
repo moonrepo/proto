@@ -1,5 +1,6 @@
 use extism::{CurrentPlugin, Error, Function, InternalExt, UserData, Val, ValType};
 use proto_pdk_api::{ExecCommandInput, ExecCommandOutput, HostLogInput};
+use std::env;
 use std::path::PathBuf;
 use std::process::Command;
 use tracing::trace;
@@ -101,11 +102,23 @@ fn exec_command(
         }
     };
 
+    let debug_output = env::var("PROTO_DEBUG_COMMAND").is_ok_and(|v| !v.is_empty());
+
     trace!(
         target: "proto_wasm::exec_command",
         command = &input.command,
         exit_code = output.exit_code,
+        stderr = if debug_output {
+            Some(&output.stderr)
+        } else {
+            None
+        },
         stderr_len = output.stderr.len(),
+        stdout = if debug_output {
+            Some(&output.stdout)
+        } else {
+            None
+        },
         stdout_len = output.stdout.len(),
         "Executed command from plugin"
     );
