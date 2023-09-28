@@ -11,7 +11,7 @@ repository = "https://github.com/moonrepo/proto"
 proto_pdk_api = { version = "0.7.2", path = "../pdk-api" }
 proto_wasm_plugin = { version = "0.6.7", path = "../wasm-plugin" }
 version_spec = { version = "0.1.0", path = "../version-spec" }
-warpgate = { version = "0.5.7", path = "../warpgate" }
+warpgate = { version = "0.5.8", path = "../warpgate" }
 cached = { workspace = true }
 extism = { workspace = true }
 human-sort = { workspace = true }

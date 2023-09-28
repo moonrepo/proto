@@ -3899,7 +3899,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.5.7"
+version = "0.5.8"
 dependencies = [
  "extism",
  "miette",
