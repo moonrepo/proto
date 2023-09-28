@@ -52,6 +52,13 @@ impl<'tool> VersionResolver<'tool> {
     pub fn resolve(&self, candidate: &UnresolvedVersionSpec) -> miette::Result<VersionSpec> {
         resolve_version(candidate, &self.versions, &self.aliases, self.manifest)
     }
+
+    pub fn resolve_without_manifest(
+        &self,
+        candidate: &UnresolvedVersionSpec,
+    ) -> miette::Result<VersionSpec> {
+        resolve_version(candidate, &self.versions, &self.aliases, None)
+    }
 }
 
 pub fn match_highest_version<'l, I>(req: &'l VersionReq, versions: I) -> Option<VersionSpec>
