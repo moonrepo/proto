@@ -18,6 +18,12 @@ macro_rules! permutations {
 
 #[macro_export]
 macro_rules! exec_command {
+    (raw, $cmd:literal) => {
+        exec_command!(raw, ExecCommandInput {
+            command: $cmd.into(),
+            ..ExecCommandInput::default()
+        })
+    };
     (raw, $cmd:expr, $args:expr) => {
         exec_command!(raw, ExecCommandInput::pipe($cmd, $args))
     };

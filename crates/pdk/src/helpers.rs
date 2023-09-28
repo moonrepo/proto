@@ -172,8 +172,23 @@ pub fn is_musl(env: &HostEnvironment) -> bool {
         return false;
     }
 
-    exec_command!(raw, "ldd", ["--version"])
-        .is_ok_and(|res| res.0.exit_code == 0 && res.0.stdout.contains("musl"))
+    let mut value = "".to_owned();
+
+    if let Ok(res) = exec_command!(raw, "ldd", ["--version"]) {
+        if res.0.exit_code == 0 {
+            value = res.0.stdout.to_lowercase();
+        }
+    }
+
+    if value.is_empty() {
+        if let Ok(res) = exec_command!(raw, "uname") {
+            if res.0.exit_code == 0 {
+                value = res.0.stdout.to_lowercase();
+            }
+        }
+    }
+
+    value.contains("musl") || value.contains("alpine")
 }
 
 /// Return a Rust target triple for the current host OS and architecture.
