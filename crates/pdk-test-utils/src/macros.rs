@@ -85,7 +85,7 @@ macro_rules! generate_download_install_tests {
 
             std::fs::create_dir_all(&tool.get_tool_dir()).unwrap();
 
-            assert!(!tool.install().await.unwrap());
+            assert!(!tool.install(false).await.unwrap());
         }
     };
 }

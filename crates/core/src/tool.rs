@@ -1351,11 +1351,11 @@ impl Tool {
     pub async fn setup(
         &mut self,
         initial_version: &UnresolvedVersionSpec,
-        build: bool,
+        build_from_source: bool,
     ) -> miette::Result<bool> {
         self.resolve_version(initial_version).await?;
 
-        if self.install(build).await? {
+        if self.install(build_from_source).await? {
             self.cleanup().await?;
             self.locate_bins().await?;
             self.setup_shims(true).await?;
