@@ -1,4 +1,4 @@
-use system_packages::*;
+use system_env::*;
 
 fn one_dep() -> DependencyConfig {
     SystemDependency::name("foo").to_config()

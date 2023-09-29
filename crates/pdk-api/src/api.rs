@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::path::PathBuf;
-use system_packages::SystemDependency;
+use system_env::SystemDependency;
 use warpgate_api::VirtualPath;
 
 pub use semver::{Version, VersionReq};

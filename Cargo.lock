@@ -2415,7 +2415,7 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
- "system_packages",
+ "system_env",
  "thiserror",
  "warpgate_api",
 ]
@@ -3250,7 +3250,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "system_packages"
+name = "system_env"
 version = "0.0.1"
 dependencies = [
  "serde",
