@@ -40,7 +40,7 @@ mod add_plugin {
 
         assert!(config_file.exists());
 
-        let manifest = ToolsConfig::load(config_file).unwrap();
+        let manifest = ToolsConfig::load_from(sandbox.path()).unwrap();
 
         assert_eq!(
             manifest.plugins,
