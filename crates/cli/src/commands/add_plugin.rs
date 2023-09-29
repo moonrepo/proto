@@ -2,8 +2,6 @@ use clap::Args;
 use proto_core::{Id, PluginLocator, ToolsConfig, UserConfig};
 use starbase::system;
 use starbase_styles::color;
-use std::env;
-use std::path::PathBuf;
 use tracing::info;
 
 #[derive(Args, Clone, Debug)]
@@ -39,9 +37,7 @@ pub async fn add_plugin(args: ArgsRef<AddPluginArgs>) {
         return Ok(());
     }
 
-    let local_path = env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-
-    let mut config = ToolsConfig::load_from(local_path)?;
+    let mut config = ToolsConfig::load()?;
     config.plugins.insert(args.id.clone(), args.plugin.clone());
     config.save()?;
 
