@@ -17,6 +17,10 @@ pub enum ProtoError {
     #[error("Failed to install {tool}. {error}")]
     InstallFailed { tool: String, error: String },
 
+    #[diagnostic(code(proto::tool::build_failed))]
+    #[error("Failed to build tool from {}: {status}", .url.style(Style::Url))]
+    BuildFailed { url: String, status: String },
+
     #[diagnostic(code(proto::misc::offline))]
     #[error("Internet connection required, unable to download and install tools.")]
     InternetConnectionRequired,
@@ -59,6 +63,10 @@ pub enum ProtoError {
         "{} is not a built-in tool or has not been configured as a plugin, unable to proceed.", .id.style(Style::Id)
     )]
     UnknownTool { id: Id },
+
+    #[diagnostic(code(proto::build::unsupported))]
+    #[error("Build from source is not supported for {}.", .tool.style(Style::Id))]
+    UnsupportedBuildFromSource { tool: Id },
 
     #[diagnostic(code(proto::unsupported::shell))]
     #[error("Unable to detect shell.")]

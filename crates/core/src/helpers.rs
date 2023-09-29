@@ -1,5 +1,6 @@
 use crate::error::ProtoError;
 use cached::proc_macro::cached;
+use miette::IntoDiagnostic;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::de::DeserializeOwned;
@@ -92,45 +93,6 @@ pub fn is_cache_enabled() -> bool {
     })
 }
 
-#[cached]
-#[cfg(windows)]
-pub fn is_command_on_path(name: String) -> bool {
-    let Ok(system_path) = env::var("PATH") else {
-        return false;
-    };
-    let Ok(path_ext) = env::var("PATHEXT") else {
-        return false;
-    };
-    let exts = path_ext.split(';').collect::<Vec<_>>();
-
-    for path_dir in env::split_paths(&system_path) {
-        for ext in &exts {
-            if path_dir.join(format!("{name}{ext}")).exists() {
-                return true;
-            }
-        }
-    }
-
-    false
-}
-
-#[cached]
-#[cfg(not(windows))]
-pub fn is_command_on_path(name: String) -> bool {
-    let Ok(system_path) = env::var("PATH") else {
-        return false;
-    };
-
-    for path_dir in env::split_paths(&system_path) {
-        #[allow(clippy::needless_borrow)]
-        if path_dir.join(&name).exists() {
-            return true;
-        }
-    }
-
-    false
-}
-
 pub fn is_archive_file<P: AsRef<Path>>(path: P) -> bool {
     is_supported_archive_extension(path.as_ref())
 }
@@ -153,6 +115,13 @@ pub fn hash_file_contents<P: AsRef<Path>>(path: P) -> miette::Result<String> {
     trace!(hash, "Calculated hash");
 
     Ok(hash)
+}
+
+pub fn extract_filename_from_url<U: AsRef<str>>(url: U) -> miette::Result<String> {
+    let url = url::Url::parse(url.as_ref()).into_diagnostic()?;
+    let segments = url.path_segments().unwrap();
+
+    Ok(segments.last().unwrap().to_owned())
 }
 
 pub fn read_json_file_with_lock<T: DeserializeOwned>(path: impl AsRef<Path>) -> miette::Result<T> {
