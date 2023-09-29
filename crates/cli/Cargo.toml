@@ -1,6 +1,6 @@
 [package]
 name = "proto_cli"
-version = "0.18.5"
+version = "0.19.0"
 edition = "2021"
 license = "MIT"
 description = "A multi-language version manager, a unified toolchain."
@@ -27,7 +27,7 @@ name = "proto"
 path = "src/main.rs"
 
 [dependencies]
-proto_core = { version = "0.18.7", path = "../core" }
+proto_core = { version = "0.19.0", path = "../core" }
 proto_pdk_api = { version = "0.7.3", path = "../pdk-api" }
 proto_wasm_plugin = { version = "0.6.8", path = "../wasm-plugin" }
 system_env = { version = "0.0.1", path = "../system-env" }
