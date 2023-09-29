@@ -27,9 +27,9 @@ name = "proto"
 path = "src/main.rs"
 
 [dependencies]
-proto_core = { version = "0.18.6", path = "../core" }
-proto_pdk_api = { version = "0.7.2", path = "../pdk-api" }
-proto_wasm_plugin = { version = "0.6.7", path = "../wasm-plugin" }
+proto_core = { version = "0.18.7", path = "../core" }
+proto_pdk_api = { version = "0.7.3", path = "../pdk-api" }
+proto_wasm_plugin = { version = "0.6.8", path = "../wasm-plugin" }
 system_env = { version = "0.0.1", path = "../system-env" }
 chrono = "0.4.31"
 clap = { workspace = true, features = ["derive", "env"] }
