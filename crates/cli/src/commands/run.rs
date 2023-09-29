@@ -1,15 +1,13 @@
 use crate::commands::install::{internal_install, InstallArgs};
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::{
-    detect_version, is_command_on_path, load_tool, Id, ProtoError, UnresolvedVersionSpec,
-    UserConfig,
-};
+use proto_core::{detect_version, load_tool, Id, ProtoError, UnresolvedVersionSpec, UserConfig};
 use proto_pdk_api::RunHook;
 use starbase::system;
 use starbase_styles::color;
 use std::env;
 use std::process::exit;
+use system_env::is_command_on_path;
 use tokio::process::Command;
 use tracing::debug;
 
@@ -103,7 +101,7 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
     // Run the command
     let mut command = match bin_path.extension().map(|e| e.to_str().unwrap()) {
         Some("ps1") => {
-            let mut cmd = Command::new(if is_command_on_path("pwsh".into()) {
+            let mut cmd = Command::new(if is_command_on_path("pwsh") {
                 "pwsh"
             } else {
                 "powershell"

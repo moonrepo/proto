@@ -93,45 +93,6 @@ pub fn is_cache_enabled() -> bool {
     })
 }
 
-#[cached]
-#[cfg(windows)]
-pub fn is_command_on_path(name: String) -> bool {
-    let Ok(system_path) = env::var("PATH") else {
-        return false;
-    };
-    let Ok(path_ext) = env::var("PATHEXT") else {
-        return false;
-    };
-    let exts = path_ext.split(';').collect::<Vec<_>>();
-
-    for path_dir in env::split_paths(&system_path) {
-        for ext in &exts {
-            if path_dir.join(format!("{name}{ext}")).exists() {
-                return true;
-            }
-        }
-    }
-
-    false
-}
-
-#[cached]
-#[cfg(not(windows))]
-pub fn is_command_on_path(name: String) -> bool {
-    let Ok(system_path) = env::var("PATH") else {
-        return false;
-    };
-
-    for path_dir in env::split_paths(&system_path) {
-        #[allow(clippy::needless_borrow)]
-        if path_dir.join(&name).exists() {
-            return true;
-        }
-    }
-
-    false
-}
-
 pub fn is_archive_file<P: AsRef<Path>>(path: P) -> bool {
     is_supported_archive_extension(path.as_ref())
 }

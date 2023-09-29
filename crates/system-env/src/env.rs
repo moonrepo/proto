@@ -62,6 +62,7 @@ pub enum SystemOS {
     FreeBSD,
     IOS,
     Linux,
+    #[serde(alias = "mac")]
     MacOS,
     NetBSD,
     OpenBSD,
@@ -82,8 +83,20 @@ impl SystemOS {
         )
     }
 
+    pub fn is_linux(&self) -> bool {
+        matches!(self, Self::Linux)
+    }
+
+    pub fn is_mac(&self) -> bool {
+        matches!(self, Self::MacOS)
+    }
+
     pub fn is_unix(&self) -> bool {
         self.is_bsd() || matches!(self, Self::Linux | Self::MacOS)
+    }
+
+    pub fn is_windows(&self) -> bool {
+        matches!(self, Self::Windows)
     }
 
     pub fn to_rust_os(&self) -> String {

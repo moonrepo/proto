@@ -889,7 +889,7 @@ impl Tool {
 
     /// Install a tool into proto, either by downloading and unpacking
     /// a pre-built archive, or by using a native installation method.
-    pub async fn install(&mut self, build: bool) -> miette::Result<bool> {
+    pub async fn install(&mut self, _build: bool) -> miette::Result<bool> {
         if self.is_installed() {
             debug!(
                 tool = self.id.as_str(),
@@ -939,14 +939,16 @@ impl Tool {
         }
 
         if !installed {
-            // Build the tool from source
-            if build {
-                self.build_from_source(&install_dir).await?;
+            // // Build the tool from source
+            // if build {
+            //     self.build_from_source(&install_dir).await?;
 
-            // Install from a prebuilt archive
-            } else {
-                self.install_from_prebuilt(&install_dir).await?;
-            }
+            // // Install from a prebuilt archive
+            // } else {
+            //     self.install_from_prebuilt(&install_dir).await?;
+            // }
+
+            self.install_from_prebuilt(&install_dir).await?;
         }
 
         self.on_installed

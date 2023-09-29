@@ -3,7 +3,7 @@ name = "system_env"
 version = "0.0.1"
 edition = "2021"
 license = "MIT"
-description = "Utilities for installing OS system packages."
+description = "Information about the system environment: operating system, architecture, package manager, etc."
 homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
