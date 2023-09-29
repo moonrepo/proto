@@ -1,6 +1,3 @@
-use std::env;
-use std::path::PathBuf;
-
 use clap::Args;
 use proto_core::{load_tool, Id, Tool, ToolsConfig, UnresolvedVersionSpec};
 use starbase::{system, SystemResult};
@@ -33,9 +30,7 @@ pub fn internal_pin(tool: &mut Tool, args: &PinArgs) -> SystemResult {
             "Wrote the global version",
         );
     } else {
-        let local_path = env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-
-        let mut config = ToolsConfig::load_from(local_path)?;
+        let mut config = ToolsConfig::load()?;
         config.tools.insert(args.id.clone(), args.spec.clone());
         config.save()?;
 

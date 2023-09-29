@@ -40,23 +40,25 @@ impl ToolsConfig {
         }
     }
 
-    pub fn load_from<P: AsRef<Path>>(dir: P) -> miette::Result<Self> {
-        Self::load(dir.as_ref().join(TOOLS_CONFIG_NAME))
+    #[tracing::instrument(skip_all)]
+    pub fn load() -> miette::Result<Self> {
+        let working_dir = env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+
+        Self::load_from(working_dir)
     }
 
-    #[tracing::instrument(skip_all)]
-    pub fn load<P: AsRef<Path>>(path: P) -> miette::Result<Self> {
-        let path = path.as_ref();
+    pub fn load_from<P: AsRef<Path>>(dir: P) -> miette::Result<Self> {
+        let path = dir.as_ref().join(TOOLS_CONFIG_NAME);
 
         let mut config: ToolsConfig = if path.exists() {
             debug!(file = ?path, "Loading {}", TOOLS_CONFIG_NAME);
 
-            toml::from_str(&fs::read_file_with_lock(path)?).into_diagnostic()?
+            toml::from_str(&fs::read_file_with_lock(&path)?).into_diagnostic()?
         } else {
             ToolsConfig::default()
         };
 
-        config.path = path.to_owned();
+        config.path = path.clone();
 
         // Update plugin file paths to be absolute
         for locator in config.plugins.values_mut() {
@@ -88,10 +90,8 @@ impl ToolsConfig {
         let mut config = ToolsConfig::default();
 
         while let Some(dir) = current_dir {
-            let path = dir.join(TOOLS_CONFIG_NAME);
-
-            if path.exists() {
-                let mut parent_config = Self::load(&path)?;
+            if dir.join(TOOLS_CONFIG_NAME).exists() {
+                let mut parent_config = Self::load_from(dir)?;
                 parent_config.merge(config);
 
                 config = parent_config;

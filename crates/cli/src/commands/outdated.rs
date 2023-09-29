@@ -19,6 +19,9 @@ pub struct OutdatedArgs {
         help = "Check for latest version available ignoring requirements and ranges"
     )]
     latest: bool,
+
+    #[arg(long, help = "Update the versions in the local configuration")]
+    update: bool,
 }
 
 #[derive(Serialize)]
@@ -31,7 +34,7 @@ pub struct OutdatedItem {
 
 #[system]
 pub async fn outdated(args: ArgsRef<OutdatedArgs>) {
-    let tools_config = ToolsConfig::load_upwards()?;
+    let mut tools_config = ToolsConfig::load()?;
     let initial_version = UnresolvedVersionSpec::default(); // latest
 
     if tools_config.tools.is_empty() {
@@ -44,6 +47,7 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>) {
     }
 
     let mut items = HashMap::new();
+    let mut tool_versions = HashMap::new();
 
     for (tool_id, config_version) in &tools_config.tools {
         let mut tool = load_tool(tool_id).await?;
@@ -87,6 +91,10 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>) {
             comments.push(color::success("update available!"));
         }
 
+        if args.update {
+            tool_versions.insert(tool.id.clone(), newer_version.to_unresolved_spec());
+        }
+
         if args.json {
             items.insert(
                 tool.id,
@@ -107,9 +115,12 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>) {
         }
     }
 
+    if args.update {
+        tools_config.tools.extend(tool_versions);
+        tools_config.save()?;
+    }
+
     if args.json {
         println!("{}", json::to_string_pretty(&items).into_diagnostic()?);
-
-        return Ok(());
     }
 }
