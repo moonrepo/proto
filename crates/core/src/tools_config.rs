@@ -74,17 +74,23 @@ impl ToolsConfig {
         Ok(config)
     }
 
+    pub fn load_closest() -> miette::Result<Self> {
+        let working_dir = env::current_dir().expect("Unknown current working directory!");
+
+        Self::load_upwards_from(working_dir, true)
+    }
+
     pub fn load_upwards() -> miette::Result<Self> {
         let working_dir = env::current_dir().expect("Unknown current working directory!");
 
-        Self::load_upwards_from(working_dir)
+        Self::load_upwards_from(working_dir, false)
     }
 
-    pub fn load_upwards_from<P>(starting_dir: P) -> miette::Result<Self>
+    pub fn load_upwards_from<P>(starting_dir: P, stop_at_first: bool) -> miette::Result<Self>
     where
         P: AsRef<Path>,
     {
-        trace!("Traversing upwards and loading all .prototools files");
+        trace!("Traversing upwards and loading .prototools files");
 
         let mut current_dir = Some(starting_dir.as_ref());
         let mut config = ToolsConfig::default();
@@ -95,6 +101,10 @@ impl ToolsConfig {
                 parent_config.merge(config);
 
                 config = parent_config;
+
+                if stop_at_first {
+                    break;
+                }
             }
 
             match dir.parent() {

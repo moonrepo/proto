@@ -16,11 +16,11 @@ pub struct OutdatedArgs {
 
     #[arg(
         long,
-        help = "Check for latest version available ignoring requirements and ranges"
+        help = "Check for latest available version ignoring requirements and ranges"
     )]
     latest: bool,
 
-    #[arg(long, help = "Update the versions in the local configuration")]
+    #[arg(long, help = "Update and write the versions to the local .prototools")]
     update: bool,
 }
 
@@ -34,7 +34,7 @@ pub struct OutdatedItem {
 
 #[system]
 pub async fn outdated(args: ArgsRef<OutdatedArgs>) {
-    let mut tools_config = ToolsConfig::load()?;
+    let mut tools_config = ToolsConfig::load_closest()?;
     let initial_version = UnresolvedVersionSpec::default(); // latest
 
     if tools_config.tools.is_empty() {

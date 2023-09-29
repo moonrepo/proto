@@ -162,7 +162,8 @@ foo = "source:./test.toml"
     "#,
         );
 
-        let config = ToolsConfig::load_upwards_from(sandbox.path().join("one/two/three")).unwrap();
+        let config =
+            ToolsConfig::load_upwards_from(sandbox.path().join("one/two/three"), false).unwrap();
 
         assert_eq!(
             config.tools,
