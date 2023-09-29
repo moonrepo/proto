@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::path::PathBuf;
+use system_env::SystemDependency;
 use warpgate_api::VirtualPath;
 
 pub use semver::{Version, VersionReq};
@@ -181,6 +182,62 @@ json_struct!(
 
         /// Whether to skip the uninstall process or not.
         pub skip_uninstall: bool,
+    }
+);
+
+json_struct!(
+    /// Input passed to the `build_instructions` function.
+    pub struct BuildInstructionsInput {
+        /// Current tool context.
+        pub context: ToolContext,
+    }
+);
+
+json_enum!(
+    #[derive(Default)]
+    #[serde(tag = "type", rename_all = "lowercase")]
+    pub enum SourceLocation {
+        #[default]
+        None,
+        Archive {
+            url: String,
+        },
+        Git {
+            url: String,
+            reference: String,
+            submodules: bool,
+        },
+    }
+);
+
+json_enum!(
+    #[serde(tag = "type", rename_all = "lowercase")]
+    pub enum BuildInstruction {
+        Command {
+            bin: String,
+            args: Vec<String>,
+            env: HashMap<String, String>,
+        },
+    }
+);
+
+json_struct!(
+    /// Output returned by the `build_instructions` function.
+    pub struct BuildInstructionsOutput {
+        /// Link to the documentation/help.
+        pub help_url: Option<String>,
+
+        /// Location in which to acquire the source files. Can be an archive URL,
+        /// or Git repository.
+        pub source: SourceLocation,
+
+        /// List of instructions to execute to build the tool, after system
+        /// dependencies have been installed.
+        pub instructions: Vec<BuildInstruction>,
+
+        /// List of system dependencies that are required for building from source.
+        /// If a dependency does not exist, it will be installed.
+        pub system_dependencies: Vec<SystemDependency>,
     }
 );
 

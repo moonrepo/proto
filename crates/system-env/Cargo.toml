@@ -1,0 +1,13 @@
+[package]
+name = "system_env"
+version = "0.0.1"
+edition = "2021"
+license = "MIT"
+description = "Information about the system environment: operating system, architecture, package manager, etc."
+homepage = "https://moonrepo.dev/proto"
+repository = "https://github.com/moonrepo/proto"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
