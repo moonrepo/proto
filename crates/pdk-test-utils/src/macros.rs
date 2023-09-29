@@ -15,7 +15,10 @@ macro_rules! generate_download_install_tests {
 
             plugin
                 .tool
-                .setup(&proto_pdk_test_utils::UnresolvedVersionSpec::parse($version).unwrap())
+                .setup(
+                    &proto_pdk_test_utils::UnresolvedVersionSpec::parse($version).unwrap(),
+                    false,
+                )
                 .await
                 .unwrap();
 
