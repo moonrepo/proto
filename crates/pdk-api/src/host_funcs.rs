@@ -38,6 +38,10 @@ json_struct!(
         /// Environment variables to pass to the command.
         pub env_vars: HashMap<String, String>,
 
+        /// Mark the command as executable before executing.
+        #[doc(hidden)]
+        pub set_executable: bool,
+
         /// Stream the output instead of capturing it.
         pub stream: bool,
     }
@@ -54,8 +58,7 @@ impl ExecCommandInput {
         ExecCommandInput {
             command: command.as_ref().to_string(),
             args: args.into_iter().map(|a| a.as_ref().to_owned()).collect(),
-            env_vars: HashMap::new(),
-            stream: false,
+            ..ExecCommandInput::default()
         }
     }
 

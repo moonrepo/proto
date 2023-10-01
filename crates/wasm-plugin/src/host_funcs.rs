@@ -1,5 +1,6 @@
 use extism::{CurrentPlugin, Error, Function, InternalExt, UserData, Val, ValType};
 use proto_pdk_api::{ExecCommandInput, ExecCommandOutput, HostLogInput};
+use starbase_utils::fs;
 use std::env;
 use std::path::PathBuf;
 use std::process::Command;
@@ -73,6 +74,11 @@ fn exec_command(
         env_vars = ?input.env_vars,
         "Executing command from plugin"
     );
+
+    // This is temporary since WASI does not support updating file permissions yet!
+    if input.set_executable {
+        fs::update_perms(&input.command, None)?;
+    }
 
     // let data = user_data.any().unwrap();
     // let data = data.downcast_ref::<HostData>().unwrap();

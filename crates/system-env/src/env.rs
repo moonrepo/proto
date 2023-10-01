@@ -42,6 +42,12 @@ impl SystemArch {
 }
 
 impl Default for SystemArch {
+    #[cfg(target_arch = "wasm32")]
+    fn default() -> Self {
+        SystemArch::X64
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
     fn default() -> Self {
         SystemArch::from_env()
     }
@@ -105,6 +111,12 @@ impl SystemOS {
 }
 
 impl Default for SystemOS {
+    #[cfg(target_arch = "wasm32")]
+    fn default() -> Self {
+        SystemOS::Linux
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
     fn default() -> Self {
         SystemOS::from_env()
     }

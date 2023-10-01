@@ -2440,6 +2440,7 @@ dependencies = [
  "extism",
  "proto_pdk_api",
  "serde_json",
+ "starbase_utils",
  "tracing",
 ]
 
