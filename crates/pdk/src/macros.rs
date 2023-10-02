@@ -45,6 +45,24 @@ macro_rules! exec_command {
 }
 
 #[macro_export]
+macro_rules! host_env {
+    ($name:literal, $value:expr) => {
+        unsafe { set_env_var($name, $value)? };
+    };
+    ($name:literal) => {
+        unsafe {
+            let inner = get_env_var($name)?;
+
+            if inner.is_empty() {
+                None
+            } else {
+                Some(inner)
+            }
+        }
+    };
+}
+
+#[macro_export]
 macro_rules! host_log {
     ($($arg:tt)+) => {
         unsafe {

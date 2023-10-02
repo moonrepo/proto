@@ -76,7 +76,7 @@ pub enum ProtoError {
         code(proto::version::undetected),
         help = "Has the tool been installed?"
     )]
-    #[error("Failed to detect an applicable version to run {} with. Try pinning a local or global version, or passing the version as an argument.", .tool.style(Style::Id))]
+    #[error("Failed to detect an applicable version to run {} with. Try pinning a version or passing the version as an argument.", .tool.style(Style::Id))]
     VersionDetectFailed { tool: Id },
 
     #[diagnostic(code(proto::version::unresolved))]
