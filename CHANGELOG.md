@@ -14,6 +14,7 @@
 
 #### 🚀 Updates
 
+- The file loaded for `proto outdated` is now output in the terminal.
 - WASM API
   - Added `get_env_var` and `set_env_var` host functions.
   - Added `host_env!` macro.

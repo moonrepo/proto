@@ -44,6 +44,7 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>) {
 
     if !args.json {
         info!("Checking for newer versions...");
+        info!("Loading {}", color::path(&tools_config.path));
     }
 
     let mut items = HashMap::new();
