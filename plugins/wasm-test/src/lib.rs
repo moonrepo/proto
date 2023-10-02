@@ -5,13 +5,20 @@ use std::collections::HashMap;
 
 #[host_fn]
 extern "ExtismHost" {
-    fn host_log(input: Json<HostLogInput>);
     fn exec_command(input: Json<ExecCommandInput>) -> Json<ExecCommandOutput>;
+    fn get_env_var(name: &str) -> String;
+    fn host_log(input: Json<HostLogInput>);
+    fn set_env_var(name: &str, value: &str);
 }
 
 #[plugin_fn]
 pub fn register_tool(_: ()) -> FnResult<Json<ToolMetadataOutput>> {
     host_log!("Registering tool");
+
+    let value = host_env!("WASM_KEY");
+
+    host_log!("WASM_KEY = {:?}", value);
+    host_env!("WASM_SOURCE", "guest");
 
     Ok(Json(ToolMetadataOutput {
         name: "WASM Test".into(),

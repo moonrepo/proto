@@ -13,7 +13,6 @@ pub struct HostData {
 
 pub fn create_host_functions(data: HostData) -> Vec<Function> {
     vec![
-        Function::new("host_log", [ValType::I64], [], None, host_log),
         Function::new(
             "exec_command",
             [ValType::I64],
@@ -21,8 +20,21 @@ pub fn create_host_functions(data: HostData) -> Vec<Function> {
             Some(UserData::new(data)),
             exec_command,
         ),
-        // Backwards compatibility
-        Function::new("trace", [ValType::I64], [], None, host_log),
+        Function::new(
+            "get_env_var",
+            [ValType::I64],
+            [ValType::I64],
+            None,
+            get_env_var,
+        ),
+        Function::new("host_log", [ValType::I64], [], None, host_log),
+        Function::new(
+            "set_env_var",
+            [ValType::I64, ValType::I64],
+            [],
+            None,
+            set_env_var,
+        ),
     ]
 }
 
@@ -133,6 +145,55 @@ fn exec_command(
     let ptr = plugin.memory_alloc_bytes(output_str)?;
 
     outputs[0] = Val::I64(ptr as i64);
+
+    Ok(())
+}
+
+fn get_env_var(
+    plugin: &mut CurrentPlugin,
+    inputs: &[Val],
+    outputs: &mut [Val],
+    _user_data: UserData,
+) -> Result<(), Error> {
+    let name = plugin.memory_read_str(inputs[0].unwrap_i64() as u64)?;
+    let value = env::var(name).unwrap_or_default();
+
+    trace!(
+        target: "proto_wasm::get_env_var",
+        name,
+        value = &value,
+        "Reading environment variable from host"
+    );
+
+    let ptr = plugin.memory_alloc_bytes(value)?;
+
+    outputs[0] = Val::I64(ptr as i64);
+
+    Ok(())
+}
+
+fn set_env_var(
+    plugin: &mut CurrentPlugin,
+    inputs: &[Val],
+    _outputs: &mut [Val],
+    _user_data: UserData,
+) -> Result<(), Error> {
+    let name = plugin
+        .memory_read_str(inputs[0].unwrap_i64() as u64)?
+        .to_owned();
+
+    let value = plugin
+        .memory_read_str(inputs[1].unwrap_i64() as u64)?
+        .to_owned();
+
+    trace!(
+        target: "proto_wasm::set_env_var",
+        name = &name,
+        value = &value,
+        "Writing environment variable to host"
+    );
+
+    env::set_var(name, value);
 
     Ok(())
 }

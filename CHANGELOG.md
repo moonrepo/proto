@@ -10,6 +10,14 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [Schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- WASM API
+  - Added `get_env_var` and `set_env_var` host functions.
+  - Added `host_env!` macro.
+
 ## 0.19.0
 
 #### 💥 Breaking
