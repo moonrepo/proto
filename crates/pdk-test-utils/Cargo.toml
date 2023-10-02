@@ -8,9 +8,9 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
-proto_core = { version = "0.19.1", path = "../core" }
+proto_core = { version = "0.19.2", path = "../core" }
 proto_pdk_api = { version = "0.7.4", path = "../pdk-api" }
-proto_wasm_plugin = { version = "0.6.9", path = "../wasm-plugin" }
+proto_wasm_plugin = { version = "0.6.10", path = "../wasm-plugin" }
 extism = { workspace = true }
 serde_json = { workspace = true }
 toml = { version = "0.8.1", optional = true }

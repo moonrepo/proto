@@ -1,6 +1,6 @@
 [package]
 name = "proto_pdk"
-version = "0.7.6"
+version = "0.7.7"
 edition = "2021"
 license = "MIT"
 description = "A plugin development kit for creating proto WASM plugins."

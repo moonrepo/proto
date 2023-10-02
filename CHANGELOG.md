@@ -10,7 +10,7 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [Schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
-## Unreleased
+## 0.19.1
 
 #### 🚀 Updates
 
