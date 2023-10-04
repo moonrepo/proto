@@ -10,6 +10,13 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [Schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Updated `proto clean` to also clean the `~/.proto/temp` directory.
+- Updated `proto install` to unpack installs to a temporary directory, before moving to the final store location.
+
 ## 0.19.1
 
 #### 🚀 Updates
