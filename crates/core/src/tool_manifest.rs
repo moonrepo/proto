@@ -9,7 +9,7 @@ use std::{
 use tracing::{debug, info};
 use version_spec::*;
 
-fn now() -> u128 {
+pub(crate) fn now() -> u128 {
     SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .map(|d| d.as_millis())

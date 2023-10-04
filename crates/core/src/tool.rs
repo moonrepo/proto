@@ -8,7 +8,7 @@ use crate::proto::ProtoEnvironment;
 use crate::shimmer::{
     create_global_shim, create_local_shim, get_shim_file_name, ShimContext, SHIM_VERSION,
 };
-use crate::tool_manifest::ToolManifest;
+use crate::tool_manifest::{now, ToolManifest};
 use crate::version_resolver::VersionResolver;
 use extism::{manifest::Wasm, Manifest as PluginManifest};
 use miette::IntoDiagnostic;
@@ -802,6 +802,9 @@ impl Tool {
             .get_temp_dir()
             .join(self.get_resolved_version().to_string());
 
+        // Include the timestamp to uniquify the unpack location
+        let temp_install_dir = temp_dir.join(now().to_string());
+
         let options: DownloadPrebuiltOutput = self.plugin.cache_func_with(
             "download_prebuilt",
             DownloadPrebuiltInput {
@@ -848,6 +851,7 @@ impl Tool {
         debug!(
             tool = self.id.as_str(),
             download_file = ?download_file,
+            unpack_dir = ?temp_install_dir,
             install_dir = ?install_dir,
             "Attempting to unpack archive",
         );
@@ -857,14 +861,14 @@ impl Tool {
                 "unpack_archive",
                 UnpackArchiveInput {
                     input_file: self.to_virtual_path(&download_file),
-                    output_dir: self.to_virtual_path(install_dir),
+                    output_dir: self.to_virtual_path(&temp_install_dir),
                     context: self.create_context()?,
                 },
             )?;
 
             // Is an archive, unpack it
         } else if is_archive_file(&download_file) {
-            let mut archiver = Archiver::new(install_dir, &download_file);
+            let mut archiver = Archiver::new(&temp_install_dir, &download_file);
 
             if let Some(prefix) = &options.archive_prefix {
                 archiver.set_prefix(prefix);
@@ -874,7 +878,7 @@ impl Tool {
 
             // Not an archive, assume a binary and copy
         } else {
-            let install_path = install_dir.join(if cfg!(windows) {
+            let install_path = temp_install_dir.join(if cfg!(windows) {
                 format!("{}.exe", self.id)
             } else {
                 self.id.to_string()
@@ -883,6 +887,9 @@ impl Tool {
             fs::rename(&download_file, &install_path)?;
             fs::update_perms(install_path, None)?;
         }
+
+        // Move the unpacked files to the final destination
+        fs::rename(temp_install_dir, install_dir)?;
 
         Ok(download_file)
     }
