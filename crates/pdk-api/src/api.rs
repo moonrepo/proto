@@ -144,6 +144,9 @@ json_struct!(
     pub struct NativeInstallInput {
         /// Current tool context.
         pub context: ToolContext,
+
+        /// Virtual directory to install to.
+        pub output_dir: VirtualPath,
     }
 );
 

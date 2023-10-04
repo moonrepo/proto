@@ -904,10 +904,10 @@ impl Tool {
             return Err(ProtoError::InternetConnectionRequired.into());
         }
 
+        let install_dir = self.get_tool_dir();
         let temp_install_dir =
             self.get_temp_dir()
-                .join(format!("{}-{}", self.get_resolved_version(), now(),));
-        let temp_install_lock = fs::lock_directory(&temp_install_dir).await?;
+                .join(format!("{}-{}", self.get_resolved_version(), now()));
         let mut installed = false;
 
         self.on_installing
@@ -925,6 +925,7 @@ impl Tool {
                 "native_install",
                 NativeInstallInput {
                     context: self.create_context()?,
+                    output_dir: self.to_virtual_path(&temp_install_dir),
                 },
             )?;
 
@@ -952,13 +953,10 @@ impl Tool {
             // }
 
             self.install_from_prebuilt(&temp_install_dir).await?;
+
+            // Move the built/unpacked files to the final destination
+            fs::rename(temp_install_dir, &install_dir)?;
         }
-
-        // Move the unpacked files to the final destination
-        let install_dir = self.get_tool_dir();
-
-        temp_install_lock.unlock()?;
-        fs::rename(temp_install_dir, &install_dir)?;
 
         self.on_installed
             .emit(InstalledEvent {
