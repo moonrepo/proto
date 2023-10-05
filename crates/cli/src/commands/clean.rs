@@ -1,7 +1,8 @@
 use clap::Args;
 use dialoguer::Confirm;
 use proto_core::{
-    get_plugins_dir, get_shim_file_name, load_tool, Id, ProtoError, Tool, ToolsConfig, VersionSpec,
+    get_plugins_dir, get_shim_file_name, get_temp_dir, load_tool, Id, ProtoError, Tool,
+    ToolsConfig, VersionSpec,
 };
 use proto_pdk_api::{CreateShimsInput, CreateShimsOutput};
 use starbase::diagnostics::IntoDiagnostic;
@@ -278,6 +279,15 @@ pub async fn internal_clean(args: &CleanArgs) -> SystemResult {
     if clean_count > 0 {
         info!("Successfully cleaned up {} plugins", clean_count);
     }
+
+    info!("Cleaning temporary directory...");
+
+    let results = fs::remove_dir_stale_contents(get_temp_dir()?, Duration::from_secs(86400))?;
+
+    info!(
+        "Successfully cleaned {} temporary files ({} bytes)",
+        results.files_deleted, results.bytes_saved
+    );
 
     Ok(())
 }

@@ -8,7 +8,7 @@ use crate::proto::ProtoEnvironment;
 use crate::shimmer::{
     create_global_shim, create_local_shim, get_shim_file_name, ShimContext, SHIM_VERSION,
 };
-use crate::tool_manifest::ToolManifest;
+use crate::tool_manifest::{now, ToolManifest};
 use crate::version_resolver::VersionResolver;
 use extism::{manifest::Wasm, Manifest as PluginManifest};
 use miette::IntoDiagnostic;
@@ -791,17 +791,13 @@ impl Tool {
 
     /// Download the tool (as an archive) from its distribution registry
     /// into the `~/.proto/temp` folder, and optionally verify checksums.
-    pub async fn install_from_prebuilt(&self, install_dir: &Path) -> miette::Result<PathBuf> {
+    pub async fn install_from_prebuilt(&self, temp_dir: &Path) -> miette::Result<PathBuf> {
         debug!(
             tool = self.id.as_str(),
             "Installing tool from a pre-built archive"
         );
 
         let client = self.proto.get_http_client()?;
-        let temp_dir = self
-            .get_temp_dir()
-            .join(self.get_resolved_version().to_string());
-
         let options: DownloadPrebuiltOutput = self.plugin.cache_func_with(
             "download_prebuilt",
             DownloadPrebuiltInput {
@@ -842,13 +838,14 @@ impl Tool {
             }
 
             self.verify_checksum(&checksum_file, &download_file).await?;
+            fs::remove_file(checksum_file)?;
         }
 
         // Attempt to unpack the archive
         debug!(
             tool = self.id.as_str(),
             download_file = ?download_file,
-            install_dir = ?install_dir,
+            install_dir = ?temp_dir,
             "Attempting to unpack archive",
         );
 
@@ -857,14 +854,14 @@ impl Tool {
                 "unpack_archive",
                 UnpackArchiveInput {
                     input_file: self.to_virtual_path(&download_file),
-                    output_dir: self.to_virtual_path(install_dir),
+                    output_dir: self.to_virtual_path(temp_dir),
                     context: self.create_context()?,
                 },
             )?;
 
             // Is an archive, unpack it
         } else if is_archive_file(&download_file) {
-            let mut archiver = Archiver::new(install_dir, &download_file);
+            let mut archiver = Archiver::new(temp_dir, &download_file);
 
             if let Some(prefix) = &options.archive_prefix {
                 archiver.set_prefix(prefix);
@@ -874,7 +871,7 @@ impl Tool {
 
             // Not an archive, assume a binary and copy
         } else {
-            let install_path = install_dir.join(if cfg!(windows) {
+            let install_path = temp_dir.join(if cfg!(windows) {
                 format!("{}.exe", self.id)
             } else {
                 self.id.to_string()
@@ -882,6 +879,10 @@ impl Tool {
 
             fs::rename(&download_file, &install_path)?;
             fs::update_perms(install_path, None)?;
+        }
+
+        if download_file.exists() {
+            fs::remove_file(&download_file)?;
         }
 
         Ok(download_file)
@@ -904,7 +905,9 @@ impl Tool {
         }
 
         let install_dir = self.get_tool_dir();
-        let _install_lock = fs::lock_directory(&install_dir).await?;
+        let temp_install_dir =
+            self.get_temp_dir()
+                .join(format!("{}-{}", self.get_resolved_version(), now()));
         let mut installed = false;
 
         self.on_installing
@@ -922,6 +925,7 @@ impl Tool {
                 "native_install",
                 NativeInstallInput {
                     context: self.create_context()?,
+                    output_dir: self.to_virtual_path(&temp_install_dir),
                 },
             )?;
 
@@ -948,7 +952,10 @@ impl Tool {
             //     self.install_from_prebuilt(&install_dir).await?;
             // }
 
-            self.install_from_prebuilt(&install_dir).await?;
+            self.install_from_prebuilt(&temp_install_dir).await?;
+
+            // Move the built/unpacked files to the final destination
+            fs::rename(temp_install_dir, &install_dir)?;
         }
 
         self.on_installed

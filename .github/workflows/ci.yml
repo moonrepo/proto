@@ -63,6 +63,8 @@ jobs:
       - run: cargo nextest run --workspace --exclude proto_pdk --profile ci --config-file ./.cargo/nextest.toml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROTO_DEBUG_COMMAND: 1
+          RUST_BACKTRACE: 1
   run:
     name: Run
     runs-on: ${{ matrix.os }}
