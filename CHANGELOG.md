@@ -10,6 +10,17 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [Schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added support for minisign checksum files. Can now verify `.minisig` signatures for downloaded tools.
+- TOML API
+  - Added an `install.checksum_public_key` setting.
+- WASM API
+  - Added a `checksum_public_key` field to `DownloadPrebuiltOutput`.
+  - Removed `checksum` from `VerifyChecksumInput`.
+
 ## 0.19.3
 
 #### 🚀 Updates

@@ -268,6 +268,10 @@ json_struct!(
         #[serde(skip_serializing_if = "Option::is_none")]
         pub checksum_name: Option<String>,
 
+        /// Public key to use for checksum verification.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub checksum_public_key: Option<String>,
+
         /// A secure URL to download the checksum file for verification.
         /// If the tool does not support checksum verification, this setting can be omitted.
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -302,9 +306,6 @@ json_struct!(
     pub struct VerifyChecksumInput {
         /// Current tool context.
         pub context: ToolContext,
-
-        /// The SHA-256 hash of the downloaded file.
-        pub checksum: String,
 
         /// Virtual path to the checksum file.
         pub checksum_file: VirtualPath,

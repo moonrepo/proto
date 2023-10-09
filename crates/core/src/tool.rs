@@ -626,6 +626,7 @@ impl Tool {
         &self,
         checksum_file: &Path,
         download_file: &Path,
+        checksum_public_key: Option<&str>,
     ) -> miette::Result<bool> {
         debug!(
             tool = self.id.as_str(),
@@ -634,44 +635,72 @@ impl Tool {
             "Verifiying checksum of downloaded file",
         );
 
-        let checksum = hash_file_contents(download_file)?;
+        let mut verified = false;
 
         // Allow plugin to provide their own checksum verification method
         if self.plugin.has_func("verify_checksum") {
             let result: VerifyChecksumOutput = self.plugin.call_func_with(
                 "verify_checksum",
                 VerifyChecksumInput {
-                    checksum,
                     checksum_file: self.to_virtual_path(checksum_file),
                     download_file: self.to_virtual_path(download_file),
                     context: self.create_context()?,
                 },
             )?;
 
-            if result.verified {
-                return Ok(true);
-            }
+            verified = result.verified;
 
         // Otherwise attempt to verify it ourselves
         } else {
-            let file = fs::open_file(checksum_file)?;
-            let file_name = fs::file_name(download_file);
+            match checksum_file.extension().map(|e| e.to_str().unwrap()) {
+                Some("minisig" | "minisign") => {
+                    use minisign_verify::*;
 
-            for line in BufReader::new(file).lines().flatten() {
-                if
-                // <checksum>  <file>
-                line.starts_with(&checksum) && line.ends_with(&file_name) ||
-                // <checksum>
-                line == checksum
-                {
-                    debug!(
-                        tool = self.id.as_str(),
-                        "Successfully verified, checksum matches"
-                    );
+                    let handle_error = |error: Error| ProtoError::Minisign { error };
 
-                    return Ok(true);
+                    let public_key = PublicKey::from_base64(
+                        checksum_public_key.ok_or_else(|| ProtoError::MissingChecksumPublicKey)?,
+                    )
+                    .map_err(handle_error)?;
+
+                    public_key
+                        .verify(
+                            &fs::read_file_bytes(download_file)?,
+                            &Signature::decode(&fs::read_file(checksum_file)?)
+                                .map_err(handle_error)?,
+                            false,
+                        )
+                        .map_err(handle_error)?;
+
+                    verified = true;
                 }
-            }
+                _ => {
+                    let checksum_hash = hash_file_contents(download_file)?;
+                    let checksum_matching_line =
+                        format!("{}  {}", checksum_hash, fs::file_name(download_file));
+
+                    for line in BufReader::new(fs::open_file(checksum_file)?)
+                        .lines()
+                        .flatten()
+                    {
+                        // <checksum>  <file>
+                        // <checksum>
+                        if line == checksum_matching_line || line == checksum_hash {
+                            verified = true;
+                            break;
+                        }
+                    }
+                }
+            };
+        }
+
+        if verified {
+            debug!(
+                tool = self.id.as_str(),
+                "Successfully verified, checksum matches"
+            );
+
+            return Ok(true);
         }
 
         Err(ProtoError::InvalidChecksum {
@@ -826,8 +855,10 @@ impl Tool {
 
         // Verify the checksum if applicable
         if let Some(checksum_url) = options.checksum_url {
-            let checksum_file =
-                temp_dir.join(options.checksum_name.unwrap_or("CHECKSUM.txt".to_owned()));
+            let checksum_file = temp_dir.join(match options.checksum_name {
+                Some(name) => name,
+                None => extract_filename_from_url(&checksum_url)?,
+            });
 
             if !checksum_file.exists() {
                 debug!(
@@ -838,7 +869,13 @@ impl Tool {
                 download_from_url_to_file(&checksum_url, &checksum_file, client).await?;
             }
 
-            self.verify_checksum(&checksum_file, &download_file).await?;
+            self.verify_checksum(
+                &checksum_file,
+                &download_file,
+                options.checksum_public_key.as_deref(),
+            )
+            .await?;
+
             fs::remove_file(checksum_file)?;
         }
 
