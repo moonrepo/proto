@@ -27,7 +27,7 @@ pub enum ProtoError {
 
     #[diagnostic(code(proto::verify::missing_public_key))]
     #[error(
-        "A {} is required when using minisig.", "checksum_public_key".style(Style::Property)
+        "A {} is required to verify this tool.", "checksum_public_key".style(Style::Property)
     )]
     MissingChecksumPublicKey,
 
