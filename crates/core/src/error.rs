@@ -25,6 +25,12 @@ pub enum ProtoError {
     #[error("Internet connection required, unable to download and install tools.")]
     InternetConnectionRequired,
 
+    #[diagnostic(code(proto::verify::missing_public_key))]
+    #[error(
+        "A {} is required when using minisig.", "checksum_public_key".style(Style::Property)
+    )]
+    MissingChecksumPublicKey,
+
     #[diagnostic(code(proto::verify::invalid_checksum))]
     #[error(
         "Checksum has failed for {}, which was verified using {}.", .download.style(Style::Path), .checksum.style(Style::Path)
@@ -89,6 +95,13 @@ pub enum ProtoError {
         url: String,
         #[source]
         error: reqwest::Error,
+    },
+
+    #[diagnostic(code(proto::verify::minisign))]
+    #[error("Failed to verify minisign checksum.")]
+    Minisign {
+        #[source]
+        error: minisign_verify::Error,
     },
 
     #[diagnostic(code(proto::version::invalid))]
