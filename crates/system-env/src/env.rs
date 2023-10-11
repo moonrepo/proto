@@ -5,6 +5,7 @@ use std::fmt;
 
 /// Architecture of the host environment.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
 #[serde(rename_all = "lowercase")]
 pub enum SystemArch {
     X86,
@@ -61,6 +62,7 @@ impl fmt::Display for SystemArch {
 
 /// Operating system of the host environment.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
 #[serde(rename_all = "lowercase")]
 pub enum SystemOS {
     Android,
