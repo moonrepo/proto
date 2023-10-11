@@ -146,7 +146,7 @@ json_struct!(
         pub context: ToolContext,
 
         /// Virtual directory to install to.
-        pub output_dir: VirtualPath,
+        pub install_dir: VirtualPath,
     }
 );
 
@@ -249,6 +249,9 @@ json_struct!(
     pub struct DownloadPrebuiltInput {
         /// Current tool context.
         pub context: ToolContext,
+
+        /// Virtual directory to install to.
+        pub install_dir: VirtualPath,
     }
 );
 

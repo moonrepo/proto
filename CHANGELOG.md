@@ -10,6 +10,18 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [Schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Ensures the installation directory is empty before unpacking/moving files during an install.
+- WASM API
+  - Added `install_dir` to `DownloadPrebuiltInput` and `NativeInstallInput`.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.19.2
 
 #### 🚀 Updates
