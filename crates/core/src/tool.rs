@@ -802,6 +802,7 @@ impl Tool {
             "download_prebuilt",
             DownloadPrebuiltInput {
                 context: self.create_context()?,
+                install_dir: self.to_virtual_path(&temp_dir),
             },
         )?;
 
@@ -925,7 +926,7 @@ impl Tool {
                 "native_install",
                 NativeInstallInput {
                     context: self.create_context()?,
-                    output_dir: self.to_virtual_path(&temp_install_dir),
+                    install_dir: self.to_virtual_path(&temp_install_dir),
                 },
             )?;
 
