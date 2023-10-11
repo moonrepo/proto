@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
 #[serde(untagged)]
 pub enum DependencyName {
     Single(String),
@@ -19,6 +20,7 @@ impl Default for DependencyName {
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
 #[serde(default)]
 pub struct DependencyConfig {
     pub arch: Option<SystemArch>,
@@ -51,6 +53,7 @@ impl DependencyConfig {
 
 // This shape is what users configure.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
 #[serde(untagged)]
 pub enum SystemDependency {
     Name(String),
