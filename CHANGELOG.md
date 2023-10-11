@@ -14,6 +14,7 @@
 
 #### 🚀 Updates
 
+- Ensures the installation directory is empty before unpacking/moving files during an install.
 - WASM API
   - Added `install_dir` to `DownloadPrebuiltInput` and `NativeInstallInput`.
 

@@ -955,6 +955,11 @@ impl Tool {
 
             self.install_from_prebuilt(&temp_install_dir).await?;
 
+            // Ensure the final destination does not exist before moving
+            if install_dir.exists() {
+                fs::remove_dir_all(&install_dir)?;
+            }
+
             // Move the built/unpacked files to the final destination
             fs::rename(temp_install_dir, &install_dir)?;
         }
