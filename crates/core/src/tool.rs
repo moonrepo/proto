@@ -831,7 +831,7 @@ impl Tool {
             "download_prebuilt",
             DownloadPrebuiltInput {
                 context: self.create_context()?,
-                install_dir: self.to_virtual_path(&temp_dir),
+                install_dir: self.to_virtual_path(temp_dir),
             },
         )?;
 

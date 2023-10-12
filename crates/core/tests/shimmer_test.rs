@@ -32,7 +32,7 @@ mod shimmer {
         let context = create_context("primary", &proto);
         let shim = create_global_shim(&proto, context, true).unwrap();
 
-        assert_eq!(shim, proto.bin_dir.join("primary"));
+        assert_eq!(shim, proto.shims_dir.join("primary"));
         assert_eq!(read_shim(&shim, sandbox.path()), "test");
     }
 
@@ -43,7 +43,7 @@ mod shimmer {
         let context = create_context("primary", &proto);
         let shim = create_global_shim(&proto, &context, false).unwrap();
 
-        assert_eq!(shim, proto.bin_dir.join("primary"));
+        assert_eq!(shim, proto.shims_dir.join("primary"));
         assert_snapshot!(read_shim(&shim, sandbox.path()));
     }
 
@@ -58,7 +58,7 @@ mod shimmer {
 
         let shim = create_global_shim(&proto, &context, false).unwrap();
 
-        assert_eq!(shim, proto.bin_dir.join("primary"));
+        assert_eq!(shim, proto.shims_dir.join("primary"));
         assert_snapshot!(read_shim(&shim, sandbox.path()));
     }
 
@@ -74,7 +74,7 @@ mod shimmer {
 
         let shim = create_global_shim(&proto, &context, false).unwrap();
 
-        assert_eq!(shim, proto.bin_dir.join("secondary"));
+        assert_eq!(shim, proto.shims_dir.join("secondary"));
         assert_snapshot!(read_shim(&shim, sandbox.path()));
     }
 
@@ -92,7 +92,7 @@ mod shimmer {
 
         let shim = create_global_shim(&proto, &context, false).unwrap();
 
-        assert_eq!(shim, proto.bin_dir.join("secondary"));
+        assert_eq!(shim, proto.shims_dir.join("secondary"));
         assert_snapshot!(read_shim(&shim, sandbox.path()));
     }
 

@@ -24,13 +24,13 @@ pub async fn setup(args: ArgsRef<SetupArgs>) {
     let paths = env::var("PATH").expect("Missing PATH!");
     let paths = env::split_paths(&paths).collect::<Vec<_>>();
 
-    if paths.contains(&proto.bin_dir) {
+    if paths.contains(&proto.shims_dir) {
         debug!("Skipping setup, PROTO_HOME already exists in PATH.");
 
         return Ok(());
     }
 
-    do_setup(shell, proto.bin_dir, args.profile)?;
+    do_setup(shell, proto.shims_dir, args.profile)?;
 }
 
 // For other shells, write environment variable(s) to an applicable profile!

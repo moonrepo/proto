@@ -11,6 +11,7 @@ pub struct ProtoEnvironment {
     pub bin_dir: PathBuf,
     pub cwd: PathBuf,
     pub plugins_dir: PathBuf,
+    pub shims_dir: PathBuf,
     pub temp_dir: PathBuf,
     pub tools_dir: PathBuf,
     pub home: PathBuf, // ~
@@ -39,6 +40,7 @@ impl ProtoEnvironment {
             bin_dir: root.join("bin"),
             cwd: env::current_dir().expect("Unable to determine current working directory!"),
             plugins_dir: root.join("plugins"),
+            shims_dir: root.join("shims"),
             temp_dir: root.join("temp"),
             tools_dir: root.join("tools"),
             home: get_home_dir()?,
