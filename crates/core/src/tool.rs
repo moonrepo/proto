@@ -152,6 +152,14 @@ impl Tool {
         self.cache = false;
     }
 
+    /// Return the name of the executable binary, using proto's tool ID.
+    pub fn get_bin_name(&self) -> miette::Result<String> {
+        Ok(match self.get_bin_path()?.extension() {
+            Some(ext) => format!("{}.{}", self.id, ext.to_string_lossy()),
+            None => self.id.to_string(),
+        })
+    }
+
     /// Return an absolute path to the executable binary for the tool.
     pub fn get_bin_path(&self) -> miette::Result<&Path> {
         self.bin_path.as_deref().ok_or_else(|| {
@@ -1386,6 +1394,7 @@ impl Tool {
             if self.bin_path.is_none() {
                 self.locate_bins().await?;
                 self.setup_shims(false).await?;
+                self.setup_bin_link(false)?;
             }
 
             return Ok(true);
@@ -1408,7 +1417,12 @@ impl Tool {
         if self.install(build_from_source).await? {
             self.cleanup().await?;
             self.locate_bins().await?;
+
+            // Always force create shims to ensure changes are propagated
             self.setup_shims(true).await?;
+
+            // Only link on the first install or if the bin doesnt exist
+            self.setup_bin_link(false)?;
 
             // Add version to manifest
             let mut default = None;
@@ -1434,6 +1448,37 @@ impl Tool {
         }
 
         Ok(false)
+    }
+
+    /// Create a symlink from the current tool to the proto bin directory.
+    pub fn setup_bin_link(&mut self, force: bool) -> miette::Result<()> {
+        let input_path = self.get_bin_path()?;
+        let output_path = self.proto.bin_dir.join(self.get_bin_name()?);
+
+        if output_path.exists() && !force {
+            return Ok(());
+        }
+
+        fs::remove_file(&output_path)?;
+
+        #[cfg(windows)]
+        {
+            std::os::windows::fs::symlink_file(&input_path, &output_path).into_diagnostic()?;
+        }
+
+        #[cfg(not(windows))]
+        {
+            std::os::unix::fs::symlink(&input_path, &output_path).into_diagnostic()?;
+        }
+
+        debug!(
+            tool = self.id.as_str(),
+            source = ?input_path,
+            target = ?output_path,
+            "Creating a symlink to the original tool executable"
+        );
+
+        Ok(())
     }
 
     /// Setup shims if they are missing or out of date.

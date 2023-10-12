@@ -29,6 +29,9 @@ pub fn internal_pin(tool: &mut Tool, args: &PinArgs) -> SystemResult {
             manifest = ?tool.manifest.path,
             "Wrote the global version",
         );
+
+        // Set symlink to this new version
+        tool.setup_bin_link(true)?;
     } else {
         let mut config = ToolsConfig::load()?;
         config.tools.insert(args.id.clone(), args.spec.clone());

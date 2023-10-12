@@ -198,6 +198,9 @@ async fn purge_tool(id: &Id, yes: bool) -> SystemResult {
         // Delete inventory
         fs::remove_dir_all(inventory_dir)?;
 
+        // Delete binary
+        fs::remove_file(tool.proto.bin_dir.join(tool.get_bin_name()?))?;
+
         // Delete shims
         fs::remove_file(
             tool.proto
