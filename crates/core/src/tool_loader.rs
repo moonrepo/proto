@@ -111,7 +111,7 @@ pub async fn load_tool_from_locator(
 
 pub async fn load_tool(id: &Id) -> miette::Result<Tool> {
     let proto = ProtoEnvironment::new()?;
-    let user_config = UserConfig::load()?;
+    let user_config = proto.get_user_config()?;
     let mut locator = None;
 
     debug!(
@@ -123,7 +123,12 @@ pub async fn load_tool(id: &Id) -> miette::Result<Tool> {
     if let Ok(working_dir) = env::current_dir() {
         let mut current_dir: Option<&Path> = Some(&working_dir);
 
-        while let Some(dir) = &current_dir {
+        while let Some(dir) = current_dir {
+            // Don't traverse past the home directory
+            if dir == proto.home {
+                break;
+            }
+
             let tools_config = ToolsConfig::load_from(dir)?;
 
             if let Some(maybe_locator) = tools_config.plugins.get(id) {

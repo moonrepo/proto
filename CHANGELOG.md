@@ -39,6 +39,10 @@
   - Added a `checksum_public_key` field to `DownloadPrebuiltOutput`.
   - Removed `checksum` from `VerifyChecksumInput`.
 
+#### ⚙️ Internal
+
+- Minor performance improvements to runtime version detection.
+
 ## 0.19.3
 
 #### 🚀 Updates

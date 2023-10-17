@@ -1,7 +1,7 @@
 use crate::commands::install::{internal_install, InstallArgs};
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::{detect_version, load_tool, Id, ProtoError, UnresolvedVersionSpec, UserConfig};
+use proto_core::{detect_version, load_tool, Id, ProtoError, UnresolvedVersionSpec};
 use proto_pdk_api::RunHook;
 use starbase::system;
 use starbase_styles::color;
@@ -34,7 +34,7 @@ pub struct RunArgs {
 pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
     let mut tool = load_tool(&args.id).await?;
     let version = detect_version(&tool, args.spec.clone()).await?;
-    let user_config = UserConfig::load()?;
+    let user_config = tool.proto.get_user_config()?;
 
     // Check if installed or install
     if !tool.is_setup(&version).await? {

@@ -2,7 +2,7 @@ use futures::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
 use proto_core::{
     get_temp_dir, load_tool_from_locator, Id, PluginLocator, ProtoEnvironment, ProtoError, Tool,
-    ToolsConfig, UserConfig,
+    ToolsConfig,
 };
 use starbase_utils::fs;
 use std::cmp;
@@ -93,9 +93,9 @@ pub async fn load_configured_tools(
     mut op: impl FnMut(Tool, PluginLocator),
 ) -> miette::Result<()> {
     let proto = ProtoEnvironment::new()?;
-    let mut user_config = UserConfig::load()?;
+    let mut user_config = proto.get_user_config()?;
 
-    let mut tools_config = ToolsConfig::load_upwards()?;
+    let mut tools_config = ToolsConfig::load_upwards_from(&proto.cwd, false)?;
     tools_config.inherit_builtin_plugins();
 
     let mut plugins = HashMap::new();

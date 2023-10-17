@@ -9,39 +9,37 @@ pub async fn detect_version(
     tool: &Tool,
     forced_version: Option<UnresolvedVersionSpec>,
 ) -> miette::Result<UnresolvedVersionSpec> {
-    let mut candidate = forced_version;
-
-    // Env var takes highest priority
-    if candidate.is_none() {
-        let env_var = format!("{}_VERSION", tool.get_env_var_prefix());
-
-        if let Ok(session_version) = env::var(&env_var) {
-            debug!(
-                tool = tool.id.as_str(),
-                env_var,
-                version = session_version,
-                "Detected version from environment variable",
-            );
-
-            candidate = Some(
-                UnresolvedVersionSpec::parse(&session_version).map_err(|error| {
-                    ProtoError::Semver {
-                        version: session_version,
-                        error,
-                    }
-                })?,
-            );
-        } else {
-            trace!(
-                tool = tool.id.as_str(),
-                "Attempting to find local version from config files"
-            );
-        }
-    } else {
+    if let Some(candidate) = forced_version {
         debug!(
             tool = tool.id.as_str(),
             version = ?candidate,
             "Using explicit version passed on the command line",
+        );
+
+        return Ok(candidate);
+    }
+
+    // Env var takes highest priorit
+    let env_var = format!("{}_VERSION", tool.get_env_var_prefix());
+
+    if let Ok(session_version) = env::var(&env_var) {
+        debug!(
+            tool = tool.id.as_str(),
+            env_var,
+            version = session_version,
+            "Detected version from environment variable",
+        );
+
+        return Ok(
+            UnresolvedVersionSpec::parse(&session_version).map_err(|error| ProtoError::Semver {
+                version: session_version,
+                error,
+            })?,
+        );
+    } else {
+        trace!(
+            tool = tool.id.as_str(),
+            "Attempting to find local version from config files"
         );
     }
 
@@ -49,9 +47,9 @@ pub async fn detect_version(
     if let Ok(working_dir) = env::current_dir() {
         let mut current_dir: Option<&Path> = Some(&working_dir);
 
-        while let Some(dir) = &current_dir {
-            // We already found a version, so exit
-            if candidate.is_some() {
+        while let Some(dir) = current_dir {
+            // Don't traverse past the home directory
+            if dir == tool.proto.home {
                 break;
             }
 
@@ -72,8 +70,7 @@ pub async fn detect_version(
                     "Detected version from .prototools file",
                 );
 
-                candidate = Some(local_version.to_owned());
-                break;
+                return Ok(local_version.to_owned());
             }
 
             // Detect using the tool
@@ -84,8 +81,7 @@ pub async fn detect_version(
                     "Detected version from tool's ecosystem"
                 );
 
-                candidate = Some(detected_version);
-                break;
+                return Ok(detected_version);
             }
 
             current_dir = dir.parent();
@@ -93,29 +89,25 @@ pub async fn detect_version(
     }
 
     // If still no version, load the global version
-    if candidate.is_none() {
-        trace!(
+    trace!(
+        tool = tool.id.as_str(),
+        "Attempting to use global version from manifest",
+    );
+
+    if let Some(global_version) = &tool.manifest.default_version {
+        debug!(
             tool = tool.id.as_str(),
-            "Attempting to use global version from manifest",
+            version = global_version.to_string(),
+            file = ?tool.manifest.path,
+            "Detected global version from manifest",
         );
 
-        if let Some(global_version) = &tool.manifest.default_version {
-            debug!(
-                tool = tool.id.as_str(),
-                version = global_version.to_string(),
-                file = ?tool.manifest.path,
-                "Detected global version from manifest",
-            );
-
-            candidate = Some(global_version.to_owned());
-        }
+        return Ok(global_version.to_owned());
     }
 
     // We didn't find anything!
-    candidate.ok_or_else(|| {
-        ProtoError::VersionDetectFailed {
-            tool: tool.id.to_owned(),
-        }
-        .into()
-    })
+    Err(ProtoError::VersionDetectFailed {
+        tool: tool.id.to_owned(),
+    }
+    .into())
 }

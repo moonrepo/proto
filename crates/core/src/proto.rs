@@ -66,6 +66,10 @@ impl ProtoEnvironment {
             loader
         })
     }
+
+    pub fn get_user_config(&self) -> miette::Result<UserConfig> {
+        UserConfig::load_from(&self.home)
+    }
 }
 
 impl AsRef<ProtoEnvironment> for ProtoEnvironment {

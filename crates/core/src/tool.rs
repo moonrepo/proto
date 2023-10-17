@@ -1421,7 +1421,7 @@ impl Tool {
             // Always force create shims to ensure changes are propagated
             self.setup_shims(true).await?;
 
-            // Only link on the first install or if the bin doesnt exist
+            // Only link on the first install or if the bin doesn't exist
             self.setup_bin_link(false)?;
 
             // Add version to manifest
