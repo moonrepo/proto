@@ -38,7 +38,11 @@ async fn main() -> MainResult {
         ..TracingOptions::default()
     });
 
-    debug!("Running proto v{}", env!("CARGO_PKG_VERSION"));
+    debug!(
+        args = ?env::args().collect::<Vec<_>>(),
+        "Running proto v{}",
+        env!("CARGO_PKG_VERSION")
+    );
 
     let mut app = App::new();
 

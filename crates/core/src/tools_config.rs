@@ -53,7 +53,7 @@ impl ToolsConfig {
         let mut config: ToolsConfig = if path.exists() {
             debug!(file = ?path, "Loading {}", TOOLS_CONFIG_NAME);
 
-            toml::from_str(&fs::read_file_with_lock(&path)?).into_diagnostic()?
+            toml::from_str(&fs::read_file(&path)?).into_diagnostic()?
         } else {
             ToolsConfig::default()
         };
@@ -121,7 +121,7 @@ impl ToolsConfig {
     }
 
     pub fn save(&self) -> miette::Result<()> {
-        fs::write_file_with_lock(&self.path, toml::to_string_pretty(self).into_diagnostic()?)?;
+        fs::write_file(&self.path, toml::to_string_pretty(self).into_diagnostic()?)?;
 
         Ok(())
     }
