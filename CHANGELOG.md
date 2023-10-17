@@ -14,6 +14,8 @@
 
 #### 💥 Breaking
 
+> To ease the migration process, we've added a new migrate command. Simply run `proto migrate v0.20` after upgrading proto!
+
 - The generated shims have moved to `~/.proto/shims` from `~/.proto/bin`. You'll need to manually update `PATH` in your shell profile if you'd like to continue using the dynamic version detection functionality.
 
   ```diff

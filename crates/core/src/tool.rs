@@ -1463,12 +1463,12 @@ impl Tool {
 
         #[cfg(windows)]
         {
-            std::os::windows::fs::symlink_file(&input_path, &output_path).into_diagnostic()?;
+            std::os::windows::fs::symlink_file(input_path, &output_path).into_diagnostic()?;
         }
 
         #[cfg(not(windows))]
         {
-            std::os::unix::fs::symlink(&input_path, &output_path).into_diagnostic()?;
+            std::os::unix::fs::symlink(input_path, &output_path).into_diagnostic()?;
         }
 
         debug!(

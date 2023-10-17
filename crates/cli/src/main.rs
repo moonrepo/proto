@@ -57,6 +57,7 @@ async fn main() -> MainResult {
         Commands::List(args) => app.execute_with_args(commands::list, args),
         Commands::ListGlobal(args) => app.execute_with_args(commands::list_global, args),
         Commands::ListRemote(args) => app.execute_with_args(commands::list_remote, args),
+        Commands::Migrate(args) => app.execute_with_args(commands::migrate, args),
         Commands::Outdated(args) => app.execute_with_args(commands::outdated, args),
         Commands::Pin(args) => app.execute_with_args(commands::pin, args),
         Commands::Plugins(args) => app.execute_with_args(commands::plugins, args),
