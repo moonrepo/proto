@@ -1,4 +1,5 @@
 use crate::helpers::load_configured_tools;
+use crate::shell::{self, format_env_var};
 use proto_core::get_bin_dir;
 use starbase::SystemResult;
 use starbase_utils::fs;
@@ -57,6 +58,49 @@ pub async fn migrate() -> SystemResult {
     }
 
     info!("Updating shell profile...");
+
+    let shell = shell::detect_shell(None);
+    let substitutions = vec![
+        (
+            format_env_var(&shell, "PROTO_ROOT", "$HOME/.proto").unwrap(),
+            format_env_var(&shell, "PROTO_HOME", "$HOME/.proto").unwrap(),
+        ),
+        (
+            format_env_var(&shell, "PATH", "$PROTO_ROOT/bin").unwrap(),
+            format_env_var(&shell, "PATH", "$PROTO_HOME/shims:$PROTO_HOME/bin").unwrap(),
+        ),
+        (
+            format_env_var(&shell, "PATH", "$PROTO_HOME/bin").unwrap(),
+            format_env_var(&shell, "PATH", "$PROTO_HOME/shims:$PROTO_HOME/bin").unwrap(),
+        ),
+    ];
+
+    for profile_path in shell::find_profiles(&shell)? {
+        if !profile_path.exists() {
+            continue;
+        }
+
+        let mut profile = fs::read_file(&profile_path)?;
+        let mut modified = false;
+
+        for (find, replace) in &substitutions {
+            if profile.contains(find) {
+                profile = profile.replace(find, replace);
+                modified = true;
+
+                debug!(
+                    profile = ?profile_path,
+                    old = find,
+                    new = replace,
+                    "Replacing environment variable",
+                );
+            }
+        }
+
+        if modified {
+            fs::write_file(profile_path, profile)?;
+        }
+    }
 
     info!("Migration complete!");
 

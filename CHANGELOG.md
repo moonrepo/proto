@@ -16,7 +16,7 @@
 
 > To ease the migration process, we've added a new migrate command. Simply run `proto migrate v0.20` after upgrading proto!
 
-- The generated shims have moved to `~/.proto/shims` from `~/.proto/bin`. You'll need to manually update `PATH` in your shell profile if you'd like to continue using the dynamic version detection functionality.
+- The generated shims have moved to `~/.proto/shims` from `~/.proto/bin`. You'll need to manually update `PATH` in your shell profile if you'd like to continue using the runtime version detection functionality.
 
   ```diff
   export PROTO_HOME="$HOME/.proto"
@@ -31,6 +31,7 @@
 - Reworked the `~/.proto/bin` directory to now contain symlinks to the original tool executables. This is a non-shim based alternative that can be used stand-alone or in unison with our shims.
   - The globally pinned version is the version that's symlinked. This can be updated with `proto pin --global` or `proto install --pin`.
   - This approach _does not_ detect a version at runtime.
+- Added a `proto migrate` command for easily applying changes between breaking releases.
 - Added support for minisign checksum files. Can now verify `.minisig` signatures for downloaded tools.
 - TOML API
   - Added an `install.checksum_public_key` setting.
