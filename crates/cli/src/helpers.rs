@@ -1,8 +1,8 @@
 use futures::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
+use miette::IntoDiagnostic;
 use proto_core::{
-    get_temp_dir, load_tool_from_locator, Id, PluginLocator, ProtoEnvironment, ProtoError, Tool,
-    ToolsConfig, UserConfig,
+    get_temp_dir, load_tool_from_locator, Id, ProtoEnvironment, ProtoError, Tool, ToolsConfig,
 };
 use starbase_utils::fs;
 use std::cmp;
@@ -10,6 +10,7 @@ use std::collections::{HashMap, HashSet};
 use std::env;
 use std::io::Write;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::time::Duration;
 
 pub fn enable_progress_bars() {
@@ -88,30 +89,40 @@ pub async fn download_to_temp_with_progress_bar(
     Ok(temp_file)
 }
 
-pub async fn load_configured_tools(
-    filter: HashSet<&Id>,
-    mut op: impl FnMut(Tool, PluginLocator),
-) -> miette::Result<()> {
-    let proto = ProtoEnvironment::new()?;
-    let mut user_config = UserConfig::load()?;
+pub async fn load_configured_tools() -> miette::Result<Vec<Tool>> {
+    load_configured_tools_with_filters(HashSet::new()).await
+}
 
-    let mut tools_config = ToolsConfig::load_upwards()?;
+pub async fn load_configured_tools_with_filters(filter: HashSet<&Id>) -> miette::Result<Vec<Tool>> {
+    let proto = Arc::new(ProtoEnvironment::new()?);
+    let user_config = Arc::new(proto.get_user_config()?);
+
+    let mut tools_config = ToolsConfig::load_upwards_from(&proto.cwd, false)?;
     tools_config.inherit_builtin_plugins();
 
     let mut plugins = HashMap::new();
-    plugins.extend(std::mem::take(&mut user_config.plugins));
+    plugins.extend(user_config.plugins.clone());
     plugins.extend(tools_config.plugins);
+
+    let mut futures = vec![];
+    let mut tools = vec![];
 
     for (id, locator) in plugins {
         if !filter.is_empty() && !filter.contains(&id) {
             continue;
         }
 
-        op(
-            load_tool_from_locator(&id, &proto, &locator, &user_config).await?,
-            locator,
-        );
+        let proto = Arc::clone(&proto);
+        let user_config = Arc::clone(&user_config);
+
+        futures.push(tokio::spawn(async move {
+            load_tool_from_locator(id, proto, locator, &user_config).await
+        }));
     }
 
-    Ok(())
+    for future in futures {
+        tools.push(future.await.into_diagnostic()??);
+    }
+
+    Ok(tools)
 }

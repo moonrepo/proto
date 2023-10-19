@@ -311,4 +311,56 @@ mod install_uninstall {
 
         assert!(tools.tools.get("node").is_none());
     }
+
+    #[test]
+    fn symlinks_bin_when_pinning() {
+        let temp = create_empty_sandbox();
+
+        let mut cmd = create_proto_command(temp.path());
+        cmd.arg("install")
+            .arg("node")
+            .arg("19.0.0")
+            .arg("--pin")
+            .arg("--")
+            .arg("--no-bundled-npm")
+            .assert();
+
+        let link = temp
+            .path()
+            .join("bin")
+            .join(if cfg!(windows) { "node.exe" } else { "node" });
+
+        assert!(link.exists());
+
+        assert_eq!(
+            std::fs::read_link(link).unwrap(),
+            temp.path()
+                .join("tools/node/19.0.0")
+                .join(if cfg!(windows) {
+                    "node.exe"
+                } else {
+                    "bin/node"
+                })
+        );
+    }
+
+    #[test]
+    fn symlinks_bin_on_first_install_without_pinning() {
+        let temp = create_empty_sandbox();
+
+        let mut cmd = create_proto_command(temp.path());
+        cmd.arg("install")
+            .arg("node")
+            .arg("19.0.0")
+            .arg("--")
+            .arg("--no-bundled-npm")
+            .assert();
+
+        let link = temp
+            .path()
+            .join("bin")
+            .join(if cfg!(windows) { "node.exe" } else { "node" });
+
+        assert!(link.exists());
+    }
 }

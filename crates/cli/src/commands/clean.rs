@@ -198,10 +198,13 @@ async fn purge_tool(id: &Id, yes: bool) -> SystemResult {
         // Delete inventory
         fs::remove_dir_all(inventory_dir)?;
 
+        // Delete binary
+        fs::remove_file(tool.proto.bin_dir.join(tool.get_bin_name()))?;
+
         // Delete shims
         fs::remove_file(
             tool.proto
-                .bin_dir
+                .shims_dir
                 .join(get_shim_file_name(id.as_str(), true)),
         )?;
 
@@ -216,7 +219,7 @@ async fn purge_tool(id: &Id, yes: bool) -> SystemResult {
             for global_shim in shim_configs.global_shims.keys() {
                 fs::remove_file(
                     tool.proto
-                        .bin_dir
+                        .shims_dir
                         .join(get_shim_file_name(global_shim, true)),
                 )?;
             }

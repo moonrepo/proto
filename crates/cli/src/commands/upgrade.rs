@@ -8,7 +8,7 @@ use starbase_styles::color;
 use starbase_utils::fs;
 use std::env::consts;
 use std::path::PathBuf;
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 
 async fn fetch_version() -> miette::Result<String> {
     let version = reqwest::get("https://raw.githubusercontent.com/moonrepo/proto/master/version")
@@ -109,6 +109,7 @@ pub async fn upgrade() {
             fs::remove(temp_file)?;
 
             info!("Upgraded proto to v{}!", new_version);
+            warn!("Changes to PATH were made in v0.20. Please refer to the changelog and migration guide!");
 
             return Ok(());
         }

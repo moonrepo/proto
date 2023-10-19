@@ -37,6 +37,10 @@ pub fn get_bin_dir() -> miette::Result<PathBuf> {
     Ok(get_proto_home()?.join("bin"))
 }
 
+pub fn get_shims_dir() -> miette::Result<PathBuf> {
+    Ok(get_proto_home()?.join("shims"))
+}
+
 pub fn get_temp_dir() -> miette::Result<PathBuf> {
     Ok(get_proto_home()?.join("temp"))
 }
