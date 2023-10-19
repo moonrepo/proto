@@ -2,6 +2,7 @@ mod v0_20;
 
 use clap::Args;
 use starbase::system;
+use starbase_styles::color;
 
 #[derive(Args, Clone, Debug)]
 pub struct MigrateArgs {
@@ -16,7 +17,10 @@ pub async fn migrate(args: ArgsRef<MigrateArgs>) {
             v0_20::migrate().await?;
         }
         unknown => {
-            return Err(miette::miette!("Unknown migration operation `{unknown}`."));
+            return Err(miette::miette!(
+                "Unknown migration operation {}.",
+                color::symbol(unknown)
+            ));
         }
     }
 }

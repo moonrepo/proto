@@ -50,6 +50,7 @@ pub async fn migrate() -> SystemResult {
     for tool in &mut tools {
         // Only the global version is linked, so only create if set
         if tool.manifest.default_version.is_some() {
+            tool.locate_bins().await?;
             tool.setup_bin_link(true)?;
         }
     }
