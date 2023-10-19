@@ -24,7 +24,7 @@ pub async fn setup(args: ArgsRef<SetupArgs>) {
     let paths = env::var("PATH").expect("Missing PATH!");
     let paths = env::split_paths(&paths).collect::<Vec<_>>();
 
-    if paths.contains(&proto.shims_dir) {
+    if paths.contains(&proto.shims_dir) || paths.contains(&proto.bin_dir) {
         debug!("Skipping setup, PROTO_HOME already exists in PATH.");
 
         return Ok(());
@@ -83,7 +83,7 @@ fn do_setup(shell: Shell, mut dirs: Vec<PathBuf>, print_profile: bool) -> miette
 
     let cu_paths = env::split_paths(&path).collect::<Vec<_>>();
 
-    if cu_paths.contains(&dirs[0]) {
+    if cu_paths.contains(&dirs[0]) || cu_paths.contains(&dirs[1]) {
         return Ok(());
     }
 

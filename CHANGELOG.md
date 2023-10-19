@@ -29,7 +29,7 @@
 #### 🚀 Updates
 
 - Reworked the `~/.proto/bin` directory to now contain symlinks to the original tool executables. This is a non-shim based alternative that can be used stand-alone or in unison with our shims.
-  - The globally pinned version is the version that's symlinked. This can be updated with `proto pin --global` or `proto install --pin`.
+  - The globally pinned version is the version that's symlinked. This can be updated with `proto install --pin`.
   - This approach _does not_ detect a version at runtime.
 - Added a `proto migrate` command for easily applying changes between breaking releases.
 - Added support for minisign checksum files. Can now verify `.minisig` signatures for downloaded tools.

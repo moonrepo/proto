@@ -30,7 +30,10 @@ pub struct InstallArgs {
     )]
     pub canary: bool,
 
-    #[arg(long, help = "Pin version as the global default")]
+    #[arg(
+        long,
+        help = "Pin version as the global default and create a binary symlink"
+    )]
     pub pin: bool,
 
     // Passthrough args (after --)
@@ -53,7 +56,7 @@ fn pin_version(
     if global {
         args.global = true;
 
-        return internal_pin(tool, &args);
+        return internal_pin(tool, &args, true);
     }
 
     // via `pin-latest` setting
@@ -63,7 +66,7 @@ fn pin_version(
         if let Some(pin_type) = user_config.pin_latest {
             args.global = matches!(pin_type, PinType::Global);
 
-            return internal_pin(tool, &args);
+            return internal_pin(tool, &args, true);
         }
     }
 
