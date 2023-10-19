@@ -153,11 +153,12 @@ impl Tool {
     }
 
     /// Return the name of the executable binary, using proto's tool ID.
-    pub fn get_bin_name(&self) -> miette::Result<String> {
-        Ok(match self.get_bin_path()?.extension() {
-            Some(ext) => format!("{}.{}", self.id, ext.to_string_lossy()),
-            None => self.id.to_string(),
-        })
+    pub fn get_bin_name(&self) -> String {
+        if cfg!(windows) {
+            format!("{}.exe", self.id)
+        } else {
+            self.id.to_string()
+        }
     }
 
     /// Return an absolute path to the executable binary for the tool.
@@ -1181,7 +1182,7 @@ impl Tool {
             tool_dir.join(self.id.as_str())
         };
 
-        debug!(tool = self.id.as_str(), bin_path = ?bin_path, "Found a potential binary");
+        debug!(tool = self.id.as_str(), bin_path = ?bin_path, "Found a binary");
 
         if bin_path.exists() {
             self.bin_path = Some(bin_path);
@@ -1453,13 +1454,21 @@ impl Tool {
     /// Create a symlink from the current tool to the proto bin directory.
     pub fn setup_bin_link(&mut self, force: bool) -> miette::Result<()> {
         let input_path = self.get_bin_path()?;
-        let output_path = self.proto.bin_dir.join(self.get_bin_name()?);
+        let output_path = self.proto.bin_dir.join(self.get_bin_name());
 
         if output_path.exists() && !force {
             return Ok(());
         }
 
+        debug!(
+            tool = self.id.as_str(),
+            source = ?input_path,
+            target = ?output_path,
+            "Creating a symlink to the original tool executable"
+        );
+
         fs::remove_file(&output_path)?;
+        fs::create_dir_all(&self.proto.bin_dir)?;
 
         #[cfg(windows)]
         {
@@ -1470,13 +1479,6 @@ impl Tool {
         {
             std::os::unix::fs::symlink(input_path, &output_path).into_diagnostic()?;
         }
-
-        debug!(
-            tool = self.id.as_str(),
-            source = ?input_path,
-            target = ?output_path,
-            "Creating a symlink to the original tool executable"
-        );
 
         Ok(())
     }
