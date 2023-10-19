@@ -45,7 +45,7 @@ impl UserConfig {
 
         debug!(file = ?path, "Loading {}", USER_CONFIG_NAME);
 
-        let contents = fs::read_file_with_lock(&path)?;
+        let contents = fs::read_file(&path)?;
         let mut config: UserConfig = toml::from_str(&contents).into_diagnostic()?;
 
         let make_absolute = |file: &mut PathBuf| {
@@ -82,7 +82,7 @@ impl UserConfig {
     }
 
     pub fn save(&self) -> miette::Result<()> {
-        fs::write_file_with_lock(&self.path, toml::to_string_pretty(self).into_diagnostic()?)?;
+        fs::write_file(&self.path, toml::to_string_pretty(self).into_diagnostic()?)?;
 
         Ok(())
     }

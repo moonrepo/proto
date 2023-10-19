@@ -1,4 +1,4 @@
-use crate::helpers::load_configured_tools;
+use crate::helpers::load_configured_tools_with_filters;
 use chrono::{DateTime, NaiveDateTime};
 use clap::Args;
 use miette::IntoDiagnostic;
@@ -14,7 +14,7 @@ use tracing::info;
 #[derive(Args, Clone, Debug)]
 pub struct ToolsArgs {
     #[arg(help = "IDs of tool to list")]
-    id: Vec<Id>,
+    ids: Vec<Id>,
 
     #[arg(long, help = "Print the list in JSON format")]
     json: bool,
@@ -26,14 +26,12 @@ pub async fn tools(args: ArgsRef<ToolsArgs>) {
         info!("Loading tools...");
     }
 
-    let mut tools = vec![];
+    let tools = load_configured_tools_with_filters(HashSet::from_iter(&args.ids)).await?;
 
-    load_configured_tools(HashSet::from_iter(&args.id), |tool, _| {
-        if !tool.manifest.installed_versions.is_empty() {
-            tools.push(tool);
-        }
-    })
-    .await?;
+    let mut tools = tools
+        .into_iter()
+        .filter(|tool| !tool.manifest.installed_versions.is_empty())
+        .collect::<Vec<_>>();
 
     tools.sort_by(|a, d| a.id.cmp(&d.id));
 

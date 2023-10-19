@@ -178,4 +178,24 @@ mod pin_global {
             Some(UnresolvedVersionSpec::parse("1.2").unwrap())
         );
     }
+
+    #[test]
+    fn doesnt_create_bin_symlink() {
+        let temp = create_empty_sandbox();
+
+        let mut cmd = create_proto_command(temp.path());
+        cmd.arg("pin")
+            .arg("--global")
+            .arg("node")
+            .arg("20")
+            .assert()
+            .success();
+
+        let link = temp
+            .path()
+            .join("bin")
+            .join(if cfg!(windows) { "node.exe" } else { "node" });
+
+        assert!(!link.exists());
+    }
 }

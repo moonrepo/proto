@@ -24,12 +24,10 @@ mod clean {
     }
 
     #[test]
-    fn purges_tool_shims() {
+    fn purges_tool_bin() {
         let sandbox = create_empty_sandbox();
         sandbox.create_file("bin/node", "");
-        sandbox.create_file("bin/node.cmd", "");
-        sandbox.create_file("bin/npx", "");
-        sandbox.create_file("bin/npx.cmd", "");
+        sandbox.create_file("bin/node.exe", "");
 
         let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("clean")
@@ -40,11 +38,34 @@ mod clean {
             .success();
 
         if cfg!(windows) {
-            assert!(!sandbox.path().join("bin/node.cmd").exists());
-            assert!(!sandbox.path().join("bin/npx.cmd").exists());
+            assert!(!sandbox.path().join("bin/node.exe").exists());
         } else {
             assert!(!sandbox.path().join("bin/node").exists());
-            assert!(!sandbox.path().join("bin/npx").exists());
+        }
+    }
+
+    #[test]
+    fn purges_tool_shims() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file("shims/node", "");
+        sandbox.create_file("shims/node.cmd", "");
+        sandbox.create_file("shims/npx", "");
+        sandbox.create_file("shims/npx.cmd", "");
+
+        let mut cmd = create_proto_command(sandbox.path());
+        cmd.arg("clean")
+            .arg("--yes")
+            .arg("--purge")
+            .arg("node")
+            .assert()
+            .success();
+
+        if cfg!(windows) {
+            assert!(!sandbox.path().join("shims/node.cmd").exists());
+            assert!(!sandbox.path().join("shims/npx.cmd").exists());
+        } else {
+            assert!(!sandbox.path().join("shims/node").exists());
+            assert!(!sandbox.path().join("shims/npx").exists());
         }
     }
 

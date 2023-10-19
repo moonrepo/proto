@@ -5,6 +5,7 @@ use crate::{
     helpers::create_progress_bar,
 };
 use futures::future::try_join_all;
+use miette::IntoDiagnostic;
 use proto_core::{load_tool_from_locator, ProtoEnvironment, ToolsConfig, UserConfig};
 use starbase::system;
 use starbase_styles::color;
@@ -58,16 +59,19 @@ pub async fn install_all() {
         let mut futures = vec![];
 
         for (id, version) in config.tools {
-            futures.push(internal_install(InstallArgs {
-                canary: false,
-                id,
-                pin: false,
-                passthrough: vec![],
-                spec: Some(version),
+            futures.push(tokio::spawn(async {
+                internal_install(InstallArgs {
+                    canary: false,
+                    id,
+                    pin: false,
+                    passthrough: vec![],
+                    spec: Some(version),
+                })
+                .await
             }));
         }
 
-        try_join_all(futures).await?;
+        try_join_all(futures).await.into_diagnostic()?;
 
         enable_progress_bars();
 

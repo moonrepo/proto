@@ -1,7 +1,8 @@
 use crate::commands::{
     AddPluginArgs, AliasArgs, BinArgs, CleanArgs, CompletionsArgs, InstallArgs, InstallGlobalArgs,
-    ListArgs, ListGlobalArgs, ListRemoteArgs, OutdatedArgs, PinArgs, PluginsArgs, RemovePluginArgs,
-    RunArgs, SetupArgs, ToolsArgs, UnaliasArgs, UninstallArgs, UninstallGlobalArgs,
+    ListArgs, ListGlobalArgs, ListRemoteArgs, MigrateArgs, OutdatedArgs, PinArgs, PluginsArgs,
+    RemovePluginArgs, RunArgs, SetupArgs, ToolsArgs, UnaliasArgs, UninstallArgs,
+    UninstallGlobalArgs,
 };
 use clap::builder::styling::{Color, Style, Styles};
 use clap::{Parser, Subcommand, ValueEnum};
@@ -154,6 +155,12 @@ pub enum Commands {
         long_about = "List available versions by resolving versions from the tool's remote release manifest."
     )]
     ListRemote(ListRemoteArgs),
+
+    #[command(
+        name = "migrate",
+        about = "Migrate breaking changes for the proto installation."
+    )]
+    Migrate(MigrateArgs),
 
     #[command(
         name = "outdated",

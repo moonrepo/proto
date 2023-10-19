@@ -71,7 +71,7 @@ pub async fn download_from_url_to_file(
     }
 
     // Write the bytes to our temporary file
-    fs::write_file_with_lock(
+    fs::write_file(
         temp_file,
         response
             .bytes()
