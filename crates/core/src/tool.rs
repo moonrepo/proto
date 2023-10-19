@@ -28,12 +28,13 @@ use std::process::Command;
 use std::time::{Duration, SystemTime};
 use tracing::{debug, trace};
 use version_spec::*;
-use warpgate::{download_from_url_to_file, Id, PluginContainer, VirtualPath};
+use warpgate::{download_from_url_to_file, Id, PluginContainer, PluginLocator, VirtualPath};
 
 pub struct Tool {
     pub id: Id,
     pub manifest: ToolManifest,
     pub metadata: ToolMetadataOutput,
+    pub locator: Option<PluginLocator>,
     pub plugin: PluginContainer<'static>,
     pub proto: ProtoEnvironment,
     pub version: Option<VersionSpec>,
@@ -88,6 +89,7 @@ impl Tool {
             globals_dir: None,
             globals_prefix: None,
             id: id.to_owned(),
+            locator: None,
             manifest: ToolManifest::load_from(proto.tools_dir.join(id.as_str()))?,
             metadata: ToolMetadataOutput::default(),
             plugin: PluginContainer::new(
@@ -150,6 +152,15 @@ impl Tool {
     /// Disable internal caching when applicable.
     pub fn disable_caching(&mut self) {
         self.cache = false;
+    }
+
+    /// Return the name of the executable binary, using proto's tool ID.
+    pub fn get_bin_name(&self) -> String {
+        if cfg!(windows) {
+            format!("{}.exe", self.id)
+        } else {
+            self.id.to_string()
+        }
     }
 
     /// Return an absolute path to the executable binary for the tool.
@@ -831,7 +842,7 @@ impl Tool {
             "download_prebuilt",
             DownloadPrebuiltInput {
                 context: self.create_context()?,
-                install_dir: self.to_virtual_path(&temp_dir),
+                install_dir: self.to_virtual_path(temp_dir),
             },
         )?;
 
@@ -1173,7 +1184,7 @@ impl Tool {
             tool_dir.join(self.id.as_str())
         };
 
-        debug!(tool = self.id.as_str(), bin_path = ?bin_path, "Found a potential binary");
+        debug!(tool = self.id.as_str(), bin_path = ?bin_path, "Found a binary");
 
         if bin_path.exists() {
             self.bin_path = Some(bin_path);
@@ -1386,6 +1397,7 @@ impl Tool {
             if self.bin_path.is_none() {
                 self.locate_bins().await?;
                 self.setup_shims(false).await?;
+                self.setup_bin_link(false)?;
             }
 
             return Ok(true);
@@ -1408,7 +1420,12 @@ impl Tool {
         if self.install(build_from_source).await? {
             self.cleanup().await?;
             self.locate_bins().await?;
+
+            // Always force create shims to ensure changes are propagated
             self.setup_shims(true).await?;
+
+            // Only link on the first install or if the bin doesn't exist
+            self.setup_bin_link(false)?;
 
             // Add version to manifest
             let mut default = None;
@@ -1434,6 +1451,46 @@ impl Tool {
         }
 
         Ok(false)
+    }
+
+    /// Create a symlink from the current tool to the proto bin directory.
+    pub fn setup_bin_link(&mut self, force: bool) -> miette::Result<()> {
+        let input_path = self.get_bin_path()?;
+        let output_path = self.proto.bin_dir.join(self.get_bin_name());
+
+        if output_path.exists() && !force {
+            return Ok(());
+        }
+
+        // Don't support other extensions on Windows at this time
+        #[cfg(windows)]
+        {
+            if input_path.extension().is_some_and(|e| e != "exe") {
+                return Ok(());
+            }
+        }
+
+        debug!(
+            tool = self.id.as_str(),
+            source = ?input_path,
+            target = ?output_path,
+            "Creating a symlink to the original tool executable"
+        );
+
+        fs::remove_file(&output_path)?;
+        fs::create_dir_all(&self.proto.bin_dir)?;
+
+        #[cfg(windows)]
+        {
+            std::os::windows::fs::symlink_file(input_path, &output_path).into_diagnostic()?;
+        }
+
+        #[cfg(not(windows))]
+        {
+            std::os::unix::fs::symlink(input_path, &output_path).into_diagnostic()?;
+        }
+
+        Ok(())
     }
 
     /// Setup shims if they are missing or out of date.

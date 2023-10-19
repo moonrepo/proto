@@ -149,7 +149,7 @@ pub fn create_global_shim<'tool, C: AsRef<ShimContext<'tool>>>(
 ) -> miette::Result<PathBuf> {
     let context = context.as_ref();
     let shim_path = proto
-        .bin_dir
+        .shims_dir
         .join(get_shim_file_name(context.shim_file, true));
 
     if !find_only {

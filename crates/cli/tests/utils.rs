@@ -27,6 +27,8 @@ pub fn create_proto_command<T: AsRef<Path>>(path: T) -> assert_cmd::Command {
     cmd.timeout(std::time::Duration::from_secs(180));
     cmd.env("PROTO_HOME", path.as_os_str());
     cmd.env("PROTO_LOG", "trace");
+    cmd.env("RUST_BACKTRACE", "1");
+    cmd.env("WASM_BACKTRACE", "1");
     // cmd.env("PROTO_TEST", "true");
     cmd
 }

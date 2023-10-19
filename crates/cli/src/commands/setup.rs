@@ -24,25 +24,28 @@ pub async fn setup(args: ArgsRef<SetupArgs>) {
     let paths = env::var("PATH").expect("Missing PATH!");
     let paths = env::split_paths(&paths).collect::<Vec<_>>();
 
-    if paths.contains(&proto.bin_dir) {
+    if paths.contains(&proto.shims_dir) || paths.contains(&proto.bin_dir) {
         debug!("Skipping setup, PROTO_HOME already exists in PATH.");
 
         return Ok(());
     }
 
-    do_setup(shell, proto.bin_dir, args.profile)?;
+    do_setup(shell, vec![proto.shims_dir, proto.bin_dir], args.profile)?;
 }
 
 // For other shells, write environment variable(s) to an applicable profile!
 #[cfg(not(windows))]
-fn do_setup(shell: Shell, _bin_dir: PathBuf, print_profile: bool) -> miette::Result<()> {
+fn do_setup(shell: Shell, _dirs: Vec<PathBuf>, print_profile: bool) -> miette::Result<()> {
     use crate::shell::{format_env_vars, write_profile_if_not_setup};
 
     debug!("Updating PATH in {} shell", shell);
 
     let env_vars = vec![
         ("PROTO_HOME".to_string(), "$HOME/.proto".to_string()),
-        ("PATH".to_string(), "$PROTO_HOME/bin".to_string()),
+        (
+            "PATH".to_string(),
+            "$PROTO_HOME/shims:$PROTO_HOME/bin".to_string(),
+        ),
     ];
 
     if let Some(content) = format_env_vars(&shell, "proto", env_vars) {
@@ -59,7 +62,7 @@ fn do_setup(shell: Shell, _bin_dir: PathBuf, print_profile: bool) -> miette::Res
 // Windows does not support setting environment variables from a shell,
 // so we're going to execute the `setx` command instead!
 #[cfg(windows)]
-fn do_setup(shell: Shell, bin_dir: PathBuf, print_profile: bool) -> miette::Result<()> {
+fn do_setup(shell: Shell, mut dirs: Vec<PathBuf>, print_profile: bool) -> miette::Result<()> {
     use miette::IntoDiagnostic;
     use std::process::Command;
     use tracing::warn;
@@ -80,7 +83,7 @@ fn do_setup(shell: Shell, bin_dir: PathBuf, print_profile: bool) -> miette::Resu
 
     let cu_paths = env::split_paths(&path).collect::<Vec<_>>();
 
-    if cu_paths.contains(&bin_dir) {
+    if cu_paths.contains(&dirs[0]) || cu_paths.contains(&dirs[1]) {
         return Ok(());
     }
 
@@ -89,12 +92,11 @@ fn do_setup(shell: Shell, bin_dir: PathBuf, print_profile: bool) -> miette::Resu
         starbase_styles::color::shell("setx"),
     );
 
-    let mut paths = vec![bin_dir];
-    paths.extend(cu_paths);
+    dirs.extend(cu_paths);
 
     let mut command = Command::new("setx");
     command.arg("PATH");
-    command.arg(env::join_paths(paths).unwrap());
+    command.arg(env::join_paths(dirs).unwrap());
 
     let output = command.output().into_diagnostic()?;
 

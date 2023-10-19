@@ -6,7 +6,6 @@ use serde::Serialize;
 use starbase::system;
 use starbase_styles::color::{self, OwoStyle};
 use starbase_utils::json;
-use std::collections::HashSet;
 use std::io::{BufWriter, Write};
 use tracing::info;
 
@@ -30,17 +29,17 @@ pub async fn plugins(args: ArgsRef<PluginsArgs>) {
         info!("Loading plugins...");
     }
 
-    let mut items = vec![];
+    let tools = load_configured_tools().await?;
 
-    load_configured_tools(HashSet::new(), |tool, locator| {
-        items.push(PluginItem {
+    let mut items = tools
+        .into_iter()
+        .map(|tool| PluginItem {
             id: tool.id.to_owned(),
-            locator,
+            locator: tool.locator.unwrap(),
             name: tool.metadata.name,
             version: tool.metadata.plugin_version,
-        });
-    })
-    .await?;
+        })
+        .collect::<Vec<_>>();
 
     items.sort_by(|a, d| a.id.cmp(&d.id));
 

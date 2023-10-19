@@ -70,6 +70,27 @@ pub fn find_profiles(shell: &Shell) -> miette::Result<Vec<PathBuf>> {
     Ok(profiles)
 }
 
+pub fn format_env_var(shell: &Shell, key: &str, value: &str) -> Option<String> {
+    match shell {
+        Shell::Bash | Shell::Zsh => Some(if key == "PATH" {
+            format!(r#"export PATH="{value}:$PATH""#)
+        } else {
+            format!(r#"export {key}="{value}""#)
+        }),
+        Shell::Elvish => Some(if key == "PATH" {
+            format!(r#"set-env PATH (str:join ':' [{value} $E:PATH])"#)
+        } else {
+            format!(r#"set-env {key} {value}"#)
+        }),
+        Shell::Fish => Some(if key == "PATH" {
+            format!(r#"set -gx PATH "{value}" $PATH"#)
+        } else {
+            format!(r#"set -gx {key} "{value}""#)
+        }),
+        _ => None,
+    }
+}
+
 pub fn format_env_vars(
     shell: &Shell,
     comment: &str,
@@ -78,30 +99,10 @@ pub fn format_env_vars(
     let mut lines = vec![format!("\n# {comment}")];
 
     for (key, value) in vars {
-        match shell {
-            Shell::Bash | Shell::Zsh => {
-                if key == "PATH" {
-                    lines.push(format!(r#"export PATH="{value}:$PATH""#));
-                } else {
-                    lines.push(format!(r#"export {key}="{value}""#));
-                }
-            }
-            Shell::Elvish => {
-                if key == "PATH" {
-                    lines.push(format!(r#"set-env PATH (str:join ':' [{value} $E:PATH])"#));
-                } else {
-                    lines.push(format!(r#"set-env {key} {value}"#));
-                }
-            }
-            Shell::Fish => {
-                if key == "PATH" {
-                    lines.push(format!(r#"set -gx PATH "{value}" $PATH"#));
-                } else {
-                    lines.push(format!(r#"set -gx {key} "{value}""#));
-                }
-            }
-            _ => return None,
-        }
+        match format_env_var(shell, &key, &value) {
+            Some(var) => lines.push(var),
+            None => return None,
+        };
     }
 
     Some(lines.join("\n"))

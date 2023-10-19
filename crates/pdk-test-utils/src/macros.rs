@@ -35,7 +35,7 @@ macro_rules! generate_download_install_tests {
             // Check global bin exists
             assert!(sandbox
                 .path()
-                .join(".proto/bin")
+                .join(".proto/shims")
                 .join(if cfg!(windows) {
                     format!("{}.cmd", $id)
                 } else {
@@ -205,7 +205,7 @@ macro_rules! generate_global_shims_test {
             plugin.tool.create_shims(false).await.unwrap();
 
             starbase_sandbox::assert_snapshot!(std::fs::read_to_string(
-                sandbox.path().join(".proto/bin").join(if cfg!(windows) {
+                sandbox.path().join(".proto/shims").join(if cfg!(windows) {
                     format!("{}.cmd", $id)
                 } else {
                     $id.to_string()
@@ -214,7 +214,7 @@ macro_rules! generate_global_shims_test {
 
             $(
                 starbase_sandbox::assert_snapshot!(std::fs::read_to_string(
-                    sandbox.path().join(".proto/bin").join(if cfg!(windows) {
+                    sandbox.path().join(".proto/shims").join(if cfg!(windows) {
                         format!("{}.cmd", $bin)
                     } else {
                         $bin.to_string()
