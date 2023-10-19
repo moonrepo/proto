@@ -2367,8 +2367,6 @@ version = "0.7.9"
 dependencies = [
  "anyhow",
  "extism-pdk",
- "once_cell",
- "once_map",
  "proto_pdk_api",
  "serde",
 ]

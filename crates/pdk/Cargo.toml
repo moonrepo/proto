@@ -11,6 +11,4 @@ repository = "https://github.com/moonrepo/proto"
 proto_pdk_api = { version = "0.7.6", path = "../pdk-api" }
 anyhow = "1.0.75"
 extism-pdk = { workspace = true }
-once_cell = { workspace = true }
-once_map = { workspace = true }
 serde = { workspace = true }
