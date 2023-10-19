@@ -628,7 +628,7 @@ json_struct!(
         #[serde(skip_serializing_if = "Option::is_none")]
         pub primary: Option<ShimConfig>,
 
-        /// Additional global shims to create in the `~/.proto/bin` directory.
+        /// Additional global shims to create in the `~/.proto/shims` directory.
         /// Maps a shim name to a relative binary path.
         pub global_shims: HashMap<String, ShimConfig>,
 

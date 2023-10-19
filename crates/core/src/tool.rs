@@ -1460,6 +1460,14 @@ impl Tool {
             return Ok(());
         }
 
+        // Don't support other extensions on Windows at this time
+        #[cfg(windows)]
+        {
+            if input_path.extension().is_some_and(|e| e != "exe") {
+                return Ok(());
+            }
+        }
+
         debug!(
             tool = self.id.as_str(),
             source = ?input_path,

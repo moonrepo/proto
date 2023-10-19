@@ -26,7 +26,7 @@ mod shimmer {
     #[test]
     fn doesnt_update_global_if_find_only() {
         let sandbox = create_empty_sandbox();
-        sandbox.create_file(".proto/bin/primary", "test");
+        sandbox.create_file(".proto/shims/primary", "test");
 
         let proto = ProtoEnvironment::new_testing(sandbox.path());
         let context = create_context("primary", &proto);

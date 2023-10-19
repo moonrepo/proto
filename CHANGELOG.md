@@ -33,6 +33,7 @@
   - This approach _does not_ detect a version at runtime.
 - Added a `proto migrate` command for easily applying changes between breaking releases.
 - Added support for minisign checksum files. Can now verify `.minisig` signatures for downloaded tools.
+- Updated `proto use` to install tools in parallel.
 - TOML API
   - Added an `install.checksum_public_key` setting.
 - WASM API
