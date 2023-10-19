@@ -3,21 +3,18 @@ use crate::shell::{self, format_env_var};
 use proto_core::get_bin_dir;
 use starbase::SystemResult;
 use starbase_utils::fs;
-use std::collections::HashSet;
 use tracing::{debug, info};
 
 pub async fn migrate() -> SystemResult {
     info!("Loading tools...");
 
-    let mut tools = vec![];
+    let tools = load_configured_tools().await?;
 
-    load_configured_tools(HashSet::new(), |tool, _| {
-        // Skips tools/plugins that are not in use
-        if !tool.manifest.installed_versions.is_empty() {
-            tools.push(tool);
-        }
-    })
-    .await?;
+    // Skips tools/plugins that are not in use
+    let mut tools = tools
+        .into_iter()
+        .filter(|tool| !tool.manifest.installed_versions.is_empty())
+        .collect::<Vec<_>>();
 
     for tool in &mut tools {
         // Resolve the global version for use in shims and bins

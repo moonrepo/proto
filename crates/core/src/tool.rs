@@ -28,12 +28,13 @@ use std::process::Command;
 use std::time::{Duration, SystemTime};
 use tracing::{debug, trace};
 use version_spec::*;
-use warpgate::{download_from_url_to_file, Id, PluginContainer, VirtualPath};
+use warpgate::{download_from_url_to_file, Id, PluginContainer, PluginLocator, VirtualPath};
 
 pub struct Tool {
     pub id: Id,
     pub manifest: ToolManifest,
     pub metadata: ToolMetadataOutput,
+    pub locator: Option<PluginLocator>,
     pub plugin: PluginContainer<'static>,
     pub proto: ProtoEnvironment,
     pub version: Option<VersionSpec>,
@@ -88,6 +89,7 @@ impl Tool {
             globals_dir: None,
             globals_prefix: None,
             id: id.to_owned(),
+            locator: None,
             manifest: ToolManifest::load_from(proto.tools_dir.join(id.as_str()))?,
             metadata: ToolMetadataOutput::default(),
             plugin: PluginContainer::new(

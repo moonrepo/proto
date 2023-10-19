@@ -106,7 +106,10 @@ pub async fn load_tool_from_locator(
 
     inject_default_manifest_config(id, proto, user_config, &mut manifest)?;
 
-    Tool::load_from_manifest(id, proto, manifest)
+    let mut tool = Tool::load_from_manifest(id, proto, manifest)?;
+    tool.locator = Some(locator.to_owned());
+
+    Ok(tool)
 }
 
 pub async fn load_tool(id: &Id) -> miette::Result<Tool> {
