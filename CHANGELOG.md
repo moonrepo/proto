@@ -16,7 +16,7 @@
 
 > To ease the migration process, we've added a new migrate command. Simply run `proto migrate v0.20` after upgrading proto!
 
-- The generated shims have moved to `~/.proto/shims` from `~/.proto/bin`. You'll need to manually update `PATH` in your shell profile if you'd like to continue using the runtime version detection functionality.
+- The generated shims have moved to `~/.proto/shims` from `~/.proto/bin`. You'll need to manually update `PATH` in your shell profile if you'd like to continue using the "runtime version detection" functionality.
 
   ```diff
   export PROTO_HOME="$HOME/.proto"
@@ -40,8 +40,10 @@
 - Updated `proto plugins` and `proto tools` to load plugins in parallel.
 - Updated `proto run` to error when the tool attempts to self-upgrade outside of proto.
 - TOML API
-  - Added an `install.checksum_public_key` setting.
+  - Added a `metadata` setting.
+  - Added a `install.checksum_public_key` setting.
 - WASM API
+  - Added a `self_upgrade_commands` field to `ToolMetadataOutput`.
   - Added a `checksum_public_key` field to `DownloadPrebuiltOutput`.
   - Removed `checksum` from `VerifyChecksumInput`.
 
