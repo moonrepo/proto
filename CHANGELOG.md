@@ -41,7 +41,7 @@
 - Updated `proto run` to error when the tool attempts to self-upgrade outside of proto.
 - TOML API
   - Added a `metadata` setting.
-  - Added a `install.checksum_public_key` setting.
+  - Added a `install.checksum-public-key` setting.
 - WASM API
   - Added a `self_upgrade_commands` field to `ToolMetadataOutput`.
   - Added a `checksum_public_key` field to `DownloadPrebuiltOutput`.
