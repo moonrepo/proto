@@ -1,5 +1,4 @@
 use crate::error::Error;
-use crate::is_command_on_path;
 use crate::pm_vendor::*;
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -54,6 +53,8 @@ impl SystemPackageManager {
             target_os = "openbsd"
         ))]
         {
+            use crate::is_command_on_path;
+
             if is_command_on_path("pkg") {
                 return Ok(SystemPackageManager::Pkg);
             }
@@ -65,6 +66,8 @@ impl SystemPackageManager {
 
         #[cfg(target_os = "macos")]
         {
+            use crate::is_command_on_path;
+
             if is_command_on_path("brew") {
                 return Ok(SystemPackageManager::Brew);
             }
@@ -72,6 +75,8 @@ impl SystemPackageManager {
 
         #[cfg(target_os = "windows")]
         {
+            use crate::is_command_on_path;
+
             if is_command_on_path("choco") {
                 return Ok(SystemPackageManager::Choco);
             }

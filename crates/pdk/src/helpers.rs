@@ -14,23 +14,9 @@ extern "ExtismHost" {
     fn exec_command(input: Json<ExecCommandInput>) -> Json<ExecCommandOutput>;
 }
 
-/// Fetch the provided request and deserialize the response as JSON.
-pub fn fetch(req: HttpRequest, body: Option<String>, _cache: bool) -> anyhow::Result<HttpResponse> {
-    // if cache {
-    //     if let Some(body) = FETCH_CACHE.get(&req.url) {
-    //         return Ok(json::from_slice(body)?);
-    //     }
-    // }
-
-    let res = request(&req, body)
-        .map_err(|e| anyhow::anyhow!("Failed to make request to {}: {e}", req.url))?;
-
-    // Only cache GET requests
-    // if cache && (req.method.is_none() || req.method.is_some_and(|m| m.to_uppercase() == "GET")) {
-    //     FETCH_CACHE.insert(req.url, |_| res.body());
-    // }
-
-    Ok(res)
+/// Fetch the provided request and return a response object.
+pub fn fetch(req: HttpRequest, body: Option<String>) -> anyhow::Result<HttpResponse> {
+    request(&req, body).map_err(|e| anyhow::anyhow!("Failed to make request to {}: {e}", req.url))
 }
 
 /// Fetch the provided URL and deserialize the response as JSON.
@@ -39,7 +25,7 @@ where
     R: DeserializeOwned,
     U: AsRef<str>,
 {
-    fetch(HttpRequest::new(url.as_ref()), None, false)?.json()
+    fetch(HttpRequest::new(url.as_ref()), None)?.json()
 }
 
 /// Fetch the provided URL and return the text response.
@@ -47,20 +33,39 @@ pub fn fetch_url_text<U>(url: U) -> anyhow::Result<String>
 where
     U: AsRef<str>,
 {
-    let res = fetch(HttpRequest::new(url.as_ref()), None, false)?;
-
-    String::from_bytes(res.body())
+    String::from_bytes(fetch(HttpRequest::new(url.as_ref()), None)?.body())
 }
 
 /// Fetch the provided URL, deserialize the response as JSON,
-/// and cache the response in memory for the duration of the WASM function call.
-/// Caches *does not* persist across function calls.
+/// and cache the response in memory for subsequent WASM function calls.
 pub fn fetch_url_with_cache<R, U>(url: U) -> anyhow::Result<R>
 where
     R: DeserializeOwned,
     U: AsRef<str>,
 {
-    fetch(HttpRequest::new(url.as_ref()), None, true)?.json()
+    let url = url.as_ref();
+    let req = HttpRequest::new(url);
+
+    // Only cache GET requests
+    let cache = req.method.is_none()
+        || req
+            .method
+            .as_ref()
+            .is_some_and(|m| m.to_uppercase() == "GET");
+
+    if cache {
+        if let Some(body) = var::get::<Vec<u8>>(url)? {
+            return Ok(json::from_slice(&body)?);
+        }
+    }
+
+    let res = fetch(req, None)?;
+
+    if cache {
+        var::set(url, res.body())?;
+    }
+
+    res.json()
 }
 
 /// Load all git tags from the provided remote URL.
