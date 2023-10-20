@@ -3616,7 +3616,7 @@ checksum = "34704c8d6ebcbc939824180af020566b01a7c01f80641264eba0999f6c2b6be7"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.37",
+ "syn 2.0.38",
 ]
 
 [[package]]
@@ -3847,7 +3847,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.5.9"
+version = "0.5.10"
 dependencies = [
  "extism",
  "miette",
