@@ -1,3 +1,4 @@
+use crate::error::ProtoCliError;
 use clap::Args;
 use miette::IntoDiagnostic;
 use proto_core::{load_tool, ToolsConfig, UnresolvedVersionSpec, VersionSpec};
@@ -6,7 +7,6 @@ use starbase::system;
 use starbase_styles::color::{self, OwoStyle};
 use starbase_utils::json;
 use std::collections::HashMap;
-use std::process;
 use tracing::{debug, info};
 
 #[derive(Args, Clone, Debug)]
@@ -38,8 +38,10 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>) {
     let initial_version = UnresolvedVersionSpec::default(); // latest
 
     if tools_config.tools.is_empty() {
-        eprintln!("No configured tools in .prototools");
-        process::exit(1);
+        return Err(ProtoCliError::NoConfiguredTools {
+            path: tools_config.path,
+        }
+        .into());
     }
 
     if !args.json {

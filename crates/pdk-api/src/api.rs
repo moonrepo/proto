@@ -33,9 +33,6 @@ json_struct!(
 json_struct!(
     /// Information about the current state of the tool.
     pub struct ToolContext {
-        /// Requested environment variables. Only non-empty values are included.
-        pub env_vars: HashMap<String, String>,
-
         /// Virtual path to the tool's installation directory.
         pub tool_dir: VirtualPath,
 
@@ -87,10 +84,6 @@ json_struct!(
         #[serde(skip_serializing_if = "Option::is_none")]
         pub default_version: Option<String>,
 
-        /// Environment variables that should be extracted
-        /// and passed to other function call inputs.
-        pub env_vars: Vec<String>,
-
         /// Controls aspects of the tool inventory.
         pub inventory: ToolInventoryMetadata,
 
@@ -101,7 +94,12 @@ json_struct!(
         #[serde(skip_serializing_if = "Option::is_none")]
         pub plugin_version: Option<String>,
 
+        /// Names of commands that will self-upgrade the tool,
+        /// and should be blocked from happening.
+        pub self_upgrade_commands: Vec<String>,
+
         /// Type of the tool.
+        #[serde(rename = "type")]
         pub type_of: PluginType,
     }
 );
