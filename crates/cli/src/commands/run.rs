@@ -90,13 +90,12 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
     debug!(bin = ?bin_path, args = ?args.passthrough, "Running {}", tool.get_name());
 
     // Run before hook
-    tool.run_hook(
-        "pre_run",
-        RunHook {
+    tool.run_hook("pre_run", || {
+        Ok(RunHook {
             context: tool.create_context()?,
             passthrough_args: args.passthrough.clone(),
-        },
-    )?;
+        })
+    })?;
 
     // Run the command
     let mut command = match bin_path.extension().map(|e| e.to_str().unwrap()) {
@@ -149,13 +148,12 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
     }
 
     // Run after hook
-    tool.run_hook(
-        "post_run",
-        RunHook {
+    tool.run_hook("post_run", || {
+        Ok(RunHook {
             context: tool.create_context()?,
             passthrough_args: args.passthrough.clone(),
-        },
-    )?;
+        })
+    })?;
 
     // Update the last used timestamp in a separate task,
     // as to not interrupt this task incase something fails!

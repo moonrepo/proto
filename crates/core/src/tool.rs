@@ -310,12 +310,16 @@ impl Tool {
     }
 
     /// Run a hook with the provided name and input.
-    pub fn run_hook<I>(&self, hook: &str, input: I) -> miette::Result<()>
+    pub fn run_hook<I>(
+        &self,
+        hook: &str,
+        input: impl FnOnce() -> miette::Result<I>,
+    ) -> miette::Result<()>
     where
         I: Debug + Serialize,
     {
         if self.plugin.has_func(hook) {
-            self.plugin.call_func_without_output(hook, input)?;
+            self.plugin.call_func_without_output(hook, input()?)?;
         }
 
         Ok(())

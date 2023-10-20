@@ -111,14 +111,13 @@ pub async fn internal_install(args: InstallArgs) -> SystemResult {
     env::set_var("PROTO_INSTALL", args.id.to_string());
 
     // Run before hook
-    tool.run_hook(
-        "pre_install",
-        InstallHook {
+    tool.run_hook("pre_install", || {
+        Ok(InstallHook {
             context: tool.create_context()?,
             passthrough_args: args.passthrough.clone(),
             pinned: args.pin,
-        },
-    )?;
+        })
+    })?;
 
     // Install the tool
     debug!("Installing {} with version {}", tool.get_name(), version);
@@ -146,14 +145,13 @@ pub async fn internal_install(args: InstallArgs) -> SystemResult {
     );
 
     // Run after hook
-    tool.run_hook(
-        "post_install",
-        InstallHook {
+    tool.run_hook("post_install", || {
+        Ok(InstallHook {
             context: tool.create_context()?,
             passthrough_args: args.passthrough.clone(),
             pinned: args.pin,
-        },
-    )?;
+        })
+    })?;
 
     // Sync shell profile
     update_shell(tool, args.passthrough.clone())?;
