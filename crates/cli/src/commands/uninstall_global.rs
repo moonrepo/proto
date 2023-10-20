@@ -1,9 +1,9 @@
+use crate::error::ProtoCliError;
 use crate::helpers::create_progress_bar;
 use clap::Args;
 use proto_core::{load_tool, Id};
 use starbase::system;
 use starbase_styles::color;
-use std::process;
 use tracing::{debug, info};
 
 #[derive(Args, Clone, Debug)]
@@ -24,11 +24,10 @@ pub async fn uninstall_global(args: ArgsRef<UninstallGlobalArgs>) {
     let mut log_list = vec![];
 
     if !tool.plugin.has_func("uninstall_global") || globals_dir.is_none() {
-        eprintln!(
-            "{} does not support uninstalling global dependencies",
-            tool.get_name()
-        );
-        process::exit(1);
+        return Err(ProtoCliError::GlobalsNotSupported {
+            tool: tool.get_name().to_owned(),
+        }
+        .into());
     }
 
     for dependency in &args.dependencies {

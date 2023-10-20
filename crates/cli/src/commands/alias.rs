@@ -1,5 +1,6 @@
+use crate::error::ProtoCliError;
 use clap::Args;
-use proto_core::{is_alias_name, load_tool, Id, ProtoError, UnresolvedVersionSpec};
+use proto_core::{is_alias_name, load_tool, Id, UnresolvedVersionSpec};
 use starbase::system;
 use starbase_styles::color;
 use tracing::info;
@@ -20,14 +21,15 @@ pub struct AliasArgs {
 pub async fn alias(args: ArgsRef<AliasArgs>) {
     if let UnresolvedVersionSpec::Alias(inner_alias) = &args.spec {
         if &args.alias == inner_alias {
-            return Err(ProtoError::Message("Cannot map an alias to itself.".into()))?;
+            return Err(ProtoCliError::NoMatchingAliasToVersion.into());
         }
     }
 
     if !is_alias_name(&args.alias) {
-        return Err(ProtoError::Message(
-            "Versions cannot be aliases. Use alphanumeric words instead.".into(),
-        ))?;
+        return Err(ProtoCliError::InvalidAliasName {
+            alias: args.alias.clone(),
+        }
+        .into());
     }
 
     let mut tool = load_tool(&args.id).await?;

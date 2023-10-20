@@ -1,9 +1,10 @@
+use crate::error::ProtoCliError;
 use crate::helpers::create_progress_bar;
 use clap::Args;
 use proto_core::{load_tool, Id};
 use starbase::system;
 use starbase_styles::color;
-use std::{env, process};
+use std::env;
 use tracing::{debug, info};
 
 #[derive(Args, Clone, Debug)]
@@ -24,11 +25,10 @@ pub async fn install_global(args: ArgsRef<InstallGlobalArgs>) {
     let mut log_list = vec![];
 
     if !tool.plugin.has_func("install_global") || globals_dir.is_none() {
-        eprintln!(
-            "{} does not support installing global dependencies",
-            tool.get_name()
-        );
-        process::exit(1);
+        return Err(ProtoCliError::GlobalsNotSupported {
+            tool: tool.get_name().to_owned(),
+        }
+        .into());
     }
 
     for dependency in &args.dependencies {

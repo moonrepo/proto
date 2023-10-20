@@ -2325,6 +2325,7 @@ dependencies = [
  "starbase_styles",
  "starbase_utils",
  "system_env",
+ "thiserror",
  "tokio",
  "tracing",
  "winreg 0.51.0",

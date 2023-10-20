@@ -26,6 +26,9 @@
 
   Furthermore, we suggest deleting all files in `~/.proto/bin` except for `proto(.exe)`.
 
+- WASM API
+  - Removed `env_vars` from `ToolMetadataOutput` and `ToolContext`. Use `host_env!` macro instead.
+
 #### 🚀 Updates
 
 - Reworked the `~/.proto/bin` directory to now contain symlinks to the original tool executables. This is a non-shim based alternative that can be used stand-alone or in unison with our shims.
@@ -35,6 +38,7 @@
 - Added support for minisign checksum files. Can now verify `.minisig` signatures for downloaded tools.
 - Updated `proto use` to install tools in parallel.
 - Updated `proto plugins` and `proto tools` to load plugins in parallel.
+- Updated `proto run` to error when the tool attempts to self-upgrade outside of proto.
 - TOML API
   - Added an `install.checksum_public_key` setting.
 - WASM API
@@ -44,6 +48,7 @@
 #### ⚙️ Internal
 
 - Minor performance improvements to runtime version detection.
+- Improved error handling and messages.
 
 ## 0.19.3
 
