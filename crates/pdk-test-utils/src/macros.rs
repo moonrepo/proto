@@ -32,7 +32,7 @@ macro_rules! generate_download_install_tests {
             // Check bin path exists (would panic)
             plugin.tool.get_bin_path().unwrap();
 
-            // Check global bin exists
+            // Check global shim exists
             assert!(sandbox
                 .path()
                 .join(".proto/shims")
@@ -56,12 +56,11 @@ macro_rules! generate_download_install_tests {
 
             tool.version = Some(proto_pdk_test_utils::VersionSpec::parse($version).unwrap());
 
-            let download_file = tool
-                .install_from_prebuilt(&tool.get_tool_dir())
-                .await
-                .unwrap();
+            let temp_dir = tool.get_temp_dir().join($version);
 
-            assert!(download_file.starts_with(tool.get_temp_dir()));
+            tool.install_from_prebuilt(&temp_dir).await.unwrap();
+
+            assert!(temp_dir.exists());
         }
 
         #[tokio::test]
@@ -80,6 +79,7 @@ macro_rules! generate_download_install_tests {
             let mut tool = plugin.tool;
             let spec = proto_pdk_test_utils::VersionSpec::parse($version).unwrap();
 
+            // Fake the installation so we avoid downloading
             tool.version = Some(spec.clone());
             tool.manifest.installed_versions.insert(spec);
 

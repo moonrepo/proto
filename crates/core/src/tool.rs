@@ -831,7 +831,7 @@ impl Tool {
 
     /// Download the tool (as an archive) from its distribution registry
     /// into the `~/.proto/temp` folder, and optionally verify checksums.
-    pub async fn install_from_prebuilt(&self, temp_dir: &Path) -> miette::Result<PathBuf> {
+    pub async fn install_from_prebuilt(&self, temp_dir: &Path) -> miette::Result<()> {
         debug!(
             tool = self.id.as_str(),
             "Installing tool from a pre-built archive"
@@ -934,7 +934,7 @@ impl Tool {
             fs::remove_file(&download_file)?;
         }
 
-        Ok(download_file)
+        Ok(())
     }
 
     /// Install a tool into proto, either by downloading and unpacking
