@@ -5,7 +5,6 @@ use miette::IntoDiagnostic;
 use proto_core::{detect_version, load_tool, Id, ProtoError, Tool, UnresolvedVersionSpec};
 use proto_pdk_api::RunHook;
 use starbase::system;
-use starbase_styles::color;
 use std::env;
 use std::process::exit;
 use system_env::is_command_on_path;
@@ -43,7 +42,7 @@ fn is_trying_to_self_upgrade(tool: &Tool, args: &[String]) -> bool {
         }
 
         // And then check if an upgrade command
-        return tool.metadata.self_upgrade_commands.contains(&arg);
+        return tool.metadata.self_upgrade_commands.contains(arg);
     }
 
     false
@@ -57,7 +56,7 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
     if is_trying_to_self_upgrade(&tool, &args.passthrough) {
         return Err(ProtoCliError::NoSelfUpgrade {
             command: format!("proto install {} --pin", tool.id),
-            name: tool.get_name().to_owned(),
+            tool: tool.get_name().to_owned(),
         }
         .into());
     }
@@ -104,10 +103,10 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
         if alt_bin_path.exists() {
             bin_path = alt_bin_path;
         } else {
-            return Err(ProtoError::Message(format!(
-                "Alternate binary {} does not exist.",
-                color::file(alt_bin)
-            ))
+            return Err(ProtoCliError::MissingRunAltBin {
+                bin: alt_bin.to_owned(),
+                path: alt_bin_path,
+            }
             .into());
         }
     } else if let Some(shim_path) = tool.get_shim_path() {
