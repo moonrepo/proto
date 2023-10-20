@@ -212,7 +212,7 @@ async fn purge_tool(id: &Id, yes: bool) -> SystemResult {
             let shim_configs: CreateShimsOutput = tool.plugin.cache_func_with(
                 "create_shims",
                 CreateShimsInput {
-                    context: tool.create_context()?,
+                    context: tool.create_context(),
                 },
             )?;
 

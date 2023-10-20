@@ -272,17 +272,11 @@ impl Tool {
 
 impl Tool {
     /// Return contextual information to pass to WASM plugin functions.
-    pub fn create_context(&self) -> miette::Result<ToolContext> {
-        Ok(ToolContext {
-            env_vars: self
-                .metadata
-                .env_vars
-                .iter()
-                .filter_map(|var| env::var(var).ok().map(|value| (var.to_owned(), value)))
-                .collect(),
+    pub fn create_context(&self) -> ToolContext {
+        ToolContext {
             tool_dir: self.to_virtual_path(&self.get_tool_dir()),
             version: self.get_resolved_version().to_string(),
-        })
+        }
     }
 
     /// Register the tool by loading initial metadata and persisting it.
@@ -310,16 +304,12 @@ impl Tool {
     }
 
     /// Run a hook with the provided name and input.
-    pub fn run_hook<I>(
-        &self,
-        hook: &str,
-        input: impl FnOnce() -> miette::Result<I>,
-    ) -> miette::Result<()>
+    pub fn run_hook<I>(&self, hook: &str, input: impl FnOnce() -> I) -> miette::Result<()>
     where
         I: Debug + Serialize,
     {
         if self.plugin.has_func(hook) {
-            self.plugin.call_func_without_output(hook, input()?)?;
+            self.plugin.call_func_without_output(hook, input())?;
         }
 
         Ok(())
@@ -336,7 +326,7 @@ impl Tool {
         let sync_changes: SyncManifestOutput = self.plugin.call_func_with(
             "sync_manifest",
             SyncManifestInput {
-                context: self.create_context()?,
+                context: self.create_context(),
             },
         )?;
 
@@ -443,7 +433,7 @@ impl Tool {
                 "load_versions",
                 LoadVersionsInput {
                     initial: initial_version.to_string(),
-                    context: self.create_context()?,
+                    context: self.create_context(),
                 },
             )?;
 
@@ -509,7 +499,7 @@ impl Tool {
                 "resolve_version",
                 ResolveVersionInput {
                     initial: initial_version.to_string(),
-                    context: self.create_context()?,
+                    context: self.create_context(),
                 },
             )?;
 
@@ -659,7 +649,7 @@ impl Tool {
                 VerifyChecksumInput {
                     checksum_file: self.to_virtual_path(checksum_file),
                     download_file: self.to_virtual_path(download_file),
-                    context: self.create_context()?,
+                    context: self.create_context(),
                 },
             )?;
 
@@ -745,7 +735,7 @@ impl Tool {
         let options: BuildInstructionsOutput = self.plugin.cache_func_with(
             "build_instructions",
             BuildInstructionsInput {
-                context: self.create_context()?,
+                context: self.create_context(),
             },
         )?;
 
@@ -845,7 +835,7 @@ impl Tool {
         let options: DownloadPrebuiltOutput = self.plugin.cache_func_with(
             "download_prebuilt",
             DownloadPrebuiltInput {
-                context: self.create_context()?,
+                context: self.create_context(),
                 install_dir: self.to_virtual_path(temp_dir),
             },
         )?;
@@ -908,7 +898,7 @@ impl Tool {
                 UnpackArchiveInput {
                     input_file: self.to_virtual_path(&download_file),
                     output_dir: self.to_virtual_path(temp_dir),
-                    context: self.create_context()?,
+                    context: self.create_context(),
                 },
             )?;
 
@@ -977,7 +967,7 @@ impl Tool {
             let result: NativeInstallOutput = self.plugin.call_func_with(
                 "native_install",
                 NativeInstallInput {
-                    context: self.create_context()?,
+                    context: self.create_context(),
                     install_dir: self.to_virtual_path(&temp_install_dir),
                 },
             )?;
@@ -1044,7 +1034,7 @@ impl Tool {
             InstallGlobalInput {
                 dependency: dependency.to_owned(),
                 globals_dir: self.to_virtual_path(globals_dir.as_ref().unwrap()),
-                context: self.create_context()?,
+                context: self.create_context(),
             },
         )?;
 
@@ -1090,7 +1080,7 @@ impl Tool {
             let result: NativeUninstallOutput = self.plugin.call_func_with(
                 "native_uninstall",
                 NativeUninstallInput {
-                    context: self.create_context()?,
+                    context: self.create_context(),
                 },
             )?;
 
@@ -1135,7 +1125,7 @@ impl Tool {
             UninstallGlobalInput {
                 dependency: dependency.to_owned(),
                 globals_dir: self.to_virtual_path(globals_dir.as_ref().unwrap()),
-                context: self.create_context()?,
+                context: self.create_context(),
             },
         )?;
 
@@ -1171,7 +1161,7 @@ impl Tool {
             options = self.plugin.cache_func_with(
                 "locate_bins",
                 LocateBinsInput {
-                    context: self.create_context()?,
+                    context: self.create_context(),
                 },
             )?;
         }
@@ -1218,7 +1208,7 @@ impl Tool {
         let options: LocateBinsOutput = self.plugin.cache_func_with(
             "locate_bins",
             LocateBinsInput {
-                context: self.create_context()?,
+                context: self.create_context(),
             },
         )?;
 
@@ -1306,7 +1296,7 @@ impl Tool {
         let shim_configs: CreateShimsOutput = self.plugin.cache_func_with(
             "create_shims",
             CreateShimsInput {
-                context: self.create_context()?,
+                context: self.create_context(),
             },
         )?;
 

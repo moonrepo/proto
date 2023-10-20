@@ -90,11 +90,9 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
     debug!(bin = ?bin_path, args = ?args.passthrough, "Running {}", tool.get_name());
 
     // Run before hook
-    tool.run_hook("pre_run", || {
-        Ok(RunHook {
-            context: tool.create_context()?,
-            passthrough_args: args.passthrough.clone(),
-        })
+    tool.run_hook("pre_run", || RunHook {
+        context: tool.create_context(),
+        passthrough_args: args.passthrough.clone(),
     })?;
 
     // Run the command
@@ -148,11 +146,9 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
     }
 
     // Run after hook
-    tool.run_hook("post_run", || {
-        Ok(RunHook {
-            context: tool.create_context()?,
-            passthrough_args: args.passthrough.clone(),
-        })
+    tool.run_hook("post_run", || RunHook {
+        context: tool.create_context(),
+        passthrough_args: args.passthrough.clone(),
     })?;
 
     // Update the last used timestamp in a separate task,

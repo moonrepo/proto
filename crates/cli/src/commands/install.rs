@@ -111,12 +111,10 @@ pub async fn internal_install(args: InstallArgs) -> SystemResult {
     env::set_var("PROTO_INSTALL", args.id.to_string());
 
     // Run before hook
-    tool.run_hook("pre_install", || {
-        Ok(InstallHook {
-            context: tool.create_context()?,
-            passthrough_args: args.passthrough.clone(),
-            pinned: args.pin,
-        })
+    tool.run_hook("pre_install", || InstallHook {
+        context: tool.create_context(),
+        passthrough_args: args.passthrough.clone(),
+        pinned: args.pin,
     })?;
 
     // Install the tool
@@ -145,12 +143,10 @@ pub async fn internal_install(args: InstallArgs) -> SystemResult {
     );
 
     // Run after hook
-    tool.run_hook("post_install", || {
-        Ok(InstallHook {
-            context: tool.create_context()?,
-            passthrough_args: args.passthrough.clone(),
-            pinned: args.pin,
-        })
+    tool.run_hook("post_install", || InstallHook {
+        context: tool.create_context(),
+        passthrough_args: args.passthrough.clone(),
+        pinned: args.pin,
     })?;
 
     // Sync shell profile
@@ -172,7 +168,7 @@ fn update_shell(tool: Tool, passthrough_args: Vec<String>) -> miette::Result<()>
     let output: SyncShellProfileOutput = tool.plugin.call_func_with(
         "sync_shell_profile",
         SyncShellProfileInput {
-            context: tool.create_context()?,
+            context: tool.create_context(),
             passthrough_args,
         },
     )?;

@@ -26,6 +26,9 @@
 
   Furthermore, we suggest deleting all files in `~/.proto/bin` except for `proto(.exe)`.
 
+- WASM API
+  - Removed `env_vars` from `ToolMetadataOutput` and `ToolContext`. Use `host_env!` macro instead.
+
 #### 🚀 Updates
 
 - Reworked the `~/.proto/bin` directory to now contain symlinks to the original tool executables. This is a non-shim based alternative that can be used stand-alone or in unison with our shims.

@@ -33,9 +33,6 @@ json_struct!(
 json_struct!(
     /// Information about the current state of the tool.
     pub struct ToolContext {
-        /// Requested environment variables. Only non-empty values are included.
-        pub env_vars: HashMap<String, String>,
-
         /// Virtual path to the tool's installation directory.
         pub tool_dir: VirtualPath,
 
@@ -86,10 +83,6 @@ json_struct!(
         /// Default alias or version to use as a fallback.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub default_version: Option<String>,
-
-        /// Environment variables that should be extracted
-        /// and passed to other function call inputs.
-        pub env_vars: Vec<String>,
 
         /// Controls aspects of the tool inventory.
         pub inventory: ToolInventoryMetadata,
