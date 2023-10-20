@@ -1,9 +1,10 @@
+use crate::error::ProtoCliError;
 use clap::Args;
 use proto_core::{Id, ToolsConfig, UserConfig, TOOLS_CONFIG_NAME};
 use starbase::system;
 use starbase_styles::color;
+use std::env;
 use std::path::PathBuf;
-use std::{env, process};
 use tracing::info;
 
 #[derive(Args, Clone, Debug)]
@@ -38,12 +39,7 @@ pub async fn remove_plugin(args: ArgsRef<RemovePluginArgs>) {
     let config_path = local_path.join(TOOLS_CONFIG_NAME);
 
     if !config_path.exists() {
-        eprintln!(
-            "No {} found in the current directory",
-            color::file(TOOLS_CONFIG_NAME)
-        );
-
-        process::exit(1);
+        return Err(ProtoCliError::MissingToolsConfigInCwd { path: config_path }.into());
     }
 
     let mut config = ToolsConfig::load_from(local_path)?;

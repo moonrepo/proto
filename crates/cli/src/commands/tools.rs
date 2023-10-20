@@ -1,3 +1,4 @@
+use crate::error::ProtoCliError;
 use crate::helpers::load_configured_tools_with_filters;
 use chrono::{DateTime, NaiveDateTime};
 use clap::Args;
@@ -8,7 +9,6 @@ use starbase_styles::color::{self, OwoStyle};
 use starbase_utils::json;
 use std::collections::{HashMap, HashSet};
 use std::io::{BufWriter, Write};
-use std::process;
 use tracing::info;
 
 #[derive(Args, Clone, Debug)]
@@ -36,8 +36,7 @@ pub async fn tools(args: ArgsRef<ToolsArgs>) {
     tools.sort_by(|a, d| a.id.cmp(&d.id));
 
     if tools.is_empty() {
-        eprintln!("No installed tools");
-        process::exit(1);
+        return Err(ProtoCliError::NoInstalledTools.into());
     }
 
     if args.json {

@@ -1,3 +1,4 @@
+use crate::error::ProtoCliError;
 use clap::Args;
 use proto_core::{load_tool, Id};
 use starbase::diagnostics::IntoDiagnostic;
@@ -19,8 +20,10 @@ pub async fn list_global(args: ArgsRef<ListGlobalArgs>) {
     tool.locate_globals_dir().await?;
 
     let Some(globals_dir) = tool.get_globals_bin_dir() else {
-        eprintln!("{} does not support global packages", tool.get_name());
-        process::exit(1);
+        return Err(ProtoCliError::GlobalsNotSupported {
+            tool: tool.get_name().to_owned(),
+        }
+        .into());
     };
 
     debug!(globals_dir = ?globals_dir, "Finding global packages");

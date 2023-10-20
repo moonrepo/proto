@@ -16,7 +16,7 @@ mod remove_plugin {
         let assert = cmd.arg("remove-plugin").arg("id").assert();
 
         assert.stderr(predicate::str::contains(
-            "No .prototools found in the current directory",
+            "No .prototools has been found in current directory.",
         ));
     }
 
@@ -26,8 +26,8 @@ mod remove_plugin {
 
         let mut config = ToolsConfig::load_from(sandbox.path()).unwrap();
         config.plugins.insert(Id::raw("id"), PluginLocator::SourceUrl {
-						url: "https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm".into()
-				});
+            url: "https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm".into()
+        });
         config.save().unwrap();
 
         let mut cmd = create_proto_command(sandbox.path());
@@ -44,8 +44,8 @@ mod remove_plugin {
 
         let mut config = UserConfig::load_from(sandbox.path()).unwrap();
         config.plugins.insert(Id::raw("id"), PluginLocator::SourceUrl {
-						url: "https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm".into()
-				});
+            url: "https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm".into()
+        });
         config.save().unwrap();
 
         let mut cmd = create_proto_command(sandbox.path());

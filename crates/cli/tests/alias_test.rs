@@ -98,7 +98,7 @@ mod alias {
             .assert();
 
         assert.stderr(predicate::str::contains(
-            "Versions cannot be aliases. Use alphanumeric words instead.",
+            "Invalid alias name 1.2.3. Use alphanumeric words instead.",
         ));
     }
 

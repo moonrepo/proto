@@ -1,6 +1,7 @@
+use crate::error::ProtoCliError;
 use crate::helpers::download_to_temp_with_progress_bar;
 use miette::IntoDiagnostic;
-use proto_core::{get_bin_dir, get_temp_dir, is_offline, ProtoError};
+use proto_core::{get_bin_dir, get_temp_dir, is_offline};
 use semver::Version;
 use starbase::system;
 use starbase_archive::Archiver;
@@ -28,9 +29,7 @@ async fn fetch_version() -> miette::Result<String> {
 #[system]
 pub async fn upgrade() {
     if is_offline() {
-        return Err(ProtoError::Message(
-            "Upgrading proto requires an internet connection!".into(),
-        ))?;
+        return Err(ProtoCliError::UpgradeRequiresInternet.into());
     }
 
     let version = env!("CARGO_PKG_VERSION");
@@ -54,10 +53,11 @@ pub async fn upgrade() {
         ("macos", arch) => format!("{arch}-apple-darwin"),
         ("windows", "x86_64") => "x86_64-pc-windows-msvc".to_owned(),
         (os, arch) => {
-            return Err(ProtoError::Message(format!(
-                "Unable to upgrade proto, unsupported platform {} + {}.",
-                os, arch
-            )))?;
+            return Err(ProtoCliError::UpgradeInvalidPlatform {
+                arch: arch.to_owned(),
+                os: os.to_owned(),
+            }
+            .into());
         }
     };
     let target_ext = if cfg!(windows) { "zip" } else { "tar.xz" };
@@ -115,8 +115,7 @@ pub async fn upgrade() {
         }
     }
 
-    Err(ProtoError::Message(format!(
-        "Failed to upgrade proto, {} could not be located after download!",
-        color::shell(bin_name)
-    )))?
+    Err(ProtoCliError::UpgradeFailed {
+        bin: bin_name.to_owned(),
+    })?;
 }
