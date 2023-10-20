@@ -2387,7 +2387,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "extism",
  "proto_core",
