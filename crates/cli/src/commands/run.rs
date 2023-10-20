@@ -1,7 +1,8 @@
 use crate::commands::install::{internal_install, InstallArgs};
+use crate::error::ProtoCliError;
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::{detect_version, load_tool, Id, ProtoError, UnresolvedVersionSpec};
+use proto_core::{detect_version, load_tool, Id, ProtoError, Tool, UnresolvedVersionSpec};
 use proto_pdk_api::RunHook;
 use starbase::system;
 use starbase_styles::color;
@@ -30,9 +31,37 @@ pub struct RunArgs {
     passthrough: Vec<String>,
 }
 
+fn is_trying_to_self_upgrade(tool: &Tool, args: &[String]) -> bool {
+    if tool.metadata.self_upgrade_commands.is_empty() {
+        return false;
+    }
+
+    for arg in args {
+        // Find first non-option arg
+        if arg.starts_with('-') {
+            continue;
+        }
+
+        // And then check if an upgrade command
+        return tool.metadata.self_upgrade_commands.contains(&arg);
+    }
+
+    false
+}
+
 #[system]
 pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
     let mut tool = load_tool(&args.id).await?;
+
+    // Avoid running the tool's native self-upgrade as it conflicts with proto
+    if is_trying_to_self_upgrade(&tool, &args.passthrough) {
+        return Err(ProtoCliError::NoSelfUpgrade {
+            command: format!("proto install {} --pin", tool.id),
+            name: tool.get_name().to_owned(),
+        }
+        .into());
+    }
+
     let version = detect_version(&tool, args.spec.clone()).await?;
     let user_config = tool.proto.get_user_config()?;
 

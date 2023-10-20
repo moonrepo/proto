@@ -94,6 +94,10 @@ json_struct!(
         #[serde(skip_serializing_if = "Option::is_none")]
         pub plugin_version: Option<String>,
 
+        /// Names of commands that will self-upgrade the tool,
+        /// and should be blocked from happening.
+        pub self_upgrade_commands: Vec<String>,
+
         /// Type of the tool.
         #[serde(rename = "type")]
         pub type_of: PluginType,
