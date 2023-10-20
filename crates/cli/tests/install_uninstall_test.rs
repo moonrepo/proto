@@ -50,13 +50,8 @@ mod install_uninstall {
             .arg("gallium")
             .arg("--")
             .arg("--no-bundled-npm")
-            .assert();
-        // .success();
-
-        println!(
-            "{}",
-            std::fs::read_to_string(temp.path().join("wasm-debug.log")).unwrap()
-        );
+            .assert()
+            .success();
 
         assert!(temp.path().join("tools/node/16.20.2").exists());
     }
