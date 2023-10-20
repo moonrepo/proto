@@ -3239,7 +3239,7 @@ dependencies = [
 
 [[package]]
 name = "system_env"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "serde",
  "serde_json",
@@ -3813,7 +3813,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.5.9"
+version = "0.5.10"
 dependencies = [
  "extism",
  "miette",
