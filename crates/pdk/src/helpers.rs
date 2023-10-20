@@ -1,8 +1,6 @@
 use crate::exec_command;
 use extism_pdk::http::request;
 use extism_pdk::*;
-use once_cell::sync::Lazy;
-use once_map::OnceMap;
 use proto_pdk_api::{
     ExecCommandInput, ExecCommandOutput, HostArch, HostEnvironment, HostOS, PluginError,
     UserConfigSettings,
@@ -16,28 +14,23 @@ extern "ExtismHost" {
     fn exec_command(input: Json<ExecCommandInput>) -> Json<ExecCommandOutput>;
 }
 
-static FETCH_CACHE: Lazy<OnceMap<String, Vec<u8>>> = Lazy::new(OnceMap::new);
-
 /// Fetch the provided request and deserialize the response as JSON.
-pub fn fetch<R>(req: HttpRequest, body: Option<String>, cache: bool) -> anyhow::Result<R>
-where
-    R: DeserializeOwned,
-{
-    if cache {
-        if let Some(body) = FETCH_CACHE.get(&req.url) {
-            return Ok(json::from_slice(body)?);
-        }
-    }
+pub fn fetch(req: HttpRequest, body: Option<String>, _cache: bool) -> anyhow::Result<HttpResponse> {
+    // if cache {
+    //     if let Some(body) = FETCH_CACHE.get(&req.url) {
+    //         return Ok(json::from_slice(body)?);
+    //     }
+    // }
 
     let res = request(&req, body)
         .map_err(|e| anyhow::anyhow!("Failed to make request to {}: {e}", req.url))?;
 
     // Only cache GET requests
-    if cache && (req.method.is_none() || req.method.is_some_and(|m| m.to_uppercase() == "GET")) {
-        FETCH_CACHE.insert(req.url, |_| res.body());
-    }
+    // if cache && (req.method.is_none() || req.method.is_some_and(|m| m.to_uppercase() == "GET")) {
+    //     FETCH_CACHE.insert(req.url, |_| res.body());
+    // }
 
-    res.json()
+    Ok(res)
 }
 
 /// Fetch the provided URL and deserialize the response as JSON.
@@ -46,7 +39,7 @@ where
     R: DeserializeOwned,
     U: AsRef<str>,
 {
-    fetch(HttpRequest::new(url.as_ref()), None, false)
+    fetch(HttpRequest::new(url.as_ref()), None, false)?.json()
 }
 
 /// Fetch the provided URL and return the text response.
@@ -54,9 +47,7 @@ pub fn fetch_url_text<U>(url: U) -> anyhow::Result<String>
 where
     U: AsRef<str>,
 {
-    let req = HttpRequest::new(url.as_ref());
-    let res = request::<String>(&req, None)
-        .map_err(|e| anyhow::anyhow!("Failed to make request to {}: {e}", req.url))?;
+    let res = fetch(HttpRequest::new(url.as_ref()), None, false)?;
 
     String::from_bytes(res.body())
 }
@@ -69,7 +60,7 @@ where
     R: DeserializeOwned,
     U: AsRef<str>,
 {
-    fetch(HttpRequest::new(url.as_ref()), None, true)
+    fetch(HttpRequest::new(url.as_ref()), None, true)?.json()
 }
 
 /// Load all git tags from the provided remote URL.

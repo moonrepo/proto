@@ -18,24 +18,53 @@ use std::{env, fs};
 
 static mut LOGGING: bool = false;
 
-pub fn find_wasm_file(sandbox: &Path) -> PathBuf {
-    let mut wasm_target_dir =
-        PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("Missing CARGO_MANIFEST_DIR!"));
-    let wasm_file_name = env::var("CARGO_PKG_NAME").expect("Missing CARGO_PKG_NAME!");
+fn find_target_dir(search_dir: PathBuf) -> Option<PathBuf> {
+    let mut dir = search_dir;
 
     loop {
-        let next_target = wasm_target_dir.join("target/wasm32-wasi/debug");
+        let next_target = dir.join("target/wasm32-wasi/debug");
 
         if next_target.exists() {
-            wasm_target_dir = next_target;
-            break;
+            return Some(next_target);
         }
 
-        match wasm_target_dir.parent() {
-            Some(parent) => wasm_target_dir = parent.to_path_buf(),
-            None => panic!("Could not find target directory!"),
+        let next_target = dir.join("wasm32-wasi/debug");
+
+        if next_target.exists() {
+            return Some(next_target);
+        }
+
+        match dir.parent() {
+            Some(parent) => {
+                dir = parent.to_path_buf();
+            }
+            None => {
+                break;
+            }
         };
     }
+
+    None
+}
+
+pub fn find_wasm_file(sandbox: &Path) -> PathBuf {
+    let wasm_file_name = env::var("CARGO_PKG_NAME").expect("Missing CARGO_PKG_NAME!");
+
+    let mut wasm_target_dir = find_target_dir(
+        env::var("CARGO_MANIFEST_DIR")
+            .expect("Missing CARGO_MANIFEST_DIR!")
+            .into(),
+    );
+
+    if wasm_target_dir.is_none() {
+        if let Ok(dir) = env::var("CARGO_TARGET_DIR") {
+            wasm_target_dir = find_target_dir(dir.into());
+        }
+    }
+
+    let Some(wasm_target_dir) = wasm_target_dir else {
+        panic!("Could not find a target directory!");
+    };
 
     unsafe {
         if !LOGGING {
