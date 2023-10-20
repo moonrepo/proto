@@ -2,7 +2,7 @@ use crate::error::ProtoError;
 use crate::events::*;
 use crate::helpers::{
     extract_filename_from_url, hash_file_contents, is_archive_file, is_cache_enabled, is_offline,
-    read_json_file_with_lock, write_json_file_with_lock, ENV_VAR,
+    ENV_VAR,
 };
 use crate::proto::ProtoEnvironment;
 use crate::shimmer::{
@@ -18,7 +18,7 @@ use serde::Serialize;
 use starbase_archive::Archiver;
 use starbase_events::Emitter;
 use starbase_styles::color;
-use starbase_utils::fs;
+use starbase_utils::{fs, json};
 use std::collections::{BTreeMap, HashSet};
 use std::env;
 use std::fmt::Debug;
@@ -424,7 +424,7 @@ impl Tool {
             if read_cache {
                 debug!(tool = self.id.as_str(), cache = ?cache_path, "Loading from local cache");
 
-                versions = read_json_file_with_lock(&cache_path)?;
+                versions = json::read_file(&cache_path)?;
                 cached = true;
             }
         }
@@ -443,7 +443,7 @@ impl Tool {
                 },
             )?;
 
-            write_json_file_with_lock(cache_path, &versions)?;
+            json::write_file(cache_path, &versions, false)?;
         }
 
         // Cache the results and create a resolver

@@ -102,6 +102,7 @@ json_struct!(
         pub plugin_version: Option<String>,
 
         /// Type of the tool.
+        #[serde(rename = "type")]
         pub type_of: PluginType,
     }
 );

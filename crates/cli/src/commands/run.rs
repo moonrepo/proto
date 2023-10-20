@@ -144,18 +144,6 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
         .await
         .into_diagnostic()?;
 
-    // Update the last used timestamp in a separate task,
-    // as to not interrupt this task incase something fails!
-    if env::var("PROTO_SKIP_USED_AT").is_err() {
-        let mut manifest = tool.manifest.clone();
-        let version = tool.get_resolved_version();
-
-        tokio::spawn(async move {
-            manifest.track_used_at(version);
-            let _ = manifest.save();
-        });
-    }
-
     if !status.success() {
         exit(status.code().unwrap_or(1));
     }
@@ -168,4 +156,13 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
             passthrough_args: args.passthrough.clone(),
         },
     )?;
+
+    // Update the last used timestamp in a separate task,
+    // as to not interrupt this task incase something fails!
+    if env::var("PROTO_SKIP_USED_AT").is_err() {
+        tokio::spawn(async move {
+            tool.manifest.track_used_at(tool.get_resolved_version());
+            let _ = tool.manifest.save();
+        });
+    }
 }
