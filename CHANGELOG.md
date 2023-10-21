@@ -10,6 +10,12 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [Schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### ⚙️ Internal
+
+- Increased the timeout for WASM function calls from 30s to 90s.
+
 ## 0.20.0
 
 #### 💥 Breaking

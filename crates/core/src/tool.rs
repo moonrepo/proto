@@ -136,10 +136,11 @@ impl Tool {
 
         let mut manifest = PluginManifest::new([wasm]);
         manifest = manifest.with_allowed_host("*");
+        manifest = manifest.with_timeout(Duration::from_secs(90));
 
         #[cfg(debug_assertions)]
         {
-            manifest = manifest.with_timeout(Duration::from_secs(90));
+            manifest = manifest.with_timeout(Duration::from_secs(120));
         }
 
         manifest = manifest.with_allowed_path(proto.cwd.clone(), "/workspace");
