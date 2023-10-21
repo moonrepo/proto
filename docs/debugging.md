@@ -102,3 +102,19 @@ fn installs_without_minor() {
     assert!(false);
 }
 ```
+
+# Debugging PDKs
+
+proto has a few crates that are used directly by plugins: `proto_pdk`, `proto_pdk_api`, and `proto_pdk_test_utils`.
+
+We can easily add debugging/logging to these crates, and test them within our plugins, by using the `path` setting in `Cargo.toml`.
+
+For example in the Node.js plugin's [`Cargo.toml`](https://github.com/moonrepo/node-plugin/blob/master/Cargo.toml), we can uncomment (or insert) the `path`s to point to crates in our local proto checkout:
+
+```toml
+proto_pdk = { version = "0.8.0", path = "../../proto/crates/pdk" }
+proto_pdk_api = { version = "0.8.0", path = "../../proto/crates/pdk-api" }
+proto_pdk_test_utils = { version = "0.8.2", path = "../../proto/crates/pdk-test-utils" }
+```
+
+From here, just re-build proto and the WASM plugin, and re-run the commands above.
