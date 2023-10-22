@@ -3,6 +3,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use miette::IntoDiagnostic;
 use proto_core::{
     get_temp_dir, load_tool_from_locator, Id, ProtoEnvironment, ProtoError, Tool, ToolsConfig,
+    UserConfig,
 };
 use starbase_utils::fs;
 use std::cmp;
@@ -90,39 +91,65 @@ pub async fn download_to_temp_with_progress_bar(
 }
 
 pub async fn load_configured_tools() -> miette::Result<Vec<Tool>> {
-    load_configured_tools_with_filters(HashSet::new()).await
+    ToolsLoader::new()?.load_tools().await
 }
 
 pub async fn load_configured_tools_with_filters(filter: HashSet<&Id>) -> miette::Result<Vec<Tool>> {
-    let proto = Arc::new(ProtoEnvironment::new()?);
-    let user_config = Arc::new(proto.get_user_config()?);
+    ToolsLoader::new()?.load_tools_with_filters(filter).await
+}
 
-    let mut tools_config = ToolsConfig::load_upwards_from(&proto.cwd, false)?;
-    tools_config.inherit_builtin_plugins();
+pub struct ToolsLoader {
+    pub proto: Arc<ProtoEnvironment>,
+    pub tools_config: ToolsConfig,
+    pub user_config: Arc<UserConfig>,
+}
 
-    let mut plugins = HashMap::new();
-    plugins.extend(user_config.plugins.clone());
-    plugins.extend(tools_config.plugins);
+impl ToolsLoader {
+    pub fn new() -> miette::Result<Self> {
+        let proto = ProtoEnvironment::new()?;
+        let user_config = proto.get_user_config()?;
 
-    let mut futures = vec![];
-    let mut tools = vec![];
+        let mut tools_config = ToolsConfig::load_upwards_from(&proto.cwd, false)?;
+        tools_config.inherit_builtin_plugins();
 
-    for (id, locator) in plugins {
-        if !filter.is_empty() && !filter.contains(&id) {
-            continue;
+        Ok(Self {
+            proto: Arc::new(proto),
+            tools_config,
+            user_config: Arc::new(user_config),
+        })
+    }
+
+    pub async fn load_tools(&self) -> miette::Result<Vec<Tool>> {
+        self.load_tools_with_filters(HashSet::new()).await
+    }
+
+    pub async fn load_tools_with_filters(&self, filter: HashSet<&Id>) -> miette::Result<Vec<Tool>> {
+        let mut plugins = HashMap::new();
+        plugins.extend(&self.user_config.plugins);
+        plugins.extend(&self.tools_config.plugins);
+
+        let mut futures = vec![];
+        let mut tools = vec![];
+
+        for (id, locator) in plugins {
+            if !filter.is_empty() && !filter.contains(id) {
+                continue;
+            }
+
+            let id = id.to_owned();
+            let locator = locator.to_owned();
+            let proto = Arc::clone(&self.proto);
+            let user_config = Arc::clone(&self.user_config);
+
+            futures.push(tokio::spawn(async move {
+                load_tool_from_locator(id, proto, locator, &user_config).await
+            }));
         }
 
-        let proto = Arc::clone(&proto);
-        let user_config = Arc::clone(&user_config);
+        for future in futures {
+            tools.push(future.await.into_diagnostic()??);
+        }
 
-        futures.push(tokio::spawn(async move {
-            load_tool_from_locator(id, proto, locator, &user_config).await
-        }));
+        Ok(tools)
     }
-
-    for future in futures {
-        tools.push(future.await.into_diagnostic()??);
-    }
-
-    Ok(tools)
 }
