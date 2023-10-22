@@ -295,7 +295,10 @@ impl Tool {
             if inventory_dir.is_absolute() {
                 metadata.inventory.override_dir = Some(inventory_dir);
             } else {
-                return Err(ProtoError::AbsoluteInventoryDir.into());
+                return Err(ProtoError::AbsoluteInventoryDir {
+                    tool: self.get_name().to_owned(),
+                }
+                .into());
             }
         }
 
@@ -724,7 +727,7 @@ impl Tool {
 
         if !self.plugin.has_func("build_instructions") {
             return Err(ProtoError::UnsupportedBuildFromSource {
-                tool: self.id.clone(),
+                tool: self.get_name().to_owned(),
             }
             .into());
         }
@@ -793,6 +796,7 @@ impl Tool {
 
                     if !status.success() {
                         return Err(ProtoError::BuildFailed {
+                            tool: self.get_name().to_owned(),
                             url: repo_url.clone(),
                             status: format!("exit code {}", status),
                         }
