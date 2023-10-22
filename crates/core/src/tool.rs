@@ -113,7 +113,7 @@ impl Tool {
 
         if let Ok(level) = env::var("PROTO_WASM_LOG") {
             extism::set_log_file(
-                proto.cwd.join("wasm-debug.log"),
+                proto.cwd.join(format!("{}-debug.log", id)),
                 std::str::FromStr::from_str(&level).ok(),
             );
         }
@@ -470,28 +470,37 @@ impl Tool {
         // If offline but we have a fully qualified semantic version,
         // exit early and assume the version is legitimate! Additionally,
         // canary is a special type that we can simply just use.
-        if is_offline() && matches!(initial_version, UnresolvedVersionSpec::Version(_))
-            || matches!(initial_version, UnresolvedVersionSpec::Canary)
-        {
-            let version = initial_version.to_resolved_spec();
+        if is_offline() {
+            if matches!(
+                initial_version,
+                UnresolvedVersionSpec::Version(_) | UnresolvedVersionSpec::Canary
+            ) {
+                let version = initial_version.to_resolved_spec();
 
-            debug!(
-                tool = self.id.as_str(),
-                version = version.to_string(),
-                "Resolved to {}",
-                version
-            );
+                debug!(
+                    tool = self.id.as_str(),
+                    version = version.to_string(),
+                    "Resolved to {} (offline, using as-is)",
+                    version
+                );
 
-            self.on_resolved_version
-                .emit(ResolvedVersionEvent {
-                    candidate: initial_version.to_owned(),
-                    version: version.clone(),
-                })
-                .await?;
+                self.on_resolved_version
+                    .emit(ResolvedVersionEvent {
+                        candidate: initial_version.to_owned(),
+                        version: version.clone(),
+                    })
+                    .await?;
 
-            self.version = Some(version);
+                self.version = Some(version);
 
-            return Ok(());
+                return Ok(());
+            }
+
+            return Err(ProtoError::InternetConnectionRequiredForVersion {
+                command: format!("{}_VERSION=1.2.3 {}", self.get_env_var_prefix(), self.id),
+                bin_dir: self.proto.bin_dir.clone(),
+            }
+            .into());
         }
 
         let resolver = self.load_version_resolver(initial_version).await?;
@@ -1032,6 +1041,10 @@ impl Tool {
 
         if !self.plugin.has_func("install_global") || globals_dir.is_none() {
             return Ok(false);
+        }
+
+        if is_offline() {
+            return Err(ProtoError::InternetConnectionRequired.into());
         }
 
         let result: InstallGlobalOutput = self.plugin.call_func_with(

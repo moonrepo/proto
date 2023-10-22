@@ -9,7 +9,7 @@ Now instead of executing the global `proto` binary, execute the local `target/de
 A few environment variables are available to help with debugging:
 
 - `PROTO_LOG=trace` - The log level for proto. Best to use `trace`.
-- `PROTO_WASM_LOG=trace` - The log level for WASM plugins. Will write to a `wasm-debug.log` file in the current directory.
+- `PROTO_WASM_LOG=trace` - The log level for WASM plugins. Will write to a `<id>-debug.log` file in the current directory.
 - `PROTO_DEBUG_COMMAND=1` - Print full `exec_command!` output to the console.
 - `PROTO_CACHE=1` - Turn caching on or off.
 
@@ -44,11 +44,11 @@ Once the macro statements have been added, and the `.wasm` file has been re-buil
 PROTO_LOG=trace PROTO_WASM_LOG=trace PROTO_CACHE=off ~/proto/target/debug/proto run node-test
 ```
 
-This will create a `wasm-debug.log` file in the current directory with all log output from the WASM plugin and Extism runtime.
+This will create a `<id>-debug.log` file in the current directory with all log output from the WASM plugin and Extism runtime.
 
-> When debugging a failing test, the `wasm-debug.log` file is written to a temporary sandbox/fixture, and not to the current directory. To view the contents, read and print the file.
+> When debugging a failing test, the `<id>-debug.log` file is written to a temporary sandbox/fixture, and not to the current directory. To view the contents, read and print the file.
 >
-> `println!("{}", std::fs::read_to_string(sandbox.path().join("wasm-debug.log")).unwrap());`
+> `println!("{}", std::fs::read_to_string(sandbox.path().join("<id>-debug.log")).unwrap());`
 
 ## Tests
 

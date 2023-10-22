@@ -26,8 +26,16 @@ pub enum ProtoError {
     },
 
     #[diagnostic(code(proto::misc::offline))]
-    #[error("Internet connection required, unable to download and install tools.")]
+    #[error("Internet connection required, unable to download, install, or run tools.")]
     InternetConnectionRequired,
+
+    #[diagnostic(code(proto::misc::offline_version_required))]
+    #[error(
+        "Internet connection required to resolve a valid version. To work around this:\n - Pass a semantic version explicitly: {}\n - Execute the non-shim binaries instead: {}",
+        .command.style(Style::Shell),
+        .bin_dir.style(Style::Path)
+    )]
+    InternetConnectionRequiredForVersion { command: String, bin_dir: PathBuf },
 
     #[diagnostic(code(proto::verify::missing_public_key))]
     #[error(
