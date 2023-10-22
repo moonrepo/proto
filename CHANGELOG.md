@@ -16,6 +16,10 @@
 
 - Improved offline checks and behaviors.
 
+#### ⚙️ Internal
+
+- Renamed `/home` virtual path to `/userhome` to avoid conflicts.
+
 ## 0.20.1
 
 #### 🚀 Updates

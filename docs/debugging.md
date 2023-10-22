@@ -13,43 +13,6 @@ A few environment variables are available to help with debugging:
 - `PROTO_DEBUG_COMMAND=1` - Print full `exec_command!` output to the console.
 - `PROTO_CACHE=1` - Turn caching on or off.
 
-# Debugging plugins
-
-Debugging WASM plugins is non-trivial. I'll use the Node.js plugin as an example: https://github.com/moonrepo/node-plugin
-
-## Building
-
-To start, build a debug target with `cargo wasi build` or `cargo build --target wasm32-wasi`. This will make it available at `target/wasm32-wasi/debug/<name>.wasm`.
-
-To execute the debug `.wasm` file within proto, we need to configure a `.prototools` file that points to our newly built file, for example:
-
-```toml
-[plugins]
-node-test = "source:target/wasm32-wasi/debug/node_plugin.wasm"
-```
-
-We can then execute it with proto as such:
-
-```shell
-~/proto/target/debug/proto run node-test
-```
-
-## Logging
-
-WASM plugins _cannot_ use the `println!` and `dbg!` macros, and must use the logging macros instead: `error!`, `warn!`, `info!`, `debug!`, and `log!`.
-
-Once the macro statements have been added, and the `.wasm` file has been re-built, we can execute it with proto as such:
-
-```shell
-PROTO_LOG=trace PROTO_WASM_LOG=trace PROTO_CACHE=off ~/proto/target/debug/proto run node-test
-```
-
-This will create a `<id>-debug.log` file in the current directory with all log output from the WASM plugin and Extism runtime.
-
-> When debugging a failing test, the `<id>-debug.log` file is written to a temporary sandbox/fixture, and not to the current directory. To view the contents, read and print the file.
->
-> `println!("{}", std::fs::read_to_string(sandbox.path().join("<id>-debug.log")).unwrap());`
-
 ## Tests
 
 When a test is failing, we need to debug the result of a child process, as we execute `proto` as a child process to assert the entire CLI flow. An example test may look like this:
@@ -107,6 +70,45 @@ fn installs_without_minor() {
     assert!(false);
 }
 ```
+
+> When debugging a failing test, the WASM log file is written to the sandbox/fixture, and not to your current directory. To view the contents, read and print the file.
+>
+> `println!("{}", std::fs::read_to_string(sandbox.path().join("<id>-debug.log")).unwrap());`
+
+# Debugging plugins
+
+Debugging WASM plugins is non-trivial. I'll use the Node.js plugin as an example: https://github.com/moonrepo/node-plugin
+
+## Building
+
+To start, build a debug target with `cargo wasi build` or `cargo build --target wasm32-wasi`. This will make it available at `target/wasm32-wasi/debug/<name>.wasm`.
+
+To execute the debug `.wasm` file within proto, we need to configure a `.prototools` file that points to our newly built file, for example:
+
+```toml
+[plugins]
+node-test = "source:target/wasm32-wasi/debug/node_plugin.wasm"
+```
+
+We can then execute it with proto as such:
+
+```shell
+~/proto/target/debug/proto run node-test
+```
+
+## Logging
+
+WASM plugins _cannot_ use the `println!` and `dbg!` macros, and must use the logging macros instead: `error!`, `warn!`, `info!`, `debug!`, and `log!`.
+
+Once the macro statements have been added, and the `.wasm` file has been re-built, we can execute it with proto as such:
+
+```shell
+PROTO_LOG=trace PROTO_WASM_LOG=trace PROTO_CACHE=off ~/proto/target/debug/proto run node-test
+```
+
+This will create a `<id>-debug.log` file in the current directory with all log output from the WASM plugin and Extism runtime.
+
+> When debugging a failing test, the WASM log file is written to `$CARGO_TARGET_DIR/wasm32-wasi/debug/<name>.log` instead.
 
 # Debugging PDKs
 

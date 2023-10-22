@@ -144,8 +144,8 @@ impl Tool {
         }
 
         manifest = manifest.with_allowed_path(proto.cwd.clone(), "/workspace");
-        manifest = manifest.with_allowed_path(proto.home.clone(), "/home");
         manifest = manifest.with_allowed_path(proto.root.clone(), "/proto");
+        manifest = manifest.with_allowed_path(proto.home.clone(), "/userhome");
 
         Ok(manifest)
     }
