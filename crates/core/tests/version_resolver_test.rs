@@ -120,7 +120,7 @@ mod version_resolver {
     }
 
     #[test]
-    #[should_panic(expected = "Failed to resolve a semantic version for unknown.")]
+    #[should_panic(expected = "Failed to resolve unknown to a valid supported version.")]
     fn errors_unknown_alias() {
         let versions = create_versions();
         let aliases = create_aliases();
@@ -307,7 +307,7 @@ mod version_resolver {
     }
 
     #[test]
-    #[should_panic(expected = "Failed to resolve a semantic version for 20.0.0.")]
+    #[should_panic(expected = "Failed to resolve 20.0.0 to a valid supported version.")]
     fn errors_unknown_version() {
         let versions = create_versions();
         let aliases = create_aliases();
