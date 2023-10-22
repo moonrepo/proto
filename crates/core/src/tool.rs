@@ -470,32 +470,31 @@ impl Tool {
         // If offline but we have a fully qualified semantic version,
         // exit early and assume the version is legitimate! Additionally,
         // canary is a special type that we can simply just use.
+        if is_offline() && matches!(initial_version, UnresolvedVersionSpec::Version(_))
+            || matches!(initial_version, UnresolvedVersionSpec::Canary)
+        {
+            let version = initial_version.to_resolved_spec();
+
+            debug!(
+                tool = self.id.as_str(),
+                version = version.to_string(),
+                "Resolved to {}",
+                version
+            );
+
+            self.on_resolved_version
+                .emit(ResolvedVersionEvent {
+                    candidate: initial_version.to_owned(),
+                    version: version.clone(),
+                })
+                .await?;
+
+            self.version = Some(version);
+
+            return Ok(());
+        }
+
         if is_offline() {
-            if matches!(
-                initial_version,
-                UnresolvedVersionSpec::Version(_) | UnresolvedVersionSpec::Canary
-            ) {
-                let version = initial_version.to_resolved_spec();
-
-                debug!(
-                    tool = self.id.as_str(),
-                    version = version.to_string(),
-                    "Resolved to {} (offline, using as-is)",
-                    version
-                );
-
-                self.on_resolved_version
-                    .emit(ResolvedVersionEvent {
-                        candidate: initial_version.to_owned(),
-                        version: version.clone(),
-                    })
-                    .await?;
-
-                self.version = Some(version);
-
-                return Ok(());
-            }
-
             return Err(ProtoError::InternetConnectionRequiredForVersion {
                 command: format!("{}_VERSION=1.2.3 {}", self.get_env_var_prefix(), self.id),
                 bin_dir: self.proto.bin_dir.clone(),
