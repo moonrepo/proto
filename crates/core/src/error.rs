@@ -91,7 +91,7 @@ pub enum ProtoError {
 
     #[diagnostic(
         code(proto::version::unresolved),
-        help = "Has this version been released?"
+        help = "Does this version exist and has it been released?"
     )]
     #[error("Failed to resolve {} to a valid supported version.", .version.style(Style::Hash))]
     VersionResolveFailed { version: String },
