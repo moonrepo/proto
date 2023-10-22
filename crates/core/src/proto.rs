@@ -1,4 +1,4 @@
-use crate::helpers::{get_home_dir, get_proto_home};
+use crate::helpers::{get_home_dir, get_proto_home, is_offline};
 use crate::user_config::UserConfig;
 use once_cell::sync::OnceCell;
 use std::env;
@@ -62,6 +62,7 @@ impl ProtoEnvironment {
     pub fn get_plugin_loader(&self) -> &PluginLoader {
         self.loader.get_or_init(|| {
             let mut loader = PluginLoader::new(&self.plugins_dir, &self.temp_dir);
+            loader.set_offline(is_offline());
             loader.set_seed(env!("CARGO_PKG_VERSION"));
             loader
         })

@@ -18,6 +18,10 @@ pub enum WarpgateError {
         error: reqwest::Error,
     },
 
+    #[diagnostic(code(plugin::offline))]
+    #[error("{message} An internet connection is required to request {}.", .url.style(Style::Url))]
+    InternetConnectionRequired { message: String, url: String },
+
     #[diagnostic(code(plugin::invalid_id))]
     #[error("Invalid plugin identifier {}, must be a valid kebab-case string.", .0.style(Style::Id))]
     InvalidID(String),
