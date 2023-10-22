@@ -73,8 +73,12 @@ fn pin_version(
     Ok(())
 }
 
-pub async fn internal_install(args: InstallArgs) -> SystemResult {
-    let mut tool = load_tool(&args.id).await?;
+pub async fn internal_install(args: InstallArgs, tool: Option<Tool>) -> SystemResult {
+    let mut tool = match tool {
+        Some(tool) => tool,
+        None => load_tool(&args.id).await?,
+    };
+
     let version = if args.canary {
         UnresolvedVersionSpec::Canary
     } else {
@@ -213,5 +217,5 @@ fn update_shell(tool: Tool, passthrough_args: Vec<String>) -> miette::Result<()>
 
 #[system]
 pub async fn install(args: ArgsRef<InstallArgs>) {
-    internal_install(args.to_owned()).await?;
+    internal_install(args.to_owned(), None).await?;
 }

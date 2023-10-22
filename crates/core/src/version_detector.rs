@@ -107,7 +107,7 @@ pub async fn detect_version(
 
     // We didn't find anything!
     Err(ProtoError::VersionDetectFailed {
-        tool: tool.id.to_owned(),
+        tool: tool.get_name().to_owned(),
     }
     .into())
 }

@@ -10,16 +10,20 @@ pub enum ProtoError {
     Message(String),
 
     #[diagnostic(code(proto::tool::invalid_dir))]
-    #[error("Tool inventory directory has been overridden but is not an absolute path. Only absolute paths are supported.")]
-    AbsoluteInventoryDir,
+    #[error("{tool} inventory directory has been overridden but is not an absolute path. Only absolute paths are supported.")]
+    AbsoluteInventoryDir { tool: String },
 
     #[diagnostic(code(proto::tool::install_failed))]
     #[error("Failed to install {tool}. {error}")]
     InstallFailed { tool: String, error: String },
 
     #[diagnostic(code(proto::tool::build_failed))]
-    #[error("Failed to build tool from {}: {status}", .url.style(Style::Url))]
-    BuildFailed { url: String, status: String },
+    #[error("Failed to build {tool} from {}: {status}", .url.style(Style::Url))]
+    BuildFailed {
+        tool: String,
+        url: String,
+        status: String,
+    },
 
     #[diagnostic(code(proto::misc::offline))]
     #[error("Internet connection required, unable to download and install tools.")]
@@ -71,8 +75,8 @@ pub enum ProtoError {
     UnknownTool { id: Id },
 
     #[diagnostic(code(proto::build::unsupported))]
-    #[error("Build from source is not supported for {}.", .tool.style(Style::Id))]
-    UnsupportedBuildFromSource { tool: Id },
+    #[error("Build from source is not supported for {tool}.")]
+    UnsupportedBuildFromSource { tool: String },
 
     #[diagnostic(code(proto::unsupported::shell))]
     #[error("Unable to detect shell.")]
@@ -82,11 +86,14 @@ pub enum ProtoError {
         code(proto::version::undetected),
         help = "Has the tool been installed?"
     )]
-    #[error("Failed to detect an applicable version to run {} with. Try pinning a version or passing the version as an argument.", .tool.style(Style::Id))]
-    VersionDetectFailed { tool: Id },
+    #[error("Failed to detect an applicable version to run {tool} with. Try pinning a version or passing the version as an argument.")]
+    VersionDetectFailed { tool: String },
 
-    #[diagnostic(code(proto::version::unresolved))]
-    #[error("Failed to resolve a semantic version for {}.", .version.style(Style::Hash))]
+    #[diagnostic(
+        code(proto::version::unresolved),
+        help = "Does this version exist and has it been released?"
+    )]
+    #[error("Failed to resolve {} to a valid supported version.", .version.style(Style::Hash))]
     VersionResolveFailed { version: String },
 
     #[diagnostic(code(proto::http))]

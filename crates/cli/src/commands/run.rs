@@ -78,13 +78,16 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
         // Install the tool
         debug!("Auto-install setting is configured, attempting to install");
 
-        internal_install(InstallArgs {
-            canary: false,
-            id: args.id.clone(),
-            pin: false,
-            passthrough: vec![],
-            spec: Some(tool.get_resolved_version().to_unresolved_spec()),
-        })
+        internal_install(
+            InstallArgs {
+                canary: false,
+                id: args.id.clone(),
+                pin: false,
+                passthrough: vec![],
+                spec: Some(tool.get_resolved_version().to_unresolved_spec()),
+            },
+            None,
+        )
         .await?;
 
         // Find the new binaries

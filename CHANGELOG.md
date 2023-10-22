@@ -12,9 +12,18 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Updated `proto use` to load plugins in parallel.
+
+#### 🐞 Fixes
+
+- Fixed an issue where `proto use` would not bubble up errors for tools that fail to install.
+
 #### ⚙️ Internal
 
 - Increased the timeout for WASM function calls from 30s to 90s.
+- Improved and clarified some error messages.
 
 ## 0.20.0
 
