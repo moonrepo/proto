@@ -396,7 +396,7 @@ mod version_resolver {
     }
 
     #[test]
-    #[should_panic(expected = "Failed to resolve a semantic version for ^20.")]
+    #[should_panic(expected = "Failed to resolve ^20 to a valid supported version.")]
     fn errors_no_req_match() {
         let versions = create_versions();
         let aliases = create_aliases();
@@ -428,7 +428,7 @@ mod version_resolver {
     }
 
     #[test]
-    #[should_panic(expected = "Failed to resolve a semantic version for ^9 || ^5 || ^3.")]
+    #[should_panic(expected = "Failed to resolve ^9 || ^5 || ^3 to a valid supported version.")]
     fn errors_no_req_any_match() {
         let versions = create_versions();
         let aliases = create_aliases();
