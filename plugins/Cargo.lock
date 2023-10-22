@@ -245,7 +245,7 @@ dependencies = [
  "ahash",
  "cached_proc_macro",
  "cached_proc_macro_types",
- "hashbrown 0.14.0",
+ "hashbrown 0.14.2",
  "instant",
  "once_cell",
  "thiserror",
@@ -897,11 +897,10 @@ dependencies = [
 [[package]]
 name = "extism"
 version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a94848d5b49906bd97b83cf5a8bd25082dbc6f8bdfe98f12687910228734552"
+source = "git+https://github.com/extism/extism.git?branch=stable#1452b9fb42cf7e63ee133b7311eec1f3e39fee52"
 dependencies = [
  "anyhow",
- "extism-manifest",
+ "extism-manifest 0.5.0 (git+https://github.com/extism/extism.git?branch=stable)",
  "extism-runtime",
  "log",
  "serde_json",
@@ -919,6 +918,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "extism-manifest"
+version = "0.5.0"
+source = "git+https://github.com/extism/extism.git?branch=stable#1452b9fb42cf7e63ee133b7311eec1f3e39fee52"
+dependencies = [
+ "base64",
+ "serde",
+]
+
+[[package]]
 name = "extism-pdk"
 version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -926,7 +934,7 @@ checksum = "09c20fe9cafa572607e22192bf2040849e7456664895bdc589c89387876e2067"
 dependencies = [
  "anyhow",
  "base64",
- "extism-manifest",
+ "extism-manifest 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "extism-pdk-derive",
  "rmp-serde",
  "serde",
@@ -947,12 +955,11 @@ dependencies = [
 [[package]]
 name = "extism-runtime"
 version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3b0ba8ef6ecbf59c0f6e47fd2feea575ebc3a09e81603d06a41af92fe61cdfa"
+source = "git+https://github.com/extism/extism.git?branch=stable#1452b9fb42cf7e63ee133b7311eec1f3e39fee52"
 dependencies = [
  "anyhow",
  "cbindgen",
- "extism-manifest",
+ "extism-manifest 0.5.0 (git+https://github.com/extism/extism.git?branch=stable)",
  "glob",
  "libc",
  "log",
@@ -1246,9 +1253,9 @@ dependencies = [
 
 [[package]]
 name = "hashbrown"
-version = "0.14.0"
+version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c6201b9ff9fd90a5a3bac2e56a830d0caa509576f0e503818ee82c181b3437a"
+checksum = "f93e7192158dbcda357bdec5fb5788eebf8bbac027f3f33e719d29135ae84156"
 dependencies = [
  "ahash",
  "allocator-api2",
@@ -1439,7 +1446,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d5477fe2230a79769d8dc68e0eabf5437907c0457a5614a9e8dddb67f65eb65d"
 dependencies = [
  "equivalent",
- "hashbrown 0.14.0",
+ "hashbrown 0.14.2",
 ]
 
 [[package]]
@@ -1853,12 +1860,12 @@ checksum = "dd8b5dd2ae5ed71462c540258bedcb51965123ad7e7ccf4b9a8cafaa4a63576d"
 
 [[package]]
 name = "once_map"
-version = "0.4.8"
+version = "0.4.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "169e72192bc84493725bfca5d47da4ee2abc8acf155586d8127eb17f022497f4"
+checksum = "0dc08fbf8d1bb5119046009c6a3f3153333f1080b68778e0e1be37c747b97cf5"
 dependencies = [
  "ahash",
- "hashbrown 0.14.0",
+ "hashbrown 0.14.2",
  "parking_lot",
  "stable_deref_trait",
 ]
@@ -2016,7 +2023,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.19.4"
+version = "0.20.1"
 dependencies = [
  "cached",
  "extism",
@@ -2046,19 +2053,17 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.7.9"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "extism-pdk",
- "once_cell",
- "once_map",
  "proto_pdk_api",
  "serde",
 ]
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.7.6"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "semver",
@@ -2071,7 +2076,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "extism",
  "proto_core",
@@ -2082,7 +2087,7 @@ dependencies = [
 
 [[package]]
 name = "proto_wasm_plugin"
-version = "0.6.10"
+version = "0.7.0"
 dependencies = [
  "extism",
  "proto_pdk_api",
@@ -2512,9 +2517,9 @@ dependencies = [
 
 [[package]]
 name = "serde"
-version = "1.0.188"
+version = "1.0.189"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf9e0fcba69a370eed61bcf2b728575f726b50b55cba78064753d708ddc7549e"
+checksum = "8e422a44e74ad4001bdc8eede9a4570ab52f71190e9c076d14369f38b9200537"
 dependencies = [
  "serde_derive",
 ]
@@ -2531,9 +2536,9 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.188"
+version = "1.0.189"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4eca7ac642d82aa35b60049a6eccb4be6be75e599bd2e9adb5f875a737654af2"
+checksum = "1e48d1f918009ce3145511378cf68d613e3b3d9137d67272562080d68a2b32d5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2848,7 +2853,7 @@ dependencies = [
 
 [[package]]
 name = "system_env"
-version = "0.0.2"
+version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -2918,18 +2923,18 @@ checksum = "222a222a5bfe1bba4a77b45ec488a741b3cb8872e5e499451fd7d0129c9c7c3d"
 
 [[package]]
 name = "thiserror"
-version = "1.0.49"
+version = "1.0.50"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1177e8c6d7ede7afde3585fd2513e611227efd6481bd78d2e82ba1ce16557ed4"
+checksum = "f9a7210f5c9a7156bb50aa36aed4c95afb51df0df00713949448cf9e97d382d2"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.49"
+version = "1.0.50"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10712f02019e9288794769fba95cd6847df9874d49d871d062172f9dd41bc4cc"
+checksum = "266b2e40bc00e5a6c09c3584011e08b06f123c00362c92b975ba9843aaaa14b8"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3112,11 +3117,10 @@ checksum = "b6bc1c9ce2b5135ac7f93c72918fc37feb872bdc6a5533a8b85eb4b86bfdae52"
 
 [[package]]
 name = "tracing"
-version = "0.1.37"
+version = "0.1.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ce8c33a8d48bd45d624a6e523445fd21ec13d3653cd51f681abf67418f54eb8"
+checksum = "c3523ab5a71916ccf420eebdf5521fcef02141234bbc0b8a49f2fdc4544364ef"
 dependencies = [
- "cfg-if",
  "log",
  "pin-project-lite",
  "tracing-attributes",
@@ -3125,9 +3129,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-attributes"
-version = "0.1.26"
+version = "0.1.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f4f31f56159e98206da9efd823404b79b6ef3143b4a7ab76e67b1751b25a4ab"
+checksum = "34704c8d6ebcbc939824180af020566b01a7c01f80641264eba0999f6c2b6be7"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3136,9 +3140,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-core"
-version = "0.1.31"
+version = "0.1.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0955b8137a1df6f1a2e9a37d8a6656291ff0297c1a97c24e0d8425fe2312f79a"
+checksum = "c06d3da6113f116aaee68e4d601191614c9053067f9ab7f6edbcb161237daa54"
 dependencies = [
  "once_cell",
 ]
@@ -3310,7 +3314,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.5.9"
+version = "0.5.10"
 dependencies = [
  "extism",
  "miette",

@@ -45,7 +45,7 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
-      - uses: moonrepo/setup-proto@v1
+      - uses: moonrepo/setup-toolchain@v0
       - uses: moonrepo/setup-rust@v1
         with:
           bins: cargo-wasi, cargo-nextest
@@ -65,6 +65,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PROTO_DEBUG_COMMAND: 1
           RUST_BACKTRACE: 1
+          WASMTIME_BACKTRACE_DETAILS: 1
   run:
     name: Run
     runs-on: ${{ matrix.os }}

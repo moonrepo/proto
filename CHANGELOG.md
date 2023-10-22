@@ -19,6 +19,7 @@
 #### 🐞 Fixes
 
 - Fixed a WASM memory issue that would error with "extism_call failed".
+- Fixed an issue where virtual paths would be mis-prefixed.
 
 #### ⚙️ Internal
 

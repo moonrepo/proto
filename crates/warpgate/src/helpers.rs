@@ -4,6 +4,7 @@ use miette::IntoDiagnostic;
 use reqwest::Url;
 use starbase_archive::Archiver;
 use starbase_utils::{fs, glob};
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use warpgate_api::VirtualPath;
 
@@ -138,13 +139,21 @@ pub fn move_or_unpack_download(temp_file: &Path, dest_file: &Path) -> miette::Re
     Ok(())
 }
 
+/// Sort virtual paths from longest to shortest host path,
+/// so that prefix replacing is deterministic and accurate.
+fn sort_virtual_paths(map: &BTreeMap<PathBuf, PathBuf>) -> Vec<(&PathBuf, &PathBuf)> {
+    let mut list = map.iter().map(|(k, v)| (k, v)).collect::<Vec<_>>();
+    list.sort_by(|a, d| d.0.cmp(a.0));
+    list
+}
+
 /// Convert the provided virtual guest path to an absolute host path.
 pub fn from_virtual_path(manifest: &Manifest, path: &Path) -> PathBuf {
     let Some(virtual_paths) = manifest.allowed_paths.as_ref() else {
         return path.to_path_buf();
     };
 
-    for (host_path, guest_path) in virtual_paths {
+    for (host_path, guest_path) in sort_virtual_paths(virtual_paths) {
         if let Ok(rel_path) = path.strip_prefix(guest_path) {
             return host_path.join(rel_path);
         }
@@ -160,7 +169,7 @@ pub fn to_virtual_path(manifest: &Manifest, path: &Path) -> VirtualPath {
         return VirtualPath::Only(path.to_path_buf());
     };
 
-    for (host_path, guest_path) in virtual_paths {
+    for (host_path, guest_path) in sort_virtual_paths(virtual_paths) {
         if let Ok(rel_path) = path.strip_prefix(host_path) {
             let path = guest_path.join(rel_path);
 
