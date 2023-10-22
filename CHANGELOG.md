@@ -16,9 +16,14 @@
 
 - Improved offline checks and behaviors.
 
+#### 🐞 Fixes
+
+- Fixed a WASM memory issue that would error with "extism_call failed".
+
 #### ⚙️ Internal
 
 - Renamed `/home` virtual path to `/userhome` to avoid conflicts.
+- Updated dependencies.
 
 ## 0.20.1
 

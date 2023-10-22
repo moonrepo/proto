@@ -303,7 +303,7 @@ dependencies = [
  "ahash",
  "cached_proc_macro",
  "cached_proc_macro_types",
- "hashbrown 0.14.1",
+ "hashbrown 0.14.2",
  "instant",
  "once_cell",
  "thiserror",
@@ -1103,11 +1103,10 @@ dependencies = [
 [[package]]
 name = "extism"
 version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a94848d5b49906bd97b83cf5a8bd25082dbc6f8bdfe98f12687910228734552"
+source = "git+https://github.com/extism/extism.git?branch=stable#1452b9fb42cf7e63ee133b7311eec1f3e39fee52"
 dependencies = [
  "anyhow",
- "extism-manifest",
+ "extism-manifest 0.5.0 (git+https://github.com/extism/extism.git?branch=stable)",
  "extism-runtime",
  "log",
  "serde_json",
@@ -1125,6 +1124,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "extism-manifest"
+version = "0.5.0"
+source = "git+https://github.com/extism/extism.git?branch=stable#1452b9fb42cf7e63ee133b7311eec1f3e39fee52"
+dependencies = [
+ "base64 0.21.0",
+ "serde",
+]
+
+[[package]]
 name = "extism-pdk"
 version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1132,7 +1140,7 @@ checksum = "09c20fe9cafa572607e22192bf2040849e7456664895bdc589c89387876e2067"
 dependencies = [
  "anyhow",
  "base64 0.21.0",
- "extism-manifest",
+ "extism-manifest 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "extism-pdk-derive",
  "rmp-serde",
  "serde",
@@ -1153,12 +1161,11 @@ dependencies = [
 [[package]]
 name = "extism-runtime"
 version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3b0ba8ef6ecbf59c0f6e47fd2feea575ebc3a09e81603d06a41af92fe61cdfa"
+source = "git+https://github.com/extism/extism.git?branch=stable#1452b9fb42cf7e63ee133b7311eec1f3e39fee52"
 dependencies = [
  "anyhow",
  "cbindgen",
- "extism-manifest",
+ "extism-manifest 0.5.0 (git+https://github.com/extism/extism.git?branch=stable)",
  "glob",
  "libc",
  "log",
@@ -1486,9 +1493,9 @@ dependencies = [
 
 [[package]]
 name = "hashbrown"
-version = "0.14.1"
+version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7dfda62a12f55daeae5015f81b0baea145391cb4520f86c248fc615d72640d12"
+checksum = "f93e7192158dbcda357bdec5fb5788eebf8bbac027f3f33e719d29135ae84156"
 dependencies = [
  "ahash",
  "allocator-api2",
@@ -1679,7 +1686,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8adf3ddd720272c6ea8bf59463c04e0f93d0bbf7c5439b691bca2987e0270897"
 dependencies = [
  "equivalent",
- "hashbrown 0.14.1",
+ "hashbrown 0.14.2",
 ]
 
 [[package]]
@@ -2132,12 +2139,12 @@ checksum = "dd8b5dd2ae5ed71462c540258bedcb51965123ad7e7ccf4b9a8cafaa4a63576d"
 
 [[package]]
 name = "once_map"
-version = "0.4.8"
+version = "0.4.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "169e72192bc84493725bfca5d47da4ee2abc8acf155586d8127eb17f022497f4"
+checksum = "0dc08fbf8d1bb5119046009c6a3f3153333f1080b68778e0e1be37c747b97cf5"
 dependencies = [
  "ahash",
- "hashbrown 0.14.1",
+ "hashbrown 0.14.2",
  "parking_lot",
  "stable_deref_trait",
 ]
@@ -2787,9 +2794,9 @@ dependencies = [
 
 [[package]]
 name = "schematic"
-version = "0.12.5"
+version = "0.12.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "865b31991ac07c51013c9bfcb94c55064636743f4440af05f82801f26b05858f"
+checksum = "08761c5bd6339c7da88d9076553af0415df49a538111e2fcc92ebe808c5fee79"
 dependencies = [
  "indexmap 2.0.2",
  "miette",
@@ -2801,9 +2808,9 @@ dependencies = [
 
 [[package]]
 name = "schematic_macros"
-version = "0.12.4"
+version = "0.12.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "88e0003318d2b3299c322c2ef200e232f9ec1c520625b44e1363d4f8e141f64b"
+checksum = "e42afd7352a9915f20bdce3e1bfb63030dedefce9d371db7b7b54a4960618797"
 dependencies = [
  "convert_case",
  "darling 0.20.3",
