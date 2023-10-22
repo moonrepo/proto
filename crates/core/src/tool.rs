@@ -113,7 +113,7 @@ impl Tool {
 
         if let Ok(level) = env::var("PROTO_WASM_LOG") {
             extism::set_log_file(
-                proto.cwd.join("wasm-debug.log"),
+                proto.cwd.join(format!("{}-debug.log", id)),
                 std::str::FromStr::from_str(&level).ok(),
             );
         }
@@ -144,8 +144,8 @@ impl Tool {
         }
 
         manifest = manifest.with_allowed_path(proto.cwd.clone(), "/workspace");
-        manifest = manifest.with_allowed_path(proto.home.clone(), "/home");
         manifest = manifest.with_allowed_path(proto.root.clone(), "/proto");
+        manifest = manifest.with_allowed_path(proto.home.clone(), "/userhome");
 
         Ok(manifest)
     }
@@ -492,6 +492,14 @@ impl Tool {
             self.version = Some(version);
 
             return Ok(());
+        }
+
+        if is_offline() {
+            return Err(ProtoError::InternetConnectionRequiredForVersion {
+                command: format!("{}_VERSION=1.2.3 {}", self.get_env_var_prefix(), self.id),
+                bin_dir: self.proto.bin_dir.clone(),
+            }
+            .into());
         }
 
         let resolver = self.load_version_resolver(initial_version).await?;
@@ -1032,6 +1040,10 @@ impl Tool {
 
         if !self.plugin.has_func("install_global") || globals_dir.is_none() {
             return Ok(false);
+        }
+
+        if is_offline() {
+            return Err(ProtoError::InternetConnectionRequired.into());
         }
 
         let result: InstallGlobalOutput = self.plugin.call_func_with(

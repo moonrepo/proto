@@ -19,6 +19,9 @@ use tracing::trace;
 /// and caching the `.wasm` file to the host's file system.
 #[derive(Clone, Debug)]
 pub struct PluginLoader {
+    /// Whether there's an internet connection or not.
+    offline: bool,
+
     /// Location where downloaded `.wasm` plugins are stored.
     plugins_dir: PathBuf,
 
@@ -37,6 +40,7 @@ impl PluginLoader {
         trace!(cache_dir = ?plugins_dir, "Creating plugin loader");
 
         Self {
+            offline: false,
             plugins_dir: plugins_dir.to_owned(),
             temp_dir: temp_dir.as_ref().to_owned(),
             seed: None,
@@ -137,7 +141,7 @@ impl PluginLoader {
         let mut cached = true;
 
         // If latest, cache only lasts for 7 days
-        if fs::file_name(path).contains("-latest-") {
+        if !self.offline && fs::file_name(path).contains("-latest-") {
             let metadata = fs::metadata(path)?;
 
             cached = if let Ok(filetime) = metadata.created().or_else(|_| metadata.modified()) {
@@ -160,6 +164,11 @@ impl PluginLoader {
         Ok(cached)
     }
 
+    /// Set the offline state.
+    pub fn set_offline(&mut self, value: bool) {
+        self.offline = value;
+    }
+
     /// Set the provided value as a seed for generating hashes.
     pub fn set_seed(&mut self, value: &str) {
         self.seed = Some(value.to_owned());
@@ -174,6 +183,14 @@ impl PluginLoader {
     ) -> miette::Result<PathBuf> {
         if self.is_cached(id, &dest_file)? {
             return Ok(dest_file);
+        }
+
+        if self.offline {
+            return Err(WarpgateError::InternetConnectionRequired {
+                message: "Unable to download plugin.".into(),
+                url: source_url.to_owned(),
+            }
+            .into());
         }
 
         trace!(
@@ -234,6 +251,17 @@ impl PluginLoader {
             error,
             url: api_url.clone(),
         };
+
+        if self.offline {
+            return Err(WarpgateError::InternetConnectionRequired {
+                message: format!(
+                    "Unable to download plugin {} from GitHub.",
+                    PluginLocator::GitHub(github.to_owned())
+                ),
+                url: api_url,
+            }
+            .into());
+        }
 
         // Otherwise make an HTTP request to the GitHub releases API,
         // and loop through the assets to find a matching one.
@@ -322,6 +350,17 @@ impl PluginLoader {
 
         // Otherwise make a GraphQL request to the WAPM registry API.
         let url = "https://registry.wapm.io/graphql".to_owned();
+
+        if self.offline {
+            return Err(WarpgateError::InternetConnectionRequired {
+                message: format!(
+                    "Unable to download plugin {} from wapm.io.",
+                    PluginLocator::Wapm(wapm.to_owned())
+                ),
+                url,
+            }
+            .into());
+        }
 
         let handle_error = |error: reqwest::Error| WarpgateError::Http {
             error,
