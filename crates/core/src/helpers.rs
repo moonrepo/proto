@@ -64,29 +64,60 @@ pub fn is_offline() -> bool {
         };
     }
 
-    use std::net::{SocketAddr, TcpStream, ToSocketAddrs};
+    trace!("Checking for an internet connection");
+
+    use std::net::{Shutdown, SocketAddr, TcpStream, ToSocketAddrs};
     use std::time::Duration;
 
-    let mut addresses = vec![];
+    let is_online = |addresses: Vec<SocketAddr>| -> bool {
+        for address in addresses {
+            trace!("Resolving {address}");
 
-    if let Ok(addrs) = "google.com:80".to_socket_addrs() {
-        addresses.extend(addrs);
+            if let Ok(stream) = TcpStream::connect_timeout(&address, Duration::new(1, 0)) {
+                let _ = stream.shutdown(Shutdown::Both);
+
+                trace!("Online!");
+
+                return true;
+            }
+        }
+
+        false
+    };
+
+    // Captive portals:
+    // https://en.wikipedia.org/wiki/Captive_portal
+    // https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/captivePortal
+    if let Ok(addrs) = "clients3.google.com:80".to_socket_addrs() {
+        if is_online(addrs.collect()) {
+            return false;
+        }
     }
 
-    addresses.extend([
+    if let Ok(addrs) = "detectportal.firefox.com:80".to_socket_addrs() {
+        if is_online(addrs.collect()) {
+            return false;
+        }
+    }
+
+    if let Ok(addrs) = "google.com:80".to_socket_addrs() {
+        if is_online(addrs.collect()) {
+            return false;
+        }
+    }
+
+    if is_online(vec![
         // Cloudflare DNS: https://1.1.1.1/dns/
         SocketAddr::from(([1, 1, 1, 1], 53)),
         SocketAddr::from(([1, 0, 0, 1], 53)),
         // Google DNS: https://developers.google.com/speed/public-dns
         SocketAddr::from(([8, 8, 8, 8], 53)),
         SocketAddr::from(([8, 8, 4, 4], 53)),
-    ]);
-
-    for address in addresses {
-        if TcpStream::connect_timeout(&address, Duration::new(1, 0)).is_ok() {
-            return false;
-        }
+    ]) {
+        return false;
     }
+
+    trace!("Offline!!!");
 
     true
 }
