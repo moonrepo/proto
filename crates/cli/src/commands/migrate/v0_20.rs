@@ -55,6 +55,15 @@ pub async fn migrate() -> SystemResult {
         }
     }
 
+    update_shell()?;
+
+    info!("Migration complete!");
+
+    Ok(())
+}
+
+#[cfg(not(windows))]
+fn update_shell() -> SystemResult {
     info!("Updating shell profile...");
 
     let shell = shell::detect_shell(None);
@@ -100,7 +109,21 @@ pub async fn migrate() -> SystemResult {
         }
     }
 
-    info!("Migration complete!");
+    Ok(())
+}
+
+#[cfg(windows)]
+fn update_shell() -> SystemResult {
+    use crate::commands::setup::do_setup;
+    use proto_core::get_shims_dir;
+
+    info!("Updating environment variables...");
+
+    do_setup(
+        shell::detect_shell(None),
+        vec![get_shims_dir()?, get_bin_dir()?],
+        false,
+    )?;
 
     Ok(())
 }
