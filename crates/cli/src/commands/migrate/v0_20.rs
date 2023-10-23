@@ -116,6 +116,7 @@ fn update_shell() -> SystemResult {
 fn update_shell() -> SystemResult {
     use crate::commands::setup::do_setup;
     use proto_core::get_shims_dir;
+    use tracing::warn;
 
     info!("Updating environment variables...");
 
@@ -124,6 +125,8 @@ fn update_shell() -> SystemResult {
         vec![get_shims_dir()?, get_bin_dir()?],
         false,
     )?;
+
+    warn!("Audit your system variables to ensure they're correct!");
 
     Ok(())
 }
