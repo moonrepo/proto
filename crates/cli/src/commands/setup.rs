@@ -35,7 +35,7 @@ pub async fn setup(args: ArgsRef<SetupArgs>) {
 
 // For other shells, write environment variable(s) to an applicable profile!
 #[cfg(not(windows))]
-fn do_setup(shell: Shell, _dirs: Vec<PathBuf>, print_profile: bool) -> miette::Result<()> {
+pub fn do_setup(shell: Shell, _dirs: Vec<PathBuf>, print_profile: bool) -> miette::Result<()> {
     use crate::shell::{format_env_vars, write_profile_if_not_setup};
 
     debug!("Updating PATH in {} shell", shell);
@@ -62,7 +62,7 @@ fn do_setup(shell: Shell, _dirs: Vec<PathBuf>, print_profile: bool) -> miette::R
 // Windows does not support setting environment variables from a shell,
 // so we're going to execute the `setx` command instead!
 #[cfg(windows)]
-fn do_setup(shell: Shell, mut dirs: Vec<PathBuf>, print_profile: bool) -> miette::Result<()> {
+pub fn do_setup(shell: Shell, mut dirs: Vec<PathBuf>, print_profile: bool) -> miette::Result<()> {
     use miette::IntoDiagnostic;
     use std::process::Command;
     use tracing::warn;
@@ -83,11 +83,12 @@ fn do_setup(shell: Shell, mut dirs: Vec<PathBuf>, print_profile: bool) -> miette
 
     let cu_paths = env::split_paths(&path).collect::<Vec<_>>();
 
-    if cu_paths.contains(&dirs[0]) || cu_paths.contains(&dirs[1]) {
+    if cu_paths.contains(&dirs[0]) && cu_paths.contains(&dirs[1]) {
         return Ok(());
     }
 
     debug!(
+        paths = ?cu_paths,
         "Updating PATH with {} command",
         starbase_styles::color::shell("setx"),
     );

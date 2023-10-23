@@ -19,6 +19,10 @@
 - WASM API
   - Updated `host_log!` to support writing to stdout/stderr.
 
+#### 🐞 Fixes
+
+- Fixed `proto migrate` failing on Windows.
+
 #### ⚙️ Internal
 
 - Added more logging to WASM functions.
