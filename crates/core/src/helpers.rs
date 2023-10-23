@@ -10,8 +10,9 @@ use starbase_archive::is_supported_archive_extension;
 use starbase_utils::dirs::home_dir;
 use starbase_utils::fs::{self, FsError};
 use starbase_utils::json::{self, JsonError};
+use std::net::{Shutdown, SocketAddr, TcpStream, ToSocketAddrs};
 use std::path::Path;
-use std::time::Instant;
+use std::time::Duration;
 use std::{env, path::PathBuf};
 use std::{io, thread};
 use tracing::trace;
@@ -54,6 +55,41 @@ pub fn get_plugins_dir() -> miette::Result<PathBuf> {
     Ok(get_proto_home()?.join("plugins"))
 }
 
+fn check_connection(address: SocketAddr, timeout: u64) -> bool {
+    trace!("Resolving {address}");
+
+    if let Ok(stream) = TcpStream::connect_timeout(&address, Duration::from_millis(timeout)) {
+        let _ = stream.shutdown(Shutdown::Both);
+
+        return true;
+    }
+
+    false
+}
+
+fn check_connection_from_host(host: String, timeout: u64) -> bool {
+    // Wrap in a thread because resolving a host to an IP address
+    // may take an unknown amount of time. If longer than our timeout,
+    // exit early.
+    let handle = thread::spawn(move || host.to_socket_addrs().ok());
+
+    thread::sleep(Duration::from_millis(timeout));
+
+    if !handle.is_finished() {
+        return false;
+    }
+
+    if let Ok(Some(addresses)) = handle.join() {
+        for address in addresses {
+            if check_connection(address, timeout) {
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
 #[cached(time = 300)]
 #[tracing::instrument]
 pub fn is_offline() -> bool {
@@ -65,89 +101,57 @@ pub fn is_offline() -> bool {
         };
     }
 
-    trace!("Checking for an internet connection");
+    let timeout: u64 = env::var("PROTO_OFFLINE_TIMEOUT")
+        .map(|v| v.parse().expect("Invalid offline timeout."))
+        .unwrap_or(750);
 
-    use std::net::{Shutdown, SocketAddr, TcpStream, ToSocketAddrs};
-    use std::time::Duration;
-
-    let timeout = Duration::new(1, 0);
-    let is_online = |addresses: Vec<SocketAddr>| -> bool {
-        for address in addresses {
-            trace!("Resolving {address}");
-
-            if let Ok(stream) = TcpStream::connect_timeout(&address, timeout) {
-                let _ = stream.shutdown(Shutdown::Both);
-
-                trace!("Online!");
-
-                return true;
-            }
-        }
-
-        false
-    };
+    trace!(timeout, "Checking for an internet connection");
 
     // Check these first as they do not need to resolve IP addresses!
-    if is_online(vec![
+    // These typically happen in milliseconds.
+    let online = [
         // Cloudflare DNS: https://1.1.1.1/dns/
         SocketAddr::from(([1, 1, 1, 1], 53)),
         SocketAddr::from(([1, 0, 0, 1], 53)),
         // Google DNS: https://developers.google.com/speed/public-dns
         SocketAddr::from(([8, 8, 8, 8], 53)),
         SocketAddr::from(([8, 8, 4, 4], 53)),
-    ]) {
+    ]
+    .into_iter()
+    .map(|address| thread::spawn(move || check_connection(address, timeout)))
+    .any(|handle| handle.join().is_ok_and(|v| v));
+
+    if online {
+        trace!("Online!");
+
         return false;
     }
 
     // Check these second as they need to resolve IP addresses,
     // which adds unnecessary time and overhead that can't be
     // controlled with a native timeout.
-    let hosts = vec![
-        "clients3.google.com:80",
-        "detectportal.firefox.com:80",
-        "google.com:80",
+    let mut hosts = vec![
+        "clients3.google.com:80".to_owned(),
+        "detectportal.firefox.com:80".to_owned(),
+        "google.com:80".to_owned(),
     ];
 
-    'outer: for host in hosts {
-        let handle = thread::spawn(|| host.to_socket_addrs().ok());
-        let start = Instant::now();
-
-        // If resolving an IP from the host takes longer than a second,
-        // ignore the process and move onto the next host!
-        'inner: loop {
-            let elapsed = start.elapsed();
-
-            if elapsed >= timeout {
-                continue 'outer;
-            } else if handle.is_finished() {
-                break 'inner;
-            }
-        }
-
-        if let Ok(Some(addrs)) = handle.join() {
-            if is_online(addrs.collect()) {
-                return false;
-            }
+    if let Ok(user_hosts) = env::var("PROTO_OFFLINE_HOSTS") {
+        for host in user_hosts.split(',') {
+            hosts.push(host.to_owned());
         }
     }
 
-    // if let Ok(addrs) = "clients3.google.com:80".to_socket_addrs() {
-    //     if is_online(addrs.collect()) {
-    //         return false;
-    //     }
-    // }
+    let online = hosts
+        .into_iter()
+        .map(|host| thread::spawn(move || check_connection_from_host(host, timeout)))
+        .any(|handle| handle.join().is_ok_and(|v| v));
 
-    // if let Ok(addrs) = "detectportal.firefox.com:80".to_socket_addrs() {
-    //     if is_online(addrs.collect()) {
-    //         return false;
-    //     }
-    // }
+    if online {
+        trace!("Online!");
 
-    // if let Ok(addrs) = "google.com:80".to_socket_addrs() {
-    //     if is_online(addrs.collect()) {
-    //         return false;
-    //     }
-    // }
+        return false;
+    }
 
     trace!("Offline!!!");
 
