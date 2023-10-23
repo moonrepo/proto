@@ -10,6 +10,13 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [Schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added a `PROTO_OFFLINE_TIMEOUT` environment variable to control the timeout for offline checks (in milliseconds).
+- Added a `PROTO_OFFLINE_HOSTS` environment variable to customize additional hosts/IPs to check for offline status.
+
 ## 0.20.2
 
 #### 🚀 Updates

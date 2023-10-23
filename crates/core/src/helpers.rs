@@ -55,10 +55,10 @@ pub fn get_plugins_dir() -> miette::Result<PathBuf> {
     Ok(get_proto_home()?.join("plugins"))
 }
 
-fn check_connection(address: SocketAddr) -> bool {
+fn check_connection(address: SocketAddr, timeout: u64) -> bool {
     trace!("Resolving {address}");
 
-    if let Ok(stream) = TcpStream::connect_timeout(&address, Duration::from_millis(500)) {
+    if let Ok(stream) = TcpStream::connect_timeout(&address, Duration::from_millis(timeout)) {
         let _ = stream.shutdown(Shutdown::Both);
 
         return true;
@@ -67,13 +67,13 @@ fn check_connection(address: SocketAddr) -> bool {
     false
 }
 
-fn check_connection_from_host(host: String) -> bool {
+fn check_connection_from_host(host: String, timeout: u64) -> bool {
     // Wrap in a thread because resolving a host to an IP address
     // may take an unknown amount of time. If longer than our timeout,
     // exit early.
     let handle = thread::spawn(move || host.to_socket_addrs().ok());
 
-    thread::sleep(Duration::from_millis(500));
+    thread::sleep(Duration::from_millis(timeout));
 
     if !handle.is_finished() {
         return false;
@@ -81,7 +81,7 @@ fn check_connection_from_host(host: String) -> bool {
 
     if let Ok(Some(addresses)) = handle.join() {
         for address in addresses {
-            if check_connection(address) {
+            if check_connection(address, timeout) {
                 return true;
             }
         }
@@ -101,7 +101,11 @@ pub fn is_offline() -> bool {
         };
     }
 
-    trace!("Checking for an internet connection");
+    let timeout: u64 = env::var("PROTO_OFFLINE_TIMEOUT")
+        .map(|v| v.parse().expect("Invalid offline timeout."))
+        .unwrap_or(500);
+
+    trace!(timeout, "Checking for an internet connection");
 
     // Check these first as they do not need to resolve IP addresses!
     // These typically happen in milliseconds.
@@ -114,7 +118,7 @@ pub fn is_offline() -> bool {
         SocketAddr::from(([8, 8, 4, 4], 53)),
     ]
     .into_iter()
-    .map(|address| thread::spawn(move || check_connection(address)))
+    .map(|address| thread::spawn(move || check_connection(address, timeout)))
     .any(|handle| handle.join().is_ok_and(|v| v));
 
     if online {
@@ -126,14 +130,22 @@ pub fn is_offline() -> bool {
     // Check these second as they need to resolve IP addresses,
     // which adds unnecessary time and overhead that can't be
     // controlled with a native timeout.
-    let online = [
-        "clients3.google.com:80",
-        "detectportal.firefox.com:80",
-        "google.com:80",
-    ]
-    .into_iter()
-    .map(|host| thread::spawn(move || check_connection_from_host(host.to_owned())))
-    .any(|handle| handle.join().is_ok_and(|v| v));
+    let mut hosts = vec![
+        "clients3.google.com:80".to_owned(),
+        "detectportal.firefox.com:80".to_owned(),
+        "google.com:80".to_owned(),
+    ];
+
+    if let Ok(user_hosts) = env::var("PROTO_OFFLINE_HOSTS") {
+        for host in user_hosts.split(',') {
+            hosts.push(host.to_owned());
+        }
+    }
+
+    let online = hosts
+        .into_iter()
+        .map(|host| thread::spawn(move || check_connection_from_host(host, timeout)))
+        .any(|handle| handle.join().is_ok_and(|v| v));
 
     if online {
         trace!("Online!");
