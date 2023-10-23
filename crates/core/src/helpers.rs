@@ -103,7 +103,7 @@ pub fn is_offline() -> bool {
 
     let timeout: u64 = env::var("PROTO_OFFLINE_TIMEOUT")
         .map(|v| v.parse().expect("Invalid offline timeout."))
-        .unwrap_or(500);
+        .unwrap_or(750);
 
     trace!(timeout, "Checking for an internet connection");
 
