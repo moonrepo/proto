@@ -16,6 +16,12 @@
 
 - Added a `PROTO_OFFLINE_TIMEOUT` environment variable to control the timeout for offline checks (in milliseconds).
 - Added a `PROTO_OFFLINE_HOSTS` environment variable to customize additional hosts/IPs to check for offline status.
+- WASM API
+  - Updated `host_log!` to support writing to stdout/stderr.
+
+#### ⚙️ Internal
+
+- Added more logging to WASM functions.
 
 ## 0.20.2
 
