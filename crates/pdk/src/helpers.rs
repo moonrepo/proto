@@ -16,6 +16,8 @@ extern "ExtismHost" {
 
 /// Fetch the provided request and return a response object.
 pub fn fetch(req: HttpRequest, body: Option<String>) -> anyhow::Result<HttpResponse> {
+    debug!("Fetching URL {}", req.url);
+
     request(&req, body).map_err(|e| anyhow::anyhow!("Failed to make request to {}: {e}", req.url))
 }
 
@@ -55,6 +57,8 @@ where
 
     if cache {
         if let Some(body) = var::get::<Vec<u8>>(url)? {
+            debug!("Reading URL {} from cache (len = {})", url, body.len());
+
             return Ok(json::from_slice(&body)?);
         }
     }
@@ -62,7 +66,11 @@ where
     let res = fetch(req, None)?;
 
     if cache {
-        var::set(url, res.body())?;
+        let body = res.body();
+
+        debug!("Writing URL {} to cache (len = {})", url, body.len());
+
+        var::set(url, body)?;
     }
 
     res.json()
@@ -74,21 +82,21 @@ pub fn load_git_tags<U>(url: U) -> anyhow::Result<Vec<String>>
 where
     U: AsRef<str>,
 {
+    let url = url.as_ref();
+
+    debug!("Loading Git tags from remote {}", url);
+
     let output = exec_command!(
         pipe,
         "git",
-        [
-            "ls-remote",
-            "--tags",
-            "--sort",
-            "version:refname",
-            url.as_ref(),
-        ]
+        ["ls-remote", "--tags", "--sort", "version:refname", url,]
     );
 
     let mut tags: Vec<String> = vec![];
 
     if output.exit_code != 0 {
+        debug!("Failed to load Git tags");
+
         return Ok(tags);
     }
 
@@ -108,6 +116,8 @@ where
             tags.push(tag.to_owned());
         }
     }
+
+    debug!("Loaded {} tags", tags.len());
 
     Ok(tags)
 }
@@ -151,6 +161,8 @@ pub fn check_supported_os_and_arch(
 
 /// Check whether a command exists or not on the host machine.
 pub fn command_exists(env: &HostEnvironment, command: &str) -> bool {
+    debug!("Checking if command `{}` exists on the host", command);
+
     let result = if env.os == HostOS::Windows {
         let line = format!("Get-Command {command}");
 
@@ -159,7 +171,15 @@ pub fn command_exists(env: &HostEnvironment, command: &str) -> bool {
         exec_command!(raw, "which", [command])
     };
 
-    result.is_ok_and(|res| res.0.exit_code == 0)
+    if result.is_ok_and(|res| res.0.exit_code == 0) {
+        debug!("Does exist");
+
+        return true;
+    }
+
+    debug!("Does NOT exist");
+
+    false
 }
 
 /// Detect whether the current OS is utilizing musl instead of gnu.
@@ -167,6 +187,8 @@ pub fn is_musl(env: &HostEnvironment) -> bool {
     if !env.os.is_unix() || env.os.is_mac() {
         return false;
     }
+
+    debug!("Checking if host is using musl");
 
     let mut value = "".to_owned();
 
@@ -184,7 +206,15 @@ pub fn is_musl(env: &HostEnvironment) -> bool {
         }
     }
 
-    value.contains("musl") || value.contains("alpine")
+    if value.contains("musl") || value.contains("alpine") {
+        debug!("Is using musl");
+
+        return true;
+    }
+
+    debug!("Is NOT using musl");
+
+    false
 }
 
 /// Return a Rust target triple for the current host OS and architecture.

@@ -3,10 +3,26 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 json_enum!(
+    /// Target where host logs should be written to.
+    #[derive(Default)]
+    #[serde(rename_all = "lowercase")]
+    pub enum HostLogTarget {
+        Stderr,
+        Stdout,
+        #[default]
+        Tracing,
+    }
+);
+
+json_enum!(
     /// Input passed to the `host_log` host function.
     #[serde(untagged)]
     pub enum HostLogInput {
         Message(String),
+        TargetedMessage {
+            message: String,
+            target: HostLogTarget,
+        },
         Fields {
             data: HashMap<String, serde_json::Value>,
             message: String,

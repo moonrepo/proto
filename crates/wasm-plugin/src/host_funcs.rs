@@ -1,5 +1,5 @@
 use extism::{CurrentPlugin, Error, Function, InternalExt, UserData, Val, ValType};
-use proto_pdk_api::{ExecCommandInput, ExecCommandOutput, HostLogInput};
+use proto_pdk_api::{ExecCommandInput, ExecCommandOutput, HostLogInput, HostLogTarget};
 use starbase_utils::fs;
 use std::env;
 use std::path::PathBuf;
@@ -46,8 +46,8 @@ pub fn host_log(
     _outputs: &mut [Val],
     _user_data: UserData,
 ) -> Result<(), Error> {
-    let input_str = plugin.memory_read_str(inputs[0].unwrap_i64() as u64)?;
-    let input: HostLogInput = serde_json::from_str(input_str)?;
+    let input: HostLogInput =
+        serde_json::from_str(plugin.memory_read_str(inputs[0].unwrap_i64() as u64)?)?;
 
     match input {
         HostLogInput::Message(message) => {
@@ -55,6 +55,22 @@ pub fn host_log(
                 target: "proto_wasm::log",
                 "{}", message,
             );
+        }
+        HostLogInput::TargetedMessage { message, target } => {
+            match target {
+                HostLogTarget::Stderr => {
+                    eprintln!("{}", message);
+                }
+                HostLogTarget::Stdout => {
+                    println!("{}", message);
+                }
+                HostLogTarget::Tracing => {
+                    trace!(
+                        target: "proto_wasm::log",
+                        "{}", message,
+                    );
+                }
+            };
         }
         HostLogInput::Fields { data, message } => {
             trace!(
@@ -76,8 +92,8 @@ fn exec_command(
     outputs: &mut [Val],
     _user_data: UserData,
 ) -> Result<(), Error> {
-    let input_str = plugin.memory_read_str(inputs[0].unwrap_i64() as u64)?;
-    let input: ExecCommandInput = serde_json::from_str(input_str)?;
+    let input: ExecCommandInput =
+        serde_json::from_str(plugin.memory_read_str(inputs[0].unwrap_i64() as u64)?)?;
 
     trace!(
         target: "proto_wasm::exec_command",
@@ -88,7 +104,7 @@ fn exec_command(
     );
 
     // This is temporary since WASI does not support updating file permissions yet!
-    if input.set_executable {
+    if input.set_executable && PathBuf::from(&input.command).exists() {
         fs::update_perms(&input.command, None)?;
     }
 
@@ -141,8 +157,7 @@ fn exec_command(
         "Executed command from plugin"
     );
 
-    let output_str = serde_json::to_string(&output)?;
-    let ptr = plugin.memory_alloc_bytes(output_str)?;
+    let ptr = plugin.memory_alloc_bytes(serde_json::to_string(&output)?)?;
 
     outputs[0] = Val::I64(ptr as i64);
 

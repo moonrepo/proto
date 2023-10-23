@@ -64,6 +64,38 @@ macro_rules! host_env {
 
 #[macro_export]
 macro_rules! host_log {
+    (stdout, $($arg:tt)+) => {
+        unsafe {
+            host_log(Json(HostLogInput::TargetedMessage {
+                message: format!($($arg)+),
+                target: HostLogTarget::Stdout,
+            }))?;
+        }
+    };
+    (stdout, $msg:literal) => {
+        unsafe {
+            host_log(Json(HostLogInput::TargetedMessage {
+                message: $msg.into(),
+                target: HostLogTarget::Stdout,
+            }))?;
+        }
+    };
+    (stderr, $($arg:tt)+) => {
+        unsafe {
+            host_log(Json(HostLogInput::TargetedMessage {
+                message: format!($($arg)+),
+                target: HostLogTarget::Stderr,
+            }))?;
+        }
+    };
+    (stderr, $msg:literal) => {
+        unsafe {
+            host_log(Json(HostLogInput::TargetedMessage {
+                message: $msg.into(),
+                target: HostLogTarget::Stderr,
+            }))?;
+        }
+    };
     ($($arg:tt)+) => {
         unsafe {
             host_log(Json(format!($($arg)+).into()))?;

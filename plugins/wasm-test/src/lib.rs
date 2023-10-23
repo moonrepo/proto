@@ -13,11 +13,11 @@ extern "ExtismHost" {
 
 #[plugin_fn]
 pub fn register_tool(_: ()) -> FnResult<Json<ToolMetadataOutput>> {
-    host_log!("Registering tool");
+    host_log!(stdout, "Registering tool");
 
     let value = host_env!("WASM_KEY");
 
-    host_log!("WASM_KEY = {:?}", value);
+    host_log!(stderr, "WASM_KEY = {:?}", value);
     host_env!("WASM_SOURCE", "guest");
 
     Ok(Json(ToolMetadataOutput {
