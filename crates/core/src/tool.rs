@@ -145,9 +145,9 @@ impl Tool {
             manifest = manifest.with_timeout(Duration::from_secs(120));
         }
 
-        manifest = manifest.with_allowed_path(proto.cwd.clone(), "/workspace");
-        manifest = manifest.with_allowed_path(proto.root.clone(), "/proto");
-        manifest = manifest.with_allowed_path(proto.home.clone(), "/userhome");
+        for (host, guest) in proto.get_virtual_paths() {
+            manifest = manifest.with_allowed_path(host, guest);
+        }
 
         Ok(manifest)
     }

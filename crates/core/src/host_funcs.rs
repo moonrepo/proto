@@ -92,7 +92,7 @@ fn exec_command(
     plugin: &mut CurrentPlugin,
     inputs: &[Val],
     outputs: &mut [Val],
-    _user_data: UserData,
+    user_data: UserData,
 ) -> Result<(), Error> {
     let input: ExecCommandInput =
         serde_json::from_str(plugin.memory_read_str(inputs[0].unwrap_i64() as u64)?)?;
@@ -110,13 +110,15 @@ fn exec_command(
         fs::update_perms(&input.command, None)?;
     }
 
-    // let data = user_data.any().unwrap();
-    // let data = data.downcast_ref::<HostData>().unwrap();
+    dbg!(user_data.is_null());
+
+    let data = user_data.any().unwrap();
+    let data = data.downcast_ref::<HostData>().unwrap();
 
     let mut command = Command::new(&input.command);
     command.args(&input.args);
     command.envs(&input.env_vars);
-    // command.current_dir(&data.working_dir)
+    command.current_dir(&data.proto.cwd);
 
     let output = if input.stream {
         let result = command.spawn()?.wait()?;
