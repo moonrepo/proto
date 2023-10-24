@@ -4,6 +4,7 @@ use crate::helpers::{
     extract_filename_from_url, hash_file_contents, is_archive_file, is_cache_enabled, is_offline,
     ENV_VAR,
 };
+use crate::host_funcs::{create_host_functions, HostData};
 use crate::proto::ProtoEnvironment;
 use crate::shimmer::{
     create_global_shim, create_local_shim, get_shim_file_name, ShimContext, SHIM_VERSION,
@@ -13,7 +14,6 @@ use crate::version_resolver::VersionResolver;
 use extism::{manifest::Wasm, Manifest as PluginManifest};
 use miette::IntoDiagnostic;
 use proto_pdk_api::*;
-use proto_wasm_plugin::{create_host_functions, HostData};
 use serde::Serialize;
 use starbase_archive::Archiver;
 use starbase_events::Emitter;
@@ -25,6 +25,7 @@ use std::fmt::Debug;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 use tracing::{debug, trace};
 use warpgate::{download_from_url_to_file, Id, PluginContainer, PluginLocator, VirtualPath};
@@ -35,7 +36,7 @@ pub struct Tool {
     pub metadata: ToolMetadataOutput,
     pub locator: Option<PluginLocator>,
     pub plugin: PluginContainer<'static>,
-    pub proto: ProtoEnvironment,
+    pub proto: Arc<ProtoEnvironment>,
     pub version: Option<VersionSpec>,
 
     // Events
@@ -78,9 +79,18 @@ impl Tool {
             color::id(id.as_str())
         );
 
+        let proto = Arc::new(proto.to_owned());
+
         let host_data = HostData {
-            working_dir: proto.cwd.clone(),
+            proto: Arc::clone(&proto),
         };
+
+        if let Ok(level) = env::var("PROTO_WASM_LOG") {
+            extism::set_log_file(
+                proto.cwd.join(format!("{}-debug.log", id)),
+                std::str::FromStr::from_str(&level).ok(),
+            );
+        }
 
         let mut tool = Tool {
             bin_path: None,
@@ -96,7 +106,7 @@ impl Tool {
                 manifest,
                 create_host_functions(host_data),
             )?,
-            proto: proto.to_owned(),
+            proto,
             version: None,
 
             // Events
@@ -109,13 +119,6 @@ impl Tool {
             on_uninstalled: Emitter::new(),
             on_uninstalled_global: Emitter::new(),
         };
-
-        if let Ok(level) = env::var("PROTO_WASM_LOG") {
-            extism::set_log_file(
-                proto.cwd.join(format!("{}-debug.log", id)),
-                std::str::FromStr::from_str(&level).ok(),
-            );
-        }
 
         debug!(
             "Created tool {} and its WASM runtime",

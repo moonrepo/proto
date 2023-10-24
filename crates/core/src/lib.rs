@@ -1,6 +1,7 @@
 mod error;
 mod events;
 mod helpers;
+mod host_funcs;
 mod proto;
 mod shimmer;
 mod tool;
