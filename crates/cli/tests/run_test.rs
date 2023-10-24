@@ -248,6 +248,35 @@ mod run {
     }
 
     #[test]
+    fn doesnt_auto_install_subsequently() {
+        let temp = create_empty_sandbox();
+
+        temp.create_file("config.toml", "auto-install = true");
+
+        let mut cmd = create_proto_command(temp.path());
+        let assert = cmd
+            .arg("run")
+            .arg("node")
+            .arg("19.0.0")
+            .arg("--")
+            .arg("--version")
+            .assert();
+
+        assert.stderr(predicate::str::contains("Node.js has been installed"));
+
+        let mut cmd = create_proto_command(temp.path());
+        let assert = cmd
+            .arg("run")
+            .arg("node")
+            .arg("19.0.0")
+            .arg("--")
+            .arg("--version")
+            .assert();
+
+        assert.stderr(predicate::str::contains("Node.js has been installed").not());
+    }
+
+    #[test]
     fn errors_if_plugin_not_configured() {
         let temp = create_empty_sandbox();
 

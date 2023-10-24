@@ -61,7 +61,7 @@ fn pin_version(
 
     // via `pin-latest` setting
     if initial_version.is_latest() {
-        let user_config = tool.proto.get_user_config()?;
+        let user_config = tool.proto.load_user_config()?;
 
         if let Some(pin_type) = user_config.pin_latest {
             args.global = matches!(pin_type, PinType::Global);
@@ -73,7 +73,7 @@ fn pin_version(
     Ok(())
 }
 
-pub async fn internal_install(args: InstallArgs, tool: Option<Tool>) -> SystemResult {
+pub async fn internal_install(args: InstallArgs, tool: Option<Tool>) -> miette::Result<Tool> {
     let mut tool = match tool {
         Some(tool) => tool,
         None => load_tool(&args.id).await?,
@@ -97,7 +97,7 @@ pub async fn internal_install(args: InstallArgs, tool: Option<Tool>) -> SystemRe
             color::path(tool.get_tool_dir()),
         );
 
-        return Ok(());
+        return Ok(tool);
     }
 
     if tool.disable_progress_bars() {
@@ -135,7 +135,7 @@ pub async fn internal_install(args: InstallArgs, tool: Option<Tool>) -> SystemRe
     pb.finish_and_clear();
 
     if !installed {
-        return Ok(());
+        return Ok(tool);
     }
 
     pin_version(&mut tool, &version, args.pin)?;
@@ -154,17 +154,17 @@ pub async fn internal_install(args: InstallArgs, tool: Option<Tool>) -> SystemRe
     })?;
 
     // Sync shell profile
-    update_shell(tool, args.passthrough.clone())?;
+    update_shell(&tool, args.passthrough.clone())?;
 
     // Clean plugins
     debug!("Auto-cleaning plugins");
 
     clean_plugins(7).await?;
 
-    Ok(())
+    Ok(tool)
 }
 
-fn update_shell(tool: Tool, passthrough_args: Vec<String>) -> miette::Result<()> {
+fn update_shell(tool: &Tool, passthrough_args: Vec<String>) -> miette::Result<()> {
     if !tool.plugin.has_func("sync_shell_profile") {
         return Ok(());
     }

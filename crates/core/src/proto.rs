@@ -68,7 +68,7 @@ impl ProtoEnvironment {
         })
     }
 
-    pub fn get_user_config(&self) -> miette::Result<UserConfig> {
+    pub fn load_user_config(&self) -> miette::Result<UserConfig> {
         UserConfig::load_from(&self.root)
     }
 }

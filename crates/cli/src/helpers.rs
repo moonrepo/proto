@@ -107,7 +107,7 @@ pub struct ToolsLoader {
 impl ToolsLoader {
     pub fn new() -> miette::Result<Self> {
         let proto = ProtoEnvironment::new()?;
-        let user_config = proto.get_user_config()?;
+        let user_config = proto.load_user_config()?;
 
         let mut tools_config = ToolsConfig::load_upwards_from(&proto.cwd, false)?;
         tools_config.inherit_builtin_plugins();
