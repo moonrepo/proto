@@ -114,7 +114,7 @@ pub async fn load_tool_from_locator(
 
 pub async fn load_tool(id: &Id) -> miette::Result<Tool> {
     let proto = ProtoEnvironment::new()?;
-    let user_config = proto.get_user_config()?;
+    let user_config = proto.load_user_config()?;
     let mut locator = None;
 
     debug!(

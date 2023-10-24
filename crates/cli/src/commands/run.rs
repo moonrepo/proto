@@ -62,7 +62,7 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
     }
 
     let version = detect_version(&tool, args.spec.clone()).await?;
-    let user_config = tool.proto.get_user_config()?;
+    let user_config = tool.proto.load_user_config()?;
 
     // Check if installed or install
     if !tool.is_setup(&version).await? {
@@ -78,7 +78,7 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
         // Install the tool
         debug!("Auto-install setting is configured, attempting to install");
 
-        internal_install(
+        tool = internal_install(
             InstallArgs {
                 canary: false,
                 id: args.id.clone(),
@@ -86,12 +86,9 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
                 passthrough: vec![],
                 spec: Some(tool.get_resolved_version().to_unresolved_spec()),
             },
-            None,
+            Some(tool),
         )
         .await?;
-
-        // Find the new binaries
-        tool.locate_bins().await?;
     }
 
     // Determine the binary path to execute
