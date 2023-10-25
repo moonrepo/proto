@@ -15,6 +15,7 @@
 #### 🐞 Fixes
 
 - Fixed an issue where auto-install would keep re-installing a tool.
+- Fixed more WASM memory issues.
 
 ## 0.20.3
 
