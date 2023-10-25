@@ -8,7 +8,7 @@ cached = "0.46.0"
 clap = "4.4.6"
 clap_complete = "4.4.3"
 convert_case = "0.6.0"
-extism = { version = "0.5.2", git = "https://github.com/extism/extism.git", branch = "stable" }
+extism = { version = "0.5.4" }
 extism-pdk = "0.3.4"
 human-sort = "0.2.2"
 miette = "5.10.0"
