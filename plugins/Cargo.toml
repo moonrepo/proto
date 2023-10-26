@@ -4,5 +4,5 @@ members = ["wasm-test"]
 
 [workspace.dependencies]
 extism-pdk = "0.3.4"
-serde = { version = "1.0.188", features = ["derive"] }
-tokio = "1.32.0"
+serde = { version = "1.0.190", features = ["derive"] }
+tokio = { version = "1.32.0", features = ["full"] }
