@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::path::PathBuf;
 use system_env::SystemDependency;
+use version_spec::{UnresolvedVersionSpec, VersionSpec};
 use warpgate_api::VirtualPath;
 
 pub use semver::{Version, VersionReq};
@@ -36,8 +37,8 @@ json_struct!(
         /// Virtual path to the tool's installation directory.
         pub tool_dir: VirtualPath,
 
-        /// Current version. Will be empty if not resolved.
-        pub version: String,
+        /// Current version. Will be "latest" if not resolved.
+        pub version: VersionSpec,
     }
 );
 
@@ -82,7 +83,7 @@ json_struct!(
     pub struct ToolMetadataOutput {
         /// Default alias or version to use as a fallback.
         #[serde(skip_serializing_if = "Option::is_none")]
-        pub default_version: Option<String>,
+        pub default_version: Option<VersionSpec>,
 
         /// Controls aspects of the tool inventory.
         pub inventory: ToolInventoryMetadata,
@@ -131,7 +132,7 @@ json_struct!(
         /// The version that was extracted from the file.
         /// Can be a semantic version or a version requirement/range.
         #[serde(skip_serializing_if = "Option::is_none")]
-        pub version: Option<String>,
+        pub version: Option<UnresolvedVersionSpec>,
     }
 );
 
@@ -441,11 +442,8 @@ impl UninstallGlobalOutput {
 json_struct!(
     /// Input passed to the `load_versions` function.
     pub struct LoadVersionsInput {
-        /// Current tool context.
-        pub context: ToolContext,
-
         /// The alias or version currently being resolved.
-        pub initial: String,
+        pub initial: UnresolvedVersionSpec,
     }
 );
 
@@ -510,11 +508,8 @@ impl LoadVersionsOutput {
 json_struct!(
     /// Input passed to the `resolve_version` function.
     pub struct ResolveVersionInput {
-        /// Current tool context.
-        pub context: ToolContext,
-
         /// The alias or version currently being resolved.
-        pub initial: String,
+        pub initial: UnresolvedVersionSpec,
     }
 );
 
@@ -523,12 +518,12 @@ json_struct!(
     pub struct ResolveVersionOutput {
         /// New alias or version candidate to resolve.
         #[serde(skip_serializing_if = "Option::is_none")]
-        pub candidate: Option<String>,
+        pub candidate: Option<UnresolvedVersionSpec>,
 
         /// An explicitly resolved version to be used as-is.
         /// Note: Only use this field if you know what you're doing!
         #[serde(skip_serializing_if = "Option::is_none")]
-        pub version: Option<String>,
+        pub version: Option<VersionSpec>,
     }
 );
 
@@ -651,7 +646,7 @@ json_struct!(
     pub struct SyncManifestOutput {
         /// Override the default version with a new alias or version.
         #[serde(skip_serializing_if = "Option::is_none")]
-        pub default_version: Option<String>,
+        pub default_version: Option<UnresolvedVersionSpec>,
 
         /// List of versions that are currently installed. Will replace
         /// what is currently in the manifest.

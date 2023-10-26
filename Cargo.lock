@@ -2382,6 +2382,7 @@ dependencies = [
  "serde_json",
  "system_env",
  "thiserror",
+ "version_spec",
  "warpgate_api",
 ]
 
