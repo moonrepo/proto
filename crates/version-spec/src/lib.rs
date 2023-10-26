@@ -25,7 +25,7 @@ pub fn is_alias_name<T: AsRef<str>>(value: T) -> bool {
     })
 }
 
-pub static CLEAN_VERSION: Lazy<Regex> = Lazy::new(|| Regex::new(r"([><]=?)\s+(\d)").unwrap());
+static CLEAN_VERSION: Lazy<Regex> = Lazy::new(|| Regex::new(r"([><]=?)\s+(\d)").unwrap());
 
 pub fn clean_version_string<T: AsRef<str>>(value: T) -> String {
     let value = value.as_ref().trim().replace(".*", "");
