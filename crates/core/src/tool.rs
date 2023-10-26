@@ -27,7 +27,6 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, SystemTime};
 use tracing::{debug, trace};
-use version_spec::*;
 use warpgate::{download_from_url_to_file, Id, PluginContainer, PluginLocator, VirtualPath};
 
 pub struct Tool {
