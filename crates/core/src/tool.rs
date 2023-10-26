@@ -1424,10 +1424,7 @@ impl Tool {
             // Add version to manifest
             self.manifest.insert_version(
                 self.get_resolved_version(),
-                self.metadata
-                    .default_version
-                    .as_ref()
-                    .map(|v| v.to_unresolved_spec()),
+                self.metadata.default_version.clone(),
             )?;
 
             // Allow plugins to override manifest

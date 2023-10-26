@@ -83,7 +83,7 @@ json_struct!(
     pub struct ToolMetadataOutput {
         /// Default alias or version to use as a fallback.
         #[serde(skip_serializing_if = "Option::is_none")]
-        pub default_version: Option<VersionSpec>,
+        pub default_version: Option<UnresolvedVersionSpec>,
 
         /// Controls aspects of the tool inventory.
         pub inventory: ToolInventoryMetadata,
