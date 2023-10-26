@@ -10,6 +10,12 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [Schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added Linux x64 musl support (`x86_64-unknown-linux-musl`).
+
 ## 0.20.4
 
 #### 🐞 Fixes
