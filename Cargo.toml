@@ -40,7 +40,7 @@ starbase_styles = "0.1.16"
 starbase_utils = { version = "0.3.5", default-features = false, features = [
 	"json",
 	"toml",
-] }
+], git = "https://github.com/moonrepo/starbase.git", branch = "dir-lock" }
 thiserror = "1.0.50"
 tokio = { version = "1.33.0", features = ["full", "tracing"] }
 tracing = "0.1.40"

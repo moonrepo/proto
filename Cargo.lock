@@ -2322,8 +2322,8 @@ dependencies = [
  "starbase",
  "starbase_archive",
  "starbase_sandbox",
- "starbase_styles",
- "starbase_utils",
+ "starbase_styles 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "starbase_utils 0.3.5 (git+https://github.com/moonrepo/starbase.git?branch=dir-lock)",
  "system_env",
  "thiserror",
  "tokio",
@@ -2352,8 +2352,8 @@ dependencies = [
  "starbase_archive",
  "starbase_events",
  "starbase_sandbox",
- "starbase_styles",
- "starbase_utils",
+ "starbase_styles 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "starbase_utils 0.3.5 (git+https://github.com/moonrepo/starbase.git?branch=dir-lock)",
  "thiserror",
  "tinytemplate",
  "tracing",
@@ -2405,7 +2405,7 @@ dependencies = [
  "extism",
  "proto_pdk_api",
  "serde_json",
- "starbase_utils",
+ "starbase_utils 0.3.5 (git+https://github.com/moonrepo/starbase.git?branch=dir-lock)",
  "tracing",
 ]
 
@@ -3075,7 +3075,7 @@ dependencies = [
  "rustc-hash",
  "starbase_events",
  "starbase_macros",
- "starbase_styles",
+ "starbase_styles 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
  "tokio",
  "tracing",
@@ -3093,8 +3093,8 @@ dependencies = [
  "flate2",
  "miette",
  "rustc-hash",
- "starbase_styles",
- "starbase_utils",
+ "starbase_styles 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "starbase_utils 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "tar",
  "thiserror",
  "tracing",
@@ -3140,7 +3140,7 @@ dependencies = [
  "once_cell",
  "predicates",
  "pretty_assertions",
- "starbase_utils",
+ "starbase_utils 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3156,10 +3156,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "starbase_styles"
+version = "0.1.16"
+source = "git+https://github.com/moonrepo/starbase.git?branch=dir-lock#78704334f10c9e907ffbe240b8c11daa1fe06733"
+dependencies = [
+ "dirs 5.0.1",
+ "owo-colors",
+ "supports-color",
+]
+
+[[package]]
 name = "starbase_utils"
 version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "67068d75fcff5d1bd7a67561576c1fd4b4f05ca8b199e7368e92a9a9bc448d65"
+dependencies = [
+ "dirs 5.0.1",
+ "miette",
+ "once_cell",
+ "relative-path",
+ "starbase_styles 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "thiserror",
+ "tracing",
+ "wax",
+]
+
+[[package]]
+name = "starbase_utils"
+version = "0.3.5"
+source = "git+https://github.com/moonrepo/starbase.git?branch=dir-lock#78704334f10c9e907ffbe240b8c11daa1fe06733"
 dependencies = [
  "dirs 5.0.1",
  "fs4",
@@ -3170,7 +3195,7 @@ dependencies = [
  "relative-path",
  "serde",
  "serde_json",
- "starbase_styles",
+ "starbase_styles 0.1.16 (git+https://github.com/moonrepo/starbase.git?branch=dir-lock)",
  "thiserror",
  "tokio",
  "toml 0.8.5",
@@ -3861,8 +3886,8 @@ dependencies = [
  "sha2",
  "starbase_archive",
  "starbase_sandbox",
- "starbase_styles",
- "starbase_utils",
+ "starbase_styles 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "starbase_utils 0.3.5 (git+https://github.com/moonrepo/starbase.git?branch=dir-lock)",
  "thiserror",
  "tokio",
  "tracing",
