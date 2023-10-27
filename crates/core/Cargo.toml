@@ -9,8 +9,8 @@ repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
 proto_pdk_api = { version = "0.8.2", path = "../pdk-api" }
-version_spec = { version = "0.1.1", path = "../version-spec" }
-warpgate = { version = "0.5.12", path = "../warpgate" }
+version_spec = { version = "0.1.2", path = "../version-spec" }
+warpgate = { version = "0.5.13", path = "../warpgate" }
 cached = { workspace = true }
 extism = { workspace = true }
 human-sort = { workspace = true }

@@ -1,6 +1,6 @@
 [package]
 name = "proto_wasm_plugin"
-version = "0.7.2"
+version = "0.7.3"
 edition = "2021"
 license = "MIT"
 description = "DEPRECATED: Utilities for working with proto's WASM plugins."
