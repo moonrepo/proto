@@ -2025,7 +2025,6 @@ dependencies = [
  "minisign-verify",
  "once_cell",
  "proto_pdk_api",
- "proto_wasm_plugin",
  "regex",
  "reqwest",
  "semver",
@@ -2749,9 +2748,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_utils"
-version = "0.3.5"
+version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "67068d75fcff5d1bd7a67561576c1fd4b4f05ca8b199e7368e92a9a9bc448d65"
+checksum = "f9faf731068b919569efae7f6c7c6c3d2e29411c1cba666ef0c6fe20b82f50a1"
 dependencies = [
  "dirs 5.0.1",
  "fs4",

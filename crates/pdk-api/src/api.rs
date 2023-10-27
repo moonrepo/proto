@@ -9,6 +9,7 @@ use warpgate_api::VirtualPath;
 
 pub use semver::{Version, VersionReq};
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! json_struct {
     ($struct:item) => {
@@ -18,6 +19,7 @@ macro_rules! json_struct {
     };
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! json_enum {
     ($struct:item) => {

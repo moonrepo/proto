@@ -7,9 +7,11 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::sync::Arc;
 use tracing::trace;
+use warpgate::Id;
 
 #[derive(Debug)]
 pub struct HostData {
+    pub id: Id,
     pub proto: Arc<ProtoEnvironment>,
 }
 
@@ -123,8 +125,6 @@ fn exec_command(
     if input.set_executable && PathBuf::from(&input.command).exists() {
         fs::update_perms(&input.command, None)?;
     }
-
-    dbg!(user_data.is_null());
 
     let data = user_data.any().unwrap();
     let data = data.downcast_ref::<HostData>().unwrap();

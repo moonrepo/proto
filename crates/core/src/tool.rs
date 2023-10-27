@@ -82,6 +82,7 @@ impl Tool {
         let proto = Arc::new(proto.to_owned());
 
         let host_data = HostData {
+            id: id.to_owned(),
             proto: Arc::clone(&proto),
         };
 
@@ -138,15 +139,12 @@ impl Tool {
 
         let mut manifest = PluginManifest::new([wasm]);
         manifest = manifest.with_allowed_host("*");
+        manifest = manifest.with_allowed_paths(proto.get_virtual_paths().into_iter());
         manifest = manifest.with_timeout(Duration::from_secs(90));
 
         #[cfg(debug_assertions)]
         {
             manifest = manifest.with_timeout(Duration::from_secs(120));
-        }
-
-        for (host, guest) in proto.get_virtual_paths() {
-            manifest = manifest.with_allowed_path(host, guest);
         }
 
         Ok(manifest)
