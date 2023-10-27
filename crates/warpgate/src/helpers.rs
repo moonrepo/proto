@@ -1,5 +1,4 @@
 use crate::error::WarpgateError;
-use extism::Manifest;
 use miette::IntoDiagnostic;
 use reqwest::Url;
 use starbase_archive::Archiver;
@@ -148,12 +147,8 @@ fn sort_virtual_paths(map: &BTreeMap<PathBuf, PathBuf>) -> Vec<(&PathBuf, &PathB
 }
 
 /// Convert the provided virtual guest path to an absolute host path.
-pub fn from_virtual_path(manifest: &Manifest, path: &Path) -> PathBuf {
-    let Some(virtual_paths) = manifest.allowed_paths.as_ref() else {
-        return path.to_path_buf();
-    };
-
-    for (host_path, guest_path) in sort_virtual_paths(virtual_paths) {
+pub fn from_virtual_path(paths_map: &BTreeMap<PathBuf, PathBuf>, path: &Path) -> PathBuf {
+    for (host_path, guest_path) in sort_virtual_paths(paths_map) {
         if let Ok(rel_path) = path.strip_prefix(guest_path) {
             return host_path.join(rel_path);
         }
@@ -164,12 +159,8 @@ pub fn from_virtual_path(manifest: &Manifest, path: &Path) -> PathBuf {
 
 /// Convert the provided absolute host path to a virtual guest path suitable
 /// for WASI sandboxed runtimes.
-pub fn to_virtual_path(manifest: &Manifest, path: &Path) -> VirtualPath {
-    let Some(virtual_paths) = manifest.allowed_paths.as_ref() else {
-        return VirtualPath::Only(path.to_path_buf());
-    };
-
-    for (host_path, guest_path) in sort_virtual_paths(virtual_paths) {
+pub fn to_virtual_path(paths_map: &BTreeMap<PathBuf, PathBuf>, path: &Path) -> VirtualPath {
+    for (host_path, guest_path) in sort_virtual_paths(paths_map) {
         if let Ok(rel_path) = path.strip_prefix(host_path) {
             let path = guest_path.join(rel_path);
 

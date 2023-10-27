@@ -3,10 +3,9 @@ use crate::proto::ProtoEnvironment;
 use crate::tool::Tool;
 use crate::tools_config::ToolsConfig;
 use crate::user_config::UserConfig;
-use extism::Manifest;
+use extism::{manifest::Wasm, Manifest};
 use miette::IntoDiagnostic;
 use proto_pdk_api::{HostArch, HostEnvironment, HostOS, UserConfigSettings};
-use proto_wasm_plugin::Wasm;
 use starbase_utils::{json, toml};
 use std::{env, path::Path};
 use tracing::{debug, trace};
@@ -37,11 +36,13 @@ pub fn inject_default_manifest_config(
         .config
         .insert("proto_user_config".to_string(), value);
 
+    let paths_map = manifest.allowed_paths.as_ref().unwrap();
+
     let value = json::to_string(&HostEnvironment {
         arch: HostArch::from_env(),
         os: HostOS::from_env(),
-        home_dir: to_virtual_path(manifest, &proto.home),
-        proto_dir: to_virtual_path(manifest, &proto.root),
+        home_dir: to_virtual_path(paths_map, &proto.home),
+        proto_dir: to_virtual_path(paths_map, &proto.root),
     })
     .into_diagnostic()?;
 

@@ -3,7 +3,7 @@ name = "proto_wasm_plugin"
 version = "0.7.2"
 edition = "2021"
 license = "MIT"
-description = "Utilities for working with proto's WASM plugins."
+description = "DEPRECATED: Utilities for working with proto's WASM plugins."
 homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
