@@ -2301,7 +2301,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.20.4"
+version = "0.21.0"
 dependencies = [
  "chrono",
  "clap 4.4.7",
@@ -2333,7 +2333,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.20.4"
+version = "0.21.0"
 dependencies = [
  "cached",
  "extism",
@@ -2363,7 +2363,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.8.2"
+version = "0.9.0"
 dependencies = [
  "anyhow",
  "extism-pdk",
@@ -2373,7 +2373,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.8.2"
+version = "0.9.0"
 dependencies = [
  "anyhow",
  "semver",
@@ -2387,7 +2387,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.8.5"
+version = "0.9.0"
 dependencies = [
  "extism",
  "proto_core",
