@@ -23,6 +23,13 @@ pub fn create_host_functions(data: HostData) -> Vec<Function> {
             exec_command,
         ),
         Function::new(
+            "from_virtual_path",
+            [ValType::I64],
+            [ValType::I64],
+            None,
+            from_virtual_path,
+        ),
+        Function::new(
             "get_env_var",
             [ValType::I64],
             [ValType::I64],
@@ -36,6 +43,13 @@ pub fn create_host_functions(data: HostData) -> Vec<Function> {
             [],
             None,
             set_env_var,
+        ),
+        Function::new(
+            "to_virtual_path",
+            [ValType::I64],
+            [ValType::I64],
+            None,
+            to_virtual_path,
         ),
     ]
 }
@@ -181,7 +195,7 @@ fn get_env_var(
         target: "proto_wasm::get_env_var",
         name,
         value = &value,
-        "Reading environment variable from host"
+        "Read environment variable from host"
     );
 
     let ptr = plugin.memory_alloc_bytes(value)?;
@@ -209,10 +223,66 @@ fn set_env_var(
         target: "proto_wasm::set_env_var",
         name = &name,
         value = &value,
-        "Writing environment variable to host"
+        "Wrote environment variable to host"
     );
 
     env::set_var(name, value);
+
+    Ok(())
+}
+
+fn from_virtual_path(
+    plugin: &mut CurrentPlugin,
+    inputs: &[Val],
+    outputs: &mut [Val],
+    user_data: UserData,
+) -> Result<(), Error> {
+    let virtual_path = PathBuf::from(plugin.memory_read_str(inputs[0].unwrap_i64() as u64)?);
+
+    let data = user_data.any().unwrap();
+    let data = data.downcast_ref::<HostData>().unwrap();
+
+    let paths_map = data.proto.get_virtual_paths();
+    let real_path = warpgate::from_virtual_path(&paths_map, &virtual_path);
+
+    trace!(
+        target: "proto_wasm::from_virtual_path",
+        virtual_path = ?virtual_path,
+        real_path = ?real_path,
+        "Converted a virtual path into a real path"
+    );
+
+    let ptr = plugin.memory_alloc_bytes(real_path.to_str().unwrap())?;
+
+    outputs[0] = Val::I64(ptr as i64);
+
+    Ok(())
+}
+
+fn to_virtual_path(
+    plugin: &mut CurrentPlugin,
+    inputs: &[Val],
+    outputs: &mut [Val],
+    user_data: UserData,
+) -> Result<(), Error> {
+    let real_path = PathBuf::from(plugin.memory_read_str(inputs[0].unwrap_i64() as u64)?);
+
+    let data = user_data.any().unwrap();
+    let data = data.downcast_ref::<HostData>().unwrap();
+
+    let paths_map = data.proto.get_virtual_paths();
+    let virtual_path = warpgate::to_virtual_path(&paths_map, &real_path);
+
+    trace!(
+        target: "proto_wasm::to_virtual_path",
+        real_path = ?real_path,
+        virtual_path = ?virtual_path,
+        "Converted a real path into a virtual path"
+    );
+
+    let ptr = plugin.memory_alloc_bytes(virtual_path.to_str().unwrap())?;
+
+    outputs[0] = Val::I64(ptr as i64);
 
     Ok(())
 }

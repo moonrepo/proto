@@ -1,7 +1,7 @@
 use crate::helpers::{get_home_dir, get_proto_home, is_offline};
 use crate::user_config::UserConfig;
 use once_cell::sync::OnceCell;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::env;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -69,8 +69,8 @@ impl ProtoEnvironment {
         })
     }
 
-    pub fn get_virtual_paths(&self) -> HashMap<PathBuf, PathBuf> {
-        HashMap::from_iter([
+    pub fn get_virtual_paths(&self) -> BTreeMap<PathBuf, PathBuf> {
+        BTreeMap::from_iter([
             (self.cwd.clone(), "/workspace".into()),
             (self.root.clone(), "/proto".into()),
             (self.home.clone(), "/userhome".into()),

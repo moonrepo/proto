@@ -148,13 +148,21 @@ impl<'plugin> PluginContainer<'plugin> {
 
     /// Convert the provided virtual guest path to an absolute host path.
     pub fn from_virtual_path(&self, path: &Path) -> PathBuf {
-        from_virtual_path(&self.manifest, path)
+        let Some(virtual_paths) = self.manifest.allowed_paths.as_ref() else {
+            return path.to_path_buf();
+        };
+
+        from_virtual_path(virtual_paths, path)
     }
 
     /// Convert the provided absolute host path to a virtual guest path suitable
     /// for WASI sandboxed runtimes.
     pub fn to_virtual_path(&self, path: &Path) -> VirtualPath {
-        to_virtual_path(&self.manifest, path)
+        let Some(virtual_paths) = self.manifest.allowed_paths.as_ref() else {
+            return VirtualPath::Only(path.to_path_buf());
+        };
+
+        to_virtual_path(virtual_paths, path)
     }
 
     /// Call a function on the plugin with the given raw input and return the raw output.

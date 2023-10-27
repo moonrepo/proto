@@ -36,11 +36,13 @@ pub fn inject_default_manifest_config(
         .config
         .insert("proto_user_config".to_string(), value);
 
+    let paths_map = manifest.allowed_paths.as_ref().unwrap();
+
     let value = json::to_string(&HostEnvironment {
         arch: HostArch::from_env(),
         os: HostOS::from_env(),
-        home_dir: to_virtual_path(manifest, &proto.home),
-        proto_dir: to_virtual_path(manifest, &proto.root),
+        home_dir: to_virtual_path(paths_map, &proto.home),
+        proto_dir: to_virtual_path(paths_map, &proto.root),
     })
     .into_diagnostic()?;
 
