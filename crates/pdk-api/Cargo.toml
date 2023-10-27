@@ -8,7 +8,7 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
-system_env = { version = "0.1.1", path = "../system-env" }
+system_env = { version = "0.1.2", path = "../system-env" }
 version_spec = { version = "0.1.2", path = "../version-spec" }
 warpgate_api = { version = "0.1.4", path = "../warpgate-api" }
 anyhow = "1.0.75"
