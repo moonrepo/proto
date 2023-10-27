@@ -20,6 +20,7 @@
 #### 🚀 Updates
 
 - Added Linux x64 musl support (`x86_64-unknown-linux-musl`).
+- Improved file and directory locking. Will now work correctly across processes and signals, especially for killed/dropped.
 - Updated WASM functions to use explicit Rust enum types for versions to properly handle all variations (version, alias, requirement, range).
 - WASM API
   - Uses `VersionSpec` enum:

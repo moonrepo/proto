@@ -8,7 +8,7 @@ use crate::proto::ProtoEnvironment;
 use crate::shimmer::{
     create_global_shim, create_local_shim, get_shim_file_name, ShimContext, SHIM_VERSION,
 };
-use crate::tool_manifest::{now, ToolManifest};
+use crate::tool_manifest::ToolManifest;
 use crate::version_resolver::VersionResolver;
 use extism::{manifest::Wasm, Manifest as PluginManifest};
 use miette::IntoDiagnostic;
@@ -819,8 +819,8 @@ impl Tool {
     }
 
     /// Download the tool (as an archive) from its distribution registry
-    /// into the `~/.proto/temp` folder, and optionally verify checksums.
-    pub async fn install_from_prebuilt(&self, temp_dir: &Path) -> miette::Result<()> {
+    /// into the `~/.proto/tools/<version>` folder, and optionally verify checksums.
+    pub async fn install_from_prebuilt(&self, install_dir: &Path) -> miette::Result<()> {
         debug!(
             tool = self.id.as_str(),
             "Installing tool from a pre-built archive"
@@ -831,9 +831,11 @@ impl Tool {
             "download_prebuilt",
             DownloadPrebuiltInput {
                 context: self.create_context(),
-                install_dir: self.to_virtual_path(temp_dir),
+                install_dir: self.to_virtual_path(install_dir),
             },
         )?;
+
+        let temp_dir = self.get_temp_dir();
 
         // Download the prebuilt
         let download_url = options.download_url;
@@ -875,15 +877,13 @@ impl Tool {
                 options.checksum_public_key.as_deref(),
             )
             .await?;
-
-            fs::remove_file(checksum_file)?;
         }
 
         // Attempt to unpack the archive
         debug!(
             tool = self.id.as_str(),
             download_file = ?download_file,
-            install_dir = ?temp_dir,
+            install_dir = ?install_dir,
             "Attempting to unpack archive",
         );
 
@@ -892,14 +892,14 @@ impl Tool {
                 "unpack_archive",
                 UnpackArchiveInput {
                     input_file: self.to_virtual_path(&download_file),
-                    output_dir: self.to_virtual_path(temp_dir),
+                    output_dir: self.to_virtual_path(install_dir),
                     context: self.create_context(),
                 },
             )?;
 
             // Is an archive, unpack it
         } else if is_archive_file(&download_file) {
-            let mut archiver = Archiver::new(temp_dir, &download_file);
+            let mut archiver = Archiver::new(install_dir, &download_file);
 
             if let Some(prefix) = &options.archive_prefix {
                 archiver.set_prefix(prefix);
@@ -909,7 +909,7 @@ impl Tool {
 
             // Not an archive, assume a binary and copy
         } else {
-            let install_path = temp_dir.join(if cfg!(windows) {
+            let install_path = install_dir.join(if cfg!(windows) {
                 format!("{}.exe", self.id)
             } else {
                 self.id.to_string()
@@ -917,10 +917,6 @@ impl Tool {
 
             fs::rename(&download_file, &install_path)?;
             fs::update_perms(install_path, None)?;
-        }
-
-        if download_file.exists() {
-            fs::remove_file(&download_file)?;
         }
 
         Ok(())
@@ -943,9 +939,7 @@ impl Tool {
         }
 
         let install_dir = self.get_tool_dir();
-        let temp_install_dir =
-            self.get_temp_dir()
-                .join(format!("{}-{}", self.get_resolved_version(), now()));
+        let install_lock = fs::lock_directory(&install_dir)?;
         let mut installed = false;
 
         self.on_installing
@@ -963,7 +957,7 @@ impl Tool {
                 "native_install",
                 NativeInstallInput {
                     context: self.create_context(),
-                    install_dir: self.to_virtual_path(&temp_install_dir),
+                    install_dir: self.to_virtual_path(&install_dir),
                 },
             )?;
 
@@ -990,16 +984,10 @@ impl Tool {
             //     self.install_from_prebuilt(&install_dir).await?;
             // }
 
-            self.install_from_prebuilt(&temp_install_dir).await?;
-
-            // Ensure the final destination does not exist before moving
-            if install_dir.exists() {
-                fs::remove_dir_all(&install_dir)?;
-            }
-
-            // Move the built/unpacked files to the final destination
-            fs::rename(temp_install_dir, &install_dir)?;
+            self.install_from_prebuilt(&install_dir).await?;
         }
+
+        install_lock.unlock()?;
 
         self.on_installed
             .emit(InstalledEvent {
