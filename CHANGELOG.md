@@ -12,9 +12,26 @@
 
 ## Unreleased
 
+#### 💥 Breaking
+
+- WASM API
+  - Removed `input.context` from `LoadVersionsInput` and `ResolveVersionInput`.
+
 #### 🚀 Updates
 
 - Added Linux x64 musl support (`x86_64-unknown-linux-musl`).
+- Updated WASM functions to use explicit Rust enum types for versions to properly handle all variations (version, alias, requirement, range).
+- WASM API
+  - Uses `VersionSpec` enum:
+    - `ResolveVersionOutput.version`
+    - `ToolContext.version`
+  - Uses `UnresolvedVersionSpec` enum:
+    - `LoadVersionsInput.initial`
+    - `ParseVersionFileOutput.version`
+    - `ResolveVersionInput.initial`
+    - `ResolveVersionOutput.candidate`
+    - `SyncManifestOutput.default_version`
+    - `ToolMetadataOutput.default_version`
 
 ## 0.20.4
 
