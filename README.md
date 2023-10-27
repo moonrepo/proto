@@ -2,7 +2,7 @@
 
 ![Crates.io](https://img.shields.io/crates/v/proto_cli) ![Crates.io](https://img.shields.io/crates/d/proto_cli)
 
-proto is a unified and pluggable next-generation version manager for multiple programming languages.
+proto is a pluggable next-generation version manager for multiple programming languages. A unified toolchain.
 
 - [Learn more](https://moonrepo.dev/proto)
 - [Documentation](https://moonrepo.dev/docs/proto)
@@ -19,14 +19,14 @@ proto is a unified and pluggable next-generation version manager for multiple pr
 - Contextual version detection, ensuring the correct version of a tool is always used.
 - Checksum verification, ensuring a tool came from a trusted source.
 - Detects and infers from a language's ecosystem for maximum compatibility.
-- Pluggable architecture, allowing for custom tooling.
+- Pluggable architecture via WASM, enabling custom integrations.
 
 ## Supported languages
 
 - Bun
 - Deno
 - Go
-- Node.js (and npm, pnpm, yarn)
+- Node (and npm, pnpm, yarn)
 - Python
 - Rust
 - ... [and more via plugins!](https://moonrepo.dev/docs/proto/tools)

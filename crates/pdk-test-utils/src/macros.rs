@@ -56,9 +56,11 @@ macro_rules! generate_download_install_tests {
 
             tool.version = Some(proto_pdk_test_utils::VersionSpec::parse($version).unwrap());
 
-            let temp_dir = tool.get_temp_dir().join($version);
+            let temp_dir = tool.get_temp_dir();
 
-            tool.install_from_prebuilt(&temp_dir).await.unwrap();
+            tool.install_from_prebuilt(&tool.get_tool_dir())
+                .await
+                .unwrap();
 
             assert!(temp_dir.exists());
         }
