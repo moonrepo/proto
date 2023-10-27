@@ -44,10 +44,10 @@ pub fn parse_version_file(
 
     if input.file == ".proto-wasm-version" {
         if input.content.starts_with("version=") {
-            version = Some(input.content[8..].into());
+            version = Some(UnresolvedVersionSpec::parse(&input.content[8..])?);
         }
     } else {
-        version = Some(input.content);
+        version = Some(UnresolvedVersionSpec::parse(input.content)?);
     }
 
     Ok(Json(ParseVersionFileOutput { version }))
@@ -148,8 +148,10 @@ pub fn resolve_version(
 ) -> FnResult<Json<ResolveVersionOutput>> {
     let mut output = ResolveVersionOutput::default();
 
-    if input.initial == "node" {
-        output.candidate = Some("latest".into());
+    if let UnresolvedVersionSpec::Alias(alias) = &input.initial {
+        if alias == "node" {
+            output.candidate = Some(UnresolvedVersionSpec::Alias("latest".into()));
+        }
     }
 
     Ok(Json(output))

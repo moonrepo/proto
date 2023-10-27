@@ -27,7 +27,6 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, SystemTime};
 use tracing::{debug, trace};
-use version_spec::*;
 use warpgate::{download_from_url_to_file, Id, PluginContainer, PluginLocator, VirtualPath};
 
 pub struct Tool {
@@ -276,7 +275,7 @@ impl Tool {
     pub fn create_context(&self) -> ToolContext {
         ToolContext {
             tool_dir: self.to_virtual_path(&self.get_tool_dir()),
-            version: self.get_resolved_version().to_string(),
+            version: self.get_resolved_version(),
         }
     }
 
@@ -342,14 +341,7 @@ impl Tool {
 
         if let Some(default) = sync_changes.default_version {
             modified = true;
-
-            self.manifest.default_version =
-                Some(UnresolvedVersionSpec::parse(&default).map_err(|error| {
-                    ProtoError::Semver {
-                        version: default,
-                        error,
-                    }
-                })?);
+            self.manifest.default_version = Some(default);
         }
 
         if let Some(versions) = sync_changes.versions {
@@ -436,8 +428,7 @@ impl Tool {
             versions = self.plugin.cache_func_with(
                 "load_versions",
                 LoadVersionsInput {
-                    initial: initial_version.to_string(),
-                    context: self.create_context(),
+                    initial: initial_version.to_owned(),
                 },
             )?;
 
@@ -510,39 +501,30 @@ impl Tool {
             let result: ResolveVersionOutput = self.plugin.call_func_with(
                 "resolve_version",
                 ResolveVersionInput {
-                    initial: initial_version.to_string(),
-                    context: self.create_context(),
+                    initial: initial_version.to_owned(),
                 },
             )?;
 
             if let Some(candidate) = result.candidate {
                 debug!(
                     tool = self.id.as_str(),
-                    candidate = &candidate,
+                    candidate = candidate.to_string(),
                     "Received a possible version or alias to use",
                 );
 
                 resolved = true;
-                version = resolver.resolve(&UnresolvedVersionSpec::parse(&candidate).map_err(
-                    |error| ProtoError::Semver {
-                        version: candidate,
-                        error,
-                    },
-                )?)?;
+                version = resolver.resolve(&candidate)?;
             }
 
             if let Some(candidate) = result.version {
                 debug!(
                     tool = self.id.as_str(),
-                    version = &candidate,
+                    version = candidate.to_string(),
                     "Received an explicit version or alias to use",
                 );
 
                 resolved = true;
-                version = VersionSpec::parse(&candidate).map_err(|error| ProtoError::Semver {
-                    version: candidate,
-                    error,
-                })?;
+                version = candidate;
             }
         }
 
@@ -615,7 +597,10 @@ impl Tool {
 
                 result.version.unwrap()
             } else {
-                content
+                UnresolvedVersionSpec::parse(&content).map_err(|error| ProtoError::Semver {
+                    version: content,
+                    error,
+                })?
             };
 
             debug!(
@@ -624,10 +609,7 @@ impl Tool {
                 "Detected a version"
             );
 
-            return Ok(Some(
-                UnresolvedVersionSpec::parse(&version)
-                    .map_err(|error| ProtoError::Semver { version, error })?,
-            ));
+            return Ok(Some(version));
         }
 
         Ok(None)
@@ -1439,21 +1421,10 @@ impl Tool {
             self.setup_bin_link(false)?;
 
             // Add version to manifest
-            let mut default = None;
-
-            if let Some(default_version) = &self.metadata.default_version {
-                default = Some(
-                    UnresolvedVersionSpec::parse(default_version).map_err(|error| {
-                        ProtoError::Semver {
-                            version: default_version.to_owned(),
-                            error,
-                        }
-                    })?,
-                );
-            }
-
-            self.manifest
-                .insert_version(self.get_resolved_version(), default)?;
+            self.manifest.insert_version(
+                self.get_resolved_version(),
+                self.metadata.default_version.clone(),
+            )?;
 
             // Allow plugins to override manifest
             self.sync_manifest()?;
