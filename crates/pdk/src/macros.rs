@@ -139,24 +139,24 @@ macro_rules! host_log {
     };
 }
 
-/// Calls `from_virtual_path` on the host to convert the provided value as a real path.
-#[macro_export]
-macro_rules! real_path {
-    ($path:literal) => {
-        std::path::PathBuf::from(unsafe { from_virtual_path($path)? })
-    };
-    ($path:expr) => {
-        std::path::PathBuf::from(unsafe { from_virtual_path($path.to_str().unwrap())? })
-    };
-}
+// /// Calls `from_virtual_path` on the host to convert the provided value as a real path.
+// #[macro_export]
+// macro_rules! real_path {
+//     ($path:literal) => {
+//         std::path::PathBuf::from(unsafe { from_virtual_path($path)? })
+//     };
+//     ($path:expr) => {
+//         std::path::PathBuf::from(unsafe { from_virtual_path($path.to_str().unwrap())? })
+//     };
+// }
 
-/// Calls `to_virtual_path` on the host to convert the provided value as a virtual path.
-#[macro_export]
-macro_rules! virtual_path {
-    ($path:literal) => {
-        std::path::PathBuf::from(unsafe { to_virtual_path($path)? })
-    };
-    ($path:expr) => {
-        std::path::PathBuf::from(unsafe { to_virtual_path($path.to_str().unwrap())? })
-    };
-}
+// /// Calls `to_virtual_path` on the host to convert the provided value as a virtual path.
+// #[macro_export]
+// macro_rules! virtual_path {
+//     ($path:literal) => {
+//         std::path::PathBuf::from(unsafe { to_virtual_path($path)? })
+//     };
+//     ($path:expr) => {
+//         std::path::PathBuf::from(unsafe { to_virtual_path($path.to_str().unwrap())? })
+//     };
+// }
