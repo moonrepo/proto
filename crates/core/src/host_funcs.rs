@@ -9,7 +9,7 @@ use std::sync::Arc;
 use tracing::trace;
 use warpgate::Id;
 
-#[derive(Debug)]
+#[derive(Clone)]
 pub struct HostData {
     pub id: Id,
     pub proto: Arc<ProtoEnvironment>,
@@ -21,14 +21,14 @@ pub fn create_host_functions(data: HostData) -> Vec<Function> {
             "exec_command",
             [ValType::I64],
             [ValType::I64],
-            Some(UserData::new(data)),
+            Some(UserData::new(data.clone())),
             exec_command,
         ),
         Function::new(
             "from_virtual_path",
             [ValType::I64],
             [ValType::I64],
-            None,
+            Some(UserData::new(data.clone())),
             from_virtual_path,
         ),
         Function::new(
@@ -50,7 +50,7 @@ pub fn create_host_functions(data: HostData) -> Vec<Function> {
             "to_virtual_path",
             [ValType::I64],
             [ValType::I64],
-            None,
+            Some(UserData::new(data)),
             to_virtual_path,
         ),
     ]
