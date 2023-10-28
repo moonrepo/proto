@@ -2315,7 +2315,6 @@ dependencies = [
  "miette",
  "proto_core",
  "proto_pdk_api",
- "proto_wasm_plugin",
  "reqwest",
  "semver",
  "serde",
@@ -2394,17 +2393,6 @@ dependencies = [
  "proto_pdk_api",
  "serde_json",
  "toml 0.8.5",
-]
-
-[[package]]
-name = "proto_wasm_plugin"
-version = "0.7.3"
-dependencies = [
- "extism",
- "proto_pdk_api",
- "serde_json",
- "starbase_utils",
- "tracing",
 ]
 
 [[package]]
