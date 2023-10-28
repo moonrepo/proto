@@ -83,8 +83,8 @@ fn extract_installed_versions(installed: &HashSet<VersionSpec>) -> HashSet<&Vers
     installed
         .iter()
         .filter_map(|item| match item {
-            VersionSpec::Alias(_) => None,
             VersionSpec::Version(v) => Some(v),
+            _ => None,
         })
         .collect()
 }

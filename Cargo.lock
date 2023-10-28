@@ -2392,7 +2392,6 @@ dependencies = [
  "extism",
  "proto_core",
  "proto_pdk_api",
- "proto_wasm_plugin",
  "serde_json",
  "toml 0.8.5",
 ]

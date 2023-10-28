@@ -9,6 +9,7 @@ use std::str::FromStr;
 #[derive(Clone, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(untagged, into = "String", try_from = "String")]
 pub enum VersionSpec {
+    Canary,
     Alias(String),
     Version(Version),
 }
@@ -18,8 +19,16 @@ impl VersionSpec {
         Self::from_str(value.as_ref())
     }
 
+    pub fn is_alias<A: AsRef<str>>(&self, name: A) -> bool {
+        match self {
+            Self::Alias(alias) => alias == name.as_ref(),
+            _ => false,
+        }
+    }
+
     pub fn is_canary(&self) -> bool {
         match self {
+            Self::Canary => true,
             Self::Alias(alias) => alias == "canary",
             _ => false,
         }
@@ -27,13 +36,14 @@ impl VersionSpec {
 
     pub fn is_latest(&self) -> bool {
         match self {
-            Self::Alias(alias) => alias == "latest",
+            Self::Alias(alias) => alias == "latest" || alias == "stable",
             _ => false,
         }
     }
 
     pub fn to_unresolved_spec(&self) -> UnresolvedVersionSpec {
         match self {
+            Self::Canary => UnresolvedVersionSpec::Canary,
             Self::Alias(alias) => UnresolvedVersionSpec::Alias(alias.to_owned()),
             Self::Version(version) => UnresolvedVersionSpec::Version(version.to_owned()),
         }
@@ -84,6 +94,7 @@ impl Debug for VersionSpec {
 impl Display for VersionSpec {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::Canary => write!(f, "canary"),
             Self::Alias(alias) => write!(f, "{}", alias),
             Self::Version(version) => write!(f, "{}", version),
         }
@@ -93,6 +104,7 @@ impl Display for VersionSpec {
 impl PartialEq<&str> for VersionSpec {
     fn eq(&self, other: &&str) -> bool {
         match self {
+            Self::Canary => "canary" == *other,
             Self::Alias(alias) => alias == other,
             Self::Version(version) => version.to_string() == *other,
         }
@@ -105,5 +117,11 @@ impl PartialEq<Version> for VersionSpec {
             Self::Version(version) => version == other,
             _ => false,
         }
+    }
+}
+
+impl AsRef<VersionSpec> for VersionSpec {
+    fn as_ref(&self) -> &VersionSpec {
+        self
     }
 }

@@ -11,7 +11,6 @@ pub use proto_pdk_api::*;
 pub use wrapper::WasmTestWrapper;
 
 use proto_core::inject_default_manifest_config;
-use proto_wasm_plugin::Wasm;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::{env, fs};
