@@ -32,7 +32,11 @@ pub fn internal_pin(tool: &mut Tool, args: &PinArgs, link: bool) -> SystemResult
 
         // Create symlink to this new version
         if link {
-            tool.setup_bin_link(true)?;
+            if tool.is_using_new_executables() {
+                tool.symlink_bins(true).await?;
+            } else {
+                tool.setup_bin_link(true)?;
+            }
         }
     } else {
         let mut config = ToolsConfig::load()?;

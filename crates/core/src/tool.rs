@@ -40,6 +40,7 @@ pub struct Tool {
     pub version: Option<VersionSpec>,
 
     // Events
+    pub on_created_bins: Emitter<CreatedBinariesEvent>,
     pub on_created_shims: Emitter<CreatedShimsEvent>,
     pub on_installing: Emitter<InstallingEvent>,
     pub on_installed: Emitter<InstalledEvent>,
@@ -111,6 +112,7 @@ impl Tool {
             version: None,
 
             // Events
+            on_created_bins: Emitter::new(),
             on_created_shims: Emitter::new(),
             on_installing: Emitter::new(),
             on_installed: Emitter::new(),
@@ -192,11 +194,12 @@ impl Tool {
     /// Return an absolute path to the tool's inventory directory. The inventory houses
     /// installed versions, the manifest, and more.
     pub fn get_inventory_dir(&self) -> PathBuf {
-        if let Some(dir) = &self.metadata.inventory.override_dir {
-            return dir.to_owned();
-        }
-
-        self.proto.tools_dir.join(self.id.as_str())
+        self.metadata
+            .inventory
+            .override_dir
+            .as_ref()
+            .map(|dir| dir.to_owned())
+            .unwrap_or_else(|| self.proto.tools_dir.join(self.id.as_str()))
     }
 
     /// Return a human readable name for the tool.
@@ -207,20 +210,6 @@ impl Tool {
     /// Return the resolved version or "latest".
     pub fn get_resolved_version(&self) -> VersionSpec {
         self.version.clone().unwrap_or_default()
-    }
-
-    /// Return a path to a local shim file if it exists.
-    pub fn get_shim_path(&self) -> Option<PathBuf> {
-        let local = self
-            .get_tool_dir()
-            .join("shims")
-            .join(get_shim_file_name(&self.id, false));
-
-        if local.exists() {
-            return Some(local);
-        }
-
-        None
     }
 
     /// Return an absolute path to a temp directory solely for this tool.
@@ -265,6 +254,16 @@ impl Tool {
                 VirtualPath::WithReal { path, .. } => VirtualPath::Only(path),
                 VirtualPath::Only(path) => VirtualPath::Only(path),
             }
+        }
+    }
+
+    pub fn to_absolute_real_path(&self, virtual_path: &Path, base_dir: &Path) -> PathBuf {
+        let real_path = self.from_virtual_path(&virtual_path);
+
+        if real_path.is_absolute() {
+            real_path
+        } else {
+            base_dir.join(real_path)
         }
     }
 }
@@ -551,11 +550,7 @@ impl Tool {
 
         Ok(())
     }
-}
 
-// VERSION DETECTION
-
-impl Tool {
     /// Attempt to detect an applicable version from the provided directory.
     pub async fn detect_version_from(
         &self,
@@ -1135,40 +1130,65 @@ impl Tool {
 
         Ok(result.uninstalled)
     }
+}
 
-    /// Find the absolute file path to the tool's binary that will be executed.
-    pub async fn locate_bins(&mut self) -> miette::Result<()> {
-        if self.bin_path.is_some() {
+// BINARIES, SHIMS
+
+impl Tool {
+    /// Create the context object required for creating shim files.
+    pub fn create_shim_context(&self) -> ShimContext {
+        ShimContext {
+            shim_file: &self.id,
+            bin: &self.id,
+            tool_id: &self.id,
+            tool_dir: Some(self.get_tool_dir()),
+            tool_version: Some(self.get_resolved_version().to_string()),
+            ..ShimContext::default()
+        }
+    }
+
+    pub async fn create_executables(
+        &mut self,
+        force_shims: bool,
+        force_bins: bool,
+    ) -> miette::Result<()> {
+        if !self.plugin.has_func("locate_executables") {
+            self.locate_bins().await?;
+            self.setup_shims(force_shims).await?;
+            self.setup_bin_link(force_bins)?;
+
             return Ok(());
         }
 
-        let mut options = LocateBinsOutput::default();
+        self.locate_executable().await?;
+        self.generate_shims(force_shims).await?;
+        self.symlink_bins(force_bins).await?;
+
+        Ok(())
+    }
+
+    pub async fn locate_executable(&mut self) -> miette::Result<()> {
         let tool_dir = self.get_tool_dir();
+        let mut bin_path = tool_dir.join(self.id.as_str());
 
-        debug!(tool = self.id.as_str(), "Locating binaries for tool");
+        debug!(tool = self.id.as_str(), "Locating executable for tool");
 
-        if self.plugin.has_func("locate_bins") {
-            options = self.plugin.cache_func_with(
-                "locate_bins",
-                LocateBinsInput {
+        if self.plugin.has_func("locate_executables") {
+            let options: LocateExecutablesOutput = self.plugin.cache_func_with(
+                "locate_executables",
+                LocateExecutablesInput {
                     context: self.create_context(),
                 },
             )?;
+
+            if let Some(primary) = &options.primary {
+                if let Some(exe_path) = &primary.exe_path {
+                    bin_path = self.to_absolute_real_path(exe_path, &tool_dir);
+                }
+            }
         }
 
-        let bin_path = if let Some(bin) = options.bin_path {
-            let bin = self.from_virtual_path(&bin);
-
-            if bin.is_absolute() {
-                bin
-            } else {
-                tool_dir.join(bin)
-            }
-        } else {
-            tool_dir.join(self.id.as_str())
-        };
-
-        debug!(tool = self.id.as_str(), bin_path = ?bin_path, "Found a binary");
+        debug!(tool = self.id.as_str(), bin_path = ?bin_path, "Found an executable");
 
         if bin_path.exists() {
             self.bin_path = Some(bin_path);
@@ -1185,7 +1205,9 @@ impl Tool {
 
     /// Find the directory global packages are installed to.
     pub async fn locate_globals_dir(&mut self) -> miette::Result<()> {
-        if !self.plugin.has_func("locate_bins") || self.globals_dir.is_some() {
+        if !self.plugin.has_func("locate_bins") && !self.plugin.has_func("locate_executables")
+            || self.globals_dir.is_some()
+        {
             return Ok(());
         }
 
@@ -1195,19 +1217,37 @@ impl Tool {
         );
 
         let install_dir = self.get_tool_dir();
-        let options: LocateBinsOutput = self.plugin.cache_func_with(
-            "locate_bins",
-            LocateBinsInput {
-                context: self.create_context(),
-            },
-        )?;
+        let fallback_last_globals_dir;
+        let globals_lookup_dirs;
 
-        self.globals_prefix = options.globals_prefix;
+        if self.plugin.has_func("locate_executables") {
+            let options: LocateExecutablesOutput = self.plugin.cache_func_with(
+                "locate_executables",
+                LocateExecutablesInput {
+                    context: self.create_context(),
+                },
+            )?;
+
+            globals_lookup_dirs = options.globals_lookup_dirs;
+            fallback_last_globals_dir = true;
+            self.globals_prefix = options.globals_prefix;
+        } else {
+            let options: LocateBinsOutput = self.plugin.cache_func_with(
+                "locate_bins",
+                LocateBinsInput {
+                    context: self.create_context(),
+                },
+            )?;
+
+            globals_lookup_dirs = options.globals_lookup_dirs;
+            fallback_last_globals_dir = options.fallback_last_globals_dir;
+            self.globals_prefix = options.globals_prefix;
+        }
 
         // Find a globals directory that packages are installed to
-        let lookup_count = options.globals_lookup_dirs.len() - 1;
+        let lookup_count = globals_lookup_dirs.len() - 1;
 
-        'outer: for (index, dir_lookup) in options.globals_lookup_dirs.iter().enumerate() {
+        'outer: for (index, dir_lookup) in globals_lookup_dirs.iter().enumerate() {
             let mut dir = dir_lookup.clone();
 
             // If a lookup contains an env var, find and replace it.
@@ -1236,7 +1276,7 @@ impl Tool {
                 PathBuf::from(dir)
             };
 
-            if dir_path.exists() || (index == lookup_count && options.fallback_last_globals_dir) {
+            if dir_path.exists() || (index == lookup_count && fallback_last_globals_dir) {
                 debug!(tool = self.id.as_str(), bin_dir = ?dir_path, "Found a globals directory");
 
                 self.globals_dir = Some(dir_path);
@@ -1246,93 +1286,128 @@ impl Tool {
 
         Ok(())
     }
-}
 
-// SHIMMER
-
-impl Tool {
-    /// Create the context object required for creating shim files.
-    pub fn create_shim_context(&self) -> ShimContext {
-        ShimContext {
-            shim_file: &self.id,
-            bin: &self.id,
-            tool_id: &self.id,
-            tool_dir: Some(self.get_tool_dir()),
-            tool_version: Some(self.get_resolved_version().to_string()),
-            ..ShimContext::default()
-        }
-    }
-
-    /// Create global and local shim files for the current tool.
+    /// Create shim files for the current tool if they are missing or out of date.
     /// If find only is enabled, will only check if they exist, and not create.
-    pub async fn create_shims(&self, find_only: bool) -> miette::Result<()> {
-        let mut primary_context = self.create_shim_context();
+    pub async fn generate_shims(&mut self, force: bool) -> miette::Result<()> {
+        let is_outdated = self.manifest.shim_version != SHIM_VERSION;
+        let force_create = force || is_outdated || env::var("CI").is_ok();
+        let find_only = !force_create;
+
+        if force_create {
+            debug!(
+                tool = self.id.as_str(),
+                "Creating shims as they either do not exist, or are outdated"
+            );
+
+            self.manifest.shim_version = SHIM_VERSION;
+            self.manifest.save()?;
+        }
+
+        let options: LocateExecutablesOutput = self.plugin.cache_func_with(
+            "locate_executables",
+            LocateExecutablesInput {
+                context: self.create_context(),
+            },
+        )?;
+
+        let tool_dir = self.get_tool_dir();
         let mut shim_event = CreatedShimsEvent {
             global: vec![],
             local: vec![],
         };
 
-        // If not configured from the plugin, always create the primary global
-        if !self.plugin.has_func("create_shims") {
-            create_global_shim(&self.proto, primary_context, find_only)?;
+        // Create the primary global shim
+        if let Some(primary) = &options.primary {
+            if !primary.no_shim {
+                let mut context = self.create_shim_context();
+                context.before_args = primary.shim_before_args.as_deref();
+                context.after_args = primary.shim_after_args.as_deref();
 
-            shim_event.global.push(self.id.to_string());
-
-            self.on_created_shims.emit(shim_event).await?;
-
-            return Ok(());
+                create_global_shim(&self.proto, context, find_only)?;
+                shim_event.global.push(self.id.to_string());
+            }
         }
 
-        let shim_configs: CreateShimsOutput = self.plugin.cache_func_with(
-            "create_shims",
-            CreateShimsInput {
+        // Create secondary global shims
+        for (name, secondary) in &options.secondary {
+            if !secondary.no_shim {
+                let mut context = self.create_shim_context();
+                context.shim_file = name;
+                context.bin_path = secondary
+                    .exe_path
+                    .as_deref()
+                    .map(|exe| self.to_absolute_real_path(exe, &tool_dir));
+                context.before_args = secondary.shim_before_args.as_deref();
+                context.after_args = secondary.shim_after_args.as_deref();
+
+                create_global_shim(&self.proto, context, find_only)?;
+                shim_event.global.push(name.to_owned());
+            }
+        }
+
+        self.on_created_shims.emit(shim_event).await?;
+
+        Ok(())
+    }
+
+    pub async fn symlink_bins(&mut self, force: bool) -> miette::Result<()> {
+        let options: LocateExecutablesOutput = self.plugin.cache_func_with(
+            "locate_executables",
+            LocateExecutablesInput {
                 context: self.create_context(),
             },
         )?;
 
-        // Create the primary global shim
-        if let Some(primary_config) = &shim_configs.primary {
-            primary_context.before_args = primary_config.before_args.as_deref();
-            primary_context.after_args = primary_config.after_args.as_deref();
-        }
+        fs::create_dir_all(&self.proto.bin_dir)?;
 
-        if !shim_configs.no_primary_global {
-            create_global_shim(&self.proto, primary_context, find_only)?;
-            shim_event.global.push(self.id.to_string());
-        }
+        let tool_dir = self.get_tool_dir();
+        let mut bin_event = CreatedBinariesEvent { bins: vec![] };
 
-        // Create alternate/secondary global shims
-        for (name, config) in &shim_configs.global_shims {
-            let mut context = self.create_shim_context();
-            context.shim_file = name;
-            context.bin_path = config.bin_path.as_deref();
-            context.before_args = config.before_args.as_deref();
-            context.after_args = config.after_args.as_deref();
+        let mut link = |name: &str, config: &ExecutableConfig| -> miette::Result<()> {
+            if config.no_binary {
+                return Ok(());
+            }
 
-            create_global_shim(&self.proto, context, find_only)?;
-            shim_event.global.push(name.to_owned());
-        }
-
-        // Create local shims
-        for (name, config) in &shim_configs.local_shims {
-            let bin_path = if let Some(path) = &config.bin_path {
-                self.get_tool_dir().join(path)
-            } else {
-                self.get_tool_dir().join(self.id.as_str())
+            let Some(exe_path) = &config.exe_path else {
+                return Ok(());
             };
 
-            let mut context = self.create_shim_context();
-            context.shim_file = name;
-            context.bin_path = Some(&bin_path);
-            context.parent_bin = config.parent_bin.as_deref();
-            context.before_args = config.before_args.as_deref();
-            context.after_args = config.after_args.as_deref();
+            let input_path = tool_dir.join(exe_path);
+            let output_path = self.proto.bin_dir.join(match exe_path.extension() {
+                Some(ext) => format!("{name}.{}", ext.to_string_lossy()),
+                None => name.to_owned(),
+            });
 
-            create_local_shim(context, find_only)?;
-            shim_event.local.push(name.to_owned());
+            if output_path.exists() && !force {
+                return Ok(());
+            }
+
+            bin_event.bins.push(name.to_owned());
+            fs::remove_file(&output_path)?;
+
+            #[cfg(windows)]
+            {
+                std::os::windows::fs::symlink_file(input_path, &output_path).into_diagnostic()?;
+            }
+
+            #[cfg(not(windows))]
+            {
+                std::os::unix::fs::symlink(input_path, &output_path).into_diagnostic()?;
+            }
+
+            Ok(())
+        };
+
+        if let Some(primary) = &options.primary {
+            link(self.id.as_str(), primary)?;
         }
 
-        self.on_created_shims.emit(shim_event).await?;
+        for (name, secondary) in &options.secondary {
+            link(name, secondary)?;
+        }
+
+        self.on_created_bins.emit(bin_event).await?;
 
         Ok(())
     }
@@ -1379,9 +1454,7 @@ impl Tool {
             );
 
             if self.bin_path.is_none() {
-                self.locate_bins().await?;
-                self.setup_shims(false).await?;
-                self.setup_bin_link(false)?;
+                self.create_executables(false, false).await?;
             }
 
             return Ok(true);
@@ -1402,14 +1475,7 @@ impl Tool {
         self.resolve_version(initial_version).await?;
 
         if self.install(build_from_source).await? {
-            self.cleanup().await?;
-            self.locate_bins().await?;
-
-            // Always force create shims to ensure changes are propagated
-            self.setup_shims(true).await?;
-
-            // Only link on the first install or if the bin doesn't exist
-            self.setup_bin_link(false)?;
+            self.create_executables(true, false).await?;
 
             // Add version to manifest
             self.manifest.insert_version(
@@ -1420,13 +1486,192 @@ impl Tool {
             // Allow plugins to override manifest
             self.sync_manifest()?;
 
+            self.cleanup().await?;
+
             return Ok(true);
         }
 
         Ok(false)
     }
 
+    /// Teardown the tool by uninstalling the current version, removing the version
+    /// from the manifest, and cleaning up temporary files. Return true if the teardown occurred.
+    pub async fn teardown(&mut self) -> miette::Result<bool> {
+        self.cleanup().await?;
+
+        if self.uninstall().await? {
+            // Only remove if uninstall was successful
+            self.manifest.remove_version(self.get_resolved_version())?;
+
+            // If no more default version, delete the symlink
+            if self.manifest.default_version.is_none() {
+                fs::remove_file(&self.proto.bin_dir.join(self.get_bin_name()))?;
+            }
+
+            return Ok(true);
+        }
+
+        Ok(false)
+    }
+
+    /// Delete temporary files and downloads for the current version.
+    pub async fn cleanup(&mut self) -> miette::Result<()> {
+        debug!(
+            tool = self.id.as_str(),
+            "Cleaning up temporary files and downloads"
+        );
+
+        fs::remove(self.get_temp_dir())?;
+
+        Ok(())
+    }
+}
+
+// DEPRECATED
+
+impl Tool {
+    pub fn is_using_new_executables(&self) -> bool {
+        self.plugin.has_func("locate_executables")
+    }
+
+    /// Return a path to a local shim file if it exists.
+    #[deprecated]
+    pub fn get_shim_path(&self) -> Option<PathBuf> {
+        let local = self
+            .get_tool_dir()
+            .join("shims")
+            .join(get_shim_file_name(&self.id, false));
+
+        if local.exists() {
+            return Some(local);
+        }
+
+        None
+    }
+
+    /// Find the absolute file path to the tool's binary that will be executed.
+    #[deprecated(note = "Use `locate_executable` instead.")]
+    pub async fn locate_bins(&mut self) -> miette::Result<()> {
+        if self.bin_path.is_some() {
+            return Ok(());
+        }
+
+        let mut options = LocateBinsOutput::default();
+        let tool_dir = self.get_tool_dir();
+
+        debug!(tool = self.id.as_str(), "Locating binaries for tool");
+
+        if self.plugin.has_func("locate_bins") {
+            options = self.plugin.cache_func_with(
+                "locate_bins",
+                LocateBinsInput {
+                    context: self.create_context(),
+                },
+            )?;
+        }
+
+        let bin_path = if let Some(bin) = options.bin_path {
+            self.to_absolute_real_path(&bin, &tool_dir)
+        } else {
+            tool_dir.join(self.id.as_str())
+        };
+
+        debug!(tool = self.id.as_str(), bin_path = ?bin_path, "Found a binary");
+
+        if bin_path.exists() {
+            self.bin_path = Some(bin_path);
+
+            return Ok(());
+        }
+
+        Err(ProtoError::MissingToolBin {
+            tool: self.get_name().to_owned(),
+            bin: bin_path,
+        }
+        .into())
+    }
+
+    /// Create global and local shim files for the current tool.
+    /// If find only is enabled, will only check if they exist, and not create.
+    #[deprecated]
+    pub async fn create_shims(&self, find_only: bool) -> miette::Result<()> {
+        let mut primary_context = self.create_shim_context();
+        let mut shim_event = CreatedShimsEvent {
+            global: vec![],
+            local: vec![],
+        };
+
+        // If not configured from the plugin, always create the primary global
+        if !self.plugin.has_func("create_shims") {
+            create_global_shim(&self.proto, primary_context, find_only)?;
+
+            shim_event.global.push(self.id.to_string());
+
+            self.on_created_shims.emit(shim_event).await?;
+
+            return Ok(());
+        }
+
+        let tool_dir = self.get_tool_dir();
+        let shim_configs: CreateShimsOutput = self.plugin.cache_func_with(
+            "create_shims",
+            CreateShimsInput {
+                context: self.create_context(),
+            },
+        )?;
+
+        // Create the primary global shim
+        if let Some(primary_config) = &shim_configs.primary {
+            primary_context.before_args = primary_config.before_args.as_deref();
+            primary_context.after_args = primary_config.after_args.as_deref();
+        }
+
+        if !shim_configs.no_primary_global {
+            create_global_shim(&self.proto, primary_context, find_only)?;
+            shim_event.global.push(self.id.to_string());
+        }
+
+        // Create alternate/secondary global shims
+        for (name, config) in &shim_configs.global_shims {
+            let mut context = self.create_shim_context();
+            context.shim_file = name;
+            context.bin_path = config
+                .bin_path
+                .as_deref()
+                .map(|exe| self.to_absolute_real_path(exe, &tool_dir));
+            context.before_args = config.before_args.as_deref();
+            context.after_args = config.after_args.as_deref();
+
+            create_global_shim(&self.proto, context, find_only)?;
+            shim_event.global.push(name.to_owned());
+        }
+
+        // Create local shims
+        for (name, config) in &shim_configs.local_shims {
+            let bin_path = if let Some(path) = &config.bin_path {
+                self.to_absolute_real_path(path, &tool_dir)
+            } else {
+                self.get_tool_dir().join(self.id.as_str())
+            };
+
+            let mut context = self.create_shim_context();
+            context.shim_file = name;
+            context.bin_path = Some(bin_path);
+            context.parent_bin = config.parent_bin.as_deref();
+            context.before_args = config.before_args.as_deref();
+            context.after_args = config.after_args.as_deref();
+
+            create_local_shim(context, find_only)?;
+            shim_event.local.push(name.to_owned());
+        }
+
+        self.on_created_shims.emit(shim_event).await?;
+
+        Ok(())
+    }
+
     /// Create a symlink from the current tool to the proto bin directory.
+    #[deprecated]
     pub fn setup_bin_link(&mut self, force: bool) -> miette::Result<()> {
         let input_path = self.get_bin_path()?;
         let output_path = self.proto.bin_dir.join(self.get_bin_name());
@@ -1467,6 +1712,7 @@ impl Tool {
     }
 
     /// Setup shims if they are missing or out of date.
+    #[deprecated]
     pub async fn setup_shims(&mut self, force: bool) -> miette::Result<()> {
         let is_outdated = self.manifest.shim_version != SHIM_VERSION;
         let do_create = force || is_outdated || env::var("CI").is_ok();
@@ -1482,41 +1728,6 @@ impl Tool {
         }
 
         self.create_shims(!do_create).await?;
-
-        Ok(())
-    }
-
-    /// Teardown the tool by uninstalling the current version, removing the version
-    /// from the manifest, and cleaning up temporary files. Return true if the teardown occurred.
-    pub async fn teardown(&mut self) -> miette::Result<bool> {
-        self.cleanup().await?;
-
-        if self.uninstall().await? {
-            // Only remove if uninstall was successful
-            self.manifest.remove_version(self.get_resolved_version())?;
-
-            // If no more default version, delete the symlink
-            if self.manifest.default_version.is_none() {
-                fs::remove_file(&self.proto.bin_dir.join(self.get_bin_name()))?;
-            }
-
-            return Ok(true);
-        }
-
-        Ok(false)
-    }
-
-    /// Delete temporary files and downloads for the current version.
-    pub async fn cleanup(&mut self) -> miette::Result<()> {
-        debug!(
-            tool = self.id.as_str(),
-            "Cleaning up temporary files and downloads"
-        );
-
-        fs::remove(
-            self.get_temp_dir()
-                .join(self.get_resolved_version().to_string()),
-        )?;
 
         Ok(())
     }

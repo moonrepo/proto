@@ -22,7 +22,7 @@ pub struct ShimContext<'tool> {
 
     /// Alternate path to the binary to execute.
     /// For global (optional), passes `--bin`. For local (required), executes the file.
-    pub bin_path: Option<&'tool Path>,
+    pub bin_path: Option<PathBuf>,
 
     /// Name of a parent binary required to execute the current binary.
     pub parent_bin: Option<&'tool str>,

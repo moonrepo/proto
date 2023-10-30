@@ -20,11 +20,9 @@ pub async fn bin(args: ArgsRef<BinArgs>) {
     let version = detect_version(&tool, args.spec.clone()).await?;
 
     tool.resolve_version(&version).await?;
-    tool.locate_bins().await?;
+    tool.create_executables(false, true).await?;
 
     if args.shim {
-        tool.setup_shims(true).await?;
-
         if let Some(shim_path) = tool.get_shim_path() {
             println!("{}", shim_path.to_string_lossy());
 

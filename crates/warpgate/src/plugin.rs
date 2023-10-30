@@ -11,7 +11,7 @@ use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
-use tracing::trace;
+use tracing::{debug, trace};
 use warpgate_api::VirtualPath;
 
 /// A container around Extism's [`Plugin`] and [`Manifest`] types that provides convenience
@@ -175,6 +175,14 @@ impl<'plugin> PluginContainer<'plugin> {
             "Calling plugin function {}",
             color::label(func),
         );
+
+        if func == "locate_bins" {
+            debug!(
+                "The {} plugin function is deprecated, please migrate to {}",
+                color::label(func),
+                color::label("locate_executables")
+            );
+        }
 
         let mut instance = self.plugin.write().unwrap_or_else(|_| {
             panic!(
