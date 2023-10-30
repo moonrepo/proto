@@ -20,6 +20,10 @@ use tracing::trace;
 pub static ENV_VAR: Lazy<Regex> = Lazy::new(|| Regex::new(r"\$([A-Z0-9_]+)").unwrap());
 
 pub fn get_proto_home() -> miette::Result<PathBuf> {
+    // if cfg!(debug_assertions) {
+    //     return Ok(get_home_dir()?.join(".proto-debug"));
+    // }
+
     if let Ok(root) = env::var("PROTO_HOME") {
         return Ok(root.into());
     }
@@ -28,11 +32,7 @@ pub fn get_proto_home() -> miette::Result<PathBuf> {
         return Ok(root.into());
     }
 
-    Ok(get_home_dir()?.join(if cfg!(debug_assertions) {
-        ".proto-debug"
-    } else {
-        ".proto"
-    }))
+    Ok(get_home_dir()?.join(".proto"))
 }
 
 pub fn get_home_dir() -> miette::Result<PathBuf> {

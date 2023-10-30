@@ -9,6 +9,10 @@ use warpgate_api::VirtualPath;
 
 pub use semver::{Version, VersionReq};
 
+fn is_false(value: &bool) -> bool {
+    *value == false
+}
+
 #[doc(hidden)]
 #[macro_export]
 macro_rules! json_struct {
@@ -67,6 +71,7 @@ json_struct!(
     /// Controls aspects of the tool inventory.
     pub struct ToolInventoryMetadata {
         /// Disable progress bars when installing or uninstalling tools.
+        #[serde(skip_serializing_if = "is_false")]
         pub disable_progress_bars: bool,
 
         /// Override the tool inventory directory (where all versions are installed).
@@ -334,7 +339,7 @@ json_struct!(
 );
 
 json_struct!(
-    /// Configuration for individual shim files.
+    /// Configuration for generated shim and symlinked binary files.
     pub struct ExecutableConfig {
         /// The binary to execute. Can be a relative path from the tool directory,
         /// or an absolute path.
@@ -342,9 +347,11 @@ json_struct!(
         pub exe_path: Option<PathBuf>,
 
         /// Do not symlink a binary in `~/.proto/bin`.
+        #[serde(skip_serializing_if = "is_false")]
         pub no_binary: bool,
 
         /// Do not generate a shim in `~/.proto/shims`.
+        #[serde(skip_serializing_if = "is_false")]
         pub no_shim: bool,
 
         /// Custom args to prepend to user-provided args within the generated shim.
@@ -356,6 +363,15 @@ json_struct!(
         pub shim_after_args: Option<String>,
     }
 );
+
+impl ExecutableConfig {
+    pub fn new<T: AsRef<str>>(exe_path: T) -> Self {
+        Self {
+            exe_path: Some(PathBuf::from(exe_path.as_ref())),
+            ..Default::default()
+        }
+    }
+}
 
 json_struct!(
     /// Output returned by the `locate_executables` function.
@@ -390,6 +406,7 @@ json_struct!(
 
 json_struct!(
     /// Output returned by the `locate_bins` function.
+    #[deprecated(since = "0.22.0", note = "Use `locate_executables` function instead.")]
     pub struct LocateBinsOutput {
         /// Relative path from the tool directory to the binary to execute.
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -397,6 +414,7 @@ json_struct!(
 
         /// When true, the last item in `globals_lookup_dirs` will be used,
         /// regardless if it exists on the file system or not.
+        #[serde(skip_serializing_if = "is_false")]
         pub fallback_last_globals_dir: bool,
 
         /// List of directory paths to find the globals installation directory.
@@ -674,6 +692,7 @@ json_struct!(
     #[deprecated(since = "0.22.0", note = "Use `locate_executables` function instead.")]
     pub struct CreateShimsOutput {
         /// Avoid creating the global shim.
+        #[serde(skip_serializing_if = "is_false")]
         pub no_primary_global: bool,
 
         /// Configures the default/primary global shim.

@@ -84,6 +84,14 @@ impl SystemOS {
             .expect("Unknown operating system!")
     }
 
+    pub fn map<'l, T: ?Sized>(&self, unix: &'l T, windows: &'l T) -> &'l T {
+        if self.is_windows() {
+            windows
+        } else {
+            unix
+        }
+    }
+
     pub fn is_bsd(&self) -> bool {
         matches!(
             self,

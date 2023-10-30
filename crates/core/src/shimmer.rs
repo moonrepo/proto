@@ -20,8 +20,7 @@ pub struct ShimContext<'tool> {
     /// Name of the binary to execute. Will be used for `proto run` in the shim.
     pub bin: &'tool str,
 
-    /// Alternate path to the binary to execute.
-    /// For global (optional), passes `--bin`. For local (required), executes the file.
+    /// Alternate path to the binary to execute. Uses `proto run --bin`.
     pub bin_path: Option<PathBuf>,
 
     /// Name of a parent binary required to execute the current binary.

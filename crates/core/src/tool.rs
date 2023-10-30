@@ -1167,8 +1167,6 @@ impl Tool {
             self.locate_bins().await?;
             self.setup_shims(force_shims).await?;
             self.setup_bin_link(force_bins)?;
-
-            return Ok(());
         }
 
         Ok(())
@@ -1304,6 +1302,7 @@ impl Tool {
         if force_create {
             debug!(
                 tool = self.id.as_str(),
+                shims_dir = ?self.proto.shims_dir,
                 "Creating shims as they either do not exist, or are outdated"
             );
 
@@ -1318,7 +1317,6 @@ impl Tool {
             },
         )?;
 
-        let tool_dir = self.get_tool_dir();
         let mut shim_event = CreatedShimsEvent {
             global: vec![],
             local: vec![],
@@ -1344,7 +1342,7 @@ impl Tool {
                 context.bin_path = secondary
                     .exe_path
                     .as_deref()
-                    .map(|exe| self.to_absolute_real_path(exe, &tool_dir));
+                    .map(|exe| self.from_virtual_path(exe));
                 context.before_args = secondary.shim_before_args.as_deref();
                 context.after_args = secondary.shim_after_args.as_deref();
 
@@ -1366,6 +1364,14 @@ impl Tool {
                 context: self.create_context(),
             },
         )?;
+
+        if force {
+            debug!(
+                tool = self.id.as_str(),
+                bins_dir = ?self.proto.bin_dir,
+                "Creating symlinks to the original tool executables"
+            );
+        }
 
         fs::create_dir_all(&self.proto.bin_dir)?;
 
@@ -1390,6 +1396,13 @@ impl Tool {
             if output_path.exists() && !force {
                 return Ok(());
             }
+
+            debug!(
+                tool = self.id.as_str(),
+                source = ?input_path,
+                target = ?output_path,
+                "Creating binary symlink"
+            );
 
             bin_event.bins.push(name.to_owned());
             fs::remove_file(&output_path)?;
@@ -1646,7 +1659,7 @@ impl Tool {
             context.bin_path = config
                 .bin_path
                 .as_deref()
-                .map(|exe| self.to_absolute_real_path(exe, &tool_dir));
+                .map(|exe| self.from_virtual_path(exe));
             context.before_args = config.before_args.as_deref();
             context.after_args = config.after_args.as_deref();
 
