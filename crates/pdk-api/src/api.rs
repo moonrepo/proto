@@ -336,7 +336,8 @@ json_struct!(
 json_struct!(
     /// Configuration for individual shim files.
     pub struct ExecutableConfig {
-        /// Relative path from the tool directory to the binary to execute.
+        /// The binary to execute. Can be a relative path from the tool directory,
+        /// or an absolute path.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub exe_path: Option<PathBuf>,
 

@@ -28,7 +28,11 @@ pub fn get_proto_home() -> miette::Result<PathBuf> {
         return Ok(root.into());
     }
 
-    Ok(get_home_dir()?.join(".proto"))
+    Ok(get_home_dir()?.join(if cfg!(debug_assertions) {
+        ".proto-debug"
+    } else {
+        ".proto"
+    }))
 }
 
 pub fn get_home_dir() -> miette::Result<PathBuf> {

@@ -70,7 +70,7 @@ mod shimmer {
         let bin_path = PathBuf::from("other/bin/path");
         let mut context = create_context("primary", &proto);
         context.shim_file = "secondary";
-        context.bin_path = Some(&bin_path);
+        context.bin_path = Some(bin_path);
 
         let shim = create_global_shim(&proto, &context, false).unwrap();
 
@@ -86,7 +86,7 @@ mod shimmer {
         let bin_path = PathBuf::from("other/bin/path");
         let mut context = create_context("primary", &proto);
         context.shim_file = "secondary";
-        context.bin_path = Some(&bin_path);
+        context.bin_path = Some(bin_path);
         context.before_args = Some("--a -b");
         context.after_args = Some("./file");
 
@@ -104,7 +104,7 @@ mod shimmer {
         let proto = ProtoEnvironment::new_testing(sandbox.path());
         let bin_path = PathBuf::from("bin/tool");
         let mut context = create_context("tool", &proto);
-        context.bin_path = Some(&bin_path);
+        context.bin_path = Some(bin_path);
 
         let shim = create_local_shim(&context, true).unwrap();
 
@@ -119,7 +119,7 @@ mod shimmer {
 
         let bin_path = PathBuf::from("bin/tool");
         let mut context = create_context("tool", &proto);
-        context.bin_path = Some(&bin_path);
+        context.bin_path = Some(bin_path);
 
         let shim = create_local_shim(&context, false).unwrap();
 
@@ -134,7 +134,7 @@ mod shimmer {
 
         let bin_path = PathBuf::from("bin/tool");
         let mut context = create_context("tool", &proto);
-        context.bin_path = Some(&bin_path);
+        context.bin_path = Some(bin_path);
         context.before_args = Some("--a -b");
         context.after_args = Some("./file");
 
@@ -151,7 +151,7 @@ mod shimmer {
 
         let bin_path = PathBuf::from("bin/tool");
         let mut context = create_context("tool", &proto);
-        context.bin_path = Some(&bin_path);
+        context.bin_path = Some(bin_path);
         context.parent_bin = Some("node");
 
         let shim = create_local_shim(&context, false).unwrap();
@@ -167,7 +167,7 @@ mod shimmer {
 
         let bin_path = PathBuf::from("bin/tool");
         let mut context = create_context("tool", &proto);
-        context.bin_path = Some(&bin_path);
+        context.bin_path = Some(bin_path);
         context.parent_bin = Some("node");
         context.before_args = Some("--a -b");
         context.after_args = Some("./file");
@@ -185,7 +185,7 @@ mod shimmer {
 
         let bin_path = PathBuf::from("bin/tool");
         let mut context = create_context("tool-name", &proto);
-        context.bin_path = Some(&bin_path);
+        context.bin_path = Some(bin_path);
         context.parent_bin = Some("parentName");
 
         let shim = create_local_shim(&context, false).unwrap();
