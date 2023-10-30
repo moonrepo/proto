@@ -9,7 +9,7 @@ use tinytemplate::error::Error as TemplateError;
 use tinytemplate::TinyTemplate;
 use tracing::debug;
 
-pub const SHIM_VERSION: u8 = 7;
+pub const SHIM_VERSION: u8 = 8;
 
 #[derive(Debug, Default, Serialize)]
 pub struct ShimContext<'tool> {

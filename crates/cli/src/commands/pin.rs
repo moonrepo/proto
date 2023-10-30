@@ -19,7 +19,7 @@ pub struct PinArgs {
     pub global: bool,
 }
 
-pub fn internal_pin(tool: &mut Tool, args: &PinArgs, link: bool) -> SystemResult {
+pub async fn internal_pin(tool: &mut Tool, args: &PinArgs, link: bool) -> SystemResult {
     if args.global {
         tool.manifest.default_version = Some(args.spec.clone());
         tool.manifest.save()?;
@@ -57,7 +57,7 @@ pub fn internal_pin(tool: &mut Tool, args: &PinArgs, link: bool) -> SystemResult
 pub async fn pin(args: ArgsRef<PinArgs>) -> SystemResult {
     let mut tool = load_tool(&args.id).await?;
 
-    internal_pin(&mut tool, args, false)?;
+    internal_pin(&mut tool, args, false).await?;
 
     info!(
         "Set the {} version to {}",

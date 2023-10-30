@@ -343,13 +343,8 @@ json_struct!(
         /// Do not symlink a binary in `~/.proto/bin`.
         pub no_binary: bool,
 
-        /// Do not create a shim in `~/.proto/shims`.
+        /// Do not generate a shim in `~/.proto/shims`.
         pub no_shim: bool,
-
-        /// Name of a parent executable that's required for this executable to work.
-        /// For example, `npm` requires `node`.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub parent_exe: Option<String>,
 
         /// Custom args to prepend to user-provided args within the generated shim.
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -381,9 +376,6 @@ json_struct!(
         /// Configures secondary/additional executables to create.
         /// The map key is the name of the shim/binary.
         pub secondary: HashMap<String, ExecutableConfig>,
-
-        #[doc(hidden)]
-        pub local_shims: HashMap<String, ExecutableConfig>,
     }
 );
 
@@ -596,7 +588,8 @@ json_struct!(
 json_struct!(
     /// Configuration for individual shim files.
     pub struct ShimConfig {
-        /// Relative path from the tool directory to the binary to execute.
+        /// The binary to execute. Can be a relative path from the tool directory,
+        /// or an absolute path
         #[serde(skip_serializing_if = "Option::is_none")]
         pub bin_path: Option<PathBuf>,
 

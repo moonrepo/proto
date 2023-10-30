@@ -238,10 +238,12 @@ impl Tool {
         self.metadata.inventory.disable_progress_bars
     }
 
+    /// Convert a virtual path to a real path.
     pub fn from_virtual_path(&self, path: &Path) -> PathBuf {
         self.plugin.from_virtual_path(path)
     }
 
+    /// Convert a real path to a virtual path.
     pub fn to_virtual_path(&self, path: &Path) -> VirtualPath {
         // This is a temporary hack. Only newer plugins support the `VirtualPath`
         // type, so we need to check if the plugin has a version or not, which
@@ -257,6 +259,7 @@ impl Tool {
         }
     }
 
+    /// Convert a virtual path to a real path, and ensure it's absolute.
     pub fn to_absolute_real_path(&self, virtual_path: &Path, base_dir: &Path) -> PathBuf {
         let real_path = self.from_virtual_path(&virtual_path);
 
@@ -1147,22 +1150,26 @@ impl Tool {
         }
     }
 
+    /// Create all executables for the current tool.
+    /// - Locate the primary binary to execute.
+    /// - Generate shims to `~/.proto/shims`.
+    /// - Symlink bins to `~/.proto/bin`.
     pub async fn create_executables(
         &mut self,
         force_shims: bool,
         force_bins: bool,
     ) -> miette::Result<()> {
-        if !self.plugin.has_func("locate_executables") {
+        if self.is_using_new_executables() {
+            self.locate_executable().await?;
+            self.generate_shims(force_shims).await?;
+            self.symlink_bins(force_bins).await?;
+        } else {
             self.locate_bins().await?;
             self.setup_shims(force_shims).await?;
             self.setup_bin_link(force_bins)?;
 
             return Ok(());
         }
-
-        self.locate_executable().await?;
-        self.generate_shims(force_shims).await?;
-        self.symlink_bins(force_bins).await?;
 
         Ok(())
     }
@@ -1220,7 +1227,7 @@ impl Tool {
         let fallback_last_globals_dir;
         let globals_lookup_dirs;
 
-        if self.plugin.has_func("locate_executables") {
+        if self.is_using_new_executables() {
             let options: LocateExecutablesOutput = self.plugin.cache_func_with(
                 "locate_executables",
                 LocateExecutablesInput {
@@ -1351,6 +1358,7 @@ impl Tool {
         Ok(())
     }
 
+    /// Symlink all primary and secondary binaries for the current tool.
     pub async fn symlink_bins(&mut self, force: bool) -> miette::Result<()> {
         let options: LocateExecutablesOutput = self.plugin.cache_func_with(
             "locate_executables",
@@ -1373,7 +1381,7 @@ impl Tool {
                 return Ok(());
             };
 
-            let input_path = tool_dir.join(exe_path);
+            let input_path = self.to_absolute_real_path(exe_path, &tool_dir);
             let output_path = self.proto.bin_dir.join(match exe_path.extension() {
                 Some(ext) => format!("{name}.{}", ext.to_string_lossy()),
                 None => name.to_owned(),
