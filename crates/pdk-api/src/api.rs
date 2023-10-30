@@ -107,7 +107,7 @@ json_struct!(
     }
 );
 
-// Detector
+// VERSION DETECTION
 
 json_struct!(
     /// Output returned by the `detect_version_files` function.
@@ -138,7 +138,7 @@ json_struct!(
     }
 );
 
-// Downloader, Installer, Verifier
+// DOWNLOAD, BUILD, INSTALL, VERIFY
 
 json_struct!(
     /// Input passed to the `native_install` function.
@@ -323,7 +323,69 @@ json_struct!(
     }
 );
 
-// Executor
+// EXECUTABLES, BINARYS, GLOBALS
+
+json_struct!(
+    /// Input passed to the `locate_executables` function.
+    pub struct LocateExecutablesInput {
+        /// Current tool context.
+        pub context: ToolContext,
+    }
+);
+
+json_struct!(
+    /// Configuration for individual shim files.
+    pub struct ExecutableConfig {
+        /// Relative path from the tool directory to the binary to execute.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub exe_path: Option<PathBuf>,
+
+        /// Do not symlink a binary in `~/.proto/bin`.
+        pub no_binary: bool,
+
+        /// Do not create a shim in `~/.proto/shims`.
+        pub no_shim: bool,
+
+        /// Name of a parent executable that's required for this executable to work.
+        /// For example, `npm` requires `node`.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub parent_exe: Option<String>,
+
+        /// Custom args to prepend to user-provided args within the generated shim.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub shim_before_args: Option<String>,
+
+        /// Custom args to append to user-provided args within the generated shim.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub shim_after_args: Option<String>,
+    }
+);
+
+json_struct!(
+    /// Output returned by the `locate_executables` function.
+    pub struct LocateExecutablesOutput {
+        /// List of directory paths to find the globals installation directory.
+        /// Each path supports environment variable expansion.
+        pub globals_lookup_dirs: Vec<String>,
+
+        /// A string that all global binaries are prefixed with, and will be removed
+        /// when listing and filtering available globals.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub globals_prefix: Option<String>,
+
+        /// Configures the primary/default executable to create.
+        /// If not provided, a primary shim and binary will *not* be created.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub primary: Option<ExecutableConfig>,
+
+        /// Configures secondary/additional executables to create.
+        /// The map key is the name of the shim/binary.
+        pub secondary: HashMap<String, ExecutableConfig>,
+
+        #[doc(hidden)]
+        pub local_shims: HashMap<String, ExecutableConfig>,
+    }
+);
 
 json_struct!(
     /// Input passed to the `locate_bins` function.
@@ -439,7 +501,7 @@ impl UninstallGlobalOutput {
     }
 }
 
-// Resolver
+// VERSION RESOLVING
 
 json_struct!(
     /// Input passed to the `load_versions` function.
@@ -615,6 +677,7 @@ json_struct!(
 
 json_struct!(
     /// Output returned by the `create_shims` function.
+    #[deprecated(since = "0.22.0", note = "Use `locate_executables` function instead.")]
     pub struct CreateShimsOutput {
         /// Avoid creating the global shim.
         pub no_primary_global: bool,
@@ -633,7 +696,7 @@ json_struct!(
     }
 );
 
-// Misc
+// MISCELLANEOUS
 
 json_struct!(
     /// Input passed to the `sync_manifest` function.
