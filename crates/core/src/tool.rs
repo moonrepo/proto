@@ -836,7 +836,9 @@ impl Tool {
             },
         )?;
 
-        let temp_dir = self.get_temp_dir();
+        let temp_dir = self
+            .get_temp_dir()
+            .join(self.get_resolved_version().to_string());
 
         // Download the prebuilt
         let download_url = options.download_url;
@@ -1493,6 +1495,11 @@ impl Tool {
             // Only remove if uninstall was successful
             self.manifest.remove_version(self.get_resolved_version())?;
 
+            // If no more default version, delete the symlink
+            if self.manifest.default_version.is_none() {
+                fs::remove_file(&self.proto.bin_dir.join(self.get_bin_name()))?;
+            }
+
             return Ok(true);
         }
 
@@ -1506,7 +1513,10 @@ impl Tool {
             "Cleaning up temporary files and downloads"
         );
 
-        fs::remove(self.get_temp_dir())?;
+        fs::remove(
+            self.get_temp_dir()
+                .join(self.get_resolved_version().to_string()),
+        )?;
 
         Ok(())
     }

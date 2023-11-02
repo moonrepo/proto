@@ -8,7 +8,15 @@
 - [Node](https://github.com/moonrepo/node-plugin/blob/master/CHANGELOG.md)
 - [Python](https://github.com/moonrepo/python-plugin/blob/master/CHANGELOG.md)
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
-- [Schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
+- [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
+
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed an issue where uninstalling the "default version" doesn't delete the symlinked binary.
+- Fixed an issue where the versions cache was not being read.
+- Fixed an issue where installing a tool would write to the wrong temporary directory.
 
 ## 0.21.0
 
