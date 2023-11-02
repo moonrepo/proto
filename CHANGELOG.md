@@ -15,6 +15,7 @@
 #### 🐞 Fixes
 
 - Fixed an issue where the versions cache was not being read.
+- Fixed a tool installation writing to the wrong temporary directory.
 
 ## 0.21.0
 
