@@ -1495,6 +1495,11 @@ impl Tool {
             // Only remove if uninstall was successful
             self.manifest.remove_version(self.get_resolved_version())?;
 
+            // If no more default version, delete the symlink
+            if self.manifest.default_version.is_none() {
+                fs::remove_file(&self.proto.bin_dir.join(self.get_bin_name()))?;
+            }
+
             return Ok(true);
         }
 
