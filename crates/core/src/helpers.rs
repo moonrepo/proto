@@ -159,8 +159,10 @@ pub fn is_offline() -> bool {
 }
 
 pub fn is_cache_enabled() -> bool {
-    env::var("PROTO_CACHE")
-        .is_ok_and(|value| value != "0" && value != "false" && value != "no" && value != "off")
+    match env::var("PROTO_CACHE") {
+        Ok(value) => value != "0" && value != "false" && value != "no" && value != "off",
+        Err(_) => true,
+    }
 }
 
 pub fn is_archive_file<P: AsRef<Path>>(path: P) -> bool {
