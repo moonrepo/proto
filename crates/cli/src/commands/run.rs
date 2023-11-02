@@ -91,9 +91,11 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
         .await?;
     }
 
+    // TODO rework this handling
+
     // Determine the binary path to execute
     let tool_dir = tool.get_tool_dir();
-    let mut bin_path = tool.get_bin_path()?.to_path_buf();
+    let mut bin_path = tool.get_exe_path()?.to_path_buf();
 
     if let Some(alt_bin) = &args.bin {
         let alt_bin_path = tool_dir.join(alt_bin);
@@ -157,7 +159,7 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
         )
         .env(
             format!("{}_BIN", tool.get_env_var_prefix()),
-            tool.get_bin_path()?.to_string_lossy().to_string(),
+            tool.get_exe_path()?.to_string_lossy().to_string(),
         )
         .spawn()
         .into_diagnostic()?

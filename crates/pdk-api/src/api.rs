@@ -348,7 +348,7 @@ json_struct!(
 
         /// Do not symlink a binary in `~/.proto/bin`.
         #[serde(skip_serializing_if = "is_false")]
-        pub no_binary: bool,
+        pub no_bin: bool,
 
         /// Do not generate a shim in `~/.proto/shims`.
         #[serde(skip_serializing_if = "is_false")]
@@ -391,7 +391,7 @@ json_struct!(
         pub primary: Option<ExecutableConfig>,
 
         /// Configures secondary/additional executables to create.
-        /// The map key is the name of the shim/binary.
+        /// The map key is the name of the shim/binary file.
         pub secondary: HashMap<String, ExecutableConfig>,
     }
 );

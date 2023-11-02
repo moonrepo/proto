@@ -39,6 +39,25 @@ pub struct ShimContext<'tool> {
     pub tool_version: Option<String>,
 }
 
+impl<'tool> ShimContext<'tool> {
+    pub fn create_shim(&self, shim_path: PathBuf, find_only: bool) -> miette::Result<PathBuf> {
+        if find_only && shim_path.exists() {
+            return Ok(shim_path);
+        }
+
+        debug!(
+            tool = &self.tool_id,
+            shim = ?shim_path,
+             "Creating global shim"
+        );
+
+        fs::write_file(&shim_path, build_shim_file(self, &shim_path, true)?)?;
+        fs::update_perms(&shim_path, None)?;
+
+        Ok(shim_path)
+    }
+}
+
 impl<'tool> AsRef<ShimContext<'tool>> for ShimContext<'tool> {
     fn as_ref(&self) -> &ShimContext<'tool> {
         self
@@ -119,33 +138,4 @@ pub fn get_shim_file_name(name: &str, global: bool) -> String {
 #[cfg(not(windows))]
 pub fn get_shim_file_name(name: &str, _global: bool) -> String {
     name.to_owned()
-}
-
-pub fn create_shim(
-    context: &ShimContext,
-    shim_path: PathBuf,
-    global: bool,
-    find_only: bool,
-) -> miette::Result<PathBuf> {
-    if find_only && shim_path.exists() {
-        return Ok(shim_path);
-    }
-
-    if !find_only {
-        debug!(
-            tool = &context.tool_id,
-            shim = ?shim_path,
-            "{}",
-            if global {
-                "Creating global shim"
-            } else {
-                "Creating local shim"
-            },
-        );
-    }
-
-    fs::write_file(&shim_path, build_shim_file(context, &shim_path, global)?)?;
-    fs::update_perms(&shim_path, None)?;
-
-    Ok(shim_path)
 }

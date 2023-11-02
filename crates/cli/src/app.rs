@@ -99,8 +99,8 @@ pub enum Commands {
 
     #[command(
         name = "bin",
-        about = "Display the absolute path to a tools binary.",
-        long_about = "Display the absolute path to a tools binary. If no version is provided,\nit will detected from the current environment."
+        about = "Display the absolute path to a tools executable.",
+        long_about = "Display the absolute path to a tools executable. If no version is provided,\nit will be detected from the current environment."
     )]
     Bin(BinArgs),
 
@@ -144,7 +144,7 @@ pub enum Commands {
         alias = "lsg",
         name = "list-global",
         about = "List installed globals.",
-        long_about = "List installed globals by scanning the global bins installation directory. Will return the canonical source path."
+        long_about = "List installed globals by scanning the global packages installation directory. Will return the canonical source path."
     )]
     ListGlobal(ListGlobalArgs),
 

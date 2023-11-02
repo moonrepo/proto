@@ -6,7 +6,7 @@ use crate::helpers::{
 };
 use crate::host_funcs::{create_host_functions, HostData};
 use crate::proto::ProtoEnvironment;
-use crate::shimmer::{create_shim, get_shim_file_name, ShimContext, SHIM_VERSION};
+use crate::shimmer::{get_shim_file_name, ShimContext, SHIM_VERSION};
 use crate::tool_manifest::ToolManifest;
 use crate::version_resolver::VersionResolver;
 use extism::{manifest::Wasm, Manifest as PluginManifest};
@@ -56,7 +56,7 @@ pub struct Tool {
     pub on_uninstalled_global: Emitter<UninstalledGlobalEvent>,
 
     cache: bool,
-    bin_path: Option<PathBuf>,
+    exe_path: Option<PathBuf>,
     globals_dir: Option<PathBuf>,
     globals_prefix: Option<String>,
 }
@@ -100,8 +100,8 @@ impl Tool {
         }
 
         let mut tool = Tool {
-            bin_path: None,
             cache: true,
+            exe_path: None,
             globals_dir: None,
             globals_prefix: None,
             id: id.to_owned(),
@@ -171,38 +171,9 @@ impl Tool {
         self.cache = false;
     }
 
-    /// Return the name of the executable binary, using proto's tool ID.
-    pub fn get_bin_name(&self) -> String {
-        if cfg!(windows) {
-            format!("{}.exe", self.id)
-        } else {
-            self.id.to_string()
-        }
-    }
-
-    /// Return an absolute path to the executable binary for the tool.
-    pub fn get_bin_path(&self) -> miette::Result<&Path> {
-        self.bin_path.as_deref().ok_or_else(|| {
-            ProtoError::UnknownTool {
-                id: self.id.clone(),
-            }
-            .into()
-        })
-    }
-
     /// Return the prefix for environment variable names.
     pub fn get_env_var_prefix(&self) -> String {
         format!("PROTO_{}", self.id.to_uppercase().replace('-', "_"))
-    }
-
-    /// Return an absolute path to the globals directory in which packages are installed to.
-    pub fn get_globals_bin_dir(&self) -> Option<&Path> {
-        self.globals_dir.as_deref()
-    }
-
-    /// Return a string that all globals are prefixed with. Will be used for filtering and listing.
-    pub fn get_globals_prefix(&self) -> Option<&str> {
-        self.globals_prefix.as_deref()
     }
 
     /// Return an absolute path to the tool's inventory directory. The inventory houses
@@ -1193,6 +1164,26 @@ impl Tool {
         Ok(())
     }
 
+    /// Return an absolute path to the executable file for the tool.
+    pub fn get_exe_path(&self) -> miette::Result<&Path> {
+        self.exe_path.as_deref().ok_or_else(|| {
+            ProtoError::UnknownTool {
+                id: self.id.clone(),
+            }
+            .into()
+        })
+    }
+
+    /// Return an absolute path to the globals directory in which packages are installed to.
+    pub fn get_globals_bin_dir(&self) -> Option<&Path> {
+        self.globals_dir.as_deref()
+    }
+
+    /// Return a string that all globals are prefixed with. Will be used for filtering and listing.
+    pub fn get_globals_prefix(&self) -> Option<&str> {
+        self.globals_prefix.as_deref()
+    }
+
     /// Return a list of all binaries that get created in `~/.proto/bin`.
     /// The list will contain the executable config, and an absolute path
     /// to the binaries final location.
@@ -1201,7 +1192,7 @@ impl Tool {
         let mut locations = vec![];
 
         let mut add = |name: &str, config: ExecutableConfig, primary: bool| {
-            if !config.no_binary {
+            if !config.no_bin {
                 if let Some(exe_path) = &config.exe_path {
                     locations.push(ExecutableLocation {
                         path: self.proto.bin_dir.join(match exe_path.extension() {
@@ -1225,6 +1216,24 @@ impl Tool {
         }
 
         Ok(locations)
+    }
+
+    /// Return location information for the primary executable within the tool directory.
+    pub fn get_exec_location(&self) -> miette::Result<Option<ExecutableLocation>> {
+        let options = self.call_locate_executables()?;
+
+        if let Some(primary) = options.primary {
+            if let Some(exe_path) = &primary.exe_path {
+                return Ok(Some(ExecutableLocation {
+                    path: self.get_tool_dir().join(exe_path),
+                    name: self.id.to_string(),
+                    config: primary,
+                    primary: true,
+                }));
+            }
+        }
+
+        Ok(None)
     }
 
     /// Return a list of all shims that get created in `~/.proto/shims`.
@@ -1256,38 +1265,37 @@ impl Tool {
         Ok(locations)
     }
 
+    /// Locate the primary executable from the tool directory.
     pub async fn locate_executable(&mut self) -> miette::Result<()> {
         let tool_dir = self.get_tool_dir();
-        let mut bin_path = tool_dir.join(self.id.as_str());
+        let mut exe_path = tool_dir.join(self.id.as_str());
 
         debug!(tool = self.id.as_str(), "Locating executable for tool");
 
-        if self.plugin.has_func("locate_executables") {
-            let options = self.call_locate_executables()?;
+        let options = self.call_locate_executables()?;
 
-            if let Some(primary) = &options.primary {
-                if let Some(exe_path) = &primary.exe_path {
-                    bin_path = self.to_absolute_real_path(exe_path, &tool_dir);
-                }
+        if let Some(primary) = &options.primary {
+            if let Some(exe) = &primary.exe_path {
+                exe_path = self.to_absolute_real_path(exe, &tool_dir);
             }
         }
 
-        debug!(tool = self.id.as_str(), bin_path = ?bin_path, "Found an executable");
+        if exe_path.exists() {
+            debug!(tool = self.id.as_str(), exe_path = ?exe_path, "Found an executable");
 
-        if bin_path.exists() {
-            self.bin_path = Some(bin_path);
+            self.exe_path = Some(exe_path);
 
             return Ok(());
         }
 
-        Err(ProtoError::MissingToolBin {
+        Err(ProtoError::MissingToolExecutable {
             tool: self.get_name().to_owned(),
-            bin: bin_path,
+            path: exe_path,
         }
         .into())
     }
 
-    /// Find the directory that global packages are installed to.
+    /// Locate the directory that global packages are installed to.
     pub async fn locate_globals_dir(&mut self) -> miette::Result<()> {
         if !self.plugin.has_func("locate_executables") || self.globals_dir.is_some() {
             return Ok(());
@@ -1382,7 +1390,7 @@ impl Tool {
                     .map(|exe| self.from_virtual_path(exe));
             }
 
-            create_shim(&context, location.path, true, find_only)?;
+            context.create_shim(location.path, find_only)?;
 
             event.global.push(location.name);
         }
@@ -1469,7 +1477,7 @@ impl Tool {
                 "Tool has already been installed, locating binaries and shims",
             );
 
-            if self.bin_path.is_none() {
+            if self.exe_path.is_none() {
                 self.create_executables(false, false).await?;
             }
 
@@ -1518,9 +1526,12 @@ impl Tool {
             // Only remove if uninstall was successful
             self.manifest.remove_version(self.get_resolved_version())?;
 
-            // If no more default version, delete the symlink
+            // If no more default version, delete the symlink,
+            // otherwise the OS will throw errors for missing target
             if self.manifest.default_version.is_none() {
-                fs::remove_file(&self.proto.bin_dir.join(self.get_bin_name()))?;
+                for bin in self.get_bin_locations()? {
+                    fs::remove_file(&self.proto.bin_dir.join(bin.path))?;
+                }
             }
 
             return Ok(true);

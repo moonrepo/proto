@@ -7,7 +7,7 @@ pub struct BinArgs {
     #[arg(required = true, help = "ID of tool")]
     id: Id,
 
-    #[arg(long, help = "Display symlinked binary when available")]
+    #[arg(long, help = "Display symlinked binary path when available")]
     bin: bool,
 
     #[arg(help = "Version or alias of tool")]
@@ -43,5 +43,5 @@ pub async fn bin(args: ArgsRef<BinArgs>) {
         }
     }
 
-    println!("{}", tool.get_bin_path()?.display());
+    println!("{}", tool.get_exe_path()?.display());
 }
