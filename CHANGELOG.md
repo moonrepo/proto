@@ -10,7 +10,7 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
-## Unreleased
+## 0.21.1
 
 #### 🐞 Fixes
 
