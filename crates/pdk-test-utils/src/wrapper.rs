@@ -23,15 +23,6 @@ impl WasmTestWrapper {
         self.tool.plugin.reload_config().unwrap();
     }
 
-    pub fn create_shims(&self, mut input: CreateShimsInput) -> CreateShimsOutput {
-        input.context = self.prepare_context(input.context);
-
-        self.tool
-            .plugin
-            .call_func_with("create_shims", input)
-            .unwrap()
-    }
-
     pub fn detect_version_files(&self) -> DetectVersionOutput {
         self.tool.plugin.call_func("detect_version_files").unwrap()
     }
@@ -60,22 +51,6 @@ impl WasmTestWrapper {
             .plugin
             .call_func_with("load_versions", input)
             .unwrap()
-    }
-
-    pub fn locate_bins(&self, mut input: LocateBinsInput) -> LocateBinsOutput {
-        input.context = self.prepare_context(input.context);
-
-        let mut output: LocateBinsOutput = self
-            .tool
-            .plugin
-            .call_func_with("locate_bins", input)
-            .unwrap();
-
-        if let Some(bin_path) = output.bin_path {
-            output.bin_path = Some(self.from_virtual_path(&bin_path));
-        }
-
-        output
     }
 
     pub fn native_install(&self, mut input: NativeInstallInput) -> NativeInstallOutput {

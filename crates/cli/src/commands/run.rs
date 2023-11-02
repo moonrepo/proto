@@ -109,10 +109,6 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
             }
             .into());
         }
-    } else if let Some(shim_path) = tool.get_shim_path() {
-        bin_path = shim_path;
-
-        debug!(shim = ?bin_path, "Using local shim for tool");
     }
 
     debug!(bin = ?bin_path, args = ?args.passthrough, "Running {}", tool.get_name());
