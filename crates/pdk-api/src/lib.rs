@@ -1,10 +1,12 @@
 mod api;
+mod api_deprecated;
 mod error;
 mod hooks;
 mod host;
 mod host_funcs;
 
 pub use api::*;
+pub use api_deprecated::*;
 pub use error::*;
 pub use hooks::*;
 pub use host::*;
