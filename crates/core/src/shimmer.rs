@@ -19,9 +19,6 @@ pub struct ShimContext<'tool> {
     /// Alternate path to the binary to execute. Uses `proto run --bin`.
     pub bin_path: Option<PathBuf>,
 
-    /// Name of a parent binary required to execute the current binary.
-    pub parent_bin: Option<&'tool str>,
-
     /// Args to prepend to user-provided args.
     pub before_args: Option<&'tool str>,
 
@@ -40,9 +37,9 @@ pub struct ShimContext<'tool> {
 }
 
 impl<'tool> ShimContext<'tool> {
-    pub fn create_shim(&self, shim_path: PathBuf, find_only: bool) -> miette::Result<PathBuf> {
+    pub fn create_shim(&self, shim_path: &Path, find_only: bool) -> miette::Result<()> {
         if find_only && shim_path.exists() {
-            return Ok(shim_path);
+            return Ok(());
         }
 
         debug!(
@@ -51,10 +48,10 @@ impl<'tool> ShimContext<'tool> {
              "Creating global shim"
         );
 
-        fs::write_file(&shim_path, build_shim_file(self, &shim_path, true)?)?;
-        fs::update_perms(&shim_path, None)?;
+        fs::write_file(shim_path, build_shim_file(self, shim_path, true)?)?;
+        fs::update_perms(shim_path, None)?;
 
-        Ok(shim_path)
+        Ok(())
     }
 }
 

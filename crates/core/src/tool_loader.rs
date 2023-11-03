@@ -143,7 +143,7 @@ pub async fn load_tool_from_locator(
         debug!(source = ?plugin_path, "Loading TOML plugin");
 
         let schema_id = Id::raw(SCHEMA_PLUGIN_KEY);
-        let schema_locator = locate_tool(&schema_id, &proto, &user_config, true)?;
+        let schema_locator = locate_tool(&schema_id, proto, user_config, true)?;
 
         let mut manifest = Tool::create_plugin_manifest(
             proto,

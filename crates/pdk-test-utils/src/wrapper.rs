@@ -53,6 +53,15 @@ impl WasmTestWrapper {
             .unwrap()
     }
 
+    pub fn locate_executables(&self, mut input: LocateExecutablesInput) -> LocateExecutablesOutput {
+        input.context = self.prepare_context(input.context);
+
+        self.tool
+            .plugin
+            .call_func_with("locate_executables", input)
+            .unwrap()
+    }
+
     pub fn native_install(&self, mut input: NativeInstallInput) -> NativeInstallOutput {
         input.context = self.prepare_context(input.context);
 

@@ -1377,7 +1377,7 @@ impl Tool {
                 context.bin_path = location.config.exe_path;
             }
 
-            context.create_shim(location.path, find_only)?;
+            context.create_shim(&location.path, find_only)?;
 
             event.global.push(location.name);
         }

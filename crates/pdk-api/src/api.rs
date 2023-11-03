@@ -10,7 +10,7 @@ use warpgate_api::VirtualPath;
 pub use semver::{Version, VersionReq};
 
 fn is_false(value: &bool) -> bool {
-    *value == false
+    !(*value)
 }
 
 #[doc(hidden)]
