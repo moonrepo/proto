@@ -1,7 +1,7 @@
 use crate::error::ProtoError;
 use crate::proto::ProtoEnvironment;
 use crate::tool::Tool;
-use crate::tools_config::ToolsConfig;
+use crate::tools_config::{ToolsConfig, SCHEMA_PLUGIN_KEY};
 use crate::user_config::UserConfig;
 use extism::{manifest::Wasm, Manifest};
 use miette::IntoDiagnostic;
@@ -55,6 +55,68 @@ pub fn inject_default_manifest_config(
     Ok(())
 }
 
+pub fn locate_tool(
+    id: &Id,
+    proto: &ProtoEnvironment,
+    user_config: &UserConfig,
+    current_dir_only: bool,
+) -> miette::Result<PluginLocator> {
+    let mut locator = None;
+
+    debug!(
+        tool = id.as_str(),
+        "Traversing upwards to find a configured plugin"
+    );
+
+    // Traverse upwards checking each `.prototools` for a plugin
+    if let Ok(working_dir) = env::current_dir() {
+        let mut current_dir: Option<&Path> = Some(&working_dir);
+
+        while let Some(dir) = current_dir {
+            // Don't traverse past the home directory
+            if dir == proto.home {
+                break;
+            }
+
+            let tools_config = ToolsConfig::load_from(dir)?;
+
+            if let Some(maybe_locator) = tools_config.plugins.get(id) {
+                locator = Some(maybe_locator.to_owned());
+                break;
+            }
+
+            // We only want to check the current directory
+            if current_dir_only {
+                break;
+            }
+
+            current_dir = dir.parent();
+        }
+    }
+
+    // Then check the user's config
+    if locator.is_none() {
+        if let Some(maybe_locator) = user_config.plugins.get(id) {
+            locator = Some(maybe_locator.to_owned());
+        }
+    }
+
+    // And finally the builtin plugins
+    if locator.is_none() {
+        let builtin_plugins = ToolsConfig::builtin_plugins();
+
+        if let Some(maybe_locator) = builtin_plugins.get(id) {
+            locator = Some(maybe_locator.to_owned());
+        }
+    }
+
+    let Some(locator) = locator else {
+        return Err(ProtoError::UnknownTool { id: id.to_owned() }.into());
+    };
+
+    Ok(locator)
+}
+
 pub async fn load_tool_from_locator(
     id: impl AsRef<Id>,
     proto: impl AsRef<ProtoEnvironment>,
@@ -80,11 +142,14 @@ pub async fn load_tool_from_locator(
     {
         debug!(source = ?plugin_path, "Loading TOML plugin");
 
+        let schema_id = Id::raw(SCHEMA_PLUGIN_KEY);
+        let schema_locator = locate_tool(&schema_id, &proto, &user_config, true)?;
+
         let mut manifest = Tool::create_plugin_manifest(
             proto,
             Wasm::file(
                 plugin_loader
-                    .load_plugin_with_client(id, ToolsConfig::schema_plugin(), &http_client)
+                    .load_plugin_with_client(schema_id, schema_locator, &http_client)
                     .await?,
             ),
         )?;
@@ -116,53 +181,7 @@ pub async fn load_tool_from_locator(
 pub async fn load_tool(id: &Id) -> miette::Result<Tool> {
     let proto = ProtoEnvironment::new()?;
     let user_config = proto.load_user_config()?;
-    let mut locator = None;
-
-    debug!(
-        tool = id.as_str(),
-        "Traversing upwards to find a configured plugin"
-    );
-
-    // Traverse upwards checking each `.prototools` for a plugin
-    if let Ok(working_dir) = env::current_dir() {
-        let mut current_dir: Option<&Path> = Some(&working_dir);
-
-        while let Some(dir) = current_dir {
-            // Don't traverse past the home directory
-            if dir == proto.home {
-                break;
-            }
-
-            let tools_config = ToolsConfig::load_from(dir)?;
-
-            if let Some(maybe_locator) = tools_config.plugins.get(id) {
-                locator = Some(maybe_locator.to_owned());
-                break;
-            }
-
-            current_dir = dir.parent();
-        }
-    }
-
-    // Then check the user's config
-    if locator.is_none() {
-        if let Some(maybe_locator) = user_config.plugins.get(id) {
-            locator = Some(maybe_locator.to_owned());
-        }
-    }
-
-    // And finally the builtin plugins
-    if locator.is_none() {
-        let builtin_plugins = ToolsConfig::builtin_plugins();
-
-        if let Some(maybe_locator) = builtin_plugins.get(id) {
-            locator = Some(maybe_locator.to_owned());
-        }
-    }
-
-    let Some(locator) = locator else {
-        return Err(ProtoError::UnknownTool { id: id.to_owned() }.into());
-    };
+    let locator = locate_tool(id, &proto, &user_config, false)?;
 
     load_tool_from_locator(id, proto, locator, &user_config).await
 }
