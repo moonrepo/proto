@@ -9,6 +9,7 @@ use version_spec::*;
 use warpgate::{Id, PluginLocator};
 
 pub const TOOLS_CONFIG_NAME: &str = ".prototools";
+pub(crate) const SCHEMA_PLUGIN_KEY: &str = "internal-schema";
 
 fn is_empty<T>(map: &BTreeMap<Id, T>) -> bool {
     map.is_empty()
@@ -32,12 +33,6 @@ impl ToolsConfig {
         let mut config = ToolsConfig::default();
         config.inherit_builtin_plugins();
         config.plugins
-    }
-
-    pub fn schema_plugin() -> PluginLocator {
-        PluginLocator::SourceUrl {
-            url: "https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm".into()
-        }
     }
 
     #[tracing::instrument(skip_all)]
@@ -188,6 +183,15 @@ impl ToolsConfig {
                 Id::raw("rust"),
                 PluginLocator::SourceUrl {
                     url: "https://github.com/moonrepo/rust-plugin/releases/latest/download/rust_plugin.wasm".into()
+                }
+            );
+        }
+
+        if !self.plugins.contains_key(SCHEMA_PLUGIN_KEY) {
+            self.plugins.insert(
+                Id::raw(SCHEMA_PLUGIN_KEY),
+                PluginLocator::SourceUrl {
+                    url: "https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm".into()
                 }
             );
         }

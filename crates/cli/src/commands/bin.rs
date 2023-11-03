@@ -26,18 +26,18 @@ pub async fn bin(args: ArgsRef<BinArgs>) {
     tool.create_executables(true, false).await?;
 
     if args.bin {
-        for location in tool.get_bin_locations()? {
-            if location.primary {
-                println!("{}", location.path.display());
+        for bin in tool.get_bin_locations()? {
+            if bin.primary {
+                println!("{}", bin.path.display());
                 return Ok(());
             }
         }
     }
 
     if args.shim {
-        for location in tool.get_shim_locations()? {
-            if location.primary {
-                println!("{}", location.path.display());
+        for shim in tool.get_shim_locations()? {
+            if shim.primary {
+                println!("{}", shim.path.display());
                 return Ok(());
             }
         }

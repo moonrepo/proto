@@ -28,6 +28,7 @@ use std::time::{Duration, SystemTime};
 use tracing::{debug, trace};
 use warpgate::{download_from_url_to_file, Id, PluginContainer, PluginLocator, VirtualPath};
 
+#[derive(Debug)]
 pub struct ExecutableLocation {
     pub config: ExecutableConfig,
     pub name: String,
@@ -244,17 +245,6 @@ impl Tool {
                 VirtualPath::WithReal { path, .. } => VirtualPath::Only(path),
                 VirtualPath::Only(path) => VirtualPath::Only(path),
             }
-        }
-    }
-
-    /// Convert a virtual path to a real path, and ensure it's absolute.
-    pub fn to_absolute_real_path(&self, virtual_path: &Path, base_dir: &Path) -> PathBuf {
-        let real_path = self.from_virtual_path(&virtual_path);
-
-        if real_path.is_absolute() {
-            real_path
-        } else {
-            base_dir.join(real_path)
         }
     }
 }
@@ -1219,7 +1209,7 @@ impl Tool {
     }
 
     /// Return location information for the primary executable within the tool directory.
-    pub fn get_exec_location(&self) -> miette::Result<Option<ExecutableLocation>> {
+    pub fn get_exe_location(&self) -> miette::Result<Option<ExecutableLocation>> {
         let options = self.call_locate_executables()?;
 
         if let Some(primary) = options.primary {
@@ -1267,18 +1257,13 @@ impl Tool {
 
     /// Locate the primary executable from the tool directory.
     pub async fn locate_executable(&mut self) -> miette::Result<()> {
-        let tool_dir = self.get_tool_dir();
-        let mut exe_path = tool_dir.join(self.id.as_str());
-
         debug!(tool = self.id.as_str(), "Locating executable for tool");
 
-        let options = self.call_locate_executables()?;
-
-        if let Some(primary) = &options.primary {
-            if let Some(exe) = &primary.exe_path {
-                exe_path = self.to_absolute_real_path(exe, &tool_dir);
-            }
-        }
+        let exe_path = if let Some(location) = self.get_exe_location()? {
+            location.path
+        } else {
+            self.get_tool_dir().join(self.id.as_str())
+        };
 
         if exe_path.exists() {
             debug!(tool = self.id.as_str(), exe_path = ?exe_path, "Found an executable");
@@ -1357,6 +1342,12 @@ impl Tool {
     /// Create shim files for the current tool if they are missing or out of date.
     /// If find only is enabled, will only check if they exist, and not create.
     pub async fn generate_shims(&mut self, force: bool) -> miette::Result<()> {
+        let shims = self.get_shim_locations()?;
+
+        if shims.is_empty() {
+            return Ok(());
+        }
+
         let is_outdated = self.manifest.shim_version != SHIM_VERSION;
         let force_create = force || is_outdated || env::var("CI").is_ok();
         let find_only = !force_create;
@@ -1377,17 +1368,13 @@ impl Tool {
             local: vec![],
         };
 
-        for location in self.get_shim_locations()? {
+        for location in shims {
             let mut context = self.create_shim_context();
             context.before_args = location.config.shim_before_args.as_deref();
             context.after_args = location.config.shim_after_args.as_deref();
 
             if !location.primary {
-                context.bin_path = location
-                    .config
-                    .exe_path
-                    .as_deref()
-                    .map(|exe| self.from_virtual_path(exe));
+                context.bin_path = location.config.exe_path;
             }
 
             context.create_shim(location.path, find_only)?;
@@ -1402,6 +1389,12 @@ impl Tool {
 
     /// Symlink all primary and secondary binaries for the current tool.
     pub async fn symlink_bins(&mut self, force: bool) -> miette::Result<()> {
+        let bins = self.get_bin_locations()?;
+
+        if bins.is_empty() {
+            return Ok(());
+        }
+
         if force {
             debug!(
                 tool = self.id.as_str(),
@@ -1415,9 +1408,8 @@ impl Tool {
         let tool_dir = self.get_tool_dir();
         let mut event = CreatedBinariesEvent { bins: vec![] };
 
-        for location in self.get_bin_locations()? {
-            let input_path =
-                self.to_absolute_real_path(location.config.exe_path.as_deref().unwrap(), &tool_dir);
+        for location in bins {
+            let input_path = tool_dir.join(location.config.exe_path.unwrap());
             let output_path = location.path;
 
             if output_path.exists() && !force {

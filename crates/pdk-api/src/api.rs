@@ -341,8 +341,15 @@ json_struct!(
 json_struct!(
     /// Configuration for generated shim and symlinked binary files.
     pub struct ExecutableConfig {
-        /// The binary to execute. Can be a relative path from the tool directory,
-        /// or an absolute path.
+        /// The binary file to execute, relative from the tool directory.
+        /// Does *not* support virtual paths.
+        ///
+        /// The following scenarios are powered by this field:
+        /// - Is the primary executable.
+        /// - For primary and secondary bins, the source file to be symlinked,
+        ///   and the extension to use for the symlink file itself.
+        /// - For primary shim, this field is ignored.
+        /// - For secondary shims, the file to pass to `proto run --bin`.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub exe_path: Option<PathBuf>,
 
@@ -368,7 +375,7 @@ impl ExecutableConfig {
     pub fn new<T: AsRef<str>>(exe_path: T) -> Self {
         Self {
             exe_path: Some(PathBuf::from(exe_path.as_ref())),
-            ..Default::default()
+            ..ExecutableConfig::default()
         }
     }
 }
