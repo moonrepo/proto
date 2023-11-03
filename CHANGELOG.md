@@ -15,15 +15,15 @@
 #### 🚀 Updates
 
 - Refactored and standardized how executables (bins and shims) are managed.
-  - Binaries (`~/.proto/bin`) and shims (`~/.proto/shims`) share the same internal data structures.
+  - Binaries (`~/.proto/bin`) and shims (`~/.proto/shims`) now share the same internal data structures.
   - For the most part, is a 1:1 relation. There will be a shim for every binary, and vice versa.
   - Reduced the amount of WASM calls to locate executables to 1 call.
-  - Removed the concept of local shims (was an implementation detail).
+  - Removed the concept of local shims (was a hidden implementation detail).
 - Reworked the `proto bin` command.
   - By default returns an absolute path to the real executable (`~/.proto/tools/<tool>/<version>/bin`).
   - Pass `--bin` to return the `~/.proto/bin` path.
   - Pass `--shim` to return the `~/.proto/shims` path.
-- Updated `proto clean --purge` to accurately delete all executables.
+- Updated `proto clean --purge` and `proto uninstall` to accurately delete all executables.
 - WASM API
   - Added `locate_executables` function.
   - Added `LocateExecutablesInput`, `LocateExecutablesOutput`, `ExecutableConfig` structs.

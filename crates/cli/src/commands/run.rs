@@ -6,6 +6,7 @@ use proto_core::{detect_version, load_tool, Id, ProtoError, Tool, UnresolvedVers
 use proto_pdk_api::RunHook;
 use starbase::system;
 use std::env;
+use std::path::Path;
 use std::process::exit;
 use system_env::is_command_on_path;
 use tokio::process::Command;
@@ -19,7 +20,7 @@ pub struct RunArgs {
     #[arg(help = "Version or alias of tool")]
     spec: Option<UnresolvedVersionSpec>,
 
-    #[arg(long, help = "Path to an alternate binary to run")]
+    #[arg(long, help = "Path to a relative alternate binary to run")]
     bin: Option<String>,
 
     // Passthrough args (after --)
@@ -46,6 +47,30 @@ fn is_trying_to_self_upgrade(tool: &Tool, args: &[String]) -> bool {
     }
 
     false
+}
+
+fn create_command(exe_path: &Path, args: &[String]) -> Command {
+    match exe_path.extension().map(|e| e.to_str().unwrap()) {
+        Some("ps1" | "cmd" | "bat") => {
+            let mut cmd = Command::new(if is_command_on_path("pwsh") {
+                "pwsh"
+            } else {
+                "powershell"
+            });
+            cmd.arg("-Command");
+            cmd.arg(format!(
+                "{} {}",
+                exe_path.display(),
+                shell_words::join(args)
+            ));
+            cmd
+        }
+        _ => {
+            let mut cmd = Command::new(exe_path);
+            cmd.args(args);
+            cmd
+        }
+    }
 }
 
 #[system]
@@ -91,29 +116,27 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
         .await?;
     }
 
-    // TODO rework this handling
-
     // Determine the binary path to execute
-    let tool_dir = tool.get_tool_dir();
-    let mut bin_path = tool.get_exe_path()?.to_path_buf();
+    let exe_path = match &args.bin {
+        Some(alt_bin) => {
+            let alt_path = tool.get_tool_dir().join(alt_bin);
 
-    if let Some(alt_bin) = &args.bin {
-        let alt_bin_path = tool_dir.join(alt_bin);
+            debug!(bin = alt_bin, path = ?alt_path, "Received an alternate binary to run with");
 
-        debug!(bin = alt_bin, path = ?alt_bin_path, "Received an alternate binary to run with");
-
-        if alt_bin_path.exists() {
-            bin_path = alt_bin_path;
-        } else {
-            return Err(ProtoCliError::MissingRunAltBin {
-                bin: alt_bin.to_owned(),
-                path: alt_bin_path,
+            if alt_path.exists() {
+                alt_path
+            } else {
+                return Err(ProtoCliError::MissingRunAltBin {
+                    bin: alt_bin.to_owned(),
+                    path: alt_path,
+                }
+                .into());
             }
-            .into());
         }
-    }
+        None => tool.get_exe_path()?.to_path_buf(),
+    };
 
-    debug!(bin = ?bin_path, args = ?args.passthrough, "Running {}", tool.get_name());
+    debug!(bin = ?exe_path, args = ?args.passthrough, "Running {}", tool.get_name());
 
     // Run before hook
     tool.run_hook("pre_run", || RunHook {
@@ -122,44 +145,14 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
     })?;
 
     // Run the command
-    let mut command = match bin_path.extension().map(|e| e.to_str().unwrap()) {
-        Some("ps1") => {
-            let mut cmd = Command::new(if is_command_on_path("pwsh") {
-                "pwsh"
-            } else {
-                "powershell"
-            });
-            cmd.arg("-Command").arg(format!(
-                "{} {}",
-                bin_path.display(),
-                args.passthrough.join(" ")
-            ));
-            cmd
-        }
-        Some("cmd" | "bat") => {
-            let mut cmd = Command::new("cmd");
-            cmd.arg("/q").arg("/c").arg(format!(
-                "{} {}",
-                bin_path.display(),
-                args.passthrough.join(" ")
-            ));
-            cmd
-        }
-        _ => {
-            let mut cmd = Command::new(bin_path);
-            cmd.args(&args.passthrough);
-            cmd
-        }
-    };
-
-    let status = command
+    let status = create_command(&exe_path, &args.passthrough)
         .env(
             format!("{}_VERSION", tool.get_env_var_prefix()),
             tool.get_resolved_version().to_string(),
         )
         .env(
             format!("{}_BIN", tool.get_env_var_prefix()),
-            tool.get_exe_path()?.to_string_lossy().to_string(),
+            exe_path.to_string_lossy().to_string(),
         )
         .spawn()
         .into_diagnostic()?
@@ -167,15 +160,13 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
         .await
         .into_diagnostic()?;
 
-    if !status.success() {
-        exit(status.code().unwrap_or(1));
-    }
-
     // Run after hook
-    tool.run_hook("post_run", || RunHook {
-        context: tool.create_context(),
-        passthrough_args: args.passthrough.clone(),
-    })?;
+    if status.success() {
+        tool.run_hook("post_run", || RunHook {
+            context: tool.create_context(),
+            passthrough_args: args.passthrough.clone(),
+        })?;
+    }
 
     // Update the last used timestamp in a separate task,
     // as to not interrupt this task incase something fails!
@@ -184,5 +175,9 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
             tool.manifest.track_used_at(tool.get_resolved_version());
             let _ = tool.manifest.save();
         });
+    }
+
+    if !status.success() {
+        exit(status.code().unwrap_or(1));
     }
 }

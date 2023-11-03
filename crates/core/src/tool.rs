@@ -1514,22 +1514,29 @@ impl Tool {
     pub async fn teardown(&mut self) -> miette::Result<bool> {
         self.cleanup().await?;
 
-        if self.uninstall().await? {
-            // Only remove if uninstall was successful
-            self.manifest.remove_version(self.get_resolved_version())?;
-
-            // If no more default version, delete the symlink,
-            // otherwise the OS will throw errors for missing target
-            if self.manifest.default_version.is_none() {
-                for bin in self.get_bin_locations()? {
-                    fs::remove_file(&self.proto.bin_dir.join(bin.path))?;
-                }
-            }
-
-            return Ok(true);
+        if !self.uninstall().await? {
+            return Ok(false);
         }
 
-        Ok(false)
+        // Only remove if uninstall was successful
+        self.manifest.remove_version(self.get_resolved_version())?;
+
+        // If no more default version, delete the symlink,
+        // otherwise the OS will throw errors for missing sources
+        if self.manifest.default_version.is_none() {
+            for bin in self.get_bin_locations()? {
+                fs::remove_file(bin.path)?;
+            }
+        }
+
+        // If no more versions in general, delete all shims
+        if self.manifest.installed_versions.is_empty() {
+            for shim in self.get_shim_locations()? {
+                fs::remove_file(shim.path)?;
+            }
+        }
+
+        Ok(true)
     }
 
     /// Delete temporary files and downloads for the current version.
