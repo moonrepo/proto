@@ -27,8 +27,8 @@ name = "proto"
 path = "src/main.rs"
 
 [dependencies]
-proto_core = { version = "0.21.2", path = "../core" }
-proto_pdk_api = { version = "0.9.0", path = "../pdk-api" }
+proto_core = { version = "0.22.0", path = "../core" }
+proto_pdk_api = { version = "0.10.0", path = "../pdk-api" }
 system_env = { version = "0.1.3", path = "../system-env" }
 chrono = "0.4.31"
 clap = { workspace = true, features = ["derive", "env"] }
