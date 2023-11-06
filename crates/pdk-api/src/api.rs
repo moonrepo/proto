@@ -1,13 +1,16 @@
 use crate::host_funcs::ExecCommandOutput;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::ffi::OsStr;
 use std::path::PathBuf;
 use system_env::SystemDependency;
 use version_spec::{UnresolvedVersionSpec, VersionSpec};
 use warpgate_api::VirtualPath;
 
 pub use semver::{Version, VersionReq};
+
+fn is_false(value: &bool) -> bool {
+    !(*value)
+}
 
 #[doc(hidden)]
 #[macro_export]
@@ -67,6 +70,7 @@ json_struct!(
     /// Controls aspects of the tool inventory.
     pub struct ToolInventoryMetadata {
         /// Disable progress bars when installing or uninstalling tools.
+        #[serde(skip_serializing_if = "is_false")]
         pub disable_progress_bars: bool,
 
         /// Override the tool inventory directory (where all versions are installed).
@@ -107,7 +111,7 @@ json_struct!(
     }
 );
 
-// Detector
+// VERSION DETECTION
 
 json_struct!(
     /// Output returned by the `detect_version_files` function.
@@ -138,7 +142,7 @@ json_struct!(
     }
 );
 
-// Downloader, Installer, Verifier
+// DOWNLOAD, BUILD, INSTALL, VERIFY
 
 json_struct!(
     /// Input passed to the `native_install` function.
@@ -323,27 +327,61 @@ json_struct!(
     }
 );
 
-// Executor
+// EXECUTABLES, BINARYS, GLOBALS
 
 json_struct!(
-    /// Input passed to the `locate_bins` function.
-    pub struct LocateBinsInput {
+    /// Input passed to the `locate_executables` function.
+    pub struct LocateExecutablesInput {
         /// Current tool context.
         pub context: ToolContext,
     }
 );
 
 json_struct!(
-    /// Output returned by the `locate_bins` function.
-    pub struct LocateBinsOutput {
-        /// Relative path from the tool directory to the binary to execute.
+    /// Configuration for generated shim and symlinked binary files.
+    pub struct ExecutableConfig {
+        /// The binary file to execute, relative from the tool directory.
+        /// Does *not* support virtual paths.
+        ///
+        /// The following scenarios are powered by this field:
+        /// - Is the primary executable.
+        /// - For primary and secondary bins, the source file to be symlinked,
+        ///   and the extension to use for the symlink file itself.
+        /// - For primary shim, this field is ignored.
+        /// - For secondary shims, the file to pass to `proto run --bin`.
         #[serde(skip_serializing_if = "Option::is_none")]
-        pub bin_path: Option<PathBuf>,
+        pub exe_path: Option<PathBuf>,
 
-        /// When true, the last item in `globals_lookup_dirs` will be used,
-        /// regardless if it exists on the file system or not.
-        pub fallback_last_globals_dir: bool,
+        /// Do not symlink a binary in `~/.proto/bin`.
+        #[serde(skip_serializing_if = "is_false")]
+        pub no_bin: bool,
 
+        /// Do not generate a shim in `~/.proto/shims`.
+        #[serde(skip_serializing_if = "is_false")]
+        pub no_shim: bool,
+
+        /// Custom args to prepend to user-provided args within the generated shim.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub shim_before_args: Option<String>,
+
+        /// Custom args to append to user-provided args within the generated shim.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub shim_after_args: Option<String>,
+    }
+);
+
+impl ExecutableConfig {
+    pub fn new<T: AsRef<str>>(exe_path: T) -> Self {
+        Self {
+            exe_path: Some(PathBuf::from(exe_path.as_ref())),
+            ..ExecutableConfig::default()
+        }
+    }
+}
+
+json_struct!(
+    /// Output returned by the `locate_executables` function.
+    pub struct LocateExecutablesOutput {
         /// List of directory paths to find the globals installation directory.
         /// Each path supports environment variable expansion.
         pub globals_lookup_dirs: Vec<String>,
@@ -352,6 +390,15 @@ json_struct!(
         /// when listing and filtering available globals.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub globals_prefix: Option<String>,
+
+        /// Configures the primary/default executable to create.
+        /// If not provided, a primary shim and binary will *not* be created.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub primary: Option<ExecutableConfig>,
+
+        /// Configures secondary/additional executables to create.
+        /// The map key is the name of the shim/binary file.
+        pub secondary: HashMap<String, ExecutableConfig>,
     }
 );
 
@@ -439,7 +486,7 @@ impl UninstallGlobalOutput {
     }
 }
 
-// Resolver
+// VERSION RESOLVING
 
 json_struct!(
     /// Input passed to the `load_versions` function.
@@ -469,11 +516,6 @@ json_struct!(
 );
 
 impl LoadVersionsOutput {
-    #[deprecated = "Use from() instead."]
-    pub fn from_tags(tags: &[String]) -> anyhow::Result<Self> {
-        Self::from(tags.to_vec())
-    }
-
     /// Create the output from a list of strings that'll be parsed as versions.
     /// The latest version will be the highest version number.
     pub fn from(values: Vec<String>) -> anyhow::Result<Self> {
@@ -529,111 +571,7 @@ json_struct!(
     }
 );
 
-// Shimmer
-
-json_struct!(
-    /// Configuration for individual shim files.
-    pub struct ShimConfig {
-        /// Relative path from the tool directory to the binary to execute.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub bin_path: Option<PathBuf>,
-
-        /// Name of a parent binary that's required for this shim to work.
-        /// For example, `npm` requires `node`.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub parent_bin: Option<String>,
-
-        /// Custom args to prepend to user-provided args.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub before_args: Option<String>,
-
-        /// Custom args to append to user-provided args.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub after_args: Option<String>,
-    }
-);
-
-impl ShimConfig {
-    /// Create a global shim that executes the parent tool,
-    /// but uses the provided binary as the entry point.
-    pub fn global_with_alt_bin<B>(bin_path: B) -> ShimConfig
-    where
-        B: AsRef<OsStr>,
-    {
-        ShimConfig {
-            bin_path: Some(bin_path.as_ref().into()),
-            ..ShimConfig::default()
-        }
-    }
-
-    /// Create a global shim that executes the parent tool,
-    /// but prefixes the user-provided arguments with the
-    /// provided arguments (typically a sub-command).
-    pub fn global_with_sub_command<A>(args: A) -> ShimConfig
-    where
-        A: AsRef<str>,
-    {
-        ShimConfig {
-            before_args: Some(args.as_ref().to_owned()),
-            ..ShimConfig::default()
-        }
-    }
-
-    /// Create a local shim that executes the provided binary.
-    pub fn local<B>(bin_path: B) -> ShimConfig
-    where
-        B: AsRef<OsStr>,
-    {
-        ShimConfig {
-            bin_path: Some(bin_path.as_ref().into()),
-            ..ShimConfig::default()
-        }
-    }
-
-    /// Create a local shim that executes the provided binary
-    /// through the context of the configured parent.
-    pub fn local_with_parent<B, P>(bin_path: B, parent: P) -> ShimConfig
-    where
-        B: AsRef<OsStr>,
-        P: AsRef<str>,
-    {
-        ShimConfig {
-            bin_path: Some(bin_path.as_ref().into()),
-            parent_bin: Some(parent.as_ref().to_owned()),
-            ..ShimConfig::default()
-        }
-    }
-}
-
-json_struct!(
-    /// Input passed to the `create_shims` function.
-    pub struct CreateShimsInput {
-        /// Current tool context.
-        pub context: ToolContext,
-    }
-);
-
-json_struct!(
-    /// Output returned by the `create_shims` function.
-    pub struct CreateShimsOutput {
-        /// Avoid creating the global shim.
-        pub no_primary_global: bool,
-
-        /// Configures the default/primary global shim.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub primary: Option<ShimConfig>,
-
-        /// Additional global shims to create in the `~/.proto/shims` directory.
-        /// Maps a shim name to a relative binary path.
-        pub global_shims: HashMap<String, ShimConfig>,
-
-        /// Local shims to create in the `~/.proto/tools/<id>/<version>/shims` directory.
-        /// Maps a shim name to its configuration.
-        pub local_shims: HashMap<String, ShimConfig>,
-    }
-);
-
-// Misc
+// MISCELLANEOUS
 
 json_struct!(
     /// Input passed to the `sync_manifest` function.

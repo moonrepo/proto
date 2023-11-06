@@ -47,8 +47,8 @@ mod clean {
     #[test]
     fn purges_tool_shims() {
         let sandbox = create_empty_sandbox();
-        sandbox.create_file("shims/node", "");
-        sandbox.create_file("shims/node.cmd", "");
+        sandbox.create_file("shims/npm", "");
+        sandbox.create_file("shims/npm.cmd", "");
         sandbox.create_file("shims/npx", "");
         sandbox.create_file("shims/npx.cmd", "");
 
@@ -56,15 +56,15 @@ mod clean {
         cmd.arg("clean")
             .arg("--yes")
             .arg("--purge")
-            .arg("node")
+            .arg("npm")
             .assert()
             .success();
 
         if cfg!(windows) {
-            assert!(!sandbox.path().join("shims/node.cmd").exists());
+            assert!(!sandbox.path().join("shims/npm.cmd").exists());
             assert!(!sandbox.path().join("shims/npx.cmd").exists());
         } else {
-            assert!(!sandbox.path().join("shims/node").exists());
+            assert!(!sandbox.path().join("shims/npm").exists());
             assert!(!sandbox.path().join("shims/npx").exists());
         }
     }

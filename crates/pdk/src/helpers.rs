@@ -89,7 +89,7 @@ where
     let output = exec_command!(
         pipe,
         "git",
-        ["ls-remote", "--tags", "--sort", "version:refname", url,]
+        ["ls-remote", "--tags", "--sort", "version:refname", url]
     );
 
     let mut tags: Vec<String> = vec![];
@@ -124,6 +124,7 @@ where
 
 /// Return the name of the binary for the provided name and OS.
 /// On Windows, will append ".exe", and keep as-is on other OS's.
+#[deprecated]
 pub fn format_bin_name<T: AsRef<str>>(name: T, os: HostOS) -> String {
     if os == HostOS::Windows {
         return format!("{}.exe", name.as_ref());

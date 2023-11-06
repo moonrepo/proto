@@ -9,8 +9,6 @@ generate_resolve_versions_tests!("wasm-test", {
     "latest" => "1.2.3",
 });
 
-generate_global_shims_test!("wasm-test");
-
-generate_local_shims_test!("wasm-test", ["other"]);
+generate_shims_test!("wasm-test", ["other"]);
 
 generate_globals_test!("wasm-test", "dependency");

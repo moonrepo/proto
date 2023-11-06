@@ -1,6 +1,6 @@
 [package]
 name = "proto_pdk_api"
-version = "0.9.0"
+version = "0.10.1"
 edition = "2021"
 license = "MIT"
 description = "Core APIs for creating proto WASM plugins."
@@ -8,8 +8,8 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
-system_env = { version = "0.1.2", path = "../system-env" }
-version_spec = { version = "0.1.3", path = "../version-spec" }
+system_env = { version = "0.1.3", path = "../system-env" }
+version_spec = { version = "0.1.4", path = "../version-spec" }
 warpgate_api = { version = "0.1.4", path = "../warpgate-api" }
 anyhow = "1.0.75"
 semver = { workspace = true, features = ["serde"] }

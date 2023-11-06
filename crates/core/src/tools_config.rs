@@ -9,6 +9,7 @@ use version_spec::*;
 use warpgate::{Id, PluginLocator};
 
 pub const TOOLS_CONFIG_NAME: &str = ".prototools";
+pub const SCHEMA_PLUGIN_KEY: &str = "internal-schema";
 
 fn is_empty<T>(map: &BTreeMap<Id, T>) -> bool {
     map.is_empty()
@@ -32,12 +33,6 @@ impl ToolsConfig {
         let mut config = ToolsConfig::default();
         config.inherit_builtin_plugins();
         config.plugins
-    }
-
-    pub fn schema_plugin() -> PluginLocator {
-        PluginLocator::SourceUrl {
-            url: "https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm".into()
-        }
     }
 
     #[tracing::instrument(skip_all)]
@@ -131,7 +126,7 @@ impl ToolsConfig {
             self.plugins.insert(
                 Id::raw("bun"),
                 PluginLocator::SourceUrl {
-                    url: "https://github.com/moonrepo/bun-plugin/releases/latest/download/bun_plugin.wasm".into()
+                    url: "https://github.com/moonrepo/bun-plugin/releases/download/v0.5.0-alpha.0/bun_plugin.wasm".into()
                 }
             );
         }
@@ -140,7 +135,7 @@ impl ToolsConfig {
             self.plugins.insert(
                 Id::raw("deno"),
                 PluginLocator::SourceUrl {
-                    url: "https://github.com/moonrepo/deno-plugin/releases/latest/download/deno_plugin.wasm".into()
+                    url: "https://github.com/moonrepo/deno-plugin/releases/download/v0.5.0-alpha.0/deno_plugin.wasm".into()
                 }
             );
         }
@@ -149,7 +144,7 @@ impl ToolsConfig {
             self.plugins.insert(
                 Id::raw("go"),
                 PluginLocator::SourceUrl {
-                    url: "https://github.com/moonrepo/go-plugin/releases/latest/download/go_plugin.wasm".into()
+                    url: "https://github.com/moonrepo/go-plugin/releases/download/v0.5.0-alpha.0/go_plugin.wasm".into()
                 }
             );
         }
@@ -158,7 +153,7 @@ impl ToolsConfig {
             self.plugins.insert(
                 Id::raw("node"),
                 PluginLocator::SourceUrl {
-                    url: "https://github.com/moonrepo/node-plugin/releases/latest/download/node_plugin.wasm".into()
+                    url: "https://github.com/moonrepo/node-plugin/releases/download/v0.5.0-alpha.0/node_plugin.wasm".into()
                 }
             );
         }
@@ -168,7 +163,7 @@ impl ToolsConfig {
                 self.plugins.insert(
                     Id::raw(depman),
                     PluginLocator::SourceUrl {
-                        url: "https://github.com/moonrepo/node-plugin/releases/latest/download/node_depman_plugin.wasm".into()
+                        url: "https://github.com/moonrepo/node-plugin/releases/download/v0.5.0-alpha.0/node_depman_plugin.wasm".into()
                     }
                 );
             }
@@ -178,7 +173,7 @@ impl ToolsConfig {
             self.plugins.insert(
                 Id::raw("python"),
                 PluginLocator::SourceUrl {
-                    url: "https://github.com/moonrepo/python-plugin/releases/latest/download/python_plugin.wasm".into()
+                    url: "https://github.com/moonrepo/python-plugin/releases/download/v0.2.0-alpha.0/python_plugin.wasm".into()
                 }
             );
         }
@@ -187,7 +182,16 @@ impl ToolsConfig {
             self.plugins.insert(
                 Id::raw("rust"),
                 PluginLocator::SourceUrl {
-                    url: "https://github.com/moonrepo/rust-plugin/releases/latest/download/rust_plugin.wasm".into()
+                    url: "https://github.com/moonrepo/rust-plugin/releases/download/v0.4.0-alpha.0/rust_plugin.wasm".into()
+                }
+            );
+        }
+
+        if !self.plugins.contains_key(SCHEMA_PLUGIN_KEY) {
+            self.plugins.insert(
+                Id::raw(SCHEMA_PLUGIN_KEY),
+                PluginLocator::SourceUrl {
+                    url: "https://github.com/moonrepo/schema-plugin/releases/download/v0.5.0-alpha.0/schema_plugin.wasm".into()
                 }
             );
         }

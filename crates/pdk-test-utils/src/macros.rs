@@ -12,15 +12,9 @@ macro_rules! generate_download_install_tests {
             } else {
                 create_plugin($id, sandbox.path())
             };
+            let spec = proto_pdk_test_utils::UnresolvedVersionSpec::parse($version).unwrap();
 
-            plugin
-                .tool
-                .setup(
-                    &proto_pdk_test_utils::UnresolvedVersionSpec::parse($version).unwrap(),
-                    false,
-                )
-                .await
-                .unwrap();
+            plugin.tool.setup(&spec, false).await.unwrap();
 
             // Check install dir exists
             let base_dir = sandbox.path().join(".proto/tools").join($id).join($version);
@@ -30,18 +24,16 @@ macro_rules! generate_download_install_tests {
             assert!(base_dir.exists());
 
             // Check bin path exists (would panic)
-            plugin.tool.get_bin_path().unwrap();
+            plugin.tool.get_exe_path().unwrap();
 
-            // Check global shim exists
-            assert!(sandbox
-                .path()
-                .join(".proto/shims")
-                .join(if cfg!(windows) {
-                    format!("{}.cmd", $id)
-                } else {
-                    $id.into()
-                })
-                .exists());
+            // Check things exist
+            for bin in plugin.tool.get_bin_locations().unwrap() {
+                assert!(bin.path.exists());
+            }
+
+            for shim in plugin.tool.get_shim_locations().unwrap() {
+                assert!(shim.path.exists());
+            }
         }
 
         #[tokio::test]
@@ -187,12 +179,12 @@ macro_rules! generate_resolve_versions_tests {
 }
 
 #[macro_export]
-macro_rules! generate_global_shims_test {
+macro_rules! generate_shims_test {
     ($id:literal) => {
-        generate_global_shims_test!($id, []);
+        generate_shims_test!($id, []);
     };
     ($id:literal, [ $($bin:literal),* ]) => {
-        generate_global_shims_test!($id, [ $($bin),* ], None);
+        generate_shims_test!($id, [ $($bin),* ], None);
     };
     ($id:literal, [ $($bin:literal),* ], $schema:expr) => {
         #[tokio::test]
@@ -204,7 +196,7 @@ macro_rules! generate_global_shims_test {
                 create_plugin($id, sandbox.path())
             };
 
-            plugin.tool.create_shims(false).await.unwrap();
+            plugin.tool.generate_shims(false).await.unwrap();
 
             starbase_sandbox::assert_snapshot!(std::fs::read_to_string(
                 sandbox.path().join(".proto/shims").join(if cfg!(windows) {
@@ -218,36 +210,6 @@ macro_rules! generate_global_shims_test {
                 starbase_sandbox::assert_snapshot!(std::fs::read_to_string(
                     sandbox.path().join(".proto/shims").join(if cfg!(windows) {
                         format!("{}.cmd", $bin)
-                    } else {
-                        $bin.to_string()
-                    })
-                ).unwrap());
-            )*
-        }
-    };
-}
-
-#[macro_export]
-macro_rules! generate_local_shims_test {
-    ($id:literal, [ $($bin:literal),* ]) => {
-        generate_local_shims_test!($id, [ $($bin),* ], None);
-    };
-    ($id:literal, [ $($bin:literal),* ], $schema:expr) => {
-        #[tokio::test]
-        async fn creates_local_shims() {
-            let sandbox = starbase_sandbox::create_empty_sandbox();
-            let mut plugin = if let Some(schema) = $schema {
-                create_schema_plugin($id, sandbox.path(), schema)
-            } else {
-                create_plugin($id, sandbox.path())
-            };
-
-            plugin.tool.create_shims(false).await.unwrap();
-
-            $(
-                starbase_sandbox::assert_snapshot!(std::fs::read_to_string(
-                    sandbox.path().join(".proto/tools").join($id).join("latest/shims").join(if cfg!(windows) {
-                        format!("{}.ps1", $bin)
                     } else {
                         $bin.to_string()
                     })

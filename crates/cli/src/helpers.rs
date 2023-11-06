@@ -3,7 +3,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use miette::IntoDiagnostic;
 use proto_core::{
     get_temp_dir, load_tool_from_locator, Id, ProtoEnvironment, ProtoError, Tool, ToolsConfig,
-    UserConfig,
+    UserConfig, SCHEMA_PLUGIN_KEY,
 };
 use starbase_utils::fs;
 use std::cmp;
@@ -133,6 +133,11 @@ impl ToolsLoader {
 
         for (id, locator) in plugins {
             if !filter.is_empty() && !filter.contains(id) {
+                continue;
+            }
+
+            // This shouldn't be treated as a "normal plugin"
+            if id == SCHEMA_PLUGIN_KEY {
                 continue;
             }
 
