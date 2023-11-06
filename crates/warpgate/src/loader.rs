@@ -12,15 +12,18 @@ use starbase_styles::color;
 use starbase_utils::fs;
 use std::env;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 use tracing::trace;
 
+pub type OfflineChecker = Arc<fn() -> bool>;
+
 /// A system for loading plugins from a locator strategy,
 /// and caching the `.wasm` file to the host's file system.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct PluginLoader {
-    /// Whether there's an internet connection or not.
-    offline: bool,
+    /// Checks whether there's an internet connection or not.
+    offline_checker: Option<OfflineChecker>,
 
     /// Location where downloaded `.wasm` plugins are stored.
     plugins_dir: PathBuf,
@@ -40,7 +43,7 @@ impl PluginLoader {
         trace!(cache_dir = ?plugins_dir, "Creating plugin loader");
 
         Self {
-            offline: false,
+            offline_checker: None,
             plugins_dir: plugins_dir.to_owned(),
             temp_dir: temp_dir.as_ref().to_owned(),
             seed: None,
@@ -140,7 +143,7 @@ impl PluginLoader {
         let mut cached = true;
 
         // If latest, cache only lasts for 7 days
-        if !self.offline && fs::file_name(path).contains("-latest-") {
+        if fs::file_name(path).contains("-latest-") {
             let metadata = fs::metadata(path)?;
 
             cached = if let Ok(filetime) = metadata.created().or_else(|_| metadata.modified()) {
@@ -148,6 +151,10 @@ impl PluginLoader {
             } else {
                 false
             };
+
+            if !cached && self.is_offline() {
+                cached = true;
+            }
 
             if !cached {
                 fs::remove_file(path)?;
@@ -163,9 +170,17 @@ impl PluginLoader {
         Ok(cached)
     }
 
-    /// Set the offline state.
-    pub fn set_offline(&mut self, value: bool) {
-        self.offline = value;
+    /// Check for an internet connection.
+    pub fn is_offline(&self) -> bool {
+        self.offline_checker
+            .as_ref()
+            .map(|op| op())
+            .unwrap_or_default()
+    }
+
+    /// Set the function that checks for offline state.
+    pub fn set_offline_checker(&mut self, op: fn() -> bool) {
+        self.offline_checker = Some(Arc::new(op));
     }
 
     /// Set the provided value as a seed for generating hashes.
@@ -184,7 +199,7 @@ impl PluginLoader {
             return Ok(dest_file);
         }
 
-        if self.offline {
+        if self.is_offline() {
             return Err(WarpgateError::InternetConnectionRequired {
                 message: "Unable to download plugin.".into(),
                 url: source_url.to_owned(),
@@ -251,7 +266,7 @@ impl PluginLoader {
             url: api_url.clone(),
         };
 
-        if self.offline {
+        if self.is_offline() {
             return Err(WarpgateError::InternetConnectionRequired {
                 message: format!(
                     "Unable to download plugin {} from GitHub.",
@@ -350,7 +365,7 @@ impl PluginLoader {
         // Otherwise make a GraphQL request to the WAPM registry API.
         let url = "https://registry.wapm.io/graphql".to_owned();
 
-        if self.offline {
+        if self.is_offline() {
             return Err(WarpgateError::InternetConnectionRequired {
                 message: format!(
                     "Unable to download plugin {} from wapm.io.",
