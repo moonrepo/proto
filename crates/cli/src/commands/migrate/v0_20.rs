@@ -19,7 +19,7 @@ pub async fn migrate() -> SystemResult {
     for tool in &mut tools {
         // Resolve the global version for use in shims and bins
         if let Some(spec) = tool.manifest.default_version.clone() {
-            tool.resolve_version(&spec).await?;
+            tool.resolve_version(&spec, false).await?;
         }
     }
 
