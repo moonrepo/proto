@@ -84,6 +84,35 @@ impl SystemOS {
             .expect("Unknown operating system!")
     }
 
+    /// Return either a Unix or Windows value based on the current native host.
+    pub fn for_native<'value, T: AsRef<str> + ?Sized>(
+        &self,
+        unix: &'value T,
+        windows: &'value T,
+    ) -> &'value str {
+        if self.is_windows() {
+            windows.as_ref()
+        } else {
+            unix.as_ref()
+        }
+    }
+
+    /// Return the provided name as a host formatted file name for executables.
+    /// On Windows this will append an ".exe" extension. On Unix, no extension.
+    pub fn get_exe_name(&self, name: impl AsRef<str>) -> String {
+        self.get_file_name(name, "exe")
+    }
+
+    /// Return the provided file name formatted with the extension (without dot)
+    /// when on Windows. On Unix, returns the name as-is.
+    pub fn get_file_name(&self, name: impl AsRef<str>, windows_ext: impl AsRef<str>) -> String {
+        if self.is_windows() {
+            format!("{}.{}", name.as_ref(), windows_ext.as_ref())
+        } else {
+            name.as_ref().to_owned()
+        }
+    }
+
     pub fn is_bsd(&self) -> bool {
         matches!(
             self,

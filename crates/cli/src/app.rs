@@ -99,8 +99,8 @@ pub enum Commands {
 
     #[command(
         name = "bin",
-        about = "Display the absolute path to a tools binary.",
-        long_about = "Display the absolute path to a tools binary. If no version is provided,\nit will detected from the current environment."
+        about = "Display the absolute path to a tools executable.",
+        long_about = "Display the absolute path to a tools executable. If no version is provided,\nit will be detected from the current environment."
     )]
     Bin(BinArgs),
 
@@ -144,7 +144,7 @@ pub enum Commands {
         alias = "lsg",
         name = "list-global",
         about = "List installed globals.",
-        long_about = "List installed globals by scanning the global bins installation directory. Will return the canonical source path."
+        long_about = "List installed globals by scanning the global packages installation directory. Will return the canonical source path."
     )]
     ListGlobal(ListGlobalArgs),
 
@@ -191,7 +191,7 @@ pub enum Commands {
         alias = "r",
         name = "run",
         about = "Run a tool after detecting a version from the environment.",
-        long_about = "Run a tool after detecting a version from the environment. In order of priority,\na version will be resolved from a provided CLI argument, a PROTO_VERSION environment variable,\na local version file (.prototools), and lastly a global version file (~/.proto/tools/version).\n\nIf no version can be found, the program will exit with an error."
+        long_about = "Run a tool after detecting a version from the environment. In order of priority,\na version will be resolved from a provided CLI argument, a PROTO_VERSION environment variable,\na local version file (.prototools), and lastly a global version file (~/.proto/tools).\n\nIf no version can be found, the program will exit with an error."
     )]
     Run(RunArgs),
 

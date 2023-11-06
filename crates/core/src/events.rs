@@ -39,6 +39,10 @@ impl_event!(UninstalledGlobalEvent, {
     pub dependency: String,
 });
 
+impl_event!(CreatedBinariesEvent, {
+    pub bins: Vec<String>,
+});
+
 impl_event!(CreatedShimsEvent, {
     pub global: Vec<String>,
     pub local: Vec<String>,

@@ -42,7 +42,7 @@ pub async fn migrate() -> SystemResult {
 
     for tool in &mut tools {
         // Always create shims for all active tools
-        tool.setup_shims(true).await?;
+        tool.generate_shims(true).await?;
     }
 
     info!("Linking new binaries...");
@@ -50,8 +50,7 @@ pub async fn migrate() -> SystemResult {
     for tool in &mut tools {
         // Only the global version is linked, so only create if set
         if tool.manifest.default_version.is_some() {
-            tool.locate_bins().await?;
-            tool.setup_bin_link(true)?;
+            tool.symlink_bins(true).await?;
         }
     }
 

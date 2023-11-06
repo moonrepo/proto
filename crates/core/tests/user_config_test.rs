@@ -140,7 +140,7 @@ foo = "source:../file.wasm"
                     file: "../file.wasm".into(),
                     path: sandbox.path().join("../file.wasm")
                 }
-            ),])
+            )])
         );
     }
 }

@@ -1,10 +1,8 @@
 use clap::Args;
 use dialoguer::Confirm;
 use proto_core::{
-    get_plugins_dir, get_shim_file_name, get_temp_dir, load_tool, Id, ProtoError, Tool,
-    ToolsConfig, VersionSpec,
+    get_plugins_dir, get_temp_dir, load_tool, Id, ProtoError, Tool, ToolsConfig, VersionSpec,
 };
-use proto_pdk_api::{CreateShimsInput, CreateShimsOutput};
 use starbase::diagnostics::IntoDiagnostic;
 use starbase::{system, SystemResult};
 use starbase_styles::color;
@@ -198,31 +196,14 @@ async fn purge_tool(id: &Id, yes: bool) -> SystemResult {
         // Delete inventory
         fs::remove_dir_all(inventory_dir)?;
 
-        // Delete binary
-        fs::remove_file(tool.proto.bin_dir.join(tool.get_bin_name()))?;
+        // Delete binaries
+        for bin in tool.get_bin_locations()? {
+            fs::remove_file(bin.path)?;
+        }
 
         // Delete shims
-        fs::remove_file(
-            tool.proto
-                .shims_dir
-                .join(get_shim_file_name(id.as_str(), true)),
-        )?;
-
-        if tool.plugin.has_func("create_shims") {
-            let shim_configs: CreateShimsOutput = tool.plugin.cache_func_with(
-                "create_shims",
-                CreateShimsInput {
-                    context: tool.create_context(),
-                },
-            )?;
-
-            for global_shim in shim_configs.global_shims.keys() {
-                fs::remove_file(
-                    tool.proto
-                        .shims_dir
-                        .join(get_shim_file_name(global_shim, true)),
-                )?;
-            }
+        for shim in tool.get_shim_locations()? {
+            fs::remove_file(shim.path)?;
         }
 
         info!("Removed {}", tool.get_name());

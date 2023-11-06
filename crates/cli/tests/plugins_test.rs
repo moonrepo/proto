@@ -32,10 +32,10 @@ where
     let base_dir = proto.tools_dir.join("moon/1.0.0");
 
     if cfg!(windows) {
-        assert_eq!(tool.get_bin_path().unwrap(), &base_dir.join("moon.exe"));
+        assert_eq!(tool.get_exe_path().unwrap(), &base_dir.join("moon.exe"));
         assert!(proto.shims_dir.join("moon.cmd").exists());
     } else {
-        assert_eq!(tool.get_bin_path().unwrap(), &base_dir.join("moon"));
+        assert_eq!(tool.get_exe_path().unwrap(), &base_dir.join("moon"));
         assert!(proto.shims_dir.join("moon").exists());
     }
 }

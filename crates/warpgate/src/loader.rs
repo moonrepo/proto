@@ -71,7 +71,6 @@ impl PluginLoader {
 
         trace!(
             plugin = id.as_str(),
-            locator = locator.to_string(),
             "Loading plugin {}",
             color::id(id.as_str())
         );

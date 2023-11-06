@@ -108,6 +108,22 @@ pub fn download_prebuilt(
 // }
 
 #[plugin_fn]
+pub fn locate_executables(
+    Json(_): Json<LocateExecutablesInput>,
+) -> FnResult<Json<LocateExecutablesOutput>> {
+    let env = get_proto_environment()?;
+
+    Ok(Json(LocateExecutablesOutput {
+        globals_lookup_dirs: vec!["$WASM_ROOT/bin".into(), "$HOME/.wasm/bin".into()],
+        primary: Some(ExecutableConfig::new(
+            env.os.for_native("bin/node", "node.exe"),
+        )),
+        secondary: HashMap::from_iter([("global1".into(), ExecutableConfig::new("bin/global1"))]),
+        ..LocateExecutablesOutput::default()
+    }))
+}
+
+#[plugin_fn]
 pub fn locate_bins(Json(_): Json<LocateBinsInput>) -> FnResult<Json<LocateBinsOutput>> {
     let env = get_proto_environment()?;
 

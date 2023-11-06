@@ -41,7 +41,7 @@ pub struct InstallArgs {
     pub passthrough: Vec<String>,
 }
 
-fn pin_version(
+async fn pin_version(
     tool: &mut Tool,
     initial_version: &UnresolvedVersionSpec,
     global: bool,
@@ -56,7 +56,7 @@ fn pin_version(
     if global {
         args.global = true;
 
-        return internal_pin(tool, &args, true);
+        return internal_pin(tool, &args, true).await;
     }
 
     // via `pin-latest` setting
@@ -66,7 +66,7 @@ fn pin_version(
         if let Some(pin_type) = user_config.pin_latest {
             args.global = matches!(pin_type, PinType::Global);
 
-            return internal_pin(tool, &args, true);
+            return internal_pin(tool, &args, true).await;
         }
     }
 
@@ -89,7 +89,7 @@ pub async fn internal_install(args: InstallArgs, tool: Option<Tool>) -> miette::
     tool.disable_caching();
 
     if !version.is_canary() && tool.is_setup(&version).await? {
-        pin_version(&mut tool, &version, args.pin)?;
+        pin_version(&mut tool, &version, args.pin).await?;
 
         info!(
             "{} has already been installed at {}",
@@ -138,7 +138,7 @@ pub async fn internal_install(args: InstallArgs, tool: Option<Tool>) -> miette::
         return Ok(tool);
     }
 
-    pin_version(&mut tool, &version, args.pin)?;
+    pin_version(&mut tool, &version, args.pin).await?;
 
     info!(
         "{} has been installed to {}!",
