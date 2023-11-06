@@ -9,7 +9,6 @@ repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
 human-sort = { workspace = true }
-once_cell = { workspace = true }
 regex = { workspace = true }
 semver = { workspace = true }
 serde = { workspace = true }

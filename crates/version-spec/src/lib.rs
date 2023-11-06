@@ -1,7 +1,6 @@
 mod resolved_spec;
 mod unresolved_spec;
 
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 pub use resolved_spec::*;
@@ -25,8 +24,6 @@ pub fn is_alias_name<T: AsRef<str>>(value: T) -> bool {
     })
 }
 
-static CLEAN_VERSION: Lazy<Regex> = Lazy::new(|| Regex::new(r"([><]=?)\s+(\d)").unwrap());
-
 pub fn clean_version_string<T: AsRef<str>>(value: T) -> String {
     let value = value.as_ref().trim().replace(".*", "");
     let mut version = value.as_str();
@@ -37,5 +34,21 @@ pub fn clean_version_string<T: AsRef<str>>(value: T) -> String {
     }
 
     // Remove invalid space after <, <=, >, >=.
-    CLEAN_VERSION.replace_all(version, "$1$2").to_string()
+    Regex::new(r"([><]=?)[ ]+([0-9])")
+        .unwrap()
+        .replace_all(version, "$1$2")
+        .to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cleans_string() {
+        assert_eq!(clean_version_string(">= 1.2.3"), ">=1.2.3");
+        assert_eq!(clean_version_string(">  1.2.3"), ">1.2.3");
+        assert_eq!(clean_version_string("<1.2.3"), "<1.2.3");
+        assert_eq!(clean_version_string("<=   1.2.3"), "<=1.2.3");
+    }
 }

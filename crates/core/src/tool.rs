@@ -94,10 +94,11 @@ impl Tool {
         };
 
         if let Ok(level) = env::var("PROTO_WASM_LOG") {
-            extism::set_log_file(
-                proto.cwd.join(format!("{}-debug.log", id)),
-                std::str::FromStr::from_str(&level).ok(),
-            );
+            let log_file = proto.cwd.join(format!("{}-debug.log", id));
+
+            trace!(file = ?log_file, "Created WASM log file");
+
+            extism::set_log_file(log_file, std::str::FromStr::from_str(&level).ok());
         }
 
         let mut tool = Tool {

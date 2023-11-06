@@ -42,9 +42,7 @@ mod install_all {
         assert!(!node_path.exists());
 
         let mut cmd = create_proto_command(temp.path());
-        let assert = cmd.arg("use").assert().success();
-
-        println!("{}", assert);
+        cmd.arg("use").assert().success();
 
         assert!(node_path.exists());
     }

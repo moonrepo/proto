@@ -30,6 +30,10 @@
   - Deprecated `locate_bins` and `create_shims` functions.
   - Deprecated `LocateBinsInput`, `LocateBinsOutput`, `CreateShimsInput`, `CreateShimsOutput`, `ShimConfig` structs.
 
+#### ⚙️ Internal
+
+- Plugin versions are now pinned and tied to proto releases to avoid unintended drift and API changes.
+
 ## 0.21.1
 
 #### 🐞 Fixes
