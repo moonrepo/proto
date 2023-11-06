@@ -31,7 +31,7 @@ pub enum ProtoError {
 
     #[diagnostic(code(proto::misc::offline_version_required))]
     #[error(
-        "Internet connection required to resolve a valid version. To work around this:\n - Pass a semantic version explicitly: {}\n - Execute the non-shim binaries instead: {}",
+        "Internet connection required to load and resolve a valid version. To work around this:\n - Pass a semantic version explicitly: {}\n - Execute the non-shim binaries instead: {}",
         .command.style(Style::Shell),
         .bin_dir.style(Style::Path)
     )]

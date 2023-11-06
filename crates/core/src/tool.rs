@@ -379,15 +379,20 @@ impl Tool {
             .join("remote-versions.json");
 
         // Attempt to read from the cache first
-        if self.cache && is_cache_enabled() && cache_path.exists() {
-            let metadata = fs::metadata(&cache_path)?;
-
-            // Only every 12 hours
+        if cache_path.exists() {
             let mut read_cache =
-                if let Ok(modified_time) = metadata.modified().or_else(|_| metadata.created()) {
-                    modified_time > SystemTime::now() - Duration::from_secs(60 * 60 * 12)
-                } else {
+                // Check if cache is enabled here, so that we can handle offline below
+                if !self.cache || !is_cache_enabled() {
                     false
+                // Otherwise, only read the cache every 12 hours
+                } else {
+                    let metadata = fs::metadata(&cache_path)?;
+
+                    if let Ok(modified_time) = metadata.modified().or_else(|_| metadata.created()) {
+                        modified_time > SystemTime::now() - Duration::from_secs(60 * 60 * 12)
+                    } else {
+                        false
+                    }
                 };
 
             // If offline, always read the cache
@@ -406,7 +411,11 @@ impl Tool {
         // Nothing cached, so load from the plugin
         if !cached {
             if is_offline() {
-                return Err(ProtoError::InternetConnectionRequired.into());
+                return Err(ProtoError::InternetConnectionRequiredForVersion {
+                    command: format!("{}_VERSION=1.2.3 {}", self.get_env_var_prefix(), self.id),
+                    bin_dir: self.proto.bin_dir.clone(),
+                }
+                .into());
             }
 
             versions = self.plugin.cache_func_with(
@@ -468,14 +477,6 @@ impl Tool {
             self.version = Some(version);
 
             return Ok(());
-        }
-
-        if is_offline() {
-            return Err(ProtoError::InternetConnectionRequiredForVersion {
-                command: format!("{}_VERSION=1.2.3 {}", self.get_env_var_prefix(), self.id),
-                bin_dir: self.proto.bin_dir.clone(),
-            }
-            .into());
         }
 
         let resolver = self.load_version_resolver(initial_version).await?;
