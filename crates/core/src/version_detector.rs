@@ -48,11 +48,6 @@ pub async fn detect_version(
         let mut current_dir: Option<&Path> = Some(&working_dir);
 
         while let Some(dir) = current_dir {
-            // Don't traverse past the home directory
-            if dir == tool.proto.home {
-                break;
-            }
-
             trace!(
                 tool = tool.id.as_str(),
                 dir = ?dir,
@@ -82,6 +77,11 @@ pub async fn detect_version(
                 );
 
                 return Ok(detected_version);
+            }
+
+            // Don't traverse passed the home directory
+            if dir == tool.proto.home {
+                break;
             }
 
             current_dir = dir.parent();
