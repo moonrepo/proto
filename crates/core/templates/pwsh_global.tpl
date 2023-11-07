@@ -1,5 +1,5 @@
-{{ if bin_path }}
-& proto.exe run {bin} --bin "{bin_path}" -- {before_args} $args {after_args}
+{{ if alt_bin }}
+& proto.exe run {bin} --alt "{alt_bin}" -- {before_args} $args {after_args}
 {{ else }}
 & proto.exe run {bin} -- {before_args} $args {after_args}
 {{ endif }}

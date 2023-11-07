@@ -340,7 +340,12 @@ json_struct!(
 json_struct!(
     /// Configuration for generated shim and symlinked binary files.
     pub struct ExecutableConfig {
-        /// The binary file to execute, relative from the tool directory.
+        /// The executable path to use for symlinking binaries instead of `exe_path`.
+        /// This should only be used when `exe_path` is a non-standard executable.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub bin_path: Option<PathBuf>,
+
+        /// The file to execute, relative from the tool directory.
         /// Does *not* support virtual paths.
         ///
         /// The following scenarios are powered by this field:
@@ -348,7 +353,7 @@ json_struct!(
         /// - For primary and secondary bins, the source file to be symlinked,
         ///   and the extension to use for the symlink file itself.
         /// - For primary shim, this field is ignored.
-        /// - For secondary shims, the file to pass to `proto run --bin`.
+        /// - For secondary shims, the file to execute.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub exe_path: Option<PathBuf>,
 
@@ -359,6 +364,9 @@ json_struct!(
         /// Do not generate a shim in `~/.proto/shims`.
         #[serde(skip_serializing_if = "is_false")]
         pub no_shim: bool,
+
+        /// The parent executable name required to execute the local executable path.
+        pub parent_exe_name: Option<String>,
 
         /// Custom args to prepend to user-provided args within the generated shim.
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -374,6 +382,14 @@ impl ExecutableConfig {
     pub fn new<T: AsRef<str>>(exe_path: T) -> Self {
         Self {
             exe_path: Some(PathBuf::from(exe_path.as_ref())),
+            ..ExecutableConfig::default()
+        }
+    }
+
+    pub fn with_parent<T: AsRef<str>, P: AsRef<str>>(exe_path: T, parent_exe: P) -> Self {
+        Self {
+            exe_path: Some(PathBuf::from(exe_path.as_ref())),
+            parent_exe_name: Some(parent_exe.as_ref().to_owned()),
             ..ExecutableConfig::default()
         }
     }
