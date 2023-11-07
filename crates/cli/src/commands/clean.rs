@@ -179,7 +179,7 @@ pub async fn clean_plugins(days: u64) -> miette::Result<usize> {
     Ok(clean_count)
 }
 
-async fn purge_tool(id: &Id, yes: bool) -> SystemResult {
+pub async fn purge_tool(id: &Id, yes: bool) -> SystemResult {
     let tool = load_tool(id).await?;
     let inventory_dir = tool.get_inventory_dir();
 
@@ -206,13 +206,13 @@ async fn purge_tool(id: &Id, yes: bool) -> SystemResult {
             fs::remove_file(shim.path)?;
         }
 
-        info!("Removed {}", tool.get_name());
+        info!("Purged {}", tool.get_name());
     }
 
     Ok(())
 }
 
-async fn purge_plugins(yes: bool) -> SystemResult {
+pub async fn purge_plugins(yes: bool) -> SystemResult {
     let plugins_dir = get_plugins_dir()?;
 
     if yes
@@ -227,7 +227,7 @@ async fn purge_plugins(yes: bool) -> SystemResult {
         fs::remove_dir_all(&plugins_dir)?;
         fs::create_dir_all(plugins_dir)?;
 
-        info!("Removed all downloaded plugins");
+        info!("Purged all downloaded plugins");
     }
 
     Ok(())
