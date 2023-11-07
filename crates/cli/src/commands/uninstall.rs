@@ -12,13 +12,16 @@ pub struct UninstallArgs {
 
     #[arg(help = "Version or alias of tool")]
     semver: Option<UnresolvedVersionSpec>,
+
+    #[arg(long, help = "Avoid and force confirm prompts")]
+    yes: bool,
 }
 
 #[system]
 pub async fn uninstall(args: ArgsRef<UninstallArgs>) {
     // Uninstall everything
     let Some(spec) = &args.semver else {
-        purge_tool(&args.id, false).await?;
+        purge_tool(&args.id, args.yes).await?;
 
         return Ok(());
     };
