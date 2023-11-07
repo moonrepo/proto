@@ -3,6 +3,7 @@ use crate::pm_vendor::*;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
+/// Package manager of the host environment.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
 #[serde(rename_all = "kebab-case")]
@@ -29,6 +30,12 @@ pub enum SystemPackageManager {
 }
 
 impl SystemPackageManager {
+    /// Detect the package manager from the current system environment
+    /// using the following rules:
+    ///
+    /// - On Linux, parses `/etc/os-release`.
+    /// - On MacOS and BSD, checks for commands on `PATH`.
+    /// - On Windows, checks for programs on `PATH`, using `PATHEXT`.
     pub fn detect() -> Result<Self, Error> {
         #[cfg(target_os = "linux")]
         {
@@ -90,7 +97,8 @@ impl SystemPackageManager {
         Err(Error::MissingPackageManager)
     }
 
-    pub fn get_config(&self) -> PackageVendorConfig {
+    /// Return vendor configuration for the current package manager.
+    pub fn get_config(&self) -> PackageManagerConfig {
         match self {
             Self::Apk => apk(),
             Self::Apt => apt(),
