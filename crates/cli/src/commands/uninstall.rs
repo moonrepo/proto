@@ -1,3 +1,4 @@
+use crate::commands::clean::purge_tool;
 use crate::helpers::{create_progress_bar, disable_progress_bars};
 use clap::Args;
 use proto_core::{load_tool, Id, UnresolvedVersionSpec};
@@ -9,15 +10,23 @@ pub struct UninstallArgs {
     #[arg(required = true, help = "ID of tool")]
     id: Id,
 
-    #[arg(required = true, help = "Version or alias of tool")]
-    semver: UnresolvedVersionSpec,
+    #[arg(help = "Version or alias of tool")]
+    semver: Option<UnresolvedVersionSpec>,
 }
 
 #[system]
 pub async fn uninstall(args: ArgsRef<UninstallArgs>) {
+    // Uninstall everything
+    let Some(spec) = &args.semver else {
+        purge_tool(&args.id, false).await?;
+
+        return Ok(());
+    };
+
+    // Uninstall a tool by version
     let mut tool = load_tool(&args.id).await?;
 
-    if !tool.is_setup(&args.semver).await? {
+    if !tool.is_setup(spec).await? {
         info!(
             "{} {} does not exist!",
             tool.get_name(),
@@ -27,11 +36,7 @@ pub async fn uninstall(args: ArgsRef<UninstallArgs>) {
         return Ok(());
     }
 
-    debug!(
-        "Uninstalling {} with version {}",
-        tool.get_name(),
-        args.semver
-    );
+    debug!("Uninstalling {} with version {}", tool.get_name(), spec);
 
     if tool.disable_progress_bars() {
         disable_progress_bars();
