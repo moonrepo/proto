@@ -340,11 +340,6 @@ json_struct!(
 json_struct!(
     /// Configuration for generated shim and symlinked binary files.
     pub struct ExecutableConfig {
-        /// The executable path to use for symlinking binaries instead of `exe_path`.
-        /// This should only be used when `exe_path` is a non-standard executable.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub bin_path: Option<PathBuf>,
-
         /// The file to execute, relative from the tool directory.
         /// Does *not* support virtual paths.
         ///
@@ -356,6 +351,11 @@ json_struct!(
         /// - For secondary shims, the file to execute.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub exe_path: Option<PathBuf>,
+
+        /// The executable path to use for symlinking binaries instead of `exe_path`.
+        /// This should only be used when `exe_path` is a non-standard executable.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub exe_link_path: Option<PathBuf>,
 
         /// Do not symlink a binary in `~/.proto/bin`.
         #[serde(skip_serializing_if = "is_false")]
