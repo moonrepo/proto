@@ -97,7 +97,7 @@ mod tests {
         assert_eq!(clean_version_string("1.2, 3"), "1.2,3");
         assert_eq!(clean_version_string("1,3, 4"), "1,3,4");
         assert_eq!(clean_version_string("1 2"), "1,2");
-        assert_eq!(clean_version_string("1 && 2"), "1 , 2");
+        assert_eq!(clean_version_string("1 && 2"), "1,2");
     }
 
     #[test]
