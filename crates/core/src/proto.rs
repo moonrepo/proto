@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use warpgate::{create_http_client_with_options, PluginLoader};
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct ProtoEnvironment {
     pub bin_dir: PathBuf,
     pub cwd: PathBuf,
@@ -63,7 +63,7 @@ impl ProtoEnvironment {
     pub fn get_plugin_loader(&self) -> &PluginLoader {
         self.loader.get_or_init(|| {
             let mut loader = PluginLoader::new(&self.plugins_dir, &self.temp_dir);
-            loader.set_offline(is_offline());
+            loader.set_offline_checker(is_offline);
             loader.set_seed(env!("CARGO_PKG_VERSION"));
             loader
         })

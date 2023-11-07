@@ -73,11 +73,6 @@ pub fn locate_tool(
         let mut current_dir: Option<&Path> = Some(&working_dir);
 
         while let Some(dir) = current_dir {
-            // Don't traverse past the home directory
-            if dir == proto.home {
-                break;
-            }
-
             let tools_config = ToolsConfig::load_from(dir)?;
 
             if let Some(maybe_locator) = tools_config.plugins.get(id) {
@@ -85,8 +80,9 @@ pub fn locate_tool(
                 break;
             }
 
-            // We only want to check the current directory
-            if current_dir_only {
+            // Don't traverse passed the home directory,
+            // or only want to check the current directory
+            if dir == proto.home || current_dir_only {
                 break;
             }
 

@@ -22,7 +22,7 @@ pub async fn bin(args: ArgsRef<BinArgs>) {
     let mut tool = load_tool(&args.id).await?;
     let version = detect_version(&tool, args.spec.clone()).await?;
 
-    tool.resolve_version(&version).await?;
+    tool.resolve_version(&version, true).await?;
     tool.create_executables(true, false).await?;
 
     if args.bin {

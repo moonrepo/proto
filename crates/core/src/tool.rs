@@ -379,19 +379,26 @@ impl Tool {
             .join("remote-versions.json");
 
         // Attempt to read from the cache first
-        if cache_path.exists() && (is_cache_enabled() || is_offline()) {
-            let metadata = fs::metadata(&cache_path)?;
+        if cache_path.exists() {
+            let mut read_cache =
+                // Check if cache is enabled here, so that we can handle offline below
+                if !self.cache || !is_cache_enabled() {
+                    false
+                // Otherwise, only read the cache every 12 hours
+                } else {
+                    let metadata = fs::metadata(&cache_path)?;
 
-            // If offline, always use the cache, otherwise only within the last 12 hours
-            let read_cache = if is_offline() {
-                true
-            } else if !self.cache {
-                false
-            } else if let Ok(modified_time) = metadata.modified().or_else(|_| metadata.created()) {
-                modified_time > SystemTime::now() - Duration::from_secs(60 * 60 * 12)
-            } else {
-                false
-            };
+                    if let Ok(modified_time) = metadata.modified().or_else(|_| metadata.created()) {
+                        modified_time > SystemTime::now() - Duration::from_secs(60 * 60 * 12)
+                    } else {
+                        false
+                    }
+                };
+
+            // If offline, always read the cache
+            if !read_cache && is_offline() {
+                read_cache = true;
+            }
 
             if read_cache {
                 debug!(tool = self.id.as_str(), cache = ?cache_path, "Loading from local cache");
@@ -404,7 +411,11 @@ impl Tool {
         // Nothing cached, so load from the plugin
         if !cached {
             if is_offline() {
-                return Err(ProtoError::InternetConnectionRequired.into());
+                return Err(ProtoError::InternetConnectionRequiredForVersion {
+                    command: format!("{}_VERSION=1.2.3 {}", self.get_env_var_prefix(), self.id),
+                    bin_dir: self.proto.bin_dir.clone(),
+                }
+                .into());
             }
 
             versions = self.plugin.cache_func_with(
@@ -429,6 +440,7 @@ impl Tool {
     pub async fn resolve_version(
         &mut self,
         initial_version: &UnresolvedVersionSpec,
+        short_circuit: bool,
     ) -> miette::Result<()> {
         if self.version.is_some() {
             return Ok(());
@@ -440,10 +452,10 @@ impl Tool {
             "Resolving a semantic version or alias",
         );
 
-        // If offline but we have a fully qualified semantic version,
-        // exit early and assume the version is legitimate! Additionally,
-        // canary is a special type that we can simply just use.
-        if is_offline() && matches!(initial_version, UnresolvedVersionSpec::Version(_))
+        // If we have a fully qualified semantic version,
+        // exit early and assume the version is legitimate!
+        // Also canary is a special type that we can simply just use.
+        if short_circuit && matches!(initial_version, UnresolvedVersionSpec::Version(_))
             || matches!(initial_version, UnresolvedVersionSpec::Canary)
         {
             let version = initial_version.to_resolved_spec();
@@ -451,7 +463,7 @@ impl Tool {
             debug!(
                 tool = self.id.as_str(),
                 version = version.to_string(),
-                "Resolved to {}",
+                "Resolved to {} (without validation)",
                 version
             );
 
@@ -465,14 +477,6 @@ impl Tool {
             self.version = Some(version);
 
             return Ok(());
-        }
-
-        if is_offline() {
-            return Err(ProtoError::InternetConnectionRequiredForVersion {
-                command: format!("{}_VERSION=1.2.3 {}", self.get_env_var_prefix(), self.id),
-                bin_dir: self.proto.bin_dir.clone(),
-            }
-            .into());
         }
 
         let resolver = self.load_version_resolver(initial_version).await?;
@@ -1453,7 +1457,7 @@ impl Tool {
         &mut self,
         initial_version: &UnresolvedVersionSpec,
     ) -> miette::Result<bool> {
-        self.resolve_version(initial_version).await?;
+        self.resolve_version(initial_version, true).await?;
 
         let install_dir = self.get_tool_dir();
 
@@ -1489,7 +1493,7 @@ impl Tool {
         initial_version: &UnresolvedVersionSpec,
         build_from_source: bool,
     ) -> miette::Result<bool> {
-        self.resolve_version(initial_version).await?;
+        self.resolve_version(initial_version, false).await?;
 
         if self.install(build_from_source).await? {
             self.create_executables(true, false).await?;

@@ -24,11 +24,29 @@
   - Pass `--bin` to return the `~/.proto/bin` path.
   - Pass `--shim` to return the `~/.proto/shims` path.
 - Updated `proto clean --purge` and `proto uninstall` to accurately delete all executables.
+- Updated internet connection checks to only check during critical workflows.
+  - Will no longer happen if we have a fully-qualified version (primarily for `proto run`).
+  - Will still happen for partial versions, as we need to resolve to a fully-qualified.
+  - Will always happen for install, upgrade, and other flows that must download files.
+- TOML API
+  - Added `install.no_bin` and `install.no_shim` fields.
 - WASM API
   - Added `locate_executables` function.
   - Added `LocateExecutablesInput`, `LocateExecutablesOutput`, `ExecutableConfig` structs.
   - Deprecated `locate_bins` and `create_shims` functions.
   - Deprecated `LocateBinsInput`, `LocateBinsOutput`, `CreateShimsInput`, `CreateShimsOutput`, `ShimConfig` structs.
+
+#### 🐞 Fixes
+
+- Fixed an issue where config files in the user home directory were not loaded.
+
+#### 🧩 Plugins
+
+- **Node**
+  - Updated the `npm` tool to create the `npx` shim instead of the `node` tool.
+  - Updated executable detection for package managers to use the shell scripts instead of the source `.js` files (when applicable).
+    - Previously we would execute the JS file with node: `node ./bin/npm-cli.js`
+    - Now we execute the shell script: `./bin/npm` (unix), `./bin/npm.cmd` (windows)
 
 #### ⚙️ Internal
 
