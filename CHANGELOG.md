@@ -24,6 +24,7 @@
   - Pass `--bin` to return the `~/.proto/bin` path.
   - Pass `--shim` to return the `~/.proto/shims` path.
 - Updated `proto clean --purge` and `proto uninstall` to accurately delete all executables.
+- Updated `proto uninstall` to support removing the tool entirely (simply omit the version).
 - Updated internet connection checks to only check during critical workflows.
   - Will no longer happen if we have a fully-qualified version (primarily for `proto run`).
   - Will still happen for partial versions, as we need to resolve to a fully-qualified.
