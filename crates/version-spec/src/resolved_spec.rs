@@ -6,19 +6,30 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
 
+/// Represents a resolved version or alias.
 #[derive(Clone, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(untagged, into = "String", try_from = "String")]
 pub enum VersionSpec {
+    /// A special canary target.
     Canary,
+    /// An alias that is used as a map to a version.
     Alias(String),
+    /// A fully-qualified semantic version.
     Version(Version),
 }
 
 impl VersionSpec {
+    /// Parse the provided string into a resolved specification based
+    /// on the following rules, in order:
+    ///
+    /// - If the value "canary", map as `Canary` variant.
+    /// - If an alpha-numeric value that starts with a character, map as `Alias`.
+    /// - Else parse with [`Version`], and map as `Version`.
     pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, Error> {
         Self::from_str(value.as_ref())
     }
 
+    /// Return true if the provided alias matches the current specification.
     pub fn is_alias<A: AsRef<str>>(&self, name: A) -> bool {
         match self {
             Self::Alias(alias) => alias == name.as_ref(),
@@ -26,6 +37,7 @@ impl VersionSpec {
         }
     }
 
+    /// Return true if the current specification is canary.
     pub fn is_canary(&self) -> bool {
         match self {
             Self::Canary => true,
@@ -34,6 +46,7 @@ impl VersionSpec {
         }
     }
 
+    /// Return true if the current specification is the "latest" or "stable" alias.
     pub fn is_latest(&self) -> bool {
         match self {
             Self::Alias(alias) => alias == "latest" || alias == "stable",
@@ -41,6 +54,7 @@ impl VersionSpec {
         }
     }
 
+    /// Convert the current resolved specification to an unresolved specification.
     pub fn to_unresolved_spec(&self) -> UnresolvedVersionSpec {
         match self {
             Self::Canary => UnresolvedVersionSpec::Canary,
@@ -51,6 +65,7 @@ impl VersionSpec {
 }
 
 impl Default for VersionSpec {
+    /// Returns a `latest` alias.
     fn default() -> Self {
         Self::Alias("latest".into())
     }
@@ -60,6 +75,10 @@ impl FromStr for VersionSpec {
     type Err = Error;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
+        if value == "canary" {
+            return Ok(VersionSpec::Canary);
+        }
+
         let value = clean_version_string(value);
 
         if is_alias_name(&value) {

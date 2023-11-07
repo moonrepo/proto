@@ -7,21 +7,40 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
 
+/// Represents an unresolved version or alias that must be resolved
+/// to a fully-qualified and semantic result.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(untagged, into = "String", try_from = "String")]
 pub enum UnresolvedVersionSpec {
+    /// A special canary target.
     Canary,
+    /// An alias that is used as a map to a version.
     Alias(String),
+    /// A partial version, requirement, or range (`^`, `~`, etc).
     Req(VersionReq),
+    /// A list of requirements to match any against (joined by `||`).
     ReqAny(Vec<VersionReq>),
+    /// A fully-qualified semantic version.
     Version(Version),
 }
 
 impl UnresolvedVersionSpec {
+    /// Parse the provided string into an unresolved specification based
+    /// on the following rules, in order:
+    ///
+    /// - If the value "canary", map as `Canary` variant.
+    /// - If an alpha-numeric value that starts with a character, map as `Alias`.
+    /// - If contains `||`, split and parse each item with [`VersionReq`],
+    ///   and map as `ReqAny`.
+    /// - If contains `,` or ` ` (space), parse with [`VersionReq`], and map as `Req`.
+    /// - If starts with `=`, `^`, `~`, `>`, `<`, or `*`, parse with [`VersionReq`],
+    ///   and map as `Req`.
+    /// - Else parse with [`Version`], and map as `Version`.
     pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, Error> {
         Self::from_str(value.as_ref())
     }
 
+    /// Return true if the provided alias matches the current specification.
     pub fn is_alias<A: AsRef<str>>(&self, name: A) -> bool {
         match self {
             Self::Alias(alias) => alias == name.as_ref(),
@@ -29,6 +48,7 @@ impl UnresolvedVersionSpec {
         }
     }
 
+    /// Return true if the current specification is canary.
     pub fn is_canary(&self) -> bool {
         match self {
             Self::Canary => true,
@@ -37,6 +57,7 @@ impl UnresolvedVersionSpec {
         }
     }
 
+    /// Return true if the current specification is the "latest" or "stable" alias.
     pub fn is_latest(&self) -> bool {
         match self {
             Self::Alias(alias) => alias == "latest" || alias == "stable",
@@ -44,6 +65,12 @@ impl UnresolvedVersionSpec {
         }
     }
 
+    /// Convert the current unresolved specification to a resolved specification.
+    /// Note that this *does not* actually resolve or validate against a manifest,
+    /// and instead simply constructs the [`VersionSpec`].
+    ///
+    /// Furthermore, the `Req` and `ReqAny` variants will panic, as they are not
+    /// resolved or valid versions.
     pub fn to_resolved_spec(&self) -> VersionSpec {
         match self {
             Self::Canary => VersionSpec::Canary,
@@ -55,6 +82,7 @@ impl UnresolvedVersionSpec {
 }
 
 impl Default for UnresolvedVersionSpec {
+    /// Returns a `latest` alias.
     fn default() -> Self {
         Self::Alias("latest".into())
     }
@@ -64,11 +92,11 @@ impl FromStr for UnresolvedVersionSpec {
     type Err = Error;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
-        let value = clean_version_string(value);
-
         if value == "canary" {
             return Ok(UnresolvedVersionSpec::Canary);
         }
+
+        let value = clean_version_string(value);
 
         if is_alias_name(&value) {
             return Ok(UnresolvedVersionSpec::Alias(value));
@@ -92,10 +120,6 @@ impl FromStr for UnresolvedVersionSpec {
         // AND requirements
         if value.contains(',') {
             return Ok(UnresolvedVersionSpec::Req(VersionReq::parse(&value)?));
-        } else if value.contains(' ') {
-            return Ok(UnresolvedVersionSpec::Req(VersionReq::parse(
-                &value.replace(' ', ", "),
-            )?));
         }
 
         Ok(match value.chars().next().unwrap() {
