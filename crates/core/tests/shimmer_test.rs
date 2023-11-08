@@ -4,7 +4,7 @@ mod shimmer {
     use proto_core::{ProtoEnvironment, ShimContext};
     use starbase_sandbox::{assert_snapshot, create_empty_sandbox};
     use std::fs;
-    use std::path::{Path, PathBuf};
+    use std::path::Path;
 
     fn create_context<'l>(id: &'l str, proto: &'l ProtoEnvironment) -> ShimContext<'l> {
         ShimContext {
@@ -68,9 +68,9 @@ mod shimmer {
         let sandbox = create_empty_sandbox();
         let proto = ProtoEnvironment::new_testing(sandbox.path());
 
-        let bin_path = PathBuf::from("other/bin/path");
+        let bin_path = "other/bin/path";
         let mut context = create_context("primary", &proto);
-        context.bin_path = Some(bin_path);
+        context.alt_bin = Some(bin_path);
 
         let shim_path = proto.shims_dir.join("secondary");
         context.create_shim(&shim_path, false).unwrap();
@@ -83,9 +83,9 @@ mod shimmer {
         let sandbox = create_empty_sandbox();
         let proto = ProtoEnvironment::new_testing(sandbox.path());
 
-        let bin_path = PathBuf::from("other/bin/path");
+        let bin_path = "other/bin/path";
         let mut context = create_context("primary", &proto);
-        context.bin_path = Some(bin_path);
+        context.alt_bin = Some(bin_path);
         context.before_args = Some("--a -b");
         context.after_args = Some("./file");
 

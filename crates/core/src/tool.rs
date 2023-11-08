@@ -25,10 +25,10 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
-use tracing::{debug, trace};
+use tracing::{debug, trace, warn};
 use warpgate::{download_from_url_to_file, Id, PluginContainer, PluginLocator, VirtualPath};
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ExecutableLocation {
     pub config: ExecutableConfig,
     pub name: String,
@@ -1188,7 +1188,7 @@ impl Tool {
 
         let mut add = |name: &str, config: ExecutableConfig, primary: bool| {
             if !config.no_bin {
-                if let Some(exe_path) = &config.exe_path {
+                if let Some(exe_path) = config.exe_link_path.as_ref().or(config.exe_path.as_ref()) {
                     locations.push(ExecutableLocation {
                         path: self.proto.bin_dir.join(match exe_path.extension() {
                             Some(ext) => format!("{name}.{}", ext.to_string_lossy()),
@@ -1378,8 +1378,9 @@ impl Tool {
             context.before_args = location.config.shim_before_args.as_deref();
             context.after_args = location.config.shim_after_args.as_deref();
 
-            if !location.primary {
-                context.bin_path = location.config.exe_path;
+            // Only use --alt when the secondary executable exists
+            if !location.primary && location.config.exe_path.is_some() {
+                context.alt_bin = Some(&location.name);
             }
 
             context.create_shim(&location.path, find_only)?;
@@ -1414,8 +1415,26 @@ impl Tool {
         let mut event = CreatedBinariesEvent { bins: vec![] };
 
         for location in bins {
-            let input_path = tool_dir.join(location.config.exe_path.unwrap());
+            let input_path = tool_dir.join(
+                location
+                    .config
+                    .exe_link_path
+                    .as_ref()
+                    .or(location.config.exe_path.as_ref())
+                    .unwrap(),
+            );
             let output_path = location.path;
+
+            if !input_path.exists() {
+                warn!(
+                    tool = self.id.as_str(),
+                    source = ?input_path,
+                    target = ?output_path,
+                    "Unable to symlink binary, source file does not exist"
+                );
+
+                continue;
+            }
 
             if output_path.exists() && !force {
                 continue;
