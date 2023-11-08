@@ -4,17 +4,26 @@ use crate::error::Error;
 use crate::pm::*;
 use crate::pm_vendor::*;
 
+/// Represents the current system, including architecture, operating system,
+/// and package manager information.
 pub struct System {
+    /// Platform architecture.
     pub arch: SystemArch,
+
+    /// Package manager.
     pub manager: SystemPackageManager,
+
+    /// Operating system.
     pub os: SystemOS,
 }
 
 impl System {
+    /// Create a new instance and detect system information.
     pub fn new() -> Result<Self, Error> {
         Ok(System::with_manager(SystemPackageManager::detect()?))
     }
 
+    /// Create a new instance with the provided package manager.
     pub fn with_manager(manager: SystemPackageManager) -> Self {
         System {
             arch: SystemArch::from_env(),
@@ -23,6 +32,9 @@ impl System {
         }
     }
 
+    /// Return the command and arguments to "install a package" for the
+    /// current package manager. Will replace `$` in an argument with the
+    /// dependency name, derived from [`DependencyName`].
     pub fn get_install_package_command(
         &self,
         dep_config: &DependencyConfig,
@@ -35,7 +47,7 @@ impl System {
 
         for arg in pm_config
             .commands
-            .get(&Command::InstallPackage)
+            .get(&CommandType::InstallPackage)
             .cloned()
             .unwrap()
         {
@@ -64,18 +76,25 @@ impl System {
             }
         }
 
-        self.append_interactive(Command::InstallPackage, &pm_config, &mut args, interactive);
+        self.append_interactive(
+            CommandType::InstallPackage,
+            &pm_config,
+            &mut args,
+            interactive,
+        );
 
         Ok(args)
     }
 
+    /// Return the command and arguments to "update the registry index"
+    /// for the current package manager.
     pub fn get_update_index_command(&self, interactive: bool) -> Option<Vec<String>> {
         let pm_config = self.manager.get_config();
 
-        if let Some(args) = pm_config.commands.get(&Command::UpdateIndex) {
+        if let Some(args) = pm_config.commands.get(&CommandType::UpdateIndex) {
             let mut args = args.to_owned();
 
-            self.append_interactive(Command::UpdateIndex, &pm_config, &mut args, interactive);
+            self.append_interactive(CommandType::UpdateIndex, &pm_config, &mut args, interactive);
 
             return Some(args);
         }
@@ -83,6 +102,8 @@ impl System {
         None
     }
 
+    /// Resolve and reduce the dependencies to a list that's applicable
+    /// to the current system.
     pub fn resolve_dependencies(&self, deps: Vec<SystemDependency>) -> Vec<DependencyConfig> {
         let mut configs = vec![];
 
@@ -105,8 +126,8 @@ impl System {
 
     fn append_interactive(
         &self,
-        command: Command,
-        config: &PackageVendorConfig,
+        command: CommandType,
+        config: &PackageManagerConfig,
         args: &mut Vec<String>,
         interactive: bool,
     ) {
