@@ -9,7 +9,7 @@ use crate::proto::ProtoEnvironment;
 use crate::shimmer::{get_shim_file_name, ShimContext, SHIM_VERSION};
 use crate::tool_manifest::ToolManifest;
 use crate::version_resolver::VersionResolver;
-use extism::{manifest::Wasm, Manifest as PluginManifest};
+use extism::{Manifest as PluginManifest, Wasm};
 use miette::IntoDiagnostic;
 use proto_pdk_api::*;
 use serde::Serialize;
@@ -41,7 +41,7 @@ pub struct Tool {
     pub manifest: ToolManifest,
     pub metadata: ToolMetadataOutput,
     pub locator: Option<PluginLocator>,
-    pub plugin: PluginContainer<'static>,
+    pub plugin: PluginContainer,
     pub proto: Arc<ProtoEnvironment>,
     pub version: Option<VersionSpec>,
 
@@ -98,7 +98,7 @@ impl Tool {
 
             trace!(file = ?log_file, "Created WASM log file");
 
-            extism::set_log_file(log_file, std::str::FromStr::from_str(&level).ok());
+            extism::set_log_file(log_file, std::str::FromStr::from_str(&level).unwrap()).unwrap();
         }
 
         let mut tool = Tool {

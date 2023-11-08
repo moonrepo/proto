@@ -69,7 +69,11 @@ pub fn find_wasm_file(sandbox: &Path) -> PathBuf {
         if !LOGGING {
             LOGGING = true;
 
-            extism::set_log_file(wasm_target_dir.join(format!("{wasm_file_name}.log")), None);
+            extism::set_log_file(
+                wasm_target_dir.join(format!("{wasm_file_name}.log")),
+                std::str::FromStr::from_str("trace").unwrap(),
+            )
+            .unwrap();
         }
     };
 

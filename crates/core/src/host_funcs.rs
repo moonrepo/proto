@@ -1,5 +1,5 @@
 use crate::proto::ProtoEnvironment;
-use extism::{CurrentPlugin, Error, Function, InternalExt, UserData, Val, ValType};
+use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
 use proto_pdk_api::{ExecCommandInput, ExecCommandOutput, HostLogInput, HostLogTarget};
 use starbase_utils::fs;
 use std::env;
@@ -21,7 +21,7 @@ pub fn create_host_functions(data: HostData) -> Vec<Function> {
             "exec_command",
             [ValType::I64],
             [ValType::I64],
-            Some(UserData::new(data.clone())),
+            UserData::new(data.clone()),
             exec_command,
         ),
         // Function::new(
@@ -35,15 +35,21 @@ pub fn create_host_functions(data: HostData) -> Vec<Function> {
             "get_env_var",
             [ValType::I64],
             [ValType::I64],
-            None,
+            UserData::new(data.clone()),
             get_env_var,
         ),
-        Function::new("host_log", [ValType::I64], [], None, host_log),
+        Function::new(
+            "host_log",
+            [ValType::I64],
+            [],
+            UserData::new(data.clone()),
+            host_log,
+        ),
         Function::new(
             "set_env_var",
             [ValType::I64, ValType::I64],
             [],
-            None,
+            UserData::new(data.clone()),
             set_env_var,
         ),
         // Function::new(
@@ -62,10 +68,9 @@ pub fn host_log(
     plugin: &mut CurrentPlugin,
     inputs: &[Val],
     _outputs: &mut [Val],
-    _user_data: UserData,
+    _user_data: UserData<HostData>,
 ) -> Result<(), Error> {
-    let input: HostLogInput =
-        serde_json::from_str(plugin.memory_read_str(inputs[0].unwrap_i64() as u64)?)?;
+    let input: HostLogInput = serde_json::from_str(plugin.memory_get_val(&inputs[0])?)?;
 
     match input {
         HostLogInput::Message(message) => {
@@ -108,10 +113,9 @@ fn exec_command(
     plugin: &mut CurrentPlugin,
     inputs: &[Val],
     outputs: &mut [Val],
-    _user_data: UserData,
+    user_data: UserData<HostData>,
 ) -> Result<(), Error> {
-    let input: ExecCommandInput =
-        serde_json::from_str(plugin.memory_read_str(inputs[0].unwrap_i64() as u64)?)?;
+    let input: ExecCommandInput = serde_json::from_str(plugin.memory_get_val(&inputs[0])?)?;
 
     trace!(
         target: "proto_wasm::exec_command",
@@ -126,13 +130,13 @@ fn exec_command(
         fs::update_perms(&input.command, None)?;
     }
 
-    // let data = user_data.any().unwrap();
-    // let data = data.downcast_ref::<HostData>().unwrap();
+    let data = user_data.get()?;
+    let data = data.lock().unwrap();
 
     let mut command = Command::new(&input.command);
     command.args(&input.args);
     command.envs(&input.env_vars);
-    // command.current_dir(&data.proto.cwd);
+    command.current_dir(&data.proto.cwd);
 
     let output = if input.stream {
         let result = command.spawn()?.wait()?;
@@ -175,9 +179,7 @@ fn exec_command(
         "Executed command from plugin"
     );
 
-    let ptr = plugin.memory_alloc_bytes(serde_json::to_string(&output)?)?;
-
-    outputs[0] = Val::I64(ptr as i64);
+    plugin.memory_set_val(&mut outputs[0], serde_json::to_string(&output)?)?;
 
     Ok(())
 }
@@ -186,21 +188,19 @@ fn get_env_var(
     plugin: &mut CurrentPlugin,
     inputs: &[Val],
     outputs: &mut [Val],
-    _user_data: UserData,
+    _user_data: UserData<HostData>,
 ) -> Result<(), Error> {
-    let name = plugin.memory_read_str(inputs[0].unwrap_i64() as u64)?;
-    let value = env::var(name).unwrap_or_default();
+    let name: String = plugin.memory_get_val(&inputs[0])?;
+    let value = env::var(&name).unwrap_or_default();
 
     trace!(
         target: "proto_wasm::get_env_var",
-        name,
+        name = &name,
         value = &value,
         "Read environment variable from host"
     );
 
-    let ptr = plugin.memory_alloc_bytes(value)?;
-
-    outputs[0] = Val::I64(ptr as i64);
+    plugin.memory_set_val(&mut outputs[0], value)?;
 
     Ok(())
 }
@@ -209,15 +209,10 @@ fn set_env_var(
     plugin: &mut CurrentPlugin,
     inputs: &[Val],
     _outputs: &mut [Val],
-    _user_data: UserData,
+    _user_data: UserData<HostData>,
 ) -> Result<(), Error> {
-    let name = plugin
-        .memory_read_str(inputs[0].unwrap_i64() as u64)?
-        .to_owned();
-
-    let value = plugin
-        .memory_read_str(inputs[1].unwrap_i64() as u64)?
-        .to_owned();
+    let name: String = plugin.memory_get_val(&inputs[0])?;
+    let value: String = plugin.memory_get_val(&inputs[1])?;
 
     trace!(
         target: "proto_wasm::set_env_var",

@@ -14,7 +14,7 @@ mod version_resolver;
 
 pub use error::*;
 pub use events::*;
-pub use extism::{manifest::Wasm, Manifest as PluginManifest};
+pub use extism::{Manifest as PluginManifest, Wasm};
 pub use helpers::*;
 pub use proto::*;
 pub use semver::{Version, VersionReq};

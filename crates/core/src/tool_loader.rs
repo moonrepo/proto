@@ -3,7 +3,7 @@ use crate::proto::ProtoEnvironment;
 use crate::tool::Tool;
 use crate::tools_config::{ToolsConfig, SCHEMA_PLUGIN_KEY};
 use crate::user_config::UserConfig;
-use extism::{manifest::Wasm, Manifest};
+use extism::{Manifest, Wasm};
 use miette::IntoDiagnostic;
 use proto_pdk_api::{HostArch, HostEnvironment, HostOS, UserConfigSettings};
 use starbase_utils::{json, toml};

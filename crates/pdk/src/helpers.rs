@@ -35,7 +35,7 @@ pub fn fetch_url_text<U>(url: U) -> anyhow::Result<String>
 where
     U: AsRef<str>,
 {
-    String::from_bytes(fetch(HttpRequest::new(url.as_ref()), None)?.body())
+    String::from_bytes(&fetch(HttpRequest::new(url.as_ref()), None)?.body())
 }
 
 /// Fetch the provided URL, deserialize the response as JSON,
@@ -237,13 +237,13 @@ pub fn get_target_triple(env: &HostEnvironment, name: &str) -> Result<String, Pl
 }
 
 /// Get the active tool ID for the current WASM instance.
-pub fn get_tool_id() -> String {
-    config::get("proto_tool_id").expect("Missing tool ID!")
+pub fn get_tool_id() -> anyhow::Result<String> {
+    Ok(config::get("proto_tool_id")?.expect("Missing tool ID!"))
 }
 
 /// Return information about proto and the host environment.
 pub fn get_proto_environment() -> anyhow::Result<HostEnvironment> {
-    let config = config::get("proto_environment").expect("Missing proto environment!");
+    let config = config::get("proto_environment")?.expect("Missing proto environment!");
     let config: HostEnvironment = json::from_str(&config)?;
 
     Ok(config)
@@ -251,7 +251,7 @@ pub fn get_proto_environment() -> anyhow::Result<HostEnvironment> {
 
 /// Return the loaded proto user configuration (`~/.proto/config.toml`). Does not include plugins!
 pub fn get_proto_user_config() -> anyhow::Result<UserConfigSettings> {
-    let config = config::get("proto_user_config").expect("Missing proto user configuration!");
+    let config = config::get("proto_user_config")?.expect("Missing proto user configuration!");
     let config: UserConfigSettings = json::from_str(&config)?;
 
     Ok(config)
