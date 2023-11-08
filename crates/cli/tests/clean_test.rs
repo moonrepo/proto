@@ -6,6 +6,14 @@ mod clean {
     use super::*;
 
     #[test]
+    fn cleans_without_issue() {
+        let sandbox = create_empty_sandbox();
+
+        let mut cmd = create_proto_command(sandbox.path());
+        cmd.arg("clean").arg("--yes").assert().success();
+    }
+
+    #[test]
     fn purges_tool_inventory() {
         let sandbox = create_empty_sandbox();
         sandbox.create_file("tools/node/1.2.3/index.js", "");

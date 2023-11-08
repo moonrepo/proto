@@ -1,3 +1,4 @@
+use crate::helpers::ToolsLoader;
 use clap::Args;
 use dialoguer::Confirm;
 use proto_core::{get_plugins_dir, get_temp_dir, load_tool, Id, ProtoError, Tool, VersionSpec};
@@ -8,8 +9,6 @@ use starbase_utils::fs;
 use std::collections::HashSet;
 use std::time::{Duration, SystemTime};
 use tracing::{debug, info};
-
-use crate::helpers::ToolsLoader;
 
 #[derive(Args, Clone, Debug, Default)]
 pub struct CleanArgs {
