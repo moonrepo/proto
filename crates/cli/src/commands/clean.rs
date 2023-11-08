@@ -11,6 +11,8 @@ use std::collections::HashSet;
 use std::time::{Duration, SystemTime};
 use tracing::{debug, info};
 
+use crate::helpers::ToolsLoader;
+
 #[derive(Args, Clone, Debug, Default)]
 pub struct CleanArgs {
     #[arg(
@@ -45,7 +47,9 @@ fn is_older_than_days(now: u128, other: u128, days: u8) -> bool {
 pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miette::Result<usize> {
     info!("Checking {}", color::shell(tool.get_name()));
 
-    if !tool.is_installed() {
+    let inventory_dir = tool.get_inventory_dir();
+
+    if !inventory_dir.exists() {
         debug!("Not being used, skipping");
 
         return Ok(0);
@@ -55,7 +59,7 @@ pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miett
 
     debug!("Scanning file system for stale and untracked versions");
 
-    for dir in fs::read_dir(tool.get_inventory_dir())? {
+    for dir in fs::read_dir(inventory_dir)? {
         let dir_path = dir.path();
 
         let Ok(dir_type) = dir.file_type() else {
@@ -65,6 +69,7 @@ pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miett
         if dir_type.is_dir() {
             let dir_name = fs::file_name(&dir_path);
 
+            // Node.js compat
             if dir_name == "globals" {
                 continue;
             }
@@ -243,13 +248,10 @@ pub async fn internal_clean(args: &CleanArgs) -> SystemResult {
 
     info!("Finding installed tools to clean up...");
 
-    let mut tools_config = ToolsConfig::load_upwards()?;
-    tools_config.inherit_builtin_plugins();
+    let tools_loader = ToolsLoader::new()?;
 
-    if !tools_config.plugins.is_empty() {
-        for id in tools_config.plugins.keys() {
-            clean_count += clean_tool(load_tool(id).await?, now, days, args.yes).await?;
-        }
+    for tool in tools_loader.load_tools().await? {
+        clean_count += clean_tool(tool, now, days, args.yes).await?;
     }
 
     if clean_count > 0 {
