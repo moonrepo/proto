@@ -27,11 +27,13 @@ pub enum SystemArch {
 }
 
 impl SystemArch {
+    /// Return an instance derived from [`std::env::costs::ARCH`].
     pub fn from_env() -> SystemArch {
         serde_json::from_value(Value::String(consts::ARCH.to_owned()))
             .expect("Unknown architecture!")
     }
 
+    /// Convert to a [`std::env::costs::ARCH`] compatible string.
     pub fn to_rust_arch(&self) -> String {
         match self {
             Self::X64 => "x86_64".into(),
@@ -79,6 +81,7 @@ pub enum SystemOS {
 }
 
 impl SystemOS {
+    /// Return an instance derived from [`std::env::costs::OS`].
     pub fn from_env() -> SystemOS {
         serde_json::from_value(Value::String(consts::OS.to_owned()))
             .expect("Unknown operating system!")
@@ -113,6 +116,7 @@ impl SystemOS {
         }
     }
 
+    /// Return true if in the BSD family.
     pub fn is_bsd(&self) -> bool {
         matches!(
             self,
@@ -120,22 +124,27 @@ impl SystemOS {
         )
     }
 
+    /// Return true if Linux.
     pub fn is_linux(&self) -> bool {
         matches!(self, Self::Linux)
     }
 
+    /// Return true if MacOS.
     pub fn is_mac(&self) -> bool {
         matches!(self, Self::MacOS)
     }
 
+    /// Return true if a Unix based OS.
     pub fn is_unix(&self) -> bool {
         self.is_bsd() || matches!(self, Self::Linux | Self::MacOS)
     }
 
+    /// Return true if Windows.
     pub fn is_windows(&self) -> bool {
         matches!(self, Self::Windows)
     }
 
+    /// Convert to a [`std::env::costs::OS`] compatible string.
     pub fn to_rust_os(&self) -> String {
         self.to_string()
     }
@@ -159,6 +168,8 @@ impl fmt::Display for SystemOS {
     }
 }
 
+/// Return true if the provided program (without extension) is available
+/// on `PATH`. Will use `PATHEXT` to cycle through known extensions.
 #[cfg(windows)]
 pub fn is_command_on_path(name: &str) -> bool {
     let Ok(system_path) = env::var("PATH") else {
@@ -180,6 +191,7 @@ pub fn is_command_on_path(name: &str) -> bool {
     false
 }
 
+/// Return true if the provided command is available on `PATH`.
 #[cfg(not(windows))]
 pub fn is_command_on_path(name: &str) -> bool {
     let Ok(system_path) = env::var("PATH") else {
