@@ -3,10 +3,9 @@ use crate::error::ProtoCliError;
 use clap::Args;
 use miette::IntoDiagnostic;
 use proto_core::{detect_version, load_tool, Id, ProtoError, Tool, UnresolvedVersionSpec};
-use proto_pdk_api::RunHook;
+use proto_pdk_api::{ExecutableConfig, RunHook};
 use starbase::system;
 use std::env;
-use std::path::Path;
 use std::process::exit;
 use system_env::is_command_on_path;
 use tokio::process::Command;
@@ -20,7 +19,10 @@ pub struct RunArgs {
     #[arg(help = "Version or alias of tool")]
     spec: Option<UnresolvedVersionSpec>,
 
-    #[arg(long, help = "Path to a relative alternate binary to run")]
+    #[arg(long, help = "Name of an alternate (secondary) binary to run")]
+    alt: Option<String>,
+
+    #[arg(long, help = "Path to a tool directory relative file to run")]
     bin: Option<String>,
 
     // Passthrough args (after --)
@@ -49,7 +51,75 @@ fn is_trying_to_self_upgrade(tool: &Tool, args: &[String]) -> bool {
     false
 }
 
-fn create_command(exe_path: &Path, args: &[String]) -> Command {
+fn get_executable(tool: &Tool, args: &RunArgs) -> miette::Result<ExecutableConfig> {
+    let tool_dir = tool.get_tool_dir();
+
+    // Run a file relative from the tool directory
+    if let Some(alt_bin) = &args.bin {
+        let alt_path = tool_dir.join(alt_bin);
+
+        debug!(bin = alt_bin, path = ?alt_path, "Received a relative binary to run with");
+
+        if alt_path.exists() {
+            return Ok(ExecutableConfig {
+                exe_path: Some(alt_path),
+                ..ExecutableConfig::default()
+            });
+        } else {
+            return Err(ProtoCliError::MissingRunAltBin {
+                bin: alt_bin.to_owned(),
+                path: alt_path,
+            }
+            .into());
+        }
+    }
+
+    // Run an alternate executable (via shim)
+    if let Some(alt_name) = &args.alt {
+        for location in tool.get_shim_locations()? {
+            if location.name == *alt_name {
+                let Some(exe_path) = &location.config.exe_path else {
+                    continue;
+                };
+
+                let alt_path = tool_dir.join(exe_path);
+
+                if alt_path.exists() {
+                    debug!(
+                        bin = alt_name,
+                        path = ?alt_path,
+                        "Received an alternate binary to run with",
+                    );
+
+                    return Ok(ExecutableConfig {
+                        exe_path: Some(alt_path),
+                        ..location.config
+                    });
+                }
+            }
+        }
+
+        return Err(ProtoCliError::MissingRunAltBin {
+            bin: alt_name.to_owned(),
+            path: tool_dir,
+        }
+        .into());
+    }
+
+    // Otherwise use the primary
+    let mut config = tool
+        .get_exe_location()?
+        .expect("Required executable information missing!")
+        .config;
+
+    config.exe_path = Some(tool_dir.join(config.exe_path.as_ref().unwrap()));
+
+    Ok(config)
+}
+
+fn create_command(exe_config: &ExecutableConfig, args: &[String]) -> Command {
+    let exe_path = exe_config.exe_path.as_ref().unwrap();
+
     match exe_path.extension().map(|e| e.to_str().unwrap()) {
         Some("ps1" | "cmd" | "bat") => {
             let mut cmd = Command::new(if is_command_on_path("pwsh") {
@@ -58,17 +128,28 @@ fn create_command(exe_path: &Path, args: &[String]) -> Command {
                 "powershell"
             });
             cmd.arg("-Command");
-            cmd.arg(format!(
-                "{} {}",
-                exe_path.display(),
-                shell_words::join(args)
-            ));
+            cmd.arg(
+                format!(
+                    "{} {} {}",
+                    exe_config.parent_exe_name.clone().unwrap_or_default(),
+                    exe_path.display(),
+                    shell_words::join(args)
+                )
+                .trim(),
+            );
             cmd
         }
         _ => {
-            let mut cmd = Command::new(exe_path);
-            cmd.args(args);
-            cmd
+            if let Some(parent_exe) = &exe_config.parent_exe_name {
+                let mut cmd = Command::new(parent_exe);
+                cmd.arg(exe_path);
+                cmd.args(args);
+                cmd
+            } else {
+                let mut cmd = Command::new(exe_path);
+                cmd.args(args);
+                cmd
+            }
         }
     }
 }
@@ -117,26 +198,9 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
     }
 
     // Determine the binary path to execute
-    let exe_path = match &args.bin {
-        Some(alt_bin) => {
-            let alt_path = tool.get_tool_dir().join(alt_bin);
+    let exe_config = get_executable(&tool, args)?;
 
-            debug!(bin = alt_bin, path = ?alt_path, "Received an alternate binary to run with");
-
-            if alt_path.exists() {
-                alt_path
-            } else {
-                return Err(ProtoCliError::MissingRunAltBin {
-                    bin: alt_bin.to_owned(),
-                    path: alt_path,
-                }
-                .into());
-            }
-        }
-        None => tool.get_exe_path()?.to_path_buf(),
-    };
-
-    debug!(bin = ?exe_path, args = ?args.passthrough, "Running {}", tool.get_name());
+    debug!(bin = ?exe_config.exe_path, args = ?args.passthrough, "Running {}", tool.get_name());
 
     // Run before hook
     tool.run_hook("pre_run", || RunHook {
@@ -145,14 +209,14 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
     })?;
 
     // Run the command
-    let status = create_command(&exe_path, &args.passthrough)
+    let status = create_command(&exe_config, &args.passthrough)
         .env(
             format!("{}_VERSION", tool.get_env_var_prefix()),
             tool.get_resolved_version().to_string(),
         )
         .env(
             format!("{}_BIN", tool.get_env_var_prefix()),
-            exe_path.to_string_lossy().to_string(),
+            exe_config.exe_path.unwrap().to_string_lossy().to_string(),
         )
         .spawn()
         .into_diagnostic()?

@@ -4,7 +4,7 @@ members = ["crates/*"]
 default-members = ["crates/cli"]
 
 [workspace.dependencies]
-cached = "0.46.0"
+cached = "0.46.1"
 clap = "4.4.7"
 clap_complete = "4.4.4"
 convert_case = "0.6.0"
@@ -20,7 +20,7 @@ schematic = { version = "0.12.7", default-features = false, features = [
 	"schema",
 ] }
 semver = "1.0.20"
-serde = { version = "1.0.190", features = ["derive"] }
+serde = { version = "1.0.192", features = ["derive"] }
 serde_json = "1.0.108"
 sha2 = "0.10.8"
 starbase = "0.2.9"
