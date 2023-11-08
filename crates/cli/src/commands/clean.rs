@@ -1,8 +1,6 @@
 use clap::Args;
 use dialoguer::Confirm;
-use proto_core::{
-    get_plugins_dir, get_temp_dir, load_tool, Id, ProtoError, Tool, ToolsConfig, VersionSpec,
-};
+use proto_core::{get_plugins_dir, get_temp_dir, load_tool, Id, ProtoError, Tool, VersionSpec};
 use starbase::diagnostics::IntoDiagnostic;
 use starbase::{system, SystemResult};
 use starbase_styles::color;
@@ -45,7 +43,7 @@ fn is_older_than_days(now: u128, other: u128, days: u8) -> bool {
 }
 
 pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miette::Result<usize> {
-    info!("Checking {}", color::shell(tool.get_name()));
+    debug!("Checking {}", color::shell(tool.get_name()));
 
     let inventory_dir = tool.get_inventory_dir();
 
@@ -246,7 +244,7 @@ pub async fn internal_clean(args: &CleanArgs) -> SystemResult {
         .as_millis();
     let mut clean_count = 0;
 
-    info!("Finding installed tools to clean up...");
+    debug!("Finding installed tools to clean up...");
 
     let tools_loader = ToolsLoader::new()?;
 
@@ -258,7 +256,7 @@ pub async fn internal_clean(args: &CleanArgs) -> SystemResult {
         info!("Successfully cleaned up {} versions", clean_count);
     }
 
-    info!("Finding installed plugins to clean up...");
+    debug!("Finding installed plugins to clean up...");
 
     clean_count = clean_plugins(days as u64).await?;
 
@@ -266,14 +264,16 @@ pub async fn internal_clean(args: &CleanArgs) -> SystemResult {
         info!("Successfully cleaned up {} plugins", clean_count);
     }
 
-    info!("Cleaning temporary directory...");
+    debug!("Cleaning temporary directory...");
 
     let results = fs::remove_dir_stale_contents(get_temp_dir()?, Duration::from_secs(86400))?;
 
-    info!(
-        "Successfully cleaned {} temporary files ({} bytes)",
-        results.files_deleted, results.bytes_saved
-    );
+    if results.files_deleted > 0 {
+        info!(
+            "Successfully cleaned {} temporary files ({} bytes)",
+            results.files_deleted, results.bytes_saved
+        );
+    }
 
     Ok(())
 }
