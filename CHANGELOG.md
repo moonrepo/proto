@@ -43,6 +43,13 @@
 
 #### 🧩 Plugins
 
+- Updated `bun_plugin` to v0.5.
+- Updated `deno_plugin` to v0.5.
+- Updated `go_plugin` to v0.5.
+- Updated `node_plugin` and `node_depman_plugin` to v0.5.
+- Updated `python_plugin` to v0.2.
+- Updated `rust_plugin` to v0.4.
+- Updated `schema_plugin` (TOML) to v0.5.
 - **Node**
   - Updated the `npm` tool to create the `npx` shim instead of the `node` tool.
   - Updated symlinked binaries to use the shell scripts instead of the source `.js` files (when applicable).
