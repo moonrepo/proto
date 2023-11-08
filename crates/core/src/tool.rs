@@ -1378,7 +1378,8 @@ impl Tool {
             context.before_args = location.config.shim_before_args.as_deref();
             context.after_args = location.config.shim_after_args.as_deref();
 
-            if !location.primary {
+            // Only use --alt when the secondary executable exists
+            if !location.primary && location.config.exe_path.is_some() {
                 context.alt_bin = Some(&location.name);
             }
 

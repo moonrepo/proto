@@ -74,11 +74,11 @@ fn get_executable(tool: &Tool, args: &RunArgs) -> miette::Result<ExecutableConfi
         }
     }
 
-    // Run an alternate executable (bin/shim)
+    // Run an alternate executable (via shim)
     if let Some(alt_name) = &args.alt {
-        for bin in tool.get_bin_locations()? {
-            if &bin.name == alt_name {
-                let Some(exe_path) = &bin.config.exe_path else {
+        for location in tool.get_shim_locations()? {
+            if location.name == *alt_name {
+                let Some(exe_path) = &location.config.exe_path else {
                     continue;
                 };
 
@@ -93,7 +93,7 @@ fn get_executable(tool: &Tool, args: &RunArgs) -> miette::Result<ExecutableConfi
 
                     return Ok(ExecutableConfig {
                         exe_path: Some(alt_path),
-                        ..bin.config
+                        ..location.config
                     });
                 }
             }
