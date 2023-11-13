@@ -366,6 +366,7 @@ json_struct!(
         pub no_shim: bool,
 
         /// The parent executable name required to execute the local executable path.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub parent_exe_name: Option<String>,
 
         /// Custom args to prepend to user-provided args within the generated shim.
