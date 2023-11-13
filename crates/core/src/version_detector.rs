@@ -60,7 +60,7 @@ pub async fn detect_version(
             if let Some(local_version) = config.tools.get(&tool.id) {
                 debug!(
                     tool = tool.id.as_str(),
-                    version = ?local_version,
+                    version = local_version.to_string(),
                     file = ?config.path,
                     "Detected version from .prototools file",
                 );

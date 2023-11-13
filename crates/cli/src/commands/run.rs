@@ -199,8 +199,9 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
 
     // Determine the binary path to execute
     let exe_config = get_executable(&tool, args)?;
+    let exe_path = exe_config.exe_path.as_ref().unwrap();
 
-    debug!(bin = ?exe_config.exe_path, args = ?args.passthrough, "Running {}", tool.get_name());
+    debug!(bin = ?exe_path, args = ?args.passthrough, "Running {}", tool.get_name());
 
     // Run before hook
     tool.run_hook("pre_run", || RunHook {
@@ -216,7 +217,7 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
         )
         .env(
             format!("{}_BIN", tool.get_env_var_prefix()),
-            exe_config.exe_path.unwrap().to_string_lossy().to_string(),
+            exe_path.to_string_lossy().to_string(),
         )
         .spawn()
         .into_diagnostic()?
