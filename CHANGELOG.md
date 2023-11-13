@@ -14,6 +14,7 @@
 
 #### Updates
 
+- Added support to plugins to ignore certain paths when detecting a version.
 - WASM API
   - Added `DetectVersionOutput.ignore` field.
 
