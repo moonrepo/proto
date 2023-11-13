@@ -546,6 +546,11 @@ impl Tool {
             return Ok(None);
         }
 
+        // TODO move this into plugins
+        if current_dir.to_string_lossy().contains("node_modules") {
+            return Ok(None);
+        }
+
         let has_parser = self.plugin.has_func("parse_version_file");
         let result: DetectVersionOutput = self.plugin.cache_func("detect_version_files")?;
 
