@@ -8,6 +8,14 @@ use warpgate_api::VirtualPath;
 
 pub use semver::{Version, VersionReq};
 
+fn is_empty_map<K, V>(value: &HashMap<K, V>) -> bool {
+    value.is_empty()
+}
+
+fn is_empty_vec<T>(value: &[T]) -> bool {
+    value.is_empty()
+}
+
 fn is_false(value: &bool) -> bool {
     !(*value)
 }
@@ -103,6 +111,7 @@ json_struct!(
 
         /// Names of commands that will self-upgrade the tool,
         /// and should be blocked from happening.
+        #[serde(skip_serializing_if = "is_empty_vec")]
         pub self_upgrade_commands: Vec<String>,
 
         /// Type of the tool.
@@ -117,7 +126,12 @@ json_struct!(
     /// Output returned by the `detect_version_files` function.
     pub struct DetectVersionOutput {
         /// List of files that should be checked for version information.
+        #[serde(skip_serializing_if = "is_empty_vec")]
         pub files: Vec<String>,
+
+        /// List of path patterns to ignore when traversing directories.
+        #[serde(skip_serializing_if = "is_empty_vec")]
+        pub ignore: Vec<String>,
     }
 );
 
@@ -241,10 +255,12 @@ json_struct!(
 
         /// List of instructions to execute to build the tool, after system
         /// dependencies have been installed.
+        #[serde(skip_serializing_if = "is_empty_vec")]
         pub instructions: Vec<BuildInstruction>,
 
         /// List of system dependencies that are required for building from source.
         /// If a dependency does not exist, it will be installed.
+        #[serde(skip_serializing_if = "is_empty_vec")]
         pub system_dependencies: Vec<SystemDependency>,
     }
 );
@@ -401,6 +417,7 @@ json_struct!(
     pub struct LocateExecutablesOutput {
         /// List of directory paths to find the globals installation directory.
         /// Each path supports environment variable expansion.
+        #[serde(skip_serializing_if = "is_empty_vec")]
         pub globals_lookup_dirs: Vec<String>,
 
         /// A string that all global binaries are prefixed with, and will be removed
@@ -415,6 +432,7 @@ json_struct!(
 
         /// Configures secondary/additional executables to create.
         /// The map key is the name of the shim/binary file.
+        #[serde(skip_serializing_if = "is_empty_map")]
         pub secondary: HashMap<String, ExecutableConfig>,
     }
 );
@@ -525,9 +543,11 @@ json_struct!(
         pub latest: Option<Version>,
 
         /// Mapping of aliases (channels, etc) to a version.
+        #[serde(skip_serializing_if = "is_empty_map")]
         pub aliases: HashMap<String, Version>,
 
         /// List of available production versions to install.
+        #[serde(skip_serializing_if = "is_empty_vec")]
         pub versions: Vec<Version>,
     }
 );

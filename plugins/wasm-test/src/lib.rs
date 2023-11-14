@@ -39,6 +39,7 @@ pub fn register_tool(_: ()) -> FnResult<Json<ToolMetadataOutput>> {
 pub fn detect_version_files(_: ()) -> FnResult<Json<DetectVersionOutput>> {
     Ok(Json(DetectVersionOutput {
         files: vec![".proto-wasm-version".into(), ".protowasmrc".into()],
+        ignore: vec!["node_modules".into()],
     }))
 }
 
