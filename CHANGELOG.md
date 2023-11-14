@@ -10,6 +10,14 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### Updates
+
+- Added support to plugins to ignore certain paths when detecting a version.
+- WASM API
+  - Added `DetectVersionOutput.ignore` field.
+
 ## 0.22.2
 
 #### 🐞 Fixes

@@ -546,13 +546,16 @@ impl Tool {
             return Ok(None);
         }
 
-        // TODO move this into plugins
-        if current_dir.to_string_lossy().contains("node_modules") {
-            return Ok(None);
-        }
-
         let has_parser = self.plugin.has_func("parse_version_file");
         let result: DetectVersionOutput = self.plugin.cache_func("detect_version_files")?;
+
+        if !result.ignore.is_empty() {
+            if let Some(dir) = current_dir.to_str() {
+                if result.ignore.iter().any(|ignore| dir.contains(ignore)) {
+                    return Ok(None);
+                }
+            }
+        }
 
         trace!(
             tool = self.id.as_str(),
@@ -593,6 +596,7 @@ impl Tool {
             debug!(
                 tool = self.id.as_str(),
                 file = ?file_path,
+                version = version.to_string(),
                 "Detected a version"
             );
 
