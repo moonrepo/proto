@@ -11,7 +11,7 @@ pub async fn detect_version_first_available(
     start_dir: &Path,
     end_dir: &Path,
 ) -> miette::Result<Option<UnresolvedVersionSpec>> {
-    let mut current_dir: Option<&Path> = Some(&start_dir);
+    let mut current_dir: Option<&Path> = Some(start_dir);
 
     while let Some(dir) = current_dir {
         trace!(
@@ -61,7 +61,7 @@ pub async fn detect_version_prefer_prototools(
     let mut config_version = None;
     let mut config_path = None;
     let mut ecosystem_version = None;
-    let mut current_dir: Option<&Path> = Some(&start_dir);
+    let mut current_dir: Option<&Path> = Some(start_dir);
 
     while let Some(dir) = current_dir {
         trace!(
