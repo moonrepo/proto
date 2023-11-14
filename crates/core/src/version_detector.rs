@@ -6,7 +6,7 @@ use std::{env, path::Path};
 use tracing::{debug, trace};
 use version_spec::*;
 
-async fn detect_version_first_available(
+pub async fn detect_version_first_available(
     tool: &Tool,
     start_dir: &Path,
     end_dir: &Path,
@@ -53,7 +53,7 @@ async fn detect_version_first_available(
     Ok(None)
 }
 
-async fn detect_version_prefer_prototools(
+pub async fn detect_version_prefer_prototools(
     tool: &Tool,
     start_dir: &Path,
     end_dir: &Path,
