@@ -66,42 +66,46 @@ pub async fn tool_list_plugins(args: ArgsRef<ListToolPluginsArgs>) {
         )
         .unwrap();
 
-        match item.locator {
-            PluginLocator::SourceFile { path, .. } => {
-                writeln!(
-                    buffer,
-                    "  Source: {}",
-                    color::path(path.canonicalize().unwrap())
-                )
-                .unwrap();
-            }
-            PluginLocator::SourceUrl { url } => {
-                writeln!(buffer, "  Source: {}", color::url(url)).unwrap();
-            }
-            PluginLocator::GitHub(github) => {
-                writeln!(buffer, "  GitHub: {}", color::label(&github.repo_slug)).unwrap();
-
-                writeln!(
-                    buffer,
-                    "  Tag: {}",
-                    color::hash(github.tag.as_deref().unwrap_or("latest")),
-                )
-                .unwrap();
-            }
-            PluginLocator::Wapm(wapm) => {
-                writeln!(buffer, "  Package: {}", color::label(&wapm.package_name)).unwrap();
-
-                writeln!(
-                    buffer,
-                    "  Version: {}",
-                    color::hash(wapm.version.as_deref().unwrap_or("latest")),
-                )
-                .unwrap();
-            }
-        };
+        print_locator(&mut buffer, &item.locator);
 
         writeln!(buffer).unwrap();
     }
 
     buffer.flush().unwrap();
+}
+
+pub fn print_locator<T: Write>(buffer: &mut BufWriter<T>, locator: &PluginLocator) {
+    match locator {
+        PluginLocator::SourceFile { path, .. } => {
+            writeln!(
+                buffer,
+                "  Source: {}",
+                color::path(path.canonicalize().unwrap())
+            )
+            .unwrap();
+        }
+        PluginLocator::SourceUrl { url } => {
+            writeln!(buffer, "  Source: {}", color::url(url)).unwrap();
+        }
+        PluginLocator::GitHub(github) => {
+            writeln!(buffer, "  GitHub: {}", color::label(&github.repo_slug)).unwrap();
+
+            writeln!(
+                buffer,
+                "  Tag: {}",
+                color::hash(github.tag.as_deref().unwrap_or("latest")),
+            )
+            .unwrap();
+        }
+        PluginLocator::Wapm(wapm) => {
+            writeln!(buffer, "  Package: {}", color::label(&wapm.package_name)).unwrap();
+
+            writeln!(
+                buffer,
+                "  Version: {}",
+                color::hash(wapm.version.as_deref().unwrap_or("latest")),
+            )
+            .unwrap();
+        }
+    };
 }
