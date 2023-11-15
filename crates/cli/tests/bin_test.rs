@@ -82,7 +82,7 @@ mod bin {
             .assert();
 
         if cfg!(windows) {
-            assert.stdout(predicate::str::contains("shims\\npm.cmd"));
+            assert.stdout(predicate::str::contains("shims\\npm.ps1"));
         } else {
             assert.stdout(predicate::str::contains("shims/npm"));
         }
