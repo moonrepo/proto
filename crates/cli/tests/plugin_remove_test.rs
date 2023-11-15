@@ -5,7 +5,7 @@ use starbase_sandbox::predicates::prelude::*;
 use std::collections::BTreeMap;
 use utils::*;
 
-mod remove_plugin {
+mod plugin_remove {
     use super::*;
 
     #[test]

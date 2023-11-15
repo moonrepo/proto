@@ -5,7 +5,7 @@ use starbase_sandbox::predicates::prelude::*;
 use std::collections::BTreeMap;
 use utils::*;
 
-mod add_plugin {
+mod plugin_add {
     use super::*;
 
     #[test]
