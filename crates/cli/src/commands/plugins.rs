@@ -7,8 +7,8 @@ use tracing::warn;
 pub async fn plugins() {
     warn!(
         "This command is deprecated, use {} instead",
-        color::shell("proto tool plugins")
+        color::shell("proto tool list-plugins")
     );
 
-    tool::tool_plugins(states, resources, emitters).await?;
+    tool::tool_list_plugins(states, resources, emitters).await?;
 }

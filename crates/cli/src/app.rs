@@ -1,7 +1,7 @@
 use crate::commands::{
     AddToolArgs, AliasArgs, BinArgs, CleanArgs, CompletionsArgs, InstallArgs, InstallGlobalArgs,
-    ListArgs, ListGlobalArgs, ListPluginsArgs, ListRemoteArgs, ListToolsArgs, MigrateArgs,
-    OutdatedArgs, PinArgs, RemoveToolArgs, RunArgs, SetupArgs, ToolPluginsArgs, UnaliasArgs,
+    ListArgs, ListGlobalArgs, ListPluginsArgs, ListRemoteArgs, ListToolPluginsArgs, ListToolsArgs,
+    MigrateArgs, OutdatedArgs, PinArgs, RemoveToolArgs, RunArgs, SetupArgs, UnaliasArgs,
     UninstallArgs, UninstallGlobalArgs,
 };
 use clap::builder::styling::{Color, Style, Styles};
@@ -262,8 +262,11 @@ pub enum ToolCommands {
     #[command(name = "list", about = "List all installed tools and their versions.")]
     List(ListToolsArgs),
 
-    #[command(name = "plugins", about = "List all active and configured plugins.")]
-    Plugins(ToolPluginsArgs),
+    #[command(
+        name = "list-plugins",
+        about = "List all active and configured plugins."
+    )]
+    ListPlugins(ListToolPluginsArgs),
 
     #[command(
         name = "remove",

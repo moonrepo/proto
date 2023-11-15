@@ -18,13 +18,13 @@ pub struct PluginItem {
 }
 
 #[derive(Args, Clone, Debug)]
-pub struct ToolPluginsArgs {
+pub struct ListToolPluginsArgs {
     #[arg(long, help = "Print the list in JSON format")]
     json: bool,
 }
 
 #[system]
-pub async fn tool_plugins(args: ArgsRef<ToolPluginsArgs>) {
+pub async fn tool_list_plugins(args: ArgsRef<ListToolPluginsArgs>) {
     if !args.json {
         info!("Loading plugins...");
     }

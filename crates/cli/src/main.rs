@@ -68,7 +68,9 @@ async fn main() -> MainResult {
         Commands::Tool { command } => match command {
             ToolCommands::Add(args) => app.execute_with_args(commands::tool_add, args),
             ToolCommands::List(args) => app.execute_with_args(commands::tool_list, args),
-            ToolCommands::Plugins(args) => app.execute_with_args(commands::tool_plugins, args),
+            ToolCommands::ListPlugins(args) => {
+                app.execute_with_args(commands::tool_list_plugins, args)
+            }
             ToolCommands::Remove(args) => app.execute_with_args(commands::tool_remove, args),
         },
         Commands::Tools(args) => app.execute_with_args(commands::tools, args),
