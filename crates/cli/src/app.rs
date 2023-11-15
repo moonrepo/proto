@@ -1,8 +1,8 @@
 use crate::commands::{
-    AddPluginArgs, AliasArgs, BinArgs, CleanArgs, CompletionsArgs, InstallArgs, InstallGlobalArgs,
-    ListArgs, ListGlobalArgs, ListRemoteArgs, MigrateArgs, OutdatedArgs, PinArgs, PluginsArgs,
-    RemovePluginArgs, RunArgs, SetupArgs, ToolsArgs, UnaliasArgs, UninstallArgs,
-    UninstallGlobalArgs,
+    tool::{AddToolArgs, ListToolPluginsArgs, ListToolsArgs, RemoveToolArgs, ToolInfoArgs},
+    AliasArgs, BinArgs, CleanArgs, CompletionsArgs, InstallArgs, InstallGlobalArgs, ListArgs,
+    ListGlobalArgs, ListRemoteArgs, MigrateArgs, OutdatedArgs, PinArgs, RunArgs, SetupArgs,
+    UnaliasArgs, UninstallArgs, UninstallGlobalArgs,
 };
 use clap::builder::styling::{Color, Style, Styles};
 use clap::{Parser, Subcommand, ValueEnum};
@@ -85,9 +85,10 @@ pub enum Commands {
         alias = "ap",
         name = "add-plugin",
         about = "Add a plugin.",
-        long_about = "Add a plugin to the local .prototools config, or global ~/.proto/config.toml config."
+        long_about = "Add a plugin to the local .prototools config, or global ~/.proto/config.toml config.",
+        hide = true
     )]
-    AddPlugin(AddPluginArgs),
+    AddPlugin(AddToolArgs),
 
     #[command(
         alias = "a",
@@ -176,16 +177,21 @@ pub enum Commands {
     )]
     Pin(PinArgs),
 
-    #[command(name = "plugins", about = "List all active and configured plugins.")]
-    Plugins(PluginsArgs),
+    #[command(
+        name = "plugins",
+        about = "List all active and configured plugins.",
+        hide = true
+    )]
+    Plugins(ListToolPluginsArgs),
 
     #[command(
         alias = "rp",
         name = "remove-plugin",
         about = "Remove a plugin.",
-        long_about = "Remove a plugin from the local .prototools config, or global ~/.proto/config.toml config."
+        long_about = "Remove a plugin from the local .prototools config, or global ~/.proto/config.toml config.",
+        hide = true
     )]
-    RemovePlugin(RemovePluginArgs),
+    RemovePlugin(RemoveToolArgs),
 
     #[command(
         alias = "r",
@@ -198,8 +204,18 @@ pub enum Commands {
     #[command(name = "setup", about = "Setup proto for your current shell.")]
     Setup(SetupArgs),
 
-    #[command(name = "tools", about = "List all installed tools and their versions.")]
-    Tools(ToolsArgs),
+    #[command(name = "tool", about = "Operations for managing tools and plugins.")]
+    Tool {
+        #[command(subcommand)]
+        command: ToolCommands,
+    },
+
+    #[command(
+        name = "tools",
+        about = "List all installed tools and their versions.",
+        hide = true
+    )]
+    Tools(ListToolsArgs),
 
     #[command(alias = "ua", name = "unalias", about = "Remove an alias from a tool.")]
     Unalias(UnaliasArgs),
@@ -232,4 +248,37 @@ pub enum Commands {
         about = "Download and install all tools from the closest .prototools."
     )]
     Use,
+}
+
+#[derive(Clone, Debug, Subcommand)]
+pub enum ToolCommands {
+    #[command(
+        name = "add",
+        about = "Add a tool plugin.",
+        long_about = "Add a plugin to the local .prototools config, or global ~/.proto/config.toml config."
+    )]
+    Add(AddToolArgs),
+
+    #[command(
+        name = "info",
+        about = "Display information about a tool and its plugin."
+    )]
+    Info(ToolInfoArgs),
+
+    #[command(name = "list", about = "List all installed tools and their versions.")]
+    List(ListToolsArgs),
+
+    #[command(
+        alias = "plugins",
+        name = "list-plugins",
+        about = "List all active and configured plugins."
+    )]
+    ListPlugins(ListToolPluginsArgs),
+
+    #[command(
+        name = "remove",
+        about = "Remove a tool plugin.",
+        long_about = "Remove a plugin from the local .prototools config, or global ~/.proto/config.toml config."
+    )]
+    Remove(RemoveToolArgs),
 }

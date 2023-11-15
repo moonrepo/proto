@@ -2,9 +2,10 @@ mod app;
 mod commands;
 mod error;
 mod helpers;
+mod printer;
 mod shell;
 
-use app::{App as CLI, Commands};
+use app::{App as CLI, Commands, ToolCommands};
 use clap::Parser;
 use starbase::{tracing::TracingOptions, App, MainResult};
 use starbase_utils::string_vec;
@@ -48,7 +49,7 @@ async fn main() -> MainResult {
     let mut app = App::new();
 
     match cli.command {
-        Commands::AddPlugin(args) => app.execute_with_args(commands::add_plugin, args),
+        Commands::AddPlugin(args) => app.execute_with_args(commands::add_plugin_old, args),
         Commands::Alias(args) => app.execute_with_args(commands::alias, args),
         Commands::Bin(args) => app.execute_with_args(commands::bin, args),
         Commands::Clean(args) => app.execute_with_args(commands::clean, args),
@@ -62,9 +63,18 @@ async fn main() -> MainResult {
         Commands::Outdated(args) => app.execute_with_args(commands::outdated, args),
         Commands::Pin(args) => app.execute_with_args(commands::pin, args),
         Commands::Plugins(args) => app.execute_with_args(commands::plugins, args),
-        Commands::RemovePlugin(args) => app.execute_with_args(commands::remove_plugin, args),
+        Commands::RemovePlugin(args) => app.execute_with_args(commands::remove_plugin_old, args),
         Commands::Run(args) => app.execute_with_args(commands::run, args),
         Commands::Setup(args) => app.execute_with_args(commands::setup, args),
+        Commands::Tool { command } => match command {
+            ToolCommands::Add(args) => app.execute_with_args(commands::tool::add, args),
+            ToolCommands::Info(args) => app.execute_with_args(commands::tool::info, args),
+            ToolCommands::List(args) => app.execute_with_args(commands::tool::list, args),
+            ToolCommands::ListPlugins(args) => {
+                app.execute_with_args(commands::tool::list_plugins, args)
+            }
+            ToolCommands::Remove(args) => app.execute_with_args(commands::tool::remove, args),
+        },
         Commands::Tools(args) => app.execute_with_args(commands::tools, args),
         Commands::Unalias(args) => app.execute_with_args(commands::unalias, args),
         Commands::Uninstall(args) => app.execute_with_args(commands::uninstall, args),
