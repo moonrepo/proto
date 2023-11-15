@@ -82,10 +82,8 @@ fn build_shim_file(context: &ShimContext, shim_path: &Path) -> miette::Result<St
 
     template.add_formatter("uppercase", format_uppercase);
 
-    let contents = get_template(shim_path);
-
     template
-        .add_template("shim", &contents)
+        .add_template("shim", get_template(shim_path))
         .map_err(|error| ProtoError::Shim {
             path: shim_path.to_path_buf(),
             error,

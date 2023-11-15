@@ -52,6 +52,11 @@ thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 
+# Force latest rustls
+rustls = "0.21.8"
+rustls-pemfile = "1.0.4"
+rustls-webpki = "0.101.7"
+
 [target.'cfg(windows)'.dependencies]
 winreg = "0.51.0"
 

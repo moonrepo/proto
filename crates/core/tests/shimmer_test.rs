@@ -6,7 +6,7 @@ mod shimmer {
     use std::fs;
     use std::path::Path;
 
-    fn create_context<'l>(id: &'l str) -> ShimContext<'l> {
+    fn create_context(id: &str) -> ShimContext {
         ShimContext {
             bin: id,
             tool_id: id,

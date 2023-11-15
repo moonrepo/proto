@@ -12,7 +12,7 @@ proto_core = { version = "0.22.5", path = "../core" }
 proto_pdk_api = { version = "0.10.3", path = "../pdk-api" }
 extism = { workspace = true }
 serde_json = { workspace = true }
-toml = { version = "0.8.6", optional = true }
+toml = { version = "0.8.8", optional = true }
 
 [features]
 default = []
