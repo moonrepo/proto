@@ -4,7 +4,7 @@ mod error;
 mod helpers;
 mod shell;
 
-use app::{App as CLI, Commands, PluginCommands};
+use app::{App as CLI, Commands, ToolCommands};
 use clap::Parser;
 use starbase::{tracing::TracingOptions, App, MainResult};
 use starbase_utils::string_vec;
@@ -61,15 +61,15 @@ async fn main() -> MainResult {
         Commands::Migrate(args) => app.execute_with_args(commands::migrate, args),
         Commands::Outdated(args) => app.execute_with_args(commands::outdated, args),
         Commands::Pin(args) => app.execute_with_args(commands::pin, args),
-        Commands::Plugin { command } => match command {
-            PluginCommands::Add(args) => app.execute_with_args(commands::add_plugin, args),
-            PluginCommands::List(args) => app.execute_with_args(commands::list_plugins, args),
-            PluginCommands::Remove(args) => app.execute_with_args(commands::remove_plugin, args),
-        },
         Commands::Plugins(args) => app.execute_with_args(commands::plugins, args),
         Commands::RemovePlugin(args) => app.execute_with_args(commands::remove_plugin_old, args),
         Commands::Run(args) => app.execute_with_args(commands::run, args),
         Commands::Setup(args) => app.execute_with_args(commands::setup, args),
+        Commands::Tool { command } => match command {
+            ToolCommands::Add(args) => app.execute_with_args(commands::add_tool, args),
+            ToolCommands::Plugins(args) => app.execute_with_args(commands::tool_plugins, args),
+            ToolCommands::Remove(args) => app.execute_with_args(commands::remove_tool, args),
+        },
         Commands::Tools(args) => app.execute_with_args(commands::tools, args),
         Commands::Unalias(args) => app.execute_with_args(commands::unalias, args),
         Commands::Uninstall(args) => app.execute_with_args(commands::uninstall, args),

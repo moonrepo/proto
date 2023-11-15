@@ -1,4 +1,4 @@
-use crate::commands::plugin;
+use crate::commands::tool;
 use starbase::system;
 use starbase_styles::color;
 use tracing::warn;
@@ -7,8 +7,8 @@ use tracing::warn;
 pub async fn plugins() {
     warn!(
         "This command is deprecated, use {} instead",
-        color::shell("proto plugin list")
+        color::shell("proto tool plugins")
     );
 
-    plugin::list_plugins(states, resources, emitters).await?;
+    tool::tool_plugins(states, resources, emitters).await?;
 }

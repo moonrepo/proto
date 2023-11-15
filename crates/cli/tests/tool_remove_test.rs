@@ -13,7 +13,7 @@ mod plugin_remove {
         let sandbox = create_empty_sandbox();
 
         let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd.arg("remove-plugin").arg("id").assert();
+        let assert = cmd.arg("tool").arg("remove").arg("id").assert();
 
         assert.stderr(predicate::str::contains(
             "No .prototools has been found in current directory.",
@@ -31,7 +31,7 @@ mod plugin_remove {
         config.save().unwrap();
 
         let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("remove-plugin").arg("id").assert().success();
+        cmd.arg("tool").arg("remove").arg("id").assert().success();
 
         let config = ToolsConfig::load_from(sandbox.path()).unwrap();
 
@@ -49,7 +49,8 @@ mod plugin_remove {
         config.save().unwrap();
 
         let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("remove-plugin")
+        cmd.arg("tool")
+            .arg("remove")
             .arg("id")
             .arg("--global")
             .assert()

@@ -5,8 +5,8 @@ use starbase_styles::color;
 use tracing::info;
 
 #[derive(Args, Clone, Debug)]
-pub struct AddPluginArgs {
-    #[arg(required = true, help = "ID of plugin")]
+pub struct AddToolArgs {
+    #[arg(required = true, help = "ID of tool")]
     id: Id,
 
     #[arg(required = true, help = "Locator string to find and load the plugin")]
@@ -20,7 +20,7 @@ pub struct AddPluginArgs {
 }
 
 #[system]
-pub async fn add_plugin(args: ArgsRef<AddPluginArgs>) {
+pub async fn add_tool(args: ArgsRef<AddToolArgs>) {
     if args.global {
         let mut user_config = UserConfig::load()?;
         user_config

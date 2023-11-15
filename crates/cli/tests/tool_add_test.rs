@@ -5,7 +5,7 @@ use starbase_sandbox::predicates::prelude::*;
 use std::collections::BTreeMap;
 use utils::*;
 
-mod plugin_add {
+mod tool_add {
     use super::*;
 
     #[test]
@@ -14,7 +14,8 @@ mod plugin_add {
 
         let mut cmd = create_proto_command(sandbox.path());
         let assert = cmd
-            .arg("add-plugin")
+            .arg("tool")
+            .arg("add")
             .arg("id")
             .arg("some-fake-value")
             .assert();
@@ -32,7 +33,7 @@ mod plugin_add {
         assert!(!config_file.exists());
 
         let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("add-plugin")
+        cmd.arg("tool").arg("add")
             .arg("id")
             .arg("source:https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm")
             .assert()
@@ -61,7 +62,7 @@ mod plugin_add {
         assert!(!config_file.exists());
 
         let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("add-plugin")
+        cmd.arg("tool").arg("add")
             .arg("id")
             .arg("source:https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm")
             .arg("--global")

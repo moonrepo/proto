@@ -40,7 +40,7 @@ where
     }
 }
 
-mod plugin_list {
+mod tool_plugins {
     use super::*;
 
     #[tokio::test]

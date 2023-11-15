@@ -8,8 +8,8 @@ use std::path::PathBuf;
 use tracing::info;
 
 #[derive(Args, Clone, Debug)]
-pub struct RemovePluginArgs {
-    #[arg(required = true, help = "ID of plugin")]
+pub struct RemoveToolArgs {
+    #[arg(required = true, help = "ID of tool")]
     id: Id,
 
     #[arg(
@@ -20,7 +20,7 @@ pub struct RemovePluginArgs {
 }
 
 #[system]
-pub async fn remove_plugin(args: ArgsRef<RemovePluginArgs>) {
+pub async fn remove_tool(args: ArgsRef<RemoveToolArgs>) {
     if args.global {
         let mut user_config = UserConfig::load()?;
         user_config.plugins.remove(&args.id);
