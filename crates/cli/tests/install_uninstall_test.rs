@@ -116,6 +116,27 @@ mod install_uninstall {
     }
 
     #[test]
+    fn creates_all_shims() {
+        let temp = create_empty_sandbox();
+
+        let mut cmd = create_proto_command(temp.path());
+        cmd.arg("install")
+            .arg("node")
+            .arg("19.0.0")
+            .arg("--")
+            .arg("--no-bundled-npm")
+            .assert();
+
+        if cfg!(windows) {
+            assert!(temp.path().join("shims/node").exists());
+            assert!(temp.path().join("shims/node.cmd").exists());
+            assert!(temp.path().join("shims/node.ps1").exists());
+        } else {
+            assert!(temp.path().join("shims/node").exists());
+        }
+    }
+
+    #[test]
     fn updates_the_manifest_when_installing() {
         let temp = create_empty_sandbox();
         let manifest_file = temp.path().join("tools/node/manifest.json");

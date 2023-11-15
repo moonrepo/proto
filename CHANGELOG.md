@@ -18,6 +18,7 @@
   - `first-available` (default) - Will use the first available version that is found. Either from `.prototools` or a tool specific file (`.nvmrc`, etc).
   - `prefer-prototools` - Prefer a `.prototools` version, even if found in a parent directory. If none found, falls back to tool specific file.
 - Added support to plugins to ignore certain paths when detecting a version.
+- Updated Windows to create 3 shim files for each tool: `.cmd` (cmd.exe), `.ps1` (powershell), and no extension (bash).
 - WASM API
   - Added `DetectVersionOutput.ignore` field.
 

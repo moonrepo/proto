@@ -3,12 +3,12 @@ use serde::Serialize;
 use serde_json::Value;
 use starbase_utils::fs;
 use std::fmt::Write;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use tinytemplate::error::Error as TemplateError;
 use tinytemplate::TinyTemplate;
 use tracing::debug;
 
-pub const SHIM_VERSION: u8 = 8;
+pub const SHIM_VERSION: u8 = 9;
 
 #[derive(Debug, Default, Serialize)]
 pub struct ShimContext<'tool> {
@@ -28,12 +28,6 @@ pub struct ShimContext<'tool> {
     // TOOL INFO
     /// ID of the tool, for logging purposes.
     pub tool_id: &'tool str,
-
-    /// Path to the proto tool installation directory.
-    pub tool_dir: Option<PathBuf>,
-
-    /// Current resolved version.
-    pub tool_version: Option<String>,
 }
 
 impl<'tool> ShimContext<'tool> {
@@ -48,7 +42,7 @@ impl<'tool> ShimContext<'tool> {
              "Creating global shim"
         );
 
-        fs::write_file(shim_path, build_shim_file(self, shim_path, true)?)?;
+        fs::write_file(shim_path, build_shim_file(self, shim_path)?)?;
         fs::update_perms(shim_path, None)?;
 
         Ok(())
@@ -69,49 +63,27 @@ fn format_uppercase(value: &Value, output: &mut String) -> Result<(), TemplateEr
     Ok(())
 }
 
-fn get_template_header<'l>(global: bool) -> &'l str {
-    if cfg!(windows) {
-        if global {
-            include_str!("../templates/cmd_header.tpl")
-        } else {
-            include_str!("../templates/pwsh_header.tpl")
-        }
-    } else {
-        include_str!("../templates/bash_header.tpl")
+#[cfg(windows)]
+fn get_template<'l>(shim_path: &Path) -> &'l str {
+    match shim_path.extension().map(|ext| ext.to_str().unwrap()) {
+        Some("cmd") => include_str!("../templates/windows/cmd.tpl"),
+        Some("ps1") => include_str!("../templates/windows/ps1.tpl"),
+        _ => include_str!("../templates/windows/sh.tpl"),
     }
 }
 
-fn get_template<'l>(global: bool) -> &'l str {
-    if cfg!(windows) {
-        if global {
-            include_str!("../templates/cmd_global.tpl")
-        } else {
-            include_str!("../templates/pwsh_local.tpl")
-        }
-    } else if global {
-        include_str!("../templates/bash_global.tpl")
-    } else {
-        include_str!("../templates/bash_local.tpl")
-    }
+#[cfg(not(windows))]
+fn get_template<'l>(_shim_path: &Path) -> &'l str {
+    include_str!("../templates/unix/sh.tpl")
 }
 
-fn build_shim_file(
-    context: &ShimContext,
-    shim_path: &Path,
-    global: bool,
-) -> miette::Result<String> {
+fn build_shim_file(context: &ShimContext, shim_path: &Path) -> miette::Result<String> {
     let mut template = TinyTemplate::new();
 
     template.add_formatter("uppercase", format_uppercase);
 
-    let contents = format!(
-        "{}\n\n{}",
-        get_template_header(global),
-        get_template(global)
-    );
-
     template
-        .add_template("shim", &contents)
+        .add_template("shim", get_template(shim_path))
         .map_err(|error| ProtoError::Shim {
             path: shim_path.to_path_buf(),
             error,
@@ -128,11 +100,16 @@ fn build_shim_file(
 }
 
 #[cfg(windows)]
-pub fn get_shim_file_name(name: &str, global: bool) -> String {
-    format!("{name}.{}", if global { "cmd" } else { "ps1" })
+pub fn get_shim_file_names(name: &str) -> Vec<String> {
+    // Order is important!
+    vec![
+        format!("{name}.ps1"),
+        format!("{name}.cmd"),
+        format!("{name}"),
+    ]
 }
 
 #[cfg(not(windows))]
-pub fn get_shim_file_name(name: &str, _global: bool) -> String {
-    name.to_owned()
+pub fn get_shim_file_names(name: &str) -> Vec<String> {
+    vec![name.to_owned()]
 }
