@@ -85,7 +85,8 @@ pub enum Commands {
         alias = "ap",
         name = "add-plugin",
         about = "Add a plugin.",
-        long_about = "Add a plugin to the local .prototools config, or global ~/.proto/config.toml config."
+        long_about = "Add a plugin to the local .prototools config, or global ~/.proto/config.toml config.",
+        hide = true
     )]
     AddPlugin(AddPluginArgs),
 
@@ -176,6 +177,12 @@ pub enum Commands {
     )]
     Pin(PinArgs),
 
+    #[command(name = "plugin", about = "Operations for managing plugins.")]
+    Plugin {
+        #[command(subcommand)]
+        command: PluginCommands,
+    },
+
     #[command(name = "plugins", about = "List all active and configured plugins.")]
     Plugins(PluginsArgs),
 
@@ -183,7 +190,8 @@ pub enum Commands {
         alias = "rp",
         name = "remove-plugin",
         about = "Remove a plugin.",
-        long_about = "Remove a plugin from the local .prototools config, or global ~/.proto/config.toml config."
+        long_about = "Remove a plugin from the local .prototools config, or global ~/.proto/config.toml config.",
+        hide = true
     )]
     RemovePlugin(RemovePluginArgs),
 
@@ -232,4 +240,21 @@ pub enum Commands {
         about = "Download and install all tools from the closest .prototools."
     )]
     Use,
+}
+
+#[derive(Clone, Debug, Subcommand)]
+pub enum PluginCommands {
+    #[command(
+        name = "plugin",
+        about = "Add a plugin.",
+        long_about = "Add a plugin to the local .prototools config, or global ~/.proto/config.toml config."
+    )]
+    Add(AddPluginArgs),
+
+    #[command(
+        name = "remove",
+        about = "Remove a plugin.",
+        long_about = "Remove a plugin from the local .prototools config, or global ~/.proto/config.toml config."
+    )]
+    Remove(RemovePluginArgs),
 }
