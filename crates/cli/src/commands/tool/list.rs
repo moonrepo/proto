@@ -1,14 +1,14 @@
 use crate::error::ProtoCliError;
 use crate::helpers::load_configured_tools_with_filters;
+use crate::printer::Printer;
 use chrono::{DateTime, NaiveDateTime};
 use clap::Args;
 use miette::IntoDiagnostic;
 use proto_core::Id;
 use starbase::system;
-use starbase_styles::color::{self, OwoStyle};
+use starbase_styles::color;
 use starbase_utils::json;
 use std::collections::{HashMap, HashSet};
-use std::io::{BufWriter, Write};
 use tracing::info;
 
 #[derive(Args, Clone, Debug)]
@@ -50,91 +50,76 @@ pub async fn tool_list(args: ArgsRef<ListToolsArgs>) {
         return Ok(());
     }
 
-    let stdout = std::io::stdout();
-    let mut buffer = BufWriter::new(stdout.lock());
+    let mut printer = Printer::new();
 
     for tool in tools {
-        writeln!(
-            buffer,
-            "{} {} {}",
-            OwoStyle::new().bold().style(color::id(&tool.id)),
-            color::muted("-"),
-            color::muted_light(&tool.metadata.name),
-        )
-        .unwrap();
+        printer.line();
+        printer.header(&tool.id, &tool.metadata.name);
 
-        writeln!(buffer, "  Store: {}", color::path(tool.get_inventory_dir())).unwrap();
+        printer.section(|p| {
+            p.entry("Store", color::path(tool.get_inventory_dir()));
 
-        if !tool.manifest.aliases.is_empty() {
-            writeln!(buffer, "  Aliases:").unwrap();
-
-            for (alias, version) in &tool.manifest.aliases {
-                writeln!(
-                    buffer,
-                    "    {} {} {}",
-                    color::hash(version.to_string()),
-                    color::muted("="),
-                    color::label(alias),
-                )
-                .unwrap();
-            }
-        }
-
-        if !tool.manifest.installed_versions.is_empty() {
-            writeln!(buffer, "  Versions:").unwrap();
+            p.entry_map(
+                "Aliases",
+                tool.manifest
+                    .aliases
+                    .iter()
+                    .map(|(k, v)| (color::hash(v.to_string()), color::label(k)))
+                    .collect::<Vec<_>>(),
+                None,
+            );
 
             let mut versions = tool.manifest.installed_versions.iter().collect::<Vec<_>>();
             versions.sort();
 
-            for version in versions {
-                let mut comments = vec![];
-                let mut is_default = false;
+            p.entry_map(
+                "Versions",
+                versions
+                    .iter()
+                    .map(|version| {
+                        let mut comments = vec![];
+                        let mut is_default = false;
 
-                if let Some(meta) = &tool.manifest.versions.get(version) {
-                    if let Some(at) = create_datetime(meta.installed_at) {
-                        comments.push(format!("installed {}", at.format("%x")));
-                    }
+                        if let Some(meta) = &tool.manifest.versions.get(version) {
+                            if let Some(at) = create_datetime(meta.installed_at) {
+                                comments.push(format!("installed {}", at.format("%x")));
+                            }
 
-                    if let Some(last_used) = &meta.last_used_at {
-                        if let Some(at) = create_datetime(*last_used) {
-                            comments.push(format!("last used {}", at.format("%x")));
+                            if let Some(last_used) = &meta.last_used_at {
+                                if let Some(at) = create_datetime(*last_used) {
+                                    comments.push(format!("last used {}", at.format("%x")));
+                                }
+                            }
                         }
-                    }
-                }
 
-                if tool
-                    .manifest
-                    .default_version
-                    .as_ref()
-                    .is_some_and(|dv| dv == &version.to_unresolved_spec())
-                {
-                    comments.push("default version".into());
-                    is_default = true;
-                }
+                        if tool
+                            .manifest
+                            .default_version
+                            .as_ref()
+                            .is_some_and(|dv| *dv == version.to_unresolved_spec())
+                        {
+                            comments.push("default version".into());
+                            is_default = true;
+                        }
 
-                if comments.is_empty() {
-                    writeln!(buffer, "    {}", color::hash(version.to_string())).unwrap();
-                } else {
-                    writeln!(
-                        buffer,
-                        "    {} {} {}",
-                        if is_default {
-                            color::symbol(version.to_string())
-                        } else {
-                            color::hash(version.to_string())
-                        },
-                        color::muted("-"),
-                        color::muted_light(comments.join(", "))
-                    )
-                    .unwrap();
-                }
-            }
-        }
+                        (
+                            if is_default {
+                                color::invalid(version.to_string())
+                            } else {
+                                color::hash(version.to_string())
+                            },
+                            color::muted_light(comments.join(", ")),
+                        )
+                    })
+                    .collect::<Vec<_>>(),
+                None,
+            );
 
-        writeln!(buffer).unwrap();
+            Ok(())
+        })?;
     }
 
-    buffer.flush().unwrap();
+    printer.flush();
 }
 
 fn create_datetime(millis: u128) -> Option<NaiveDateTime> {

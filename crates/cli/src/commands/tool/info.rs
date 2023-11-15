@@ -34,65 +34,65 @@ pub async fn tool_info(args: ArgsRef<ToolInfoArgs>) {
 
     // INVENTORY
 
-    printer.start_section("Inventory");
+    printer.named_section("Inventory", |p| {
+        p.entry("Store", color::path(tool.get_inventory_dir()));
 
-    printer.entry("Store", color::path(tool.get_inventory_dir()));
+        p.entry("Executable", color::path(tool.get_exe_path()?));
 
-    printer.entry("Executable", color::path(tool.get_exe_path()?));
+        if let Some(dir) = tool.get_globals_bin_dir() {
+            p.entry("Globals directory", color::path(dir));
+        }
 
-    if let Some(dir) = tool.get_globals_bin_dir() {
-        printer.entry("Globals directory", color::path(dir));
-    }
+        if let Some(prefix) = tool.get_globals_prefix() {
+            p.entry("Globals prefix", color::property(prefix));
+        }
 
-    if let Some(prefix) = tool.get_globals_prefix() {
-        printer.entry("Globals prefix", color::property(prefix));
-    }
+        p.entry_list(
+            "Binaries",
+            tool.get_bin_locations()?.into_iter().map(|bin| {
+                format!(
+                    "{} {}",
+                    color::path(bin.path),
+                    if bin.primary {
+                        color::muted_light("(primary)")
+                    } else {
+                        "".into()
+                    }
+                )
+            }),
+            Some(color::failure("None")),
+        );
 
-    printer.entry_list(
-        "Binaries",
-        tool.get_bin_locations()?.into_iter().map(|bin| {
-            format!(
-                "{} {}",
-                color::path(bin.path),
-                if bin.primary {
-                    color::muted_light("(primary)")
-                } else {
-                    "".into()
-                }
-            )
-        }),
-        color::failure("None"),
-    );
+        p.entry_list(
+            "Shims",
+            tool.get_shim_locations()?.into_iter().map(|shim| {
+                format!(
+                    "{} {}",
+                    color::path(shim.path),
+                    if shim.primary {
+                        color::muted_light("(primary)")
+                    } else {
+                        "".into()
+                    }
+                )
+            }),
+            Some(color::failure("None")),
+        );
 
-    printer.entry_list(
-        "Shims",
-        tool.get_shim_locations()?.into_iter().map(|shim| {
-            format!(
-                "{} {}",
-                color::path(shim.path),
-                if shim.primary {
-                    color::muted_light("(primary)")
-                } else {
-                    "".into()
-                }
-            )
-        }),
-        color::failure("None"),
-    );
-
-    printer.end_section();
+        Ok(())
+    })?;
 
     // PLUGIN
 
-    printer.start_section("Plugin");
+    printer.named_section("Plugin", |p| {
+        if let Some(version) = &tool.metadata.plugin_version {
+            p.entry("Version", color::hash(version));
+        }
 
-    if let Some(version) = &tool.metadata.plugin_version {
-        printer.entry("Version", color::hash(version));
-    }
+        p.locator(tool.locator.as_ref().unwrap());
 
-    printer.locator(tool.locator.as_ref().unwrap());
-
-    printer.end_section();
+        Ok(())
+    })?;
 
     printer.flush();
 }

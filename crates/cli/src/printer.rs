@@ -3,9 +3,8 @@ use starbase_styles::color::{self, OwoStyle};
 use std::io::{BufWriter, StdoutLock, Write};
 
 pub struct Printer<'std> {
-    pub depth: u8,
-
     buffer: BufWriter<StdoutLock<'std>>,
+    depth: u8,
 }
 
 impl<'std> Printer<'std> {
@@ -22,14 +21,8 @@ impl<'std> Printer<'std> {
     }
 
     pub fn line(&mut self) {
-        write!(&mut self.buffer, "\n").unwrap();
+        writeln!(&mut self.buffer).unwrap();
     }
-
-    // pub fn print<T: AsRef<str>>(&mut self, value: T) {
-    //     self.indent();
-
-    //     writeln!(&mut self.buffer, "{}", value.as_ref()).unwrap();
-    // }
 
     pub fn header<K: AsRef<str>, V: AsRef<str>>(&mut self, id: K, name: V) {
         self.indent();
@@ -44,8 +37,23 @@ impl<'std> Printer<'std> {
         .unwrap();
     }
 
-    pub fn start_section<T: AsRef<str>>(&mut self, header: T) {
-        write!(&mut self.buffer, "\n",).unwrap();
+    pub fn section(
+        &mut self,
+        func: impl FnOnce(&mut Printer) -> miette::Result<()>,
+    ) -> miette::Result<()> {
+        self.depth += 1;
+        func(self)?;
+        self.depth -= 1;
+
+        Ok(())
+    }
+
+    pub fn named_section<T: AsRef<str>>(
+        &mut self,
+        name: T,
+        func: impl FnOnce(&mut Printer) -> miette::Result<()>,
+    ) -> miette::Result<()> {
+        writeln!(&mut self.buffer).unwrap();
 
         self.indent();
 
@@ -54,15 +62,13 @@ impl<'std> Printer<'std> {
             "{}",
             OwoStyle::new()
                 .bold()
-                .style(color::muted_light(header.as_ref()))
+                .style(color::muted_light(name.as_ref()))
         )
         .unwrap();
 
-        self.depth += 1;
-    }
+        self.section(func)?;
 
-    pub fn end_section(&mut self) {
-        self.depth -= 1;
+        Ok(())
     }
 
     pub fn indent(&mut self) {
@@ -77,16 +83,18 @@ impl<'std> Printer<'std> {
         writeln!(&mut self.buffer, "{}: {}", key.as_ref(), value.as_ref()).unwrap();
     }
 
-    pub fn entry_list<K: AsRef<str>, I: IntoIterator<Item = V>, V: AsRef<str>, F: AsRef<str>>(
+    pub fn entry_list<K: AsRef<str>, I: IntoIterator<Item = V>, V: AsRef<str>>(
         &mut self,
         key: K,
         list: I,
-        empty: F,
+        empty: Option<String>,
     ) {
         let items = list.into_iter().collect::<Vec<_>>();
 
         if items.is_empty() {
-            self.entry(key, empty);
+            if let Some(fallback) = empty {
+                self.entry(key, fallback);
+            }
         } else {
             self.indent();
 
@@ -98,6 +106,47 @@ impl<'std> Printer<'std> {
                 self.indent();
 
                 writeln!(&mut self.buffer, "{} {}", color::muted("-"), item.as_ref()).unwrap();
+            }
+
+            self.depth -= 1;
+        }
+    }
+
+    pub fn entry_map<
+        K: AsRef<str>,
+        I: IntoIterator<Item = (V1, V2)>,
+        V1: AsRef<str>,
+        V2: AsRef<str>,
+    >(
+        &mut self,
+        key: K,
+        map: I,
+        empty: Option<String>,
+    ) {
+        let items = map.into_iter().collect::<Vec<_>>();
+
+        if items.is_empty() {
+            if let Some(fallback) = empty {
+                self.entry(key, fallback);
+            }
+        } else {
+            self.indent();
+
+            writeln!(&mut self.buffer, "{}:", key.as_ref()).unwrap();
+
+            self.depth += 1;
+
+            for item in items {
+                self.indent();
+
+                writeln!(
+                    &mut self.buffer,
+                    "{} {} {}",
+                    item.0.as_ref(),
+                    color::muted("-"),
+                    item.1.as_ref()
+                )
+                .unwrap();
             }
 
             self.depth -= 1;

@@ -61,9 +61,10 @@ pub async fn tool_list_plugins(args: ArgsRef<ListToolPluginsArgs>) {
             },
         );
 
-        printer.depth += 1;
-        printer.locator(item.locator);
-        printer.depth -= 1;
+        printer.section(|p| {
+            p.locator(item.locator);
+            Ok(())
+        })?;
     }
 
     printer.flush();
