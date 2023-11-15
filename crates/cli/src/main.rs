@@ -66,9 +66,10 @@ async fn main() -> MainResult {
         Commands::Run(args) => app.execute_with_args(commands::run, args),
         Commands::Setup(args) => app.execute_with_args(commands::setup, args),
         Commands::Tool { command } => match command {
-            ToolCommands::Add(args) => app.execute_with_args(commands::add_tool, args),
+            ToolCommands::Add(args) => app.execute_with_args(commands::tool_add, args),
+            ToolCommands::List(args) => app.execute_with_args(commands::tool_list, args),
             ToolCommands::Plugins(args) => app.execute_with_args(commands::tool_plugins, args),
-            ToolCommands::Remove(args) => app.execute_with_args(commands::remove_tool, args),
+            ToolCommands::Remove(args) => app.execute_with_args(commands::tool_remove, args),
         },
         Commands::Tools(args) => app.execute_with_args(commands::tools, args),
         Commands::Unalias(args) => app.execute_with_args(commands::unalias, args),

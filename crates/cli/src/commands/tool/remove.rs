@@ -20,7 +20,7 @@ pub struct RemoveToolArgs {
 }
 
 #[system]
-pub async fn remove_tool(args: ArgsRef<RemoveToolArgs>) {
+pub async fn tool_remove(args: ArgsRef<RemoveToolArgs>) {
     if args.global {
         let mut user_config = UserConfig::load()?;
         user_config.plugins.remove(&args.id);
