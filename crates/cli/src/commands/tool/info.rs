@@ -1,10 +1,9 @@
-use super::list_plugins::print_locator;
+use crate::printer::Printer;
 use clap::Args;
 use proto_core::{detect_version, load_tool, Id, PluginLocator};
 use serde::Serialize;
 use starbase::system;
-use starbase_styles::color::{self, OwoStyle};
-use std::io::{BufWriter, Write};
+use starbase_styles::color;
 
 #[derive(Serialize)]
 pub struct PluginItem {
@@ -29,55 +28,31 @@ pub async fn tool_info(args: ArgsRef<ToolInfoArgs>) {
     tool.create_executables(false, false).await?;
     tool.locate_globals_dir().await?;
 
-    let stdout = std::io::stdout();
-    let mut buffer = BufWriter::new(stdout.lock());
+    let mut printer = Printer::new();
 
-    writeln!(
-        buffer,
-        "{} {} {}",
-        OwoStyle::new().bold().style(color::id(&tool.id)),
-        color::muted("-"),
-        color::muted_light(&tool.metadata.name),
-    )
-    .unwrap();
+    printer.header(&tool.id, &tool.metadata.name);
 
-    writeln!(
-        buffer,
-        "\n{}",
-        OwoStyle::new()
-            .bold()
-            .style(color::muted_light("Inventory"))
-    )
-    .unwrap();
+    // INVENTORY
 
-    writeln!(buffer, "  Store: {}", color::path(tool.get_inventory_dir())).unwrap();
-    writeln!(
-        buffer,
-        "  Executable: {}",
-        color::path(tool.get_exe_path()?)
-    )
-    .unwrap();
+    printer.start_section("Inventory");
+
+    printer.entry("Store", color::path(tool.get_inventory_dir()));
+
+    printer.entry("Executable", color::path(tool.get_exe_path()?));
 
     if let Some(dir) = tool.get_globals_bin_dir() {
-        writeln!(buffer, "  Globals directory: {}", color::path(dir)).unwrap();
+        printer.entry("Globals directory", color::path(dir));
     }
 
     if let Some(prefix) = tool.get_globals_prefix() {
-        writeln!(buffer, "  Globals prefix: {}", color::property(prefix)).unwrap();
+        printer.entry("Globals prefix", color::property(prefix));
     }
 
-    let bins = tool.get_bin_locations()?;
-
-    if bins.is_empty() {
-        writeln!(buffer, "  Binaries: {}", color::failure("None")).unwrap();
-    } else {
-        writeln!(buffer, "  Binaries:").unwrap();
-
-        for bin in bins {
-            writeln!(
-                buffer,
-                "    {} {} {}",
-                color::muted("-"),
+    printer.entry_list(
+        "Binaries",
+        tool.get_bin_locations()?.into_iter().map(|bin| {
+            format!(
+                "{} {}",
                 color::path(bin.path),
                 if bin.primary {
                     color::muted_light("(primary)")
@@ -85,22 +60,15 @@ pub async fn tool_info(args: ArgsRef<ToolInfoArgs>) {
                     "".into()
                 }
             )
-            .unwrap();
-        }
-    }
+        }),
+        color::failure("None"),
+    );
 
-    let shims = tool.get_shim_locations()?;
-
-    if shims.is_empty() {
-        writeln!(buffer, "  Shims: {}", color::failure("None")).unwrap();
-    } else {
-        writeln!(buffer, "  Shims:").unwrap();
-
-        for shim in shims {
-            writeln!(
-                buffer,
-                "    {} {} {}",
-                color::muted("-"),
+    printer.entry_list(
+        "Shims",
+        tool.get_shim_locations()?.into_iter().map(|shim| {
+            format!(
+                "{} {}",
                 color::path(shim.path),
                 if shim.primary {
                     color::muted_light("(primary)")
@@ -108,26 +76,23 @@ pub async fn tool_info(args: ArgsRef<ToolInfoArgs>) {
                     "".into()
                 }
             )
-            .unwrap();
-        }
-    }
+        }),
+        color::failure("None"),
+    );
 
-    writeln!(
-        buffer,
-        "\n{}",
-        OwoStyle::new().bold().style(color::muted_light("Plugin"))
-    )
-    .unwrap();
+    printer.end_section();
+
+    // PLUGIN
+
+    printer.start_section("Plugin");
 
     if let Some(version) = &tool.metadata.plugin_version {
-        writeln!(buffer, "  Version: {}", color::hash(version)).unwrap();
+        printer.entry("Version", color::hash(version));
     }
 
-    if let Some(locator) = &tool.locator {
-        print_locator(&mut buffer, locator);
-    }
+    printer.locator(tool.locator.as_ref().unwrap());
 
-    writeln!(buffer, "").unwrap();
+    printer.end_section();
 
-    buffer.flush().unwrap();
+    printer.flush();
 }

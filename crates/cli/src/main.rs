@@ -3,6 +3,7 @@ mod commands;
 mod error;
 mod helpers;
 mod shell;
+mod printer;
 
 use app::{App as CLI, Commands, ToolCommands};
 use clap::Parser;
