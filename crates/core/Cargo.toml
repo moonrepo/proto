@@ -34,3 +34,4 @@ url = "2.4.1"
 
 [dev-dependencies]
 starbase_sandbox = { workspace = true }
+tokio = { workspace = true }
