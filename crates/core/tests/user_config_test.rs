@@ -1,4 +1,4 @@
-use proto_core::{PinType, UserConfig, USER_CONFIG_NAME};
+use proto_core::{DetectStrategy, PinType, UserConfig, USER_CONFIG_NAME};
 use starbase_sandbox::create_empty_sandbox;
 use std::collections::BTreeMap;
 use std::env;
@@ -17,6 +17,7 @@ mod user_config {
             UserConfig {
                 auto_clean: false,
                 auto_install: false,
+                detect_strategy: DetectStrategy::default(),
                 node_intercept_globals: true,
                 http: HttpOptions::default(),
                 pin_latest: None,
@@ -46,6 +47,7 @@ pin-latest = "global"
             UserConfig {
                 auto_clean: true,
                 auto_install: true,
+                detect_strategy: DetectStrategy::default(),
                 node_intercept_globals: false,
                 http: HttpOptions::default(),
                 pin_latest: Some(PinType::Global),
@@ -71,6 +73,7 @@ pin-latest = "global"
             UserConfig {
                 auto_clean: true,
                 auto_install: true,
+                detect_strategy: DetectStrategy::default(),
                 node_intercept_globals: false,
                 http: HttpOptions::default(),
                 pin_latest: None,

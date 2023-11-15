@@ -2354,6 +2354,7 @@ dependencies = [
  "starbase_utils",
  "thiserror",
  "tinytemplate",
+ "tokio",
  "tracing",
  "url",
  "version_spec",

@@ -14,6 +14,9 @@
 
 #### Updates
 
+- Added a `detect-strategy` setting to `~/.proto/config.toml` to configure which strategy to use when detecting a version. Accepts:
+  - `first-available` (default) - Will use the first available version that is found. Either from `.prototools` or a tool specific file (`.nvmrc`, etc).
+  - `prefer-prototools` - Prefer a `.prototools` version, even if found in a parent directory. If none found, falls back to tool specific file.
 - Added support to plugins to ignore certain paths when detecting a version.
 - WASM API
   - Added `DetectVersionOutput.ignore` field.

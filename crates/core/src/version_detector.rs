@@ -1,9 +1,116 @@
 use crate::error::ProtoError;
 use crate::tool::Tool;
 use crate::tools_config::ToolsConfig;
+use crate::user_config::DetectStrategy;
 use std::{env, path::Path};
 use tracing::{debug, trace};
 use version_spec::*;
+
+pub async fn detect_version_first_available(
+    tool: &Tool,
+    start_dir: &Path,
+    end_dir: &Path,
+) -> miette::Result<Option<UnresolvedVersionSpec>> {
+    let mut current_dir: Option<&Path> = Some(start_dir);
+
+    while let Some(dir) = current_dir {
+        trace!(
+            tool = tool.id.as_str(),
+            dir = ?dir,
+            "Checking directory",
+        );
+
+        let config = ToolsConfig::load_from(dir)?;
+
+        if let Some(version) = config.tools.get(&tool.id) {
+            debug!(
+                tool = tool.id.as_str(),
+                version = version.to_string(),
+                file = ?config.path,
+                "Detected version from .prototools file",
+            );
+
+            return Ok(Some(version.to_owned()));
+        }
+
+        if let Some(version) = tool.detect_version_from(dir).await? {
+            debug!(
+                tool = tool.id.as_str(),
+                version = version.to_string(),
+                "Detected version from tool's ecosystem"
+            );
+
+            return Ok(Some(version));
+        }
+
+        if dir == end_dir {
+            break;
+        }
+
+        current_dir = dir.parent();
+    }
+
+    Ok(None)
+}
+
+pub async fn detect_version_prefer_prototools(
+    tool: &Tool,
+    start_dir: &Path,
+    end_dir: &Path,
+) -> miette::Result<Option<UnresolvedVersionSpec>> {
+    let mut config_version = None;
+    let mut config_path = None;
+    let mut ecosystem_version = None;
+    let mut current_dir: Option<&Path> = Some(start_dir);
+
+    while let Some(dir) = current_dir {
+        trace!(
+            tool = tool.id.as_str(),
+            dir = ?dir,
+            "Checking directory",
+        );
+
+        if config_version.is_none() {
+            let mut config = ToolsConfig::load_from(dir)?;
+
+            config_version = config.tools.remove(&tool.id);
+            config_path = Some(config.path);
+        }
+
+        if ecosystem_version.is_none() {
+            ecosystem_version = tool.detect_version_from(dir).await?;
+        }
+
+        if dir == end_dir {
+            break;
+        }
+
+        current_dir = dir.parent();
+    }
+
+    if let Some(version) = config_version {
+        debug!(
+            tool = tool.id.as_str(),
+            version = version.to_string(),
+            file = ?config_path.unwrap(),
+            "Detected version from .prototools file",
+        );
+
+        return Ok(Some(version.to_owned()));
+    }
+
+    if let Some(version) = ecosystem_version {
+        debug!(
+            tool = tool.id.as_str(),
+            version = version.to_string(),
+            "Detected version from tool's ecosystem"
+        );
+
+        return Ok(Some(version));
+    }
+
+    Ok(None)
+}
 
 pub async fn detect_version(
     tool: &Tool,
@@ -45,46 +152,18 @@ pub async fn detect_version(
 
     // Traverse upwards and attempt to detect a local version
     if let Ok(working_dir) = env::current_dir() {
-        let mut current_dir: Option<&Path> = Some(&working_dir);
-
-        while let Some(dir) = current_dir {
-            trace!(
-                tool = tool.id.as_str(),
-                dir = ?dir,
-                "Checking directory",
-            );
-
-            // Detect from our config file
-            let config = ToolsConfig::load_from(dir)?;
-
-            if let Some(local_version) = config.tools.get(&tool.id) {
-                debug!(
-                    tool = tool.id.as_str(),
-                    version = local_version.to_string(),
-                    file = ?config.path,
-                    "Detected version from .prototools file",
-                );
-
-                return Ok(local_version.to_owned());
+        let user_config = tool.proto.load_user_config()?;
+        let detected_version = match user_config.detect_strategy {
+            DetectStrategy::FirstAvailable => {
+                detect_version_first_available(tool, &working_dir, &tool.proto.home).await?
             }
-
-            // Detect using the tool
-            if let Some(detected_version) = tool.detect_version_from(dir).await? {
-                debug!(
-                    tool = tool.id.as_str(),
-                    version = detected_version.to_string(),
-                    "Detected version from tool's ecosystem"
-                );
-
-                return Ok(detected_version);
+            DetectStrategy::PreferPrototools => {
+                detect_version_prefer_prototools(tool, &working_dir, &tool.proto.home).await?
             }
+        };
 
-            // Don't traverse passed the home directory
-            if dir == tool.proto.home {
-                break;
-            }
-
-            current_dir = dir.parent();
+        if let Some(version) = detected_version {
+            return Ok(version);
         }
     }
 
