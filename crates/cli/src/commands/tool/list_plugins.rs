@@ -1,12 +1,11 @@
 use crate::helpers::load_configured_tools;
+use crate::printer::Printer;
 use clap::Args;
 use miette::IntoDiagnostic;
 use proto_core::{Id, PluginLocator};
 use serde::Serialize;
 use starbase::system;
-use starbase_styles::color::{self, OwoStyle};
 use starbase_utils::json;
-use std::io::{BufWriter, Write};
 use tracing::info;
 
 #[derive(Serialize)]
@@ -49,63 +48,23 @@ pub async fn tool_list_plugins(args: ArgsRef<ListToolPluginsArgs>) {
         return Ok(());
     }
 
-    let stdout = std::io::stdout();
-    let mut buffer = BufWriter::new(stdout.lock());
+    let mut printer = Printer::new();
 
     for item in items {
-        writeln!(
-            buffer,
-            "{} {} {}",
-            OwoStyle::new().bold().style(color::id(item.id)),
-            color::muted("-"),
-            color::muted_light(if let Some(version) = item.version {
+        printer.line();
+        printer.header(
+            item.id,
+            if let Some(version) = item.version {
                 format!("{} v{version}", item.name)
             } else {
                 item.name
-            })
-        )
-        .unwrap();
+            },
+        );
 
-        print_locator(&mut buffer, &item.locator);
-
-        writeln!(buffer).unwrap();
+        printer.depth += 1;
+        printer.locator(item.locator);
+        printer.depth -= 1;
     }
 
-    buffer.flush().unwrap();
-}
-
-pub fn print_locator<T: Write>(buffer: &mut BufWriter<T>, locator: &PluginLocator) {
-    match locator {
-        PluginLocator::SourceFile { path, .. } => {
-            writeln!(
-                buffer,
-                "  Source: {}",
-                color::path(path.canonicalize().unwrap())
-            )
-            .unwrap();
-        }
-        PluginLocator::SourceUrl { url } => {
-            writeln!(buffer, "  Source: {}", color::url(url)).unwrap();
-        }
-        PluginLocator::GitHub(github) => {
-            writeln!(buffer, "  GitHub: {}", color::label(&github.repo_slug)).unwrap();
-
-            writeln!(
-                buffer,
-                "  Tag: {}",
-                color::hash(github.tag.as_deref().unwrap_or("latest")),
-            )
-            .unwrap();
-        }
-        PluginLocator::Wapm(wapm) => {
-            writeln!(buffer, "  Package: {}", color::label(&wapm.package_name)).unwrap();
-
-            writeln!(
-                buffer,
-                "  Version: {}",
-                color::hash(wapm.version.as_deref().unwrap_or("latest")),
-            )
-            .unwrap();
-        }
-    };
+    printer.flush();
 }

@@ -269,6 +269,7 @@ pub enum ToolCommands {
     List(ListToolsArgs),
 
     #[command(
+        alias = "plugins",
         name = "list-plugins",
         about = "List all active and configured plugins."
     )]

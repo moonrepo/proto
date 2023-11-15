@@ -3,8 +3,9 @@ use starbase_styles::color::{self, OwoStyle};
 use std::io::{BufWriter, StdoutLock, Write};
 
 pub struct Printer<'std> {
+    pub depth: u8,
+
     buffer: BufWriter<StdoutLock<'std>>,
-    indent: u8,
 }
 
 impl<'std> Printer<'std> {
@@ -12,13 +13,16 @@ impl<'std> Printer<'std> {
         let stdout = std::io::stdout();
         let buffer = BufWriter::new(stdout.lock());
 
-        Printer { buffer, indent: 0 }
+        Printer { buffer, depth: 0 }
     }
 
     pub fn flush(&mut self) {
-        write!(&mut self.buffer, "\n").unwrap();
-
+        self.line();
         self.buffer.flush().unwrap();
+    }
+
+    pub fn line(&mut self) {
+        write!(&mut self.buffer, "\n").unwrap();
     }
 
     // pub fn print<T: AsRef<str>>(&mut self, value: T) {
@@ -54,16 +58,16 @@ impl<'std> Printer<'std> {
         )
         .unwrap();
 
-        self.indent += 1;
+        self.depth += 1;
     }
 
     pub fn end_section(&mut self) {
-        self.indent -= 1;
+        self.depth -= 1;
     }
 
     pub fn indent(&mut self) {
-        if self.indent > 0 {
-            write!(&mut self.buffer, "{}", "  ".repeat(self.indent as usize)).unwrap();
+        if self.depth > 0 {
+            write!(&mut self.buffer, "{}", "  ".repeat(self.depth as usize)).unwrap();
         }
     }
 
@@ -88,7 +92,7 @@ impl<'std> Printer<'std> {
 
             writeln!(&mut self.buffer, "{}:", key.as_ref()).unwrap();
 
-            self.indent += 1;
+            self.depth += 1;
 
             for item in items {
                 self.indent();
@@ -96,7 +100,7 @@ impl<'std> Printer<'std> {
                 writeln!(&mut self.buffer, "{} {}", color::muted("-"), item.as_ref()).unwrap();
             }
 
-            self.indent -= 1;
+            self.depth -= 1;
         }
     }
 
