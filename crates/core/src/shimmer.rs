@@ -8,7 +8,7 @@ use tinytemplate::error::Error as TemplateError;
 use tinytemplate::TinyTemplate;
 use tracing::debug;
 
-pub const SHIM_VERSION: u8 = 8;
+pub const SHIM_VERSION: u8 = 9;
 
 #[derive(Debug, Default, Serialize)]
 pub struct ShimContext<'tool> {
@@ -48,7 +48,7 @@ impl<'tool> ShimContext<'tool> {
              "Creating global shim"
         );
 
-        fs::write_file(shim_path, build_shim_file(self, shim_path, true)?)?;
+        fs::write_file(shim_path, build_shim_file(self, shim_path)?)?;
         fs::update_perms(shim_path, None)?;
 
         Ok(())
@@ -69,46 +69,20 @@ fn format_uppercase(value: &Value, output: &mut String) -> Result<(), TemplateEr
     Ok(())
 }
 
-fn get_template_header<'l>(global: bool) -> &'l str {
+fn get_template<'l>() -> &'l str {
     if cfg!(windows) {
-        if global {
-            include_str!("../templates/cmd_header.tpl")
-        } else {
-            include_str!("../templates/pwsh_header.tpl")
-        }
+        include_str!("../templates/windows/cmd.tpl")
     } else {
-        include_str!("../templates/bash_header.tpl")
+        include_str!("../templates/unix/sh.tpl")
     }
 }
 
-fn get_template<'l>(global: bool) -> &'l str {
-    if cfg!(windows) {
-        if global {
-            include_str!("../templates/cmd_global.tpl")
-        } else {
-            include_str!("../templates/pwsh_local.tpl")
-        }
-    } else if global {
-        include_str!("../templates/bash_global.tpl")
-    } else {
-        include_str!("../templates/bash_local.tpl")
-    }
-}
-
-fn build_shim_file(
-    context: &ShimContext,
-    shim_path: &Path,
-    global: bool,
-) -> miette::Result<String> {
+fn build_shim_file(context: &ShimContext, shim_path: &Path) -> miette::Result<String> {
     let mut template = TinyTemplate::new();
 
     template.add_formatter("uppercase", format_uppercase);
 
-    let contents = format!(
-        "{}\n\n{}",
-        get_template_header(global),
-        get_template(global)
-    );
+    let contents = get_template();
 
     template
         .add_template("shim", &contents)
