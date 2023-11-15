@@ -63,6 +63,7 @@ async fn main() -> MainResult {
         Commands::Pin(args) => app.execute_with_args(commands::pin, args),
         Commands::Plugin { command } => match command {
             PluginCommands::Add(args) => app.execute_with_args(commands::add_plugin, args),
+            PluginCommands::List(args) => app.execute_with_args(commands::list_plugins, args),
             PluginCommands::Remove(args) => app.execute_with_args(commands::remove_plugin, args),
         },
         Commands::Plugins(args) => app.execute_with_args(commands::plugins, args),

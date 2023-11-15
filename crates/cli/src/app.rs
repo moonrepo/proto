@@ -1,6 +1,6 @@
 use crate::commands::{
     AddPluginArgs, AliasArgs, BinArgs, CleanArgs, CompletionsArgs, InstallArgs, InstallGlobalArgs,
-    ListArgs, ListGlobalArgs, ListRemoteArgs, MigrateArgs, OutdatedArgs, PinArgs, PluginsArgs,
+    ListArgs, ListGlobalArgs, ListPluginsArgs, ListRemoteArgs, MigrateArgs, OutdatedArgs, PinArgs,
     RemovePluginArgs, RunArgs, SetupArgs, ToolsArgs, UnaliasArgs, UninstallArgs,
     UninstallGlobalArgs,
 };
@@ -183,8 +183,12 @@ pub enum Commands {
         command: PluginCommands,
     },
 
-    #[command(name = "plugins", about = "List all active and configured plugins.")]
-    Plugins(PluginsArgs),
+    #[command(
+        name = "plugins",
+        about = "List all active and configured plugins.",
+        hide = true
+    )]
+    Plugins(ListPluginsArgs),
 
     #[command(
         alias = "rp",
@@ -250,6 +254,9 @@ pub enum PluginCommands {
         long_about = "Add a plugin to the local .prototools config, or global ~/.proto/config.toml config."
     )]
     Add(AddPluginArgs),
+
+    #[command(name = "list", about = "List all active and configured plugins.")]
+    List(ListPluginsArgs),
 
     #[command(
         name = "remove",
