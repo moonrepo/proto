@@ -1,11 +1,10 @@
 ---
 source: crates/core/tests/shimmer_test.rs
-expression: "read_shim(&shim, sandbox.path())"
+expression: "read_shim(&shim_path, sandbox.path())"
 ---
 #!/usr/bin/env bash
 set -e
 [ -n "$PROTO_DEBUG" ] && set -x
-
 
 
 exec proto run primary -- --a -b "$@" ./file

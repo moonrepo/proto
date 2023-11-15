@@ -6,7 +6,7 @@ use crate::helpers::{
 };
 use crate::host_funcs::{create_host_functions, HostData};
 use crate::proto::ProtoEnvironment;
-use crate::shimmer::{get_shim_file_name, ShimContext, SHIM_VERSION};
+use crate::shimmer::{get_shim_file_names, ShimContext, SHIM_VERSION};
 use crate::tool_manifest::ToolManifest;
 use crate::version_resolver::VersionResolver;
 use extism::{manifest::Wasm, Manifest as PluginManifest};
@@ -1146,8 +1146,6 @@ impl Tool {
         ShimContext {
             bin: &self.id,
             tool_id: &self.id,
-            tool_dir: Some(self.get_tool_dir()),
-            tool_version: Some(self.get_resolved_version().to_string()),
             ..ShimContext::default()
         }
     }
@@ -1249,12 +1247,14 @@ impl Tool {
 
         let mut add = |name: &str, config: ExecutableConfig, primary: bool| {
             if !config.no_shim {
-                locations.push(ExecutableLocation {
-                    path: self.proto.shims_dir.join(get_shim_file_name(name, true)),
-                    name: name.to_owned(),
-                    config,
-                    primary,
-                });
+                for shim_name in get_shim_file_names(name) {
+                    locations.push(ExecutableLocation {
+                        path: self.proto.shims_dir.join(shim_name),
+                        name: name.to_owned(),
+                        config: config.clone(),
+                        primary,
+                    });
+                }
             }
         };
 

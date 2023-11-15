@@ -7,7 +7,6 @@ set -e
 [ -n "$PROTO_DEBUG" ] && set -x
 
 
-
 exec proto run primary --alt "other/bin/path" --  "$@" 
 
 
