@@ -12,8 +12,17 @@
 
 ## Unreleased
 
-#### Updates
+#### 💥 Breaking
 
+- Deprecated and moved tool/plugin commands to `proto tool` subcommand.
+  - Moved `proto add-plugin` to `proto tool add`.
+  - Moved `proto remove-plugin` to `proto tool remove`.
+  - Moved `proto plugins` to `proto tool list-plugins`.
+  - Moved `proto tools` to `proto tool list`.
+
+#### 🚀 Updates
+
+- Added a `proto tool info` command for viewing information about a tool and its plugin.
 - Added a `detect-strategy` setting to `~/.proto/config.toml` to configure which strategy to use when detecting a version. Accepts:
   - `first-available` (default) - Will use the first available version that is found. Either from `.prototools` or a tool specific file (`.nvmrc`, etc).
   - `prefer-prototools` - Prefer a `.prototools` version, even if found in a parent directory. If none found, falls back to tool specific file.

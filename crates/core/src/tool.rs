@@ -28,7 +28,7 @@ use std::time::{Duration, SystemTime};
 use tracing::{debug, trace, warn};
 use warpgate::{download_from_url_to_file, Id, PluginContainer, PluginLocator, VirtualPath};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize)]
 pub struct ExecutableLocation {
     pub config: ExecutableConfig,
     pub name: String,

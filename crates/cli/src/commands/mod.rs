@@ -16,6 +16,7 @@ mod plugins;
 mod remove_plugin;
 mod run;
 mod setup;
+pub mod tool;
 mod tools;
 mod unalias;
 mod uninstall;
