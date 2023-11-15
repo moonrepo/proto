@@ -6,12 +6,10 @@ mod shimmer {
     use std::fs;
     use std::path::Path;
 
-    fn create_context<'l>(id: &'l str, proto: &'l ProtoEnvironment) -> ShimContext<'l> {
+    fn create_context<'l>(id: &'l str) -> ShimContext<'l> {
         ShimContext {
             bin: id,
             tool_id: id,
-            tool_dir: Some(proto.tools_dir.join(id).join("1.2.3")),
-            tool_version: Some("1.2.3".into()),
             ..ShimContext::default()
         }
     }
@@ -28,7 +26,7 @@ mod shimmer {
         sandbox.create_file(".proto/shims/primary", "test");
 
         let proto = ProtoEnvironment::new_testing(sandbox.path());
-        let context = create_context("primary", &proto);
+        let context = create_context("primary");
         let shim_path = proto.shims_dir.join("primary");
 
         context.create_shim(&shim_path, true).unwrap();
@@ -40,7 +38,7 @@ mod shimmer {
     fn global() {
         let sandbox = create_empty_sandbox();
         let proto = ProtoEnvironment::new_testing(sandbox.path());
-        let context = create_context("primary", &proto);
+        let context = create_context("primary");
 
         let shim_path = proto.shims_dir.join("primary");
         context.create_shim(&shim_path, false).unwrap();
@@ -53,7 +51,7 @@ mod shimmer {
         let sandbox = create_empty_sandbox();
         let proto = ProtoEnvironment::new_testing(sandbox.path());
 
-        let mut context = create_context("primary", &proto);
+        let mut context = create_context("primary");
         context.before_args = Some("--a -b");
         context.after_args = Some("./file");
 
@@ -69,7 +67,7 @@ mod shimmer {
         let proto = ProtoEnvironment::new_testing(sandbox.path());
 
         let bin_path = "other/bin/path";
-        let mut context = create_context("primary", &proto);
+        let mut context = create_context("primary");
         context.alt_bin = Some(bin_path);
 
         let shim_path = proto.shims_dir.join("secondary");
@@ -84,7 +82,7 @@ mod shimmer {
         let proto = ProtoEnvironment::new_testing(sandbox.path());
 
         let bin_path = "other/bin/path";
-        let mut context = create_context("primary", &proto);
+        let mut context = create_context("primary");
         context.alt_bin = Some(bin_path);
         context.before_args = Some("--a -b");
         context.after_args = Some("./file");

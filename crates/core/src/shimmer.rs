@@ -3,7 +3,7 @@ use serde::Serialize;
 use serde_json::Value;
 use starbase_utils::fs;
 use std::fmt::Write;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use tinytemplate::error::Error as TemplateError;
 use tinytemplate::TinyTemplate;
 use tracing::debug;
@@ -28,12 +28,6 @@ pub struct ShimContext<'tool> {
     // TOOL INFO
     /// ID of the tool, for logging purposes.
     pub tool_id: &'tool str,
-
-    /// Path to the proto tool installation directory.
-    pub tool_dir: Option<PathBuf>,
-
-    /// Current resolved version.
-    pub tool_version: Option<String>,
 }
 
 impl<'tool> ShimContext<'tool> {
@@ -69,12 +63,18 @@ fn format_uppercase(value: &Value, output: &mut String) -> Result<(), TemplateEr
     Ok(())
 }
 
-fn get_template<'l>() -> &'l str {
-    if cfg!(windows) {
-        include_str!("../templates/windows/cmd.tpl")
-    } else {
-        include_str!("../templates/unix/sh.tpl")
+#[cfg(windows)]
+fn get_template<'l>(shim_path: &Path) -> &'l str {
+    match shim_path.extension().map(|ext| ext.to_str().unwrap()) {
+        Some("cmd") => include_str!("../templates/windows/cmd.tpl"),
+        Some("ps1") => include_str!("../templates/windows/ps1.tpl"),
+        _ => include_str!("../templates/windows/sh.tpl"),
     }
+}
+
+#[cfg(not(windows))]
+fn get_template<'l>(_shim_path: &Path) -> &'l str {
+    include_str!("../templates/unix/sh.tpl")
 }
 
 fn build_shim_file(context: &ShimContext, shim_path: &Path) -> miette::Result<String> {
@@ -82,7 +82,7 @@ fn build_shim_file(context: &ShimContext, shim_path: &Path) -> miette::Result<St
 
     template.add_formatter("uppercase", format_uppercase);
 
-    let contents = get_template();
+    let contents = get_template(shim_path);
 
     template
         .add_template("shim", &contents)
@@ -102,11 +102,16 @@ fn build_shim_file(context: &ShimContext, shim_path: &Path) -> miette::Result<St
 }
 
 #[cfg(windows)]
-pub fn get_shim_file_name(name: &str, global: bool) -> String {
-    format!("{name}.{}", if global { "cmd" } else { "ps1" })
+pub fn get_shim_file_names(name: &str) -> Vec<String> {
+    // Order is important!
+    vec![
+        format!("{name}.ps1"),
+        format!("{name}.cmd"),
+        format!("{name}"),
+    ]
 }
 
 #[cfg(not(windows))]
-pub fn get_shim_file_name(name: &str, _global: bool) -> String {
-    name.to_owned()
+pub fn get_shim_file_names(name: &str) -> Vec<String> {
+    vec![name.to_owned()]
 }
