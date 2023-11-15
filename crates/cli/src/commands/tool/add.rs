@@ -20,7 +20,7 @@ pub struct AddToolArgs {
 }
 
 #[system]
-pub async fn tool_add(args: ArgsRef<AddToolArgs>) {
+pub async fn add(args: ArgsRef<AddToolArgs>) {
     if args.global {
         let mut user_config = UserConfig::load()?;
         user_config

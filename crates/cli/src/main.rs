@@ -2,8 +2,8 @@ mod app;
 mod commands;
 mod error;
 mod helpers;
-mod shell;
 mod printer;
+mod shell;
 
 use app::{App as CLI, Commands, ToolCommands};
 use clap::Parser;
@@ -56,7 +56,7 @@ async fn main() -> MainResult {
         Commands::Completions(args) => app.execute_with_args(commands::completions, args),
         Commands::Install(args) => app.execute_with_args(commands::install, args),
         Commands::InstallGlobal(args) => app.execute_with_args(commands::install_global, args),
-        Commands::List(args) => app.execute_with_args(commands::list, args),
+        Commands::List(args) => app.execute_with_args(commands::tool::list, args),
         Commands::ListGlobal(args) => app.execute_with_args(commands::list_global, args),
         Commands::ListRemote(args) => app.execute_with_args(commands::list_remote, args),
         Commands::Migrate(args) => app.execute_with_args(commands::migrate, args),
@@ -67,13 +67,13 @@ async fn main() -> MainResult {
         Commands::Run(args) => app.execute_with_args(commands::run, args),
         Commands::Setup(args) => app.execute_with_args(commands::setup, args),
         Commands::Tool { command } => match command {
-            ToolCommands::Add(args) => app.execute_with_args(commands::tool_add, args),
-            ToolCommands::Info(args) => app.execute_with_args(commands::tool_info, args),
-            ToolCommands::List(args) => app.execute_with_args(commands::tool_list, args),
+            ToolCommands::Add(args) => app.execute_with_args(commands::tool::add, args),
+            ToolCommands::Info(args) => app.execute_with_args(commands::tool::info, args),
+            ToolCommands::List(args) => app.execute_with_args(commands::tool::list, args),
             ToolCommands::ListPlugins(args) => {
-                app.execute_with_args(commands::tool_list_plugins, args)
+                app.execute_with_args(commands::tool::list_plugins, args)
             }
-            ToolCommands::Remove(args) => app.execute_with_args(commands::tool_remove, args),
+            ToolCommands::Remove(args) => app.execute_with_args(commands::tool::remove, args),
         },
         Commands::Tools(args) => app.execute_with_args(commands::tools, args),
         Commands::Unalias(args) => app.execute_with_args(commands::unalias, args),

@@ -1,8 +1,8 @@
 use crate::commands::{
-    AddToolArgs, AliasArgs, BinArgs, CleanArgs, CompletionsArgs, InstallArgs, InstallGlobalArgs,
-    ListArgs, ListGlobalArgs, ListRemoteArgs, ListToolPluginsArgs, ListToolsArgs, MigrateArgs,
-    OutdatedArgs, PinArgs, RemoveToolArgs, RunArgs, SetupArgs, ToolInfoArgs, UnaliasArgs,
-    UninstallArgs, UninstallGlobalArgs,
+    tool::{AddToolArgs, ListToolPluginsArgs, ListToolsArgs, RemoveToolArgs, ToolInfoArgs},
+    AliasArgs, BinArgs, CleanArgs, CompletionsArgs, InstallArgs, InstallGlobalArgs, ListArgs,
+    ListGlobalArgs, ListRemoteArgs, MigrateArgs, OutdatedArgs, PinArgs, RunArgs, SetupArgs,
+    UnaliasArgs, UninstallArgs, UninstallGlobalArgs,
 };
 use clap::builder::styling::{Color, Style, Styles};
 use clap::{Parser, Subcommand, ValueEnum};

@@ -33,7 +33,7 @@ pub struct ToolInfoArgs {
 }
 
 #[system]
-pub async fn tool_info(args: ArgsRef<ToolInfoArgs>) {
+pub async fn info(args: ArgsRef<ToolInfoArgs>) {
     let mut tool = load_tool(&args.id).await?;
     let version = detect_version(&tool, None).await?;
 

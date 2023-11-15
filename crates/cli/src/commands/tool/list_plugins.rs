@@ -23,7 +23,7 @@ pub struct ListToolPluginsArgs {
 }
 
 #[system]
-pub async fn tool_list_plugins(args: ArgsRef<ListToolPluginsArgs>) {
+pub async fn list_plugins(args: ArgsRef<ListToolPluginsArgs>) {
     if !args.json {
         info!("Loading plugins...");
     }

@@ -10,5 +10,5 @@ pub async fn add_plugin_old() {
         color::shell("proto tool add")
     );
 
-    tool::tool_add(states, resources, emitters).await?;
+    tool::add(states, resources, emitters).await?;
 }

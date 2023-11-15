@@ -10,5 +10,5 @@ pub async fn plugins() {
         color::shell("proto tool list-plugins")
     );
 
-    tool::tool_list_plugins(states, resources, emitters).await?;
+    tool::list_plugins(states, resources, emitters).await?;
 }

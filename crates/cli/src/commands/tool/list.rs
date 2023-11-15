@@ -21,7 +21,7 @@ pub struct ListToolsArgs {
 }
 
 #[system]
-pub async fn tool_list(args: ArgsRef<ListToolsArgs>) {
+pub async fn list(args: ArgsRef<ListToolsArgs>) {
     if !args.json {
         info!("Loading tools...");
     }

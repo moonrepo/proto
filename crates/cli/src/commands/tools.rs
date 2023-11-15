@@ -10,5 +10,5 @@ pub async fn tools() {
         color::shell("proto tool list")
     );
 
-    tool::tool_list(states, resources, emitters).await?;
+    tool::list(states, resources, emitters).await?;
 }

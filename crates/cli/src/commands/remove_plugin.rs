@@ -10,5 +10,5 @@ pub async fn remove_plugin_old() {
         color::shell("proto tool remove")
     );
 
-    tool::tool_remove(states, resources, emitters).await?;
+    tool::remove(states, resources, emitters).await?;
 }
