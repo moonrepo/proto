@@ -153,7 +153,7 @@ impl ToolsConfig {
             self.plugins.insert(
                 Id::raw("node"),
                 PluginLocator::SourceUrl {
-                    url: "https://github.com/moonrepo/node-plugin/releases/download/v0.5.0/node_plugin.wasm".into()
+                    url: "https://github.com/moonrepo/node-plugin/releases/download/v0.5.2/node_plugin.wasm".into()
                 }
             );
         }
@@ -163,7 +163,7 @@ impl ToolsConfig {
                 self.plugins.insert(
                     Id::raw(depman),
                     PluginLocator::SourceUrl {
-                        url: "https://github.com/moonrepo/node-plugin/releases/download/v0.5.0/node_depman_plugin.wasm".into()
+                        url: "https://github.com/moonrepo/node-plugin/releases/download/v0.5.2/node_depman_plugin.wasm".into()
                     }
                 );
             }
