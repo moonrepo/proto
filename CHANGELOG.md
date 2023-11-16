@@ -31,6 +31,13 @@
 - WASM API
   - Added `DetectVersionOutput.ignore` field.
 
+#### 🧩 Plugins
+
+- Updated `node_plugin` and `node_depman_plugin` to v0.5.2.
+- **Node**
+  - Will now ignore detecting versions from `node_modules` paths.
+  - Fixed Yarn v1.22.x archive not unpacking correctly.
+
 ## 0.22.2
 
 #### 🐞 Fixes
