@@ -53,7 +53,7 @@ tokio = { workspace = true }
 tracing = { workspace = true }
 
 # Force latest rustls
-rustls = "0.21.8"
+rustls = "0.21.9"
 rustls-pemfile = "1.0.4"
 rustls-webpki = "0.101.7"
 
