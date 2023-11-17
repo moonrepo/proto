@@ -10,6 +10,14 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### ⚙️ Internal
+
+- Updated Rust to v1.74.
+- Updated dependencies.
+- Updated logs to now include nanoseconds.
+
 ## 0.23.0
 
 #### 💥 Breaking
