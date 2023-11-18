@@ -12,6 +12,10 @@
 
 ## Unreleased
 
+#### 🐞 Fixes
+
+- Fixed an issue where broken symlinks would fail to be removed. This would result in subsequent "File exists (os error 17)" errors.
+
 #### ⚙️ Internal
 
 - Updated Rust to v1.74.
