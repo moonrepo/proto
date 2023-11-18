@@ -1456,7 +1456,7 @@ impl Tool {
                 "Creating binary symlink"
             );
 
-            fs::remove_file(&output_path)?;
+            fs::remove_link(&output_path)?;
 
             #[cfg(windows)]
             {
@@ -1556,9 +1556,9 @@ impl Tool {
 
         // If no more default version, delete the symlink,
         // otherwise the OS will throw errors for missing sources
-        if self.manifest.default_version.is_none() {
+        if self.manifest.default_version.is_none() || self.manifest.installed_versions.is_empty() {
             for bin in self.get_bin_locations()? {
-                fs::remove_file(bin.path)?;
+                fs::remove_link(bin.path)?;
             }
         }
 
@@ -1579,7 +1579,7 @@ impl Tool {
             "Cleaning up temporary files and downloads"
         );
 
-        fs::remove(self.get_temp_dir())?;
+        fs::remove_dir_all(self.get_temp_dir())?;
 
         Ok(())
     }

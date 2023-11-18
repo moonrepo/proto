@@ -206,7 +206,7 @@ pub async fn purge_tool(id: &Id, yes: bool) -> SystemResult {
 
         // Delete binaries
         for bin in tool.get_bin_locations()? {
-            fs::remove_file(bin.path)?;
+            fs::remove_link(bin.path)?;
         }
 
         // Delete shims
