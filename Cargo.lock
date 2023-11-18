@@ -2301,7 +2301,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.23.0"
+version = "0.23.1"
 dependencies = [
  "chrono",
  "clap 4.4.8",
@@ -2336,7 +2336,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.23.1"
+version = "0.23.2"
 dependencies = [
  "cached",
  "extism",
