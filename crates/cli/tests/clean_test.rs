@@ -34,8 +34,17 @@ mod clean {
     #[test]
     fn purges_tool_bin() {
         let sandbox = create_empty_sandbox();
-        sandbox.create_file("bin/node", "");
-        sandbox.create_file("bin/node.exe", "");
+        sandbox.create_file("tools/node/fake/file", "");
+        sandbox.create_file("bin/other", "");
+
+        let bin = sandbox.path().join(if cfg!(windows) {
+            "bin/node.exe"
+        } else {
+            "bin/node"
+        });
+
+        #[allow(deprecated)]
+        std::fs::soft_link(sandbox.path().join("tools/node/fake/file"), &bin).unwrap();
 
         let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("clean")
@@ -45,11 +54,8 @@ mod clean {
             .assert()
             .success();
 
-        if cfg!(windows) {
-            assert!(!sandbox.path().join("bin/node.exe").exists());
-        } else {
-            assert!(!sandbox.path().join("bin/node").exists());
-        }
+        assert!(!bin.exists());
+        assert!(bin.symlink_metadata().is_err());
     }
 
     #[test]
