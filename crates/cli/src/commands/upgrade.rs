@@ -1,7 +1,7 @@
 use crate::error::ProtoCliError;
 use crate::helpers::download_to_temp_with_progress_bar;
 use miette::IntoDiagnostic;
-use proto_core::{get_bin_dir, get_temp_dir, is_offline};
+use proto_core::{is_offline, ProtoEnvironment};
 use semver::Version;
 use starbase::system;
 use starbase_archive::Archiver;
@@ -32,16 +32,17 @@ pub async fn upgrade() {
         return Err(ProtoCliError::UpgradeRequiresInternet.into());
     }
 
-    let version = env!("CARGO_PKG_VERSION");
+    let proto = ProtoEnvironment::new()?;
+    let current_version = env!("CARGO_PKG_VERSION");
     let new_version = fetch_version().await?;
 
     debug!(
         "Comparing latest version {} to local version {}",
         color::hash(&new_version),
-        color::hash(version),
+        color::hash(current_version),
     );
 
-    if Version::parse(&new_version).unwrap() <= Version::parse(version).unwrap() {
+    if Version::parse(&new_version).unwrap() <= Version::parse(current_version).unwrap() {
         info!("You're already on the latest version of proto!");
 
         return Ok(());
@@ -71,24 +72,23 @@ pub async fn upgrade() {
         "https://github.com/moonrepo/proto/releases/download/v{new_version}/{download_file}"
     );
     let temp_file = download_to_temp_with_progress_bar(&download_url, &download_file).await?;
-    let temp_dir = get_temp_dir()?.join(&target_file);
+    let temp_dir = proto.temp_dir.join(&target_file);
 
     // Unpack the downloaded file
     Archiver::new(&temp_dir, &temp_file).unpack_from_ext()?;
 
     // Move the old binary
-    let bin_dir = get_bin_dir()?;
     let bin_name = if cfg!(windows) { "proto.exe" } else { "proto" };
-    let bin_path = bin_dir.join(bin_name);
+    let bin_path = proto.bin_dir.join(bin_name);
 
     if bin_path.exists() {
         fs::rename(
             &bin_path,
-            bin_dir.join(if cfg!(windows) {
-                "proto-old.exe"
-            } else {
-                "proto-old"
-            }),
+            proto
+                .tools_dir
+                .join("proto")
+                .join(current_version)
+                .join(bin_name),
         )?;
     }
 
