@@ -43,7 +43,6 @@ miette = { workspace = true }
 reqwest = { workspace = true, features = ["rustls-tls-native-roots", "stream"] }
 semver = { workspace = true }
 serde = { workspace = true }
-shell-words = "1.1.0"
 starbase = { workspace = true }
 starbase_archive = { workspace = true }
 starbase_styles = { workspace = true }
