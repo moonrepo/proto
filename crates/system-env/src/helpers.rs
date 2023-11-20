@@ -19,7 +19,10 @@ pub fn find_command_on_path<T: AsRef<OsStr>>(name: T) -> Option<PathBuf> {
 
     for path_dir in env::split_paths(&system_path) {
         for ext in &exts {
-            let path = path_dir.join(format!("{name}{ext}"));
+            let mut file_name = name.to_os_string();
+            file_name.push(ext);
+
+            let path = path_dir.join(file_name);
 
             if path.exists() {
                 return Some(path);

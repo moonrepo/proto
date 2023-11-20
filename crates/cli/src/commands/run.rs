@@ -6,6 +6,7 @@ use proto_core::{detect_version, load_tool, Id, ProtoError, Tool, UnresolvedVers
 use proto_pdk_api::{ExecutableConfig, RunHook};
 use starbase::system;
 use std::env;
+use std::ffi::OsStr;
 use std::process::exit;
 use system_env::create_process_command;
 use tokio::process::Command;
@@ -117,14 +118,15 @@ fn get_executable(tool: &Tool, args: &RunArgs) -> miette::Result<ExecutableConfi
     Ok(config)
 }
 
-fn create_command(exe_config: &ExecutableConfig, args: &[String]) -> Command {
+fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
+    exe_config: &ExecutableConfig,
+    args: I,
+) -> Command {
     let exe_path = exe_config.exe_path.as_ref().unwrap();
 
     let command = if let Some(parent_exe) = &exe_config.parent_exe_name {
-        let exe_path = exe_path.to_string_lossy().to_string();
-
-        let mut exe_args = vec![&exe_path];
-        exe_args.extend(args);
+        let mut exe_args = vec![exe_path.as_os_str().to_os_string()];
+        exe_args.extend(args.into_iter().map(|arg| arg.as_ref().to_os_string()));
 
         create_process_command(parent_exe, exe_args)
     } else {

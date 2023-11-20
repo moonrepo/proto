@@ -15,6 +15,7 @@
 #### 🐞 Fixes
 
 - Fixed an issue where checksum verification would fail if the `.sha256` file prefixed the file name with `*`.
+- Fixed an issue where installing a global would fail to find a proto shim on Windows.
 
 ## 0.23.1
 
