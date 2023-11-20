@@ -681,16 +681,19 @@ impl Tool {
                 }
                 _ => {
                     let checksum_hash = hash_file_contents(download_file)?;
-                    let checksum_matching_line =
-                        format!("{}  {}", checksum_hash, fs::file_name(download_file));
+                    let download_file_name = fs::file_name(download_file);
 
                     for line in BufReader::new(fs::open_file(checksum_file)?)
                         .lines()
                         .flatten()
                     {
                         // <checksum>  <file>
+                        // <checksum> *<file>
                         // <checksum>
-                        if line == checksum_matching_line || line == checksum_hash {
+                        if line == checksum_hash
+                            || (line.starts_with(&checksum_hash)
+                                && line.ends_with(&download_file_name))
+                        {
                             verified = true;
                             break;
                         }
