@@ -6,8 +6,9 @@ use proto_core::{detect_version, load_tool, Id, ProtoError, Tool, UnresolvedVers
 use proto_pdk_api::{ExecutableConfig, RunHook};
 use starbase::system;
 use std::env;
+use std::ffi::OsStr;
 use std::process::exit;
-use system_env::is_command_on_path;
+use system_env::create_process_command;
 use tokio::process::Command;
 use tracing::debug;
 
@@ -117,41 +118,23 @@ fn get_executable(tool: &Tool, args: &RunArgs) -> miette::Result<ExecutableConfi
     Ok(config)
 }
 
-fn create_command(exe_config: &ExecutableConfig, args: &[String]) -> Command {
+fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
+    exe_config: &ExecutableConfig,
+    args: I,
+) -> Command {
     let exe_path = exe_config.exe_path.as_ref().unwrap();
 
-    match exe_path.extension().map(|e| e.to_str().unwrap()) {
-        Some("ps1" | "cmd" | "bat") => {
-            let mut cmd = Command::new(if is_command_on_path("pwsh") {
-                "pwsh"
-            } else {
-                "powershell"
-            });
-            cmd.arg("-Command");
-            cmd.arg(
-                format!(
-                    "{} {} {}",
-                    exe_config.parent_exe_name.clone().unwrap_or_default(),
-                    exe_path.display(),
-                    shell_words::join(args)
-                )
-                .trim(),
-            );
-            cmd
-        }
-        _ => {
-            if let Some(parent_exe) = &exe_config.parent_exe_name {
-                let mut cmd = Command::new(parent_exe);
-                cmd.arg(exe_path);
-                cmd.args(args);
-                cmd
-            } else {
-                let mut cmd = Command::new(exe_path);
-                cmd.args(args);
-                cmd
-            }
-        }
-    }
+    let command = if let Some(parent_exe) = &exe_config.parent_exe_name {
+        let mut exe_args = vec![exe_path.as_os_str().to_os_string()];
+        exe_args.extend(args.into_iter().map(|arg| arg.as_ref().to_os_string()));
+
+        create_process_command(parent_exe, exe_args)
+    } else {
+        create_process_command(exe_path, args)
+    };
+
+    // Convert std to tokio
+    Command::from(command)
 }
 
 #[system]

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::env::{self, consts};
+use std::env::consts;
 use std::fmt;
 
 /// Architecture of the host environment.
@@ -166,43 +166,4 @@ impl fmt::Display for SystemOS {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", format!("{:?}", self).to_lowercase())
     }
-}
-
-/// Return true if the provided program (without extension) is available
-/// on `PATH`. Will use `PATHEXT` to cycle through known extensions.
-#[cfg(windows)]
-pub fn is_command_on_path(name: &str) -> bool {
-    let Ok(system_path) = env::var("PATH") else {
-        return false;
-    };
-    let Ok(path_ext) = env::var("PATHEXT") else {
-        return false;
-    };
-    let exts = path_ext.split(';').collect::<Vec<_>>();
-
-    for path_dir in env::split_paths(&system_path) {
-        for ext in &exts {
-            if path_dir.join(format!("{name}{ext}")).exists() {
-                return true;
-            }
-        }
-    }
-
-    false
-}
-
-/// Return true if the provided command is available on `PATH`.
-#[cfg(not(windows))]
-pub fn is_command_on_path(name: &str) -> bool {
-    let Ok(system_path) = env::var("PATH") else {
-        return false;
-    };
-
-    for path_dir in env::split_paths(&system_path) {
-        if path_dir.join(name).exists() {
-            return true;
-        }
-    }
-
-    false
 }

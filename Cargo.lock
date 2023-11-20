@@ -2321,7 +2321,6 @@ dependencies = [
  "rustls-webpki",
  "semver",
  "serde",
- "shell-words",
  "starbase",
  "starbase_archive",
  "starbase_sandbox",
@@ -2356,6 +2355,7 @@ dependencies = [
  "starbase_sandbox",
  "starbase_styles",
  "starbase_utils",
+ "system_env",
  "thiserror",
  "tinytemplate",
  "tokio",
@@ -3289,6 +3289,7 @@ dependencies = [
  "schematic",
  "serde",
  "serde_json",
+ "shell-words",
  "thiserror",
 ]
 

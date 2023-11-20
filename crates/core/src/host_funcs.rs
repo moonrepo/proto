@@ -4,8 +4,8 @@ use proto_pdk_api::{ExecCommandInput, ExecCommandOutput, HostLogInput, HostLogTa
 use starbase_utils::fs;
 use std::env;
 use std::path::PathBuf;
-use std::process::Command;
 use std::sync::Arc;
+use system_env::create_process_command;
 use tracing::trace;
 use warpgate::Id;
 
@@ -129,8 +129,7 @@ fn exec_command(
     // let data = user_data.any().unwrap();
     // let data = data.downcast_ref::<HostData>().unwrap();
 
-    let mut command = Command::new(&input.command);
-    command.args(&input.args);
+    let mut command = create_process_command(&input.command, &input.args);
     command.envs(&input.env_vars);
     // command.current_dir(&data.proto.cwd);
 
