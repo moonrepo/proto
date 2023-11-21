@@ -51,7 +51,7 @@ pub async fn list_global(args: ArgsRef<ListGlobalArgs>) {
             bins.push(format!(
                 "{} - {}",
                 file_name,
-                color::path(file_path.canonicalize().unwrap())
+                color::path(file_path.canonicalize().unwrap_or(file_path))
             ));
         }
     }

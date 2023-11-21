@@ -18,6 +18,8 @@
 
 #### 🐞 Fixes
 
+- Fixed an issue where `proto list-global` would panic when canonicalizing paths.
+
 ## 0.23.2
 
 #### 🐞 Fixes
