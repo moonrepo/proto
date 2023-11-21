@@ -6,6 +6,7 @@ use std::collections::BTreeMap;
 use std::env;
 use std::path::{Path, PathBuf};
 use tracing::debug;
+use version_spec::UnresolvedVersionSpec;
 use warpgate::{HttpOptions, Id, PluginLocator};
 
 pub const USER_CONFIG_NAME: &str = "config.toml";
@@ -25,6 +26,14 @@ pub enum PinType {
     Local,
 }
 
+#[derive(Debug, Default, Deserialize, PartialEq, Serialize)]
+#[serde(default, rename_all = "kebab-case")]
+pub struct UserToolConfig {
+    // Partial versions allowed
+    pub aliases: BTreeMap<String, UnresolvedVersionSpec>,
+    pub default_version: Option<UnresolvedVersionSpec>,
+}
+
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 #[serde(default, rename_all = "kebab-case")]
 pub struct UserConfig {
@@ -35,6 +44,7 @@ pub struct UserConfig {
     pub pin_latest: Option<PinType>,
     pub http: HttpOptions,
     pub plugins: BTreeMap<Id, PluginLocator>,
+    pub tools: BTreeMap<Id, UserToolConfig>,
 
     #[serde(skip)]
     pub path: PathBuf,
@@ -107,6 +117,7 @@ impl Default for UserConfig {
             node_intercept_globals: from_var("PROTO_NODE_INTERCEPT_GLOBALS", true),
             pin_latest: None,
             plugins: BTreeMap::default(),
+            tools: BTreeMap::default(),
             path: PathBuf::new(),
         }
     }

@@ -22,6 +22,7 @@ mod user_config {
                 http: HttpOptions::default(),
                 pin_latest: None,
                 plugins: BTreeMap::default(),
+                tools: BTreeMap::default(),
                 path: sandbox.path().join(USER_CONFIG_NAME),
             }
         );
@@ -52,6 +53,7 @@ pin-latest = "global"
                 http: HttpOptions::default(),
                 pin_latest: Some(PinType::Global),
                 plugins: BTreeMap::default(),
+                tools: BTreeMap::default(),
                 path: sandbox.path().join(USER_CONFIG_NAME),
             }
         );
@@ -78,6 +80,7 @@ pin-latest = "global"
                 http: HttpOptions::default(),
                 pin_latest: None,
                 plugins: BTreeMap::default(),
+                tools: BTreeMap::default(),
                 path: sandbox.path().join(USER_CONFIG_NAME),
             }
         );
