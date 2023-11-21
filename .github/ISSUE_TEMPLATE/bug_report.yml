@@ -6,19 +6,19 @@ body:
   - type: markdown
     attributes:
       value: |
-        If you're reporting an issue for a specific language/tool and not for proto itself, please report the issue on their official repository.
+        If you're reporting an issue for a specific language/tool and _not_ for proto itself, please report the issue on their official repository.
         - [Bun](https://github.com/moonrepo/bun-plugin)
         - [Deno](https://github.com/moonrepo/deno-plugin)
         - [Go](https://github.com/moonrepo/go-plugin)
-        - [Node](https://github.com/moonrepo/node-plugin)
+        - [Node (npm, etc)](https://github.com/moonrepo/node-plugin)
         - [Python](https://github.com/moonrepo/python-plugin)
         - [Rust](https://github.com/moonrepo/rust-plugin)
-        - [Schema](https://github.com/moonrepo/schema-plugin)
+        - [TOML schema](https://github.com/moonrepo/schema-plugin)
   - type: input
     attributes:
       label: What version?
       description: What version of `proto` are you using?
-      placeholder: "0.14.0"
+      placeholder: "0.23.0"
   - type: input
     attributes:
       label: Which command?
@@ -32,8 +32,8 @@ body:
       required: true
   - type: textarea
     attributes:
-      label: Any logs?
-      description: If applicable, paste the `--log trace` (or `PROTO_LOG=trace`) output.
+      label: Trace logs?
+      description: Please paste the `--log trace` (or `PROTO_LOG=trace`) output.
   - type: dropdown
     attributes:
       label: Operating system?
@@ -48,7 +48,7 @@ body:
       label: Architecture?
       options:
         - x64
-        - Arm64
+        - arm64
         - Other
     validations:
       required: true
