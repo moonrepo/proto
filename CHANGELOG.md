@@ -10,6 +10,16 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Updated `proto install-global` and `proto uninstall-global` to detect/resolve a version first, as some package managers require it.
+
+#### 🐞 Fixes
+
+- Fixed an issue where `proto list-global` would panic when canonicalizing paths.
+
 ## 0.23.2
 
 #### 🐞 Fixes

@@ -1,7 +1,7 @@
 use crate::error::ProtoCliError;
 use crate::helpers::create_progress_bar;
 use clap::Args;
-use proto_core::{load_tool, Id};
+use proto_core::{detect_version, load_tool, Id};
 use starbase::system;
 use starbase_styles::color;
 use std::env;
@@ -19,6 +19,10 @@ pub struct InstallGlobalArgs {
 #[system]
 pub async fn install_global(args: ArgsRef<InstallGlobalArgs>) {
     let mut tool = load_tool(&args.id).await?;
+    let version = detect_version(&tool, None).await?;
+
+    // Resolve a version as some tools install to a versioned folder
+    tool.resolve_version(&version, true).await?;
     tool.locate_globals_dir().await?;
 
     let globals_dir = tool.get_globals_bin_dir();
