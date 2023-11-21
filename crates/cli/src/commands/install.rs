@@ -63,7 +63,7 @@ async fn pin_version(
     if initial_version.is_latest() {
         let user_config = tool.proto.load_user_config()?;
 
-        if let Some(pin_type) = user_config.pin_latest {
+        if let Some(pin_type) = &user_config.pin_latest {
             args.global = matches!(pin_type, PinType::Global);
 
             return internal_pin(tool, &args, true).await;

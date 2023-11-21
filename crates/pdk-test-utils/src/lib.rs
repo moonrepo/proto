@@ -119,12 +119,11 @@ fn internal_create_plugin(
 ) -> WasmTestWrapper {
     let id = Id::new(id).unwrap();
     let proto = ProtoEnvironment::new_testing(sandbox);
-    let user_config = UserConfig::default();
 
     let mut manifest =
         Tool::create_plugin_manifest(&proto, Wasm::file(find_wasm_file(sandbox))).unwrap();
 
-    inject_default_manifest_config(&id, &proto, &user_config, &mut manifest).unwrap();
+    inject_default_manifest_config(&id, &proto, &mut manifest).unwrap();
 
     manifest.config.extend(config);
 

@@ -84,7 +84,7 @@ pub async fn install_all() {
 
     info!("Successfully installed tools");
 
-    if loader.user_config.auto_clean {
+    if loader.proto.load_user_config()?.auto_clean {
         info!("Auto-clean enabled, starting clean");
 
         internal_clean(&CleanArgs {

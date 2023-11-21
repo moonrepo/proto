@@ -18,8 +18,10 @@ pub struct ProtoEnvironment {
     pub home: PathBuf, // ~
     pub root: PathBuf, // ~/.proto
 
-    client: Arc<OnceCell<reqwest::Client>>,
-    loader: Arc<OnceCell<PluginLoader>>,
+    http_client: Arc<OnceCell<reqwest::Client>>,
+    plugin_loader: Arc<OnceCell<PluginLoader>>,
+    test_mode: bool,
+    user_config: Arc<OnceCell<UserConfig>>,
 }
 
 impl ProtoEnvironment {
@@ -31,6 +33,7 @@ impl ProtoEnvironment {
         let mut env = Self::from(sandbox.join(".proto")).unwrap();
         env.cwd = sandbox.to_path_buf();
         env.home = sandbox.join(".home");
+        env.test_mode = true;
         env
     }
 
@@ -46,22 +49,22 @@ impl ProtoEnvironment {
             tools_dir: root.join("tools"),
             home: get_home_dir()?,
             root: root.to_owned(),
-            client: Arc::new(OnceCell::new()),
-            loader: Arc::new(OnceCell::new()),
+            http_client: Arc::new(OnceCell::new()),
+            plugin_loader: Arc::new(OnceCell::new()),
+            test_mode: false,
+            user_config: Arc::new(OnceCell::new()),
         })
     }
 
     pub fn get_http_client(&self) -> miette::Result<&reqwest::Client> {
-        self.client.get_or_try_init(|| {
-            let user_config = UserConfig::load()?;
-            let client = create_http_client_with_options(user_config.http)?;
+        let user_config = self.load_user_config()?;
 
-            Ok(client)
-        })
+        self.http_client
+            .get_or_try_init(|| create_http_client_with_options(&user_config.http))
     }
 
     pub fn get_plugin_loader(&self) -> &PluginLoader {
-        self.loader.get_or_init(|| {
+        self.plugin_loader.get_or_init(|| {
             let mut loader = PluginLoader::new(&self.plugins_dir, &self.temp_dir);
             loader.set_offline_checker(is_offline);
             loader.set_seed(env!("CARGO_PKG_VERSION"));
@@ -77,8 +80,14 @@ impl ProtoEnvironment {
         ])
     }
 
-    pub fn load_user_config(&self) -> miette::Result<UserConfig> {
-        UserConfig::load_from(&self.root)
+    pub fn load_user_config(&self) -> miette::Result<&UserConfig> {
+        self.user_config.get_or_try_init(|| {
+            if self.test_mode {
+                Ok(UserConfig::default())
+            } else {
+                UserConfig::load_from(&self.root)
+            }
+        })
     }
 }
 

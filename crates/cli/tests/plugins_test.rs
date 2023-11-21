@@ -3,7 +3,6 @@ mod utils;
 use futures::Future;
 use proto_core::{
     load_tool_from_locator, Id, PluginLocator, ProtoEnvironment, Tool, UnresolvedVersionSpec,
-    UserConfig,
 };
 use std::env;
 use std::path::{Path, PathBuf};
@@ -45,19 +44,16 @@ mod plugins {
 
     #[tokio::test]
     async fn downloads_and_installs_plugin_from_file() {
-        let user_config = UserConfig::default();
-
         run_tests(|root| {
             let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
             load_tool_from_locator(
                 Id::raw("moon"),
-                ProtoEnvironment::from(root).unwrap(),
+                ProtoEnvironment::new_testing(root),
                 PluginLocator::SourceFile {
                     file: "./tests/fixtures/moon-schema.toml".into(),
                     path: root_dir.join("./tests/fixtures/moon-schema.toml"),
                 },
-                &user_config,
             )
         })
         .await;
@@ -66,19 +62,16 @@ mod plugins {
     #[tokio::test]
     #[should_panic(expected = "does not exist")]
     async fn errors_for_missing_file() {
-        let user_config = UserConfig::default();
-
         run_tests(|root| {
             let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
             load_tool_from_locator(
                 Id::raw("moon"),
-                ProtoEnvironment::from(root).unwrap(),
+                ProtoEnvironment::new_testing(root),
                 PluginLocator::SourceFile {
                     file: "./some/fake/path.toml".into(),
                     path: root_dir.join("./some/fake/path.toml"),
                 },
-                &user_config,
             )
         })
         .await;
@@ -86,17 +79,14 @@ mod plugins {
 
     #[tokio::test]
     async fn downloads_and_installs_plugin_from_url() {
-        let user_config = UserConfig::default();
-
         run_tests(|root| {
             load_tool_from_locator(
                 Id::raw("moon"),
-                ProtoEnvironment::from(root).unwrap(),
+                ProtoEnvironment::new_testing(root),
                 PluginLocator::SourceUrl {
                     url: "https://raw.githubusercontent.com/moonrepo/moon/master/proto-plugin.toml"
                         .into(),
                 },
-                &user_config,
             )
         })
         .await;
@@ -105,17 +95,14 @@ mod plugins {
     #[tokio::test]
     #[should_panic(expected = "does not exist")]
     async fn errors_for_broken_url() {
-        let user_config = UserConfig::default();
-
         run_tests(|root| {
             load_tool_from_locator(
                 Id::raw("moon"),
-                ProtoEnvironment::from(root).unwrap(),
+                ProtoEnvironment::new_testing(root),
                 PluginLocator::SourceUrl {
                     url: "https://raw.githubusercontent.com/moonrepo/moon/some/fake/path.toml"
                         .into(),
                 },
-                &user_config,
             )
         })
         .await;

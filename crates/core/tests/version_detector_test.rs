@@ -1,6 +1,6 @@
 use proto_core::{
     detect_version_first_available, detect_version_prefer_prototools, load_tool_from_locator,
-    ProtoEnvironment, Tool, ToolsConfig, UnresolvedVersionSpec, UserConfig,
+    ProtoEnvironment, Tool, ToolsConfig, UnresolvedVersionSpec,
 };
 use starbase_sandbox::create_empty_sandbox;
 use std::path::Path;
@@ -14,7 +14,6 @@ mod version_detector {
             Id::raw("node"),
             ProtoEnvironment::new().unwrap(),
             ToolsConfig::builtin_plugins().get("node").unwrap(),
-            &UserConfig::default(),
         )
         .await
         .unwrap()

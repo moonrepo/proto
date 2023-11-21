@@ -3,7 +3,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use miette::IntoDiagnostic;
 use proto_core::{
     get_temp_dir, load_schema_plugin, load_tool_from_locator, Id, ProtoEnvironment, ProtoError,
-    Tool, ToolsConfig, UserConfig, SCHEMA_PLUGIN_KEY,
+    Tool, ToolsConfig, SCHEMA_PLUGIN_KEY,
 };
 use starbase_utils::fs;
 use std::cmp;
@@ -101,13 +101,11 @@ pub async fn load_configured_tools_with_filters(filter: HashSet<&Id>) -> miette:
 pub struct ToolsLoader {
     pub proto: Arc<ProtoEnvironment>,
     pub tools_config: ToolsConfig,
-    pub user_config: Arc<UserConfig>,
 }
 
 impl ToolsLoader {
     pub fn new() -> miette::Result<Self> {
         let proto = ProtoEnvironment::new()?;
-        let user_config = proto.load_user_config()?;
 
         let mut tools_config = ToolsConfig::load_upwards_from(&proto.cwd, false)?;
         tools_config.inherit_builtin_plugins();
@@ -115,7 +113,6 @@ impl ToolsLoader {
         Ok(Self {
             proto: Arc::new(proto),
             tools_config,
-            user_config: Arc::new(user_config),
         })
     }
 
@@ -124,15 +121,17 @@ impl ToolsLoader {
     }
 
     pub async fn load_tools_with_filters(&self, filter: HashSet<&Id>) -> miette::Result<Vec<Tool>> {
+        let user_config = self.proto.load_user_config()?;
+
         let mut plugins = HashMap::new();
-        plugins.extend(&self.user_config.plugins);
+        plugins.extend(&user_config.plugins);
         plugins.extend(&self.tools_config.plugins);
 
         // Download the schema plugin before loading plugins.
         // We must do this here, otherwise when multiple schema
         // based tools are installed in parallel, they will
         // collide when attempting to download the schema plugin!
-        load_schema_plugin(&self.proto, &self.user_config).await?;
+        load_schema_plugin(&self.proto).await?;
 
         let mut futures = vec![];
         let mut tools = vec![];
@@ -150,10 +149,9 @@ impl ToolsLoader {
             let id = id.to_owned();
             let locator = locator.to_owned();
             let proto = Arc::clone(&self.proto);
-            let user_config = Arc::clone(&self.user_config);
 
             futures.push(tokio::spawn(async move {
-                load_tool_from_locator(id, proto, locator, &user_config).await
+                load_tool_from_locator(id, proto, locator).await
             }));
         }
 

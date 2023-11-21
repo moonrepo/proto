@@ -14,12 +14,12 @@ pub struct HttpOptions {
 
 /// Create an HTTP/HTTPS client that'll be used for downloading files.
 pub fn create_http_client() -> miette::Result<reqwest::Client> {
-    create_http_client_with_options(HttpOptions::default())
+    create_http_client_with_options(&HttpOptions::default())
 }
 
 /// Create an HTTP/HTTPS client with the provided options, that'll be
 /// used for downloading files.
-pub fn create_http_client_with_options(options: HttpOptions) -> miette::Result<reqwest::Client> {
+pub fn create_http_client_with_options(options: &HttpOptions) -> miette::Result<reqwest::Client> {
     let mut client = reqwest::Client::builder()
         .user_agent(format!("warpgate@{}", env!("CARGO_PKG_VERSION")))
         .use_rustls_tls();
@@ -30,19 +30,19 @@ pub fn create_http_client_with_options(options: HttpOptions) -> miette::Result<r
         client = client.danger_accept_invalid_certs(true);
     }
 
-    if let Some(root_cert) = options.root_cert {
+    if let Some(root_cert) = &options.root_cert {
         trace!(root_cert = ?root_cert, "Adding user provided root certificate");
 
         match root_cert.extension().map(|e| e.to_str().unwrap()) {
             Some("der") => {
                 client = client.add_root_certificate(
-                    reqwest::Certificate::from_der(&fs::read_file_bytes(&root_cert)?)
+                    reqwest::Certificate::from_der(&fs::read_file_bytes(root_cert)?)
                         .into_diagnostic()?,
                 )
             }
             Some("pem") => {
                 client = client.add_root_certificate(
-                    reqwest::Certificate::from_pem(&fs::read_file_bytes(&root_cert)?)
+                    reqwest::Certificate::from_pem(&fs::read_file_bytes(root_cert)?)
                         .into_diagnostic()?,
                 )
             }
@@ -55,7 +55,7 @@ pub fn create_http_client_with_options(options: HttpOptions) -> miette::Result<r
         };
     }
 
-    for proxy in options.proxies {
+    for proxy in &options.proxies {
         trace!(proxy = &proxy, "Adding proxy to http client");
 
         if proxy.starts_with("http:") {
