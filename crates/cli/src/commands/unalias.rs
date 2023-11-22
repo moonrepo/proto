@@ -1,5 +1,5 @@
 use clap::Args;
-use proto_core::{load_tool, Id};
+use proto_core::{load_tool, Id, UserConfig};
 use starbase::system;
 use starbase_styles::color;
 use tracing::info;
@@ -15,10 +15,13 @@ pub struct UnaliasArgs {
 
 #[system]
 pub async fn unalias(args: ArgsRef<UnaliasArgs>) {
-    let mut tool = load_tool(&args.id).await?;
+    let tool = load_tool(&args.id).await?;
+    let mut user_config = UserConfig::load()?;
 
-    let value = tool.manifest.aliases.remove(&args.alias);
-    tool.manifest.save()?;
+    let tool_config = user_config.tools.entry(args.id.clone()).or_default();
+    let value = tool_config.aliases.remove(&args.alias);
+
+    user_config.save()?;
 
     if let Some(version) = value {
         info!(

@@ -28,6 +28,7 @@ pub fn create_proto_command<T: AsRef<Path>>(path: T) -> assert_cmd::Command {
     cmd.env("PROTO_HOME", path);
     cmd.env("PROTO_LOG", "trace");
     cmd.env("PROTO_WASM_LOG", "trace");
+    cmd.env("PROTO_TEST_USER_CONFIG", "true");
     cmd.env("RUST_BACKTRACE", "1");
     cmd.env("WASMTIME_BACKTRACE_DETAILS", "1");
     // cmd.env("PROTO_TEST", "true");

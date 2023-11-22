@@ -430,7 +430,14 @@ impl Tool {
 
         // Cache the results and create a resolver
         let mut resolver = VersionResolver::from_output(versions);
-        resolver.with_manifest(&self.manifest)?;
+
+        resolver.with_manifest(&self.manifest);
+
+        let user_config = self.proto.load_user_config()?;
+
+        if let Some(config) = user_config.tools.get(&self.id) {
+            resolver.with_config(config);
+        }
 
         Ok(resolver)
     }

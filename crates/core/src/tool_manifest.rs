@@ -40,6 +40,7 @@ impl Default for ToolManifestVersion {
 #[serde(default)]
 pub struct ToolManifest {
     // Partial versions allowed
+    #[deprecated]
     pub aliases: BTreeMap<String, UnresolvedVersionSpec>,
     pub default_version: Option<UnresolvedVersionSpec>,
 

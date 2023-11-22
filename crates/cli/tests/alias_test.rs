@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::{ToolManifest, UnresolvedVersionSpec};
+use proto_core::{Id, UnresolvedVersionSpec, UserConfig, UserToolConfig};
 use starbase_sandbox::predicates::prelude::*;
 use std::collections::BTreeMap;
 use utils::*;
@@ -24,11 +24,11 @@ mod alias {
     }
 
     #[test]
-    fn updates_manifest_file() {
+    fn updates_user_config_file() {
         let sandbox = create_empty_sandbox();
-        let manifest_file = sandbox.path().join("tools/node/manifest.json");
+        let config_file = sandbox.path().join("config.toml");
 
-        assert!(!manifest_file.exists());
+        assert!(!config_file.exists());
 
         let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("alias")
@@ -38,12 +38,12 @@ mod alias {
             .assert()
             .success();
 
-        assert!(manifest_file.exists());
+        assert!(config_file.exists());
 
-        let manifest = ToolManifest::load(manifest_file).unwrap();
+        let config = UserConfig::load_from(sandbox.path()).unwrap();
 
         assert_eq!(
-            manifest.aliases,
+            config.tools.get("node").unwrap().aliases,
             BTreeMap::from_iter([(
                 "example".into(),
                 UnresolvedVersionSpec::parse("19.0.0").unwrap()
@@ -54,14 +54,19 @@ mod alias {
     #[test]
     fn can_overwrite_existing_alias() {
         let sandbox = create_empty_sandbox();
-        let manifest_file = sandbox.path().join("tools/node/manifest.json");
 
-        let mut manifest = ToolManifest::load(&manifest_file).unwrap();
-        manifest.aliases.insert(
-            "example".into(),
-            UnresolvedVersionSpec::parse("19.0.0").unwrap(),
+        let mut config = UserConfig::load_from(sandbox.path()).unwrap();
+        config.tools.insert(
+            Id::raw("node"),
+            UserToolConfig {
+                aliases: BTreeMap::from_iter([(
+                    "example".into(),
+                    UnresolvedVersionSpec::parse("19.0.0").unwrap(),
+                )]),
+                ..Default::default()
+            },
         );
-        manifest.save().unwrap();
+        config.save().unwrap();
 
         let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("alias")
@@ -71,10 +76,10 @@ mod alias {
             .assert()
             .success();
 
-        let manifest = ToolManifest::load(&manifest_file).unwrap();
+        let config = UserConfig::load_from(sandbox.path()).unwrap();
 
         assert_eq!(
-            manifest.aliases,
+            config.tools.get("node").unwrap().aliases,
             BTreeMap::from_iter([(
                 "example".into(),
                 UnresolvedVersionSpec::parse("20.0.0").unwrap()
@@ -85,9 +90,9 @@ mod alias {
     #[test]
     fn errors_when_using_version() {
         let sandbox = create_empty_sandbox();
-        let manifest_file = sandbox.path().join("tools/node/manifest.json");
+        let config_file = sandbox.path().join("config.toml");
 
-        assert!(!manifest_file.exists());
+        assert!(!config_file.exists());
 
         let mut cmd = create_proto_command(sandbox.path());
         let assert = cmd
@@ -105,9 +110,9 @@ mod alias {
     #[test]
     fn errors_when_aliasing_self() {
         let sandbox = create_empty_sandbox();
-        let manifest_file = sandbox.path().join("tools/node/manifest.json");
+        let config_file = sandbox.path().join("config.toml");
 
-        assert!(!manifest_file.exists());
+        assert!(!config_file.exists());
 
         let mut cmd = create_proto_command(sandbox.path());
         let assert = cmd

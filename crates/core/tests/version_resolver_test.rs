@@ -73,6 +73,7 @@ mod version_resolver {
                 &versions,
                 &aliases,
                 None,
+                None,
             )
             .unwrap(),
             Version::new(10, 0, 0)
@@ -83,6 +84,7 @@ mod version_resolver {
                 &UnresolvedVersionSpec::Alias("stable".into()),
                 &versions,
                 &aliases,
+                None,
                 None,
             )
             .unwrap(),
@@ -102,6 +104,7 @@ mod version_resolver {
                 &versions,
                 &aliases,
                 Some(&manifest),
+                None,
             )
             .unwrap(),
             Version::new(8, 0, 0)
@@ -113,6 +116,7 @@ mod version_resolver {
                 &versions,
                 &aliases,
                 Some(&manifest),
+                None,
             )
             .unwrap(),
             Version::new(10, 0, 0)
@@ -130,6 +134,7 @@ mod version_resolver {
             &versions,
             &aliases,
             None,
+            None,
         )
         .unwrap();
     }
@@ -144,6 +149,7 @@ mod version_resolver {
             &UnresolvedVersionSpec::Alias("no-alias".into()),
             &versions,
             &aliases,
+            None,
             None,
         )
         .unwrap();
@@ -160,6 +166,7 @@ mod version_resolver {
             &versions,
             &aliases,
             None,
+            None,
         )
         .unwrap();
     }
@@ -175,6 +182,7 @@ mod version_resolver {
                 &versions,
                 &aliases,
                 None,
+                None,
             )
             .unwrap(),
             Version::new(1, 10, 5)
@@ -185,6 +193,7 @@ mod version_resolver {
                 &UnresolvedVersionSpec::Version(Version::new(8, 0, 0)),
                 &versions,
                 &aliases,
+                None,
                 None,
             )
             .unwrap(),
@@ -204,6 +213,7 @@ mod version_resolver {
                 &versions,
                 &aliases,
                 Some(&manifest),
+                None,
             )
             .unwrap(),
             Version::new(3, 0, 0)
@@ -221,6 +231,7 @@ mod version_resolver {
                 &versions,
                 &aliases,
                 None,
+                None,
             )
             .unwrap(),
             Version::new(1, 2, 3)
@@ -232,6 +243,7 @@ mod version_resolver {
                 &versions,
                 &aliases,
                 None,
+                None,
             )
             .unwrap(),
             Version::new(1, 0, 0)
@@ -242,6 +254,7 @@ mod version_resolver {
                 &UnresolvedVersionSpec::parse("1").unwrap(),
                 &versions,
                 &aliases,
+                None,
                 None,
             )
             .unwrap(),
@@ -261,6 +274,7 @@ mod version_resolver {
                 &versions,
                 &aliases,
                 Some(&manifest),
+                None,
             )
             .unwrap(),
             Version::new(3, 3, 3)
@@ -272,6 +286,7 @@ mod version_resolver {
                 &versions,
                 &aliases,
                 Some(&manifest),
+                None,
             )
             .unwrap(),
             Version::new(3, 3, 3)
@@ -289,6 +304,7 @@ mod version_resolver {
                 &versions,
                 &aliases,
                 None,
+                None,
             )
             .unwrap(),
             Version::new(8, 0, 0)
@@ -299,6 +315,7 @@ mod version_resolver {
                 &UnresolvedVersionSpec::parse("V8").unwrap(),
                 &versions,
                 &aliases,
+                None,
                 None,
             )
             .unwrap(),
@@ -317,6 +334,7 @@ mod version_resolver {
             &versions,
             &aliases,
             None,
+            None,
         )
         .unwrap();
     }
@@ -332,6 +350,7 @@ mod version_resolver {
                 &versions,
                 &aliases,
                 None,
+                None,
             )
             .unwrap(),
             Version::new(8, 0, 0)
@@ -342,6 +361,7 @@ mod version_resolver {
                 &UnresolvedVersionSpec::parse("~1.1").unwrap(),
                 &versions,
                 &aliases,
+                None,
                 None,
             )
             .unwrap(),
@@ -354,6 +374,7 @@ mod version_resolver {
                 &versions,
                 &aliases,
                 None,
+                None,
             )
             .unwrap(),
             Version::new(8, 0, 0)
@@ -364,6 +385,7 @@ mod version_resolver {
                 &UnresolvedVersionSpec::parse(">1, <10").unwrap(),
                 &versions,
                 &aliases,
+                None,
                 None,
             )
             .unwrap(),
@@ -377,6 +399,7 @@ mod version_resolver {
                 &versions,
                 &aliases,
                 None,
+                None,
             )
             .unwrap(),
             Version::new(1, 10, 5)
@@ -388,6 +411,7 @@ mod version_resolver {
                 &UnresolvedVersionSpec::parse("*").unwrap(),
                 &versions,
                 &aliases,
+                None,
                 None,
             )
             .unwrap(),
@@ -406,6 +430,7 @@ mod version_resolver {
             &versions,
             &aliases,
             None,
+            None,
         )
         .unwrap();
     }
@@ -420,6 +445,7 @@ mod version_resolver {
                 &UnresolvedVersionSpec::parse("^1 || ^6 || ^8").unwrap(),
                 &versions,
                 &aliases,
+                None,
                 None,
             )
             .unwrap(),
@@ -438,6 +464,7 @@ mod version_resolver {
             &versions,
             &aliases,
             None,
+            None,
         )
         .unwrap();
     }
@@ -452,6 +479,7 @@ mod version_resolver {
                 &UnresolvedVersionSpec::parse(req).unwrap(),
                 &versions,
                 &aliases,
+                None,
                 None,
             )
             .unwrap();
