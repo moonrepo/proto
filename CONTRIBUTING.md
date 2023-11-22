@@ -62,6 +62,12 @@ just test
 just test <name>
 ```
 
+And to run the linter:
+
+```bash
+just lint
+```
+
 ## Contact
 
 If you have any questions or need help, you can reach out to us on our [Discord server](https://discord.gg/qCh9MEynv2).

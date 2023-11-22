@@ -62,7 +62,7 @@ jobs:
       - if: ${{ runner.os == 'Windows' }}
         run: |
           just build-wasm;
-          node ../.github/actions/delete-target-files.js;
+          node .github/actions/delete-target-files.js;
       - run: just test-ci
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
