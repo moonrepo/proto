@@ -89,6 +89,15 @@ impl ProtoEnvironment {
             }
         })
     }
+
+    pub fn take_user_config(&mut self) -> UserConfig {
+        // This is safe since we only ever have 1 instance of the struct,
+        // and this method requires &mut.
+        Arc::get_mut(&mut self.user_config)
+            .unwrap()
+            .take()
+            .expect("User config has not been loaded!")
+    }
 }
 
 impl AsRef<ProtoEnvironment> for ProtoEnvironment {

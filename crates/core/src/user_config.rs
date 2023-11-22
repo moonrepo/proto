@@ -51,6 +51,7 @@ pub struct UserConfig {
 }
 
 impl UserConfig {
+    #[tracing::instrument(skip_all)]
     pub fn load_from<P: AsRef<Path>>(dir: P) -> miette::Result<Self> {
         let dir = dir.as_ref();
         let path = dir.join(USER_CONFIG_NAME);
@@ -95,11 +96,11 @@ impl UserConfig {
         Ok(config)
     }
 
-    #[tracing::instrument(skip_all)]
     pub fn load() -> miette::Result<Self> {
         Self::load_from(get_proto_home()?)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn save(&self) -> miette::Result<()> {
         fs::write_file_with_lock(&self.path, toml::to_string_pretty(self).into_diagnostic()?)?;
 

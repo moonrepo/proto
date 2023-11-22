@@ -35,13 +35,13 @@ impl ToolsConfig {
         config.plugins
     }
 
-    #[tracing::instrument(skip_all)]
     pub fn load() -> miette::Result<Self> {
         let working_dir = env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
 
         Self::load_from(working_dir)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn load_from<P: AsRef<Path>>(dir: P) -> miette::Result<Self> {
         let path = dir.as_ref().join(TOOLS_CONFIG_NAME);
 
@@ -81,6 +81,7 @@ impl ToolsConfig {
         Self::load_upwards_from(working_dir, false)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn load_upwards_from<P>(starting_dir: P, stop_at_first: bool) -> miette::Result<Self>
     where
         P: AsRef<Path>,
@@ -115,6 +116,7 @@ impl ToolsConfig {
         Ok(config)
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn save(&self) -> miette::Result<()> {
         fs::write_file(&self.path, toml::to_string_pretty(self).into_diagnostic()?)?;
 
