@@ -15,6 +15,7 @@
 #### 🚀 Updates
 
 - Updated `proto install-global` and `proto uninstall-global` to detect/resolve a version first, as some package managers require it.
+- Updated Windows to _not_ use symlinks for binaries, and instead copy the `.exe` file. This is required to solve "A required privilege is not held by the client" errors, because symlinks require admin privileges.
 
 #### 🐞 Fixes
 

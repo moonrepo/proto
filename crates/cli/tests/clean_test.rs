@@ -31,6 +31,7 @@ mod clean {
         assert!(!sandbox.path().join("tools/node/4.5.6/index.js").exists());
     }
 
+    #[cfg(not(windows))]
     #[test]
     fn purges_tool_bin() {
         let sandbox = create_empty_sandbox();

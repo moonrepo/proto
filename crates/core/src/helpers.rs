@@ -235,3 +235,19 @@ pub fn write_json_file_with_lock<T: Serialize>(
 
     Ok(())
 }
+
+// Windows copies the file for bins
+#[cfg(windows)]
+pub fn remove_bin_file(path: impl AsRef<Path>) -> miette::Result<()> {
+    fs::remove_file(path)?;
+
+    Ok(())
+}
+
+// Unix uses symlinks for bins
+#[cfg(not(windows))]
+pub fn remove_bin_file(path: impl AsRef<Path>) -> miette::Result<()> {
+    fs::remove_link(path)?;
+
+    Ok(())
+}

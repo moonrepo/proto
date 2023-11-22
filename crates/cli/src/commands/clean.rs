@@ -1,7 +1,9 @@
 use crate::helpers::ToolsLoader;
 use clap::Args;
 use dialoguer::Confirm;
-use proto_core::{get_plugins_dir, get_temp_dir, load_tool, Id, ProtoError, Tool, VersionSpec};
+use proto_core::{
+    get_plugins_dir, get_temp_dir, load_tool, remove_bin_file, Id, ProtoError, Tool, VersionSpec,
+};
 use starbase::diagnostics::IntoDiagnostic;
 use starbase::{system, SystemResult};
 use starbase_styles::color;
@@ -206,7 +208,7 @@ pub async fn purge_tool(id: &Id, yes: bool) -> SystemResult {
 
         // Delete binaries
         for bin in tool.get_bin_locations()? {
-            fs::remove_link(bin.path)?;
+            remove_bin_file(bin.path)?;
         }
 
         // Delete shims
