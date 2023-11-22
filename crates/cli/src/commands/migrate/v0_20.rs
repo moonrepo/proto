@@ -63,7 +63,7 @@ pub async fn migrate() -> SystemResult {
 
 #[cfg(not(windows))]
 fn update_shell() -> SystemResult {
-    use crate::shell::{self, format_env_var};
+    use crate::shell::format_env_var;
 
     info!("Updating shell profile...");
 

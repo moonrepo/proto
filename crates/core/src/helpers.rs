@@ -5,7 +5,6 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use sha2::digest::typenum::Len;
 use sha2::{Digest, Sha256};
 use starbase_archive::is_supported_archive_extension;
 use starbase_utils::dirs::home_dir;
