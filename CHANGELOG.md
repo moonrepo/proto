@@ -19,6 +19,7 @@
 #### 🐞 Fixes
 
 - Fixed an issue where `proto list-global` would panic when canonicalizing paths.
+- Fixed multi-version ranges (`||`) not resolving locally installed versions correctly.
 
 ## 0.23.2
 
