@@ -11,6 +11,9 @@ build-wasm:
 format:
 	cargo fmt --all
 
+format-check:
+	cargo fmt --all --check
+
 lint:
 	cargo clippy --workspace --all-targets
 
@@ -19,3 +22,6 @@ lint-wasm:
 
 test name="":
 	cargo nextest run --workspace {{name}}
+
+test-ci:
+	cargo nextest run --workspace --exclude proto_pdk --profile ci --config-file ./.cargo/nextest.toml
