@@ -61,15 +61,15 @@ impl<'tool> VersionResolver<'tool> {
     }
 }
 
-pub fn match_highest_version<'l, I>(req: &'l VersionReq, versions: I) -> Option<VersionSpec>
-where
-    I: IntoIterator<Item = &'l Version>,
-{
+pub fn match_highest_version<'l>(
+    req: &'l VersionReq,
+    versions: &'l [&'l Version],
+) -> Option<VersionSpec> {
     let mut highest_match: Option<Version> = None;
 
     for version in versions {
         if req.matches(version)
-            && (highest_match.is_none() || highest_match.as_ref().is_some_and(|v| version > v))
+            && (highest_match.is_none() || highest_match.as_ref().is_some_and(|v| *version > v))
         {
             highest_match = Some((*version).clone());
         }
@@ -79,7 +79,7 @@ where
 }
 
 // Filter out aliases because they cannot be matched against
-fn extract_installed_versions(installed: &HashSet<VersionSpec>) -> HashSet<&Version> {
+fn extract_installed_versions(installed: &HashSet<VersionSpec>) -> Vec<&Version> {
     installed
         .iter()
         .filter_map(|item| match item {
@@ -95,10 +95,11 @@ pub fn resolve_version(
     aliases: &BTreeMap<String, UnresolvedVersionSpec>,
     manifest: Option<&ToolManifest>,
 ) -> miette::Result<VersionSpec> {
+    let remote_versions = versions.iter().collect::<Vec<_>>();
     let installed_versions = if let Some(manifest) = manifest {
         extract_installed_versions(&manifest.installed_versions)
     } else {
-        HashSet::new()
+        vec![]
     };
 
     match &candidate {
@@ -123,34 +124,36 @@ pub fn resolve_version(
         UnresolvedVersionSpec::Req(req) => {
             // Check locally installed versions first
             if !installed_versions.is_empty() {
-                if let Some(version) = match_highest_version(req, installed_versions) {
+                if let Some(version) = match_highest_version(req, &installed_versions) {
                     return Ok(version);
                 }
             }
 
             // Otherwise we'll need to download from remote
-            if let Some(version) = match_highest_version(req, versions) {
+            if let Some(version) = match_highest_version(req, &remote_versions) {
                 return Ok(version);
             }
         }
         UnresolvedVersionSpec::ReqAny(reqs) => {
-            for req in reqs {
-                // Check locally installed versions first
-                if !installed_versions.is_empty() {
-                    if let Some(version) = match_highest_version(req, installed_versions.clone()) {
+            // Check locally installed versions first
+            if !installed_versions.is_empty() {
+                for req in reqs {
+                    if let Some(version) = match_highest_version(req, &installed_versions) {
                         return Ok(version);
                     }
                 }
+            }
 
-                // Otherwise we'll need to download from remote
-                if let Some(version) = match_highest_version(req, versions) {
+            // Otherwise we'll need to download from remote
+            for req in reqs {
+                if let Some(version) = match_highest_version(req, &remote_versions) {
                     return Ok(version);
                 }
             }
         }
         UnresolvedVersionSpec::Version(ver) => {
             // Check locally installed versions first
-            if installed_versions.contains(ver) {
+            if installed_versions.contains(&ver) {
                 return Ok(VersionSpec::Version(ver.to_owned()));
             }
 
