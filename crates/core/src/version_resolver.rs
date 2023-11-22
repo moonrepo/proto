@@ -61,10 +61,7 @@ impl<'tool> VersionResolver<'tool> {
     }
 }
 
-pub fn match_highest_version<'l>(
-    req: &'l VersionReq,
-    versions: &'l [&'l Version],
-) -> Option<VersionSpec> {
+pub fn match_highest_version(req: &VersionReq, versions: &[&Version]) -> Option<VersionSpec> {
     let mut highest_match: Option<Version> = None;
 
     for version in versions {
@@ -104,7 +101,7 @@ pub fn resolve_version(
 
     match &candidate {
         UnresolvedVersionSpec::Canary => {
-            return Ok(VersionSpec::Alias("canary".into()));
+            return Ok(VersionSpec::Canary);
         }
         UnresolvedVersionSpec::Alias(alias) => {
             let mut alias_value = None;
