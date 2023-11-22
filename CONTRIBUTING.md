@@ -30,11 +30,17 @@ You'll need the following tools installed in your development environment:
 - Rust: The project uses Rust as the primary programming language. You can install Rust from the [official website](https://www.rust-lang.org/tools/install).
 - Cargo: Cargo is the Rust package manager, which is used for managing Rust dependencies, building the project, and running tests.
 
-Furthermore, we make use of just, insta, and nextest, which can be installed with:
+Furthermore, we make use of just, insta, nextest, and wasi, which can be installed with:
 
 ```bash
 # cargo install
-cargo binstall jest cargo-nextest cargo-insta
+cargo binstall just cargo-insta cargo-nextest cargo-wasi
+```
+
+Or if you already have `just` installed:
+
+```bash
+just init
 ```
 
 ## Building the project
@@ -50,10 +56,10 @@ just build
 You can run the tests using Cargo:
 
 ```bash
-cargo nextest run --workspace
+just test
 
-# To run an individual test
-cargo nextest run --workspace <name>
+# To run matching tests
+just test <name>
 ```
 
 ## Contact
