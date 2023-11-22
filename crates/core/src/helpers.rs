@@ -236,16 +236,18 @@ pub fn write_json_file_with_lock<T: Serialize>(
     Ok(())
 }
 
+// Windows copies the file for bins
+#[cfg(windows)]
 pub fn remove_bin_file(path: impl AsRef<Path>) -> miette::Result<()> {
-    let path = path.as_ref();
-    let metadata = std::fs::symlink_metadata(path).into_diagnostic()?;
+    fs::remove_file(path)?;
 
-    // Unix uses symlinks for bins, while Windows copies the file
-    if metadata.is_symlink() {
-        fs::remove_link(path)?;
-    } else {
-        fs::remove_file(path)?;
-    }
+    Ok(())
+}
+
+// Unix uses symlinks for bins
+#[cfg(not(windows))]
+pub fn remove_bin_file(path: impl AsRef<Path>) -> miette::Result<()> {
+    fs::remove_link(path)?;
 
     Ok(())
 }
