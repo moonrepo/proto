@@ -5,6 +5,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
+use sha2::digest::typenum::Len;
 use sha2::{Digest, Sha256};
 use starbase_archive::is_supported_archive_extension;
 use starbase_utils::dirs::home_dir;
@@ -232,6 +233,20 @@ pub fn write_json_file_with_lock<T: Serialize>(
     })?;
 
     fs::write_file_with_lock(path, data)?;
+
+    Ok(())
+}
+
+pub fn remove_bin_file(path: impl AsRef<Path>) -> miette::Result<()> {
+    let path = path.as_ref();
+    let metadata = std::fs::symlink_metadata(path).into_diagnostic()?;
+
+    // Unix uses symlinks for bins, while Windows copies the file
+    if metadata.is_symlink() {
+        fs::remove_link(path)?;
+    } else {
+        fs::remove_file(path)?;
+    }
 
     Ok(())
 }

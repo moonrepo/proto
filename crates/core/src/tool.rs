@@ -1,5 +1,4 @@
 use crate::error::ProtoError;
-use crate::events::*;
 use crate::helpers::{
     extract_filename_from_url, hash_file_contents, is_archive_file, is_cache_enabled, is_offline,
     ENV_VAR,
@@ -9,6 +8,7 @@ use crate::proto::ProtoEnvironment;
 use crate::shimmer::{get_shim_file_names, ShimContext, SHIM_VERSION};
 use crate::tool_manifest::ToolManifest;
 use crate::version_resolver::VersionResolver;
+use crate::{events::*, remove_bin_file};
 use extism::{manifest::Wasm, Manifest as PluginManifest};
 use miette::IntoDiagnostic;
 use proto_pdk_api::*;
@@ -1459,11 +1459,14 @@ impl Tool {
                 "Creating binary symlink"
             );
 
-            fs::remove_link(&output_path)?;
+            remove_bin_file(&output_path)?;
 
+            // Windows requires admin privileges to create soft/hard links,
+            // so just copy the binary... Annoying...
             #[cfg(windows)]
             {
-                std::os::windows::fs::symlink_file(input_path, &output_path).into_diagnostic()?;
+                // std::os::windows::fs::symlink_file(input_path, &output_path).into_diagnostic()?;
+                fs::copy_file(input_path, &output_path)?;
             }
 
             #[cfg(not(windows))]
@@ -1561,7 +1564,7 @@ impl Tool {
         // otherwise the OS will throw errors for missing sources
         if self.manifest.default_version.is_none() || self.manifest.installed_versions.is_empty() {
             for bin in self.get_bin_locations()? {
-                fs::remove_link(bin.path)?;
+                remove_bin_file(bin.path)?;
             }
         }
 
