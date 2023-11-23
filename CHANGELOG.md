@@ -16,6 +16,14 @@
 
 - Fixed `proto list-global` not resolving a version.
 
+#### 🧩 Plugins
+
+- Updated `node_plugin` and `node_depman_plugin` to v0.5.3.
+  - Updated globals install to use a `--prefix` arg instead of `PREFIX` env var.
+  - Fixed an incorrect globals directory on Windows.
+- Updated `python_plugin` to v0.3.0 (from v0.2.0).
+  - Removed `--user` from global package installation via `proto install-global`. Packages are now installed into the tool directory for the current Python version.
+
 ## 0.23.3
 
 #### 🚀 Updates
