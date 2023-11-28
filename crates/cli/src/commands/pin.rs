@@ -1,5 +1,7 @@
 use clap::Args;
-use proto_core::{load_tool, Id, Tool, ToolsConfig, UnresolvedVersionSpec};
+use proto_core::{
+    load_tool, Id, Tool, ToolsConfig, UnresolvedVersionSpec, UserConfig, UserToolConfig,
+};
 use starbase::{system, SystemResult};
 use starbase_styles::color;
 use tracing::{debug, info};
@@ -21,12 +23,24 @@ pub struct PinArgs {
 
 pub async fn internal_pin(tool: &mut Tool, args: &PinArgs, link: bool) -> SystemResult {
     if args.global {
-        tool.manifest.default_version = Some(args.spec.clone());
-        tool.manifest.save()?;
+        let mut user_config = UserConfig::load()?;
+
+        user_config
+            .tools
+            .entry(tool.id.clone())
+            .and_modify(|cfg| {
+                cfg.default_version = Some(args.spec.clone());
+            })
+            .or_insert_with(|| UserToolConfig {
+                default_version: Some(args.spec.clone()),
+                ..UserToolConfig::default()
+            });
+
+        user_config.save()?;
 
         debug!(
             version = args.spec.to_string(),
-            manifest = ?tool.manifest.path,
+            config = ?user_config.path,
             "Wrote the global version",
         );
 

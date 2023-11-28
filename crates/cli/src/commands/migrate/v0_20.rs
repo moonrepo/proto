@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use crate::helpers::load_configured_tools;
 use crate::shell;
 use proto_core::get_bin_dir;

@@ -42,6 +42,7 @@ pub struct ToolManifest {
     // Partial versions allowed
     #[deprecated]
     pub aliases: BTreeMap<String, UnresolvedVersionSpec>,
+    #[deprecated]
     pub default_version: Option<UnresolvedVersionSpec>,
 
     // Full versions only

@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::{ToolManifest, UnresolvedVersionSpec};
+use proto_core::{UnresolvedVersionSpec, UserConfig};
 use std::fs;
 use utils::*;
 
@@ -9,12 +9,12 @@ mod pin_local {
 
     #[test]
     fn writes_local_version_file() {
-        let temp = create_empty_sandbox();
-        let version_file = temp.path().join(".prototools");
+        let sandbox = create_empty_sandbox();
+        let version_file = sandbox.path().join(".prototools");
 
         assert!(!version_file.exists());
 
-        let mut cmd = create_proto_command(temp.path());
+        let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("pin").arg("node").arg("19.0.0").assert().success();
 
         assert!(version_file.exists());
@@ -26,13 +26,13 @@ mod pin_local {
 
     #[test]
     fn appends_multiple_tools() {
-        let temp = create_empty_sandbox();
-        let version_file = temp.path().join(".prototools");
+        let sandbox = create_empty_sandbox();
+        let version_file = sandbox.path().join(".prototools");
 
-        let mut cmd = create_proto_command(temp.path());
+        let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("pin").arg("node").arg("19.0.0").assert().success();
 
-        let mut cmd = create_proto_command(temp.path());
+        let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("pin").arg("npm").arg("9.0.0").assert().success();
 
         assert_eq!(
@@ -45,17 +45,17 @@ npm = "9.0.0"
 
     #[test]
     fn will_overwrite_by_name() {
-        let temp = create_empty_sandbox();
-        let version_file = temp.path().join(".prototools");
+        let sandbox = create_empty_sandbox();
+        let version_file = sandbox.path().join(".prototools");
 
-        temp.create_file(
+        sandbox.create_file(
             ".prototools",
             r#"node = "16.0.0"
 npm = "9.0.0"
 "#,
         );
 
-        let mut cmd = create_proto_command(temp.path());
+        let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("pin").arg("node").arg("19").assert().success();
 
         assert_eq!(
@@ -68,12 +68,12 @@ npm = "9.0.0"
 
     #[test]
     fn can_set_aliases() {
-        let temp = create_empty_sandbox();
-        let version_file = temp.path().join(".prototools");
+        let sandbox = create_empty_sandbox();
+        let version_file = sandbox.path().join(".prototools");
 
         assert!(!version_file.exists());
 
-        let mut cmd = create_proto_command(temp.path());
+        let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("pin").arg("npm").arg("bundled").assert().success();
 
         assert!(version_file.exists());
@@ -85,12 +85,12 @@ npm = "9.0.0"
 
     #[test]
     fn can_set_partial_version() {
-        let temp = create_empty_sandbox();
-        let version_file = temp.path().join(".prototools");
+        let sandbox = create_empty_sandbox();
+        let version_file = sandbox.path().join(".prototools");
 
         assert!(!version_file.exists());
 
-        let mut cmd = create_proto_command(temp.path());
+        let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("pin").arg("npm").arg("1.2").assert().success();
 
         assert!(version_file.exists());
@@ -106,12 +106,12 @@ mod pin_global {
 
     #[test]
     fn updates_manifest_file() {
-        let temp = create_empty_sandbox();
-        let manifest_file = temp.path().join("tools/node/manifest.json");
+        let sandbox = create_empty_sandbox();
+        let config_file = sandbox.path().join("config.toml");
 
-        assert!(!manifest_file.exists());
+        assert!(!config_file.exists());
 
-        let mut cmd = create_proto_command(temp.path());
+        let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("pin")
             .arg("--global")
             .arg("node")
@@ -119,24 +119,24 @@ mod pin_global {
             .assert()
             .success();
 
-        assert!(manifest_file.exists());
+        assert!(config_file.exists());
 
-        let manifest = ToolManifest::load(manifest_file).unwrap();
+        let config = UserConfig::load_from(sandbox.path()).unwrap();
 
         assert_eq!(
-            manifest.default_version,
+            config.tools.get("node").unwrap().default_version,
             Some(UnresolvedVersionSpec::parse("19.0.0").unwrap())
         );
     }
 
     #[test]
     fn can_set_alias_as_default() {
-        let temp = create_empty_sandbox();
-        let manifest_file = temp.path().join("tools/npm/manifest.json");
+        let sandbox = create_empty_sandbox();
+        let config_file = sandbox.path().join("config.toml");
 
-        assert!(!manifest_file.exists());
+        assert!(!config_file.exists());
 
-        let mut cmd = create_proto_command(temp.path());
+        let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("pin")
             .arg("--global")
             .arg("npm")
@@ -144,24 +144,24 @@ mod pin_global {
             .assert()
             .success();
 
-        assert!(manifest_file.exists());
+        assert!(config_file.exists());
 
-        let manifest = ToolManifest::load(manifest_file).unwrap();
+        let config = UserConfig::load_from(sandbox.path()).unwrap();
 
         assert_eq!(
-            manifest.default_version,
+            config.tools.get("npm").unwrap().default_version,
             Some(UnresolvedVersionSpec::Alias("bundled".into()))
         );
     }
 
     #[test]
     fn can_set_partial_version_as_default() {
-        let temp = create_empty_sandbox();
-        let manifest_file = temp.path().join("tools/npm/manifest.json");
+        let sandbox = create_empty_sandbox();
+        let config_file = sandbox.path().join("config.toml");
 
-        assert!(!manifest_file.exists());
+        assert!(!config_file.exists());
 
-        let mut cmd = create_proto_command(temp.path());
+        let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("pin")
             .arg("--global")
             .arg("npm")
@@ -169,21 +169,21 @@ mod pin_global {
             .assert()
             .success();
 
-        assert!(manifest_file.exists());
+        assert!(config_file.exists());
 
-        let manifest = ToolManifest::load(manifest_file).unwrap();
+        let config = UserConfig::load_from(sandbox.path()).unwrap();
 
         assert_eq!(
-            manifest.default_version,
+            config.tools.get("npm").unwrap().default_version,
             Some(UnresolvedVersionSpec::parse("1.2").unwrap())
         );
     }
 
     #[test]
     fn doesnt_create_bin_symlink() {
-        let temp = create_empty_sandbox();
+        let sandbox = create_empty_sandbox();
 
-        let mut cmd = create_proto_command(temp.path());
+        let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("pin")
             .arg("--global")
             .arg("node")
@@ -191,7 +191,7 @@ mod pin_global {
             .assert()
             .success();
 
-        let link = temp
+        let link = sandbox
             .path()
             .join("bin")
             .join(if cfg!(windows) { "node.exe" } else { "node" });

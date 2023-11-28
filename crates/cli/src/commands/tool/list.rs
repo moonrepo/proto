@@ -4,12 +4,19 @@ use crate::printer::Printer;
 use chrono::{DateTime, NaiveDateTime};
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::Id;
+use proto_core::{Id, ToolManifest, UserConfig, UserToolConfig};
+use serde::Serialize;
 use starbase::system;
 use starbase_styles::color;
 use starbase_utils::json;
 use std::collections::{HashMap, HashSet};
 use tracing::info;
+
+#[derive(Serialize)]
+pub struct ToolItem {
+    manifest: ToolManifest,
+    user_config: Option<UserToolConfig>,
+}
 
 #[derive(Args, Clone, Debug)]
 pub struct ListToolsArgs {
@@ -27,6 +34,7 @@ pub async fn list(args: ArgsRef<ListToolsArgs>) {
     }
 
     let tools = load_configured_tools_with_filters(HashSet::from_iter(&args.ids)).await?;
+    let mut user_config = UserConfig::load()?;
 
     let mut tools = tools
         .into_iter()
@@ -42,7 +50,17 @@ pub async fn list(args: ArgsRef<ListToolsArgs>) {
     if args.json {
         let items = tools
             .into_iter()
-            .map(|t| (t.id, t.manifest))
+            .map(|t| {
+                let user_config = user_config.tools.remove(&t.id);
+
+                return (
+                    t.id,
+                    ToolItem {
+                        manifest: t.manifest,
+                        user_config,
+                    },
+                );
+            })
             .collect::<HashMap<_, _>>();
 
         println!("{}", json::to_string_pretty(&items).into_diagnostic()?);
@@ -53,6 +71,8 @@ pub async fn list(args: ArgsRef<ListToolsArgs>) {
     let mut printer = Printer::new();
 
     for tool in tools {
+        let user_tool_config = user_config.tools.remove(&tool.id).unwrap_or_default();
+
         printer.line();
         printer.header(&tool.id, &tool.metadata.name);
 
@@ -61,7 +81,7 @@ pub async fn list(args: ArgsRef<ListToolsArgs>) {
 
             p.entry_map(
                 "Aliases",
-                tool.manifest
+                user_tool_config
                     .aliases
                     .iter()
                     .map(|(k, v)| (color::hash(v.to_string()), color::label(k)))
@@ -92,8 +112,7 @@ pub async fn list(args: ArgsRef<ListToolsArgs>) {
                             }
                         }
 
-                        if tool
-                            .manifest
+                        if user_tool_config
                             .default_version
                             .as_ref()
                             .is_some_and(|dv| *dv == version.to_unresolved_spec())

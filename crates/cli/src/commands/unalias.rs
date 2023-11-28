@@ -18,23 +18,27 @@ pub async fn unalias(args: ArgsRef<UnaliasArgs>) {
     let tool = load_tool(&args.id).await?;
     let mut user_config = UserConfig::load()?;
 
-    let tool_config = user_config.tools.entry(args.id.clone()).or_default();
-    let value = tool_config.aliases.remove(&args.alias);
+    if user_config.tools.contains_key(&args.id) {
+        let tool_config = user_config.tools.entry(args.id.clone()).or_default();
+        let value = tool_config.aliases.remove(&args.alias);
 
-    user_config.save()?;
+        user_config.save()?;
 
-    if let Some(version) = value {
-        info!(
-            "Removed alias {} ({}) from {}",
-            color::id(&args.alias),
-            color::muted_light(version.to_string()),
-            tool.get_name(),
-        );
-    } else {
-        info!(
-            "Alias {} not found for {}",
-            color::id(&args.alias),
-            tool.get_name(),
-        );
+        if let Some(version) = value {
+            info!(
+                "Removed alias {} ({}) from {}",
+                color::id(&args.alias),
+                color::muted_light(version.to_string()),
+                tool.get_name(),
+            );
+
+            return Ok(());
+        }
     }
+
+    info!(
+        "Alias {} not found for {}",
+        color::id(&args.alias),
+        tool.get_name(),
+    );
 }

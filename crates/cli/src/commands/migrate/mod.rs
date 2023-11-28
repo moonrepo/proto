@@ -1,4 +1,5 @@
 mod v0_20;
+mod v0_24;
 
 use crate::error::ProtoCliError;
 use clap::Args;
@@ -15,6 +16,9 @@ pub async fn migrate(args: ArgsRef<MigrateArgs>) {
     match args.operation.as_str() {
         "v0.20" => {
             v0_20::migrate().await?;
+        }
+        "v0.24" => {
+            v0_24::migrate().await?;
         }
         unknown => {
             return Err(ProtoCliError::UnknownMigration {

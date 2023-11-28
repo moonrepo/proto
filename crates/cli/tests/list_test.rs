@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::{ToolManifest, UnresolvedVersionSpec, VersionSpec};
+use proto_core::{ToolManifest, VersionSpec};
 use utils::*;
 
 mod list {
@@ -12,7 +12,6 @@ mod list {
 
         let mut manifest =
             ToolManifest::load(temp.path().join("tools/node/manifest.json")).unwrap();
-        manifest.default_version = Some(UnresolvedVersionSpec::parse("19.0.0").unwrap());
         manifest
             .installed_versions
             .insert(VersionSpec::parse("19.0.0").unwrap());

@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::{ToolManifest, UnresolvedVersionSpec};
+use proto_core::{Id, UnresolvedVersionSpec, UserConfig, UserToolConfig};
 use starbase_sandbox::predicates::prelude::*;
 use std::collections::BTreeMap;
 use utils::*;
@@ -21,14 +21,19 @@ mod unalias {
     #[test]
     fn removes_existing_alias() {
         let sandbox = create_empty_sandbox();
-        let manifest_file = sandbox.path().join("tools/node/manifest.json");
 
-        let mut manifest = ToolManifest::load(&manifest_file).unwrap();
-        manifest.aliases.insert(
-            "example".into(),
-            UnresolvedVersionSpec::parse("19.0.0").unwrap(),
+        let mut config = UserConfig::load_from(sandbox.path()).unwrap();
+        config.tools.insert(
+            Id::raw("node"),
+            UserToolConfig {
+                aliases: BTreeMap::from_iter([(
+                    "example".into(),
+                    UnresolvedVersionSpec::parse("19.0.0").unwrap(),
+                )]),
+                ..Default::default()
+            },
         );
-        manifest.save().unwrap();
+        config.save().unwrap();
 
         let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("unalias")
@@ -37,22 +42,27 @@ mod unalias {
             .assert()
             .success();
 
-        let manifest = ToolManifest::load(&manifest_file).unwrap();
+        let config = UserConfig::load_from(sandbox.path()).unwrap();
 
-        assert!(manifest.aliases.is_empty());
+        assert!(config.tools.get("node").unwrap().aliases.is_empty());
     }
 
     #[test]
     fn does_nothing_for_unknown_alias() {
         let sandbox = create_empty_sandbox();
-        let manifest_file = sandbox.path().join("tools/node/manifest.json");
 
-        let mut manifest = ToolManifest::load(&manifest_file).unwrap();
-        manifest.aliases.insert(
-            "example".into(),
-            UnresolvedVersionSpec::parse("19.0.0").unwrap(),
+        let mut config = UserConfig::load_from(sandbox.path()).unwrap();
+        config.tools.insert(
+            Id::raw("node"),
+            UserToolConfig {
+                aliases: BTreeMap::from_iter([(
+                    "example".into(),
+                    UnresolvedVersionSpec::parse("19.0.0").unwrap(),
+                )]),
+                ..Default::default()
+            },
         );
-        manifest.save().unwrap();
+        config.save().unwrap();
 
         let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("unalias")
@@ -61,10 +71,10 @@ mod unalias {
             .assert()
             .success();
 
-        let manifest = ToolManifest::load(manifest_file).unwrap();
+        let config = UserConfig::load_from(sandbox.path()).unwrap();
 
         assert_eq!(
-            manifest.aliases,
+            config.tools.get("node").unwrap().aliases,
             BTreeMap::from_iter([(
                 "example".into(),
                 UnresolvedVersionSpec::parse("19.0.0").unwrap()
