@@ -82,11 +82,11 @@ impl ProtoEnvironment {
 
     pub fn load_user_config(&self) -> miette::Result<&UserConfig> {
         self.user_config.get_or_try_init(|| {
-            if self.test_mode || env::var("PROTO_TEST_USER_CONFIG").is_ok() {
-                Ok(UserConfig::default())
-            } else {
-                UserConfig::load_from(&self.root)
-            }
+            // if self.test_mode || env::var("PROTO_TEST_USER_CONFIG").is_ok() {
+            //     Ok(UserConfig::default())
+            // } else {
+            UserConfig::load_from(&self.root)
+            // }
         })
     }
 

@@ -1,12 +1,13 @@
 use crate::helpers::{read_json_file_with_lock, write_json_file_with_lock};
 use serde::{Deserialize, Serialize};
+use starbase_styles::color;
 use std::{
     collections::{BTreeMap, HashSet},
     env,
     path::{Path, PathBuf},
     time::SystemTime,
 };
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 use version_spec::*;
 
 fn now() -> u128 {
@@ -73,6 +74,22 @@ impl ToolManifest {
 
         manifest.path = path.to_owned();
 
+        #[allow(deprecated)]
+        if !manifest.aliases.is_empty() {
+            warn!(
+                "Found legacy aliases in tool manifest, please run {} to migrate them",
+                color::shell("proto migrate v0.24")
+            );
+        }
+
+        #[allow(deprecated)]
+        if manifest.default_version.is_some() {
+            warn!(
+                "Found legacy default version in tool manifest, please run {} to migrate it",
+                color::shell("proto migrate v0.24")
+            );
+        }
+
         Ok(manifest)
     }
 
@@ -125,14 +142,7 @@ impl ToolManifest {
     }
 
     pub fn track_used_at(&mut self, version: VersionSpec) {
-        self.versions
-            .entry(version)
-            .and_modify(|v| {
-                v.last_used_at = Some(now());
-            })
-            .or_insert(ToolManifestVersion {
-                last_used_at: Some(now()),
-                ..ToolManifestVersion::default()
-            });
+        let entry = self.versions.entry(version).or_default();
+        entry.last_used_at = Some(now());
     }
 }

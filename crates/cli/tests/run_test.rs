@@ -106,10 +106,7 @@ mod run {
         fs::remove_file(temp.path().join(".prototools")).unwrap();
 
         // Global version
-        temp.create_file(
-            "tools/node/manifest.json",
-            r#"{ "default_version": "19.0.0", "installed_versions": ["19.0.0"] }"#,
-        );
+        temp.create_file("config.toml", "[tools.node]\ndefault-version = \"19.0.0\"");
 
         let mut cmd = create_proto_command(temp.path());
         let assert = cmd
@@ -121,7 +118,7 @@ mod run {
 
         assert.stdout(predicate::str::contains("19.0.0"));
 
-        fs::remove_file(temp.path().join("tools/node/manifest.json")).unwrap();
+        fs::remove_file(temp.path().join("config.toml")).unwrap();
     }
 
     // This test fails in Windows for some reason, but works fine with `cargo run`...

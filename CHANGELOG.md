@@ -10,6 +10,25 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 💥 Breaking
+
+> To ease the migration process, we've added a new migrate command. Simply run `proto migrate v0.24` after upgrading proto!
+
+- Reworked user configured aliases and default/global version.
+  - Moved to `~/.proto/config.toml` (user managed) from `~/.proto/tools/<name>/manifest.json` (internally managed).
+  - Are now stored in the `tools` table (object), indexed by tool name.
+    ```toml
+    [tools.node]
+    default-version = "20.10.0"
+    aliases = { work = "^18" }
+    ```
+
+#### 🚀 Updates
+
+- Added a `proto migrate v0.24` command for migrating aliases/versions. We'll also log a warning if we detect the old configuration.
+
 ## 0.23.8
 
 #### 🚀 Updates

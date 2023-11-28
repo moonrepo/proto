@@ -126,7 +126,7 @@ pub async fn detect_version(
         return Ok(candidate);
     }
 
-    // Env var takes highest priorit
+    // Env var takes highest priority
     let env_var = format!("{}_VERSION", tool.get_env_var_prefix());
 
     if let Ok(session_version) = env::var(&env_var) {
@@ -170,18 +170,22 @@ pub async fn detect_version(
     // If still no version, load the global version
     trace!(
         tool = tool.id.as_str(),
-        "Attempting to use global version from manifest",
+        "Attempting to use global version from user config",
     );
 
-    if let Some(global_version) = &tool.manifest.default_version {
-        debug!(
-            tool = tool.id.as_str(),
-            version = global_version.to_string(),
-            file = ?tool.manifest.path,
-            "Detected global version from manifest",
-        );
+    let user_config = tool.proto.load_user_config()?;
 
-        return Ok(global_version.to_owned());
+    if let Some(tool_user_config) = user_config.tools.get(&tool.id) {
+        if let Some(global_version) = &tool_user_config.default_version {
+            debug!(
+                tool = tool.id.as_str(),
+                version = global_version.to_string(),
+                file = ?user_config.path,
+                "Detected global version from user config",
+            );
+
+            return Ok(global_version.to_owned());
+        }
     }
 
     // We didn't find anything!
