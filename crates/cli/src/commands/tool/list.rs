@@ -53,13 +53,13 @@ pub async fn list(args: ArgsRef<ListToolsArgs>) {
             .map(|t| {
                 let user_config = user_config.tools.remove(&t.id);
 
-                return (
+                (
                     t.id,
                     ToolItem {
                         manifest: t.manifest,
                         user_config,
                     },
-                );
+                )
             })
             .collect::<HashMap<_, _>>();
 

@@ -28,6 +28,15 @@
 #### 🚀 Updates
 
 - Added a `proto migrate v0.24` command for migrating aliases/versions. We'll also log a warning if we detect the old configuration.
+- Updated non-latest plugins to be cached for 30 days, instead of forever.
+
+#### 🐞 Fixes
+
+- Fixed an issue where resolving canary versions wouldn't work correctly.
+
+#### ⚙️ Internal
+
+- We now load and cache the user config, instead of continually loading it.
 
 ## 0.23.8
 

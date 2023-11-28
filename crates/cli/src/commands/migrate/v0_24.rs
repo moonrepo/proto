@@ -30,8 +30,8 @@ pub async fn migrate() -> SystemResult {
             updated_manifest = true;
         }
 
-        if !tool.manifest.default_version.is_some() {
-            debug!("Found a default version");
+        if tool.manifest.default_version.is_some() {
+            debug!("Found default version");
 
             let entry = user_config.tools.entry(tool.id.clone()).or_default();
             entry.default_version = manifest.default_version.take();
