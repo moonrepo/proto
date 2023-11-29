@@ -1104,11 +1104,10 @@ dependencies = [
 [[package]]
 name = "extism"
 version = "0.5.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "67e81d3e7d1592412579984e773bd553703a664bbfb1ddded742bf6dfae63847"
+source = "git+https://github.com/extism/extism.git?branch=backport-cache#66c3c78c56be262e9bdf38a32272a2b43b9a69b8"
 dependencies = [
  "anyhow",
- "extism-manifest",
+ "extism-manifest 0.5.0 (git+https://github.com/extism/extism.git?branch=backport-cache)",
  "extism-runtime",
  "log",
  "serde_json",
@@ -1126,6 +1125,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "extism-manifest"
+version = "0.5.0"
+source = "git+https://github.com/extism/extism.git?branch=backport-cache#66c3c78c56be262e9bdf38a32272a2b43b9a69b8"
+dependencies = [
+ "base64 0.21.0",
+ "serde",
+]
+
+[[package]]
 name = "extism-pdk"
 version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1133,7 +1141,7 @@ checksum = "09c20fe9cafa572607e22192bf2040849e7456664895bdc589c89387876e2067"
 dependencies = [
  "anyhow",
  "base64 0.21.0",
- "extism-manifest",
+ "extism-manifest 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "extism-pdk-derive",
  "rmp-serde",
  "serde",
@@ -1154,12 +1162,11 @@ dependencies = [
 [[package]]
 name = "extism-runtime"
 version = "0.5.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "126b884cfa74fc386eedff1095bac8ef6c2ae5efdb656e508f12a41434d0bf0c"
+source = "git+https://github.com/extism/extism.git?branch=backport-cache#66c3c78c56be262e9bdf38a32272a2b43b9a69b8"
 dependencies = [
  "anyhow",
  "cbindgen",
- "extism-manifest",
+ "extism-manifest 0.5.0 (git+https://github.com/extism/extism.git?branch=backport-cache)",
  "glob",
  "libc",
  "log",
