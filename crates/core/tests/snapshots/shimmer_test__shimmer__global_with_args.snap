@@ -4,9 +4,11 @@ expression: "read_shim(&shim_path, sandbox.path())"
 ---
 #!/usr/bin/env bash
 set -e
-[ -n "$PROTO_DEBUG" ] && set -x
 
+if [ -n "$PROTO_DEBUG" ]; then
+    set -x
+    echo "Running with primary.sh shim"
+fi
 
 exec proto run primary -- --a -b "$@" ./file
-
 

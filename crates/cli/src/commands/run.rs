@@ -136,6 +136,8 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
             parent_exe.to_owned()
         };
 
+        debug!(parent_bin = &parent_exe, "Running with a parent executable");
+
         let mut exe_args = vec![exe_path.as_os_str().to_os_string()];
         exe_args.extend(args.into_iter().map(|arg| arg.as_ref().to_os_string()));
 
@@ -195,8 +197,6 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
     let exe_config = get_executable(&tool, args)?;
     let exe_path = exe_config.exe_path.as_ref().unwrap();
 
-    debug!(bin = ?exe_path, args = ?args.passthrough, "Running {}", tool.get_name());
-
     // Run before hook
     tool.run_hook("pre_run", || RunHook {
         context: tool.create_context(),
@@ -204,6 +204,8 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
     })?;
 
     // Run the command
+    debug!(bin = ?exe_path, args = ?args.passthrough, "Running {} executable", tool.get_name());
+
     let status = create_command(&exe_config, &args.passthrough)
         .env(
             format!("{}_VERSION", tool.get_env_var_prefix()),

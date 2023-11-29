@@ -57,7 +57,7 @@ rustls-pemfile = "1.0.4"
 rustls-webpki = "0.101.7"
 
 [target.'cfg(windows)'.dependencies]
-winreg = "0.51.0"
+winreg = "0.52.0"
 
 [dev-dependencies]
 starbase_sandbox = { workspace = true }
