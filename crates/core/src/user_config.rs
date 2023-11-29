@@ -8,23 +8,10 @@ use std::path::{Path, PathBuf};
 use tracing::debug;
 use version_spec::UnresolvedVersionSpec;
 use warpgate::{HttpOptions, Id, PluginLocator};
+use crate::proto_config::{DetectStrategy, PinType};
 
 pub const USER_CONFIG_NAME: &str = "config.toml";
 
-#[derive(Debug, Default, Deserialize, PartialEq, Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum DetectStrategy {
-    #[default]
-    FirstAvailable,
-    PreferPrototools,
-}
-
-#[derive(Debug, Deserialize, PartialEq, Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum PinType {
-    Global,
-    Local,
-}
 
 #[derive(Debug, Default, Deserialize, PartialEq, Serialize)]
 #[serde(default, rename_all = "kebab-case")]

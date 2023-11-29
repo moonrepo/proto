@@ -1,3 +1,4 @@
+use crate::proto_config::SCHEMA_PLUGIN_KEY;
 use miette::IntoDiagnostic;
 use serde::{Deserialize, Serialize};
 use starbase_utils::{fs, toml};
@@ -9,7 +10,6 @@ use version_spec::*;
 use warpgate::{Id, PluginLocator};
 
 pub const TOOLS_CONFIG_NAME: &str = ".prototools";
-pub const SCHEMA_PLUGIN_KEY: &str = "internal-schema";
 
 fn is_empty<T>(map: &BTreeMap<Id, T>) -> bool {
     map.is_empty()

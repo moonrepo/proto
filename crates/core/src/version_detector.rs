@@ -1,7 +1,7 @@
 use crate::error::ProtoError;
 use crate::tool::Tool;
 use crate::tools_config::ToolsConfig;
-use crate::user_config::DetectStrategy;
+use crate::proto_config::DetectStrategy;
 use std::{env, path::Path};
 use tracing::{debug, trace};
 use version_spec::*;

@@ -1,7 +1,8 @@
 use crate::error::ProtoError;
 use crate::proto::ProtoEnvironment;
+use crate::proto_config::SCHEMA_PLUGIN_KEY;
 use crate::tool::Tool;
-use crate::tools_config::{ToolsConfig, SCHEMA_PLUGIN_KEY};
+use crate::tools_config::ToolsConfig;
 use extism::{manifest::Wasm, Manifest};
 use miette::IntoDiagnostic;
 use proto_pdk_api::{HostArch, HostEnvironment, HostOS, UserConfigSettings};
