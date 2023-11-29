@@ -2,7 +2,7 @@ use crate::error::ProtoError;
 use serde::Serialize;
 use starbase_utils::fs;
 use std::path::Path;
-use tera::{Tera, Context};
+use tera::{Context, Tera};
 use tracing::debug;
 
 pub const SHIM_VERSION: u8 = 10;
@@ -75,12 +75,22 @@ fn build_shim_file(context: &ShimContext, shim_path: &Path) -> miette::Result<St
     let mut tera = Tera::default();
 
     if cfg!(windows) {
-        tera.add_raw_template("macros.tpl", include_str!("../templates/windows/macros.tpl")).map_err(handle_error)?;
+        tera.add_raw_template(
+            "macros.tpl",
+            include_str!("../templates/windows/macros.tpl"),
+        )
+        .map_err(handle_error)?;
     }
 
-    tera.add_raw_template("shim.tpl", get_template(shim_path)).map_err(handle_error)?;
+    tera.add_raw_template("shim.tpl", get_template(shim_path))
+        .map_err(handle_error)?;
 
-    let result = tera.render("shim.tpl", &Context::from_serialize(&context).map_err(handle_error)?).map_err(handle_error)?;
+    let result = tera
+        .render(
+            "shim.tpl",
+            &Context::from_serialize(context).map_err(handle_error)?,
+        )
+        .map_err(handle_error)?;
 
     Ok(result)
 }

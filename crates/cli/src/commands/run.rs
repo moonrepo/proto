@@ -125,10 +125,21 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
     let exe_path = exe_config.exe_path.as_ref().unwrap();
 
     let command = if let Some(parent_exe) = &exe_config.parent_exe_name {
+        // Force an .exe extension on Windows because Windows shims are very brittle.
+        // For example, if we execute "npm serve", this becomes "node ~/npm.js serve",
+        // which results in "node" becoming "node.cmd" because of PATH resolution,
+        // and .cmd files do not handle signals/pipes correctly, especially when a child
+        // process. So forcing the parent to always use .exe seems like a good solution.
+        let parent_exe_name = if cfg!(windows) && !parent_exe.ends_with(".exe") {
+            format!("{parent_exe}.exe")
+        } else {
+            parent_exe.to_owned()
+        };
+
         let mut exe_args = vec![exe_path.as_os_str().to_os_string()];
         exe_args.extend(args.into_iter().map(|arg| arg.as_ref().to_os_string()));
 
-        create_process_command(parent_exe, exe_args)
+        create_process_command(parent_exe_name, exe_args)
     } else {
         create_process_command(exe_path, args)
     };

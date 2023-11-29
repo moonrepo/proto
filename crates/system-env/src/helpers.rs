@@ -14,16 +14,28 @@ pub fn find_command_on_path<T: AsRef<OsStr>>(name: T) -> Option<PathBuf> {
     // Only extensions we care about
     let exts = vec![".exe", ".ps1", ".cmd", ".bat"];
     let name = name.as_ref();
+    let has_ext = name
+        .as_encoded_bytes()
+        .iter()
+        .any(|b| b.eq_ignore_ascii_case(&b'.'));
 
     for path_dir in env::split_paths(&system_path) {
-        for ext in &exts {
-            let mut file_name = name.to_os_string();
-            file_name.push(ext);
-
-            let path = path_dir.join(file_name);
+        if has_ext {
+            let path = path_dir.join(name);
 
             if path.exists() {
                 return Some(path);
+            }
+        } else {
+            for ext in &exts {
+                let mut file_name = name.to_os_string();
+                file_name.push(ext);
+
+                let path = path_dir.join(file_name);
+
+                if path.exists() {
+                    return Some(path);
+                }
             }
         }
     }
@@ -79,10 +91,12 @@ pub fn create_process_command<T: AsRef<OsStr>, I: IntoIterator<Item = A>, A: AsR
         find_command_on_path(bin).unwrap_or_else(|| bin.into())
     };
 
-    let bin_ext = bin_path.extension().map(|e| e.to_string_lossy().to_lowercase());
+    let bin_ext = bin_path
+        .extension()
+        .map(|e| e.to_string_lossy().to_lowercase());
 
     // If a Windows script, we must execute the command through powershell
-    match bin_ext.as_ref().map(|e| e.as_str()) {
+    match bin_ext.as_deref() {
         Some("ps1" | "cmd" | "bat") => {
             // This conversion is unfortunate...
             let args = args

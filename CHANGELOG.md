@@ -12,10 +12,14 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Updated tools that require execution through a parent tool, to avoid using shims.
+
 #### 🐞 Fixes
 
 - Fixed executable extension checks on Windows.
-- Fixed `.ps1` shims not exiting correctly.
+- Fixed `.cmd` and `.ps1` shims not exiting correctly.
 
 ## 0.23.4
 
