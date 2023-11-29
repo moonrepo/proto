@@ -5,14 +5,15 @@ $ErrorActionPreference = 'Stop'
 
 if (Test-Path env:PROTO_DEBUG) {
     $DebugPreference = 'Continue'
+    Write-Output "Running with {{ bin }}.ps1 shim"
 }
 
 $ret = 0
 
 if ($MyInvocation.ExpectingInput) {
-    $input | & {{ macros::cmd(args="$args") }}
+    $input | & {{ macros::exec(args="$args") }}
 } else {
-    & {{ macros::cmd(args="$args") }}
+    & {{ macros::exec(args="$args") }}
 }
 
 $ret = $LASTEXITCODE

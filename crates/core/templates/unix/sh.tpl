@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 set -e
-[ -n "$PROTO_DEBUG" ] && set -x
+
+if [ -n "$PROTO_DEBUG" ]; then
+    set -x
+    echo "Running with {{ bin }}.sh"
+fi
 
 exec proto run {{ bin }} {% if alt_bin %} --alt "{{ alt_bin }}" {% endif %}-- {{ before_args }} "$@" {{ after_args }}
