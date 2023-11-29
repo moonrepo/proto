@@ -1,7 +1,5 @@
 use clap::Args;
-use proto_core::{
-    load_tool, Id, Tool, ToolsConfig, UnresolvedVersionSpec, UserConfig, UserToolConfig,
-};
+use proto_core::{load_tool, Id, Tool, ToolsConfig, UnresolvedVersionSpec, UserConfig};
 use starbase::{system, SystemResult};
 use starbase_styles::color;
 use tracing::{debug, info};
@@ -25,16 +23,8 @@ pub async fn internal_pin(tool: &mut Tool, args: &PinArgs, link: bool) -> System
     if args.global {
         let mut user_config = UserConfig::load()?;
 
-        user_config
-            .tools
-            .entry(tool.id.clone())
-            .and_modify(|cfg| {
-                cfg.default_version = Some(args.spec.clone());
-            })
-            .or_insert_with(|| UserToolConfig {
-                default_version: Some(args.spec.clone()),
-                ..UserToolConfig::default()
-            });
+        let config = user_config.tools.entry(tool.id.clone()).or_default();
+        config.default_version = Some(args.spec.clone());
 
         user_config.save()?;
 
