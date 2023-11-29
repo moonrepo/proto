@@ -15,6 +15,7 @@
 #### 🐞 Fixes
 
 - Fixed executable extension checks on Windows.
+- Fixed `.ps1` shims not exiting correctly.
 
 ## 0.23.4
 
