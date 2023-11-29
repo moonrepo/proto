@@ -10,11 +10,9 @@ pub fn find_command_on_path<T: AsRef<OsStr>>(name: T) -> Option<PathBuf> {
     let Ok(system_path) = env::var("PATH") else {
         return None;
     };
-    let Ok(path_ext) = env::var("PATHEXT") else {
-        return None;
-    };
 
-    let exts = path_ext.split(';').collect::<Vec<_>>();
+    // Only extensions we care about
+    let exts = vec![".exe", ".ps1", ".cmd", ".bat"];
     let name = name.as_ref();
 
     for path_dir in env::split_paths(&system_path) {
@@ -81,8 +79,10 @@ pub fn create_process_command<T: AsRef<OsStr>, I: IntoIterator<Item = A>, A: AsR
         find_command_on_path(bin).unwrap_or_else(|| bin.into())
     };
 
+    let bin_ext = bin_path.extension().map(|e| e.to_string_lossy().to_lowercase());
+
     // If a Windows script, we must execute the command through powershell
-    match bin_path.extension().map(|e| e.to_str().unwrap()) {
+    match bin_ext.as_ref().map(|e| e.as_str()) {
         Some("ps1" | "cmd" | "bat") => {
             // This conversion is unfortunate...
             let args = args
