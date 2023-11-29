@@ -1,5 +1,5 @@
 @echo off
-setlocal
+@setLocal
 
 set "ErrorActionPreference=Stop"
 
@@ -8,7 +8,7 @@ if defined PROTO_DEBUG (
 )
 
 {{ if alt_bin }}
-proto.exe run {bin} --alt "{alt_bin}" -- {before_args} %* {after_args}
+endLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & proto.exe run {bin} --alt "{alt_bin}" -- {before_args} %* {after_args}
 {{ else }}
-proto.exe run {bin} -- {before_args} %* {after_args}
+endLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & proto.exe run {bin} -- {before_args} %* {after_args}
 {{ endif }}
