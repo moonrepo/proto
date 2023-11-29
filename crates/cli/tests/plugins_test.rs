@@ -130,105 +130,152 @@ mod plugins {
         fn supports_bun() {
             let temp = create_empty_sandbox();
 
-            let mut cmd = create_proto_command(temp.path());
-            let assert = cmd.arg("install").arg("bun").assert();
+            create_proto_command(temp.path())
+                .arg("install")
+                .arg("bun")
+                .assert()
+                .success();
 
-            assert.success();
+            create_shim_command(temp.path(), "bun")
+                .arg("--version")
+                .assert()
+                .success();
         }
 
         #[test]
         fn supports_deno() {
             let temp = create_empty_sandbox();
 
-            let mut cmd = create_proto_command(temp.path());
-            let assert = cmd.arg("install").arg("deno").assert();
+            create_proto_command(temp.path())
+                .arg("install")
+                .arg("deno")
+                .assert()
+                .success();
 
-            assert.success();
+            create_shim_command(temp.path(), "deno")
+                .arg("--version")
+                .assert()
+                .success();
         }
 
         #[test]
         fn supports_go() {
             let temp = create_empty_sandbox();
 
-            let mut cmd = create_proto_command(temp.path());
-            let assert = cmd.arg("install").arg("go").assert();
+            create_proto_command(temp.path())
+                .arg("install")
+                .arg("go")
+                .assert()
+                .success();
 
-            assert.success();
+            create_shim_command(temp.path(), "go")
+                .arg("version")
+                .assert()
+                .success();
         }
 
         #[test]
         fn supports_node() {
             let temp = create_empty_sandbox();
 
-            let mut cmd = create_proto_command(temp.path());
-            let assert = cmd
+            create_proto_command(temp.path())
                 .arg("install")
                 .arg("node")
                 .arg("--")
                 .arg("--no-bundled-npm")
-                .assert();
+                .assert()
+                .success();
 
-            assert.success();
+            create_shim_command(temp.path(), "node")
+                .arg("--version")
+                .assert()
+                .success();
         }
 
         #[test]
         fn supports_npm() {
             let temp = create_empty_sandbox();
 
-            let mut cmd = create_proto_command(temp.path());
-            let assert = cmd.arg("install").arg("npm").assert();
+            create_proto_command(temp.path())
+                .arg("install")
+                .arg("npm")
+                .assert()
+                .success();
 
-            assert.success();
+            create_shim_command(temp.path(), "npm")
+                .arg("--version")
+                .assert()
+                .success();
         }
 
         #[test]
         fn supports_pnpm() {
             let temp = create_empty_sandbox();
 
-            let mut cmd = create_proto_command(temp.path());
-            let assert = cmd.arg("install").arg("pnpm").assert();
+            create_proto_command(temp.path())
+                .arg("install")
+                .arg("pnpm")
+                .assert()
+                .success();
 
-            assert.success();
+            create_shim_command(temp.path(), "pnpm")
+                .arg("--version")
+                .assert()
+                .success();
         }
 
         #[test]
         fn supports_yarn() {
             let temp = create_empty_sandbox();
 
-            let mut cmd = create_proto_command(temp.path());
-            let assert = cmd.arg("install").arg("yarn").assert();
+            create_proto_command(temp.path())
+                .arg("install")
+                .arg("yarn")
+                .assert()
+                .success();
 
-            assert.success();
+            create_shim_command(temp.path(), "yarn")
+                .arg("--version")
+                .assert()
+                .success();
         }
 
         #[test]
         fn supports_python() {
             let temp = create_empty_sandbox();
 
-            let mut cmd = create_proto_command(temp.path());
-            let assert = cmd.arg("install").arg("python").assert();
+            create_proto_command(temp.path())
+                .arg("install")
+                .arg("python")
+                .assert()
+                .success();
 
-            assert.success();
+            create_shim_command(temp.path(), "python")
+                .arg("--version")
+                .assert()
+                .success();
         }
 
         #[test]
         fn supports_rust() {
             let temp = create_empty_sandbox();
 
-            let mut cmd = create_proto_command(temp.path());
-            let assert = cmd.arg("install").arg("rust").assert();
-
-            assert.success();
+            create_proto_command(temp.path())
+                .arg("install")
+                .arg("rust")
+                .assert()
+                .success();
         }
 
         #[test]
         fn supports_toml_schema() {
             let temp = create_empty_sandbox_with_tools();
 
-            let mut cmd = create_proto_command(temp.path());
-            let assert = cmd.arg("install").arg("moon-test").assert();
-
-            assert.success();
+            create_proto_command(temp.path())
+                .arg("install")
+                .arg("moon-test")
+                .assert()
+                .success();
         }
     }
 }

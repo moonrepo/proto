@@ -1,3 +1,5 @@
+{% import "macros.tpl" as macros %}
+
 @echo off
 setlocal
 
@@ -5,10 +7,8 @@ set "ErrorActionPreference=Stop"
 
 if defined PROTO_DEBUG (
     set "DebugPreference=Continue"
+    echo "Running with {{ bin }}.cmd shim"
 )
 
-{{ if alt_bin }}
-proto.exe run {bin} --alt "{alt_bin}" -- {before_args} %* {after_args}
-{{ else }}
-proto.exe run {bin} -- {before_args} %* {after_args}
-{{ endif }}
+{# This hack removes the "Terminate Batch Job" message #}
+endlocal & goto #_undefined_# 2>NUL || title %COMSPEC% & {{ macros::exec(args="%*") }}

@@ -1,14 +1,11 @@
 use crate::error::ProtoError;
 use serde::Serialize;
-use serde_json::Value;
 use starbase_utils::fs;
-use std::fmt::Write;
 use std::path::Path;
-use tinytemplate::error::Error as TemplateError;
-use tinytemplate::TinyTemplate;
+use tera::{Context, Tera};
 use tracing::debug;
 
-pub const SHIM_VERSION: u8 = 9;
+pub const SHIM_VERSION: u8 = 10;
 
 #[derive(Debug, Default, Serialize)]
 pub struct ShimContext<'tool> {
@@ -55,14 +52,6 @@ impl<'tool> AsRef<ShimContext<'tool>> for ShimContext<'tool> {
     }
 }
 
-fn format_uppercase(value: &Value, output: &mut String) -> Result<(), TemplateError> {
-    if let Value::String(string) = value {
-        write!(output, "{}", string.to_uppercase().replace('-', "_"))?;
-    }
-
-    Ok(())
-}
-
 #[cfg(windows)]
 fn get_template<'l>(shim_path: &Path) -> &'l str {
     match shim_path.extension().map(|ext| ext.to_str().unwrap()) {
@@ -78,23 +67,30 @@ fn get_template<'l>(_shim_path: &Path) -> &'l str {
 }
 
 fn build_shim_file(context: &ShimContext, shim_path: &Path) -> miette::Result<String> {
-    let mut template = TinyTemplate::new();
+    let handle_error = |error: tera::Error| ProtoError::Shim {
+        path: shim_path.to_path_buf(),
+        error,
+    };
 
-    template.add_formatter("uppercase", format_uppercase);
+    let mut tera = Tera::default();
 
-    template
-        .add_template("shim", get_template(shim_path))
-        .map_err(|error| ProtoError::Shim {
-            path: shim_path.to_path_buf(),
-            error,
-        })?;
+    if cfg!(windows) {
+        tera.add_raw_template(
+            "macros.tpl",
+            include_str!("../templates/windows/macros.tpl"),
+        )
+        .map_err(handle_error)?;
+    }
 
-    let result = template
-        .render("shim", context)
-        .map_err(|error| ProtoError::Shim {
-            path: shim_path.to_path_buf(),
-            error,
-        })?;
+    tera.add_raw_template("shim.tpl", get_template(shim_path))
+        .map_err(handle_error)?;
+
+    let result = tera
+        .render(
+            "shim.tpl",
+            &Context::from_serialize(context).map_err(handle_error)?,
+        )
+        .map_err(handle_error)?;
 
     Ok(result)
 }

@@ -10,6 +10,22 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Updated tools that require execution through a parent tool, to avoid using shims.
+- Updated `.cmd` shims to no longer prompt with "Terminate batch job?".
+
+#### 🐞 Fixes
+
+- Fixed executable extension checks on Windows.
+- Fixed `.cmd` and `.ps1` shims not exiting correctly.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.23.4
 
 #### 🐞 Fixes
