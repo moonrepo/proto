@@ -132,6 +132,6 @@ pub enum ProtoError {
     Shim {
         path: PathBuf,
         #[source]
-        error: tinytemplate::error::Error,
+        error: tera::Error,
     },
 }

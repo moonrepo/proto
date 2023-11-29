@@ -28,8 +28,8 @@ starbase_archive = { workspace = true }
 starbase_events = { workspace = true }
 starbase_styles = { workspace = true }
 starbase_utils = { workspace = true, features = ["fs-lock"] }
+tera = "1.19.1"
 thiserror = { workspace = true }
-tinytemplate = "1.2.1"
 tracing = { workspace = true }
 url = "2.4.1"
 

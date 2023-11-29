@@ -1,7 +1,5 @@
+{% import "macros.tpl" as macros %}
+
 #!/bin/sh
 
-{{ if alt_bin }}
-proto.exe run {bin} --alt "{alt_bin}" -- {before_args} "$@" {after_args}
-{{ else }}
-proto.exe run {bin} -- {before_args} "$@" {after_args}
-{{ endif }}
+{{ macros::cmd(args='"$@"') }}

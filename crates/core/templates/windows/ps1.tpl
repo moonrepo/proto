@@ -1,3 +1,5 @@
+{% import "macros.tpl" as macros %}
+
 #!/usr/bin/env pwsh
 $ErrorActionPreference = 'Stop'
 
@@ -7,11 +9,11 @@ if (Test-Path env:PROTO_DEBUG) \{
 
 $ret = 0
 
-{{ if alt_bin }}
-& proto.exe run {bin} --alt "{alt_bin}" -- {before_args} $args {after_args}
-{{ else }}
-& proto.exe run {bin} -- {before_args} $args {after_args}
-{{ endif }}
+if ($MyInvocation.ExpectingInput) {
+    $input | & {{ macros::cmd(args="$args") }}
+} else {
+    & {{ macros::cmd(args="$args") }}
+}
 
 $ret = $LASTEXITCODE
 exit $ret
