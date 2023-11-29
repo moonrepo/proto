@@ -119,10 +119,15 @@ fn get_executable(tool: &Tool, args: &RunArgs) -> miette::Result<ExecutableConfi
 }
 
 fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
+    tool: &Tool,
     exe_config: &ExecutableConfig,
     args: I,
 ) -> Command {
     let exe_path = exe_config.exe_path.as_ref().unwrap();
+    let args = args
+        .into_iter()
+        .map(|arg| arg.as_ref().to_os_string())
+        .collect::<Vec<_>>();
 
     let command = if let Some(parent_exe) = &exe_config.parent_exe_name {
         // Force an .exe extension on Windows because Windows shims are very brittle.
@@ -130,19 +135,21 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
         // which results in "node" becoming "node.cmd" because of PATH resolution,
         // and .cmd files do not handle signals/pipes correctly, especially when a child
         // process. So forcing the parent to always use .exe seems like a good solution.
-        let parent_exe_name = if cfg!(windows) && !parent_exe.ends_with(".exe") {
+        let parent_exe_path = if cfg!(windows) && !parent_exe.ends_with(".exe") {
             format!("{parent_exe}.exe")
         } else {
             parent_exe.to_owned()
         };
 
-        debug!(parent_bin = &parent_exe, "Running with a parent executable");
-
         let mut exe_args = vec![exe_path.as_os_str().to_os_string()];
-        exe_args.extend(args.into_iter().map(|arg| arg.as_ref().to_os_string()));
+        exe_args.extend(args);
 
-        create_process_command(parent_exe_name, exe_args)
+        debug!(bin = ?parent_exe_path, args = ?exe_args, "Running {}", tool.get_name());
+
+        create_process_command(parent_exe_path, exe_args)
     } else {
+        debug!(bin = ?exe_path, args = ?args, "Running {}", tool.get_name());
+
         create_process_command(exe_path, args)
     };
 
@@ -204,9 +211,7 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
     })?;
 
     // Run the command
-    debug!(bin = ?exe_path, args = ?args.passthrough, "Running {} executable", tool.get_name());
-
-    let status = create_command(&exe_config, &args.passthrough)
+    let status = create_command(&tool, &exe_config, &args.passthrough)
         .env(
             format!("{}_VERSION", tool.get_env_var_prefix()),
             tool.get_resolved_version().to_string(),
