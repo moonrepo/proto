@@ -1,6 +1,7 @@
 use crate::helpers::{get_home_dir, get_proto_home, is_offline};
 use crate::proto_config::ProtoConfigManager;
 use crate::user_config::UserConfig;
+use crate::ProtoConfig;
 use once_cell::sync::OnceCell;
 use std::collections::BTreeMap;
 use std::env;
@@ -60,7 +61,7 @@ impl ProtoEnvironment {
     }
 
     pub fn get_http_client(&self) -> miette::Result<&reqwest::Client> {
-        let config = self.load_config_manager()?.get_merged_config()?;
+        let config = self.load_config()?;
 
         self.http_client
             .get_or_try_init(|| create_http_client_with_options(&config.settings.http))
@@ -81,6 +82,10 @@ impl ProtoEnvironment {
             (self.root.clone(), "/proto".into()),
             (self.home.clone(), "/userhome".into()),
         ])
+    }
+
+    pub fn load_config(&self) -> miette::Result<&ProtoConfig> {
+        self.load_config_manager()?.get_merged_config()
     }
 
     pub fn load_config_manager(&self) -> miette::Result<&ProtoConfigManager> {

@@ -433,7 +433,7 @@ impl Tool {
 
         resolver.with_manifest(&self.manifest);
 
-        let config = self.proto.load_config_manager()?.get_merged_config()?;
+        let config = self.proto.load_config()?;
 
         if let Some(tool_config) = config.tools.get(&self.id) {
             resolver.with_config(tool_config);

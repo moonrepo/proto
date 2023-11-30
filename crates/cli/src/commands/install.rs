@@ -4,7 +4,7 @@ use crate::helpers::{create_progress_bar, disable_progress_bars};
 use crate::shell;
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::{load_tool, Id, PinTypeLegacy, Tool, UnresolvedVersionSpec};
+use proto_core::{load_tool, Id, PinType, Tool, UnresolvedVersionSpec};
 use proto_pdk_api::{InstallHook, SyncShellProfileInput, SyncShellProfileOutput};
 use starbase::{system, SystemResult};
 use starbase_styles::color;
@@ -61,10 +61,10 @@ async fn pin_version(
 
     // via `pin-latest` setting
     if initial_version.is_latest() {
-        let user_config = tool.proto.load_user_config()?;
+        let config = tool.proto.load_config()?;
 
-        if let Some(pin_type) = &user_config.pin_latest {
-            args.global = matches!(pin_type, PinTypeLegacy::Global);
+        if let Some(pin_type) = &config.settings.pin_latest {
+            args.global = matches!(pin_type, PinType::Global);
 
             return internal_pin(tool, &args, true).await;
         }

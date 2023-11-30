@@ -236,27 +236,27 @@ impl ProtoConfigManager {
     }
 
     #[tracing::instrument(skip_all)]
-    pub fn save_to(dir: &Path, config: PartialProtoConfig) -> miette::Result<()> {
-        fs::write_file_with_lock(
-            dir.join(PROTO_CONFIG_NAME),
-            toml::to_string_pretty(&config).into_diagnostic()?,
-        )?;
+    pub fn save_to(dir: &Path, config: PartialProtoConfig) -> miette::Result<PathBuf> {
+        let path = dir.join(PROTO_CONFIG_NAME);
 
-        Ok(())
+        fs::write_file_with_lock(&path, toml::to_string_pretty(&config).into_diagnostic()?)?;
+
+        Ok(path)
     }
 
     pub fn get_merged_config(&self) -> miette::Result<&ProtoConfig> {
         self.merged_config.get_or_try_init(|| {
-            let mut config = PartialProtoConfig::default();
+            let mut partial = PartialProtoConfig::default();
             let context = &();
 
             for file in self.files.values() {
-                config.merge(context, file.to_owned())?;
+                partial.merge(context, file.to_owned())?;
             }
 
-            let config = config.finalize(context)?;
+            let mut config = ProtoConfig::from_partial(partial.finalize(context)?);
+            config.inherit_builtin_plugins();
 
-            Ok(ProtoConfig::from_partial(config))
+            Ok(config)
         })
     }
 }

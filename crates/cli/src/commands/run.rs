@@ -195,7 +195,9 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
 
     // Check if installed or install
     if !tool.is_setup(&version).await? {
-        if !tool.proto.load_user_config()?.auto_install {
+        let config = tool.proto.load_config()?;
+
+        if !config.settings.auto_install {
             return Err(ProtoError::MissingToolForRun {
                 tool: tool.get_name().to_owned(),
                 version: version.to_string(),

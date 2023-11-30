@@ -120,7 +120,7 @@ pub async fn detect_version(
     );
 
     let config_manager = tool.proto.load_config_manager()?;
-    let config = config_manager.get_merged_config()?;
+    let config = tool.proto.load_config()?;
 
     let detected_version = match config.settings.detect_strategy {
         DetectStrategy::FirstAvailable => {

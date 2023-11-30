@@ -1,5 +1,7 @@
+use std::collections::BTreeMap;
+
 use clap::Args;
-use proto_core::{load_tool, Id, Tool, ToolsConfig, UnresolvedVersionSpec, UserConfig};
+use proto_core::{load_tool, Id, ProtoConfigManager, Tool, UnresolvedVersionSpec};
 use starbase::{system, SystemResult};
 use starbase_styles::color;
 use tracing::{debug, info};
@@ -20,35 +22,31 @@ pub struct PinArgs {
 }
 
 pub async fn internal_pin(tool: &mut Tool, args: &PinArgs, link: bool) -> SystemResult {
-    if args.global {
-        let mut user_config = UserConfig::load()?;
-
-        let config = user_config.tools.entry(tool.id.clone()).or_default();
-        config.default_version = Some(args.spec.clone());
-
-        user_config.save()?;
-
-        debug!(
-            version = args.spec.to_string(),
-            config = ?user_config.path,
-            "Wrote the global version",
-        );
-
+    let dir = if args.global {
         // Create symlink to this new version
         if link {
             tool.symlink_bins(true).await?;
         }
-    } else {
-        let mut config = ToolsConfig::load()?;
-        config.tools.insert(args.id.clone(), args.spec.clone());
-        config.save()?;
 
-        debug!(
-            version = args.spec.to_string(),
-            config = ?config.path,
-            "Wrote the local version",
-        );
-    }
+        &tool.proto.home
+    } else {
+        &tool.proto.cwd
+    };
+
+    let mut config = ProtoConfigManager::load_from(dir)?;
+
+    config
+        .versions
+        .get_or_insert(BTreeMap::default())
+        .insert(args.id.clone(), args.spec.clone());
+
+    let path = ProtoConfigManager::save_to(dir, config)?;
+
+    debug!(
+        version = args.spec.to_string(),
+        config = ?path,
+        "Pinned the version",
+    );
 
     Ok(())
 }

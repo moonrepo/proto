@@ -22,7 +22,8 @@ pub async fn install_all() {
 
     debug!("Detecting tool versions to install");
 
-    let mut versions = loader.tools_config.tools.clone();
+    let config = loader.proto.load_config()?;
+    let mut versions = config.versions.to_owned();
 
     for tool in &tools {
         if versions.contains_key(&tool.id) {
@@ -84,7 +85,7 @@ pub async fn install_all() {
 
     info!("Successfully installed tools");
 
-    if loader.proto.load_user_config()?.auto_clean {
+    if config.settings.auto_clean {
         info!("Auto-clean enabled, starting clean");
 
         internal_clean(&CleanArgs {
