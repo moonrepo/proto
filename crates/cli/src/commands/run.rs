@@ -2,13 +2,11 @@ use crate::commands::install::{internal_install, InstallArgs};
 use crate::error::ProtoCliError;
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::{
-    detect_version, load_tool, Id, ProtoError, Tool, ToolsConfig, UnresolvedVersionSpec,
-};
+use proto_core::{detect_version, load_tool, Id, ProtoError, Tool, UnresolvedVersionSpec};
 use proto_pdk_api::{ExecutableConfig, RunHook};
 use starbase::system;
 use std::env;
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsStr;
 use std::process::exit;
 use system_env::create_process_command;
 use tokio::process::Command;
@@ -132,14 +130,19 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
         .collect::<Vec<_>>();
 
     let command = if let Some(parent_exe) = &exe_config.parent_exe_name {
+        #[allow(unused_mut)]
+        let mut parent_exe_path = parent_exe.to_owned();
         let mut exe_args = vec![];
 
         // Avoid using parent shims on Windows because Windows shims are very brittle.
         // For example, if we execute "npm serve", this becomes "node ~/npm.js serve",
         // which results in "node" becoming "node.cmd" because of `PATH` resolution,
         // and .cmd files do not handle signals/pipes correctly.
-        let parent_exe_path = if cfg!(windows) && !parent_exe.ends_with(".exe") {
-            let mut config = ToolsConfig::load_upwards()?;
+        #[cfg(windows)]
+        if !parent_exe.ends_with(".exe") {
+            use std::ffi::OsString;
+
+            let mut config = proto_core::ToolsConfig::load_upwards()?;
             config.inherit_builtin_plugins();
 
             // Attempt to use `proto run <tool>` first instead of a hard-coded .exe.
@@ -155,9 +158,7 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
             else {
                 format!("{parent_exe}.exe")
             }
-        } else {
-            parent_exe.to_owned()
-        };
+        }
 
         exe_args.push(exe_path.as_os_str().to_os_string());
         exe_args.extend(args);
