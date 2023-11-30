@@ -10,6 +10,13 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed an issue where `proto use` (or parallel processes) would run into file system
+  collisions when attempting to download and install multiple TOML schema based tools.
+
 ## 0.23.5
 
 #### 🚀 Updates
