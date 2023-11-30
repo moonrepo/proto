@@ -1,18 +1,18 @@
 use crate::error::ProtoError;
+use crate::proto_config::ProtoToolConfig;
 use crate::tool_manifest::ToolManifest;
-use crate::user_config::UserToolConfig;
 use proto_pdk_api::LoadVersionsOutput;
 use semver::{Version, VersionReq};
 use std::collections::{BTreeMap, HashSet};
 use version_spec::*;
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct VersionResolver<'tool> {
     pub aliases: BTreeMap<String, UnresolvedVersionSpec>,
     pub versions: Vec<Version>,
 
     manifest: Option<&'tool ToolManifest>,
-    config: Option<&'tool UserToolConfig>,
+    config: Option<&'tool ProtoToolConfig>,
 }
 
 impl<'tool> VersionResolver<'tool> {
@@ -42,7 +42,7 @@ impl<'tool> VersionResolver<'tool> {
         self.manifest = Some(manifest);
     }
 
-    pub fn with_config(&mut self, config: &'tool UserToolConfig) {
+    pub fn with_config(&mut self, config: &'tool ProtoToolConfig) {
         self.config = Some(config);
     }
 
@@ -94,7 +94,7 @@ pub fn resolve_version(
     versions: &[Version],
     aliases: &BTreeMap<String, UnresolvedVersionSpec>,
     manifest: Option<&ToolManifest>,
-    config: Option<&UserToolConfig>,
+    config: Option<&ProtoToolConfig>,
 ) -> miette::Result<VersionSpec> {
     let remote_versions = versions.iter().collect::<Vec<_>>();
     let installed_versions = if let Some(manifest) = manifest {
@@ -110,11 +110,8 @@ pub fn resolve_version(
         UnresolvedVersionSpec::Alias(alias) => {
             let mut alias_value = None;
 
-            #[allow(deprecated)]
             if let Some(config) = config {
                 alias_value = config.aliases.get(alias);
-            } else if let Some(manifest) = manifest {
-                alias_value = manifest.aliases.get(alias);
             }
 
             if alias_value.is_none() {

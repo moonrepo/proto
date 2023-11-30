@@ -1,4 +1,5 @@
 use crate::helpers::{get_home_dir, get_proto_home, is_offline};
+use crate::proto_config::ProtoConfigManager;
 use crate::user_config::UserConfig;
 use once_cell::sync::OnceCell;
 use std::collections::BTreeMap;
@@ -18,6 +19,7 @@ pub struct ProtoEnvironment {
     pub home: PathBuf, // ~
     pub root: PathBuf, // ~/.proto
 
+    config_manager: Arc<OnceCell<ProtoConfigManager>>,
     http_client: Arc<OnceCell<reqwest::Client>>,
     plugin_loader: Arc<OnceCell<PluginLoader>>,
     test_mode: bool,
@@ -49,6 +51,7 @@ impl ProtoEnvironment {
             tools_dir: root.join("tools"),
             home: get_home_dir()?,
             root: root.to_owned(),
+            config_manager: Arc::new(OnceCell::new()),
             http_client: Arc::new(OnceCell::new()),
             plugin_loader: Arc::new(OnceCell::new()),
             test_mode: false,
@@ -80,6 +83,13 @@ impl ProtoEnvironment {
         ])
     }
 
+    pub fn load_config_manager(&self) -> miette::Result<&ProtoConfigManager> {
+        // Don't traverse passed the home directory
+        self.config_manager
+            .get_or_try_init(|| ProtoConfigManager::load(&self.cwd, &self.home))
+    }
+
+    #[deprecated]
     pub fn load_user_config(&self) -> miette::Result<&UserConfig> {
         self.user_config.get_or_try_init(|| {
             // if self.test_mode || env::var("PROTO_TEST_USER_CONFIG").is_ok() {

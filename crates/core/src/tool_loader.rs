@@ -1,11 +1,10 @@
 use crate::error::ProtoError;
 use crate::proto::ProtoEnvironment;
-use crate::proto_config::SCHEMA_PLUGIN_KEY;
+use crate::proto_config::{ProtoConfig, SCHEMA_PLUGIN_KEY};
 use crate::tool::Tool;
-use crate::tools_config::ToolsConfig;
 use extism::{manifest::Wasm, Manifest};
 use miette::IntoDiagnostic;
-use proto_pdk_api::{HostArch, HostEnvironment, HostOS, UserConfigSettings};
+use proto_pdk_api::{HostArch, HostEnvironment, HostOS};
 use starbase_utils::{json, toml};
 use std::path::PathBuf;
 use std::{env, path::Path};
@@ -22,20 +21,6 @@ pub fn inject_default_manifest_config(
     manifest
         .config
         .insert("proto_tool_id".to_string(), id.to_string());
-
-    let user_config = proto.load_user_config()?;
-    let value = json::to_string(&UserConfigSettings {
-        auto_clean: user_config.auto_clean,
-        auto_install: user_config.auto_install,
-        node_intercept_globals: user_config.node_intercept_globals,
-    })
-    .into_diagnostic()?;
-
-    trace!(config = %value, "Storing user configuration");
-
-    manifest
-        .config
-        .insert("proto_user_config".to_string(), value);
 
     let paths_map = manifest.allowed_paths.as_ref().unwrap();
 
@@ -62,46 +47,36 @@ pub fn locate_tool(
     current_dir_only: bool,
 ) -> miette::Result<PluginLocator> {
     let mut locator = None;
+    let configs = proto.load_config_manager()?;
 
-    debug!(
-        tool = id.as_str(),
-        "Traversing upwards to find a configured plugin"
-    );
+    debug!(tool = id.as_str(), "Finding a configured plugin");
 
-    // Traverse upwards checking each `.prototools` for a plugin
-    if let Ok(working_dir) = env::current_dir() {
-        let mut current_dir: Option<&Path> = Some(&working_dir);
+    // Check config files for plugins
+    for (file, config) in &configs.files {
+        if let Some(plugins) = &config.plugins {
+            if let Some(maybe_locator) = plugins.get(id) {
+                debug!(file = ?file, plugin = maybe_locator.to_string(), "Found a plugin");
 
-        while let Some(dir) = current_dir {
-            let tools_config = ToolsConfig::load_from(dir)?;
-
-            if let Some(maybe_locator) = tools_config.plugins.get(id) {
                 locator = Some(maybe_locator.to_owned());
                 break;
             }
+        }
 
-            // Don't traverse passed the home directory,
-            // or only want to check the current directory
-            if dir == proto.home || current_dir_only {
-                break;
-            }
-
-            current_dir = dir.parent();
+        if current_dir_only {
+            break;
         }
     }
 
-    // Then check the user's config
+    // And finally the built-in plugins
     if locator.is_none() {
-        if let Some(maybe_locator) = proto.load_user_config()?.plugins.get(id) {
-            locator = Some(maybe_locator.to_owned());
-        }
-    }
-
-    // And finally the builtin plugins
-    if locator.is_none() {
-        let builtin_plugins = ToolsConfig::builtin_plugins();
+        let builtin_plugins = ProtoConfig::builtin_plugins();
 
         if let Some(maybe_locator) = builtin_plugins.get(id) {
+            debug!(
+                plugin = maybe_locator.to_string(),
+                "Using a built-in plugin"
+            );
+
             locator = Some(maybe_locator.to_owned());
         }
     }

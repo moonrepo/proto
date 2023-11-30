@@ -156,10 +156,31 @@ impl ProtoConfig {
 }
 
 pub struct ProtoConfigManager {
-    pub configs: BTreeMap<PathBuf, PartialProtoConfig>,
+    pub files: BTreeMap<PathBuf, PartialProtoConfig>,
 }
 
 impl ProtoConfigManager {
+    pub fn load(start_dir: &Path, end_dir: &Path) -> miette::Result<Self> {
+        trace!("Traversing upwards and loading {} files", PROTO_CONFIG_NAME);
+
+        let mut current_dir = Some(start_dir);
+        let mut files = BTreeMap::new();
+
+        while let Some(dir) = current_dir {
+            if !files.contains_key(dir) {
+                files.insert(dir.to_path_buf(), Self::load_from(dir)?);
+            }
+
+            if dir == end_dir {
+                break;
+            }
+
+            current_dir = dir.parent();
+        }
+
+        Ok(Self { files })
+    }
+
     #[tracing::instrument(skip_all)]
     pub fn load_from<P: AsRef<Path>>(dir: P) -> miette::Result<PartialProtoConfig> {
         let dir = dir.as_ref();
@@ -171,9 +192,8 @@ impl ProtoConfigManager {
 
         debug!(file = ?path, "Loading {}", PROTO_CONFIG_NAME);
 
-        let contents = fs::read_file_with_lock(&path)?;
         let mut config = ConfigLoader::<ProtoConfig>::new()
-            .code(contents, Format::Toml)?
+            .code(fs::read_file_with_lock(&path)?, Format::Toml)?
             .load_partial(&())?;
 
         let make_absolute = |file: &mut PathBuf| {
@@ -206,27 +226,6 @@ impl ProtoConfigManager {
         }
 
         Ok(config)
-    }
-
-    pub fn load_upwards_from(&mut self, start_dir: &Path, end_dir: &Path) -> miette::Result<()> {
-        trace!("Traversing upwards and loading {} files", PROTO_CONFIG_NAME);
-
-        let mut current_dir = Some(start_dir);
-
-        while let Some(dir) = current_dir {
-            if !self.configs.contains_key(dir) {
-                self.configs
-                    .insert(dir.to_path_buf(), Self::load_from(dir)?);
-            }
-
-            if dir == end_dir {
-                break;
-            }
-
-            current_dir = dir.parent();
-        }
-
-        Ok(())
     }
 
     #[tracing::instrument(skip_all)]
