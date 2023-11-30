@@ -2,11 +2,13 @@ use crate::commands::install::{internal_install, InstallArgs};
 use crate::error::ProtoCliError;
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::{detect_version, load_tool, Id, ProtoError, Tool, UnresolvedVersionSpec};
+use proto_core::{
+    detect_version, load_tool, Id, ProtoError, Tool, ToolsConfig, UnresolvedVersionSpec,
+};
 use proto_pdk_api::{ExecutableConfig, RunHook};
 use starbase::system;
 use std::env;
-use std::ffi::OsStr;
+use std::ffi::{OsStr, OsString};
 use std::process::exit;
 use system_env::create_process_command;
 use tokio::process::Command;
@@ -122,7 +124,7 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
     tool: &Tool,
     exe_config: &ExecutableConfig,
     args: I,
-) -> Command {
+) -> miette::Result<Command> {
     let exe_path = exe_config.exe_path.as_ref().unwrap();
     let args = args
         .into_iter()
@@ -130,18 +132,34 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
         .collect::<Vec<_>>();
 
     let command = if let Some(parent_exe) = &exe_config.parent_exe_name {
-        // Force an .exe extension on Windows because Windows shims are very brittle.
+        let mut exe_args = vec![];
+
+        // Avoid using parent shims on Windows because Windows shims are very brittle.
         // For example, if we execute "npm serve", this becomes "node ~/npm.js serve",
-        // which results in "node" becoming "node.cmd" because of PATH resolution,
-        // and .cmd files do not handle signals/pipes correctly, especially when a child
-        // process. So forcing the parent to always use .exe seems like a good solution.
+        // which results in "node" becoming "node.cmd" because of `PATH` resolution,
+        // and .cmd files do not handle signals/pipes correctly.
         let parent_exe_path = if cfg!(windows) && !parent_exe.ends_with(".exe") {
-            format!("{parent_exe}.exe")
+            let mut config = ToolsConfig::load_upwards()?;
+            config.inherit_builtin_plugins();
+
+            // Attempt to use `proto run <tool>` first instead of a hard-coded .exe.
+            // This way we rely on proto's executable discovery functionality.
+            if config.plugins.contains_key(parent_exe) {
+                exe_args.push(OsString::from("run"));
+                exe_args.push(OsString::from(parent_exe));
+                exe_args.push(OsString::from("--"));
+
+                "proto.exe".to_owned()
+            }
+            // Otherwise use a hard-coded .exe and rely on OS path resolution.
+            else {
+                format!("{parent_exe}.exe")
+            }
         } else {
             parent_exe.to_owned()
         };
 
-        let mut exe_args = vec![exe_path.as_os_str().to_os_string()];
+        exe_args.push(exe_path.as_os_str().to_os_string());
         exe_args.extend(args);
 
         debug!(bin = ?parent_exe_path, args = ?exe_args, "Running {}", tool.get_name());
@@ -154,7 +172,7 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
     };
 
     // Convert std to tokio
-    Command::from(command)
+    Ok(Command::from(command))
 }
 
 #[system]
@@ -211,7 +229,7 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
     })?;
 
     // Run the command
-    let status = create_command(&tool, &exe_config, &args.passthrough)
+    let status = create_command(&tool, &exe_config, &args.passthrough)?
         .env(
             format!("{}_VERSION", tool.get_env_var_prefix()),
             tool.get_resolved_version().to_string(),
