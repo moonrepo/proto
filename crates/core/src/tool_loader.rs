@@ -7,6 +7,7 @@ use extism::{manifest::Wasm, Manifest};
 use miette::IntoDiagnostic;
 use proto_pdk_api::{HostArch, HostEnvironment, HostOS, UserConfigSettings};
 use starbase_utils::{json, toml};
+use std::path::PathBuf;
 use std::{env, path::Path};
 use tracing::{debug, trace};
 use warpgate::{create_http_client_with_options, to_virtual_path, Id, PluginLocator};
@@ -113,6 +114,22 @@ pub fn locate_tool(
     Ok(locator)
 }
 
+pub async fn load_schema_plugin(
+    proto: impl AsRef<ProtoEnvironment>,
+    user_config: &UserConfig,
+) -> miette::Result<PathBuf> {
+    let proto = proto.as_ref();
+    let http_client = create_http_client_with_options(user_config.http.clone())?;
+    let plugin_loader = proto.get_plugin_loader();
+
+    let schema_id = Id::raw(SCHEMA_PLUGIN_KEY);
+    let schema_locator = locate_tool(&schema_id, proto, user_config, true)?;
+
+    plugin_loader
+        .load_plugin_with_client(schema_id, schema_locator, &http_client)
+        .await
+}
+
 pub async fn load_tool_from_locator(
     id: impl AsRef<Id>,
     proto: impl AsRef<ProtoEnvironment>,
@@ -138,16 +155,9 @@ pub async fn load_tool_from_locator(
     {
         debug!(source = ?plugin_path, "Loading TOML plugin");
 
-        let schema_id = Id::raw(SCHEMA_PLUGIN_KEY);
-        let schema_locator = locate_tool(&schema_id, proto, user_config, true)?;
-
         let mut manifest = Tool::create_plugin_manifest(
             proto,
-            Wasm::file(
-                plugin_loader
-                    .load_plugin_with_client(schema_id, schema_locator, &http_client)
-                    .await?,
-            ),
+            Wasm::file(load_schema_plugin(proto, user_config).await?),
         )?;
 
         // Convert TOML to JSON
