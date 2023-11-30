@@ -147,7 +147,9 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
 
             // Attempt to use `proto run <tool>` first instead of a hard-coded .exe.
             // This way we rely on proto's executable discovery functionality.
-            if config.plugins.contains_key(parent_exe) {
+            if config.plugins.contains_key(parent_exe)
+                && tool.proto.tools_dir.join(parent_exe).exists()
+            {
                 parent_exe_path = "proto.exe".to_owned();
 
                 exe_args.push(OsString::from("run"));
