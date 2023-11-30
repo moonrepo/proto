@@ -103,14 +103,7 @@ impl ToolsConfig {
                 }
             }
 
-            match dir.parent() {
-                Some(parent) => {
-                    current_dir = Some(parent);
-                }
-                None => {
-                    break;
-                }
-            };
+            current_dir = dir.parent();
         }
 
         Ok(config)
