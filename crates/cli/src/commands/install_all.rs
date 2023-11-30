@@ -6,6 +6,7 @@ use crate::{
     commands::install::{internal_install, InstallArgs},
 };
 use miette::IntoDiagnostic;
+use proto_core::load_schema_plugin;
 use starbase::system;
 use starbase_styles::color;
 use std::{env, process};
@@ -53,6 +54,13 @@ pub async fn install_all() {
 
     disable_progress_bars();
 
+    // Download the schema plugin before installing tools.
+    // We must do this here, otherwise when multiple schema
+    // based tools are installed in parallel, they will
+    // collide when attempting to download the schema plugin!
+    load_schema_plugin(&loader.proto, &loader.user_config).await?;
+
+    // Then install each tool in parallel!
     let mut futures = vec![];
 
     for tool in tools {
