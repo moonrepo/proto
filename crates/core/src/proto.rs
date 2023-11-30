@@ -1,7 +1,5 @@
 use crate::helpers::{get_home_dir, get_proto_home, is_offline};
-use crate::proto_config::ProtoConfigManager;
-use crate::user_config::UserConfig;
-use crate::ProtoConfig;
+use crate::proto_config::{ProtoConfig, ProtoConfigManager, PROTO_CONFIG_ROOT_NAME};
 use once_cell::sync::OnceCell;
 use std::collections::BTreeMap;
 use std::env;
@@ -24,7 +22,6 @@ pub struct ProtoEnvironment {
     http_client: Arc<OnceCell<reqwest::Client>>,
     plugin_loader: Arc<OnceCell<PluginLoader>>,
     test_mode: bool,
-    user_config: Arc<OnceCell<UserConfig>>,
 }
 
 impl ProtoEnvironment {
@@ -56,7 +53,6 @@ impl ProtoEnvironment {
             http_client: Arc::new(OnceCell::new()),
             plugin_loader: Arc::new(OnceCell::new()),
             test_mode: false,
-            user_config: Arc::new(OnceCell::new()),
         })
     }
 
@@ -92,34 +88,22 @@ impl ProtoEnvironment {
         self.config_manager.get_or_try_init(|| {
             // Don't traverse passed the home directory,
             // but only if working directory is within it!
-            let end = if self.cwd.starts_with(&self.home) {
+            let end_dir = if self.cwd.starts_with(&self.home) {
                 Some(self.home.as_path())
             } else {
                 None
             };
 
-            ProtoConfigManager::load(&self.cwd, end)
-        })
-    }
+            let mut manager = ProtoConfigManager::load(&self.cwd, end_dir)?;
 
-    #[deprecated]
-    pub fn load_user_config(&self) -> miette::Result<&UserConfig> {
-        self.user_config.get_or_try_init(|| {
-            // if self.test_mode || env::var("PROTO_TEST_USER_CONFIG").is_ok() {
-            //     Ok(UserConfig::default())
-            // } else {
-            UserConfig::load_from(&self.root)
-            // }
-        })
-    }
+            // Always load the proto home/root config
+            manager.files.insert(
+                PathBuf::from(PROTO_CONFIG_ROOT_NAME),
+                ProtoConfigManager::load_from(&self.root)?,
+            );
 
-    pub fn take_user_config(&mut self) -> UserConfig {
-        // This is safe since we only ever have 1 instance of the struct,
-        // and this method requires &mut.
-        Arc::get_mut(&mut self.user_config)
-            .unwrap()
-            .take()
-            .expect("User config has not been loaded!")
+            Ok(manager)
+        })
     }
 }
 

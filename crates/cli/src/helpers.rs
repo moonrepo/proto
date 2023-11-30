@@ -94,10 +94,6 @@ pub async fn load_configured_tools() -> miette::Result<Vec<Tool>> {
     ToolsLoader::new()?.load_tools().await
 }
 
-pub async fn load_configured_tools_with_filters(filter: HashSet<&Id>) -> miette::Result<Vec<Tool>> {
-    ToolsLoader::new()?.load_tools_with_filters(filter).await
-}
-
 pub struct ToolsLoader {
     pub proto: Arc<ProtoEnvironment>,
 }

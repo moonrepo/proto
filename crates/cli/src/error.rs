@@ -31,8 +31,8 @@ pub enum ProtoCliError {
     MissingRunAltBin { bin: String, path: PathBuf },
 
     #[diagnostic(code(proto::cli::no_configured_tools))]
-    #[error("No tools have been configured in {}.", .path.style(Style::Path))]
-    NoConfiguredTools { path: PathBuf },
+    #[error("No tools have been configured in {}.", PROTO_CONFIG_NAME.style(Style::File),)]
+    NoConfiguredTools,
 
     #[diagnostic(code(proto::cli::no_installed_tools))]
     #[error("No tools have been installed.")]

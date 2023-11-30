@@ -12,6 +12,7 @@ use version_spec::*;
 use warpgate::{HttpOptions, Id, PluginLocator};
 
 pub const PROTO_CONFIG_NAME: &str = ".prototools";
+pub const PROTO_CONFIG_ROOT_NAME: &str = "/";
 pub const SCHEMA_PLUGIN_KEY: &str = "internal-schema";
 
 derive_enum!(
@@ -31,7 +32,7 @@ derive_enum!(
     }
 );
 
-#[derive(Config, Serialize)]
+#[derive(Config, Debug, Serialize)]
 #[config(allow_unknown_fields, rename_all = "kebab-case")]
 pub struct ProtoToolConfig {
     pub aliases: BTreeMap<String, UnresolvedVersionSpec>,
@@ -41,7 +42,7 @@ pub struct ProtoToolConfig {
     pub config: BTreeMap<String, TomlValue>,
 }
 
-#[derive(Config)]
+#[derive(Config, Debug)]
 #[config(rename_all = "kebab-case")]
 pub struct ProtoSettingsConfig {
     #[setting(env = "PROTO_AUTO_CLEAN", parse_env = env::parse_bool)]
@@ -59,7 +60,7 @@ pub struct ProtoSettingsConfig {
     pub http: HttpOptions,
 }
 
-#[derive(Config)]
+#[derive(Config, Debug)]
 #[config(allow_unknown_fields, rename_all = "kebab-case")]
 pub struct ProtoConfig {
     pub plugins: BTreeMap<Id, PluginLocator>,
@@ -158,7 +159,13 @@ impl ProtoConfig {
     }
 }
 
+#[derive(Debug)]
 pub struct ProtoConfigManager {
+    // Paths are sorted from smallest to largest components,
+    // so we need to traverse in reverse order. Furthermore,
+    // the special config at `~/.proto/.prototools` is mapped
+    // "/" to give it the lowest precedence. We also don't
+    // expect users to put configs in the actual root...
     pub files: BTreeMap<PathBuf, PartialProtoConfig>,
 
     merged_config: Arc<OnceCell<ProtoConfig>>,
