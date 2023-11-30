@@ -60,10 +60,10 @@ impl ProtoEnvironment {
     }
 
     pub fn get_http_client(&self) -> miette::Result<&reqwest::Client> {
-        let user_config = self.load_user_config()?;
+        let config = self.load_config_manager()?.get_merged_config()?;
 
         self.http_client
-            .get_or_try_init(|| create_http_client_with_options(&user_config.http))
+            .get_or_try_init(|| create_http_client_with_options(&config.settings.http))
     }
 
     pub fn get_plugin_loader(&self) -> &PluginLoader {
@@ -84,9 +84,17 @@ impl ProtoEnvironment {
     }
 
     pub fn load_config_manager(&self) -> miette::Result<&ProtoConfigManager> {
-        // Don't traverse passed the home directory
-        self.config_manager
-            .get_or_try_init(|| ProtoConfigManager::load(&self.cwd, &self.home))
+        self.config_manager.get_or_try_init(|| {
+            // Don't traverse passed the home directory,
+            // but only if working directory is within it!
+            let end = if self.cwd.starts_with(&self.home) {
+                Some(self.home.as_path())
+            } else {
+                None
+            };
+
+            ProtoConfigManager::load(&self.cwd, end)
+        })
     }
 
     #[deprecated]

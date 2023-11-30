@@ -433,10 +433,10 @@ impl Tool {
 
         resolver.with_manifest(&self.manifest);
 
-        let user_config = self.proto.load_user_config()?;
+        let config = self.proto.load_config_manager()?.get_merged_config()?;
 
-        if let Some(config) = user_config.tools.get(&self.id) {
-            resolver.with_config(config);
+        if let Some(tool_config) = config.tools.get(&self.id) {
+            resolver.with_config(tool_config);
         }
 
         Ok(resolver)

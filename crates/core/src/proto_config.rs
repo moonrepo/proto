@@ -1,9 +1,11 @@
 use miette::IntoDiagnostic;
-use schematic::{derive_enum, env, Config, ConfigEnum, ConfigLoader, Format};
+use once_cell::sync::OnceCell;
+use schematic::{derive_enum, env, Config, ConfigEnum, ConfigLoader, Format, PartialConfig};
 use starbase_utils::toml::TomlValue;
 use starbase_utils::{fs, toml};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use tracing::{debug, trace};
 use version_spec::*;
 use warpgate::{HttpOptions, Id, PluginLocator};
@@ -157,10 +159,12 @@ impl ProtoConfig {
 
 pub struct ProtoConfigManager {
     pub files: BTreeMap<PathBuf, PartialProtoConfig>,
+
+    merged_config: Arc<OnceCell<ProtoConfig>>,
 }
 
 impl ProtoConfigManager {
-    pub fn load(start_dir: &Path, end_dir: &Path) -> miette::Result<Self> {
+    pub fn load(start_dir: &Path, end_dir: Option<&Path>) -> miette::Result<Self> {
         trace!("Traversing upwards and loading {} files", PROTO_CONFIG_NAME);
 
         let mut current_dir = Some(start_dir);
@@ -171,14 +175,17 @@ impl ProtoConfigManager {
                 files.insert(dir.to_path_buf(), Self::load_from(dir)?);
             }
 
-            if dir == end_dir {
+            if end_dir.is_some_and(|end| end == dir) {
                 break;
             }
 
             current_dir = dir.parent();
         }
 
-        Ok(Self { files })
+        Ok(Self {
+            files,
+            merged_config: Arc::new(OnceCell::new()),
+        })
     }
 
     #[tracing::instrument(skip_all)]
@@ -236,5 +243,20 @@ impl ProtoConfigManager {
         )?;
 
         Ok(())
+    }
+
+    pub fn get_merged_config(&self) -> miette::Result<&ProtoConfig> {
+        self.merged_config.get_or_try_init(|| {
+            let mut config = PartialProtoConfig::default();
+            let context = &();
+
+            for file in self.files.values() {
+                config.merge(context, file.to_owned())?;
+            }
+
+            let config = config.finalize(context)?;
+
+            Ok(ProtoConfig::from_partial(config))
+        })
     }
 }
