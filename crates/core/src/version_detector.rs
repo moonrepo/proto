@@ -1,7 +1,7 @@
 use crate::error::ProtoError;
 use crate::tool::Tool;
 use crate::tools_config::ToolsConfig;
-use crate::proto_config::DetectStrategy;
+use crate::DetectStrategyLegacy;
 use std::{env, path::Path};
 use tracing::{debug, trace};
 use version_spec::*;
@@ -154,10 +154,10 @@ pub async fn detect_version(
     if let Ok(working_dir) = env::current_dir() {
         let user_config = tool.proto.load_user_config()?;
         let detected_version = match user_config.detect_strategy {
-            DetectStrategy::FirstAvailable => {
+            DetectStrategyLegacy::FirstAvailable => {
                 detect_version_first_available(tool, &working_dir, &tool.proto.home).await?
             }
-            DetectStrategy::PreferPrototools => {
+            DetectStrategyLegacy::PreferPrototools => {
                 detect_version_prefer_prototools(tool, &working_dir, &tool.proto.home).await?
             }
         };

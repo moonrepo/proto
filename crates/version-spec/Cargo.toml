@@ -10,5 +10,10 @@ repository = "https://github.com/moonrepo/proto"
 [dependencies]
 human-sort = { workspace = true }
 regex = { workspace = true }
+schematic = { workspace = true, optional = true, features = ["schema"] }
 semver = { workspace = true }
 serde = { workspace = true }
+
+[features]
+default = []
+schematic = ["dep:schematic"]

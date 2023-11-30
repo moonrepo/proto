@@ -34,6 +34,13 @@ impl Id {
     }
 }
 
+#[cfg(feature = "schematic")]
+impl schematic::Schematic for Id {
+    fn generate_schema() -> schematic::SchemaType {
+        schematic::SchemaType::string()
+    }
+}
+
 impl Display for Id {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)

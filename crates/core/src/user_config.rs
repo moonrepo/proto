@@ -8,10 +8,23 @@ use std::path::{Path, PathBuf};
 use tracing::debug;
 use version_spec::UnresolvedVersionSpec;
 use warpgate::{HttpOptions, Id, PluginLocator};
-use crate::proto_config::{DetectStrategy, PinType};
 
 pub const USER_CONFIG_NAME: &str = "config.toml";
 
+#[derive(Debug, Default, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum DetectStrategyLegacy {
+    #[default]
+    FirstAvailable,
+    PreferPrototools,
+}
+
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum PinTypeLegacy {
+    Global,
+    Local,
+}
 
 #[derive(Debug, Default, Deserialize, PartialEq, Serialize)]
 #[serde(default, rename_all = "kebab-case")]
@@ -26,9 +39,9 @@ pub struct UserToolConfig {
 pub struct UserConfig {
     pub auto_clean: bool,
     pub auto_install: bool,
-    pub detect_strategy: DetectStrategy,
+    pub detect_strategy: DetectStrategyLegacy,
     pub node_intercept_globals: bool,
-    pub pin_latest: Option<PinType>,
+    pub pin_latest: Option<PinTypeLegacy>,
     pub http: HttpOptions,
     pub plugins: BTreeMap<Id, PluginLocator>,
     pub tools: BTreeMap<Id, UserToolConfig>,
@@ -100,7 +113,7 @@ impl Default for UserConfig {
         Self {
             auto_clean: from_var("PROTO_AUTO_CLEAN", false),
             auto_install: from_var("PROTO_AUTO_INSTALL", false),
-            detect_strategy: DetectStrategy::default(),
+            detect_strategy: DetectStrategyLegacy::default(),
             http: HttpOptions::default(),
             node_intercept_globals: from_var("PROTO_NODE_INTERCEPT_GLOBALS", true),
             pin_latest: None,

@@ -6,6 +6,7 @@ use tracing::{trace, warn};
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 #[serde(default, rename_all = "kebab-case")]
+#[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
 pub struct HttpOptions {
     pub allow_invalid_certs: bool,
     pub proxies: Vec<String>,
