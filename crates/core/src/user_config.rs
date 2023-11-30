@@ -34,6 +34,7 @@ pub struct UserToolConfig {
     pub default_version: Option<UnresolvedVersionSpec>,
 }
 
+// #[deprecated]
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 #[serde(default, rename_all = "kebab-case")]
 pub struct UserConfig {

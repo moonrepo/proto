@@ -3,9 +3,8 @@ use extism_pdk::http::request;
 use extism_pdk::*;
 use proto_pdk_api::{
     ExecCommandInput, ExecCommandOutput, HostArch, HostEnvironment, HostOS, PluginError,
-    UserConfigSettings,
 };
-use serde::de::DeserializeOwned;
+use serde::{de::DeserializeOwned, Deserialize};
 use std::collections::HashMap;
 use std::vec;
 
@@ -248,6 +247,9 @@ pub fn get_proto_environment() -> anyhow::Result<HostEnvironment> {
 
     Ok(config)
 }
+
+#[derive(Deserialize)]
+pub struct UserConfigSettings {}
 
 /// Return the loaded proto user configuration (`~/.proto/config.toml`). Does not include plugins!
 pub fn get_proto_user_config() -> anyhow::Result<UserConfigSettings> {
