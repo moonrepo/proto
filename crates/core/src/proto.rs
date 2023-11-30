@@ -1,5 +1,6 @@
 use crate::helpers::{get_home_dir, get_proto_home, is_offline};
-use crate::proto_config::{ProtoConfig, ProtoConfigManager, PROTO_CONFIG_ROOT_NAME};
+use crate::proto_config::{ProtoConfig, ProtoConfigManager};
+use crate::{ProtoConfigFile, PROTO_CONFIG_NAME};
 use once_cell::sync::OnceCell;
 use std::collections::BTreeMap;
 use std::env;
@@ -96,11 +97,11 @@ impl ProtoEnvironment {
 
             let mut manager = ProtoConfigManager::load(&self.cwd, end_dir)?;
 
-            // Always load the proto home/root config
-            manager.files.insert(
-                PathBuf::from(PROTO_CONFIG_ROOT_NAME),
-                ProtoConfigManager::load_from(&self.root)?,
-            );
+            // Always load the proto home/root config last
+            manager.files.push(ProtoConfigFile {
+                path: self.root.join(PROTO_CONFIG_NAME),
+                config: ProtoConfigManager::load_from(&self.root)?,
+            });
 
             Ok(manager)
         })

@@ -9,13 +9,13 @@ pub async fn detect_version_first_available(
     tool: &Tool,
     config_manager: &ProtoConfigManager,
 ) -> miette::Result<Option<UnresolvedVersionSpec>> {
-    for (file, local_config) in config_manager.files.iter().rev() {
-        if let Some(versions) = &local_config.versions {
+    for file in &config_manager.files {
+        if let Some(versions) = &file.config.versions {
             if let Some(version) = versions.get(&tool.id) {
                 debug!(
                     tool = tool.id.as_str(),
                     version = version.to_string(),
-                    file = ?file,
+                    file = ?file.path,
                     "Detected version from {} file", PROTO_CONFIG_NAME
                 );
 
@@ -23,7 +23,7 @@ pub async fn detect_version_first_available(
             }
         }
 
-        let dir = file.parent().unwrap();
+        let dir = file.path.parent().unwrap();
 
         if let Some(version) = tool.detect_version_from(dir).await? {
             debug!(
@@ -45,13 +45,13 @@ pub async fn detect_version_prefer_prototools(
     config_manager: &ProtoConfigManager,
 ) -> miette::Result<Option<UnresolvedVersionSpec>> {
     // Check config files first
-    for (file, local_config) in config_manager.files.iter().rev() {
-        if let Some(versions) = &local_config.versions {
+    for file in &config_manager.files {
+        if let Some(versions) = &file.config.versions {
             if let Some(version) = versions.get(&tool.id) {
                 debug!(
                     tool = tool.id.as_str(),
                     version = version.to_string(),
-                    file = ?file,
+                    file = ?file.path,
                     "Detected version from {} file", PROTO_CONFIG_NAME
                 );
 
@@ -61,8 +61,8 @@ pub async fn detect_version_prefer_prototools(
     }
 
     // Then check the ecosystem
-    for (file, _) in config_manager.files.iter().rev() {
-        let dir = file.parent().unwrap();
+    for file in &config_manager.files {
+        let dir = file.path.parent().unwrap();
 
         if let Some(version) = tool.detect_version_from(dir).await? {
             debug!(

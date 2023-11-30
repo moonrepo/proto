@@ -251,10 +251,11 @@ pub fn get_proto_environment() -> anyhow::Result<HostEnvironment> {
 #[derive(Deserialize)]
 pub struct UserConfigSettings {}
 
-/// Return the loaded proto user configuration (`~/.proto/config.toml`). Does not include plugins!
+/// Return the loaded proto user configuration (`~/.proto/.prototools`). Does not include plugins!
 pub fn get_proto_user_config() -> anyhow::Result<UserConfigSettings> {
-    let config = config::get("proto_user_config").expect("Missing proto user configuration!");
-    let config: UserConfigSettings = json::from_str(&config)?;
+    if let Some(config) = config::get("proto_user_config") {
+        return Ok(json::from_str(&config)?);
+    }
 
-    Ok(config)
+    Ok(UserConfigSettings {})
 }

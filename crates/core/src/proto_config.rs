@@ -12,7 +12,6 @@ use version_spec::*;
 use warpgate::{HttpOptions, Id, PluginLocator};
 
 pub const PROTO_CONFIG_NAME: &str = ".prototools";
-pub const PROTO_CONFIG_ROOT_NAME: &str = "/";
 pub const SCHEMA_PLUGIN_KEY: &str = "internal-schema";
 
 derive_enum!(
@@ -160,13 +159,19 @@ impl ProtoConfig {
 }
 
 #[derive(Debug)]
+pub struct ProtoConfigFile {
+    pub path: PathBuf,
+    pub config: PartialProtoConfig,
+}
+
+#[derive(Debug)]
 pub struct ProtoConfigManager {
     // Paths are sorted from smallest to largest components,
     // so we need to traverse in reverse order. Furthermore,
     // the special config at `~/.proto/.prototools` is mapped
     // "/" to give it the lowest precedence. We also don't
     // expect users to put configs in the actual root...
-    pub files: BTreeMap<PathBuf, PartialProtoConfig>,
+    pub files: Vec<ProtoConfigFile>,
 
     merged_config: Arc<OnceCell<ProtoConfig>>,
 }
@@ -176,12 +181,13 @@ impl ProtoConfigManager {
         trace!("Traversing upwards and loading {} files", PROTO_CONFIG_NAME);
 
         let mut current_dir = Some(start_dir);
-        let mut files = BTreeMap::new();
+        let mut files = vec![];
 
         while let Some(dir) = current_dir {
-            if !files.contains_key(dir) {
-                files.insert(dir.to_path_buf(), Self::load_from(dir)?);
-            }
+            files.push(ProtoConfigFile {
+                path: dir.join(PROTO_CONFIG_NAME),
+                config: Self::load_from(dir)?,
+            });
 
             if end_dir.is_some_and(|end| end == dir) {
                 break;
@@ -254,7 +260,9 @@ impl ProtoConfigManager {
 
     pub fn update(dir: &Path, op: impl FnOnce(&mut PartialProtoConfig)) -> miette::Result<PathBuf> {
         let mut config = Self::load_from(dir)?;
+
         op(&mut config);
+
         Self::save_to(dir, config)
     }
 
@@ -263,8 +271,8 @@ impl ProtoConfigManager {
             let mut partial = PartialProtoConfig::default();
             let context = &();
 
-            for file in self.files.values() {
-                partial.merge(context, file.to_owned())?;
+            for file in self.files.iter().rev() {
+                partial.merge(context, file.config.to_owned())?;
             }
 
             let mut config = ProtoConfig::from_partial(partial.finalize(context)?);

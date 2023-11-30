@@ -52,10 +52,10 @@ pub fn locate_tool(
     debug!(tool = id.as_str(), "Finding a configured plugin");
 
     // Check config files for plugins
-    for (file, config) in configs.files.iter().rev() {
-        if let Some(plugins) = &config.plugins {
+    for file in &configs.files {
+        if let Some(plugins) = &file.config.plugins {
             if let Some(maybe_locator) = plugins.get(id) {
-                debug!(file = ?file, plugin = maybe_locator.to_string(), "Found a plugin");
+                debug!(file = ?file.path, plugin = maybe_locator.to_string(), "Found a plugin");
 
                 locator = Some(maybe_locator.to_owned());
                 break;
@@ -153,13 +153,9 @@ pub async fn load_tool_from_locator(
 }
 
 pub async fn load_tool_with_proto(id: &Id, proto: &ProtoEnvironment) -> miette::Result<Tool> {
-    let locator = locate_tool(id, &proto, false)?;
-
-    load_tool_from_locator(id, proto, locator).await
+    load_tool_from_locator(id, proto, locate_tool(id, proto, false)?).await
 }
 
 pub async fn load_tool(id: &Id) -> miette::Result<Tool> {
-    let proto = ProtoEnvironment::new()?;
-
-    load_tool_with_proto(id, &proto).await
+    load_tool_with_proto(id, &ProtoEnvironment::new()?).await
 }
