@@ -1,10 +1,8 @@
 use crate::error::ProtoCliError;
 use clap::Args;
-use proto_core::{Id, ToolsConfig, UserConfig, TOOLS_CONFIG_NAME};
+use proto_core::{Id, ProtoConfigManager, ProtoEnvironment, PROTO_CONFIG_NAME};
 use starbase::system;
 use starbase_styles::color;
-use std::env;
-use std::path::PathBuf;
 use tracing::info;
 
 #[derive(Args, Clone, Debug)]
@@ -21,34 +19,28 @@ pub struct RemoveToolArgs {
 
 #[system]
 pub async fn remove(args: ArgsRef<RemoveToolArgs>) {
-    if args.global {
-        let mut user_config = UserConfig::load()?;
-        user_config.plugins.remove(&args.id);
-        user_config.save()?;
+    let proto = ProtoEnvironment::new()?;
 
-        info!(
-            "Removed plugin {} from global {}",
-            color::id(&args.id),
-            color::path(&user_config.path),
-        );
+    if !args.global {
+        let config_path = proto.cwd.join(PROTO_CONFIG_NAME);
 
-        return Ok(());
+        if !config_path.exists() {
+            return Err(ProtoCliError::MissingToolsConfigInCwd { path: config_path }.into());
+        }
     }
 
-    let local_path = env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-    let config_path = local_path.join(TOOLS_CONFIG_NAME);
-
-    if !config_path.exists() {
-        return Err(ProtoCliError::MissingToolsConfigInCwd { path: config_path }.into());
-    }
-
-    let mut config = ToolsConfig::load_from(local_path)?;
-    config.plugins.remove(&args.id);
-    config.save()?;
+    let config_path = ProtoConfigManager::update(
+        if args.global { &proto.home } else { &proto.cwd },
+        |config| {
+            if let Some(plugins) = &mut config.plugins {
+                plugins.remove(&args.id);
+            }
+        },
+    )?;
 
     info!(
-        "Removed plugin {} from local {}",
+        "Removed plugin {} from config {}",
         color::id(&args.id),
-        color::path(&config.path)
+        color::path(config_path)
     );
 }

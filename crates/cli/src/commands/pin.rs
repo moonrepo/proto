@@ -33,14 +33,12 @@ pub async fn internal_pin(tool: &mut Tool, args: &PinArgs, link: bool) -> System
         &tool.proto.cwd
     };
 
-    let mut config = ProtoConfigManager::load_from(dir)?;
-
-    config
-        .versions
-        .get_or_insert(BTreeMap::default())
-        .insert(args.id.clone(), args.spec.clone());
-
-    let path = ProtoConfigManager::save_to(dir, config)?;
+    let path = ProtoConfigManager::update(dir, |config| {
+        config
+            .versions
+            .get_or_insert(BTreeMap::default())
+            .insert(args.id.clone(), args.spec.clone());
+    })?;
 
     debug!(
         version = args.spec.to_string(),

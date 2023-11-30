@@ -244,6 +244,12 @@ impl ProtoConfigManager {
         Ok(path)
     }
 
+    pub fn update(dir: &Path, op: impl FnOnce(&mut PartialProtoConfig)) -> miette::Result<PathBuf> {
+        let mut config = Self::load_from(dir)?;
+        op(&mut config);
+        Self::save_to(dir, config)
+    }
+
     pub fn get_merged_config(&self) -> miette::Result<&ProtoConfig> {
         self.merged_config.get_or_try_init(|| {
             let mut partial = PartialProtoConfig::default();

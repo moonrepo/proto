@@ -1,5 +1,5 @@
 use clap::Args;
-use proto_core::{Id, PluginLocator, ToolsConfig, UserConfig};
+use proto_core::{Id, PluginLocator, ProtoConfigManager, ProtoEnvironment};
 use starbase::system;
 use starbase_styles::color;
 use tracing::info;
@@ -21,29 +21,21 @@ pub struct AddToolArgs {
 
 #[system]
 pub async fn add(args: ArgsRef<AddToolArgs>) {
-    if args.global {
-        let mut user_config = UserConfig::load()?;
-        user_config
-            .plugins
-            .insert(args.id.clone(), args.plugin.clone());
-        user_config.save()?;
+    let proto = ProtoEnvironment::new()?;
 
-        info!(
-            "Added plugin {} to global {}",
-            color::id(&args.id),
-            color::path(&user_config.path),
-        );
-
-        return Ok(());
-    }
-
-    let mut config = ToolsConfig::load()?;
-    config.plugins.insert(args.id.clone(), args.plugin.clone());
-    config.save()?;
+    let config_path = ProtoConfigManager::update(
+        if args.global { &proto.home } else { &proto.cwd },
+        |config| {
+            config
+                .plugins
+                .get_or_insert(Default::default())
+                .insert(args.id.clone(), args.plugin.clone());
+        },
+    )?;
 
     info!(
-        "Added plugin {} to local {}",
+        "Added plugin {} to config {}",
         color::id(&args.id),
-        color::path(&config.path)
+        color::path(config_path)
     );
 }

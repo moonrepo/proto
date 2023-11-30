@@ -1,7 +1,7 @@
 use crate::error::ProtoCliError;
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::{load_tool, ToolsConfig, UnresolvedVersionSpec, VersionSpec};
+use proto_core::{load_tool, UnresolvedVersionSpec, VersionSpec};
 use serde::Serialize;
 use starbase::system;
 use starbase_styles::color::{self, OwoStyle};
