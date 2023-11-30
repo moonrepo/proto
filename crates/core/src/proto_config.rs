@@ -1,6 +1,6 @@
 use miette::IntoDiagnostic;
 use once_cell::sync::OnceCell;
-use schematic::{derive_enum, env, Config, ConfigEnum, ConfigLoader, Format, PartialConfig};
+use schematic::{derive_enum, env, merge, Config, ConfigEnum, ConfigLoader, Format, PartialConfig};
 use serde::Serialize;
 use starbase_utils::toml::TomlValue;
 use starbase_utils::{fs, toml};
@@ -34,14 +34,15 @@ derive_enum!(
 #[derive(Config, Debug, Serialize)]
 #[config(allow_unknown_fields, rename_all = "kebab-case")]
 pub struct ProtoToolConfig {
+    #[setting(merge = merge::merge_btreemap)]
     pub aliases: BTreeMap<String, UnresolvedVersionSpec>,
 
     // Custom configuration to pass to plugins
-    #[setting(flatten)]
+    #[setting(flatten, merge = merge::merge_btreemap)]
     pub config: BTreeMap<String, TomlValue>,
 }
 
-#[derive(Config, Debug)]
+#[derive(Config, Debug, Serialize)]
 #[config(rename_all = "kebab-case")]
 pub struct ProtoSettingsConfig {
     #[setting(env = "PROTO_AUTO_CLEAN", parse_env = env::parse_bool)]
@@ -59,18 +60,19 @@ pub struct ProtoSettingsConfig {
     pub http: HttpOptions,
 }
 
-#[derive(Config, Debug)]
+#[derive(Config, Debug, Serialize)]
 #[config(allow_unknown_fields, rename_all = "kebab-case")]
 pub struct ProtoConfig {
+    #[setting(merge = merge::merge_btreemap)]
     pub plugins: BTreeMap<Id, PluginLocator>,
 
     #[setting(nested)]
     pub settings: ProtoSettingsConfig,
 
-    #[setting(nested)]
+    #[setting(nested, merge = merge::merge_btreemap)]
     pub tools: BTreeMap<Id, ProtoToolConfig>,
 
-    #[setting(flatten)]
+    #[setting(flatten, merge = merge::merge_btreemap)]
     pub versions: BTreeMap<Id, UnresolvedVersionSpec>,
 }
 
@@ -156,51 +158,6 @@ impl ProtoConfig {
             );
         }
     }
-}
-
-#[derive(Debug)]
-pub struct ProtoConfigFile {
-    pub path: PathBuf,
-    pub config: PartialProtoConfig,
-}
-
-#[derive(Debug)]
-pub struct ProtoConfigManager {
-    // Paths are sorted from smallest to largest components,
-    // so we need to traverse in reverse order. Furthermore,
-    // the special config at `~/.proto/.prototools` is mapped
-    // "/" to give it the lowest precedence. We also don't
-    // expect users to put configs in the actual root...
-    pub files: Vec<ProtoConfigFile>,
-
-    merged_config: Arc<OnceCell<ProtoConfig>>,
-}
-
-impl ProtoConfigManager {
-    pub fn load(start_dir: &Path, end_dir: Option<&Path>) -> miette::Result<Self> {
-        trace!("Traversing upwards and loading {} files", PROTO_CONFIG_NAME);
-
-        let mut current_dir = Some(start_dir);
-        let mut files = vec![];
-
-        while let Some(dir) = current_dir {
-            files.push(ProtoConfigFile {
-                path: dir.join(PROTO_CONFIG_NAME),
-                config: Self::load_from(dir)?,
-            });
-
-            if end_dir.is_some_and(|end| end == dir) {
-                break;
-            }
-
-            current_dir = dir.parent();
-        }
-
-        Ok(Self {
-            files,
-            merged_config: Arc::new(OnceCell::new()),
-        })
-    }
 
     #[tracing::instrument(skip_all)]
     pub fn load_from<P: AsRef<Path>>(dir: P) -> miette::Result<PartialProtoConfig> {
@@ -214,7 +171,7 @@ impl ProtoConfigManager {
         debug!(file = ?path, "Loading {}", PROTO_CONFIG_NAME);
 
         let mut config = ConfigLoader::<ProtoConfig>::new()
-            .code(fs::read_file_with_lock(&path)?, Format::Toml)?
+            .code(fs::read_file(&path)?, Format::Toml)?
             .load_partial(&())?;
 
         let make_absolute = |file: &mut PathBuf| {
@@ -253,7 +210,7 @@ impl ProtoConfigManager {
     pub fn save_to(dir: &Path, config: PartialProtoConfig) -> miette::Result<PathBuf> {
         let path = dir.join(PROTO_CONFIG_NAME);
 
-        fs::write_file_with_lock(&path, toml::to_string_pretty(&config).into_diagnostic()?)?;
+        fs::write_file(&path, toml::to_string_pretty(&config).into_diagnostic()?)?;
 
         Ok(path)
     }
@@ -264,6 +221,51 @@ impl ProtoConfigManager {
         op(&mut config);
 
         Self::save_to(dir, config)
+    }
+}
+
+#[derive(Debug)]
+pub struct ProtoConfigFile {
+    pub path: PathBuf,
+    pub config: PartialProtoConfig,
+}
+
+#[derive(Debug)]
+pub struct ProtoConfigManager {
+    // Paths are sorted from smallest to largest components,
+    // so we need to traverse in reverse order. Furthermore,
+    // the special config at `~/.proto/.prototools` is mapped
+    // "/" to give it the lowest precedence. We also don't
+    // expect users to put configs in the actual root...
+    pub files: Vec<ProtoConfigFile>,
+
+    merged_config: Arc<OnceCell<ProtoConfig>>,
+}
+
+impl ProtoConfigManager {
+    pub fn load(start_dir: &Path, end_dir: Option<&Path>) -> miette::Result<Self> {
+        trace!("Traversing upwards and loading {} files", PROTO_CONFIG_NAME);
+
+        let mut current_dir = Some(start_dir);
+        let mut files = vec![];
+
+        while let Some(dir) = current_dir {
+            files.push(ProtoConfigFile {
+                path: dir.join(PROTO_CONFIG_NAME),
+                config: ProtoConfig::load_from(dir)?,
+            });
+
+            if end_dir.is_some_and(|end| end == dir) {
+                break;
+            }
+
+            current_dir = dir.parent();
+        }
+
+        Ok(Self {
+            files,
+            merged_config: Arc::new(OnceCell::new()),
+        })
     }
 
     pub fn get_merged_config(&self) -> miette::Result<&ProtoConfig> {

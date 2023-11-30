@@ -24,6 +24,8 @@
     default-version = "20.10.0"
     aliases = { work = "^18" }
     ```
+- Updated `proto alias` and `proto unalias` to longer write to the global config by default. Now requires a `--global` flag.
+  - This change was made to align with `proto pin`, `proto tool add`, and `proto tool remove`.
 
 #### 🚀 Updates
 

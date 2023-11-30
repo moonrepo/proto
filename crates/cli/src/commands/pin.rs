@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use clap::Args;
-use proto_core::{load_tool, Id, ProtoConfigManager, Tool, UnresolvedVersionSpec};
+use proto_core::{load_tool, Id, ProtoConfig, Tool, UnresolvedVersionSpec};
 use starbase::{system, SystemResult};
 use starbase_styles::color;
 use tracing::{debug, info};
@@ -16,24 +16,18 @@ pub struct PinArgs {
 
     #[arg(
         long,
-        help = "Add to the global user config instead of local .prototools"
+        help = "Pin to the global .prototools instead of local .prototools"
     )]
     pub global: bool,
 }
 
 pub async fn internal_pin(tool: &mut Tool, args: &PinArgs, link: bool) -> SystemResult {
-    let dir = if args.global {
-        // Create symlink to this new version
-        if link {
-            tool.symlink_bins(true).await?;
-        }
+    // Create symlink to this new version
+    if args.global && link {
+        tool.symlink_bins(true).await?;
+    }
 
-        &tool.proto.root
-    } else {
-        &tool.proto.cwd
-    };
-
-    let path = ProtoConfigManager::update(dir, |config| {
+    let path = ProtoConfig::update(tool.proto.get_config_dir(args.global), |config| {
         config
             .versions
             .get_or_insert(BTreeMap::default())

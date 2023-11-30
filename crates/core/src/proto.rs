@@ -57,6 +57,14 @@ impl ProtoEnvironment {
         })
     }
 
+    pub fn get_config_dir(&self, global: bool) -> &Path {
+        if global {
+            &self.root
+        } else {
+            &self.cwd
+        }
+    }
+
     pub fn get_http_client(&self) -> miette::Result<&reqwest::Client> {
         let config = self.load_config()?;
 
@@ -100,7 +108,7 @@ impl ProtoEnvironment {
             // Always load the proto home/root config last
             manager.files.push(ProtoConfigFile {
                 path: self.root.join(PROTO_CONFIG_NAME),
-                config: ProtoConfigManager::load_from(&self.root)?,
+                config: ProtoConfig::load_from(&self.root)?,
             });
 
             Ok(manager)
