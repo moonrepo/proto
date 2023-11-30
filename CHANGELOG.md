@@ -12,10 +12,19 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Enabled wasmtime caching, which should improve performance of WASM plugins by 10-20%.
+
 #### 🐞 Fixes
 
 - Fixed an issue where `proto use` (or parallel processes) would run into file system
   collisions when attempting to download and install multiple TOML schema based tools.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+- Updated parent execution to prefer `proto run <tool>` over `<tool>.exe` on Windows.
 
 ## 0.23.5
 
