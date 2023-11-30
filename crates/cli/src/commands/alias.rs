@@ -1,6 +1,6 @@
 use crate::error::ProtoCliError;
 use clap::Args;
-use proto_core::{is_alias_name, load_tool, Id, UnresolvedVersionSpec, UserConfig};
+use proto_core::{is_alias_name, load_tool, Id, ProtoConfigManager, UnresolvedVersionSpec};
 use starbase::system;
 use starbase_styles::color;
 use tracing::info;
@@ -33,14 +33,16 @@ pub async fn alias(args: ArgsRef<AliasArgs>) {
     }
 
     let tool = load_tool(&args.id).await?;
-    let mut user_config = UserConfig::load()?;
 
-    let tool_config = user_config.tools.entry(args.id.clone()).or_default();
-    tool_config
-        .aliases
-        .insert(args.alias.clone(), args.spec.clone());
+    ProtoConfigManager::update(&tool.proto.root, |config| {
+        let tool_configs = config.tools.get_or_insert(Default::default());
+        let tool_config = tool_configs.entry(tool.id.clone()).or_default();
 
-    user_config.save()?;
+        tool_config
+            .aliases
+            .get_or_insert(Default::default())
+            .insert(args.alias.clone(), args.spec.clone());
+    })?;
 
     info!(
         "Added alias {} ({}) for {}",

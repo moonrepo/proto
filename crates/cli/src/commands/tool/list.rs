@@ -1,10 +1,10 @@
 use crate::error::ProtoCliError;
-use crate::helpers::load_configured_tools_with_filters;
+use crate::helpers::ToolsLoader;
 use crate::printer::Printer;
 use chrono::{DateTime, NaiveDateTime};
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::{Id, ToolManifest, UserConfig, UserToolConfig};
+use proto_core::{Id, ProtoToolConfig, ToolManifest};
 use serde::Serialize;
 use starbase::system;
 use starbase_styles::color;
@@ -13,9 +13,9 @@ use std::collections::{HashMap, HashSet};
 use tracing::info;
 
 #[derive(Serialize)]
-pub struct ToolItem {
+pub struct ToolItem<'a> {
     manifest: ToolManifest,
-    user_config: Option<UserToolConfig>,
+    config: Option<&'a ProtoToolConfig>,
 }
 
 #[derive(Args, Clone, Debug)]
@@ -33,8 +33,10 @@ pub async fn list(args: ArgsRef<ListToolsArgs>) {
         info!("Loading tools...");
     }
 
-    let tools = load_configured_tools_with_filters(HashSet::from_iter(&args.ids)).await?;
-    let mut user_config = UserConfig::load()?;
+    let loader = ToolsLoader::new()?;
+    let tools = loader
+        .load_tools_with_filters(HashSet::from_iter(&args.ids))
+        .await?;
 
     let mut tools = tools
         .into_iter()
@@ -47,17 +49,19 @@ pub async fn list(args: ArgsRef<ListToolsArgs>) {
         return Err(ProtoCliError::NoInstalledTools.into());
     }
 
+    let config = loader.proto.load_config()?.to_owned();
+
     if args.json {
         let items = tools
             .into_iter()
             .map(|t| {
-                let user_config = user_config.tools.remove(&t.id);
+                let tool_config = config.tools.get(&t.id);
 
                 (
                     t.id,
                     ToolItem {
                         manifest: t.manifest,
-                        user_config,
+                        config: tool_config,
                     },
                 )
             })
@@ -71,7 +75,7 @@ pub async fn list(args: ArgsRef<ListToolsArgs>) {
     let mut printer = Printer::new();
 
     for tool in tools {
-        let user_tool_config = user_config.tools.remove(&tool.id).unwrap_or_default();
+        let tool_config = config.tools.get(&tool.id);
 
         printer.line();
         printer.header(&tool.id, &tool.metadata.name);
@@ -81,8 +85,9 @@ pub async fn list(args: ArgsRef<ListToolsArgs>) {
 
             p.entry_map(
                 "Aliases",
-                user_tool_config
-                    .aliases
+                tool_config
+                    .map(|cfg| cfg.aliases.clone())
+                    .unwrap_or_default()
                     .iter()
                     .map(|(k, v)| (color::hash(v.to_string()), color::label(k)))
                     .collect::<Vec<_>>(),
@@ -112,9 +117,9 @@ pub async fn list(args: ArgsRef<ListToolsArgs>) {
                             }
                         }
 
-                        if user_tool_config
-                            .default_version
-                            .as_ref()
+                        if config
+                            .versions
+                            .get(&tool.id)
                             .is_some_and(|dv| *dv == version.to_unresolved_spec())
                         {
                             comments.push("default version".into());

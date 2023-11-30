@@ -1,6 +1,7 @@
 use miette::IntoDiagnostic;
 use once_cell::sync::OnceCell;
 use schematic::{derive_enum, env, Config, ConfigEnum, ConfigLoader, Format, PartialConfig};
+use serde::Serialize;
 use starbase_utils::toml::TomlValue;
 use starbase_utils::{fs, toml};
 use std::collections::BTreeMap;
@@ -30,7 +31,7 @@ derive_enum!(
     }
 );
 
-#[derive(Config)]
+#[derive(Config, Serialize)]
 #[config(allow_unknown_fields, rename_all = "kebab-case")]
 pub struct ProtoToolConfig {
     pub aliases: BTreeMap<String, UnresolvedVersionSpec>,

@@ -28,7 +28,7 @@ pub async fn internal_pin(tool: &mut Tool, args: &PinArgs, link: bool) -> System
             tool.symlink_bins(true).await?;
         }
 
-        &tool.proto.home
+        &tool.proto.root
     } else {
         &tool.proto.cwd
     };

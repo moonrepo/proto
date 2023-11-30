@@ -24,7 +24,7 @@ pub async fn add(args: ArgsRef<AddToolArgs>) {
     let proto = ProtoEnvironment::new()?;
 
     let config_path = ProtoConfigManager::update(
-        if args.global { &proto.home } else { &proto.cwd },
+        if args.global { &proto.root } else { &proto.cwd },
         |config| {
             config
                 .plugins

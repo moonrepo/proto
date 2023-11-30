@@ -30,7 +30,7 @@ pub async fn remove(args: ArgsRef<RemoveToolArgs>) {
     }
 
     let config_path = ProtoConfigManager::update(
-        if args.global { &proto.home } else { &proto.cwd },
+        if args.global { &proto.root } else { &proto.cwd },
         |config| {
             if let Some(plugins) = &mut config.plugins {
                 plugins.remove(&args.id);
