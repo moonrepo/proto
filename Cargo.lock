@@ -2455,6 +2455,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "proto_cli_shim"
+version = "0.23.7"
+
+[[package]]
 name = "proto_core"
 version = "0.25.0"
 dependencies = [

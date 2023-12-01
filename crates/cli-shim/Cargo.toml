@@ -1,0 +1,9 @@
+[package]
+name = "proto_cli_shim"
+version = "0.23.7"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "proto-shim"
+path = "src/main.rs"
