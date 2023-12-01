@@ -7,3 +7,7 @@ publish = false
 [[bin]]
 name = "proto-shim"
 path = "src/main.rs"
+
+[dependencies]
+ctrlc = "3.4.1"
+shared_child = "1.0.0"
