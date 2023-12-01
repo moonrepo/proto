@@ -2482,6 +2482,7 @@ dependencies = [
  "ctrlc",
  "shared_child",
  "sigpipe",
+ "starbase",
 ]
 
 [[package]]
