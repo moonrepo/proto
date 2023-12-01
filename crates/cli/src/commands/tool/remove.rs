@@ -1,6 +1,7 @@
 use crate::error::ProtoCliError;
+use crate::helpers::ProtoResource;
 use clap::Args;
-use proto_core::{load_tool, Id, ProtoConfig, PROTO_CONFIG_NAME};
+use proto_core::{Id, ProtoConfig, PROTO_CONFIG_NAME};
 use starbase::system;
 use starbase_styles::color;
 use tracing::info;
@@ -18,8 +19,8 @@ pub struct RemoveToolArgs {
 }
 
 #[system]
-pub async fn remove(args: ArgsRef<RemoveToolArgs>) {
-    let tool = load_tool(&args.id).await?;
+pub async fn remove(args: ArgsRef<RemoveToolArgs>, proto: ResourceRef<ProtoResource>) {
+    let tool = proto.load_tool(&args.id).await?;
 
     if !args.global {
         let config_path = tool.proto.cwd.join(PROTO_CONFIG_NAME);

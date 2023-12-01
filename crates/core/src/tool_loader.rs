@@ -147,7 +147,3 @@ pub async fn load_tool_from_locator(
 pub async fn load_tool_with_proto(id: &Id, proto: &ProtoEnvironment) -> miette::Result<Tool> {
     load_tool_from_locator(id, proto, locate_tool(id, proto)?).await
 }
-
-pub async fn load_tool(id: &Id) -> miette::Result<Tool> {
-    load_tool_with_proto(id, &ProtoEnvironment::new()?).await
-}

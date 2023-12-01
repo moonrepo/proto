@@ -2,9 +2,10 @@ use futures::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
 use miette::IntoDiagnostic;
 use proto_core::{
-    get_temp_dir, load_schema_plugin_with_proto, load_tool_from_locator, Id, ProtoEnvironment, ProtoError,
-    Tool, SCHEMA_PLUGIN_KEY,
+    get_temp_dir, load_tool_from_locator, load_tool_with_proto, Id, ProtoEnvironment, ProtoError,
+    Tool, SCHEMA_PLUGIN_KEY, load_schema_plugin_with_proto
 };
+use starbase::Resource;
 use starbase_utils::fs;
 use std::cmp;
 use std::collections::HashSet;
@@ -92,6 +93,17 @@ pub async fn download_to_temp_with_progress_bar(
 
 pub async fn load_configured_tools() -> miette::Result<Vec<Tool>> {
     ToolsLoader::new()?.load_tools().await
+}
+
+#[derive(Clone, Resource)]
+pub struct ProtoResource {
+    pub env: Arc<ProtoEnvironment>,
+}
+
+impl ProtoResource {
+    pub async fn load_tool(&self, id: &Id) -> miette::Result<Tool> {
+        load_tool_with_proto(id, &self.env).await
+    }
 }
 
 pub struct ToolsLoader {

@@ -1,8 +1,9 @@
 use crate::commands::install::{internal_install, InstallArgs};
 use crate::error::ProtoCliError;
+use crate::helpers::ProtoResource;
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::{detect_version, load_tool, Id, ProtoError, Tool, UnresolvedVersionSpec};
+use proto_core::{detect_version, Id, ProtoError, Tool, UnresolvedVersionSpec};
 use proto_pdk_api::{ExecutableConfig, RunHook};
 use starbase::system;
 use std::env;
@@ -178,8 +179,8 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
 }
 
 #[system]
-pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
-    let mut tool = load_tool(&args.id).await?;
+pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> SystemResult {
+    let mut tool = proto.load_tool(&args.id).await?;
 
     // Avoid running the tool's native self-upgrade as it conflicts with proto
     if is_trying_to_self_upgrade(&tool, &args.passthrough) {
@@ -209,6 +210,7 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
         debug!("Auto-install setting is configured, attempting to install");
 
         tool = internal_install(
+            proto,
             InstallArgs {
                 canary: false,
                 id: args.id.clone(),

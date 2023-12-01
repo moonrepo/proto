@@ -1,5 +1,6 @@
+use crate::helpers::ProtoResource;
 use clap::Args;
-use proto_core::{load_tool, Id, ProtoConfig};
+use proto_core::{Id, ProtoConfig};
 use starbase::system;
 use starbase_styles::color;
 use tracing::info;
@@ -20,8 +21,8 @@ pub struct UnaliasArgs {
 }
 
 #[system]
-pub async fn unalias(args: ArgsRef<UnaliasArgs>) {
-    let tool = load_tool(&args.id).await?;
+pub async fn unalias(args: ArgsRef<UnaliasArgs>, proto: ResourceRef<ProtoResource>) {
+    let tool = proto.load_tool(&args.id).await?;
     let mut value = None;
 
     ProtoConfig::update(tool.proto.get_config_dir(args.global), |config| {

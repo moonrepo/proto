@@ -1,5 +1,6 @@
+use crate::helpers::ProtoResource;
 use clap::Args;
-use proto_core::{load_tool, Id};
+use proto_core::Id;
 use starbase::system;
 use std::process;
 use tracing::debug;
@@ -11,8 +12,8 @@ pub struct ListArgs {
 }
 
 #[system]
-pub async fn list(args: ArgsRef<ListArgs>) {
-    let tool = load_tool(&args.id).await?;
+pub async fn list(args: ArgsRef<ListArgs>, proto: ResourceRef<ProtoResource>) {
+    let tool = proto.load_tool(&args.id).await?;
 
     debug!(manifest = ?tool.manifest.path, "Using versions from manifest");
 

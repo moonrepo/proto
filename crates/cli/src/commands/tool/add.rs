@@ -1,5 +1,6 @@
+use crate::helpers::ProtoResource;
 use clap::Args;
-use proto_core::{load_tool, Id, PluginLocator, ProtoConfig};
+use proto_core::{Id, PluginLocator, ProtoConfig};
 use starbase::system;
 use starbase_styles::color;
 use tracing::info;
@@ -20,8 +21,8 @@ pub struct AddToolArgs {
 }
 
 #[system]
-pub async fn add(args: ArgsRef<AddToolArgs>) {
-    let tool = load_tool(&args.id).await?;
+pub async fn add(args: ArgsRef<AddToolArgs>, proto: ResourceRef<ProtoResource>) {
+    let tool = proto.load_tool(&args.id).await?;
 
     let config_path = ProtoConfig::update(tool.proto.get_config_dir(args.global), |config| {
         config

@@ -1,7 +1,8 @@
 use crate::error::ProtoCliError;
+use crate::helpers::ProtoResource;
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::{load_tool_with_proto, ProtoEnvironment, UnresolvedVersionSpec, VersionSpec};
+use proto_core::{UnresolvedVersionSpec, VersionSpec};
 use serde::Serialize;
 use starbase::system;
 use starbase_styles::color::{self, OwoStyle};
@@ -33,9 +34,8 @@ pub struct OutdatedItem {
 }
 
 #[system]
-pub async fn outdated(args: ArgsRef<OutdatedArgs>) {
-    let proto = ProtoEnvironment::new()?;
-    let config = proto.load_config()?;
+pub async fn outdated(args: ArgsRef<OutdatedArgs>, proto: ResourceRef<ProtoResource>) {
+    let config = proto.env.load_config()?;
 
     if config.versions.is_empty() {
         return Err(ProtoCliError::NoConfiguredTools.into());
@@ -50,7 +50,7 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>) {
     let initial_version = UnresolvedVersionSpec::default(); // latest
 
     for (tool_id, config_version) in &config.versions {
-        let mut tool = load_tool_with_proto(tool_id, &proto).await?;
+        let mut tool = proto.load_tool(tool_id).await?;
         tool.disable_caching();
 
         debug!("Checking {}", tool.get_name());

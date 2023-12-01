@@ -1,9 +1,9 @@
-use std::collections::BTreeMap;
-
+use crate::helpers::ProtoResource;
 use clap::Args;
-use proto_core::{load_tool, Id, ProtoConfig, Tool, UnresolvedVersionSpec};
+use proto_core::{Id, ProtoConfig, Tool, UnresolvedVersionSpec};
 use starbase::{system, SystemResult};
 use starbase_styles::color;
+use std::collections::BTreeMap;
 use tracing::{debug, info};
 
 #[derive(Args, Clone, Debug)]
@@ -44,8 +44,8 @@ pub async fn internal_pin(tool: &mut Tool, args: &PinArgs, link: bool) -> System
 }
 
 #[system]
-pub async fn pin(args: ArgsRef<PinArgs>) -> SystemResult {
-    let mut tool = load_tool(&args.id).await?;
+pub async fn pin(args: ArgsRef<PinArgs>, proto: ResourceRef<ProtoResource>) -> SystemResult {
+    let mut tool = proto.load_tool(&args.id).await?;
 
     internal_pin(&mut tool, args, false).await?;
 
