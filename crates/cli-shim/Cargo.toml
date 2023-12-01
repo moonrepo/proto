@@ -11,3 +11,4 @@ path = "src/main.rs"
 [dependencies]
 ctrlc = "3.4.1"
 shared_child = "1.0.0"
+sigpipe = "0.1.3"

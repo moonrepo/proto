@@ -1,40 +1,71 @@
 use shared_child::SharedChild;
-use std::process::Command;
+use std::collections::VecDeque;
+use std::io::{IsTerminal, Read, Write};
+use std::process::{Command, Stdio};
 use std::sync::Arc;
-use std::{env, process};
+use std::{env, io, process};
 
 pub fn main() {
-    dbg!("Args", env::args().collect::<Vec<_>>());
-    dbg!("Args OS", env::args_os().collect::<Vec<_>>());
+    sigpipe::reset();
+
+    // Extract arguments to pass-through
+    let mut args = env::args().collect::<VecDeque<_>>();
+    let shim_name = args.pop_front().unwrap();
+
+    dbg!("Args", &args);
+    dbg!("Shim name", shim_name);
     dbg!("Exec with", env::current_exe().unwrap());
 
+    // Capture any piped input
+    let input = {
+        let mut stdin = io::stdin();
+        let mut buffer = String::new();
+
+        // Only read piped data when stdin is not a TTY,
+        // otherwise the process will hang indefinitely waiting for EOF
+        if !stdin.is_terminal() {
+            stdin.read_to_string(&mut buffer).unwrap();
+        }
+
+        buffer
+    };
+    let has_piped_stdin = !input.is_empty();
+
+    dbg!("Input", &input);
+
+    // The actual command to execute
     let mut command = Command::new("node");
-    command.arg("-e");
-    command.arg(
-        r#"
-console.log('start');
+    command.arg("./docs/shim-test.mjs");
+    command.args(args);
 
-process.on('SIGINT', function() {
-	console.log('killed');
-	process.exit(1);
-});
+    if has_piped_stdin {
+        command.stdin(Stdio::piped());
+    }
 
-setTimeout(() => { console.log('stop'); }, 5000);"#,
-    );
-
+    // Spawn a shareable child process
     let shared_child = SharedChild::spawn(&mut command).unwrap();
     let child = Arc::new(shared_child);
     let child_clone = Arc::clone(&child);
 
+    // Handle CTRL+C and kill the child
     ctrlc::set_handler(move || {
-        println!("Ctrl-C!");
         child_clone.kill().unwrap();
     })
     .unwrap();
 
+    // If we have piped data, pass it through
+    if has_piped_stdin {
+        if let Some(mut stdin) = child.take_stdin() {
+            stdin.write_all(input.as_bytes()).unwrap();
+            drop(stdin);
+        }
+    }
+
+    // Wait for the process to finish or be killed
     let status = child.wait().unwrap();
+    let code = status.code().unwrap_or(0);
 
-    println!("Status = {}", status);
+    println!("status code = {}", code);
 
-    process::exit(status.code().unwrap_or(0))
+    process::exit(code);
 }

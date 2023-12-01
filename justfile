@@ -1,4 +1,4 @@
-set shell := ["pwsh.exe", "-c"]
+# set shell := ["pwsh.exe", "-c"]
 
 init:
 	cargo install cargo-binstall
