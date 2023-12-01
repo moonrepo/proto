@@ -2436,7 +2436,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.23.6"
+version = "0.23.7"
 dependencies = [
  "chrono",
  "clap 4.4.10",
