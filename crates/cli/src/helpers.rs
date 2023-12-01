@@ -2,8 +2,8 @@ use futures::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
 use miette::IntoDiagnostic;
 use proto_core::{
-    get_temp_dir, load_tool_from_locator, Id, ProtoEnvironment, ProtoError, Tool, ToolsConfig,
-    UserConfig, SCHEMA_PLUGIN_KEY,
+    get_temp_dir, load_schema_plugin, load_tool_from_locator, Id, ProtoEnvironment, ProtoError,
+    Tool, ToolsConfig, UserConfig, SCHEMA_PLUGIN_KEY,
 };
 use starbase_utils::fs;
 use std::cmp;
@@ -127,6 +127,12 @@ impl ToolsLoader {
         let mut plugins = HashMap::new();
         plugins.extend(&self.user_config.plugins);
         plugins.extend(&self.tools_config.plugins);
+
+        // Download the schema plugin before loading plugins.
+        // We must do this here, otherwise when multiple schema
+        // based tools are installed in parallel, they will
+        // collide when attempting to download the schema plugin!
+        load_schema_plugin(&self.proto, &self.user_config).await?;
 
         let mut futures = vec![];
         let mut tools = vec![];
