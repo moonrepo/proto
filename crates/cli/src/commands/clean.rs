@@ -1,4 +1,4 @@
-use crate::helpers::{ProtoResource, ToolsLoader};
+use crate::helpers::ProtoResource;
 use clap::Args;
 use dialoguer::Confirm;
 use proto_core::{remove_bin_file, Id, ProtoError, Tool, VersionSpec};
@@ -251,9 +251,7 @@ pub async fn internal_clean(proto: &ProtoResource, args: &CleanArgs) -> SystemRe
 
     debug!("Finding installed tools to clean up...");
 
-    let tools_loader = ToolsLoader::new()?;
-
-    for tool in tools_loader.load_tools().await? {
+    for tool in proto.load_tools().await? {
         clean_count += clean_tool(tool, now, days, args.yes).await?;
     }
 

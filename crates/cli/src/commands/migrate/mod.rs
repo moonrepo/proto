@@ -2,6 +2,7 @@ mod v0_20;
 mod v0_24;
 
 use crate::error::ProtoCliError;
+use crate::helpers::ProtoResource;
 use clap::Args;
 use starbase::system;
 
@@ -12,13 +13,13 @@ pub struct MigrateArgs {
 }
 
 #[system]
-pub async fn migrate(args: ArgsRef<MigrateArgs>) {
+pub async fn migrate(args: ArgsRef<MigrateArgs>, proto: ResourceRef<ProtoResource>) {
     match args.operation.as_str() {
         "v0.20" => {
-            v0_20::migrate().await?;
+            v0_20::migrate(proto).await?;
         }
         "v0.24" => {
-            v0_24::migrate().await?;
+            v0_24::migrate(proto).await?;
         }
         unknown => {
             return Err(ProtoCliError::UnknownMigration {

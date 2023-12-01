@@ -8,19 +8,15 @@ mod shell;
 use app::{App as CLI, Commands, ToolCommands};
 use clap::Parser;
 use helpers::ProtoResource;
-use proto_core::ProtoEnvironment;
 use starbase::system;
 use starbase::{tracing::TracingOptions, App, MainResult};
 use starbase_utils::string_vec;
 use std::env;
-use std::sync::Arc;
 use tracing::{debug, metadata::LevelFilter};
 
 #[system]
 fn detect_proto_env(resources: ResourcesMut) {
-    resources.set(ProtoResource {
-        env: Arc::new(ProtoEnvironment::new()?),
-    });
+    resources.set(ProtoResource::new()?);
 }
 
 #[system]

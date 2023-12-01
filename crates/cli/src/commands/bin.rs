@@ -1,8 +1,7 @@
+use crate::helpers::ProtoResource;
 use clap::Args;
 use proto_core::{detect_version, Id, UnresolvedVersionSpec};
 use starbase::system;
-
-use crate::helpers::ProtoResource;
 
 #[derive(Args, Clone, Debug)]
 pub struct BinArgs {

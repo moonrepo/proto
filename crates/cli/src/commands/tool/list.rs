@@ -1,5 +1,5 @@
 use crate::error::ProtoCliError;
-use crate::helpers::ToolsLoader;
+use crate::helpers::ProtoResource;
 use crate::printer::Printer;
 use chrono::{DateTime, NaiveDateTime};
 use clap::Args;
@@ -28,13 +28,12 @@ pub struct ListToolsArgs {
 }
 
 #[system]
-pub async fn list(args: ArgsRef<ListToolsArgs>) {
+pub async fn list(args: ArgsRef<ListToolsArgs>, proto: ResourceRef<ProtoResource>) {
     if !args.json {
         info!("Loading tools...");
     }
 
-    let loader = ToolsLoader::new()?;
-    let tools = loader
+    let tools = proto
         .load_tools_with_filters(HashSet::from_iter(&args.ids))
         .await?;
 
@@ -49,7 +48,7 @@ pub async fn list(args: ArgsRef<ListToolsArgs>) {
         return Err(ProtoCliError::NoInstalledTools.into());
     }
 
-    let config = loader.proto.load_config()?.to_owned();
+    let config = proto.env.load_config()?.to_owned();
 
     if args.json {
         let items = tools

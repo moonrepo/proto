@@ -91,30 +91,20 @@ pub async fn download_to_temp_with_progress_bar(
     Ok(temp_file)
 }
 
-pub async fn load_configured_tools() -> miette::Result<Vec<Tool>> {
-    ToolsLoader::new()?.load_tools().await
-}
-
 #[derive(Clone, Resource)]
 pub struct ProtoResource {
     pub env: Arc<ProtoEnvironment>,
 }
 
 impl ProtoResource {
-    pub async fn load_tool(&self, id: &Id) -> miette::Result<Tool> {
-        load_tool_with_proto(id, &self.env).await
-    }
-}
-
-pub struct ToolsLoader {
-    pub proto: Arc<ProtoEnvironment>,
-}
-
-impl ToolsLoader {
     pub fn new() -> miette::Result<Self> {
         Ok(Self {
-            proto: Arc::new(ProtoEnvironment::new()?),
+            env: Arc::new(ProtoEnvironment::new()?),
         })
+    }
+
+    pub async fn load_tool(&self, id: &Id) -> miette::Result<Tool> {
+        load_tool_with_proto(id, &self.env).await
     }
 
     pub async fn load_tools(&self) -> miette::Result<Vec<Tool>> {
@@ -122,13 +112,13 @@ impl ToolsLoader {
     }
 
     pub async fn load_tools_with_filters(&self, filter: HashSet<&Id>) -> miette::Result<Vec<Tool>> {
-        let config = self.proto.load_config()?;
+        let config = self.env.load_config()?;
 
         // Download the schema plugin before loading plugins.
         // We must do this here, otherwise when multiple schema
         // based tools are installed in parallel, they will
         // collide when attempting to download the schema plugin!
-        load_schema_plugin_with_proto(&self.proto).await?;
+        load_schema_plugin_with_proto(&self.env).await?;
 
         let mut futures = vec![];
         let mut tools = vec![];
@@ -145,7 +135,7 @@ impl ToolsLoader {
 
             let id = id.to_owned();
             let locator = locator.to_owned();
-            let proto = Arc::clone(&self.proto);
+            let proto = Arc::clone(&self.env);
 
             futures.push(tokio::spawn(async move {
                 load_tool_from_locator(id, proto, locator).await

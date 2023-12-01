@@ -1,16 +1,16 @@
 #![allow(deprecated)]
 
-use crate::helpers::load_configured_tools;
+use crate::helpers::ProtoResource;
 use proto_core::UserConfig;
 use starbase::SystemResult;
 use starbase_styles::color;
 use std::mem;
 use tracing::{debug, info};
 
-pub async fn migrate() -> SystemResult {
+pub async fn migrate(proto: &ProtoResource) -> SystemResult {
     info!("Loading tools...");
 
-    let tools = load_configured_tools().await?;
+    let tools = proto.load_tools().await?;
     let mut user_config = UserConfig::load()?;
     let mut updated_user_config = false;
 

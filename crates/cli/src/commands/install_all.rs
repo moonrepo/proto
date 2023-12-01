@@ -1,5 +1,5 @@
 use crate::helpers::{
-    create_progress_bar, disable_progress_bars, enable_progress_bars, ProtoResource, ToolsLoader,
+    create_progress_bar, disable_progress_bars, enable_progress_bars, ProtoResource,
 };
 use crate::{
     commands::clean::{internal_clean, CleanArgs},
@@ -15,12 +15,11 @@ use tracing::{debug, info};
 pub async fn install_all(proto: ResourceRef<ProtoResource>) {
     debug!("Loading tools and plugins from .prototools");
 
-    let loader = ToolsLoader::new()?;
-    let tools = loader.load_tools().await?;
+    let tools = proto.load_tools().await?;
 
     debug!("Detecting tool versions to install");
 
-    let config = loader.proto.load_config()?;
+    let config = proto.env.load_config()?;
     let mut versions = config.versions.to_owned();
 
     for tool in &tools {
@@ -28,7 +27,7 @@ pub async fn install_all(proto: ResourceRef<ProtoResource>) {
             continue;
         }
 
-        if let Some(candidate) = tool.detect_version_from(&loader.proto.cwd).await? {
+        if let Some(candidate) = tool.detect_version_from(&proto.env.cwd).await? {
             debug!("Detected version {} for {}", candidate, tool.get_name());
 
             versions.insert(tool.id.clone(), candidate);
