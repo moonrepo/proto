@@ -25,7 +25,7 @@ pub async fn setup(args: ArgsRef<SetupArgs>) {
     let paths = env::split_paths(&paths).collect::<Vec<_>>();
 
     if paths.contains(&proto.shims_dir) || paths.contains(&proto.bin_dir) {
-        debug!("Skipping setup, PROTO_HOME already exists in PATH.");
+        debug!("Skipping setup, PROTO_HOME already exists in PATH");
 
         return Ok(());
     }

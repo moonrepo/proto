@@ -142,8 +142,7 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
         if !parent_exe.ends_with(".exe") {
             use std::ffi::OsString;
 
-            let mut config = proto_core::ToolsConfig::load_upwards()?;
-            config.inherit_builtin_plugins();
+            let config = tool.proto.load_config()?;
 
             // Attempt to use `proto run <tool>` first instead of a hard-coded .exe.
             // This way we rely on proto's executable discovery functionality.

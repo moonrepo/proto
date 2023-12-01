@@ -7,7 +7,6 @@ use miette::IntoDiagnostic;
 use proto_pdk_api::{HostArch, HostEnvironment, HostOS};
 use starbase_utils::{json, toml};
 use std::path::PathBuf;
-use std::{env, path::Path};
 use tracing::{debug, trace};
 use warpgate::{to_virtual_path, Id, PluginLocator};
 
@@ -41,11 +40,7 @@ pub fn inject_default_manifest_config(
     Ok(())
 }
 
-pub fn locate_tool(
-    id: &Id,
-    proto: &ProtoEnvironment,
-    current_dir_only: bool,
-) -> miette::Result<PluginLocator> {
+pub fn locate_tool(id: &Id, proto: &ProtoEnvironment) -> miette::Result<PluginLocator> {
     let mut locator = None;
     let configs = proto.load_config_manager()?;
 
@@ -60,10 +55,6 @@ pub fn locate_tool(
                 locator = Some(maybe_locator.to_owned());
                 break;
             }
-        }
-
-        if current_dir_only {
-            break;
         }
     }
 
@@ -88,16 +79,16 @@ pub fn locate_tool(
     Ok(locator)
 }
 
-pub async fn load_schema_plugin(proto: impl AsRef<ProtoEnvironment>) -> miette::Result<PathBuf> {
+pub async fn load_schema_plugin_with_proto(
+    proto: impl AsRef<ProtoEnvironment>,
+) -> miette::Result<PathBuf> {
     let proto = proto.as_ref();
-    let http_client = proto.get_http_client()?;
-    let plugin_loader = proto.get_plugin_loader();
-
     let schema_id = Id::raw(SCHEMA_PLUGIN_KEY);
-    let schema_locator = locate_tool(&schema_id, proto, true)?;
+    let schema_locator = locate_tool(&schema_id, proto)?;
 
-    plugin_loader
-        .load_plugin_with_client(schema_id, schema_locator, &http_client)
+    proto
+        .get_plugin_loader()
+        .load_plugin_with_client(schema_id, schema_locator, proto.get_http_client()?)
         .await
 }
 
@@ -110,10 +101,9 @@ pub async fn load_tool_from_locator(
     let proto = proto.as_ref();
     let locator = locator.as_ref();
 
-    let http_client = proto.get_http_client()?;
-    let plugin_loader = proto.get_plugin_loader();
-    let plugin_path = plugin_loader
-        .load_plugin_with_client(id, locator, http_client)
+    let plugin_path = proto
+        .get_plugin_loader()
+        .load_plugin_with_client(id, locator, proto.get_http_client()?)
         .await?;
 
     // If a TOML plugin, we need to load the WASM plugin for it,
@@ -125,8 +115,10 @@ pub async fn load_tool_from_locator(
     {
         debug!(source = ?plugin_path, "Loading TOML plugin");
 
-        let mut manifest =
-            Tool::create_plugin_manifest(proto, Wasm::file(load_schema_plugin(proto).await?))?;
+        let mut manifest = Tool::create_plugin_manifest(
+            proto,
+            Wasm::file(load_schema_plugin_with_proto(proto).await?),
+        )?;
 
         // Convert TOML to JSON
         let schema: json::JsonValue = toml::read_file(plugin_path)?;
@@ -153,7 +145,7 @@ pub async fn load_tool_from_locator(
 }
 
 pub async fn load_tool_with_proto(id: &Id, proto: &ProtoEnvironment) -> miette::Result<Tool> {
-    load_tool_from_locator(id, proto, locate_tool(id, proto, false)?).await
+    load_tool_from_locator(id, proto, locate_tool(id, proto)?).await
 }
 
 pub async fn load_tool(id: &Id) -> miette::Result<Tool> {
