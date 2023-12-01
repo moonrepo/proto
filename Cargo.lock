@@ -2436,7 +2436,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.23.5"
+version = "0.23.6"
 dependencies = [
  "chrono",
  "clap 4.4.10",
@@ -2470,7 +2470,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.23.6"
+version = "0.23.7"
 dependencies = [
  "cached",
  "extism",
@@ -4085,7 +4085,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.5.14"
+version = "0.5.15"
 dependencies = [
  "extism",
  "miette",

@@ -1,6 +1,6 @@
 [package]
 name = "proto_core"
-version = "0.23.6"
+version = "0.23.7"
 edition = "2021"
 license = "MIT"
 description = "Core proto APIs."
@@ -11,7 +11,7 @@ repository = "https://github.com/moonrepo/proto"
 proto_pdk_api = { version = "0.10.4", path = "../pdk-api" }
 system_env = { version = "0.1.6", path = "../system-env" }
 version_spec = { version = "0.1.5", path = "../version-spec" }
-warpgate = { version = "0.5.14", path = "../warpgate" }
+warpgate = { version = "0.5.15", path = "../warpgate" }
 cached = { workspace = true }
 extism = { workspace = true }
 human-sort = { workspace = true }
