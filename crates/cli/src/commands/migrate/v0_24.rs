@@ -1,7 +1,7 @@
 #![allow(deprecated)]
 
 use crate::helpers::ProtoResource;
-use proto_core::UserConfig;
+use proto_core::ProtoConfig;
 use starbase::SystemResult;
 use starbase_styles::color;
 use std::mem;
@@ -11,8 +11,8 @@ pub async fn migrate(proto: &ProtoResource) -> SystemResult {
     info!("Loading tools...");
 
     let tools = proto.load_tools().await?;
-    let mut user_config = UserConfig::load()?;
-    let mut updated_user_config = false;
+    let mut config = ProtoConfig::load_from(proto.env.get_config_dir(true))?;
+    let mut updated_config = false;
 
     info!("Migrating configs...");
 
@@ -25,27 +25,39 @@ pub async fn migrate(proto: &ProtoResource) -> SystemResult {
         if !manifest.aliases.is_empty() {
             debug!("Found aliases");
 
-            let entry = user_config.tools.entry(tool.id.clone()).or_default();
-            entry.aliases.extend(mem::take(&mut manifest.aliases));
+            let tool_config = config
+                .tools
+                .get_or_insert(Default::default())
+                .entry(tool.id.clone())
+                .or_default();
+
+            tool_config
+                .aliases
+                .get_or_insert(Default::default())
+                .extend(mem::take(&mut manifest.aliases));
+
             updated_manifest = true;
         }
 
-        if tool.manifest.default_version.is_some() {
+        if manifest.default_version.is_some() {
             debug!("Found default version");
 
-            let entry = user_config.tools.entry(tool.id.clone()).or_default();
-            entry.default_version = manifest.default_version.take();
+            config
+                .versions
+                .get_or_insert(Default::default())
+                .insert(tool.id.clone(), manifest.default_version.take().unwrap());
+
             updated_manifest = true;
         }
 
         if updated_manifest {
-            updated_user_config = true;
+            updated_config = true;
             manifest.save()?;
         }
     }
 
-    if updated_user_config {
-        user_config.save()?;
+    if updated_config {
+        ProtoConfig::save_to(proto.env.get_config_dir(true), config)?;
     }
 
     info!("Migration complete!");

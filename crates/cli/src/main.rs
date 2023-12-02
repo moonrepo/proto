@@ -4,25 +4,14 @@ mod error;
 mod helpers;
 mod printer;
 mod shell;
+mod systems;
 
 use app::{App as CLI, Commands, ToolCommands};
 use clap::Parser;
-use helpers::ProtoResource;
-use starbase::system;
 use starbase::{tracing::TracingOptions, App, MainResult};
 use starbase_utils::string_vec;
 use std::env;
 use tracing::{debug, metadata::LevelFilter};
-
-#[system]
-fn detect_proto_env(resources: ResourcesMut) {
-    resources.set(ProtoResource::new()?);
-}
-
-#[system]
-fn load_proto_configs(proto: ResourceMut<ProtoResource>) {
-    proto.env.load_config()?;
-}
 
 #[tokio::main]
 async fn main() -> MainResult {
@@ -59,8 +48,9 @@ async fn main() -> MainResult {
     );
 
     let mut app = App::new();
-    app.startup(detect_proto_env);
-    app.analyze(load_proto_configs);
+    app.startup(systems::detect_proto_env);
+    app.startup(systems::migrate_user_config);
+    app.analyze(systems::load_proto_configs);
 
     match cli.command {
         Commands::AddPlugin(args) => app.execute_with_args(commands::add_plugin_old, args),

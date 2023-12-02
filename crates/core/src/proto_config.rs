@@ -63,14 +63,14 @@ pub struct ProtoSettingsConfig {
 #[derive(Config, Debug, Serialize)]
 #[config(allow_unknown_fields, rename_all = "kebab-case")]
 pub struct ProtoConfig {
+    #[setting(nested, merge = merge::merge_btreemap)]
+    pub tools: BTreeMap<Id, ProtoToolConfig>,
+
     #[setting(merge = merge::merge_btreemap)]
     pub plugins: BTreeMap<Id, PluginLocator>,
 
     #[setting(nested)]
     pub settings: ProtoSettingsConfig,
-
-    #[setting(nested, merge = merge::merge_btreemap)]
-    pub tools: BTreeMap<Id, ProtoToolConfig>,
 
     #[setting(flatten, merge = merge::merge_btreemap)]
     pub versions: BTreeMap<Id, UnresolvedVersionSpec>,
