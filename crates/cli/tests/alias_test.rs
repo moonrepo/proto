@@ -1,11 +1,11 @@
 mod utils;
 
-use proto_core::{Id, UnresolvedVersionSpec, UserConfig, UserToolConfig};
+use proto_core::{Id, PartialProtoToolConfig, ProtoConfig, UnresolvedVersionSpec};
 use starbase_sandbox::predicates::prelude::*;
 use std::collections::BTreeMap;
 use utils::*;
 
-mod alias {
+mod alias_local {
     use super::*;
 
     #[test]
@@ -24,9 +24,10 @@ mod alias {
     }
 
     #[test]
-    fn updates_user_config_file() {
+    fn updates_config_file() {
         let sandbox = create_empty_sandbox();
-        let config_file = sandbox.path().join("config.toml");
+        sandbox.create_file("work/empty", "");
+        let config_file = sandbox.path().join("work/.prototools");
 
         assert!(!config_file.exists());
 
@@ -35,12 +36,13 @@ mod alias {
             .arg("node")
             .arg("example")
             .arg("19.0.0")
+            .current_dir(sandbox.path().join("work"))
             .assert()
             .success();
 
         assert!(config_file.exists());
 
-        let config = UserConfig::load_from(sandbox.path()).unwrap();
+        let config = load_config(sandbox.path().join("work"));
 
         assert_eq!(
             config.tools.get("node").unwrap().aliases,
@@ -54,29 +56,32 @@ mod alias {
     #[test]
     fn can_overwrite_existing_alias() {
         let sandbox = create_empty_sandbox();
+        sandbox.create_file("work/empty", "");
 
-        let mut config = UserConfig::load_from(sandbox.path()).unwrap();
-        config.tools.insert(
-            Id::raw("node"),
-            UserToolConfig {
-                aliases: BTreeMap::from_iter([(
-                    "example".into(),
-                    UnresolvedVersionSpec::parse("19.0.0").unwrap(),
-                )]),
-                ..Default::default()
-            },
-        );
-        config.save().unwrap();
+        ProtoConfig::update(&sandbox.path().join("work"), |config| {
+            config.tools.get_or_insert(Default::default()).insert(
+                Id::raw("node"),
+                PartialProtoToolConfig {
+                    aliases: Some(BTreeMap::from_iter([(
+                        "example".into(),
+                        UnresolvedVersionSpec::parse("19.0.0").unwrap(),
+                    )])),
+                    ..Default::default()
+                },
+            );
+        })
+        .unwrap();
 
         let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("alias")
             .arg("node")
             .arg("example")
             .arg("20.0.0")
+            .current_dir(sandbox.path().join("work"))
             .assert()
             .success();
 
-        let config = UserConfig::load_from(sandbox.path()).unwrap();
+        let config = load_config(sandbox.path().join("work"));
 
         assert_eq!(
             config.tools.get("node").unwrap().aliases,
@@ -90,7 +95,7 @@ mod alias {
     #[test]
     fn errors_when_using_version() {
         let sandbox = create_empty_sandbox();
-        let config_file = sandbox.path().join("config.toml");
+        let config_file = sandbox.path().join(".prototools");
 
         assert!(!config_file.exists());
 
@@ -110,7 +115,7 @@ mod alias {
     #[test]
     fn errors_when_aliasing_self() {
         let sandbox = create_empty_sandbox();
-        let config_file = sandbox.path().join("config.toml");
+        let config_file = sandbox.path().join(".prototools");
 
         assert!(!config_file.exists());
 
@@ -123,5 +128,38 @@ mod alias {
             .assert();
 
         assert.stderr(predicate::str::contains("Cannot map an alias to itself."));
+    }
+}
+
+mod alias_global {
+    use super::*;
+
+    #[test]
+    fn updates_config_file() {
+        let sandbox = create_empty_sandbox();
+        let config_file = sandbox.path().join(".prototools");
+
+        assert!(!config_file.exists());
+
+        let mut cmd = create_proto_command(sandbox.path());
+        cmd.arg("alias")
+            .arg("node")
+            .arg("example")
+            .arg("19.0.0")
+            .arg("--global")
+            .assert()
+            .success();
+
+        assert!(config_file.exists());
+
+        let config = load_config(sandbox.path());
+
+        assert_eq!(
+            config.tools.get("node").unwrap().aliases,
+            BTreeMap::from_iter([(
+                "example".into(),
+                UnresolvedVersionSpec::parse("19.0.0").unwrap()
+            )])
+        );
     }
 }

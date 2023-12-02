@@ -1,11 +1,11 @@
 mod utils;
 
-use proto_core::{Id, UnresolvedVersionSpec, UserConfig, UserToolConfig};
+use proto_core::{Id, PartialProtoToolConfig, ProtoConfig, UnresolvedVersionSpec};
 use starbase_sandbox::predicates::prelude::*;
 use std::collections::BTreeMap;
 use utils::*;
 
-mod unalias {
+mod unalias_local {
     use super::*;
 
     #[test]
@@ -22,27 +22,29 @@ mod unalias {
     fn removes_existing_alias() {
         let sandbox = create_empty_sandbox();
 
-        let mut config = UserConfig::load_from(sandbox.path()).unwrap();
-        config.tools.insert(
-            Id::raw("node"),
-            UserToolConfig {
-                aliases: BTreeMap::from_iter([(
-                    "example".into(),
-                    UnresolvedVersionSpec::parse("19.0.0").unwrap(),
-                )]),
-                ..Default::default()
-            },
-        );
-        config.save().unwrap();
+        ProtoConfig::update(&sandbox.path().join("work"), |config| {
+            config.tools.get_or_insert(Default::default()).insert(
+                Id::raw("node"),
+                PartialProtoToolConfig {
+                    aliases: Some(BTreeMap::from_iter([(
+                        "example".into(),
+                        UnresolvedVersionSpec::parse("19.0.0").unwrap(),
+                    )])),
+                    ..Default::default()
+                },
+            );
+        })
+        .unwrap();
 
         let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("unalias")
             .arg("node")
             .arg("example")
+            .current_dir(sandbox.path().join("work"))
             .assert()
             .success();
 
-        let config = UserConfig::load_from(sandbox.path()).unwrap();
+        let config = load_config(sandbox.path().join("work"));
 
         assert!(config.tools.get("node").unwrap().aliases.is_empty());
     }
@@ -51,27 +53,29 @@ mod unalias {
     fn does_nothing_for_unknown_alias() {
         let sandbox = create_empty_sandbox();
 
-        let mut config = UserConfig::load_from(sandbox.path()).unwrap();
-        config.tools.insert(
-            Id::raw("node"),
-            UserToolConfig {
-                aliases: BTreeMap::from_iter([(
-                    "example".into(),
-                    UnresolvedVersionSpec::parse("19.0.0").unwrap(),
-                )]),
-                ..Default::default()
-            },
-        );
-        config.save().unwrap();
+        ProtoConfig::update(&sandbox.path().join("work"), |config| {
+            config.tools.get_or_insert(Default::default()).insert(
+                Id::raw("node"),
+                PartialProtoToolConfig {
+                    aliases: Some(BTreeMap::from_iter([(
+                        "example".into(),
+                        UnresolvedVersionSpec::parse("19.0.0").unwrap(),
+                    )])),
+                    ..Default::default()
+                },
+            );
+        })
+        .unwrap();
 
         let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("unalias")
             .arg("node")
             .arg("unknown")
+            .current_dir(sandbox.path().join("work"))
             .assert()
             .success();
 
-        let config = UserConfig::load_from(sandbox.path()).unwrap();
+        let config = load_config(sandbox.path().join("work"));
 
         assert_eq!(
             config.tools.get("node").unwrap().aliases,
@@ -80,5 +84,39 @@ mod unalias {
                 UnresolvedVersionSpec::parse("19.0.0").unwrap()
             )])
         );
+    }
+}
+
+mod unalias_global {
+    use super::*;
+
+    #[test]
+    fn removes_existing_alias() {
+        let sandbox = create_empty_sandbox();
+
+        ProtoConfig::update(&sandbox.path(), |config| {
+            config.tools.get_or_insert(Default::default()).insert(
+                Id::raw("node"),
+                PartialProtoToolConfig {
+                    aliases: Some(BTreeMap::from_iter([(
+                        "example".into(),
+                        UnresolvedVersionSpec::parse("19.0.0").unwrap(),
+                    )])),
+                    ..Default::default()
+                },
+            );
+        })
+        .unwrap();
+
+        let mut cmd = create_proto_command(sandbox.path());
+        cmd.arg("unalias")
+            .arg("node")
+            .arg("example")
+            .assert()
+            .success();
+
+        let config = load_config(sandbox.path());
+
+        assert!(config.tools.get("node").unwrap().aliases.is_empty());
     }
 }

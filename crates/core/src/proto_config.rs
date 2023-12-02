@@ -34,7 +34,7 @@ derive_enum!(
     }
 );
 
-#[derive(Config, Debug, Serialize)]
+#[derive(Clone, Config, Debug, Serialize)]
 #[config(allow_unknown_fields, rename_all = "kebab-case")]
 pub struct ProtoToolConfig {
     #[setting(merge = merge::merge_btreemap)]
@@ -45,7 +45,7 @@ pub struct ProtoToolConfig {
     pub config: BTreeMap<String, TomlValue>,
 }
 
-#[derive(Config, Debug, Serialize)]
+#[derive(Clone, Config, Debug, Serialize)]
 #[config(rename_all = "kebab-case")]
 pub struct ProtoSettingsConfig {
     #[setting(env = "PROTO_AUTO_CLEAN", parse_env = env::parse_bool)]
@@ -63,7 +63,7 @@ pub struct ProtoSettingsConfig {
     pub http: HttpOptions,
 }
 
-#[derive(Config, Debug, Serialize)]
+#[derive(Clone, Config, Debug, Serialize)]
 #[config(allow_unknown_fields, rename_all = "kebab-case")]
 pub struct ProtoConfig {
     #[setting(nested, merge = merge::merge_btreemap)]
