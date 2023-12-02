@@ -11,7 +11,7 @@ pub async fn detect_version_first_available(
 ) -> miette::Result<Option<UnresolvedVersionSpec>> {
     for file in &config_manager.files {
         if let Some(versions) = &file.config.versions {
-            if let Some(version) = versions.get(&tool.id) {
+            if let Some(version) = versions.get(tool.id.as_str()) {
                 debug!(
                     tool = tool.id.as_str(),
                     version = version.to_string(),
@@ -47,7 +47,7 @@ pub async fn detect_version_prefer_prototools(
     // Check config files first
     for file in &config_manager.files {
         if let Some(versions) = &file.config.versions {
-            if let Some(version) = versions.get(&tool.id) {
+            if let Some(version) = versions.get(tool.id.as_str()) {
                 debug!(
                     tool = tool.id.as_str(),
                     version = version.to_string(),

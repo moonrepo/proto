@@ -1,6 +1,9 @@
 use miette::IntoDiagnostic;
 use once_cell::sync::OnceCell;
-use schematic::{derive_enum, env, merge, Config, ConfigEnum, ConfigLoader, Format, PartialConfig};
+use schematic::{
+    derive_enum, env, merge, Config, ConfigEnum, ConfigError, ConfigLoader, Format, PartialConfig,
+    ValidateError, ValidateErrorType, ValidatorError,
+};
 use serde::Serialize;
 use starbase_utils::toml::TomlValue;
 use starbase_utils::{fs, toml};
@@ -74,6 +77,9 @@ pub struct ProtoConfig {
 
     #[setting(flatten, merge = merge::merge_btreemap)]
     pub versions: BTreeMap<Id, UnresolvedVersionSpec>,
+
+    #[setting(flatten, merge = merge::merge_btreemap)]
+    pub unknown: BTreeMap<String, TomlValue>,
 }
 
 impl ProtoConfig {
@@ -170,10 +176,61 @@ impl ProtoConfig {
 
         debug!(file = ?path, "Loading {}", PROTO_CONFIG_NAME);
 
+        let config_path = path.to_string_lossy();
         let mut config = ConfigLoader::<ProtoConfig>::new()
             .code(fs::read_file(&path)?, Format::Toml)?
             .load_partial(&())?;
 
+        config
+            .validate(&())
+            .map_err(|error| ConfigError::Validator {
+                config: config_path.to_string(),
+                error,
+            })?;
+
+        // Because of serde flatten, unknown and invalid fields
+        // do not trigger validation, so we need to manually handle it
+        if let Some(fields) = &config.unknown {
+            let mut error = ValidatorError {
+                path: schematic::Path::new(vec![]),
+                errors: vec![],
+            };
+
+            for (field, value) in fields {
+                // Versions show up in both flattened maps...
+                if config
+                    .versions
+                    .as_ref()
+                    .is_some_and(|versions| versions.contains_key(field))
+                {
+                    continue;
+                }
+
+                let message = if value.is_array() || value.is_table() {
+                    format!("unknown field `{field}`")
+                } else {
+                    match Id::new(field) {
+                        Ok(_) => format!("invalid version value `{value}`"),
+                        Err(e) => e.to_string(),
+                    }
+                };
+
+                error.errors.push(ValidateErrorType::setting(
+                    error.path.join_key(field),
+                    ValidateError::new(message),
+                ));
+            }
+
+            if !error.errors.is_empty() {
+                return Err(ConfigError::Validator {
+                    config: config_path.to_string(),
+                    error,
+                }
+                .into());
+            }
+        }
+
+        // Update file paths to be absolute
         let make_absolute = |file: &mut PathBuf| {
             if file.is_absolute() {
                 file.to_owned()
@@ -182,7 +239,6 @@ impl ProtoConfig {
             }
         };
 
-        // Update plugin file paths to be absolute
         if let Some(plugins) = &mut config.plugins {
             for locator in plugins.values_mut() {
                 if let PluginLocator::SourceFile {
@@ -243,10 +299,10 @@ pub struct ProtoConfigManager {
 }
 
 impl ProtoConfigManager {
-    pub fn load(start_dir: &Path, end_dir: Option<&Path>) -> miette::Result<Self> {
+    pub fn load(start_dir: impl AsRef<Path>, end_dir: Option<&Path>) -> miette::Result<Self> {
         trace!("Traversing upwards and loading {} files", PROTO_CONFIG_NAME);
 
-        let mut current_dir = Some(start_dir);
+        let mut current_dir = Some(start_dir.as_ref());
         let mut files = vec![];
 
         while let Some(dir) = current_dir {

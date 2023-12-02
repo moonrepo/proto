@@ -16,29 +16,30 @@
 
 > To ease the migration process, we've added a new migrate command. Simply run `proto migrate v0.24` after upgrading proto!
 
+- Standardized configuration files.
+  - Merged `~/.proto/config.toml` functionality into `.prototools` under a new `[settings]` table. This means settings like `auto-clean` can be defined anywhere now.
+  - Removed `~/.proto/config.toml`. Use `~/.proto/.prototools` instead, which is now the new global config (via `--global` arg).
+  - Moved `node-intercept-globals` setting to `tools.node.intercept-globals`.
 - Reworked user configured aliases and default/global version.
-  - Moved to `~/.proto/config.toml` (user managed) from `~/.proto/tools/<name>/manifest.json` (internally managed).
-  - Are now stored in the `tools` table (object), indexed by tool name.
+  - Moved values to `~/.proto/.prototools` (user managed) from `~/.proto/tools/<name>/manifest.json` (internally managed).
+  - Aliases are now stored in the `[tools.<name>]`, while the default version is at the root.
     ```toml
-    [tools.node]
-    default-version = "20.10.0"
-    aliases = { work = "^18" }
+    node = "20.10.0"
+    [tools.node.aliases]
+    work = "^18"
     ```
 - Updated `proto alias` and `proto unalias` to longer write to the global config by default. Now requires a `--global` flag.
   - This change was made to align with `proto pin`, `proto tool add`, and `proto tool remove`.
 
 #### 🚀 Updates
 
-- Added a `proto migrate v0.24` command for migrating aliases/versions. We'll also log a warning if we detect the old configuration.
+- Added a `proto migrate v0.24` command for migrating configs. We'll also log a warning if we detect the old configuration.
+  - For some scenarios, we'll attempt to auto-migrate under the hood when applicable.
 - Updated non-latest plugins to be cached for 30 days, instead of forever.
 
 #### 🐞 Fixes
 
 - Fixed an issue where resolving canary versions wouldn't work correctly.
-
-#### ⚙️ Internal
-
-- We now load and cache the user config, instead of continually loading it.
 
 ## 0.23.8
 

@@ -1,5 +1,5 @@
 use proto_core::{
-    resolve_version, ToolManifest, UnresolvedVersionSpec, UserToolConfig, VersionSpec,
+    resolve_version, ProtoToolConfig, ToolManifest, UnresolvedVersionSpec, VersionSpec,
 };
 use semver::Version;
 use std::collections::BTreeMap;
@@ -55,8 +55,8 @@ mod version_resolver {
         manifest
     }
 
-    fn create_tool_config() -> UserToolConfig {
-        let mut config = UserToolConfig::default();
+    fn create_tool_config() -> ProtoToolConfig {
+        let mut config = ProtoToolConfig::default();
 
         config.aliases.insert(
             "latest-manifest".into(),
