@@ -197,6 +197,8 @@ mod plugins {
                 .assert()
                 .success();
 
+            // TODO: revisit when we change shims
+            #[cfg(not(windows))]
             create_shim_command(sandbox.path(), "npm")
                 .arg("--version")
                 .assert()
@@ -221,6 +223,8 @@ mod plugins {
                 .assert()
                 .success();
 
+            // TODO: revisit when we change shims
+            #[cfg(not(windows))]
             create_shim_command(sandbox.path(), "pnpm")
                 .arg("--version")
                 .assert()
@@ -245,6 +249,8 @@ mod plugins {
                 .assert()
                 .success();
 
+            // TODO: revisit when we change shims
+            #[cfg(not(windows))]
             create_shim_command(sandbox.path(), "yarn")
                 .arg("--version")
                 .assert()

@@ -2,8 +2,8 @@ use futures::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
 use miette::IntoDiagnostic;
 use proto_core::{
-    get_temp_dir, load_tool_from_locator, load_tool_with_proto, Id, ProtoEnvironment, ProtoError,
-    Tool, SCHEMA_PLUGIN_KEY, load_schema_plugin_with_proto
+    get_temp_dir, load_schema_plugin_with_proto, load_tool_from_locator, load_tool_with_proto, Id,
+    ProtoEnvironment, ProtoError, Tool, SCHEMA_PLUGIN_KEY,
 };
 use starbase::Resource;
 use starbase_utils::fs;

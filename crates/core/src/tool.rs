@@ -1,14 +1,15 @@
 use crate::error::ProtoError;
+use crate::events::*;
 use crate::helpers::{
     extract_filename_from_url, hash_file_contents, is_archive_file, is_cache_enabled, is_offline,
     remove_bin_file, ENV_VAR,
 };
 use crate::host_funcs::{create_host_functions, HostData};
 use crate::proto::ProtoEnvironment;
+use crate::proto_config::ProtoConfig;
 use crate::shimmer::{get_shim_file_names, ShimContext, SHIM_VERSION};
-use crate::tool_manifest::ToolManifest;
+use crate::tool_manifest::{ToolManifest, ToolManifestVersion};
 use crate::version_resolver::VersionResolver;
-use crate::{events::*, ProtoConfig, ToolManifestVersion};
 use extism::{manifest::Wasm, Manifest as PluginManifest};
 use miette::IntoDiagnostic;
 use proto_pdk_api::*;

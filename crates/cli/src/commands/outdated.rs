@@ -2,7 +2,7 @@ use crate::error::ProtoCliError;
 use crate::helpers::ProtoResource;
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::{UnresolvedVersionSpec, VersionSpec};
+use proto_core::{ProtoConfig, UnresolvedVersionSpec, VersionSpec};
 use serde::Serialize;
 use starbase::system;
 use starbase_styles::color::{self, OwoStyle};
@@ -116,9 +116,12 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>, proto: ResourceRef<ProtoResou
     }
 
     if args.update {
-        // TODO update
-        // tools_config.tools.extend(tool_versions);
-        // tools_config.save()?;
+        ProtoConfig::update(&proto.env.cwd, |config| {
+            config
+                .versions
+                .get_or_insert(Default::default())
+                .extend(tool_versions);
+        })?;
     }
 
     if args.json {

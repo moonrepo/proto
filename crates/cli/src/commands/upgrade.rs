@@ -95,7 +95,8 @@ pub async fn upgrade(proto: ResourceRef<ProtoResource>) {
         Err(_) => proto.env.bin_dir.join(bin_name),
     };
 
-    let relocate_path = proto.env
+    let relocate_path = proto
+        .env
         .tools_dir
         .join("proto")
         .join(current_version)
