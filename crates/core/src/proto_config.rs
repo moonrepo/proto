@@ -78,7 +78,7 @@ pub struct ProtoConfig {
     #[setting(flatten, merge = merge::merge_btreemap)]
     pub versions: BTreeMap<Id, UnresolvedVersionSpec>,
 
-    #[setting(flatten, merge = merge::merge_btreemap, skip)]
+    #[setting(flatten, merge = merge::merge_btreemap, skip_serializing)]
     pub unknown: BTreeMap<String, TomlValue>,
 }
 

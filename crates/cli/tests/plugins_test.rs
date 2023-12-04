@@ -185,6 +185,14 @@ mod plugins {
 
             create_proto_command(sandbox.path())
                 .arg("install")
+                .arg("node")
+                .arg("--")
+                .arg("--no-bundled-npm")
+                .assert()
+                .success();
+
+            create_proto_command(sandbox.path())
+                .arg("install")
                 .arg("npm")
                 .assert()
                 .success();
@@ -201,6 +209,14 @@ mod plugins {
 
             create_proto_command(sandbox.path())
                 .arg("install")
+                .arg("node")
+                .arg("--")
+                .arg("--no-bundled-npm")
+                .assert()
+                .success();
+
+            create_proto_command(sandbox.path())
+                .arg("install")
                 .arg("pnpm")
                 .assert()
                 .success();
@@ -214,6 +230,14 @@ mod plugins {
         #[test]
         fn supports_yarn() {
             let sandbox = create_empty_sandbox();
+
+            create_proto_command(sandbox.path())
+                .arg("install")
+                .arg("node")
+                .arg("--")
+                .arg("--no-bundled-npm")
+                .assert()
+                .success();
 
             create_proto_command(sandbox.path())
                 .arg("install")
