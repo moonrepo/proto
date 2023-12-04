@@ -25,14 +25,14 @@ mod tool_remove {
 
         ProtoConfig::update(sandbox.path(), |config| {
             config
-              .plugins
-              .get_or_insert(Default::default())
-              .insert(
-                Id::raw("id"),
-                PluginLocator::SourceUrl {
-                  url: "https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm".into()
-                },
-              );
+                .plugins
+                .get_or_insert(Default::default())
+                .insert(
+                    Id::raw("id"),
+                    PluginLocator::SourceUrl {
+                      url: "https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm".into()
+                    },
+                );
         })
         .unwrap();
 
@@ -50,14 +50,14 @@ mod tool_remove {
 
         ProtoConfig::update(sandbox.path().join(".proto"), |config| {
             config
-              .plugins
-              .get_or_insert(Default::default())
-              .insert(
-                Id::raw("id"),
-                PluginLocator::SourceUrl {
-                  url: "https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm".into()
-                },
-              );
+                .plugins
+                .get_or_insert(Default::default())
+                .insert(
+                    Id::raw("id"),
+                    PluginLocator::SourceUrl {
+                      url: "https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm".into()
+                    },
+                );
         })
         .unwrap();
 

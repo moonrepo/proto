@@ -45,9 +45,9 @@ mod tool_add {
 
         assert_eq!(
             config.plugins.get("id").unwrap(),
-						&PluginLocator::SourceUrl {
-								url: "https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm".into()
-						}
+            &PluginLocator::SourceUrl {
+                url: "https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm".into()
+            }
         );
     }
 
@@ -73,9 +73,9 @@ mod tool_add {
 
         assert_eq!(
             config.plugins.get("id").unwrap(),
-						&PluginLocator::SourceUrl {
-								url: "https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm".into()
-						}
+            &PluginLocator::SourceUrl {
+                url: "https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm".into()
+            }
         );
     }
 }
