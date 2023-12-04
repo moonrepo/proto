@@ -21,7 +21,7 @@
   - Removed `~/.proto/config.toml`. Use `~/.proto/.prototools` instead, which is now the new global config (via `--global` arg).
   - Moved `node-intercept-globals` setting to `tools.node.intercept-globals`.
 - Reworked user configured aliases and default/global version.
-  - Moved values to `~/.proto/.prototools` (user managed) from `~/.proto/tools/<name>/manifest.json` (internally managed).
+  - Moved values to `.prototools` (user managed) from `~/.proto/tools/<name>/manifest.json` (internally managed).
   - Aliases are now stored in the `[tools.<name>]`, while the default version is at the root.
     ```toml
     node = "20.10.0"

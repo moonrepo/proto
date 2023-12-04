@@ -47,11 +47,9 @@ mod plugins {
         run_tests(|root| {
             let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
-            dbg!(&root_dir);
-
             load_tool_from_locator(
                 Id::raw("moon"),
-                ProtoEnvironment::new_testing(root),
+                ProtoEnvironment::from(root).unwrap(),
                 PluginLocator::SourceFile {
                     file: "./tests/fixtures/moon-schema.toml".into(),
                     path: root_dir.join("./tests/fixtures/moon-schema.toml"),
@@ -69,7 +67,7 @@ mod plugins {
 
             load_tool_from_locator(
                 Id::raw("moon"),
-                ProtoEnvironment::new_testing(root),
+                ProtoEnvironment::from(root).unwrap(),
                 PluginLocator::SourceFile {
                     file: "./some/fake/path.toml".into(),
                     path: root_dir.join("./some/fake/path.toml"),
@@ -84,7 +82,7 @@ mod plugins {
         run_tests(|root| {
             load_tool_from_locator(
                 Id::raw("moon"),
-                ProtoEnvironment::new_testing(root),
+                ProtoEnvironment::from(root).unwrap(),
                 PluginLocator::SourceUrl {
                     url: "https://raw.githubusercontent.com/moonrepo/moon/master/proto-plugin.toml"
                         .into(),
@@ -100,7 +98,7 @@ mod plugins {
         run_tests(|root| {
             load_tool_from_locator(
                 Id::raw("moon"),
-                ProtoEnvironment::new_testing(root),
+                ProtoEnvironment::from(root).unwrap(),
                 PluginLocator::SourceUrl {
                     url: "https://raw.githubusercontent.com/moonrepo/moon/some/fake/path.toml"
                         .into(),
