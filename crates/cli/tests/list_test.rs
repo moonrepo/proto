@@ -11,7 +11,7 @@ mod list {
         let temp = create_empty_sandbox();
 
         let mut manifest =
-            ToolManifest::load(temp.path().join("tools/node/manifest.json")).unwrap();
+            ToolManifest::load(temp.path().join(".proto/tools/node/manifest.json")).unwrap();
         manifest
             .installed_versions
             .insert(VersionSpec::parse("19.0.0").unwrap());

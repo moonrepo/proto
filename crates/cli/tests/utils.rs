@@ -32,7 +32,7 @@ pub fn create_proto_command<T: AsRef<Path>>(path: T) -> assert_cmd::Command {
 
     let mut cmd = create_command_with_name(path, "proto");
     cmd.timeout(std::time::Duration::from_secs(240));
-    cmd.env("PROTO_HOME", path);
+    cmd.env("PROTO_HOME", path.join(".proto"));
     cmd.env("PROTO_LOG", "trace");
     cmd.env("PROTO_WASM_LOG", "trace");
     cmd.env("RUST_BACKTRACE", "1");

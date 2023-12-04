@@ -263,15 +263,19 @@ impl ProtoConfig {
     }
 
     #[tracing::instrument(skip_all)]
-    pub fn save_to(dir: &Path, config: PartialProtoConfig) -> miette::Result<PathBuf> {
-        let path = dir.join(PROTO_CONFIG_NAME);
+    pub fn save_to<P: AsRef<Path>>(dir: P, config: PartialProtoConfig) -> miette::Result<PathBuf> {
+        let path = dir.as_ref().join(PROTO_CONFIG_NAME);
 
         fs::write_file(&path, toml::to_string_pretty(&config).into_diagnostic()?)?;
 
         Ok(path)
     }
 
-    pub fn update(dir: &Path, op: impl FnOnce(&mut PartialProtoConfig)) -> miette::Result<PathBuf> {
+    pub fn update<P: AsRef<Path>, F: FnOnce(&mut PartialProtoConfig)>(
+        dir: P,
+        op: F,
+    ) -> miette::Result<PathBuf> {
+        let dir = dir.as_ref();
         let mut config = Self::load_from(dir)?;
 
         op(&mut config);

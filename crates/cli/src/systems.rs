@@ -31,7 +31,7 @@ pub fn migrate_user_config(proto: ResourceRef<ProtoResource>) {
         "Detected legacy user config file, migrating to new format",
     );
 
-    let user_config = UserConfig::load_from(&dir)?;
+    let user_config = UserConfig::load_from(dir)?;
 
     ProtoConfig::update(dir, |config| {
         let settings = config.settings.get_or_insert(Default::default());

@@ -319,8 +319,7 @@ deno = "7.8.9"
 "#,
         );
 
-        let manager =
-            ProtoConfigManager::load(&sandbox.path().join("one/two/three"), None).unwrap();
+        let manager = ProtoConfigManager::load(sandbox.path().join("one/two/three"), None).unwrap();
         let config = manager.get_merged_config().unwrap();
 
         assert_eq!(

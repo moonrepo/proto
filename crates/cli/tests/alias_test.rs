@@ -26,8 +26,7 @@ mod alias_local {
     #[test]
     fn updates_config_file() {
         let sandbox = create_empty_sandbox();
-        sandbox.create_file("work/empty", "");
-        let config_file = sandbox.path().join("work/.prototools");
+        let config_file = sandbox.path().join(".prototools");
 
         assert!(!config_file.exists());
 
@@ -36,13 +35,13 @@ mod alias_local {
             .arg("node")
             .arg("example")
             .arg("19.0.0")
-            .current_dir(sandbox.path().join("work"))
+            .current_dir(sandbox.path())
             .assert()
             .success();
 
         assert!(config_file.exists());
 
-        let config = load_config(sandbox.path().join("work"));
+        let config = load_config(sandbox.path());
 
         assert_eq!(
             config.tools.get("node").unwrap().aliases,
@@ -56,9 +55,8 @@ mod alias_local {
     #[test]
     fn can_overwrite_existing_alias() {
         let sandbox = create_empty_sandbox();
-        sandbox.create_file("work/empty", "");
 
-        ProtoConfig::update(&sandbox.path().join("work"), |config| {
+        ProtoConfig::update(sandbox.path(), |config| {
             config.tools.get_or_insert(Default::default()).insert(
                 Id::raw("node"),
                 PartialProtoToolConfig {
@@ -77,11 +75,10 @@ mod alias_local {
             .arg("node")
             .arg("example")
             .arg("20.0.0")
-            .current_dir(sandbox.path().join("work"))
             .assert()
             .success();
 
-        let config = load_config(sandbox.path().join("work"));
+        let config = load_config(sandbox.path());
 
         assert_eq!(
             config.tools.get("node").unwrap().aliases,
@@ -95,9 +92,6 @@ mod alias_local {
     #[test]
     fn errors_when_using_version() {
         let sandbox = create_empty_sandbox();
-        let config_file = sandbox.path().join(".prototools");
-
-        assert!(!config_file.exists());
 
         let mut cmd = create_proto_command(sandbox.path());
         let assert = cmd
@@ -115,9 +109,6 @@ mod alias_local {
     #[test]
     fn errors_when_aliasing_self() {
         let sandbox = create_empty_sandbox();
-        let config_file = sandbox.path().join(".prototools");
-
-        assert!(!config_file.exists());
 
         let mut cmd = create_proto_command(sandbox.path());
         let assert = cmd
@@ -137,7 +128,7 @@ mod alias_global {
     #[test]
     fn updates_config_file() {
         let sandbox = create_empty_sandbox();
-        let config_file = sandbox.path().join(".prototools");
+        let config_file = sandbox.path().join(".proto/.prototools");
 
         assert!(!config_file.exists());
 
@@ -152,7 +143,7 @@ mod alias_global {
 
         assert!(config_file.exists());
 
-        let config = load_config(sandbox.path());
+        let config = load_config(sandbox.path().join(".proto"));
 
         assert_eq!(
             config.tools.get("node").unwrap().aliases,
