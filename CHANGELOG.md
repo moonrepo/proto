@@ -15,6 +15,11 @@
 #### 🚀 Updates
 
 - Added a `PROTO_SHELL_PROFILE` environment variable, to control which shell profile to modify (when applicable).
+- Added a `PROTO_INSTALL_DIR` environment variable, to control where the `proto` binary is located. Works for both installing and upgrading.
+
+#### 🐞 Fixes
+
+- Fixed `proto upgrade` not working on Linux musl.
 
 ## 0.23.7
 
