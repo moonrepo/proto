@@ -7,7 +7,7 @@ use std::{
     path::{Path, PathBuf},
     time::SystemTime,
 };
-use tracing::{debug, info, warn};
+use tracing::{debug, warn};
 use version_spec::*;
 
 fn now() -> u128 {
@@ -85,7 +85,7 @@ impl ToolManifest {
         #[allow(deprecated)]
         if manifest.default_version.is_some() {
             warn!(
-                "Found legacy default version in tool manifest, please run {} to migrate it",
+                "Found legacy global version in tool manifest, please run {} to migrate it",
                 color::shell("proto migrate v0.24")
             );
         }
@@ -98,45 +98,6 @@ impl ToolManifest {
         debug!(file = ?self.path, "Saving manifest");
 
         write_json_file_with_lock(&self.path, self)?;
-
-        Ok(())
-    }
-
-    pub fn insert_version(
-        &mut self,
-        version: VersionSpec,
-        default_version: Option<UnresolvedVersionSpec>,
-    ) -> miette::Result<()> {
-        if self.default_version.is_none() {
-            self.default_version =
-                Some(default_version.unwrap_or_else(|| version.to_unresolved_spec()));
-        }
-
-        self.installed_versions.insert(version.clone());
-
-        self.versions
-            .insert(version, ToolManifestVersion::default());
-
-        self.save()?;
-
-        Ok(())
-    }
-
-    pub fn remove_version(&mut self, version: VersionSpec) -> miette::Result<()> {
-        self.installed_versions.remove(&version);
-
-        // Remove default version if nothing available
-        if (self.installed_versions.is_empty() && self.default_version.is_some())
-            || self.default_version.as_ref().is_some_and(|v| v == &version)
-        {
-            info!("Unpinning default global version");
-
-            self.default_version = None;
-        }
-
-        self.versions.remove(&version);
-
-        self.save()?;
 
         Ok(())
     }

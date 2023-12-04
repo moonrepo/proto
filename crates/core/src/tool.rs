@@ -1,5 +1,4 @@
 use crate::error::ProtoError;
-use crate::events::*;
 use crate::helpers::{
     extract_filename_from_url, hash_file_contents, is_archive_file, is_cache_enabled, is_offline,
     remove_bin_file, ENV_VAR,
@@ -9,6 +8,7 @@ use crate::proto::ProtoEnvironment;
 use crate::shimmer::{get_shim_file_names, ShimContext, SHIM_VERSION};
 use crate::tool_manifest::ToolManifest;
 use crate::version_resolver::VersionResolver;
+use crate::{events::*, ProtoConfig, ToolManifestVersion};
 use extism::{manifest::Wasm, Manifest as PluginManifest};
 use miette::IntoDiagnostic;
 use proto_pdk_api::*;
@@ -25,7 +25,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
-use tracing::{debug, trace, warn};
+use tracing::{debug, info, trace, warn};
 use warpgate::{download_from_url_to_file, Id, PluginContainer, PluginLocator, VirtualPath};
 
 #[derive(Debug, Default, Serialize)]
@@ -320,11 +320,6 @@ impl Tool {
         }
 
         let mut modified = false;
-
-        if let Some(default) = sync_changes.default_version {
-            modified = true;
-            self.manifest.default_version = Some(default);
-        }
 
         if let Some(versions) = sync_changes.versions {
             modified = true;
@@ -1536,23 +1531,40 @@ impl Tool {
     ) -> miette::Result<bool> {
         self.resolve_version(initial_version, false).await?;
 
-        if self.install(build_from_source).await? {
-            self.create_executables(true, false).await?;
-            self.cleanup().await?;
-
-            // Add version to manifest
-            self.manifest.insert_version(
-                self.get_resolved_version(),
-                self.metadata.default_version.clone(),
-            )?;
-
-            // Allow plugins to override manifest
-            self.sync_manifest()?;
-
-            return Ok(true);
+        if !self.install(build_from_source).await? {
+            return Ok(false);
         }
 
-        Ok(false)
+        self.create_executables(true, false).await?;
+        self.cleanup().await?;
+
+        let version = self.get_resolved_version();
+        let default_version = self
+            .metadata
+            .default_version
+            .clone()
+            .unwrap_or_else(|| version.to_unresolved_spec());
+
+        // Add version to manifest
+        self.manifest.installed_versions.insert(version.clone());
+        self.manifest
+            .versions
+            .insert(version.clone(), ToolManifestVersion::default());
+        self.manifest.save()?;
+
+        // Pin the global version
+        ProtoConfig::update(self.proto.get_config_dir(true), |config| {
+            config
+                .versions
+                .get_or_insert(Default::default())
+                .entry(self.id.clone())
+                .or_insert(default_version);
+        })?;
+
+        // Allow plugins to override manifest
+        self.sync_manifest()?;
+
+        Ok(true)
     }
 
     /// Teardown the tool by uninstalling the current version, removing the version
@@ -1564,12 +1576,29 @@ impl Tool {
             return Ok(false);
         }
 
-        // Only remove if uninstall was successful
-        self.manifest.remove_version(self.get_resolved_version())?;
+        let version = self.get_resolved_version();
+        let mut removed_default_version = false;
+
+        // Remove version from manifest
+        self.manifest.installed_versions.remove(&version);
+        self.manifest.versions.remove(&version);
+        self.manifest.save()?;
+
+        // Unpin global version if a match
+        ProtoConfig::update(self.proto.get_config_dir(true), |config| {
+            if let Some(versions) = &mut config.versions {
+                if versions.get(&self.id).is_some_and(|v| v == &version) {
+                    info!("Unpinning global version");
+
+                    versions.remove(&self.id);
+                    removed_default_version = true;
+                }
+            }
+        })?;
 
         // If no more default version, delete the symlink,
         // otherwise the OS will throw errors for missing sources
-        if self.manifest.default_version.is_none() || self.manifest.installed_versions.is_empty() {
+        if removed_default_version || self.manifest.installed_versions.is_empty() {
             for bin in self.get_bin_locations()? {
                 remove_bin_file(bin.path)?;
             }

@@ -27,7 +27,7 @@ mod proto_config {
         let sandbox = create_empty_sandbox();
         sandbox.create_file(".prototools", "node = 123");
 
-        handle_error(ProtoConfig::load_from(sandbox.path()).unwrap_err());
+        handle_error(ProtoConfig::load_from(sandbox.path(), false).unwrap_err());
     }
 
     #[test]
@@ -36,7 +36,7 @@ mod proto_config {
         let sandbox = create_empty_sandbox();
         sandbox.create_file(".prototools", "[other]\nkey = 123");
 
-        handle_error(ProtoConfig::load_from(sandbox.path()).unwrap_err());
+        handle_error(ProtoConfig::load_from(sandbox.path(), false).unwrap_err());
     }
 
     #[test]
@@ -45,7 +45,7 @@ mod proto_config {
         let sandbox = create_empty_sandbox();
         sandbox.create_file(".prototools", "fooBar = \"1.2.3\"");
 
-        handle_error(ProtoConfig::load_from(sandbox.path()).unwrap_err());
+        handle_error(ProtoConfig::load_from(sandbox.path(), false).unwrap_err());
     }
 
     #[test]
@@ -61,7 +61,7 @@ pin-latest = "global"
 "#,
         );
 
-        let config = ProtoConfig::load_from(sandbox.path()).unwrap();
+        let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
 
         assert_eq!(
             config.settings.unwrap(),
@@ -114,7 +114,7 @@ bar = "source:https://moonrepo.dev/path/file.wasm"
 "#,
         );
 
-        let config = ProtoConfig::load_from(sandbox.path()).unwrap();
+        let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
 
         assert_eq!(
             config.plugins.unwrap(),
@@ -148,7 +148,7 @@ foo = "source:../file.wasm"
 "#,
         );
 
-        let config = ProtoConfig::load_from(sandbox.path()).unwrap();
+        let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
 
         assert_eq!(
             config.plugins.unwrap(),
@@ -173,7 +173,7 @@ root-cert = "../cert.pem"
 "#,
         );
 
-        let config = ProtoConfig::load_from(sandbox.path()).unwrap();
+        let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
 
         assert_eq!(
             config.settings.unwrap().http.unwrap(),
@@ -199,7 +199,7 @@ root-cert = "../cert.pem"
     "#,
         );
 
-        let config = ProtoConfig::load_from(sandbox.path()).unwrap();
+        let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
 
         assert_eq!(
             config.versions.unwrap(),
@@ -239,7 +239,7 @@ root-cert = "../cert.pem"
     #[test]
     fn formats_plugins_table() {
         let sandbox = create_empty_sandbox();
-        let mut config = ProtoConfig::load_from(sandbox.path()).unwrap();
+        let mut config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
         let versions = config.versions.get_or_insert(Default::default());
 
         versions.insert(

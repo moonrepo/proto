@@ -11,7 +11,7 @@ pub async fn migrate(proto: &ProtoResource) -> SystemResult {
     info!("Loading tools...");
 
     let tools = proto.load_tools().await?;
-    let mut config = ProtoConfig::load_from(proto.env.get_config_dir(true))?;
+    let mut config = ProtoConfig::load_from(proto.env.get_config_dir(true), false)?;
     let mut updated_config = false;
 
     info!("Migrating configs...");

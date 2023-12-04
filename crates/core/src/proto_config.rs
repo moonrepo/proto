@@ -166,7 +166,10 @@ impl ProtoConfig {
     }
 
     #[tracing::instrument(skip_all)]
-    pub fn load_from<P: AsRef<Path>>(dir: P) -> miette::Result<PartialProtoConfig> {
+    pub fn load_from<P: AsRef<Path>>(
+        dir: P,
+        with_lock: bool,
+    ) -> miette::Result<PartialProtoConfig> {
         let dir = dir.as_ref();
         let path = dir.join(PROTO_CONFIG_NAME);
 
@@ -177,8 +180,14 @@ impl ProtoConfig {
         debug!(file = ?path, "Loading {}", PROTO_CONFIG_NAME);
 
         let config_path = path.to_string_lossy();
+        let config_content = if with_lock {
+            fs::read_file_with_lock(&path)?
+        } else {
+            fs::read_file(&path)?
+        };
+
         let mut config = ConfigLoader::<ProtoConfig>::new()
-            .code(fs::read_file(&path)?, Format::Toml)?
+            .code(config_content, Format::Toml)?
             .load_partial(&())?;
 
         config
@@ -266,7 +275,7 @@ impl ProtoConfig {
     pub fn save_to<P: AsRef<Path>>(dir: P, config: PartialProtoConfig) -> miette::Result<PathBuf> {
         let path = dir.as_ref().join(PROTO_CONFIG_NAME);
 
-        fs::write_file(&path, toml::to_string_pretty(&config).into_diagnostic()?)?;
+        fs::write_file_with_lock(&path, toml::to_string_pretty(&config).into_diagnostic()?)?;
 
         Ok(path)
     }
@@ -276,7 +285,7 @@ impl ProtoConfig {
         op: F,
     ) -> miette::Result<PathBuf> {
         let dir = dir.as_ref();
-        let mut config = Self::load_from(dir)?;
+        let mut config = Self::load_from(dir, true)?;
 
         op(&mut config);
 
@@ -312,7 +321,7 @@ impl ProtoConfigManager {
         while let Some(dir) = current_dir {
             files.push(ProtoConfigFile {
                 path: dir.join(PROTO_CONFIG_NAME),
-                config: ProtoConfig::load_from(dir)?,
+                config: ProtoConfig::load_from(dir, false)?,
             });
 
             if end_dir.is_some_and(|end| end == dir) {

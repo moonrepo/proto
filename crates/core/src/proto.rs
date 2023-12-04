@@ -108,7 +108,7 @@ impl ProtoEnvironment {
             // Always load the proto home/root config last
             manager.files.push(ProtoConfigFile {
                 path: self.root.join(PROTO_CONFIG_NAME),
-                config: ProtoConfig::load_from(&self.root)?,
+                config: ProtoConfig::load_from(&self.root, true)?,
             });
 
             Ok(manager)
