@@ -1,6 +1,7 @@
 use crate::error::ProtoCliError;
+use crate::helpers::ProtoResource;
 use clap::Args;
-use proto_core::{detect_version, load_tool, Id};
+use proto_core::{detect_version, Id};
 use starbase::diagnostics::IntoDiagnostic;
 use starbase::system;
 use starbase_styles::color;
@@ -15,8 +16,8 @@ pub struct ListGlobalArgs {
 }
 
 #[system]
-pub async fn list_global(args: ArgsRef<ListGlobalArgs>) {
-    let mut tool = load_tool(&args.id).await?;
+pub async fn list_global(args: ArgsRef<ListGlobalArgs>, proto: ResourceRef<ProtoResource>) {
+    let mut tool = proto.load_tool(&args.id).await?;
     let version = detect_version(&tool, None).await?;
 
     // Resolve a version as some tools install to a versioned folder

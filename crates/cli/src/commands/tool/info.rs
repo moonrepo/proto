@@ -1,7 +1,8 @@
+use crate::helpers::ProtoResource;
 use crate::printer::Printer;
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::{detect_version, load_tool, ExecutableLocation, Id, PluginLocator};
+use proto_core::{detect_version, ExecutableLocation, Id, PluginLocator};
 use proto_pdk_api::ToolMetadataOutput;
 use serde::Serialize;
 use starbase::system;
@@ -33,8 +34,8 @@ pub struct ToolInfoArgs {
 }
 
 #[system]
-pub async fn info(args: ArgsRef<ToolInfoArgs>) {
-    let mut tool = load_tool(&args.id).await?;
+pub async fn info(args: ArgsRef<ToolInfoArgs>, proto: ResourceRef<ProtoResource>) {
+    let mut tool = proto.load_tool(&args.id).await?;
     let version = detect_version(&tool, None).await?;
 
     tool.resolve_version(&version, false).await?;

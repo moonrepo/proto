@@ -52,6 +52,13 @@ pub enum PluginLocator {
     Wapm(WapmLocator),
 }
 
+#[cfg(feature = "schematic")]
+impl schematic::Schematic for PluginLocator {
+    fn generate_schema() -> schematic::SchemaType {
+        schematic::SchemaType::string()
+    }
+}
+
 impl Display for PluginLocator {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

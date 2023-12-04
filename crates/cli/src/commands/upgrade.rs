@@ -1,7 +1,7 @@
 use crate::error::ProtoCliError;
-use crate::helpers::download_to_temp_with_progress_bar;
+use crate::helpers::{download_to_temp_with_progress_bar, ProtoResource};
 use miette::IntoDiagnostic;
-use proto_core::{is_offline, ProtoEnvironment};
+use proto_core::is_offline;
 use semver::Version;
 use starbase::system;
 use starbase_archive::Archiver;
@@ -35,12 +35,11 @@ pub fn is_musl() -> bool {
 }
 
 #[system]
-pub async fn upgrade() {
+pub async fn upgrade(proto: ResourceRef<ProtoResource>) {
     if is_offline() {
         return Err(ProtoCliError::UpgradeRequiresInternet.into());
     }
 
-    let proto = ProtoEnvironment::new()?;
     let current_version = env!("CARGO_PKG_VERSION");
     let latest_version = fetch_version().await?;
 
@@ -83,7 +82,7 @@ pub async fn upgrade() {
         "https://github.com/moonrepo/proto/releases/download/v{latest_version}/{download_file}"
     );
     let temp_file = download_to_temp_with_progress_bar(&download_url, &download_file).await?;
-    let temp_dir = proto.temp_dir.join(&target_file);
+    let temp_dir = proto.env.temp_dir.join(&target_file);
 
     // Unpack the downloaded file
     Archiver::new(&temp_dir, &temp_file).unpack_from_ext()?;
@@ -93,10 +92,11 @@ pub async fn upgrade() {
 
     let bin_path = match env::var("PROTO_INSTALL_DIR") {
         Ok(dir) => PathBuf::from(dir).join(bin_name),
-        Err(_) => proto.bin_dir.join(bin_name),
+        Err(_) => proto.env.bin_dir.join(bin_name),
     };
 
     let relocate_path = proto
+        .env
         .tools_dir
         .join("proto")
         .join(current_version)

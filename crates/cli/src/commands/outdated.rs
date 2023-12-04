@@ -1,7 +1,8 @@
 use crate::error::ProtoCliError;
+use crate::helpers::ProtoResource;
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::{load_tool, ToolsConfig, UnresolvedVersionSpec, VersionSpec};
+use proto_core::{ProtoConfig, UnresolvedVersionSpec, VersionSpec};
 use serde::Serialize;
 use starbase::system;
 use starbase_styles::color::{self, OwoStyle};
@@ -33,27 +34,23 @@ pub struct OutdatedItem {
 }
 
 #[system]
-pub async fn outdated(args: ArgsRef<OutdatedArgs>) {
-    let mut tools_config = ToolsConfig::load_closest()?;
-    let initial_version = UnresolvedVersionSpec::default(); // latest
+pub async fn outdated(args: ArgsRef<OutdatedArgs>, proto: ResourceRef<ProtoResource>) {
+    let config = proto.env.load_config()?;
 
-    if tools_config.tools.is_empty() {
-        return Err(ProtoCliError::NoConfiguredTools {
-            path: tools_config.path,
-        }
-        .into());
+    if config.versions.is_empty() {
+        return Err(ProtoCliError::NoConfiguredTools.into());
     }
 
     if !args.json {
         info!("Checking for newer versions...");
-        info!("Loading {}", color::path(&tools_config.path));
     }
 
     let mut items = HashMap::new();
     let mut tool_versions = HashMap::new();
+    let initial_version = UnresolvedVersionSpec::default(); // latest
 
-    for (tool_id, config_version) in &tools_config.tools {
-        let mut tool = load_tool(tool_id).await?;
+    for (tool_id, config_version) in &config.versions {
+        let mut tool = proto.load_tool(tool_id).await?;
         tool.disable_caching();
 
         debug!("Checking {}", tool.get_name());
@@ -119,8 +116,12 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>) {
     }
 
     if args.update {
-        tools_config.tools.extend(tool_versions);
-        tools_config.save()?;
+        ProtoConfig::update(&proto.env.cwd, |config| {
+            config
+                .versions
+                .get_or_insert(Default::default())
+                .extend(tool_versions);
+        })?;
     }
 
     if args.json {

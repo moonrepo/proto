@@ -14,6 +14,7 @@ once_cell = { workspace = true }
 once_map = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true, features = ["json", "rustls-tls-native-roots"] }
+schematic = { workspace = true, optional = true, features = ["schema"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
@@ -26,3 +27,7 @@ tracing = { workspace = true }
 [dev-dependencies]
 starbase_sandbox = { workspace = true }
 tokio = { workspace = true }
+
+[features]
+default = []
+schematic = ["dep:schematic", "warpgate_api/schematic"]

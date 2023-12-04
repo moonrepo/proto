@@ -1,7 +1,7 @@
 use crate::error::ProtoCliError;
-use crate::helpers::create_progress_bar;
+use crate::helpers::{create_progress_bar, ProtoResource};
 use clap::Args;
-use proto_core::{detect_version, load_tool, Id};
+use proto_core::{detect_version, Id};
 use starbase::system;
 use starbase_styles::color;
 use tracing::{debug, info};
@@ -16,8 +16,11 @@ pub struct UninstallGlobalArgs {
 }
 
 #[system]
-pub async fn uninstall_global(args: ArgsRef<UninstallGlobalArgs>) {
-    let mut tool = load_tool(&args.id).await?;
+pub async fn uninstall_global(
+    args: ArgsRef<UninstallGlobalArgs>,
+    proto: ResourceRef<ProtoResource>,
+) {
+    let mut tool = proto.load_tool(&args.id).await?;
     let version = detect_version(&tool, None).await?;
 
     // Resolve a version as some tools install to a versioned folder

@@ -1,5 +1,6 @@
+use crate::helpers::ProtoResource;
 use clap::Args;
-use proto_core::{detect_version, load_tool, Id, UnresolvedVersionSpec};
+use proto_core::{detect_version, Id, UnresolvedVersionSpec};
 use starbase::system;
 
 #[derive(Args, Clone, Debug)]
@@ -18,8 +19,8 @@ pub struct BinArgs {
 }
 
 #[system]
-pub async fn bin(args: ArgsRef<BinArgs>) {
-    let mut tool = load_tool(&args.id).await?;
+pub async fn bin(args: ArgsRef<BinArgs>, proto: ResourceRef<ProtoResource>) {
+    let mut tool = proto.load_tool(&args.id).await?;
     let version = detect_version(&tool, args.spec.clone()).await?;
 
     tool.resolve_version(&version, true).await?;

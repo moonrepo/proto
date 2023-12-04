@@ -1,5 +1,5 @@
 use crate::helpers::{
-    create_progress_bar, disable_progress_bars, enable_progress_bars, ToolsLoader,
+    create_progress_bar, disable_progress_bars, enable_progress_bars, ProtoResource,
 };
 use crate::{
     commands::clean::{internal_clean, CleanArgs},
@@ -8,28 +8,26 @@ use crate::{
 use miette::IntoDiagnostic;
 use starbase::system;
 use starbase_styles::color;
-use std::{env, process};
+use std::process;
 use tracing::{debug, info};
 
 #[system]
-pub async fn install_all() {
-    let working_dir = env::current_dir().expect("Missing current directory.");
-
+pub async fn install_all(proto: ResourceRef<ProtoResource>) {
     debug!("Loading tools and plugins from .prototools");
 
-    let loader = ToolsLoader::new()?;
-    let tools = loader.load_tools().await?;
+    let tools = proto.load_tools().await?;
 
     debug!("Detecting tool versions to install");
 
-    let mut versions = loader.tools_config.tools.clone();
+    let config = proto.env.load_config()?;
+    let mut versions = config.versions.to_owned();
 
     for tool in &tools {
         if versions.contains_key(&tool.id) {
             continue;
         }
 
-        if let Some(candidate) = tool.detect_version_from(&working_dir).await? {
+        if let Some(candidate) = tool.detect_version_from(&proto.env.cwd).await? {
             debug!("Detected version {} for {}", candidate, tool.get_name());
 
             versions.insert(tool.id.clone(), candidate);
@@ -58,8 +56,11 @@ pub async fn install_all() {
 
     for tool in tools {
         if let Some(version) = versions.remove(&tool.id) {
-            futures.push(tokio::spawn(async {
+            let proto_clone = proto.clone();
+
+            futures.push(tokio::spawn(async move {
                 internal_install(
+                    &proto_clone,
                     InstallArgs {
                         canary: false,
                         id: tool.id.clone(),
@@ -84,13 +85,16 @@ pub async fn install_all() {
 
     info!("Successfully installed tools");
 
-    if loader.user_config.auto_clean {
+    if config.settings.auto_clean {
         info!("Auto-clean enabled, starting clean");
 
-        internal_clean(&CleanArgs {
-            yes: true,
-            ..Default::default()
-        })
+        internal_clean(
+            proto,
+            &CleanArgs {
+                yes: true,
+                ..Default::default()
+            },
+        )
         .await?;
     }
 }

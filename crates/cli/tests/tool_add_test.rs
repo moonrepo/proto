@@ -1,8 +1,7 @@
 mod utils;
 
-use proto_core::{Id, PluginLocator, ToolsConfig, UserConfig, TOOLS_CONFIG_NAME, USER_CONFIG_NAME};
+use proto_core::PluginLocator;
 use starbase_sandbox::predicates::prelude::*;
-use std::collections::BTreeMap;
 use utils::*;
 
 mod tool_add {
@@ -28,12 +27,13 @@ mod tool_add {
     #[test]
     fn updates_local_file() {
         let sandbox = create_empty_sandbox();
-        let config_file = sandbox.path().join(TOOLS_CONFIG_NAME);
+        let config_file = sandbox.path().join(".prototools");
 
         assert!(!config_file.exists());
 
         let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("tool").arg("add")
+        cmd.arg("tool")
+            .arg("add")
             .arg("id")
             .arg("source:https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm")
             .assert()
@@ -41,28 +41,26 @@ mod tool_add {
 
         assert!(config_file.exists());
 
-        let manifest = ToolsConfig::load_from(sandbox.path()).unwrap();
+        let config = load_config(sandbox.path());
 
         assert_eq!(
-            manifest.plugins,
-            BTreeMap::from_iter([(
-                Id::raw("id"),
-                PluginLocator::SourceUrl {
-                    url: "https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm".into()
-                }
-            )])
+            config.plugins.get("id").unwrap(),
+            &PluginLocator::SourceUrl {
+                url: "https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm".into()
+            }
         );
     }
 
     #[test]
     fn updates_global_file() {
         let sandbox = create_empty_sandbox();
-        let config_file = sandbox.path().join(USER_CONFIG_NAME);
+        let config_file = sandbox.path().join(".proto/.prototools");
 
         assert!(!config_file.exists());
 
         let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("tool").arg("add")
+        cmd.arg("tool")
+            .arg("add")
             .arg("id")
             .arg("source:https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm")
             .arg("--global")
@@ -71,16 +69,13 @@ mod tool_add {
 
         assert!(config_file.exists());
 
-        let manifest = UserConfig::load_from(sandbox.path()).unwrap();
+        let config = load_config(sandbox.path().join(".proto"));
 
         assert_eq!(
-            manifest.plugins,
-            BTreeMap::from_iter([(
-                Id::raw("id"),
-                PluginLocator::SourceUrl {
-                    url: "https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm".into()
-                }
-            )])
+            config.plugins.get("id").unwrap(),
+            &PluginLocator::SourceUrl {
+                url: "https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm".into()
+            }
         );
     }
 }

@@ -8,4 +8,9 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
+schematic = { workspace = true, optional = true, features = ["schema"] }
 serde = { workspace = true }
+
+[features]
+default = []
+schematic = ["dep:schematic"]

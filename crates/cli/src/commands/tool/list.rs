@@ -1,15 +1,22 @@
 use crate::error::ProtoCliError;
-use crate::helpers::load_configured_tools_with_filters;
+use crate::helpers::ProtoResource;
 use crate::printer::Printer;
 use chrono::{DateTime, NaiveDateTime};
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::Id;
+use proto_core::{Id, ProtoToolConfig, ToolManifest};
+use serde::Serialize;
 use starbase::system;
 use starbase_styles::color;
 use starbase_utils::json;
 use std::collections::{HashMap, HashSet};
 use tracing::info;
+
+#[derive(Serialize)]
+pub struct ToolItem<'a> {
+    manifest: ToolManifest,
+    config: Option<&'a ProtoToolConfig>,
+}
 
 #[derive(Args, Clone, Debug)]
 pub struct ListToolsArgs {
@@ -21,12 +28,14 @@ pub struct ListToolsArgs {
 }
 
 #[system]
-pub async fn list(args: ArgsRef<ListToolsArgs>) {
+pub async fn list(args: ArgsRef<ListToolsArgs>, proto: ResourceRef<ProtoResource>) {
     if !args.json {
         info!("Loading tools...");
     }
 
-    let tools = load_configured_tools_with_filters(HashSet::from_iter(&args.ids)).await?;
+    let tools = proto
+        .load_tools_with_filters(HashSet::from_iter(&args.ids))
+        .await?;
 
     let mut tools = tools
         .into_iter()
@@ -39,10 +48,22 @@ pub async fn list(args: ArgsRef<ListToolsArgs>) {
         return Err(ProtoCliError::NoInstalledTools.into());
     }
 
+    let config = proto.env.load_config()?.to_owned();
+
     if args.json {
         let items = tools
             .into_iter()
-            .map(|t| (t.id, t.manifest))
+            .map(|t| {
+                let tool_config = config.tools.get(&t.id);
+
+                (
+                    t.id,
+                    ToolItem {
+                        manifest: t.manifest,
+                        config: tool_config,
+                    },
+                )
+            })
             .collect::<HashMap<_, _>>();
 
         println!("{}", json::to_string_pretty(&items).into_diagnostic()?);
@@ -53,6 +74,8 @@ pub async fn list(args: ArgsRef<ListToolsArgs>) {
     let mut printer = Printer::new();
 
     for tool in tools {
+        let tool_config = config.tools.get(&tool.id);
+
         printer.line();
         printer.header(&tool.id, &tool.metadata.name);
 
@@ -61,8 +84,9 @@ pub async fn list(args: ArgsRef<ListToolsArgs>) {
 
             p.entry_map(
                 "Aliases",
-                tool.manifest
-                    .aliases
+                tool_config
+                    .map(|cfg| cfg.aliases.clone())
+                    .unwrap_or_default()
                     .iter()
                     .map(|(k, v)| (color::hash(v.to_string()), color::label(k)))
                     .collect::<Vec<_>>(),
@@ -92,10 +116,9 @@ pub async fn list(args: ArgsRef<ListToolsArgs>) {
                             }
                         }
 
-                        if tool
-                            .manifest
-                            .default_version
-                            .as_ref()
+                        if config
+                            .versions
+                            .get(&tool.id)
                             .is_some_and(|dv| *dv == version.to_unresolved_spec())
                         {
                             comments.push("default version".into());

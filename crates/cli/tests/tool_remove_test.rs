@@ -1,11 +1,10 @@
 mod utils;
 
-use proto_core::{Id, PluginLocator, ToolsConfig, UserConfig};
+use proto_core::{Id, PluginLocator, ProtoConfig};
 use starbase_sandbox::predicates::prelude::*;
-use std::collections::BTreeMap;
 use utils::*;
 
-mod plugin_remove {
+mod tool_remove {
     use super::*;
 
     #[test]
@@ -24,29 +23,43 @@ mod plugin_remove {
     fn updates_local_file() {
         let sandbox = create_empty_sandbox();
 
-        let mut config = ToolsConfig::load_from(sandbox.path()).unwrap();
-        config.plugins.insert(Id::raw("id"), PluginLocator::SourceUrl {
-            url: "https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm".into()
-        });
-        config.save().unwrap();
+        ProtoConfig::update(sandbox.path(), |config| {
+            config
+                .plugins
+                .get_or_insert(Default::default())
+                .insert(
+                    Id::raw("id"),
+                    PluginLocator::SourceUrl {
+                      url: "https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm".into()
+                    },
+                );
+        })
+        .unwrap();
 
         let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("tool").arg("remove").arg("id").assert().success();
 
-        let config = ToolsConfig::load_from(sandbox.path()).unwrap();
+        let config = load_config(sandbox.path());
 
-        assert_eq!(config.plugins, BTreeMap::new());
+        assert!(!config.plugins.contains_key("id"));
     }
 
     #[test]
     fn updates_global_file() {
         let sandbox = create_empty_sandbox();
 
-        let mut config = UserConfig::load_from(sandbox.path()).unwrap();
-        config.plugins.insert(Id::raw("id"), PluginLocator::SourceUrl {
-            url: "https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm".into()
-        });
-        config.save().unwrap();
+        ProtoConfig::update(sandbox.path().join(".proto"), |config| {
+            config
+                .plugins
+                .get_or_insert(Default::default())
+                .insert(
+                    Id::raw("id"),
+                    PluginLocator::SourceUrl {
+                      url: "https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm".into()
+                    },
+                );
+        })
+        .unwrap();
 
         let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("tool")
@@ -56,8 +69,8 @@ mod plugin_remove {
             .assert()
             .success();
 
-        let config = UserConfig::load_from(sandbox.path()).unwrap();
+        let config = load_config(sandbox.path().join(".proto"));
 
-        assert_eq!(config.plugins, BTreeMap::new());
+        assert!(!config.plugins.contains_key("id"));
     }
 }

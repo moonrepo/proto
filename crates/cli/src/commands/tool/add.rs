@@ -1,5 +1,6 @@
+use crate::helpers::ProtoResource;
 use clap::Args;
-use proto_core::{Id, PluginLocator, ToolsConfig, UserConfig};
+use proto_core::{Id, PluginLocator, ProtoConfig};
 use starbase::system;
 use starbase_styles::color;
 use tracing::info;
@@ -14,36 +15,23 @@ pub struct AddToolArgs {
 
     #[arg(
         long,
-        help = "Add to the global user config instead of local .prototools"
+        help = "Add to the global .prototools instead of local .prototools"
     )]
     global: bool,
 }
 
 #[system]
-pub async fn add(args: ArgsRef<AddToolArgs>) {
-    if args.global {
-        let mut user_config = UserConfig::load()?;
-        user_config
+pub async fn add(args: ArgsRef<AddToolArgs>, proto: ResourceRef<ProtoResource>) {
+    let config_path = ProtoConfig::update(proto.env.get_config_dir(args.global), |config| {
+        config
             .plugins
+            .get_or_insert(Default::default())
             .insert(args.id.clone(), args.plugin.clone());
-        user_config.save()?;
-
-        info!(
-            "Added plugin {} to global {}",
-            color::id(&args.id),
-            color::path(&user_config.path),
-        );
-
-        return Ok(());
-    }
-
-    let mut config = ToolsConfig::load()?;
-    config.plugins.insert(args.id.clone(), args.plugin.clone());
-    config.save()?;
+    })?;
 
     info!(
-        "Added plugin {} to local {}",
+        "Added plugin {} to config {}",
         color::id(&args.id),
-        color::path(&config.path)
+        color::path(config_path)
     );
 }

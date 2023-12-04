@@ -26,8 +26,8 @@ mod uninstall {
         let mut cmd = create_proto_command(temp.path());
         cmd.arg("uninstall").arg("node").arg("19.0.0").assert();
 
-        assert!(!temp.path().join("tools/node/19.0.0").exists());
-        assert!(temp.path().join("tools/node/manifest.json").exists());
+        assert!(!temp.path().join(".proto/tools/node/19.0.0").exists());
+        assert!(temp.path().join(".proto/tools/node/manifest.json").exists());
     }
 
     #[test]
@@ -40,12 +40,12 @@ mod uninstall {
         let mut cmd = create_proto_command(temp.path());
         cmd.arg("install").arg("node").arg("20.0.0").assert();
 
-        assert!(temp.path().join("tools/node/19.0.0").exists());
-        assert!(temp.path().join("tools/node/20.0.0").exists());
+        assert!(temp.path().join(".proto/tools/node/19.0.0").exists());
+        assert!(temp.path().join(".proto/tools/node/20.0.0").exists());
 
         let mut cmd = create_proto_command(temp.path());
         cmd.arg("uninstall").arg("node").arg("--yes").assert();
 
-        assert!(!temp.path().join("tools/node").exists());
+        assert!(!temp.path().join(".proto/tools/node").exists());
     }
 }

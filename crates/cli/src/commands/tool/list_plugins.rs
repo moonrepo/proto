@@ -1,4 +1,4 @@
-use crate::helpers::load_configured_tools;
+use crate::helpers::ProtoResource;
 use crate::printer::Printer;
 use clap::Args;
 use miette::IntoDiagnostic;
@@ -23,12 +23,12 @@ pub struct ListToolPluginsArgs {
 }
 
 #[system]
-pub async fn list_plugins(args: ArgsRef<ListToolPluginsArgs>) {
+pub async fn list_plugins(args: ArgsRef<ListToolPluginsArgs>, proto: ResourceRef<ProtoResource>) {
     if !args.json {
         info!("Loading plugins...");
     }
 
-    let tools = load_configured_tools().await?;
+    let tools = proto.load_tools().await?;
 
     let mut items = tools
         .into_iter()

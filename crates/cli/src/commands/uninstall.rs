@@ -1,7 +1,7 @@
 use crate::commands::clean::purge_tool;
-use crate::helpers::{create_progress_bar, disable_progress_bars};
+use crate::helpers::{create_progress_bar, disable_progress_bars, ProtoResource};
 use clap::Args;
-use proto_core::{load_tool, Id, UnresolvedVersionSpec};
+use proto_core::{Id, UnresolvedVersionSpec};
 use starbase::system;
 use tracing::{debug, info};
 
@@ -18,16 +18,16 @@ pub struct UninstallArgs {
 }
 
 #[system]
-pub async fn uninstall(args: ArgsRef<UninstallArgs>) {
+pub async fn uninstall(args: ArgsRef<UninstallArgs>, proto: ResourceRef<ProtoResource>) {
     // Uninstall everything
     let Some(spec) = &args.semver else {
-        purge_tool(&args.id, args.yes).await?;
+        purge_tool(proto, &args.id, args.yes).await?;
 
         return Ok(());
     };
 
     // Uninstall a tool by version
-    let mut tool = load_tool(&args.id).await?;
+    let mut tool = proto.load_tool(&args.id).await?;
 
     if !tool.is_setup(spec).await? {
         info!(

@@ -1,5 +1,5 @@
 use miette::Diagnostic;
-use proto_core::TOOLS_CONFIG_NAME;
+use proto_core::PROTO_CONFIG_NAME;
 use starbase_styles::{Style, Stylize};
 use std::path::PathBuf;
 use thiserror::Error;
@@ -17,7 +17,7 @@ pub enum ProtoCliError {
     #[diagnostic(code(proto::cli::missing_tools_config))]
     #[error(
 			"No {} has been found in current directory. Attempted to find at {}.",
-			TOOLS_CONFIG_NAME.style(Style::File),
+			PROTO_CONFIG_NAME.style(Style::File),
 			.path.style(Style::Path),
 		)]
     MissingToolsConfigInCwd { path: PathBuf },
@@ -31,8 +31,8 @@ pub enum ProtoCliError {
     MissingRunAltBin { bin: String, path: PathBuf },
 
     #[diagnostic(code(proto::cli::no_configured_tools))]
-    #[error("No tools have been configured in {}.", .path.style(Style::Path))]
-    NoConfiguredTools { path: PathBuf },
+    #[error("No tools have been configured in {}.", PROTO_CONFIG_NAME.style(Style::File),)]
+    NoConfiguredTools,
 
     #[diagnostic(code(proto::cli::no_installed_tools))]
     #[error("No tools have been installed.")]
