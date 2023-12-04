@@ -7,9 +7,9 @@ use starbase::system;
 use starbase_archive::Archiver;
 use starbase_styles::color;
 use starbase_utils::fs;
-use std::env::consts;
+use std::env::{self, consts};
 use std::path::PathBuf;
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 async fn fetch_version() -> miette::Result<String> {
     let version = reqwest::get("https://raw.githubusercontent.com/moonrepo/proto/master/version")
@@ -26,6 +26,14 @@ async fn fetch_version() -> miette::Result<String> {
     Ok(version)
 }
 
+pub fn is_musl() -> bool {
+    let Ok(output) = std::process::Command::new("ldd").arg("--version").output() else {
+        return false;
+    };
+
+    String::from_utf8(output.stdout).map_or(false, |out| out.contains("musl"))
+}
+
 #[system]
 pub async fn upgrade() {
     if is_offline() {
@@ -34,15 +42,15 @@ pub async fn upgrade() {
 
     let proto = ProtoEnvironment::new()?;
     let current_version = env!("CARGO_PKG_VERSION");
-    let new_version = fetch_version().await?;
+    let latest_version = fetch_version().await?;
 
     debug!(
         "Comparing latest version {} to local version {}",
-        color::hash(&new_version),
+        color::hash(&latest_version),
         color::hash(current_version),
     );
 
-    if Version::parse(&new_version).unwrap() <= Version::parse(current_version).unwrap() {
+    if Version::parse(&latest_version).unwrap() <= Version::parse(current_version).unwrap() {
         info!("You're already on the latest version of proto!");
 
         return Ok(());
@@ -50,7 +58,10 @@ pub async fn upgrade() {
 
     // Determine the download file based on target
     let target = match (consts::OS, consts::ARCH) {
-        ("linux", arch) => format!("{arch}-unknown-linux-gnu"),
+        ("linux", arch) => format!(
+            "{arch}-unknown-linux-{}",
+            if is_musl() { "musl" } else { "gnu" }
+        ),
         ("macos", arch) => format!("{arch}-apple-darwin"),
         ("windows", "x86_64") => "x86_64-pc-windows-msvc".to_owned(),
         (os, arch) => {
@@ -69,7 +80,7 @@ pub async fn upgrade() {
     // Download the file and show a progress bar
     let download_file = format!("{target_file}.{target_ext}");
     let download_url = format!(
-        "https://github.com/moonrepo/proto/releases/download/v{new_version}/{download_file}"
+        "https://github.com/moonrepo/proto/releases/download/v{latest_version}/{download_file}"
     );
     let temp_file = download_to_temp_with_progress_bar(&download_url, &download_file).await?;
     let temp_dir = proto.temp_dir.join(&target_file);
@@ -79,17 +90,26 @@ pub async fn upgrade() {
 
     // Move the old binary
     let bin_name = if cfg!(windows) { "proto.exe" } else { "proto" };
-    let bin_path = proto.bin_dir.join(bin_name);
+
+    let bin_path = match env::var("PROTO_INSTALL_DIR") {
+        Ok(dir) => PathBuf::from(dir).join(bin_name),
+        Err(_) => proto.bin_dir.join(bin_name),
+    };
+
+    let relocate_path = proto
+        .tools_dir
+        .join("proto")
+        .join(current_version)
+        .join(bin_name);
 
     if bin_path.exists() {
-        fs::rename(
-            &bin_path,
-            proto
-                .tools_dir
-                .join("proto")
-                .join(current_version)
-                .join(bin_name),
-        )?;
+        fs::rename(&bin_path, &relocate_path)?;
+    }
+
+    if let Ok(current_exe) = env::current_exe() {
+        if current_exe != bin_path {
+            fs::rename(&current_exe, &relocate_path)?;
+        }
     }
 
     // Move the new binary to the bins directory
@@ -108,8 +128,7 @@ pub async fn upgrade() {
             fs::remove(temp_dir)?;
             fs::remove(temp_file)?;
 
-            info!("Upgraded proto to v{}!", new_version);
-            warn!("Changes to PATH were made in v0.20. Please refer to the changelog and migration guide!");
+            info!("Upgraded proto to v{}!", latest_version);
 
             return Ok(());
         }

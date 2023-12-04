@@ -22,7 +22,7 @@ pub fn detect_shell(shell: Option<Shell>) -> Shell {
 pub fn find_profiles(shell: &Shell) -> miette::Result<Vec<PathBuf>> {
     debug!("Finding profile files for {}", shell);
 
-    if let Ok(profile_env) = env::var("TEST_PROFILE") {
+    if let Ok(profile_env) = env::var("PROTO_SHELL_PROFILE") {
         return Ok(vec![PathBuf::from(profile_env)]);
     }
 
