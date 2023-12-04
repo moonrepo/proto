@@ -1,5 +1,6 @@
+use crate::helpers::ProtoResource;
 use clap::Args;
-use proto_core::{load_tool, Id};
+use proto_core::{Id, ProtoConfig};
 use starbase::system;
 use starbase_styles::color;
 use tracing::info;
@@ -11,14 +12,28 @@ pub struct UnaliasArgs {
 
     #[arg(required = true, help = "Alias name")]
     alias: String,
+
+    #[arg(
+        long,
+        help = "Remove from the global .prototools instead of local .prototools"
+    )]
+    global: bool,
 }
 
 #[system]
-pub async fn unalias(args: ArgsRef<UnaliasArgs>) {
-    let mut tool = load_tool(&args.id).await?;
+pub async fn unalias(args: ArgsRef<UnaliasArgs>, proto: ResourceRef<ProtoResource>) {
+    let tool = proto.load_tool(&args.id).await?;
+    let mut value = None;
 
-    let value = tool.manifest.aliases.remove(&args.alias);
-    tool.manifest.save()?;
+    ProtoConfig::update(tool.proto.get_config_dir(args.global), |config| {
+        if let Some(tool_configs) = &mut config.tools {
+            if let Some(tool_config) = tool_configs.get_mut(&tool.id) {
+                if let Some(aliases) = &mut tool_config.aliases {
+                    value = aliases.remove(&args.alias);
+                }
+            }
+        }
+    })?;
 
     if let Some(version) = value {
         info!(

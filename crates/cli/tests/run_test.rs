@@ -10,9 +10,9 @@ mod run {
 
     #[test]
     fn errors_if_not_installed() {
-        let temp = create_empty_sandbox();
+        let sandbox = create_empty_sandbox();
 
-        let mut cmd = create_proto_command(temp.path());
+        let mut cmd = create_proto_command(sandbox.path());
         let assert = cmd.arg("run").arg("node").arg("19.0.0").assert();
 
         assert.stderr(predicate::str::contains(
@@ -22,9 +22,9 @@ mod run {
 
     #[test]
     fn errors_if_no_version_detected() {
-        let temp = create_empty_sandbox();
+        let sandbox = create_empty_sandbox();
 
-        let mut cmd = create_proto_command(temp.path());
+        let mut cmd = create_proto_command(sandbox.path());
         let assert = cmd.arg("run").arg("node").assert();
 
         assert.stderr(predicate::str::contains(
@@ -34,16 +34,16 @@ mod run {
 
     #[test]
     fn runs_a_tool() {
-        let temp = create_empty_sandbox();
+        let sandbox = create_empty_sandbox();
 
-        let mut cmd = create_proto_command(temp.path());
+        let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("install")
             .arg("node")
             .arg("19.0.0")
             .assert()
             .success();
 
-        let mut cmd = create_proto_command(temp.path());
+        let mut cmd = create_proto_command(sandbox.path());
         let assert = cmd
             .arg("run")
             .arg("node")
@@ -57,9 +57,9 @@ mod run {
 
     #[test]
     fn runs_a_tool_using_version_detection() {
-        let temp = create_empty_sandbox();
+        let sandbox = create_empty_sandbox();
 
-        let mut cmd = create_proto_command(temp.path());
+        let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("install")
             .arg("node")
             .arg("19.0.0")
@@ -67,7 +67,7 @@ mod run {
             .success();
 
         // Arg
-        let mut cmd = create_proto_command(temp.path());
+        let mut cmd = create_proto_command(sandbox.path());
         let assert = cmd
             .arg("run")
             .arg("node")
@@ -79,7 +79,7 @@ mod run {
         assert.stdout(predicate::str::contains("19.0.0"));
 
         // Env var
-        let mut cmd = create_proto_command(temp.path());
+        let mut cmd = create_proto_command(sandbox.path());
         let assert = cmd
             .env("PROTO_NODE_VERSION", "19.0.0")
             .arg("run")
@@ -91,9 +91,9 @@ mod run {
         assert.stdout(predicate::str::contains("19.0.0"));
 
         // Local version
-        temp.create_file(".prototools", "node = \"19.0.0\"");
+        sandbox.create_file(".prototools", "node = \"19.0.0\"");
 
-        let mut cmd = create_proto_command(temp.path());
+        let mut cmd = create_proto_command(sandbox.path());
         let assert = cmd
             .arg("run")
             .arg("node")
@@ -103,15 +103,12 @@ mod run {
 
         assert.stdout(predicate::str::contains("19.0.0"));
 
-        fs::remove_file(temp.path().join(".prototools")).unwrap();
+        fs::remove_file(sandbox.path().join(".prototools")).unwrap();
 
         // Global version
-        temp.create_file(
-            "tools/node/manifest.json",
-            r#"{ "default_version": "19.0.0", "installed_versions": ["19.0.0"] }"#,
-        );
+        sandbox.create_file(".proto/.prototools", "node = \"19.0.0\"");
 
-        let mut cmd = create_proto_command(temp.path());
+        let mut cmd = create_proto_command(sandbox.path());
         let assert = cmd
             .arg("run")
             .arg("node")
@@ -120,24 +117,22 @@ mod run {
             .assert();
 
         assert.stdout(predicate::str::contains("19.0.0"));
-
-        fs::remove_file(temp.path().join("tools/node/manifest.json")).unwrap();
     }
 
     // This test fails in Windows for some reason, but works fine with `cargo run`...
     #[cfg(not(windows))]
     #[test]
     fn runs_a_tool_alt_bin() {
-        let temp = create_empty_sandbox();
+        let sandbox = create_empty_sandbox();
 
-        let mut cmd = create_proto_command(temp.path());
+        let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("install")
             .arg("node")
             .arg("19.0.0")
             .assert()
             .success();
 
-        let mut cmd = create_proto_command(temp.path());
+        let mut cmd = create_proto_command(sandbox.path());
         let assert = cmd
             .arg("run")
             .arg("node")
@@ -153,17 +148,17 @@ mod run {
 
     #[test]
     fn updates_last_used_at() {
-        let temp = create_empty_sandbox();
-        let manifest_file = temp.path().join("tools/node/manifest.json");
+        let sandbox = create_empty_sandbox();
+        let manifest_file = sandbox.path().join(".proto/tools/node/manifest.json");
 
-        let mut cmd = create_proto_command(temp.path());
+        let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("install")
             .arg("node")
             .arg("19.0.0")
             .assert()
             .success();
 
-        let mut cmd = create_proto_command(temp.path());
+        let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("run")
             .arg("node")
             .arg("19.0.0")
@@ -179,7 +174,7 @@ mod run {
         assert!(last_used_at.is_some());
 
         // Run again and make sure timestamps update
-        let mut cmd = create_proto_command(temp.path());
+        let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("run")
             .arg("node")
             .arg("19.0.0")
@@ -197,11 +192,11 @@ mod run {
 
     #[test]
     fn auto_installs_if_missing() {
-        let temp = create_empty_sandbox();
+        let sandbox = create_empty_sandbox();
 
-        temp.create_file("config.toml", "auto-install = true");
+        sandbox.create_file(".prototools", "[settings]\nauto-install = true");
 
-        let mut cmd = create_proto_command(temp.path());
+        let mut cmd = create_proto_command(sandbox.path());
         let assert = cmd
             .arg("run")
             .arg("node")
@@ -215,11 +210,11 @@ mod run {
 
     #[test]
     fn auto_installs_if_missing_with_env_var() {
-        let temp = create_empty_sandbox();
+        let sandbox = create_empty_sandbox();
 
         env::set_var("PROTO_AUTO_INSTALL", "true");
 
-        let mut cmd = create_proto_command(temp.path());
+        let mut cmd = create_proto_command(sandbox.path());
         let assert = cmd
             .arg("run")
             .arg("node")
@@ -235,11 +230,11 @@ mod run {
 
     #[test]
     fn doesnt_auto_install_if_false() {
-        let temp = create_empty_sandbox();
+        let sandbox = create_empty_sandbox();
 
-        temp.create_file("config.toml", "auto-install = false");
+        sandbox.create_file(".prototools", "[settings]\nauto-install = false");
 
-        let mut cmd = create_proto_command(temp.path());
+        let mut cmd = create_proto_command(sandbox.path());
         let assert = cmd.arg("run").arg("node").arg("19.0.0").assert();
 
         assert.stderr(predicate::str::contains(
@@ -249,11 +244,11 @@ mod run {
 
     #[test]
     fn doesnt_auto_install_subsequently() {
-        let temp = create_empty_sandbox();
+        let sandbox = create_empty_sandbox();
 
-        temp.create_file("config.toml", "auto-install = true");
+        sandbox.create_file(".prototools", "[settings]\nauto-install = true");
 
-        let mut cmd = create_proto_command(temp.path());
+        let mut cmd = create_proto_command(sandbox.path());
         let assert = cmd
             .arg("run")
             .arg("node")
@@ -264,7 +259,7 @@ mod run {
 
         assert.stderr(predicate::str::contains("Node.js has been installed"));
 
-        let mut cmd = create_proto_command(temp.path());
+        let mut cmd = create_proto_command(sandbox.path());
         let assert = cmd
             .arg("run")
             .arg("node")
@@ -278,9 +273,9 @@ mod run {
 
     #[test]
     fn errors_if_plugin_not_configured() {
-        let temp = create_empty_sandbox();
+        let sandbox = create_empty_sandbox();
 
-        let mut cmd = create_proto_command(temp.path());
+        let mut cmd = create_proto_command(sandbox.path());
         let assert = cmd.arg("run").arg("plugin-name").arg("1.0.0").assert();
 
         assert.stderr(predicate::str::contains(

@@ -1,11 +1,11 @@
 mod utils;
 
-use proto_core::{ToolManifest, UnresolvedVersionSpec};
+use proto_core::{Id, PartialProtoToolConfig, ProtoConfig, UnresolvedVersionSpec};
 use starbase_sandbox::predicates::prelude::*;
 use std::collections::BTreeMap;
 use utils::*;
 
-mod unalias {
+mod unalias_local {
     use super::*;
 
     #[test]
@@ -21,14 +21,20 @@ mod unalias {
     #[test]
     fn removes_existing_alias() {
         let sandbox = create_empty_sandbox();
-        let manifest_file = sandbox.path().join("tools/node/manifest.json");
 
-        let mut manifest = ToolManifest::load(&manifest_file).unwrap();
-        manifest.aliases.insert(
-            "example".into(),
-            UnresolvedVersionSpec::parse("19.0.0").unwrap(),
-        );
-        manifest.save().unwrap();
+        ProtoConfig::update(sandbox.path(), |config| {
+            config.tools.get_or_insert(Default::default()).insert(
+                Id::raw("node"),
+                PartialProtoToolConfig {
+                    aliases: Some(BTreeMap::from_iter([(
+                        "example".into(),
+                        UnresolvedVersionSpec::parse("19.0.0").unwrap(),
+                    )])),
+                    ..Default::default()
+                },
+            );
+        })
+        .unwrap();
 
         let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("unalias")
@@ -37,22 +43,28 @@ mod unalias {
             .assert()
             .success();
 
-        let manifest = ToolManifest::load(&manifest_file).unwrap();
+        let config = load_config(sandbox.path());
 
-        assert!(manifest.aliases.is_empty());
+        assert!(config.tools.get("node").unwrap().aliases.is_empty());
     }
 
     #[test]
     fn does_nothing_for_unknown_alias() {
         let sandbox = create_empty_sandbox();
-        let manifest_file = sandbox.path().join("tools/node/manifest.json");
 
-        let mut manifest = ToolManifest::load(&manifest_file).unwrap();
-        manifest.aliases.insert(
-            "example".into(),
-            UnresolvedVersionSpec::parse("19.0.0").unwrap(),
-        );
-        manifest.save().unwrap();
+        ProtoConfig::update(sandbox.path(), |config| {
+            config.tools.get_or_insert(Default::default()).insert(
+                Id::raw("node"),
+                PartialProtoToolConfig {
+                    aliases: Some(BTreeMap::from_iter([(
+                        "example".into(),
+                        UnresolvedVersionSpec::parse("19.0.0").unwrap(),
+                    )])),
+                    ..Default::default()
+                },
+            );
+        })
+        .unwrap();
 
         let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("unalias")
@@ -61,14 +73,49 @@ mod unalias {
             .assert()
             .success();
 
-        let manifest = ToolManifest::load(manifest_file).unwrap();
+        let config = load_config(sandbox.path());
 
         assert_eq!(
-            manifest.aliases,
+            config.tools.get("node").unwrap().aliases,
             BTreeMap::from_iter([(
                 "example".into(),
                 UnresolvedVersionSpec::parse("19.0.0").unwrap()
             )])
         );
+    }
+}
+
+mod unalias_global {
+    use super::*;
+
+    #[test]
+    fn removes_existing_alias() {
+        let sandbox = create_empty_sandbox();
+
+        ProtoConfig::update(sandbox.path().join(".proto"), |config| {
+            config.tools.get_or_insert(Default::default()).insert(
+                Id::raw("node"),
+                PartialProtoToolConfig {
+                    aliases: Some(BTreeMap::from_iter([(
+                        "example".into(),
+                        UnresolvedVersionSpec::parse("19.0.0").unwrap(),
+                    )])),
+                    ..Default::default()
+                },
+            );
+        })
+        .unwrap();
+
+        let mut cmd = create_proto_command(sandbox.path());
+        cmd.arg("unalias")
+            .arg("node")
+            .arg("example")
+            .arg("--global")
+            .assert()
+            .success();
+
+        let config = load_config(sandbox.path().join(".proto"));
+
+        assert!(config.tools.get("node").unwrap().aliases.is_empty());
     }
 }

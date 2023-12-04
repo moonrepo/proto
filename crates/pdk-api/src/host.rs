@@ -13,12 +13,3 @@ json_struct!(
         pub proto_dir: VirtualPath,
     }
 );
-
-json_struct!(
-    /// The current user's proto configuration.
-    pub struct UserConfigSettings {
-        pub auto_clean: bool,
-        pub auto_install: bool,
-        pub node_intercept_globals: bool,
-    }
-);

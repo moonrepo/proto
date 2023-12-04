@@ -1,5 +1,6 @@
 use crate::helpers::{get_home_dir, get_proto_home, is_offline};
-use crate::user_config::UserConfig;
+use crate::proto_config::{ProtoConfig, ProtoConfigManager};
+use crate::{ProtoConfigFile, PROTO_CONFIG_NAME};
 use once_cell::sync::OnceCell;
 use std::collections::BTreeMap;
 use std::env;
@@ -18,8 +19,10 @@ pub struct ProtoEnvironment {
     pub home: PathBuf, // ~
     pub root: PathBuf, // ~/.proto
 
-    client: Arc<OnceCell<reqwest::Client>>,
-    loader: Arc<OnceCell<PluginLoader>>,
+    config_manager: Arc<OnceCell<ProtoConfigManager>>,
+    http_client: Arc<OnceCell<reqwest::Client>>,
+    plugin_loader: Arc<OnceCell<PluginLoader>>,
+    test_mode: bool,
 }
 
 impl ProtoEnvironment {
@@ -31,6 +34,7 @@ impl ProtoEnvironment {
         let mut env = Self::from(sandbox.join(".proto")).unwrap();
         env.cwd = sandbox.to_path_buf();
         env.home = sandbox.join(".home");
+        env.test_mode = true;
         env
     }
 
@@ -46,22 +50,30 @@ impl ProtoEnvironment {
             tools_dir: root.join("tools"),
             home: get_home_dir()?,
             root: root.to_owned(),
-            client: Arc::new(OnceCell::new()),
-            loader: Arc::new(OnceCell::new()),
+            config_manager: Arc::new(OnceCell::new()),
+            http_client: Arc::new(OnceCell::new()),
+            plugin_loader: Arc::new(OnceCell::new()),
+            test_mode: false,
         })
+    }
+
+    pub fn get_config_dir(&self, global: bool) -> &Path {
+        if global {
+            &self.root
+        } else {
+            &self.cwd
+        }
     }
 
     pub fn get_http_client(&self) -> miette::Result<&reqwest::Client> {
-        self.client.get_or_try_init(|| {
-            let user_config = UserConfig::load()?;
-            let client = create_http_client_with_options(user_config.http)?;
+        let config = self.load_config()?;
 
-            Ok(client)
-        })
+        self.http_client
+            .get_or_try_init(|| create_http_client_with_options(&config.settings.http))
     }
 
     pub fn get_plugin_loader(&self) -> &PluginLoader {
-        self.loader.get_or_init(|| {
+        self.plugin_loader.get_or_init(|| {
             let mut loader = PluginLoader::new(&self.plugins_dir, &self.temp_dir);
             loader.set_offline_checker(is_offline);
             loader.set_seed(env!("CARGO_PKG_VERSION"));
@@ -77,8 +89,30 @@ impl ProtoEnvironment {
         ])
     }
 
-    pub fn load_user_config(&self) -> miette::Result<UserConfig> {
-        UserConfig::load_from(&self.root)
+    pub fn load_config(&self) -> miette::Result<&ProtoConfig> {
+        self.load_config_manager()?.get_merged_config()
+    }
+
+    pub fn load_config_manager(&self) -> miette::Result<&ProtoConfigManager> {
+        self.config_manager.get_or_try_init(|| {
+            // Don't traverse passed the home directory,
+            // but only if working directory is within it!
+            let end_dir = if self.cwd.starts_with(&self.home) {
+                Some(self.home.as_path())
+            } else {
+                None
+            };
+
+            let mut manager = ProtoConfigManager::load(&self.cwd, end_dir)?;
+
+            // Always load the proto home/root config last
+            manager.files.push(ProtoConfigFile {
+                path: self.root.join(PROTO_CONFIG_NAME),
+                config: ProtoConfig::load_from(&self.root, true)?,
+            });
+
+            Ok(manager)
+        })
     }
 }
 

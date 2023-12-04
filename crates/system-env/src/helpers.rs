@@ -72,7 +72,7 @@ pub fn is_command_on_path<T: AsRef<OsStr>>(name: T) -> bool {
 /// Create a new process [`Command`] and append the provided arguments. If the provided binary
 /// name is not an absolute path, we'll attempt to find it on `PATH` using [`find_command_on_path`].
 ///
-/// Furthermore, if the binary path is a Windows script (`.ps1`, `.cmd`, `.bat``), we'll wrap
+/// Furthermore, if the binary path is a Windows script (`.ps1`, `.cmd`, `.bat`), we'll wrap
 /// the binary in a PowerShell command, and pass the original command via `-Command`.
 pub fn create_process_command<T: AsRef<OsStr>, I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
     bin: T,

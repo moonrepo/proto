@@ -1,17 +1,18 @@
 use crate::error::ProtoError;
+use crate::proto_config::ProtoToolConfig;
 use crate::tool_manifest::ToolManifest;
-use crate::VersionSpec;
 use proto_pdk_api::LoadVersionsOutput;
 use semver::{Version, VersionReq};
 use std::collections::{BTreeMap, HashSet};
 use version_spec::*;
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct VersionResolver<'tool> {
     pub aliases: BTreeMap<String, UnresolvedVersionSpec>,
     pub versions: Vec<Version>,
 
     manifest: Option<&'tool ToolManifest>,
+    config: Option<&'tool ProtoToolConfig>,
 }
 
 impl<'tool> VersionResolver<'tool> {
@@ -31,33 +32,35 @@ impl<'tool> VersionResolver<'tool> {
                 .insert("latest".into(), UnresolvedVersionSpec::Version(latest));
         }
 
-        // if let Some(canary) = output.canary {
-        //     resolver
-        //         .aliases
-        //         .insert("canary".into(), UnresolvedVersionSpec::Version(canary));
-        // }
-
         // Sort from newest to oldest
         resolver.versions.sort_by(|a, d| d.cmp(a));
 
         resolver
     }
 
-    pub fn with_manifest(&mut self, manifest: &'tool ToolManifest) -> miette::Result<()> {
+    pub fn with_manifest(&mut self, manifest: &'tool ToolManifest) {
         self.manifest = Some(manifest);
+    }
 
-        Ok(())
+    pub fn with_config(&mut self, config: &'tool ProtoToolConfig) {
+        self.config = Some(config);
     }
 
     pub fn resolve(&self, candidate: &UnresolvedVersionSpec) -> miette::Result<VersionSpec> {
-        resolve_version(candidate, &self.versions, &self.aliases, self.manifest)
+        resolve_version(
+            candidate,
+            &self.versions,
+            &self.aliases,
+            self.manifest,
+            self.config,
+        )
     }
 
     pub fn resolve_without_manifest(
         &self,
         candidate: &UnresolvedVersionSpec,
     ) -> miette::Result<VersionSpec> {
-        resolve_version(candidate, &self.versions, &self.aliases, None)
+        resolve_version(candidate, &self.versions, &self.aliases, None, None)
     }
 }
 
@@ -91,6 +94,7 @@ pub fn resolve_version(
     versions: &[Version],
     aliases: &BTreeMap<String, UnresolvedVersionSpec>,
     manifest: Option<&ToolManifest>,
+    config: Option<&ProtoToolConfig>,
 ) -> miette::Result<VersionSpec> {
     let remote_versions = versions.iter().collect::<Vec<_>>();
     let installed_versions = if let Some(manifest) = manifest {
@@ -106,8 +110,8 @@ pub fn resolve_version(
         UnresolvedVersionSpec::Alias(alias) => {
             let mut alias_value = None;
 
-            if let Some(manifest) = manifest {
-                alias_value = manifest.aliases.get(alias);
+            if let Some(config) = config {
+                alias_value = config.aliases.get(alias);
             }
 
             if alias_value.is_none() {
@@ -115,7 +119,7 @@ pub fn resolve_version(
             }
 
             if let Some(value) = alias_value {
-                return resolve_version(value, versions, aliases, manifest);
+                return resolve_version(value, versions, aliases, manifest, config);
             }
         }
         UnresolvedVersionSpec::Req(req) => {

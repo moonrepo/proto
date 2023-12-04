@@ -621,10 +621,6 @@ json_struct!(
 json_struct!(
     /// Output returned by the `sync_manifest` function.
     pub struct SyncManifestOutput {
-        /// Override the default version with a new alias or version.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub default_version: Option<UnresolvedVersionSpec>,
-
         /// List of versions that are currently installed. Will replace
         /// what is currently in the manifest.
         #[serde(skip_serializing_if = "Option::is_none")]

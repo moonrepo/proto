@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::{ToolManifest, UnresolvedVersionSpec, VersionSpec};
+use proto_core::{ToolManifest, VersionSpec};
 use utils::*;
 
 mod list {
@@ -8,11 +8,10 @@ mod list {
 
     #[test]
     fn lists_local_versions() {
-        let temp = create_empty_sandbox();
+        let sandbox = create_empty_sandbox();
 
         let mut manifest =
-            ToolManifest::load(temp.path().join("tools/node/manifest.json")).unwrap();
-        manifest.default_version = Some(UnresolvedVersionSpec::parse("19.0.0").unwrap());
+            ToolManifest::load(sandbox.path().join(".proto/tools/node/manifest.json")).unwrap();
         manifest
             .installed_versions
             .insert(VersionSpec::parse("19.0.0").unwrap());
@@ -24,7 +23,7 @@ mod list {
             .insert(VersionSpec::parse("17.0.0").unwrap());
         manifest.save().unwrap();
 
-        let mut cmd = create_proto_command(temp.path());
+        let mut cmd = create_proto_command(sandbox.path());
         let assert = cmd.arg("list").arg("node").assert();
 
         let output = output_to_string(&assert.get_output().stdout);

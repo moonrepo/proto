@@ -2,12 +2,13 @@ use futures::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
 use miette::IntoDiagnostic;
 use proto_core::{
-    get_temp_dir, load_schema_plugin, load_tool_from_locator, Id, ProtoEnvironment, ProtoError,
-    Tool, ToolsConfig, UserConfig, SCHEMA_PLUGIN_KEY,
+    get_temp_dir, load_schema_plugin_with_proto, load_tool_from_locator, load_tool_with_proto, Id,
+    ProtoEnvironment, ProtoError, Tool, SCHEMA_PLUGIN_KEY,
 };
+use starbase::Resource;
 use starbase_utils::fs;
 use std::cmp;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::env;
 use std::io::Write;
 use std::path::PathBuf;
@@ -90,33 +91,20 @@ pub async fn download_to_temp_with_progress_bar(
     Ok(temp_file)
 }
 
-pub async fn load_configured_tools() -> miette::Result<Vec<Tool>> {
-    ToolsLoader::new()?.load_tools().await
+#[derive(Clone, Resource)]
+pub struct ProtoResource {
+    pub env: Arc<ProtoEnvironment>,
 }
 
-pub async fn load_configured_tools_with_filters(filter: HashSet<&Id>) -> miette::Result<Vec<Tool>> {
-    ToolsLoader::new()?.load_tools_with_filters(filter).await
-}
-
-pub struct ToolsLoader {
-    pub proto: Arc<ProtoEnvironment>,
-    pub tools_config: ToolsConfig,
-    pub user_config: Arc<UserConfig>,
-}
-
-impl ToolsLoader {
+impl ProtoResource {
     pub fn new() -> miette::Result<Self> {
-        let proto = ProtoEnvironment::new()?;
-        let user_config = proto.load_user_config()?;
-
-        let mut tools_config = ToolsConfig::load_upwards_from(&proto.cwd, false)?;
-        tools_config.inherit_builtin_plugins();
-
         Ok(Self {
-            proto: Arc::new(proto),
-            tools_config,
-            user_config: Arc::new(user_config),
+            env: Arc::new(ProtoEnvironment::new()?),
         })
+    }
+
+    pub async fn load_tool(&self, id: &Id) -> miette::Result<Tool> {
+        load_tool_with_proto(id, &self.env).await
     }
 
     pub async fn load_tools(&self) -> miette::Result<Vec<Tool>> {
@@ -124,20 +112,18 @@ impl ToolsLoader {
     }
 
     pub async fn load_tools_with_filters(&self, filter: HashSet<&Id>) -> miette::Result<Vec<Tool>> {
-        let mut plugins = HashMap::new();
-        plugins.extend(&self.user_config.plugins);
-        plugins.extend(&self.tools_config.plugins);
+        let config = self.env.load_config()?;
 
         // Download the schema plugin before loading plugins.
         // We must do this here, otherwise when multiple schema
         // based tools are installed in parallel, they will
         // collide when attempting to download the schema plugin!
-        load_schema_plugin(&self.proto, &self.user_config).await?;
+        load_schema_plugin_with_proto(&self.env).await?;
 
         let mut futures = vec![];
         let mut tools = vec![];
 
-        for (id, locator) in plugins {
+        for (id, locator) in &config.plugins {
             if !filter.is_empty() && !filter.contains(id) {
                 continue;
             }
@@ -149,11 +135,10 @@ impl ToolsLoader {
 
             let id = id.to_owned();
             let locator = locator.to_owned();
-            let proto = Arc::clone(&self.proto);
-            let user_config = Arc::clone(&self.user_config);
+            let proto = Arc::clone(&self.env);
 
             futures.push(tokio::spawn(async move {
-                load_tool_from_locator(id, proto, locator, &user_config).await
+                load_tool_from_locator(id, proto, locator).await
             }));
         }
 

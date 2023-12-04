@@ -140,25 +140,26 @@ impl PluginLoader {
             return Ok(false);
         }
 
-        let mut cached = true;
+        let metadata = fs::metadata(path)?;
 
-        // If latest, cache only lasts for 7 days
-        if fs::file_name(path).contains("-latest-") {
-            let metadata = fs::metadata(path)?;
-
-            cached = if let Ok(filetime) = metadata.created().or_else(|_| metadata.modified()) {
-                filetime > SystemTime::now() - Duration::from_secs(86400 * 7)
+        let mut cached = if let Ok(filetime) = metadata.created().or_else(|_| metadata.modified()) {
+            let days = if fs::file_name(path).contains("-latest-") {
+                7
             } else {
-                false
+                30
             };
 
-            if !cached && self.is_offline() {
-                cached = true;
-            }
+            filetime > SystemTime::now() - Duration::from_secs(86400 * days)
+        } else {
+            false
+        };
 
-            if !cached {
-                fs::remove_file(path)?;
-            }
+        if !cached && self.is_offline() {
+            cached = true;
+        }
+
+        if !cached {
+            fs::remove_file(path)?;
         }
 
         if cached {

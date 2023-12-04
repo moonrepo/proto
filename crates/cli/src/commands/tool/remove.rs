@@ -1,10 +1,9 @@
 use crate::error::ProtoCliError;
+use crate::helpers::ProtoResource;
 use clap::Args;
-use proto_core::{Id, ToolsConfig, UserConfig, TOOLS_CONFIG_NAME};
+use proto_core::{Id, ProtoConfig, PROTO_CONFIG_NAME};
 use starbase::system;
 use starbase_styles::color;
-use std::env;
-use std::path::PathBuf;
 use tracing::info;
 
 #[derive(Args, Clone, Debug)]
@@ -14,41 +13,30 @@ pub struct RemoveToolArgs {
 
     #[arg(
         long,
-        help = "Remove from the global user config instead of local .prototools"
+        help = "Remove from the global .prototools instead of local .prototools"
     )]
     global: bool,
 }
 
 #[system]
-pub async fn remove(args: ArgsRef<RemoveToolArgs>) {
-    if args.global {
-        let mut user_config = UserConfig::load()?;
-        user_config.plugins.remove(&args.id);
-        user_config.save()?;
+pub async fn remove(args: ArgsRef<RemoveToolArgs>, proto: ResourceRef<ProtoResource>) {
+    if !args.global {
+        let config_path = proto.env.cwd.join(PROTO_CONFIG_NAME);
 
-        info!(
-            "Removed plugin {} from global {}",
-            color::id(&args.id),
-            color::path(&user_config.path),
-        );
-
-        return Ok(());
+        if !config_path.exists() {
+            return Err(ProtoCliError::MissingToolsConfigInCwd { path: config_path }.into());
+        }
     }
 
-    let local_path = env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-    let config_path = local_path.join(TOOLS_CONFIG_NAME);
-
-    if !config_path.exists() {
-        return Err(ProtoCliError::MissingToolsConfigInCwd { path: config_path }.into());
-    }
-
-    let mut config = ToolsConfig::load_from(local_path)?;
-    config.plugins.remove(&args.id);
-    config.save()?;
+    let config_path = ProtoConfig::update(proto.env.get_config_dir(args.global), |config| {
+        if let Some(plugins) = &mut config.plugins {
+            plugins.remove(&args.id);
+        }
+    })?;
 
     info!(
-        "Removed plugin {} from local {}",
+        "Removed plugin {} from config {}",
         color::id(&args.id),
-        color::path(&config.path)
+        color::path(config_path)
     );
 }
