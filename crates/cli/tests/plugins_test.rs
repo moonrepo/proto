@@ -47,6 +47,8 @@ mod plugins {
         run_tests(|root| {
             let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
+            dbg!(&root_dir);
+
             load_tool_from_locator(
                 Id::raw("moon"),
                 ProtoEnvironment::new_testing(root),
@@ -115,15 +117,15 @@ mod plugins {
         #[cfg(not(windows))]
         #[test]
         fn supports_bun() {
-            let temp = create_empty_sandbox();
+            let sandbox = create_empty_sandbox();
 
-            create_proto_command(temp.path())
+            create_proto_command(sandbox.path())
                 .arg("install")
                 .arg("bun")
                 .assert()
                 .success();
 
-            create_shim_command(temp.path(), "bun")
+            create_shim_command(sandbox.path(), "bun")
                 .arg("--version")
                 .assert()
                 .success();
@@ -131,15 +133,15 @@ mod plugins {
 
         #[test]
         fn supports_deno() {
-            let temp = create_empty_sandbox();
+            let sandbox = create_empty_sandbox();
 
-            create_proto_command(temp.path())
+            create_proto_command(sandbox.path())
                 .arg("install")
                 .arg("deno")
                 .assert()
                 .success();
 
-            create_shim_command(temp.path(), "deno")
+            create_shim_command(sandbox.path(), "deno")
                 .arg("--version")
                 .assert()
                 .success();
@@ -147,15 +149,15 @@ mod plugins {
 
         #[test]
         fn supports_go() {
-            let temp = create_empty_sandbox();
+            let sandbox = create_empty_sandbox();
 
-            create_proto_command(temp.path())
+            create_proto_command(sandbox.path())
                 .arg("install")
                 .arg("go")
                 .assert()
                 .success();
 
-            create_shim_command(temp.path(), "go")
+            create_shim_command(sandbox.path(), "go")
                 .arg("version")
                 .assert()
                 .success();
@@ -163,9 +165,9 @@ mod plugins {
 
         #[test]
         fn supports_node() {
-            let temp = create_empty_sandbox();
+            let sandbox = create_empty_sandbox();
 
-            create_proto_command(temp.path())
+            create_proto_command(sandbox.path())
                 .arg("install")
                 .arg("node")
                 .arg("--")
@@ -173,7 +175,7 @@ mod plugins {
                 .assert()
                 .success();
 
-            create_shim_command(temp.path(), "node")
+            create_shim_command(sandbox.path(), "node")
                 .arg("--version")
                 .assert()
                 .success();
@@ -181,15 +183,15 @@ mod plugins {
 
         #[test]
         fn supports_npm() {
-            let temp = create_empty_sandbox();
+            let sandbox = create_empty_sandbox();
 
-            create_proto_command(temp.path())
+            create_proto_command(sandbox.path())
                 .arg("install")
                 .arg("npm")
                 .assert()
                 .success();
 
-            create_shim_command(temp.path(), "npm")
+            create_shim_command(sandbox.path(), "npm")
                 .arg("--version")
                 .assert()
                 .success();
@@ -197,15 +199,15 @@ mod plugins {
 
         #[test]
         fn supports_pnpm() {
-            let temp = create_empty_sandbox();
+            let sandbox = create_empty_sandbox();
 
-            create_proto_command(temp.path())
+            create_proto_command(sandbox.path())
                 .arg("install")
                 .arg("pnpm")
                 .assert()
                 .success();
 
-            create_shim_command(temp.path(), "pnpm")
+            create_shim_command(sandbox.path(), "pnpm")
                 .arg("--version")
                 .assert()
                 .success();
@@ -213,15 +215,15 @@ mod plugins {
 
         #[test]
         fn supports_yarn() {
-            let temp = create_empty_sandbox();
+            let sandbox = create_empty_sandbox();
 
-            create_proto_command(temp.path())
+            create_proto_command(sandbox.path())
                 .arg("install")
                 .arg("yarn")
                 .assert()
                 .success();
 
-            create_shim_command(temp.path(), "yarn")
+            create_shim_command(sandbox.path(), "yarn")
                 .arg("--version")
                 .assert()
                 .success();
@@ -229,15 +231,15 @@ mod plugins {
 
         #[test]
         fn supports_python() {
-            let temp = create_empty_sandbox();
+            let sandbox = create_empty_sandbox();
 
-            create_proto_command(temp.path())
+            create_proto_command(sandbox.path())
                 .arg("install")
                 .arg("python")
                 .assert()
                 .success();
 
-            create_shim_command(temp.path(), "python")
+            create_shim_command(sandbox.path(), "python")
                 .arg("--version")
                 .assert()
                 .success();
@@ -245,9 +247,9 @@ mod plugins {
 
         #[test]
         fn supports_rust() {
-            let temp = create_empty_sandbox();
+            let sandbox = create_empty_sandbox();
 
-            create_proto_command(temp.path())
+            create_proto_command(sandbox.path())
                 .arg("install")
                 .arg("rust")
                 .assert()
@@ -256,9 +258,9 @@ mod plugins {
 
         #[test]
         fn supports_toml_schema() {
-            let temp = create_empty_sandbox_with_tools();
+            let sandbox = create_empty_sandbox_with_tools();
 
-            create_proto_command(temp.path())
+            create_proto_command(sandbox.path())
                 .arg("install")
                 .arg("moon-test")
                 .assert()
