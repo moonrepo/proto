@@ -1,53 +1,40 @@
 use crate::error::ProtoError;
+use crate::proto_config::*;
 use crate::tool::Tool;
-use crate::tools_config::ToolsConfig;
-use crate::user_config::DetectStrategy;
-use std::{env, path::Path};
+use std::env;
 use tracing::{debug, trace};
 use version_spec::*;
 
 pub async fn detect_version_first_available(
     tool: &Tool,
-    start_dir: &Path,
-    end_dir: &Path,
+    config_manager: &ProtoConfigManager,
 ) -> miette::Result<Option<UnresolvedVersionSpec>> {
-    let mut current_dir: Option<&Path> = Some(start_dir);
+    for file in &config_manager.files {
+        if let Some(versions) = &file.config.versions {
+            if let Some(version) = versions.get(tool.id.as_str()) {
+                debug!(
+                    tool = tool.id.as_str(),
+                    version = version.to_string(),
+                    file = ?file.path,
+                    "Detected version from {} file", PROTO_CONFIG_NAME
+                );
 
-    while let Some(dir) = current_dir {
-        trace!(
-            tool = tool.id.as_str(),
-            dir = ?dir,
-            "Checking directory",
-        );
-
-        let config = ToolsConfig::load_from(dir)?;
-
-        if let Some(version) = config.tools.get(&tool.id) {
-            debug!(
-                tool = tool.id.as_str(),
-                version = version.to_string(),
-                file = ?config.path,
-                "Detected version from .prototools file",
-            );
-
-            return Ok(Some(version.to_owned()));
+                return Ok(Some(version.to_owned()));
+            }
         }
+
+        let dir = file.path.parent().unwrap();
 
         if let Some(version) = tool.detect_version_from(dir).await? {
             debug!(
                 tool = tool.id.as_str(),
                 version = version.to_string(),
+                dir = ?dir,
                 "Detected version from tool's ecosystem"
             );
 
             return Ok(Some(version));
         }
-
-        if dir == end_dir {
-            break;
-        }
-
-        current_dir = dir.parent();
     }
 
     Ok(None)
@@ -55,58 +42,38 @@ pub async fn detect_version_first_available(
 
 pub async fn detect_version_prefer_prototools(
     tool: &Tool,
-    start_dir: &Path,
-    end_dir: &Path,
+    config_manager: &ProtoConfigManager,
 ) -> miette::Result<Option<UnresolvedVersionSpec>> {
-    let mut config_version = None;
-    let mut config_path = None;
-    let mut ecosystem_version = None;
-    let mut current_dir: Option<&Path> = Some(start_dir);
+    // Check config files first
+    for file in &config_manager.files {
+        if let Some(versions) = &file.config.versions {
+            if let Some(version) = versions.get(tool.id.as_str()) {
+                debug!(
+                    tool = tool.id.as_str(),
+                    version = version.to_string(),
+                    file = ?file.path,
+                    "Detected version from {} file", PROTO_CONFIG_NAME
+                );
 
-    while let Some(dir) = current_dir {
-        trace!(
-            tool = tool.id.as_str(),
-            dir = ?dir,
-            "Checking directory",
-        );
-
-        if config_version.is_none() {
-            let mut config = ToolsConfig::load_from(dir)?;
-
-            config_version = config.tools.remove(&tool.id);
-            config_path = Some(config.path);
+                return Ok(Some(version.to_owned()));
+            }
         }
-
-        if ecosystem_version.is_none() {
-            ecosystem_version = tool.detect_version_from(dir).await?;
-        }
-
-        if dir == end_dir {
-            break;
-        }
-
-        current_dir = dir.parent();
     }
 
-    if let Some(version) = config_version {
-        debug!(
-            tool = tool.id.as_str(),
-            version = version.to_string(),
-            file = ?config_path.unwrap(),
-            "Detected version from .prototools file",
-        );
+    // Then check the ecosystem
+    for file in &config_manager.files {
+        let dir = file.path.parent().unwrap();
 
-        return Ok(Some(version.to_owned()));
-    }
+        if let Some(version) = tool.detect_version_from(dir).await? {
+            debug!(
+                tool = tool.id.as_str(),
+                version = version.to_string(),
+                dir = ?dir,
+                "Detected version from tool's ecosystem"
+            );
 
-    if let Some(version) = ecosystem_version {
-        debug!(
-            tool = tool.id.as_str(),
-            version = version.to_string(),
-            "Detected version from tool's ecosystem"
-        );
-
-        return Ok(Some(version));
+            return Ok(Some(version));
+        }
     }
 
     Ok(None)
@@ -126,7 +93,7 @@ pub async fn detect_version(
         return Ok(candidate);
     }
 
-    // Env var takes highest priorit
+    // Env var takes highest priority
     let env_var = format!("{}_VERSION", tool.get_env_var_prefix());
 
     if let Ok(session_version) = env::var(&env_var) {
@@ -143,45 +110,29 @@ pub async fn detect_version(
                 error,
             })?,
         );
-    } else {
-        trace!(
-            tool = tool.id.as_str(),
-            "Attempting to find local version from config files"
-        );
     }
 
-    // Traverse upwards and attempt to detect a local version
-    if let Ok(working_dir) = env::current_dir() {
-        let user_config = tool.proto.load_user_config()?;
-        let detected_version = match user_config.detect_strategy {
-            DetectStrategy::FirstAvailable => {
-                detect_version_first_available(tool, &working_dir, &tool.proto.home).await?
-            }
-            DetectStrategy::PreferPrototools => {
-                detect_version_prefer_prototools(tool, &working_dir, &tool.proto.home).await?
-            }
-        };
-
-        if let Some(version) = detected_version {
-            return Ok(version);
-        }
-    }
-
-    // If still no version, load the global version
+    // Traverse upwards and attempt to detect a version
     trace!(
         tool = tool.id.as_str(),
-        "Attempting to use global version from manifest",
+        "Attempting to find version from {} files",
+        PROTO_CONFIG_NAME
     );
 
-    if let Some(global_version) = &tool.manifest.default_version {
-        debug!(
-            tool = tool.id.as_str(),
-            version = global_version.to_string(),
-            file = ?tool.manifest.path,
-            "Detected global version from manifest",
-        );
+    let config_manager = tool.proto.load_config_manager()?;
+    let config = tool.proto.load_config()?;
 
-        return Ok(global_version.to_owned());
+    let detected_version = match config.settings.detect_strategy {
+        DetectStrategy::FirstAvailable => {
+            detect_version_first_available(tool, config_manager).await?
+        }
+        DetectStrategy::PreferPrototools => {
+            detect_version_prefer_prototools(tool, config_manager).await?
+        }
+    };
+
+    if let Some(version) = detected_version {
+        return Ok(version);
     }
 
     // We didn't find anything!

@@ -81,6 +81,13 @@ impl UnresolvedVersionSpec {
     }
 }
 
+#[cfg(feature = "schematic")]
+impl schematic::Schematic for UnresolvedVersionSpec {
+    fn generate_schema() -> schematic::SchemaType {
+        schematic::SchemaType::string()
+    }
+}
+
 impl Default for UnresolvedVersionSpec {
     /// Returns a `latest` alias.
     fn default() -> Self {

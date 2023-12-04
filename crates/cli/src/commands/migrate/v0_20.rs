@@ -1,14 +1,16 @@
-use crate::helpers::load_configured_tools;
+#![allow(deprecated)]
+
+use crate::helpers::ProtoResource;
 use crate::shell;
 use proto_core::get_bin_dir;
 use starbase::SystemResult;
 use starbase_utils::fs;
 use tracing::{debug, info};
 
-pub async fn migrate() -> SystemResult {
+pub async fn migrate(proto: &ProtoResource) -> SystemResult {
     info!("Loading tools...");
 
-    let tools = load_configured_tools().await?;
+    let tools = proto.load_tools().await?;
 
     // Skips tools/plugins that are not in use
     let mut tools = tools

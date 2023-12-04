@@ -1,12 +1,13 @@
 use crate::helpers::{read_json_file_with_lock, write_json_file_with_lock};
 use serde::{Deserialize, Serialize};
+use starbase_styles::color;
 use std::{
     collections::{BTreeMap, HashSet},
     env,
     path::{Path, PathBuf},
     time::SystemTime,
 };
-use tracing::{debug, info};
+use tracing::{debug, warn};
 use version_spec::*;
 
 fn now() -> u128 {
@@ -40,7 +41,9 @@ impl Default for ToolManifestVersion {
 #[serde(default)]
 pub struct ToolManifest {
     // Partial versions allowed
+    #[deprecated]
     pub aliases: BTreeMap<String, UnresolvedVersionSpec>,
+    #[deprecated]
     pub default_version: Option<UnresolvedVersionSpec>,
 
     // Full versions only
@@ -71,6 +74,22 @@ impl ToolManifest {
 
         manifest.path = path.to_owned();
 
+        #[allow(deprecated)]
+        if !manifest.aliases.is_empty() {
+            warn!(
+                "Found legacy aliases in tool manifest, please run {} to migrate them",
+                color::shell("proto migrate v0.24")
+            );
+        }
+
+        #[allow(deprecated)]
+        if manifest.default_version.is_some() {
+            warn!(
+                "Found legacy global version in tool manifest, please run {} to migrate it",
+                color::shell("proto migrate v0.24")
+            );
+        }
+
         Ok(manifest)
     }
 
@@ -83,54 +102,8 @@ impl ToolManifest {
         Ok(())
     }
 
-    pub fn insert_version(
-        &mut self,
-        version: VersionSpec,
-        default_version: Option<UnresolvedVersionSpec>,
-    ) -> miette::Result<()> {
-        if self.default_version.is_none() {
-            self.default_version =
-                Some(default_version.unwrap_or_else(|| version.to_unresolved_spec()));
-        }
-
-        self.installed_versions.insert(version.clone());
-
-        self.versions
-            .insert(version, ToolManifestVersion::default());
-
-        self.save()?;
-
-        Ok(())
-    }
-
-    pub fn remove_version(&mut self, version: VersionSpec) -> miette::Result<()> {
-        self.installed_versions.remove(&version);
-
-        // Remove default version if nothing available
-        if (self.installed_versions.is_empty() && self.default_version.is_some())
-            || self.default_version.as_ref().is_some_and(|v| v == &version)
-        {
-            info!("Unpinning default global version");
-
-            self.default_version = None;
-        }
-
-        self.versions.remove(&version);
-
-        self.save()?;
-
-        Ok(())
-    }
-
     pub fn track_used_at(&mut self, version: VersionSpec) {
-        self.versions
-            .entry(version)
-            .and_modify(|v| {
-                v.last_used_at = Some(now());
-            })
-            .or_insert(ToolManifestVersion {
-                last_used_at: Some(now()),
-                ..ToolManifestVersion::default()
-            });
+        let entry = self.versions.entry(version).or_default();
+        entry.last_used_at = Some(now());
     }
 }

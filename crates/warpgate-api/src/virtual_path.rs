@@ -40,6 +40,16 @@ impl VirtualPath {
     }
 }
 
+#[cfg(feature = "schematic")]
+impl schematic::Schematic for VirtualPath {
+    fn generate_schema() -> schematic::SchemaType {
+        schematic::SchemaType::String(schematic::schema::StringType {
+            format: Some("path".into()),
+            ..Default::default()
+        })
+    }
+}
+
 impl Default for VirtualPath {
     fn default() -> Self {
         Self::Only(PathBuf::new())

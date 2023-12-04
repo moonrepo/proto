@@ -1,4 +1,6 @@
-use proto_core::{resolve_version, ToolManifest, UnresolvedVersionSpec, VersionSpec};
+use proto_core::{
+    resolve_version, ProtoToolConfig, ToolManifest, UnresolvedVersionSpec, VersionSpec,
+};
 use semver::Version;
 use std::collections::BTreeMap;
 
@@ -43,15 +45,6 @@ mod version_resolver {
     fn create_manifest() -> ToolManifest {
         let mut manifest = ToolManifest::default();
 
-        manifest.aliases.insert(
-            "latest-manifest".into(),
-            UnresolvedVersionSpec::Version(Version::new(8, 0, 0)),
-        );
-        manifest.aliases.insert(
-            "stable-manifest".into(),
-            UnresolvedVersionSpec::Alias("stable".into()),
-        );
-
         manifest
             .installed_versions
             .insert(VersionSpec::parse("3.0.0").unwrap());
@@ -60,6 +53,21 @@ mod version_resolver {
             .insert(VersionSpec::parse("3.3.3").unwrap());
 
         manifest
+    }
+
+    fn create_tool_config() -> ProtoToolConfig {
+        let mut config = ProtoToolConfig::default();
+
+        config.aliases.insert(
+            "latest-manifest".into(),
+            UnresolvedVersionSpec::Version(Version::new(8, 0, 0)),
+        );
+        config.aliases.insert(
+            "stable-manifest".into(),
+            UnresolvedVersionSpec::Alias("stable".into()),
+        );
+
+        config
     }
 
     #[test]
@@ -73,6 +81,7 @@ mod version_resolver {
                 &versions,
                 &aliases,
                 None,
+                None,
             )
             .unwrap(),
             Version::new(10, 0, 0)
@@ -84,6 +93,7 @@ mod version_resolver {
                 &versions,
                 &aliases,
                 None,
+                None,
             )
             .unwrap(),
             Version::new(10, 0, 0)
@@ -91,10 +101,11 @@ mod version_resolver {
     }
 
     #[test]
-    fn resolves_aliases_from_manifest() {
+    fn resolves_aliases_from_config() {
         let versions = create_versions();
         let aliases = create_aliases();
         let manifest = create_manifest();
+        let config = create_tool_config();
 
         assert_eq!(
             resolve_version(
@@ -102,6 +113,7 @@ mod version_resolver {
                 &versions,
                 &aliases,
                 Some(&manifest),
+                Some(&config),
             )
             .unwrap(),
             Version::new(8, 0, 0)
@@ -113,6 +125,7 @@ mod version_resolver {
                 &versions,
                 &aliases,
                 Some(&manifest),
+                Some(&config),
             )
             .unwrap(),
             Version::new(10, 0, 0)
@@ -130,6 +143,7 @@ mod version_resolver {
             &versions,
             &aliases,
             None,
+            None,
         )
         .unwrap();
     }
@@ -144,6 +158,7 @@ mod version_resolver {
             &UnresolvedVersionSpec::Alias("no-alias".into()),
             &versions,
             &aliases,
+            None,
             None,
         )
         .unwrap();
@@ -160,6 +175,7 @@ mod version_resolver {
             &versions,
             &aliases,
             None,
+            None,
         )
         .unwrap();
     }
@@ -175,6 +191,7 @@ mod version_resolver {
                 &versions,
                 &aliases,
                 None,
+                None,
             )
             .unwrap(),
             Version::new(1, 10, 5)
@@ -186,6 +203,7 @@ mod version_resolver {
                 &versions,
                 &aliases,
                 None,
+                None,
             )
             .unwrap(),
             Version::new(8, 0, 0)
@@ -193,10 +211,11 @@ mod version_resolver {
     }
 
     #[test]
-    fn resolves_versions_from_manifest() {
+    fn resolves_versions_from_config() {
         let versions = create_versions();
         let aliases = create_aliases();
         let manifest = create_manifest();
+        let config = create_tool_config();
 
         assert_eq!(
             resolve_version(
@@ -204,6 +223,7 @@ mod version_resolver {
                 &versions,
                 &aliases,
                 Some(&manifest),
+                Some(&config),
             )
             .unwrap(),
             Version::new(3, 0, 0)
@@ -221,6 +241,7 @@ mod version_resolver {
                 &versions,
                 &aliases,
                 None,
+                None,
             )
             .unwrap(),
             Version::new(1, 2, 3)
@@ -231,6 +252,7 @@ mod version_resolver {
                 &UnresolvedVersionSpec::parse("1.0").unwrap(),
                 &versions,
                 &aliases,
+                None,
                 None,
             )
             .unwrap(),
@@ -243,6 +265,7 @@ mod version_resolver {
                 &versions,
                 &aliases,
                 None,
+                None,
             )
             .unwrap(),
             Version::new(1, 10, 5)
@@ -250,10 +273,11 @@ mod version_resolver {
     }
 
     #[test]
-    fn resolves_partial_versions_with_manifest() {
+    fn resolves_partial_versions_with_config() {
         let versions = create_versions();
         let aliases = create_aliases();
         let manifest = create_manifest();
+        let config = create_tool_config();
 
         assert_eq!(
             resolve_version(
@@ -261,6 +285,7 @@ mod version_resolver {
                 &versions,
                 &aliases,
                 Some(&manifest),
+                Some(&config),
             )
             .unwrap(),
             Version::new(3, 3, 3)
@@ -272,6 +297,7 @@ mod version_resolver {
                 &versions,
                 &aliases,
                 Some(&manifest),
+                Some(&config),
             )
             .unwrap(),
             Version::new(3, 3, 3)
@@ -289,6 +315,7 @@ mod version_resolver {
                 &versions,
                 &aliases,
                 None,
+                None,
             )
             .unwrap(),
             Version::new(8, 0, 0)
@@ -299,6 +326,7 @@ mod version_resolver {
                 &UnresolvedVersionSpec::parse("V8").unwrap(),
                 &versions,
                 &aliases,
+                None,
                 None,
             )
             .unwrap(),
@@ -317,6 +345,7 @@ mod version_resolver {
             &versions,
             &aliases,
             None,
+            None,
         )
         .unwrap();
     }
@@ -332,6 +361,7 @@ mod version_resolver {
                 &versions,
                 &aliases,
                 None,
+                None,
             )
             .unwrap(),
             Version::new(8, 0, 0)
@@ -342,6 +372,7 @@ mod version_resolver {
                 &UnresolvedVersionSpec::parse("~1.1").unwrap(),
                 &versions,
                 &aliases,
+                None,
                 None,
             )
             .unwrap(),
@@ -354,6 +385,7 @@ mod version_resolver {
                 &versions,
                 &aliases,
                 None,
+                None,
             )
             .unwrap(),
             Version::new(8, 0, 0)
@@ -364,6 +396,7 @@ mod version_resolver {
                 &UnresolvedVersionSpec::parse(">1, <10").unwrap(),
                 &versions,
                 &aliases,
+                None,
                 None,
             )
             .unwrap(),
@@ -377,6 +410,7 @@ mod version_resolver {
                 &versions,
                 &aliases,
                 None,
+                None,
             )
             .unwrap(),
             Version::new(1, 10, 5)
@@ -388,6 +422,7 @@ mod version_resolver {
                 &UnresolvedVersionSpec::parse("*").unwrap(),
                 &versions,
                 &aliases,
+                None,
                 None,
             )
             .unwrap(),
@@ -406,6 +441,7 @@ mod version_resolver {
             &versions,
             &aliases,
             None,
+            None,
         )
         .unwrap();
     }
@@ -420,6 +456,7 @@ mod version_resolver {
                 &UnresolvedVersionSpec::parse("^1 || ^6 || ^8").unwrap(),
                 &versions,
                 &aliases,
+                None,
                 None,
             )
             .unwrap(),
@@ -438,6 +475,7 @@ mod version_resolver {
             &versions,
             &aliases,
             None,
+            None,
         )
         .unwrap();
     }
@@ -452,6 +490,7 @@ mod version_resolver {
                 &UnresolvedVersionSpec::parse(req).unwrap(),
                 &versions,
                 &aliases,
+                None,
                 None,
             )
             .unwrap();

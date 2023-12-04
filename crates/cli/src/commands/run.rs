@@ -1,8 +1,9 @@
 use crate::commands::install::{internal_install, InstallArgs};
 use crate::error::ProtoCliError;
+use crate::helpers::ProtoResource;
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::{detect_version, load_tool, Id, ProtoError, Tool, UnresolvedVersionSpec};
+use proto_core::{detect_version, Id, ProtoError, Tool, UnresolvedVersionSpec};
 use proto_pdk_api::{ExecutableConfig, RunHook};
 use starbase::system;
 use std::env;
@@ -142,8 +143,7 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
         if !parent_exe.ends_with(".exe") {
             use std::ffi::OsString;
 
-            let mut config = proto_core::ToolsConfig::load_upwards()?;
-            config.inherit_builtin_plugins();
+            let config = tool.proto.load_config()?;
 
             // Attempt to use `proto run <tool>` first instead of a hard-coded .exe.
             // This way we rely on proto's executable discovery functionality.
@@ -179,8 +179,8 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
 }
 
 #[system]
-pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
-    let mut tool = load_tool(&args.id).await?;
+pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> SystemResult {
+    let mut tool = proto.load_tool(&args.id).await?;
 
     // Avoid running the tool's native self-upgrade as it conflicts with proto
     if is_trying_to_self_upgrade(&tool, &args.passthrough) {
@@ -192,11 +192,12 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
     }
 
     let version = detect_version(&tool, args.spec.clone()).await?;
-    let user_config = tool.proto.load_user_config()?;
 
     // Check if installed or install
     if !tool.is_setup(&version).await? {
-        if !user_config.auto_install {
+        let config = tool.proto.load_config()?;
+
+        if !config.settings.auto_install {
             return Err(ProtoError::MissingToolForRun {
                 tool: tool.get_name().to_owned(),
                 version: version.to_string(),
@@ -209,6 +210,7 @@ pub async fn run(args: ArgsRef<RunArgs>) -> SystemResult {
         debug!("Auto-install setting is configured, attempting to install");
 
         tool = internal_install(
+            proto,
             InstallArgs {
                 canary: false,
                 id: args.id.clone(),

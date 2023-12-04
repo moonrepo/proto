@@ -1,7 +1,9 @@
+use crate::helpers::ProtoResource;
 use clap::Args;
-use proto_core::{load_tool, Id, Tool, ToolsConfig, UnresolvedVersionSpec};
+use proto_core::{Id, ProtoConfig, Tool, UnresolvedVersionSpec};
 use starbase::{system, SystemResult};
 use starbase_styles::color;
+use std::collections::BTreeMap;
 use tracing::{debug, info};
 
 #[derive(Args, Clone, Debug)]
@@ -14,44 +16,36 @@ pub struct PinArgs {
 
     #[arg(
         long,
-        help = "Add to the global user config instead of local .prototools"
+        help = "Pin to the global .prototools instead of local .prototools"
     )]
     pub global: bool,
 }
 
 pub async fn internal_pin(tool: &mut Tool, args: &PinArgs, link: bool) -> SystemResult {
-    if args.global {
-        tool.manifest.default_version = Some(args.spec.clone());
-        tool.manifest.save()?;
-
-        debug!(
-            version = args.spec.to_string(),
-            manifest = ?tool.manifest.path,
-            "Wrote the global version",
-        );
-
-        // Create symlink to this new version
-        if link {
-            tool.symlink_bins(true).await?;
-        }
-    } else {
-        let mut config = ToolsConfig::load()?;
-        config.tools.insert(args.id.clone(), args.spec.clone());
-        config.save()?;
-
-        debug!(
-            version = args.spec.to_string(),
-            config = ?config.path,
-            "Wrote the local version",
-        );
+    // Create symlink to this new version
+    if args.global && link {
+        tool.symlink_bins(true).await?;
     }
+
+    let path = ProtoConfig::update(tool.proto.get_config_dir(args.global), |config| {
+        config
+            .versions
+            .get_or_insert(BTreeMap::default())
+            .insert(args.id.clone(), args.spec.clone());
+    })?;
+
+    debug!(
+        version = args.spec.to_string(),
+        config = ?path,
+        "Pinned the version",
+    );
 
     Ok(())
 }
 
 #[system]
-pub async fn pin(args: ArgsRef<PinArgs>) -> SystemResult {
-    let mut tool = load_tool(&args.id).await?;
+pub async fn pin(args: ArgsRef<PinArgs>, proto: ResourceRef<ProtoResource>) -> SystemResult {
+    let mut tool = proto.load_tool(&args.id).await?;
 
     internal_pin(&mut tool, args, false).await?;
 

@@ -1,6 +1,6 @@
 use proto_core::{
     detect_version_first_available, detect_version_prefer_prototools, load_tool_from_locator,
-    ProtoEnvironment, Tool, ToolsConfig, UnresolvedVersionSpec, UserConfig,
+    ProtoConfig, ProtoConfigManager, ProtoEnvironment, Tool, UnresolvedVersionSpec,
 };
 use starbase_sandbox::create_empty_sandbox;
 use std::path::Path;
@@ -13,8 +13,7 @@ mod version_detector {
         load_tool_from_locator(
             Id::raw("node"),
             ProtoEnvironment::new().unwrap(),
-            ToolsConfig::builtin_plugins().get("node").unwrap(),
-            &UserConfig::default(),
+            ProtoConfig::builtin_plugins().get("node").unwrap(),
         )
         .await
         .unwrap()
@@ -30,23 +29,32 @@ mod version_detector {
         let tool = create_node(sandbox.path()).await;
 
         assert_eq!(
-            detect_version_first_available(&tool, &sandbox.path().join("a/b/c"), sandbox.path())
-                .await
-                .unwrap(),
+            detect_version_first_available(
+                &tool,
+                &ProtoConfigManager::load(sandbox.path().join("a/b/c"), None).unwrap()
+            )
+            .await
+            .unwrap(),
             Some(UnresolvedVersionSpec::parse("~16").unwrap())
         );
 
         assert_eq!(
-            detect_version_first_available(&tool, &sandbox.path().join("a/b"), sandbox.path())
-                .await
-                .unwrap(),
+            detect_version_first_available(
+                &tool,
+                &ProtoConfigManager::load(sandbox.path().join("a/b"), None).unwrap()
+            )
+            .await
+            .unwrap(),
             Some(UnresolvedVersionSpec::parse("~18").unwrap())
         );
 
         assert_eq!(
-            detect_version_first_available(&tool, &sandbox.path().join("a"), sandbox.path())
-                .await
-                .unwrap(),
+            detect_version_first_available(
+                &tool,
+                &ProtoConfigManager::load(sandbox.path().join("a"), None).unwrap()
+            )
+            .await
+            .unwrap(),
             Some(UnresolvedVersionSpec::parse("~20").unwrap())
         );
     }
@@ -58,9 +66,10 @@ mod version_detector {
         sandbox.create_file("package.json", r#"{ "engines": { "node": "18" } }"#);
 
         let tool = create_node(sandbox.path()).await;
+        let manager = ProtoConfigManager::load(sandbox.path().join("a/b"), None).unwrap();
 
         assert_eq!(
-            detect_version_first_available(&tool, &sandbox.path().join("a/b"), sandbox.path())
+            detect_version_first_available(&tool, &manager)
                 .await
                 .unwrap(),
             Some(UnresolvedVersionSpec::parse("~20").unwrap())
@@ -74,9 +83,10 @@ mod version_detector {
         sandbox.create_file("a/package.json", r#"{ "engines": { "node": "18" } }"#);
 
         let tool = create_node(sandbox.path()).await;
+        let manager = ProtoConfigManager::load(sandbox.path().join("a/b"), None).unwrap();
 
         assert_eq!(
-            detect_version_first_available(&tool, &sandbox.path().join("a/b"), sandbox.path())
+            detect_version_first_available(&tool, &manager)
                 .await
                 .unwrap(),
             Some(UnresolvedVersionSpec::parse("~18").unwrap())
@@ -92,9 +102,10 @@ mod version_detector {
         sandbox.create_file("a/b/c/package.json", r#"{ "engines": { "node": "19" } }"#);
 
         let tool = create_node(sandbox.path()).await;
+        let manager = ProtoConfigManager::load(sandbox.path().join("a/b/c"), None).unwrap();
 
         assert_eq!(
-            detect_version_prefer_prototools(&tool, &sandbox.path().join("a/b/c"), sandbox.path())
+            detect_version_prefer_prototools(&tool, &manager)
                 .await
                 .unwrap(),
             Some(UnresolvedVersionSpec::parse("~18").unwrap())

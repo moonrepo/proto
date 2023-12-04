@@ -64,6 +64,13 @@ impl VersionSpec {
     }
 }
 
+#[cfg(feature = "schematic")]
+impl schematic::Schematic for VersionSpec {
+    fn generate_schema() -> schematic::SchemaType {
+        schematic::SchemaType::string()
+    }
+}
+
 impl Default for VersionSpec {
     /// Returns a `latest` alias.
     fn default() -> Self {

@@ -1,7 +1,7 @@
+use crate::helpers::ProtoResource;
 use crate::shell::detect_shell;
 use clap::Args;
 use clap_complete::Shell;
-use proto_core::ProtoEnvironment;
 use starbase::system;
 use std::env;
 use std::path::PathBuf;
@@ -17,20 +17,23 @@ pub struct SetupArgs {
 }
 
 #[system]
-pub async fn setup(args: ArgsRef<SetupArgs>) {
+pub async fn setup(args: ArgsRef<SetupArgs>, proto: ResourceRef<ProtoResource>) {
     let shell = detect_shell(args.shell);
-    let proto = ProtoEnvironment::new()?;
 
     let paths = env::var("PATH").expect("Missing PATH!");
     let paths = env::split_paths(&paths).collect::<Vec<_>>();
 
-    if paths.contains(&proto.shims_dir) || paths.contains(&proto.bin_dir) {
-        debug!("Skipping setup, PROTO_HOME already exists in PATH.");
+    if paths.contains(&proto.env.shims_dir) || paths.contains(&proto.env.bin_dir) {
+        debug!("Skipping setup, PROTO_HOME already exists in PATH");
 
         return Ok(());
     }
 
-    do_setup(shell, vec![proto.shims_dir, proto.bin_dir], args.profile)?;
+    do_setup(
+        shell,
+        vec![proto.env.shims_dir.clone(), proto.env.bin_dir.clone()],
+        args.profile,
+    )?;
 }
 
 // For other shells, write environment variable(s) to an applicable profile!
