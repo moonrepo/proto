@@ -5,6 +5,7 @@ use schematic::{
     ValidateError, ValidateErrorType, ValidatorError,
 };
 use serde::Serialize;
+use starbase_utils::json::JsonValue;
 use starbase_utils::toml::TomlValue;
 use starbase_utils::{fs, toml};
 use std::collections::BTreeMap;
@@ -42,7 +43,7 @@ pub struct ProtoToolConfig {
 
     // Custom configuration to pass to plugins
     #[setting(flatten, merge = merge::merge_btreemap)]
-    pub config: BTreeMap<String, TomlValue>,
+    pub config: BTreeMap<String, JsonValue>,
 }
 
 #[derive(Clone, Config, Debug, Serialize)]
