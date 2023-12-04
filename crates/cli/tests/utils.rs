@@ -44,13 +44,13 @@ pub fn create_proto_command<T: AsRef<Path>>(path: T) -> assert_cmd::Command {
 pub fn create_shim_command<T: AsRef<Path>>(path: T, name: &str) -> assert_cmd::Command {
     let path = path.as_ref();
 
-    let mut cmd = assert_cmd::Command::new(path.join("shims").join(if cfg!(windows) {
+    let mut cmd = assert_cmd::Command::new(path.join(".proto/shims").join(if cfg!(windows) {
         format!("{name}.cmd")
     } else {
         name.to_owned()
     }));
     cmd.timeout(std::time::Duration::from_secs(240));
-    cmd.env("PROTO_HOME", path);
+    cmd.env("PROTO_HOME", path.join(".proto"));
     cmd.env(format!("PROTO_{}_VERSION", name.to_uppercase()), "latest");
     cmd
 }

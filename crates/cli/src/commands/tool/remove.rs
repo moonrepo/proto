@@ -20,17 +20,15 @@ pub struct RemoveToolArgs {
 
 #[system]
 pub async fn remove(args: ArgsRef<RemoveToolArgs>, proto: ResourceRef<ProtoResource>) {
-    let tool = proto.load_tool(&args.id).await?;
-
     if !args.global {
-        let config_path = tool.proto.cwd.join(PROTO_CONFIG_NAME);
+        let config_path = proto.env.cwd.join(PROTO_CONFIG_NAME);
 
         if !config_path.exists() {
             return Err(ProtoCliError::MissingToolsConfigInCwd { path: config_path }.into());
         }
     }
 
-    let config_path = ProtoConfig::update(tool.proto.get_config_dir(args.global), |config| {
+    let config_path = ProtoConfig::update(proto.env.get_config_dir(args.global), |config| {
         if let Some(plugins) = &mut config.plugins {
             plugins.remove(&args.id);
         }

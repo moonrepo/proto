@@ -22,9 +22,7 @@ pub struct AddToolArgs {
 
 #[system]
 pub async fn add(args: ArgsRef<AddToolArgs>, proto: ResourceRef<ProtoResource>) {
-    let tool = proto.load_tool(&args.id).await?;
-
-    let config_path = ProtoConfig::update(tool.proto.get_config_dir(args.global), |config| {
+    let config_path = ProtoConfig::update(proto.env.get_config_dir(args.global), |config| {
         config
             .plugins
             .get_or_insert(Default::default())
