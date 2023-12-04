@@ -10,6 +10,12 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added a `PROTO_SHELL_PROFILE` environment variable, to control which shell profile to modify (when applicable).
+
 ## 0.23.7
 
 #### 🐞 Fixes
