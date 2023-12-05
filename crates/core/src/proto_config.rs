@@ -308,6 +308,7 @@ impl ProtoConfig {
 
 #[derive(Debug)]
 pub struct ProtoConfigFile {
+    pub exists: bool,
     pub path: PathBuf,
     pub config: PartialProtoConfig,
 }
@@ -334,12 +335,11 @@ impl ProtoConfigManager {
         while let Some(dir) = current_dir {
             let path = dir.join(PROTO_CONFIG_NAME);
 
-            if path.exists() {
-                files.push(ProtoConfigFile {
-                    path,
-                    config: ProtoConfig::load_from(dir, false)?,
-                });
-            }
+            files.push(ProtoConfigFile {
+                exists: path.exists(),
+                path,
+                config: ProtoConfig::load_from(dir, false)?,
+            });
 
             if end_dir.is_some_and(|end| end == dir) {
                 break;
