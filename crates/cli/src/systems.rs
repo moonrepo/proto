@@ -4,7 +4,7 @@ use crate::helpers::ProtoResource;
 use proto_core::{Id, ProtoConfig, UserConfig, PROTO_CONFIG_NAME, USER_CONFIG_NAME};
 use starbase::system;
 use starbase_utils::fs;
-use starbase_utils::toml::TomlValue;
+use starbase_utils::json::JsonValue;
 use tracing::debug;
 
 // STARTUP
@@ -52,7 +52,7 @@ pub fn migrate_user_config(proto: ResourceRef<ProtoResource>) {
 
             node_config.config.get_or_insert(Default::default()).insert(
                 "intercept-globals".into(),
-                TomlValue::Boolean(node_intercept_globals),
+                JsonValue::Bool(node_intercept_globals),
             );
         }
     })?;

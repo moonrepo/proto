@@ -1,3 +1,10 @@
 [plugins]
 moon-test = "source:https://raw.githubusercontent.com/moonrepo/moon/master/proto-plugin.toml"
 wasm-test = "source:./plugins/target/wasm32-wasi/debug/proto_wasm_test.wasm"
+
+# [tools.wasm-test]
+# number = 123
+# string = "foo"
+# boolean = true
+# list = ["a", "b", "c"]
+# map = { "a" = 123 }
