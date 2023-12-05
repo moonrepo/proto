@@ -3,6 +3,7 @@ use proto_core::{
 };
 use schematic::ConfigError;
 use starbase_sandbox::create_empty_sandbox;
+use starbase_utils::json::JsonValue;
 use std::collections::BTreeMap;
 use std::env;
 use version_spec::UnresolvedVersionSpec;
@@ -272,6 +273,129 @@ rust = "stable"
 foo = "source:./test.toml"
 "#,
         );
+    }
+
+    mod tool_config {
+        use super::*;
+
+        #[test]
+        fn can_set_extra_settings() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[tools.node]
+bundled-npm = "bundled"
+intercept-globals = false
+"#,
+            );
+
+            let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
+
+            assert_eq!(
+                config
+                    .tools
+                    .unwrap()
+                    .get("node")
+                    .unwrap()
+                    .config
+                    .as_ref()
+                    .unwrap(),
+                &BTreeMap::from_iter([
+                    (
+                        "bundled-npm".to_owned(),
+                        JsonValue::String("bundled".into())
+                    ),
+                    ("intercept-globals".to_owned(), JsonValue::Bool(false)),
+                ])
+            );
+        }
+
+        #[test]
+        fn merges_plugin_settings() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                "a/b/.prototools",
+                r#"
+[tools.node]
+value = "b"
+"#,
+            );
+            sandbox.create_file(
+                "a/.prototools",
+                r#"
+[tools.node]
+depth = 1
+"#,
+            );
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[tools.node]
+value = "root"
+"#,
+            );
+
+            let config = ProtoConfigManager::load(sandbox.path().join("a/b"), None)
+                .unwrap()
+                .get_merged_config()
+                .unwrap()
+                .to_owned();
+
+            assert_eq!(
+                config.tools.get("node").unwrap().config,
+                BTreeMap::from_iter([
+                    ("value".to_owned(), JsonValue::String("b".into())),
+                    ("depth".to_owned(), JsonValue::from(1)),
+                ])
+            );
+        }
+
+        #[test]
+        fn merges_aliases() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                "a/b/.prototools",
+                r#"
+[tools.node.aliases]
+value = "1.2.3"
+"#,
+            );
+            sandbox.create_file(
+                "a/.prototools",
+                r#"
+[tools.node.aliases]
+stable = "1.0.0"
+"#,
+            );
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[tools.node.aliases]
+value = "4.5.6"
+"#,
+            );
+
+            let config = ProtoConfigManager::load(sandbox.path().join("a/b"), None)
+                .unwrap()
+                .get_merged_config()
+                .unwrap()
+                .to_owned();
+
+            assert_eq!(
+                config.tools.get("node").unwrap().aliases,
+                BTreeMap::from_iter([
+                    (
+                        "stable".to_owned(),
+                        UnresolvedVersionSpec::parse("1.0.0").unwrap()
+                    ),
+                    (
+                        "value".to_owned(),
+                        UnresolvedVersionSpec::parse("1.2.3").unwrap()
+                    ),
+                ])
+            );
+        }
     }
 }
 

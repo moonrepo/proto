@@ -5,6 +5,7 @@ use schematic::{
     ValidateError, ValidateErrorType, ValidatorError,
 };
 use serde::Serialize;
+use starbase_utils::json::JsonValue;
 use starbase_utils::toml::TomlValue;
 use starbase_utils::{fs, toml};
 use std::collections::BTreeMap;
@@ -42,7 +43,7 @@ pub struct ProtoToolConfig {
 
     // Custom configuration to pass to plugins
     #[setting(flatten, merge = merge::merge_btreemap)]
-    pub config: BTreeMap<String, TomlValue>,
+    pub config: BTreeMap<String, JsonValue>,
 }
 
 #[derive(Clone, Config, Debug, Serialize)]
@@ -63,10 +64,22 @@ pub struct ProtoSettingsConfig {
     pub http: HttpOptions,
 }
 
+fn merge_tools(
+    mut prev: BTreeMap<Id, PartialProtoToolConfig>,
+    next: BTreeMap<Id, PartialProtoToolConfig>,
+    context: &(),
+) -> Result<Option<BTreeMap<Id, PartialProtoToolConfig>>, ConfigError> {
+    for (key, value) in next {
+        prev.entry(key).or_default().merge(context, value)?;
+    }
+
+    Ok(Some(prev))
+}
+
 #[derive(Clone, Config, Debug, Serialize)]
 #[config(allow_unknown_fields, rename_all = "kebab-case")]
 pub struct ProtoConfig {
-    #[setting(nested, merge = merge::merge_btreemap)]
+    #[setting(nested, merge = merge_tools)]
     pub tools: BTreeMap<Id, ProtoToolConfig>,
 
     #[setting(merge = merge::merge_btreemap)]
@@ -295,17 +308,19 @@ impl ProtoConfig {
 
 #[derive(Debug)]
 pub struct ProtoConfigFile {
+    pub exists: bool,
     pub path: PathBuf,
     pub config: PartialProtoConfig,
 }
 
 #[derive(Debug)]
 pub struct ProtoConfigManager {
-    // Paths are sorted from smallest to largest components,
-    // so we need to traverse in reverse order. Furthermore,
-    // the special config at `~/.proto/.prototools` is mapped
-    // "/" to give it the lowest precedence. We also don't
-    // expect users to put configs in the actual root...
+    // Paths are sorted from current working directory,
+    // up until the root or user directory, whichever is first.
+    // The special `~/.proto/.prototools` config is always
+    // loaded last, and is the last entry in the list.
+    // For directories without a config, we still insert
+    // an empty entry. This helps with traversal logic.
     pub files: Vec<ProtoConfigFile>,
 
     merged_config: Arc<OnceCell<ProtoConfig>>,
@@ -319,8 +334,11 @@ impl ProtoConfigManager {
         let mut files = vec![];
 
         while let Some(dir) = current_dir {
+            let path = dir.join(PROTO_CONFIG_NAME);
+
             files.push(ProtoConfigFile {
-                path: dir.join(PROTO_CONFIG_NAME),
+                exists: path.exists(),
+                path,
                 config: ProtoConfig::load_from(dir, false)?,
             });
 

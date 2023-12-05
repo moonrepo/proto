@@ -106,8 +106,11 @@ impl ProtoEnvironment {
             let mut manager = ProtoConfigManager::load(&self.cwd, end_dir)?;
 
             // Always load the proto home/root config last
+            let path = self.root.join(PROTO_CONFIG_NAME);
+
             manager.files.push(ProtoConfigFile {
-                path: self.root.join(PROTO_CONFIG_NAME),
+                exists: path.exists(),
+                path,
                 config: ProtoConfig::load_from(&self.root, true)?,
             });
 

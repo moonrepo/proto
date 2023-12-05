@@ -21,6 +21,20 @@ pub fn inject_default_manifest_config(
         .config
         .insert("proto_tool_id".to_string(), id.to_string());
 
+    let config = proto.load_config()?;
+
+    if let Some(tool_config) = config.tools.get(id) {
+        if !tool_config.config.is_empty() {
+            let value = json::to_string(&tool_config.config).into_diagnostic()?;
+
+            trace!(config = %value, "Storing tool configuration");
+
+            manifest
+                .config
+                .insert("proto_tool_config".to_string(), value);
+        }
+    }
+
     let paths_map = manifest.allowed_paths.as_ref().unwrap();
 
     let value = json::to_string(&HostEnvironment {
