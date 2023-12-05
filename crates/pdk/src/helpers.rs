@@ -4,7 +4,7 @@ use extism_pdk::*;
 use proto_pdk_api::{
     ExecCommandInput, ExecCommandOutput, HostArch, HostEnvironment, HostOS, PluginError,
 };
-use serde::{de::DeserializeOwned, Deserialize};
+use serde::de::DeserializeOwned;
 use std::collections::HashMap;
 use std::vec;
 
@@ -235,9 +235,20 @@ pub fn get_target_triple(env: &HostEnvironment, name: &str) -> Result<String, Pl
     }
 }
 
-/// Get the active tool ID for the current WASM instance.
+/// Get the tool ID for the current WASM plugin.
 pub fn get_tool_id() -> String {
     config::get("proto_tool_id").expect("Missing tool ID!")
+}
+
+/// Get tool configuration for the current WASM plugin that was configured in a `.prototools` file.
+pub fn get_tool_config<T: Default + DeserializeOwned>() -> anyhow::Result<T> {
+    let config: T = if let Some(value) = config::get("proto_tool_config") {
+        json::from_str(&value)?
+    } else {
+        T::default()
+    };
+
+    Ok(config)
 }
 
 /// Return information about proto and the host environment.
@@ -248,14 +259,13 @@ pub fn get_proto_environment() -> anyhow::Result<HostEnvironment> {
     Ok(config)
 }
 
-#[derive(Deserialize)]
-pub struct UserConfigSettings {}
-
 /// Return the loaded proto user configuration (`~/.proto/.prototools`). Does not include plugins!
-pub fn get_proto_user_config() -> anyhow::Result<UserConfigSettings> {
+#[allow(deprecated)]
+#[deprecated]
+pub fn get_proto_user_config() -> anyhow::Result<json::Value> {
     if let Some(config) = config::get("proto_user_config") {
         return Ok(json::from_str(&config)?);
     }
 
-    Ok(UserConfigSettings {})
+    Ok(json::Value::default())
 }

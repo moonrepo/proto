@@ -35,7 +35,18 @@
 
 - Added a `proto migrate v0.24` command for migrating configs. We'll also log a warning if we detect the old configuration.
   - For some scenarios, we'll attempt to auto-migrate under the hood when applicable.
+- Added support for defining configuration that can be passed to WASM plugins.
+  - Can be added to `.prototools` under a `[tools.<name>]` table.
+  - Moved Node.js specific settings into this new format.
+    ```toml
+    [tools.node]
+    bundled-npm = false
+    intercept-globals = false
+    ```
 - Updated non-latest plugins to be cached for 30 days, instead of forever.
+- WASM API
+  - Added a `get_tool_config` function. Can be typed with a serde compatible struct.
+  - Deprecated the `get_proto_user_config` function.
 
 #### 🐞 Fixes
 
