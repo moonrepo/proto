@@ -3510,7 +3510,7 @@ dependencies = [
 
 [[package]]
 name = "system_env"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "schematic",
  "serde",
@@ -4121,7 +4121,7 @@ checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 
 [[package]]
 name = "version_spec"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "human-sort",
  "regex",
@@ -4185,7 +4185,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_api"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "schematic",
  "serde",
