@@ -189,7 +189,7 @@ impl<'plugin> PluginContainer<'plugin> {
             {
                 WarpgateError::PluginCallFailed {
                     func: func.to_owned(),
-                    error,
+                    error: error.to_string(),
                 }
             }
             // When in release mode, errors don't render properly with the

@@ -315,11 +315,12 @@ pub struct ProtoConfigFile {
 
 #[derive(Debug)]
 pub struct ProtoConfigManager {
-    // Paths are sorted from smallest to largest components,
-    // so we need to traverse in reverse order. Furthermore,
-    // the special config at `~/.proto/.prototools` is mapped
-    // "/" to give it the lowest precedence. We also don't
-    // expect users to put configs in the actual root...
+    // Paths are sorted from current working directory,
+    // up until the root or user directory, whichever is first.
+    // The special `~/.proto/.prototools` config is always
+    // loaded last, and is the last entry in the list.
+    // For directories without a config, we still insert
+    // an empty entry. This helps with traversal logic.
     pub files: Vec<ProtoConfigFile>,
 
     merged_config: Arc<OnceCell<ProtoConfig>>,

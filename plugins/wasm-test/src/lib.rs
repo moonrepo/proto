@@ -14,6 +14,17 @@ extern "ExtismHost" {
     // fn to_virtual_path(path: &str) -> String;
 }
 
+#[derive(Debug, Default, Deserialize)]
+#[serde(default, deny_unknown_fields, rename_all = "kebab-case")]
+struct WasmTestConfig {
+    number: usize,
+    string: String,
+    boolean: bool,
+    unknown: Option<usize>,
+    list: Vec<String>,
+    map: HashMap<String, usize>,
+}
+
 #[plugin_fn]
 pub fn register_tool(_: ()) -> FnResult<Json<ToolMetadataOutput>> {
     host_log!(stdout, "Registering tool");
@@ -25,6 +36,10 @@ pub fn register_tool(_: ()) -> FnResult<Json<ToolMetadataOutput>> {
 
     // let real = real_path!(PathBuf::from("/proto"));
     // let _virtual = virtual_path!(&real);
+
+    let config = get_tool_config::<WasmTestConfig>()?;
+
+    host_log!("Config = {:?}", config);
 
     Ok(Json(ToolMetadataOutput {
         name: "WASM Test".into(),

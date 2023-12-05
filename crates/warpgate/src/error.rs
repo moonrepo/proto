@@ -55,9 +55,9 @@ pub enum WarpgateError {
 
     #[diagnostic(code(plugin::call_func::failed))]
     #[error("Failed to call plugin function {}: {error}", .func.style(Style::Id))]
-    PluginCallFailed { func: String, error: extism::Error },
+    PluginCallFailed { func: String, error: String },
 
-    #[diagnostic(code(plugin::failed))]
+    #[diagnostic(code(plugin::call_func::failed))]
     #[error("{error}")]
     PluginCallFailedRelease { error: String },
 
