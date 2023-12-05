@@ -64,10 +64,22 @@ pub struct ProtoSettingsConfig {
     pub http: HttpOptions,
 }
 
+fn merge_tools(
+    mut prev: BTreeMap<Id, PartialProtoToolConfig>,
+    next: BTreeMap<Id, PartialProtoToolConfig>,
+    context: &(),
+) -> Result<Option<BTreeMap<Id, PartialProtoToolConfig>>, ConfigError> {
+    for (key, value) in next {
+        prev.entry(key).or_default().merge(context, value)?;
+    }
+
+    Ok(Some(prev))
+}
+
 #[derive(Clone, Config, Debug, Serialize)]
 #[config(allow_unknown_fields, rename_all = "kebab-case")]
 pub struct ProtoConfig {
-    #[setting(nested, merge = merge::merge_btreemap)]
+    #[setting(nested, merge = merge_tools)]
     pub tools: BTreeMap<Id, ProtoToolConfig>,
 
     #[setting(merge = merge::merge_btreemap)]
@@ -320,10 +332,14 @@ impl ProtoConfigManager {
         let mut files = vec![];
 
         while let Some(dir) = current_dir {
-            files.push(ProtoConfigFile {
-                path: dir.join(PROTO_CONFIG_NAME),
-                config: ProtoConfig::load_from(dir, false)?,
-            });
+            let path = dir.join(PROTO_CONFIG_NAME);
+
+            if path.exists() {
+                files.push(ProtoConfigFile {
+                    path,
+                    config: ProtoConfig::load_from(dir, false)?,
+                });
+            }
 
             if end_dir.is_some_and(|end| end == dir) {
                 break;
