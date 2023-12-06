@@ -474,7 +474,7 @@ impl InstallGlobalOutput {
 
         Self {
             installed: false,
-            error: Some(result.stderr),
+            error: Some(result.get_output()),
         }
     }
 }
@@ -516,7 +516,7 @@ impl UninstallGlobalOutput {
 
         Self {
             uninstalled: false,
-            error: Some(result.stderr),
+            error: Some(result.get_output()),
         }
     }
 }
