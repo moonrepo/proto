@@ -280,7 +280,7 @@ pub async fn internal_clean(proto: &ProtoResource, args: &CleanArgs) -> SystemRe
         clean_count += clean_tool(tool, now, days, args.yes).await?;
     }
 
-    clean_count += clean_proto(proto).await?;
+    clean_count += clean_proto(proto, days as u64).await?;
 
     if clean_count > 0 {
         info!("Successfully cleaned up {} versions", clean_count);

@@ -44,6 +44,7 @@
     intercept-globals = false
     ```
 - Updated non-latest plugins to be cached for 30 days, instead of forever.
+- Updated cleaning to also remove old proto versions from `~/.proto/tools/proto`.
 - WASM API
   - Added a `get_tool_config` function. Can be typed with a serde compatible struct.
   - Deprecated the `get_proto_user_config` function.
