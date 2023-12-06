@@ -1,0 +1,90 @@
+name: Release
+
+on:
+  # Canary from develop branches
+  push:
+    branches:
+      - develop-*
+  # Nightly every day at midnight
+  schedule:
+    - cron: "0 0 * * *"
+  # Uncomment to test in PRs (its safe)
+  pull_request:
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            host: ubuntu-20.04
+            ext: ""
+
+          - target: x86_64-apple-darwin
+            host: macos-12
+            ext: ""
+            setup: |
+              export MACOSX_DEPLOYMENT_TARGET="10.13";
+
+          - target: aarch64-apple-darwin
+            host: macos-12
+            ext: ""
+            setup: |
+              export CC=$(xcrun -f clang);
+              export CXX=$(xcrun -f clang++);
+              export SDKROOT=$(xcrun -sdk macosx --show-sdk-path);
+              export CFLAGS="-isysroot $SDKROOT -isystem $SDKROOT";
+              export MACOSX_DEPLOYMENT_TARGET=$(xcrun -sdk macosx --show-sdk-platform-version);
+
+          - target: x86_64-pc-windows-msvc
+            host: windows-2022
+            ext: .exe
+    name: Stable - ${{ matrix.target }}
+    runs-on: ${{ matrix.host }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: moonrepo/setup-rust@v1
+        with:
+          cache: false
+      - name: Setup toolchain
+        if: ${{ matrix.setup }}
+        run: ${{ matrix.setup }}
+      - name: Build binary
+        run: |
+          rustup target add ${{ matrix.target }}
+          cargo build --release --target ${{ matrix.target }}
+      - name: Rename binary
+        run: mv ./target/${{ matrix.target }}/release/proto${{ matrix.ext }} ./proto-${{ matrix.target }}${{ matrix.ext }}
+      # Canary
+      - if: ${{ github.event_name == 'push' && contains(github.ref, 'develop-') }}
+        uses: ncipollo/release-action@v1
+        name: Create GitHub release
+        with:
+          allowUpdates: true
+          artifactErrorsFailBuild: true
+          artifacts: proto-${{ matrix.target }}${{ matrix.ext }}
+          body: "This canary release corresponds to the commit [${{ github.sha }}]."
+          name: "Canary"
+          tag: "canary"
+          prerelease: true
+          replacesArtifacts: true
+          skipIfReleaseExists: false
+      # Nightly
+      - if: ${{ github.event_name == 'schedule' }}
+        uses: ncipollo/release-action@v1
+        name: Create GitHub release
+        with:
+          allowUpdates: true
+          artifactErrorsFailBuild: true
+          artifacts: proto-${{ matrix.target }}${{ matrix.ext }}
+          body: "This nightly release corresponds to the commit [${{ github.sha }}]."
+          name: "Nightly"
+          tag: "nightly"
+          prerelease: true
+          replacesArtifacts: true
+          skipIfReleaseExists: false
