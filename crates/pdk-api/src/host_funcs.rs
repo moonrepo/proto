@@ -100,3 +100,20 @@ json_struct!(
         pub stdout: String,
     }
 );
+
+impl ExecCommandOutput {
+    pub fn get_output(&self) -> String {
+        let mut out = String::new();
+        out.push_str(self.stdout.trim());
+
+        if !self.stderr.is_empty() {
+            if !out.is_empty() {
+                out.push(' ');
+            }
+
+            out.push_str(self.stderr.trim());
+        }
+
+        out
+    }
+}
