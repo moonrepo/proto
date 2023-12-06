@@ -187,6 +187,31 @@ pub async fn clean_plugins(proto: &ProtoResource, days: u64) -> miette::Result<u
     Ok(clean_count)
 }
 
+pub async fn clean_proto(proto: &ProtoResource, days: u64) -> miette::Result<usize> {
+    let duration = Duration::from_secs(86400 * days);
+    let mut clean_count = 0;
+
+    for file in fs::read_dir_all(proto.env.tools_dir.join("proto"))? {
+        let path = file.path();
+
+        if path.is_file() {
+            let bytes = fs::remove_file_if_older_than(&path, duration)?;
+
+            if bytes > 0 {
+                debug!(
+                    "proto version {} hasn't been used in over {} days, removing",
+                    color::path(&path),
+                    days
+                );
+
+                clean_count += 1;
+            }
+        }
+    }
+
+    Ok(clean_count)
+}
+
 pub async fn purge_tool(proto: &ProtoResource, id: &Id, yes: bool) -> SystemResult {
     let tool = proto.load_tool(id).await?;
     let inventory_dir = tool.get_inventory_dir();
@@ -254,6 +279,8 @@ pub async fn internal_clean(proto: &ProtoResource, args: &CleanArgs) -> SystemRe
     for tool in proto.load_tools().await? {
         clean_count += clean_tool(tool, now, days, args.yes).await?;
     }
+
+    clean_count += clean_proto(proto, days as u64).await?;
 
     if clean_count > 0 {
         info!("Successfully cleaned up {} versions", clean_count);
