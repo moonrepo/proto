@@ -44,6 +44,7 @@
     intercept-globals = false
     ```
 - Updated non-latest plugins to be cached for 30 days, instead of forever.
+- Updated cleaning to also remove old proto versions from `~/.proto/tools/proto`.
 - WASM API
   - Added a `get_tool_config` function. Can be typed with a serde compatible struct.
   - Deprecated the `get_proto_user_config` function.
@@ -51,6 +52,16 @@
 #### 🐞 Fixes
 
 - Fixed an issue where resolving canary versions wouldn't work correctly.
+
+#### 🧩 Plugins
+
+- Updated `bun_plugin` to v0.6.
+- Updated `deno_plugin` to v0.6.
+- Updated `go_plugin` to v0.6.
+- Updated `node_plugin` and `node_depman_plugin` to v0.6.
+- Updated `python_plugin` to v0.4.
+- Updated `rust_plugin` to v0.5.
+- Updated `schema_plugin` (TOML) to v0.6.
 
 ## 0.23.8
 
