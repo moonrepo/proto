@@ -1,4 +1,4 @@
-name: Release
+name: Release nightly / canary
 
 on:
   # Canary from develop branches
@@ -61,7 +61,7 @@ jobs:
       - name: Rename binary
         run: mv ./target/${{ matrix.target }}/release/proto${{ matrix.ext }} ./proto-${{ matrix.target }}${{ matrix.ext }}
       # Canary
-      - if: ${{ github.event_name == 'push' && contains(github.ref, 'develop-') }}
+      - # if: ${{ github.event_name == 'push' && contains(github.ref, 'develop-') }}
         uses: ncipollo/release-action@v1
         name: Create GitHub release
         with:
@@ -75,7 +75,7 @@ jobs:
           replacesArtifacts: true
           skipIfReleaseExists: false
       # Nightly
-      - if: ${{ github.event_name == 'schedule' }}
+      - # if: ${{ github.event_name == 'schedule' }}
         uses: ncipollo/release-action@v1
         name: Create GitHub release
         with:
