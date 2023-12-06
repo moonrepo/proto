@@ -53,6 +53,16 @@
 
 - Fixed an issue where resolving canary versions wouldn't work correctly.
 
+#### 🧩 Plugins
+
+- Updated `bun_plugin` to v0.6.
+- Updated `deno_plugin` to v0.6.
+- Updated `go_plugin` to v0.6.
+- Updated `node_plugin` and `node_depman_plugin` to v0.6.
+- Updated `python_plugin` to v0.4.
+- Updated `rust_plugin` to v0.5.
+- Updated `schema_plugin` (TOML) to v0.6.
+
 ## 0.23.8
 
 #### 🚀 Updates
