@@ -9,9 +9,13 @@ repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
 proto_pdk_api = { version = "0.11.1", path = "../pdk-api" }
-system_env = { version = "0.1.7", path = "../system-env" }
-version_spec = { version = "0.1.6", path = "../version-spec" }
-warpgate = { version = "0.6.0", path = "../warpgate" }
+system_env = { version = "0.1.7", path = "../system-env", features = [
+	"schematic",
+] }
+version_spec = { version = "0.1.6", path = "../version-spec", features = [
+	"schematic",
+] }
+warpgate = { version = "0.6.0", path = "../warpgate", features = ["schematic"] }
 cached = { workspace = true }
 extism = { workspace = true }
 human-sort = { workspace = true }
@@ -20,7 +24,12 @@ minisign-verify = "0.2.1"
 once_cell = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true }
-schematic = { workspace = true, features = ["config", "toml"] }
+schematic = { workspace = true, features = [
+	"config",
+	"toml",
+	"type_serde_json",
+	"type_serde_toml",
+] }
 semver = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

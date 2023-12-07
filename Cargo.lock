@@ -3017,6 +3017,10 @@ name = "schematic_types"
 version = "0.4.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c38cdd0968bde35f7e093600c90e0306da6af5ffd1b3cb175dbfde1146debcf2"
+dependencies = [
+ "serde_json",
+ "toml 0.8.8",
+]
 
 [[package]]
 name = "scopeguard"
