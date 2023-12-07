@@ -60,7 +60,7 @@ impl PluginLoader {
     }
 
     /// Return the HTTP client, or create it if it does not exist.
-    pub fn create_client(&self) -> miette::Result<&reqwest::Client> {
+    pub fn get_client(&self) -> miette::Result<&reqwest::Client> {
         self.http_client
             .get_or_try_init(|| create_http_client_with_options(&self.http_options))
     }
@@ -221,7 +221,7 @@ impl PluginLoader {
 
         let temp_file = self.temp_dir.join(fs::file_name(&dest_file));
 
-        download_from_url_to_file(source_url, &temp_file, self.create_client()?).await?;
+        download_from_url_to_file(source_url, &temp_file, self.get_client()?).await?;
         move_or_unpack_download(&temp_file, &dest_file)?;
 
         Ok(dest_file)
@@ -283,7 +283,7 @@ impl PluginLoader {
 
         // Otherwise make an HTTP request to the GitHub releases API,
         // and loop through the assets to find a matching one.
-        let mut request = self.create_client()?.get(&api_url);
+        let mut request = self.get_client()?.get(&api_url);
 
         if let Ok(auth_token) = env::var("GITHUB_TOKEN") {
             request = request.bearer_auth(auth_token);
@@ -385,7 +385,7 @@ impl PluginLoader {
         };
 
         let response = self
-            .create_client()?
+            .get_client()?
             .post(&url)
             .json(&WapmPackageRequest {
                 query: WAPM_GQL_QUERY.to_owned(),
