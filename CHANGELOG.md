@@ -10,6 +10,18 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added an `--aliases` flag to `proto list` and `proto list-remote`.
+- Updated `proto tool list` to include remote aliases provided by the tool.
+- Updated `proto tool info` to include local configuration and installed versions.
+
+#### 🧩 Plugins
+
+- Updated `node_plugin` and `node_depman_plugin` to v0.6.1.
+
 ## 0.24.0
 
 #### 💥 Breaking

@@ -7,6 +7,9 @@ pub struct Printer<'std> {
     depth: u8,
 }
 
+unsafe impl<'std> Send for Printer<'std> {}
+unsafe impl<'std> Sync for Printer<'std> {}
+
 impl<'std> Printer<'std> {
     pub fn new() -> Self {
         let stdout = std::io::stdout();
