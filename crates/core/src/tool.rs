@@ -949,8 +949,18 @@ impl Tool {
         }
 
         let install_dir = self.get_tool_dir();
-        let install_lock = fs::lock_directory(&install_dir)?;
         let mut installed = false;
+
+        // Lock the install directory. If the inventory has been overridden,
+        // lock the internal proto tool directory instead.
+        let install_lock = fs::lock_directory(if self.metadata.inventory.override_dir.is_some() {
+            self.proto
+                .tools_dir
+                .join(self.id.as_str())
+                .join(self.get_resolved_version().to_string())
+        } else {
+            install_dir.clone()
+        })?;
 
         self.on_installing
             .emit(InstallingEvent {
