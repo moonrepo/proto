@@ -15,6 +15,7 @@
 #### 🚀 Updates
 
 - Updated `proto tool list` to include non-user aliases provided by the tool.
+- Updated `proto tool info` to include configuration and installed versions.
 
 ## 0.24.0
 
