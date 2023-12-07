@@ -18,6 +18,10 @@
 - Updated `proto tool list` to include non-user aliases provided by the tool.
 - Updated `proto tool info` to include configuration and installed versions.
 
+#### 🧩 Plugins
+
+- Updated `node_plugin` and `node_depman_plugin` to v0.6.1.
+
 ## 0.24.0
 
 #### 💥 Breaking
