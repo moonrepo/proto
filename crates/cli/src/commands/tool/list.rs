@@ -4,12 +4,13 @@ use crate::printer::Printer;
 use chrono::{DateTime, NaiveDateTime};
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::{Id, ProtoToolConfig, ToolManifest};
+use proto_core::{Id, ProtoToolConfig, ToolManifest, UnresolvedVersionSpec};
 use serde::Serialize;
 use starbase::system;
 use starbase_styles::color;
 use starbase_utils::json;
 use std::collections::{HashMap, HashSet};
+use tokio::sync::Mutex;
 use tracing::info;
 
 #[derive(Serialize)]
@@ -48,7 +49,7 @@ pub async fn list(args: ArgsRef<ListToolsArgs>, proto: ResourceRef<ProtoResource
         return Err(ProtoCliError::NoInstalledTools.into());
     }
 
-    let config = proto.env.load_config()?.to_owned();
+    let mut config = proto.env.load_config()?.to_owned();
 
     if args.json {
         let items = tools
@@ -71,10 +72,16 @@ pub async fn list(args: ArgsRef<ListToolsArgs>, proto: ResourceRef<ProtoResource
         return Ok(());
     }
 
-    let mut printer = Printer::new();
+    let printer = Mutex::new(Printer::new());
+    let latest_version = UnresolvedVersionSpec::default();
 
     for tool in tools {
-        let tool_config = config.tools.get(&tool.id);
+        let tool_config = config.tools.remove(&tool.id).unwrap_or_default();
+
+        let mut versions = tool.load_version_resolver(&latest_version).await?;
+        versions.aliases.extend(tool_config.aliases);
+
+        let mut printer = printer.lock().await;
 
         printer.line();
         printer.header(&tool.id, &tool.metadata.name);
@@ -84,11 +91,10 @@ pub async fn list(args: ArgsRef<ListToolsArgs>, proto: ResourceRef<ProtoResource
 
             p.entry_map(
                 "Aliases",
-                tool_config
-                    .map(|cfg| cfg.aliases.clone())
-                    .unwrap_or_default()
+                versions
+                    .aliases
                     .iter()
-                    .map(|(k, v)| (color::hash(v.to_string()), color::label(k)))
+                    .map(|(k, v)| (color::hash(v.to_string()), k))
                     .collect::<Vec<_>>(),
                 None,
             );
@@ -142,7 +148,7 @@ pub async fn list(args: ArgsRef<ListToolsArgs>, proto: ResourceRef<ProtoResource
         })?;
     }
 
-    printer.flush();
+    printer.lock().await.flush();
 }
 
 fn create_datetime(millis: u128) -> Option<NaiveDateTime> {
