@@ -9,6 +9,9 @@ use tracing::debug;
 pub struct ListRemoteArgs {
     #[arg(required = true, help = "ID of tool")]
     id: Id,
+
+    #[arg(long, help = "Include remote aliases in the output")]
+    aliases: bool,
 }
 
 #[system]
@@ -38,4 +41,16 @@ pub async fn list_remote(args: ArgsRef<ListRemoteArgs>, proto: ResourceRef<Proto
             .collect::<Vec<_>>()
             .join("\n")
     );
+
+    if args.aliases && !resolver.aliases.is_empty() {
+        println!(
+            "{}",
+            resolver
+                .aliases
+                .iter()
+                .map(|(k, v)| format!("{k} -> {v}"))
+                .collect::<Vec<_>>()
+                .join("\n")
+        );
+    }
 }
