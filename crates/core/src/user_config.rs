@@ -28,7 +28,6 @@ pub struct UserConfig {
 }
 
 impl UserConfig {
-    #[tracing::instrument(skip_all)]
     pub fn load_from<P: AsRef<Path>>(dir: P) -> miette::Result<Self> {
         let dir = dir.as_ref();
         let path = dir.join(USER_CONFIG_NAME);

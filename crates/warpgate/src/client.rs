@@ -70,5 +70,9 @@ pub fn create_http_client_with_options(options: &HttpOptions) -> miette::Result<
         };
     }
 
-    client.build().into_diagnostic()
+    let client = client.build().into_diagnostic()?;
+
+    debug!("Created HTTP client");
+
+    Ok(client)
 }

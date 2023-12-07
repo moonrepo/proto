@@ -10,6 +10,16 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Deferred loading of the HTTP client until it's needed. This should improve execution times.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.24.1
 
 #### 🚀 Updates

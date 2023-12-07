@@ -60,7 +60,6 @@ impl ToolManifest {
         Self::load(dir.as_ref().join(MANIFEST_NAME))
     }
 
-    #[tracing::instrument(skip_all)]
     pub fn load<P: AsRef<Path>>(path: P) -> miette::Result<Self> {
         let path = path.as_ref();
 
@@ -93,7 +92,6 @@ impl ToolManifest {
         Ok(manifest)
     }
 
-    #[tracing::instrument(skip_all)]
     pub fn save(&self) -> miette::Result<()> {
         debug!(file = ?self.path, "Saving manifest");
 

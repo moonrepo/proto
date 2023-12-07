@@ -178,7 +178,6 @@ impl ProtoConfig {
         }
     }
 
-    #[tracing::instrument(skip_all)]
     pub fn load_from<P: AsRef<Path>>(
         dir: P,
         with_lock: bool,
@@ -284,7 +283,6 @@ impl ProtoConfig {
         Ok(config)
     }
 
-    #[tracing::instrument(skip_all)]
     pub fn save_to<P: AsRef<Path>>(dir: P, config: PartialProtoConfig) -> miette::Result<PathBuf> {
         let path = dir.as_ref().join(PROTO_CONFIG_NAME);
 

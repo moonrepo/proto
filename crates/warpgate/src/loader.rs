@@ -1,4 +1,4 @@
-use crate::client::create_http_client;
+use crate::client::{create_http_client_with_options, HttpOptions};
 use crate::endpoints::*;
 use crate::error::WarpgateError;
 use crate::helpers::{
@@ -7,6 +7,7 @@ use crate::helpers::{
 };
 use crate::id::Id;
 use crate::locator::{GitHubLocator, PluginLocator, WapmLocator};
+use once_cell::sync::OnceCell;
 use sha2::{Digest, Sha256};
 use starbase_styles::color;
 use starbase_utils::fs;
@@ -22,6 +23,12 @@ pub type OfflineChecker = Arc<fn() -> bool>;
 /// and caching the `.wasm` file to the host's file system.
 #[derive(Clone)]
 pub struct PluginLoader {
+    /// Instance of our HTTP client.
+    http_client: OnceCell<reqwest::Client>,
+
+    /// Options to pass to the HTTP client.
+    http_options: HttpOptions,
+
     /// Checks whether there's an internet connection or not.
     offline_checker: Option<OfflineChecker>,
 
@@ -43,11 +50,19 @@ impl PluginLoader {
         trace!(cache_dir = ?plugins_dir, "Creating plugin loader");
 
         Self {
+            http_client: OnceCell::new(),
+            http_options: HttpOptions::default(),
             offline_checker: None,
             plugins_dir: plugins_dir.to_owned(),
             temp_dir: temp_dir.as_ref().to_owned(),
             seed: None,
         }
+    }
+
+    /// Return the HTTP client, or create it if it does not exist.
+    pub fn get_client(&self) -> miette::Result<&reqwest::Client> {
+        self.http_client
+            .get_or_try_init(|| create_http_client_with_options(&self.http_options))
     }
 
     /// Load a plugin using the provided locator. File system plugins are loaded directly,
@@ -56,18 +71,6 @@ impl PluginLoader {
         &self,
         id: I,
         locator: L,
-    ) -> miette::Result<PathBuf> {
-        let client = create_http_client()?;
-
-        self.load_plugin_with_client(id, locator, &client).await
-    }
-
-    /// Load a plugin using the provided locator and HTTP client.
-    pub async fn load_plugin_with_client<I: AsRef<Id>, L: AsRef<PluginLocator>>(
-        &self,
-        id: I,
-        locator: L,
-        client: &reqwest::Client,
     ) -> miette::Result<PathBuf> {
         let id = id.as_ref();
         let locator = locator.as_ref();
@@ -101,14 +104,11 @@ impl PluginLoader {
                     id,
                     url,
                     self.create_cache_path(id, url, url.contains("latest")),
-                    client,
                 )
                 .await
             }
-            PluginLocator::GitHub(github) => {
-                self.download_plugin_from_github(id, github, client).await
-            }
-            PluginLocator::Wapm(wapm) => self.download_plugin_from_wapm(id, wapm, client).await,
+            PluginLocator::GitHub(github) => self.download_plugin_from_github(id, github).await,
+            PluginLocator::Wapm(wapm) => self.download_plugin_from_wapm(id, wapm).await,
         }
     }
 
@@ -179,6 +179,11 @@ impl PluginLoader {
             .unwrap_or_default()
     }
 
+    /// Set the options to pass to the HTTP client.
+    pub fn set_client_options(&mut self, options: &HttpOptions) {
+        self.http_options = options.to_owned();
+    }
+
     /// Set the function that checks for offline state.
     pub fn set_offline_checker(&mut self, op: fn() -> bool) {
         self.offline_checker = Some(Arc::new(op));
@@ -194,7 +199,6 @@ impl PluginLoader {
         id: &Id,
         source_url: &str,
         dest_file: PathBuf,
-        client: &reqwest::Client,
     ) -> miette::Result<PathBuf> {
         if self.is_cached(id, &dest_file)? {
             return Ok(dest_file);
@@ -217,7 +221,7 @@ impl PluginLoader {
 
         let temp_file = self.temp_dir.join(fs::file_name(&dest_file));
 
-        download_from_url_to_file(source_url, &temp_file, client).await?;
+        download_from_url_to_file(source_url, &temp_file, self.get_client()?).await?;
         move_or_unpack_download(&temp_file, &dest_file)?;
 
         Ok(dest_file)
@@ -227,7 +231,6 @@ impl PluginLoader {
         &self,
         id: &Id,
         github: &GitHubLocator,
-        client: &reqwest::Client,
     ) -> miette::Result<PathBuf> {
         let (api_url, release_tag) = if let Some(tag) = &github.tag {
             (
@@ -280,7 +283,7 @@ impl PluginLoader {
 
         // Otherwise make an HTTP request to the GitHub releases API,
         // and loop through the assets to find a matching one.
-        let mut request = client.get(&api_url);
+        let mut request = self.get_client()?.get(&api_url);
 
         if let Ok(auth_token) = env::var("GITHUB_TOKEN") {
             request = request.bearer_auth(auth_token);
@@ -299,7 +302,7 @@ impl PluginLoader {
                 );
 
                 return self
-                    .download_plugin(id, &asset.browser_download_url, plugin_path, client)
+                    .download_plugin(id, &asset.browser_download_url, plugin_path)
                     .await;
             }
         }
@@ -324,7 +327,7 @@ impl PluginLoader {
                 );
 
                 return self
-                    .download_plugin(id, &asset.browser_download_url, plugin_path, client)
+                    .download_plugin(id, &asset.browser_download_url, plugin_path)
                     .await;
             }
         }
@@ -340,7 +343,6 @@ impl PluginLoader {
         &self,
         id: &Id,
         wapm: &WapmLocator,
-        client: &reqwest::Client,
     ) -> miette::Result<PathBuf> {
         let version = wapm.version.as_deref().unwrap_or("latest");
         let fake_api_url = format!(
@@ -382,7 +384,8 @@ impl PluginLoader {
             url: url.clone(),
         };
 
-        let response = client
+        let response = self
+            .get_client()?
             .post(&url)
             .json(&WapmPackageRequest {
                 query: WAPM_GQL_QUERY.to_owned(),
@@ -418,7 +421,7 @@ impl PluginLoader {
             );
 
             return self
-                .download_plugin(id, &release_module.public_url, plugin_path, client)
+                .download_plugin(id, &release_module.public_url, plugin_path)
                 .await;
         }
 
@@ -432,7 +435,7 @@ impl PluginLoader {
             );
 
             return self
-                .download_plugin(id, &fallback_module.public_url, plugin_path, client)
+                .download_plugin(id, &fallback_module.public_url, plugin_path)
                 .await;
         }
 
@@ -443,9 +446,7 @@ impl PluginLoader {
                 "Using the distribution archive as a last resort"
             );
 
-            return self
-                .download_plugin(id, download_url, plugin_path, client)
-                .await;
+            return self.download_plugin(id, download_url, plugin_path).await;
         }
 
         Err(WarpgateError::WapmModuleMissing {
