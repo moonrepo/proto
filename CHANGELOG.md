@@ -16,6 +16,10 @@
 
 - Deferred loading of the HTTP client until it's needed. This should improve execution times.
 
+#### 🐞 Fixes
+
+- Fixed stable being considered a latest alias.
+
 #### ⚙️ Internal
 
 - Updated dependencies.

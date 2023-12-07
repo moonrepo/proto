@@ -57,10 +57,10 @@ impl UnresolvedVersionSpec {
         }
     }
 
-    /// Return true if the current specification is the "latest" or "stable" alias.
+    /// Return true if the current specification is the "latest" alias.
     pub fn is_latest(&self) -> bool {
         match self {
-            Self::Alias(alias) => alias == "latest" || alias == "stable",
+            Self::Alias(alias) => alias == "latest",
             _ => false,
         }
     }
