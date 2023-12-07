@@ -2,7 +2,7 @@ use miette::IntoDiagnostic;
 use serde::{Deserialize, Serialize};
 use starbase_utils::fs;
 use std::path::PathBuf;
-use tracing::{trace, warn};
+use tracing::{debug, trace, warn};
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 #[serde(default, rename_all = "kebab-case")]
@@ -21,6 +21,8 @@ pub fn create_http_client() -> miette::Result<reqwest::Client> {
 /// Create an HTTP/HTTPS client with the provided options, that'll be
 /// used for downloading files.
 pub fn create_http_client_with_options(options: &HttpOptions) -> miette::Result<reqwest::Client> {
+    debug!("Creating HTTP client");
+
     let mut client = reqwest::Client::builder()
         .user_agent(format!("warpgate@{}", env!("CARGO_PKG_VERSION")))
         .use_rustls_tls();
@@ -68,5 +70,9 @@ pub fn create_http_client_with_options(options: &HttpOptions) -> miette::Result<
         };
     }
 
-    client.build().into_diagnostic()
+    let client = client.build().into_diagnostic()?;
+
+    debug!("Created HTTP client");
+
+    Ok(client)
 }
