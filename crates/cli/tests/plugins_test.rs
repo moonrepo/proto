@@ -282,7 +282,7 @@ mod plugins {
                 .arg("rust")
                 .assert();
 
-            println!("{}", assert);
+            starbase_sandbox::debug_process_output(assert.get_output());
 
             assert.success();
         }
