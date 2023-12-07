@@ -2517,7 +2517,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.24.1"
+version = "0.24.2"
 dependencies = [
  "cached",
  "extism",
@@ -3514,7 +3514,7 @@ dependencies = [
 
 [[package]]
 name = "system_env"
-version = "0.1.7"
+version = "0.1.8"
 dependencies = [
  "schematic",
  "serde",
