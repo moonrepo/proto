@@ -16,6 +16,10 @@
 
 - Deferred loading of the HTTP client until it's needed. This should improve execution times.
 
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.24.1
 
 #### 🚀 Updates
