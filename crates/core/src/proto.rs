@@ -6,7 +6,8 @@ use std::collections::BTreeMap;
 use std::env;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use warpgate::{create_http_client_with_options, PluginLoader};
+use tracing::debug;
+use warpgate::PluginLoader;
 
 #[derive(Clone)]
 pub struct ProtoEnvironment {
@@ -41,6 +42,8 @@ impl ProtoEnvironment {
     pub fn from<P: AsRef<Path>>(root: P) -> miette::Result<Self> {
         let root = root.as_ref();
 
+        debug!(store = ?root, "Creating proto environment, detecting store");
+
         Ok(ProtoEnvironment {
             bin_dir: root.join("bin"),
             cwd: env::current_dir().expect("Unable to determine current working directory!"),
@@ -65,19 +68,16 @@ impl ProtoEnvironment {
         }
     }
 
-    pub fn get_http_client(&self) -> miette::Result<&reqwest::Client> {
+    pub fn get_plugin_loader(&self) -> miette::Result<&PluginLoader> {
         let config = self.load_config()?;
 
-        self.http_client
-            .get_or_try_init(|| create_http_client_with_options(&config.settings.http))
-    }
-
-    pub fn get_plugin_loader(&self) -> &PluginLoader {
-        self.plugin_loader.get_or_init(|| {
+        self.plugin_loader.get_or_try_init(|| {
             let mut loader = PluginLoader::new(&self.plugins_dir, &self.temp_dir);
+            loader.set_client_options(&config.settings.http);
             loader.set_offline_checker(is_offline);
             loader.set_seed(env!("CARGO_PKG_VERSION"));
-            loader
+
+            Ok(loader)
         })
     }
 
