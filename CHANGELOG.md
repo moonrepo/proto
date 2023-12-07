@@ -18,6 +18,8 @@
 
 #### 🐞 Fixes
 
+- Fixed an issue where `proto use` would install tools from `~/.proto/.prototools`.
+- Fixed an issue where our directory locking would fail on Windows when the inventory path was overwritten.
 - Fixed stable being considered a latest alias.
 
 #### ⚙️ Internal

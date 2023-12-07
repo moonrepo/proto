@@ -108,6 +108,7 @@ impl ProtoEnvironment {
 
             manager.files.push(ProtoConfigFile {
                 exists: path.exists(),
+                global: true,
                 path,
                 config: ProtoConfig::load_from(&self.root, true)?,
             });

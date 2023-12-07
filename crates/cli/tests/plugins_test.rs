@@ -277,11 +277,14 @@ mod plugins {
         fn supports_rust() {
             let sandbox = create_empty_sandbox();
 
-            create_proto_command(sandbox.path())
+            let assert = create_proto_command(sandbox.path())
                 .arg("install")
                 .arg("rust")
-                .assert()
-                .success();
+                .assert();
+
+            starbase_sandbox::debug_process_output(assert.get_output());
+
+            assert.success();
         }
 
         #[test]
