@@ -357,15 +357,23 @@ impl ProtoConfigManager {
 
     pub fn get_merged_config(&self) -> miette::Result<&ProtoConfig> {
         self.merged_config.get_or_try_init(|| {
+            debug!("Merging loaded configs");
+
             let mut partial = PartialProtoConfig::default();
+            let mut count = 0;
             let context = &();
 
             for file in self.files.iter().rev() {
-                partial.merge(context, file.config.to_owned())?;
+                if file.exists {
+                    partial.merge(context, file.config.to_owned())?;
+                    count += 1;
+                }
             }
 
             let mut config = ProtoConfig::from_partial(partial.finalize(context)?);
             config.inherit_builtin_plugins();
+
+            debug!("Merged {} configs", count);
 
             Ok(config)
         })
