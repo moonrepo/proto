@@ -18,6 +18,7 @@
 
 #### 🐞 Fixes
 
+- Fixed an issue where `proto use` would install tools from `~/.proto/.prototools`.
 - Fixed stable being considered a latest alias.
 
 #### ⚙️ Internal
