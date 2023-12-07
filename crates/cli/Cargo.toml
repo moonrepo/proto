@@ -1,6 +1,6 @@
 [package]
 name = "proto_cli"
-version = "0.24.1"
+version = "0.24.2"
 edition = "2021"
 license = "MIT"
 description = "A multi-language version manager, a unified toolchain."
@@ -27,7 +27,7 @@ name = "proto"
 path = "src/main.rs"
 
 [dependencies]
-proto_core = { version = "0.24.2", path = "../core" }
+proto_core = { version = "0.24.3", path = "../core" }
 proto_pdk_api = { version = "0.11.1", path = "../pdk-api" }
 system_env = { version = "0.1.8", path = "../system-env" }
 chrono = "0.4.31"
