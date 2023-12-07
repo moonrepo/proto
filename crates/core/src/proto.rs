@@ -21,7 +21,6 @@ pub struct ProtoEnvironment {
     pub root: PathBuf, // ~/.proto
 
     config_manager: Arc<OnceCell<ProtoConfigManager>>,
-    http_client: Arc<OnceCell<reqwest::Client>>,
     plugin_loader: Arc<OnceCell<PluginLoader>>,
     test_mode: bool,
 }
@@ -54,7 +53,6 @@ impl ProtoEnvironment {
             home: get_home_dir()?,
             root: root.to_owned(),
             config_manager: Arc::new(OnceCell::new()),
-            http_client: Arc::new(OnceCell::new()),
             plugin_loader: Arc::new(OnceCell::new()),
             test_mode: false,
         })

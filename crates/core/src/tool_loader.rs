@@ -101,7 +101,7 @@ pub async fn load_schema_plugin_with_proto(
     let schema_locator = locate_tool(&schema_id, proto)?;
 
     proto
-        .get_plugin_loader()
+        .get_plugin_loader()?
         .load_plugin(schema_id, schema_locator)
         .await
 }
@@ -115,7 +115,7 @@ pub async fn load_tool_from_locator(
     let proto = proto.as_ref();
     let locator = locator.as_ref();
 
-    let plugin_path = proto.get_plugin_loader().load_plugin(id, locator).await?;
+    let plugin_path = proto.get_plugin_loader()?.load_plugin(id, locator).await?;
 
     // If a TOML plugin, we need to load the WASM plugin for it,
     // wrap it, and modify the plugin manifest.

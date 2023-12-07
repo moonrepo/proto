@@ -764,7 +764,7 @@ impl Tool {
                 download_from_url_to_file(
                     archive_url,
                     &download_file,
-                    self.proto.get_http_client()?,
+                    self.proto.get_plugin_loader()?.load_client()?,
                 )
                 .await?;
 
@@ -836,7 +836,7 @@ impl Tool {
             "Installing tool from a pre-built archive"
         );
 
-        let client = self.proto.get_http_client()?;
+        let client = self.proto.get_plugin_loader()?.load_client()?;
         let options: DownloadPrebuiltOutput = self.plugin.cache_func_with(
             "download_prebuilt",
             DownloadPrebuiltInput {
