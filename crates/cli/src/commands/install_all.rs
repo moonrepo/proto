@@ -19,7 +19,10 @@ pub async fn install_all(proto: ResourceRef<ProtoResource>) {
 
     debug!("Detecting tool versions to install");
 
-    let config = proto.env.load_config()?;
+    let config = proto
+        .env
+        .load_config_manager()?
+        .get_merged_config_without_global()?;
     let mut versions = config.versions.to_owned();
 
     for tool in &tools {

@@ -307,6 +307,7 @@ impl ProtoConfig {
 #[derive(Debug)]
 pub struct ProtoConfigFile {
     pub exists: bool,
+    pub global: bool,
     pub path: PathBuf,
     pub config: PartialProtoConfig,
 }
@@ -336,6 +337,7 @@ impl ProtoConfigManager {
 
             files.push(ProtoConfigFile {
                 exists: path.exists(),
+                global: false,
                 path,
                 config: ProtoConfig::load_from(dir, false)?,
             });
@@ -354,26 +356,41 @@ impl ProtoConfigManager {
     }
 
     pub fn get_merged_config(&self) -> miette::Result<&ProtoConfig> {
-        self.merged_config.get_or_try_init(|| {
+        self.merged_config
+            .get_or_try_init(|| self.merge_configs(true))
+    }
+
+    pub fn get_merged_config_without_global(&self) -> miette::Result<ProtoConfig> {
+        self.merge_configs(false)
+    }
+
+    fn merge_configs(&self, with_global: bool) -> miette::Result<ProtoConfig> {
+        if with_global {
             debug!("Merging loaded configs");
+        } else {
+            debug!("Merging loaded configs without global");
+        }
 
-            let mut partial = PartialProtoConfig::default();
-            let mut count = 0;
-            let context = &();
+        let mut partial = PartialProtoConfig::default();
+        let mut count = 0;
+        let context = &();
 
-            for file in self.files.iter().rev() {
-                if file.exists {
-                    partial.merge(context, file.config.to_owned())?;
-                    count += 1;
-                }
+        for file in self.files.iter().rev() {
+            if !with_global && file.global {
+                continue;
             }
 
-            let mut config = ProtoConfig::from_partial(partial.finalize(context)?);
-            config.inherit_builtin_plugins();
+            if file.exists {
+                partial.merge(context, file.config.to_owned())?;
+                count += 1;
+            }
+        }
 
-            debug!("Merged {} configs", count);
+        let mut config = ProtoConfig::from_partial(partial.finalize(context)?);
+        config.inherit_builtin_plugins();
 
-            Ok(config)
-        })
+        debug!("Merged {} configs", count);
+
+        Ok(config)
     }
 }
