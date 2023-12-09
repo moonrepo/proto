@@ -1,12 +1,72 @@
+use serde::Deserialize;
 use shared_child::SharedChild;
 use starbase::diagnostics::{self, miette, IntoDiagnostic, Result};
 use starbase::tracing::{self, trace, TracingOptions};
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::io::{IsTerminal, Read, Write};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::Arc;
-use std::{env, io, process};
+use std::{env, fs, io, process};
+
+#[derive(Default, Deserialize)]
+#[serde(default)]
+struct Shim {
+    after_args: Vec<String>,
+    alt_for: Option<String>,
+    before_args: Vec<String>,
+}
+
+fn get_proto_home() -> Result<PathBuf> {
+    if let Ok(root) = env::var("PROTO_HOME") {
+        return Ok(root.into());
+    }
+
+    // TODO
+    Ok(PathBuf::from("~").join(".proto"))
+}
+
+fn create_command(mut args: VecDeque<String>, shim_name: &str) -> Result<Command> {
+    let shims_path = get_proto_home()?.join("shims.json");
+    let mut shim = Shim::default();
+
+    // Load the shims registry if it exists
+    if shims_path.exists() {
+        let file = fs::read(shims_path).into_diagnostic()?;
+        let mut shims: HashMap<String, Shim> = serde_json::from_slice(&file).into_diagnostic()?;
+
+        if shims.contains_key(shim_name) {
+            shim = shims.remove(shim_name).unwrap();
+        }
+    }
+
+    // Determine args to pass to the underlying binary
+    let mut passthrough_args = vec![];
+    passthrough_args.extend(shim.before_args);
+
+    if args.len() > 1 {
+        args.pop_front();
+        passthrough_args.extend(args);
+    }
+
+    passthrough_args.extend(shim.after_args);
+
+    // Create the command and handle alternate logic
+    let mut command = Command::new(if cfg!(windows) { "proto.exe" } else { "proto" });
+
+    if let Some(alt_for) = &shim.alt_for {
+        command.args(["run", alt_for, "--alt", shim_name]);
+    } else {
+        command.args(["run", shim_name]);
+    }
+
+    if !passthrough_args.is_empty() {
+        command.arg("--");
+        command.args(passthrough_args);
+    }
+
+    Ok(command)
+}
 
 pub fn main() -> Result<()> {
     sigpipe::reset();
@@ -23,7 +83,7 @@ pub fn main() -> Result<()> {
     });
 
     // Extract arguments to pass-through
-    let mut args = env::args().collect::<VecDeque<_>>();
+    let args = env::args().collect::<VecDeque<_>>();
     let exe_path = env::current_exe().unwrap_or_else(|_| PathBuf::from(&args[0]));
 
     let shim_name = exe_path
@@ -56,15 +116,7 @@ pub fn main() -> Result<()> {
     let has_piped_stdin = !input.is_empty();
 
     // Create the actual command to execute
-    let mut command = Command::new(if cfg!(windows) { "proto.exe" } else { "proto" });
-    command.args(["run", &shim_name]);
-
-    if args.len() > 1 {
-        args.pop_front();
-        command.arg("--");
-        command.args(args);
-    }
-
+    let mut command = create_command(args, &shim_name)?;
     command.env("PROTO_LOG", log_level);
 
     if has_piped_stdin {
