@@ -322,7 +322,9 @@ pub struct ProtoConfigManager {
     // an empty entry. This helps with traversal logic.
     pub files: Vec<ProtoConfigFile>,
 
-    merged_config: Arc<OnceCell<ProtoConfig>>,
+    all_config: Arc<OnceCell<ProtoConfig>>,
+    all_config_no_global: Arc<OnceCell<ProtoConfig>>,
+    cwd_config: Arc<OnceCell<ProtoConfig>>,
 }
 
 impl ProtoConfigManager {
@@ -351,35 +353,39 @@ impl ProtoConfigManager {
 
         Ok(Self {
             files,
-            merged_config: Arc::new(OnceCell::new()),
+            all_config: Arc::new(OnceCell::new()),
+            all_config_no_global: Arc::new(OnceCell::new()),
+            cwd_config: Arc::new(OnceCell::new()),
+        })
+    }
+
+    pub fn get_local_config(&self) -> miette::Result<&ProtoConfig> {
+        self.cwd_config.get_or_try_init(|| {
+            debug!("Merging local config");
+            self.merge_configs(vec![&self.files[0]])
         })
     }
 
     pub fn get_merged_config(&self) -> miette::Result<&ProtoConfig> {
-        self.merged_config
-            .get_or_try_init(|| self.merge_configs(true))
-    }
-
-    pub fn get_merged_config_without_global(&self) -> miette::Result<ProtoConfig> {
-        self.merge_configs(false)
-    }
-
-    fn merge_configs(&self, with_global: bool) -> miette::Result<ProtoConfig> {
-        if with_global {
+        self.all_config.get_or_try_init(|| {
             debug!("Merging loaded configs");
-        } else {
-            debug!("Merging loaded configs without global");
-        }
+            self.merge_configs(self.files.iter().collect())
+        })
+    }
 
+    pub fn get_merged_config_without_global(&self) -> miette::Result<&ProtoConfig> {
+        self.all_config_no_global.get_or_try_init(|| {
+            debug!("Merging loaded configs without global");
+            self.merge_configs(self.files.iter().filter(|file| !file.global).collect())
+        })
+    }
+
+    fn merge_configs(&self, files: Vec<&ProtoConfigFile>) -> miette::Result<ProtoConfig> {
         let mut partial = PartialProtoConfig::default();
         let mut count = 0;
         let context = &();
 
-        for file in self.files.iter().rev() {
-            if !with_global && file.global {
-                continue;
-            }
-
+        for file in files.iter().rev() {
             if file.exists {
                 partial.merge(context, file.config.to_owned())?;
                 count += 1;

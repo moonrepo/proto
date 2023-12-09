@@ -404,7 +404,6 @@ mod proto_config_manager {
 
     #[test]
     fn merges_traversing_upwards() {
-        use starbase_sandbox::pretty_assertions::assert_eq;
         let sandbox = create_empty_sandbox();
 
         sandbox.create_file(
@@ -478,6 +477,88 @@ deno = "7.8.9"
                 file: "../bun.wasm".into(),
                 path: sandbox.path().join("one/two/../bun.wasm")
             }
+        );
+    }
+
+    #[test]
+    fn merges_traversing_upwards_without_global() {
+        let sandbox = create_empty_sandbox();
+
+        sandbox.create_file(
+            "one/two/three/.prototools",
+            r#"
+node = "1.2.3"
+"#,
+        );
+
+        sandbox.create_file(
+            ".prototools",
+            r#"
+node = "7.8.9"
+deno = "7.8.9"
+"#,
+        );
+
+        sandbox.create_file(
+            ".proto/.prototools",
+            r#"
+bun = "1.2.3"
+"#,
+        );
+
+        let manager = ProtoConfigManager::load(sandbox.path().join("one/two/three"), None).unwrap();
+        let config = manager.get_merged_config_without_global().unwrap();
+
+        assert_eq!(
+            config.versions,
+            BTreeMap::from_iter([
+                (
+                    Id::raw("node"),
+                    UnresolvedVersionSpec::parse("1.2.3").unwrap()
+                ),
+                (
+                    Id::raw("deno"),
+                    UnresolvedVersionSpec::parse("7.8.9").unwrap()
+                ),
+            ])
+        );
+    }
+
+    #[test]
+    fn merges_local_only() {
+        let sandbox = create_empty_sandbox();
+
+        sandbox.create_file(
+            "one/two/three/.prototools",
+            r#"
+node = "1.2.3"
+"#,
+        );
+
+        sandbox.create_file(
+            ".prototools",
+            r#"
+node = "7.8.9"
+deno = "7.8.9"
+"#,
+        );
+
+        sandbox.create_file(
+            ".proto/.prototools",
+            r#"
+bun = "1.2.3"
+"#,
+        );
+
+        let manager = ProtoConfigManager::load(sandbox.path().join("one/two/three"), None).unwrap();
+        let config = manager.get_local_config().unwrap();
+
+        assert_eq!(
+            config.versions,
+            BTreeMap::from_iter([(
+                Id::raw("node"),
+                UnresolvedVersionSpec::parse("1.2.3").unwrap()
+            ),])
         );
     }
 }
