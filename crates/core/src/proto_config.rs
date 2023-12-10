@@ -5,6 +5,7 @@ use schematic::{
     ValidateError, ValidateErrorType, ValidatorError,
 };
 use serde::Serialize;
+use starbase_styles::color;
 use starbase_utils::json::JsonValue;
 use starbase_utils::toml::TomlValue;
 use starbase_utils::{fs, toml};
@@ -207,6 +208,7 @@ impl ProtoConfig {
             .map_err(|error| ConfigError::Validator {
                 config: config_path.to_string(),
                 error,
+                help: Some(color::muted_light("https://moonrepo.dev/docs/proto/config")),
             })?;
 
         // Because of serde flatten, unknown and invalid fields
@@ -246,6 +248,7 @@ impl ProtoConfig {
                 return Err(ConfigError::Validator {
                     config: config_path.to_string(),
                     error,
+                    help: Some(color::muted_light("https://moonrepo.dev/docs/proto/config")),
                 }
                 .into());
             }
