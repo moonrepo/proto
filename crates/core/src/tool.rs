@@ -414,14 +414,16 @@ impl Tool {
                 .into());
             }
 
-            versions = self.plugin.cache_func_with(
-                "load_versions",
-                LoadVersionsInput {
-                    initial: initial_version.to_owned(),
-                },
-            )?;
+            if env::var("PROTO_BYPASS_VERSION_CHECK").is_err() {
+                versions = self.plugin.cache_func_with(
+                    "load_versions",
+                    LoadVersionsInput {
+                        initial: initial_version.to_owned(),
+                    },
+                )?;
 
-            json::write_file(cache_path, &versions, false)?;
+                json::write_file(cache_path, &versions, false)?;
+            }
         }
 
         // Cache the results and create a resolver
