@@ -8,7 +8,7 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
-proto_pdk_api = { version = "0.11.1", path = "../pdk-api" }
+proto_pdk_api = { version = "0.11.2", path = "../pdk-api" }
 system_env = { version = "0.1.8", path = "../system-env", features = [
 	"schematic",
 ] }
