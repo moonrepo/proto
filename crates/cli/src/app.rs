@@ -1,4 +1,5 @@
 use crate::commands::{
+    debug::DebugConfigArgs,
     tool::{AddToolArgs, ListToolPluginsArgs, ListToolsArgs, RemoveToolArgs, ToolInfoArgs},
     AliasArgs, BinArgs, CleanArgs, CompletionsArgs, InstallArgs, InstallGlobalArgs, ListArgs,
     ListGlobalArgs, ListRemoteArgs, MigrateArgs, OutdatedArgs, PinArgs, RunArgs, SetupArgs,
@@ -116,6 +117,12 @@ pub enum Commands {
         about = "Generate command completions for your current shell."
     )]
     Completions(CompletionsArgs),
+
+    #[command(name = "debug", about = "Debug the current proto environment.")]
+    Debug {
+        #[command(subcommand)]
+        command: DebugCommands,
+    },
 
     #[command(
         alias = "i",
@@ -248,6 +255,15 @@ pub enum Commands {
         about = "Download and install all tools from the closest .prototools."
     )]
     Use,
+}
+
+#[derive(Clone, Debug, Subcommand)]
+pub enum DebugCommands {
+    #[command(
+        name = "config",
+        about = "Debug all loaded .prototools config's for the current directory."
+    )]
+    Config(DebugConfigArgs),
 }
 
 #[derive(Clone, Debug, Subcommand)]

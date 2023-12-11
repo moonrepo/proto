@@ -15,6 +15,8 @@
 #### 🚀 Updates
 
 - Added Linux arm64 gnu and musl support (`aarch64-unknown-linux-gnu` and `aarch64-unknown-linux-musl`).
+- Added a `proto debug config` command, to debug all loaded configs and the final merged config.
+- Added a `PROTO_BYPASS_VERSION_CHECK` environment variable, to bypass loading and checking of versions. Useful when internet is unreliable.
 
 ## 0.24.2
 

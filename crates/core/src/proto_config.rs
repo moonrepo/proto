@@ -37,18 +37,21 @@ derive_enum!(
 );
 
 #[derive(Clone, Config, Debug, Serialize)]
-#[config(allow_unknown_fields, rename_all = "kebab-case")]
+#[config(allow_unknown_fields)]
+#[serde(rename_all = "kebab-case")]
 pub struct ProtoToolConfig {
     #[setting(merge = merge::merge_btreemap)]
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub aliases: BTreeMap<String, UnresolvedVersionSpec>,
 
     // Custom configuration to pass to plugins
     #[setting(flatten, merge = merge::merge_btreemap)]
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub config: BTreeMap<String, JsonValue>,
 }
 
 #[derive(Clone, Config, Debug, Serialize)]
-#[config(rename_all = "kebab-case")]
+#[serde(rename_all = "kebab-case")]
 pub struct ProtoSettingsConfig {
     #[setting(env = "PROTO_AUTO_CLEAN", parse_env = env::parse_bool)]
     pub auto_clean: bool,
@@ -78,12 +81,15 @@ fn merge_tools(
 }
 
 #[derive(Clone, Config, Debug, Serialize)]
-#[config(allow_unknown_fields, rename_all = "kebab-case")]
+#[config(allow_unknown_fields)]
+#[serde(rename_all = "kebab-case")]
 pub struct ProtoConfig {
     #[setting(nested, merge = merge_tools)]
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub tools: BTreeMap<Id, ProtoToolConfig>,
 
     #[setting(merge = merge::merge_btreemap)]
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub plugins: BTreeMap<Id, PluginLocator>,
 
     #[setting(nested)]
@@ -92,7 +98,8 @@ pub struct ProtoConfig {
     #[setting(flatten, merge = merge::merge_btreemap)]
     pub versions: BTreeMap<Id, UnresolvedVersionSpec>,
 
-    #[setting(flatten, merge = merge::merge_btreemap, skip_serializing)]
+    #[setting(flatten, merge = merge::merge_btreemap)]
+    #[serde(skip_serializing)]
     pub unknown: BTreeMap<String, TomlValue>,
 }
 
@@ -307,7 +314,7 @@ impl ProtoConfig {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct ProtoConfigFile {
     pub exists: bool,
     pub global: bool,
