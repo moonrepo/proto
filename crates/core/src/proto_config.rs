@@ -41,10 +41,12 @@ derive_enum!(
 #[serde(rename_all = "kebab-case")]
 pub struct ProtoToolConfig {
     #[setting(merge = merge::merge_btreemap)]
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub aliases: BTreeMap<String, UnresolvedVersionSpec>,
 
     // Custom configuration to pass to plugins
     #[setting(flatten, merge = merge::merge_btreemap)]
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub config: BTreeMap<String, JsonValue>,
 }
 
@@ -83,9 +85,11 @@ fn merge_tools(
 #[serde(rename_all = "kebab-case")]
 pub struct ProtoConfig {
     #[setting(nested, merge = merge_tools)]
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub tools: BTreeMap<Id, ProtoToolConfig>,
 
     #[setting(merge = merge::merge_btreemap)]
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub plugins: BTreeMap<Id, PluginLocator>,
 
     #[setting(nested)]
