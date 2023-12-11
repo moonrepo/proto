@@ -307,7 +307,7 @@ impl ProtoConfig {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct ProtoConfigFile {
     pub exists: bool,
     pub global: bool,

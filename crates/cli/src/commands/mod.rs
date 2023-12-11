@@ -3,6 +3,7 @@ mod alias;
 mod bin;
 mod clean;
 mod completions;
+pub mod debug;
 mod install;
 mod install_all;
 mod install_global;
