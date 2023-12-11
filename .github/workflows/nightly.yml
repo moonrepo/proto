@@ -9,7 +9,7 @@ on:
   schedule:
     - cron: "0 0 * * *"
   # Uncomment to test in PRs (its safe)
-  # pull_request:
+  pull_request:
 
 permissions:
   contents: write
@@ -21,6 +21,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - target: aarch64-unknown-linux-gnu
+            host: buildjet-4vcpu-ubuntu-2204-arm
+            ext: ""
+
+          - target: aarch64-unknown-linux-musl
+            host: buildjet-4vcpu-ubuntu-2204-arm
+            ext: ""
+
           - target: x86_64-unknown-linux-gnu
             host: ubuntu-20.04
             ext: ""

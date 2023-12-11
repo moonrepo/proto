@@ -10,6 +10,12 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added Linux arm64 gnu and musl support (`aarch64-unknown-linux-gnu` and `aarch64-unknown-linux-musl`).
+
 ## 0.24.2
 
 #### 🚀 Updates
