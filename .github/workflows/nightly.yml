@@ -25,10 +25,6 @@ jobs:
             host: buildjet-4vcpu-ubuntu-2204-arm
             ext: ""
 
-          - target: aarch64-unknown-linux-musl
-            host: buildjet-4vcpu-ubuntu-2204-arm
-            ext: ""
-
           - target: x86_64-unknown-linux-gnu
             host: ubuntu-20.04
             ext: ""
