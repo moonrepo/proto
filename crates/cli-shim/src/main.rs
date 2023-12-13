@@ -22,12 +22,18 @@ fn get_proto_home() -> Result<PathBuf> {
         return Ok(root.into());
     }
 
-    // TODO
-    Ok(PathBuf::from("~").join(".proto"))
+    let home_dir = dirs::home_dir().ok_or_else(|| {
+        miette!(
+            code = "proto::unknown_home_dir",
+            "Unable to determine user home directory."
+        )
+    })?;
+
+    Ok(home_dir.join(".proto"))
 }
 
 fn create_command(mut args: VecDeque<String>, shim_name: &str) -> Result<Command> {
-    let shims_path = get_proto_home()?.join("shims.json");
+    let shims_path = get_proto_home()?.join("shims/registry.json");
     let mut shim = Shim::default();
 
     // Load the shims registry if it exists
@@ -45,7 +51,7 @@ fn create_command(mut args: VecDeque<String>, shim_name: &str) -> Result<Command
     passthrough_args.extend(shim.before_args);
 
     if args.len() > 1 {
-        args.pop_front();
+        args.pop_front(); // The exe
         passthrough_args.extend(args);
     }
 
