@@ -15,6 +15,7 @@
 #### 🐞 Fixes
 
 - Fixed `proto debug config` printing an invalid config structure.
+- Fixed `proto install` displaying the incorrect version labels.
 
 ## 0.25.0
 

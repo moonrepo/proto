@@ -92,6 +92,14 @@ pub async fn internal_install(
     // Disable version caching and always use the latest when installing
     tool.disable_caching();
 
+    if tool.disable_progress_bars() {
+        disable_progress_bars();
+    }
+
+    // Resolve version first so subsequent steps can reference the resolved version
+    tool.resolve_version(&version, false).await?;
+
+    // Check if already installed, or if canary, overwrite previous install
     if !version.is_canary() && tool.is_setup(&version).await? {
         pin_version(&mut tool, &version, args.pin).await?;
 
@@ -102,10 +110,6 @@ pub async fn internal_install(
         );
 
         return Ok(tool);
-    }
-
-    if tool.disable_progress_bars() {
-        disable_progress_bars();
     }
 
     let resolved_version = tool.get_resolved_version();
@@ -126,12 +130,17 @@ pub async fn internal_install(
     })?;
 
     // Install the tool
-    debug!("Installing {} with version {}", tool.get_name(), version);
+    debug!(
+        "Installing {} with version {} (from {})",
+        tool.get_name(),
+        resolved_version,
+        version
+    );
 
     let pb = create_progress_bar(format!(
         "Installing {} {}",
         tool.get_name(),
-        tool.get_resolved_version()
+        resolved_version
     ));
 
     let installed = tool.setup(&version, false).await?;
