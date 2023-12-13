@@ -7,9 +7,9 @@ use std::collections::HashMap;
 #[derive(Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Shim {
-    after_args: Vec<String>,
-    alt_for: Option<String>,
-    before_args: Vec<String>,
+    pub after_args: Vec<String>,
+    pub alt_for: Option<String>,
+    pub before_args: Vec<String>,
 }
 
 pub type ShimsMap = HashMap<String, Shim>;

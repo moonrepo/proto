@@ -2506,6 +2506,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "shell-words",
  "starbase_archive",
  "starbase_events",
  "starbase_sandbox",

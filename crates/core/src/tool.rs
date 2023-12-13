@@ -7,6 +7,7 @@ use crate::helpers::{
 use crate::host_funcs::{create_host_functions, HostData};
 use crate::proto::ProtoEnvironment;
 use crate::proto_config::ProtoConfig;
+use crate::shim_registry::{Shim, ShimRegistry, ShimsMap};
 use crate::shimmer::{get_shim_file_names, ShimContext, SHIM_VERSION};
 use crate::tool_manifest::{ToolManifest, ToolManifestVersion};
 use crate::version_resolver::VersionResolver;
@@ -18,7 +19,7 @@ use starbase_archive::Archiver;
 use starbase_events::Emitter;
 use starbase_styles::color;
 use starbase_utils::{fs, json};
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::env;
 use std::fmt::Debug;
 use std::io::{BufRead, BufReader};
@@ -1400,25 +1401,52 @@ impl Tool {
             local: vec![],
         };
 
+        let mut registry: ShimsMap = HashMap::new();
+        registry.insert(self.id.to_string(), Shim::default());
+
         for location in shims {
+            let mut shim = Shim::default();
             let mut context = self.create_shim_context();
-            context.before_args = location
-                .config
-                .shim_before_args
-                .map(|args| args.as_string());
-            context.after_args = location.config.shim_after_args.map(|args| args.as_string());
+
+            // Handle before and after args
+            if let Some(before_args) = &location.config.shim_before_args {
+                context.before_args = Some(before_args.as_string());
+
+                shim.before_args = match before_args {
+                    StringOrVec::String(value) => shell_words::split(value).into_diagnostic()?,
+                    StringOrVec::Vec(value) => value.to_owned(),
+                };
+            }
+
+            if let Some(after_args) = &location.config.shim_after_args {
+                context.after_args = Some(after_args.as_string());
+
+                shim.after_args = match after_args {
+                    StringOrVec::String(value) => shell_words::split(value).into_diagnostic()?,
+                    StringOrVec::Vec(value) => value.to_owned(),
+                };
+            }
 
             // Only use --alt when the secondary executable exists
             if !location.primary && location.config.exe_path.is_some() {
                 context.alt_bin = Some(&location.name);
+                shim.alt_for = Some(self.id.to_string());
             }
 
             context.create_shim(&location.path, find_only)?;
 
+            // Update the registry
+            registry.insert(location.name.clone(), shim);
+
+            // Add to the event
             event.global.push(location.name);
         }
 
         self.on_created_shims.emit(event).await?;
+
+        ShimRegistry::update(&self.proto, |config| {
+            config.extend(registry);
+        })?;
 
         Ok(())
     }
