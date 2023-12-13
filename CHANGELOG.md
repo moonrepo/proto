@@ -10,6 +10,14 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed `proto debug config` printing an invalid config structure.
+- Fixed `proto install` displaying the incorrect version labels.
+- Fixed `proto install` not always pinning a version on 1st install.
+
 ## 0.25.0
 
 #### 🚀 Updates

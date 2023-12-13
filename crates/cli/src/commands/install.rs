@@ -46,28 +46,30 @@ async fn pin_version(
     initial_version: &UnresolvedVersionSpec,
     global: bool,
 ) -> SystemResult {
+    let config = tool.proto.load_config()?;
     let mut args = PinArgs {
         id: tool.id.clone(),
         spec: tool.get_resolved_version().to_unresolved_spec(),
         global: false,
     };
+    let mut pin = false;
 
-    // via `--pin` arg
-    if global {
+    // via `--pin` arg, or the first time being installed
+    if global || !config.versions.contains_key(&tool.id) {
         args.global = true;
-
-        return internal_pin(tool, &args, true).await;
+        pin = true;
     }
 
     // via `pin-latest` setting
     if initial_version.is_latest() {
-        let config = tool.proto.load_config()?;
-
         if let Some(pin_type) = &config.settings.pin_latest {
             args.global = matches!(pin_type, PinType::Global);
-
-            return internal_pin(tool, &args, true).await;
+            pin = true;
         }
+    }
+
+    if pin {
+        return internal_pin(tool, &args, true).await;
     }
 
     Ok(())
@@ -92,6 +94,14 @@ pub async fn internal_install(
     // Disable version caching and always use the latest when installing
     tool.disable_caching();
 
+    if tool.disable_progress_bars() {
+        disable_progress_bars();
+    }
+
+    // Resolve version first so subsequent steps can reference the resolved version
+    tool.resolve_version(&version, false).await?;
+
+    // Check if already installed, or if canary, overwrite previous install
     if !version.is_canary() && tool.is_setup(&version).await? {
         pin_version(&mut tool, &version, args.pin).await?;
 
@@ -102,10 +112,6 @@ pub async fn internal_install(
         );
 
         return Ok(tool);
-    }
-
-    if tool.disable_progress_bars() {
-        disable_progress_bars();
     }
 
     let resolved_version = tool.get_resolved_version();
@@ -126,12 +132,17 @@ pub async fn internal_install(
     })?;
 
     // Install the tool
-    debug!("Installing {} with version {}", tool.get_name(), version);
+    debug!(
+        "Installing {} with version {} (from {})",
+        tool.get_name(),
+        resolved_version,
+        version
+    );
 
     let pb = create_progress_bar(format!(
         "Installing {} {}",
         tool.get_name(),
-        tool.get_resolved_version()
+        resolved_version
     ));
 
     let installed = tool.setup(&version, false).await?;
