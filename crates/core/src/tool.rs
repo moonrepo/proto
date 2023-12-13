@@ -1444,9 +1444,7 @@ impl Tool {
 
         self.on_created_shims.emit(event).await?;
 
-        ShimRegistry::update(&self.proto, |config| {
-            config.extend(registry);
-        })?;
+        ShimRegistry::update(&self.proto, registry)?;
 
         Ok(())
     }
