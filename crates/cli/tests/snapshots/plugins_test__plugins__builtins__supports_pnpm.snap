@@ -1,0 +1,14 @@
+---
+source: crates/cli/tests/plugins_test.rs
+expression: "fs::read_to_string(sandbox.path().join(\".proto/shims/registry.json\")).unwrap()"
+---
+{
+  "node": {},
+  "pnpm": {},
+  "pnpx": {
+    "alt_for": "pnpm",
+    "before_args": [
+      "dlx"
+    ]
+  }
+}

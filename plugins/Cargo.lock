@@ -2184,7 +2184,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.24.2"
+version = "0.25.0"
 dependencies = [
  "cached",
  "extism",
@@ -2200,6 +2200,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "shell-words",
  "starbase_archive",
  "starbase_events",
  "starbase_styles",
@@ -2215,7 +2216,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.11.1"
+version = "0.11.2"
 dependencies = [
  "anyhow",
  "extism-pdk",
@@ -2225,7 +2226,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.11.1"
+version = "0.11.2"
 dependencies = [
  "anyhow",
  "semver",
@@ -2239,7 +2240,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.12.1"
+version = "0.13.0"
 dependencies = [
  "extism",
  "proto_core",
@@ -2598,9 +2599,9 @@ dependencies = [
 
 [[package]]
 name = "schematic"
-version = "0.12.10"
+version = "0.12.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "710a6af816c586a37dc9b8b304370f36d8b90751785bbb245942bed0ae00a69d"
+checksum = "c5ed74b468686fb5551b8f29c8339dcf0b7ac4e0f475490f6f49f6a2aadcd392"
 dependencies = [
  "garde",
  "indexmap 2.1.0",
@@ -2888,9 +2889,9 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "starbase_archive"
-version = "0.2.4"
+version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "935856c30da2f62a73bcc57eecb5508bedd313287bc0e00e7e7c4b7a07fb5995"
+checksum = "b4a0d1c404d4e987597b018bee76fb8e79937f3b2ab0cf5963ce043031092694"
 dependencies = [
  "flate2",
  "miette",
@@ -3549,7 +3550,7 @@ checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 
 [[package]]
 name = "version_spec"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "human-sort",
  "regex",
@@ -3588,7 +3589,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "extism",
  "miette",

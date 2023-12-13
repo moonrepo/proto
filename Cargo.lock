@@ -2477,7 +2477,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli_shim"
-version = "0.0.1"
+version = "0.25.0"
 dependencies = [
  "ctrlc",
  "dirs 5.0.1",
@@ -2506,6 +2506,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "shell-words",
  "starbase_archive",
  "starbase_events",
  "starbase_sandbox",
