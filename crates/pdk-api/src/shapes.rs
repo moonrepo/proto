@@ -20,6 +20,7 @@ macro_rules! json_enum {
 }
 
 json_enum!(
+    #[serde(untagged)]
     pub enum StringOrVec {
         String(String),
         Vec(Vec<String>),

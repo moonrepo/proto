@@ -1431,10 +1431,13 @@ impl Tool {
                 shim.env_vars.extend(env_vars.to_owned());
             }
 
-            // Only use --alt when the secondary executable exists
-            if !location.primary && location.config.exe_path.is_some() {
-                context.alt_bin = Some(&location.name);
+            if !location.primary {
                 shim.alt_for = Some(self.id.to_string());
+
+                // Only use --alt when the secondary executable exists
+                if location.config.exe_path.is_some() {
+                    context.alt_bin = Some(&location.name);
+                }
             }
 
             context.create_shim(&location.path, find_only)?;
