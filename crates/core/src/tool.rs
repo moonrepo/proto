@@ -1402,8 +1402,11 @@ impl Tool {
 
         for location in shims {
             let mut context = self.create_shim_context();
-            context.before_args = location.config.shim_before_args.as_deref();
-            context.after_args = location.config.shim_after_args.as_deref();
+            context.before_args = location
+                .config
+                .shim_before_args
+                .map(|args| args.as_string());
+            context.after_args = location.config.shim_after_args.map(|args| args.as_string());
 
             // Only use --alt when the secondary executable exists
             if !location.primary && location.config.exe_path.is_some() {

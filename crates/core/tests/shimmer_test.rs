@@ -52,8 +52,8 @@ mod shimmer {
         let proto = ProtoEnvironment::new_testing(sandbox.path());
 
         let mut context = create_context("primary");
-        context.before_args = Some("--a -b");
-        context.after_args = Some("./file");
+        context.before_args = Some("--a -b".into());
+        context.after_args = Some("./file".into());
 
         let shim_path = proto.shims_dir.join("primary");
         context.create_shim(&shim_path, false).unwrap();
@@ -84,8 +84,8 @@ mod shimmer {
         let bin_path = "other/bin/path";
         let mut context = create_context("primary");
         context.alt_bin = Some(bin_path);
-        context.before_args = Some("--a -b");
-        context.after_args = Some("./file");
+        context.before_args = Some("--a -b".into());
+        context.after_args = Some("./file".into());
 
         let shim_path = proto.shims_dir.join("secondary");
         context.create_shim(&shim_path, false).unwrap();

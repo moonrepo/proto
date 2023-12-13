@@ -17,10 +17,10 @@ pub struct ShimContext<'tool> {
     pub alt_bin: Option<&'tool str>,
 
     /// Args to prepend to user-provided args.
-    pub before_args: Option<&'tool str>,
+    pub before_args: Option<String>,
 
     /// Args to append to user-provided args.
-    pub after_args: Option<&'tool str>,
+    pub after_args: Option<String>,
 
     // TOOL INFO
     /// ID of the tool, for logging purposes.
