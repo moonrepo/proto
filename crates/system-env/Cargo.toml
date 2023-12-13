@@ -11,7 +11,7 @@ repository = "https://github.com/moonrepo/proto"
 schematic = { workspace = true, optional = true, features = ["schema"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
-shell-words = "1.1.0"
+shell-words = { workspace = true }
 thiserror = { workspace = true }
 
 [features]
