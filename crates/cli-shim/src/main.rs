@@ -9,6 +9,7 @@ use std::process::{Command, Stdio};
 use std::sync::Arc;
 use std::{env, fs, io, process};
 
+// Keep in sync with crates/core/src/shim_registry.rs
 #[derive(Default, Deserialize)]
 #[serde(default)]
 struct Shim {

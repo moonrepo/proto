@@ -33,11 +33,4 @@ impl StringOrVec {
             Self::Vec(value) => value.iter().cloned().collect::<Vec<_>>().join(" "),
         }
     }
-
-    pub fn as_vec(&self) -> Vec<String> {
-        match self {
-            Self::String(value) => vec![value.to_owned()],
-            Self::Vec(value) => value.to_owned(),
-        }
-    }
 }
