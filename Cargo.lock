@@ -2481,6 +2481,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "proto_cli_shim"
+version = "0.0.1"
+dependencies = [
+ "ctrlc",
+ "dirs 5.0.1",
+ "serde",
+ "serde_json",
+ "shared_child",
+ "sigpipe",
+ "starbase",
+]
+
+[[package]]
 name = "proto_core"
 version = "0.25.2"
 dependencies = [
