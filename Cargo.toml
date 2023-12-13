@@ -8,6 +8,7 @@ cached = "0.46.1"
 clap = "4.4.11"
 clap_complete = "4.4.4"
 convert_case = "0.6.0"
+dirs = "5.0.1"
 extism = { version = "0.5.5" }
 extism-pdk = "0.3.4"
 human-sort = "0.2.2"
