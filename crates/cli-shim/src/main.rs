@@ -99,7 +99,8 @@ pub fn main() -> Result<()> {
     let shim_name = exe_path
         .file_name()
         .map(|file| String::from_utf8_lossy(file.as_encoded_bytes()))
-        .unwrap_or_default();
+        .unwrap_or_default()
+        .replace(".exe", "");
 
     trace!(args = ?args, shim = ?exe_path, "Running {} shim", shim_name);
 
