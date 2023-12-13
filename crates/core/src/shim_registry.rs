@@ -1,7 +1,7 @@
 use crate::helpers::{read_json_file_with_lock, write_json_file_with_lock};
 use crate::proto::ProtoEnvironment;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 // Keep in sync with crates/cli-shim/src/main.rs
 #[derive(Default, Deserialize, PartialEq, Serialize)]
@@ -20,7 +20,7 @@ pub struct Shim {
     pub env_vars: HashMap<String, String>,
 }
 
-pub type ShimsMap = HashMap<String, Shim>;
+pub type ShimsMap = BTreeMap<String, Shim>;
 
 pub struct ShimRegistry;
 
@@ -31,7 +31,7 @@ impl ShimRegistry {
         let mut config: ShimsMap = if file.exists() {
             read_json_file_with_lock(&file)?
         } else {
-            HashMap::default()
+            BTreeMap::default()
         };
 
         let mut mutated = false;

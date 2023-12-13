@@ -19,7 +19,7 @@ use starbase_archive::Archiver;
 use starbase_events::Emitter;
 use starbase_styles::color;
 use starbase_utils::{fs, json};
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, HashSet};
 use std::env;
 use std::fmt::Debug;
 use std::io::{BufRead, BufReader};
@@ -1401,7 +1401,7 @@ impl Tool {
             local: vec![],
         };
 
-        let mut registry: ShimsMap = HashMap::new();
+        let mut registry: ShimsMap = BTreeMap::new();
         registry.insert(self.id.to_string(), Shim::default());
 
         for location in shims {
