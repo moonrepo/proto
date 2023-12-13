@@ -4,6 +4,7 @@ mod helpers;
 mod host_funcs;
 mod proto;
 mod proto_config;
+mod shim_registry;
 mod shimmer;
 mod tool;
 mod tool_loader;

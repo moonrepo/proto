@@ -1,4 +1,6 @@
 use crate::host_funcs::ExecCommandOutput;
+use crate::shapes::StringOrVec;
+use crate::{json_enum, json_struct};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -8,35 +10,8 @@ use warpgate_api::VirtualPath;
 
 pub use semver::{Version, VersionReq};
 
-fn is_empty_map<K, V>(value: &HashMap<K, V>) -> bool {
-    value.is_empty()
-}
-
-fn is_empty_vec<T>(value: &[T]) -> bool {
-    value.is_empty()
-}
-
 fn is_false(value: &bool) -> bool {
     !(*value)
-}
-
-#[doc(hidden)]
-#[macro_export]
-macro_rules! json_struct {
-    ($struct:item) => {
-        #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-        #[serde(default)]
-        $struct
-    };
-}
-
-#[doc(hidden)]
-#[macro_export]
-macro_rules! json_enum {
-    ($struct:item) => {
-        #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-        $struct
-    };
 }
 
 json_struct!(
@@ -111,7 +86,7 @@ json_struct!(
 
         /// Names of commands that will self-upgrade the tool,
         /// and should be blocked from happening.
-        #[serde(skip_serializing_if = "is_empty_vec")]
+        #[serde(skip_serializing_if = "Vec::is_empty")]
         pub self_upgrade_commands: Vec<String>,
 
         /// Type of the tool.
@@ -126,11 +101,11 @@ json_struct!(
     /// Output returned by the `detect_version_files` function.
     pub struct DetectVersionOutput {
         /// List of files that should be checked for version information.
-        #[serde(skip_serializing_if = "is_empty_vec")]
+        #[serde(skip_serializing_if = "Vec::is_empty")]
         pub files: Vec<String>,
 
         /// List of path patterns to ignore when traversing directories.
-        #[serde(skip_serializing_if = "is_empty_vec")]
+        #[serde(skip_serializing_if = "Vec::is_empty")]
         pub ignore: Vec<String>,
     }
 );
@@ -255,12 +230,12 @@ json_struct!(
 
         /// List of instructions to execute to build the tool, after system
         /// dependencies have been installed.
-        #[serde(skip_serializing_if = "is_empty_vec")]
+        #[serde(skip_serializing_if = "Vec::is_empty")]
         pub instructions: Vec<BuildInstruction>,
 
         /// List of system dependencies that are required for building from source.
         /// If a dependency does not exist, it will be installed.
-        #[serde(skip_serializing_if = "is_empty_vec")]
+        #[serde(skip_serializing_if = "Vec::is_empty")]
         pub system_dependencies: Vec<SystemDependency>,
     }
 );
@@ -387,11 +362,15 @@ json_struct!(
 
         /// Custom args to prepend to user-provided args within the generated shim.
         #[serde(skip_serializing_if = "Option::is_none")]
-        pub shim_before_args: Option<String>,
+        pub shim_before_args: Option<StringOrVec>,
 
         /// Custom args to append to user-provided args within the generated shim.
         #[serde(skip_serializing_if = "Option::is_none")]
-        pub shim_after_args: Option<String>,
+        pub shim_after_args: Option<StringOrVec>,
+
+        /// Custom environment variables to set when executing the shim.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub shim_env_vars: Option<HashMap<String, String>>,
     }
 );
 
@@ -417,7 +396,7 @@ json_struct!(
     pub struct LocateExecutablesOutput {
         /// List of directory paths to find the globals installation directory.
         /// Each path supports environment variable expansion.
-        #[serde(skip_serializing_if = "is_empty_vec")]
+        #[serde(skip_serializing_if = "Vec::is_empty")]
         pub globals_lookup_dirs: Vec<String>,
 
         /// A string that all global binaries are prefixed with, and will be removed
@@ -432,7 +411,7 @@ json_struct!(
 
         /// Configures secondary/additional executables to create.
         /// The map key is the name of the shim/binary file.
-        #[serde(skip_serializing_if = "is_empty_map")]
+        #[serde(skip_serializing_if = "HashMap::is_empty")]
         pub secondary: HashMap<String, ExecutableConfig>,
     }
 );
@@ -543,11 +522,11 @@ json_struct!(
         pub latest: Option<Version>,
 
         /// Mapping of aliases (channels, etc) to a version.
-        #[serde(skip_serializing_if = "is_empty_map")]
+        #[serde(skip_serializing_if = "HashMap::is_empty")]
         pub aliases: HashMap<String, Version>,
 
         /// List of available production versions to install.
-        #[serde(skip_serializing_if = "is_empty_vec")]
+        #[serde(skip_serializing_if = "Vec::is_empty")]
         pub versions: Vec<Version>,
     }
 );
