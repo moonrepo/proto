@@ -57,6 +57,10 @@ fn create_command(mut args: VecDeque<String>, shim_name: &str) -> Result<Command
 
     passthrough_args.extend(shim.after_args);
 
+    // Create a command for local testing
+    // let mut command = Command::new("node");
+    // command.arg("./docs/shim-test.mjs");
+
     // Create the command and handle alternate logic
     let mut command = Command::new(if cfg!(windows) { "proto.exe" } else { "proto" });
 

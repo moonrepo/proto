@@ -31,9 +31,9 @@ test-ci:
 setup-shims:
 	cargo build --workspace
 	mkdir -p ./shims
-	cp -f ~/.cargo/shared-target/debug/proto-shim ./shims/node
-	ln -f ~/.cargo/shared-target/debug/proto-shim ./shims/node-hard
-	ln -fs ~/.cargo/shared-target/debug/proto-shim ./shims/node-soft
+	cp -f "$CARGO_TARGET_DIR/debug/proto-shim" ./shims/node
+	ln -f "$CARGO_TARGET_DIR/debug/proto-shim" ./shims/node-hard
+	ln -fs "$CARGO_TARGET_DIR/debug/proto-shim" ./shims/node-soft
 
 setup-shims-win:
 	cargo build --workspace
