@@ -7,6 +7,7 @@ use crate::helpers::{
 use crate::host_funcs::{create_host_functions, HostData};
 use crate::proto::ProtoEnvironment;
 use crate::proto_config::ProtoConfig;
+use crate::shim_registry::{Shim, ShimRegistry, ShimsMap};
 use crate::shimmer::{get_shim_file_names, ShimContext, SHIM_VERSION};
 use crate::tool_manifest::{ToolManifest, ToolManifestVersion};
 use crate::version_resolver::VersionResolver;
@@ -1400,22 +1401,57 @@ impl Tool {
             local: vec![],
         };
 
-        for location in shims {
-            let mut context = self.create_shim_context();
-            context.before_args = location.config.shim_before_args.as_deref();
-            context.after_args = location.config.shim_after_args.as_deref();
+        let mut registry: ShimsMap = BTreeMap::new();
+        registry.insert(self.id.to_string(), Shim::default());
 
-            // Only use --alt when the secondary executable exists
-            if !location.primary && location.config.exe_path.is_some() {
-                context.alt_bin = Some(&location.name);
+        for location in shims {
+            let mut shim_entry = Shim::default();
+            let mut context = self.create_shim_context();
+
+            // Handle before and after args
+            if let Some(before_args) = &location.config.shim_before_args {
+                context.before_args = Some(before_args.as_string());
+
+                shim_entry.before_args = match before_args {
+                    StringOrVec::String(value) => shell_words::split(value).into_diagnostic()?,
+                    StringOrVec::Vec(value) => value.to_owned(),
+                };
+            }
+
+            if let Some(after_args) = &location.config.shim_after_args {
+                context.after_args = Some(after_args.as_string());
+
+                shim_entry.after_args = match after_args {
+                    StringOrVec::String(value) => shell_words::split(value).into_diagnostic()?,
+                    StringOrVec::Vec(value) => value.to_owned(),
+                };
+            }
+
+            if let Some(env_vars) = &location.config.shim_env_vars {
+                shim_entry.env_vars.extend(env_vars.to_owned());
+            }
+
+            if !location.primary {
+                shim_entry.alt_for = Some(self.id.to_string());
+
+                // Only use --alt when the secondary executable exists
+                if location.config.exe_path.is_some() {
+                    context.alt_bin = Some(&location.name);
+                }
             }
 
             context.create_shim(&location.path, find_only)?;
 
+            // Update the registry
+            registry.insert(location.name.clone(), shim_entry);
+
+            // Add to the event
             event.global.push(location.name);
         }
 
         self.on_created_shims.emit(event).await?;
+
+        ShimRegistry::update(&self.proto, registry)?;
 
         Ok(())
     }

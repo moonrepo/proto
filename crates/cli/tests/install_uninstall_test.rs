@@ -134,6 +134,9 @@ mod install_uninstall {
         } else {
             assert!(sandbox.path().join(".proto/shims/node").exists());
         }
+
+        // Check that the registry was created also
+        assert!(sandbox.path().join(".proto/shims/registry.json").exists());
     }
 
     #[test]
