@@ -264,11 +264,13 @@ mod plugins {
             create_proto_command(sandbox.path())
                 .arg("install")
                 .arg("python")
+                .arg("3.12.0") // Latest doesn't always work
                 .assert()
                 .success();
 
             create_shim_command(sandbox.path(), "python")
                 .arg("--version")
+                .env("PROTO_PYTHON_VERSION", "3.12.0")
                 .assert()
                 .success();
         }
