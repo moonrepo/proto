@@ -45,8 +45,8 @@ pub struct ProtoToolConfig {
     pub aliases: BTreeMap<String, UnresolvedVersionSpec>,
 
     // Custom configuration to pass to plugins
-    #[setting(flatten, merge = merge::merge_btreemap)]
-    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    #[setting(merge = merge::merge_btreemap)]
+    #[serde(flatten, skip_serializing_if = "BTreeMap::is_empty")]
     pub config: BTreeMap<String, JsonValue>,
 }
 
@@ -95,11 +95,12 @@ pub struct ProtoConfig {
     #[setting(nested)]
     pub settings: ProtoSettingsConfig,
 
-    #[setting(flatten, merge = merge::merge_btreemap)]
+    #[setting(merge = merge::merge_btreemap)]
+    #[serde(flatten)]
     pub versions: BTreeMap<Id, UnresolvedVersionSpec>,
 
-    #[setting(flatten, merge = merge::merge_btreemap)]
-    #[serde(skip_serializing)]
+    #[setting(merge = merge::merge_btreemap)]
+    #[serde(flatten, skip_serializing)]
     pub unknown: BTreeMap<String, TomlValue>,
 }
 
