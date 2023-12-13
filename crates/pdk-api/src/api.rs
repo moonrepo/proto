@@ -367,6 +367,10 @@ json_struct!(
         /// Custom args to append to user-provided args within the generated shim.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub shim_after_args: Option<StringOrVec>,
+
+        /// Custom environment variables to set when executing the shim.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub shim_env_vars: Option<HashMap<String, String>>,
     }
 );
 

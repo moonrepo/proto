@@ -16,6 +16,7 @@ struct Shim {
     after_args: Vec<String>,
     alt_for: Option<String>,
     before_args: Vec<String>,
+    env_vars: HashMap<String, String>,
 }
 
 fn get_proto_home() -> Result<PathBuf> {
@@ -75,6 +76,8 @@ fn create_command(mut args: VecDeque<String>, shim_name: &str) -> Result<Command
         command.arg("--");
         command.args(passthrough_args);
     }
+
+    command.envs(shim.env_vars);
 
     Ok(command)
 }

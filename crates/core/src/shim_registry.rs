@@ -15,6 +15,9 @@ pub struct Shim {
 
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub before_args: Vec<String>,
+
+    #[serde(skip_serializing_if = "HashMap::is_empty")]
+    pub env_vars: HashMap<String, String>,
 }
 
 pub type ShimsMap = HashMap<String, Shim>;

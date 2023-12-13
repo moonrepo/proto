@@ -1427,6 +1427,10 @@ impl Tool {
                 };
             }
 
+            if let Some(env_vars) = &location.config.shim_env_vars {
+                shim.env_vars.extend(env_vars.to_owned());
+            }
+
             // Only use --alt when the secondary executable exists
             if !location.primary && location.config.exe_path.is_some() {
                 context.alt_bin = Some(&location.name);
