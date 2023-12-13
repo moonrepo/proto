@@ -119,11 +119,7 @@ pub async fn load_tool_from_locator(
 
     // If a TOML plugin, we need to load the WASM plugin for it,
     // wrap it, and modify the plugin manifest.
-    let mut manifest = if plugin_path
-        .extension()
-        .map(|ext| ext == "toml")
-        .unwrap_or(false)
-    {
+    let mut manifest = if plugin_path.extension().is_some_and(|ext| ext == "toml") {
         debug!(source = ?plugin_path, "Loading TOML plugin");
 
         let mut manifest = Tool::create_plugin_manifest(
