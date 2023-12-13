@@ -35,7 +35,7 @@ clap = { workspace = true, features = ["derive", "env"] }
 clap_complete = { workspace = true }
 convert_case = { workspace = true }
 dialoguer = "0.11.0"
-dirs = "5.0.1"
+dirs = { workspace = true }
 futures = "0.3.29"
 human-sort = { workspace = true }
 indicatif = "0.17.7"

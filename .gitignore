@@ -1,3 +1,4 @@
 node_modules/
+shims/
 target/
 **/*.rs.bk
