@@ -16,7 +16,7 @@
 
 - WASM API
   - Added a `ExecutableConfig.shim_env_vars` field.
-  - Updated `ExecutableConfig.before_args` and `ExecutableConfig.after_args` to support a vector of strings.
+  - Updated `ExecutableConfig.shim_before_args` and `ExecutableConfig.shim_after_args` to support a list of strings.
 
 ## 0.25.0
 

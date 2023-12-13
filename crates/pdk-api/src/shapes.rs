@@ -31,7 +31,7 @@ impl StringOrVec {
     pub fn as_string(&self) -> String {
         match self {
             Self::String(value) => value.to_owned(),
-            Self::Vec(value) => value.iter().cloned().collect::<Vec<_>>().join(" "),
+            Self::Vec(value) => value.to_vec().join(" "),
         }
     }
 }

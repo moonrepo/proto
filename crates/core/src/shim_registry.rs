@@ -26,6 +26,10 @@ pub struct ShimRegistry;
 
 impl ShimRegistry {
     pub fn update<P: AsRef<ProtoEnvironment>>(proto: P, entries: ShimsMap) -> miette::Result<()> {
+        if entries.is_empty() {
+            return Ok(());
+        }
+
         let file = proto.as_ref().shims_dir.join("registry.json");
 
         let mut config: ShimsMap = if file.exists() {

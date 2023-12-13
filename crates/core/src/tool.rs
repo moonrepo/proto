@@ -1405,14 +1405,14 @@ impl Tool {
         registry.insert(self.id.to_string(), Shim::default());
 
         for location in shims {
-            let mut shim = Shim::default();
+            let mut shim_entry = Shim::default();
             let mut context = self.create_shim_context();
 
             // Handle before and after args
             if let Some(before_args) = &location.config.shim_before_args {
                 context.before_args = Some(before_args.as_string());
 
-                shim.before_args = match before_args {
+                shim_entry.before_args = match before_args {
                     StringOrVec::String(value) => shell_words::split(value).into_diagnostic()?,
                     StringOrVec::Vec(value) => value.to_owned(),
                 };
@@ -1421,18 +1421,18 @@ impl Tool {
             if let Some(after_args) = &location.config.shim_after_args {
                 context.after_args = Some(after_args.as_string());
 
-                shim.after_args = match after_args {
+                shim_entry.after_args = match after_args {
                     StringOrVec::String(value) => shell_words::split(value).into_diagnostic()?,
                     StringOrVec::Vec(value) => value.to_owned(),
                 };
             }
 
             if let Some(env_vars) = &location.config.shim_env_vars {
-                shim.env_vars.extend(env_vars.to_owned());
+                shim_entry.env_vars.extend(env_vars.to_owned());
             }
 
             if !location.primary {
-                shim.alt_for = Some(self.id.to_string());
+                shim_entry.alt_for = Some(self.id.to_string());
 
                 // Only use --alt when the secondary executable exists
                 if location.config.exe_path.is_some() {
@@ -1443,7 +1443,7 @@ impl Tool {
             context.create_shim(&location.path, find_only)?;
 
             // Update the registry
-            registry.insert(location.name.clone(), shim);
+            registry.insert(location.name.clone(), shim_entry);
 
             // Add to the event
             event.global.push(location.name);
