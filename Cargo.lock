@@ -2878,9 +2878,9 @@ dependencies = [
 
 [[package]]
 name = "schematic"
-version = "0.12.11"
+version = "0.12.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "377f31e0609d18ee2bc59280fe171ca4fdef8a3833d341b83fc87bdb546a4015"
+checksum = "c5ed74b468686fb5551b8f29c8339dcf0b7ac4e0f475490f6f49f6a2aadcd392"
 dependencies = [
  "garde",
  "indexmap 2.1.0",
@@ -3205,9 +3205,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_archive"
-version = "0.2.4"
+version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "935856c30da2f62a73bcc57eecb5508bedd313287bc0e00e7e7c4b7a07fb5995"
+checksum = "b4a0d1c404d4e987597b018bee76fb8e79937f3b2ab0cf5963ce043031092694"
 dependencies = [
  "flate2",
  "miette",
@@ -3597,9 +3597,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.34.0"
+version = "1.35.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0c014766411e834f7af5b8f4cf46257aab4036ca95e9d2c144a10f59ad6f5b9"
+checksum = "841d45b238a16291a4e1584e61820b8ae57d696cc5015c459c229ccc6990cc1c"
 dependencies = [
  "backtrace",
  "bytes",
