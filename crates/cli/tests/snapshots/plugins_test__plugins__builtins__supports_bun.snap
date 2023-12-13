@@ -1,0 +1,13 @@
+---
+source: crates/cli/tests/plugins_test.rs
+expression: "fs::read_to_string(sandbox.path().join(\".proto/shims/registry.json\")).unwrap()"
+---
+{
+  "bun": {},
+  "bunx": {
+    "alt_for": "bun",
+    "before_args": [
+      "x"
+    ]
+  }
+}
