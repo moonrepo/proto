@@ -12,6 +12,11 @@ pub fn create_shim(source_code: &[u8], shim_path: &Path, find_only: bool) -> mie
         return Ok(());
     }
 
+    // Remove the original executable otherwise we get a "text file busy" error
+    // @see https://groups.google.com/g/comp.unix.programmer/c/pUNlGCwJHK4?pli=1
+    fs::remove_file(shim_path)?;
+
+    // Then create the shim with the executable's source code
     fs::write_file(shim_path, source_code)?;
     fs::update_perms(shim_path, None)?;
 

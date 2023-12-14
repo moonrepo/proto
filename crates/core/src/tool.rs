@@ -1397,17 +1397,17 @@ impl Tool {
         // It's faster and safer to read the data here and write all shims later.
         // Otherwise we run the risk of "file busy" concurrency errors.
         let shim_file = self.proto.find_shim_binary()?;
+        let mut shim_binary = vec![];
 
-        let shim_binary =
-            fs::lock_file_exclusive(&shim_file, fs::open_file(&shim_file)?, |file| {
-                let mut buffer = vec![];
-                file.read_to_end(&mut buffer)
-                    .map_err(|error| fs::FsError::Read {
-                        path: shim_file.to_path_buf(),
-                        error,
-                    })?;
-                Ok(buffer)
-            })?;
+        fs::lock_file_exclusive(&shim_file, fs::open_file(&shim_file)?, |file| {
+            file.read_to_end(&mut shim_binary)
+                .map_err(|error| fs::FsError::Read {
+                    path: shim_file.to_path_buf(),
+                    error,
+                })?;
+
+            Ok(())
+        })?;
 
         for location in shims {
             let mut shim_entry = Shim::default();
