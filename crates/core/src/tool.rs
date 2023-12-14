@@ -8,7 +8,7 @@ use crate::host_funcs::{create_host_functions, HostData};
 use crate::proto::ProtoEnvironment;
 use crate::proto_config::ProtoConfig;
 use crate::shim_registry::{Shim, ShimRegistry, ShimsMap};
-use crate::shimmer::{get_shim_file_names, ShimContext, SHIM_VERSION};
+use crate::shimmer::{create_shim, get_shim_file_name, SHIM_VERSION};
 use crate::tool_manifest::{ToolManifest, ToolManifestVersion};
 use crate::version_resolver::VersionResolver;
 use extism::{manifest::Wasm, Manifest as PluginManifest};
@@ -1160,15 +1160,6 @@ impl Tool {
 // BINARIES, SHIMS
 
 impl Tool {
-    /// Create the context object required for creating shim files.
-    pub fn create_shim_context(&self) -> ShimContext {
-        ShimContext {
-            bin: &self.id,
-            tool_id: &self.id,
-            ..ShimContext::default()
-        }
-    }
-
     /// Create all executables for the current tool.
     /// - Locate the primary binary to execute.
     /// - Generate shims to `~/.proto/shims`.
@@ -1266,14 +1257,12 @@ impl Tool {
 
         let mut add = |name: &str, config: ExecutableConfig, primary: bool| {
             if !config.no_shim {
-                for shim_name in get_shim_file_names(name) {
-                    locations.push(ExecutableLocation {
-                        path: self.proto.shims_dir.join(shim_name),
-                        name: name.to_owned(),
-                        config: config.clone(),
-                        primary,
-                    });
-                }
+                locations.push(ExecutableLocation {
+                    path: self.proto.shims_dir.join(get_shim_file_name(name)),
+                    name: name.to_owned(),
+                    config: config.clone(),
+                    primary,
+                });
             }
         };
 
@@ -1404,31 +1393,28 @@ impl Tool {
         let mut registry: ShimsMap = BTreeMap::new();
         registry.insert(self.id.to_string(), Shim::default());
 
+        let shim_binary = self.proto.find_shim_binary()?;
+
         for location in shims {
             let mut shim_entry = Shim::default();
-            let mut context = self.create_shim_context();
 
             // Handle before and after args
-            if let Some(before_args) = &location.config.shim_before_args {
-                context.before_args = Some(before_args.as_string());
-
+            if let Some(before_args) = location.config.shim_before_args {
                 shim_entry.before_args = match before_args {
-                    StringOrVec::String(value) => shell_words::split(value).into_diagnostic()?,
-                    StringOrVec::Vec(value) => value.to_owned(),
+                    StringOrVec::String(value) => shell_words::split(&value).into_diagnostic()?,
+                    StringOrVec::Vec(value) => value,
                 };
             }
 
-            if let Some(after_args) = &location.config.shim_after_args {
-                context.after_args = Some(after_args.as_string());
-
+            if let Some(after_args) = location.config.shim_after_args {
                 shim_entry.after_args = match after_args {
-                    StringOrVec::String(value) => shell_words::split(value).into_diagnostic()?,
-                    StringOrVec::Vec(value) => value.to_owned(),
+                    StringOrVec::String(value) => shell_words::split(&value).into_diagnostic()?,
+                    StringOrVec::Vec(value) => value,
                 };
             }
 
-            if let Some(env_vars) = &location.config.shim_env_vars {
-                shim_entry.env_vars.extend(env_vars.to_owned());
+            if let Some(env_vars) = location.config.shim_env_vars {
+                shim_entry.env_vars.extend(env_vars);
             }
 
             if !location.primary {
@@ -1436,17 +1422,24 @@ impl Tool {
 
                 // Only use --alt when the secondary executable exists
                 if location.config.exe_path.is_some() {
-                    context.alt_bin = Some(&location.name);
+                    // context.alt_bin = Some(&location.name);
                 }
             }
 
-            context.create_shim(&location.path, find_only)?;
+            // Create the shim file by copying the source bin
+            create_shim(&shim_binary, &location.path, find_only)?;
 
             // Update the registry
             registry.insert(location.name.clone(), shim_entry);
 
             // Add to the event
             event.global.push(location.name);
+
+            debug!(
+                tool = self.id.as_str(),
+                shim = ?location.path,
+                "Creating shim"
+            );
         }
 
         self.on_created_shims.emit(event).await?;

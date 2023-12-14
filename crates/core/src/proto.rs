@@ -1,6 +1,6 @@
 use crate::helpers::{get_home_dir, get_proto_home, is_offline};
 use crate::proto_config::{ProtoConfig, ProtoConfigManager};
-use crate::{ProtoConfigFile, PROTO_CONFIG_NAME};
+use crate::{ProtoConfigFile, ProtoError, PROTO_CONFIG_NAME};
 use once_cell::sync::OnceCell;
 use std::collections::BTreeMap;
 use std::env;
@@ -56,6 +56,46 @@ impl ProtoEnvironment {
             plugin_loader: Arc::new(OnceCell::new()),
             test_mode: false,
         })
+    }
+
+    pub fn find_shim_binary(&self) -> miette::Result<PathBuf> {
+        let bin = if cfg!(windows) {
+            "proto-shim.exe"
+        } else {
+            "proto-shim"
+        };
+
+        if let Ok(dir) = env::var("PROTO_INSTALL_DIR") {
+            let file = PathBuf::from(dir).join(bin);
+
+            if file.exists() {
+                return Ok(file);
+            }
+        }
+
+        let file = self.bin_dir.join(bin);
+
+        if file.exists() {
+            return Ok(file);
+        }
+
+        // In development use the debug target
+        #[cfg(debug_assertions)]
+        {
+            if let Ok(dir) = env::var("CARGO_TARGET_DIR") {
+                let file = PathBuf::from(dir).join("debug").join(bin);
+
+                if file.exists() {
+                    return Ok(file);
+                }
+            }
+        }
+
+        return Err(ProtoError::MissingShimBinary {
+            bin_name: bin.to_owned(),
+            bin_dir: self.bin_dir.clone(),
+        }
+        .into());
     }
 
     pub fn get_config_dir(&self, global: bool) -> &Path {
