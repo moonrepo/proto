@@ -59,7 +59,7 @@ tracing = { workspace = true }
 
 # For the shim binary
 ctrlc = "3.4.1"
-serde_json = { workspace = true }
+rust_json = "0.1.5"
 shared_child = "1.0.0"
 sigpipe = "0.1.3"
 

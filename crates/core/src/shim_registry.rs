@@ -3,7 +3,6 @@ use crate::proto::ProtoEnvironment;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
 
-// Keep in sync with crates/cli-shim/src/main.rs
 #[derive(Default, Deserialize, PartialEq, Serialize)]
 #[serde(default)]
 pub struct Shim {
