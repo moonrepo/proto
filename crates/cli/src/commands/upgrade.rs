@@ -111,8 +111,13 @@ pub async fn upgrade(proto: ResourceRef<ProtoResource>) {
             fs::rename(&output_path, &relocate_path)?;
         }
 
+        // If not installed at our standard location
         if let Ok(current_exe) = env::current_exe() {
-            if bin_name == &bin_names[0] && current_exe != output_path {
+            if current_exe != output_path
+                && current_exe
+                    .file_name()
+                    .is_some_and(|name| name == *bin_name)
+            {
                 fs::rename(&current_exe, &relocate_path)?;
             }
         }
@@ -132,7 +137,9 @@ pub async fn upgrade(proto: ResourceRef<ProtoResource>) {
             if input_path.exists() {
                 fs::copy_file(input_path, &output_path)?;
                 fs::update_perms(&output_path, None)?;
+
                 upgraded = true;
+                break;
             }
         }
     }
