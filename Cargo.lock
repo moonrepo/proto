@@ -2445,10 +2445,12 @@ dependencies = [
 name = "proto_cli"
 version = "0.25.1"
 dependencies = [
+ "anyhow",
  "chrono",
  "clap 4.4.11",
  "clap_complete",
  "convert_case",
+ "ctrlc",
  "dialoguer",
  "dirs 5.0.1",
  "futures",
@@ -2463,6 +2465,9 @@ dependencies = [
  "rustls-webpki",
  "semver",
  "serde",
+ "serde_json",
+ "shared_child",
+ "sigpipe",
  "starbase",
  "starbase_archive",
  "starbase_sandbox",
@@ -2473,19 +2478,6 @@ dependencies = [
  "tokio",
  "tracing",
  "winreg 0.52.0",
-]
-
-[[package]]
-name = "proto_cli_shim"
-version = "0.25.0"
-dependencies = [
- "ctrlc",
- "dirs 5.0.1",
- "serde",
- "serde_json",
- "shared_child",
- "sigpipe",
- "starbase",
 ]
 
 [[package]]
