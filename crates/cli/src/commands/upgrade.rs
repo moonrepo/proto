@@ -87,54 +87,73 @@ pub async fn upgrade(proto: ResourceRef<ProtoResource>) {
     // Unpack the downloaded file
     Archiver::new(&temp_dir, &temp_file).unpack_from_ext()?;
 
-    // Move the old binary
-    let bin_name = if cfg!(windows) { "proto.exe" } else { "proto" };
-
-    let bin_path = match env::var("PROTO_INSTALL_DIR") {
-        Ok(dir) => PathBuf::from(dir).join(bin_name),
-        Err(_) => proto.env.bin_dir.join(bin_name),
+    // Move the old binaries
+    let bin_names = if cfg!(windows) {
+        vec!["proto.exe", "proto-shim.exe"]
+    } else {
+        vec!["proto", "proto-shim"]
+    };
+    let bin_dir = match env::var("PROTO_INSTALL_DIR") {
+        Ok(dir) => PathBuf::from(dir),
+        Err(_) => proto.env.bin_dir.clone(),
     };
 
-    let relocate_path = proto
-        .env
-        .tools_dir
-        .join("proto")
-        .join(current_version)
-        .join(bin_name);
+    for bin_name in &bin_names {
+        let output_path = bin_dir.join(bin_name);
+        let relocate_path = proto
+            .env
+            .tools_dir
+            .join("proto")
+            .join(current_version)
+            .join(bin_name);
 
-    if bin_path.exists() {
-        fs::rename(&bin_path, &relocate_path)?;
-    }
+        if output_path.exists() {
+            fs::rename(&output_path, &relocate_path)?;
+        }
 
-    if let Ok(current_exe) = env::current_exe() {
-        if current_exe != bin_path {
-            fs::rename(&current_exe, &relocate_path)?;
+        // If not installed at our standard location
+        if let Ok(current_exe) = env::current_exe() {
+            if current_exe != output_path
+                && current_exe
+                    .file_name()
+                    .is_some_and(|name| name == *bin_name)
+            {
+                fs::rename(&current_exe, &relocate_path)?;
+            }
         }
     }
 
     // Move the new binary to the bins directory
-    let lookup_paths = vec![
-        PathBuf::from(target_file).join(bin_name),
-        PathBuf::from(bin_name),
-    ];
+    let mut upgraded = false;
 
-    for lookup_path in lookup_paths {
-        let possible_bin_path = temp_dir.join(lookup_path);
+    for bin_name in &bin_names {
+        let output_path = bin_dir.join(bin_name);
+        let input_paths = vec![
+            temp_dir.join(&target_file).join(bin_name),
+            temp_dir.join(bin_name),
+        ];
 
-        if possible_bin_path.exists() {
-            fs::copy_file(possible_bin_path, &bin_path)?;
-            fs::update_perms(&bin_path, None)?;
+        for input_path in input_paths {
+            if input_path.exists() {
+                fs::copy_file(input_path, &output_path)?;
+                fs::update_perms(&output_path, None)?;
 
-            fs::remove(temp_dir)?;
-            fs::remove(temp_file)?;
-
-            info!("Upgraded proto to v{}!", latest_version);
-
-            return Ok(());
+                upgraded = true;
+                break;
+            }
         }
     }
 
+    fs::remove(temp_dir)?;
+    fs::remove(temp_file)?;
+
+    if upgraded {
+        info!("Upgraded proto to v{}!", latest_version);
+
+        return Ok(());
+    }
+
     Err(ProtoCliError::UpgradeFailed {
-        bin: bin_name.to_owned(),
+        bin: bin_names[0].to_owned(),
     })?;
 }

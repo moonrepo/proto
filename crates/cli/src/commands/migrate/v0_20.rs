@@ -31,7 +31,13 @@ pub async fn migrate(proto: &ProtoResource) -> SystemResult {
         let path = file.path();
         let name = fs::file_name(&path);
 
-        if name == "proto" || name == "proto.exe" || name == "moon" || name == "moon.exe" {
+        if name == "proto"
+            || name == "proto.exe"
+            || name == "proto-shim"
+            || name == "proto-shim.exe"
+            || name == "moon"
+            || name == "moon.exe"
+        {
             continue;
         }
 
