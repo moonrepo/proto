@@ -1,3 +1,7 @@
+// NOTE: We want to keep the shim binary as lean as possible,
+// so these imports use std as much as possible, and should
+// not pull in large libraries (tracing is already enough)!
+
 use serde::Deserialize;
 use shared_child::SharedChild;
 use starbase::diagnostics::{self, miette, IntoDiagnostic, Result};
