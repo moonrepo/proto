@@ -73,20 +73,22 @@ impl ToolManifest {
 
         manifest.path = path.to_owned();
 
-        #[allow(deprecated)]
-        if !manifest.aliases.is_empty() {
-            warn!(
-                "Found legacy aliases in tool manifest, please run {} to migrate them",
-                color::shell("proto migrate v0.24")
-            );
-        }
+        if env::var("PROTO_IGNORE_MIGRATE_WARNING").is_err() {
+            #[allow(deprecated)]
+            if !manifest.aliases.is_empty() {
+                warn!(
+                    "Found legacy aliases in tool manifest, please run {} to migrate them",
+                    color::shell("proto migrate v0.24")
+                );
+            }
 
-        #[allow(deprecated)]
-        if manifest.default_version.is_some() {
-            warn!(
-                "Found legacy global version in tool manifest, please run {} to migrate it",
-                color::shell("proto migrate v0.24")
-            );
+            #[allow(deprecated)]
+            if manifest.default_version.is_some() {
+                warn!(
+                    "Found legacy global version in tool manifest, please run {} to migrate it",
+                    color::shell("proto migrate v0.24")
+                );
+            }
         }
 
         Ok(manifest)
