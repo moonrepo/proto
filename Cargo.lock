@@ -2460,12 +2460,12 @@ dependencies = [
  "proto_core",
  "proto_pdk_api",
  "reqwest",
+ "rust_json",
  "rustls",
  "rustls-pemfile",
  "rustls-webpki",
  "semver",
  "serde",
- "serde_json",
  "shared_child",
  "sigpipe",
  "starbase",
@@ -2788,6 +2788,12 @@ dependencies = [
  "rmp",
  "serde",
 ]
+
+[[package]]
+name = "rust_json"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "540c69f089252cacc268b7f273cfcd4ddeeae2d961936e43baa1311ab1c17388"
 
 [[package]]
 name = "rustc-demangle"

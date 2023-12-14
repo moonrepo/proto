@@ -3,25 +3,15 @@
 // not pull in large libraries (tracing is already enough)!
 
 use anyhow::{anyhow, Result};
-use serde::Deserialize;
+use rust_json::{json_parse, JsonElem as Json};
 use shared_child::SharedChild;
 use starbase::tracing::{self, trace, TracingOptions};
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 use std::io::{IsTerminal, Read, Write};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::Arc;
 use std::{env, fs, io, process};
-
-// Keep in sync with crates/core/src/shim_registry.rs
-#[derive(Default, Deserialize)]
-#[serde(default)]
-struct Shim {
-    after_args: Vec<String>,
-    alt_for: Option<String>,
-    before_args: Vec<String>,
-    env_vars: HashMap<String, String>,
-}
 
 fn get_proto_home() -> Result<PathBuf> {
     if let Ok(root) = env::var("PROTO_HOME") {
@@ -34,30 +24,52 @@ fn get_proto_home() -> Result<PathBuf> {
     Ok(home_dir.join(".proto"))
 }
 
-fn create_command(mut args: VecDeque<String>, shim_name: &str) -> Result<Command> {
-    let shims_path = get_proto_home()?.join("shims/registry.json");
-    let mut shim = Shim::default();
+fn create_command(args: Vec<String>, shim_name: &str) -> Result<Command> {
+    let registry_path = get_proto_home()?.join("shims/registry.json");
+    let mut shim = Json::Object(HashMap::default());
 
     // Load the shims registry if it exists
-    if shims_path.exists() {
-        let file = fs::read(shims_path)?;
-        let mut shims: HashMap<String, Shim> = serde_json::from_slice(&file)?;
+    if registry_path.exists() {
+        let file = fs::read_to_string(registry_path)?;
+        let mut registry = json_parse(&file).unwrap_or(Json::Null);
 
-        if shims.contains_key(shim_name) {
-            shim = shims.remove(shim_name).unwrap();
+        if let Json::Object(shims) = &mut registry {
+            if let Some(shim_entry) = shims.remove(shim_name) {
+                if shim_entry.is_object() {
+                    shim = shim_entry;
+                }
+            }
         }
     }
 
     // Determine args to pass to the underlying binary
     let mut passthrough_args = vec![];
-    passthrough_args.extend(shim.before_args);
 
-    if args.len() > 1 {
-        args.pop_front(); // The exe
-        passthrough_args.extend(args);
+    if let Json::Array(before_args) = &shim["before_args"] {
+        for arg in before_args {
+            if let Json::Str(arg) = arg {
+                passthrough_args.push(arg);
+            }
+        }
     }
 
-    passthrough_args.extend(shim.after_args);
+    if args.len() > 1 {
+        for (i, arg) in args.iter().enumerate() {
+            if i == 0 {
+                continue; // The exe
+            }
+
+            passthrough_args.push(arg);
+        }
+    }
+
+    if let Json::Array(after_args) = &shim["after_args"] {
+        for arg in after_args {
+            if let Json::Str(arg) = arg {
+                passthrough_args.push(arg);
+            }
+        }
+    }
 
     // Create a command for local testing
     // let mut command = Command::new("node");
@@ -66,7 +78,7 @@ fn create_command(mut args: VecDeque<String>, shim_name: &str) -> Result<Command
     // Create the command and handle alternate logic
     let mut command = Command::new(if cfg!(windows) { "proto.exe" } else { "proto" });
 
-    if let Some(alt_for) = &shim.alt_for {
+    if let Json::Str(alt_for) = &shim["alt_for"] {
         command.args(["run", alt_for, "--alt", shim_name]);
     } else {
         command.args(["run", shim_name]);
@@ -77,7 +89,13 @@ fn create_command(mut args: VecDeque<String>, shim_name: &str) -> Result<Command
         command.args(passthrough_args);
     }
 
-    command.envs(shim.env_vars);
+    if let Json::Object(env_vars) = &shim["env_vars"] {
+        for (env, value) in env_vars {
+            if let Json::Str(var) = value {
+                command.env(env, var);
+            }
+        }
+    }
 
     Ok(command)
 }
@@ -96,7 +114,7 @@ pub fn main() -> Result<()> {
     });
 
     // Extract arguments to pass-through
-    let args = env::args().collect::<VecDeque<_>>();
+    let args = env::args().collect::<Vec<_>>();
     let exe_path = env::current_exe().unwrap_or_else(|_| PathBuf::from(&args[0]));
 
     let shim_name = exe_path
