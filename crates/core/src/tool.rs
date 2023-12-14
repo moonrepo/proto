@@ -1394,7 +1394,9 @@ impl Tool {
         let mut registry: ShimsMap = BTreeMap::new();
         registry.insert(self.id.to_string(), Shim::default());
 
-        let shim_binary = self.proto.find_shim_binary()?;
+        // It's faster and safer to read the data here and write all shims later.
+        // Otherwise we run the risk of "file busy" concurrency errors.
+        let shim_binary = fs::read_file_bytes(self.proto.find_shim_binary()?)?;
 
         for location in shims {
             let mut shim_entry = Shim::default();

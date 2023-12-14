@@ -7,12 +7,12 @@ pub const SHIM_VERSION: u8 = 0;
 #[cfg(not(debug_assertions))]
 pub const SHIM_VERSION: u8 = 11;
 
-pub fn create_shim(source_path: &Path, shim_path: &Path, find_only: bool) -> miette::Result<()> {
+pub fn create_shim(source_code: &[u8], shim_path: &Path, find_only: bool) -> miette::Result<()> {
     if find_only && shim_path.exists() {
         return Ok(());
     }
 
-    fs::copy_file(source_path, shim_path)?;
+    fs::write_file(shim_path, source_code)?;
     fs::update_perms(shim_path, None)?;
 
     Ok(())

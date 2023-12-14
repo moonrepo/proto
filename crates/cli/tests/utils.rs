@@ -45,7 +45,7 @@ pub fn create_shim_command<T: AsRef<Path>>(path: T, name: &str) -> assert_cmd::C
     let path = path.as_ref();
 
     let mut cmd = assert_cmd::Command::new(path.join(".proto/shims").join(if cfg!(windows) {
-        format!("{name}.cmd")
+        format!("{name}.exe")
     } else {
         name.to_owned()
     }));

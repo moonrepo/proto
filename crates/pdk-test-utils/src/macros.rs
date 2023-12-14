@@ -202,23 +202,27 @@ macro_rules! generate_shims_test {
 
             plugin.tool.generate_shims(false).await.unwrap();
 
-            starbase_sandbox::assert_snapshot!(std::fs::read_to_string(
+            assert!(
                 sandbox.path().join(".proto/shims").join(if cfg!(windows) {
-                    format!("{}.cmd", $id)
+                    format!("{}.exe", $id)
                 } else {
                     $id.to_string()
-                })
-            ).unwrap());
+                }).exists()
+            );
 
             $(
-                starbase_sandbox::assert_snapshot!(std::fs::read_to_string(
+                assert!(
                     sandbox.path().join(".proto/shims").join(if cfg!(windows) {
-                        format!("{}.cmd", $bin)
+                        format!("{}.exe", $bin)
                     } else {
                         $bin.to_string()
-                    })
-                ).unwrap());
+                    }).exists()
+                );
             )*
+
+            starbase_sandbox::assert_snapshot!(std::fs::read_to_string(
+                sandbox.path().join(".proto/shims/registry.json")
+            ).unwrap());
         }
     };
 }

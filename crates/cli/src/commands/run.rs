@@ -24,9 +24,6 @@ pub struct RunArgs {
     #[arg(long, help = "Name of an alternate (secondary) binary to run")]
     alt: Option<String>,
 
-    #[arg(long, help = "Path to a tool directory relative file to run")]
-    bin: Option<String>,
-
     // Passthrough args (after --)
     #[arg(
         last = true,
@@ -55,26 +52,6 @@ fn is_trying_to_self_upgrade(tool: &Tool, args: &[String]) -> bool {
 
 fn get_executable(tool: &Tool, args: &RunArgs) -> miette::Result<ExecutableConfig> {
     let tool_dir = tool.get_tool_dir();
-
-    // Run a file relative from the tool directory
-    if let Some(alt_bin) = &args.bin {
-        let alt_path = tool_dir.join(alt_bin);
-
-        debug!(bin = alt_bin, path = ?alt_path, "Received a relative binary to run with");
-
-        if alt_path.exists() {
-            return Ok(ExecutableConfig {
-                exe_path: Some(alt_path),
-                ..ExecutableConfig::default()
-            });
-        } else {
-            return Err(ProtoCliError::MissingRunAltBin {
-                bin: alt_bin.to_owned(),
-                path: alt_path,
-            }
-            .into());
-        }
-    }
 
     // Run an alternate executable (via shim)
     if let Some(alt_name) = &args.alt {
@@ -130,40 +107,8 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
         .map(|arg| arg.as_ref().to_os_string())
         .collect::<Vec<_>>();
 
-    // TODO replace with new shim logic
-    let command = if let Some(parent_exe) = &exe_config.parent_exe_name {
-        #[allow(unused_mut)]
-        let mut parent_exe_path = parent_exe.to_owned();
-        let mut exe_args = vec![];
-
-        // Avoid using parent shims on Windows because Windows shims are very brittle.
-        // For example, if we execute "npm serve", this becomes "node ~/npm.js serve",
-        // which results in "node" becoming "node.cmd" because of `PATH` resolution,
-        // and .cmd files do not handle signals/pipes correctly.
-        #[cfg(windows)]
-        if !parent_exe.ends_with(".exe") {
-            use std::ffi::OsString;
-
-            let config = tool.proto.load_config()?;
-
-            // Attempt to use `proto run <tool>` first instead of a hard-coded .exe.
-            // This way we rely on proto's executable discovery functionality.
-            if config.plugins.contains_key(parent_exe)
-                && tool.proto.tools_dir.join(parent_exe).exists()
-            {
-                parent_exe_path = "proto.exe".to_owned();
-
-                exe_args.push(OsString::from("run"));
-                exe_args.push(OsString::from(parent_exe));
-                exe_args.push(OsString::from("--"));
-            }
-            // Otherwise use a hard-coded .exe and rely on OS path resolution.
-            else {
-                parent_exe_path = format!("{parent_exe}.exe");
-            }
-        }
-
-        exe_args.push(exe_path.as_os_str().to_os_string());
+    let command = if let Some(parent_exe_path) = &exe_config.parent_exe_name {
+        let mut exe_args = vec![exe_path.as_os_str().to_os_string()];
         exe_args.extend(args);
 
         debug!(bin = ?parent_exe_path, args = ?exe_args, "Running {}", tool.get_name());
