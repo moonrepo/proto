@@ -1,6 +1,10 @@
 use starbase_utils::fs;
 use std::path::Path;
 
+#[cfg(debug_assertions)]
+pub const SHIM_VERSION: u8 = 0;
+
+#[cfg(not(debug_assertions))]
 pub const SHIM_VERSION: u8 = 11;
 
 pub fn create_shim(source_path: &Path, shim_path: &Path, find_only: bool) -> miette::Result<()> {

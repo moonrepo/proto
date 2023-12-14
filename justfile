@@ -7,6 +7,9 @@ init:
 build:
 	cargo build --workspace
 
+build-shim:
+	cargo build --bin proto-shim
+
 build-wasm:
 	cd plugins && cargo wasi build
 

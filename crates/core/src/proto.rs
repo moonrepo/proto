@@ -1,6 +1,6 @@
+use crate::error::ProtoError;
 use crate::helpers::{get_home_dir, get_proto_home, is_offline};
-use crate::proto_config::{ProtoConfig, ProtoConfigManager};
-use crate::{ProtoConfigFile, ProtoError, PROTO_CONFIG_NAME};
+use crate::proto_config::{ProtoConfig, ProtoConfigFile, ProtoConfigManager, PROTO_CONFIG_NAME};
 use once_cell::sync::OnceCell;
 use std::collections::BTreeMap;
 use std::env;
@@ -65,6 +65,18 @@ impl ProtoEnvironment {
             "proto-shim"
         };
 
+        // In development use the debug target
+        #[cfg(any(debug_assertions, test))]
+        {
+            if let Ok(dir) = env::var("CARGO_TARGET_DIR") {
+                let file = PathBuf::from(dir).join("debug").join(bin);
+
+                if file.exists() {
+                    return Ok(file);
+                }
+            }
+        }
+
         if let Ok(dir) = env::var("PROTO_INSTALL_DIR") {
             let file = PathBuf::from(dir).join(bin);
 
@@ -77,18 +89,6 @@ impl ProtoEnvironment {
 
         if file.exists() {
             return Ok(file);
-        }
-
-        // In development use the debug target
-        #[cfg(debug_assertions)]
-        {
-            if let Ok(dir) = env::var("CARGO_TARGET_DIR") {
-                let file = PathBuf::from(dir).join("debug").join(bin);
-
-                if file.exists() {
-                    return Ok(file);
-                }
-            }
         }
 
         Err(ProtoError::MissingShimBinary {

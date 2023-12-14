@@ -54,6 +54,7 @@ jobs:
         with:
           bins: cargo-wasi, cargo-nextest, just
           cache-base: "^(master|develop-)"
+      - run: just build-shim
       - if: ${{ runner.os != 'Windows' }}
         run: just build-wasm
         env:
