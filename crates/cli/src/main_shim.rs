@@ -2,9 +2,9 @@
 // so these imports use std as much as possible, and should
 // not pull in large libraries (tracing is already enough)!
 
+use anyhow::{anyhow, Result};
 use serde::Deserialize;
 use shared_child::SharedChild;
-use starbase::diagnostics::{self, miette, IntoDiagnostic, Result};
 use starbase::tracing::{self, trace, TracingOptions};
 use std::collections::{HashMap, VecDeque};
 use std::io::{IsTerminal, Read, Write};
@@ -28,12 +28,8 @@ fn get_proto_home() -> Result<PathBuf> {
         return Ok(root.into());
     }
 
-    let home_dir = dirs::home_dir().ok_or_else(|| {
-        miette!(
-            code = "proto::unknown_home_dir",
-            "Unable to determine user home directory."
-        )
-    })?;
+    let home_dir =
+        dirs::home_dir().ok_or_else(|| anyhow!("Unable to determine user home directory."))?;
 
     Ok(home_dir.join(".proto"))
 }
@@ -44,8 +40,8 @@ fn create_command(mut args: VecDeque<String>, shim_name: &str) -> Result<Command
 
     // Load the shims registry if it exists
     if shims_path.exists() {
-        let file = fs::read(shims_path).into_diagnostic()?;
-        let mut shims: HashMap<String, Shim> = serde_json::from_slice(&file).into_diagnostic()?;
+        let file = fs::read(shims_path)?;
+        let mut shims: HashMap<String, Shim> = serde_json::from_slice(&file)?;
 
         if shims.contains_key(shim_name) {
             shim = shims.remove(shim_name).unwrap();
@@ -88,7 +84,6 @@ fn create_command(mut args: VecDeque<String>, shim_name: &str) -> Result<Command
 
 pub fn main() -> Result<()> {
     sigpipe::reset();
-    diagnostics::setup_miette();
 
     // Setup tracing and pass log level down
     let log_level = env::var("PROTO_LOG").unwrap_or_else(|_| "info".into());
@@ -113,8 +108,7 @@ pub fn main() -> Result<()> {
     trace!(args = ?args, shim = ?exe_path, "Running {} shim", shim_name);
 
     if shim_name.is_empty() || shim_name.contains("proto-shim") {
-        return Err(miette!(
-            code = "proto::invalid_shim",
+        return Err(anyhow!(
             "Invalid shim name detected. Unable to execute the appropriate proto tool.\nPlease refer to the documentation or ask for support on Discord."
         ));
     }
@@ -127,7 +121,7 @@ pub fn main() -> Result<()> {
         // Only read piped data when stdin is not a TTY,
         // otherwise the process will hang indefinitely waiting for EOF
         if !stdin.is_terminal() {
-            stdin.read_to_string(&mut buffer).into_diagnostic()?;
+            stdin.read_to_string(&mut buffer)?;
         }
 
         buffer
@@ -145,7 +139,7 @@ pub fn main() -> Result<()> {
     // Spawn a shareable child process
     trace!("Spawning proto child process");
 
-    let shared_child = SharedChild::spawn(&mut command).into_diagnostic()?;
+    let shared_child = SharedChild::spawn(&mut command)?;
     let child = Arc::new(shared_child);
     let child_clone = Arc::clone(&child);
 
@@ -153,20 +147,18 @@ pub fn main() -> Result<()> {
     ctrlc::set_handler(move || {
         trace!("Received CTRL+C, killing child process");
         let _ = child_clone.kill();
-    })
-    .into_diagnostic()?;
+    })?;
 
     // If we have piped data, pass it through
     if has_piped_stdin {
         if let Some(mut stdin) = child.take_stdin() {
             trace!(input, "Received piped input, passing through");
-
-            stdin.write_all(input.as_bytes()).into_diagnostic()?;
+            stdin.write_all(input.as_bytes())?;
         }
     }
 
     // Wait for the process to finish or be killed
-    let status = child.wait().into_diagnostic()?;
+    let status = child.wait()?;
     let code = status.code().unwrap_or(0);
 
     trace!(code, "Received exit code");

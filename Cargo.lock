@@ -2445,6 +2445,7 @@ dependencies = [
 name = "proto_cli"
 version = "0.25.1"
 dependencies = [
+ "anyhow",
  "chrono",
  "clap 4.4.11",
  "clap_complete",
