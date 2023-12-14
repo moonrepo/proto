@@ -1409,6 +1409,8 @@ impl Tool {
             Ok(())
         })?;
 
+        dbg!(&shim_file, shim_binary.len());
+
         for location in shims {
             let mut shim_entry = Shim::default();
 

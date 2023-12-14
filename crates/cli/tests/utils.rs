@@ -50,6 +50,7 @@ pub fn create_shim_command<T: AsRef<Path>>(path: T, name: &str) -> assert_cmd::C
         name.to_owned()
     }));
     cmd.timeout(std::time::Duration::from_secs(240));
+    cmd.env("PROTO_LOG", "trace");
     cmd.env("PROTO_HOME", path.join(".proto"));
     cmd.env("PROTO_NODE_VERSION", "latest"); // For package managers
     cmd.env(format!("PROTO_{}_VERSION", name.to_uppercase()), "latest");
