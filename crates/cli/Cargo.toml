@@ -15,6 +15,7 @@ keywords = [
 ]
 categories = ["development-tools"]
 readme = "../../README.md"
+default-run = "proto"
 
 [package.metadata.release]
 pre-release-replacements = [
