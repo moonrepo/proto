@@ -54,10 +54,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: moonrepo/setup-rust@v1
         with:
-          cache: false
+          bins: cargo-release
+          cache-base: master
       - name: Setup toolchain
         if: ${{ matrix.setup }}
         run: ${{ matrix.setup }}
+      - name: Bump versions
+        run: cargo release version minor --execute --workspace --no-confirm --verbose
       - name: Build binary
         run: |
           rustup target add ${{ matrix.target }}
