@@ -24,6 +24,39 @@ fn get_proto_home() -> Result<PathBuf> {
     Ok(home_dir.join(".proto"))
 }
 
+fn get_proto_binary() -> PathBuf {
+    let bin_name = if cfg!(windows) { "proto.exe" } else { "proto" };
+
+    // When in development, ensure we're using the target built proto,
+    // and not the proto available globally on `PATH`.
+    #[cfg(any(debug_assertions, test))]
+    {
+        let mut lookup_dirs = vec![];
+
+        if let Ok(dir) = env::var("CARGO_TARGET_DIR") {
+            lookup_dirs.push(PathBuf::from(dir).join("debug"));
+        }
+
+        if let Ok(dir) = env::var("GITHUB_WORKSPACE") {
+            lookup_dirs.push(PathBuf::from(dir).join("target/debug"));
+        }
+
+        if let Ok(dir) = env::current_dir() {
+            lookup_dirs.push(PathBuf::from(dir).join("target/debug"));
+        }
+
+        for lookup_dir in lookup_dirs {
+            let bin = lookup_dir.join(bin_name);
+
+            if bin.exists() {
+                return bin;
+            }
+        }
+    }
+
+    PathBuf::from(bin_name)
+}
+
 fn create_command(args: Vec<String>, shim_name: &str) -> Result<Command> {
     let registry_path = get_proto_home()?.join("shims/registry.json");
     let mut shim = Json::Object(HashMap::default());
@@ -76,7 +109,7 @@ fn create_command(args: Vec<String>, shim_name: &str) -> Result<Command> {
     // command.arg("./docs/shim-test.mjs");
 
     // Create the command and handle alternate logic
-    let mut command = Command::new(if cfg!(windows) { "proto.exe" } else { "proto" });
+    let mut command = Command::new(get_proto_binary());
 
     if let Json::Str(parent_name) = &shim["parent"] {
         command.args(["run", parent_name]);

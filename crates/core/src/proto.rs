@@ -72,11 +72,13 @@ impl ProtoEnvironment {
         {
             if let Ok(dir) = env::var("CARGO_TARGET_DIR") {
                 lookup_dirs.push(PathBuf::from(dir).join("debug"));
-            } else if let Ok(dir) = env::var("GITHUB_WORKSPACE") {
-                lookup_dirs.push(PathBuf::from(dir).join("target/debug"));
-            } else {
-                lookup_dirs.push(self.cwd.join("target/debug"));
             }
+
+            if let Ok(dir) = env::var("GITHUB_WORKSPACE") {
+                lookup_dirs.push(PathBuf::from(dir).join("target/debug"));
+            }
+
+            lookup_dirs.push(self.cwd.join("target/debug"));
         }
 
         if let Ok(dir) = env::var("PROTO_INSTALL_DIR") {
