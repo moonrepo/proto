@@ -78,8 +78,12 @@ fn create_command(args: Vec<String>, shim_name: &str) -> Result<Command> {
     // Create the command and handle alternate logic
     let mut command = Command::new(if cfg!(windows) { "proto.exe" } else { "proto" });
 
-    if let Json::Str(alt_for) = &shim["alt_for"] {
-        command.args(["run", alt_for, "--alt", shim_name]);
+    if let Json::Str(parent_name) = &shim["parent"] {
+        command.args(["run", parent_name]);
+
+        if matches!(shim["alt_bin"], Json::Bool(true)) {
+            command.args(["--alt", shim_name]);
+        }
     } else {
         command.args(["run", shim_name]);
     }

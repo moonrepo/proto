@@ -65,7 +65,9 @@ jobs:
         env:
           RUST_BACKTRACE: 1
       - name: Rename binary
-        run: mv ./target/${{ matrix.target }}/release/proto${{ matrix.ext }} ./proto-${{ matrix.target }}${{ matrix.ext }}
+        run: |
+          mv ./target/${{ matrix.target }}/release/proto${{ matrix.ext }} ./proto-${{ matrix.target }}${{ matrix.ext }}
+          mv ./target/${{ matrix.target }}/release/proto-shim${{ matrix.ext }} ./proto-shim-${{ matrix.target }}${{ matrix.ext }}
       # Canary
       - if: ${{ github.event_name == 'push' && contains(github.ref, 'develop-') }}
         uses: ncipollo/release-action@v1
@@ -73,7 +75,7 @@ jobs:
         with:
           allowUpdates: true
           artifactErrorsFailBuild: true
-          artifacts: proto-${{ matrix.target }}${{ matrix.ext }}
+          artifacts: proto-${{ matrix.target }}${{ matrix.ext }},proto-shim-${{ matrix.target }}${{ matrix.ext }}
           body: "This canary release corresponds to the commit [${{ github.sha }}]."
           name: "Canary"
           tag: "canary"
@@ -87,7 +89,7 @@ jobs:
         with:
           allowUpdates: true
           artifactErrorsFailBuild: true
-          artifacts: proto-${{ matrix.target }}${{ matrix.ext }}
+          artifacts: proto-${{ matrix.target }}${{ matrix.ext }},proto-shim-${{ matrix.target }}${{ matrix.ext }}
           body: "This nightly release corresponds to the commit [${{ github.sha }}]."
           name: "Nightly"
           tag: "nightly"
