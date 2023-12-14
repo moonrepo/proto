@@ -130,6 +130,7 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
         .map(|arg| arg.as_ref().to_os_string())
         .collect::<Vec<_>>();
 
+    // TODO replace with new shim logic
     let command = if let Some(parent_exe) = &exe_config.parent_exe_name {
         #[allow(unused_mut)]
         let mut parent_exe_path = parent_exe.to_owned();
