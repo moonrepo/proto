@@ -65,30 +65,30 @@ impl ProtoEnvironment {
             "proto-shim"
         };
 
+        let mut lookup_dirs = vec![];
+
         // In development use the debug target
         #[cfg(any(debug_assertions, test))]
         {
             if let Ok(dir) = env::var("CARGO_TARGET_DIR") {
-                let file = PathBuf::from(dir).join("debug").join(bin);
-
-                if file.exists() {
-                    return Ok(file);
-                }
+                lookup_dirs.push(PathBuf::from(dir).join("debug"));
+            } else {
+                lookup_dirs.push(self.cwd.join("target/debug"));
             }
         }
 
         if let Ok(dir) = env::var("PROTO_INSTALL_DIR") {
-            let file = PathBuf::from(dir).join(bin);
+            lookup_dirs.push(PathBuf::from(dir));
+        }
+
+        lookup_dirs.push(self.bin_dir.clone());
+
+        for lookup_dir in lookup_dirs {
+            let file = lookup_dir.join(bin);
 
             if file.exists() {
                 return Ok(file);
             }
-        }
-
-        let file = self.bin_dir.join(bin);
-
-        if file.exists() {
-            return Ok(file);
         }
 
         Err(ProtoError::MissingShimBinary {
