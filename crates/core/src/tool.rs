@@ -1378,6 +1378,7 @@ impl Tool {
             debug!(
                 tool = self.id.as_str(),
                 shims_dir = ?self.proto.shims_dir,
+                shim_version = SHIM_VERSION,
                 "Creating shims as they either do not exist, or are outdated"
             );
 
@@ -1438,6 +1439,7 @@ impl Tool {
             debug!(
                 tool = self.id.as_str(),
                 shim = ?location.path,
+                shim_version = SHIM_VERSION,
                 "Creating shim"
             );
         }

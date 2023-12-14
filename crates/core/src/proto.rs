@@ -91,11 +91,11 @@ impl ProtoEnvironment {
             }
         }
 
-        return Err(ProtoError::MissingShimBinary {
+        Err(ProtoError::MissingShimBinary {
             bin_name: bin.to_owned(),
             bin_dir: self.bin_dir.clone(),
         }
-        .into());
+        .into())
     }
 
     pub fn get_config_dir(&self, global: bool) -> &Path {
