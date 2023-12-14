@@ -6,7 +6,7 @@ use anyhow::{anyhow, Result};
 use rust_json::{json_parse, JsonElem as Json};
 use shared_child::SharedChild;
 use starbase::tracing::{self, trace, TracingOptions};
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 use std::io::{IsTerminal, Read, Write};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
@@ -24,14 +24,14 @@ fn get_proto_home() -> Result<PathBuf> {
     Ok(home_dir.join(".proto"))
 }
 
-fn create_command(mut args: VecDeque<String>, shim_name: &str) -> Result<Command> {
+fn create_command(args: Vec<String>, shim_name: &str) -> Result<Command> {
     let registry_path = get_proto_home()?.join("shims/registry.json");
     let mut shim = Json::Object(HashMap::default());
 
     // Load the shims registry if it exists
     if registry_path.exists() {
         let file = fs::read_to_string(registry_path)?;
-        let mut registry = json_parse(&file).unwrap(); // TODO
+        let mut registry = json_parse(&file).unwrap_or(Json::Null);
 
         if let Json::Object(shims) = &mut registry {
             if let Some(shim_entry) = shims.remove(shim_name) {
@@ -54,8 +54,13 @@ fn create_command(mut args: VecDeque<String>, shim_name: &str) -> Result<Command
     }
 
     if args.len() > 1 {
-        args.pop_front(); // The exe
-        passthrough_args.extend(args.iter());
+        for (i, arg) in args.iter().enumerate() {
+            if i == 0 {
+                continue; // The exe
+            }
+
+            passthrough_args.push(arg);
+        }
     }
 
     if let Json::Array(after_args) = &shim["after_args"] {
@@ -109,7 +114,7 @@ pub fn main() -> Result<()> {
     });
 
     // Extract arguments to pass-through
-    let args = env::args().collect::<VecDeque<_>>();
+    let args = env::args().collect::<Vec<_>>();
     let exe_path = env::current_exe().unwrap_or_else(|_| PathBuf::from(&args[0]));
 
     let shim_name = exe_path
