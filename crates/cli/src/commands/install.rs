@@ -2,12 +2,14 @@ use super::clean::clean_plugins;
 use super::pin::{internal_pin, PinArgs};
 use crate::helpers::{create_progress_bar, disable_progress_bars, ProtoResource};
 use crate::shell;
+use crate::telemetry::{track_usage, Metric};
 use clap::Args;
 use miette::IntoDiagnostic;
 use proto_core::{Id, PinType, Tool, UnresolvedVersionSpec};
 use proto_pdk_api::{InstallHook, SyncShellProfileInput, SyncShellProfileOutput};
-use starbase::{system, SystemResult};
+use starbase::system;
 use starbase_styles::color;
+use std::collections::HashMap;
 use std::env;
 use tracing::{debug, info};
 
@@ -45,7 +47,7 @@ async fn pin_version(
     tool: &mut Tool,
     initial_version: &UnresolvedVersionSpec,
     global: bool,
-) -> SystemResult {
+) -> miette::Result<bool> {
     let config = tool.proto.load_config()?;
     let mut args = PinArgs {
         id: tool.id.clone(),
@@ -69,10 +71,10 @@ async fn pin_version(
     }
 
     if pin {
-        return internal_pin(tool, &args, true).await;
+        internal_pin(tool, &args, true).await?;
     }
 
-    Ok(())
+    Ok(pin)
 }
 
 pub async fn internal_install(
@@ -153,13 +155,35 @@ pub async fn internal_install(
         return Ok(tool);
     }
 
-    pin_version(&mut tool, &version, args.pin).await?;
+    let pinned = pin_version(&mut tool, &version, args.pin).await?;
 
     info!(
         "{} has been installed to {}!",
         tool.get_name(),
         color::path(tool.get_tool_dir()),
     );
+
+    // Track usage metrics
+    track_usage(
+        &tool.proto,
+        Metric::InstallTool,
+        HashMap::from_iter([
+            ("ToolId".into(), tool.id.to_string()),
+            ("ToolVersion".into(), resolved_version.to_string()),
+            ("ToolVersionCandidate".into(), version.to_string()),
+            (
+                "ToolPinned".into(),
+                if pinned { "true" } else { "false" }.into(),
+            ),
+            (
+                "ToolPlugin".into(),
+                tool.locator
+                    .as_ref()
+                    .map(|loc| loc.to_string())
+                    .unwrap_or_default(),
+            ),
+        ]),
+    )?;
 
     // Run after hook
     tool.run_hook("post_install", || InstallHook {
