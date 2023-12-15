@@ -10,6 +10,18 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added `--include-global` to `proto outdated` to include versions from `~/.proto/.prototools`.
+- Added `--only-local` to `proto outdated` to only checks versions from `.prototools` in current directory.
+- Improved the messaging of `proto outdated`.
+
+#### 🐞 Fixes
+
+- Fixed `proto outdated` checking global versions in `~/.proto/.prototools` by default.
+
 ## 0.25.2
 
 #### ⚙️ Internal
