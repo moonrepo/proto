@@ -8,7 +8,7 @@ use shared_child::SharedChild;
 use starbase::tracing::{self, trace, TracingOptions};
 use std::collections::HashMap;
 use std::io::{IsTerminal, Read, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::Arc;
 use std::{env, fs, io, process};
@@ -24,15 +24,14 @@ fn get_proto_home() -> Result<PathBuf> {
     Ok(home_dir.join(".proto"))
 }
 
-fn get_proto_binary() -> PathBuf {
+fn get_proto_binary(proto_home_dir: &Path, shim_exe_path: &Path) -> PathBuf {
     let bin_name = if cfg!(windows) { "proto.exe" } else { "proto" };
+    let mut lookup_dirs = vec![];
 
     // When in development, ensure we're using the target built proto,
     // and not the proto available globally on `PATH`.
     #[cfg(any(debug_assertions, test))]
     {
-        let mut lookup_dirs = vec![];
-
         if let Ok(dir) = env::var("CARGO_TARGET_DIR") {
             lookup_dirs.push(PathBuf::from(dir).join("debug"));
         }
@@ -44,21 +43,29 @@ fn get_proto_binary() -> PathBuf {
         if let Ok(dir) = env::current_dir() {
             lookup_dirs.push(dir.join("target").join("debug"));
         }
+    }
 
-        for lookup_dir in lookup_dirs {
-            let bin = lookup_dir.join(bin_name);
+    // Check for proto relative to proto-shim
+    lookup_dirs.push(shim_exe_path.parent().unwrap().join(bin_name));
 
-            if bin.exists() {
-                return bin;
-            }
+    // Or in the standard proto locations
+    lookup_dirs.push(proto_home_dir.join("bin").join(bin_name));
+
+    for lookup_dir in lookup_dirs {
+        let bin = lookup_dir.join(bin_name);
+
+        if bin.is_absolute() && bin.exists() {
+            return bin;
         }
     }
 
+    // Otherwise rely on PATH lookup
     PathBuf::from(bin_name)
 }
 
-fn create_command(args: Vec<String>, shim_name: &str) -> Result<Command> {
-    let registry_path = get_proto_home()?.join("shims").join("registry.json");
+fn create_command(args: Vec<String>, shim_name: &str, shim_exe_path: &Path) -> Result<Command> {
+    let proto_home_dir = get_proto_home()?;
+    let registry_path = proto_home_dir.join("shims").join("registry.json");
     let mut shim = Json::Object(HashMap::default());
 
     // Load the shims registry if it exists
@@ -109,7 +116,7 @@ fn create_command(args: Vec<String>, shim_name: &str) -> Result<Command> {
     // command.arg("./docs/shim-test.mjs");
 
     // Create the command and handle alternate logic
-    let mut command = Command::new(get_proto_binary());
+    let mut command = Command::new(get_proto_binary(&proto_home_dir, shim_exe_path));
 
     if let Json::Str(parent_name) = &shim["parent"] {
         command.args(["run", parent_name]);
@@ -160,7 +167,7 @@ pub fn main() -> Result<()> {
         .unwrap_or_default()
         .replace(".exe", "");
 
-    trace!(shim = &shim_name, args = ?args, file = ?exe_path, "Running {} shim", shim_name);
+    trace!(shim = &shim_name, shim_bin = ?exe_path, args = ?args,  "Running {} shim", shim_name);
 
     if shim_name.is_empty() || shim_name.contains("proto-shim") {
         return Err(anyhow!(
@@ -184,7 +191,7 @@ pub fn main() -> Result<()> {
     let has_piped_stdin = !input.is_empty();
 
     // Create the actual command to execute
-    let mut command = create_command(args, &shim_name)?;
+    let mut command = create_command(args, &shim_name, &exe_path)?;
     command.env("PROTO_LOG", log_level);
 
     if has_piped_stdin {
@@ -192,7 +199,11 @@ pub fn main() -> Result<()> {
     }
 
     // Spawn a shareable child process
-    trace!(shim = &shim_name, "Spawning proto child process");
+    trace!(
+        shim = &shim_name,
+        proto_bin = ?command.get_program(),
+        "Spawning proto child process"
+    );
 
     let shared_child = SharedChild::spawn(&mut command)?;
     let child = Arc::new(shared_child);
