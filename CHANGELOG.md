@@ -14,6 +14,11 @@
 
 #### 🚀 Updates
 
+- Implemented a new shim strategy for both Unix and Windows.
+  - No longer creates Bash scripts on Unix, or PowerShell scripts on Windows.
+  - Instead creates a new Rust based executable that is truly native.
+  - Handles stdin, pipes, and redirects efficiently and correctly.
+  - Better compatibility and portability.
 - WASM API
   - Added a `ExecutableConfig.shim_env_vars` field.
   - Updated `ExecutableConfig.shim_before_args` and `ExecutableConfig.shim_after_args` to support a list of strings.

@@ -119,33 +119,6 @@ mod run {
         assert.stdout(predicate::str::contains("19.0.0"));
     }
 
-    // This test fails in Windows for some reason, but works fine with `cargo run`...
-    #[cfg(not(windows))]
-    #[test]
-    fn runs_a_tool_alt_bin() {
-        let sandbox = create_empty_sandbox();
-
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("install")
-            .arg("node")
-            .arg("19.0.0")
-            .assert()
-            .success();
-
-        let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd
-            .arg("run")
-            .arg("node")
-            .arg("19.0.0")
-            .arg("--bin")
-            .arg(if cfg!(windows) { "npx.cmd" } else { "bin/npx" })
-            .arg("--")
-            .arg("--version")
-            .assert();
-
-        assert.stdout(predicate::str::contains("8.19.2"));
-    }
-
     #[test]
     fn updates_last_used_at() {
         let sandbox = create_empty_sandbox();

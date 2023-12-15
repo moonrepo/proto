@@ -1,111 +1,86 @@
-use crate::error::ProtoError;
-use serde::Serialize;
 use starbase_utils::fs;
 use std::path::Path;
-use tera::{Context, Tera};
-use tracing::debug;
 
-pub const SHIM_VERSION: u8 = 10;
+#[cfg(debug_assertions)]
+pub const SHIM_VERSION: u8 = 0;
 
-#[derive(Debug, Default, Serialize)]
-pub struct ShimContext<'tool> {
-    // BINARY INFO
-    /// Name of the binary to execute. Will be used for `proto run` in the shim.
-    pub bin: &'tool str,
+#[cfg(not(debug_assertions))]
+pub const SHIM_VERSION: u8 = 11;
 
-    /// Name of the alternate binary to execute. Uses `proto run --alt`.
-    pub alt_bin: Option<&'tool str>,
+#[cfg(not(windows))]
+mod unix {
+    use super::*;
 
-    /// Args to prepend to user-provided args.
-    pub before_args: Option<String>,
-
-    /// Args to append to user-provided args.
-    pub after_args: Option<String>,
-
-    // TOOL INFO
-    /// ID of the tool, for logging purposes.
-    pub tool_id: &'tool str,
-}
-
-impl<'tool> ShimContext<'tool> {
-    pub fn create_shim(&self, shim_path: &Path, find_only: bool) -> miette::Result<()> {
+    // On Unix, we can't copy or overwrite an executable that is currently running,
+    // but we can remove the file (the i-node still exists) and create the new shim
+    // alongside it.
+    // @see https://groups.google.com/g/comp.unix.programmer/c/pUNlGCwJHK4?pli=1
+    pub fn create_shim(
+        source_code: &[u8],
+        shim_path: &Path,
+        find_only: bool,
+    ) -> miette::Result<()> {
         if find_only && shim_path.exists() {
             return Ok(());
         }
 
-        debug!(
-            tool = &self.tool_id,
-            shim = ?shim_path,
-             "Creating global shim"
-        );
+        // Remove the current exe
+        fs::remove_file(shim_path)?;
 
-        fs::write_file(shim_path, build_shim_file(self, shim_path)?)?;
+        // Create the new exe
+        fs::write_file(shim_path, source_code)?;
         fs::update_perms(shim_path, None)?;
 
         Ok(())
     }
-}
 
-impl<'tool> AsRef<ShimContext<'tool>> for ShimContext<'tool> {
-    fn as_ref(&self) -> &ShimContext<'tool> {
-        self
+    pub fn get_shim_file_name(name: &str) -> String {
+        name.to_owned()
     }
 }
 
 #[cfg(windows)]
-fn get_template<'l>(shim_path: &Path) -> &'l str {
-    match shim_path.extension().map(|ext| ext.to_str().unwrap()) {
-        Some("cmd") => include_str!("../templates/windows/cmd.tpl"),
-        Some("ps1") => include_str!("../templates/windows/ps1.tpl"),
-        _ => include_str!("../templates/windows/sh.tpl"),
+mod windows {
+    use super::*;
+
+    // On Windows, we can't remove or overwrite an executable that is currently running,
+    // but we can rename it and create the new shim alongside it.
+    // @see https://stackoverflow.com/a/7198760
+    pub fn create_shim(
+        source_code: &[u8],
+        shim_path: &Path,
+        find_only: bool,
+    ) -> miette::Result<()> {
+        if find_only && shim_path.exists() {
+            return Ok(());
+        }
+
+        let mut renamed_shim_path = shim_path.to_path_buf();
+        renamed_shim_path.set_extension("previous.exe");
+
+        // Rename the current exe
+        if shim_path.exists() {
+            fs::rename(shim_path, &renamed_shim_path)?;
+        }
+
+        // Create the new exe
+        fs::write_file(shim_path, source_code)?;
+
+        // Attempt to remove the old exe (but don't fail)
+        if renamed_shim_path.exists() {
+            let _ = fs::remove_file(renamed_shim_path);
+        }
+
+        Ok(())
+    }
+
+    pub fn get_shim_file_name(name: &str) -> String {
+        format!("{name}.exe")
     }
 }
 
 #[cfg(not(windows))]
-fn get_template<'l>(_shim_path: &Path) -> &'l str {
-    include_str!("../templates/unix/sh.tpl")
-}
-
-fn build_shim_file(context: &ShimContext, shim_path: &Path) -> miette::Result<String> {
-    let handle_error = |error: tera::Error| ProtoError::Shim {
-        path: shim_path.to_path_buf(),
-        error,
-    };
-
-    let mut tera = Tera::default();
-
-    if cfg!(windows) {
-        tera.add_raw_template(
-            "macros.tpl",
-            include_str!("../templates/windows/macros.tpl"),
-        )
-        .map_err(handle_error)?;
-    }
-
-    tera.add_raw_template("shim.tpl", get_template(shim_path))
-        .map_err(handle_error)?;
-
-    let result = tera
-        .render(
-            "shim.tpl",
-            &Context::from_serialize(context).map_err(handle_error)?,
-        )
-        .map_err(handle_error)?;
-
-    Ok(result)
-}
+pub use unix::*;
 
 #[cfg(windows)]
-pub fn get_shim_file_names(name: &str) -> Vec<String> {
-    // Order is important!
-    vec![
-        format!("{name}.ps1"),
-        format!("{name}.cmd"),
-        format!("{name}"),
-    ]
-}
-
-#[cfg(not(windows))]
-pub fn get_shim_file_names(name: &str) -> Vec<String> {
-    vec![name.to_owned()]
-}
+pub use windows::*;
