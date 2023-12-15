@@ -53,7 +53,6 @@ async fn main() -> MainResult {
     app.analyze(systems::load_proto_configs);
 
     match cli.command {
-        Commands::AddPlugin(args) => app.execute_with_args(commands::add_plugin_old, args),
         Commands::Alias(args) => app.execute_with_args(commands::alias, args),
         Commands::Bin(args) => app.execute_with_args(commands::bin, args),
         Commands::Clean(args) => app.execute_with_args(commands::clean, args),
@@ -69,8 +68,6 @@ async fn main() -> MainResult {
         Commands::Migrate(args) => app.execute_with_args(commands::migrate, args),
         Commands::Outdated(args) => app.execute_with_args(commands::outdated, args),
         Commands::Pin(args) => app.execute_with_args(commands::pin, args),
-        Commands::Plugins(args) => app.execute_with_args(commands::plugins, args),
-        Commands::RemovePlugin(args) => app.execute_with_args(commands::remove_plugin_old, args),
         Commands::Run(args) => app.execute_with_args(commands::run, args),
         Commands::Setup(args) => app.execute_with_args(commands::setup, args),
         Commands::Tool { command } => match command {
@@ -82,7 +79,6 @@ async fn main() -> MainResult {
             }
             ToolCommands::Remove(args) => app.execute_with_args(commands::tool::remove, args),
         },
-        Commands::Tools(args) => app.execute_with_args(commands::tools, args),
         Commands::Unalias(args) => app.execute_with_args(commands::unalias, args),
         Commands::Uninstall(args) => app.execute_with_args(commands::uninstall, args),
         Commands::UninstallGlobal(args) => app.execute_with_args(commands::uninstall_global, args),
