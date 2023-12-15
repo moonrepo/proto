@@ -5,10 +5,12 @@ expression: "fs::read_to_string(sandbox.path().join(\".proto/shims/registry.json
 {
   "node": {},
   "node-gyp": {
-    "alt_for": "npm"
+    "alt_bin": true,
+    "parent": "npm"
   },
   "npm": {},
   "npx": {
-    "alt_for": "npm"
+    "alt_bin": true,
+    "parent": "npm"
   }
 }

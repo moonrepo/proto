@@ -6,6 +6,7 @@ expression: "fs::read_to_string(sandbox.path().join(\".proto/shims/registry.json
   "node": {},
   "yarn": {},
   "yarnpkg": {
-    "alt_for": "yarn"
+    "alt_bin": true,
+    "parent": "yarn"
   }
 }

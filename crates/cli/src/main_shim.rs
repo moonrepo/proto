@@ -24,8 +24,41 @@ fn get_proto_home() -> Result<PathBuf> {
     Ok(home_dir.join(".proto"))
 }
 
+fn get_proto_binary() -> PathBuf {
+    let bin_name = if cfg!(windows) { "proto.exe" } else { "proto" };
+
+    // When in development, ensure we're using the target built proto,
+    // and not the proto available globally on `PATH`.
+    #[cfg(any(debug_assertions, test))]
+    {
+        let mut lookup_dirs = vec![];
+
+        if let Ok(dir) = env::var("CARGO_TARGET_DIR") {
+            lookup_dirs.push(PathBuf::from(dir).join("debug"));
+        }
+
+        if let Ok(dir) = env::var("GITHUB_WORKSPACE") {
+            lookup_dirs.push(PathBuf::from(dir).join("target").join("debug"));
+        }
+
+        if let Ok(dir) = env::current_dir() {
+            lookup_dirs.push(dir.join("target").join("debug"));
+        }
+
+        for lookup_dir in lookup_dirs {
+            let bin = lookup_dir.join(bin_name);
+
+            if bin.exists() {
+                return bin;
+            }
+        }
+    }
+
+    PathBuf::from(bin_name)
+}
+
 fn create_command(args: Vec<String>, shim_name: &str) -> Result<Command> {
-    let registry_path = get_proto_home()?.join("shims/registry.json");
+    let registry_path = get_proto_home()?.join("shims").join("registry.json");
     let mut shim = Json::Object(HashMap::default());
 
     // Load the shims registry if it exists
@@ -76,10 +109,14 @@ fn create_command(args: Vec<String>, shim_name: &str) -> Result<Command> {
     // command.arg("./docs/shim-test.mjs");
 
     // Create the command and handle alternate logic
-    let mut command = Command::new(if cfg!(windows) { "proto.exe" } else { "proto" });
+    let mut command = Command::new(get_proto_binary());
 
-    if let Json::Str(alt_for) = &shim["alt_for"] {
-        command.args(["run", alt_for, "--alt", shim_name]);
+    if let Json::Str(parent_name) = &shim["parent"] {
+        command.args(["run", parent_name]);
+
+        if matches!(shim["alt_bin"], Json::Bool(true)) {
+            command.args(["--alt", shim_name]);
+        }
     } else {
         command.args(["run", shim_name]);
     }
@@ -123,7 +160,7 @@ pub fn main() -> Result<()> {
         .unwrap_or_default()
         .replace(".exe", "");
 
-    trace!(args = ?args, shim = ?exe_path, "Running {} shim", shim_name);
+    trace!(shim = &shim_name, args = ?args, file = ?exe_path, "Running {} shim", shim_name);
 
     if shim_name.is_empty() || shim_name.contains("proto-shim") {
         return Err(anyhow!(
@@ -155,7 +192,7 @@ pub fn main() -> Result<()> {
     }
 
     // Spawn a shareable child process
-    trace!("Spawning proto child process");
+    trace!(shim = &shim_name, "Spawning proto child process");
 
     let shared_child = SharedChild::spawn(&mut command)?;
     let child = Arc::new(shared_child);
@@ -170,7 +207,11 @@ pub fn main() -> Result<()> {
     // If we have piped data, pass it through
     if has_piped_stdin {
         if let Some(mut stdin) = child.take_stdin() {
-            trace!(input, "Received piped input, passing through");
+            trace!(
+                shim = &shim_name,
+                input,
+                "Received piped input, passing through"
+            );
             stdin.write_all(input.as_bytes())?;
         }
     }
@@ -179,7 +220,7 @@ pub fn main() -> Result<()> {
     let status = child.wait()?;
     let code = status.code().unwrap_or(0);
 
-    trace!(code, "Received exit code");
+    trace!(shim = &shim_name, code, "Received exit code");
 
     process::exit(code);
 }

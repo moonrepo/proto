@@ -5,7 +5,7 @@ expression: "fs::read_to_string(sandbox.path().join(\".proto/shims/registry.json
 {
   "bun": {},
   "bunx": {
-    "alt_for": "bun",
+    "parent": "bun",
     "before_args": [
       "x"
     ]

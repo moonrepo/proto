@@ -69,9 +69,9 @@ mod clean {
     fn purges_tool_shims() {
         let sandbox = create_empty_sandbox();
         sandbox.create_file(".proto/shims/npm", "");
-        sandbox.create_file(".proto/shims/npm.cmd", "");
+        sandbox.create_file(".proto/shims/npm.exe", "");
         sandbox.create_file(".proto/shims/npx", "");
-        sandbox.create_file(".proto/shims/npx.cmd", "");
+        sandbox.create_file(".proto/shims/npx.exe", "");
 
         let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("clean")
@@ -82,8 +82,8 @@ mod clean {
             .success();
 
         if cfg!(windows) {
-            assert!(!sandbox.path().join(".proto/shims/npm.cmd").exists());
-            assert!(!sandbox.path().join(".proto/shims/npx.cmd").exists());
+            assert!(!sandbox.path().join(".proto/shims/npm.exe").exists());
+            assert!(!sandbox.path().join(".proto/shims/npx.exe").exists());
         } else {
             assert!(!sandbox.path().join(".proto/shims/npm").exists());
             assert!(!sandbox.path().join(".proto/shims/npx").exists());
