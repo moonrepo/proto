@@ -22,7 +22,7 @@ use starbase_utils::{fs, json};
 use std::collections::{BTreeMap, HashSet};
 use std::env;
 use std::fmt::Debug;
-use std::io::{BufRead, BufReader, Read};
+use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
@@ -1394,22 +1394,7 @@ impl Tool {
         let mut registry: ShimsMap = BTreeMap::new();
         registry.insert(self.id.to_string(), Shim::default());
 
-        // It's faster and safer to read the data here and write all shims later.
-        // Otherwise we run the risk of "file busy" concurrency errors.
-        let shim_file = self.proto.find_shim_binary()?;
-        let mut shim_binary = vec![];
-
-        fs::lock_file_exclusive(&shim_file, fs::open_file(&shim_file)?, |file| {
-            file.read_to_end(&mut shim_binary)
-                .map_err(|error| fs::FsError::Read {
-                    path: shim_file.to_path_buf(),
-                    error,
-                })?;
-
-            Ok(())
-        })?;
-
-        dbg!(&shim_file, shim_binary.len());
+        let shim_binary = fs::read_file_bytes(self.proto.find_shim_binary()?)?;
 
         for location in shims {
             let mut shim_entry = Shim::default();

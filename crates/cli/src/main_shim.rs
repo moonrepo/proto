@@ -160,7 +160,7 @@ pub fn main() -> Result<()> {
         .unwrap_or_default()
         .replace(".exe", "");
 
-    trace!(args = ?args, shim = ?exe_path, "Running {} shim", shim_name);
+    trace!(shim = &shim_name, args = ?args, file = ?exe_path, "Running {} shim", shim_name);
 
     if shim_name.is_empty() || shim_name.contains("proto-shim") {
         return Err(anyhow!(
@@ -192,7 +192,7 @@ pub fn main() -> Result<()> {
     }
 
     // Spawn a shareable child process
-    trace!("Spawning proto child process");
+    trace!(shim = &shim_name, "Spawning proto child process");
 
     let shared_child = SharedChild::spawn(&mut command)?;
     let child = Arc::new(shared_child);
@@ -207,7 +207,11 @@ pub fn main() -> Result<()> {
     // If we have piped data, pass it through
     if has_piped_stdin {
         if let Some(mut stdin) = child.take_stdin() {
-            trace!(input, "Received piped input, passing through");
+            trace!(
+                shim = &shim_name,
+                input,
+                "Received piped input, passing through"
+            );
             stdin.write_all(input.as_bytes())?;
         }
     }
@@ -216,7 +220,7 @@ pub fn main() -> Result<()> {
     let status = child.wait()?;
     let code = status.code().unwrap_or(0);
 
-    trace!(code, "Received exit code");
+    trace!(shim = &shim_name, code, "Received exit code");
 
     process::exit(code);
 }
