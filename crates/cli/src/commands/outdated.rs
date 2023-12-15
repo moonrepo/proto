@@ -12,6 +12,9 @@ use tracing::{debug, info};
 
 #[derive(Args, Clone, Debug)]
 pub struct OutdatedArgs {
+    #[arg(long, help = "Include versions in global .prototools")]
+    include_global: bool,
+
     #[arg(long, help = "Print the list in JSON format")]
     json: bool,
 
@@ -20,6 +23,9 @@ pub struct OutdatedArgs {
         help = "Check for latest available version ignoring requirements and ranges"
     )]
     latest: bool,
+
+    #[arg(long, help = "Only check versions in local .prototools")]
+    only_local: bool,
 
     #[arg(long, help = "Update and write the versions to the local .prototools")]
     update: bool,
@@ -35,7 +41,15 @@ pub struct OutdatedItem {
 
 #[system]
 pub async fn outdated(args: ArgsRef<OutdatedArgs>, proto: ResourceRef<ProtoResource>) {
-    let config = proto.env.load_config()?;
+    let manager = proto.env.load_config_manager()?;
+
+    let config = if args.only_local {
+        manager.get_local_config()?
+    } else if args.include_global {
+        manager.get_merged_config()?
+    } else {
+        manager.get_merged_config_without_global()?
+    };
 
     if config.versions.is_empty() {
         return Err(ProtoCliError::NoConfiguredTools.into());
