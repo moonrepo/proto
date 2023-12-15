@@ -34,7 +34,7 @@ where
 
     if cfg!(windows) {
         assert_eq!(tool.get_exe_path().unwrap(), &base_dir.join("moon.exe"));
-        assert!(proto.shims_dir.join("moon.cmd").exists());
+        assert!(proto.shims_dir.join("moon.exe").exists());
     } else {
         assert_eq!(tool.get_exe_path().unwrap(), &base_dir.join("moon"));
         assert!(proto.shims_dir.join("moon").exists());

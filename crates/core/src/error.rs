@@ -56,6 +56,15 @@ pub enum ProtoError {
     #[error("Unable to determine your home directory.")]
     MissingHomeDir,
 
+    #[diagnostic(code(proto::shim::missing_binary))]
+    #[error(
+        "Unable to create shims as the {} binary cannot be found.\nLooked in the {} environment variable and {} directory.",
+        .bin_name.style(Style::Id),
+        "PROTO_INSTALL_DIR".style(Style::Property),
+        .bin_dir.style(Style::Path),
+    )]
+    MissingShimBinary { bin_name: String, bin_dir: PathBuf },
+
     #[diagnostic(code(proto::execute::missing_file))]
     #[error("Unable to find an executable for {tool}, expected file {} does not exist.", .path.style(Style::Path))]
     MissingToolExecutable { tool: String, path: PathBuf },
@@ -125,13 +134,5 @@ pub enum ProtoError {
         version: String,
         #[source]
         error: semver::Error,
-    },
-
-    #[diagnostic(code(proto::shim::failed))]
-    #[error("Failed to create shim {}.", .path.style(Style::Path))]
-    Shim {
-        path: PathBuf,
-        #[source]
-        error: tera::Error,
     },
 }
