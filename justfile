@@ -26,7 +26,7 @@ lint-wasm:
 	cd plugins && cargo clippy --workspace --all-targets
 
 test name="":
-	just build
+	just build-shim
 	cargo nextest run --workspace {{name}}
 
 test-ci:
