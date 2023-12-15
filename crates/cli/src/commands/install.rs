@@ -183,7 +183,8 @@ pub async fn internal_install(
                     .unwrap_or_default(),
             ),
         ]),
-    )?;
+    )
+    .await?;
 
     // Run after hook
     tool.run_hook("post_install", || InstallHook {

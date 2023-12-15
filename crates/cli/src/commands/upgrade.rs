@@ -1,5 +1,6 @@
 use crate::error::ProtoCliError;
 use crate::helpers::{download_to_temp_with_progress_bar, ProtoResource};
+use crate::telemetry::{track_usage, Metric};
 use miette::IntoDiagnostic;
 use proto_core::is_offline;
 use semver::Version;
@@ -7,6 +8,7 @@ use starbase::system;
 use starbase_archive::Archiver;
 use starbase_styles::color;
 use starbase_utils::fs;
+use std::collections::HashMap;
 use std::env::{self, consts};
 use std::path::PathBuf;
 use tracing::{debug, info};
@@ -146,6 +148,17 @@ pub async fn upgrade(proto: ResourceRef<ProtoResource>) {
 
     fs::remove(temp_dir)?;
     fs::remove(temp_file)?;
+
+    // Track usage metrics
+    track_usage(
+        &proto.env,
+        Metric::UpgradeProto,
+        HashMap::from_iter([
+            ("OldVersion".into(), current_version.to_owned()),
+            ("NewVersion".into(), latest_version.to_owned()),
+        ]),
+    )
+    .await?;
 
     if upgraded {
         info!("Upgraded proto to v{}!", latest_version);

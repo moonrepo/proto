@@ -26,7 +26,7 @@ pub async fn uninstall(args: ArgsRef<UninstallArgs>, proto: ResourceRef<ProtoRes
         let tool = purge_tool(proto, &args.id, args.yes).await?;
 
         // Track usage metrics
-        track_uninstall(&tool, true)?;
+        track_uninstall(&tool, true).await?;
 
         return Ok(());
     };
@@ -65,7 +65,7 @@ pub async fn uninstall(args: ArgsRef<UninstallArgs>, proto: ResourceRef<ProtoRes
     }
 
     // Track usage metrics
-    track_uninstall(&tool, false)?;
+    track_uninstall(&tool, false).await?;
 
     info!(
         "{} {} has been uninstalled!",
@@ -74,7 +74,7 @@ pub async fn uninstall(args: ArgsRef<UninstallArgs>, proto: ResourceRef<ProtoRes
     );
 }
 
-fn track_uninstall(tool: &Tool, purged: bool) -> miette::Result<()> {
+async fn track_uninstall(tool: &Tool, purged: bool) -> miette::Result<()> {
     track_usage(
         &tool.proto,
         Metric::UninstallTool,
@@ -97,4 +97,5 @@ fn track_uninstall(tool: &Tool, purged: bool) -> miette::Result<()> {
             ),
         ]),
     )
+    .await
 }

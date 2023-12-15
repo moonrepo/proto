@@ -1,4 +1,5 @@
 use proto_core::ProtoEnvironment;
+use starbase_utils::fs;
 use std::collections::HashMap;
 use std::env::consts;
 
@@ -21,7 +22,21 @@ impl Metric {
     }
 }
 
-pub fn track_usage(
+fn load_or_create_anonymous_uid(proto: &ProtoEnvironment) -> miette::Result<String> {
+    let id_path = proto.root.join("id");
+
+    if id_path.exists() {
+        return Ok(fs::read_file(id_path)?);
+    }
+
+    let id = uuid::Uuid::new_v4().to_string();
+
+    fs::write_file(id_path, &id)?;
+
+    Ok(id)
+}
+
+pub async fn track_usage(
     proto: &ProtoEnvironment,
     metric: Metric,
     mut headers: HashMap<String, String>,
@@ -32,6 +47,8 @@ pub fn track_usage(
 
     let mut client = reqwest::Client::new().post(metric.get_url());
 
+    headers.insert("UID".into(), load_or_create_anonymous_uid(proto)?);
+    headers.insert("CLI".into(), env!("CARGO_PKG_VERSION").to_owned());
     headers.insert("OS".into(), consts::OS.to_owned());
     headers.insert("Arch".into(), consts::ARCH.to_owned());
 
@@ -39,10 +56,10 @@ pub fn track_usage(
         client = client.header(format!("X-Proto-{key}"), value);
     }
 
-    // Run in the background as we don't care if the request finishes or fails
-    tokio::spawn(async {
-        let _ = client.send().await;
-    });
+    // Don't crash proto if the request fails for some reason
+    if let Err(error) = client.send().await {
+        dbg!(error);
+    }
 
     Ok(())
 }
