@@ -46,10 +46,14 @@ fn get_proto_binary(proto_home_dir: &Path, shim_exe_path: &Path) -> PathBuf {
     }
 
     // Check for proto relative to proto-shim
-    lookup_dirs.push(shim_exe_path.parent().unwrap().join(bin_name));
+    lookup_dirs.push(shim_exe_path.parent().unwrap().to_path_buf());
 
     // Or in the standard proto locations
-    lookup_dirs.push(proto_home_dir.join("bin").join(bin_name));
+    if let Ok(dir) = env::var("PROTO_INSTALL_DIR") {
+        lookup_dirs.push(dir.into());
+    }
+
+    lookup_dirs.push(proto_home_dir.join("bin"));
 
     for lookup_dir in lookup_dirs {
         let bin = lookup_dir.join(bin_name);
