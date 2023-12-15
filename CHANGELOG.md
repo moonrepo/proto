@@ -12,6 +12,10 @@
 
 ## Unreleased
 
+#### 💥 Breaking
+
+- Removed old and deprecated CLI commands.
+
 #### 🚀 Updates
 
 - Implemented a new shim strategy for both Unix and Windows.
