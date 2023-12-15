@@ -128,9 +128,7 @@ mod install_uninstall {
             .assert();
 
         if cfg!(windows) {
-            assert!(sandbox.path().join(".proto/shims/node").exists());
-            assert!(sandbox.path().join(".proto/shims/node.cmd").exists());
-            assert!(sandbox.path().join(".proto/shims/node.ps1").exists());
+            assert!(sandbox.path().join(".proto/shims/node.exe").exists());
         } else {
             assert!(sandbox.path().join(".proto/shims/node").exists());
         }

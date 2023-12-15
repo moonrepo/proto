@@ -7,6 +7,9 @@ init:
 build:
 	cargo build --workspace
 
+build-shim:
+	cargo build --bin proto-shim
+
 build-wasm:
 	cd plugins && cargo wasi build
 
@@ -23,6 +26,7 @@ lint-wasm:
 	cd plugins && cargo clippy --workspace --all-targets
 
 test name="":
+	just build-shim
 	cargo nextest run --workspace {{name}}
 
 test-ci:

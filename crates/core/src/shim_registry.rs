@@ -10,7 +10,10 @@ pub struct Shim {
     pub after_args: Vec<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub alt_for: Option<String>,
+    pub alt_bin: Option<bool>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub parent: Option<String>,
 
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub before_args: Vec<String>,
