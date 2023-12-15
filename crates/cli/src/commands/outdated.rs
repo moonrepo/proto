@@ -72,7 +72,8 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>, proto: ResourceRef<ProtoResou
         let mut comments = vec![];
         let versions = tool.load_version_resolver(&initial_version).await?;
         let current_version = versions.resolve(config_version)?;
-        let is_latest = args.latest || matches!(config_version, UnresolvedVersionSpec::Version(_));
+        let check_latest =
+            args.latest || matches!(config_version, UnresolvedVersionSpec::Version(_));
 
         comments.push(format!(
             "current version {} {}",
@@ -80,29 +81,46 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>, proto: ResourceRef<ProtoResou
             color::muted_light(format!("(via {})", config_version))
         ));
 
-        let newer_version = versions.resolve_without_manifest(if is_latest {
+        let newer_version = versions.resolve_without_manifest(if check_latest {
             &initial_version // latest alias
         } else {
             config_version // req, range, etc
         })?;
 
-        comments.push(format!(
-            "{} {}",
-            if is_latest {
-                "latest version"
+        let mut is_outdated = false;
+        let mut is_on_latest = false;
+
+        if let (VersionSpec::Version(a), VersionSpec::Version(b)) =
+            (&current_version, &newer_version)
+        {
+            #[allow(clippy::comparison_chain)]
+            if b > a {
+                is_outdated = true;
+            } else if b == a {
+                is_on_latest = true;
+            }
+        }
+
+        if is_on_latest {
+            comments.push(if check_latest {
+                "on the latest version".into()
             } else {
-                "newer version"
-            },
-            color::symbol(newer_version.to_string())
-        ));
+                "on the newest version".into()
+            });
+        } else {
+            comments.push(format!(
+                "{} {}",
+                if check_latest {
+                    "latest version"
+                } else {
+                    "newer version"
+                },
+                color::symbol(newer_version.to_string())
+            ));
 
-        let is_outdated = match (&current_version, &newer_version) {
-            (VersionSpec::Version(a), VersionSpec::Version(b)) => b > a,
-            _ => false,
-        };
-
-        if is_outdated {
-            comments.push(color::success("update available!"));
+            if is_outdated {
+                comments.push(color::success("update available!"));
+            }
         }
 
         if args.update {
@@ -113,7 +131,7 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>, proto: ResourceRef<ProtoResou
             items.insert(
                 tool.id,
                 OutdatedItem {
-                    is_latest,
+                    is_latest: check_latest,
                     version_config: config_version.to_owned(),
                     current_version,
                     newer_version,

@@ -16,6 +16,7 @@
 
 - Added `--include-global` to `proto outdated` to include versions from `~/.proto/.prototools`.
 - Added `--only-local` to `proto outdated` to only checks versions from `.prototools` in current directory.
+- Improved the messaging of `proto outdated`.
 
 #### 🐞 Fixes
 
