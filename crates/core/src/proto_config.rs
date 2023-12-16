@@ -66,6 +66,9 @@ pub struct ProtoSettingsConfig {
     pub pin_latest: Option<PinType>,
 
     pub http: HttpOptions,
+
+    #[setting(default = true)]
+    pub telemetry: bool,
 }
 
 fn merge_tools(

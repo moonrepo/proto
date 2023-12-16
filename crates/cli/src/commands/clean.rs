@@ -212,7 +212,7 @@ pub async fn clean_proto(proto: &ProtoResource, days: u64) -> miette::Result<usi
     Ok(clean_count)
 }
 
-pub async fn purge_tool(proto: &ProtoResource, id: &Id, yes: bool) -> SystemResult {
+pub async fn purge_tool(proto: &ProtoResource, id: &Id, yes: bool) -> miette::Result<Tool> {
     let tool = proto.load_tool(id).await?;
     let inventory_dir = tool.get_inventory_dir();
 
@@ -242,7 +242,7 @@ pub async fn purge_tool(proto: &ProtoResource, id: &Id, yes: bool) -> SystemResu
         info!("Purged {}", tool.get_name());
     }
 
-    Ok(())
+    Ok(tool)
 }
 
 pub async fn purge_plugins(proto: &ProtoResource, yes: bool) -> SystemResult {
@@ -311,11 +311,13 @@ pub async fn internal_clean(proto: &ProtoResource, args: &CleanArgs) -> SystemRe
 #[system]
 pub async fn clean(args: ArgsRef<CleanArgs>, proto: ResourceRef<ProtoResource>) {
     if let Some(id) = &args.purge {
-        return purge_tool(proto, id, args.yes).await;
+        purge_tool(proto, id, args.yes).await?;
+        return Ok(());
     }
 
     if args.purge_plugins {
-        return purge_plugins(proto, args.yes).await;
+        purge_plugins(proto, args.yes).await?;
+        return Ok(());
     }
 
     internal_clean(proto, args).await?;

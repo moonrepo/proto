@@ -5,6 +5,7 @@ mod helpers;
 mod printer;
 mod shell;
 mod systems;
+mod telemetry;
 
 use app::{App as CLI, Commands, DebugCommands, ToolCommands};
 use clap::Parser;
