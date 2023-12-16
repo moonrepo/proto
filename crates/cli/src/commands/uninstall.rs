@@ -4,7 +4,6 @@ use crate::telemetry::{track_usage, Metric};
 use clap::Args;
 use proto_core::{Id, Tool, UnresolvedVersionSpec};
 use starbase::system;
-use std::collections::HashMap;
 use tracing::{debug, info};
 
 #[derive(Args, Clone, Debug)]
@@ -77,25 +76,19 @@ pub async fn uninstall(args: ArgsRef<UninstallArgs>, proto: ResourceRef<ProtoRes
 async fn track_uninstall(tool: &Tool, purged: bool) -> miette::Result<()> {
     track_usage(
         &tool.proto,
-        Metric::UninstallTool,
-        HashMap::from_iter([
-            ("ToolId".into(), tool.id.to_string()),
-            (
-                "ToolVersion".into(),
-                if purged {
-                    "*".into()
-                } else {
-                    tool.get_resolved_version().to_string()
-                },
-            ),
-            (
-                "ToolPlugin".into(),
-                tool.locator
-                    .as_ref()
-                    .map(|loc| loc.to_string())
-                    .unwrap_or_default(),
-            ),
-        ]),
+        Metric::UninstallTool {
+            id: tool.id.to_string(),
+            plugin: tool
+                .locator
+                .as_ref()
+                .map(|loc| loc.to_string())
+                .unwrap_or_default(),
+            version: if purged {
+                "*".into()
+            } else {
+                tool.get_resolved_version().to_string()
+            },
+        },
     )
     .await
 }

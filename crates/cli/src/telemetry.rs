@@ -1,24 +1,71 @@
 use proto_core::{is_offline, ProtoEnvironment};
 use starbase_utils::fs;
 use std::collections::HashMap;
-use std::env::consts;
+use std::env::{self, consts};
 use tracing::debug;
 
 pub enum Metric {
-    InstallTool,
-    UninstallTool,
-    UpgradeProto,
+    InstallTool {
+        id: String,
+        pinned: bool,
+        plugin: String,
+        version: String,
+        version_candidate: String,
+    },
+    UninstallTool {
+        id: String,
+        plugin: String,
+        version: String,
+    },
+    UpgradeProto {
+        old_version: String,
+        new_version: String,
+    },
 }
 
 impl Metric {
-    pub fn get_url(self) -> String {
+    pub fn into_headers(self) -> HashMap<String, String> {
+        match self {
+            Metric::InstallTool {
+                id,
+                version,
+                version_candidate,
+                pinned,
+                plugin,
+            } => HashMap::from_iter([
+                ("ToolId".into(), id),
+                ("ToolPinned".into(), pinned.to_string()),
+                ("ToolPlugin".into(), plugin),
+                ("ToolVersion".into(), version),
+                ("ToolVersionCandidate".into(), version_candidate),
+            ]),
+            Metric::UninstallTool {
+                id,
+                plugin,
+                version,
+            } => HashMap::from_iter([
+                ("ToolId".into(), id),
+                ("ToolPlugin".into(), plugin),
+                ("ToolVersion".into(), version),
+            ]),
+            Metric::UpgradeProto {
+                old_version,
+                new_version,
+            } => HashMap::from_iter([
+                ("OldVersion".into(), old_version),
+                ("NewVersion".into(), new_version),
+            ]),
+        }
+    }
+
+    pub fn get_url(&self) -> String {
         format!(
             "https://launch.moonrepo.app/{}",
             // "http://0.0.0.0:8081/{}",
             match self {
-                Metric::InstallTool => "proto/install_tool",
-                Metric::UninstallTool => "proto/uninstall_tool",
-                Metric::UpgradeProto => "proto/upgrade_proto",
+                Metric::InstallTool { .. } => "proto/install_tool",
+                Metric::UninstallTool { .. } => "proto/uninstall_tool",
+                Metric::UpgradeProto { .. } => "proto/upgrade_proto",
             }
         )
     }
@@ -38,23 +85,21 @@ fn load_or_create_anonymous_uid(proto: &ProtoEnvironment) -> miette::Result<Stri
     Ok(id)
 }
 
-pub async fn track_usage(
-    proto: &ProtoEnvironment,
-    metric: Metric,
-    mut headers: HashMap<String, String>,
-) -> miette::Result<()> {
+pub async fn track_usage(proto: &ProtoEnvironment, metric: Metric) -> miette::Result<()> {
     let config = proto.load_config()?;
 
     if !config.settings.telemetry || is_offline() {
         return Ok(());
     }
 
+    let mut client = reqwest::Client::new().post(metric.get_url());
+
+    let mut headers = metric.into_headers();
     headers.insert("UID".into(), load_or_create_anonymous_uid(proto)?);
     headers.insert("CLI".into(), env!("CARGO_PKG_VERSION").to_owned());
     headers.insert("OS".into(), consts::OS.to_owned());
     headers.insert("Arch".into(), consts::ARCH.to_owned());
-
-    let mut client = reqwest::Client::new().post(metric.get_url());
+    headers.insert("CI".into(), env::var("CI").is_ok().to_string());
 
     for (key, value) in headers {
         client = client.header(format!("X-Proto-{key}"), value);

@@ -8,7 +8,6 @@ use starbase::system;
 use starbase_archive::Archiver;
 use starbase_styles::color;
 use starbase_utils::fs;
-use std::collections::HashMap;
 use std::env::{self, consts};
 use std::path::PathBuf;
 use tracing::{debug, info};
@@ -152,11 +151,10 @@ pub async fn upgrade(proto: ResourceRef<ProtoResource>) {
     // Track usage metrics
     track_usage(
         &proto.env,
-        Metric::UpgradeProto,
-        HashMap::from_iter([
-            ("OldVersion".into(), current_version.to_owned()),
-            ("NewVersion".into(), latest_version.to_owned()),
-        ]),
+        Metric::UpgradeProto {
+            old_version: current_version.to_owned(),
+            new_version: latest_version.to_owned(),
+        },
     )
     .await?;
 

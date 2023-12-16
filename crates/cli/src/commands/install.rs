@@ -9,7 +9,6 @@ use proto_core::{Id, PinType, Tool, UnresolvedVersionSpec};
 use proto_pdk_api::{InstallHook, SyncShellProfileInput, SyncShellProfileOutput};
 use starbase::system;
 use starbase_styles::color;
-use std::collections::HashMap;
 use std::env;
 use tracing::{debug, info};
 
@@ -166,23 +165,17 @@ pub async fn internal_install(
     // Track usage metrics
     track_usage(
         &tool.proto,
-        Metric::InstallTool,
-        HashMap::from_iter([
-            ("ToolId".into(), tool.id.to_string()),
-            ("ToolVersion".into(), resolved_version.to_string()),
-            ("ToolVersionCandidate".into(), version.to_string()),
-            (
-                "ToolPinned".into(),
-                if pinned { "true" } else { "false" }.into(),
-            ),
-            (
-                "ToolPlugin".into(),
-                tool.locator
-                    .as_ref()
-                    .map(|loc| loc.to_string())
-                    .unwrap_or_default(),
-            ),
-        ]),
+        Metric::InstallTool {
+            id: tool.id.to_string(),
+            plugin: tool
+                .locator
+                .as_ref()
+                .map(|loc| loc.to_string())
+                .unwrap_or_default(),
+            version: resolved_version.to_string(),
+            version_candidate: version.to_string(),
+            pinned,
+        },
     )
     .await?;
 
