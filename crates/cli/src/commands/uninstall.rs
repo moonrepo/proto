@@ -1,7 +1,8 @@
 use crate::commands::clean::purge_tool;
 use crate::helpers::{create_progress_bar, disable_progress_bars, ProtoResource};
+use crate::telemetry::{track_usage, Metric};
 use clap::Args;
-use proto_core::{Id, UnresolvedVersionSpec};
+use proto_core::{Id, Tool, UnresolvedVersionSpec};
 use starbase::system;
 use tracing::{debug, info};
 
@@ -21,7 +22,10 @@ pub struct UninstallArgs {
 pub async fn uninstall(args: ArgsRef<UninstallArgs>, proto: ResourceRef<ProtoResource>) {
     // Uninstall everything
     let Some(spec) = &args.semver else {
-        purge_tool(proto, &args.id, args.yes).await?;
+        let tool = purge_tool(proto, &args.id, args.yes).await?;
+
+        // Track usage metrics
+        track_uninstall(&tool, true).await?;
 
         return Ok(());
     };
@@ -59,9 +63,32 @@ pub async fn uninstall(args: ArgsRef<UninstallArgs>, proto: ResourceRef<ProtoRes
         return Ok(());
     }
 
+    // Track usage metrics
+    track_uninstall(&tool, false).await?;
+
     info!(
         "{} {} has been uninstalled!",
         tool.get_name(),
         tool.get_resolved_version(),
     );
+}
+
+async fn track_uninstall(tool: &Tool, purged: bool) -> miette::Result<()> {
+    track_usage(
+        &tool.proto,
+        Metric::UninstallTool {
+            id: tool.id.to_string(),
+            plugin: tool
+                .locator
+                .as_ref()
+                .map(|loc| loc.to_string())
+                .unwrap_or_default(),
+            version: if purged {
+                "*".into()
+            } else {
+                tool.get_resolved_version().to_string()
+            },
+        },
+    )
+    .await
 }
