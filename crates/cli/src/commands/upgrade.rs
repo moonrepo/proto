@@ -1,5 +1,6 @@
 use crate::error::ProtoCliError;
 use crate::helpers::{download_to_temp_with_progress_bar, ProtoResource};
+use crate::telemetry::{track_usage, Metric};
 use miette::IntoDiagnostic;
 use proto_core::is_offline;
 use semver::Version;
@@ -146,6 +147,16 @@ pub async fn upgrade(proto: ResourceRef<ProtoResource>) {
 
     fs::remove(temp_dir)?;
     fs::remove(temp_file)?;
+
+    // Track usage metrics
+    track_usage(
+        &proto.env,
+        Metric::UpgradeProto {
+            old_version: current_version.to_owned(),
+            new_version: latest_version.to_owned(),
+        },
+    )
+    .await?;
 
     if upgraded {
         info!("Upgraded proto to v{}!", latest_version);
