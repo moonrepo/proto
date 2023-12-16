@@ -27,6 +27,10 @@
   - Added a `ExecutableConfig.shim_env_vars` field.
   - Updated `ExecutableConfig.shim_before_args` and `ExecutableConfig.shim_after_args` to support a list of strings.
 
+#### ⚙️ Internal
+
+- Added basic telemetry to track tool install/uninstall metrics.
+
 ## Unreleased
 
 #### 🚀 Updates
