@@ -88,7 +88,7 @@ fn load_or_create_anonymous_uid(proto: &ProtoEnvironment) -> miette::Result<Stri
 pub async fn track_usage(proto: &ProtoEnvironment, metric: Metric) -> miette::Result<()> {
     let config = proto.load_config()?;
 
-    if !config.settings.telemetry || is_offline() {
+    if !config.settings.telemetry || is_offline() || env::var("PROTO_TEST_PROFILE").is_ok() {
         return Ok(());
     }
 
