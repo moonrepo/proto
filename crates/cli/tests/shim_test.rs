@@ -122,4 +122,28 @@ mod shim_bin {
 
         assert_snapshot!(get_assert_output(&assert));
     }
+
+    // #[test]
+    // fn handles_signals() {
+    //     let sandbox = create_empty_sandbox();
+
+    //     let mut cmd = create_proto_command(sandbox.path());
+    //     cmd.arg("install")
+    //         .arg("node")
+    //         .arg("--pin")
+    //         .arg("--")
+    //         .arg("--no-bundled-npm")
+    //         .assert()
+    //         .success();
+
+    //     let mut shim = create_shim_command(sandbox.path(), "node");
+    //     shim.arg(get_fixture("tests/fixtures/shim-signal.mjs"));
+    //     shim.env_remove("PROTO_LOG");
+
+    //     let child: std::process::Command = shim.into();
+
+    //     let assert = shim.assert();
+
+    //     assert_snapshot!(get_assert_output(&assert));
+    // }
 }
