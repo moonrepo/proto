@@ -7,11 +7,11 @@ use rust_json::{json_parse, JsonElem as Json};
 use shared_child::SharedChild;
 use starbase::tracing::{self, trace, TracingOptions};
 use std::collections::HashMap;
-use std::io::{IsTerminal, Read, Write};
+use std::ffi::OsString;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::Command;
 use std::sync::Arc;
-use std::{env, fs, io, process};
+use std::{env, fs, process};
 
 fn get_proto_home() -> Result<PathBuf> {
     if let Ok(root) = env::var("PROTO_HOME") {
@@ -67,7 +67,7 @@ fn get_proto_binary(proto_home_dir: &Path, shim_exe_path: &Path) -> PathBuf {
     PathBuf::from(bin_name)
 }
 
-fn create_command(args: Vec<String>, shim_name: &str, shim_exe_path: &Path) -> Result<Command> {
+fn create_command(args: Vec<OsString>, shim_name: &str, shim_exe_path: &Path) -> Result<Command> {
     let proto_home_dir = get_proto_home()?;
     let registry_path = proto_home_dir.join("shims").join("registry.json");
     let mut shim = Json::Object(HashMap::default());
@@ -92,13 +92,13 @@ fn create_command(args: Vec<String>, shim_name: &str, shim_exe_path: &Path) -> R
     if let Json::Array(before_args) = &shim["before_args"] {
         for arg in before_args {
             if let Json::Str(arg) = arg {
-                passthrough_args.push(arg);
+                passthrough_args.push(OsString::from(arg));
             }
         }
     }
 
     if args.len() > 1 {
-        for (i, arg) in args.iter().enumerate() {
+        for (i, arg) in args.into_iter().enumerate() {
             if i == 0 {
                 continue; // The exe
             }
@@ -110,7 +110,7 @@ fn create_command(args: Vec<String>, shim_name: &str, shim_exe_path: &Path) -> R
     if let Json::Array(after_args) = &shim["after_args"] {
         for arg in after_args {
             if let Json::Str(arg) = arg {
-                passthrough_args.push(arg);
+                passthrough_args.push(OsString::from(arg));
             }
         }
     }
@@ -118,6 +118,7 @@ fn create_command(args: Vec<String>, shim_name: &str, shim_exe_path: &Path) -> R
     // Create a command for local testing
     // let mut command = Command::new("node");
     // command.arg("./docs/shim-test.mjs");
+    // command.arg("--version");
 
     // Create the command and handle alternate logic
     let mut command = Command::new(get_proto_binary(&proto_home_dir, shim_exe_path));
@@ -162,7 +163,7 @@ pub fn main() -> Result<()> {
     });
 
     // Extract arguments to pass-through
-    let args = env::args().collect::<Vec<_>>();
+    let args = env::args_os().collect::<Vec<_>>();
     let exe_path = env::current_exe().unwrap_or_else(|_| PathBuf::from(&args[0]));
 
     let shim_name = exe_path
@@ -179,28 +180,9 @@ pub fn main() -> Result<()> {
         ));
     }
 
-    // Capture any piped input
-    let input = {
-        let mut stdin = io::stdin();
-        let mut buffer = String::new();
-
-        // Only read piped data when stdin is not a TTY,
-        // otherwise the process will hang indefinitely waiting for EOF
-        if !stdin.is_terminal() {
-            stdin.read_to_string(&mut buffer)?;
-        }
-
-        buffer
-    };
-    let has_piped_stdin = !input.is_empty();
-
-    // Create the actual command to execute
+    // Create the command to execute
     let mut command = create_command(args, &shim_name, &exe_path)?;
     command.env("PROTO_LOG", log_level);
-
-    if has_piped_stdin {
-        command.stdin(Stdio::piped());
-    }
 
     // Spawn a shareable child process
     trace!(
@@ -215,25 +197,13 @@ pub fn main() -> Result<()> {
 
     // Handle CTRL+C and kill the child
     ctrlc::set_handler(move || {
-        trace!("Received CTRL+C, killing child process");
+        trace!("Received ctrl + c, killing child process");
         let _ = child_clone.kill();
     })?;
 
-    // If we have piped data, pass it through
-    if has_piped_stdin {
-        if let Some(mut stdin) = child.take_stdin() {
-            trace!(
-                shim = &shim_name,
-                input,
-                "Received piped input, passing through"
-            );
-            stdin.write_all(input.as_bytes())?;
-        }
-    }
-
     // Wait for the process to finish or be killed
     let status = child.wait()?;
-    let code = status.code().unwrap_or(0);
+    let code = status.code().unwrap_or(1);
 
     trace!(shim = &shim_name, code, "Received exit code");
 

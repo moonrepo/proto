@@ -2332,6 +2332,7 @@ dependencies = [
  "semver",
  "serde",
  "shared_child",
+ "signal-child",
  "sigpipe",
  "starbase",
  "starbase_archive",
@@ -2992,6 +2993,12 @@ checksum = "7ccc8076840c4da029af4f87e4e8daeb0fca6b87bbb02e10cb60b791450e11e4"
 dependencies = [
  "dirs 4.0.0",
 ]
+
+[[package]]
+name = "signal-child"
+version = "1.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b2a4eed4c5ae38438470ab8e0108bb751012f786f44ff585cfd837c9a5fe426f"
 
 [[package]]
 name = "signal-hook-registry"

@@ -43,14 +43,19 @@ pub fn create_proto_command<T: AsRef<Path>>(path: T) -> assert_cmd::Command {
 }
 
 pub fn create_shim_command<T: AsRef<Path>>(path: T, name: &str) -> assert_cmd::Command {
+    let mut cmd = assert_cmd::Command::from_std(create_shim_command_std(path, name));
+    cmd.timeout(std::time::Duration::from_secs(240));
+    cmd
+}
+
+pub fn create_shim_command_std<T: AsRef<Path>>(path: T, name: &str) -> std::process::Command {
     let path = path.as_ref();
 
-    let mut cmd = assert_cmd::Command::new(path.join(".proto/shims").join(if cfg!(windows) {
+    let mut cmd = std::process::Command::new(path.join(".proto/shims").join(if cfg!(windows) {
         format!("{name}.exe")
     } else {
         name.to_owned()
     }));
-    cmd.timeout(std::time::Duration::from_secs(240));
     cmd.env("PROTO_LOG", "trace");
     cmd.env("PROTO_HOME", path.join(".proto"));
     cmd.env("PROTO_NODE_VERSION", "latest"); // For package managers
