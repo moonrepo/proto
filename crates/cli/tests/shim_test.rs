@@ -1,6 +1,5 @@
 mod utils;
 
-use signal_child::Signalable;
 use starbase_sandbox::{assert_snapshot, get_assert_output};
 use std::path::PathBuf;
 use utils::*;
@@ -147,7 +146,10 @@ mod shim_bin {
     }
 
     #[test]
+    #[cfg(not(windows))]
     fn handles_signals() {
+        use signal_child::Signalable;
+
         let sandbox = create_empty_sandbox();
 
         let mut cmd = create_proto_command(sandbox.path());
