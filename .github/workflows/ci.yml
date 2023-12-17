@@ -87,8 +87,8 @@ jobs:
       - run: cargo run -- --help
       - run: cargo run -- list-remote node
       - run: cargo run -- list-remote wasm-test
-  install:
-    name: Install binaries
+  build:
+    name: Upload build
     runs-on: ${{ matrix.host }}
     strategy:
       matrix:
@@ -106,7 +106,6 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
-      - uses: moonrepo/setup-toolchain@v0
       - uses: moonrepo/setup-rust@v1
         with:
           targets: ${{ matrix.target }}
@@ -118,4 +117,3 @@ jobs:
           path: artifacts
           retention-days: 14
           if-no-files-found: error
-
