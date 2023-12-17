@@ -50,10 +50,6 @@ pub enum ProtoCliError {
     )]
     NoSelfUpgrade { command: String, tool: String },
 
-    #[diagnostic(code(proto::cli::upgrade_invalid_platform))]
-    #[error("Unable to upgrade proto, unsupported platform {} + {}.", .os, .arch)]
-    UpgradeInvalidPlatform { arch: String, os: String },
-
     #[diagnostic(code(proto::cli::upgrade_failed))]
     #[error("Failed to upgrade proto, {} could not be located after download!", .bin.style(Style::Shell))]
     UpgradeFailed { bin: String },
