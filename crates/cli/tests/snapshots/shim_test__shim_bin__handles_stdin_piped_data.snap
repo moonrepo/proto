@@ -1,0 +1,10 @@
+---
+source: crates/cli/tests/shim_test.rs
+expression: get_assert_output(&assert)
+---
+start
+running
+piped data = this data comes from stdin
+stop
+
+
