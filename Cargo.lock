@@ -2323,6 +2323,7 @@ dependencies = [
  "indicatif",
  "miette",
  "proto_core",
+ "proto_installer",
  "proto_pdk_api",
  "reqwest",
  "rust_json",
@@ -2378,6 +2379,18 @@ dependencies = [
  "url",
  "version_spec",
  "warpgate",
+]
+
+[[package]]
+name = "proto_installer"
+version = "0.0.1"
+dependencies = [
+ "futures",
+ "miette",
+ "reqwest",
+ "starbase_styles",
+ "starbase_utils",
+ "thiserror",
 ]
 
 [[package]]
