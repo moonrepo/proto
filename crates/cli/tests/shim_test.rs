@@ -1,5 +1,6 @@
 mod utils;
 
+use signal_child::Signalable;
 use starbase_sandbox::{assert_snapshot, get_assert_output};
 use std::path::PathBuf;
 use utils::*;
@@ -93,7 +94,7 @@ mod shim_bin {
         let mut shim = create_shim_command(sandbox.path(), "node");
         shim.arg(get_fixture("tests/fixtures/shim-piped-stdin.mjs"));
         shim.env_remove("PROTO_LOG");
-        shim.write_stdin("foo bar baz");
+        shim.write_stdin("this data comes from stdin");
 
         let assert = shim.assert();
 
@@ -123,27 +124,61 @@ mod shim_bin {
         assert_snapshot!(get_assert_output(&assert));
     }
 
-    // #[test]
-    // fn handles_signals() {
-    //     let sandbox = create_empty_sandbox();
+    #[test]
+    fn handles_exit_codes() {
+        let sandbox = create_empty_sandbox();
 
-    //     let mut cmd = create_proto_command(sandbox.path());
-    //     cmd.arg("install")
-    //         .arg("node")
-    //         .arg("--pin")
-    //         .arg("--")
-    //         .arg("--no-bundled-npm")
-    //         .assert()
-    //         .success();
+        let mut cmd = create_proto_command(sandbox.path());
+        cmd.arg("install")
+            .arg("node")
+            .arg("--pin")
+            .arg("--")
+            .arg("--no-bundled-npm")
+            .assert()
+            .success();
 
-    //     let mut shim = create_shim_command(sandbox.path(), "node");
-    //     shim.arg(get_fixture("tests/fixtures/shim-signal.mjs"));
-    //     shim.env_remove("PROTO_LOG");
+        let mut shim = create_shim_command(sandbox.path(), "node");
+        shim.arg(get_fixture("tests/fixtures/shim-code-0.mjs"));
+        shim.assert().code(0);
 
-    //     let child: std::process::Command = shim.into();
+        let mut shim = create_shim_command(sandbox.path(), "node");
+        shim.arg(get_fixture("tests/fixtures/shim-code-1.mjs"));
+        shim.assert().code(1);
+    }
 
-    //     let assert = shim.assert();
+    #[test]
+    fn handles_signals() {
+        let sandbox = create_empty_sandbox();
 
-    //     assert_snapshot!(get_assert_output(&assert));
-    // }
+        let mut cmd = create_proto_command(sandbox.path());
+        cmd.arg("install")
+            .arg("node")
+            .arg("--pin")
+            .arg("--")
+            .arg("--no-bundled-npm")
+            .assert()
+            .success();
+
+        let mut shim = create_shim_command_std(sandbox.path(), "node");
+        shim.arg(get_fixture("tests/fixtures/shim-signal.mjs"));
+        shim.env_remove("PROTO_LOG");
+
+        // Interrupt / SIGINT
+        let mut child = shim.spawn().unwrap();
+        child.interrupt().unwrap();
+
+        assert!(!child.wait().unwrap().success());
+
+        // Terminate / SIGTERM
+        let mut child = shim.spawn().unwrap();
+        child.term().unwrap();
+
+        assert!(!child.wait().unwrap().success());
+
+        // Hangup / SIGHUP
+        // let mut child = shim.spawn().unwrap();
+        // child.hangup().unwrap();
+
+        // assert!(!child.wait().unwrap().success());
+    }
 }

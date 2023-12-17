@@ -74,3 +74,4 @@ winreg = "0.52.0"
 
 [dev-dependencies]
 starbase_sandbox = { workspace = true }
+signal-child = "1.0.5"

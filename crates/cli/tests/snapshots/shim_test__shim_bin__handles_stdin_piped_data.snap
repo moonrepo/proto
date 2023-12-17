@@ -4,7 +4,7 @@ expression: get_assert_output(&assert)
 ---
 start
 running
-piped data = foo bar baz
+piped data = this data comes from stdin
 stop
 
 
