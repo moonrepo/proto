@@ -87,3 +87,32 @@ jobs:
       - run: cargo run -- --help
       - run: cargo run -- list-remote node
       - run: cargo run -- list-remote wasm-test
+  install:
+    name: Install binaries
+    runs-on: ${{ matrix.host }}
+    strategy:
+      matrix:
+        include:
+        - target: aarch64-unknown-linux-gnu
+          host: ubuntu-latest
+        - target: x86_64-unknown-linux-gnu
+          host: ubuntu-20.04
+        - target: x86_64-apple-darwin
+          host: macos-12
+        - target: aarch64-apple-darwin
+          host: macos-latest
+        - target: x86_64-pc-windows-msvc
+          host: windows-2022
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: moonrepo/setup-toolchain@v0
+      - uses: moonrepo/setup-rust@v1
+        with:
+          targets: ${{ matrix.target }}
+      - run:
+          cargo install --root artifacts --path ./crates/cli
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: artifacts
