@@ -15,12 +15,4 @@ pub enum ProtoInstallerError {
         #[source]
         error: reqwest::Error,
     },
-
-    #[diagnostic(code(proto::installer::download_failed))]
-    #[error("Failed to download archive {}.", .url.style(Style::Url))]
-    DownloadRequestFailed {
-        url: String,
-        #[source]
-        error: reqwest::Error,
-    },
 }

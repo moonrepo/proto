@@ -1,12 +1,12 @@
 mod utils;
 
-use futures::Future;
 use proto_core::{
     load_tool_from_locator, Id, PluginLocator, ProtoEnvironment, Tool, UnresolvedVersionSpec,
 };
 use starbase_sandbox::assert_snapshot;
 use std::env;
 use std::fs;
+use std::future::Future;
 use std::path::{Path, PathBuf};
 use utils::*;
 
