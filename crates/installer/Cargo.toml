@@ -10,7 +10,7 @@ repository = "https://github.com/moonrepo/proto"
 [dependencies]
 futures = "0.3.29"
 miette = { workspace = true }
-reqwest = { workspace = true }
+reqwest = { workspace = true, features = ["stream"] }
 starbase_archive = { workspace = true }
 starbase_styles = { workspace = true }
 starbase_utils = { workspace = true }
