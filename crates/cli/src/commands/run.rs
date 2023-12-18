@@ -180,6 +180,7 @@ pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> S
 
     // Run the command
     let mut command = create_command(&tool, &exe_config, &args.passthrough)?;
+
     command
         .env(
             format!("{}_VERSION", tool.get_env_var_prefix()),
@@ -191,10 +192,6 @@ pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> S
         );
 
     let child = spawn_command_with_signals(command).into_diagnostic()?;
-
-    // println!("proto parent id = {}", std::process::id());
-    // println!("proto child id = {}", child.id());
-
     let status = child.wait().into_diagnostic()?;
 
     // Run after hook

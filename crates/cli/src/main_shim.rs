@@ -25,7 +25,7 @@ fn get_proto_home() -> Result<PathBuf> {
     Ok(home_dir.join(".proto"))
 }
 
-fn get_proto_binary(proto_home_dir: &Path, shim_exe_path: &Path) -> Option<PathBuf> {
+fn locate_proto_binary(proto_home_dir: &Path, shim_exe_path: &Path) -> Option<PathBuf> {
     let bin_name = if cfg!(windows) { "proto.exe" } else { "proto" };
     let mut lookup_dirs = vec![];
 
@@ -116,22 +116,19 @@ fn create_command(args: Vec<OsString>, shim_name: &str, shim_exe_path: &Path) ->
     }
 
     // Find an applicable proto binary to run with
-    let proto_bin = get_proto_binary(&proto_home_dir, shim_exe_path);
+    let proto_bin = locate_proto_binary(&proto_home_dir, shim_exe_path);
 
     if let Some(bin) = proto_bin.as_deref() {
-        trace!(shim = shim_name, proto = ?bin, "Using a located proto binary");
+        trace!(shim = shim_name, proto_bin = ?bin, "Using a located proto binary");
     } else {
         trace!(shim = shim_name, "Assuming proto binary is on PATH");
     }
 
-    // Create a command for local testing
+    // Create the command and handle alternate logic
     let mut command = Command::new(proto_bin.unwrap_or_else(|| "proto".into()));
     // command.args(["run", "node", "--"]);
     // command.arg("./docs/shim-test.mjs");
     // command.arg("--version");
-
-    // Create the command and handle alternate logic
-    // let mut command = Command::new(get_proto_binary(&proto_home_dir, shim_exe_path));
 
     if let Json::Str(parent_name) = &shim["parent"] {
         command.args(["run", parent_name]);
@@ -195,9 +192,6 @@ pub fn main() -> Result<()> {
     command.env("PROTO_LOG", log_level);
 
     let child = spawn_command_with_signals(command)?;
-
-    // println!("shim parent id = {}", std::process::id());
-    // println!("shim child id = {}", child.id());
 
     trace!(
         shim = &shim_name,
