@@ -111,7 +111,7 @@ jobs:
           targets: ${{ matrix.target }}
           cache-target: release
       - run:
-          cargo install --root artifacts --path ./crates/cli
+          cargo install --root artifacts --path ./crates/cli --target ${{ matrix.target }}
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.target }}
