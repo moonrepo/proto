@@ -1,6 +1,7 @@
 use crate::commands::install::{internal_install, InstallArgs};
 use crate::error::ProtoCliError;
 use crate::helpers::ProtoResource;
+use crate::shared::spawn_command_with_signals;
 use clap::Args;
 use miette::IntoDiagnostic;
 use proto_core::{detect_version, Id, ProtoError, Tool, UnresolvedVersionSpec};
@@ -8,10 +9,9 @@ use proto_pdk_api::{ExecutableConfig, RunHook};
 use starbase::system;
 use std::env;
 use std::ffi::OsStr;
-use std::process::exit;
+use std::process::{exit, Command};
 use system_env::create_process_command;
-use tokio::process::Command;
-use tracing::debug;
+use tracing::{debug, trace};
 
 #[derive(Args, Clone, Debug)]
 pub struct RunArgs {
@@ -120,8 +120,7 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
         create_process_command(exe_path, args)
     };
 
-    // Convert std to tokio
-    Ok(Command::from(command))
+    Ok(command)
 }
 
 #[system]
@@ -180,7 +179,9 @@ pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> S
     })?;
 
     // Run the command
-    let status = create_command(&tool, &exe_config, &args.passthrough)?
+    let mut command = create_command(&tool, &exe_config, &args.passthrough)?;
+
+    command
         .env(
             format!("{}_VERSION", tool.get_env_var_prefix()),
             tool.get_resolved_version().to_string(),
@@ -188,12 +189,16 @@ pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> S
         .env(
             format!("{}_BIN", tool.get_env_var_prefix()),
             exe_path.to_string_lossy().to_string(),
-        )
-        .spawn()
-        .into_diagnostic()?
-        .wait()
-        .await
-        .into_diagnostic()?;
+        );
+
+    let status = spawn_command_with_signals(command, |child_id| {
+        trace!(
+            pid = std::process::id(),
+            child_pid = child_id,
+            "Spawning child process",
+        );
+    })
+    .into_diagnostic()?;
 
     // Run after hook
     if status.success() {

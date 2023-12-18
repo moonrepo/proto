@@ -2,16 +2,17 @@
 // so these imports use std as much as possible, and should
 // not pull in large libraries (tracing is already enough)!
 
+mod shared;
+
 use anyhow::{anyhow, Result};
 use rust_json::{json_parse, JsonElem as Json};
-use shared_child::SharedChild;
+use shared::spawn_command_with_signals;
 use starbase::tracing::{self, trace, TracingOptions};
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
-use std::process::Command;
-use std::sync::Arc;
-use std::{env, fs, process};
+use std::process::{exit, Command};
+use std::{env, fs};
 
 fn get_proto_home() -> Result<PathBuf> {
     if let Ok(root) = env::var("PROTO_HOME") {
@@ -24,7 +25,7 @@ fn get_proto_home() -> Result<PathBuf> {
     Ok(home_dir.join(".proto"))
 }
 
-fn get_proto_binary(proto_home_dir: &Path, shim_exe_path: &Path) -> PathBuf {
+fn locate_proto_binary(proto_home_dir: &Path, shim_exe_path: &Path) -> Option<PathBuf> {
     let bin_name = if cfg!(windows) { "proto.exe" } else { "proto" };
     let mut lookup_dirs = vec![];
 
@@ -34,6 +35,18 @@ fn get_proto_binary(proto_home_dir: &Path, shim_exe_path: &Path) -> PathBuf {
     {
         if let Ok(dir) = env::var("CARGO_TARGET_DIR") {
             lookup_dirs.push(PathBuf::from(dir).join("debug"));
+        }
+
+        if let Ok(dir) = env::var("CARGO_MANIFEST_DIR") {
+            lookup_dirs.push(
+                PathBuf::from(if let Some(index) = dir.find("crates") {
+                    &dir[0..index]
+                } else {
+                    &dir
+                })
+                .join("target")
+                .join("debug"),
+            );
         }
 
         if let Ok(dir) = env::var("GITHUB_WORKSPACE") {
@@ -59,12 +72,11 @@ fn get_proto_binary(proto_home_dir: &Path, shim_exe_path: &Path) -> PathBuf {
         let bin = lookup_dir.join(bin_name);
 
         if bin.is_absolute() && bin.exists() {
-            return bin;
+            return Some(bin);
         }
     }
 
-    // Otherwise rely on PATH lookup
-    PathBuf::from(bin_name)
+    None
 }
 
 fn create_command(args: Vec<OsString>, shim_name: &str, shim_exe_path: &Path) -> Result<Command> {
@@ -115,13 +127,20 @@ fn create_command(args: Vec<OsString>, shim_name: &str, shim_exe_path: &Path) ->
         }
     }
 
-    // Create a command for local testing
-    // let mut command = Command::new("node");
-    // command.arg("./docs/shim-test.mjs");
-    // command.arg("--version");
+    // Find an applicable proto binary to run with
+    let proto_bin = locate_proto_binary(&proto_home_dir, shim_exe_path);
+
+    if let Some(bin) = proto_bin.as_deref() {
+        trace!(shim = shim_name, proto_bin = ?bin, "Using a located proto binary");
+    } else {
+        trace!(shim = shim_name, "Assuming proto binary is on PATH");
+    }
 
     // Create the command and handle alternate logic
-    let mut command = Command::new(get_proto_binary(&proto_home_dir, shim_exe_path));
+    let mut command = Command::new(proto_bin.unwrap_or_else(|| "proto".into()));
+    // command.args(["run", "node", "--"]);
+    // command.arg("./docs/shim-test.mjs");
+    // command.arg("--version");
 
     if let Json::Str(parent_name) = &shim["parent"] {
         command.args(["run", parent_name]);
@@ -180,32 +199,22 @@ pub fn main() -> Result<()> {
         ));
     }
 
-    // Create the command to execute
+    // Create and spawn the command
     let mut command = create_command(args, &shim_name, &exe_path)?;
     command.env("PROTO_LOG", log_level);
 
-    // Spawn a shareable child process
-    trace!(
-        shim = &shim_name,
-        proto_bin = ?command.get_program(),
-        "Spawning proto child process"
-    );
-
-    let shared_child = SharedChild::spawn(&mut command)?;
-    let child = Arc::new(shared_child);
-    let child_clone = Arc::clone(&child);
-
-    // Handle CTRL+C and kill the child
-    ctrlc::set_handler(move || {
-        trace!("Received ctrl + c, killing child process");
-        let _ = child_clone.kill();
+    let status = spawn_command_with_signals(command, |child_id| {
+        trace!(
+            shim = &shim_name,
+            pid = std::process::id(),
+            child_pid = child_id,
+            "Spawning proto child process"
+        );
     })?;
 
-    // Wait for the process to finish or be killed
-    let status = child.wait()?;
     let code = status.code().unwrap_or(1);
 
     trace!(shim = &shim_name, code, "Received exit code");
 
-    process::exit(code);
+    exit(code);
 }
