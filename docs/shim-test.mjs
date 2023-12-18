@@ -1,9 +1,18 @@
 console.log("start");
 
-// Test CTRL+C handling
 process.on("SIGINT", () => {
-  console.log("killed");
-  process.exit(1);
+  console.log("interrupted");
+  process.exit(2);
+});
+
+process.on("SIGTERM", () => {
+  console.log("terminated");
+  process.exit(3);
+});
+
+process.on("SIGHUP", () => {
+  console.log("hangup");
+  process.exit(4);
 });
 
 // Test piping input
@@ -34,6 +43,6 @@ getStdinBuffer().then((buffer) => {
 // Start a timer so we can ensure "stop" is never logged
 setTimeout(() => {
   console.log("stop");
-}, 5000);
+}, 1000 * 60 * 1);
 
 console.log("running");

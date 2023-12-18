@@ -3,6 +3,7 @@ mod commands;
 mod error;
 mod helpers;
 mod printer;
+mod shared;
 mod shell;
 mod systems;
 mod telemetry;
