@@ -148,7 +148,9 @@ mod shim_bin {
     #[test]
     #[cfg(not(windows))]
     fn handles_signals() {
-        use signal_child::Signalable;
+        use shared_child::unix::SharedChildExt;
+        use shared_child::SharedChild;
+        use std::os::unix::process::ExitStatusExt;
 
         let sandbox = create_empty_sandbox();
 
@@ -166,21 +168,21 @@ mod shim_bin {
         shim.env_remove("PROTO_LOG");
 
         // Interrupt / SIGINT
-        let mut child = shim.spawn().unwrap();
-        child.interrupt().unwrap();
+        let child = SharedChild::spawn(&mut shim).unwrap();
+        child.send_signal(2).unwrap();
 
-        assert!(!child.wait().unwrap().success());
+        assert_eq!(child.wait().unwrap().signal().unwrap(), 2);
 
         // Terminate / SIGTERM
-        let mut child = shim.spawn().unwrap();
-        child.term().unwrap();
+        let child = SharedChild::spawn(&mut shim).unwrap();
+        child.send_signal(15).unwrap();
 
-        assert!(!child.wait().unwrap().success());
+        assert_eq!(child.wait().unwrap().signal().unwrap(), 15);
 
         // Hangup / SIGHUP
-        // let mut child = shim.spawn().unwrap();
-        // child.hangup().unwrap();
+        let child = SharedChild::spawn(&mut shim).unwrap();
+        child.send_signal(1).unwrap();
 
-        // assert!(!child.wait().unwrap().success());
+        assert_eq!(child.wait().unwrap().signal().unwrap(), 1);
     }
 }
