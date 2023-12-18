@@ -33,7 +33,7 @@ path = "src/main_shim.rs"
 
 [dependencies]
 proto_core = { version = "0.25.2", path = "../core" }
-proto_installer = { version = "0.0.1", path = "../installer" }
+proto_installer = { version = "0.1.0", path = "../installer" }
 proto_pdk_api = { version = "0.11.2", path = "../pdk-api" }
 system_env = { version = "0.1.8", path = "../system-env" }
 anyhow = { workspace = true }
@@ -46,7 +46,7 @@ dirs = { workspace = true }
 human-sort = { workspace = true }
 indicatif = "0.17.7"
 miette = { workspace = true }
-reqwest = { workspace = true, features = ["rustls-tls-native-roots", "stream"] }
+reqwest = { workspace = true, features = ["rustls-tls-native-roots"] }
 semver = { workspace = true }
 serde = { workspace = true }
 starbase = { workspace = true }
