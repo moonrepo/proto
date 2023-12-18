@@ -1,6 +1,7 @@
 use crate::commands::install::{internal_install, InstallArgs};
 use crate::error::ProtoCliError;
 use crate::helpers::ProtoResource;
+use crate::shared::spawn_command_with_signals;
 use clap::Args;
 use miette::IntoDiagnostic;
 use proto_core::{detect_version, Id, ProtoError, Tool, UnresolvedVersionSpec};
@@ -8,9 +9,8 @@ use proto_pdk_api::{ExecutableConfig, RunHook};
 use starbase::system;
 use std::env;
 use std::ffi::OsStr;
-use std::process::exit;
+use std::process::{exit, Command};
 use system_env::create_process_command;
-use tokio::process::Command;
 use tracing::debug;
 
 #[derive(Args, Clone, Debug)]
@@ -180,7 +180,8 @@ pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> S
     })?;
 
     // Run the command
-    let status = create_command(&tool, &exe_config, &args.passthrough)?
+    let mut command = create_command(&tool, &exe_config, &args.passthrough)?;
+    command
         .env(
             format!("{}_VERSION", tool.get_env_var_prefix()),
             tool.get_resolved_version().to_string(),
@@ -188,12 +189,14 @@ pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> S
         .env(
             format!("{}_BIN", tool.get_env_var_prefix()),
             exe_path.to_string_lossy().to_string(),
-        )
-        .spawn()
-        .into_diagnostic()?
-        .wait()
-        .await
-        .into_diagnostic()?;
+        );
+
+    let child = spawn_command_with_signals(command).into_diagnostic()?;
+
+    // println!("proto parent id = {}", std::process::id());
+    // println!("proto child id = {}", child.id());
+
+    let status = child.wait().into_diagnostic()?;
 
     // Run after hook
     if status.success() {

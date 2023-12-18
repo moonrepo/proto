@@ -2,16 +2,17 @@
 // so these imports use std as much as possible, and should
 // not pull in large libraries (tracing is already enough)!
 
+mod shared;
+
 use anyhow::{anyhow, Result};
 use rust_json::{json_parse, JsonElem as Json};
-use shared_child::SharedChild;
+use shared::spawn_command_with_signals;
 use starbase::tracing::{self, trace, TracingOptions};
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
-use std::process::Command;
-use std::sync::Arc;
-use std::{env, fs, process};
+use std::process::{exit, Command};
+use std::{env, fs};
 
 fn get_proto_home() -> Result<PathBuf> {
     if let Ok(root) = env::var("PROTO_HOME") {
@@ -24,7 +25,7 @@ fn get_proto_home() -> Result<PathBuf> {
     Ok(home_dir.join(".proto"))
 }
 
-fn get_proto_binary(proto_home_dir: &Path, shim_exe_path: &Path) -> PathBuf {
+fn get_proto_binary(proto_home_dir: &Path, shim_exe_path: &Path) -> Option<PathBuf> {
     let bin_name = if cfg!(windows) { "proto.exe" } else { "proto" };
     let mut lookup_dirs = vec![];
 
@@ -59,12 +60,11 @@ fn get_proto_binary(proto_home_dir: &Path, shim_exe_path: &Path) -> PathBuf {
         let bin = lookup_dir.join(bin_name);
 
         if bin.is_absolute() && bin.exists() {
-            return bin;
+            return Some(bin);
         }
     }
 
-    // Otherwise rely on PATH lookup
-    PathBuf::from(bin_name)
+    None
 }
 
 fn create_command(args: Vec<OsString>, shim_name: &str, shim_exe_path: &Path) -> Result<Command> {
@@ -115,13 +115,23 @@ fn create_command(args: Vec<OsString>, shim_name: &str, shim_exe_path: &Path) ->
         }
     }
 
+    // Find an applicable proto binary to run with
+    let proto_bin = get_proto_binary(&proto_home_dir, shim_exe_path);
+
+    if let Some(bin) = proto_bin.as_deref() {
+        trace!(shim = shim_name, proto = ?bin, "Using a located proto binary");
+    } else {
+        trace!(shim = shim_name, "Assuming proto binary is on PATH");
+    }
+
     // Create a command for local testing
-    // let mut command = Command::new("node");
+    let mut command = Command::new(proto_bin.unwrap_or_else(|| "proto".into()));
+    // command.args(["run", "node", "--"]);
     // command.arg("./docs/shim-test.mjs");
     // command.arg("--version");
 
     // Create the command and handle alternate logic
-    let mut command = Command::new(get_proto_binary(&proto_home_dir, shim_exe_path));
+    // let mut command = Command::new(get_proto_binary(&proto_home_dir, shim_exe_path));
 
     if let Json::Str(parent_name) = &shim["parent"] {
         command.args(["run", parent_name]);
@@ -180,32 +190,26 @@ pub fn main() -> Result<()> {
         ));
     }
 
-    // Create the command to execute
+    // Create and spawn the command
     let mut command = create_command(args, &shim_name, &exe_path)?;
     command.env("PROTO_LOG", log_level);
 
-    // Spawn a shareable child process
+    let child = spawn_command_with_signals(command)?;
+
+    // println!("shim parent id = {}", std::process::id());
+    // println!("shim child id = {}", child.id());
+
     trace!(
         shim = &shim_name,
-        proto_bin = ?command.get_program(),
+        pid = std::process::id(),
+        child_pid = child.id(),
         "Spawning proto child process"
     );
 
-    let shared_child = SharedChild::spawn(&mut command)?;
-    let child = Arc::new(shared_child);
-    let child_clone = Arc::clone(&child);
-
-    // Handle CTRL+C and kill the child
-    ctrlc::set_handler(move || {
-        trace!("Received ctrl + c, killing child process");
-        let _ = child_clone.kill();
-    })?;
-
-    // Wait for the process to finish or be killed
     let status = child.wait()?;
     let code = status.code().unwrap_or(1);
 
     trace!(shim = &shim_name, code, "Received exit code");
 
-    process::exit(code);
+    exit(code);
 }
