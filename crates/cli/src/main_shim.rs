@@ -191,16 +191,15 @@ pub fn main() -> Result<()> {
     let mut command = create_command(args, &shim_name, &exe_path)?;
     command.env("PROTO_LOG", log_level);
 
-    let child = spawn_command_with_signals(command)?;
+    let status = spawn_command_with_signals(command, |child_id| {
+        trace!(
+            shim = &shim_name,
+            pid = std::process::id(),
+            child_pid = child_id,
+            "Spawning proto child process"
+        );
+    })?;
 
-    trace!(
-        shim = &shim_name,
-        pid = std::process::id(),
-        child_pid = child.id(),
-        "Spawning proto child process"
-    );
-
-    let status = child.wait()?;
     let code = status.code().unwrap_or(1);
 
     trace!(shim = &shim_name, code, "Received exit code");

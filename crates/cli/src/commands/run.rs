@@ -11,7 +11,7 @@ use std::env;
 use std::ffi::OsStr;
 use std::process::{exit, Command};
 use system_env::create_process_command;
-use tracing::debug;
+use tracing::{debug, trace};
 
 #[derive(Args, Clone, Debug)]
 pub struct RunArgs {
@@ -191,8 +191,14 @@ pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> S
             exe_path.to_string_lossy().to_string(),
         );
 
-    let child = spawn_command_with_signals(command).into_diagnostic()?;
-    let status = child.wait().into_diagnostic()?;
+    let status = spawn_command_with_signals(command, |child_id| {
+        trace!(
+            pid = std::process::id(), 
+            child_pid = child_id, 
+            "Spawning child process",
+        );
+    })
+    .into_diagnostic()?;
 
     // Run after hook
     if status.success() {
