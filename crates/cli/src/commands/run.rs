@@ -193,8 +193,8 @@ pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> S
 
     let status = spawn_command_with_signals(command, |child_id| {
         trace!(
-            pid = std::process::id(), 
-            child_pid = child_id, 
+            pid = std::process::id(),
+            child_pid = child_id,
             "Spawning child process",
         );
     })

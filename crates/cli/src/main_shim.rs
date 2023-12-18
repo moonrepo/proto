@@ -37,6 +37,18 @@ fn locate_proto_binary(proto_home_dir: &Path, shim_exe_path: &Path) -> Option<Pa
             lookup_dirs.push(PathBuf::from(dir).join("debug"));
         }
 
+        if let Ok(dir) = env::var("CARGO_MANIFEST_DIR") {
+            lookup_dirs.push(
+                PathBuf::from(if let Some(index) = dir.find("crates") {
+                    &dir[0..index]
+                } else {
+                    &dir
+                })
+                .join("target")
+                .join("debug"),
+            );
+        }
+
         if let Ok(dir) = env::var("GITHUB_WORKSPACE") {
             lookup_dirs.push(PathBuf::from(dir).join("target").join("debug"));
         }
