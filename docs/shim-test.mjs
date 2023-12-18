@@ -1,6 +1,5 @@
 console.log("start");
 
-// Test CTRL+C handling
 process.on("SIGINT", () => {
   console.log("interrupted");
   process.exit(2);
