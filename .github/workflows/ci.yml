@@ -109,11 +109,11 @@ jobs:
       - uses: moonrepo/setup-rust@v1
         with:
           targets: ${{ matrix.target }}
+          cache-target: release
       - run:
           cargo install --root artifacts --path ./crates/cli
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.target }}
           path: artifacts
-          retention-days: 14
-          if-no-files-found: error
+          retention-days: 7
