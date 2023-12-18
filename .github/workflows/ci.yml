@@ -110,6 +110,9 @@ jobs:
         with:
           targets: ${{ matrix.target }}
           cache-target: release
+      - run: rustup target list --installed
+      - run: rustup target add ${{ matrix.target }}
+      - run: rustup target list --installed
       - run:
           cargo install --root artifacts --path ./crates/cli --target ${{ matrix.target }}
       - uses: actions/upload-artifact@v4
