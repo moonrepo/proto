@@ -14,26 +14,28 @@ pub fn spawn_command_with_signals(mut command: Command) -> io::Result<Arc<Shared
     thread::spawn(move || {
         let mut signals = Signals::new(TERM_SIGNALS).unwrap();
 
+        #[allow(unused_assignments)]
+        let mut stop = false;
+
         for signal in signals.forever() {
             #[cfg(not(windows))]
             {
                 use shared_child::unix::SharedChildExt;
 
-                let a = child_clone.send_signal(signal);
-
-                dbg!(&a);
-
-                if a.is_err() {
-                    let _ = child_clone.kill();
-                }
+                stop = child_clone
+                    .send_signal(signal)
+                    .or_else(|_| child_clone.kill())
+                    .is_ok();
             }
 
             #[cfg(windows)]
             {
-                let _ = child_clone.kill();
+                stop = child_clone.kill().is_ok();
             }
 
-            break;
+            if stop {
+                break;
+            }
         }
     });
 

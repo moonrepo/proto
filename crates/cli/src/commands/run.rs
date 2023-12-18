@@ -120,8 +120,7 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
         create_process_command(exe_path, args)
     };
 
-    // Convert std to tokio
-    Ok(Command::from(command))
+    Ok(command)
 }
 
 #[system]
