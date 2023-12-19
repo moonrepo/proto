@@ -68,6 +68,13 @@ fn locate_proto_binary(proto_home_dir: &Path, shim_exe_path: &Path) -> Option<Pa
 
     lookup_dirs.push(proto_home_dir.join("bin"));
 
+    // Special case for unit tests and other isolations where
+    // PROTO_HOME is set to something random, but the proto
+    // binaries still exist in their original location.
+    if let Some(dir) = dirs::home_dir() {
+        lookup_dirs.push(dir.join(".proto").join("bin"));
+    }
+
     for lookup_dir in lookup_dirs {
         let bin = lookup_dir.join(bin_name);
 
