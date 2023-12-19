@@ -99,10 +99,15 @@ impl ProtoEnvironment {
 
         lookup_dirs.push(self.bin_dir.clone());
 
+        // Special case for unit tests and other isolations where
+        // PROTO_HOME is set to something random, but the proto
+        // binaries still exist in their original location.
+        lookup_dirs.push(self.home.join(".proto").join("bin"));
+
         for lookup_dir in lookup_dirs {
             let file = lookup_dir.join(bin);
 
-            if file.exists() {
+            if file.is_absolute() && file.exists() {
                 return Ok(file);
             }
         }
