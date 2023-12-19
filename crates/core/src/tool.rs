@@ -1,8 +1,8 @@
 use crate::error::ProtoError;
 use crate::events::*;
 use crate::helpers::{
-    extract_filename_from_url, hash_file_contents, is_archive_file, is_cache_enabled, is_offline,
-    remove_bin_file, ENV_VAR,
+    extract_filename_from_url, get_proto_version, hash_file_contents, is_archive_file,
+    is_cache_enabled, is_offline, remove_bin_file, ENV_VAR,
 };
 use crate::host_funcs::{create_host_functions, HostData};
 use crate::proto::ProtoEnvironment;
@@ -258,6 +258,7 @@ impl Tool {
     /// Return contextual information to pass to WASM plugin functions.
     pub fn create_context(&self) -> ToolContext {
         ToolContext {
+            proto_version: Some(get_proto_version()),
             tool_dir: self.to_virtual_path(&self.get_tool_dir()),
             version: self.get_resolved_version(),
         }

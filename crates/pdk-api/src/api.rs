@@ -22,10 +22,13 @@ json_struct!(
 json_struct!(
     /// Information about the current state of the tool.
     pub struct ToolContext {
+        /// The version of proto (the core crate) calling plugin functions.
+        pub proto_version: Option<Version>,
+
         /// Virtual path to the tool's installation directory.
         pub tool_dir: VirtualPath,
 
-        /// Current version. Will be "latest" if not resolved.
+        /// Current version. Will be a "latest" alias if not resolved.
         pub version: VersionSpec,
     }
 );
