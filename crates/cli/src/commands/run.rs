@@ -1,7 +1,7 @@
 use crate::commands::install::{internal_install, InstallArgs};
 use crate::error::ProtoCliError;
 use crate::helpers::ProtoResource;
-use crate::shared::spawn_command_with_signals;
+use crate::shared::spawn_command_and_replace;
 use clap::Args;
 use miette::IntoDiagnostic;
 use proto_core::{detect_version, Id, ProtoError, Tool, UnresolvedVersionSpec};
@@ -9,9 +9,9 @@ use proto_pdk_api::{ExecutableConfig, RunHook};
 use starbase::system;
 use std::env;
 use std::ffi::OsStr;
-use std::process::{exit, Command};
+use std::process::Command;
 use system_env::create_process_command;
-use tracing::{debug, trace};
+use tracing::debug;
 
 #[derive(Args, Clone, Debug)]
 pub struct RunArgs {
@@ -111,11 +111,21 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
         let mut exe_args = vec![exe_path.as_os_str().to_os_string()];
         exe_args.extend(args);
 
-        debug!(bin = ?parent_exe_path, args = ?exe_args, "Running {}", tool.get_name());
+        debug!(
+            bin = ?parent_exe_path,
+            args = ?exe_args,
+            pid = std::process::id(),
+            "Running {}", tool.get_name(),
+        );
 
         create_process_command(parent_exe_path, exe_args)
     } else {
-        debug!(bin = ?exe_path, args = ?args, "Running {}", tool.get_name());
+        debug!(
+            bin = ?exe_path,
+            args = ?args,
+            pid = std::process::id(),
+            "Running {}", tool.get_name(),
+        );
 
         create_process_command(exe_path, args)
     };
@@ -191,22 +201,13 @@ pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> S
             exe_path.to_string_lossy().to_string(),
         );
 
-    let status = spawn_command_with_signals(command, |child_id| {
-        trace!(
-            pid = std::process::id(),
-            child_pid = child_id,
-            "Spawning child process",
-        );
-    })
-    .into_diagnostic()?;
-
     // Run after hook
-    if status.success() {
-        tool.run_hook("post_run", || RunHook {
-            context: tool.create_context(),
-            passthrough_args: args.passthrough.clone(),
-        })?;
-    }
+    // if status.success() {
+    //     tool.run_hook("post_run", || RunHook {
+    //         context: tool.create_context(),
+    //         passthrough_args: args.passthrough.clone(),
+    //     })?;
+    // }
 
     // Update the last used timestamp in a separate task,
     // as to not interrupt this task incase something fails!
@@ -217,7 +218,6 @@ pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> S
         });
     }
 
-    if !status.success() {
-        exit(status.code().unwrap_or(1));
-    }
+    // Must be the last line!
+    spawn_command_and_replace(command).into_diagnostic()?;
 }

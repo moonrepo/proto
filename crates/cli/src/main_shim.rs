@@ -6,12 +6,12 @@ mod shared;
 
 use anyhow::{anyhow, Result};
 use rust_json::{json_parse, JsonElem as Json};
-use shared::spawn_command_with_signals;
+use shared::spawn_command_and_replace;
 use starbase::tracing::{self, trace, TracingOptions};
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
-use std::process::{exit, Command};
+use std::process::Command;
 use std::{env, fs};
 
 fn get_proto_home() -> Result<PathBuf> {
@@ -210,18 +210,14 @@ pub fn main() -> Result<()> {
     let mut command = create_command(args, &shim_name, &exe_path)?;
     command.env("PROTO_LOG", log_level);
 
-    let status = spawn_command_with_signals(command, |child_id| {
-        trace!(
-            shim = &shim_name,
-            pid = std::process::id(),
-            child_pid = child_id,
-            "Spawning proto child process"
-        );
-    })?;
+    trace!(
+        shim = &shim_name,
+        pid = std::process::id(),
+        "Spawning proto child process"
+    );
 
-    let code = status.code().unwrap_or(1);
+    // Must be the last line!
+    spawn_command_and_replace(command)?;
 
-    trace!(shim = &shim_name, code, "Received exit code");
-
-    exit(code);
+    Ok(())
 }
