@@ -217,7 +217,5 @@ pub fn main() -> Result<()> {
     );
 
     // Must be the last line!
-    spawn_command_and_replace(command)?;
-
-    Ok(())
+    Ok(spawn_command_and_replace(command)?)
 }
