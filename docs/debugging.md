@@ -114,14 +114,14 @@ This will create a `<id>-debug.log` file in the current directory with all log o
 
 proto has a few crates that are used directly by plugins: `proto_pdk`, `proto_pdk_api`, and `proto_pdk_test_utils`.
 
-We can easily add debugging/logging to these crates, and test them within our plugins, by using the `path` setting in `Cargo.toml`. This will force Cargo to use our local crates, instead of the crates from crates.io.
+We can easily add debugging/logging to these crates, and test them within our plugins, by using the `path` setting instead of `version` in `Cargo.toml`. This will force Cargo to use our local crates, instead of the crates from crates.io.
 
 For example in the Node.js plugin's [`Cargo.toml`](https://github.com/moonrepo/node-plugin/blob/master/Cargo.toml), we can uncomment (or insert) the `path`s to point to crates in our local proto checkout:
 
 ```toml
-proto_pdk = { version = "0.8.0", path = "../../proto/crates/pdk" }
-proto_pdk_api = { version = "0.8.0", path = "../../proto/crates/pdk-api" }
-proto_pdk_test_utils = { version = "0.8.2", path = "../../proto/crates/pdk-test-utils" }
+proto_pdk = { path = "../../proto/crates/pdk" }
+proto_pdk_api = { path = "../../proto/crates/pdk-api" }
+proto_pdk_test_utils = { path = "../../proto/crates/pdk-test-utils" }
 ```
 
 From here, just re-build proto and the WASM plugin, and re-run the commands above.

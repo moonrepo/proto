@@ -7,7 +7,7 @@ description = "Download, resolve, and manage Extism WASM plugins at runtime."
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
-warpgate_api = { version = "0.1.6", path = "../warpgate-api" }
+warpgate_api = { path = "../warpgate-api" }
 extism = { workspace = true }
 miette = { workspace = true }
 once_cell = { workspace = true }
