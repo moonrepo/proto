@@ -2,6 +2,7 @@ use crate::error::ProtoError;
 use crate::helpers::{get_home_dir, get_proto_home, is_offline};
 use crate::proto_config::{ProtoConfig, ProtoConfigFile, ProtoConfigManager, PROTO_CONFIG_NAME};
 use once_cell::sync::OnceCell;
+use starbase_utils::dirs;
 use std::collections::BTreeMap;
 use std::env;
 use std::path::{Path, PathBuf};
@@ -102,7 +103,9 @@ impl ProtoEnvironment {
         // Special case for unit tests and other isolations where
         // PROTO_HOME is set to something random, but the proto
         // binaries still exist in their original location.
-        lookup_dirs.push(self.home.join(".proto").join("bin"));
+        if let Some(dir) = dirs::home_dir() {
+            lookup_dirs.push(dir.join(".proto").join("bin"));
+        }
 
         for lookup_dir in lookup_dirs {
             let file = lookup_dir.join(bin);
