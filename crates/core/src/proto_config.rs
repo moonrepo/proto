@@ -166,7 +166,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("python"),
                 PluginLocator::SourceUrl {
-                    url: "https://github.com/moonrepo/python-plugin/releases/download/v0.4.0/python_plugin.wasm".into()
+                    url: "https://github.com/moonrepo/python-plugin/releases/download/v0.5.0/python_plugin.wasm".into()
                 }
             );
         }

@@ -30,16 +30,21 @@
   - Added a `ExecutableConfig.shim_env_vars` field.
   - Updated `ExecutableConfig.shim_before_args` and `ExecutableConfig.shim_after_args` to support a list of strings.
 
+#### 🐞 Fixes
+
+- Fixed an issue where binaries were being symlinked with broken versions in their file name (most commonly for Python).
+
 #### 🧩 Plugins
 
 - Updated `deno_plugin` to v0.7.
 - Updated `go_plugin` to v0.7.
+- Updated `python_plugin` to v0.5.
 - Updated `rust_plugin` to v0.6.
 - Updated `schema_plugin` (TOML) to v0.7.
 
 <!-- - Updated `bun_plugin` to v0.6.
 - Updated `node_plugin` and `node_depman_plugin` to v0.6.
-- Updated `python_plugin` to v0.4. -->
+ -->
 
 #### ⚙️ Internal
 
