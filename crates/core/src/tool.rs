@@ -1398,10 +1398,11 @@ impl Tool {
         let shim_binary =
             fs::read_file_bytes(locate_proto_bin("proto-shim").ok_or_else(|| {
                 ProtoError::MissingShimBinary {
-                    bin_name: "proto-shim".to_owned(),
                     bin_dir: self.proto.bin_dir.clone(),
                 }
             })?)?;
+
+        fs::create_dir_all(&self.proto.shims_dir)?;
 
         for location in shims {
             let mut shim_entry = Shim::default();

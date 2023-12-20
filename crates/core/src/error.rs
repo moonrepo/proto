@@ -59,11 +59,11 @@ pub enum ProtoError {
     #[diagnostic(code(proto::shim::missing_binary))]
     #[error(
         "Unable to create shims as the {} binary cannot be found.\nLooked in the {} environment variable and {} directory.",
-        .bin_name.style(Style::Id),
+        "proto-shim".style(Style::Id),
         "PROTO_INSTALL_DIR".style(Style::Property),
         .bin_dir.style(Style::Path),
     )]
-    MissingShimBinary { bin_name: String, bin_dir: PathBuf },
+    MissingShimBinary { bin_dir: PathBuf },
 
     #[diagnostic(code(proto::execute::missing_file))]
     #[error("Unable to find an executable for {tool}, expected file {} does not exist.", .path.style(Style::Path))]

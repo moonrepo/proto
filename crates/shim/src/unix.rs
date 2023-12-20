@@ -7,6 +7,7 @@ use std::process::Command;
 
 // Use `execvp`, which replaces the current process. This helps
 // thoroughly with signal handling, by passing them directly to the process.
+// @see https://github.com/rust-lang/cargo/blob/master/crates/cargo-util/src/process_builder.rs#L572
 pub fn exec_command_and_replace(mut command: Command) -> io::Result<()> {
     Err(command.exec())
 }
@@ -26,7 +27,9 @@ pub fn create_shim(source_code: &[u8], shim_path: &Path, find_only: bool) -> io:
     }
 
     // Remove the current exe
-    fs::remove_file(shim_path)?;
+    if shim_path.exists() {
+        fs::remove_file(shim_path)?;
+    }
 
     // Create the new exe
     fs::write(shim_path, source_code)?;
