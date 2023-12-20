@@ -2314,7 +2314,6 @@ dependencies = [
  "chrono",
  "clap 4.4.11",
  "clap_complete",
- "command-group",
  "convert_case",
  "dialoguer",
  "dirs 5.0.1",

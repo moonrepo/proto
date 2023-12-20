@@ -60,7 +60,6 @@ tracing = { workspace = true }
 uuid = { version = "1.6.1", features = ["v4"] }
 
 # For the shim binary
-command-group = "5.0.1"
 rust_json = "0.1.5"
 shared_child = "1.0.0"
 sigpipe = "0.1.3"
