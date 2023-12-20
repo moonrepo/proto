@@ -175,7 +175,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("rust"),
                 PluginLocator::SourceUrl {
-                    url: "https://github.com/moonrepo/rust-plugin/releases/download/v0.5.0/rust_plugin.wasm".into()
+                    url: "https://github.com/moonrepo/rust-plugin/releases/download/v0.6.0/rust_plugin.wasm".into()
                 }
             );
         }
@@ -184,7 +184,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw(SCHEMA_PLUGIN_KEY),
                 PluginLocator::SourceUrl {
-                    url: "https://github.com/moonrepo/schema-plugin/releases/download/v0.6.0/schema_plugin.wasm".into()
+                    url: "https://github.com/moonrepo/schema-plugin/releases/download/v0.7.0/schema_plugin.wasm".into()
                 }
             );
         }

@@ -34,12 +34,12 @@
 
 - Updated `deno_plugin` to v0.7.
 - Updated `go_plugin` to v0.7.
+- Updated `rust_plugin` to v0.6.
+- Updated `schema_plugin` (TOML) to v0.7.
 
 <!-- - Updated `bun_plugin` to v0.6.
 - Updated `node_plugin` and `node_depman_plugin` to v0.6.
-- Updated `python_plugin` to v0.4.
-- Updated `rust_plugin` to v0.5.
-- Updated `schema_plugin` (TOML) to v0.6. -->
+- Updated `python_plugin` to v0.4. -->
 
 #### ⚙️ Internal
 
