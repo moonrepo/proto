@@ -2314,7 +2314,6 @@ dependencies = [
  "chrono",
  "clap 4.4.11",
  "clap_complete",
- "command-group",
  "convert_case",
  "dialoguer",
  "dirs 5.0.1",
@@ -2324,6 +2323,7 @@ dependencies = [
  "proto_core",
  "proto_installer",
  "proto_pdk_api",
+ "proto_shim",
  "reqwest",
  "rust_json",
  "rustls",
@@ -2332,7 +2332,6 @@ dependencies = [
  "semver",
  "serde",
  "shared_child",
- "signal-hook",
  "sigpipe",
  "starbase",
  "starbase_archive",
@@ -2358,6 +2357,7 @@ dependencies = [
  "minisign-verify",
  "once_cell",
  "proto_pdk_api",
+ "proto_shim",
  "regex",
  "reqwest",
  "schematic",
@@ -2426,6 +2426,14 @@ dependencies = [
  "proto_pdk_api",
  "serde_json",
  "toml 0.8.8",
+]
+
+[[package]]
+name = "proto_shim"
+version = "0.0.1"
+dependencies = [
+ "command-group",
+ "dirs 5.0.1",
 ]
 
 [[package]]
@@ -2592,9 +2600,9 @@ checksum = "c707298afce11da2efef2f600116fa93ffa7a032b5d7b628aa17711ec81383ca"
 
 [[package]]
 name = "reqwest"
-version = "0.11.22"
+version = "0.11.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "046cd98826c46c2ac8ddecae268eb5c2e58628688a5fc7a2643704a73faba95b"
+checksum = "37b1ae8d9ac08420c66222fb9096fc5de435c3c48542bc5336c51892cffafb41"
 dependencies = [
  "base64",
  "bytes",
@@ -3008,16 +3016,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "signal-hook"
-version = "0.3.17"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8621587d4798caf8eb44879d42e56b9a93ea5dcd315a6487c357130095b62801"
-dependencies = [
- "libc",
- "signal-hook-registry",
-]
-
-[[package]]
 name = "signal-hook-registry"
 version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3416,18 +3414,18 @@ checksum = "222a222a5bfe1bba4a77b45ec488a741b3cb8872e5e499451fd7d0129c9c7c3d"
 
 [[package]]
 name = "thiserror"
-version = "1.0.50"
+version = "1.0.51"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9a7210f5c9a7156bb50aa36aed4c95afb51df0df00713949448cf9e97d382d2"
+checksum = "f11c217e1416d6f036b870f14e0413d480dbf28edbee1f877abaf0206af43bb7"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.50"
+version = "1.0.51"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "266b2e40bc00e5a6c09c3584011e08b06f123c00362c92b975ba9843aaaa14b8"
+checksum = "01742297787513b79cf8e29d1056ede1313e2420b7b3b15d0a768b4921f549df"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3500,9 +3498,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.35.0"
+version = "1.35.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "841d45b238a16291a4e1584e61820b8ae57d696cc5015c459c229ccc6990cc1c"
+checksum = "c89b4efa943be685f629b149f53829423f8f5531ea21249408e8e2f8671ec104"
 dependencies = [
  "backtrace",
  "bytes",
