@@ -19,18 +19,21 @@ static mut LOGGING: bool = false;
 
 fn find_target_dir(search_dir: PathBuf) -> Option<PathBuf> {
     let mut dir = search_dir;
+    let profiles = ["debug", "release"];
 
     loop {
-        let next_target = dir.join("target/wasm32-wasi/debug");
+        for profile in &profiles {
+            let next_target = dir.join("target/wasm32-wasi").join(profile);
 
-        if next_target.exists() {
-            return Some(next_target);
-        }
+            if next_target.exists() {
+                return Some(next_target);
+            }
 
-        let next_target = dir.join("wasm32-wasi/debug");
+            let next_target = dir.join("wasm32-wasi").join(profile);
 
-        if next_target.exists() {
-            return Some(next_target);
+            if next_target.exists() {
+                return Some(next_target);
+            }
         }
 
         match dir.parent() {
