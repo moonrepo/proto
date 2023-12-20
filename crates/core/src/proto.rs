@@ -1,8 +1,6 @@
-use crate::error::ProtoError;
 use crate::helpers::{get_home_dir, get_proto_home, is_offline};
 use crate::proto_config::{ProtoConfig, ProtoConfigFile, ProtoConfigManager, PROTO_CONFIG_NAME};
 use once_cell::sync::OnceCell;
-use starbase_utils::dirs;
 use std::collections::BTreeMap;
 use std::env;
 use std::path::{Path, PathBuf};
@@ -57,69 +55,6 @@ impl ProtoEnvironment {
             plugin_loader: Arc::new(OnceCell::new()),
             test_mode: false,
         })
-    }
-
-    pub fn find_shim_binary(&self) -> miette::Result<PathBuf> {
-        let bin = if cfg!(windows) {
-            "proto-shim.exe"
-        } else {
-            "proto-shim"
-        };
-
-        let mut lookup_dirs = vec![];
-
-        // In development use the debug target
-        #[cfg(any(debug_assertions, test))]
-        {
-            if let Ok(dir) = env::var("CARGO_TARGET_DIR") {
-                lookup_dirs.push(PathBuf::from(dir).join("debug"));
-            }
-
-            if let Ok(dir) = env::var("CARGO_MANIFEST_DIR") {
-                lookup_dirs.push(
-                    PathBuf::from(if let Some(index) = dir.find("crates") {
-                        &dir[0..index]
-                    } else {
-                        &dir
-                    })
-                    .join("target")
-                    .join("debug"),
-                );
-            }
-
-            if let Ok(dir) = env::var("GITHUB_WORKSPACE") {
-                lookup_dirs.push(PathBuf::from(dir).join("target").join("debug"));
-            }
-
-            lookup_dirs.push(self.cwd.join("target").join("debug"));
-        }
-
-        if let Ok(dir) = env::var("PROTO_INSTALL_DIR") {
-            lookup_dirs.push(PathBuf::from(dir));
-        }
-
-        lookup_dirs.push(self.bin_dir.clone());
-
-        // Special case for unit tests and other isolations where
-        // PROTO_HOME is set to something random, but the proto
-        // binaries still exist in their original location.
-        if let Some(dir) = dirs::home_dir() {
-            lookup_dirs.push(dir.join(".proto").join("bin"));
-        }
-
-        for lookup_dir in lookup_dirs {
-            let file = lookup_dir.join(bin);
-
-            if file.is_absolute() && file.exists() {
-                return Ok(file);
-            }
-        }
-
-        Err(ProtoError::MissingShimBinary {
-            bin_name: bin.to_owned(),
-            bin_dir: self.bin_dir.clone(),
-        }
-        .into())
     }
 
     pub fn get_config_dir(&self, global: bool) -> &Path {

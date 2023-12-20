@@ -35,6 +35,7 @@ path = "src/main_shim.rs"
 proto_core = { version = "0.26.2", path = "../core" }
 proto_installer = { version = "0.1.0", path = "../installer" }
 proto_pdk_api = { version = "0.12.1", path = "../pdk-api" }
+proto_shim = { version = "0.0.1", path = "../shim" }
 system_env = { version = "0.1.8", path = "../system-env" }
 anyhow = { workspace = true }
 chrono = "0.4.31"
@@ -59,10 +60,7 @@ tracing = { workspace = true }
 uuid = { version = "1.6.1", features = ["v4"] }
 
 # For the shim binary
-command-group = "5.0.1"
 rust_json = "0.1.5"
-shared_child = "1.0.0"
-signal-hook = "0.3.17"
 sigpipe = "0.1.3"
 
 # Force latest rustls
@@ -75,3 +73,4 @@ winreg = "0.52.0"
 
 [dev-dependencies]
 starbase_sandbox = { workspace = true }
+shared_child = "1.0.0"
