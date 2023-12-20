@@ -8,12 +8,12 @@ use crate::host_funcs::{create_host_functions, HostData};
 use crate::proto::ProtoEnvironment;
 use crate::proto_config::ProtoConfig;
 use crate::shim_registry::{Shim, ShimRegistry, ShimsMap};
-use crate::shimmer::{create_shim, get_shim_file_name, SHIM_VERSION};
 use crate::tool_manifest::{ToolManifest, ToolManifestVersion};
 use crate::version_resolver::VersionResolver;
 use extism::{manifest::Wasm, Manifest as PluginManifest};
 use miette::IntoDiagnostic;
 use proto_pdk_api::*;
+use proto_shim::{create_shim, get_shim_file_name, locate_proto_bin, SHIM_VERSION};
 use serde::Serialize;
 use starbase_archive::Archiver;
 use starbase_events::Emitter;
@@ -1395,7 +1395,13 @@ impl Tool {
         let mut registry: ShimsMap = BTreeMap::new();
         registry.insert(self.id.to_string(), Shim::default());
 
-        let shim_binary = fs::read_file_bytes(self.proto.find_shim_binary()?)?;
+        let shim_binary =
+            fs::read_file_bytes(locate_proto_bin("proto-shim").ok_or_else(|| {
+                ProtoError::MissingShimBinary {
+                    bin_name: "proto-shim".to_owned(),
+                    bin_dir: self.proto.bin_dir.clone(),
+                }
+            })?)?;
 
         for location in shims {
             let mut shim_entry = Shim::default();
@@ -1429,7 +1435,12 @@ impl Tool {
             }
 
             // Create the shim file by copying the source bin
-            create_shim(&shim_binary, &location.path, find_only)?;
+            create_shim(&shim_binary, &location.path, find_only).map_err(|error| {
+                ProtoError::CreateShimFailed {
+                    path: location.path.to_owned(),
+                    error,
+                }
+            })?;
 
             // Update the registry
             registry.insert(location.name.clone(), shim_entry);

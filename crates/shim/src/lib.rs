@@ -13,6 +13,12 @@ pub use windows::*;
 use std::env;
 use std::path::PathBuf;
 
+#[cfg(debug_assertions)]
+pub const SHIM_VERSION: u8 = 0;
+
+#[cfg(not(debug_assertions))]
+pub const SHIM_VERSION: u8 = 11;
+
 pub fn locate_proto_bin(bin: &str) -> Option<PathBuf> {
     let bin = if cfg!(windows) {
         format!("{bin}.exe")

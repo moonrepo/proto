@@ -135,4 +135,12 @@ pub enum ProtoError {
         #[source]
         error: semver::Error,
     },
+
+    #[diagnostic(code(proto::shim::create_failed))]
+    #[error("Failed to create shim {}.", .path.style(Style::Path))]
+    CreateShimFailed {
+        path: PathBuf,
+        #[source]
+        error: std::io::Error,
+    },
 }
