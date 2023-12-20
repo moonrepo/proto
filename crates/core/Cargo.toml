@@ -9,7 +9,7 @@ repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
 proto_pdk_api = { version = "0.12.1", path = "../pdk-api" }
-proto_shim = { version = "0.0.1", path = "../shim" }
+proto_shim = { version = "0.1.0", path = "../shim" }
 system_env = { version = "0.1.8", path = "../system-env", features = [
 	"schematic",
 ] }
