@@ -2428,6 +2428,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "proto_shim"
+version = "0.0.1"
+dependencies = [
+ "command-group",
+ "dirs 5.0.1",
+]
+
+[[package]]
 name = "psm"
 version = "0.1.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
