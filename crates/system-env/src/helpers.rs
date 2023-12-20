@@ -14,10 +14,7 @@ pub fn find_command_on_path<T: AsRef<OsStr>>(name: T) -> Option<PathBuf> {
     // Only extensions we care about
     let exts = vec![".exe", ".ps1", ".cmd", ".bat"];
     let name = name.as_ref();
-    let has_ext = name
-        .as_encoded_bytes()
-        .iter()
-        .any(|b| b.eq_ignore_ascii_case(&b'.'));
+    let has_ext = name.to_string_lossy().chars().any(|b| b == '.');
 
     for path_dir in env::split_paths(&system_path) {
         if has_ext {
@@ -81,11 +78,7 @@ pub fn create_process_command<T: AsRef<OsStr>, I: IntoIterator<Item = A>, A: AsR
     let bin = bin.as_ref();
 
     // If an absolute path, use as-is, otherwise find the command
-    let bin_path = if bin
-        .as_encoded_bytes()
-        .iter()
-        .any(|b| b.eq_ignore_ascii_case(&b'/') || b.eq_ignore_ascii_case(&b'\\'))
-    {
+    let bin_path = if bin.to_string_lossy().chars().any(|b| b == '/' || b == '\\') {
         PathBuf::from(bin)
     } else {
         find_command_on_path(bin).unwrap_or_else(|| bin.into())
@@ -101,8 +94,7 @@ pub fn create_process_command<T: AsRef<OsStr>, I: IntoIterator<Item = A>, A: AsR
             // This conversion is unfortunate...
             let args = args
                 .into_iter()
-                .map(|a| String::from_utf8_lossy(a.as_ref().as_encoded_bytes()).to_string())
-                .collect::<Vec<_>>();
+                .map(|a| a.as_ref().to_string_lossy().to_string());
 
             let mut cmd =
                 Command::new(find_command_on_path("pwsh").unwrap_or_else(|| "powershell".into()));
