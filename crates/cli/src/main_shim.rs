@@ -2,15 +2,13 @@
 // so these imports use std as much as possible, and should
 // not pull in large libraries (tracing is already enough)!
 
-mod shared;
-
 use anyhow::{anyhow, Result};
+use proto_shim::{exec_command_and_replace, locate_proto_bin};
 use rust_json::{json_parse, JsonElem as Json};
-use shared::spawn_command_and_replace;
 use starbase::tracing::{self, trace, TracingOptions};
 use std::collections::HashMap;
 use std::ffi::OsString;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::Command;
 use std::{env, fs};
 
@@ -25,68 +23,7 @@ fn get_proto_home() -> Result<PathBuf> {
     Ok(home_dir.join(".proto"))
 }
 
-fn locate_proto_binary(proto_home_dir: &Path, shim_exe_path: &Path) -> Option<PathBuf> {
-    let bin_name = if cfg!(windows) { "proto.exe" } else { "proto" };
-    let mut lookup_dirs = vec![];
-
-    // When in development, ensure we're using the target built proto,
-    // and not the proto available globally on `PATH`.
-    #[cfg(any(debug_assertions, test))]
-    {
-        if let Ok(dir) = env::var("CARGO_TARGET_DIR") {
-            lookup_dirs.push(PathBuf::from(dir).join("debug"));
-        }
-
-        if let Ok(dir) = env::var("CARGO_MANIFEST_DIR") {
-            lookup_dirs.push(
-                PathBuf::from(if let Some(index) = dir.find("crates") {
-                    &dir[0..index]
-                } else {
-                    &dir
-                })
-                .join("target")
-                .join("debug"),
-            );
-        }
-
-        if let Ok(dir) = env::var("GITHUB_WORKSPACE") {
-            lookup_dirs.push(PathBuf::from(dir).join("target").join("debug"));
-        }
-
-        if let Ok(dir) = env::current_dir() {
-            lookup_dirs.push(dir.join("target").join("debug"));
-        }
-    }
-
-    // Check for proto relative to proto-shim
-    lookup_dirs.push(shim_exe_path.parent().unwrap().to_path_buf());
-
-    // Or in the standard proto locations
-    if let Ok(dir) = env::var("PROTO_INSTALL_DIR") {
-        lookup_dirs.push(dir.into());
-    }
-
-    lookup_dirs.push(proto_home_dir.join("bin"));
-
-    // Special case for unit tests and other isolations where
-    // PROTO_HOME is set to something random, but the proto
-    // binaries still exist in their original location.
-    if let Some(dir) = dirs::home_dir() {
-        lookup_dirs.push(dir.join(".proto").join("bin"));
-    }
-
-    for lookup_dir in lookup_dirs {
-        let bin = lookup_dir.join(bin_name);
-
-        if bin.is_absolute() && bin.exists() {
-            return Some(bin);
-        }
-    }
-
-    None
-}
-
-fn create_command(args: Vec<OsString>, shim_name: &str, shim_exe_path: &Path) -> Result<Command> {
+fn create_command(args: Vec<OsString>, shim_name: &str) -> Result<Command> {
     let proto_home_dir = get_proto_home()?;
     let registry_path = proto_home_dir.join("shims").join("registry.json");
     let mut shim = Json::Object(HashMap::default());
@@ -135,7 +72,7 @@ fn create_command(args: Vec<OsString>, shim_name: &str, shim_exe_path: &Path) ->
     }
 
     // Find an applicable proto binary to run with
-    let proto_bin = locate_proto_binary(&proto_home_dir, shim_exe_path);
+    let proto_bin = locate_proto_bin("proto");
 
     if let Some(bin) = proto_bin.as_deref() {
         trace!(shim = shim_name, proto_bin = ?bin, "Using a located proto binary");
@@ -207,15 +144,15 @@ pub fn main() -> Result<()> {
     }
 
     // Create and spawn the command
-    let mut command = create_command(args, &shim_name, &exe_path)?;
+    let mut command = create_command(args, &shim_name)?;
     command.env("PROTO_LOG", log_level);
 
     trace!(
         shim = &shim_name,
         pid = std::process::id(),
-        "Spawning proto child process"
+        "Spawning proto process"
     );
 
     // Must be the last line!
-    Ok(spawn_command_and_replace(command)?)
+    Ok(exec_command_and_replace(command)?)
 }

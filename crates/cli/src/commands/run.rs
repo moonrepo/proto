@@ -1,11 +1,11 @@
 use crate::commands::install::{internal_install, InstallArgs};
 use crate::error::ProtoCliError;
 use crate::helpers::ProtoResource;
-use crate::shared::spawn_command_and_replace;
 use clap::Args;
 use miette::IntoDiagnostic;
 use proto_core::{detect_version, Id, ProtoError, Tool, UnresolvedVersionSpec};
 use proto_pdk_api::{ExecutableConfig, RunHook};
+use proto_shim::exec_command_and_replace;
 use starbase::system;
 use std::env;
 use std::ffi::OsStr;
@@ -201,14 +201,6 @@ pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> S
             exe_path.to_string_lossy().to_string(),
         );
 
-    // Run after hook
-    // if status.success() {
-    //     tool.run_hook("post_run", || RunHook {
-    //         context: tool.create_context(),
-    //         passthrough_args: args.passthrough.clone(),
-    //     })?;
-    // }
-
     // Update the last used timestamp in a separate task,
     // as to not interrupt this task incase something fails!
     if env::var("PROTO_SKIP_USED_AT").is_err() {
@@ -219,5 +211,5 @@ pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> S
     }
 
     // Must be the last line!
-    spawn_command_and_replace(command).into_diagnostic()?;
+    exec_command_and_replace(command).into_diagnostic()?;
 }

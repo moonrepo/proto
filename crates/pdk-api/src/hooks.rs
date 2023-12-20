@@ -17,8 +17,8 @@ json_struct!(
 );
 
 json_struct!(
-    /// Input passed to the `pre_run` and `post_run` hooks,
-    /// while a `proto run` command or language binary is running.
+    /// Input passed to the `pre_run` hook, before a `proto run` command
+    /// or language binary is ran.
     pub struct RunHook {
         /// Current tool context.
         pub context: ToolContext,

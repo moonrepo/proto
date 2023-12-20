@@ -2324,6 +2324,7 @@ dependencies = [
  "proto_core",
  "proto_installer",
  "proto_pdk_api",
+ "proto_shim",
  "reqwest",
  "rust_json",
  "rustls",
