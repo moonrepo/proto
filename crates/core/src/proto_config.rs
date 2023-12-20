@@ -128,7 +128,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("deno"),
                 PluginLocator::SourceUrl {
-                    url: "https://github.com/moonrepo/deno-plugin/releases/download/v0.6.0/deno_plugin.wasm".into()
+                    url: "https://github.com/moonrepo/deno-plugin/releases/download/v0.7.0/deno_plugin.wasm".into()
                 }
             );
         }
@@ -137,7 +137,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("go"),
                 PluginLocator::SourceUrl {
-                    url: "https://github.com/moonrepo/go-plugin/releases/download/v0.6.0/go_plugin.wasm".into()
+                    url: "https://github.com/moonrepo/go-plugin/releases/download/v0.7.0/go_plugin.wasm".into()
                 }
             );
         }
