@@ -188,7 +188,7 @@ pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> S
         passthrough_args: args.passthrough.clone(),
     })?;
 
-    // Run the command
+    // Create and run the command
     let mut command = create_command(&tool, &exe_config, &args.passthrough)?;
 
     command
@@ -201,13 +201,12 @@ pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> S
             exe_path.to_string_lossy().to_string(),
         );
 
-    // Update the last used timestamp in a separate task,
-    // as to not interrupt this task incase something fails!
+    // Update the last used timestamp
     if env::var("PROTO_SKIP_USED_AT").is_err() {
-        tokio::spawn(async move {
-            tool.manifest.track_used_at(tool.get_resolved_version());
-            let _ = tool.manifest.save();
-        });
+        tool.manifest.track_used_at(tool.get_resolved_version());
+
+        // Ignore failures to not disrupt the user
+        let _ = tool.manifest.save();
     }
 
     // Must be the last line!
