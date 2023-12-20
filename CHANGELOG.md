@@ -15,6 +15,8 @@
 #### 💥 Breaking
 
 - Removed old and deprecated CLI commands.
+- WASM API
+  - Removed the `post_run` hook.
 
 #### 🚀 Updates
 
