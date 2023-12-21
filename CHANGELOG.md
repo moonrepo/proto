@@ -51,7 +51,7 @@
 
 - Added basic telemetry to track tool install/uninstall metrics.
 
-## Unreleased
+## 0.26.0
 
 #### 🚀 Updates
 
