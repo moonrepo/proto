@@ -1,11 +1,9 @@
 // NOTE: We want to keep the shim binary as lean as possible,
-// so these imports use std as much as possible, and should
-// not pull in large libraries (tracing is already enough)!
+// so these imports primarily use std, and avoid fat crates.
 
 use anyhow::{anyhow, Result};
 use proto_shim::{exec_command_and_replace, locate_proto_exe};
 use rust_json::{json_parse, JsonElem as Json};
-use starbase::tracing::{self, trace, TracingOptions};
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::path::PathBuf;
@@ -71,17 +69,9 @@ fn create_command(args: Vec<OsString>, shim_name: &str) -> Result<Command> {
         }
     }
 
-    // Find an applicable proto binary to run with
-    let proto_bin = locate_proto_exe("proto");
-
-    if let Some(bin) = proto_bin.as_deref() {
-        trace!(shim = shim_name, proto_bin = ?bin, "Using a located proto binary");
-    } else {
-        trace!(shim = shim_name, "Assuming proto binary is on PATH");
-    }
-
     // Create the command and handle alternate logic
-    let mut command = Command::new(proto_bin.unwrap_or_else(|| "proto".into()));
+    let mut command = Command::new(locate_proto_exe("proto").unwrap_or_else(|| "proto".into()));
+
     // command.args(["run", "node", "--"]);
     // command.arg("./docs/shim-test.mjs");
     // command.arg("--version");
@@ -115,27 +105,16 @@ fn create_command(args: Vec<OsString>, shim_name: &str) -> Result<Command> {
 pub fn main() -> Result<()> {
     sigpipe::reset();
 
-    // Setup tracing and pass log level down
-    let log_level = env::var("PROTO_LOG").unwrap_or_else(|_| "info".into());
-
-    tracing::setup_tracing(TracingOptions {
-        filter_modules: vec!["proto".into()],
-        intercept_log: env::var("PROTO_WASM_LOG").is_err(),
-        log_env: "PROTO_LOG".into(),
-        ..TracingOptions::default()
-    });
-
     // Extract arguments to pass-through
     let args = env::args_os().collect::<Vec<_>>();
     let exe_path = env::current_exe().unwrap_or_else(|_| PathBuf::from(&args[0]));
 
+    // Extract the tool from the shim's file name
     let shim_name = exe_path
         .file_name()
-        .map(|file| String::from_utf8_lossy(file.as_encoded_bytes()))
+        .map(|file| file.to_string_lossy())
         .unwrap_or_default()
         .replace(".exe", "");
-
-    trace!(shim = &shim_name, shim_bin = ?exe_path, args = ?args,  "Running {} shim", shim_name);
 
     if shim_name.is_empty() || shim_name.contains("proto-shim") {
         return Err(anyhow!(
@@ -143,15 +122,10 @@ pub fn main() -> Result<()> {
         ));
     }
 
-    // Create and spawn the command
+    // Create and execute the command
     let mut command = create_command(args, &shim_name)?;
-    command.env("PROTO_LOG", log_level);
-
-    trace!(
-        shim = &shim_name,
-        pid = std::process::id(),
-        "Spawning proto process"
-    );
+    command.env("PROTO_SHIM_NAME", shim_name);
+    command.env("PROTO_SHIM_PATH", exe_path);
 
     // Must be the last line!
     Ok(exec_command_and_replace(command)?)
