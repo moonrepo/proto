@@ -44,6 +44,7 @@ async fn main() -> MainResult {
 
     debug!(
         args = ?env::args().collect::<Vec<_>>(),
+        pid = std::process::id(),
         "Running proto v{}",
         env!("CARGO_PKG_VERSION")
     );

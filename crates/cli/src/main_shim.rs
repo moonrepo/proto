@@ -11,19 +11,6 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::{env, fs};
 
-// The `tracing` crate adds 2mb to the release file size, and the `log` crate isn't
-// much better. We only have a few logs, so let's just do something simple...
-macro_rules! log {
-    ($msg:literal, $($arg:tt)*) => {
-        log!(format!($msg, $($arg)*));
-    };
-    ($msg:expr) => {
-        if env::var("PROTO_LOG").is_ok_and(|level| level == "trace" || level == "debug") {
-            eprintln!("[shim] {}", $msg);
-        }
-    };
-}
-
 fn get_proto_home() -> Result<PathBuf> {
     if let Ok(root) = env::var("PROTO_HOME") {
         return Ok(root.into());
@@ -83,20 +70,9 @@ fn create_command(args: Vec<OsString>, shim_name: &str) -> Result<Command> {
         }
     }
 
-    // Find an applicable proto binary to run with
-    let proto_bin = locate_proto_exe("proto");
-
-    if let Some(bin) = proto_bin.as_deref() {
-        log!(
-            "Using a located proto binary (proto_bin = {})",
-            bin.display()
-        );
-    } else {
-        log!("Assuming proto binary is on PATH");
-    }
-
     // Create the command and handle alternate logic
-    let mut command = Command::new(proto_bin.unwrap_or_else(|| "proto".into()));
+    let mut command = Command::new(locate_proto_exe("proto").unwrap_or_else(|| "proto".into()));
+
     // command.args(["run", "node", "--"]);
     // command.arg("./docs/shim-test.mjs");
     // command.arg("--version");
@@ -134,18 +110,12 @@ pub fn main() -> Result<()> {
     let args = env::args_os().collect::<Vec<_>>();
     let exe_path = env::current_exe().unwrap_or_else(|_| PathBuf::from(&args[0]));
 
+    // Extract the tool from the shim's file name
     let shim_name = exe_path
         .file_name()
-        .map(|file| String::from_utf8_lossy(file.as_encoded_bytes()))
+        .map(|file| file.to_string_lossy())
         .unwrap_or_default()
         .replace(".exe", "");
-
-    log!(
-        "Running {} shim (shim_bin = {}, args = {:?})",
-        shim_name,
-        exe_path.display(),
-        args
-    );
 
     if shim_name.is_empty() || shim_name.contains("proto-shim") {
         return Err(anyhow!(
@@ -153,14 +123,10 @@ pub fn main() -> Result<()> {
         ));
     }
 
-    // Create and spawn the command
-    let command = create_command(args, &shim_name)?;
-
-    log!(
-        "Spawning proto process (shim = {}, pid = {})",
-        shim_name,
-        std::process::id()
-    );
+    // Create and execute the command
+    let mut command = create_command(args, &shim_name)?;
+    command.env("PROTO_SHIM_NAME", shim_name);
+    command.env("PROTO_SHIM_PATH", exe_path);
 
     // Must be the last line!
     Ok(exec_command_and_replace(command)?)
