@@ -13,7 +13,9 @@ use crate::version_resolver::VersionResolver;
 use extism::{manifest::Wasm, Manifest as PluginManifest};
 use miette::IntoDiagnostic;
 use proto_pdk_api::*;
-use proto_shim::{create_shim, get_shim_file_name, locate_proto_bin, SHIM_VERSION};
+use proto_shim::{
+    create_shim, get_exe_file_name, get_shim_file_name, locate_proto_exe, SHIM_VERSION,
+};
 use serde::Serialize;
 use starbase_archive::Archiver;
 use starbase_events::Emitter;
@@ -923,11 +925,7 @@ impl Tool {
 
             // Not an archive, assume a binary and copy
         } else {
-            let install_path = install_dir.join(if cfg!(windows) {
-                format!("{}.exe", self.id)
-            } else {
-                self.id.to_string()
-            });
+            let install_path = install_dir.join(get_exe_file_name(&self.id));
 
             fs::rename(&download_file, &install_path)?;
             fs::update_perms(install_path, None)?;
@@ -1206,12 +1204,14 @@ impl Tool {
 
         let mut add = |name: &str, config: ExecutableConfig, primary: bool| {
             if !config.no_bin {
-                if let Some(exe_path) = config.exe_link_path.as_ref().or(config.exe_path.as_ref()) {
+                if config
+                    .exe_link_path
+                    .as_ref()
+                    .or(config.exe_path.as_ref())
+                    .is_some()
+                {
                     locations.push(ExecutableLocation {
-                        path: self.proto.bin_dir.join(match exe_path.extension() {
-                            Some(ext) => format!("{name}.{}", ext.to_string_lossy()),
-                            None => name.to_owned(),
-                        }),
+                        path: self.proto.bin_dir.join(get_exe_file_name(name)),
                         name: name.to_owned(),
                         config,
                         primary,
@@ -1396,7 +1396,7 @@ impl Tool {
         registry.insert(self.id.to_string(), Shim::default());
 
         let shim_binary =
-            fs::read_file_bytes(locate_proto_bin("proto-shim").ok_or_else(|| {
+            fs::read_file_bytes(locate_proto_exe("proto-shim").ok_or_else(|| {
                 ProtoError::MissingShimBinary {
                     bin_dir: self.proto.bin_dir.clone(),
                 }
