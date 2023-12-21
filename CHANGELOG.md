@@ -36,15 +36,16 @@
 
 #### 🧩 Plugins
 
+- Updated `bun_plugin` to v0.7.
+  - Will now symlink a `bunx` binary to `~/.proto/bin`.
 - Updated `deno_plugin` to v0.7.
 - Updated `go_plugin` to v0.7.
+- Updated `node_plugin` and `node_depman_plugin` to v0.7.
+  - Will no longer symlink binaries (`~/.proto/bin`) for all package managers.
+  - You'll most likely need to delete any old bins manually.
 - Updated `python_plugin` to v0.5.
 - Updated `rust_plugin` to v0.6.
 - Updated `schema_plugin` (TOML) to v0.7.
-
-<!-- - Updated `bun_plugin` to v0.6.
-- Updated `node_plugin` and `node_depman_plugin` to v0.6.
- -->
 
 #### ⚙️ Internal
 
