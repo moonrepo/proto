@@ -10,7 +10,7 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
-## 0.25.3
+## 0.26.0
 
 #### 💥 Breaking
 
@@ -51,7 +51,7 @@
 
 - Added basic telemetry to track tool install/uninstall metrics.
 
-## 0.26.0
+## 0.25.3
 
 #### 🚀 Updates
 
