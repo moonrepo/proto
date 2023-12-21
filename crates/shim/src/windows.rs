@@ -17,8 +17,17 @@ pub fn exec_command_and_replace(mut command: Command) -> io::Result<()> {
 }
 
 // Always use an `.exe` extension.
+pub fn get_exe_file_name(name: &str) -> String {
+    if name.ends_with(".exe") {
+        name.to_owned()
+    } else {
+        format!("{name}.exe")
+    }
+}
+
+// Always use an `.exe` extension.
 pub fn get_shim_file_name(name: &str) -> String {
-    format!("{name}.exe")
+    get_exe_file_name(name)
 }
 
 // We can't remove or overwrite an executable that is currently running,

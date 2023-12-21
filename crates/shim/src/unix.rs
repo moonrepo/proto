@@ -13,6 +13,11 @@ pub fn exec_command_and_replace(mut command: Command) -> io::Result<()> {
 }
 
 // Return the file name as-is.
+pub fn get_exe_file_name(name: &str) -> String {
+    name.to_owned()
+}
+
+// Return the file name as-is.
 pub fn get_shim_file_name(name: &str) -> String {
     name.to_owned()
 }
