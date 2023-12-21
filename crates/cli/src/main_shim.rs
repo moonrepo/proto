@@ -3,7 +3,7 @@
 // not pull in large libraries (tracing is already enough)!
 
 use anyhow::{anyhow, Result};
-use proto_shim::{exec_command_and_replace, locate_proto_bin};
+use proto_shim::{exec_command_and_replace, locate_proto_exe};
 use rust_json::{json_parse, JsonElem as Json};
 use starbase::tracing::{self, trace, TracingOptions};
 use std::collections::HashMap;
@@ -72,7 +72,7 @@ fn create_command(args: Vec<OsString>, shim_name: &str) -> Result<Command> {
     }
 
     // Find an applicable proto binary to run with
-    let proto_bin = locate_proto_bin("proto");
+    let proto_bin = locate_proto_exe("proto");
 
     if let Some(bin) = proto_bin.as_deref() {
         trace!(shim = shim_name, proto_bin = ?bin, "Using a located proto binary");
