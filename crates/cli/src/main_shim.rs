@@ -5,12 +5,24 @@
 use anyhow::{anyhow, Result};
 use proto_shim::{exec_command_and_replace, locate_proto_exe};
 use rust_json::{json_parse, JsonElem as Json};
-use starbase::tracing::{self, trace, TracingOptions};
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::path::PathBuf;
 use std::process::Command;
 use std::{env, fs};
+
+// The `tracing` crate adds 2mb to the release file size, and the `log` crate isn't
+// much better. We only have a few logs, so let's just do something simple...
+macro_rules! log {
+    ($msg:literal, $($arg:tt)*) => {
+        log!(format!($msg, $($arg)*));
+    };
+    ($msg:expr) => {
+        if env::var("PROTO_LOG").is_ok_and(|level| level == "trace" || level == "debug") {
+            eprintln!("[shim] {}", $msg);
+        }
+    };
+}
 
 fn get_proto_home() -> Result<PathBuf> {
     if let Ok(root) = env::var("PROTO_HOME") {
@@ -75,9 +87,12 @@ fn create_command(args: Vec<OsString>, shim_name: &str) -> Result<Command> {
     let proto_bin = locate_proto_exe("proto");
 
     if let Some(bin) = proto_bin.as_deref() {
-        trace!(shim = shim_name, proto_bin = ?bin, "Using a located proto binary");
+        log!(
+            "Using a located proto binary (proto_bin = {})",
+            bin.display()
+        );
     } else {
-        trace!(shim = shim_name, "Assuming proto binary is on PATH");
+        log!("Assuming proto binary is on PATH");
     }
 
     // Create the command and handle alternate logic
@@ -115,16 +130,6 @@ fn create_command(args: Vec<OsString>, shim_name: &str) -> Result<Command> {
 pub fn main() -> Result<()> {
     sigpipe::reset();
 
-    // Setup tracing and pass log level down
-    let log_level = env::var("PROTO_LOG").unwrap_or_else(|_| "info".into());
-
-    tracing::setup_tracing(TracingOptions {
-        filter_modules: vec!["proto".into()],
-        intercept_log: env::var("PROTO_WASM_LOG").is_err(),
-        log_env: "PROTO_LOG".into(),
-        ..TracingOptions::default()
-    });
-
     // Extract arguments to pass-through
     let args = env::args_os().collect::<Vec<_>>();
     let exe_path = env::current_exe().unwrap_or_else(|_| PathBuf::from(&args[0]));
@@ -135,7 +140,12 @@ pub fn main() -> Result<()> {
         .unwrap_or_default()
         .replace(".exe", "");
 
-    trace!(shim = &shim_name, shim_bin = ?exe_path, args = ?args,  "Running {} shim", shim_name);
+    log!(
+        "Running {} shim (shim_bin = {}, args = {:?})",
+        shim_name,
+        exe_path.display(),
+        args
+    );
 
     if shim_name.is_empty() || shim_name.contains("proto-shim") {
         return Err(anyhow!(
@@ -144,13 +154,12 @@ pub fn main() -> Result<()> {
     }
 
     // Create and spawn the command
-    let mut command = create_command(args, &shim_name)?;
-    command.env("PROTO_LOG", log_level);
+    let command = create_command(args, &shim_name)?;
 
-    trace!(
-        shim = &shim_name,
-        pid = std::process::id(),
-        "Spawning proto process"
+    log!(
+        "Spawning proto process (shim = {}, pid = {})",
+        shim_name,
+        std::process::id()
     );
 
     // Must be the last line!
