@@ -42,8 +42,13 @@ async fn main() -> MainResult {
         ..TracingOptions::default()
     });
 
+    let mut args = env::args_os().collect::<Vec<_>>();
+
     debug!(
-        args = ?env::args().collect::<Vec<_>>(),
+        bin = ?args.remove(0),
+        args = ?args,
+        shim = env::var("PROTO_SHIM_NAME").ok(),
+        shim_bin = env::var("PROTO_SHIM_PATH").ok(),
         pid = std::process::id(),
         "Running proto v{}",
         env!("CARGO_PKG_VERSION")

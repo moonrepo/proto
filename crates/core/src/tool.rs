@@ -1203,20 +1203,19 @@ impl Tool {
         let mut locations = vec![];
 
         let mut add = |name: &str, config: ExecutableConfig, primary: bool| {
-            if !config.no_bin {
-                if config
+            if !config.no_bin
+                && config
                     .exe_link_path
                     .as_ref()
                     .or(config.exe_path.as_ref())
                     .is_some()
-                {
-                    locations.push(ExecutableLocation {
-                        path: self.proto.bin_dir.join(get_exe_file_name(name)),
-                        name: name.to_owned(),
-                        config,
-                        primary,
-                    });
-                }
+            {
+                locations.push(ExecutableLocation {
+                    path: self.proto.bin_dir.join(get_exe_file_name(name)),
+                    name: name.to_owned(),
+                    config,
+                    primary,
+                });
             }
         };
 

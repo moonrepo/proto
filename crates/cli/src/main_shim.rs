@@ -1,6 +1,5 @@
 // NOTE: We want to keep the shim binary as lean as possible,
-// so these imports use std as much as possible, and should
-// not pull in large libraries (tracing is already enough)!
+// so these imports primarily use std, and avoid fat crates.
 
 use anyhow::{anyhow, Result};
 use proto_shim::{exec_command_and_replace, locate_proto_exe};
