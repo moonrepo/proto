@@ -16,6 +16,10 @@
 
 - Updated version resolve errors to include the tool that failed.
 
+#### ⚙️ Internal
+
+- Temporarily clean old binaries that are no longer supported.
+
 ## 0.26.0
 
 #### 💥 Breaking
