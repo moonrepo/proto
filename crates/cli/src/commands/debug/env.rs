@@ -64,7 +64,7 @@ pub async fn env(proto: ResourceRef<ProtoResource>) {
                 if k.starts_with("PROTO_") {
                     Some((
                         color::id(k),
-                        if v.contains('/') {
+                        if v.contains('/') || v.contains('\\') {
                             color::path(v)
                         } else {
                             color::muted_light(v)
