@@ -489,6 +489,11 @@ impl Tool {
         }
 
         let resolver = self.load_version_resolver(initial_version).await?;
+        let handle_error = || ProtoError::VersionResolveFailed {
+            tool: self.get_name().to_owned(),
+            version: initial_version.to_string(),
+        };
+
         let mut version = VersionSpec::default();
         let mut resolved = false;
 
@@ -508,7 +513,7 @@ impl Tool {
                 );
 
                 resolved = true;
-                version = resolver.resolve(&candidate)?;
+                version = resolver.resolve(&candidate).ok_or_else(handle_error)?;
             }
 
             if let Some(candidate) = result.version {
@@ -524,7 +529,7 @@ impl Tool {
         }
 
         if !resolved {
-            version = resolver.resolve(initial_version)?;
+            version = resolver.resolve(initial_version).ok_or_else(handle_error)?;
         }
 
         debug!(

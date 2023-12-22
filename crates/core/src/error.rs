@@ -110,8 +110,11 @@ pub enum ProtoError {
         code(proto::version::unresolved),
         help = "Does this version exist and has it been released?"
     )]
-    #[error("Failed to resolve {} to a valid supported version.", .version.style(Style::Hash))]
-    VersionResolveFailed { version: String },
+    #[error(
+        "Failed to resolve {} to a valid supported version for {tool}.",
+        .version.style(Style::Hash),
+    )]
+    VersionResolveFailed { tool: String, version: String },
 
     #[diagnostic(code(proto::http))]
     #[error("Failed to request {}.", .url.style(Style::Url))]
