@@ -68,3 +68,16 @@ pub fn migrate_user_config(proto: ResourceRef<ProtoResource>) {
 pub fn load_proto_configs(proto: ResourceMut<ProtoResource>) {
     proto.env.load_config()?;
 }
+
+#[system]
+pub fn remove_old_bins(proto: ResourceRef<ProtoResource>) {
+    // These bins are no longer supported but we don't have an easy
+    // way to "clean up" bins that are no longer configured in a plugin.
+    for bin in ["npm", "npx", "node-gyp", "pnpm", "pnpx", "yarn", "yarnpkg"] {
+        let _ = fs::remove_file(proto.env.bin_dir.join(if cfg!(windows) {
+            format!("{bin}.cmd")
+        } else {
+            bin.to_owned()
+        }));
+    }
+}

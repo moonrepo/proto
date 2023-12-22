@@ -58,6 +58,7 @@ async fn main() -> MainResult {
     app.startup(systems::detect_proto_env);
     app.startup(systems::migrate_user_config);
     app.analyze(systems::load_proto_configs);
+    app.analyze(systems::remove_old_bins);
 
     match cli.command {
         Commands::Alias(args) => app.execute_with_args(commands::alias, args),
