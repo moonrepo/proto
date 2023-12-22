@@ -232,6 +232,9 @@ pub enum DebugCommands {
         about = "Debug all loaded .prototools config's for the current directory."
     )]
     Config(DebugConfigArgs),
+
+    #[command(name = "env", about = "Debug the current proto environment and store.")]
+    Env,
 }
 
 #[derive(Clone, Debug, Subcommand)]

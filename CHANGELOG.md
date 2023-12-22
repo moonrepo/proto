@@ -14,6 +14,7 @@
 
 #### 🚀 Updates
 
+- Added a `proto debug env` command, for debugging basic env/store information.
 - Updated version resolve errors to include the tool that failed.
 
 #### ⚙️ Internal

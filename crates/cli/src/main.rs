@@ -67,6 +67,7 @@ async fn main() -> MainResult {
         Commands::Completions(args) => app.execute_with_args(commands::completions, args),
         Commands::Debug { command } => match command {
             DebugCommands::Config(args) => app.execute_with_args(commands::debug::config, args),
+            DebugCommands::Env => app.execute(commands::debug::env),
         },
         Commands::Install(args) => app.execute_with_args(commands::install, args),
         Commands::InstallGlobal(args) => app.execute_with_args(commands::install_global, args),
