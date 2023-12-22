@@ -133,7 +133,7 @@ mod version_resolver {
     }
 
     #[test]
-    #[should_panic(expected = "Failed to resolve unknown to a valid supported version.")]
+    #[should_panic]
     fn errors_unknown_alias() {
         let versions = create_versions();
         let aliases = create_aliases();
@@ -149,7 +149,7 @@ mod version_resolver {
     }
 
     #[test]
-    #[should_panic(expected = "Failed to resolve missing to a valid supported version.")]
+    #[should_panic]
     fn errors_missing_alias_from_alias() {
         let versions = create_versions();
         let aliases = create_aliases();
@@ -165,7 +165,7 @@ mod version_resolver {
     }
 
     #[test]
-    #[should_panic(expected = "Failed to resolve 20.0.0 to a valid supported version.")]
+    #[should_panic]
     fn errors_missing_version_from_alias() {
         let versions = create_versions();
         let aliases = create_aliases();
@@ -335,7 +335,7 @@ mod version_resolver {
     }
 
     #[test]
-    #[should_panic(expected = "Failed to resolve 20.0.0 to a valid supported version.")]
+    #[should_panic]
     fn errors_unknown_version() {
         let versions = create_versions();
         let aliases = create_aliases();
@@ -431,7 +431,7 @@ mod version_resolver {
     }
 
     #[test]
-    #[should_panic(expected = "Failed to resolve ^20 to a valid supported version.")]
+    #[should_panic]
     fn errors_no_req_match() {
         let versions = create_versions();
         let aliases = create_aliases();
@@ -465,7 +465,7 @@ mod version_resolver {
     }
 
     #[test]
-    #[should_panic(expected = "Failed to resolve ^9 || ^5 || ^3 to a valid supported version.")]
+    #[should_panic]
     fn errors_no_req_any_match() {
         let versions = create_versions();
         let aliases = create_aliases();

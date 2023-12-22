@@ -1,4 +1,3 @@
-use crate::error::ProtoError;
 use crate::proto_config::ProtoToolConfig;
 use crate::tool_manifest::ToolManifest;
 use proto_pdk_api::LoadVersionsOutput;
@@ -46,7 +45,7 @@ impl<'tool> VersionResolver<'tool> {
         self.config = Some(config);
     }
 
-    pub fn resolve(&self, candidate: &UnresolvedVersionSpec) -> miette::Result<VersionSpec> {
+    pub fn resolve(&self, candidate: &UnresolvedVersionSpec) -> Option<VersionSpec> {
         resolve_version(
             candidate,
             &self.versions,
@@ -59,7 +58,7 @@ impl<'tool> VersionResolver<'tool> {
     pub fn resolve_without_manifest(
         &self,
         candidate: &UnresolvedVersionSpec,
-    ) -> miette::Result<VersionSpec> {
+    ) -> Option<VersionSpec> {
         resolve_version(candidate, &self.versions, &self.aliases, None, None)
     }
 }
@@ -95,7 +94,7 @@ pub fn resolve_version(
     aliases: &BTreeMap<String, UnresolvedVersionSpec>,
     manifest: Option<&ToolManifest>,
     config: Option<&ProtoToolConfig>,
-) -> miette::Result<VersionSpec> {
+) -> Option<VersionSpec> {
     let remote_versions = versions.iter().collect::<Vec<_>>();
     let installed_versions = if let Some(manifest) = manifest {
         extract_installed_versions(&manifest.installed_versions)
@@ -105,7 +104,7 @@ pub fn resolve_version(
 
     match &candidate {
         UnresolvedVersionSpec::Canary => {
-            return Ok(VersionSpec::Canary);
+            return Some(VersionSpec::Canary);
         }
         UnresolvedVersionSpec::Alias(alias) => {
             let mut alias_value = None;
@@ -129,13 +128,13 @@ pub fn resolve_version(
             // Check locally installed versions first
             if !installed_versions.is_empty() {
                 if let Some(version) = match_highest_version(req, &installed_versions) {
-                    return Ok(version);
+                    return Some(version);
                 }
             }
 
             // Otherwise we'll need to download from remote
             if let Some(version) = match_highest_version(req, &remote_versions) {
-                return Ok(version);
+                return Some(version);
             }
         }
         UnresolvedVersionSpec::ReqAny(reqs) => {
@@ -143,7 +142,7 @@ pub fn resolve_version(
             if !installed_versions.is_empty() {
                 for req in reqs {
                     if let Some(version) = match_highest_version(req, &installed_versions) {
-                        return Ok(version);
+                        return Some(version);
                     }
                 }
             }
@@ -151,27 +150,24 @@ pub fn resolve_version(
             // Otherwise we'll need to download from remote
             for req in reqs {
                 if let Some(version) = match_highest_version(req, &remote_versions) {
-                    return Ok(version);
+                    return Some(version);
                 }
             }
         }
         UnresolvedVersionSpec::Version(ver) => {
             // Check locally installed versions first
             if installed_versions.contains(&ver) {
-                return Ok(VersionSpec::Version(ver.to_owned()));
+                return Some(VersionSpec::Version(ver.to_owned()));
             }
 
             // Otherwise we'll need to download from remote
             for version in versions {
                 if ver == version {
-                    return Ok(VersionSpec::Version(ver.to_owned()));
+                    return Some(VersionSpec::Version(ver.to_owned()));
                 }
             }
         }
     }
 
-    Err(ProtoError::VersionResolveFailed {
-        version: candidate.to_string(),
-    }
-    .into())
+    None
 }

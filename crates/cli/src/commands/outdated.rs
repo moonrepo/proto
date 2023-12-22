@@ -2,7 +2,7 @@ use crate::error::ProtoCliError;
 use crate::helpers::ProtoResource;
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::{ProtoConfig, UnresolvedVersionSpec, VersionSpec};
+use proto_core::{ProtoConfig, ProtoError, UnresolvedVersionSpec, VersionSpec};
 use serde::Serialize;
 use starbase::system;
 use starbase_styles::color::{self, OwoStyle};
@@ -71,7 +71,12 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>, proto: ResourceRef<ProtoResou
 
         let mut comments = vec![];
         let versions = tool.load_version_resolver(&initial_version).await?;
-        let current_version = versions.resolve(config_version)?;
+        let handle_error = || ProtoError::VersionResolveFailed {
+            tool: tool.get_name().to_owned(),
+            version: initial_version.to_string(),
+        };
+
+        let current_version = versions.resolve(config_version).ok_or_else(handle_error)?;
         let check_latest =
             args.latest || matches!(config_version, UnresolvedVersionSpec::Version(_));
 
@@ -81,11 +86,13 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>, proto: ResourceRef<ProtoResou
             color::muted_light(format!("(via {})", config_version))
         ));
 
-        let newer_version = versions.resolve_without_manifest(if check_latest {
-            &initial_version // latest alias
-        } else {
-            config_version // req, range, etc
-        })?;
+        let newer_version = versions
+            .resolve_without_manifest(if check_latest {
+                &initial_version // latest alias
+            } else {
+                config_version // req, range, etc
+            })
+            .ok_or_else(handle_error)?;
 
         let mut is_outdated = false;
         let mut is_on_latest = false;
