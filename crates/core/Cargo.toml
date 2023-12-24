@@ -1,6 +1,6 @@
 [package]
 name = "proto_core"
-version = "0.25.2"
+version = "0.26.5"
 edition = "2021"
 license = "MIT"
 description = "Core proto APIs."
@@ -8,7 +8,8 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
-proto_pdk_api = { version = "0.11.2", path = "../pdk-api" }
+proto_pdk_api = { version = "0.12.2", path = "../pdk-api" }
+proto_shim = { version = "0.2.0", path = "../shim" }
 system_env = { version = "0.1.8", path = "../system-env", features = [
 	"schematic",
 ] }
@@ -34,11 +35,11 @@ semver = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
+shell-words = { workspace = true }
 starbase_archive = { workspace = true }
 starbase_events = { workspace = true }
 starbase_styles = { workspace = true }
 starbase_utils = { workspace = true, features = ["fs-lock"] }
-tera = "1.19.1"
 thiserror = { workspace = true }
 tracing = { workspace = true }
 url = "2.5.0"

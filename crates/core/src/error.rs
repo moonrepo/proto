@@ -56,6 +56,15 @@ pub enum ProtoError {
     #[error("Unable to determine your home directory.")]
     MissingHomeDir,
 
+    #[diagnostic(code(proto::shim::missing_binary))]
+    #[error(
+        "Unable to create shims as the {} binary cannot be found.\nLooked in the {} environment variable and {} directory.",
+        "proto-shim".style(Style::Id),
+        "PROTO_INSTALL_DIR".style(Style::Property),
+        .bin_dir.style(Style::Path),
+    )]
+    MissingShimBinary { bin_dir: PathBuf },
+
     #[diagnostic(code(proto::execute::missing_file))]
     #[error("Unable to find an executable for {tool}, expected file {} does not exist.", .path.style(Style::Path))]
     MissingToolExecutable { tool: String, path: PathBuf },
@@ -101,8 +110,11 @@ pub enum ProtoError {
         code(proto::version::unresolved),
         help = "Does this version exist and has it been released?"
     )]
-    #[error("Failed to resolve {} to a valid supported version.", .version.style(Style::Hash))]
-    VersionResolveFailed { version: String },
+    #[error(
+        "Failed to resolve {} to a valid supported version for {tool}.",
+        .version.style(Style::Hash),
+    )]
+    VersionResolveFailed { tool: String, version: String },
 
     #[diagnostic(code(proto::http))]
     #[error("Failed to request {}.", .url.style(Style::Url))]
@@ -127,11 +139,11 @@ pub enum ProtoError {
         error: semver::Error,
     },
 
-    #[diagnostic(code(proto::shim::failed))]
+    #[diagnostic(code(proto::shim::create_failed))]
     #[error("Failed to create shim {}.", .path.style(Style::Path))]
-    Shim {
+    CreateShimFailed {
         path: PathBuf,
         #[source]
-        error: tera::Error,
+        error: std::io::Error,
     },
 }

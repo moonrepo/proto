@@ -56,7 +56,7 @@ mod bin {
         let assert = cmd.arg("bin").arg("npm").arg("9.0.0").arg("--bin").assert();
 
         if cfg!(windows) {
-            assert.stdout(predicate::str::contains("bin\\npm.cmd"));
+            assert.stdout(predicate::str::contains("bin/npm-cli.js"));
         } else {
             assert.stdout(predicate::str::contains("bin/npm"));
         }
@@ -82,7 +82,7 @@ mod bin {
             .assert();
 
         if cfg!(windows) {
-            assert.stdout(predicate::str::contains("shims\\npm.ps1"));
+            assert.stdout(predicate::str::contains("shims\\npm.exe"));
         } else {
             assert.stdout(predicate::str::contains("shims/npm"));
         }

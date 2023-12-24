@@ -3,6 +3,7 @@ use cached::proc_macro::cached;
 use miette::IntoDiagnostic;
 use once_cell::sync::Lazy;
 use regex::Regex;
+use semver::Version;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
@@ -18,6 +19,11 @@ use std::{io, thread};
 use tracing::trace;
 
 pub static ENV_VAR: Lazy<Regex> = Lazy::new(|| Regex::new(r"\$([A-Z0-9_]+)").unwrap());
+
+#[cached]
+pub fn get_proto_version() -> Version {
+    Version::parse(env!("CARGO_PKG_VERSION")).unwrap()
+}
 
 pub fn get_proto_home() -> miette::Result<PathBuf> {
     // if cfg!(debug_assertions) {

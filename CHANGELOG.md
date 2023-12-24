@@ -10,6 +10,58 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added a `proto debug env` command, for debugging basic env/store information.
+- Updated version resolve errors to include the tool that failed.
+
+#### ⚙️ Internal
+
+- Temporarily clean old binaries that are no longer supported.
+
+## 0.26.0
+
+#### 💥 Breaking
+
+- Removed old and deprecated CLI commands.
+- WASM API
+  - Removed the `post_run` hook.
+
+#### 🚀 Updates
+
+- Implemented a new shim strategy for both Unix and Windows.
+  - No longer creates Bash scripts on Unix, or PowerShell scripts on Windows.
+  - Instead creates a new Rust based executable that is truly native.
+  - Handles stdin, pipes, and redirects efficiently and correctly.
+  - Better compatibility and portability.
+- WASM API
+  - Added a `ToolContext.proto_version` field.
+  - Added a `ExecutableConfig.shim_env_vars` field.
+  - Updated `ExecutableConfig.shim_before_args` and `ExecutableConfig.shim_after_args` to support a list of strings.
+
+#### 🐞 Fixes
+
+- Fixed an issue where binaries were being symlinked with broken versions in their file name (most commonly for Python).
+
+#### 🧩 Plugins
+
+- Updated `bun_plugin` to v0.7.
+  - Will now symlink a `bunx` binary to `~/.proto/bin`.
+- Updated `deno_plugin` to v0.7.
+- Updated `go_plugin` to v0.7.
+- Updated `node_plugin` and `node_depman_plugin` to v0.7.
+  - Will no longer symlink binaries (`~/.proto/bin`) for all package managers.
+  - You'll most likely need to delete any old bins manually.
+- Updated `python_plugin` to v0.5.
+- Updated `rust_plugin` to v0.6.
+- Updated `schema_plugin` (TOML) to v0.7.
+
+#### ⚙️ Internal
+
+- Added basic telemetry to track tool install/uninstall metrics.
+
 ## 0.25.3
 
 #### 🚀 Updates

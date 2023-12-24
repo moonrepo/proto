@@ -1,10 +1,12 @@
 mod utils;
 
-use futures::Future;
 use proto_core::{
     load_tool_from_locator, Id, PluginLocator, ProtoEnvironment, Tool, UnresolvedVersionSpec,
 };
+use starbase_sandbox::assert_snapshot;
 use std::env;
+use std::fs;
+use std::future::Future;
 use std::path::{Path, PathBuf};
 use utils::*;
 
@@ -32,7 +34,7 @@ where
 
     if cfg!(windows) {
         assert_eq!(tool.get_exe_path().unwrap(), &base_dir.join("moon.exe"));
-        assert!(proto.shims_dir.join("moon.cmd").exists());
+        assert!(proto.shims_dir.join("moon.exe").exists());
     } else {
         assert_eq!(tool.get_exe_path().unwrap(), &base_dir.join("moon"));
         assert!(proto.shims_dir.join("moon").exists());
@@ -127,6 +129,10 @@ mod plugins {
                 .arg("--version")
                 .assert()
                 .success();
+
+            assert_snapshot!(
+                fs::read_to_string(sandbox.path().join(".proto/shims/registry.json")).unwrap()
+            );
         }
 
         #[test]
@@ -143,6 +149,10 @@ mod plugins {
                 .arg("--version")
                 .assert()
                 .success();
+
+            assert_snapshot!(
+                fs::read_to_string(sandbox.path().join(".proto/shims/registry.json")).unwrap()
+            );
         }
 
         #[test]
@@ -159,6 +169,10 @@ mod plugins {
                 .arg("version")
                 .assert()
                 .success();
+
+            assert_snapshot!(
+                fs::read_to_string(sandbox.path().join(".proto/shims/registry.json")).unwrap()
+            );
         }
 
         #[test]
@@ -177,6 +191,10 @@ mod plugins {
                 .arg("--version")
                 .assert()
                 .success();
+
+            assert_snapshot!(
+                fs::read_to_string(sandbox.path().join(".proto/shims/registry.json")).unwrap()
+            );
         }
 
         #[test]
@@ -203,6 +221,10 @@ mod plugins {
                 .arg("--version")
                 .assert()
                 .success();
+
+            assert_snapshot!(
+                fs::read_to_string(sandbox.path().join(".proto/shims/registry.json")).unwrap()
+            );
         }
 
         #[test]
@@ -229,6 +251,10 @@ mod plugins {
                 .arg("--version")
                 .assert()
                 .success();
+
+            assert_snapshot!(
+                fs::read_to_string(sandbox.path().join(".proto/shims/registry.json")).unwrap()
+            );
         }
 
         #[test]
@@ -255,6 +281,10 @@ mod plugins {
                 .arg("--version")
                 .assert()
                 .success();
+
+            assert_snapshot!(
+                fs::read_to_string(sandbox.path().join(".proto/shims/registry.json")).unwrap()
+            );
         }
 
         #[test]
@@ -273,20 +303,22 @@ mod plugins {
                 .env("PROTO_PYTHON_VERSION", "3.12.0")
                 .assert()
                 .success();
+
+            assert_snapshot!(
+                fs::read_to_string(sandbox.path().join(".proto/shims/registry.json")).unwrap()
+            );
         }
 
         #[test]
         fn supports_rust() {
             let sandbox = create_empty_sandbox();
 
-            let assert = create_proto_command(sandbox.path())
+            create_proto_command(sandbox.path())
                 .arg("install")
                 .arg("rust")
                 .assert();
 
-            starbase_sandbox::debug_process_output(assert.get_output());
-
-            assert.success();
+            // Doesn't create shims
         }
 
         #[test]
@@ -298,6 +330,8 @@ mod plugins {
                 .arg("moon-test")
                 .assert()
                 .success();
+
+            // Doesn't create shims
         }
     }
 }

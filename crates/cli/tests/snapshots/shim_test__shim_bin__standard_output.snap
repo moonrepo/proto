@@ -1,0 +1,8 @@
+---
+source: crates/cli/tests/shim_test.rs
+expression: get_assert_output(&assert)
+---
+stdout
+stderr
+
+

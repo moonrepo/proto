@@ -5,6 +5,7 @@ mod helpers;
 mod printer;
 mod shell;
 mod systems;
+mod telemetry;
 
 use app::{App as CLI, Commands, DebugCommands, ToolCommands};
 use clap::Parser;
@@ -33,7 +34,7 @@ async fn main() -> MainResult {
         } else {
             LevelFilter::INFO
         },
-        filter_modules: string_vec!["proto", "starbase", "warpgate"],
+        filter_modules: string_vec!["proto", "schematic", "starbase", "warpgate"],
         // This swallows logs from extism when enabled
         intercept_log: env::var("PROTO_WASM_LOG").is_err(),
         log_env: "STARBASE_LOG".into(),
@@ -41,8 +42,14 @@ async fn main() -> MainResult {
         ..TracingOptions::default()
     });
 
+    let mut args = env::args_os().collect::<Vec<_>>();
+
     debug!(
-        args = ?env::args().collect::<Vec<_>>(),
+        bin = ?args.remove(0),
+        args = ?args,
+        shim = env::var("PROTO_SHIM_NAME").ok(),
+        shim_bin = env::var("PROTO_SHIM_PATH").ok(),
+        pid = std::process::id(),
         "Running proto v{}",
         env!("CARGO_PKG_VERSION")
     );
@@ -51,15 +58,16 @@ async fn main() -> MainResult {
     app.startup(systems::detect_proto_env);
     app.startup(systems::migrate_user_config);
     app.analyze(systems::load_proto_configs);
+    app.analyze(systems::remove_old_bins);
 
     match cli.command {
-        Commands::AddPlugin(args) => app.execute_with_args(commands::add_plugin_old, args),
         Commands::Alias(args) => app.execute_with_args(commands::alias, args),
         Commands::Bin(args) => app.execute_with_args(commands::bin, args),
         Commands::Clean(args) => app.execute_with_args(commands::clean, args),
         Commands::Completions(args) => app.execute_with_args(commands::completions, args),
         Commands::Debug { command } => match command {
             DebugCommands::Config(args) => app.execute_with_args(commands::debug::config, args),
+            DebugCommands::Env => app.execute(commands::debug::env),
         },
         Commands::Install(args) => app.execute_with_args(commands::install, args),
         Commands::InstallGlobal(args) => app.execute_with_args(commands::install_global, args),
@@ -69,8 +77,6 @@ async fn main() -> MainResult {
         Commands::Migrate(args) => app.execute_with_args(commands::migrate, args),
         Commands::Outdated(args) => app.execute_with_args(commands::outdated, args),
         Commands::Pin(args) => app.execute_with_args(commands::pin, args),
-        Commands::Plugins(args) => app.execute_with_args(commands::plugins, args),
-        Commands::RemovePlugin(args) => app.execute_with_args(commands::remove_plugin_old, args),
         Commands::Run(args) => app.execute_with_args(commands::run, args),
         Commands::Setup(args) => app.execute_with_args(commands::setup, args),
         Commands::Tool { command } => match command {
@@ -82,7 +88,6 @@ async fn main() -> MainResult {
             }
             ToolCommands::Remove(args) => app.execute_with_args(commands::tool::remove, args),
         },
-        Commands::Tools(args) => app.execute_with_args(commands::tools, args),
         Commands::Unalias(args) => app.execute_with_args(commands::unalias, args),
         Commands::Uninstall(args) => app.execute_with_args(commands::uninstall, args),
         Commands::UninstallGlobal(args) => app.execute_with_args(commands::uninstall_global, args),

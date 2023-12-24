@@ -83,15 +83,6 @@ pub struct App {
 #[derive(Clone, Debug, Subcommand)]
 pub enum Commands {
     #[command(
-        alias = "ap",
-        name = "add-plugin",
-        about = "Add a plugin.",
-        long_about = "Add a plugin to the local .prototools config, or global ~/.proto/.prototools config.",
-        hide = true
-    )]
-    AddPlugin(AddToolArgs),
-
-    #[command(
         alias = "a",
         name = "alias",
         about = "Add an alias to a tool.",
@@ -185,22 +176,6 @@ pub enum Commands {
     Pin(PinArgs),
 
     #[command(
-        name = "plugins",
-        about = "List all active and configured plugins.",
-        hide = true
-    )]
-    Plugins(ListToolPluginsArgs),
-
-    #[command(
-        alias = "rp",
-        name = "remove-plugin",
-        about = "Remove a plugin.",
-        long_about = "Remove a plugin from the local .prototools config, or global ~/.proto/.prototools config.",
-        hide = true
-    )]
-    RemovePlugin(RemoveToolArgs),
-
-    #[command(
         alias = "r",
         name = "run",
         about = "Run a tool after detecting a version from the environment.",
@@ -216,13 +191,6 @@ pub enum Commands {
         #[command(subcommand)]
         command: ToolCommands,
     },
-
-    #[command(
-        name = "tools",
-        about = "List all installed tools and their versions.",
-        hide = true
-    )]
-    Tools(ListToolsArgs),
 
     #[command(alias = "ua", name = "unalias", about = "Remove an alias from a tool.")]
     Unalias(UnaliasArgs),
@@ -264,6 +232,9 @@ pub enum DebugCommands {
         about = "Debug all loaded .prototools config's for the current directory."
     )]
     Config(DebugConfigArgs),
+
+    #[command(name = "env", about = "Debug the current proto environment and store.")]
+    Env,
 }
 
 #[derive(Clone, Debug, Subcommand)]

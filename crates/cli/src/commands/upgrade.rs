@@ -1,15 +1,14 @@
 use crate::error::ProtoCliError;
-use crate::helpers::{download_to_temp_with_progress_bar, ProtoResource};
+use crate::helpers::ProtoResource;
+use crate::telemetry::{track_usage, Metric};
+use indicatif::{ProgressBar, ProgressStyle};
 use miette::IntoDiagnostic;
 use proto_core::is_offline;
+use proto_installer::{determine_triple, download_release, unpack_release};
 use semver::Version;
 use starbase::system;
-use starbase_archive::Archiver;
 use starbase_styles::color;
-use starbase_utils::fs;
-use std::env::{self, consts};
-use std::path::PathBuf;
-use tracing::{debug, info};
+use tracing::{debug, info, trace};
 
 async fn fetch_version() -> miette::Result<String> {
     let version = reqwest::get("https://raw.githubusercontent.com/moonrepo/proto/master/version")
@@ -26,14 +25,6 @@ async fn fetch_version() -> miette::Result<String> {
     Ok(version)
 }
 
-pub fn is_musl() -> bool {
-    let Ok(output) = std::process::Command::new("ldd").arg("--version").output() else {
-        return false;
-    };
-
-    String::from_utf8(output.stdout).map_or(false, |out| out.contains("musl"))
-}
-
 #[system]
 pub async fn upgrade(proto: ResourceRef<ProtoResource>) {
     if is_offline() {
@@ -44,7 +35,7 @@ pub async fn upgrade(proto: ResourceRef<ProtoResource>) {
     let latest_version = fetch_version().await?;
 
     debug!(
-        "Comparing latest version {} to local version {}",
+        "Comparing latest version {} to current version {}",
         color::hash(&latest_version),
         color::hash(current_version),
     );
@@ -56,85 +47,56 @@ pub async fn upgrade(proto: ResourceRef<ProtoResource>) {
     }
 
     // Determine the download file based on target
-    let target = match (consts::OS, consts::ARCH) {
-        ("linux", arch) => format!(
-            "{arch}-unknown-linux-{}",
-            if is_musl() { "musl" } else { "gnu" }
-        ),
-        ("macos", arch) => format!("{arch}-apple-darwin"),
-        ("windows", "x86_64") => "x86_64-pc-windows-msvc".to_owned(),
-        (os, arch) => {
-            return Err(ProtoCliError::UpgradeInvalidPlatform {
-                arch: arch.to_owned(),
-                os: os.to_owned(),
-            }
-            .into());
-        }
-    };
-    let target_ext = if cfg!(windows) { "zip" } else { "tar.xz" };
-    let target_file = format!("proto_cli-{target}");
+    let triple_target = determine_triple()?;
 
-    debug!("Download target: {}", &target_file);
+    debug!("Download target: {}", triple_target);
 
     // Download the file and show a progress bar
-    let download_file = format!("{target_file}.{target_ext}");
-    let download_url = format!(
-        "https://github.com/moonrepo/proto/releases/download/v{latest_version}/{download_file}"
-    );
-    let temp_file = download_to_temp_with_progress_bar(&download_url, &download_file).await?;
-    let temp_dir = proto.env.temp_dir.join(&target_file);
+    let pb = ProgressBar::new(0);
+    pb.set_style(ProgressStyle::default_bar().progress_chars("━╾─").template(
+        "{bar:80.183/black} | {bytes:.239} / {total_bytes:.248} | {bytes_per_sec:.183} | eta {eta}",
+    ).unwrap());
+
+    let result = download_release(
+        &triple_target,
+        &latest_version,
+        &proto.env.temp_dir,
+        |downloaded_size, total_size| {
+            if downloaded_size == 0 {
+                pb.set_length(total_size);
+            } else {
+                pb.set_position(downloaded_size);
+            }
+
+            trace!("Downloaded {} of {} bytes", downloaded_size, total_size);
+        },
+    )
+    .await?;
+
+    pb.finish_and_clear();
 
     // Unpack the downloaded file
-    Archiver::new(&temp_dir, &temp_file).unpack_from_ext()?;
+    debug!(archive = ?result.archive_file, "Unpacking download");
 
-    // Move the old binary
-    let bin_name = if cfg!(windows) { "proto.exe" } else { "proto" };
+    let upgraded = unpack_release(result, &proto.env.bin_dir, &proto.env.tools_dir)?;
 
-    let bin_path = match env::var("PROTO_INSTALL_DIR") {
-        Ok(dir) => PathBuf::from(dir).join(bin_name),
-        Err(_) => proto.env.bin_dir.join(bin_name),
-    };
+    // Track usage metrics
+    track_usage(
+        &proto.env,
+        Metric::UpgradeProto {
+            old_version: current_version.to_owned(),
+            new_version: latest_version.to_owned(),
+        },
+    )
+    .await?;
 
-    let relocate_path = proto
-        .env
-        .tools_dir
-        .join("proto")
-        .join(current_version)
-        .join(bin_name);
+    if upgraded {
+        info!("Upgraded proto to v{}!", latest_version);
 
-    if bin_path.exists() {
-        fs::rename(&bin_path, &relocate_path)?;
-    }
-
-    if let Ok(current_exe) = env::current_exe() {
-        if current_exe != bin_path {
-            fs::rename(&current_exe, &relocate_path)?;
-        }
-    }
-
-    // Move the new binary to the bins directory
-    let lookup_paths = vec![
-        PathBuf::from(target_file).join(bin_name),
-        PathBuf::from(bin_name),
-    ];
-
-    for lookup_path in lookup_paths {
-        let possible_bin_path = temp_dir.join(lookup_path);
-
-        if possible_bin_path.exists() {
-            fs::copy_file(possible_bin_path, &bin_path)?;
-            fs::update_perms(&bin_path, None)?;
-
-            fs::remove(temp_dir)?;
-            fs::remove(temp_file)?;
-
-            info!("Upgraded proto to v{}!", latest_version);
-
-            return Ok(());
-        }
+        return Ok(());
     }
 
     Err(ProtoCliError::UpgradeFailed {
-        bin: bin_name.to_owned(),
+        bin: "proto".into(),
     })?;
 }

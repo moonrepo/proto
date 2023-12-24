@@ -1,6 +1,5 @@
 use crate::helpers::{get_home_dir, get_proto_home, is_offline};
-use crate::proto_config::{ProtoConfig, ProtoConfigManager};
-use crate::{ProtoConfigFile, PROTO_CONFIG_NAME};
+use crate::proto_config::{ProtoConfig, ProtoConfigFile, ProtoConfigManager, PROTO_CONFIG_NAME};
 use once_cell::sync::OnceCell;
 use std::collections::BTreeMap;
 use std::env;
