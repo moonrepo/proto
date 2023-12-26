@@ -17,6 +17,10 @@
 - Added a `proto debug env` command, for debugging basic env/store information.
 - Updated version resolve errors to include the tool that failed.
 
+#### 🐞 Fixes
+
+- Fixed `proto setup` injecting incorrect shell configuration for Elvish.
+
 #### ⚙️ Internal
 
 - Temporarily clean old binaries that are no longer supported.
