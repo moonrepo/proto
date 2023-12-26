@@ -77,11 +77,20 @@ pub fn format_env_var(shell: &Shell, key: &str, value: &str) -> Option<String> {
         } else {
             format!(r#"export {key}="{value}""#)
         }),
-        Shell::Elvish => Some(if key == "PATH" {
-            format!(r#"set-env PATH (str:join ':' [{value} $E:PATH])"#)
-        } else {
-            format!(r#"set-env {key} {value}"#)
-        }),
+        Shell::Elvish => {
+            let value = if key == "PATH" {
+                format!(
+                    "set-env PATH (str:join ':' [{} $E:PATH])",
+                    value.replace("$HOME", "$E:PROTO_HOME").replace(':', " ")
+                )
+            } else if key == "PROTO_HOME" {
+                format!("set-env {key} {}", value.replace("$HOME", "{~}"))
+            } else {
+                format!("set-env {key} {value}")
+            };
+
+            Some(value)
+        }
         Shell::Fish => Some(if key == "PATH" {
             format!(r#"set -gx PATH "{value}" $PATH"#)
         } else {
