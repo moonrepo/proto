@@ -2,8 +2,13 @@ use crate::error::ProtoError;
 use crate::proto_config::*;
 use crate::tool::Tool;
 use std::env;
+use std::path::Path;
 use tracing::{debug, trace};
 use version_spec::*;
+
+fn set_detected_env_var(path: &Path) {
+    env::set_var("PROTO_DETECTED_FROM", path);
+}
 
 pub async fn detect_version_first_available(
     tool: &Tool,
@@ -19,19 +24,23 @@ pub async fn detect_version_first_available(
                     "Detected version from {} file", PROTO_CONFIG_NAME
                 );
 
+                set_detected_env_var(&file.path);
+
                 return Ok(Some(version.to_owned()));
             }
         }
 
         let dir = file.path.parent().unwrap();
 
-        if let Some(version) = tool.detect_version_from(dir).await? {
+        if let Some((version, file)) = tool.detect_version_from(dir).await? {
             debug!(
                 tool = tool.id.as_str(),
                 version = version.to_string(),
-                dir = ?dir,
+                file = ?file,
                 "Detected version from tool's ecosystem"
             );
+
+            set_detected_env_var(&file);
 
             return Ok(Some(version));
         }
@@ -55,6 +64,8 @@ pub async fn detect_version_prefer_prototools(
                     "Detected version from {} file", PROTO_CONFIG_NAME
                 );
 
+                set_detected_env_var(&file.path);
+
                 return Ok(Some(version.to_owned()));
             }
         }
@@ -64,13 +75,15 @@ pub async fn detect_version_prefer_prototools(
     for file in &config_manager.files {
         let dir = file.path.parent().unwrap();
 
-        if let Some(version) = tool.detect_version_from(dir).await? {
+        if let Some((version, file)) = tool.detect_version_from(dir).await? {
             debug!(
                 tool = tool.id.as_str(),
                 version = version.to_string(),
-                dir = ?dir,
+                file = ?file,
                 "Detected version from tool's ecosystem"
             );
+
+            set_detected_env_var(&file);
 
             return Ok(Some(version));
         }

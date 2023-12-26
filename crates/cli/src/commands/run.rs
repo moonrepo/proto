@@ -153,12 +153,24 @@ pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> S
         let config = tool.proto.load_config()?;
 
         if !config.settings.auto_install {
-            return Err(ProtoError::MissingToolForRun {
-                tool: tool.get_name().to_owned(),
-                version: version.to_string(),
-                command: format!("proto install {} {}", tool.id, tool.get_resolved_version()),
+            let command = format!("proto install {} {}", tool.id, tool.get_resolved_version());
+
+            if let Ok(source) = env::var("PROTO_DETECTED_FROM") {
+                return Err(ProtoError::MissingToolForRunWithSource {
+                    tool: tool.get_name().to_owned(),
+                    version: version.to_string(),
+                    command,
+                    path: source.into(),
+                }
+                .into());
+            } else {
+                return Err(ProtoError::MissingToolForRun {
+                    tool: tool.get_name().to_owned(),
+                    version: version.to_string(),
+                    command,
+                }
+                .into());
             }
-            .into());
         }
 
         // Install the tool

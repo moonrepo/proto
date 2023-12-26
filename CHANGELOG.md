@@ -16,6 +16,7 @@
 
 - Added a `proto debug env` command, for debugging basic env/store information.
 - Updated version resolve errors to include the tool that failed.
+- Updated missing install errors to include the file that a version was detected from.
 
 #### 🐞 Fixes
 

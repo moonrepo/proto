@@ -10,7 +10,7 @@ clap = "4.4.11"
 clap_complete = "4.4.4"
 convert_case = "0.6.0"
 dirs = "5.0.1"
-extism = { version = "0.5.5" }
+extism = "0.5.5"
 extism-pdk = "0.3.4"
 human-sort = "0.2.2"
 miette = "5.10.0"
@@ -24,7 +24,7 @@ serde = { version = "1.0.193", features = ["derive"] }
 serde_json = "1.0.108"
 sha2 = "0.10.8"
 shell-words = "1.1.0"
-starbase = "0.2.10"
+starbase = "0.2.11"
 starbase_archive = { version = "0.2.5", features = [
 	"tar-gz",
 	"tar-xz",
@@ -39,7 +39,7 @@ starbase_utils = { version = "0.3.11", default-features = false, features = [
 	"json",
 	"toml",
 ] }
-thiserror = "1.0.51"
+thiserror = "1.0.52"
 tokio = { version = "1.35.1", features = ["full", "tracing"] }
 tracing = "0.1.40"
 
