@@ -117,18 +117,26 @@ mod plugins {
         #[cfg(not(windows))]
         #[test]
         fn supports_bun() {
+            use starbase_sandbox::get_assert_output;
+
             let sandbox = create_empty_sandbox();
 
-            create_proto_command(sandbox.path())
+            let assert = create_proto_command(sandbox.path())
                 .arg("install")
                 .arg("bun")
-                .assert()
-                .success();
+                .assert();
 
-            create_shim_command(sandbox.path(), "bun")
+            println!("{}", get_assert_output(&assert));
+
+            assert.success();
+
+            let assert = create_shim_command(sandbox.path(), "bun")
                 .arg("--version")
-                .assert()
-                .success();
+                .assert();
+
+            println!("{}", get_assert_output(&assert));
+
+            assert.success();
 
             assert_snapshot!(
                 fs::read_to_string(sandbox.path().join(".proto/shims/registry.json")).unwrap()
@@ -215,8 +223,6 @@ mod plugins {
                 .assert()
                 .success();
 
-            // TODO: revisit when we change shims
-            #[cfg(not(windows))]
             create_shim_command(sandbox.path(), "npm")
                 .arg("--version")
                 .assert()
@@ -245,8 +251,6 @@ mod plugins {
                 .assert()
                 .success();
 
-            // TODO: revisit when we change shims
-            #[cfg(not(windows))]
             create_shim_command(sandbox.path(), "pnpm")
                 .arg("--version")
                 .assert()
@@ -275,8 +279,6 @@ mod plugins {
                 .assert()
                 .success();
 
-            // TODO: revisit when we change shims
-            #[cfg(not(windows))]
             create_shim_command(sandbox.path(), "yarn")
                 .arg("--version")
                 .assert()
