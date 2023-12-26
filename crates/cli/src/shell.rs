@@ -77,11 +77,20 @@ pub fn format_env_var(shell: &Shell, key: &str, value: &str) -> Option<String> {
         } else {
             format!(r#"export {key}="{value}""#)
         }),
-        Shell::Elvish => Some(if key == "PATH" {
-            format!(r#"set-env PATH (str:join ':' [{value} $E:PATH])"#)
-        } else {
-            format!(r#"set-env {key} {value}"#)
-        }),
+        Shell::Elvish => {
+            let value = if key == "PATH" {
+                format!(
+                    "set-env PATH (str:join ':' [{} $E:PATH])",
+                    value.replace(':', " ").replace("$", "$E:")
+                )
+            } else if key == "PROTO_HOME" {
+                format!("set-env {key} {}", value.replace("$HOME", "{~}"))
+            } else {
+                format!("set-env {key} {value}")
+            };
+
+            Some(value)
+        }
         Shell::Fish => Some(if key == "PATH" {
             format!(r#"set -gx PATH "{value}" $PATH"#)
         } else {
@@ -164,4 +173,52 @@ pub fn write_profile_if_not_setup(
     );
 
     Ok(Some(last_profile.to_path_buf()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn get_env_vars() -> Vec<(String, String)> {
+        vec![
+            ("PROTO_HOME".to_string(), "$HOME/.proto".to_string()),
+            (
+                "PATH".to_string(),
+                "$PROTO_HOME/shims:$PROTO_HOME/bin".to_string(),
+            ),
+        ]
+    }
+
+    #[test]
+    fn formats_bash_env_vars() {
+        assert_eq!(
+            format_env_vars(&Shell::Bash, "Bash", get_env_vars()).unwrap(),
+            r#"
+# Bash
+export PROTO_HOME="$HOME/.proto"
+export PATH="$PROTO_HOME/shims:$PROTO_HOME/bin:$PATH""#
+        );
+    }
+
+    #[test]
+    fn formats_elvish_env_vars() {
+        assert_eq!(
+            format_env_vars(&Shell::Elvish, "Elvish", get_env_vars()).unwrap(),
+            r#"
+# Elvish
+set-env PROTO_HOME {~}/.proto
+set-env PATH (str:join ':' [$E:PROTO_HOME/shims $E:PROTO_HOME/bin $E:PATH])"#
+        );
+    }
+
+    #[test]
+    fn formats_fish_env_vars() {
+        assert_eq!(
+            format_env_vars(&Shell::Fish, "Fish", get_env_vars()).unwrap(),
+            r#"
+# Fish
+set -gx PROTO_HOME "$HOME/.proto"
+set -gx PATH "$PROTO_HOME/shims:$PROTO_HOME/bin" $PATH"#
+        );
+    }
 }
