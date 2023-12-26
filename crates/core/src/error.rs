@@ -81,6 +81,20 @@ pub enum ProtoError {
         command: String,
     },
 
+    #[diagnostic(code(proto::tool::required))]
+    #[error(
+        "This project requires {tool} {} (detected from {}), but this version has not been installed. Install it with {}!",
+        .version.style(Style::Hash),
+        .path.style(Style::Path),
+        .command.style(Style::Shell),
+    )]
+    MissingToolForRunWithSource {
+        tool: String,
+        version: String,
+        command: String,
+        path: PathBuf,
+    },
+
     #[diagnostic(code(proto::tool::uninstall_failed))]
     #[error("Failed to uninstall {tool}. {error}")]
     UninstallFailed { tool: String, error: String },

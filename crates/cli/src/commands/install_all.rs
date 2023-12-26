@@ -30,7 +30,7 @@ pub async fn install_all(proto: ResourceRef<ProtoResource>) {
             continue;
         }
 
-        if let Some(candidate) = tool.detect_version_from(&proto.env.cwd).await? {
+        if let Some((candidate, _)) = tool.detect_version_from(&proto.env.cwd).await? {
             debug!("Detected version {} for {}", candidate, tool.get_name());
 
             versions.insert(tool.id.clone(), candidate);

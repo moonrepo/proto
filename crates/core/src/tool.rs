@@ -555,7 +555,7 @@ impl Tool {
     pub async fn detect_version_from(
         &self,
         current_dir: &Path,
-    ) -> miette::Result<Option<UnresolvedVersionSpec>> {
+    ) -> miette::Result<Option<(UnresolvedVersionSpec, PathBuf)>> {
         if !self.plugin.has_func("detect_version_files") {
             return Ok(None);
         }
@@ -614,7 +614,7 @@ impl Tool {
                 "Detected a version"
             );
 
-            return Ok(Some(version));
+            return Ok(Some((version, file_path)));
         }
 
         Ok(None)
