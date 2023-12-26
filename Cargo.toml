@@ -24,7 +24,7 @@ serde = { version = "1.0.193", features = ["derive"] }
 serde_json = "1.0.108"
 sha2 = "0.10.8"
 shell-words = "1.1.0"
-starbase = "0.2.11"
+starbase = "0.2.12"
 starbase_archive = { version = "0.2.5", features = [
 	"tar-gz",
 	"tar-xz",

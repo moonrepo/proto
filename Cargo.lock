@@ -3106,9 +3106,9 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "starbase"
-version = "0.2.11"
+version = "0.2.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "735a1804ac4b6051e61bd947abede6bf6ad3131fa819476031604678dec26163"
+checksum = "4a34ccab9800f523a9831087670e219e7e5a90c25445d5753e7e6dbf25b79be3"
 dependencies = [
  "async-trait",
  "chrono",
