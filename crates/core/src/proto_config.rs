@@ -119,7 +119,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("bun"),
                 PluginLocator::SourceUrl {
-                    url: "https://github.com/moonrepo/bun-plugin/releases/download/v0.6.0/bun_plugin.wasm".into()
+                    url: "https://github.com/moonrepo/bun-plugin/releases/download/v0.7.0/bun_plugin.wasm".into()
                 }
             );
         }
