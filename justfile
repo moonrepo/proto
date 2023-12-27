@@ -13,6 +13,9 @@ build-shim:
 build-wasm:
 	cd plugins && cargo wasi build
 
+check:
+	cargo check --workspace
+
 format:
 	cargo fmt --all
 
