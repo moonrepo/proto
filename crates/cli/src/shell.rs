@@ -113,21 +113,45 @@ pub fn format_export(shell: &Shell, var: Export) -> Option<String> {
         },
         Shell::PowerShell => {
             fn format(value: String) -> String {
-                ENV_VAR.replace_all(&value, "$$env:$name").to_string()
+                ENV_VAR
+                    .replace_all(&value, "$$env:$name")
+                    .replace("$env:HOME", "$HOME")
+            }
+
+            fn join_path(value: String) -> String {
+                let parts = value
+                    .split("/")
+                    .map(|part| {
+                        if part.starts_with("$") {
+                            part.to_owned()
+                        } else {
+                            format!("\"{}\"", part)
+                        }
+                    })
+                    .collect::<Vec<_>>();
+
+                format(format!("Join-Path {}", parts.join(" ")))
             }
 
             match var {
-                Export::Path(paths) => paths
-                    .into_iter()
-                    .map(|path| {
-                        format!(
-                            r#"$env:PATH = "{}" + [IO.Path]::PathSeparator + $env:PATH"#,
-                            format(path)
-                        )
-                    })
-                    .collect::<Vec<_>>()
-                    .join("\n"),
-                Export::Var(key, value) => format!(r#"$env:{key} = "{}""#, format(value)),
+                Export::Path(paths) => {
+                    let mut value = "$env:PATH = @(\n".to_owned();
+
+                    for path in paths {
+                        value.push_str(&format!("  ({}),\n", join_path(path)))
+                    }
+
+                    value.push_str("  $env:PATH\n");
+                    value.push_str(") -Join [IO.PATH]::PathSeparator");
+                    value
+                }
+                Export::Var(key, value) => {
+                    if value.contains('/') {
+                        format!("$env:{key} = {}", join_path(value))
+                    } else {
+                        format!(r#"$env:{key} = "{}""#, format(value))
+                    }
+                }
             }
         }
         _ => return None,
@@ -257,9 +281,12 @@ set -gx PATH "$PROTO_HOME/shims:$PROTO_HOME/bin" $PATH"#
             format_exports(&Shell::PowerShell, "PowerShell", get_env_vars()).unwrap(),
             r#"
 # PowerShell
-$env:PROTO_HOME = "$env:HOME/.proto"
-$env:PATH = "$env:PROTO_HOME/shims" + [IO.Path]::PathSeparator + $env:PATH
-$env:PATH = "$env:PROTO_HOME/bin" + [IO.Path]::PathSeparator + $env:PATH"#
+$env:PROTO_HOME = Join-Path $HOME ".proto"
+$env:PATH = @(
+  (Join-Path $env:PROTO_HOME "shims"),
+  (Join-Path $env:PROTO_HOME "bin"),
+  $env:PATH
+) -Join [IO.PATH]::PathSeparator"#
         );
     }
 }
