@@ -69,7 +69,6 @@ pub async fn migrate(proto: &ProtoResource) -> SystemResult {
     Ok(())
 }
 
-#[cfg(not(windows))]
 fn update_shell() -> SystemResult {
     use crate::shell::format_env_var;
 
@@ -117,25 +116,6 @@ fn update_shell() -> SystemResult {
             fs::write_file(profile_path, profile)?;
         }
     }
-
-    Ok(())
-}
-
-#[cfg(windows)]
-fn update_shell() -> SystemResult {
-    use crate::commands::setup::do_setup;
-    use proto_core::get_shims_dir;
-    use tracing::warn;
-
-    info!("Updating environment variables...");
-
-    do_setup(
-        shell::detect_shell(None),
-        vec![get_shims_dir()?, get_bin_dir()?],
-        false,
-    )?;
-
-    warn!("Audit your system variables to ensure they're correct!");
 
     Ok(())
 }
