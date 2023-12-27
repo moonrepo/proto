@@ -77,20 +77,20 @@ pub fn format_env_var(shell: &Shell, key: &str, value: &str) -> Option<String> {
         } else {
             format!(r#"export {key}="{value}""#)
         }),
-        Shell::Elvish => {
-            let value = if key == "PATH" {
-                format!(
-                    "set-env PATH (str:join ':' [{} $E:PATH])",
-                    value.replace(':', " ").replace("$", "$E:")
-                )
-            } else if key == "PROTO_HOME" {
-                format!("set-env {key} {}", value.replace("$HOME", "{~}"))
-            } else {
-                format!("set-env {key} {value}")
-            };
-
-            Some(value)
-        }
+        Shell::Elvish => Some(if key == "PATH" {
+            format!(
+                "set paths [{} $@paths]",
+                value
+                    .replace(':', " ")
+                    .replace("$HOME", "{~}")
+                    .replace("$", "$E:")
+            )
+        } else {
+            format!(
+                "set-env {key} {}",
+                value.replace("$HOME", "{~}").replace("$", "$E:")
+            )
+        }),
         Shell::Fish => Some(if key == "PATH" {
             format!(r#"set -gx PATH "{value}" $PATH"#)
         } else {
@@ -207,7 +207,7 @@ export PATH="$PROTO_HOME/shims:$PROTO_HOME/bin:$PATH""#
             r#"
 # Elvish
 set-env PROTO_HOME {~}/.proto
-set-env PATH (str:join ':' [$E:PROTO_HOME/shims $E:PROTO_HOME/bin $E:PATH])"#
+set paths [$E:PROTO_HOME/shims $E:PROTO_HOME/bin $@paths]"#
         );
     }
 
