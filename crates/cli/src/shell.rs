@@ -136,14 +136,15 @@ pub fn format_env_var(shell: &Shell, key: &str, value: &str) -> Option<String> {
             format!(r#"set -gx {key} "{value}""#)
         }),
         Shell::PowerShell => {
-            let value = ENV_VAR.replace_all(value, "$$env:$name");
+            let value = if key == "PATH" {
+                value.replace(':', ";")
+            } else {
+                value.to_owned()
+            };
+            let value = ENV_VAR.replace_all(&value, "$$env:$name");
 
             Some(if key == "PATH" {
-                format!(
-                    r#"$env:PATH = "{value}{}" + $env:PATH"#,
-                    // Is this correct? Can't find any docs...
-                    if cfg!(windows) { ";" } else { ":" }
-                )
+                format!(r#"$env:PATH = "{value};" + $env:PATH"#)
             } else {
                 format!(r#"$env:{key} = "{value}""#)
             })
@@ -274,19 +275,6 @@ set -gx PATH "$PROTO_HOME/shims:$PROTO_HOME/bin" $PATH"#
         );
     }
 
-    #[cfg(unix)]
-    #[test]
-    fn formats_pwsh_env_vars() {
-        assert_eq!(
-            format_env_vars(&Shell::PowerShell, "PowerShell", get_env_vars()).unwrap(),
-            r#"
-# PowerShell
-$env:PROTO_HOME = "$env:HOME/.proto"
-$env:PATH = "$env:PROTO_HOME/shims:$env:PROTO_HOME/bin:" + $env:PATH"#
-        );
-    }
-
-    #[cfg(windows)]
     #[test]
     fn formats_pwsh_env_vars() {
         assert_eq!(
