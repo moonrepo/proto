@@ -136,11 +136,12 @@ pub fn format_env_var(shell: &Shell, key: &str, value: &str) -> Option<String> {
             format!(r#"set -gx {key} "{value}""#)
         }),
         Shell::PowerShell => {
-            let value = ENV_VAR.replace_all(&value, "$$env:$name");
+            let value = ENV_VAR.replace_all(value, "$$env:$name");
 
             Some(if key == "PATH" {
                 format!(
                     r#"$env:PATH = "{value}{}" + $env:PATH"#,
+                    // Is this correct? Can't find any docs...
                     if cfg!(windows) { ";" } else { ":" }
                 )
             } else {
