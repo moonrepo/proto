@@ -2308,7 +2308,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.26.1"
+version = "0.26.2"
 dependencies = [
  "anyhow",
  "chrono",
@@ -2348,7 +2348,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.26.7"
+version = "0.26.8"
 dependencies = [
  "cached",
  "extism",
@@ -2430,7 +2430,7 @@ dependencies = [
 
 [[package]]
 name = "proto_shim"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "command-group",
  "dirs 5.0.1",
