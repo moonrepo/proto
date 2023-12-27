@@ -32,8 +32,8 @@ pub fn get_shim_file_name(name: &str) -> String {
 
 macro_rules! handle_io_error {
     ($expr:expr) => {
-         if let Err(error) = $expr {
-            // If we receive an "Access is denied" error, we should 
+        if let Err(error) = $expr {
+            // If we receive an "Access is denied" error, we should
             // exit early as there's no way around this, as this exe
             // may be currently in use by another process. This happens
             // consistently when ran through task runners (like moon).
