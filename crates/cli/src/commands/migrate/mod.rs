@@ -1,4 +1,3 @@
-mod v0_20;
 mod v0_24;
 
 use crate::error::ProtoCliError;

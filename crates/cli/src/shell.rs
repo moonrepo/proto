@@ -10,6 +10,11 @@ use std::{
 };
 use tracing::debug;
 
+pub enum Export {
+    Path(Vec<String>),
+    Var(String, String),
+}
+
 pub fn detect_shell(shell: Option<Shell>) -> Shell {
     shell.or_else(Shell::from_env).unwrap_or({
         if cfg!(windows) {
@@ -57,15 +62,6 @@ pub fn find_profiles(shell: &Shell) -> miette::Result<Vec<PathBuf>> {
             profiles.push(home_dir.join(".config/fish/config.fish"));
         }
         Shell::PowerShell => {
-            if let Ok(ps_home) = env::var("PSHOME") {
-                let ps_home = PathBuf::from(ps_home);
-
-                profiles.extend([
-                    ps_home.join("Microsoft.PowerShell_profile.ps1"),
-                    ps_home.join("Profile.ps1"),
-                ]);
-            }
-
             if cfg!(windows) {
                 profiles.extend([
                     home_dir.join("Documents\\PowerShell\\Microsoft.PowerShell_profile.ps1"),
@@ -93,75 +89,58 @@ pub fn find_profiles(shell: &Shell) -> miette::Result<Vec<PathBuf>> {
     Ok(profiles)
 }
 
-pub fn format_env_var(shell: &Shell, key: &str, value: &str) -> Option<String> {
-    match shell {
-        Shell::Bash | Shell::Zsh => Some(if key == "PATH" {
-            format!(r#"export PATH="{value}:$PATH""#)
-        } else {
-            format!(r#"export {key}="{value}""#)
-        }),
-        Shell::Elvish => Some(if key == "PATH" {
-            format!(
-                "set paths [{} $@paths]",
-                value
-                    .replace(':', " ")
-                    .replace("$HOME", "{~}")
-                    .replace("$", "$E:")
-            )
-        } else {
-            format!(
-                "set-env {key} {}",
-                value.replace("$HOME", "{~}").replace("$", "$E:")
-            )
-        }),
-        // Shell::Elvish => {
-        //     let value = if key == "PATH" {
-        //         value.replace(':', " ")
-        //     } else {
-        //         value.to_owned()
-        //     };
-        //     let new_value = ENV_VAR.replace_all(&value, "$$E:$name");
+pub fn format_export(shell: &Shell, var: Export) -> Option<String> {
+    let result = match shell {
+        Shell::Bash | Shell::Zsh => match var {
+            Export::Path(paths) => format!(r#"export PATH="{}:$PATH""#, paths.join(":")),
+            Export::Var(key, value) => format!(r#"export {key}="{value}""#),
+        },
+        Shell::Elvish => {
+            fn format(value: String) -> String {
+                ENV_VAR
+                    .replace_all(&value, "$$E:$name")
+                    .replace("$E:HOME", "{~}")
+            }
 
-        //     Some(if key == "PATH" {
-        //         format!("set-env PATH (str:join ':' [{new_value} $E:PATH])")
-        //     } else if key == "PROTO_HOME" {
-        //         format!("set-env {key} {}", value.replace("$HOME", "{~}"))
-        //     } else {
-        //         format!("set-env {key} {new_value}")
-        //     })
-        // }
-        Shell::Fish => Some(if key == "PATH" {
-            format!(r#"set -gx PATH "{value}" $PATH"#)
-        } else {
-            format!(r#"set -gx {key} "{value}""#)
-        }),
-        Shell::PowerShell => {
-            let value = if key == "PATH" {
-                value.replace(':', ";")
-            } else {
-                value.to_owned()
-            };
-            let value = ENV_VAR.replace_all(&value, "$$env:$name");
-
-            Some(if key == "PATH" {
-                format!(r#"$env:PATH = "{value};" + $env:PATH"#)
-            } else {
-                format!(r#"$env:{key} = "{value}""#)
-            })
+            match var {
+                Export::Path(paths) => format!("set paths [{} $@paths]", format(paths.join(" "))),
+                Export::Var(key, value) => format!("set-env {key} {}", format(value)),
+            }
         }
-        _ => None,
-    }
+        Shell::Fish => match var {
+            Export::Path(paths) => format!(r#"set -gx PATH "{}" $PATH"#, paths.join(":")),
+            Export::Var(key, value) => format!(r#"set -gx {key} "{value}""#),
+        },
+        Shell::PowerShell => {
+            fn format(value: String) -> String {
+                ENV_VAR.replace_all(&value, "$$env:$name").to_string()
+            }
+
+            match var {
+                Export::Path(paths) => paths
+                    .into_iter()
+                    .map(|path| {
+                        format!(
+                            r#"$env:PATH = "{}" + [IO.Path]::PathSeparator + $env:PATH"#,
+                            format(path)
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+                Export::Var(key, value) => format!(r#"$env:{key} = "{}""#, format(value)),
+            }
+        }
+        _ => return None,
+    };
+
+    Some(result)
 }
 
-pub fn format_env_vars(
-    shell: &Shell,
-    comment: &str,
-    vars: Vec<(String, String)>,
-) -> Option<String> {
+pub fn format_exports(shell: &Shell, comment: &str, exports: Vec<Export>) -> Option<String> {
     let mut lines = vec![format!("\n# {comment}")];
 
-    for (key, value) in vars {
-        match format_env_var(shell, &key, &value) {
+    for export in exports {
+        match format_export(shell, export) {
             Some(var) => lines.push(var),
             None => return None,
         };
@@ -232,20 +211,17 @@ pub fn write_profile_if_not_setup(
 mod tests {
     use super::*;
 
-    fn get_env_vars() -> Vec<(String, String)> {
+    fn get_env_vars() -> Vec<Export> {
         vec![
-            ("PROTO_HOME".to_string(), "$HOME/.proto".to_string()),
-            (
-                "PATH".to_string(),
-                "$PROTO_HOME/shims:$PROTO_HOME/bin".to_string(),
-            ),
+            Export::Var("PROTO_HOME".into(), "$HOME/.proto".into()),
+            Export::Path(vec!["$PROTO_HOME/shims".into(), "$PROTO_HOME/bin".into()]),
         ]
     }
 
     #[test]
     fn formats_bash_env_vars() {
         assert_eq!(
-            format_env_vars(&Shell::Bash, "Bash", get_env_vars()).unwrap(),
+            format_exports(&Shell::Bash, "Bash", get_env_vars()).unwrap(),
             r#"
 # Bash
 export PROTO_HOME="$HOME/.proto"
@@ -256,7 +232,7 @@ export PATH="$PROTO_HOME/shims:$PROTO_HOME/bin:$PATH""#
     #[test]
     fn formats_elvish_env_vars() {
         assert_eq!(
-            format_env_vars(&Shell::Elvish, "Elvish", get_env_vars()).unwrap(),
+            format_exports(&Shell::Elvish, "Elvish", get_env_vars()).unwrap(),
             r#"
 # Elvish
 set-env PROTO_HOME {~}/.proto
@@ -267,7 +243,7 @@ set paths [$E:PROTO_HOME/shims $E:PROTO_HOME/bin $@paths]"#
     #[test]
     fn formats_fish_env_vars() {
         assert_eq!(
-            format_env_vars(&Shell::Fish, "Fish", get_env_vars()).unwrap(),
+            format_exports(&Shell::Fish, "Fish", get_env_vars()).unwrap(),
             r#"
 # Fish
 set -gx PROTO_HOME "$HOME/.proto"
@@ -278,11 +254,12 @@ set -gx PATH "$PROTO_HOME/shims:$PROTO_HOME/bin" $PATH"#
     #[test]
     fn formats_pwsh_env_vars() {
         assert_eq!(
-            format_env_vars(&Shell::PowerShell, "PowerShell", get_env_vars()).unwrap(),
+            format_exports(&Shell::PowerShell, "PowerShell", get_env_vars()).unwrap(),
             r#"
 # PowerShell
 $env:PROTO_HOME = "$env:HOME/.proto"
-$env:PATH = "$env:PROTO_HOME/shims;$env:PROTO_HOME/bin;" + $env:PATH"#
+$env:PATH = "$env:PROTO_HOME/shims" + [IO.Path]::PathSeparator + $env:PATH
+$env:PATH = "$env:PROTO_HOME/bin" + [IO.Path]::PathSeparator + $env:PATH"#
         );
     }
 }
