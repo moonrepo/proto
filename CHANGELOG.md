@@ -15,6 +15,8 @@
 #### 🐞 Fixes
 
 - Fixed the `bun_plugin` being set to an incorrect version.
+- Temporarily fixed "Access is denied" errors on Windows when creating shims.
+- More improvements for the Elvish shell.
 
 ## 0.26.1
 
