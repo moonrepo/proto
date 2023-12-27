@@ -1,5 +1,6 @@
 use clap_complete::Shell;
 use dirs::home_dir;
+use proto_core::ENV_VAR;
 use starbase_styles::color;
 use starbase_utils::fs;
 use std::{
@@ -55,6 +56,28 @@ pub fn find_profiles(shell: &Shell) -> miette::Result<Vec<PathBuf>> {
         Shell::Fish => {
             profiles.push(home_dir.join(".config/fish/config.fish"));
         }
+        Shell::PowerShell => {
+            if let Ok(ps_home) = env::var("PSHOME") {
+                let ps_home = PathBuf::from(ps_home);
+
+                profiles.extend([
+                    ps_home.join("Microsoft.PowerShell_profile.ps1"),
+                    ps_home.join("Profile.ps1"),
+                ]);
+            }
+
+            if cfg!(windows) {
+                profiles.extend([
+                    home_dir.join("Documents\\PowerShell\\Microsoft.PowerShell_profile.ps1"),
+                    home_dir.join("Documents\\PowerShell\\Profile.ps1"),
+                ]);
+            } else {
+                profiles.extend([
+                    home_dir.join(".config/powershell/Microsoft.PowerShell_profile.ps1"),
+                    home_dir.join(".config/powershell/profile.ps1"),
+                ]);
+            }
+        }
         Shell::Zsh => {
             let zdot_dir = if let Ok(dir) = env::var("ZDOTDIR") {
                 PathBuf::from(dir)
@@ -91,11 +114,39 @@ pub fn format_env_var(shell: &Shell, key: &str, value: &str) -> Option<String> {
                 value.replace("$HOME", "{~}").replace("$", "$E:")
             )
         }),
+        // Shell::Elvish => {
+        //     let value = if key == "PATH" {
+        //         value.replace(':', " ")
+        //     } else {
+        //         value.to_owned()
+        //     };
+        //     let new_value = ENV_VAR.replace_all(&value, "$$E:$name");
+
+        //     Some(if key == "PATH" {
+        //         format!("set-env PATH (str:join ':' [{new_value} $E:PATH])")
+        //     } else if key == "PROTO_HOME" {
+        //         format!("set-env {key} {}", value.replace("$HOME", "{~}"))
+        //     } else {
+        //         format!("set-env {key} {new_value}")
+        //     })
+        // }
         Shell::Fish => Some(if key == "PATH" {
             format!(r#"set -gx PATH "{value}" $PATH"#)
         } else {
             format!(r#"set -gx {key} "{value}""#)
         }),
+        Shell::PowerShell => {
+            let value = ENV_VAR.replace_all(&value, "$$env:$name");
+
+            Some(if key == "PATH" {
+                format!(
+                    r#"$env:PATH = "{value}{}" + $env:PATH"#,
+                    if cfg!(windows) { ";" } else { ":" }
+                )
+            } else {
+                format!(r#"$env:{key} = "{value}""#)
+            })
+        }
         _ => None,
     }
 }
@@ -219,6 +270,30 @@ set paths [$E:PROTO_HOME/shims $E:PROTO_HOME/bin $@paths]"#
 # Fish
 set -gx PROTO_HOME "$HOME/.proto"
 set -gx PATH "$PROTO_HOME/shims:$PROTO_HOME/bin" $PATH"#
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn formats_pwsh_env_vars() {
+        assert_eq!(
+            format_env_vars(&Shell::PowerShell, "PowerShell", get_env_vars()).unwrap(),
+            r#"
+# PowerShell
+$env:PROTO_HOME = "$env:HOME/.proto"
+$env:PATH = "$env:PROTO_HOME/shims:$env:PROTO_HOME/bin:" + $env:PATH"#
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn formats_pwsh_env_vars() {
+        assert_eq!(
+            format_env_vars(&Shell::PowerShell, "PowerShell", get_env_vars()).unwrap(),
+            r#"
+# PowerShell
+$env:PROTO_HOME = "$env:HOME/.proto"
+$env:PATH = "$env:PROTO_HOME/shims;$env:PROTO_HOME/bin;" + $env:PATH"#
         );
     }
 }
