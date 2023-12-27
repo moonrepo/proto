@@ -142,7 +142,7 @@ pub fn format_export(shell: &Shell, var: Export) -> Option<String> {
                     }
 
                     value.push_str("  $env:PATH\n");
-                    value.push_str(") -Join [IO.PATH]::PathSeparator");
+                    value.push_str(") -join [IO.PATH]::PathSeparator");
                     value
                 }
                 Export::Var(key, value) => {
@@ -286,7 +286,7 @@ $env:PATH = @(
   (Join-Path $env:PROTO_HOME "shims"),
   (Join-Path $env:PROTO_HOME "bin"),
   $env:PATH
-) -Join [IO.PATH]::PathSeparator"#
+) -join [IO.PATH]::PathSeparator"#
         );
     }
 }
