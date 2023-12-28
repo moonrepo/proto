@@ -1,6 +1,6 @@
 [package]
 name = "proto_core"
-version = "0.26.8"
+version = "0.26.9"
 edition = "2021"
 license = "MIT"
 description = "Core proto APIs."
@@ -9,7 +9,7 @@ repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
 proto_pdk_api = { version = "0.12.2", path = "../pdk-api" }
-proto_shim = { version = "0.2.2", path = "../shim" }
+proto_shim = { version = "0.2.3", path = "../shim" }
 system_env = { version = "0.1.9", path = "../system-env", features = [
 	"schematic",
 ] }
