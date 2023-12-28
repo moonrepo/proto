@@ -1,7 +1,6 @@
 mod macros;
 mod wrapper;
 
-pub use macros::*;
 pub use proto_core as core;
 pub use proto_core::{
     Id, ProtoEnvironment, Tool, ToolManifest, UnresolvedVersionSpec, Version, VersionReq,
