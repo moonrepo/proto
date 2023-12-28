@@ -10,6 +10,13 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added more lookup directories when locating the `proto-shim` file.
+- Updated the CLI to set the `PROTO_VERSION` environment variable.
+
 ## 0.26.3
 
 #### 🐞 Fixes

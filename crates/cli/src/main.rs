@@ -19,12 +19,15 @@ async fn main() -> MainResult {
     App::setup_diagnostics();
 
     let cli = CLI::parse();
+    let version = env!("CARGO_PKG_VERSION");
 
     if let Some(level) = cli.log {
         env::set_var("STARBASE_LOG", level.to_string());
     } else if let Ok(level) = env::var("PROTO_LOG") {
         env::set_var("STARBASE_LOG", level);
     }
+
+    env::set_var("PROTO_VERSION", version);
 
     App::setup_tracing_with_options(TracingOptions {
         default_level: if matches!(cli.command, Commands::Bin { .. } | Commands::Run { .. }) {
@@ -51,7 +54,7 @@ async fn main() -> MainResult {
         shim_bin = env::var("PROTO_SHIM_PATH").ok(),
         pid = std::process::id(),
         "Running proto v{}",
-        env!("CARGO_PKG_VERSION")
+        version
     );
 
     let mut app = App::new();
