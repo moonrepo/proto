@@ -49,8 +49,15 @@ pub async fn regen(args: ArgsRef<RegenArgs>, proto: ResourceRef<ProtoResource>) 
     debug!("Loading tools");
 
     let tools = proto.load_tools().await?;
+    let config = proto.env.load_config()?;
 
     for mut tool in tools {
+        if let Some(version) = config.versions.get(&tool.id) {
+            tool.resolve_version(version, true).await?;
+        } else {
+            continue;
+        }
+
         debug!("Regenerating {}", tool.get_name());
 
         tool.create_executables(true, args.bin).await?;

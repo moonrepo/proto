@@ -14,6 +14,7 @@
 
 #### 🚀 Updates
 
+- Added a `proto regen` command, that can be used to regenerate reshims, and optionally relink bins.
 - Updated `proto setup` and the installation script to support PowerShell profiles. Will no longer use `setx` commands on Windows.
 
 #### ⚙️ Internal
