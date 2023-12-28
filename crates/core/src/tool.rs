@@ -1376,7 +1376,7 @@ impl Tool {
         }
 
         let is_outdated = self.manifest.shim_version != SHIM_VERSION;
-        let force_create = force || is_outdated || env::var("CI").is_ok();
+        let force_create = force || is_outdated;
         let find_only = !force_create;
 
         if force_create {
