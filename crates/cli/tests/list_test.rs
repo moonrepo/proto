@@ -1,6 +1,7 @@
 mod utils;
 
 use proto_core::{ToolManifest, VersionSpec};
+use starbase_sandbox::output_to_string;
 use utils::*;
 
 mod list {

@@ -3,7 +3,7 @@
 use proto_core::{ProtoConfig, ProtoConfigManager};
 use proto_shim::get_exe_file_name;
 use starbase_sandbox::{assert_cmd, create_command_with_name};
-pub use starbase_sandbox::{create_empty_sandbox, output_to_string, Sandbox};
+pub use starbase_sandbox::{create_empty_sandbox, Sandbox};
 use std::path::Path;
 
 pub fn load_config<T: AsRef<Path>>(dir: T) -> ProtoConfig {
