@@ -130,6 +130,14 @@ mod plugins {
 
             assert.success();
 
+            // Try and get output with spawn
+            println!("------ SPAWN START ------");
+            create_shim_command_std(sandbox.path(), "bun")
+                .arg("--version")
+                .spawn()
+                .unwrap();
+            println!("------ SPAWN END ------");
+
             let assert = create_shim_command(sandbox.path(), "bun")
                 .arg("--version")
                 .assert();
