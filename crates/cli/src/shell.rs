@@ -120,9 +120,9 @@ pub fn format_export(shell: &Shell, var: Export) -> Option<String> {
 
             fn join_path(value: String) -> String {
                 let parts = value
-                    .split("/")
+                    .split('/')
                     .map(|part| {
-                        if part.starts_with("$") {
+                        if part.starts_with('$') {
                             part.to_owned()
                         } else {
                             format!("\"{}\"", part)

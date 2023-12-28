@@ -141,7 +141,7 @@ pub fn move_or_unpack_download(temp_file: &Path, dest_file: &Path) -> miette::Re
 /// Sort virtual paths from longest to shortest host path,
 /// so that prefix replacing is deterministic and accurate.
 fn sort_virtual_paths(map: &BTreeMap<PathBuf, PathBuf>) -> Vec<(&PathBuf, &PathBuf)> {
-    let mut list = map.iter().map(|(k, v)| (k, v)).collect::<Vec<_>>();
+    let mut list = map.iter().collect::<Vec<_>>();
     list.sort_by(|a, d| d.0.cmp(a.0));
     list
 }
