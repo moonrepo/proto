@@ -10,6 +10,16 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Updated `proto setup` and the installation script to support PowerShell profiles. Will no longer use `setx` commands on Windows.
+
+#### ⚙️ Internal
+
+- Updated Rust to v1.74.
+
 ## 0.26.3
 
 #### 🐞 Fixes
@@ -17,10 +27,6 @@
 - Avoid force creating shims in CI when not necessary.
 
 ## 0.26.2
-
-#### 🚀 Updates
-
-- Updated `proto setup` and the installation script to support PowerShell profiles. Will no longer use `setx` commands on Windows.
 
 #### 🐞 Fixes
 
