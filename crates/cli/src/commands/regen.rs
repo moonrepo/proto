@@ -74,11 +74,12 @@ pub async fn regen(args: ArgsRef<RegenArgs>, proto: ResourceRef<ProtoResource>) 
         // so we must reference that config instead of the merged one!
         if args.bin && global_config.is_some() {
             if let Some(version) = global_config
-                .map(|cfg| cfg.versions.as_ref().map(|v| v.get(&tool.id)).flatten())
-                .flatten()
+                .and_then(|cfg| cfg.versions.as_ref())
+                .and_then(|vrs| vrs.get(&tool.id))
             {
                 debug!("Relinking {} bin", tool.get_name());
 
+                tool.version = None;
                 tool.resolve_version(version, true).await?;
                 tool.symlink_bins(true).await?;
             }
