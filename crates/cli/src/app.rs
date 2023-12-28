@@ -2,8 +2,8 @@ use crate::commands::{
     debug::DebugConfigArgs,
     tool::{AddToolArgs, ListToolPluginsArgs, ListToolsArgs, RemoveToolArgs, ToolInfoArgs},
     AliasArgs, BinArgs, CleanArgs, CompletionsArgs, InstallArgs, InstallGlobalArgs, ListArgs,
-    ListGlobalArgs, ListRemoteArgs, MigrateArgs, OutdatedArgs, PinArgs, RunArgs, SetupArgs,
-    UnaliasArgs, UninstallArgs, UninstallGlobalArgs,
+    ListGlobalArgs, ListRemoteArgs, MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs,
+    SetupArgs, UnaliasArgs, UninstallArgs, UninstallGlobalArgs,
 };
 use clap::builder::styling::{Color, Style, Styles};
 use clap::{Parser, Subcommand, ValueEnum};
@@ -174,6 +174,9 @@ pub enum Commands {
         long_about = "Pin a default version of a tool globally to ~/.proto/tools, or locally to .prototools (in the current working directory)."
     )]
     Pin(PinArgs),
+
+    #[command(name = "regen", about = "Regenerate shims and optionally relink bins.")]
+    Regen(RegenArgs),
 
     #[command(
         alias = "r",

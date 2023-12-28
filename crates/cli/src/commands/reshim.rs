@@ -6,13 +6,13 @@ use starbase_utils::fs;
 use tracing::{debug, info};
 
 #[derive(Args, Clone, Debug)]
-pub struct ReshimArgs {
+pub struct RegenArgs {
     #[arg(long, help = "Also recreate binary symlinks")]
     bin: bool,
 }
 
 #[system]
-pub async fn reshim(args: ArgsRef<ReshimArgs>, proto: ResourceRef<ProtoResource>) {
+pub async fn regen(args: ArgsRef<RegenArgs>, proto: ResourceRef<ProtoResource>) {
     if args.bin {
         info!("Regenerating bins and shims...");
     } else {
@@ -20,10 +20,14 @@ pub async fn reshim(args: ArgsRef<ReshimArgs>, proto: ResourceRef<ProtoResource>
     }
 
     // Delete all shims
+    debug!("Removing old shims");
+
     fs::remove_dir_all(&proto.env.shims_dir)?;
 
     // Delete all bins (except for proto)
     if args.bin {
+        debug!("Removing old bins");
+
         for file in fs::read_dir_all(&proto.env.bin_dir)? {
             let path = file.path();
             let name = fs::file_name(&path);
@@ -42,7 +46,11 @@ pub async fn reshim(args: ArgsRef<ReshimArgs>, proto: ResourceRef<ProtoResource>
     }
 
     // Regenerate everything!
-    for mut tool in proto.load_tools().await? {
+    debug!("Loading tools");
+
+    let tools = proto.load_tools().await?;
+
+    for mut tool in tools {
         debug!("Regenerating {}", tool.get_name());
 
         tool.create_executables(true, args.bin).await?;
