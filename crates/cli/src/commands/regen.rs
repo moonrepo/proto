@@ -49,18 +49,40 @@ pub async fn regen(args: ArgsRef<RegenArgs>, proto: ResourceRef<ProtoResource>) 
     debug!("Loading tools");
 
     let tools = proto.load_tools().await?;
+    let manager = proto.env.load_config_manager()?;
+
     let config = proto.env.load_config()?;
+    let global_config = manager.files.iter().find_map(|file| {
+        if file.global {
+            Some(&file.config)
+        } else {
+            None
+        }
+    });
 
     for mut tool in tools {
+        // Shims
         if let Some(version) = config.versions.get(&tool.id) {
+            debug!("Regenerating {} shim", tool.get_name());
+
             tool.resolve_version(version, true).await?;
-        } else {
-            continue;
+            tool.generate_shims(true).await?;
         }
 
-        debug!("Regenerating {}", tool.get_name());
+        // Bins
+        // Symlinks are only based on the globally pinned versions,
+        // so we must reference that config instead of the merged one!
+        if args.bin && global_config.is_some() {
+            if let Some(version) = global_config
+                .map(|cfg| cfg.versions.as_ref().map(|v| v.get(&tool.id)).flatten())
+                .flatten()
+            {
+                debug!("Relinking {} bin", tool.get_name());
 
-        tool.create_executables(true, args.bin).await?;
+                tool.resolve_version(version, true).await?;
+                tool.symlink_bins(true).await?;
+            }
+        }
     }
 
     info!("Regeneration complete!");
