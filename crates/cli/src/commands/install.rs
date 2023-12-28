@@ -1,10 +1,9 @@
 use super::clean::clean_plugins;
 use super::pin::{internal_pin, PinArgs};
 use crate::helpers::{create_progress_bar, disable_progress_bars, ProtoResource};
-use crate::shell;
+use crate::shell::{self, Export};
 use crate::telemetry::{track_usage, Metric};
 use clap::Args;
-use miette::IntoDiagnostic;
 use proto_core::{Id, PinType, Tool, UnresolvedVersionSpec};
 use proto_pdk_api::{InstallHook, SyncShellProfileInput, SyncShellProfileOutput};
 use starbase::system;
@@ -215,25 +214,27 @@ fn update_shell(tool: &Tool, passthrough_args: Vec<String>) -> miette::Result<()
     }
 
     let shell_type = shell::detect_shell(None);
-    let mut env_vars = vec![];
+
+    debug!(
+        shell = ?shell_type,
+        env_vars = ?output.export_vars,
+        paths = ?output.extend_path,
+        "Updating shell profile",
+    );
+
+    let mut exports = vec![];
 
     if let Some(export_vars) = output.export_vars {
-        env_vars.extend(export_vars);
+        for (key, value) in export_vars {
+            exports.push(Export::Var(key, value));
+        }
     }
 
     if let Some(extend_path) = output.extend_path {
-        env_vars.push((
-            "PATH".to_string(),
-            env::join_paths(extend_path)
-                .into_diagnostic()?
-                .to_string_lossy()
-                .to_string(),
-        ));
+        exports.push(Export::Path(extend_path));
     }
 
-    debug!(shell = ?shell_type, env_vars = ?env_vars, "Updating shell profile");
-
-    if let Some(content) = shell::format_env_vars(&shell_type, tool.id.as_str(), env_vars) {
+    if let Some(content) = shell::format_exports(&shell_type, tool.id.as_str(), exports) {
         if let Some(updated_profile) =
             shell::write_profile_if_not_setup(&shell_type, content, &output.check_var)?
         {
