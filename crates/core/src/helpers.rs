@@ -18,7 +18,7 @@ use std::{env, path::PathBuf};
 use std::{io, thread};
 use tracing::trace;
 
-pub static ENV_VAR: Lazy<Regex> = Lazy::new(|| Regex::new(r"\$([A-Z0-9_]+)").unwrap());
+pub static ENV_VAR: Lazy<Regex> = Lazy::new(|| Regex::new(r"\$(?<name>[A-Z0-9_]+)").unwrap());
 
 #[cached]
 pub fn get_proto_version() -> Version {

@@ -31,6 +31,10 @@
 
 ## 0.26.2
 
+#### 🚀 Updates
+
+- Updated `proto setup` and the installation script to support PowerShell profiles. Will no longer use `setx` commands on Windows.
+
 #### 🐞 Fixes
 
 - Fixed the `bun_plugin` being set to an incorrect version.
