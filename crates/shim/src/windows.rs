@@ -59,7 +59,7 @@ pub fn create_shim(source_code: &[u8], shim_path: &Path, find_only: bool) -> io:
 
     // Attempt to remove the old exe (but don't fail)
     if renamed_shim_path.exists() {
-        let _ = fs::remove_file(renamed_shim_path);
+        let _ = fs::remove_file(&renamed_shim_path);
     }
 
     // Rename the current exe
