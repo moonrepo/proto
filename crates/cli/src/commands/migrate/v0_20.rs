@@ -1,7 +1,7 @@
 #![allow(deprecated)]
 
 use crate::helpers::ProtoResource;
-use crate::shell;
+use crate::shell::{self, format_export, Export};
 use proto_core::get_bin_dir;
 use starbase::SystemResult;
 use starbase_utils::fs;
@@ -69,25 +69,38 @@ pub async fn migrate(proto: &ProtoResource) -> SystemResult {
     Ok(())
 }
 
-#[cfg(not(windows))]
 fn update_shell() -> SystemResult {
-    use crate::shell::format_env_var;
-
     info!("Updating shell profile...");
 
     let shell = shell::detect_shell(None);
     let substitutions = vec![
         (
-            format_env_var(&shell, "PROTO_ROOT", "$HOME/.proto").unwrap(),
-            format_env_var(&shell, "PROTO_HOME", "$HOME/.proto").unwrap(),
+            format_export(
+                &shell,
+                Export::Var("PROTO_ROOT".into(), "$HOME/.proto".into()),
+            )
+            .unwrap(),
+            format_export(
+                &shell,
+                Export::Var("PROTO_HOME".into(), "$HOME/.proto".into()),
+            )
+            .unwrap(),
         ),
         (
-            format_env_var(&shell, "PATH", "$PROTO_ROOT/bin").unwrap(),
-            format_env_var(&shell, "PATH", "$PROTO_HOME/shims:$PROTO_HOME/bin").unwrap(),
+            format_export(&shell, Export::Path(vec!["$PROTO_ROOT/bin".into()])).unwrap(),
+            format_export(
+                &shell,
+                Export::Path(vec!["$PROTO_HOME/shims".into(), "$PROTO_HOME/bin".into()]),
+            )
+            .unwrap(),
         ),
         (
-            format_env_var(&shell, "PATH", "$PROTO_HOME/bin").unwrap(),
-            format_env_var(&shell, "PATH", "$PROTO_HOME/shims:$PROTO_HOME/bin").unwrap(),
+            format_export(&shell, Export::Path(vec!["$PROTO_HOME/bin".into()])).unwrap(),
+            format_export(
+                &shell,
+                Export::Path(vec!["$PROTO_HOME/shims".into(), "$PROTO_HOME/bin".into()]),
+            )
+            .unwrap(),
         ),
     ];
 
@@ -117,25 +130,6 @@ fn update_shell() -> SystemResult {
             fs::write_file(profile_path, profile)?;
         }
     }
-
-    Ok(())
-}
-
-#[cfg(windows)]
-fn update_shell() -> SystemResult {
-    use crate::commands::setup::do_setup;
-    use proto_core::get_shims_dir;
-    use tracing::warn;
-
-    info!("Updating environment variables...");
-
-    do_setup(
-        shell::detect_shell(None),
-        vec![get_shims_dir()?, get_bin_dir()?],
-        false,
-    )?;
-
-    warn!("Audit your system variables to ensure they're correct!");
 
     Ok(())
 }
