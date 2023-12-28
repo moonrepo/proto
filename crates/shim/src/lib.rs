@@ -57,13 +57,23 @@ pub fn locate_proto_exe(bin: &str) -> Option<PathBuf> {
     }
 
     if let Ok(dir) = env::var("PROTO_HOME") {
-        lookup_dirs.push(PathBuf::from(dir).join("bin"));
+        let dir = PathBuf::from(dir);
+
+        if let Ok(version) = env::var("PROTO_VERSION") {
+            lookup_dirs.push(dir.join("tools").join("proto").join(version));
+        }
+
+        lookup_dirs.push(dir.join("bin"));
     }
 
     // Special case for unit tests and other isolations where
     // PROTO_HOME is set to something random, but the proto
     // binaries still exist in their original location.
     if let Some(dir) = dirs::home_dir() {
+        if let Ok(version) = env::var("PROTO_VERSION") {
+            lookup_dirs.push(dir.join(".proto").join("tools").join("proto").join(version));
+        }
+
         lookup_dirs.push(dir.join(".proto").join("bin"));
     }
 
