@@ -185,4 +185,29 @@ mod shim_bin {
 
         assert_eq!(child.wait().unwrap().signal().unwrap(), 1);
     }
+
+    #[test]
+    #[cfg(windows)]
+    fn works_with_a_different_casing() {
+        let sandbox = create_empty_sandbox();
+
+        let mut cmd = create_proto_command(sandbox.path());
+        cmd.arg("install")
+            .arg("node")
+            .arg("--pin")
+            .arg("--")
+            .arg("--no-bundled-npm")
+            .assert()
+            .success();
+
+        let mut shim =
+            std::process::Command::new(sandbox.path().join(".proto/shims").join("nOde.EXE"));
+        shim.env("PROTO_LOG", "trace");
+        shim.env("PROTO_HOME", sandbox.path().join(".proto"));
+        shim.env("PROTO_NODE_VERSION", "latest");
+        shim.arg(get_fixture("tests/fixtures/shim-code-0.mjs"));
+
+        let mut cmd = starbase_sandbox::assert_cmd::Command::from_std(shim);
+        cmd.assert().success();
+    }
 }

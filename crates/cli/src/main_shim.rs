@@ -114,6 +114,7 @@ pub fn main() -> Result<()> {
         .file_name()
         .map(|file| file.to_string_lossy())
         .unwrap_or_default()
+        .to_lowercase()
         .replace(".exe", "");
 
     if shim_name.is_empty() || shim_name.contains("proto-shim") {

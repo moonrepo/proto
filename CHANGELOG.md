@@ -10,6 +10,12 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed an issue where shims wouldn't work when executing with a different file string case.
+
 ## 0.26.4
 
 #### 🚀 Updates
