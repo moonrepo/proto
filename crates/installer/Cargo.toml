@@ -8,7 +8,7 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
-futures = "0.3.29"
+futures = "0.3.30"
 miette = { workspace = true }
 reqwest = { workspace = true, features = ["stream"] }
 starbase_archive = { workspace = true }
