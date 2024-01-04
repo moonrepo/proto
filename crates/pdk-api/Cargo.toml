@@ -8,9 +8,9 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
-system_env = { version = "0.1.9", path = "../system-env" }
-version_spec = { version = "0.1.7", path = "../version-spec" }
-warpgate_api = { version = "0.1.6", path = "../warpgate-api" }
+system_env = { version = "0.2.0", path = "../system-env" }
+version_spec = { version = "0.2.0", path = "../version-spec" }
+warpgate_api = { version = "0.2.0", path = "../warpgate-api" }
 anyhow = { workspace = true }
 semver = { workspace = true, features = ["serde"] }
 serde = { workspace = true }
