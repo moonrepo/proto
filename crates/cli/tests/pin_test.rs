@@ -191,11 +191,7 @@ mod pin_global {
             .assert()
             .success();
 
-        let link =
-            sandbox
-                .path()
-                .join(".proto/bin")
-                .join(if cfg!(windows) { "node.exe" } else { "node" });
+        let link = get_bin_path(sandbox.path(), "node");
 
         assert!(!link.exists());
     }
