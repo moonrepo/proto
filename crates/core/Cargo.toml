@@ -8,15 +8,15 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
-proto_pdk_api = { version = "0.12.2", path = "../pdk-api" }
-proto_shim = { version = "0.2.5", path = "../shim" }
+proto_pdk_api = { version = "0.12.3", path = "../pdk-api" }
+proto_shim = { version = "0.2.6", path = "../shim" }
 system_env = { version = "0.1.9", path = "../system-env", features = [
 	"schematic",
 ] }
 version_spec = { version = "0.1.7", path = "../version-spec", features = [
 	"schematic",
 ] }
-warpgate = { version = "0.7.0", path = "../warpgate", features = ["schematic"] }
+warpgate = { version = "0.7.1", path = "../warpgate", features = ["schematic"] }
 cached = { workspace = true }
 extism = { workspace = true }
 human-sort = { workspace = true }
