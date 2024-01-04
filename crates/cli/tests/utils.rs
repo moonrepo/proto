@@ -78,7 +78,7 @@ pub fn link_bin(input_path: &Path, output_path: &Path) {
 
     #[cfg(windows)]
     {
-        fs::copy_file(input_path, output_path).unwrap();
+        fs::copy(input_path, output_path).unwrap();
     }
 
     #[cfg(not(windows))]
