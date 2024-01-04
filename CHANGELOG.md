@@ -18,6 +18,11 @@
 - Updated `proto setup` and the installation script to support PowerShell profiles.
   - Will no longer use `setx` commands on Windows.
 
+#### 🧩 Plugins
+
+- Updated `schema_plugin` (TOML) to v0.7.1.
+  - Now uses named regex captures for better version parsing.
+
 #### ⚙️ Internal
 
 - Updated Rust to v1.75.
