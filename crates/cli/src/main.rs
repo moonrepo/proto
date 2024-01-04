@@ -80,6 +80,7 @@ async fn main() -> MainResult {
         Commands::Migrate(args) => app.execute_with_args(commands::migrate, args),
         Commands::Outdated(args) => app.execute_with_args(commands::outdated, args),
         Commands::Pin(args) => app.execute_with_args(commands::pin, args),
+        Commands::Regen(args) => app.execute_with_args(commands::regen, args),
         Commands::Run(args) => app.execute_with_args(commands::run, args),
         Commands::Setup(args) => app.execute_with_args(commands::setup, args),
         Commands::Tool { command } => match command {
