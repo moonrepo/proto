@@ -4,6 +4,7 @@ use proto_core::{ProtoConfig, ProtoConfigManager};
 use proto_shim::get_exe_file_name;
 use starbase_sandbox::{assert_cmd, create_command_with_name};
 pub use starbase_sandbox::{create_empty_sandbox, Sandbox};
+use std::fs;
 use std::path::{Path, PathBuf};
 
 pub fn load_config<T: AsRef<Path>>(dir: T) -> ProtoConfig {
@@ -70,4 +71,18 @@ pub fn get_shim_path<T: AsRef<Path>>(path: T, name: &str) -> PathBuf {
     path.as_ref()
         .join(".proto/shims")
         .join(get_exe_file_name(name))
+}
+
+pub fn link_bin(input_path: &Path, output_path: &Path) {
+    fs::create_dir_all(output_path.parent().unwrap()).unwrap();
+
+    #[cfg(windows)]
+    {
+        fs::copy_file(input_path, output_path).unwrap();
+    }
+
+    #[cfg(not(windows))]
+    {
+        std::os::unix::fs::symlink(input_path, output_path).unwrap();
+    }
 }
