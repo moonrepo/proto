@@ -14,12 +14,12 @@
 
 #### 🚀 Updates
 
-- Added a `proto regen` command, that can be used to regenerate reshims, and optionally relink bins.
+- Added a `proto regen` command, that can be used to regenerate shims, and optionally relink bins.
 - Updated `proto setup` and the installation script to support PowerShell profiles. Will no longer use `setx` commands on Windows.
 
 #### ⚙️ Internal
 
-- Updated Rust to v1.74.
+- Updated Rust to v1.75.
 
 ## 0.26.5
 

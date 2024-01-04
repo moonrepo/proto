@@ -4,7 +4,7 @@ use proto_core::{ProtoConfig, ProtoConfigManager};
 use proto_shim::get_exe_file_name;
 use starbase_sandbox::{assert_cmd, create_command_with_name};
 pub use starbase_sandbox::{create_empty_sandbox, Sandbox};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 pub fn load_config<T: AsRef<Path>>(dir: T) -> ProtoConfig {
     let manager = ProtoConfigManager::load(dir, None).unwrap();
@@ -52,11 +52,22 @@ pub fn create_shim_command<T: AsRef<Path>>(path: T, name: &str) -> assert_cmd::C
 pub fn create_shim_command_std<T: AsRef<Path>>(path: T, name: &str) -> std::process::Command {
     let path = path.as_ref();
 
-    let mut cmd =
-        std::process::Command::new(path.join(".proto/shims").join(get_exe_file_name(name)));
+    let mut cmd = std::process::Command::new(get_shim_path(path, name));
     cmd.env("PROTO_LOG", "trace");
     cmd.env("PROTO_HOME", path.join(".proto"));
     cmd.env("PROTO_NODE_VERSION", "latest"); // For package managers
     cmd.env(format!("PROTO_{}_VERSION", name.to_uppercase()), "latest");
     cmd
+}
+
+pub fn get_bin_path<T: AsRef<Path>>(path: T, name: &str) -> PathBuf {
+    path.as_ref()
+        .join(".proto/bin")
+        .join(get_exe_file_name(name))
+}
+
+pub fn get_shim_path<T: AsRef<Path>>(path: T, name: &str) -> PathBuf {
+    path.as_ref()
+        .join(".proto/shims")
+        .join(get_exe_file_name(name))
 }
