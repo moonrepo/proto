@@ -1,6 +1,6 @@
 [package]
 name = "proto_pdk_test_utils"
-version = "0.14.6"
+version = "0.14.7"
 edition = "2021"
 license = "MIT"
 description = "Utilities for testing proto WASM plugins."
