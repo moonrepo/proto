@@ -60,8 +60,6 @@ pub async fn regen(args: ArgsRef<RegenArgs>, proto: ResourceRef<ProtoResource>) 
         }
     });
 
-    dbg!(&global_config);
-
     for mut tool in tools {
         // Shims
         if let Some(version) = config.versions.get(&tool.id) {
