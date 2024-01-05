@@ -149,7 +149,7 @@ macro_rules! generate_resolve_versions_tests {
         // }
 
         #[tokio::test]
-        #[should_panic(expected = "Failed to resolve unknown to a valid supported version.")]
+        #[should_panic(expected = "Failed to resolve unknown to a valid supported version")]
         async fn errors_invalid_alias() {
             let sandbox = starbase_sandbox::create_empty_sandbox();
             let mut plugin = if let Some(schema) = $schema {
@@ -165,7 +165,7 @@ macro_rules! generate_resolve_versions_tests {
         }
 
         #[tokio::test]
-        #[should_panic(expected = "Failed to resolve 99.99.99 to a valid supported version.")]
+        #[should_panic(expected = "Failed to resolve 99.99.99 to a valid supported version")]
         async fn errors_invalid_version() {
             let sandbox = starbase_sandbox::create_empty_sandbox();
             let mut plugin = if let Some(schema) = $schema {
