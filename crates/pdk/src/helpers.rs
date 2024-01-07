@@ -34,7 +34,7 @@ pub fn fetch_url_text<U>(url: U) -> anyhow::Result<String>
 where
     U: AsRef<str>,
 {
-    String::from_bytes(fetch(HttpRequest::new(url.as_ref()), None)?.body())
+    String::from_bytes(&fetch(HttpRequest::new(url.as_ref()), None)?.body())
 }
 
 /// Fetch the provided URL, deserialize the response as JSON,
@@ -237,12 +237,14 @@ pub fn get_target_triple(env: &HostEnvironment, name: &str) -> Result<String, Pl
 
 /// Get the tool ID for the current WASM plugin.
 pub fn get_tool_id() -> String {
-    config::get("proto_tool_id").expect("Missing tool ID!")
+    config::get("proto_tool_id")
+        .unwrap()
+        .expect("Missing tool ID!")
 }
 
 /// Get tool configuration for the current WASM plugin that was configured in a `.prototools` file.
 pub fn get_tool_config<T: Default + DeserializeOwned>() -> anyhow::Result<T> {
-    let config: T = if let Some(value) = config::get("proto_tool_config") {
+    let config: T = if let Some(value) = config::get("proto_tool_config")? {
         json::from_str(&value)?
     } else {
         T::default()
@@ -253,7 +255,7 @@ pub fn get_tool_config<T: Default + DeserializeOwned>() -> anyhow::Result<T> {
 
 /// Return information about proto and the host environment.
 pub fn get_proto_environment() -> anyhow::Result<HostEnvironment> {
-    let config = config::get("proto_environment").expect("Missing proto environment!");
+    let config = config::get("proto_environment")?.expect("Missing proto environment!");
     let config: HostEnvironment = json::from_str(&config)?;
 
     Ok(config)
@@ -263,7 +265,7 @@ pub fn get_proto_environment() -> anyhow::Result<HostEnvironment> {
 #[allow(deprecated)]
 #[deprecated]
 pub fn get_proto_user_config() -> anyhow::Result<json::Value> {
-    if let Some(config) = config::get("proto_user_config") {
+    if let Some(config) = config::get("proto_user_config")? {
         return Ok(json::from_str(&config)?);
     }
 
