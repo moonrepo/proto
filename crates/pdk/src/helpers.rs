@@ -236,10 +236,8 @@ pub fn get_target_triple(env: &HostEnvironment, name: &str) -> Result<String, Pl
 }
 
 /// Get the tool ID for the current WASM plugin.
-pub fn get_tool_id() -> String {
-    config::get("proto_tool_id")
-        .unwrap()
-        .expect("Missing tool ID!")
+pub fn get_tool_id() -> anyhow::Result<String> {
+    Ok(config::get("proto_tool_id")?.expect("Missing tool ID!"))
 }
 
 /// Get tool configuration for the current WASM plugin that was configured in a `.prototools` file.

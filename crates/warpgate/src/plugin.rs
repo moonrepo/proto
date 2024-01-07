@@ -17,25 +17,25 @@ use warpgate_api::VirtualPath;
 /// A container around Extism's [`Plugin`] and [`Manifest`] types that provides convenience
 /// methods for calling and caching functions from the WASM plugin. It also provides
 /// additional methods for easily working with WASI and virtual paths.
-pub struct PluginContainer<'plugin> {
+pub struct PluginContainer {
     pub id: Id,
     pub manifest: Manifest,
 
     func_cache: OnceMap<String, Vec<u8>>,
-    plugin: Arc<RwLock<Plugin<'plugin>>>,
+    plugin: Arc<RwLock<Plugin>>,
 }
 
-unsafe impl<'plugin> Send for PluginContainer<'plugin> {}
-unsafe impl<'plugin> Sync for PluginContainer<'plugin> {}
+unsafe impl Send for PluginContainer {}
+unsafe impl Sync for PluginContainer {}
 
-impl<'plugin> PluginContainer<'plugin> {
+impl PluginContainer {
     /// Create a new container with the provided manifest and host functions.
-    pub fn new<'new>(
+    pub fn new(
         id: Id,
         manifest: Manifest,
         functions: impl IntoIterator<Item = Function>,
-    ) -> miette::Result<PluginContainer<'new>> {
-        let plugin = Plugin::create_with_manifest(&manifest, functions, true)
+    ) -> miette::Result<PluginContainer> {
+        let plugin = Plugin::new(&manifest, functions, true)
             .map_err(|error| WarpgateError::PluginCreateFailed { error })?;
 
         Ok(PluginContainer {
@@ -47,27 +47,25 @@ impl<'plugin> PluginContainer<'plugin> {
     }
 
     /// Create a new container with the provided manifest.
-    pub fn new_without_functions<'new>(
-        id: Id,
-        manifest: Manifest,
-    ) -> miette::Result<PluginContainer<'new>> {
+    pub fn new_without_functions(id: Id, manifest: Manifest) -> miette::Result<PluginContainer> {
         Self::new(id, manifest, [])
     }
 
     /// Reload the plugin's configuration from the manifest.
     pub fn reload_config(&mut self) -> miette::Result<()> {
-        let config = self
-            .manifest
-            .config
-            .iter()
-            .map(|(k, v)| (k.to_owned(), Some(v.to_owned())))
-            .collect::<BTreeMap<_, _>>();
+        // let config = self
+        //     .manifest
+        //     .config
+        //     .iter()
+        //     .map(|(k, v)| (k.to_owned(), Some(v.to_owned())))
+        //     .collect::<BTreeMap<_, _>>();
 
-        self.plugin
-            .write()
-            .expect("Failed to acquire write access!")
-            .set_config(&config)
-            .unwrap();
+        // TODO
+        // self.plugin
+        //     .write()
+        //     .expect("Failed to acquire write access!")
+        //     .set_config(&config)
+        //     .unwrap();
 
         Ok(())
     }
@@ -136,14 +134,14 @@ impl<'plugin> PluginContainer<'plugin> {
     /// Return true if the plugin has a function with the given id.
     pub fn has_func(&self, func: &str) -> bool {
         self.plugin
-            .read()
+            .write() // TODO
             .unwrap_or_else(|_| {
                 panic!(
                     "Unable to acquire read access to `{}` WASM plugin.",
                     self.id
                 )
             })
-            .has_function(func)
+            .function_exists(func)
     }
 
     /// Convert the provided virtual guest path to an absolute host path.

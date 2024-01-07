@@ -11,6 +11,8 @@ pub use wrapper::WasmTestWrapper;
 
 use proto_core::inject_default_manifest_config;
 use std::collections::HashMap;
+use std::fs::OpenOptions;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::{env, fs};
 
@@ -71,7 +73,21 @@ pub fn find_wasm_file(sandbox: &Path) -> PathBuf {
         if !LOGGING {
             LOGGING = true;
 
-            extism::set_log_file(wasm_target_dir.join(format!("{wasm_file_name}.log")), None);
+            let log_file = wasm_target_dir.join(format!("{wasm_file_name}.log"));
+
+            extism::set_log_callback(
+                move |line| {
+                    let mut file = OpenOptions::new()
+                        .create(true)
+                        .append(true)
+                        .open(&log_file)
+                        .unwrap();
+
+                    file.write_all(line.as_bytes()).unwrap();
+                },
+                "trace",
+            )
+            .unwrap();
         }
     };
 
