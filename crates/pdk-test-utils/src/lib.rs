@@ -152,25 +152,25 @@ pub fn create_plugin_with_config(
     }
 }
 
-pub fn map_config_tool_config<T: Serialize>(value: T) -> (String, String) {
-    (
-        "proto_tool_config".into(),
-        serde_json::to_string(&value).unwrap(),
+pub fn create_config_entry<T: Serialize>(key: &str, value: T) -> (String, String) {
+    (key.into(), serde_json::to_string(&value).unwrap())
+}
+
+pub fn map_config_environment(os: HostOS, arch: HostArch) -> (String, String) {
+    create_config_entry(
+        "proto_environment",
+        HostEnvironment {
+            arch,
+            os,
+            ..HostEnvironment::default()
+        },
     )
+}
+
+pub fn map_config_tool_config<T: Serialize>(value: T) -> (String, String) {
+    create_config_entry("proto_tool_config", value)
 }
 
 pub fn map_config_tool_id(id: &str) -> (String, String) {
     ("proto_tool_id".into(), id.to_owned())
-}
-
-pub fn map_config_environment(os: HostOS, arch: HostArch) -> (String, String) {
-    (
-        "proto_environment".into(),
-        serde_json::to_string(&HostEnvironment {
-            arch,
-            os,
-            ..Default::default()
-        })
-        .unwrap(),
-    )
 }
