@@ -2305,6 +2305,7 @@ dependencies = [
  "proto_pdk_api",
  "serde",
  "serde_json",
+ "toml 0.8.8",
 ]
 
 [[package]]

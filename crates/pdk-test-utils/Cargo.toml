@@ -13,8 +13,8 @@ proto_pdk_api = { version = "0.13.0", path = "../pdk-api" }
 extism = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-# toml = { version = "0.8.8", optional = true }
+toml = { version = "0.8.8", optional = true }
 
-# [features]
-# default = []
-# schema = ["dep:toml"]
+[features]
+default = []
+schema = ["dep:toml"]
