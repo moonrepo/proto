@@ -1,5 +1,4 @@
 mod api;
-mod api_deprecated;
 mod error;
 mod hooks;
 mod host;
@@ -7,7 +6,6 @@ mod host_funcs;
 mod shapes;
 
 pub use api::*;
-pub use api_deprecated::*;
 pub use error::*;
 pub use hooks::*;
 pub use host::*;

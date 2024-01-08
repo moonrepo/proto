@@ -15,6 +15,7 @@
 #### 💥 Breaking
 
 - WASM API
+  - Removed support for old and deprecated APIs: `locate_bins`, `create_shims`.
   - Removed `get_proto_user_config` and `format_bin_name` functions.
   - Updated `get_tool_id` to return a `Result<String>` instead of `String`.
 - WASM test utils
