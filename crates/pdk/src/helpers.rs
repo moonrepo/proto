@@ -121,17 +121,6 @@ where
     Ok(tags)
 }
 
-/// Return the name of the binary for the provided name and OS.
-/// On Windows, will append ".exe", and keep as-is on other OS's.
-#[deprecated]
-pub fn format_bin_name<T: AsRef<str>>(name: T, os: HostOS) -> String {
-    if os == HostOS::Windows {
-        return format!("{}.exe", name.as_ref());
-    }
-
-    name.as_ref().to_owned()
-}
-
 /// Validate the current host OS and architecture against the
 /// supported list of target permutations.
 pub fn check_supported_os_and_arch(
@@ -257,15 +246,4 @@ pub fn get_proto_environment() -> anyhow::Result<HostEnvironment> {
     let config: HostEnvironment = json::from_str(&config)?;
 
     Ok(config)
-}
-
-/// Return the loaded proto user configuration (`~/.proto/.prototools`). Does not include plugins!
-#[allow(deprecated)]
-#[deprecated]
-pub fn get_proto_user_config() -> anyhow::Result<json::Value> {
-    if let Some(config) = config::get("proto_user_config")? {
-        return Ok(json::from_str(&config)?);
-    }
-
-    Ok(json::Value::default())
 }

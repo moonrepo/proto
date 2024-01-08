@@ -10,6 +10,7 @@ pub use proto_pdk_api::*;
 pub use wrapper::WasmTestWrapper;
 
 use proto_core::inject_default_manifest_config;
+use serde::Serialize;
 use std::collections::HashMap;
 use std::fs::OpenOptions;
 use std::io::Write;
@@ -108,29 +109,30 @@ pub fn find_wasm_file(sandbox: &Path) -> PathBuf {
 }
 
 pub fn create_plugin(id: &str, sandbox: &Path) -> WasmTestWrapper {
-    internal_create_plugin(id, sandbox, HashMap::new())
+    create_plugin_with_config(id, sandbox, HashMap::new())
 }
 
 #[allow(unused_variables)]
 pub fn create_schema_plugin(id: &str, sandbox: &Path, schema: PathBuf) -> WasmTestWrapper {
-    #[allow(unused_mut)]
-    let mut config = HashMap::new();
-
     #[cfg(feature = "schema")]
     {
         let schema = fs::read_to_string(schema).unwrap();
         let schema: serde_json::Value = toml::from_str(&schema).unwrap();
 
-        config.insert(
-            "schema".to_string(),
-            serde_json::to_string(&schema).unwrap(),
-        );
+        create_plugin_with_config(
+            id,
+            sandbox,
+            HashMap::from_iter([create_config_entry("schema", schema)]),
+        )
     }
 
-    internal_create_plugin(id, sandbox, config)
+    #[cfg(not(feature = "schema"))]
+    {
+        create_plugin(id, sandbox)
+    }
 }
 
-fn internal_create_plugin(
+pub fn create_plugin_with_config(
     id: &str,
     sandbox: &Path,
     config: HashMap<String, String>,
@@ -148,4 +150,27 @@ fn internal_create_plugin(
     WasmTestWrapper {
         tool: Tool::load_from_manifest(Id::new(id).unwrap(), proto, manifest).unwrap(),
     }
+}
+
+pub fn map_config_tool_config<T: Serialize>(value: T) -> (String, String) {
+    (
+        "proto_tool_config".into(),
+        serde_json::to_string(&value).unwrap(),
+    )
+}
+
+pub fn map_config_tool_id(id: &str) -> (String, String) {
+    ("proto_tool_id".into(), id.to_owned())
+}
+
+pub fn map_config_environment(os: HostOS, arch: HostArch) -> (String, String) {
+    (
+        "proto_environment".into(),
+        serde_json::to_string(&HostEnvironment {
+            arch,
+            os,
+            ..Default::default()
+        })
+        .unwrap(),
+    )
 }

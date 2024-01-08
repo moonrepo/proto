@@ -113,7 +113,7 @@ fn exec_command(
     plugin: &mut CurrentPlugin,
     inputs: &[Val],
     outputs: &mut [Val],
-    _user_data: UserData<HostData>,
+    user_data: UserData<HostData>,
 ) -> Result<(), Error> {
     let input: ExecCommandInput = serde_json::from_str(plugin.memory_get_val(&inputs[0])?)?;
 
@@ -130,12 +130,12 @@ fn exec_command(
         fs::update_perms(&input.command, None)?;
     }
 
-    // let data = user_data.any().unwrap();
-    // let data = data.downcast_ref::<HostData>().unwrap();
+    let data = user_data.get()?;
+    let data = data.lock().unwrap();
 
     let mut command = create_process_command(&input.command, &input.args);
     command.envs(&input.env_vars);
-    // command.current_dir(&data.proto.cwd);
+    command.current_dir(&data.proto.cwd);
 
     let output = if input.stream {
         let result = command.spawn()?.wait()?;

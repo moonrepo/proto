@@ -11,6 +11,7 @@ repository = "https://github.com/moonrepo/proto"
 proto_core = { version = "0.27.0", path = "../core" }
 proto_pdk_api = { version = "0.13.0", path = "../pdk-api" }
 extism = { workspace = true }
+serde = { workspace = true }
 serde_json = { workspace = true }
 toml = { version = "0.8.8", optional = true }
 
