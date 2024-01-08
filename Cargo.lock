@@ -2797,9 +2797,9 @@ dependencies = [
 
 [[package]]
 name = "schematic"
-version = "0.13.1"
+version = "0.12.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b582850abc0081976eb6fee41663ac9cb77aa3eccb9976e5452f574a8bdbaf61"
+checksum = "c5ed74b468686fb5551b8f29c8339dcf0b7ac4e0f475490f6f49f6a2aadcd392"
 dependencies = [
  "garde",
  "indexmap 2.1.0",
@@ -2816,9 +2816,9 @@ dependencies = [
 
 [[package]]
 name = "schematic_macros"
-version = "0.13.1"
+version = "0.12.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8637d86fe1ead9b54857b19803a2994ee0b133ebc905a8ab5aab667e396e1ae5"
+checksum = "10e8b482f96eaca0fdc4fe3441c2eda44f5aeeb1a93b653d214ee2ecf4975be4"
 dependencies = [
  "convert_case",
  "darling 0.20.3",
@@ -2829,9 +2829,9 @@ dependencies = [
 
 [[package]]
 name = "schematic_types"
-version = "0.5.1"
+version = "0.4.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c481a9e925d97e3deaea3ecea7be7c963a4cd2ee0cbc2bda07487dcafd7bb7a"
+checksum = "c38cdd0968bde35f7e093600c90e0306da6af5ffd1b3cb175dbfde1146debcf2"
 dependencies = [
  "serde_json",
  "toml 0.8.8",
