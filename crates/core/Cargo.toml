@@ -16,7 +16,7 @@ system_env = { version = "0.1.9", path = "../system-env", features = [
 version_spec = { version = "0.1.7", path = "../version-spec", features = [
 	"schematic",
 ] }
-warpgate = { version = "0.7.1", path = "../warpgate", features = ["schematic"] }
+warpgate = { version = "0.7.2", path = "../warpgate", features = ["schematic"] }
 cached = { workspace = true }
 extism = { workspace = true }
 human-sort = { workspace = true }
