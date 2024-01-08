@@ -37,6 +37,12 @@ let plugin = create_plugin_with_config(
 );
 ```
 
+#### 🚀 Updates
+
+- WASM API
+  - Added `from_virtual_path` and `to_virtual_path` host functions.
+  - Added `virtual_path!` and `real_path!` macros.
+
 #### ⚙️ Internal
 
 - Updated extism (plugin runtime) to v1 (from v0.5).

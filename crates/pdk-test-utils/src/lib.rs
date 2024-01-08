@@ -112,25 +112,25 @@ pub fn create_plugin(id: &str, sandbox: &Path) -> WasmTestWrapper {
     create_plugin_with_config(id, sandbox, HashMap::new())
 }
 
-#[allow(unused_variables)]
-pub fn create_schema_plugin(id: &str, sandbox: &Path, schema: PathBuf) -> WasmTestWrapper {
-    #[cfg(feature = "schema")]
-    {
-        let schema = fs::read_to_string(schema).unwrap();
-        let schema: serde_json::Value = toml::from_str(&schema).unwrap();
+// #[allow(unused_variables)]
+// pub fn create_schema_plugin(id: &str, sandbox: &Path, schema: PathBuf) -> WasmTestWrapper {
+//     #[cfg(feature = "schema")]
+//     {
+//         let schema = fs::read_to_string(schema).unwrap();
+//         let schema: serde_json::Value = toml::from_str(&schema).unwrap();
 
-        create_plugin_with_config(
-            id,
-            sandbox,
-            HashMap::from_iter([create_config_entry("schema", schema)]),
-        )
-    }
+//         create_plugin_with_config(
+//             id,
+//             sandbox,
+//             HashMap::from_iter([create_config_entry("schema", schema)]),
+//         )
+//     }
 
-    #[cfg(not(feature = "schema"))]
-    {
-        create_plugin(id, sandbox)
-    }
-}
+//     #[cfg(not(feature = "schema"))]
+//     {
+//         create_plugin(id, sandbox)
+//     }
+// }
 
 pub fn create_plugin_with_config(
     id: &str,
