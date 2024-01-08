@@ -996,12 +996,14 @@ dependencies = [
 
 [[package]]
 name = "extism"
-version = "0.0.0+replaced-by-ci"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0929c64560cac1e9c71562ec1611dce2b383354371547d201802ab4abc23387b"
 dependencies = [
  "anyhow",
  "cbindgen",
- "extism-convert 0.0.0+replaced-by-ci",
- "extism-manifest 0.0.0+replaced-by-ci",
+ "extism-convert",
+ "extism-manifest",
  "glob",
  "libc",
  "serde",
@@ -1019,7 +1021,9 @@ dependencies = [
 
 [[package]]
 name = "extism-convert"
-version = "0.0.0+replaced-by-ci"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d01a01edfb12afa6ce5f4d5205831b0630edb867918aa3d2fc829a9dfbfa75f1"
 dependencies = [
  "anyhow",
  "base64",
@@ -1031,46 +1035,26 @@ dependencies = [
 ]
 
 [[package]]
-name = "extism-convert"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "74ab6cd70509e6d74b7c3587f823a2061cfb65b111b4173bd882858eaa87e4a3"
-dependencies = [
- "anyhow",
- "base64",
- "prost",
- "rmp-serde",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "extism-manifest"
-version = "0.0.0+replaced-by-ci"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fb76af5cf0fd656e6dff25069056ef41ce0eb0541cc98c15b90b601a16fcfacc"
 dependencies = [
  "base64",
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "extism-manifest"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22b0e600ec289630715ffdc11aca36a26297c3ab7908f14d5bbf3770d102bce7"
-dependencies = [
- "base64",
- "serde",
 ]
 
 [[package]]
 name = "extism-pdk"
-version = "1.0.0-rc1"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "38ac12d16e778ccf351f39a45efb65c0bbdb45bc9928c557507e808efafa51cf"
 dependencies = [
  "anyhow",
  "base64",
- "extism-convert 0.2.0",
- "extism-manifest 0.5.0",
+ "extism-convert",
+ "extism-manifest",
  "extism-pdk-derive",
  "serde",
  "serde_json",
@@ -1078,7 +1062,9 @@ dependencies = [
 
 [[package]]
 name = "extism-pdk-derive"
-version = "1.0.0-rc1"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "61a79239414de9041626020530854cef77027a28d92bf542c7854e271101e9aa"
 dependencies = [
  "proc-macro2",
  "quote",

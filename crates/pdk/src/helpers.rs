@@ -181,9 +181,11 @@ pub fn is_musl(env: &HostEnvironment) -> bool {
 
     let mut value = "".to_owned();
 
-    if let Ok(res) = exec_command!(raw, "ldd", ["--version"]) {
-        if res.0.exit_code == 0 {
-            value = res.0.stdout.to_lowercase();
+    if command_exists(env, "ldd") {
+        if let Ok(res) = exec_command!(raw, "ldd", ["--version"]) {
+            if res.0.exit_code == 0 {
+                value = res.0.stdout.to_lowercase();
+            }
         }
     }
 

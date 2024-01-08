@@ -143,10 +143,10 @@ macro_rules! host_log {
 #[macro_export]
 macro_rules! real_path {
     ($path:literal) => {
-        std::path::PathBuf::from(unsafe { from_virtual_path($path)? })
+        std::path::PathBuf::from(unsafe { from_virtual_path($path.to_owned())? })
     };
     ($path:expr) => {
-        std::path::PathBuf::from(unsafe { from_virtual_path($path.to_str().unwrap())? })
+        std::path::PathBuf::from(unsafe { from_virtual_path($path.into())? })
     };
 }
 
@@ -154,9 +154,9 @@ macro_rules! real_path {
 #[macro_export]
 macro_rules! virtual_path {
     ($path:literal) => {
-        std::path::PathBuf::from(unsafe { to_virtual_path($path)? })
+        std::path::PathBuf::from(unsafe { to_virtual_path($path.to_owned())? })
     };
     ($path:expr) => {
-        std::path::PathBuf::from(unsafe { to_virtual_path($path.to_str().unwrap())? })
+        std::path::PathBuf::from(unsafe { to_virtual_path($path.into())? })
     };
 }
