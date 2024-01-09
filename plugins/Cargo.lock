@@ -844,7 +844,7 @@ dependencies = [
  "anyhow",
  "cbindgen",
  "extism-convert",
- "extism-manifest 1.0.0",
+ "extism-manifest",
  "glob",
  "libc",
  "serde",
@@ -877,36 +877,11 @@ dependencies = [
 
 [[package]]
 name = "extism-manifest"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22b0e600ec289630715ffdc11aca36a26297c3ab7908f14d5bbf3770d102bce7"
-dependencies = [
- "base64",
- "serde",
-]
-
-[[package]]
-name = "extism-manifest"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fb76af5cf0fd656e6dff25069056ef41ce0eb0541cc98c15b90b601a16fcfacc"
 dependencies = [
  "base64",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "extism-pdk"
-version = "0.3.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09c20fe9cafa572607e22192bf2040849e7456664895bdc589c89387876e2067"
-dependencies = [
- "anyhow",
- "base64",
- "extism-manifest 0.5.0",
- "extism-pdk-derive 0.3.1",
- "rmp-serde",
  "serde",
  "serde_json",
 ]
@@ -920,21 +895,10 @@ dependencies = [
  "anyhow",
  "base64",
  "extism-convert",
- "extism-manifest 1.0.0",
- "extism-pdk-derive 1.0.0",
+ "extism-manifest",
+ "extism-pdk-derive",
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "extism-pdk-derive"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2be216330f7304de051e0faf1578880e9e0dc1ecbd2c0fea5765c63a079d0ba"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.48",
 ]
 
 [[package]]
@@ -1983,7 +1947,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.27.0"
+version = "0.28.0"
 dependencies = [
  "cached",
  "extism",
@@ -2015,17 +1979,17 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "anyhow",
- "extism-pdk 1.0.0",
+ "extism-pdk",
  "proto_pdk_api",
  "serde",
 ]
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "anyhow",
  "semver",
@@ -2039,7 +2003,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.15.1"
+version = "0.16.0"
 dependencies = [
  "extism",
  "proto_core",
@@ -2060,7 +2024,7 @@ dependencies = [
 name = "proto_wasm_test"
 version = "0.2.0"
 dependencies = [
- "extism-pdk 0.3.4",
+ "extism-pdk",
  "proto_pdk",
  "proto_pdk_test_utils",
  "serde",
@@ -3249,7 +3213,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "extism",
  "miette",
