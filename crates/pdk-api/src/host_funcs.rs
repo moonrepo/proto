@@ -15,31 +15,33 @@ json_enum!(
     }
 );
 
-json_enum!(
-    /// Input passed to the `host_log` host function.
-    #[serde(untagged)]
-    pub enum HostLogInput {
-        Message(String),
-        TargetedMessage {
-            message: String,
-            target: HostLogTarget,
-        },
-        Fields {
-            data: HashMap<String, serde_json::Value>,
-            message: String,
-        },
+json_struct!(
+    pub struct HostLogInput {
+        pub data: HashMap<String, serde_json::Value>,
+        pub message: String,
+        pub target: HostLogTarget,
     }
 );
 
+impl HostLogInput {
+    /// Create a new host log with the provided message.
+    pub fn new(message: impl AsRef<str>) -> Self {
+        Self {
+            message: message.as_ref().to_owned(),
+            ..Default::default()
+        }
+    }
+}
+
 impl From<&str> for HostLogInput {
     fn from(message: &str) -> Self {
-        HostLogInput::Message(message.to_owned())
+        HostLogInput::new(message)
     }
 }
 
 impl From<String> for HostLogInput {
     fn from(message: String) -> Self {
-        HostLogInput::Message(message)
+        HostLogInput::new(message)
     }
 }
 

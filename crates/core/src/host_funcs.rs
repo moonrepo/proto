@@ -1,6 +1,7 @@
 use crate::proto::ProtoEnvironment;
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
 use proto_pdk_api::{ExecCommandInput, ExecCommandOutput, HostLogInput, HostLogTarget};
+use starbase_styles::color;
 use starbase_utils::fs;
 use std::env;
 use std::path::PathBuf;
@@ -72,34 +73,34 @@ pub fn host_log(
 ) -> Result<(), Error> {
     let input: HostLogInput = serde_json::from_str(plugin.memory_get_val(&inputs[0])?)?;
 
-    match input {
-        HostLogInput::Message(message) => {
+    match input.target {
+        HostLogTarget::Stderr => {
+            if input.data.is_empty() {
+                eprintln!("{}", input.message);
+            } else {
+                eprintln!(
+                    "{} {}",
+                    input.message,
+                    color::muted_light(format!("({:?})", input.data)),
+                );
+            }
+        }
+        HostLogTarget::Stdout => {
+            if input.data.is_empty() {
+                println!("{}", input.message);
+            } else {
+                println!(
+                    "{} {}",
+                    input.message,
+                    color::muted_light(format!("({:?})", input.data)),
+                );
+            }
+        }
+        HostLogTarget::Tracing => {
             trace!(
                 target: "proto_wasm::log",
-                "{}", message,
-            );
-        }
-        HostLogInput::TargetedMessage { message, target } => {
-            match target {
-                HostLogTarget::Stderr => {
-                    eprintln!("{}", message);
-                }
-                HostLogTarget::Stdout => {
-                    println!("{}", message);
-                }
-                HostLogTarget::Tracing => {
-                    trace!(
-                        target: "proto_wasm::log",
-                        "{}", message,
-                    );
-                }
-            };
-        }
-        HostLogInput::Fields { data, message } => {
-            trace!(
-                target: "proto_wasm::log",
-                data = ?data,
-                "{}", message,
+                data = ?input.data,
+                "{}", input.message,
             );
         }
     };
