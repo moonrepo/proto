@@ -1,6 +1,7 @@
 use crate::{json_enum, json_struct};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 json_enum!(
     /// Target where host logs should be written to.
@@ -60,6 +61,9 @@ json_struct!(
 
         /// Stream the output instead of capturing it.
         pub stream: bool,
+
+        /// Override the current working directory.
+        pub working_dir: Option<PathBuf>,
     }
 );
 

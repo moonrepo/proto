@@ -43,6 +43,7 @@ let plugin = create_plugin_with_config(
 - WASM API
   - Added `from_virtual_path` and `to_virtual_path` host functions.
   - Added `virtual_path!` and `real_path!` macros.
+  - Added `ExecCommandInput.working_dir` field.
 
 #### ⚙️ Internal
 
