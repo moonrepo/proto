@@ -10,6 +10,44 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 💥 Breaking
+
+- WASM API
+  - Removed support for old and deprecated APIs: `locate_bins`, `create_shims`.
+  - Removed `get_proto_user_config` and `format_bin_name` functions.
+  - Updated `get_tool_id` to return a `Result<String>` instead of `String`.
+- WASM test utils
+  - Removed `WasmTestWrapper::set_environment()` method. Use `create_plugin_with_config` and pass a config object instead.
+
+```rust
+// Before
+let mut plugin = create_plugin("test-id", sandbox.path());
+plugin.set_environment(HostEnvironment {
+    arch: HostArch::Arm64,
+    os: HostOS::Linux,
+    ..Default::default()
+});
+
+// After
+let plugin = create_plugin_with_config(
+  "test-id",
+  sandbox.path(),
+  HashMap::from_iter([map_config_environment(HostOS::Linux, HostArch::Arm64)]),
+);
+```
+
+#### 🚀 Updates
+
+- WASM API
+  - Added `from_virtual_path` and `to_virtual_path` host functions.
+  - Added `virtual_path!` and `real_path!` macros.
+
+#### ⚙️ Internal
+
+- Updated extism (plugin runtime) to v1 (from v0.5).
+
 ## 0.27.1
 
 #### 🐞 Fixes

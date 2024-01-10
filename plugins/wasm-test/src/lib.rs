@@ -139,21 +139,6 @@ pub fn locate_executables(
     }))
 }
 
-#[plugin_fn]
-pub fn locate_bins(Json(_): Json<LocateBinsInput>) -> FnResult<Json<LocateBinsOutput>> {
-    let env = get_proto_environment()?;
-
-    Ok(Json(LocateBinsOutput {
-        bin_path: Some(if env.os == HostOS::Windows {
-            "node.exe".into()
-        } else {
-            "bin/node".into()
-        }),
-        globals_lookup_dirs: vec!["$WASM_ROOT/bin".into(), "$HOME/.wasm/bin".into()],
-        ..LocateBinsOutput::default()
-    }))
-}
-
 // Resolver
 
 #[derive(Deserialize)]
@@ -193,40 +178,6 @@ pub fn resolve_version(
     }
 
     Ok(Json(output))
-}
-
-// Shimmer
-
-#[plugin_fn]
-pub fn create_shims(_: ()) -> FnResult<Json<CreateShimsOutput>> {
-    Ok(Json(CreateShimsOutput {
-        global_shims: HashMap::from_iter([(
-            "global1".into(),
-            ShimConfig {
-                bin_path: Some("bin/global1".into()),
-                ..Default::default()
-            },
-        )]),
-        local_shims: HashMap::from_iter([
-            (
-                "local1".into(),
-                ShimConfig {
-                    bin_path: Some("bin/local1".into()),
-                    parent_bin: Some("node".into()),
-                    ..Default::default()
-                },
-            ),
-            (
-                "local2".into(),
-                ShimConfig {
-                    bin_path: Some("local2.js".into()),
-                    parent_bin: None,
-                    ..Default::default()
-                },
-            ),
-        ]),
-        ..CreateShimsOutput::default()
-    }))
 }
 
 // Verifier
