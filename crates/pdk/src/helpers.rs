@@ -34,7 +34,7 @@ pub fn fetch_url_text<U>(url: U) -> anyhow::Result<String>
 where
     U: AsRef<str>,
 {
-    String::from_bytes(fetch(HttpRequest::new(url.as_ref()), None)?.body())
+    String::from_bytes(&fetch(HttpRequest::new(url.as_ref()), None)?.body())
 }
 
 /// Fetch the provided URL, deserialize the response as JSON,
@@ -121,17 +121,6 @@ where
     Ok(tags)
 }
 
-/// Return the name of the binary for the provided name and OS.
-/// On Windows, will append ".exe", and keep as-is on other OS's.
-#[deprecated]
-pub fn format_bin_name<T: AsRef<str>>(name: T, os: HostOS) -> String {
-    if os == HostOS::Windows {
-        return format!("{}.exe", name.as_ref());
-    }
-
-    name.as_ref().to_owned()
-}
-
 /// Validate the current host OS and architecture against the
 /// supported list of target permutations.
 pub fn check_supported_os_and_arch(
@@ -192,9 +181,11 @@ pub fn is_musl(env: &HostEnvironment) -> bool {
 
     let mut value = "".to_owned();
 
-    if let Ok(res) = exec_command!(raw, "ldd", ["--version"]) {
-        if res.0.exit_code == 0 {
-            value = res.0.stdout.to_lowercase();
+    if command_exists(env, "ldd") {
+        if let Ok(res) = exec_command!(raw, "ldd", ["--version"]) {
+            if res.0.exit_code == 0 {
+                value = res.0.stdout.to_lowercase();
+            }
         }
     }
 
@@ -236,13 +227,13 @@ pub fn get_target_triple(env: &HostEnvironment, name: &str) -> Result<String, Pl
 }
 
 /// Get the tool ID for the current WASM plugin.
-pub fn get_tool_id() -> String {
-    config::get("proto_tool_id").expect("Missing tool ID!")
+pub fn get_tool_id() -> anyhow::Result<String> {
+    Ok(config::get("proto_tool_id")?.expect("Missing tool ID!"))
 }
 
 /// Get tool configuration for the current WASM plugin that was configured in a `.prototools` file.
 pub fn get_tool_config<T: Default + DeserializeOwned>() -> anyhow::Result<T> {
-    let config: T = if let Some(value) = config::get("proto_tool_config") {
+    let config: T = if let Some(value) = config::get("proto_tool_config")? {
         json::from_str(&value)?
     } else {
         T::default()
@@ -253,19 +244,8 @@ pub fn get_tool_config<T: Default + DeserializeOwned>() -> anyhow::Result<T> {
 
 /// Return information about proto and the host environment.
 pub fn get_proto_environment() -> anyhow::Result<HostEnvironment> {
-    let config = config::get("proto_environment").expect("Missing proto environment!");
+    let config = config::get("proto_environment")?.expect("Missing proto environment!");
     let config: HostEnvironment = json::from_str(&config)?;
 
     Ok(config)
-}
-
-/// Return the loaded proto user configuration (`~/.proto/.prototools`). Does not include plugins!
-#[allow(deprecated)]
-#[deprecated]
-pub fn get_proto_user_config() -> anyhow::Result<json::Value> {
-    if let Some(config) = config::get("proto_user_config") {
-        return Ok(json::from_str(&config)?);
-    }
-
-    Ok(json::Value::default())
 }

@@ -10,7 +10,7 @@ use crate::proto_config::ProtoConfig;
 use crate::shim_registry::{Shim, ShimRegistry, ShimsMap};
 use crate::tool_manifest::{ToolManifest, ToolManifestVersion};
 use crate::version_resolver::VersionResolver;
-use extism::{manifest::Wasm, Manifest as PluginManifest};
+use extism::{Manifest as PluginManifest, Wasm};
 use miette::IntoDiagnostic;
 use proto_pdk_api::*;
 use proto_shim::{
@@ -45,7 +45,7 @@ pub struct Tool {
     pub manifest: ToolManifest,
     pub metadata: ToolMetadataOutput,
     pub locator: Option<PluginLocator>,
-    pub plugin: PluginContainer<'static>,
+    pub plugin: PluginContainer,
     pub proto: Arc<ProtoEnvironment>,
     pub version: Option<VersionSpec>,
 
@@ -102,7 +102,16 @@ impl Tool {
 
             trace!(file = ?log_file, "Created WASM log file");
 
-            extism::set_log_file(log_file, std::str::FromStr::from_str(&level).ok());
+            if let Err(error) = extism::set_log_callback(
+                move |line| {
+                    if fs::append_file(&log_file, line).is_err() {
+                        trace!(target: "proto_wasm::runtime", "{line}");
+                    }
+                },
+                level,
+            ) {
+                warn!("Failed to capture WASM logs: {}", error.to_string());
+            }
         }
 
         let mut tool = Tool {

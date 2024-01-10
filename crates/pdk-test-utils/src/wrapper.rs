@@ -15,14 +15,6 @@ impl WasmTestWrapper {
         self.tool.to_virtual_path(path)
     }
 
-    pub fn set_environment(&mut self, env: HostEnvironment) {
-        self.tool.plugin.manifest.config.insert(
-            "proto_environment".to_owned(),
-            serde_json::to_string(&env).unwrap(),
-        );
-        self.tool.plugin.reload_config().unwrap();
-    }
-
     pub fn detect_version_files(&self) -> DetectVersionOutput {
         self.tool.plugin.call_func("detect_version_files").unwrap()
     }
