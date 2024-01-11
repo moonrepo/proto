@@ -50,6 +50,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: moonrepo/setup-toolchain@v0
+        with:
+          proto-version: 0.28.0-rc.1
       - uses: moonrepo/setup-rust@v1
         with:
           bins: cargo-wasi, cargo-nextest, just
