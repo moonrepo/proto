@@ -115,7 +115,7 @@ mod plugins {
 
         // Bun doesn't support Windows
         // And this is super flaky on macoS
-        #[cfg(linux)]
+        #[cfg(target_os = "linux")]
         #[test]
         fn supports_bun() {
             let sandbox = create_empty_sandbox();
