@@ -15,6 +15,7 @@
 #### 💥 Breaking
 
 - WASM API
+  - Refactored the `HostLogInput` enum into a struct (this should be transparent if using the `host_log!` macro).
   - Removed support for old and deprecated APIs: `locate_bins`, `create_shims`.
   - Removed `get_proto_user_config` and `format_bin_name` functions.
   - Updated `get_tool_id` to return a `Result<String>` instead of `String`.
@@ -43,6 +44,7 @@ let plugin = create_plugin_with_config(
 - WASM API
   - Added `from_virtual_path` and `to_virtual_path` host functions.
   - Added `virtual_path!` and `real_path!` macros.
+  - Added `ExecCommandInput.working_dir` field.
 
 #### ⚙️ Internal
 

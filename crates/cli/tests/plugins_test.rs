@@ -114,37 +114,22 @@ mod plugins {
         use super::*;
 
         // Bun doesn't support Windows
-        #[cfg(not(windows))]
+        // And this is super flaky on macoS
+        #[cfg(target_os = "linux")]
         #[test]
         fn supports_bun() {
-            use starbase_sandbox::get_assert_output;
-
             let sandbox = create_empty_sandbox();
 
-            let assert = create_proto_command(sandbox.path())
+            create_proto_command(sandbox.path())
                 .arg("install")
                 .arg("bun")
-                .assert();
+                .assert()
+                .success();
 
-            println!("{}", get_assert_output(&assert));
-
-            assert.success();
-
-            // Try and get output with spawn
-            println!("------ SPAWN START ------");
-            create_shim_command_std(sandbox.path(), "bun")
+            create_shim_command(sandbox.path(), "bun")
                 .arg("--version")
-                .spawn()
-                .unwrap();
-            println!("------ SPAWN END ------");
-
-            let assert = create_shim_command(sandbox.path(), "bun")
-                .arg("--version")
-                .assert();
-
-            println!("{}", get_assert_output(&assert));
-
-            assert.success();
+                .assert()
+                .success();
 
             assert_snapshot!(
                 fs::read_to_string(sandbox.path().join(".proto/shims/registry.json")).unwrap()

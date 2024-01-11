@@ -74,21 +74,23 @@ pub fn find_wasm_file(sandbox: &Path) -> PathBuf {
         if !LOGGING {
             LOGGING = true;
 
-            let log_file = wasm_target_dir.join(format!("{wasm_file_name}.log"));
+            let log_file = wasm_target_dir.join("proto-wasm-plugin.log");
+            let log_prefix = wasm_file_name.clone();
 
-            extism::set_log_callback(
+            let _ = extism::set_log_callback(
                 move |line| {
+                    let message = format!("[{log_prefix}] {line}");
+
                     let mut file = OpenOptions::new()
                         .create(true)
                         .append(true)
                         .open(&log_file)
                         .unwrap();
 
-                    file.write_all(line.as_bytes()).unwrap();
+                    file.write_all(message.as_bytes()).unwrap();
                 },
                 "trace",
-            )
-            .unwrap();
+            );
         }
     };
 

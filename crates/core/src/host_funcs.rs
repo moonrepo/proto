@@ -1,6 +1,7 @@
 use crate::proto::ProtoEnvironment;
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
 use proto_pdk_api::{ExecCommandInput, ExecCommandOutput, HostLogInput, HostLogTarget};
+use starbase_styles::color;
 use starbase_utils::fs;
 use std::env;
 use std::path::PathBuf;
@@ -72,34 +73,34 @@ pub fn host_log(
 ) -> Result<(), Error> {
     let input: HostLogInput = serde_json::from_str(plugin.memory_get_val(&inputs[0])?)?;
 
-    match input {
-        HostLogInput::Message(message) => {
+    match input.target {
+        HostLogTarget::Stderr => {
+            if input.data.is_empty() {
+                eprintln!("{}", input.message);
+            } else {
+                eprintln!(
+                    "{} {}",
+                    input.message,
+                    color::muted_light(format!("({:?})", input.data)),
+                );
+            }
+        }
+        HostLogTarget::Stdout => {
+            if input.data.is_empty() {
+                println!("{}", input.message);
+            } else {
+                println!(
+                    "{} {}",
+                    input.message,
+                    color::muted_light(format!("({:?})", input.data)),
+                );
+            }
+        }
+        HostLogTarget::Tracing => {
             trace!(
                 target: "proto_wasm::log",
-                "{}", message,
-            );
-        }
-        HostLogInput::TargetedMessage { message, target } => {
-            match target {
-                HostLogTarget::Stderr => {
-                    eprintln!("{}", message);
-                }
-                HostLogTarget::Stdout => {
-                    println!("{}", message);
-                }
-                HostLogTarget::Tracing => {
-                    trace!(
-                        target: "proto_wasm::log",
-                        "{}", message,
-                    );
-                }
-            };
-        }
-        HostLogInput::Fields { data, message } => {
-            trace!(
-                target: "proto_wasm::log",
-                data = ?data,
-                "{}", message,
+                data = ?input.data,
+                "{}", input.message,
             );
         }
     };
@@ -117,25 +118,33 @@ fn exec_command(
 ) -> Result<(), Error> {
     let input: ExecCommandInput = serde_json::from_str(plugin.memory_get_val(&inputs[0])?)?;
 
-    trace!(
-        target: "proto_wasm::exec_command",
-        command = &input.command,
-        args = ?input.args,
-        env_vars = ?input.env_vars,
-        "Executing command from plugin"
-    );
+    let data = user_data.get()?;
+    let data = data.lock().unwrap();
 
     // This is temporary since WASI does not support updating file permissions yet!
     if input.set_executable && PathBuf::from(&input.command).exists() {
         fs::update_perms(&input.command, None)?;
     }
 
-    let data = user_data.get()?;
-    let data = data.lock().unwrap();
+    // Determine working directory
+    let cwd = if let Some(working_dir) = &input.working_dir {
+        warpgate::from_virtual_path(&data.proto.get_virtual_paths(), working_dir)
+    } else {
+        data.proto.cwd.clone()
+    };
+
+    trace!(
+        target: "proto_wasm::exec_command",
+        command = &input.command,
+        args = ?input.args,
+        env = ?input.env_vars,
+        cwd = ?cwd,
+        "Executing command from plugin"
+    );
 
     let mut command = create_process_command(&input.command, &input.args);
     command.envs(&input.env_vars);
-    command.current_dir(&data.proto.cwd);
+    command.current_dir(cwd);
 
     let output = if input.stream {
         let result = command.spawn()?.wait()?;
@@ -246,7 +255,7 @@ fn from_virtual_path(
         "Converted a virtual path into a real path"
     );
 
-    plugin.memory_set_val(&mut outputs[0], real_path.to_str().unwrap())?;
+    plugin.memory_set_val(&mut outputs[0], real_path.to_string_lossy().to_string())?;
 
     Ok(())
 }
@@ -272,7 +281,7 @@ fn to_virtual_path(
         "Converted a real path into a virtual path"
     );
 
-    plugin.memory_set_val(&mut outputs[0], virtual_path.to_str().unwrap())?;
+    plugin.memory_set_val(&mut outputs[0], virtual_path.to_string_lossy().to_string())?;
 
     Ok(())
 }

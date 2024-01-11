@@ -162,12 +162,17 @@ impl PluginContainer {
         });
 
         let output = instance.call(func, input).map_err(|error| {
+            let message = error
+                .source()
+                .map(|src| src.to_string())
+                .unwrap_or_else(|| error.to_string());
+
             // When in debug mode, include more information around errors.
             #[cfg(debug_assertions)]
             {
                 WarpgateError::PluginCallFailed {
                     func: func.to_owned(),
-                    error: error.to_string(),
+                    error: message,
                 }
             }
             // When in release mode, errors don't render properly with the
@@ -175,10 +180,7 @@ impl PluginContainer {
             #[cfg(not(debug_assertions))]
             {
                 WarpgateError::PluginCallFailedRelease {
-                    error: error
-                        .to_string()
-                        .replace("\\\\n", "\n")
-                        .replace("\\n", "\n"),
+                    error: message.replace("\\\\n", "\n").replace("\\n", "\n"),
                 }
             }
         })?;
