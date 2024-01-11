@@ -62,7 +62,7 @@ pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miett
 
     debug!("Scanning file system for stale and untracked versions");
 
-    for dir in fs::read_dir(inventory_dir)? {
+    for dir in fs::read_dir(&inventory_dir)? {
         let dir_path = dir.path();
 
         let Ok(dir_type) = dir.file_type() else {
@@ -113,7 +113,10 @@ pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miett
         // - It was recently installed but not used yet
         // - It was installed before we started tracking last used timestamps
         // - The tools run via external commands (e.g. moon)
-        if let Some(last_used) = metadata.last_used_at {
+        if let Ok(Some(last_used)) = tool
+            .manifest
+            .load_used_at(inventory_dir.join(version.to_string()))
+        {
             if is_older_than_days(now, last_used, days) {
                 debug!(
                     "Version {} hasn't been used in over {} days, removing",
