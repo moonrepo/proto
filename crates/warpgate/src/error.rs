@@ -1,3 +1,4 @@
+use crate::id::Id;
 use miette::Diagnostic;
 use starbase_styles::{Style, Stylize};
 use std::path::PathBuf;
@@ -27,51 +28,80 @@ pub enum WarpgateError {
     InvalidID(String),
 
     #[diagnostic(code(plugin::source::file_missing))]
-    #[error("Cannot load plugin, source file {} does not exist.", .0.style(Style::Url))]
-    SourceFileMissing(PathBuf),
+    #[error(
+        "Cannot load {} plugin, source file {} does not exist.",
+        .id.style(Style::Id),
+        .path.style(Style::Path),
+    )]
+    SourceFileMissing { id: Id, path: PathBuf },
 
     #[diagnostic(code(plugin::github::asset_missing))]
     #[error(
-        "Cannot download plugin from GitHub ({}), no applicable asset found for release {}.",
+        "Cannot download {} plugin from GitHub ({}), no applicable asset found for release {}.",
+        .id.style(Style::Id),
         .repo_slug.style(Style::Id),
         .tag,
     )]
-    GitHubAssetMissing { repo_slug: String, tag: String },
+    GitHubAssetMissing {
+        id: Id,
+        repo_slug: String,
+        tag: String,
+    },
 
     #[diagnostic(code(plugin::wapm::module_missing))]
     #[error(
-        "Cannot download plugin from wamp.io ({}), no applicable module found for release {}.",
+        "Cannot download {} plugin from wamp.io ({}), no applicable module found for release {}.",
+        .id.style(Style::Id),
         .package.style(Style::Id),
         .version,
     )]
-    WapmModuleMissing { package: String, version: String },
+    WapmModuleMissing {
+        id: Id,
+        package: String,
+        version: String,
+    },
 
     #[diagnostic(code(plugin::create::failed))]
-    #[error("Failed to load and create WASM plugin: {error}")]
+    #[error("Failed to load and create {} plugin: {error}", .id.style(Style::Id))]
     PluginCreateFailed {
+        id: Id,
         #[source]
         error: extism::Error,
     },
 
     #[diagnostic(code(plugin::call_func::failed))]
-    #[error("Failed to call plugin function {}:\n{error}", .func.style(Style::Id))]
-    PluginCallFailed { func: String, error: String },
+    #[error(
+        "Failed to call {} plugin function {}:\n{error}",
+        .id.style(Style::Id),
+        .func.style(Style::Property),
+    )]
+    PluginCallFailed { id: Id, func: String, error: String },
 
     #[diagnostic(code(plugin::call_func::failed))]
     #[error("{error}")]
     PluginCallFailedRelease { error: String },
 
     #[diagnostic(code(plugin::call_func::format_input))]
-    #[error("Failed to format input for plugin function {} call.", .func.style(Style::Id))]
+    #[error(
+        "Failed to format input for {} plugin function {} call.",
+        .id.style(Style::Id),
+        .func.style(Style::Property),
+    )]
     FormatInputFailed {
+        id: Id,
         func: String,
         #[source]
         error: serde_json::Error,
     },
 
     #[diagnostic(code(plugin::call_func::parse_output))]
-    #[error("Failed to parse output of plugin function {} call.", .func.style(Style::Id))]
+    #[error(
+        "Failed to parse output of {} plugin function {} call.",
+        .id.style(Style::Id),
+        .func.style(Style::Property),
+    )]
     ParseOutputFailed {
+        id: Id,
         func: String,
         #[source]
         error: serde_json::Error,
@@ -81,10 +111,23 @@ pub enum WarpgateError {
         code(plugin::download::missing),
         help = "Please refer to the plugin's official documentation."
     )]
-    #[error("Plugin download {} does not exist. This version may not be supported for your current operating system or architecture, or the URL is incorrect.", .url.style(Style::Url))]
+    #[error(
+        "Plugin download {} does not exist. This version may not be supported for your current operating system or architecture, or the URL is incorrect.",
+        .url.style(Style::Url),
+    )]
     DownloadNotFound { url: String },
 
     #[diagnostic(code(plugin::download::failed))]
-    #[error("Failed to download plugin from {} ({status}).", .url.style(Style::Url))]
+    #[error(
+        "Failed to download plugin from {} ({status}).",
+        .url.style(Style::Url),
+    )]
     DownloadFailed { url: String, status: String },
+
+    #[diagnostic(code(plugin::incompatible_runtime))]
+    #[error(
+        "The loaded {} plugin is incompatible with the current runtime.\nFor plugin consumers, try upgrading to a newer plugin version.\nFor plugin authors, upgrade to the latest runtime and release a new version.",
+        .id.style(Style::Id),
+    )]
+    IncompatibleRuntime { id: Id },
 }

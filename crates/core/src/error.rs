@@ -160,4 +160,10 @@ pub enum ProtoError {
         #[source]
         error: std::io::Error,
     },
+
+    #[diagnostic(code(proto::plugin::missing_command))]
+    #[error(
+        "Command or script {} does not exist. Unable to execute from plugin.", .command.style(Style::Shell)
+    )]
+    MissingPluginCommand { command: String },
 }
