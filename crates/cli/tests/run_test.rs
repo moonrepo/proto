@@ -1,6 +1,5 @@
 mod utils;
 
-use proto_core::{ToolManifest, VersionSpec};
 use starbase_sandbox::predicates::prelude::*;
 use std::{env, fs};
 use utils::*;
@@ -122,7 +121,7 @@ mod run {
     #[test]
     fn updates_last_used_at() {
         let sandbox = create_empty_sandbox();
-        let manifest_file = sandbox.path().join(".proto/tools/node/manifest.json");
+        let last_used_file = sandbox.path().join(".proto/tools/node/19.0.0/.last-used");
 
         let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("install")
@@ -130,6 +129,8 @@ mod run {
             .arg("19.0.0")
             .assert()
             .success();
+
+        assert!(!last_used_file.exists());
 
         let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("run")
@@ -139,12 +140,10 @@ mod run {
             .arg("--version")
             .assert();
 
-        let manifest = ToolManifest::load(&manifest_file).unwrap();
-        let version = VersionSpec::parse("19.0.0").unwrap();
+        let value = fs::read_to_string(&last_used_file).unwrap();
 
-        let last_used_at = manifest.versions.get(&version).unwrap().last_used_at;
-
-        assert!(last_used_at.is_some());
+        assert!(last_used_file.exists());
+        assert_ne!(value, "");
 
         // Run again and make sure timestamps update
         let mut cmd = create_proto_command(sandbox.path());
@@ -155,12 +154,10 @@ mod run {
             .arg("--version")
             .assert();
 
-        let manifest = ToolManifest::load(&manifest_file).unwrap();
+        let new_value = fs::read_to_string(&last_used_file).unwrap();
 
-        assert_ne!(
-            last_used_at,
-            manifest.versions.get(&version).unwrap().last_used_at
-        );
+        assert!(last_used_file.exists());
+        assert_ne!(value, new_value);
     }
 
     #[test]

@@ -77,6 +77,7 @@ pub async fn list(args: ArgsRef<ListToolsArgs>, proto: ResourceRef<ProtoResource
 
     for tool in tools {
         let tool_config = config.tools.remove(&tool.id).unwrap_or_default();
+        let inventory_dir = tool.get_inventory_dir();
 
         let mut versions = tool.load_version_resolver(&latest_version).await?;
         versions.aliases.extend(tool_config.aliases);
@@ -115,8 +116,11 @@ pub async fn list(args: ArgsRef<ListToolsArgs>, proto: ResourceRef<ProtoResource
                                 comments.push(format!("installed {}", at.format("%x")));
                             }
 
-                            if let Some(last_used) = &meta.last_used_at {
-                                if let Some(at) = create_datetime(*last_used) {
+                            if let Ok(Some(last_used)) = tool
+                                .manifest
+                                .load_used_at(inventory_dir.join(version.to_string()))
+                            {
+                                if let Some(at) = create_datetime(last_used) {
                                     comments.push(format!("last used {}", at.format("%x")));
                                 }
                             }

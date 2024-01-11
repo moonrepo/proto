@@ -1,6 +1,7 @@
 use crate::helpers::{read_json_file_with_lock, write_json_file_with_lock};
 use serde::{Deserialize, Serialize};
 use starbase_styles::color;
+use starbase_utils::fs;
 use std::{
     collections::{BTreeMap, HashSet},
     env,
@@ -24,7 +25,6 @@ pub const MANIFEST_NAME: &str = "manifest.json";
 pub struct ToolManifestVersion {
     pub no_clean: bool,
     pub installed_at: u128,
-    pub last_used_at: Option<u128>,
 }
 
 impl Default for ToolManifestVersion {
@@ -32,7 +32,6 @@ impl Default for ToolManifestVersion {
         Self {
             no_clean: env::var("PROTO_NO_CLEAN").is_ok(),
             installed_at: now(),
-            last_used_at: None,
         }
     }
 }
@@ -102,8 +101,23 @@ impl ToolManifest {
         Ok(())
     }
 
-    pub fn track_used_at(&mut self, version: VersionSpec) {
-        let entry = self.versions.entry(version).or_default();
-        entry.last_used_at = Some(now());
+    pub fn track_used_at(&mut self, tool_dir: impl AsRef<Path>) -> miette::Result<()> {
+        fs::write_file(tool_dir.as_ref().join(".last-used"), now().to_string())?;
+
+        Ok(())
+    }
+
+    pub fn load_used_at(&self, tool_dir: impl AsRef<Path>) -> miette::Result<Option<u128>> {
+        let file = tool_dir.as_ref().join(".last-used");
+
+        if file.exists() {
+            if let Ok(contents) = fs::read_file(file) {
+                if let Ok(value) = contents.parse::<u128>() {
+                    return Ok(Some(value));
+                }
+            }
+        }
+
+        Ok(None)
     }
 }
