@@ -92,33 +92,37 @@ macro_rules! host_env {
 macro_rules! host_log {
     (stdout, $($arg:tt)+) => {
         unsafe {
-            host_log(Json(HostLogInput::TargetedMessage {
+            host_log(Json(HostLogInput {
                 message: format!($($arg)+),
                 target: HostLogTarget::Stdout,
+                ..HostLogInput::default()
             }))?;
         }
     };
     (stdout, $msg:literal) => {
         unsafe {
-            host_log(Json(HostLogInput::TargetedMessage {
+            host_log(Json(HostLogInput {
                 message: $msg.into(),
                 target: HostLogTarget::Stdout,
+                ..HostLogInput::default()
             }))?;
         }
     };
     (stderr, $($arg:tt)+) => {
         unsafe {
-            host_log(Json(HostLogInput::TargetedMessage {
+            host_log(Json(HostLogInput {
                 message: format!($($arg)+),
                 target: HostLogTarget::Stderr,
+                ..HostLogInput::default()
             }))?;
         }
     };
     (stderr, $msg:literal) => {
         unsafe {
-            host_log(Json(HostLogInput::TargetedMessage {
+            host_log(Json(HostLogInput {
                 message: $msg.into(),
                 target: HostLogTarget::Stderr,
+                ..HostLogInput::default()
             }))?;
         }
     };
