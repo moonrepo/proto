@@ -102,13 +102,16 @@ impl ToolManifest {
     }
 
     pub fn track_used_at(&mut self, tool_dir: impl AsRef<Path>) -> miette::Result<()> {
-        fs::write_file(tool_dir.as_ref().join("last-used"), now().to_string())?;
+        fs::write_file(
+            tool_dir.as_ref().join(".last-used"),
+            now().to_string(),
+        )?;
 
         Ok(())
     }
 
     pub fn load_used_at(&self, tool_dir: impl AsRef<Path>) -> miette::Result<Option<u128>> {
-        let file = tool_dir.as_ref().join("last-used");
+        let file = tool_dir.as_ref().join(".last-used");
 
         if file.exists() {
             if let Ok(contents) = fs::read_file(file) {
