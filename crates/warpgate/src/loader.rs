@@ -85,7 +85,10 @@ impl PluginLoader {
             PluginLocator::SourceFile { path, .. } => {
                 let path = path
                     .canonicalize()
-                    .map_err(|_| WarpgateError::SourceFileMissing(path.to_path_buf()))?;
+                    .map_err(|_| WarpgateError::SourceFileMissing {
+                        id: id.to_owned(),
+                        path: path.to_path_buf(),
+                    })?;
 
                 if path.exists() {
                     trace!(
@@ -96,7 +99,11 @@ impl PluginLoader {
 
                     Ok(path)
                 } else {
-                    Err(WarpgateError::SourceFileMissing(path).into())
+                    Err(WarpgateError::SourceFileMissing {
+                        id: id.to_owned(),
+                        path: path.to_path_buf(),
+                    }
+                    .into())
                 }
             }
             PluginLocator::SourceUrl { url } => {
@@ -333,6 +340,7 @@ impl PluginLoader {
         }
 
         Err(WarpgateError::GitHubAssetMissing {
+            id: id.to_owned(),
             repo_slug: github.repo_slug.to_owned(),
             tag: release_tag,
         }
@@ -450,6 +458,7 @@ impl PluginLoader {
         }
 
         Err(WarpgateError::WapmModuleMissing {
+            id: id.to_owned(),
             package: wapm.package_name.to_owned(),
             version: version.to_owned(),
         }

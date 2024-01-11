@@ -2,7 +2,7 @@ use crate::endpoints::Empty;
 use crate::error::WarpgateError;
 use crate::helpers::{from_virtual_path, to_virtual_path};
 use crate::id::Id;
-use extism::{Function, Manifest, Plugin};
+use extism::{Error, Function, Manifest, Plugin};
 use once_map::OnceMap;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -12,6 +12,21 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 use tracing::trace;
 use warpgate_api::VirtualPath;
+
+fn is_incompatible_runtime(error: &Error) -> bool {
+    let check = |message: String| {
+        // unknown import: `env::exec_command` has not been defined
+        message.contains("unknown import") && message.contains("env::")
+    };
+
+    if let Some(source) = error.source() {
+        if check(source.to_string()) {
+            return true;
+        }
+    }
+
+    check(error.to_string())
+}
 
 /// A container around Extism's [`Plugin`] and [`Manifest`] types that provides convenience
 /// methods for calling and caching functions from the WASM plugin. It also provides
@@ -34,8 +49,16 @@ impl PluginContainer {
         manifest: Manifest,
         functions: impl IntoIterator<Item = Function>,
     ) -> miette::Result<PluginContainer> {
-        let plugin = Plugin::new(&manifest, functions, true)
-            .map_err(|error| WarpgateError::PluginCreateFailed { error })?;
+        let plugin = Plugin::new(&manifest, functions, true).map_err(|error| {
+            if is_incompatible_runtime(&error) {
+                WarpgateError::IncompatibleRuntime { id: id.clone() }
+            } else {
+                WarpgateError::PluginCreateFailed {
+                    id: id.clone(),
+                    error,
+                }
+            }
+        })?;
 
         Ok(PluginContainer {
             manifest,
@@ -114,10 +137,10 @@ impl PluginContainer {
     /// Return true if the plugin has a function with the given id.
     pub fn has_func(&self, func: &str) -> bool {
         self.plugin
-            .write() // TODO
+            .write()
             .unwrap_or_else(|_| {
                 panic!(
-                    "Unable to acquire read access to `{}` WASM plugin.",
+                    "Unable to acquire write access to `{}` WASM plugin.",
                     self.id
                 )
             })
@@ -162,6 +185,12 @@ impl PluginContainer {
         });
 
         let output = instance.call(func, input).map_err(|error| {
+            if is_incompatible_runtime(&error) {
+                return WarpgateError::IncompatibleRuntime {
+                    id: self.id.clone(),
+                };
+            }
+
             let message = error
                 .source()
                 .map(|src| src.to_string())
@@ -171,6 +200,7 @@ impl PluginContainer {
             #[cfg(debug_assertions)]
             {
                 WarpgateError::PluginCallFailed {
+                    id: self.id.clone(),
                     func: func.to_owned(),
                     error: message,
                 }
@@ -198,6 +228,7 @@ impl PluginContainer {
     fn format_input<I: Serialize>(&self, func: &str, input: I) -> miette::Result<String> {
         Ok(
             serde_json::to_string(&input).map_err(|error| WarpgateError::FormatInputFailed {
+                id: self.id.clone(),
                 func: func.to_owned(),
                 error,
             })?,
@@ -207,6 +238,7 @@ impl PluginContainer {
     fn parse_output<O: DeserializeOwned>(&self, func: &str, data: &[u8]) -> miette::Result<O> {
         Ok(
             serde_json::from_slice(data).map_err(|error| WarpgateError::ParseOutputFailed {
+                id: self.id.clone(),
                 func: func.to_owned(),
                 error,
             })?,
