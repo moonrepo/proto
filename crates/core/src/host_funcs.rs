@@ -1,3 +1,4 @@
+use crate::error::ProtoError;
 use crate::proto::ProtoEnvironment;
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
 use proto_pdk_api::{ExecCommandInput, ExecCommandOutput, HostLogInput, HostLogTarget};
@@ -6,7 +7,7 @@ use starbase_utils::fs;
 use std::env;
 use std::path::PathBuf;
 use std::sync::Arc;
-use system_env::create_process_command;
+use system_env::{create_process_command, is_command_on_path};
 use tracing::trace;
 use warpgate::Id;
 
@@ -121,9 +122,30 @@ fn exec_command(
     let data = user_data.get()?;
     let data = data.lock().unwrap();
 
-    // This is temporary since WASI does not support updating file permissions yet!
-    if input.set_executable && PathBuf::from(&input.command).exists() {
-        fs::update_perms(&input.command, None)?;
+    // Relative or absolute file path
+    let exists = if input.command.contains('/') || input.command.contains('\\') {
+        let path = PathBuf::from(&input.command);
+
+        if path.exists() {
+            // This is temporary since WASI does not support updating file permissions yet!
+            if input.set_executable {
+                fs::update_perms(path, None)?;
+            }
+
+            true
+        } else {
+            false
+        }
+    // Command on PATH
+    } else {
+        is_command_on_path(&input.command)
+    };
+
+    if !exists {
+        return Err(ProtoError::MissingPluginCommand {
+            command: input.command.clone(),
+        }
+        .into());
     }
 
     // Determine working directory

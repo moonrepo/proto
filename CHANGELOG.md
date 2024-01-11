@@ -41,6 +41,7 @@ let plugin = create_plugin_with_config(
 
 #### 🚀 Updates
 
+- Improved error messages when a system command does not exist.
 - Updated our "last used at" logic to avoid race conditions with the tool manifest.
 - WASM API
   - Added `from_virtual_path` and `to_virtual_path` host functions.
