@@ -130,6 +130,8 @@ mod run {
             .assert()
             .success();
 
+        assert!(!last_used_file.exists());
+
         let mut cmd = create_proto_command(sandbox.path());
         cmd.arg("run")
             .arg("node")
@@ -138,7 +140,10 @@ mod run {
             .arg("--version")
             .assert();
 
-        assert!(!last_used_file.exists());
+        let value = fs::read_to_string(&last_used_file).unwrap();
+
+        assert!(last_used_file.exists());
+        assert_ne!(value, "");
 
         // Run again and make sure timestamps update
         let mut cmd = create_proto_command(sandbox.path());
@@ -149,8 +154,10 @@ mod run {
             .arg("--version")
             .assert();
 
+        let new_value = fs::read_to_string(&last_used_file).unwrap();
+
         assert!(last_used_file.exists());
-        assert_ne!(fs::read_to_string(last_used_file).unwrap(), "");
+        assert_ne!(value, new_value);
     }
 
     #[test]

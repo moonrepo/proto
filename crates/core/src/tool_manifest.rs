@@ -102,10 +102,7 @@ impl ToolManifest {
     }
 
     pub fn track_used_at(&mut self, tool_dir: impl AsRef<Path>) -> miette::Result<()> {
-        fs::write_file(
-            tool_dir.as_ref().join(".last-used"),
-            now().to_string(),
-        )?;
+        fs::write_file(tool_dir.as_ref().join(".last-used"), now().to_string())?;
 
         Ok(())
     }
