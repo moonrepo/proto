@@ -1,7 +1,6 @@
 #![allow(deprecated)]
 
-use crate::commands::fetch_version;
-use crate::helpers::ProtoResource;
+use crate::helpers::{fetch_latest_version, ProtoResource};
 use miette::IntoDiagnostic;
 use proto_core::{
     is_offline, now, Id, ProtoConfig, UserConfig, PROTO_CONFIG_NAME, USER_CONFIG_NAME,
@@ -126,15 +125,14 @@ pub async fn check_for_new_version(proto: ResourceRef<ProtoResource>) {
 
     debug!(current_version, "Checking for a new version of proto");
 
-    let Ok(latest_version) = fetch_version().await else {
+    let Ok(latest_version) = fetch_latest_version().await else {
         return Ok(());
     };
 
     let local_version = Version::parse(current_version).into_diagnostic()?;
     let remote_version = Version::parse(&latest_version).into_diagnostic()?;
-    let update_available = remote_version != local_version;
 
-    if update_available {
+    if remote_version > local_version {
         debug!(latest_version = &latest_version, "Found a newer version");
 
         println!(
