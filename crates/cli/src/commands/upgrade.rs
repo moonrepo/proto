@@ -1,29 +1,13 @@
 use crate::error::ProtoCliError;
-use crate::helpers::ProtoResource;
+use crate::helpers::{fetch_latest_version, ProtoResource};
 use crate::telemetry::{track_usage, Metric};
 use indicatif::{ProgressBar, ProgressStyle};
-use miette::IntoDiagnostic;
 use proto_core::is_offline;
 use proto_installer::{determine_triple, download_release, unpack_release};
 use semver::Version;
 use starbase::system;
 use starbase_styles::color;
 use tracing::{debug, info, trace};
-
-async fn fetch_version() -> miette::Result<String> {
-    let version = reqwest::get("https://raw.githubusercontent.com/moonrepo/proto/master/version")
-        .await
-        .into_diagnostic()?
-        .text()
-        .await
-        .into_diagnostic()?
-        .trim()
-        .to_string();
-
-    debug!("Found latest version {}", color::hash(&version));
-
-    Ok(version)
-}
 
 #[system]
 pub async fn upgrade(proto: ResourceRef<ProtoResource>) {
@@ -32,7 +16,7 @@ pub async fn upgrade(proto: ResourceRef<ProtoResource>) {
     }
 
     let current_version = env!("CARGO_PKG_VERSION");
-    let latest_version = fetch_version().await?;
+    let latest_version = fetch_latest_version().await?;
 
     debug!(
         "Comparing latest version {} to current version {}",
