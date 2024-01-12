@@ -12,6 +12,8 @@
 
 ## Unreleased
 
+This release primarily upgrades our WASM runtime. For plugin authors, you'll need to update to the latest PDK and publish a new version. Old plugins are incompatible.
+
 #### 💥 Breaking
 
 - WASM API
@@ -43,7 +45,7 @@ let plugin = create_plugin_with_config(
 
 - Will now display an upgrade message when the current proto version is out of date.
 - Improved error messages when a system command does not exist.
-- Improved plugin error messages to include the plugin identifier when applicable.
+- Improved error messages to include the plugin identifier when applicable.
 - Updated our "last used at" logic to avoid race conditions with the tool manifest.
 - WASM API
   - Added `from_virtual_path` and `to_virtual_path` host functions.
@@ -62,7 +64,7 @@ let plugin = create_plugin_with_config(
 
 #### ⚙️ Internal
 
-- Updated extism (plugin runtime) to v1 (from v0.5).
+- Updated Extism (plugin runtime) to v1 (from v0.5).
 
 ## 0.27.1
 
