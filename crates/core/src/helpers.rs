@@ -13,7 +13,7 @@ use starbase_utils::fs::{self, FsError};
 use starbase_utils::json::{self, JsonError};
 use std::net::{Shutdown, SocketAddr, TcpStream, ToSocketAddrs};
 use std::path::Path;
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 use std::{env, path::PathBuf};
 use std::{io, thread};
 use tracing::trace;
@@ -197,6 +197,13 @@ pub fn hash_file_contents<P: AsRef<Path>>(path: P) -> miette::Result<String> {
     trace!(hash, "Calculated hash");
 
     Ok(hash)
+}
+
+pub fn now() -> u128 {
+    SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0)
 }
 
 pub fn extract_filename_from_url<U: AsRef<str>>(url: U) -> miette::Result<String> {

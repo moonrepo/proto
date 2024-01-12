@@ -3,14 +3,17 @@
 use crate::commands::fetch_version;
 use crate::helpers::ProtoResource;
 use miette::IntoDiagnostic;
-use proto_core::{is_offline, Id, ProtoConfig, UserConfig, PROTO_CONFIG_NAME, USER_CONFIG_NAME};
+use proto_core::{
+    is_offline, now, Id, ProtoConfig, UserConfig, PROTO_CONFIG_NAME, USER_CONFIG_NAME,
+};
 use semver::Version;
 use starbase::system;
 use starbase_styles::color;
 use starbase_utils::fs;
 use starbase_utils::json::JsonValue;
 use std::env;
-use tracing::{debug, info};
+use std::time::Duration;
+use tracing::debug;
 
 // STARTUP
 
@@ -89,8 +92,8 @@ pub fn remove_old_bins(proto: ResourceRef<ProtoResource>) {
 
 // EXECUTE
 
-#[system(instrument = false)]
-pub async fn check_for_new_version() {
+#[system]
+pub async fn check_for_new_version(proto: ResourceRef<ProtoResource>) {
     if
     // Don't check when running tests
     env::var("PROTO_TEST").is_ok() ||
@@ -104,6 +107,21 @@ pub async fn check_for_new_version() {
         return Ok(());
     }
 
+    // Only check every 12 hours instead of every invocation
+    let cache_file = proto.env.temp_dir.join(".last-version-check");
+
+    if cache_file.exists() {
+        if let Some(last_check) = fs::read_file(&cache_file)
+            .ok()
+            .and_then(|cache| cache.parse::<u128>().ok())
+        {
+            if (last_check + Duration::from_secs(43200).as_millis()) > now() {
+                return Ok(());
+            }
+        }
+    }
+
+    // Otherwise fetch and compare versions
     let current_version = env!("CARGO_PKG_VERSION");
 
     debug!(current_version, "Checking for a new version of proto");
@@ -119,16 +137,21 @@ pub async fn check_for_new_version() {
     if update_available {
         debug!(latest_version = &latest_version, "Found a newer version");
 
-        info!(
-            "There's a new version of proto available, {} (currently on {})!",
+        println!(
+            "✨ There's a new version of proto available, {} (currently on {})",
             color::hash(remote_version.to_string()),
             color::muted_light(local_version.to_string()),
         );
 
-        info!(
-            "Run {} or install from {}",
+        println!(
+            "✨ Run {} or install from {}",
             color::shell("proto upgrade"),
             color::url("https://moonrepo.dev/docs/proto/install"),
         );
+
+        println!();
     }
+
+    // And write the cache
+    fs::write_file(cache_file, now().to_string())?;
 }
