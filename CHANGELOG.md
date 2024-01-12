@@ -10,7 +10,7 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
-## Unreleased
+## 0.28.0
 
 This release primarily upgrades our WASM runtime. For plugin authors, you'll need to update to the latest PDK and publish a new version. Old plugins are incompatible.
 
