@@ -1,11 +1,16 @@
 #![allow(deprecated)]
 
+use crate::commands::fetch_version;
 use crate::helpers::ProtoResource;
-use proto_core::{Id, ProtoConfig, UserConfig, PROTO_CONFIG_NAME, USER_CONFIG_NAME};
+use miette::IntoDiagnostic;
+use proto_core::{is_offline, Id, ProtoConfig, UserConfig, PROTO_CONFIG_NAME, USER_CONFIG_NAME};
+use semver::Version;
 use starbase::system;
+use starbase_styles::color;
 use starbase_utils::fs;
 use starbase_utils::json::JsonValue;
-use tracing::debug;
+use std::env;
+use tracing::{debug, info};
 
 // STARTUP
 
@@ -79,5 +84,51 @@ pub fn remove_old_bins(proto: ResourceRef<ProtoResource>) {
         } else {
             bin.to_owned()
         }));
+    }
+}
+
+// EXECUTE
+
+#[system(instrument = false)]
+pub async fn check_for_new_version() {
+    if
+    // Don't check when running tests
+    env::var("PROTO_TEST").is_ok() ||
+        // Or when explicitly disabled
+        env::var("PROTO_VERSION_CHECK").is_ok_and(|var| var == "0" || var == "false") ||
+            // Or when printing formatted output
+            env::args().any(|arg| arg == "--json") ||
+                // Or when offline
+                is_offline()
+    {
+        return Ok(());
+    }
+
+    let current_version = env!("CARGO_PKG_VERSION");
+
+    debug!(current_version, "Checking for a new version of proto");
+
+    let Ok(latest_version) = fetch_version().await else {
+        return Ok(());
+    };
+
+    let local_version = Version::parse(current_version).into_diagnostic()?;
+    let remote_version = Version::parse(&latest_version).into_diagnostic()?;
+    let update_available = remote_version != local_version;
+
+    if update_available {
+        debug!(latest_version = &latest_version, "Found a newer version");
+
+        info!(
+            "There's a new version of proto available, {} (currently on {})!",
+            color::hash(remote_version.to_string()),
+            color::muted_light(local_version.to_string()),
+        );
+
+        info!(
+            "Run {} or install from {}",
+            color::shell("proto upgrade"),
+            color::url("https://moonrepo.dev/docs/proto/install"),
+        );
     }
 }

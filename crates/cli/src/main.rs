@@ -41,7 +41,7 @@ async fn main() -> MainResult {
         // This swallows logs from extism when enabled
         intercept_log: env::var("PROTO_WASM_LOG").is_err(),
         log_env: "STARBASE_LOG".into(),
-        test_env: "PROTO_TEST".into(),
+        // test_env: "PROTO_TEST".into(),
         ..TracingOptions::default()
     });
 
@@ -62,6 +62,17 @@ async fn main() -> MainResult {
     app.startup(systems::migrate_user_config);
     app.analyze(systems::load_proto_configs);
     app.analyze(systems::remove_old_bins);
+
+    if !matches!(
+        cli.command,
+        Commands::Bin(_)
+            | Commands::Completions(_)
+            | Commands::Run(_)
+            | Commands::Setup(_)
+            | Commands::Upgrade
+    ) {
+        app.execute(systems::check_for_new_version);
+    }
 
     match cli.command {
         Commands::Alias(args) => app.execute_with_args(commands::alias, args),

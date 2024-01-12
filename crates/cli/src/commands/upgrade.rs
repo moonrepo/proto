@@ -10,7 +10,7 @@ use starbase::system;
 use starbase_styles::color;
 use tracing::{debug, info, trace};
 
-async fn fetch_version() -> miette::Result<String> {
+pub async fn fetch_version() -> miette::Result<String> {
     let version = reqwest::get("https://raw.githubusercontent.com/moonrepo/proto/master/version")
         .await
         .into_diagnostic()?
