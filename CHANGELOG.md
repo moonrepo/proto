@@ -50,6 +50,16 @@ let plugin = create_plugin_with_config(
   - Added `virtual_path!` and `real_path!` macros.
   - Added `ExecCommandInput.working_dir` field.
 
+#### 🧩 Plugins
+
+- Updated `bun_plugin` to v0.8.
+- Updated `deno_plugin` to v0.8.
+- Updated `go_plugin` to v0.8.
+- Updated `node_plugin` and `node_depman_plugin` to v0.8.
+- Updated `python_plugin` to v0.6.
+- Updated `rust_plugin` to v0.7.
+- Updated `schema_plugin` (TOML) to v0.8.
+
 #### ⚙️ Internal
 
 - Updated extism (plugin runtime) to v1 (from v0.5).
