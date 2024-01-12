@@ -1,4 +1,4 @@
-use crate::helpers::{read_json_file_with_lock, write_json_file_with_lock};
+use crate::helpers::{now, read_json_file_with_lock, write_json_file_with_lock};
 use serde::{Deserialize, Serialize};
 use starbase_styles::color;
 use starbase_utils::fs;
@@ -6,17 +6,9 @@ use std::{
     collections::{BTreeMap, HashSet},
     env,
     path::{Path, PathBuf},
-    time::SystemTime,
 };
 use tracing::{debug, warn};
 use version_spec::*;
-
-fn now() -> u128 {
-    SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .map(|d| d.as_millis())
-        .unwrap_or(0)
-}
 
 pub const MANIFEST_NAME: &str = "manifest.json";
 

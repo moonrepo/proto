@@ -41,6 +41,7 @@ let plugin = create_plugin_with_config(
 
 #### 🚀 Updates
 
+- Will now display an upgrade message when the current proto version is out of date.
 - Improved error messages when a system command does not exist.
 - Improved plugin error messages to include the plugin identifier when applicable.
 - Updated our "last used at" logic to avoid race conditions with the tool manifest.

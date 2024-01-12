@@ -5,10 +5,12 @@ use proto_core::{
     ProtoEnvironment, Tool, SCHEMA_PLUGIN_KEY,
 };
 use starbase::Resource;
+use starbase_styles::color;
 use std::collections::HashSet;
 use std::env;
 use std::sync::Arc;
 use std::time::Duration;
+use tracing::debug;
 
 pub fn enable_progress_bars() {
     env::remove_var("PROTO_NO_PROGRESS");
@@ -44,6 +46,21 @@ pub fn create_progress_bar<S: AsRef<str>>(start: S) -> ProgressBar {
             ]),
     );
     pb
+}
+
+pub async fn fetch_latest_version() -> miette::Result<String> {
+    let version = reqwest::get("https://raw.githubusercontent.com/moonrepo/proto/master/version")
+        .await
+        .into_diagnostic()?
+        .text()
+        .await
+        .into_diagnostic()?
+        .trim()
+        .to_string();
+
+    debug!("Found latest version {}", color::hash(&version));
+
+    Ok(version)
 }
 
 #[derive(Clone, Resource)]
