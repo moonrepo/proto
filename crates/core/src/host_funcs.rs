@@ -7,7 +7,7 @@ use starbase_utils::fs;
 use std::env;
 use std::path::PathBuf;
 use std::sync::Arc;
-use system_env::{create_process_command, is_command_on_path};
+use system_env::{create_process_command, find_command_on_path};
 use tracing::trace;
 use warpgate::Id;
 
@@ -123,30 +123,33 @@ fn exec_command(
     let data = data.lock().unwrap();
 
     // Relative or absolute file path
-    let exists = if input.command.contains('/') || input.command.contains('\\') {
-        let path = PathBuf::from(&input.command);
+    let maybe_command = if input.command.contains('/') || input.command.contains('\\') {
+        let path = warpgate::from_virtual_path(
+            &data.proto.get_virtual_paths(),
+            &PathBuf::from(&input.command),
+        );
 
         if path.exists() {
             // This is temporary since WASI does not support updating file permissions yet!
             if input.set_executable {
-                fs::update_perms(path, None)?;
+                fs::update_perms(&path, None)?;
             }
 
-            true
+            Some(path)
         } else {
-            false
+            None
         }
     // Command on PATH
     } else {
-        is_command_on_path(&input.command)
+        find_command_on_path(&input.command)
     };
 
-    if !exists {
+    let Some(command) = &maybe_command else {
         return Err(ProtoError::MissingPluginCommand {
             command: input.command.clone(),
         }
         .into());
-    }
+    };
 
     // Determine working directory
     let cwd = if let Some(working_dir) = &input.working_dir {
@@ -164,7 +167,7 @@ fn exec_command(
         "Executing command from plugin"
     );
 
-    let mut command = create_process_command(&input.command, &input.args);
+    let mut command = create_process_command(command, &input.args);
     command.envs(&input.env_vars);
     command.current_dir(cwd);
 
@@ -192,7 +195,7 @@ fn exec_command(
 
     trace!(
         target: "proto_wasm::exec_command",
-        command = &input.command,
+        command = ?command,
         exit_code = output.exit_code,
         stderr = if debug_output {
             Some(&output.stderr)

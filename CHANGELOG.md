@@ -52,6 +52,10 @@ let plugin = create_plugin_with_config(
   - Added `virtual_path!` and `real_path!` macros.
   - Added `ExecCommandInput.working_dir` field.
 
+#### 🐞 Fixes
+
+- Fixed an issue where command executions from the context of a plugin weren't taking virtual paths into account.
+
 #### 🧩 Plugins
 
 - Updated `bun_plugin` to v0.8.
