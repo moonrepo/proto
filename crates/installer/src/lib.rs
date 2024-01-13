@@ -44,13 +44,12 @@ pub struct DownloadResult {
     pub file: String,
     pub file_stem: String,
     pub url: String,
-    pub version: String,
 }
 
 pub async fn download_release(
     triple: &str,
     version: &str,
-    temp_dir: &Path,
+    temp_dir: impl AsRef<Path>,
     on_chunk: impl Fn(u64, u64),
 ) -> miette::Result<DownloadResult> {
     let target_ext = if cfg!(windows) { "zip" } else { "tar.xz" };
@@ -75,7 +74,7 @@ pub async fn download_release(
     on_chunk(0, total_size);
 
     // Download in chunks
-    let archive_file = temp_dir.join(&download_file);
+    let archive_file = temp_dir.as_ref().join(&download_file);
     let mut file = fs::create_file(&archive_file)?;
     let mut stream = response.bytes_stream();
     let mut downloaded: u64 = 0;
@@ -98,14 +97,13 @@ pub async fn download_release(
         file: download_file,
         file_stem: target_file,
         url: download_url,
-        version: version.to_owned(),
     })
 }
 
 pub fn unpack_release(
     download: DownloadResult,
-    install_dir: &Path,
-    tools_dir: &Path,
+    install_dir: impl AsRef<Path>,
+    relocate_dir: impl AsRef<Path>,
 ) -> miette::Result<bool> {
     let temp_dir = download
         .archive_file
@@ -124,17 +122,14 @@ pub fn unpack_release(
     };
     let bin_dir = match env::var("PROTO_INSTALL_DIR") {
         Ok(dir) => PathBuf::from(dir),
-        Err(_) => install_dir.to_owned(),
+        Err(_) => install_dir.as_ref().to_owned(),
     };
 
     for bin_name in &bin_names {
         let output_path = bin_dir.join(bin_name);
-        let relocate_path = tools_dir
-            .join("proto")
-            .join(&download.version)
-            .join(bin_name);
+        let relocate_path = relocate_dir.as_ref().join(bin_name);
 
-        if output_path.exists() {
+        if output_path.exists() && output_path != relocate_path {
             fs::rename(&output_path, &relocate_path)?;
         }
 

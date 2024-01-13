@@ -62,7 +62,11 @@ pub async fn upgrade(proto: ResourceRef<ProtoResource>) {
     // Unpack the downloaded file
     debug!(archive = ?result.archive_file, "Unpacking download");
 
-    let upgraded = unpack_release(result, &proto.env.bin_dir, &proto.env.tools_dir)?;
+    let upgraded = unpack_release(
+        result,
+        proto.env.bin_dir.clone(),
+        proto.env.tools_dir.join("proto").join(current_version),
+    )?;
 
     // Track usage metrics
     track_usage(
