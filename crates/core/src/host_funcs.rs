@@ -124,10 +124,7 @@ fn exec_command(
 
     // Relative or absolute file path
     let maybe_command = if input.command.contains('/') || input.command.contains('\\') {
-        let path = warpgate::from_virtual_path(
-            &data.proto.get_virtual_paths(),
-            &PathBuf::from(&input.command),
-        );
+        let path = data.proto.from_virtual_path(PathBuf::from(&input.command));
 
         if path.exists() {
             // This is temporary since WASI does not support updating file permissions yet!
@@ -153,7 +150,7 @@ fn exec_command(
 
     // Determine working directory
     let cwd = if let Some(working_dir) = &input.working_dir {
-        warpgate::from_virtual_path(&data.proto.get_virtual_paths(), working_dir)
+        data.proto.from_virtual_path(working_dir)
     } else {
         data.proto.cwd.clone()
     };
@@ -242,19 +239,45 @@ fn set_env_var(
     plugin: &mut CurrentPlugin,
     inputs: &[Val],
     _outputs: &mut [Val],
-    _user_data: UserData<HostData>,
+    user_data: UserData<HostData>,
 ) -> Result<(), Error> {
     let name: String = plugin.memory_get_val(&inputs[0])?;
     let value: String = plugin.memory_get_val(&inputs[1])?;
 
-    trace!(
-        target: "proto_wasm::set_env_var",
-        name = &name,
-        value = &value,
-        "Wrote environment variable to host"
-    );
+    if name == "PATH" {
+        let data = user_data.get()?;
+        let data = data.lock().unwrap();
 
-    env::set_var(name, value);
+        // The WASM plugin has no context into what OS they are really
+        // running on, so handle both delimiters for convenience.
+        let new_path = value
+            .replace(';', ":")
+            .split(':')
+            .map(|path| data.proto.from_virtual_path(PathBuf::from(path)))
+            .collect::<Vec<_>>();
+
+        trace!(
+            target: "proto_wasm::set_env_var",
+            name = &name,
+            path = ?new_path,
+            "Adding paths to PATH environment variable on host"
+        );
+
+        let mut path = env::split_paths(&env::var_os("PATH").expect("PATH has not been set!"))
+            .collect::<Vec<_>>();
+        path.extend(new_path);
+
+        env::set_var("PATH", env::join_paths(path)?);
+    } else {
+        trace!(
+            target: "proto_wasm::set_env_var",
+            name = &name,
+            value = &value,
+            "Wrote environment variable to host"
+        );
+
+        env::set_var(name, value);
+    }
 
     Ok(())
 }
@@ -269,9 +292,7 @@ fn from_virtual_path(
 
     let data = user_data.get()?;
     let data = data.lock().unwrap();
-
-    let paths_map = data.proto.get_virtual_paths();
-    let real_path = warpgate::from_virtual_path(&paths_map, &virtual_path);
+    let real_path = data.proto.from_virtual_path(&virtual_path);
 
     trace!(
         target: "proto_wasm::from_virtual_path",
@@ -295,9 +316,7 @@ fn to_virtual_path(
 
     let data = user_data.get()?;
     let data = data.lock().unwrap();
-
-    let paths_map = data.proto.get_virtual_paths();
-    let virtual_path = warpgate::to_virtual_path(&paths_map, &real_path);
+    let virtual_path = data.proto.to_virtual_path(&real_path);
 
     trace!(
         target: "proto_wasm::to_virtual_path",

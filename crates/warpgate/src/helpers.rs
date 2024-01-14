@@ -147,7 +147,12 @@ fn sort_virtual_paths(map: &BTreeMap<PathBuf, PathBuf>) -> Vec<(&PathBuf, &PathB
 }
 
 /// Convert the provided virtual guest path to an absolute host path.
-pub fn from_virtual_path(paths_map: &BTreeMap<PathBuf, PathBuf>, path: &Path) -> PathBuf {
+pub fn from_virtual_path(
+    paths_map: &BTreeMap<PathBuf, PathBuf>,
+    path: impl AsRef<Path>,
+) -> PathBuf {
+    let path = path.as_ref();
+
     for (host_path, guest_path) in sort_virtual_paths(paths_map) {
         if let Ok(rel_path) = path.strip_prefix(guest_path) {
             return host_path.join(rel_path);
@@ -159,7 +164,12 @@ pub fn from_virtual_path(paths_map: &BTreeMap<PathBuf, PathBuf>, path: &Path) ->
 
 /// Convert the provided absolute host path to a virtual guest path suitable
 /// for WASI sandboxed runtimes.
-pub fn to_virtual_path(paths_map: &BTreeMap<PathBuf, PathBuf>, path: &Path) -> VirtualPath {
+pub fn to_virtual_path(
+    paths_map: &BTreeMap<PathBuf, PathBuf>,
+    path: impl AsRef<Path>,
+) -> VirtualPath {
+    let path = path.as_ref();
+
     for (host_path, guest_path) in sort_virtual_paths(paths_map) {
         if let Ok(rel_path) = path.strip_prefix(host_path) {
             let path = guest_path.join(rel_path);
