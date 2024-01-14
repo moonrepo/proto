@@ -21,6 +21,10 @@
 
 - Fixed `proto upgrade` moving the old binary to the wrong location.
 
+#### 🧩 Plugins
+
+- Updated `rust_plugin` to v0.7.1.
+
 ## 0.28.0
 
 This release primarily upgrades our WASM runtime. For plugin authors, you'll need to update to the latest PDK and publish a new version. Old plugins are incompatible.
