@@ -12,6 +12,11 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- WASM API
+  - Updated the `set_env_var` host function (and `host_env!` macro) to append `PATH` instead of overwriting it, and to also support virtual paths.
+
 #### 🐞 Fixes
 
 - Fixed `proto upgrade` moving the old binary to the wrong location.

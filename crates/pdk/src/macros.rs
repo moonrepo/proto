@@ -70,10 +70,8 @@ macro_rules! exec_command {
 /// Calls the `get_env_var` or `set_env_var` host function to manage
 /// environment variables on the host.
 ///
-/// When setting `PATH`, the provided value must be a single path,
-/// not a list of paths separated by `:` or `;`, as we have no OS
-/// context. For multiple paths, call set multiple times. Furthermore,
-/// the provided path will append to `PATH`, not overwrite it.
+/// When setting `PATH`, the provided value will append to `PATH`,
+/// not overwrite it. Supports both `;` and `:` delimiters.
 #[macro_export]
 macro_rules! host_env {
     ($name:literal, $value:expr) => {
