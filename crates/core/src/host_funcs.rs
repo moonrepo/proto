@@ -124,7 +124,7 @@ fn exec_command(
 
     // Relative or absolute file path
     let maybe_command = if input.command.contains('/') || input.command.contains('\\') {
-        let path = data.proto.from_virtual_path(&PathBuf::from(&input.command));
+        let path = data.proto.from_virtual_path(PathBuf::from(&input.command));
 
         if path.exists() {
             // This is temporary since WASI does not support updating file permissions yet!
@@ -253,7 +253,7 @@ fn set_env_var(
         let new_path = value
             .replace(';', ":")
             .split(':')
-            .map(|path| data.proto.from_virtual_path(&PathBuf::from(path)))
+            .map(|path| data.proto.from_virtual_path(PathBuf::from(path)))
             .collect::<Vec<_>>();
 
         trace!(

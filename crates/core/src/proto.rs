@@ -58,12 +58,12 @@ impl ProtoEnvironment {
         })
     }
 
-    pub fn from_virtual_path(&self, path: &Path) -> PathBuf {
-        warpgate::from_virtual_path(&self.get_virtual_paths(), path)
+    pub fn from_virtual_path(&self, path: impl AsRef<Path>) -> PathBuf {
+        warpgate::from_virtual_path(&self.get_virtual_paths(), path.as_ref())
     }
 
-    pub fn to_virtual_path(&self, path: &Path) -> VirtualPath {
-        warpgate::to_virtual_path(&self.get_virtual_paths(), path)
+    pub fn to_virtual_path(&self, path: impl AsRef<Path>) -> VirtualPath {
+        warpgate::to_virtual_path(&self.get_virtual_paths(), path.as_ref())
     }
 
     pub fn get_config_dir(&self, global: bool) -> &Path {
