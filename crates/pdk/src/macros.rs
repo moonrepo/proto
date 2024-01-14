@@ -69,14 +69,19 @@ macro_rules! exec_command {
 
 /// Calls the `get_env_var` or `set_env_var` host function to manage
 /// environment variables on the host.
+///
+/// When setting `PATH`, the provided value must be a single path,
+/// not a list of paths separated by `:` or `;`, as we have no OS
+/// context. For multiple paths, call set multiple times. Furthermore,
+/// the provided path will append to `PATH`, not overwrite it.
 #[macro_export]
 macro_rules! host_env {
     ($name:literal, $value:expr) => {
-        unsafe { set_env_var($name, $value)? };
+        unsafe { set_env_var($name.into(), $value.into())? };
     };
     ($name:literal) => {
         unsafe {
-            let inner = get_env_var($name)?;
+            let inner = get_env_var($name.into())?;
 
             if inner.is_empty() {
                 None

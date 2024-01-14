@@ -7,11 +7,11 @@ use std::collections::HashMap;
 #[host_fn]
 extern "ExtismHost" {
     fn exec_command(input: Json<ExecCommandInput>) -> Json<ExecCommandOutput>;
-    // fn from_virtual_path(path: &str) -> String;
-    fn get_env_var(name: &str) -> String;
+    // fn from_virtual_path(path: String) -> String;
+    fn get_env_var(name: String) -> String;
     fn host_log(input: Json<HostLogInput>);
-    fn set_env_var(name: &str, value: &str);
-    // fn to_virtual_path(path: &str) -> String;
+    fn set_env_var(name: String, value: String);
+    // fn to_virtual_path(path: String) -> String;
 }
 
 #[derive(Debug, Default, Deserialize)]
