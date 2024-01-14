@@ -247,14 +247,31 @@ fn set_env_var(
     let name: String = plugin.memory_get_val(&inputs[0])?;
     let value: String = plugin.memory_get_val(&inputs[1])?;
 
-    trace!(
-        target: "proto_wasm::set_env_var",
-        name = &name,
-        value = &value,
-        "Wrote environment variable to host"
-    );
+    if name == "PATH" {
+        let new_path = env::split_paths(&value).collect::<Vec<_>>();
 
-    env::set_var(name, value);
+        trace!(
+            target: "proto_wasm::set_env_var",
+            name = &name,
+            path = ?new_path,
+            "Adding paths to PATH environment variable on host"
+        );
+
+        let mut path = env::split_paths(&env::var_os("PATH").expect("PATH has not been set!"))
+            .collect::<Vec<_>>();
+        path.extend(new_path);
+
+        env::set_var("PATH", env::join_paths(path)?);
+    } else {
+        trace!(
+            target: "proto_wasm::set_env_var",
+            name = &name,
+            value = &value,
+            "Wrote environment variable to host"
+        );
+
+        env::set_var(name, value);
+    }
 
     Ok(())
 }
