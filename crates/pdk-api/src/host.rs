@@ -1,10 +1,8 @@
-use crate::json_struct;
-use serde::{Deserialize, Serialize};
-use warpgate_api::VirtualPath;
+use warpgate_api::*;
 
 pub use system_env::{SystemArch as HostArch, SystemOS as HostOS};
 
-json_struct!(
+api_struct!(
     /// Information about the host environment (the current runtime).
     pub struct HostEnvironment {
         pub arch: HostArch,

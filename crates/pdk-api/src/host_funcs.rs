@@ -1,9 +1,8 @@
-use crate::{json_enum, json_struct};
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
+use warpgate_api::*;
 
-json_enum!(
+api_enum!(
     /// Target where host logs should be written to.
     #[derive(Default)]
     #[serde(rename_all = "lowercase")]
@@ -15,7 +14,7 @@ json_enum!(
     }
 );
 
-json_struct!(
+api_struct!(
     pub struct HostLogInput {
         pub data: HashMap<String, serde_json::Value>,
         pub message: String,
@@ -45,7 +44,7 @@ impl From<String> for HostLogInput {
     }
 }
 
-json_struct!(
+api_struct!(
     /// Input passed to the `exec_command` host function.
     pub struct ExecCommandInput {
         /// Arguments to pass to the command.
@@ -97,7 +96,7 @@ impl ExecCommandInput {
     }
 }
 
-json_struct!(
+api_struct!(
     /// Output returned from the `exec_command` host function.
     pub struct ExecCommandOutput {
         pub command: String,
