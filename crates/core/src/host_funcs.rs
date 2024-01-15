@@ -2,7 +2,7 @@ use crate::error::ProtoError;
 use crate::proto::ProtoEnvironment;
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
 use proto_pdk_api::{ExecCommandInput, ExecCommandOutput, HostLogInput, HostLogTarget};
-use starbase_styles::color;
+use starbase_styles::color::{self, apply_style_tags};
 use starbase_utils::fs;
 use std::env;
 use std::path::PathBuf;
@@ -73,26 +73,25 @@ pub fn host_log(
     _user_data: UserData<HostData>,
 ) -> Result<(), Error> {
     let input: HostLogInput = serde_json::from_str(plugin.memory_get_val(&inputs[0])?)?;
+    let message = apply_style_tags(input.message);
 
     match input.target {
         HostLogTarget::Stderr => {
             if input.data.is_empty() {
-                eprintln!("{}", input.message);
+                eprintln!("{message}");
             } else {
                 eprintln!(
-                    "{} {}",
-                    input.message,
+                    "{message} {}",
                     color::muted_light(format!("({:?})", input.data)),
                 );
             }
         }
         HostLogTarget::Stdout => {
             if input.data.is_empty() {
-                println!("{}", input.message);
+                println!("{message}");
             } else {
                 println!(
-                    "{} {}",
-                    input.message,
+                    "{message} {}",
                     color::muted_light(format!("({:?})", input.data)),
                 );
             }
@@ -101,7 +100,7 @@ pub fn host_log(
             trace!(
                 target: "proto_wasm::log",
                 data = ?input.data,
-                "{}", input.message,
+                "{message}"
             );
         }
     };

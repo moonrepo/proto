@@ -128,9 +128,9 @@ checksum = "7d5a26814d8dcb93b0e5a0ff3c6d80a8843bafb21b39e8e18a6f05471870e110"
 
 [[package]]
 name = "assert_cmd"
-version = "2.0.12"
+version = "2.0.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "88903cb14723e4d4003335bb7f8a14f27691649105346a0f0957466c096adfe6"
+checksum = "00ad3f3a942eee60335ab4342358c161ee296829e0d16ff42fc1d6cb07815467"
 dependencies = [
  "anstyle",
  "bstr",
@@ -143,9 +143,9 @@ dependencies = [
 
 [[package]]
 name = "assert_fs"
-version = "1.0.13"
+version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f070617a68e5c2ed5d06ee8dd620ee18fb72b99f6c094bed34cf8ab07c875b48"
+checksum = "2cd762e110c8ed629b11b6cde59458cc1c71de78ebbcc30099fc8e0403a2a2ec"
 dependencies = [
  "anstyle",
  "doc-comment",
@@ -158,9 +158,9 @@ dependencies = [
 
 [[package]]
 name = "async-trait"
-version = "0.1.75"
+version = "0.1.77"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fdf6721fb0140e4f897002dd086c06f6c27775df19cfe1fccb21181a48fd2c98"
+checksum = "c980ee35e870bd1a4d2c8294d4c04d0499e67bca1e4b5cefcc693c2fa00caea9"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1350,11 +1350,11 @@ dependencies = [
 
 [[package]]
 name = "globwalk"
-version = "0.8.1"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93e3af942408868f6934a7b85134a3230832b9977cf66125df2f9edcfce4ddcc"
+checksum = "0bf760ebf69878d9fd8f110c89703d90ce35095324d1f1edcb595c63945ee757"
 dependencies = [
- "bitflags 1.3.2",
+ "bitflags 2.4.1",
  "ignore",
  "walkdir",
 ]
@@ -2929,9 +2929,9 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "starbase"
-version = "0.2.12"
+version = "0.2.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a34ccab9800f523a9831087670e219e7e5a90c25445d5753e7e6dbf25b79be3"
+checksum = "5063df38267aac985d5e1be89dcc0d28559a7f09a3d8e84a8162279b4b3b972b"
 dependencies = [
  "async-trait",
  "chrono",
@@ -2982,9 +2982,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_macros"
-version = "0.2.9"
+version = "0.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "988e67c7a4f2afb4c19a431f0a45226538441e12641daaf66a60da031fb44f7d"
+checksum = "5abe23176f7631d987cd891f48cfc10897ba6324a3b7623153776215f14802a3"
 dependencies = [
  "darling 0.20.3",
  "proc-macro2",
@@ -2994,9 +2994,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_sandbox"
-version = "0.1.12"
+version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49d8cc34f93dd97db45ad1a7240bc03e01ee8478af003f8d945e8031585a4f11"
+checksum = "74dc9bd92b3587c63cad2db7cb23c79b0d1d1a25b314990880a7a932f6f31e87"
 dependencies = [
  "assert_cmd",
  "assert_fs",

@@ -10,7 +10,7 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
-## 0.29.0
+## Unreleased
 
 #### 🚀 Updates
 
@@ -21,6 +21,8 @@
   - Takes higher precedence than `.prototools`.
   - Can be enabled with the `PROTO_ENV` environment variable.
 - Updated `proto tool info` to display aliases and environment variables.
+- WASM API
+  - Added color support to error and log messages through an HTML-like tag syntax.
 
 ## 0.28.1
 

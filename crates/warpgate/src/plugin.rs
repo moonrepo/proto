@@ -6,7 +6,7 @@ use extism::{Error, Function, Manifest, Plugin};
 use once_map::OnceMap;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use starbase_styles::color;
+use starbase_styles::color::{self, apply_style_tags};
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
@@ -191,10 +191,12 @@ impl PluginContainer {
                 };
             }
 
-            let message = error
-                .source()
-                .map(|src| src.to_string())
-                .unwrap_or_else(|| error.to_string());
+            let message = apply_style_tags(
+                error
+                    .source()
+                    .map(|src| src.to_string())
+                    .unwrap_or_else(|| error.to_string()),
+            );
 
             // When in debug mode, include more information around errors.
             #[cfg(debug_assertions)]
@@ -205,6 +207,7 @@ impl PluginContainer {
                     error: message,
                 }
             }
+
             // When in release mode, errors don't render properly with the
             // previous variant, so this is a special variant that renders as-is.
             #[cfg(not(debug_assertions))]
