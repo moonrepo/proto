@@ -1,5 +1,6 @@
 use proto_core::{
-    DetectStrategy, PartialProtoSettingsConfig, PinType, ProtoConfig, ProtoConfigManager,
+    DetectStrategy, EnvVar, PartialEnvVar, PartialProtoSettingsConfig, PinType, ProtoConfig,
+    ProtoConfigManager,
 };
 use schematic::ConfigError;
 use starbase_sandbox::create_empty_sandbox;
@@ -101,6 +102,31 @@ pin-latest = "global"
         env::remove_var("PROTO_AUTO_INSTALL");
         env::remove_var("PROTO_DETECT_STRATEGY");
         env::remove_var("PROTO_PIN_LATEST");
+    }
+
+    #[test]
+    fn can_set_env() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(
+            ".prototools",
+            r#"
+[env]
+FOO = true
+BAR = false
+BAZ_QUX = "abc"
+"#,
+        );
+
+        let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
+
+        assert_eq!(
+            config.env.unwrap(),
+            BTreeMap::from_iter([
+                ("FOO".into(), PartialEnvVar::State(true)),
+                ("BAR".into(), PartialEnvVar::State(false)),
+                ("BAZ_QUX".into(), PartialEnvVar::Value("abc".into())),
+            ])
+        );
     }
 
     #[test]
@@ -393,6 +419,60 @@ value = "4.5.6"
                         "value".to_owned(),
                         UnresolvedVersionSpec::parse("1.2.3").unwrap()
                     ),
+                ])
+            );
+        }
+
+        #[test]
+        fn merges_env_vars() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                "a/b/.prototools",
+                r#"
+[tools.node.env]
+NODE_ENV = "production"
+"#,
+            );
+            sandbox.create_file(
+                "a/.prototools",
+                r#"
+[env]
+APP_NAME = "middle"
+
+[tools.node.env]
+NODE_ENV = "development"
+"#,
+            );
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[env]
+APP_TYPE = "ssg"
+
+[tools.node.env]
+NODE_PATH = false
+"#,
+            );
+
+            let config = ProtoConfigManager::load(sandbox.path().join("a/b"), None)
+                .unwrap()
+                .get_merged_config()
+                .unwrap()
+                .to_owned();
+
+            assert_eq!(
+                config.env,
+                BTreeMap::from_iter([
+                    ("APP_NAME".into(), EnvVar::Value("middle".into())),
+                    ("APP_TYPE".into(), EnvVar::Value("ssg".into()))
+                ])
+            );
+
+            assert_eq!(
+                config.tools.get("node").unwrap().env,
+                BTreeMap::from_iter([
+                    ("NODE_ENV".into(), EnvVar::Value("production".into())),
+                    ("NODE_PATH".into(), EnvVar::State(false))
                 ])
             );
         }

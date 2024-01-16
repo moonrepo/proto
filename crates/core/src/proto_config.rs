@@ -36,7 +36,7 @@ derive_enum!(
     }
 );
 
-#[derive(Clone, Config, Debug, Serialize)]
+#[derive(Clone, Config, Debug, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum EnvVar {
     State(bool),
