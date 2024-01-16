@@ -8,6 +8,5 @@ api_struct!(
         pub arch: HostArch,
         pub os: HostOS,
         pub home_dir: VirtualPath,
-        pub proto_dir: VirtualPath,
     }
 );

@@ -9,7 +9,7 @@ pub use proto_core::{
 pub use proto_pdk_api::*;
 pub use wrapper::WasmTestWrapper;
 
-use proto_core::inject_default_manifest_config;
+use proto_core::{inject_default_manifest_config, inject_proto_manifest_config};
 use serde::Serialize;
 use std::collections::HashMap;
 use std::fs::OpenOptions;
@@ -121,7 +121,8 @@ pub fn create_plugin_with_config(
     let mut manifest =
         Tool::create_plugin_manifest(&proto, Wasm::file(find_wasm_file(sandbox))).unwrap();
 
-    inject_default_manifest_config(&id, &proto, &mut manifest).unwrap();
+    inject_default_manifest_config(&id, &proto.home, &mut manifest).unwrap();
+    inject_proto_manifest_config(&id, &proto, &mut manifest).unwrap();
 
     manifest.config.extend(config);
 

@@ -12,6 +12,13 @@
 
 ## Unreleased
 
+#### 💥 Breaking
+
+- WASM API
+  - Renamed `get_tool_id` to `get_plugin_id`.
+  - Renamed `get_proto_environment` to `get_host_environment`.
+  - Removed `HostEnvironment.proto_dir` field.
+
 #### 🚀 Updates
 
 - Added `env` and `tools.*.env` settings to `.prototools` to support environment variables.
@@ -22,7 +29,7 @@
   - Can be enabled with the `PROTO_ENV` environment variable.
 - Updated `proto tool info` to display aliases and environment variables.
 - WASM API
-  - Added color support to error and log messages through an HTML-like tag syntax.
+  - Added color support to error and host log messages through an HTML-like tag syntax.
 
 ## 0.28.1
 

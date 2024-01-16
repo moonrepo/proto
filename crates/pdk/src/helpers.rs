@@ -227,11 +227,17 @@ pub fn get_target_triple(env: &HostEnvironment, name: &str) -> Result<String, Pl
 }
 
 /// Get the tool ID for the current WASM plugin.
+#[deprecated = "Use `get_plugin_id` instead."]
 pub fn get_tool_id() -> anyhow::Result<String> {
     Ok(config::get("proto_tool_id")?.expect("Missing tool ID!"))
 }
 
-/// Get tool configuration for the current WASM plugin that was configured in a `.prototools` file.
+/// Get the ID for the current plugin.
+pub fn get_plugin_id() -> anyhow::Result<String> {
+    Ok(config::get("plugin_id")?.expect("Missing plugin ID!"))
+}
+
+/// Get proto tool configuration that was configured in a `.prototools` file.
 pub fn get_tool_config<T: Default + DeserializeOwned>() -> anyhow::Result<T> {
     let config: T = if let Some(value) = config::get("proto_tool_config")? {
         json::from_str(&value)?
@@ -243,8 +249,17 @@ pub fn get_tool_config<T: Default + DeserializeOwned>() -> anyhow::Result<T> {
 }
 
 /// Return information about proto and the host environment.
+#[deprecated = "Use `get_host_environment` instead."]
 pub fn get_proto_environment() -> anyhow::Result<HostEnvironment> {
     let config = config::get("proto_environment")?.expect("Missing proto environment!");
+    let config: HostEnvironment = json::from_str(&config)?;
+
+    Ok(config)
+}
+
+/// Return information about the host environment.
+pub fn get_host_environment() -> anyhow::Result<HostEnvironment> {
+    let config = config::get("host_environment")?.expect("Missing host environment!");
     let config: HostEnvironment = json::from_str(&config)?;
 
     Ok(config)

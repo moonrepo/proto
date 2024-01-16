@@ -6,50 +6,61 @@ use extism::{Manifest, Wasm};
 use miette::IntoDiagnostic;
 use proto_pdk_api::{HostArch, HostEnvironment, HostOS};
 use starbase_utils::{json, toml};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tracing::{debug, trace};
 use warpgate::{to_virtual_path, Id, PluginLocator};
 
 pub fn inject_default_manifest_config(
     id: &Id,
-    proto: &ProtoEnvironment,
+    home_dir: &Path,
     manifest: &mut Manifest,
 ) -> miette::Result<()> {
-    trace!(id = id.as_str(), "Storing tool identifier");
+    trace!(id = id.as_str(), "Storing plugin identifier");
 
+    manifest
+        .config
+        .insert("plugin_id".to_string(), id.to_string());
+    // TODO remove in the future
     manifest
         .config
         .insert("proto_tool_id".to_string(), id.to_string());
 
-    let config = proto.load_config()?;
-
-    if let Some(tool_config) = config.tools.get(id) {
-        if !tool_config.config.is_empty() {
-            let value = json::to_string(&tool_config.config).into_diagnostic()?;
-
-            trace!(config = %value, "Storing tool configuration");
-
-            manifest
-                .config
-                .insert("proto_tool_config".to_string(), value);
-        }
-    }
-
-    let paths_map = manifest.allowed_paths.as_ref().unwrap();
-
     let value = json::to_string(&HostEnvironment {
         arch: HostArch::from_env(),
         os: HostOS::from_env(),
-        home_dir: to_virtual_path(paths_map, &proto.home),
-        proto_dir: to_virtual_path(paths_map, &proto.root),
+        home_dir: to_virtual_path(manifest.allowed_paths.as_ref().unwrap(), home_dir),
     })
     .into_diagnostic()?;
 
-    trace!(env = %value, "Storing proto environment");
+    trace!(env = %value, "Storing host environment");
 
     manifest
         .config
+        .insert("host_environment".to_string(), value.clone());
+    // TODO remove in the future
+    manifest
+        .config
         .insert("proto_environment".to_string(), value);
+
+    Ok(())
+}
+
+pub fn inject_proto_manifest_config(
+    id: &Id,
+    proto: &ProtoEnvironment,
+    manifest: &mut Manifest,
+) -> miette::Result<()> {
+    let config = proto.load_config()?;
+
+    if let Some(tool_config) = config.tools.get(id) {
+        let value = json::to_string(&tool_config.config).into_diagnostic()?;
+
+        trace!(config = %value, "Storing proto tool configuration");
+
+        manifest
+            .config
+            .insert("proto_tool_config".to_string(), value);
+    }
 
     Ok(())
 }
@@ -143,7 +154,8 @@ pub async fn load_tool_from_locator(
         Tool::create_plugin_manifest(proto, Wasm::file(plugin_path))?
     };
 
-    inject_default_manifest_config(id, proto, &mut manifest)?;
+    inject_default_manifest_config(id, &proto.home, &mut manifest)?;
+    inject_proto_manifest_config(id, proto, &mut manifest)?;
 
     let mut tool = Tool::load_from_manifest(id, proto, manifest)?;
     tool.locator = Some(locator.to_owned());
