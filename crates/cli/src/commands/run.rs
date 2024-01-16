@@ -3,10 +3,11 @@ use crate::error::ProtoCliError;
 use crate::helpers::ProtoResource;
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::{detect_version, Id, ProtoError, Tool, UnresolvedVersionSpec};
+use proto_core::{detect_version, EnvVar, Id, ProtoError, Tool, UnresolvedVersionSpec};
 use proto_pdk_api::{ExecutableConfig, RunHook};
 use proto_shim::exec_command_and_replace;
 use starbase::system;
+use std::collections::BTreeMap;
 use std::env;
 use std::ffi::OsStr;
 use std::process::Command;
@@ -133,6 +134,19 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
     Ok(command)
 }
 
+fn get_env_vars(tool: &Tool) -> miette::Result<BTreeMap<&String, &EnvVar>> {
+    let config = tool.proto.load_config()?;
+    let mut vars = BTreeMap::new();
+
+    vars.extend(config.env.iter());
+
+    if let Some(tool_config) = config.tools.get(&tool.id) {
+        vars.extend(tool_config.env.iter())
+    }
+
+    Ok(vars)
+}
+
 #[system]
 pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> SystemResult {
     let mut tool = proto.load_tool(&args.id).await?;
@@ -212,6 +226,22 @@ pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> S
             format!("{}_BIN", tool.get_env_var_prefix()),
             exe_path.to_string_lossy().to_string(),
         );
+
+    // Inherit variables from configs
+    for (key, val) in get_env_vars(&tool)? {
+        match val {
+            EnvVar::State(state) => {
+                if *state {
+                    command.env(key, "true");
+                } else {
+                    command.env_remove(key);
+                }
+            }
+            EnvVar::Value(var) => {
+                command.env(key, var);
+            }
+        }
+    }
 
     // Update the last used timestamp
     if env::var("PROTO_SKIP_USED_AT").is_err() {

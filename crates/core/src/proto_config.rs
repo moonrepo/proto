@@ -37,12 +37,23 @@ derive_enum!(
 );
 
 #[derive(Clone, Config, Debug, Serialize)]
+#[serde(untagged)]
+pub enum EnvVar {
+    State(bool),
+    Value(String),
+}
+
+#[derive(Clone, Config, Debug, Serialize)]
 #[config(allow_unknown_fields)]
 #[serde(rename_all = "kebab-case")]
 pub struct ProtoToolConfig {
     #[setting(merge = merge::merge_btreemap)]
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub aliases: BTreeMap<String, UnresolvedVersionSpec>,
+
+    #[setting(nested, merge = merge::merge_btreemap)]
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub env: BTreeMap<String, EnvVar>,
 
     // Custom configuration to pass to plugins
     #[setting(merge = merge::merge_btreemap)]
@@ -87,6 +98,10 @@ fn merge_tools(
 #[config(allow_unknown_fields)]
 #[serde(rename_all = "kebab-case")]
 pub struct ProtoConfig {
+    #[setting(nested, merge = merge::merge_btreemap)]
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub env: BTreeMap<String, EnvVar>,
+
     #[setting(nested, merge = merge_tools)]
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub tools: BTreeMap<Id, ProtoToolConfig>,
