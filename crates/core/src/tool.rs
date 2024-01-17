@@ -110,7 +110,9 @@ impl Tool {
                 },
                 level,
             ) {
-                warn!("Failed to capture WASM logs: {}", error.to_string());
+                if env::var("PROTO_TEST").is_err() {
+                    warn!("Failed to capture WASM logs: {}", error.to_string());
+                }
             }
         }
 
