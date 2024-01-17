@@ -9,7 +9,7 @@ use starbase_styles::color;
 use starbase_utils::json::JsonValue;
 use starbase_utils::toml::TomlValue;
 use starbase_utils::{fs, toml};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tracing::{debug, trace};
@@ -60,9 +60,9 @@ pub struct ProtoToolConfig {
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub aliases: BTreeMap<String, UnresolvedVersionSpec>,
 
-    #[setting(nested, merge = merge::merge_btreemap)]
-    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
-    pub env: BTreeMap<String, EnvVar>,
+    #[setting(nested, merge = merge::merge_hashmap)]
+    #[serde(skip_serializing_if = "HashMap::is_empty")]
+    pub env: HashMap<String, EnvVar>,
 
     // Custom configuration to pass to plugins
     #[setting(merge = merge::merge_btreemap)]
@@ -107,9 +107,9 @@ fn merge_tools(
 #[config(allow_unknown_fields)]
 #[serde(rename_all = "kebab-case")]
 pub struct ProtoConfig {
-    #[setting(nested, merge = merge::merge_btreemap)]
-    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
-    pub env: BTreeMap<String, EnvVar>,
+    #[setting(nested, merge = merge::merge_hashmap)]
+    #[serde(skip_serializing_if = "HashMap::is_empty")]
+    pub env: HashMap<String, EnvVar>,
 
     #[setting(nested, merge = merge_tools)]
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]

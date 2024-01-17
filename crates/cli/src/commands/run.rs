@@ -7,7 +7,7 @@ use proto_core::{detect_version, Id, ProtoError, Tool, UnresolvedVersionSpec, EN
 use proto_pdk_api::{ExecutableConfig, RunHook};
 use proto_shim::exec_command_and_replace;
 use starbase::system;
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::env;
 use std::ffi::OsStr;
 use std::process::Command;
@@ -134,9 +134,11 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
     Ok(command)
 }
 
-fn get_env_vars(tool: &Tool) -> miette::Result<BTreeMap<&str, Option<String>>> {
+// We don't use a `BTreeMap` for env vars, so that variable interpolation
+// and order of declaration can work correctly!
+fn get_env_vars(tool: &Tool) -> miette::Result<HashMap<&str, Option<String>>> {
     let config = tool.proto.load_config()?;
-    let mut base_vars = BTreeMap::new();
+    let mut base_vars = HashMap::new();
 
     base_vars.extend(config.env.iter());
 
@@ -144,7 +146,7 @@ fn get_env_vars(tool: &Tool) -> miette::Result<BTreeMap<&str, Option<String>>> {
         base_vars.extend(tool_config.env.iter())
     }
 
-    let mut vars = BTreeMap::<&str, Option<String>>::new();
+    let mut vars = HashMap::<&str, Option<String>>::new();
 
     for (key, value) in base_vars {
         let key_exists = env::var(key).is_ok_and(|v| !v.is_empty());

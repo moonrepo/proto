@@ -5,7 +5,7 @@ use proto_core::{
 use schematic::ConfigError;
 use starbase_sandbox::create_empty_sandbox;
 use starbase_utils::json::JsonValue;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::env;
 use version_spec::UnresolvedVersionSpec;
 use warpgate::{GitHubLocator, HttpOptions, Id, PluginLocator};
@@ -121,7 +121,7 @@ BAZ_QUX = "abc"
 
         assert_eq!(
             config.env.unwrap(),
-            BTreeMap::from_iter([
+            HashMap::from_iter([
                 ("FOO".into(), PartialEnvVar::State(true)),
                 ("BAR".into(), PartialEnvVar::State(false)),
                 ("BAZ_QUX".into(), PartialEnvVar::Value("abc".into())),
@@ -462,7 +462,7 @@ NODE_PATH = false
 
             assert_eq!(
                 config.env,
-                BTreeMap::from_iter([
+                HashMap::from_iter([
                     ("APP_NAME".into(), EnvVar::Value("middle".into())),
                     ("APP_TYPE".into(), EnvVar::Value("ssg".into()))
                 ])
@@ -470,7 +470,7 @@ NODE_PATH = false
 
             assert_eq!(
                 config.tools.get("node").unwrap().env,
-                BTreeMap::from_iter([
+                HashMap::from_iter([
                     ("NODE_ENV".into(), EnvVar::Value("production".into())),
                     ("NODE_PATH".into(), EnvVar::State(false))
                 ])
