@@ -1,9 +1,9 @@
 use crate::helpers::ProtoResource;
-use crate::printer::Printer;
+use crate::printer::{format_env_var, format_value, Printer};
 use clap::Args;
 use miette::IntoDiagnostic;
 use proto_core::{
-    detect_version, ExecutableLocation, Id, PluginLocator, ProtoToolConfig, ToolManifest,
+    detect_version, EnvVar, ExecutableLocation, Id, PluginLocator, ProtoToolConfig, ToolManifest,
 };
 use proto_pdk_api::ToolMetadataOutput;
 use serde::Serialize;
@@ -112,7 +112,7 @@ pub async fn info(args: ArgsRef<ToolInfoArgs>, proto: ResourceRef<ProtoResource>
                     "{} {}",
                     color::path(shim.path),
                     if shim.primary {
-                        color::muted_light("(primary)")
+                        format_value("(primary)")
                     } else {
                         "".into()
                     }
@@ -137,15 +137,47 @@ pub async fn info(args: ArgsRef<ToolInfoArgs>, proto: ResourceRef<ProtoResource>
 
     // CONFIG
 
-    if !tool_config.config.is_empty() {
-        printer.named_section("Configuration", |p| {
-            for (key, value) in tool_config.config {
-                p.entry(key, value.to_string());
-            }
+    printer.named_section("Configuration", |p| {
+        p.entry_map(
+            "Aliases",
+            tool_config
+                .aliases
+                .iter()
+                .map(|(k, v)| (color::hash(v.to_string()), format_value(k))),
+            None,
+        );
 
-            Ok(())
-        })?;
-    }
+        p.entry_map(
+            "Environment variables",
+            tool_config.env.iter().map(|(k, v)| {
+                (
+                    color::property(k),
+                    match v {
+                        EnvVar::State(state) => {
+                            if *state {
+                                format_value("true")
+                            } else {
+                                color::muted("(removed)")
+                            }
+                        }
+                        EnvVar::Value(value) => format_env_var(value),
+                    },
+                )
+            }),
+            None,
+        );
+
+        p.entry_map(
+            "Settings",
+            tool_config
+                .config
+                .iter()
+                .map(|(k, v)| (k, format_value(v.to_string()))),
+            None,
+        );
+
+        Ok(())
+    })?;
 
     // PLUGIN
 

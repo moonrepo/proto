@@ -2,8 +2,9 @@ use crate::commands::install::{internal_install, InstallArgs};
 use crate::error::ProtoCliError;
 use crate::helpers::ProtoResource;
 use clap::Args;
+use indexmap::IndexMap;
 use miette::IntoDiagnostic;
-use proto_core::{detect_version, Id, ProtoError, Tool, UnresolvedVersionSpec};
+use proto_core::{detect_version, Id, ProtoError, Tool, UnresolvedVersionSpec, ENV_VAR_SUB};
 use proto_pdk_api::{ExecutableConfig, RunHook};
 use proto_shim::exec_command_and_replace;
 use starbase::system;
@@ -133,6 +134,52 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
     Ok(command)
 }
 
+// We don't use a `BTreeMap` for env vars, so that variable interpolation
+// and order of declaration can work correctly!
+fn get_env_vars(tool: &Tool) -> miette::Result<IndexMap<&str, Option<String>>> {
+    let config = tool.proto.load_config()?;
+    let mut base_vars = IndexMap::new();
+
+    base_vars.extend(config.env.iter());
+
+    if let Some(tool_config) = config.tools.get(&tool.id) {
+        base_vars.extend(tool_config.env.iter())
+    }
+
+    let mut vars = IndexMap::<&str, Option<String>>::new();
+
+    for (key, value) in base_vars {
+        let key_exists = env::var(key).is_ok_and(|v| !v.is_empty());
+        let value = value.to_value();
+
+        // Don't override parent inherited vars
+        if key_exists && value.is_some() {
+            continue;
+        }
+
+        // Interpolate nested vars
+        let value = value.map(|val| {
+            ENV_VAR_SUB
+                .replace_all(&val, |cap: &regex::Captures| {
+                    let name = cap.get(1).unwrap().as_str();
+
+                    if let Ok(existing) = env::var(name) {
+                        existing
+                    } else if let Some(Some(existing)) = vars.get(name) {
+                        existing.to_owned()
+                    } else {
+                        String::new()
+                    }
+                })
+                .to_string()
+        });
+
+        vars.insert(key.as_str(), value);
+    }
+
+    Ok(vars)
+}
+
 #[system]
 pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> SystemResult {
     let mut tool = proto.load_tool(&args.id).await?;
@@ -202,6 +249,17 @@ pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> S
 
     // Create and run the command
     let mut command = create_command(&tool, &exe_config, &args.passthrough)?;
+
+    for (key, val) in get_env_vars(&tool)? {
+        match val {
+            Some(val) => {
+                command.env(key, val);
+            }
+            None => {
+                command.env_remove(key);
+            }
+        };
+    }
 
     command
         .env(

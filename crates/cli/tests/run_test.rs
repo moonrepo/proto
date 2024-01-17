@@ -1,8 +1,20 @@
 mod utils;
 
-use starbase_sandbox::predicates::prelude::*;
+use starbase_sandbox::{
+    assert_snapshot, create_sandbox, get_assert_output, predicates::prelude::*,
+};
+use std::path::Path;
 use std::{env, fs};
 use utils::*;
+
+fn install_node(sandbox: &Path) {
+    let mut cmd = create_proto_command(sandbox);
+    cmd.arg("install")
+        .arg("node")
+        .arg("19.0.0")
+        .assert()
+        .success();
+}
 
 mod run {
     use super::*;
@@ -251,5 +263,142 @@ mod run {
         assert.stderr(predicate::str::contains(
             "plugin-name is not a built-in tool or has not been configured as a plugin",
         ));
+    }
+
+    mod env_vars {
+        use super::*;
+
+        #[test]
+        fn inherits_from_config() {
+            let sandbox = create_sandbox("env-vars");
+
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[tools.node.env]
+FROM_CONFIG = "abc123"
+FROM_CONFIG_BOOL = true
+"#,
+            );
+
+            install_node(sandbox.path());
+
+            let mut cmd = create_proto_command(sandbox.path());
+            let assert = cmd
+                .arg("run")
+                .arg("node")
+                .arg("19.0.0")
+                .arg("--")
+                .arg("test.js")
+                .assert();
+
+            assert_snapshot!(get_assert_output(&assert));
+        }
+
+        #[test]
+        fn inherits_from_parent() {
+            let sandbox = create_sandbox("env-vars");
+
+            install_node(sandbox.path());
+
+            let mut cmd = create_proto_command(sandbox.path());
+            let assert = cmd
+                .arg("run")
+                .arg("node")
+                .arg("19.0.0")
+                .arg("--")
+                .arg("test.js")
+                .env("FROM_PARENT", "abc123")
+                .assert();
+
+            assert_snapshot!(get_assert_output(&assert));
+        }
+
+        #[test]
+        fn can_disable_inherits_from_parent_with_config() {
+            let sandbox = create_sandbox("env-vars");
+
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[tools.node.env]
+FROM_PARENT_REMOVED = false
+"#,
+            );
+
+            install_node(sandbox.path());
+
+            let mut cmd = create_proto_command(sandbox.path());
+            let assert = cmd
+                .arg("run")
+                .arg("node")
+                .arg("19.0.0")
+                .arg("--")
+                .arg("test.js")
+                .env("FROM_PARENT", "abc123")
+                .env("FROM_PARENT_REMOVED", "abc123")
+                .assert();
+
+            assert_snapshot!(get_assert_output(&assert));
+        }
+
+        #[test]
+        fn parent_overrides_config() {
+            let sandbox = create_sandbox("env-vars");
+
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[tools.node.env]
+FROM_CONFIG = "abc123"
+"#,
+            );
+
+            install_node(sandbox.path());
+
+            let mut cmd = create_proto_command(sandbox.path());
+            let assert = cmd
+                .arg("run")
+                .arg("node")
+                .arg("19.0.0")
+                .arg("--")
+                .arg("test.js")
+                .env("FROM_CONFIG", "xyz789")
+                .env("FROM_PARENT", "xyz789")
+                .assert();
+
+            assert_snapshot!(get_assert_output(&assert));
+        }
+
+        #[test]
+        fn supports_interpolation() {
+            let sandbox = create_sandbox("env-vars");
+
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[tools.node.env]
+FIRST = "abc"
+SECOND = "123"
+THIRD = "value-${FIRST}-${SECOND}-${PARENT}"
+FOURTH = "ignores-$FIRST-$PARENT"
+"#,
+            );
+
+            install_node(sandbox.path());
+
+            let mut cmd = create_proto_command(sandbox.path());
+            let assert = cmd
+                .arg("run")
+                .arg("node")
+                .arg("19.0.0")
+                .arg("--")
+                .arg("interpolation.js")
+                .env("SECOND", "789")
+                .env("PARENT", "xyz")
+                .assert();
+
+            assert_snapshot!(get_assert_output(&assert));
+        }
     }
 }

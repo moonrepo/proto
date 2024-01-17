@@ -181,3 +181,15 @@ impl<'std> Printer<'std> {
         };
     }
 }
+
+pub fn format_value(value: impl AsRef<str>) -> String {
+    color::muted_light(value)
+}
+
+pub fn format_env_var(value: &str) -> String {
+    if value.contains('/') || value.contains('\\') {
+        color::path(value)
+    } else {
+        format_value(value)
+    }
+}
