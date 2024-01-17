@@ -217,6 +217,27 @@ pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> S
     // Create and run the command
     let mut command = create_command(&tool, &exe_config, &args.passthrough)?;
 
+    for (key, val) in get_env_vars(&tool)? {
+        let key_exists = env::var(key).is_ok_and(|v| v != "");
+
+        match val {
+            EnvVar::State(state) => {
+                if *state {
+                    if !key_exists {
+                        command.env(key, "true");
+                    }
+                } else {
+                    command.env_remove(key);
+                }
+            }
+            EnvVar::Value(var) => {
+                if !key_exists {
+                    command.env(key, var);
+                }
+            }
+        }
+    }
+
     command
         .env(
             format!("{}_VERSION", tool.get_env_var_prefix()),
@@ -226,22 +247,6 @@ pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> S
             format!("{}_BIN", tool.get_env_var_prefix()),
             exe_path.to_string_lossy().to_string(),
         );
-
-    // Inherit variables from configs
-    for (key, val) in get_env_vars(&tool)? {
-        match val {
-            EnvVar::State(state) => {
-                if *state {
-                    command.env(key, "true");
-                } else {
-                    command.env_remove(key);
-                }
-            }
-            EnvVar::Value(var) => {
-                command.env(key, var);
-            }
-        }
-    }
 
     // Update the last used timestamp
     if env::var("PROTO_SKIP_USED_AT").is_err() {
