@@ -1,3 +1,4 @@
+use indexmap::IndexMap;
 use miette::IntoDiagnostic;
 use once_cell::sync::OnceCell;
 use schematic::{
@@ -9,7 +10,8 @@ use starbase_styles::color;
 use starbase_utils::json::JsonValue;
 use starbase_utils::toml::TomlValue;
 use starbase_utils::{fs, toml};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
+use std::hash::Hash;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tracing::{debug, trace};
@@ -18,6 +20,33 @@ use warpgate::{HttpOptions, Id, PluginLocator};
 
 pub const PROTO_CONFIG_NAME: &str = ".prototools";
 pub const SCHEMA_PLUGIN_KEY: &str = "internal-schema";
+
+fn merge_tools(
+    mut prev: BTreeMap<Id, PartialProtoToolConfig>,
+    next: BTreeMap<Id, PartialProtoToolConfig>,
+    context: &(),
+) -> Result<Option<BTreeMap<Id, PartialProtoToolConfig>>, ConfigError> {
+    for (key, value) in next {
+        prev.entry(key).or_default().merge(context, value)?;
+    }
+
+    Ok(Some(prev))
+}
+
+pub fn merge_indexmap<K, V>(
+    mut prev: IndexMap<K, V>,
+    next: IndexMap<K, V>,
+    _context: &(),
+) -> Result<Option<IndexMap<K, V>>, ConfigError>
+where
+    K: Eq + Hash,
+{
+    for (key, value) in next {
+        prev.insert(key, value);
+    }
+
+    Ok(Some(prev))
+}
 
 derive_enum!(
     #[derive(ConfigEnum, Default)]
@@ -60,9 +89,9 @@ pub struct ProtoToolConfig {
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub aliases: BTreeMap<String, UnresolvedVersionSpec>,
 
-    #[setting(nested, merge = merge::merge_hashmap)]
-    #[serde(skip_serializing_if = "HashMap::is_empty")]
-    pub env: HashMap<String, EnvVar>,
+    #[setting(nested, merge = merge_indexmap)]
+    #[serde(skip_serializing_if = "IndexMap::is_empty")]
+    pub env: IndexMap<String, EnvVar>,
 
     // Custom configuration to pass to plugins
     #[setting(merge = merge::merge_btreemap)]
@@ -91,25 +120,13 @@ pub struct ProtoSettingsConfig {
     pub telemetry: bool,
 }
 
-fn merge_tools(
-    mut prev: BTreeMap<Id, PartialProtoToolConfig>,
-    next: BTreeMap<Id, PartialProtoToolConfig>,
-    context: &(),
-) -> Result<Option<BTreeMap<Id, PartialProtoToolConfig>>, ConfigError> {
-    for (key, value) in next {
-        prev.entry(key).or_default().merge(context, value)?;
-    }
-
-    Ok(Some(prev))
-}
-
 #[derive(Clone, Config, Debug, Serialize)]
 #[config(allow_unknown_fields)]
 #[serde(rename_all = "kebab-case")]
 pub struct ProtoConfig {
-    #[setting(nested, merge = merge::merge_hashmap)]
-    #[serde(skip_serializing_if = "HashMap::is_empty")]
-    pub env: HashMap<String, EnvVar>,
+    #[setting(nested, merge = merge_indexmap)]
+    #[serde(skip_serializing_if = "IndexMap::is_empty")]
+    pub env: IndexMap<String, EnvVar>,
 
     #[setting(nested, merge = merge_tools)]
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
@@ -239,7 +256,7 @@ impl ProtoConfig {
             .load_partial(&())?;
 
         config
-            .validate(&())
+            .validate(&(), true)
             .map_err(|error| ConfigError::Validator {
                 config: config_path.to_string(),
                 error,

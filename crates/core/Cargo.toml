@@ -20,6 +20,7 @@ warpgate = { version = "0.9.2", path = "../warpgate", features = ["schematic"] }
 cached = { workspace = true }
 extism = { workspace = true }
 human-sort = { workspace = true }
+indexmap = { workspace = true }
 miette = { workspace = true }
 minisign-verify = "0.2.1"
 once_cell = { workspace = true }
@@ -28,6 +29,7 @@ reqwest = { workspace = true }
 schematic = { workspace = true, features = [
 	"config",
 	"toml",
+	"type_indexmap",
 	"type_serde_json",
 	"type_serde_toml",
 ] }

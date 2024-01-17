@@ -45,6 +45,7 @@ convert_case = { workspace = true }
 dialoguer = "0.11.0"
 dirs = { workspace = true }
 human-sort = { workspace = true }
+indexmap = { workspace = true }
 indicatif = "0.17.7"
 miette = { workspace = true }
 regex = { workspace = true }

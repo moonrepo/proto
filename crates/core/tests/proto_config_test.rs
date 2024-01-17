@@ -1,3 +1,4 @@
+use indexmap::IndexMap;
 use proto_core::{
     DetectStrategy, EnvVar, PartialEnvVar, PartialProtoSettingsConfig, PinType, ProtoConfig,
     ProtoConfigManager,
@@ -5,7 +6,7 @@ use proto_core::{
 use schematic::ConfigError;
 use starbase_sandbox::create_empty_sandbox;
 use starbase_utils::json::JsonValue;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 use std::env;
 use version_spec::UnresolvedVersionSpec;
 use warpgate::{GitHubLocator, HttpOptions, Id, PluginLocator};
@@ -119,14 +120,13 @@ BAZ_QUX = "abc"
 
         let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
 
-        assert_eq!(
-            config.env.unwrap(),
-            HashMap::from_iter([
-                ("FOO".into(), PartialEnvVar::State(true)),
-                ("BAR".into(), PartialEnvVar::State(false)),
-                ("BAZ_QUX".into(), PartialEnvVar::Value("abc".into())),
-            ])
-        );
+        assert_eq!(config.env.unwrap(), {
+            let mut map = IndexMap::new();
+            map.insert("FOO".into(), PartialEnvVar::State(true));
+            map.insert("BAR".into(), PartialEnvVar::State(false));
+            map.insert("BAZ_QUX".into(), PartialEnvVar::Value("abc".into()));
+            map
+        });
     }
 
     #[test]
@@ -460,21 +460,19 @@ NODE_PATH = false
                 .unwrap()
                 .to_owned();
 
-            assert_eq!(
-                config.env,
-                HashMap::from_iter([
-                    ("APP_NAME".into(), EnvVar::Value("middle".into())),
-                    ("APP_TYPE".into(), EnvVar::Value("ssg".into()))
-                ])
-            );
+            assert_eq!(config.env, {
+                let mut map = IndexMap::new();
+                map.insert("APP_NAME".into(), EnvVar::Value("middle".into()));
+                map.insert("APP_TYPE".into(), EnvVar::Value("ssg".into()));
+                map
+            });
 
-            assert_eq!(
-                config.tools.get("node").unwrap().env,
-                HashMap::from_iter([
-                    ("NODE_ENV".into(), EnvVar::Value("production".into())),
-                    ("NODE_PATH".into(), EnvVar::State(false))
-                ])
-            );
+            assert_eq!(config.tools.get("node").unwrap().env, {
+                let mut map = IndexMap::new();
+                map.insert("NODE_ENV".into(), EnvVar::Value("production".into()));
+                map.insert("NODE_PATH".into(), EnvVar::State(false));
+                map
+            });
         }
     }
 }

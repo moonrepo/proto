@@ -369,5 +369,36 @@ FROM_CONFIG = "abc123"
 
             assert_snapshot!(get_assert_output(&assert));
         }
+
+        #[test]
+        fn supports_interpolation() {
+            let sandbox = create_sandbox("env-vars");
+
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[tools.node.env]
+FIRST = "abc"
+SECOND = "123"
+THIRD = "value-${FIRST}-${SECOND}-${PARENT}"
+FOURTH = "ignores-$FIRST-$PARENT"
+"#,
+            );
+
+            install_node(sandbox.path());
+
+            let mut cmd = create_proto_command(sandbox.path());
+            let assert = cmd
+                .arg("run")
+                .arg("node")
+                .arg("19.0.0")
+                .arg("--")
+                .arg("interpolation.js")
+                .env("SECOND", "789")
+                .env("PARENT", "xyz")
+                .assert();
+
+            assert_snapshot!(get_assert_output(&assert));
+        }
     }
 }
