@@ -47,6 +47,7 @@ dirs = { workspace = true }
 human-sort = { workspace = true }
 indicatif = "0.17.7"
 miette = { workspace = true }
+regex = { workspace = true }
 reqwest = { workspace = true, features = ["rustls-tls-native-roots"] }
 semver = { workspace = true }
 serde = { workspace = true }

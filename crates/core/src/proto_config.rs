@@ -43,6 +43,15 @@ pub enum EnvVar {
     Value(String),
 }
 
+impl EnvVar {
+    pub fn to_value(&self) -> Option<String> {
+        match self {
+            Self::State(state) => state.then(|| "true".to_owned()),
+            Self::Value(value) => Some(value.to_owned()),
+        }
+    }
+}
+
 #[derive(Clone, Config, Debug, Serialize)]
 #[config(allow_unknown_fields)]
 #[serde(rename_all = "kebab-case")]

@@ -2190,6 +2190,7 @@ dependencies = [
  "proto_installer",
  "proto_pdk_api",
  "proto_shim",
+ "regex",
  "reqwest",
  "rust_json",
  "rustls",
