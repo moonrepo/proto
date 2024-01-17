@@ -2184,12 +2184,14 @@ dependencies = [
  "dialoguer",
  "dirs 5.0.1",
  "human-sort",
+ "indexmap 2.1.0",
  "indicatif",
  "miette",
  "proto_core",
  "proto_installer",
  "proto_pdk_api",
  "proto_shim",
+ "regex",
  "reqwest",
  "rust_json",
  "rustls",
@@ -2218,6 +2220,7 @@ dependencies = [
  "cached",
  "extism",
  "human-sort",
+ "indexmap 2.1.0",
  "miette",
  "minisign-verify",
  "once_cell",
@@ -2675,6 +2678,7 @@ version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1c90769caea1c16e71c756f7afe77a35620d61f77d3db4b834d246203f4ea44b"
 dependencies = [
+ "indexmap 2.1.0",
  "serde_json",
  "toml 0.8.8",
 ]

@@ -1,5 +1,5 @@
 use crate::helpers::ProtoResource;
-use crate::printer::Printer;
+use crate::printer::{format_env_var, Printer};
 use proto_pdk_api::{HostArch, HostOS};
 use starbase::system;
 use starbase_styles::color;
@@ -62,14 +62,7 @@ pub async fn env(proto: ResourceRef<ProtoResource>) {
             "Variables",
             env::vars().filter_map(|(k, v)| {
                 if k.starts_with("PROTO_") {
-                    Some((
-                        color::id(k),
-                        if v.contains('/') || v.contains('\\') {
-                            color::path(v)
-                        } else {
-                            color::muted_light(v)
-                        },
-                    ))
+                    Some((color::property(k), format_env_var(&v)))
                 } else {
                     None
                 }

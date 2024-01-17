@@ -1,0 +1,10 @@
+---
+source: crates/cli/tests/run_test.rs
+expression: get_assert_output(&assert)
+---
+FROM_CONFIG = abc123
+FROM_CONFIG_BOOL = true
+FROM_PARENT = undefined
+FROM_PARENT_REMOVED = undefined
+
+
