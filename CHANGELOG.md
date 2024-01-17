@@ -17,6 +17,7 @@
 - Added `env` and `tools.*.env` settings to `.prototools` to support environment variables.
   - Will automatically set variables when a tool is executed.
   - Allows for directory-level and tool-specific variables.
+- Updated `proto tool info` to display aliases and environment variables.
 
 ## 0.28.1
 

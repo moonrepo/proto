@@ -1,6 +1,6 @@
 use crate::error::ProtoCliError;
 use crate::helpers::ProtoResource;
-use crate::printer::Printer;
+use crate::printer::{format_value, Printer};
 use chrono::{DateTime, NaiveDateTime};
 use clap::Args;
 use miette::IntoDiagnostic;
@@ -95,7 +95,7 @@ pub async fn list(args: ArgsRef<ListToolsArgs>, proto: ResourceRef<ProtoResource
                 versions
                     .aliases
                     .iter()
-                    .map(|(k, v)| (color::hash(v.to_string()), k))
+                    .map(|(k, v)| (color::hash(v.to_string()), format_value(k)))
                     .collect::<Vec<_>>(),
                 None,
             );
@@ -141,7 +141,7 @@ pub async fn list(args: ArgsRef<ListToolsArgs>, proto: ResourceRef<ProtoResource
                             } else {
                                 color::hash(version.to_string())
                             },
-                            color::muted_light(comments.join(", ")),
+                            format_value(comments.join(", ")),
                         )
                     })
                     .collect::<Vec<_>>(),
