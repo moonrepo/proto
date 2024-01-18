@@ -313,8 +313,10 @@ impl ProtoConfig {
         let make_absolute = |file: &mut PathBuf| {
             if file.is_absolute() {
                 file.to_owned()
+            } else if let Some(dir) = path.parent() {
+                dir.join(file)
             } else {
-                path.parent().unwrap().join(file)
+                PathBuf::from("/").join(file)
             }
         };
 
