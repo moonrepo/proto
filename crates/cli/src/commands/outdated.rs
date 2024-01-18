@@ -44,7 +44,7 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>, proto: ResourceRef<ProtoResou
     let manager = proto.env.load_config_manager()?;
 
     let config = if args.only_local {
-        manager.get_local_config()?
+        manager.get_local_config(&proto.env.cwd)?
     } else if args.include_global {
         manager.get_merged_config()?
     } else {

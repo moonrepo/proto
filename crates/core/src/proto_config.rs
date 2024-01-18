@@ -235,8 +235,11 @@ impl ProtoConfig {
         dir: P,
         with_lock: bool,
     ) -> miette::Result<PartialProtoConfig> {
-        let dir = dir.as_ref();
-        let path = dir.join(PROTO_CONFIG_NAME);
+        Self::load(dir.as_ref().join(PROTO_CONFIG_NAME), with_lock)
+    }
+
+    pub fn load<P: AsRef<Path>>(path: P, with_lock: bool) -> miette::Result<PartialProtoConfig> {
+        let path = path.as_ref();
 
         if !path.exists() {
             return Ok(PartialProtoConfig::default());
@@ -246,9 +249,9 @@ impl ProtoConfig {
 
         let config_path = path.to_string_lossy();
         let config_content = if with_lock {
-            fs::read_file_with_lock(&path)?
+            fs::read_file_with_lock(path)?
         } else {
-            fs::read_file(&path)?
+            fs::read_file(path)?
         };
 
         let mut config = ConfigLoader::<ProtoConfig>::new()
@@ -310,8 +313,10 @@ impl ProtoConfig {
         let make_absolute = |file: &mut PathBuf| {
             if file.is_absolute() {
                 file.to_owned()
-            } else {
+            } else if let Some(dir) = path.parent() {
                 dir.join(file)
+            } else {
+                PathBuf::from("/").join(file)
             }
         };
 
@@ -383,20 +388,35 @@ pub struct ProtoConfigManager {
 }
 
 impl ProtoConfigManager {
-    pub fn load(start_dir: impl AsRef<Path>, end_dir: Option<&Path>) -> miette::Result<Self> {
+    pub fn load(
+        start_dir: impl AsRef<Path>,
+        end_dir: Option<&Path>,
+        env_mode: Option<&String>,
+    ) -> miette::Result<Self> {
         trace!("Traversing upwards and loading {} files", PROTO_CONFIG_NAME);
 
         let mut current_dir = Some(start_dir.as_ref());
         let mut files = vec![];
 
         while let Some(dir) = current_dir {
+            if let Some(env) = env_mode {
+                let env_path = dir.join(format!("{}.{env}", PROTO_CONFIG_NAME));
+
+                files.push(ProtoConfigFile {
+                    config: ProtoConfig::load(&env_path, false)?,
+                    exists: env_path.exists(),
+                    global: false,
+                    path: env_path,
+                });
+            }
+
             let path = dir.join(PROTO_CONFIG_NAME);
 
             files.push(ProtoConfigFile {
+                config: ProtoConfig::load(&path, false)?,
                 exists: path.exists(),
                 global: false,
                 path,
-                config: ProtoConfig::load_from(dir, false)?,
             });
 
             if end_dir.is_some_and(|end| end == dir) {
@@ -414,16 +434,23 @@ impl ProtoConfigManager {
         })
     }
 
-    pub fn get_local_config(&self) -> miette::Result<&ProtoConfig> {
+    pub fn get_local_config(&self, cwd: &Path) -> miette::Result<&ProtoConfig> {
         self.cwd_config.get_or_try_init(|| {
-            debug!("Merging local config");
-            self.merge_configs(vec![&self.files[0]])
+            debug!("Merging local configs only");
+
+            self.merge_configs(
+                self.files
+                    .iter()
+                    .filter(|file| file.path.parent().is_some_and(|dir| dir == cwd))
+                    .collect(),
+            )
         })
     }
 
     pub fn get_merged_config(&self) -> miette::Result<&ProtoConfig> {
         self.all_config.get_or_try_init(|| {
             debug!("Merging loaded configs");
+
             self.merge_configs(self.files.iter().collect())
         })
     }
@@ -431,6 +458,7 @@ impl ProtoConfigManager {
     pub fn get_merged_config_without_global(&self) -> miette::Result<&ProtoConfig> {
         self.all_config_no_global.get_or_try_init(|| {
             debug!("Merging loaded configs without global");
+
             self.merge_configs(self.files.iter().filter(|file| !file.global).collect())
         })
     }

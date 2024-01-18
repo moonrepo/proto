@@ -8,7 +8,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 pub fn load_config<T: AsRef<Path>>(dir: T) -> ProtoConfig {
-    let manager = ProtoConfigManager::load(dir, None).unwrap();
+    let manager = ProtoConfigManager::load(dir, None, None).unwrap();
     let config = manager.get_merged_config().unwrap();
     config.to_owned()
 }
