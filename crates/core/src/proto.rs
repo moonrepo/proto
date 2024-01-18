@@ -13,6 +13,7 @@ use warpgate::PluginLoader;
 pub struct ProtoEnvironment {
     pub bin_dir: PathBuf,
     pub cwd: PathBuf,
+    pub env_mode: Option<String>,
     pub plugins_dir: PathBuf,
     pub shims_dir: PathBuf,
     pub temp_dir: PathBuf,
@@ -46,6 +47,7 @@ impl ProtoEnvironment {
         Ok(ProtoEnvironment {
             bin_dir: root.join("bin"),
             cwd: env::current_dir().expect("Unable to determine current working directory!"),
+            env_mode: env::var("PROTO_ENV").ok(),
             plugins_dir: root.join("plugins"),
             shims_dir: root.join("shims"),
             temp_dir: root.join("temp"),
@@ -109,7 +111,7 @@ impl ProtoEnvironment {
                 None
             };
 
-            let mut manager = ProtoConfigManager::load(&self.cwd, end_dir)?;
+            let mut manager = ProtoConfigManager::load(&self.cwd, end_dir, self.env_mode.as_ref())?;
 
             // Always load the proto home/root config last
             let path = self.root.join(PROTO_CONFIG_NAME);
