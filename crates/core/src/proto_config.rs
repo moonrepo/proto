@@ -432,16 +432,23 @@ impl ProtoConfigManager {
         })
     }
 
-    pub fn get_local_config(&self) -> miette::Result<&ProtoConfig> {
+    pub fn get_local_config(&self, cwd: &Path) -> miette::Result<&ProtoConfig> {
         self.cwd_config.get_or_try_init(|| {
-            debug!("Merging local config");
-            self.merge_configs(vec![&self.files[0]])
+            debug!("Merging local configs only");
+
+            self.merge_configs(
+                self.files
+                    .iter()
+                    .filter(|file| file.path.parent().is_some_and(|dir| dir == cwd))
+                    .collect(),
+            )
         })
     }
 
     pub fn get_merged_config(&self) -> miette::Result<&ProtoConfig> {
         self.all_config.get_or_try_init(|| {
             debug!("Merging loaded configs");
+
             self.merge_configs(self.files.iter().collect())
         })
     }
@@ -449,6 +456,7 @@ impl ProtoConfigManager {
     pub fn get_merged_config_without_global(&self) -> miette::Result<&ProtoConfig> {
         self.all_config_no_global.get_or_try_init(|| {
             debug!("Merging loaded configs without global");
+
             self.merge_configs(self.files.iter().filter(|file| !file.global).collect())
         })
     }

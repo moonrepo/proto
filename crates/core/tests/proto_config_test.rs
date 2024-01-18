@@ -632,7 +632,7 @@ bun = "1.2.3"
 
         let manager =
             ProtoConfigManager::load(sandbox.path().join("one/two/three"), None, None).unwrap();
-        let config = manager.get_local_config().unwrap();
+        let config = manager.get_local_config(sandbox.path()).unwrap();
 
         assert_eq!(
             config.versions,
@@ -640,6 +640,120 @@ bun = "1.2.3"
                 Id::raw("node"),
                 UnresolvedVersionSpec::parse("1.2.3").unwrap()
             ),])
+        );
+    }
+
+    #[test]
+    fn supports_env_mode() {
+        let sandbox = create_empty_sandbox();
+
+        sandbox.create_file(
+            ".prototools.production",
+            r#"
+node = "1.2.3"
+"#,
+        );
+
+        sandbox.create_file(
+            ".prototools",
+            r#"
+node = "7.8.9"
+deno = "7.8.9"
+"#,
+        );
+
+        let manager =
+            ProtoConfigManager::load(sandbox.path(), None, Some(&"production".to_owned())).unwrap();
+        let config = manager.get_local_config(sandbox.path()).unwrap();
+
+        assert_eq!(
+            config.versions,
+            BTreeMap::from_iter([
+                (
+                    Id::raw("node"),
+                    UnresolvedVersionSpec::parse("1.2.3").unwrap()
+                ),
+                (
+                    Id::raw("deno"),
+                    UnresolvedVersionSpec::parse("7.8.9").unwrap()
+                ),
+            ])
+        );
+    }
+
+    #[test]
+    fn ignores_env_file_when_mode_not_defined() {
+        let sandbox = create_empty_sandbox();
+
+        sandbox.create_file(
+            ".prototools.production",
+            r#"
+node = "1.2.3"
+"#,
+        );
+
+        sandbox.create_file(
+            ".prototools",
+            r#"
+node = "7.8.9"
+deno = "7.8.9"
+"#,
+        );
+
+        let manager = ProtoConfigManager::load(sandbox.path(), None, None).unwrap();
+        let config = manager.get_local_config(sandbox.path()).unwrap();
+
+        assert_eq!(
+            config.versions,
+            BTreeMap::from_iter([
+                (
+                    Id::raw("node"),
+                    UnresolvedVersionSpec::parse("7.8.9").unwrap()
+                ),
+                (
+                    Id::raw("deno"),
+                    UnresolvedVersionSpec::parse("7.8.9").unwrap()
+                ),
+            ])
+        );
+    }
+
+    #[test]
+    fn ignores_env_file_when_mode_not_matching() {
+        let sandbox = create_empty_sandbox();
+
+        sandbox.create_file(
+            ".prototools.production",
+            r#"
+node = "1.2.3"
+"#,
+        );
+
+        sandbox.create_file(
+            ".prototools",
+            r#"
+node = "7.8.9"
+deno = "7.8.9"
+"#,
+        );
+
+        let manager =
+            ProtoConfigManager::load(sandbox.path(), None, Some(&"development".to_owned()))
+                .unwrap();
+        let config = manager.get_local_config(sandbox.path()).unwrap();
+
+        assert_eq!(
+            config.versions,
+            BTreeMap::from_iter([
+                (
+                    Id::raw("node"),
+                    UnresolvedVersionSpec::parse("7.8.9").unwrap()
+                ),
+                (
+                    Id::raw("deno"),
+                    UnresolvedVersionSpec::parse("7.8.9").unwrap()
+                ),
+            ])
         );
     }
 }
