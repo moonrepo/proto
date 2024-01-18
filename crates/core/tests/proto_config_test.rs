@@ -632,7 +632,9 @@ bun = "1.2.3"
 
         let manager =
             ProtoConfigManager::load(sandbox.path().join("one/two/three"), None, None).unwrap();
-        let config = manager.get_local_config(sandbox.path()).unwrap();
+        let config = manager
+            .get_local_config(&sandbox.path().join("one/two/three"))
+            .unwrap();
 
         assert_eq!(
             config.versions,
