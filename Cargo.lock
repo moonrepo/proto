@@ -3667,7 +3667,6 @@ dependencies = [
  "serde",
  "serde_json",
  "system_env",
- "warpgate_api",
 ]
 
 [[package]]

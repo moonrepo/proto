@@ -14,9 +14,6 @@ schematic = { workspace = true, optional = true, features = ["schema"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
 
-[dev-dependencies]
-warpgate_api = { path = ".", features = ["pdk"] }
-
 [features]
 default = []
 pdk = ["dep:extism-pdk"]
