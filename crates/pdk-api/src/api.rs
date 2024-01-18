@@ -529,19 +529,19 @@ api_struct!(
 impl LoadVersionsOutput {
     /// Create the output from a list of strings that'll be parsed as versions.
     /// The latest version will be the highest version number.
-    pub fn from(values: Vec<String>) -> anyhow::Result<Self> {
+    pub fn from(values: Vec<String>) -> Result<Self, semver::Error> {
         let mut versions = vec![];
 
         for value in values {
             versions.push(Version::parse(&value)?);
         }
 
-        Self::from_versions(versions)
+        Ok(Self::from_versions(versions))
     }
 
     /// Create the output from a list of versions.
     /// The latest version will be the highest version number.
-    pub fn from_versions(versions: Vec<Version>) -> anyhow::Result<Self> {
+    pub fn from_versions(versions: Vec<Version>) -> Self {
         let mut output = LoadVersionsOutput::default();
         let mut latest = Version::new(0, 0, 0);
 
@@ -555,8 +555,7 @@ impl LoadVersionsOutput {
 
         output.latest = Some(latest.clone());
         output.aliases.insert("latest".into(), latest);
-
-        Ok(output)
+        output
     }
 }
 

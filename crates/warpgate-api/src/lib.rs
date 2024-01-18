@@ -1,7 +1,10 @@
 mod host;
 mod host_funcs;
-mod virtual_path;
 mod macros;
+mod virtual_path;
+
+#[cfg(feature = "pdk")]
+pub mod pdk;
 
 pub use host::*;
 pub use host_funcs::*;

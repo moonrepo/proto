@@ -9,10 +9,15 @@ repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
 system_env = { version = "0.2.0", path = "../system-env" }
+extism-pdk = { workspace = true, optional = true }
 schematic = { workspace = true, optional = true, features = ["schema"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
 
+[dev-dependencies]
+warpgate_api = { path = ".", features = ["pdk"] }
+
 [features]
 default = []
+pdk = ["dep:extism-pdk"]
 schematic = ["dep:schematic"]
