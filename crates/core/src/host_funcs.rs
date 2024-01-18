@@ -158,13 +158,13 @@ fn exec_command(
         target: "proto_wasm::exec_command",
         command = &input.command,
         args = ?input.args,
-        env = ?input.env_vars,
+        env = ?input.env,
         cwd = ?cwd,
         "Executing command from plugin"
     );
 
     let mut command = create_process_command(command, &input.args);
-    command.envs(&input.env_vars);
+    command.envs(&input.env);
     command.current_dir(cwd);
 
     let output = if input.stream {

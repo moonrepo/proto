@@ -1,6 +1,6 @@
+use crate::{api_enum, api_struct};
 use std::collections::HashMap;
 use std::path::PathBuf;
-use warpgate_api::*;
 
 api_enum!(
     /// Target where host logs should be written to.
@@ -50,11 +50,11 @@ api_struct!(
         /// Arguments to pass to the command.
         pub args: Vec<String>,
 
-        /// The command to execute.
+        /// The command or script to execute.
         pub command: String,
 
         /// Environment variables to pass to the command.
-        pub env_vars: HashMap<String, String>,
+        pub env: HashMap<String, String>,
 
         /// Mark the command as executable before executing.
         #[doc(hidden)]

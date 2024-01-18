@@ -1,4 +1,5 @@
-use warpgate_api::*;
+use crate::api_struct;
+use crate::virtual_path::VirtualPath;
 
 pub use system_env::{SystemArch as HostArch, SystemOS as HostOS};
 

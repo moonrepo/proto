@@ -3664,6 +3664,8 @@ version = "0.2.0"
 dependencies = [
  "schematic",
  "serde",
+ "serde_json",
+ "system_env",
 ]
 
 [[package]]

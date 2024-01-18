@@ -8,8 +8,10 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
+system_env = { version = "0.2.0", path = "../system-env" }
 schematic = { workspace = true, optional = true, features = ["schema"] }
 serde = { workspace = true }
+serde_json = { workspace = true }
 
 [features]
 default = []

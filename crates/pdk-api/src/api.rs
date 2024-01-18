@@ -1,4 +1,3 @@
-use crate::host_funcs::ExecCommandOutput;
 use crate::shapes::StringOrVec;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -11,11 +10,6 @@ pub use semver::{Version, VersionReq};
 fn is_false(value: &bool) -> bool {
     !(*value)
 }
-
-api_struct!(
-    /// Represents an empty input.
-    pub struct EmptyInput {}
-);
 
 api_struct!(
     /// Information about the current state of the tool.
