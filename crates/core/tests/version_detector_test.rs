@@ -31,7 +31,7 @@ mod version_detector {
         assert_eq!(
             detect_version_first_available(
                 &tool,
-                &ProtoConfigManager::load(sandbox.path().join("a/b/c"), None).unwrap()
+                &ProtoConfigManager::load(sandbox.path().join("a/b/c"), None, None).unwrap()
             )
             .await
             .unwrap(),
@@ -41,7 +41,7 @@ mod version_detector {
         assert_eq!(
             detect_version_first_available(
                 &tool,
-                &ProtoConfigManager::load(sandbox.path().join("a/b"), None).unwrap()
+                &ProtoConfigManager::load(sandbox.path().join("a/b"), None, None).unwrap()
             )
             .await
             .unwrap(),
@@ -51,7 +51,7 @@ mod version_detector {
         assert_eq!(
             detect_version_first_available(
                 &tool,
-                &ProtoConfigManager::load(sandbox.path().join("a"), None).unwrap()
+                &ProtoConfigManager::load(sandbox.path().join("a"), None, None).unwrap()
             )
             .await
             .unwrap(),
@@ -66,7 +66,7 @@ mod version_detector {
         sandbox.create_file("package.json", r#"{ "engines": { "node": "18" } }"#);
 
         let tool = create_node(sandbox.path()).await;
-        let manager = ProtoConfigManager::load(sandbox.path().join("a/b"), None).unwrap();
+        let manager = ProtoConfigManager::load(sandbox.path().join("a/b"), None, None).unwrap();
 
         assert_eq!(
             detect_version_first_available(&tool, &manager)
@@ -83,7 +83,7 @@ mod version_detector {
         sandbox.create_file("a/package.json", r#"{ "engines": { "node": "18" } }"#);
 
         let tool = create_node(sandbox.path()).await;
-        let manager = ProtoConfigManager::load(sandbox.path().join("a/b"), None).unwrap();
+        let manager = ProtoConfigManager::load(sandbox.path().join("a/b"), None, None).unwrap();
 
         assert_eq!(
             detect_version_first_available(&tool, &manager)
@@ -102,7 +102,7 @@ mod version_detector {
         sandbox.create_file("a/b/c/package.json", r#"{ "engines": { "node": "19" } }"#);
 
         let tool = create_node(sandbox.path()).await;
-        let manager = ProtoConfigManager::load(sandbox.path().join("a/b/c"), None).unwrap();
+        let manager = ProtoConfigManager::load(sandbox.path().join("a/b/c"), None, None).unwrap();
 
         assert_eq!(
             detect_version_prefer_prototools(&tool, &manager)
