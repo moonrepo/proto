@@ -2,16 +2,16 @@ use extism_pdk::*;
 use proto_pdk::*;
 use serde::Deserialize;
 use std::collections::HashMap;
-// use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[host_fn]
 extern "ExtismHost" {
     fn exec_command(input: Json<ExecCommandInput>) -> Json<ExecCommandOutput>;
-    // fn from_virtual_path(path: String) -> String;
+    fn from_virtual_path(path: String) -> String;
     fn get_env_var(name: String) -> String;
     fn host_log(input: Json<HostLogInput>);
     fn set_env_var(name: String, value: String);
-    // fn to_virtual_path(path: String) -> String;
+    fn to_virtual_path(path: String) -> String;
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -34,8 +34,11 @@ pub fn register_tool(_: ()) -> FnResult<Json<ToolMetadataOutput>> {
     host_log!(stderr, "WASM_KEY = {:?}", value);
     host_env!("WASM_SOURCE", "guest");
 
-    // let real = real_path!(PathBuf::from("/proto"));
-    // let _virtual = virtual_path!(&real);
+    let _real = real_path!("/proto");
+    let _virtual = virtual_path!("/Users/home");
+
+    let _real = real_path!(buf, PathBuf::from("/proto"));
+    let _virtual = virtual_path!(buf, Path::new("/proto"));
 
     let config = get_tool_config::<WasmTestConfig>()?;
 
@@ -90,7 +93,7 @@ fn map_arch(arch: HostArch) -> String {
 pub fn download_prebuilt(
     Json(input): Json<DownloadPrebuiltInput>,
 ) -> FnResult<Json<DownloadPrebuiltOutput>> {
-    let env = get_proto_environment()?;
+    let env = get_host_environment()?;
     let version = input.context.version;
     let arch = map_arch(env.arch);
 
@@ -127,7 +130,7 @@ pub fn download_prebuilt(
 pub fn locate_executables(
     Json(_): Json<LocateExecutablesInput>,
 ) -> FnResult<Json<LocateExecutablesOutput>> {
-    let env = get_proto_environment()?;
+    let env = get_host_environment()?;
 
     Ok(Json(LocateExecutablesOutput {
         globals_lookup_dirs: vec!["$WASM_ROOT/bin".into(), "$HOME/.wasm/bin".into()],

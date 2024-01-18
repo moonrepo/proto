@@ -17,6 +17,7 @@
 - WASM API
   - Renamed `get_tool_id` to `get_plugin_id`.
   - Renamed `get_proto_environment` to `get_host_environment`.
+  - Renamed `ExecCommandInput.env_vars` to `env`.
   - Removed `HostEnvironment.proto_dir` field.
 
 #### 🚀 Updates
@@ -30,6 +31,7 @@
 - Updated `proto tool info` to display aliases and environment variables.
 - WASM API
   - Added color support to error and host log messages through an HTML-like tag syntax.
+  - Added `real_path!(buf, ..)` and `virtual_path!(buf, ..)` macro variants for working with `Path` and `PathBuf`.
 
 ## 0.28.1
 

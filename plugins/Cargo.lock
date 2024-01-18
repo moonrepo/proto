@@ -1087,9 +1087,9 @@ dependencies = [
 
 [[package]]
 name = "garde"
-version = "0.16.3"
+version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f0bde634ca1248cfcd67a29f7b3798997d328406020f5e19b502b0a0d5e8cae"
+checksum = "0237d668ccb63fd96dff6a81c5f37b7d984872f9584794dc1d1a62472d2c7b57"
 dependencies = [
  "compact_str",
  "garde_derive",
@@ -1100,9 +1100,9 @@ dependencies = [
 
 [[package]]
 name = "garde_derive"
-version = "0.16.3"
+version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "feafd106c73dd61d6f10f2fa782cdb6212b3422aee5b953a094818e9575078aa"
+checksum = "4a42efb40be9de1926cfd15881ff08adb7a70c6cedacced425537c8b1f96ac4f"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1947,7 +1947,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.28.3"
+version = "0.28.4"
 dependencies = [
  "cached",
  "extism",
@@ -1979,7 +1979,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.14.2"
+version = "0.14.3"
 dependencies = [
  "anyhow",
  "extism-pdk",
@@ -2361,9 +2361,9 @@ dependencies = [
 
 [[package]]
 name = "schematic"
-version = "0.13.3"
+version = "0.13.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d7bd78146e39d7140fb82773d9674f98cd4bec2d603c2a172bdc27e0b99fa4f3"
+checksum = "0b264774063bdc7a16fe1158426b5a29604478d1c64da0b73cba396505329116"
 dependencies = [
  "garde",
  "indexmap 2.1.0",
@@ -2380,9 +2380,9 @@ dependencies = [
 
 [[package]]
 name = "schematic_macros"
-version = "0.13.2"
+version = "0.13.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee0e84caa20e8a80361420733807ef5abeb15cd7dd3c96fb434d393aab9455b5"
+checksum = "5362f20a1e2346fb9a7878261b27c8e1adf7872bf4201b7c018dfd3cd88e26a7"
 dependencies = [
  "convert_case",
  "darling 0.20.3",
@@ -2393,9 +2393,9 @@ dependencies = [
 
 [[package]]
 name = "schematic_types"
-version = "0.5.2"
+version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "edf50096b67242b37f1ca76b4082e961477f875aec7fd77f5e13a4632368c8ae"
+checksum = "1c90769caea1c16e71c756f7afe77a35620d61f77d3db4b834d246203f4ea44b"
 dependencies = [
  "serde_json",
  "toml 0.8.8",
@@ -2681,9 +2681,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_styles"
-version = "0.1.16"
+version = "0.1.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d5d5d3e494c96659752fd79227acff36f375d6f113cb5460acdfdfe9a5b95a0d"
+checksum = "25a537fee77930266fea5375a89c50e5964c12abe3db175a517c78cf949e5505"
 dependencies = [
  "dirs 5.0.1",
  "owo-colors",
@@ -3213,7 +3213,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "extism",
  "miette",
@@ -3228,6 +3228,7 @@ dependencies = [
  "starbase_archive",
  "starbase_styles",
  "starbase_utils",
+ "system_env",
  "thiserror",
  "tracing",
  "warpgate_api",
@@ -3239,6 +3240,8 @@ version = "0.2.0"
 dependencies = [
  "schematic",
  "serde",
+ "serde_json",
+ "system_env",
 ]
 
 [[package]]
