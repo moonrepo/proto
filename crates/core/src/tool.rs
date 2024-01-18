@@ -4,7 +4,6 @@ use crate::helpers::{
     extract_filename_from_url, get_proto_version, hash_file_contents, is_archive_file,
     is_cache_enabled, is_offline, remove_bin_file, ENV_VAR,
 };
-use crate::host_funcs::{create_host_functions, HostData};
 use crate::proto::ProtoEnvironment;
 use crate::proto_config::ProtoConfig;
 use crate::shim_registry::{Shim, ShimRegistry, ShimsMap};
@@ -30,7 +29,12 @@ use std::process::Command;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 use tracing::{debug, info, trace, warn};
-use warpgate::{download_from_url_to_file, Id, PluginContainer, PluginLocator, VirtualPath};
+use warpgate::{
+    api::VirtualPath,
+    download_from_url_to_file,
+    host_funcs::{create_host_functions, HostData},
+    Id, PluginContainer, PluginLocator,
+};
 
 #[derive(Debug, Default, Serialize)]
 pub struct ExecutableLocation {
@@ -90,13 +94,6 @@ impl Tool {
             color::id(id.as_str())
         );
 
-        let proto = Arc::new(proto.to_owned());
-
-        let host_data = HostData {
-            id: id.to_owned(),
-            proto: Arc::clone(&proto),
-        };
-
         if let Ok(level) = env::var("PROTO_WASM_LOG") {
             let log_file = proto.cwd.join(format!("{}-debug.log", id));
 
@@ -105,7 +102,7 @@ impl Tool {
             if let Err(error) = extism::set_log_callback(
                 move |line| {
                     if fs::append_file(&log_file, line).is_err() {
-                        trace!(target: "proto_wasm::runtime", "{line}");
+                        trace!(target: "wasm::runtime", "{line}");
                     }
                 },
                 level,
@@ -115,6 +112,12 @@ impl Tool {
                 }
             }
         }
+
+        let host_data = HostData {
+            id: id.to_owned(),
+            virtual_paths: proto.get_virtual_paths(),
+            working_dir: proto.cwd.clone(),
+        };
 
         let mut tool = Tool {
             cache: true,
@@ -130,7 +133,7 @@ impl Tool {
                 manifest,
                 create_host_functions(host_data),
             )?,
-            proto,
+            proto: Arc::new(proto.to_owned()),
             version: None,
 
             // Events

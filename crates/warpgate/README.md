@@ -2,7 +2,7 @@
 
 ![Crates.io](https://img.shields.io/crates/v/warpgate) ![Crates.io](https://img.shields.io/crates/d/warpgate)
 
-Warpgate is a library for downloading, resolving, and managing [Extism][extism] powered WASM plugins at runtime.
+Warpgate is a library for downloading, resolving, and managing [Extism][extism] powered WASM plugins.
 
 The warp in warpgate stands for Web Assembly Runtime Plugins. Pretty stellar huh.
 

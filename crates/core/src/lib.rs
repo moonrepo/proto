@@ -1,7 +1,6 @@
 mod error;
 mod events;
 mod helpers;
-pub mod host_funcs;
 mod proto;
 mod proto_config;
 mod shim_registry;

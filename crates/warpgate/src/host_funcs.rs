@@ -1,20 +1,21 @@
-use crate::error::ProtoError;
-use crate::proto::ProtoEnvironment;
+use crate::error::WarpgateError;
+use crate::helpers;
+use crate::id::Id;
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
-use proto_pdk_api::{ExecCommandInput, ExecCommandOutput, HostLogInput, HostLogTarget};
 use starbase_styles::color::{self, apply_style_tags};
 use starbase_utils::fs;
+use std::collections::BTreeMap;
 use std::env;
 use std::path::PathBuf;
-use std::sync::Arc;
 use system_env::{create_process_command, find_command_on_path};
 use tracing::trace;
-use warpgate::Id;
+use warpgate_api::{ExecCommandInput, ExecCommandOutput, HostLogInput, HostLogTarget};
 
 #[derive(Clone)]
 pub struct HostData {
     pub id: Id,
-    pub proto: Arc<ProtoEnvironment>,
+    pub virtual_paths: BTreeMap<PathBuf, PathBuf>,
+    pub working_dir: PathBuf,
 }
 
 pub fn create_host_functions(data: HostData) -> Vec<Function> {
@@ -98,7 +99,7 @@ pub fn host_log(
         }
         HostLogTarget::Tracing => {
             trace!(
-                target: "proto_wasm::log",
+                target: "wasm::log",
                 data = ?input.data,
                 "{message}"
             );
@@ -123,7 +124,7 @@ fn exec_command(
 
     // Relative or absolute file path
     let maybe_command = if input.command.contains('/') || input.command.contains('\\') {
-        let path = data.proto.from_virtual_path(PathBuf::from(&input.command));
+        let path = helpers::from_virtual_path(&data.virtual_paths, PathBuf::from(&input.command));
 
         if path.exists() {
             // This is temporary since WASI does not support updating file permissions yet!
@@ -141,7 +142,7 @@ fn exec_command(
     };
 
     let Some(command) = &maybe_command else {
-        return Err(ProtoError::MissingPluginCommand {
+        return Err(WarpgateError::PluginCommandMissing {
             command: input.command.clone(),
         }
         .into());
@@ -149,13 +150,13 @@ fn exec_command(
 
     // Determine working directory
     let cwd = if let Some(working_dir) = &input.working_dir {
-        data.proto.from_virtual_path(working_dir)
+        helpers::from_virtual_path(&data.virtual_paths, working_dir)
     } else {
-        data.proto.cwd.clone()
+        data.working_dir.clone()
     };
 
     trace!(
-        target: "proto_wasm::exec_command",
+        target: "wasm::exec_command",
         command = &input.command,
         args = ?input.args,
         env = ?input.env,
@@ -190,7 +191,7 @@ fn exec_command(
     let debug_output = env::var("PROTO_DEBUG_COMMAND").is_ok_and(|v| !v.is_empty());
 
     trace!(
-        target: "proto_wasm::exec_command",
+        target: "wasm::exec_command",
         command = ?command,
         exit_code = output.exit_code,
         stderr = if debug_output {
@@ -223,7 +224,7 @@ fn get_env_var(
     let value = env::var(&name).unwrap_or_default();
 
     trace!(
-        target: "proto_wasm::get_env_var",
+        target: "wasm::get_env_var",
         name = &name,
         value = &value,
         "Read environment variable from host"
@@ -252,11 +253,11 @@ fn set_env_var(
         let new_path = value
             .replace(';', ":")
             .split(':')
-            .map(|path| data.proto.from_virtual_path(PathBuf::from(path)))
+            .map(|path| helpers::from_virtual_path(&data.virtual_paths, PathBuf::from(path)))
             .collect::<Vec<_>>();
 
         trace!(
-            target: "proto_wasm::set_env_var",
+            target: "wasm::set_env_var",
             name = &name,
             path = ?new_path,
             "Adding paths to PATH environment variable on host"
@@ -269,7 +270,7 @@ fn set_env_var(
         env::set_var("PATH", env::join_paths(path)?);
     } else {
         trace!(
-            target: "proto_wasm::set_env_var",
+            target: "wasm::set_env_var",
             name = &name,
             value = &value,
             "Wrote environment variable to host"
@@ -291,10 +292,10 @@ fn from_virtual_path(
 
     let data = user_data.get()?;
     let data = data.lock().unwrap();
-    let real_path = data.proto.from_virtual_path(&virtual_path);
+    let real_path = helpers::from_virtual_path(&data.virtual_paths, &virtual_path);
 
     trace!(
-        target: "proto_wasm::from_virtual_path",
+        target: "wasm::from_virtual_path",
         virtual_path = ?virtual_path,
         real_path = ?real_path,
         "Converted a virtual path into a real path"
@@ -315,10 +316,10 @@ fn to_virtual_path(
 
     let data = user_data.get()?;
     let data = data.lock().unwrap();
-    let virtual_path = data.proto.to_virtual_path(&real_path);
+    let virtual_path = helpers::to_virtual_path(&data.virtual_paths, &real_path);
 
     trace!(
-        target: "proto_wasm::to_virtual_path",
+        target: "wasm::to_virtual_path",
         real_path = ?real_path,
         virtual_path = ?virtual_path,
         "Converted a real path into a virtual path"
