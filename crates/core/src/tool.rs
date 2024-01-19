@@ -45,7 +45,7 @@ pub struct Tool {
     pub manifest: ToolManifest,
     pub metadata: ToolMetadataOutput,
     pub locator: Option<PluginLocator>,
-    pub plugin: PluginContainer,
+    pub plugin: Arc<PluginContainer>,
     pub proto: Arc<ProtoEnvironment>,
     pub version: Option<VersionSpec>,
 
@@ -67,6 +67,46 @@ pub struct Tool {
 }
 
 impl Tool {
+    pub fn new(
+        id: Id,
+        proto: Arc<ProtoEnvironment>,
+        plugin: Arc<PluginContainer>,
+    ) -> miette::Result<Self> {
+        debug!(
+            "Created tool {} and its WASM runtime",
+            color::id(id.as_str())
+        );
+
+        let mut tool = Tool {
+            cache: true,
+            exe_path: None,
+            globals_dir: None,
+            globals_prefix: None,
+            locator: None,
+            manifest: ToolManifest::load_from(proto.tools_dir.join(id.as_str()))?,
+            metadata: ToolMetadataOutput::default(),
+            plugin,
+            proto,
+            version: None,
+            id,
+
+            // Events
+            on_created_bins: Emitter::new(),
+            on_created_shims: Emitter::new(),
+            on_installing: Emitter::new(),
+            on_installed: Emitter::new(),
+            on_installed_global: Emitter::new(),
+            on_resolved_version: Emitter::new(),
+            on_uninstalling: Emitter::new(),
+            on_uninstalled: Emitter::new(),
+            on_uninstalled_global: Emitter::new(),
+        };
+
+        tool.register_tool()?;
+
+        Ok(tool)
+    }
+
     pub fn load<I: AsRef<Id>, P: AsRef<ProtoEnvironment>>(
         id: I,
         proto: P,
@@ -98,49 +138,19 @@ impl Tool {
             );
         }
 
-        let host_data = HostData {
-            id: id.to_owned(),
-            virtual_paths: proto.get_virtual_paths(),
-            working_dir: proto.cwd.clone(),
-        };
-
-        let mut tool = Tool {
-            cache: true,
-            exe_path: None,
-            globals_dir: None,
-            globals_prefix: None,
-            id: id.to_owned(),
-            locator: None,
-            manifest: ToolManifest::load_from(proto.tools_dir.join(id.as_str()))?,
-            metadata: ToolMetadataOutput::default(),
-            plugin: PluginContainer::new(
+        Self::new(
+            id.to_owned(),
+            Arc::new(proto.to_owned()),
+            Arc::new(PluginContainer::new(
                 id.to_owned(),
                 manifest,
-                create_host_functions(host_data),
-            )?,
-            proto: Arc::new(proto.to_owned()),
-            version: None,
-
-            // Events
-            on_created_bins: Emitter::new(),
-            on_created_shims: Emitter::new(),
-            on_installing: Emitter::new(),
-            on_installed: Emitter::new(),
-            on_installed_global: Emitter::new(),
-            on_resolved_version: Emitter::new(),
-            on_uninstalling: Emitter::new(),
-            on_uninstalled: Emitter::new(),
-            on_uninstalled_global: Emitter::new(),
-        };
-
-        debug!(
-            "Created tool {} and its WASM runtime",
-            color::id(id.as_str())
-        );
-
-        tool.register_tool()?;
-
-        Ok(tool)
+                create_host_functions(HostData {
+                    id: id.to_owned(),
+                    virtual_paths: proto.get_virtual_paths(),
+                    working_dir: proto.cwd.clone(),
+                }),
+            )?),
+        )
     }
 
     pub fn create_plugin_manifest<P: AsRef<ProtoEnvironment>>(

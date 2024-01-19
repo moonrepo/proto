@@ -1950,7 +1950,6 @@ name = "proto_core"
 version = "0.28.4"
 dependencies = [
  "cached",
- "extism",
  "human-sort",
  "indexmap 2.1.0",
  "miette",
@@ -2010,6 +2009,7 @@ dependencies = [
  "proto_pdk_api",
  "serde",
  "serde_json",
+ "warpgate",
 ]
 
 [[package]]

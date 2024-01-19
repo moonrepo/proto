@@ -33,18 +33,23 @@ fn is_incompatible_runtime(error: &Error) -> bool {
 
 /// Set the extism log handler, which will write all logs to the provided file path.
 pub fn set_log_handler(log_file: PathBuf, log_level: String, warn_on_failure: bool) {
-    trace!(file = ?log_file, "Created WASM log file");
+    let shared_file = log_file.clone();
 
-    if let Err(error) = extism::set_log_callback(
+    match extism::set_log_callback(
         move |line| {
-            if fs::append_file(&log_file, line).is_err() {
+            if fs::append_file(&shared_file, line).is_err() {
                 trace!(target: "wasm::runtime", "{line}");
             }
         },
         log_level,
     ) {
-        if warn_on_failure {
-            warn!("Failed to capture WASM logs: {}", error.to_string());
+        Ok(_) => {
+            trace!(file = ?log_file, "Created WASM log file");
+        }
+        Err(error) => {
+            if warn_on_failure {
+                warn!(file = ?log_file, "Failed to create WASM log file: {}", error.to_string());
+            }
         }
     }
 }
