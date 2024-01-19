@@ -3,15 +3,18 @@ use crate::error::WarpgateError;
 use crate::helpers::{from_virtual_path, to_virtual_path};
 use crate::id::Id;
 use extism::{Error, Function, Manifest, Plugin};
+use miette::IntoDiagnostic;
 use once_map::OnceMap;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use starbase_styles::color::{self, apply_style_tags};
+use starbase_utils::fs;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
-use tracing::trace;
-use warpgate_api::VirtualPath;
+use system_env::{SystemArch, SystemOS};
+use tracing::{trace, warn};
+use warpgate_api::{HostEnvironment, VirtualPath};
 
 fn is_incompatible_runtime(error: &Error) -> bool {
     let check = |message: String| {
@@ -26,6 +29,51 @@ fn is_incompatible_runtime(error: &Error) -> bool {
     }
 
     check(error.to_string())
+}
+
+/// Set the extism log handler, which will write all logs to the provided file path.
+pub fn set_log_handler(log_file: PathBuf, log_level: String, warn_on_failure: bool) {
+    trace!(file = ?log_file, "Created WASM log file");
+
+    if let Err(error) = extism::set_log_callback(
+        move |line| {
+            if fs::append_file(&log_file, line).is_err() {
+                trace!(target: "wasm::runtime", "{line}");
+            }
+        },
+        log_level,
+    ) {
+        if warn_on_failure {
+            warn!("Failed to capture WASM logs: {}", error.to_string());
+        }
+    }
+}
+
+/// Inject our default configuration into the provided plugin manifest.
+/// This will set `plugin_id` and `host_environment` for use within PDKs.
+pub fn inject_default_manifest_config(
+    id: &Id,
+    home_dir: &Path,
+    manifest: &mut Manifest,
+) -> miette::Result<()> {
+    let env = serde_json::to_string(&HostEnvironment {
+        arch: SystemArch::from_env(),
+        os: SystemOS::from_env(),
+        home_dir: to_virtual_path(manifest.allowed_paths.as_ref().unwrap(), home_dir),
+    })
+    .into_diagnostic()?;
+
+    trace!(id = id.as_str(), "Storing plugin identifier");
+
+    manifest
+        .config
+        .insert("plugin_id".to_string(), id.to_string());
+
+    trace!(env = %env, "Storing host environment");
+
+    manifest.config.insert("host_environment".to_string(), env);
+
+    Ok(())
 }
 
 /// A container around Extism's [`Plugin`] and [`Manifest`] types that provides convenience

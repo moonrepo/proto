@@ -9,12 +9,9 @@ use crate::proto_config::ProtoConfig;
 use crate::shim_registry::{Shim, ShimRegistry, ShimsMap};
 use crate::tool_manifest::{ToolManifest, ToolManifestVersion};
 use crate::version_resolver::VersionResolver;
-use extism::{Manifest as PluginManifest, Wasm};
 use miette::IntoDiagnostic;
 use proto_pdk_api::*;
-use proto_shim::{
-    create_shim, get_exe_file_name, get_shim_file_name, locate_proto_exe, SHIM_VERSION,
-};
+use proto_shim::*;
 use serde::Serialize;
 use starbase_archive::Archiver;
 use starbase_events::Emitter;
@@ -30,10 +27,9 @@ use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 use tracing::{debug, info, trace, warn};
 use warpgate::{
-    api::VirtualPath,
     download_from_url_to_file,
     host_funcs::{create_host_functions, HostData},
-    Id, PluginContainer, PluginLocator,
+    set_log_handler, Id, PluginContainer, PluginLocator, PluginManifest, VirtualPath, Wasm,
 };
 
 #[derive(Debug, Default, Serialize)]
@@ -95,22 +91,11 @@ impl Tool {
         );
 
         if let Ok(level) = env::var("PROTO_WASM_LOG") {
-            let log_file = proto.cwd.join(format!("{}-debug.log", id));
-
-            trace!(file = ?log_file, "Created WASM log file");
-
-            if let Err(error) = extism::set_log_callback(
-                move |line| {
-                    if fs::append_file(&log_file, line).is_err() {
-                        trace!(target: "wasm::runtime", "{line}");
-                    }
-                },
+            set_log_handler(
+                proto.cwd.join(format!("{}-debug.log", id)),
                 level,
-            ) {
-                if env::var("PROTO_TEST").is_err() {
-                    warn!("Failed to capture WASM logs: {}", error.to_string());
-                }
-            }
+                env::var("PROTO_TEST").is_err(),
+            );
         }
 
         let host_data = HostData {

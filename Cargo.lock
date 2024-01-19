@@ -2218,7 +2218,6 @@ name = "proto_core"
 version = "0.28.4"
 dependencies = [
  "cached",
- "extism",
  "human-sort",
  "indexmap 2.1.0",
  "miette",
@@ -2294,6 +2293,7 @@ dependencies = [
  "serde",
  "serde_json",
  "toml 0.8.8",
+ "warpgate",
 ]
 
 [[package]]

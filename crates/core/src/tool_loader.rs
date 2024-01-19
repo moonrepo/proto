@@ -2,53 +2,19 @@ use crate::error::ProtoError;
 use crate::proto::ProtoEnvironment;
 use crate::proto_config::{ProtoConfig, SCHEMA_PLUGIN_KEY};
 use crate::tool::Tool;
-use extism::{Manifest, Wasm};
 use miette::IntoDiagnostic;
 use proto_pdk_api::{HostArch, HostEnvironment, HostOS};
 use starbase_utils::{json, toml};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use tracing::{debug, trace};
-use warpgate::{to_virtual_path, Id, PluginLocator};
-
-pub fn inject_default_manifest_config(
-    id: &Id,
-    home_dir: &Path,
-    manifest: &mut Manifest,
-) -> miette::Result<()> {
-    trace!(id = id.as_str(), "Storing plugin identifier");
-
-    manifest
-        .config
-        .insert("plugin_id".to_string(), id.to_string());
-    // TODO remove in the future
-    manifest
-        .config
-        .insert("proto_tool_id".to_string(), id.to_string());
-
-    let value = json::to_string(&HostEnvironment {
-        arch: HostArch::from_env(),
-        os: HostOS::from_env(),
-        home_dir: to_virtual_path(manifest.allowed_paths.as_ref().unwrap(), home_dir),
-    })
-    .into_diagnostic()?;
-
-    trace!(env = %value, "Storing host environment");
-
-    manifest
-        .config
-        .insert("host_environment".to_string(), value.clone());
-    // TODO remove in the future
-    manifest
-        .config
-        .insert("proto_environment".to_string(), value);
-
-    Ok(())
-}
+use warpgate::{
+    inject_default_manifest_config, to_virtual_path, Id, PluginLocator, PluginManifest, Wasm,
+};
 
 pub fn inject_proto_manifest_config(
     id: &Id,
     proto: &ProtoEnvironment,
-    manifest: &mut Manifest,
+    manifest: &mut PluginManifest,
 ) -> miette::Result<()> {
     let config = proto.load_config()?;
 
@@ -61,6 +27,22 @@ pub fn inject_proto_manifest_config(
             .config
             .insert("proto_tool_config".to_string(), value);
     }
+
+    // TODO remove in the future
+    manifest
+        .config
+        .insert("proto_tool_id".to_string(), id.to_string());
+
+    // TODO remove in the future
+    manifest.config.insert(
+        "proto_environment".to_string(),
+        json::to_string(&HostEnvironment {
+            arch: HostArch::from_env(),
+            os: HostOS::from_env(),
+            home_dir: to_virtual_path(manifest.allowed_paths.as_ref().unwrap(), &proto.home),
+        })
+        .into_diagnostic()?,
+    );
 
     Ok(())
 }

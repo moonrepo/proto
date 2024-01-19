@@ -1,7 +1,6 @@
 use crate::helpers::{get_home_dir, get_proto_home, is_offline};
 use crate::proto_config::{ProtoConfig, ProtoConfigFile, ProtoConfigManager, PROTO_CONFIG_NAME};
 use once_cell::sync::OnceCell;
-use proto_pdk_api::VirtualPath;
 use std::collections::BTreeMap;
 use std::env;
 use std::path::{Path, PathBuf};
@@ -58,14 +57,6 @@ impl ProtoEnvironment {
             plugin_loader: Arc::new(OnceCell::new()),
             test_mode: false,
         })
-    }
-
-    pub fn from_virtual_path(&self, path: impl AsRef<Path>) -> PathBuf {
-        warpgate::from_virtual_path(&self.get_virtual_paths(), path.as_ref())
-    }
-
-    pub fn to_virtual_path(&self, path: impl AsRef<Path>) -> VirtualPath {
-        warpgate::to_virtual_path(&self.get_virtual_paths(), path.as_ref())
     }
 
     pub fn get_config_dir(&self, global: bool) -> &Path {

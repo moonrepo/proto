@@ -13,11 +13,9 @@ mod version_resolver;
 
 pub use error::*;
 pub use events::*;
-pub use extism::{Manifest as PluginManifest, Wasm};
 pub use helpers::*;
 pub use proto::*;
 pub use proto_config::*;
-pub use semver::{Version, VersionReq};
 pub use tool::*;
 pub use tool_loader::*;
 pub use tool_manifest::*;
@@ -25,4 +23,7 @@ pub use user_config::*;
 pub use version_detector::*;
 pub use version_resolver::*;
 pub use version_spec::*;
-pub use warpgate::*;
+
+// Only export things consumers will actually need!
+pub use semver::{Version, VersionReq};
+pub use warpgate::{Id, PluginLocator};
