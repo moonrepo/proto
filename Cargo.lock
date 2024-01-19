@@ -3662,6 +3662,7 @@ dependencies = [
 name = "warpgate_api"
 version = "0.2.0"
 dependencies = [
+ "anyhow",
  "extism-pdk",
  "schematic",
  "serde",

@@ -6,12 +6,14 @@ use extism_pdk::*;
 use serde::de::DeserializeOwned;
 use std::vec;
 
-pub type AnyResult<T> = core::result::Result<T, Error>;
+pub use anyhow::anyhow;
 
 #[host_fn]
 extern "ExtismHost" {
     fn exec_command(input: Json<ExecCommandInput>) -> Json<ExecCommandOutput>;
 }
+
+pub type AnyResult<T> = anyhow::Result<T>;
 
 /// Fetch the provided request and return a response object.
 pub fn fetch(req: HttpRequest, body: Option<String>) -> AnyResult<HttpResponse> {
