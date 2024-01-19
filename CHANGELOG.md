@@ -17,6 +17,7 @@
 - WASM API
   - Renamed `get_tool_id` to `get_plugin_id`.
   - Renamed `get_proto_environment` to `get_host_environment`.
+  - Renamed `/workspace` virtual path to `/cwd`.
   - Renamed `ExecCommandInput.env_vars` to `env`.
   - Removed `HostEnvironment.proto_dir` field.
 

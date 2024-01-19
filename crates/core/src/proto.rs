@@ -74,7 +74,6 @@ impl ProtoEnvironment {
             let mut loader = PluginLoader::new(&self.plugins_dir, &self.temp_dir);
             loader.set_client_options(&config.settings.http);
             loader.set_offline_checker(is_offline);
-            loader.set_seed(env!("CARGO_PKG_VERSION"));
 
             Ok(loader)
         })
@@ -82,7 +81,9 @@ impl ProtoEnvironment {
 
     pub fn get_virtual_paths(&self) -> BTreeMap<PathBuf, PathBuf> {
         BTreeMap::from_iter([
+            // TODO remove in the future
             (self.cwd.clone(), "/workspace".into()),
+            (self.cwd.clone(), "/cwd".into()),
             (self.root.clone(), "/proto".into()),
             (self.home.clone(), "/userhome".into()),
         ])

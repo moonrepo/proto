@@ -67,7 +67,7 @@ pub fn create_host_functions(data: HostData) -> Vec<Function> {
 
 // Logging
 
-pub fn host_log(
+fn host_log(
     plugin: &mut CurrentPlugin,
     inputs: &[Val],
     _outputs: &mut [Val],
