@@ -145,7 +145,6 @@ impl Tool {
                 id.to_owned(),
                 manifest,
                 create_host_functions(HostData {
-                    id: id.to_owned(),
                     virtual_paths: proto.get_virtual_paths(),
                     working_dir: proto.cwd.clone(),
                 }),

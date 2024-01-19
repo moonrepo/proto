@@ -1,6 +1,5 @@
 use crate::error::WarpgateError;
 use crate::helpers;
-use crate::id::Id;
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
 use starbase_styles::color::{self, apply_style_tags};
 use starbase_utils::fs;
@@ -13,7 +12,6 @@ use warpgate_api::{ExecCommandInput, ExecCommandOutput, HostLogInput, HostLogTar
 
 #[derive(Clone)]
 pub struct HostData {
-    pub id: Id,
     pub virtual_paths: BTreeMap<PathBuf, PathBuf>,
     pub working_dir: PathBuf,
 }
