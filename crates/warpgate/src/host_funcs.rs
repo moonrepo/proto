@@ -1,20 +1,19 @@
-use crate::error::ProtoError;
-use crate::proto::ProtoEnvironment;
+use crate::error::WarpgateError;
+use crate::helpers;
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
-use proto_pdk_api::{ExecCommandInput, ExecCommandOutput, HostLogInput, HostLogTarget};
-use starbase_styles::color;
+use starbase_styles::color::{self, apply_style_tags};
 use starbase_utils::fs;
+use std::collections::BTreeMap;
 use std::env;
 use std::path::PathBuf;
-use std::sync::Arc;
 use system_env::{create_process_command, find_command_on_path};
 use tracing::trace;
-use warpgate::Id;
+use warpgate_api::{ExecCommandInput, ExecCommandOutput, HostLogInput, HostLogTarget};
 
 #[derive(Clone)]
 pub struct HostData {
-    pub id: Id,
-    pub proto: Arc<ProtoEnvironment>,
+    pub virtual_paths: BTreeMap<PathBuf, PathBuf>,
+    pub working_dir: PathBuf,
 }
 
 pub fn create_host_functions(data: HostData) -> Vec<Function> {
@@ -66,43 +65,45 @@ pub fn create_host_functions(data: HostData) -> Vec<Function> {
 
 // Logging
 
-pub fn host_log(
+fn host_log(
     plugin: &mut CurrentPlugin,
     inputs: &[Val],
     _outputs: &mut [Val],
     _user_data: UserData<HostData>,
 ) -> Result<(), Error> {
     let input: HostLogInput = serde_json::from_str(plugin.memory_get_val(&inputs[0])?)?;
+    let message = apply_style_tags(input.message);
 
     match input.target {
         HostLogTarget::Stderr => {
             if input.data.is_empty() {
-                eprintln!("{}", input.message);
+                eprintln!("{message}");
             } else {
                 eprintln!(
-                    "{} {}",
-                    input.message,
+                    "{message} {}",
                     color::muted_light(format!("({:?})", input.data)),
                 );
             }
         }
         HostLogTarget::Stdout => {
             if input.data.is_empty() {
-                println!("{}", input.message);
+                println!("{message}");
             } else {
                 println!(
-                    "{} {}",
-                    input.message,
+                    "{message} {}",
                     color::muted_light(format!("({:?})", input.data)),
                 );
             }
         }
         HostLogTarget::Tracing => {
-            trace!(
-                target: "proto_wasm::log",
-                data = ?input.data,
-                "{}", input.message,
-            );
+            if input.data.is_empty() {
+                trace!("{message}");
+            } else {
+                trace!(
+                    data = ?input.data,
+                    "{message}"
+                );
+            }
         }
     };
 
@@ -123,8 +124,8 @@ fn exec_command(
     let data = data.lock().unwrap();
 
     // Relative or absolute file path
-    let maybe_command = if input.command.contains('/') || input.command.contains('\\') {
-        let path = data.proto.from_virtual_path(PathBuf::from(&input.command));
+    let maybe_bin = if input.command.contains('/') || input.command.contains('\\') {
+        let path = helpers::from_virtual_path(&data.virtual_paths, PathBuf::from(&input.command));
 
         if path.exists() {
             // This is temporary since WASI does not support updating file permissions yet!
@@ -141,8 +142,8 @@ fn exec_command(
         find_command_on_path(&input.command)
     };
 
-    let Some(command) = &maybe_command else {
-        return Err(ProtoError::MissingPluginCommand {
+    let Some(bin) = &maybe_bin else {
+        return Err(WarpgateError::PluginCommandMissing {
             command: input.command.clone(),
         }
         .into());
@@ -150,22 +151,21 @@ fn exec_command(
 
     // Determine working directory
     let cwd = if let Some(working_dir) = &input.working_dir {
-        data.proto.from_virtual_path(working_dir)
+        helpers::from_virtual_path(&data.virtual_paths, working_dir)
     } else {
-        data.proto.cwd.clone()
+        data.working_dir.clone()
     };
 
     trace!(
-        target: "proto_wasm::exec_command",
         command = &input.command,
         args = ?input.args,
-        env = ?input.env_vars,
+        env = ?input.env,
         cwd = ?cwd,
         "Executing command from plugin"
     );
 
-    let mut command = create_process_command(command, &input.args);
-    command.envs(&input.env_vars);
+    let mut command = create_process_command(bin, &input.args);
+    command.envs(&input.env);
     command.current_dir(cwd);
 
     let output = if input.stream {
@@ -191,8 +191,7 @@ fn exec_command(
     let debug_output = env::var("PROTO_DEBUG_COMMAND").is_ok_and(|v| !v.is_empty());
 
     trace!(
-        target: "proto_wasm::exec_command",
-        command = ?command,
+        command = ?bin,
         exit_code = output.exit_code,
         stderr = if debug_output {
             Some(&output.stderr)
@@ -224,7 +223,6 @@ fn get_env_var(
     let value = env::var(&name).unwrap_or_default();
 
     trace!(
-        target: "proto_wasm::get_env_var",
         name = &name,
         value = &value,
         "Read environment variable from host"
@@ -253,11 +251,10 @@ fn set_env_var(
         let new_path = value
             .replace(';', ":")
             .split(':')
-            .map(|path| data.proto.from_virtual_path(PathBuf::from(path)))
+            .map(|path| helpers::from_virtual_path(&data.virtual_paths, PathBuf::from(path)))
             .collect::<Vec<_>>();
 
         trace!(
-            target: "proto_wasm::set_env_var",
             name = &name,
             path = ?new_path,
             "Adding paths to PATH environment variable on host"
@@ -270,7 +267,6 @@ fn set_env_var(
         env::set_var("PATH", env::join_paths(path)?);
     } else {
         trace!(
-            target: "proto_wasm::set_env_var",
             name = &name,
             value = &value,
             "Wrote environment variable to host"
@@ -288,17 +284,16 @@ fn from_virtual_path(
     outputs: &mut [Val],
     user_data: UserData<HostData>,
 ) -> Result<(), Error> {
-    let virtual_path = PathBuf::from(plugin.memory_get_val::<String>(&inputs[0])?);
+    let original_path = PathBuf::from(plugin.memory_get_val::<String>(&inputs[0])?);
 
     let data = user_data.get()?;
     let data = data.lock().unwrap();
-    let real_path = data.proto.from_virtual_path(&virtual_path);
+    let real_path = helpers::from_virtual_path(&data.virtual_paths, &original_path);
 
     trace!(
-        target: "proto_wasm::from_virtual_path",
-        virtual_path = ?virtual_path,
+        original_path = ?original_path,
         real_path = ?real_path,
-        "Converted a virtual path into a real path"
+        "Converted a path into a real path"
     );
 
     plugin.memory_set_val(&mut outputs[0], real_path.to_string_lossy().to_string())?;
@@ -312,20 +307,19 @@ fn to_virtual_path(
     outputs: &mut [Val],
     user_data: UserData<HostData>,
 ) -> Result<(), Error> {
-    let real_path = PathBuf::from(plugin.memory_get_val::<String>(&inputs[0])?);
+    let original_path = PathBuf::from(plugin.memory_get_val::<String>(&inputs[0])?);
 
     let data = user_data.get()?;
     let data = data.lock().unwrap();
-    let virtual_path = data.proto.to_virtual_path(&real_path);
+    let virtual_path = helpers::to_virtual_path(&data.virtual_paths, &original_path);
 
     trace!(
-        target: "proto_wasm::to_virtual_path",
-        real_path = ?real_path,
-        virtual_path = ?virtual_path,
-        "Converted a real path into a virtual path"
+        original_path = ?original_path,
+        virtual_path = ?virtual_path.virtual_path(),
+        "Converted a path into a virtual path"
     );
 
-    plugin.memory_set_val(&mut outputs[0], virtual_path.to_string_lossy().to_string())?;
+    plugin.memory_set_val(&mut outputs[0], serde_json::to_string(&virtual_path)?)?;
 
     Ok(())
 }

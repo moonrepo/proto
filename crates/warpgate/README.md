@@ -2,7 +2,7 @@
 
 ![Crates.io](https://img.shields.io/crates/v/warpgate) ![Crates.io](https://img.shields.io/crates/d/warpgate)
 
-Warpgate is a library for downloading, resolving, and managing [Extism][extism] powered WASM plugins at runtime.
+Warpgate is a library for downloading, resolving, and managing [Extism][extism] powered WASM plugins.
 
 The warp in warpgate stands for Web Assembly Runtime Plugins. Pretty stellar huh.
 
@@ -85,12 +85,11 @@ Another mechanism of this library is providing the `PluginContainer` struct; a w
 To make use of the container, instantiate an instance with a `Manifest`, and optional host functions.
 
 ```rust
-use extism::{Manifest, Wasm};
-use warpgate::{Id, PluginContainer};
+use warpgate::{Id, PluginContainer, PluginManifest, Wasm};
 
 // Load the plugin and create a manifest
 let wasm_file = loader.load_plugin(locator);
-let manifest = Manifest::new([Wasm::file(wasm_file)]);
+let manifest = PluginManifest::new([Wasm::file(wasm_file)]);
 
 // Create a container
 let container = PluginContainer::new(Id::new("id")?, manifest, [host, funcs])?;

@@ -76,7 +76,7 @@ impl PluginLoader {
         let locator = locator.as_ref();
 
         trace!(
-            plugin = id.as_str(),
+            id = id.as_str(),
             "Loading plugin {}",
             color::id(id.as_str())
         );
@@ -92,7 +92,7 @@ impl PluginLoader {
 
                 if path.exists() {
                     trace!(
-                        plugin = id.as_str(),
+                        id = id.as_str(),
                         path = ?path,
                         "Using source file",
                     );
@@ -142,7 +142,7 @@ impl PluginLoader {
     /// is only valid for 7 days (to ensure not stale), otherwise forever.
     pub fn is_cached(&self, id: &Id, path: &Path) -> miette::Result<bool> {
         if !path.exists() {
-            trace!(plugin = id.as_str(), "Plugin not cached, downloading");
+            trace!(id = id.as_str(), "Plugin not cached, downloading");
 
             return Ok(false);
         }
@@ -170,9 +170,9 @@ impl PluginLoader {
         }
 
         if cached {
-            trace!(plugin = id.as_str(), path = ?path, "Plugin already downloaded and cached");
+            trace!(id = id.as_str(), path = ?path, "Plugin already downloaded and cached");
         } else {
-            trace!(plugin = id.as_str(), path = ?path, "Plugin cached but stale, re-downloading");
+            trace!(id = id.as_str(), path = ?path, "Plugin cached but stale, re-downloading");
         }
 
         Ok(cached)
@@ -220,7 +220,7 @@ impl PluginLoader {
         }
 
         trace!(
-            plugin = id.as_str(),
+            id = id.as_str(),
             from = source_url,
             to = ?dest_file,
             "Downloading plugin from URL"
@@ -266,7 +266,7 @@ impl PluginLoader {
         }
 
         trace!(
-            plugin = id.as_str(),
+            id = id.as_str(),
             api_url = &api_url,
             release_tag = &release_tag,
             "Attempting to download plugin from GitHub release",
@@ -303,7 +303,7 @@ impl PluginLoader {
         for asset in &release.assets {
             if asset.content_type == "application/wasm" || asset.name.ends_with(".wasm") {
                 trace!(
-                    plugin = id.as_str(),
+                    id = id.as_str(),
                     asset = &asset.name,
                     "Found WASM asset with application/wasm content type"
                 );
@@ -328,7 +328,7 @@ impl PluginLoader {
                         | asset.name.ends_with(".zip")))
             {
                 trace!(
-                    plugin = id.as_str(),
+                    id = id.as_str(),
                     asset = &asset.name,
                     "Found possible asset as an archive"
                 );
@@ -367,7 +367,7 @@ impl PluginLoader {
         }
 
         trace!(
-            plugin = id.as_str(),
+            id = id.as_str(),
             api_url = &fake_api_url,
             version,
             "Attempting to download plugin from wamp.io",
@@ -423,7 +423,7 @@ impl PluginLoader {
                 .ends_with(&format!("release/{}.wasm", wapm.file_prefix))
         }) {
             trace!(
-                plugin = id.as_str(),
+                id = id.as_str(),
                 module = &release_module.name,
                 "Found possible module compiled for release mode"
             );
@@ -437,7 +437,7 @@ impl PluginLoader {
             module.name == wapm.file_prefix || module.name == format!("{}.wasm", wapm.file_prefix)
         }) {
             trace!(
-                plugin = id.as_str(),
+                id = id.as_str(),
                 module = &fallback_module.name,
                 "Found possible module with matching file name"
             );
@@ -450,7 +450,7 @@ impl PluginLoader {
         // Otherwise use the distribution download, which is typically an archive
         if let Some(download_url) = &package.distribution.download_url {
             trace!(
-                plugin = id.as_str(),
+                id = id.as_str(),
                 "Using the distribution archive as a last resort"
             );
 

@@ -1,7 +1,7 @@
-use crate::{json_struct, ToolContext};
-use serde::{Deserialize, Serialize};
+use crate::api::ToolContext;
+use warpgate_api::*;
 
-json_struct!(
+api_struct!(
     /// Input passed to the `pre_install` and `post_install` hooks,
     /// while a `proto install` command is running.
     pub struct InstallHook {
@@ -16,7 +16,7 @@ json_struct!(
     }
 );
 
-json_struct!(
+api_struct!(
     /// Input passed to the `pre_run` hook, before a `proto run` command
     /// or language binary is ran.
     pub struct RunHook {

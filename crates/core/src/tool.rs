@@ -4,18 +4,14 @@ use crate::helpers::{
     extract_filename_from_url, get_proto_version, hash_file_contents, is_archive_file,
     is_cache_enabled, is_offline, remove_bin_file, ENV_VAR,
 };
-use crate::host_funcs::{create_host_functions, HostData};
 use crate::proto::ProtoEnvironment;
 use crate::proto_config::ProtoConfig;
 use crate::shim_registry::{Shim, ShimRegistry, ShimsMap};
 use crate::tool_manifest::{ToolManifest, ToolManifestVersion};
 use crate::version_resolver::VersionResolver;
-use extism::{Manifest as PluginManifest, Wasm};
 use miette::IntoDiagnostic;
 use proto_pdk_api::*;
-use proto_shim::{
-    create_shim, get_exe_file_name, get_shim_file_name, locate_proto_exe, SHIM_VERSION,
-};
+use proto_shim::*;
 use serde::Serialize;
 use starbase_archive::Archiver;
 use starbase_events::Emitter;
@@ -30,7 +26,11 @@ use std::process::Command;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 use tracing::{debug, info, trace, warn};
-use warpgate::{download_from_url_to_file, Id, PluginContainer, PluginLocator, VirtualPath};
+use warpgate::{
+    download_from_url_to_file,
+    host_funcs::{create_host_functions, HostData},
+    Id, PluginContainer, PluginLocator, PluginManifest, VirtualPath, Wasm,
+};
 
 #[derive(Debug, Default, Serialize)]
 pub struct ExecutableLocation {
@@ -45,7 +45,7 @@ pub struct Tool {
     pub manifest: ToolManifest,
     pub metadata: ToolMetadataOutput,
     pub locator: Option<PluginLocator>,
-    pub plugin: PluginContainer,
+    pub plugin: Arc<PluginContainer>,
     pub proto: Arc<ProtoEnvironment>,
     pub version: Option<VersionSpec>,
 
@@ -67,6 +67,46 @@ pub struct Tool {
 }
 
 impl Tool {
+    pub fn new(
+        id: Id,
+        proto: Arc<ProtoEnvironment>,
+        plugin: Arc<PluginContainer>,
+    ) -> miette::Result<Self> {
+        debug!(
+            "Created tool {} and its WASM runtime",
+            color::id(id.as_str())
+        );
+
+        let mut tool = Tool {
+            cache: true,
+            exe_path: None,
+            globals_dir: None,
+            globals_prefix: None,
+            locator: None,
+            manifest: ToolManifest::load_from(proto.tools_dir.join(id.as_str()))?,
+            metadata: ToolMetadataOutput::default(),
+            plugin,
+            proto,
+            version: None,
+            id,
+
+            // Events
+            on_created_bins: Emitter::new(),
+            on_created_shims: Emitter::new(),
+            on_installing: Emitter::new(),
+            on_installed: Emitter::new(),
+            on_installed_global: Emitter::new(),
+            on_resolved_version: Emitter::new(),
+            on_uninstalling: Emitter::new(),
+            on_uninstalled: Emitter::new(),
+            on_uninstalled_global: Emitter::new(),
+        };
+
+        tool.register_tool()?;
+
+        Ok(tool)
+    }
+
     pub fn load<I: AsRef<Id>, P: AsRef<ProtoEnvironment>>(
         id: I,
         proto: P,
@@ -90,69 +130,18 @@ impl Tool {
             color::id(id.as_str())
         );
 
-        let proto = Arc::new(proto.to_owned());
-
-        let host_data = HostData {
-            id: id.to_owned(),
-            proto: Arc::clone(&proto),
-        };
-
-        if let Ok(level) = env::var("PROTO_WASM_LOG") {
-            let log_file = proto.cwd.join(format!("{}-debug.log", id));
-
-            trace!(file = ?log_file, "Created WASM log file");
-
-            if let Err(error) = extism::set_log_callback(
-                move |line| {
-                    if fs::append_file(&log_file, line).is_err() {
-                        trace!(target: "proto_wasm::runtime", "{line}");
-                    }
-                },
-                level,
-            ) {
-                if env::var("PROTO_TEST").is_err() {
-                    warn!("Failed to capture WASM logs: {}", error.to_string());
-                }
-            }
-        }
-
-        let mut tool = Tool {
-            cache: true,
-            exe_path: None,
-            globals_dir: None,
-            globals_prefix: None,
-            id: id.to_owned(),
-            locator: None,
-            manifest: ToolManifest::load_from(proto.tools_dir.join(id.as_str()))?,
-            metadata: ToolMetadataOutput::default(),
-            plugin: PluginContainer::new(
+        Self::new(
+            id.to_owned(),
+            Arc::new(proto.to_owned()),
+            Arc::new(PluginContainer::new(
                 id.to_owned(),
                 manifest,
-                create_host_functions(host_data),
-            )?,
-            proto,
-            version: None,
-
-            // Events
-            on_created_bins: Emitter::new(),
-            on_created_shims: Emitter::new(),
-            on_installing: Emitter::new(),
-            on_installed: Emitter::new(),
-            on_installed_global: Emitter::new(),
-            on_resolved_version: Emitter::new(),
-            on_uninstalling: Emitter::new(),
-            on_uninstalled: Emitter::new(),
-            on_uninstalled_global: Emitter::new(),
-        };
-
-        debug!(
-            "Created tool {} and its WASM runtime",
-            color::id(id.as_str())
-        );
-
-        tool.register_tool()?;
-
-        Ok(tool)
+                create_host_functions(HostData {
+                    virtual_paths: proto.get_virtual_paths(),
+                    working_dir: proto.cwd.clone(),
+                }),
+            )?),
+        )
     }
 
     pub fn create_plugin_manifest<P: AsRef<ProtoEnvironment>>(
@@ -200,7 +189,7 @@ impl Tool {
             .inventory
             .override_dir
             .as_ref()
-            .map(|dir| dir.to_owned())
+            .map(|dir| self.from_virtual_path(dir))
             .unwrap_or_else(|| self.proto.tools_dir.join(self.id.as_str()))
     }
 
@@ -250,18 +239,7 @@ impl Tool {
 
     /// Convert a real path to a virtual path.
     pub fn to_virtual_path(&self, path: &Path) -> VirtualPath {
-        // This is a temporary hack. Only newer plugins support the `VirtualPath`
-        // type, so we need to check if the plugin has a version or not, which
-        // is a newer feature. Otherwise, old plugins would fail to parse the
-        // `VirtualPath` type and crash.
-        if self.metadata.plugin_version.is_some() {
-            self.plugin.to_virtual_path(path)
-        } else {
-            match self.plugin.to_virtual_path(path) {
-                VirtualPath::WithReal { path, .. } => VirtualPath::Only(path),
-                VirtualPath::Only(path) => VirtualPath::Only(path),
-            }
-        }
+        self.plugin.to_virtual_path(path)
     }
 }
 
@@ -279,7 +257,7 @@ impl Tool {
 
     /// Register the tool by loading initial metadata and persisting it.
     pub fn register_tool(&mut self) -> miette::Result<()> {
-        let mut metadata: ToolMetadataOutput = self.plugin.cache_func_with(
+        let metadata: ToolMetadataOutput = self.plugin.cache_func_with(
             "register_tool",
             ToolMetadataInput {
                 id: self.id.to_string(),
@@ -287,11 +265,7 @@ impl Tool {
         )?;
 
         if let Some(override_dir) = &metadata.inventory.override_dir {
-            let inventory_dir = self.from_virtual_path(override_dir);
-
-            if inventory_dir.is_absolute() {
-                metadata.inventory.override_dir = Some(inventory_dir);
-            } else {
+            if !override_dir.is_absolute() {
                 return Err(ProtoError::AbsoluteInventoryDir {
                     tool: self.get_name().to_owned(),
                 }
