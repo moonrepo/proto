@@ -171,22 +171,26 @@ pub fn to_virtual_path(
     let path = path.as_ref();
 
     for (host_path, guest_path) in sort_virtual_paths(paths_map) {
-        if let Ok(rel_path) = path.strip_prefix(host_path) {
-            let path = guest_path.join(rel_path);
+        let virtual_path = if let Ok(rel_path) = path.strip_prefix(host_path) {
+            guest_path.join(rel_path)
+        } else if path.starts_with(guest_path) {
+            path.to_owned()
+        } else {
+            continue;
+        };
 
-            // Only forward slashes are allowed in WASI
-            let path = if cfg!(windows) {
-                PathBuf::from(path.to_string_lossy().replace('\\', "/"))
-            } else {
-                path
-            };
+        // Only forward slashes are allowed in WASI
+        let virtual_path = if cfg!(windows) {
+            PathBuf::from(path.to_string_lossy().replace('\\', "/"))
+        } else {
+            virtual_path
+        };
 
-            return VirtualPath::WithReal {
-                path,
-                virtual_prefix: guest_path.to_path_buf(),
-                real_prefix: host_path.to_path_buf(),
-            };
-        }
+        return VirtualPath::WithReal {
+            path: virtual_path,
+            virtual_prefix: guest_path.to_path_buf(),
+            real_prefix: host_path.to_path_buf(),
+        };
     }
 
     VirtualPath::Only(path.to_owned())

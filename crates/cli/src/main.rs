@@ -29,6 +29,14 @@ async fn main() -> MainResult {
 
     env::set_var("PROTO_VERSION", version);
 
+    let mut modules = string_vec!["proto", "schematic", "starbase", "warpgate"];
+
+    if env::var("PROTO_WASM_LOG").is_ok() {
+        modules.push("extism".into());
+    } else {
+        modules.push("extism::pdk".into());
+    }
+
     App::setup_tracing_with_options(TracingOptions {
         default_level: if matches!(cli.command, Commands::Bin { .. } | Commands::Run { .. }) {
             LevelFilter::WARN
@@ -37,9 +45,8 @@ async fn main() -> MainResult {
         } else {
             LevelFilter::INFO
         },
-        filter_modules: string_vec!["proto", "schematic", "starbase", "warpgate"],
-        // This swallows logs from extism when enabled
-        intercept_log: env::var("PROTO_WASM_LOG").is_err(),
+        filter_modules: modules,
+        intercept_log: false,
         log_env: "STARBASE_LOG".into(),
         // test_env: "PROTO_TEST".into(),
         ..TracingOptions::default()

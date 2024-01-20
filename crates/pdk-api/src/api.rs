@@ -1,12 +1,9 @@
-use crate::host_funcs::ExecCommandOutput;
 use crate::shapes::StringOrVec;
-use crate::{json_enum, json_struct};
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use system_env::SystemDependency;
 use version_spec::{UnresolvedVersionSpec, VersionSpec};
-use warpgate_api::VirtualPath;
+use warpgate_api::*;
 
 pub use semver::{Version, VersionReq};
 
@@ -14,12 +11,7 @@ fn is_false(value: &bool) -> bool {
     !(*value)
 }
 
-json_struct!(
-    /// Represents an empty input.
-    pub struct EmptyInput {}
-);
-
-json_struct!(
+api_struct!(
     /// Information about the current state of the tool.
     pub struct ToolContext {
         /// The version of proto (the core crate) calling plugin functions.
@@ -33,7 +25,7 @@ json_struct!(
     }
 );
 
-json_enum!(
+api_enum!(
     /// Supported types of plugins.
     #[derive(Default)]
     pub enum PluginType {
@@ -44,7 +36,7 @@ json_enum!(
     }
 );
 
-json_struct!(
+api_struct!(
     /// Input passed to the `register_tool` function.
     pub struct ToolMetadataInput {
         /// ID of the tool, as it was configured.
@@ -52,7 +44,7 @@ json_struct!(
     }
 );
 
-json_struct!(
+api_struct!(
     /// Controls aspects of the tool inventory.
     pub struct ToolInventoryMetadata {
         /// Disable progress bars when installing or uninstalling tools.
@@ -62,7 +54,7 @@ json_struct!(
         /// Override the tool inventory directory (where all versions are installed).
         /// This is an advanced feature and should only be used when absolutely necessary.
         #[serde(skip_serializing_if = "Option::is_none")]
-        pub override_dir: Option<PathBuf>,
+        pub override_dir: Option<VirtualPath>,
 
         /// Suffix to append to all versions when labeling directories.
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -70,7 +62,7 @@ json_struct!(
     }
 );
 
-json_struct!(
+api_struct!(
     /// Output returned by the `register_tool` function.
     pub struct ToolMetadataOutput {
         /// Default alias or version to use as a fallback.
@@ -100,7 +92,7 @@ json_struct!(
 
 // VERSION DETECTION
 
-json_struct!(
+api_struct!(
     /// Output returned by the `detect_version_files` function.
     pub struct DetectVersionOutput {
         /// List of files that should be checked for version information.
@@ -113,7 +105,7 @@ json_struct!(
     }
 );
 
-json_struct!(
+api_struct!(
     /// Input passed to the `parse_version_file` function.
     pub struct ParseVersionFileInput {
         /// File contents to parse/extract a version from.
@@ -124,7 +116,7 @@ json_struct!(
     }
 );
 
-json_struct!(
+api_struct!(
     /// Output returned by the `parse_version_file` function.
     pub struct ParseVersionFileOutput {
         /// The version that was extracted from the file.
@@ -136,7 +128,7 @@ json_struct!(
 
 // DOWNLOAD, BUILD, INSTALL, VERIFY
 
-json_struct!(
+api_struct!(
     /// Input passed to the `native_install` function.
     pub struct NativeInstallInput {
         /// Current tool context.
@@ -147,7 +139,7 @@ json_struct!(
     }
 );
 
-json_struct!(
+api_struct!(
     /// Output returned by the `native_install` function.
     pub struct NativeInstallOutput {
         /// Error message if the install failed.
@@ -162,7 +154,7 @@ json_struct!(
     }
 );
 
-json_struct!(
+api_struct!(
     /// Input passed to the `native_uninstall` function.
     pub struct NativeUninstallInput {
         /// Current tool context.
@@ -170,7 +162,7 @@ json_struct!(
     }
 );
 
-json_struct!(
+api_struct!(
     /// Output returned by the `native_uninstall` function.
     pub struct NativeUninstallOutput {
         /// Error message if the uninstall failed.
@@ -185,7 +177,7 @@ json_struct!(
     }
 );
 
-json_struct!(
+api_struct!(
     /// Input passed to the `build_instructions` function.
     pub struct BuildInstructionsInput {
         /// Current tool context.
@@ -193,7 +185,7 @@ json_struct!(
     }
 );
 
-json_enum!(
+api_enum!(
     #[derive(Default)]
     #[serde(tag = "type", rename_all = "lowercase")]
     pub enum SourceLocation {
@@ -210,7 +202,7 @@ json_enum!(
     }
 );
 
-json_enum!(
+api_enum!(
     #[serde(tag = "type", rename_all = "lowercase")]
     pub enum BuildInstruction {
         Command {
@@ -221,7 +213,7 @@ json_enum!(
     }
 );
 
-json_struct!(
+api_struct!(
     /// Output returned by the `build_instructions` function.
     pub struct BuildInstructionsOutput {
         /// Link to the documentation/help.
@@ -243,7 +235,7 @@ json_struct!(
     }
 );
 
-json_struct!(
+api_struct!(
     /// Input passed to the `download_prebuilt` function.
     pub struct DownloadPrebuiltInput {
         /// Current tool context.
@@ -254,7 +246,7 @@ json_struct!(
     }
 );
 
-json_struct!(
+api_struct!(
     /// Output returned by the `download_prebuilt` function.
     pub struct DownloadPrebuiltOutput {
         /// Name of the direct folder within the archive that contains the tool,
@@ -286,7 +278,7 @@ json_struct!(
     }
 );
 
-json_struct!(
+api_struct!(
     /// Input passed to the `unpack_archive` function.
     pub struct UnpackArchiveInput {
         /// Current tool context.
@@ -300,7 +292,7 @@ json_struct!(
     }
 );
 
-json_struct!(
+api_struct!(
     /// Output returned by the `verify_checksum` function.
     pub struct VerifyChecksumInput {
         /// Current tool context.
@@ -314,7 +306,7 @@ json_struct!(
     }
 );
 
-json_struct!(
+api_struct!(
     /// Output returned by the `verify_checksum` function.
     pub struct VerifyChecksumOutput {
         pub verified: bool,
@@ -323,7 +315,7 @@ json_struct!(
 
 // EXECUTABLES, BINARYS, GLOBALS
 
-json_struct!(
+api_struct!(
     /// Input passed to the `locate_executables` function.
     pub struct LocateExecutablesInput {
         /// Current tool context.
@@ -331,7 +323,7 @@ json_struct!(
     }
 );
 
-json_struct!(
+api_struct!(
     /// Configuration for generated shim and symlinked binary files.
     pub struct ExecutableConfig {
         /// The file to execute, relative from the tool directory.
@@ -394,7 +386,7 @@ impl ExecutableConfig {
     }
 }
 
-json_struct!(
+api_struct!(
     /// Output returned by the `locate_executables` function.
     pub struct LocateExecutablesOutput {
         /// List of directory paths to find the globals installation directory.
@@ -419,7 +411,7 @@ json_struct!(
     }
 );
 
-json_struct!(
+api_struct!(
     /// Input passed to the `install_global` function.
     pub struct InstallGlobalInput {
         /// Current tool context.
@@ -433,7 +425,7 @@ json_struct!(
     }
 );
 
-json_struct!(
+api_struct!(
     /// Output returned by the `install_global` function.
     pub struct InstallGlobalOutput {
         /// Error message if the install failed.
@@ -461,7 +453,7 @@ impl InstallGlobalOutput {
     }
 }
 
-json_struct!(
+api_struct!(
     /// Input passed to the `uninstall_global` function.
     pub struct UninstallGlobalInput {
         /// Current tool context.
@@ -475,7 +467,7 @@ json_struct!(
     }
 );
 
-json_struct!(
+api_struct!(
     /// Output returned by the `uninstall_global` function.
     pub struct UninstallGlobalOutput {
         /// Whether the uninstall was successful.
@@ -505,7 +497,7 @@ impl UninstallGlobalOutput {
 
 // VERSION RESOLVING
 
-json_struct!(
+api_struct!(
     /// Input passed to the `load_versions` function.
     pub struct LoadVersionsInput {
         /// The alias or version currently being resolved.
@@ -513,7 +505,7 @@ json_struct!(
     }
 );
 
-json_struct!(
+api_struct!(
     /// Output returned by the `load_versions` function.
     pub struct LoadVersionsOutput {
         /// Latest canary version.
@@ -537,19 +529,19 @@ json_struct!(
 impl LoadVersionsOutput {
     /// Create the output from a list of strings that'll be parsed as versions.
     /// The latest version will be the highest version number.
-    pub fn from(values: Vec<String>) -> anyhow::Result<Self> {
+    pub fn from(values: Vec<String>) -> Result<Self, semver::Error> {
         let mut versions = vec![];
 
         for value in values {
             versions.push(Version::parse(&value)?);
         }
 
-        Self::from_versions(versions)
+        Ok(Self::from_versions(versions))
     }
 
     /// Create the output from a list of versions.
     /// The latest version will be the highest version number.
-    pub fn from_versions(versions: Vec<Version>) -> anyhow::Result<Self> {
+    pub fn from_versions(versions: Vec<Version>) -> Self {
         let mut output = LoadVersionsOutput::default();
         let mut latest = Version::new(0, 0, 0);
 
@@ -563,12 +555,11 @@ impl LoadVersionsOutput {
 
         output.latest = Some(latest.clone());
         output.aliases.insert("latest".into(), latest);
-
-        Ok(output)
+        output
     }
 }
 
-json_struct!(
+api_struct!(
     /// Input passed to the `resolve_version` function.
     pub struct ResolveVersionInput {
         /// The alias or version currently being resolved.
@@ -576,7 +567,7 @@ json_struct!(
     }
 );
 
-json_struct!(
+api_struct!(
     /// Output returned by the `resolve_version` function.
     pub struct ResolveVersionOutput {
         /// New alias or version candidate to resolve.
@@ -592,7 +583,7 @@ json_struct!(
 
 // MISCELLANEOUS
 
-json_struct!(
+api_struct!(
     /// Input passed to the `sync_manifest` function.
     pub struct SyncManifestInput {
         /// Current tool context.
@@ -600,7 +591,7 @@ json_struct!(
     }
 );
 
-json_struct!(
+api_struct!(
     /// Output returned by the `sync_manifest` function.
     pub struct SyncManifestOutput {
         /// List of versions that are currently installed. Will replace
@@ -613,7 +604,7 @@ json_struct!(
     }
 );
 
-json_struct!(
+api_struct!(
     /// Input passed to the `sync_shell_profile` function.
     pub struct SyncShellProfileInput {
         /// Current tool context.
@@ -624,7 +615,7 @@ json_struct!(
     }
 );
 
-json_struct!(
+api_struct!(
     /// Output returned by the `sync_shell_profile` function.
     pub struct SyncShellProfileOutput {
         /// An environment variable to check for in the shell profile.

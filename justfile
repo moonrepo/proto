@@ -5,7 +5,7 @@ init:
 	cargo binstall cargo-insta cargo-nextest cargo-wasi
 
 build:
-	cargo build --workspace
+	cargo build --bin proto --bin proto-shim --no-default-features
 
 build-shim:
 	cargo build --bin proto-shim
