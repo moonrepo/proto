@@ -81,6 +81,12 @@ pub enum WarpgateError {
     #[error("{error}")]
     PluginCallFailedRelease { error: String },
 
+    #[diagnostic(code(plugin::missing_command))]
+    #[error(
+        "Command or script {} does not exist. Unable to execute from plugin.", .command.style(Style::Shell)
+    )]
+    PluginCommandMissing { command: String },
+
     #[diagnostic(code(plugin::call_func::format_input))]
     #[error(
         "Failed to format input for {} plugin function {} call.",

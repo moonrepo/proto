@@ -1,20 +1,11 @@
 use proto_core::Tool;
 use proto_pdk_api::*;
-use std::path::{Path, PathBuf};
 
 pub struct WasmTestWrapper {
     pub tool: Tool,
 }
 
 impl WasmTestWrapper {
-    pub fn from_virtual_path(&self, path: &Path) -> PathBuf {
-        self.tool.plugin.from_virtual_path(path)
-    }
-
-    pub fn to_virtual_path(&self, path: &Path) -> VirtualPath {
-        self.tool.to_virtual_path(path)
-    }
-
     pub fn detect_version_files(&self) -> DetectVersionOutput {
         self.tool.plugin.call_func("detect_version_files").unwrap()
     }
@@ -29,7 +20,7 @@ impl WasmTestWrapper {
     }
 
     pub fn install_global(&self, mut input: InstallGlobalInput) -> InstallGlobalOutput {
-        input.globals_dir = self.to_virtual_path(&input.globals_dir);
+        input.globals_dir = self.tool.to_virtual_path(&input.globals_dir);
         input.context = self.prepare_context(input.context);
 
         self.tool
@@ -139,7 +130,7 @@ impl WasmTestWrapper {
     }
 
     pub fn uninstall_global(&self, mut input: UninstallGlobalInput) -> UninstallGlobalOutput {
-        input.globals_dir = self.to_virtual_path(&input.globals_dir);
+        input.globals_dir = self.tool.to_virtual_path(&input.globals_dir);
 
         self.tool
             .plugin
@@ -148,8 +139,8 @@ impl WasmTestWrapper {
     }
 
     pub fn unpack_archive(&self, mut input: UnpackArchiveInput) {
-        input.input_file = self.to_virtual_path(&input.input_file);
-        input.output_dir = self.to_virtual_path(&input.output_dir);
+        input.input_file = self.tool.to_virtual_path(&input.input_file);
+        input.output_dir = self.tool.to_virtual_path(&input.output_dir);
 
         let _: EmptyInput = self
             .tool
@@ -159,8 +150,8 @@ impl WasmTestWrapper {
     }
 
     pub fn verify_checksum(&self, mut input: VerifyChecksumInput) -> VerifyChecksumOutput {
-        input.checksum_file = self.to_virtual_path(&input.checksum_file);
-        input.download_file = self.to_virtual_path(&input.download_file);
+        input.checksum_file = self.tool.to_virtual_path(&input.checksum_file);
+        input.download_file = self.tool.to_virtual_path(&input.download_file);
 
         self.tool
             .plugin
@@ -176,7 +167,7 @@ impl WasmTestWrapper {
         };
 
         ToolContext {
-            tool_dir: self.to_virtual_path(&dir),
+            tool_dir: self.tool.to_virtual_path(&dir),
             ..context
         }
     }

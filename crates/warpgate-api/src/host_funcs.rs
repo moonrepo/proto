@@ -1,9 +1,8 @@
-use crate::{json_enum, json_struct};
-use serde::{Deserialize, Serialize};
+use crate::virtual_path::VirtualPath;
+use crate::{api_enum, api_struct};
 use std::collections::HashMap;
-use std::path::PathBuf;
 
-json_enum!(
+api_enum!(
     /// Target where host logs should be written to.
     #[derive(Default)]
     #[serde(rename_all = "lowercase")]
@@ -15,7 +14,7 @@ json_enum!(
     }
 );
 
-json_struct!(
+api_struct!(
     pub struct HostLogInput {
         pub data: HashMap<String, serde_json::Value>,
         pub message: String,
@@ -45,17 +44,17 @@ impl From<String> for HostLogInput {
     }
 }
 
-json_struct!(
+api_struct!(
     /// Input passed to the `exec_command` host function.
     pub struct ExecCommandInput {
         /// Arguments to pass to the command.
         pub args: Vec<String>,
 
-        /// The command to execute.
+        /// The command or script to execute.
         pub command: String,
 
         /// Environment variables to pass to the command.
-        pub env_vars: HashMap<String, String>,
+        pub env: HashMap<String, String>,
 
         /// Mark the command as executable before executing.
         #[doc(hidden)]
@@ -65,7 +64,7 @@ json_struct!(
         pub stream: bool,
 
         /// Override the current working directory.
-        pub working_dir: Option<PathBuf>,
+        pub working_dir: Option<VirtualPath>,
     }
 );
 
@@ -97,7 +96,7 @@ impl ExecCommandInput {
     }
 }
 
-json_struct!(
+api_struct!(
     /// Output returned from the `exec_command` host function.
     pub struct ExecCommandOutput {
         pub command: String,

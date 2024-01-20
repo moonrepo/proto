@@ -3,15 +3,17 @@ use crate::error::WarpgateError;
 use crate::helpers::{from_virtual_path, to_virtual_path};
 use crate::id::Id;
 use extism::{Error, Function, Manifest, Plugin};
+use miette::IntoDiagnostic;
 use once_map::OnceMap;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use starbase_styles::color;
+use starbase_styles::color::{self, apply_style_tags};
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
+use system_env::{SystemArch, SystemOS};
 use tracing::trace;
-use warpgate_api::VirtualPath;
+use warpgate_api::{HostEnvironment, VirtualPath};
 
 fn is_incompatible_runtime(error: &Error) -> bool {
     let check = |message: String| {
@@ -26,6 +28,33 @@ fn is_incompatible_runtime(error: &Error) -> bool {
     }
 
     check(error.to_string())
+}
+
+/// Inject our default configuration into the provided plugin manifest.
+/// This will set `plugin_id` and `host_environment` for use within PDKs.
+pub fn inject_default_manifest_config(
+    id: &Id,
+    home_dir: &Path,
+    manifest: &mut Manifest,
+) -> miette::Result<()> {
+    let env = serde_json::to_string(&HostEnvironment {
+        arch: SystemArch::from_env(),
+        os: SystemOS::from_env(),
+        home_dir: to_virtual_path(manifest.allowed_paths.as_ref().unwrap(), home_dir),
+    })
+    .into_diagnostic()?;
+
+    trace!(id = id.as_str(), "Storing plugin identifier");
+
+    manifest
+        .config
+        .insert("plugin_id".to_string(), id.to_string());
+
+    trace!(env = %env, "Storing host environment");
+
+    manifest.config.insert("host_environment".to_string(), env);
+
+    Ok(())
 }
 
 /// A container around Extism's [`Plugin`] and [`Manifest`] types that provides convenience
@@ -59,6 +88,12 @@ impl PluginContainer {
                 }
             }
         })?;
+
+        trace!(
+            id = id.as_str(),
+            plugin = ?plugin.id,
+            "Created plugin container",
+        );
 
         Ok(PluginContainer {
             manifest,
@@ -168,21 +203,23 @@ impl PluginContainer {
 
     /// Call a function on the plugin with the given raw input and return the raw output.
     pub fn call(&self, func: &str, input: impl AsRef<[u8]>) -> miette::Result<Vec<u8>> {
-        let input = input.as_ref();
-
-        trace!(
-            plugin = self.id.as_str(),
-            input = %String::from_utf8_lossy(input),
-            "Calling plugin function {}",
-            color::label(func),
-        );
-
         let mut instance = self.plugin.write().unwrap_or_else(|_| {
             panic!(
                 "Unable to acquire write access to `{}` WASM plugin.",
                 self.id
             )
         });
+
+        let input = input.as_ref();
+        let uuid = instance.id; // Copy
+
+        trace!(
+            id = self.id.as_str(),
+            plugin = ?uuid,
+            input = %String::from_utf8_lossy(input),
+            "Calling plugin function {}",
+            color::label(func),
+        );
 
         let output = instance.call(func, input).map_err(|error| {
             if is_incompatible_runtime(&error) {
@@ -191,10 +228,15 @@ impl PluginContainer {
                 };
             }
 
-            let message = error
-                .source()
-                .map(|src| src.to_string())
-                .unwrap_or_else(|| error.to_string());
+            let message = apply_style_tags(
+                error
+                    .source()
+                    .map(|src| src.to_string())
+                    .unwrap_or_else(|| error.to_string())
+                    .replace("\\\\n", "\n")
+                    .replace("\\n", "\n")
+                    .trim(),
+            );
 
             // When in debug mode, include more information around errors.
             #[cfg(debug_assertions)]
@@ -205,18 +247,18 @@ impl PluginContainer {
                     error: message,
                 }
             }
+
             // When in release mode, errors don't render properly with the
             // previous variant, so this is a special variant that renders as-is.
             #[cfg(not(debug_assertions))]
             {
-                WarpgateError::PluginCallFailedRelease {
-                    error: message.replace("\\\\n", "\n").replace("\\n", "\n"),
-                }
+                WarpgateError::PluginCallFailedRelease { error: message }
             }
         })?;
 
         trace!(
-            plugin = self.id.as_str(),
+            id = self.id.as_str(),
+            plugin = ?uuid,
             output = %String::from_utf8_lossy(output),
             "Called plugin function {}",
             color::label(func),

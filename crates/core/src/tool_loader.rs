@@ -2,62 +2,47 @@ use crate::error::ProtoError;
 use crate::proto::ProtoEnvironment;
 use crate::proto_config::{ProtoConfig, SCHEMA_PLUGIN_KEY};
 use crate::tool::Tool;
-use extism::{Manifest, Wasm};
 use miette::IntoDiagnostic;
 use proto_pdk_api::{HostArch, HostEnvironment, HostOS};
 use starbase_utils::{json, toml};
 use std::path::PathBuf;
 use tracing::{debug, trace};
-use warpgate::{to_virtual_path, Id, PluginLocator};
+use warpgate::{
+    inject_default_manifest_config, to_virtual_path, Id, PluginLocator, PluginManifest, Wasm,
+};
 
-pub fn inject_default_manifest_config(
+pub fn inject_proto_manifest_config(
     id: &Id,
     proto: &ProtoEnvironment,
-    manifest: &mut Manifest,
+    manifest: &mut PluginManifest,
 ) -> miette::Result<()> {
-    trace!(id = id.as_str(), "Storing tool identifier");
+    let config = proto.load_config()?;
 
+    if let Some(tool_config) = config.tools.get(id) {
+        let value = json::to_string(&tool_config.config).into_diagnostic()?;
+
+        trace!(config = %value, "Storing proto tool configuration");
+
+        manifest
+            .config
+            .insert("proto_tool_config".to_string(), value);
+    }
+
+    // TODO remove in the future
     manifest
         .config
         .insert("proto_tool_id".to_string(), id.to_string());
 
-    manifest
-        .config
-        .insert("plugin_id".to_string(), id.to_string());
-
-    let config = proto.load_config()?;
-
-    if let Some(tool_config) = config.tools.get(id) {
-        if !tool_config.config.is_empty() {
-            let value = json::to_string(&tool_config.config).into_diagnostic()?;
-
-            trace!(config = %value, "Storing tool configuration");
-
-            manifest
-                .config
-                .insert("proto_tool_config".to_string(), value);
-        }
-    }
-
-    let paths_map = manifest.allowed_paths.as_ref().unwrap();
-
-    let value = json::to_string(&HostEnvironment {
-        arch: HostArch::from_env(),
-        os: HostOS::from_env(),
-        home_dir: to_virtual_path(paths_map, &proto.home),
-        proto_dir: to_virtual_path(paths_map, &proto.root),
-    })
-    .into_diagnostic()?;
-
-    trace!(env = %value, "Storing proto environment");
-
-    manifest
-        .config
-        .insert("proto_environment".to_string(), value.clone());
-
-    manifest
-        .config
-        .insert("host_environment".to_string(), value);
+    // TODO remove in the future
+    manifest.config.insert(
+        "proto_environment".to_string(),
+        json::to_string(&HostEnvironment {
+            arch: HostArch::from_env(),
+            os: HostOS::from_env(),
+            home_dir: to_virtual_path(manifest.allowed_paths.as_ref().unwrap(), &proto.home),
+        })
+        .into_diagnostic()?,
+    );
 
     Ok(())
 }
@@ -151,7 +136,8 @@ pub async fn load_tool_from_locator(
         Tool::create_plugin_manifest(proto, Wasm::file(plugin_path))?
     };
 
-    inject_default_manifest_config(id, proto, &mut manifest)?;
+    inject_default_manifest_config(id, &proto.home, &mut manifest)?;
+    inject_proto_manifest_config(id, proto, &mut manifest)?;
 
     let mut tool = Tool::load_from_manifest(id, proto, manifest)?;
     tool.locator = Some(locator.to_owned());

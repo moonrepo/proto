@@ -2,6 +2,7 @@ mod client;
 mod endpoints;
 mod error;
 mod helpers;
+pub mod host_funcs;
 mod id;
 mod loader;
 mod locator;
@@ -14,4 +15,7 @@ pub use id::*;
 pub use loader::*;
 pub use locator::*;
 pub use plugin::*;
-pub use warpgate_api::*;
+
+pub use extism::{Manifest as PluginManifest, Wasm};
+pub use warpgate_api as api;
+pub use warpgate_api::VirtualPath;

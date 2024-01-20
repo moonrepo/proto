@@ -2,16 +2,16 @@ use extism_pdk::*;
 use proto_pdk::*;
 use serde::Deserialize;
 use std::collections::HashMap;
-// use std::path::PathBuf;
+use std::path::PathBuf;
 
 #[host_fn]
 extern "ExtismHost" {
     fn exec_command(input: Json<ExecCommandInput>) -> Json<ExecCommandOutput>;
-    // fn from_virtual_path(path: String) -> String;
+    fn from_virtual_path(path: String) -> String;
     fn get_env_var(name: String) -> String;
     fn host_log(input: Json<HostLogInput>);
     fn set_env_var(name: String, value: String);
-    // fn to_virtual_path(path: String) -> String;
+    fn to_virtual_path(path: String) -> String;
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -26,16 +26,67 @@ struct WasmTestConfig {
 }
 
 #[plugin_fn]
+pub fn testing_macros(_: ()) -> FnResult<()> {
+    // Errors
+    let _ = plugin_err!(code = 2, "Error");
+    let _ = plugin_err!(code = 3, "Error {}", "arg");
+    let _ = plugin_err!("Error");
+    let _ = plugin_err!("Error {}", "arg");
+
+    // Commands
+    let args = ["a", "b", "c"];
+
+    exec_command!("git");
+    exec_command!("git", args);
+    exec_command!("git", ["a", "b", "c"]);
+    exec_command!(input, ExecCommandInput::default());
+    exec_command!(pipe, "git");
+    exec_command!(pipe, "git", args);
+    exec_command!(pipe, "git", ["a", "b", "c"]);
+    exec_command!(inherit, "git");
+    exec_command!(inherit, "git", args);
+    exec_command!(inherit, "git", ["a", "b", "c"]);
+    let _ = exec_command!(raw, ExecCommandInput::default());
+    let _ = exec_command!(raw, "git");
+    let _ = exec_command!(raw, "git", args);
+    let _ = exec_command!(raw, "git", ["a", "b", "c"]);
+
+    // Env vars
+    let name = "VAR";
+
+    let _ = host_env!("VAR");
+    let _ = host_env!(name);
+    host_env!("VAR", "value");
+    host_env!("VAR", name);
+    host_env!(name, name);
+    host_env!(name, "value");
+
+    // Logging
+    host_log!("Message");
+    host_log!("Message {} {} {}", 1, 2, 3);
+    host_log!(input, HostLogInput::default());
+    host_log!(stdout, "Message");
+    host_log!(stdout, "Message {} {} {}", 1, 2, 3);
+    host_log!(stderr, "Message");
+    host_log!(stderr, "Message {} {} {}", 1, 2, 3);
+
+    // Paths
+    let path = "/proto/path";
+    let pathbuf = PathBuf::from("/proto/buf");
+
+    let _ = real_path!("/proto/dir");
+    let _ = real_path!(path);
+    let _ = real_path!(buf, pathbuf);
+    let _ = virtual_path!("/proto/dir");
+    let _ = virtual_path!(path);
+    let _ = virtual_path!(buf, pathbuf);
+
+    Ok(())
+}
+
+#[plugin_fn]
 pub fn register_tool(_: ()) -> FnResult<Json<ToolMetadataOutput>> {
     host_log!(stdout, "Registering tool");
-
-    let value = host_env!("WASM_KEY");
-
-    host_log!(stderr, "WASM_KEY = {:?}", value);
-    host_env!("WASM_SOURCE", "guest");
-
-    // let real = real_path!(PathBuf::from("/proto"));
-    // let _virtual = virtual_path!(&real);
 
     let config = get_tool_config::<WasmTestConfig>()?;
 
@@ -90,7 +141,7 @@ fn map_arch(arch: HostArch) -> String {
 pub fn download_prebuilt(
     Json(input): Json<DownloadPrebuiltInput>,
 ) -> FnResult<Json<DownloadPrebuiltOutput>> {
-    let env = get_proto_environment()?;
+    let env = get_host_environment()?;
     let version = input.context.version;
     let arch = map_arch(env.arch);
 
@@ -127,7 +178,7 @@ pub fn download_prebuilt(
 pub fn locate_executables(
     Json(_): Json<LocateExecutablesInput>,
 ) -> FnResult<Json<LocateExecutablesOutput>> {
-    let env = get_proto_environment()?;
+    let env = get_host_environment()?;
 
     Ok(Json(LocateExecutablesOutput {
         globals_lookup_dirs: vec!["$WASM_ROOT/bin".into(), "$HOME/.wasm/bin".into()],

@@ -33,7 +33,7 @@ fn merge_tools(
     Ok(Some(prev))
 }
 
-pub fn merge_indexmap<K, V>(
+fn merge_indexmap<K, V>(
     mut prev: IndexMap<K, V>,
     next: IndexMap<K, V>,
     _context: &(),
