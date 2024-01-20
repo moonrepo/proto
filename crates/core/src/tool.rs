@@ -29,7 +29,7 @@ use tracing::{debug, info, trace, warn};
 use warpgate::{
     download_from_url_to_file,
     host_funcs::{create_host_functions, HostData},
-    set_log_handler, Id, PluginContainer, PluginLocator, PluginManifest, VirtualPath, Wasm,
+    Id, PluginContainer, PluginLocator, PluginManifest, VirtualPath, Wasm,
 };
 
 #[derive(Debug, Default, Serialize)]
@@ -129,14 +129,6 @@ impl Tool {
             "Creating tool {} and instantiating plugin",
             color::id(id.as_str())
         );
-
-        if let Ok(level) = env::var("PROTO_WASM_LOG") {
-            set_log_handler(
-                proto.cwd.join(format!("{}-debug.log", id)),
-                level,
-                env::var("PROTO_TEST").is_err(),
-            );
-        }
 
         Self::new(
             id.to_owned(),

@@ -32,6 +32,7 @@
   - Takes higher precedence than `.prototools`.
   - Can be enabled with the `PROTO_ENV` environment variable.
 - Updated `proto tool info` to display aliases and environment variables.
+- Updated WASM logs to be shown alongside proto's `--log` output (under the `extism::pdk` namespace).
 - WASM API
   - Added color support to error and host log messages through an HTML-like tag syntax.
   - Added `real_path!(buf, ..)` and `virtual_path!(buf, ..)` macro variants for working with `Path` and `PathBuf`.

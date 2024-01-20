@@ -8,12 +8,11 @@ use once_map::OnceMap;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use starbase_styles::color::{self, apply_style_tags};
-use starbase_utils::fs;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 use system_env::{SystemArch, SystemOS};
-use tracing::{trace, warn};
+use tracing::trace;
 use warpgate_api::{HostEnvironment, VirtualPath};
 
 fn is_incompatible_runtime(error: &Error) -> bool {
@@ -29,29 +28,6 @@ fn is_incompatible_runtime(error: &Error) -> bool {
     }
 
     check(error.to_string())
-}
-
-/// Set the extism log handler, which will write all logs to the provided file path.
-pub fn set_log_handler(log_file: PathBuf, log_level: String, warn_on_failure: bool) {
-    let shared_file = log_file.clone();
-
-    match extism::set_log_callback(
-        move |line| {
-            if fs::append_file(&shared_file, line).is_err() {
-                trace!(target: "wasm::runtime", "{line}");
-            }
-        },
-        log_level,
-    ) {
-        Ok(_) => {
-            trace!(file = ?log_file, "Created WASM log file");
-        }
-        Err(error) => {
-            if warn_on_failure {
-                warn!(file = ?log_file, "Failed to create WASM log file: {}", error.to_string());
-            }
-        }
-    }
 }
 
 /// Inject our default configuration into the provided plugin manifest.
@@ -112,6 +88,12 @@ impl PluginContainer {
                 }
             }
         })?;
+
+        trace!(
+            id = id.as_str(),
+            plugin = ?plugin.id,
+            "Created plugin container",
+        );
 
         Ok(PluginContainer {
             manifest,
@@ -221,21 +203,23 @@ impl PluginContainer {
 
     /// Call a function on the plugin with the given raw input and return the raw output.
     pub fn call(&self, func: &str, input: impl AsRef<[u8]>) -> miette::Result<Vec<u8>> {
-        let input = input.as_ref();
-
-        trace!(
-            plugin = self.id.as_str(),
-            input = %String::from_utf8_lossy(input),
-            "Calling plugin function {}",
-            color::label(func),
-        );
-
         let mut instance = self.plugin.write().unwrap_or_else(|_| {
             panic!(
                 "Unable to acquire write access to `{}` WASM plugin.",
                 self.id
             )
         });
+
+        let input = input.as_ref();
+        let uuid = instance.id; // Copy
+
+        trace!(
+            id = self.id.as_str(),
+            plugin = ?uuid,
+            input = %String::from_utf8_lossy(input),
+            "Calling plugin function {}",
+            color::label(func),
+        );
 
         let output = instance.call(func, input).map_err(|error| {
             if is_incompatible_runtime(&error) {
@@ -273,7 +257,8 @@ impl PluginContainer {
         })?;
 
         trace!(
-            plugin = self.id.as_str(),
+            id = self.id.as_str(),
+            plugin = ?uuid,
             output = %String::from_utf8_lossy(output),
             "Called plugin function {}",
             color::label(func),

@@ -15,7 +15,7 @@ pub type AnyResult<T> = anyhow::Result<T>;
 
 /// Fetch the provided request and return a response object.
 pub fn fetch(req: HttpRequest, body: Option<String>) -> AnyResult<HttpResponse> {
-    debug!("Fetching URL {}", req.url);
+    debug!("Fetching <url>{}</url>", req.url);
 
     request(&req, body)
         .map_err(|error| error.context(format!("Failed to make request to {}", req.url)))
@@ -65,7 +65,11 @@ where
 
     if cache {
         if let Some(body) = var::get::<Vec<u8>>(url)? {
-            debug!("Reading URL {} from cache (len = {})", url, body.len());
+            debug!(
+                "Reading <url>{}</url> from cache <mutedlight>(len = {})</mutedlight>",
+                url,
+                body.len()
+            );
 
             return Ok(json::from_slice(&body)?);
         }
@@ -76,7 +80,11 @@ where
     if cache {
         let body = res.body();
 
-        debug!("Writing URL {} to cache (len = {})", url, body.len());
+        debug!(
+            "Writing <url>{}</url> to cache <mutedlight>(len = {})</mutedlight>",
+            url,
+            body.len()
+        );
 
         var::set(url, body)?;
     }
@@ -92,7 +100,7 @@ where
 {
     let url = url.as_ref();
 
-    debug!("Loading Git tags from remote {}", url);
+    debug!("Loading Git tags from remote <url>{}</url>", url);
 
     let output = exec_command!(
         pipe,
@@ -125,14 +133,17 @@ where
         }
     }
 
-    debug!("Loaded {} tags", tags.len());
+    debug!("Loaded {} Git tags", tags.len());
 
     Ok(tags)
 }
 
 /// Check whether a command exists or not on the host machine.
 pub fn command_exists(env: &HostEnvironment, command: &str) -> bool {
-    debug!("Checking if command `{}` exists on the host", command);
+    debug!(
+        "Checking if command <shell>{}</shell> exists on the host",
+        command
+    );
 
     let result = if env.os == HostOS::Windows {
         let line = format!("Get-Command {command}");
@@ -143,12 +154,12 @@ pub fn command_exists(env: &HostEnvironment, command: &str) -> bool {
     };
 
     if result.is_ok_and(|res| res.0.exit_code == 0) {
-        debug!("Does exist");
+        debug!("Command does exist");
 
         return true;
     }
 
-    debug!("Does NOT exist");
+    debug!("Command does NOT exist");
 
     false
 }
@@ -180,12 +191,12 @@ pub fn is_musl(env: &HostEnvironment) -> bool {
     }
 
     if value.contains("musl") || value.contains("alpine") {
-        debug!("Is using musl");
+        debug!("Host is using musl");
 
         return true;
     }
 
-    debug!("Is NOT using musl");
+    debug!("Host is NOT using musl");
 
     false
 }

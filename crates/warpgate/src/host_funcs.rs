@@ -97,13 +97,9 @@ fn host_log(
         }
         HostLogTarget::Tracing => {
             if input.data.is_empty() {
-                trace!(
-                    target: "warpgate_wasm::log",
-                    "{message}"
-                );
+                trace!("{message}");
             } else {
                 trace!(
-                    target: "warpgate_wasm::log",
                     data = ?input.data,
                     "{message}"
                 );
@@ -128,7 +124,7 @@ fn exec_command(
     let data = data.lock().unwrap();
 
     // Relative or absolute file path
-    let maybe_command = if input.command.contains('/') || input.command.contains('\\') {
+    let maybe_bin = if input.command.contains('/') || input.command.contains('\\') {
         let path = helpers::from_virtual_path(&data.virtual_paths, PathBuf::from(&input.command));
 
         if path.exists() {
@@ -146,7 +142,7 @@ fn exec_command(
         find_command_on_path(&input.command)
     };
 
-    let Some(command) = &maybe_command else {
+    let Some(bin) = &maybe_bin else {
         return Err(WarpgateError::PluginCommandMissing {
             command: input.command.clone(),
         }
@@ -161,7 +157,6 @@ fn exec_command(
     };
 
     trace!(
-        target: "warpgate_wasm::exec_command",
         command = &input.command,
         args = ?input.args,
         env = ?input.env,
@@ -169,7 +164,7 @@ fn exec_command(
         "Executing command from plugin"
     );
 
-    let mut command = create_process_command(command, &input.args);
+    let mut command = create_process_command(bin, &input.args);
     command.envs(&input.env);
     command.current_dir(cwd);
 
@@ -196,8 +191,7 @@ fn exec_command(
     let debug_output = env::var("PROTO_DEBUG_COMMAND").is_ok_and(|v| !v.is_empty());
 
     trace!(
-        target: "warpgate_wasm::exec_command",
-        command = ?command,
+        command = ?bin,
         exit_code = output.exit_code,
         stderr = if debug_output {
             Some(&output.stderr)
@@ -229,7 +223,6 @@ fn get_env_var(
     let value = env::var(&name).unwrap_or_default();
 
     trace!(
-        target: "warpgate_wasm::get_env_var",
         name = &name,
         value = &value,
         "Read environment variable from host"
@@ -262,7 +255,6 @@ fn set_env_var(
             .collect::<Vec<_>>();
 
         trace!(
-            target: "warpgate_wasm::set_env_var",
             name = &name,
             path = ?new_path,
             "Adding paths to PATH environment variable on host"
@@ -275,7 +267,6 @@ fn set_env_var(
         env::set_var("PATH", env::join_paths(path)?);
     } else {
         trace!(
-            target: "warpgate_wasm::set_env_var",
             name = &name,
             value = &value,
             "Wrote environment variable to host"
@@ -300,7 +291,6 @@ fn from_virtual_path(
     let real_path = helpers::from_virtual_path(&data.virtual_paths, &original_path);
 
     trace!(
-        target: "warpgate_wasm::from_virtual_path",
         original_path = ?original_path,
         real_path = ?real_path,
         "Converted a path into a real path"
@@ -324,7 +314,6 @@ fn to_virtual_path(
     let virtual_path = helpers::to_virtual_path(&data.virtual_paths, &original_path);
 
     trace!(
-        target: "warpgate_wasm::to_virtual_path",
         original_path = ?original_path,
         virtual_path = ?virtual_path.virtual_path(),
         "Converted a path into a virtual path"
