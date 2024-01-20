@@ -16,23 +16,3 @@ macro_rules! permutations {
     ])
   };
 }
-
-/// Return a [`PluginError`] wrapped in [`WithReturnCode`].
-#[macro_export]
-macro_rules! err {
-    ($msg:literal) => {
-        Err(WithReturnCode::new(
-            PluginError::Message($msg.into()).into(),
-            1,
-        ))
-    };
-    ($msg:literal, $($arg:tt)*) => {
-        Err(WithReturnCode::new(
-            PluginError::Message(format!($msg, $($arg)*)).into(),
-            1,
-        ))
-    };
-    ($msg:expr) => {
-        Err(WithReturnCode::new($msg, 1))
-    };
-}

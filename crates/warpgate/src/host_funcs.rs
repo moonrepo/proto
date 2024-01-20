@@ -96,11 +96,18 @@ fn host_log(
             }
         }
         HostLogTarget::Tracing => {
-            trace!(
-                target: "wasm::log",
-                data = ?input.data,
-                "{message}"
-            );
+            if input.data.is_empty() {
+                trace!(
+                    target: "warpgate_wasm::log",
+                    "{message}"
+                );
+            } else {
+                trace!(
+                    target: "warpgate_wasm::log",
+                    data = ?input.data,
+                    "{message}"
+                );
+            }
         }
     };
 
@@ -154,7 +161,7 @@ fn exec_command(
     };
 
     trace!(
-        target: "wasm::exec_command",
+        target: "warpgate_wasm::exec_command",
         command = &input.command,
         args = ?input.args,
         env = ?input.env,
@@ -189,7 +196,7 @@ fn exec_command(
     let debug_output = env::var("PROTO_DEBUG_COMMAND").is_ok_and(|v| !v.is_empty());
 
     trace!(
-        target: "wasm::exec_command",
+        target: "warpgate_wasm::exec_command",
         command = ?command,
         exit_code = output.exit_code,
         stderr = if debug_output {
@@ -222,7 +229,7 @@ fn get_env_var(
     let value = env::var(&name).unwrap_or_default();
 
     trace!(
-        target: "wasm::get_env_var",
+        target: "warpgate_wasm::get_env_var",
         name = &name,
         value = &value,
         "Read environment variable from host"
@@ -255,7 +262,7 @@ fn set_env_var(
             .collect::<Vec<_>>();
 
         trace!(
-            target: "wasm::set_env_var",
+            target: "warpgate_wasm::set_env_var",
             name = &name,
             path = ?new_path,
             "Adding paths to PATH environment variable on host"
@@ -268,7 +275,7 @@ fn set_env_var(
         env::set_var("PATH", env::join_paths(path)?);
     } else {
         trace!(
-            target: "wasm::set_env_var",
+            target: "warpgate_wasm::set_env_var",
             name = &name,
             value = &value,
             "Wrote environment variable to host"
@@ -286,17 +293,17 @@ fn from_virtual_path(
     outputs: &mut [Val],
     user_data: UserData<HostData>,
 ) -> Result<(), Error> {
-    let virtual_path = PathBuf::from(plugin.memory_get_val::<String>(&inputs[0])?);
+    let original_path = PathBuf::from(plugin.memory_get_val::<String>(&inputs[0])?);
 
     let data = user_data.get()?;
     let data = data.lock().unwrap();
-    let real_path = helpers::from_virtual_path(&data.virtual_paths, &virtual_path);
+    let real_path = helpers::from_virtual_path(&data.virtual_paths, &original_path);
 
     trace!(
-        target: "wasm::from_virtual_path",
-        virtual_path = ?virtual_path,
+        target: "warpgate_wasm::from_virtual_path",
+        original_path = ?original_path,
         real_path = ?real_path,
-        "Converted a virtual path into a real path"
+        "Converted a path into a real path"
     );
 
     plugin.memory_set_val(&mut outputs[0], real_path.to_string_lossy().to_string())?;
@@ -310,17 +317,17 @@ fn to_virtual_path(
     outputs: &mut [Val],
     user_data: UserData<HostData>,
 ) -> Result<(), Error> {
-    let real_path = PathBuf::from(plugin.memory_get_val::<String>(&inputs[0])?);
+    let original_path = PathBuf::from(plugin.memory_get_val::<String>(&inputs[0])?);
 
     let data = user_data.get()?;
     let data = data.lock().unwrap();
-    let virtual_path = helpers::to_virtual_path(&data.virtual_paths, &real_path);
+    let virtual_path = helpers::to_virtual_path(&data.virtual_paths, &original_path);
 
     trace!(
-        target: "wasm::to_virtual_path",
-        real_path = ?real_path,
-        virtual_path = ?virtual_path,
-        "Converted a real path into a virtual path"
+        target: "warpgate_wasm::to_virtual_path",
+        original_path = ?original_path,
+        virtual_path = ?virtual_path.virtual_path(),
+        "Converted a path into a virtual path"
     );
 
     plugin.memory_set_val(&mut outputs[0], virtual_path.to_string_lossy().to_string())?;

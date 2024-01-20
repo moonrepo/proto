@@ -6,8 +6,6 @@ use extism_pdk::*;
 use serde::de::DeserializeOwned;
 use std::vec;
 
-pub use anyhow::anyhow;
-
 #[host_fn]
 extern "ExtismHost" {
     fn exec_command(input: Json<ExecCommandInput>) -> Json<ExecCommandOutput>;
@@ -32,12 +30,20 @@ where
     fetch(HttpRequest::new(url.as_ref()), None)?.json()
 }
 
+/// Fetch the provided URL and deserialize the response as bytes.
+pub fn fetch_url_bytes<U>(url: U) -> AnyResult<Vec<u8>>
+where
+    U: AsRef<str>,
+{
+    Ok(fetch(HttpRequest::new(url.as_ref()), None)?.body())
+}
+
 /// Fetch the provided URL and return the text response.
 pub fn fetch_url_text<U>(url: U) -> AnyResult<String>
 where
     U: AsRef<str>,
 {
-    String::from_bytes(&fetch(HttpRequest::new(url.as_ref()), None)?.body())
+    String::from_bytes(&fetch_url_bytes(url)?)
 }
 
 /// Fetch the provided URL, deserialize the response as JSON,

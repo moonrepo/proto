@@ -17,15 +17,28 @@ macro_rules! api_enum {
     };
 }
 
+/// Return an error message wrapped in [`WithReturnCode`], for use within `#[plugin_fn]`.
+#[macro_export]
+macro_rules! plugin_err {
+    (code = $code:expr, $($arg:tt)+) => {
+        WithReturnCode::<Error>::new(anyhow!($($arg)+), $code.into())
+    };
+    ($($arg:tt)+) => {
+        WithReturnCode::<Error>::new(anyhow!($($arg)+), 1)
+    };
+}
+
 /// Calls the `exec_command` host function to execute a command on
 /// the host as a synchronous child process.
 #[macro_export]
 macro_rules! exec_command {
+    (input, $input:expr) => {
+        unsafe { exec_command(Json($input))?.0 }
+    };
+
+    // Raw result
     (raw, $cmd:literal) => {
-        exec_command!(raw, ExecCommandInput {
-            command: $cmd.into(),
-            ..ExecCommandInput::default()
-        })
+        exec_command!(raw, $cmd, Vec::<String>::new())
     };
     (raw, $cmd:expr, $args:expr) => {
         exec_command!(raw, ExecCommandInput::pipe($cmd, $args))
@@ -33,17 +46,32 @@ macro_rules! exec_command {
     (raw, $input:expr) => {
         unsafe { exec_command(Json($input)) }
     };
+
+    // Pipe
+    (pipe, $cmd:literal) => {
+        exec_command!(pipe, $cmd, Vec::<String>::new())
+    };
     (pipe, $cmd:expr, $args:expr) => {
-        exec_command!(ExecCommandInput::pipe($cmd, $args))
+        exec_command!(input, ExecCommandInput::pipe($cmd, $args))
+    };
+
+    // Inherit
+    (inherit, $cmd:literal) => {
+        exec_command!(inherit, $cmd, Vec::<String>::new())
     };
     (inherit, $cmd:expr, $args:expr) => {
-        exec_command!(ExecCommandInput::inherit($cmd, $args))
+        exec_command!(input, ExecCommandInput::inherit($cmd, $args))
+    };
+
+    // Legacy pipe
+    ($cmd:literal) => {
+        exec_command!(pipe, $cmd)
     };
     ($cmd:expr, [ $($arg:literal),* ]) => {
         exec_command!(pipe, $cmd, [ $($arg),* ])
     };
-    ($input:expr) => {
-        unsafe { exec_command(Json($input))?.0 }
+    ($cmd:expr, $args:expr) => {
+        exec_command!(pipe, $cmd, $args)
     };
 }
 
@@ -54,75 +82,46 @@ macro_rules! exec_command {
 /// not overwrite it. Supports both `;` and `:` delimiters.
 #[macro_export]
 macro_rules! host_env {
-    ($name:literal, $value:expr) => {
-        unsafe { set_env_var($name.into(), $value.into())? };
+    ($name:expr, $value:expr) => {
+        unsafe { set_env_var($name.try_into()?, $value.try_into()?)? };
     };
-    ($name:literal) => {
+    ($name:expr) => {
         unsafe {
-            let inner = get_env_var($name.into())?;
+            let inner = get_env_var($name.try_into()?)?;
 
             if inner.is_empty() {
                 None
             } else {
                 Some(inner)
             }
-        }
+        };
     };
 }
 
 /// Calls the `host_log` host function to log a message to the host's terminal.
 #[macro_export]
 macro_rules! host_log {
-    (stdout, $($arg:tt)+) => {
-        unsafe {
-            host_log(Json(HostLogInput {
-                message: format!($($arg)+),
-                target: HostLogTarget::Stdout,
-                ..HostLogInput::default()
-            }))?;
-        }
-    };
-    (stdout, $msg:literal) => {
-        unsafe {
-            host_log(Json(HostLogInput {
-                message: $msg.into(),
-                target: HostLogTarget::Stdout,
-                ..HostLogInput::default()
-            }))?;
-        }
-    };
-    (stderr, $($arg:tt)+) => {
-        unsafe {
-            host_log(Json(HostLogInput {
-                message: format!($($arg)+),
-                target: HostLogTarget::Stderr,
-                ..HostLogInput::default()
-            }))?;
-        }
-    };
-    (stderr, $msg:literal) => {
-        unsafe {
-            host_log(Json(HostLogInput {
-                message: $msg.into(),
-                target: HostLogTarget::Stderr,
-                ..HostLogInput::default()
-            }))?;
-        }
-    };
-    ($($arg:tt)+) => {
-        unsafe {
-            host_log(Json(format!($($arg)+).into()))?;
-        }
-    };
-    ($msg:literal) => {
-        unsafe {
-            host_log(Json($msg.into()))?;
-        }
-    };
-    ($input:expr) => {
+    (input, $input:expr) => {
         unsafe {
             host_log(Json($input))?;
-        }
+        };
+    };
+    (stdout, $($arg:tt)+) => {
+        host_log!(input, HostLogInput {
+            message: format!($($arg)+),
+            target: HostLogTarget::Stdout,
+            ..HostLogInput::default()
+        })
+    };
+    (stderr, $($arg:tt)+) => {
+        host_log!(input, HostLogInput {
+            message: format!($($arg)+),
+            target: HostLogTarget::Stderr,
+            ..HostLogInput::default()
+        })
+    };
+    ($($arg:tt)+) => {
+        host_log!(input, format!($($arg)+).into())
     };
 }
 
@@ -132,9 +131,6 @@ macro_rules! host_log {
 macro_rules! real_path {
     (buf, $path:expr) => {
         real_path!($path.to_string_lossy())
-    };
-    ($path:literal) => {
-        std::path::PathBuf::from(unsafe { from_virtual_path($path.to_owned())? })
     };
     ($path:expr) => {
         std::path::PathBuf::from(unsafe { from_virtual_path($path.try_into()?)? })
@@ -147,9 +143,6 @@ macro_rules! real_path {
 macro_rules! virtual_path {
     (buf, $path:expr) => {
         virtual_path!($path.to_string_lossy())
-    };
-    ($path:literal) => {
-        std::path::PathBuf::from(unsafe { to_virtual_path($path.to_owned())? })
     };
     ($path:expr) => {
         std::path::PathBuf::from(unsafe { to_virtual_path($path.try_into()?)? })

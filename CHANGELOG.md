@@ -15,11 +15,13 @@
 #### 💥 Breaking
 
 - WASM API
+  - Renamed `err!` macro to `plugin_err!`.
   - Renamed `get_tool_id` to `get_plugin_id`.
   - Renamed `get_proto_environment` to `get_host_environment`.
   - Renamed `/workspace` virtual path to `/cwd`.
   - Renamed `ExecCommandInput.env_vars` to `env`.
   - Removed `HostEnvironment.proto_dir` field.
+  - Updated `plugin_err!` result to not be wrapped in `Err`.
 
 #### 🚀 Updates
 
@@ -33,6 +35,8 @@
 - WASM API
   - Added color support to error and host log messages through an HTML-like tag syntax.
   - Added `real_path!(buf, ..)` and `virtual_path!(buf, ..)` macro variants for working with `Path` and `PathBuf`.
+  - Added a `fetch_url_bytes` function.
+  - Improved the implementation of many PDK macros.
 
 ## 0.28.1
 

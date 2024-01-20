@@ -248,7 +248,10 @@ impl PluginContainer {
                 error
                     .source()
                     .map(|src| src.to_string())
-                    .unwrap_or_else(|| error.to_string()),
+                    .unwrap_or_else(|| error.to_string())
+                    .replace("\\\\n", "\n")
+                    .replace("\\n", "\n")
+                    .trim(),
             );
 
             // When in debug mode, include more information around errors.
@@ -265,9 +268,7 @@ impl PluginContainer {
             // previous variant, so this is a special variant that renders as-is.
             #[cfg(not(debug_assertions))]
             {
-                WarpgateError::PluginCallFailedRelease {
-                    error: message.replace("\\\\n", "\n").replace("\\n", "\n"),
-                }
+                WarpgateError::PluginCallFailedRelease { error: message }
             }
         })?;
 

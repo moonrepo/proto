@@ -6,6 +6,7 @@ mod virtual_path;
 #[cfg(feature = "pdk")]
 pub mod pdk;
 
+pub use anyhow::anyhow;
 pub use host::*;
 pub use host_funcs::*;
 pub use virtual_path::*;
