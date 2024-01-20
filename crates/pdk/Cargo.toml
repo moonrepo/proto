@@ -1,6 +1,6 @@
 [package]
 name = "proto_pdk"
-version = "0.14.3"
+version = "0.15.0"
 edition = "2021"
 license = "MIT"
 description = "A plugin development kit for creating proto WASM plugins."
@@ -8,8 +8,8 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
-proto_pdk_api = { version = "0.14.2", path = "../pdk-api" }
-warpgate_api = { version = "0.2.0", path = "../warpgate-api", features = [
+proto_pdk_api = { version = "0.15.0", path = "../pdk-api" }
+warpgate_api = { version = "0.3.0", path = "../warpgate-api", features = [
 	"pdk",
 ] }
 extism-pdk = { workspace = true }
