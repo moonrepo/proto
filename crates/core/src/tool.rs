@@ -189,7 +189,7 @@ impl Tool {
             .inventory
             .override_dir
             .as_ref()
-            .map(|dir| dir.to_owned())
+            .map(|dir| self.from_virtual_path(dir))
             .unwrap_or_else(|| self.proto.tools_dir.join(self.id.as_str()))
     }
 
@@ -239,18 +239,7 @@ impl Tool {
 
     /// Convert a real path to a virtual path.
     pub fn to_virtual_path(&self, path: &Path) -> VirtualPath {
-        // This is a temporary hack. Only newer plugins support the `VirtualPath`
-        // type, so we need to check if the plugin has a version or not, which
-        // is a newer feature. Otherwise, old plugins would fail to parse the
-        // `VirtualPath` type and crash.
-        if self.metadata.plugin_version.is_some() {
-            self.plugin.to_virtual_path(path)
-        } else {
-            match self.plugin.to_virtual_path(path) {
-                VirtualPath::WithReal { path, .. } => VirtualPath::Only(path),
-                VirtualPath::Only(path) => VirtualPath::Only(path),
-            }
-        }
+        self.plugin.to_virtual_path(path)
     }
 }
 
@@ -268,7 +257,7 @@ impl Tool {
 
     /// Register the tool by loading initial metadata and persisting it.
     pub fn register_tool(&mut self) -> miette::Result<()> {
-        let mut metadata: ToolMetadataOutput = self.plugin.cache_func_with(
+        let metadata: ToolMetadataOutput = self.plugin.cache_func_with(
             "register_tool",
             ToolMetadataInput {
                 id: self.id.to_string(),
@@ -276,11 +265,7 @@ impl Tool {
         )?;
 
         if let Some(override_dir) = &metadata.inventory.override_dir {
-            let inventory_dir = self.from_virtual_path(override_dir);
-
-            if inventory_dir.is_absolute() {
-                metadata.inventory.override_dir = Some(inventory_dir);
-            } else {
+            if !override_dir.is_absolute() {
                 return Err(ProtoError::AbsoluteInventoryDir {
                     tool: self.get_name().to_owned(),
                 }

@@ -22,6 +22,7 @@
   - Renamed `ExecCommandInput.env_vars` to `env`.
   - Removed `HostEnvironment.proto_dir` field.
   - Updated `plugin_err!` result to not be wrapped in `Err`.
+  - Updated `VirtualPath::join` to return `VirtualPath` instead of `PathBuf`.
 
 #### 🚀 Updates
 

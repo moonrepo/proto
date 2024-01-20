@@ -2,7 +2,7 @@ use extism_pdk::*;
 use proto_pdk::*;
 use serde::Deserialize;
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 #[host_fn]
 extern "ExtismHost" {
@@ -87,17 +87,6 @@ pub fn testing_macros(_: ()) -> FnResult<()> {
 #[plugin_fn]
 pub fn register_tool(_: ()) -> FnResult<Json<ToolMetadataOutput>> {
     host_log!(stdout, "Registering tool");
-
-    let value = host_env!("WASM_KEY");
-
-    host_log!(stderr, "WASM_KEY = {:?}", value);
-    host_env!("WASM_SOURCE", "guest");
-
-    let _real = real_path!("/proto");
-    let _virtual = virtual_path!("/Users/home");
-
-    let _real = real_path!(buf, PathBuf::from("/proto"));
-    let _virtual = virtual_path!(buf, Path::new("/proto"));
 
     let config = get_tool_config::<WasmTestConfig>()?;
 

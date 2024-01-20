@@ -144,7 +144,9 @@ macro_rules! virtual_path {
     (buf, $path:expr) => {
         virtual_path!($path.to_string_lossy())
     };
-    ($path:expr) => {
-        std::path::PathBuf::from(unsafe { to_virtual_path($path.try_into()?)? })
-    };
+    ($path:expr) => {{
+        let data = unsafe { to_virtual_path($path.try_into()?)? };
+        let path: VirtualPath = json::from_str(&data)?;
+        path
+    }};
 }

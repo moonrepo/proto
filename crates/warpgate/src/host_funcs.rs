@@ -319,7 +319,7 @@ fn to_virtual_path(
         "Converted a path into a virtual path"
     );
 
-    plugin.memory_set_val(&mut outputs[0], virtual_path.to_string_lossy().to_string())?;
+    plugin.memory_set_val(&mut outputs[0], serde_json::to_string(&virtual_path)?)?;
 
     Ok(())
 }

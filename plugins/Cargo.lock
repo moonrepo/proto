@@ -837,9 +837,9 @@ dependencies = [
 
 [[package]]
 name = "extism"
-version = "1.0.0"
+version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0929c64560cac1e9c71562ec1611dce2b383354371547d201802ab4abc23387b"
+checksum = "f671f4ebf55af0b783a13a03babac5973c276347893db13c548a0cf04db5f844"
 dependencies = [
  "anyhow",
  "cbindgen",
@@ -862,9 +862,9 @@ dependencies = [
 
 [[package]]
 name = "extism-convert"
-version = "1.0.0"
+version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d01a01edfb12afa6ce5f4d5205831b0630edb867918aa3d2fc829a9dfbfa75f1"
+checksum = "389563033064477066d6beb9c321cf066f9080878421ae969d354b3b461cc26a"
 dependencies = [
  "anyhow",
  "base64",
@@ -877,9 +877,9 @@ dependencies = [
 
 [[package]]
 name = "extism-manifest"
-version = "1.0.0"
+version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb76af5cf0fd656e6dff25069056ef41ce0eb0541cc98c15b90b601a16fcfacc"
+checksum = "713caa4f88b485d8e03a969f5ccd41cf173194fc1a7f5617688cc51efdc724f6"
 dependencies = [
  "base64",
  "serde",
@@ -2682,9 +2682,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_styles"
-version = "0.1.17"
+version = "0.1.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25a537fee77930266fea5375a89c50e5964c12abe3db175a517c78cf949e5505"
+checksum = "aadf4bb3f99ac3782017aa75123781dd64de38b543469c6b9e96ca9f29fc4868"
 dependencies = [
  "dirs 5.0.1",
  "owo-colors",

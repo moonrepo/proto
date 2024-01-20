@@ -1,6 +1,6 @@
+use crate::virtual_path::VirtualPath;
 use crate::{api_enum, api_struct};
 use std::collections::HashMap;
-use std::path::PathBuf;
 
 api_enum!(
     /// Target where host logs should be written to.
@@ -64,7 +64,7 @@ api_struct!(
         pub stream: bool,
 
         /// Override the current working directory.
-        pub working_dir: Option<PathBuf>,
+        pub working_dir: Option<VirtualPath>,
     }
 );
 
