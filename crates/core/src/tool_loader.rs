@@ -21,6 +21,10 @@ pub fn inject_default_manifest_config(
         .config
         .insert("proto_tool_id".to_string(), id.to_string());
 
+    manifest
+        .config
+        .insert("plugin_id".to_string(), id.to_string());
+
     let config = proto.load_config()?;
 
     if let Some(tool_config) = config.tools.get(id) {
@@ -49,7 +53,11 @@ pub fn inject_default_manifest_config(
 
     manifest
         .config
-        .insert("proto_environment".to_string(), value);
+        .insert("proto_environment".to_string(), value.clone());
+
+    manifest
+        .config
+        .insert("host_environment".to_string(), value);
 
     Ok(())
 }
