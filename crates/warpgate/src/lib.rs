@@ -7,6 +7,7 @@ mod id;
 mod loader;
 mod locator;
 mod plugin;
+pub mod test_utils;
 
 pub use client::*;
 pub use error::*;
