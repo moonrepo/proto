@@ -13,97 +13,12 @@ pub use wrapper::WasmTestWrapper;
 use proto_core::inject_proto_manifest_config;
 use serde::Serialize;
 use std::collections::HashMap;
-use std::fs::OpenOptions;
-use std::io::Write;
+use std::fs;
 use std::path::{Path, PathBuf};
-use std::{env, fs};
-use warpgate::inject_default_manifest_config;
-
-static mut LOGGING: bool = false;
-
-fn find_target_dir(search_dir: PathBuf) -> Option<PathBuf> {
-    let mut dir = search_dir;
-    let profiles = ["debug", "release"];
-
-    loop {
-        for profile in &profiles {
-            let next_target = dir.join("target/wasm32-wasi").join(profile);
-
-            if next_target.exists() {
-                return Some(next_target);
-            }
-
-            let next_target = dir.join("wasm32-wasi").join(profile);
-
-            if next_target.exists() {
-                return Some(next_target);
-            }
-        }
-
-        match dir.parent() {
-            Some(parent) => {
-                dir = parent.to_path_buf();
-            }
-            None => {
-                break;
-            }
-        };
-    }
-
-    None
-}
+use warpgate::{inject_default_manifest_config, test_utils};
 
 pub fn find_wasm_file(sandbox: &Path) -> PathBuf {
-    let wasm_file_name = env::var("CARGO_PKG_NAME").expect("Missing CARGO_PKG_NAME!");
-
-    let mut wasm_target_dir = find_target_dir(
-        env::var("CARGO_MANIFEST_DIR")
-            .expect("Missing CARGO_MANIFEST_DIR!")
-            .into(),
-    );
-
-    if wasm_target_dir.is_none() {
-        if let Ok(dir) = env::var("CARGO_TARGET_DIR") {
-            wasm_target_dir = find_target_dir(dir.into());
-        }
-    }
-
-    let Some(wasm_target_dir) = wasm_target_dir else {
-        panic!("Could not find a target directory!");
-    };
-
-    unsafe {
-        if !LOGGING {
-            LOGGING = true;
-
-            let log_file = wasm_target_dir.join("proto-wasm-plugin.log");
-            let log_prefix = wasm_file_name.clone();
-
-            let _ = extism::set_log_callback(
-                move |line| {
-                    let message = format!("[{log_prefix}] {line}");
-
-                    let mut file = OpenOptions::new()
-                        .create(true)
-                        .append(true)
-                        .open(&log_file)
-                        .unwrap();
-
-                    file.write_all(message.as_bytes()).unwrap();
-                },
-                "trace",
-            );
-        }
-    };
-
-    let wasm_file = wasm_target_dir.join(format!("{wasm_file_name}.wasm"));
-
-    if !wasm_file.exists() {
-        panic!(
-            "WASM file {:?} does not exist. Please build it with `cargo wasi build` before running tests!",
-            wasm_file
-        );
-    }
+    let wasm_file = test_utils::find_wasm_file();
 
     // Folders must exists for WASM to compile correctly!
     fs::create_dir_all(sandbox.join(".home")).unwrap();
@@ -172,7 +87,7 @@ pub fn create_config_entry<T: Serialize>(key: &str, value: T) -> (String, String
 
 pub fn map_config_environment(os: HostOS, arch: HostArch) -> (String, String) {
     create_config_entry(
-        "proto_environment",
+        "host_environment",
         HostEnvironment {
             arch,
             os,
@@ -185,6 +100,6 @@ pub fn map_config_tool_config<T: Serialize>(value: T) -> (String, String) {
     create_config_entry("proto_tool_config", value)
 }
 
-pub fn map_config_tool_id(id: &str) -> (String, String) {
-    ("proto_tool_id".into(), id.to_owned())
+pub fn map_config_id(id: &str) -> (String, String) {
+    ("plugin_id".into(), id.to_owned())
 }
