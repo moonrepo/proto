@@ -215,7 +215,7 @@ impl ProtoConfig {
             .load_partial(&())?;
 
         config
-            .validate(&())
+            .validate(&(), true)
             .map_err(|error| ConfigError::Validator {
                 config: config_path.to_string(),
                 error,
