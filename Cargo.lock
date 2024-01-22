@@ -2267,7 +2267,7 @@ dependencies = [
  "extism-pdk",
  "proto_pdk_api",
  "serde",
- "warpgate_api",
+ "warpgate_pdk",
 ]
 
 [[package]]
@@ -3663,11 +3663,19 @@ name = "warpgate_api"
 version = "0.3.0"
 dependencies = [
  "anyhow",
- "extism-pdk",
  "schematic",
  "serde",
  "serde_json",
  "system_env",
+]
+
+[[package]]
+name = "warpgate_pdk"
+version = "0.0.1"
+dependencies = [
+ "extism-pdk",
+ "serde",
+ "warpgate_api",
 ]
 
 [[package]]

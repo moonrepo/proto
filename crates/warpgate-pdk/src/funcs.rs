@@ -1,17 +1,14 @@
 use crate::exec_command;
-use crate::host::{HostEnvironment, HostOS};
-use crate::host_funcs::{ExecCommandInput, ExecCommandOutput};
 use extism_pdk::http::request;
 use extism_pdk::*;
 use serde::de::DeserializeOwned;
 use std::vec;
+use warpgate_api::{AnyResult, ExecCommandInput, ExecCommandOutput, HostEnvironment, HostOS};
 
 #[host_fn]
 extern "ExtismHost" {
     fn exec_command(input: Json<ExecCommandInput>) -> Json<ExecCommandOutput>;
 }
-
-pub type AnyResult<T> = anyhow::Result<T>;
 
 /// Fetch the provided request and return a response object.
 pub fn fetch(req: HttpRequest, body: Option<String>) -> AnyResult<HttpResponse> {
