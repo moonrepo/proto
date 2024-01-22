@@ -9,8 +9,6 @@ repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
 proto_pdk_api = { version = "0.15.0", path = "../pdk-api" }
-warpgate_api = { version = "0.3.0", path = "../warpgate-api", features = [
-	"pdk",
-] }
+warpgate_pdk = { version = "0.0.1", path = "../warpgate-pdk" }
 extism-pdk = { workspace = true }
 serde = { workspace = true }

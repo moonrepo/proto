@@ -1,24 +1,21 @@
 use crate::exec_command;
-use crate::host::{HostEnvironment, HostOS};
-use crate::host_funcs::{ExecCommandInput, ExecCommandOutput};
 use extism_pdk::http::request;
 use extism_pdk::*;
 use serde::de::DeserializeOwned;
 use std::vec;
+use warpgate_api::{AnyResult, ExecCommandInput, ExecCommandOutput, HostEnvironment, HostOS};
 
 #[host_fn]
 extern "ExtismHost" {
     fn exec_command(input: Json<ExecCommandInput>) -> Json<ExecCommandOutput>;
 }
 
-pub type AnyResult<T> = anyhow::Result<T>;
-
 /// Fetch the provided request and return a response object.
 pub fn fetch(req: HttpRequest, body: Option<String>) -> AnyResult<HttpResponse> {
     debug!("Fetching <url>{}</url>", req.url);
 
     request(&req, body)
-        .map_err(|error| error.context(format!("Failed to make request to {}", req.url)))
+        .map_err(|error| error.context(format!("Failed to make request to <url>{}</url>", req.url)))
 }
 
 /// Fetch the provided URL and deserialize the response as JSON.
@@ -66,7 +63,7 @@ where
     if cache {
         if let Some(body) = var::get::<Vec<u8>>(url)? {
             debug!(
-                "Reading <url>{}</url> from cache <mutedlight>(len = {})</mutedlight>",
+                "Reading <url>{}</url> from cache <mutedlight>(length = {})</mutedlight>",
                 url,
                 body.len()
             );
@@ -81,7 +78,7 @@ where
         let body = res.body();
 
         debug!(
-            "Writing <url>{}</url> to cache <mutedlight>(len = {})</mutedlight>",
+            "Writing <url>{}</url> to cache <mutedlight>(length = {})</mutedlight>",
             url,
             body.len()
         );
