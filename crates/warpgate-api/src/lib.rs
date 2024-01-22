@@ -31,4 +31,5 @@ api_struct!(
     pub struct EmptyInput {}
 );
 
+/// Represents any result (using `anyhow`).
 pub type AnyResult<T> = anyhow::Result<T>;

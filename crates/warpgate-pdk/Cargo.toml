@@ -3,7 +3,7 @@ name = "warpgate_pdk"
 version = "0.0.1"
 edition = "2021"
 license = "MIT"
-description = "Reusable WASM utilities for plugin developer kits."
+description = "Reusable WASM macros and functions for plugin developer kits."
 homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
