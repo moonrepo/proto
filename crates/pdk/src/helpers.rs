@@ -1,8 +1,8 @@
 use extism_pdk::*;
-use proto_pdk_api::{HostArch, HostEnvironment, HostOS, PluginError};
+use proto_pdk_api::{AnyResult, HostArch, HostEnvironment, HostOS, PluginError};
 use serde::de::DeserializeOwned;
 use std::collections::HashMap;
-use warpgate_api::pdk::{is_musl, AnyResult};
+use warpgate_pdk::is_musl;
 
 /// Validate the current host OS and architecture against the
 /// supported list of target permutations.

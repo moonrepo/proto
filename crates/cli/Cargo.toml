@@ -38,7 +38,7 @@ proto_pdk_api = { version = "0.15.0", path = "../pdk-api" }
 proto_shim = { version = "0.2.6", path = "../shim" }
 system_env = { version = "0.2.0", path = "../system-env" }
 anyhow = { workspace = true }
-chrono = "0.4.31"
+chrono = "0.4.32"
 clap = { workspace = true, features = ["derive", "env"] }
 clap_complete = { workspace = true }
 convert_case = { workspace = true }

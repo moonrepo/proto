@@ -10,12 +10,10 @@ repository = "https://github.com/moonrepo/proto"
 [dependencies]
 system_env = { version = "0.2.0", path = "../system-env" }
 anyhow = { workspace = true }
-extism-pdk = { workspace = true, optional = true }
 schematic = { workspace = true, optional = true, features = ["schema"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
 
 [features]
 default = []
-pdk = ["dep:extism-pdk"]
 schematic = ["dep:schematic"]
