@@ -1,22 +1,3 @@
-/// Wrap a struct with common derives and serde required attributes.
-#[macro_export]
-macro_rules! api_struct {
-    ($struct:item) => {
-        #[derive(Clone, Debug, Default, serde::Deserialize, Eq, PartialEq, serde::Serialize)]
-        #[serde(default)]
-        $struct
-    };
-}
-
-/// Wrap an enum with common derives and serde required attributes.
-#[macro_export]
-macro_rules! api_enum {
-    ($struct:item) => {
-        #[derive(Clone, Debug, serde::Deserialize, Eq, PartialEq, serde::Serialize)]
-        $struct
-    };
-}
-
 /// Return an error message wrapped in [`WithReturnCode`], for use within `#[plugin_fn]`.
 #[macro_export]
 macro_rules! plugin_err {

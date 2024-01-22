@@ -28,6 +28,7 @@ struct WasmTestConfig {
 #[plugin_fn]
 pub fn testing_macros(_: ()) -> FnResult<()> {
     // Errors
+    let _ = plugin_err!(PluginError::Message("Error".into()));
     let _ = plugin_err!(code = 2, "Error");
     let _ = plugin_err!(code = 3, "Error {}", "arg");
     let _ = plugin_err!("Error");
