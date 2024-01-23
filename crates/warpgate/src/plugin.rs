@@ -218,7 +218,7 @@ impl PluginContainer {
             plugin = ?uuid,
             input = %String::from_utf8_lossy(input),
             "Calling plugin function {}",
-            color::label(func),
+            color::property(func),
         );
 
         let output = instance.call(func, input).map_err(|error| {
@@ -261,7 +261,7 @@ impl PluginContainer {
             plugin = ?uuid,
             output = %String::from_utf8_lossy(output),
             "Called plugin function {}",
-            color::label(func),
+            color::property(func),
         );
 
         Ok(output.to_vec())
