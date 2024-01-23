@@ -40,6 +40,18 @@
   - Added a `fetch_url_bytes` function.
   - Improved the implementation of many PDK macros.
 
+#### 🧩 Plugins
+
+- Updated `bun_plugin` to v0.9.
+- Updated `deno_plugin` to v0.9.
+- Updated `go_plugin` to v0.9.
+- Updated `node_plugin` and `node_depman_plugin` to v0.9.
+  - Changed the `bundled-npm` and `intercept-globals` settings to be `false` by default (instead of `true`).
+- Updated `python_plugin` to v0.7.
+- Updated `rust_plugin` to v0.8.
+- Updated `schema_plugin` (TOML) to v0.9.
+  - Added `globals.bin` setting, for customizing the bin used for installs/uninstalls.
+
 ## 0.28.2
 
 #### ⚙️ Internal
