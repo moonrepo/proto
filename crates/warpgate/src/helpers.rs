@@ -7,16 +7,6 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use warpgate_api::VirtualPath;
 
-pub fn extract_prefix_from_slug(slug: &str) -> &str {
-    slug.split('/').next().expect("Expected an owner scope!")
-}
-
-pub fn extract_suffix_from_slug(slug: &str) -> &str {
-    slug.split('/')
-        .nth(1)
-        .expect("Expected a package or repository name!")
-}
-
 pub fn determine_cache_extension(value: &str) -> &str {
     for ext in [".toml", ".json", ".yaml", ".yml"] {
         if value.ends_with(ext) {
@@ -25,16 +15,6 @@ pub fn determine_cache_extension(value: &str) -> &str {
     }
 
     ".wasm"
-}
-
-pub fn create_wasm_file_prefix(name: &str) -> String {
-    let mut name = name.to_lowercase().replace('-', "_");
-
-    if !name.ends_with("_plugin") {
-        name.push_str("_plugin");
-    }
-
-    name
 }
 
 pub async fn download_from_url_to_file(

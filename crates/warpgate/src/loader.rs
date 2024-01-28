@@ -2,11 +2,9 @@ use crate::client::{create_http_client_with_options, HttpOptions};
 use crate::endpoints::*;
 use crate::error::WarpgateError;
 use crate::helpers::{
-    determine_cache_extension, download_from_url_to_file, extract_prefix_from_slug,
-    move_or_unpack_download,
+    determine_cache_extension, download_from_url_to_file, move_or_unpack_download,
 };
 use crate::id::Id;
-use crate::locator::{GitHubLocator, PluginLocator, WapmLocator};
 use once_cell::sync::OnceCell;
 use sha2::{Digest, Sha256};
 use starbase_styles::color;
@@ -16,6 +14,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 use tracing::trace;
+use warpgate_api::{GitHubLocator, PluginLocator};
 
 pub type OfflineChecker = Arc<fn() -> bool>;
 
@@ -115,7 +114,6 @@ impl PluginLoader {
                 .await
             }
             PluginLocator::GitHub(github) => self.download_plugin_from_github(id, github).await,
-            PluginLocator::Wapm(wapm) => self.download_plugin_from_wapm(id, wapm).await,
         }
     }
 
@@ -343,124 +341,6 @@ impl PluginLoader {
             id: id.to_owned(),
             repo_slug: github.repo_slug.to_owned(),
             tag: release_tag,
-        }
-        .into())
-    }
-
-    async fn download_plugin_from_wapm(
-        &self,
-        id: &Id,
-        wapm: &WapmLocator,
-    ) -> miette::Result<PathBuf> {
-        let version = wapm.version.as_deref().unwrap_or("latest");
-        let fake_api_url = format!(
-            "https://registry.wapm.io/graphql/{}@{}",
-            wapm.package_name, version
-        );
-
-        // Check the cache first using the API URL as the seed,
-        // so that we can avoid making unnecessary HTTP requests.
-        let plugin_path = self.create_cache_path(id, &fake_api_url, version == "latest");
-
-        if self.is_cached(id, &plugin_path)? {
-            return Ok(plugin_path);
-        }
-
-        trace!(
-            id = id.as_str(),
-            api_url = &fake_api_url,
-            version,
-            "Attempting to download plugin from wamp.io",
-        );
-
-        // Otherwise make a GraphQL request to the WAPM registry API.
-        let url = "https://registry.wapm.io/graphql".to_owned();
-
-        if self.is_offline() {
-            return Err(WarpgateError::InternetConnectionRequired {
-                message: format!(
-                    "Unable to download plugin {} from wapm.io.",
-                    PluginLocator::Wapm(wapm.to_owned())
-                ),
-                url,
-            }
-            .into());
-        }
-
-        let handle_error = |error: reqwest::Error| WarpgateError::Http {
-            error,
-            url: url.clone(),
-        };
-
-        let response = self
-            .get_client()?
-            .post(&url)
-            .json(&WapmPackageRequest {
-                query: WAPM_GQL_QUERY.to_owned(),
-                variables: WapmPackageRequestVariables {
-                    name: wapm.package_name.to_owned(),
-                    owner: extract_prefix_from_slug(&wapm.package_name).to_owned(),
-                    version: version.to_owned(),
-                },
-            })
-            .send()
-            .await
-            .map_err(handle_error)?;
-
-        let package: WapmPackageResponse = response.json().await.map_err(handle_error)?;
-        let package = package.data.package_version;
-
-        // Check modules first for a direct WASM file to use
-        let modules = package
-            .modules
-            .iter()
-            .filter(|module| module.abi == "wasi" && module.public_url.ends_with(".wasm"))
-            .collect::<Vec<_>>();
-
-        if let Some(release_module) = modules.iter().find(|module| {
-            module
-                .public_url
-                .ends_with(&format!("release/{}.wasm", wapm.file_prefix))
-        }) {
-            trace!(
-                id = id.as_str(),
-                module = &release_module.name,
-                "Found possible module compiled for release mode"
-            );
-
-            return self
-                .download_plugin(id, &release_module.public_url, plugin_path)
-                .await;
-        }
-
-        if let Some(fallback_module) = modules.iter().find(|module| {
-            module.name == wapm.file_prefix || module.name == format!("{}.wasm", wapm.file_prefix)
-        }) {
-            trace!(
-                id = id.as_str(),
-                module = &fallback_module.name,
-                "Found possible module with matching file name"
-            );
-
-            return self
-                .download_plugin(id, &fallback_module.public_url, plugin_path)
-                .await;
-        }
-
-        // Otherwise use the distribution download, which is typically an archive
-        if let Some(download_url) = &package.distribution.download_url {
-            trace!(
-                id = id.as_str(),
-                "Using the distribution archive as a last resort"
-            );
-
-            return self.download_plugin(id, download_url, plugin_path).await;
-        }
-
-        Err(WarpgateError::WapmModuleMissing {
-            id: id.to_owned(),
-            package: wapm.package_name.to_owned(),
-            version: version.to_owned(),
         }
         .into())
     }
