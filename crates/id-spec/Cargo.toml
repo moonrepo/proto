@@ -1,0 +1,16 @@
+[package]
+name = "id_spec"
+version = "0.0.1"
+edition = "2021"
+license = "MIT"
+description = "A simple specification for working with identifiers."
+homepage = "https://moonrepo.dev/proto"
+repository = "https://github.com/moonrepo/proto"
+
+[dependencies]
+schematic = { workspace = true, optional = true, features = ["schema"] }
+serde = { workspace = true }
+
+[features]
+default = []
+schematic = ["dep:schematic"]
