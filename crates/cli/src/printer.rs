@@ -171,13 +171,6 @@ impl<'std> Printer<'std> {
                     color::hash(github.tag.as_deref().unwrap_or("latest")),
                 );
             }
-            PluginLocator::Wapm(wapm) => {
-                self.entry("Package", color::label(&wapm.package_name));
-                self.entry(
-                    "Release",
-                    color::hash(wapm.version.as_deref().unwrap_or("latest")),
-                );
-            }
         };
     }
 }

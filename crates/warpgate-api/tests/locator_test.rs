@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use warpgate::{GitHubLocator, PluginLocator, WapmLocator};
+use warpgate_api::{GitHubLocator, PluginLocator};
 
 mod locator {
     use super::*;
@@ -42,54 +42,34 @@ mod locator {
             .to_string(),
             "github:moonrepo/proto@latest"
         );
-
-        assert_eq!(
-            PluginLocator::Wapm(WapmLocator {
-                file_prefix: "proto_plugin".into(),
-                package_name: "moonrepo/proto".into(),
-                version: None,
-            })
-            .to_string(),
-            "wapm:moonrepo/proto"
-        );
-
-        assert_eq!(
-            PluginLocator::Wapm(WapmLocator {
-                file_prefix: "proto_plugin".into(),
-                package_name: "moonrepo/proto".into(),
-                version: Some("1.2.3".into()),
-            })
-            .to_string(),
-            "wapm:moonrepo/proto@1.2.3"
-        );
     }
 
     #[test]
-    #[should_panic(expected = "Missing plugin scope or location.")]
+    #[should_panic(expected = "MissingScope")]
     fn errors_missing_scope() {
         PluginLocator::try_from("".to_string()).unwrap();
     }
 
     #[test]
-    #[should_panic(expected = "Missing plugin location (after :).")]
+    #[should_panic(expected = "MissingLocation")]
     fn errors_missing_location() {
         PluginLocator::try_from("github:".to_string()).unwrap();
     }
 
     #[test]
-    #[should_panic(expected = "Unknown plugin scope ``.")]
+    #[should_panic(expected = "UnknownScope(\"\")")]
     fn errors_empty_scope() {
         PluginLocator::try_from(":foo.wasm".to_string()).unwrap();
     }
 
     #[test]
-    #[should_panic(expected = "Unknown plugin scope `unknown`.")]
+    #[should_panic(expected = "UnknownScope(\"unknown\")")]
     fn errors_unknown_scope() {
         PluginLocator::try_from("unknown:foo.wasm".to_string()).unwrap();
     }
 
     #[test]
-    #[should_panic(expected = "Missing plugin location (after :).")]
+    #[should_panic(expected = "MissingLocation")]
     fn errors_empty_location() {
         PluginLocator::try_from("source:".to_string()).unwrap();
     }
@@ -98,7 +78,7 @@ mod locator {
         use super::*;
 
         #[test]
-        #[should_panic(expected = "Only https URLs are supported for source plugins.")]
+        #[should_panic(expected = "SecureUrlsOnly")]
         fn errors_http_source() {
             PluginLocator::try_from("source:http://domain.com/file.wasm".to_string()).unwrap();
         }
@@ -147,9 +127,7 @@ mod locator {
         use super::*;
 
         #[test]
-        #[should_panic(
-            expected = "GitHub release locator requires a repository with organization scope (org/repo)."
-        )]
+        #[should_panic(expected = "GitHubMissingOrg")]
         fn errors_no_slug() {
             PluginLocator::try_from("github:moonrepo".to_string()).unwrap();
         }
@@ -186,54 +164,6 @@ mod locator {
                     file_prefix: "bun_plugin".into(),
                     repo_slug: "moonrepo/bun_plugin".into(),
                     tag: Some("v1.2.3".into()),
-                })
-            );
-        }
-    }
-
-    mod wapm {
-        use super::*;
-
-        #[test]
-        #[should_panic(
-            expected = "wapm.io locator requires a package with owner scope (owner/package)."
-        )]
-        fn errors_no_package() {
-            PluginLocator::try_from("wapm:moonrepo".to_string()).unwrap();
-        }
-
-        #[test]
-        fn parses_slug() {
-            assert_eq!(
-                PluginLocator::try_from("wapm:moonrepo/bun".to_string()).unwrap(),
-                PluginLocator::Wapm(WapmLocator {
-                    file_prefix: "bun_plugin".into(),
-                    package_name: "moonrepo/bun".into(),
-                    version: None,
-                })
-            );
-        }
-
-        #[test]
-        fn parses_latest() {
-            assert_eq!(
-                PluginLocator::try_from("wapm:moonrepo/bun-plugin@latest".to_string()).unwrap(),
-                PluginLocator::Wapm(WapmLocator {
-                    file_prefix: "bun_plugin".into(),
-                    package_name: "moonrepo/bun-plugin".into(),
-                    version: Some("latest".into()),
-                })
-            );
-        }
-
-        #[test]
-        fn parses_tag() {
-            assert_eq!(
-                PluginLocator::try_from("wapm:moonrepo/bun_plugin@1.2.3".to_string()).unwrap(),
-                PluginLocator::Wapm(WapmLocator {
-                    file_prefix: "bun_plugin".into(),
-                    package_name: "moonrepo/bun_plugin".into(),
-                    version: Some("1.2.3".into()),
                 })
             );
         }

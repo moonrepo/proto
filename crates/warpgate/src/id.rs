@@ -2,16 +2,11 @@ use crate::error::WarpgateError;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{de, Deserialize, Deserializer, Serialize};
-use std::{
-    borrow::Borrow,
-    fmt::{self, Display},
-    ops::Deref,
-    str::FromStr,
-};
+use std::{borrow::Borrow, fmt, ops::Deref, str::FromStr};
 
 pub static ID_PATTERN: Lazy<Regex> = Lazy::new(|| Regex::new("^[a-z][a-z0-9-]*$").unwrap());
 
-#[derive(Clone, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Default, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct Id(String);
 
 impl Id {
@@ -41,7 +36,13 @@ impl schematic::Schematic for Id {
     }
 }
 
-impl Display for Id {
+impl fmt::Debug for Id {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl fmt::Display for Id {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
     }

@@ -1,5 +1,3 @@
-use crate::helpers::{create_wasm_file_prefix, extract_suffix_from_slug};
-use crate::WarpgateError;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use std::path::PathBuf;
@@ -19,18 +17,22 @@ pub struct GitHubLocator {
     pub tag: Option<String>,
 }
 
-/// A wapm.io package locator.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WapmLocator {
-    /// Name of module without extension.
-    /// Defaults to `<name>_plugin`.
-    pub file_prefix: String,
+#[derive(thiserror::Error, Debug)]
+pub enum PluginLocatorError {
+    #[error("GitHub release locator requires a repository with organization scope (org/repo).")]
+    GitHubMissingOrg,
 
-    /// Owner and package name: `owner/name`.
-    pub package_name: String,
+    #[error("Missing plugin location (after :).")]
+    MissingLocation,
 
-    /// Version to use. Defaults to `latest`.
-    pub version: Option<String>,
+    #[error("Missing plugin scope or location.")]
+    MissingScope,
+
+    #[error("Only https URLs are supported for source plugins.")]
+    SecureUrlsOnly,
+
+    #[error("Unknown plugin scope `{0}`.")]
+    UnknownScope(String),
 }
 
 /// Strategies for locating plugins.
@@ -46,10 +48,28 @@ pub enum PluginLocator {
     /// github:owner/repo
     /// github:owner/repo@tag
     GitHub(GitHubLocator),
+}
 
-    /// wapm:package/name
-    /// wapm:package/name@version
-    Wapm(WapmLocator),
+impl PluginLocator {
+    pub fn extract_prefix_from_slug(slug: &str) -> &str {
+        slug.split('/').next().expect("Expected an owner scope!")
+    }
+
+    pub fn extract_suffix_from_slug(slug: &str) -> &str {
+        slug.split('/')
+            .nth(1)
+            .expect("Expected a package or repository name!")
+    }
+
+    pub fn create_wasm_file_prefix(name: &str) -> String {
+        let mut name = name.to_lowercase().replace('-', "_");
+
+        if !name.ends_with("_plugin") {
+            name.push_str("_plugin");
+        }
+
+        name
+    }
 }
 
 #[cfg(feature = "schematic")]
@@ -74,21 +94,12 @@ impl Display for PluginLocator {
                     .map(|t| format!("@{t}"))
                     .unwrap_or_default()
             ),
-            PluginLocator::Wapm(wapm) => write!(
-                f,
-                "wapm:{}{}",
-                wapm.package_name,
-                wapm.version
-                    .as_deref()
-                    .map(|v| format!("@{v}"))
-                    .unwrap_or_default()
-            ),
         }
     }
 }
 
 impl FromStr for PluginLocator {
-    type Err = WarpgateError;
+    type Err = PluginLocatorError;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         PluginLocator::try_from(value.to_owned())
@@ -96,35 +107,27 @@ impl FromStr for PluginLocator {
 }
 
 impl TryFrom<String> for PluginLocator {
-    type Error = WarpgateError;
+    type Error = PluginLocatorError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         let mut parts = value.splitn(2, ':');
 
         let Some(scope) = parts.next() else {
-            return Err(WarpgateError::Serde(
-                "Missing plugin scope or location.".into(),
-            ));
+            return Err(PluginLocatorError::MissingScope);
         };
 
         let Some(location) = parts.next() else {
-            return Err(WarpgateError::Serde(
-                "Missing plugin scope or location.".into(),
-            ));
+            return Err(PluginLocatorError::MissingScope);
         };
 
         if location.is_empty() {
-            return Err(WarpgateError::Serde(
-                "Missing plugin location (after :).".into(),
-            ));
+            return Err(PluginLocatorError::MissingLocation);
         }
 
         match scope {
             "source" => {
                 if location.starts_with("http:") {
-                    Err(WarpgateError::Serde(
-                        "Only https URLs are supported for source plugins.".into(),
-                    ))
+                    Err(PluginLocatorError::SecureUrlsOnly)
                 } else if location.starts_with("https:") {
                     Ok(PluginLocator::SourceUrl {
                         url: location.to_owned(),
@@ -138,10 +141,7 @@ impl TryFrom<String> for PluginLocator {
             }
             "github" => {
                 if !location.contains('/') {
-                    return Err(WarpgateError::Serde(
-                        "GitHub release locator requires a repository with organization scope (org/repo)."
-                            .into(),
-                    ));
+                    return Err(PluginLocatorError::GitHubMissingOrg);
                 }
 
                 let mut parts = location.splitn(2, '@');
@@ -149,32 +149,14 @@ impl TryFrom<String> for PluginLocator {
                 let tag = parts.next().map(|t| t.to_owned());
 
                 Ok(PluginLocator::GitHub(GitHubLocator {
-                    file_prefix: create_wasm_file_prefix(extract_suffix_from_slug(&repo_slug)),
+                    file_prefix: PluginLocator::create_wasm_file_prefix(
+                        PluginLocator::extract_suffix_from_slug(&repo_slug),
+                    ),
                     repo_slug,
                     tag,
                 }))
             }
-            "wapm" => {
-                if !location.contains('/') {
-                    return Err(WarpgateError::Serde(
-                        "wapm.io locator requires a package with owner scope (owner/package)."
-                            .into(),
-                    ));
-                }
-
-                let mut parts = location.splitn(2, '@');
-                let package_name = parts.next().unwrap().to_owned();
-                let version = parts.next().map(|t| t.to_owned());
-
-                Ok(PluginLocator::Wapm(WapmLocator {
-                    file_prefix: create_wasm_file_prefix(extract_suffix_from_slug(&package_name)),
-                    package_name,
-                    version,
-                }))
-            }
-            unknown => Err(WarpgateError::Serde(format!(
-                "Unknown plugin scope `{unknown}`."
-            ))),
+            unknown => Err(PluginLocatorError::UnknownScope(unknown.to_owned())),
         }
     }
 }
