@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use warpgate::{GitHubLocator, PluginLocator};
+use warpgate_api::{GitHubLocator, PluginLocator};
 
 mod locator {
     use super::*;
@@ -45,31 +45,31 @@ mod locator {
     }
 
     #[test]
-    #[should_panic(expected = "Missing plugin scope or location.")]
+    #[should_panic(expected = "MissingScope")]
     fn errors_missing_scope() {
         PluginLocator::try_from("".to_string()).unwrap();
     }
 
     #[test]
-    #[should_panic(expected = "Missing plugin location (after :).")]
+    #[should_panic(expected = "MissingLocation")]
     fn errors_missing_location() {
         PluginLocator::try_from("github:".to_string()).unwrap();
     }
 
     #[test]
-    #[should_panic(expected = "Unknown plugin scope ``.")]
+    #[should_panic(expected = "UnknownScope(\"\")")]
     fn errors_empty_scope() {
         PluginLocator::try_from(":foo.wasm".to_string()).unwrap();
     }
 
     #[test]
-    #[should_panic(expected = "Unknown plugin scope `unknown`.")]
+    #[should_panic(expected = "UnknownScope(\"unknown\")")]
     fn errors_unknown_scope() {
         PluginLocator::try_from("unknown:foo.wasm".to_string()).unwrap();
     }
 
     #[test]
-    #[should_panic(expected = "Missing plugin location (after :).")]
+    #[should_panic(expected = "MissingLocation")]
     fn errors_empty_location() {
         PluginLocator::try_from("source:".to_string()).unwrap();
     }
@@ -78,7 +78,7 @@ mod locator {
         use super::*;
 
         #[test]
-        #[should_panic(expected = "Only https URLs are supported for source plugins.")]
+        #[should_panic(expected = "SecureUrlsOnly")]
         fn errors_http_source() {
             PluginLocator::try_from("source:http://domain.com/file.wasm".to_string()).unwrap();
         }
@@ -127,9 +127,7 @@ mod locator {
         use super::*;
 
         #[test]
-        #[should_panic(
-            expected = "GitHub release locator requires a repository with organization scope (org/repo)."
-        )]
+        #[should_panic(expected = "GitHubMissingOrg")]
         fn errors_no_slug() {
             PluginLocator::try_from("github:moonrepo".to_string()).unwrap();
         }
