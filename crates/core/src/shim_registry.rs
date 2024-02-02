@@ -2,6 +2,7 @@ use crate::helpers::{read_json_file_with_lock, write_json_file_with_lock};
 use crate::proto::ProtoEnvironment;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 #[derive(Default, Deserialize, PartialEq, Serialize)]
 #[serde(default)]
@@ -22,7 +23,7 @@ pub struct Shim {
     pub env_vars: FxHashMap<String, String>,
 }
 
-pub type ShimsMap = FxHashMap<String, Shim>;
+pub type ShimsMap = BTreeMap<String, Shim>;
 
 pub struct ShimRegistry;
 
@@ -37,7 +38,7 @@ impl ShimRegistry {
         let mut config: ShimsMap = if file.exists() {
             read_json_file_with_lock(&file)?
         } else {
-            FxHashMap::default()
+            BTreeMap::default()
         };
 
         let mut mutated = false;
