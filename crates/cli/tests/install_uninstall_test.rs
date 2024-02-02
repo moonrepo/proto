@@ -1,12 +1,11 @@
 mod utils;
 
 use proto_core::{Id, PinType, ProtoConfig, ToolManifest, UnresolvedVersionSpec, VersionSpec};
+use rustc_hash::FxHashSet;
 use starbase_sandbox::predicates::prelude::*;
 use utils::*;
 
 mod install_uninstall {
-    use rustc_hash::FxHashSet;
-
     use super::*;
 
     #[test]

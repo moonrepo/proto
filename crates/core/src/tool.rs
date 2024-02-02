@@ -12,7 +12,7 @@ use crate::version_resolver::VersionResolver;
 use miette::IntoDiagnostic;
 use proto_pdk_api::*;
 use proto_shim::*;
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Serialize;
 use starbase_archive::Archiver;
 use starbase_events::Emitter;
@@ -315,7 +315,7 @@ impl Tool {
         if let Some(versions) = sync_changes.versions {
             modified = true;
 
-            let mut entries = BTreeMap::new();
+            let mut entries = FxHashMap::default();
             let mut installed = FxHashSet::default();
 
             for version in versions {
