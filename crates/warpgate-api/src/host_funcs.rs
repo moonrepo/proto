@@ -1,6 +1,6 @@
 use crate::virtual_path::VirtualPath;
 use crate::{api_enum, api_struct};
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 
 api_enum!(
     /// Target where host logs should be written to.
@@ -16,7 +16,7 @@ api_enum!(
 
 api_struct!(
     pub struct HostLogInput {
-        pub data: HashMap<String, serde_json::Value>,
+        pub data: FxHashMap<String, serde_json::Value>,
         pub message: String,
         pub target: HostLogTarget,
     }
@@ -54,7 +54,7 @@ api_struct!(
         pub command: String,
 
         /// Environment variables to pass to the command.
-        pub env: HashMap<String, String>,
+        pub env: FxHashMap<String, String>,
 
         /// Mark the command as executable before executing.
         #[doc(hidden)]

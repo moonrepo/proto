@@ -1,8 +1,9 @@
 use crate::proto_config::ProtoToolConfig;
 use crate::tool_manifest::ToolManifest;
 use proto_pdk_api::LoadVersionsOutput;
+use rustc_hash::FxHashSet;
 use semver::{Version, VersionReq};
-use std::collections::{BTreeMap, HashSet};
+use std::collections::BTreeMap;
 use version_spec::*;
 
 #[derive(Default)]
@@ -78,7 +79,7 @@ pub fn match_highest_version(req: &VersionReq, versions: &[&Version]) -> Option<
 }
 
 // Filter out aliases because they cannot be matched against
-fn extract_installed_versions(installed: &HashSet<VersionSpec>) -> Vec<&Version> {
+fn extract_installed_versions(installed: &FxHashSet<VersionSpec>) -> Vec<&Version> {
     installed
         .iter()
         .filter_map(|item| match item {

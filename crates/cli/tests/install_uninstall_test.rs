@@ -2,10 +2,11 @@ mod utils;
 
 use proto_core::{Id, PinType, ProtoConfig, ToolManifest, UnresolvedVersionSpec, VersionSpec};
 use starbase_sandbox::predicates::prelude::*;
-use std::collections::HashSet;
 use utils::*;
 
 mod install_uninstall {
+    use rustc_hash::FxHashSet;
+
     use super::*;
 
     #[test]
@@ -161,7 +162,7 @@ mod install_uninstall {
         );
         assert_eq!(
             manifest.installed_versions,
-            HashSet::from_iter([VersionSpec::parse("19.0.0").unwrap()])
+            FxHashSet::from_iter([VersionSpec::parse("19.0.0").unwrap()])
         );
         assert!(manifest
             .versions
@@ -179,7 +180,7 @@ mod install_uninstall {
         let config = load_config(sandbox.path().join(".proto"));
 
         assert_eq!(config.versions.get("node"), None);
-        assert_eq!(manifest.installed_versions, HashSet::default());
+        assert_eq!(manifest.installed_versions, FxHashSet::default());
         assert!(!manifest
             .versions
             .contains_key(&VersionSpec::parse("19.0.0").unwrap()));
@@ -225,7 +226,7 @@ mod install_uninstall {
             );
             assert_eq!(
                 manifest.installed_versions,
-                HashSet::from_iter([
+                FxHashSet::from_iter([
                     VersionSpec::parse("18.0.0").unwrap(),
                     VersionSpec::parse("19.0.0").unwrap(),
                 ])

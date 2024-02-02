@@ -1,9 +1,10 @@
 use crate::helpers::{now, read_json_file_with_lock, write_json_file_with_lock};
+use rustc_hash::FxHashSet;
 use serde::{Deserialize, Serialize};
 use starbase_styles::color;
 use starbase_utils::fs;
 use std::{
-    collections::{BTreeMap, HashSet},
+    collections::BTreeMap,
     env,
     path::{Path, PathBuf},
 };
@@ -38,7 +39,7 @@ pub struct ToolManifest {
     pub default_version: Option<UnresolvedVersionSpec>,
 
     // Full versions only
-    pub installed_versions: HashSet<VersionSpec>,
+    pub installed_versions: FxHashSet<VersionSpec>,
     pub shim_version: u8,
     pub versions: BTreeMap<VersionSpec, ToolManifestVersion>,
 

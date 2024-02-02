@@ -4,9 +4,9 @@ use proto_core::{
     load_schema_plugin_with_proto, load_tool_from_locator, load_tool_with_proto, Id,
     ProtoEnvironment, Tool, SCHEMA_PLUGIN_KEY,
 };
+use rustc_hash::FxHashSet;
 use starbase::Resource;
 use starbase_styles::color;
-use std::collections::HashSet;
 use std::env;
 use std::sync::Arc;
 use std::time::Duration;
@@ -80,10 +80,13 @@ impl ProtoResource {
     }
 
     pub async fn load_tools(&self) -> miette::Result<Vec<Tool>> {
-        self.load_tools_with_filters(HashSet::new()).await
+        self.load_tools_with_filters(FxHashSet::default()).await
     }
 
-    pub async fn load_tools_with_filters(&self, filter: HashSet<&Id>) -> miette::Result<Vec<Tool>> {
+    pub async fn load_tools_with_filters(
+        &self,
+        filter: FxHashSet<&Id>,
+    ) -> miette::Result<Vec<Tool>> {
         let config = self.env.load_config()?;
 
         // Download the schema plugin before loading plugins.

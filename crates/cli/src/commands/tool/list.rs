@@ -5,11 +5,11 @@ use chrono::{DateTime, NaiveDateTime};
 use clap::Args;
 use miette::IntoDiagnostic;
 use proto_core::{Id, ProtoToolConfig, ToolManifest, UnresolvedVersionSpec};
+use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Serialize;
 use starbase::system;
 use starbase_styles::color;
 use starbase_utils::json;
-use std::collections::{HashMap, HashSet};
 use tokio::sync::Mutex;
 use tracing::info;
 
@@ -35,7 +35,7 @@ pub async fn list(args: ArgsRef<ListToolsArgs>, proto: ResourceRef<ProtoResource
     }
 
     let tools = proto
-        .load_tools_with_filters(HashSet::from_iter(&args.ids))
+        .load_tools_with_filters(FxHashSet::from_iter(&args.ids))
         .await?;
 
     let mut tools = tools
@@ -65,7 +65,7 @@ pub async fn list(args: ArgsRef<ListToolsArgs>, proto: ResourceRef<ProtoResource
                     },
                 )
             })
-            .collect::<HashMap<_, _>>();
+            .collect::<FxHashMap<_, _>>();
 
         println!("{}", json::to_string_pretty(&items).into_diagnostic()?);
 

@@ -1,7 +1,7 @@
 use extism_pdk::*;
 use proto_pdk_api::{AnyResult, HostArch, HostEnvironment, HostOS, PluginError};
+use rustc_hash::FxHashMap;
 use serde::de::DeserializeOwned;
-use std::collections::HashMap;
 use warpgate_pdk::is_musl;
 
 /// Validate the current host OS and architecture against the
@@ -9,7 +9,7 @@ use warpgate_pdk::is_musl;
 pub fn check_supported_os_and_arch(
     tool: &str,
     env: &HostEnvironment,
-    permutations: HashMap<HostOS, Vec<HostArch>>,
+    permutations: FxHashMap<HostOS, Vec<HostArch>>,
 ) -> AnyResult<()> {
     if let Some(archs) = permutations.get(&env.os) {
         if !archs.contains(&env.arch) {
