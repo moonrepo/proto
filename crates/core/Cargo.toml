@@ -1,6 +1,6 @@
 [package]
 name = "proto_core"
-version = "0.29.3"
+version = "0.29.4"
 edition = "2021"
 license = "MIT"
 description = "Core proto APIs."
@@ -8,7 +8,7 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
-proto_pdk_api = { version = "0.15.1", path = "../pdk-api" }
+proto_pdk_api = { version = "0.15.2", path = "../pdk-api" }
 proto_shim = { version = "0.2.6", path = "../shim" }
 system_env = { version = "0.2.0", path = "../system-env", features = [
 	"schematic",
@@ -16,7 +16,7 @@ system_env = { version = "0.2.0", path = "../system-env", features = [
 version_spec = { version = "0.2.0", path = "../version-spec", features = [
 	"schematic",
 ] }
-warpgate = { version = "0.10.4", path = "../warpgate", features = [
+warpgate = { version = "0.10.5", path = "../warpgate", features = [
 	"schematic",
 ] }
 cached = { workspace = true }
