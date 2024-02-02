@@ -12,7 +12,7 @@ use crate::version_resolver::VersionResolver;
 use miette::IntoDiagnostic;
 use proto_pdk_api::*;
 use proto_shim::*;
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Serialize;
 use starbase_archive::Archiver;
 use starbase_events::Emitter;
@@ -1382,7 +1382,7 @@ impl Tool {
             local: vec![],
         };
 
-        let mut registry: ShimsMap = BTreeMap::new();
+        let mut registry: ShimsMap = FxHashMap::default();
         registry.insert(self.id.to_string(), Shim::default());
 
         let shim_binary =

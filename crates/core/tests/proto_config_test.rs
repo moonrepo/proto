@@ -303,6 +303,7 @@ foo = "source:./test.toml"
 
     mod tool_config {
         use super::*;
+        use rustc_hash::FxHashMap;
 
         #[test]
         fn can_set_extra_settings() {
@@ -327,7 +328,7 @@ intercept-globals = false
                     .config
                     .as_ref()
                     .unwrap(),
-                &BTreeMap::from_iter([
+                &FxHashMap::from_iter([
                     (
                         "bundled-npm".to_owned(),
                         JsonValue::String("bundled".into())
@@ -370,7 +371,7 @@ value = "root"
 
             assert_eq!(
                 config.tools.get("node").unwrap().config,
-                BTreeMap::from_iter([
+                FxHashMap::from_iter([
                     ("value".to_owned(), JsonValue::String("b".into())),
                     ("depth".to_owned(), JsonValue::from(1)),
                 ])

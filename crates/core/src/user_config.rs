@@ -2,9 +2,9 @@
 
 use crate::proto_config::{DetectStrategy, PinType};
 use miette::IntoDiagnostic;
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use starbase_utils::{fs, toml};
-use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use tracing::debug;
 use warpgate::{HttpOptions, Id, PluginLocator};
@@ -21,7 +21,7 @@ pub struct UserConfig {
     pub node_intercept_globals: Option<bool>,
     pub pin_latest: Option<PinType>,
     pub http: Option<HttpOptions>,
-    pub plugins: BTreeMap<Id, PluginLocator>,
+    pub plugins: FxHashMap<Id, PluginLocator>,
 
     #[serde(skip)]
     pub path: PathBuf,
