@@ -2194,6 +2194,7 @@ dependencies = [
  "regex",
  "reqwest",
  "rust_json",
+ "rustc-hash",
  "rustls",
  "rustls-pemfile",
  "rustls-webpki",
@@ -2227,6 +2228,7 @@ dependencies = [
  "proto_shim",
  "regex",
  "reqwest",
+ "rustc-hash",
  "schematic",
  "semver",
  "serde",
@@ -2266,6 +2268,7 @@ version = "0.15.1"
 dependencies = [
  "extism-pdk",
  "proto_pdk_api",
+ "rustc-hash",
  "serde",
  "warpgate_pdk",
 ]
@@ -2274,6 +2277,7 @@ dependencies = [
 name = "proto_pdk_api"
 version = "0.15.1"
 dependencies = [
+ "rustc-hash",
  "semver",
  "serde",
  "serde_json",
@@ -3643,6 +3647,7 @@ dependencies = [
  "once_map",
  "regex",
  "reqwest",
+ "rustc-hash",
  "schematic",
  "serde",
  "serde_json",
@@ -3663,6 +3668,7 @@ name = "warpgate_api"
 version = "0.3.2"
 dependencies = [
  "anyhow",
+ "rustc-hash",
  "schematic",
  "serde",
  "serde_json",

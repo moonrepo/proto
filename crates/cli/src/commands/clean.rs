@@ -2,11 +2,11 @@ use crate::helpers::ProtoResource;
 use clap::Args;
 use dialoguer::Confirm;
 use proto_core::{remove_bin_file, Id, ProtoError, Tool, VersionSpec};
+use rustc_hash::FxHashSet;
 use starbase::diagnostics::IntoDiagnostic;
 use starbase::{system, SystemResult};
 use starbase_styles::color;
 use starbase_utils::fs;
-use std::collections::HashSet;
 use std::time::{Duration, SystemTime};
 use tracing::{debug, info};
 
@@ -58,7 +58,7 @@ pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miett
         return Ok(0);
     }
 
-    let mut versions_to_clean = HashSet::<VersionSpec>::new();
+    let mut versions_to_clean = FxHashSet::<VersionSpec>::default();
 
     debug!("Scanning file system for stale and untracked versions");
 

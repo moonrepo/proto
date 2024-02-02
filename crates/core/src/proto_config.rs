@@ -1,6 +1,7 @@
 use indexmap::IndexMap;
 use miette::IntoDiagnostic;
 use once_cell::sync::OnceCell;
+use rustc_hash::FxHashMap;
 use schematic::{
     derive_enum, env, merge, Config, ConfigEnum, ConfigError, ConfigLoader, Format, PartialConfig,
     ValidateError, ValidateErrorType, ValidatorError,
@@ -28,6 +29,21 @@ fn merge_tools(
 ) -> Result<Option<BTreeMap<Id, PartialProtoToolConfig>>, ConfigError> {
     for (key, value) in next {
         prev.entry(key).or_default().merge(context, value)?;
+    }
+
+    Ok(Some(prev))
+}
+
+fn merge_fxhashmap<K, V, C>(
+    mut prev: FxHashMap<K, V>,
+    next: FxHashMap<K, V>,
+    _context: &C,
+) -> Result<Option<FxHashMap<K, V>>, ConfigError>
+where
+    K: Eq + Hash,
+{
+    for (key, value) in next {
+        prev.insert(key, value);
     }
 
     Ok(Some(prev))
@@ -94,9 +110,9 @@ pub struct ProtoToolConfig {
     pub env: IndexMap<String, EnvVar>,
 
     // Custom configuration to pass to plugins
-    #[setting(merge = merge::merge_btreemap)]
-    #[serde(flatten, skip_serializing_if = "BTreeMap::is_empty")]
-    pub config: BTreeMap<String, JsonValue>,
+    #[setting(merge = merge_fxhashmap)]
+    #[serde(flatten, skip_serializing_if = "FxHashMap::is_empty")]
+    pub config: FxHashMap<String, JsonValue>,
 }
 
 #[derive(Clone, Config, Debug, Serialize)]
@@ -143,9 +159,9 @@ pub struct ProtoConfig {
     #[serde(flatten)]
     pub versions: BTreeMap<Id, UnresolvedVersionSpec>,
 
-    #[setting(merge = merge::merge_btreemap)]
+    #[setting(merge = merge_fxhashmap)]
     #[serde(flatten, skip_serializing)]
-    pub unknown: BTreeMap<String, TomlValue>,
+    pub unknown: FxHashMap<String, TomlValue>,
 }
 
 impl ProtoConfig {

@@ -1,6 +1,6 @@
 use proto_core::{is_offline, ProtoEnvironment};
+use rustc_hash::FxHashMap;
 use starbase_utils::fs;
-use std::collections::HashMap;
 use std::env::{self, consts};
 use tracing::debug;
 
@@ -24,7 +24,7 @@ pub enum Metric {
 }
 
 impl Metric {
-    pub fn into_headers(self) -> HashMap<String, String> {
+    pub fn into_headers(self) -> FxHashMap<String, String> {
         match self {
             Metric::InstallTool {
                 id,
@@ -32,7 +32,7 @@ impl Metric {
                 version_candidate,
                 pinned,
                 plugin,
-            } => HashMap::from_iter([
+            } => FxHashMap::from_iter([
                 ("ToolId".into(), id),
                 ("ToolPinned".into(), pinned.to_string()),
                 ("ToolPlugin".into(), plugin),
@@ -43,7 +43,7 @@ impl Metric {
                 id,
                 plugin,
                 version,
-            } => HashMap::from_iter([
+            } => FxHashMap::from_iter([
                 ("ToolId".into(), id),
                 ("ToolPlugin".into(), plugin),
                 ("ToolVersion".into(), version),
@@ -51,7 +51,7 @@ impl Metric {
             Metric::UpgradeProto {
                 old_version,
                 new_version,
-            } => HashMap::from_iter([
+            } => FxHashMap::from_iter([
                 ("OldVersion".into(), old_version),
                 ("NewVersion".into(), new_version),
             ]),

@@ -1,9 +1,9 @@
 use crate::helpers::{now, read_json_file_with_lock, write_json_file_with_lock};
+use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use starbase_styles::color;
 use starbase_utils::fs;
 use std::{
-    collections::{BTreeMap, HashSet},
     env,
     path::{Path, PathBuf},
 };
@@ -33,14 +33,14 @@ impl Default for ToolManifestVersion {
 pub struct ToolManifest {
     // Partial versions allowed
     #[deprecated]
-    pub aliases: BTreeMap<String, UnresolvedVersionSpec>,
+    pub aliases: FxHashMap<String, UnresolvedVersionSpec>,
     #[deprecated]
     pub default_version: Option<UnresolvedVersionSpec>,
 
     // Full versions only
-    pub installed_versions: HashSet<VersionSpec>,
+    pub installed_versions: FxHashSet<VersionSpec>,
     pub shim_version: u8,
-    pub versions: BTreeMap<VersionSpec, ToolManifestVersion>,
+    pub versions: FxHashMap<VersionSpec, ToolManifestVersion>,
 
     #[serde(skip)]
     pub path: PathBuf,

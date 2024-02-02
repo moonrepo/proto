@@ -50,6 +50,7 @@ indicatif = "0.17.7"
 miette = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true, features = ["rustls-tls-native-roots"] }
+rustc-hash = { workspace = true }
 semver = { workspace = true }
 serde = { workspace = true }
 starbase = { workspace = true }

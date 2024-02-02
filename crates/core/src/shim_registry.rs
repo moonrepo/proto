@@ -1,7 +1,8 @@
 use crate::helpers::{read_json_file_with_lock, write_json_file_with_lock};
 use crate::proto::ProtoEnvironment;
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
 #[derive(Default, Deserialize, PartialEq, Serialize)]
 #[serde(default)]
@@ -18,8 +19,8 @@ pub struct Shim {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub before_args: Vec<String>,
 
-    #[serde(skip_serializing_if = "HashMap::is_empty")]
-    pub env_vars: HashMap<String, String>,
+    #[serde(skip_serializing_if = "FxHashMap::is_empty")]
+    pub env_vars: FxHashMap<String, String>,
 }
 
 pub type ShimsMap = BTreeMap<String, Shim>;

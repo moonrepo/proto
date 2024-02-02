@@ -3,11 +3,11 @@ use crate::helpers::ProtoResource;
 use clap::Args;
 use miette::IntoDiagnostic;
 use proto_core::{ProtoConfig, ProtoError, UnresolvedVersionSpec, VersionSpec};
+use rustc_hash::FxHashMap;
 use serde::Serialize;
 use starbase::system;
 use starbase_styles::color::{self, OwoStyle};
 use starbase_utils::json;
-use std::collections::HashMap;
 use tracing::{debug, info};
 
 #[derive(Args, Clone, Debug)]
@@ -59,8 +59,8 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>, proto: ResourceRef<ProtoResou
         info!("Checking for newer versions...");
     }
 
-    let mut items = HashMap::new();
-    let mut tool_versions = HashMap::new();
+    let mut items = FxHashMap::default();
+    let mut tool_versions = FxHashMap::default();
     let initial_version = UnresolvedVersionSpec::default(); // latest
 
     for (tool_id, config_version) in &config.versions {

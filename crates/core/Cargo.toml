@@ -27,6 +27,7 @@ minisign-verify = "0.2.1"
 once_cell = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true }
+rustc-hash = { workspace = true }
 schematic = { workspace = true, features = [
 	"config",
 	"toml",

@@ -12,12 +12,13 @@ use crate::version_resolver::VersionResolver;
 use miette::IntoDiagnostic;
 use proto_pdk_api::*;
 use proto_shim::*;
+use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Serialize;
 use starbase_archive::Archiver;
 use starbase_events::Emitter;
 use starbase_styles::color;
 use starbase_utils::{fs, json};
-use std::collections::{BTreeMap, HashSet};
+use std::collections::BTreeMap;
 use std::env;
 use std::fmt::Debug;
 use std::io::{BufRead, BufReader};
@@ -314,8 +315,8 @@ impl Tool {
         if let Some(versions) = sync_changes.versions {
             modified = true;
 
-            let mut entries = BTreeMap::new();
-            let mut installed = HashSet::new();
+            let mut entries = FxHashMap::default();
+            let mut installed = FxHashSet::default();
 
             for version in versions {
                 let key = VersionSpec::Version(version);
@@ -1381,7 +1382,7 @@ impl Tool {
             local: vec![],
         };
 
-        let mut registry: ShimsMap = BTreeMap::new();
+        let mut registry: ShimsMap = BTreeMap::default();
         registry.insert(self.id.to_string(), Shim::default());
 
         let shim_binary =

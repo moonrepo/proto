@@ -1,5 +1,5 @@
 use crate::shapes::StringOrVec;
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 use std::path::PathBuf;
 use system_env::SystemDependency;
 use version_spec::{UnresolvedVersionSpec, VersionSpec};
@@ -208,7 +208,7 @@ api_enum!(
         Command {
             bin: String,
             args: Vec<String>,
-            env: HashMap<String, String>,
+            env: FxHashMap<String, String>,
         },
     }
 );
@@ -365,7 +365,7 @@ api_struct!(
 
         /// Custom environment variables to set when executing the shim.
         #[serde(skip_serializing_if = "Option::is_none")]
-        pub shim_env_vars: Option<HashMap<String, String>>,
+        pub shim_env_vars: Option<FxHashMap<String, String>>,
     }
 );
 
@@ -406,8 +406,8 @@ api_struct!(
 
         /// Configures secondary/additional executables to create.
         /// The map key is the name of the shim/binary file.
-        #[serde(skip_serializing_if = "HashMap::is_empty")]
-        pub secondary: HashMap<String, ExecutableConfig>,
+        #[serde(skip_serializing_if = "FxHashMap::is_empty")]
+        pub secondary: FxHashMap<String, ExecutableConfig>,
     }
 );
 
@@ -517,8 +517,8 @@ api_struct!(
         pub latest: Option<Version>,
 
         /// Mapping of aliases (channels, etc) to a version.
-        #[serde(skip_serializing_if = "HashMap::is_empty")]
-        pub aliases: HashMap<String, Version>,
+        #[serde(skip_serializing_if = "FxHashMap::is_empty")]
+        pub aliases: FxHashMap<String, Version>,
 
         /// List of available production versions to install.
         #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -624,7 +624,7 @@ api_struct!(
 
         /// A mapping of environment variables that will be injected as exports.
         #[serde(skip_serializing_if = "Option::is_none")]
-        pub export_vars: Option<HashMap<String, String>>,
+        pub export_vars: Option<FxHashMap<String, String>>,
 
         /// A list of paths to prepend to the `PATH` environment variable.
         #[serde(skip_serializing_if = "Option::is_none")]
