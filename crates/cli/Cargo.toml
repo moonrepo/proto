@@ -38,7 +38,7 @@ proto_pdk_api = { version = "0.15.2", path = "../pdk-api" }
 proto_shim = { version = "0.2.6", path = "../shim" }
 system_env = { version = "0.2.0", path = "../system-env" }
 anyhow = { workspace = true }
-chrono = "0.4.32"
+chrono = "0.4.33"
 clap = { workspace = true, features = ["derive", "env"] }
 clap_complete = { workspace = true }
 convert_case = { workspace = true }
@@ -60,7 +60,7 @@ starbase_utils = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
-uuid = { version = "1.6.1", features = ["v4"] }
+uuid = { version = "1.7.0", features = ["v4"] }
 
 # For the shim binary
 rust_json = "0.1.5"
