@@ -236,7 +236,7 @@ fn update_shell(tool: &Tool, passthrough_args: Vec<String>) -> miette::Result<()
 
     if let Some(content) = shell::format_exports(&shell_type, tool.id.as_str(), exports) {
         if let Some(updated_profile) =
-            shell::write_profile_if_not_setup(&shell_type, content, &output.check_var)?
+            shell::write_profile_if_not_setup(&shell_type, &content, &output.check_var)?
         {
             info!(
                 "Added {} to shell profile {}",

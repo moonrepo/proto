@@ -6,7 +6,7 @@ use starbase_utils::fs;
 use std::{
     env,
     io::{self, BufRead},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 use tracing::debug;
 
@@ -173,9 +173,17 @@ pub fn format_exports(shell: &Shell, comment: &str, exports: Vec<Export>) -> Opt
     Some(lines.join("\n"))
 }
 
+pub fn write_profile(profile: &Path, contents: &str, env_var: &str) -> miette::Result<()> {
+    fs::append_file(profile, contents)?;
+
+    debug!("Setup profile {} with {}", color::path(profile), env_var,);
+
+    Ok(())
+}
+
 pub fn write_profile_if_not_setup(
     shell: &Shell,
-    contents: String,
+    contents: &str,
     env_var: &str,
 ) -> miette::Result<Option<PathBuf>> {
     let profiles = find_profiles(shell)?;
@@ -220,13 +228,7 @@ pub fn write_profile_if_not_setup(
         color::path(last_profile),
     );
 
-    fs::append_file(last_profile, contents)?;
-
-    debug!(
-        "Setup profile {} with {}",
-        color::path(last_profile),
-        env_var,
-    );
+    write_profile(last_profile, contents, env_var)?;
 
     Ok(Some(last_profile.to_path_buf()))
 }
