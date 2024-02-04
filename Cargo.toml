@@ -50,7 +50,7 @@ tracing = "0.1.40"
 # Config for 'cargo dist'
 [workspace.metadata.dist]
 # The preferred cargo-dist version to use in CI (Cargo.toml SemVer syntax)
-cargo-dist-version = "0.8.0"
+cargo-dist-version = "0.9.0"
 # CI backends to support
 ci = ["github"]
 # Target platforms to build apps for (Rust target-triple syntax)
@@ -68,7 +68,7 @@ installers = []
 # Path that installers should place binaries in
 install-path = "~/.proto/bin"
 # Publish jobs to run in CI
-pr-run-mode = "plan" # "upload"
+pr-run-mode = "upload"
 # Skip checking whether the specified configuration files are up to date
 allow-dirty = ["ci"]
 
