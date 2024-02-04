@@ -127,8 +127,17 @@ impl PluginLoader {
             sha.update(seed);
         }
 
+        // Remove unwanted or unsafe file name characters
+        let safe_id = id
+            .as_str()
+            .replace('/', "")
+            .replace('@', "")
+            .replace('.', "")
+            .replace(' ', "");
+
         self.plugins_dir.join(format!(
-            "{id}{}{:x}{}",
+            "{}{}{:x}{}",
+            safe_id,
             if is_latest { "-latest-" } else { "-" },
             sha.finalize(),
             determine_cache_extension(url)
