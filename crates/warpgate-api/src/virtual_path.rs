@@ -35,23 +35,35 @@ impl VirtualPath {
         }
     }
 
-    /// Return the original real path.
-    pub fn real_path(&self) -> PathBuf {
+    /// Return the original real path. If we don't have access to prefixes,
+    /// or removing prefix fails, returns `None`.
+    pub fn real_path(&self) -> Option<PathBuf> {
         match self {
-            Self::Only(_) => panic!("No real path prefix!"),
-            Self::WithReal {
-                path,
-                virtual_prefix,
-                real_prefix,
-            } => real_prefix.join(path.strip_prefix(virtual_prefix).unwrap_or(path)),
+            Self::Only(_) => None,
+            Self::WithReal { real_prefix, .. } => {
+                self.without_prefix().map(|path| real_prefix.join(path))
+            }
         }
     }
 
     /// Return a reference to the virtual path.
-    pub fn virtual_path(&self) -> &PathBuf {
+    pub fn virtual_path(&self) -> &Path {
         match self {
             Self::Only(path) => path,
             Self::WithReal { path, .. } => path,
+        }
+    }
+
+    /// Return the current path without a virtual prefix.
+    /// If we don't have access to prefixes, returns `None`.
+    pub fn without_prefix(&self) -> Option<&Path> {
+        match self {
+            Self::Only(_) => None,
+            Self::WithReal {
+                path,
+                virtual_prefix,
+                ..
+            } => path.strip_prefix(virtual_prefix).ok(),
         }
     }
 }
@@ -76,7 +88,10 @@ impl Deref for VirtualPath {
     type Target = PathBuf;
 
     fn deref(&self) -> &Self::Target {
-        self.virtual_path()
+        match self {
+            Self::Only(path) => path,
+            Self::WithReal { path, .. } => path,
+        }
     }
 }
 
@@ -103,9 +118,6 @@ impl AsRef<VirtualPath> for VirtualPath {
 
 impl AsRef<Path> for VirtualPath {
     fn as_ref(&self) -> &Path {
-        match self {
-            Self::Only(path) => path,
-            Self::WithReal { path, .. } => path,
-        }
+        self.virtual_path()
     }
 }

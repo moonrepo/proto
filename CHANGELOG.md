@@ -12,6 +12,11 @@
 
 ## Unreleased
 
+#### 💥 Breaking
+
+- WASM API
+  - Updated `VirtualPath::real_path` to return an `Option` if conversion fails.
+
 #### 🚀 Updates
 
 - Added a `shell-profile` setting to `~/.proto/.prototools` that denotes which shell we should modify.

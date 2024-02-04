@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use warpgate_api::VirtualPath;
 
 pub fn determine_cache_extension(value: &str) -> &str {
-    for ext in [".toml", ".json", ".yaml", ".yml"] {
+    for ext in [".toml", ".json", ".jsonc", ".yaml", ".yml"] {
         if value.ends_with(ext) {
             return ext;
         }
@@ -68,7 +68,7 @@ pub async fn download_from_url_to_file(
 pub fn move_or_unpack_download(temp_file: &Path, dest_file: &Path) -> miette::Result<()> {
     match temp_file.extension().map(|e| e.to_str().unwrap()) {
         // Move these files as-is
-        Some("wasm" | "toml" | "json" | "yaml" | "yml") => {
+        Some("wasm" | "toml" | "json" | "jsonc" | "yaml" | "yml") => {
             fs::rename(temp_file, dest_file)?;
         }
 
@@ -157,10 +157,10 @@ pub fn to_virtual_path(
     let path = path.as_ref();
 
     for (host_path, guest_path) in sort_virtual_paths(paths_map) {
-        let mut virtual_path = if let Ok(rel_path) = path.strip_prefix(host_path) {
-            guest_path.join(rel_path)
-        } else if path.starts_with(guest_path) {
+        let mut virtual_path = if path.starts_with(guest_path) {
             path.to_owned()
+        } else if let Ok(rel_path) = path.strip_prefix(host_path) {
+            guest_path.join(rel_path)
         } else {
             continue;
         };
