@@ -12,6 +12,10 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Added a `shell-profile` setting to `~/.proto/.prototools` that denotes which shell we should modify.
+
 #### 🐞 Fixes
 
 - Attempted fix for PowerShell profile updates when using Windows 11 and OneDrive folders.

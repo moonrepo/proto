@@ -6,6 +6,7 @@ use clap::Args;
 use clap_complete::Shell;
 use dialoguer::{Input, Select};
 use miette::IntoDiagnostic;
+use proto_core::{PartialProtoSettingsConfig, ProtoConfig};
 use proto_shim::get_exe_file_name;
 use starbase::system;
 use starbase_styles::color;
@@ -130,6 +131,16 @@ pub async fn setup(args: ArgsRef<SetupArgs>, proto: ResourceRef<ProtoResource>) 
         debug!("Attempting to find a shell profile to update");
 
         profile_path = write_profile_if_not_setup(&shell, &content, "PROTO_HOME")?;
+    }
+
+    // If we found a profile, update the global config so we can reference it
+    if let Some(profile) = &profile_path {
+        ProtoConfig::update(proto.env.get_config_dir(true), |config| {
+            config
+                .settings
+                .get_or_insert(PartialProtoSettingsConfig::default())
+                .shell_profile = Some(profile.to_path_buf());
+        })?;
     }
 
     finished_message(installed_bin_path, profile_path, Some(content));

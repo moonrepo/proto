@@ -127,10 +127,12 @@ pub struct ProtoSettingsConfig {
     #[setting(env = "PROTO_DETECT_STRATEGY")]
     pub detect_strategy: DetectStrategy,
 
+    pub http: HttpOptions,
+
     #[setting(env = "PROTO_PIN_LATEST")]
     pub pin_latest: Option<PinType>,
 
-    pub http: HttpOptions,
+    pub shell_profile: Option<PathBuf>,
 
     #[setting(default = true)]
     pub telemetry: bool,
@@ -450,9 +452,17 @@ impl ProtoConfigManager {
         })
     }
 
+    pub fn get_global_config(&self) -> miette::Result<&ProtoConfig> {
+        self.cwd_config.get_or_try_init(|| {
+            debug!("Loading global config only");
+
+            self.merge_configs(self.files.iter().filter(|file| file.global).collect())
+        })
+    }
+
     pub fn get_local_config(&self, cwd: &Path) -> miette::Result<&ProtoConfig> {
         self.cwd_config.get_or_try_init(|| {
-            debug!("Merging local configs only");
+            debug!("Loading local config only");
 
             self.merge_configs(
                 self.files
