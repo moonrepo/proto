@@ -10,6 +10,17 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🧩 Plugins
+
+- Updated `node_plugin` and `node_depman_plugin` to v0.9.1.
+  - Added version detection support for `volta` in `package.json`.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.29.1
 
 #### 🐞 Fixes

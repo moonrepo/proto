@@ -14,7 +14,7 @@ warpgate = { version = "0.10.5", path = "../warpgate" }
 extism = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-toml = { version = "0.8.8", optional = true }
+toml = { version = "0.8.9", optional = true }
 
 [features]
 default = []
