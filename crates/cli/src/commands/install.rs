@@ -244,7 +244,7 @@ fn update_shell(tool: &Tool, passthrough_args: Vec<String>) -> miette::Result<()
             .as_ref()
         {
             Some(profile_path) => {
-                shell::write_profile(&profile_path, &content, &output.check_var)?;
+                shell::write_profile(profile_path, &content, &output.check_var)?;
 
                 Some(profile_path.to_path_buf())
             }

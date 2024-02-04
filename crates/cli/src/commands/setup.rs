@@ -23,7 +23,7 @@ pub struct SetupArgs {
     no_profile: bool,
 
     // deprecated
-    #[arg(long, help = "Return the shell profile path if setup")]
+    #[arg(long, hide = true, help = "Return the shell profile path if setup")]
     profile: bool,
 
     #[arg(long, short = 'y', help = "Avoid interactive prompts and use defaults")]
