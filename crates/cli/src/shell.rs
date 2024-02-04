@@ -33,7 +33,6 @@ pub fn find_profiles(shell: &Shell) -> miette::Result<Vec<PathBuf>> {
     }
 
     let home_dir = home_dir().expect("Invalid home directory.");
-    let xdg_config_dir = config_dir();
     let mut profiles = vec![home_dir.join(".profile")];
 
     if let Ok(profile_env) = env::var("PROFILE") {
@@ -49,7 +48,7 @@ pub fn find_profiles(shell: &Shell) -> miette::Result<Vec<PathBuf>> {
         Shell::Elvish => {
             profiles.push(home_dir.join(".elvish/rc.elv"));
 
-            if let Some(dir) = &xdg_config_dir {
+            if let Some(dir) = config_dir() {
                 profiles.push(dir.join("elvish/rc.elv"));
             }
 
