@@ -25,7 +25,7 @@ pub struct SetupArgs {
     #[arg(long, help = "Return the shell profile path if setup")]
     profile: bool,
 
-    #[arg(long, help = "Avoid interactive prompts and use defaults")]
+    #[arg(long, short = 'y', help = "Avoid interactive prompts and use defaults")]
     yes: bool,
 }
 
@@ -47,12 +47,14 @@ pub async fn setup(args: ArgsRef<SetupArgs>, proto: ResourceRef<ProtoResource>) 
         return Ok(());
     }
 
-    let exports = vec![
-        Export::Var("PROTO_HOME".into(), "$HOME/.proto".into()),
-        Export::Path(vec!["$PROTO_HOME/shims".into(), "$PROTO_HOME/bin".into()]),
-    ];
-
-    let Some(content) = format_exports(&shell, "proto", exports) else {
+    let Some(content) = format_exports(
+        &shell,
+        "proto",
+        vec![
+            Export::Var("PROTO_HOME".into(), "$HOME/.proto".into()),
+            Export::Path(vec!["$PROTO_HOME/shims".into(), "$PROTO_HOME/bin".into()]),
+        ],
+    ) else {
         finished_message(installed_bin_path, None, None);
 
         return Ok(());
@@ -68,22 +70,27 @@ pub async fn setup(args: ArgsRef<SetupArgs>, proto: ResourceRef<ProtoResource>) 
     // Otherwise attempt to update the shell profile
     debug!("Updating PATH in {} shell", shell);
 
-    let mut profile_path = None;
+    let profile_path;
     let interactive = !args.yes && env::var("CI").is_err();
+
+    println!("Finishing proto installation...");
 
     // If interactive, let the user pick a profile
     if interactive {
         debug!("Prompting the user to select a shell profile");
 
         let theme = create_theme();
-        let profiles = find_profiles(&shell)?;
-        let default_index = profiles.len() - 1;
-        let other_index = default_index + 1;
-        let none_index = other_index + 1;
+
+        let mut profiles = find_profiles(&shell)?;
+        profiles.reverse();
 
         let mut items = profiles.iter().map(color::path).collect::<Vec<_>>();
         items.push("Other".to_owned());
         items.push("None".to_owned());
+
+        let default_index = 0;
+        let other_index = profiles.len();
+        let none_index = other_index + 1;
 
         let selected_index = Select::with_theme(&theme)
             .with_prompt("Which profile to update?")
@@ -122,12 +129,17 @@ pub async fn setup(args: ArgsRef<SetupArgs>, proto: ResourceRef<ProtoResource>) 
     else {
         debug!("Attempting to find a shell profile to update");
 
-        if let Some(updated_profile) = write_profile_if_not_setup(&shell, &content, "PROTO_HOME")? {
-            profile_path = Some(updated_profile);
-        }
+        profile_path = write_profile_if_not_setup(&shell, &content, "PROTO_HOME")?;
     }
 
     finished_message(installed_bin_path, profile_path, Some(content));
+}
+
+fn help_message() {
+    println!(
+        "Need help? Join our Discord {}",
+        color::url("https://discord.gg/qCh9MEynv2")
+    );
 }
 
 fn already_setup_message(installed_bin_path: PathBuf) {
@@ -135,10 +147,7 @@ fn already_setup_message(installed_bin_path: PathBuf) {
         "Successfully installed proto to {}!",
         color::path(installed_bin_path),
     );
-    println!(
-        "Need help? Join our Discord {}",
-        color::url("https://discord.gg/qCh9MEynv2")
-    );
+    help_message();
 }
 
 fn finished_message(
@@ -177,8 +186,5 @@ fn finished_message(
     }
 
     println!();
-    println!(
-        "Need help? Join our Discord {}",
-        color::url("https://discord.gg/qCh9MEynv2")
-    );
+    help_message();
 }
