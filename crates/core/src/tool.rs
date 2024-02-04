@@ -266,7 +266,9 @@ impl Tool {
         )?;
 
         if let Some(override_dir) = &metadata.inventory.override_dir {
-            if !override_dir.real_path().is_absolute() {
+            let override_dir_path = override_dir.real_path();
+
+            if override_dir_path.is_none() || override_dir_path.is_some_and(|p| p.is_relative()) {
                 return Err(ProtoError::AbsoluteInventoryDir {
                     tool: self.get_name().to_owned(),
                 }
