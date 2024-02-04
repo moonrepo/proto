@@ -53,6 +53,7 @@ jobs:
       - uses: moonrepo/setup-rust@v1
         with:
           bins: cargo-wasi, cargo-nextest, just
+          cache: ${{ runner.os != 'Linux' }}
           cache-base: "^(master|develop-)"
       - if: ${{ runner.os != 'Windows' }}
         run: just build-wasm

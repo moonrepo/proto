@@ -41,7 +41,7 @@ pub async fn setup(args: ArgsRef<SetupArgs>, proto: ResourceRef<ProtoResource>) 
         .join(get_exe_file_name("proto"));
 
     if paths.contains(&proto.env.shims_dir) && paths.contains(&proto.env.bin_dir) {
-        debug!("Skipping setup, PROTO_HOME already exists in PATH");
+        debug!("Skipping setup, proto already exists in PATH");
 
         already_setup_message(installed_bin_path);
 

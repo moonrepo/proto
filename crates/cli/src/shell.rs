@@ -1,5 +1,5 @@
 use clap_complete::Shell;
-use dirs::{document_dir, home_dir};
+use dirs::{config_dir, document_dir, home_dir};
 use proto_core::ENV_VAR;
 use starbase_styles::color;
 use starbase_utils::fs;
@@ -33,6 +33,7 @@ pub fn find_profiles(shell: &Shell) -> miette::Result<Vec<PathBuf>> {
     }
 
     let home_dir = home_dir().expect("Invalid home directory.");
+    let xdg_config_dir = config_dir();
     let mut profiles = vec![home_dir.join(".profile")];
 
     if let Ok(profile_env) = env::var("PROFILE") {
@@ -48,13 +49,11 @@ pub fn find_profiles(shell: &Shell) -> miette::Result<Vec<PathBuf>> {
         Shell::Elvish => {
             profiles.push(home_dir.join(".elvish/rc.elv"));
 
-            if let Ok(xdg_config) = env::var("XDG_CONFIG_HOME") {
-                profiles.push(PathBuf::from(xdg_config).join("elvish/rc.elv"));
+            if let Some(dir) = &xdg_config_dir {
+                profiles.push(dir.join("elvish/rc.elv"));
             }
 
-            if let Ok(app_data) = env::var("AppData") {
-                profiles.push(PathBuf::from(app_data).join("elvish/rc.elv"));
-            } else {
+            if cfg!(unix) {
                 profiles.push(home_dir.join(".config/elvish/rc.elv"));
             }
         }
@@ -77,11 +76,7 @@ pub fn find_profiles(shell: &Shell) -> miette::Result<Vec<PathBuf>> {
             }
         }
         Shell::Zsh => {
-            let zdot_dir = if let Ok(dir) = env::var("ZDOTDIR") {
-                PathBuf::from(dir)
-            } else {
-                home_dir
-            };
+            let zdot_dir = env::var("ZDOTDIR").map(PathBuf::from).unwrap_or(home_dir);
 
             profiles.extend([zdot_dir.join(".zprofile"), zdot_dir.join(".zshrc")]);
         }

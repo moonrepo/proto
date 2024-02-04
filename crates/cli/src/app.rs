@@ -186,7 +186,10 @@ pub enum Commands {
     )]
     Run(RunArgs),
 
-    #[command(name = "setup", about = "Setup proto for your current shell.")]
+    #[command(
+        name = "setup",
+        about = "Setup proto for your current shell by injecting exports and updating PATH."
+    )]
     Setup(SetupArgs),
 
     #[command(name = "tool", about = "Operations for managing tools and plugins.")]
