@@ -1,5 +1,5 @@
 use clap_complete::Shell;
-use dirs::home_dir;
+use dirs::{document_dir, home_dir};
 use proto_core::ENV_VAR;
 use starbase_styles::color;
 use starbase_utils::fs;
@@ -63,9 +63,11 @@ pub fn find_profiles(shell: &Shell) -> miette::Result<Vec<PathBuf>> {
         }
         Shell::PowerShell => {
             if cfg!(windows) {
+                let docs_dir = document_dir().unwrap_or(home_dir.join("Documents"));
+
                 profiles.extend([
-                    home_dir.join("Documents\\PowerShell\\Microsoft.PowerShell_profile.ps1"),
-                    home_dir.join("Documents\\PowerShell\\Profile.ps1"),
+                    docs_dir.join("PowerShell\\Microsoft.PowerShell_profile.ps1"),
+                    docs_dir.join("PowerShell\\Profile.ps1"),
                 ]);
             } else {
                 profiles.extend([

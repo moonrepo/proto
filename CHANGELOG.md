@@ -12,6 +12,10 @@
 
 ## Unreleased
 
+#### 🐞 Fixes
+
+- Attempted fix for PowerShell profile updates when using Windows 11 and OneDrive folders.
+
 #### 🧩 Plugins
 
 - Updated `node_plugin` and `node_depman_plugin` to v0.9.1.
