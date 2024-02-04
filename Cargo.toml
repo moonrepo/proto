@@ -20,7 +20,7 @@ once_map = "0.4.14"
 regex = { version = "1.10.3", default-features = false, features = ["std"] }
 reqwest = { version = "0.11.24", default-features = false }
 rustc-hash = "1.1.0"
-schematic = { version = "0.13.5", default-features = false }
+schematic = { version = "0.13.6", default-features = false }
 semver = "1.0.21"
 serde = { version = "1.0.196", features = ["derive"] }
 serde_json = "1.0.113"
