@@ -128,12 +128,7 @@ impl PluginLoader {
         }
 
         // Remove unwanted or unsafe file name characters
-        let safe_id = id
-            .as_str()
-            .replace('/', "")
-            .replace('@', "")
-            .replace('.', "")
-            .replace(' ', "");
+        let safe_id = id.as_str().replace(['/', '@', '.', ' '], "");
 
         self.plugins_dir.join(format!(
             "{}{}{:x}{}",
