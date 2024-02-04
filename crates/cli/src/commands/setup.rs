@@ -1,4 +1,4 @@
-use crate::helpers::ProtoResource;
+use crate::helpers::{create_theme, ProtoResource};
 use crate::shell::{
     detect_shell, find_profiles, format_exports, write_profile, write_profile_if_not_setup, Export,
 };
@@ -32,20 +32,20 @@ pub struct SetupArgs {
 #[system]
 pub async fn setup(args: ArgsRef<SetupArgs>, proto: ResourceRef<ProtoResource>) {
     let shell = detect_shell(args.shell);
-
-    let paths = env::var("PATH").expect("Missing PATH!");
-    let paths = env::split_paths(&paths).collect::<Vec<_>>();
-
-    if paths.contains(&proto.env.shims_dir) && paths.contains(&proto.env.bin_dir) {
-        debug!("Skipping setup, PROTO_HOME already exists in PATH");
-
-        return Ok(());
-    }
+    let paths = env::split_paths(&env::var("PATH").unwrap()).collect::<Vec<_>>();
 
     let installed_bin_path = env::var("PROTO_INSTALL_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|_| proto.env.home.join("bin"))
         .join(get_exe_file_name("proto"));
+
+    if paths.contains(&proto.env.shims_dir) && paths.contains(&proto.env.bin_dir) {
+        debug!("Skipping setup, PROTO_HOME already exists in PATH");
+
+        already_setup_message(installed_bin_path);
+
+        return Ok(());
+    }
 
     let exports = vec![
         Export::Var("PROTO_HOME".into(), "$HOME/.proto".into()),
@@ -75,6 +75,7 @@ pub async fn setup(args: ArgsRef<SetupArgs>, proto: ResourceRef<ProtoResource>) 
     if interactive {
         debug!("Prompting the user to select a shell profile");
 
+        let theme = create_theme();
         let profiles = find_profiles(&shell)?;
         let default_index = profiles.len() - 1;
         let other_index = default_index + 1;
@@ -84,7 +85,7 @@ pub async fn setup(args: ArgsRef<SetupArgs>, proto: ResourceRef<ProtoResource>) 
         items.push("Other".to_owned());
         items.push("None".to_owned());
 
-        let selected_index = Select::new()
+        let selected_index = Select::with_theme(&theme)
             .with_prompt("Which profile to update?")
             .items(&items)
             .default(default_index)
@@ -96,7 +97,7 @@ pub async fn setup(args: ArgsRef<SetupArgs>, proto: ResourceRef<ProtoResource>) 
             profile_path = None;
         } else if selected_index == other_index {
             let custom_path = PathBuf::from(
-                Input::<String>::new()
+                Input::<String>::with_theme(&theme)
                     .with_prompt("Custom profile path?")
                     .interact_text()
                     .into_diagnostic()?,
@@ -129,6 +130,17 @@ pub async fn setup(args: ArgsRef<SetupArgs>, proto: ResourceRef<ProtoResource>) 
     finished_message(installed_bin_path, profile_path, Some(content));
 }
 
+fn already_setup_message(installed_bin_path: PathBuf) {
+    println!(
+        "Successfully installed proto to {}!",
+        color::path(installed_bin_path),
+    );
+    println!(
+        "Need help? Join our Discord {}",
+        color::url("https://discord.gg/qCh9MEynv2")
+    );
+}
+
 fn finished_message(
     installed_bin_path: PathBuf,
     updated_profile_path: Option<PathBuf>,
@@ -136,21 +148,21 @@ fn finished_message(
 ) {
     if let Some(profile_path) = updated_profile_path {
         println!(
-            "Successfully installed proto to {} and updated profile {}",
+            "Successfully installed proto to {} and updated profile {}!",
             color::path(installed_bin_path),
             color::path(profile_path),
         );
         println!("Launch a new terminal window to start using proto!");
     } else {
         println!(
-            "Successfully installed proto to {}",
+            "Successfully installed proto to {}!",
             color::path(installed_bin_path),
         );
 
         if let Some(content) = exported_content {
             println!("Add the following to your shell profile to get started:");
             println!();
-            println!("{}", color::muted_light(content));
+            println!("{}", color::muted_light(content.trim()));
         } else {
             println!(
                 "Add the following to your {} to get started:",
