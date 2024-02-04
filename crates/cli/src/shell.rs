@@ -1,12 +1,12 @@
 use clap_complete::Shell;
-use dirs::home_dir;
+use dirs::{config_dir, document_dir, home_dir};
 use proto_core::ENV_VAR;
 use starbase_styles::color;
 use starbase_utils::fs;
 use std::{
     env,
     io::{self, BufRead},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 use tracing::debug;
 
@@ -48,13 +48,11 @@ pub fn find_profiles(shell: &Shell) -> miette::Result<Vec<PathBuf>> {
         Shell::Elvish => {
             profiles.push(home_dir.join(".elvish/rc.elv"));
 
-            if let Ok(xdg_config) = env::var("XDG_CONFIG_HOME") {
-                profiles.push(PathBuf::from(xdg_config).join("elvish/rc.elv"));
+            if let Some(dir) = config_dir() {
+                profiles.push(dir.join("elvish/rc.elv"));
             }
 
-            if let Ok(app_data) = env::var("AppData") {
-                profiles.push(PathBuf::from(app_data).join("elvish/rc.elv"));
-            } else {
+            if cfg!(unix) {
                 profiles.push(home_dir.join(".config/elvish/rc.elv"));
             }
         }
@@ -63,9 +61,11 @@ pub fn find_profiles(shell: &Shell) -> miette::Result<Vec<PathBuf>> {
         }
         Shell::PowerShell => {
             if cfg!(windows) {
+                let docs_dir = document_dir().unwrap_or(home_dir.join("Documents"));
+
                 profiles.extend([
-                    home_dir.join("Documents\\PowerShell\\Microsoft.PowerShell_profile.ps1"),
-                    home_dir.join("Documents\\PowerShell\\Profile.ps1"),
+                    docs_dir.join("PowerShell\\Microsoft.PowerShell_profile.ps1"),
+                    docs_dir.join("PowerShell\\Profile.ps1"),
                 ]);
             } else {
                 profiles.extend([
@@ -75,11 +75,7 @@ pub fn find_profiles(shell: &Shell) -> miette::Result<Vec<PathBuf>> {
             }
         }
         Shell::Zsh => {
-            let zdot_dir = if let Ok(dir) = env::var("ZDOTDIR") {
-                PathBuf::from(dir)
-            } else {
-                home_dir
-            };
+            let zdot_dir = env::var("ZDOTDIR").map(PathBuf::from).unwrap_or(home_dir);
 
             profiles.extend([zdot_dir.join(".zprofile"), zdot_dir.join(".zshrc")]);
         }
@@ -173,9 +169,17 @@ pub fn format_exports(shell: &Shell, comment: &str, exports: Vec<Export>) -> Opt
     Some(lines.join("\n"))
 }
 
+pub fn write_profile(profile: &Path, contents: &str, env_var: &str) -> miette::Result<()> {
+    fs::append_file(profile, contents)?;
+
+    debug!("Setup profile {} with {}", color::path(profile), env_var,);
+
+    Ok(())
+}
+
 pub fn write_profile_if_not_setup(
     shell: &Shell,
-    contents: String,
+    contents: &str,
     env_var: &str,
 ) -> miette::Result<Option<PathBuf>> {
     let profiles = find_profiles(shell)?;
@@ -220,13 +224,7 @@ pub fn write_profile_if_not_setup(
         color::path(last_profile),
     );
 
-    fs::append_file(last_profile, contents)?;
-
-    debug!(
-        "Setup profile {} with {}",
-        color::path(last_profile),
-        env_var,
-    );
+    write_profile(last_profile, contents, env_var)?;
 
     Ok(Some(last_profile.to_path_buf()))
 }

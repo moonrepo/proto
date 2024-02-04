@@ -12,6 +12,18 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Added a `shell-profile` setting to `~/.proto/.prototools` that denotes which shell we should modify.
+- Updated `proto setup` (which is ran during proto installation) to be interactive.
+  - Will now prompt you to choose which shell profile to modify, or not at all.
+  - Improved the output messages based on the state of the install.
+  - Added `--no-profile` and `--yes` arguments to control this.
+
+#### 🐞 Fixes
+
+- Attempted fix for PowerShell profile updates when using Windows 11 and OneDrive folders.
+
 #### 🧩 Plugins
 
 - Updated `node_plugin` and `node_depman_plugin` to v0.9.1.
