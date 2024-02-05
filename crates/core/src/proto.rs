@@ -1,6 +1,7 @@
 use crate::helpers::{get_home_dir, get_proto_home, is_offline};
 use crate::proto_config::{ProtoConfig, ProtoConfigFile, ProtoConfigManager, PROTO_CONFIG_NAME};
 use once_cell::sync::OnceCell;
+use starbase_utils::fs;
 use std::collections::BTreeMap;
 use std::env;
 use std::path::{Path, PathBuf};
@@ -77,6 +78,25 @@ impl ProtoEnvironment {
 
             Ok(loader)
         })
+    }
+
+    pub fn get_profile_path(&self) -> miette::Result<Option<PathBuf>> {
+        let cache_file = self.root.join("profile");
+
+        if cache_file.exists() {
+            let profile_path = PathBuf::from(fs::read_file(cache_file)?);
+
+            if profile_path.exists() {
+                return Ok(Some(profile_path));
+            } else {
+                debug!(
+                    profile = ?profile_path,
+                    "Configured shell profile path does not exist, will not use",
+                );
+            }
+        }
+
+        Ok(None)
     }
 
     pub fn get_virtual_paths(&self) -> BTreeMap<PathBuf, PathBuf> {

@@ -132,8 +132,6 @@ pub struct ProtoSettingsConfig {
     #[setting(env = "PROTO_PIN_LATEST")]
     pub pin_latest: Option<PinType>,
 
-    pub shell_profile: Option<PathBuf>,
-
     #[setting(default = true)]
     pub telemetry: bool,
 }
