@@ -37,7 +37,7 @@ pub async fn setup(args: ArgsRef<SetupArgs>, proto: ResourceRef<ProtoResource>) 
 
     let installed_bin_path = env::var("PROTO_INSTALL_DIR")
         .map(PathBuf::from)
-        .unwrap_or_else(|_| proto.env.home.join("bin"))
+        .unwrap_or_else(|_| proto.env.root.join("bin"))
         .join(get_exe_file_name("proto"));
 
     if paths.contains(&proto.env.shims_dir) && paths.contains(&proto.env.bin_dir) {
