@@ -19,7 +19,6 @@
 
 #### 🚀 Updates
 
-- Added a `shell-profile` setting to `~/.proto/.prototools` that denotes which shell we should modify.
 - Updated `proto setup` (which is ran during proto installation) to be interactive.
   - Will now prompt you to choose which shell profile to modify, or not at all.
   - Improved the output messages based on the state of the install.

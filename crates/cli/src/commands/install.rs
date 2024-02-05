@@ -235,18 +235,11 @@ fn update_shell(tool: &Tool, passthrough_args: Vec<String>) -> miette::Result<()
     }
 
     if let Some(content) = shell::format_exports(&shell_type, tool.id.as_str(), exports) {
-        let updated_profile = match tool
-            .proto
-            .load_config_manager()?
-            .get_global_config()?
-            .settings
-            .shell_profile
-            .as_ref()
-        {
+        let updated_profile = match tool.proto.get_profile_path()? {
             Some(profile_path) => {
-                shell::write_profile(profile_path, &content, &output.check_var)?;
+                shell::write_profile(&profile_path, &content, &output.check_var)?;
 
-                Some(profile_path.to_path_buf())
+                Some(profile_path)
             }
             None => shell::write_profile_if_not_setup(&shell_type, &content, &output.check_var)?,
         };
