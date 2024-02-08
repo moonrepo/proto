@@ -1,3 +1,4 @@
+mod checksum;
 mod error;
 mod events;
 mod helpers;
