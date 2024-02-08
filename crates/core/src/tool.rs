@@ -687,7 +687,7 @@ impl Tool {
 
                     for line in BufReader::new(fs::open_file(checksum_file)?)
                         .lines()
-                        .flatten()
+                        .map_while(Result::ok)
                     {
                         // <checksum>  <file>
                         // <checksum> *<file>
