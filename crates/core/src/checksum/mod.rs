@@ -9,7 +9,7 @@ pub fn verify_checksum(
     checksum_file: &Path,
     checksum_public_key: Option<&str>,
 ) -> miette::Result<bool> {
-    match checksum_file.extension().map(|e| e.to_str().unwrap()) {
+    match checksum_file.extension().and_then(|ext| ext.to_str()) {
         Some("minisig" | "minisign") => minisign::verify_checksum(
             download_file,
             checksum_file,

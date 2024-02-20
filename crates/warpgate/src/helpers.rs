@@ -66,7 +66,7 @@ pub async fn download_from_url_to_file(
 }
 
 pub fn move_or_unpack_download(temp_file: &Path, dest_file: &Path) -> miette::Result<()> {
-    match temp_file.extension().map(|e| e.to_str().unwrap()) {
+    match temp_file.extension().and_then(|ext| ext.to_str()) {
         // Move these files as-is
         Some("wasm" | "toml" | "json" | "jsonc" | "yaml" | "yml") => {
             fs::rename(temp_file, dest_file)?;
