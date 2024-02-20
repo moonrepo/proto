@@ -93,7 +93,7 @@ pub fn create_process_command<T: AsRef<OsStr>, I: IntoIterator<Item = A>, A: AsR
 
     let bin_ext = bin_path
         .extension()
-        .map(|e| e.to_string_lossy().to_lowercase());
+        .map(|ext| ext.to_string_lossy().to_lowercase());
 
     // If a Windows script, we must execute the command through powershell
     match bin_ext.as_deref() {

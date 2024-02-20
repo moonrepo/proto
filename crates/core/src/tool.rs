@@ -1,8 +1,9 @@
+use crate::checksum::verify_checksum;
 use crate::error::ProtoError;
 use crate::events::*;
 use crate::helpers::{
-    extract_filename_from_url, get_proto_version, hash_file_contents, is_archive_file,
-    is_cache_enabled, is_offline, remove_bin_file, ENV_VAR,
+    extract_filename_from_url, get_proto_version, is_archive_file, is_cache_enabled, is_offline,
+    remove_bin_file, ENV_VAR,
 };
 use crate::proto::ProtoEnvironment;
 use crate::proto_config::ProtoConfig;
@@ -21,7 +22,6 @@ use starbase_utils::{fs, json};
 use std::collections::BTreeMap;
 use std::env;
 use std::fmt::Debug;
-use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
@@ -642,10 +642,8 @@ impl Tool {
             "Verifiying checksum of downloaded file",
         );
 
-        let mut verified = false;
-
         // Allow plugin to provide their own checksum verification method
-        if self.plugin.has_func("verify_checksum") {
+        let verified = if self.plugin.has_func("verify_checksum") {
             let result: VerifyChecksumOutput = self.plugin.call_func_with(
                 "verify_checksum",
                 VerifyChecksumInput {
@@ -655,54 +653,12 @@ impl Tool {
                 },
             )?;
 
-            verified = result.verified;
+            result.verified
 
         // Otherwise attempt to verify it ourselves
         } else {
-            match checksum_file.extension().map(|e| e.to_str().unwrap()) {
-                Some("minisig" | "minisign") => {
-                    use minisign_verify::*;
-
-                    let handle_error = |error: Error| ProtoError::Minisign { error };
-
-                    let public_key = PublicKey::from_base64(
-                        checksum_public_key.ok_or_else(|| ProtoError::MissingChecksumPublicKey)?,
-                    )
-                    .map_err(handle_error)?;
-
-                    public_key
-                        .verify(
-                            &fs::read_file_bytes(download_file)?,
-                            &Signature::decode(&fs::read_file(checksum_file)?)
-                                .map_err(handle_error)?,
-                            false,
-                        )
-                        .map_err(handle_error)?;
-
-                    verified = true;
-                }
-                _ => {
-                    let checksum_hash = hash_file_contents(download_file)?;
-                    let download_file_name = fs::file_name(download_file);
-
-                    for line in BufReader::new(fs::open_file(checksum_file)?)
-                        .lines()
-                        .map_while(Result::ok)
-                    {
-                        // <checksum>  <file>
-                        // <checksum> *<file>
-                        // <checksum>
-                        if line == checksum_hash
-                            || (line.starts_with(&checksum_hash)
-                                && line.ends_with(&download_file_name))
-                        {
-                            verified = true;
-                            break;
-                        }
-                    }
-                }
-            };
-        }
+            verify_checksum(download_file, checksum_file, checksum_public_key)?
+        };
 
         if verified {
             debug!(

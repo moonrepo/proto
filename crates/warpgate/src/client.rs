@@ -36,7 +36,7 @@ pub fn create_http_client_with_options(options: &HttpOptions) -> miette::Result<
     if let Some(root_cert) = &options.root_cert {
         trace!(root_cert = ?root_cert, "Adding user provided root certificate");
 
-        match root_cert.extension().map(|e| e.to_str().unwrap()) {
+        match root_cert.extension().and_then(|ext| ext.to_str()) {
             Some("der") => {
                 client = client.add_root_certificate(
                     reqwest::Certificate::from_der(&fs::read_file_bytes(root_cert)?)
