@@ -12,6 +12,13 @@
 
 ## Unreleased
 
+#### 🧩 Plugins
+
+- Updated `rust_plugin` to v0.8.1.
+  - Uses the full triple target when installing and uninstalling toolchains.
+- Updated `schema_plugin` (TOML) to v0.9.1.
+  - Updated our regex to support Perl syntax like `\d`.
+
 #### ⚙️ Internal
 
 - Updated Rust to v1.76.
