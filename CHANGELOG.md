@@ -10,6 +10,17 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🧩 Plugins
+
+- Updated `deno_plugin` to v0.9.1.
+  - Added Linux ARM64 support (requires Deno >= v1.41).
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.30.1
 
 #### 🧩 Plugins
