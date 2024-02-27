@@ -28,20 +28,20 @@ sha2 = "0.10.8"
 shell-words = "1.1.0"
 starbase = "0.5.0"
 starbase_archive = { version = "0.5.0", features = [
-	"miette",
-	"tar-gz",
-	"tar-xz",
-	"tar-zstd",
-	"zip",
-	"zip-deflate",
+    "miette",
+    "tar-gz",
+    "tar-xz",
+    "tar-zstd",
+    "zip",
+    "zip-deflate",
 ] }
 starbase_events = "0.5.0"
 starbase_sandbox = "0.4.0"
 starbase_styles = "0.3.0"
 starbase_utils = { version = "0.5.0", default-features = false, features = [
-	"json",
-	"miette",
-	"toml",
+    "json",
+    "miette",
+    "toml",
 ] }
 thiserror = "1.0.57"
 tokio = { version = "1.36.0", features = ["full", "tracing"] }
@@ -50,27 +50,27 @@ tracing = "0.1.40"
 # Config for 'cargo dist'
 [workspace.metadata.dist]
 # The preferred cargo-dist version to use in CI (Cargo.toml SemVer syntax)
-cargo-dist-version = "0.9.0"
+cargo-dist-version = "0.11.1"
 # CI backends to support
 ci = ["github"]
 # Target platforms to build apps for (Rust target-triple syntax)
 targets = [
-	"aarch64-unknown-linux-gnu",
-	"x86_64-unknown-linux-gnu",
-	"aarch64-apple-darwin",
-	"x86_64-apple-darwin",
-	"aarch64-unknown-linux-musl",
-	"x86_64-unknown-linux-musl",
-	"x86_64-pc-windows-msvc",
+    "aarch64-unknown-linux-gnu",
+    "x86_64-unknown-linux-gnu",
+    "aarch64-apple-darwin",
+    "x86_64-apple-darwin",
+    "aarch64-unknown-linux-musl",
+    "x86_64-unknown-linux-musl",
+    "x86_64-pc-windows-msvc",
 ]
 # The installers to generate for each app
 installers = []
 # Path that installers should place binaries in
 install-path = "~/.proto/bin"
 # Publish jobs to run in CI
-pr-run-mode = "plan" # "upload"
+pr-run-mode = "upload"
 # Skip checking whether the specified configuration files are up to date
-allow-dirty = ["ci"]
+# allow-dirty = ["ci"]
 
 [workspace.metadata.dist.github-custom-runners]
 aarch64-unknown-linux-gnu = "buildjet-4vcpu-ubuntu-2204-arm"
