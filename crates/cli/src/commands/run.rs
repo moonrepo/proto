@@ -228,7 +228,7 @@ pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> S
             InstallArgs {
                 canary: false,
                 id: args.id.clone(),
-                pin: false,
+                pin: None,
                 passthrough: vec![],
                 spec: Some(tool.get_resolved_version().to_unresolved_spec()),
             },

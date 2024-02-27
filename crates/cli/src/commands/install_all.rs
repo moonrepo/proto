@@ -67,7 +67,7 @@ pub async fn install_all(proto: ResourceRef<ProtoResource>) {
                     InstallArgs {
                         canary: false,
                         id: tool.id.clone(),
-                        pin: false,
+                        pin: None,
                         passthrough: vec![],
                         spec: Some(version),
                     },
