@@ -31,12 +31,8 @@ pub enum ProtoCliError {
     MissingRunAltBin { bin: String, path: PathBuf },
 
     #[diagnostic(code(proto::cli::no_configured_tools))]
-    #[error("No tools have been configured in {}.", PROTO_CONFIG_NAME.style(Style::File),)]
+    #[error("No tools have been configured in {}.", PROTO_CONFIG_NAME.style(Style::File))]
     NoConfiguredTools,
-
-    #[diagnostic(code(proto::cli::no_installed_tools))]
-    #[error("No tools have been installed.")]
-    NoInstalledTools,
 
     #[diagnostic(code(proto::cli::no_mapped_alias))]
     #[error("Cannot map an alias to itself.")]

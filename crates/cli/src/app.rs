@@ -1,6 +1,6 @@
 use crate::commands::{
     debug::DebugConfigArgs,
-    tool::{AddToolArgs, ListToolPluginsArgs, ListToolsArgs, RemoveToolArgs, ToolInfoArgs},
+    tool::{AddPluginArgs, ListPluginsArgs, RemovePluginArgs, ToolInfoArgs},
     AliasArgs, BinArgs, CleanArgs, CompletionsArgs, InstallArgs, InstallGlobalArgs, ListArgs,
     ListGlobalArgs, ListRemoteArgs, MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs,
     SetupArgs, UnaliasArgs, UninstallArgs, UninstallGlobalArgs,
@@ -250,7 +250,7 @@ pub enum ToolCommands {
         about = "Add a tool plugin.",
         long_about = "Add a plugin to the local .prototools config, or global ~/.proto/.prototools config."
     )]
-    Add(AddToolArgs),
+    Add(AddPluginArgs),
 
     #[command(
         name = "info",
@@ -259,19 +259,12 @@ pub enum ToolCommands {
     Info(ToolInfoArgs),
 
     #[command(name = "list", about = "List all installed tools and their versions.")]
-    List(ListToolsArgs),
-
-    #[command(
-        alias = "plugins",
-        name = "list-plugins",
-        about = "List all active and configured plugins."
-    )]
-    ListPlugins(ListToolPluginsArgs),
+    List(ListPluginsArgs),
 
     #[command(
         name = "remove",
         about = "Remove a tool plugin.",
         long_about = "Remove a plugin from the local .prototools config, or global ~/.proto/.prototools config."
     )]
-    Remove(RemoveToolArgs),
+    Remove(RemovePluginArgs),
 }

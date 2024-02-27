@@ -104,9 +104,6 @@ async fn main() -> MainResult {
             ToolCommands::Add(args) => app.execute_with_args(commands::tool::add, args),
             ToolCommands::Info(args) => app.execute_with_args(commands::tool::info, args),
             ToolCommands::List(args) => app.execute_with_args(commands::tool::list, args),
-            ToolCommands::ListPlugins(args) => {
-                app.execute_with_args(commands::tool::list_plugins, args)
-            }
             ToolCommands::Remove(args) => app.execute_with_args(commands::tool::remove, args),
         },
         Commands::Unalias(args) => app.execute_with_args(commands::unalias, args),

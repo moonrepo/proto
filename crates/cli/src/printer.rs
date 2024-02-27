@@ -118,15 +118,17 @@ impl<'std> Printer<'std> {
     pub fn entry_map<
         K: AsRef<str>,
         I: IntoIterator<Item = (V1, V2)>,
-        V1: AsRef<str>,
-        V2: AsRef<str>,
+        V1: AsRef<str> + Ord,
+        V2: AsRef<str> + Ord,
     >(
         &mut self,
         key: K,
         map: I,
         empty: Option<String>,
     ) {
-        let items = map.into_iter().collect::<Vec<_>>();
+        let mut items = map.into_iter().collect::<Vec<_>>();
+
+        items.sort();
 
         if items.is_empty() {
             if let Some(fallback) = empty {
