@@ -15,6 +15,10 @@
 #### 💥 Breaking
 
 - Removed support for the old user config feature (`~/.proto/config.toml`) which was removed in v0.24.
+- Removed support for `aliases` and `default_version` in the tool manifest, which was also removed in v0.24.
+- Removed the `proto migrate 0.20` and `proto migrate 0.24` commands.
+- WASM API
+    - Removed `get_tool_id` and `get_proto_environment` functions.
 
 #### 🚀 Updates
 

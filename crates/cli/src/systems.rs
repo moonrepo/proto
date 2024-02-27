@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 use crate::helpers::{fetch_latest_version, ProtoResource};
 use miette::IntoDiagnostic;
 use proto_core::{is_offline, now};

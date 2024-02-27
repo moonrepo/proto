@@ -110,7 +110,6 @@ pub fn resolve_version(
         UnresolvedVersionSpec::Alias(alias) => {
             let mut alias_value = None;
 
-            #[allow(deprecated)]
             if let Some(config) = config {
                 alias_value = config.aliases.get(alias);
             }

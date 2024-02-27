@@ -49,12 +49,6 @@ pub fn get_target_triple(env: &HostEnvironment, name: &str) -> Result<String, Pl
     }
 }
 
-/// Get the tool ID for the current WASM plugin.
-#[deprecated = "Use `get_plugin_id` instead."]
-pub fn get_tool_id() -> AnyResult<String> {
-    Ok(config::get("proto_tool_id")?.expect("Missing tool ID!"))
-}
-
 /// Get proto tool configuration that was configured in a `.prototools` file.
 pub fn get_tool_config<T: Default + DeserializeOwned>() -> AnyResult<T> {
     let config: T = if let Some(value) = config::get("proto_tool_config")? {
@@ -62,15 +56,6 @@ pub fn get_tool_config<T: Default + DeserializeOwned>() -> AnyResult<T> {
     } else {
         T::default()
     };
-
-    Ok(config)
-}
-
-/// Return information about proto and the host environment.
-#[deprecated = "Use `get_host_environment` instead."]
-pub fn get_proto_environment() -> AnyResult<HostEnvironment> {
-    let config = config::get("proto_environment")?.expect("Missing proto environment!");
-    let config: HostEnvironment = json::from_str(&config)?;
 
     Ok(config)
 }
