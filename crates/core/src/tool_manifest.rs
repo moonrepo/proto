@@ -1,13 +1,12 @@
 use crate::helpers::{now, read_json_file_with_lock, write_json_file_with_lock};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
-use starbase_styles::color;
 use starbase_utils::fs;
 use std::{
     env,
     path::{Path, PathBuf},
 };
-use tracing::{debug, warn};
+use tracing::debug;
 use version_spec::*;
 
 pub const MANIFEST_NAME: &str = "manifest.json";
@@ -31,12 +30,6 @@ impl Default for ToolManifestVersion {
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct ToolManifest {
-    // Partial versions allowed
-    #[deprecated]
-    pub aliases: FxHashMap<String, UnresolvedVersionSpec>,
-    #[deprecated]
-    pub default_version: Option<UnresolvedVersionSpec>,
-
     // Full versions only
     pub installed_versions: FxHashSet<VersionSpec>,
     pub shim_version: u8,
@@ -63,24 +56,6 @@ impl ToolManifest {
         };
 
         manifest.path = path.to_owned();
-
-        if env::var("PROTO_IGNORE_MIGRATE_WARNING").is_err() {
-            #[allow(deprecated)]
-            if !manifest.aliases.is_empty() {
-                warn!(
-                    "Found legacy aliases in tool manifest, please run {} to migrate them",
-                    color::shell("proto migrate v0.24")
-                );
-            }
-
-            #[allow(deprecated)]
-            if manifest.default_version.is_some() {
-                warn!(
-                    "Found legacy global version in tool manifest, please run {} to migrate it",
-                    color::shell("proto migrate v0.24")
-                );
-            }
-        }
 
         Ok(manifest)
     }

@@ -1,5 +1,4 @@
-mod v0_20;
-mod v0_24;
+#![allow(unreachable_code)]
 
 use crate::error::ProtoCliError;
 use crate::helpers::ProtoResource;
@@ -13,19 +12,18 @@ pub struct MigrateArgs {
 }
 
 #[system]
-pub async fn migrate(args: ArgsRef<MigrateArgs>, proto: ResourceRef<ProtoResource>) {
-    match args.operation.as_str() {
-        "v0.20" => {
-            v0_20::migrate(proto).await?;
-        }
-        "v0.24" => {
-            v0_24::migrate(proto).await?;
-        }
-        unknown => {
-            return Err(ProtoCliError::UnknownMigration {
-                op: unknown.to_owned(),
-            }
-            .into());
-        }
+pub async fn migrate(args: ArgsRef<MigrateArgs>, _proto: ResourceRef<ProtoResource>) {
+    // match args.operation.as_str() {
+    //     unknown => {
+    //         return Err(ProtoCliError::UnknownMigration {
+    //             op: unknown.to_owned(),
+    //         }
+    //         .into());
+    //     }
+    // }
+
+    return Err(ProtoCliError::UnknownMigration {
+        op: args.operation.to_owned(),
     }
+    .into());
 }
