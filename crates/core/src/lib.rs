@@ -8,7 +8,6 @@ mod shim_registry;
 mod tool;
 mod tool_loader;
 mod tool_manifest;
-mod user_config;
 mod version_detector;
 mod version_resolver;
 
@@ -20,7 +19,6 @@ pub use proto_config::*;
 pub use tool::*;
 pub use tool_loader::*;
 pub use tool_manifest::*;
-pub use user_config::*;
 pub use version_detector::*;
 pub use version_resolver::*;
 pub use version_spec::*;

@@ -12,6 +12,10 @@
 
 ## Unreleased
 
+#### 💥 Breaking
+
+- Removed support for the old user config feature (`~/.proto/config.toml`) which was removed in v0.24.
+
 #### 🚀 Updates
 
 - Added a `--resolve` option to `proto pin`, which will resolve the version to a valid value before pinning.
