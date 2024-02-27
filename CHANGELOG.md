@@ -14,7 +14,8 @@
 
 #### 🚀 Updates
 
-- Updated `--pin` in `proto install` to support "local" and "global" values, allowing the config location to be customized.
+- Added a `--resolve` option to `proto pin`, which will resolve the version to a valid value before pinning.
+- Updated `--pin` option in `proto install` to support "local" and "global" values, allowing the config location to be customized.
     - When `--pin` is passed without a value, will default to "global" for backwards compatibility.
 
 ## 0.30.2
