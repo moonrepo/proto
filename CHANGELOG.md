@@ -10,6 +10,13 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Updated `--pin` in `proto install` to support "local" and "global" values, allowing the config location to be customized.
+    - When `--pin` is passed without a value, will default to "global" for backwards compatibility.
+
 ## 0.30.2
 
 #### 🧩 Plugins
