@@ -1,15 +1,21 @@
 use super::clean::clean_plugins;
-use super::pin::{internal_pin, PinArgs};
+use super::pin::internal_pin;
 use crate::helpers::{create_progress_bar, disable_progress_bars, ProtoResource};
 use crate::shell::{self, Export};
 use crate::telemetry::{track_usage, Metric};
-use clap::Args;
+use clap::{Args, ValueEnum};
 use proto_core::{Id, PinType, Tool, UnresolvedVersionSpec};
 use proto_pdk_api::{InstallHook, SyncShellProfileInput, SyncShellProfileOutput};
 use starbase::system;
 use starbase_styles::color;
 use std::env;
 use tracing::{debug, info};
+
+#[derive(Clone, Debug, ValueEnum)]
+pub enum PinOption {
+    Global,
+    Local,
+}
 
 #[derive(Args, Clone, Debug)]
 pub struct InstallArgs {
@@ -30,11 +36,8 @@ pub struct InstallArgs {
     )]
     pub canary: bool,
 
-    #[arg(
-        long,
-        help = "Pin version as the global default and create a binary symlink"
-    )]
-    pub pin: bool,
+    #[arg(long, help = "Pin the resolved version")]
+    pub pin: Option<Option<PinOption>>,
 
     // Passthrough args (after --)
     #[arg(last = true, help = "Unique arguments to pass to each tool")]
@@ -44,32 +47,34 @@ pub struct InstallArgs {
 async fn pin_version(
     tool: &mut Tool,
     initial_version: &UnresolvedVersionSpec,
-    global: bool,
+    arg_pin_type: &Option<PinType>,
 ) -> miette::Result<bool> {
     let config = tool.proto.load_config()?;
-    let mut args = PinArgs {
-        id: tool.id.clone(),
-        spec: tool.get_resolved_version().to_unresolved_spec(),
-        global: false,
-    };
+    let spec = tool.get_resolved_version().to_unresolved_spec();
+    let mut global = false;
     let mut pin = false;
 
-    // via `--pin` arg, or the first time being installed
-    if global || !config.versions.contains_key(&tool.id) {
-        args.global = true;
+    // via `--pin` arg
+    if let Some(pin_type) = arg_pin_type {
+        global = matches!(pin_type, PinType::Global);
+        pin = true;
+    }
+    // Or the first time being installed
+    else if !config.versions.contains_key(&tool.id) {
+        global = true;
         pin = true;
     }
 
     // via `pin-latest` setting
     if initial_version.is_latest() {
         if let Some(pin_type) = &config.settings.pin_latest {
-            args.global = matches!(pin_type, PinType::Global);
+            global = matches!(pin_type, PinType::Global);
             pin = true;
         }
     }
 
     if pin {
-        internal_pin(tool, &args, true).await?;
+        internal_pin(tool, &spec, global, true).await?;
     }
 
     Ok(pin)
@@ -91,6 +96,11 @@ pub async fn internal_install(
         args.spec.clone().unwrap_or_default()
     };
 
+    let pin_type = args.pin.map(|pin| match pin {
+        Some(PinOption::Local) => PinType::Local,
+        _ => PinType::Global,
+    });
+
     // Disable version caching and always use the latest when installing
     tool.disable_caching();
 
@@ -103,7 +113,7 @@ pub async fn internal_install(
 
     // Check if already installed, or if canary, overwrite previous install
     if !version.is_canary() && tool.is_setup(&version).await? {
-        pin_version(&mut tool, &version, args.pin).await?;
+        pin_version(&mut tool, &version, &pin_type).await?;
 
         info!(
             "{} has already been installed at {}",
@@ -128,7 +138,7 @@ pub async fn internal_install(
     tool.run_hook("pre_install", || InstallHook {
         context: tool.create_context(),
         passthrough_args: args.passthrough.clone(),
-        pinned: args.pin,
+        pinned: pin_type.is_some(),
     })?;
 
     // Install the tool
@@ -153,7 +163,7 @@ pub async fn internal_install(
         return Ok(tool);
     }
 
-    let pinned = pin_version(&mut tool, &version, args.pin).await?;
+    let pinned = pin_version(&mut tool, &version, &pin_type).await?;
 
     info!(
         "{} has been installed to {}!",
@@ -182,7 +192,7 @@ pub async fn internal_install(
     tool.run_hook("post_install", || InstallHook {
         context: tool.create_context(),
         passthrough_args: args.passthrough.clone(),
-        pinned: args.pin,
+        pinned: pin_type.is_some(),
     })?;
 
     // Sync shell profile
