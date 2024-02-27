@@ -233,6 +233,96 @@ mod install_uninstall {
         }
 
         #[test]
+        fn can_pin_global_explicitly() {
+            let sandbox = create_empty_sandbox();
+            let manifest_file = sandbox.path().join(".proto/tools/node/manifest.json");
+
+            ProtoConfig::update(sandbox.path().join(".proto"), |config| {
+                config.versions.get_or_insert(Default::default()).insert(
+                    Id::raw("node"),
+                    UnresolvedVersionSpec::parse("18.0.0").unwrap(),
+                );
+            })
+            .unwrap();
+
+            let mut manifest = ToolManifest::load(&manifest_file).unwrap();
+            manifest
+                .installed_versions
+                .insert(VersionSpec::parse("18.0.0").unwrap());
+            manifest.save().unwrap();
+
+            let mut cmd = create_proto_command(sandbox.path());
+            cmd.arg("install")
+                .arg("node")
+                .arg("19.0.0")
+                .arg("--pin")
+                .arg("global")
+                .arg("--")
+                .arg("--no-bundled-npm")
+                .assert();
+
+            let manifest = ToolManifest::load(&manifest_file).unwrap();
+            let config = load_config(sandbox.path().join(".proto"));
+
+            assert_eq!(
+                config.versions.get("node").unwrap(),
+                &UnresolvedVersionSpec::parse("19.0.0").unwrap()
+            );
+            assert_eq!(
+                manifest.installed_versions,
+                FxHashSet::from_iter([
+                    VersionSpec::parse("18.0.0").unwrap(),
+                    VersionSpec::parse("19.0.0").unwrap(),
+                ])
+            );
+        }
+
+        #[test]
+        fn can_pin_local_explicitly() {
+            let sandbox = create_empty_sandbox();
+            let manifest_file = sandbox.path().join(".proto/tools/node/manifest.json");
+
+            ProtoConfig::update(sandbox.path(), |config| {
+                config.versions.get_or_insert(Default::default()).insert(
+                    Id::raw("node"),
+                    UnresolvedVersionSpec::parse("18.0.0").unwrap(),
+                );
+            })
+            .unwrap();
+
+            let mut manifest = ToolManifest::load(&manifest_file).unwrap();
+            manifest
+                .installed_versions
+                .insert(VersionSpec::parse("18.0.0").unwrap());
+            manifest.save().unwrap();
+
+            let mut cmd = create_proto_command(sandbox.path());
+            cmd.arg("install")
+                .arg("node")
+                .arg("19.0.0")
+                .arg("--pin")
+                .arg("local")
+                .arg("--")
+                .arg("--no-bundled-npm")
+                .assert();
+
+            let manifest = ToolManifest::load(&manifest_file).unwrap();
+            let config = load_config(sandbox.path());
+
+            assert_eq!(
+                config.versions.get("node").unwrap(),
+                &UnresolvedVersionSpec::parse("19.0.0").unwrap()
+            );
+            assert_eq!(
+                manifest.installed_versions,
+                FxHashSet::from_iter([
+                    VersionSpec::parse("18.0.0").unwrap(),
+                    VersionSpec::parse("19.0.0").unwrap(),
+                ])
+            );
+        }
+
+        #[test]
         fn can_pin_when_already_installed() {
             let sandbox = create_empty_sandbox();
 

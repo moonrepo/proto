@@ -99,6 +99,28 @@ npm = "9.0.0"
             "npm = \"~1.2\"\n"
         )
     }
+
+    #[test]
+    fn can_resolve_partial_version() {
+        let sandbox = create_empty_sandbox();
+        let version_file = sandbox.path().join(".prototools");
+
+        assert!(!version_file.exists());
+
+        let mut cmd = create_proto_command(sandbox.path());
+        cmd.arg("pin")
+            .arg("npm")
+            .arg("6")
+            .arg("--resolve")
+            .assert()
+            .success();
+
+        assert!(version_file.exists());
+        assert_eq!(
+            fs::read_to_string(version_file).unwrap(),
+            "npm = \"6.14.18\"\n"
+        )
+    }
 }
 
 mod pin_global {
@@ -176,6 +198,32 @@ mod pin_global {
         assert_eq!(
             config.versions.get("npm").unwrap(),
             &UnresolvedVersionSpec::parse("1.2").unwrap()
+        );
+    }
+
+    #[test]
+    fn can_resolve_partial_version() {
+        let sandbox = create_empty_sandbox();
+        let config_file = sandbox.path().join(".proto/.prototools");
+
+        assert!(!config_file.exists());
+
+        let mut cmd = create_proto_command(sandbox.path());
+        cmd.arg("pin")
+            .arg("--global")
+            .arg("npm")
+            .arg("6")
+            .arg("--resolve")
+            .assert()
+            .success();
+
+        assert!(config_file.exists());
+
+        let config = load_config(sandbox.path().join(".proto"));
+
+        assert_eq!(
+            config.versions.get("npm").unwrap(),
+            &UnresolvedVersionSpec::parse("6.14.18").unwrap()
         );
     }
 

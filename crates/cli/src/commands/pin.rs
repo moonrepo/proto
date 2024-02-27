@@ -19,23 +19,31 @@ pub struct PinArgs {
         help = "Pin to the global .prototools instead of local .prototools"
     )]
     pub global: bool,
+
+    #[arg(long, help = "Resolve the version before pinning")]
+    pub resolve: bool,
 }
 
-pub async fn internal_pin(tool: &mut Tool, args: &PinArgs, link: bool) -> SystemResult {
+pub async fn internal_pin(
+    tool: &mut Tool,
+    spec: &UnresolvedVersionSpec,
+    global: bool,
+    link: bool,
+) -> SystemResult {
     // Create symlink to this new version
-    if args.global && link {
+    if global && link {
         tool.symlink_bins(true).await?;
     }
 
-    let path = ProtoConfig::update(tool.proto.get_config_dir(args.global), |config| {
+    let path = ProtoConfig::update(tool.proto.get_config_dir(global), |config| {
         config
             .versions
             .get_or_insert(BTreeMap::default())
-            .insert(args.id.clone(), args.spec.clone());
+            .insert(tool.id.clone(), spec.clone());
     })?;
 
     debug!(
-        version = args.spec.to_string(),
+        version = spec.to_string(),
         config = ?path,
         "Pinned the version",
     );
@@ -47,7 +55,14 @@ pub async fn internal_pin(tool: &mut Tool, args: &PinArgs, link: bool) -> System
 pub async fn pin(args: ArgsRef<PinArgs>, proto: ResourceRef<ProtoResource>) -> SystemResult {
     let mut tool = proto.load_tool(&args.id).await?;
 
-    internal_pin(&mut tool, args, false).await?;
+    let spec = if args.resolve {
+        tool.resolve_version(&args.spec, false).await?;
+        tool.get_resolved_version().to_unresolved_spec()
+    } else {
+        args.spec.clone()
+    };
+
+    internal_pin(&mut tool, &spec, args.global, false).await?;
 
     info!(
         "Set the {} version to {}",
