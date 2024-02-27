@@ -113,8 +113,6 @@ pub fn resolve_version(
             #[allow(deprecated)]
             if let Some(config) = config {
                 alias_value = config.aliases.get(alias);
-            } else if let Some(manifest) = manifest {
-                alias_value = manifest.aliases.get(alias);
             }
 
             if alias_value.is_none() {
