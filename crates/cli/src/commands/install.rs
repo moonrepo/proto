@@ -1,5 +1,5 @@
 use super::clean::clean_plugins;
-use super::pin::{internal_pin, PinArgs};
+use super::pin::internal_pin;
 use crate::helpers::{create_progress_bar, disable_progress_bars, ProtoResource};
 use crate::shell::{self, Export};
 use crate::telemetry::{track_usage, Metric};
@@ -50,34 +50,31 @@ async fn pin_version(
     arg_pin_type: &Option<PinType>,
 ) -> miette::Result<bool> {
     let config = tool.proto.load_config()?;
-    let mut args = PinArgs {
-        id: tool.id.clone(),
-        spec: tool.get_resolved_version().to_unresolved_spec(),
-        global: false,
-    };
+    let spec = tool.get_resolved_version().to_unresolved_spec();
+    let mut global = false;
     let mut pin = false;
 
     // via `--pin` arg
     if let Some(pin_type) = arg_pin_type {
-        args.global = matches!(pin_type, PinType::Global);
+        global = matches!(pin_type, PinType::Global);
         pin = true;
     }
     // Or the first time being installed
     else if !config.versions.contains_key(&tool.id) {
-        args.global = true;
+        global = true;
         pin = true;
     }
 
     // via `pin-latest` setting
     if initial_version.is_latest() {
         if let Some(pin_type) = &config.settings.pin_latest {
-            args.global = matches!(pin_type, PinType::Global);
+            global = matches!(pin_type, PinType::Global);
             pin = true;
         }
     }
 
     if pin {
-        internal_pin(tool, &args, true).await?;
+        internal_pin(tool, &spec, global, true).await?;
     }
 
     Ok(pin)
