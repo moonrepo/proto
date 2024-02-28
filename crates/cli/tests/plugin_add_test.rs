@@ -4,7 +4,7 @@ use proto_core::PluginLocator;
 use starbase_sandbox::predicates::prelude::*;
 use utils::*;
 
-mod tool_add {
+mod plugin_add {
     use super::*;
 
     #[test]
@@ -13,7 +13,7 @@ mod tool_add {
 
         let mut cmd = create_proto_command(sandbox.path());
         let assert = cmd
-            .arg("tool")
+            .arg("plugin")
             .arg("add")
             .arg("id")
             .arg("some-fake-value")
@@ -32,7 +32,7 @@ mod tool_add {
         assert!(!config_file.exists());
 
         let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("tool")
+        cmd.arg("plugin")
             .arg("add")
             .arg("id")
             .arg("source:https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm")
@@ -59,7 +59,7 @@ mod tool_add {
         assert!(!config_file.exists());
 
         let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("tool")
+        cmd.arg("plugin")
             .arg("add")
             .arg("id")
             .arg("source:https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm")

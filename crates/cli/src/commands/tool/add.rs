@@ -6,8 +6,8 @@ use starbase_styles::color;
 use tracing::info;
 
 #[derive(Args, Clone, Debug)]
-pub struct AddToolArgs {
-    #[arg(required = true, help = "ID of tool")]
+pub struct AddPluginArgs {
+    #[arg(required = true, help = "ID of plugin")]
     id: Id,
 
     #[arg(required = true, help = "Locator string to find and load the plugin")]
@@ -21,7 +21,7 @@ pub struct AddToolArgs {
 }
 
 #[system]
-pub async fn add(args: ArgsRef<AddToolArgs>, proto: ResourceRef<ProtoResource>) {
+pub async fn add(args: ArgsRef<AddPluginArgs>, proto: ResourceRef<ProtoResource>) {
     let config_path = ProtoConfig::update(proto.env.get_config_dir(args.global), |config| {
         config
             .plugins
