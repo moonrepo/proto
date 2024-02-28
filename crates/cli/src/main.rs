@@ -7,7 +7,7 @@ mod shell;
 mod systems;
 mod telemetry;
 
-use app::{App as CLI, Commands, DebugCommands, ToolCommands};
+use app::{App as CLI, Commands, DebugCommands, PluginCommands};
 use clap::Parser;
 use starbase::{tracing::TracingOptions, App, MainResult};
 use starbase_utils::string_vec;
@@ -97,18 +97,15 @@ async fn main() -> MainResult {
         Commands::Migrate(args) => app.execute_with_args(commands::migrate, args),
         Commands::Outdated(args) => app.execute_with_args(commands::outdated, args),
         Commands::Pin(args) => app.execute_with_args(commands::pin, args),
+        Commands::Plugin { command } => match command {
+            PluginCommands::Add(args) => app.execute_with_args(commands::tool::add, args),
+            PluginCommands::Info(args) => app.execute_with_args(commands::tool::info, args),
+            PluginCommands::List(args) => app.execute_with_args(commands::tool::list, args),
+            PluginCommands::Remove(args) => app.execute_with_args(commands::tool::remove, args),
+        },
         Commands::Regen(args) => app.execute_with_args(commands::regen, args),
         Commands::Run(args) => app.execute_with_args(commands::run, args),
         Commands::Setup(args) => app.execute_with_args(commands::setup, args),
-        Commands::Tool { command } => match command {
-            ToolCommands::Add(args) => app.execute_with_args(commands::tool::add, args),
-            ToolCommands::Info(args) => app.execute_with_args(commands::tool::info, args),
-            ToolCommands::List(args) => app.execute_with_args(commands::tool::list, args),
-            ToolCommands::ListPlugins(args) => {
-                app.execute_with_args(commands::tool::list_plugins, args)
-            }
-            ToolCommands::Remove(args) => app.execute_with_args(commands::tool::remove, args),
-        },
         Commands::Unalias(args) => app.execute_with_args(commands::unalias, args),
         Commands::Uninstall(args) => app.execute_with_args(commands::uninstall, args),
         Commands::UninstallGlobal(args) => app.execute_with_args(commands::uninstall_global, args),

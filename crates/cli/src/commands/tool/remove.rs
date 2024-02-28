@@ -7,8 +7,8 @@ use starbase_styles::color;
 use tracing::info;
 
 #[derive(Args, Clone, Debug)]
-pub struct RemoveToolArgs {
-    #[arg(required = true, help = "ID of tool")]
+pub struct RemovePluginArgs {
+    #[arg(required = true, help = "ID of plugin")]
     id: Id,
 
     #[arg(
@@ -19,7 +19,7 @@ pub struct RemoveToolArgs {
 }
 
 #[system]
-pub async fn remove(args: ArgsRef<RemoveToolArgs>, proto: ResourceRef<ProtoResource>) {
+pub async fn remove(args: ArgsRef<RemovePluginArgs>, proto: ResourceRef<ProtoResource>) {
     if !args.global {
         let config_path = proto.env.cwd.join(PROTO_CONFIG_NAME);
 
