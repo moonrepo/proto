@@ -1,6 +1,6 @@
 use crate::commands::{
     debug::DebugConfigArgs,
-    tool::{AddPluginArgs, ListPluginsArgs, PluginInfoArgs, RemovePluginArgs},
+    tool::{AddPluginArgs, InfoPluginArgs, ListPluginsArgs, RemovePluginArgs},
     AliasArgs, BinArgs, CleanArgs, CompletionsArgs, InstallArgs, InstallGlobalArgs, ListArgs,
     ListGlobalArgs, ListRemoteArgs, MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs,
     SetupArgs, UnaliasArgs, UninstallArgs, UninstallGlobalArgs,
@@ -134,7 +134,7 @@ pub enum Commands {
     #[command(
         alias = "ls",
         name = "list",
-        about = "List installed versions.",
+        about = "List installed versions for a tool.",
         long_about = "List installed versions by scanning the ~/.proto/tools directory for possible versions."
     )]
     List(ListArgs),
@@ -142,7 +142,7 @@ pub enum Commands {
     #[command(
         alias = "lsg",
         name = "list-global",
-        about = "List installed globals.",
+        about = "List installed globals for a tool.",
         long_about = "List installed globals by scanning the global packages installation directory. Will return the canonical source path."
     )]
     ListGlobal(ListGlobalArgs),
@@ -150,7 +150,7 @@ pub enum Commands {
     #[command(
         alias = "lsr",
         name = "list-remote",
-        about = "List available versions.",
+        about = "List available versions for a tool.",
         long_about = "List available versions by resolving versions from the tool's remote release manifest."
     )]
     ListRemote(ListRemoteArgs),
@@ -170,10 +170,20 @@ pub enum Commands {
     #[command(
         alias = "p",
         name = "pin",
-        about = "Pin a default global or local version of a tool.",
-        long_about = "Pin a default version of a tool globally to ~/.proto/tools, or locally to .prototools (in the current working directory)."
+        about = "Pin a global or local version of a tool.",
+        long_about = "Pin a version of a tool globally to ~/.proto/.prototools, or locally to .prototools (in the current working directory)."
     )]
     Pin(PinArgs),
+
+    #[command(
+        alias = "tool", // Deprecated
+        name = "plugin",
+        about = "Operations for managing tool plugins."
+    )]
+    Plugin {
+        #[command(subcommand)]
+        command: PluginCommands,
+    },
 
     #[command(name = "regen", about = "Regenerate shims and optionally relink bins.")]
     Regen(RegenArgs),
@@ -191,12 +201,6 @@ pub enum Commands {
         about = "Setup proto for your current shell by injecting exports and updating PATH."
     )]
     Setup(SetupArgs),
-
-    #[command(name = "tool", about = "Operations for managing tools and plugins.")]
-    Tool {
-        #[command(subcommand)]
-        command: ToolCommands,
-    },
 
     #[command(alias = "ua", name = "unalias", about = "Remove an alias from a tool.")]
     Unalias(UnaliasArgs),
@@ -226,7 +230,7 @@ pub enum Commands {
     #[command(
         alias = "u",
         name = "use",
-        about = "Download and install all tools from the closest .prototools."
+        about = "Download and install all tools from .prototools."
     )]
     Use,
 }
@@ -244,26 +248,29 @@ pub enum DebugCommands {
 }
 
 #[derive(Clone, Debug, Subcommand)]
-pub enum ToolCommands {
+pub enum PluginCommands {
     #[command(
         name = "add",
-        about = "Add a tool plugin.",
+        about = "Add a plugin to manage a tool.",
         long_about = "Add a plugin to the local .prototools config, or global ~/.proto/.prototools config."
     )]
     Add(AddPluginArgs),
 
     #[command(
         name = "info",
-        about = "Display information about a tool and its plugin."
+        about = "Display information about a plugin and its inventory."
     )]
-    Info(PluginInfoArgs),
+    Info(InfoPluginArgs),
 
-    #[command(name = "list", about = "List all installed tools and their versions.")]
+    #[command(
+        name = "list",
+        about = "List all configured and built-in plugins, and optionally include inventory."
+    )]
     List(ListPluginsArgs),
 
     #[command(
         name = "remove",
-        about = "Remove a tool plugin.",
+        about = "Remove a plugin and unmanage a tool.",
         long_about = "Remove a plugin from the local .prototools config, or global ~/.proto/.prototools config."
     )]
     Remove(RemovePluginArgs),

@@ -30,7 +30,7 @@ pub struct PluginInfo {
 }
 
 #[derive(Args, Clone, Debug)]
-pub struct PluginInfoArgs {
+pub struct InfoPluginArgs {
     #[arg(required = true, help = "ID of plugin")]
     id: Id,
 
@@ -39,7 +39,7 @@ pub struct PluginInfoArgs {
 }
 
 #[system]
-pub async fn info(args: ArgsRef<PluginInfoArgs>, proto: ResourceRef<ProtoResource>) {
+pub async fn info(args: ArgsRef<InfoPluginArgs>, proto: ResourceRef<ProtoResource>) {
     let mut tool = proto.load_tool(&args.id).await?;
     let version = detect_version(&tool, None).await?;
 
