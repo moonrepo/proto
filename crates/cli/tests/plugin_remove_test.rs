@@ -4,7 +4,7 @@ use proto_core::{Id, PluginLocator, ProtoConfig};
 use starbase_sandbox::predicates::prelude::*;
 use utils::*;
 
-mod tool_remove {
+mod plugin_remove {
     use super::*;
 
     #[test]
@@ -12,7 +12,7 @@ mod tool_remove {
         let sandbox = create_empty_sandbox();
 
         let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd.arg("tool").arg("remove").arg("id").assert();
+        let assert = cmd.arg("plugin").arg("remove").arg("id").assert();
 
         assert.stderr(predicate::str::contains(
             "No .prototools has been found in current directory.",
@@ -37,7 +37,7 @@ mod tool_remove {
         .unwrap();
 
         let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("tool").arg("remove").arg("id").assert().success();
+        cmd.arg("plugin").arg("remove").arg("id").assert().success();
 
         let config = load_config(sandbox.path());
 
@@ -62,7 +62,7 @@ mod tool_remove {
         .unwrap();
 
         let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("tool")
+        cmd.arg("plugin")
             .arg("remove")
             .arg("id")
             .arg("--global")
