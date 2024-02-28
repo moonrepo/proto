@@ -2315,7 +2315,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.16.1"
+version = "0.16.2"
 dependencies = [
  "rustc-hash",
  "semver",
