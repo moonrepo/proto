@@ -14,6 +14,7 @@
 
 #### 💥 Breaking
 
+- Removed the `proto tool list-plugins` command, and merged its functionality into `proto tool list`.
 - Removed support for the old user config feature (`~/.proto/config.toml`) which was removed in v0.24.
 - Removed support for `aliases` and `default_version` in the tool manifest, which was also removed in v0.24.
 - Removed the `proto migrate 0.20` and `proto migrate 0.24` commands.
@@ -23,6 +24,8 @@
 #### 🚀 Updates
 
 - Added a `--resolve` option to `proto pin`, which will resolve the version to a valid value before pinning.
+- Added `--aliases` and `--versions` options to `proto tool list`.
+- Added aliases to `proto tool info`.
 - Updated `--pin` option in `proto install` to support "local" and "global" values, allowing the config location to be customized.
     - When `--pin` is passed without a value, will default to "global" for backwards compatibility.
 

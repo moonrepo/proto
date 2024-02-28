@@ -1,6 +1,6 @@
 use crate::commands::{
     debug::DebugConfigArgs,
-    tool::{AddPluginArgs, ListPluginsArgs, RemovePluginArgs, ToolInfoArgs},
+    tool::{AddPluginArgs, ListPluginsArgs, PluginInfoArgs, RemovePluginArgs},
     AliasArgs, BinArgs, CleanArgs, CompletionsArgs, InstallArgs, InstallGlobalArgs, ListArgs,
     ListGlobalArgs, ListRemoteArgs, MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs,
     SetupArgs, UnaliasArgs, UninstallArgs, UninstallGlobalArgs,
@@ -256,7 +256,7 @@ pub enum ToolCommands {
         name = "info",
         about = "Display information about a tool and its plugin."
     )]
-    Info(ToolInfoArgs),
+    Info(PluginInfoArgs),
 
     #[command(name = "list", about = "List all installed tools and their versions.")]
     List(ListPluginsArgs),

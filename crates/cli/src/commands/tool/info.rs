@@ -4,6 +4,7 @@ use clap::Args;
 use miette::IntoDiagnostic;
 use proto_core::{
     detect_version, EnvVar, ExecutableLocation, Id, PluginLocator, ProtoToolConfig, ToolManifest,
+    UnresolvedVersionSpec,
 };
 use proto_pdk_api::ToolMetadataOutput;
 use serde::Serialize;
@@ -13,7 +14,7 @@ use starbase_utils::json;
 use std::path::PathBuf;
 
 #[derive(Serialize)]
-pub struct ToolInfo {
+pub struct PluginInfo {
     bins: Vec<ExecutableLocation>,
     config: ProtoToolConfig,
     exe_path: PathBuf,
@@ -29,8 +30,8 @@ pub struct ToolInfo {
 }
 
 #[derive(Args, Clone, Debug)]
-pub struct ToolInfoArgs {
-    #[arg(required = true, help = "ID of tool")]
+pub struct PluginInfoArgs {
+    #[arg(required = true, help = "ID of plugin")]
     id: Id,
 
     #[arg(long, help = "Print the info in JSON format")]
@@ -38,7 +39,7 @@ pub struct ToolInfoArgs {
 }
 
 #[system]
-pub async fn info(args: ArgsRef<ToolInfoArgs>, proto: ResourceRef<ProtoResource>) {
+pub async fn info(args: ArgsRef<PluginInfoArgs>, proto: ResourceRef<ProtoResource>) {
     let mut tool = proto.load_tool(&args.id).await?;
     let version = detect_version(&tool, None).await?;
 
@@ -50,7 +51,7 @@ pub async fn info(args: ArgsRef<ToolInfoArgs>, proto: ResourceRef<ProtoResource>
     let tool_config = config.tools.remove(&tool.id).unwrap_or_default();
 
     if args.json {
-        let info = ToolInfo {
+        let info = PluginInfo {
             bins: tool.get_bin_locations()?,
             config: tool_config,
             exe_path: tool.get_exe_path()?.to_path_buf(),
@@ -70,9 +71,24 @@ pub async fn info(args: ArgsRef<ToolInfoArgs>, proto: ResourceRef<ProtoResource>
         return Ok(());
     }
 
-    let mut printer = Printer::new();
+    let latest_version = UnresolvedVersionSpec::default();
+    let mut version_resolver = tool.load_version_resolver(&latest_version).await?;
+    version_resolver.aliases.extend(tool_config.aliases.clone());
 
+    let mut printer = Printer::new();
     printer.header(&tool.id, &tool.metadata.name);
+
+    // PLUGIN
+
+    printer.named_section("Plugin", |p| {
+        if let Some(version) = &tool.metadata.plugin_version {
+            p.entry("Version", color::hash(version));
+        }
+
+        p.locator(tool.locator.as_ref().unwrap());
+
+        Ok(())
+    })?;
 
     // INVENTORY
 
@@ -132,64 +148,69 @@ pub async fn info(args: ArgsRef<ToolInfoArgs>, proto: ResourceRef<ProtoResource>
             Some(color::failure("None")),
         );
 
+        if !version_resolver.aliases.is_empty() {
+            p.entry_map(
+                "Aliases",
+                version_resolver
+                    .aliases
+                    .iter()
+                    .map(|(k, v)| (color::hash(k), format_value(v.to_string())))
+                    .collect::<Vec<_>>(),
+                None,
+            );
+        }
+
         Ok(())
     })?;
 
     // CONFIG
 
-    printer.named_section("Configuration", |p| {
-        p.entry_map(
-            "Aliases",
-            tool_config
-                .aliases
-                .iter()
-                .map(|(k, v)| (color::hash(v.to_string()), format_value(k))),
-            None,
-        );
+    if !tool_config.aliases.is_empty()
+        || !tool_config.env.is_empty()
+        || !tool_config.config.is_empty()
+    {
+        printer.named_section("Configuration", |p| {
+            p.entry_map(
+                "Aliases",
+                tool_config
+                    .aliases
+                    .iter()
+                    .map(|(k, v)| (color::hash(k), format_value(v.to_string()))),
+                None,
+            );
 
-        p.entry_map(
-            "Environment variables",
-            tool_config.env.iter().map(|(k, v)| {
-                (
-                    color::property(k),
-                    match v {
-                        EnvVar::State(state) => {
-                            if *state {
-                                format_value("true")
-                            } else {
-                                color::muted("(removed)")
+            p.entry_map(
+                "Environment variables",
+                tool_config.env.iter().map(|(k, v)| {
+                    (
+                        color::property(k),
+                        match v {
+                            EnvVar::State(state) => {
+                                if *state {
+                                    format_value("true")
+                                } else {
+                                    color::muted("(removed)")
+                                }
                             }
-                        }
-                        EnvVar::Value(value) => format_env_var(value),
-                    },
-                )
-            }),
-            None,
-        );
+                            EnvVar::Value(value) => format_env_var(value),
+                        },
+                    )
+                }),
+                None,
+            );
 
-        p.entry_map(
-            "Settings",
-            tool_config
-                .config
-                .iter()
-                .map(|(k, v)| (k, format_value(v.to_string()))),
-            None,
-        );
+            p.entry_map(
+                "Settings",
+                tool_config
+                    .config
+                    .iter()
+                    .map(|(k, v)| (k, format_value(v.to_string()))),
+                None,
+            );
 
-        Ok(())
-    })?;
-
-    // PLUGIN
-
-    printer.named_section("Plugin", |p| {
-        if let Some(version) = &tool.metadata.plugin_version {
-            p.entry("Version", color::hash(version));
-        }
-
-        p.locator(tool.locator.as_ref().unwrap());
-
-        Ok(())
-    })?;
+            Ok(())
+        })?;
+    }
 
     printer.flush();
 }
