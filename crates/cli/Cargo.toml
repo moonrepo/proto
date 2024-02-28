@@ -36,7 +36,7 @@ proto_core = { version = "0.30.4", path = "../core" }
 proto_installer = { version = "0.2.2", path = "../installer" }
 proto_pdk_api = { version = "0.16.1", path = "../pdk-api" }
 proto_shim = { version = "0.2.7", path = "../shim" }
-system_env = { version = "0.2.1", path = "../system-env" }
+system_env = { version = "0.2.2", path = "../system-env" }
 anyhow = { workspace = true }
 chrono = "0.4.34"
 clap = { workspace = true, features = ["derive", "env"] }
