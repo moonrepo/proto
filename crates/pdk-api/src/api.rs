@@ -412,48 +412,6 @@ api_struct!(
 );
 
 api_struct!(
-    /// Input passed to the `install_global` function.
-    pub struct InstallGlobalInput {
-        /// Current tool context.
-        pub context: ToolContext,
-
-        /// Name (and optional version) of the global dependency to install.
-        pub dependency: String,
-
-        /// Virtual path to the global's installation directory.
-        pub globals_dir: VirtualPath,
-    }
-);
-
-api_struct!(
-    /// Output returned by the `install_global` function.
-    pub struct InstallGlobalOutput {
-        /// Error message if the install failed.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub error: Option<String>,
-
-        /// Whether the install was successful.
-        pub installed: bool,
-    }
-);
-
-impl InstallGlobalOutput {
-    pub fn from_exec_command(result: ExecCommandOutput) -> Self {
-        if result.exit_code == 0 {
-            return Self {
-                installed: true,
-                error: None,
-            };
-        }
-
-        Self {
-            installed: false,
-            error: Some(result.get_output()),
-        }
-    }
-}
-
-api_struct!(
     /// Input passed to the `uninstall_global` function.
     pub struct UninstallGlobalInput {
         /// Current tool context.

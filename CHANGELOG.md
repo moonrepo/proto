@@ -16,6 +16,7 @@
 
 - Renamed the `proto tool` commands to `proto plugin`.
 - Removed the `proto tool list-plugins` command, and merged its functionality into `proto plugin list`.
+- Removed the `proto install-global` commands.
 - Removed support for the old user config feature (`~/.proto/config.toml`) which was removed in v0.24.
 - Removed support for `aliases` and `default_version` in the tool manifest, which was also removed in v0.24.
 - Removed the `proto migrate 0.20` and `proto migrate 0.24` commands.

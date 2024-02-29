@@ -90,7 +90,6 @@ async fn main() -> MainResult {
             DebugCommands::Env => app.execute(commands::debug::env),
         },
         Commands::Install(args) => app.execute_with_args(commands::install, args),
-        Commands::InstallGlobal(args) => app.execute_with_args(commands::install_global, args),
         Commands::List(args) => app.execute_with_args(commands::list, args),
         Commands::ListGlobal(args) => app.execute_with_args(commands::list_global, args),
         Commands::ListRemote(args) => app.execute_with_args(commands::list_remote, args),

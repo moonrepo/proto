@@ -19,16 +19,6 @@ impl WasmTestWrapper {
             .unwrap()
     }
 
-    pub fn install_global(&self, mut input: InstallGlobalInput) -> InstallGlobalOutput {
-        input.globals_dir = self.tool.to_virtual_path(&input.globals_dir);
-        input.context = self.prepare_context(input.context);
-
-        self.tool
-            .plugin
-            .call_func_with("install_global", input)
-            .unwrap()
-    }
-
     pub fn load_versions(&self, input: LoadVersionsInput) -> LoadVersionsOutput {
         self.tool
             .plugin

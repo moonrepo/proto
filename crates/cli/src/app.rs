@@ -1,9 +1,9 @@
 use crate::commands::{
     debug::DebugConfigArgs,
     plugin::{AddPluginArgs, InfoPluginArgs, ListPluginsArgs, RemovePluginArgs},
-    AliasArgs, BinArgs, CleanArgs, CompletionsArgs, InstallArgs, InstallGlobalArgs, ListArgs,
-    ListGlobalArgs, ListRemoteArgs, MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs,
-    SetupArgs, UnaliasArgs, UninstallArgs, UninstallGlobalArgs,
+    AliasArgs, BinArgs, CleanArgs, CompletionsArgs, InstallArgs, ListArgs, ListGlobalArgs,
+    ListRemoteArgs, MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs, UnaliasArgs,
+    UninstallArgs, UninstallGlobalArgs,
 };
 use clap::builder::styling::{Color, Style, Styles};
 use clap::{Parser, Subcommand, ValueEnum};
@@ -122,14 +122,6 @@ pub enum Commands {
         long_about = "Download and install a tool by unpacking the archive to ~/.proto/tools."
     )]
     Install(InstallArgs),
-
-    #[command(
-        alias = "ig",
-        name = "install-global",
-        about = "Install a global dependency for the specified tool.",
-        long_about = "Install a global dependency for the specified tool. Depending on the tool, the dependency will either be installed to ~/.proto/tools/<tool>/globals or ~/<tool>."
-    )]
-    InstallGlobal(InstallGlobalArgs),
 
     #[command(
         alias = "ls",
