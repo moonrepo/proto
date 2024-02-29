@@ -1,6 +1,6 @@
 use crate::commands::{
     debug::DebugConfigArgs,
-    tool::{AddPluginArgs, InfoPluginArgs, ListPluginsArgs, RemovePluginArgs},
+    plugin::{AddPluginArgs, InfoPluginArgs, ListPluginsArgs, RemovePluginArgs},
     AliasArgs, BinArgs, CleanArgs, CompletionsArgs, InstallArgs, InstallGlobalArgs, ListArgs,
     ListGlobalArgs, ListRemoteArgs, MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs,
     SetupArgs, UnaliasArgs, UninstallArgs, UninstallGlobalArgs,

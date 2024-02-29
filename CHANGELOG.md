@@ -20,7 +20,7 @@
 - Removed support for `aliases` and `default_version` in the tool manifest, which was also removed in v0.24.
 - Removed the `proto migrate 0.20` and `proto migrate 0.24` commands.
 - WASM API
-    - Removed `get_tool_id` and `get_proto_environment` functions.
+  - Removed `get_tool_id` and `get_proto_environment` functions.
 
 #### 🚀 Updates
 
@@ -28,7 +28,11 @@
 - Added `--aliases` and `--versions` options to `proto plugin list`.
 - Added aliases to `proto plugin info`.
 - Updated `--pin` option in `proto install` to support "local" and "global" values, allowing the config location to be customized.
-    - When `--pin` is passed without a value, will default to "global" for backwards compatibility.
+  - When `--pin` is passed without a value, will default to "global" for backwards compatibility.
+
+#### 🐞 Fixes
+
+- Fixed an issue where empty version strings were being parsed, causing failures.
 
 ## 0.30.2
 
