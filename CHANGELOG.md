@@ -12,15 +12,20 @@
 
 ## Unreleased
 
+In preparation for an official v1 release, improved stability, and overall developer experience, we're renaming some commands, and removing the "global packages" functionality.
+
 #### 💥 Breaking
 
 - Renamed the `proto tool` commands to `proto plugin`.
 - Removed the `proto tool list-plugins` command, and merged its functionality into `proto plugin list`.
+- Removed the `proto install-global`, `proto list-global`, and `proto uninstall-global` commands.
 - Removed support for the old user config feature (`~/.proto/config.toml`) which was removed in v0.24.
 - Removed support for `aliases` and `default_version` in the tool manifest, which was also removed in v0.24.
 - Removed the `proto migrate 0.20` and `proto migrate 0.24` commands.
 - WASM API
-  - Removed `get_tool_id` and `get_proto_environment` functions.
+  - Removed `get_tool_id` and `get_proto_environment` helper functions.
+  - Removed `install_global` and `uninstall_global` plugin functions.
+  - Removed `InstallGlobalInput`, `InstallGlobalOutput`, `UninstallGlobalInput`, `UninstallGlobalOutput` types.
 
 #### 🚀 Updates
 
@@ -29,6 +34,8 @@
 - Added aliases to `proto plugin info`.
 - Updated `--pin` option in `proto install` to support "local" and "global" values, allowing the config location to be customized.
   - When `--pin` is passed without a value, will default to "global" for backwards compatibility.
+- WASM API
+  - Updated the `pre_run` hook to return a result, allowing args/env vars to be injected into the running command.
 
 #### 🐞 Fixes
 

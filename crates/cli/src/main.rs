@@ -90,9 +90,7 @@ async fn main() -> MainResult {
             DebugCommands::Env => app.execute(commands::debug::env),
         },
         Commands::Install(args) => app.execute_with_args(commands::install, args),
-        Commands::InstallGlobal(args) => app.execute_with_args(commands::install_global, args),
         Commands::List(args) => app.execute_with_args(commands::list, args),
-        Commands::ListGlobal(args) => app.execute_with_args(commands::list_global, args),
         Commands::ListRemote(args) => app.execute_with_args(commands::list_remote, args),
         Commands::Migrate(args) => app.execute_with_args(commands::migrate, args),
         Commands::Outdated(args) => app.execute_with_args(commands::outdated, args),
@@ -108,7 +106,6 @@ async fn main() -> MainResult {
         Commands::Setup(args) => app.execute_with_args(commands::setup, args),
         Commands::Unalias(args) => app.execute_with_args(commands::unalias, args),
         Commands::Uninstall(args) => app.execute_with_args(commands::uninstall, args),
-        Commands::UninstallGlobal(args) => app.execute_with_args(commands::uninstall_global, args),
         Commands::Upgrade => app.execute(commands::upgrade),
         Commands::Use => app.execute(commands::install_all),
     };

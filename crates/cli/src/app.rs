@@ -1,9 +1,8 @@
 use crate::commands::{
     debug::DebugConfigArgs,
     plugin::{AddPluginArgs, InfoPluginArgs, ListPluginsArgs, RemovePluginArgs},
-    AliasArgs, BinArgs, CleanArgs, CompletionsArgs, InstallArgs, InstallGlobalArgs, ListArgs,
-    ListGlobalArgs, ListRemoteArgs, MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs,
-    SetupArgs, UnaliasArgs, UninstallArgs, UninstallGlobalArgs,
+    AliasArgs, BinArgs, CleanArgs, CompletionsArgs, InstallArgs, ListArgs, ListRemoteArgs,
+    MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs, UnaliasArgs, UninstallArgs,
 };
 use clap::builder::styling::{Color, Style, Styles};
 use clap::{Parser, Subcommand, ValueEnum};
@@ -124,28 +123,12 @@ pub enum Commands {
     Install(InstallArgs),
 
     #[command(
-        alias = "ig",
-        name = "install-global",
-        about = "Install a global dependency for the specified tool.",
-        long_about = "Install a global dependency for the specified tool. Depending on the tool, the dependency will either be installed to ~/.proto/tools/<tool>/globals or ~/<tool>."
-    )]
-    InstallGlobal(InstallGlobalArgs),
-
-    #[command(
         alias = "ls",
         name = "list",
         about = "List installed versions for a tool.",
         long_about = "List installed versions by scanning the ~/.proto/tools directory for possible versions."
     )]
     List(ListArgs),
-
-    #[command(
-        alias = "lsg",
-        name = "list-global",
-        about = "List installed globals for a tool.",
-        long_about = "List installed globals by scanning the global packages installation directory. Will return the canonical source path."
-    )]
-    ListGlobal(ListGlobalArgs),
 
     #[command(
         alias = "lsr",
@@ -212,13 +195,6 @@ pub enum Commands {
         long_about = "Uninstall a tool and remove the installation from ~/.proto/tools."
     )]
     Uninstall(UninstallArgs),
-
-    #[command(
-        alias = "ug",
-        name = "uninstall-global",
-        about = "Uninstall a global dependency from the specified tool."
-    )]
-    UninstallGlobal(UninstallGlobalArgs),
 
     #[command(
         alias = "up",

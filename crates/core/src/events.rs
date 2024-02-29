@@ -23,20 +23,12 @@ impl_event!(InstalledEvent, {
     pub version: VersionSpec,
 });
 
-impl_event!(InstalledGlobalEvent, {
-    pub dependency: String,
-});
-
 impl_event!(UninstallingEvent, {
     pub version: VersionSpec,
 });
 
 impl_event!(UninstalledEvent, {
     pub version: VersionSpec,
-});
-
-impl_event!(UninstalledGlobalEvent, {
-    pub dependency: String,
 });
 
 impl_event!(CreatedBinariesEvent, {

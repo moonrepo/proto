@@ -55,11 +55,9 @@ pub struct Tool {
     pub on_created_shims: Emitter<CreatedShimsEvent>,
     pub on_installing: Emitter<InstallingEvent>,
     pub on_installed: Emitter<InstalledEvent>,
-    pub on_installed_global: Emitter<InstalledGlobalEvent>,
     pub on_resolved_version: Emitter<ResolvedVersionEvent>,
     pub on_uninstalling: Emitter<UninstallingEvent>,
     pub on_uninstalled: Emitter<UninstalledEvent>,
-    pub on_uninstalled_global: Emitter<UninstalledGlobalEvent>,
 
     cache: bool,
     exe_path: Option<PathBuf>,
@@ -96,11 +94,9 @@ impl Tool {
             on_created_shims: Emitter::new(),
             on_installing: Emitter::new(),
             on_installed: Emitter::new(),
-            on_installed_global: Emitter::new(),
             on_resolved_version: Emitter::new(),
             on_uninstalling: Emitter::new(),
             on_uninstalled: Emitter::new(),
-            on_uninstalled_global: Emitter::new(),
         };
 
         tool.register_tool()?;
@@ -277,18 +273,6 @@ impl Tool {
         }
 
         self.metadata = metadata;
-
-        Ok(())
-    }
-
-    /// Run a hook with the provided name and input.
-    pub fn run_hook<I>(&self, hook: &str, input: impl FnOnce() -> I) -> miette::Result<()>
-    where
-        I: Debug + Serialize,
-    {
-        if self.plugin.has_func(hook) {
-            self.plugin.call_func_without_output(hook, input())?;
-        }
 
         Ok(())
     }
@@ -979,44 +963,6 @@ impl Tool {
         Ok(true)
     }
 
-    /// Install a global dependency/package for the tool.
-    pub async fn install_global(&self, dependency: &str) -> miette::Result<bool> {
-        let globals_dir = self.get_globals_bin_dir();
-
-        if !self.plugin.has_func("install_global") || globals_dir.is_none() {
-            return Ok(false);
-        }
-
-        if is_offline() {
-            return Err(ProtoError::InternetConnectionRequired.into());
-        }
-
-        let result: InstallGlobalOutput = self.plugin.call_func_with(
-            "install_global",
-            InstallGlobalInput {
-                dependency: dependency.to_owned(),
-                globals_dir: self.to_virtual_path(globals_dir.as_ref().unwrap()),
-                context: self.create_context(),
-            },
-        )?;
-
-        if !result.installed {
-            return Err(ProtoError::InstallFailed {
-                tool: dependency.to_owned(),
-                error: result.error.unwrap_or_default(),
-            }
-            .into());
-        }
-
-        self.on_installed_global
-            .emit(InstalledGlobalEvent {
-                dependency: dependency.to_owned(),
-            })
-            .await?;
-
-        Ok(result.installed)
-    }
-
     /// Uninstall the tool by deleting the current install directory.
     pub async fn uninstall(&self) -> miette::Result<bool> {
         let install_dir = self.get_tool_dir();
@@ -1072,40 +1018,6 @@ impl Tool {
         debug!(tool = self.id.as_str(), "Successfully uninstalled tool");
 
         Ok(true)
-    }
-
-    /// Uninstall a global dependency/package from the tool.
-    pub async fn uninstall_global(&self, dependency: &str) -> miette::Result<bool> {
-        let globals_dir = self.get_globals_bin_dir();
-
-        if !self.plugin.has_func("uninstall_global") || globals_dir.is_none() {
-            return Ok(false);
-        }
-
-        let result: UninstallGlobalOutput = self.plugin.call_func_with(
-            "uninstall_global",
-            UninstallGlobalInput {
-                dependency: dependency.to_owned(),
-                globals_dir: self.to_virtual_path(globals_dir.as_ref().unwrap()),
-                context: self.create_context(),
-            },
-        )?;
-
-        if !result.uninstalled {
-            return Err(ProtoError::UninstallFailed {
-                tool: dependency.to_owned(),
-                error: result.error.unwrap_or_default(),
-            }
-            .into());
-        }
-
-        self.on_uninstalled_global
-            .emit(UninstalledGlobalEvent {
-                dependency: dependency.to_owned(),
-            })
-            .await?;
-
-        Ok(result.uninstalled)
     }
 }
 

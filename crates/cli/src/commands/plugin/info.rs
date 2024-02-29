@@ -98,11 +98,11 @@ pub async fn info(args: ArgsRef<InfoPluginArgs>, proto: ResourceRef<ProtoResourc
         p.entry("Executable", color::path(tool.get_exe_path()?));
 
         if let Some(dir) = tool.get_globals_bin_dir() {
-            p.entry("Globals directory", color::path(dir));
+            p.entry("Global packages directory", color::path(dir));
         }
 
         if let Some(prefix) = tool.get_globals_prefix() {
-            p.entry("Globals prefix", color::property(prefix));
+            p.entry("Global packages prefix", color::property(prefix));
         }
 
         p.entry_list(
