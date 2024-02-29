@@ -110,19 +110,23 @@ pub async fn detect_version(
     let env_var = format!("{}_VERSION", tool.get_env_var_prefix());
 
     if let Ok(session_version) = env::var(&env_var) {
-        debug!(
-            tool = tool.id.as_str(),
-            env_var,
-            version = session_version,
-            "Detected version from environment variable",
-        );
+        if !session_version.is_empty() {
+            debug!(
+                tool = tool.id.as_str(),
+                env_var,
+                version = session_version,
+                "Detected version from environment variable",
+            );
 
-        return Ok(
-            UnresolvedVersionSpec::parse(&session_version).map_err(|error| ProtoError::Semver {
-                version: session_version,
-                error,
-            })?,
-        );
+            return Ok(
+                UnresolvedVersionSpec::parse(&session_version).map_err(|error| {
+                    ProtoError::Semver {
+                        version: session_version,
+                        error,
+                    }
+                })?,
+            );
+        }
     }
 
     // Traverse upwards and attempt to detect a version

@@ -574,6 +574,10 @@ impl Tool {
 
             let content = fs::read_file(&file_path)?.trim().to_owned();
 
+            if content.is_empty() {
+                continue;
+            }
+
             let version = if has_parser {
                 let result: ParseVersionFileOutput = self.plugin.call_func_with(
                     "parse_version_file",
