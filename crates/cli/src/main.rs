@@ -91,7 +91,6 @@ async fn main() -> MainResult {
         },
         Commands::Install(args) => app.execute_with_args(commands::install, args),
         Commands::List(args) => app.execute_with_args(commands::list, args),
-        Commands::ListGlobal(args) => app.execute_with_args(commands::list_global, args),
         Commands::ListRemote(args) => app.execute_with_args(commands::list_remote, args),
         Commands::Migrate(args) => app.execute_with_args(commands::migrate, args),
         Commands::Outdated(args) => app.execute_with_args(commands::outdated, args),

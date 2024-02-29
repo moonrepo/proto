@@ -1,9 +1,9 @@
 use crate::commands::{
     debug::DebugConfigArgs,
     plugin::{AddPluginArgs, InfoPluginArgs, ListPluginsArgs, RemovePluginArgs},
-    AliasArgs, BinArgs, CleanArgs, CompletionsArgs, InstallArgs, ListArgs, ListGlobalArgs,
-    ListRemoteArgs, MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs, UnaliasArgs,
-    UninstallArgs, UninstallGlobalArgs,
+    AliasArgs, BinArgs, CleanArgs, CompletionsArgs, InstallArgs, ListArgs, ListRemoteArgs,
+    MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs, UnaliasArgs, UninstallArgs,
+    UninstallGlobalArgs,
 };
 use clap::builder::styling::{Color, Style, Styles};
 use clap::{Parser, Subcommand, ValueEnum};
@@ -130,14 +130,6 @@ pub enum Commands {
         long_about = "List installed versions by scanning the ~/.proto/tools directory for possible versions."
     )]
     List(ListArgs),
-
-    #[command(
-        alias = "lsg",
-        name = "list-global",
-        about = "List installed globals for a tool.",
-        long_about = "List installed globals by scanning the global packages installation directory. Will return the canonical source path."
-    )]
-    ListGlobal(ListGlobalArgs),
 
     #[command(
         alias = "lsr",
