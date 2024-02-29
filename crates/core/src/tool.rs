@@ -277,18 +277,6 @@ impl Tool {
         Ok(())
     }
 
-    /// Run a hook with the provided name and input.
-    pub fn run_hook<I>(&self, hook: &str, input: impl FnOnce() -> I) -> miette::Result<()>
-    where
-        I: Debug + Serialize,
-    {
-        if self.plugin.has_func(hook) {
-            self.plugin.call_func_without_output(hook, input())?;
-        }
-
-        Ok(())
-    }
-
     /// Sync the local tool manifest with changes from the plugin.
     pub fn sync_manifest(&mut self) -> miette::Result<()> {
         if !self.plugin.has_func("sync_manifest") {

@@ -5,7 +5,7 @@ use clap::Args;
 use indexmap::IndexMap;
 use miette::IntoDiagnostic;
 use proto_core::{detect_version, Id, ProtoError, Tool, UnresolvedVersionSpec, ENV_VAR_SUB};
-use proto_pdk_api::{ExecutableConfig, RunHook};
+use proto_pdk_api::{ExecutableConfig, RunHook, RunHookResult};
 use proto_shim::exec_command_and_replace;
 use starbase::system;
 use std::env;
@@ -210,14 +210,14 @@ pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> S
                     path: source.into(),
                 }
                 .into());
-            } else {
-                return Err(ProtoError::MissingToolForRun {
-                    tool: tool.get_name().to_owned(),
-                    version: version.to_string(),
-                    command,
-                }
-                .into());
             }
+
+            return Err(ProtoError::MissingToolForRun {
+                tool: tool.get_name().to_owned(),
+                version: version.to_string(),
+                command,
+            }
+            .into());
         }
 
         // Install the tool
@@ -242,10 +242,17 @@ pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> S
     let exe_path = exe_config.exe_path.as_ref().unwrap();
 
     // Run before hook
-    tool.run_hook("pre_run", || RunHook {
-        context: tool.create_context(),
-        passthrough_args: args.passthrough.clone(),
-    })?;
+    let hook_result = if tool.plugin.has_func("pre_run") {
+        tool.plugin.call_func_with(
+            "pre_run",
+            RunHook {
+                context: tool.create_context(),
+                passthrough_args: args.passthrough.clone(),
+            },
+        )?
+    } else {
+        RunHookResult::default()
+    };
 
     // Create and run the command
     let mut command = create_command(&tool, &exe_config, &args.passthrough)?;
@@ -259,6 +266,14 @@ pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> S
                 command.env_remove(key);
             }
         };
+    }
+
+    if let Some(hook_args) = hook_result.args {
+        command.args(hook_args);
+    }
+
+    if let Some(hook_env) = hook_result.env {
+        command.envs(hook_env);
     }
 
     command

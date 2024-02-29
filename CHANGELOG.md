@@ -34,6 +34,8 @@ In preparation for an official v1 release, improved stability, and overall devel
 - Added aliases to `proto plugin info`.
 - Updated `--pin` option in `proto install` to support "local" and "global" values, allowing the config location to be customized.
   - When `--pin` is passed without a value, will default to "global" for backwards compatibility.
+- WASM API
+  - Updated the `pre_run` hook to return a result, allowing args/env vars to be injected into the running command.
 
 #### 🐞 Fixes
 
