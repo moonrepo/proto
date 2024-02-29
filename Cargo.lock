@@ -2256,7 +2256,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.31.0"
+version = "0.31.1"
 dependencies = [
  "cached",
  "human-sort",
@@ -2304,7 +2304,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
  "extism-pdk",
  "proto_pdk_api",
@@ -2315,7 +2315,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.16.2"
+version = "0.17.0"
 dependencies = [
  "rustc-hash",
  "semver",
@@ -2329,7 +2329,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.19.0"
+version = "0.19.1"
 dependencies = [
  "extism",
  "proto_core",

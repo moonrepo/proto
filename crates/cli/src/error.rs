@@ -6,10 +6,6 @@ use thiserror::Error;
 
 #[derive(Error, Debug, Diagnostic)]
 pub enum ProtoCliError {
-    #[diagnostic(code(proto::cli::globals_not_supported))]
-    #[error("{} does not support global packages.", .tool)]
-    GlobalsNotSupported { tool: String },
-
     #[diagnostic(code(proto::cli::invalid_alias))]
     #[error("Invalid alias name {}. Use alphanumeric words instead.", .alias.style(Style::Id))]
     InvalidAliasName { alias: String },

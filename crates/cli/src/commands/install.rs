@@ -135,11 +135,16 @@ pub async fn internal_install(
     env::set_var("PROTO_INSTALL", args.id.to_string());
 
     // Run before hook
-    tool.run_hook("pre_install", || InstallHook {
-        context: tool.create_context(),
-        passthrough_args: args.passthrough.clone(),
-        pinned: pin_type.is_some(),
-    })?;
+    if tool.plugin.has_func("pre_install") {
+        tool.plugin.call_func_without_output(
+            "pre_install",
+            InstallHook {
+                context: tool.create_context(),
+                passthrough_args: args.passthrough.clone(),
+                pinned: pin_type.is_some(),
+            },
+        )?;
+    }
 
     // Install the tool
     debug!(
@@ -189,11 +194,16 @@ pub async fn internal_install(
     .await?;
 
     // Run after hook
-    tool.run_hook("post_install", || InstallHook {
-        context: tool.create_context(),
-        passthrough_args: args.passthrough.clone(),
-        pinned: pin_type.is_some(),
-    })?;
+    if tool.plugin.has_func("post_install") {
+        tool.plugin.call_func_without_output(
+            "post_install",
+            InstallHook {
+                context: tool.create_context(),
+                passthrough_args: args.passthrough.clone(),
+                pinned: pin_type.is_some(),
+            },
+        )?;
+    }
 
     // Sync shell profile
     update_shell(&tool, args.passthrough.clone())?;
