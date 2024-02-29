@@ -16,14 +16,14 @@
 
 - Renamed the `proto tool` commands to `proto plugin`.
 - Removed the `proto tool list-plugins` command, and merged its functionality into `proto plugin list`.
-- Removed the `proto install-global`, `proto list-global` commands.
+- Removed the `proto install-global`, `proto list-global`, and `proto uninstall-global` commands.
 - Removed support for the old user config feature (`~/.proto/config.toml`) which was removed in v0.24.
 - Removed support for `aliases` and `default_version` in the tool manifest, which was also removed in v0.24.
 - Removed the `proto migrate 0.20` and `proto migrate 0.24` commands.
 - WASM API
   - Removed `get_tool_id` and `get_proto_environment` helper functions.
-  - Removed `install_global` plugin function.
-  - Removed `InstallGlobalInput`, `InstallGlobalOutput` types.
+  - Removed `install_global` and `uninstall_global` plugin functions.
+  - Removed `InstallGlobalInput`, `InstallGlobalOutput`, `UninstallGlobalInput`, `UninstallGlobalOutput` types.
 
 #### 🚀 Updates
 

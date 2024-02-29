@@ -119,15 +119,6 @@ impl WasmTestWrapper {
             .unwrap()
     }
 
-    pub fn uninstall_global(&self, mut input: UninstallGlobalInput) -> UninstallGlobalOutput {
-        input.globals_dir = self.tool.to_virtual_path(&input.globals_dir);
-
-        self.tool
-            .plugin
-            .call_func_with("uninstall_global", input)
-            .unwrap()
-    }
-
     pub fn unpack_archive(&self, mut input: UnpackArchiveInput) {
         input.input_file = self.tool.to_virtual_path(&input.input_file);
         input.output_dir = self.tool.to_virtual_path(&input.output_dir);

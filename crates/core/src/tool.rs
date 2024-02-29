@@ -58,7 +58,6 @@ pub struct Tool {
     pub on_resolved_version: Emitter<ResolvedVersionEvent>,
     pub on_uninstalling: Emitter<UninstallingEvent>,
     pub on_uninstalled: Emitter<UninstalledEvent>,
-    pub on_uninstalled_global: Emitter<UninstalledGlobalEvent>,
 
     cache: bool,
     exe_path: Option<PathBuf>,
@@ -98,7 +97,6 @@ impl Tool {
             on_resolved_version: Emitter::new(),
             on_uninstalling: Emitter::new(),
             on_uninstalled: Emitter::new(),
-            on_uninstalled_global: Emitter::new(),
         };
 
         tool.register_tool()?;
@@ -1032,40 +1030,6 @@ impl Tool {
         debug!(tool = self.id.as_str(), "Successfully uninstalled tool");
 
         Ok(true)
-    }
-
-    /// Uninstall a global dependency/package from the tool.
-    pub async fn uninstall_global(&self, dependency: &str) -> miette::Result<bool> {
-        let globals_dir = self.get_globals_bin_dir();
-
-        if !self.plugin.has_func("uninstall_global") || globals_dir.is_none() {
-            return Ok(false);
-        }
-
-        let result: UninstallGlobalOutput = self.plugin.call_func_with(
-            "uninstall_global",
-            UninstallGlobalInput {
-                dependency: dependency.to_owned(),
-                globals_dir: self.to_virtual_path(globals_dir.as_ref().unwrap()),
-                context: self.create_context(),
-            },
-        )?;
-
-        if !result.uninstalled {
-            return Err(ProtoError::UninstallFailed {
-                tool: dependency.to_owned(),
-                error: result.error.unwrap_or_default(),
-            }
-            .into());
-        }
-
-        self.on_uninstalled_global
-            .emit(UninstalledGlobalEvent {
-                dependency: dependency.to_owned(),
-            })
-            .await?;
-
-        Ok(result.uninstalled)
     }
 }
 

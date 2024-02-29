@@ -411,48 +411,6 @@ api_struct!(
     }
 );
 
-api_struct!(
-    /// Input passed to the `uninstall_global` function.
-    pub struct UninstallGlobalInput {
-        /// Current tool context.
-        pub context: ToolContext,
-
-        /// Name (and optional version) of the global dependency to uninstall.
-        pub dependency: String,
-
-        /// Virtual path to the global's installation directory.
-        pub globals_dir: VirtualPath,
-    }
-);
-
-api_struct!(
-    /// Output returned by the `uninstall_global` function.
-    pub struct UninstallGlobalOutput {
-        /// Whether the uninstall was successful.
-        pub uninstalled: bool,
-
-        /// Error message if the uninstall failed.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub error: Option<String>,
-    }
-);
-
-impl UninstallGlobalOutput {
-    pub fn from_exec_command(result: ExecCommandOutput) -> Self {
-        if result.exit_code == 0 {
-            return Self {
-                uninstalled: true,
-                error: None,
-            };
-        }
-
-        Self {
-            uninstalled: false,
-            error: Some(result.get_output()),
-        }
-    }
-}
-
 // VERSION RESOLVING
 
 api_struct!(

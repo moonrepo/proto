@@ -16,7 +16,6 @@ mod run;
 mod setup;
 mod unalias;
 mod uninstall;
-mod uninstall_global;
 mod upgrade;
 
 pub use alias::*;
@@ -35,5 +34,4 @@ pub use run::*;
 pub use setup::*;
 pub use unalias::*;
 pub use uninstall::*;
-pub use uninstall_global::*;
 pub use upgrade::*;

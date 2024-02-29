@@ -31,10 +31,6 @@ impl_event!(UninstalledEvent, {
     pub version: VersionSpec,
 });
 
-impl_event!(UninstalledGlobalEvent, {
-    pub dependency: String,
-});
-
 impl_event!(CreatedBinariesEvent, {
     pub bins: Vec<String>,
 });

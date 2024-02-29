@@ -3,7 +3,6 @@ use crate::commands::{
     plugin::{AddPluginArgs, InfoPluginArgs, ListPluginsArgs, RemovePluginArgs},
     AliasArgs, BinArgs, CleanArgs, CompletionsArgs, InstallArgs, ListArgs, ListRemoteArgs,
     MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs, UnaliasArgs, UninstallArgs,
-    UninstallGlobalArgs,
 };
 use clap::builder::styling::{Color, Style, Styles};
 use clap::{Parser, Subcommand, ValueEnum};
@@ -196,13 +195,6 @@ pub enum Commands {
         long_about = "Uninstall a tool and remove the installation from ~/.proto/tools."
     )]
     Uninstall(UninstallArgs),
-
-    #[command(
-        alias = "ug",
-        name = "uninstall-global",
-        about = "Uninstall a global dependency from the specified tool."
-    )]
-    UninstallGlobal(UninstallGlobalArgs),
 
     #[command(
         alias = "up",
