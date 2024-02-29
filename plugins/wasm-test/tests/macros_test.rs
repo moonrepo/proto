@@ -10,5 +10,3 @@ generate_resolve_versions_tests!("wasm-test", {
 });
 
 generate_shims_test!("wasm-test", ["other"]);
-
-generate_globals_test!("wasm-test", "dependency");
