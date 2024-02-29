@@ -12,6 +12,8 @@
 
 ## Unreleased
 
+In preparation for an official v1 release, improved stability, and overall developer experience, we're renaming some commands, and removing the "global packages" functionality.
+
 #### 💥 Breaking
 
 - Renamed the `proto tool` commands to `proto plugin`.
