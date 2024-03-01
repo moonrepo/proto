@@ -41,6 +41,21 @@ In preparation for an official v1 release, improved stability, and overall devel
 
 - Fixed an issue where empty version strings were being parsed, causing failures.
 
+#### 🧩 Plugins
+
+- Updated `bun_plugin` to v0.10.
+- Updated `deno_plugin` to v0.10.
+- Updated `go_plugin` to v0.10.
+- Updated `node_plugin` and `node_depman_plugin` to v0.10.
+  - Removed the `intercept-globals` config setting.
+  - Added a new `shared-globals-dir` setting, which injects args/env vars into npm/pnpm/yarn commands when they attemp to install global packages.
+- Updated `python_plugin` to v0.8.
+- Updated `rust_plugin` to v0.9.
+- Updated `schema_plugin` (TOML) to v0.9.
+  - Removed `globals` and `shims` settings.
+  - Added a `platform.*.archs` setting, to limit what architectures are supported for that OS.
+  - Added a `packages` setting for managing global packages. Supports `globals_lookup_dirs` and `globals_prefix` sub-settings.
+
 ## 0.30.2
 
 #### 🧩 Plugins

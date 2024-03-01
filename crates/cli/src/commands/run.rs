@@ -243,10 +243,15 @@ pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> S
 
     // Run before hook
     let hook_result = if tool.plugin.has_func("pre_run") {
+        let globals_dir = tool.get_globals_bin_dir();
+        let globals_prefix = tool.get_globals_prefix();
+
         tool.plugin.call_func_with(
             "pre_run",
             RunHook {
                 context: tool.create_context(),
+                globals_dir: globals_dir.map(|dir| tool.to_virtual_path(dir)),
+                globals_prefix: globals_prefix.map(|p| p.to_owned()),
                 passthrough_args: args.passthrough.clone(),
             },
         )?
