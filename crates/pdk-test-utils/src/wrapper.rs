@@ -69,13 +69,10 @@ impl WasmTestWrapper {
             .unwrap();
     }
 
-    pub fn pre_run(&self, mut input: RunHook) {
+    pub fn pre_run(&self, mut input: RunHook) -> RunHookResult {
         input.context = self.prepare_context(input.context);
 
-        self.tool
-            .plugin
-            .call_func_without_output("pre_run", input)
-            .unwrap();
+        self.tool.plugin.call_func_with("pre_run", input).unwrap()
     }
 
     pub fn post_install(&self, mut input: InstallHook) {

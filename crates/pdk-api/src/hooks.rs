@@ -24,6 +24,12 @@ api_struct!(
         /// Current tool context.
         pub context: ToolContext,
 
+        /// Path to the global packages directory for the tool, if found.
+        pub globals_dir: Option<VirtualPath>,
+
+        /// A prefix applied to the file names of globally installed packages.
+        pub globals_prefix: Option<String>,
+
         /// Arguments passed after `--` that was directly passed to the tool's binary.
         pub passthrough_args: Vec<String>,
     }

@@ -3,7 +3,9 @@ use extism_pdk::http::request;
 use extism_pdk::*;
 use serde::de::DeserializeOwned;
 use std::vec;
-use warpgate_api::{AnyResult, ExecCommandInput, ExecCommandOutput, HostEnvironment, HostOS};
+use warpgate_api::{
+    AnyResult, ExecCommandInput, ExecCommandOutput, HostEnvironment, HostOS, TestEnvironment,
+};
 
 #[host_fn]
 extern "ExtismHost" {
@@ -209,4 +211,13 @@ pub fn get_host_environment() -> AnyResult<HostEnvironment> {
     let config: HostEnvironment = json::from_str(&config)?;
 
     Ok(config)
+}
+
+/// Return information about the testing environment.
+pub fn get_test_environment() -> AnyResult<Option<TestEnvironment>> {
+    if let Some(config) = config::get("test_environment")? {
+        return Ok(json::from_str(&config)?);
+    }
+
+    Ok(None)
 }
