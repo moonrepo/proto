@@ -13,14 +13,16 @@ pub use wrapper::WasmTestWrapper;
 use proto_core::{get_home_dir, inject_proto_manifest_config};
 use serde::Serialize;
 use std::collections::HashMap;
-use std::fs;
+use std::env;
+use std::fs::{self, OpenOptions};
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use warpgate::{inject_default_manifest_config, test_utils};
 
 pub fn find_wasm_file(sandbox: &Path) -> PathBuf {
     let wasm_file = test_utils::find_wasm_file();
 
-    // Folders must exists for WASM to compile correctly!
+    // Folders must exist for WASM to compile correctly!
     fs::create_dir_all(sandbox.join(".home")).unwrap();
     fs::create_dir_all(sandbox.join(".proto")).unwrap();
 
@@ -35,13 +37,37 @@ pub fn create_plugin_with_config(
     let id = Id::new(id).unwrap();
     let proto = ProtoEnvironment::new_testing(sandbox);
 
-    let mut manifest =
-        Tool::create_plugin_manifest(&proto, Wasm::file(find_wasm_file(sandbox))).unwrap();
+    let wasm_file = find_wasm_file(sandbox);
+    let mut log_file = wasm_file.clone();
+    log_file.set_extension("log");
+
+    let mut manifest = Tool::create_plugin_manifest(&proto, Wasm::file(wasm_file)).unwrap();
 
     inject_default_manifest_config(&id, &proto.home, &mut manifest).unwrap();
     inject_proto_manifest_config(&id, &proto, &mut manifest).unwrap();
 
     manifest.config.extend(config);
+
+    // Remove the file otherwise it keeps growing
+    if log_file.exists() {
+        let _ = fs::remove_file(&log_file);
+    }
+
+    // TODO redo
+    if env::var("CI").is_err() {
+        let _ = extism::set_log_callback(
+            move |line| {
+                let mut file = OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open(&log_file)
+                    .unwrap();
+
+                file.write_all(line.as_bytes()).unwrap();
+            },
+            "debug",
+        );
+    }
 
     WasmTestWrapper {
         tool: Tool::load_from_manifest(Id::new(id).unwrap(), proto, manifest).unwrap(),
@@ -86,6 +112,14 @@ pub fn create_config_entry<T: Serialize>(key: &str, value: T) -> (String, String
 }
 
 pub fn map_config_environment(os: HostOS, arch: HostArch) -> (String, String) {
+    map_config_environment_with_home(os, arch, get_home_dir().unwrap())
+}
+
+pub fn map_config_environment_with_home(
+    os: HostOS,
+    arch: HostArch,
+    home_dir: impl AsRef<Path>,
+) -> (String, String) {
     create_config_entry(
         "host_environment",
         HostEnvironment {
@@ -94,7 +128,7 @@ pub fn map_config_environment(os: HostOS, arch: HostArch) -> (String, String) {
             home_dir: VirtualPath::WithReal {
                 path: PathBuf::from("/userhome"),
                 virtual_prefix: PathBuf::from("/userhome"),
-                real_prefix: get_home_dir().unwrap(),
+                real_prefix: home_dir.as_ref().to_path_buf(),
             },
         },
     )
