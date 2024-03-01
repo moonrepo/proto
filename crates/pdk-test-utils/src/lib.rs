@@ -45,8 +45,10 @@ pub fn create_plugin_with_config(
 
     inject_default_manifest_config(&id, &proto.home, &mut manifest).unwrap();
     inject_proto_manifest_config(&id, &proto, &mut manifest).unwrap();
-
     manifest.config.extend(config);
+
+    let test_config = map_config_test_environment(sandbox);
+    manifest.config.insert(test_config.0, test_config.1);
 
     // Remove the file otherwise it keeps growing
     if log_file.exists() {
@@ -130,6 +132,16 @@ pub fn map_config_environment_with_home(
                 virtual_prefix: PathBuf::from("/userhome"),
                 real_prefix: home_dir.as_ref().to_path_buf(),
             },
+        },
+    )
+}
+
+pub fn map_config_test_environment(sandbox: impl AsRef<Path>) -> (String, String) {
+    create_config_entry(
+        "test_environment",
+        TestEnvironment {
+            ci: env::var("CI").is_ok(),
+            sandbox: sandbox.as_ref().to_path_buf(),
         },
     )
 }
