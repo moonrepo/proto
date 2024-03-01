@@ -10,7 +10,7 @@ pub use proto_pdk_api::*;
 pub use warpgate::Wasm;
 pub use wrapper::WasmTestWrapper;
 
-use proto_core::inject_proto_manifest_config;
+use proto_core::{get_home_dir, inject_proto_manifest_config};
 use serde::Serialize;
 use std::collections::HashMap;
 use std::fs;
@@ -91,7 +91,11 @@ pub fn map_config_environment(os: HostOS, arch: HostArch) -> (String, String) {
         HostEnvironment {
             arch,
             os,
-            ..HostEnvironment::default()
+            home_dir: VirtualPath::WithReal {
+                path: PathBuf::from("/userhome"),
+                virtual_prefix: PathBuf::from("/userhome"),
+                real_prefix: get_home_dir().unwrap(),
+            },
         },
     )
 }
