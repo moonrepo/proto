@@ -34,7 +34,7 @@ path = "src/main_shim.rs"
 [dependencies]
 proto_core = { version = "0.31.2", path = "../core" }
 proto_installer = { version = "0.2.2", path = "../installer" }
-proto_pdk_api = { version = "0.17.1", path = "../pdk-api" }
+proto_pdk_api = { version = "0.17.2", path = "../pdk-api" }
 proto_shim = { version = "0.2.7", path = "../shim" }
 system_env = { version = "0.2.2", path = "../system-env" }
 anyhow = { workspace = true }
