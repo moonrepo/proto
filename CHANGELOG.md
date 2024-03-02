@@ -10,6 +10,12 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed the globals directory not always being populated correctly. This is required for `shared-globals-dir`.
+
 ## 0.31.0
 
 In preparation for an official v1 release, improved stability, and overall developer experience, we're renaming some commands, and removing the "global packages" functionality.
