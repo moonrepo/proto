@@ -5,7 +5,7 @@ use std::env::consts;
 use std::fmt;
 use std::process::Command;
 
-/// Architecture of the host environment.
+/// Architecture of the system environment.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
 #[serde(rename_all = "lowercase")]
@@ -64,7 +64,7 @@ impl fmt::Display for SystemArch {
     }
 }
 
-/// Operating system of the host environment.
+/// Operating system of the current environment.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
 #[serde(rename_all = "lowercase")]
@@ -89,7 +89,7 @@ impl SystemOS {
             .expect("Unknown operating system!")
     }
 
-    /// Return either a Unix or Windows value based on the current native host.
+    /// Return either a Unix or Windows value based on the current native system.
     pub fn for_native<'value, T: AsRef<str> + ?Sized>(
         &self,
         unix: &'value T,
@@ -102,7 +102,7 @@ impl SystemOS {
         }
     }
 
-    /// Return the provided name as a host formatted file name for executables.
+    /// Return the provided name as a system formatted file name for executables.
     /// On Windows this will append an ".exe" extension. On Unix, no extension.
     pub fn get_exe_name(&self, name: impl AsRef<str>) -> String {
         self.get_file_name(name, "exe")
@@ -170,7 +170,7 @@ impl fmt::Display for SystemOS {
     }
 }
 
-/// Libc being used in the host environment.
+/// Libc being used in the system environment.
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
 #[serde(rename_all = "lowercase")]

@@ -3,7 +3,7 @@ use crate::pm_vendor::*;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
-/// Package manager of the host environment.
+/// Package manager of the system environment.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
 #[serde(rename_all = "kebab-case")]
