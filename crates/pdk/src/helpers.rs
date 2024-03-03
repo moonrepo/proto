@@ -1,8 +1,7 @@
 use extism_pdk::*;
-use proto_pdk_api::{AnyResult, HostArch, HostEnvironment, HostOS, PluginError};
+use proto_pdk_api::{AnyResult, HostArch, HostEnvironment, HostLibc, HostOS, PluginError};
 use rustc_hash::FxHashMap;
 use serde::de::DeserializeOwned;
-use warpgate_pdk::is_musl;
 
 /// Validate the current host OS and architecture against the
 /// supported list of target permutations.
@@ -37,7 +36,11 @@ pub fn get_target_triple(env: &HostEnvironment, name: &str) -> Result<String, Pl
         HostOS::Linux => Ok(format!(
             "{}-unknown-linux-{}",
             env.arch.to_rust_arch(),
-            if is_musl(env) { "musl" } else { "gnu" }
+            if matches!(env.libc, HostLibc::Musl) {
+                "musl"
+            } else {
+                "gnu"
+            }
         )),
         HostOS::MacOS => Ok(format!("{}-apple-darwin", env.arch.to_rust_arch())),
         HostOS::Windows => Ok(format!("{}-pc-windows-msvc", env.arch.to_rust_arch())),

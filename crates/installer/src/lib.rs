@@ -8,22 +8,15 @@ use std::env;
 use std::env::consts;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use system_env::SystemLibc;
 
 pub use error::ProtoInstallerError;
-
-pub fn is_musl() -> bool {
-    let Ok(output) = std::process::Command::new("ldd").arg("--version").output() else {
-        return false;
-    };
-
-    String::from_utf8(output.stdout).map_or(false, |out| out.contains("musl"))
-}
 
 pub fn determine_triple() -> miette::Result<String> {
     let target = match (consts::OS, consts::ARCH) {
         ("linux", arch) => format!(
             "{arch}-unknown-linux-{}",
-            if is_musl() { "musl" } else { "gnu" }
+            if SystemLibc::is_musl() { "musl" } else { "gnu" }
         ),
         ("macos", arch) => format!("{arch}-apple-darwin"),
         ("windows", "x86_64") => "x86_64-pc-windows-msvc".to_owned(),

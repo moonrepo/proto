@@ -3,13 +3,10 @@ use crate::proto::ProtoEnvironment;
 use crate::proto_config::{ProtoConfig, SCHEMA_PLUGIN_KEY};
 use crate::tool::Tool;
 use miette::IntoDiagnostic;
-use proto_pdk_api::{HostArch, HostEnvironment, HostOS};
 use starbase_utils::{json, toml};
 use std::path::PathBuf;
 use tracing::{debug, trace};
-use warpgate::{
-    inject_default_manifest_config, to_virtual_path, Id, PluginLocator, PluginManifest, Wasm,
-};
+use warpgate::{inject_default_manifest_config, Id, PluginLocator, PluginManifest, Wasm};
 
 pub fn inject_proto_manifest_config(
     id: &Id,
@@ -27,22 +24,6 @@ pub fn inject_proto_manifest_config(
             .config
             .insert("proto_tool_config".to_string(), value);
     }
-
-    // TODO remove in the future
-    manifest
-        .config
-        .insert("proto_tool_id".to_string(), id.to_string());
-
-    // TODO remove in the future
-    manifest.config.insert(
-        "proto_environment".to_string(),
-        json::to_string(&HostEnvironment {
-            arch: HostArch::from_env(),
-            os: HostOS::from_env(),
-            home_dir: to_virtual_path(manifest.allowed_paths.as_ref().unwrap(), &proto.home),
-        })
-        .into_diagnostic()?,
-    );
 
     Ok(())
 }

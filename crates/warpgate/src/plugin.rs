@@ -11,7 +11,7 @@ use starbase_styles::color::{self, apply_style_tags};
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
-use system_env::{SystemArch, SystemOS};
+use system_env::{SystemArch, SystemLibc, SystemOS};
 use tracing::trace;
 use warpgate_api::{HostEnvironment, VirtualPath};
 
@@ -37,9 +37,11 @@ pub fn inject_default_manifest_config(
     home_dir: &Path,
     manifest: &mut Manifest,
 ) -> miette::Result<()> {
+    let os = SystemOS::from_env();
     let env = serde_json::to_string(&HostEnvironment {
         arch: SystemArch::from_env(),
-        os: SystemOS::from_env(),
+        libc: SystemLibc::detect(os),
+        os,
         home_dir: to_virtual_path(manifest.allowed_paths.as_ref().unwrap(), home_dir),
     })
     .into_diagnostic()?;

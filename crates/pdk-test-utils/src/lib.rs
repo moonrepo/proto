@@ -126,6 +126,7 @@ pub fn map_config_environment_with_home(
         "host_environment",
         HostEnvironment {
             arch,
+            libc: HostLibc::detect(os),
             os,
             home_dir: VirtualPath::WithReal {
                 path: PathBuf::from("/userhome"),
