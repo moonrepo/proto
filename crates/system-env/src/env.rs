@@ -1,9 +1,11 @@
+use crate::helpers::find_command_on_path;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::env::consts;
 use std::fmt;
+use std::process::Command;
 
-/// Architecture of the host environment.
+/// Architecture of the system environment.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
 #[serde(rename_all = "lowercase")]
@@ -62,7 +64,7 @@ impl fmt::Display for SystemArch {
     }
 }
 
-/// Operating system of the host environment.
+/// Operating system of the current environment.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
 #[serde(rename_all = "lowercase")]
@@ -87,7 +89,7 @@ impl SystemOS {
             .expect("Unknown operating system!")
     }
 
-    /// Return either a Unix or Windows value based on the current native host.
+    /// Return either a Unix or Windows value based on the current native system.
     pub fn for_native<'value, T: AsRef<str> + ?Sized>(
         &self,
         unix: &'value T,
@@ -100,7 +102,7 @@ impl SystemOS {
         }
     }
 
-    /// Return the provided name as a host formatted file name for executables.
+    /// Return the provided name as a system formatted file name for executables.
     /// On Windows this will append an ".exe" extension. On Unix, no extension.
     pub fn get_exe_name(&self, name: impl AsRef<str>) -> String {
         self.get_file_name(name, "exe")
@@ -165,5 +167,58 @@ impl Default for SystemOS {
 impl fmt::Display for SystemOS {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", format!("{:?}", self).to_lowercase())
+    }
+}
+
+/// Libc being used in the system environment.
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
+#[serde(rename_all = "lowercase")]
+pub enum SystemLibc {
+    Gnu,
+    Musl,
+    #[default]
+    Unknown,
+}
+
+impl SystemLibc {
+    /// Detect the libc type from the current system environment.
+    pub fn detect(os: SystemOS) -> Self {
+        match os {
+            SystemOS::IOS | SystemOS::MacOS => Self::Gnu,
+            SystemOS::Windows => Self::Unknown,
+            _ => {
+                if Self::is_musl() {
+                    Self::Musl
+                } else {
+                    Self::Gnu
+                }
+            }
+        }
+    }
+
+    /// Check if musl is available on the current machine, by running the
+    /// `ldd --version` command, or the `uname` command. This will return false
+    /// on systems that have neither of those commands.
+    pub fn is_musl() -> bool {
+        let mut command = if let Some(ldd_path) = find_command_on_path("ldd") {
+            let mut cmd = Command::new(ldd_path);
+            cmd.arg("--version");
+            cmd
+        } else if let Some(uname_path) = find_command_on_path("uname") {
+            Command::new(uname_path)
+        } else {
+            return false;
+        };
+
+        if let Ok(result) = command.output() {
+            if result.status.success() {
+                let output = String::from_utf8_lossy(&result.stdout).to_lowercase();
+
+                return output.contains("musl") || output.contains("alpine");
+            }
+        }
+
+        false
     }
 }

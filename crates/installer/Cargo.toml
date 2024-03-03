@@ -8,6 +8,7 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
+system_env = { version = "0.2.2", path = "../system-env" }
 futures = "0.3.30"
 miette = { workspace = true }
 reqwest = { workspace = true, features = ["stream"] }

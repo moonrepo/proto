@@ -164,6 +164,7 @@ pub fn command_exists(env: &HostEnvironment, command: &str) -> bool {
 }
 
 /// Detect whether the current OS is utilizing musl instead of gnu.
+#[deprecated]
 pub fn is_musl(env: &HostEnvironment) -> bool {
     if !env.os.is_unix() || env.os.is_mac() {
         return false;
