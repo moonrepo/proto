@@ -15,6 +15,7 @@
 #### 🐞 Fixes
 
 - Fixed non-tar associated `.gz` archives not being unpacked correctly.
+- Fixed musl checks failing on Alpine Linux.
 
 ## 0.31.1
 

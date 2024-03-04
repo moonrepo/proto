@@ -178,6 +178,9 @@ pub fn is_musl(env: &HostEnvironment) -> bool {
         if let Ok(res) = exec_command!(raw, "ldd", ["--version"]) {
             if res.0.exit_code == 0 {
                 value = res.0.stdout.to_lowercase();
+            } else if res.0.exit_code == 1 {
+                // ldd on apline returns stderr with a 1 exit code
+                value = res.0.stderr.to_lowercase();
             }
         }
     }

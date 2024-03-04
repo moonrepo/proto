@@ -212,13 +212,22 @@ impl SystemLibc {
         };
 
         if let Ok(result) = command.output() {
-            if result.status.success() {
-                let output = String::from_utf8_lossy(&result.stdout).to_lowercase();
+            let output = if result.status.success() {
+                String::from_utf8_lossy(&result.stdout).to_lowercase()
+            } else {
+                // ldd on apline returns stderr with a 1 exit code
+                String::from_utf8_lossy(&result.stderr).to_lowercase()
+            };
 
-                return output.contains("musl") || output.contains("alpine");
-            }
+            return output.contains("musl") || output.contains("alpine");
         }
 
         false
+    }
+}
+
+impl fmt::Display for SystemLibc {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", format!("{:?}", self).to_lowercase())
     }
 }
