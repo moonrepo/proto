@@ -8,7 +8,7 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
-system_env = { version = "0.2.3", path = "../system-env" }
+system_env = { version = "0.2.4", path = "../system-env" }
 anyhow = { workspace = true }
 rustc-hash = { workspace = true }
 schematic = { workspace = true, optional = true, features = ["schema"] }

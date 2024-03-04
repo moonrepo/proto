@@ -10,6 +10,18 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed non-tar associated `.gz` archives not being unpacked correctly.
+- Fixed musl checks failing on Alpine Linux.
+
+#### 🧩 Plugins
+
+- Updated `schema_plugin` (TOML) to v0.10.1.
+  - Added an `install.libc` setting, to customize the libc wording used.
+
 ## 0.31.1
 
 #### 🐞 Fixes
@@ -57,7 +69,7 @@ In preparation for an official v1 release, improved stability, and overall devel
   - Added a new `shared-globals-dir` setting, which injects args/env vars into npm/pnpm/yarn commands when they attemp to install global packages.
 - Updated `python_plugin` to v0.8.
 - Updated `rust_plugin` to v0.9.
-- Updated `schema_plugin` (TOML) to v0.9.
+- Updated `schema_plugin` (TOML) to v0.10.
   - Removed `globals` and `shims` settings.
   - Added a `platform.*.archs` setting, to limit what architectures are supported for that OS.
   - Added a `packages` setting for managing global packages. Supports `globals_lookup_dirs` and `globals_prefix` sub-settings.
