@@ -241,7 +241,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw(SCHEMA_PLUGIN_KEY),
                 PluginLocator::SourceUrl {
-                    url: "https://github.com/moonrepo/schema-plugin/releases/download/v0.10.0/schema_plugin.wasm".into()
+                    url: "https://github.com/moonrepo/schema-plugin/releases/download/v0.10.1/schema_plugin.wasm".into()
                 }
             );
         }
