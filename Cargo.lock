@@ -448,9 +448,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.5.1"
+version = "4.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c918d541ef2913577a0f9566e9ce27cb35b6df072075769e0b26cb5a554520da"
+checksum = "b230ab84b0ffdf890d5a10abdbc8b83ae1c4918275daea1ab8801f71536b2651"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -458,9 +458,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.5.1"
+version = "4.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f3e7391dad68afb0c2ede1bf619f579a3dc9c2ec67f089baa397123a2f3d1eb"
+checksum = "ae129e2e766ae0ec03484e609954119f123cc1fe650337e155d03b022f24f7b4"
 dependencies = [
  "anstream",
  "anstyle",
@@ -2997,9 +2997,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_archive"
-version = "0.5.2"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d3c925289aee48cbd98f1e49b7857973ffa1a1c7a0c2c129a32a86f97467dd47"
+checksum = "56bf4ff22495fe4c8384f124f4955373ed9d5c50c0e9bca53d202975c820687f"
 dependencies = [
  "binstall-tar",
  "flate2",
@@ -3040,9 +3040,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_sandbox"
-version = "0.4.1"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e4e41db850a6d98edb67ba83ea809cdc43d628ed54223c491e0f7fdd69b3194d"
+checksum = "46eb2113d05c21fea19742d5df590641a44373eaa75c9178e6c8888d9ab31286"
 dependencies = [
  "assert_cmd",
  "assert_fs",
@@ -3068,9 +3068,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_utils"
-version = "0.5.1"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "263d6acfb4522b7a60d349ca181257135c71377ce852c07e97e9eb5adf928efe"
+checksum = "188611d36a605c62158f3b9a1b36a4b3d328d24e0f478a781f77874a8e407dbb"
 dependencies = [
  "dirs 5.0.1",
  "fs4",

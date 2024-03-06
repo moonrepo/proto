@@ -1,7 +1,6 @@
 use crate::helpers::ProtoResource;
 use crate::printer::{format_env_var, format_value, Printer};
 use clap::Args;
-use miette::IntoDiagnostic;
 use proto_core::{
     detect_version, EnvVar, ExecutableLocation, Id, PluginLocator, ProtoToolConfig, ToolManifest,
     UnresolvedVersionSpec,
@@ -66,7 +65,7 @@ pub async fn info(args: ArgsRef<InfoPluginArgs>, proto: ResourceRef<ProtoResourc
             plugin: tool.locator.unwrap(),
         };
 
-        println!("{}", json::to_string_pretty(&info).into_diagnostic()?);
+        println!("{}", json::format(&info, true)?);
 
         return Ok(());
     }

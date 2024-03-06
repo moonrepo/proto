@@ -224,7 +224,7 @@ pub fn read_json_file_with_lock<T: DeserializeOwned>(path: impl AsRef<Path>) -> 
         content = "{}".into();
     }
 
-    let data: T = json::from_str(&content).map_err(|error| JsonError::ReadFile {
+    let data: T = json::serde_json::from_str(&content).map_err(|error| JsonError::ReadFile {
         path: path.to_path_buf(),
         error,
     })?;
@@ -238,7 +238,7 @@ pub fn write_json_file_with_lock<T: Serialize>(
 ) -> miette::Result<()> {
     let path = path.as_ref();
 
-    let data = json::to_string_pretty(data).map_err(|error| JsonError::StringifyFile {
+    let data = json::serde_json::to_string_pretty(data).map_err(|error| JsonError::WriteFile {
         path: path.to_path_buf(),
         error,
     })?;

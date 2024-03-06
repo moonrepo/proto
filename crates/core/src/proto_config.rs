@@ -1,5 +1,4 @@
 use indexmap::IndexMap;
-use miette::IntoDiagnostic;
 use once_cell::sync::OnceCell;
 use rustc_hash::FxHashMap;
 use schematic::{
@@ -362,7 +361,7 @@ impl ProtoConfig {
     pub fn save_to<P: AsRef<Path>>(dir: P, config: PartialProtoConfig) -> miette::Result<PathBuf> {
         let path = dir.as_ref().join(PROTO_CONFIG_NAME);
 
-        fs::write_file_with_lock(&path, toml::to_string_pretty(&config).into_diagnostic()?)?;
+        fs::write_file_with_lock(&path, toml::format(&config, true)?)?;
 
         Ok(path)
     }

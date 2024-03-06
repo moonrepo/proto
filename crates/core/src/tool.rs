@@ -858,7 +858,13 @@ impl Tool {
                 archiver.set_prefix(prefix);
             }
 
-            archiver.unpack_from_ext()?;
+            let (ext, unpacked_path) = archiver.unpack_from_ext()?;
+
+            // If the archive was `.gz` without tar or other formats,
+            // it's a single file, so assume a binary and update perms
+            if ext == "gz" && unpacked_path.is_file() {
+                fs::update_perms(unpacked_path, None)?;
+            }
 
             // Not an archive, assume a binary and copy
         } else {

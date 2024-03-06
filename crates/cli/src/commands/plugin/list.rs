@@ -2,7 +2,6 @@ use crate::helpers::ProtoResource;
 use crate::printer::{format_value, Printer};
 use chrono::{DateTime, NaiveDateTime};
 use clap::Args;
-use miette::IntoDiagnostic;
 use proto_core::{Id, PluginLocator, ProtoToolConfig, ToolManifest, UnresolvedVersionSpec};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Serialize;
@@ -69,7 +68,7 @@ pub async fn list(args: ArgsRef<ListPluginsArgs>, proto: ResourceRef<ProtoResour
             })
             .collect::<FxHashMap<_, _>>();
 
-        println!("{}", json::to_string_pretty(&items).into_diagnostic()?);
+        println!("{}", json::format(&items, true)?);
 
         return Ok(());
     }
