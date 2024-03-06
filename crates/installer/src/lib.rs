@@ -97,6 +97,7 @@ pub fn unpack_release(
     download: DownloadResult,
     install_dir: impl AsRef<Path>,
     relocate_dir: impl AsRef<Path>,
+    relocate_current: bool,
 ) -> miette::Result<bool> {
     let temp_dir = download
         .archive_file
@@ -127,13 +128,15 @@ pub fn unpack_release(
         }
 
         // If not installed at our standard location
-        if let Ok(current_exe) = env::current_exe() {
-            if current_exe != output_path
-                && current_exe
-                    .file_name()
-                    .is_some_and(|name| name == *bin_name)
-            {
-                fs::rename(&current_exe, &relocate_path)?;
+        if relocate_current {
+            if let Ok(current_exe) = env::current_exe() {
+                if current_exe != output_path
+                    && current_exe
+                        .file_name()
+                        .is_some_and(|name| name == *bin_name)
+                {
+                    fs::rename(&current_exe, &relocate_path)?;
+                }
             }
         }
     }
