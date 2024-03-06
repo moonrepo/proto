@@ -12,6 +12,10 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Updated plugin IDs to support underscores.
+
 #### 🐞 Fixes
 
 - Fixed `.gz` wrapped files not being executable after being unpacked.

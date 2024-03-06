@@ -4,7 +4,7 @@ use regex::Regex;
 use serde::{de, Deserialize, Deserializer, Serialize};
 use std::{borrow::Borrow, fmt, ops::Deref, str::FromStr};
 
-pub static ID_PATTERN: Lazy<Regex> = Lazy::new(|| Regex::new("^[a-z][a-z0-9-]*$").unwrap());
+pub static ID_PATTERN: Lazy<Regex> = Lazy::new(|| Regex::new("^[a-z][a-z0-9-_]*$").unwrap());
 
 #[derive(Clone, Default, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct Id(String);
