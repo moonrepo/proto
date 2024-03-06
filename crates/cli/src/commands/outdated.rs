@@ -1,7 +1,6 @@
 use crate::error::ProtoCliError;
 use crate::helpers::ProtoResource;
 use clap::Args;
-use miette::IntoDiagnostic;
 use proto_core::{ProtoConfig, ProtoError, UnresolvedVersionSpec, VersionSpec};
 use rustc_hash::FxHashMap;
 use serde::Serialize;
@@ -164,6 +163,6 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>, proto: ResourceRef<ProtoResou
     }
 
     if args.json {
-        println!("{}", json::to_string_pretty(&items).into_diagnostic()?);
+        println!("{}", json::format(&items, true)?);
     }
 }

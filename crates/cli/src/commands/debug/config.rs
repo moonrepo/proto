@@ -1,6 +1,5 @@
 use crate::helpers::ProtoResource;
 use clap::Args;
-use miette::IntoDiagnostic;
 use proto_core::{ProtoConfig, ProtoConfigFile};
 use serde::Serialize;
 use starbase::system;
@@ -20,7 +19,7 @@ pub struct DebugConfigArgs {
 }
 
 fn print_toml(value: impl Serialize) -> miette::Result<()> {
-    let contents = toml::to_string_pretty(&value).into_diagnostic()?;
+    let contents = toml::format(&value, true)?;
 
     let contents = contents
         .lines()
@@ -52,7 +51,7 @@ pub async fn config(args: ArgsRef<DebugConfigArgs>, proto: ResourceRef<ProtoReso
             files: manager.files.iter().rev().collect::<Vec<_>>(),
         };
 
-        println!("{}", json::to_string_pretty(&result).into_diagnostic()?);
+        println!("{}", json::format(&result, true)?);
 
         return Ok(());
     }

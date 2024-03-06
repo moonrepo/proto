@@ -2,7 +2,6 @@ use crate::error::ProtoError;
 use crate::proto::ProtoEnvironment;
 use crate::proto_config::{ProtoConfig, SCHEMA_PLUGIN_KEY};
 use crate::tool::Tool;
-use miette::IntoDiagnostic;
 use starbase_utils::{json, toml};
 use std::path::PathBuf;
 use tracing::{debug, trace};
@@ -16,7 +15,7 @@ pub fn inject_proto_manifest_config(
     let config = proto.load_config()?;
 
     if let Some(tool_config) = config.tools.get(id) {
-        let value = json::to_string(&tool_config.config).into_diagnostic()?;
+        let value = json::format(&tool_config.config, false)?;
 
         trace!(config = %value, "Storing proto tool configuration");
 
@@ -103,7 +102,7 @@ pub async fn load_tool_from_locator(
 
         // Convert TOML to JSON
         let schema: json::JsonValue = toml::read_file(plugin_path)?;
-        let schema = json::to_string(&schema).into_diagnostic()?;
+        let schema = json::format(&schema, false)?;
 
         trace!(schema = %schema, "Storing schema settings");
 
