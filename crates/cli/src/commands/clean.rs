@@ -7,6 +7,8 @@ use starbase::diagnostics::IntoDiagnostic;
 use starbase::{system, SystemResult};
 use starbase_styles::color;
 use starbase_utils::fs;
+use std::io::stdout;
+use std::io::IsTerminal;
 use std::time::{Duration, SystemTime};
 use tracing::{debug, info};
 
@@ -269,7 +271,7 @@ pub async fn purge_plugins(proto: &ProtoResource, yes: bool) -> SystemResult {
     Ok(())
 }
 
-pub async fn internal_clean(proto: &ProtoResource, args: &CleanArgs) -> SystemResult {
+pub async fn internal_clean(proto: &ProtoResource, args: &CleanArgs, yes: bool) -> SystemResult {
     let days = args.days.unwrap_or(30);
     let now = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
@@ -280,7 +282,7 @@ pub async fn internal_clean(proto: &ProtoResource, args: &CleanArgs) -> SystemRe
     debug!("Finding installed tools to clean up...");
 
     for tool in proto.load_tools().await? {
-        clean_count += clean_tool(tool, now, days, args.yes).await?;
+        clean_count += clean_tool(tool, now, days, yes).await?;
     }
 
     clean_count += clean_proto(proto, days as u64).await?;
@@ -313,15 +315,17 @@ pub async fn internal_clean(proto: &ProtoResource, args: &CleanArgs) -> SystemRe
 
 #[system]
 pub async fn clean(args: ArgsRef<CleanArgs>, proto: ResourceRef<ProtoResource>) {
+    let force_yes = args.yes || !stdout().is_terminal();
+
     if let Some(id) = &args.purge {
-        purge_tool(proto, id, args.yes).await?;
+        purge_tool(proto, id, force_yes).await?;
         return Ok(());
     }
 
     if args.purge_plugins {
-        purge_plugins(proto, args.yes).await?;
+        purge_plugins(proto, force_yes).await?;
         return Ok(());
     }
 
-    internal_clean(proto, args).await?;
+    internal_clean(proto, args, force_yes).await?;
 }
