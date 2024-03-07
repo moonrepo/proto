@@ -11,6 +11,8 @@ use starbase::system;
 use starbase_styles::color;
 use starbase_utils::fs;
 use std::env;
+use std::io::stdout;
+use std::io::IsTerminal;
 use std::path::PathBuf;
 use tracing::debug;
 
@@ -72,7 +74,7 @@ pub async fn setup(args: ArgsRef<SetupArgs>, proto: ResourceRef<ProtoResource>) 
     debug!("Updating PATH in {} shell", shell);
 
     let profile_path;
-    let interactive = !args.yes && env::var("CI").is_err();
+    let interactive = !args.yes && env::var("CI").is_err() && stdout().is_terminal();
 
     println!("Finishing proto installation...");
 

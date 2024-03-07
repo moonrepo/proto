@@ -91,13 +91,6 @@ pub async fn install_all(proto: ResourceRef<ProtoResource>) {
     if config.settings.auto_clean {
         info!("Auto-clean enabled, starting clean");
 
-        internal_clean(
-            proto,
-            &CleanArgs {
-                yes: true,
-                ..Default::default()
-            },
-        )
-        .await?;
+        internal_clean(proto, &CleanArgs::default(), true).await?;
     }
 }
