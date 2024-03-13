@@ -1,9 +1,10 @@
 use crate::wrapper::WasmTestWrapper;
 use proto_core::{inject_proto_manifest_config, ProtoEnvironment, Tool};
-use starbase_sandbox::Sandbox;
+use starbase_sandbox::{create_empty_sandbox, create_sandbox, Sandbox};
 use std::ops::Deref;
 use std::path::PathBuf;
 use std::rc::Rc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::{fmt, fs};
 use warpgate::test_utils::*;
@@ -16,6 +17,8 @@ pub struct ProtoSandbox {
     pub root: PathBuf,
     pub wasm_file: PathBuf,
     pub wasm_logs: Rc<Mutex<Vec<String>>>,
+
+    dropped: Rc<AtomicBool>,
 }
 
 impl ProtoSandbox {
@@ -36,6 +39,7 @@ impl ProtoSandbox {
             sandbox,
             wasm_file,
             wasm_logs: Rc::new(Mutex::new(vec![])),
+            dropped: Rc::new(AtomicBool::new(false)),
         }
     }
 
@@ -76,49 +80,62 @@ impl ProtoSandbox {
         manifest.config.extend(config.build());
 
         // Track logs
-        let logs = Rc::clone(&self.wasm_logs);
+        // let logs = Rc::clone(&self.wasm_logs);
+        // let dropped = Rc::clone(&self.dropped);
 
-        let _ = extism::set_log_callback(
-            move |line| {
-                if line.contains("extism::")
-                    || line.contains("warpgate::")
-                    || line.contains("proto")
-                {
-                    logs.lock().unwrap().push(line.to_owned());
-                }
-            },
-            "debug",
-        );
+        // let _ = extism::set_log_callback(
+        //     move |line| {
+        //         if dropped.load(Ordering::Relaxed) == false
+        //             && !line.is_empty()
+        //             && (line.contains("extism::")
+        //                 || line.contains("warpgate::")
+        //                 || line.contains("proto"))
+        //         {
+        //             // Test may have finished but this closure is still executing,
+        //             // so don't unwrap() and avoid any failures
+        //             if let Ok(mut lock) = logs.try_lock() {
+        //                 lock.push(line.to_owned());
+        //             }
+        //         }
+        //     },
+        //     "debug",
+        // );
 
         WasmTestWrapper {
             tool: Tool::load_from_manifest(id, proto, manifest).unwrap(),
         }
     }
 
-    pub fn create_schema_plugin(&self, id: &str, schema: PathBuf) -> WasmTestWrapper {
-        self.create_schema_plugin_with_config(id, schema, |_| {})
+    pub fn create_schema_plugin(&self, id: &str, schema_path: PathBuf) -> WasmTestWrapper {
+        self.create_schema_plugin_with_config(id, schema_path, |_| {})
     }
 
     #[allow(unused_variables)]
     pub fn create_schema_plugin_with_config(
         &self,
         id: &str,
-        schema: PathBuf,
+        schema_path: PathBuf,
         mut op: impl FnMut(&mut ConfigBuilder),
     ) -> WasmTestWrapper {
-        self.create_plugin_with_config(id, |config| {
+        self.create_plugin_with_config(id, move |config| {
             op(config);
 
             #[cfg(feature = "schema")]
             {
                 use crate::config_builder::ProtoConfigBuilder;
 
-                let schema = fs::read_to_string(schema).unwrap();
+                let schema = fs::read_to_string(&schema_path).unwrap();
                 let schema: serde_json::Value = toml::from_str(&schema).unwrap();
 
                 config.toml_schema(schema);
             }
         })
+    }
+}
+
+impl Drop for ProtoSandbox {
+    fn drop(&mut self) {
+        self.dropped.store(true, Ordering::Release)
     }
 }
 
@@ -142,10 +159,10 @@ impl fmt::Debug for ProtoSandbox {
     }
 }
 
-pub fn create_sandbox(fixture: &str) -> ProtoSandbox {
-    ProtoSandbox::new(starbase_sandbox::create_sandbox(fixture))
+pub fn create_proto_sandbox(fixture: &str) -> ProtoSandbox {
+    ProtoSandbox::new(create_sandbox(fixture))
 }
 
-pub fn create_empty_sandbox() -> ProtoSandbox {
-    ProtoSandbox::new(starbase_sandbox::create_empty_sandbox())
+pub fn create_empty_proto_sandbox() -> ProtoSandbox {
+    ProtoSandbox::new(create_empty_sandbox())
 }
