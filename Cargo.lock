@@ -2355,6 +2355,7 @@ dependencies = [
  "proto_pdk_api",
  "serde",
  "serde_json",
+ "starbase_sandbox",
  "toml 0.8.11",
  "warpgate",
 ]

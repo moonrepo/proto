@@ -6,18 +6,18 @@ macro_rules! generate_download_install_tests {
     ($id:literal, $version:literal, $schema:expr) => {
         #[tokio::test]
         async fn downloads_verifies_installs_tool() {
-            let sandbox = starbase_sandbox::create_empty_sandbox();
+            let sandbox = create_empty_proto_sandbox();
             let mut plugin = if let Some(schema) = $schema {
-                create_schema_plugin($id, sandbox.path(), schema)
+                sandbox.create_schema_plugin($id, schema)
             } else {
-                create_plugin($id, sandbox.path())
+                sandbox.create_plugin($id)
             };
-            let spec = proto_pdk_test_utils::UnresolvedVersionSpec::parse($version).unwrap();
+            let spec = UnresolvedVersionSpec::parse($version).unwrap();
 
             plugin.tool.setup(&spec, false).await.unwrap();
 
             // Check install dir exists
-            let base_dir = sandbox.path().join(".proto/tools").join($id).join($version);
+            let base_dir = sandbox.proto_dir.join("tools").join($id).join($version);
             let tool_dir = plugin.tool.get_tool_dir();
 
             assert_eq!(tool_dir, base_dir);
@@ -38,15 +38,15 @@ macro_rules! generate_download_install_tests {
 
         #[tokio::test]
         async fn downloads_prebuilt_and_checksum_to_temp() {
-            let sandbox = starbase_sandbox::create_empty_sandbox();
+            let sandbox = create_empty_proto_sandbox();
             let mut plugin = if let Some(schema) = $schema {
-                create_schema_plugin($id, sandbox.path(), schema)
+                sandbox.create_schema_plugin($id, schema)
             } else {
-                create_plugin($id, sandbox.path())
+                sandbox.create_plugin($id)
             };
             let mut tool = plugin.tool;
 
-            tool.version = Some(proto_pdk_test_utils::VersionSpec::parse($version).unwrap());
+            tool.version = Some(VersionSpec::parse($version).unwrap());
 
             let temp_dir = tool.get_temp_dir();
 
@@ -64,14 +64,14 @@ macro_rules! generate_download_install_tests {
                 return;
             }
 
-            let sandbox = starbase_sandbox::create_empty_sandbox();
+            let sandbox = create_empty_proto_sandbox();
             let plugin = if let Some(schema) = $schema {
-                create_schema_plugin($id, sandbox.path(), schema)
+                sandbox.create_schema_plugin($id, schema)
             } else {
-                create_plugin($id, sandbox.path())
+                sandbox.create_plugin($id)
             };
             let mut tool = plugin.tool;
-            let spec = proto_pdk_test_utils::VersionSpec::parse($version).unwrap();
+            let spec = VersionSpec::parse($version).unwrap();
 
             // Fake the installation so we avoid downloading
             tool.version = Some(spec.clone());
@@ -92,15 +92,15 @@ macro_rules! generate_resolve_versions_tests {
     ($id:literal, { $( $k:literal => $v:literal, )* }, $schema:expr) => {
         #[tokio::test]
         async fn resolves_latest_alias() {
-            let sandbox = starbase_sandbox::create_empty_sandbox();
+            let sandbox = create_empty_proto_sandbox();
             let mut plugin = if let Some(schema) = $schema {
-                create_schema_plugin($id, sandbox.path(), schema)
+                sandbox.create_schema_plugin($id, schema)
             } else {
-                create_plugin($id, sandbox.path())
+                sandbox.create_plugin($id)
             };
 
             plugin.tool.resolve_version(
-                &proto_pdk_test_utils::UnresolvedVersionSpec::parse("latest").unwrap(),
+                &UnresolvedVersionSpec::parse("latest").unwrap(),
                 false,
             ).await.unwrap();
 
@@ -109,16 +109,16 @@ macro_rules! generate_resolve_versions_tests {
 
         #[tokio::test]
         async fn resolve_version_or_alias() {
-            let sandbox = starbase_sandbox::create_empty_sandbox();
+            let sandbox = create_empty_proto_sandbox();
             let mut plugin = if let Some(schema) = $schema {
-                create_schema_plugin($id, sandbox.path(), schema)
+                sandbox.create_schema_plugin($id, schema)
             } else {
-                create_plugin($id, sandbox.path())
+                sandbox.create_plugin($id)
             };
 
             $(
                 plugin.tool.resolve_version(
-                    &proto_pdk_test_utils::UnresolvedVersionSpec::parse($k).unwrap(),
+                    &UnresolvedVersionSpec::parse($k).unwrap(),
                     false,
                 ).await.unwrap();
 
@@ -133,14 +133,14 @@ macro_rules! generate_resolve_versions_tests {
         // #[tokio::test]
         // async fn resolve_custom_alias() {
         //
-        //     let sandbox = starbase_sandbox::create_empty_sandbox();
+        //     let sandbox = create_empty_proto_sandbox();
 
         //     sandbox.create_file(
         //         format!(".proto/tools/{}/manifest.json", $id),
         //         r#"{"aliases":{"example":"1.0.0"}}"#,
         //     );
 
-        //     let mut plugin = create_plugin($id, sandbox.path());
+        //     let mut plugin = sandbox.create_plugin($id);
 
         //     assert_eq!(
         //         plugin.tool.resolve_version("example").await.unwrap(),
@@ -151,15 +151,15 @@ macro_rules! generate_resolve_versions_tests {
         #[tokio::test]
         #[should_panic(expected = "Failed to resolve unknown to a valid supported version")]
         async fn errors_invalid_alias() {
-            let sandbox = starbase_sandbox::create_empty_sandbox();
+            let sandbox = create_empty_proto_sandbox();
             let mut plugin = if let Some(schema) = $schema {
-                create_schema_plugin($id, sandbox.path(), schema)
+                sandbox.create_schema_plugin($id, schema)
             } else {
-                create_plugin($id, sandbox.path())
+                sandbox.create_plugin($id)
             };
 
             plugin.tool.resolve_version(
-                &proto_pdk_test_utils::UnresolvedVersionSpec::parse("unknown").unwrap(),
+                &UnresolvedVersionSpec::parse("unknown").unwrap(),
                 false,
             ).await.unwrap();
         }
@@ -167,15 +167,15 @@ macro_rules! generate_resolve_versions_tests {
         #[tokio::test]
         #[should_panic(expected = "Failed to resolve 99.99.99 to a valid supported version")]
         async fn errors_invalid_version() {
-            let sandbox = starbase_sandbox::create_empty_sandbox();
+            let sandbox = create_empty_proto_sandbox();
             let mut plugin = if let Some(schema) = $schema {
-                create_schema_plugin($id, sandbox.path(), schema)
+                sandbox.create_schema_plugin($id, schema)
             } else {
-                create_plugin($id, sandbox.path())
+                sandbox.create_plugin($id)
             };
 
             plugin.tool.resolve_version(
-                &proto_pdk_test_utils::UnresolvedVersionSpec::parse("99.99.99").unwrap(),
+                &UnresolvedVersionSpec::parse("99.99.99").unwrap(),
                 false,
             ).await.unwrap();
         }
@@ -193,17 +193,17 @@ macro_rules! generate_shims_test {
     ($id:literal, [ $($bin:literal),* ], $schema:expr) => {
         #[tokio::test]
         async fn creates_shims() {
-            let sandbox = starbase_sandbox::create_empty_sandbox();
+            let sandbox = create_empty_proto_sandbox();
             let mut plugin = if let Some(schema) = $schema {
-                create_schema_plugin($id, sandbox.path(), schema)
+                sandbox.create_schema_plugin($id, schema)
             } else {
-                create_plugin($id, sandbox.path())
+                sandbox.create_plugin($id)
             };
 
             plugin.tool.generate_shims(false).await.unwrap();
 
             assert!(
-                sandbox.path().join(".proto/shims").join(if cfg!(windows) {
+                sandbox.proto_dir.join("shims").join(if cfg!(windows) {
                     format!("{}.exe", $id)
                 } else {
                     $id.to_string()
@@ -212,7 +212,7 @@ macro_rules! generate_shims_test {
 
             $(
                 assert!(
-                    sandbox.path().join(".proto/shims").join(if cfg!(windows) {
+                    sandbox.proto_dir.join("shims").join(if cfg!(windows) {
                         format!("{}.exe", $bin)
                     } else {
                         $bin.to_string()
