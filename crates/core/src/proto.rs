@@ -101,8 +101,6 @@ impl ProtoEnvironment {
 
     pub fn get_virtual_paths(&self) -> BTreeMap<PathBuf, PathBuf> {
         BTreeMap::from_iter([
-            // TODO remove in the future
-            (self.cwd.clone(), "/workspace".into()),
             (self.cwd.clone(), "/cwd".into()),
             (self.root.clone(), "/proto".into()),
             (self.home.clone(), "/userhome".into()),

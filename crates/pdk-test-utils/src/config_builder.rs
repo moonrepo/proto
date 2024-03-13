@@ -8,7 +8,7 @@ pub trait ProtoConfigBuilder {
 
 impl ProtoConfigBuilder for ConfigBuilder {
     fn toml_schema(&mut self, schema: serde_json::Value) -> &mut Self {
-        self.insert("schema", schema)
+        self.insert("proto_schema", schema)
     }
 
     fn tool_config(&mut self, config: impl Serialize) -> &mut Self {
