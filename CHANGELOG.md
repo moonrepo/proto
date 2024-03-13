@@ -10,6 +10,13 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 💥 Breaking
+
+- Removed the deprecated `/workspace` as a virtual path prefix, use `/cwd` instead.
+- Rewrote the `proto_pdk_test_utils` crate from the ground up to be easier to use.
+
 ## 0.31.5
 
 #### 🐞 Fixes
