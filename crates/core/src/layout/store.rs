@@ -1,5 +1,5 @@
 use super::product::Product;
-use rustc_hash::FxHashMap;
+use crate::tool_manifest::ToolManifest;
 use starbase_utils::fs;
 use std::path::{Path, PathBuf};
 use warpgate::Id;
@@ -9,11 +9,9 @@ pub struct Store {
     pub dir: PathBuf,
     pub bin_dir: PathBuf,
     pub plugins_dir: PathBuf,
+    pub products_dir: PathBuf,
     pub shims_dir: PathBuf,
     pub temp_dir: PathBuf,
-
-    pub products_dir: PathBuf,
-    pub products: FxHashMap<Id, Product>,
 }
 
 impl Store {
@@ -25,7 +23,6 @@ impl Store {
             shims_dir: dir.join("shims"),
             temp_dir: dir.join("temp"),
             products_dir: dir.join("tools"),
-            products: FxHashMap::default(),
         }
     }
 
@@ -51,6 +48,14 @@ impl Store {
         }
 
         Ok(None)
+    }
+
+    pub fn load_product(&self, id: &Id) -> miette::Result<Product> {
+        Ok(Product {
+            dir: self.products_dir.join(id.as_str()),
+            temp_dir: self.temp_dir.join(id.as_str()),
+            manifest: ToolManifest::load_from(&self.dir)?,
+        })
     }
 
     pub fn save_preferred_profile(&self, path: &Path) -> miette::Result<()> {

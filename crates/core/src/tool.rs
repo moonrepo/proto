@@ -2,13 +2,14 @@ use crate::checksum::verify_checksum;
 use crate::error::ProtoError;
 use crate::events::*;
 use crate::helpers::{
-    extract_filename_from_url, get_proto_version, is_archive_file, is_cache_enabled, is_offline,
-    remove_bin_file, ENV_VAR,
+    extract_filename_from_url, get_proto_version, is_archive_file, is_offline, remove_bin_file,
+    ENV_VAR,
 };
+use crate::layout::Product;
 use crate::proto::ProtoEnvironment;
 use crate::proto_config::ProtoConfig;
 use crate::shim_registry::{Shim, ShimRegistry, ShimsMap};
-use crate::tool_manifest::{ToolManifest, ToolManifestVersion};
+use crate::tool_manifest::ToolManifestVersion;
 use crate::version_resolver::VersionResolver;
 use miette::IntoDiagnostic;
 use proto_pdk_api::*;
@@ -18,14 +19,14 @@ use serde::Serialize;
 use starbase_archive::Archiver;
 use starbase_events::Emitter;
 use starbase_styles::color;
-use starbase_utils::{fs, json};
+use starbase_utils::fs;
 use std::collections::BTreeMap;
 use std::env;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 use tracing::{debug, info, trace, warn};
 use warpgate::{
     download_from_url_to_file,
@@ -43,11 +44,11 @@ pub struct ExecutableLocation {
 
 pub struct Tool {
     pub id: Id,
-    pub manifest: ToolManifest,
     pub metadata: ToolMetadataOutput,
     pub locator: Option<PluginLocator>,
     pub plugin: Arc<PluginContainer>,
     pub proto: Arc<ProtoEnvironment>,
+    pub product: Product,
     pub version: Option<VersionSpec>,
 
     // Events
@@ -82,9 +83,9 @@ impl Tool {
             globals_dir: None,
             globals_prefix: None,
             locator: None,
-            manifest: ToolManifest::load_from(proto.tools_dir.join(id.as_str()))?,
             metadata: ToolMetadataOutput::default(),
             plugin,
+            product: proto.store.load_product(&id)?,
             proto,
             version: None,
             id,
@@ -187,7 +188,7 @@ impl Tool {
             .override_dir
             .as_ref()
             .map(|dir| self.from_virtual_path(dir))
-            .unwrap_or_else(|| self.proto.tools_dir.join(self.id.as_str()))
+            .unwrap_or_else(|| self.product.dir.clone())
     }
 
     /// Return a human readable name for the tool.
@@ -202,10 +203,8 @@ impl Tool {
 
     /// Return an absolute path to a temp directory solely for this tool.
     pub fn get_temp_dir(&self) -> PathBuf {
-        self.proto
-            .store
+        self.product
             .temp_dir
-            .join(self.id.as_str())
             .join(self.get_resolved_version().to_string())
     }
 
@@ -308,6 +307,7 @@ impl Tool {
             for version in versions {
                 let key = VersionSpec::Version(version);
                 let value = self
+                    .product
                     .manifest
                     .versions
                     .get(&key)
@@ -318,12 +318,12 @@ impl Tool {
                 entries.insert(key, value);
             }
 
-            self.manifest.versions = entries;
-            self.manifest.installed_versions = installed;
+            self.product.manifest.versions = entries;
+            self.product.manifest.installed_versions = installed;
         }
 
         if modified {
-            self.manifest.save()?;
+            self.product.manifest.save()?;
         }
 
         Ok(())
@@ -344,41 +344,9 @@ impl Tool {
         let mut versions = LoadVersionsOutput::default();
         let mut cached = false;
 
-        // Don't use the overridden inventory path
-        let cache_path = self
-            .proto
-            .tools_dir
-            .join(self.id.as_str())
-            .join("remote-versions.json");
-
-        // Attempt to read from the cache first
-        if cache_path.exists() {
-            let mut read_cache =
-                // Check if cache is enabled here, so that we can handle offline below
-                if !self.cache || !is_cache_enabled() {
-                    false
-                // Otherwise, only read the cache every 12 hours
-                } else {
-                    let metadata = fs::metadata(&cache_path)?;
-
-                    if let Ok(modified_time) = metadata.modified().or_else(|_| metadata.created()) {
-                        modified_time > SystemTime::now() - Duration::from_secs(60 * 60 * 12)
-                    } else {
-                        false
-                    }
-                };
-
-            // If offline, always read the cache
-            if !read_cache && is_offline() {
-                read_cache = true;
-            }
-
-            if read_cache {
-                debug!(tool = self.id.as_str(), cache = ?cache_path, "Loading from local cache");
-
-                versions = json::read_file(&cache_path)?;
-                cached = true;
-            }
+        if let Some(cached_versions) = self.product.load_remote_versions(!self.cache)? {
+            versions = cached_versions;
+            cached = true;
         }
 
         // Nothing cached, so load from the plugin
@@ -399,14 +367,14 @@ impl Tool {
                     },
                 )?;
 
-                json::write_file(cache_path, &versions, false)?;
+                self.product.save_remote_versions(&versions)?;
             }
         }
 
         // Cache the results and create a resolver
         let mut resolver = VersionResolver::from_output(versions);
 
-        resolver.with_manifest(&self.manifest);
+        resolver.with_manifest(&self.product.manifest);
 
         let config = self.proto.load_config()?;
 
@@ -610,7 +578,9 @@ impl Tool {
             .as_ref()
             // Canary can be overwritten so treat as not-installed
             .is_some_and(|v| {
-                !v.is_latest() && !v.is_canary() && self.manifest.installed_versions.contains(v)
+                !v.is_latest()
+                    && !v.is_canary()
+                    && self.product.manifest.installed_versions.contains(v)
             })
             && dir.exists()
             && !fs::is_dir_locked(dir)
@@ -900,9 +870,8 @@ impl Tool {
         // Lock the install directory. If the inventory has been overridden,
         // lock the internal proto tool directory instead.
         let install_lock = fs::lock_directory(if self.metadata.inventory.override_dir.is_some() {
-            self.proto
-                .tools_dir
-                .join(self.id.as_str())
+            self.product
+                .dir
                 .join(self.get_resolved_version().to_string())
         } else {
             install_dir.clone()
@@ -1242,7 +1211,7 @@ impl Tool {
             return Ok(());
         }
 
-        let is_outdated = self.manifest.shim_version != SHIM_VERSION;
+        let is_outdated = self.product.manifest.shim_version != SHIM_VERSION;
         let force_create = force || is_outdated;
         let find_only = !force_create;
 
@@ -1254,8 +1223,8 @@ impl Tool {
                 "Creating shims as they either do not exist, or are outdated"
             );
 
-            self.manifest.shim_version = SHIM_VERSION;
-            self.manifest.save()?;
+            self.product.manifest.shim_version = SHIM_VERSION;
+            self.product.manifest.save()?;
         }
 
         let mut event = CreatedShimsEvent {
@@ -1474,11 +1443,15 @@ impl Tool {
             .unwrap_or_else(|| version.to_unresolved_spec());
 
         // Add version to manifest
-        self.manifest.installed_versions.insert(version.clone());
-        self.manifest
+        self.product
+            .manifest
+            .installed_versions
+            .insert(version.clone());
+        self.product
+            .manifest
             .versions
             .insert(version.clone(), ToolManifestVersion::default());
-        self.manifest.save()?;
+        self.product.manifest.save()?;
 
         // Pin the global version
         ProtoConfig::update(self.proto.get_config_dir(true), |config| {
@@ -1508,9 +1481,9 @@ impl Tool {
         let mut removed_default_version = false;
 
         // Remove version from manifest
-        self.manifest.installed_versions.remove(&version);
-        self.manifest.versions.remove(&version);
-        self.manifest.save()?;
+        self.product.manifest.installed_versions.remove(&version);
+        self.product.manifest.versions.remove(&version);
+        self.product.manifest.save()?;
 
         // Unpin global version if a match
         ProtoConfig::update(self.proto.get_config_dir(true), |config| {
@@ -1526,14 +1499,14 @@ impl Tool {
 
         // If no more default version, delete the symlink,
         // otherwise the OS will throw errors for missing sources
-        if removed_default_version || self.manifest.installed_versions.is_empty() {
+        if removed_default_version || self.product.manifest.installed_versions.is_empty() {
             for bin in self.get_bin_locations()? {
                 remove_bin_file(bin.path)?;
             }
         }
 
         // If no more versions in general, delete all shims
-        if self.manifest.installed_versions.is_empty() {
+        if self.product.manifest.installed_versions.is_empty() {
             for shim in self.get_shim_locations()? {
                 fs::remove_file(shim.path)?;
             }

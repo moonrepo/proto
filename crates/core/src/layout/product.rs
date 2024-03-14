@@ -2,8 +2,6 @@ use super::model::Model;
 use crate::helpers::{is_cache_enabled, is_offline};
 use crate::tool_manifest::ToolManifest;
 use proto_pdk_api::LoadVersionsOutput;
-use rustc_hash::FxHashMap;
-use semver::Version;
 use starbase_utils::{fs, json};
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
@@ -11,15 +9,11 @@ use std::time::{Duration, SystemTime};
 #[derive(Clone)]
 pub struct Product {
     pub dir: PathBuf,
+    pub manifest: ToolManifest,
     pub temp_dir: PathBuf,
-    pub models: FxHashMap<Version, Model>,
 }
 
 impl Product {
-    pub fn load_manifest(&self) -> miette::Result<ToolManifest> {
-        ToolManifest::load_from(&self.dir)
-    }
-
     pub fn load_remote_versions(
         &self,
         cache_disabled: bool,
@@ -56,8 +50,8 @@ impl Product {
         Ok(None)
     }
 
-    pub fn save_remote_versions(&self, data: LoadVersionsOutput) -> miette::Result<()> {
-        json::write_file(self.dir.join("remote-versions.json"), &data, false)?;
+    pub fn save_remote_versions(&self, data: &LoadVersionsOutput) -> miette::Result<()> {
+        json::write_file(self.dir.join("remote-versions.json"), data, false)?;
 
         Ok(())
     }

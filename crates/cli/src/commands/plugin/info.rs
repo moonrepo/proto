@@ -60,7 +60,7 @@ pub async fn info(args: ArgsRef<InfoPluginArgs>, proto: ResourceRef<ProtoResourc
             shims: tool.get_shim_locations()?,
             id: tool.id,
             name: tool.metadata.name.clone(),
-            manifest: tool.manifest,
+            manifest: tool.product.manifest,
             metadata: tool.metadata,
             plugin: tool.locator.unwrap(),
         };
@@ -136,7 +136,12 @@ pub async fn info(args: ArgsRef<InfoPluginArgs>, proto: ResourceRef<ProtoResourc
             Some(color::failure("None")),
         );
 
-        let mut versions = tool.manifest.installed_versions.iter().collect::<Vec<_>>();
+        let mut versions = tool
+            .product
+            .manifest
+            .installed_versions
+            .iter()
+            .collect::<Vec<_>>();
         versions.sort();
 
         p.entry_list(

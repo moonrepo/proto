@@ -62,7 +62,7 @@ pub async fn list(args: ArgsRef<ListPluginsArgs>, proto: ResourceRef<ProtoResour
                         name,
                         locator: t.locator,
                         config: tool_config,
-                        manifest: t.manifest,
+                        manifest: t.product.manifest,
                     },
                 )
             })
@@ -110,7 +110,12 @@ pub async fn list(args: ArgsRef<ListPluginsArgs>, proto: ResourceRef<ProtoResour
 
             // --versions
             if args.versions {
-                let mut versions = tool.manifest.installed_versions.iter().collect::<Vec<_>>();
+                let mut versions = tool
+                    .product
+                    .manifest
+                    .installed_versions
+                    .iter()
+                    .collect::<Vec<_>>();
                 versions.sort();
 
                 p.entry_map(
@@ -121,12 +126,13 @@ pub async fn list(args: ArgsRef<ListPluginsArgs>, proto: ResourceRef<ProtoResour
                             let mut comments = vec![];
                             let mut is_default = false;
 
-                            if let Some(meta) = &tool.manifest.versions.get(version) {
+                            if let Some(meta) = &tool.product.manifest.versions.get(version) {
                                 if let Some(at) = create_datetime(meta.installed_at) {
                                     comments.push(format!("installed {}", at.format("%x")));
                                 }
 
                                 if let Ok(Some(last_used)) = tool
+                                    .product
                                     .manifest
                                     .load_used_at(inventory_dir.join(version.to_string()))
                                 {

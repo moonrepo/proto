@@ -13,7 +13,6 @@ use warpgate::PluginLoader;
 pub struct ProtoEnvironment {
     pub cwd: PathBuf,
     pub env_mode: Option<String>,
-    pub tools_dir: PathBuf,
     pub home: PathBuf, // ~
     pub root: PathBuf, // ~/.proto
     pub store: Store,
@@ -44,7 +43,6 @@ impl ProtoEnvironment {
         Ok(ProtoEnvironment {
             cwd: env::current_dir().expect("Unable to determine current working directory!"),
             env_mode: env::var("PROTO_ENV").ok(),
-            tools_dir: root.join("tools"),
             home: get_home_dir()?,
             root: root.to_owned(),
             config_manager: Arc::new(OnceCell::new()),
