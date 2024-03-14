@@ -22,13 +22,13 @@ pub async fn regen(args: ArgsRef<RegenArgs>, proto: ResourceRef<ProtoResource>) 
     // Delete all shims
     debug!("Removing old shims");
 
-    fs::remove_dir_all(&proto.env.shims_dir)?;
+    fs::remove_dir_all(&proto.env.store.shims_dir)?;
 
     // Delete all bins (except for proto)
     if args.bin {
         debug!("Removing old bins");
 
-        for file in fs::read_dir_all(&proto.env.bin_dir)? {
+        for file in fs::read_dir_all(&proto.env.store.bin_dir)? {
             let path = file.path();
             let name = fs::file_name(&path);
 

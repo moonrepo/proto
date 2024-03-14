@@ -47,6 +47,7 @@ starbase_utils = { workspace = true, features = ["fs-lock"] }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 url = "2.5.0"
+uuid = { workspace = true }
 
 [dev-dependencies]
 starbase_sandbox = { workspace = true }

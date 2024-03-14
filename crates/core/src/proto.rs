@@ -1,4 +1,5 @@
 use crate::helpers::{get_home_dir, get_proto_home, is_offline};
+use crate::layout::Store;
 use crate::proto_config::{ProtoConfig, ProtoConfigFile, ProtoConfigManager, PROTO_CONFIG_NAME};
 use once_cell::sync::OnceCell;
 use starbase_utils::fs;
@@ -11,15 +12,14 @@ use warpgate::PluginLoader;
 
 #[derive(Clone)]
 pub struct ProtoEnvironment {
-    pub bin_dir: PathBuf,
     pub cwd: PathBuf,
     pub env_mode: Option<String>,
     pub plugins_dir: PathBuf,
-    pub shims_dir: PathBuf,
     pub temp_dir: PathBuf,
     pub tools_dir: PathBuf,
     pub home: PathBuf, // ~
     pub root: PathBuf, // ~/.proto
+    pub store: Store,
 
     config_manager: Arc<OnceCell<ProtoConfigManager>>,
     plugin_loader: Arc<OnceCell<PluginLoader>>,
@@ -45,11 +45,9 @@ impl ProtoEnvironment {
         debug!(store = ?root, "Creating proto environment, detecting store");
 
         Ok(ProtoEnvironment {
-            bin_dir: root.join("bin"),
             cwd: env::current_dir().expect("Unable to determine current working directory!"),
             env_mode: env::var("PROTO_ENV").ok(),
             plugins_dir: root.join("plugins"),
-            shims_dir: root.join("shims"),
             temp_dir: root.join("temp"),
             tools_dir: root.join("tools"),
             home: get_home_dir()?,
@@ -57,6 +55,7 @@ impl ProtoEnvironment {
             config_manager: Arc::new(OnceCell::new()),
             plugin_loader: Arc::new(OnceCell::new()),
             test_mode: false,
+            store: Store::new(root),
         })
     }
 

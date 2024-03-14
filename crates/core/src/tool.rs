@@ -385,7 +385,7 @@ impl Tool {
             if is_offline() {
                 return Err(ProtoError::InternetConnectionRequiredForVersion {
                     command: format!("{}_VERSION=1.2.3 {}", self.get_env_var_prefix(), self.id),
-                    bin_dir: self.proto.bin_dir.clone(),
+                    bin_dir: self.proto.store.bin_dir.clone(),
                 }
                 .into());
             }
@@ -1082,7 +1082,7 @@ impl Tool {
                     .is_some()
             {
                 locations.push(ExecutableLocation {
-                    path: self.proto.bin_dir.join(get_exe_file_name(name)),
+                    path: self.proto.store.bin_dir.join(get_exe_file_name(name)),
                     name: name.to_owned(),
                     config,
                     primary,
@@ -1129,7 +1129,7 @@ impl Tool {
         let mut add = |name: &str, config: ExecutableConfig, primary: bool| {
             if !config.no_shim {
                 locations.push(ExecutableLocation {
-                    path: self.proto.shims_dir.join(get_shim_file_name(name)),
+                    path: self.proto.store.shims_dir.join(get_shim_file_name(name)),
                     name: name.to_owned(),
                     config: config.clone(),
                     primary,
@@ -1248,7 +1248,7 @@ impl Tool {
         if force_create {
             debug!(
                 tool = self.id.as_str(),
-                shims_dir = ?self.proto.shims_dir,
+                shims_dir = ?self.proto.store.shims_dir,
                 shim_version = SHIM_VERSION,
                 "Creating shims as they either do not exist, or are outdated"
             );
@@ -1268,11 +1268,11 @@ impl Tool {
         let shim_binary =
             fs::read_file_bytes(locate_proto_exe("proto-shim").ok_or_else(|| {
                 ProtoError::MissingShimBinary {
-                    bin_dir: self.proto.bin_dir.clone(),
+                    bin_dir: self.proto.store.bin_dir.clone(),
                 }
             })?)?;
 
-        fs::create_dir_all(&self.proto.shims_dir)?;
+        fs::create_dir_all(&self.proto.store.shims_dir)?;
 
         for location in shims {
             let mut shim_entry = Shim::default();
@@ -1345,12 +1345,12 @@ impl Tool {
         if force {
             debug!(
                 tool = self.id.as_str(),
-                bins_dir = ?self.proto.bin_dir,
+                bins_dir = ?self.proto.store.bin_dir,
                 "Creating symlinks to the original tool executables"
             );
         }
 
-        fs::create_dir_all(&self.proto.bin_dir)?;
+        fs::create_dir_all(&self.proto.store.bin_dir)?;
 
         let tool_dir = self.get_tool_dir();
         let mut event = CreatedBinariesEvent { bins: vec![] };

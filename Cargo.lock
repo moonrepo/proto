@@ -2303,6 +2303,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
+ "uuid",
  "version_spec",
  "warpgate",
 ]

@@ -9,7 +9,6 @@ use miette::IntoDiagnostic;
 use proto_shim::get_exe_file_name;
 use starbase::system;
 use starbase_styles::color;
-use starbase_utils::fs;
 use std::env;
 use std::io::stdout;
 use std::io::IsTerminal;
@@ -36,13 +35,9 @@ pub struct SetupArgs {
 pub async fn setup(args: ArgsRef<SetupArgs>, proto: ResourceRef<ProtoResource>) {
     let shell = detect_shell(args.shell);
     let paths = env::split_paths(&env::var("PATH").unwrap()).collect::<Vec<_>>();
+    let installed_bin_path = proto.env.store.bin_dir.join(get_exe_file_name("proto"));
 
-    let installed_bin_path = env::var("PROTO_INSTALL_DIR")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| proto.env.root.join("bin"))
-        .join(get_exe_file_name("proto"));
-
-    if paths.contains(&proto.env.shims_dir) && paths.contains(&proto.env.bin_dir) {
+    if paths.contains(&proto.env.store.shims_dir) && paths.contains(&proto.env.store.bin_dir) {
         debug!("Skipping setup, proto already exists in PATH");
 
         already_setup_message(installed_bin_path);
@@ -137,10 +132,7 @@ pub async fn setup(args: ArgsRef<SetupArgs>, proto: ResourceRef<ProtoResource>) 
 
     // If we found a profile, update the global config so we can reference it
     if let Some(profile) = &profile_path {
-        fs::write_file(
-            proto.env.root.join("profile"),
-            profile.as_os_str().as_encoded_bytes(),
-        )?;
+        proto.env.store.save_preferred_profile(profile)?;
     }
 
     finished_message(installed_bin_path, profile_path, Some(content));

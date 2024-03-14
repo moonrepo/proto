@@ -64,7 +64,7 @@ pub async fn upgrade(proto: ResourceRef<ProtoResource>) {
 
     let upgraded = unpack_release(
         result,
-        proto.env.bin_dir.clone(),
+        proto.env.store.bin_dir.clone(),
         proto.env.tools_dir.join("proto").join(current_version),
         true,
     )?;
