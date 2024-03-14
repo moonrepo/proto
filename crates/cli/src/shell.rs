@@ -175,12 +175,12 @@ pub fn format_exports(shell: &Shell, comment: &str, exports: Vec<Export>) -> Opt
     Some(lines.join(newline))
 }
 
-pub fn write_profile(profile: &Path, contents: &str, env_var: &str) -> miette::Result<()> {
+pub fn write_profile(profile: &Path, contents: &str, env_var: &str) -> miette::Result<PathBuf> {
     fs::append_file(profile, contents)?;
 
     debug!("Setup profile {} with {}", color::path(profile), env_var,);
 
-    Ok(())
+    Ok(profile.to_path_buf())
 }
 
 pub fn write_profile_if_not_setup(
@@ -230,9 +230,7 @@ pub fn write_profile_if_not_setup(
         color::path(last_profile),
     );
 
-    write_profile(last_profile, contents, env_var)?;
-
-    Ok(Some(last_profile.to_path_buf()))
+    Ok(Some(write_profile(last_profile, contents, env_var)?))
 }
 
 #[cfg(test)]

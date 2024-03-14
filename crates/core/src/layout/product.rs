@@ -16,7 +16,7 @@ pub struct Product {
 impl Product {
     pub fn load_remote_versions(
         &self,
-        cache_disabled: bool,
+        disable_cache: bool,
     ) -> miette::Result<Option<LoadVersionsOutput>> {
         let cache_path = self.dir.join("remote-versions.json");
 
@@ -24,7 +24,7 @@ impl Product {
         if cache_path.exists() {
             let mut read_cache =
                 // Check if cache is enabled here, so that we can handle offline below
-                if cache_disabled || !is_cache_enabled() {
+                if disable_cache || !is_cache_enabled() {
                     false
                 // Otherwise, only read the cache every 12 hours
                 } else {

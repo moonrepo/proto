@@ -255,12 +255,24 @@ fn update_shell(tool: &Tool, passthrough_args: Vec<String>) -> miette::Result<()
     }
 
     if let Some(content) = shell::format_exports(&shell_type, tool.id.as_str(), exports) {
-        let updated_profile = match tool.proto.get_profile_path()? {
-            Some(profile_path) => {
-                shell::write_profile(&profile_path, &content, &output.check_var)?;
-
-                Some(profile_path)
+        let profile_path = tool.proto.store.load_preferred_profile()?.and_then(|file| {
+            if file.exists() {
+                Some(file)
+            } else {
+                debug!(
+                    profile = ?file,
+                    "Configured shell profile path does not exist, will not use",
+                );
+                None
             }
+        });
+
+        let updated_profile = match profile_path {
+            Some(profile_path) => Some(shell::write_profile(
+                &profile_path,
+                &content,
+                &output.check_var,
+            )?),
             None => shell::write_profile_if_not_setup(&shell_type, &content, &output.check_var)?,
         };
 

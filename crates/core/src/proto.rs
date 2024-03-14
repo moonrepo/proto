@@ -72,21 +72,6 @@ impl ProtoEnvironment {
         })
     }
 
-    pub fn get_profile_path(&self) -> miette::Result<Option<PathBuf>> {
-        if let Some(profile_path) = self.store.load_preferred_profile()? {
-            if profile_path.exists() {
-                return Ok(Some(profile_path));
-            } else {
-                debug!(
-                    profile = ?profile_path,
-                    "Configured shell profile path does not exist, will not use",
-                );
-            }
-        }
-
-        Ok(None)
-    }
-
     pub fn get_virtual_paths(&self) -> BTreeMap<PathBuf, PathBuf> {
         BTreeMap::from_iter([
             (self.cwd.clone(), "/cwd".into()),
