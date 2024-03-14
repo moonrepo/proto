@@ -157,7 +157,12 @@ pub fn format_export(shell: &Shell, var: Export) -> Option<String> {
 }
 
 pub fn format_exports(shell: &Shell, comment: &str, exports: Vec<Export>) -> Option<String> {
-    let mut lines = vec![format!("\n# {comment}")];
+    let newline = if matches!(shell, Shell::PowerShell) {
+        "\r\n"
+    } else {
+        "\n"
+    };
+    let mut lines = vec![format!("{newline}# {comment}")];
 
     for export in exports {
         match format_export(shell, export) {
@@ -166,7 +171,7 @@ pub fn format_exports(shell: &Shell, comment: &str, exports: Vec<Export>) -> Opt
         };
     }
 
-    Some(lines.join("\n"))
+    Some(lines.join(newline))
 }
 
 pub fn write_profile(profile: &Path, contents: &str, env_var: &str) -> miette::Result<()> {
@@ -276,7 +281,9 @@ set -gx PATH "$PROTO_HOME/shims:$PROTO_HOME/bin" $PATH"#
     #[test]
     fn formats_pwsh_env_vars() {
         assert_eq!(
-            format_exports(&Shell::PowerShell, "PowerShell", get_env_vars()).unwrap(),
+            format_exports(&Shell::PowerShell, "PowerShell", get_env_vars())
+                .unwrap()
+                .replace("\r\n", "\n"),
             r#"
 # PowerShell
 $env:PROTO_HOME = Join-Path $HOME ".proto"
