@@ -2,7 +2,6 @@ use crate::helpers::{get_home_dir, get_proto_home, is_offline};
 use crate::layout::Store;
 use crate::proto_config::{ProtoConfig, ProtoConfigFile, ProtoConfigManager, PROTO_CONFIG_NAME};
 use once_cell::sync::OnceCell;
-use starbase_utils::fs;
 use std::collections::BTreeMap;
 use std::env;
 use std::path::{Path, PathBuf};
@@ -14,8 +13,6 @@ use warpgate::PluginLoader;
 pub struct ProtoEnvironment {
     pub cwd: PathBuf,
     pub env_mode: Option<String>,
-    pub plugins_dir: PathBuf,
-    pub temp_dir: PathBuf,
     pub tools_dir: PathBuf,
     pub home: PathBuf, // ~
     pub root: PathBuf, // ~/.proto
@@ -47,8 +44,6 @@ impl ProtoEnvironment {
         Ok(ProtoEnvironment {
             cwd: env::current_dir().expect("Unable to determine current working directory!"),
             env_mode: env::var("PROTO_ENV").ok(),
-            plugins_dir: root.join("plugins"),
-            temp_dir: root.join("temp"),
             tools_dir: root.join("tools"),
             home: get_home_dir()?,
             root: root.to_owned(),
@@ -71,7 +66,7 @@ impl ProtoEnvironment {
         let config = self.load_config()?;
 
         self.plugin_loader.get_or_try_init(|| {
-            let mut loader = PluginLoader::new(&self.plugins_dir, &self.temp_dir);
+            let mut loader = PluginLoader::new(&self.store.plugins_dir, &self.store.temp_dir);
             loader.set_client_options(&config.settings.http);
             loader.set_offline_checker(is_offline);
 
@@ -80,11 +75,7 @@ impl ProtoEnvironment {
     }
 
     pub fn get_profile_path(&self) -> miette::Result<Option<PathBuf>> {
-        let cache_file = self.root.join("profile");
-
-        if cache_file.exists() {
-            let profile_path = PathBuf::from(fs::read_file(cache_file)?);
-
+        if let Some(profile_path) = self.store.load_preferred_profile()? {
             if profile_path.exists() {
                 return Ok(Some(profile_path));
             } else {

@@ -203,6 +203,7 @@ impl Tool {
     /// Return an absolute path to a temp directory solely for this tool.
     pub fn get_temp_dir(&self) -> PathBuf {
         self.proto
+            .store
             .temp_dir
             .join(self.id.as_str())
             .join(self.get_resolved_version().to_string())

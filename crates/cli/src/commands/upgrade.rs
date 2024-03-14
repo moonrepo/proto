@@ -44,7 +44,7 @@ pub async fn upgrade(proto: ResourceRef<ProtoResource>) {
     let result = download_release(
         &triple_target,
         &latest_version,
-        &proto.env.temp_dir,
+        &proto.env.store.temp_dir,
         |downloaded_size, total_size| {
             if downloaded_size == 0 {
                 pb.set_length(total_size);

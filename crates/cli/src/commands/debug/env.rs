@@ -16,9 +16,9 @@ pub async fn env(proto: ResourceRef<ProtoResource>) {
         p.entry("Root", color::path(&proto.env.root));
         p.entry("Bins", color::path(&proto.env.store.bin_dir));
         p.entry("Shims", color::path(&proto.env.store.shims_dir));
-        p.entry("Plugins", color::path(&proto.env.plugins_dir));
+        p.entry("Plugins", color::path(&proto.env.store.plugins_dir));
         p.entry("Tools", color::path(&proto.env.tools_dir));
-        p.entry("Temp", color::path(&proto.env.temp_dir));
+        p.entry("Temp", color::path(&proto.env.store.temp_dir));
         p.entry_map(
             "Virtual",
             proto

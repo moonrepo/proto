@@ -1,6 +1,5 @@
 use proto_core::{is_offline, ProtoEnvironment};
 use rustc_hash::FxHashMap;
-use starbase_utils::fs;
 use std::env::{self, consts};
 use tracing::debug;
 
@@ -71,20 +70,6 @@ impl Metric {
     }
 }
 
-fn load_or_create_anonymous_uid(proto: &ProtoEnvironment) -> miette::Result<String> {
-    let id_path = proto.root.join("id");
-
-    if id_path.exists() {
-        return Ok(fs::read_file(id_path)?);
-    }
-
-    let id = uuid::Uuid::new_v4().to_string();
-
-    fs::write_file(id_path, &id)?;
-
-    Ok(id)
-}
-
 pub async fn track_usage(proto: &ProtoEnvironment, metric: Metric) -> miette::Result<()> {
     let config = proto.load_config()?;
 
@@ -95,7 +80,7 @@ pub async fn track_usage(proto: &ProtoEnvironment, metric: Metric) -> miette::Re
     let mut client = reqwest::Client::new().post(metric.get_url());
 
     let mut headers = metric.into_headers();
-    headers.insert("UID".into(), load_or_create_anonymous_uid(proto)?);
+    headers.insert("UID".into(), proto.store.load_uuid()?);
     headers.insert("CLI".into(), env!("CARGO_PKG_VERSION").to_owned());
     headers.insert("OS".into(), consts::OS.to_owned());
     headers.insert("Arch".into(), consts::ARCH.to_owned());

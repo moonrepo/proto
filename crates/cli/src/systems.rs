@@ -54,7 +54,7 @@ pub async fn check_for_new_version(proto: ResourceRef<ProtoResource>) {
     }
 
     // Only check every 12 hours instead of every invocation
-    let cache_file = proto.env.temp_dir.join(".last-version-check");
+    let cache_file = proto.env.store.temp_dir.join(".last-version-check");
 
     if cache_file.exists() {
         if let Some(last_check) = fs::read_file(&cache_file)

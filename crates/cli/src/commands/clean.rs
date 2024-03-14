@@ -171,7 +171,7 @@ pub async fn clean_plugins(proto: &ProtoResource, days: u64) -> miette::Result<u
     let duration = Duration::from_secs(86400 * days);
     let mut clean_count = 0;
 
-    for file in fs::read_dir(&proto.env.plugins_dir)? {
+    for file in fs::read_dir(&proto.env.store.plugins_dir)? {
         let path = file.path();
 
         if path.is_file() {
@@ -251,7 +251,7 @@ pub async fn purge_tool(proto: &ProtoResource, id: &Id, yes: bool) -> miette::Re
 }
 
 pub async fn purge_plugins(proto: &ProtoResource, yes: bool) -> SystemResult {
-    let plugins_dir = &proto.env.plugins_dir;
+    let plugins_dir = &proto.env.store.plugins_dir;
 
     if yes
         || Confirm::new()
@@ -301,7 +301,8 @@ pub async fn internal_clean(proto: &ProtoResource, args: &CleanArgs, yes: bool) 
 
     debug!("Cleaning temporary directory...");
 
-    let results = fs::remove_dir_stale_contents(&proto.env.temp_dir, Duration::from_secs(86400))?;
+    let results =
+        fs::remove_dir_stale_contents(&proto.env.store.temp_dir, Duration::from_secs(86400))?;
 
     if results.files_deleted > 0 {
         info!(
