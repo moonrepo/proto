@@ -85,7 +85,7 @@ pub fn find_profiles(shell: &Shell) -> miette::Result<Vec<PathBuf>> {
     Ok(profiles)
 }
 
-pub fn format_export(shell: &Shell, var: Export) -> Option<String> {
+pub fn format_export(shell: &Shell, var: Export, newline: &str) -> Option<String> {
     let result = match shell {
         Shell::Bash | Shell::Zsh => match var {
             Export::Path(paths) => format!(r#"export PATH="{}:$PATH""#, paths.join(":")),
@@ -131,13 +131,14 @@ pub fn format_export(shell: &Shell, var: Export) -> Option<String> {
 
             match var {
                 Export::Path(paths) => {
-                    let mut value = "$env:PATH = @(\n".to_owned();
+                    let mut value = format!("$env:PATH = @({newline}");
 
                     for path in paths {
-                        value.push_str(&format!("  ({}),\n", join_path(path)))
+                        value.push_str(&format!("  ({}),{newline}", join_path(path)))
                     }
 
-                    value.push_str("  $env:PATH\n");
+                    value.push_str("  $env:PATH");
+                    value.push_str(newline);
                     value.push_str(") -join [IO.PATH]::PathSeparator");
                     value
                 }
@@ -165,7 +166,7 @@ pub fn format_exports(shell: &Shell, comment: &str, exports: Vec<Export>) -> Opt
     let mut lines = vec![format!("{newline}# {comment}")];
 
     for export in exports {
-        match format_export(shell, export) {
+        match format_export(shell, export, newline) {
             Some(var) => lines.push(var),
             None => return None,
         };
