@@ -106,7 +106,7 @@ pub async fn load_tool_from_locator(
 
         trace!(schema = %schema, "Storing schema settings");
 
-        manifest.config.insert("schema".to_string(), schema.clone()); // TODO
+        manifest.config.insert("schema".to_string(), schema.clone()); // TODO remove
         manifest.config.insert("proto_schema".to_string(), schema);
         manifest
 

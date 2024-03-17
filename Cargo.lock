@@ -2707,9 +2707,9 @@ dependencies = [
 
 [[package]]
 name = "schematic"
-version = "0.14.4"
+version = "0.14.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "858b6b4bffeda0b1dfed16395134d87a250f0435842b0d3a7a48909686e69ed9"
+checksum = "ac09b4b9c9fe5068fb44ac5cdc6b282acb175ab39e8b0d1eef737df2aeec3a91"
 dependencies = [
  "garde",
  "indexmap 2.2.5",
@@ -3077,9 +3077,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_utils"
-version = "0.6.0"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "188611d36a605c62158f3b9a1b36a4b3d328d24e0f478a781f77874a8e407dbb"
+checksum = "602b821bd1b020210432bdc5152056defca02dab1f601e86093cb12e842d0fa5"
 dependencies = [
  "dirs 5.0.1",
  "fs4",
@@ -3087,6 +3087,7 @@ dependencies = [
  "miette",
  "once_cell",
  "relative-path",
+ "reqwest",
  "serde",
  "serde_json",
  "starbase_styles",
@@ -3094,6 +3095,7 @@ dependencies = [
  "tokio",
  "toml 0.8.11",
  "tracing",
+ "url",
  "wax",
 ]
 

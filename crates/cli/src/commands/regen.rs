@@ -1,6 +1,5 @@
 use crate::helpers::ProtoResource;
 use clap::Args;
-use proto_core::remove_bin_file;
 use starbase::system;
 use starbase_utils::fs;
 use tracing::{debug, info};
@@ -41,7 +40,7 @@ pub async fn regen(args: ArgsRef<RegenArgs>, proto: ResourceRef<ProtoResource>) 
                 continue;
             }
 
-            remove_bin_file(path)?;
+            proto.env.store.unlink_bin(&path)?;
         }
     }
 

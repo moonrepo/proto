@@ -1,7 +1,7 @@
 use crate::helpers::ProtoResource;
 use clap::Args;
 use dialoguer::Confirm;
-use proto_core::{remove_bin_file, Id, ProtoError, Tool, VersionSpec};
+use proto_core::{Id, ProtoError, Tool, VersionSpec};
 use rustc_hash::FxHashSet;
 use starbase::diagnostics::IntoDiagnostic;
 use starbase::{system, SystemResult};
@@ -237,12 +237,12 @@ pub async fn purge_tool(proto: &ProtoResource, id: &Id, yes: bool) -> miette::Re
 
         // Delete binaries
         for bin in tool.get_bin_locations()? {
-            remove_bin_file(bin.path)?;
+            proto.env.store.unlink_bin(&bin.path)?;
         }
 
         // Delete shims
         for shim in tool.get_shim_locations()? {
-            fs::remove_file(shim.path)?;
+            proto.env.store.remove_shim(&shim.path)?;
         }
 
         info!("Purged {}", tool.get_name());

@@ -11,11 +11,11 @@ use starbase_archive::is_supported_archive_extension;
 use starbase_utils::dirs::home_dir;
 use starbase_utils::fs::{self, FsError};
 use starbase_utils::json::{self, JsonError};
-use std::net::{Shutdown, SocketAddr, TcpStream, ToSocketAddrs};
+use starbase_utils::net;
+use std::io;
 use std::path::Path;
-use std::time::{Duration, SystemTime};
+use std::time::SystemTime;
 use std::{env, path::PathBuf};
-use std::{io, thread};
 use tracing::trace;
 
 pub static ENV_VAR: Lazy<Regex> = Lazy::new(|| Regex::new(r"\$(?<name>[A-Z0-9_]+)").unwrap());
@@ -44,61 +44,6 @@ pub fn get_home_dir() -> miette::Result<PathBuf> {
     Ok(home_dir().ok_or(ProtoError::MissingHomeDir)?)
 }
 
-pub fn get_bin_dir() -> miette::Result<PathBuf> {
-    Ok(get_proto_home()?.join("bin"))
-}
-
-pub fn get_shims_dir() -> miette::Result<PathBuf> {
-    Ok(get_proto_home()?.join("shims"))
-}
-
-pub fn get_temp_dir() -> miette::Result<PathBuf> {
-    Ok(get_proto_home()?.join("temp"))
-}
-
-pub fn get_tools_dir() -> miette::Result<PathBuf> {
-    Ok(get_proto_home()?.join("tools"))
-}
-
-pub fn get_plugins_dir() -> miette::Result<PathBuf> {
-    Ok(get_proto_home()?.join("plugins"))
-}
-
-fn check_connection(address: SocketAddr, timeout: u64) -> bool {
-    trace!("Resolving {address}");
-
-    if let Ok(stream) = TcpStream::connect_timeout(&address, Duration::from_millis(timeout)) {
-        let _ = stream.shutdown(Shutdown::Both);
-
-        return true;
-    }
-
-    false
-}
-
-fn check_connection_from_host(host: String, timeout: u64) -> bool {
-    // Wrap in a thread because resolving a host to an IP address
-    // may take an unknown amount of time. If longer than our timeout,
-    // exit early.
-    let handle = thread::spawn(move || host.to_socket_addrs().ok());
-
-    thread::sleep(Duration::from_millis(timeout));
-
-    if !handle.is_finished() {
-        return false;
-    }
-
-    if let Ok(Some(addresses)) = handle.join() {
-        for address in addresses {
-            if check_connection(address, timeout) {
-                return true;
-            }
-        }
-    }
-
-    false
-}
-
 #[cached(time = 300)]
 #[tracing::instrument]
 pub fn is_offline() -> bool {
@@ -114,57 +59,16 @@ pub fn is_offline() -> bool {
         .map(|v| v.parse().expect("Invalid offline timeout."))
         .unwrap_or(750);
 
-    trace!(timeout, "Checking for an internet connection");
+    let hosts = env::var("PROTO_OFFLINE_HOSTS")
+        .map(|value| {
+            value
+                .split(',')
+                .map(|v| v.trim().to_owned())
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
 
-    // Check these first as they do not need to resolve IP addresses!
-    // These typically happen in milliseconds.
-    let online = [
-        // Cloudflare DNS: https://1.1.1.1/dns/
-        SocketAddr::from(([1, 1, 1, 1], 53)),
-        SocketAddr::from(([1, 0, 0, 1], 53)),
-        // Google DNS: https://developers.google.com/speed/public-dns
-        SocketAddr::from(([8, 8, 8, 8], 53)),
-        SocketAddr::from(([8, 8, 4, 4], 53)),
-    ]
-    .into_iter()
-    .map(|address| thread::spawn(move || check_connection(address, timeout)))
-    .any(|handle| handle.join().is_ok_and(|v| v));
-
-    if online {
-        trace!("Online!");
-
-        return false;
-    }
-
-    // Check these second as they need to resolve IP addresses,
-    // which adds unnecessary time and overhead that can't be
-    // controlled with a native timeout.
-    let mut hosts = vec![
-        "clients3.google.com:80".to_owned(),
-        "detectportal.firefox.com:80".to_owned(),
-        "google.com:80".to_owned(),
-    ];
-
-    if let Ok(user_hosts) = env::var("PROTO_OFFLINE_HOSTS") {
-        for host in user_hosts.split(',') {
-            hosts.push(host.to_owned());
-        }
-    }
-
-    let online = hosts
-        .into_iter()
-        .map(|host| thread::spawn(move || check_connection_from_host(host, timeout)))
-        .any(|handle| handle.join().is_ok_and(|v| v));
-
-    if online {
-        trace!("Online!");
-
-        return false;
-    }
-
-    trace!("Offline!!!");
-
-    true
+    net::is_offline(timeout, hosts)
 }
 
 pub fn is_cache_enabled() -> bool {
@@ -244,22 +148,6 @@ pub fn write_json_file_with_lock<T: Serialize>(
     })?;
 
     fs::write_file_with_lock(path, data)?;
-
-    Ok(())
-}
-
-// Windows copies the file for bins
-#[cfg(windows)]
-pub fn remove_bin_file(path: impl AsRef<Path>) -> miette::Result<()> {
-    fs::remove_file(path)?;
-
-    Ok(())
-}
-
-// Unix uses symlinks for bins
-#[cfg(not(windows))]
-pub fn remove_bin_file(path: impl AsRef<Path>) -> miette::Result<()> {
-    fs::remove_link(path)?;
 
     Ok(())
 }

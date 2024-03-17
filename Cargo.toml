@@ -20,7 +20,7 @@ once_map = "0.4.15"
 regex = { version = "1.10.3", default-features = false, features = ["std"] }
 reqwest = { version = "0.11.26", default-features = false }
 rustc-hash = "1.1.0"
-schematic = { version = "0.14.4", default-features = false }
+schematic = { version = "0.14.5", default-features = false }
 semver = "1.0.22"
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.114"
@@ -39,9 +39,10 @@ starbase_archive = { version = "0.6.0", features = [
 starbase_events = "0.5.1"
 starbase_sandbox = "0.5.0"
 starbase_styles = "0.3.1"
-starbase_utils = { version = "0.6.0", default-features = false, features = [
+starbase_utils = { version = "0.6.1", default-features = false, features = [
     "json",
     "miette",
+    "net",
     "toml",
 ] }
 thiserror = "1.0.58"

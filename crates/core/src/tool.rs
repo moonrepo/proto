@@ -2,8 +2,7 @@ use crate::checksum::verify_checksum;
 use crate::error::ProtoError;
 use crate::events::*;
 use crate::helpers::{
-    extract_filename_from_url, get_proto_version, is_archive_file, is_offline, remove_bin_file,
-    ENV_VAR,
+    extract_filename_from_url, get_proto_version, is_archive_file, is_offline, ENV_VAR,
 };
 use crate::layout::Product;
 use crate::proto::ProtoEnvironment;
@@ -19,7 +18,7 @@ use serde::Serialize;
 use starbase_archive::Archiver;
 use starbase_events::Emitter;
 use starbase_styles::color;
-use starbase_utils::fs;
+use starbase_utils::{fs, net};
 use std::collections::BTreeMap;
 use std::env;
 use std::fmt::Debug;
@@ -29,7 +28,6 @@ use std::sync::Arc;
 use std::time::Duration;
 use tracing::{debug, info, trace, warn};
 use warpgate::{
-    download_from_url_to_file,
     host_funcs::{create_host_functions, HostData},
     Id, PluginContainer, PluginLocator, PluginManifest, VirtualPath, Wasm,
 };
@@ -675,7 +673,7 @@ impl Tool {
                     "Attempting to download and unpack sources",
                 );
 
-                download_from_url_to_file(
+                net::download_from_url_with_client(
                     archive_url,
                     &download_file,
                     self.proto.get_plugin_loader()?.get_client()?,
@@ -776,7 +774,7 @@ impl Tool {
         } else {
             debug!(tool = self.id.as_str(), "Tool not downloaded, downloading");
 
-            download_from_url_to_file(&download_url, &download_file, client).await?;
+            net::download_from_url_with_client(&download_url, &download_file, client).await?;
         }
 
         // Verify the checksum if applicable
@@ -792,7 +790,7 @@ impl Tool {
                     "Checksum does not exist, downloading"
                 );
 
-                download_from_url_to_file(&checksum_url, &checksum_file, client).await?;
+                net::download_from_url_with_client(&checksum_url, &checksum_file, client).await?;
             }
 
             self.verify_checksum(
@@ -820,9 +818,9 @@ impl Tool {
                     context: self.create_context(),
                 },
             )?;
-
-            // Is an archive, unpack it
-        } else if is_archive_file(&download_file) {
+        }
+        // Is an archive, unpack it
+        else if is_archive_file(&download_file) {
             let mut archiver = Archiver::new(install_dir, &download_file);
 
             if let Some(prefix) = &options.archive_prefix {
@@ -836,9 +834,9 @@ impl Tool {
             if ext == "gz" && unpacked_path.is_file() {
                 fs::update_perms(unpacked_path, None)?;
             }
-
-            // Not an archive, assume a binary and copy
-        } else {
+        }
+        // Not an archive, assume a binary and copy
+        else {
             let install_path = install_dir.join(get_exe_file_name(&self.id));
 
             fs::rename(&download_file, &install_path)?;
@@ -1235,13 +1233,6 @@ impl Tool {
         let mut registry: ShimsMap = BTreeMap::default();
         registry.insert(self.id.to_string(), Shim::default());
 
-        let shim_binary =
-            fs::read_file_bytes(locate_proto_exe("proto-shim").ok_or_else(|| {
-                ProtoError::MissingShimBinary {
-                    bin_dir: self.proto.store.bin_dir.clone(),
-                }
-            })?)?;
-
         fs::create_dir_all(&self.proto.store.shims_dir)?;
 
         for location in shims {
@@ -1276,12 +1267,7 @@ impl Tool {
             }
 
             // Create the shim file by copying the source bin
-            create_shim(&shim_binary, &location.path, find_only).map_err(|error| {
-                ProtoError::CreateShimFailed {
-                    path: location.path.to_owned(),
-                    error,
-                }
-            })?;
+            self.proto.store.create_shim(&location.path, find_only)?;
 
             // Update the registry
             registry.insert(location.name.clone(), shim_entry);
@@ -1358,20 +1344,8 @@ impl Tool {
                 "Creating binary symlink"
             );
 
-            remove_bin_file(&output_path)?;
-
-            // Windows requires admin privileges to create soft/hard links,
-            // so just copy the binary... Annoying...
-            #[cfg(windows)]
-            {
-                // std::os::windows::fs::symlink_file(input_path, &output_path).into_diagnostic()?;
-                fs::copy_file(input_path, &output_path)?;
-            }
-
-            #[cfg(not(windows))]
-            {
-                std::os::unix::fs::symlink(input_path, &output_path).into_diagnostic()?;
-            }
+            self.proto.store.unlink_bin(&output_path)?;
+            self.proto.store.link_bin(&output_path, &input_path)?;
 
             event.bins.push(location.name);
         }
@@ -1501,14 +1475,14 @@ impl Tool {
         // otherwise the OS will throw errors for missing sources
         if removed_default_version || self.product.manifest.installed_versions.is_empty() {
             for bin in self.get_bin_locations()? {
-                remove_bin_file(bin.path)?;
+                self.proto.store.unlink_bin(&bin.path)?;
             }
         }
 
         // If no more versions in general, delete all shims
         if self.product.manifest.installed_versions.is_empty() {
             for shim in self.get_shim_locations()? {
-                fs::remove_file(shim.path)?;
+                self.proto.store.remove_shim(&shim.path)?;
             }
         }
 
