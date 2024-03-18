@@ -14,6 +14,7 @@
 
 #### 💥 Breaking
 
+- Removed the `PROTO_INSTALL_DIR` environment variable, use `PROTO_HOME` instead.
 - Removed the deprecated `/workspace` as a virtual path prefix, use `/cwd` instead.
 - Rewrote the `proto_pdk_test_utils` crate from the ground up to be easier to use.
 
