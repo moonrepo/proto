@@ -37,6 +37,10 @@ async fn main() -> MainResult {
         modules.push("extism::pdk".into());
     }
 
+    if let Ok(value) = env::var("PROTO_DEBUG_COMMAND") {
+        env::set_var("WARPGATE_DEBUG_COMMAND", value);
+    }
+
     App::setup_tracing_with_options(TracingOptions {
         default_level: if matches!(cli.command, Commands::Bin { .. } | Commands::Run { .. }) {
             LevelFilter::WARN

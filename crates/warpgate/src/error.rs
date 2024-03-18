@@ -123,13 +123,6 @@ pub enum WarpgateError {
     )]
     DownloadNotFound { url: String },
 
-    #[diagnostic(code(plugin::download::failed))]
-    #[error(
-        "Failed to download plugin from {} ({status}).",
-        .url.style(Style::Url),
-    )]
-    DownloadFailed { url: String, status: String },
-
     #[diagnostic(code(plugin::incompatible_runtime))]
     #[error(
         "The loaded {} plugin is incompatible with the current runtime.\nFor plugin consumers, try upgrading to a newer plugin version.\nFor plugin authors, upgrade to the latest runtime and release a new version.",
