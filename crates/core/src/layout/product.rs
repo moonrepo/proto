@@ -3,7 +3,7 @@ use semver::Version;
 use starbase_utils::fs;
 use std::path::PathBuf;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Product {
     pub dir: PathBuf,
     pub version: Version,

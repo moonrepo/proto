@@ -1,5 +1,5 @@
 use crate::error::WarpgateError;
-use starbase_archive::{get_full_file_extension, Archiver};
+use starbase_archive::{is_supported_archive_extension, Archiver};
 use starbase_utils::{fs, glob, net, net::NetError};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -32,7 +32,7 @@ pub async fn download_from_url_to_file(
 
 pub fn move_or_unpack_download(temp_file: &Path, dest_file: &Path) -> miette::Result<()> {
     // Archive supported file extensions
-    if get_full_file_extension(temp_file).is_some() {
+    if is_supported_archive_extension(temp_file) {
         let out_dir = temp_file.parent().unwrap().join("out");
 
         Archiver::new(&out_dir, temp_file).unpack_from_ext()?;

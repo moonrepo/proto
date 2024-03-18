@@ -9,7 +9,7 @@ use starbase_utils::fs;
 use std::path::{Path, PathBuf};
 use warpgate::Id;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Store {
     pub dir: PathBuf,
     pub bin_dir: PathBuf,
@@ -39,10 +39,12 @@ impl Store {
         id: &Id,
         config: &ToolInventoryMetadata,
     ) -> miette::Result<Inventory> {
+        let dir = self.inventory_dir.join(id.as_str());
+
         Ok(Inventory {
-            dir: self.inventory_dir.join(id.as_str()),
+            manifest: ToolManifest::load_from(&dir)?,
+            dir,
             temp_dir: self.temp_dir.join(id.as_str()),
-            manifest: ToolManifest::load_from(&self.dir)?,
             config: config.to_owned(),
         })
     }

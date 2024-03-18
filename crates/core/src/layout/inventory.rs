@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
 use version_spec::VersionSpec;
 
-#[derive(Clone, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct Inventory {
     pub config: ToolInventoryMetadata,
     pub dir: PathBuf,
