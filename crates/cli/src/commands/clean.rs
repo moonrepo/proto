@@ -115,7 +115,7 @@ pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miett
         // - It was recently installed but not used yet
         // - It was installed before we started tracking last used timestamps
         // - The tools run via external commands (e.g. moon)
-        if let Some(product) = &tool.product {
+        if let Some(product) = tool.inventory.create_product(version) {
             if let Ok(Some(last_used)) = product.load_used_at() {
                 if is_older_than_days(now, last_used, days) {
                     debug!(

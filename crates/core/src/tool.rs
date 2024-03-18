@@ -217,6 +217,7 @@ impl Tool {
 
     /// Explicitly set the version to use.
     pub fn set_version(&mut self, version: VersionSpec) {
+        self.product = self.inventory.create_product(&version);
         self.version = Some(version);
     }
 
@@ -423,8 +424,7 @@ impl Tool {
                 })
                 .await?;
 
-            self.product = self.inventory.create_product(&version);
-            self.version = Some(version);
+            self.set_version(version);
 
             return Ok(());
         }
@@ -487,8 +487,7 @@ impl Tool {
             })
             .await?;
 
-        self.product = self.inventory.create_product(&version);
-        self.version = Some(version);
+        self.set_version(version);
 
         Ok(())
     }
@@ -871,8 +870,10 @@ impl Tool {
         // Lock the install directory. If the inventory has been overridden,
         // lock the internal proto tool directory instead.
         let install_lock = fs::lock_directory(if self.metadata.inventory.override_dir.is_some() {
-            self.inventory
-                .dir
+            self.proto
+                .store
+                .inventory_dir
+                .join(self.id.as_str())
                 .join(self.get_resolved_version().to_string())
         } else {
             install_dir.clone()

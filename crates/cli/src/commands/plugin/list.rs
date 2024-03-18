@@ -130,7 +130,7 @@ pub async fn list(args: ArgsRef<ListPluginsArgs>, proto: ResourceRef<ProtoResour
                                     comments.push(format!("installed {}", at.format("%x")));
                                 }
 
-                                if let Some(product) = &tool.product {
+                                if let Some(product) = tool.inventory.create_product(version) {
                                     if let Ok(Some(last_used)) = product.load_used_at() {
                                         if let Some(at) = create_datetime(last_used) {
                                             comments.push(format!("last used {}", at.format("%x")));

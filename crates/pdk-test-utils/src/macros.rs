@@ -46,7 +46,7 @@ macro_rules! generate_download_install_tests {
             };
             let mut tool = plugin.tool;
 
-            tool.version = Some(VersionSpec::parse($version).unwrap());
+            tool.set_version(VersionSpec::parse($version).unwrap());
 
             let temp_dir = tool.get_temp_dir();
 
@@ -74,8 +74,8 @@ macro_rules! generate_download_install_tests {
             let spec = VersionSpec::parse($version).unwrap();
 
             // Fake the installation so we avoid downloading
-            tool.version = Some(spec.clone());
-            tool.manifest.installed_versions.insert(spec);
+            tool.set_version(spec.clone());
+            tool.inventory.manifest.installed_versions.insert(spec);
 
             std::fs::create_dir_all(&tool.get_tool_dir()).unwrap();
 
