@@ -2049,7 +2049,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.31.6"
+version = "0.32.0"
 dependencies = [
  "cached",
  "human-sort",
@@ -2108,7 +2108,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.19.7"
+version = "0.20.0"
 dependencies = [
  "extism",
  "proto_core",
@@ -3364,7 +3364,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.11.6"
+version = "0.11.7"
 dependencies = [
  "extism",
  "miette 7.2.0",
