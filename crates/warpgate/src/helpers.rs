@@ -34,19 +34,20 @@ pub fn move_or_unpack_download(temp_file: &Path, dest_file: &Path) -> miette::Re
     if get_full_file_extension(temp_file).is_some() {
         let out_dir = temp_file.parent().unwrap().join("out");
 
-        Archiver::new(&out_dir, dest_file).unpack_from_ext()?;
+        Archiver::new(&out_dir, temp_file).unpack_from_ext()?;
 
         let wasm_files = glob::walk_files(&out_dir, ["**/*.wasm"])?;
 
         if wasm_files.is_empty() {
-            return Err(miette::miette!(
-                "No applicable `.wasm` file could be found in downloaded plugin.",
-            ));
+            return Err(WarpgateError::DownloadNoWasm {
+                path: temp_file.to_path_buf(),
+            }
+            .into());
 
             // Find a release file first, as some archives include the target folder
         } else if let Some(release_wasm) = wasm_files
             .iter()
-            .find(|f| f.to_string_lossy().contains("release"))
+            .find(|file| file.to_string_lossy().contains("release"))
         {
             fs::rename(release_wasm, dest_file)?;
 
@@ -65,17 +66,19 @@ pub fn move_or_unpack_download(temp_file: &Path, dest_file: &Path) -> miette::Re
             fs::rename(temp_file, dest_file)?;
         }
 
-        Some(x) => {
-            return Err(miette::miette!(
-                "Unsupported file extension `{}` for downloaded plugin.",
-                x
-            ));
+        Some(ext) => {
+            return Err(WarpgateError::DownloadUnsupportedExtension {
+                ext: ext.to_owned(),
+                path: temp_file.to_path_buf(),
+            }
+            .into());
         }
 
         None => {
-            return Err(miette::miette!(
-                "Unsure how to handle downloaded plugin as no file extension/type could be derived."
-            ));
+            return Err(WarpgateError::DownloadUnknownType {
+                path: temp_file.to_path_buf(),
+            }
+            .into());
         }
     };
 

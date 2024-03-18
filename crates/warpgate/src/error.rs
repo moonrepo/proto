@@ -48,19 +48,6 @@ pub enum WarpgateError {
         tag: String,
     },
 
-    #[diagnostic(code(plugin::wapm::module_missing))]
-    #[error(
-        "Cannot download {} plugin from wamp.io ({}), no applicable module found for release {}.",
-        .id.style(Style::Id),
-        .package.style(Style::Id),
-        .version,
-    )]
-    WapmModuleMissing {
-        id: Id,
-        package: String,
-        version: String,
-    },
-
     #[diagnostic(code(plugin::create::failed))]
     #[error("Failed to load and create {} plugin: {error}", .id.style(Style::Id))]
     PluginCreateFailed {
@@ -122,6 +109,29 @@ pub enum WarpgateError {
         .url.style(Style::Url),
     )]
     DownloadNotFound { url: String },
+
+    #[diagnostic(code(plugin::download::no_wasm))]
+    #[error(
+        "No applicable {} file could be found in downloaded plugin {}.",
+        ".wasm".style(Style::File),
+        .path.style(Style::Path),
+    )]
+    DownloadNoWasm { path: PathBuf },
+
+    #[diagnostic(code(plugin::download::unsupported_extension))]
+    #[error(
+        "Unsupported file extension {} for downloaded plugin {}.",
+        .ext.style(Style::File),
+        .path.style(Style::Path),
+    )]
+    DownloadUnsupportedExtension { ext: String, path: PathBuf },
+
+    #[diagnostic(code(plugin::download::unknown_type))]
+    #[error(
+        "Unsure how to handle downloaded plugin {} as no file extension/type could be derived.",
+        .path.style(Style::Path),
+    )]
+    DownloadUnknownType { path: PathBuf },
 
     #[diagnostic(code(plugin::incompatible_runtime))]
     #[error(
