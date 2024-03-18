@@ -84,7 +84,7 @@ pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miett
                 error,
             })?;
 
-            if !tool.product.manifest.versions.contains_key(&version) {
+            if !tool.inventory.manifest.versions.contains_key(&version) {
                 debug!(
                     "Version {} not found in manifest, removing",
                     color::hash(version.to_string())
@@ -97,7 +97,7 @@ pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miett
 
     debug!("Comparing last used timestamps from manifest");
 
-    for (version, metadata) in &tool.product.manifest.versions {
+    for (version, metadata) in &tool.inventory.manifest.versions {
         if versions_to_clean.contains(version) {
             continue;
         }
@@ -115,19 +115,17 @@ pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miett
         // - It was recently installed but not used yet
         // - It was installed before we started tracking last used timestamps
         // - The tools run via external commands (e.g. moon)
-        if let Ok(Some(last_used)) = tool
-            .product
-            .manifest
-            .load_used_at(inventory_dir.join(version.to_string()))
-        {
-            if is_older_than_days(now, last_used, days) {
-                debug!(
-                    "Version {} hasn't been used in over {} days, removing",
-                    color::hash(version.to_string()),
-                    days
-                );
+        if let Some(product) = &tool.product {
+            if let Ok(Some(last_used)) = product.load_used_at() {
+                if is_older_than_days(now, last_used, days) {
+                    debug!(
+                        "Version {} hasn't been used in over {} days, removing",
+                        color::hash(version.to_string()),
+                        days
+                    );
 
-                versions_to_clean.insert(version.to_owned());
+                    versions_to_clean.insert(version.to_owned());
+                }
             }
         }
     }
@@ -197,7 +195,7 @@ pub async fn clean_proto(proto: &ProtoResource, days: u64) -> miette::Result<usi
     let duration = Duration::from_secs(86400 * days);
     let mut clean_count = 0;
 
-    for file in fs::read_dir_all(proto.env.store.products_dir.join("proto"))? {
+    for file in fs::read_dir_all(proto.env.store.inventory_dir.join("proto"))? {
         let path = file.path();
 
         if path.is_file() {

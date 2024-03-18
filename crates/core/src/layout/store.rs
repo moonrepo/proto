@@ -1,8 +1,9 @@
-use super::product::Product;
+use super::inventory::Inventory;
 use crate::error::ProtoError;
 use crate::tool_manifest::ToolManifest;
 use miette::IntoDiagnostic;
 use once_cell::sync::OnceCell;
+use proto_pdk_api::ToolInventoryMetadata;
 use proto_shim::{create_shim, locate_proto_exe};
 use starbase_utils::fs;
 use std::path::{Path, PathBuf};
@@ -12,8 +13,8 @@ use warpgate::Id;
 pub struct Store {
     pub dir: PathBuf,
     pub bin_dir: PathBuf,
+    pub inventory_dir: PathBuf,
     pub plugins_dir: PathBuf,
-    pub products_dir: PathBuf,
     pub shims_dir: PathBuf,
     pub temp_dir: PathBuf,
 
@@ -25,12 +26,25 @@ impl Store {
         Self {
             dir: dir.to_path_buf(),
             bin_dir: dir.join("bin"),
-            plugins_dir: dir.join("plugins_dir"),
+            inventory_dir: dir.join("tools"),
+            plugins_dir: dir.join("plugins"),
             shims_dir: dir.join("shims"),
             temp_dir: dir.join("temp"),
-            products_dir: dir.join("tools"),
             shim_binary: OnceCell::new(),
         }
+    }
+
+    pub fn create_inventory(
+        &self,
+        id: &Id,
+        config: &ToolInventoryMetadata,
+    ) -> miette::Result<Inventory> {
+        Ok(Inventory {
+            dir: self.inventory_dir.join(id.as_str()),
+            temp_dir: self.temp_dir.join(id.as_str()),
+            manifest: ToolManifest::load_from(&self.dir)?,
+            config: config.to_owned(),
+        })
     }
 
     pub fn load_uuid(&self) -> miette::Result<String> {
@@ -55,14 +69,6 @@ impl Store {
         }
 
         Ok(None)
-    }
-
-    pub fn load_product(&self, id: &Id) -> miette::Result<Product> {
-        Ok(Product {
-            dir: self.products_dir.join(id.as_str()),
-            temp_dir: self.temp_dir.join(id.as_str()),
-            manifest: ToolManifest::load_from(&self.dir)?,
-        })
     }
 
     pub fn load_shim_binary(&self) -> miette::Result<&Vec<u8>> {

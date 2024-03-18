@@ -28,9 +28,9 @@ where
 
     env::remove_var("PROTO_HOME");
 
-    assert!(tool.get_tool_dir().exists());
+    assert!(tool.get_product_dir().exists());
 
-    let base_dir = proto.store.products_dir.join("moon/1.0.0");
+    let base_dir = proto.store.inventory_dir.join("moon/1.0.0");
 
     if cfg!(windows) {
         assert_eq!(tool.get_exe_path().unwrap(), &base_dir.join("moon.exe"));

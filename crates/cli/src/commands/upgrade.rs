@@ -68,7 +68,7 @@ pub async fn upgrade(proto: ResourceRef<ProtoResource>) {
         proto
             .env
             .store
-            .products_dir
+            .inventory_dir
             .join("proto")
             .join(current_version),
         true,

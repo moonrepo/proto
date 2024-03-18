@@ -4,7 +4,7 @@ use crate::events::*;
 use crate::helpers::{
     extract_filename_from_url, get_proto_version, is_archive_file, is_offline, ENV_VAR,
 };
-use crate::layout::Product;
+use crate::layout::{Inventory, Product};
 use crate::proto::ProtoEnvironment;
 use crate::proto_config::ProtoConfig;
 use crate::shim_registry::{Shim, ShimRegistry, ShimsMap};
@@ -46,8 +46,11 @@ pub struct Tool {
     pub locator: Option<PluginLocator>,
     pub plugin: Arc<PluginContainer>,
     pub proto: Arc<ProtoEnvironment>,
-    pub product: Product,
     pub version: Option<VersionSpec>,
+
+    // Store
+    pub inventory: Inventory,
+    pub product: Option<Product>,
 
     // Events
     pub on_created_bins: Emitter<CreatedBinariesEvent>,
@@ -80,13 +83,14 @@ impl Tool {
             exe_path: None,
             globals_dir: None,
             globals_prefix: None,
+            id,
+            inventory: Inventory::default(),
             locator: None,
             metadata: ToolMetadataOutput::default(),
             plugin,
-            product: proto.store.load_product(&id)?,
+            product: None,
             proto,
             version: None,
-            id,
 
             // Events
             on_created_bins: Emitter::new(),
@@ -178,15 +182,10 @@ impl Tool {
         format!("PROTO_{}", self.id.to_uppercase().replace('-', "_"))
     }
 
-    /// Return an absolute path to the tool's inventory directory. The inventory houses
-    /// installed versions, the manifest, and more.
+    /// Return an absolute path to the tool's inventory directory.
+    /// The inventory houses installed versions, the manifest, and more.
     pub fn get_inventory_dir(&self) -> PathBuf {
-        self.metadata
-            .inventory
-            .override_dir
-            .as_ref()
-            .map(|dir| self.from_virtual_path(dir))
-            .unwrap_or_else(|| self.product.dir.clone())
+        self.inventory.dir.clone()
     }
 
     /// Return a human readable name for the tool.
@@ -201,20 +200,19 @@ impl Tool {
 
     /// Return an absolute path to a temp directory solely for this tool.
     pub fn get_temp_dir(&self) -> PathBuf {
-        self.product
+        self.inventory
             .temp_dir
             .join(self.get_resolved_version().to_string())
     }
 
     /// Return an absolute path to the tool's install directory for the currently resolved version.
-    pub fn get_tool_dir(&self) -> PathBuf {
-        let mut version = self.get_resolved_version().to_string();
-
-        if let Some(suffix) = &self.metadata.inventory.version_suffix {
-            version = format!("{}{}", version, suffix);
+    pub fn get_product_dir(&self) -> PathBuf {
+        if let Some(product) = &self.product {
+            product.dir.to_owned()
+        } else {
+            self.get_inventory_dir()
+                .join(self.get_resolved_version().to_string())
         }
-
-        self.get_inventory_dir().join(version)
     }
 
     /// Explicitly set the version to use.
@@ -245,7 +243,7 @@ impl Tool {
     pub fn create_context(&self) -> ToolContext {
         ToolContext {
             proto_version: Some(get_proto_version()),
-            tool_dir: self.to_virtual_path(&self.get_tool_dir()),
+            tool_dir: self.to_virtual_path(&self.get_product_dir()),
             version: self.get_resolved_version(),
         }
     }
@@ -259,6 +257,11 @@ impl Tool {
             },
         )?;
 
+        let mut inventory = self
+            .proto
+            .store
+            .create_inventory(&self.id, &metadata.inventory)?;
+
         if let Some(override_dir) = &metadata.inventory.override_dir {
             let override_dir_path = override_dir.real_path();
 
@@ -268,8 +271,11 @@ impl Tool {
                 }
                 .into());
             }
+
+            inventory.dir = self.from_virtual_path(override_dir);
         }
 
+        self.inventory = inventory;
         self.metadata = metadata;
 
         Ok(())
@@ -295,6 +301,7 @@ impl Tool {
         }
 
         let mut modified = false;
+        let manifest = &mut self.inventory.manifest;
 
         if let Some(versions) = sync_changes.versions {
             modified = true;
@@ -304,24 +311,18 @@ impl Tool {
 
             for version in versions {
                 let key = VersionSpec::Version(version);
-                let value = self
-                    .product
-                    .manifest
-                    .versions
-                    .get(&key)
-                    .cloned()
-                    .unwrap_or_default();
+                let value = manifest.versions.get(&key).cloned().unwrap_or_default();
 
                 installed.insert(key.clone());
                 entries.insert(key, value);
             }
 
-            self.product.manifest.versions = entries;
-            self.product.manifest.installed_versions = installed;
+            manifest.versions = entries;
+            manifest.installed_versions = installed;
         }
 
         if modified {
-            self.product.manifest.save()?;
+            manifest.save()?;
         }
 
         Ok(())
@@ -342,7 +343,7 @@ impl Tool {
         let mut versions = LoadVersionsOutput::default();
         let mut cached = false;
 
-        if let Some(cached_versions) = self.product.load_remote_versions(!self.cache)? {
+        if let Some(cached_versions) = self.inventory.load_remote_versions(!self.cache)? {
             versions = cached_versions;
             cached = true;
         }
@@ -365,14 +366,14 @@ impl Tool {
                     },
                 )?;
 
-                self.product.save_remote_versions(&versions)?;
+                self.inventory.save_remote_versions(&versions)?;
             }
         }
 
         // Cache the results and create a resolver
         let mut resolver = VersionResolver::from_output(versions);
 
-        resolver.with_manifest(&self.product.manifest);
+        resolver.with_manifest(&self.inventory.manifest);
 
         let config = self.proto.load_config()?;
 
@@ -422,6 +423,7 @@ impl Tool {
                 })
                 .await?;
 
+            self.product = self.inventory.create_product(&version);
             self.version = Some(version);
 
             return Ok(());
@@ -485,6 +487,7 @@ impl Tool {
             })
             .await?;
 
+        self.product = self.inventory.create_product(&version);
         self.version = Some(version);
 
         Ok(())
@@ -570,7 +573,7 @@ impl Tool {
     /// Return true if the tool has been installed. This is less accurate than `is_setup`,
     /// as it only checks for the existence of the inventory directory.
     pub fn is_installed(&self) -> bool {
-        let dir = self.get_tool_dir();
+        let dir = self.get_product_dir();
 
         self.version
             .as_ref()
@@ -578,7 +581,7 @@ impl Tool {
             .is_some_and(|v| {
                 !v.is_latest()
                     && !v.is_canary()
-                    && self.product.manifest.installed_versions.contains(v)
+                    && self.inventory.manifest.installed_versions.contains(v)
             })
             && dir.exists()
             && !fs::is_dir_locked(dir)
@@ -862,13 +865,13 @@ impl Tool {
             return Err(ProtoError::InternetConnectionRequired.into());
         }
 
-        let install_dir = self.get_tool_dir();
+        let install_dir = self.get_product_dir();
         let mut installed = false;
 
         // Lock the install directory. If the inventory has been overridden,
         // lock the internal proto tool directory instead.
         let install_lock = fs::lock_directory(if self.metadata.inventory.override_dir.is_some() {
-            self.product
+            self.inventory
                 .dir
                 .join(self.get_resolved_version().to_string())
         } else {
@@ -939,7 +942,7 @@ impl Tool {
 
     /// Uninstall the tool by deleting the current install directory.
     pub async fn uninstall(&self) -> miette::Result<bool> {
-        let install_dir = self.get_tool_dir();
+        let install_dir = self.get_product_dir();
 
         if !install_dir.exists() {
             debug!(
@@ -1076,7 +1079,7 @@ impl Tool {
         if let Some(primary) = options.primary {
             if let Some(exe_path) = &primary.exe_path {
                 return Ok(Some(ExecutableLocation {
-                    path: self.get_tool_dir().join(exe_path),
+                    path: self.get_product_dir().join(exe_path),
                     name: self.id.to_string(),
                     config: primary,
                     primary: true,
@@ -1123,7 +1126,7 @@ impl Tool {
         let exe_path = if let Some(location) = self.get_exe_location()? {
             location.path
         } else {
-            self.get_tool_dir().join(self.id.as_str())
+            self.get_product_dir().join(self.id.as_str())
         };
 
         if exe_path.exists() {
@@ -1152,7 +1155,7 @@ impl Tool {
             "Locating globals bin directory for tool"
         );
 
-        let install_dir = self.get_tool_dir();
+        let install_dir = self.get_product_dir();
         let options = self.call_locate_executables()?;
 
         self.globals_prefix = options.globals_prefix;
@@ -1209,7 +1212,7 @@ impl Tool {
             return Ok(());
         }
 
-        let is_outdated = self.product.manifest.shim_version != SHIM_VERSION;
+        let is_outdated = self.inventory.manifest.shim_version != SHIM_VERSION;
         let force_create = force || is_outdated;
         let find_only = !force_create;
 
@@ -1221,8 +1224,8 @@ impl Tool {
                 "Creating shims as they either do not exist, or are outdated"
             );
 
-            self.product.manifest.shim_version = SHIM_VERSION;
-            self.product.manifest.save()?;
+            self.inventory.manifest.shim_version = SHIM_VERSION;
+            self.inventory.manifest.save()?;
         }
 
         let mut event = CreatedShimsEvent {
@@ -1308,7 +1311,7 @@ impl Tool {
 
         fs::create_dir_all(&self.proto.store.bin_dir)?;
 
-        let tool_dir = self.get_tool_dir();
+        let tool_dir = self.get_product_dir();
         let mut event = CreatedBinariesEvent { bins: vec![] };
 
         for location in bins {
@@ -1366,7 +1369,7 @@ impl Tool {
     ) -> miette::Result<bool> {
         self.resolve_version(initial_version, true).await?;
 
-        let install_dir = self.get_tool_dir();
+        let install_dir = self.get_product_dir();
 
         debug!(
             tool = self.id.as_str(),
@@ -1417,15 +1420,12 @@ impl Tool {
             .unwrap_or_else(|| version.to_unresolved_spec());
 
         // Add version to manifest
-        self.product
-            .manifest
-            .installed_versions
-            .insert(version.clone());
-        self.product
-            .manifest
+        let manifest = &mut self.inventory.manifest;
+        manifest.installed_versions.insert(version.clone());
+        manifest
             .versions
             .insert(version.clone(), ToolManifestVersion::default());
-        self.product.manifest.save()?;
+        manifest.save()?;
 
         // Pin the global version
         ProtoConfig::update(self.proto.get_config_dir(true), |config| {
@@ -1455,9 +1455,10 @@ impl Tool {
         let mut removed_default_version = false;
 
         // Remove version from manifest
-        self.product.manifest.installed_versions.remove(&version);
-        self.product.manifest.versions.remove(&version);
-        self.product.manifest.save()?;
+        let manifest = &mut self.inventory.manifest;
+        manifest.installed_versions.remove(&version);
+        manifest.versions.remove(&version);
+        manifest.save()?;
 
         // Unpin global version if a match
         ProtoConfig::update(self.proto.get_config_dir(true), |config| {
@@ -1473,14 +1474,14 @@ impl Tool {
 
         // If no more default version, delete the symlink,
         // otherwise the OS will throw errors for missing sources
-        if removed_default_version || self.product.manifest.installed_versions.is_empty() {
+        if removed_default_version || self.inventory.manifest.installed_versions.is_empty() {
             for bin in self.get_bin_locations()? {
                 self.proto.store.unlink_bin(&bin.path)?;
             }
         }
 
         // If no more versions in general, delete all shims
-        if self.product.manifest.installed_versions.is_empty() {
+        if self.inventory.manifest.installed_versions.is_empty() {
             for shim in self.get_shim_locations()? {
                 self.proto.store.remove_shim(&shim.path)?;
             }

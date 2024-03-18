@@ -118,7 +118,7 @@ pub async fn internal_install(
         info!(
             "{} has already been installed at {}",
             tool.get_name(),
-            color::path(tool.get_tool_dir()),
+            color::path(tool.get_product_dir()),
         );
 
         return Ok(tool);
@@ -173,7 +173,7 @@ pub async fn internal_install(
     info!(
         "{} has been installed to {}!",
         tool.get_name(),
-        color::path(tool.get_tool_dir()),
+        color::path(tool.get_product_dir()),
     );
 
     // Track usage metrics

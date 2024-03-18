@@ -18,9 +18,9 @@ pub struct ListArgs {
 pub async fn list(args: ArgsRef<ListArgs>, proto: ResourceRef<ProtoResource>) {
     let tool = proto.load_tool(&args.id).await?;
 
-    debug!(manifest = ?tool.product.manifest.path, "Using versions from manifest");
+    debug!(manifest = ?tool.inventory.manifest.path, "Using versions from manifest");
 
-    let mut versions = Vec::from_iter(tool.product.manifest.installed_versions);
+    let mut versions = Vec::from_iter(tool.inventory.manifest.installed_versions);
 
     if versions.is_empty() {
         eprintln!("No versions installed");

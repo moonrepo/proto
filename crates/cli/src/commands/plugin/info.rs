@@ -60,7 +60,7 @@ pub async fn info(args: ArgsRef<InfoPluginArgs>, proto: ResourceRef<ProtoResourc
             shims: tool.get_shim_locations()?,
             id: tool.id,
             name: tool.metadata.name.clone(),
-            manifest: tool.product.manifest,
+            manifest: tool.inventory.manifest,
             metadata: tool.metadata,
             plugin: tool.locator.unwrap(),
         };
@@ -137,7 +137,7 @@ pub async fn info(args: ArgsRef<InfoPluginArgs>, proto: ResourceRef<ProtoResourc
         );
 
         let mut versions = tool
-            .product
+            .inventory
             .manifest
             .installed_versions
             .iter()

@@ -1,7 +1,7 @@
-mod model;
+mod inventory;
 mod product;
 mod store;
 
-pub use model::*;
+pub use inventory::*;
 pub use product::*;
 pub use store::*;

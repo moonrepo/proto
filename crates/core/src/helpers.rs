@@ -6,17 +6,14 @@ use regex::Regex;
 use semver::Version;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use sha2::{Digest, Sha256};
 use starbase_archive::is_supported_archive_extension;
 use starbase_utils::dirs::home_dir;
-use starbase_utils::fs::{self, FsError};
+use starbase_utils::fs;
 use starbase_utils::json::{self, JsonError};
 use starbase_utils::net;
-use std::io;
 use std::path::Path;
 use std::time::SystemTime;
 use std::{env, path::PathBuf};
-use tracing::trace;
 
 pub static ENV_VAR: Lazy<Regex> = Lazy::new(|| Regex::new(r"\$(?<name>[A-Z0-9_]+)").unwrap());
 
@@ -80,26 +77,6 @@ pub fn is_cache_enabled() -> bool {
 
 pub fn is_archive_file<P: AsRef<Path>>(path: P) -> bool {
     is_supported_archive_extension(path.as_ref())
-}
-
-pub fn hash_file_contents<P: AsRef<Path>>(path: P) -> miette::Result<String> {
-    let path = path.as_ref();
-
-    trace!(file = ?path, "Calculating SHA256 checksum");
-
-    let mut file = fs::open_file(path)?;
-    let mut sha = Sha256::new();
-
-    io::copy(&mut file, &mut sha).map_err(|error| FsError::Read {
-        path: path.to_path_buf(),
-        error,
-    })?;
-
-    let hash = format!("{:x}", sha.finalize());
-
-    trace!(hash, "Calculated hash");
-
-    Ok(hash)
 }
 
 pub fn now() -> u128 {
