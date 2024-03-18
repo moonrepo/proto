@@ -15,7 +15,7 @@ extism = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 starbase_sandbox = { workspace = true }
-toml = { version = "0.8.11", optional = true }
+toml = { version = "0.8.12", optional = true }
 
 [features]
 default = []
