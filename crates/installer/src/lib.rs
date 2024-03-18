@@ -104,23 +104,19 @@ pub fn unpack_release(
         .parent()
         .unwrap()
         .join(&download.file_stem);
-
-    // Unpack the downloaded file
-    Archiver::new(&temp_dir, &download.archive_file).unpack_from_ext()?;
-
-    // Move the old binaries
+    let install_dir = install_dir.as_ref();
     let bin_names = if cfg!(windows) {
         vec!["proto.exe", "proto-shim.exe"]
     } else {
         vec!["proto", "proto-shim"]
     };
-    let bin_dir = match env::var("PROTO_INSTALL_DIR") {
-        Ok(dir) => PathBuf::from(dir),
-        Err(_) => install_dir.as_ref().to_owned(),
-    };
 
+    // Unpack the downloaded file
+    Archiver::new(&temp_dir, &download.archive_file).unpack_from_ext()?;
+
+    // Move the old binaries
     for bin_name in &bin_names {
-        let output_path = bin_dir.join(bin_name);
+        let output_path = install_dir.join(bin_name);
         let relocate_path = relocate_dir.as_ref().join(bin_name);
 
         if output_path.exists() && output_path != relocate_path {
@@ -145,7 +141,7 @@ pub fn unpack_release(
     let mut unpacked = false;
 
     for bin_name in &bin_names {
-        let output_path = bin_dir.join(bin_name);
+        let output_path = install_dir.join(bin_name);
         let input_paths = vec![
             temp_dir.join(&download.file_stem).join(bin_name),
             temp_dir.join(bin_name),

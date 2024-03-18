@@ -60,7 +60,7 @@ pub enum ProtoError {
     #[error(
         "Unable to create shims as the {} binary cannot be found.\nLooked in the {} environment variable and {} directory.",
         "proto-shim".style(Style::Id),
-        "PROTO_INSTALL_DIR".style(Style::Property),
+        "PROTO_HOME".style(Style::Property),
         .bin_dir.style(Style::Path),
     )]
     MissingShimBinary { bin_dir: PathBuf },
