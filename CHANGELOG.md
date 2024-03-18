@@ -17,6 +17,11 @@
 - Removed the deprecated `/workspace` as a virtual path prefix, use `/cwd` instead.
 - Rewrote the `proto_pdk_test_utils` crate from the ground up to be easier to use.
 
+#### ⚙️ Internal
+
+- Updated dependencies.
+- Implemented a new store structure/layout layer for better reliability.
+
 ## 0.31.5
 
 #### 🐞 Fixes

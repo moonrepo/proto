@@ -52,7 +52,7 @@ fn is_trying_to_self_upgrade(tool: &Tool, args: &[String]) -> bool {
 }
 
 fn get_executable(tool: &Tool, args: &RunArgs) -> miette::Result<ExecutableConfig> {
-    let tool_dir = tool.get_tool_dir();
+    let tool_dir = tool.get_product_dir();
 
     // Run an alternate executable (via shim)
     if let Some(alt_name) = &args.alt {
@@ -295,7 +295,9 @@ pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> S
 
     // Update the last used timestamp
     if env::var("PROTO_SKIP_USED_AT").is_err() {
-        let _ = tool.manifest.track_used_at(tool.get_tool_dir());
+        if let Some(product) = &tool.product {
+            let _ = product.track_used_at();
+        }
     }
 
     // Must be the last line!

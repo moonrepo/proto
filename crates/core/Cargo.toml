@@ -1,6 +1,6 @@
 [package]
 name = "proto_core"
-version = "0.31.6"
+version = "0.32.0"
 edition = "2021"
 license = "MIT"
 description = "Core proto APIs."
@@ -16,7 +16,7 @@ system_env = { version = "0.2.4", path = "../system-env", features = [
 version_spec = { version = "0.2.1", path = "../version-spec", features = [
 	"schematic",
 ] }
-warpgate = { version = "0.11.6", path = "../warpgate", features = [
+warpgate = { version = "0.11.7", path = "../warpgate", features = [
 	"schematic",
 ] }
 cached = { workspace = true }
@@ -47,6 +47,7 @@ starbase_utils = { workspace = true, features = ["fs-lock"] }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 url = "2.5.0"
+uuid = { workspace = true }
 
 [dev-dependencies]
 starbase_sandbox = { workspace = true }

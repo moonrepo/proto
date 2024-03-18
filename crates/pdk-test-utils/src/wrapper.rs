@@ -139,7 +139,7 @@ impl WasmTestWrapper {
 
     fn prepare_context(&self, context: ToolContext) -> ToolContext {
         let dir = if context.tool_dir.virtual_path().components().count() == 0 {
-            self.tool.get_tool_dir()
+            self.tool.get_product_dir()
         } else {
             context.tool_dir.virtual_path().to_path_buf()
         };

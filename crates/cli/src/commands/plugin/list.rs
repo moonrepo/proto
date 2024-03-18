@@ -62,7 +62,7 @@ pub async fn list(args: ArgsRef<ListPluginsArgs>, proto: ResourceRef<ProtoResour
                         name,
                         locator: t.locator,
                         config: tool_config,
-                        manifest: t.manifest,
+                        manifest: t.inventory.manifest,
                     },
                 )
             })
@@ -78,7 +78,6 @@ pub async fn list(args: ArgsRef<ListPluginsArgs>, proto: ResourceRef<ProtoResour
 
     for tool in tools {
         let tool_config = config.tools.remove(&tool.id).unwrap_or_default();
-        let inventory_dir = tool.get_inventory_dir();
 
         let mut versions = tool.load_version_resolver(&latest_version).await?;
         versions.aliases.extend(tool_config.aliases);
@@ -110,7 +109,12 @@ pub async fn list(args: ArgsRef<ListPluginsArgs>, proto: ResourceRef<ProtoResour
 
             // --versions
             if args.versions {
-                let mut versions = tool.manifest.installed_versions.iter().collect::<Vec<_>>();
+                let mut versions = tool
+                    .inventory
+                    .manifest
+                    .installed_versions
+                    .iter()
+                    .collect::<Vec<_>>();
                 versions.sort();
 
                 p.entry_map(
@@ -121,17 +125,16 @@ pub async fn list(args: ArgsRef<ListPluginsArgs>, proto: ResourceRef<ProtoResour
                             let mut comments = vec![];
                             let mut is_default = false;
 
-                            if let Some(meta) = &tool.manifest.versions.get(version) {
+                            if let Some(meta) = &tool.inventory.manifest.versions.get(version) {
                                 if let Some(at) = create_datetime(meta.installed_at) {
                                     comments.push(format!("installed {}", at.format("%x")));
                                 }
 
-                                if let Ok(Some(last_used)) = tool
-                                    .manifest
-                                    .load_used_at(inventory_dir.join(version.to_string()))
-                                {
-                                    if let Some(at) = create_datetime(last_used) {
-                                        comments.push(format!("last used {}", at.format("%x")));
+                                if let Some(product) = tool.inventory.create_product(version) {
+                                    if let Ok(Some(last_used)) = product.load_used_at() {
+                                        if let Some(at) = create_datetime(last_used) {
+                                            comments.push(format!("last used {}", at.format("%x")));
+                                        }
                                     }
                                 }
                             }

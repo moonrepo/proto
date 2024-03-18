@@ -33,7 +33,7 @@ impl ShimRegistry {
             return Ok(());
         }
 
-        let file = proto.as_ref().shims_dir.join("registry.json");
+        let file = proto.as_ref().store.shims_dir.join("registry.json");
 
         let mut config: ShimsMap = if file.exists() {
             read_json_file_with_lock(&file)?

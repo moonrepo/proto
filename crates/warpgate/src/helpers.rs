@@ -1,8 +1,6 @@
 use crate::error::WarpgateError;
-use miette::IntoDiagnostic;
-use reqwest::Url;
-use starbase_archive::Archiver;
-use starbase_utils::{fs, glob};
+use starbase_archive::{is_supported_archive_extension, Archiver};
+use starbase_utils::{fs, glob, net, net::NetError};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use warpgate_api::VirtualPath;
@@ -22,96 +20,66 @@ pub async fn download_from_url_to_file(
     temp_file: &Path,
     client: &reqwest::Client,
 ) -> miette::Result<()> {
-    let url = Url::parse(source_url).into_diagnostic()?;
-
-    // Fetch the file from the HTTP source
-    let response = client
-        .get(url)
-        .send()
-        .await
-        .map_err(|error| WarpgateError::Http {
-            error,
-            url: source_url.to_owned(),
-        })?;
-    let status = response.status();
-
-    if status.as_u16() == 404 {
-        return Err(WarpgateError::DownloadNotFound {
-            url: source_url.to_owned(),
-        }
-        .into());
-    }
-
-    if !status.is_success() {
-        return Err(WarpgateError::DownloadFailed {
-            url: source_url.to_owned(),
-            status: status.to_string(),
-        }
-        .into());
-    }
-
-    // Write the bytes to our temporary file
-    fs::write_file(
-        temp_file,
-        response
-            .bytes()
-            .await
-            .map_err(|error| WarpgateError::Http {
-                error,
-                url: source_url.to_owned(),
-            })?,
-    )?;
+    if let Err(error) = net::download_from_url_with_client(source_url, temp_file, client).await {
+        return Err(match error {
+            NetError::UrlNotFound { url } => WarpgateError::DownloadNotFound { url }.into(),
+            _ => error.into(),
+        });
+    };
 
     Ok(())
 }
 
 pub fn move_or_unpack_download(temp_file: &Path, dest_file: &Path) -> miette::Result<()> {
+    // Archive supported file extensions
+    if is_supported_archive_extension(temp_file) {
+        let out_dir = temp_file.parent().unwrap().join("out");
+
+        Archiver::new(&out_dir, temp_file).unpack_from_ext()?;
+
+        let wasm_files = glob::walk_files(&out_dir, ["**/*.wasm"])?;
+
+        if wasm_files.is_empty() {
+            return Err(WarpgateError::DownloadNoWasm {
+                path: temp_file.to_path_buf(),
+            }
+            .into());
+
+            // Find a release file first, as some archives include the target folder
+        } else if let Some(release_wasm) = wasm_files
+            .iter()
+            .find(|file| file.to_string_lossy().contains("release"))
+        {
+            fs::rename(release_wasm, dest_file)?;
+
+            // Otherwise, move the first wasm file available
+        } else {
+            fs::rename(&wasm_files[0], dest_file)?;
+        }
+
+        fs::remove_file(temp_file)?;
+        fs::remove_dir_all(out_dir)?;
+    }
+
+    // Non-archive supported extensions
     match temp_file.extension().and_then(|ext| ext.to_str()) {
-        // Move these files as-is
         Some("wasm" | "toml" | "json" | "jsonc" | "yaml" | "yml") => {
             fs::rename(temp_file, dest_file)?;
         }
 
-        // Unpack archives to temp and move the wasm file
-        Some("tar" | "gz" | "xz" | "tgz" | "txz" | "zst" | "zstd" | "zip") => {
-            let out_dir = temp_file.parent().unwrap().join("out");
-
-            Archiver::new(&out_dir, dest_file).unpack_from_ext()?;
-
-            let wasm_files = glob::walk_files(&out_dir, ["**/*.wasm"])?;
-
-            if wasm_files.is_empty() {
-                return Err(miette::miette!(
-                    "No applicable `.wasm` file could be found in downloaded plugin.",
-                ));
-
-                // Find a release file first, as some archives include the target folder
-            } else if let Some(release_wasm) = wasm_files
-                .iter()
-                .find(|f| f.to_string_lossy().contains("release"))
-            {
-                fs::rename(release_wasm, dest_file)?;
-
-                // Otherwise, move the first wasm file available
-            } else {
-                fs::rename(&wasm_files[0], dest_file)?;
+        Some(ext) => {
+            return Err(WarpgateError::DownloadUnsupportedExtension {
+                ext: ext.to_owned(),
+                path: temp_file.to_path_buf(),
             }
-
-            fs::remove_file(temp_file)?;
-            fs::remove_dir_all(out_dir)?;
-        }
-
-        Some(x) => {
-            return Err(miette::miette!(
-                "Unsupported file extension `{}` for downloaded plugin.",
-                x
-            ));
+            .into());
         }
 
         None => {
-            return Err(miette::miette!(
-                "Unsure how to handle downloaded plugin as no file extension/type could be derived."
-            ));
+            return Err(WarpgateError::DownloadUnknownType {
+                path: temp_file.to_path_buf(),
+            }
+            .into());
         }
     };
 
