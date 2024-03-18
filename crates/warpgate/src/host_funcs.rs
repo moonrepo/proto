@@ -188,7 +188,7 @@ fn exec_command(
         }
     };
 
-    let debug_output = env::var("PROTO_DEBUG_COMMAND").is_ok_and(|v| !v.is_empty());
+    let debug_output = env::var("WARPGATE_DEBUG_COMMAND").is_ok_and(|v| !v.is_empty());
 
     trace!(
         command = ?bin,

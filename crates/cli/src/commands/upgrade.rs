@@ -44,7 +44,7 @@ pub async fn upgrade(proto: ResourceRef<ProtoResource>) {
     let result = download_release(
         &triple_target,
         &latest_version,
-        &proto.env.temp_dir,
+        &proto.env.store.temp_dir,
         |downloaded_size, total_size| {
             if downloaded_size == 0 {
                 pb.set_length(total_size);
@@ -64,8 +64,13 @@ pub async fn upgrade(proto: ResourceRef<ProtoResource>) {
 
     let upgraded = unpack_release(
         result,
-        proto.env.bin_dir.clone(),
-        proto.env.tools_dir.join("proto").join(current_version),
+        proto.env.store.bin_dir.clone(),
+        proto
+            .env
+            .store
+            .inventory_dir
+            .join("proto")
+            .join(current_version),
         true,
     )?;
 

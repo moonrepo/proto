@@ -1,7 +1,7 @@
 use crate::helpers::ProtoResource;
 use clap::Args;
 use dialoguer::Confirm;
-use proto_core::{remove_bin_file, Id, ProtoError, Tool, VersionSpec};
+use proto_core::{Id, ProtoError, Tool, VersionSpec};
 use rustc_hash::FxHashSet;
 use starbase::diagnostics::IntoDiagnostic;
 use starbase::{system, SystemResult};
@@ -84,7 +84,7 @@ pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miett
                 error,
             })?;
 
-            if !tool.manifest.versions.contains_key(&version) {
+            if !tool.inventory.manifest.versions.contains_key(&version) {
                 debug!(
                     "Version {} not found in manifest, removing",
                     color::hash(version.to_string())
@@ -97,7 +97,7 @@ pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miett
 
     debug!("Comparing last used timestamps from manifest");
 
-    for (version, metadata) in &tool.manifest.versions {
+    for (version, metadata) in &tool.inventory.manifest.versions {
         if versions_to_clean.contains(version) {
             continue;
         }
@@ -115,18 +115,17 @@ pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miett
         // - It was recently installed but not used yet
         // - It was installed before we started tracking last used timestamps
         // - The tools run via external commands (e.g. moon)
-        if let Ok(Some(last_used)) = tool
-            .manifest
-            .load_used_at(inventory_dir.join(version.to_string()))
-        {
-            if is_older_than_days(now, last_used, days) {
-                debug!(
-                    "Version {} hasn't been used in over {} days, removing",
-                    color::hash(version.to_string()),
-                    days
-                );
+        if let Some(product) = tool.inventory.create_product(version) {
+            if let Ok(Some(last_used)) = product.load_used_at() {
+                if is_older_than_days(now, last_used, days) {
+                    debug!(
+                        "Version {} hasn't been used in over {} days, removing",
+                        color::hash(version.to_string()),
+                        days
+                    );
 
-                versions_to_clean.insert(version.to_owned());
+                    versions_to_clean.insert(version.to_owned());
+                }
             }
         }
     }
@@ -171,7 +170,7 @@ pub async fn clean_plugins(proto: &ProtoResource, days: u64) -> miette::Result<u
     let duration = Duration::from_secs(86400 * days);
     let mut clean_count = 0;
 
-    for file in fs::read_dir(&proto.env.plugins_dir)? {
+    for file in fs::read_dir(&proto.env.store.plugins_dir)? {
         let path = file.path();
 
         if path.is_file() {
@@ -196,7 +195,7 @@ pub async fn clean_proto(proto: &ProtoResource, days: u64) -> miette::Result<usi
     let duration = Duration::from_secs(86400 * days);
     let mut clean_count = 0;
 
-    for file in fs::read_dir_all(proto.env.tools_dir.join("proto"))? {
+    for file in fs::read_dir_all(proto.env.store.inventory_dir.join("proto"))? {
         let path = file.path();
 
         if path.is_file() {
@@ -236,12 +235,12 @@ pub async fn purge_tool(proto: &ProtoResource, id: &Id, yes: bool) -> miette::Re
 
         // Delete binaries
         for bin in tool.get_bin_locations()? {
-            remove_bin_file(bin.path)?;
+            proto.env.store.unlink_bin(&bin.path)?;
         }
 
         // Delete shims
         for shim in tool.get_shim_locations()? {
-            fs::remove_file(shim.path)?;
+            proto.env.store.remove_shim(&shim.path)?;
         }
 
         info!("Purged {}", tool.get_name());
@@ -251,7 +250,7 @@ pub async fn purge_tool(proto: &ProtoResource, id: &Id, yes: bool) -> miette::Re
 }
 
 pub async fn purge_plugins(proto: &ProtoResource, yes: bool) -> SystemResult {
-    let plugins_dir = &proto.env.plugins_dir;
+    let plugins_dir = &proto.env.store.plugins_dir;
 
     if yes
         || Confirm::new()
@@ -301,7 +300,8 @@ pub async fn internal_clean(proto: &ProtoResource, args: &CleanArgs, yes: bool) 
 
     debug!("Cleaning temporary directory...");
 
-    let results = fs::remove_dir_stale_contents(&proto.env.temp_dir, Duration::from_secs(86400))?;
+    let results =
+        fs::remove_dir_stale_contents(&proto.env.store.temp_dir, Duration::from_secs(86400))?;
 
     if results.files_deleted > 0 {
         info!(

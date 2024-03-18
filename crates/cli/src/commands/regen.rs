@@ -1,6 +1,5 @@
 use crate::helpers::ProtoResource;
 use clap::Args;
-use proto_core::remove_bin_file;
 use starbase::system;
 use starbase_utils::fs;
 use tracing::{debug, info};
@@ -22,13 +21,13 @@ pub async fn regen(args: ArgsRef<RegenArgs>, proto: ResourceRef<ProtoResource>) 
     // Delete all shims
     debug!("Removing old shims");
 
-    fs::remove_dir_all(&proto.env.shims_dir)?;
+    fs::remove_dir_all(&proto.env.store.shims_dir)?;
 
     // Delete all bins (except for proto)
     if args.bin {
         debug!("Removing old bins");
 
-        for file in fs::read_dir_all(&proto.env.bin_dir)? {
+        for file in fs::read_dir_all(&proto.env.store.bin_dir)? {
             let path = file.path();
             let name = fs::file_name(&path);
 
@@ -41,7 +40,7 @@ pub async fn regen(args: ArgsRef<RegenArgs>, proto: ResourceRef<ProtoResource>) 
                 continue;
             }
 
-            remove_bin_file(path)?;
+            proto.env.store.unlink_bin(&path)?;
         }
     }
 

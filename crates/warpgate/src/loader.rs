@@ -7,6 +7,7 @@ use crate::helpers::{
 use crate::id::Id;
 use once_cell::sync::OnceCell;
 use sha2::{Digest, Sha256};
+use starbase_archive::is_supported_archive_extension;
 use starbase_styles::color;
 use starbase_utils::fs;
 use std::env;
@@ -320,14 +321,7 @@ impl PluginLoader {
         for asset in release.assets {
             if asset.name == github.file_prefix
                 || (asset.name.starts_with(&github.file_prefix)
-                    && (asset.name.ends_with(".tar")
-                        | asset.name.ends_with(".tar.gz")
-                        | asset.name.ends_with(".tgz")
-                        | asset.name.ends_with(".tar.xz")
-                        | asset.name.ends_with(".txz")
-                        | asset.name.ends_with(".zst")
-                        | asset.name.ends_with(".zstd")
-                        | asset.name.ends_with(".zip")))
+                    && is_supported_archive_extension(&PathBuf::from(&asset.name)))
             {
                 trace!(
                     id = id.as_str(),

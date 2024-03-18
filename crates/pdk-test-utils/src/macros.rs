@@ -18,7 +18,7 @@ macro_rules! generate_download_install_tests {
 
             // Check install dir exists
             let base_dir = sandbox.proto_dir.join("tools").join($id).join($version);
-            let tool_dir = plugin.tool.get_tool_dir();
+            let tool_dir = plugin.tool.get_product_dir();
 
             assert_eq!(tool_dir, base_dir);
             assert!(base_dir.exists());
@@ -46,11 +46,11 @@ macro_rules! generate_download_install_tests {
             };
             let mut tool = plugin.tool;
 
-            tool.version = Some(VersionSpec::parse($version).unwrap());
+            tool.set_version(VersionSpec::parse($version).unwrap());
 
             let temp_dir = tool.get_temp_dir();
 
-            tool.install_from_prebuilt(&tool.get_tool_dir())
+            tool.install_from_prebuilt(&tool.get_product_dir())
                 .await
                 .unwrap();
 
@@ -74,10 +74,10 @@ macro_rules! generate_download_install_tests {
             let spec = VersionSpec::parse($version).unwrap();
 
             // Fake the installation so we avoid downloading
-            tool.version = Some(spec.clone());
-            tool.manifest.installed_versions.insert(spec);
+            tool.set_version(spec.clone());
+            tool.inventory.manifest.installed_versions.insert(spec);
 
-            std::fs::create_dir_all(&tool.get_tool_dir()).unwrap();
+            std::fs::create_dir_all(&tool.get_product_dir()).unwrap();
 
             assert!(!tool.install(false).await.unwrap());
         }

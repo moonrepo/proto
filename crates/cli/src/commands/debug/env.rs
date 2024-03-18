@@ -14,11 +14,11 @@ pub async fn env(proto: ResourceRef<ProtoResource>) {
 
     printer.named_section("Store", |p| {
         p.entry("Root", color::path(&proto.env.root));
-        p.entry("Bins", color::path(&proto.env.bin_dir));
-        p.entry("Shims", color::path(&proto.env.shims_dir));
-        p.entry("Plugins", color::path(&proto.env.plugins_dir));
-        p.entry("Tools", color::path(&proto.env.tools_dir));
-        p.entry("Temp", color::path(&proto.env.temp_dir));
+        p.entry("Bins", color::path(&proto.env.store.bin_dir));
+        p.entry("Shims", color::path(&proto.env.store.shims_dir));
+        p.entry("Plugins", color::path(&proto.env.store.plugins_dir));
+        p.entry("Tools", color::path(&proto.env.store.inventory_dir));
+        p.entry("Temp", color::path(&proto.env.store.temp_dir));
         p.entry_map(
             "Virtual",
             proto

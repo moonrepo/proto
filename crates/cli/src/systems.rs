@@ -28,7 +28,7 @@ pub fn remove_old_bins(proto: ResourceRef<ProtoResource>) {
     // These bins are no longer supported but we don't have an easy
     // way to "clean up" bins that are no longer configured in a plugin.
     for bin in ["npm", "npx", "node-gyp", "pnpm", "pnpx", "yarn", "yarnpkg"] {
-        let _ = fs::remove_file(proto.env.bin_dir.join(if cfg!(windows) {
+        let _ = fs::remove_file(proto.env.store.bin_dir.join(if cfg!(windows) {
             format!("{bin}.cmd")
         } else {
             bin.to_owned()
@@ -54,7 +54,7 @@ pub async fn check_for_new_version(proto: ResourceRef<ProtoResource>) {
     }
 
     // Only check every 12 hours instead of every invocation
-    let cache_file = proto.env.temp_dir.join(".last-version-check");
+    let cache_file = proto.env.store.temp_dir.join(".last-version-check");
 
     if cache_file.exists() {
         if let Some(last_check) = fs::read_file(&cache_file)

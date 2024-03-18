@@ -1,7 +1,6 @@
 use crate::helpers::{now, read_json_file_with_lock, write_json_file_with_lock};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
-use starbase_utils::fs;
 use std::{
     env,
     path::{Path, PathBuf},
@@ -30,7 +29,6 @@ impl Default for ToolManifestVersion {
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct ToolManifest {
-    // Full versions only
     pub installed_versions: FxHashSet<VersionSpec>,
     pub shim_version: u8,
     pub versions: FxHashMap<VersionSpec, ToolManifestVersion>,
@@ -66,25 +64,5 @@ impl ToolManifest {
         write_json_file_with_lock(&self.path, self)?;
 
         Ok(())
-    }
-
-    pub fn track_used_at(&mut self, tool_dir: impl AsRef<Path>) -> miette::Result<()> {
-        fs::write_file(tool_dir.as_ref().join(".last-used"), now().to_string())?;
-
-        Ok(())
-    }
-
-    pub fn load_used_at(&self, tool_dir: impl AsRef<Path>) -> miette::Result<Option<u128>> {
-        let file = tool_dir.as_ref().join(".last-used");
-
-        if file.exists() {
-            if let Ok(contents) = fs::read_file(file) {
-                if let Ok(value) = contents.parse::<u128>() {
-                    return Ok(Some(value));
-                }
-            }
-        }
-
-        Ok(None)
     }
 }
