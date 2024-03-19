@@ -2,7 +2,7 @@ use crate::helpers::ProtoResource;
 use clap::Args;
 use starbase::system;
 use starbase_utils::fs;
-use tracing::{debug, info};
+use tracing::debug;
 
 #[derive(Args, Clone, Debug)]
 pub struct RegenArgs {
@@ -13,9 +13,9 @@ pub struct RegenArgs {
 #[system]
 pub async fn regen(args: ArgsRef<RegenArgs>, proto: ResourceRef<ProtoResource>) {
     if args.bin {
-        info!("Regenerating bins and shims...");
+        println!("Regenerating bins and shims...");
     } else {
-        info!("Regenerating shims...");
+        println!("Regenerating shims...");
     }
 
     // Delete all shims
@@ -47,19 +47,10 @@ pub async fn regen(args: ArgsRef<RegenArgs>, proto: ResourceRef<ProtoResource>) 
     // Regenerate everything!
     debug!("Loading tools");
 
-    let tools = proto.load_tools().await?;
-    let manager = proto.env.load_config_manager()?;
-
     let config = proto.env.load_config()?;
-    let global_config = manager.files.iter().find_map(|file| {
-        if file.global {
-            Some(&file.config)
-        } else {
-            None
-        }
-    });
+    let global_config = proto.env.load_config_manager()?.get_global_config()?;
 
-    for mut tool in tools {
+    for mut tool in proto.load_tools().await? {
         // Shims
         if let Some(version) = config.versions.get(&tool.id) {
             debug!("Regenerating {} shim", tool.get_name());
@@ -71,11 +62,8 @@ pub async fn regen(args: ArgsRef<RegenArgs>, proto: ResourceRef<ProtoResource>) 
         // Bins
         // Symlinks are only based on the globally pinned versions,
         // so we must reference that config instead of the merged one!
-        if args.bin && global_config.is_some() {
-            if let Some(version) = global_config
-                .and_then(|cfg| cfg.versions.as_ref())
-                .and_then(|vrs| vrs.get(&tool.id))
-            {
+        if args.bin {
+            if let Some(version) = global_config.versions.get(&tool.id) {
                 debug!("Relinking {} bin", tool.get_name());
 
                 tool.version = None;
@@ -85,5 +73,5 @@ pub async fn regen(args: ArgsRef<RegenArgs>, proto: ResourceRef<ProtoResource>) 
         }
     }
 
-    info!("Regeneration complete!");
+    println!("Regeneration complete!");
 }

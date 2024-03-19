@@ -4,7 +4,6 @@ use clap::Args;
 use proto_core::{is_alias_name, Id, ProtoConfig, UnresolvedVersionSpec};
 use starbase::system;
 use starbase_styles::color;
-use tracing::info;
 
 #[derive(Args, Clone, Debug)]
 pub struct AliasArgs {
@@ -41,20 +40,21 @@ pub async fn alias(args: ArgsRef<AliasArgs>, proto: ResourceRef<ProtoResource>) 
 
     let tool = proto.load_tool(&args.id).await?;
 
-    ProtoConfig::update(tool.proto.get_config_dir(args.global), |config| {
+    let config_path = ProtoConfig::update(tool.proto.get_config_dir(args.global), |config| {
         let tool_configs = config.tools.get_or_insert(Default::default());
-        let tool_config = tool_configs.entry(tool.id.clone()).or_default();
 
-        tool_config
+        tool_configs
+            .entry(tool.id.clone())
+            .or_default()
             .aliases
             .get_or_insert(Default::default())
             .insert(args.alias.clone(), args.spec.clone());
     })?;
 
-    info!(
-        "Added alias {} ({}) for {}",
+    println!(
+        "Added alias {} ({}) to config {}",
         color::id(&args.alias),
         color::muted_light(args.spec.to_string()),
-        tool.get_name(),
+        color::path(config_path)
     );
 }

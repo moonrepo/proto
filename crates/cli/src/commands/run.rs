@@ -62,17 +62,17 @@ fn get_executable(tool: &Tool, args: &RunArgs) -> miette::Result<ExecutableConfi
                     continue;
                 };
 
-                let alt_path = tool_dir.join(exe_path);
+                let alt_exe_path = tool_dir.join(exe_path);
 
-                if alt_path.exists() {
+                if alt_exe_path.exists() {
                     debug!(
                         bin = alt_name,
-                        path = ?alt_path,
+                        path = ?alt_exe_path,
                         "Received an alternate binary to run with",
                     );
 
                     return Ok(ExecutableConfig {
-                        exe_path: Some(alt_path),
+                        exe_path: Some(alt_exe_path),
                         ..location.config
                     });
                 }
@@ -239,7 +239,10 @@ pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> S
 
     // Determine the binary path to execute
     let exe_config = get_executable(&tool, args)?;
-    let exe_path = exe_config.exe_path.as_ref().unwrap();
+    let exe_path = exe_config
+        .exe_path
+        .as_ref()
+        .expect("Could not determine executable path.");
 
     // Run before hook
     let hook_result = if tool.plugin.has_func("pre_run") {
@@ -264,10 +267,10 @@ pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> S
     // Create and run the command
     let mut command = create_command(&tool, &exe_config, &args.passthrough)?;
 
-    for (key, val) in get_env_vars(&tool)? {
-        match val {
-            Some(val) => {
-                command.env(key, val);
+    for (key, value) in get_env_vars(&tool)? {
+        match value {
+            Some(value) => {
+                command.env(key, value);
             }
             None => {
                 command.env_remove(key);

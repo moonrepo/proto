@@ -1,10 +1,12 @@
+use std::process;
+
 use crate::commands::clean::purge_tool;
 use crate::helpers::{create_progress_bar, disable_progress_bars, ProtoResource};
 use crate::telemetry::{track_usage, Metric};
 use clap::Args;
 use proto_core::{Id, Tool, UnresolvedVersionSpec};
 use starbase::system;
-use tracing::{debug, info};
+use tracing::debug;
 
 #[derive(Args, Clone, Debug)]
 pub struct UninstallArgs {
@@ -34,13 +36,13 @@ pub async fn uninstall(args: ArgsRef<UninstallArgs>, proto: ResourceRef<ProtoRes
     let mut tool = proto.load_tool(&args.id).await?;
 
     if !tool.is_setup(spec).await? {
-        info!(
-            "{} {} does not exist!",
+        eprintln!(
+            "{} {} has not been installed locally",
             tool.get_name(),
             tool.get_resolved_version(),
         );
 
-        return Ok(());
+        process::exit(1);
     }
 
     debug!("Uninstalling {} with version {}", tool.get_name(), spec);
@@ -66,7 +68,7 @@ pub async fn uninstall(args: ArgsRef<UninstallArgs>, proto: ResourceRef<ProtoRes
     // Track usage metrics
     track_uninstall(&tool, false).await?;
 
-    info!(
+    println!(
         "{} {} has been uninstalled!",
         tool.get_name(),
         tool.get_resolved_version(),

@@ -24,6 +24,7 @@ pub async fn list(args: ArgsRef<ListArgs>, proto: ResourceRef<ProtoResource>) {
 
     if versions.is_empty() {
         eprintln!("No versions installed");
+
         process::exit(1);
     }
 
