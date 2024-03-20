@@ -1,8 +1,8 @@
-mod checksum;
+pub mod checksum;
 mod error;
 mod events;
 mod helpers;
-mod layout;
+pub mod layout;
 mod proto;
 mod proto_config;
 mod shim_registry;
