@@ -13,32 +13,12 @@ pub async fn env(proto: ResourceRef<ProtoResource>) {
     // STORE
 
     printer.named_section("Store", |p| {
-        p.entry("Root", color::path(&proto.env.root));
+        p.entry("Root", color::path(&proto.env.store.dir));
         p.entry("Bins", color::path(&proto.env.store.bin_dir));
         p.entry("Shims", color::path(&proto.env.store.shims_dir));
         p.entry("Plugins", color::path(&proto.env.store.plugins_dir));
         p.entry("Tools", color::path(&proto.env.store.inventory_dir));
         p.entry("Temp", color::path(&proto.env.store.temp_dir));
-        p.entry_map(
-            "Virtual",
-            proto
-                .env
-                .get_virtual_paths()
-                .iter()
-                .map(|(h, g)| (color::file(g.to_string_lossy()), color::path(h))),
-            None,
-        );
-        p.entry_list(
-            "Configs",
-            manager.files.iter().filter_map(|f| {
-                if f.exists {
-                    Some(color::path(&f.path))
-                } else {
-                    None
-                }
-            }),
-            None,
-        );
 
         Ok(())
     })?;
@@ -57,6 +37,26 @@ pub async fn env(proto: ResourceRef<ProtoResource>) {
         p.entry(
             "Architecture",
             color::muted_light(HostArch::from_env().to_string()),
+        );
+        p.entry_map(
+            "Virtual paths",
+            proto
+                .env
+                .get_virtual_paths()
+                .iter()
+                .map(|(h, g)| (color::file(g.to_string_lossy()), color::path(h))),
+            None,
+        );
+        p.entry_list(
+            "Configs",
+            manager.files.iter().filter_map(|f| {
+                if f.exists {
+                    Some(color::path(&f.path))
+                } else {
+                    None
+                }
+            }),
+            None,
         );
         p.entry_map(
             "Variables",

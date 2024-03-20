@@ -18,10 +18,28 @@
 - Removed the deprecated `/workspace` as a virtual path prefix, use `/cwd` instead.
 - Rewrote the `proto_pdk_test_utils` crate from the ground up to be easier to use.
 
+#### 🚀 Updates
+
+- Cleaned up command stdout and stderr messaging.
+- Updated some commands to exit with a non-zero code when data or requirements are missing.
+- Implemented a new store structure/layout system for better reliability.
+
+#### 🧩 Plugins
+
+- Updated `bun_plugin` to v0.10.1.
+- Updated `deno_plugin` to v0.10.1.
+- Updated `go_plugin` to v0.10.1.
+- Updated `node_plugin` and `node_depman_plugin` to v0.10.1.
+- Updated `python_plugin` to v0.9.
+  - Will now create a secondary executable that includes the major version in the file name, for example, `python3`.
+- Updated `rust_plugin` to v0.9.1.
+- Updated `schema_plugin` (TOML) to v0.11.
+  - Added `install.primary` and `install.secondary` settings, for advanced configuring executables.
+  - Updated `platform.*.bin-path` to support interpolation.
+
 #### ⚙️ Internal
 
 - Updated dependencies.
-- Implemented a new store structure/layout layer for better reliability.
 
 ## 0.31.5
 

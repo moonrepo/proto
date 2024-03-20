@@ -71,7 +71,7 @@ mod unalias_local {
             .arg("node")
             .arg("unknown")
             .assert()
-            .success();
+            .failure();
 
         let config = load_config(sandbox.path());
 

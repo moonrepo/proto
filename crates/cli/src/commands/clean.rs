@@ -10,7 +10,7 @@ use starbase_utils::fs;
 use std::io::stdout;
 use std::io::IsTerminal;
 use std::time::{Duration, SystemTime};
-use tracing::{debug, info};
+use tracing::debug;
 
 #[derive(Args, Clone, Debug, Default)]
 pub struct CleanArgs {
@@ -243,7 +243,7 @@ pub async fn purge_tool(proto: &ProtoResource, id: &Id, yes: bool) -> miette::Re
             proto.env.store.remove_shim(&shim.path)?;
         }
 
-        info!("Purged {}", tool.get_name());
+        println!("Purged {}", tool.get_name());
     }
 
     Ok(tool)
@@ -264,7 +264,7 @@ pub async fn purge_plugins(proto: &ProtoResource, yes: bool) -> SystemResult {
         fs::remove_dir_all(plugins_dir)?;
         fs::create_dir_all(plugins_dir)?;
 
-        info!("Purged all downloaded plugins");
+        println!("Purged all downloaded plugins");
     }
 
     Ok(())
@@ -278,7 +278,7 @@ pub async fn internal_clean(proto: &ProtoResource, args: &CleanArgs, yes: bool) 
         .as_millis();
     let mut clean_count = 0;
 
-    debug!("Finding installed tools to clean up...");
+    println!("Finding installed tools to clean up...");
 
     for tool in proto.load_tools().await? {
         clean_count += clean_tool(tool, now, days, yes).await?;
@@ -287,7 +287,7 @@ pub async fn internal_clean(proto: &ProtoResource, args: &CleanArgs, yes: bool) 
     clean_count += clean_proto(proto, days as u64).await?;
 
     if clean_count > 0 {
-        info!("Successfully cleaned up {} versions", clean_count);
+        println!("Successfully cleaned {} versions", clean_count);
     }
 
     debug!("Finding installed plugins to clean up...");
@@ -295,7 +295,7 @@ pub async fn internal_clean(proto: &ProtoResource, args: &CleanArgs, yes: bool) 
     clean_count = clean_plugins(proto, days as u64).await?;
 
     if clean_count > 0 {
-        info!("Successfully cleaned up {} plugins", clean_count);
+        println!("Successfully cleaned up {} plugins", clean_count);
     }
 
     debug!("Cleaning temporary directory...");
@@ -304,7 +304,7 @@ pub async fn internal_clean(proto: &ProtoResource, args: &CleanArgs, yes: bool) 
         fs::remove_dir_stale_contents(&proto.env.store.temp_dir, Duration::from_secs(86400))?;
 
     if results.files_deleted > 0 {
-        info!(
+        println!(
             "Successfully cleaned {} temporary files ({} bytes)",
             results.files_deleted, results.bytes_saved
         );

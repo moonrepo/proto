@@ -9,7 +9,7 @@ use proto_pdk_api::{InstallHook, SyncShellProfileInput, SyncShellProfileOutput};
 use starbase::system;
 use starbase_styles::color;
 use std::env;
-use tracing::{debug, info};
+use tracing::debug;
 
 #[derive(Clone, Debug, ValueEnum)]
 pub enum PinOption {
@@ -115,9 +115,10 @@ pub async fn internal_install(
     if !version.is_canary() && tool.is_setup(&version).await? {
         pin_version(&mut tool, &version, &pin_type).await?;
 
-        info!(
-            "{} has already been installed at {}",
+        println!(
+            "{} {} has already been installed at {}",
             tool.get_name(),
+            tool.get_resolved_version(),
             color::path(tool.get_product_dir()),
         );
 
@@ -170,9 +171,10 @@ pub async fn internal_install(
 
     let pinned = pin_version(&mut tool, &version, &pin_type).await?;
 
-    info!(
-        "{} has been installed to {}!",
+    println!(
+        "{} {} has been installed to {}!",
         tool.get_name(),
+        tool.get_resolved_version(),
         color::path(tool.get_product_dir()),
     );
 
@@ -277,9 +279,9 @@ fn update_shell(tool: &Tool, passthrough_args: Vec<String>) -> miette::Result<()
         };
 
         if let Some(updated_profile) = updated_profile {
-            info!(
+            println!(
                 "Added {} to shell profile {}",
-                output.check_var,
+                color::property(output.check_var),
                 color::path(updated_profile)
             );
         }

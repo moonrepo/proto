@@ -239,7 +239,9 @@ mod run {
             .arg("--version")
             .assert();
 
-        assert.stderr(predicate::str::contains("Node.js has been installed"));
+        assert.stdout(predicate::str::contains(
+            "Node.js 19.0.0 has been installed",
+        ));
 
         let mut cmd = create_proto_command(sandbox.path());
         let assert = cmd
@@ -250,7 +252,7 @@ mod run {
             .arg("--version")
             .assert();
 
-        assert.stderr(predicate::str::contains("Node.js has been installed").not());
+        assert.stdout(predicate::str::contains("Node.js 19.0.0 has been installed").not());
     }
 
     #[test]

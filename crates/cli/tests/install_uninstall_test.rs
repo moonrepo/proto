@@ -75,7 +75,9 @@ mod install_uninstall {
 
         assert!(tool_dir.exists());
 
-        assert.stderr(predicate::str::contains("Node.js has been installed"));
+        assert.stdout(predicate::str::contains(
+            "Node.js 19.0.0 has been installed",
+        ));
 
         // Uninstall
         let mut cmd = create_proto_command(sandbox.path());
@@ -83,7 +85,7 @@ mod install_uninstall {
 
         assert!(!tool_dir.exists());
 
-        assert.stderr(predicate::str::contains(
+        assert.stdout(predicate::str::contains(
             "Node.js 19.0.0 has been uninstalled!",
         ));
     }
@@ -110,8 +112,8 @@ mod install_uninstall {
             .arg("--no-bundled-npm")
             .assert();
 
-        assert.stderr(predicate::str::contains(
-            "Node.js has already been installed",
+        assert.stdout(predicate::str::contains(
+            "Node.js 19.0.0 has already been installed",
         ));
     }
 

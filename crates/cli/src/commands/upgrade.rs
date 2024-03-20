@@ -7,7 +7,7 @@ use proto_installer::{determine_triple, download_release, unpack_release};
 use semver::Version;
 use starbase::system;
 use starbase_styles::color;
-use tracing::{debug, info, trace};
+use tracing::{debug, trace};
 
 #[system]
 pub async fn upgrade(proto: ResourceRef<ProtoResource>) {
@@ -25,7 +25,7 @@ pub async fn upgrade(proto: ResourceRef<ProtoResource>) {
     );
 
     if Version::parse(&latest_version).unwrap() <= Version::parse(current_version).unwrap() {
-        info!("You're already on the latest version of proto!");
+        println!("You're already on the latest version of proto!");
 
         return Ok(());
     }
@@ -85,7 +85,7 @@ pub async fn upgrade(proto: ResourceRef<ProtoResource>) {
     .await?;
 
     if upgraded {
-        info!("Upgraded proto to v{}!", latest_version);
+        println!("Upgraded proto to v{}!", latest_version);
 
         return Ok(());
     }

@@ -9,7 +9,7 @@ use miette::IntoDiagnostic;
 use starbase::system;
 use starbase_styles::color;
 use std::process;
-use tracing::{debug, info};
+use tracing::debug;
 
 #[system]
 pub async fn install_all(proto: ResourceRef<ProtoResource>) {
@@ -38,7 +38,8 @@ pub async fn install_all(proto: ResourceRef<ProtoResource>) {
     }
 
     if versions.is_empty() {
-        eprintln!("Nothing to install!");
+        eprintln!("No versions have been configured, nothing to install!");
+
         process::exit(1);
     }
 
@@ -86,10 +87,10 @@ pub async fn install_all(proto: ResourceRef<ProtoResource>) {
 
     pb.finish_and_clear();
 
-    info!("Successfully installed tools");
+    println!("Successfully installed tools!");
 
     if config.settings.auto_clean {
-        info!("Auto-clean enabled, starting clean");
+        debug!("Auto-clean enabled, starting clean");
 
         internal_clean(proto, &CleanArgs::default(), true).await?;
     }

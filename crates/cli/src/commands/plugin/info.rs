@@ -84,7 +84,9 @@ pub async fn info(args: ArgsRef<InfoPluginArgs>, proto: ResourceRef<ProtoResourc
             p.entry("Version", color::hash(version));
         }
 
-        p.locator(tool.locator.as_ref().unwrap());
+        if let Some(locator) = &tool.locator {
+            p.locator(locator);
+        }
 
         Ok(())
     })?;
