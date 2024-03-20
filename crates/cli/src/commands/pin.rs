@@ -66,7 +66,7 @@ pub async fn pin(args: ArgsRef<PinArgs>, proto: ResourceRef<ProtoResource>) -> S
     let config_path = internal_pin(&mut tool, &spec, args.global, false).await?;
 
     println!(
-        "Pinned {} to version {} in {}",
+        "Pinned {} to {} in {}",
         tool.get_name(),
         color::hash(args.spec.to_string()),
         color::path(config_path),
