@@ -48,7 +48,7 @@ starbase_utils = { version = "0.6.1", default-features = false, features = [
 thiserror = "1.0.58"
 tokio = { version = "1.36.0", features = ["full", "tracing"] }
 tracing = "0.1.40"
-uuid = { version = "1.7.0", features = ["v4"] }
+uuid = { version = "1.8.0", features = ["v4"] }
 
 # Config for 'cargo dist'
 [workspace.metadata.dist]

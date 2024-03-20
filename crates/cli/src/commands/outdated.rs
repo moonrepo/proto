@@ -7,7 +7,7 @@ use serde::Serialize;
 use starbase::system;
 use starbase_styles::color::{self, OwoStyle};
 use starbase_utils::json;
-use tracing::{debug, info};
+use tracing::debug;
 
 #[derive(Args, Clone, Debug)]
 pub struct OutdatedArgs {
@@ -54,9 +54,7 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>, proto: ResourceRef<ProtoResou
         return Err(ProtoCliError::NoConfiguredTools.into());
     }
 
-    if !args.json {
-        info!("Checking for newer versions...");
-    }
+    debug!("Checking for newer versions...");
 
     let mut items = FxHashMap::default();
     let mut tool_versions = FxHashMap::default();

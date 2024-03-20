@@ -1,10 +1,11 @@
 use crate::helpers::ProtoResource;
 use clap::Args;
 use proto_core::{Id, ProtoConfig, Tool, UnresolvedVersionSpec};
-use starbase::{system, SystemResult};
+use starbase::system;
 use starbase_styles::color;
 use std::collections::BTreeMap;
-use tracing::{debug, info};
+use std::path::PathBuf;
+use tracing::debug;
 
 #[derive(Args, Clone, Debug)]
 pub struct PinArgs {
@@ -29,13 +30,13 @@ pub async fn internal_pin(
     spec: &UnresolvedVersionSpec,
     global: bool,
     link: bool,
-) -> SystemResult {
+) -> miette::Result<PathBuf> {
     // Create symlink to this new version
     if global && link {
         tool.symlink_bins(true).await?;
     }
 
-    let path = ProtoConfig::update(tool.proto.get_config_dir(global), |config| {
+    let config_path = ProtoConfig::update(tool.proto.get_config_dir(global), |config| {
         config
             .versions
             .get_or_insert(BTreeMap::default())
@@ -44,11 +45,11 @@ pub async fn internal_pin(
 
     debug!(
         version = spec.to_string(),
-        config = ?path,
+        config = ?config_path,
         "Pinned the version",
     );
 
-    Ok(())
+    Ok(config_path)
 }
 
 #[system]
@@ -62,11 +63,12 @@ pub async fn pin(args: ArgsRef<PinArgs>, proto: ResourceRef<ProtoResource>) -> S
         args.spec.clone()
     };
 
-    internal_pin(&mut tool, &spec, args.global, false).await?;
+    let config_path = internal_pin(&mut tool, &spec, args.global, false).await?;
 
-    info!(
-        "Set the {} version to {}",
+    println!(
+        "Pinned {} to {} in {}",
         tool.get_name(),
-        color::hash(args.spec.to_string())
+        color::hash(args.spec.to_string()),
+        color::path(config_path),
     );
 }

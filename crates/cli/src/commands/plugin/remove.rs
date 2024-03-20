@@ -4,7 +4,6 @@ use clap::Args;
 use proto_core::{Id, ProtoConfig, PROTO_CONFIG_NAME};
 use starbase::system;
 use starbase_styles::color;
-use tracing::info;
 
 #[derive(Args, Clone, Debug)]
 pub struct RemovePluginArgs {
@@ -34,7 +33,7 @@ pub async fn remove(args: ArgsRef<RemovePluginArgs>, proto: ResourceRef<ProtoRes
         }
     })?;
 
-    info!(
+    println!(
         "Removed plugin {} from config {}",
         color::id(&args.id),
         color::path(config_path)

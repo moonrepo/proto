@@ -30,10 +30,6 @@ pub fn get_proto_home() -> miette::Result<PathBuf> {
         return Ok(root.into());
     }
 
-    if let Ok(root) = env::var("PROTO_ROOT") {
-        return Ok(root.into());
-    }
-
     Ok(get_home_dir()?.join(".proto"))
 }
 

@@ -3,7 +3,6 @@ use clap::Args;
 use proto_core::{Id, PluginLocator, ProtoConfig};
 use starbase::system;
 use starbase_styles::color;
-use tracing::info;
 
 #[derive(Args, Clone, Debug)]
 pub struct AddPluginArgs {
@@ -29,7 +28,7 @@ pub async fn add(args: ArgsRef<AddPluginArgs>, proto: ResourceRef<ProtoResource>
             .insert(args.id.clone(), args.plugin.clone());
     })?;
 
-    info!(
+    println!(
         "Added plugin {} to config {}",
         color::id(&args.id),
         color::path(config_path)

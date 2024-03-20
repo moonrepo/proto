@@ -28,6 +28,7 @@ pub async fn list_remote(args: ArgsRef<ListRemoteArgs>, proto: ResourceRef<Proto
 
     if versions.is_empty() {
         eprintln!("No versions available");
+
         process::exit(1);
     }
 

@@ -26,7 +26,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
 use std::time::Duration;
-use tracing::{debug, info, trace, warn};
+use tracing::{debug, trace, warn};
 use warpgate::{
     host_funcs::{create_host_functions, HostData},
     Id, PluginContainer, PluginLocator, PluginManifest, VirtualPath, Wasm,
@@ -1465,7 +1465,7 @@ impl Tool {
         ProtoConfig::update(self.proto.get_config_dir(true), |config| {
             if let Some(versions) = &mut config.versions {
                 if versions.get(&self.id).is_some_and(|v| v == &version) {
-                    info!("Unpinning global version");
+                    debug!("Unpinning global version");
 
                     versions.remove(&self.id);
                     removed_default_version = true;

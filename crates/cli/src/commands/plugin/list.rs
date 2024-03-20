@@ -9,7 +9,6 @@ use starbase::system;
 use starbase_styles::color;
 use starbase_utils::json;
 use tokio::sync::Mutex;
-use tracing::info;
 
 #[derive(Serialize)]
 pub struct PluginItem<'a> {
@@ -36,10 +35,6 @@ pub struct ListPluginsArgs {
 
 #[system]
 pub async fn list(args: ArgsRef<ListPluginsArgs>, proto: ResourceRef<ProtoResource>) {
-    if !args.json {
-        info!("Loading plugins...");
-    }
-
     let mut config = proto.env.load_config()?.to_owned();
 
     let mut tools = proto
