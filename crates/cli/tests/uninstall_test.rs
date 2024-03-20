@@ -13,7 +13,9 @@ mod uninstall {
         let mut cmd = create_proto_command(temp.path());
         let assert = cmd.arg("uninstall").arg("node").arg("19.0.0").assert();
 
-        assert.stderr(predicate::str::contains("Node.js 19.0.0 does not exist!"));
+        assert.stderr(predicate::str::contains(
+            "Node.js 19.0.0 has not been installed locally",
+        ));
     }
 
     #[test]

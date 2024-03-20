@@ -1,11 +1,10 @@
-use std::process;
-
 use crate::commands::clean::purge_tool;
 use crate::helpers::{create_progress_bar, disable_progress_bars, ProtoResource};
 use crate::telemetry::{track_usage, Metric};
 use clap::Args;
 use proto_core::{Id, Tool, UnresolvedVersionSpec};
 use starbase::system;
+use std::process;
 use tracing::debug;
 
 #[derive(Args, Clone, Debug)]

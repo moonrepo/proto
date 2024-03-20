@@ -1,10 +1,9 @@
-use std::process;
-
 use crate::helpers::ProtoResource;
 use clap::Args;
 use proto_core::{Id, ProtoConfig};
 use starbase::system;
 use starbase_styles::color;
+use std::process;
 
 #[derive(Args, Clone, Debug)]
 pub struct UnaliasArgs {
