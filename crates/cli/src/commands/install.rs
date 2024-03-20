@@ -116,8 +116,9 @@ pub async fn internal_install(
         pin_version(&mut tool, &version, &pin_type).await?;
 
         println!(
-            "{} has already been installed at {}",
+            "{} {} has already been installed at {}",
             tool.get_name(),
+            tool.get_resolved_version(),
             color::path(tool.get_product_dir()),
         );
 
@@ -171,9 +172,9 @@ pub async fn internal_install(
     let pinned = pin_version(&mut tool, &version, &pin_type).await?;
 
     println!(
-        "{} ({}) has been installed to {}!",
+        "{} {} has been installed to {}!",
         tool.get_name(),
-        color::shell(tool.id.as_str()),
+        tool.get_resolved_version(),
         color::path(tool.get_product_dir()),
     );
 
