@@ -10,5 +10,9 @@ expression: "fs::read_to_string(sandbox.path().join(\".proto/shims/registry.json
       "pip"
     ]
   },
-  "python": {}
+  "python": {},
+  "python3": {
+    "alt_bin": true,
+    "parent": "python"
+  }
 }
