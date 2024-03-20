@@ -2280,7 +2280,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.32.0"
+version = "0.32.1"
 dependencies = [
  "cached",
  "human-sort",
@@ -2316,7 +2316,7 @@ dependencies = [
 
 [[package]]
 name = "proto_installer"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "futures",
  "miette",
@@ -2369,7 +2369,7 @@ dependencies = [
 
 [[package]]
 name = "proto_shim"
-version = "0.2.7"
+version = "0.2.8"
 dependencies = [
  "command-group",
  "dirs 5.0.1",
