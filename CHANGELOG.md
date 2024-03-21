@@ -10,6 +10,12 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### ⚙️ Internal
+
+- Updated Rust to v1.77.
+
 ## 0.32.0
 
 #### 💥 Breaking
