@@ -115,17 +115,15 @@ pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miett
         // - It was recently installed but not used yet
         // - It was installed before we started tracking last used timestamps
         // - The tools run via external commands (e.g. moon)
-        if let Some(product) = tool.inventory.create_product(version) {
-            if let Ok(Some(last_used)) = product.load_used_at() {
-                if is_older_than_days(now, last_used, days) {
-                    debug!(
-                        "Version {} hasn't been used in over {} days, removing",
-                        color::hash(version.to_string()),
-                        days
-                    );
+        if let Ok(Some(last_used)) = tool.inventory.create_product(version).load_used_at() {
+            if is_older_than_days(now, last_used, days) {
+                debug!(
+                    "Version {} hasn't been used in over {} days, removing",
+                    color::hash(version.to_string()),
+                    days
+                );
 
-                    versions_to_clean.insert(version.to_owned());
-                }
+                versions_to_clean.insert(version.to_owned());
             }
         }
     }

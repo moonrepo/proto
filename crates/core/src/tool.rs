@@ -217,7 +217,7 @@ impl Tool {
 
     /// Explicitly set the version to use.
     pub fn set_version(&mut self, version: VersionSpec) {
-        self.product = self.inventory.create_product(&version);
+        self.product = Some(self.inventory.create_product(&version));
         self.version = Some(version);
     }
 
