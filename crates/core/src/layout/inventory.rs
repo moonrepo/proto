@@ -16,21 +16,16 @@ pub struct Inventory {
 }
 
 impl Inventory {
-    pub fn create_product(&self, spec: &VersionSpec) -> Option<Product> {
-        match spec {
-            VersionSpec::Version(version) => {
-                let mut name = version.to_string();
+    pub fn create_product(&self, spec: &VersionSpec) -> Product {
+        let mut name = spec.to_string();
 
-                if let Some(suffix) = &self.config.version_suffix {
-                    name = format!("{}{}", name, suffix);
-                }
+        if let Some(suffix) = &self.config.version_suffix {
+            name = format!("{}{}", name, suffix);
+        }
 
-                Some(Product {
-                    dir: self.dir.join(name),
-                    version: version.to_owned(),
-                })
-            }
-            _ => None,
+        Product {
+            dir: self.dir.join(name),
+            version: spec.to_owned(),
         }
     }
 

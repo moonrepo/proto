@@ -50,7 +50,7 @@ pub struct Tool {
 
     // Store
     pub inventory: Inventory,
-    pub product: Option<Product>,
+    pub product: Product,
 
     // Events
     pub on_created_bins: Emitter<CreatedBinariesEvent>,
@@ -88,7 +88,7 @@ impl Tool {
             locator: None,
             metadata: ToolMetadataOutput::default(),
             plugin,
-            product: None,
+            product: Product::default(),
             proto,
             version: None,
 
@@ -207,12 +207,7 @@ impl Tool {
 
     /// Return an absolute path to the tool's install directory for the currently resolved version.
     pub fn get_product_dir(&self) -> PathBuf {
-        if let Some(product) = &self.product {
-            product.dir.to_owned()
-        } else {
-            self.get_inventory_dir()
-                .join(self.get_resolved_version().to_string())
-        }
+        self.product.dir.clone()
     }
 
     /// Explicitly set the version to use.
@@ -276,6 +271,7 @@ impl Tool {
             inventory.dir = self.from_virtual_path(override_dir);
         }
 
+        self.product = inventory.create_product(&self.get_resolved_version());
         self.inventory = inventory;
         self.metadata = metadata;
 
