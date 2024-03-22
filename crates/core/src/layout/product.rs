@@ -3,7 +3,7 @@ use starbase_utils::fs;
 use std::path::PathBuf;
 use version_spec::VersionSpec;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Default, Debug)]
 pub struct Product {
     pub dir: PathBuf,
     pub version: VersionSpec,

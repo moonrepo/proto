@@ -298,9 +298,7 @@ pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> S
 
     // Update the last used timestamp
     if env::var("PROTO_SKIP_USED_AT").is_err() {
-        if let Some(product) = &tool.product {
-            let _ = product.track_used_at();
-        }
+        let _ = tool.product.track_used_at();
     }
 
     // Must be the last line!
