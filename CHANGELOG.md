@@ -12,6 +12,10 @@
 
 ## Unreleased
 
+#### 🐞 Fixes
+
+- Fixed an issue where the version suffix was being stripped from non-version folders in the tool directory. Primarily affects Rust.
+
 #### ⚙️ Internal
 
 - Updated Rust to v1.77.

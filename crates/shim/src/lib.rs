@@ -52,6 +52,10 @@ pub fn locate_proto_exe(bin: &str) -> Option<PathBuf> {
         }
     }
 
+    if let Ok(dir) = env::var("PROTO_LOOKUP_DIR") {
+        lookup_dirs.push(dir.into());
+    }
+
     if let Ok(dir) = env::var("PROTO_HOME") {
         let dir = PathBuf::from(dir);
 
