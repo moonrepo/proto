@@ -1,4 +1,4 @@
-use crate::helpers::ProtoResource;
+use crate::helpers::{create_theme, ProtoResource};
 use clap::Args;
 use dialoguer::Confirm;
 use proto_core::{Id, ProtoError, Tool, VersionSpec};
@@ -138,7 +138,7 @@ pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miett
     }
 
     if yes
-        || Confirm::new()
+        || Confirm::with_theme(&create_theme())
             .with_prompt(format!(
                 "Found {} versions, remove {}?",
                 count,
@@ -219,7 +219,7 @@ pub async fn purge_tool(proto: &ProtoResource, id: &Id, yes: bool) -> miette::Re
     let inventory_dir = tool.get_inventory_dir();
 
     if yes
-        || Confirm::new()
+        || Confirm::with_theme(&create_theme())
             .with_prompt(format!(
                 "Purge all of {} at {}?",
                 tool.get_name(),
@@ -251,7 +251,7 @@ pub async fn purge_plugins(proto: &ProtoResource, yes: bool) -> SystemResult {
     let plugins_dir = &proto.env.store.plugins_dir;
 
     if yes
-        || Confirm::new()
+        || Confirm::with_theme(&create_theme())
             .with_prompt(format!(
                 "Purge all plugins in {}?",
                 color::path(plugins_dir)

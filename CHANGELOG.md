@@ -10,6 +10,18 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Updated `proto outdated` with a better developer experience.
+  - Displays all tools and available updates as a table of data.
+  - Includes newest (matching range) and latest versions available.
+  - Includes the config file that the tool + version was loaded from.
+  - When `--update` is passed, will now prompt to confirm the update.
+  - When updating versions, versions are now written to their original config file, instead of local.
+  - Updated the `--latest` flag to use the latest version when updating, instead of newest.
+
 ## 0.32.2
 
 #### 🧩 Plugins
