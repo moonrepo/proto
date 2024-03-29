@@ -1,13 +1,15 @@
 use crate::error::ProtoCliError;
-use crate::helpers::ProtoResource;
+use crate::helpers::{create_theme, ProtoResource};
 use clap::Args;
 use comfy_table::presets::NOTHING;
 use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
-use proto_core::{ProtoError, UnresolvedVersionSpec, VersionSpec};
+use dialoguer::Confirm;
+use miette::IntoDiagnostic;
+use proto_core::{Id, ProtoConfig, ProtoError, UnresolvedVersionSpec, VersionSpec};
 use semver::VersionReq;
 use serde::Serialize;
 use starbase::system;
-use starbase_styles::color::Style;
+use starbase_styles::color::{self, Style};
 use starbase_utils::json;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -15,22 +17,25 @@ use tracing::debug;
 
 #[derive(Args, Clone, Debug)]
 pub struct OutdatedArgs {
-    #[arg(long, help = "Include versions in global .prototools")]
+    #[arg(long, help = "Include versions from global ~/.proto/.prototools")]
     include_global: bool,
 
-    #[arg(long, help = "Print the list in JSON format")]
+    #[arg(long, help = "Print the outdated tools in JSON format")]
     json: bool,
 
     #[arg(
         long,
-        help = "Check for latest available version ignoring requirements and ranges"
+        help = "When updating versions, use the latest version instead of newest"
     )]
     latest: bool,
 
     #[arg(long, help = "Only check versions in local .prototools")]
     only_local: bool,
 
-    #[arg(long, help = "Update and write the versions to the local .prototools")]
+    #[arg(
+        long,
+        help = "Update and write the versions to their respective configuration"
+    )]
     update: bool,
 }
 
@@ -124,21 +129,14 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>, proto: ResourceRef<ProtoResou
         return Err(ProtoCliError::NoConfiguredTools.into());
     }
 
-    // if args.update {
-    //     ProtoConfig::update(&proto.env.cwd, |config| {
-    //         config
-    //             .versions
-    //             .get_or_insert(Default::default())
-    //             .extend(tool_versions);
-    //     })?;
-    // }
-
+    // Dump all the data as JSON
     if args.json {
         println!("{}", json::format(&items, true)?);
 
         return Ok(());
     }
 
+    // Print all the data in a table
     let mut table = Table::new();
     table.load_preset(NOTHING);
     table.set_content_arrangement(ContentArrangement::Dynamic);
@@ -151,9 +149,9 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>, proto: ResourceRef<ProtoResou
         Cell::new("Config").add_attribute(Attribute::Bold),
     ]);
 
-    for (id, item) in items {
+    for (id, item) in &items {
         table.add_row(vec![
-            Cell::new(&id).fg(Color::AnsiValue(Style::Id.color() as u8)),
+            Cell::new(id).fg(Color::AnsiValue(Style::Id.color() as u8)),
             Cell::new(&item.current_version),
             if item.newest_version == item.current_version {
                 Cell::new(&item.newest_version)
@@ -175,4 +173,63 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>, proto: ResourceRef<ProtoResou
     }
 
     println!("\n{table}\n");
+
+    // If updating versions, batch the changes based on config paths
+    let theme = create_theme();
+
+    if args.update
+        && Confirm::with_theme(&theme)
+            .with_prompt(if args.latest {
+                "Update config files with latest versions?"
+            } else {
+                "Update config files with newest versions?"
+            })
+            .interact()
+            .into_diagnostic()?
+    {
+        let mut updates: BTreeMap<PathBuf, BTreeMap<Id, UnresolvedVersionSpec>> = BTreeMap::new();
+
+        for (id, item) in &items {
+            updates
+                .entry(item.config_source.clone())
+                .or_default()
+                .insert(
+                    id.to_owned(),
+                    if args.latest {
+                        item.latest_version.to_unresolved_spec()
+                    } else {
+                        item.newest_version.to_unresolved_spec()
+                    },
+                );
+        }
+
+        for (config_path, updated_versions) in updates {
+            println!(
+                "Updating {} with {} versions",
+                color::path(&config_path),
+                updated_versions.len()
+            );
+
+            debug!(
+                config = ?config_path,
+                versions = ?updated_versions
+                    .iter()
+                    .map(|(k, v)| (k.to_string(), v.to_string()))
+                    .collect::<BTreeMap<_, _>>(),
+                "Updating config with versions",
+            );
+
+            ProtoConfig::update(config_path, |config| {
+                config
+                    .versions
+                    .get_or_insert(Default::default())
+                    .extend(updated_versions);
+            })?;
+        }
+
+        println!(
+            "Update complete! Run {} to install these new versions.",
+            color::shell("proto use")
+        );
+    }
 }
