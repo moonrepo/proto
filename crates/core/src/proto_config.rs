@@ -359,11 +359,16 @@ impl ProtoConfig {
     }
 
     pub fn save_to<P: AsRef<Path>>(dir: P, config: PartialProtoConfig) -> miette::Result<PathBuf> {
-        let path = dir.as_ref().join(PROTO_CONFIG_NAME);
+        let path = dir.as_ref();
+        let file = if path.ends_with(PROTO_CONFIG_NAME) {
+            path.to_path_buf()
+        } else {
+            path.join(PROTO_CONFIG_NAME)
+        };
 
-        fs::write_file_with_lock(&path, toml::format(&config, true)?)?;
+        fs::write_file_with_lock(&file, toml::format(&config, true)?)?;
 
-        Ok(path)
+        Ok(file)
     }
 
     pub fn update<P: AsRef<Path>, F: FnOnce(&mut PartialProtoConfig)>(
