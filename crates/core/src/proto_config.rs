@@ -69,6 +69,7 @@ derive_enum!(
         #[default]
         FirstAvailable,
         PreferPrototools,
+        OnlyPrototools,
     }
 );
 

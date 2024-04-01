@@ -49,11 +49,10 @@ pub async fn detect_version_first_available(
     Ok(None)
 }
 
-pub async fn detect_version_prefer_prototools(
+pub async fn detect_version_only_prototools(
     tool: &Tool,
     config_manager: &ProtoConfigManager,
 ) -> miette::Result<Option<UnresolvedVersionSpec>> {
-    // Check config files first
     for file in &config_manager.files {
         if let Some(versions) = &file.config.versions {
             if let Some(version) = versions.get(tool.id.as_str()) {
@@ -69,6 +68,18 @@ pub async fn detect_version_prefer_prototools(
                 return Ok(Some(version.to_owned()));
             }
         }
+    }
+
+    Ok(None)
+}
+
+pub async fn detect_version_prefer_prototools(
+    tool: &Tool,
+    config_manager: &ProtoConfigManager,
+) -> miette::Result<Option<UnresolvedVersionSpec>> {
+    // Check config files first
+    if let Some(version) = detect_version_only_prototools(tool, config_manager).await? {
+        return Ok(Some(version));
     }
 
     // Then check the ecosystem
@@ -145,6 +156,9 @@ pub async fn detect_version(
         }
         DetectStrategy::PreferPrototools => {
             detect_version_prefer_prototools(tool, config_manager).await?
+        }
+        DetectStrategy::OnlyPrototools => {
+            detect_version_only_prototools(tool, config_manager).await?
         }
     };
 
