@@ -1,6 +1,7 @@
 use proto_core::{
-    detect_version_first_available, detect_version_prefer_prototools, load_tool_from_locator,
-    ProtoConfig, ProtoConfigManager, ProtoEnvironment, Tool, UnresolvedVersionSpec,
+    detect_version_first_available, detect_version_only_prototools,
+    detect_version_prefer_prototools, load_tool_from_locator, ProtoConfig, ProtoConfigManager,
+    ProtoEnvironment, Tool, UnresolvedVersionSpec,
 };
 use starbase_sandbox::create_empty_sandbox;
 use std::path::Path;
@@ -109,6 +110,33 @@ mod version_detector {
                 .await
                 .unwrap(),
             Some(UnresolvedVersionSpec::parse("~18").unwrap())
+        );
+    }
+
+    #[tokio::test]
+    async fn only_uses_prototools() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file("a/package.json", r#"{ "engines": { "node": "16" } }"#);
+        sandbox.create_file("a/b/.prototools", "node = \"18\"");
+        sandbox.create_file("a/b/package.json", r#"{ "engines": { "node": "17" } }"#);
+
+        let tool = create_node(sandbox.path()).await;
+        let manager = ProtoConfigManager::load(sandbox.path().join("a/b"), None, None).unwrap();
+
+        assert_eq!(
+            detect_version_only_prototools(&tool, &manager)
+                .await
+                .unwrap(),
+            Some(UnresolvedVersionSpec::parse("~18").unwrap())
+        );
+
+        let manager = ProtoConfigManager::load(sandbox.path().join("a"), None, None).unwrap();
+
+        assert_eq!(
+            detect_version_only_prototools(&tool, &manager)
+                .await
+                .unwrap(),
+            None
         );
     }
 }
