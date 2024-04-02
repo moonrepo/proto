@@ -113,9 +113,6 @@ mod plugins {
     mod builtins {
         use super::*;
 
-        // Bun doesn't support Windows
-        // And this is super flaky on macoS
-        #[cfg(target_os = "linux")]
         #[test]
         fn supports_bun() {
             let sandbox = create_empty_sandbox();
