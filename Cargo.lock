@@ -2238,7 +2238,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.32.1"
+version = "0.32.2"
 dependencies = [
  "anyhow",
  "chrono",
@@ -2280,7 +2280,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.32.3"
+version = "0.32.4"
 dependencies = [
  "cached",
  "human-sort",
