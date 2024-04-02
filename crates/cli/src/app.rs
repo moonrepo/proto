@@ -2,7 +2,8 @@ use crate::commands::{
     debug::DebugConfigArgs,
     plugin::{AddPluginArgs, InfoPluginArgs, ListPluginsArgs, RemovePluginArgs},
     AliasArgs, BinArgs, CleanArgs, CompletionsArgs, InstallArgs, ListArgs, ListRemoteArgs,
-    MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs, UnaliasArgs, UninstallArgs,
+    MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs, StatusArgs, UnaliasArgs,
+    UninstallArgs,
 };
 use clap::builder::styling::{Color, Style, Styles};
 use clap::{Parser, Subcommand, ValueEnum};
@@ -184,6 +185,12 @@ pub enum Commands {
         about = "Setup proto for your current shell by injecting exports and updating PATH."
     )]
     Setup(SetupArgs),
+
+    #[command(
+        name = "status",
+        about = "List all active tools and their current installation status."
+    )]
+    Status(StatusArgs),
 
     #[command(alias = "ua", name = "unalias", about = "Remove an alias from a tool.")]
     Unalias(UnaliasArgs),
