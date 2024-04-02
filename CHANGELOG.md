@@ -10,6 +10,14 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🧩 Plugins
+
+- Updated `bun_plugin` to v0.11.0.
+  - Added Windows support.
+  - Will now use the baseline build on x64 Linux when available.
+
 ## 0.32.1
 
 #### 🐞 Fixes
