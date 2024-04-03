@@ -52,17 +52,17 @@ pub async fn status(args: ArgsRef<StatusArgs>, proto: ResourceRef<ProtoResource>
         }
 
         if let Some(file_versions) = &file.config.versions {
-            for (id, spec) in file_versions {
-                if items.contains_key(id) {
+            for (tool_id, config_version) in file_versions {
+                if items.contains_key(tool_id) {
                     continue;
                 }
 
                 items.insert(
-                    id.to_owned(),
+                    tool_id.to_owned(),
                     StatusItem {
                         is_installed: false,
                         config_source: file.path.to_owned(),
-                        config_version: spec.to_owned(),
+                        config_version: config_version.to_owned(),
                         resolved_version: None,
                         product_dir: None,
                     },
@@ -93,6 +93,8 @@ pub async fn status(args: ArgsRef<StatusArgs>, proto: ResourceRef<ProtoResource>
         let config_version = item.config_version.to_owned();
 
         futures.push(spawn(async move {
+            debug!("Checking {}", tool.get_name());
+
             let mut resolved_version = None;
             let mut product_dir = None;
 
