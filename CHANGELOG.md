@@ -14,6 +14,9 @@
 
 #### 🚀 Updates
 
+- Added a new command, `proto status`, that shows the status of active tools.
+  - An active tool is one that has been configured in `.prototools`.
+  - Includes the resolved version, install path, configured path, and more.
 - Updated `proto outdated` with a better developer experience.
   - Displays all tools and available updates as a table of data.
   - Includes newest (matching range) and latest versions available.
