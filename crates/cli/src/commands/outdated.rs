@@ -6,13 +6,16 @@ use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
 use dialoguer::Confirm;
 use miette::IntoDiagnostic;
 use proto_core::{Id, ProtoConfig, ProtoError, UnresolvedVersionSpec, VersionSpec};
+use rustc_hash::FxHashSet;
 use semver::VersionReq;
 use serde::Serialize;
 use starbase::system;
 use starbase_styles::color::{self, Style};
 use starbase_utils::json;
 use std::collections::BTreeMap;
+use std::io::{stdout, IsTerminal};
 use std::path::PathBuf;
+use tokio::spawn;
 use tracing::debug;
 
 #[derive(Args, Clone, Debug)]
@@ -63,33 +66,57 @@ fn get_in_major_range(spec: &UnresolvedVersionSpec) -> UnresolvedVersionSpec {
 pub async fn outdated(args: ArgsRef<OutdatedArgs>, proto: ResourceRef<ProtoResource>) {
     let manager = proto.env.load_config_manager()?;
 
-    debug!("Checking for newer versions...");
+    debug!("Determining outdated tools based on config...");
 
-    let mut items = BTreeMap::default();
-    let initial_version = UnresolvedVersionSpec::default(); // latest
+    let mut configured_tools = BTreeMap::default();
 
-    for file in &manager.files {
+    for file in manager.files.iter().rev() {
         if !file.exists
             || !args.include_global && file.global
-            || args.only_local && file.path != proto.env.cwd
+            || args.only_local && !file.path.parent().is_some_and(|p| p == proto.env.cwd)
         {
             continue;
         }
 
-        let Some(file_versions) = &file.config.versions else {
+        if let Some(file_versions) = &file.config.versions {
+            for (tool_id, config_version) in file_versions {
+                if configured_tools.contains_key(tool_id) {
+                    continue;
+                }
+
+                configured_tools.insert(
+                    tool_id.to_owned(),
+                    (config_version.to_owned(), file.path.to_owned()),
+                );
+            }
+        }
+    }
+
+    if configured_tools.is_empty() {
+        return Err(ProtoCliError::NoConfiguredTools.into());
+    }
+
+    debug!(
+        tools = ?configured_tools.keys().map(|id| id.as_str()).collect::<Vec<_>>(),
+        "Found tools with configured versions, loading them",
+    );
+
+    let tools = proto
+        .load_tools_with_filters(FxHashSet::from_iter(configured_tools.keys()))
+        .await?;
+    let mut futures = vec![];
+
+    for mut tool in tools {
+        let Some((config_version, config_source)) = configured_tools.remove(&tool.id) else {
             continue;
         };
 
-        for (tool_id, config_version) in file_versions {
-            if items.contains_key(tool_id) {
-                continue;
-            }
-
-            let mut tool = proto.load_tool(tool_id).await?;
+        futures.push(spawn(async move {
             tool.disable_caching();
 
             debug!("Checking {}", tool.get_name());
 
+            let initial_version = UnresolvedVersionSpec::default(); // latest
             let version_resolver = tool.load_version_resolver(&initial_version).await?;
 
             let handle_error = || ProtoError::VersionResolveFailed {
@@ -98,35 +125,39 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>, proto: ResourceRef<ProtoResou
             };
 
             let current_version = version_resolver
-                .resolve(config_version)
+                .resolve(&config_version)
                 .ok_or_else(handle_error)?;
 
             let newest_version = version_resolver
-                .resolve_without_manifest(&get_in_major_range(config_version))
+                .resolve_without_manifest(&get_in_major_range(&config_version))
                 .ok_or_else(handle_error)?;
 
             let latest_version = version_resolver
                 .resolve_without_manifest(&initial_version)
                 .ok_or_else(handle_error)?;
 
-            items.insert(
+            Result::<_, miette::Report>::Ok((
                 tool.id,
                 OutdatedItem {
                     is_latest: current_version == latest_version,
                     is_outdated: newest_version > current_version
                         || latest_version > current_version,
-                    config_source: file.path.to_owned(),
-                    config_version: config_version.to_owned(),
+                    config_source,
+                    config_version,
                     current_version,
                     newest_version,
                     latest_version,
                 },
-            );
-        }
+            ))
+        }));
     }
 
-    if items.is_empty() {
-        return Err(ProtoCliError::NoConfiguredTools.into());
+    let mut items = BTreeMap::default();
+
+    for future in futures {
+        let (id, item) = future.await.into_diagnostic()??;
+
+        items.insert(id, item);
     }
 
     // Dump all the data as JSON
@@ -178,14 +209,15 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>, proto: ResourceRef<ProtoResou
     let theme = create_theme();
 
     if args.update
-        && Confirm::with_theme(&theme)
-            .with_prompt(if args.latest {
-                "Update config files with latest versions?"
-            } else {
-                "Update config files with newest versions?"
-            })
-            .interact()
-            .into_diagnostic()?
+        && (!stdout().is_terminal()
+            || Confirm::with_theme(&theme)
+                .with_prompt(if args.latest {
+                    "Update config files with latest versions?"
+                } else {
+                    "Update config files with newest versions?"
+                })
+                .interact()
+                .into_diagnostic()?)
     {
         let mut updates: BTreeMap<PathBuf, BTreeMap<Id, UnresolvedVersionSpec>> = BTreeMap::new();
 
