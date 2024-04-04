@@ -13,6 +13,7 @@ use starbase::system;
 use starbase_styles::color::{self, Style};
 use starbase_utils::json;
 use std::collections::BTreeMap;
+use std::io::{stdout, IsTerminal};
 use std::path::PathBuf;
 use tokio::spawn;
 use tracing::debug;
@@ -208,14 +209,15 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>, proto: ResourceRef<ProtoResou
     let theme = create_theme();
 
     if args.update
-        && Confirm::with_theme(&theme)
-            .with_prompt(if args.latest {
-                "Update config files with latest versions?"
-            } else {
-                "Update config files with newest versions?"
-            })
-            .interact()
-            .into_diagnostic()?
+        && (!stdout().is_terminal()
+            || Confirm::with_theme(&theme)
+                .with_prompt(if args.latest {
+                    "Update config files with latest versions?"
+                } else {
+                    "Update config files with newest versions?"
+                })
+                .interact()
+                .into_diagnostic()?)
     {
         let mut updates: BTreeMap<PathBuf, BTreeMap<Id, UnresolvedVersionSpec>> = BTreeMap::new();
 

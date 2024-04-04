@@ -2,9 +2,12 @@ mod utils;
 
 use starbase_sandbox::get_assert_output;
 use starbase_sandbox::predicates::prelude::*;
+use std::fs;
 use utils::*;
 
-mod status {
+mod outdated {
+    use starbase_sandbox::assert_debug_snapshot;
+
     use super::*;
 
     #[test]
@@ -12,7 +15,7 @@ mod status {
         let sandbox = create_empty_sandbox();
 
         let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd.arg("status").assert().failure();
+        let assert = cmd.arg("outdated").assert().failure();
 
         assert.stderr(predicate::str::contains("No tools have been configured"));
     }
@@ -27,7 +30,7 @@ mod status {
 
         let mut cmd = create_proto_command(sandbox.path());
         let assert = cmd
-            .arg("status")
+            .arg("outdated")
             .current_dir(sandbox.path().join("a/b/c"))
             .assert()
             .success();
@@ -50,7 +53,7 @@ mod status {
 
         let mut cmd = create_proto_command(sandbox.path());
         let assert = cmd
-            .arg("status")
+            .arg("outdated")
             .arg("--only-local")
             .current_dir(sandbox.path().join("a/b/c"))
             .assert()
@@ -74,7 +77,7 @@ mod status {
 
         let mut cmd = create_proto_command(sandbox.path());
         let assert = cmd
-            .arg("status")
+            .arg("outdated")
             .arg("--include-global")
             .current_dir(sandbox.path().join("a/b/c"))
             .assert()
@@ -86,5 +89,56 @@ mod status {
         assert!(predicate::str::contains("npm").eval(&output));
         assert!(predicate::str::contains("bun").eval(&output));
         assert!(predicate::str::contains("go").eval(&output));
+    }
+
+    #[test]
+    fn updates_each_file_respectively() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".proto/.prototools", r#"go = "1.19""#);
+        sandbox.create_file("a/.prototools", r#"node = "20.0.0""#);
+        sandbox.create_file("a/b/.prototools", r#"npm = "9.0.0""#);
+
+        let mut cmd = create_proto_command(sandbox.path());
+        cmd.arg("outdated")
+            .arg("--update")
+            .arg("--include-global")
+            .current_dir(sandbox.path().join("a/b"))
+            .assert()
+            .success();
+
+        assert_debug_snapshot!(vec![
+            fs::read_to_string(sandbox.path().join(".proto/.prototools")).unwrap(),
+            fs::read_to_string(sandbox.path().join("a/.prototools")).unwrap(),
+            fs::read_to_string(sandbox.path().join("a/b/.prototools")).unwrap(),
+        ]);
+    }
+
+    #[test]
+    fn can_update_with_latest_version() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".proto/.prototools", r#"pnpm = "6.0.0""#);
+        sandbox.create_file("a/.prototools", r#"node = "19.0.0""#);
+        sandbox.create_file("a/b/.prototools", r#"npm = "8.0.0""#);
+
+        let mut cmd = create_proto_command(sandbox.path());
+        cmd.arg("outdated")
+            .arg("--update")
+            .arg("--include-global")
+            .arg("--latest")
+            .current_dir(sandbox.path().join("a/b"))
+            .assert()
+            .success();
+
+        assert!(
+            !fs::read_to_string(sandbox.path().join(".proto/.prototools"))
+                .unwrap()
+                .contains("6.")
+        );
+        assert!(!fs::read_to_string(sandbox.path().join("a/.prototools"))
+            .unwrap()
+            .contains("19."));
+        assert!(!fs::read_to_string(sandbox.path().join("a/b/.prototools"))
+            .unwrap()
+            .contains("8."));
     }
 }
