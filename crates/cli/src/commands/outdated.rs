@@ -72,7 +72,7 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>, proto: ResourceRef<ProtoResou
     for file in manager.files.iter().rev() {
         if !file.exists
             || !args.include_global && file.global
-            || args.only_local && file.path != proto.env.cwd
+            || args.only_local && !file.path.parent().is_some_and(|p| p == proto.env.cwd)
         {
             continue;
         }

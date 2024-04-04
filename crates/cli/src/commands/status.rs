@@ -46,7 +46,7 @@ pub async fn status(args: ArgsRef<StatusArgs>, proto: ResourceRef<ProtoResource>
     for file in manager.files.iter().rev() {
         if !file.exists
             || !args.include_global && file.global
-            || args.only_local && file.path != proto.env.cwd
+            || args.only_local && !file.path.parent().is_some_and(|p| p == proto.env.cwd)
         {
             continue;
         }
