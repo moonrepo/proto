@@ -32,7 +32,7 @@ pub struct OutdatedArgs {
     )]
     latest: bool,
 
-    #[arg(long, help = "Only check versions in local .prototools")]
+    #[arg(long, help = "Only check versions in local ./.prototools")]
     only_local: bool,
 
     #[arg(

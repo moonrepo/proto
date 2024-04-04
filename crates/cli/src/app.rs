@@ -119,15 +119,14 @@ pub enum Commands {
         alias = "i",
         name = "install",
         about = "Download and install a tool.",
-        long_about = "Download and install a tool by unpacking the archive to ~/.proto/tools."
+        long_about = "Download and install a tool by version into ~/.proto/tools."
     )]
     Install(InstallArgs),
 
     #[command(
         alias = "ls",
         name = "list",
-        about = "List installed versions for a tool.",
-        long_about = "List installed versions by scanning the ~/.proto/tools directory for possible versions."
+        about = "List installed versions for a tool."
     )]
     List(ListArgs),
 
@@ -155,7 +154,7 @@ pub enum Commands {
         alias = "p",
         name = "pin",
         about = "Pin a global or local version of a tool.",
-        long_about = "Pin a version of a tool globally to ~/.proto/.prototools, or locally to .prototools (in the current working directory)."
+        long_about = "Pin a version of a tool globally to ~/.proto/.prototools, or locally to ./.prototools."
     )]
     Pin(PinArgs),
 
@@ -188,7 +187,7 @@ pub enum Commands {
 
     #[command(
         name = "status",
-        about = "List all active tools and their current installation status."
+        about = "List all configured tools and their current installation status."
     )]
     Status(StatusArgs),
 
@@ -213,7 +212,7 @@ pub enum Commands {
     #[command(
         alias = "u",
         name = "use",
-        about = "Download and install all tools from .prototools."
+        about = "Download and install all tools from loaded .prototools."
     )]
     Use,
 }
@@ -235,7 +234,7 @@ pub enum PluginCommands {
     #[command(
         name = "add",
         about = "Add a plugin to manage a tool.",
-        long_about = "Add a plugin to the local .prototools config, or global ~/.proto/.prototools config."
+        long_about = "Add a plugin to the local ./.prototools config, or global ~/.proto/.prototools config."
     )]
     Add(AddPluginArgs),
 
@@ -254,7 +253,7 @@ pub enum PluginCommands {
     #[command(
         name = "remove",
         about = "Remove a plugin and unmanage a tool.",
-        long_about = "Remove a plugin from the local .prototools config, or global ~/.proto/.prototools config."
+        long_about = "Remove a plugin from the local ./.prototools config, or global ~/.proto/.prototools config."
     )]
     Remove(RemovePluginArgs),
 }
