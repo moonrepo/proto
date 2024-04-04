@@ -195,7 +195,7 @@ mod install_uninstall {
             let sandbox = create_empty_sandbox();
             let manifest_file = sandbox.path().join(".proto/tools/node/manifest.json");
 
-            ProtoConfig::update(sandbox.path().join(".proto"), |config| {
+            ProtoConfig::update(sandbox.path(), |config| {
                 config.versions.get_or_insert(Default::default()).insert(
                     Id::raw("node"),
                     UnresolvedVersionSpec::parse("18.0.0").unwrap(),
@@ -219,7 +219,7 @@ mod install_uninstall {
                 .assert();
 
             let manifest = ToolManifest::load(&manifest_file).unwrap();
-            let config = load_config(sandbox.path().join(".proto"));
+            let config = load_config(sandbox.path());
 
             assert_eq!(
                 config.versions.get("node").unwrap(),
@@ -337,7 +337,7 @@ mod install_uninstall {
                 .assert();
 
             // Manually change it to something else
-            ProtoConfig::update(sandbox.path().join(".proto"), |config| {
+            ProtoConfig::update(sandbox.path(), |config| {
                 config.versions.get_or_insert(Default::default()).insert(
                     Id::raw("node"),
                     UnresolvedVersionSpec::parse("18.0.0").unwrap(),
@@ -354,7 +354,7 @@ mod install_uninstall {
                 .arg("--no-bundled-npm")
                 .assert();
 
-            let config = load_config(sandbox.path().join(".proto"));
+            let config = load_config(sandbox.path());
 
             assert_eq!(
                 config.versions.get("node").unwrap(),

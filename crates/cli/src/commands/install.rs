@@ -36,7 +36,7 @@ pub struct InstallArgs {
     )]
     pub canary: bool,
 
-    #[arg(long, help = "Pin the resolved version")]
+    #[arg(long, help = "Pin the resolved version to .prototools")]
     pub pin: Option<Option<PinOption>>,
 
     // Passthrough args (after --)
@@ -97,8 +97,8 @@ pub async fn internal_install(
     };
 
     let pin_type = args.pin.map(|pin| match pin {
-        Some(PinOption::Local) => PinType::Local,
-        _ => PinType::Global,
+        Some(PinOption::Global) => PinType::Global,
+        _ => PinType::Local,
     });
 
     // Disable version caching and always use the latest when installing

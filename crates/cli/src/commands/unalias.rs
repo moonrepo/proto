@@ -15,7 +15,7 @@ pub struct UnaliasArgs {
 
     #[arg(
         long,
-        help = "Remove from the global .prototools instead of local .prototools"
+        help = "Remove from the global ~/.proto/.prototools instead of local ./.prototools"
     )]
     global: bool,
 }

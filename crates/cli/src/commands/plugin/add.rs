@@ -14,7 +14,7 @@ pub struct AddPluginArgs {
 
     #[arg(
         long,
-        help = "Add to the global .prototools instead of local .prototools"
+        help = "Add to the global ~/.proto/.prototools instead of local ./.prototools"
     )]
     global: bool,
 }

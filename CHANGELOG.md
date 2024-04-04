@@ -12,8 +12,13 @@
 
 ## Unreleased
 
+#### 💥 Breaking
+
+- Updated `proto install --pin` to pin to the local `.prototools` by default, instead of the global `~/.proto/.prototools`. This now aligns with the other pinning commands and args.
+
 #### 🚀 Updates
 
+- Added a new option for the `detect-strategy` setting, `only-prototools`, that only reads versions from `.prototools`, and not tool related files.
 - Added a new command, `proto status`, that shows the status of active tools.
   - An active tool is one that has been configured in `.prototools`.
   - Includes the resolved version, install path, configured path, and more.
@@ -48,7 +53,7 @@
 #### 💥 Breaking
 
 - Removed the `PROTO_INSTALL_DIR` environment variable, use `PROTO_HOME` instead.
-- Removed the deprecated `/workspace` as a virtual path prefix, use `/cwd` instead.
+- Removed the deprecated `/workspace` virtual path prefix, use `/cwd` instead.
 - Rewrote the `proto_pdk_test_utils` crate from the ground up to be easier to use.
 
 #### 🚀 Updates
