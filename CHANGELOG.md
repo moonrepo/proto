@@ -18,6 +18,7 @@
 
 #### 🚀 Updates
 
+- Added a new option for the `detect-strategy` setting, `only-prototools`, that only reads versions from `.prototools`, and not tool related files.
 - Added a new command, `proto status`, that shows the status of active tools.
   - An active tool is one that has been configured in `.prototools`.
   - Includes the resolved version, install path, configured path, and more.
