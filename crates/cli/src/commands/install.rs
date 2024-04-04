@@ -36,7 +36,7 @@ pub struct InstallArgs {
     )]
     pub canary: bool,
 
-    #[arg(long, help = "Pin the resolved version")]
+    #[arg(long, help = "Pin the resolved version to .prototools")]
     pub pin: Option<Option<PinOption>>,
 
     // Passthrough args (after --)

@@ -17,7 +17,7 @@ pub struct PinArgs {
 
     #[arg(
         long,
-        help = "Pin to the global .prototools instead of local .prototools"
+        help = "Pin to the global ~/.proto/.prototools instead of local ./.prototools"
     )]
     pub global: bool,
 

@@ -23,7 +23,7 @@ pub struct StatusArgs {
     #[arg(long, help = "Print the active tools in JSON format")]
     json: bool,
 
-    #[arg(long, help = "Only check versions in local .prototools")]
+    #[arg(long, help = "Only check versions in local ./.prototools")]
     only_local: bool,
 }
 
