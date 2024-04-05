@@ -2442,6 +2442,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "proto_codegen"
+version = "0.0.1"
+dependencies = [
+ "proto_pdk_api",
+ "schematic",
+]
+
+[[package]]
 name = "proto_core"
 version = "0.32.5"
 dependencies = [
@@ -2506,7 +2514,6 @@ dependencies = [
 name = "proto_pdk_api"
 version = "0.17.3"
 dependencies = [
- "proto_pdk_api",
  "rustc-hash",
  "schematic",
  "semver",
@@ -4001,7 +4008,6 @@ dependencies = [
  "serde_json",
  "system_env",
  "thiserror",
- "warpgate_api",
 ]
 
 [[package]]
