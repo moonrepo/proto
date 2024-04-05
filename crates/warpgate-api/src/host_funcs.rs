@@ -15,6 +15,7 @@ api_enum!(
 );
 
 api_struct!(
+    /// Input passed to the `host_log` host function.
     pub struct HostLogInput {
         pub data: FxHashMap<String, serde_json::Value>,
         pub message: String,

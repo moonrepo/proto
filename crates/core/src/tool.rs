@@ -23,7 +23,6 @@ use std::collections::BTreeMap;
 use std::env;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::sync::Arc;
 use std::time::Duration;
 use tracing::{debug, trace, warn};
@@ -631,7 +630,7 @@ impl Tool {
         .into())
     }
 
-    pub async fn build_from_source(&self, install_dir: &Path) -> miette::Result<()> {
+    pub async fn build_from_source(&self, _install_dir: &Path) -> miette::Result<()> {
         debug!(
             tool = self.id.as_str(),
             "Installing tool by building from source"
@@ -644,96 +643,96 @@ impl Tool {
             .into());
         }
 
-        let temp_dir = self.get_temp_dir();
+        // let temp_dir = self.get_temp_dir();
 
-        let options: BuildInstructionsOutput = self.plugin.cache_func_with(
-            "build_instructions",
-            BuildInstructionsInput {
-                context: self.create_context(),
-            },
-        )?;
+        // let options: BuildInstructionsOutput = self.plugin.cache_func_with(
+        //     "build_instructions",
+        //     BuildInstructionsInput {
+        //         context: self.create_context(),
+        //     },
+        // )?;
 
-        match &options.source {
-            // Should this do anything?
-            SourceLocation::None => {
-                return Ok(());
-            }
+        // match &options.source {
+        //     // Should this do anything?
+        //     SourceLocation::None => {
+        //         return Ok(());
+        //     }
 
-            // Download from archive
-            SourceLocation::Archive { url: archive_url } => {
-                let download_file = temp_dir.join(extract_filename_from_url(archive_url)?);
+        //     // Download from archive
+        //     SourceLocation::Archive { url: archive_url } => {
+        //         let download_file = temp_dir.join(extract_filename_from_url(archive_url)?);
 
-                debug!(
-                    tool = self.id.as_str(),
-                    archive_url,
-                    download_file = ?download_file,
-                    install_dir = ?install_dir,
-                    "Attempting to download and unpack sources",
-                );
+        //         debug!(
+        //             tool = self.id.as_str(),
+        //             archive_url,
+        //             download_file = ?download_file,
+        //             install_dir = ?install_dir,
+        //             "Attempting to download and unpack sources",
+        //         );
 
-                net::download_from_url_with_client(
-                    archive_url,
-                    &download_file,
-                    self.proto.get_plugin_loader()?.get_client()?,
-                )
-                .await?;
+        //         net::download_from_url_with_client(
+        //             archive_url,
+        //             &download_file,
+        //             self.proto.get_plugin_loader()?.get_client()?,
+        //         )
+        //         .await?;
 
-                Archiver::new(install_dir, &download_file).unpack_from_ext()?;
-            }
+        //         Archiver::new(install_dir, &download_file).unpack_from_ext()?;
+        //     }
 
-            // Clone from Git repository
-            SourceLocation::Git {
-                url: repo_url,
-                reference: ref_name,
-                submodules,
-            } => {
-                debug!(
-                    tool = self.id.as_str(),
-                    repo_url,
-                    ref_name,
-                    install_dir = ?install_dir,
-                    "Attempting to clone a Git repository",
-                );
+        //     // Clone from Git repository
+        //     SourceLocation::Git {
+        //         url: repo_url,
+        //         reference: ref_name,
+        //         submodules,
+        //     } => {
+        //         debug!(
+        //             tool = self.id.as_str(),
+        //             repo_url,
+        //             ref_name,
+        //             install_dir = ?install_dir,
+        //             "Attempting to clone a Git repository",
+        //         );
 
-                let run_git = |args: &[&str]| -> miette::Result<()> {
-                    let status = Command::new("git")
-                        .args(args)
-                        .current_dir(install_dir)
-                        .spawn()
-                        .into_diagnostic()?
-                        .wait()
-                        .into_diagnostic()?;
+        //         let run_git = |args: &[&str]| -> miette::Result<()> {
+        //             let status = Command::new("git")
+        //                 .args(args)
+        //                 .current_dir(install_dir)
+        //                 .spawn()
+        //                 .into_diagnostic()?
+        //                 .wait()
+        //                 .into_diagnostic()?;
 
-                    if !status.success() {
-                        return Err(ProtoError::BuildFailed {
-                            tool: self.get_name().to_owned(),
-                            url: repo_url.clone(),
-                            status: format!("exit code {}", status),
-                        }
-                        .into());
-                    }
+        //             if !status.success() {
+        //                 return Err(ProtoError::BuildFailed {
+        //                     tool: self.get_name().to_owned(),
+        //                     url: repo_url.clone(),
+        //                     status: format!("exit code {}", status),
+        //                 }
+        //                 .into());
+        //             }
 
-                    Ok(())
-                };
+        //             Ok(())
+        //         };
 
-                // TODO, pull if already cloned
+        //         // TODO, pull if already cloned
 
-                fs::create_dir_all(install_dir)?;
+        //         fs::create_dir_all(install_dir)?;
 
-                run_git(&[
-                    "clone",
-                    if *submodules {
-                        "--recurse-submodules"
-                    } else {
-                        ""
-                    },
-                    repo_url,
-                    ".",
-                ])?;
+        //         run_git(&[
+        //             "clone",
+        //             if *submodules {
+        //                 "--recurse-submodules"
+        //             } else {
+        //                 ""
+        //             },
+        //             repo_url,
+        //             ".",
+        //         ])?;
 
-                run_git(&["checkout", ref_name])?;
-            }
-        };
+        //         run_git(&["checkout", ref_name])?;
+        //     }
+        // };
 
         Ok(())
     }
