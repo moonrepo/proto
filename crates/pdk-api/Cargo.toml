@@ -7,6 +7,9 @@ description = "Core APIs for creating proto WASM plugins."
 homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
+[package.metadata.dist]
+dist = false
+
 [[bin]]
 name = "proto_pdk_codegen"
 path = "src/codegen.rs"
