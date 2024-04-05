@@ -1,5 +1,5 @@
 use proto_pdk_api::*;
-use schematic::schema::typescript::{TypeScriptOptions, TypeScriptRenderer};
+use schematic::schema::typescript::TypeScriptRenderer;
 use schematic::schema::SchemaGenerator;
 use std::path::PathBuf;
 
@@ -7,6 +7,7 @@ use std::path::PathBuf;
 fn main() {
     let mut generator = SchemaGenerator::default();
 
+    // proto
     generator.add::<ToolContext>();
     generator.add::<PluginType>();
     generator.add::<ToolMetadataInput>();
@@ -35,6 +36,28 @@ fn main() {
     generator.add::<SyncManifestOutput>();
     generator.add::<SyncShellProfileInput>();
     generator.add::<SyncShellProfileOutput>();
+    generator.add::<InstallHook>();
+    generator.add::<RunHook>();
+    generator.add::<RunHookResult>();
+
+    // system_env
+    generator.add::<HostArch>();
+    generator.add::<HostOS>();
+    generator.add::<HostLibc>();
+
+    // version_spec
+    generator.add::<VersionSpec>();
+    generator.add::<UnresolvedVersionSpec>();
+
+    // warpgate
+    generator.add::<HostLogTarget>();
+    generator.add::<HostLogInput>();
+    generator.add::<ExecCommandInput>();
+    generator.add::<ExecCommandOutput>();
+    generator.add::<HostEnvironment>();
+    generator.add::<TestEnvironment>();
+    generator.add::<PluginLocator>();
+    generator.add::<VirtualPath>();
 
     generator
         .generate(

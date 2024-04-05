@@ -312,3 +312,99 @@ export interface SyncShellProfileOutput {
 	/** Whether to skip the syncing process or not. */
 	skipSync: boolean;
 }
+
+/**
+ * Input passed to the `pre_install` and `post_install` hooks,
+ * while a `proto install` command is running.
+ */
+export interface InstallHook {
+	/** Current tool context. */
+	context: ToolContext;
+	/** Arguments passed after `--` that was directly passed to the tool's binary. */
+	passthroughArgs: string[];
+	/** Whether the resolved version was pinned */
+	pinned: boolean;
+}
+
+/**
+ * Input passed to the `pre_run` hook, before a `proto run` command
+ * or language binary is ran.
+ */
+export interface RunHook {
+	/** Current tool context. */
+	context: ToolContext;
+	/** Path to the global packages directory for the tool, if found. */
+	globalsDir: string | null;
+	/** A prefix applied to the file names of globally installed packages. */
+	globalsPrefix: string | null;
+	/** Arguments passed after `--` that was directly passed to the tool's binary. */
+	passthroughArgs: string[];
+}
+
+/** Output returned from the `pre_run` hook. */
+export interface RunHookResult {
+	/** Additional arguments to append to the running command. */
+	args: string[] | null;
+	/**
+	 * Additional environment variables to pass to the running command.
+	 * Will overwrite any existing variables.
+	 */
+	env: Record<string, string> | null;
+}
+
+/** Architecture of the system environment. */
+export type SystemArch = 'x86' | 'x64' | 'arm' | 'arm64' | 'longarm64' | 'm68k' | 'mips' | 'mips64' | 'powerpc' | 'powerpc64' | 'riscv64' | 's390x' | 'sparc64';
+
+/** Operating system of the current environment. */
+export type SystemOS = 'android' | 'dragonfly' | 'freebsd' | 'ios' | 'linux' | 'macos' | 'netbsd' | 'openbsd' | 'solaris' | 'windows';
+
+/** Libc being used in the system environment. */
+export type SystemLibc = 'gnu' | 'musl' | 'unknown';
+
+/** Target where host logs should be written to. */
+export type HostLogTarget = 'stderr' | 'stdout' | 'tracing';
+
+/** Input passed to the `host_log` host function. */
+export interface HostLogInput {
+	data: Record<string, unknown>;
+	message: string;
+	target: HostLogTarget;
+}
+
+/** Input passed to the `exec_command` host function. */
+export interface ExecCommandInput {
+	/** Arguments to pass to the command. */
+	args: string[];
+	/** The command or script to execute. */
+	command: string;
+	/** Environment variables to pass to the command. */
+	env: Record<string, string>;
+	/** Mark the command as executable before executing. */
+	setExecutable: boolean;
+	/** Stream the output instead of capturing it. */
+	stream: boolean;
+	/** Override the current working directory. */
+	workingDir: string | null;
+}
+
+/** Output returned from the `exec_command` host function. */
+export interface ExecCommandOutput {
+	command: string;
+	exitCode: number;
+	stderr: string;
+	stdout: string;
+}
+
+/** Information about the host environment (the current runtime). */
+export interface HostEnvironment {
+	arch: SystemArch;
+	homeDir: string;
+	libc: SystemLibc;
+	os: SystemOS;
+}
+
+/** Information about the current testing environment. */
+export interface TestEnvironment {
+	ci: boolean;
+	sandbox: string;
+}
