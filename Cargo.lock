@@ -2506,7 +2506,9 @@ dependencies = [
 name = "proto_pdk_api"
 version = "0.17.3"
 dependencies = [
+ "proto_pdk_api",
  "rustc-hash",
+ "schematic",
  "semver",
  "serde",
  "serde_json",
@@ -2961,6 +2963,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f3adfbe1c90a6a9643433e490ef1605c6a99f93be37e4c83fe5149fca9698c6"
 dependencies = [
  "indexmap 2.2.6",
+ "semver",
  "serde_json",
  "toml 0.8.12",
 ]
@@ -3998,6 +4001,7 @@ dependencies = [
  "serde_json",
  "system_env",
  "thiserror",
+ "warpgate_api",
 ]
 
 [[package]]

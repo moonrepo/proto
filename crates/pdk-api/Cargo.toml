@@ -12,7 +12,18 @@ system_env = { version = "0.2.4", path = "../system-env" }
 version_spec = { version = "0.2.1", path = "../version-spec" }
 warpgate_api = { version = "0.4.5", path = "../warpgate-api" }
 rustc-hash = { workspace = true }
+schematic = { workspace = true, optional = true, features = [
+	"schema",
+	"type_semver",
+] }
 semver = { workspace = true, features = ["serde"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
+
+[dev-dependencies]
+proto_pdk_api = { path = ".", features = ["schematic"] }
+
+[features]
+default = []
+schematic = ["dep:schematic"]

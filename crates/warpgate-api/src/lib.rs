@@ -14,6 +14,7 @@ pub use virtual_path::*;
 macro_rules! api_struct {
     ($struct:item) => {
         #[derive(Clone, Debug, Default, serde::Deserialize, PartialEq, serde::Serialize)]
+        #[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
         #[serde(default)]
         $struct
     };
@@ -24,6 +25,7 @@ macro_rules! api_struct {
 macro_rules! api_enum {
     ($struct:item) => {
         #[derive(Clone, Debug, serde::Deserialize, PartialEq, serde::Serialize)]
+        #[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
         $struct
     };
 }

@@ -191,25 +191,26 @@ api_enum!(
     pub enum SourceLocation {
         #[default]
         None,
-        Archive {
-            url: String,
-        },
-        Git {
-            url: String,
-            reference: String,
-            submodules: bool,
-        },
+        // Archive {
+        //     url: String,
+        // },
+        // Git {
+        //     url: String,
+        //     reference: String,
+        //     submodules: bool,
+        // },
     }
 );
 
 api_enum!(
     #[serde(tag = "type", rename_all = "lowercase")]
     pub enum BuildInstruction {
-        Command {
-            bin: String,
-            args: Vec<String>,
-            env: FxHashMap<String, String>,
-        },
+        None,
+        // Command {
+        //     bin: String,
+        //     args: Vec<String>,
+        //     env: FxHashMap<String, String>,
+        // },
     }
 );
 
