@@ -135,6 +135,27 @@ fn already_setup_message(installed_bin_path: PathBuf) {
     help_message();
 }
 
+fn manual_system_path_message(proto: &ProtoResource) {
+    println!(
+        "Add the following to your {} to get started:",
+        color::property("PATH")
+    );
+    println!();
+    println!(
+        "{}",
+        if cfg!(windows) {
+            // we avoid %USERPROFILE% as it only works in the user path and not system path
+            color::muted_light(format!(
+                "{};{}",
+                proto.env.store.shims_dir.as_os_str().to_string_lossy(),
+                proto.env.store.bin_dir.as_os_str().to_string_lossy()
+            ))
+        } else {
+            color::muted_light("$HOME/.proto/shims;$HOME/.proto/bin")
+        },
+    );
+}
+
 fn finished_message(
     proto: &ProtoResource,
     exported_content: Option<String>,
@@ -149,29 +170,18 @@ fn finished_message(
 
     if path_was_updated {
         println!("Launch a new terminal window to start using proto!");
-    } else if exported_content.is_some() && cfg!(not(windows)) {
-        println!("Add the following to your shell profile to get started:");
+    } else if exported_content.is_some() {
+        if cfg!(windows) {
+            manual_system_path_message(proto);
+            println!();
+            println!("Or alternatively add the following to your shell profile:");
+        } else {
+            println!("Add the following to your shell profile to get started:");
+        }
         println!();
         println!("{}", color::muted_light(exported_content.unwrap().trim()));
     } else {
-        println!(
-            "Add the following to your {} to get started:",
-            color::property("PATH")
-        );
-        println!();
-        println!(
-            "{}",
-            if cfg!(windows) {
-                // we avoid %USERPROFILE% as it only works in the user path and not system path
-                color::muted_light(format!(
-                    "{};{}",
-                    proto.env.store.shims_dir.as_os_str().to_string_lossy(),
-                    proto.env.store.bin_dir.as_os_str().to_string_lossy()
-                ))
-            } else {
-                color::muted_light("$HOME/.proto/shims;$HOME/.proto/bin")
-            },
-        );
+        manual_system_path_message(&proto);
     }
 
     println!();
