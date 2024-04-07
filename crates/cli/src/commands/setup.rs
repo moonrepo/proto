@@ -52,16 +52,6 @@ pub async fn setup(args: ArgsRef<SetupArgs>, proto: ResourceRef<ProtoResource>) 
 
     println!("Finishing proto installation...");
 
-    let mut path_was_updated = false;
-
-    #[cfg(windows)]
-    if !args.no_modify_path {
-        path_was_updated |= windows::do_add_to_path(vec![
-            proto.env.store.shims_dir.clone(),
-            proto.env.store.bin_dir.clone(),
-        ])?;
-    }
-
     let content = format_exports(
         &shell,
         "proto",
@@ -71,15 +61,29 @@ pub async fn setup(args: ArgsRef<SetupArgs>, proto: ResourceRef<ProtoResource>) 
         ],
     );
 
-    if !args.no_profile {
-        if let Some(ref content) = content {
+    let profile_path = match content {
+        Some(ref content) if !args.no_profile => {
             let interactive = !args.yes && env::var("CI").is_err() && stdout().is_terminal();
-            path_was_updated |=
-                update_shell_profile(&shell, &proto, &content, interactive)?.is_some();
+            update_shell_profile(&shell, &proto, &content, interactive)?
         }
-    }
+        _ => None,
+    };
 
-    finished_message(&proto, content, path_was_updated);
+    #[cfg(windows)]
+    let system_path_was_updated = if !args.no_modify_path {
+        windows::do_add_to_path(vec![
+            proto.env.store.shims_dir.clone(),
+            proto.env.store.bin_dir.clone(),
+        ])?
+    } else {
+        false
+    };
+
+    // unix makes no distinction here
+    #[cfg(unix)]
+    let system_path_was_updated = profile_path.is_some();
+
+    finished_message(&proto, content, profile_path, system_path_was_updated);
 }
 
 fn update_shell_profile(
@@ -113,7 +117,6 @@ fn update_shell_profile(
 
     // If we found a profile, update the global config so we can reference it
     if let Some(profile) = &profile_path {
-        println!("Updated profile {}", color::path(profile));
         proto.env.store.save_preferred_profile(profile)?;
     }
 
@@ -159,7 +162,8 @@ fn manual_system_path_message(proto: &ProtoResource) {
 fn finished_message(
     proto: &ProtoResource,
     exported_content: Option<String>,
-    path_was_updated: bool,
+    profile_path: Option<PathBuf>,
+    system_path_was_updated: bool,
 ) {
     let installed_bin_path = proto.env.store.bin_dir.join(get_exe_file_name("proto"));
 
@@ -168,9 +172,13 @@ fn finished_message(
         color::path(installed_bin_path),
     );
 
-    if path_was_updated {
+    profile_path.as_ref().inspect(|path| {
+        println!("The shell profile at {} was updated.", color::path(path));
+    });
+
+    if system_path_was_updated || profile_path.is_some() {
         println!("Launch a new terminal window to start using proto!");
-    } else if exported_content.is_some() {
+    } else if exported_content.is_some() && profile_path.is_none() {
         if cfg!(windows) {
             manual_system_path_message(proto);
             println!();
