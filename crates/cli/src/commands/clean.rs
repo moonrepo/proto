@@ -44,7 +44,7 @@ fn is_older_than_days(now: u128, other: u128, days: u8) -> bool {
 }
 
 pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miette::Result<usize> {
-    debug!("Checking {}", color::shell(tool.get_name()));
+    println!("Checking {}", color::shell(tool.get_name()));
 
     if tool.metadata.inventory.override_dir.is_some() {
         debug!("Using an external inventory, skipping");
