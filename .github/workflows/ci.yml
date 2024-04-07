@@ -9,6 +9,15 @@ on:
   pull_request:
 
 jobs:
+  codegen:
+    name: Codegen
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: moonrepo/setup-rust@v1
+        with:
+          cache: false
+      - run: cargo run -p proto_codegen
   format:
     name: Format
     runs-on: ${{ matrix.os }}

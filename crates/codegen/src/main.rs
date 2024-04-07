@@ -3,7 +3,7 @@ use schematic::schema::typescript::TypeScriptRenderer;
 use schematic::schema::SchemaGenerator;
 use std::path::PathBuf;
 
-// cargo run -p proto_pdk_api --features schematic
+// cargo run -p proto_codegen
 fn main() {
     let mut generator = SchemaGenerator::default();
 
