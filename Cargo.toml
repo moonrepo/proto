@@ -75,7 +75,7 @@ installers = []
 # Path that installers should place binaries in
 install-path = "~/.proto/bin"
 # Publish jobs to run in CI
-pr-run-mode = "upload"
+pr-run-mode = "plan" # "upload"
 # Skip checking whether the specified configuration files are up to date
 allow-dirty = ["ci"]
 
