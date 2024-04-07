@@ -2,7 +2,7 @@ use std::ffi::OsString;
 use std::os::windows::ffi::OsStrExt;
 use std::path::PathBuf;
 
-use miette::{IntoDiagnostic, Result};
+use miette::{miette, IntoDiagnostic, Result};
 
 use tracing::debug;
 use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
@@ -55,18 +55,20 @@ fn get_path_var() -> Result<Vec<u16>> {
 }
 
 fn set_path_var(new_path: &[u16]) -> Result<()> {
+    if new_path.is_empty() {
+        return Err(miette!(
+            "New system path is empty, this shouldn't be possible"
+        ));
+    }
+
     RegKey::predef(HKEY_CURRENT_USER)
         .open_subkey_with_flags("Environment", KEY_READ | KEY_WRITE)
         .and_then(|environment| {
-            if new_path.is_empty() {
-                environment.delete_value("PATH")
-            } else {
-                let reg_value = RegValue {
-                    bytes: winreg_ext::to_winreg_bytes(new_path),
-                    vtype: RegType::REG_EXPAND_SZ,
-                };
-                environment.set_raw_value("PATH", &reg_value)
-            }
+            let reg_value = RegValue {
+                bytes: winreg_ext::to_winreg_bytes(new_path),
+                vtype: RegType::REG_EXPAND_SZ,
+            };
+            environment.set_raw_value("PATH", &reg_value)
         })
         .into_diagnostic()
 }
