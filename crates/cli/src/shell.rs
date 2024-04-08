@@ -237,10 +237,10 @@ pub fn write_profile_if_not_setup(
     Ok(Some(write_profile(last_profile, contents, env_var)?))
 }
 
-pub fn prompt_for_shell_profile(shell: &Shell, cwd: &PathBuf) -> miette::Result<Option<PathBuf>> {
+pub fn prompt_for_shell_profile(shell: &Shell, cwd: &Path) -> miette::Result<Option<PathBuf>> {
     let theme = create_theme();
 
-    let mut profiles = find_profiles(&shell)?;
+    let mut profiles = find_profiles(shell)?;
     profiles.reverse();
 
     let mut items = profiles.iter().map(color::path).collect::<Vec<_>>();
