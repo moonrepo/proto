@@ -29,6 +29,20 @@
   - When `--update` is passed, will now prompt to confirm the update.
   - When updating versions, versions are now written to their original config file, instead of local.
   - Updated the `--latest` flag to use the latest version when updating, instead of newest.
+- Updated `proto setup` (which is ran during proto installation) to modify the `PATH` system environment variable on Windows. To disable this functionality, pass `--no-modify-path`.
+
+#### 🧩 Plugins
+
+- Added a `dist-url` setting, allowing the distribution download URL to be customized, for the following plugins:
+  - bun, deno, go, node
+- Updated `bun_plugin` to v0.11.1.
+- Updated `deno_plugin` to v0.10.2.
+- Updated `go_plugin` to v0.10.2.
+- Updated `node_plugin` and `node_depman_plugin` to v0.10.2.
+
+#### 🐞 Fixes
+
+- Fixed `proto clean` accidentally deleting older proto version shims.
 
 ## 0.32.2
 

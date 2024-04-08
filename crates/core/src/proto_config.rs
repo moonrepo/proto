@@ -176,7 +176,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("bun"),
                 PluginLocator::SourceUrl {
-                    url: "https://github.com/moonrepo/bun-plugin/releases/download/v0.11.0/bun_plugin.wasm".into()
+                    url: "https://github.com/moonrepo/bun-plugin/releases/download/v0.11.1/bun_plugin.wasm".into()
                 }
             );
         }
@@ -185,7 +185,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("deno"),
                 PluginLocator::SourceUrl {
-                    url: "https://github.com/moonrepo/deno-plugin/releases/download/v0.10.1/deno_plugin.wasm".into()
+                    url: "https://github.com/moonrepo/deno-plugin/releases/download/v0.10.2/deno_plugin.wasm".into()
                 }
             );
         }
@@ -194,7 +194,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("go"),
                 PluginLocator::SourceUrl {
-                    url: "https://github.com/moonrepo/go-plugin/releases/download/v0.10.1/go_plugin.wasm".into()
+                    url: "https://github.com/moonrepo/go-plugin/releases/download/v0.10.2/go_plugin.wasm".into()
                 }
             );
         }
@@ -203,7 +203,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("node"),
                 PluginLocator::SourceUrl {
-                    url: "https://github.com/moonrepo/node-plugin/releases/download/v0.10.1/node_plugin.wasm".into()
+                    url: "https://github.com/moonrepo/node-plugin/releases/download/v0.10.2/node_plugin.wasm".into()
                 }
             );
         }
@@ -213,7 +213,7 @@ impl ProtoConfig {
                 self.plugins.insert(
                     Id::raw(depman),
                     PluginLocator::SourceUrl {
-                        url: "https://github.com/moonrepo/node-plugin/releases/download/v0.10.1/node_depman_plugin.wasm".into()
+                        url: "https://github.com/moonrepo/node-plugin/releases/download/v0.10.2/node_depman_plugin.wasm".into()
                     }
                 );
             }
