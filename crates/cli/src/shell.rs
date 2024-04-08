@@ -1,5 +1,7 @@
 use clap_complete::Shell;
+use dialoguer::{Input, Select};
 use dirs::{config_dir, document_dir, home_dir};
+use miette::IntoDiagnostic;
 use proto_core::ENV_VAR;
 use starbase_styles::color;
 use starbase_utils::fs;
@@ -9,6 +11,8 @@ use std::{
     path::{Path, PathBuf},
 };
 use tracing::debug;
+
+use crate::helpers::create_theme;
 
 pub enum Export {
     Path(Vec<String>),
@@ -231,6 +235,50 @@ pub fn write_profile_if_not_setup(
     );
 
     Ok(Some(write_profile(last_profile, contents, env_var)?))
+}
+
+pub fn prompt_for_shell_profile(shell: &Shell, cwd: &PathBuf) -> miette::Result<Option<PathBuf>> {
+    let theme = create_theme();
+
+    let mut profiles = find_profiles(&shell)?;
+    profiles.reverse();
+
+    let mut items = profiles.iter().map(color::path).collect::<Vec<_>>();
+    items.push("Other".to_owned());
+    items.push("None".to_owned());
+
+    let default_index = 0;
+    let other_index = profiles.len();
+    let none_index = other_index + 1;
+
+    let selected_index = Select::with_theme(&theme)
+        .with_prompt("Which profile to update?")
+        .items(&items)
+        .default(default_index)
+        .interact_opt()
+        .into_diagnostic()?
+        .unwrap_or(default_index);
+
+    let selected_profile = if selected_index == none_index {
+        None
+    } else if selected_index == other_index {
+        let custom_path = PathBuf::from(
+            Input::<String>::with_theme(&theme)
+                .with_prompt("Custom profile path?")
+                .interact_text()
+                .into_diagnostic()?,
+        );
+
+        Some(if custom_path.is_absolute() {
+            custom_path
+        } else {
+            cwd.join(custom_path)
+        })
+    } else {
+        Some(profiles[selected_index].clone())
+    };
+
+    Ok(selected_profile)
 }
 
 #[cfg(test)]
