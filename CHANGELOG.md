@@ -29,6 +29,11 @@
   - When `--update` is passed, will now prompt to confirm the update.
   - When updating versions, versions are now written to their original config file, instead of local.
   - Updated the `--latest` flag to use the latest version when updating, instead of newest.
+- Updated `proto setup` (which is ran during proto installation) to modify the `PATH` system environment variable on Windows. To disable this functionality, pass `--no-modify-path`.
+
+#### 🐞 Fixes
+
+- Fixed `proto clean` accidentally deleting older proto version shims.
 
 ## 0.32.2
 

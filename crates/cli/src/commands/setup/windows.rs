@@ -1,9 +1,7 @@
+use miette::{miette, IntoDiagnostic, Result};
 use std::ffi::OsString;
 use std::os::windows::ffi::OsStrExt;
 use std::path::PathBuf;
-
-use miette::{miette, IntoDiagnostic, Result};
-
 use tracing::debug;
 use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
 use winreg::{RegKey, RegValue};
@@ -41,7 +39,7 @@ fn get_path_var() -> Result<Vec<u16>> {
         .and_then(|value| {
             winreg_ext::from_winreg_value(&value).ok_or(Error::new(
                 ErrorKind::InvalidData,
-                "The registry key HKEY_CURRENT_USER\\Environment\\PATH is not a string",
+                "The registry key `HKEY_CURRENT_USER\\Environment\\PATH` is not a string",
             ))
         })
         .or_else(|err| {
@@ -57,7 +55,7 @@ fn get_path_var() -> Result<Vec<u16>> {
 fn set_path_var(new_path: &[u16]) -> Result<()> {
     if new_path.is_empty() {
         return Err(miette!(
-            "New system path is empty, this shouldn't be possible"
+            "New system path is empty, this shouldn't be possible!"
         ));
     }
 

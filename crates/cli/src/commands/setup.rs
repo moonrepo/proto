@@ -44,8 +44,7 @@ pub async fn setup(args: ArgsRef<SetupArgs>, proto: ResourceRef<ProtoResource>) 
     if paths.contains(&proto.env.store.shims_dir) && paths.contains(&proto.env.store.bin_dir) {
         debug!("Skipping setup, proto already exists in PATH");
 
-        let installed_bin_path = proto.env.store.bin_dir.join(get_exe_file_name("proto"));
-        already_setup_message(installed_bin_path);
+        already_setup_message(&proto);
 
         return Ok(());
     }
@@ -64,6 +63,7 @@ pub async fn setup(args: ArgsRef<SetupArgs>, proto: ResourceRef<ProtoResource>) 
     let profile_path = match content {
         Some(ref content) if !args.no_profile => {
             let interactive = !args.yes && env::var("CI").is_err() && stdout().is_terminal();
+
             update_shell_profile(&shell, &proto, &content, interactive)?
         }
         _ => None,
@@ -130,7 +130,9 @@ fn help_message() {
     );
 }
 
-fn already_setup_message(installed_bin_path: PathBuf) {
+fn already_setup_message(proto: &ProtoResource) {
+    let installed_bin_path = proto.env.store.bin_dir.join(get_exe_file_name("proto"));
+
     println!(
         "Successfully installed proto to {}!",
         color::path(installed_bin_path),
@@ -147,14 +149,14 @@ fn manual_system_path_message(proto: &ProtoResource) {
     println!(
         "{}",
         if cfg!(windows) {
-            // we avoid %USERPROFILE% as it only works in the user path and not system path
+            // We avoid %USERPROFILE% as it only works in the user path and not system path
             color::muted_light(format!(
                 "{};{}",
-                proto.env.store.shims_dir.as_os_str().to_string_lossy(),
-                proto.env.store.bin_dir.as_os_str().to_string_lossy()
+                proto.env.store.shims_dir.to_string_lossy(),
+                proto.env.store.bin_dir.to_string_lossy()
             ))
         } else {
-            color::muted_light("$HOME/.proto/shims;$HOME/.proto/bin")
+            color::muted_light("$HOME/.proto/shims:$HOME/.proto/bin")
         },
     );
 }
