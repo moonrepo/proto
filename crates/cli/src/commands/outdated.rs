@@ -80,10 +80,6 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>, proto: ResourceRef<ProtoResou
 
         if let Some(file_versions) = &file.config.versions {
             for (tool_id, config_version) in file_versions {
-                if configured_tools.contains_key(tool_id) {
-                    continue;
-                }
-
                 configured_tools.insert(
                     tool_id.to_owned(),
                     (config_version.to_owned(), file.path.to_owned()),
@@ -133,7 +129,7 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>, proto: ResourceRef<ProtoResou
                 .ok_or_else(handle_error)?;
 
             let latest_version = version_resolver
-                .resolve_without_manifest(&initial_version)
+                .resolve(&initial_version)
                 .ok_or_else(handle_error)?;
 
             Result::<_, miette::Report>::Ok((

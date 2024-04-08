@@ -10,6 +10,18 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed an issue where global versions would overwrite local versions in `proto status` and `proto outdated`.
+- Fixed an issue where the "latest" alias would sometimes not be resolved.
+
+#### 🧩 Plugins
+
+- Updated `node_plugin` and `node_depman_plugin` to v0.10.3.
+  - Fixed yarn "latest" alias pointing to the v1 latest, instead of v4 (berry) latest.
+
 ## 0.34.0
 
 #### 💥 Breaking
