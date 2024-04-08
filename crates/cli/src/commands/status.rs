@@ -53,10 +53,6 @@ pub async fn status(args: ArgsRef<StatusArgs>, proto: ResourceRef<ProtoResource>
 
         if let Some(file_versions) = &file.config.versions {
             for (tool_id, config_version) in file_versions {
-                if items.contains_key(tool_id) {
-                    continue;
-                }
-
                 items.insert(
                     tool_id.to_owned(),
                     StatusItem {
