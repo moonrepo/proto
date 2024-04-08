@@ -92,6 +92,26 @@ mod outdated {
     }
 
     #[test]
+    fn global_doesnt_overwrite_local() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".proto/.prototools", r#"node = "18""#);
+        sandbox.create_file("a/.prototools", r#"node = "20""#);
+
+        let mut cmd = create_proto_command(sandbox.path());
+        let assert = cmd
+            .arg("outdated")
+            .arg("--include-global")
+            .current_dir(sandbox.path().join("a"))
+            .assert()
+            .success();
+
+        let output = get_assert_output(&assert);
+
+        assert!(predicate::str::contains("node").eval(&output));
+        assert!(predicate::str::contains("20").eval(&output));
+    }
+
+    #[test]
     fn updates_each_file_respectively() {
         let sandbox = create_empty_sandbox();
         sandbox.create_file(".proto/.prototools", r#"go = "1.19""#);
