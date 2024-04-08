@@ -2401,7 +2401,7 @@ dependencies = [
 
 [[package]]
 name = "proto_installer"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "futures",
  "miette",
@@ -2426,7 +2426,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.17.3"
+version = "0.17.4"
 dependencies = [
  "rustc-hash",
  "schematic",
@@ -3885,7 +3885,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_api"
-version = "0.4.5"
+version = "0.4.6"
 dependencies = [
  "anyhow",
  "rustc-hash",
