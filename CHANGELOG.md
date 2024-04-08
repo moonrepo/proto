@@ -44,6 +44,10 @@
 
 - Fixed `proto clean` accidentally deleting older proto version shims.
 
+## 0.33.0
+
+> This version failed to build correctly, so had to bump another minor.
+
 ## 0.32.2
 
 #### 🧩 Plugins
