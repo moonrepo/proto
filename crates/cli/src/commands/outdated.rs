@@ -129,7 +129,7 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>, proto: ResourceRef<ProtoResou
                 .ok_or_else(handle_error)?;
 
             let latest_version = version_resolver
-                .resolve_without_manifest(&initial_version)
+                .resolve(&initial_version)
                 .ok_or_else(handle_error)?;
 
             Result::<_, miette::Report>::Ok((

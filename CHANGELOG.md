@@ -15,6 +15,7 @@
 #### 🐞 Fixes
 
 - Fixed an issue where global versions would overwrite local versions in `proto status` and `proto outdated`.
+- Fixed an issue where the "latest" alias would sometimes not be resolved.
 
 #### 🧩 Plugins
 

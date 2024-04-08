@@ -35,6 +35,13 @@ impl<'tool> VersionResolver<'tool> {
         // Sort from newest to oldest
         resolver.versions.sort_by(|a, d| d.cmp(a));
 
+        if !resolver.aliases.contains_key("latest") && !resolver.versions.is_empty() {
+            resolver.aliases.insert(
+                "latest".into(),
+                UnresolvedVersionSpec::Version(resolver.versions[0].clone()),
+            );
+        }
+
         resolver
     }
 
