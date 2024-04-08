@@ -8,6 +8,7 @@ use std::env;
 use std::env::consts;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::time::SystemTime;
 use system_env::SystemLibc;
 
 pub use error::ProtoInstallerError;
@@ -115,12 +116,29 @@ pub fn unpack_release(
     Archiver::new(&temp_dir, &download.archive_file).unpack_from_ext()?;
 
     // Move the old binaries
+    let relocate = |current_path: &Path, relocate_path: &Path| -> miette::Result<()> {
+        fs::rename(current_path, relocate_path)?;
+
+        // Track last used so operations like clean continue to work
+        // correctly, otherwise we get into a weird state!
+        fs::write_file(
+            relocate_path.parent().unwrap().join(".last-used"),
+            SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .map(|d| d.as_millis())
+                .unwrap_or(0)
+                .to_string(),
+        )?;
+
+        Ok(())
+    };
+
     for bin_name in &bin_names {
         let output_path = install_dir.join(bin_name);
         let relocate_path = relocate_dir.as_ref().join(bin_name);
 
         if output_path.exists() && output_path != relocate_path {
-            fs::rename(&output_path, &relocate_path)?;
+            relocate(&output_path, &relocate_path)?;
         }
 
         // If not installed at our standard location
@@ -131,7 +149,7 @@ pub fn unpack_release(
                         .file_name()
                         .is_some_and(|name| name == *bin_name)
                 {
-                    fs::rename(&current_exe, &relocate_path)?;
+                    relocate(&current_exe, &relocate_path)?;
                 }
             }
         }

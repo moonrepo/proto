@@ -5,7 +5,7 @@ default-members = ["crates/cli"]
 
 [workspace.dependencies]
 anyhow = "1.0.81"
-cached = "0.49.2"
+cached = "0.49.3"
 clap = "4.5.4"
 clap_complete = "4.5.1"
 convert_case = "0.6.0"
@@ -18,7 +18,7 @@ miette = "7.2.0"
 once_cell = "1.19.0"
 once_map = "0.4.15"
 regex = { version = "1.10.4", default-features = false, features = ["std"] }
-reqwest = { version = "0.12.2", default-features = false, features = [
+reqwest = { version = "0.12.3", default-features = false, features = [
     "charset",
     "http2",
     "macos-system-configuration",
