@@ -2316,7 +2316,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.33.0"
+version = "0.34.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -2365,7 +2365,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.33.0"
+version = "0.34.0"
 dependencies = [
  "cached",
  "human-sort",
@@ -2441,7 +2441,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.20.1"
+version = "0.21.0"
 dependencies = [
  "extism",
  "proto_core",
