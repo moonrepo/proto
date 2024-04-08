@@ -2415,7 +2415,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.17.5"
+version = "0.17.6"
 dependencies = [
  "extism-pdk",
  "proto_pdk_api",
@@ -3859,7 +3859,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.11.7"
+version = "0.11.8"
 dependencies = [
  "extism",
  "miette",
