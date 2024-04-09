@@ -4,6 +4,7 @@ use proto_pdk_api::LoadVersionsOutput;
 use rustc_hash::FxHashSet;
 use semver::{Version, VersionReq};
 use std::collections::BTreeMap;
+use tracing::trace;
 use version_spec::*;
 
 #[derive(Default)]
@@ -110,11 +111,27 @@ pub fn resolve_version(
         vec![]
     };
 
+    if manifest.is_some() {
+        trace!(
+            candidate = candidate.to_string(),
+            "Resolving a version with manifest"
+        );
+    } else {
+        trace!(
+            candidate = candidate.to_string(),
+            "Resolving a version without manifest"
+        );
+    }
+
     match &candidate {
         UnresolvedVersionSpec::Canary => {
+            trace!("Resolved to canary");
+
             return Some(VersionSpec::Canary);
         }
         UnresolvedVersionSpec::Alias(alias) => {
+            trace!(alias, "Found an alias, resolving further");
+
             let mut alias_value = None;
 
             if let Some(config) = config {
@@ -126,27 +143,67 @@ pub fn resolve_version(
             }
 
             if let Some(value) = alias_value {
+                trace!(
+                    alias,
+                    candidate = value.to_string(),
+                    "Alias exists with a potential candidate"
+                );
+
                 return resolve_version(value, versions, aliases, manifest, config);
+            } else {
+                trace!(alias, "Alias does not exist, trying others");
             }
         }
         UnresolvedVersionSpec::Req(req) => {
+            trace!(
+                requirement = req.to_string(),
+                "Found a requirement, resolving further"
+            );
+
             // Check locally installed versions first
             if !installed_versions.is_empty() {
                 if let Some(version) = match_highest_version(req, &installed_versions) {
+                    trace!(
+                        version = version.to_string(),
+                        "Resolved to locally installed version"
+                    );
+
                     return Some(version);
                 }
             }
 
             // Otherwise we'll need to download from remote
             if let Some(version) = match_highest_version(req, &remote_versions) {
+                trace!(
+                    version = version.to_string(),
+                    "Resolved to remote available version"
+                );
+
                 return Some(version);
             }
+
+            trace!(
+                req = req.to_string(),
+                "No match for requirement, trying others"
+            );
         }
         UnresolvedVersionSpec::ReqAny(reqs) => {
+            let range = reqs.iter().map(|req| req.to_string()).collect::<Vec<_>>();
+
+            trace!(
+                range = ?range,
+                "Found a range, resolving further"
+            );
+
             // Check locally installed versions first
             if !installed_versions.is_empty() {
                 for req in reqs {
                     if let Some(version) = match_highest_version(req, &installed_versions) {
+                        trace!(
+                            version = version.to_string(),
+                            "Resolved to locally installed version"
+                        );
+
                         return Some(version);
                     }
                 }
@@ -155,22 +212,54 @@ pub fn resolve_version(
             // Otherwise we'll need to download from remote
             for req in reqs {
                 if let Some(version) = match_highest_version(req, &remote_versions) {
+                    trace!(
+                        version = version.to_string(),
+                        "Resolved to remote available version"
+                    );
+
                     return Some(version);
                 }
             }
+
+            trace!(
+                range = ?range,
+                "No match for range, trying others",
+            );
         }
         UnresolvedVersionSpec::Version(ver) => {
+            let version_string = ver.to_string();
+
+            trace!(
+                version = &version_string,
+                "Found an explicit version, resolving further"
+            );
+
             // Check locally installed versions first
             if installed_versions.contains(&ver) {
+                trace!(
+                    version = &version_string,
+                    "Resolved to locally installed version"
+                );
+
                 return Some(VersionSpec::Version(ver.to_owned()));
             }
 
             // Otherwise we'll need to download from remote
             for version in versions {
                 if ver == version {
+                    trace!(
+                        version = &version_string,
+                        "Resolved to remote available version"
+                    );
+
                     return Some(VersionSpec::Version(ver.to_owned()));
                 }
             }
+
+            trace!(
+                version = &version_string,
+                "No match for version, trying others",
+            );
         }
     }
 

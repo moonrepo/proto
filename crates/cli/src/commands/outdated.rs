@@ -124,13 +124,19 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>, proto: ResourceRef<ProtoResou
                 .resolve(&config_version)
                 .ok_or_else(handle_error)?;
 
-            let newest_version = version_resolver
-                .resolve_without_manifest(&get_in_major_range(&config_version))
-                .ok_or_else(handle_error)?;
-
             let latest_version = version_resolver
                 .resolve(&initial_version)
                 .ok_or_else(handle_error)?;
+
+            // Since the newest version avoids the manifest, the "latest" alias
+            // may potentially fail, so just use the latest we already resolved.
+            let newest_version = if config_version.is_latest() {
+                latest_version.clone()
+            } else {
+                version_resolver
+                    .resolve_without_manifest(&get_in_major_range(&config_version))
+                    .ok_or_else(handle_error)?
+            };
 
             Result::<_, miette::Report>::Ok((
                 tool.id,

@@ -10,6 +10,16 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Another attempted fix for `proto outdated` latest checks.
+
+#### ⚙️ Internal
+
+- Added a lot of trace logs around version resolving.
+
 ## 0.34.1
 
 #### 🐞 Fixes
