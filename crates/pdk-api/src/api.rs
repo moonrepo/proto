@@ -32,6 +32,7 @@ api_enum!(
         #[default]
         Language,
         DependencyManager,
+        #[serde(rename = "CLI")]
         CLI,
     }
 );
@@ -187,9 +188,10 @@ api_struct!(
 
 api_enum!(
     #[derive(Default)]
-    #[serde(tag = "type", rename_all = "lowercase")]
+    #[serde(tag = "type")]
     pub enum SourceLocation {
         #[default]
+        #[serde(rename = "none")]
         None,
         // Archive {
         //     url: String,
@@ -203,8 +205,9 @@ api_enum!(
 );
 
 api_enum!(
-    #[serde(tag = "type", rename_all = "lowercase")]
+    #[serde(tag = "type")]
     pub enum BuildInstruction {
+        #[serde(rename = "none")]
         None,
         // Command {
         //     bin: String,
