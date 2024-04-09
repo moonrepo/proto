@@ -425,48 +425,7 @@ impl Tool {
         }
 
         let resolver = self.load_version_resolver(initial_version).await?;
-        let handle_error = || ProtoError::VersionResolveFailed {
-            tool: self.get_name().to_owned(),
-            version: initial_version.to_string(),
-        };
-
-        let mut version = VersionSpec::default();
-        let mut resolved = false;
-
-        if self.plugin.has_func("resolve_version") {
-            let result: ResolveVersionOutput = self.plugin.call_func_with(
-                "resolve_version",
-                ResolveVersionInput {
-                    initial: initial_version.to_owned(),
-                },
-            )?;
-
-            if let Some(candidate) = result.candidate {
-                debug!(
-                    tool = self.id.as_str(),
-                    candidate = candidate.to_string(),
-                    "Received a possible version or alias to use",
-                );
-
-                resolved = true;
-                version = resolver.resolve(&candidate).ok_or_else(handle_error)?;
-            }
-
-            if let Some(candidate) = result.version {
-                debug!(
-                    tool = self.id.as_str(),
-                    version = candidate.to_string(),
-                    "Received an explicit version or alias to use",
-                );
-
-                resolved = true;
-                version = candidate;
-            }
-        }
-
-        if !resolved {
-            version = resolver.resolve(initial_version).ok_or_else(handle_error)?;
-        }
+        let version = self.resolve_version_candidate(&resolver, initial_version, true)?;
 
         debug!(
             tool = self.id.as_str(),
@@ -485,6 +444,57 @@ impl Tool {
         self.set_version(version);
 
         Ok(())
+    }
+
+    pub fn resolve_version_candidate<'a>(
+        &self,
+        resolver: &VersionResolver<'a>,
+        initial_candidate: &UnresolvedVersionSpec,
+        with_manifest: bool,
+    ) -> miette::Result<VersionSpec> {
+        let resolve = |candidate: &UnresolvedVersionSpec| {
+            let result = if with_manifest {
+                resolver.resolve(candidate)
+            } else {
+                resolver.resolve_without_manifest(candidate)
+            };
+
+            result.ok_or_else(|| ProtoError::VersionResolveFailed {
+                tool: self.get_name().to_owned(),
+                version: candidate.to_string(),
+            })
+        };
+
+        if self.plugin.has_func("resolve_version") {
+            let result: ResolveVersionOutput = self.plugin.call_func_with(
+                "resolve_version",
+                ResolveVersionInput {
+                    initial: initial_candidate.to_owned(),
+                },
+            )?;
+
+            if let Some(candidate) = result.candidate {
+                debug!(
+                    tool = self.id.as_str(),
+                    candidate = candidate.to_string(),
+                    "Received a possible version or alias to use",
+                );
+
+                return Ok(resolve(&candidate)?);
+            }
+
+            if let Some(candidate) = result.version {
+                debug!(
+                    tool = self.id.as_str(),
+                    version = candidate.to_string(),
+                    "Received an explicit version or alias to use",
+                );
+
+                return Ok(candidate);
+            }
+        }
+
+        Ok(resolve(initial_candidate)?)
     }
 
     /// Attempt to detect an applicable version from the provided directory.
