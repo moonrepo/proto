@@ -34,6 +34,7 @@ api_enum!(
         #[default]
         Language,
         DependencyManager,
+        #[serde(rename = "CLI")]
         CLI,
     }
 );

@@ -37,14 +37,16 @@ api_struct!(
 
 api_enum!(
     /// The location in which source code can be acquired.
-    #[serde(tag = "type", rename_all = "kebab-case")]
+    #[serde(tag = "type")]
     pub enum SourceLocation {
         /// Downloaded from an archive.
         #[cfg_attr(feature = "schematic", schema(nested))]
+        #[serde(rename = "kebab-case")]
         Archive(ArchiveSource),
 
         /// Cloned from a Git repository.
         #[cfg_attr(feature = "schematic", schema(nested))]
+        #[serde(rename = "kebab-case")]
         Git(GitSource),
     }
 );
@@ -80,42 +82,56 @@ impl CommandInstruction {
 
 api_enum!(
     /// An instruction to execute.
-    #[serde(tag = "type", content = "instruction", rename_all = "kebab-case")]
+    #[serde(tag = "type", content = "instruction")]
     pub enum BuildInstruction {
         /// Update a file and make it executable.
+        #[serde(rename = "kebab-case")]
         MakeExecutable(PathBuf),
 
         /// Move a file from source to destination.
+        #[serde(rename = "kebab-case")]
         MoveFile(PathBuf, PathBuf),
 
         /// Remove a directory.
+        #[serde(rename = "kebab-case")]
         RemoveDir(PathBuf),
 
         /// Remove a file.
+        #[serde(rename = "kebab-case")]
         RemoveFile(PathBuf),
 
         /// Request (curl, wget, etc) a script and download to the host.
+        #[serde(rename = "kebab-case")]
         RequestScript(String),
 
         /// Execute a command as a child process.
         #[cfg_attr(feature = "schematic", schema(nested))]
+        #[serde(rename = "kebab-case")]
         RunCommand(Box<CommandInstruction>),
     }
 );
 
 api_enum!(
     /// Is required and must exist in the current environment.
-    #[serde(tag = "type", content = "requirement", rename_all = "kebab-case")]
+    #[serde(tag = "type", content = "requirement")]
     pub enum BuildRequirement {
+        #[serde(rename = "kebab-case")]
         CommandExistsOnPath(String),
+        #[serde(rename = "kebab-case")]
         ManualIntercept(String), // url
+        #[serde(rename = "kebab-case")]
         GitConfigSetting(String, String),
+        #[serde(rename = "kebab-case")]
         GitVersion(VersionReq),
+        #[serde(rename = "kebab-case")]
         PythonVersion(VersionReq),
+        #[serde(rename = "kebab-case")]
         RubyVersion(VersionReq),
         // macOS
+        #[serde(rename = "kebab-case")]
         XcodeCommandLineTools,
         // Windows
+        #[serde(rename = "kebab-case")]
         WindowsDeveloperMode,
     }
 );
