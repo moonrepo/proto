@@ -18,4 +18,4 @@ thiserror = { workspace = true }
 
 [features]
 default = []
-schematic = ["dep:schematic"]
+schematic = ["dep:schematic", "system_env/schematic"]
