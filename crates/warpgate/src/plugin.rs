@@ -93,7 +93,7 @@ impl PluginContainer {
 
         trace!(
             id = id.as_str(),
-            plugin = ?plugin.id,
+            plugin = plugin.id.to_string(),
             "Created plugin container",
         );
 
@@ -213,11 +213,11 @@ impl PluginContainer {
         });
 
         let input = input.as_ref();
-        let uuid = instance.id; // Copy
+        let uuid = instance.id.to_string(); // Copy
 
         trace!(
             id = self.id.as_str(),
-            plugin = ?uuid,
+            plugin = &uuid,
             input = %String::from_utf8_lossy(input),
             "Calling plugin function {}",
             color::property(func),
@@ -260,7 +260,7 @@ impl PluginContainer {
 
         trace!(
             id = self.id.as_str(),
-            plugin = ?uuid,
+            plugin = &uuid,
             output = %String::from_utf8_lossy(output),
             "Called plugin function {}",
             color::property(func),

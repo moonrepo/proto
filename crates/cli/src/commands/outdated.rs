@@ -115,14 +115,30 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>, proto: ResourceRef<ProtoResou
             let initial_version = UnresolvedVersionSpec::default(); // latest
             let version_resolver = tool.load_version_resolver(&initial_version).await?;
 
+            debug!(
+                id = tool.id.as_str(),
+                config = config_version.to_string(),
+                "Resolving current version"
+            );
+
             let current_version =
                 tool.resolve_version_candidate(&version_resolver, &config_version, true)?;
+            let newest_range = get_in_major_range(&config_version);
 
-            let newest_version = tool.resolve_version_candidate(
-                &version_resolver,
-                &get_in_major_range(&config_version),
-                false,
-            )?;
+            debug!(
+                id = tool.id.as_str(),
+                range = newest_range.to_string(),
+                "Resolving newest version"
+            );
+
+            let newest_version =
+                tool.resolve_version_candidate(&version_resolver, &newest_range, false)?;
+
+            debug!(
+                id = tool.id.as_str(),
+                alias = initial_version.to_string(),
+                "Resolving latest version"
+            );
 
             let latest_version =
                 tool.resolve_version_candidate(&version_resolver, &initial_version, true)?;
