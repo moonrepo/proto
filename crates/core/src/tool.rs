@@ -446,9 +446,9 @@ impl Tool {
         Ok(())
     }
 
-    pub fn resolve_version_candidate<'a>(
+    pub fn resolve_version_candidate(
         &self,
-        resolver: &VersionResolver<'a>,
+        resolver: &VersionResolver<'_>,
         initial_candidate: &UnresolvedVersionSpec,
         with_manifest: bool,
     ) -> miette::Result<VersionSpec> {
