@@ -5,7 +5,7 @@ use comfy_table::presets::NOTHING;
 use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
 use dialoguer::Confirm;
 use miette::IntoDiagnostic;
-use proto_core::{Id, ProtoConfig, ProtoError, UnresolvedVersionSpec, VersionSpec};
+use proto_core::{Id, ProtoConfig, UnresolvedVersionSpec, VersionSpec};
 use rustc_hash::FxHashSet;
 use semver::VersionReq;
 use serde::Serialize;
@@ -115,28 +115,33 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>, proto: ResourceRef<ProtoResou
             let initial_version = UnresolvedVersionSpec::default(); // latest
             let version_resolver = tool.load_version_resolver(&initial_version).await?;
 
-            let handle_error = || ProtoError::VersionResolveFailed {
-                tool: tool.get_name().to_owned(),
-                version: initial_version.to_string(),
-            };
+            debug!(
+                id = tool.id.as_str(),
+                config = config_version.to_string(),
+                "Resolving current version"
+            );
 
-            let current_version = version_resolver
-                .resolve(&config_version)
-                .ok_or_else(handle_error)?;
+            let current_version =
+                tool.resolve_version_candidate(&version_resolver, &config_version, true)?;
+            let newest_range = get_in_major_range(&config_version);
 
-            let latest_version = version_resolver
-                .resolve(&initial_version)
-                .ok_or_else(handle_error)?;
+            debug!(
+                id = tool.id.as_str(),
+                range = newest_range.to_string(),
+                "Resolving newest version"
+            );
 
-            // Since the newest version avoids the manifest, the "latest" alias
-            // may potentially fail, so just use the latest we already resolved.
-            let newest_version = if config_version.is_latest() {
-                latest_version.clone()
-            } else {
-                version_resolver
-                    .resolve_without_manifest(&get_in_major_range(&config_version))
-                    .ok_or_else(handle_error)?
-            };
+            let newest_version =
+                tool.resolve_version_candidate(&version_resolver, &newest_range, false)?;
+
+            debug!(
+                id = tool.id.as_str(),
+                alias = initial_version.to_string(),
+                "Resolving latest version"
+            );
+
+            let latest_version =
+                tool.resolve_version_candidate(&version_resolver, &initial_version, true)?;
 
             Result::<_, miette::Report>::Ok((
                 tool.id,

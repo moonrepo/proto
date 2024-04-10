@@ -70,8 +70,9 @@ pub async fn info(args: ArgsRef<InfoPluginArgs>, proto: ResourceRef<ProtoResourc
         return Ok(());
     }
 
-    let latest_version = UnresolvedVersionSpec::default();
-    let mut version_resolver = tool.load_version_resolver(&latest_version).await?;
+    let mut version_resolver = tool
+        .load_version_resolver(&UnresolvedVersionSpec::default())
+        .await?;
     version_resolver.aliases.extend(tool_config.aliases.clone());
 
     let mut printer = Printer::new();
