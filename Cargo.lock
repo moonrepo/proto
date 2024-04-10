@@ -2316,7 +2316,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.34.2"
+version = "0.34.3"
 dependencies = [
  "anyhow",
  "chrono",
@@ -2365,7 +2365,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.34.2"
+version = "0.34.3"
 dependencies = [
  "cached",
  "human-sort",
@@ -2401,7 +2401,7 @@ dependencies = [
 
 [[package]]
 name = "proto_installer"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "futures",
  "miette",
@@ -2415,7 +2415,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.17.6"
+version = "0.17.7"
 dependencies = [
  "extism-pdk",
  "proto_pdk_api",
@@ -2426,7 +2426,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.17.4"
+version = "0.17.5"
 dependencies = [
  "rustc-hash",
  "schematic",
@@ -2441,7 +2441,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "extism",
  "proto_core",

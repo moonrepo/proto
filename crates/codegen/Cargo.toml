@@ -9,7 +9,7 @@ publish = false
 dist = false
 
 [dependencies]
-proto_pdk_api = { version = "0.17.4", path = "../pdk-api", features = [
+proto_pdk_api = { version = "0.17.5", path = "../pdk-api", features = [
 	"schematic",
 ] }
 schematic = { workspace = true }
