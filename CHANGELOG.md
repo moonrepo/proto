@@ -10,6 +10,16 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added `.zshenv` as a valid shell profile option.
+
+#### 🐞 Fixes
+
+- Fixed `proto outdated --update` erasing other content in the file.
+
 ## 0.34.3
 
 #### 🐞 Fixes

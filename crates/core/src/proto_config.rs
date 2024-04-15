@@ -251,7 +251,16 @@ impl ProtoConfig {
         dir: P,
         with_lock: bool,
     ) -> miette::Result<PartialProtoConfig> {
-        Self::load(dir.as_ref().join(PROTO_CONFIG_NAME), with_lock)
+        let dir = dir.as_ref();
+
+        Self::load(
+            if dir.ends_with(PROTO_CONFIG_NAME) {
+                dir.to_path_buf()
+            } else {
+                dir.join(PROTO_CONFIG_NAME)
+            },
+            with_lock,
+        )
     }
 
     pub fn load<P: AsRef<Path>>(path: P, with_lock: bool) -> miette::Result<PartialProtoConfig> {
