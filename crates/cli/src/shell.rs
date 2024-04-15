@@ -81,7 +81,11 @@ pub fn find_profiles(shell: &Shell) -> miette::Result<Vec<PathBuf>> {
         Shell::Zsh => {
             let zdot_dir = env::var("ZDOTDIR").map(PathBuf::from).unwrap_or(home_dir);
 
-            profiles.extend([zdot_dir.join(".zprofile"), zdot_dir.join(".zshrc")]);
+            profiles.extend([
+                zdot_dir.join(".zshenv"),
+                zdot_dir.join(".zprofile"),
+                zdot_dir.join(".zshrc"),
+            ]);
         }
         _ => {}
     };
