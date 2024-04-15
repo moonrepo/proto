@@ -259,6 +259,8 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>, proto: ResourceRef<ProtoResou
             );
 
             ProtoConfig::update(config_path, |config| {
+                dbg!(&config);
+
                 config
                     .versions
                     .get_or_insert(Default::default())
