@@ -18,7 +18,7 @@
 
 #### 🐞 Fixes
 
-- Fixed `proto oudated --update` erasing other content in the file.
+- Fixed `proto outdated --update` erasing other content in the file.
 
 ## 0.34.3
 
