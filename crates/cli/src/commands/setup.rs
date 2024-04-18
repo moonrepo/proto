@@ -76,6 +76,7 @@ pub async fn setup(args: ArgsRef<SetupArgs>, proto: ResourceRef<ProtoResource>) 
         update_shell_profile(&shell, proto, &content, interactive)?
     };
 
+    #[allow(clippy::needless_bool)]
     let modified_system_env_path = if args.no_modify_path {
         false
     } else {

@@ -23,7 +23,7 @@ pub fn find_profiles(shell: &BoxedShell, home_dir: &Path) -> miette::Result<Vec<
         return Ok(vec![PathBuf::from(profile_env)]);
     }
 
-    Ok(shell.get_profile_paths(&home_dir))
+    Ok(shell.get_profile_paths(home_dir))
 }
 
 pub fn format_exports(shell: &BoxedShell, comment: &str, exports: Vec<Export>) -> String {
@@ -61,7 +61,7 @@ pub fn write_profile_if_not_setup(
     let profiles = find_profiles(shell, home_dir)?;
 
     for profile in profiles {
-        debug!("Checking if shell profile {} exists", color::path(profile));
+        debug!("Checking if shell profile {} exists", color::path(&profile));
 
         if !profile.exists() {
             debug!("Not found, continuing");
@@ -70,7 +70,7 @@ pub fn write_profile_if_not_setup(
 
         debug!("Exists, checking if already setup");
 
-        let file = fs::open_file(profile)?;
+        let file = fs::open_file(&profile)?;
 
         let has_setup = io::BufReader::new(file)
             .lines()
@@ -81,7 +81,7 @@ pub fn write_profile_if_not_setup(
         if has_setup {
             debug!(
                 "Profile {} already setup for {}",
-                color::path(profile),
+                color::path(&profile),
                 env_var,
             );
 
@@ -92,14 +92,14 @@ pub fn write_profile_if_not_setup(
     }
 
     // If no profile found, use the env-specific profile for the shell
-    let last_profile = shell.get_env_path(home_dir);
+    let env_profile = shell.get_env_path(home_dir);
 
     debug!(
         "Found no configured profile, updating {}",
-        color::path(last_profile),
+        color::path(&env_profile),
     );
 
-    Ok(Some(write_profile(&last_profile, contents, env_var)?))
+    Ok(Some(write_profile(&env_profile, contents, env_var)?))
 }
 
 pub fn prompt_for_shell() -> miette::Result<ShellType> {
