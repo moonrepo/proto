@@ -7,6 +7,7 @@ use clap::{Args, ValueEnum};
 use proto_core::{Id, PinType, Tool, UnresolvedVersionSpec};
 use proto_pdk_api::{InstallHook, SyncShellProfileInput, SyncShellProfileOutput};
 use starbase::system;
+use starbase_shell::ShellType;
 use starbase_styles::color;
 use std::env;
 use tracing::debug;
@@ -235,7 +236,8 @@ fn update_shell(tool: &Tool, passthrough_args: Vec<String>) -> miette::Result<()
         return Ok(());
     }
 
-    let shell_type = shell::detect_shell(None);
+    let shell_type = ShellType::try_detect()?;
+    let shell = shell_type.build();
 
     debug!(
         shell = ?shell_type,
@@ -256,35 +258,45 @@ fn update_shell(tool: &Tool, passthrough_args: Vec<String>) -> miette::Result<()
         exports.push(Export::Path(extend_path));
     }
 
-    if let Some(content) = shell::format_exports(&shell_type, tool.id.as_str(), exports) {
-        let profile_path = tool.proto.store.load_preferred_profile()?.and_then(|file| {
-            if file.exists() {
-                Some(file)
-            } else {
-                debug!(
-                    profile = ?file,
-                    "Configured shell profile path does not exist, will not use",
-                );
-                None
-            }
-        });
+    if exports.is_empty() {
+        return Ok(());
+    }
 
-        let updated_profile = match profile_path {
-            Some(profile_path) => Some(shell::write_profile(
-                &profile_path,
-                &content,
-                &output.check_var,
-            )?),
-            None => shell::write_profile_if_not_setup(&shell_type, &content, &output.check_var)?,
-        };
+    let exported_content = shell::format_exports(&shell, tool.id.as_str(), exports);
 
-        if let Some(updated_profile) = updated_profile {
-            println!(
-                "Added {} to shell profile {}",
-                color::property(output.check_var),
-                color::path(updated_profile)
+    let profile_path = tool.proto.store.load_preferred_profile()?.and_then(|file| {
+        if file.exists() {
+            Some(file)
+        } else {
+            debug!(
+                profile = ?file,
+                "Configured shell profile path does not exist, will not use",
             );
+
+            None
         }
+    });
+
+    let updated_profile = match profile_path {
+        Some(profile_path) => Some(shell::write_profile(
+            &profile_path,
+            &exported_content,
+            &output.check_var,
+        )?),
+        None => shell::write_profile_if_not_setup(
+            &shell,
+            &exported_content,
+            &output.check_var,
+            &tool.proto.home,
+        )?,
+    };
+
+    if let Some(updated_profile) = updated_profile {
+        println!(
+            "Added {} to shell profile {}",
+            color::property(output.check_var),
+            color::path(updated_profile)
+        );
     }
 
     Ok(())

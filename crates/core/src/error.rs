@@ -109,10 +109,6 @@ pub enum ProtoError {
     #[error("Build from source is not supported for {tool}.")]
     UnsupportedBuildFromSource { tool: String },
 
-    #[diagnostic(code(proto::unsupported::shell))]
-    #[error("Unable to detect shell.")]
-    UnsupportedShell,
-
     #[diagnostic(
         code(proto::version::undetected),
         help = "Has the tool been installed?"

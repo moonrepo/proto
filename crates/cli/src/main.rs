@@ -71,7 +71,6 @@ async fn main() -> MainResult {
     let mut app = App::new();
     app.startup(systems::detect_proto_env);
     app.analyze(systems::load_proto_configs);
-    app.analyze(systems::remove_old_bins);
 
     if !matches!(
         cli.command,
