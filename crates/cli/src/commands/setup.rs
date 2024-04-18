@@ -6,7 +6,7 @@ use crate::shell::{
 use clap::Args;
 use proto_shim::get_exe_file_name;
 use starbase::system;
-use starbase_shell::{BoxedShell, ShellType};
+use starbase_shell::{BoxedShell, ShellError, ShellType};
 use starbase_styles::color;
 use std::env;
 use std::io::stdout;
@@ -51,9 +51,13 @@ pub async fn setup(args: ArgsRef<SetupArgs>, proto: ResourceRef<ProtoResource>) 
     let shell_type = match args.shell.or_else(ShellType::detect) {
         Some(value) => value,
         None => {
-            debug!("Unable to detect, prompting the user to select a shell");
+            if interactive {
+                debug!("Unable to detect, prompting the user to select a shell");
 
-            prompt_for_shell()?
+                prompt_for_shell()?
+            } else {
+                return Err(ShellError::CouldNotDetectShell.into());
+            }
         }
     };
 
