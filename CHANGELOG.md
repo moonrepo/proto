@@ -10,6 +10,13 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added experimental support for the following shells: ion, nu, xonsh.
+- Updated `proto setup` to prompt the user to select a shell if one could not be detected.
+
 ## 0.34.4
 
 #### 🚀 Updates
