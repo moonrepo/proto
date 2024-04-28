@@ -1,3 +1,33 @@
 {
-  "name": "@moonrepo/proto-pdk"
+  "name": "@moonrepo/proto-pdk",
+  "description": "A plugin development kit for creating proto WASM plugins.",
+  "type": "module",
+  "module": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "pathe": "^1.1.2",
+    "semver": "^7.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.7",
+    "@types/semver": "^7.5.8",
+    "type-fest": "^4.15.0",
+    "typescript": "^5.4.4",
+    "urlpattern-polyfill": "^8.0.2",
+    "vitest": "^1.5.0"
+  },
+  "exports": {
+    ".": {
+      "default": "./lib/index.js",
+      "types": "./lib/index.d.ts"
+    }
+  },
+  "engines": {
+    "node": "20.12.1"
+  },
+  "packageManager": "npm@10.5.1"
 }
