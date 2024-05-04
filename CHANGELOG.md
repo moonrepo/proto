@@ -17,6 +17,10 @@
 - Added experimental support for the following shells: ion, nu, xonsh.
 - Updated `proto setup` to prompt the user to select a shell if one could not be detected.
 
+#### ⚙️ Internal
+
+- Updated Rust to v1.78.
+
 ## 0.34.4
 
 #### 🚀 Updates

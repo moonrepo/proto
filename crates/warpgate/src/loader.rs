@@ -191,7 +191,7 @@ impl PluginLoader {
 
     /// Set the options to pass to the HTTP client.
     pub fn set_client_options(&mut self, options: &HttpOptions) {
-        self.http_options = options.to_owned();
+        options.clone_into(&mut self.http_options);
     }
 
     /// Set the function that checks for offline state.
