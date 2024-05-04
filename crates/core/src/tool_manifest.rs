@@ -53,7 +53,7 @@ impl ToolManifest {
             ToolManifest::default()
         };
 
-        manifest.path = path.to_owned();
+        path.clone_into(&mut manifest.path);
 
         Ok(manifest)
     }
