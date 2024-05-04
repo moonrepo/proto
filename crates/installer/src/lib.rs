@@ -78,7 +78,7 @@ pub async fn download_release(
 
         file.write_all(&chunk).map_err(|error| FsError::Write {
             path: archive_file.to_path_buf(),
-            error,
+            error: Box::new(error),
         })?;
 
         downloaded = cmp::min(downloaded + (chunk.len() as u64), total_size);

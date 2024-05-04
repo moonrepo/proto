@@ -327,5 +327,5 @@ pub async fn clean(args: ArgsRef<CleanArgs>, proto: ResourceRef<ProtoResource>) 
         return Ok(());
     }
 
-    internal_clean(proto, args, force_yes).await?;
+    internal_clean(proto, &args, force_yes).await?;
 }
