@@ -42,6 +42,7 @@ pub fn clean_version_string<T: AsRef<str>>(value: T) -> String {
     let mut version = value.replace(".*", "").replace("&&", ",");
 
     // Remove a leading "v" or "V" from a version string.
+    #[allow(clippy::assigning_clones)]
     if version.starts_with('v') || version.starts_with('V') {
         version = version[1..].to_owned();
     }

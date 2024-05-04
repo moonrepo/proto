@@ -165,6 +165,7 @@ pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miett
 }
 
 pub async fn clean_plugins(proto: &ProtoResource, days: u64) -> miette::Result<usize> {
+    let now = SystemTime::now();
     let duration = Duration::from_secs(86400 * days);
     let mut clean_count = 0;
 
@@ -172,7 +173,7 @@ pub async fn clean_plugins(proto: &ProtoResource, days: u64) -> miette::Result<u
         let path = file.path();
 
         if path.is_file() {
-            let bytes = fs::remove_file_if_older_than(&path, duration)?;
+            let bytes = fs::remove_file_if_stale(&path, duration, now)?;
 
             if bytes > 0 {
                 debug!(
@@ -190,6 +191,7 @@ pub async fn clean_plugins(proto: &ProtoResource, days: u64) -> miette::Result<u
 }
 
 pub async fn clean_proto(proto: &ProtoResource, days: u64) -> miette::Result<usize> {
+    let now = SystemTime::now();
     let duration = Duration::from_secs(86400 * days);
     let mut clean_count = 0;
 
@@ -197,7 +199,7 @@ pub async fn clean_proto(proto: &ProtoResource, days: u64) -> miette::Result<usi
         let path = file.path();
 
         if path.is_file() {
-            let bytes = fs::remove_file_if_older_than(&path, duration)?;
+            let bytes = fs::remove_file_if_stale(&path, duration, now)?;
 
             if bytes > 0 {
                 debug!(
