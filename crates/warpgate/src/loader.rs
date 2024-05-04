@@ -276,7 +276,7 @@ impl PluginLoader {
         );
 
         let handle_error = |error: reqwest::Error| WarpgateError::Http {
-            error,
+            error: Box::new(error),
             url: api_url.clone(),
         };
 

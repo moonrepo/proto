@@ -120,7 +120,7 @@ impl Store {
         create_shim(self.load_shim_binary()?, shim_path, find_only).map_err(|error| {
             ProtoError::CreateShimFailed {
                 path: shim_path.to_owned(),
-                error,
+                error: Box::new(error),
             }
         })?;
 

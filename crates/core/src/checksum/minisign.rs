@@ -8,7 +8,9 @@ pub fn verify_checksum(
     checksum_file: &Path,
     checksum_public_key: &str,
 ) -> miette::Result<bool> {
-    let handle_error = |error: Error| ProtoError::Minisign { error };
+    let handle_error = |error: Error| ProtoError::Minisign {
+        error: Box::new(error),
+    };
 
     PublicKey::from_base64(checksum_public_key)
         .map_err(handle_error)?

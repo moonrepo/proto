@@ -131,14 +131,14 @@ pub enum ProtoError {
     Http {
         url: String,
         #[source]
-        error: reqwest::Error,
+        error: Box<reqwest::Error>,
     },
 
     #[diagnostic(code(proto::verify::minisign))]
     #[error("Failed to verify minisign checksum.")]
     Minisign {
         #[source]
-        error: minisign_verify::Error,
+        error: Box<minisign_verify::Error>,
     },
 
     #[diagnostic(code(proto::version::invalid))]
@@ -146,7 +146,7 @@ pub enum ProtoError {
     Semver {
         version: String,
         #[source]
-        error: semver::Error,
+        error: Box<semver::Error>,
     },
 
     #[diagnostic(code(proto::shim::create_failed))]
@@ -154,6 +154,6 @@ pub enum ProtoError {
     CreateShimFailed {
         path: PathBuf,
         #[source]
-        error: std::io::Error,
+        error: Box<std::io::Error>,
     },
 }

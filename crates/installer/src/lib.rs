@@ -56,7 +56,7 @@ pub async fn download_release(
     // Request file from url
     let handle_error = |error: reqwest::Error| ProtoInstallerError::DownloadFailed {
         url: download_url.clone(),
-        error,
+        error: Box::new(error),
     };
     let response = reqwest::Client::new()
         .get(&download_url)

@@ -553,7 +553,7 @@ impl Tool {
             } else {
                 UnresolvedVersionSpec::parse(&content).map_err(|error| ProtoError::Semver {
                     version: content,
-                    error,
+                    error: Box::new(error),
                 })?
             };
 

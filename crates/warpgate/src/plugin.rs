@@ -86,7 +86,7 @@ impl PluginContainer {
             } else {
                 WarpgateError::PluginCreateFailed {
                     id: id.clone(),
-                    error,
+                    error: Box::new(error),
                 }
             }
         })?;
@@ -274,7 +274,7 @@ impl PluginContainer {
             serde_json::to_string(&input).map_err(|error| WarpgateError::FormatInputFailed {
                 id: self.id.clone(),
                 func: func.to_owned(),
-                error,
+                error: Box::new(error),
             })?,
         )
     }
@@ -284,7 +284,7 @@ impl PluginContainer {
             serde_json::from_slice(data).map_err(|error| WarpgateError::ParseOutputFailed {
                 id: self.id.clone(),
                 func: func.to_owned(),
-                error,
+                error: Box::new(error),
             })?,
         )
     }
