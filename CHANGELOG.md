@@ -22,6 +22,7 @@
 #### ⚙️ Internal
 
 - Updated Rust to v1.78.
+- Started on "build from source" APIs.
 
 ## 0.34.4
 

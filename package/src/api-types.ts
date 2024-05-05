@@ -352,11 +352,143 @@ export interface RunHookResult {
 	env: Record<string, string> | null;
 }
 
+/** Input passed to the `build_instructions` function. */
+export interface BuildInstructionsInput {
+	/** Current tool context. */
+	context: ToolContext;
+}
+
+/** Source code is contained in an archive. */
+export interface ArchiveSource {
+	/** A path prefix within the archive to remove. */
+	prefix: string | null;
+	type: 'archive';
+	/** The URL to download the archive from. */
+	url: string;
+}
+
+/** Source code is located in a Git repository. */
+export interface GitSource {
+	/** The branch/commit/tag to checkout. */
+	reference: string;
+	/** Include submodules during checkout. */
+	submodules: boolean;
+	type: 'git';
+	/** The URL of the Git remote. */
+	url: string;
+}
+
+export type SourceLocation = ArchiveSource | GitSource;
+
+/** A command and its parameters to be executed as a child process. */
+export interface CommandInstruction {
+	/** List of arguments. */
+	args: string[];
+	/** The binary on `PATH`. */
+	bin: string;
+	/** The working directory. */
+	cwd: string | null;
+	/** Map of environment variables. */
+	env: Record<string, string>;
+}
+
+export type BuildInstruction = {
+	type: 'make-executable';
+	instruction: string;
+} | {
+	type: 'move-file';
+	instruction: [string, string];
+} | {
+	type: 'remove-dir';
+	instruction: string;
+} | {
+	type: 'remove-file';
+	instruction: string;
+} | {
+	type: 'request-script';
+	instruction: string;
+} | {
+	type: 'run-command';
+	instruction: CommandInstruction;
+};
+
+export type BuildRequirement = {
+	type: 'command-exists-on-path';
+	requirement: string;
+} | {
+	type: 'manual-intercept';
+	requirement: string;
+} | {
+	type: 'git-config-setting';
+	requirement: [string, string];
+} | {
+	type: 'git-version';
+	requirement: string;
+} | {
+	type: 'python-version';
+	requirement: string;
+} | {
+	type: 'ruby-version';
+	requirement: string;
+} | {
+	type: 'xcode-command-line-tools';
+	requirement: 'xcode-command-line-tools';
+} | {
+	type: 'windows-developer-mode';
+	requirement: 'windows-developer-mode';
+};
+
 /** Architecture of the system environment. */
 export type SystemArch = 'x86' | 'x64' | 'arm' | 'arm64' | 'longarm64' | 'm68k' | 'mips' | 'mips64' | 'powerpc' | 'powerpc64' | 'riscv64' | 's390x' | 'sparc64';
 
+export type DependencyName = string | Record<string, string> | string[];
+
+/** Package manager of the system environment. */
+export type SystemPackageManager = 'pkg' | 'pkgin' | 'apk' | 'apt' | 'dnf' | 'pacman' | 'yum' | 'brew' | 'choco' | 'scoop';
+
 /** Operating system of the current environment. */
 export type SystemOS = 'android' | 'dragonfly' | 'freebsd' | 'ios' | 'linux' | 'macos' | 'netbsd' | 'openbsd' | 'solaris' | 'windows';
+
+/** Configuration for one or many system dependencies (packages). */
+export interface DependencyConfig {
+	/** Only install on this architecture. */
+	arch: SystemArch | null;
+	/** The dependency name or name(s) to install. */
+	dep: DependencyName;
+	/** Only install with this package manager. */
+	manager: SystemPackageManager | null;
+	/** Only install on this operating system. */
+	os: SystemOS | null;
+	/** Install using sudo. */
+	sudo: boolean;
+	/** The version to install. */
+	version: string | null;
+}
+
+export type SystemDependency = string | string[] | DependencyConfig | Record<string, string>;
+
+/** Output returned by the `build_instructions` function. */
+export interface BuildInstructionsOutput {
+	/** Link to the documentation/help. */
+	helpUrl: string | null;
+	/**
+	 * List of instructions to execute to build the tool, after system
+	 * dependencies have been installed.
+	 */
+	instructions: BuildInstruction[];
+	/**
+	 * List of requirements that must be met before dependencies are
+	 * installed and instructions are executed.
+	 */
+	requirements: BuildRequirement[];
+	/** Location in which to acquire the source files. */
+	source: SourceLocation | null;
+	/**
+	 * List of system dependencies that are required for building from source.
+	 * If a dependency does not exist, it will be installed.
+	 */
+	systemDependencies: SystemDependency[];
+}
 
 /** Libc being used in the system environment. */
 export type SystemLibc = 'gnu' | 'musl' | 'unknown';

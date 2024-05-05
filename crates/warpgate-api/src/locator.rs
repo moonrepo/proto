@@ -17,6 +17,7 @@ pub struct GitHubLocator {
     pub tag: Option<String>,
 }
 
+/// Errors during plugin locator parsing.
 #[derive(thiserror::Error, Debug)]
 pub enum PluginLocatorError {
     #[error("GitHub release locator requires a repository with organization scope (org/repo).")]
@@ -47,7 +48,7 @@ pub enum PluginLocator {
 
     /// github:owner/repo
     /// github:owner/repo@tag
-    GitHub(GitHubLocator),
+    GitHub(Box<GitHubLocator>),
 }
 
 impl PluginLocator {
@@ -148,13 +149,13 @@ impl TryFrom<String> for PluginLocator {
                 let repo_slug = parts.next().unwrap().to_owned();
                 let tag = parts.next().map(|t| t.to_owned());
 
-                Ok(PluginLocator::GitHub(GitHubLocator {
+                Ok(PluginLocator::GitHub(Box::new(GitHubLocator {
                     file_prefix: PluginLocator::create_wasm_file_prefix(
                         PluginLocator::extract_suffix_from_slug(&repo_slug),
                     ),
                     repo_slug,
                     tag,
-                }))
+                })))
             }
             unknown => Err(PluginLocatorError::UnknownScope(unknown.to_owned())),
         }

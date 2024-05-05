@@ -118,11 +118,11 @@ mod loader {
             loader
                 .load_plugin(
                     Id::raw("test"),
-                    PluginLocator::GitHub(GitHubLocator {
+                    PluginLocator::GitHub(Box::new(GitHubLocator {
                         file_prefix: "bun_plugin.wasm".into(),
                         repo_slug: "moonrepo/invalid-repo".into(),
                         tag: None,
-                    }),
+                    })),
                 )
                 .await
                 .unwrap();
@@ -135,11 +135,11 @@ mod loader {
             let path = loader
                 .load_plugin(
                     Id::raw("test"),
-                    PluginLocator::GitHub(GitHubLocator {
+                    PluginLocator::GitHub(Box::new(GitHubLocator {
                         file_prefix: "bun_plugin.wasm".into(),
                         repo_slug: "moonrepo/bun-plugin".into(),
                         tag: Some("v0.0.3".into()),
-                    }),
+                    })),
                 )
                 .await
                 .unwrap();
@@ -154,11 +154,11 @@ mod loader {
             let path = loader
                 .load_plugin(
                     Id::raw("test"),
-                    PluginLocator::GitHub(GitHubLocator {
+                    PluginLocator::GitHub(Box::new(GitHubLocator {
                         file_prefix: "bun_plugin.wasm".into(),
                         repo_slug: "moonrepo/bun-plugin".into(),
                         tag: None,
-                    }),
+                    })),
                 )
                 .await
                 .unwrap();

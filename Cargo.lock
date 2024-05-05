@@ -2348,7 +2348,7 @@ dependencies = [
 
 [[package]]
 name = "proto_codegen"
-version = "0.0.1"
+version = "0.1.0"
 dependencies = [
  "proto_pdk_api",
  "schematic",
@@ -2356,7 +2356,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.34.4"
+version = "0.35.0"
 dependencies = [
  "cached",
  "human-sort",
@@ -2392,7 +2392,7 @@ dependencies = [
 
 [[package]]
 name = "proto_installer"
-version = "0.3.3"
+version = "0.4.0"
 dependencies = [
  "futures",
  "miette",
@@ -2407,7 +2407,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.17.7"
+version = "0.18.0"
 dependencies = [
  "extism-pdk",
  "proto_pdk_api",
@@ -2418,8 +2418,9 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.17.5"
+version = "0.18.0"
 dependencies = [
+ "proto_pdk_api",
  "rustc-hash",
  "schematic",
  "semver",
@@ -2433,7 +2434,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.21.1"
+version = "0.22.0"
 dependencies = [
  "extism",
  "proto_core",
@@ -2447,7 +2448,7 @@ dependencies = [
 
 [[package]]
 name = "proto_shim"
-version = "0.2.9"
+version = "0.3.0"
 dependencies = [
  "command-group",
  "dirs 5.0.1",
@@ -3403,7 +3404,7 @@ dependencies = [
 
 [[package]]
 name = "system_env"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "schematic",
  "serde",
@@ -3832,7 +3833,7 @@ checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 
 [[package]]
 name = "version_spec"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "human-sort",
  "regex",
@@ -3871,7 +3872,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.12.1"
+version = "0.13.0"
 dependencies = [
  "extism",
  "miette",
@@ -3897,7 +3898,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_api"
-version = "0.5.1"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "rustc-hash",
@@ -3910,7 +3911,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_pdk"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "extism-pdk",
  "serde",

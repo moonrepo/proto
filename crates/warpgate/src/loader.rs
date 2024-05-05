@@ -289,7 +289,7 @@ impl PluginLoader {
             return Err(WarpgateError::InternetConnectionRequired {
                 message: format!(
                     "Unable to download plugin {} from GitHub.",
-                    PluginLocator::GitHub(github.to_owned())
+                    PluginLocator::GitHub(Box::new(github.to_owned()))
                 ),
                 url: api_url,
             }

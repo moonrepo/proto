@@ -83,7 +83,7 @@ pub enum SystemDependency {
 
     /// Either a single or multiple package, defined as an
     /// explicit configuration object.
-    Config(DependencyConfig),
+    Config(Box<DependencyConfig>),
 
     /// A single package by name, but with different names (values)
     /// depending on operating system or package manager (keys).
@@ -107,30 +107,30 @@ impl SystemDependency {
 
     /// Create a single dependency by name for the target architecture.
     pub fn for_arch(name: &str, arch: SystemArch) -> SystemDependency {
-        SystemDependency::Config(DependencyConfig {
+        SystemDependency::Config(Box::new(DependencyConfig {
             arch: Some(arch),
             dep: DependencyName::Single(name.into()),
             ..DependencyConfig::default()
-        })
+        }))
     }
 
     /// Create a single dependency by name for the target operating system.
     pub fn for_os(name: &str, os: SystemOS) -> SystemDependency {
-        SystemDependency::Config(DependencyConfig {
+        SystemDependency::Config(Box::new(DependencyConfig {
             dep: DependencyName::Single(name.into()),
             os: Some(os),
             ..DependencyConfig::default()
-        })
+        }))
     }
 
     /// Create a single dependency by name for the target operating system and architecture.
     pub fn for_os_arch(name: &str, os: SystemOS, arch: SystemArch) -> SystemDependency {
-        SystemDependency::Config(DependencyConfig {
+        SystemDependency::Config(Box::new(DependencyConfig {
             arch: Some(arch),
             dep: DependencyName::Single(name.into()),
             os: Some(os),
             ..DependencyConfig::default()
-        })
+        }))
     }
 
     /// Convert and expand to a dependency configuration.
@@ -148,7 +148,7 @@ impl SystemDependency {
                 dep: DependencyName::SingleMap(map),
                 ..DependencyConfig::default()
             },
-            Self::Config(config) => config,
+            Self::Config(config) => *config,
         }
     }
 }
