@@ -16,6 +16,7 @@
 
 - Added experimental support for the following shells: ion, nu, xonsh.
 - Added a global `--dump` flag, that will dump a trace profile that can be inspected in `chrome://tracing`.
+  - Is not supported for `proto run` or when running a tool shim.
 - Updated `proto setup` to prompt the user to select a shell if one could not be detected.
 
 #### ⚙️ Internal

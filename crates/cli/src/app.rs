@@ -68,7 +68,6 @@ fn create_styles() -> Styles {
 )]
 pub struct App {
     #[arg(
-        value_enum,
         long,
         global = true,
         env = "PROTO_DUMP",
