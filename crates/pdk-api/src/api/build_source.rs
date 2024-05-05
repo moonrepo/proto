@@ -37,13 +37,8 @@ api_struct!(
 
 api_enum!(
     /// The location in which source code can be acquired.
-    #[derive(Default)]
     #[serde(tag = "type", rename_all = "kebab-case")]
     pub enum SourceLocation {
-        /// Not available.
-        #[default]
-        None,
-
         /// Downloaded from an archive.
         #[cfg_attr(feature = "schematic", schema(nested))]
         Archive(ArchiveSource),
@@ -87,9 +82,6 @@ api_enum!(
     /// An instruction to execute.
     #[serde(tag = "type", content = "instruction", rename_all = "kebab-case")]
     pub enum BuildInstruction {
-        /// Nothing to do.
-        None,
-
         /// Update a file and make it executable.
         MakeExecutable(PathBuf),
 
@@ -145,7 +137,7 @@ api_struct!(
         pub requirements: Vec<BuildRequirement>,
 
         /// Location in which to acquire the source files.
-        pub source: SourceLocation,
+        pub source: Option<SourceLocation>,
 
         /// List of system dependencies that are required for building from source.
         /// If a dependency does not exist, it will be installed.

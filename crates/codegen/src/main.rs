@@ -40,6 +40,13 @@ fn main() {
     generator.add::<RunHook>();
     generator.add::<RunHookResult>();
 
+    generator.add::<BuildInstructionsInput>();
+    generator.add::<SourceLocation>();
+    generator.add::<BuildInstruction>();
+    generator.add::<BuildRequirement>();
+    generator.add::<BuildInstructionsOutput>();
+    generator.add::<BuildInstructionsInput>();
+
     // system_env
     generator.add::<HostArch>();
     generator.add::<HostOS>();
