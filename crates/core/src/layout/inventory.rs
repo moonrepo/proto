@@ -5,6 +5,7 @@ use proto_pdk_api::{LoadVersionsOutput, ToolInventoryMetadata};
 use starbase_utils::{fs, json};
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
+use tracing::instrument;
 use version_spec::VersionSpec;
 
 #[derive(Clone, Debug, Default)]
@@ -16,6 +17,7 @@ pub struct Inventory {
 }
 
 impl Inventory {
+    #[instrument(skip(self))]
     pub fn create_product(&self, spec: &VersionSpec) -> Product {
         let mut name = spec.to_string();
 
@@ -29,6 +31,7 @@ impl Inventory {
         }
     }
 
+    #[instrument(skip(self))]
     pub fn load_remote_versions(
         &self,
         disable_cache: bool,
@@ -65,6 +68,7 @@ impl Inventory {
         Ok(None)
     }
 
+    #[instrument(skip_all)]
     pub fn save_remote_versions(&self, data: &LoadVersionsOutput) -> miette::Result<()> {
         json::write_file(self.dir.join("remote-versions.json"), data, false)?;
 

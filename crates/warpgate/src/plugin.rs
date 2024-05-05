@@ -12,7 +12,7 @@ use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 use system_env::{SystemArch, SystemLibc, SystemOS};
-use tracing::trace;
+use tracing::{instrument, trace};
 use warpgate_api::{HostEnvironment, VirtualPath};
 
 fn is_incompatible_runtime(error: &Error) -> bool {
@@ -32,6 +32,7 @@ fn is_incompatible_runtime(error: &Error) -> bool {
 
 /// Inject our default configuration into the provided plugin manifest.
 /// This will set `plugin_id` and `host_environment` for use within PDKs.
+#[instrument(skip(manifest))]
 pub fn inject_default_manifest_config(
     id: &Id,
     home_dir: &Path,
@@ -75,6 +76,7 @@ unsafe impl Sync for PluginContainer {}
 
 impl PluginContainer {
     /// Create a new container with the provided manifest and host functions.
+    #[instrument(name = "new_plugin", skip(manifest, functions))]
     pub fn new(
         id: Id,
         manifest: Manifest,
@@ -86,7 +88,7 @@ impl PluginContainer {
             } else {
                 WarpgateError::PluginCreateFailed {
                     id: id.clone(),
-                    error,
+                    error: Box::new(error),
                 }
             }
         })?;
@@ -121,6 +123,7 @@ impl PluginContainer {
 
     /// Call a function on the plugin with the given input and cache the output
     /// before returning it. Subsequent calls with the same input will read from the cache.
+    #[instrument(skip(self))]
     pub fn cache_func_with<I, O>(&self, func: &str, input: I) -> miette::Result<O>
     where
         I: Debug + Serialize,
@@ -154,6 +157,7 @@ impl PluginContainer {
     }
 
     /// Call a function on the plugin with the given input and return the output.
+    #[instrument(skip(self))]
     pub fn call_func_with<I, O>(&self, func: &str, input: I) -> miette::Result<O>
     where
         I: Debug + Serialize,
@@ -163,6 +167,7 @@ impl PluginContainer {
     }
 
     /// Call a function on the plugin with the given input and ignore the output.
+    #[instrument(skip(self))]
     pub fn call_func_without_output<I>(&self, func: &str, input: I) -> miette::Result<()>
     where
         I: Debug + Serialize,
@@ -185,7 +190,7 @@ impl PluginContainer {
     }
 
     /// Convert the provided virtual guest path to an absolute host path.
-    pub fn from_virtual_path(&self, path: impl AsRef<Path>) -> PathBuf {
+    pub fn from_virtual_path(&self, path: impl AsRef<Path> + Debug) -> PathBuf {
         let Some(virtual_paths) = self.manifest.allowed_paths.as_ref() else {
             return path.as_ref().to_path_buf();
         };
@@ -195,7 +200,7 @@ impl PluginContainer {
 
     /// Convert the provided absolute host path to a virtual guest path suitable
     /// for WASI sandboxed runtimes.
-    pub fn to_virtual_path(&self, path: impl AsRef<Path>) -> VirtualPath {
+    pub fn to_virtual_path(&self, path: impl AsRef<Path> + Debug) -> VirtualPath {
         let Some(virtual_paths) = self.manifest.allowed_paths.as_ref() else {
             return VirtualPath::Only(path.as_ref().to_path_buf());
         };
@@ -274,7 +279,7 @@ impl PluginContainer {
             serde_json::to_string(&input).map_err(|error| WarpgateError::FormatInputFailed {
                 id: self.id.clone(),
                 func: func.to_owned(),
-                error,
+                error: Box::new(error),
             })?,
         )
     }
@@ -284,7 +289,7 @@ impl PluginContainer {
             serde_json::from_slice(data).map_err(|error| WarpgateError::ParseOutputFailed {
                 id: self.id.clone(),
                 func: func.to_owned(),
-                error,
+                error: Box::new(error),
             })?,
         )
     }

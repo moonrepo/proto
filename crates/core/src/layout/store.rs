@@ -7,6 +7,7 @@ use proto_pdk_api::ToolInventoryMetadata;
 use proto_shim::{create_shim, locate_proto_exe};
 use starbase_utils::fs;
 use std::path::{Path, PathBuf};
+use tracing::instrument;
 use warpgate::Id;
 
 #[derive(Clone, Debug)]
@@ -22,6 +23,7 @@ pub struct Store {
 }
 
 impl Store {
+    #[instrument(name = "create_store")]
     pub fn new(dir: &Path) -> Self {
         Self {
             dir: dir.to_path_buf(),
@@ -34,6 +36,7 @@ impl Store {
         }
     }
 
+    #[instrument(skip(self, config))]
     pub fn create_inventory(
         &self,
         id: &Id,
@@ -63,6 +66,7 @@ impl Store {
         Ok(id)
     }
 
+    #[instrument(skip(self))]
     pub fn load_preferred_profile(&self) -> miette::Result<Option<PathBuf>> {
         let profile_path = self.dir.join("profile");
 
@@ -73,6 +77,7 @@ impl Store {
         Ok(None)
     }
 
+    #[instrument(skip(self))]
     pub fn load_shim_binary(&self) -> miette::Result<&Vec<u8>> {
         self.shim_binary.get_or_try_init(|| {
             Ok(fs::read_file_bytes(
@@ -83,6 +88,7 @@ impl Store {
         })
     }
 
+    #[instrument(skip(self))]
     pub fn save_preferred_profile(&self, path: &Path) -> miette::Result<()> {
         fs::write_file(
             self.dir.join("profile"),
@@ -92,6 +98,7 @@ impl Store {
         Ok(())
     }
 
+    #[instrument(skip(self))]
     pub fn link_bin(&self, bin_path: &Path, src_path: &Path) -> miette::Result<()> {
         // Windows requires admin privileges to create soft/hard links,
         // so just copy the binary... annoying...
@@ -104,6 +111,7 @@ impl Store {
         Ok(())
     }
 
+    #[instrument(skip(self))]
     pub fn unlink_bin(&self, bin_path: &Path) -> miette::Result<()> {
         // Windows copies files
         #[cfg(windows)]
@@ -116,17 +124,19 @@ impl Store {
         Ok(())
     }
 
+    #[instrument(skip(self))]
     pub fn create_shim(&self, shim_path: &Path, find_only: bool) -> miette::Result<()> {
         create_shim(self.load_shim_binary()?, shim_path, find_only).map_err(|error| {
             ProtoError::CreateShimFailed {
                 path: shim_path.to_owned(),
-                error,
+                error: Box::new(error),
             }
         })?;
 
         Ok(())
     }
 
+    #[instrument(skip(self))]
     pub fn remove_shim(&self, shim_path: &Path) -> miette::Result<()> {
         fs::remove_file(shim_path)?;
 

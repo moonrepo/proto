@@ -12,7 +12,7 @@ use tracing::debug;
 // STARTUP
 
 #[system]
-pub fn detect_proto_env(resources: ResourcesMut) {
+pub fn detect_proto_env(resources: Resources) {
     resources.set(ProtoResource::new()?);
 }
 

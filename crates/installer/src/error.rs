@@ -13,6 +13,6 @@ pub enum ProtoInstallerError {
     DownloadFailed {
         url: String,
         #[source]
-        error: reqwest::Error,
+        error: Box<reqwest::Error>,
     },
 }

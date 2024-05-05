@@ -38,7 +38,6 @@ pub fn get_home_dir() -> miette::Result<PathBuf> {
 }
 
 #[cached(time = 300)]
-#[tracing::instrument]
 pub fn is_offline() -> bool {
     if let Ok(value) = env::var("PROTO_OFFLINE") {
         match value.as_ref() {
@@ -103,7 +102,7 @@ pub fn read_json_file_with_lock<T: DeserializeOwned>(path: impl AsRef<Path>) -> 
 
     let data: T = json::serde_json::from_str(&content).map_err(|error| JsonError::ReadFile {
         path: path.to_path_buf(),
-        error,
+        error: Box::new(error),
     })?;
 
     Ok(data)
@@ -117,7 +116,7 @@ pub fn write_json_file_with_lock<T: Serialize>(
 
     let data = json::serde_json::to_string_pretty(data).map_err(|error| JsonError::WriteFile {
         path: path.to_path_buf(),
-        error,
+        error: Box::new(error),
     })?;
 
     fs::write_file_with_lock(path, data)?;

@@ -6,13 +6,16 @@ use starbase_utils::fs::{self, FsError};
 use std::cmp;
 use std::env;
 use std::env::consts;
+use std::fmt::Debug;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 use system_env::SystemLibc;
+use tracing::instrument;
 
 pub use error::ProtoInstallerError;
 
+#[instrument]
 pub fn determine_triple() -> miette::Result<String> {
     let target = match (consts::OS, consts::ARCH) {
         ("linux", arch) => format!(
@@ -33,6 +36,7 @@ pub fn determine_triple() -> miette::Result<String> {
     Ok(target)
 }
 
+#[derive(Debug)]
 pub struct DownloadResult {
     pub archive_file: PathBuf,
     pub file: String,
@@ -40,10 +44,11 @@ pub struct DownloadResult {
     pub url: String,
 }
 
+#[instrument(skip(on_chunk))]
 pub async fn download_release(
     triple: &str,
     version: &str,
-    temp_dir: impl AsRef<Path>,
+    temp_dir: impl AsRef<Path> + Debug,
     on_chunk: impl Fn(u64, u64),
 ) -> miette::Result<DownloadResult> {
     let target_ext = if cfg!(windows) { "zip" } else { "tar.xz" };
@@ -56,7 +61,7 @@ pub async fn download_release(
     // Request file from url
     let handle_error = |error: reqwest::Error| ProtoInstallerError::DownloadFailed {
         url: download_url.clone(),
-        error,
+        error: Box::new(error),
     };
     let response = reqwest::Client::new()
         .get(&download_url)
@@ -78,7 +83,7 @@ pub async fn download_release(
 
         file.write_all(&chunk).map_err(|error| FsError::Write {
             path: archive_file.to_path_buf(),
-            error,
+            error: Box::new(error),
         })?;
 
         downloaded = cmp::min(downloaded + (chunk.len() as u64), total_size);
@@ -94,10 +99,11 @@ pub async fn download_release(
     })
 }
 
+#[instrument]
 pub fn unpack_release(
     download: DownloadResult,
-    install_dir: impl AsRef<Path>,
-    relocate_dir: impl AsRef<Path>,
+    install_dir: impl AsRef<Path> + Debug,
+    relocate_dir: impl AsRef<Path> + Debug,
     relocate_current: bool,
 ) -> miette::Result<bool> {
     let temp_dir = download
