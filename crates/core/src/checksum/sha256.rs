@@ -25,6 +25,7 @@ pub fn hash_file_contents<P: AsRef<Path>>(path: P) -> miette::Result<String> {
     Ok(hash)
 }
 
+#[tracing::instrument(name = "sha256")]
 pub fn verify_checksum(download_file: &Path, checksum_file: &Path) -> miette::Result<bool> {
     let checksum_hash = hash_file_contents(download_file)?;
     let download_file_name = fs::file_name(download_file);

@@ -3,10 +3,12 @@ use crate::proto::ProtoEnvironment;
 use crate::proto_config::{ProtoConfig, SCHEMA_PLUGIN_KEY};
 use crate::tool::Tool;
 use starbase_utils::{json, toml};
+use std::fmt::Debug;
 use std::path::PathBuf;
-use tracing::{debug, trace};
+use tracing::{debug, instrument, trace};
 use warpgate::{inject_default_manifest_config, Id, PluginLocator, PluginManifest, Wasm};
 
+#[instrument(skip(proto, manifest))]
 pub fn inject_proto_manifest_config(
     id: &Id,
     proto: &ProtoEnvironment,
@@ -27,6 +29,7 @@ pub fn inject_proto_manifest_config(
     Ok(())
 }
 
+#[instrument(skip(proto))]
 pub fn locate_tool(id: &Id, proto: &ProtoEnvironment) -> miette::Result<PluginLocator> {
     let mut locator = None;
     let configs = proto.load_config_manager()?;
@@ -79,10 +82,11 @@ pub async fn load_schema_plugin_with_proto(
         .await
 }
 
+#[instrument(name = "load_tool", skip(proto))]
 pub async fn load_tool_from_locator(
-    id: impl AsRef<Id>,
+    id: impl AsRef<Id> + Debug,
     proto: impl AsRef<ProtoEnvironment>,
-    locator: impl AsRef<PluginLocator>,
+    locator: impl AsRef<PluginLocator> + Debug,
 ) -> miette::Result<Tool> {
     let id = id.as_ref();
     let proto = proto.as_ref();
@@ -106,7 +110,6 @@ pub async fn load_tool_from_locator(
 
         trace!(schema = %schema, "Storing schema settings");
 
-        manifest.config.insert("schema".to_string(), schema.clone()); // TODO remove
         manifest.config.insert("proto_schema".to_string(), schema);
         manifest
 

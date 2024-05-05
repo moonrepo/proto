@@ -3,9 +3,10 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use std::{
     env,
+    fmt::Debug,
     path::{Path, PathBuf},
 };
-use tracing::debug;
+use tracing::{debug, instrument};
 use version_spec::*;
 
 pub const MANIFEST_NAME: &str = "manifest.json";
@@ -42,7 +43,8 @@ impl ToolManifest {
         Self::load(dir.as_ref().join(MANIFEST_NAME))
     }
 
-    pub fn load<P: AsRef<Path>>(path: P) -> miette::Result<Self> {
+    #[instrument(name = "load_tool_manifest")]
+    pub fn load<P: AsRef<Path> + Debug>(path: P) -> miette::Result<Self> {
         let path = path.as_ref();
 
         debug!(file = ?path, "Loading {}", MANIFEST_NAME);
@@ -58,6 +60,7 @@ impl ToolManifest {
         Ok(manifest)
     }
 
+    #[instrument(name = "save_tool_manifest", skip(self))]
     pub fn save(&self) -> miette::Result<()> {
         debug!(file = ?self.path, "Saving manifest");
 

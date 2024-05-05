@@ -71,6 +71,15 @@ pub struct App {
         value_enum,
         long,
         global = true,
+        env = "PROTO_DUMP",
+        help = "Dump a trace profile to the working directory"
+    )]
+    pub dump: bool,
+
+    #[arg(
+        value_enum,
+        long,
+        global = true,
         env = "PROTO_LOG",
         help = "Lowest log level to output"
     )]

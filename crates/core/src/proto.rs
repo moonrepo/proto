@@ -80,6 +80,7 @@ impl ProtoEnvironment {
         ])
     }
 
+    #[tracing::instrument(name = "load_all", skip_all)]
     pub fn load_config(&self) -> miette::Result<&ProtoConfig> {
         self.load_config_manager()?.get_merged_config()
     }

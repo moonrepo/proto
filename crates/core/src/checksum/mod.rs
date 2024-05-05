@@ -4,6 +4,7 @@ mod sha256;
 use crate::error::ProtoError;
 use std::path::Path;
 
+#[tracing::instrument(skip_all)]
 pub fn verify_checksum(
     download_file: &Path,
     checksum_file: &Path,

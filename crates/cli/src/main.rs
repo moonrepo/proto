@@ -41,7 +41,7 @@ async fn main() -> MainResult {
         env::set_var("WARPGATE_DEBUG_COMMAND", value);
     }
 
-    App::setup_tracing_with_options(TracingOptions {
+    let _guard = App::setup_tracing_with_options(TracingOptions {
         default_level: if matches!(cli.command, Commands::Bin { .. } | Commands::Run { .. }) {
             LevelFilter::WARN
         } else if matches!(cli.command, Commands::Completions { .. }) {
@@ -49,6 +49,7 @@ async fn main() -> MainResult {
         } else {
             LevelFilter::INFO
         },
+        dump_trace: cli.dump && !matches!(cli.command, Commands::Run { .. }),
         filter_modules: modules,
         intercept_log: false,
         log_env: "STARBASE_LOG".into(),

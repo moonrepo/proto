@@ -11,10 +11,11 @@ use starbase_utils::json::JsonValue;
 use starbase_utils::toml::TomlValue;
 use starbase_utils::{fs, toml};
 use std::collections::BTreeMap;
+use std::fmt::Debug;
 use std::hash::Hash;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use tracing::{debug, trace};
+use tracing::{debug, instrument, trace};
 use version_spec::*;
 use warpgate::{HttpOptions, Id, PluginLocator};
 
@@ -263,7 +264,11 @@ impl ProtoConfig {
         )
     }
 
-    pub fn load<P: AsRef<Path>>(path: P, with_lock: bool) -> miette::Result<PartialProtoConfig> {
+    #[instrument(name = "load_config")]
+    pub fn load<P: AsRef<Path> + Debug>(
+        path: P,
+        with_lock: bool,
+    ) -> miette::Result<PartialProtoConfig> {
         let path = path.as_ref();
 
         if !path.exists() {
@@ -368,7 +373,11 @@ impl ProtoConfig {
         Ok(config)
     }
 
-    pub fn save_to<P: AsRef<Path>>(dir: P, config: PartialProtoConfig) -> miette::Result<PathBuf> {
+    #[instrument(name = "save_config", skip(config))]
+    pub fn save_to<P: AsRef<Path> + Debug>(
+        dir: P,
+        config: PartialProtoConfig,
+    ) -> miette::Result<PathBuf> {
         let path = dir.as_ref();
         let file = if path.ends_with(PROTO_CONFIG_NAME) {
             path.to_path_buf()

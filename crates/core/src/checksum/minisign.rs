@@ -3,6 +3,7 @@ use minisign_verify::*;
 use starbase_utils::fs;
 use std::path::Path;
 
+#[tracing::instrument(name = "minisign")]
 pub fn verify_checksum(
     download_file: &Path,
     checksum_file: &Path,

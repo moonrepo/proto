@@ -38,7 +38,6 @@ pub fn get_home_dir() -> miette::Result<PathBuf> {
 }
 
 #[cached(time = 300)]
-#[tracing::instrument]
 pub fn is_offline() -> bool {
     if let Ok(value) = env::var("PROTO_OFFLINE") {
         match value.as_ref() {

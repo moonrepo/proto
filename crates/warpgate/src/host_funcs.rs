@@ -7,7 +7,7 @@ use std::collections::BTreeMap;
 use std::env;
 use std::path::PathBuf;
 use system_env::{create_process_command, find_command_on_path};
-use tracing::trace;
+use tracing::{instrument, trace};
 use warpgate_api::{ExecCommandInput, ExecCommandOutput, HostLogInput, HostLogTarget};
 
 #[derive(Clone)]
@@ -65,6 +65,7 @@ pub fn create_host_functions(data: HostData) -> Vec<Function> {
 
 // Logging
 
+#[instrument(name = "host_func_log", skip_all)]
 fn host_log(
     plugin: &mut CurrentPlugin,
     inputs: &[Val],
@@ -112,6 +113,7 @@ fn host_log(
 
 // Commands
 
+#[instrument(name = "host_func_exec_command", skip_all)]
 fn exec_command(
     plugin: &mut CurrentPlugin,
     inputs: &[Val],
@@ -213,6 +215,7 @@ fn exec_command(
     Ok(())
 }
 
+#[instrument(name = "host_func_get_env_var", skip_all)]
 fn get_env_var(
     plugin: &mut CurrentPlugin,
     inputs: &[Val],
@@ -233,6 +236,7 @@ fn get_env_var(
     Ok(())
 }
 
+#[instrument(name = "host_func_set_env_var", skip_all)]
 fn set_env_var(
     plugin: &mut CurrentPlugin,
     inputs: &[Val],
@@ -278,6 +282,7 @@ fn set_env_var(
     Ok(())
 }
 
+#[instrument(name = "host_func_from_virtual_path", skip_all)]
 fn from_virtual_path(
     plugin: &mut CurrentPlugin,
     inputs: &[Val],
@@ -301,6 +306,7 @@ fn from_virtual_path(
     Ok(())
 }
 
+#[instrument(name = "host_func_to_virtual_path", skip_all)]
 fn to_virtual_path(
     plugin: &mut CurrentPlugin,
     inputs: &[Val],

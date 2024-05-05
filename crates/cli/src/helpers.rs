@@ -129,6 +129,7 @@ impl ProtoResource {
         self.load_tools_with_filters(FxHashSet::default()).await
     }
 
+    #[tracing::instrument(name = "load_tools", skip_all)]
     pub async fn load_tools_with_filters(
         &self,
         filter: FxHashSet<&Id>,
