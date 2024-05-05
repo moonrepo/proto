@@ -19,6 +19,16 @@
   - Is not supported for `proto run` or when running a tool shim.
 - Updated `proto setup` to prompt the user to select a shell if one could not be detected.
 
+#### 🧩 Plugins
+
+- Updated `bun_plugin` to v0.12.0.
+- Updated `deno_plugin` to v0.11.0.
+- Updated `go_plugin` to v0.11.0.
+- Updated `node_plugin` and `node_depman_plugin` to v0.11.0.
+- Updated `python_plugin` to v0.10.0.
+- Updated `rust_plugin` to v0.10.0.
+- Updated `schema_plugin` (TOML) to v0.12.
+
 #### ⚙️ Internal
 
 - Updated Rust to v1.78.
