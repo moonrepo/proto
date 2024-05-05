@@ -1,10 +1,12 @@
+mod build_source;
+
 use crate::shapes::StringOrVec;
 use rustc_hash::FxHashMap;
 use std::path::PathBuf;
-use system_env::SystemDependency;
 use version_spec::{UnresolvedVersionSpec, VersionSpec};
 use warpgate_api::*;
 
+pub use build_source::*;
 pub use semver::{Version, VersionReq};
 
 fn is_false(value: &bool) -> bool {
@@ -174,65 +176,6 @@ api_struct!(
 
         /// Whether to skip the uninstall process or not.
         pub skip_uninstall: bool,
-    }
-);
-
-api_struct!(
-    /// Input passed to the `build_instructions` function.
-    pub struct BuildInstructionsInput {
-        /// Current tool context.
-        pub context: ToolContext,
-    }
-);
-
-api_enum!(
-    #[derive(Default)]
-    #[serde(tag = "type", rename_all = "lowercase")]
-    pub enum SourceLocation {
-        #[default]
-        None,
-        // Archive {
-        //     url: String,
-        // },
-        // Git {
-        //     url: String,
-        //     reference: String,
-        //     submodules: bool,
-        // },
-    }
-);
-
-api_enum!(
-    #[serde(tag = "type", rename_all = "lowercase")]
-    pub enum BuildInstruction {
-        None,
-        // Command {
-        //     bin: String,
-        //     args: Vec<String>,
-        //     env: FxHashMap<String, String>,
-        // },
-    }
-);
-
-api_struct!(
-    /// Output returned by the `build_instructions` function.
-    pub struct BuildInstructionsOutput {
-        /// Link to the documentation/help.
-        pub help_url: Option<String>,
-
-        /// Location in which to acquire the source files. Can be an archive URL,
-        /// or Git repository.
-        pub source: SourceLocation,
-
-        /// List of instructions to execute to build the tool, after system
-        /// dependencies have been installed.
-        #[serde(skip_serializing_if = "Vec::is_empty")]
-        pub instructions: Vec<BuildInstruction>,
-
-        /// List of system dependencies that are required for building from source.
-        /// If a dependency does not exist, it will be installed.
-        #[serde(skip_serializing_if = "Vec::is_empty")]
-        pub system_dependencies: Vec<SystemDependency>,
     }
 );
 

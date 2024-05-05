@@ -1,6 +1,7 @@
 use warpgate_api::api_enum;
 
 api_enum!(
+    /// Either a string, or a list of strings.
     #[serde(untagged)]
     pub enum StringOrVec {
         String(String),
