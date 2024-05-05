@@ -1,14 +1,14 @@
 [package]
 name = "warpgate"
-version = "0.12.1"
+version = "0.13.0"
 edition = "2021"
 license = "MIT"
 description = "Download, resolve, and manage Extism WASM plugins."
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
-system_env = { version = "0.3.0", path = "../system-env" }
-warpgate_api = { version = "0.5.1", path = "../warpgate-api" }
+system_env = { version = "0.4.0", path = "../system-env" }
+warpgate_api = { version = "0.6.0", path = "../warpgate-api" }
 extism = { workspace = true }
 miette = { workspace = true }
 once_cell = { workspace = true }
