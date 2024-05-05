@@ -1,5 +1,6 @@
 use thiserror::Error;
 
+/// Errors that may occur from within a plugin.
 #[derive(Error, Debug)]
 pub enum PluginError {
     #[error("{0}")]

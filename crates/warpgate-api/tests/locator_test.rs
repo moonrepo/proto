@@ -24,21 +24,21 @@ mod locator {
         );
 
         assert_eq!(
-            PluginLocator::GitHub(GitHubLocator {
+            PluginLocator::GitHub(Box::new(GitHubLocator {
                 file_prefix: "proto_plugin".into(),
                 repo_slug: "moonrepo/proto".into(),
                 tag: None,
-            })
+            }))
             .to_string(),
             "github:moonrepo/proto"
         );
 
         assert_eq!(
-            PluginLocator::GitHub(GitHubLocator {
+            PluginLocator::GitHub(Box::new(GitHubLocator {
                 file_prefix: "proto_plugin".into(),
                 repo_slug: "moonrepo/proto".into(),
                 tag: Some("latest".into()),
-            })
+            }))
             .to_string(),
             "github:moonrepo/proto@latest"
         );
@@ -136,11 +136,11 @@ mod locator {
         fn parses_slug() {
             assert_eq!(
                 PluginLocator::try_from("github:moonrepo/bun".to_string()).unwrap(),
-                PluginLocator::GitHub(GitHubLocator {
+                PluginLocator::GitHub(Box::new(GitHubLocator {
                     file_prefix: "bun_plugin".into(),
                     repo_slug: "moonrepo/bun".into(),
                     tag: None,
-                })
+                }))
             );
         }
 
@@ -148,11 +148,11 @@ mod locator {
         fn parses_latest() {
             assert_eq!(
                 PluginLocator::try_from("github:moonrepo/bun-plugin@latest".to_string()).unwrap(),
-                PluginLocator::GitHub(GitHubLocator {
+                PluginLocator::GitHub(Box::new(GitHubLocator {
                     file_prefix: "bun_plugin".into(),
                     repo_slug: "moonrepo/bun-plugin".into(),
                     tag: Some("latest".into()),
-                })
+                }))
             );
         }
 
@@ -160,11 +160,11 @@ mod locator {
         fn parses_tag() {
             assert_eq!(
                 PluginLocator::try_from("github:moonrepo/bun_plugin@v1.2.3".to_string()).unwrap(),
-                PluginLocator::GitHub(GitHubLocator {
+                PluginLocator::GitHub(Box::new(GitHubLocator {
                     file_prefix: "bun_plugin".into(),
                     repo_slug: "moonrepo/bun_plugin".into(),
                     tag: Some("v1.2.3".into()),
-                })
+                }))
             );
         }
     }

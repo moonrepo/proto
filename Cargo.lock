@@ -2420,6 +2420,7 @@ dependencies = [
 name = "proto_pdk_api"
 version = "0.17.5"
 dependencies = [
+ "proto_pdk_api",
  "rustc-hash",
  "schematic",
  "semver",
