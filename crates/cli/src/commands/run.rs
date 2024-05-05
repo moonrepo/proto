@@ -238,7 +238,7 @@ pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> S
     }
 
     // Determine the binary path to execute
-    let exe_config = get_executable(&tool, args)?;
+    let exe_config = get_executable(&tool, &args)?;
     let exe_path = exe_config
         .exe_path
         .as_ref()

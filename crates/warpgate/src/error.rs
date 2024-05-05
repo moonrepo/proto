@@ -16,7 +16,7 @@ pub enum WarpgateError {
         url: String,
 
         #[source]
-        error: reqwest::Error,
+        error: Box<reqwest::Error>,
     },
 
     #[diagnostic(code(plugin::offline))]
@@ -53,7 +53,7 @@ pub enum WarpgateError {
     PluginCreateFailed {
         id: Id,
         #[source]
-        error: extism::Error,
+        error: Box<extism::Error>,
     },
 
     #[diagnostic(code(plugin::call_func::failed))]
@@ -84,7 +84,7 @@ pub enum WarpgateError {
         id: Id,
         func: String,
         #[source]
-        error: serde_json::Error,
+        error: Box<serde_json::Error>,
     },
 
     #[diagnostic(code(plugin::call_func::parse_output))]
@@ -97,7 +97,7 @@ pub enum WarpgateError {
         id: Id,
         func: String,
         #[source]
-        error: serde_json::Error,
+        error: Box<serde_json::Error>,
     },
 
     #[diagnostic(

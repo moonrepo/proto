@@ -25,7 +25,7 @@ use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
-use tracing::{debug, trace, warn};
+use tracing::{debug, instrument, trace, warn};
 use warpgate::{
     host_funcs::{create_host_functions, HostData},
     Id, PluginContainer, PluginLocator, PluginManifest, VirtualPath, Wasm,
@@ -106,7 +106,8 @@ impl Tool {
         Ok(tool)
     }
 
-    pub fn load<I: AsRef<Id>, P: AsRef<ProtoEnvironment>>(
+    #[instrument(name = "new_tool", skip(proto, wasm))]
+    pub fn load<I: AsRef<Id> + Debug, P: AsRef<ProtoEnvironment>>(
         id: I,
         proto: P,
         wasm: Wasm,
@@ -244,6 +245,7 @@ impl Tool {
     }
 
     /// Register the tool by loading initial metadata and persisting it.
+    #[instrument(skip_all)]
     pub fn register_tool(&mut self) -> miette::Result<()> {
         let metadata: ToolMetadataOutput = self.plugin.cache_func_with(
             "register_tool",
@@ -278,6 +280,7 @@ impl Tool {
     }
 
     /// Sync the local tool manifest with changes from the plugin.
+    #[instrument(skip_all)]
     pub fn sync_manifest(&mut self) -> miette::Result<()> {
         if !self.plugin.has_func("sync_manifest") {
             return Ok(());
@@ -330,6 +333,7 @@ impl Tool {
 impl Tool {
     /// Load available versions to install and return a resolver instance.
     /// To reduce network overhead, results will be cached for 24 hours.
+    #[instrument(skip(self))]
     pub async fn load_version_resolver(
         &self,
         initial_version: &UnresolvedVersionSpec,
@@ -382,6 +386,7 @@ impl Tool {
 
     /// Given an initial version, resolve it to a fully qualifed and semantic version
     /// (or alias) according to the tool's ecosystem.
+    #[instrument(skip(self))]
     pub async fn resolve_version(
         &mut self,
         initial_version: &UnresolvedVersionSpec,
@@ -446,6 +451,7 @@ impl Tool {
         Ok(())
     }
 
+    #[instrument(name = "candidate", skip(self, resolver))]
     pub fn resolve_version_candidate(
         &self,
         resolver: &VersionResolver<'_>,
@@ -498,6 +504,7 @@ impl Tool {
     }
 
     /// Attempt to detect an applicable version from the provided directory.
+    #[instrument(skip(self))]
     pub async fn detect_version_from(
         &self,
         current_dir: &Path,
@@ -553,7 +560,7 @@ impl Tool {
             } else {
                 UnresolvedVersionSpec::parse(&content).map_err(|error| ProtoError::Semver {
                     version: content,
-                    error,
+                    error: Box::new(error),
                 })?
             };
 
@@ -593,6 +600,7 @@ impl Tool {
 
     /// Verify the downloaded file using the checksum strategy for the tool.
     /// Common strategies are SHA256 and MD5.
+    #[instrument(skip(self))]
     pub async fn verify_checksum(
         &self,
         checksum_file: &Path,
@@ -640,6 +648,7 @@ impl Tool {
         .into())
     }
 
+    #[instrument(skip(self))]
     pub async fn build_from_source(&self, _install_dir: &Path) -> miette::Result<()> {
         debug!(
             tool = self.id.as_str(),
@@ -749,6 +758,7 @@ impl Tool {
 
     /// Download the tool (as an archive) from its distribution registry
     /// into the `~/.proto/tools/<version>` folder, and optionally verify checksums.
+    #[instrument(skip(self))]
     pub async fn install_from_prebuilt(&self, install_dir: &Path) -> miette::Result<()> {
         debug!(
             tool = self.id.as_str(),
@@ -855,6 +865,7 @@ impl Tool {
 
     /// Install a tool into proto, either by downloading and unpacking
     /// a pre-built archive, or by using a native installation method.
+    #[instrument(skip(self))]
     pub async fn install(&mut self, _build: bool) -> miette::Result<bool> {
         if self.is_installed() {
             debug!(
@@ -947,6 +958,7 @@ impl Tool {
     }
 
     /// Uninstall the tool by deleting the current install directory.
+    #[instrument(skip_all)]
     pub async fn uninstall(&self) -> miette::Result<bool> {
         let install_dir = self.get_product_dir();
 
@@ -1011,6 +1023,7 @@ impl Tool {
     /// - Locate the primary binary to execute.
     /// - Generate shims to `~/.proto/shims`.
     /// - Symlink bins to `~/.proto/bin`.
+    #[instrument(skip(self))]
     pub async fn create_executables(
         &mut self,
         force_shims: bool,
@@ -1126,6 +1139,7 @@ impl Tool {
     }
 
     /// Locate the primary executable from the tool directory.
+    #[instrument(skip_all)]
     pub async fn locate_executable(&mut self) -> miette::Result<()> {
         debug!(tool = self.id.as_str(), "Locating executable for tool");
 
@@ -1151,6 +1165,7 @@ impl Tool {
     }
 
     /// Locate the directory that global packages are installed to.
+    #[instrument(skip_all)]
     pub async fn locate_globals_dir(&mut self) -> miette::Result<()> {
         if !self.plugin.has_func("locate_executables") || self.globals_dir.is_some() {
             return Ok(());
@@ -1211,6 +1226,7 @@ impl Tool {
 
     /// Create shim files for the current tool if they are missing or out of date.
     /// If find only is enabled, will only check if they exist, and not create.
+    #[instrument(skip(self))]
     pub async fn generate_shims(&mut self, force: bool) -> miette::Result<()> {
         let shims = self.get_shim_locations()?;
 
@@ -1300,6 +1316,7 @@ impl Tool {
     }
 
     /// Symlink all primary and secondary binaries for the current tool.
+    #[instrument(skip(self))]
     pub async fn symlink_bins(&mut self, force: bool) -> miette::Result<()> {
         let bins = self.get_bin_locations()?;
 
@@ -1369,6 +1386,7 @@ impl Tool {
 
 impl Tool {
     /// Return true if the tool has been setup (installed and binaries are located).
+    #[instrument(skip(self))]
     pub async fn is_setup(
         &mut self,
         initial_version: &UnresolvedVersionSpec,
@@ -1404,6 +1422,7 @@ impl Tool {
 
     /// Setup the tool by resolving a semantic version, installing the tool,
     /// locating binaries, creating shims, and more.
+    #[instrument(skip(self))]
     pub async fn setup(
         &mut self,
         initial_version: &UnresolvedVersionSpec,
@@ -1450,6 +1469,7 @@ impl Tool {
 
     /// Teardown the tool by uninstalling the current version, removing the version
     /// from the manifest, and cleaning up temporary files. Return true if the teardown occurred.
+    #[instrument(skip_all)]
     pub async fn teardown(&mut self) -> miette::Result<bool> {
         self.cleanup().await?;
 
@@ -1497,6 +1517,7 @@ impl Tool {
     }
 
     /// Delete temporary files and downloads for the current version.
+    #[instrument(skip_all)]
     pub async fn cleanup(&mut self) -> miette::Result<()> {
         debug!(
             tool = self.id.as_str(),

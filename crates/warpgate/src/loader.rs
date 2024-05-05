@@ -11,10 +11,11 @@ use starbase_archive::is_supported_archive_extension;
 use starbase_styles::color;
 use starbase_utils::fs;
 use std::env;
+use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
-use tracing::trace;
+use tracing::{instrument, trace};
 use warpgate_api::{GitHubLocator, PluginLocator};
 
 pub type OfflineChecker = Arc<fn() -> bool>;
@@ -67,7 +68,8 @@ impl PluginLoader {
 
     /// Load a plugin using the provided locator. File system plugins are loaded directly,
     /// while remote/URL plugins are downloaded and cached.
-    pub async fn load_plugin<I: AsRef<Id>, L: AsRef<PluginLocator>>(
+    #[instrument(skip(self))]
+    pub async fn load_plugin<I: AsRef<Id> + Debug, L: AsRef<PluginLocator> + Debug>(
         &self,
         id: I,
         locator: L,
@@ -143,6 +145,7 @@ impl PluginLoader {
     /// Check if the plugin has been downloaded and is cached.
     /// If using a latest strategy (no explicit version or tag), the cache
     /// is only valid for 7 days (to ensure not stale), otherwise forever.
+    #[instrument(name = "is_plugin_cached", skip(self))]
     pub fn is_cached(&self, id: &Id, path: &Path) -> miette::Result<bool> {
         if !path.exists() {
             trace!(id = id.as_str(), "Plugin not cached, downloading");
@@ -204,6 +207,7 @@ impl PluginLoader {
         self.seed = Some(value.to_owned());
     }
 
+    #[instrument(skip(self))]
     async fn download_plugin(
         &self,
         id: &Id,
@@ -237,6 +241,7 @@ impl PluginLoader {
         Ok(dest_file)
     }
 
+    #[instrument(skip(self))]
     async fn download_plugin_from_github(
         &self,
         id: &Id,
@@ -276,7 +281,7 @@ impl PluginLoader {
         );
 
         let handle_error = |error: reqwest::Error| WarpgateError::Http {
-            error,
+            error: Box::new(error),
             url: api_url.clone(),
         };
 

@@ -2,7 +2,9 @@ use crate::error::WarpgateError;
 use starbase_archive::{is_supported_archive_extension, Archiver};
 use starbase_utils::{fs, glob, net, net::NetError};
 use std::collections::BTreeMap;
+use std::fmt::Debug;
 use std::path::{Path, PathBuf};
+use tracing::instrument;
 use warpgate_api::VirtualPath;
 
 pub fn determine_cache_extension(value: &str) -> &str {
@@ -30,6 +32,7 @@ pub async fn download_from_url_to_file(
     Ok(())
 }
 
+#[instrument]
 pub fn move_or_unpack_download(temp_file: &Path, dest_file: &Path) -> miette::Result<()> {
     // Archive supported file extensions
     if is_supported_archive_extension(temp_file) {
@@ -95,9 +98,10 @@ fn sort_virtual_paths(map: &BTreeMap<PathBuf, PathBuf>) -> Vec<(&PathBuf, &PathB
 }
 
 /// Convert the provided virtual guest path to an absolute host path.
+#[instrument]
 pub fn from_virtual_path(
     paths_map: &BTreeMap<PathBuf, PathBuf>,
-    path: impl AsRef<Path>,
+    path: impl AsRef<Path> + Debug,
 ) -> PathBuf {
     let path = path.as_ref();
 
@@ -118,9 +122,10 @@ pub fn from_virtual_path(
 
 /// Convert the provided absolute host path to a virtual guest path suitable
 /// for WASI sandboxed runtimes.
+#[instrument]
 pub fn to_virtual_path(
     paths_map: &BTreeMap<PathBuf, PathBuf>,
-    path: impl AsRef<Path>,
+    path: impl AsRef<Path> + Debug,
 ) -> VirtualPath {
     let path = path.as_ref();
 

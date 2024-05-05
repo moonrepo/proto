@@ -3,6 +3,7 @@ use crate::proto_config::*;
 use crate::tool::Tool;
 use std::env;
 use std::path::Path;
+use tracing::instrument;
 use tracing::{debug, trace};
 use version_spec::*;
 
@@ -10,6 +11,7 @@ fn set_detected_env_var(path: &Path) {
     env::set_var("PROTO_DETECTED_FROM", path);
 }
 
+#[instrument(name = "first_available", skip_all)]
 pub async fn detect_version_first_available(
     tool: &Tool,
     config_manager: &ProtoConfigManager,
@@ -49,6 +51,7 @@ pub async fn detect_version_first_available(
     Ok(None)
 }
 
+#[instrument(name = "only_prototools", skip_all)]
 pub async fn detect_version_only_prototools(
     tool: &Tool,
     config_manager: &ProtoConfigManager,
@@ -73,6 +76,7 @@ pub async fn detect_version_only_prototools(
     Ok(None)
 }
 
+#[instrument(name = "prefer_prototools", skip_all)]
 pub async fn detect_version_prefer_prototools(
     tool: &Tool,
     config_manager: &ProtoConfigManager,
@@ -103,6 +107,7 @@ pub async fn detect_version_prefer_prototools(
     Ok(None)
 }
 
+#[instrument(skip_all)]
 pub async fn detect_version(
     tool: &Tool,
     forced_version: Option<UnresolvedVersionSpec>,
@@ -133,7 +138,7 @@ pub async fn detect_version(
                 UnresolvedVersionSpec::parse(&session_version).map_err(|error| {
                     ProtoError::Semver {
                         version: session_version,
-                        error,
+                        error: Box::new(error),
                     }
                 })?,
             );
