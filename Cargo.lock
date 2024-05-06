@@ -2306,7 +2306,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.34.4"
+version = "0.35.0"
 dependencies = [
  "anyhow",
  "chrono",
