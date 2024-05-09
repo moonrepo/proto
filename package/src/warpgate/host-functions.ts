@@ -71,7 +71,7 @@ export function execCommand(input: ExecCommandInput): ExecCommandOutput {
     stream: false,
     working_dir: null,
     ...input,
-  } satisfies raw.ExecCommandInput);
+  } satisfies raw.ExecCommandInput as any); // TODO: remove `any` once upstream type is fixed
 
   const outputOffset = exec_command(inputMemory.offset);
   return Memory.find(outputOffset).readJsonObject();
@@ -88,7 +88,7 @@ export function hostLog(input: HostLogInput): void {
     target: "tracing",
     data: {},
     ...input,
-  } satisfies raw.HostLogInput);
+  } satisfies raw.HostLogInput as any); // TODO: remove `any` once upstream type is fixed
 
   host_log(inputMemory.offset);
 }

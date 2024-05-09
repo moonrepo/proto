@@ -13,7 +13,7 @@
     // impact on the final wasm size.
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "lib": ["ES2020"],
+    "lib": [],
     "types": [],
     "esModuleInterop": true,
 

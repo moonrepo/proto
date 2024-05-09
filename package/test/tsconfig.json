@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "outDir": "lib",
-    "lib": ["ES2020"],
+    "lib": [],
     "types": ["@moonrepo/proto-pdk"],
 
     // Strictness

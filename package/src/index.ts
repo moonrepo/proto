@@ -1,5 +1,4 @@
-/// <reference path="runtime/extism.d.ts" />
-/// <reference path="runtime/imports.d.ts" />
+/// <reference types="@extism/js-pdk" />
 /// <reference types="@types/node/path" />
 
 import "./internal/patch-console";

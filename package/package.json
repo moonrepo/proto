@@ -9,6 +9,7 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@extism/js-pdk": "^1.0.1",
     "pathe": "^1.1.2",
     "semver": "^7.6.0"
   },
