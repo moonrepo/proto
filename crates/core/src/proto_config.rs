@@ -195,7 +195,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("go"),
                 PluginLocator::SourceUrl {
-                    url: "https://github.com/moonrepo/go-plugin/releases/download/v0.11.0/go_plugin.wasm".into()
+                    url: "https://github.com/moonrepo/go-plugin/releases/download/v0.11.1/go_plugin.wasm".into()
                 }
             );
         }

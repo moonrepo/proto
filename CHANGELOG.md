@@ -10,6 +10,14 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🧩 Plugins
+
+- Updated `go_plugin` to v0.11.1.
+  - Added `gofmt` as a secondary shim/binary.
+  - Updated `go.mod` version parsing to use better ranges.
+
 ## 0.35.0
 
 #### 🚀 Updates
