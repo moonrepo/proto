@@ -4,8 +4,8 @@ members = ["crates/*"]
 default-members = ["crates/cli"]
 
 [workspace.dependencies]
-anyhow = "1.0.82"
-cached = "0.51.0"
+anyhow = "1.0.83"
+cached = "0.51.3"
 clap = "4.5.4"
 clap_complete = "4.5.2"
 convert_case = "0.6.0"
@@ -25,9 +25,9 @@ reqwest = { version = "0.12.4", default-features = false, features = [
 ] }
 rustc-hash = "1.1.0"
 schematic = { version = "0.15.2", default-features = false }
-semver = "1.0.22"
-serde = { version = "1.0.200", features = ["derive"] }
-serde_json = "1.0.116"
+semver = "1.0.23"
+serde = { version = "1.0.201", features = ["derive"] }
+serde_json = "1.0.117"
 sha2 = "0.10.8"
 shell-words = "1.1.0"
 starbase = { version = "0.6.0" }
@@ -50,7 +50,7 @@ starbase_utils = { version = "0.7.0", default-features = false, features = [
     "net",
     "toml",
 ] }
-thiserror = "1.0.59"
+thiserror = "1.0.60"
 tokio = { version = "1.37.0", features = ["full", "tracing"] }
 tracing = "0.1.40"
 uuid = { version = "1.8.0", features = ["v4"] }
