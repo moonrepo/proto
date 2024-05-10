@@ -4,6 +4,6 @@ expression: "vec![fs::read_to_string(sandbox.path().join(\".proto/.prototools\")
 ---
 [
     "go = \"1.19.13\"\n",
-    "node = \"20.12.2\"\n",
+    "node = \"20.13.1\"\n",
     "npm = \"9.9.3\"\n",
 ]
