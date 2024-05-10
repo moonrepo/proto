@@ -1,8 +1,10 @@
 {
   "compilerOptions": {
-    "outDir": "lib",
     "lib": [],
     "types": ["@moonrepo/proto-pdk"],
+    "module": "Preserve",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
 
     // Strictness
     "strict": true,

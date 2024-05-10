@@ -4,7 +4,8 @@
   "scripts": {
     "build": "npm run build:js && npm run build:wasm",
     "build:js": "node esbuild.mjs",
-    "build:wasm": "extism-js dist/index.js -i src/index.d.ts -o dist/plugin.wasm"
+    "build:wasm": "extism-js dist/index.js -i src/index.d.ts -o dist/plugin.wasm",
+    "lint": "tsc --noEmit"
   },
   "dependencies": {
     "@moonrepo/proto-pdk": ".."

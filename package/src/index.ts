@@ -1,5 +1,5 @@
-/// <reference types="@extism/js-pdk" />
-/// <reference types="@types/node/path" />
+/// <reference types="@extism/js-pdk" preserve="true" />
+/// <reference types="@types/node/path" preserve="true" />
 
 import "./internal/patch-console";
 

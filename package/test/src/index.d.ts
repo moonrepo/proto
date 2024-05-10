@@ -1,5 +1,3 @@
-/// <reference types="@moonrepo/proto-pdk" />
-
 declare module "main" {
   export function detect_version_files(): I32;
   export function download_prebuilt(): I32;

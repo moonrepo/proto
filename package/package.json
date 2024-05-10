@@ -6,7 +6,8 @@
   "types": "./lib/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "test": "vitest"
+    "test": "vitest",
+    "lint": "tsc --noEmit && tsc -p tsconfig.test.json --noEmit"
   },
   "dependencies": {
     "@extism/js-pdk": "^1.0.1",
@@ -17,8 +18,9 @@
     "type-fest": "^4.15.0",
     "urlpattern-polyfill": "^8.0.2"
   },
+  "//": "typescript 5.5 beta is used as we rely on the new preserve attribute for triple-slash directives",
   "devDependencies": {
-    "typescript": "^5.4.4",
+    "typescript": "^5.5.0-beta",
     "vitest": "^1.5.0"
   },
   "exports": {
