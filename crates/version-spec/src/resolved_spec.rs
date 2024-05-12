@@ -66,8 +66,13 @@ impl VersionSpec {
 
 #[cfg(feature = "schematic")]
 impl schematic::Schematic for VersionSpec {
-    fn generate_schema() -> schematic::SchemaType {
-        schematic::SchemaType::string()
+    fn schema_name() -> Option<String> {
+        Some("VersionSpec".into())
+    }
+
+    fn build_schema(mut schema: schematic::SchemaBuilder) -> schematic::Schema {
+        schema.string(Default::default());
+        schema.build()
     }
 }
 

@@ -2,8 +2,8 @@ use indexmap::IndexMap;
 use once_cell::sync::OnceCell;
 use rustc_hash::FxHashMap;
 use schematic::{
-    derive_enum, env, merge, Config, ConfigEnum, ConfigError, ConfigLoader, Format, PartialConfig,
-    ValidateError, ValidateErrorType, ValidatorError,
+    derive_enum, env, merge, Config, ConfigEnum, ConfigError, ConfigLoader, Format, HandlerError,
+    MergeResult, PartialConfig, ValidateError, ValidateErrorType, ValidatorError,
 };
 use serde::Serialize;
 use starbase_styles::color;
@@ -26,9 +26,12 @@ fn merge_tools(
     mut prev: BTreeMap<Id, PartialProtoToolConfig>,
     next: BTreeMap<Id, PartialProtoToolConfig>,
     context: &(),
-) -> Result<Option<BTreeMap<Id, PartialProtoToolConfig>>, ConfigError> {
+) -> MergeResult<BTreeMap<Id, PartialProtoToolConfig>> {
     for (key, value) in next {
-        prev.entry(key).or_default().merge(context, value)?;
+        prev.entry(key)
+            .or_default()
+            .merge(context, value)
+            .map_err(HandlerError::new)?;
     }
 
     Ok(Some(prev))
@@ -38,7 +41,7 @@ fn merge_fxhashmap<K, V, C>(
     mut prev: FxHashMap<K, V>,
     next: FxHashMap<K, V>,
     _context: &C,
-) -> Result<Option<FxHashMap<K, V>>, ConfigError>
+) -> MergeResult<FxHashMap<K, V>>
 where
     K: Eq + Hash,
 {
@@ -53,7 +56,7 @@ fn merge_indexmap<K, V>(
     mut prev: IndexMap<K, V>,
     next: IndexMap<K, V>,
     _context: &(),
-) -> Result<Option<IndexMap<K, V>>, ConfigError>
+) -> MergeResult<IndexMap<K, V>>
 where
     K: Eq + Hash,
 {
@@ -292,7 +295,7 @@ impl ProtoConfig {
             .validate(&(), true)
             .map_err(|error| ConfigError::Validator {
                 config: config_path.to_string(),
-                error,
+                error: Box::new(error),
                 help: Some(color::muted_light("https://moonrepo.dev/docs/proto/config")),
             })?;
 
@@ -332,7 +335,7 @@ impl ProtoConfig {
             if !error.errors.is_empty() {
                 return Err(ConfigError::Validator {
                     config: config_path.to_string(),
-                    error,
+                    error: Box::new(error),
                     help: Some(color::muted_light("https://moonrepo.dev/docs/proto/config")),
                 }
                 .into());
