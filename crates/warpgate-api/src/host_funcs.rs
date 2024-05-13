@@ -5,11 +5,13 @@ use rustc_hash::FxHashMap;
 api_enum!(
     /// Target where host logs should be written to.
     #[derive(Default)]
-    #[serde(rename_all = "lowercase")]
     pub enum HostLogTarget {
+        #[serde(rename = "stderr")]
         Stderr,
+        #[serde(rename = "stdout")]
         Stdout,
         #[default]
+        #[serde(rename = "tracing")]
         Tracing,
     }
 );

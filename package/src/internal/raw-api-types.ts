@@ -5,15 +5,15 @@
 /** Information about the current state of the tool. */
 export interface ToolContext {
 	/** The version of proto (the core crate) calling plugin functions. */
-	protoVersion: string | null;
+	proto_version: string | null;
 	/** Virtual path to the tool's installation directory. */
-	toolDir: string;
+	tool_dir: string;
 	/** Current version. Will be a "latest" alias if not resolved. */
 	version: string;
 }
 
 /** Supported types of plugins. */
-export type PluginType = 'language' | 'dependency-manager' | 'cli';
+export type PluginType = 'Language' | 'DependencyManager' | 'CLI';
 
 /** Input passed to the `register_tool` function. */
 export interface ToolMetadataInput {
@@ -24,31 +24,31 @@ export interface ToolMetadataInput {
 /** Controls aspects of the tool inventory. */
 export interface ToolInventoryMetadata {
 	/** Disable progress bars when installing or uninstalling tools. */
-	disableProgressBars: boolean;
+	disable_progress_bars: boolean;
 	/**
 	 * Override the tool inventory directory (where all versions are installed).
 	 * This is an advanced feature and should only be used when absolutely necessary.
 	 */
-	overrideDir: string | null;
+	override_dir: string | null;
 	/** Suffix to append to all versions when labeling directories. */
-	versionSuffix: string | null;
+	version_suffix: string | null;
 }
 
 /** Output returned by the `register_tool` function. */
 export interface ToolMetadataOutput {
 	/** Default alias or version to use as a fallback. */
-	defaultVersion: string | null;
+	default_version: string | null;
 	/** Controls aspects of the tool inventory. */
 	inventory: ToolInventoryMetadata;
 	/** Human readable name of the tool. */
 	name: string;
 	/** Version of the plugin. */
-	pluginVersion: string | null;
+	plugin_version: string | null;
 	/**
 	 * Names of commands that will self-upgrade the tool,
 	 * and should be blocked from happening.
 	 */
-	selfUpgradeCommands: string[];
+	self_upgrade_commands: string[];
 	/** Type of the tool. */
 	type: PluginType;
 }
@@ -83,7 +83,7 @@ export interface NativeInstallInput {
 	/** Current tool context. */
 	context: ToolContext;
 	/** Virtual directory to install to. */
-	installDir: string;
+	install_dir: string;
 }
 
 /** Output returned by the `native_install` function. */
@@ -93,7 +93,7 @@ export interface NativeInstallOutput {
 	/** Whether the install was successful. */
 	installed: boolean;
 	/** Whether to skip the install process or not. */
-	skipInstall: boolean;
+	skip_install: boolean;
 }
 
 /** Input passed to the `native_uninstall` function. */
@@ -107,7 +107,7 @@ export interface NativeUninstallOutput {
 	/** Error message if the uninstall failed. */
 	error: string | null;
 	/** Whether to skip the uninstall process or not. */
-	skipUninstall: boolean;
+	skip_uninstall: boolean;
 	/** Whether the install was successful. */
 	uninstalled: boolean;
 }
@@ -117,7 +117,7 @@ export interface DownloadPrebuiltInput {
 	/** Current tool context. */
 	context: ToolContext;
 	/** Virtual directory to install to. */
-	installDir: string;
+	install_dir: string;
 }
 
 /** Output returned by the `download_prebuilt` function. */
@@ -126,26 +126,26 @@ export interface DownloadPrebuiltOutput {
 	 * Name of the direct folder within the archive that contains the tool,
 	 * and will be removed when unpacking the archive.
 	 */
-	archivePrefix: string | null;
+	archive_prefix: string | null;
 	/**
 	 * File name of the checksum to download. If not provided,
 	 * will attempt to extract it from the URL.
 	 */
-	checksumName: string | null;
+	checksum_name: string | null;
 	/** Public key to use for checksum verification. */
-	checksumPublicKey: string | null;
+	checksum_public_key: string | null;
 	/**
 	 * A secure URL to download the checksum file for verification.
 	 * If the tool does not support checksum verification, this setting can be omitted.
 	 */
-	checksumUrl: string | null;
+	checksum_url: string | null;
 	/**
 	 * File name of the archive to download. If not provided,
 	 * will attempt to extract it from the URL.
 	 */
-	downloadName: string | null;
+	download_name: string | null;
 	/** A secure URL to download the tool/archive. */
-	downloadUrl: string;
+	download_url: string;
 }
 
 /** Input passed to the `unpack_archive` function. */
@@ -153,19 +153,19 @@ export interface UnpackArchiveInput {
 	/** Current tool context. */
 	context: ToolContext;
 	/** Virtual path to the downloaded file. */
-	inputFile: string;
+	input_file: string;
 	/** Virtual directory to unpack the archive into, or copy the binary to. */
-	outputDir: string;
+	output_dir: string;
 }
 
 /** Output returned by the `verify_checksum` function. */
 export interface VerifyChecksumInput {
 	/** Virtual path to the checksum file. */
-	checksumFile: string;
+	checksum_file: string;
 	/** Current tool context. */
 	context: ToolContext;
 	/** Virtual path to the downloaded file. */
-	downloadFile: string;
+	download_file: string;
 }
 
 /** Output returned by the `verify_checksum` function. */
@@ -187,7 +187,7 @@ export interface ExecutableConfig {
 	 * The executable path to use for symlinking binaries instead of `exe_path`.
 	 * This should only be used when `exe_path` is a non-standard executable.
 	 */
-	exeLinkPath: string | null;
+	exe_link_path: string | null;
 	/**
 	 * The file to execute, relative from the tool directory.
 	 * Does *not* support virtual paths.
@@ -199,19 +199,19 @@ export interface ExecutableConfig {
 	 * - For primary shim, this field is ignored.
 	 * - For secondary shims, the file to execute.
 	 */
-	exePath: string | null;
+	exe_path: string | null;
 	/** Do not symlink a binary in `~/.proto/bin`. */
-	noBin: boolean;
+	no_bin: boolean;
 	/** Do not generate a shim in `~/.proto/shims`. */
-	noShim: boolean;
+	no_shim: boolean;
 	/** The parent executable name required to execute the local executable path. */
-	parentExeName: string | null;
+	parent_exe_name: string | null;
 	/** Custom args to append to user-provided args within the generated shim. */
-	shimAfterArgs: StringOrVec | null;
+	shim_after_args: StringOrVec | null;
 	/** Custom args to prepend to user-provided args within the generated shim. */
-	shimBeforeArgs: StringOrVec | null;
+	shim_before_args: StringOrVec | null;
 	/** Custom environment variables to set when executing the shim. */
-	shimEnvVars: Record<string, string> | null;
+	shim_env_vars: Record<string, string> | null;
 }
 
 /** Output returned by the `locate_executables` function. */
@@ -220,12 +220,12 @@ export interface LocateExecutablesOutput {
 	 * List of directory paths to find the globals installation directory.
 	 * Each path supports environment variable expansion.
 	 */
-	globalsLookupDirs: string[];
+	globals_lookup_dirs: string[];
 	/**
 	 * A string that all global binaries are prefixed with, and will be removed
 	 * when listing and filtering available globals.
 	 */
-	globalsPrefix: string | null;
+	globals_prefix: string | null;
 	/**
 	 * Configures the primary/default executable to create.
 	 * If not provided, a primary shim and binary will *not* be created.
@@ -282,7 +282,7 @@ export interface SyncManifestInput {
 /** Output returned by the `sync_manifest` function. */
 export interface SyncManifestOutput {
 	/** Whether to skip the syncing process or not. */
-	skipSync: boolean;
+	skip_sync: boolean;
 	/**
 	 * List of versions that are currently installed. Will replace
 	 * what is currently in the manifest.
@@ -295,7 +295,7 @@ export interface SyncShellProfileInput {
 	/** Current tool context. */
 	context: ToolContext;
 	/** Arguments passed after `--` that was directly passed to the tool's binary. */
-	passthroughArgs: string[];
+	passthrough_args: string[];
 }
 
 /** Output returned by the `sync_shell_profile` function. */
@@ -304,13 +304,13 @@ export interface SyncShellProfileOutput {
 	 * An environment variable to check for in the shell profile.
 	 * If the variable exists, injecting path and exports will be avoided.
 	 */
-	checkVar: string;
+	check_var: string;
 	/** A mapping of environment variables that will be injected as exports. */
-	exportVars: Record<string, string> | null;
+	export_vars: Record<string, string> | null;
 	/** A list of paths to prepend to the `PATH` environment variable. */
-	extendPath: string[] | null;
+	extend_path: string[] | null;
 	/** Whether to skip the syncing process or not. */
-	skipSync: boolean;
+	skip_sync: boolean;
 }
 
 /**
@@ -321,7 +321,7 @@ export interface InstallHook {
 	/** Current tool context. */
 	context: ToolContext;
 	/** Arguments passed after `--` that was directly passed to the tool's binary. */
-	passthroughArgs: string[];
+	passthrough_args: string[];
 	/** Whether the resolved version was pinned */
 	pinned: boolean;
 }
@@ -334,11 +334,11 @@ export interface RunHook {
 	/** Current tool context. */
 	context: ToolContext;
 	/** Path to the global packages directory for the tool, if found. */
-	globalsDir: string | null;
+	globals_dir: string | null;
 	/** A prefix applied to the file names of globally installed packages. */
-	globalsPrefix: string | null;
+	globals_prefix: string | null;
 	/** Arguments passed after `--` that was directly passed to the tool's binary. */
-	passthroughArgs: string[];
+	passthrough_args: string[];
 }
 
 /** Output returned from the `pre_run` hook. */
@@ -512,17 +512,17 @@ export interface ExecCommandInput {
 	/** Environment variables to pass to the command. */
 	env: Record<string, string>;
 	/** Mark the command as executable before executing. */
-	setExecutable: boolean;
+	set_executable: boolean;
 	/** Stream the output instead of capturing it. */
 	stream: boolean;
 	/** Override the current working directory. */
-	workingDir: string | null;
+	working_dir: string | null;
 }
 
 /** Output returned from the `exec_command` host function. */
 export interface ExecCommandOutput {
 	command: string;
-	exitCode: number;
+	exit_code: number;
 	stderr: string;
 	stdout: string;
 }
@@ -530,7 +530,7 @@ export interface ExecCommandOutput {
 /** Information about the host environment (the current runtime). */
 export interface HostEnvironment {
 	arch: SystemArch;
-	homeDir: string;
+	home_dir: string;
 	libc: SystemLibc;
 	os: SystemOS;
 }

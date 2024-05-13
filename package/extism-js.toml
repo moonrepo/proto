@@ -1,0 +1,24 @@
+name = "extism-js"
+type = "cli"
+
+[resolve]
+git-url = "https://github.com/extism/js-pdk"
+
+[platform.linux]
+archs = ["x86_64", "aarch64"]
+download-file = "extism-js-{arch}-linux-v{version}.gz"
+checksum-file = "extism-js-{arch}-linux-v{version}.gz.sha256"
+bin-path = "extism-js-{arch}-linux-v{version}"
+
+[platform.macos]
+archs = ["x86_64", "aarch64"]
+download-file = "extism-js-{arch}-macos-v{version}.gz"
+checksum-file = "extism-js-{arch}-macos-v{version}.gz.sha256"
+bin-path = "extism-js-{arch}-macos-v{version}"
+
+[platform.windows]
+archs = []
+
+[install]
+download-url = "https://github.com/extism/js-pdk/releases/download/v{version}/{download_file}"
+checksum-url = "https://github.com/extism/js-pdk/releases/download/v{version}/{checksum_file}"

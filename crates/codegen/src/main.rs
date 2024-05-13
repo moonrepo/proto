@@ -68,7 +68,7 @@ fn main() {
 
     generator
         .generate(
-            PathBuf::from("package/src/api-types.ts"),
+            PathBuf::from("package/src/internal/raw-api-types.ts"),
             TypeScriptRenderer::default(),
         )
         .unwrap();

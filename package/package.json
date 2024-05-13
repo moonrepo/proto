@@ -1,3 +1,36 @@
 {
-  "name": "@moonrepo/proto-pdk"
+  "name": "@moonrepo/proto-pdk",
+  "description": "A plugin development kit for creating proto WASM plugins.",
+  "type": "module",
+  "module": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest",
+    "lint": "tsc --noEmit && tsc -p tsconfig.test.json --noEmit"
+  },
+  "dependencies": {
+    "@extism/js-pdk": "^1.0.1",
+    "@types/node": "^20.12.7",
+    "@types/semver": "^7.5.8",
+    "pathe": "^1.1.2",
+    "semver": "^7.6.0",
+    "type-fest": "^4.15.0",
+    "urlpattern-polyfill": "^8.0.2"
+  },
+  "//": "typescript 5.5 beta is used as we rely on the new preserve attribute for triple-slash directives",
+  "devDependencies": {
+    "typescript": "^5.5.0-beta",
+    "vitest": "^1.5.0"
+  },
+  "exports": {
+    ".": {
+      "default": "./lib/index.js",
+      "types": "./lib/index.d.ts"
+    }
+  },
+  "engines": {
+    "node": "20.12.1"
+  },
+  "packageManager": "npm@10.5.1"
 }

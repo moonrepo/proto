@@ -16,6 +16,7 @@ macro_rules! api_struct {
         #[derive(Clone, Debug, Default, serde::Deserialize, PartialEq, serde::Serialize)]
         #[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
         #[serde(default)]
+        #[serde(rename_all = "snake_case")]
         $struct
     };
 }
@@ -26,6 +27,7 @@ macro_rules! api_enum {
     ($struct:item) => {
         #[derive(Clone, Debug, serde::Deserialize, PartialEq, serde::Serialize)]
         #[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
+        #[serde(rename_all = "PascalCase")]
         $struct
     };
 }

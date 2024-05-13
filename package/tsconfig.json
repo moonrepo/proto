@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "noEmitOnError": true,
+    "declaration": true,
+    "outDir": "lib",
+    "target": "es2020",
+
+    // extism-js only supports cjs currently, but plugin developers will use a
+    // bundler (e.g. esbuild as recommended). So for better tree-shaking support
+    // we build a ES module instead and leave the conversion to CJS to the bundler.
+    //
+    // There's unfortunately more to it though, as this alone didn't have any apparent
+    // impact on the final wasm size.
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": [],
+    "types": [],
+    "esModuleInterop": true,
+
+    // Strictness
+    "strict": true,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+    "exactOptionalPropertyTypes": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["src/**/*.test.ts"]
+}

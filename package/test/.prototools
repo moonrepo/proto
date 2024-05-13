@@ -1,0 +1,9 @@
+[plugins]
+wasm-test = "source:./dist/plugin.wasm"
+
+# [tools.wasm-test]
+# number = 123
+# string = "foo"
+# boolean = true
+# list = ["a", "b", "c"]
+# map = { "a" = 123 }
