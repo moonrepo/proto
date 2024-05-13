@@ -2292,10 +2292,8 @@ dependencies = [
  "clap",
  "clap_complete",
  "comfy-table",
- "convert_case",
  "dialoguer",
  "dirs 5.0.1",
- "human-sort",
  "indexmap 2.2.6",
  "indicatif",
  "miette",
@@ -2312,7 +2310,6 @@ dependencies = [
  "shared_child",
  "sigpipe",
  "starbase",
- "starbase_archive",
  "starbase_sandbox",
  "starbase_shell",
  "starbase_styles",
@@ -2321,7 +2318,6 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
- "uuid",
  "winreg",
 ]
 
@@ -2338,7 +2334,6 @@ name = "proto_core"
 version = "0.35.2"
 dependencies = [
  "cached",
- "human-sort",
  "indexmap 2.2.6",
  "miette",
  "minisign-verify",
@@ -2359,7 +2354,6 @@ dependencies = [
  "starbase_sandbox",
  "starbase_styles",
  "starbase_utils",
- "system_env",
  "thiserror",
  "tokio",
  "tracing",
@@ -2415,7 +2409,6 @@ dependencies = [
 name = "proto_pdk_test_utils"
 version = "0.22.0"
 dependencies = [
- "extism",
  "proto_core",
  "proto_pdk_api",
  "serde",
@@ -3858,7 +3851,6 @@ dependencies = [
  "once_map",
  "regex",
  "reqwest",
- "rustc-hash",
  "schematic",
  "serde",
  "serde_json",

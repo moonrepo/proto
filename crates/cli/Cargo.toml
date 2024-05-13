@@ -42,10 +42,8 @@ chrono = "0.4.38"
 clap = { workspace = true, features = ["derive", "env"] }
 clap_complete = { workspace = true }
 comfy-table = "7.1.1"
-convert_case = { workspace = true }
 dialoguer = "0.11.0"
 dirs = { workspace = true }
-human-sort = { workspace = true }
 indexmap = { workspace = true }
 indicatif = "0.17.8"
 miette = { workspace = true }
@@ -55,14 +53,12 @@ rustc-hash = { workspace = true }
 semver = { workspace = true }
 serde = { workspace = true }
 starbase = { workspace = true }
-starbase_archive = { workspace = true }
 starbase_shell = { workspace = true }
 starbase_styles = { workspace = true }
 starbase_utils = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
-uuid = { version = "1.8.0", features = ["v4"] }
 
 # For the shim binary
 rust_json = "0.1.5"
