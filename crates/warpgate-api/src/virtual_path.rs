@@ -70,8 +70,12 @@ impl VirtualPath {
 
 #[cfg(feature = "schematic")]
 impl schematic::Schematic for VirtualPath {
-    fn generate_schema() -> schematic::SchemaType {
-        schematic::SchemaType::String(schematic::schema::StringType {
+    fn schema_name() -> Option<String> {
+        Some("VirtualPath".into())
+    }
+
+    fn build_schema(mut schema: schematic::SchemaBuilder) -> schematic::Schema {
+        schema.string(schematic::schema::StringType {
             format: Some("path".into()),
             ..Default::default()
         })

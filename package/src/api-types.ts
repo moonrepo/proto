@@ -2,14 +2,18 @@
 
 /* eslint-disable */
 
+export type VirtualPath = string;
+
+export type VersionSpec = string;
+
 /** Information about the current state of the tool. */
 export interface ToolContext {
 	/** The version of proto (the core crate) calling plugin functions. */
 	protoVersion: string | null;
 	/** Virtual path to the tool's installation directory. */
-	toolDir: string;
+	toolDir: VirtualPath;
 	/** Current version. Will be a "latest" alias if not resolved. */
-	version: string;
+	version: VersionSpec;
 }
 
 /** Supported types of plugins. */
@@ -29,15 +33,17 @@ export interface ToolInventoryMetadata {
 	 * Override the tool inventory directory (where all versions are installed).
 	 * This is an advanced feature and should only be used when absolutely necessary.
 	 */
-	overrideDir: string | null;
+	overrideDir: VirtualPath | null;
 	/** Suffix to append to all versions when labeling directories. */
 	versionSuffix: string | null;
 }
 
+export type UnresolvedVersionSpec = string;
+
 /** Output returned by the `register_tool` function. */
 export interface ToolMetadataOutput {
 	/** Default alias or version to use as a fallback. */
-	defaultVersion: string | null;
+	defaultVersion: UnresolvedVersionSpec | null;
 	/** Controls aspects of the tool inventory. */
 	inventory: ToolInventoryMetadata;
 	/** Human readable name of the tool. */
@@ -75,7 +81,7 @@ export interface ParseVersionFileOutput {
 	 * The version that was extracted from the file.
 	 * Can be a semantic version or a version requirement/range.
 	 */
-	version: string | null;
+	version: UnresolvedVersionSpec | null;
 }
 
 /** Input passed to the `native_install` function. */
@@ -83,7 +89,7 @@ export interface NativeInstallInput {
 	/** Current tool context. */
 	context: ToolContext;
 	/** Virtual directory to install to. */
-	installDir: string;
+	installDir: VirtualPath;
 }
 
 /** Output returned by the `native_install` function. */
@@ -117,7 +123,7 @@ export interface DownloadPrebuiltInput {
 	/** Current tool context. */
 	context: ToolContext;
 	/** Virtual directory to install to. */
-	installDir: string;
+	installDir: VirtualPath;
 }
 
 /** Output returned by the `download_prebuilt` function. */
@@ -153,19 +159,19 @@ export interface UnpackArchiveInput {
 	/** Current tool context. */
 	context: ToolContext;
 	/** Virtual path to the downloaded file. */
-	inputFile: string;
+	inputFile: VirtualPath;
 	/** Virtual directory to unpack the archive into, or copy the binary to. */
-	outputDir: string;
+	outputDir: VirtualPath;
 }
 
 /** Output returned by the `verify_checksum` function. */
 export interface VerifyChecksumInput {
 	/** Virtual path to the checksum file. */
-	checksumFile: string;
+	checksumFile: VirtualPath;
 	/** Current tool context. */
 	context: ToolContext;
 	/** Virtual path to the downloaded file. */
-	downloadFile: string;
+	downloadFile: VirtualPath;
 }
 
 /** Output returned by the `verify_checksum` function. */
@@ -241,7 +247,7 @@ export interface LocateExecutablesOutput {
 /** Input passed to the `load_versions` function. */
 export interface LoadVersionsInput {
 	/** The alias or version currently being resolved. */
-	initial: string;
+	initial: UnresolvedVersionSpec;
 }
 
 /** Output returned by the `load_versions` function. */
@@ -259,18 +265,18 @@ export interface LoadVersionsOutput {
 /** Input passed to the `resolve_version` function. */
 export interface ResolveVersionInput {
 	/** The alias or version currently being resolved. */
-	initial: string;
+	initial: UnresolvedVersionSpec;
 }
 
 /** Output returned by the `resolve_version` function. */
 export interface ResolveVersionOutput {
 	/** New alias or version candidate to resolve. */
-	candidate: string | null;
+	candidate: UnresolvedVersionSpec | null;
 	/**
 	 * An explicitly resolved version to be used as-is.
 	 * Note: Only use this field if you know what you're doing!
 	 */
-	version: string | null;
+	version: VersionSpec | null;
 }
 
 /** Input passed to the `sync_manifest` function. */
@@ -334,7 +340,7 @@ export interface RunHook {
 	/** Current tool context. */
 	context: ToolContext;
 	/** Path to the global packages directory for the tool, if found. */
-	globalsDir: string | null;
+	globalsDir: VirtualPath | null;
 	/** A prefix applied to the file names of globally installed packages. */
 	globalsPrefix: string | null;
 	/** Arguments passed after `--` that was directly passed to the tool's binary. */
@@ -380,62 +386,60 @@ export interface GitSource {
 
 export type SourceLocation = ArchiveSource | GitSource;
 
-/** A command and its parameters to be executed as a child process. */
-export interface CommandInstruction {
-	/** List of arguments. */
-	args: string[];
-	/** The binary on `PATH`. */
-	bin: string;
-	/** The working directory. */
-	cwd: string | null;
-	/** Map of environment variables. */
-	env: Record<string, string>;
-}
-
 export type BuildInstruction = {
+	instruction: string;
 	type: 'make-executable';
-	instruction: string;
 } | {
-	type: 'move-file';
 	instruction: [string, string];
+	type: 'move-file';
 } | {
+	instruction: string;
 	type: 'remove-dir';
-	instruction: string;
 } | {
+	instruction: string;
 	type: 'remove-file';
-	instruction: string;
 } | {
+	instruction: string;
 	type: 'request-script';
-	instruction: string;
 } | {
+	/** A command and its parameters to be executed as a child process. */
+	instruction: {
+		/** List of arguments. */
+		args: string[];
+		/** The binary on `PATH`. */
+		bin: string;
+		/** The working directory. */
+		cwd: string | null;
+		/** Map of environment variables. */
+		env: Record<string, string>;
+	};
 	type: 'run-command';
-	instruction: CommandInstruction;
 };
 
 export type BuildRequirement = {
+	requirement: string;
 	type: 'command-exists-on-path';
-	requirement: string;
 } | {
+	requirement: string;
 	type: 'manual-intercept';
-	requirement: string;
 } | {
-	type: 'git-config-setting';
 	requirement: [string, string];
+	type: 'git-config-setting';
 } | {
+	requirement: string;
 	type: 'git-version';
-	requirement: string;
 } | {
+	requirement: string;
 	type: 'python-version';
-	requirement: string;
 } | {
+	requirement: string;
 	type: 'ruby-version';
-	requirement: string;
 } | {
-	type: 'xcode-command-line-tools';
 	requirement: 'xcode-command-line-tools';
+	type: 'xcode-command-line-tools';
 } | {
-	type: 'windows-developer-mode';
 	requirement: 'windows-developer-mode';
+	type: 'windows-developer-mode';
 };
 
 /** Architecture of the system environment. */
@@ -449,8 +453,7 @@ export type SystemPackageManager = 'pkg' | 'pkgin' | 'apk' | 'apt' | 'dnf' | 'pa
 /** Operating system of the current environment. */
 export type SystemOS = 'android' | 'dragonfly' | 'freebsd' | 'ios' | 'linux' | 'macos' | 'netbsd' | 'openbsd' | 'solaris' | 'windows';
 
-/** Configuration for one or many system dependencies (packages). */
-export interface DependencyConfig {
+export type SystemDependency = string | string[] | {
 	/** Only install on this architecture. */
 	arch: SystemArch | null;
 	/** The dependency name or name(s) to install. */
@@ -463,9 +466,7 @@ export interface DependencyConfig {
 	sudo: boolean;
 	/** The version to install. */
 	version: string | null;
-}
-
-export type SystemDependency = string | string[] | DependencyConfig | Record<string, string>;
+} | Record<string, string>;
 
 /** Output returned by the `build_instructions` function. */
 export interface BuildInstructionsOutput {
@@ -500,6 +501,7 @@ export type HostLogTarget = 'stderr' | 'stdout' | 'tracing';
 export interface HostLogInput {
 	data: Record<string, unknown>;
 	message: string;
+	/** Target where host logs should be written to. */
 	target: HostLogTarget;
 }
 
@@ -516,7 +518,7 @@ export interface ExecCommandInput {
 	/** Stream the output instead of capturing it. */
 	stream: boolean;
 	/** Override the current working directory. */
-	workingDir: string | null;
+	workingDir: VirtualPath | null;
 }
 
 /** Output returned from the `exec_command` host function. */
@@ -529,9 +531,12 @@ export interface ExecCommandOutput {
 
 /** Information about the host environment (the current runtime). */
 export interface HostEnvironment {
+	/** Architecture of the system environment. */
 	arch: SystemArch;
-	homeDir: string;
+	homeDir: VirtualPath;
+	/** Libc being used in the system environment. */
 	libc: SystemLibc;
+	/** Operating system of the current environment. */
 	os: SystemOS;
 }
 
@@ -540,3 +545,5 @@ export interface TestEnvironment {
 	ci: boolean;
 	sandbox: string;
 }
+
+export type PluginLocator = string;

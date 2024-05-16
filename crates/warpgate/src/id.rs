@@ -31,8 +31,8 @@ impl Id {
 
 #[cfg(feature = "schematic")]
 impl schematic::Schematic for Id {
-    fn generate_schema() -> schematic::SchemaType {
-        schematic::SchemaType::string()
+    fn build_schema(mut schema: schematic::SchemaBuilder) -> schematic::Schema {
+        schema.string_default()
     }
 }
 

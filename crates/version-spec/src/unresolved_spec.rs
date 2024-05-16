@@ -83,8 +83,12 @@ impl UnresolvedVersionSpec {
 
 #[cfg(feature = "schematic")]
 impl schematic::Schematic for UnresolvedVersionSpec {
-    fn generate_schema() -> schematic::SchemaType {
-        schematic::SchemaType::string()
+    fn schema_name() -> Option<String> {
+        Some("UnresolvedVersionSpec".into())
+    }
+
+    fn build_schema(mut schema: schematic::SchemaBuilder) -> schematic::Schema {
+        schema.string_default()
     }
 }
 

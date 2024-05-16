@@ -75,8 +75,12 @@ impl PluginLocator {
 
 #[cfg(feature = "schematic")]
 impl schematic::Schematic for PluginLocator {
-    fn generate_schema() -> schematic::SchemaType {
-        schematic::SchemaType::string()
+    fn schema_name() -> Option<String> {
+        Some("PluginLocator".into())
+    }
+
+    fn build_schema(mut schema: schematic::SchemaBuilder) -> schematic::Schema {
+        schema.string_default()
     }
 }
 
