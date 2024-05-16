@@ -10,6 +10,12 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added a `PROTO_DEBUG_SHIM` environment variable, which will output some debug information for the shim executable. This will help uncover issues with the shim itself.
+
 ## 0.35.1
 
 #### 🧩 Plugins
