@@ -14,7 +14,7 @@ warpgate = { version = "0.13.0", path = "../warpgate" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 starbase_sandbox = { workspace = true }
-toml = { version = "0.8.12", optional = true }
+toml = { version = "0.8.13", optional = true }
 
 [features]
 default = []

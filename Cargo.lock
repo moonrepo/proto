@@ -2063,9 +2063,9 @@ checksum = "3fdb12b2476b595f9358c5161aa467c2438859caa136dec86c26fdd2efe17b92"
 
 [[package]]
 name = "once_map"
-version = "0.4.17"
+version = "0.4.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a05092df80cfce3eca08e79881dd82c9c369ba7abb6405c2377689b74649b4aa"
+checksum = "aa7085055bbe9c8edbd982048dbcf8181794d4a81cb04a11931673e63cc18dc6"
 dependencies = [
  "ahash",
  "hashbrown 0.14.5",
