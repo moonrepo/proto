@@ -54,16 +54,19 @@ fn create_command(args: Vec<OsString>, shim_name: &str) -> Result<Command> {
         let file = fs::read_to_string(registry_path)?;
         let mut registry = json_parse(&file).unwrap_or(Json::Null);
 
-        debug(|| format!("Loaded: {registry:?}"));
+        debug(|| format!("Loaded: {file}"));
         debug(|| format!("Extracting {shim_name} config"));
 
         if let Json::Object(shims) = &mut registry {
             if let Some(shim_entry) = shims.remove(shim_name) {
                 if shim_entry.is_object() {
-                    debug(|| format!("Extracted: {shim_entry:?}"));
-
                     shim = shim_entry;
+                    debug(|| "Extracted".into());
+                } else {
+                    debug(|| "Not extracted, config is not an object".into());
                 }
+            } else {
+                debug(|| "Not extracted, key does not exist".into());
             }
         }
     }
@@ -149,6 +152,8 @@ fn create_command(args: Vec<OsString>, shim_name: &str) -> Result<Command> {
         }
     }
 
+    debug(|| "Created proto command".into());
+
     Ok(command)
 }
 
@@ -183,14 +188,15 @@ pub fn main() -> Result<()> {
     }
 
     // Create and execute the command
-    debug(|| "Creating command with arguments".into());
+    debug(|| "Creating proto command with arguments".into());
 
     let mut command = create_command(args, &shim_name)?;
     command.env("PROTO_SHIM_NAME", shim_name);
     command.env("PROTO_SHIM_PATH", exe_path);
 
     // Must be the last line!
-    debug(|| "Executing command. This will replace the current process and stop debugging.".into());
+    debug(|| "Executing proto command".into());
+    debug(|| "This will replace the current process and stop debugging!".into());
 
     Ok(exec_command_and_replace(command)?)
 }
