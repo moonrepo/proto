@@ -78,8 +78,7 @@ impl schematic::Schematic for VirtualPath {
         schema.string(schematic::schema::StringType {
             format: Some("path".into()),
             ..Default::default()
-        });
-        schema.build()
+        })
     }
 }
 

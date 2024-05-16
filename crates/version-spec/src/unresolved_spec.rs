@@ -88,8 +88,7 @@ impl schematic::Schematic for UnresolvedVersionSpec {
     }
 
     fn build_schema(mut schema: schematic::SchemaBuilder) -> schematic::Schema {
-        schema.string(Default::default());
-        schema.build()
+        schema.string_default()
     }
 }
 

@@ -22,6 +22,9 @@ format:
 format-check:
 	cargo fmt --all --check
 
+gen-types:
+	cargo run -p proto_codegen
+
 lint:
 	cargo clippy --workspace --all-targets
 
