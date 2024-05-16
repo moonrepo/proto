@@ -17,7 +17,7 @@ use std::path::PathBuf;
 pub const SHIM_VERSION: u8 = 0;
 
 #[cfg(not(debug_assertions))]
-pub const SHIM_VERSION: u8 = 13;
+pub const SHIM_VERSION: u8 = 14;
 
 pub fn locate_proto_exe(bin: &str) -> Option<PathBuf> {
     let bin = get_exe_file_name(bin);

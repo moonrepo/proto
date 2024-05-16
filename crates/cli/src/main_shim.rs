@@ -12,6 +12,9 @@ use std::{env, fs};
 
 static mut DEBUG: Option<bool> = None;
 
+// We don't want to pull the entire `tracing` or `log` crates
+// into this binary, as we want it to be super lean. So we have
+// this very rudimentary logging system.
 fn debug(op: impl FnOnce() -> String) {
     unsafe {
         if DEBUG.is_none() {
