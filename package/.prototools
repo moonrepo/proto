@@ -5,7 +5,5 @@ extism-js = "1.0.0-rc9"
 [plugins]
 extism-js = "source:./extism-js.toml"
 
-# TODO: add a binaryen plugin - requires a more fine grain version interpolation though
-
 # silly workaround for root .prototools potentially pointing at non-existing plugin
 wasm-test = "source:./extism-js.toml"

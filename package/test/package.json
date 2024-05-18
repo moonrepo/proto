@@ -11,6 +11,7 @@
     "@moonrepo/proto-pdk": ".."
   },
   "devDependencies": {
+    "binaryen": "^117.0.0",
     "esbuild": "^0.20.2",
     "typescript": "^5.4.4"
   }

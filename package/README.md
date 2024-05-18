@@ -13,7 +13,6 @@ A plugin development kit for creating proto WASM plugins using JS/TS.
 
 You will need:
 
-- [binaryen >=v117](https://github.com/WebAssembly/binaryen)
 - [extism-js >=v1.0.0-rc9](https://github.com/extism/js-pdk)
 
 ## Installation
@@ -22,7 +21,7 @@ Not yet published, please check back later.
 
 <!--
 ```shell
-npm i @moonrepo/proto-pdk
+npm i -D @moonrepo/proto-pdk binaryen
 ```
 -->
 
