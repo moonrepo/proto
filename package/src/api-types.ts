@@ -501,7 +501,6 @@ export type HostLogTarget = 'stderr' | 'stdout' | 'tracing';
 export interface HostLogInput {
 	data: Record<string, unknown>;
 	message: string;
-	/** Target where host logs should be written to. */
 	target: HostLogTarget;
 }
 
@@ -531,12 +530,9 @@ export interface ExecCommandOutput {
 
 /** Information about the host environment (the current runtime). */
 export interface HostEnvironment {
-	/** Architecture of the system environment. */
 	arch: SystemArch;
 	homeDir: VirtualPath;
-	/** Libc being used in the system environment. */
 	libc: SystemLibc;
-	/** Operating system of the current environment. */
 	os: SystemOS;
 }
 

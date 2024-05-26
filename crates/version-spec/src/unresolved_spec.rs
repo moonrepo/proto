@@ -88,6 +88,7 @@ impl schematic::Schematic for UnresolvedVersionSpec {
     }
 
     fn build_schema(mut schema: schematic::SchemaBuilder) -> schematic::Schema {
+        schema.set_description("Represents an unresolved version or alias that must be resolved to a fully-qualified and semantic result.");
         schema.string_default()
     }
 }

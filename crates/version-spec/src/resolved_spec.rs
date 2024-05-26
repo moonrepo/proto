@@ -71,6 +71,7 @@ impl schematic::Schematic for VersionSpec {
     }
 
     fn build_schema(mut schema: schematic::SchemaBuilder) -> schematic::Schema {
+        schema.set_description("Represents a resolved version or alias.");
         schema.string_default()
     }
 }
