@@ -1444,7 +1444,7 @@ impl Tool {
             return Ok(false);
         }
 
-        self.create_executables(true, false).await?;
+        self.create_executables(false, false).await?;
         self.cleanup().await?;
 
         let version = self.get_resolved_version();
