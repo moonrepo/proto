@@ -36,7 +36,7 @@ pub enum PluginLocatorError {
     UnknownScope(String),
 }
 
-/// Strategies for locating plugins.
+/// Strategies and protocols for locating plugins.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(untagged, into = "String", try_from = "String")]
 pub enum PluginLocator {
@@ -80,6 +80,7 @@ impl schematic::Schematic for PluginLocator {
     }
 
     fn build_schema(mut schema: schematic::SchemaBuilder) -> schematic::Schema {
+        schema.set_description("Strategies and protocols for locating plugins.");
         schema.string_default()
     }
 }

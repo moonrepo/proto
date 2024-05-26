@@ -24,7 +24,7 @@ pub async fn bin(args: ArgsRef<BinArgs>, proto: ResourceRef<ProtoResource>) {
     let version = detect_version(&tool, args.spec.clone()).await?;
 
     tool.resolve_version(&version, true).await?;
-    tool.create_executables(true, false).await?;
+    tool.create_executables(args.shim, args.bin).await?;
 
     if args.bin {
         for bin in tool.get_bin_locations()? {

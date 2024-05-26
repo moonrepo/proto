@@ -81,6 +81,7 @@ impl schematic::Schematic for VirtualPath {
     }
 
     fn build_schema(mut schema: schematic::SchemaBuilder) -> schematic::Schema {
+        schema.set_description("A container for WASI virtual paths that can also keep a reference to the original real path.");
         schema.string(schematic::schema::StringType {
             format: Some("path".into()),
             ..Default::default()

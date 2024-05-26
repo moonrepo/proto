@@ -6,6 +6,7 @@ use std::{borrow::Borrow, fmt, ops::Deref, str::FromStr};
 
 pub static ID_PATTERN: Lazy<Regex> = Lazy::new(|| Regex::new("^[a-z][a-z0-9-_]*$").unwrap());
 
+/// An identifier for plugins.
 #[derive(Clone, Default, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct Id(String);
 
@@ -32,6 +33,7 @@ impl Id {
 #[cfg(feature = "schematic")]
 impl schematic::Schematic for Id {
     fn build_schema(mut schema: schematic::SchemaBuilder) -> schematic::Schema {
+        schema.set_description("An identifier for plugins.");
         schema.string_default()
     }
 }
