@@ -33,7 +33,7 @@ mod plugin_add {
         cmd.arg("plugin")
             .arg("add")
             .arg("id")
-            .arg("source:https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm")
+            .arg("https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm")
             .assert()
             .success();
 
@@ -60,7 +60,7 @@ mod plugin_add {
         cmd.arg("plugin")
             .arg("add")
             .arg("id")
-            .arg("source:https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm")
+            .arg("https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm")
             .arg("--global")
             .assert()
             .success();

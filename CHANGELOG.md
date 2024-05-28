@@ -10,6 +10,15 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Updated plugin locator strings to use common protocol syntax. The custom `source:` syntax is deprecated.
+  - `source:./file.wasm` -> `file://./file.wasm`
+  - `source:https://url.com/file.wasm` -> `https://url.com/file.wasm`
+  - `github:org/repo` -> `github://org/repo`
+
 ## 0.35.4
 
 #### 🐞 Fixes

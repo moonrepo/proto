@@ -42,7 +42,7 @@ The following strategies are currently supported:
 File is available on the local host machine. When deserialized, the `path` field is resolved as-is to `file`, and must be converted to an absolute path beforehand.
 
 ```rust
-// source:path/to/file.wasm
+// file://./path/to/file.wasm
 PluginLocator::SourceFile {
 	file: "path/to/file.wasm".into(),
 	path: PathBuf::from("/absolute/path/to/file.wasm"),
@@ -54,7 +54,7 @@ PluginLocator::SourceFile {
 Download a file from a secure `https` URL.
 
 ```rust
-// source:https://registry.com/path/to/file.wasm
+// https://registry.com/path/to/file.wasm
 PluginLocator::SourceUrl {
 	url: "https://registry.com/path/to/file.wasm".into(),
 }
