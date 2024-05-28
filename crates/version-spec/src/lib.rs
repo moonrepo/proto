@@ -48,7 +48,7 @@ pub fn clean_version_string<T: AsRef<str>>(value: T) -> String {
     }
 
     // Remove invalid space after <, <=, >, >=.
-    let version = regex::Regex::new(r"([><]=?)[ ]+([0-9])")
+    let version = regex::Regex::new(r"([><]=?)[ ]*v?([0-9])")
         .unwrap()
         .replace_all(&version, "$1$2");
 
@@ -94,6 +94,11 @@ mod tests {
         assert_eq!(clean_version_string(">  1.2.3"), ">1.2.3");
         assert_eq!(clean_version_string("<1.2.3"), "<1.2.3");
         assert_eq!(clean_version_string("<=   1.2.3"), "<=1.2.3");
+
+        assert_eq!(clean_version_string(">= v1.2.3"), ">=1.2.3");
+        assert_eq!(clean_version_string(">  v1.2.3"), ">1.2.3");
+        assert_eq!(clean_version_string("<v1.2.3"), "<1.2.3");
+        assert_eq!(clean_version_string("<=   v1.2.3"), "<=1.2.3");
 
         assert_eq!(clean_version_string("1.2, 3"), "1.2,3");
         assert_eq!(clean_version_string("1,3, 4"), "1,3,4");
