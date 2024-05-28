@@ -87,7 +87,7 @@ To execute the debug `.wasm` file within proto, we need to configure a `.prototo
 
 ```toml
 [plugins]
-node-test = "source:target/wasm32-wasi/debug/node_plugin.wasm"
+node-test = "file://./target/wasm32-wasi/debug/node_plugin.wasm"
 ```
 
 We can then execute it with proto as such:

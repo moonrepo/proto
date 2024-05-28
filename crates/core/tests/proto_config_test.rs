@@ -136,8 +136,8 @@ BAZ_QUX = "abc"
             ".prototools",
             r#"
 [plugins]
-foo = "github:moonrepo/foo"
-bar = "source:https://moonrepo.dev/path/file.wasm"
+foo = "github://moonrepo/foo"
+bar = "https://moonrepo.dev/path/file.wasm"
 "#,
         );
 
@@ -148,7 +148,7 @@ bar = "source:https://moonrepo.dev/path/file.wasm"
             BTreeMap::from_iter([
                 (
                     Id::raw("bar"),
-                    PluginLocator::SourceUrl {
+                    PluginLocator::Url {
                         url: "https://moonrepo.dev/path/file.wasm".into()
                     }
                 ),
@@ -171,7 +171,7 @@ bar = "source:https://moonrepo.dev/path/file.wasm"
             ".prototools",
             r#"
 [plugins]
-foo = "source:../file.wasm"
+foo = "file://../file.wasm"
 "#,
         );
 
@@ -181,9 +181,9 @@ foo = "source:../file.wasm"
             config.plugins.unwrap(),
             BTreeMap::from_iter([(
                 Id::raw("foo"),
-                PluginLocator::SourceFile {
+                PluginLocator::File {
                     file: "../file.wasm".into(),
-                    path: sandbox.path().join("../file.wasm")
+                    path: Some(sandbox.path().join("../file.wasm"))
                 }
             )])
         );
@@ -217,13 +217,13 @@ root-cert = "../cert.pem"
         sandbox.create_file(
             ".prototools",
             r#"
-    node = "12.0.0"
-    rust = "stable"
+node = "12.0.0"
+rust = "stable"
 
-    [plugins]
-    foo = "source:./test.toml"
-    kebab-case = "source:./camel.toml"
-    "#,
+[plugins]
+foo = "file://./test.toml"
+kebab-case = "file://./camel.toml"
+"#,
         );
 
         let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
@@ -247,16 +247,16 @@ root-cert = "../cert.pem"
             BTreeMap::from_iter([
                 (
                     Id::raw("foo"),
-                    PluginLocator::SourceFile {
+                    PluginLocator::File {
                         file: "./test.toml".into(),
-                        path: sandbox.path().join("./test.toml")
+                        path: Some(sandbox.path().join("./test.toml"))
                     }
                 ),
                 (
                     Id::raw("kebab-case"),
-                    PluginLocator::SourceFile {
+                    PluginLocator::File {
                         file: "./camel.toml".into(),
-                        path: sandbox.path().join("./camel.toml")
+                        path: Some(sandbox.path().join("./camel.toml"))
                     }
                 )
             ])
@@ -282,9 +282,9 @@ root-cert = "../cert.pem"
 
         plugins.insert(
             Id::raw("foo"),
-            PluginLocator::SourceFile {
+            PluginLocator::File {
                 file: "./test.toml".into(),
-                path: sandbox.path().join("./test.toml"),
+                path: Some(sandbox.path().join("./test.toml")),
             },
         );
 
@@ -296,7 +296,7 @@ root-cert = "../cert.pem"
 rust = "stable"
 
 [plugins]
-foo = "source:./test.toml"
+foo = "file://./test.toml"
 "#,
         );
     }
@@ -491,7 +491,7 @@ mod proto_config_manager {
 node = "1.2.3"
 
 [plugins]
-node = "source:./node.toml"
+node = "file://./node.toml"
 "#,
         );
 
@@ -499,7 +499,7 @@ node = "source:./node.toml"
             "one/two/.prototools",
             r#"
 [plugins]
-bun = "source:../bun.wasm"
+bun = "file://../bun.wasm"
 "#,
         );
 
@@ -509,7 +509,7 @@ bun = "source:../bun.wasm"
 bun = "4.5.6"
 
 [plugins]
-node = "source:../node.toml"
+node = "file://../node.toml"
 "#,
         );
 
@@ -545,17 +545,17 @@ deno = "7.8.9"
 
         assert_eq!(
             config.plugins.get("node").unwrap(),
-            &PluginLocator::SourceFile {
+            &PluginLocator::File {
                 file: "./node.toml".into(),
-                path: sandbox.path().join("one/two/three/./node.toml")
+                path: Some(sandbox.path().join("one/two/three/./node.toml"))
             }
         );
 
         assert_eq!(
             config.plugins.get("bun").unwrap(),
-            &PluginLocator::SourceFile {
+            &PluginLocator::File {
                 file: "../bun.wasm".into(),
-                path: sandbox.path().join("one/two/../bun.wasm")
+                path: Some(sandbox.path().join("one/two/../bun.wasm"))
             }
         );
     }
