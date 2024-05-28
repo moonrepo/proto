@@ -2306,7 +2306,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.35.4"
+version = "0.35.5"
 dependencies = [
  "anyhow",
  "chrono",
@@ -2352,7 +2352,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.35.5"
+version = "0.35.6"
 dependencies = [
  "cached",
  "indexmap 2.2.6",
@@ -3793,7 +3793,7 @@ checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 
 [[package]]
 name = "version_spec"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "human-sort",
  "regex",
