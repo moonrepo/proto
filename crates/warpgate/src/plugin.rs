@@ -202,7 +202,7 @@ impl PluginContainer {
     /// for WASI sandboxed runtimes.
     pub fn to_virtual_path(&self, path: impl AsRef<Path> + Debug) -> VirtualPath {
         let Some(virtual_paths) = self.manifest.allowed_paths.as_ref() else {
-            return VirtualPath::Only(path.as_ref().to_path_buf());
+            return VirtualPath::OnlyReal(path.as_ref().to_path_buf());
         };
 
         to_virtual_path(virtual_paths, path)
