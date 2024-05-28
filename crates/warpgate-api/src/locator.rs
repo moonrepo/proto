@@ -126,9 +126,7 @@ impl TryFrom<String> for PluginLocator {
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         // Legacy support
-        if value.starts_with("source:") {
-            let source = &value[7..];
-
+        if let Some(source) = value.strip_prefix("source:") {
             if source.starts_with("http") {
                 return Self::try_from(source.to_owned());
             } else {
