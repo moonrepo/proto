@@ -1,5 +1,6 @@
 use super::clean::clean_plugins;
 use super::pin::internal_pin;
+use crate::app::GlobalArgs;
 use crate::helpers::{create_progress_bar, disable_progress_bars, ProtoResource};
 use crate::shell::{self, Export};
 use crate::telemetry::{track_usage, Metric};
@@ -48,7 +49,8 @@ pub struct InstallArgs {
 async fn pin_version(
     tool: &mut Tool,
     initial_version: &UnresolvedVersionSpec,
-    arg_pin_type: &Option<PinType>,
+    arg_pin_type: Option<&PinType>,
+    profile: Option<&Id>,
 ) -> miette::Result<bool> {
     let config = tool.proto.load_config()?;
     let spec = tool.get_resolved_version().to_unresolved_spec();
@@ -61,7 +63,10 @@ async fn pin_version(
         pin = true;
     }
     // Or the first time being installed
-    else if !config.versions.contains_key(&tool.id) {
+    else if !config
+        .get_available_versions(profile)
+        .contains_key(&tool.id)
+    {
         global = true;
         pin = true;
     }
@@ -75,7 +80,7 @@ async fn pin_version(
     }
 
     if pin {
-        internal_pin(tool, &spec, global, true).await?;
+        internal_pin(tool, &spec, global, true, profile).await?;
     }
 
     Ok(pin)
@@ -83,7 +88,8 @@ async fn pin_version(
 
 pub async fn internal_install(
     proto: &ProtoResource,
-    args: InstallArgs,
+    global_args: &GlobalArgs,
+    args: &InstallArgs,
     tool: Option<Tool>,
 ) -> miette::Result<Tool> {
     let mut tool = match tool {
@@ -97,7 +103,7 @@ pub async fn internal_install(
         args.spec.clone().unwrap_or_default()
     };
 
-    let pin_type = args.pin.map(|pin| match pin {
+    let pin_type = args.pin.as_ref().map(|pin| match pin {
         Some(PinOption::Global) => PinType::Global,
         _ => PinType::Local,
     });
@@ -114,7 +120,13 @@ pub async fn internal_install(
 
     // Check if already installed, or if canary, overwrite previous install
     if !version.is_canary() && tool.is_setup(&version).await? {
-        pin_version(&mut tool, &version, &pin_type).await?;
+        pin_version(
+            &mut tool,
+            &version,
+            pin_type.as_ref(),
+            global_args.profile.as_ref(),
+        )
+        .await?;
 
         println!(
             "{} {} has already been installed at {}",
@@ -170,7 +182,13 @@ pub async fn internal_install(
         return Ok(tool);
     }
 
-    let pinned = pin_version(&mut tool, &version, &pin_type).await?;
+    let pinned = pin_version(
+        &mut tool,
+        &version,
+        pin_type.as_ref(),
+        global_args.profile.as_ref(),
+    )
+    .await?;
 
     println!(
         "{} {} has been installed to {}!",
@@ -303,6 +321,10 @@ fn update_shell(tool: &Tool, passthrough_args: Vec<String>) -> miette::Result<()
 }
 
 #[system]
-pub async fn install(args: ArgsRef<InstallArgs>, proto: ResourceRef<ProtoResource>) {
-    internal_install(proto, args.to_owned(), None).await?;
+pub async fn install(
+    global_args: StateRef<GlobalArgs>,
+    args: ArgsRef<InstallArgs>,
+    proto: ResourceRef<ProtoResource>,
+) {
+    internal_install(proto, global_args, &args, None).await?;
 }

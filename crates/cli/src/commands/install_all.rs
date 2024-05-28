@@ -1,3 +1,4 @@
+use crate::app::GlobalArgs;
 use crate::helpers::{
     create_progress_bar, disable_progress_bars, enable_progress_bars, ProtoResource,
 };
@@ -8,11 +9,12 @@ use crate::{
 use miette::IntoDiagnostic;
 use starbase::system;
 use starbase_styles::color;
+use std::collections::BTreeMap;
 use std::process;
 use tracing::debug;
 
 #[system]
-pub async fn install_all(proto: ResourceRef<ProtoResource>) {
+pub async fn install_all(global_args: StateRef<GlobalArgs>, proto: ResourceRef<ProtoResource>) {
     debug!("Loading tools and plugins from .prototools");
 
     let tools = proto.load_tools().await?;
@@ -23,7 +25,12 @@ pub async fn install_all(proto: ResourceRef<ProtoResource>) {
         .env
         .load_config_manager()?
         .get_merged_config_without_global()?;
-    let mut versions = config.versions.to_owned();
+
+    let mut versions = config
+        .get_available_versions(global_args.profile.as_ref())
+        .into_iter()
+        .map(|(k, v)| (k.to_owned(), v.to_owned()))
+        .collect::<BTreeMap<_, _>>();
 
     for tool in &tools {
         if versions.contains_key(&tool.id) {
@@ -61,11 +68,13 @@ pub async fn install_all(proto: ResourceRef<ProtoResource>) {
     for tool in tools {
         if let Some(version) = versions.remove(&tool.id) {
             let proto_clone = proto.clone();
+            let global_args = global_args.clone();
 
             futures.push(tokio::spawn(async move {
                 internal_install(
                     &proto_clone,
-                    InstallArgs {
+                    &global_args,
+                    &InstallArgs {
                         canary: false,
                         id: tool.id.clone(),
                         pin: None,

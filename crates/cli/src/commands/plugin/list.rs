@@ -1,3 +1,4 @@
+use crate::app::GlobalArgs;
 use crate::helpers::ProtoResource;
 use crate::printer::{format_value, Printer};
 use chrono::{DateTime, NaiveDateTime};
@@ -34,7 +35,11 @@ pub struct ListPluginsArgs {
 }
 
 #[system]
-pub async fn list(args: ArgsRef<ListPluginsArgs>, proto: ResourceRef<ProtoResource>) {
+pub async fn list(
+    global_args: StateRef<GlobalArgs>,
+    args: ArgsRef<ListPluginsArgs>,
+    proto: ResourceRef<ProtoResource>,
+) {
     let mut config = proto.env.load_config()?.to_owned();
 
     let mut tools = proto
@@ -135,9 +140,9 @@ pub async fn list(args: ArgsRef<ListPluginsArgs>, proto: ResourceRef<ProtoResour
                             }
 
                             if config
-                                .versions
+                                .get_available_versions(global_args.profile.as_ref())
                                 .get(&tool.id)
-                                .is_some_and(|dv| *dv == version.to_unresolved_spec())
+                                .is_some_and(|dv| **dv == version.to_unresolved_spec())
                             {
                                 comments.push("default version".into());
                                 is_default = true;

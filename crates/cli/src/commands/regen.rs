@@ -1,3 +1,4 @@
+use crate::app::GlobalArgs;
 use crate::helpers::ProtoResource;
 use clap::Args;
 use starbase::system;
@@ -11,7 +12,11 @@ pub struct RegenArgs {
 }
 
 #[system]
-pub async fn regen(args: ArgsRef<RegenArgs>, proto: ResourceRef<ProtoResource>) {
+pub async fn regen(
+    global_args: StateRef<GlobalArgs>,
+    args: ArgsRef<RegenArgs>,
+    proto: ResourceRef<ProtoResource>,
+) {
     if args.bin {
         println!("Regenerating bins and shims...");
     } else {
@@ -52,7 +57,10 @@ pub async fn regen(args: ArgsRef<RegenArgs>, proto: ResourceRef<ProtoResource>) 
 
     for mut tool in proto.load_tools().await? {
         // Shims
-        if let Some(version) = config.versions.get(&tool.id) {
+        if let Some(version) = config
+            .get_available_versions(global_args.profile.as_ref())
+            .get(&tool.id)
+        {
             debug!("Regenerating {} shim", tool.get_name());
 
             tool.resolve_version(version, true).await?;
@@ -63,7 +71,10 @@ pub async fn regen(args: ArgsRef<RegenArgs>, proto: ResourceRef<ProtoResource>) 
         // Symlinks are only based on the globally pinned versions,
         // so we must reference that config instead of the merged one!
         if args.bin {
-            if let Some(version) = global_config.versions.get(&tool.id) {
+            if let Some(version) = global_config
+                .get_available_versions(global_args.profile.as_ref())
+                .get(&tool.id)
+            {
                 debug!("Relinking {} bin", tool.get_name());
 
                 tool.version = None;

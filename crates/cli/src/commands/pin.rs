@@ -1,3 +1,4 @@
+use crate::app::GlobalArgs;
 use crate::helpers::ProtoResource;
 use clap::Args;
 use proto_core::{Id, ProtoConfig, Tool, UnresolvedVersionSpec};
@@ -30,6 +31,7 @@ pub async fn internal_pin(
     spec: &UnresolvedVersionSpec,
     global: bool,
     link: bool,
+    profile: Option<&Id>,
 ) -> miette::Result<PathBuf> {
     // Create symlink to this new version
     if global && link {
@@ -37,10 +39,19 @@ pub async fn internal_pin(
     }
 
     let config_path = ProtoConfig::update(tool.proto.get_config_dir(global), |config| {
-        config
-            .versions
-            .get_or_insert(BTreeMap::default())
-            .insert(tool.id.clone(), spec.clone());
+        if let Some(profile) = profile {
+            config
+                .profiles
+                .get_or_insert(BTreeMap::default())
+                .entry(profile.to_owned())
+                .or_default()
+                .insert(tool.id.clone(), spec.clone());
+        } else {
+            config
+                .versions
+                .get_or_insert(BTreeMap::default())
+                .insert(tool.id.clone(), spec.clone());
+        }
     })?;
 
     debug!(
@@ -53,7 +64,11 @@ pub async fn internal_pin(
 }
 
 #[system]
-pub async fn pin(args: ArgsRef<PinArgs>, proto: ResourceRef<ProtoResource>) -> SystemResult {
+pub async fn pin(
+    global_args: StateRef<GlobalArgs>,
+    args: ArgsRef<PinArgs>,
+    proto: ResourceRef<ProtoResource>,
+) -> SystemResult {
     let mut tool = proto.load_tool(&args.id).await?;
 
     let spec = if args.resolve {
@@ -63,7 +78,14 @@ pub async fn pin(args: ArgsRef<PinArgs>, proto: ResourceRef<ProtoResource>) -> S
         args.spec.clone()
     };
 
-    let config_path = internal_pin(&mut tool, &spec, args.global, false).await?;
+    let config_path = internal_pin(
+        &mut tool,
+        &spec,
+        args.global,
+        false,
+        global_args.profile.as_ref(),
+    )
+    .await?;
 
     println!(
         "Pinned {} to {} in {}",

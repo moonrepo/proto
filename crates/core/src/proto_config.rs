@@ -191,6 +191,22 @@ impl ProtoConfig {
         config.plugins
     }
 
+    pub fn get_available_versions(
+        &self,
+        profile: Option<&Id>,
+    ) -> BTreeMap<&Id, &UnresolvedVersionSpec> {
+        let mut map = BTreeMap::default();
+        map.extend(&self.versions);
+
+        if let Some(profile) = profile {
+            if let Some(profile_versions) = self.profiles.get(profile) {
+                map.extend(profile_versions);
+            }
+        }
+
+        map
+    }
+
     pub fn inherit_builtin_plugins(&mut self) {
         if !self.plugins.contains_key("bun") {
             self.plugins.insert(

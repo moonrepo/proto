@@ -15,6 +15,9 @@
 #### 🚀 Updates
 
 - Added a new setting to `.prototools` called `profiles`, that allows versions to be defined within opt-in groups.
+- Added a new global argument `--profile`, that can be used to enable a configuration profile.
+  - Added to `proto use`, `proto pin`, `proto regen`, and `proto run`.
+  - Can also be set with `PROTO_PROFILE`.
 - Updated plugin locator strings to use common protocol syntax. The custom `source:` syntax is deprecated.
   - `source:./file.wasm` -> `file://./file.wasm`
   - `source:https://url.com/file.wasm` -> `https://url.com/file.wasm`

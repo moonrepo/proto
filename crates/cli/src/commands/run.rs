@@ -1,3 +1,4 @@
+use crate::app::GlobalArgs;
 use crate::commands::install::{internal_install, InstallArgs};
 use crate::error::ProtoCliError;
 use crate::helpers::ProtoResource;
@@ -181,7 +182,11 @@ fn get_env_vars(tool: &Tool) -> miette::Result<IndexMap<&str, Option<String>>> {
 }
 
 #[system]
-pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> SystemResult {
+pub async fn run(
+    global_args: StateRef<GlobalArgs>,
+    args: ArgsRef<RunArgs>,
+    proto: ResourceRef<ProtoResource>,
+) -> SystemResult {
     let mut tool = proto.load_tool(&args.id).await?;
 
     // Avoid running the tool's native self-upgrade as it conflicts with proto
@@ -225,7 +230,8 @@ pub async fn run(args: ArgsRef<RunArgs>, proto: ResourceRef<ProtoResource>) -> S
 
         tool = internal_install(
             proto,
-            InstallArgs {
+            global_args,
+            &InstallArgs {
                 canary: false,
                 id: args.id.clone(),
                 pin: None,

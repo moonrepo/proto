@@ -7,6 +7,8 @@ use crate::commands::{
 };
 use clap::builder::styling::{Color, Style, Styles};
 use clap::{Parser, Subcommand, ValueEnum};
+use proto_core::Id;
+use starbase::State;
 use starbase_styles::color::Color as ColorType;
 use std::fmt::{Display, Error, Formatter};
 
@@ -84,8 +86,29 @@ pub struct App {
     )]
     pub log: Option<LogLevel>,
 
+    #[arg(
+        long,
+        global = true,
+        env = "PROTO_PROFILE",
+        help = "Configuration profile to enable (when applicable)"
+    )]
+    pub profile: Option<Id>,
+
     #[command(subcommand)]
     pub command: Commands,
+}
+
+impl App {
+    pub fn global_args(&self) -> GlobalArgs {
+        GlobalArgs {
+            profile: self.profile.clone(),
+        }
+    }
+}
+
+#[derive(Clone, State)]
+pub struct GlobalArgs {
+    pub profile: Option<Id>,
 }
 
 #[derive(Clone, Debug, Subcommand)]

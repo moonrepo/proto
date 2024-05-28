@@ -21,7 +21,7 @@ async fn main() -> MainResult {
     let cli = CLI::parse();
     let version = env!("CARGO_PKG_VERSION");
 
-    if let Some(level) = cli.log {
+    if let Some(level) = &cli.log {
         env::set_var("STARBASE_LOG", level.to_string());
     } else if let Ok(level) = env::var("PROTO_LOG") {
         env::set_var("STARBASE_LOG", level);
@@ -70,6 +70,7 @@ async fn main() -> MainResult {
     );
 
     let mut app = App::new();
+    app.set_state(cli.global_args());
     app.startup(systems::detect_proto_env);
     app.analyze(systems::load_proto_configs);
 
