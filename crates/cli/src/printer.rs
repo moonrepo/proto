@@ -160,11 +160,11 @@ impl<'std> Printer<'std> {
 
     pub fn locator<L: AsRef<PluginLocator>>(&mut self, locator: L) {
         match locator.as_ref() {
-            PluginLocator::SourceFile { path, .. } => {
-                self.entry("Source", color::path(path.canonicalize().unwrap()));
-            }
-            PluginLocator::SourceUrl { url } => {
-                self.entry("Source", color::url(url));
+            PluginLocator::File { path, .. } => {
+                self.entry(
+                    "File",
+                    color::path(path.as_ref().unwrap().canonicalize().unwrap()),
+                );
             }
             PluginLocator::GitHub(github) => {
                 self.entry("GitHub", color::label(&github.repo_slug));
@@ -172,6 +172,9 @@ impl<'std> Printer<'std> {
                     "Tag",
                     color::hash(github.tag.as_deref().unwrap_or("latest")),
                 );
+            }
+            PluginLocator::Url { url } => {
+                self.entry("URL", color::url(url));
             }
         };
     }

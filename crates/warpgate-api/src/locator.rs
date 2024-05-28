@@ -17,51 +17,60 @@ pub struct GitHubLocator {
     pub tag: Option<String>,
 }
 
+impl GitHubLocator {
+    pub fn extract_prefix_from_slug(slug: &str) -> &str {
+        slug.split('/').next().expect("Expected an owner scope!")
+    }
+
+    pub fn extract_suffix_from_slug(slug: &str) -> &str {
+        slug.split('/').nth(1).expect("Expected a repository name!")
+    }
+}
+
 /// Errors during plugin locator parsing.
 #[derive(thiserror::Error, Debug)]
 pub enum PluginLocatorError {
     #[error("GitHub release locator requires a repository with organization scope (org/repo).")]
     GitHubMissingOrg,
 
-    #[error("Missing plugin location (after :).")]
+    #[error("Missing plugin location (after protocol).")]
     MissingLocation,
 
-    #[error("Missing plugin scope or location.")]
-    MissingScope,
+    #[error("Missing plugin protocol.")]
+    MissingProtocol,
 
-    #[error("Only https URLs are supported for source plugins.")]
+    #[error("Only https URLs are supported for plugins.")]
     SecureUrlsOnly,
 
-    #[error("Unknown plugin scope `{0}`.")]
-    UnknownScope(String),
+    #[error("Unknown plugin protocol `{0}`.")]
+    UnknownProtocol(String),
 }
 
 /// Strategies and protocols for locating plugins.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(untagged, into = "String", try_from = "String")]
 pub enum PluginLocator {
-    /// source:path/to/file.wasm
-    SourceFile { file: String, path: PathBuf },
+    /// file:///abs/path/to/file.wasm
+    /// file://../rel/path/to/file.wasm
+    File {
+        /// Configured path (without file://).
+        file: String,
+        /// Resolved absolute path.
+        path: Option<PathBuf>,
+    },
 
-    /// source:https://url/to/file.wasm
-    SourceUrl { url: String },
-
-    /// github:owner/repo
-    /// github:owner/repo@tag
+    /// github://owner/repo
+    /// github://owner/repo@tag
     GitHub(Box<GitHubLocator>),
+
+    /// https://url/to/file.wasm
+    Url {
+        /// Configured URL (with https://).
+        url: String,
+    },
 }
 
 impl PluginLocator {
-    pub fn extract_prefix_from_slug(slug: &str) -> &str {
-        slug.split('/').next().expect("Expected an owner scope!")
-    }
-
-    pub fn extract_suffix_from_slug(slug: &str) -> &str {
-        slug.split('/')
-            .nth(1)
-            .expect("Expected a package or repository name!")
-    }
-
     pub fn create_wasm_file_prefix(name: &str) -> String {
         let mut name = name.to_lowercase().replace('-', "_");
 
@@ -88,11 +97,11 @@ impl schematic::Schematic for PluginLocator {
 impl Display for PluginLocator {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            PluginLocator::SourceFile { file, .. } => write!(f, "source:{}", file),
-            PluginLocator::SourceUrl { url } => write!(f, "source:{}", url),
+            PluginLocator::File { file, .. } => write!(f, "file://{}", file),
+            PluginLocator::Url { url } => write!(f, "{}", url),
             PluginLocator::GitHub(github) => write!(
                 f,
-                "github:{}{}",
+                "github://{}{}",
                 github.repo_slug,
                 github
                     .tag
@@ -116,35 +125,40 @@ impl TryFrom<String> for PluginLocator {
     type Error = PluginLocatorError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        let mut parts = value.splitn(2, ':');
+        // Legacy support
+        if let Some(source) = value.strip_prefix("source:") {
+            if source.starts_with("http") {
+                return Self::try_from(source.to_owned());
+            } else {
+                return Self::try_from(format!("file://{source}"));
+            }
+        } else if value.starts_with("github:") && !value.contains("//") {
+            return Self::try_from(format!("github://{}", &value[7..]));
+        }
 
-        let Some(scope) = parts.next() else {
-            return Err(PluginLocatorError::MissingScope);
+        if !value.contains("://") {
+            return Err(PluginLocatorError::MissingProtocol);
+        }
+
+        let mut parts = value.splitn(2, "://");
+
+        let Some(protocol) = parts.next() else {
+            return Err(PluginLocatorError::MissingProtocol);
         };
 
         let Some(location) = parts.next() else {
-            return Err(PluginLocatorError::MissingScope);
+            return Err(PluginLocatorError::MissingLocation);
         };
 
         if location.is_empty() {
             return Err(PluginLocatorError::MissingLocation);
         }
 
-        match scope {
-            "source" => {
-                if location.starts_with("http:") {
-                    Err(PluginLocatorError::SecureUrlsOnly)
-                } else if location.starts_with("https:") {
-                    Ok(PluginLocator::SourceUrl {
-                        url: location.to_owned(),
-                    })
-                } else {
-                    Ok(PluginLocator::SourceFile {
-                        file: location.to_owned(),
-                        path: PathBuf::from(location),
-                    })
-                }
-            }
+        match protocol {
+            "file" => Ok(PluginLocator::File {
+                file: location.to_owned(),
+                path: None,
+            }),
             "github" => {
                 if !location.contains('/') {
                     return Err(PluginLocatorError::GitHubMissingOrg);
@@ -156,13 +170,15 @@ impl TryFrom<String> for PluginLocator {
 
                 Ok(PluginLocator::GitHub(Box::new(GitHubLocator {
                     file_prefix: PluginLocator::create_wasm_file_prefix(
-                        PluginLocator::extract_suffix_from_slug(&repo_slug),
+                        GitHubLocator::extract_suffix_from_slug(&repo_slug),
                     ),
                     repo_slug,
                     tag,
                 })))
             }
-            unknown => Err(PluginLocatorError::UnknownScope(unknown.to_owned())),
+            "http" => Err(PluginLocatorError::SecureUrlsOnly),
+            "https" => Ok(PluginLocator::Url { url: value }),
+            unknown => Err(PluginLocatorError::UnknownProtocol(unknown.to_owned())),
         }
     }
 }

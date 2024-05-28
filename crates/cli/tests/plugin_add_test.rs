@@ -19,9 +19,7 @@ mod plugin_add {
             .arg("some-fake-value")
             .assert();
 
-        assert.stderr(predicate::str::contains(
-            "Missing plugin scope or location.",
-        ));
+        assert.stderr(predicate::str::contains("Missing plugin protocol"));
     }
 
     #[test]
@@ -35,7 +33,7 @@ mod plugin_add {
         cmd.arg("plugin")
             .arg("add")
             .arg("id")
-            .arg("source:https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm")
+            .arg("https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm")
             .assert()
             .success();
 
@@ -45,7 +43,7 @@ mod plugin_add {
 
         assert_eq!(
             config.plugins.get("id").unwrap(),
-            &PluginLocator::SourceUrl {
+            &PluginLocator::Url {
                 url: "https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm".into()
             }
         );
@@ -62,7 +60,7 @@ mod plugin_add {
         cmd.arg("plugin")
             .arg("add")
             .arg("id")
-            .arg("source:https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm")
+            .arg("https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm")
             .arg("--global")
             .assert()
             .success();
@@ -73,7 +71,7 @@ mod plugin_add {
 
         assert_eq!(
             config.plugins.get("id").unwrap(),
-            &PluginLocator::SourceUrl {
+            &PluginLocator::Url {
                 url: "https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm".into()
             }
         );

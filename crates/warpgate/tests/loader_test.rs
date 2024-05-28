@@ -23,9 +23,9 @@ mod loader {
             loader
                 .load_plugin(
                     Id::raw("test"),
-                    PluginLocator::SourceFile {
+                    PluginLocator::File {
                         file: "".into(),
-                        path: PathBuf::from("fake-file"),
+                        path: Some(PathBuf::from("fake-file")),
                     },
                 )
                 .await
@@ -40,9 +40,9 @@ mod loader {
             let path = loader
                 .load_plugin(
                     Id::raw("test"),
-                    PluginLocator::SourceFile {
+                    PluginLocator::File {
                         file: "".into(),
-                        path: fixture.join("test.wasm"),
+                        path: Some(fixture.join("test.wasm")),
                     },
                 )
                 .await
@@ -68,7 +68,7 @@ mod loader {
             loader
                 .load_plugin(
                     Id::raw("test"),
-                    PluginLocator::SourceUrl { url: "https://github.com/moonrepo/deno-plugin/releases/download/v0.0.2/deno_plugin_invalid_name.wasm".into() },
+                    PluginLocator::Url { url: "https://github.com/moonrepo/deno-plugin/releases/download/v0.0.2/deno_plugin_invalid_name.wasm".into() },
                 )
                 .await
                 .unwrap();
@@ -81,7 +81,7 @@ mod loader {
             let path = loader
                 .load_plugin(
                     Id::raw("test"),
-                    PluginLocator::SourceUrl { url: "https://github.com/moonrepo/deno-plugin/releases/download/v0.0.2/deno_plugin.wasm".into() },
+                    PluginLocator::Url { url: "https://github.com/moonrepo/deno-plugin/releases/download/v0.0.2/deno_plugin.wasm".into() },
                 )
                 .await
                 .unwrap();
@@ -96,7 +96,7 @@ mod loader {
             let path = loader
                 .load_plugin(
                     Id::raw("test"),
-                    PluginLocator::SourceUrl { url: "https://github.com/moonrepo/deno-plugin/releases/latest/download/deno_plugin.wasm".into() },
+                    PluginLocator::Url { url: "https://github.com/moonrepo/deno-plugin/releases/latest/download/deno_plugin.wasm".into() },
                 )
                 .await
                 .unwrap();
