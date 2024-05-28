@@ -14,15 +14,15 @@ pub enum VirtualPath {
         real_prefix: PathBuf,
     },
 
-    /// Only a virtual path.
-    Only(PathBuf),
+    /// Only a real path. Could not be matched with a virtual prefix.
+    OnlyReal(PathBuf),
 }
 
 impl VirtualPath {
     /// Append the path part and return a new [`VirtualPath`] instance.
     pub fn join<P: AsRef<Path>>(&self, path: P) -> VirtualPath {
         match self {
-            Self::Only(base) => Self::Only(base.join(path.as_ref())),
+            Self::OnlyReal(base) => Self::OnlyReal(base.join(path.as_ref())),
             Self::WithReal {
                 path: base,
                 virtual_prefix,
@@ -35,11 +35,20 @@ impl VirtualPath {
         }
     }
 
+    /// Return any path available, either virtual or real, regardless of any
+    /// conditions. This is primarily used for debugging.
+    pub fn any_path(&self) -> &Path {
+        match self {
+            Self::OnlyReal(path) => path,
+            Self::WithReal { path, .. } => path,
+        }
+    }
+
     /// Return the original real path. If we don't have access to prefixes,
-    /// or removing prefix fails, or the only path isn't real, returns `None`.
+    /// or removing prefix fails, or the real path doesn't exist, returns `None`.
     pub fn real_path(&self) -> Option<PathBuf> {
         match self {
-            Self::Only(path) => {
+            Self::OnlyReal(path) => {
                 if path.is_absolute() && path.exists() {
                     Some(path.to_owned())
                 } else {
@@ -52,11 +61,11 @@ impl VirtualPath {
         }
     }
 
-    /// Return a reference to the virtual path.
-    pub fn virtual_path(&self) -> &Path {
+    /// Return the virtual path. If a real path only, returns `None`.
+    pub fn virtual_path(&self) -> Option<PathBuf> {
         match self {
-            Self::Only(path) => path,
-            Self::WithReal { path, .. } => path,
+            Self::OnlyReal(_) => None,
+            Self::WithReal { path, .. } => Some(path.to_owned()),
         }
     }
 
@@ -64,7 +73,7 @@ impl VirtualPath {
     /// If we don't have access to prefixes, returns `None`.
     pub fn without_prefix(&self) -> Option<&Path> {
         match self {
-            Self::Only(_) => None,
+            Self::OnlyReal(_) => None,
             Self::WithReal {
                 path,
                 virtual_prefix,
@@ -91,7 +100,7 @@ impl schematic::Schematic for VirtualPath {
 
 impl Default for VirtualPath {
     fn default() -> Self {
-        Self::Only(PathBuf::new())
+        Self::OnlyReal(PathBuf::new())
     }
 }
 
@@ -100,7 +109,7 @@ impl Deref for VirtualPath {
 
     fn deref(&self) -> &Self::Target {
         match self {
-            Self::Only(path) => path,
+            Self::OnlyReal(path) => path,
             Self::WithReal { path, .. } => path,
         }
     }
@@ -109,7 +118,7 @@ impl Deref for VirtualPath {
 impl DerefMut for VirtualPath {
     fn deref_mut(&mut self) -> &mut Self::Target {
         match self {
-            Self::Only(path) => path,
+            Self::OnlyReal(path) => path,
             Self::WithReal { path, .. } => path,
         }
     }
@@ -117,7 +126,7 @@ impl DerefMut for VirtualPath {
 
 impl fmt::Display for VirtualPath {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.virtual_path().display())
+        write!(f, "{}", self.any_path().display())
     }
 }
 
@@ -129,6 +138,6 @@ impl AsRef<VirtualPath> for VirtualPath {
 
 impl AsRef<Path> for VirtualPath {
     fn as_ref(&self) -> &Path {
-        self.virtual_path()
+        self.any_path()
     }
 }

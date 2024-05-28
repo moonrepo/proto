@@ -150,5 +150,5 @@ pub fn to_virtual_path(
         };
     }
 
-    VirtualPath::Only(path.to_owned())
+    VirtualPath::OnlyReal(path.to_owned())
 }

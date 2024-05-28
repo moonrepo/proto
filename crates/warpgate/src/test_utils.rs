@@ -110,7 +110,7 @@ impl ConfigBuilder {
     }
 
     pub fn host_environment(&mut self, mut env: HostEnvironment) -> &mut Self {
-        if env.home_dir.real_path().is_none() || env.home_dir.virtual_path() == Path::new("") {
+        if env.home_dir.real_path().is_none() || env.home_dir.virtual_path().is_none() {
             env.home_dir = VirtualPath::WithReal {
                 path: PathBuf::from("/userhome"),
                 virtual_prefix: PathBuf::from("/userhome"),
