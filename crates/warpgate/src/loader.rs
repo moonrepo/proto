@@ -84,13 +84,18 @@ impl PluginLoader {
         );
 
         match locator {
-            PluginLocator::File { path, .. } => {
-                let path = path.as_ref().unwrap().canonicalize().map_err(|_| {
-                    WarpgateError::SourceFileMissing {
+            PluginLocator::File { file, path, .. } => {
+                let path = path.as_ref();
+                let path = path
+                    .ok_or_else(|| WarpgateError::SourceFileMissing {
                         id: id.to_owned(),
-                        path: path.as_ref().unwrap().to_path_buf(),
-                    }
-                })?;
+                        path: PathBuf::from(file),
+                    })?
+                    .canonicalize()
+                    .map_err(|_| WarpgateError::SourceFileMissing {
+                        id: id.to_owned(),
+                        path: path.unwrap().to_path_buf(),
+                    })?;
 
                 if path.exists() {
                     trace!(

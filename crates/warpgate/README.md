@@ -24,7 +24,7 @@ Plugins can then be loaded with the `load_plugin` method, which requires a uniqu
 ```rust
 use warpgate::PluginLocator;
 
-let wasm_file = loader.load_plugin(PluginLocator::SourceUrl {
+let wasm_file = loader.load_plugin(PluginLocator::Url {
 	url: "https://registry.com/path/to/file.wasm".into(),
 });
 ```
@@ -39,13 +39,13 @@ The following strategies are currently supported:
 
 #### Local files
 
-File is available on the local host machine. When deserialized, the `path` field is resolved as-is to `file`, and must be converted to an absolute path beforehand.
+File is available on the local host machine. When deserialized, the `path` field must be converted to an absolute path manually.
 
 ```rust
 // file://./path/to/file.wasm
-PluginLocator::SourceFile {
+PluginLocator::File {
 	file: "path/to/file.wasm".into(),
-	path: PathBuf::from("/absolute/path/to/file.wasm"),
+	path: Some(PathBuf::from("/absolute/path/to/file.wasm")),
 }
 ```
 
@@ -55,7 +55,7 @@ Download a file from a secure `https` URL.
 
 ```rust
 // https://registry.com/path/to/file.wasm
-PluginLocator::SourceUrl {
+PluginLocator::Url {
 	url: "https://registry.com/path/to/file.wasm".into(),
 }
 ```

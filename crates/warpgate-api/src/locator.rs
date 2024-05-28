@@ -53,7 +53,7 @@ pub enum PluginLocator {
     /// file:///abs/path/to/file.wasm
     /// file://../rel/path/to/file.wasm
     File {
-        /// Literal configured path.
+        /// Configured path (without file://).
         file: String,
         /// Resolved absolute path.
         path: Option<PathBuf>,
@@ -64,7 +64,10 @@ pub enum PluginLocator {
     GitHub(Box<GitHubLocator>),
 
     /// https://url/to/file.wasm
-    Url { url: String },
+    Url {
+        /// Configured URL (with https://).
+        url: String,
+    },
 }
 
 impl PluginLocator {
