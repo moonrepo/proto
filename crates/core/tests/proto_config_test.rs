@@ -476,6 +476,51 @@ NODE_PATH = false
             });
         }
     }
+
+    mod profiles {
+        use super::*;
+
+        #[test]
+        fn can_set_versions() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+node = "20"
+
+[profiles.dev]
+node = "22"
+
+[profiles.ci]
+bun = "1"
+"#,
+            );
+
+            let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
+
+            assert_eq!(
+                config.versions.unwrap(),
+                BTreeMap::from_iter([(
+                    Id::raw("node"),
+                    UnresolvedVersionSpec::parse("20").unwrap()
+                )])
+            );
+            assert_eq!(
+                config.profiles.as_ref().unwrap().get("dev").unwrap(),
+                &BTreeMap::from_iter([(
+                    Id::raw("node"),
+                    UnresolvedVersionSpec::parse("22").unwrap()
+                )])
+            );
+            assert_eq!(
+                config.profiles.as_ref().unwrap().get("ci").unwrap(),
+                &BTreeMap::from_iter([(
+                    Id::raw("bun"),
+                    UnresolvedVersionSpec::parse("1").unwrap()
+                )])
+            );
+        }
+    }
 }
 
 mod proto_config_manager {
@@ -758,5 +803,69 @@ deno = "7.8.9"
                 ),
             ])
         );
+    }
+
+    mod profiles {
+        use super::*;
+
+        #[test]
+        fn deep_merges_profiles() {
+            let sandbox = create_empty_sandbox();
+
+            sandbox.create_file(
+                "one/two/three/.prototools",
+                r#"
+[profiles.ci]
+node = "1.2.3"
+"#,
+            );
+
+            sandbox.create_file(
+                "one/two/.prototools",
+                r#"
+[profiles.dev]
+bun = "1"
+"#,
+            );
+
+            sandbox.create_file(
+                "one/.prototools",
+                r#"
+[profiles.ci]
+bun = "4.5.6"
+"#,
+            );
+
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[profiles.ci]
+node = "7.8.9"
+deno = "7.8.9"
+"#,
+            );
+
+            let manager =
+                ProtoConfigManager::load(sandbox.path().join("one/two/three"), None, None).unwrap();
+            let config = manager.get_merged_config().unwrap();
+
+            assert_eq!(
+                config.profiles.get("ci").unwrap(),
+                &BTreeMap::from_iter([
+                    (
+                        Id::raw("node"),
+                        UnresolvedVersionSpec::parse("1.2.3").unwrap()
+                    ),
+                    (
+                        Id::raw("bun"),
+                        UnresolvedVersionSpec::parse("4.5.6").unwrap()
+                    ),
+                    (
+                        Id::raw("deno"),
+                        UnresolvedVersionSpec::parse("7.8.9").unwrap()
+                    ),
+                ])
+            );
+        }
     }
 }

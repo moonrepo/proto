@@ -22,6 +22,18 @@ use warpgate::{HttpOptions, Id, PluginLocator};
 pub const PROTO_CONFIG_NAME: &str = ".prototools";
 pub const SCHEMA_PLUGIN_KEY: &str = "internal-schema";
 
+fn merge_profiles(
+    mut prev: BTreeMap<Id, BTreeMap<Id, UnresolvedVersionSpec>>,
+    next: BTreeMap<Id, BTreeMap<Id, UnresolvedVersionSpec>>,
+    _context: &(),
+) -> MergeResult<BTreeMap<Id, BTreeMap<Id, UnresolvedVersionSpec>>> {
+    for (key, value) in next {
+        prev.entry(key).or_default().extend(value);
+    }
+
+    Ok(Some(prev))
+}
+
 fn merge_tools(
     mut prev: BTreeMap<Id, PartialProtoToolConfig>,
     next: BTreeMap<Id, PartialProtoToolConfig>,
@@ -155,6 +167,10 @@ pub struct ProtoConfig {
     #[setting(merge = merge::merge_btreemap)]
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub plugins: BTreeMap<Id, PluginLocator>,
+
+    #[setting(merge = merge_profiles)]
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub profiles: BTreeMap<Id, BTreeMap<Id, UnresolvedVersionSpec>>,
 
     #[setting(nested)]
     pub settings: ProtoSettingsConfig,

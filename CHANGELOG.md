@@ -14,6 +14,7 @@
 
 #### 🚀 Updates
 
+- Added a new setting to `.prototools` called `profiles`, that allows versions to be defined within opt-in groups.
 - Updated plugin locator strings to use common protocol syntax. The custom `source:` syntax is deprecated.
   - `source:./file.wasm` -> `file://./file.wasm`
   - `source:https://url.com/file.wasm` -> `https://url.com/file.wasm`
