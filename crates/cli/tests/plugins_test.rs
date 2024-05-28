@@ -52,9 +52,9 @@ mod plugins {
             load_tool_from_locator(
                 Id::raw("moon"),
                 ProtoEnvironment::from(root).unwrap(),
-                PluginLocator::SourceFile {
+                PluginLocator::File {
                     file: "./tests/fixtures/moon-schema.toml".into(),
-                    path: root_dir.join("./tests/fixtures/moon-schema.toml"),
+                    path: Some(root_dir.join("./tests/fixtures/moon-schema.toml")),
                 },
             )
         })
@@ -70,9 +70,9 @@ mod plugins {
             load_tool_from_locator(
                 Id::raw("moon"),
                 ProtoEnvironment::from(root).unwrap(),
-                PluginLocator::SourceFile {
+                PluginLocator::File {
                     file: "./some/fake/path.toml".into(),
-                    path: root_dir.join("./some/fake/path.toml"),
+                    path: Some(root_dir.join("./some/fake/path.toml")),
                 },
             )
         })
@@ -85,7 +85,7 @@ mod plugins {
             load_tool_from_locator(
                 Id::raw("moon"),
                 ProtoEnvironment::from(root).unwrap(),
-                PluginLocator::SourceUrl {
+                PluginLocator::Url {
                     url: "https://raw.githubusercontent.com/moonrepo/moon/master/proto-plugin.toml"
                         .into(),
                 },
@@ -101,7 +101,7 @@ mod plugins {
             load_tool_from_locator(
                 Id::raw("moon"),
                 ProtoEnvironment::from(root).unwrap(),
-                PluginLocator::SourceUrl {
+                PluginLocator::Url {
                     url: "https://raw.githubusercontent.com/moonrepo/moon/some/fake/path.toml"
                         .into(),
                 },

@@ -29,7 +29,7 @@ mod plugin_remove {
                 .get_or_insert(Default::default())
                 .insert(
                     Id::raw("id"),
-                    PluginLocator::SourceUrl {
+                    PluginLocator::Url {
                       url: "https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm".into()
                     },
                 );
@@ -54,7 +54,7 @@ mod plugin_remove {
                 .get_or_insert(Default::default())
                 .insert(
                     Id::raw("id"),
-                    PluginLocator::SourceUrl {
+                    PluginLocator::Url {
                       url: "https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm".into()
                     },
                 );

@@ -84,13 +84,13 @@ impl PluginLoader {
         );
 
         match locator {
-            PluginLocator::SourceFile { path, .. } => {
-                let path = path
-                    .canonicalize()
-                    .map_err(|_| WarpgateError::SourceFileMissing {
+            PluginLocator::File { path, .. } => {
+                let path = path.as_ref().unwrap().canonicalize().map_err(|_| {
+                    WarpgateError::SourceFileMissing {
                         id: id.to_owned(),
-                        path: path.to_path_buf(),
-                    })?;
+                        path: path.as_ref().unwrap().to_path_buf(),
+                    }
+                })?;
 
                 if path.exists() {
                     trace!(
@@ -108,7 +108,7 @@ impl PluginLoader {
                     .into())
                 }
             }
-            PluginLocator::SourceUrl { url } => {
+            PluginLocator::Url { url } => {
                 self.download_plugin(
                     id,
                     url,

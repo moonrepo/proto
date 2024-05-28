@@ -148,7 +148,7 @@ bar = "source:https://moonrepo.dev/path/file.wasm"
             BTreeMap::from_iter([
                 (
                     Id::raw("bar"),
-                    PluginLocator::SourceUrl {
+                    PluginLocator::Url {
                         url: "https://moonrepo.dev/path/file.wasm".into()
                     }
                 ),
@@ -181,9 +181,9 @@ foo = "source:../file.wasm"
             config.plugins.unwrap(),
             BTreeMap::from_iter([(
                 Id::raw("foo"),
-                PluginLocator::SourceFile {
+                PluginLocator::File {
                     file: "../file.wasm".into(),
-                    path: sandbox.path().join("../file.wasm")
+                    path: Some(sandbox.path().join("../file.wasm"))
                 }
             )])
         );
@@ -247,16 +247,16 @@ root-cert = "../cert.pem"
             BTreeMap::from_iter([
                 (
                     Id::raw("foo"),
-                    PluginLocator::SourceFile {
+                    PluginLocator::File {
                         file: "./test.toml".into(),
-                        path: sandbox.path().join("./test.toml")
+                        path: Some(sandbox.path().join("./test.toml"))
                     }
                 ),
                 (
                     Id::raw("kebab-case"),
-                    PluginLocator::SourceFile {
+                    PluginLocator::File {
                         file: "./camel.toml".into(),
-                        path: sandbox.path().join("./camel.toml")
+                        path: Some(sandbox.path().join("./camel.toml"))
                     }
                 )
             ])
@@ -282,9 +282,9 @@ root-cert = "../cert.pem"
 
         plugins.insert(
             Id::raw("foo"),
-            PluginLocator::SourceFile {
+            PluginLocator::File {
                 file: "./test.toml".into(),
-                path: sandbox.path().join("./test.toml"),
+                path: Some(sandbox.path().join("./test.toml")),
             },
         );
 
@@ -545,17 +545,17 @@ deno = "7.8.9"
 
         assert_eq!(
             config.plugins.get("node").unwrap(),
-            &PluginLocator::SourceFile {
+            &PluginLocator::File {
                 file: "./node.toml".into(),
-                path: sandbox.path().join("one/two/three/./node.toml")
+                path: Some(sandbox.path().join("one/two/three/./node.toml"))
             }
         );
 
         assert_eq!(
             config.plugins.get("bun").unwrap(),
-            &PluginLocator::SourceFile {
+            &PluginLocator::File {
                 file: "../bun.wasm".into(),
-                path: sandbox.path().join("one/two/../bun.wasm")
+                path: Some(sandbox.path().join("one/two/../bun.wasm"))
             }
         );
     }
