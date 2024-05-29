@@ -17,6 +17,7 @@ mod setup;
 mod status;
 mod unalias;
 mod uninstall;
+mod unpin;
 mod upgrade;
 
 pub use alias::*;
@@ -36,4 +37,5 @@ pub use setup::*;
 pub use status::*;
 pub use unalias::*;
 pub use uninstall::*;
+pub use unpin::*;
 pub use upgrade::*;

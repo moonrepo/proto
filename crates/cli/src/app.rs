@@ -3,7 +3,7 @@ use crate::commands::{
     plugin::{AddPluginArgs, InfoPluginArgs, ListPluginsArgs, RemovePluginArgs},
     AliasArgs, BinArgs, CleanArgs, CompletionsArgs, InstallArgs, ListArgs, ListRemoteArgs,
     MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs, StatusArgs, UnaliasArgs,
-    UninstallArgs,
+    UninstallArgs, UnpinArgs,
 };
 use clap::builder::styling::{Color, Style, Styles};
 use clap::{Parser, Subcommand, ValueEnum};
@@ -153,6 +153,7 @@ pub enum Commands {
     Migrate(MigrateArgs),
 
     #[command(
+        alias = "o",
         name = "outdated",
         about = "Check if configured tool versions are out of date."
     )]
@@ -209,6 +210,13 @@ pub enum Commands {
         long_about = "Uninstall a tool and remove the installation from ~/.proto/tools."
     )]
     Uninstall(UninstallArgs),
+
+    #[command(
+        alias = "uv",
+        name = "unpin",
+        about = "Unpin a global or local version of a tool."
+    )]
+    Unpin(UnpinArgs),
 
     #[command(
         alias = "up",
