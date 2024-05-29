@@ -90,7 +90,7 @@ pub struct App {
         long,
         global = true,
         env = "PROTO_PROFILE",
-        help = "Configuration profile to enable (when applicable)"
+        help = "Configuration profile to enable for applicable commands"
     )]
     pub profile: Option<Id>,
 
