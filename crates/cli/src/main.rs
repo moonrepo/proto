@@ -111,6 +111,7 @@ async fn main() -> MainResult {
         Commands::Status(args) => app.execute_with_args(commands::status, args),
         Commands::Unalias(args) => app.execute_with_args(commands::unalias, args),
         Commands::Uninstall(args) => app.execute_with_args(commands::uninstall, args),
+        Commands::Unpin(args) => app.execute_with_args(commands::unpin, args),
         Commands::Upgrade => app.execute(commands::upgrade),
         Commands::Use => app.execute(commands::install_all),
     };

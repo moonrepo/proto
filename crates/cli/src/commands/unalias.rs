@@ -35,7 +35,7 @@ pub async fn unalias(args: ArgsRef<UnaliasArgs>, proto: ResourceRef<ProtoResourc
         }
     })?;
 
-    if value.is_none() {
+    let Some(value) = value else {
         eprintln!(
             "Alias {} not found in config {}",
             color::id(&args.alias),
@@ -43,12 +43,12 @@ pub async fn unalias(args: ArgsRef<UnaliasArgs>, proto: ResourceRef<ProtoResourc
         );
 
         process::exit(1);
-    }
+    };
 
     println!(
         "Removed alias {} ({}) from config {}",
         color::id(&args.alias),
-        color::muted_light(value.unwrap().to_string()),
+        color::muted_light(value.to_string()),
         color::path(config_path)
     );
 }
