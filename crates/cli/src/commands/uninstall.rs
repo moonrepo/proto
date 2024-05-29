@@ -2,7 +2,7 @@ use crate::commands::clean::purge_tool;
 use crate::helpers::{create_progress_bar, disable_progress_bars, ProtoResource};
 use crate::telemetry::{track_usage, Metric};
 use clap::Args;
-use proto_core::{Id, Tool, UnresolvedVersionSpec};
+use proto_core::{Id, ProtoConfig, Tool, UnresolvedVersionSpec};
 use starbase::system;
 use std::process;
 use tracing::debug;
@@ -13,17 +13,45 @@ pub struct UninstallArgs {
     id: Id,
 
     #[arg(help = "Version or alias of tool")]
-    semver: Option<UnresolvedVersionSpec>,
+    spec: Option<UnresolvedVersionSpec>,
 
     #[arg(long, help = "Avoid and force confirm prompts")]
     yes: bool,
 }
 
+fn unpin_version(args: &UninstallArgs, proto: &ProtoResource) -> miette::Result<()> {
+    let manager = proto.env.load_config_manager()?;
+
+    for file in &manager.files {
+        if !file.exists {
+            continue;
+        }
+
+        ProtoConfig::update(&file.path, |config| {
+            if let Some(versions) = &mut config.versions {
+                let remove = if let Some(version) = versions.get(&args.id) {
+                    args.spec.is_none() || args.spec.as_ref().is_some_and(|spec| spec == version)
+                } else {
+                    false
+                };
+
+                if remove {
+                    versions.remove(&args.id);
+                }
+            }
+        })?;
+    }
+
+    Ok(())
+}
+
 #[system]
 pub async fn uninstall(args: ArgsRef<UninstallArgs>, proto: ResourceRef<ProtoResource>) {
     // Uninstall everything
-    let Some(spec) = &args.semver else {
+    let Some(spec) = &args.spec else {
         let tool = purge_tool(proto, &args.id, args.yes).await?;
+
+        unpin_version(&args, proto)?;
 
         // Track usage metrics
         track_uninstall(&tool, true).await?;
@@ -57,6 +85,8 @@ pub async fn uninstall(args: ArgsRef<UninstallArgs>, proto: ResourceRef<ProtoRes
     ));
 
     let uninstalled = tool.teardown().await?;
+
+    unpin_version(&args, proto)?;
 
     pb.finish_and_clear();
 

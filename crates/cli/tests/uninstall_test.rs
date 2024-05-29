@@ -50,4 +50,21 @@ mod uninstall {
 
         assert!(!temp.path().join(".proto/tools/node").exists());
     }
+
+    #[test]
+    fn unpins_from_config() {
+        let temp = create_empty_sandbox();
+        temp.create_file(".prototools", r#"node = "19.0.0""#);
+
+        let mut cmd = create_proto_command(temp.path());
+        cmd.arg("install").arg("node").arg("19.0.0").assert();
+
+        let mut cmd = create_proto_command(temp.path());
+        cmd.arg("uninstall").arg("node").arg("19.0.0").assert();
+
+        assert_eq!(
+            std::fs::read_to_string(temp.path().join(".prototools")).unwrap(),
+            ""
+        );
+    }
 }

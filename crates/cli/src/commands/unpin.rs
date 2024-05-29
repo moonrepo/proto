@@ -27,7 +27,7 @@ pub async fn unpin(args: ArgsRef<UnpinArgs>, proto: ResourceRef<ProtoResource>) 
             value = versions.remove(&tool.id);
         }
 
-        // Remove also just in case
+        // Remove these also just in case
         if let Some(versions) = &mut config.unknown {
             versions.remove(tool.id.as_str());
         }
