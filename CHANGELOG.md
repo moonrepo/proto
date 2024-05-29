@@ -14,6 +14,7 @@
 
 #### 🚀 Updates
 
+- Added a `proto unpin` command, for removing a pinned version from a `.prototools` file.
 - Updated plugin locator strings to use common protocol syntax. The custom `source:` syntax is deprecated.
   - `source:./file.wasm` -> `file://./file.wasm`
   - `source:https://url.com/file.wasm` -> `https://url.com/file.wasm`
