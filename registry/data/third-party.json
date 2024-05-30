@@ -11,6 +11,7 @@
       "author": "theomessin",
       "homepageUrl": "https://github.com/nektos/act",
       "repositoryUrl": "https://github.com/theomessin/proto-toml-plugins/blob/master/act.toml",
+      "devicon": "githubactions",
       "bins": [
         "act"
       ]
@@ -24,6 +25,7 @@
       "author": "Phault",
       "homepageUrl": "https://github.com/rhysd/actionlint",
       "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "devicon": "githubactions",
       "bins": [
         "actionlint"
       ]
@@ -102,6 +104,7 @@
       "author": "Phault",
       "homepageUrl": "https://cmake.org/",
       "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "devicon": "cmake",
       "bins": [
         "cmake"
       ]
@@ -141,6 +144,7 @@
       "author": "Phault",
       "homepageUrl": "https://dotnet.microsoft.com/",
       "repositoryUrl": "https://github.com/Phault/proto-dotnet-plugin",
+      "devicon": "dot-net",
       "bins": [
         "dotnet"
       ]
@@ -245,6 +249,7 @@
       "author": "stk0vrfl0w",
       "homepageUrl": "https://helm.sh/",
       "repositoryUrl": "https://github.com/stk0vrfl0w/proto-toml-plugins/blob/main/plugins/helm.toml",
+      "devicon": "helm",
       "bins": [
         "helm"
       ]
@@ -258,6 +263,7 @@
       "author": "stk0vrfl0w",
       "homepageUrl": "https://helmfile.readthedocs.io/en/latest",
       "repositoryUrl": "https://github.com/stk0vrfl0w/proto-toml-plugins/blob/main/plugins/helmfile.toml",
+      "devicon": "helm",
       "bins": [
         "helmfile"
       ]
@@ -271,6 +277,7 @@
       "author": "z0rrn",
       "homepageUrl": "https://gohugo.io/",
       "repositoryUrl": "https://github.com/z0rrn/proto-plugins",
+      "devicon": "hugo",
       "bins": [
         "hugo"
       ]
@@ -284,6 +291,7 @@
       "author": "z0rrn",
       "homepageUrl": "https://gohugo.io/",
       "repositoryUrl": "https://github.com/z0rrn/proto-plugins",
+      "devicon": "hugo",
       "bins": [
         "hugo"
       ]
@@ -336,6 +344,7 @@
       "author": "Phault",
       "homepageUrl": "https://github.com/ankitpokhrel/jira-cli",
       "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "devicon": "jira",
       "bins": [
         "jira"
       ]
@@ -362,6 +371,7 @@
       "author": "appthrust",
       "homepageUrl": "https://k3d.io/",
       "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins",
+      "devicon": "k3s",
       "bins": [
         "k3d"
       ]
@@ -375,6 +385,7 @@
       "author": "stk0vrfl0w",
       "homepageUrl": "https://kubernetes.io/",
       "repositoryUrl": "https://github.com/stk0vrfl0w/proto-toml-plugins/blob/main/plugins/kubectl.toml",
+      "devicon": "kubernetes",
       "bins": [
         "kubectl"
       ]
@@ -453,6 +464,7 @@
       "author": "ngoldack",
       "homepageUrl": "https://github.com/pb33f/openapi-changes",
       "repositoryUrl": "https://github.com/ngoldack/proto-tools",
+      "devicon": "openapi",
       "bins": [
         "openapi-changes"
       ]
@@ -557,6 +569,7 @@
       "author": "stk0vrfl0w",
       "homepageUrl": "https://www.terraform.io/",
       "repositoryUrl": "https://github.com/theomessin/proto-toml-plugins/blob/master/terraform.toml",
+      "devicon": "terraform",
       "bins": [
         "terraform"
       ]
@@ -674,6 +687,7 @@
       "author": "stk0vrfl0w",
       "homepageUrl": "https://ziglang.org/",
       "repositoryUrl": "https://github.com/stk0vrfl0w/proto-toml-plugins/blob/main/plugins/zig.toml",
+      "devicon": "zig",
       "bins": [
         "zig"
       ]
@@ -687,6 +701,7 @@
       "author": "konomae",
       "homepageUrl": "https://ziglang.org/",
       "repositoryUrl": "https://github.com/konomae/zig-plugin",
+      "devicon": "zig",
       "bins": [
         "zig"
       ]
@@ -700,6 +715,7 @@
       "author": "konomae",
       "homepageUrl": "https://github.com/zigtools/zls",
       "repositoryUrl": "https://github.com/konomae/zls-plugin",
+      "devicon": "zig",
       "bins": [
         "zls"
       ]
