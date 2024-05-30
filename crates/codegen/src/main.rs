@@ -1,10 +1,11 @@
+use proto_core::backends::proto::PluginRegistryDocument;
 use proto_pdk_api::*;
 use schematic::schema::typescript::TypeScriptRenderer;
-use schematic::schema::SchemaGenerator;
+use schematic::schema::{JsonSchemaRenderer, SchemaGenerator};
 use std::path::PathBuf;
 
 // cargo run -p proto_codegen
-fn main() {
+fn generate_types() {
     let mut generator = SchemaGenerator::default();
 
     // proto
@@ -72,4 +73,20 @@ fn main() {
             TypeScriptRenderer::default(),
         )
         .unwrap();
+}
+
+fn generate_registry_schema() {
+    let mut generator = SchemaGenerator::default();
+    generator.add::<PluginRegistryDocument>();
+    generator
+        .generate(
+            PathBuf::from("registry/schema.json"),
+            JsonSchemaRenderer::default(),
+        )
+        .unwrap();
+}
+
+fn main() {
+    generate_types();
+    generate_registry_schema();
 }

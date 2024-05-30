@@ -30,6 +30,7 @@ schematic = { workspace = true, features = [
 	"type_indexmap",
 	"type_serde_json",
 	"type_serde_toml",
+	"type_url",
 ] }
 semver = { workspace = true }
 serde = { workspace = true }
@@ -42,7 +43,7 @@ starbase_styles = { workspace = true }
 starbase_utils = { workspace = true, features = ["fs-lock"] }
 thiserror = { workspace = true }
 tracing = { workspace = true }
-url = "2.5.0"
+url = { version = "2.5.0", features = ["serde"] }
 uuid = { workspace = true }
 
 [dev-dependencies]

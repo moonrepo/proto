@@ -9,7 +9,11 @@ publish = false
 dist = false
 
 [dependencies]
+proto_core = { version = "0.35.6", path = "../core" }
 proto_pdk_api = { version = "0.19.1", path = "../pdk-api", features = [
 	"schematic",
 ] }
-schematic = { workspace = true }
+schematic = { workspace = true, features = [
+	"renderer_json_schema",
+	"renderer_typescript",
+] }

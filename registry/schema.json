@@ -1,0 +1,245 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PluginRegistryDocument",
+  "description": "A collection of plugins that can be utilized by consumers.",
+  "type": "object",
+  "required": [
+    "$schema",
+    "plugins",
+    "version"
+  ],
+  "properties": {
+    "$schema": {
+      "description": "Path to a JSON schema.",
+      "type": "string"
+    },
+    "plugins": {
+      "description": "List of available plugins.",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/PluginEntry"
+      }
+    },
+    "version": {
+      "description": "Current version of the registry document.",
+      "type": "number"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "PluginAuthor": {
+      "title": "PluginAuthor",
+      "description": "Information about an author, either their name, or an object of additional fields.",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "$ref": "#/definitions/PluginPerson"
+        }
+      ]
+    },
+    "PluginDetectionSource": {
+      "title": "PluginDetectionSource",
+      "description": "A file source where the plugin attempts to detect a version from.",
+      "type": "object",
+      "required": [
+        "file",
+        "label",
+        "url"
+      ],
+      "properties": {
+        "file": {
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uri"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "PluginEntry": {
+      "title": "PluginEntry",
+      "description": "Information about a plugin.",
+      "type": "object",
+      "required": [
+        "author",
+        "bins",
+        "description",
+        "detectionSources",
+        "devicon",
+        "format",
+        "globalsDirs",
+        "homepageUrl",
+        "id",
+        "locator",
+        "name",
+        "repositoryUrl"
+      ],
+      "properties": {
+        "author": {
+          "description": "Information about the author.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/PluginAuthor"
+            }
+          ]
+        },
+        "bins": {
+          "description": "List of binary/shim names that are provided by this plugin.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "description": {
+          "description": "Description of the tool in which the plugin is providing.",
+          "type": "string"
+        },
+        "detectionSources": {
+          "description": "List of sources in which versions are detected from.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PluginDetectionSource"
+          }
+        },
+        "devicon": {
+          "description": "Devicon (https://devicon.dev) for the tool.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "format": {
+          "description": "Format of the plugin: WASM, or TOML",
+          "allOf": [
+            {
+              "$ref": "#/definitions/PluginFormat"
+            }
+          ]
+        },
+        "globalsDirs": {
+          "description": "List of directories in which the plugin locates globally installed binaries/packages. Supports environment variables.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "homepageUrl": {
+          "description": "URL to the tool's homepage or documentation.",
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uri"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "id": {
+          "description": "Suggested identifier of the plugin. This will become the primary binary/shim name, as well as the name used on the command line, and within environment variables.",
+          "type": "string"
+        },
+        "locator": {
+          "description": "The location in which to acquire the plugin. More information: https://moonrepo.dev/docs/guides/wasm-plugins#configuring-plugin-locations",
+          "allOf": [
+            {
+              "$ref": "#/definitions/PluginLocator"
+            }
+          ]
+        },
+        "name": {
+          "description": "Human readable name of the tool.",
+          "type": "string"
+        },
+        "repositoryUrl": {
+          "description": "URL to the plugin's repository.",
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uri"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "PluginFormat": {
+      "title": "PluginFormat",
+      "description": "Format of the plugin.",
+      "type": "string",
+      "enum": [
+        "toml",
+        "wasm"
+      ]
+    },
+    "PluginLocator": {
+      "title": "PluginLocator",
+      "description": "Strategies and protocols for locating plugins.",
+      "type": "string"
+    },
+    "PluginPerson": {
+      "title": "PluginPerson",
+      "description": "Information about a person.",
+      "type": "object",
+      "required": [
+        "email",
+        "name",
+        "url"
+      ],
+      "properties": {
+        "email": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uri"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
