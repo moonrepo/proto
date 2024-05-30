@@ -1,4 +1,4 @@
-use proto_core::backends::proto::PluginRegistryDocument;
+use proto_core::registry::PluginRegistryDocument;
 use proto_pdk_api::*;
 use schematic::schema::typescript::TypeScriptRenderer;
 use schematic::schema::{JsonSchemaRenderer, SchemaGenerator};
