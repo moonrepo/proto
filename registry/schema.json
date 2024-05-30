@@ -44,9 +44,7 @@
       "description": "A file source where the plugin attempts to detect a version from.",
       "type": "object",
       "required": [
-        "file",
-        "label",
-        "url"
+        "file"
       ],
       "properties": {
         "file": {
@@ -84,15 +82,10 @@
         "author",
         "bins",
         "description",
-        "detectionSources",
-        "devicon",
         "format",
-        "globalsDirs",
-        "homepageUrl",
         "id",
         "locator",
-        "name",
-        "repositoryUrl"
+        "name"
       ],
       "properties": {
         "author": {
@@ -209,9 +202,7 @@
       "description": "Information about a person.",
       "type": "object",
       "required": [
-        "email",
-        "name",
-        "url"
+        "name"
       ],
       "properties": {
         "email": {

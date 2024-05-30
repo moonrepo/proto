@@ -13,14 +13,13 @@ pub enum PluginFormat {
 
 /// Information about a person.
 #[derive(Default, Deserialize, Serialize, Schematic)]
-#[serde(default)]
 pub struct PluginPerson {
     pub name: String,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub email: Option<String>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub url: Option<Url>,
 }
 
@@ -34,14 +33,13 @@ pub enum PluginAuthor {
 
 /// A file source where the plugin attempts to detect a version from.
 #[derive(Default, Deserialize, Serialize, Schematic)]
-#[serde(default)]
 pub struct PluginDetectionSource {
     pub file: String,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub url: Option<Url>,
 }
 
