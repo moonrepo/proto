@@ -4,7 +4,7 @@ use url::Url;
 use warpgate::{Id, PluginLocator};
 
 /// Format of the plugin.
-#[derive(Deserialize, Serialize, Schematic)]
+#[derive(Debug, Deserialize, Serialize, Schematic)]
 #[serde(rename_all = "lowercase")]
 pub enum PluginFormat {
     Toml,
@@ -12,7 +12,7 @@ pub enum PluginFormat {
 }
 
 /// Information about a person.
-#[derive(Default, Deserialize, Serialize, Schematic)]
+#[derive(Debug, Default, Deserialize, Serialize, Schematic)]
 pub struct PluginPerson {
     pub name: String,
 
@@ -24,7 +24,7 @@ pub struct PluginPerson {
 }
 
 /// Information about an author, either their name, or an object of additional fields.
-#[derive(Deserialize, Serialize, Schematic)]
+#[derive(Debug, Deserialize, Serialize, Schematic)]
 #[serde(untagged)]
 pub enum PluginAuthor {
     String(String),
@@ -32,7 +32,7 @@ pub enum PluginAuthor {
 }
 
 /// A file source where the plugin attempts to detect a version from.
-#[derive(Default, Deserialize, Serialize, Schematic)]
+#[derive(Debug, Default, Deserialize, Serialize, Schematic)]
 pub struct PluginDetectionSource {
     pub file: String,
 
@@ -44,7 +44,7 @@ pub struct PluginDetectionSource {
 }
 
 /// Information about a plugin.
-#[derive(Deserialize, Serialize, Schematic)]
+#[derive(Debug, Deserialize, Serialize, Schematic)]
 #[serde(rename_all = "camelCase")]
 pub struct PluginEntry {
     // PLUGIN
@@ -97,7 +97,7 @@ pub struct PluginEntry {
 }
 
 /// A collection of plugins that can be utilized by consumers.
-#[derive(Deserialize, Serialize, Schematic)]
+#[derive(Debug, Deserialize, Serialize, Schematic)]
 pub struct PluginRegistryDocument {
     /// Path to a JSON schema.
     #[serde(rename = "$schema")]
