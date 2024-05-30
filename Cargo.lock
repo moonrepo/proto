@@ -2364,6 +2364,7 @@ dependencies = [
  "proto_core",
  "proto_pdk_api",
  "schematic",
+ "serde_json",
 ]
 
 [[package]]

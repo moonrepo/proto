@@ -17,3 +17,4 @@ schematic = { workspace = true, features = [
 	"renderer_json_schema",
 	"renderer_typescript",
 ] }
+serde_json = { workspace = true }

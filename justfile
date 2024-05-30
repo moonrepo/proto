@@ -22,7 +22,7 @@ format:
 format-check:
 	cargo fmt --all --check
 
-gen-types:
+gen:
 	cargo run -p proto_codegen
 
 lint:

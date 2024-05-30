@@ -16,7 +16,11 @@ pub enum PluginFormat {
 #[serde(default)]
 pub struct PluginPerson {
     name: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     email: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     url: Option<Url>,
 }
 
@@ -33,7 +37,11 @@ pub enum PluginAuthor {
 #[serde(default)]
 pub struct PluginDetectionSource {
     file: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     label: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     url: Option<Url>,
 }
 
@@ -65,15 +73,15 @@ pub struct PluginEntry {
     author: PluginAuthor,
 
     /// URL to the tool's homepage or documentation.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     homepage_url: Option<Url>,
 
     /// URL to the plugin's repository.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     repository_url: Option<Url>,
 
     /// Devicon (https://devicon.dev) for the tool.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     devicon: Option<String>,
 
     // PROVIDES

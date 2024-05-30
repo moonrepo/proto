@@ -2,6 +2,7 @@ use proto_core::backends::proto::PluginRegistryDocument;
 use proto_pdk_api::*;
 use schematic::schema::typescript::TypeScriptRenderer;
 use schematic::schema::{JsonSchemaRenderer, SchemaGenerator};
+use std::fs;
 use std::path::PathBuf;
 
 // cargo run -p proto_codegen
@@ -86,7 +87,18 @@ fn generate_registry_schema() {
         .unwrap();
 }
 
+fn load_save_json(path: &str) {
+    let json: PluginRegistryDocument = serde_json::from_slice(&fs::read(path).unwrap()).unwrap();
+
+    fs::write(path, serde_json::to_string_pretty(&json).unwrap()).unwrap();
+}
+
+fn validate_registries() {
+    load_save_json("registry/built-in.json");
+}
+
 fn main() {
     generate_types();
     generate_registry_schema();
+    validate_registries();
 }
