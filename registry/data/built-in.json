@@ -1,5 +1,5 @@
 {
-  "$schema": "./schema.json",
+  "$schema": "../schema.json",
   "version": 1,
   "plugins": [
     {
@@ -155,29 +155,6 @@
       ]
     },
     {
-      "id": "yarn",
-      "locator": "github://moonrepo/node-plugin",
-      "format": "wasm",
-      "name": "Yarn",
-      "description": "A Node.js package manager.",
-      "author": "moonrepo",
-      "repositoryUrl": "https://github.com/moonrepo/node-plugin",
-      "devicon": "yarn",
-      "bins": [
-        "yarn",
-        "yarnpkg"
-      ],
-      "detectionSources": [
-        {
-          "file": "package.json",
-          "label": "engines / package manager"
-        }
-      ],
-      "globalsDirs": [
-        "~/.proto/tools/node/globals/bin"
-      ]
-    },
-    {
       "id": "python",
       "locator": "github://moonrepo/python-plugin",
       "format": "wasm",
@@ -222,6 +199,29 @@
         "$CARGO_INSTALL_ROOT/bin",
         "$CARGO_HOME/bin",
         "~/.cargo/bin"
+      ]
+    },
+    {
+      "id": "yarn",
+      "locator": "github://moonrepo/node-plugin",
+      "format": "wasm",
+      "name": "Yarn",
+      "description": "A Node.js package manager.",
+      "author": "moonrepo",
+      "repositoryUrl": "https://github.com/moonrepo/node-plugin",
+      "devicon": "yarn",
+      "bins": [
+        "yarn",
+        "yarnpkg"
+      ],
+      "detectionSources": [
+        {
+          "file": "package.json",
+          "label": "engines / package manager"
+        }
+      ],
+      "globalsDirs": [
+        "~/.proto/tools/node/globals/bin"
       ]
     }
   ]

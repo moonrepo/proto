@@ -15,13 +15,13 @@ pub enum PluginFormat {
 #[derive(Default, Deserialize, Serialize, Schematic)]
 #[serde(default)]
 pub struct PluginPerson {
-    name: String,
+    pub name: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    email: Option<String>,
+    pub email: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    url: Option<Url>,
+    pub url: Option<Url>,
 }
 
 /// Information about an author, either their name, or an object of additional fields.
@@ -36,13 +36,13 @@ pub enum PluginAuthor {
 #[derive(Default, Deserialize, Serialize, Schematic)]
 #[serde(default)]
 pub struct PluginDetectionSource {
-    file: String,
+    pub file: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    label: Option<String>,
+    pub label: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    url: Option<Url>,
+    pub url: Option<Url>,
 }
 
 /// Information about a plugin.
@@ -52,50 +52,50 @@ pub struct PluginEntry {
     // PLUGIN
     /// Suggested identifier of the plugin. This will become the primary binary/shim name,
     /// as well as the name used on the command line, and within environment variables.
-    id: Id,
+    pub id: Id,
 
     /// The location in which to acquire the plugin.
     /// More information: https://moonrepo.dev/docs/guides/wasm-plugins#configuring-plugin-locations
-    locator: PluginLocator,
+    pub locator: PluginLocator,
 
     /// Format of the plugin: WASM, or TOML
-    format: PluginFormat,
+    pub format: PluginFormat,
 
     // METADATA
     /// Human readable name of the tool.
-    name: String,
+    pub name: String,
 
     /// Description of the tool in which the plugin is providing.
-    description: String,
+    pub description: String,
 
     /// Information about the author.
     #[schema(nested)]
-    author: PluginAuthor,
+    pub author: PluginAuthor,
 
     /// URL to the tool's homepage or documentation.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    homepage_url: Option<Url>,
+    pub homepage_url: Option<Url>,
 
     /// URL to the plugin's repository.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    repository_url: Option<Url>,
+    pub repository_url: Option<Url>,
 
     /// Devicon (https://devicon.dev) for the tool.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    devicon: Option<String>,
+    pub devicon: Option<String>,
 
     // PROVIDES
     /// List of binary/shim names that are provided by this plugin.
-    bins: Vec<String>,
+    pub bins: Vec<String>,
 
     /// List of sources in which versions are detected from.
     #[schema(nested)]
     #[serde(default)]
-    detection_sources: Vec<PluginDetectionSource>,
+    pub detection_sources: Vec<PluginDetectionSource>,
 
     /// List of directories in which the plugin locates globally installed binaries/packages. Supports environment variables.
     #[serde(default)]
-    globals_dirs: Vec<String>,
+    pub globals_dirs: Vec<String>,
 }
 
 /// A collection of plugins that can be utilized by consumers.
@@ -103,12 +103,12 @@ pub struct PluginEntry {
 pub struct PluginRegistryDocument {
     /// Path to a JSON schema.
     #[serde(rename = "$schema")]
-    schema: String,
+    pub schema: String,
 
     /// Current version of the registry document.
-    version: u8,
+    pub version: u8,
 
     /// List of available plugins.
     #[schema(nested)]
-    plugins: Vec<PluginEntry>,
+    pub plugins: Vec<PluginEntry>,
 }

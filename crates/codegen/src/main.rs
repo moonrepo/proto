@@ -88,13 +88,17 @@ fn generate_registry_schema() {
 }
 
 fn load_save_json(path: &str) {
-    let json: PluginRegistryDocument = serde_json::from_slice(&fs::read(path).unwrap()).unwrap();
+    let mut json: PluginRegistryDocument =
+        serde_json::from_slice(&fs::read(path).unwrap()).unwrap();
+
+    json.plugins.sort_by(|a, d| a.id.cmp(&d.id));
 
     fs::write(path, serde_json::to_string_pretty(&json).unwrap()).unwrap();
 }
 
 fn validate_registries() {
-    load_save_json("registry/built-in.json");
+    load_save_json("registry/data/built-in.json");
+    load_save_json("registry/data/third-party.json");
 }
 
 fn main() {
