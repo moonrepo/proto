@@ -1,0 +1,724 @@
+{
+  "$schema": "../schema.json",
+  "version": 1,
+  "plugins": [
+    {
+      "id": "act",
+      "locator": "https://raw.githubusercontent.com/theomessin/proto-toml-plugins/master/act.toml",
+      "format": "toml",
+      "name": "act",
+      "description": "Run your GitHub Actions locally.",
+      "author": "theomessin",
+      "homepageUrl": "https://github.com/nektos/act",
+      "repositoryUrl": "https://github.com/theomessin/proto-toml-plugins/blob/master/act.toml",
+      "devicon": "githubactions",
+      "bins": [
+        "act"
+      ]
+    },
+    {
+      "id": "actionlint",
+      "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/actionlint/plugin.toml",
+      "format": "toml",
+      "name": "actionlint",
+      "description": "Static checker for GitHub Actions workflow files.",
+      "author": "Phault",
+      "homepageUrl": "https://github.com/rhysd/actionlint",
+      "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "devicon": "githubactions",
+      "bins": [
+        "actionlint"
+      ]
+    },
+    {
+      "id": "bazel",
+      "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/bazel/plugin.toml",
+      "format": "toml",
+      "name": "Bazel",
+      "description": "A fast, scalable, multi-language and extensible build system.",
+      "author": "Phault",
+      "homepageUrl": "https://bazel.build/",
+      "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "bins": [
+        "bazel"
+      ]
+    },
+    {
+      "id": "biome",
+      "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/biome/plugin.toml",
+      "format": "toml",
+      "name": "Biome",
+      "description": "A performant toolchain for web projects, aiming to provide developer tools to maintain the health of said projects.",
+      "author": "Phault",
+      "homepageUrl": "https://biomejs.dev/",
+      "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "bins": [
+        "biome"
+      ]
+    },
+    {
+      "id": "black",
+      "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/black/plugin.toml",
+      "format": "toml",
+      "name": "Black",
+      "description": "The uncompromising Python code formatter.",
+      "author": "appthrust",
+      "homepageUrl": "https://black.readthedocs.io/en/stable/",
+      "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins",
+      "bins": [
+        "black"
+      ]
+    },
+    {
+      "id": "buf",
+      "locator": "https://raw.githubusercontent.com/stk0vrfl0w/proto-toml-plugins/main/plugins/buf.toml",
+      "format": "toml",
+      "name": "buf",
+      "description": "A new way of working with Protocol Buffers.",
+      "author": "stk0vrfl0w",
+      "homepageUrl": "https://buf.build/",
+      "repositoryUrl": "https://github.com/stk0vrfl0w/proto-toml-plugins/blob/main/plugins/buf.toml",
+      "bins": [
+        "buf"
+      ]
+    },
+    {
+      "id": "caddy",
+      "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/caddy/plugin.toml",
+      "format": "toml",
+      "name": "Caddy",
+      "description": "Fast and extensible multi-platform HTTP/1-2-3 web server with automatic HTTPS.",
+      "author": "Phault",
+      "homepageUrl": "https://caddyserver.com/",
+      "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "bins": [
+        "caddy"
+      ]
+    },
+    {
+      "id": "cmake",
+      "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/cmake/plugin.toml",
+      "format": "toml",
+      "name": "CMake",
+      "description": "CMake is a cross-platform, open-source build system generator.",
+      "author": "Phault",
+      "homepageUrl": "https://cmake.org/",
+      "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "devicon": "cmake",
+      "bins": [
+        "cmake"
+      ]
+    },
+    {
+      "id": "cosign",
+      "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/cosign/plugin.toml",
+      "format": "toml",
+      "name": "Cosign",
+      "description": "Code signing and transparency for containers and binaries.",
+      "author": "Phault",
+      "homepageUrl": "https://github.com/sigstore/cosign",
+      "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "bins": [
+        "cosign"
+      ]
+    },
+    {
+      "id": "dagger",
+      "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/dagger/plugin.toml",
+      "format": "toml",
+      "name": "Dagger",
+      "description": "Powerful, programmable open source CI/CD engine that runs your pipelines in containers.",
+      "author": "Phault",
+      "homepageUrl": "https://dagger.io/",
+      "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "bins": [
+        "dagger"
+      ]
+    },
+    {
+      "id": "dotnet",
+      "locator": "github://Phault/proto-dotnet-plugin",
+      "format": "wasm",
+      "name": ".NET",
+      "description": ".NET is the free, open-source, cross-platform framework for building modern apps and powerful cloud services.",
+      "author": "Phault",
+      "homepageUrl": "https://dotnet.microsoft.com/",
+      "repositoryUrl": "https://github.com/Phault/proto-dotnet-plugin",
+      "devicon": "dot-net",
+      "bins": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "dprint",
+      "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/dprint/plugin.toml",
+      "format": "toml",
+      "name": "dprint",
+      "description": "A pluggable and configurable code formatting platform written in Rust.",
+      "author": "Phault",
+      "homepageUrl": "https://dprint.dev/",
+      "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "bins": [
+        "dprint"
+      ]
+    },
+    {
+      "id": "earthly",
+      "locator": "https://raw.githubusercontent.com/theomessin/proto-toml-plugins/master/earthly.toml",
+      "format": "toml",
+      "name": "earthly",
+      "description": "Like Dockerfile and Makefile had a baby.",
+      "author": "theomessin",
+      "homepageUrl": "https://earthly.dev/",
+      "repositoryUrl": "https://github.com/theomessin/proto-toml-plugins/blob/master/earthly.toml",
+      "bins": [
+        "earthly"
+      ]
+    },
+    {
+      "id": "fly",
+      "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/flyctl/plugin.toml",
+      "format": "toml",
+      "name": "flyctl",
+      "description": "A command-line interface for fly.io.",
+      "author": "Phault",
+      "homepageUrl": "https://github.com/superfly/flyctl",
+      "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "bins": [
+        "fly"
+      ]
+    },
+    {
+      "id": "gitleaks",
+      "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/gitleaks/plugin.toml",
+      "format": "toml",
+      "name": "Gitleaks",
+      "description": "A fast, light-weight, portable, and open-source secret scanner for Git repositories, files, and directories.",
+      "author": "Phault",
+      "homepageUrl": "https://gitleaks.io/",
+      "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "bins": [
+        "gitleaks"
+      ]
+    },
+    {
+      "id": "gleam",
+      "locator": "https://raw.githubusercontent.com/vancegillies/proto-gleam-plugin/main/gleam.toml",
+      "format": "toml",
+      "name": "gleam",
+      "description": "A statically typed language for the Erlang VM and JavaScript.",
+      "author": "vancegillies",
+      "homepageUrl": "https://gleam.run/",
+      "repositoryUrl": "https://github.com/vancegillies/proto-gleam-plugin/blob/main/gleam.toml",
+      "bins": [
+        "gleam"
+      ]
+    },
+    {
+      "id": "gojq",
+      "locator": "https://raw.githubusercontent.com/stk0vrfl0w/proto-toml-plugins/main/plugins/gojq.toml",
+      "format": "toml",
+      "name": "gojq",
+      "description": "Pure Go implementation of jq.",
+      "author": "stk0vrfl0w",
+      "homepageUrl": "https://github.com/itchyny/gojq",
+      "repositoryUrl": "https://github.com/stk0vrfl0w/proto-toml-plugins/blob/main/plugins/gojq.toml",
+      "bins": [
+        "gojq"
+      ]
+    },
+    {
+      "id": "gum",
+      "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/gum/plugin.toml",
+      "format": "toml",
+      "name": "Gum",
+      "description": "A tool for glamorous shell scripts.",
+      "author": "Phault",
+      "homepageUrl": "https://github.com/charmbracelet/gum",
+      "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "bins": [
+        "gum"
+      ]
+    },
+    {
+      "id": "helm",
+      "locator": "https://raw.githubusercontent.com/stk0vrfl0w/proto-toml-plugins/main/plugins/helm.toml",
+      "format": "toml",
+      "name": "helm",
+      "description": "The Kubernetes package manager.",
+      "author": "stk0vrfl0w",
+      "homepageUrl": "https://helm.sh/",
+      "repositoryUrl": "https://github.com/stk0vrfl0w/proto-toml-plugins/blob/main/plugins/helm.toml",
+      "devicon": "helm",
+      "bins": [
+        "helm"
+      ]
+    },
+    {
+      "id": "helmfile",
+      "locator": "https://raw.githubusercontent.com/stk0vrfl0w/proto-toml-plugins/main/plugins/helmfile.toml",
+      "format": "toml",
+      "name": "helmfile",
+      "description": "Deploy Kubernetes helm charts.",
+      "author": "stk0vrfl0w",
+      "homepageUrl": "https://helmfile.readthedocs.io/en/latest",
+      "repositoryUrl": "https://github.com/stk0vrfl0w/proto-toml-plugins/blob/main/plugins/helmfile.toml",
+      "devicon": "helm",
+      "bins": [
+        "helmfile"
+      ]
+    },
+    {
+      "id": "hugo",
+      "locator": "https://raw.githubusercontent.com/z0rrn/proto-plugins/main/hugo/plugin-standard.toml",
+      "format": "toml",
+      "name": "Hugo Standard",
+      "description": "The world's fastest framework for building websites - standard version.",
+      "author": "z0rrn",
+      "homepageUrl": "https://gohugo.io/",
+      "repositoryUrl": "https://github.com/z0rrn/proto-plugins",
+      "devicon": "hugo",
+      "bins": [
+        "hugo"
+      ]
+    },
+    {
+      "id": "hugo",
+      "locator": "https://raw.githubusercontent.com/z0rrn/proto-plugins/main/hugo/plugin-extended.toml",
+      "format": "toml",
+      "name": "Hugo Extended",
+      "description": "The world's fastest framework for building websites - extended version.",
+      "author": "z0rrn",
+      "homepageUrl": "https://gohugo.io/",
+      "repositoryUrl": "https://github.com/z0rrn/proto-plugins",
+      "devicon": "hugo",
+      "bins": [
+        "hugo"
+      ]
+    },
+    {
+      "id": "hurl",
+      "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/hurl/plugin.toml",
+      "format": "toml",
+      "name": "Hurl",
+      "description": "A command line tool that runs HTTP requests defined in a simple plain text format.",
+      "author": "Phault",
+      "homepageUrl": "https://hurl.dev/",
+      "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "bins": [
+        "hurl"
+      ]
+    },
+    {
+      "id": "hyperfine",
+      "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/hyperfine/plugin.toml",
+      "format": "toml",
+      "name": "hyperfine",
+      "description": "A command-line benchmarking tool.",
+      "author": "Phault",
+      "homepageUrl": "https://github.com/sharkdp/hyperfine",
+      "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "bins": [
+        "hyperfine"
+      ]
+    },
+    {
+      "id": "infisical",
+      "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/infisical/plugin.toml",
+      "format": "toml",
+      "name": "Infisical",
+      "description": "The command-line interface for the open source secret management platform Infisical.",
+      "author": "Phault",
+      "homepageUrl": "https://infisical.com/",
+      "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "bins": [
+        "infisical"
+      ]
+    },
+    {
+      "id": "jira",
+      "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/jira/plugin.toml",
+      "format": "toml",
+      "name": "JiraCLI",
+      "description": "An interactive command line tool for Atlassian Jira.",
+      "author": "Phault",
+      "homepageUrl": "https://github.com/ankitpokhrel/jira-cli",
+      "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "devicon": "jira",
+      "bins": [
+        "jira"
+      ]
+    },
+    {
+      "id": "just",
+      "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/just/plugin.toml",
+      "format": "toml",
+      "name": "just",
+      "description": "A handy way to save and run project-specific commands.",
+      "author": "Phault",
+      "homepageUrl": "https://github.com/casey/just",
+      "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "bins": [
+        "just"
+      ]
+    },
+    {
+      "id": "k3d",
+      "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/k3d/plugin.toml",
+      "format": "toml",
+      "name": "k3d",
+      "description": "k3d is a lightweight wrapper to run k3s (Rancher Lab's minimal Kubernetes distribution) in Docker.",
+      "author": "appthrust",
+      "homepageUrl": "https://k3d.io/",
+      "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins",
+      "devicon": "k3s",
+      "bins": [
+        "k3d"
+      ]
+    },
+    {
+      "id": "kubectl",
+      "locator": "https://raw.githubusercontent.com/stk0vrfl0w/proto-toml-plugins/main/plugins/kubectl.toml",
+      "format": "toml",
+      "name": "kubectl",
+      "description": "Kubernetes command line tool.",
+      "author": "stk0vrfl0w",
+      "homepageUrl": "https://kubernetes.io/",
+      "repositoryUrl": "https://github.com/stk0vrfl0w/proto-toml-plugins/blob/main/plugins/kubectl.toml",
+      "devicon": "kubernetes",
+      "bins": [
+        "kubectl"
+      ]
+    },
+    {
+      "id": "mage",
+      "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/mage/plugin.toml",
+      "format": "toml",
+      "name": "Mage",
+      "description": "A make/rake-like build tool using Go.",
+      "author": "Phault",
+      "homepageUrl": "https://magefile.org/",
+      "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "bins": [
+        "mage"
+      ]
+    },
+    {
+      "id": "mkcert",
+      "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/mkcert/plugin.toml",
+      "format": "toml",
+      "name": "mkcert",
+      "description": "A simple zero-config tool to make locally trusted development certificates with any names you'd like.",
+      "author": "Phault",
+      "homepageUrl": "https://github.com/FiloSottile/mkcert",
+      "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "bins": [
+        "mkcert"
+      ]
+    },
+    {
+      "id": "moon",
+      "locator": "https://raw.githubusercontent.com/moonrepo/moon/master/proto-plugin.toml",
+      "format": "toml",
+      "name": "moon",
+      "description": "moon is a multi-language build system and codebase management tool.",
+      "author": "moonrepo",
+      "homepageUrl": "https://moonrepo.dev/moon",
+      "repositoryUrl": "https://github.com/moonrepo/moon/blob/master/proto-plugin.toml",
+      "bins": [
+        "moon"
+      ]
+    },
+    {
+      "id": "ninja",
+      "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/ninja/plugin.toml",
+      "format": "toml",
+      "name": "Ninja",
+      "description": "A small build system with a focus on speed.",
+      "author": "Phault",
+      "homepageUrl": "https://ninja-build.org/",
+      "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "bins": [
+        "ninja"
+      ]
+    },
+    {
+      "id": "octopus",
+      "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/octopus/plugin.toml",
+      "format": "toml",
+      "name": "Octopus CLI",
+      "description": "Command line interface for Octopus Deploy.",
+      "author": "Phault",
+      "homepageUrl": "https://octopus.com/",
+      "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "bins": [
+        "octopus"
+      ]
+    },
+    {
+      "id": "openapi-changes",
+      "locator": "https://raw.githubusercontent.com/ngoldack/proto-tools/main/tools/openapi-changes/openapi-changes.toml",
+      "format": "toml",
+      "name": "openapi-changes",
+      "description": "The world's sexiest OpenAPI breaking changes detector. Discover what changed between two OpenAPI specs, or a single spec over time. Supports OpenAPI 3.1, 3.0 and Swagger.",
+      "author": "ngoldack",
+      "homepageUrl": "https://github.com/pb33f/openapi-changes",
+      "repositoryUrl": "https://github.com/ngoldack/proto-tools",
+      "devicon": "openapi",
+      "bins": [
+        "openapi-changes"
+      ]
+    },
+    {
+      "id": "oxlint",
+      "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/oxlint/plugin.toml",
+      "format": "toml",
+      "name": "oxlint",
+      "description": "Oxlint is a JavaScript linter designed to catch erroneous or useless code without requiring any configurations by default.",
+      "author": "Phault",
+      "homepageUrl": "https://oxc-project.github.io/",
+      "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "bins": [
+        "oxlint"
+      ]
+    },
+    {
+      "id": "rattler-build",
+      "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/rattler-build/plugin.toml",
+      "format": "toml",
+      "name": "rattler-build",
+      "description": "A fast Conda package builder.",
+      "author": "Phault",
+      "homepageUrl": "https://prefix-dev.github.io/rattler-build/",
+      "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "bins": [
+        "rattler-build"
+      ]
+    },
+    {
+      "id": "ruff",
+      "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/ruff/plugin.toml",
+      "format": "toml",
+      "name": "Ruff",
+      "description": "An extremely fast Python linter and code formatter.",
+      "author": "Phault",
+      "homepageUrl": "https://docs.astral.sh/ruff/",
+      "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "bins": [
+        "ruff"
+      ]
+    },
+    {
+      "id": "shellcheck",
+      "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/shellcheck/plugin.toml",
+      "format": "toml",
+      "name": "ShellCheck",
+      "description": "A static analysis tool for shell scripts.",
+      "author": "Phault",
+      "homepageUrl": "https://github.com/koalaman/shellcheck",
+      "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "bins": [
+        "shellcheck"
+      ]
+    },
+    {
+      "id": "shfmt",
+      "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/shfmt/plugin.toml",
+      "format": "toml",
+      "name": "shfmt",
+      "description": "A shell formatter for POSIX Shell, Bash and mksh.",
+      "author": "Phault",
+      "homepageUrl": "https://github.com/mvdan/sh",
+      "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "bins": [
+        "shfmt"
+      ]
+    },
+    {
+      "id": "sops",
+      "locator": "https://raw.githubusercontent.com/stk0vrfl0w/proto-toml-plugins/main/plugins/sops.toml",
+      "format": "toml",
+      "name": "sops",
+      "description": "Simple and flexible tool for managing secrets.",
+      "author": "stk0vrfl0w",
+      "homepageUrl": "https://github.com/getsops/sops",
+      "repositoryUrl": "https://github.com/stk0vrfl0w/proto-toml-plugins/blob/main/plugins/sops.toml",
+      "bins": [
+        "sops"
+      ]
+    },
+    {
+      "id": "task",
+      "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/task/plugin.toml",
+      "format": "toml",
+      "name": "Task",
+      "description": "Task is a task runner / build tool that aims to be simpler and easier to use than, for example, GNU Make.",
+      "author": "Phault",
+      "homepageUrl": "https://taskfile.dev/",
+      "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "bins": [
+        "task"
+      ]
+    },
+    {
+      "id": "terraform",
+      "locator": "https://raw.githubusercontent.com/theomessin/proto-toml-plugins/master/terraform.toml",
+      "format": "toml",
+      "name": "terraform",
+      "description": "Provision & Manage any Infrastructure.",
+      "author": "stk0vrfl0w",
+      "homepageUrl": "https://www.terraform.io/",
+      "repositoryUrl": "https://github.com/theomessin/proto-toml-plugins/blob/master/terraform.toml",
+      "devicon": "terraform",
+      "bins": [
+        "terraform"
+      ]
+    },
+    {
+      "id": "terragrunt",
+      "locator": "https://raw.githubusercontent.com/stk0vrfl0w/proto-toml-plugins/main/plugins/terragrunt.toml",
+      "format": "toml",
+      "name": "terragrunt",
+      "description": "Thin wrapper that provides extra tools for keeping your terraform configurations DRY.",
+      "author": "stk0vrfl0w",
+      "homepageUrl": "https://terragrunt.gruntwork.io/",
+      "repositoryUrl": "https://github.com/stk0vrfl0w/proto-toml-plugins/blob/main/plugins/terragrunt.toml",
+      "bins": [
+        "terragrunt"
+      ]
+    },
+    {
+      "id": "tilt",
+      "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/tilt/plugin.toml",
+      "format": "toml",
+      "name": "tilt",
+      "description": "A toolkit for fixing the pains of microservice development.",
+      "author": "appthrust",
+      "homepageUrl": "https://tilt.dev/",
+      "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins",
+      "bins": [
+        "tilt"
+      ]
+    },
+    {
+      "id": "timoni",
+      "locator": "https://raw.githubusercontent.com/stefanprodan/timoni/main/proto-plugin.toml",
+      "format": "toml",
+      "name": "timoni",
+      "description": "Distribution and lifecycle management for cloud-native applications.",
+      "author": "b4nst",
+      "homepageUrl": "https://timoni.sh/",
+      "repositoryUrl": "https://github.com/stefanprodan/timoni",
+      "bins": [
+        "timoni"
+      ]
+    },
+    {
+      "id": "traefik",
+      "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/traefik/plugin.toml",
+      "format": "toml",
+      "name": "Traefik",
+      "description": "A modern HTTP reverse proxy and load balancer that makes deploying microservices easy.",
+      "author": "Phault",
+      "homepageUrl": "https://traefik.io/",
+      "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "bins": [
+        "traefik"
+      ]
+    },
+    {
+      "id": "trufflehog",
+      "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/trufflehog/plugin.toml",
+      "format": "toml",
+      "name": "TruffleHog",
+      "description": "Find and verify credentials.",
+      "author": "Phault",
+      "homepageUrl": "https://github.com/trufflesecurity/trufflehog",
+      "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "bins": [
+        "trufflehog"
+      ]
+    },
+    {
+      "id": "uv",
+      "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/uv/plugin.toml",
+      "format": "toml",
+      "name": "uv",
+      "description": "An extremely fast Python package installer and resolver.",
+      "author": "Phault",
+      "homepageUrl": "https://github.com/astral-sh/uv",
+      "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "bins": [
+        "uv"
+      ]
+    },
+    {
+      "id": "wiretap",
+      "locator": "https://raw.githubusercontent.com/ngoldack/proto-tools/main/tools/wiretap/wiretap.toml",
+      "format": "toml",
+      "name": "wiretap",
+      "description": "The world's coolest API Validation and compliance tool. Validate APIs against OpenAPI specifications and much more.",
+      "author": "ngoldack",
+      "homepageUrl": "https://github.com/pb33f/wiretap",
+      "repositoryUrl": "https://github.com/ngoldack/proto-tools",
+      "bins": [
+        "wiretap"
+      ]
+    },
+    {
+      "id": "wizer",
+      "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/wizer/plugin.toml",
+      "format": "toml",
+      "name": "Wizer",
+      "description": "The WebAssembly Pre-Initializer.",
+      "author": "Phault",
+      "homepageUrl": "https://github.com/bytecodealliance/wizer",
+      "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "bins": [
+        "wizer"
+      ]
+    },
+    {
+      "id": "zig",
+      "locator": "https://raw.githubusercontent.com/stk0vrfl0w/proto-toml-plugins/main/plugins/zig.toml",
+      "format": "toml",
+      "name": "Zig",
+      "description": "Zig is a general-purpose programming language and toolchain.",
+      "author": "stk0vrfl0w",
+      "homepageUrl": "https://ziglang.org/",
+      "repositoryUrl": "https://github.com/stk0vrfl0w/proto-toml-plugins/blob/main/plugins/zig.toml",
+      "devicon": "zig",
+      "bins": [
+        "zig"
+      ]
+    },
+    {
+      "id": "zig",
+      "locator": "github://konomae/zig-plugin",
+      "format": "wasm",
+      "name": "Zig",
+      "description": "Zig is a general-purpose programming language and toolchain.",
+      "author": "konomae",
+      "homepageUrl": "https://ziglang.org/",
+      "repositoryUrl": "https://github.com/konomae/zig-plugin",
+      "devicon": "zig",
+      "bins": [
+        "zig"
+      ]
+    },
+    {
+      "id": "zls",
+      "locator": "github://konomae/zls-plugin",
+      "format": "wasm",
+      "name": "zls",
+      "description": "The Zig language server for all your Zig editor.",
+      "author": "konomae",
+      "homepageUrl": "https://github.com/zigtools/zls",
+      "repositoryUrl": "https://github.com/konomae/zls-plugin",
+      "devicon": "zig",
+      "bins": [
+        "zls"
+      ]
+    }
+  ]
+}

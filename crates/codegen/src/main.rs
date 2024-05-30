@@ -1,10 +1,12 @@
+use proto_core::backends::proto::PluginRegistryDocument;
 use proto_pdk_api::*;
 use schematic::schema::typescript::TypeScriptRenderer;
-use schematic::schema::SchemaGenerator;
+use schematic::schema::{JsonSchemaRenderer, SchemaGenerator};
+use std::fs;
 use std::path::PathBuf;
 
 // cargo run -p proto_codegen
-fn main() {
+fn generate_types() {
     let mut generator = SchemaGenerator::default();
 
     // proto
@@ -72,4 +74,35 @@ fn main() {
             TypeScriptRenderer::default(),
         )
         .unwrap();
+}
+
+fn generate_registry_schema() {
+    let mut generator = SchemaGenerator::default();
+    generator.add::<PluginRegistryDocument>();
+    generator
+        .generate(
+            PathBuf::from("registry/schema.json"),
+            JsonSchemaRenderer::default(),
+        )
+        .unwrap();
+}
+
+fn load_save_json(path: &str) {
+    let mut json: PluginRegistryDocument =
+        serde_json::from_slice(&fs::read(path).unwrap()).unwrap();
+
+    json.plugins.sort_by(|a, d| a.id.cmp(&d.id));
+
+    fs::write(path, serde_json::to_string_pretty(&json).unwrap()).unwrap();
+}
+
+fn validate_registries() {
+    load_save_json("registry/data/built-in.json");
+    load_save_json("registry/data/third-party.json");
+}
+
+fn main() {
+    generate_types();
+    generate_registry_schema();
+    validate_registries();
 }
