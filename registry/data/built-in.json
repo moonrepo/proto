@@ -16,7 +16,6 @@
         "bun",
         "bunx"
       ],
-      "detectionSources": [],
       "globalsDirs": [
         "~/.bun/bin"
       ]

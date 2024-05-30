@@ -88,11 +88,11 @@ pub struct PluginEntry {
 
     /// List of sources in which versions are detected from.
     #[schema(nested)]
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub detection_sources: Vec<PluginDetectionSource>,
 
     /// List of directories in which the plugin locates globally installed binaries/packages. Supports environment variables.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub globals_dirs: Vec<String>,
 }
 
