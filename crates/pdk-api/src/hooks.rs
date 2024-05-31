@@ -25,18 +25,22 @@ api_struct!(
         pub context: ToolContext,
 
         /// Path to the global packages directory for the tool, if found.
+        #[serde(default)]
         pub globals_dir: Option<VirtualPath>,
 
         /// A prefix applied to the file names of globally installed packages.
+        #[serde(default)]
         pub globals_prefix: Option<String>,
 
         /// Arguments passed after `--` that was directly passed to the tool's binary.
+        #[serde(default)]
         pub passthrough_args: Vec<String>,
     }
 );
 
 api_struct!(
     /// Output returned from the `pre_run` hook.
+    #[serde(default)]
     pub struct RunHookResult {
         /// Additional arguments to append to the running command.
         pub args: Option<Vec<String>>,

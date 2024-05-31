@@ -17,6 +17,7 @@ api_struct!(
     /// Information about the current state of the tool.
     pub struct ToolContext {
         /// The version of proto (the core crate) calling plugin functions.
+        #[serde(default)]
         pub proto_version: Option<Version>,
 
         /// Virtual path to the tool's installation directory.
@@ -48,6 +49,7 @@ api_struct!(
 
 api_struct!(
     /// Controls aspects of the tool inventory.
+    #[serde(default)]
     pub struct ToolInventoryMetadata {
         /// Disable progress bars when installing or uninstalling tools.
         #[serde(skip_serializing_if = "is_false")]
@@ -68,22 +70,23 @@ api_struct!(
     /// Output returned by the `register_tool` function.
     pub struct ToolMetadataOutput {
         /// Default alias or version to use as a fallback.
-        #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         pub default_version: Option<UnresolvedVersionSpec>,
 
         /// Controls aspects of the tool inventory.
+        #[serde(default)]
         pub inventory: ToolInventoryMetadata,
 
         /// Human readable name of the tool.
         pub name: String,
 
         /// Version of the plugin.
-        #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         pub plugin_version: Option<String>,
 
         /// Names of commands that will self-upgrade the tool,
         /// and should be blocked from happening.
-        #[serde(skip_serializing_if = "Vec::is_empty")]
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
         pub self_upgrade_commands: Vec<String>,
 
         /// Type of the tool.
@@ -96,6 +99,7 @@ api_struct!(
 
 api_struct!(
     /// Output returned by the `detect_version_files` function.
+    #[serde(default)]
     pub struct DetectVersionOutput {
         /// List of files that should be checked for version information.
         #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -120,6 +124,7 @@ api_struct!(
 
 api_struct!(
     /// Output returned by the `parse_version_file` function.
+    #[serde(default)]
     pub struct ParseVersionFileOutput {
         /// The version that was extracted from the file.
         /// Can be a semantic version or a version requirement/range.
@@ -145,13 +150,14 @@ api_struct!(
     /// Output returned by the `native_install` function.
     pub struct NativeInstallOutput {
         /// Error message if the install failed.
-        #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         pub error: Option<String>,
 
         /// Whether the install was successful.
         pub installed: bool,
 
         /// Whether to skip the install process or not.
+        #[serde(default)]
         pub skip_install: bool,
     }
 );
@@ -168,13 +174,14 @@ api_struct!(
     /// Output returned by the `native_uninstall` function.
     pub struct NativeUninstallOutput {
         /// Error message if the uninstall failed.
-        #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         pub error: Option<String>,
 
         /// Whether the install was successful.
         pub uninstalled: bool,
 
         /// Whether to skip the uninstall process or not.
+        #[serde(default)]
         pub skip_uninstall: bool,
     }
 );
@@ -195,26 +202,26 @@ api_struct!(
     pub struct DownloadPrebuiltOutput {
         /// Name of the direct folder within the archive that contains the tool,
         /// and will be removed when unpacking the archive.
-        #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         pub archive_prefix: Option<String>,
 
         /// File name of the checksum to download. If not provided,
         /// will attempt to extract it from the URL.
-        #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         pub checksum_name: Option<String>,
 
         /// Public key to use for checksum verification.
-        #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         pub checksum_public_key: Option<String>,
 
         /// A secure URL to download the checksum file for verification.
         /// If the tool does not support checksum verification, this setting can be omitted.
-        #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         pub checksum_url: Option<String>,
 
         /// File name of the archive to download. If not provided,
         /// will attempt to extract it from the URL.
-        #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         pub download_name: Option<String>,
 
         /// A secure URL to download the tool/archive.
@@ -269,6 +276,7 @@ api_struct!(
 
 api_struct!(
     /// Configuration for generated shim and symlinked binary files.
+    #[serde(default)]
     pub struct ExecutableConfig {
         /// The file to execute, relative from the tool directory.
         /// Does *not* support virtual paths.
@@ -332,6 +340,7 @@ impl ExecutableConfig {
 
 api_struct!(
     /// Output returned by the `locate_executables` function.
+    #[serde(default)]
     pub struct LocateExecutablesOutput {
         /// List of directory paths to find the globals installation directory.
         /// Each path supports environment variable expansion.
@@ -367,6 +376,7 @@ api_struct!(
 
 api_struct!(
     /// Output returned by the `load_versions` function.
+    #[serde(default)]
     pub struct LoadVersionsOutput {
         /// Latest canary version.
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -429,6 +439,7 @@ api_struct!(
 
 api_struct!(
     /// Output returned by the `resolve_version` function.
+    #[serde(default)]
     pub struct ResolveVersionOutput {
         /// New alias or version candidate to resolve.
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -453,6 +464,7 @@ api_struct!(
 
 api_struct!(
     /// Output returned by the `sync_manifest` function.
+    #[serde(default)]
     pub struct SyncManifestOutput {
         /// List of versions that are currently installed. Will replace
         /// what is currently in the manifest.
@@ -483,14 +495,15 @@ api_struct!(
         pub check_var: String,
 
         /// A mapping of environment variables that will be injected as exports.
-        #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         pub export_vars: Option<FxHashMap<String, String>>,
 
         /// A list of paths to prepend to the `PATH` environment variable.
-        #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         pub extend_path: Option<Vec<String>>,
 
         /// Whether to skip the syncing process or not.
+        #[serde(default)]
         pub skip_sync: bool,
     }
 );

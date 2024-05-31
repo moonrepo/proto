@@ -16,9 +16,12 @@ api_enum!(
 
 api_struct!(
     /// Input passed to the `host_log` host function.
+    #[serde(default)]
     pub struct HostLogInput {
         pub data: FxHashMap<String, serde_json::Value>,
+
         pub message: String,
+
         pub target: HostLogTarget,
     }
 );
@@ -47,6 +50,7 @@ impl From<String> for HostLogInput {
 
 api_struct!(
     /// Input passed to the `exec_command` host function.
+    #[serde(default)]
     pub struct ExecCommandInput {
         /// Arguments to pass to the command.
         pub args: Vec<String>,
@@ -99,6 +103,7 @@ impl ExecCommandInput {
 
 api_struct!(
     /// Output returned from the `exec_command` host function.
+    #[serde(default)]
     pub struct ExecCommandOutput {
         pub command: String,
         pub exit_code: i32,
