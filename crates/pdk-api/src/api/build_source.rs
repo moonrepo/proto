@@ -18,7 +18,9 @@ api_struct!(
     pub struct ArchiveSource {
         /// The URL to download the archive from.
         pub url: String,
+
         /// A path prefix within the archive to remove.
+        #[serde(default)]
         pub prefix: Option<String>,
     }
 );
@@ -28,9 +30,12 @@ api_struct!(
     pub struct GitSource {
         /// The URL of the Git remote.
         pub url: String,
+
         /// The branch/commit/tag to checkout.
         pub reference: String,
+
         /// Include submodules during checkout.
+        #[serde(default)]
         pub submodules: bool,
     }
 );
@@ -54,11 +59,16 @@ api_struct!(
     pub struct CommandInstruction {
         /// The binary on `PATH`.
         pub bin: String,
+
         /// List of arguments.
         pub args: Vec<String>,
+
         /// Map of environment variables.
+        #[serde(default)]
         pub env: FxHashMap<String, String>,
+
         /// The working directory.
+        #[serde(default)]
         pub cwd: Option<PathBuf>,
     }
 );
@@ -122,6 +132,7 @@ api_enum!(
 
 api_struct!(
     /// Output returned by the `build_instructions` function.
+    #[serde(default)]
     pub struct BuildInstructionsOutput {
         /// Link to the documentation/help.
         pub help_url: Option<String>,
