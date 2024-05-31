@@ -37,6 +37,7 @@ api_struct!(
 
 api_struct!(
     /// Output returned from the `pre_run` hook.
+    #[serde(default)]
     pub struct RunHookResult {
         /// Additional arguments to append to the running command.
         pub args: Option<Vec<String>>,

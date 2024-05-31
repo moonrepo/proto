@@ -41,16 +41,16 @@ starbase_archive = { version = "0.7.2", features = [
 ] }
 starbase_events = { version = "0.6.0" }
 starbase_sandbox = { version = "0.6.1" }
-starbase_shell = { version = "0.2.1", features = ["miette"] }
+starbase_shell = { version = "0.2.2", features = ["miette"] }
 starbase_styles = { version = "0.4.0" }
-starbase_utils = { version = "0.7.2", default-features = false, features = [
+starbase_utils = { version = "0.7.3", default-features = false, features = [
     "json",
     "miette",
     "net",
     "toml",
 ] }
 thiserror = "1.0.61"
-tokio = { version = "1.37.0", features = ["full", "tracing"] }
+tokio = { version = "1.38.0", features = ["full", "tracing"] }
 tracing = "0.1.40"
 uuid = { version = "1.8.0", features = ["v4"] }
 

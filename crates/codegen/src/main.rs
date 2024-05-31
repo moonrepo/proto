@@ -9,6 +9,25 @@ use std::path::PathBuf;
 fn generate_types() {
     let mut generator = SchemaGenerator::default();
 
+    // system_env
+    generator.add::<HostArch>();
+    generator.add::<HostOS>();
+    generator.add::<HostLibc>();
+
+    // version_spec
+    generator.add::<VersionSpec>();
+    generator.add::<UnresolvedVersionSpec>();
+
+    // warpgate
+    generator.add::<HostLogTarget>();
+    generator.add::<HostLogInput>();
+    generator.add::<ExecCommandInput>();
+    generator.add::<ExecCommandOutput>();
+    generator.add::<HostEnvironment>();
+    generator.add::<TestEnvironment>();
+    generator.add::<PluginLocator>();
+    generator.add::<VirtualPath>();
+
     // proto
     generator.add::<ToolContext>();
     generator.add::<PluginType>();
@@ -48,25 +67,6 @@ fn generate_types() {
     generator.add::<BuildRequirement>();
     generator.add::<BuildInstructionsOutput>();
     generator.add::<BuildInstructionsInput>();
-
-    // system_env
-    generator.add::<HostArch>();
-    generator.add::<HostOS>();
-    generator.add::<HostLibc>();
-
-    // version_spec
-    generator.add::<VersionSpec>();
-    generator.add::<UnresolvedVersionSpec>();
-
-    // warpgate
-    generator.add::<HostLogTarget>();
-    generator.add::<HostLogInput>();
-    generator.add::<ExecCommandInput>();
-    generator.add::<ExecCommandOutput>();
-    generator.add::<HostEnvironment>();
-    generator.add::<TestEnvironment>();
-    generator.add::<PluginLocator>();
-    generator.add::<VirtualPath>();
 
     generator
         .generate(

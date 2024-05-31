@@ -2,18 +2,79 @@
 
 /* eslint-disable */
 
-export type VirtualPath = string;
+/** Architecture of the system environment. */
+export type SystemArch = 'x86' | 'x64' | 'arm' | 'arm64' | 'longarm64' | 'm68k' | 'mips' | 'mips64' | 'powerpc' | 'powerpc64' | 'riscv64' | 's390x' | 'sparc64';
+
+/** Operating system of the current environment. */
+export type SystemOS = 'android' | 'dragonfly' | 'freebsd' | 'ios' | 'linux' | 'macos' | 'netbsd' | 'openbsd' | 'solaris' | 'windows';
+
+/** Libc being used in the system environment. */
+export type SystemLibc = 'gnu' | 'musl' | 'unknown';
 
 export type VersionSpec = string;
+
+export type UnresolvedVersionSpec = string;
+
+/** Target where host logs should be written to. */
+export type HostLogTarget = 'stderr' | 'stdout' | 'tracing';
+
+/** Input passed to the `host_log` host function. */
+export interface HostLogInput {
+	data?: Record<string, unknown>;
+	message: string;
+	target?: HostLogTarget;
+}
+
+export type VirtualPath = string;
+
+/** Input passed to the `exec_command` host function. */
+export interface ExecCommandInput {
+	/** Arguments to pass to the command. */
+	args: string[];
+	/** The command or script to execute. */
+	command: string;
+	/** Environment variables to pass to the command. */
+	env?: Record<string, string>;
+	/** Mark the command as executable before executing. */
+	setExecutable: boolean;
+	/** Stream the output instead of capturing it. */
+	stream?: boolean;
+	/** Override the current working directory. */
+	workingDir?: VirtualPath | null;
+}
+
+/** Output returned from the `exec_command` host function. */
+export interface ExecCommandOutput {
+	command?: string;
+	exitCode?: number;
+	stderr?: string;
+	stdout?: string;
+}
+
+/** Information about the host environment (the current runtime). */
+export interface HostEnvironment {
+	arch: SystemArch;
+	homeDir: VirtualPath;
+	libc: SystemLibc;
+	os: SystemOS;
+}
+
+/** Information about the current testing environment. */
+export interface TestEnvironment {
+	ci: boolean;
+	sandbox: string;
+}
+
+export type PluginLocator = string;
 
 /** Information about the current state of the tool. */
 export interface ToolContext {
 	/** The version of proto (the core crate) calling plugin functions. */
 	protoVersion?: string | null;
 	/** Virtual path to the tool's installation directory. */
-	toolDir?: VirtualPath;
+	toolDir: VirtualPath;
 	/** Current version. Will be a "latest" alias if not resolved. */
-	version?: VersionSpec;
+	version: VersionSpec;
 }
 
 /** Supported types of plugins. */
@@ -22,7 +83,7 @@ export type PluginType = 'language' | 'dependency-manager' | 'cli';
 /** Input passed to the `register_tool` function. */
 export interface ToolMetadataInput {
 	/** ID of the tool, as it was configured. */
-	id?: string;
+	id: string;
 }
 
 /** Controls aspects of the tool inventory. */
@@ -38,8 +99,6 @@ export interface ToolInventoryMetadata {
 	versionSuffix?: string | null;
 }
 
-export type UnresolvedVersionSpec = string;
-
 /** Output returned by the `register_tool` function. */
 export interface ToolMetadataOutput {
 	/** Default alias or version to use as a fallback. */
@@ -47,7 +106,7 @@ export interface ToolMetadataOutput {
 	/** Controls aspects of the tool inventory. */
 	inventory?: ToolInventoryMetadata;
 	/** Human readable name of the tool. */
-	name?: string;
+	name: string;
 	/** Version of the plugin. */
 	pluginVersion?: string | null;
 	/**
@@ -56,7 +115,7 @@ export interface ToolMetadataOutput {
 	 */
 	selfUpgradeCommands?: string[];
 	/** Type of the tool. */
-	type?: PluginType;
+	type: PluginType;
 }
 
 /** Output returned by the `detect_version_files` function. */
@@ -70,9 +129,9 @@ export interface DetectVersionOutput {
 /** Input passed to the `parse_version_file` function. */
 export interface ParseVersionFileInput {
 	/** File contents to parse/extract a version from. */
-	content?: string;
+	content: string;
 	/** Name of file that's being parsed. */
-	file?: string;
+	file: string;
 }
 
 /** Output returned by the `parse_version_file` function. */
@@ -87,9 +146,9 @@ export interface ParseVersionFileOutput {
 /** Input passed to the `native_install` function. */
 export interface NativeInstallInput {
 	/** Current tool context. */
-	context?: ToolContext;
+	context: ToolContext;
 	/** Virtual directory to install to. */
-	installDir?: VirtualPath;
+	installDir: VirtualPath;
 }
 
 /** Output returned by the `native_install` function. */
@@ -97,7 +156,7 @@ export interface NativeInstallOutput {
 	/** Error message if the install failed. */
 	error?: string | null;
 	/** Whether the install was successful. */
-	installed?: boolean;
+	installed: boolean;
 	/** Whether to skip the install process or not. */
 	skipInstall?: boolean;
 }
@@ -105,7 +164,7 @@ export interface NativeInstallOutput {
 /** Input passed to the `native_uninstall` function. */
 export interface NativeUninstallInput {
 	/** Current tool context. */
-	context?: ToolContext;
+	context: ToolContext;
 }
 
 /** Output returned by the `native_uninstall` function. */
@@ -115,15 +174,15 @@ export interface NativeUninstallOutput {
 	/** Whether to skip the uninstall process or not. */
 	skipUninstall?: boolean;
 	/** Whether the install was successful. */
-	uninstalled?: boolean;
+	uninstalled: boolean;
 }
 
 /** Input passed to the `download_prebuilt` function. */
 export interface DownloadPrebuiltInput {
 	/** Current tool context. */
-	context?: ToolContext;
+	context: ToolContext;
 	/** Virtual directory to install to. */
-	installDir?: VirtualPath;
+	installDir: VirtualPath;
 }
 
 /** Output returned by the `download_prebuilt` function. */
@@ -151,38 +210,38 @@ export interface DownloadPrebuiltOutput {
 	 */
 	downloadName?: string | null;
 	/** A secure URL to download the tool/archive. */
-	downloadUrl?: string;
+	downloadUrl: string;
 }
 
 /** Input passed to the `unpack_archive` function. */
 export interface UnpackArchiveInput {
 	/** Current tool context. */
-	context?: ToolContext;
+	context: ToolContext;
 	/** Virtual path to the downloaded file. */
-	inputFile?: VirtualPath;
+	inputFile: VirtualPath;
 	/** Virtual directory to unpack the archive into, or copy the binary to. */
-	outputDir?: VirtualPath;
+	outputDir: VirtualPath;
 }
 
 /** Output returned by the `verify_checksum` function. */
 export interface VerifyChecksumInput {
 	/** Virtual path to the checksum file. */
-	checksumFile?: VirtualPath;
+	checksumFile: VirtualPath;
 	/** Current tool context. */
-	context?: ToolContext;
+	context: ToolContext;
 	/** Virtual path to the downloaded file. */
-	downloadFile?: VirtualPath;
+	downloadFile: VirtualPath;
 }
 
 /** Output returned by the `verify_checksum` function. */
 export interface VerifyChecksumOutput {
-	verified?: boolean;
+	verified: boolean;
 }
 
 /** Input passed to the `locate_executables` function. */
 export interface LocateExecutablesInput {
 	/** Current tool context. */
-	context?: ToolContext;
+	context: ToolContext;
 }
 
 export type StringOrVec = string | string[];
@@ -247,7 +306,7 @@ export interface LocateExecutablesOutput {
 /** Input passed to the `load_versions` function. */
 export interface LoadVersionsInput {
 	/** The alias or version currently being resolved. */
-	initial?: UnresolvedVersionSpec;
+	initial: UnresolvedVersionSpec;
 }
 
 /** Output returned by the `load_versions` function. */
@@ -265,7 +324,7 @@ export interface LoadVersionsOutput {
 /** Input passed to the `resolve_version` function. */
 export interface ResolveVersionInput {
 	/** The alias or version currently being resolved. */
-	initial?: UnresolvedVersionSpec;
+	initial: UnresolvedVersionSpec;
 }
 
 /** Output returned by the `resolve_version` function. */
@@ -282,7 +341,7 @@ export interface ResolveVersionOutput {
 /** Input passed to the `sync_manifest` function. */
 export interface SyncManifestInput {
 	/** Current tool context. */
-	context?: ToolContext;
+	context: ToolContext;
 }
 
 /** Output returned by the `sync_manifest` function. */
@@ -299,9 +358,9 @@ export interface SyncManifestOutput {
 /** Input passed to the `sync_shell_profile` function. */
 export interface SyncShellProfileInput {
 	/** Current tool context. */
-	context?: ToolContext;
+	context: ToolContext;
 	/** Arguments passed after `--` that was directly passed to the tool's binary. */
-	passthroughArgs?: string[];
+	passthroughArgs: string[];
 }
 
 /** Output returned by the `sync_shell_profile` function. */
@@ -310,7 +369,7 @@ export interface SyncShellProfileOutput {
 	 * An environment variable to check for in the shell profile.
 	 * If the variable exists, injecting path and exports will be avoided.
 	 */
-	checkVar?: string;
+	checkVar: string;
 	/** A mapping of environment variables that will be injected as exports. */
 	exportVars?: Record<string, string> | null;
 	/** A list of paths to prepend to the `PATH` environment variable. */
@@ -325,11 +384,11 @@ export interface SyncShellProfileOutput {
  */
 export interface InstallHook {
 	/** Current tool context. */
-	context?: ToolContext;
+	context: ToolContext;
 	/** Arguments passed after `--` that was directly passed to the tool's binary. */
-	passthroughArgs?: string[];
+	passthroughArgs: string[];
 	/** Whether the resolved version was pinned */
-	pinned?: boolean;
+	pinned: boolean;
 }
 
 /**
@@ -338,13 +397,13 @@ export interface InstallHook {
  */
 export interface RunHook {
 	/** Current tool context. */
-	context?: ToolContext;
+	context: ToolContext;
 	/** Path to the global packages directory for the tool, if found. */
-	globalsDir?: VirtualPath | null;
+	globalsDir: VirtualPath | null;
 	/** A prefix applied to the file names of globally installed packages. */
-	globalsPrefix?: string | null;
+	globalsPrefix: string | null;
 	/** Arguments passed after `--` that was directly passed to the tool's binary. */
-	passthroughArgs?: string[];
+	passthroughArgs: string[];
 }
 
 /** Output returned from the `pre_run` hook. */
@@ -361,7 +420,7 @@ export interface RunHookResult {
 /** Input passed to the `build_instructions` function. */
 export interface BuildInstructionsInput {
 	/** Current tool context. */
-	context?: ToolContext;
+	context: ToolContext;
 }
 
 /** Source code is contained in an archive. */
@@ -370,18 +429,18 @@ export interface ArchiveSource {
 	prefix?: string | null;
 	type: 'archive';
 	/** The URL to download the archive from. */
-	url?: string;
+	url: string;
 }
 
 /** Source code is located in a Git repository. */
 export interface GitSource {
 	/** The branch/commit/tag to checkout. */
-	reference?: string;
+	reference: string;
 	/** Include submodules during checkout. */
 	submodules?: boolean;
 	type: 'git';
 	/** The URL of the Git remote. */
-	url?: string;
+	url: string;
 }
 
 export type SourceLocation = ArchiveSource | GitSource;
@@ -405,9 +464,9 @@ export type BuildInstruction = {
 	/** A command and its parameters to be executed as a child process. */
 	instruction: {
 		/** List of arguments. */
-		args?: string[];
+		args: string[];
 		/** The binary on `PATH`. */
-		bin?: string;
+		bin: string;
 		/** The working directory. */
 		cwd?: string | null;
 		/** Map of environment variables. */
@@ -442,16 +501,10 @@ export type BuildRequirement = {
 	type: 'windows-developer-mode';
 };
 
-/** Architecture of the system environment. */
-export type SystemArch = 'x86' | 'x64' | 'arm' | 'arm64' | 'longarm64' | 'm68k' | 'mips' | 'mips64' | 'powerpc' | 'powerpc64' | 'riscv64' | 's390x' | 'sparc64';
-
 export type DependencyName = string | Record<string, string> | string[];
 
 /** Package manager of the system environment. */
 export type SystemPackageManager = 'pkg' | 'pkgin' | 'apk' | 'apt' | 'dnf' | 'pacman' | 'yum' | 'brew' | 'choco' | 'scoop';
-
-/** Operating system of the current environment. */
-export type SystemOS = 'android' | 'dragonfly' | 'freebsd' | 'ios' | 'linux' | 'macos' | 'netbsd' | 'openbsd' | 'solaris' | 'windows';
 
 export type SystemDependency = string | string[] | {
 	/** Only install on this architecture. */
@@ -490,56 +543,3 @@ export interface BuildInstructionsOutput {
 	 */
 	systemDependencies?: SystemDependency[];
 }
-
-/** Libc being used in the system environment. */
-export type SystemLibc = 'gnu' | 'musl' | 'unknown';
-
-/** Target where host logs should be written to. */
-export type HostLogTarget = 'stderr' | 'stdout' | 'tracing';
-
-/** Input passed to the `host_log` host function. */
-export interface HostLogInput {
-	data?: Record<string, unknown>;
-	message?: string;
-	target?: HostLogTarget;
-}
-
-/** Input passed to the `exec_command` host function. */
-export interface ExecCommandInput {
-	/** Arguments to pass to the command. */
-	args?: string[];
-	/** The command or script to execute. */
-	command?: string;
-	/** Environment variables to pass to the command. */
-	env?: Record<string, string>;
-	/** Mark the command as executable before executing. */
-	setExecutable?: boolean;
-	/** Stream the output instead of capturing it. */
-	stream?: boolean;
-	/** Override the current working directory. */
-	workingDir?: VirtualPath | null;
-}
-
-/** Output returned from the `exec_command` host function. */
-export interface ExecCommandOutput {
-	command?: string;
-	exitCode?: number;
-	stderr?: string;
-	stdout?: string;
-}
-
-/** Information about the host environment (the current runtime). */
-export interface HostEnvironment {
-	arch?: SystemArch;
-	homeDir?: VirtualPath;
-	libc?: SystemLibc;
-	os?: SystemOS;
-}
-
-/** Information about the current testing environment. */
-export interface TestEnvironment {
-	ci?: boolean;
-	sandbox?: string;
-}
-
-export type PluginLocator = string;
