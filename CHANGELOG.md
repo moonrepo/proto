@@ -21,6 +21,10 @@
   - `source:https://url.com/file.wasm` -> `https://url.com/file.wasm`
   - `github:org/repo` -> `github://org/repo`
 
+#### ⚙️ Internal
+
+- Reworked how serde defaults are applied for input/output plugin function types.
+
 ## 0.35.5
 
 #### 🐞 Fixes
