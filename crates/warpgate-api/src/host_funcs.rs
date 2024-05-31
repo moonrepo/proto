@@ -16,12 +16,13 @@ api_enum!(
 
 api_struct!(
     /// Input passed to the `host_log` host function.
-    #[serde(default)]
     pub struct HostLogInput {
+        #[serde(default)]
         pub data: FxHashMap<String, serde_json::Value>,
 
         pub message: String,
 
+        #[serde(default)]
         pub target: HostLogTarget,
     }
 );
@@ -50,7 +51,6 @@ impl From<String> for HostLogInput {
 
 api_struct!(
     /// Input passed to the `exec_command` host function.
-    #[serde(default)]
     pub struct ExecCommandInput {
         /// Arguments to pass to the command.
         pub args: Vec<String>,
@@ -59,6 +59,7 @@ api_struct!(
         pub command: String,
 
         /// Environment variables to pass to the command.
+        #[serde(default)]
         pub env: FxHashMap<String, String>,
 
         /// Mark the command as executable before executing.
@@ -66,9 +67,11 @@ api_struct!(
         pub set_executable: bool,
 
         /// Stream the output instead of capturing it.
+        #[serde(default)]
         pub stream: bool,
 
         /// Override the current working directory.
+        #[serde(default)]
         pub working_dir: Option<VirtualPath>,
     }
 );

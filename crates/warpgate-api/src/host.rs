@@ -6,7 +6,6 @@ pub use system_env::{SystemArch as HostArch, SystemLibc as HostLibc, SystemOS as
 
 api_struct!(
     /// Information about the host environment (the current runtime).
-    #[serde(default)]
     pub struct HostEnvironment {
         pub arch: HostArch,
         pub libc: HostLibc,
@@ -17,7 +16,6 @@ api_struct!(
 
 api_struct!(
     /// Information about the current testing environment.
-    #[serde(default)]
     pub struct TestEnvironment {
         pub ci: bool,
         pub sandbox: PathBuf,
