@@ -86,9 +86,9 @@ impl ProtoRegistry {
             if fs::is_stale(&temp_file, false, duration, now)?.is_none() {
                 debug!(file = ?temp_file, "Reading plugins data from local cache");
 
-                let data: PluginRegistryDocument = json::read_file(&temp_file)?;
+                let plugins: Vec<PluginEntry> = json::read_file(&temp_file)?;
 
-                return Ok(data.plugins);
+                return Ok(plugins);
             }
         }
 
@@ -108,7 +108,7 @@ impl ProtoRegistry {
             })?;
 
         // Cache the result for future requests
-        json::write_file(temp_file, &data, false)?;
+        json::write_file(temp_file, &data.plugins, false)?;
 
         Ok(data.plugins)
     }

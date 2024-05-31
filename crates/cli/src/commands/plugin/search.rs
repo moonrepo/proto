@@ -33,17 +33,17 @@ pub async fn search(args: ArgsRef<SearchPluginArgs>, proto: ResourceRef<ProtoRes
         })
         .collect::<Vec<_>>();
 
-    if queried_plugins.is_empty() {
-        eprintln!("No plugins available for query \"{query}\"");
-
-        process::exit(1);
-    }
-
     // Dump all the data as JSON
     if args.json {
         println!("{}", json::format(&queried_plugins, true)?);
 
         return Ok(());
+    }
+
+    if queried_plugins.is_empty() {
+        eprintln!("No plugins available for query \"{query}\"");
+
+        process::exit(1);
     }
 
     // Print all the data in a table
