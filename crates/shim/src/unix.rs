@@ -26,11 +26,7 @@ pub fn get_shim_file_name(name: &str) -> String {
 // but we can remove the file (the i-node still exists) and create the new shim
 // alongside it.
 // @see https://groups.google.com/g/comp.unix.programmer/c/pUNlGCwJHK4?pli=1
-pub fn create_shim(source_code: &[u8], shim_path: &Path, find_only: bool) -> io::Result<()> {
-    if find_only && shim_path.exists() {
-        return Ok(());
-    }
-
+pub fn create_shim(source_code: &[u8], shim_path: &Path) -> io::Result<()> {
     // Remove the current exe
     if shim_path.exists() {
         fs::remove_file(shim_path)?;

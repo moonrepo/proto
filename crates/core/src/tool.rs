@@ -1268,7 +1268,7 @@ impl Tool {
         let mut registry: ShimsMap = BTreeMap::default();
         registry.insert(self.id.to_string(), Shim::default());
 
-        fs::create_dir_all(&self.proto.store.shims_dir)?;
+        let lock = fs::lock_directory(&self.proto.store.shims_dir)?;
 
         for location in shims {
             let mut shim_entry = Shim::default();
@@ -1318,6 +1318,8 @@ impl Tool {
             );
         }
 
+        lock.unlock()?;
+
         self.on_created_shims.emit(event).await?;
 
         ShimRegistry::update(&self.proto, registry)?;
@@ -1342,10 +1344,10 @@ impl Tool {
             );
         }
 
-        fs::create_dir_all(&self.proto.store.bin_dir)?;
-
         let tool_dir = self.get_product_dir();
         let mut event = CreatedBinariesEvent { bins: vec![] };
+
+        let lock = fs::lock_directory(&self.proto.store.bin_dir)?;
 
         for location in bins {
             let input_path = tool_dir.join(
@@ -1385,6 +1387,8 @@ impl Tool {
 
             event.bins.push(location.name);
         }
+
+        lock.unlock()?;
 
         self.on_created_bins.emit(event).await?;
 
