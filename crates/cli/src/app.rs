@@ -1,6 +1,6 @@
 use crate::commands::{
     debug::DebugConfigArgs,
-    plugin::{AddPluginArgs, InfoPluginArgs, ListPluginsArgs, RemovePluginArgs},
+    plugin::{AddPluginArgs, InfoPluginArgs, ListPluginsArgs, RemovePluginArgs, SearchPluginArgs},
     AliasArgs, BinArgs, CleanArgs, CompletionsArgs, InstallArgs, ListArgs, ListRemoteArgs,
     MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs, StatusArgs, UnaliasArgs,
     UninstallArgs, UnpinArgs,
@@ -256,7 +256,7 @@ pub enum PluginCommands {
 
     #[command(
         name = "info",
-        about = "Display information about a plugin and its inventory."
+        about = "Display information about an installed plugin and its inventory."
     )]
     Info(InfoPluginArgs),
 
@@ -272,4 +272,10 @@ pub enum PluginCommands {
         long_about = "Remove a plugin from the local ./.prototools config, or global ~/.proto/.prototools config."
     )]
     Remove(RemovePluginArgs),
+
+    #[command(
+        name = "search",
+        about = "Search for available plugins provided by the community."
+    )]
+    Search(SearchPluginArgs),
 }

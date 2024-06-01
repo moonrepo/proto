@@ -7,7 +7,7 @@ use thiserror::Error;
 #[derive(Error, Debug, Diagnostic)]
 pub enum ProtoCliError {
     #[diagnostic(code(proto::cli::invalid_alias))]
-    #[error("Invalid alias name {}. Use alphanumeric words instead.", .alias.style(Style::Id))]
+    #[error("Invalid alias name {}. Use alpha-numeric words instead.", .alias.style(Style::Id))]
     InvalidAliasName { alias: String },
 
     #[diagnostic(code(proto::cli::missing_tools_config))]

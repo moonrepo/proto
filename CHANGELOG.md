@@ -14,12 +14,18 @@
 
 #### 🚀 Updates
 
+- Added a `proto plugin search` command that can be used to search for community created plugins.
 - Added a `proto unpin` command, for removing a pinned version from a `.prototools` file.
 - Updated `proto uninstall` to also entries from `.prototools` if the version was uninstalled.
 - Updated plugin locator strings to use common protocol syntax. The custom `source:` syntax is deprecated.
   - `source:./file.wasm` -> `file://./file.wasm`
   - `source:https://url.com/file.wasm` -> `https://url.com/file.wasm`
   - `github:org/repo` -> `github://org/repo`
+- Updated some error messages to include text for work arounds.
+
+#### 🐞 Fixes
+
+- Fixed invalid `PATH` syntax for Elvish shell.
 
 #### ⚙️ Internal
 

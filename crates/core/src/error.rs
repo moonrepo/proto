@@ -1,3 +1,4 @@
+use crate::proto_config::PROTO_CONFIG_NAME;
 use miette::Diagnostic;
 use starbase_styles::{Style, Stylize};
 use std::path::PathBuf;
@@ -71,9 +72,10 @@ pub enum ProtoError {
 
     #[diagnostic(code(proto::tool::required))]
     #[error(
-        "This project requires {tool} {}, but this version has not been installed. Install it with {}!",
+        "This project requires {tool} {}, but this version has not been installed. Install it with {}, or enable the {} setting to automatically install missing versions!",
         .version.style(Style::Hash),
         .command.style(Style::Shell),
+        "auto-install".style(Style::Property),
     )]
     MissingToolForRun {
         tool: String,
@@ -83,10 +85,11 @@ pub enum ProtoError {
 
     #[diagnostic(code(proto::tool::required))]
     #[error(
-        "This project requires {tool} {} (detected from {}), but this version has not been installed. Install it with {}!",
+        "This project requires {tool} {} (detected from {}), but this version has not been installed. Install it with {}, or enable the {} setting to automatically install missing versions!",
         .version.style(Style::Hash),
         .path.style(Style::Path),
         .command.style(Style::Shell),
+        "auto-install".style(Style::Property),
     )]
     MissingToolForRunWithSource {
         tool: String,
@@ -101,7 +104,12 @@ pub enum ProtoError {
 
     #[diagnostic(code(proto::tool::unknown))]
     #[error(
-        "{} is not a built-in tool or has not been configured as a plugin, unable to proceed.", .id.style(Style::Id)
+        "Unable to proceed, {} is not a built-in tool and has not been configured with {} in a {} file.\n\nLearn more about plugins: {}\nSearch community plugins: {}",
+        .id.style(Style::Id),
+        "[plugins]".style(Style::Property),
+        PROTO_CONFIG_NAME.style(Style::File),
+        "https://moonrepo.dev/docs/proto/plugins".style(Style::Url),
+        format!("proto plugin search {}", .id).style(Style::Shell),
     )]
     UnknownTool { id: Id },
 
@@ -113,7 +121,10 @@ pub enum ProtoError {
         code(proto::version::undetected),
         help = "Has the tool been installed?"
     )]
-    #[error("Failed to detect an applicable version to run {tool} with. Try pinning a version or passing the version as an argument.")]
+    #[error(
+        "Failed to detect an applicable version to run {tool} with. Try pinning a version with {} or passing the version as an argument.",
+        "proto pin".style(Style::Shell),
+    )]
     VersionDetectFailed { tool: String },
 
     #[diagnostic(
