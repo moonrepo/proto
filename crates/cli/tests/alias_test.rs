@@ -102,7 +102,7 @@ mod alias_local {
             .assert();
 
         assert.stderr(predicate::str::contains(
-            "Invalid alias name 1.2.3. Use alphanumeric words instead.",
+            "Invalid alias name 1.2.3. Use alpha-numeric words instead.",
         ));
     }
 

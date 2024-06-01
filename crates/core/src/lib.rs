@@ -1,4 +1,3 @@
-pub mod backends;
 pub mod checksum;
 mod error;
 mod events;
@@ -6,6 +5,7 @@ mod helpers;
 pub mod layout;
 mod proto;
 mod proto_config;
+pub mod registry;
 mod shim_registry;
 mod tool;
 mod tool_loader;

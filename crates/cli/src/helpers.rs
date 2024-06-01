@@ -5,8 +5,8 @@ use dialoguer::{
 use indicatif::{ProgressBar, ProgressStyle};
 use miette::IntoDiagnostic;
 use proto_core::{
-    load_schema_plugin_with_proto, load_tool_from_locator, load_tool_with_proto, Id,
-    ProtoEnvironment, Tool, SCHEMA_PLUGIN_KEY,
+    load_schema_plugin_with_proto, load_tool_from_locator, load_tool_with_proto,
+    registry::ProtoRegistry, Id, ProtoEnvironment, Tool, SCHEMA_PLUGIN_KEY,
 };
 use rustc_hash::FxHashSet;
 use starbase::Resource;
@@ -119,6 +119,10 @@ impl ProtoResource {
         Ok(Self {
             env: Arc::new(ProtoEnvironment::new()?),
         })
+    }
+
+    pub fn create_registry(&self) -> ProtoRegistry {
+        ProtoRegistry::new(Arc::clone(&self.env))
     }
 
     pub async fn load_tool(&self, id: &Id) -> miette::Result<Tool> {

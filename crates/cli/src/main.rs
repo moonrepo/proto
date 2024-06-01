@@ -104,6 +104,7 @@ async fn main() -> MainResult {
             PluginCommands::Info(args) => app.execute_with_args(commands::plugin::info, args),
             PluginCommands::List(args) => app.execute_with_args(commands::plugin::list, args),
             PluginCommands::Remove(args) => app.execute_with_args(commands::plugin::remove, args),
+            PluginCommands::Search(args) => app.execute_with_args(commands::plugin::search, args),
         },
         Commands::Regen(args) => app.execute_with_args(commands::regen, args),
         Commands::Run(args) => app.execute_with_args(commands::run, args),
