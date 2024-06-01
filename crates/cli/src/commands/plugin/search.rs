@@ -87,8 +87,12 @@ pub async fn search(args: ArgsRef<SearchPluginArgs>, proto: ResourceRef<ProtoRes
     })?;
 
     printer.named_section("Usage", |p| {
-        p.write(format!("Find a plugin above that you want to use? Enable it with the following command. Learn more: {}\n", color::url("https://moonrepo.dev/docs/proto/plugins")));
-
+        p.write("Find a plugin above that you want to use? Enable it with the command below.");
+        p.write(format!(
+            "Learn more about plugins: {}",
+            color::url("https://moonrepo.dev/docs/proto/plugins")
+        ));
+        p.line();
         p.write(color::shell(" proto plugin add <id> <locator>"));
 
         Ok(())

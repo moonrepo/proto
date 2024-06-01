@@ -82,14 +82,12 @@ impl ProtoRegistry {
         let now = SystemTime::now();
         let duration = Duration::from_secs(86400);
 
-        if temp_file.exists() {
-            if fs::is_stale(&temp_file, false, duration, now)?.is_none() {
-                debug!(file = ?temp_file, "Reading plugins data from local cache");
+        if temp_file.exists() && fs::is_stale(&temp_file, false, duration, now)?.is_none() {
+            debug!(file = ?temp_file, "Reading plugins data from local cache");
 
-                let plugins: Vec<PluginEntry> = json::read_file(&temp_file)?;
+            let plugins: Vec<PluginEntry> = json::read_file(&temp_file)?;
 
-                return Ok(plugins);
-            }
+            return Ok(plugins);
         }
 
         // Otherwise fetch from the upstream URL
