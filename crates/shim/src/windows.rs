@@ -49,11 +49,7 @@ macro_rules! handle_io_error {
 // We can't remove or overwrite an executable that is currently running,
 // but we can rename it and create the new shim alongside it.
 // @see https://stackoverflow.com/a/7198760
-pub fn create_shim(source_code: &[u8], shim_path: &Path, find_only: bool) -> io::Result<()> {
-    if find_only && shim_path.exists() {
-        return Ok(());
-    }
-
+pub fn create_shim(source_code: &[u8], shim_path: &Path) -> io::Result<()> {
     let mut renamed_shim_path = shim_path.to_path_buf();
     renamed_shim_path.set_extension("previous.exe");
 

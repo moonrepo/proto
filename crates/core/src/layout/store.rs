@@ -125,8 +125,8 @@ impl Store {
     }
 
     #[instrument(skip(self))]
-    pub fn create_shim(&self, shim_path: &Path, find_only: bool) -> miette::Result<()> {
-        create_shim(self.load_shim_binary()?, shim_path, find_only).map_err(|error| {
+    pub fn create_shim(&self, shim_path: &Path) -> miette::Result<()> {
+        create_shim(self.load_shim_binary()?, shim_path).map_err(|error| {
             ProtoError::CreateShimFailed {
                 path: shim_path.to_owned(),
                 error: Box::new(error),
