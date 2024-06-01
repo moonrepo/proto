@@ -54,7 +54,7 @@ mod plugin_search {
             .arg("--json")
             .assert();
 
-        assert.success().stdout(predicate::str::starts_with("{"));
+        assert.success().stdout(predicate::str::starts_with("["));
     }
 
     #[test]
