@@ -1,3 +1,4 @@
+use crate::proto_config::PROTO_CONFIG_NAME;
 use miette::Diagnostic;
 use starbase_styles::{Style, Stylize};
 use std::path::PathBuf;
@@ -103,10 +104,12 @@ pub enum ProtoError {
 
     #[diagnostic(code(proto::tool::unknown))]
     #[error(
-        "Unable to proceed, {} is not a built-in tool or has not been configured with {}. Search for available tools using {}.",
+        "Unable to proceed, {} is not a built-in tool and has not been configured with {} in a {} file.\n\nLearn more about plugins: {}\nSearch community plugins: {}",
         .id.style(Style::Id),
         "[plugins]".style(Style::Property),
-        "proto plugin search".style(Style::Shell),
+        PROTO_CONFIG_NAME.style(Style::File),
+        "https://moonrepo.dev/docs/proto/plugins".style(Style::Url),
+        format!("proto plugin search {}", .id).style(Style::Shell),
     )]
     UnknownTool { id: Id },
 

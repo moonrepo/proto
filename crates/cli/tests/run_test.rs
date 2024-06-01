@@ -263,7 +263,7 @@ mod run {
         let assert = cmd.arg("run").arg("plugin-name").arg("1.0.0").assert();
 
         assert.stderr(predicate::str::contains(
-            "plugin-name is not a built-in tool or has not been configured as a plugin",
+            "plugin-name is not a built-in tool",
         ));
     }
 

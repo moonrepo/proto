@@ -23,6 +23,10 @@
   - `github:org/repo` -> `github://org/repo`
 - Updated some error messages to include text for work arounds.
 
+#### 🐞 Fixes
+
+- Fixed invalid `PATH` syntax for Elvish shell.
+
 #### ⚙️ Internal
 
 - Reworked how serde defaults are applied for input/output plugin function types.

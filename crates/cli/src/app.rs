@@ -256,7 +256,7 @@ pub enum PluginCommands {
 
     #[command(
         name = "info",
-        about = "Display information about a plugin and its inventory."
+        about = "Display information about an installed plugin and its inventory."
     )]
     Info(InfoPluginArgs),
 
