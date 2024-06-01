@@ -16,12 +16,12 @@
 
 - Added a `proto plugin search` command that can be used to search for community created plugins.
 - Added a `proto unpin` command, for removing a pinned version from a `.prototools` file.
-- Updated `proto uninstall` to also entries from `.prototools` if the version was uninstalled.
+- Updated `proto uninstall` to also remove entries from `.prototools` if the version was uninstalled.
 - Updated plugin locator strings to use common protocol syntax. The custom `source:` syntax is deprecated.
   - `source:./file.wasm` -> `file://./file.wasm`
   - `source:https://url.com/file.wasm` -> `https://url.com/file.wasm`
   - `github:org/repo` -> `github://org/repo`
-- Updated some error messages to include text for work arounds.
+- Updated some error messages to include copy for work arounds.
 
 #### 🐞 Fixes
 
@@ -29,6 +29,9 @@
 
 #### ⚙️ Internal
 
+- We now lock the bin/shims directory when creating/removing files.
+  - This is an experiment to help avoid race conditions where multiple proto processes are all trying to write to the same location.
+  - If this results in too large of a performance hit, we'll remove the locking.
 - Reworked how serde defaults are applied for input/output plugin function types.
 
 ## 0.35.5
