@@ -29,7 +29,9 @@
 
 #### ⚙️ Internal
 
-- We now lock the bin/shims directory when creating/removing files. This is an experiment to help avoid race conditions where multiple proto processes are all trying to write to the same location.
+- We now lock the bin/shims directory when creating/removing files.
+  - This is an experiment to help avoid race conditions where multiple proto processes are all trying to write to the same location.
+  - If this results in too large of a performance hit, we'll remove the locking.
 - Reworked how serde defaults are applied for input/output plugin function types.
 
 ## 0.35.5

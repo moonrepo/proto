@@ -1268,61 +1268,70 @@ impl Tool {
         let mut registry: ShimsMap = BTreeMap::default();
         registry.insert(self.id.to_string(), Shim::default());
 
-        let lock = fs::lock_directory(&self.proto.store.shims_dir)?;
+        let mut to_create = vec![];
 
-        for location in shims {
+        for shim in shims {
             let mut shim_entry = Shim::default();
 
             // Handle before and after args
-            if let Some(before_args) = location.config.shim_before_args {
+            if let Some(before_args) = shim.config.shim_before_args {
                 shim_entry.before_args = match before_args {
                     StringOrVec::String(value) => shell_words::split(&value).into_diagnostic()?,
                     StringOrVec::Vec(value) => value,
                 };
             }
 
-            if let Some(after_args) = location.config.shim_after_args {
+            if let Some(after_args) = shim.config.shim_after_args {
                 shim_entry.after_args = match after_args {
                     StringOrVec::String(value) => shell_words::split(&value).into_diagnostic()?,
                     StringOrVec::Vec(value) => value,
                 };
             }
 
-            if let Some(env_vars) = location.config.shim_env_vars {
+            if let Some(env_vars) = shim.config.shim_env_vars {
                 shim_entry.env_vars.extend(env_vars);
             }
 
-            if !location.primary {
+            if !shim.primary {
                 shim_entry.parent = Some(self.id.to_string());
 
                 // Only use --alt when the secondary executable exists
-                if location.config.exe_path.is_some() {
+                if shim.config.exe_path.is_some() {
                     shim_entry.alt_bin = Some(true);
                 }
             }
 
             // Create the shim file by copying the source bin
-            self.proto.store.create_shim(&location.path, find_only)?;
+            if force_create || find_only && !shim.path.exists() {
+                to_create.push(shim.path);
+            }
 
             // Update the registry
-            registry.insert(location.name.clone(), shim_entry);
+            registry.insert(shim.name.clone(), shim_entry);
 
             // Add to the event
-            event.global.push(location.name);
-
-            debug!(
-                tool = self.id.as_str(),
-                shim = ?location.path,
-                shim_version = SHIM_VERSION,
-                "Creating shim"
-            );
+            event.global.push(shim.name);
         }
 
-        lock.unlock()?;
+        // Only lock the directory and create shims if necessary
+        if !to_create.is_empty() {
+            let _lock = fs::lock_directory(&self.proto.store.shims_dir)?;
+
+            for shim_path in to_create {
+                self.proto.store.create_shim(&shim_path)?;
+
+                debug!(
+                    tool = self.id.as_str(),
+                    shim = ?shim_path,
+                    shim_version = SHIM_VERSION,
+                    "Creating shim"
+                );
+            }
+
+            ShimRegistry::update(&self.proto, registry)?;
+        }
 
         self.on_created_shims.emit(event).await?;
-
-        ShimRegistry::update(&self.proto, registry)?;
 
         Ok(())
     }
@@ -1345,20 +1354,22 @@ impl Tool {
         }
 
         let tool_dir = self.get_product_dir();
+
         let mut event = CreatedBinariesEvent { bins: vec![] };
 
-        let lock = fs::lock_directory(&self.proto.store.bin_dir)?;
+        let mut to_create = vec![];
 
-        for location in bins {
+        for bin in bins {
             let input_path = tool_dir.join(
-                location
-                    .config
+                bin.config
                     .exe_link_path
                     .as_ref()
-                    .or(location.config.exe_path.as_ref())
+                    .or(bin.config.exe_path.as_ref())
                     .unwrap(),
             );
-            let output_path = location.path;
+            let output_path = bin.path;
+
+            event.bins.push(bin.name);
 
             if !input_path.exists() {
                 warn!(
@@ -1371,24 +1382,29 @@ impl Tool {
                 continue;
             }
 
-            if output_path.exists() && !force {
+            if !force && output_path.exists() {
                 continue;
             }
 
-            debug!(
-                tool = self.id.as_str(),
-                source = ?input_path,
-                target = ?output_path,
-                "Creating binary symlink"
-            );
-
-            self.proto.store.unlink_bin(&output_path)?;
-            self.proto.store.link_bin(&output_path, &input_path)?;
-
-            event.bins.push(location.name);
+            to_create.push((input_path, output_path));
         }
 
-        lock.unlock()?;
+        // Only lock the directory and create bins if necessary
+        if !to_create.is_empty() {
+            let _lock = fs::lock_directory(&self.proto.store.bin_dir)?;
+
+            for (input_path, output_path) in to_create {
+                debug!(
+                    tool = self.id.as_str(),
+                    source = ?input_path,
+                    target = ?output_path,
+                    "Creating binary symlink"
+                );
+
+                self.proto.store.unlink_bin(&output_path)?;
+                self.proto.store.link_bin(&output_path, &input_path)?;
+            }
+        }
 
         self.on_created_bins.emit(event).await?;
 

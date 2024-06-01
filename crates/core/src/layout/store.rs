@@ -125,11 +125,7 @@ impl Store {
     }
 
     #[instrument(skip(self))]
-    pub fn create_shim(&self, shim_path: &Path, find_only: bool) -> miette::Result<()> {
-        if find_only && shim_path.exists() {
-            return Ok(());
-        }
-
+    pub fn create_shim(&self, shim_path: &Path) -> miette::Result<()> {
         create_shim(self.load_shim_binary()?, shim_path).map_err(|error| {
             ProtoError::CreateShimFailed {
                 path: shim_path.to_owned(),
