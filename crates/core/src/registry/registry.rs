@@ -45,7 +45,7 @@ impl ProtoRegistry {
                     .store
                     .temp_dir
                     .join("registry-internal-plugins.json"),
-                "https://raw.githubusercontent.com/moonrepo/proto/develop-0.36/registry/data/built-in.json".into(),
+                "https://raw.githubusercontent.com/moonrepo/proto/master/registry/data/built-in.json".into(),
             ).await?;
 
             self.internal.extend(plugins);
@@ -64,7 +64,7 @@ impl ProtoRegistry {
                     .store
                     .temp_dir
                     .join("registry-external-plugins.json"),
-                "https://raw.githubusercontent.com/moonrepo/proto/develop-0.36/registry/data/third-party.json".into(),
+                "https://raw.githubusercontent.com/moonrepo/proto/master/registry/data/third-party.json".into(),
             ).await?;
 
             self.external.extend(plugins);
