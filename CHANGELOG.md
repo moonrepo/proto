@@ -27,6 +27,17 @@
 
 - Fixed invalid `PATH` syntax for Elvish shell.
 
+#### 🧩 Plugins
+
+- Updated `bun_plugin` to v0.12.1.
+- Updated `deno_plugin` to v0.11.1.
+- Updated `go_plugin` to v0.11.1.
+- Updated `node_plugin` and `node_depman_plugin` to v0.11.1.
+- Updated `python_plugin` to v0.10.1.
+- Updated `rust_plugin` to v0.10.1.
+- Updated `schema_plugin` (TOML) to v0.13.0.
+  - Added `resolve.aliases` and `resolve.versions` settings, allowing an explicit list of aliases and versions to be defined.
+
 #### ⚙️ Internal
 
 - We now lock the bin/shims directory when creating/removing files.
