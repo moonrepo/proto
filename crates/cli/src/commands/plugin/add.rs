@@ -1,7 +1,7 @@
-use crate::helpers::ProtoResource;
+use crate::session::ProtoSession;
 use clap::Args;
 use proto_core::{Id, PluginLocator, ProtoConfig};
-use starbase::system;
+use starbase::AppResult;
 use starbase_styles::color;
 
 #[derive(Args, Clone, Debug)]
@@ -19,9 +19,8 @@ pub struct AddPluginArgs {
     global: bool,
 }
 
-#[system]
-pub async fn add(args: ArgsRef<AddPluginArgs>, proto: ResourceRef<ProtoResource>) {
-    let config_path = ProtoConfig::update(proto.env.get_config_dir(args.global), |config| {
+pub async fn add(session: ProtoSession, args: AddPluginArgs) -> AppResult {
+    let config_path = ProtoConfig::update(session.env.get_config_dir(args.global), |config| {
         config
             .plugins
             .get_or_insert(Default::default())
@@ -33,4 +32,6 @@ pub async fn add(args: ArgsRef<AddPluginArgs>, proto: ResourceRef<ProtoResource>
         color::id(&args.id),
         color::path(config_path)
     );
+
+    Ok(())
 }

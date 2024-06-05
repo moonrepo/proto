@@ -1,24 +1,24 @@
-use crate::helpers::ProtoResource;
 use crate::printer::{format_env_var, Printer};
+use crate::session::ProtoSession;
 use proto_pdk_api::{HostArch, HostOS};
-use starbase::system;
+use starbase::AppResult;
 use starbase_styles::color;
 use std::env;
 
-#[system]
-pub async fn env(proto: ResourceRef<ProtoResource>) {
-    let manager = proto.env.load_config_manager()?;
+pub async fn env(session: ProtoSession) -> AppResult {
+    let env = &session.env;
+    let manager = env.load_config_manager()?;
     let mut printer = Printer::new();
 
     // STORE
 
     printer.named_section("Store", |p| {
-        p.entry("Root", color::path(&proto.env.store.dir));
-        p.entry("Bins", color::path(&proto.env.store.bin_dir));
-        p.entry("Shims", color::path(&proto.env.store.shims_dir));
-        p.entry("Plugins", color::path(&proto.env.store.plugins_dir));
-        p.entry("Tools", color::path(&proto.env.store.inventory_dir));
-        p.entry("Temp", color::path(&proto.env.store.temp_dir));
+        p.entry("Root", color::path(&env.store.dir));
+        p.entry("Bins", color::path(&env.store.bin_dir));
+        p.entry("Shims", color::path(&env.store.shims_dir));
+        p.entry("Plugins", color::path(&env.store.plugins_dir));
+        p.entry("Tools", color::path(&env.store.inventory_dir));
+        p.entry("Temp", color::path(&env.store.temp_dir));
 
         Ok(())
     })?;
@@ -40,9 +40,7 @@ pub async fn env(proto: ResourceRef<ProtoResource>) {
         );
         p.entry_map(
             "Virtual paths",
-            proto
-                .env
-                .get_virtual_paths()
+            env.get_virtual_paths()
                 .iter()
                 .map(|(h, g)| (color::file(g.to_string_lossy()), color::path(h))),
             None,
@@ -74,4 +72,6 @@ pub async fn env(proto: ResourceRef<ProtoResource>) {
     })?;
 
     printer.flush();
+
+    Ok(())
 }

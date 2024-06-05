@@ -1,8 +1,8 @@
 use crate::error::ProtoCliError;
-use crate::helpers::ProtoResource;
+use crate::session::ProtoSession;
 use clap::Args;
 use proto_core::{Id, ProtoConfig, PROTO_CONFIG_NAME};
-use starbase::system;
+use starbase::AppResult;
 use starbase_styles::color;
 
 #[derive(Args, Clone, Debug)]
@@ -17,17 +17,16 @@ pub struct RemovePluginArgs {
     global: bool,
 }
 
-#[system]
-pub async fn remove(args: ArgsRef<RemovePluginArgs>, proto: ResourceRef<ProtoResource>) {
+pub async fn remove(session: ProtoSession, args: RemovePluginArgs) -> AppResult {
     if !args.global {
-        let config_path = proto.env.cwd.join(PROTO_CONFIG_NAME);
+        let config_path = session.env.cwd.join(PROTO_CONFIG_NAME);
 
         if !config_path.exists() {
             return Err(ProtoCliError::MissingToolsConfigInCwd { path: config_path }.into());
         }
     }
 
-    let config_path = ProtoConfig::update(proto.env.get_config_dir(args.global), |config| {
+    let config_path = ProtoConfig::update(session.env.get_config_dir(args.global), |config| {
         if let Some(plugins) = &mut config.plugins {
             plugins.remove(&args.id);
         }
@@ -38,4 +37,6 @@ pub async fn remove(args: ArgsRef<RemovePluginArgs>, proto: ResourceRef<ProtoRes
         color::id(&args.id),
         color::path(config_path)
     );
+
+    Ok(())
 }

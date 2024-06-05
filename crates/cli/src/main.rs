@@ -65,7 +65,7 @@ async fn main() -> MainResult {
         session.cli_version
     );
 
-    app.run(&mut session, |session| match cli.command {
+    app.run(&mut session, |session| match session.cli.command {
         Commands::Alias(args) => commands::alias(session, args),
         Commands::Bin(args) => commands::bin(session, args),
         Commands::Clean(args) => commands::clean(session, args),

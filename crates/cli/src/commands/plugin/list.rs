@@ -1,11 +1,11 @@
-use crate::helpers::ProtoResource;
 use crate::printer::{format_value, Printer};
+use crate::session::ProtoSession;
 use chrono::{DateTime, NaiveDateTime};
 use clap::Args;
 use proto_core::{Id, PluginLocator, ProtoToolConfig, ToolManifest, UnresolvedVersionSpec};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Serialize;
-use starbase::system;
+use starbase::AppResult;
 use starbase_styles::color;
 use starbase_utils::json;
 use tokio::sync::Mutex;
@@ -33,11 +33,10 @@ pub struct ListPluginsArgs {
     versions: bool,
 }
 
-#[system]
-pub async fn list(args: ArgsRef<ListPluginsArgs>, proto: ResourceRef<ProtoResource>) {
-    let mut config = proto.env.load_config()?.to_owned();
+pub async fn list(session: ProtoSession, args: ListPluginsArgs) -> AppResult {
+    let mut config = session.env.load_config()?.to_owned();
 
-    let mut tools = proto
+    let mut tools = session
         .load_tools_with_filters(FxHashSet::from_iter(&args.ids))
         .await?;
 
@@ -162,6 +161,8 @@ pub async fn list(args: ArgsRef<ListPluginsArgs>, proto: ResourceRef<ProtoResour
     }
 
     printer.lock().await.flush();
+
+    Ok(())
 }
 
 fn create_datetime(millis: u128) -> Option<NaiveDateTime> {
