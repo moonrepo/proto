@@ -3,32 +3,21 @@ mod commands;
 mod error;
 mod helpers;
 mod printer;
+mod session;
 mod shell;
 mod systems;
 mod telemetry;
 
 use app::{App as CLI, Commands, DebugCommands, PluginCommands};
 use clap::Parser;
+use miette::IntoDiagnostic;
+use session::ProtoSession;
 use starbase::{tracing::TracingOptions, App, MainResult};
 use starbase_utils::string_vec;
 use std::env;
 use tracing::{debug, metadata::LevelFilter};
 
-#[tokio::main]
-async fn main() -> MainResult {
-    App::setup_diagnostics();
-
-    let cli = CLI::parse();
-    let version = env!("CARGO_PKG_VERSION");
-
-    if let Some(level) = cli.log {
-        env::set_var("STARBASE_LOG", level.to_string());
-    } else if let Ok(level) = env::var("PROTO_LOG") {
-        env::set_var("STARBASE_LOG", level);
-    }
-
-    env::set_var("PROTO_VERSION", version);
-
+fn get_tracing_modules() -> Vec<String> {
     let mut modules = string_vec!["proto", "schematic", "starbase", "warpgate"];
 
     if env::var("PROTO_WASM_LOG").is_ok() {
@@ -37,11 +26,17 @@ async fn main() -> MainResult {
         modules.push("extism::pdk".into());
     }
 
-    if let Ok(value) = env::var("PROTO_DEBUG_COMMAND") {
-        env::set_var("WARPGATE_DEBUG_COMMAND", value);
-    }
+    modules
+}
 
-    let _guard = App::setup_tracing_with_options(TracingOptions {
+#[tokio::main]
+async fn main() -> MainResult {
+    let mut app = App::default();
+    app.setup_diagnostics();
+
+    let cli = CLI::try_parse().into_diagnostic()?;
+
+    let _guard = app.setup_tracing(TracingOptions {
         default_level: if matches!(cli.command, Commands::Bin { .. } | Commands::Run { .. }) {
             LevelFilter::WARN
         } else if matches!(cli.command, Commands::Completions { .. }) {
@@ -50,13 +45,14 @@ async fn main() -> MainResult {
             LevelFilter::INFO
         },
         dump_trace: cli.dump && !matches!(cli.command, Commands::Run { .. }),
-        filter_modules: modules,
+        filter_modules: get_tracing_modules(),
         intercept_log: false,
         log_env: "STARBASE_LOG".into(),
         // test_env: "PROTO_TEST".into(),
         ..TracingOptions::default()
     });
 
+    let mut session = ProtoSession::new(cli);
     let mut args = env::args_os().collect::<Vec<_>>();
 
     debug!(
@@ -66,58 +62,42 @@ async fn main() -> MainResult {
         shim_bin = env::var("PROTO_SHIM_PATH").ok(),
         pid = std::process::id(),
         "Running proto v{}",
-        version
+        session.cli_version
     );
 
-    let mut app = App::new();
-    app.startup(systems::detect_proto_env);
-    app.analyze(systems::load_proto_configs);
-
-    if !matches!(
-        cli.command,
-        Commands::Bin(_)
-            | Commands::Completions(_)
-            | Commands::Run(_)
-            | Commands::Setup(_)
-            | Commands::Upgrade
-    ) {
-        app.execute(systems::check_for_new_version);
-    }
-
-    match cli.command {
-        Commands::Alias(args) => app.execute_with_args(commands::alias, args),
-        Commands::Bin(args) => app.execute_with_args(commands::bin, args),
-        Commands::Clean(args) => app.execute_with_args(commands::clean, args),
-        Commands::Completions(args) => app.execute_with_args(commands::completions, args),
+    app.run(&mut session, |session| match cli.command {
+        Commands::Alias(args) => commands::alias(session, args),
+        Commands::Bin(args) => commands::bin(session, args),
+        Commands::Clean(args) => commands::clean(session, args),
+        Commands::Completions(args) => commands::completions(session, args),
         Commands::Debug { command } => match command {
-            DebugCommands::Config(args) => app.execute_with_args(commands::debug::config, args),
-            DebugCommands::Env => app.execute(commands::debug::env),
+            DebugCommands::Config(args) => commands::debug::config(session, args),
+            DebugCommands::Env => commands::debug::env(session),
         },
-        Commands::Install(args) => app.execute_with_args(commands::install, args),
-        Commands::List(args) => app.execute_with_args(commands::list, args),
-        Commands::ListRemote(args) => app.execute_with_args(commands::list_remote, args),
-        Commands::Migrate(args) => app.execute_with_args(commands::migrate, args),
-        Commands::Outdated(args) => app.execute_with_args(commands::outdated, args),
-        Commands::Pin(args) => app.execute_with_args(commands::pin, args),
+        Commands::Install(args) => commands::install(session, args),
+        Commands::List(args) => commands::list(session, args),
+        Commands::ListRemote(args) => commands::list_remote(session, args),
+        Commands::Migrate(args) => commands::migrate(session, args),
+        Commands::Outdated(args) => commands::outdated(session, args),
+        Commands::Pin(args) => commands::pin(session, args),
         Commands::Plugin { command } => match command {
-            PluginCommands::Add(args) => app.execute_with_args(commands::plugin::add, args),
-            PluginCommands::Info(args) => app.execute_with_args(commands::plugin::info, args),
-            PluginCommands::List(args) => app.execute_with_args(commands::plugin::list, args),
-            PluginCommands::Remove(args) => app.execute_with_args(commands::plugin::remove, args),
-            PluginCommands::Search(args) => app.execute_with_args(commands::plugin::search, args),
+            PluginCommands::Add(args) => commands::plugin::add(session, args),
+            PluginCommands::Info(args) => commands::plugin::info(session, args),
+            PluginCommands::List(args) => commands::plugin::list(session, args),
+            PluginCommands::Remove(args) => commands::plugin::remove(session, args),
+            PluginCommands::Search(args) => commands::plugin::search(session, args),
         },
-        Commands::Regen(args) => app.execute_with_args(commands::regen, args),
-        Commands::Run(args) => app.execute_with_args(commands::run, args),
-        Commands::Setup(args) => app.execute_with_args(commands::setup, args),
-        Commands::Status(args) => app.execute_with_args(commands::status, args),
-        Commands::Unalias(args) => app.execute_with_args(commands::unalias, args),
-        Commands::Uninstall(args) => app.execute_with_args(commands::uninstall, args),
-        Commands::Unpin(args) => app.execute_with_args(commands::unpin, args),
-        Commands::Upgrade => app.execute(commands::upgrade),
-        Commands::Use => app.execute(commands::install_all),
-    };
-
-    app.run().await?;
+        Commands::Regen(args) => commands::regen(session, args),
+        Commands::Run(args) => commands::run(session, args),
+        Commands::Setup(args) => commands::setup(session, args),
+        Commands::Status(args) => commands::status(session, args),
+        Commands::Unalias(args) => commands::unalias(session, args),
+        Commands::Uninstall(args) => commands::uninstall(session, args),
+        Commands::Unpin(args) => commands::unpin(session, args),
+        Commands::Upgrade => commands::upgrade(session),
+        Commands::Use => commands::install_all(session),
+    })
+    .await?;
 
     Ok(())
 }

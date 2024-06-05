@@ -55,7 +55,7 @@ fn create_styles() -> Styles {
         .valid(fg(ColorType::Green))
 }
 
-#[derive(Debug, Parser)]
+#[derive(Clone, Debug, Parser)]
 #[command(
     name = "proto",
     version,

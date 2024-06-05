@@ -2334,6 +2334,7 @@ name = "proto_cli"
 version = "0.36.2"
 dependencies = [
  "anyhow",
+ "async-trait",
  "chrono",
  "clap",
  "clap_complete",
@@ -2359,7 +2360,7 @@ dependencies = [
  "starbase",
  "starbase_sandbox",
  "starbase_shell",
- "starbase_styles",
+ "starbase_styles 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "starbase_utils",
  "system_env",
  "thiserror",
@@ -2401,7 +2402,7 @@ dependencies = [
  "starbase_archive",
  "starbase_events",
  "starbase_sandbox",
- "starbase_styles",
+ "starbase_styles 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "starbase_utils",
  "thiserror",
  "tokio",
@@ -2420,7 +2421,7 @@ dependencies = [
  "miette",
  "reqwest",
  "starbase_archive",
- "starbase_styles",
+ "starbase_styles 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "starbase_utils",
  "system_env",
  "thiserror",
@@ -2827,15 +2828,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "scc"
-version = "2.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "76ad2bbb0ae5100a07b7a6f2ed7ab5fd0045551a4c507989b7a620046ea3efdc"
-dependencies = [
- "sdd",
-]
-
-[[package]]
 name = "schannel"
 version = "0.1.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2871,7 +2863,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_path_to_error",
- "starbase_styles",
+ "starbase_styles 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
  "toml 0.8.13",
  "tracing",
@@ -2908,12 +2900,6 @@ name = "scopeguard"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
-
-[[package]]
-name = "sdd"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b84345e4c9bd703274a082fb80caaa99b7612be48dfaa1dd9266577ec412309d"
 
 [[package]]
 name = "security-framework"
@@ -3143,20 +3129,12 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 [[package]]
 name = "starbase"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "732a3c385efcf397570b312ffa77e8c7b80a9308c7ac5d20981d0aeb43e1066c"
 dependencies = [
  "async-trait",
  "chrono",
+ "futures",
  "miette",
- "num_cpus",
- "rustc-hash",
- "scc",
- "starbase_events",
- "starbase_macros",
- "starbase_styles",
- "thiserror",
- "tokio",
+ "starbase_styles 0.4.0",
  "tracing",
  "tracing-chrome",
  "tracing-log",
@@ -3173,7 +3151,7 @@ dependencies = [
  "flate2",
  "miette",
  "rustc-hash",
- "starbase_styles",
+ "starbase_styles 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "starbase_utils",
  "thiserror",
  "tracing",
@@ -3237,11 +3215,20 @@ dependencies = [
 [[package]]
 name = "starbase_styles"
 version = "0.4.0"
+dependencies = [
+ "dirs 5.0.1",
+ "miette",
+ "owo-colors",
+ "supports-color",
+]
+
+[[package]]
+name = "starbase_styles"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e483937f25c81ee4a5b70b608436025d23bffa656d62793ea5bbe6e9b94206d"
 dependencies = [
  "dirs 5.0.1",
- "miette",
  "owo-colors",
  "supports-color",
 ]
@@ -3261,7 +3248,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
- "starbase_styles",
+ "starbase_styles 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
  "tokio",
  "toml 0.8.13",
@@ -3897,7 +3884,7 @@ dependencies = [
  "sha2",
  "starbase_archive",
  "starbase_sandbox",
- "starbase_styles",
+ "starbase_styles 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "starbase_utils",
  "system_env",
  "thiserror",

@@ -9,17 +9,17 @@ use std::sync::Arc;
 use tracing::debug;
 use warpgate::PluginLoader;
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct ProtoEnvironment {
     pub cwd: PathBuf,
     pub env_mode: Option<String>,
     pub home: PathBuf, // ~
     pub root: PathBuf, // ~/.proto
     pub store: Store,
+    pub test_mode: bool,
 
     config_manager: Arc<OnceCell<ProtoConfigManager>>,
     plugin_loader: Arc<OnceCell<PluginLoader>>,
-    test_mode: bool,
 }
 
 impl ProtoEnvironment {
