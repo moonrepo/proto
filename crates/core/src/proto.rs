@@ -47,7 +47,7 @@ impl ProtoEnvironment {
             root: root.to_owned(),
             config_manager: Arc::new(OnceCell::new()),
             plugin_loader: Arc::new(OnceCell::new()),
-            test_mode: false,
+            test_mode: env::var("PROTO_TEST").is_ok(),
             store: Store::new(root),
         })
     }

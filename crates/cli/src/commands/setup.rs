@@ -87,8 +87,8 @@ pub async fn setup(session: ProtoSession, args: SetupArgs) -> AppResult {
         #[cfg(windows)]
         {
             windows::do_add_to_path(vec![
-                proto.env.store.shims_dir.clone(),
-                proto.env.store.bin_dir.clone(),
+                session.env.store.shims_dir.clone(),
+                session.env.store.bin_dir.clone(),
             ])?
         }
 

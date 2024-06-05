@@ -73,7 +73,7 @@ impl Metric {
 pub async fn track_usage(proto: &ProtoEnvironment, metric: Metric) -> miette::Result<()> {
     let config = proto.load_config()?;
 
-    if !config.settings.telemetry || is_offline() || env::var("PROTO_TEST").is_ok() {
+    if !config.settings.telemetry || is_offline() || proto.test_mode {
         return Ok(());
     }
 
