@@ -5,6 +5,7 @@ use starbase::AppResult;
 use starbase_styles::color;
 use std::env;
 
+#[tracing::instrument(skip_all)]
 pub async fn env(session: ProtoSession) -> AppResult {
     let env = &session.env;
     let manager = env.load_config_manager()?;

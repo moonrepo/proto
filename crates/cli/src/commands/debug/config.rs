@@ -40,6 +40,7 @@ fn print_toml(value: impl Serialize) -> miette::Result<()> {
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn config(session: ProtoSession, args: DebugConfigArgs) -> AppResult {
     let manager = session.env.load_config_manager()?;
     let config = manager.get_merged_config()?;

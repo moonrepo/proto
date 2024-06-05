@@ -13,6 +13,7 @@ pub struct CompletionsArgs {
     shell: Option<ShellType>,
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn completions(_session: ProtoSession, args: CompletionsArgs) -> AppResult {
     let shell = match args.shell {
         Some(value) => value,

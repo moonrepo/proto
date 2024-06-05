@@ -17,6 +17,7 @@ pub struct UnpinArgs {
     pub global: bool,
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn unpin(session: ProtoSession, args: UnpinArgs) -> AppResult {
     let tool = session.load_tool(&args.id).await?;
     let mut value = None;

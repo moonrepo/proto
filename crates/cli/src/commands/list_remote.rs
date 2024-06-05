@@ -14,6 +14,7 @@ pub struct ListRemoteArgs {
     aliases: bool,
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn list_remote(session: ProtoSession, args: ListRemoteArgs) -> AppResult {
     let mut tool = session.load_tool(&args.id).await?;
     tool.disable_caching();

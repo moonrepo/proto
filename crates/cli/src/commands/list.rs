@@ -14,6 +14,7 @@ pub struct ListArgs {
     aliases: bool,
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn list(session: ProtoSession, args: ListArgs) -> AppResult {
     let tool = session.load_tool(&args.id).await?;
 

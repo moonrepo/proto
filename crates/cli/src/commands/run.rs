@@ -180,6 +180,7 @@ fn get_env_vars(tool: &Tool) -> miette::Result<IndexMap<&str, Option<String>>> {
     Ok(vars)
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
     let mut tool = session.load_tool(&args.id).await?;
 

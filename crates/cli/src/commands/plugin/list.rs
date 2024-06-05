@@ -33,6 +33,7 @@ pub struct ListPluginsArgs {
     versions: bool,
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn list(session: ProtoSession, args: ListPluginsArgs) -> AppResult {
     let mut config = session.env.load_config()?.to_owned();
 

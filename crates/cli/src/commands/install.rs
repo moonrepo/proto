@@ -303,6 +303,7 @@ fn update_shell(tool: &Tool, passthrough_args: Vec<String>) -> miette::Result<()
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn install(session: ProtoSession, args: InstallArgs) -> AppResult {
     internal_install(&session, args, None).await?;
 

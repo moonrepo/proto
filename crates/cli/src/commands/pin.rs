@@ -52,6 +52,7 @@ pub async fn internal_pin(
     Ok(config_path)
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn pin(session: ProtoSession, args: PinArgs) -> AppResult {
     let mut tool = session.load_tool(&args.id).await?;
 

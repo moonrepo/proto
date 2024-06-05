@@ -44,6 +44,7 @@ fn is_older_than_days(now: u128, other: u128, days: u8) -> bool {
     (now - other) > ((days as u128) * 24 * 60 * 60 * 1000)
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miette::Result<usize> {
     println!("Checking {}", color::shell(tool.get_name()));
 
@@ -165,6 +166,7 @@ pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miett
     Ok(clean_count)
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn clean_plugins(session: &ProtoSession, days: u64) -> miette::Result<usize> {
     let now = SystemTime::now();
     let duration = Duration::from_secs(86400 * days);
@@ -191,6 +193,7 @@ pub async fn clean_plugins(session: &ProtoSession, days: u64) -> miette::Result<
     Ok(clean_count)
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn clean_proto(session: &ProtoSession, days: u64) -> miette::Result<usize> {
     let now = SystemTime::now();
     let duration = Duration::from_secs(86400 * days);
@@ -217,6 +220,7 @@ pub async fn clean_proto(session: &ProtoSession, days: u64) -> miette::Result<us
     Ok(clean_count)
 }
 
+#[tracing::instrument(skip(session, yes))]
 pub async fn purge_tool(session: &ProtoSession, id: &Id, yes: bool) -> miette::Result<Tool> {
     let tool = session.load_tool(id).await?;
     let inventory_dir = tool.get_inventory_dir();
@@ -250,6 +254,7 @@ pub async fn purge_tool(session: &ProtoSession, id: &Id, yes: bool) -> miette::R
     Ok(tool)
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn purge_plugins(session: &ProtoSession, yes: bool) -> AppResult {
     let plugins_dir = &session.env.store.plugins_dir;
 
@@ -314,6 +319,7 @@ pub async fn internal_clean(session: &ProtoSession, args: &CleanArgs, yes: bool)
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn clean(session: ProtoSession, args: CleanArgs) -> AppResult {
     let force_yes = args.yes || !stdout().is_terminal();
 

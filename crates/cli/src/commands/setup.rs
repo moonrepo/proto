@@ -32,6 +32,7 @@ pub struct SetupArgs {
     yes: bool,
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn setup(session: ProtoSession, args: SetupArgs) -> AppResult {
     let paths = env::split_paths(&env::var("PATH").unwrap()).collect::<Vec<_>>();
 

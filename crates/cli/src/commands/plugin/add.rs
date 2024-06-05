@@ -19,6 +19,7 @@ pub struct AddPluginArgs {
     global: bool,
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn add(session: ProtoSession, args: AddPluginArgs) -> AppResult {
     let config_path = ProtoConfig::update(session.env.get_config_dir(args.global), |config| {
         config

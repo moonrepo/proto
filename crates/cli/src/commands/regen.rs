@@ -10,6 +10,7 @@ pub struct RegenArgs {
     bin: bool,
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn regen(session: ProtoSession, args: RegenArgs) -> AppResult {
     if args.bin {
         println!("Regenerating bins and shims...");

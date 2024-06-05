@@ -11,6 +11,7 @@ pub struct MigrateArgs {
     operation: String,
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn migrate(_session: ProtoSession, args: MigrateArgs) -> AppResult {
     // match args.operation.as_str() {
     //     unknown => {

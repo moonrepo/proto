@@ -17,6 +17,7 @@ pub struct RemovePluginArgs {
     global: bool,
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn remove(session: ProtoSession, args: RemovePluginArgs) -> AppResult {
     if !args.global {
         let config_path = session.env.cwd.join(PROTO_CONFIG_NAME);

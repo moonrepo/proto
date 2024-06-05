@@ -18,6 +18,7 @@ pub struct SearchPluginArgs {
     json: bool,
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn search(session: ProtoSession, args: SearchPluginArgs) -> AppResult {
     let mut registry = session.create_registry();
     let plugins = registry.load_external_plugins().await?;

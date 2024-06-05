@@ -36,6 +36,7 @@ pub struct StatusItem {
     product_dir: Option<PathBuf>,
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn status(session: ProtoSession, args: StatusArgs) -> AppResult {
     let manager = session.env.load_config_manager()?;
     let mut items = BTreeMap::default();

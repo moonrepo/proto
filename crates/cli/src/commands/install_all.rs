@@ -10,6 +10,7 @@ use starbase_styles::color;
 use std::process;
 use tracing::debug;
 
+#[tracing::instrument(skip_all)]
 pub async fn install_all(session: ProtoSession) -> AppResult {
     debug!("Loading tools and plugins from .prototools");
 

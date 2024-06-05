@@ -10,6 +10,7 @@ use starbase::AppResult;
 use starbase_styles::color;
 use tracing::{debug, trace};
 
+#[tracing::instrument(skip_all)]
 pub async fn upgrade(session: ProtoSession) -> AppResult {
     if is_offline() {
         return Err(ProtoCliError::UpgradeRequiresInternet.into());

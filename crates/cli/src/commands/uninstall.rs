@@ -46,6 +46,7 @@ fn unpin_version(session: &ProtoSession, args: &UninstallArgs) -> miette::Result
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn uninstall(session: ProtoSession, args: UninstallArgs) -> AppResult {
     // Uninstall everything
     let Some(spec) = &args.spec else {

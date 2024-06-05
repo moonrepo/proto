@@ -20,6 +20,7 @@ pub struct UnaliasArgs {
     global: bool,
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn unalias(session: ProtoSession, args: UnaliasArgs) -> AppResult {
     let tool = session.load_tool(&args.id).await?;
     let mut value = None;

@@ -18,6 +18,7 @@ pub struct BinArgs {
     shim: bool,
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
     let mut tool = session.load_tool(&args.id).await?;
     let version = detect_version(&tool, args.spec.clone()).await?;

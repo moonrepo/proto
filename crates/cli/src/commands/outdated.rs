@@ -63,6 +63,7 @@ fn get_in_major_range(spec: &UnresolvedVersionSpec) -> UnresolvedVersionSpec {
     }
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
     let manager = session.env.load_config_manager()?;
 
