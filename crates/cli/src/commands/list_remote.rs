@@ -1,7 +1,7 @@
-use crate::helpers::ProtoResource;
+use crate::session::ProtoSession;
 use clap::Args;
 use proto_core::{Id, UnresolvedVersionSpec};
-use starbase::system;
+use starbase::AppResult;
 use std::process;
 use tracing::debug;
 
@@ -14,9 +14,8 @@ pub struct ListRemoteArgs {
     aliases: bool,
 }
 
-#[system]
-pub async fn list_remote(args: ArgsRef<ListRemoteArgs>, proto: ResourceRef<ProtoResource>) {
-    let mut tool = proto.load_tool(&args.id).await?;
+pub async fn list_remote(session: ProtoSession, args: ListRemoteArgs) -> AppResult {
+    let mut tool = session.load_tool(&args.id).await?;
     tool.disable_caching();
 
     debug!("Loading versions");
@@ -54,4 +53,6 @@ pub async fn list_remote(args: ArgsRef<ListRemoteArgs>, proto: ResourceRef<Proto
                 .join("\n")
         );
     }
+
+    Ok(())
 }

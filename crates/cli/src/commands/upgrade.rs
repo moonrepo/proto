@@ -1,21 +1,21 @@
 use crate::error::ProtoCliError;
-use crate::helpers::{fetch_latest_version, ProtoResource};
+use crate::helpers::fetch_latest_version;
+use crate::session::ProtoSession;
 use crate::telemetry::{track_usage, Metric};
 use indicatif::{ProgressBar, ProgressStyle};
 use proto_core::is_offline;
 use proto_installer::{determine_triple, download_release, unpack_release};
 use semver::Version;
-use starbase::system;
+use starbase::AppResult;
 use starbase_styles::color;
 use tracing::{debug, trace};
 
-#[system]
-pub async fn upgrade(proto: ResourceRef<ProtoResource>) {
+pub async fn upgrade(session: ProtoSession) -> AppResult {
     if is_offline() {
         return Err(ProtoCliError::UpgradeRequiresInternet.into());
     }
 
-    let current_version = env!("CARGO_PKG_VERSION");
+    let current_version = &session.cli_version;
     let latest_version = fetch_latest_version().await?;
 
     debug!(
@@ -44,7 +44,7 @@ pub async fn upgrade(proto: ResourceRef<ProtoResource>) {
     let result = download_release(
         &triple_target,
         &latest_version,
-        &proto.env.store.temp_dir,
+        &session.env.store.temp_dir,
         |downloaded_size, total_size| {
             if downloaded_size == 0 {
                 pb.set_length(total_size);
@@ -64,8 +64,8 @@ pub async fn upgrade(proto: ResourceRef<ProtoResource>) {
 
     let upgraded = unpack_release(
         result,
-        proto.env.store.bin_dir.clone(),
-        proto
+        session.env.store.bin_dir.clone(),
+        session
             .env
             .store
             .inventory_dir
@@ -76,7 +76,7 @@ pub async fn upgrade(proto: ResourceRef<ProtoResource>) {
 
     // Track usage metrics
     track_usage(
-        &proto.env,
+        &session.env,
         Metric::UpgradeProto {
             old_version: current_version.to_owned(),
             new_version: latest_version.to_owned(),
@@ -92,5 +92,6 @@ pub async fn upgrade(proto: ResourceRef<ProtoResource>) {
 
     Err(ProtoCliError::UpgradeFailed {
         bin: "proto".into(),
-    })?;
+    }
+    .into())
 }

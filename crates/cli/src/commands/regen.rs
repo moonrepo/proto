@@ -1,6 +1,6 @@
-use crate::helpers::ProtoResource;
+use crate::session::ProtoSession;
 use clap::Args;
-use starbase::system;
+use starbase::AppResult;
 use starbase_utils::fs;
 use tracing::debug;
 
@@ -10,8 +10,7 @@ pub struct RegenArgs {
     bin: bool,
 }
 
-#[system]
-pub async fn regen(args: ArgsRef<RegenArgs>, proto: ResourceRef<ProtoResource>) {
+pub async fn regen(session: ProtoSession, args: RegenArgs) -> AppResult {
     if args.bin {
         println!("Regenerating bins and shims...");
     } else {
@@ -21,13 +20,13 @@ pub async fn regen(args: ArgsRef<RegenArgs>, proto: ResourceRef<ProtoResource>) 
     // Delete all shims
     debug!("Removing old shims");
 
-    fs::remove_dir_all(&proto.env.store.shims_dir)?;
+    fs::remove_dir_all(&session.env.store.shims_dir)?;
 
     // Delete all bins (except for proto)
     if args.bin {
         debug!("Removing old bins");
 
-        for file in fs::read_dir_all(&proto.env.store.bin_dir)? {
+        for file in fs::read_dir_all(&session.env.store.bin_dir)? {
             let path = file.path();
             let name = fs::file_name(&path);
 
@@ -40,17 +39,17 @@ pub async fn regen(args: ArgsRef<RegenArgs>, proto: ResourceRef<ProtoResource>) 
                 continue;
             }
 
-            proto.env.store.unlink_bin(&path)?;
+            session.env.store.unlink_bin(&path)?;
         }
     }
 
     // Regenerate everything!
     debug!("Loading tools");
 
-    let config = proto.env.load_config()?;
-    let global_config = proto.env.load_config_manager()?.get_global_config()?;
+    let config = session.env.load_config()?;
+    let global_config = session.env.load_config_manager()?.get_global_config()?;
 
-    for mut tool in proto.load_tools().await? {
+    for mut tool in session.load_tools().await? {
         // Shims
         if let Some(version) = config.versions.get(&tool.id) {
             debug!("Regenerating {} shim", tool.get_name());
@@ -74,4 +73,6 @@ pub async fn regen(args: ArgsRef<RegenArgs>, proto: ResourceRef<ProtoResource>) 
     }
 
     println!("Regeneration complete!");
+
+    Ok(())
 }

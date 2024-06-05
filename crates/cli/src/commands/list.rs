@@ -1,7 +1,7 @@
-use crate::helpers::ProtoResource;
+use crate::session::ProtoSession;
 use clap::Args;
 use proto_core::Id;
-use starbase::system;
+use starbase::AppResult;
 use std::process;
 use tracing::debug;
 
@@ -14,9 +14,8 @@ pub struct ListArgs {
     aliases: bool,
 }
 
-#[system]
-pub async fn list(args: ArgsRef<ListArgs>, proto: ResourceRef<ProtoResource>) {
-    let tool = proto.load_tool(&args.id).await?;
+pub async fn list(session: ProtoSession, args: ListArgs) -> AppResult {
+    let tool = session.load_tool(&args.id).await?;
 
     debug!(manifest = ?tool.inventory.manifest.path, "Using versions from manifest");
 
@@ -40,7 +39,7 @@ pub async fn list(args: ArgsRef<ListArgs>, proto: ResourceRef<ProtoResource>) {
     );
 
     if args.aliases {
-        let config = proto.env.load_config()?;
+        let config = session.env.load_config()?;
 
         if let Some(tool_config) = config.tools.get(&tool.id) {
             if !tool_config.aliases.is_empty() {
@@ -56,4 +55,6 @@ pub async fn list(args: ArgsRef<ListArgs>, proto: ResourceRef<ProtoResource>) {
             }
         }
     }
+
+    Ok(())
 }

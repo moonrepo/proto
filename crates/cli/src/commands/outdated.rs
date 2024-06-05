@@ -1,5 +1,6 @@
 use crate::error::ProtoCliError;
-use crate::helpers::{create_theme, ProtoResource};
+use crate::helpers::create_theme;
+use crate::session::ProtoSession;
 use clap::Args;
 use comfy_table::presets::NOTHING;
 use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
@@ -9,7 +10,7 @@ use proto_core::{Id, ProtoConfig, UnresolvedVersionSpec, VersionSpec};
 use rustc_hash::FxHashSet;
 use semver::VersionReq;
 use serde::Serialize;
-use starbase::system;
+use starbase::AppResult;
 use starbase_styles::color::{self, Style};
 use starbase_utils::json;
 use std::collections::BTreeMap;
@@ -62,9 +63,8 @@ fn get_in_major_range(spec: &UnresolvedVersionSpec) -> UnresolvedVersionSpec {
     }
 }
 
-#[system]
-pub async fn outdated(args: ArgsRef<OutdatedArgs>, proto: ResourceRef<ProtoResource>) {
-    let manager = proto.env.load_config_manager()?;
+pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
+    let manager = session.env.load_config_manager()?;
 
     debug!("Determining outdated tools based on config...");
 
@@ -73,7 +73,7 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>, proto: ResourceRef<ProtoResou
     for file in manager.files.iter().rev() {
         if !file.exists
             || !args.include_global && file.global
-            || args.only_local && !file.path.parent().is_some_and(|p| p == proto.env.cwd)
+            || args.only_local && !file.path.parent().is_some_and(|p| p == session.env.cwd)
         {
             continue;
         }
@@ -97,7 +97,7 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>, proto: ResourceRef<ProtoResou
         "Found tools with configured versions, loading them",
     );
 
-    let tools = proto
+    let tools = session
         .load_tools_with_filters(FxHashSet::from_iter(configured_tools.keys()))
         .await?;
     let mut futures = vec![];
@@ -271,4 +271,6 @@ pub async fn outdated(args: ArgsRef<OutdatedArgs>, proto: ResourceRef<ProtoResou
             color::shell("proto use")
         );
     }
+
+    Ok(())
 }

@@ -1,7 +1,7 @@
-use crate::helpers::ProtoResource;
+use crate::session::ProtoSession;
 use clap::Args;
 use proto_core::{Id, ProtoConfig, Tool, UnresolvedVersionSpec};
-use starbase::system;
+use starbase::AppResult;
 use starbase_styles::color;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -52,9 +52,8 @@ pub async fn internal_pin(
     Ok(config_path)
 }
 
-#[system]
-pub async fn pin(args: ArgsRef<PinArgs>, proto: ResourceRef<ProtoResource>) -> SystemResult {
-    let mut tool = proto.load_tool(&args.id).await?;
+pub async fn pin(session: ProtoSession, args: PinArgs) -> AppResult {
+    let mut tool = session.load_tool(&args.id).await?;
 
     let spec = if args.resolve {
         tool.resolve_version(&args.spec, false).await?;
@@ -71,4 +70,6 @@ pub async fn pin(args: ArgsRef<PinArgs>, proto: ResourceRef<ProtoResource>) -> S
         color::hash(args.spec.to_string()),
         color::path(config_path),
     );
+
+    Ok(())
 }

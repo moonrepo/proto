@@ -9,7 +9,6 @@ use proto_core::{
     registry::ProtoRegistry, Id, ProtoEnvironment, Tool, SCHEMA_PLUGIN_KEY,
 };
 use rustc_hash::FxHashSet;
-use starbase::Resource;
 use starbase_styles::color;
 use starbase_styles::color::Color;
 use std::env;
@@ -109,7 +108,7 @@ pub async fn fetch_latest_version() -> miette::Result<String> {
     Ok(version)
 }
 
-#[derive(Clone, Resource)]
+#[derive(Clone)]
 pub struct ProtoResource {
     pub env: Arc<ProtoEnvironment>,
 }

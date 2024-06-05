@@ -113,7 +113,7 @@ impl AppSession for ProtoSession {
         if self.should_check_for_new_version() {
             task::spawn(check_for_new_version(Arc::clone(&self.env)))
                 .await
-                .into_diagnostic()?;
+                .into_diagnostic()??;
         }
 
         Ok(())

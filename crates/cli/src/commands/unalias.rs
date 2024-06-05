@@ -1,7 +1,7 @@
-use crate::helpers::ProtoResource;
+use crate::session::ProtoSession;
 use clap::Args;
 use proto_core::{Id, ProtoConfig};
-use starbase::system;
+use starbase::AppResult;
 use starbase_styles::color;
 use std::process;
 
@@ -20,9 +20,8 @@ pub struct UnaliasArgs {
     global: bool,
 }
 
-#[system]
-pub async fn unalias(args: ArgsRef<UnaliasArgs>, proto: ResourceRef<ProtoResource>) {
-    let tool = proto.load_tool(&args.id).await?;
+pub async fn unalias(session: ProtoSession, args: UnaliasArgs) -> AppResult {
+    let tool = session.load_tool(&args.id).await?;
     let mut value = None;
 
     let config_path = ProtoConfig::update(tool.proto.get_config_dir(args.global), |config| {
@@ -51,4 +50,6 @@ pub async fn unalias(args: ArgsRef<UnaliasArgs>, proto: ResourceRef<ProtoResourc
         color::muted_light(value.to_string()),
         color::path(config_path)
     );
+
+    Ok(())
 }

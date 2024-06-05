@@ -1,8 +1,9 @@
 use crate::app::App;
+use crate::session::ProtoSession;
 use clap::{Args, CommandFactory};
 use clap_complete::{generate, Shell};
 use clap_complete_nushell::Nushell;
-use starbase::system;
+use starbase::AppResult;
 use starbase_shell::ShellType;
 use std::process;
 
@@ -12,8 +13,7 @@ pub struct CompletionsArgs {
     shell: Option<ShellType>,
 }
 
-#[system]
-pub async fn completions(args: ArgsRef<CompletionsArgs>) {
+pub async fn completions(_session: ProtoSession, args: CompletionsArgs) -> AppResult {
     let shell = match args.shell {
         Some(value) => value,
         None => ShellType::try_detect()?,
@@ -41,4 +41,6 @@ pub async fn completions(args: ArgsRef<CompletionsArgs>) {
     };
 
     generate(clap_shell, &mut app, "proto", &mut stdio);
+
+    Ok(())
 }

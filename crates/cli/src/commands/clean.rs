@@ -1,10 +1,11 @@
-use crate::helpers::{create_theme, ProtoResource};
+use crate::helpers::create_theme;
+use crate::session::ProtoSession;
 use clap::Args;
 use dialoguer::Confirm;
+use miette::IntoDiagnostic;
 use proto_core::{Id, ProtoError, Tool, VersionSpec};
 use rustc_hash::FxHashSet;
-use starbase::diagnostics::IntoDiagnostic;
-use starbase::{system, SystemResult};
+use starbase::AppResult;
 use starbase_styles::color;
 use starbase_utils::fs;
 use std::io::stdout;
@@ -164,12 +165,12 @@ pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miett
     Ok(clean_count)
 }
 
-pub async fn clean_plugins(proto: &ProtoResource, days: u64) -> miette::Result<usize> {
+pub async fn clean_plugins(session: &ProtoSession, days: u64) -> miette::Result<usize> {
     let now = SystemTime::now();
     let duration = Duration::from_secs(86400 * days);
     let mut clean_count = 0;
 
-    for file in fs::read_dir(&proto.env.store.plugins_dir)? {
+    for file in fs::read_dir(&session.env.store.plugins_dir)? {
         let path = file.path();
 
         if path.is_file() {
@@ -190,12 +191,12 @@ pub async fn clean_plugins(proto: &ProtoResource, days: u64) -> miette::Result<u
     Ok(clean_count)
 }
 
-pub async fn clean_proto(proto: &ProtoResource, days: u64) -> miette::Result<usize> {
+pub async fn clean_proto(session: &ProtoSession, days: u64) -> miette::Result<usize> {
     let now = SystemTime::now();
     let duration = Duration::from_secs(86400 * days);
     let mut clean_count = 0;
 
-    for file in fs::read_dir_all(proto.env.store.inventory_dir.join("proto"))? {
+    for file in fs::read_dir_all(session.env.store.inventory_dir.join("proto"))? {
         let path = file.path();
 
         if path.is_file() {
@@ -216,8 +217,8 @@ pub async fn clean_proto(proto: &ProtoResource, days: u64) -> miette::Result<usi
     Ok(clean_count)
 }
 
-pub async fn purge_tool(proto: &ProtoResource, id: &Id, yes: bool) -> miette::Result<Tool> {
-    let tool = proto.load_tool(id).await?;
+pub async fn purge_tool(session: &ProtoSession, id: &Id, yes: bool) -> miette::Result<Tool> {
+    let tool = session.load_tool(id).await?;
     let inventory_dir = tool.get_inventory_dir();
 
     if yes
@@ -235,12 +236,12 @@ pub async fn purge_tool(proto: &ProtoResource, id: &Id, yes: bool) -> miette::Re
 
         // Delete binaries
         for bin in tool.get_bin_locations()? {
-            proto.env.store.unlink_bin(&bin.path)?;
+            session.env.store.unlink_bin(&bin.path)?;
         }
 
         // Delete shims
         for shim in tool.get_shim_locations()? {
-            proto.env.store.remove_shim(&shim.path)?;
+            session.env.store.remove_shim(&shim.path)?;
         }
 
         println!("Purged {}", tool.get_name());
@@ -249,8 +250,8 @@ pub async fn purge_tool(proto: &ProtoResource, id: &Id, yes: bool) -> miette::Re
     Ok(tool)
 }
 
-pub async fn purge_plugins(proto: &ProtoResource, yes: bool) -> SystemResult {
-    let plugins_dir = &proto.env.store.plugins_dir;
+pub async fn purge_plugins(session: &ProtoSession, yes: bool) -> AppResult {
+    let plugins_dir = &session.env.store.plugins_dir;
 
     if yes
         || Confirm::with_theme(&create_theme())
@@ -270,7 +271,7 @@ pub async fn purge_plugins(proto: &ProtoResource, yes: bool) -> SystemResult {
     Ok(())
 }
 
-pub async fn internal_clean(proto: &ProtoResource, args: &CleanArgs, yes: bool) -> SystemResult {
+pub async fn internal_clean(session: &ProtoSession, args: &CleanArgs, yes: bool) -> AppResult {
     let days = args.days.unwrap_or(30);
     let now = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
@@ -280,11 +281,11 @@ pub async fn internal_clean(proto: &ProtoResource, args: &CleanArgs, yes: bool) 
 
     println!("Finding installed tools to clean up...");
 
-    for tool in proto.load_tools().await? {
+    for tool in session.load_tools().await? {
         clean_count += clean_tool(tool, now, days, yes).await?;
     }
 
-    clean_count += clean_proto(proto, days as u64).await?;
+    clean_count += clean_proto(session, days as u64).await?;
 
     if clean_count > 0 {
         println!("Successfully cleaned {} versions", clean_count);
@@ -292,7 +293,7 @@ pub async fn internal_clean(proto: &ProtoResource, args: &CleanArgs, yes: bool) 
 
     debug!("Finding installed plugins to clean up...");
 
-    clean_count = clean_plugins(proto, days as u64).await?;
+    clean_count = clean_plugins(session, days as u64).await?;
 
     if clean_count > 0 {
         println!("Successfully cleaned up {} plugins", clean_count);
@@ -301,7 +302,7 @@ pub async fn internal_clean(proto: &ProtoResource, args: &CleanArgs, yes: bool) 
     debug!("Cleaning temporary directory...");
 
     let results =
-        fs::remove_dir_stale_contents(&proto.env.store.temp_dir, Duration::from_secs(86400))?;
+        fs::remove_dir_stale_contents(&session.env.store.temp_dir, Duration::from_secs(86400))?;
 
     if results.files_deleted > 0 {
         println!(
@@ -313,19 +314,20 @@ pub async fn internal_clean(proto: &ProtoResource, args: &CleanArgs, yes: bool) 
     Ok(())
 }
 
-#[system]
-pub async fn clean(args: ArgsRef<CleanArgs>, proto: ResourceRef<ProtoResource>) {
+pub async fn clean(session: ProtoSession, args: CleanArgs) -> AppResult {
     let force_yes = args.yes || !stdout().is_terminal();
 
     if let Some(id) = &args.purge {
-        purge_tool(proto, id, force_yes).await?;
+        purge_tool(&session, id, force_yes).await?;
         return Ok(());
     }
 
     if args.purge_plugins {
-        purge_plugins(proto, force_yes).await?;
+        purge_plugins(&session, force_yes).await?;
         return Ok(());
     }
 
-    internal_clean(proto, &args, force_yes).await?;
+    internal_clean(&session, &args, force_yes).await?;
+
+    Ok(())
 }

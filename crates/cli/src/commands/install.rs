@@ -1,12 +1,13 @@
 use super::clean::clean_plugins;
 use super::pin::internal_pin;
-use crate::helpers::{create_progress_bar, disable_progress_bars, ProtoResource};
+use crate::helpers::{create_progress_bar, disable_progress_bars};
+use crate::session::ProtoSession;
 use crate::shell::{self, Export};
 use crate::telemetry::{track_usage, Metric};
 use clap::{Args, ValueEnum};
 use proto_core::{Id, PinType, Tool, UnresolvedVersionSpec};
 use proto_pdk_api::{InstallHook, SyncShellProfileInput, SyncShellProfileOutput};
-use starbase::system;
+use starbase::AppResult;
 use starbase_shell::ShellType;
 use starbase_styles::color;
 use std::env;
@@ -82,13 +83,13 @@ async fn pin_version(
 }
 
 pub async fn internal_install(
-    proto: &ProtoResource,
+    session: &ProtoSession,
     args: InstallArgs,
     tool: Option<Tool>,
 ) -> miette::Result<Tool> {
     let mut tool = match tool {
         Some(tool) => tool,
-        None => proto.load_tool(&args.id).await?,
+        None => session.load_tool(&args.id).await?,
     };
 
     let version = if args.canary {
@@ -214,7 +215,7 @@ pub async fn internal_install(
     // Clean plugins
     debug!("Auto-cleaning plugins");
 
-    clean_plugins(proto, 7).await?;
+    clean_plugins(session, 7).await?;
 
     Ok(tool)
 }
@@ -302,7 +303,8 @@ fn update_shell(tool: &Tool, passthrough_args: Vec<String>) -> miette::Result<()
     Ok(())
 }
 
-#[system]
-pub async fn install(args: ArgsRef<InstallArgs>, proto: ResourceRef<ProtoResource>) {
-    internal_install(proto, args.to_owned(), None).await?;
+pub async fn install(session: ProtoSession, args: InstallArgs) -> AppResult {
+    internal_install(&session, args, None).await?;
+
+    Ok(())
 }

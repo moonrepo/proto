@@ -31,7 +31,7 @@ fn get_tracing_modules() -> Vec<String> {
 
 #[tokio::main]
 async fn main() -> MainResult {
-    let mut app = App::default();
+    let app = App::default();
     app.setup_diagnostics();
 
     let cli = CLI::try_parse().into_diagnostic()?;
@@ -65,37 +65,39 @@ async fn main() -> MainResult {
         session.cli_version
     );
 
-    app.run(&mut session, |session| match session.cli.command {
-        Commands::Alias(args) => commands::alias(session, args),
-        Commands::Bin(args) => commands::bin(session, args),
-        Commands::Clean(args) => commands::clean(session, args),
-        Commands::Completions(args) => commands::completions(session, args),
-        Commands::Debug { command } => match command {
-            DebugCommands::Config(args) => commands::debug::config(session, args),
-            DebugCommands::Env => commands::debug::env(session),
-        },
-        Commands::Install(args) => commands::install(session, args),
-        Commands::List(args) => commands::list(session, args),
-        Commands::ListRemote(args) => commands::list_remote(session, args),
-        Commands::Migrate(args) => commands::migrate(session, args),
-        Commands::Outdated(args) => commands::outdated(session, args),
-        Commands::Pin(args) => commands::pin(session, args),
-        Commands::Plugin { command } => match command {
-            PluginCommands::Add(args) => commands::plugin::add(session, args),
-            PluginCommands::Info(args) => commands::plugin::info(session, args),
-            PluginCommands::List(args) => commands::plugin::list(session, args),
-            PluginCommands::Remove(args) => commands::plugin::remove(session, args),
-            PluginCommands::Search(args) => commands::plugin::search(session, args),
-        },
-        Commands::Regen(args) => commands::regen(session, args),
-        Commands::Run(args) => commands::run(session, args),
-        Commands::Setup(args) => commands::setup(session, args),
-        Commands::Status(args) => commands::status(session, args),
-        Commands::Unalias(args) => commands::unalias(session, args),
-        Commands::Uninstall(args) => commands::uninstall(session, args),
-        Commands::Unpin(args) => commands::unpin(session, args),
-        Commands::Upgrade => commands::upgrade(session),
-        Commands::Use => commands::install_all(session),
+    app.run(&mut session, |session| async {
+        match session.cli.command.clone() {
+            Commands::Alias(args) => commands::alias(session, args).await,
+            Commands::Bin(args) => commands::bin(session, args).await,
+            Commands::Clean(args) => commands::clean(session, args).await,
+            Commands::Completions(args) => commands::completions(session, args).await,
+            Commands::Debug { command } => match command {
+                DebugCommands::Config(args) => commands::debug::config(session, args).await,
+                DebugCommands::Env => commands::debug::env(session).await,
+            },
+            Commands::Install(args) => commands::install(session, args).await,
+            Commands::List(args) => commands::list(session, args).await,
+            Commands::ListRemote(args) => commands::list_remote(session, args).await,
+            Commands::Migrate(args) => commands::migrate(session, args).await,
+            Commands::Outdated(args) => commands::outdated(session, args).await,
+            Commands::Pin(args) => commands::pin(session, args).await,
+            Commands::Plugin { command } => match command {
+                PluginCommands::Add(args) => commands::plugin::add(session, args).await,
+                PluginCommands::Info(args) => commands::plugin::info(session, args).await,
+                PluginCommands::List(args) => commands::plugin::list(session, args).await,
+                PluginCommands::Remove(args) => commands::plugin::remove(session, args).await,
+                PluginCommands::Search(args) => commands::plugin::search(session, args).await,
+            },
+            Commands::Regen(args) => commands::regen(session, args).await,
+            Commands::Run(args) => commands::run(session, args).await,
+            Commands::Setup(args) => commands::setup(session, args).await,
+            Commands::Status(args) => commands::status(session, args).await,
+            Commands::Unalias(args) => commands::unalias(session, args).await,
+            Commands::Uninstall(args) => commands::uninstall(session, args).await,
+            Commands::Unpin(args) => commands::unpin(session, args).await,
+            Commands::Upgrade => commands::upgrade(session).await,
+            Commands::Use => commands::install_all(session).await,
+        }
     })
     .await?;
 
