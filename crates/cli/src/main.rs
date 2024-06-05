@@ -10,7 +10,6 @@ mod telemetry;
 
 use app::{App as CLI, Commands, DebugCommands, PluginCommands};
 use clap::Parser;
-use miette::IntoDiagnostic;
 use session::ProtoSession;
 use starbase::{tracing::TracingOptions, App, MainResult};
 use starbase_utils::string_vec;
@@ -31,10 +30,11 @@ fn get_tracing_modules() -> Vec<String> {
 
 #[tokio::main]
 async fn main() -> MainResult {
+    let cli = CLI::parse();
+    cli.setup_env_vars();
+
     let app = App::default();
     app.setup_diagnostics();
-
-    let cli = CLI::try_parse().into_diagnostic()?;
 
     let _guard = app.setup_tracing(TracingOptions {
         default_level: if matches!(cli.command, Commands::Bin { .. } | Commands::Run { .. }) {

@@ -23,7 +23,7 @@ impl ProtoSession {
     pub fn new(cli: CLI) -> Self {
         Self {
             cli,
-            cli_version: String::new(),
+            cli_version: env!("CARGO_PKG_VERSION").to_owned(),
             env: Arc::new(ProtoEnvironment::default()),
         }
     }
@@ -97,7 +97,6 @@ impl ProtoSession {
 #[async_trait]
 impl AppSession for ProtoSession {
     async fn startup(&mut self) -> AppResult {
-        self.cli_version = setup_env_vars(self.cli.log.as_ref());
         self.env = Arc::new(detect_proto_env()?);
 
         Ok(())

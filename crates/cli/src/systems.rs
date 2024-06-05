@@ -1,4 +1,3 @@
-use crate::app::LogLevel;
 use crate::helpers::fetch_latest_version;
 use miette::IntoDiagnostic;
 use proto_core::{is_offline, now, ProtoEnvironment};
@@ -12,25 +11,6 @@ use std::time::Duration;
 use tracing::{debug, instrument};
 
 // STARTUP
-
-#[instrument(skip_all)]
-pub fn setup_env_vars(log_level: Option<&LogLevel>) -> String {
-    let version = env!("CARGO_PKG_VERSION");
-
-    if let Some(level) = log_level {
-        env::set_var("STARBASE_LOG", level.to_string());
-    } else if let Ok(level) = env::var("PROTO_LOG") {
-        env::set_var("STARBASE_LOG", level);
-    }
-
-    env::set_var("PROTO_VERSION", version);
-
-    if let Ok(value) = env::var("PROTO_DEBUG_COMMAND") {
-        env::set_var("WARPGATE_DEBUG_COMMAND", value);
-    }
-
-    version.to_owned()
-}
 
 #[instrument(skip_all)]
 pub fn detect_proto_env() -> AppResult<ProtoEnvironment> {

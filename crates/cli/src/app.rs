@@ -8,7 +8,10 @@ use crate::commands::{
 use clap::builder::styling::{Color, Style, Styles};
 use clap::{Parser, Subcommand, ValueEnum};
 use starbase_styles::color::Color as ColorType;
-use std::fmt::{Display, Error, Formatter};
+use std::{
+    env,
+    fmt::{Display, Error, Formatter},
+};
 
 #[derive(ValueEnum, Clone, Debug, Default)]
 pub enum LogLevel {
@@ -86,6 +89,24 @@ pub struct App {
 
     #[command(subcommand)]
     pub command: Commands,
+}
+
+impl App {
+    pub fn setup_env_vars(&self) {
+        let version = env!("CARGO_PKG_VERSION");
+
+        if let Some(level) = &self.log {
+            env::set_var("STARBASE_LOG", level.to_string());
+        } else if let Ok(level) = env::var("PROTO_LOG") {
+            env::set_var("STARBASE_LOG", level);
+        }
+
+        env::set_var("PROTO_VERSION", version);
+
+        if let Ok(value) = env::var("PROTO_DEBUG_COMMAND") {
+            env::set_var("WARPGATE_DEBUG_COMMAND", value);
+        }
+    }
 }
 
 #[derive(Clone, Debug, Subcommand)]
