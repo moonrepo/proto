@@ -10,7 +10,6 @@ use proto_core::{
 use rustc_hash::FxHashSet;
 use starbase::{AppResult, AppSession};
 use std::sync::Arc;
-use tokio::task;
 
 #[derive(Clone)]
 pub struct ProtoSession {
@@ -110,9 +109,7 @@ impl AppSession for ProtoSession {
 
     async fn execute(&mut self) -> AppResult {
         if self.should_check_for_new_version() {
-            task::spawn(check_for_new_version(Arc::clone(&self.env)))
-                .await
-                .into_diagnostic()??;
+            check_for_new_version(Arc::clone(&self.env)).await?;
         }
 
         Ok(())

@@ -16,7 +16,7 @@ pub struct ProtoEnvironment {
     pub home: PathBuf, // ~
     pub root: PathBuf, // ~/.proto
     pub store: Store,
-    pub test_mode: bool,
+    pub test_only: bool,
 
     config_manager: Arc<OnceCell<ProtoConfigManager>>,
     plugin_loader: Arc<OnceCell<PluginLoader>>,
@@ -31,7 +31,7 @@ impl ProtoEnvironment {
         let mut env = Self::from(sandbox.join(".proto")).unwrap();
         env.cwd = sandbox.to_path_buf();
         env.home = sandbox.join(".home");
-        env.test_mode = true;
+        env.test_only = true;
         env
     }
 
@@ -47,7 +47,7 @@ impl ProtoEnvironment {
             root: root.to_owned(),
             config_manager: Arc::new(OnceCell::new()),
             plugin_loader: Arc::new(OnceCell::new()),
-            test_mode: env::var("PROTO_TEST").is_ok(),
+            test_only: env::var("PROTO_TEST").is_ok(),
             store: Store::new(root),
         })
     }

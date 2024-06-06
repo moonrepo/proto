@@ -32,7 +32,7 @@ pub fn load_proto_configs(env: &ProtoEnvironment) -> AppResult {
 pub async fn check_for_new_version(env: Arc<ProtoEnvironment>) -> AppResult {
     if
     // Don't check when running tests
-    env.test_mode ||
+    env.test_only ||
         // Or when explicitly disabled
         env::var("PROTO_VERSION_CHECK").is_ok_and(|var| var == "0" || var == "false") ||
             // Or when printing formatted output
