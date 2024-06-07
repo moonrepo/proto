@@ -10,6 +10,12 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Improved logic to detect the `proto-shim` binary when proto is installed in non-standard locations.
+
 ## 0.36.0
 
 #### 🚀 Updates

@@ -13,10 +13,6 @@ pub use windows::*;
 use std::env;
 use std::path::PathBuf;
 
-#[cfg(debug_assertions)]
-pub const SHIM_VERSION: u8 = 0;
-
-#[cfg(not(debug_assertions))]
 pub const SHIM_VERSION: u8 = 14;
 
 pub fn locate_proto_exe(bin: &str) -> Option<PathBuf> {
@@ -64,6 +60,15 @@ pub fn locate_proto_exe(bin: &str) -> Option<PathBuf> {
         }
 
         lookup_dirs.push(dir.join("bin"));
+    }
+
+    // Detect the currently running executable (proto), and then find
+    // a proto-shim sibling in the same directory. This assumes both
+    // binaries are the same version.
+    if let Ok(current) = env::current_exe() {
+        if let Some(dir) = current.parent() {
+            lookup_dirs.push(dir.to_path_buf());
+        }
     }
 
     // Special case for unit tests and other isolations where
