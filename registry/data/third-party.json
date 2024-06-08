@@ -566,7 +566,7 @@
       "format": "toml",
       "name": "terraform",
       "description": "Provision & Manage any Infrastructure.",
-      "author": "stk0vrfl0w",
+      "author": "theomessin",
       "homepageUrl": "https://www.terraform.io/",
       "repositoryUrl": "https://github.com/theomessin/proto-toml-plugins/blob/master/terraform.toml",
       "devicon": "terraform",
