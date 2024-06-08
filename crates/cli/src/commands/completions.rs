@@ -1,6 +1,7 @@
 use crate::app::App;
 use clap::{Args, CommandFactory};
 use clap_complete::{generate, Shell};
+use clap_complete_nushell::Nushell;
 use starbase::system;
 use starbase_shell::ShellType;
 use std::process;
@@ -18,21 +19,26 @@ pub async fn completions(args: ArgsRef<CompletionsArgs>) {
         None => ShellType::try_detect()?,
     };
 
+    let mut app = App::command();
+    let mut stdio = std::io::stdout();
+
     let clap_shell = match shell {
         ShellType::Bash => Shell::Bash,
         ShellType::Elvish => Shell::Elvish,
         ShellType::Fish => Shell::Fish,
         ShellType::Pwsh => Shell::PowerShell,
         ShellType::Zsh => Shell::Zsh,
+        ShellType::Nu => {
+            generate(Nushell, &mut app, "proto", &mut stdio);
+
+            return Ok(());
+        }
         unsupported => {
             eprintln!("{unsupported} does not currently support completions");
 
             process::exit(1);
         }
     };
-
-    let mut app = App::command();
-    let mut stdio = std::io::stdout();
 
     generate(clap_shell, &mut app, "proto", &mut stdio);
 }
