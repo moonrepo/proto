@@ -2507,7 +2507,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.36.2"
+version = "0.36.3"
 dependencies = [
  "cached",
  "indexmap 2.2.6",
@@ -2583,7 +2583,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.24.0"
+version = "0.24.1"
 dependencies = [
  "proto_core",
  "proto_pdk_api",
