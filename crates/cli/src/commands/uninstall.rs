@@ -1,9 +1,10 @@
 use crate::commands::clean::purge_tool;
-use crate::helpers::{create_progress_bar, disable_progress_bars, ProtoResource};
+use crate::helpers::{create_progress_bar, disable_progress_bars};
+use crate::session::ProtoSession;
 use crate::telemetry::{track_usage, Metric};
 use clap::Args;
 use proto_core::{Id, ProtoConfig, Tool, UnresolvedVersionSpec};
-use starbase::system;
+use starbase::AppResult;
 use std::process;
 use tracing::debug;
 
@@ -19,8 +20,8 @@ pub struct UninstallArgs {
     yes: bool,
 }
 
-fn unpin_version(args: &UninstallArgs, proto: &ProtoResource) -> miette::Result<()> {
-    let manager = proto.env.load_config_manager()?;
+fn unpin_version(session: &ProtoSession, args: &UninstallArgs) -> miette::Result<()> {
+    let manager = session.env.load_config_manager()?;
 
     for file in &manager.files {
         if !file.exists {
@@ -45,13 +46,13 @@ fn unpin_version(args: &UninstallArgs, proto: &ProtoResource) -> miette::Result<
     Ok(())
 }
 
-#[system]
-pub async fn uninstall(args: ArgsRef<UninstallArgs>, proto: ResourceRef<ProtoResource>) {
+#[tracing::instrument(skip_all)]
+pub async fn uninstall(session: ProtoSession, args: UninstallArgs) -> AppResult {
     // Uninstall everything
     let Some(spec) = &args.spec else {
-        let tool = purge_tool(proto, &args.id, args.yes).await?;
+        let tool = purge_tool(&session, &args.id, args.yes).await?;
 
-        unpin_version(&args, proto)?;
+        unpin_version(&session, &args)?;
 
         // Track usage metrics
         track_uninstall(&tool, true).await?;
@@ -60,7 +61,7 @@ pub async fn uninstall(args: ArgsRef<UninstallArgs>, proto: ResourceRef<ProtoRes
     };
 
     // Uninstall a tool by version
-    let mut tool = proto.load_tool(&args.id).await?;
+    let mut tool = session.load_tool(&args.id).await?;
 
     if !tool.is_setup(spec).await? {
         eprintln!(
@@ -86,7 +87,7 @@ pub async fn uninstall(args: ArgsRef<UninstallArgs>, proto: ResourceRef<ProtoRes
 
     let uninstalled = tool.teardown().await?;
 
-    unpin_version(&args, proto)?;
+    unpin_version(&session, &args)?;
 
     pb.finish_and_clear();
 
@@ -102,6 +103,8 @@ pub async fn uninstall(args: ArgsRef<UninstallArgs>, proto: ResourceRef<ProtoRes
         tool.get_name(),
         tool.get_resolved_version(),
     );
+
+    Ok(())
 }
 
 async fn track_uninstall(tool: &Tool, purged: bool) -> miette::Result<()> {

@@ -1,8 +1,8 @@
 use crate::error::ProtoCliError;
-use crate::helpers::ProtoResource;
+use crate::session::ProtoSession;
 use clap::Args;
 use proto_core::{is_alias_name, Id, ProtoConfig, UnresolvedVersionSpec};
-use starbase::system;
+use starbase::AppResult;
 use starbase_styles::color;
 
 #[derive(Args, Clone, Debug)]
@@ -23,8 +23,8 @@ pub struct AliasArgs {
     global: bool,
 }
 
-#[system]
-pub async fn alias(args: ArgsRef<AliasArgs>, proto: ResourceRef<ProtoResource>) {
+#[tracing::instrument(skip_all)]
+pub async fn alias(session: ProtoSession, args: AliasArgs) -> AppResult {
     if let UnresolvedVersionSpec::Alias(inner_alias) = &args.spec {
         if &args.alias == inner_alias {
             return Err(ProtoCliError::NoMatchingAliasToVersion.into());
@@ -38,7 +38,7 @@ pub async fn alias(args: ArgsRef<AliasArgs>, proto: ResourceRef<ProtoResource>) 
         .into());
     }
 
-    let tool = proto.load_tool(&args.id).await?;
+    let tool = session.load_tool(&args.id).await?;
 
     let config_path = ProtoConfig::update(tool.proto.get_config_dir(args.global), |config| {
         let tool_configs = config.tools.get_or_insert(Default::default());
@@ -57,4 +57,6 @@ pub async fn alias(args: ArgsRef<AliasArgs>, proto: ResourceRef<ProtoResource>) 
         color::muted_light(args.spec.to_string()),
         color::path(config_path)
     );
+
+    Ok(())
 }

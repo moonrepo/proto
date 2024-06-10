@@ -1,9 +1,9 @@
 #![allow(unreachable_code)]
 
 use crate::error::ProtoCliError;
-use crate::helpers::ProtoResource;
+use crate::session::ProtoSession;
 use clap::Args;
-use starbase::system;
+use starbase::AppResult;
 
 #[derive(Args, Clone, Debug)]
 pub struct MigrateArgs {
@@ -11,8 +11,8 @@ pub struct MigrateArgs {
     operation: String,
 }
 
-#[system]
-pub async fn migrate(args: ArgsRef<MigrateArgs>, _proto: ResourceRef<ProtoResource>) {
+#[tracing::instrument(skip_all)]
+pub async fn migrate(_session: ProtoSession, args: MigrateArgs) -> AppResult {
     // match args.operation.as_str() {
     //     unknown => {
     //         return Err(ProtoCliError::UnknownMigration {

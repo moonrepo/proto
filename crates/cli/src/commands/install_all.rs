@@ -1,25 +1,24 @@
-use crate::helpers::{
-    create_progress_bar, disable_progress_bars, enable_progress_bars, ProtoResource,
-};
+use crate::helpers::{create_progress_bar, disable_progress_bars, enable_progress_bars};
+use crate::session::ProtoSession;
 use crate::{
     commands::clean::{internal_clean, CleanArgs},
     commands::install::{internal_install, InstallArgs},
 };
 use miette::IntoDiagnostic;
-use starbase::system;
+use starbase::AppResult;
 use starbase_styles::color;
 use std::process;
 use tracing::debug;
 
-#[system]
-pub async fn install_all(proto: ResourceRef<ProtoResource>) {
+#[tracing::instrument(skip_all)]
+pub async fn install_all(session: ProtoSession) -> AppResult {
     debug!("Loading tools and plugins from .prototools");
 
-    let tools = proto.load_tools().await?;
+    let tools = session.load_tools().await?;
 
     debug!("Detecting tool versions to install");
 
-    let config = proto
+    let config = session
         .env
         .load_config_manager()?
         .get_merged_config_without_global()?;
@@ -30,7 +29,7 @@ pub async fn install_all(proto: ResourceRef<ProtoResource>) {
             continue;
         }
 
-        if let Some((candidate, _)) = tool.detect_version_from(&proto.env.cwd).await? {
+        if let Some((candidate, _)) = tool.detect_version_from(&session.env.cwd).await? {
             debug!("Detected version {} for {}", candidate, tool.get_name());
 
             versions.insert(tool.id.clone(), candidate);
@@ -60,7 +59,7 @@ pub async fn install_all(proto: ResourceRef<ProtoResource>) {
 
     for tool in tools {
         if let Some(version) = versions.remove(&tool.id) {
-            let proto_clone = proto.clone();
+            let proto_clone = session.clone();
 
             futures.push(tokio::spawn(async move {
                 internal_install(
@@ -92,6 +91,8 @@ pub async fn install_all(proto: ResourceRef<ProtoResource>) {
     if config.settings.auto_clean {
         debug!("Auto-clean enabled, starting clean");
 
-        internal_clean(proto, &CleanArgs::default(), true).await?;
+        internal_clean(&session, &CleanArgs::default(), true).await?;
     }
+
+    Ok(())
 }

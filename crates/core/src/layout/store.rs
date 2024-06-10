@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 use tracing::instrument;
 use warpgate::Id;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Store {
     pub dir: PathBuf,
     pub bin_dir: PathBuf,

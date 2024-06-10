@@ -1,10 +1,10 @@
-use crate::helpers::ProtoResource;
 use crate::printer::Printer;
+use crate::session::ProtoSession;
 use clap::Args;
 use comfy_table::presets::NOTHING;
 use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
 use proto_core::registry::{PluginAuthor, PluginFormat};
-use starbase::system;
+use starbase::AppResult;
 use starbase_styles::color::{self, Style};
 use starbase_utils::json;
 use std::process;
@@ -18,9 +18,9 @@ pub struct SearchPluginArgs {
     json: bool,
 }
 
-#[system]
-pub async fn search(args: ArgsRef<SearchPluginArgs>, proto: ResourceRef<ProtoResource>) {
-    let mut registry = proto.create_registry();
+#[tracing::instrument(skip_all)]
+pub async fn search(session: ProtoSession, args: SearchPluginArgs) -> AppResult {
+    let mut registry = session.create_registry();
     let plugins = registry.load_external_plugins().await?;
 
     let query = &args.query;
@@ -99,4 +99,6 @@ pub async fn search(args: ArgsRef<SearchPluginArgs>, proto: ResourceRef<ProtoRes
     })?;
 
     printer.flush();
+
+    Ok(())
 }

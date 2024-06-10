@@ -1,5 +1,5 @@
-use crate::helpers::ProtoResource;
 use crate::printer::{format_env_var, format_value, Printer};
+use crate::session::ProtoSession;
 use clap::Args;
 use proto_core::{
     detect_version, EnvVar, ExecutableLocation, Id, PluginLocator, ProtoToolConfig, ToolManifest,
@@ -7,7 +7,7 @@ use proto_core::{
 };
 use proto_pdk_api::ToolMetadataOutput;
 use serde::Serialize;
-use starbase::system;
+use starbase::AppResult;
 use starbase_styles::color;
 use starbase_utils::json;
 use std::path::PathBuf;
@@ -37,16 +37,16 @@ pub struct InfoPluginArgs {
     json: bool,
 }
 
-#[system]
-pub async fn info(args: ArgsRef<InfoPluginArgs>, proto: ResourceRef<ProtoResource>) {
-    let mut tool = proto.load_tool(&args.id).await?;
+#[tracing::instrument(skip_all)]
+pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
+    let mut tool = session.load_tool(&args.id).await?;
     let version = detect_version(&tool, None).await?;
 
     tool.resolve_version(&version, false).await?;
     tool.create_executables(false, false).await?;
     tool.locate_globals_dir().await?;
 
-    let mut config = proto.env.load_config()?.to_owned();
+    let mut config = session.env.load_config()?.to_owned();
     let tool_config = config.tools.remove(&tool.id).unwrap_or_default();
 
     if args.json {
@@ -220,4 +220,6 @@ pub async fn info(args: ArgsRef<InfoPluginArgs>, proto: ResourceRef<ProtoResourc
     }
 
     printer.flush();
+
+    Ok(())
 }

@@ -1,7 +1,7 @@
-use crate::helpers::ProtoResource;
+use crate::session::ProtoSession;
 use clap::Args;
 use proto_core::{Id, ProtoConfig};
-use starbase::system;
+use starbase::AppResult;
 use starbase_styles::color;
 use std::process;
 
@@ -17,9 +17,9 @@ pub struct UnpinArgs {
     pub global: bool,
 }
 
-#[system]
-pub async fn unpin(args: ArgsRef<UnpinArgs>, proto: ResourceRef<ProtoResource>) -> SystemResult {
-    let tool = proto.load_tool(&args.id).await?;
+#[tracing::instrument(skip_all)]
+pub async fn unpin(session: ProtoSession, args: UnpinArgs) -> AppResult {
+    let tool = session.load_tool(&args.id).await?;
     let mut value = None;
 
     let config_path = ProtoConfig::update(tool.proto.get_config_dir(args.global), |config| {
@@ -44,4 +44,6 @@ pub async fn unpin(args: ArgsRef<UnpinArgs>, proto: ResourceRef<ProtoResource>) 
         color::hash(value.to_string()),
         color::path(config_path)
     );
+
+    Ok(())
 }

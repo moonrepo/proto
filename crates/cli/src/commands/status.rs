@@ -1,5 +1,5 @@
 use crate::error::ProtoCliError;
-use crate::helpers::ProtoResource;
+use crate::session::ProtoSession;
 use clap::Args;
 use comfy_table::presets::NOTHING;
 use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
@@ -7,7 +7,7 @@ use miette::IntoDiagnostic;
 use proto_core::{UnresolvedVersionSpec, VersionSpec};
 use rustc_hash::FxHashSet;
 use serde::Serialize;
-use starbase::system;
+use starbase::AppResult;
 use starbase_styles::color::Style;
 use starbase_utils::json;
 use std::collections::BTreeMap;
@@ -36,9 +36,9 @@ pub struct StatusItem {
     product_dir: Option<PathBuf>,
 }
 
-#[system]
-pub async fn status(args: ArgsRef<StatusArgs>, proto: ResourceRef<ProtoResource>) {
-    let manager = proto.env.load_config_manager()?;
+#[tracing::instrument(skip_all)]
+pub async fn status(session: ProtoSession, args: StatusArgs) -> AppResult {
+    let manager = session.env.load_config_manager()?;
     let mut items = BTreeMap::default();
 
     debug!("Determining active tools based on config...");
@@ -46,7 +46,7 @@ pub async fn status(args: ArgsRef<StatusArgs>, proto: ResourceRef<ProtoResource>
     for file in manager.files.iter().rev() {
         if !file.exists
             || !args.include_global && file.global
-            || args.only_local && !file.path.parent().is_some_and(|p| p == proto.env.cwd)
+            || args.only_local && !file.path.parent().is_some_and(|p| p == session.env.cwd)
         {
             continue;
         }
@@ -76,7 +76,7 @@ pub async fn status(args: ArgsRef<StatusArgs>, proto: ResourceRef<ProtoResource>
         "Found tools with configured versions, loading them",
     );
 
-    let tools = proto
+    let tools = session
         .load_tools_with_filters(FxHashSet::from_iter(items.keys()))
         .await?;
     let mut futures = vec![];
@@ -163,4 +163,6 @@ pub async fn status(args: ArgsRef<StatusArgs>, proto: ResourceRef<ProtoResource>
     }
 
     println!("\n{table}\n");
+
+    Ok(())
 }

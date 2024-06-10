@@ -1,8 +1,8 @@
-use crate::helpers::ProtoResource;
+use crate::session::ProtoSession;
 use clap::Args;
 use proto_core::{ProtoConfig, ProtoConfigFile};
 use serde::Serialize;
-use starbase::system;
+use starbase::AppResult;
 use starbase_styles::color::{self, OwoStyle};
 use starbase_utils::{json, toml};
 
@@ -40,9 +40,9 @@ fn print_toml(value: impl Serialize) -> miette::Result<()> {
     Ok(())
 }
 
-#[system]
-pub async fn config(args: ArgsRef<DebugConfigArgs>, proto: ResourceRef<ProtoResource>) {
-    let manager = proto.env.load_config_manager()?;
+#[tracing::instrument(skip_all)]
+pub async fn config(session: ProtoSession, args: DebugConfigArgs) -> AppResult {
+    let manager = session.env.load_config_manager()?;
     let config = manager.get_merged_config()?;
 
     if args.json {
@@ -73,4 +73,6 @@ pub async fn config(args: ArgsRef<DebugConfigArgs>, proto: ResourceRef<ProtoReso
     );
     print_toml(config)?;
     println!();
+
+    Ok(())
 }

@@ -1,7 +1,7 @@
-use crate::helpers::ProtoResource;
+use crate::session::ProtoSession;
 use clap::Args;
 use proto_core::{detect_version, Id, UnresolvedVersionSpec};
-use starbase::system;
+use starbase::AppResult;
 
 #[derive(Args, Clone, Debug)]
 pub struct BinArgs {
@@ -18,9 +18,9 @@ pub struct BinArgs {
     shim: bool,
 }
 
-#[system]
-pub async fn bin(args: ArgsRef<BinArgs>, proto: ResourceRef<ProtoResource>) {
-    let mut tool = proto.load_tool(&args.id).await?;
+#[tracing::instrument(skip_all)]
+pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
+    let mut tool = session.load_tool(&args.id).await?;
     let version = detect_version(&tool, args.spec.clone()).await?;
 
     tool.resolve_version(&version, true).await?;
@@ -45,4 +45,6 @@ pub async fn bin(args: ArgsRef<BinArgs>, proto: ResourceRef<ProtoResource>) {
     }
 
     println!("{}", tool.get_exe_path()?.display());
+
+    Ok(())
 }

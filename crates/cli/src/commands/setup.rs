@@ -1,11 +1,11 @@
-use crate::helpers::ProtoResource;
+use crate::session::ProtoSession;
 use crate::shell::{
     format_exports, prompt_for_shell, prompt_for_shell_profile, write_profile,
     write_profile_if_not_setup, Export,
 };
 use clap::Args;
 use proto_shim::get_exe_file_name;
-use starbase::system;
+use starbase::AppResult;
 use starbase_shell::{BoxedShell, ShellError, ShellType};
 use starbase_styles::color;
 use std::env;
@@ -32,14 +32,14 @@ pub struct SetupArgs {
     yes: bool,
 }
 
-#[system]
-pub async fn setup(args: ArgsRef<SetupArgs>, proto: ResourceRef<ProtoResource>) {
+#[tracing::instrument(skip_all)]
+pub async fn setup(session: ProtoSession, args: SetupArgs) -> AppResult {
     let paths = env::split_paths(&env::var("PATH").unwrap()).collect::<Vec<_>>();
 
-    if paths.contains(&proto.env.store.shims_dir) && paths.contains(&proto.env.store.bin_dir) {
+    if paths.contains(&session.env.store.shims_dir) && paths.contains(&session.env.store.bin_dir) {
         debug!("Skipping setup, proto already exists in PATH");
 
-        already_setup_message(proto);
+        already_setup_message(&session);
 
         return Ok(());
     }
@@ -77,7 +77,7 @@ pub async fn setup(args: ArgsRef<SetupArgs>, proto: ResourceRef<ProtoResource>) 
     let modified_profile_path = if args.no_modify_profile {
         None
     } else {
-        update_shell_profile(&shell, proto, &content, interactive)?
+        update_shell_profile(&shell, &session, &content, interactive)?
     };
 
     #[allow(clippy::needless_bool)]
@@ -87,8 +87,8 @@ pub async fn setup(args: ArgsRef<SetupArgs>, proto: ResourceRef<ProtoResource>) 
         #[cfg(windows)]
         {
             windows::do_add_to_path(vec![
-                proto.env.store.shims_dir.clone(),
-                proto.env.store.bin_dir.clone(),
+                session.env.store.shims_dir.clone(),
+                session.env.store.bin_dir.clone(),
             ])?
         }
 
@@ -97,16 +97,18 @@ pub async fn setup(args: ArgsRef<SetupArgs>, proto: ResourceRef<ProtoResource>) 
     };
 
     finished_message(
-        proto,
+        &session,
         content,
         modified_profile_path,
         modified_system_env_path,
     );
+
+    Ok(())
 }
 
 fn update_shell_profile(
     shell: &BoxedShell,
-    proto: &ProtoResource,
+    session: &ProtoSession,
     content: &str,
     interactive: bool,
 ) -> miette::Result<Option<PathBuf>> {
@@ -117,7 +119,7 @@ fn update_shell_profile(
     if interactive {
         debug!("Prompting the user to select a shell profile");
 
-        profile_path = prompt_for_shell_profile(shell, &proto.env.cwd, &proto.env.home)?;
+        profile_path = prompt_for_shell_profile(shell, &session.env.cwd, &session.env.home)?;
 
         if let Some(profile) = &profile_path {
             debug!("Selected profile {}, updating", color::path(profile));
@@ -127,12 +129,12 @@ fn update_shell_profile(
     } else {
         debug!("Attempting to find a shell profile to update");
 
-        profile_path = write_profile_if_not_setup(shell, content, "PROTO_HOME", &proto.env.home)?;
+        profile_path = write_profile_if_not_setup(shell, content, "PROTO_HOME", &session.env.home)?;
     }
 
     // If we found a profile, update the global config so we can reference it
     if let Some(profile) = &profile_path {
-        proto.env.store.save_preferred_profile(profile)?;
+        session.env.store.save_preferred_profile(profile)?;
     }
 
     Ok(profile_path)
@@ -145,8 +147,8 @@ fn help_message() {
     );
 }
 
-fn already_setup_message(proto: &ProtoResource) {
-    let installed_bin_path = proto.env.store.bin_dir.join(get_exe_file_name("proto"));
+fn already_setup_message(session: &ProtoSession) {
+    let installed_bin_path = session.env.store.bin_dir.join(get_exe_file_name("proto"));
 
     println!(
         "Successfully installed proto to {}!",
@@ -155,7 +157,7 @@ fn already_setup_message(proto: &ProtoResource) {
     help_message();
 }
 
-fn manual_system_path_message(proto: &ProtoResource) {
+fn manual_system_path_message(session: &ProtoSession) {
     println!(
         "Add the following to your {} to get started:",
         color::property("PATH")
@@ -167,8 +169,8 @@ fn manual_system_path_message(proto: &ProtoResource) {
             // We avoid %USERPROFILE% as it only works in the user path and not system path
             color::muted_light(format!(
                 "{};{}",
-                proto.env.store.shims_dir.to_string_lossy(),
-                proto.env.store.bin_dir.to_string_lossy()
+                session.env.store.shims_dir.to_string_lossy(),
+                session.env.store.bin_dir.to_string_lossy()
             ))
         } else {
             color::muted_light("$HOME/.proto/shims:$HOME/.proto/bin")
@@ -177,12 +179,12 @@ fn manual_system_path_message(proto: &ProtoResource) {
 }
 
 fn finished_message(
-    proto: &ProtoResource,
+    session: &ProtoSession,
     exported_content: String,
     modified_profile_path: Option<PathBuf>,
     modified_system_env_path: bool,
 ) {
-    let installed_bin_path = proto.env.store.bin_dir.join(get_exe_file_name("proto"));
+    let installed_bin_path = session.env.store.bin_dir.join(get_exe_file_name("proto"));
 
     println!(
         "Successfully installed proto to {}!",
@@ -197,7 +199,7 @@ fn finished_message(
         println!("Launch a new terminal window to start using proto!");
     } else if !exported_content.is_empty() && modified_profile_path.is_none() {
         if cfg!(windows) {
-            manual_system_path_message(proto);
+            manual_system_path_message(session);
             println!();
             println!("Or alternatively add the following to your shell profile:");
         } else {
@@ -206,7 +208,7 @@ fn finished_message(
         println!();
         println!("{}", color::muted_light(exported_content.trim()));
     } else {
-        manual_system_path_message(proto);
+        manual_system_path_message(session);
     }
 
     println!();
