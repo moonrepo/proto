@@ -4,6 +4,7 @@ use crate::proto_config::{ProtoConfig, ProtoConfigFile, ProtoConfigManager, PROT
 use once_cell::sync::OnceCell;
 use std::collections::BTreeMap;
 use std::env;
+use std::fmt;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tracing::debug;
@@ -115,5 +116,18 @@ impl ProtoEnvironment {
 impl AsRef<ProtoEnvironment> for ProtoEnvironment {
     fn as_ref(&self) -> &ProtoEnvironment {
         self
+    }
+}
+
+impl fmt::Debug for ProtoEnvironment {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ProtoEnvironment")
+            .field("cwd", &self.cwd)
+            .field("env_mode", &self.env_mode)
+            .field("home", &self.home)
+            .field("root", &self.root)
+            .field("store", &self.store)
+            .field("test_only", &self.test_only)
+            .finish()
     }
 }
