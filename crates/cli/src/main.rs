@@ -11,10 +11,13 @@ mod telemetry;
 use app::{App as CLI, Commands, DebugCommands, PluginCommands};
 use clap::Parser;
 use session::ProtoSession;
-use starbase::{tracing::TracingOptions, App, MainResult};
+use starbase::{
+    tracing::{LogLevel, TracingOptions},
+    App, MainResult,
+};
 use starbase_utils::string_vec;
 use std::env;
-use tracing::{debug, metadata::LevelFilter};
+use tracing::debug;
 
 fn get_tracing_modules() -> Vec<String> {
     let mut modules = string_vec!["proto", "schematic", "starbase", "warpgate"];
@@ -30,6 +33,8 @@ fn get_tracing_modules() -> Vec<String> {
 
 #[tokio::main]
 async fn main() -> MainResult {
+    sigpipe::reset();
+
     let cli = CLI::parse();
     cli.setup_env_vars();
 
@@ -38,21 +43,20 @@ async fn main() -> MainResult {
 
     let _guard = app.setup_tracing(TracingOptions {
         default_level: if matches!(cli.command, Commands::Bin { .. } | Commands::Run { .. }) {
-            LevelFilter::WARN
+            LogLevel::Warn
         } else if matches!(cli.command, Commands::Completions { .. }) {
-            LevelFilter::OFF
+            LogLevel::Off
         } else {
-            LevelFilter::INFO
+            LogLevel::Info
         },
         dump_trace: cli.dump && !matches!(cli.command, Commands::Run { .. }),
         filter_modules: get_tracing_modules(),
-        intercept_log: false,
         log_env: "STARBASE_LOG".into(),
         // test_env: "PROTO_TEST".into(),
         ..TracingOptions::default()
     });
 
-    let mut session = ProtoSession::new(cli);
+    let session = ProtoSession::new(cli);
     let mut args = env::args_os().collect::<Vec<_>>();
 
     debug!(
@@ -65,7 +69,7 @@ async fn main() -> MainResult {
         session.cli_version
     );
 
-    app.run(&mut session, |session| async {
+    app.run(session, |session| async {
         match session.cli.command.clone() {
             Commands::Alias(args) => commands::alias(session, args).await,
             Commands::Bin(args) => commands::bin(session, args).await,

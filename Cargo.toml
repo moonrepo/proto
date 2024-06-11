@@ -30,8 +30,8 @@ serde = { version = "1.0.203", features = ["derive"] }
 serde_json = "1.0.117"
 sha2 = "0.10.8"
 shell-words = "1.1.0"
-starbase = { version = "0.7.2" }
-starbase_archive = { version = "0.7.3", features = [
+starbase = { version = "0.8.0" }
+starbase_archive = { version = "0.7.4", features = [
     "gz",
     "miette",
     "tar-gz",
@@ -44,7 +44,7 @@ starbase_events = { version = "0.6.1" }
 starbase_sandbox = { version = "0.6.2" }
 starbase_shell = { version = "0.2.2", features = ["miette"] }
 starbase_styles = { version = "0.4.0" }
-starbase_utils = { version = "0.7.4", default-features = false, features = [
+starbase_utils = { version = "0.7.5", default-features = false, features = [
     "json",
     "miette",
     "net",
