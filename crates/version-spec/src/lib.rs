@@ -33,33 +33,12 @@ pub fn is_alias_name<T: AsRef<str>>(value: T) -> bool {
 
 /// Returns true if the provided value is a calendar version like string.
 pub fn is_calver_like<T: AsRef<str>>(value: T) -> bool {
-    let value = value.as_ref();
-
-    // 2024-02_123
-    if value.contains('_') {
-        return true;
-    }
-
-    let dots: usize = value.chars().filter(|c| c == &'.').count();
-    let dashes: usize = value.chars().filter(|c| c == &'-').count();
-
-    // 2024
-    // 2024-02
-    // 2024-02-23
-    // 2024-02.123
-    // 2024-02-23.123
-    dashes >= 1 && dots <= 1
+    get_calver_regex().is_match(value.as_ref())
 }
 
 /// Returns true if the provided value is a semantic version like string.
 pub fn is_semver_like<T: AsRef<str>>(value: T) -> bool {
-    let value = value.as_ref();
-    let dots: usize = value.chars().filter(|c| c == &'.').count();
-    let dashes: usize = value.chars().filter(|c| c == &'-').count();
-
-    // 1.2.3
-    // 4.5.6-alpha
-    dots >= 2 && dashes <= 1
+    get_semver_regex().is_match(value.as_ref())
 }
 
 static CLEAN_REQ_REGEX: OnceLock<Regex> = OnceLock::new();
@@ -104,19 +83,7 @@ static CALVER_REGEX: OnceLock<Regex> = OnceLock::new();
 /// For example: 2024-02-26, 2024-12, 2024-01-alpha, etc.
 pub fn get_calver_regex() -> &'static Regex {
     CALVER_REGEX.get_or_init(|| {
-        Regex::new(
-            r"^
-            (?<year>[0-9]{1,4})(?
-                -(?<month>[0-9]{1,2})(?
-                    -(?<day>[0-9]{1,2})(?
-                        (_|.)(?<micro>[0-9]+)
-                    )?
-                )?
-            )?
-            (?<pre>-[-0-9a-zA-Z.]+)?
-            $",
-        )
-        .unwrap()
+        Regex::new(r"^(?<year>[0-9]{1,4})(-(?<month>((0?[1-9]{1})|10|11|12))(-(?<day>(0?[1-9]{1}|[1-3]{1}[0-9]{1})))?)?((_|\.)(?<micro>[0-9]+))?(?<pre>-[a-zA-Z]{1}[-0-9a-zA-Z.]+)?$").unwrap()
     })
 }
 
@@ -126,13 +93,7 @@ static SEMVER_REGEX: OnceLock<Regex> = OnceLock::new();
 /// For example: 1.2.3, 6.5.4, 7.8.9-alpha, etc.
 pub fn get_semver_regex() -> &'static Regex {
     SEMVER_REGEX.get_or_init(|| {
-        Regex::new(
-            r"^
-            (?<major>[0-9]+).(?<minor>[0-9]+).(?<patch>[0-9]+)
-            (?<pre>-[-0-9a-zA-Z.]+)?
-            (?<build>+[-0-9a-zA-Z.]+)?
-            $",
-        )
+        Regex::new(r"^(?<major>[0-9]+).(?<minor>[0-9]+).(?<patch>[0-9]+)(?<pre>-[-0-9a-zA-Z.]+)?(?<build>+[-0-9a-zA-Z.]+)?$",)
         .unwrap()
     })
 }
