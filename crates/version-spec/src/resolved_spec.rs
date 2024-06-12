@@ -1,9 +1,10 @@
 #![allow(clippy::from_over_into)]
 
 use crate::{clean_version_string, is_alias_name, UnresolvedVersionSpec};
-use semver::{Error, Version};
+use crate::{is_calver_like, version_types::*};
+use semver::Error;
 use serde::{Deserialize, Serialize};
-use std::fmt::{Debug, Display};
+use std::fmt;
 use std::str::FromStr;
 
 /// Represents a resolved version or alias.
@@ -14,8 +15,10 @@ pub enum VersionSpec {
     Canary,
     /// An alias that is used as a map to a version.
     Alias(String),
+    /// A fully-qualified calendar version.
+    Calendar(CalVer),
     /// A fully-qualified semantic version.
-    Version(Version),
+    Semantic(SemVer),
 }
 
 impl VersionSpec {
@@ -59,7 +62,8 @@ impl VersionSpec {
         match self {
             Self::Canary => UnresolvedVersionSpec::Canary,
             Self::Alias(alias) => UnresolvedVersionSpec::Alias(alias.to_owned()),
-            Self::Version(version) => UnresolvedVersionSpec::Version(version.to_owned()),
+            // Self::Semantic(version) => UnresolvedVersionSpec::Version(version.to_owned()),
+            _ => todo!(), // TODO
         }
     }
 }
@@ -97,7 +101,11 @@ impl FromStr for VersionSpec {
             return Ok(VersionSpec::Alias(value));
         }
 
-        Ok(VersionSpec::Version(Version::parse(&value)?))
+        if is_calver_like(&value) {
+            return Ok(VersionSpec::Calendar(CalVer::parse(&value)?));
+        }
+
+        Ok(VersionSpec::Semantic(SemVer::parse(&value)?))
     }
 }
 
@@ -115,19 +123,18 @@ impl Into<String> for VersionSpec {
     }
 }
 
-impl Debug for VersionSpec {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Debug for VersionSpec {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // Debug version as a string instead of a struct
         write!(f, "{}", self)
     }
 }
 
-impl Display for VersionSpec {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for VersionSpec {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Canary => write!(f, "canary"),
-            Self::Alias(alias) => write!(f, "{}", alias),
-            Self::Version(version) => write!(f, "{}", version),
+            _ => write!(f, "{}", self),
         }
     }
 }
@@ -137,15 +144,16 @@ impl PartialEq<&str> for VersionSpec {
         match self {
             Self::Canary => "canary" == *other,
             Self::Alias(alias) => alias == other,
-            Self::Version(version) => version.to_string() == *other,
+            _ => self.to_string() == *other,
         }
     }
 }
 
-impl PartialEq<Version> for VersionSpec {
-    fn eq(&self, other: &Version) -> bool {
+impl PartialEq<semver::Version> for VersionSpec {
+    fn eq(&self, other: &semver::Version) -> bool {
         match self {
-            Self::Version(version) => version == other,
+            Self::Calendar(version) => &version.0 == other,
+            Self::Semantic(version) => &version.0 == other,
             _ => false,
         }
     }

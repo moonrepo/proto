@@ -33,11 +33,11 @@ mod resolved_spec {
     fn versions() {
         assert_eq!(
             VersionSpec::parse("v1.2.3").unwrap(),
-            VersionSpec::Version(Version::new(1, 2, 3))
+            VersionSpec::Semantic(Version::new(1, 2, 3))
         );
         assert_eq!(
             VersionSpec::parse("1.2.3").unwrap(),
-            VersionSpec::Version(Version::new(1, 2, 3))
+            VersionSpec::Semantic(Version::new(1, 2, 3))
         );
     }
 

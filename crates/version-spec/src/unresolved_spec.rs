@@ -75,7 +75,7 @@ impl UnresolvedVersionSpec {
         match self {
             Self::Canary => VersionSpec::Canary,
             Self::Alias(alias) => VersionSpec::Alias(alias.to_owned()),
-            Self::Version(version) => VersionSpec::Version(version.to_owned()),
+            Self::Version(version) => VersionSpec::Semantic(version.to_owned()),
             _ => unreachable!(),
         }
     }
@@ -190,7 +190,7 @@ impl PartialEq<VersionSpec> for UnresolvedVersionSpec {
         match (self, other) {
             (Self::Canary, VersionSpec::Alias(a)) => a == "canary",
             (Self::Alias(a1), VersionSpec::Alias(a2)) => a1 == a2,
-            (Self::Version(v1), VersionSpec::Version(v2)) => v1 == v2,
+            (Self::Version(v1), VersionSpec::Semantic(v2)) => v1 == v2,
             _ => false,
         }
     }

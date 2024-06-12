@@ -319,7 +319,7 @@ impl Tool {
             let mut installed = FxHashSet::default();
 
             for version in versions {
-                let key = VersionSpec::Version(version);
+                let key = VersionSpec::Semantic(version);
                 let value = manifest.versions.get(&key).cloned().unwrap_or_default();
 
                 installed.insert(key.clone());

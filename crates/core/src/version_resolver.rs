@@ -83,7 +83,7 @@ pub fn match_highest_version(req: &VersionReq, versions: &[&Version]) -> Option<
         }
     }
 
-    highest_match.map(VersionSpec::Version)
+    highest_match.map(VersionSpec::Semantic)
 }
 
 // Filter out aliases because they cannot be matched against
@@ -91,7 +91,7 @@ fn extract_installed_versions(installed: &FxHashSet<VersionSpec>) -> Vec<&Versio
     installed
         .iter()
         .filter_map(|item| match item {
-            VersionSpec::Version(v) => Some(v),
+            VersionSpec::Semantic(v) => Some(v),
             _ => None,
         })
         .collect()
@@ -241,7 +241,7 @@ pub fn resolve_version(
                     "Resolved to locally installed version"
                 );
 
-                return Some(VersionSpec::Version(ver.to_owned()));
+                return Some(VersionSpec::Semantic(ver.to_owned()));
             }
 
             // Otherwise we'll need to download from remote
@@ -252,7 +252,7 @@ pub fn resolve_version(
                         "Resolved to remote available version"
                     );
 
-                    return Some(VersionSpec::Version(ver.to_owned()));
+                    return Some(VersionSpec::Semantic(ver.to_owned()));
                 }
             }
 
