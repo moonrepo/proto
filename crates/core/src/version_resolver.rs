@@ -24,13 +24,14 @@ impl<'tool> VersionResolver<'tool> {
         for (alias, version) in output.aliases {
             resolver
                 .aliases
-                .insert(alias, UnresolvedVersionSpec::Version(version));
+                .insert(alias, UnresolvedVersionSpec::Semantic(SemVer(version)));
         }
 
         if let Some(latest) = output.latest {
-            resolver
-                .aliases
-                .insert("latest".into(), UnresolvedVersionSpec::Version(latest));
+            resolver.aliases.insert(
+                "latest".into(),
+                UnresolvedVersionSpec::Semantic(SemVer(latest)),
+            );
         }
 
         // Sort from newest to oldest
@@ -39,7 +40,7 @@ impl<'tool> VersionResolver<'tool> {
         if !resolver.aliases.contains_key("latest") && !resolver.versions.is_empty() {
             resolver.aliases.insert(
                 "latest".into(),
-                UnresolvedVersionSpec::Version(resolver.versions[0].clone()),
+                UnresolvedVersionSpec::Semantic(SemVer(resolver.versions[0].clone())),
             );
         }
 
@@ -83,7 +84,7 @@ pub fn match_highest_version(req: &VersionReq, versions: &[&Version]) -> Option<
         }
     }
 
-    highest_match.map(VersionSpec::Semantic)
+    highest_match.map(|item| VersionSpec::Semantic(SemVer(item)))
 }
 
 // Filter out aliases because they cannot be matched against
@@ -91,7 +92,8 @@ fn extract_installed_versions(installed: &FxHashSet<VersionSpec>) -> Vec<&Versio
     installed
         .iter()
         .filter_map(|item| match item {
-            VersionSpec::Semantic(v) => Some(v),
+            VersionSpec::Calendar(v) => Some(&v.0),
+            VersionSpec::Semantic(v) => Some(&v.0),
             _ => None,
         })
         .collect()
@@ -226,7 +228,10 @@ pub fn resolve_version(
                 "No match for range, trying others",
             );
         }
-        UnresolvedVersionSpec::Version(ver) => {
+        UnresolvedVersionSpec::Calendar(_) => {
+            // TODO
+        }
+        UnresolvedVersionSpec::Semantic(ver) => {
             let version_string = ver.to_string();
 
             trace!(
@@ -235,7 +240,7 @@ pub fn resolve_version(
             );
 
             // Check locally installed versions first
-            if installed_versions.contains(&ver) {
+            if installed_versions.contains(&&ver.0) {
                 trace!(
                     version = &version_string,
                     "Resolved to locally installed version"
@@ -246,7 +251,7 @@ pub fn resolve_version(
 
             // Otherwise we'll need to download from remote
             for version in versions {
-                if ver == version {
+                if &ver.0 == version {
                     trace!(
                         version = &version_string,
                         "Resolved to remote available version"

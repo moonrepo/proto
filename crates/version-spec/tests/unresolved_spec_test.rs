@@ -1,9 +1,7 @@
-use semver::Version;
-use version_spec::UnresolvedVersionSpec;
+use semver::{Version, VersionReq};
+use version_spec::{SemVer, UnresolvedVersionSpec};
 
 mod unresolved_spec {
-    use semver::VersionReq;
-
     use super::*;
 
     #[test]
@@ -38,11 +36,11 @@ mod unresolved_spec {
     fn versions() {
         assert_eq!(
             UnresolvedVersionSpec::parse("v1.2.3").unwrap(),
-            UnresolvedVersionSpec::Version(Version::new(1, 2, 3))
+            UnresolvedVersionSpec::Semantic(SemVer(Version::new(1, 2, 3)))
         );
         assert_eq!(
             UnresolvedVersionSpec::parse("1.2.3").unwrap(),
-            UnresolvedVersionSpec::Version(Version::new(1, 2, 3))
+            UnresolvedVersionSpec::Semantic(SemVer(Version::new(1, 2, 3)))
         );
     }
 

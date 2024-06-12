@@ -1,5 +1,5 @@
 use semver::Version;
-use version_spec::VersionSpec;
+use version_spec::{SemVer, VersionSpec};
 
 mod resolved_spec {
     use super::*;
@@ -33,11 +33,11 @@ mod resolved_spec {
     fn versions() {
         assert_eq!(
             VersionSpec::parse("v1.2.3").unwrap(),
-            VersionSpec::Semantic(Version::new(1, 2, 3))
+            VersionSpec::Semantic(SemVer(Version::new(1, 2, 3)))
         );
         assert_eq!(
             VersionSpec::parse("1.2.3").unwrap(),
-            VersionSpec::Semantic(Version::new(1, 2, 3))
+            VersionSpec::Semantic(SemVer(Version::new(1, 2, 3)))
         );
     }
 

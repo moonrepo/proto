@@ -1,4 +1,4 @@
-use proto_core::UnresolvedVersionSpec;
+use proto_core::{SemVer, UnresolvedVersionSpec};
 use semver::{Version, VersionReq};
 use std::str::FromStr;
 
@@ -85,7 +85,7 @@ mod version_type {
         for req in ["1.2.3", "4.5.6", "7.8.9-alpha", "10.11.12+build"] {
             assert_eq!(
                 UnresolvedVersionSpec::from_str(req).unwrap(),
-                UnresolvedVersionSpec::Version(Version::parse(req).unwrap())
+                UnresolvedVersionSpec::Semantic(SemVer(Version::parse(req).unwrap()))
             );
         }
     }
@@ -94,7 +94,7 @@ mod version_type {
     fn parses_version_with_v() {
         assert_eq!(
             UnresolvedVersionSpec::from_str("v1.2.3").unwrap(),
-            UnresolvedVersionSpec::Version(Version::parse("1.2.3").unwrap())
+            UnresolvedVersionSpec::Semantic(SemVer(Version::parse("1.2.3").unwrap()))
         );
     }
 

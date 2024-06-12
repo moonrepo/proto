@@ -62,8 +62,8 @@ impl VersionSpec {
         match self {
             Self::Canary => UnresolvedVersionSpec::Canary,
             Self::Alias(alias) => UnresolvedVersionSpec::Alias(alias.to_owned()),
-            // Self::Semantic(version) => UnresolvedVersionSpec::Version(version.to_owned()),
-            _ => todo!(), // TODO
+            Self::Calendar(version) => UnresolvedVersionSpec::Calendar(version.to_owned()),
+            Self::Semantic(version) => UnresolvedVersionSpec::Semantic(version.to_owned()),
         }
     }
 }

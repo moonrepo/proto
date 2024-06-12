@@ -1,14 +1,15 @@
 #![allow(clippy::from_over_into)]
 
 use crate::{clean_version_string, is_alias_name, VersionSpec};
+use crate::{is_calver_like, version_types::*};
 use human_sort::compare;
-use semver::{Error, Version, VersionReq};
+use semver::{Error, VersionReq};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
 
 /// Represents an unresolved version or alias that must be resolved
-/// to a fully-qualified and semantic result.
+/// to a fully-qualified version.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(untagged, into = "String", try_from = "String")]
 pub enum UnresolvedVersionSpec {
@@ -20,8 +21,10 @@ pub enum UnresolvedVersionSpec {
     Req(VersionReq),
     /// A list of requirements to match any against (joined by `||`).
     ReqAny(Vec<VersionReq>),
+    /// A fully-qualified calendar version.
+    Calendar(CalVer),
     /// A fully-qualified semantic version.
-    Version(Version),
+    Semantic(SemVer),
 }
 
 impl UnresolvedVersionSpec {
@@ -75,7 +78,8 @@ impl UnresolvedVersionSpec {
         match self {
             Self::Canary => VersionSpec::Canary,
             Self::Alias(alias) => VersionSpec::Alias(alias.to_owned()),
-            Self::Version(version) => VersionSpec::Semantic(version.to_owned()),
+            Self::Calendar(version) => VersionSpec::Calendar(version.to_owned()),
+            Self::Semantic(version) => VersionSpec::Semantic(version.to_owned()),
             _ => unreachable!(),
         }
     }
@@ -88,7 +92,7 @@ impl schematic::Schematic for UnresolvedVersionSpec {
     }
 
     fn build_schema(mut schema: schematic::SchemaBuilder) -> schematic::Schema {
-        schema.set_description("Represents an unresolved version or alias that must be resolved to a fully-qualified and semantic result.");
+        schema.set_description("Represents an unresolved version or alias that must be resolved to a fully-qualified version.");
         schema.string_default()
     }
 }
@@ -144,8 +148,10 @@ impl FromStr for UnresolvedVersionSpec {
                 // If not fully qualified, match using a requirement
                 if dot_count < 2 {
                     UnresolvedVersionSpec::Req(VersionReq::parse(&format!("~{value}"))?)
+                } else if is_calver_like(&value) {
+                    UnresolvedVersionSpec::Calendar(CalVer::parse(&value)?)
                 } else {
-                    UnresolvedVersionSpec::Version(Version::parse(&value)?)
+                    UnresolvedVersionSpec::Semantic(SemVer::parse(&value)?)
                 }
             }
         })
@@ -170,8 +176,6 @@ impl Display for UnresolvedVersionSpec {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Canary => write!(f, "canary"),
-            Self::Alias(alias) => write!(f, "{}", alias),
-            Self::Req(req) => write!(f, "{}", req),
             Self::ReqAny(reqs) => write!(
                 f,
                 "{}",
@@ -180,7 +184,7 @@ impl Display for UnresolvedVersionSpec {
                     .collect::<Vec<_>>()
                     .join(" || ")
             ),
-            Self::Version(version) => write!(f, "{}", version),
+            _ => write!(f, "{}", self),
         }
     }
 }
@@ -190,7 +194,8 @@ impl PartialEq<VersionSpec> for UnresolvedVersionSpec {
         match (self, other) {
             (Self::Canary, VersionSpec::Alias(a)) => a == "canary",
             (Self::Alias(a1), VersionSpec::Alias(a2)) => a1 == a2,
-            (Self::Version(v1), VersionSpec::Semantic(v2)) => v1 == v2,
+            (Self::Calendar(v1), VersionSpec::Calendar(v2)) => v1 == v2,
+            (Self::Semantic(v1), VersionSpec::Semantic(v2)) => v1 == v2,
             _ => false,
         }
     }

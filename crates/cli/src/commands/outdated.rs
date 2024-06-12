@@ -56,7 +56,7 @@ pub struct OutdatedItem {
 
 fn get_in_major_range(spec: &UnresolvedVersionSpec) -> UnresolvedVersionSpec {
     match spec {
-        UnresolvedVersionSpec::Version(version) => UnresolvedVersionSpec::Req(
+        UnresolvedVersionSpec::Semantic(version) => UnresolvedVersionSpec::Req(
             VersionReq::parse(format!("~{}", version.major).as_str()).unwrap(),
         ),
         _ => spec.clone(),

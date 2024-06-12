@@ -7,6 +7,7 @@ pub use unresolved_spec::*;
 pub use version_types::*;
 
 use regex::Regex;
+use std::sync::OnceLock;
 
 /// Returns true if the provided value is an alias. An alias is a word that
 /// maps to version, for example, "latest" -> "1.2.3".
@@ -30,11 +31,39 @@ pub fn is_alias_name<T: AsRef<str>>(value: T) -> bool {
     })
 }
 
+/// Returns true if the provided value is a calendar version like string.
 pub fn is_calver_like<T: AsRef<str>>(value: T) -> bool {
     let value = value.as_ref();
 
-    !value.is_empty() && get_calver_regex().is_match(value)
+    // 2024-02_123
+    if value.contains('_') {
+        return true;
+    }
+
+    let dots: usize = value.chars().filter(|c| c == &'.').count();
+    let dashes: usize = value.chars().filter(|c| c == &'-').count();
+
+    // 2024
+    // 2024-02
+    // 2024-02-23
+    // 2024-02.123
+    // 2024-02-23.123
+    dashes >= 1 && dots <= 1
 }
+
+/// Returns true if the provided value is a semantic version like string.
+pub fn is_semver_like<T: AsRef<str>>(value: T) -> bool {
+    let value = value.as_ref();
+    let dots: usize = value.chars().filter(|c| c == &'.').count();
+    let dashes: usize = value.chars().filter(|c| c == &'-').count();
+
+    // 1.2.3
+    // 4.5.6-alpha
+    dots >= 2 && dashes <= 1
+}
+
+static CLEAN_REQ_REGEX: OnceLock<Regex> = OnceLock::new();
+static CLEAN_WS_REGEX: OnceLock<Regex> = OnceLock::new();
 
 /// Cleans a potential version string by removing a leading `v` or `V`,
 /// removing each occurence of `.*`, and removing invalid spaces.
@@ -58,46 +87,54 @@ pub fn clean_version_string<T: AsRef<str>>(value: T) -> String {
     }
 
     // Remove invalid space after <, <=, >, >=.
-    let version = regex::Regex::new(r"([><]=?)[ ]*v?([0-9])")
-        .unwrap()
+    let version = CLEAN_REQ_REGEX
+        .get_or_init(|| regex::Regex::new(r"([><]=?)[ ]*v?([0-9])").unwrap())
         .replace_all(&version, "$1$2");
 
     // Replace spaces with commas
-    regex::Regex::new("[, ]+")
-        .unwrap()
+    CLEAN_WS_REGEX
+        .get_or_init(|| regex::Regex::new("[, ]+").unwrap())
         .replace_all(&version, ",")
         .to_string()
 }
 
+static CALVER_REGEX: OnceLock<Regex> = OnceLock::new();
+
 /// Get a regex pattern that matches calendar versions (calver).
 /// For example: 2024-02-26, 2024-12, 2024-01-alpha, etc.
-pub fn get_calver_regex() -> Regex {
-    Regex::new(
-        r"^
-        (?<year>[0-9]{1,4})(?
-            -(?<month>[0-9]{1,2})(?
-                -(?<day>[0-9]{1,2})(?
-                    (_|.)(?<micro>[0-9]+)
+pub fn get_calver_regex() -> &'static Regex {
+    CALVER_REGEX.get_or_init(|| {
+        Regex::new(
+            r"^
+            (?<year>[0-9]{1,4})(?
+                -(?<month>[0-9]{1,2})(?
+                    -(?<day>[0-9]{1,2})(?
+                        (_|.)(?<micro>[0-9]+)
+                    )?
                 )?
             )?
-        )?
-        (?<pre>-[-0-9a-zA-Z.]+)?
-        $",
-    )
-    .unwrap()
+            (?<pre>-[-0-9a-zA-Z.]+)?
+            $",
+        )
+        .unwrap()
+    })
 }
+
+static SEMVER_REGEX: OnceLock<Regex> = OnceLock::new();
 
 /// Get a regex pattern that matches semantic versions (semvar).
 /// For example: 1.2.3, 6.5.4, 7.8.9-alpha, etc.
-pub fn get_semver_regex() -> Regex {
-    Regex::new(
-        r"^
-        (?<major>[0-9]+).(?<minor>[0-9]+).(?<patch>[0-9]+)
-        (?<pre>-[-0-9a-zA-Z.]+)?
-        (?<build>+[-0-9a-zA-Z.]+)?
-        $",
-    )
-    .unwrap()
+pub fn get_semver_regex() -> &'static Regex {
+    SEMVER_REGEX.get_or_init(|| {
+        Regex::new(
+            r"^
+            (?<major>[0-9]+).(?<minor>[0-9]+).(?<patch>[0-9]+)
+            (?<pre>-[-0-9a-zA-Z.]+)?
+            (?<build>+[-0-9a-zA-Z.]+)?
+            $",
+        )
+        .unwrap()
+    })
 }
 
 #[cfg(test)]
