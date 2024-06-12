@@ -3,6 +3,20 @@
   "version": 1,
   "plugins": [
     {
+      "id": "argocd",
+      "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/argocd/plugin.toml",
+      "format": "toml",
+      "name": "argocd",
+      "description": "argocd controls a Argo CD server.",
+      "author": "kahirokunn",
+      "homepageUrl": "https://github.com/appthrust/proto-toml-plugins",
+      "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins/tree/main/argocd",
+      "devicon": "argocd",
+      "bins": [
+        "argocd"
+      ]
+    },
+    {
       "id": "act",
       "locator": "https://raw.githubusercontent.com/theomessin/proto-toml-plugins/master/act.toml",
       "format": "toml",
