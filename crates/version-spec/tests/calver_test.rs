@@ -1,4 +1,5 @@
-use version_spec::is_calver_like;
+use semver::{BuildMetadata, Prerelease, Version};
+use version_spec::{is_calver_like, CalVer};
 
 mod calver {
     use super::*;
@@ -57,6 +58,7 @@ mod calver {
         assert!(!is_calver_like("2024-10-0"));
         assert!(!is_calver_like("2024-10-00"));
         assert!(!is_calver_like("2024-10-123"));
+        assert!(!is_calver_like("2024-10-023"));
         assert!(!is_calver_like("2024-10-40"));
         assert!(!is_calver_like("2024-10-50"));
 
@@ -64,5 +66,180 @@ mod calver {
         assert!(!is_calver_like("2024_abc"));
         assert!(!is_calver_like("2024-10_abc"));
         assert!(!is_calver_like("2024-1-1_abc"));
+    }
+
+    #[test]
+    fn parse_year() {
+        for (year, actual) in [
+            ("4", "2004"),
+            ("04", "2004"),
+            ("24", "2024"),
+            ("004", "2004"),
+            ("124", "2124"),
+            ("2024", "2024"),
+        ] {
+            let ver = CalVer::parse(year).unwrap();
+
+            assert_eq!(
+                ver.0,
+                Version {
+                    major: actual.parse().unwrap(),
+                    minor: 0,
+                    patch: 0,
+                    pre: Prerelease::EMPTY,
+                    build: BuildMetadata::EMPTY,
+                }
+            );
+            assert_eq!(ver.to_string(), actual);
+        }
+
+        // build
+        let ver = CalVer::parse("2024_123").unwrap();
+
+        assert_eq!(
+            ver.0,
+            Version {
+                major: 2024,
+                minor: 0,
+                patch: 0,
+                pre: Prerelease::EMPTY,
+                build: BuildMetadata::new("123").unwrap(),
+            }
+        );
+        assert_eq!(ver.to_string(), "2024.123");
+
+        // pre
+        let ver = CalVer::parse("2024-alpha.1").unwrap();
+
+        assert_eq!(
+            ver.0,
+            Version {
+                major: 2024,
+                minor: 0,
+                patch: 0,
+                pre: Prerelease::new("alpha.1").unwrap(),
+                build: BuildMetadata::EMPTY,
+            }
+        );
+        assert_eq!(ver.to_string(), "2024-alpha.1");
+
+        // build + pre
+        let ver = CalVer::parse("2024.123-rc-0").unwrap();
+
+        assert_eq!(
+            ver.0,
+            Version {
+                major: 2024,
+                minor: 0,
+                patch: 0,
+                pre: Prerelease::new("rc-0").unwrap(),
+                build: BuildMetadata::new("123").unwrap(),
+            }
+        );
+        assert_eq!(ver.to_string(), "2024.123-rc-0");
+    }
+
+    #[test]
+    fn parse_year_month() {
+        for (month, actual) in [("1", "01"), ("05", "05"), ("10", "10"), ("12", "12")] {
+            let ver = CalVer::parse(&format!("2024-{month}")).unwrap();
+
+            assert_eq!(
+                ver.0,
+                Version {
+                    major: 2024,
+                    minor: actual.parse().unwrap(),
+                    patch: 0,
+                    pre: Prerelease::EMPTY,
+                    build: BuildMetadata::EMPTY,
+                }
+            );
+            assert_eq!(ver.to_string(), format!("2024-{actual}"));
+        }
+
+        // build
+        let ver = CalVer::parse("2024-5_123").unwrap();
+
+        assert_eq!(
+            ver.0,
+            Version {
+                major: 2024,
+                minor: 5,
+                patch: 0,
+                pre: Prerelease::EMPTY,
+                build: BuildMetadata::new("123").unwrap(),
+            }
+        );
+        assert_eq!(ver.to_string(), "2024-05.123");
+
+        // pre
+        let ver = CalVer::parse("2024-05-alpha.1").unwrap();
+
+        assert_eq!(
+            ver.0,
+            Version {
+                major: 2024,
+                minor: 5,
+                patch: 0,
+                pre: Prerelease::new("alpha.1").unwrap(),
+                build: BuildMetadata::EMPTY,
+            }
+        );
+        assert_eq!(ver.to_string(), "2024-05-alpha.1");
+    }
+
+    #[test]
+    fn parse_year_month_day() {
+        for (day, actual) in [
+            ("1", "01"),
+            ("05", "05"),
+            ("10", "10"),
+            ("22", "22"),
+            ("31", "31"),
+        ] {
+            let ver = CalVer::parse(&format!("2024-1-{day}")).unwrap();
+
+            assert_eq!(
+                ver.0,
+                Version {
+                    major: 2024,
+                    minor: 1,
+                    patch: actual.parse().unwrap(),
+                    pre: Prerelease::EMPTY,
+                    build: BuildMetadata::EMPTY,
+                }
+            );
+            assert_eq!(ver.to_string(), format!("2024-01-{actual}"));
+        }
+
+        // build
+        let ver = CalVer::parse("2024-5-23_123").unwrap();
+
+        assert_eq!(
+            ver.0,
+            Version {
+                major: 2024,
+                minor: 5,
+                patch: 23,
+                pre: Prerelease::EMPTY,
+                build: BuildMetadata::new("123").unwrap(),
+            }
+        );
+        assert_eq!(ver.to_string(), "2024-05-23.123");
+
+        // pre
+        let ver = CalVer::parse("2024-05-1-alpha.1").unwrap();
+
+        assert_eq!(
+            ver.0,
+            Version {
+                major: 2024,
+                minor: 5,
+                patch: 1,
+                pre: Prerelease::new("alpha.1").unwrap(),
+                build: BuildMetadata::EMPTY,
+            }
+        );
+        assert_eq!(ver.to_string(), "2024-05-01-alpha.1");
     }
 }

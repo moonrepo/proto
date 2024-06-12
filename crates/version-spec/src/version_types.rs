@@ -38,27 +38,38 @@ impl CalVer {
     /// If the calendar version contains a micro field, it will
     /// converted into build metadata (prefixed with +).
     pub fn parse(value: &str) -> Result<Self, semver::Error> {
-        let caps = get_calver_regex().captures(&value).unwrap();
+        let Some(caps) = get_calver_regex().captures(value) else {
+            // Attempt to parse as-is to generate an error
+            return Ok(Self(Version::parse(value)?));
+        };
 
-        let mut version = String::from(
-            caps.name("year")
-                .map(|cap| cap.as_str().trim_start_matches('0'))
-                .unwrap_or("0"),
-        );
+        // Short years (less than 4 characters) are relative
+        // from the year 2000, so let's enforce it. Is this correct?
+        // https://calver.org/#scheme
+        let year = caps
+            .name("year")
+            .map(|cap| cap.as_str().trim_start_matches('0'))
+            .unwrap_or("0");
+        let mut year_no: usize = year.parse().unwrap();
 
-        version.push('.');
-        version.push_str(
-            caps.name("month")
-                .map(|cap| cap.as_str().trim_start_matches('0'))
-                .unwrap_or("0"),
-        );
+        if year.len() < 4 {
+            year_no += 2000;
+        }
 
-        version.push('.');
-        version.push_str(
-            caps.name("day")
-                .map(|cap| cap.as_str().trim_start_matches('0'))
-                .unwrap_or("0"),
-        );
+        // Strip leading zeros from months and days. If the value is
+        // not provided, fallback to a zero, as calver is 1-index based
+        // and we can use this 0 for comparison.
+        let month = caps
+            .name("month")
+            .map(|cap| cap.as_str().trim_start_matches('0'))
+            .unwrap_or("0");
+
+        let day = caps
+            .name("day")
+            .map(|cap| cap.as_str().trim_start_matches('0'))
+            .unwrap_or("0");
+
+        let mut version = format!("{year_no}.{month}.{day}");
 
         if let Some(pre) = caps.name("pre") {
             version.push_str(pre.as_str());
@@ -88,10 +99,10 @@ impl fmt::Display for CalVer {
         write!(f, "{}", version.major)?;
 
         if version.minor > 0 {
-            write!(f, "-{}", version.minor)?;
+            write!(f, "-{:0>2}", version.minor)?;
 
             if version.patch > 0 {
-                write!(f, "-{}", version.patch)?;
+                write!(f, "-{:0>2}", version.patch)?;
             }
         }
 
@@ -101,7 +112,7 @@ impl fmt::Display for CalVer {
         }
 
         if !version.pre.is_empty() {
-            write!(f, ".{}", version.pre)?;
+            write!(f, "-{}", version.pre)?;
         }
 
         Ok(())
