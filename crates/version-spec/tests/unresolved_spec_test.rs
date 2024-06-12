@@ -1,5 +1,5 @@
 use semver::{Version, VersionReq};
-use version_spec::{SemVer, UnresolvedVersionSpec};
+use version_spec::{CalVer, SemVer, UnresolvedVersionSpec};
 
 mod unresolved_spec {
     use super::*;
@@ -41,6 +41,16 @@ mod unresolved_spec {
         assert_eq!(
             UnresolvedVersionSpec::parse("1.2.3").unwrap(),
             UnresolvedVersionSpec::Semantic(SemVer(Version::new(1, 2, 3)))
+        );
+
+        // calver
+        assert_eq!(
+            UnresolvedVersionSpec::parse("2024-02").unwrap(),
+            UnresolvedVersionSpec::Calendar(CalVer(Version::new(2024, 2, 0)))
+        );
+        assert_eq!(
+            UnresolvedVersionSpec::parse("2024-2-26").unwrap(),
+            UnresolvedVersionSpec::Calendar(CalVer(Version::new(2024, 2, 26)))
         );
     }
 

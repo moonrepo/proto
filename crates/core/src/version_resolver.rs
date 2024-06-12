@@ -1,8 +1,7 @@
 use crate::proto_config::ProtoToolConfig;
 use crate::tool_manifest::ToolManifest;
 use proto_pdk_api::LoadVersionsOutput;
-use rustc_hash::FxHashSet;
-use semver::{Version, VersionReq};
+use semver::VersionReq;
 use std::collections::BTreeMap;
 use tracing::trace;
 use version_spec::*;
@@ -10,7 +9,7 @@ use version_spec::*;
 #[derive(Default)]
 pub struct VersionResolver<'tool> {
     pub aliases: BTreeMap<String, UnresolvedVersionSpec>,
-    pub versions: Vec<Version>,
+    pub versions: Vec<VersionSpec>,
 
     manifest: Option<&'tool ToolManifest>,
     config: Option<&'tool ProtoToolConfig>,
@@ -21,27 +20,21 @@ impl<'tool> VersionResolver<'tool> {
         let mut resolver = Self::default();
         resolver.versions.extend(output.versions);
 
-        for (alias, version) in output.aliases {
-            resolver
-                .aliases
-                .insert(alias, UnresolvedVersionSpec::Semantic(SemVer(version)));
+        for (alias, spec) in output.aliases {
+            resolver.aliases.insert(alias, spec);
         }
 
         if let Some(latest) = output.latest {
-            resolver.aliases.insert(
-                "latest".into(),
-                UnresolvedVersionSpec::Semantic(SemVer(latest)),
-            );
+            resolver.aliases.insert("latest".into(), latest);
         }
 
         // Sort from newest to oldest
         resolver.versions.sort_by(|a, d| d.cmp(a));
 
         if !resolver.aliases.contains_key("latest") && !resolver.versions.is_empty() {
-            resolver.aliases.insert(
-                "latest".into(),
-                UnresolvedVersionSpec::Semantic(SemVer(resolver.versions[0].clone())),
-            );
+            resolver
+                .aliases
+                .insert("latest".into(), resolver.versions[0].to_unresolved_spec());
         }
 
         resolver
@@ -73,42 +66,32 @@ impl<'tool> VersionResolver<'tool> {
     }
 }
 
-pub fn match_highest_version(req: &VersionReq, versions: &[&Version]) -> Option<VersionSpec> {
-    let mut highest_match: Option<Version> = None;
+pub fn match_highest_version(req: &VersionReq, specs: &[&VersionSpec]) -> Option<VersionSpec> {
+    let mut highest_match: Option<VersionSpec> = None;
 
-    for version in versions {
-        if req.matches(version)
-            && (highest_match.is_none() || highest_match.as_ref().is_some_and(|v| *version > v))
-        {
-            highest_match = Some((*version).clone());
+    for spec in specs {
+        if let Some(version) = spec.as_version() {
+            if req.matches(version)
+                && (highest_match.is_none() || highest_match.as_ref().is_some_and(|v| *spec > v))
+            {
+                highest_match = Some((*spec).clone());
+            }
         }
     }
 
-    highest_match.map(|item| VersionSpec::Semantic(SemVer(item)))
-}
-
-// Filter out aliases because they cannot be matched against
-fn extract_installed_versions(installed: &FxHashSet<VersionSpec>) -> Vec<&Version> {
-    installed
-        .iter()
-        .filter_map(|item| match item {
-            VersionSpec::Calendar(v) => Some(&v.0),
-            VersionSpec::Semantic(v) => Some(&v.0),
-            _ => None,
-        })
-        .collect()
+    highest_match
 }
 
 pub fn resolve_version(
     candidate: &UnresolvedVersionSpec,
-    versions: &[Version],
+    versions: &[VersionSpec],
     aliases: &BTreeMap<String, UnresolvedVersionSpec>,
     manifest: Option<&ToolManifest>,
     config: Option<&ProtoToolConfig>,
 ) -> Option<VersionSpec> {
     let remote_versions = versions.iter().collect::<Vec<_>>();
     let installed_versions = if let Some(manifest) = manifest {
-        extract_installed_versions(&manifest.installed_versions)
+        Vec::from_iter(&manifest.installed_versions)
     } else {
         vec![]
     };
@@ -228,11 +211,11 @@ pub fn resolve_version(
                 "No match for range, trying others",
             );
         }
-        UnresolvedVersionSpec::Calendar(_) => {
-            // TODO
-        }
-        UnresolvedVersionSpec::Semantic(ver) => {
-            let version_string = ver.to_string();
+        // Calendar
+        // Semantic
+        _ => {
+            let version_string = candidate.to_string();
+            let resolved_spec = candidate.to_resolved_spec();
 
             trace!(
                 version = &version_string,
@@ -240,24 +223,24 @@ pub fn resolve_version(
             );
 
             // Check locally installed versions first
-            if installed_versions.contains(&&ver.0) {
+            if installed_versions.contains(&&resolved_spec) {
                 trace!(
                     version = &version_string,
                     "Resolved to locally installed version"
                 );
 
-                return Some(VersionSpec::Semantic(ver.to_owned()));
+                return Some(resolved_spec);
             }
 
             // Otherwise we'll need to download from remote
             for version in versions {
-                if &ver.0 == version {
+                if &resolved_spec == version {
                     trace!(
                         version = &version_string,
                         "Resolved to remote available version"
                     );
 
-                    return Some(VersionSpec::Semantic(ver.to_owned()));
+                    return Some(resolved_spec);
                 }
             }
 

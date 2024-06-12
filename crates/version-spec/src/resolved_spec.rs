@@ -2,7 +2,7 @@
 
 use crate::{clean_version_string, is_alias_name, UnresolvedVersionSpec};
 use crate::{is_calver_like, version_types::*};
-use semver::Error;
+use semver::{Error, Version};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
@@ -30,6 +30,15 @@ impl VersionSpec {
     /// - Else parse with [`Version`], and map as `Version`.
     pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, Error> {
         Self::from_str(value.as_ref())
+    }
+
+    /// Return the specification as a resolved [`Version`].
+    pub fn as_version(&self) -> Option<&Version> {
+        match self {
+            Self::Calendar(inner) => Some(&inner.0),
+            Self::Semantic(inner) => Some(&inner.0),
+            _ => None,
+        }
     }
 
     /// Return true if the provided alias matches the current specification.
