@@ -430,6 +430,20 @@
       ]
     },
     {
+      "id": "k6",
+      "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/k6/plugin.toml",
+      "format": "toml",
+      "name": "k6",
+      "description": "Grafana k6 is an open-source load testing tool that makes performance testing easy and productive for engineering teams.",
+      "author": "appthrust",
+      "homepageUrl": "https://k6.io/",
+      "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins",
+      "devicon": "k6",
+      "bins": [
+        "k6"
+      ]
+    },
+    {
       "id": "k9s",
       "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/k9s/plugin.toml",
       "format": "toml",
