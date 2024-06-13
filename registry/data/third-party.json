@@ -350,6 +350,19 @@
       ]
     },
     {
+      "id": "jq",
+      "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/jq/plugin.toml",
+      "format": "toml",
+      "name": "jq",
+      "description": "jq is a lightweight and flexible command-line JSON processor akin to sed,awk,grep, and friends for JSON data.",
+      "author": "appthrust",
+      "homepageUrl": "https://github.com/appthrust/proto-toml-plugins",
+      "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins/tree/main/jq",
+      "bins": [
+        "jq"
+      ]
+    },
+    {
       "id": "jira",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/jira/plugin.toml",
       "format": "toml",
