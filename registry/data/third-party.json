@@ -6,7 +6,7 @@
       "id": "argo",
       "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/argo/plugin.toml",
       "format": "toml",
-      "name": "argo",
+      "name": "Argo CLI",
       "description": "argo is the command line interface to Argo.",
       "author": "appthrust",
       "homepageUrl": "https://github.com/appthrust/proto-toml-plugins",
