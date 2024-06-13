@@ -96,14 +96,10 @@ impl fmt::Display for CalVer {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let version = &self.0;
 
-        write!(f, "{}", version.major)?;
+        write!(f, "{:0>4}-{:0>2}", version.major, version.minor)?;
 
-        if version.minor > 0 {
-            write!(f, "-{:0>2}", version.minor)?;
-
-            if version.patch > 0 {
-                write!(f, "-{:0>2}", version.patch)?;
-            }
+        if version.patch > 0 {
+            write!(f, "-{:0>2}", version.patch)?;
         }
 
         // micro

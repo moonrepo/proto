@@ -1,7 +1,7 @@
 #![allow(clippy::from_over_into)]
 
-use crate::{clean_version_string, is_alias_name, UnresolvedVersionSpec};
-use crate::{is_calver_like, version_types::*};
+use crate::version_types::*;
+use crate::{clean_version_string, is_alias_name, is_calver_like, UnresolvedVersionSpec};
 use semver::{Error, Version};
 use serde::{Deserialize, Serialize};
 use std::fmt;
