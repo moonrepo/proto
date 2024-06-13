@@ -8,7 +8,7 @@
       "format": "toml",
       "name": "argocd",
       "description": "argocd controls a Argo CD server.",
-      "author": "kahirokunn",
+      "author": "appthrust",
       "homepageUrl": "https://github.com/appthrust/proto-toml-plugins",
       "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins/tree/main/argocd",
       "devicon": "argocd",
