@@ -575,6 +575,19 @@
       ]
     },
     {
+      "id": "stern",
+      "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/stern/plugin.toml",
+      "format": "toml",
+      "name": "stern",
+      "description": "Stern allows you to tail multiple pods on Kubernetes and multiple containers within the pod.",
+      "author": "appthrust",
+      "homepageUrl": "https://github.com/appthrust/proto-toml-plugins",
+      "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins/tree/main/stern",
+      "bins": [
+        "stern"
+      ]
+    },
+    {
       "id": "shellcheck",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/shellcheck/plugin.toml",
       "format": "toml",
