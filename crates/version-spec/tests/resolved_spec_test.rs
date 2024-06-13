@@ -52,18 +52,6 @@ mod resolved_spec {
     }
 
     #[test]
-    #[should_panic(expected = "unexpected end of input while parsing minor version number")]
-    fn error_missing_patch() {
-        VersionSpec::parse("1.2").unwrap();
-    }
-
-    #[test]
-    #[should_panic(expected = "unexpected end of input while parsing major version number")]
-    fn error_missing_minor() {
-        VersionSpec::parse("1").unwrap();
-    }
-
-    #[test]
     #[should_panic(expected = "unexpected character '%' while parsing major version number")]
     fn error_invalid_char() {
         VersionSpec::parse("%").unwrap();

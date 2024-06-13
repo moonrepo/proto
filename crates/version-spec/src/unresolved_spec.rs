@@ -1,6 +1,6 @@
 #![allow(clippy::from_over_into)]
 
-use crate::{clean_version_string, is_alias_name, VersionSpec};
+use crate::{clean_version_string, is_alias_name, is_semver_like, VersionSpec};
 use crate::{is_calver_like, version_types::*};
 use human_sort::compare;
 use semver::{Error, VersionReq};
@@ -143,15 +143,12 @@ impl FromStr for UnresolvedVersionSpec {
                 UnresolvedVersionSpec::Req(VersionReq::parse(&value)?)
             }
             _ => {
-                let dot_count = value.match_indices('.').collect::<Vec<_>>().len();
-
-                // If not fully qualified, match using a requirement
-                if dot_count < 2 {
-                    UnresolvedVersionSpec::Req(VersionReq::parse(&format!("~{value}"))?)
-                } else if is_calver_like(&value) {
+                if is_calver_like(&value) {
                     UnresolvedVersionSpec::Calendar(CalVer::parse(&value)?)
-                } else {
+                } else if is_semver_like(&value) {
                     UnresolvedVersionSpec::Semantic(SemVer::parse(&value)?)
+                } else {
+                    UnresolvedVersionSpec::Req(VersionReq::parse(&format!("~{value}"))?)
                 }
             }
         })
@@ -176,6 +173,8 @@ impl Display for UnresolvedVersionSpec {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Canary => write!(f, "canary"),
+            Self::Alias(alias) => write!(f, "{}", alias),
+            Self::Req(req) => write!(f, "{}", req),
             Self::ReqAny(reqs) => write!(
                 f,
                 "{}",
@@ -184,7 +183,8 @@ impl Display for UnresolvedVersionSpec {
                     .collect::<Vec<_>>()
                     .join(" || ")
             ),
-            _ => write!(f, "{}", self),
+            Self::Calendar(version) => write!(f, "{}", version),
+            Self::Semantic(version) => write!(f, "{}", version),
         }
     }
 }

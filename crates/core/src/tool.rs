@@ -414,7 +414,11 @@ impl Tool {
         // If we have a fully qualified semantic version,
         // exit early and assume the version is legitimate!
         // Also canary is a special type that we can simply just use.
-        if short_circuit && matches!(initial_version, UnresolvedVersionSpec::Semantic(_))
+        if short_circuit
+            && matches!(
+                initial_version,
+                UnresolvedVersionSpec::Calendar(_) | UnresolvedVersionSpec::Semantic(_)
+            )
             || matches!(initial_version, UnresolvedVersionSpec::Canary)
         {
             let version = initial_version.to_resolved_spec();

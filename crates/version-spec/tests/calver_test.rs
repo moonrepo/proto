@@ -22,11 +22,6 @@ mod calver {
         let days = ["1", "18", "30", "09"];
 
         for year in years {
-            assert!(is_calver_like(format!("{year}")));
-            assert!(is_calver_like(format!("{year}-alpha")));
-            assert!(is_calver_like(format!("{year}_789")));
-            assert!(is_calver_like(format!("{year}.789-alpha")));
-
             for month in months {
                 assert!(is_calver_like(format!("{year}-{month}")));
                 assert!(is_calver_like(format!("{year}-{month}-rc.1")));
@@ -47,6 +42,10 @@ mod calver {
 
     #[test]
     fn doesnt_match() {
+        // invalid
+        assert!(!is_calver_like("24"));
+        assert!(!is_calver_like("2024"));
+
         // invalid months
         assert!(!is_calver_like("2024-0"));
         assert!(!is_calver_like("2024-00"));
@@ -66,77 +65,6 @@ mod calver {
         assert!(!is_calver_like("2024_abc"));
         assert!(!is_calver_like("2024-10_abc"));
         assert!(!is_calver_like("2024-1-1_abc"));
-    }
-
-    #[test]
-    fn parse_year() {
-        for (year, actual) in [
-            ("4", "2004"),
-            ("04", "2004"),
-            ("24", "2024"),
-            ("004", "2004"),
-            ("124", "2124"),
-            ("2024", "2024"),
-        ] {
-            let ver = CalVer::parse(year).unwrap();
-
-            assert_eq!(
-                ver.0,
-                Version {
-                    major: actual.parse().unwrap(),
-                    minor: 0,
-                    patch: 0,
-                    pre: Prerelease::EMPTY,
-                    build: BuildMetadata::EMPTY,
-                }
-            );
-            assert_eq!(ver.to_string(), actual);
-        }
-
-        // build
-        let ver = CalVer::parse("2024_123").unwrap();
-
-        assert_eq!(
-            ver.0,
-            Version {
-                major: 2024,
-                minor: 0,
-                patch: 0,
-                pre: Prerelease::EMPTY,
-                build: BuildMetadata::new("123").unwrap(),
-            }
-        );
-        assert_eq!(ver.to_string(), "2024.123");
-
-        // pre
-        let ver = CalVer::parse("2024-alpha.1").unwrap();
-
-        assert_eq!(
-            ver.0,
-            Version {
-                major: 2024,
-                minor: 0,
-                patch: 0,
-                pre: Prerelease::new("alpha.1").unwrap(),
-                build: BuildMetadata::EMPTY,
-            }
-        );
-        assert_eq!(ver.to_string(), "2024-alpha.1");
-
-        // build + pre
-        let ver = CalVer::parse("2024.123-rc-0").unwrap();
-
-        assert_eq!(
-            ver.0,
-            Version {
-                major: 2024,
-                minor: 0,
-                patch: 0,
-                pre: Prerelease::new("rc-0").unwrap(),
-                build: BuildMetadata::new("123").unwrap(),
-            }
-        );
-        assert_eq!(ver.to_string(), "2024.123-rc-0");
     }
 
     #[test]
@@ -186,6 +114,21 @@ mod calver {
             }
         );
         assert_eq!(ver.to_string(), "2024-05-alpha.1");
+
+        // pre + build
+        let ver = CalVer::parse("2024-05_123-alpha.1").unwrap();
+
+        assert_eq!(
+            ver.0,
+            Version {
+                major: 2024,
+                minor: 5,
+                patch: 0,
+                pre: Prerelease::new("alpha.1").unwrap(),
+                build: BuildMetadata::new("123").unwrap(),
+            }
+        );
+        assert_eq!(ver.to_string(), "2024-05.123-alpha.1");
     }
 
     #[test]
