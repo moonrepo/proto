@@ -364,6 +364,19 @@
       ]
     },
     {
+      "id": "jnv",
+      "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/jnv/plugin.toml",
+      "format": "toml",
+      "name": "jnv",
+      "description": "jnv is designed for navigating JSON, offering an interactive JSON viewer and jq filter editor.",
+      "author": "appthrust",
+      "homepageUrl": "https://github.com/appthrust/proto-toml-plugins",
+      "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins/tree/main/jnv",
+      "bins": [
+        "jnv"
+      ]
+    },
+    {
       "id": "just",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/just/plugin.toml",
       "format": "toml",
