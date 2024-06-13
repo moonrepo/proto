@@ -61,28 +61,56 @@ mod unresolved_spec {
             UnresolvedVersionSpec::Req(VersionReq::parse("~1.2").unwrap())
         );
         assert_eq!(
+            UnresolvedVersionSpec::parse("~2000-2").unwrap(),
+            UnresolvedVersionSpec::Req(VersionReq::parse("~2000.2").unwrap())
+        );
+        assert_eq!(
             UnresolvedVersionSpec::parse("1").unwrap(),
             UnresolvedVersionSpec::Req(VersionReq::parse("~1").unwrap())
+        );
+        assert_eq!(
+            UnresolvedVersionSpec::parse("2000").unwrap(),
+            UnresolvedVersionSpec::Req(VersionReq::parse("~2000").unwrap())
         );
         assert_eq!(
             UnresolvedVersionSpec::parse("1.2.*").unwrap(),
             UnresolvedVersionSpec::Req(VersionReq::parse("~1.2").unwrap())
         );
         assert_eq!(
+            UnresolvedVersionSpec::parse("2000.02.*").unwrap(),
+            UnresolvedVersionSpec::Req(VersionReq::parse("~2000.2").unwrap())
+        );
+        assert_eq!(
             UnresolvedVersionSpec::parse("1.*").unwrap(),
             UnresolvedVersionSpec::Req(VersionReq::parse("~1").unwrap())
+        );
+        assert_eq!(
+            UnresolvedVersionSpec::parse("2000.*").unwrap(),
+            UnresolvedVersionSpec::Req(VersionReq::parse("~2000").unwrap())
         );
         assert_eq!(
             UnresolvedVersionSpec::parse(">1").unwrap(),
             UnresolvedVersionSpec::Req(VersionReq::parse(">1").unwrap())
         );
         assert_eq!(
+            UnresolvedVersionSpec::parse(">2000-10").unwrap(),
+            UnresolvedVersionSpec::Req(VersionReq::parse(">2000.10").unwrap())
+        );
+        assert_eq!(
             UnresolvedVersionSpec::parse("<=1").unwrap(),
             UnresolvedVersionSpec::Req(VersionReq::parse("<=1").unwrap())
         );
         assert_eq!(
+            UnresolvedVersionSpec::parse("<=2000-12-12").unwrap(),
+            UnresolvedVersionSpec::Req(VersionReq::parse("<=2000.12.12").unwrap())
+        );
+        assert_eq!(
             UnresolvedVersionSpec::parse("1, 2").unwrap(),
             UnresolvedVersionSpec::Req(VersionReq::parse("1, 2").unwrap())
+        );
+        assert_eq!(
+            UnresolvedVersionSpec::parse("2000-05, 3000-01").unwrap(),
+            UnresolvedVersionSpec::Req(VersionReq::parse("2000.5, 3000.1").unwrap())
         );
         assert_eq!(
             UnresolvedVersionSpec::parse("1,2").unwrap(),
@@ -102,6 +130,15 @@ mod unresolved_spec {
                 VersionReq::parse("~1").unwrap(),
                 VersionReq::parse("^1.2").unwrap(),
                 VersionReq::parse("3,4").unwrap(),
+            ])
+        );
+
+        assert_eq!(
+            UnresolvedVersionSpec::parse("^2000-10 || ~1000 || 3000-05-12,4000-09-09").unwrap(),
+            UnresolvedVersionSpec::ReqAny(vec![
+                VersionReq::parse("~1000").unwrap(),
+                VersionReq::parse("^2000.10").unwrap(),
+                VersionReq::parse("3000.5.12,4000.9.9").unwrap(),
             ])
         );
     }

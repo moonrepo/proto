@@ -31,39 +31,48 @@ pub fn is_alias_name<T: AsRef<str>>(value: T) -> bool {
     })
 }
 
-/// Returns true if the provided value is a calendar version like string.
-pub fn is_calver_like<T: AsRef<str>>(value: T) -> bool {
+/// Returns true if the provided value is a calendar version string.
+pub fn is_calver<T: AsRef<str>>(value: T) -> bool {
     get_calver_regex().is_match(value.as_ref())
 }
 
-/// Returns true if the provided value is a semantic version like string.
-pub fn is_semver_like<T: AsRef<str>>(value: T) -> bool {
+/// Returns true if the provided value is a semantic version string.
+pub fn is_semver<T: AsRef<str>>(value: T) -> bool {
     get_semver_regex().is_match(value.as_ref())
 }
 
 static CLEAN_REQ_REGEX: OnceLock<Regex> = OnceLock::new();
 static CLEAN_WS_REGEX: OnceLock<Regex> = OnceLock::new();
+static CLEAN_CAL_REGEX: OnceLock<Regex> = OnceLock::new();
+static CLEAN_ZERO_REGEX: OnceLock<Regex> = OnceLock::new();
 
-/// Cleans a potential version string by removing a leading `v` or `V`,
-/// removing each occurence of `.*`, and removing invalid spaces.
+/// Cleans a potential version string by removing a leading `v` or `V`.
 pub fn clean_version_string<T: AsRef<str>>(value: T) -> String {
+    let mut version = value.as_ref().trim();
+
+    // Remove a leading "v" or "V" from a version string.
+    #[allow(clippy::assigning_clones)]
+    if version.starts_with('v') || version.starts_with('V') {
+        version = &version[1..];
+    }
+
+    version.to_owned()
+}
+
+/// Cleans a version requirement string by removing each occurence of `.*`,
+/// removing invalid spaces, and replacing calver-like syntax to be semver compatible.
+pub fn clean_version_req_string<T: AsRef<str>>(value: T) -> String {
     let value = value.as_ref().trim();
 
     if value.contains("||") {
         return value
             .split("||")
-            .map(clean_version_string)
+            .map(clean_version_req_string)
             .collect::<Vec<_>>()
             .join(" || ");
     }
 
-    let mut version = value.replace(".*", "").replace("&&", ",");
-
-    // Remove a leading "v" or "V" from a version string.
-    #[allow(clippy::assigning_clones)]
-    if version.starts_with('v') || version.starts_with('V') {
-        version = version[1..].to_owned();
-    }
+    let version = value.replace(".*", "").replace("&&", ",");
 
     // Remove invalid space after <, <=, >, >=.
     let version = CLEAN_REQ_REGEX
@@ -71,10 +80,23 @@ pub fn clean_version_string<T: AsRef<str>>(value: T) -> String {
         .replace_all(&version, "$1$2");
 
     // Replace spaces with commas
-    CLEAN_WS_REGEX
+    let version = CLEAN_WS_REGEX
         .get_or_init(|| regex::Regex::new("[, ]+").unwrap())
-        .replace_all(&version, ",")
-        .to_string()
+        .replace_all(&version, ",");
+
+    // Replace calver dashes with periods
+    // 2024-2 -> 2024.2
+    // 2024-2-alpha -> 2024.2-alpha
+    let version = CLEAN_CAL_REGEX
+        .get_or_init(|| regex::Regex::new(r"(\d)-(\d)").unwrap())
+        .replace_all(&version, "$1.$2");
+
+    // Remove leading zeros from each number part
+    let version = CLEAN_ZERO_REGEX
+        .get_or_init(|| regex::Regex::new(r"(^|\.)0+(\d)").unwrap())
+        .replace_all(&version, "$1$2");
+
+    version.to_string()
 }
 
 static CALVER_REGEX: OnceLock<Regex> = OnceLock::new();
@@ -93,7 +115,7 @@ static SEMVER_REGEX: OnceLock<Regex> = OnceLock::new();
 /// For example: 1.2.3, 6.5.4, 7.8.9-alpha, etc.
 pub fn get_semver_regex() -> &'static Regex {
     SEMVER_REGEX.get_or_init(|| {
-        Regex::new(r"^(?<major>[0-9]+).(?<minor>[0-9]+).(?<patch>[0-9]+)(?<pre>-[-0-9a-zA-Z.]+)?(?<build>\+[-0-9a-zA-Z.]+)?$",)
+        Regex::new(r"^(?<major>[0-9]+).(?<minor>[0-9]+).(?<patch>[0-9]+)(?<pre>-[a-zA-Z]{1}[-0-9a-zA-Z.]+)?(?<build>\+[-0-9a-zA-Z.]+)?$",)
         .unwrap()
     })
 }

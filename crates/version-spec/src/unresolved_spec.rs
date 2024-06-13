@@ -1,7 +1,10 @@
 #![allow(clippy::from_over_into)]
 
 use crate::version_types::*;
-use crate::{clean_version_string, is_alias_name, is_calver_like, is_semver_like, VersionSpec};
+use crate::{
+    clean_version_req_string, clean_version_string, is_alias_name, is_calver, is_semver,
+    VersionSpec,
+};
 use human_sort::compare;
 use semver::{Error, VersionReq};
 use serde::{Deserialize, Serialize};
@@ -118,6 +121,8 @@ impl FromStr for UnresolvedVersionSpec {
             return Ok(UnresolvedVersionSpec::Alias(value));
         }
 
+        let parse_req = |req: &str| VersionReq::parse(&clean_version_req_string(req));
+
         // OR requirements (Node.js)
         if value.contains("||") {
             let mut any = vec![];
@@ -127,28 +132,26 @@ impl FromStr for UnresolvedVersionSpec {
             parts.sort_by(|a, d| compare(d, a));
 
             for req in parts {
-                any.push(VersionReq::parse(req)?);
+                any.push(parse_req(req)?);
             }
 
             return Ok(UnresolvedVersionSpec::ReqAny(any));
         }
 
         // AND requirements
-        if value.contains(',') {
-            return Ok(UnresolvedVersionSpec::Req(VersionReq::parse(&value)?));
+        if value.contains("&&") || value.contains(',') || value.contains(' ') {
+            return Ok(UnresolvedVersionSpec::Req(parse_req(&value)?));
         }
 
         Ok(match value.chars().next().unwrap() {
-            '=' | '^' | '~' | '>' | '<' | '*' => {
-                UnresolvedVersionSpec::Req(VersionReq::parse(&value)?)
-            }
+            '=' | '^' | '~' | '>' | '<' | '*' => UnresolvedVersionSpec::Req(parse_req(&value)?),
             _ => {
-                if is_calver_like(&value) {
+                if is_calver(&value) {
                     UnresolvedVersionSpec::Calendar(CalVer::parse(&value)?)
-                } else if is_semver_like(&value) {
+                } else if is_semver(&value) {
                     UnresolvedVersionSpec::Semantic(SemVer::parse(&value)?)
                 } else {
-                    UnresolvedVersionSpec::Req(VersionReq::parse(&format!("~{value}"))?)
+                    UnresolvedVersionSpec::Req(parse_req(&format!("~{value}"))?)
                 }
             }
         })

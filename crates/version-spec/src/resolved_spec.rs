@@ -1,7 +1,7 @@
 #![allow(clippy::from_over_into)]
 
 use crate::version_types::*;
-use crate::{clean_version_string, is_alias_name, is_calver_like, UnresolvedVersionSpec};
+use crate::{clean_version_string, is_alias_name, is_calver, UnresolvedVersionSpec};
 use semver::{Error, Version};
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -110,7 +110,7 @@ impl FromStr for VersionSpec {
             return Ok(VersionSpec::Alias(value));
         }
 
-        if is_calver_like(&value) {
+        if is_calver(&value) {
             return Ok(VersionSpec::Calendar(CalVer::parse(&value)?));
         }
 
@@ -143,7 +143,9 @@ impl fmt::Display for VersionSpec {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Canary => write!(f, "canary"),
-            _ => write!(f, "{}", self),
+            Self::Alias(alias) => write!(f, "{}", alias),
+            Self::Calendar(version) => write!(f, "{}", version),
+            Self::Semantic(version) => write!(f, "{}", version),
         }
     }
 }
