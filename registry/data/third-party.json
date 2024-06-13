@@ -3,6 +3,19 @@
   "version": 1,
   "plugins": [
     {
+      "id": "argo",
+      "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/argo/plugin.toml",
+      "format": "toml",
+      "name": "argo",
+      "description": "argo is the command line interface to Argo.",
+      "author": "appthrust",
+      "homepageUrl": "https://github.com/appthrust/proto-toml-plugins",
+      "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins/tree/main/argo",
+      "bins": [
+        "argo"
+      ]
+    },
+    {
       "id": "argocd",
       "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/argocd/plugin.toml",
       "format": "toml",
