@@ -391,6 +391,19 @@
       ]
     },
     {
+      "id": "k9s",
+      "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/k9s/plugin.toml",
+      "format": "toml",
+      "name": "k9s",
+      "description": "K9s provides a terminal UI to interact with your Kubernetes clusters.",
+      "author": "appthrust",
+      "homepageUrl": "https://k9scli.io/",
+      "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins",
+      "bins": [
+        "k9s"
+      ]
+    },
+    {
       "id": "kubectl",
       "locator": "https://raw.githubusercontent.com/stk0vrfl0w/proto-toml-plugins/main/plugins/kubectl.toml",
       "format": "toml",
