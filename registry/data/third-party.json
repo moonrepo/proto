@@ -549,6 +549,19 @@
       ]
     },
     {
+      "id": "rye",
+      "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/rye/plugin.toml",
+      "format": "toml",
+      "name": "Rye",
+      "description": "Rye is a comprehensive project and package management solution for Python.",
+      "author": "appthrust",
+      "homepageUrl": "https://github.com/appthrust/proto-toml-plugins",
+      "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins/tree/main/rye",
+      "bins": [
+        "rye"
+      ]
+    },
+    {
       "id": "rattler-build",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/rattler-build/plugin.toml",
       "format": "toml",
