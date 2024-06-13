@@ -15,7 +15,7 @@
 #### ⚙️ Internal
 
 - Improved command execution. May see some slight performance gains.
-- Upgraded wasmtime to v21 (from v17).
+- Updated Rust to v1.79.
 
 ## 0.36.2
 
