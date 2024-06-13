@@ -706,6 +706,20 @@
       ]
     },
     {
+      "id": "zellij",
+      "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/zellij/plugin.toml",
+      "format": "toml",
+      "name": "Zellij",
+      "description": "Zellij is a terminal workspace.",
+      "author": "appthrust",
+      "homepageUrl": "https://github.com/appthrust/proto-toml-plugins",
+      "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins/tree/main/zellij",
+      "devicon": "zellij",
+      "bins": [
+        "zellij"
+      ]
+    },
+    {
       "id": "zig",
       "locator": "https://raw.githubusercontent.com/stk0vrfl0w/proto-toml-plugins/main/plugins/zig.toml",
       "format": "toml",
