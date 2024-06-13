@@ -216,6 +216,20 @@
       ]
     },
     {
+      "id": "gh",
+      "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/gh/plugin.toml",
+      "format": "toml",
+      "name": "GitHub CLI",
+      "description": "gh is GitHub on the command line.",
+      "author": "appthrust",
+      "homepageUrl": "https://github.com/appthrust/proto-toml-plugins",
+      "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins/tree/main/gh",
+      "devicon": "github",
+      "bins": [
+        "gh"
+      ]
+    },
+    {
       "id": "gitleaks",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/gitleaks/plugin.toml",
       "format": "toml",
