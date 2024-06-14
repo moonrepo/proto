@@ -163,7 +163,7 @@ impl Tool {
         Ok(manifest)
     }
 
-    async fn call_locate_executables(&self) -> miette::Result<LocateExecutablesOutput> {
+    fn call_locate_executables(&self) -> miette::Result<LocateExecutablesOutput> {
         self.plugin.cache_func_with(
             "locate_executables",
             LocateExecutablesInput {
