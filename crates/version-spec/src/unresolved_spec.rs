@@ -1,11 +1,8 @@
 #![allow(clippy::from_over_into)]
 
+use crate::unresolved_parse::*;
 use crate::version_types::*;
-use crate::{
-    clean_version_req_string, clean_version_string, is_alias_name, is_calver, is_semver,
-    VersionSpec,
-};
-use human_sort::compare;
+use crate::{clean_version_req_string, clean_version_string, is_alias_name, VersionSpec};
 use semver::{Error, VersionReq};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display};
@@ -41,7 +38,7 @@ impl UnresolvedVersionSpec {
     /// - If contains `,` or ` ` (space), parse with [`VersionReq`], and map as `Req`.
     /// - If starts with `=`, `^`, `~`, `>`, `<`, or `*`, parse with [`VersionReq`],
     ///   and map as `Req`.
-    /// - Else parse with [`Version`], and map as `Version`.
+    /// - Else parse with [`Version`], and map as `Semantic` or `Calendar`.
     pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, Error> {
         Self::from_str(value.as_ref())
     }
@@ -121,39 +118,30 @@ impl FromStr for UnresolvedVersionSpec {
             return Ok(UnresolvedVersionSpec::Alias(value));
         }
 
-        let parse_req = |req: &str| VersionReq::parse(&clean_version_req_string(req));
+        let value = clean_version_req_string(&value);
 
-        // OR requirements (Node.js)
-        if value.contains("||") {
-            let mut any = vec![];
-            let mut parts = value.split("||").map(|p| p.trim()).collect::<Vec<_>>();
+        // OR/AND requirements
+        if value.contains("||") || value.contains(',') {
+            let mut reqs = vec![];
 
-            // Try and sort from highest to lowest range
-            parts.sort_by(|a, d| compare(d, a));
-
-            for req in parts {
-                any.push(parse_req(req)?);
+            for result in parse_multi(&value) {
+                reqs.push(VersionReq::parse(&result)?);
             }
 
-            return Ok(UnresolvedVersionSpec::ReqAny(any));
-        }
-
-        // AND requirements
-        if value.contains("&&") || value.contains(',') || value.contains(' ') {
-            return Ok(UnresolvedVersionSpec::Req(parse_req(&value)?));
-        }
-
-        Ok(match value.chars().next().unwrap() {
-            '=' | '^' | '~' | '>' | '<' | '*' => UnresolvedVersionSpec::Req(parse_req(&value)?),
-            _ => {
-                if is_calver(&value) {
-                    UnresolvedVersionSpec::Calendar(CalVer::parse(&value)?)
-                } else if is_semver(&value) {
-                    UnresolvedVersionSpec::Semantic(SemVer::parse(&value)?)
-                } else {
-                    UnresolvedVersionSpec::Req(parse_req(&format!("~{value}"))?)
-                }
+            if reqs.len() == 1 {
+                return Ok(UnresolvedVersionSpec::Req(reqs.remove(0)));
+            } else {
+                return Ok(UnresolvedVersionSpec::ReqAny(reqs));
             }
+        }
+
+        // Version or requirement
+        let (result, kind) = parse(value);
+
+        Ok(match kind {
+            ParseKind::Req => UnresolvedVersionSpec::Req(VersionReq::parse(&result)?),
+            ParseKind::Cal => UnresolvedVersionSpec::Calendar(CalVer::parse(&result)?),
+            _ => UnresolvedVersionSpec::Semantic(SemVer::parse(&result)?),
         })
     }
 }

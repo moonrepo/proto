@@ -1,4 +1,5 @@
 mod resolved_spec;
+mod unresolved_parse;
 mod unresolved_spec;
 mod version_types;
 
@@ -41,11 +42,6 @@ pub fn is_semver<T: AsRef<str>>(value: T) -> bool {
     get_semver_regex().is_match(value.as_ref())
 }
 
-static CLEAN_REQ_REGEX: OnceLock<Regex> = OnceLock::new();
-static CLEAN_WS_REGEX: OnceLock<Regex> = OnceLock::new();
-static CLEAN_CAL_REGEX: OnceLock<Regex> = OnceLock::new();
-static CLEAN_ZERO_REGEX: OnceLock<Regex> = OnceLock::new();
-
 /// Cleans a potential version string by removing a leading `v` or `V`.
 pub fn clean_version_string<T: AsRef<str>>(value: T) -> String {
     let mut version = value.as_ref().trim();
@@ -59,44 +55,14 @@ pub fn clean_version_string<T: AsRef<str>>(value: T) -> String {
     version.to_owned()
 }
 
-/// Cleans a version requirement string by removing each occurence of `.*`,
-/// removing invalid spaces, and replacing calver-like syntax to be semver compatible.
+/// Cleans a version requirement string.
 pub fn clean_version_req_string<T: AsRef<str>>(value: T) -> String {
-    let value = value.as_ref().trim();
-
-    if value.contains("||") {
-        return value
-            .split("||")
-            .map(clean_version_req_string)
-            .collect::<Vec<_>>()
-            .join(" || ");
-    }
-
-    let version = value.replace(".*", "").replace("&&", ",");
-
-    // Remove invalid space after <, <=, >, >=.
-    let version = CLEAN_REQ_REGEX
-        .get_or_init(|| regex::Regex::new(r"([><]=?)[ ]*v?([0-9])").unwrap())
-        .replace_all(&version, "$1$2");
-
-    // Replace spaces with commas
-    let version = CLEAN_WS_REGEX
-        .get_or_init(|| regex::Regex::new("[, ]+").unwrap())
-        .replace_all(&version, ",");
-
-    // Replace calver dashes with periods
-    // 2024-2 -> 2024.2
-    // 2024-2-alpha -> 2024.2-alpha
-    let version = CLEAN_CAL_REGEX
-        .get_or_init(|| regex::Regex::new(r"(\d)-(\d)").unwrap())
-        .replace_all(&version, "$1.$2");
-
-    // Remove leading zeros from each number part
-    let version = CLEAN_ZERO_REGEX
-        .get_or_init(|| regex::Regex::new(r"(^|\.)0+(\d)").unwrap())
-        .replace_all(&version, "$1$2");
-
-    version.to_string()
+    value
+        .as_ref()
+        .trim()
+        .replace(".*", "")
+        .replace("-*", "")
+        .replace("&&", ",")
 }
 
 static CALVER_REGEX: OnceLock<Regex> = OnceLock::new();
@@ -114,6 +80,7 @@ static SEMVER_REGEX: OnceLock<Regex> = OnceLock::new();
 /// Get a regex pattern that matches semantic versions (semvar).
 /// For example: 1.2.3, 6.5.4, 7.8.9-alpha, etc.
 pub fn get_semver_regex() -> &'static Regex {
+    // https://semver.org/#backusnaur-form-grammar-for-valid-semver-versions
     SEMVER_REGEX.get_or_init(|| {
         Regex::new(r"^(?<major>[0-9]+).(?<minor>[0-9]+).(?<patch>[0-9]+)(?<pre>-[a-zA-Z]{1}[-0-9a-zA-Z.]+)?(?<build>\+[-0-9a-zA-Z.]+)?$",)
         .unwrap()
