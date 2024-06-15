@@ -1,6 +1,6 @@
 #![allow(clippy::from_over_into)]
 
-use crate::unresolved_parse::*;
+use crate::unresolved_parser::*;
 use crate::version_types::*;
 use crate::{clean_version_req_string, clean_version_string, is_alias_name, VersionSpec};
 use semver::{Error, VersionReq};
@@ -120,19 +120,15 @@ impl FromStr for UnresolvedVersionSpec {
 
         let value = clean_version_req_string(&value);
 
-        // OR/AND requirements
-        if value.contains("||") || value.contains(',') {
+        // OR requirements
+        if value.contains("||") {
             let mut reqs = vec![];
 
             for result in parse_multi(&value) {
                 reqs.push(VersionReq::parse(&result)?);
             }
 
-            if reqs.len() == 1 {
-                return Ok(UnresolvedVersionSpec::Req(reqs.remove(0)));
-            } else {
-                return Ok(UnresolvedVersionSpec::ReqAny(reqs));
-            }
+            return Ok(UnresolvedVersionSpec::ReqAny(reqs));
         }
 
         // Version or requirement
