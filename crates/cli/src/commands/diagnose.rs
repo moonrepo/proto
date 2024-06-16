@@ -10,7 +10,7 @@ use std::path::PathBuf;
 use std::{env, process};
 
 #[derive(Args, Clone, Debug)]
-pub struct DoctorArgs {
+pub struct DiagnoseArgs {
     #[arg(long, help = "Shell to diagnose for")]
     shell: Option<ShellType>,
 
@@ -35,7 +35,7 @@ struct Diagnosis {
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn doctor(session: ProtoSession, args: DoctorArgs) -> AppResult {
+pub async fn diagnose(session: ProtoSession, args: DiagnoseArgs) -> AppResult {
     let shell = match args.shell {
         Some(value) => value,
         None => ShellType::try_detect()?,

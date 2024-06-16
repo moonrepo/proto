@@ -1,7 +1,7 @@
 use crate::commands::{
     debug::DebugConfigArgs,
     plugin::{AddPluginArgs, InfoPluginArgs, ListPluginsArgs, RemovePluginArgs, SearchPluginArgs},
-    AliasArgs, BinArgs, CleanArgs, CompletionsArgs, DoctorArgs, InstallArgs, ListArgs,
+    AliasArgs, BinArgs, CleanArgs, CompletionsArgs, DiagnoseArgs, InstallArgs, ListArgs,
     ListRemoteArgs, MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs, StatusArgs,
     UnaliasArgs, UninstallArgs, UnpinArgs,
 };
@@ -145,10 +145,11 @@ pub enum Commands {
     },
 
     #[command(
-        name = "doctor",
+        alias = "doctor",
+        name = "diagnose",
         about = "Diagnose potential issues with your proto installation."
     )]
-    Doctor(DoctorArgs),
+    Diagnose(DiagnoseArgs),
 
     #[command(
         alias = "i",
