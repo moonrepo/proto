@@ -25,7 +25,7 @@ reqwest = { version = "0.12.4", default-features = false, features = [
 ] }
 rustc-hash = "1.1.0"
 schematic = { version = "0.16.4", default-features = false }
-semver = "1.0.23"
+semver = { version = "1.0.23", features = ["serde"] }
 serde = { version = "1.0.203", features = ["derive"] }
 serde_json = "1.0.117"
 sha2 = "0.10.8"
