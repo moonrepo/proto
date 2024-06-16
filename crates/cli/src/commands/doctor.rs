@@ -55,9 +55,9 @@ pub async fn doctor(session: ProtoSession, args: DoctorArgs) -> AppResult {
         env::set_var("NO_COLOR", "1");
     }
 
-    let errors = gather_errors(&session, &paths);
-    let warnings = gather_warnings(&session, &paths);
-    let tips = gather_tips();
+    let mut tips = vec![];
+    let errors = gather_errors(&session, &paths, &mut tips);
+    let warnings = gather_warnings(&session, &paths, &mut tips);
 
     if args.json {
         println!(
@@ -134,7 +134,7 @@ pub async fn doctor(session: ProtoSession, args: DoctorArgs) -> AppResult {
     Ok(())
 }
 
-fn gather_errors(session: &ProtoSession, paths: &[PathBuf]) -> Vec<Issue> {
+fn gather_errors(session: &ProtoSession, paths: &[PathBuf], _tips: &mut Vec<String>) -> Vec<Issue> {
     let mut errors = vec![];
 
     let mut has_shims_before_bins = false;
@@ -153,7 +153,7 @@ fn gather_errors(session: &ProtoSession, paths: &[PathBuf]) -> Vec<Issue> {
         }
     }
 
-    if has_shims_before_bins && found_shims && found_bin {
+    if !has_shims_before_bins && found_shims && found_bin {
         errors.push(Issue {
             issue: format!(
                 "Bin directory ({}) was found BEFORE the shims directory ({}) on {}",
@@ -173,10 +173,14 @@ fn gather_errors(session: &ProtoSession, paths: &[PathBuf]) -> Vec<Issue> {
     errors
 }
 
-fn gather_warnings(session: &ProtoSession, paths: &[PathBuf]) -> Vec<Issue> {
+fn gather_warnings(
+    session: &ProtoSession,
+    paths: &[PathBuf],
+    tips: &mut Vec<String>,
+) -> Vec<Issue> {
     let mut warnings = vec![];
 
-    if !env::var("PROTO_HOME").is_err() {
+    if env::var("PROTO_HOME").is_err() {
         warnings.push(Issue {
             issue: format!(
                 "Missing {} environment variable",
@@ -197,7 +201,7 @@ fn gather_warnings(session: &ProtoSession, paths: &[PathBuf]) -> Vec<Issue> {
         .iter()
         .any(|path| path == &session.env.store.shims_dir);
 
-    if has_shims_on_path {
+    if !has_shims_on_path {
         warnings.push(Issue {
             issue: format!(
                 "Shims directory ({}) not found on {}",
@@ -214,7 +218,7 @@ fn gather_warnings(session: &ProtoSession, paths: &[PathBuf]) -> Vec<Issue> {
 
     let has_bins_on_path = paths.iter().any(|path| path == &session.env.store.bin_dir);
 
-    if has_bins_on_path {
+    if !has_bins_on_path {
         warnings.push(Issue {
             issue: format!(
                 "Bin directory ({}) not found on {}",
@@ -229,14 +233,14 @@ fn gather_warnings(session: &ProtoSession, paths: &[PathBuf]) -> Vec<Issue> {
         })
     }
 
-    warnings
-}
+    if !warnings.is_empty() {
+        tips.push(format!(
+            "Run {} to resolve some of these issues!",
+            color::shell("proto setup")
+        ));
+    }
 
-fn gather_tips() -> Vec<String> {
-    Vec::from_iter([format!(
-        "Run {} to resolve some of these issues!",
-        color::shell("proto setup")
-    )])
+    warnings
 }
 
 fn print_issues(issues: &[Issue], printer: &mut Printer) {
