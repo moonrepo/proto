@@ -107,7 +107,11 @@ impl<'std> Printer<'std> {
 
             writeln!(&mut self.buffer, "{}:", key.as_ref()).unwrap();
 
+            self.depth += 1;
+
             self.list(items);
+
+            self.depth -= 1;
         }
     }
 
@@ -157,15 +161,11 @@ impl<'std> Printer<'std> {
     pub fn list<I: IntoIterator<Item = V>, V: AsRef<str>>(&mut self, list: I) {
         let items = list.into_iter().collect::<Vec<_>>();
 
-        self.depth += 1;
-
         for item in items {
             self.indent();
 
             writeln!(&mut self.buffer, "{} {}", color::muted("-"), item.as_ref()).unwrap();
         }
-
-        self.depth -= 1;
     }
 
     pub fn locator<L: AsRef<PluginLocator>>(&mut self, locator: L) {
