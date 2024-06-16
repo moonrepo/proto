@@ -184,12 +184,10 @@ impl UnresolvedParser {
                         } else {
                             unreachable!();
                         }
+                    } else if self.kind == ParseKind::Cal {
+                        self.in_part = ParsePart::BuildSuffix;
                     } else {
-                        if self.kind == ParseKind::Cal {
-                            self.in_part = ParsePart::BuildSuffix;
-                        } else {
-                            unreachable!();
-                        }
+                        unreachable!();
                     }
                 }
                 // AND separator

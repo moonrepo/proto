@@ -155,7 +155,7 @@ impl PartialEq<&str> for VersionSpec {
         match self {
             Self::Canary => "canary" == *other,
             Self::Alias(alias) => alias == other,
-            _ => self.to_string() == *other,
+            _ => &self.to_string() == other,
         }
     }
 }

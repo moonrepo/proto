@@ -419,7 +419,7 @@ impl LoadVersionsOutput {
         for version in versions {
             if let Some(inner) = version.as_version() {
                 if inner.pre.is_empty() && inner.build.is_empty() && inner > &latest {
-                    latest = inner.to_owned();
+                    inner.clone_into(&mut latest);
                     calver = matches!(version, VersionSpec::Calendar(_));
                 }
             }
