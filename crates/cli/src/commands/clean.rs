@@ -81,10 +81,11 @@ pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miett
                 continue;
             }
 
-            let version = VersionSpec::parse(&dir_name).map_err(|error| ProtoError::Semver {
-                version: dir_name,
-                error: Box::new(error),
-            })?;
+            let version =
+                VersionSpec::parse(&dir_name).map_err(|error| ProtoError::VersionSpec {
+                    version: dir_name,
+                    error: Box::new(error),
+                })?;
 
             if !tool.inventory.manifest.versions.contains_key(&version) {
                 debug!(

@@ -318,8 +318,7 @@ impl Tool {
             let mut entries = FxHashMap::default();
             let mut installed = FxHashSet::default();
 
-            for version in versions {
-                let key = VersionSpec::Version(version);
+            for key in versions {
                 let value = manifest.versions.get(&key).cloned().unwrap_or_default();
 
                 installed.insert(key.clone());
@@ -415,7 +414,11 @@ impl Tool {
         // If we have a fully qualified semantic version,
         // exit early and assume the version is legitimate!
         // Also canary is a special type that we can simply just use.
-        if short_circuit && matches!(initial_version, UnresolvedVersionSpec::Version(_))
+        if short_circuit
+            && matches!(
+                initial_version,
+                UnresolvedVersionSpec::Calendar(_) | UnresolvedVersionSpec::Semantic(_)
+            )
             || matches!(initial_version, UnresolvedVersionSpec::Canary)
         {
             let version = initial_version.to_resolved_spec();
@@ -568,7 +571,7 @@ impl Tool {
 
                 result.version.unwrap()
             } else {
-                UnresolvedVersionSpec::parse(&content).map_err(|error| ProtoError::Semver {
+                UnresolvedVersionSpec::parse(&content).map_err(|error| ProtoError::VersionSpec {
                     version: content,
                     error: Box::new(error),
                 })?

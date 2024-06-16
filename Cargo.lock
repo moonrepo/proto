@@ -3971,6 +3971,7 @@ dependencies = [
  "schematic",
  "semver",
  "serde",
+ "thiserror",
 ]
 
 [[package]]

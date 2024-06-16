@@ -1,14 +1,16 @@
 #![allow(clippy::from_over_into)]
 
-use crate::{clean_version_string, is_alias_name, VersionSpec};
-use human_sort::compare;
-use semver::{Error, Version, VersionReq};
+use crate::spec_error::SpecError;
+use crate::unresolved_parser::*;
+use crate::version_types::*;
+use crate::{clean_version_req_string, clean_version_string, is_alias_name, VersionSpec};
+use semver::VersionReq;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
 
 /// Represents an unresolved version or alias that must be resolved
-/// to a fully-qualified and semantic result.
+/// to a fully-qualified version.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(untagged, into = "String", try_from = "String")]
 pub enum UnresolvedVersionSpec {
@@ -20,8 +22,10 @@ pub enum UnresolvedVersionSpec {
     Req(VersionReq),
     /// A list of requirements to match any against (joined by `||`).
     ReqAny(Vec<VersionReq>),
+    /// A fully-qualified calendar version.
+    Calendar(CalVer),
     /// A fully-qualified semantic version.
-    Version(Version),
+    Semantic(SemVer),
 }
 
 impl UnresolvedVersionSpec {
@@ -35,8 +39,8 @@ impl UnresolvedVersionSpec {
     /// - If contains `,` or ` ` (space), parse with [`VersionReq`], and map as `Req`.
     /// - If starts with `=`, `^`, `~`, `>`, `<`, or `*`, parse with [`VersionReq`],
     ///   and map as `Req`.
-    /// - Else parse with [`Version`], and map as `Version`.
-    pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, Error> {
+    /// - Else parse as `Semantic` or `Calendar` types.
+    pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, SpecError> {
         Self::from_str(value.as_ref())
     }
 
@@ -75,7 +79,8 @@ impl UnresolvedVersionSpec {
         match self {
             Self::Canary => VersionSpec::Canary,
             Self::Alias(alias) => VersionSpec::Alias(alias.to_owned()),
-            Self::Version(version) => VersionSpec::Version(version.to_owned()),
+            Self::Calendar(version) => VersionSpec::Calendar(version.to_owned()),
+            Self::Semantic(version) => VersionSpec::Semantic(version.to_owned()),
             _ => unreachable!(),
         }
     }
@@ -88,7 +93,7 @@ impl schematic::Schematic for UnresolvedVersionSpec {
     }
 
     fn build_schema(mut schema: schematic::SchemaBuilder) -> schematic::Schema {
-        schema.set_description("Represents an unresolved version or alias that must be resolved to a fully-qualified and semantic result.");
+        schema.set_description("Represents an unresolved version or alias that must be resolved to a fully-qualified version.");
         schema.string_default()
     }
 }
@@ -101,7 +106,7 @@ impl Default for UnresolvedVersionSpec {
 }
 
 impl FromStr for UnresolvedVersionSpec {
-    type Err = Error;
+    type Err = SpecError;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         if value == "canary" {
@@ -114,46 +119,32 @@ impl FromStr for UnresolvedVersionSpec {
             return Ok(UnresolvedVersionSpec::Alias(value));
         }
 
-        // OR requirements (Node.js)
+        let value = clean_version_req_string(&value);
+
+        // OR requirements
         if value.contains("||") {
-            let mut any = vec![];
-            let mut parts = value.split("||").map(|p| p.trim()).collect::<Vec<_>>();
+            let mut reqs = vec![];
 
-            // Try and sort from highest to lowest range
-            parts.sort_by(|a, d| compare(d, a));
-
-            for req in parts {
-                any.push(VersionReq::parse(req)?);
+            for result in parse_multi(&value)? {
+                reqs.push(VersionReq::parse(&result)?);
             }
 
-            return Ok(UnresolvedVersionSpec::ReqAny(any));
+            return Ok(UnresolvedVersionSpec::ReqAny(reqs));
         }
 
-        // AND requirements
-        if value.contains(',') {
-            return Ok(UnresolvedVersionSpec::Req(VersionReq::parse(&value)?));
-        }
+        // Version or requirement
+        let (result, kind) = parse(value)?;
 
-        Ok(match value.chars().next().unwrap() {
-            '=' | '^' | '~' | '>' | '<' | '*' => {
-                UnresolvedVersionSpec::Req(VersionReq::parse(&value)?)
-            }
-            _ => {
-                let dot_count = value.match_indices('.').collect::<Vec<_>>().len();
-
-                // If not fully qualified, match using a requirement
-                if dot_count < 2 {
-                    UnresolvedVersionSpec::Req(VersionReq::parse(&format!("~{value}"))?)
-                } else {
-                    UnresolvedVersionSpec::Version(Version::parse(&value)?)
-                }
-            }
+        Ok(match kind {
+            ParseKind::Req => UnresolvedVersionSpec::Req(VersionReq::parse(&result)?),
+            ParseKind::Cal => UnresolvedVersionSpec::Calendar(CalVer::parse(&result)?),
+            _ => UnresolvedVersionSpec::Semantic(SemVer::parse(&result)?),
         })
     }
 }
 
 impl TryFrom<String> for UnresolvedVersionSpec {
-    type Error = Error;
+    type Error = SpecError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         Self::from_str(&value)
@@ -180,7 +171,8 @@ impl Display for UnresolvedVersionSpec {
                     .collect::<Vec<_>>()
                     .join(" || ")
             ),
-            Self::Version(version) => write!(f, "{}", version),
+            Self::Calendar(version) => write!(f, "{}", version),
+            Self::Semantic(version) => write!(f, "{}", version),
         }
     }
 }
@@ -190,7 +182,8 @@ impl PartialEq<VersionSpec> for UnresolvedVersionSpec {
         match (self, other) {
             (Self::Canary, VersionSpec::Alias(a)) => a == "canary",
             (Self::Alias(a1), VersionSpec::Alias(a2)) => a1 == a2,
-            (Self::Version(v1), VersionSpec::Version(v2)) => v1 == v2,
+            (Self::Calendar(v1), VersionSpec::Calendar(v2)) => v1 == v2,
+            (Self::Semantic(v1), VersionSpec::Semantic(v2)) => v1 == v2,
             _ => false,
         }
     }

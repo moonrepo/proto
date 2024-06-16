@@ -154,10 +154,10 @@ pub enum ProtoError {
 
     #[diagnostic(code(proto::version::invalid))]
     #[error("Invalid version or requirement {}.", .version.style(Style::Hash))]
-    Semver {
+    VersionSpec {
         version: String,
         #[source]
-        error: Box<semver::Error>,
+        error: Box<version_spec::SpecError>,
     },
 
     #[diagnostic(code(proto::shim::create_failed))]
