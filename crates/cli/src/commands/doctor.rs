@@ -1,9 +1,11 @@
 use crate::printer::Printer;
 use crate::session::ProtoSession;
 use clap::Args;
+use serde::Serialize;
 use starbase::AppResult;
 use starbase_shell::ShellType;
 use starbase_styles::color;
+use starbase_utils::json;
 use std::path::PathBuf;
 use std::{env, process};
 
@@ -11,12 +13,25 @@ use std::{env, process};
 pub struct DoctorArgs {
     #[arg(long, help = "Shell to diagnose for")]
     shell: Option<ShellType>,
+
+    #[arg(long, help = "Print the diagnosis in JSON format")]
+    json: bool,
 }
 
+#[derive(Serialize)]
 struct Issue {
-    message: String,
+    issue: String,
     resolution: Option<String>,
     comment: Option<String>,
+}
+
+#[derive(Serialize)]
+struct Diagnosis {
+    shell: String,
+    shell_profile: PathBuf,
+    errors: Vec<Issue>,
+    warnings: Vec<Issue>,
+    tips: Vec<String>,
 }
 
 #[tracing::instrument(skip_all)]
@@ -26,11 +41,41 @@ pub async fn doctor(session: ProtoSession, args: DoctorArgs) -> AppResult {
         None => ShellType::try_detect()?,
     };
     let shell_data = shell.build();
+    let shell_path = session
+        .env
+        .store
+        .load_preferred_profile()?
+        .unwrap_or_else(|| shell_data.get_env_path(&session.env.home));
+
     let paths_env = env::var_os("PATH").unwrap_or_default();
     let paths = env::split_paths(&paths_env).collect::<Vec<_>>();
 
+    // Disable ANSI colors in JSON output
+    if args.json {
+        env::set_var("NO_COLOR", "1");
+    }
+
     let errors = gather_errors(&session, &paths);
     let warnings = gather_warnings(&session, &paths);
+    let tips = gather_tips();
+
+    if args.json {
+        println!(
+            "{}",
+            json::format(
+                &Diagnosis {
+                    shell: shell.to_string(),
+                    shell_profile: shell_path,
+                    errors,
+                    warnings,
+                    tips,
+                },
+                true
+            )?
+        );
+
+        return Ok(());
+    }
 
     if errors.is_empty() && warnings.is_empty() {
         println!(
@@ -38,7 +83,7 @@ pub async fn doctor(session: ProtoSession, args: DoctorArgs) -> AppResult {
             color::success("No issues detected with your proto installation!")
         );
 
-        process::exit(0);
+        return Ok(());
     }
 
     let mut printer = Printer::new();
@@ -72,14 +117,13 @@ pub async fn doctor(session: ProtoSession, args: DoctorArgs) -> AppResult {
         })?;
     }
 
-    printer.named_section(color::label("Tips"), |p| {
-        p.list([format!(
-            "Run {} to resolve some of these issues!",
-            color::shell("proto setup")
-        )]);
+    if !tips.is_empty() {
+        printer.named_section(color::label("Tips"), |p| {
+            p.list(tips);
 
-        Ok(())
-    })?;
+            Ok(())
+        })?;
+    }
 
     printer.flush();
 
@@ -111,7 +155,7 @@ fn gather_errors(session: &ProtoSession, paths: &[PathBuf]) -> Vec<Issue> {
 
     if has_shims_before_bins && found_shims && found_bin {
         errors.push(Issue {
-            message: format!(
+            issue: format!(
                 "Bin directory ({}) was found BEFORE the shims directory ({}) on {}",
                 color::path(&session.env.store.bin_dir),
                 color::path(&session.env.store.shims_dir),
@@ -134,7 +178,7 @@ fn gather_warnings(session: &ProtoSession, paths: &[PathBuf]) -> Vec<Issue> {
 
     if !env::var("PROTO_HOME").is_err() {
         warnings.push(Issue {
-            message: format!(
+            issue: format!(
                 "Missing {} environment variable",
                 color::property("PROTO_HOME")
             ),
@@ -155,7 +199,7 @@ fn gather_warnings(session: &ProtoSession, paths: &[PathBuf]) -> Vec<Issue> {
 
     if has_shims_on_path {
         warnings.push(Issue {
-            message: format!(
+            issue: format!(
                 "Shims directory ({}) not found on {}",
                 color::path(&session.env.store.shims_dir),
                 color::property("PATH")
@@ -172,7 +216,7 @@ fn gather_warnings(session: &ProtoSession, paths: &[PathBuf]) -> Vec<Issue> {
 
     if has_bins_on_path {
         warnings.push(Issue {
-            message: format!(
+            issue: format!(
                 "Bin directory ({}) not found on {}",
                 color::path(&session.env.store.bin_dir),
                 color::property("PATH")
@@ -188,6 +232,13 @@ fn gather_warnings(session: &ProtoSession, paths: &[PathBuf]) -> Vec<Issue> {
     warnings
 }
 
+fn gather_tips() -> Vec<String> {
+    Vec::from_iter([format!(
+        "Run {} to resolve some of these issues!",
+        color::shell("proto setup")
+    )])
+}
+
 fn print_issues(issues: &[Issue], printer: &mut Printer) {
     let length = issues.len() - 1;
 
@@ -196,7 +247,7 @@ fn print_issues(issues: &[Issue], printer: &mut Printer) {
             color::muted_light("Issue"),
             format!(
                 "{} {}",
-                &issue.message,
+                &issue.issue,
                 if let Some(comment) = &issue.comment {
                     color::muted_light(format!("({})", comment))
                 } else {
