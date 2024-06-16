@@ -24,6 +24,9 @@
 
 - Added experimental support for the [calver](https://calver.org) (calendar versioning) specification. For example: 2024-04, 2024-06-10, etc.
   - There are some caveats to this approach. Please refer to the documentation.
+  - This _should_ be backwards compatible with existing WASM plugins and tools, but in the off chance it is not, please pull in the new PDKs and publish a new release, or create an issue.
+- Added a new command, `proto diagnose`, that can be used to diagnose any issues with your current proto installation.
+  - Currently diagnoses proto itself, but in the future will also diagnose currently installed tools.
 - WASM API
   - Added `VersionSpec::Calendar` and `UnresolvedVersionSpec::Calendar` variant types.
 
