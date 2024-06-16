@@ -3,7 +3,7 @@ mod build_source;
 use crate::shapes::StringOrVec;
 use rustc_hash::FxHashMap;
 use std::path::PathBuf;
-use version_spec::{CalVer, SemVer, UnresolvedVersionSpec, VersionSpec};
+use version_spec::{CalVer, SemVer, SpecError, UnresolvedVersionSpec, VersionSpec};
 use warpgate_api::*;
 
 pub use build_source::*;
@@ -399,7 +399,7 @@ api_struct!(
 impl LoadVersionsOutput {
     /// Create the output from a list of strings that'll be parsed as versions.
     /// The latest version will be the highest version number.
-    pub fn from(values: Vec<String>) -> Result<Self, semver::Error> {
+    pub fn from(values: Vec<String>) -> Result<Self, SpecError> {
         let mut versions = vec![];
 
         for value in values {

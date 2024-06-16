@@ -52,7 +52,7 @@ mod resolved_spec {
     }
 
     #[test]
-    #[should_panic(expected = "unexpected character '%' while parsing major version number")]
+    #[should_panic(expected = "ResolvedUnknownFormat")]
     fn error_invalid_char() {
         VersionSpec::parse("%").unwrap();
     }

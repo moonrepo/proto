@@ -11,6 +11,7 @@ fn checks_alias() {
     assert!(is_alias_name("beta-0"));
     assert!(is_alias_name("rc-1.2.3"));
     assert!(is_alias_name("next-2023"));
+    assert!(is_alias_name("ver-2023"));
 
     assert!(!is_alias_name("1.2.3"));
     assert!(!is_alias_name("1.2"));

@@ -1,3 +1,4 @@
+use crate::spec_error::SpecError;
 use human_sort::compare;
 
 #[derive(Debug, Default, PartialEq)]
@@ -49,11 +50,11 @@ pub struct UnresolvedParser {
 }
 
 impl UnresolvedParser {
-    pub fn parse(mut self, input: impl AsRef<str>) -> (String, ParseKind) {
+    pub fn parse(mut self, input: impl AsRef<str>) -> Result<(String, ParseKind), SpecError> {
         let input = input.as_ref().trim();
 
         if input.is_empty() || input == "*" {
-            return ("*".to_owned(), ParseKind::Req);
+            return Ok(("*".to_owned(), ParseKind::Req));
         }
 
         for ch in input.chars() {
@@ -61,7 +62,7 @@ impl UnresolvedParser {
                 // Requirement operator
                 '=' | '~' | '^' | '>' | '<' => {
                     if self.in_part != ParsePart::Start && self.in_part != ParsePart::ReqPrefix {
-                        panic!("Requirement operator found in an invalid position");
+                        return Err(SpecError::ParseInvalidReq);
                     }
 
                     self.in_part = ParsePart::ReqPrefix;
@@ -203,7 +204,7 @@ impl UnresolvedParser {
                 // AND separator
                 ',' => {
                     self.is_and = true;
-                    self.build_result();
+                    self.build_result()?;
                     self.reset_state();
                 }
                 // Whitespace
@@ -213,22 +214,22 @@ impl UnresolvedParser {
                     } else {
                         // Possible AND sequence?
                         self.is_and = true;
-                        self.build_result();
+                        self.build_result()?;
                         self.reset_state();
                     }
                 }
                 _ => {
-                    panic!("Unknown character `{}` in version string!", ch)
+                    return Err(SpecError::ParseUnknownChar(ch));
                 }
             }
         }
 
-        self.build_result();
+        self.build_result()?;
 
         let result = self.get_result();
         let is_req = result.contains(',');
 
-        (result, if is_req { ParseKind::Req } else { self.kind })
+        Ok((result, if is_req { ParseKind::Req } else { self.kind }))
     }
 
     fn get_result(&self) -> String {
@@ -245,9 +246,9 @@ impl UnresolvedParser {
         value
     }
 
-    fn build_result(&mut self) {
+    fn build_result(&mut self) -> Result<(), SpecError> {
         if self.in_part.is_prefix() {
-            return;
+            return Ok(());
         }
 
         let mut output = String::new();
@@ -285,7 +286,7 @@ impl UnresolvedParser {
                 output.push_str(year);
             }
         } else if self.major_year.is_empty() {
-            panic!("Missing major version or year!");
+            return Err(SpecError::ParseMissingMajorPart);
         } else {
             output.push_str(self.get_part(&self.major_year));
         }
@@ -315,6 +316,8 @@ impl UnresolvedParser {
         }
 
         self.results.push(output);
+
+        Ok(())
     }
 
     fn reset_state(&mut self) {
@@ -332,7 +335,7 @@ impl UnresolvedParser {
 /// Parse the provided string as a list of version requirements,
 /// as separated by `||`. Each requirement will be parsed
 /// individually with [`parse`].
-pub fn parse_multi(input: impl AsRef<str>) -> Vec<String> {
+pub fn parse_multi(input: impl AsRef<str>) -> Result<Vec<String>, SpecError> {
     let input = input.as_ref();
     let mut results = vec![];
 
@@ -343,19 +346,19 @@ pub fn parse_multi(input: impl AsRef<str>) -> Vec<String> {
         parts.sort_by(|a, d| compare(d, a));
 
         for part in parts {
-            results.push(parse(part).0);
+            results.push(parse(part)?.0);
         }
     } else {
-        results.push(parse(input).0);
+        results.push(parse(input)?.0);
     }
 
-    results
+    Ok(results)
 }
 
 /// Parse the provided string and determine the output format.
 /// Since an unresolved version can be many things, such as an
 /// alias, version requirement, semver, or calver, we need to
 /// parse this manually to determine the correct output.
-pub fn parse(input: impl AsRef<str>) -> (String, ParseKind) {
+pub fn parse(input: impl AsRef<str>) -> Result<(String, ParseKind), SpecError> {
     UnresolvedParser::default().parse(input)
 }

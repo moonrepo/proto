@@ -1,8 +1,9 @@
 #![allow(clippy::from_over_into)]
 
-use crate::version_types::*;
+use crate::spec_error::SpecError;
 use crate::{clean_version_string, is_alias_name, is_calver, UnresolvedVersionSpec};
-use semver::{Error, Version};
+use crate::{is_semver, version_types::*};
+use semver::Version;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
@@ -28,7 +29,7 @@ impl VersionSpec {
     /// - If the value "canary", map as `Canary` variant.
     /// - If an alpha-numeric value that starts with a character, map as `Alias`.
     /// - Else parse with [`Version`], and map as `Version`.
-    pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, Error> {
+    pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, SpecError> {
         Self::from_str(value.as_ref())
     }
 
@@ -97,7 +98,7 @@ impl Default for VersionSpec {
 }
 
 impl FromStr for VersionSpec {
-    type Err = Error;
+    type Err = SpecError;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         if value == "canary" {
@@ -114,12 +115,16 @@ impl FromStr for VersionSpec {
             return Ok(VersionSpec::Calendar(CalVer::parse(&value)?));
         }
 
-        Ok(VersionSpec::Semantic(SemVer::parse(&value)?))
+        if is_semver(&value) {
+            return Ok(VersionSpec::Semantic(SemVer::parse(&value)?));
+        }
+
+        Err(SpecError::ResolvedUnknownFormat(value.to_owned()))
     }
 }
 
 impl TryFrom<String> for VersionSpec {
-    type Error = Error;
+    type Error = SpecError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         Self::from_str(&value)

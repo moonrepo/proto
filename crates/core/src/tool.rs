@@ -571,7 +571,7 @@ impl Tool {
 
                 result.version.unwrap()
             } else {
-                UnresolvedVersionSpec::parse(&content).map_err(|error| ProtoError::Semver {
+                UnresolvedVersionSpec::parse(&content).map_err(|error| ProtoError::VersionSpec {
                     version: content,
                     error: Box::new(error),
                 })?

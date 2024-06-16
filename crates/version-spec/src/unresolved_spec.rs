@@ -1,9 +1,10 @@
 #![allow(clippy::from_over_into)]
 
+use crate::spec_error::SpecError;
 use crate::unresolved_parser::*;
 use crate::version_types::*;
 use crate::{clean_version_req_string, clean_version_string, is_alias_name, VersionSpec};
-use semver::{Error, VersionReq};
+use semver::VersionReq;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
@@ -39,7 +40,7 @@ impl UnresolvedVersionSpec {
     /// - If starts with `=`, `^`, `~`, `>`, `<`, or `*`, parse with [`VersionReq`],
     ///   and map as `Req`.
     /// - Else parse as `Semantic` or `Calendar` types.
-    pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, Error> {
+    pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, SpecError> {
         Self::from_str(value.as_ref())
     }
 
@@ -105,7 +106,7 @@ impl Default for UnresolvedVersionSpec {
 }
 
 impl FromStr for UnresolvedVersionSpec {
-    type Err = Error;
+    type Err = SpecError;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         if value == "canary" {
@@ -124,7 +125,7 @@ impl FromStr for UnresolvedVersionSpec {
         if value.contains("||") {
             let mut reqs = vec![];
 
-            for result in parse_multi(&value) {
+            for result in parse_multi(&value)? {
                 reqs.push(VersionReq::parse(&result)?);
             }
 
@@ -132,7 +133,7 @@ impl FromStr for UnresolvedVersionSpec {
         }
 
         // Version or requirement
-        let (result, kind) = parse(value);
+        let (result, kind) = parse(value)?;
 
         Ok(match kind {
             ParseKind::Req => UnresolvedVersionSpec::Req(VersionReq::parse(&result)?),
@@ -143,7 +144,7 @@ impl FromStr for UnresolvedVersionSpec {
 }
 
 impl TryFrom<String> for UnresolvedVersionSpec {
-    type Error = Error;
+    type Error = SpecError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         Self::from_str(&value)

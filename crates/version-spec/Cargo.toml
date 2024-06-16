@@ -13,6 +13,7 @@ regex = { workspace = true }
 schematic = { workspace = true, optional = true, features = ["schema"] }
 semver = { workspace = true }
 serde = { workspace = true }
+thiserror = { workspace = true }
 
 [features]
 default = []

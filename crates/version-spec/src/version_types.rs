@@ -1,4 +1,5 @@
 use crate::get_calver_regex;
+use crate::spec_error::SpecError;
 use semver::Version;
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -10,7 +11,7 @@ pub struct SemVer(pub Version);
 
 impl SemVer {
     /// Parse the string into a [`semver::Version`] type.
-    pub fn parse(value: &str) -> Result<Self, semver::Error> {
+    pub fn parse(value: &str) -> Result<Self, SpecError> {
         Ok(Self(Version::parse(value)?))
     }
 }
@@ -37,10 +38,9 @@ impl CalVer {
     /// If the provided value is a calver-like version string,
     /// parse and convert it to a semver compatible version string,
     /// so that we can utilize the [`semver::Version`] type.
-    pub fn parse(value: &str) -> Result<Self, semver::Error> {
+    pub fn parse(value: &str) -> Result<Self, SpecError> {
         let Some(caps) = get_calver_regex().captures(value) else {
-            // Attempt to parse as-is to generate an error
-            return Ok(Self(Version::parse(value)?));
+            return Err(SpecError::CalverInvalidFormat);
         };
 
         // Short years (less than 4 characters) are relative

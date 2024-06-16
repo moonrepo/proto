@@ -1,9 +1,11 @@
 mod resolved_spec;
+mod spec_error;
 mod unresolved_parser;
 mod unresolved_spec;
 mod version_types;
 
 pub use resolved_spec::*;
+pub use spec_error::*;
 pub use unresolved_parser::*;
 pub use unresolved_spec::*;
 pub use version_types::*;
@@ -47,9 +49,11 @@ pub fn is_semver<T: AsRef<str>>(value: T) -> bool {
 pub fn clean_version_string<T: AsRef<str>>(value: T) -> String {
     let mut version = value.as_ref().trim();
 
-    // Remove a leading "v" or "V" from a version string.
+    // Remove a leading "v" or "V" from a version string
     #[allow(clippy::assigning_clones)]
-    if version.starts_with('v') || version.starts_with('V') {
+    if (version.starts_with('v') || version.starts_with('V'))
+        && version.as_bytes()[1].is_ascii_digit()
+    {
         version = &version[1..];
     }
 
