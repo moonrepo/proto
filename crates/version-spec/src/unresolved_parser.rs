@@ -21,6 +21,16 @@ pub enum ParsePart {
     BuildSuffix,
 }
 
+impl ParsePart {
+    pub fn is_prefix(&self) -> bool {
+        matches!(self, Self::Start | Self::ReqPrefix)
+    }
+
+    pub fn is_suffix(&self) -> bool {
+        matches!(self, Self::PreId | Self::BuildSuffix)
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct UnresolvedParser {
     // States
@@ -198,7 +208,7 @@ impl UnresolvedParser {
                 }
                 // Whitespace
                 ' ' => {
-                    if self.in_part == ParsePart::Start || self.in_part == ParsePart::ReqPrefix {
+                    if self.in_part.is_prefix() {
                         // Skip
                     } else {
                         // Possible AND sequence?
@@ -236,6 +246,10 @@ impl UnresolvedParser {
     }
 
     fn build_result(&mut self) {
+        if self.in_part.is_prefix() {
+            return;
+        }
+
         let mut output = String::new();
         let was_calver = self.kind == ParseKind::Cal;
 
@@ -323,7 +337,7 @@ pub fn parse_multi(input: impl AsRef<str>) -> Vec<String> {
     let mut results = vec![];
 
     if input.contains("||") {
-        let mut parts = input.split("||").collect::<Vec<_>>();
+        let mut parts = input.split("||").map(|p| p.trim()).collect::<Vec<_>>();
 
         // Try and sort from highest to lowest range
         parts.sort_by(|a, d| compare(d, a));
