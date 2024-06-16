@@ -38,7 +38,7 @@ impl UnresolvedVersionSpec {
     /// - If contains `,` or ` ` (space), parse with [`VersionReq`], and map as `Req`.
     /// - If starts with `=`, `^`, `~`, `>`, `<`, or `*`, parse with [`VersionReq`],
     ///   and map as `Req`.
-    /// - Else parse with [`Version`], and map as `Semantic` or `Calendar`.
+    /// - Else parse as `Semantic` or `Calendar` types.
     pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, Error> {
         Self::from_str(value.as_ref())
     }

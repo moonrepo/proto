@@ -116,10 +116,10 @@ mod unresolved_spec {
             UnresolvedVersionSpec::parse("1,2").unwrap(),
             UnresolvedVersionSpec::Req(VersionReq::parse("1,2").unwrap())
         );
-        // assert_eq!(
-        //     UnresolvedVersionSpec::parse("1 2").unwrap(),
-        //     UnresolvedVersionSpec::Req(VersionReq::parse("1, 2").unwrap())
-        // );
+        assert_eq!(
+            UnresolvedVersionSpec::parse("1 2").unwrap(),
+            UnresolvedVersionSpec::Req(VersionReq::parse("1, 2").unwrap())
+        );
     }
 
     #[test]
@@ -127,8 +127,8 @@ mod unresolved_spec {
         assert_eq!(
             UnresolvedVersionSpec::parse("^1.2 || ~1 || 3,4").unwrap(),
             UnresolvedVersionSpec::ReqAny(vec![
-                VersionReq::parse("~1").unwrap(),
                 VersionReq::parse("^1.2").unwrap(),
+                VersionReq::parse("~1").unwrap(),
                 VersionReq::parse("3,4").unwrap(),
             ])
         );
@@ -136,8 +136,8 @@ mod unresolved_spec {
         assert_eq!(
             UnresolvedVersionSpec::parse("^2000-10 || ~1000 || 3000-05-12,4000-09-09").unwrap(),
             UnresolvedVersionSpec::ReqAny(vec![
-                VersionReq::parse("~1000").unwrap(),
                 VersionReq::parse("^2000.10").unwrap(),
+                VersionReq::parse("~1000").unwrap(),
                 VersionReq::parse("3000.5.12,4000.9.9").unwrap(),
             ])
         );

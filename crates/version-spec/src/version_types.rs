@@ -4,10 +4,12 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::ops::Deref;
 
+/// Container for a semantic version.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct SemVer(pub Version);
 
 impl SemVer {
+    /// Parse the string into a [`semver::Version`] type.
     pub fn parse(value: &str) -> Result<Self, semver::Error> {
         Ok(Self(Version::parse(value)?))
     }
@@ -27,6 +29,7 @@ impl fmt::Display for SemVer {
     }
 }
 
+/// Container for a calendar version.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct CalVer(pub Version);
 
@@ -34,9 +37,6 @@ impl CalVer {
     /// If the provided value is a calver-like version string,
     /// parse and convert it to a semver compatible version string,
     /// so that we can utilize the [`semver::Version`] type.
-    ///
-    /// If the calendar version contains a micro field, it will
-    /// converted into build metadata (prefixed with +).
     pub fn parse(value: &str) -> Result<Self, semver::Error> {
         let Some(caps) = get_calver_regex().captures(value) else {
             // Attempt to parse as-is to generate an error

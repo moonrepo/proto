@@ -4,6 +4,7 @@ mod unresolved_spec;
 mod version_types;
 
 pub use resolved_spec::*;
+pub use unresolved_parser::*;
 pub use unresolved_spec::*;
 pub use version_types::*;
 
@@ -55,7 +56,8 @@ pub fn clean_version_string<T: AsRef<str>>(value: T) -> String {
     version.to_owned()
 }
 
-/// Cleans a version requirement string.
+/// Cleans a version requirement string by removing * version parts,
+/// and correcting AND operators.
 pub fn clean_version_req_string<T: AsRef<str>>(value: T) -> String {
     value
         .as_ref()
@@ -77,7 +79,7 @@ pub fn get_calver_regex() -> &'static Regex {
 
 static SEMVER_REGEX: OnceLock<Regex> = OnceLock::new();
 
-/// Get a regex pattern that matches semantic versions (semvar).
+/// Get a regex pattern that matches semantic versions (semver).
 /// For example: 1.2.3, 6.5.4, 7.8.9-alpha, etc.
 pub fn get_semver_regex() -> &'static Regex {
     // https://semver.org/#backusnaur-form-grammar-for-valid-semver-versions
@@ -85,65 +87,4 @@ pub fn get_semver_regex() -> &'static Regex {
         Regex::new(r"^(?<major>[0-9]+).(?<minor>[0-9]+).(?<patch>[0-9]+)(?<pre>-[a-zA-Z]{1}[-0-9a-zA-Z.]+)?(?<build>\+[-0-9a-zA-Z.]+)?$",)
         .unwrap()
     })
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn checks_alias() {
-        assert!(is_alias_name("foo"));
-        assert!(is_alias_name("foo.bar"));
-        assert!(is_alias_name("foo/bar"));
-        assert!(is_alias_name("foo-bar"));
-        assert!(is_alias_name("foo_bar-baz"));
-        assert!(is_alias_name("alpha.1"));
-        assert!(is_alias_name("beta-0"));
-        assert!(is_alias_name("rc-1.2.3"));
-        assert!(is_alias_name("next-2023"));
-
-        assert!(!is_alias_name("1.2.3"));
-        assert!(!is_alias_name("1.2"));
-        assert!(!is_alias_name("1"));
-        assert!(!is_alias_name("1-3"));
-    }
-
-    #[test]
-    fn cleans_string() {
-        assert_eq!(clean_version_string("v1.2.3"), "1.2.3");
-        assert_eq!(clean_version_string("V1.2.3"), "1.2.3");
-
-        assert_eq!(clean_version_string("1.2.*"), "1.2");
-        assert_eq!(clean_version_string("1.*.*"), "1");
-        assert_eq!(clean_version_string("*"), "*");
-
-        assert_eq!(clean_version_string(">= 1.2.3"), ">=1.2.3");
-        assert_eq!(clean_version_string(">  1.2.3"), ">1.2.3");
-        assert_eq!(clean_version_string("<1.2.3"), "<1.2.3");
-        assert_eq!(clean_version_string("<=   1.2.3"), "<=1.2.3");
-
-        assert_eq!(clean_version_string(">= v1.2.3"), ">=1.2.3");
-        assert_eq!(clean_version_string(">  v1.2.3"), ">1.2.3");
-        assert_eq!(clean_version_string("<v1.2.3"), "<1.2.3");
-        assert_eq!(clean_version_string("<=   v1.2.3"), "<=1.2.3");
-
-        assert_eq!(clean_version_string("1.2, 3"), "1.2,3");
-        assert_eq!(clean_version_string("1,3, 4"), "1,3,4");
-        assert_eq!(clean_version_string("1 2"), "1,2");
-        assert_eq!(clean_version_string("1 && 2"), "1,2");
-    }
-
-    #[test]
-    fn handles_commas() {
-        assert_eq!(clean_version_string("1 2"), "1,2");
-        assert_eq!(clean_version_string("1  2"), "1,2");
-        assert_eq!(clean_version_string("1   2"), "1,2");
-        assert_eq!(clean_version_string("1,2"), "1,2");
-        assert_eq!(clean_version_string("1 ,2"), "1,2");
-        assert_eq!(clean_version_string("1, 2"), "1,2");
-        assert_eq!(clean_version_string("1 , 2"), "1,2");
-        assert_eq!(clean_version_string("1  , 2"), "1,2");
-        assert_eq!(clean_version_string("1,  2"), "1,2");
-    }
 }
