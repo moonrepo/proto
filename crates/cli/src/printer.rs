@@ -109,11 +109,7 @@ impl<'std> Printer<'std> {
 
             self.depth += 1;
 
-            for item in items {
-                self.indent();
-
-                writeln!(&mut self.buffer, "{} {}", color::muted("-"), item.as_ref()).unwrap();
-            }
+            self.list(items);
 
             self.depth -= 1;
         }
@@ -159,6 +155,16 @@ impl<'std> Printer<'std> {
             }
 
             self.depth -= 1;
+        }
+    }
+
+    pub fn list<I: IntoIterator<Item = V>, V: AsRef<str>>(&mut self, list: I) {
+        let items = list.into_iter().collect::<Vec<_>>();
+
+        for item in items {
+            self.indent();
+
+            writeln!(&mut self.buffer, "{} {}", color::muted("-"), item.as_ref()).unwrap();
         }
     }
 
