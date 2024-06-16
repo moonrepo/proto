@@ -39,6 +39,18 @@ mod resolved_spec {
             VersionSpec::parse("1.2.3").unwrap(),
             VersionSpec::Semantic(SemVer(Version::new(1, 2, 3)))
         );
+        assert_eq!(
+            VersionSpec::parse("1.2.3-0").unwrap(),
+            VersionSpec::Semantic(SemVer(Version::parse("1.2.3-0").unwrap()))
+        );
+        assert_eq!(
+            VersionSpec::parse("1.2.3-alpha").unwrap(),
+            VersionSpec::Semantic(SemVer(Version::parse("1.2.3-alpha").unwrap()))
+        );
+        assert_eq!(
+            VersionSpec::parse("1.2.3-alpha.1").unwrap(),
+            VersionSpec::Semantic(SemVer(Version::parse("1.2.3-alpha.1").unwrap()))
+        );
 
         // calver
         assert_eq!(
