@@ -1,9 +1,9 @@
 use crate::commands::{
     debug::DebugConfigArgs,
     plugin::{AddPluginArgs, InfoPluginArgs, ListPluginsArgs, RemovePluginArgs, SearchPluginArgs},
-    AliasArgs, BinArgs, CleanArgs, CompletionsArgs, InstallArgs, ListArgs, ListRemoteArgs,
-    MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs, StatusArgs, UnaliasArgs,
-    UninstallArgs, UnpinArgs,
+    AliasArgs, BinArgs, CleanArgs, CompletionsArgs, DoctorArgs, InstallArgs, ListArgs,
+    ListRemoteArgs, MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs, StatusArgs,
+    UnaliasArgs, UninstallArgs, UnpinArgs,
 };
 use clap::builder::styling::{Color, Style, Styles};
 use clap::{Parser, Subcommand, ValueEnum};
@@ -143,6 +143,12 @@ pub enum Commands {
         #[command(subcommand)]
         command: DebugCommands,
     },
+
+    #[command(
+        name = "doctor",
+        about = "Diagnose potential issues with your proto installation."
+    )]
+    Doctor(DoctorArgs),
 
     #[command(
         alias = "i",

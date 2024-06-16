@@ -79,6 +79,7 @@ async fn main() -> MainResult {
                 DebugCommands::Config(args) => commands::debug::config(session, args).await,
                 DebugCommands::Env => commands::debug::env(session).await,
             },
+            Commands::Doctor(args) => commands::doctor(session, args).await,
             Commands::Install(args) => commands::install(session, args).await,
             Commands::List(args) => commands::list(session, args).await,
             Commands::ListRemote(args) => commands::list_remote(session, args).await,
