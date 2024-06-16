@@ -12,6 +12,21 @@
 
 ## Unreleased
 
+#### 💥 Breaking
+
+- WASM API
+  - Changed `SyncManifestOutput` `versions` field to the `VersionSpec` type instead of `Version`.
+  - Changed `LoadVersionsOutput` `canary`, `latest`, and `aliases` fields to the `UnresolvedVersionSpec` type instead of `Version`.
+  - Changed `LoadVersionsOutput` `versions` fields to the `VersionSpec` type instead of `Version`.
+  - Renamed `VersionSpec::Version` to `VersionSpec::Semantic`. The inner `Version` must also be wrapped in a `SemVer` type.
+
+#### 🚀 Updates
+
+- Added experimental support for the [calver](https://calver.org) (calendar versioning) specification. For example: 2024-04, 2024-06-10, etc.
+  - There are some caveats to this approach. Please refer to the documentation.
+- WASM API
+  - Added `VersionSpec::Calendar` and `UnresolvedVersionSpec::Calendar` variant types.
+
 #### ⚙️ Internal
 
 - Improved command execution. May see some slight performance gains.

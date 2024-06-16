@@ -136,7 +136,7 @@ pub async fn detect_version(
 
             return Ok(
                 UnresolvedVersionSpec::parse(&session_version).map_err(|error| {
-                    ProtoError::Semver {
+                    ProtoError::VersionSpec {
                         version: session_version,
                         error: Box::new(error),
                     }

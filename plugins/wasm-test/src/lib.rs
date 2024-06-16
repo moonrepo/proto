@@ -208,10 +208,10 @@ pub fn load_versions(Json(_): Json<LoadVersionsInput>) -> FnResult<Json<LoadVers
         let version = Version::parse(&item.version[1..])?;
 
         if index == 0 {
-            output.latest = Some(version.clone());
+            output.latest = Some(UnresolvedVersionSpec::Semantic(SemVer(version.clone())));
         }
 
-        output.versions.push(version);
+        output.versions.push(VersionSpec::Semantic(SemVer(version)));
     }
 
     Ok(Json(output))

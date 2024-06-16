@@ -1,5 +1,5 @@
 use proto_core::{
-    resolve_version, ProtoToolConfig, ToolManifest, UnresolvedVersionSpec, VersionSpec,
+    resolve_version, ProtoToolConfig, SemVer, ToolManifest, UnresolvedVersionSpec, VersionSpec,
 };
 use semver::Version;
 use std::collections::BTreeMap;
@@ -7,17 +7,17 @@ use std::collections::BTreeMap;
 mod version_resolver {
     use super::*;
 
-    fn create_versions() -> Vec<Version> {
+    fn create_versions() -> Vec<VersionSpec> {
         vec![
-            Version::new(1, 0, 0),
-            Version::new(1, 2, 3),
-            Version::new(1, 1, 1),
-            Version::new(1, 5, 9),
-            Version::new(1, 10, 5),
-            Version::new(4, 5, 6),
-            Version::new(7, 8, 9),
-            Version::new(8, 0, 0),
-            Version::new(10, 0, 0),
+            VersionSpec::Semantic(SemVer(Version::new(1, 0, 0))),
+            VersionSpec::Semantic(SemVer(Version::new(1, 2, 3))),
+            VersionSpec::Semantic(SemVer(Version::new(1, 1, 1))),
+            VersionSpec::Semantic(SemVer(Version::new(1, 5, 9))),
+            VersionSpec::Semantic(SemVer(Version::new(1, 10, 5))),
+            VersionSpec::Semantic(SemVer(Version::new(4, 5, 6))),
+            VersionSpec::Semantic(SemVer(Version::new(7, 8, 9))),
+            VersionSpec::Semantic(SemVer(Version::new(8, 0, 0))),
+            VersionSpec::Semantic(SemVer(Version::new(10, 0, 0))),
         ]
     }
 
@@ -25,7 +25,7 @@ mod version_resolver {
         BTreeMap::from_iter([
             (
                 "latest".into(),
-                UnresolvedVersionSpec::Version(Version::new(10, 0, 0)),
+                UnresolvedVersionSpec::Semantic(SemVer(Version::new(10, 0, 0))),
             ),
             (
                 "stable".into(),
@@ -33,7 +33,7 @@ mod version_resolver {
             ),
             (
                 "no-version".into(),
-                UnresolvedVersionSpec::Version(Version::new(20, 0, 0)),
+                UnresolvedVersionSpec::Semantic(SemVer(Version::new(20, 0, 0))),
             ),
             (
                 "no-alias".into(),
@@ -60,7 +60,7 @@ mod version_resolver {
 
         config.aliases.insert(
             "latest-manifest".into(),
-            UnresolvedVersionSpec::Version(Version::new(8, 0, 0)),
+            UnresolvedVersionSpec::Semantic(SemVer(Version::new(8, 0, 0))),
         );
         config.aliases.insert(
             "stable-manifest".into(),
@@ -187,7 +187,7 @@ mod version_resolver {
 
         assert_eq!(
             resolve_version(
-                &UnresolvedVersionSpec::Version(Version::new(1, 10, 5)),
+                &UnresolvedVersionSpec::Semantic(SemVer(Version::new(1, 10, 5))),
                 &versions,
                 &aliases,
                 None,
@@ -199,7 +199,7 @@ mod version_resolver {
 
         assert_eq!(
             resolve_version(
-                &UnresolvedVersionSpec::Version(Version::new(8, 0, 0)),
+                &UnresolvedVersionSpec::Semantic(SemVer(Version::new(8, 0, 0))),
                 &versions,
                 &aliases,
                 None,
@@ -219,7 +219,7 @@ mod version_resolver {
 
         assert_eq!(
             resolve_version(
-                &UnresolvedVersionSpec::Version(Version::new(3, 0, 0)),
+                &UnresolvedVersionSpec::Semantic(SemVer(Version::new(3, 0, 0))),
                 &versions,
                 &aliases,
                 Some(&manifest),
@@ -341,7 +341,7 @@ mod version_resolver {
         let aliases = create_aliases();
 
         resolve_version(
-            &UnresolvedVersionSpec::Version(Version::new(20, 0, 0)),
+            &UnresolvedVersionSpec::Semantic(SemVer(Version::new(20, 0, 0))),
             &versions,
             &aliases,
             None,

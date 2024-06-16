@@ -3,7 +3,7 @@ mod build_source;
 use crate::shapes::StringOrVec;
 use rustc_hash::FxHashMap;
 use std::path::PathBuf;
-use version_spec::{UnresolvedVersionSpec, VersionSpec};
+use version_spec::{CalVer, SemVer, SpecError, UnresolvedVersionSpec, VersionSpec};
 use warpgate_api::*;
 
 pub use build_source::*;
@@ -380,51 +380,63 @@ api_struct!(
     pub struct LoadVersionsOutput {
         /// Latest canary version.
         #[serde(skip_serializing_if = "Option::is_none")]
-        pub canary: Option<Version>,
+        pub canary: Option<UnresolvedVersionSpec>,
 
         /// Latest stable version.
         #[serde(skip_serializing_if = "Option::is_none")]
-        pub latest: Option<Version>,
+        pub latest: Option<UnresolvedVersionSpec>,
 
         /// Mapping of aliases (channels, etc) to a version.
         #[serde(skip_serializing_if = "FxHashMap::is_empty")]
-        pub aliases: FxHashMap<String, Version>,
+        pub aliases: FxHashMap<String, UnresolvedVersionSpec>,
 
         /// List of available production versions to install.
         #[serde(skip_serializing_if = "Vec::is_empty")]
-        pub versions: Vec<Version>,
+        pub versions: Vec<VersionSpec>,
     }
 );
 
 impl LoadVersionsOutput {
     /// Create the output from a list of strings that'll be parsed as versions.
     /// The latest version will be the highest version number.
-    pub fn from(values: Vec<String>) -> Result<Self, semver::Error> {
+    pub fn from(values: Vec<String>) -> Result<Self, SpecError> {
         let mut versions = vec![];
 
         for value in values {
-            versions.push(Version::parse(&value)?);
+            versions.push(VersionSpec::parse(&value)?);
         }
 
         Ok(Self::from_versions(versions))
     }
 
-    /// Create the output from a list of versions.
+    /// Create the output from a list of version specifications.
     /// The latest version will be the highest version number.
-    pub fn from_versions(versions: Vec<Version>) -> Self {
+    pub fn from_versions(versions: Vec<VersionSpec>) -> Self {
         let mut output = LoadVersionsOutput::default();
         let mut latest = Version::new(0, 0, 0);
+        let mut calver = false;
 
         for version in versions {
-            if version.pre.is_empty() && version.build.is_empty() && version > latest {
-                latest = version.clone();
+            if let Some(inner) = version.as_version() {
+                if inner.pre.is_empty() && inner.build.is_empty() && inner > &latest {
+                    inner.clone_into(&mut latest);
+                    calver = matches!(version, VersionSpec::Calendar(_));
+                }
             }
 
             output.versions.push(version);
         }
 
-        output.latest = Some(latest.clone());
-        output.aliases.insert("latest".into(), latest);
+        output.latest = Some(if calver {
+            UnresolvedVersionSpec::Calendar(CalVer(latest))
+        } else {
+            UnresolvedVersionSpec::Semantic(SemVer(latest))
+        });
+
+        output
+            .aliases
+            .insert("latest".into(), output.latest.clone().unwrap());
+
         output
     }
 }
@@ -469,7 +481,7 @@ api_struct!(
         /// List of versions that are currently installed. Will replace
         /// what is currently in the manifest.
         #[serde(skip_serializing_if = "Option::is_none")]
-        pub versions: Option<Vec<Version>>,
+        pub versions: Option<Vec<VersionSpec>>,
 
         /// Whether to skip the syncing process or not.
         pub skip_sync: bool,
