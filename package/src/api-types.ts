@@ -312,13 +312,13 @@ export interface LoadVersionsInput {
 /** Output returned by the `load_versions` function. */
 export interface LoadVersionsOutput {
 	/** Mapping of aliases (channels, etc) to a version. */
-	aliases?: Record<string, string>;
+	aliases?: Record<string, UnresolvedVersionSpec>;
 	/** Latest canary version. */
-	canary?: string | null;
+	canary?: UnresolvedVersionSpec | null;
 	/** Latest stable version. */
-	latest?: string | null;
+	latest?: UnresolvedVersionSpec | null;
 	/** List of available production versions to install. */
-	versions?: string[];
+	versions?: VersionSpec[];
 }
 
 /** Input passed to the `resolve_version` function. */
@@ -352,7 +352,7 @@ export interface SyncManifestOutput {
 	 * List of versions that are currently installed. Will replace
 	 * what is currently in the manifest.
 	 */
-	versions?: string[] | null;
+	versions?: VersionSpec[] | null;
 }
 
 /** Input passed to the `sync_shell_profile` function. */
