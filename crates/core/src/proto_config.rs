@@ -207,7 +207,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("node"),
                 PluginLocator::Url {
-                    url: "https://github.com/moonrepo/node-plugin/releases/download/v0.11.1/node_plugin.wasm".into()
+                    url: "https://github.com/moonrepo/node-plugin/releases/download/v0.11.2/node_plugin.wasm".into()
                 }
             );
         }
@@ -217,7 +217,7 @@ impl ProtoConfig {
                 self.plugins.insert(
                     Id::raw(depman),
                     PluginLocator::Url {
-                        url: "https://github.com/moonrepo/node-plugin/releases/download/v0.11.1/node_depman_plugin.wasm".into()
+                        url: "https://github.com/moonrepo/node-plugin/releases/download/v0.11.2/node_depman_plugin.wasm".into()
                     }
                 );
             }
@@ -227,7 +227,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("python"),
                 PluginLocator::Url {
-                    url: "https://github.com/moonrepo/python-plugin/releases/download/v0.10.1/python_plugin.wasm".into()
+                    url: "https://github.com/moonrepo/python-plugin/releases/download/v0.10.2/python_plugin.wasm".into()
                 }
             );
         }
