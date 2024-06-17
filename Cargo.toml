@@ -74,11 +74,11 @@ targets = [
 # The installers to generate for each app
 installers = []
 # Path that installers should place binaries in
-install-path = "~/.proto/bin"
+install-path = ["$PROTO_HOME/bin", "~/.proto/bin"]
 # Publish jobs to run in CI
-pr-run-mode = "upload"
+pr-run-mode = "plan" # "upload"
 # Skip checking whether the specified configuration files are up to date
-# allow-dirty = ["ci"]
+allow-dirty = ["ci"]
 
 [workspace.metadata.dist.github-custom-runners]
 aarch64-unknown-linux-gnu = "buildjet-4vcpu-ubuntu-2204-arm"
