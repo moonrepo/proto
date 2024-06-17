@@ -3,33 +3,6 @@
   "version": 1,
   "plugins": [
     {
-      "id": "argo",
-      "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/argo/plugin.toml",
-      "format": "toml",
-      "name": "Argo CLI",
-      "description": "argo is the command line interface to Argo.",
-      "author": "appthrust",
-      "homepageUrl": "https://github.com/appthrust/proto-toml-plugins",
-      "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins/tree/main/argo",
-      "bins": [
-        "argo"
-      ]
-    },
-    {
-      "id": "argocd",
-      "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/argocd/plugin.toml",
-      "format": "toml",
-      "name": "argocd",
-      "description": "argocd controls a Argo CD server.",
-      "author": "appthrust",
-      "homepageUrl": "https://github.com/appthrust/proto-toml-plugins",
-      "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins/tree/main/argocd",
-      "devicon": "argocd",
-      "bins": [
-        "argocd"
-      ]
-    },
-    {
       "id": "act",
       "locator": "https://raw.githubusercontent.com/theomessin/proto-toml-plugins/master/act.toml",
       "format": "toml",
@@ -55,6 +28,33 @@
       "devicon": "githubactions",
       "bins": [
         "actionlint"
+      ]
+    },
+    {
+      "id": "argo",
+      "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/argo/plugin.toml",
+      "format": "toml",
+      "name": "Argo CLI",
+      "description": "argo is the command line interface to Argo.",
+      "author": "appthrust",
+      "homepageUrl": "https://github.com/appthrust/proto-toml-plugins",
+      "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins/tree/main/argo",
+      "bins": [
+        "argo"
+      ]
+    },
+    {
+      "id": "argocd",
+      "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/argocd/plugin.toml",
+      "format": "toml",
+      "name": "argocd",
+      "description": "argocd controls a Argo CD server.",
+      "author": "appthrust",
+      "homepageUrl": "https://github.com/appthrust/proto-toml-plugins",
+      "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins/tree/main/argocd",
+      "devicon": "argocd",
+      "bins": [
+        "argocd"
       ]
     },
     {
@@ -377,19 +377,6 @@
       ]
     },
     {
-      "id": "jq",
-      "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/jq/plugin.toml",
-      "format": "toml",
-      "name": "jq",
-      "description": "jq is a lightweight and flexible command-line JSON processor akin to sed,awk,grep, and friends for JSON data.",
-      "author": "appthrust",
-      "homepageUrl": "https://github.com/appthrust/proto-toml-plugins",
-      "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins/tree/main/jq",
-      "bins": [
-        "jq"
-      ]
-    },
-    {
       "id": "jira",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/jira/plugin.toml",
       "format": "toml",
@@ -414,6 +401,19 @@
       "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins/tree/main/jnv",
       "bins": [
         "jnv"
+      ]
+    },
+    {
+      "id": "jq",
+      "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/jq/plugin.toml",
+      "format": "toml",
+      "name": "jq",
+      "description": "jq is a lightweight and flexible command-line JSON processor akin to sed,awk,grep, and friends for JSON data.",
+      "author": "appthrust",
+      "homepageUrl": "https://github.com/appthrust/proto-toml-plugins",
+      "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins/tree/main/jq",
+      "bins": [
+        "jq"
       ]
     },
     {
@@ -577,19 +577,6 @@
       ]
     },
     {
-      "id": "rye",
-      "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/rye/plugin.toml",
-      "format": "toml",
-      "name": "Rye",
-      "description": "Rye is a comprehensive project and package management solution for Python.",
-      "author": "appthrust",
-      "homepageUrl": "https://github.com/appthrust/proto-toml-plugins",
-      "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins/tree/main/rye",
-      "bins": [
-        "rye"
-      ]
-    },
-    {
       "id": "rattler-build",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/rattler-build/plugin.toml",
       "format": "toml",
@@ -616,16 +603,16 @@
       ]
     },
     {
-      "id": "stern",
-      "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/stern/plugin.toml",
+      "id": "rye",
+      "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/rye/plugin.toml",
       "format": "toml",
-      "name": "stern",
-      "description": "Stern allows you to tail multiple pods on Kubernetes and multiple containers within the pod.",
+      "name": "Rye",
+      "description": "Rye is a comprehensive project and package management solution for Python.",
       "author": "appthrust",
       "homepageUrl": "https://github.com/appthrust/proto-toml-plugins",
-      "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins/tree/main/stern",
+      "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins/tree/main/rye",
       "bins": [
-        "stern"
+        "rye"
       ]
     },
     {
@@ -665,6 +652,19 @@
       "repositoryUrl": "https://github.com/stk0vrfl0w/proto-toml-plugins/blob/main/plugins/sops.toml",
       "bins": [
         "sops"
+      ]
+    },
+    {
+      "id": "stern",
+      "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/stern/plugin.toml",
+      "format": "toml",
+      "name": "stern",
+      "description": "Stern allows you to tail multiple pods on Kubernetes and multiple containers within the pod.",
+      "author": "appthrust",
+      "homepageUrl": "https://github.com/appthrust/proto-toml-plugins",
+      "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins/tree/main/stern",
+      "bins": [
+        "stern"
       ]
     },
     {
