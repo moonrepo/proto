@@ -10,6 +10,15 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🧩 Plugins
+
+- Updated `node_plugin` and `node_depman_plugin` to v0.11.2.
+  - Fixed yarn "2.4.3" not resolving or downloading correctly.
+- Updated `python_plugin` to v0.10.2.
+  - Will now create a pip shim that includes the major version, for example, `pip3`.
+
 ## 0.37.0
 
 #### 💥 Breaking
@@ -29,13 +38,6 @@
   - Currently diagnoses proto itself, but in the future will also diagnose currently installed tools.
 - WASM API
   - Added `VersionSpec::Calendar` and `UnresolvedVersionSpec::Calendar` variant types.
-
-#### 🧩 Plugins
-
-- Updated `node_plugin` and `node_depman_plugin` to v0.11.2.
-  - Fixed yarn "2.4.3" not resolving or downloading correctly.
-- Updated `python_plugin` to v0.10.2.
-  - Will now create a pip shim that includes the major version, for example, `pip3`.
 
 #### ⚙️ Internal
 
