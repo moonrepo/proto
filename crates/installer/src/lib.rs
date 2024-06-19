@@ -2,6 +2,7 @@ mod error;
 
 use futures::StreamExt;
 use starbase_archive::Archiver;
+use starbase_styles::color;
 use starbase_utils::fs::{self, FsError};
 use std::cmp;
 use std::env;
@@ -61,8 +62,8 @@ pub async fn download_release(
     trace!(
         version,
         triple,
-        url = &download_url,
-        "Downloading proto release"
+        "Downloading proto release from {}",
+        color::url(&download_url)
     );
 
     // Request file from url
@@ -76,7 +77,13 @@ pub async fn download_release(
         .await
         .map_err(handle_error)?;
 
-    if response.status().is_success() {}
+    if !response.status().is_success() {
+        return Err(ProtoInstallerError::DownloadNotAvailable {
+            version: version.to_owned(),
+            status: Box::new(response.status()),
+        }
+        .into());
+    }
 
     let total_size = response.content_length().unwrap_or(0);
 
