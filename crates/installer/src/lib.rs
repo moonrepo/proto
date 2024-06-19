@@ -11,7 +11,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 use system_env::SystemLibc;
-use tracing::instrument;
+use tracing::{instrument, trace};
 
 pub use error::ProtoInstallerError;
 
@@ -58,6 +58,13 @@ pub async fn download_release(
     let download_url =
         format!("https://github.com/moonrepo/proto/releases/download/v{version}/{download_file}");
 
+    trace!(
+        version,
+        triple,
+        url = &download_url,
+        "Downloading proto release"
+    );
+
     // Request file from url
     let handle_error = |error: reqwest::Error| ProtoInstallerError::DownloadFailed {
         url: download_url.clone(),
@@ -68,6 +75,9 @@ pub async fn download_release(
         .send()
         .await
         .map_err(handle_error)?;
+
+    if response.status().is_success() {}
+
     let total_size = response.content_length().unwrap_or(0);
 
     on_chunk(0, total_size);
@@ -118,11 +128,23 @@ pub fn unpack_release(
         vec!["proto", "proto-shim"]
     };
 
+    trace!(
+        source = ?download.archive_file,
+        target = ?temp_dir,
+        "Unpacking downloaded proto release"
+    );
+
     // Unpack the downloaded file
     Archiver::new(&temp_dir, &download.archive_file).unpack_from_ext()?;
 
     // Move the old binaries
     let relocate = |current_path: &Path, relocate_path: &Path| -> miette::Result<()> {
+        trace!(
+            source = ?current_path,
+            target = ?relocate_path,
+            "Relocating old proto binary to a new versioned location",
+        );
+
         fs::rename(current_path, relocate_path)?;
 
         // Track last used so operations like clean continue to work
@@ -163,6 +185,8 @@ pub fn unpack_release(
 
     // Move the new binary to the bins directory
     let mut unpacked = false;
+
+    trace!(bin_dir = ?install_dir, "Moving unpacked proto binaries to the bin directory");
 
     for bin_name in &bin_names {
         let output_path = install_dir.join(bin_name);
