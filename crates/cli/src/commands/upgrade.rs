@@ -65,7 +65,7 @@ pub async fn upgrade(session: ProtoSession) -> AppResult {
 
     let upgraded = unpack_release(
         result,
-        session.env.store.bin_dir.clone(),
+        &session.env.store.bin_dir,
         session
             .env
             .store
