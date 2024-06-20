@@ -123,6 +123,19 @@
       ]
     },
     {
+      "id": "cue",
+      "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/cue/plugin.toml",
+      "format": "toml",
+      "name": "CUE",
+      "description": "CUE makes it easy to validate data, write schemas, and ensure configurations align with policies.",
+      "author": "appthrust",
+      "homepageUrl": "https://github.com/appthrust/proto-toml-plugins",
+      "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins/tree/main/cue",
+      "bins": [
+        "cue"
+      ]
+    },
+    {
       "id": "cmake",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/cmake/plugin.toml",
       "format": "toml",
