@@ -537,6 +537,19 @@
       ]
     },
     {
+      "id": "mise",
+      "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/mise/plugin.toml",
+      "format": "toml",
+      "name": "mise",
+      "description": "dev tools, env vars, task runner",
+      "author": "appthrust",
+      "homepageUrl": "https://mise.jdx.dev/",
+      "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins/tree/main/mise",
+      "bins": [
+        "mise"
+      ]
+    },
+    {
       "id": "mkcert",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/mkcert/plugin.toml",
       "format": "toml",
