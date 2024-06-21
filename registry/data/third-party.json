@@ -825,6 +825,19 @@
       ]
     },
     {
+      "id": "yq",
+      "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/yq/plugin.toml",
+      "format": "toml",
+      "name": "yq",
+      "description": "yq is a portable command-line YAML, JSON, XML, CSV, TOML  and properties processor",
+      "author": "appthrust",
+      "homepageUrl": "https://mikefarah.gitbook.io/yq/",
+      "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins/tree/main/yq",
+      "bins": [
+        "yq"
+      ]
+    },
+    {
       "id": "zellij",
       "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/zellij/plugin.toml",
       "format": "toml",
