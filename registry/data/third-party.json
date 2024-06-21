@@ -642,6 +642,19 @@
       ]
     },
     {
+      "id": "sccache",
+      "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/sccache/plugin.toml",
+      "format": "toml",
+      "name": "sccache",
+      "description": "Sccache is a ccache-like tool. It is used as a compiler wrapper and avoids compilation when possible. Sccache has the capability to utilize caching in remote storage environments, including various cloud storage options, or alternatively, in local storage.",
+      "author": "appthrust",
+      "homepageUrl": "https://github.com/mozilla/sccache",
+      "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins/tree/main/sccache",
+      "bins": [
+        "sccache"
+      ]
+    },
+    {
       "id": "shellcheck",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/shellcheck/plugin.toml",
       "format": "toml",
