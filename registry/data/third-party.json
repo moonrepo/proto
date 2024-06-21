@@ -110,6 +110,19 @@
       ]
     },
     {
+      "id": "buildifier",
+      "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/buildifier/plugin.toml",
+      "format": "toml",
+      "name": "buildifier",
+      "description": "A bazel BUILD file formatter and editor",
+      "author": "appthrust",
+      "homepageUrl": "https://github.com/bazelbuild/buildtools",
+      "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins/tree/main/buildifier",
+      "bins": [
+        "buildifier"
+      ]
+    },
+    {
       "id": "caddy",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/caddy/plugin.toml",
       "format": "toml",
