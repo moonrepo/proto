@@ -51,7 +51,7 @@ pub struct DependencyConfig {
 }
 
 impl DependencyConfig {
-    /// Get a list of package names for hte provided OS and package manager.
+    /// Get a list of package names for the provided OS and package manager.
     pub fn get_package_names(
         &self,
         os: &SystemOS,
