@@ -246,9 +246,9 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
 
     // Run before hook
     let hook_result = if tool.plugin.has_func("pre_run") {
-        tool.locate_globals_dir().await?;
+        tool.locate_globals_dirs().await?;
 
-        let globals_dir = tool.get_globals_bin_dir();
+        let globals_dir = tool.get_globals_dir();
         let globals_prefix = tool.get_globals_prefix();
 
         tool.plugin.call_func_with(
