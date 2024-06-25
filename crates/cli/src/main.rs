@@ -51,7 +51,7 @@ async fn main() -> MainResult {
         },
         dump_trace: cli.dump && !matches!(cli.command, Commands::Run { .. }),
         filter_modules: get_tracing_modules(),
-        log_env: "STARBASE_LOG".into(),
+        log_env: "PROTO_APP_LOG".into(),
         // test_env: "PROTO_TEST".into(),
         ..TracingOptions::default()
     });
@@ -71,6 +71,7 @@ async fn main() -> MainResult {
 
     app.run(session, |session| async {
         match session.cli.command.clone() {
+            Commands::Activate(args) => commands::activate(session, args).await,
             Commands::Alias(args) => commands::alias(session, args).await,
             Commands::Bin(args) => commands::bin(session, args).await,
             Commands::Clean(args) => commands::clean(session, args).await,

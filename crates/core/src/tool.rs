@@ -1240,11 +1240,16 @@ impl Tool {
                 }
             }
 
-            resolved_dirs.push(if let Some(dir_suffix) = dir.strip_prefix('~') {
+            let dir = if let Some(dir_suffix) = dir.strip_prefix('~') {
                 self.proto.home.join(dir_suffix)
             } else {
                 PathBuf::from(dir)
-            });
+            };
+
+            // Don't use a set as we need to persist the order!
+            if !resolved_dirs.contains(&dir) {
+                resolved_dirs.push(dir);
+            }
         }
 
         debug!(

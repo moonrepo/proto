@@ -1,7 +1,11 @@
 use crate::session::ProtoSession;
 use clap::Args;
+use miette::IntoDiagnostic;
+use proto_core::detect_version;
 use starbase::AppResult;
 use starbase_shell::ShellType;
+use std::path::PathBuf;
+use tokio::task::{self, JoinHandle};
 
 #[derive(Args, Clone, Debug)]
 pub struct ActivateArgs {
@@ -17,8 +21,46 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
         None => ShellType::try_detect()?,
     };
 
-    // Load all the tools so that we can update PATH
+    // Load all the tools so that we can extract directory paths
     let tools = session.load_tools().await?;
+    let mut futures: Vec<JoinHandle<miette::Result<Vec<PathBuf>>>> = vec![];
+
+    for mut tool in tools {
+        futures.push(task::spawn(async move {
+            let version = detect_version(&tool, None).await?;
+
+            tool.resolve_version(&version, true).await?;
+            tool.locate_globals_dirs().await?;
+
+            Ok(tool.get_globals_dirs().to_owned())
+        }));
+    }
+
+    // Aggregate our list of paths to prepend to PATH
+    let mut path = vec![
+        session.env.store.shims_dir.clone(),
+        session.env.store.bin_dir.clone(),
+    ];
+
+    for future in futures {
+        for dir in future.await.into_diagnostic()?? {
+            // Don't use a set as we need to persist the order!
+            if !path.contains(&dir) {
+                path.push(dir);
+            }
+        }
+    }
+
+    // Output PATH in shell specific syntax
+    println!(
+        "{}",
+        shell.build().format_path_export(
+            &path
+                .into_iter()
+                .map(|dir| dir.to_string_lossy().to_string())
+                .collect::<Vec<_>>()
+        )
+    );
 
     Ok(())
 }
