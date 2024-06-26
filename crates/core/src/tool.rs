@@ -21,7 +21,7 @@ use starbase_styles::color;
 use starbase_utils::{fs, net};
 use std::collections::BTreeMap;
 use std::env;
-use std::fmt::Debug;
+use std::fmt::{self, Debug};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
@@ -238,7 +238,7 @@ impl Tool {
     /// Return contextual information to pass to WASM plugin functions.
     pub fn create_context(&self) -> ToolContext {
         ToolContext {
-            proto_version: Some(get_proto_version()),
+            proto_version: Some(get_proto_version().to_owned()),
             tool_dir: self.to_virtual_path(&self.get_product_dir()),
             version: self.get_resolved_version(),
         }
@@ -1586,5 +1586,19 @@ impl Tool {
         fs::remove_dir_all(self.get_temp_dir())?;
 
         Ok(())
+    }
+}
+
+impl fmt::Debug for Tool {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Tool")
+            .field("id", &self.id)
+            .field("metadata", &self.metadata)
+            .field("locator", &self.locator)
+            .field("proto", &self.proto)
+            .field("version", &self.version)
+            .field("inventory", &self.inventory)
+            .field("product", &self.product)
+            .finish()
     }
 }

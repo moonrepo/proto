@@ -1,7 +1,10 @@
-use crate::helpers::{get_home_dir, get_proto_home, is_offline};
+use crate::error::ProtoError;
+use crate::helpers::is_offline;
 use crate::layout::Store;
 use crate::proto_config::{ProtoConfig, ProtoConfigFile, ProtoConfigManager, PROTO_CONFIG_NAME};
 use once_cell::sync::OnceCell;
+use starbase_utils::dirs::home_dir;
+use starbase_utils::fs;
 use std::collections::BTreeMap;
 use std::env;
 use std::fmt;
@@ -25,18 +28,28 @@ pub struct ProtoEnvironment {
 
 impl ProtoEnvironment {
     pub fn new() -> miette::Result<Self> {
-        Self::from(get_proto_home()?)
+        let home = get_home_dir()?;
+        let root = match env::var("PROTO_HOME") {
+            Ok(root) => root.into(),
+            Err(_) => home.join(".proto"),
+        };
+
+        Self::from(root, home)
     }
 
-    pub fn new_testing(sandbox: &Path) -> Self {
-        let mut env = Self::from(sandbox.join(".proto")).unwrap();
+    pub fn new_testing(sandbox: &Path) -> miette::Result<Self> {
+        let mut env = Self::from(sandbox.join(".proto"), sandbox.join(".home")).unwrap();
         env.cwd = sandbox.to_path_buf();
-        env.home = sandbox.join(".home");
         env.test_only = true;
-        env
+
+        // Paths must exist for things to work correctly!
+        fs::create_dir_all(&env.root)?;
+        fs::create_dir_all(&env.home)?;
+
+        Ok(env)
     }
 
-    pub fn from<P: AsRef<Path>>(root: P) -> miette::Result<Self> {
+    pub fn from<P: AsRef<Path>, H: AsRef<Path>>(root: P, home: H) -> miette::Result<Self> {
         let root = root.as_ref();
 
         debug!(store = ?root, "Creating proto environment, detecting store");
@@ -44,7 +57,7 @@ impl ProtoEnvironment {
         Ok(ProtoEnvironment {
             cwd: env::current_dir().expect("Unable to determine current working directory!"),
             env_mode: env::var("PROTO_ENV").ok(),
-            home: get_home_dir()?,
+            home: home.as_ref().to_owned(),
             root: root.to_owned(),
             config_manager: Arc::new(OnceCell::new()),
             plugin_loader: Arc::new(OnceCell::new()),
@@ -130,4 +143,8 @@ impl fmt::Debug for ProtoEnvironment {
             .field("test_only", &self.test_only)
             .finish()
     }
+}
+
+fn get_home_dir() -> miette::Result<PathBuf> {
+    Ok(home_dir().ok_or(ProtoError::MissingHomeDir)?)
 }

@@ -29,10 +29,14 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
         futures.push(task::spawn(async move {
             let version = detect_version(&tool, None).await?;
 
-            tool.resolve_version(&version, true).await?;
-            tool.locate_globals_dirs().await?;
+            // This runs the resolve -> locate flow
+            if tool.is_setup(&version).await? {
+                tool.locate_globals_dirs().await?;
 
-            Ok(tool.get_globals_dirs().to_owned())
+                return Ok(tool.get_globals_dirs().to_owned());
+            }
+
+            Ok(vec![])
         }));
     }
 

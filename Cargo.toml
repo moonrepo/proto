@@ -6,7 +6,6 @@ default-members = ["crates/cli"]
 [workspace.dependencies]
 anyhow = "1.0.86"
 async-trait = "0.1.80"
-cached = "0.51.4"
 clap = "4.5.7"
 clap_complete = "4.5.6"
 dirs = "5.0.1"
