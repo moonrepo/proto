@@ -28,7 +28,8 @@ pub struct ProtoEnvironment {
 
 impl ProtoEnvironment {
     pub fn new() -> miette::Result<Self> {
-        let home = get_home_dir()?;
+        let home = home_dir().ok_or(ProtoError::MissingHomeDir)?;
+
         let root = match env::var("PROTO_HOME") {
             Ok(root) => root.into(),
             Err(_) => home.join(".proto"),
@@ -38,7 +39,7 @@ impl ProtoEnvironment {
     }
 
     pub fn new_testing(sandbox: &Path) -> miette::Result<Self> {
-        let mut env = Self::from(sandbox.join(".proto"), sandbox.join(".home")).unwrap();
+        let mut env = Self::from(sandbox.join(".proto"), sandbox.join(".home"))?;
         env.cwd = sandbox.to_path_buf();
         env.test_only = true;
 
@@ -49,7 +50,7 @@ impl ProtoEnvironment {
         Ok(env)
     }
 
-    pub fn from<P: AsRef<Path>, H: AsRef<Path>>(root: P, home: H) -> miette::Result<Self> {
+    pub fn from<R: AsRef<Path>, H: AsRef<Path>>(root: R, home: H) -> miette::Result<Self> {
         let root = root.as_ref();
 
         debug!(store = ?root, "Creating proto environment, detecting store");
@@ -143,8 +144,4 @@ impl fmt::Debug for ProtoEnvironment {
             .field("test_only", &self.test_only)
             .finish()
     }
-}
-
-fn get_home_dir() -> miette::Result<PathBuf> {
-    Ok(home_dir().ok_or(ProtoError::MissingHomeDir)?)
 }
