@@ -176,6 +176,20 @@
       ]
     },
     {
+      "id": "direnv",
+      "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/direnv/plugin.toml",
+      "format": "toml",
+      "name": "direnv",
+      "description": "direnv is an extension for your shell. It augments existing shells with a new feature that can load and unload environment variables depending on the current directory.",
+      "author": "appthrust",
+      "homepageUrl": "https://github.com/appthrust/proto-toml-plugins",
+      "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins/tree/main/direnv",
+      "devicon": "direnv",
+      "bins": [
+        "direnv"
+      ]
+    },
+    {
       "id": "dagger",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/dagger/plugin.toml",
       "format": "toml",
