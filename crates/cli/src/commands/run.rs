@@ -2,9 +2,8 @@ use crate::commands::install::{internal_install, InstallArgs};
 use crate::error::ProtoCliError;
 use crate::session::ProtoSession;
 use clap::Args;
-use indexmap::IndexMap;
 use miette::IntoDiagnostic;
-use proto_core::{detect_version, Id, ProtoError, Tool, UnresolvedVersionSpec, ENV_VAR_SUB};
+use proto_core::{detect_version, Id, ProtoError, Tool, UnresolvedVersionSpec};
 use proto_pdk_api::{ExecutableConfig, RunHook, RunHookResult};
 use proto_shim::exec_command_and_replace;
 use starbase::AppResult;
@@ -134,52 +133,6 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
     Ok(command)
 }
 
-// We don't use a `BTreeMap` for env vars, so that variable interpolation
-// and order of declaration can work correctly!
-fn get_env_vars(tool: &Tool) -> miette::Result<IndexMap<&str, Option<String>>> {
-    let config = tool.proto.load_config()?;
-    let mut base_vars = IndexMap::new();
-
-    base_vars.extend(config.env.iter());
-
-    if let Some(tool_config) = config.tools.get(&tool.id) {
-        base_vars.extend(tool_config.env.iter())
-    }
-
-    let mut vars = IndexMap::<&str, Option<String>>::new();
-
-    for (key, value) in base_vars {
-        let key_exists = env::var(key).is_ok_and(|v| !v.is_empty());
-        let value = value.to_value();
-
-        // Don't override parent inherited vars
-        if key_exists && value.is_some() {
-            continue;
-        }
-
-        // Interpolate nested vars
-        let value = value.map(|val| {
-            ENV_VAR_SUB
-                .replace_all(&val, |cap: &regex::Captures| {
-                    let name = cap.get(1).unwrap().as_str();
-
-                    if let Ok(existing) = env::var(name) {
-                        existing
-                    } else if let Some(Some(existing)) = vars.get(name) {
-                        existing.to_owned()
-                    } else {
-                        String::new()
-                    }
-                })
-                .to_string()
-        });
-
-        vars.insert(key.as_str(), value);
-    }
-
-    Ok(vars)
-}
-
 #[tracing::instrument(skip_all)]
 pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
     let mut tool = session.load_tool(&args.id).await?;
@@ -267,7 +220,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
     // Create and run the command
     let mut command = create_command(&tool, &exe_config, &args.passthrough)?;
 
-    for (key, value) in get_env_vars(&tool)? {
+    for (key, value) in tool.proto.load_config()?.get_env_vars(Some(&tool.id))? {
         match value {
             Some(value) => {
                 command.env(key, value);

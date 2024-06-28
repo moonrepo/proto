@@ -3237,14 +3237,13 @@ dependencies = [
 
 [[package]]
 name = "starbase_shell"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f253945b21c7e8c8658602f524cca247cbbbe33c9e94fc0477be4ca9188b592"
+version = "0.2.5"
 dependencies = [
  "miette",
  "regex",
  "sysinfo",
  "thiserror",
+ "tracing",
 ]
 
 [[package]]
