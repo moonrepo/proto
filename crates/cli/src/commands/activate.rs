@@ -6,9 +6,11 @@ use proto_core::{detect_version, Id};
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_shell::{OnCdHook, ShellType};
+use starbase_styles::color;
 use starbase_utils::json;
 use std::path::PathBuf;
 use tokio::task::{self, JoinHandle};
+use tracing::warn;
 
 #[derive(Default, Serialize)]
 struct ActivateItem {
@@ -103,23 +105,26 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     }
 
     // Output in shell specific syntax
-    println!(
-        "{}",
-        shell
-            .build()
-            .format_on_cd_hook(OnCdHook {
-                env: info.env.into_iter().collect(),
-                paths: info
-                    .paths
-                    .into_iter()
-                    .map(|path| path.to_string_lossy().to_string())
-                    .collect(),
-                prefix: "proto".into()
-            })
-            // Don't error since the activate is probably called in an `eval`
-            // statement, which means the error won't actually be displayed!
-            .unwrap_or("".into())
-    );
+    match shell.build().format_on_cd_hook(OnCdHook {
+        env: info.env.into_iter().collect(),
+        paths: info
+            .paths
+            .into_iter()
+            .map(|path| path.to_string_lossy().to_string())
+            .collect(),
+        prefix: "proto".into(),
+    }) {
+        Ok(output) => {
+            println!("{output}");
+        }
+        Err(error) => {
+            warn!(
+                "Failed to run {}. Perhaps remove it for the time being?",
+                color::shell("proto activate")
+            );
+            warn!("Reason: {}", color::muted_light(error.to_string()));
+        }
+    };
 
     Ok(())
 }
