@@ -3,7 +3,6 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use starbase_utils::env::bool_var;
 use std::{
-    env,
     fmt::Debug,
     path::{Path, PathBuf},
 };

@@ -8,6 +8,7 @@ use starbase::AppResult;
 use starbase_shell::{Hook, ShellType};
 use starbase_styles::color;
 use starbase_utils::json;
+use std::env;
 use std::path::PathBuf;
 use tokio::task::{self, JoinHandle};
 use tracing::warn;
@@ -78,6 +79,13 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
 
             item.env
                 .extend(tool.proto.load_config()?.get_env_vars(Some(&tool.id))?);
+
+            if let Some(version) = &tool.version {
+                env::set_var(
+                    format!("{}_VERSION", tool.get_env_var_prefix()),
+                    version.to_string(),
+                );
+            }
 
             item.id = tool.id;
 
