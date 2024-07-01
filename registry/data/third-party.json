@@ -176,6 +176,19 @@
       ]
     },
     {
+      "id": "dagger",
+      "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/dagger/plugin.toml",
+      "format": "toml",
+      "name": "Dagger",
+      "description": "Powerful, programmable open source CI/CD engine that runs your pipelines in containers.",
+      "author": "Phault",
+      "homepageUrl": "https://dagger.io/",
+      "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
+      "bins": [
+        "dagger"
+      ]
+    },
+    {
       "id": "direnv",
       "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/direnv/plugin.toml",
       "format": "toml",
@@ -187,19 +200,6 @@
       "devicon": "direnv",
       "bins": [
         "direnv"
-      ]
-    },
-    {
-      "id": "dagger",
-      "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/dagger/plugin.toml",
-      "format": "toml",
-      "name": "Dagger",
-      "description": "Powerful, programmable open source CI/CD engine that runs your pipelines in containers.",
-      "author": "Phault",
-      "homepageUrl": "https://dagger.io/",
-      "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
-      "bins": [
-        "dagger"
       ]
     },
     {
