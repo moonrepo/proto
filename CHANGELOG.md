@@ -10,6 +10,13 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🧩 Plugins
+
+- Updated `rust_plugin` to v0.10.4.
+  - Respect `CARGO_HOME` during rustup installation.
+
 ## 0.37.2
 
 #### 🐞 Fixes
