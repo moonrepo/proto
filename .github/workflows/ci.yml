@@ -8,6 +8,10 @@ on:
       - master
   pull_request:
 
+env:
+  # For setup-rust
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 jobs:
   codegen:
     name: Codegen
