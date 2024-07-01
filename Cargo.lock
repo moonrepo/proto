@@ -2516,7 +2516,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.37.2"
+version = "0.37.3"
 dependencies = [
  "cached",
  "indexmap 2.2.6",
