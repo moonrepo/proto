@@ -236,7 +236,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("rust"),
                 PluginLocator::Url {
-                    url: "https://github.com/moonrepo/rust-plugin/releases/download/v0.10.2/rust_plugin.wasm".into()
+                    url: "https://github.com/moonrepo/rust-plugin/releases/download/v0.10.3/rust_plugin.wasm".into()
                 }
             );
         }
