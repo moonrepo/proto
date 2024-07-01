@@ -16,6 +16,19 @@
 
 - Fixed `proto upgrade` not working correctly when the release is in progress, or not available yet.
 
+#### 🧩 Plugins
+
+- Updated `bun_plugin` to v0.12.2.
+- Updated `deno_plugin` to v0.11.2.
+- Updated `go_plugin` to v0.11.2.
+- Updated `node_plugin` and `node_depman_plugin` to v0.11.3.
+- Updated `python_plugin` to v0.10.2.
+- Updated `rust_plugin` to v0.10.3.
+  - Updated `RUSTUP_HOME` to support relative paths.
+- Updated `schema_plugin` (TOML) to v0.13.1.
+  - Updated `resolve.aliases` to support ranges, requirements, and aliases.
+  - Updated `resolve.version-pattern` and `resolve.git-tag-pattern` to support year/month/day regex group names (for calver support).
+
 ## 0.37.1
 
 #### 🧩 Plugins
