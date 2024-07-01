@@ -134,9 +134,8 @@ pub async fn diagnose(session: ProtoSession, args: DiagnoseArgs) -> AppResult {
     Ok(())
 }
 
-fn gather_errors(session: &ProtoSession, paths: &[PathBuf], _tips: &mut Vec<String>) -> Vec<Issue> {
+fn gather_errors(session: &ProtoSession, paths: &[PathBuf], _tips: &mut [String]) -> Vec<Issue> {
     let mut errors = vec![];
-
     let mut has_shims_before_bins = false;
     let mut found_shims = false;
     let mut found_bin = false;
