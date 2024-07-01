@@ -113,7 +113,7 @@ impl App {
 pub enum Commands {
     #[command(
         name = "activate",
-        about = "Activate proto for the current shell session by prepending applicable tool directories to PATH."
+        about = "Activate proto for the current shell session by prepending tool directories to PATH and setting environment variables."
     )]
     Activate(ActivateArgs),
 
