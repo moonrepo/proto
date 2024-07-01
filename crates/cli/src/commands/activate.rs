@@ -5,7 +5,7 @@ use miette::IntoDiagnostic;
 use proto_core::{detect_version, Id};
 use serde::Serialize;
 use starbase::AppResult;
-use starbase_shell::{OnCdHook, ShellType};
+use starbase_shell::{Hook, ShellType};
 use starbase_styles::color;
 use starbase_utils::json;
 use std::path::PathBuf;
@@ -27,13 +27,16 @@ struct ActivateInfo {
 }
 
 impl ActivateInfo {
-    pub fn extend_paths(&mut self, paths: Vec<PathBuf>) {
+    pub fn collect(&mut self, item: ActivateItem) {
         // Don't use a set as we need to persist the order!
-        for path in paths {
-            if !self.paths.contains(&path) {
-                self.paths.push(path);
+        for path in &item.paths {
+            if !self.paths.contains(path) {
+                self.paths.push(path.to_owned());
             }
         }
+
+        self.env.extend(item.env.clone());
+        self.tools.push(item);
     }
 }
 
@@ -93,9 +96,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     for future in futures {
         let item = future.await.into_diagnostic()??;
 
-        info.extend_paths(item.paths.clone());
-        info.env.extend(item.env.clone());
-        info.tools.push(item);
+        info.collect(item);
     }
 
     if args.json {
@@ -105,7 +106,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     }
 
     // Output in shell specific syntax
-    match shell.build().format_on_cd_hook(OnCdHook {
+    match shell.build().format_hook(Hook::OnChangeDir {
         env: info.env.into_iter().collect(),
         paths: info
             .paths

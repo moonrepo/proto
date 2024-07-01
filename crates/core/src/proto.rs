@@ -4,6 +4,7 @@ use crate::layout::Store;
 use crate::proto_config::{ProtoConfig, ProtoConfigFile, ProtoConfigManager, PROTO_CONFIG_NAME};
 use once_cell::sync::OnceCell;
 use starbase_utils::dirs::home_dir;
+use starbase_utils::env::path_var;
 use starbase_utils::fs;
 use std::collections::BTreeMap;
 use std::env;
@@ -29,11 +30,7 @@ pub struct ProtoEnvironment {
 impl ProtoEnvironment {
     pub fn new() -> miette::Result<Self> {
         let home = home_dir().ok_or(ProtoError::MissingHomeDir)?;
-
-        let root = match env::var("PROTO_HOME") {
-            Ok(root) => root.into(),
-            Err(_) => home.join(".proto"),
-        };
+        let root = path_var("PROTO_HOME").unwrap_or_else(|| home.join(".proto"));
 
         Self::from(root, home)
     }
