@@ -20,7 +20,10 @@
 
 - Added an experimental command called `proto activate` that can be ran within your shell to "activate the proto environment", by setting necessary environment variables and paths when changing directories.
   - Globally installed packages will now be available automatically. This wasn't possible through shims alone.
+  - Binaries that come pre-installed with a tool (and are not shims) will also be available automatically.
 - Added support for [murex](https://murex.rocks/) shells.
+- WASM API
+  - Added `LocateExecutablesOutput.exes_dir` field.
 
 #### 🧩 Plugins
 

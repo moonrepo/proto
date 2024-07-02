@@ -75,7 +75,12 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
 
             // This runs the resolve -> locate flow
             if tool.is_setup(&version).await? {
+                tool.locate_exes_dir().await?;
                 tool.locate_globals_dirs().await?;
+
+                if let Some(exe_dir) = tool.get_exes_dir() {
+                    item.paths.push(exe_dir.to_owned());
+                }
 
                 item.paths.extend(tool.get_globals_dirs().to_owned());
             }

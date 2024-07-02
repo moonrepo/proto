@@ -61,6 +61,7 @@ pub struct Tool {
     pub on_uninstalled: Emitter<UninstalledEvent>,
 
     cache: bool,
+    exes_dir: Option<PathBuf>,
     exe_path: Option<PathBuf>,
     globals_dirs: Vec<PathBuf>,
     globals_prefix: Option<String>,
@@ -79,6 +80,7 @@ impl Tool {
 
         let mut tool = Tool {
             cache: true,
+            exes_dir: None,
             exe_path: None,
             globals_dirs: vec![],
             globals_prefix: None,
@@ -1059,6 +1061,11 @@ impl Tool {
         })
     }
 
+    /// Return an absolute path to the pre-installed executables directory.s
+    pub fn get_exes_dir(&self) -> Option<&PathBuf> {
+        self.exes_dir.as_ref()
+    }
+
     /// Return an absolute path to the globals directory that actually exists.
     pub fn get_globals_dir(&self) -> Option<&PathBuf> {
         let lookup_count = self.globals_dirs.len() - 1;
@@ -1190,6 +1197,22 @@ impl Tool {
             path: exe_path,
         }
         .into())
+    }
+
+    /// Locate the directories that global packages are installed to.
+    #[instrument(skip_all)]
+    pub async fn locate_exes_dir(&mut self) -> miette::Result<()> {
+        if !self.plugin.has_func("locate_executables") || self.exes_dir.is_some() {
+            return Ok(());
+        }
+
+        let options = self.call_locate_executables()?;
+
+        if let Some(exes_dir) = options.exes_dir {
+            self.exes_dir = Some(self.get_product_dir().join(exes_dir));
+        }
+
+        Ok(())
     }
 
     /// Locate the directories that global packages are installed to.
