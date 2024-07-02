@@ -2399,7 +2399,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "extism-pdk",
  "proto_pdk_api",
@@ -2410,7 +2410,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "proto_pdk_api",
  "rustc-hash 2.0.0",

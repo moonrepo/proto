@@ -10,7 +10,7 @@ dist = false
 
 [dependencies]
 proto_core = { version = "0.37.3", path = "../core" }
-proto_pdk_api = { version = "0.21.0", path = "../pdk-api", features = [
+proto_pdk_api = { version = "0.21.1", path = "../pdk-api", features = [
 	"schematic",
 ] }
 schematic = { workspace = true, features = [
