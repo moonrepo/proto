@@ -4,24 +4,37 @@ use crate::{
     commands::clean::{internal_clean, CleanArgs},
     commands::install::{internal_install, InstallArgs},
 };
+use clap::Args;
 use miette::IntoDiagnostic;
 use starbase::AppResult;
 use starbase_styles::color;
 use std::process;
 use tracing::debug;
 
+#[derive(Args, Clone, Debug)]
+pub struct InstallAllArgs {
+    #[arg(long, help = "Include versions from global ~/.proto/.prototools")]
+    include_global: bool,
+}
+
 #[tracing::instrument(skip_all)]
 pub async fn install_all(session: ProtoSession) -> AppResult {
     debug!("Loading tools and plugins from .prototools");
 
     let tools = session.load_tools().await?;
+    let mut versions = session.load_local_versions().await?;
+
+    let config_manager = session.env.load_config_manager()?;
 
     debug!("Detecting tool versions to install");
 
-    let config = session
-        .env
-        .load_config_manager()?
-        .get_merged_config_without_global()?;
+    let env = session.env();
+    let config = if args.include_global {
+        env.load_config_manager()?.get_merged_config()? // Including global configurations
+    } else {
+        env.load_config_manager()?
+            .get_merged_config_without_global()? // Excluding global configurations
+    };
     let mut versions = config.versions.to_owned();
 
     for tool in &tools {
