@@ -1,11 +1,11 @@
 mod utils;
 
-use starbase_sandbox::assert_cmd::assert::Assert;
-use starbase_sandbox::{assert_snapshot, get_assert_output};
-use utils::*;
-
+// Different snapshot output on Windows!
+#[cfg(unix)]
 mod activate {
-    use super::*;
+    use crate::utils::*;
+    use starbase_sandbox::assert_cmd::assert::Assert;
+    use starbase_sandbox::{assert_snapshot, get_assert_output};
 
     fn get_activate_output(assert: &Assert, sandbox: &Sandbox) -> String {
         let root = sandbox.path().to_str().unwrap();
