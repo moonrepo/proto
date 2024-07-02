@@ -1,8 +1,8 @@
 use crate::helpers::{now, read_json_file_with_lock, write_json_file_with_lock};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
+use starbase_utils::env::bool_var;
 use std::{
-    env,
     fmt::Debug,
     path::{Path, PathBuf},
 };
@@ -21,7 +21,7 @@ pub struct ToolManifestVersion {
 impl Default for ToolManifestVersion {
     fn default() -> Self {
         Self {
-            no_clean: env::var("PROTO_NO_CLEAN").is_ok(),
+            no_clean: bool_var("PROTO_NO_CLEAN"),
             installed_at: now(),
         }
     }

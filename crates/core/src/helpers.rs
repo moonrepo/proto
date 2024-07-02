@@ -1,5 +1,3 @@
-use crate::error::ProtoError;
-use cached::proc_macro::cached;
 use miette::IntoDiagnostic;
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -7,60 +5,52 @@ use semver::Version;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use starbase_archive::is_supported_archive_extension;
-use starbase_utils::dirs::home_dir;
 use starbase_utils::fs;
 use starbase_utils::json::{self, JsonError};
 use starbase_utils::net;
+use std::env;
 use std::path::Path;
+use std::sync::OnceLock;
 use std::time::SystemTime;
-use std::{env, path::PathBuf};
 
 pub static ENV_VAR: Lazy<Regex> = Lazy::new(|| Regex::new(r"\$(?<name>[A-Z0-9_]+)").unwrap());
 
 pub static ENV_VAR_SUB: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"\$\{(?<name>[A-Z0-9_]+)\}").unwrap());
 
-#[cached]
-pub fn get_proto_version() -> Version {
-    Version::parse(env!("CARGO_PKG_VERSION")).unwrap()
+pub fn get_proto_version() -> &'static Version {
+    static VERSION_CACHE: OnceLock<Version> = OnceLock::new();
+
+    VERSION_CACHE.get_or_init(|| Version::parse(env!("CARGO_PKG_VERSION")).unwrap())
 }
 
-pub fn get_proto_home() -> miette::Result<PathBuf> {
-    if let Ok(root) = env::var("PROTO_HOME") {
-        return Ok(root.into());
-    }
-
-    Ok(get_home_dir()?.join(".proto"))
-}
-
-pub fn get_home_dir() -> miette::Result<PathBuf> {
-    Ok(home_dir().ok_or(ProtoError::MissingHomeDir)?)
-}
-
-#[cached(time = 300)]
 pub fn is_offline() -> bool {
-    if let Ok(value) = env::var("PROTO_OFFLINE") {
-        match value.as_ref() {
-            "1" | "true" => return true,
-            "0" | "false" => return false,
-            _ => {}
-        };
-    }
+    static OFFLINE_CACHE: OnceLock<bool> = OnceLock::new();
 
-    let timeout: u64 = env::var("PROTO_OFFLINE_TIMEOUT")
-        .map(|v| v.parse().expect("Invalid offline timeout."))
-        .unwrap_or(750);
+    *OFFLINE_CACHE.get_or_init(|| {
+        if let Ok(value) = env::var("PROTO_OFFLINE") {
+            match value.as_ref() {
+                "1" | "true" => return true,
+                "0" | "false" => return false,
+                _ => {}
+            };
+        }
 
-    let hosts = env::var("PROTO_OFFLINE_HOSTS")
-        .map(|value| {
-            value
-                .split(',')
-                .map(|v| v.trim().to_owned())
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_default();
+        let timeout: u64 = env::var("PROTO_OFFLINE_TIMEOUT")
+            .map(|v| v.parse().expect("Invalid offline timeout."))
+            .unwrap_or(750);
 
-    net::is_offline(timeout, hosts)
+        let hosts = env::var("PROTO_OFFLINE_HOSTS")
+            .map(|value| {
+                value
+                    .split(',')
+                    .map(|v| v.trim().to_owned())
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+
+        net::is_offline(timeout, hosts)
+    })
 }
 
 pub fn is_cache_enabled() -> bool {

@@ -5,6 +5,7 @@ use dialoguer::{
 use indicatif::{ProgressBar, ProgressStyle};
 use miette::IntoDiagnostic;
 use starbase_styles::color::{self, Color};
+use starbase_utils::env::bool_var;
 use std::env;
 use std::time::Duration;
 use tracing::debug;
@@ -59,7 +60,7 @@ pub fn disable_progress_bars() {
 }
 
 pub fn create_progress_bar<S: AsRef<str>>(start: S) -> ProgressBar {
-    let pb = if env::var("PROTO_NO_PROGRESS").is_ok() {
+    let pb = if bool_var("PROTO_NO_PROGRESS") {
         ProgressBar::hidden()
     } else {
         ProgressBar::new_spinner()

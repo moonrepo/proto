@@ -47,8 +47,7 @@ pub async fn diagnose(session: ProtoSession, args: DiagnoseArgs) -> AppResult {
         .load_preferred_profile()?
         .unwrap_or_else(|| shell_data.get_env_path(&session.env.home));
 
-    let paths_env = env::var_os("PATH").unwrap_or_default();
-    let paths = env::split_paths(&paths_env).collect::<Vec<_>>();
+    let paths = starbase_utils::env::paths();
 
     // Disable ANSI colors in JSON output
     if args.json {

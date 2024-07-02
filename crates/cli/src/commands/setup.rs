@@ -34,7 +34,7 @@ pub struct SetupArgs {
 
 #[tracing::instrument(skip_all)]
 pub async fn setup(session: ProtoSession, args: SetupArgs) -> AppResult {
-    let paths = env::split_paths(&env::var("PATH").unwrap()).collect::<Vec<_>>();
+    let paths = starbase_utils::env::paths();
 
     if paths.contains(&session.env.store.shims_dir) && paths.contains(&session.env.store.bin_dir) {
         debug!("Skipping setup, proto already exists in PATH");

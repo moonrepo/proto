@@ -1,0 +1,8 @@
+---
+source: crates/cli/tests/activate_test.rs
+expression: "get_activate_output(&assert, &sandbox)"
+---
+function __proto_hook --on-variable PWD;
+    
+    set -gx PATH "/sandbox/.proto/shims:/sandbox/.proto/bin" $PATH;
+end;

@@ -64,7 +64,7 @@ impl ProtoSandbox {
         mut op: impl FnMut(&mut ConfigBuilder),
     ) -> WasmTestWrapper {
         let id = Id::new(id).unwrap();
-        let proto = ProtoEnvironment::new_testing(&self.root);
+        let proto = ProtoEnvironment::new_testing(&self.root).unwrap();
 
         // Create manifest
         let mut manifest =

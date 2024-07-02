@@ -16,7 +16,6 @@ version_spec = { version = "0.6.0", path = "../version-spec", features = [
 warpgate = { version = "0.15.0", path = "../warpgate", features = [
 	"schematic",
 ] }
-cached = { workspace = true }
 indexmap = { workspace = true }
 miette = { workspace = true }
 minisign-verify = "0.2.1"
@@ -43,7 +42,7 @@ starbase_styles = { workspace = true }
 starbase_utils = { workspace = true, features = ["fs-lock"] }
 thiserror = { workspace = true }
 tracing = { workspace = true }
-url = { version = "2.5.1", features = ["serde"] }
+url = { version = "2.5.2", features = ["serde"] }
 uuid = { workspace = true }
 
 [dev-dependencies]

@@ -1,13 +1,11 @@
 mod utils;
 
-use starbase_sandbox::get_assert_output;
 use starbase_sandbox::predicates::prelude::*;
+use starbase_sandbox::{assert_debug_snapshot, get_assert_output};
 use std::fs;
 use utils::*;
 
 mod outdated {
-    use starbase_sandbox::assert_debug_snapshot;
-
     use super::*;
 
     #[test]
