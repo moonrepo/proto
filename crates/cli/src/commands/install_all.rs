@@ -18,21 +18,19 @@ pub struct InstallAllArgs {
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn install_all(session: ProtoSession) -> AppResult {
+pub async fn install_all(session: ProtoSession, args: InstallAllArgs) -> AppResult {
     debug!("Loading tools and plugins from .prototools");
 
     let tools = session.load_tools().await?;
-    let mut versions = session.load_local_versions().await?;
-
-    let config_manager = session.env.load_config_manager()?;
 
     debug!("Detecting tool versions to install");
 
-    let env = session.env();
     let config = if args.include_global {
-        env.load_config_manager()?.get_merged_config()? // Including global configurations
+        session.env.load_config_manager()?.get_merged_config()? // Including global configurations
     } else {
-        env.load_config_manager()?
+        session
+            .env
+            .load_config_manager()?
             .get_merged_config_without_global()? // Excluding global configurations
     };
     let mut versions = config.versions.to_owned();
