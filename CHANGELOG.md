@@ -18,7 +18,7 @@
 
 #### 🚀 Updates
 
-- Added an experimental command called `proto activate` that can be ran within your shell to "activate the proto environment", by setting necessary environment variables and paths when changing directories.
+- Added an experimental command called `proto activate` that can be ran within your shell profile to "activate the proto environment", by setting necessary environment variables and paths when changing directories.
   - Globally installed packages will now be available automatically. This wasn't possible through shims alone.
   - Binaries that come pre-installed with a tool (and are not shims) will also be available automatically.
 - Added support for [murex](https://murex.rocks/) shells.
@@ -27,8 +27,13 @@
 
 #### 🧩 Plugins
 
-- Updated `rust_plugin` to v0.10.4.
+- Updated `node_plugin` and `node_depman_plugin` to v0.11.4.
+- Updated `python_plugin` to v0.10.4.
+- Updated `rust_plugin` to v0.10.5.
   - Respect `CARGO_HOME` during rustup installation.
+- Updated `schema_plugin` (TOML) to v0.14.0.
+  - Added `platform.*.exes_dir`.
+  - Renamed `platform.*.bin_path` to `exe_path`.
 
 ## 0.37.2
 
