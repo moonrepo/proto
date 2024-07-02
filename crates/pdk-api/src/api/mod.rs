@@ -342,6 +342,11 @@ api_struct!(
     /// Output returned by the `locate_executables` function.
     #[serde(default)]
     pub struct LocateExecutablesOutput {
+        /// Relative directory path from the tool install directory in which
+        /// pre-installed executables can be located.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub exes_dir: Option<PathBuf>,
+
         /// List of directory paths to find the globals installation directory.
         /// Each path supports environment variable expansion.
         #[serde(skip_serializing_if = "Vec::is_empty")]

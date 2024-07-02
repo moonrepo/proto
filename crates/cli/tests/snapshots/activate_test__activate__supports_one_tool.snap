@@ -1,0 +1,18 @@
+---
+source: crates/cli/tests/activate_test.rs
+expression: "get_activate_output(&assert, &sandbox)"
+---
+_proto_hook() {
+  trap -- '' SIGINT
+  
+  export PATH="/sandbox/.proto/shims:/sandbox/.proto/bin:$PATH";
+  trap - SIGINT
+}
+typeset -ag precmd_functions
+if (( ! ${precmd_functions[(I)_proto_hook]} )); then
+  precmd_functions=(_proto_hook $precmd_functions)
+fi
+typeset -ag chpwd_functions
+if (( ! ${chpwd_functions[(I)_proto_hook]} )); then
+  chpwd_functions=(_proto_hook $chpwd_functions)
+fi

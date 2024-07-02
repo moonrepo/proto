@@ -2,9 +2,9 @@ use crate::commands::{
     debug::DebugConfigArgs,
     install_all::InstallAllArgs,
     plugin::{AddPluginArgs, InfoPluginArgs, ListPluginsArgs, RemovePluginArgs, SearchPluginArgs},
-    AliasArgs, BinArgs, CleanArgs, CompletionsArgs, DiagnoseArgs, InstallArgs, ListArgs,
-    ListRemoteArgs, MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs, StatusArgs,
-    UnaliasArgs, UninstallArgs, UnpinArgs,
+    ActivateArgs, AliasArgs, BinArgs, CleanArgs, CompletionsArgs, DiagnoseArgs, InstallArgs,
+    ListArgs, ListRemoteArgs, MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs,
+    StatusArgs, UnaliasArgs, UninstallArgs, UnpinArgs,
 };
 use clap::builder::styling::{Color, Style, Styles};
 use clap::{Parser, Subcommand, ValueEnum};
@@ -97,9 +97,9 @@ impl App {
         let version = env!("CARGO_PKG_VERSION");
 
         if let Some(level) = &self.log {
-            env::set_var("STARBASE_LOG", level.to_string());
+            env::set_var("PROTO_APP_LOG", level.to_string());
         } else if let Ok(level) = env::var("PROTO_LOG") {
-            env::set_var("STARBASE_LOG", level);
+            env::set_var("PROTO_APP_LOG", level);
         }
 
         env::set_var("PROTO_VERSION", version);
@@ -112,6 +112,12 @@ impl App {
 
 #[derive(Clone, Debug, Subcommand)]
 pub enum Commands {
+    #[command(
+        name = "activate",
+        about = "Activate proto for the current shell session by prepending tool directories to PATH and setting environment variables."
+    )]
+    Activate(ActivateArgs),
+
     #[command(
         alias = "a",
         name = "alias",
