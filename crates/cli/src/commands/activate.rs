@@ -66,8 +66,12 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
 
     for mut tool in tools {
         futures.push(task::spawn(async move {
-            let version = detect_version(&tool, None).await?;
             let mut item = ActivateItem::default();
+
+            // Detect a version, otherwise return early
+            let Ok(version) = detect_version(&tool, None).await else {
+                return Ok(item);
+            };
 
             // This runs the resolve -> locate flow
             if tool.is_setup(&version).await? {

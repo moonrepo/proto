@@ -12,6 +12,10 @@
 
 ## Unreleased
 
+#### 💥 Breaking
+
+- While not a direct breaking change, we've added escaping/quoting logic to shell injected values, which was required for the new activation workflow. Please report an issue on GitHub or Discord if the value we injected has incorrect syntax!
+
 #### 🚀 Updates
 
 - Added an experimental command called `proto activate` that can be ran within your shell to "activate the proto environment", by setting necessary environment variables and paths when changing directories.
