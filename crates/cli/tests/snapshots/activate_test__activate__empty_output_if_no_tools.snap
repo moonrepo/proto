@@ -1,0 +1,20 @@
+---
+source: crates/cli/tests/activate_test.rs
+expression: "get_activate_output(&assert, &sandbox)"
+---
+_proto_hook() {
+  local previous_exit_status=$?;
+  trap -- '' SIGINT;
+  
+  export PATH="/sandbox/.proto/shims:/sandbox/.proto/bin:$PATH";
+  trap - SIGINT;
+  return $previous_exit_status;
+};
+
+if [[ ";${PROMPT_COMMAND[*]:-};" != *";_proto_hook;"* ]]; then
+  if [[ "$(declare -p PROMPT_COMMAND 2>&1)" == "declare -a"* ]]; then
+    PROMPT_COMMAND=(_proto_hook "${PROMPT_COMMAND[@]}")
+  else
+    PROMPT_COMMAND="_proto_hook${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
+  fi
+fi

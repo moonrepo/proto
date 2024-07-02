@@ -17,7 +17,7 @@ pub struct PluginInfo {
     bins: Vec<ExecutableLocation>,
     config: ProtoToolConfig,
     exe_path: PathBuf,
-    globals_dir: Option<PathBuf>,
+    globals_dirs: Vec<PathBuf>,
     globals_prefix: Option<String>,
     id: Id,
     inventory_dir: PathBuf,
@@ -44,7 +44,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
 
     tool.resolve_version(&version, false).await?;
     tool.create_executables(false, false).await?;
-    tool.locate_globals_dir().await?;
+    tool.locate_globals_dirs().await?;
 
     let mut config = session.env.load_config()?.to_owned();
     let tool_config = config.tools.remove(&tool.id).unwrap_or_default();
@@ -54,7 +54,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
             bins: tool.get_bin_locations()?,
             config: tool_config,
             exe_path: tool.get_exe_path()?.to_path_buf(),
-            globals_dir: tool.get_globals_bin_dir().map(|p| p.to_path_buf()),
+            globals_dirs: tool.get_globals_dirs().to_owned(),
             globals_prefix: tool.get_globals_prefix().map(|p| p.to_owned()),
             inventory_dir: tool.get_inventory_dir(),
             shims: tool.get_shim_locations()?,
@@ -99,13 +99,15 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
 
         p.entry("Executable", color::path(tool.get_exe_path()?));
 
-        if let Some(dir) = tool.get_globals_bin_dir() {
-            p.entry("Global packages directory", color::path(dir));
-        }
-
         if let Some(prefix) = tool.get_globals_prefix() {
             p.entry("Global packages prefix", color::property(prefix));
         }
+
+        p.entry_list(
+            "Global packages directories",
+            tool.get_globals_dirs().iter().map(color::path),
+            Some(color::failure("None")),
+        );
 
         p.entry_list(
             "Binaries",

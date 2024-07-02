@@ -1,4 +1,5 @@
 use serde::Serialize;
+use starbase_utils::env::path_var;
 use std::collections::HashMap;
 use std::env;
 use std::path::{Path, PathBuf};
@@ -40,10 +41,10 @@ pub fn find_wasm_file() -> PathBuf {
     let wasm_file_name = env::var("CARGO_PKG_NAME").expect("Missing CARGO_PKG_NAME!");
 
     let mut wasm_target_dir =
-        find_target_dir(env::var("CARGO_MANIFEST_DIR").expect("Missing CARGO_MANIFEST_DIR!"));
+        find_target_dir(path_var("CARGO_MANIFEST_DIR").expect("Missing CARGO_MANIFEST_DIR!"));
 
     if wasm_target_dir.is_none() {
-        if let Ok(dir) = env::var("CARGO_TARGET_DIR") {
+        if let Some(dir) = path_var("CARGO_TARGET_DIR") {
             wasm_target_dir = find_target_dir(dir);
         }
     }
