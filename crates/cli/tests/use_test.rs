@@ -65,4 +65,23 @@ deno = "1.30.0"
         assert!(node_path.exists());
         assert!(!deno_path.exists());
     }
+
+    #[test]
+    fn installs_global_tools_when_included() {
+        let sandbox = create_empty_sandbox();
+        let node_path = sandbox.path().join(".proto/tools/node/19.0.0");
+        let deno_path = sandbox.path().join(".proto/tools/deno/1.30.0");
+
+        sandbox.create_file(".prototools", r#"node = "19.0.0""#);
+        sandbox.create_file(".proto/.prototools", r#"deno = "1.30.0""#);
+
+        assert!(!node_path.exists());
+        assert!(!deno_path.exists());
+
+        let mut cmd = create_proto_command(sandbox.path());
+        cmd.arg("use").arg("--include-global").assert().success();
+
+        assert!(node_path.exists());
+        assert!(deno_path.exists());
+    }
 }

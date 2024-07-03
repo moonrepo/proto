@@ -1,5 +1,6 @@
 use crate::commands::{
     debug::DebugConfigArgs,
+    install_all::InstallAllArgs,
     plugin::{AddPluginArgs, InfoPluginArgs, ListPluginsArgs, RemovePluginArgs, SearchPluginArgs},
     AliasArgs, BinArgs, CleanArgs, CompletionsArgs, DiagnoseArgs, InstallArgs, ListArgs,
     ListRemoteArgs, MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs, StatusArgs,
@@ -258,7 +259,7 @@ pub enum Commands {
         name = "use",
         about = "Download and install all tools from loaded .prototools."
     )]
-    Use,
+    Use(InstallAllArgs),
 }
 
 #[derive(Clone, Debug, Subcommand)]
