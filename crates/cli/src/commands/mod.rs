@@ -5,7 +5,7 @@ mod completions;
 pub mod debug;
 mod diagnose;
 mod install;
-mod install_all;
+pub mod install_all;
 mod list;
 mod list_remote;
 mod migrate;

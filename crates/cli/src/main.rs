@@ -101,7 +101,7 @@ async fn main() -> MainResult {
             Commands::Uninstall(args) => commands::uninstall(session, args).await,
             Commands::Unpin(args) => commands::unpin(session, args).await,
             Commands::Upgrade => commands::upgrade(session).await,
-            Commands::Use => commands::install_all(session, args).await,
+            Commands::Use(args) => commands::install_all(session, args).await,
         }
     })
     .await?;
