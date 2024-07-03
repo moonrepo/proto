@@ -107,3 +107,39 @@ pub async fn install_all(session: ProtoSession, args: InstallAllArgs) -> AppResu
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::app::App;
+    use crate::session::ProtoSession;
+    use starbase::AppResult;
+
+    #[tokio::test]
+    async fn test_install_all_with_global() -> AppResult {
+        let app = App::new();
+        let session = ProtoSession::new(app);
+        let args = InstallAllArgs {
+            include_global: true,
+        };
+
+        let result = install_all(session, args).await;
+        assert!(result.is_ok());
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_install_all_without_global() -> AppResult {
+        let app = App::new();
+        let session = ProtoSession::new(app);
+        let args = InstallAllArgs {
+            include_global: false,
+        };
+
+        let result = install_all(session, args).await;
+        assert!(result.is_ok());
+
+        Ok(())
+    }
+}
