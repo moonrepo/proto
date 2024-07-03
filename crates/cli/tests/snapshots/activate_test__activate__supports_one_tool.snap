@@ -2,10 +2,11 @@
 source: crates/cli/tests/activate_test.rs
 expression: "get_activate_output(&assert, &sandbox)"
 ---
+export __ORIG_PATH="$PATH"
+
 _proto_hook() {
   trap -- '' SIGINT
-  
-  export PATH="/sandbox/.proto/shims:/sandbox/.proto/bin:$PATH";
+  eval "$(proto activate zsh --export)";
   trap - SIGINT
 }
 typeset -ag precmd_functions

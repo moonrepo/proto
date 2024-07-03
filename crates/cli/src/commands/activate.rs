@@ -5,8 +5,9 @@ use miette::IntoDiagnostic;
 use proto_core::{detect_version, Id};
 use serde::Serialize;
 use starbase::AppResult;
-use starbase_shell::{Hook, ShellType};
+use starbase_shell::{BoxedShell, Hook, ShellType, Statement};
 use starbase_utils::json;
+use std::env;
 use std::path::{Path, PathBuf};
 use tokio::task::{self, JoinHandle};
 
@@ -45,6 +46,34 @@ impl ActivateInfo {
         self.env.extend(item.env.clone());
         self.tools.push(item);
     }
+
+    pub fn export(self, shell: &BoxedShell) -> String {
+        let mut output = vec![];
+
+        for (key, value) in &self.env {
+            output.push(shell.format_env(key, value.as_deref()));
+        }
+
+        let paths = self
+            .paths
+            .iter()
+            .filter_map(|path| path.to_str().map(|p| p.to_owned()))
+            .collect::<Vec<_>>();
+
+        if !paths.is_empty() {
+            output.push(shell.format(Statement::PrependPath {
+                paths: &paths,
+                key: Some("PATH"),
+                orig_key: if env::var("__ORIG_PATH").is_ok() {
+                    Some("__ORIG_PATH")
+                } else {
+                    None
+                },
+            }));
+        }
+
+        output.join("\n")
+    }
 }
 
 #[derive(Args, Clone, Debug)]
@@ -52,7 +81,13 @@ pub struct ActivateArgs {
     #[arg(help = "Shell to activate for")]
     shell: Option<ShellType>,
 
-    #[arg(long, help = "Print the info in JSON format")]
+    #[arg(
+        long,
+        help = "Print the activate instructions in shell specific-syntax"
+    )]
+    export: bool,
+
+    #[arg(long, help = "Print the activate instructions in JSON format")]
     json: bool,
 
     #[arg(long, help = "Don't include ~/.proto/bin in path lookup")]
@@ -65,7 +100,7 @@ pub struct ActivateArgs {
 #[tracing::instrument(skip_all)]
 pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     // Detect the shell that we need to activate for
-    let shell = match args.shell {
+    let shell_type = match args.shell {
         Some(value) => value,
         None => ShellType::try_detect()?,
     };
@@ -128,20 +163,28 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
         info.paths.push(session.env.store.bin_dir.clone());
     }
 
+    // Output/export the information for the chosen shell
+    let shell = shell_type.build();
+
+    if args.export {
+        println!("{}", info.export(&shell));
+
+        return Ok(());
+    }
+
     if args.json {
         println!("{}", json::format(&info, true)?);
 
         return Ok(());
     }
 
-    // Output in shell specific syntax
-    match shell.build().format_hook(Hook::OnChangeDir {
-        env: info.env.into_iter().collect(),
-        paths: info
-            .paths
-            .into_iter()
-            .map(|path| path.to_string_lossy().to_string())
-            .collect(),
+    match shell.format_hook(Hook::OnChangeDir {
+        command: match shell_type {
+            // These operate on JSON
+            ShellType::Nu => format!("proto activate {} --json", shell_type),
+            // While these evaluate shell syntax
+            _ => format!("proto activate {} --export", shell_type),
+        },
         prefix: "proto".into(),
     }) {
         Ok(output) => {

@@ -2,7 +2,8 @@
 source: crates/cli/tests/activate_test.rs
 expression: "get_activate_output(&assert, &sandbox)"
 ---
+set -gx __ORIG_PATH $PATH
+
 function __proto_hook --on-variable PWD;
-    
-    set -gx PATH "/sandbox/.proto/shims:/sandbox/.proto/bin" $PATH;
+  proto activate fish --export | source
 end;
