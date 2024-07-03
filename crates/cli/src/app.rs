@@ -114,7 +114,8 @@ impl App {
 pub enum Commands {
     #[command(
         name = "activate",
-        about = "Activate proto for the current shell session by prepending tool directories to PATH and setting environment variables."
+        about = "Activate proto for the current shell session by prepending tool directories to PATH and setting environment variables.",
+        long_about = "Activate proto for the current shell session by prepending tool directories to PATH and setting environment variables.\n\nThis should be ran within your shell profile.\nLearn more: https://moonrepo.dev/docs/proto/workflows"
     )]
     Activate(ActivateArgs),
 

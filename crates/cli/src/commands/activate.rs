@@ -5,18 +5,26 @@ use miette::IntoDiagnostic;
 use proto_core::{detect_version, Id};
 use serde::Serialize;
 use starbase::AppResult;
-use starbase_shell::{Hook, ShellType};
-use starbase_styles::color;
+use starbase_shell::{BoxedShell, Hook, ShellType, Statement};
 use starbase_utils::json;
-use std::path::PathBuf;
+use std::env;
+use std::path::{Path, PathBuf};
 use tokio::task::{self, JoinHandle};
-use tracing::warn;
 
 #[derive(Default, Serialize)]
 struct ActivateItem {
     pub id: Id,
     pub env: IndexMap<String, Option<String>>,
     pub paths: Vec<PathBuf>,
+}
+
+impl ActivateItem {
+    pub fn add_path(&mut self, path: &Path) {
+        // Only add paths that exist and are normalized
+        if let Ok(path) = path.canonicalize() {
+            self.paths.push(path);
+        }
+    }
 }
 
 #[derive(Default, Serialize)]
@@ -38,6 +46,34 @@ impl ActivateInfo {
         self.env.extend(item.env.clone());
         self.tools.push(item);
     }
+
+    pub fn export(self, shell: &BoxedShell) -> String {
+        let mut output = vec![];
+
+        for (key, value) in &self.env {
+            output.push(shell.format_env(key, value.as_deref()));
+        }
+
+        let paths = self
+            .paths
+            .iter()
+            .filter_map(|path| path.to_str().map(|p| p.to_owned()))
+            .collect::<Vec<_>>();
+
+        if !paths.is_empty() {
+            output.push(shell.format(Statement::PrependPath {
+                paths: &paths,
+                key: Some("PATH"),
+                orig_key: if env::var("__ORIG_PATH").is_ok() {
+                    Some("__ORIG_PATH")
+                } else {
+                    None
+                },
+            }));
+        }
+
+        output.join("\n")
+    }
 }
 
 #[derive(Args, Clone, Debug)]
@@ -45,14 +81,26 @@ pub struct ActivateArgs {
     #[arg(help = "Shell to activate for")]
     shell: Option<ShellType>,
 
-    #[arg(long, help = "Print the info in JSON format")]
+    #[arg(
+        long,
+        help = "Print the activate instructions in shell specific-syntax"
+    )]
+    export: bool,
+
+    #[arg(long, help = "Print the activate instructions in JSON format")]
     json: bool,
+
+    #[arg(long, help = "Don't include ~/.proto/bin in path lookup")]
+    no_bin: bool,
+
+    #[arg(long, help = "Don't include ~/.proto/shims in path lookup")]
+    no_shim: bool,
 }
 
 #[tracing::instrument(skip_all)]
 pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     // Detect the shell that we need to activate for
-    let shell = match args.shell {
+    let shell_type = match args.shell {
         Some(value) => value,
         None => ShellType::try_detect()?,
     };
@@ -73,21 +121,25 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
                 return Ok(item);
             };
 
-            // This runs the resolve -> locate flow
+            // Resolve the version and locate executables
             if tool.is_setup(&version).await? {
                 tool.locate_exes_dir().await?;
                 tool.locate_globals_dirs().await?;
 
+                // Higher priority over globals
                 if let Some(exe_dir) = tool.get_exes_dir() {
-                    item.paths.push(exe_dir.to_owned());
+                    item.add_path(exe_dir);
                 }
 
-                item.paths.extend(tool.get_globals_dirs().to_owned());
+                for global_dir in tool.get_globals_dirs() {
+                    item.add_path(global_dir);
+                }
             }
 
-            item.env
-                .extend(tool.proto.load_config()?.get_env_vars(Some(&tool.id))?);
+            // Inherit all environment variables for the config
+            let config = tool.proto.load_config()?;
 
+            item.env.extend(config.get_env_vars(Some(&tool.id))?);
             item.id = tool.id;
 
             Ok(item)
@@ -97,15 +149,27 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     // Aggregate our list of shell exports
     let mut info = ActivateInfo::default();
 
-    info.paths.extend([
-        session.env.store.shims_dir.clone(),
-        session.env.store.bin_dir.clone(),
-    ]);
+    // Put shims first so that they can detect newer versions
+    if !args.no_shim {
+        info.paths.push(session.env.store.shims_dir.clone());
+    }
 
     for future in futures {
-        let item = future.await.into_diagnostic()??;
+        info.collect(future.await.into_diagnostic()??);
+    }
 
-        info.collect(item);
+    // Put bins last as a last resort lookup
+    if !args.no_bin {
+        info.paths.push(session.env.store.bin_dir.clone());
+    }
+
+    // Output/export the information for the chosen shell
+    let shell = shell_type.build();
+
+    if args.export {
+        println!("{}", info.export(&shell));
+
+        return Ok(());
     }
 
     if args.json {
@@ -114,25 +178,27 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
         return Ok(());
     }
 
-    // Output in shell specific syntax
-    match shell.build().format_hook(Hook::OnChangeDir {
-        env: info.env.into_iter().collect(),
-        paths: info
-            .paths
-            .into_iter()
-            .map(|path| path.to_string_lossy().to_string())
-            .collect(),
+    match shell.format_hook(Hook::OnChangeDir {
+        command: match shell_type {
+            // These operate on JSON
+            ShellType::Nu => format!("proto activate {} --json", shell_type),
+            // While these evaluate shell syntax
+            _ => format!("proto activate {} --export", shell_type),
+        },
         prefix: "proto".into(),
     }) {
         Ok(output) => {
             println!("{output}");
         }
-        Err(error) => {
-            warn!(
-                "Failed to run {}. Perhaps remove it for the time being?",
-                color::shell("proto activate")
-            );
-            warn!("Reason: {}", color::muted_light(error.to_string()));
+        Err(_) => {
+            // Do nothing? This command is typically wrapped in `eval`,
+            // so these warnings would actually just trigger a syntax error.
+
+            // warn!(
+            //     "Failed to run {}. Perhaps remove it for the time being?",
+            //     color::shell("proto activate")
+            // );
+            // warn!("Reason: {}", color::muted_light(error.to_string()));
         }
     };
 

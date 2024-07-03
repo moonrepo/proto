@@ -30,3 +30,9 @@ proto is a pluggable next-generation version manager for multiple programming la
 - Python
 - Rust
 - ... [and more via plugins!](https://moonrepo.dev/docs/proto/tools)
+
+## Contributors
+
+Special thanks to the wonderful people who have contributed to this project:
+
+[![Contributors](https://contrib.rocks/image?repo=moonrepo/proto)](https://github.com/moonrepo/proto/graphs/contributors)
