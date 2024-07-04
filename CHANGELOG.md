@@ -22,6 +22,7 @@
   - Globally installed packages will now be available automatically. This wasn't possible through shims alone.
   - Binaries that come pre-installed with a tool (and are not shims) will also be available automatically.
 - Added support for [murex](https://murex.rocks/) shells.
+- Added a `--include-global` flag to `proto use`, that will also install globally configured tools.
 - WASM API
   - Added `LocateExecutablesOutput.exes_dir` field.
 
