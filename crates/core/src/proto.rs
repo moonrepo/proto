@@ -5,7 +5,6 @@ use crate::proto_config::{ProtoConfig, ProtoConfigFile, ProtoConfigManager, PROT
 use once_cell::sync::OnceCell;
 use starbase_utils::dirs::home_dir;
 use starbase_utils::env::path_var;
-use starbase_utils::fs;
 use std::collections::BTreeMap;
 use std::env;
 use std::fmt;
@@ -39,10 +38,6 @@ impl ProtoEnvironment {
         let mut env = Self::from(sandbox.join(".proto"), sandbox.join(".home"))?;
         env.cwd = sandbox.to_path_buf();
         env.test_only = true;
-
-        // Paths must exist for things to work correctly!
-        fs::create_dir_all(&env.root)?;
-        fs::create_dir_all(&env.home)?;
 
         Ok(env)
     }

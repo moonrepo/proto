@@ -18,6 +18,10 @@ where
     let fixture = create_empty_sandbox();
     let proto = ProtoEnvironment::new_testing(fixture.path()).unwrap();
 
+    // Paths must exist for things to work correctly!
+    fs::create_dir_all(&proto.root).unwrap();
+    fs::create_dir_all(&proto.home).unwrap();
+
     let mut tool = factory(&proto).await.unwrap();
 
     tool.setup(&UnresolvedVersionSpec::parse("1.0.0").unwrap(), false)
