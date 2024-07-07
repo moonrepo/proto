@@ -1,6 +1,6 @@
 [package]
 name = "proto_cli"
-version = "0.38.0-alpha.0"
+version = "0.38.0"
 edition = "2021"
 license = "MIT"
 description = "A multi-language version manager, a unified toolchain."
