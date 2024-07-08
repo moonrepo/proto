@@ -89,6 +89,22 @@ mod unresolved_spec {
             UnresolvedVersionSpec::Req(VersionReq::parse("~2000").unwrap())
         );
         assert_eq!(
+            UnresolvedVersionSpec::parse("1.x").unwrap(),
+            UnresolvedVersionSpec::Req(VersionReq::parse("~1").unwrap())
+        );
+        assert_eq!(
+            UnresolvedVersionSpec::parse("2000.x").unwrap(),
+            UnresolvedVersionSpec::Req(VersionReq::parse("~2000").unwrap())
+        );
+        assert_eq!(
+            UnresolvedVersionSpec::parse("1.2.X").unwrap(),
+            UnresolvedVersionSpec::Req(VersionReq::parse("~1.2").unwrap())
+        );
+        assert_eq!(
+            UnresolvedVersionSpec::parse("2000.02.X").unwrap(),
+            UnresolvedVersionSpec::Req(VersionReq::parse("~2000.2").unwrap())
+        );
+        assert_eq!(
             UnresolvedVersionSpec::parse(">1").unwrap(),
             UnresolvedVersionSpec::Req(VersionReq::parse(">1").unwrap())
         );
