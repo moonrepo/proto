@@ -10,6 +10,16 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Support `.x` when parsing versions. Will be treated as `*`.
+
+#### 🐞 Fixes
+
+- Fixed and removed some "unreachable" branches when parsing versions.
+
 ## 0.38.0
 
 #### 💥 Breaking
