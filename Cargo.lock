@@ -2399,7 +2399,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.21.1"
+version = "0.21.2"
 dependencies = [
  "extism-pdk",
  "proto_pdk_api",
@@ -2410,7 +2410,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.21.1"
+version = "0.21.2"
 dependencies = [
  "proto_pdk_api",
  "rustc-hash 2.0.0",
@@ -3857,7 +3857,7 @@ checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 
 [[package]]
 name = "version_spec"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "human-sort",
  "regex",
