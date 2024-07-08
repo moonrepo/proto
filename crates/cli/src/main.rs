@@ -22,7 +22,7 @@ use tracing::debug;
 fn get_tracing_modules() -> Vec<String> {
     let mut modules = string_vec!["proto", "schematic", "starbase", "warpgate"];
 
-    if bool_var("PROTO_WASM_LOG") {
+    if bool_var("PROTO_DEBUG_WASM") || bool_var("PROTO_WASM_LOG") {
         modules.push("extism".into());
     } else {
         modules.push("extism::pdk".into());

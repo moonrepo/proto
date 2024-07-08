@@ -73,15 +73,15 @@ impl UnresolvedVersionSpec {
     /// Note that this *does not* actually resolve or validate against a manifest,
     /// and instead simply constructs the [`VersionSpec`].
     ///
-    /// Furthermore, the `Req` and `ReqAny` variants will panic, as they are not
-    /// resolved or valid versions.
+    /// Furthermore, the `Req` and `ReqAny` variants will return a "latest" alias,
+    ///  as they are not resolved or valid versions.
     pub fn to_resolved_spec(&self) -> VersionSpec {
         match self {
             Self::Canary => VersionSpec::Canary,
             Self::Alias(alias) => VersionSpec::Alias(alias.to_owned()),
             Self::Calendar(version) => VersionSpec::Calendar(version.to_owned()),
             Self::Semantic(version) => VersionSpec::Semantic(version.to_owned()),
-            _ => unreachable!(),
+            _ => VersionSpec::default(),
         }
     }
 }
