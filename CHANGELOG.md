@@ -10,12 +10,41 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
-## Unreleased
+## 0.38.1
+
+#### 🚀 Updates
+
+- Support `.x` when parsing versions. Will be treated as `*`.
+
+#### 🐞 Fixes
+
+- Fixed and removed some "unreachable" branches when parsing versions.
+
+## 0.38.0
+
+#### 💥 Breaking
+
+- While not a direct breaking change, we've added escaping/quoting logic to shell injected values, which was required for the new activation workflow. Please report an issue on GitHub or Discord if the value we injected has incorrect syntax!
+
+#### 🚀 Updates
+
+- Added an experimental command called `proto activate` that can be ran within your shell profile to "activate the proto environment", by setting necessary environment variables and paths when changing directories.
+  - Globally installed packages will now be available automatically. This wasn't possible through shims alone.
+  - Binaries that come pre-installed with a tool (and are not shims) will also be available automatically.
+- Added support for [murex](https://murex.rocks/) shells.
+- Added a `--include-global` flag to `proto use`, that will also install globally configured tools.
+- WASM API
+  - Added `LocateExecutablesOutput.exes_dir` field.
 
 #### 🧩 Plugins
 
-- Updated `rust_plugin` to v0.10.4.
+- Updated `node_plugin` and `node_depman_plugin` to v0.11.4.
+- Updated `python_plugin` to v0.10.4.
+- Updated `rust_plugin` to v0.10.5.
   - Respect `CARGO_HOME` during rustup installation.
+- Updated `schema_plugin` (TOML) to v0.14.0.
+  - Added `platform.*.exes_dir`.
+  - Renamed `platform.*.bin_path` to `exe_path`.
 
 ## 0.37.2
 

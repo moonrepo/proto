@@ -1,3 +1,4 @@
+mod activate;
 mod alias;
 mod bin;
 mod clean;
@@ -21,6 +22,7 @@ mod uninstall;
 mod unpin;
 mod upgrade;
 
+pub use activate::*;
 pub use alias::*;
 pub use bin::*;
 pub use clean::*;

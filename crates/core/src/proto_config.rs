@@ -1,3 +1,4 @@
+use crate::helpers::ENV_VAR_SUB;
 use indexmap::IndexMap;
 use once_cell::sync::OnceCell;
 use rustc_hash::FxHashMap;
@@ -207,7 +208,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("node"),
                 PluginLocator::Url {
-                    url: "https://github.com/moonrepo/node-plugin/releases/download/v0.11.3/node_plugin.wasm".into()
+                    url: "https://github.com/moonrepo/node-plugin/releases/download/v0.11.5/node_plugin.wasm".into()
                 }
             );
         }
@@ -217,7 +218,7 @@ impl ProtoConfig {
                 self.plugins.insert(
                     Id::raw(depman),
                     PluginLocator::Url {
-                        url: "https://github.com/moonrepo/node-plugin/releases/download/v0.11.3/node_depman_plugin.wasm".into()
+                        url: "https://github.com/moonrepo/node-plugin/releases/download/v0.11.5/node_depman_plugin.wasm".into()
                     }
                 );
             }
@@ -227,7 +228,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("python"),
                 PluginLocator::Url {
-                    url: "https://github.com/moonrepo/python-plugin/releases/download/v0.10.3/python_plugin.wasm".into()
+                    url: "https://github.com/moonrepo/python-plugin/releases/download/v0.10.4/python_plugin.wasm".into()
                 }
             );
         }
@@ -236,7 +237,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("rust"),
                 PluginLocator::Url {
-                    url: "https://github.com/moonrepo/rust-plugin/releases/download/v0.10.4/rust_plugin.wasm".into()
+                    url: "https://github.com/moonrepo/rust-plugin/releases/download/v0.10.5/rust_plugin.wasm".into()
                 }
             );
         }
@@ -245,7 +246,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw(SCHEMA_PLUGIN_KEY),
                 PluginLocator::Url {
-                    url: "https://github.com/moonrepo/schema-plugin/releases/download/v0.13.1/schema_plugin.wasm".into()
+                    url: "https://github.com/moonrepo/schema-plugin/releases/download/v0.14.0/schema_plugin.wasm".into()
                 }
             );
         }
@@ -404,6 +405,55 @@ impl ProtoConfig {
         op(&mut config);
 
         Self::save_to(dir, config)
+    }
+
+    // We don't use a `BTreeMap` for env vars, so that variable interpolation
+    // and order of declaration can work correctly!
+    pub fn get_env_vars(
+        &self,
+        filter_id: Option<&Id>,
+    ) -> miette::Result<IndexMap<String, Option<String>>> {
+        let mut base_vars = IndexMap::new();
+        base_vars.extend(self.env.iter());
+
+        if let Some(id) = filter_id {
+            if let Some(tool_config) = self.tools.get(id) {
+                base_vars.extend(tool_config.env.iter())
+            }
+        }
+
+        let mut vars = IndexMap::<String, Option<String>>::new();
+
+        for (key, value) in base_vars {
+            let key_exists = std::env::var(key).is_ok_and(|v| !v.is_empty());
+            let value = value.to_value();
+
+            // Don't override parent inherited vars
+            if key_exists && value.is_some() {
+                continue;
+            }
+
+            // Interpolate nested vars
+            let value = value.map(|val| {
+                ENV_VAR_SUB
+                    .replace_all(&val, |cap: &regex::Captures| {
+                        let name = cap.get(1).unwrap().as_str();
+
+                        if let Ok(existing) = std::env::var(name) {
+                            existing
+                        } else if let Some(Some(existing)) = vars.get(name) {
+                            existing.to_owned()
+                        } else {
+                            String::new()
+                        }
+                    })
+                    .to_string()
+            });
+
+            vars.insert(key.to_owned(), value);
+        }
+
+        Ok(vars)
     }
 }
 

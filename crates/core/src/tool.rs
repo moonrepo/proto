@@ -21,7 +21,7 @@ use starbase_styles::color;
 use starbase_utils::{fs, net};
 use std::collections::BTreeMap;
 use std::env;
-use std::fmt::Debug;
+use std::fmt::{self, Debug};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
@@ -61,8 +61,9 @@ pub struct Tool {
     pub on_uninstalled: Emitter<UninstalledEvent>,
 
     cache: bool,
+    exes_dir: Option<PathBuf>,
     exe_path: Option<PathBuf>,
-    globals_dir: Option<PathBuf>,
+    globals_dirs: Vec<PathBuf>,
     globals_prefix: Option<String>,
 }
 
@@ -79,8 +80,9 @@ impl Tool {
 
         let mut tool = Tool {
             cache: true,
+            exes_dir: None,
             exe_path: None,
-            globals_dir: None,
+            globals_dirs: vec![],
             globals_prefix: None,
             id,
             inventory: Inventory::default(),
@@ -238,7 +240,7 @@ impl Tool {
     /// Return contextual information to pass to WASM plugin functions.
     pub fn create_context(&self) -> ToolContext {
         ToolContext {
-            proto_version: Some(get_proto_version()),
+            proto_version: Some(get_proto_version().to_owned()),
             tool_dir: self.to_virtual_path(&self.get_product_dir()),
             version: self.get_resolved_version(),
         }
@@ -1059,9 +1061,29 @@ impl Tool {
         })
     }
 
-    /// Return an absolute path to the globals directory in which packages are installed to.
-    pub fn get_globals_bin_dir(&self) -> Option<&Path> {
-        self.globals_dir.as_deref()
+    /// Return an absolute path to the pre-installed executables directory.s
+    pub fn get_exes_dir(&self) -> Option<&PathBuf> {
+        self.exes_dir.as_ref()
+    }
+
+    /// Return an absolute path to the globals directory that actually exists.
+    pub fn get_globals_dir(&self) -> Option<&PathBuf> {
+        let lookup_count = self.globals_dirs.len() - 1;
+
+        for (index, dir) in self.globals_dirs.iter().enumerate() {
+            if dir.exists() || index == lookup_count {
+                debug!(tool = self.id.as_str(), dir = ?dir, "Found a usable globals directory");
+
+                return Some(dir);
+            }
+        }
+
+        None
+    }
+
+    /// Return a list of all possible globals directories.
+    pub fn get_globals_dirs(&self) -> &[PathBuf] {
+        &self.globals_dirs
     }
 
     /// Return a string that all globals are prefixed with. Will be used for filtering and listing.
@@ -1177,16 +1199,32 @@ impl Tool {
         .into())
     }
 
-    /// Locate the directory that global packages are installed to.
+    /// Locate the directories that global packages are installed to.
     #[instrument(skip_all)]
-    pub async fn locate_globals_dir(&mut self) -> miette::Result<()> {
-        if !self.plugin.has_func("locate_executables") || self.globals_dir.is_some() {
+    pub async fn locate_exes_dir(&mut self) -> miette::Result<()> {
+        if !self.plugin.has_func("locate_executables") || self.exes_dir.is_some() {
+            return Ok(());
+        }
+
+        let options = self.call_locate_executables()?;
+
+        if let Some(exes_dir) = options.exes_dir {
+            self.exes_dir = Some(self.get_product_dir().join(exes_dir));
+        }
+
+        Ok(())
+    }
+
+    /// Locate the directories that global packages are installed to.
+    #[instrument(skip_all)]
+    pub async fn locate_globals_dirs(&mut self) -> miette::Result<()> {
+        if !self.plugin.has_func("locate_executables") || !self.globals_dirs.is_empty() {
             return Ok(());
         }
 
         debug!(
             tool = self.id.as_str(),
-            "Locating globals bin directory for tool"
+            "Locating globals bin directories for tool"
         );
 
         let install_dir = self.get_product_dir();
@@ -1194,45 +1232,56 @@ impl Tool {
 
         self.globals_prefix = options.globals_prefix;
 
-        // Find a globals directory that packages are installed to
-        let lookup_count = options.globals_lookup_dirs.len() - 1;
+        // Find all possible global directories that packages can be installed to
+        let mut resolved_dirs = vec![];
 
-        'outer: for (index, dir_lookup) in options.globals_lookup_dirs.iter().enumerate() {
+        'outer: for dir_lookup in options.globals_lookup_dirs {
             let mut dir = dir_lookup.clone();
 
             // If a lookup contains an env var, find and replace it.
             // If the var is not defined or is empty, skip this lookup.
-            for cap in ENV_VAR.captures_iter(dir_lookup) {
-                let var = cap.get(0).unwrap().as_str();
+            for cap in ENV_VAR.captures_iter(&dir_lookup) {
+                let find_by = cap.get(0).unwrap().as_str();
 
-                let var_value = match var {
-                    "$HOME" => self.proto.home.to_string_lossy().to_string(),
-                    "$PROTO_HOME" => self.proto.root.to_string_lossy().to_string(),
-                    "$PROTO_ROOT" => self.proto.root.to_string_lossy().to_string(),
-                    "$TOOL_DIR" => install_dir.to_string_lossy().to_string(),
-                    _ => env::var(cap.get(1).unwrap().as_str()).unwrap_or_default(),
+                let replace_with = match find_by {
+                    "$CWD" | "$PWD" => self.proto.cwd.clone(),
+                    "$HOME" => self.proto.home.clone(),
+                    "$PROTO_HOME" | "$PROTO_ROOT" => self.proto.root.clone(),
+                    "$TOOL_DIR" => install_dir.clone(),
+                    _ => match env::var_os(cap.get(1).unwrap().as_str()) {
+                        Some(value) => PathBuf::from(value),
+                        None => {
+                            continue 'outer;
+                        }
+                    },
                 };
 
-                if var_value.is_empty() {
+                if let Some(replacement) = replace_with.to_str() {
+                    dir = dir.replace(find_by, replacement);
+                } else {
                     continue 'outer;
                 }
-
-                dir = dir.replace(var, &var_value);
             }
 
-            let dir_path = if let Some(dir_suffix) = dir.strip_prefix('~') {
+            let dir = if let Some(dir_suffix) = dir.strip_prefix('~') {
                 self.proto.home.join(dir_suffix)
             } else {
                 PathBuf::from(dir)
             };
 
-            if dir_path.exists() || index == lookup_count {
-                debug!(tool = self.id.as_str(), bin_dir = ?dir_path, "Found a globals directory");
-
-                self.globals_dir = Some(dir_path);
-                break;
+            // Don't use a set as we need to persist the order!
+            if !resolved_dirs.contains(&dir) {
+                resolved_dirs.push(dir);
             }
         }
+
+        debug!(
+            tool = self.id.as_str(),
+            dirs = ?resolved_dirs,
+            "Located possible globals directories",
+        );
+
+        self.globals_dirs = resolved_dirs;
 
         Ok(())
     }
@@ -1560,5 +1609,19 @@ impl Tool {
         fs::remove_dir_all(self.get_temp_dir())?;
 
         Ok(())
+    }
+}
+
+impl fmt::Debug for Tool {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Tool")
+            .field("id", &self.id)
+            .field("metadata", &self.metadata)
+            .field("locator", &self.locator)
+            .field("proto", &self.proto)
+            .field("version", &self.version)
+            .field("inventory", &self.inventory)
+            .field("product", &self.product)
+            .finish()
     }
 }

@@ -67,6 +67,8 @@ pub fn clean_version_req_string<T: AsRef<str>>(value: T) -> String {
         .as_ref()
         .trim()
         .replace(".*", "")
+        .replace(".x", "")
+        .replace(".X", "")
         .replace("-*", "")
         .replace("&&", ",")
 }

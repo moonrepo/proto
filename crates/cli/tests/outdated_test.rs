@@ -1,13 +1,11 @@
 mod utils;
 
-use starbase_sandbox::get_assert_output;
 use starbase_sandbox::predicates::prelude::*;
+use starbase_sandbox::{assert_debug_snapshot, get_assert_output};
 use std::fs;
 use utils::*;
 
 mod outdated {
-    use starbase_sandbox::assert_debug_snapshot;
-
     use super::*;
 
     #[test]
@@ -115,7 +113,7 @@ mod outdated {
     fn updates_each_file_respectively() {
         let sandbox = create_empty_sandbox();
         sandbox.create_file(".proto/.prototools", r#"go = "1.19""#);
-        sandbox.create_file("a/.prototools", r#"node = "20.0.0""#);
+        sandbox.create_file("a/.prototools", r#"node = "19.0.0""#);
         sandbox.create_file("a/b/.prototools", r#"npm = "9.0.0""#);
 
         let mut cmd = create_proto_command(sandbox.path());

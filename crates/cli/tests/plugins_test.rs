@@ -7,26 +7,26 @@ use starbase_sandbox::assert_snapshot;
 use std::env;
 use std::fs;
 use std::future::Future;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use utils::*;
 
 async fn run_tests<F, Fut>(factory: F)
 where
-    F: FnOnce(&Path) -> Fut,
+    F: FnOnce(&ProtoEnvironment) -> Fut,
     Fut: Future<Output = miette::Result<Tool>>,
 {
     let fixture = create_empty_sandbox();
-    let proto = ProtoEnvironment::from(fixture.path()).unwrap();
+    let proto = ProtoEnvironment::new_testing(fixture.path()).unwrap();
 
-    let mut tool = factory(fixture.path()).await.unwrap();
+    // Paths must exist for things to work correctly!
+    fs::create_dir_all(&proto.root).unwrap();
+    fs::create_dir_all(&proto.home).unwrap();
 
-    env::set_var("PROTO_HOME", fixture.path().to_string_lossy().to_string());
+    let mut tool = factory(&proto).await.unwrap();
 
     tool.setup(&UnresolvedVersionSpec::parse("1.0.0").unwrap(), false)
         .await
         .unwrap();
-
-    env::remove_var("PROTO_HOME");
 
     assert!(tool.get_product_dir().exists());
 
@@ -46,12 +46,12 @@ mod plugins {
 
     #[tokio::test]
     async fn downloads_and_installs_plugin_from_file() {
-        run_tests(|root| {
+        run_tests(|env| {
             let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
             load_tool_from_locator(
                 Id::raw("moon"),
-                ProtoEnvironment::from(root).unwrap(),
+                env.to_owned(),
                 PluginLocator::File {
                     file: "./tests/fixtures/moon-schema.toml".into(),
                     path: Some(root_dir.join("./tests/fixtures/moon-schema.toml")),
@@ -64,12 +64,12 @@ mod plugins {
     #[tokio::test]
     #[should_panic(expected = "does not exist")]
     async fn errors_for_missing_file() {
-        run_tests(|root| {
+        run_tests(|env| {
             let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
             load_tool_from_locator(
                 Id::raw("moon"),
-                ProtoEnvironment::from(root).unwrap(),
+                env.to_owned(),
                 PluginLocator::File {
                     file: "./some/fake/path.toml".into(),
                     path: Some(root_dir.join("./some/fake/path.toml")),
@@ -81,10 +81,10 @@ mod plugins {
 
     #[tokio::test]
     async fn downloads_and_installs_plugin_from_url() {
-        run_tests(|root| {
+        run_tests(|env| {
             load_tool_from_locator(
                 Id::raw("moon"),
-                ProtoEnvironment::from(root).unwrap(),
+                env.to_owned(),
                 PluginLocator::Url {
                     url: "https://raw.githubusercontent.com/moonrepo/moon/master/proto-plugin.toml"
                         .into(),
@@ -97,10 +97,10 @@ mod plugins {
     #[tokio::test]
     #[should_panic(expected = "does not exist")]
     async fn errors_for_broken_url() {
-        run_tests(|root| {
+        run_tests(|env| {
             load_tool_from_locator(
                 Id::raw("moon"),
-                ProtoEnvironment::from(root).unwrap(),
+                env.to_owned(),
                 PluginLocator::Url {
                     url: "https://raw.githubusercontent.com/moonrepo/moon/some/fake/path.toml"
                         .into(),

@@ -1,0 +1,19 @@
+---
+source: crates/cli/tests/activate_test.rs
+expression: "get_activate_output(&assert, &sandbox)"
+---
+export __ORIG_PATH="$PATH"
+
+_proto_hook() {
+  trap -- '' SIGINT
+  eval "$(proto activate zsh --export)";
+  trap - SIGINT
+}
+typeset -ag precmd_functions
+if (( ! ${precmd_functions[(I)_proto_hook]} )); then
+  precmd_functions=(_proto_hook $precmd_functions)
+fi
+typeset -ag chpwd_functions
+if (( ! ${chpwd_functions[(I)_proto_hook]} )); then
+  chpwd_functions=(_proto_hook $chpwd_functions)
+fi

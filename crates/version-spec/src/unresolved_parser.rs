@@ -100,7 +100,7 @@ impl UnresolvedParser {
                         if ch == 'v' || ch == 'V' {
                             continue;
                         } else {
-                            unreachable!()
+                            return Err(SpecError::ParseUnknownChar(ch));
                         }
                     }
                 },
@@ -130,7 +130,7 @@ impl UnresolvedParser {
                                 ParsePart::BuildSuffix => {
                                     self.build_id.push('-');
                                 }
-                                _ => unreachable!(),
+                                _ => continue,
                             };
                         } else if self.kind == ParseKind::Cal {
                             match self.in_part {
@@ -146,7 +146,7 @@ impl UnresolvedParser {
                                 ParsePart::PreId => {
                                     self.pre_id.push('-');
                                 }
-                                _ => unreachable!(),
+                                _ => continue,
                             };
                         }
                     } else if ch == '.' {
@@ -167,7 +167,7 @@ impl UnresolvedParser {
                                 ParsePart::BuildSuffix => {
                                     self.build_id.push('.');
                                 }
-                                _ => unreachable!(),
+                                _ => continue,
                             };
                         } else if self.kind == ParseKind::Cal {
                             match self.in_part {
@@ -182,7 +182,7 @@ impl UnresolvedParser {
                                 ParsePart::BuildSuffix => {
                                     self.build_id.push('.');
                                 }
-                                _ => unreachable!(),
+                                _ => continue,
                             };
                         }
                     }
@@ -193,12 +193,12 @@ impl UnresolvedParser {
                         if self.kind == ParseKind::Sem {
                             self.in_part = ParsePart::BuildSuffix;
                         } else {
-                            unreachable!();
+                            continue;
                         }
                     } else if self.kind == ParseKind::Cal {
                         self.in_part = ParsePart::BuildSuffix;
                     } else {
-                        unreachable!();
+                        continue;
                     }
                 }
                 // AND separator

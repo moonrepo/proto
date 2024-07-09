@@ -2,6 +2,7 @@ use crate::error::WarpgateError;
 use crate::helpers;
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
 use starbase_styles::color::{self, apply_style_tags};
+use starbase_utils::env::{bool_var, paths};
 use starbase_utils::fs;
 use std::collections::BTreeMap;
 use std::env;
@@ -190,7 +191,7 @@ fn exec_command(
         }
     };
 
-    let debug_output = env::var("WARPGATE_DEBUG_COMMAND").is_ok_and(|v| !v.is_empty());
+    let debug_output = bool_var("WARPGATE_DEBUG_COMMAND");
 
     trace!(
         command = ?bin,
@@ -264,8 +265,7 @@ fn set_env_var(
             "Adding paths to PATH environment variable on host"
         );
 
-        let mut path = env::split_paths(&env::var_os("PATH").expect("PATH has not been set!"))
-            .collect::<Vec<_>>();
+        let mut path = paths();
         path.extend(new_path);
 
         env::set_var("PATH", env::join_paths(path)?);
