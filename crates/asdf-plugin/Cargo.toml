@@ -7,19 +7,15 @@ publish = false
 [lib]
 crate-type = ['cdylib']
 
-[profile.release]
-codegen-units = 1
-debug = false
-lto = true
-opt-level = "s"
-panic = "abort"
-
 [dependencies]
 proto_pdk = { path = "../../crates/pdk" }
+proto_core = { version = "0.38.2", path = "../core" }
 extism-pdk = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+dirs = "5.0.1"
 
 [dev-dependencies]
-starbase_sandbox = { workspace = true }
+proto_pdk_test_utils = { path = "../../crates/pdk-test-utils" }
+starbase_sandbox = "*"
 tokio = { workspace = true }

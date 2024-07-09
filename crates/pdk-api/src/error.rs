@@ -21,4 +21,7 @@ pub enum PluginError {
         arch: String,
         os: String,
     },
+
+    #[error("Unsupported archive format: {0}")]
+    UnsupportedArchiveFormat(String),
 }
