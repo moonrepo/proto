@@ -1,10 +1,10 @@
+use dirs;
 use extism_pdk::*;
 use proto_core::Tool;
 use proto_pdk::*;
 use serde::Deserialize;
 use std::env;
 use std::path::Path;
-use dirs;
 
 #[derive(Debug, Default, Deserialize)]
 #[serde(default, deny_unknown_fields, rename_all = "kebab-case")]
@@ -117,9 +117,12 @@ impl AsdfPlugin {
 
     pub fn pre_install(&self, mut input: InstallHook) {
         let config: AsdfConfig = self.tool.config();
-        let repository = config
-            .asdf_repository
-            .unwrap_or_else(|| format!("https://github.com/asdf-vm/asdf-{}.git", self.tool.get_name()));
+        let repository = config.asdf_repository.unwrap_or_else(|| {
+            format!(
+                "https://github.com/asdf-vm/asdf-{}.git",
+                self.tool.get_name()
+            )
+        });
         self.install_plugin(&repository);
         input.context = self.prepare_context(input.context);
         self.tool
@@ -176,9 +179,11 @@ pub fn unpack_archive(Json(input): Json<UnpackArchiveInput>) -> FnResult<()> {
     } else if input_file.ends_with(".zip") {
         // unzip(input_file, output_dir)?;
     } else {
-        return Err(
-            PluginError::UnsupportedArchiveFormat(format!("Unsupported archive format: {}", input_file)).into(),
-        );
+        return Err(PluginError::UnsupportedArchiveFormat(format!(
+            "Unsupported archive format: {}",
+            input_file
+        ))
+        .into());
     }
 
     Ok(())
