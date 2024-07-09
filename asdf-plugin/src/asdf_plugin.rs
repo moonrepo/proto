@@ -218,24 +218,3 @@ pub fn locate_executables(
         ..LocateExecutablesOutput::default()
     }))
 }
-
-// #[test]
-// fn registers_metadata() {
-//     let sandbox = create_empty_sandbox();
-//     let plugin = create_plugin("asdf_tool", sandbox.path());
-//     assert_eq!(
-//         plugin.register_tool(ToolMetadataInput::default()),
-//         ToolMetadataOutput {
-//             name: "Asdf Tool".into(),
-//             ..ToolMetadataOutput::default()
-//         }
-//     );
-// }
-
-// generate_download_install_tests!("asdf_tool", "1.2.3");
-
-// generate_resolve_versions_tests!("asdf_tool", {
-//     "0.1" => "0.1.5",
-//     "1.0" => "1.0.1",
-//     "1.2.3" => "1.2.3",
-// });
