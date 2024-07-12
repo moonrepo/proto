@@ -2,7 +2,7 @@
 
 use proto_core::{ProtoConfig, ProtoConfigManager};
 use proto_shim::get_exe_file_name;
-use starbase_sandbox::{assert_cmd, create_command_with_name};
+use starbase_sandbox::{assert_cmd, create_command_with_name, SandboxSettings};
 pub use starbase_sandbox::{create_empty_sandbox, Sandbox};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -32,7 +32,7 @@ moon-test = "https://raw.githubusercontent.com/moonrepo/moon/master/proto-plugin
 pub fn create_proto_command<T: AsRef<Path>>(path: T) -> assert_cmd::Command {
     let path = path.as_ref();
 
-    let mut cmd = create_command_with_name(path, "proto");
+    let mut cmd = create_command_with_name(path, "proto", &SandboxSettings::default());
     cmd.timeout(std::time::Duration::from_secs(240));
     cmd.env("PROTO_HOME", path.join(".proto"));
     cmd.env("PROTO_LOG", "trace");
