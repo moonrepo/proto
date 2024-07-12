@@ -70,9 +70,11 @@ pub fn update_profile_if_not_setup(
     profile: &Path,
     contents: &str,
     env_var: &str,
-) -> miette::Result<()> {
+) -> miette::Result<bool> {
     if !profile.exists() {
-        return update_profile(profile, contents, env_var);
+        update_profile(profile, contents, env_var)?;
+
+        return Ok(true);
     }
 
     debug!(
@@ -90,14 +92,14 @@ pub fn update_profile_if_not_setup(
     if has_setup {
         debug!("Profile already setup");
 
-        return Ok(());
+        return Ok(false);
     }
 
     debug!("Not setup, continuing");
 
     update_profile(profile, contents, env_var)?;
 
-    Ok(())
+    Ok(true)
 }
 
 pub fn prompt_for_shell() -> miette::Result<ShellType> {

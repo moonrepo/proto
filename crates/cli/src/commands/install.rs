@@ -279,7 +279,17 @@ fn update_shell(tool: &Tool, passthrough_args: Vec<String>) -> miette::Result<()
     if let Some(updated_profile) = profile_path {
         let exported_content = shell::format_exports(&shell, &tool.id, exports);
 
-        shell::update_profile_if_not_setup(&updated_profile, &exported_content, &output.check_var)?;
+        if shell::update_profile_if_not_setup(
+            &updated_profile,
+            &exported_content,
+            &output.check_var,
+        )? {
+            println!(
+                "Added {} to shell profile {}",
+                color::property(output.check_var),
+                color::path(updated_profile)
+            );
+        }
     }
 
     Ok(())
