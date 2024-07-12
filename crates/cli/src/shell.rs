@@ -26,6 +26,20 @@ pub fn find_profiles(shell: &BoxedShell, home_dir: &Path) -> miette::Result<Vec<
     Ok(shell.get_profile_paths(home_dir))
 }
 
+pub fn find_first_profile(shell: &BoxedShell, home_dir: &Path) -> miette::Result<PathBuf> {
+    let profiles = find_profiles(shell, home_dir)?;
+
+    // Check in reverse order as the most common profile is always last in the list
+    for profile in profiles.into_iter().rev() {
+        if profile.exists() {
+            return Ok(profile);
+        }
+    }
+
+    // Otherwise return the common profile for setting env vars
+    Ok(shell.get_env_path(home_dir))
+}
+
 pub fn format_exports(shell: &BoxedShell, comment: &str, exports: Vec<Export>) -> String {
     let newline = if consts::OS == "windows" {
         "\r\n"
@@ -44,62 +58,46 @@ pub fn format_exports(shell: &BoxedShell, comment: &str, exports: Vec<Export>) -
     lines.join(newline)
 }
 
-pub fn write_profile(profile: &Path, contents: &str, env_var: &str) -> miette::Result<PathBuf> {
+pub fn update_profile(profile: &Path, contents: &str, env_var: &str) -> miette::Result<()> {
+    debug!("Updating profile {} with {}", color::path(profile), env_var);
+
     fs::append_file(profile, contents)?;
 
-    debug!("Setup profile {} with {}", color::path(profile), env_var);
-
-    Ok(profile.to_path_buf())
+    Ok(())
 }
 
-pub fn write_profile_if_not_setup(
-    shell: &BoxedShell,
+pub fn update_profile_if_not_setup(
+    profile: &Path,
     contents: &str,
     env_var: &str,
-    home_dir: &Path,
-) -> miette::Result<Option<PathBuf>> {
-    let profiles = find_profiles(shell, home_dir)?;
-
-    for profile in profiles {
-        debug!("Checking if shell profile {} exists", color::path(&profile));
-
-        if !profile.exists() {
-            debug!("Not found, continuing");
-            continue;
-        }
-
-        debug!("Exists, checking if already setup");
-
-        let file = fs::open_file(&profile)?;
-
-        let has_setup = io::BufReader::new(file)
-            .lines()
-            .map(|l| l.unwrap_or_default())
-            .any(|l| l.contains(env_var));
-
-        // Already setup profile, so avoid writing
-        if has_setup {
-            debug!(
-                "Profile {} already setup for {}",
-                color::path(&profile),
-                env_var,
-            );
-
-            return Ok(None);
-        }
-
-        debug!("Not setup, continuing");
+) -> miette::Result<()> {
+    if !profile.exists() {
+        return update_profile(profile, contents, env_var);
     }
 
-    // If no profile found, use the env-specific profile for the shell
-    let env_profile = shell.get_env_path(home_dir);
-
     debug!(
-        "Found no configured profile, updating {}",
-        color::path(&env_profile),
+        "Checking if profile {} has already been setup for {}",
+        color::path(profile),
+        env_var
     );
 
-    Ok(Some(write_profile(&env_profile, contents, env_var)?))
+    let file = fs::open_file(profile)?;
+    let has_setup = io::BufReader::new(file)
+        .lines()
+        .any(|line| line.is_ok_and(|l| l.contains(env_var)));
+
+    // Already setup profile, so avoid writing
+    if has_setup {
+        debug!("Profile already setup");
+
+        return Ok(());
+    }
+
+    debug!("Not setup, continuing");
+
+    update_profile(profile, contents, env_var)?;
+
+    Ok(())
 }
 
 pub fn prompt_for_shell() -> miette::Result<ShellType> {

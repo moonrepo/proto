@@ -1,7 +1,7 @@
 use crate::session::ProtoSession;
 use crate::shell::{
-    format_exports, prompt_for_shell, prompt_for_shell_profile, write_profile,
-    write_profile_if_not_setup, Export,
+    find_first_profile, format_exports, prompt_for_shell, prompt_for_shell_profile,
+    update_profile_if_not_setup, Export,
 };
 use clap::Args;
 use proto_shim::get_exe_file_name;
@@ -114,26 +114,22 @@ fn update_shell_profile(
 ) -> miette::Result<Option<PathBuf>> {
     debug!("Updating PATH in {} shell", shell);
 
-    let profile_path;
-
-    if interactive {
+    let profile_path = if interactive {
         debug!("Prompting the user to select a shell profile");
 
-        profile_path = prompt_for_shell_profile(shell, &session.env.cwd, &session.env.home)?;
-
-        if let Some(profile) = &profile_path {
-            debug!("Selected profile {}, updating", color::path(profile));
-
-            write_profile(profile, content, "PROTO_HOME")?;
-        }
+        prompt_for_shell_profile(shell, &session.env.cwd, &session.env.home)?
     } else {
         debug!("Attempting to find a shell profile to update");
 
-        profile_path = write_profile_if_not_setup(shell, content, "PROTO_HOME", &session.env.home)?;
-    }
+        find_first_profile(shell, &session.env.home).ok()
+    };
 
     // If we found a profile, update the global config so we can reference it
     if let Some(profile) = &profile_path {
+        debug!("Selected profile {}, updating", color::path(profile));
+
+        update_profile_if_not_setup(profile, content, "PROTO_HOME")?;
+
         session.env.store.save_preferred_profile(profile)?;
     }
 
