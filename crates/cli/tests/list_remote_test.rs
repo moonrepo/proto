@@ -8,12 +8,14 @@ mod list_remote {
 
     #[test]
     fn lists_remote_versions() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd.arg("list-remote").arg("npm").assert();
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("list-remote").arg("npm");
+        });
 
-        let output = output_to_string(&assert.get_output().stdout);
+        // Without stderr
+        let output = output_to_string(&assert.inner.get_output().stdout);
 
         assert!(output.split('\n').collect::<Vec<_>>().len() > 1);
     }

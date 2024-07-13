@@ -9,7 +9,7 @@ mod list {
 
     #[test]
     fn lists_local_versions() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
         let mut manifest =
             ToolManifest::load(sandbox.path().join(".proto/tools/node/manifest.json")).unwrap();
@@ -24,10 +24,12 @@ mod list {
             .insert(VersionSpec::parse("17.0.0").unwrap());
         manifest.save().unwrap();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd.arg("list").arg("node").assert();
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("list").arg("node");
+        });
 
-        let output = output_to_string(&assert.get_output().stdout);
+        // Without stderr
+        let output = output_to_string(&assert.inner.get_output().stdout);
 
         assert_eq!(output.split('\n').collect::<Vec<_>>().len(), 4); // includes header
     }

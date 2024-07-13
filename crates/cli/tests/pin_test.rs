@@ -9,13 +9,16 @@ mod pin_local {
 
     #[test]
     fn writes_local_version_file() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         let version_file = sandbox.path().join(".prototools");
 
         assert!(!version_file.exists());
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("pin").arg("node").arg("19.0.0").assert().success();
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("pin").arg("node").arg("19.0.0");
+            })
+            .success();
 
         assert!(version_file.exists());
         assert_eq!(
@@ -26,14 +29,20 @@ mod pin_local {
 
     #[test]
     fn appends_multiple_tools() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         let version_file = sandbox.path().join(".prototools");
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("pin").arg("node").arg("19.0.0").assert().success();
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("pin").arg("node").arg("19.0.0");
+            })
+            .success();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("pin").arg("npm").arg("9.0.0").assert().success();
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("pin").arg("npm").arg("9.0.0");
+            })
+            .success();
 
         assert_eq!(
             fs::read_to_string(version_file).unwrap(),
@@ -45,7 +54,7 @@ npm = "9.0.0"
 
     #[test]
     fn will_overwrite_by_name() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         let version_file = sandbox.path().join(".prototools");
 
         sandbox.create_file(
@@ -55,8 +64,11 @@ npm = "9.0.0"
 "#,
         );
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("pin").arg("node").arg("19").assert().success();
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("pin").arg("node").arg("19");
+            })
+            .success();
 
         assert_eq!(
             fs::read_to_string(version_file).unwrap(),
@@ -68,13 +80,16 @@ npm = "9.0.0"
 
     #[test]
     fn can_set_aliases() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         let version_file = sandbox.path().join(".prototools");
 
         assert!(!version_file.exists());
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("pin").arg("npm").arg("bundled").assert().success();
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("pin").arg("npm").arg("bundled");
+            })
+            .success();
 
         assert!(version_file.exists());
         assert_eq!(
@@ -85,13 +100,16 @@ npm = "9.0.0"
 
     #[test]
     fn can_set_partial_version() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         let version_file = sandbox.path().join(".prototools");
 
         assert!(!version_file.exists());
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("pin").arg("npm").arg("1.2").assert().success();
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("pin").arg("npm").arg("1.2");
+            })
+            .success();
 
         assert!(version_file.exists());
         assert_eq!(
@@ -102,17 +120,15 @@ npm = "9.0.0"
 
     #[test]
     fn can_resolve_partial_version() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         let version_file = sandbox.path().join(".prototools");
 
         assert!(!version_file.exists());
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("pin")
-            .arg("npm")
-            .arg("6")
-            .arg("--resolve")
-            .assert()
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("pin").arg("npm").arg("6").arg("--resolve");
+            })
             .success();
 
         assert!(version_file.exists());
@@ -128,17 +144,15 @@ mod pin_global {
 
     #[test]
     fn updates_manifest_file() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         let config_file = sandbox.path().join(".proto/.prototools");
 
         assert!(!config_file.exists());
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("pin")
-            .arg("--global")
-            .arg("node")
-            .arg("19.0.0")
-            .assert()
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("pin").arg("--global").arg("node").arg("19.0.0");
+            })
             .success();
 
         assert!(config_file.exists());
@@ -153,17 +167,15 @@ mod pin_global {
 
     #[test]
     fn can_set_alias_as_default() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         let config_file = sandbox.path().join(".proto/.prototools");
 
         assert!(!config_file.exists());
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("pin")
-            .arg("--global")
-            .arg("npm")
-            .arg("bundled")
-            .assert()
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("pin").arg("--global").arg("npm").arg("bundled");
+            })
             .success();
 
         assert!(config_file.exists());
@@ -178,17 +190,15 @@ mod pin_global {
 
     #[test]
     fn can_set_partial_version_as_default() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         let config_file = sandbox.path().join(".proto/.prototools");
 
         assert!(!config_file.exists());
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("pin")
-            .arg("--global")
-            .arg("npm")
-            .arg("1.2")
-            .assert()
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("pin").arg("--global").arg("npm").arg("1.2");
+            })
             .success();
 
         assert!(config_file.exists());
@@ -203,18 +213,19 @@ mod pin_global {
 
     #[test]
     fn can_resolve_partial_version() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         let config_file = sandbox.path().join(".proto/.prototools");
 
         assert!(!config_file.exists());
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("pin")
-            .arg("--global")
-            .arg("npm")
-            .arg("6")
-            .arg("--resolve")
-            .assert()
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("pin")
+                    .arg("--global")
+                    .arg("npm")
+                    .arg("6")
+                    .arg("--resolve");
+            })
             .success();
 
         assert!(config_file.exists());
@@ -229,14 +240,12 @@ mod pin_global {
 
     #[test]
     fn doesnt_create_bin_symlink() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("pin")
-            .arg("--global")
-            .arg("node")
-            .arg("20")
-            .assert()
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("pin").arg("--global").arg("node").arg("20");
+            })
             .success();
 
         let link = get_bin_path(sandbox.path(), "node");

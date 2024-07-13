@@ -2,21 +2,57 @@
 
 use proto_core::{ProtoConfig, ProtoConfigManager};
 use proto_shim::get_exe_file_name;
-use starbase_sandbox::{assert_cmd, create_command_with_name};
-pub use starbase_sandbox::{create_empty_sandbox, Sandbox};
+use starbase_sandbox::{assert_cmd, create_command_with_name, Sandbox, SandboxSettings};
+use std::collections::HashMap;
 use std::fs;
+use std::ops::Deref;
 use std::path::{Path, PathBuf};
 
-pub fn load_config<T: AsRef<Path>>(dir: T) -> ProtoConfig {
-    let manager = ProtoConfigManager::load(dir, None, None).unwrap();
-    let config = manager.get_merged_config().unwrap();
-    config.to_owned()
+pub struct ProtoSandbox {
+    pub sandbox: Sandbox,
 }
 
-pub fn create_empty_sandbox_with_tools() -> Sandbox {
-    let temp = create_empty_sandbox();
+impl ProtoSandbox {
+    pub fn new(mut sandbox: Sandbox) -> Self {
+        apply_settings(&mut sandbox);
 
-    temp.create_file(
+        Self { sandbox }
+    }
+}
+
+impl Deref for ProtoSandbox {
+    type Target = Sandbox;
+
+    fn deref(&self) -> &Self::Target {
+        &self.sandbox
+    }
+}
+
+fn apply_settings(sandbox: &mut Sandbox) {
+    let mut env = HashMap::new();
+    env.insert("RUST_BACKTRACE", "1");
+    env.insert("WASMTIME_BACKTRACE_DETAILS", "1");
+    env.insert("NO_COLOR", "1");
+    env.insert("PROTO_LOG", "trace");
+    env.insert("PROTO_TEST", "true");
+
+    sandbox.settings.bin = "moon".into();
+    sandbox.settings.timeout = 240;
+
+    sandbox
+        .settings
+        .env
+        .extend(env.into_iter().map(|(k, v)| (k.to_owned(), v.to_owned())));
+}
+
+pub fn create_empty_proto_sandbox() -> ProtoSandbox {
+    ProtoSandbox::new(starbase_sandbox::create_empty_sandbox())
+}
+
+pub fn create_empty_proto_sandbox_with_tools() -> ProtoSandbox {
+    let sandbox = create_empty_proto_sandbox();
+
+    sandbox.create_file(
         ".prototools",
         r#"
 moon-test = "1.0.0"
@@ -26,13 +62,24 @@ moon-test = "https://raw.githubusercontent.com/moonrepo/moon/master/proto-plugin
 "#,
     );
 
-    temp
+    sandbox
 }
 
+pub fn create_proto_sandbox<N: AsRef<str>>(fixture: N) -> ProtoSandbox {
+    ProtoSandbox::new(starbase_sandbox::create_sandbox(fixture))
+}
+
+pub fn load_config<T: AsRef<Path>>(dir: T) -> ProtoConfig {
+    let manager = ProtoConfigManager::load(dir, None, None).unwrap();
+    let config = manager.get_merged_config().unwrap();
+    config.to_owned()
+}
+
+#[deprecated]
 pub fn create_proto_command<T: AsRef<Path>>(path: T) -> assert_cmd::Command {
     let path = path.as_ref();
 
-    let mut cmd = create_command_with_name(path, "proto");
+    let mut cmd = create_command_with_name(path, "proto", &SandboxSettings::default());
     cmd.timeout(std::time::Duration::from_secs(240));
     cmd.env("PROTO_HOME", path.join(".proto"));
     cmd.env("PROTO_LOG", "trace");
