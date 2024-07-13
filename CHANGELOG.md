@@ -10,6 +10,16 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Improved our logic around "update shell profile if not already setup".
+
+#### 🐞 Fixes
+
+- Fixed powershell syntax when joining paths and environment variables.
+
 ## 0.38.1
 
 #### 🚀 Updates

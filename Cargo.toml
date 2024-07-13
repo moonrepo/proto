@@ -5,9 +5,9 @@ default-members = ["crates/cli"]
 
 [workspace.dependencies]
 anyhow = "1.0.86"
-async-trait = "0.1.80"
-clap = "4.5.8"
-clap_complete = "4.5.7"
+async-trait = "0.1.81"
+clap = "4.5.9"
+clap_complete = "4.5.8"
 dirs = "5.0.1"
 extism = "1.0.0" # Lower for consumers
 extism-pdk = "1.2.0"
@@ -25,12 +25,12 @@ reqwest = { version = "0.12.5", default-features = false, features = [
 rustc-hash = "2.0.0"
 schematic = { version = "0.16.5", default-features = false }
 semver = { version = "1.0.23", features = ["serde"] }
-serde = { version = "1.0.203", features = ["derive"] }
+serde = { version = "1.0.204", features = ["derive"] }
 serde_json = "1.0.120"
 sha2 = "0.10.8"
 shell-words = "1.1.0"
 starbase = { version = "0.8.1" }
-starbase_archive = { version = "0.8.0", features = [
+starbase_archive = { version = "0.8.1", features = [
     "gz",
     "miette",
     "tar-gz",
@@ -41,18 +41,18 @@ starbase_archive = { version = "0.8.0", features = [
 ] }
 starbase_events = { version = "0.6.2" }
 starbase_sandbox = { version = "0.6.4" }
-starbase_shell = { version = "0.5.0", features = ["miette"] }
+starbase_shell = { version = "0.5.2", features = ["miette"] }
 starbase_styles = { version = "0.4.1" }
-starbase_utils = { version = "0.8.0", default-features = false, features = [
+starbase_utils = { version = "0.8.2", default-features = false, features = [
     "json",
     "miette",
     "net",
     "toml",
 ] }
-thiserror = "1.0.61"
+thiserror = "1.0.62"
 tokio = { version = "1.38.0", features = ["full", "tracing"] }
 tracing = "0.1.40"
-uuid = { version = "1.9.1", features = ["v4"] }
+uuid = { version = "1.10.0", features = ["v4"] }
 
 # Config for 'cargo dist'
 [workspace.metadata.dist]

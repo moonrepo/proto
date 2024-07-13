@@ -263,8 +263,6 @@ fn update_shell(tool: &Tool, passthrough_args: Vec<String>) -> miette::Result<()
         return Ok(());
     }
 
-    let exported_content = shell::format_exports(&shell, tool.id.as_str(), exports);
-
     let profile_path = tool.proto.store.load_preferred_profile()?.and_then(|file| {
         if file.exists() {
             Some(file)
@@ -278,26 +276,20 @@ fn update_shell(tool: &Tool, passthrough_args: Vec<String>) -> miette::Result<()
         }
     });
 
-    let updated_profile = match profile_path {
-        Some(profile_path) => Some(shell::write_profile(
-            &profile_path,
-            &exported_content,
-            &output.check_var,
-        )?),
-        None => shell::write_profile_if_not_setup(
-            &shell,
-            &exported_content,
-            &output.check_var,
-            &tool.proto.home,
-        )?,
-    };
+    if let Some(updated_profile) = profile_path {
+        let exported_content = shell::format_exports(&shell, &tool.id, exports);
 
-    if let Some(updated_profile) = updated_profile {
-        println!(
-            "Added {} to shell profile {}",
-            color::property(output.check_var),
-            color::path(updated_profile)
-        );
+        if shell::update_profile_if_not_setup(
+            &updated_profile,
+            &exported_content,
+            &output.check_var,
+        )? {
+            println!(
+                "Added {} to shell profile {}",
+                color::property(output.check_var),
+                color::path(updated_profile)
+            );
+        }
     }
 
     Ok(())
