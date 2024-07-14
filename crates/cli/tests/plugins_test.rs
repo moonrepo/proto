@@ -119,10 +119,10 @@ mod plugins {
         fn supports_bun() {
             let sandbox = create_empty_proto_sandbox();
 
-            create_proto_command(sandbox.path())
-                .arg("install")
-                .arg("bun")
-                .assert()
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("bun");
+                })
                 .success();
 
             create_shim_command(sandbox.path(), "bun")
