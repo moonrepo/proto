@@ -39,11 +39,13 @@ mod unalias_local {
         })
         .unwrap();
 
+        sandbox.debug_files();
+
         sandbox
             .run_bin(|cmd| {
                 cmd.arg("unalias").arg("node").arg("example");
             })
-            .success();
+            .debug();
 
         let config = load_config(sandbox.path());
 

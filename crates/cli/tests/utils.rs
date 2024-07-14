@@ -29,14 +29,17 @@ impl Deref for ProtoSandbox {
 }
 
 fn apply_settings(sandbox: &mut Sandbox) {
+    let proto_dir = sandbox.path().join(".proto");
+
     let mut env = HashMap::new();
     env.insert("RUST_BACKTRACE", "1");
     env.insert("WASMTIME_BACKTRACE_DETAILS", "1");
     env.insert("NO_COLOR", "1");
+    env.insert("PROTO_HOME", proto_dir.to_str().unwrap());
     env.insert("PROTO_LOG", "trace");
     env.insert("PROTO_TEST", "true");
 
-    sandbox.settings.bin = "moon".into();
+    sandbox.settings.bin = "proto".into();
     sandbox.settings.timeout = 240;
 
     sandbox

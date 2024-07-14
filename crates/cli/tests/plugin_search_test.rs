@@ -27,7 +27,7 @@ mod plugin_search {
 
         let assert = sandbox
             .run_bin(|cmd| {
-                cmd.arg("plugin").arg("remove").arg("id");
+                cmd.arg("plugin").arg("search").arg("gibberish");
             })
             .failure();
 
