@@ -13,15 +13,16 @@ mod shim_bin {
 
     #[test]
     fn standard_output() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("install")
-            .arg("node")
-            .arg("--pin")
-            .arg("--")
-            .arg("--no-bundled-npm")
-            .assert()
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install")
+                    .arg("node")
+                    .arg("--pin")
+                    .arg("--")
+                    .arg("--no-bundled-npm");
+            })
             .success();
 
         let mut shim = create_shim_command(sandbox.path(), "node");
@@ -35,15 +36,16 @@ mod shim_bin {
 
     #[test]
     fn waits_for_timeout() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("install")
-            .arg("node")
-            .arg("--pin")
-            .arg("--")
-            .arg("--no-bundled-npm")
-            .assert()
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install")
+                    .arg("node")
+                    .arg("--pin")
+                    .arg("--")
+                    .arg("--no-bundled-npm");
+            })
             .success();
 
         let mut shim = create_shim_command(sandbox.path(), "node");
@@ -57,15 +59,16 @@ mod shim_bin {
 
     #[test]
     fn waits_for_top_level_await() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("install")
-            .arg("node")
-            .arg("--pin")
-            .arg("--")
-            .arg("--no-bundled-npm")
-            .assert()
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install")
+                    .arg("node")
+                    .arg("--pin")
+                    .arg("--")
+                    .arg("--no-bundled-npm");
+            })
             .success();
 
         let mut shim = create_shim_command(sandbox.path(), "node");
@@ -79,15 +82,16 @@ mod shim_bin {
 
     #[test]
     fn handles_stdin_piped_data() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("install")
-            .arg("node")
-            .arg("--pin")
-            .arg("--")
-            .arg("--no-bundled-npm")
-            .assert()
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install")
+                    .arg("node")
+                    .arg("--pin")
+                    .arg("--")
+                    .arg("--no-bundled-npm");
+            })
             .success();
 
         let mut shim = create_shim_command(sandbox.path(), "node");
@@ -102,15 +106,16 @@ mod shim_bin {
 
     #[test]
     fn handles_file_piped_data() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("install")
-            .arg("node")
-            .arg("--pin")
-            .arg("--")
-            .arg("--no-bundled-npm")
-            .assert()
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install")
+                    .arg("node")
+                    .arg("--pin")
+                    .arg("--")
+                    .arg("--no-bundled-npm");
+            })
             .success();
 
         let mut shim = create_shim_command(sandbox.path(), "node");
@@ -125,15 +130,16 @@ mod shim_bin {
 
     #[test]
     fn handles_exit_codes() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("install")
-            .arg("node")
-            .arg("--pin")
-            .arg("--")
-            .arg("--no-bundled-npm")
-            .assert()
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install")
+                    .arg("node")
+                    .arg("--pin")
+                    .arg("--")
+                    .arg("--no-bundled-npm");
+            })
             .success();
 
         let mut shim = create_shim_command(sandbox.path(), "node");
@@ -152,15 +158,16 @@ mod shim_bin {
         use shared_child::SharedChild;
         use std::os::unix::process::ExitStatusExt;
 
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("install")
-            .arg("node")
-            .arg("--pin")
-            .arg("--")
-            .arg("--no-bundled-npm")
-            .assert()
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install")
+                    .arg("node")
+                    .arg("--pin")
+                    .arg("--")
+                    .arg("--no-bundled-npm");
+            })
             .success();
 
         let mut shim = create_shim_command_std(sandbox.path(), "node");
@@ -189,15 +196,16 @@ mod shim_bin {
     #[test]
     #[cfg(windows)]
     fn works_with_a_different_casing() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("install")
-            .arg("node")
-            .arg("--pin")
-            .arg("--")
-            .arg("--no-bundled-npm")
-            .assert()
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install")
+                    .arg("node")
+                    .arg("--pin")
+                    .arg("--")
+                    .arg("--no-bundled-npm");
+            })
             .success();
 
         let mut shim =

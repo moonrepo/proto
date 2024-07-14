@@ -10,15 +10,16 @@ mod install_uninstall {
 
     #[test]
     fn installs_without_patch() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("install")
-            .arg("node")
-            .arg("18.12")
-            .arg("--")
-            .arg("--no-bundled-npm")
-            .assert()
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install")
+                    .arg("node")
+                    .arg("18.12")
+                    .arg("--")
+                    .arg("--no-bundled-npm");
+            })
             .success();
 
         assert!(sandbox.path().join(".proto/tools/node/18.12.1").exists());
@@ -26,15 +27,16 @@ mod install_uninstall {
 
     #[test]
     fn installs_without_minor() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("install")
-            .arg("node")
-            .arg("17")
-            .arg("--")
-            .arg("--no-bundled-npm")
-            .assert()
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install")
+                    .arg("node")
+                    .arg("17")
+                    .arg("--")
+                    .arg("--no-bundled-npm");
+            })
             .success();
 
         assert!(sandbox.path().join(".proto/tools/node/17.9.1").exists());
@@ -42,15 +44,16 @@ mod install_uninstall {
 
     #[test]
     fn installs_from_alias() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("install")
-            .arg("node")
-            .arg("gallium")
-            .arg("--")
-            .arg("--no-bundled-npm")
-            .assert()
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install")
+                    .arg("node")
+                    .arg("gallium")
+                    .arg("--")
+                    .arg("--no-bundled-npm");
+            })
             .success();
 
         assert!(sandbox.path().join(".proto/tools/node/16.20.2").exists());
@@ -58,20 +61,21 @@ mod install_uninstall {
 
     #[test]
     fn installs_and_uninstalls_tool() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         let tool_dir = sandbox.path().join(".proto/tools/node/19.0.0");
 
         assert!(!tool_dir.exists());
 
         // Install
-        let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd
-            .arg("install")
-            .arg("node")
-            .arg("19.0.0")
-            .arg("--")
-            .arg("--no-bundled-npm")
-            .assert();
+        let assert = sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install")
+                    .arg("node")
+                    .arg("19.0.0")
+                    .arg("--")
+                    .arg("--no-bundled-npm");
+            })
+            .success();
 
         assert!(tool_dir.exists());
 
@@ -80,8 +84,12 @@ mod install_uninstall {
         ));
 
         // Uninstall
-        let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd.arg("uninstall").arg("node").arg("19.0.0").assert();
+
+        let assert = sandbox
+            .run_bin(|cmd| {
+                cmd.arg("uninstall").arg("node").arg("19.0.0");
+            })
+            .success();
 
         assert!(!tool_dir.exists());
 
@@ -92,25 +100,27 @@ mod install_uninstall {
 
     #[test]
     fn doesnt_install_tool_if_exists() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("install")
-            .arg("node")
-            .arg("19.0.0")
-            .arg("--")
-            .arg("--no-bundled-npm")
-            .assert()
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install")
+                    .arg("node")
+                    .arg("19.0.0")
+                    .arg("--")
+                    .arg("--no-bundled-npm");
+            })
             .success();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd
-            .arg("install")
-            .arg("node")
-            .arg("19.0.0")
-            .arg("--")
-            .arg("--no-bundled-npm")
-            .assert();
+        let assert = sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install")
+                    .arg("node")
+                    .arg("19.0.0")
+                    .arg("--")
+                    .arg("--no-bundled-npm");
+            })
+            .success();
 
         assert.stdout(predicate::str::contains(
             "Node.js 19.0.0 has already been installed",
@@ -119,15 +129,17 @@ mod install_uninstall {
 
     #[test]
     fn creates_all_shims() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("install")
-            .arg("node")
-            .arg("19.0.0")
-            .arg("--")
-            .arg("--no-bundled-npm")
-            .assert();
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install")
+                    .arg("node")
+                    .arg("19.0.0")
+                    .arg("--")
+                    .arg("--no-bundled-npm");
+            })
+            .success();
 
         if cfg!(windows) {
             assert!(sandbox.path().join(".proto/shims/node.exe").exists());
@@ -141,17 +153,19 @@ mod install_uninstall {
 
     #[test]
     fn updates_the_manifest_when_installing() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         let manifest_file = sandbox.path().join(".proto/tools/node/manifest.json");
 
         // Install
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("install")
-            .arg("node")
-            .arg("19.0.0")
-            .arg("--")
-            .arg("--no-bundled-npm")
-            .assert()
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install")
+                    .arg("node")
+                    .arg("19.0.0")
+                    .arg("--")
+                    .arg("--no-bundled-npm");
+            })
             .success();
 
         let manifest = ToolManifest::load(&manifest_file).unwrap();
@@ -170,11 +184,10 @@ mod install_uninstall {
             .contains_key(&VersionSpec::parse("19.0.0").unwrap()));
 
         // Uninstall
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("uninstall")
-            .arg("node")
-            .arg("19.0.0")
-            .assert()
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("uninstall").arg("node").arg("19.0.0");
+            })
             .success();
 
         let manifest = ToolManifest::load(&manifest_file).unwrap();
@@ -192,7 +205,7 @@ mod install_uninstall {
 
         #[test]
         fn can_pin_when_installing() {
-            let sandbox = create_empty_sandbox();
+            let sandbox = create_empty_proto_sandbox();
             let manifest_file = sandbox.path().join(".proto/tools/node/manifest.json");
 
             ProtoConfig::update(sandbox.path(), |config| {
@@ -209,14 +222,16 @@ mod install_uninstall {
                 .insert(VersionSpec::parse("18.0.0").unwrap());
             manifest.save().unwrap();
 
-            let mut cmd = create_proto_command(sandbox.path());
-            cmd.arg("install")
-                .arg("node")
-                .arg("19.0.0")
-                .arg("--pin")
-                .arg("--")
-                .arg("--no-bundled-npm")
-                .assert();
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("node")
+                        .arg("19.0.0")
+                        .arg("--pin")
+                        .arg("--")
+                        .arg("--no-bundled-npm");
+                })
+                .success();
 
             let manifest = ToolManifest::load(&manifest_file).unwrap();
             let config = load_config(sandbox.path());
@@ -236,7 +251,7 @@ mod install_uninstall {
 
         #[test]
         fn can_pin_global_explicitly() {
-            let sandbox = create_empty_sandbox();
+            let sandbox = create_empty_proto_sandbox();
             let manifest_file = sandbox.path().join(".proto/tools/node/manifest.json");
 
             ProtoConfig::update(sandbox.path().join(".proto"), |config| {
@@ -253,15 +268,17 @@ mod install_uninstall {
                 .insert(VersionSpec::parse("18.0.0").unwrap());
             manifest.save().unwrap();
 
-            let mut cmd = create_proto_command(sandbox.path());
-            cmd.arg("install")
-                .arg("node")
-                .arg("19.0.0")
-                .arg("--pin")
-                .arg("global")
-                .arg("--")
-                .arg("--no-bundled-npm")
-                .assert();
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("node")
+                        .arg("19.0.0")
+                        .arg("--pin")
+                        .arg("global")
+                        .arg("--")
+                        .arg("--no-bundled-npm");
+                })
+                .success();
 
             let manifest = ToolManifest::load(&manifest_file).unwrap();
             let config = load_config(sandbox.path().join(".proto"));
@@ -281,7 +298,7 @@ mod install_uninstall {
 
         #[test]
         fn can_pin_local_explicitly() {
-            let sandbox = create_empty_sandbox();
+            let sandbox = create_empty_proto_sandbox();
             let manifest_file = sandbox.path().join(".proto/tools/node/manifest.json");
 
             ProtoConfig::update(sandbox.path(), |config| {
@@ -298,15 +315,17 @@ mod install_uninstall {
                 .insert(VersionSpec::parse("18.0.0").unwrap());
             manifest.save().unwrap();
 
-            let mut cmd = create_proto_command(sandbox.path());
-            cmd.arg("install")
-                .arg("node")
-                .arg("19.0.0")
-                .arg("--pin")
-                .arg("local")
-                .arg("--")
-                .arg("--no-bundled-npm")
-                .assert();
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("node")
+                        .arg("19.0.0")
+                        .arg("--pin")
+                        .arg("local")
+                        .arg("--")
+                        .arg("--no-bundled-npm");
+                })
+                .success();
 
             let manifest = ToolManifest::load(&manifest_file).unwrap();
             let config = load_config(sandbox.path());
@@ -326,15 +345,17 @@ mod install_uninstall {
 
         #[test]
         fn can_pin_when_already_installed() {
-            let sandbox = create_empty_sandbox();
+            let sandbox = create_empty_proto_sandbox();
 
-            let mut cmd = create_proto_command(sandbox.path());
-            cmd.arg("install")
-                .arg("node")
-                .arg("19.0.0")
-                .arg("--")
-                .arg("--no-bundled-npm")
-                .assert();
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("node")
+                        .arg("19.0.0")
+                        .arg("--")
+                        .arg("--no-bundled-npm");
+                })
+                .success();
 
             // Manually change it to something else
             ProtoConfig::update(sandbox.path(), |config| {
@@ -345,14 +366,16 @@ mod install_uninstall {
             })
             .unwrap();
 
-            let mut cmd = create_proto_command(sandbox.path());
-            cmd.arg("install")
-                .arg("node")
-                .arg("19.0.0")
-                .arg("--pin")
-                .arg("--")
-                .arg("--no-bundled-npm")
-                .assert();
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("node")
+                        .arg("19.0.0")
+                        .arg("--pin")
+                        .arg("--")
+                        .arg("--no-bundled-npm");
+                })
+                .success();
 
             let config = load_config(sandbox.path());
 
@@ -364,7 +387,7 @@ mod install_uninstall {
 
         #[test]
         fn can_pin_latest_locally_using_setting() {
-            let sandbox = create_empty_sandbox();
+            let sandbox = create_empty_proto_sandbox();
 
             // Local
             ProtoConfig::update(sandbox.path(), |config| {
@@ -386,12 +409,14 @@ mod install_uninstall {
             })
             .unwrap();
 
-            let mut cmd = create_proto_command(sandbox.path());
-            cmd.arg("install")
-                .arg("node")
-                .arg("--")
-                .arg("--no-bundled-npm")
-                .assert();
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("node")
+                        .arg("--")
+                        .arg("--no-bundled-npm");
+                })
+                .success();
 
             let global_config = load_config(sandbox.path().join(".proto"));
 
@@ -410,7 +435,7 @@ mod install_uninstall {
 
         #[test]
         fn can_pin_latest_globally_using_setting() {
-            let sandbox = create_empty_sandbox();
+            let sandbox = create_empty_proto_sandbox();
 
             // Local
             ProtoConfig::update(sandbox.path(), |config| {
@@ -433,12 +458,14 @@ mod install_uninstall {
             })
             .unwrap();
 
-            let mut cmd = create_proto_command(sandbox.path());
-            cmd.arg("install")
-                .arg("node")
-                .arg("--")
-                .arg("--no-bundled-npm")
-                .assert();
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("node")
+                        .arg("--")
+                        .arg("--no-bundled-npm");
+                })
+                .success();
 
             let global_config = load_config(sandbox.path().join(".proto"));
 
@@ -457,7 +484,7 @@ mod install_uninstall {
 
         #[test]
         fn doesnt_pin_using_setting_if_not_latest() {
-            let sandbox = create_empty_sandbox();
+            let sandbox = create_empty_proto_sandbox();
 
             // Local
             ProtoConfig::update(sandbox.path(), |config| {
@@ -465,13 +492,15 @@ mod install_uninstall {
             })
             .unwrap();
 
-            let mut cmd = create_proto_command(sandbox.path());
-            cmd.arg("install")
-                .arg("node")
-                .arg("20.0.0")
-                .arg("--")
-                .arg("--no-bundled-npm")
-                .assert();
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("node")
+                        .arg("20.0.0")
+                        .arg("--")
+                        .arg("--no-bundled-npm");
+                })
+                .success();
 
             let local_config = load_config(sandbox.path());
 
@@ -485,16 +514,18 @@ mod install_uninstall {
         #[cfg(not(windows))]
         #[test]
         fn symlinks_bin_when_pinning() {
-            let sandbox = create_empty_sandbox();
+            let sandbox = create_empty_proto_sandbox();
 
-            let mut cmd = create_proto_command(sandbox.path());
-            cmd.arg("install")
-                .arg("node")
-                .arg("19.0.0")
-                .arg("--pin")
-                .arg("--")
-                .arg("--no-bundled-npm")
-                .assert();
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("node")
+                        .arg("19.0.0")
+                        .arg("--pin")
+                        .arg("--")
+                        .arg("--no-bundled-npm");
+                })
+                .success();
 
             let link = sandbox.path().join(".proto/bin").join("node");
 
@@ -512,15 +543,17 @@ mod install_uninstall {
         #[cfg(not(windows))]
         #[test]
         fn symlinks_bin_on_first_install_without_pinning() {
-            let sandbox = create_empty_sandbox();
+            let sandbox = create_empty_proto_sandbox();
 
-            let mut cmd = create_proto_command(sandbox.path());
-            cmd.arg("install")
-                .arg("node")
-                .arg("19.0.0")
-                .arg("--")
-                .arg("--no-bundled-npm")
-                .assert();
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("node")
+                        .arg("19.0.0")
+                        .arg("--")
+                        .arg("--no-bundled-npm");
+                })
+                .success();
 
             let link = sandbox.path().join(".proto/bin").join("node");
 
@@ -530,16 +563,18 @@ mod install_uninstall {
         #[cfg(windows)]
         #[test]
         fn creates_bin_when_pinning() {
-            let sandbox = create_empty_sandbox();
+            let sandbox = create_empty_proto_sandbox();
 
-            let mut cmd = create_proto_command(sandbox.path());
-            cmd.arg("install")
-                .arg("node")
-                .arg("19.0.0")
-                .arg("--pin")
-                .arg("--")
-                .arg("--no-bundled-npm")
-                .assert();
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("node")
+                        .arg("19.0.0")
+                        .arg("--pin")
+                        .arg("--")
+                        .arg("--no-bundled-npm");
+                })
+                .success();
 
             let link = sandbox.path().join(".proto/bin").join("node.exe");
 
@@ -549,15 +584,17 @@ mod install_uninstall {
         #[cfg(windows)]
         #[test]
         fn creates_bin_on_first_install_without_pinning() {
-            let sandbox = create_empty_sandbox();
+            let sandbox = create_empty_proto_sandbox();
 
-            let mut cmd = create_proto_command(sandbox.path());
-            cmd.arg("install")
-                .arg("node")
-                .arg("19.0.0")
-                .arg("--")
-                .arg("--no-bundled-npm")
-                .assert();
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("node")
+                        .arg("19.0.0")
+                        .arg("--")
+                        .arg("--no-bundled-npm");
+                })
+                .success();
 
             let link = sandbox.path().join(".proto/bin").join("node.exe");
 

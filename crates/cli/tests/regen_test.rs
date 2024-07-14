@@ -1,17 +1,18 @@
 mod utils;
 
+use starbase_sandbox::Sandbox;
 use std::fs;
-use std::path::Path;
 use utils::*;
 
-fn install_node(sandbox: &Path) {
-    let mut cmd = create_proto_command(sandbox);
-    cmd.arg("install")
-        .arg("node")
-        .arg("--pin")
-        .arg("--")
-        .arg("--no-bundled-npm")
-        .assert()
+fn install_node(sandbox: &Sandbox) {
+    sandbox
+        .run_bin(|cmd| {
+            cmd.arg("install")
+                .arg("node")
+                .arg("--pin")
+                .arg("--")
+                .arg("--no-bundled-npm");
+        })
         .success();
 }
 
@@ -20,17 +21,20 @@ mod regen_shim {
 
     #[test]
     fn replaces_existing_shims() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        install_node(sandbox.path());
+        install_node(&sandbox);
 
         let old_timestamp = fs::metadata(get_shim_path(sandbox.path(), "node"))
             .unwrap()
             .created()
             .unwrap();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("regen").assert().success();
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("regen");
+            })
+            .success();
 
         let new_timestamp = fs::metadata(get_shim_path(sandbox.path(), "node"))
             .unwrap()
@@ -42,10 +46,13 @@ mod regen_shim {
 
     #[test]
     fn doesnt_create_shims_for_noninstalled_tools() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("regen").assert().success();
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("regen");
+            })
+            .success();
 
         assert!(!get_shim_path(sandbox.path(), "go").exists());
         assert!(!get_shim_path(sandbox.path(), "node").exists());
@@ -53,14 +60,17 @@ mod regen_shim {
 
     #[test]
     fn deletes_unknown_shims() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         let unknown_path = get_shim_path(sandbox.path(), "unknown");
 
         fs::create_dir_all(unknown_path.parent().unwrap()).unwrap();
         fs::write(&unknown_path, "shim").unwrap();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("regen").assert().success();
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("regen");
+            })
+            .success();
 
         assert!(!unknown_path.exists());
     }
@@ -71,17 +81,20 @@ mod regen_bin {
 
     #[test]
     fn doesnt_replace_bins_by_default() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        install_node(sandbox.path());
+        install_node(&sandbox);
 
         let old_timestamp = fs::metadata(get_bin_path(sandbox.path(), "node"))
             .unwrap()
             .created()
             .unwrap();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("regen").assert().success();
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("regen");
+            })
+            .success();
 
         let new_timestamp = fs::metadata(get_bin_path(sandbox.path(), "node"))
             .unwrap()
@@ -93,7 +106,7 @@ mod regen_bin {
 
     #[test]
     fn deletes_unknown_bins() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         let base_path = sandbox.path().join("base-bin");
 
         fs::write(&base_path, "bin").unwrap();
@@ -102,15 +115,18 @@ mod regen_bin {
 
         link_bin(&base_path, &unknown_path);
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("regen").arg("--bin").assert().success();
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("regen").arg("--bin");
+            })
+            .success();
 
         assert!(!unknown_path.exists());
     }
 
     #[test]
     fn doesnt_delete_proto_bins() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         let base_path = sandbox.path().join("base-bin");
 
         fs::write(&base_path, "bin").unwrap();
@@ -121,8 +137,11 @@ mod regen_bin {
         link_bin(&base_path, &proto_path);
         link_bin(&base_path, &proto_shim_path);
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("regen").arg("--bin").assert().success();
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("regen").arg("--bin");
+            })
+            .success();
 
         assert!(proto_path.exists());
         assert!(proto_shim_path.exists());
@@ -130,24 +149,30 @@ mod regen_bin {
 
     #[test]
     fn doesnt_link_nonglobal_tools() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
         sandbox.create_file(".prototools", r#"node = "20.0.0""#);
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("regen").arg("--bin").assert().success();
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("regen").arg("--bin");
+            })
+            .success();
 
         assert!(!get_bin_path(sandbox.path(), "node").exists());
     }
 
     #[test]
     fn links_global_tools() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        install_node(sandbox.path());
+        install_node(&sandbox);
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("regen").arg("--bin").assert().success();
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("regen").arg("--bin");
+            })
+            .success();
 
         assert!(get_bin_path(sandbox.path(), "node").exists());
     }

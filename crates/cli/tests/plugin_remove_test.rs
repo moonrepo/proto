@@ -9,19 +9,20 @@ mod plugin_remove {
 
     #[test]
     fn errors_if_no_local_config() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd.arg("plugin").arg("remove").arg("id").assert();
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("plugin").arg("remove").arg("id");
+        });
 
-        assert.stderr(predicate::str::contains(
+        assert.inner.stderr(predicate::str::contains(
             "No .prototools has been found in current directory.",
         ));
     }
 
     #[test]
     fn updates_local_file() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
         ProtoConfig::update(sandbox.path(), |config| {
             config
@@ -36,8 +37,11 @@ mod plugin_remove {
         })
         .unwrap();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("plugin").arg("remove").arg("id").assert().success();
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("plugin").arg("remove").arg("id");
+            })
+            .success();
 
         let config = load_config(sandbox.path());
 
@@ -46,7 +50,7 @@ mod plugin_remove {
 
     #[test]
     fn updates_global_file() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
         ProtoConfig::update(sandbox.path().join(".proto"), |config| {
             config
@@ -61,12 +65,10 @@ mod plugin_remove {
         })
         .unwrap();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("plugin")
-            .arg("remove")
-            .arg("id")
-            .arg("--global")
-            .assert()
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("plugin").arg("remove").arg("id").arg("--global");
+            })
             .success();
 
         let config = load_config(sandbox.path().join(".proto"));

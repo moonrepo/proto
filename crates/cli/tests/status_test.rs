@@ -1,6 +1,5 @@
 mod utils;
 
-use starbase_sandbox::get_assert_output;
 use starbase_sandbox::predicates::prelude::*;
 use utils::*;
 
@@ -17,9 +16,7 @@ mod status {
             })
             .failure();
 
-        assert
-            .inner
-            .stderr(predicate::str::contains("No tools have been configured"));
+        assert.stderr(predicate::str::contains("No tools have been configured"));
     }
 
     #[test]
@@ -30,13 +27,11 @@ mod status {
         sandbox.create_file("a/b/.prototools", r#"npm = "*""#);
         sandbox.create_file("a/b/c/.prototools", r#"bun = "*""#);
 
-        sandbox
-            .run_bin(|cmd| {
-                cmd.arg("status").current_dir(sandbox.path().join("a/b/c"));
-            })
-            .success();
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("status").current_dir(sandbox.path().join("a/b/c"));
+        });
 
-        let output = get_assert_output(&assert);
+        let output = assert.output();
 
         assert!(predicate::str::contains("node").eval(&output));
         assert!(predicate::str::contains("npm").eval(&output));
