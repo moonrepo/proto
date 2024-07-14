@@ -10,7 +10,7 @@ use std::{fmt, fs};
 use warpgate::test_utils::*;
 use warpgate::{inject_default_manifest_config, Id, Wasm};
 
-pub struct ProtoSandbox {
+pub struct ProtoWasmSandbox {
     pub sandbox: Sandbox,
     pub home_dir: PathBuf,
     pub proto_dir: PathBuf,
@@ -21,7 +21,7 @@ pub struct ProtoSandbox {
     dropped: Rc<AtomicBool>,
 }
 
-impl ProtoSandbox {
+impl ProtoWasmSandbox {
     pub fn new(sandbox: Sandbox) -> Self {
         let root = sandbox.path().to_path_buf();
         let home_dir = root.join(".home");
@@ -133,13 +133,13 @@ impl ProtoSandbox {
     }
 }
 
-impl Drop for ProtoSandbox {
+impl Drop for ProtoWasmSandbox {
     fn drop(&mut self) {
         self.dropped.store(true, Ordering::Release)
     }
 }
 
-impl Deref for ProtoSandbox {
+impl Deref for ProtoWasmSandbox {
     type Target = Sandbox;
 
     fn deref(&self) -> &Self::Target {
@@ -147,7 +147,7 @@ impl Deref for ProtoSandbox {
     }
 }
 
-impl fmt::Debug for ProtoSandbox {
+impl fmt::Debug for ProtoWasmSandbox {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ProtoSandbox")
             .field("home_dir", &self.home_dir)
@@ -159,10 +159,10 @@ impl fmt::Debug for ProtoSandbox {
     }
 }
 
-pub fn create_proto_sandbox(fixture: &str) -> ProtoSandbox {
-    ProtoSandbox::new(create_sandbox(fixture))
+pub fn create_proto_sandbox(fixture: &str) -> ProtoWasmSandbox {
+    ProtoWasmSandbox::new(create_sandbox(fixture))
 }
 
-pub fn create_empty_proto_sandbox() -> ProtoSandbox {
-    ProtoSandbox::new(create_empty_sandbox())
+pub fn create_empty_proto_sandbox() -> ProtoWasmSandbox {
+    ProtoWasmSandbox::new(create_empty_sandbox())
 }

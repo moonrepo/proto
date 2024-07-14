@@ -1,6 +1,6 @@
 mod utils;
 
-use starbase_sandbox::{assert_snapshot, create_sandbox, predicates::prelude::*, Sandbox};
+use starbase_sandbox::{assert_snapshot, predicates::prelude::*, Sandbox};
 use std::{env, fs};
 use utils::*;
 
@@ -288,7 +288,7 @@ mod run {
 
         #[test]
         fn inherits_from_config() {
-            let sandbox = create_sandbox("env-vars");
+            let sandbox = create_proto_sandbox("env-vars");
 
             sandbox.create_file(
                 ".prototools",
@@ -314,7 +314,7 @@ FROM_CONFIG_BOOL = true
 
         #[test]
         fn inherits_from_parent() {
-            let sandbox = create_sandbox("env-vars");
+            let sandbox = create_proto_sandbox("env-vars");
 
             install_node(&sandbox);
 
@@ -332,7 +332,7 @@ FROM_CONFIG_BOOL = true
 
         #[test]
         fn can_disable_inherits_from_parent_with_config() {
-            let sandbox = create_sandbox("env-vars");
+            let sandbox = create_proto_sandbox("env-vars");
 
             sandbox.create_file(
                 ".prototools",
@@ -359,7 +359,7 @@ FROM_PARENT_REMOVED = false
 
         #[test]
         fn parent_overrides_config() {
-            let sandbox = create_sandbox("env-vars");
+            let sandbox = create_proto_sandbox("env-vars");
 
             sandbox.create_file(
                 ".prototools",
@@ -386,7 +386,7 @@ FROM_CONFIG = "abc123"
 
         #[test]
         fn supports_interpolation() {
-            let sandbox = create_sandbox("env-vars");
+            let sandbox = create_proto_sandbox("env-vars");
 
             sandbox.create_file(
                 ".prototools",
