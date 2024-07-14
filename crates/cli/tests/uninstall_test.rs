@@ -8,62 +8,87 @@ mod uninstall {
 
     #[test]
     fn doesnt_uninstall_tool_if_doesnt_exist() {
-        let temp = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        let mut cmd = create_proto_command(temp.path());
-        let assert = cmd.arg("uninstall").arg("node").arg("19.0.0").assert();
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("uninstall").arg("node").arg("19.0.0");
+        });
 
-        assert.stderr(predicate::str::contains(
+        assert.inner.stderr(predicate::str::contains(
             "Node.js 19.0.0 has not been installed locally",
         ));
     }
 
     #[test]
     fn uninstalls_by_version() {
-        let temp = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        let mut cmd = create_proto_command(temp.path());
-        cmd.arg("install").arg("node").arg("19.0.0").assert();
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install").arg("node").arg("19.0.0");
+            })
+            .success();
 
-        let mut cmd = create_proto_command(temp.path());
-        cmd.arg("uninstall").arg("node").arg("19.0.0").assert();
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("uninstall").arg("node").arg("19.0.0");
+            })
+            .success();
 
-        assert!(!temp.path().join(".proto/tools/node/19.0.0").exists());
-        assert!(temp.path().join(".proto/tools/node/manifest.json").exists());
+        assert!(!sandbox.path().join(".proto/tools/node/19.0.0").exists());
+        assert!(sandbox
+            .path()
+            .join(".proto/tools/node/manifest.json")
+            .exists());
     }
 
     #[test]
     fn uninstalls_everything() {
-        let temp = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        let mut cmd = create_proto_command(temp.path());
-        cmd.arg("install").arg("node").arg("19.0.0").assert();
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install").arg("node").arg("19.0.0");
+            })
+            .success();
 
-        let mut cmd = create_proto_command(temp.path());
-        cmd.arg("install").arg("node").arg("20.0.0").assert();
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install").arg("node").arg("20.0.0");
+            })
+            .success();
 
-        assert!(temp.path().join(".proto/tools/node/19.0.0").exists());
-        assert!(temp.path().join(".proto/tools/node/20.0.0").exists());
+        assert!(sandbox.path().join(".proto/tools/node/19.0.0").exists());
+        assert!(sandbox.path().join(".proto/tools/node/20.0.0").exists());
 
-        let mut cmd = create_proto_command(temp.path());
-        cmd.arg("uninstall").arg("node").arg("--yes").assert();
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("uninstall").arg("node").arg("--yes");
+            })
+            .success();
 
-        assert!(!temp.path().join(".proto/tools/node").exists());
+        assert!(!sandbox.path().join(".proto/tools/node").exists());
     }
 
     #[test]
     fn unpins_from_config() {
-        let temp = create_empty_sandbox();
-        temp.create_file(".prototools", r#"node = "19.0.0""#);
+        let sandbox = create_empty_proto_sandbox();
+        sandbox.create_file(".prototools", r#"node = "19.0.0""#);
 
-        let mut cmd = create_proto_command(temp.path());
-        cmd.arg("install").arg("node").arg("19.0.0").assert();
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install").arg("node").arg("19.0.0");
+            })
+            .success();
 
-        let mut cmd = create_proto_command(temp.path());
-        cmd.arg("uninstall").arg("node").arg("19.0.0").assert();
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("uninstall").arg("node").arg("19.0.0");
+            })
+            .success();
 
         assert_eq!(
-            std::fs::read_to_string(temp.path().join(".prototools")).unwrap(),
+            std::fs::read_to_string(sandbox.path().join(".prototools")).unwrap(),
             ""
         );
     }

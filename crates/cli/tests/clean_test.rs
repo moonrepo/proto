@@ -7,24 +7,25 @@ mod clean {
 
     #[test]
     fn cleans_without_issue() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("clean").arg("--yes").assert().success();
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("clean").arg("--yes");
+            })
+            .success();
     }
 
     #[test]
     fn purges_tool_inventory() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         sandbox.create_file(".proto/tools/node/1.2.3/index.js", "");
         sandbox.create_file(".proto/tools/node/4.5.6/index.js", "");
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("clean")
-            .arg("--yes")
-            .arg("--purge")
-            .arg("node")
-            .assert()
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("clean").arg("--yes").arg("--purge").arg("node");
+            })
             .success();
 
         assert!(!sandbox
@@ -40,7 +41,7 @@ mod clean {
     #[cfg(not(windows))]
     #[test]
     fn purges_tool_bin() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         sandbox.create_file(".proto/tools/node/fake/file", "");
         sandbox.create_file(".proto/bin/other", "");
 
@@ -53,12 +54,10 @@ mod clean {
         #[allow(deprecated)]
         std::fs::soft_link(sandbox.path().join(".proto/tools/node/fake/file"), &bin).unwrap();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("clean")
-            .arg("--yes")
-            .arg("--purge")
-            .arg("node")
-            .assert()
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("clean").arg("--yes").arg("--purge").arg("node");
+            })
             .success();
 
         assert!(!bin.exists());
@@ -67,18 +66,16 @@ mod clean {
 
     #[test]
     fn purges_tool_shims() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         sandbox.create_file(".proto/shims/npm", "");
         sandbox.create_file(".proto/shims/npm.exe", "");
         sandbox.create_file(".proto/shims/npx", "");
         sandbox.create_file(".proto/shims/npx.exe", "");
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("clean")
-            .arg("--yes")
-            .arg("--purge")
-            .arg("npm")
-            .assert()
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("clean").arg("--yes").arg("--purge").arg("npm");
+            })
             .success();
 
         if cfg!(windows) {
@@ -92,15 +89,14 @@ mod clean {
 
     #[test]
     fn purges_plugins() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         sandbox.create_file(".proto/plugins/node_plugin.wasm", "");
         sandbox.create_file(".proto/plugins/npm_plugin.wasm", "");
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("clean")
-            .arg("--yes")
-            .arg("--purge-plugins")
-            .assert()
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("clean").arg("--yes").arg("--purge-plugins");
+            })
             .success();
 
         assert!(!sandbox

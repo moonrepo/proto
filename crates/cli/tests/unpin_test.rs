@@ -10,17 +10,20 @@ mod unpin_local {
 
     #[test]
     fn errors_unknown_tool() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd.arg("unpin").arg("unknown").assert();
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("unpin").arg("unknown");
+        });
 
-        assert.stderr(predicate::str::contains("unknown is not a built-in tool"));
+        assert
+            .inner
+            .stderr(predicate::str::contains("unknown is not a built-in tool"));
     }
 
     #[test]
     fn removes_existing_pin() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
         ProtoConfig::update(sandbox.path(), |config| {
             config
@@ -30,8 +33,11 @@ mod unpin_local {
         })
         .unwrap();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("unpin").arg("node").assert().success();
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("unpin").arg("node");
+            })
+            .success();
 
         let config = load_config(sandbox.path());
 
@@ -40,7 +46,7 @@ mod unpin_local {
 
     #[test]
     fn does_nothing_for_unknown_pin() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
         ProtoConfig::update(sandbox.path(), |config| {
             config
@@ -50,8 +56,11 @@ mod unpin_local {
         })
         .unwrap();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("unpin").arg("node").assert().failure();
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("unpin").arg("node");
+            })
+            .failure();
 
         let config = load_config(sandbox.path());
 
@@ -67,7 +76,7 @@ mod unpin_global {
 
     #[test]
     fn removes_existing_pin() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
         ProtoConfig::update(sandbox.path().join(".proto"), |config| {
             config
@@ -77,11 +86,10 @@ mod unpin_global {
         })
         .unwrap();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("unpin")
-            .arg("node")
-            .arg("--global")
-            .assert()
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("unpin").arg("node").arg("--global");
+            })
             .success();
 
         let config = load_config(sandbox.path().join(".proto"));

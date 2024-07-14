@@ -4,39 +4,40 @@ mod utils;
 #[cfg(unix)]
 mod activate {
     use crate::utils::*;
-    use starbase_sandbox::assert_cmd::assert::Assert;
-    use starbase_sandbox::{assert_snapshot, get_assert_output};
+    use starbase_sandbox::{assert_snapshot, Sandbox, SandboxAssert};
 
-    fn get_activate_output(assert: &Assert, sandbox: &Sandbox) -> String {
+    fn get_activate_output(assert: &SandboxAssert, sandbox: &Sandbox) -> String {
         let root = sandbox.path().to_str().unwrap();
 
-        get_assert_output(assert).replace(root, "/sandbox")
+        assert.output().replace(root, "/sandbox")
     }
 
     #[test]
     fn empty_output_if_no_tools() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd.arg("activate").arg("bash").assert();
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("activate").arg("bash");
+        });
 
         assert_snapshot!(get_activate_output(&assert, &sandbox));
     }
 
     #[test]
     fn supports_one_tool() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         sandbox.create_file(".prototools", r#"node = "20.0.0""#);
 
-        let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd.arg("activate").arg("zsh").assert();
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("activate").arg("zsh");
+        });
 
         assert_snapshot!(get_activate_output(&assert, &sandbox));
     }
 
     #[test]
     fn supports_many_tools() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         sandbox.create_file(
             ".prototools",
             r#"
@@ -46,8 +47,9 @@ bun = "1.1.0"
 "#,
         );
 
-        let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd.arg("activate").arg("fish").assert();
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("activate").arg("fish");
+        });
 
         assert_snapshot!(get_activate_output(&assert, &sandbox));
     }

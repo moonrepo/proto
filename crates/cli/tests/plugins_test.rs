@@ -15,8 +15,8 @@ where
     F: FnOnce(&ProtoEnvironment) -> Fut,
     Fut: Future<Output = miette::Result<Tool>>,
 {
-    let fixture = create_empty_sandbox();
-    let proto = ProtoEnvironment::new_testing(fixture.path()).unwrap();
+    let sandbox = create_empty_proto_sandbox();
+    let proto = ProtoEnvironment::new_testing(sandbox.path()).unwrap();
 
     // Paths must exist for things to work correctly!
     fs::create_dir_all(&proto.root).unwrap();
@@ -117,12 +117,12 @@ mod plugins {
         #[cfg(not(target_os = "macos"))]
         #[test]
         fn supports_bun() {
-            let sandbox = create_empty_sandbox();
+            let sandbox = create_empty_proto_sandbox();
 
-            create_proto_command(sandbox.path())
-                .arg("install")
-                .arg("bun")
-                .assert()
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("bun");
+                })
                 .success();
 
             create_shim_command(sandbox.path(), "bun")
@@ -137,12 +137,12 @@ mod plugins {
 
         #[test]
         fn supports_deno() {
-            let sandbox = create_empty_sandbox();
+            let sandbox = create_empty_proto_sandbox();
 
-            create_proto_command(sandbox.path())
-                .arg("install")
-                .arg("deno")
-                .assert()
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("deno");
+                })
                 .success();
 
             create_shim_command(sandbox.path(), "deno")
@@ -157,12 +157,12 @@ mod plugins {
 
         #[test]
         fn supports_go() {
-            let sandbox = create_empty_sandbox();
+            let sandbox = create_empty_proto_sandbox();
 
-            create_proto_command(sandbox.path())
-                .arg("install")
-                .arg("go")
-                .assert()
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("go");
+                })
                 .success();
 
             create_shim_command(sandbox.path(), "go")
@@ -177,14 +177,15 @@ mod plugins {
 
         #[test]
         fn supports_node() {
-            let sandbox = create_empty_sandbox();
+            let sandbox = create_empty_proto_sandbox();
 
-            create_proto_command(sandbox.path())
-                .arg("install")
-                .arg("node")
-                .arg("--")
-                .arg("--no-bundled-npm")
-                .assert()
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("node")
+                        .arg("--")
+                        .arg("--no-bundled-npm");
+                })
                 .success();
 
             create_shim_command(sandbox.path(), "node")
@@ -199,20 +200,21 @@ mod plugins {
 
         #[test]
         fn supports_npm() {
-            let sandbox = create_empty_sandbox();
+            let sandbox = create_empty_proto_sandbox();
 
-            create_proto_command(sandbox.path())
-                .arg("install")
-                .arg("node")
-                .arg("--")
-                .arg("--no-bundled-npm")
-                .assert()
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("node")
+                        .arg("--")
+                        .arg("--no-bundled-npm");
+                })
                 .success();
 
-            create_proto_command(sandbox.path())
-                .arg("install")
-                .arg("npm")
-                .assert()
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("npm");
+                })
                 .success();
 
             create_shim_command(sandbox.path(), "npm")
@@ -227,20 +229,21 @@ mod plugins {
 
         #[test]
         fn supports_pnpm() {
-            let sandbox = create_empty_sandbox();
+            let sandbox = create_empty_proto_sandbox();
 
-            create_proto_command(sandbox.path())
-                .arg("install")
-                .arg("node")
-                .arg("--")
-                .arg("--no-bundled-npm")
-                .assert()
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("node")
+                        .arg("--")
+                        .arg("--no-bundled-npm");
+                })
                 .success();
 
-            create_proto_command(sandbox.path())
-                .arg("install")
-                .arg("pnpm")
-                .assert()
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("pnpm");
+                })
                 .success();
 
             create_shim_command(sandbox.path(), "pnpm")
@@ -255,20 +258,21 @@ mod plugins {
 
         #[test]
         fn supports_yarn() {
-            let sandbox = create_empty_sandbox();
+            let sandbox = create_empty_proto_sandbox();
 
-            create_proto_command(sandbox.path())
-                .arg("install")
-                .arg("node")
-                .arg("--")
-                .arg("--no-bundled-npm")
-                .assert()
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("node")
+                        .arg("--")
+                        .arg("--no-bundled-npm");
+                })
                 .success();
 
-            create_proto_command(sandbox.path())
-                .arg("install")
-                .arg("yarn")
-                .assert()
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("yarn");
+                })
                 .success();
 
             create_shim_command(sandbox.path(), "yarn")
@@ -283,13 +287,12 @@ mod plugins {
 
         #[test]
         fn supports_python() {
-            let sandbox = create_empty_sandbox();
+            let sandbox = create_empty_proto_sandbox();
 
-            create_proto_command(sandbox.path())
-                .arg("install")
-                .arg("python")
-                .arg("3.12.0") // Latest doesn't always work
-                .assert()
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("python").arg("3.12.0"); // Latest doesn't always work
+                })
                 .success();
 
             create_shim_command(sandbox.path(), "python")
@@ -305,24 +308,25 @@ mod plugins {
 
         #[test]
         fn supports_rust() {
-            let sandbox = create_empty_sandbox();
+            let sandbox = create_empty_proto_sandbox();
 
-            create_proto_command(sandbox.path())
-                .arg("install")
-                .arg("rust")
-                .assert();
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("rust");
+                })
+                .success();
 
             // Doesn't create shims
         }
 
         #[test]
         fn supports_toml_schema() {
-            let sandbox = create_empty_sandbox_with_tools();
+            let sandbox = create_empty_proto_sandbox_with_tools();
 
-            create_proto_command(sandbox.path())
-                .arg("install")
-                .arg("moon-test")
-                .assert()
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("moon-test");
+                })
                 .success();
 
             // Doesn't create shims

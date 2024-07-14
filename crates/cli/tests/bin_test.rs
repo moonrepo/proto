@@ -8,83 +8,85 @@ mod bin {
 
     #[test]
     fn errors_if_not_installed() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd.arg("bin").arg("npm").arg("9.0.0").assert();
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("bin").arg("npm").arg("9.0.0");
+        });
 
-        assert.stderr(predicate::str::contains(
+        assert.inner.stderr(predicate::str::contains(
             "Unable to find an executable for npm",
         ));
     }
 
     #[test]
     fn returns_path_if_installed() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("install")
-            .arg("npm")
-            .arg("9.0.0")
-            .assert()
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install").arg("npm").arg("9.0.0");
+            })
             .success();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd.arg("bin").arg("npm").arg("9.0.0").assert();
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("bin").arg("npm").arg("9.0.0");
+        });
 
         if cfg!(windows) {
-            assert.stdout(predicate::str::contains(
+            assert.inner.stdout(predicate::str::contains(
                 "tools\\npm\\9.0.0\\bin/npm-cli.js",
             ));
         } else {
-            assert.stdout(predicate::str::contains("tools/npm/9.0.0/bin/npm-cli.js"));
+            assert
+                .inner
+                .stdout(predicate::str::contains("tools/npm/9.0.0/bin/npm-cli.js"));
         }
     }
 
     #[test]
     fn returns_bin_path() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("install")
-            .arg("npm")
-            .arg("9.0.0")
-            .assert()
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install").arg("npm").arg("9.0.0");
+            })
             .success();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd.arg("bin").arg("npm").arg("9.0.0").arg("--bin").assert();
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("bin").arg("npm").arg("9.0.0").arg("--bin");
+        });
 
         if cfg!(windows) {
-            assert.stdout(predicate::str::contains("bin/npm-cli.js"));
+            assert
+                .inner
+                .stdout(predicate::str::contains("bin/npm-cli.js"));
         } else {
-            assert.stdout(predicate::str::contains("bin/npm"));
+            assert.inner.stdout(predicate::str::contains("bin/npm"));
         }
     }
 
     #[test]
     fn returns_shim_path() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("install")
-            .arg("npm")
-            .arg("9.0.0")
-            .assert()
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install").arg("npm").arg("9.0.0");
+            })
             .success();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd
-            .arg("bin")
-            .arg("npm")
-            .arg("9.0.0")
-            .arg("--shim")
-            .assert();
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("bin").arg("npm").arg("9.0.0").arg("--shim");
+        });
 
         if cfg!(windows) {
-            assert.stdout(predicate::str::contains("shims\\npm.exe"));
+            assert
+                .inner
+                .stdout(predicate::str::contains("shims\\npm.exe"));
         } else {
-            assert.stdout(predicate::str::contains("shims/npm"));
+            assert.inner.stdout(predicate::str::contains("shims/npm"));
         }
     }
 }

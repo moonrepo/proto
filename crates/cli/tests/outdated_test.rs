@@ -1,7 +1,7 @@
 mod utils;
 
+use starbase_sandbox::assert_debug_snapshot;
 use starbase_sandbox::predicates::prelude::*;
-use starbase_sandbox::{assert_debug_snapshot, get_assert_output};
 use std::fs;
 use utils::*;
 
@@ -10,30 +10,31 @@ mod outdated {
 
     #[test]
     fn errors_when_nothing_configured() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd.arg("outdated").assert().failure();
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("outdated");
+        });
 
-        assert.stderr(predicate::str::contains("No tools have been configured"));
+        assert
+            .inner
+            .stderr(predicate::str::contains("No tools have been configured"));
     }
 
     #[test]
     fn reports_all_non_global_configs() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         sandbox.create_file(".proto/.prototools", r#"go = "*""#);
         sandbox.create_file("a/.prototools", r#"node = "*""#);
         sandbox.create_file("a/b/.prototools", r#"npm = "*""#);
         sandbox.create_file("a/b/c/.prototools", r#"bun = "*""#);
 
-        let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd
-            .arg("outdated")
-            .current_dir(sandbox.path().join("a/b/c"))
-            .assert()
-            .success();
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("outdated")
+                .current_dir(sandbox.path().join("a/b/c"));
+        });
 
-        let output = get_assert_output(&assert);
+        let output = assert.output();
 
         assert!(predicate::str::contains("node").eval(&output));
         assert!(predicate::str::contains("npm").eval(&output));
@@ -43,21 +44,19 @@ mod outdated {
 
     #[test]
     fn only_includes_local_config() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         sandbox.create_file(".proto/.prototools", r#"go = "*""#);
         sandbox.create_file("a/.prototools", r#"node = "*""#);
         sandbox.create_file("a/b/.prototools", r#"npm = "*""#);
         sandbox.create_file("a/b/c/.prototools", r#"bun = "*""#);
 
-        let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd
-            .arg("outdated")
-            .arg("--only-local")
-            .current_dir(sandbox.path().join("a/b/c"))
-            .assert()
-            .success();
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("outdated")
+                .arg("--only-local")
+                .current_dir(sandbox.path().join("a/b/c"));
+        });
 
-        let output = get_assert_output(&assert);
+        let output = assert.output();
 
         assert!(predicate::str::contains("node").not().eval(&output));
         assert!(predicate::str::contains("npm").not().eval(&output));
@@ -67,21 +66,19 @@ mod outdated {
 
     #[test]
     fn can_include_global_config() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         sandbox.create_file(".proto/.prototools", r#"go = "*""#);
         sandbox.create_file("a/.prototools", r#"node = "*""#);
         sandbox.create_file("a/b/.prototools", r#"npm = "*""#);
         sandbox.create_file("a/b/c/.prototools", r#"bun = "*""#);
 
-        let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd
-            .arg("outdated")
-            .arg("--include-global")
-            .current_dir(sandbox.path().join("a/b/c"))
-            .assert()
-            .success();
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("outdated")
+                .arg("--include-global")
+                .current_dir(sandbox.path().join("a/b/c"));
+        });
 
-        let output = get_assert_output(&assert);
+        let output = assert.output();
 
         assert!(predicate::str::contains("node").eval(&output));
         assert!(predicate::str::contains("npm").eval(&output));
@@ -91,19 +88,17 @@ mod outdated {
 
     #[test]
     fn global_doesnt_overwrite_local() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         sandbox.create_file(".proto/.prototools", r#"node = "18""#);
         sandbox.create_file("a/.prototools", r#"node = "20""#);
 
-        let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd
-            .arg("outdated")
-            .arg("--include-global")
-            .current_dir(sandbox.path().join("a"))
-            .assert()
-            .success();
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("outdated")
+                .arg("--include-global")
+                .current_dir(sandbox.path().join("a"));
+        });
 
-        let output = get_assert_output(&assert);
+        let output = assert.output();
 
         assert!(predicate::str::contains("node").eval(&output));
         assert!(predicate::str::contains("20").eval(&output));
@@ -111,17 +106,18 @@ mod outdated {
 
     #[test]
     fn updates_each_file_respectively() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         sandbox.create_file(".proto/.prototools", r#"go = "1.19""#);
         sandbox.create_file("a/.prototools", r#"node = "19.0.0""#);
         sandbox.create_file("a/b/.prototools", r#"npm = "9.0.0""#);
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("outdated")
-            .arg("--update")
-            .arg("--include-global")
-            .current_dir(sandbox.path().join("a/b"))
-            .assert()
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("outdated")
+                    .arg("--update")
+                    .arg("--include-global")
+                    .current_dir(sandbox.path().join("a/b"));
+            })
             .success();
 
         assert_debug_snapshot!(vec![
@@ -133,18 +129,19 @@ mod outdated {
 
     #[test]
     fn can_update_with_latest_version() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         sandbox.create_file(".proto/.prototools", r#"pnpm = "6.0.0""#);
         sandbox.create_file("a/.prototools", r#"node = "19.0.0""#);
         sandbox.create_file("a/b/.prototools", r#"npm = "8.0.0""#);
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("outdated")
-            .arg("--update")
-            .arg("--include-global")
-            .arg("--latest")
-            .current_dir(sandbox.path().join("a/b"))
-            .assert()
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("outdated")
+                    .arg("--update")
+                    .arg("--include-global")
+                    .arg("--latest")
+                    .current_dir(sandbox.path().join("a/b"));
+            })
             .success();
 
         assert!(

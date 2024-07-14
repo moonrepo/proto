@@ -3221,15 +3221,14 @@ dependencies = [
 
 [[package]]
 name = "starbase_sandbox"
-version = "0.6.4"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee8d70a85be618d0ea80eb99c8f22ad7200414c20e03f1ac2f31062d9e4ed4b5"
+checksum = "ef8a1b40b7859260a4371b1dcebb24ebf27356de1514cca4beb6b10fc273c03a"
 dependencies = [
  "assert_cmd",
  "assert_fs",
  "clean-path",
  "insta",
- "once_cell",
  "predicates",
  "pretty_assertions",
  "starbase_utils",
