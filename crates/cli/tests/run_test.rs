@@ -1,18 +1,14 @@
 mod utils;
 
-use starbase_sandbox::{
-    assert_snapshot, create_sandbox, get_assert_output, predicates::prelude::*,
-};
-use std::path::Path;
+use starbase_sandbox::{assert_snapshot, create_sandbox, predicates::prelude::*, Sandbox};
 use std::{env, fs};
 use utils::*;
 
-fn install_node(sandbox: &Path) {
-    let mut cmd = create_proto_command(sandbox);
-    cmd.arg("install")
-        .arg("node")
-        .arg("19.0.0")
-        .assert()
+fn install_node(sandbox: &Sandbox) {
+    sandbox
+        .run_bin(|cmd| {
+            cmd.arg("install").arg("node").arg("19.0.0");
+        })
         .success();
 }
 
@@ -21,10 +17,13 @@ mod run {
 
     #[test]
     fn errors_if_not_installed() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd.arg("run").arg("node").arg("19.0.0").assert();
+        let assert = sandbox
+            .run_bin(|cmd| {
+                cmd.arg("run").arg("node").arg("19.0.0");
+            })
+            .failure();
 
         assert.stderr(predicate::str::contains(
             "This project requires Node.js 19.0.0",
@@ -33,10 +32,13 @@ mod run {
 
     #[test]
     fn errors_if_no_version_detected() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd.arg("run").arg("node").assert();
+        let assert = sandbox
+            .run_bin(|cmd| {
+                cmd.arg("run").arg("node");
+            })
+            .failure();
 
         assert.stderr(predicate::str::contains(
             "Failed to detect an applicable version",
@@ -45,72 +47,71 @@ mod run {
 
     #[test]
     fn runs_a_tool() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("install")
-            .arg("node")
-            .arg("19.0.0")
-            .assert()
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install").arg("node").arg("19.0.0");
+            })
             .success();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd
-            .arg("run")
-            .arg("node")
-            .arg("19.0.0")
-            .arg("--")
-            .arg("--version")
-            .assert();
+        let assert = sandbox
+            .run_bin(|cmd| {
+                cmd.arg("run")
+                    .arg("node")
+                    .arg("19.0.0")
+                    .arg("--")
+                    .arg("--version");
+            })
+            .success();
 
         assert.stdout(predicate::str::contains("19.0.0"));
     }
 
     #[test]
     fn runs_a_tool_using_version_detection() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("install")
-            .arg("node")
-            .arg("19.0.0")
-            .assert()
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install").arg("node").arg("19.0.0");
+            })
             .success();
 
         // Arg
-        let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd
-            .arg("run")
-            .arg("node")
-            .arg("19.0.0")
-            .arg("--")
-            .arg("--version")
-            .assert();
+        let assert = sandbox
+            .run_bin(|cmd| {
+                cmd.arg("run")
+                    .arg("node")
+                    .arg("19.0.0")
+                    .arg("--")
+                    .arg("--version");
+            })
+            .success();
 
         assert.stdout(predicate::str::contains("19.0.0"));
 
         // Env var
-        let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd
-            .env("PROTO_NODE_VERSION", "19.0.0")
-            .arg("run")
-            .arg("node")
-            .arg("--")
-            .arg("--version")
-            .assert();
+        let assert = sandbox
+            .run_bin(|cmd| {
+                cmd.env("PROTO_NODE_VERSION", "19.0.0")
+                    .arg("run")
+                    .arg("node")
+                    .arg("--")
+                    .arg("--version");
+            })
+            .success();
 
         assert.stdout(predicate::str::contains("19.0.0"));
 
         // Local version
         sandbox.create_file(".prototools", "node = \"19.0.0\"");
 
-        let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd
-            .arg("run")
-            .arg("node")
-            .arg("--")
-            .arg("--version")
-            .assert();
+        let assert = sandbox
+            .run_bin(|cmd| {
+                cmd.arg("run").arg("node").arg("--").arg("--version");
+            })
+            .success();
 
         assert.stdout(predicate::str::contains("19.0.0"));
 
@@ -119,38 +120,37 @@ mod run {
         // Global version
         sandbox.create_file(".proto/.prototools", "node = \"19.0.0\"");
 
-        let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd
-            .arg("run")
-            .arg("node")
-            .arg("--")
-            .arg("--version")
-            .assert();
+        let assert = sandbox
+            .run_bin(|cmd| {
+                cmd.arg("run").arg("node").arg("--").arg("--version");
+            })
+            .success();
 
         assert.stdout(predicate::str::contains("19.0.0"));
     }
 
     #[test]
     fn updates_last_used_at() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
         let last_used_file = sandbox.path().join(".proto/tools/node/19.0.0/.last-used");
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("install")
-            .arg("node")
-            .arg("19.0.0")
-            .assert()
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install").arg("node").arg("19.0.0");
+            })
             .success();
 
         assert!(!last_used_file.exists());
 
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("run")
-            .arg("node")
-            .arg("19.0.0")
-            .arg("--")
-            .arg("--version")
-            .assert();
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("run")
+                    .arg("node")
+                    .arg("19.0.0")
+                    .arg("--")
+                    .arg("--version");
+            })
+            .success();
 
         let value = fs::read_to_string(&last_used_file).unwrap();
 
@@ -158,13 +158,15 @@ mod run {
         assert_ne!(value, "");
 
         // Run again and make sure timestamps update
-        let mut cmd = create_proto_command(sandbox.path());
-        cmd.arg("run")
-            .arg("node")
-            .arg("19.0.0")
-            .arg("--")
-            .arg("--version")
-            .assert();
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("run")
+                    .arg("node")
+                    .arg("19.0.0")
+                    .arg("--")
+                    .arg("--version");
+            })
+            .success();
 
         let new_value = fs::read_to_string(&last_used_file).unwrap();
 
@@ -174,50 +176,55 @@ mod run {
 
     #[test]
     fn auto_installs_if_missing() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
         sandbox.create_file(".prototools", "[settings]\nauto-install = true");
 
-        let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd
-            .arg("run")
-            .arg("node")
-            .arg("19.0.0")
-            .arg("--")
-            .arg("--version")
-            .assert();
+        let assert = sandbox
+            .run_bin(|cmd| {
+                cmd.arg("run")
+                    .arg("node")
+                    .arg("19.0.0")
+                    .arg("--")
+                    .arg("--version");
+            })
+            .success();
 
-        assert.stdout(predicate::str::contains("19.0.0"));
+        assert.stdout(predicate::str::contains("sss19.0.0"));
     }
 
     #[test]
     fn auto_installs_if_missing_with_env_var() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
         env::set_var("PROTO_AUTO_INSTALL", "true");
 
-        let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd
-            .arg("run")
-            .arg("node")
-            .arg("19.0.0")
-            .arg("--")
-            .arg("--version")
-            .assert();
+        let assert = sandbox
+            .run_bin(|cmd| {
+                cmd.arg("run")
+                    .arg("node")
+                    .arg("19.0.0")
+                    .arg("--")
+                    .arg("--version");
+            })
+            .success();
 
-        assert.stdout(predicate::str::contains("19.0.0"));
+        assert.stdout(predicate::str::contains("xxx19.0.0"));
 
         env::remove_var("PROTO_AUTO_INSTALL");
     }
 
     #[test]
     fn doesnt_auto_install_if_false() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
         sandbox.create_file(".prototools", "[settings]\nauto-install = false");
 
-        let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd.arg("run").arg("node").arg("19.0.0").assert();
+        let assert = sandbox
+            .run_bin(|cmd| {
+                cmd.arg("run").arg("node").arg("19.0.0");
+            })
+            .success();
 
         assert.stderr(predicate::str::contains(
             "This project requires Node.js 19.0.0",
@@ -226,41 +233,46 @@ mod run {
 
     #[test]
     fn doesnt_auto_install_subsequently() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
         sandbox.create_file(".prototools", "[settings]\nauto-install = true");
 
-        let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd
-            .arg("run")
-            .arg("node")
-            .arg("19.0.0")
-            .arg("--")
-            .arg("--version")
-            .assert();
+        let assert = sandbox
+            .run_bin(|cmd| {
+                cmd.arg("run")
+                    .arg("node")
+                    .arg("19.0.0")
+                    .arg("--")
+                    .arg("--version");
+            })
+            .success();
 
         assert.stdout(predicate::str::contains(
             "Node.js 19.0.0 has been installed",
         ));
 
-        let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd
-            .arg("run")
-            .arg("node")
-            .arg("19.0.0")
-            .arg("--")
-            .arg("--version")
-            .assert();
+        let assert = sandbox
+            .run_bin(|cmd| {
+                cmd.arg("run")
+                    .arg("node")
+                    .arg("19.0.0")
+                    .arg("--")
+                    .arg("--version");
+            })
+            .success();
 
         assert.stdout(predicate::str::contains("Node.js 19.0.0 has been installed").not());
     }
 
     #[test]
     fn errors_if_plugin_not_configured() {
-        let sandbox = create_empty_sandbox();
+        let sandbox = create_empty_proto_sandbox();
 
-        let mut cmd = create_proto_command(sandbox.path());
-        let assert = cmd.arg("run").arg("plugin-name").arg("1.0.0").assert();
+        let assert = sandbox
+            .run_bin(|cmd| {
+                cmd.arg("run").arg("plugin-name").arg("1.0.0");
+            })
+            .failure();
 
         assert.stderr(predicate::str::contains(
             "plugin-name is not a built-in tool",
@@ -283,37 +295,35 @@ FROM_CONFIG_BOOL = true
 "#,
             );
 
-            install_node(sandbox.path());
+            install_node(&sandbox);
 
-            let mut cmd = create_proto_command(sandbox.path());
-            let assert = cmd
-                .arg("run")
-                .arg("node")
-                .arg("19.0.0")
-                .arg("--")
-                .arg("test.js")
-                .assert();
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("run")
+                    .arg("node")
+                    .arg("19.0.0")
+                    .arg("--")
+                    .arg("test.js");
+            });
 
-            assert_snapshot!(get_assert_output(&assert));
+            assert_snapshot!(assert.output_standardized());
         }
 
         #[test]
         fn inherits_from_parent() {
             let sandbox = create_sandbox("env-vars");
 
-            install_node(sandbox.path());
+            install_node(&sandbox);
 
-            let mut cmd = create_proto_command(sandbox.path());
-            let assert = cmd
-                .arg("run")
-                .arg("node")
-                .arg("19.0.0")
-                .arg("--")
-                .arg("test.js")
-                .env("FROM_PARENT", "abc123")
-                .assert();
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("run")
+                    .arg("node")
+                    .arg("19.0.0")
+                    .arg("--")
+                    .arg("test.js")
+                    .env("FROM_PARENT", "abc123");
+            });
 
-            assert_snapshot!(get_assert_output(&assert));
+            assert_snapshot!(assert.output_standardized());
         }
 
         #[test]
@@ -328,20 +338,19 @@ FROM_PARENT_REMOVED = false
 "#,
             );
 
-            install_node(sandbox.path());
+            install_node(&sandbox);
 
-            let mut cmd = create_proto_command(sandbox.path());
-            let assert = cmd
-                .arg("run")
-                .arg("node")
-                .arg("19.0.0")
-                .arg("--")
-                .arg("test.js")
-                .env("FROM_PARENT", "abc123")
-                .env("FROM_PARENT_REMOVED", "abc123")
-                .assert();
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("run")
+                    .arg("node")
+                    .arg("19.0.0")
+                    .arg("--")
+                    .arg("test.js")
+                    .env("FROM_PARENT", "abc123")
+                    .env("FROM_PARENT_REMOVED", "abc123");
+            });
 
-            assert_snapshot!(get_assert_output(&assert));
+            assert_snapshot!(assert.output_standardized());
         }
 
         #[test]
@@ -356,20 +365,19 @@ FROM_CONFIG = "abc123"
 "#,
             );
 
-            install_node(sandbox.path());
+            install_node(&sandbox);
 
-            let mut cmd = create_proto_command(sandbox.path());
-            let assert = cmd
-                .arg("run")
-                .arg("node")
-                .arg("19.0.0")
-                .arg("--")
-                .arg("test.js")
-                .env("FROM_CONFIG", "xyz789")
-                .env("FROM_PARENT", "xyz789")
-                .assert();
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("run")
+                    .arg("node")
+                    .arg("19.0.0")
+                    .arg("--")
+                    .arg("test.js")
+                    .env("FROM_CONFIG", "xyz789")
+                    .env("FROM_PARENT", "xyz789");
+            });
 
-            assert_snapshot!(get_assert_output(&assert));
+            assert_snapshot!(assert.output_standardized());
         }
 
         #[test]
@@ -387,20 +395,19 @@ FOURTH = "ignores-$FIRST-$PARENT"
 "#,
             );
 
-            install_node(sandbox.path());
+            install_node(&sandbox);
 
-            let mut cmd = create_proto_command(sandbox.path());
-            let assert = cmd
-                .arg("run")
-                .arg("node")
-                .arg("19.0.0")
-                .arg("--")
-                .arg("interpolation.js")
-                .env("SECOND", "789")
-                .env("PARENT", "xyz")
-                .assert();
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("run")
+                    .arg("node")
+                    .arg("19.0.0")
+                    .arg("--")
+                    .arg("interpolation.js")
+                    .env("SECOND", "789")
+                    .env("PARENT", "xyz");
+            });
 
-            assert_snapshot!(get_assert_output(&assert));
+            assert_snapshot!(assert.output_standardized());
         }
     }
 }

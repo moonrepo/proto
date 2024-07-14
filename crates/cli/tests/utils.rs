@@ -2,7 +2,7 @@
 
 use proto_core::{ProtoConfig, ProtoConfigManager};
 use proto_shim::get_exe_file_name;
-use starbase_sandbox::{assert_cmd, create_command_with_name, Sandbox, SandboxSettings};
+use starbase_sandbox::{assert_cmd, Sandbox};
 use std::collections::HashMap;
 use std::fs;
 use std::ops::Deref;
@@ -73,23 +73,6 @@ pub fn load_config<T: AsRef<Path>>(dir: T) -> ProtoConfig {
     let manager = ProtoConfigManager::load(dir, None, None).unwrap();
     let config = manager.get_merged_config().unwrap();
     config.to_owned()
-}
-
-#[deprecated]
-pub fn create_proto_command<T: AsRef<Path>>(path: T) -> assert_cmd::Command {
-    let path = path.as_ref();
-
-    let mut cmd = create_command_with_name(path, "proto", &SandboxSettings::default());
-    cmd.timeout(std::time::Duration::from_secs(240));
-    cmd.env("PROTO_HOME", path.join(".proto"));
-    cmd.env("PROTO_LOG", "trace");
-    cmd.env("PROTO_WASM_LOG", "trace");
-    cmd.env("PROTO_TEST", "true");
-    cmd.env("RUST_BACKTRACE", "1");
-    cmd.env("WASMTIME_BACKTRACE_DETAILS", "1");
-    // cmd.env("EXTISM_DEBUG", "1");
-    // cmd.env("EXTISM_ENABLE_WASI_OUTPUT", "1");
-    cmd
 }
 
 pub fn create_shim_command<T: AsRef<Path>>(path: T, name: &str) -> assert_cmd::Command {
