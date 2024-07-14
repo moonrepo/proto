@@ -2301,7 +2301,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.38.1"
+version = "0.38.2"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2426,7 +2426,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.25.1"
+version = "0.25.2"
 dependencies = [
  "proto_core",
  "proto_pdk_api",
