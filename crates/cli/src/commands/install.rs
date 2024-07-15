@@ -1,16 +1,19 @@
 use super::clean::clean_plugins;
 use super::pin::internal_pin;
-use crate::helpers::{create_progress_bar, disable_progress_bars};
+use crate::commands::clean::{internal_clean, CleanArgs};
+use crate::helpers::{create_progress_bar, disable_progress_bars, enable_progress_bars};
 use crate::session::ProtoSession;
 use crate::shell::{self, Export};
 use crate::telemetry::{track_usage, Metric};
 use clap::{Args, ValueEnum};
+use miette::IntoDiagnostic;
 use proto_core::{Id, PinType, Tool, UnresolvedVersionSpec};
 use proto_pdk_api::{InstallHook, SyncShellProfileInput, SyncShellProfileOutput};
 use starbase::AppResult;
 use starbase_shell::ShellType;
 use starbase_styles::color;
 use std::env;
+use std::process;
 use tracing::debug;
 
 #[derive(Clone, Debug, ValueEnum)]
@@ -19,10 +22,11 @@ pub enum PinOption {
     Local,
 }
 
-#[derive(Args, Clone, Debug)]
+#[derive(Args, Clone, Debug, Default)]
 pub struct InstallArgs {
-    #[arg(required = true, help = "ID of tool")]
-    pub id: Id,
+    // ONE
+    #[arg(help = "ID of tool to install")]
+    pub id: Option<Id>,
 
     #[arg(
         default_value = "latest",
@@ -40,6 +44,10 @@ pub struct InstallArgs {
 
     #[arg(long, help = "Pin the resolved version to .prototools")]
     pub pin: Option<Option<PinOption>>,
+
+    // ALL
+    #[arg(long, help = "Include versions from global ~/.proto/.prototools")]
+    pub include_global: bool,
 
     // Passthrough args (after --)
     #[arg(last = true, help = "Unique arguments to pass to each tool")]
@@ -82,14 +90,93 @@ async fn pin_version(
     Ok(pin)
 }
 
-pub async fn internal_install(
+fn update_shell(tool: &Tool, passthrough_args: Vec<String>) -> miette::Result<()> {
+    if !tool.plugin.has_func("sync_shell_profile") {
+        return Ok(());
+    }
+
+    let output: SyncShellProfileOutput = tool.plugin.call_func_with(
+        "sync_shell_profile",
+        SyncShellProfileInput {
+            context: tool.create_context(),
+            passthrough_args,
+        },
+    )?;
+
+    if output.skip_sync {
+        return Ok(());
+    }
+
+    let shell_type = ShellType::try_detect()?;
+    let shell = shell_type.build();
+
+    debug!(
+        shell = ?shell_type,
+        env_vars = ?output.export_vars,
+        paths = ?output.extend_path,
+        "Updating shell profile",
+    );
+
+    let mut exports = vec![];
+
+    if let Some(export_vars) = output.export_vars {
+        for (key, value) in export_vars {
+            exports.push(Export::Var(key, value));
+        }
+    }
+
+    if let Some(extend_path) = output.extend_path {
+        exports.push(Export::Path(extend_path));
+    }
+
+    if exports.is_empty() {
+        return Ok(());
+    }
+
+    let profile_path = tool.proto.store.load_preferred_profile()?.and_then(|file| {
+        if file.exists() {
+            Some(file)
+        } else {
+            debug!(
+                profile = ?file,
+                "Configured shell profile path does not exist, will not use",
+            );
+
+            None
+        }
+    });
+
+    if let Some(updated_profile) = profile_path {
+        let exported_content = shell::format_exports(&shell, &tool.id, exports);
+
+        if shell::update_profile_if_not_setup(
+            &updated_profile,
+            &exported_content,
+            &output.check_var,
+        )? {
+            println!(
+                "Added {} to shell profile {}",
+                color::property(output.check_var),
+                color::path(updated_profile)
+            );
+        }
+    }
+
+    Ok(())
+}
+
+#[tracing::instrument(skip(session, args, tool))]
+pub async fn install_one(
     session: &ProtoSession,
     args: InstallArgs,
+    id: &Id,
     tool: Option<Tool>,
 ) -> miette::Result<Tool> {
+    debug!(id = id.as_str(), "Loading tool");
+
     let mut tool = match tool {
         Some(tool) => tool,
-        None => session.load_tool(&args.id).await?,
+        None => session.load_tool(id).await?,
     };
 
     let version = if args.canary {
@@ -135,7 +222,7 @@ pub async fn internal_install(
         resolved_version.to_string(),
     );
 
-    env::set_var("PROTO_INSTALL", args.id.to_string());
+    env::set_var("PROTO_INSTALL", id.to_string());
 
     // Run before hook
     if tool.plugin.has_func("pre_install") {
@@ -220,76 +307,91 @@ pub async fn internal_install(
     Ok(tool)
 }
 
-fn update_shell(tool: &Tool, passthrough_args: Vec<String>) -> miette::Result<()> {
-    if !tool.plugin.has_func("sync_shell_profile") {
-        return Ok(());
-    }
+#[tracing::instrument(skip_all)]
+pub async fn install_all(session: &ProtoSession, args: InstallArgs) -> AppResult {
+    debug!("Loading all tools");
 
-    let output: SyncShellProfileOutput = tool.plugin.call_func_with(
-        "sync_shell_profile",
-        SyncShellProfileInput {
-            context: tool.create_context(),
-            passthrough_args,
-        },
-    )?;
+    let tools = session.load_tools().await?;
 
-    if output.skip_sync {
-        return Ok(());
-    }
+    debug!("Detecting tool versions to install");
 
-    let shell_type = ShellType::try_detect()?;
-    let shell = shell_type.build();
+    let config = if args.include_global {
+        session.env.load_config_manager()?.get_merged_config()?
+    } else {
+        session
+            .env
+            .load_config_manager()?
+            .get_merged_config_without_global()?
+    };
+    let mut versions = config.versions.to_owned();
 
-    debug!(
-        shell = ?shell_type,
-        env_vars = ?output.export_vars,
-        paths = ?output.extend_path,
-        "Updating shell profile",
-    );
+    for tool in &tools {
+        if versions.contains_key(&tool.id) {
+            continue;
+        }
 
-    let mut exports = vec![];
+        if let Some((candidate, _)) = tool.detect_version_from(&session.env.cwd).await? {
+            debug!("Detected version {} for {}", candidate, tool.get_name());
 
-    if let Some(export_vars) = output.export_vars {
-        for (key, value) in export_vars {
-            exports.push(Export::Var(key, value));
+            versions.insert(tool.id.clone(), candidate);
         }
     }
 
-    if let Some(extend_path) = output.extend_path {
-        exports.push(Export::Path(extend_path));
+    if versions.is_empty() {
+        eprintln!("No versions have been configured, nothing to install!");
+
+        process::exit(1);
     }
 
-    if exports.is_empty() {
-        return Ok(());
+    let pb = create_progress_bar(format!(
+        "Installing {} tools: {}",
+        versions.len(),
+        versions
+            .keys()
+            .map(color::id)
+            .collect::<Vec<_>>()
+            .join(", ")
+    ));
+
+    disable_progress_bars();
+
+    // Then install each tool in parallel!
+    let mut futures = vec![];
+
+    for tool in tools {
+        if let Some(version) = versions.remove(&tool.id) {
+            let proto_clone = session.clone();
+            let id = tool.id.clone();
+
+            futures.push(tokio::spawn(async move {
+                install_one(
+                    &proto_clone,
+                    InstallArgs {
+                        spec: Some(version),
+                        ..Default::default()
+                    },
+                    &id,
+                    Some(tool),
+                )
+                .await
+            }));
+        }
     }
 
-    let profile_path = tool.proto.store.load_preferred_profile()?.and_then(|file| {
-        if file.exists() {
-            Some(file)
-        } else {
-            debug!(
-                profile = ?file,
-                "Configured shell profile path does not exist, will not use",
-            );
+    for future in futures {
+        future.await.into_diagnostic()??;
+    }
 
-            None
-        }
-    });
+    enable_progress_bars();
 
-    if let Some(updated_profile) = profile_path {
-        let exported_content = shell::format_exports(&shell, &tool.id, exports);
+    pb.finish_and_clear();
 
-        if shell::update_profile_if_not_setup(
-            &updated_profile,
-            &exported_content,
-            &output.check_var,
-        )? {
-            println!(
-                "Added {} to shell profile {}",
-                color::property(output.check_var),
-                color::path(updated_profile)
-            );
-        }
+    println!("Successfully installed tools!");
+
+    if config.settings.auto_clean {
+        debug!("Auto-clean enabled, starting clean");
+
+        internal_clean(session, CleanArgs::default(), true).await?;
     }
 
     Ok(())
@@ -297,7 +399,14 @@ fn update_shell(tool: &Tool, passthrough_args: Vec<String>) -> miette::Result<()
 
 #[tracing::instrument(skip_all)]
 pub async fn install(session: ProtoSession, args: InstallArgs) -> AppResult {
-    internal_install(&session, args, None).await?;
+    match args.id.clone() {
+        Some(id) => {
+            install_one(&session, args, &id, None).await?;
+        }
+        None => {
+            install_all(&session, args).await?;
+        }
+    };
 
     Ok(())
 }

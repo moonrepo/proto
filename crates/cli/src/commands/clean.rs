@@ -277,7 +277,7 @@ pub async fn purge_plugins(session: &ProtoSession, yes: bool) -> AppResult {
     Ok(())
 }
 
-pub async fn internal_clean(session: &ProtoSession, args: &CleanArgs, yes: bool) -> AppResult {
+pub async fn internal_clean(session: &ProtoSession, args: CleanArgs, yes: bool) -> AppResult {
     let days = args.days.unwrap_or(30);
     let now = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
@@ -334,7 +334,7 @@ pub async fn clean(session: ProtoSession, args: CleanArgs) -> AppResult {
         return Ok(());
     }
 
-    internal_clean(&session, &args, force_yes).await?;
+    internal_clean(&session, args, force_yes).await?;
 
     Ok(())
 }

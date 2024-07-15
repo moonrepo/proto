@@ -1,4 +1,4 @@
-use crate::commands::install::{internal_install, InstallArgs};
+use crate::commands::install::{install_one, InstallArgs};
 use crate::error::ProtoCliError;
 use crate::session::ProtoSession;
 use clap::Args;
@@ -176,15 +176,13 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
         // Install the tool
         debug!("Auto-install setting is configured, attempting to install");
 
-        tool = internal_install(
+        tool = install_one(
             &session,
             InstallArgs {
-                canary: false,
-                id: args.id.clone(),
-                pin: None,
-                passthrough: vec![],
                 spec: Some(tool.get_resolved_version().to_unresolved_spec()),
+                ..Default::default()
             },
+            &args.id,
             Some(tool),
         )
         .await?;
