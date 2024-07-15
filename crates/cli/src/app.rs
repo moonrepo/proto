@@ -1,6 +1,5 @@
 use crate::commands::{
     debug::DebugConfigArgs,
-    install_all::InstallAllArgs,
     plugin::{AddPluginArgs, InfoPluginArgs, ListPluginsArgs, RemovePluginArgs, SearchPluginArgs},
     ActivateArgs, AliasArgs, BinArgs, CleanArgs, CompletionsArgs, DiagnoseArgs, InstallArgs,
     ListArgs, ListRemoteArgs, MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs,
@@ -160,10 +159,10 @@ pub enum Commands {
     Diagnose(DiagnoseArgs),
 
     #[command(
-        alias = "i",
+        aliases = ["i", "u", "use"],
         name = "install",
-        about = "Download and install a tool.",
-        long_about = "Download and install a tool by version into ~/.proto/tools."
+        about = "Download and install one or many tools.",
+        long_about = "Download and install one or many tools by version into ~/.proto/tools.\n\nIf no arguments are provided, will install all tools configured in .prototools.\n\nIf a name argument is provided, will install a single tool by version."
     )]
     Install(InstallArgs),
 
@@ -260,13 +259,6 @@ pub enum Commands {
         about = "Upgrade proto to the latest version."
     )]
     Upgrade,
-
-    #[command(
-        alias = "u",
-        name = "use",
-        about = "Download and install all tools from loaded .prototools."
-    )]
-    Use(InstallAllArgs),
 }
 
 #[derive(Clone, Debug, Subcommand)]
