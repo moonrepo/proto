@@ -25,32 +25,41 @@ pub enum PinOption {
 #[derive(Args, Clone, Debug, Default)]
 pub struct InstallArgs {
     // ONE
-    #[arg(help = "ID of tool to install")]
+    #[arg(help = "ID of a single tool to install")]
     pub id: Option<Id>,
 
     #[arg(
         default_value = "latest",
-        help = "Version or alias of tool",
+        help = "When installing one, the version or alias to install",
         group = "version-type"
     )]
     pub spec: Option<UnresolvedVersionSpec>,
 
     #[arg(
         long,
-        help = "Install a canary (nightly, etc) version",
+        help = "When installing one, use a canary (nightly, etc) version",
         group = "version-type"
     )]
     pub canary: bool,
 
-    #[arg(long, help = "Pin the resolved version to .prototools")]
+    #[arg(
+        long,
+        help = "When installing one, pin the resolved version to .prototools"
+    )]
     pub pin: Option<Option<PinOption>>,
 
     // ALL
-    #[arg(long, help = "Include versions from global ~/.proto/.prototools")]
+    #[arg(
+        long,
+        help = "When installing all, include versions configured in global ~/.proto/.prototools"
+    )]
     pub include_global: bool,
 
     // Passthrough args (after --)
-    #[arg(last = true, help = "Unique arguments to pass to each tool")]
+    #[arg(
+        last = true,
+        help = "When installing one, additional arguments to pass to the tool"
+    )]
     pub passthrough: Vec<String>,
 }
 

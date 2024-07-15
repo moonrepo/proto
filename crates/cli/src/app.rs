@@ -162,7 +162,7 @@ pub enum Commands {
         aliases = ["i", "u", "use"],
         name = "install",
         about = "Download and install one or many tools.",
-        long_about = "Download and install one or many tools by version into ~/.proto/tools."
+        long_about = "Download and install one or many tools by version into ~/.proto/tools.\n\nIf no arguments are provided, will install all tools configured in .prototools.\n\nIf a name argument is provided, will install a single tool by version."
     )]
     Install(InstallArgs),
 
