@@ -10,6 +10,12 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Merged `proto use` and `proto install` commands. If no arguments are provided to `proto install`, it will install all configured tools.
+
 ## 0.38.2
 
 #### 🚀 Updates
