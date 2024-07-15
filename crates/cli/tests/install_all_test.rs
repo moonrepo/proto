@@ -26,7 +26,7 @@ deno = "1.30.0"
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("use");
+                cmd.arg("install"); // use
             })
             .success();
 
@@ -46,7 +46,7 @@ deno = "1.30.0"
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("use");
+                cmd.arg("use"); // install
             })
             .success();
 
@@ -89,7 +89,7 @@ deno = "1.30.0"
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("use").arg("--include-global");
+                cmd.arg("install").arg("--include-global");
             })
             .success();
 
