@@ -35,7 +35,7 @@ mod plugin_add {
                 cmd.arg("plugin")
                     .arg("add")
                     .arg("id")
-                    .arg("https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm");
+                    .arg("https://github.com/moonrepo/tools/releases/latest/download/example_plugin.wasm");
             })
             .success();
 
@@ -46,7 +46,9 @@ mod plugin_add {
         assert_eq!(
             config.plugins.get("id").unwrap(),
             &PluginLocator::Url {
-                url: "https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm".into()
+                url:
+                    "https://github.com/moonrepo/tools/releases/latest/download/example_plugin.wasm"
+                        .into()
             }
         );
     }
@@ -63,7 +65,7 @@ mod plugin_add {
                 cmd.arg("plugin")
                     .arg("add")
                     .arg("id")
-                    .arg("https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm")
+                    .arg("https://github.com/moonrepo/tools/releases/latest/download/example_plugin.wasm")
                     .arg("--global");
             })
             .success();
@@ -75,7 +77,9 @@ mod plugin_add {
         assert_eq!(
             config.plugins.get("id").unwrap(),
             &PluginLocator::Url {
-                url: "https://github.com/moonrepo/schema-plugin/releases/latest/download/schema_plugin.wasm".into()
+                url:
+                    "https://github.com/moonrepo/tools/releases/latest/download/example_plugin.wasm"
+                        .into()
             }
         );
     }

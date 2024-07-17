@@ -49,8 +49,8 @@ starbase_utils = { version = "0.8.2", default-features = false, features = [
     "net",
     "toml",
 ] }
-thiserror = "1.0.62"
-tokio = { version = "1.38.0", features = ["full", "tracing"] }
+thiserror = "1.0.63"
+tokio = { version = "1.38.1", features = ["full", "tracing"] }
 tracing = "0.1.40"
 uuid = { version = "1.10.0", features = ["v4"] }
 
