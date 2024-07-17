@@ -10,6 +10,15 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🧩 Plugins
+
+- Updated `go_plugin` to v0.11.4.
+  - Fixed `go.mod`/`go.work` version detection/parsing on Windows.
+- Updated `node_depman_plugin` to v0.11.6.
+  - Fixed the shared globals directory not resolving correctly.
+
 ## 0.38.2
 
 #### 🚀 Updates
