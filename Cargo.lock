@@ -2301,7 +2301,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.38.2"
+version = "0.38.3"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2351,7 +2351,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.38.2"
+version = "0.38.3"
 dependencies = [
  "indexmap 2.2.6",
  "miette",
@@ -2426,7 +2426,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.25.2"
+version = "0.25.3"
 dependencies = [
  "proto_core",
  "proto_pdk_api",
@@ -3896,7 +3896,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.15.2"
+version = "0.15.3"
 dependencies = [
  "extism",
  "miette",
@@ -3921,7 +3921,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_api"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "anyhow",
  "rustc-hash 2.0.0",
@@ -3934,7 +3934,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_pdk"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "extism-pdk",
  "serde",
