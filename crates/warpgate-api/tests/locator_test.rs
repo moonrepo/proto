@@ -170,6 +170,18 @@ mod locator {
         }
 
         #[test]
+        fn parses_slug_with_file() {
+            assert_eq!(
+                PluginLocator::try_from("github://moonrepo/tools/bun_tool".to_string()).unwrap(),
+                PluginLocator::GitHub(Box::new(GitHubLocator {
+                    file_prefix: "bun_tool".into(),
+                    repo_slug: "moonrepo/tools".into(),
+                    tag: None,
+                }))
+            );
+        }
+
+        #[test]
         fn parses_latest() {
             assert_eq!(
                 PluginLocator::try_from("github://moonrepo/bun-plugin@latest".to_string()).unwrap(),
@@ -188,6 +200,19 @@ mod locator {
                 PluginLocator::GitHub(Box::new(GitHubLocator {
                     file_prefix: "bun_plugin".into(),
                     repo_slug: "moonrepo/bun_plugin".into(),
+                    tag: Some("v1.2.3".into()),
+                }))
+            );
+        }
+
+        #[test]
+        fn parses_tag_with_file() {
+            assert_eq!(
+                PluginLocator::try_from("github://moonrepo/tools/bun_tool@v1.2.3".to_string())
+                    .unwrap(),
+                PluginLocator::GitHub(Box::new(GitHubLocator {
+                    file_prefix: "bun_tool".into(),
+                    repo_slug: "moonrepo/tools".into(),
                     tag: Some("v1.2.3".into()),
                 }))
             );

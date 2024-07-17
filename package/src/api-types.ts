@@ -282,6 +282,11 @@ export interface ExecutableConfig {
 /** Output returned by the `locate_executables` function. */
 export interface LocateExecutablesOutput {
 	/**
+	 * Relative directory path from the tool install directory in which
+	 * pre-installed executables can be located.
+	 */
+	exesDir?: string | null;
+	/**
 	 * List of directory paths to find the globals installation directory.
 	 * Each path supports environment variable expansion.
 	 */

@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 /// A GitHub release locator.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct GitHubLocator {
     /// Name of asset without extension.
     /// Defaults to `<repo>_plugin`.
@@ -164,17 +164,24 @@ impl TryFrom<String> for PluginLocator {
                     return Err(PluginLocatorError::GitHubMissingOrg);
                 }
 
-                let mut parts = location.splitn(2, '@');
-                let repo_slug = parts.next().unwrap().to_owned();
-                let tag = parts.next().map(|t| t.to_owned());
+                let mut github = GitHubLocator::default();
+                let mut query = location;
 
-                Ok(PluginLocator::GitHub(Box::new(GitHubLocator {
-                    file_prefix: PluginLocator::create_wasm_file_prefix(
-                        GitHubLocator::extract_suffix_from_slug(&repo_slug),
-                    ),
-                    repo_slug,
-                    tag,
-                })))
+                if let Some(index) = query.find('@') {
+                    github.tag = Some(query[index + 1..].into());
+                    query = &query[0..index];
+                }
+
+                let mut parts = query.split('/');
+                let org = parts.next().unwrap().to_owned();
+                let repo = parts.next().unwrap().to_owned();
+                let file = parts.next().map(|f| f.to_owned());
+
+                github.file_prefix =
+                    file.unwrap_or_else(|| PluginLocator::create_wasm_file_prefix(&repo));
+                github.repo_slug = format!("{org}/{repo}");
+
+                Ok(PluginLocator::GitHub(Box::new(github)))
             }
             "http" => Err(PluginLocatorError::SecureUrlsOnly),
             "https" => Ok(PluginLocator::Url { url: value }),
