@@ -14,7 +14,10 @@ mod version_detector {
         load_tool_from_locator(
             Id::raw("node"),
             ProtoEnvironment::new().unwrap(),
-            ProtoConfig::builtin_plugins().get("node").unwrap(),
+            ProtoConfig::default()
+                .builtin_plugins()
+                .get("node")
+                .unwrap(),
         )
         .await
         .unwrap()

@@ -14,6 +14,9 @@
 
 #### 🚀 Updates
 
+- Added a new setting to `.prototools`, `settings.builtin-plugins`, that can be used to disable all built-in plugins, or only allow a few select plugins.
+  - Supports a boolean or list of plugin names.
+  - All are enabled by default for backwards compatibility.
 - Merged `proto use` and `proto install` commands. If no arguments are provided to `proto install`, it will install all configured tools.
 
 ## 0.38.4

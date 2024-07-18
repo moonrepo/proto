@@ -4,6 +4,7 @@ use proto_core::{
     load_tool_from_locator, Id, PluginLocator, ProtoEnvironment, Tool, UnresolvedVersionSpec,
 };
 use starbase_sandbox::assert_snapshot;
+use starbase_sandbox::predicates::prelude::*;
 use std::env;
 use std::fs;
 use std::future::Future;
@@ -330,6 +331,26 @@ mod plugins {
                 .success();
 
             // Doesn't create shims
+        }
+
+        #[test]
+        fn errors_if_disabled() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[settings]
+builtin-plugins = false
+"#,
+            );
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("go");
+                })
+                .failure();
+
+            assert.stderr(predicate::str::contains("Unable to proceed, go"));
         }
     }
 }

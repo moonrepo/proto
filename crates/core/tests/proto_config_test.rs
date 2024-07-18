@@ -301,6 +301,104 @@ foo = "file://./test.toml"
         );
     }
 
+    mod builtins {
+        use super::*;
+        use proto_core::BuiltinPlugins;
+        use schematic::Config;
+
+        #[test]
+        fn can_enable() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[settings]
+builtin-plugins = true
+"#,
+            );
+
+            let config =
+                ProtoConfig::from_partial(ProtoConfig::load_from(sandbox.path(), false).unwrap());
+
+            assert_eq!(
+                config.settings.builtin_plugins,
+                BuiltinPlugins::Enabled(true)
+            );
+
+            assert_eq!(config.builtin_plugins().len(), 10);
+        }
+
+        #[test]
+        fn can_enable_with_list() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[settings]
+builtin-plugins = ["node", "go"]
+"#,
+            );
+
+            let config =
+                ProtoConfig::from_partial(ProtoConfig::load_from(sandbox.path(), false).unwrap());
+
+            assert_eq!(
+                config.settings.builtin_plugins,
+                BuiltinPlugins::Allowed(vec!["node".into(), "go".into()])
+            );
+
+            assert_eq!(config.builtin_plugins().len(), 3);
+            assert_eq!(
+                config.builtin_plugins().keys().collect::<Vec<_>>(),
+                ["go", "internal-schema", "node"]
+            );
+        }
+
+        #[test]
+        fn can_disable() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[settings]
+builtin-plugins = false
+"#,
+            );
+
+            let config =
+                ProtoConfig::from_partial(ProtoConfig::load_from(sandbox.path(), false).unwrap());
+
+            assert_eq!(
+                config.settings.builtin_plugins,
+                BuiltinPlugins::Enabled(false)
+            );
+
+            assert_eq!(config.builtin_plugins().len(), 1);
+        }
+
+        #[test]
+        fn can_disable_with_list() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[settings]
+builtin-plugins = []
+"#,
+            );
+
+            let config =
+                ProtoConfig::from_partial(ProtoConfig::load_from(sandbox.path(), false).unwrap());
+
+            assert_eq!(
+                config.settings.builtin_plugins,
+                BuiltinPlugins::Allowed(vec![])
+            );
+
+            assert_eq!(config.builtin_plugins().len(), 1);
+        }
+    }
+
     mod tool_config {
         use super::*;
         use rustc_hash::FxHashMap;
