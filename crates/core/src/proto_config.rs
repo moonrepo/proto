@@ -3,10 +3,11 @@ use indexmap::IndexMap;
 use once_cell::sync::OnceCell;
 use rustc_hash::FxHashMap;
 use schematic::{
-    derive_enum, env, merge, Config, ConfigEnum, ConfigError, ConfigLoader, Format, HandlerError,
-    MergeResult, PartialConfig, ValidateError, ValidateErrorType, ValidatorError,
+    derive_enum, env, merge, Config, ConfigEnum, ConfigError, ConfigLoader, DefaultValueResult,
+    Format, HandlerError, MergeResult, PartialConfig, ValidateError, ValidateErrorType,
+    ValidatorError,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use starbase_styles::color;
 use starbase_utils::json::JsonValue;
 use starbase_utils::toml::TomlValue;
@@ -102,6 +103,17 @@ impl EnvVar {
     }
 }
 
+#[derive(Clone, Config, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(untagged)]
+pub enum BuiltinPlugins {
+    Enabled(bool),
+    Allowed(Vec<String>),
+}
+
+fn default_builtin_plugins(_context: &()) -> DefaultValueResult<BuiltinPlugins> {
+    Ok(Some(BuiltinPlugins::Enabled(true)))
+}
+
 #[derive(Clone, Config, Debug, Serialize)]
 #[config(allow_unknown_fields)]
 #[serde(rename_all = "kebab-case")]
@@ -128,6 +140,9 @@ pub struct ProtoSettingsConfig {
 
     #[setting(env = "PROTO_AUTO_INSTALL", parse_env = env::parse_bool)]
     pub auto_install: bool,
+
+    #[setting(default = default_builtin_plugins)]
+    pub builtin_plugins: BuiltinPlugins,
 
     #[setting(env = "PROTO_DETECT_STRATEGY")]
     pub detect_strategy: DetectStrategy,
@@ -170,14 +185,25 @@ pub struct ProtoConfig {
 }
 
 impl ProtoConfig {
-    pub fn builtin_plugins() -> BTreeMap<Id, PluginLocator> {
+    pub fn builtin_plugins(&self) -> BTreeMap<Id, PluginLocator> {
         let mut config = ProtoConfig::default();
+
+        // Inherit this setting in case builtins have been disabled
+        config.settings.builtin_plugins = self.settings.builtin_plugins.clone();
+
+        // Then inherit all the available builtins
         config.inherit_builtin_plugins();
+
         config.plugins
     }
 
     pub fn inherit_builtin_plugins(&mut self) {
-        if !self.plugins.contains_key("bun") {
+        let is_allowed = |id: &str| match &self.settings.builtin_plugins {
+            BuiltinPlugins::Enabled(state) => *state,
+            BuiltinPlugins::Allowed(list) => list.iter().any(|aid| aid == id),
+        };
+
+        if !self.plugins.contains_key("bun") && is_allowed("bun") {
             self.plugins.insert(
                 Id::raw("bun"),
                 PluginLocator::Url {
@@ -186,7 +212,7 @@ impl ProtoConfig {
             );
         }
 
-        if !self.plugins.contains_key("deno") {
+        if !self.plugins.contains_key("deno") && is_allowed("deno") {
             self.plugins.insert(
                 Id::raw("deno"),
                 PluginLocator::Url {
@@ -195,7 +221,7 @@ impl ProtoConfig {
             );
         }
 
-        if !self.plugins.contains_key("go") {
+        if !self.plugins.contains_key("go") && is_allowed("go") {
             self.plugins.insert(
                 Id::raw("go"),
                 PluginLocator::Url {
@@ -204,7 +230,7 @@ impl ProtoConfig {
             );
         }
 
-        if !self.plugins.contains_key("node") {
+        if !self.plugins.contains_key("node") && is_allowed("node") {
             self.plugins.insert(
                 Id::raw("node"),
                 PluginLocator::Url {
@@ -214,7 +240,7 @@ impl ProtoConfig {
         }
 
         for depman in ["npm", "pnpm", "yarn"] {
-            if !self.plugins.contains_key(depman) {
+            if !self.plugins.contains_key(depman) && is_allowed(depman) {
                 self.plugins.insert(
                     Id::raw(depman),
                     PluginLocator::Url {
@@ -224,7 +250,7 @@ impl ProtoConfig {
             }
         }
 
-        if !self.plugins.contains_key("python") {
+        if !self.plugins.contains_key("python") && is_allowed("python") {
             self.plugins.insert(
                 Id::raw("python"),
                 PluginLocator::Url {
@@ -233,7 +259,7 @@ impl ProtoConfig {
             );
         }
 
-        if !self.plugins.contains_key("rust") {
+        if !self.plugins.contains_key("rust") && is_allowed("rust") {
             self.plugins.insert(
                 Id::raw("rust"),
                 PluginLocator::Url {
