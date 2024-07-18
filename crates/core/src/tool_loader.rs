@@ -1,6 +1,6 @@
 use crate::error::ProtoError;
 use crate::proto::ProtoEnvironment;
-use crate::proto_config::{ProtoConfig, SCHEMA_PLUGIN_KEY};
+use crate::proto_config::SCHEMA_PLUGIN_KEY;
 use crate::tool::Tool;
 use starbase_utils::{json, toml};
 use std::fmt::Debug;
@@ -50,7 +50,7 @@ pub fn locate_tool(id: &Id, proto: &ProtoEnvironment) -> miette::Result<PluginLo
 
     // And finally the built-in plugins
     if locator.is_none() {
-        let builtin_plugins = ProtoConfig::builtin_plugins();
+        let builtin_plugins = configs.get_merged_config()?.builtin_plugins();
 
         if let Some(maybe_locator) = builtin_plugins.get(id) {
             debug!(
