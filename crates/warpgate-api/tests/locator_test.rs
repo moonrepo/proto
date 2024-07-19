@@ -25,9 +25,9 @@ mod locator {
 
         assert_eq!(
             PluginLocator::GitHub(Box::new(GitHubLocator {
-                file_prefix: "proto_plugin".into(),
                 repo_slug: "moonrepo/proto".into(),
                 tag: None,
+                project_name: None,
             }))
             .to_string(),
             "github://moonrepo/proto"
@@ -35,12 +35,32 @@ mod locator {
 
         assert_eq!(
             PluginLocator::GitHub(Box::new(GitHubLocator {
-                file_prefix: "proto_plugin".into(),
+                repo_slug: "moonrepo/proto".into(),
+                tag: None,
+                project_name: Some("tool".into()),
+            }))
+            .to_string(),
+            "github://moonrepo/proto/tool"
+        );
+
+        assert_eq!(
+            PluginLocator::GitHub(Box::new(GitHubLocator {
                 repo_slug: "moonrepo/proto".into(),
                 tag: Some("latest".into()),
+                project_name: None,
             }))
             .to_string(),
             "github://moonrepo/proto@latest"
+        );
+
+        assert_eq!(
+            PluginLocator::GitHub(Box::new(GitHubLocator {
+                repo_slug: "moonrepo/proto".into(),
+                tag: Some("latest".into()),
+                project_name: Some("tool".into()),
+            }))
+            .to_string(),
+            "github://moonrepo/proto/tool@latest"
         );
     }
 
@@ -150,9 +170,9 @@ mod locator {
             assert_eq!(
                 PluginLocator::try_from("github:moonrepo/bun".to_string()).unwrap(),
                 PluginLocator::GitHub(Box::new(GitHubLocator {
-                    file_prefix: "bun_plugin".into(),
                     repo_slug: "moonrepo/bun".into(),
                     tag: None,
+                    project_name: None,
                 }))
             );
         }
@@ -162,9 +182,9 @@ mod locator {
             assert_eq!(
                 PluginLocator::try_from("github://moonrepo/bun".to_string()).unwrap(),
                 PluginLocator::GitHub(Box::new(GitHubLocator {
-                    file_prefix: "bun_plugin".into(),
                     repo_slug: "moonrepo/bun".into(),
                     tag: None,
+                    project_name: None,
                 }))
             );
         }
@@ -174,9 +194,9 @@ mod locator {
             assert_eq!(
                 PluginLocator::try_from("github://moonrepo/tools/bun_tool".to_string()).unwrap(),
                 PluginLocator::GitHub(Box::new(GitHubLocator {
-                    file_prefix: "bun_tool".into(),
                     repo_slug: "moonrepo/tools".into(),
                     tag: None,
+                    project_name: Some("bun_tool".into()),
                 }))
             );
         }
@@ -186,9 +206,9 @@ mod locator {
             assert_eq!(
                 PluginLocator::try_from("github://moonrepo/bun-plugin@latest".to_string()).unwrap(),
                 PluginLocator::GitHub(Box::new(GitHubLocator {
-                    file_prefix: "bun_plugin".into(),
                     repo_slug: "moonrepo/bun-plugin".into(),
                     tag: Some("latest".into()),
+                    project_name: None,
                 }))
             );
         }
@@ -198,9 +218,9 @@ mod locator {
             assert_eq!(
                 PluginLocator::try_from("github://moonrepo/bun_plugin@v1.2.3".to_string()).unwrap(),
                 PluginLocator::GitHub(Box::new(GitHubLocator {
-                    file_prefix: "bun_plugin".into(),
                     repo_slug: "moonrepo/bun_plugin".into(),
                     tag: Some("v1.2.3".into()),
+                    project_name: None,
                 }))
             );
         }
@@ -211,9 +231,9 @@ mod locator {
                 PluginLocator::try_from("github://moonrepo/tools/bun_tool@v1.2.3".to_string())
                     .unwrap(),
                 PluginLocator::GitHub(Box::new(GitHubLocator {
-                    file_prefix: "bun_tool".into(),
                     repo_slug: "moonrepo/tools".into(),
                     tag: Some("v1.2.3".into()),
+                    project_name: Some("bun_tool".into()),
                 }))
             );
         }

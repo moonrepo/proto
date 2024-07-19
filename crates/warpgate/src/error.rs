@@ -37,6 +37,14 @@ pub enum WarpgateError {
 
     #[diagnostic(code(plugin::github::asset_missing))]
     #[error(
+        "Cannot download {} plugin from GitHub ({}), no tag found or provided.",
+        .id.style(Style::Id),
+        .repo_slug.style(Style::Id),
+    )]
+    GitHubTagMissing { id: Id, repo_slug: String },
+
+    #[diagnostic(code(plugin::github::asset_missing))]
+    #[error(
         "Cannot download {} plugin from GitHub ({}), no applicable asset found for release {}.",
         .id.style(Style::Id),
         .repo_slug.style(Style::Id),
