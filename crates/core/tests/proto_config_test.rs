@@ -155,9 +155,9 @@ bar = "https://moonrepo.dev/path/file.wasm"
                 (
                     Id::raw("foo"),
                     PluginLocator::GitHub(Box::new(GitHubLocator {
-                        file_prefix: "foo_plugin".into(),
                         repo_slug: "moonrepo/foo".into(),
                         tag: None,
+                        project_name: None
                     }))
                 ),
             ])

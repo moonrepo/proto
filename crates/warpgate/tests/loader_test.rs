@@ -119,9 +119,9 @@ mod loader {
                 .load_plugin(
                     Id::raw("test"),
                     PluginLocator::GitHub(Box::new(GitHubLocator {
-                        file_prefix: "bun_plugin.wasm".into(),
                         repo_slug: "moonrepo/invalid-repo".into(),
                         tag: None,
+                        project_name: None,
                     })),
                 )
                 .await
@@ -136,15 +136,15 @@ mod loader {
                 .load_plugin(
                     Id::raw("test"),
                     PluginLocator::GitHub(Box::new(GitHubLocator {
-                        file_prefix: "bun_plugin.wasm".into(),
                         repo_slug: "moonrepo/bun-plugin".into(),
                         tag: Some("v0.0.3".into()),
+                        project_name: None,
                     })),
                 )
                 .await
                 .unwrap();
 
-            assert_eq!(path, sandbox.path().join("plugins/test-6858d7b8b0bcd96afd3da08c25cda7cfa2d25b8776fba1cbacea2391e81bdc1e.wasm"));
+            assert_eq!(path, sandbox.path().join("plugins/test-3659b10975b8c1f704254f47c17e93f76abf6878dfcab9f9b6346491cf5b5df1.wasm"));
         }
 
         #[tokio::test]
@@ -155,15 +155,15 @@ mod loader {
                 .load_plugin(
                     Id::raw("test"),
                     PluginLocator::GitHub(Box::new(GitHubLocator {
-                        file_prefix: "bun_plugin.wasm".into(),
                         repo_slug: "moonrepo/bun-plugin".into(),
                         tag: None,
+                        project_name: None,
                     })),
                 )
                 .await
                 .unwrap();
 
-            assert_eq!(path, sandbox.path().join("plugins/test-latest-fbd480065d33e0cb2cc9501b7f20fb7edd1a552f1c629dd8b35071f5bac4a0cb.wasm"));
+            assert_eq!(path, sandbox.path().join("plugins/test-latest-3659b10975b8c1f704254f47c17e93f76abf6878dfcab9f9b6346491cf5b5df1.wasm"));
         }
     }
 }
