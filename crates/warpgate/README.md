@@ -67,16 +67,17 @@ Download an asset from a GitHub release. This approach communicates with the Git
 Defining a `GITHUB_TOKEN` environment variable is recommended to avoid rate limiting.
 
 ```rust
-// github:org/repo
-// github:org/repo@v1.2.3
+// github://org/repo
+// github://org/repo@v1.2.3
+// github://org/repo/project
 PluginLocator::GitHub(GitHubLocator{
-	file_prefix: "file_prefix".into(),
 	repo_slug: "org/repo".into(),
+	project_name: None,
 	tag: Some("v1.2.3".into()), // Latest if `None`
 })
 ```
 
-> The `file_prefix` cannot be configured with the string format, and defaults to the repository name in snake_case, suffixed with `_plugin`.
+> The `project_name` field exists to support monorepos. When defined, it will look for a tag/release that starts with the project name. For example, if the project name was `example_plugin`, it will match `example_plugin-v1.2.3` or `example_plugin@v1.2.3` tags.
 
 ## Extism plugin containers
 

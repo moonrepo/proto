@@ -12,6 +12,11 @@ pub struct GitHubApiAsset {
     pub name: String,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct GitHubApiTag {
+    pub name: String,
+}
+
 #[derive(Default, Deserialize)]
 #[serde(default)]
 pub struct GitHubApiRelease {

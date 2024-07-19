@@ -6,25 +6,14 @@ use std::str::FromStr;
 /// A GitHub release locator.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct GitHubLocator {
-    /// Name of asset without extension.
-    /// Defaults to `<repo>_plugin`.
-    pub file_prefix: String,
-
     /// Organization and repository slug: `owner/repo`.
     pub repo_slug: String,
 
-    /// Release tag to use. Defaults to `latest`.
+    /// Explicit release tag to use. Defaults to `latest`.
     pub tag: Option<String>,
-}
 
-impl GitHubLocator {
-    pub fn extract_prefix_from_slug(slug: &str) -> &str {
-        slug.split('/').next().expect("Expected an owner scope!")
-    }
-
-    pub fn extract_suffix_from_slug(slug: &str) -> &str {
-        slug.split('/').nth(1).expect("Expected a repository name!")
-    }
+    /// Project name to match tags against. Primarily used in monorepos.
+    pub project_name: Option<String>,
 }
 
 /// Errors during plugin locator parsing.
@@ -61,6 +50,7 @@ pub enum PluginLocator {
 
     /// github://owner/repo
     /// github://owner/repo@tag
+    /// github://owner/repo/project
     GitHub(Box<GitHubLocator>),
 
     /// https://url/to/file.wasm
@@ -68,18 +58,6 @@ pub enum PluginLocator {
         /// Configured URL (with https://).
         url: String,
     },
-}
-
-impl PluginLocator {
-    pub fn create_wasm_file_prefix(name: &str) -> String {
-        let mut name = name.to_lowercase().replace('-', "_");
-
-        if !name.ends_with("_plugin") {
-            name.push_str("_plugin");
-        }
-
-        name
-    }
 }
 
 #[cfg(feature = "schematic")]
@@ -101,8 +79,13 @@ impl Display for PluginLocator {
             PluginLocator::Url { url } => write!(f, "{}", url),
             PluginLocator::GitHub(github) => write!(
                 f,
-                "github://{}{}",
+                "github://{}{}{}",
                 github.repo_slug,
+                github
+                    .project_name
+                    .as_deref()
+                    .map(|n| format!("/{n}"))
+                    .unwrap_or_default(),
                 github
                     .tag
                     .as_deref()
@@ -173,12 +156,11 @@ impl TryFrom<String> for PluginLocator {
                 }
 
                 let mut parts = query.split('/');
-                let org = parts.next().unwrap().to_owned();
-                let repo = parts.next().unwrap().to_owned();
-                let file = parts.next().map(|f| f.to_owned());
+                let org = parts.next().unwrap_or_default().to_owned();
+                let repo = parts.next().unwrap_or_default().to_owned();
+                let prefix = parts.next().map(|f| f.to_owned());
 
-                github.file_prefix =
-                    file.unwrap_or_else(|| PluginLocator::create_wasm_file_prefix(&repo));
+                github.project_name = prefix;
                 github.repo_slug = format!("{org}/{repo}");
 
                 Ok(PluginLocator::GitHub(Box::new(github)))
