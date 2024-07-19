@@ -6,6 +6,7 @@ use crate::helpers::{
 };
 use crate::id::Id;
 use once_cell::sync::OnceCell;
+use serde::de::DeserializeOwned;
 use sha2::{Digest, Sha256};
 use starbase_archive::is_supported_archive_extension;
 use starbase_styles::color;
@@ -252,43 +253,17 @@ impl PluginLoader {
         id: &Id,
         github: &GitHubLocator,
     ) -> miette::Result<PathBuf> {
-        let (api_url, release_tag) = if let Some(tag) = &github.tag {
-            (
-                format!(
-                    "https://api.github.com/repos/{}/releases/tags/{tag}",
-                    github.repo_slug,
-                ),
-                tag.to_owned(),
-            )
-        } else {
-            (
-                format!(
-                    "https://api.github.com/repos/{}/releases/latest",
-                    github.repo_slug,
-                ),
-                "latest".to_owned(),
-            )
-        };
-
-        // Check the cache first using the API URL as the seed,
+        // Check the cache first using the repository slug as the seed,
         // so that we can avoid making unnecessary HTTP requests.
-        let plugin_path = self.create_cache_path(id, &api_url, release_tag == "latest");
+        let plugin_path = self.create_cache_path(
+            id,
+            github.repo_slug.as_str(),
+            github.tag.is_none() && github.tag_prefix.is_none(),
+        );
 
         if self.is_cached(id, &plugin_path)? {
             return Ok(plugin_path);
         }
-
-        trace!(
-            id = id.as_str(),
-            api_url = &api_url,
-            release_tag = &release_tag,
-            "Attempting to download plugin from GitHub release",
-        );
-
-        let handle_error = |error: reqwest::Error| WarpgateError::Http {
-            error: Box::new(error),
-            url: api_url.clone(),
-        };
 
         if self.is_offline() {
             return Err(WarpgateError::InternetConnectionRequired {
@@ -296,21 +271,67 @@ impl PluginLoader {
                     "Unable to download plugin {} from GitHub.",
                     PluginLocator::GitHub(Box::new(github.to_owned()))
                 ),
-                url: api_url,
+                url: "https://api.github.com".into(),
             }
             .into());
         }
 
-        // Otherwise make an HTTP request to the GitHub releases API,
-        // and loop through the assets to find a matching one.
-        let mut request = self.get_client()?.get(&api_url);
+        // Fetch all tags then find a matching tag + release
+        let tags_url = format!("https://api.github.com/repos/{}/tags", github.repo_slug);
+        let found_tag;
 
-        if let Ok(auth_token) = env::var("GITHUB_TOKEN") {
-            request = request.bearer_auth(auth_token);
+        trace!(
+            id = id.as_str(),
+            tag = github.tag.as_ref(),
+            tag_prefix = github.tag_prefix.as_ref(),
+            tags_url = &tags_url,
+            "Attempting to find a matching tag",
+        );
+
+        if let Some(tag) = &github.tag {
+            found_tag = Some(tag.to_owned())
+        } else if let Some(tag_prefix) = &github.tag_prefix {
+            found_tag = self
+                .send_github_request::<Vec<GitHubApiTag>>(tags_url)
+                .await?
+                .into_iter()
+                .find(|row| {
+                    row.name.starts_with(format!("{tag_prefix}@").as_str())
+                        || row.name.starts_with(format!("{tag_prefix}-").as_str())
+                })
+                .map(|row| row.name);
+        } else {
+            found_tag = Some("latest".into());
         }
 
-        let response = request.send().await.map_err(handle_error)?;
-        let release: GitHubApiRelease = response.json().await.map_err(handle_error)?;
+        let Some(release_tag) = found_tag else {
+            return Err(WarpgateError::GitHubTagMissing {
+                id: id.to_owned(),
+                repo_slug: github.repo_slug.to_owned(),
+            }
+            .into());
+        };
+
+        let release_url = if release_tag == "latest" {
+            format!(
+                "https://api.github.com/repos/{}/releases/latest",
+                github.repo_slug,
+            )
+        } else {
+            format!(
+                "https://api.github.com/repos/{}/releases/tags/{release_tag}",
+                github.repo_slug,
+            )
+        };
+
+        trace!(
+            id = id.as_str(),
+            release_url = &release_url,
+            release_tag = &release_tag,
+            "Attempting to download plugin from GitHub release",
+        );
+
+        let release: GitHubApiRelease = self.send_github_request(release_url).await?;
 
         // Find a direct WASM asset first
         for asset in &release.assets {
@@ -328,20 +349,22 @@ impl PluginLoader {
         }
 
         // Otherwise an asset with a matching name and supported extension
-        for asset in release.assets {
-            if asset.name == github.file_prefix
-                || (asset.name.starts_with(&github.file_prefix)
-                    && is_supported_archive_extension(&PathBuf::from(&asset.name)))
-            {
-                trace!(
-                    id = id.as_str(),
-                    asset = &asset.name,
-                    "Found possible asset as an archive"
-                );
+        if let Some(tag_prefix) = &github.tag_prefix {
+            for asset in release.assets {
+                if &asset.name == tag_prefix
+                    || (asset.name.starts_with(tag_prefix)
+                        && is_supported_archive_extension(&PathBuf::from(&asset.name)))
+                {
+                    trace!(
+                        id = id.as_str(),
+                        asset = &asset.name,
+                        "Found possible asset as an archive"
+                    );
 
-                return self
-                    .download_plugin(id, &asset.browser_download_url, plugin_path)
-                    .await;
+                    return self
+                        .download_plugin(id, &asset.browser_download_url, plugin_path)
+                        .await;
+                }
             }
         }
 
@@ -351,5 +374,23 @@ impl PluginLoader {
             tag: release_tag,
         }
         .into())
+    }
+
+    async fn send_github_request<T: DeserializeOwned>(&self, url: String) -> miette::Result<T> {
+        let mut request = self.get_client()?.get(&url).query(&[("per_page", "100")]);
+
+        if let Ok(auth_token) = env::var("GITHUB_TOKEN") {
+            request = request.bearer_auth(auth_token);
+        }
+
+        let handle_error = |error: reqwest::Error| WarpgateError::Http {
+            error: Box::new(error),
+            url: url.clone(),
+        };
+
+        let response = request.send().await.map_err(handle_error)?;
+        let data: T = response.json().await.map_err(handle_error)?;
+
+        Ok(data)
     }
 }

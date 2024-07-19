@@ -6,15 +6,14 @@ use std::str::FromStr;
 /// A GitHub release locator.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct GitHubLocator {
-    /// Name of asset without extension.
-    /// Defaults to `<repo>_plugin`.
-    pub file_prefix: String,
-
     /// Organization and repository slug: `owner/repo`.
     pub repo_slug: String,
 
-    /// Release tag to use. Defaults to `latest`.
+    /// Explicit release tag to use. Defaults to `latest`.
     pub tag: Option<String>,
+
+    /// Tag prefix to find releases against. Primarily used in monorepos.
+    pub tag_prefix: Option<String>,
 }
 
 impl GitHubLocator {
@@ -175,10 +174,9 @@ impl TryFrom<String> for PluginLocator {
                 let mut parts = query.split('/');
                 let org = parts.next().unwrap().to_owned();
                 let repo = parts.next().unwrap().to_owned();
-                let file = parts.next().map(|f| f.to_owned());
+                let prefix = parts.next().map(|f| f.to_owned());
 
-                github.file_prefix =
-                    file.unwrap_or_else(|| PluginLocator::create_wasm_file_prefix(&repo));
+                github.tag_prefix = prefix;
                 github.repo_slug = format!("{org}/{repo}");
 
                 Ok(PluginLocator::GitHub(Box::new(github)))
