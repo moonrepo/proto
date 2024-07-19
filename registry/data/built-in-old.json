@@ -4,47 +4,61 @@
   "plugins": [
     {
       "id": "bun",
-      "locator": "github://moonrepo/tools/bun_tool",
+      "locator": "github://moonrepo/bun-plugin",
       "format": "wasm",
       "name": "Bun",
       "description": "Bun is an all-in-one runtime and toolset for JavaScript and TypeScript, powered by Zig and Webkit.",
       "author": "moonrepo",
       "homepageUrl": "https://bun.sh/",
-      "repositoryUrl": "https://github.com/moonrepo/tools",
+      "repositoryUrl": "https://github.com/moonrepo/bun-plugin",
       "devicon": "bun",
-      "bins": ["bun", "bunx"],
-      "globalsDirs": ["~/.bun/bin"]
+      "bins": [
+        "bun",
+        "bunx"
+      ],
+      "globalsDirs": [
+        "~/.bun/bin"
+      ]
     },
     {
       "id": "deno",
-      "locator": "github://moonrepo/tools/deno_tool",
+      "locator": "github://moonrepo/deno-plugin",
       "format": "wasm",
       "name": "Deno",
       "description": "Deno is a secure runtime for JavaScript and TypeScript, powered by Rust and Chrome's V8 engine.",
       "author": "moonrepo",
       "homepageUrl": "https://deno.land/",
-      "repositoryUrl": "https://github.com/moonrepo/tools",
+      "repositoryUrl": "https://github.com/moonrepo/deno-plugin",
       "devicon": "denojs",
-      "bins": ["deno"],
+      "bins": [
+        "deno"
+      ],
       "detectionSources": [
         {
           "file": ".dvmrc",
           "url": "https://github.com/justjavac/dvm"
         }
       ],
-      "globalsDirs": ["$DENO_INSTALL_ROOT/bin", "$DENO_HOME/bin", "~/.deno/bin"]
+      "globalsDirs": [
+        "$DENO_INSTALL_ROOT/bin",
+        "$DENO_HOME/bin",
+        "~/.deno/bin"
+      ]
     },
     {
       "id": "go",
-      "locator": "github://moonrepo/tools/go_tool",
+      "locator": "github://moonrepo/go-plugin",
       "format": "wasm",
       "name": "Go",
       "description": "Go is a simple, secure, and fast systems language.",
       "author": "moonrepo",
       "homepageUrl": "https://go.dev/",
-      "repositoryUrl": "https://github.com/moonrepo/tools",
+      "repositoryUrl": "https://github.com/moonrepo/go-plugin",
       "devicon": "go",
-      "bins": ["go", "gofmt"],
+      "bins": [
+        "go",
+        "gofmt"
+      ],
       "detectionSources": [
         {
           "file": "go.work",
@@ -55,18 +69,25 @@
           "url": "https://go.dev/doc/modules/gomod-ref"
         }
       ],
-      "globalsDirs": ["$GOBIN", "$GOROOT/bin", "$GOPATH/bin", "~/go/bin"]
+      "globalsDirs": [
+        "$GOBIN",
+        "$GOROOT/bin",
+        "$GOPATH/bin",
+        "~/go/bin"
+      ]
     },
     {
       "id": "node",
-      "locator": "github://moonrepo/tools/node_tool",
+      "locator": "github://moonrepo/node-plugin",
       "format": "wasm",
       "name": "Node.js",
       "description": "Node.js is a JavaScript runtime built on Chrome's V8 engine.",
       "author": "moonrepo",
       "homepageUrl": "https://nodejs.org/",
-      "repositoryUrl": "https://github.com/moonrepo/tools",
-      "bins": ["node"],
+      "repositoryUrl": "https://github.com/moonrepo/node-plugin",
+      "bins": [
+        "node"
+      ],
       "detectionSources": [
         {
           "file": ".nvmrc",
@@ -81,71 +102,89 @@
           "label": "engines"
         }
       ],
-      "globalsDirs": ["~/.proto/tools/node/globals/bin"]
+      "globalsDirs": [
+        "~/.proto/tools/node/globals/bin"
+      ]
     },
     {
       "id": "npm",
-      "locator": "github://moonrepo/tools/node_depman_tool",
+      "locator": "github://moonrepo/node-plugin",
       "format": "wasm",
       "name": "npm",
       "description": "A Node.js package manager.",
       "author": "moonrepo",
-      "repositoryUrl": "https://github.com/moonrepo/tools",
+      "repositoryUrl": "https://github.com/moonrepo/node-plugin",
       "devicon": "npm",
-      "bins": ["npm", "npx", "node-gyp"],
+      "bins": [
+        "npm",
+        "npx",
+        "node-gyp"
+      ],
       "detectionSources": [
         {
           "file": "package.json",
           "label": "engines / package manager"
         }
       ],
-      "globalsDirs": ["~/.proto/tools/node/globals/bin"]
+      "globalsDirs": [
+        "~/.proto/tools/node/globals/bin"
+      ]
     },
     {
       "id": "pnpm",
-      "locator": "github://moonrepo/tools/node_depman_tool",
+      "locator": "github://moonrepo/node-plugin",
       "format": "wasm",
       "name": "pnpm",
       "description": "A Node.js package manager.",
       "author": "moonrepo",
-      "repositoryUrl": "https://github.com/moonrepo/tools",
+      "repositoryUrl": "https://github.com/moonrepo/node-plugin",
       "devicon": "pnpm",
-      "bins": ["pnpm", "pnpx"],
+      "bins": [
+        "pnpm",
+        "pnpx"
+      ],
       "detectionSources": [
         {
           "file": "package.json",
           "label": "engines / package manager"
         }
       ],
-      "globalsDirs": ["~/.proto/tools/node/globals/bin"]
+      "globalsDirs": [
+        "~/.proto/tools/node/globals/bin"
+      ]
     },
     {
       "id": "python",
-      "locator": "github://moonrepo/tools/python_tool",
+      "locator": "github://moonrepo/python-plugin",
       "format": "wasm",
       "name": "Python (experimental)",
       "description": "Python is a high-level, general-purpose programming language.",
       "author": "moonrepo",
       "homepageUrl": "https://www.python.org/",
-      "repositoryUrl": "https://github.com/moonrepo/tools",
-      "bins": ["python", "pip"],
+      "repositoryUrl": "https://github.com/moonrepo/python-plugin",
+      "bins": [
+        "python",
+        "pip"
+      ],
       "detectionSources": [
         {
           "file": ".python-version",
           "url": "https://github.com/pyenv/pyenv"
         }
       ],
-      "globalsDirs": ["~/.proto/tools/python/x.x.x/install/bin"]
+      "globalsDirs": [
+        "~/.proto/tools/python/x.x.x/install/bin"
+      ]
     },
     {
       "id": "rust",
-      "locator": "github://moonrepo/tools/rust_tool",
+      "locator": "github://moonrepo/rust-plugin",
       "format": "wasm",
       "name": "Rust",
       "description": "Rust is a blazingly fast and memory-efficient systems language.",
       "author": "moonrepo",
       "homepageUrl": "https://www.rust-lang.org/",
-      "repositoryUrl": "https://github.com/moonrepo/tools",
+      "repositoryUrl": "https://github.com/moonrepo/rust-plugin",
       "bins": [],
       "detectionSources": [
         {
@@ -163,21 +202,26 @@
     },
     {
       "id": "yarn",
-      "locator": "github://moonrepo/tools/node_depman_tool",
+      "locator": "github://moonrepo/node-plugin",
       "format": "wasm",
       "name": "Yarn",
       "description": "A Node.js package manager.",
       "author": "moonrepo",
-      "repositoryUrl": "https://github.com/moonrepo/tools",
+      "repositoryUrl": "https://github.com/moonrepo/node-plugin",
       "devicon": "yarn",
-      "bins": ["yarn", "yarnpkg"],
+      "bins": [
+        "yarn",
+        "yarnpkg"
+      ],
       "detectionSources": [
         {
           "file": "package.json",
           "label": "engines / package manager"
         }
       ],
-      "globalsDirs": ["~/.proto/tools/node/globals/bin"]
+      "globalsDirs": [
+        "~/.proto/tools/node/globals/bin"
+      ]
     }
   ]
 }

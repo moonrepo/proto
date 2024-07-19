@@ -172,8 +172,8 @@ impl TryFrom<String> for PluginLocator {
                 }
 
                 let mut parts = query.split('/');
-                let org = parts.next().unwrap().to_owned();
-                let repo = parts.next().unwrap().to_owned();
+                let org = parts.next().unwrap_or_default().to_owned();
+                let repo = parts.next().unwrap_or_default().to_owned();
                 let prefix = parts.next().map(|f| f.to_owned());
 
                 github.tag_prefix = prefix;
