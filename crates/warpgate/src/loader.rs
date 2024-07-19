@@ -258,7 +258,7 @@ impl PluginLoader {
         let plugin_path = self.create_cache_path(
             id,
             github.repo_slug.as_str(),
-            github.tag.is_none() && github.tag_prefix.is_none(),
+            github.tag.is_none() && github.project_name.is_none(),
         );
 
         if self.is_cached(id, &plugin_path)? {
@@ -283,14 +283,14 @@ impl PluginLoader {
         trace!(
             id = id.as_str(),
             tag = github.tag.as_ref(),
-            tag_prefix = github.tag_prefix.as_ref(),
+            tag_prefix = github.project_name.as_ref(),
             tags_url = &tags_url,
             "Attempting to find a matching tag",
         );
 
         if let Some(tag) = &github.tag {
             found_tag = Some(tag.to_owned())
-        } else if let Some(tag_prefix) = &github.tag_prefix {
+        } else if let Some(tag_prefix) = &github.project_name {
             found_tag = self
                 .send_github_request::<Vec<GitHubApiTag>>(tags_url)
                 .await?
@@ -349,7 +349,7 @@ impl PluginLoader {
         }
 
         // Otherwise an asset with a matching name and supported extension
-        if let Some(tag_prefix) = &github.tag_prefix {
+        if let Some(tag_prefix) = &github.project_name {
             for asset in release.assets {
                 if &asset.name == tag_prefix
                     || (asset.name.starts_with(tag_prefix)

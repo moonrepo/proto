@@ -27,7 +27,7 @@ mod locator {
             PluginLocator::GitHub(Box::new(GitHubLocator {
                 repo_slug: "moonrepo/proto".into(),
                 tag: None,
-                tag_prefix: None,
+                project_name: None,
             }))
             .to_string(),
             "github://moonrepo/proto"
@@ -36,11 +36,31 @@ mod locator {
         assert_eq!(
             PluginLocator::GitHub(Box::new(GitHubLocator {
                 repo_slug: "moonrepo/proto".into(),
+                tag: None,
+                project_name: Some("tool".into()),
+            }))
+            .to_string(),
+            "github://moonrepo/proto/tool"
+        );
+
+        assert_eq!(
+            PluginLocator::GitHub(Box::new(GitHubLocator {
+                repo_slug: "moonrepo/proto".into(),
                 tag: Some("latest".into()),
-                tag_prefix: None,
+                project_name: None,
             }))
             .to_string(),
             "github://moonrepo/proto@latest"
+        );
+
+        assert_eq!(
+            PluginLocator::GitHub(Box::new(GitHubLocator {
+                repo_slug: "moonrepo/proto".into(),
+                tag: Some("latest".into()),
+                project_name: Some("tool".into()),
+            }))
+            .to_string(),
+            "github://moonrepo/proto/tool@latest"
         );
     }
 
@@ -152,7 +172,7 @@ mod locator {
                 PluginLocator::GitHub(Box::new(GitHubLocator {
                     repo_slug: "moonrepo/bun".into(),
                     tag: None,
-                    tag_prefix: None,
+                    project_name: None,
                 }))
             );
         }
@@ -164,7 +184,7 @@ mod locator {
                 PluginLocator::GitHub(Box::new(GitHubLocator {
                     repo_slug: "moonrepo/bun".into(),
                     tag: None,
-                    tag_prefix: None,
+                    project_name: None,
                 }))
             );
         }
@@ -176,7 +196,7 @@ mod locator {
                 PluginLocator::GitHub(Box::new(GitHubLocator {
                     repo_slug: "moonrepo/tools".into(),
                     tag: None,
-                    tag_prefix: Some("bun_tool".into()),
+                    project_name: Some("bun_tool".into()),
                 }))
             );
         }
@@ -188,7 +208,7 @@ mod locator {
                 PluginLocator::GitHub(Box::new(GitHubLocator {
                     repo_slug: "moonrepo/bun-plugin".into(),
                     tag: Some("latest".into()),
-                    tag_prefix: None,
+                    project_name: None,
                 }))
             );
         }
@@ -200,7 +220,7 @@ mod locator {
                 PluginLocator::GitHub(Box::new(GitHubLocator {
                     repo_slug: "moonrepo/bun_plugin".into(),
                     tag: Some("v1.2.3".into()),
-                    tag_prefix: None,
+                    project_name: None,
                 }))
             );
         }
@@ -213,7 +233,7 @@ mod locator {
                 PluginLocator::GitHub(Box::new(GitHubLocator {
                     repo_slug: "moonrepo/tools".into(),
                     tag: Some("v1.2.3".into()),
-                    tag_prefix: Some("bun_tool".into()),
+                    project_name: Some("bun_tool".into()),
                 }))
             );
         }

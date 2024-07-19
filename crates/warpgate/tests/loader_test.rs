@@ -121,7 +121,7 @@ mod loader {
                     PluginLocator::GitHub(Box::new(GitHubLocator {
                         repo_slug: "moonrepo/invalid-repo".into(),
                         tag: None,
-                        tag_prefix: None,
+                        project_name: None,
                     })),
                 )
                 .await
@@ -138,7 +138,7 @@ mod loader {
                     PluginLocator::GitHub(Box::new(GitHubLocator {
                         repo_slug: "moonrepo/bun-plugin".into(),
                         tag: Some("v0.0.3".into()),
-                        tag_prefix: None,
+                        project_name: None,
                     })),
                 )
                 .await
@@ -157,7 +157,7 @@ mod loader {
                     PluginLocator::GitHub(Box::new(GitHubLocator {
                         repo_slug: "moonrepo/bun-plugin".into(),
                         tag: None,
-                        tag_prefix: None,
+                        project_name: None,
                     })),
                 )
                 .await

@@ -12,18 +12,8 @@ pub struct GitHubLocator {
     /// Explicit release tag to use. Defaults to `latest`.
     pub tag: Option<String>,
 
-    /// Tag prefix to find releases against. Primarily used in monorepos.
-    pub tag_prefix: Option<String>,
-}
-
-impl GitHubLocator {
-    pub fn extract_prefix_from_slug(slug: &str) -> &str {
-        slug.split('/').next().expect("Expected an owner scope!")
-    }
-
-    pub fn extract_suffix_from_slug(slug: &str) -> &str {
-        slug.split('/').nth(1).expect("Expected a repository name!")
-    }
+    /// Project name to match tags against. Primarily used in monorepos.
+    pub project_name: Option<String>,
 }
 
 /// Errors during plugin locator parsing.
@@ -60,6 +50,7 @@ pub enum PluginLocator {
 
     /// github://owner/repo
     /// github://owner/repo@tag
+    /// github://owner/repo/project
     GitHub(Box<GitHubLocator>),
 
     /// https://url/to/file.wasm
@@ -67,18 +58,6 @@ pub enum PluginLocator {
         /// Configured URL (with https://).
         url: String,
     },
-}
-
-impl PluginLocator {
-    pub fn create_wasm_file_prefix(name: &str) -> String {
-        let mut name = name.to_lowercase().replace('-', "_");
-
-        if !name.ends_with("_plugin") {
-            name.push_str("_plugin");
-        }
-
-        name
-    }
 }
 
 #[cfg(feature = "schematic")]
@@ -100,8 +79,13 @@ impl Display for PluginLocator {
             PluginLocator::Url { url } => write!(f, "{}", url),
             PluginLocator::GitHub(github) => write!(
                 f,
-                "github://{}{}",
+                "github://{}{}{}",
                 github.repo_slug,
+                github
+                    .project_name
+                    .as_deref()
+                    .map(|n| format!("/{n}"))
+                    .unwrap_or_default(),
                 github
                     .tag
                     .as_deref()
@@ -176,7 +160,7 @@ impl TryFrom<String> for PluginLocator {
                 let repo = parts.next().unwrap_or_default().to_owned();
                 let prefix = parts.next().map(|f| f.to_owned());
 
-                github.tag_prefix = prefix;
+                github.project_name = prefix;
                 github.repo_slug = format!("{org}/{repo}");
 
                 Ok(PluginLocator::GitHub(Box::new(github)))
