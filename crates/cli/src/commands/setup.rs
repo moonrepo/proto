@@ -50,10 +50,6 @@ pub struct SetupArgs {
 pub async fn setup(session: ProtoSession, args: SetupArgs) -> AppResult {
     let paths = starbase_utils::env::paths();
 
-    dbg!(args, paths);
-
-    return Ok(());
-
     if paths.contains(&session.env.store.shims_dir) && paths.contains(&session.env.store.bin_dir) {
         debug!("Skipping setup, proto already exists in PATH");
 
