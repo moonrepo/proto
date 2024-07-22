@@ -22,13 +22,27 @@ pub struct SetupArgs {
     #[arg(long, help = "Shell to setup for")]
     shell: Option<ShellType>,
 
-    #[arg(long, help = "Don't update a shell profile", alias = "no-profile")]
+    #[arg(
+        long,
+        help = "Don't update a shell profile",
+        alias = "no-profile",
+        env = "PROTO_NO_MODIFY_PROFILE"
+    )]
     no_modify_profile: bool,
 
-    #[arg(long, help = "Don't update the system path")]
+    #[arg(
+        long,
+        help = "Don't update the system path",
+        env = "PROTO_NO_MODIFY_PATH"
+    )]
     no_modify_path: bool,
 
-    #[arg(long, short = 'y', help = "Avoid interactive prompts and use defaults")]
+    #[arg(
+        long,
+        short = 'y',
+        help = "Avoid interactive prompts and use defaults",
+        env = "PROTO_YES"
+    )]
     yes: bool,
 }
 
