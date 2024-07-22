@@ -16,7 +16,7 @@ pub struct UninstallArgs {
     #[arg(help = "Version or alias of tool")]
     spec: Option<UnresolvedVersionSpec>,
 
-    #[arg(long, help = "Avoid and force confirm prompts")]
+    #[arg(long, help = "Avoid and force confirm prompts", env = "PROTO_YES")]
     yes: bool,
 }
 
