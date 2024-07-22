@@ -22,6 +22,7 @@ export type HostLogTarget = 'stderr' | 'stdout' | 'tracing';
 export interface HostLogInput {
 	data?: Record<string, unknown>;
 	message: string;
+	/** @type {'stderr' | 'stdout' | 'tracing'} */
 	target?: HostLogTarget;
 }
 
@@ -53,9 +54,12 @@ export interface ExecCommandOutput {
 
 /** Information about the host environment (the current runtime). */
 export interface HostEnvironment {
+	/** @type {'x86' | 'x64' | 'arm' | 'arm64' | 'longarm64' | 'm68k' | 'mips' | 'mips64' | 'powerpc' | 'powerpc64' | 'riscv64' | 's390x' | 'sparc64'} */
 	arch: SystemArch;
 	homeDir: VirtualPath;
+	/** @type {'gnu' | 'musl' | 'unknown'} */
 	libc: SystemLibc;
+	/** @type {'android' | 'dragonfly' | 'freebsd' | 'ios' | 'linux' | 'macos' | 'netbsd' | 'openbsd' | 'solaris' | 'windows'} */
 	os: SystemOS;
 }
 
@@ -114,7 +118,11 @@ export interface ToolMetadataOutput {
 	 * and should be blocked from happening.
 	 */
 	selfUpgradeCommands?: string[];
-	/** Type of the tool. */
+	/**
+	 * Type of the tool.
+	 *
+	 * @type {'language' | 'dependency-manager' | 'cli'}
+	 */
 	type: PluginType;
 }
 

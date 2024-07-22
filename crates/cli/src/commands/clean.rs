@@ -36,7 +36,7 @@ pub struct CleanArgs {
     )]
     pub purge_plugins: bool,
 
-    #[arg(long, help = "Avoid and force confirm prompts")]
+    #[arg(long, help = "Avoid and force confirm prompts", env = "PROTO_YES")]
     pub yes: bool,
 }
 
