@@ -9,7 +9,8 @@ use starbase_shell::{BoxedShell, Hook, ShellType, Statement};
 use starbase_utils::json;
 use std::env;
 use std::path::{Path, PathBuf};
-use tokio::task::{self, JoinHandle};
+use tokio::task::{self, JoinHandle, JoinSet};
+use tracing::error;
 
 #[derive(Default, Serialize)]
 struct ActivateItem {
@@ -110,21 +111,29 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
 
     // Load all the tools so that we can extract info
     let tools = session.load_tools().await?;
-    let mut futures: Vec<JoinHandle<miette::Result<ActivateItem>>> = vec![];
+    // let mut futures: Vec<JoinHandle<miette::Result<ActivateItem>>> = vec![];
+    let mut set = JoinSet::<miette::Result<ActivateItem>>::new();
 
     for mut tool in tools {
-        futures.push(task::spawn(async move {
+        // futures.push(task::spawn(
+        set.spawn(async move {
+            error!("{} - 1", &tool.id);
+
             let mut item = ActivateItem::default();
 
             // Detect a version, otherwise return early
             let Ok(version) = detect_version(&tool, None).await else {
                 return Ok(item);
             };
+            error!("{} - 2", &tool.id);
 
             // Resolve the version and locate executables
             if tool.is_setup(&version).await? {
+                error!("{} - 3", &tool.id);
                 tool.locate_exes_dir().await?;
+                error!("{} - 4", &tool.id);
                 tool.locate_globals_dirs().await?;
+                error!("{} - 5", &tool.id);
 
                 // Higher priority over globals
                 if let Some(exe_dir) = tool.get_exes_dir() {
@@ -135,17 +144,21 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
                     item.add_path(global_dir);
                 }
             }
+            error!("{} - 6", &tool.id);
 
             // Inherit all environment variables for the config
             let config = tool.proto.load_config()?;
+            error!("{} - 7", &tool.id);
 
             item.env.extend(config.get_env_vars(Some(&tool.id))?);
             item.id = tool.id;
+            error!("{} - 8", &item.id);
 
             Ok(item)
-        }));
+        });
     }
 
+    error!("before 1");
     // Aggregate our list of shell exports
     let mut info = ActivateInfo::default();
 
@@ -154,9 +167,20 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
         info.paths.push(session.env.store.shims_dir.clone());
     }
 
-    for future in futures {
-        info.collect(future.await.into_diagnostic()??);
+    error!("before 2");
+
+    // for future in futures {
+    //     error!("loop");
+    //     let data = future.await.into_diagnostic()??;
+    //     info.collect(data);
+    // }
+
+    while let Some(item) = set.join_next().await {
+        error!("loop");
+        info.collect(item.into_diagnostic()??);
     }
+
+    error!("after");
 
     // Put bins last as a last resort lookup
     if !args.no_bin {
@@ -177,6 +201,8 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
 
         return Ok(());
     }
+
+    error!("format");
 
     match shell.format_hook(Hook::OnChangeDir {
         command: match shell_type {
@@ -201,6 +227,8 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
             // warn!("Reason: {}", color::muted_light(error.to_string()));
         }
     };
+
+    error!("exit");
 
     Ok(())
 }
