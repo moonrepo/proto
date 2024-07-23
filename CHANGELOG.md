@@ -14,7 +14,7 @@
 
 #### 💥 Breaking
 
-- Updated `proto activate` to not include global tools found in `~/.proto/.prototools` by default.
+- Updated `proto activate` to not include tools without a configured version and to not include global tools found in `~/.proto/.prototools` by default.
   - If you would like to include global tools, pass `--include-global`.
   - Do be aware that having a lot of global tools will cause considerable performance loss when activation is triggered.
 
