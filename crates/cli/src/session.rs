@@ -10,6 +10,7 @@ use proto_core::{
 use rustc_hash::FxHashSet;
 use starbase::{AppResult, AppSession};
 use std::sync::Arc;
+use tokio::task::JoinSet;
 
 #[derive(Clone)]
 pub struct ProtoSession {
@@ -63,7 +64,7 @@ impl ProtoSession {
         // collide when attempting to download the schema plugin!
         load_schema_plugin_with_proto(&self.env).await?;
 
-        let mut futures = vec![];
+        let mut set = JoinSet::new();
         let mut tools = vec![];
 
         for (id, locator) in &config.plugins {
@@ -80,13 +81,11 @@ impl ProtoSession {
             let locator = locator.to_owned();
             let proto = Arc::clone(&self.env);
 
-            futures.push(tokio::spawn(async move {
-                load_tool_from_locator(id, proto, locator).await
-            }));
+            set.spawn(async move { load_tool_from_locator(id, proto, locator).await });
         }
 
-        for future in futures {
-            tools.push(future.await.into_diagnostic()??);
+        while let Some(result) = set.join_next().await {
+            tools.push(result.into_diagnostic()??);
         }
 
         Ok(tools)

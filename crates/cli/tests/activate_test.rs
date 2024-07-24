@@ -53,4 +53,20 @@ bun = "1.1.0"
 
         assert_snapshot!(get_activate_output(&assert, &sandbox));
     }
+
+    #[test]
+    fn can_include_global_tools() {
+        let sandbox = create_empty_proto_sandbox();
+        sandbox.create_file(".proto/.prototools", r#"npm = "10.0.0""#);
+        sandbox.create_file(".prototools", r#"pnpm = "8.0.0""#);
+
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("activate")
+                .arg("elvish")
+                .arg("--export")
+                .arg("--include-global");
+        });
+
+        assert_snapshot!(get_activate_output(&assert, &sandbox));
+    }
 }
