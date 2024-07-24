@@ -165,6 +165,9 @@ pub fn main() -> Result<()> {
 
     debug(|| "Running proto shim".into());
 
+    // Set the version variable so child processes utilize it
+    env::set_var("PROTO_VERSION", env!("CARGO_PKG_VERSION"));
+
     // Extract arguments to pass-through
     let args = env::args_os().collect::<Vec<_>>();
 
@@ -197,9 +200,9 @@ pub fn main() -> Result<()> {
     command.env("PROTO_SHIM_NAME", shim_name);
     command.env("PROTO_SHIM_PATH", exe_path);
 
-    // Must be the last line!
     debug(|| "Executing proto command".into());
     debug(|| "This will replace the current process and stop debugging!".into());
 
+    // Must be the last line!
     Ok(exec_command_and_replace(command)?)
 }
