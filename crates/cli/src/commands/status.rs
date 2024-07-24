@@ -53,6 +53,10 @@ pub async fn status(session: ProtoSession, args: StatusArgs) -> AppResult {
 
         if let Some(file_versions) = &file.config.versions {
             for (tool_id, config_version) in file_versions {
+                if tool_id == "proto" {
+                    continue;
+                }
+
                 items.insert(
                     tool_id.to_owned(),
                     StatusItem {

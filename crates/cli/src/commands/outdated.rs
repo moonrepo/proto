@@ -84,6 +84,10 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
 
         if let Some(file_versions) = &file.config.versions {
             for (tool_id, config_version) in file_versions {
+                if tool_id == "proto" {
+                    continue;
+                }
+
                 configured_tools.insert(
                     tool_id.to_owned(),
                     (config_version.to_owned(), file.path.to_owned()),

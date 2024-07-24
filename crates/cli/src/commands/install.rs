@@ -333,6 +333,7 @@ pub async fn install_all(session: &ProtoSession, args: InstallArgs) -> AppResult
             .get_merged_config_without_global()?
     };
     let mut versions = config.versions.to_owned();
+    versions.remove("proto");
 
     for tool in &tools {
         if versions.contains_key(&tool.id) {
