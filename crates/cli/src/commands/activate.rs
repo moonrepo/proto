@@ -9,7 +9,7 @@ use starbase_shell::{BoxedShell, Hook, ShellType, Statement};
 use starbase_utils::json;
 use std::env;
 use std::path::{Path, PathBuf};
-use tokio::task::{self, JoinHandle};
+use tokio::task::JoinSet;
 
 #[derive(Default, Serialize)]
 struct ActivateItem {
@@ -87,6 +87,9 @@ pub struct ActivateArgs {
     )]
     export: bool,
 
+    #[arg(long, help = "Include versions from global ~/.proto/.prototools")]
+    include_global: bool,
+
     #[arg(long, help = "Print the activate instructions in JSON format")]
     json: bool,
 
@@ -106,14 +109,23 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     };
 
     // Pre-load configuration
-    session.env.load_config()?;
+    let manager = session.env.load_config_manager()?;
+    let config = if args.include_global {
+        manager.get_merged_config()?
+    } else {
+        manager.get_merged_config_without_global()?
+    };
 
     // Load all the tools so that we can extract info
     let tools = session.load_tools().await?;
-    let mut futures: Vec<JoinHandle<miette::Result<ActivateItem>>> = vec![];
+    let mut set = JoinSet::<miette::Result<ActivateItem>>::new();
 
     for mut tool in tools {
-        futures.push(task::spawn(async move {
+        if !config.versions.contains_key(&tool.id) {
+            continue;
+        }
+
+        set.spawn(async move {
             let mut item = ActivateItem::default();
 
             // Detect a version, otherwise return early
@@ -143,7 +155,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
             item.id = tool.id;
 
             Ok(item)
-        }));
+        });
     }
 
     // Aggregate our list of shell exports
@@ -154,8 +166,8 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
         info.paths.push(session.env.store.shims_dir.clone());
     }
 
-    for future in futures {
-        info.collect(future.await.into_diagnostic()??);
+    while let Some(item) = set.join_next().await {
+        info.collect(item.into_diagnostic()??);
     }
 
     // Put bins last as a last resort lookup

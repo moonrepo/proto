@@ -12,6 +12,12 @@
 
 ## Unreleased
 
+#### 💥 Breaking
+
+- Updated `proto activate` to not include tools without a configured version and to not include global tools found in `~/.proto/.prototools` by default.
+  - If you would like to include global tools, pass `--include-global`.
+  - Do be aware that having a lot of global tools will cause considerable performance loss when activation is triggered.
+
 #### 🚀 Updates
 
 - Added a new setting to `.prototools`, `settings.builtin-plugins`, that can be used to disable all built-in plugins, or only allow a few select plugins.

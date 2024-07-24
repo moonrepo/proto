@@ -6,8 +6,11 @@ export __ORIG_PATH="$PATH"
 
 _proto_hook() {
   local previous_exit_status=$?;
-  trap -- '' SIGINT;
-  eval "$(proto activate bash --export)";
+  trap '' SIGINT;
+  output=$(proto activate bash --export)
+  if [ -n "$output" ]; then
+    eval "$output";
+  fi
   trap - SIGINT;
   return $previous_exit_status;
 };
