@@ -27,10 +27,14 @@ pub fn sync_current_proto_tool(env: &ProtoEnvironment, version: &str) -> AppResu
         return Ok(());
     }
 
-    let exe_names = vec![get_exe_file_name("proto"), get_exe_file_name("proto-shim")];
+    let Ok(current_exe) = env::current_exe() else {
+        return Ok(());
+    };
 
-    for exe_name in exe_names {
-        let src_file = env.store.bin_dir.join(&exe_name);
+    let exe_dir = current_exe.parent().unwrap_or(&env.store.bin_dir);
+
+    for exe_name in [get_exe_file_name("proto"), get_exe_file_name("proto-shim")] {
+        let src_file = exe_dir.join(&exe_name);
         let dst_file = tool_dir.join(&exe_name);
 
         if src_file.exists() && !dst_file.exists() {
