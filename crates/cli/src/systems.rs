@@ -1,6 +1,7 @@
 use crate::helpers::fetch_latest_version;
 use miette::IntoDiagnostic;
 use proto_core::{is_offline, now, ProtoEnvironment};
+use proto_shim::get_exe_file_name;
 use semver::Version;
 use starbase::AppResult;
 use starbase_styles::color;
@@ -18,6 +19,23 @@ pub fn detect_proto_env() -> AppResult<ProtoEnvironment> {
 }
 
 // ANALYZE
+
+#[instrument(skip_all)]
+pub fn sync_proto_tool(env: &ProtoEnvironment, version: &str) -> AppResult {
+    let tool_dir = env.store.inventory_dir.join("proto").join(version);
+    let exe_names = vec![get_exe_file_name("proto"), get_exe_file_name("proto-shim")];
+
+    for exe_name in exe_names {
+        let src_file = env.store.bin_dir.join(&exe_name);
+        let dst_file = tool_dir.join(&exe_name);
+
+        if src_file.exists() && !dst_file.exists() {
+            fs::copy_file(src_file, dst_file)?;
+        }
+    }
+
+    Ok(())
+}
 
 #[instrument(skip_all)]
 pub fn load_proto_configs(env: &ProtoEnvironment) -> AppResult {

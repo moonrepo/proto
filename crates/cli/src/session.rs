@@ -101,6 +101,7 @@ impl AppSession for ProtoSession {
     }
 
     async fn analyze(&mut self) -> AppResult {
+        sync_proto_tool(&self.env, &self.cli_version)?;
         load_proto_configs(&self.env)?;
 
         Ok(())
