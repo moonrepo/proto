@@ -60,39 +60,37 @@ pub async fn download_versioned_proto_tool(env: &ProtoEnvironment) -> AppResult 
         .load_config_manager()?
         .get_merged_config_without_global()?;
 
-    if let Some(spec) = config.versions.get("proto") {
-        if let UnresolvedVersionSpec::Semantic(version) = spec {
-            let version = version.to_string();
-            let tool_dir = env.store.inventory_dir.join("proto").join(&version);
+    if let Some(UnresolvedVersionSpec::Semantic(version)) = config.versions.get("proto") {
+        let version = version.to_string();
+        let tool_dir = env.store.inventory_dir.join("proto").join(&version);
 
-            if tool_dir.exists() {
-                return Ok(());
-            }
-
-            let triple_target = determine_triple()?;
-
-            debug!(
-                version = &version,
-                install_dir = ?tool_dir,
-                "Downloading a versioned proto binary because it was configured in {}",
-                PROTO_CONFIG_NAME
-            );
-
-            unpack_release(
-                download_release(
-                    &triple_target,
-                    &version,
-                    &env.store.temp_dir,
-                    |downloaded_size, total_size| {
-                        trace!("Downloaded {} of {} bytes", downloaded_size, total_size);
-                    },
-                )
-                .await?,
-                &tool_dir,
-                &tool_dir,
-                false,
-            )?;
+        if tool_dir.exists() {
+            return Ok(());
         }
+
+        let triple_target = determine_triple()?;
+
+        debug!(
+            version = &version,
+            install_dir = ?tool_dir,
+            "Downloading a versioned proto because it was configured in {}",
+            PROTO_CONFIG_NAME
+        );
+
+        unpack_release(
+            download_release(
+                &triple_target,
+                &version,
+                &env.store.temp_dir,
+                |downloaded_size, total_size| {
+                    trace!("Downloaded {} of {} bytes", downloaded_size, total_size);
+                },
+            )
+            .await?,
+            &tool_dir,
+            &tool_dir,
+            false,
+        )?;
     }
 
     Ok(())
