@@ -13,7 +13,7 @@ pub use windows::*;
 use std::env;
 use std::path::PathBuf;
 
-pub const SHIM_VERSION: u8 = 14;
+pub const SHIM_VERSION: u8 = 15;
 
 pub fn locate_proto_exe(bin: &str) -> Option<PathBuf> {
     let bin = get_exe_file_name(bin);
