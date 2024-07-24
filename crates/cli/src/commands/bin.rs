@@ -1,6 +1,7 @@
 use crate::session::ProtoSession;
 use clap::Args;
 use proto_core::{detect_version, Id, UnresolvedVersionSpec};
+use proto_shim::{get_exe_file_name, locate_proto_exe};
 use starbase::AppResult;
 
 #[derive(Args, Clone, Debug)]
@@ -20,6 +21,17 @@ pub struct BinArgs {
 
 #[tracing::instrument(skip_all)]
 pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
+    if args.id == "proto" {
+        println!(
+            "{}",
+            locate_proto_exe("proto")
+                .unwrap_or(session.env.store.bin_dir.join(get_exe_file_name("proto")))
+                .display()
+        );
+
+        return Ok(());
+    }
+
     let mut tool = session.load_tool(&args.id).await?;
     let version = detect_version(&tool, args.spec.clone()).await?;
 

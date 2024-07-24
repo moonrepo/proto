@@ -52,6 +52,21 @@ mod proto_config {
     }
 
     #[test]
+    #[should_panic(expected = "proto is a reserved keyword, cannot use as a plugin identifier")]
+    fn errors_for_reserved_plugin_words() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(
+            ".prototools",
+            r#"
+[plugins]
+proto = "file://./file.toml"
+"#,
+        );
+
+        handle_error(ProtoConfig::load_from(sandbox.path(), false).unwrap_err());
+    }
+
+    #[test]
     fn can_set_settings() {
         let sandbox = create_empty_sandbox();
         sandbox.create_file(

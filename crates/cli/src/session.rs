@@ -97,11 +97,14 @@ impl AppSession for ProtoSession {
     async fn startup(&mut self) -> AppResult {
         self.env = Arc::new(detect_proto_env()?);
 
+        sync_current_proto_tool(&self.env, &self.cli_version)?;
+
         Ok(())
     }
 
     async fn analyze(&mut self) -> AppResult {
         load_proto_configs(&self.env)?;
+        download_versioned_proto_tool(&self.env).await?;
 
         Ok(())
     }
