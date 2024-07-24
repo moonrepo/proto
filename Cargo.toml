@@ -9,7 +9,7 @@ async-trait = "0.1.81"
 clap = "4.5.9"
 clap_complete = "4.5.8"
 dirs = "5.0.1"
-extism = "1.0.0" # Lower for consumers
+extism = { version = "1.0.0", default-features = false }
 extism-pdk = "1.2.0"
 human-sort = "0.2.2"
 indexmap = "2.2.6"

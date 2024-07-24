@@ -9,7 +9,7 @@ repository = "https://github.com/moonrepo/proto"
 [dependencies]
 system_env = { version = "0.5.0", path = "../system-env" }
 warpgate_api = { version = "0.8.2", path = "../warpgate-api" }
-extism = { workspace = true }
+extism = { workspace = true, features = ["http"] }
 miette = { workspace = true }
 once_cell = { workspace = true }
 once_map = { workspace = true }
@@ -24,6 +24,9 @@ starbase_utils = { workspace = true, features = ["glob", "net"] }
 starbase_styles = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
+
+# Enabling certs for extism!
+ureq = { version = "2.10.0", features = ["native-certs"] }
 
 [dev-dependencies]
 starbase_sandbox = { workspace = true }
