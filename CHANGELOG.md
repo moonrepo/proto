@@ -10,6 +10,12 @@
 - [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Attempted fix for some certificate issues when making requests.
+
 ## 0.38.3
 
 #### 🧩 Plugins
