@@ -5,7 +5,7 @@ use rustc_hash::FxHashMap;
 use schematic::{
     derive_enum, env, merge, Config, ConfigEnum, ConfigError, ConfigLoader, DefaultValueResult,
     Format, HandlerError, MergeResult, PartialConfig, ValidateError, ValidateErrorType,
-    ValidatorError,
+    ValidateResult, ValidatorError,
 };
 use serde::{Deserialize, Serialize};
 use starbase_styles::color;
@@ -67,6 +67,21 @@ where
     }
 
     Ok(Some(prev))
+}
+
+fn validate_reserved_words(
+    value: &BTreeMap<Id, PluginLocator>,
+    _partial: &PartialProtoConfig,
+    _context: &(),
+    _finalize: bool,
+) -> ValidateResult {
+    if value.contains_key("proto") {
+        return Err(ValidateError::new(
+            "proto is a reserved keyword, cannot use as a plugin identifier",
+        ));
+    }
+
+    Ok(())
 }
 
 derive_enum!(
@@ -168,7 +183,7 @@ pub struct ProtoConfig {
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub tools: BTreeMap<Id, ProtoToolConfig>,
 
-    #[setting(merge = merge::merge_btreemap)]
+    #[setting(merge = merge::merge_btreemap, validate = validate_reserved_words)]
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub plugins: BTreeMap<Id, PluginLocator>,
 
