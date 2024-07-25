@@ -1,6 +1,5 @@
 use crate::helpers::ENV_VAR_SUB;
 use indexmap::IndexMap;
-use once_cell::sync::OnceCell;
 use rustc_hash::FxHashMap;
 use schematic::{
     derive_enum, env, merge, Config, ConfigEnum, ConfigError, ConfigLoader, DefaultValueResult,
@@ -16,7 +15,7 @@ use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use tracing::{debug, instrument, trace};
 use version_spec::*;
 use warpgate::{HttpOptions, Id, PluginLocator};
@@ -240,7 +239,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("go"),
                 PluginLocator::Url {
-                    url: "https://github.com/moonrepo/tools/releases/download/go_tool-v0.11.4/go_tool.wasm".into()
+                    url: "https://github.com/moonrepo/tools/releases/download/go_tool-v0.12.0/go_tool.wasm".into()
                 }
             );
         }
@@ -259,7 +258,7 @@ impl ProtoConfig {
                 self.plugins.insert(
                     Id::raw(depman),
                     PluginLocator::Url {
-                        url: "https://github.com/moonrepo/tools/releases/download/node_depman_tool-v0.11.6/node_depman_tool.wasm".into()
+                        url: "https://github.com/moonrepo/tools/releases/download/node_depman_tool-v0.12.0/node_depman_tool.wasm".into()
                     }
                 );
             }
@@ -516,9 +515,10 @@ pub struct ProtoConfigManager {
     // an empty entry. This helps with traversal logic.
     pub files: Vec<ProtoConfigFile>,
 
-    all_config: Arc<OnceCell<ProtoConfig>>,
-    all_config_no_global: Arc<OnceCell<ProtoConfig>>,
-    cwd_config: Arc<OnceCell<ProtoConfig>>,
+    all_config: Arc<OnceLock<ProtoConfig>>,
+    all_config_no_global: Arc<OnceLock<ProtoConfig>>,
+    global_config: Arc<OnceLock<ProtoConfig>>,
+    local_config: Arc<OnceLock<ProtoConfig>>,
 }
 
 impl ProtoConfigManager {
@@ -562,47 +562,64 @@ impl ProtoConfigManager {
 
         Ok(Self {
             files,
-            all_config: Arc::new(OnceCell::new()),
-            all_config_no_global: Arc::new(OnceCell::new()),
-            cwd_config: Arc::new(OnceCell::new()),
+            all_config: Arc::new(OnceLock::new()),
+            all_config_no_global: Arc::new(OnceLock::new()),
+            global_config: Arc::new(OnceLock::new()),
+            local_config: Arc::new(OnceLock::new()),
         })
     }
 
     pub fn get_global_config(&self) -> miette::Result<&ProtoConfig> {
-        self.cwd_config.get_or_try_init(|| {
+        if self.global_config.get().is_none() {
             debug!("Loading global config only");
 
-            self.merge_configs(self.files.iter().filter(|file| file.global).collect())
-        })
+            let _ = self
+                .global_config
+                .set(self.merge_configs(self.files.iter().filter(|file| file.global).collect())?);
+        }
+
+        Ok(self.global_config.get().unwrap())
     }
 
     pub fn get_local_config(&self, cwd: &Path) -> miette::Result<&ProtoConfig> {
-        self.cwd_config.get_or_try_init(|| {
+        if self.local_config.get().is_none() {
             debug!("Loading local config only");
 
-            self.merge_configs(
-                self.files
-                    .iter()
-                    .filter(|file| file.path.parent().is_some_and(|dir| dir == cwd))
-                    .collect(),
-            )
-        })
+            let _ = self.local_config.set(
+                self.merge_configs(
+                    self.files
+                        .iter()
+                        .filter(|file| file.path.parent().is_some_and(|dir| dir == cwd))
+                        .collect(),
+                )?,
+            );
+        }
+
+        Ok(self.local_config.get().unwrap())
     }
 
     pub fn get_merged_config(&self) -> miette::Result<&ProtoConfig> {
-        self.all_config.get_or_try_init(|| {
+        if self.all_config.get().is_none() {
             debug!("Merging loaded configs");
 
-            self.merge_configs(self.files.iter().collect())
-        })
+            let _ = self
+                .all_config
+                .set(self.merge_configs(self.files.iter().collect())?);
+        }
+
+        Ok(self.all_config.get().unwrap())
     }
 
     pub fn get_merged_config_without_global(&self) -> miette::Result<&ProtoConfig> {
-        self.all_config_no_global.get_or_try_init(|| {
+        if self.all_config_no_global.get().is_none() {
             debug!("Merging loaded configs without global");
 
-            self.merge_configs(self.files.iter().filter(|file| !file.global).collect())
-        })
+            let _ = self
+                .all_config_no_global
+                .set(self.merge_configs(self.files.iter().filter(|file| !file.global).collect())?);
+        }
+
+        Ok(self.all_config_no_global.get().unwrap())
     }
 
     fn merge_configs(&self, files: Vec<&ProtoConfigFile>) -> miette::Result<ProtoConfig> {
