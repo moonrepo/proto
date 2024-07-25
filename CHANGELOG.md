@@ -2,13 +2,13 @@
 
 ## Plugin changelogs
 
-- [Bun](https://github.com/moonrepo/bun-plugin/blob/master/CHANGELOG.md)
-- [Deno](https://github.com/moonrepo/deno-plugin/blob/master/CHANGELOG.md)
-- [Go](https://github.com/moonrepo/go-plugin/blob/master/CHANGELOG.md)
-- [Node](https://github.com/moonrepo/node-plugin/blob/master/CHANGELOG.md)
-- [Python](https://github.com/moonrepo/python-plugin/blob/master/CHANGELOG.md)
-- [Rust](https://github.com/moonrepo/rust-plugin/blob/master/CHANGELOG.md)
-- [TOML schema](https://github.com/moonrepo/schema-plugin/blob/master/CHANGELOG.md)
+- [Bun](https://github.com/moonrepo/tools/blob/master/tools/bun/CHANGELOG.md)
+- [Deno](https://github.com/moonrepo/tools/blob/master/tools/deno/CHANGELOG.md)
+- [Go](https://github.com/moonrepo/tools/blob/master/tools/go/CHANGELOG.md)
+- [Node](https://github.com/moonrepo/tools/blob/master/tools/node/CHANGELOG.md)
+- [Python](https://github.com/moonrepo/tools/blob/master/tools/python/CHANGELOG.md)
+- [Rust](https://github.com/moonrepo/tools/blob/master/tools/rust/CHANGELOG.md)
+- [TOML schema](https://github.com/moonrepo/tools/blob/master/tools/internal-schema/CHANGELOG.md)
 
 ## Unreleased
 
@@ -31,6 +31,10 @@
   ```toml
   proto = "0.38.0"
   ```
+
+#### ⚙️ Internal
+
+- Updated Rust to v1.80.
 
 ## 0.38.4
 
