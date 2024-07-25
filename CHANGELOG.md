@@ -24,6 +24,7 @@
   - Supports a boolean or list of plugin names.
   - All are enabled by default for backwards compatibility.
 - Added `PROTO_NO_MODIFY_PROFILE` and `PROTO_NO_MODIFY_PATH` environment variables to `proto setup` (for automated workflows).
+- Updated `proto status` to display and include versions from ecosystem files (`.nvmrc`, etc).
 - Updated `github://` plugin locators to support monorepos. Append the project name (that tags are prefixed with) to the path: `github://moonrepo/tools/node_tool`
 - Merged `proto use` and `proto install` commands. If no arguments are provided to `proto install`, it will install all configured tools.
 - You can now pin a version of proto itself within `.prototools`, and proto shims will attempt to run proto using that configured version, instead of the global version.
