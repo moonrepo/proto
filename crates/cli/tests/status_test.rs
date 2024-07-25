@@ -84,6 +84,22 @@ mod status {
     }
 
     #[test]
+    fn can_include_ecosystem_config() {
+        let sandbox = create_empty_proto_sandbox();
+        sandbox.create_file(".prototools", r#"bun = "*""#);
+        sandbox.create_file("package.json", r#"{ "engines": { "node": ">=20" } }"#);
+
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("status");
+        });
+
+        let output = assert.output();
+
+        assert!(predicate::str::contains("node").eval(&output));
+        assert!(predicate::str::contains("package.json").eval(&output));
+    }
+
+    #[test]
     fn global_doesnt_overwrite_local() {
         let sandbox = create_empty_proto_sandbox();
         sandbox.create_file(".proto/.prototools", r#"node = "18""#);
