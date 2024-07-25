@@ -4,7 +4,7 @@ use clap::Args;
 use comfy_table::presets::NOTHING;
 use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
 use miette::IntoDiagnostic;
-use proto_core::{UnresolvedVersionSpec, VersionSpec};
+use proto_core::{Id, UnresolvedVersionSpec, VersionSpec};
 use rustc_hash::FxHashSet;
 use serde::Serialize;
 use starbase::AppResult;
@@ -12,7 +12,8 @@ use starbase_styles::color::Style;
 use starbase_utils::json;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
-use tokio::spawn;
+use std::sync::Arc;
+use tokio::task::JoinSet;
 use tracing::debug;
 
 #[derive(Args, Clone, Debug)]
@@ -27,7 +28,7 @@ pub struct StatusArgs {
     only_local: bool,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Default, Serialize)]
 pub struct StatusItem {
     is_installed: bool,
     config_source: PathBuf,
@@ -36,14 +37,12 @@ pub struct StatusItem {
     product_dir: Option<PathBuf>,
 }
 
-#[tracing::instrument(skip_all)]
-pub async fn status(session: ProtoSession, args: StatusArgs) -> AppResult {
-    let manager = session.env.load_config_manager()?;
-    let mut items = BTreeMap::default();
-
-    debug!("Determining active tools based on config...");
-
-    for file in manager.files.iter().rev() {
+fn find_versions_in_configs(
+    session: &ProtoSession,
+    args: &StatusArgs,
+    items: &mut BTreeMap<Id, StatusItem>,
+) -> AppResult {
+    for file in session.env.load_config_manager()?.files.iter().rev() {
         if !file.exists
             || !args.include_global && file.global
             || args.only_local && !file.path.parent().is_some_and(|p| p == session.env.cwd)
@@ -60,39 +59,64 @@ pub async fn status(session: ProtoSession, args: StatusArgs) -> AppResult {
                 items.insert(
                     tool_id.to_owned(),
                     StatusItem {
-                        is_installed: false,
                         config_source: file.path.to_owned(),
                         config_version: config_version.to_owned(),
-                        resolved_version: None,
-                        product_dir: None,
+                        ..Default::default()
                     },
                 );
             }
         };
     }
 
-    if items.is_empty() {
-        return Err(ProtoCliError::NoConfiguredTools.into());
+    Ok(())
+}
+
+async fn find_versions_from_ecosystem(
+    session: &ProtoSession,
+    items: &mut BTreeMap<Id, StatusItem>,
+) -> AppResult {
+    let mut set = JoinSet::new();
+
+    for tool in session.load_tools().await? {
+        let env = Arc::clone(&session.env);
+
+        set.spawn(async move {
+            if let Ok(Some(detected)) = tool.detect_version_from(&env.cwd).await {
+                return Some((tool.id, detected.0, detected.1));
+            }
+
+            return None;
+        });
     }
 
-    debug!(
-        tools = ?items.keys().map(|id| id.as_str()).collect::<Vec<_>>(),
-        "Found tools with configured versions, loading them",
-    );
+    while let Some(result) = set.join_next().await {
+        if let Some((id, version, source)) = result.into_diagnostic()? {
+            let item = items.entry(id).or_insert(StatusItem::default());
+            item.config_version = version;
+            item.config_source = source;
+        }
+    }
 
-    let tools = session
+    Ok(())
+}
+
+async fn resolve_item_versions(
+    session: &ProtoSession,
+    items: &mut BTreeMap<Id, StatusItem>,
+) -> AppResult {
+    let mut set = JoinSet::new();
+
+    for mut tool in session
         .load_tools_with_filters(FxHashSet::from_iter(items.keys()))
-        .await?;
-    let mut futures = vec![];
-
-    for mut tool in tools {
+        .await?
+    {
         let Some(item) = items.get(&tool.id) else {
             continue;
         };
 
         let config_version = item.config_version.to_owned();
 
-        futures.push(spawn(async move {
+        set.spawn(async move {
             debug!("Checking {}", tool.get_name());
 
             let mut resolved_version = None;
@@ -114,11 +138,11 @@ pub async fn status(session: ProtoSession, args: StatusArgs) -> AppResult {
             }
 
             (tool.id, resolved_version, product_dir)
-        }));
+        });
     }
 
-    for future in futures {
-        let (id, resolved_version, product_dir) = future.await.into_diagnostic()?;
+    while let Some(result) = set.join_next().await {
+        let (id, resolved_version, product_dir) = result.into_diagnostic()?;
 
         if let Some(item) = items.get_mut(&id) {
             item.is_installed = product_dir.is_some();
@@ -126,6 +150,29 @@ pub async fn status(session: ProtoSession, args: StatusArgs) -> AppResult {
             item.product_dir = product_dir;
         };
     }
+
+    Ok(())
+}
+
+#[tracing::instrument(skip_all)]
+pub async fn status(session: ProtoSession, args: StatusArgs) -> AppResult {
+    debug!("Determining active tools based on config...");
+
+    let mut items = BTreeMap::default();
+
+    find_versions_in_configs(&session, &args, &mut items)?;
+    find_versions_from_ecosystem(&session, &mut items).await?;
+
+    if items.is_empty() {
+        return Err(ProtoCliError::NoConfiguredTools.into());
+    }
+
+    debug!(
+        tools = ?items.keys().map(|id| id.as_str()).collect::<Vec<_>>(),
+        "Found tools with configured versions",
+    );
+
+    resolve_item_versions(&session, &mut items).await?;
 
     // Dump all the data as JSON
     if args.json {
