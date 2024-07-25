@@ -42,7 +42,7 @@ async-trait = { workspace = true }
 chrono = "0.4.38"
 clap = { workspace = true, features = ["derive", "env"] }
 clap_complete = { workspace = true }
-clap_complete_nushell = "4.5.2"
+clap_complete_nushell = "4.5.3"
 comfy-table = "7.1.1"
 dialoguer = "0.11.0"
 dirs = { workspace = true }
