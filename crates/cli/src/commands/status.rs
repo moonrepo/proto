@@ -85,13 +85,13 @@ async fn find_versions_from_ecosystem(
                 return Some((tool.id, detected.0, detected.1));
             }
 
-            return None;
+            None
         });
     }
 
     while let Some(result) = set.join_next().await {
         if let Some((id, version, source)) = result.into_diagnostic()? {
-            let item = items.entry(id).or_insert(StatusItem::default());
+            let item = items.entry(id).or_default();
             item.config_version = version;
             item.config_source = source;
         }
