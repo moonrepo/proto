@@ -2363,7 +2363,6 @@ dependencies = [
  "sha2",
  "shell-words",
  "starbase_archive",
- "starbase_events",
  "starbase_sandbox",
  "starbase_styles",
  "starbase_utils",
@@ -3174,30 +3173,6 @@ dependencies = [
  "xz2",
  "zip",
  "zstd",
-]
-
-[[package]]
-name = "starbase_events"
-version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3b6f1a59e2dc038c76f66663148656c6422c7489762cdaa8cfb4281eae9cf7f"
-dependencies = [
- "async-trait",
- "miette",
- "starbase_macros",
- "tokio",
-]
-
-[[package]]
-name = "starbase_macros"
-version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "82f8e4464e968bcddf34a1d1489056387acab70521535e6e6c030330b1aab0d8"
-dependencies = [
- "darling",
- "proc-macro2",
- "quote",
- "syn 2.0.72",
 ]
 
 [[package]]
