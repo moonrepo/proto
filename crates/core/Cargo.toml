@@ -19,7 +19,6 @@ warpgate = { version = "0.15.4", path = "../warpgate", features = [
 indexmap = { workspace = true }
 miette = { workspace = true }
 minisign-verify = "0.2.1"
-once_cell = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true }
 rustc-hash = { workspace = true }

@@ -5,7 +5,6 @@ use crate::helpers::{
     determine_cache_extension, download_from_url_to_file, move_or_unpack_download,
 };
 use crate::id::Id;
-use once_cell::sync::OnceCell;
 use serde::de::DeserializeOwned;
 use sha2::{Digest, Sha256};
 use starbase_archive::is_supported_archive_extension;
@@ -14,7 +13,7 @@ use starbase_utils::fs;
 use std::env;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use std::time::{Duration, SystemTime};
 use tracing::{instrument, trace};
 use warpgate_api::{GitHubLocator, PluginLocator};
@@ -26,7 +25,7 @@ pub type OfflineChecker = Arc<fn() -> bool>;
 #[derive(Clone)]
 pub struct PluginLoader {
     /// Instance of our HTTP client.
-    http_client: OnceCell<reqwest::Client>,
+    http_client: OnceLock<reqwest::Client>,
 
     /// Options to pass to the HTTP client.
     http_options: HttpOptions,
@@ -52,7 +51,7 @@ impl PluginLoader {
         trace!(cache_dir = ?plugins_dir, "Creating plugin loader");
 
         Self {
-            http_client: OnceCell::new(),
+            http_client: OnceLock::new(),
             http_options: HttpOptions::default(),
             offline_checker: None,
             plugins_dir: plugins_dir.to_owned(),
@@ -63,8 +62,13 @@ impl PluginLoader {
 
     /// Return the HTTP client, or create it if it does not exist.
     pub fn get_client(&self) -> miette::Result<&reqwest::Client> {
-        self.http_client
-            .get_or_try_init(|| create_http_client_with_options(&self.http_options))
+        if self.http_client.get().is_none() {
+            let _ = self
+                .http_client
+                .set(create_http_client_with_options(&self.http_options)?);
+        }
+
+        Ok(self.http_client.get().unwrap())
     }
 
     /// Load a plugin using the provided locator. File system plugins are loaded directly,

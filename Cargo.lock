@@ -2350,7 +2350,6 @@ dependencies = [
  "indexmap 2.2.6",
  "miette",
  "minisign-verify",
- "once_cell",
  "proto_pdk_api",
  "proto_shim",
  "regex",
@@ -3855,7 +3854,6 @@ version = "0.15.4"
 dependencies = [
  "extism",
  "miette",
- "once_cell",
  "once_map",
  "regex",
  "reqwest",
