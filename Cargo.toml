@@ -6,8 +6,8 @@ default-members = ["crates/cli"]
 [workspace.dependencies]
 anyhow = "1.0.86"
 async-trait = "0.1.81"
-clap = "4.5.10"
-clap_complete = "4.5.9"
+clap = "4.5.11"
+clap_complete = "4.5.11"
 dirs = "5.0.1"
 extism = "1.0.0" # Lower for consumers
 extism-pdk = "1.2.0"
