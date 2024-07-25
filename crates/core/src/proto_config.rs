@@ -240,7 +240,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("go"),
                 PluginLocator::Url {
-                    url: "https://github.com/moonrepo/tools/releases/download/go_tool-v0.11.4/go_tool.wasm".into()
+                    url: "https://github.com/moonrepo/tools/releases/download/go_tool-v0.12.0/go_tool.wasm".into()
                 }
             );
         }
@@ -259,7 +259,7 @@ impl ProtoConfig {
                 self.plugins.insert(
                     Id::raw(depman),
                     PluginLocator::Url {
-                        url: "https://github.com/moonrepo/tools/releases/download/node_depman_tool-v0.11.6/node_depman_tool.wasm".into()
+                        url: "https://github.com/moonrepo/tools/releases/download/node_depman_tool-v0.12.0/node_depman_tool.wasm".into()
                     }
                 );
             }

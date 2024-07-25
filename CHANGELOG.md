@@ -32,6 +32,13 @@
   proto = "0.38.0"
   ```
 
+#### 🧩 Plugins
+
+- Updated `go_plugin` to v0.12.
+  - Changed the `gobin` setting to `false` by default.
+- Updated `node_depman_plugin` to v0.12.
+  - Added a `dist-url` config setting, allowing the download host to be customized.
+
 #### ⚙️ Internal
 
 - Updated Rust to v1.80.
