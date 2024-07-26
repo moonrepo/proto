@@ -12,6 +12,10 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Updated `proto activate` to set `PROTO_HOME` if it is not defined in the current shell.
+
 #### 🐞 Fixes
 
 - Fixed a performance regression on `proto activate`. Should exit immediately now.
