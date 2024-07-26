@@ -1,6 +1,6 @@
 [package]
 name = "proto_pdk_api"
-version = "0.21.2"
+version = "0.22.0"
 edition = "2021"
 license = "MIT"
 description = "Core APIs for creating proto WASM plugins."

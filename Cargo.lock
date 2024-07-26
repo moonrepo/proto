@@ -2295,7 +2295,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.38.4"
+version = "0.39.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2345,7 +2345,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.38.4"
+version = "0.39.0"
 dependencies = [
  "indexmap 2.2.6",
  "miette",
@@ -2391,7 +2391,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.21.2"
+version = "0.22.0"
 dependencies = [
  "extism-pdk",
  "proto_pdk_api",
@@ -2402,7 +2402,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.21.2"
+version = "0.22.0"
 dependencies = [
  "proto_pdk_api",
  "rustc-hash 2.0.0",
@@ -2418,7 +2418,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.25.3"
+version = "0.26.0"
 dependencies = [
  "proto_core",
  "proto_pdk_api",
