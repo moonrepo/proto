@@ -2,13 +2,14 @@ use crate::error::ProtoError;
 use crate::helpers::is_offline;
 use crate::layout::Store;
 use crate::proto_config::{ProtoConfig, ProtoConfigFile, ProtoConfigManager, PROTO_CONFIG_NAME};
+use once_cell::sync::OnceCell;
 use starbase_utils::dirs::home_dir;
 use starbase_utils::env::path_var;
 use std::collections::BTreeMap;
 use std::env;
 use std::fmt;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 use tracing::debug;
 use warpgate::PluginLoader;
 
@@ -21,8 +22,8 @@ pub struct ProtoEnvironment {
     pub store: Store,
     pub test_only: bool,
 
-    config_manager: Arc<OnceLock<ProtoConfigManager>>,
-    plugin_loader: Arc<OnceLock<PluginLoader>>,
+    config_manager: Arc<OnceCell<ProtoConfigManager>>,
+    plugin_loader: Arc<OnceCell<PluginLoader>>,
 }
 
 impl ProtoEnvironment {
@@ -51,8 +52,8 @@ impl ProtoEnvironment {
             env_mode: env::var("PROTO_ENV").ok(),
             home: home.as_ref().to_owned(),
             root: root.to_owned(),
-            config_manager: Arc::new(OnceLock::new()),
-            plugin_loader: Arc::new(OnceLock::new()),
+            config_manager: Arc::new(OnceCell::new()),
+            plugin_loader: Arc::new(OnceCell::new()),
             test_only: env::var("PROTO_TEST").is_ok(),
             store: Store::new(root),
         })
@@ -69,12 +70,13 @@ impl ProtoEnvironment {
     pub fn get_plugin_loader(&self) -> miette::Result<&PluginLoader> {
         let config = self.load_config()?;
 
-        Ok(self.plugin_loader.get_or_init(|| {
+        self.plugin_loader.get_or_try_init(|| {
             let mut loader = PluginLoader::new(&self.store.plugins_dir, &self.store.temp_dir);
             loader.set_client_options(&config.settings.http);
             loader.set_offline_checker(is_offline);
-            loader
-        }))
+
+            Ok(loader)
+        })
     }
 
     pub fn get_virtual_paths(&self) -> BTreeMap<PathBuf, PathBuf> {
@@ -91,7 +93,7 @@ impl ProtoEnvironment {
     }
 
     pub fn load_config_manager(&self) -> miette::Result<&ProtoConfigManager> {
-        if self.config_manager.get().is_none() {
+        self.config_manager.get_or_try_init(|| {
             // Don't traverse passed the home directory,
             // but only if working directory is within it!
             let end_dir = if self.cwd.starts_with(&self.home) {
@@ -112,10 +114,8 @@ impl ProtoEnvironment {
                 config: ProtoConfig::load_from(&self.root, true)?,
             });
 
-            let _ = self.config_manager.set(manager);
-        }
-
-        Ok(self.config_manager.get().unwrap())
+            Ok(manager)
+        })
     }
 }
 

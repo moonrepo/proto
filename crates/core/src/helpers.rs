@@ -1,4 +1,5 @@
 use miette::IntoDiagnostic;
+use once_cell::sync::Lazy;
 use regex::Regex;
 use semver::Version;
 use serde::de::DeserializeOwned;
@@ -9,14 +10,13 @@ use starbase_utils::json::{self, JsonError};
 use starbase_utils::net;
 use std::env;
 use std::path::Path;
-use std::sync::{LazyLock, OnceLock};
+use std::sync::OnceLock;
 use std::time::SystemTime;
 
-pub static ENV_VAR: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\$(?<name>[A-Z0-9_]+)").unwrap());
+pub static ENV_VAR: Lazy<Regex> = Lazy::new(|| Regex::new(r"\$(?<name>[A-Z0-9_]+)").unwrap());
 
-pub static ENV_VAR_SUB: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\$\{(?<name>[A-Z0-9_]+)\}").unwrap());
+pub static ENV_VAR_SUB: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\$\{(?<name>[A-Z0-9_]+)\}").unwrap());
 
 pub fn get_proto_version() -> &'static Version {
     static VERSION_CACHE: OnceLock<Version> = OnceLock::new();
