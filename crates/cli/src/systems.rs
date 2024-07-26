@@ -56,10 +56,6 @@ pub fn load_proto_configs(env: &ProtoEnvironment) -> AppResult {
 
 #[instrument(skip_all)]
 pub async fn download_versioned_proto_tool(env: &ProtoEnvironment) -> AppResult {
-    if is_offline() {
-        return Ok(());
-    }
-
     let config = env
         .load_config_manager()?
         .get_merged_config_without_global()?;
@@ -68,7 +64,7 @@ pub async fn download_versioned_proto_tool(env: &ProtoEnvironment) -> AppResult 
         let version = version.to_string();
         let tool_dir = env.store.inventory_dir.join("proto").join(&version);
 
-        if tool_dir.exists() {
+        if tool_dir.exists() || is_offline() {
             return Ok(());
         }
 

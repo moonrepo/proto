@@ -47,7 +47,7 @@ impl ActivateInfo {
         self.tools.push(item);
     }
 
-    pub fn export(self, shell: &BoxedShell) -> String {
+    pub fn export(self, shell: BoxedShell) -> String {
         let mut output = vec![];
 
         for (key, value) in &self.env {
@@ -107,6 +107,29 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
         Some(value) => value,
         None => ShellType::try_detect()?,
     };
+
+    // If not exporting data, just print the activation syntax immediately
+    if !args.export && !args.json {
+        match shell_type.build().format_hook(Hook::OnChangeDir {
+            command: match shell_type {
+                // These operate on JSON
+                ShellType::Nu => format!("proto activate {} --json", shell_type),
+                // While these evaluate shell syntax
+                _ => format!("proto activate {} --export", shell_type),
+            },
+            prefix: "proto".into(),
+        }) {
+            Ok(output) => {
+                println!("{output}");
+            }
+            Err(_) => {
+                // Do nothing? This command is typically wrapped in `eval`,
+                // so these warnings would actually just trigger a syntax error.
+            }
+        };
+
+        return Ok(());
+    }
 
     // Pre-load configuration
     let manager = session.env.load_config_manager()?;
@@ -176,10 +199,8 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     }
 
     // Output/export the information for the chosen shell
-    let shell = shell_type.build();
-
     if args.export {
-        println!("{}", info.export(&shell));
+        println!("{}", info.export(shell_type.build()));
 
         return Ok(());
     }
@@ -189,30 +210,6 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
 
         return Ok(());
     }
-
-    match shell.format_hook(Hook::OnChangeDir {
-        command: match shell_type {
-            // These operate on JSON
-            ShellType::Nu => format!("proto activate {} --json", shell_type),
-            // While these evaluate shell syntax
-            _ => format!("proto activate {} --export", shell_type),
-        },
-        prefix: "proto".into(),
-    }) {
-        Ok(output) => {
-            println!("{output}");
-        }
-        Err(_) => {
-            // Do nothing? This command is typically wrapped in `eval`,
-            // so these warnings would actually just trigger a syntax error.
-
-            // warn!(
-            //     "Failed to run {}. Perhaps remove it for the time being?",
-            //     color::shell("proto activate")
-            // );
-            // warn!("Reason: {}", color::muted_light(error.to_string()));
-        }
-    };
 
     Ok(())
 }
