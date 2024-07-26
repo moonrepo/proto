@@ -1,5 +1,6 @@
 use crate::checksum::verify_checksum;
 use crate::error::ProtoError;
+use crate::events::*;
 use crate::helpers::{
     extract_filename_from_url, get_proto_version, is_archive_file, is_offline, ENV_VAR,
 };
@@ -15,6 +16,7 @@ use proto_shim::*;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Serialize;
 use starbase_archive::Archiver;
+use starbase_events::Emitter;
 use starbase_styles::color;
 use starbase_utils::{fs, net};
 use std::collections::BTreeMap;
@@ -49,6 +51,15 @@ pub struct Tool {
     pub inventory: Inventory,
     pub product: Product,
 
+    // Events
+    pub on_created_bins: Emitter<CreatedBinariesEvent>,
+    pub on_created_shims: Emitter<CreatedShimsEvent>,
+    pub on_installing: Emitter<InstallingEvent>,
+    pub on_installed: Emitter<InstalledEvent>,
+    pub on_resolved_version: Emitter<ResolvedVersionEvent>,
+    pub on_uninstalling: Emitter<UninstallingEvent>,
+    pub on_uninstalled: Emitter<UninstalledEvent>,
+
     cache: bool,
     exes_dir: Option<PathBuf>,
     exe_path: Option<PathBuf>,
@@ -81,6 +92,15 @@ impl Tool {
             product: Product::default(),
             proto,
             version: None,
+
+            // Events
+            on_created_bins: Emitter::new(),
+            on_created_shims: Emitter::new(),
+            on_installing: Emitter::new(),
+            on_installed: Emitter::new(),
+            on_resolved_version: Emitter::new(),
+            on_uninstalling: Emitter::new(),
+            on_uninstalled: Emitter::new(),
         };
 
         tool.register_tool()?;
@@ -412,6 +432,13 @@ impl Tool {
                 version
             );
 
+            self.on_resolved_version
+                .emit(ResolvedVersionEvent {
+                    candidate: initial_version.to_owned(),
+                    version: version.clone(),
+                })
+                .await?;
+
             self.set_version(version);
 
             return Ok(());
@@ -426,6 +453,13 @@ impl Tool {
             "Resolved to {}",
             version
         );
+
+        self.on_resolved_version
+            .emit(ResolvedVersionEvent {
+                candidate: initial_version.to_owned(),
+                version: version.clone(),
+            })
+            .await?;
 
         self.set_version(version);
 
@@ -876,6 +910,12 @@ impl Tool {
             install_dir.clone()
         })?;
 
+        self.on_installing
+            .emit(InstallingEvent {
+                version: self.get_resolved_version(),
+            })
+            .await?;
+
         // If this function is defined, it acts like an escape hatch and
         // takes precedence over all other install strategies
         if self.plugin.has_func("native_install") {
@@ -917,6 +957,12 @@ impl Tool {
 
         install_lock.unlock()?;
 
+        self.on_installed
+            .emit(InstalledEvent {
+                version: self.get_resolved_version(),
+            })
+            .await?;
+
         debug!(
             tool = self.id.as_str(),
             install_dir = ?install_dir,
@@ -939,6 +985,12 @@ impl Tool {
 
             return Ok(false);
         }
+
+        self.on_uninstalling
+            .emit(UninstallingEvent {
+                version: self.get_resolved_version(),
+            })
+            .await?;
 
         if self.plugin.has_func("native_uninstall") {
             debug!(tool = self.id.as_str(), "Uninstalling tool natively");
@@ -966,6 +1018,12 @@ impl Tool {
         );
 
         fs::remove_dir_all(install_dir)?;
+
+        self.on_uninstalled
+            .emit(UninstalledEvent {
+                version: self.get_resolved_version(),
+            })
+            .await?;
 
         debug!(tool = self.id.as_str(), "Successfully uninstalled tool");
 
@@ -1254,6 +1312,11 @@ impl Tool {
             self.inventory.manifest.save()?;
         }
 
+        let mut event = CreatedShimsEvent {
+            global: vec![],
+            local: vec![],
+        };
+
         let mut registry: ShimsMap = BTreeMap::default();
         registry.insert(self.id.to_string(), Shim::default());
 
@@ -1297,6 +1360,9 @@ impl Tool {
 
             // Update the registry
             registry.insert(shim.name.clone(), shim_entry);
+
+            // Add to the event
+            event.global.push(shim.name);
         }
 
         // Only lock the directory and create shims if necessary
@@ -1316,6 +1382,8 @@ impl Tool {
 
             ShimRegistry::update(&self.proto, registry)?;
         }
+
+        self.on_created_shims.emit(event).await?;
 
         Ok(())
     }
@@ -1338,6 +1406,9 @@ impl Tool {
         }
 
         let tool_dir = self.get_product_dir();
+
+        let mut event = CreatedBinariesEvent { bins: vec![] };
+
         let mut to_create = vec![];
 
         for bin in bins {
@@ -1349,6 +1420,8 @@ impl Tool {
                     .unwrap(),
             );
             let output_path = bin.path;
+
+            event.bins.push(bin.name);
 
             if !input_path.exists() {
                 warn!(
@@ -1384,6 +1457,8 @@ impl Tool {
                 self.proto.store.link_bin(&output_path, &input_path)?;
             }
         }
+
+        self.on_created_bins.emit(event).await?;
 
         Ok(())
     }

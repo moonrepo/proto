@@ -1,5 +1,6 @@
 pub mod checksum;
 mod error;
+mod events;
 mod helpers;
 pub mod layout;
 mod proto;
@@ -13,6 +14,7 @@ mod version_detector;
 mod version_resolver;
 
 pub use error::*;
+pub use events::*;
 pub use helpers::*;
 pub use proto::*;
 pub use proto_config::*;

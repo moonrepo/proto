@@ -2,11 +2,11 @@ use super::inventory::Inventory;
 use crate::error::ProtoError;
 use crate::tool_manifest::ToolManifest;
 use miette::IntoDiagnostic;
+use once_cell::sync::OnceCell;
 use proto_pdk_api::ToolInventoryMetadata;
 use proto_shim::{create_shim, locate_proto_exe};
 use starbase_utils::fs;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, OnceLock};
 use tracing::instrument;
 use warpgate::Id;
 
@@ -19,7 +19,7 @@ pub struct Store {
     pub shims_dir: PathBuf,
     pub temp_dir: PathBuf,
 
-    shim_binary: Arc<OnceLock<Vec<u8>>>,
+    shim_binary: OnceCell<Vec<u8>>,
 }
 
 impl Store {
@@ -32,7 +32,7 @@ impl Store {
             plugins_dir: dir.join("plugins"),
             shims_dir: dir.join("shims"),
             temp_dir: dir.join("temp"),
-            shim_binary: Arc::new(OnceLock::new()),
+            shim_binary: OnceCell::new(),
         }
     }
 
@@ -79,15 +79,13 @@ impl Store {
 
     #[instrument(skip(self))]
     pub fn load_shim_binary(&self) -> miette::Result<&Vec<u8>> {
-        if self.shim_binary.get().is_none() {
-            let _ = self.shim_binary.set(fs::read_file_bytes(
+        self.shim_binary.get_or_try_init(|| {
+            Ok(fs::read_file_bytes(
                 locate_proto_exe("proto-shim").ok_or_else(|| ProtoError::MissingShimBinary {
                     bin_dir: self.bin_dir.clone(),
                 })?,
-            )?);
-        }
-
-        Ok(self.shim_binary.get().unwrap())
+            )?)
+        })
     }
 
     #[instrument(skip(self))]
