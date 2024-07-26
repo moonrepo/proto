@@ -37,7 +37,6 @@ serde_json = { workspace = true }
 sha2 = { workspace = true }
 shell-words = { workspace = true }
 starbase_archive = { workspace = true }
-starbase_events = { workspace = true }
 starbase_styles = { workspace = true }
 starbase_utils = { workspace = true, features = ["fs-lock"] }
 thiserror = { workspace = true }

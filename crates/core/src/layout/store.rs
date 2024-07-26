@@ -7,6 +7,7 @@ use proto_pdk_api::ToolInventoryMetadata;
 use proto_shim::{create_shim, locate_proto_exe};
 use starbase_utils::fs;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use tracing::instrument;
 use warpgate::Id;
 
@@ -19,7 +20,7 @@ pub struct Store {
     pub shims_dir: PathBuf,
     pub temp_dir: PathBuf,
 
-    shim_binary: OnceCell<Vec<u8>>,
+    shim_binary: Arc<OnceCell<Vec<u8>>>,
 }
 
 impl Store {
@@ -32,7 +33,7 @@ impl Store {
             plugins_dir: dir.join("plugins"),
             shims_dir: dir.join("shims"),
             temp_dir: dir.join("temp"),
-            shim_binary: OnceCell::new(),
+            shim_binary: Arc::new(OnceCell::new()),
         }
     }
 
