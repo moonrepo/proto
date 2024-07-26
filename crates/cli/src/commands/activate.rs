@@ -2,7 +2,7 @@ use crate::session::ProtoSession;
 use clap::Args;
 use indexmap::IndexMap;
 use miette::IntoDiagnostic;
-use proto_core::{detect_version, Id};
+use proto_core::{detect_version, Id, ProtoEnvironment};
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_shell::{BoxedShell, Hook, ShellType, Statement};
@@ -20,9 +20,9 @@ struct ActivateItem {
 
 impl ActivateItem {
     pub fn add_path(&mut self, path: &Path) {
-        // Only add paths that exist and are normalized
-        if let Ok(path) = path.canonicalize() {
-            self.paths.push(path);
+        // Only add paths that exist
+        if path.exists() {
+            self.paths.push(path.to_owned());
         }
     }
 }
@@ -47,8 +47,12 @@ impl ActivateInfo {
         self.tools.push(item);
     }
 
-    pub fn export(self, shell: BoxedShell) -> String {
+    pub fn export(self, shell: BoxedShell, env: &ProtoEnvironment) -> String {
         let mut output = vec![];
+
+        if !self.env.contains_key("PROTO_HOME") && env::var("PROTO_HOME").is_err() {
+            output.push(shell.format_env("PROTO_HOME", env.root.to_str()));
+        }
 
         for (key, value) in &self.env {
             output.push(shell.format_env(key, value.as_deref()));
@@ -200,7 +204,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
 
     // Output/export the information for the chosen shell
     if args.export {
-        println!("{}", info.export(shell_type.build()));
+        println!("{}", info.export(shell_type.build(), &session.env));
 
         return Ok(());
     }
