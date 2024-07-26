@@ -114,23 +114,18 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
 
     // If not exporting data, just print the activation syntax immediately
     if !args.export && !args.json {
-        match shell_type.build().format_hook(Hook::OnChangeDir {
-            command: match shell_type {
-                // These operate on JSON
-                ShellType::Nu => format!("proto activate {} --json", shell_type),
-                // While these evaluate shell syntax
-                _ => format!("proto activate {} --export", shell_type),
-            },
-            prefix: "proto".into(),
-        }) {
-            Ok(output) => {
-                println!("{output}");
-            }
-            Err(_) => {
-                // Do nothing? This command is typically wrapped in `eval`,
-                // so these warnings would actually just trigger a syntax error.
-            }
-        };
+        println!(
+            "{}",
+            shell_type.build().format_hook(Hook::OnChangeDir {
+                command: match shell_type {
+                    // These operate on JSON
+                    ShellType::Nu => format!("proto activate {} --json", shell_type),
+                    // While these evaluate shell syntax
+                    _ => format!("proto activate {} --export", shell_type),
+                },
+                prefix: "proto".into(),
+            })?
+        );
 
         return Ok(());
     }

@@ -240,7 +240,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("go"),
                 PluginLocator::Url {
-                    url: "https://github.com/moonrepo/tools/releases/download/go_tool-v0.11.4/go_tool.wasm".into()
+                    url: "https://github.com/moonrepo/tools/releases/download/go_tool-v0.12.0/go_tool.wasm".into()
                 }
             );
         }
@@ -259,7 +259,7 @@ impl ProtoConfig {
                 self.plugins.insert(
                     Id::raw(depman),
                     PluginLocator::Url {
-                        url: "https://github.com/moonrepo/tools/releases/download/node_depman_tool-v0.11.6/node_depman_tool.wasm".into()
+                        url: "https://github.com/moonrepo/tools/releases/download/node_depman_tool-v0.12.0/node_depman_tool.wasm".into()
                     }
                 );
             }
@@ -518,7 +518,8 @@ pub struct ProtoConfigManager {
 
     all_config: Arc<OnceCell<ProtoConfig>>,
     all_config_no_global: Arc<OnceCell<ProtoConfig>>,
-    cwd_config: Arc<OnceCell<ProtoConfig>>,
+    global_config: Arc<OnceCell<ProtoConfig>>,
+    local_config: Arc<OnceCell<ProtoConfig>>,
 }
 
 impl ProtoConfigManager {
@@ -564,12 +565,13 @@ impl ProtoConfigManager {
             files,
             all_config: Arc::new(OnceCell::new()),
             all_config_no_global: Arc::new(OnceCell::new()),
-            cwd_config: Arc::new(OnceCell::new()),
+            global_config: Arc::new(OnceCell::new()),
+            local_config: Arc::new(OnceCell::new()),
         })
     }
 
     pub fn get_global_config(&self) -> miette::Result<&ProtoConfig> {
-        self.cwd_config.get_or_try_init(|| {
+        self.global_config.get_or_try_init(|| {
             debug!("Loading global config only");
 
             self.merge_configs(self.files.iter().filter(|file| file.global).collect())
@@ -577,7 +579,7 @@ impl ProtoConfigManager {
     }
 
     pub fn get_local_config(&self, cwd: &Path) -> miette::Result<&ProtoConfig> {
-        self.cwd_config.get_or_try_init(|| {
+        self.local_config.get_or_try_init(|| {
             debug!("Loading local config only");
 
             self.merge_configs(
