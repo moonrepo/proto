@@ -10,6 +10,16 @@
 - [Rust](https://github.com/moonrepo/tools/blob/master/tools/rust/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/tools/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Updated `proto diagnose` to check the current proto version.
+
+#### 🐞 Fixes
+
+- Disabled the version check requests for `proto activate`.
+
 ## 0.39.1
 
 #### 🚀 Updates
