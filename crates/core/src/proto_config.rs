@@ -231,7 +231,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("deno"),
                 PluginLocator::Url {
-                    url: "https://github.com/moonrepo/tools/releases/download/deno_tool-v0.11.3/deno_tool.wasm".into()
+                    url: "https://github.com/moonrepo/tools/releases/download/deno_tool-v0.11.4/deno_tool.wasm".into()
                 }
             );
         }
@@ -249,7 +249,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("node"),
                 PluginLocator::Url {
-                    url: "https://github.com/moonrepo/tools/releases/download/node_tool-v0.11.6/node_tool.wasm".into()
+                    url: "https://github.com/moonrepo/tools/releases/download/node_tool-v0.11.7/node_tool.wasm".into()
                 }
             );
         }
