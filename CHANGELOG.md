@@ -20,6 +20,13 @@
 
 - Disabled the version check requests for `proto activate`.
 
+#### 🧩 Plugins
+
+- Updated `deno_plugin` to v0.11.4.
+  - Updated canary to find an applicable release based on the current os/arch combination.
+- Updated `node_plugin` to v0.11.7.
+  - Updated canary to find an applicable release based on the current os/arch combination.
+
 ## 0.39.1
 
 #### 🚀 Updates
