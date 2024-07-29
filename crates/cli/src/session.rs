@@ -31,7 +31,8 @@ impl ProtoSession {
     pub fn should_check_for_new_version(&self) -> bool {
         !matches!(
             self.cli.command,
-            Commands::Bin(_)
+            Commands::Activate(_)
+                | Commands::Bin(_)
                 | Commands::Completions(_)
                 | Commands::Run(_)
                 | Commands::Setup(_)

@@ -1,6 +1,8 @@
+use crate::helpers::fetch_latest_version;
 use crate::printer::Printer;
 use crate::session::ProtoSession;
 use clap::Args;
+use semver::Version;
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_shell::ShellType;
@@ -36,16 +38,10 @@ struct Diagnosis {
 
 #[tracing::instrument(skip_all)]
 pub async fn diagnose(session: ProtoSession, args: DiagnoseArgs) -> AppResult {
-    let shell = match args.shell {
+    let shell_type = match args.shell {
         Some(value) => value,
         None => ShellType::try_detect()?,
     };
-    let shell_data = shell.build();
-    let shell_path = session
-        .env
-        .store
-        .load_preferred_profile()?
-        .unwrap_or_else(|| shell_data.get_env_path(&session.env.home));
 
     let paths = starbase_utils::env::paths();
 
@@ -55,15 +51,22 @@ pub async fn diagnose(session: ProtoSession, args: DiagnoseArgs) -> AppResult {
     }
 
     let mut tips = vec![];
-    let errors = gather_errors(&session, &paths, &mut tips);
-    let warnings = gather_warnings(&session, &paths, &mut tips);
+    let errors = gather_errors(&session, &paths, &mut tips).await?;
+    let warnings = gather_warnings(&session, &paths, &mut tips).await?;
 
     if args.json {
+        let shell = shell_type.build();
+        let shell_path = session
+            .env
+            .store
+            .load_preferred_profile()?
+            .unwrap_or_else(|| shell.get_env_path(&session.env.home));
+
         println!(
             "{}",
             json::format(
                 &Diagnosis {
-                    shell: shell.to_string(),
+                    shell: shell_type.to_string(),
                     shell_profile: shell_path,
                     errors,
                     warnings,
@@ -85,10 +88,11 @@ pub async fn diagnose(session: ProtoSession, args: DiagnoseArgs) -> AppResult {
         return Ok(());
     }
 
+    let shell = shell_type.build();
     let mut printer = Printer::new();
 
     printer.line();
-    printer.entry("Shell", color::id(shell.to_string()));
+    printer.entry("Shell", color::id(shell_type.to_string()));
     printer.entry(
         "Shell profile",
         color::path(
@@ -96,7 +100,7 @@ pub async fn diagnose(session: ProtoSession, args: DiagnoseArgs) -> AppResult {
                 .env
                 .store
                 .load_preferred_profile()?
-                .unwrap_or_else(|| shell_data.get_env_path(&session.env.home)),
+                .unwrap_or_else(|| shell.get_env_path(&session.env.home)),
         ),
     );
 
@@ -133,7 +137,11 @@ pub async fn diagnose(session: ProtoSession, args: DiagnoseArgs) -> AppResult {
     Ok(())
 }
 
-fn gather_errors(session: &ProtoSession, paths: &[PathBuf], _tips: &mut [String]) -> Vec<Issue> {
+async fn gather_errors(
+    session: &ProtoSession,
+    paths: &[PathBuf],
+    _tips: &mut [String],
+) -> miette::Result<Vec<Issue>> {
     let mut errors = vec![];
     let mut has_shims_before_bins = false;
     let mut found_shims = false;
@@ -168,15 +176,28 @@ fn gather_errors(session: &ProtoSession, paths: &[PathBuf], _tips: &mut [String]
         })
     }
 
-    errors
+    Ok(errors)
 }
 
-fn gather_warnings(
+async fn gather_warnings(
     session: &ProtoSession,
     paths: &[PathBuf],
     tips: &mut Vec<String>,
-) -> Vec<Issue> {
+) -> miette::Result<Vec<Issue>> {
     let mut warnings = vec![];
+
+    let current_version = &session.cli_version;
+    let latest_version = fetch_latest_version().await?;
+
+    if Version::parse(current_version).unwrap() < Version::parse(&latest_version).unwrap() {
+        warnings.push(Issue {
+            issue: format!(
+                "Current proto version {current_version} is outdated, latest is {latest_version}",
+            ),
+            resolution: Some(format!("Run {} to update", color::shell("proto upgrade"))),
+            comment: None,
+        });
+    }
 
     if env::var("PROTO_HOME").is_err() {
         warnings.push(Issue {
@@ -238,7 +259,7 @@ fn gather_warnings(
         ));
     }
 
-    warnings
+    Ok(warnings)
 }
 
 fn print_issues(issues: &[Issue], printer: &mut Printer) {
