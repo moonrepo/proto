@@ -17,6 +17,10 @@
 - Added `--check` and `--json` options to `proto upgrade`.
 - Added an explicit version argument to upgrade/downgrade to for `proto upgrade`.
 
+#### 🐞 Fixes
+
+- Fixed an issue where `proto upgrade` may error with access denied when renaming binaries.
+
 #### 🧩 Plugins
 
 - Updated `node_tool` to v0.11.8.

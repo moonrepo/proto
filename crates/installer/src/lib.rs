@@ -152,7 +152,9 @@ pub fn unpack_release(
             "Relocating old proto binary to a new versioned location",
         );
 
-        fs::rename(current_path, relocate_path)?;
+        // Copy instead of rename/move so we avoid potential errors,
+        // like access denied
+        fs::copy_file(current_path, relocate_path)?;
 
         // Track last used so operations like clean continue to work
         // correctly, otherwise we get into a weird state!
@@ -190,10 +192,10 @@ pub fn unpack_release(
         }
     }
 
-    // Move the new binary to the bins directory
+    // Move the new binary to the install directory
     let mut unpacked = false;
 
-    trace!(bin_dir = ?install_dir, "Moving unpacked proto binaries to the bin directory");
+    trace!(install_dir = ?install_dir, "Moving unpacked proto binaries to the install directory");
 
     for bin_name in &bin_names {
         let output_path = install_dir.join(bin_name);
