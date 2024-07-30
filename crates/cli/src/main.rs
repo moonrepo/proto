@@ -101,7 +101,7 @@ async fn main() -> MainResult {
             Commands::Unalias(args) => commands::unalias(session, args).await,
             Commands::Uninstall(args) => commands::uninstall(session, args).await,
             Commands::Unpin(args) => commands::unpin(session, args).await,
-            Commands::Upgrade => commands::upgrade(session).await,
+            Commands::Upgrade(args) => commands::upgrade(session, args).await,
         }
     })
     .await?;

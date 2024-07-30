@@ -10,6 +10,22 @@
 - [Rust](https://github.com/moonrepo/tools/blob/master/tools/rust/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/tools/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added `--check` and `--json` options to `proto upgrade`.
+- Added an explicit version argument to upgrade/downgrade to for `proto upgrade`.
+
+#### 🐞 Fixes
+
+- Fixed an issue where `proto upgrade` may error with access denied when renaming binaries.
+
+#### 🧩 Plugins
+
+- Updated `node_tool` to v0.11.8.
+  - Fixed macOS nightly detection.
+
 ## 0.39.2
 
 #### 🚀 Updates
@@ -22,9 +38,9 @@
 
 #### 🧩 Plugins
 
-- Updated `deno_plugin` to v0.11.4.
+- Updated `deno_tool` to v0.11.4.
   - Updated canary to find an applicable release based on the current os/arch combination.
-- Updated `node_plugin` to v0.11.7.
+- Updated `node_tool` to v0.11.7.
   - Updated canary to find an applicable release based on the current os/arch combination.
 
 ## 0.39.1
@@ -61,9 +77,9 @@
 
 #### 🧩 Plugins
 
-- Updated `go_plugin` to v0.12.
+- Updated `go_tool` to v0.12.
   - Changed the `gobin` setting to `false` by default.
-- Updated `node_depman_plugin` to v0.12.
+- Updated `node_depman_tool` to v0.12.
   - Added a `dist-url` config setting, allowing the download host to be customized.
 
 #### ⚙️ Internal

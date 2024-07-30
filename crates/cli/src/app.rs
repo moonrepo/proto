@@ -3,7 +3,7 @@ use crate::commands::{
     plugin::{AddPluginArgs, InfoPluginArgs, ListPluginsArgs, RemovePluginArgs, SearchPluginArgs},
     ActivateArgs, AliasArgs, BinArgs, CleanArgs, CompletionsArgs, DiagnoseArgs, InstallArgs,
     ListArgs, ListRemoteArgs, MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs,
-    StatusArgs, UnaliasArgs, UninstallArgs, UnpinArgs,
+    StatusArgs, UnaliasArgs, UninstallArgs, UnpinArgs, UpgradeArgs,
 };
 use clap::builder::styling::{Color, Style, Styles};
 use clap::{Parser, Subcommand, ValueEnum};
@@ -258,7 +258,7 @@ pub enum Commands {
         name = "upgrade",
         about = "Upgrade proto to the latest version."
     )]
-    Upgrade,
+    Upgrade(UpgradeArgs),
 }
 
 #[derive(Clone, Debug, Subcommand)]
