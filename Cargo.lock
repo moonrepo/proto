@@ -2295,7 +2295,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.39.2"
+version = "0.39.3"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2345,7 +2345,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.39.2"
+version = "0.39.3"
 dependencies = [
  "indexmap 2.2.6",
  "miette",
@@ -2377,7 +2377,7 @@ dependencies = [
 
 [[package]]
 name = "proto_installer"
-version = "0.5.2"
+version = "0.5.3"
 dependencies = [
  "futures",
  "miette",
