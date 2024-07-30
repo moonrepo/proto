@@ -2,6 +2,7 @@ use crate::error::ProtoCliError;
 use crate::helpers::fetch_latest_version;
 use crate::session::ProtoSession;
 use crate::telemetry::{track_usage, Metric};
+use clap::Args;
 use indicatif::{ProgressBar, ProgressStyle};
 use proto_core::is_offline;
 use proto_installer::{determine_triple, download_release, unpack_release};
@@ -10,31 +11,43 @@ use starbase::AppResult;
 use starbase_styles::color;
 use tracing::{debug, trace};
 
+#[derive(Args, Clone, Debug)]
+pub struct UpgradeArgs {
+    #[arg(help = "Explicit version to upgrade or downgrade to")]
+    pub version: Option<Version>,
+}
+
 #[tracing::instrument(skip_all)]
-pub async fn upgrade(session: ProtoSession) -> AppResult {
+pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
     if is_offline() {
         return Err(ProtoCliError::UpgradeRequiresInternet.into());
     }
 
-    let current_version = &session.cli_version;
+    let explicit_upgrade = args.version.is_some();
+
+    let current_version = Version::parse(&session.cli_version).unwrap();
     let latest_version = fetch_latest_version().await?;
+    let target_version = match args.version {
+        Some(version) => version,
+        None => Version::parse(&latest_version).unwrap(),
+    };
 
     debug!(
-        "Comparing latest version {} to current version {}",
-        color::hash(&latest_version),
-        color::hash(current_version),
+        "Comparing target version {} to current version {}",
+        color::hash(target_version.to_string()),
+        color::hash(current_version.to_string()),
     );
 
-    if Version::parse(&latest_version).unwrap() <= Version::parse(current_version).unwrap() {
-        println!("You're already on the latest version of proto!");
+    if !explicit_upgrade && target_version <= current_version || target_version == current_version {
+        println!("You're already on version {} of proto!", current_version);
 
         return Ok(());
     }
 
     // Determine the download file based on target
-    let triple_target = determine_triple()?;
+    let target_triple = determine_triple()?;
 
-    debug!("Download target: {}", triple_target);
+    debug!("Download target: {}", target_triple);
 
     // Download the file and show a progress bar
     let pb = ProgressBar::new(0);
@@ -43,8 +56,8 @@ pub async fn upgrade(session: ProtoSession) -> AppResult {
     ).unwrap());
 
     let result = download_release(
-        &triple_target,
-        &latest_version,
+        &target_triple,
+        &target_version.to_string(),
         &session.env.store.temp_dir,
         |downloaded_size, total_size| {
             if downloaded_size == 0 {
@@ -63,7 +76,7 @@ pub async fn upgrade(session: ProtoSession) -> AppResult {
     // Unpack the downloaded file
     debug!(archive = ?result.archive_file, "Unpacking download");
 
-    let upgraded = unpack_release(
+    let unpacked = unpack_release(
         result,
         &session.env.store.bin_dir,
         session
@@ -71,7 +84,7 @@ pub async fn upgrade(session: ProtoSession) -> AppResult {
             .store
             .inventory_dir
             .join("proto")
-            .join(current_version),
+            .join(current_version.to_string()),
         true,
     )?;
 
@@ -79,14 +92,19 @@ pub async fn upgrade(session: ProtoSession) -> AppResult {
     track_usage(
         &session.env,
         Metric::UpgradeProto {
-            old_version: current_version.to_owned(),
-            new_version: latest_version.to_owned(),
+            old_version: current_version.to_string(),
+            new_version: target_version.to_string(),
         },
     )
     .await?;
 
-    if upgraded {
-        println!("Upgraded proto to v{}!", latest_version);
+    if unpacked {
+        #[allow(clippy::comparison_chain)]
+        if target_version > current_version {
+            println!("Upgraded proto to v{}!", target_version);
+        } else if target_version < current_version {
+            println!("Downgraded proto to v{}!", target_version);
+        }
 
         return Ok(());
     }

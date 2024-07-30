@@ -10,6 +10,12 @@
 - [Rust](https://github.com/moonrepo/tools/blob/master/tools/rust/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/tools/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Updated `proto upgrade` to accept an explicit version to upgrade/downgrade to.
+
 ## 0.39.2
 
 #### 🚀 Updates

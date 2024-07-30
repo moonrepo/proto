@@ -36,7 +36,7 @@ impl ProtoSession {
                 | Commands::Completions(_)
                 | Commands::Run(_)
                 | Commands::Setup(_)
-                | Commands::Upgrade
+                | Commands::Upgrade(_)
         )
     }
 
