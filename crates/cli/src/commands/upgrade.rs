@@ -7,14 +7,30 @@ use indicatif::{ProgressBar, ProgressStyle};
 use proto_core::is_offline;
 use proto_installer::{determine_triple, download_release, unpack_release};
 use semver::Version;
+use serde::Serialize;
 use starbase::AppResult;
 use starbase_styles::color;
+use starbase_utils::json;
 use tracing::{debug, trace};
 
 #[derive(Args, Clone, Debug)]
 pub struct UpgradeArgs {
     #[arg(help = "Explicit version to upgrade or downgrade to")]
-    pub version: Option<Version>,
+    target: Option<Version>,
+
+    #[arg(long, help = "Check versions only and avoid upgrading")]
+    check: bool,
+
+    #[arg(long, help = "Print the upgrade in JSON format")]
+    json: bool,
+}
+
+#[derive(Serialize)]
+struct UpgradeInfo {
+    available: bool,
+    current_version: String,
+    latest_version: String,
+    target_version: String,
 }
 
 #[tracing::instrument(skip_all)]
@@ -23,11 +39,11 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
         return Err(ProtoCliError::UpgradeRequiresInternet.into());
     }
 
-    let explicit_upgrade = args.version.is_some();
+    let explicit_target = args.target.is_some();
 
     let current_version = Version::parse(&session.cli_version).unwrap();
     let latest_version = fetch_latest_version().await?;
-    let target_version = match args.version {
+    let target_version = match args.target {
         Some(version) => version,
         None => Version::parse(&latest_version).unwrap(),
     };
@@ -38,7 +54,50 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
         color::hash(current_version.to_string()),
     );
 
-    if !explicit_upgrade && target_version <= current_version || target_version == current_version {
+    let not_available =
+        !explicit_target && target_version <= current_version || target_version == current_version;
+
+    if args.json {
+        println!(
+            "{}",
+            json::format(
+                &UpgradeInfo {
+                    available: !not_available,
+                    current_version: current_version.to_string(),
+                    latest_version,
+                    target_version: target_version.to_string(),
+                },
+                true
+            )?
+        );
+
+        return Ok(());
+    }
+
+    if args.check {
+        if target_version == current_version {
+            println!("You're already on version {} of proto!", current_version);
+        } else if explicit_target {
+            println!(
+                "An explicit version of proto will be used: {} -> {}",
+                current_version, target_version
+            );
+        } else if target_version > current_version {
+            println!(
+                "A newer version of proto is available: {} -> {}",
+                current_version, target_version
+            );
+        } else if target_version < current_version {
+            println!(
+                "An older version of proto is available: {} -> {}",
+                current_version, target_version
+            );
+        }
+
+        return Ok(());
+    }
+
+    if not_available {
         println!("You're already on version {} of proto!", current_version);
 
         return Ok(());
