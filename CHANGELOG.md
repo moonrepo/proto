@@ -17,6 +17,11 @@
 - Added `--check` and `--json` options to `proto upgrade`.
 - Added an explicit version argument to upgrade/downgrade to for `proto upgrade`.
 
+#### 🧩 Plugins
+
+- Updated `node_tool` to v0.11.8.
+  - Fixed macOS nightly detection.
+
 ## 0.39.2
 
 #### 🚀 Updates
