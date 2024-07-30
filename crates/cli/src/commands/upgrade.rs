@@ -39,33 +39,37 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
         return Err(ProtoCliError::UpgradeRequiresInternet.into());
     }
 
-    let explicit_target = args.target.is_some();
+    let latest = fetch_latest_version().await?;
 
     let current_version = Version::parse(&session.cli_version).unwrap();
-    let latest_version = fetch_latest_version().await?;
+    let current = current_version.to_string();
+
+    let has_explicit_target = args.target.is_some();
     let target_version = match args.target {
         Some(version) => version,
-        None => Version::parse(&latest_version).unwrap(),
+        None => Version::parse(&latest).unwrap(),
     };
+    let target = target_version.to_string();
 
     debug!(
         "Comparing target version {} to current version {}",
-        color::hash(target_version.to_string()),
-        color::hash(current_version.to_string()),
+        color::hash(&target),
+        color::hash(&current),
     );
 
-    let not_available =
-        !explicit_target && target_version <= current_version || target_version == current_version;
+    let not_available = !has_explicit_target && target_version <= current_version
+        || target_version == current_version;
 
+    // Output in JSON so other tools can utilize it
     if args.json {
         println!(
             "{}",
             json::format(
                 &UpgradeInfo {
                     available: !not_available,
-                    current_version: current_version.to_string(),
-                    latest_version,
-                    target_version: target_version.to_string(),
+                    current_version: current,
+                    latest_version: latest,
+                    target_version: target,
                 },
                 true
             )?
@@ -74,31 +78,39 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
         return Ok(());
     }
 
+    // Only compare versions instead of upgrading
     if args.check {
+        let target_chain = format!(
+            "{}{}{}",
+            color::hash(&current),
+            color::muted_light(" -> "),
+            color::hash(&target),
+        );
+
         if target_version == current_version {
-            println!("You're already on version {} of proto!", current_version);
-        } else if explicit_target {
             println!(
-                "An explicit version of proto will be used: {} -> {}",
-                current_version, target_version
+                "You're already on version {} of proto!",
+                color::hash(&current)
+            );
+        } else if has_explicit_target {
+            println!(
+                "An explicit version of proto will be used: {}",
+                target_chain
             );
         } else if target_version > current_version {
-            println!(
-                "A newer version of proto is available: {} -> {}",
-                current_version, target_version
-            );
+            println!("A newer version of proto is available: {}", target_chain);
         } else if target_version < current_version {
-            println!(
-                "An older version of proto is available: {} -> {}",
-                current_version, target_version
-            );
+            println!("An older version of proto is available: {}", target_chain);
         }
 
         return Ok(());
     }
 
     if not_available {
-        println!("You're already on version {} of proto!", current_version);
+        println!(
+            "You're already on version {} of proto!",
+            color::hash(&current)
+        );
 
         return Ok(());
     }
@@ -116,7 +128,7 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
 
     let result = download_release(
         &target_triple,
-        &target_version.to_string(),
+        &target,
         &session.env.store.temp_dir,
         |downloaded_size, total_size| {
             if downloaded_size == 0 {
@@ -143,7 +155,7 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
             .store
             .inventory_dir
             .join("proto")
-            .join(current_version.to_string()),
+            .join(current.clone()),
         true,
     )?;
 
@@ -151,8 +163,8 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
     track_usage(
         &session.env,
         Metric::UpgradeProto {
-            old_version: current_version.to_string(),
-            new_version: target_version.to_string(),
+            old_version: current.clone(),
+            new_version: target.clone(),
         },
     )
     .await?;
@@ -160,9 +172,9 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
     if unpacked {
         #[allow(clippy::comparison_chain)]
         if target_version > current_version {
-            println!("Upgraded proto to v{}!", target_version);
+            println!("Upgraded proto to v{}!", color::hash(&target));
         } else if target_version < current_version {
-            println!("Downgraded proto to v{}!", target_version);
+            println!("Downgraded proto to v{}!", color::hash(&target));
         }
 
         return Ok(());
