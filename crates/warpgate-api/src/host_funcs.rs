@@ -141,17 +141,25 @@ api_struct!(
     }
 );
 
+impl SendRequestInput {
+    /// Create a new send request with the provided url.
+    pub fn new(url: impl AsRef<str>) -> Self {
+        Self {
+            url: url.as_ref().to_owned(),
+            ..Default::default()
+        }
+    }
+}
+
 impl From<&str> for SendRequestInput {
     fn from(url: &str) -> Self {
-        SendRequestInput {
-            url: url.to_owned(),
-        }
+        SendRequestInput::new(url)
     }
 }
 
 impl From<String> for SendRequestInput {
     fn from(url: String) -> Self {
-        SendRequestInput { url }
+        SendRequestInput::new(url)
     }
 }
 
