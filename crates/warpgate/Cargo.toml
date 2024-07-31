@@ -23,6 +23,7 @@ starbase_archive = { workspace = true }
 starbase_utils = { workspace = true, features = ["glob", "net"] }
 starbase_styles = { workspace = true }
 thiserror = { workspace = true }
+tokio = { workspace = true }
 tracing = { workspace = true }
 
 # Enabling certs for extism!
@@ -30,7 +31,6 @@ ureq = { version = "2.10.0", features = ["native-certs"] }
 
 [dev-dependencies]
 starbase_sandbox = { workspace = true }
-tokio = { workspace = true }
 
 [features]
 default = []
