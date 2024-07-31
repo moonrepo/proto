@@ -104,6 +104,30 @@ pub struct ActivateArgs {
     no_shim: bool,
 }
 
+fn build_hook_command(shell_type: &ShellType) -> String {
+    let mut command = format!("proto activate {}", shell_type);
+
+    for arg in env::args() {
+        if arg.starts_with("--") {
+            command.push(' ');
+            command.push_str(&arg);
+        }
+    }
+
+    match shell_type {
+        // These operate on JSON
+        ShellType::Nu => {
+            command.push_str(" --json");
+        }
+        // While these evaluate shell syntax
+        _ => {
+            command.push_str(" --export");
+        }
+    };
+
+    command
+}
+
 #[tracing::instrument(skip_all)]
 pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     // Detect the shell that we need to activate for
@@ -117,12 +141,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
         println!(
             "{}",
             shell_type.build().format_hook(Hook::OnChangeDir {
-                command: match shell_type {
-                    // These operate on JSON
-                    ShellType::Nu => format!("proto activate {} --json", shell_type),
-                    // While these evaluate shell syntax
-                    _ => format!("proto activate {} --export", shell_type),
-                },
+                command: build_hook_command(&shell_type),
                 prefix: "proto".into(),
             })?
         );
