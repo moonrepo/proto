@@ -4,7 +4,6 @@ use crate::helpers::{from_virtual_path, to_virtual_path};
 use crate::id::Id;
 use extism::{Error, Function, Manifest, Plugin};
 use miette::IntoDiagnostic;
-use once_map::OnceMap;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use starbase_styles::color::{self, apply_style_tags};
@@ -67,7 +66,7 @@ pub struct PluginContainer {
     pub id: Id,
     pub manifest: Manifest,
 
-    func_cache: OnceMap<String, Vec<u8>>,
+    func_cache: Arc<scc::HashMap<String, Vec<u8>>>,
     plugin: Arc<RwLock<Plugin>>,
 }
 
@@ -105,7 +104,7 @@ impl PluginContainer {
             manifest,
             plugin: Arc::new(RwLock::new(plugin)),
             id,
-            func_cache: OnceMap::new(),
+            func_cache: Arc::new(scc::HashMap::new()),
         })
     }
 
@@ -136,14 +135,14 @@ impl PluginContainer {
 
         // Check if cache exists already
         if let Some(data) = self.func_cache.get(&cache_key) {
-            return self.parse_output(func, data);
+            return self.parse_output(func, data.get());
         }
 
         // Otherwise call the function and cache the result
         let data = self.call(func, input)?;
         let output: O = self.parse_output(func, &data)?;
 
-        self.func_cache.insert(cache_key, |_| data);
+        let _ = self.func_cache.insert(cache_key, data);
 
         Ok(output)
     }
