@@ -56,6 +56,25 @@ macro_rules! exec_command {
     };
 }
 
+/// Calls the `send_request` host function to send an HTTP request
+/// and return a response. Not OK responses must be handled by the guest.
+#[macro_export]
+macro_rules! send_request {
+    (input, $input:expr) => {
+        unsafe {
+            let output = send_request(Json($input))?.0;
+            warpgate_pdk::populate_send_request_output(&mut output);
+            output
+        }
+    };
+    ($url:literal) => {
+        send_request!(input, SendRequestInput::new($url))
+    };
+    ($url:expr) => {
+        send_request!(input, SendRequestInput::new($url))
+    };
+}
+
 /// Calls the `get_env_var` or `set_env_var` host function to manage
 /// environment variables on the host.
 ///
