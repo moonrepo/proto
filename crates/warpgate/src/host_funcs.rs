@@ -7,12 +7,18 @@ use starbase_utils::fs;
 use std::collections::BTreeMap;
 use std::env;
 use std::path::PathBuf;
+use std::sync::Arc;
 use system_env::{create_process_command, find_command_on_path};
+use tokio::runtime::Handle;
 use tracing::{instrument, trace};
-use warpgate_api::{ExecCommandInput, ExecCommandOutput, HostLogInput, HostLogTarget};
+use warpgate_api::{
+    ExecCommandInput, ExecCommandOutput, HostLogInput, HostLogTarget, SendRequestInput,
+    SendRequestOutput,
+};
 
 #[derive(Clone)]
 pub struct HostData {
+    pub http_client: Arc<reqwest::Client>,
     pub virtual_paths: BTreeMap<PathBuf, PathBuf>,
     pub working_dir: PathBuf,
 }
@@ -210,6 +216,65 @@ fn exec_command(
         stdout_len = output.stdout.len(),
         "Executed command from plugin"
     );
+
+    plugin.memory_set_val(&mut outputs[0], serde_json::to_string(&output)?)?;
+
+    Ok(())
+}
+
+#[instrument(name = "host_func_send_request", skip_all)]
+fn send_request(
+    plugin: &mut CurrentPlugin,
+    inputs: &[Val],
+    outputs: &mut [Val],
+    user_data: UserData<HostData>,
+) -> Result<(), Error> {
+    let input: SendRequestInput = serde_json::from_str(plugin.memory_get_val(&inputs[0])?)?;
+
+    let data = user_data.get()?;
+    let data = data.lock().unwrap();
+    let handle = Handle::current();
+
+    trace!(url = &input.url, "Sending request from plugin");
+
+    let response = handle.block_on(async {
+        let mut client = data.http_client.get(&input.url);
+
+        if let Some(timeout) = plugin.time_remaining() {
+            client = client.timeout(timeout);
+        }
+
+        client.send().await.map_err(|error| WarpgateError::Http {
+            url: input.url.clone(),
+            error: Box::new(error),
+        })
+    })?;
+
+    let status = response.status().as_u16();
+
+    trace!(
+        url = &input.url,
+        length = response.content_length(),
+        status,
+        ok = response.status().is_success(),
+        "Sent request from plugin"
+    );
+
+    let body = handle.block_on(async {
+        response.bytes().await.map_err(|error| WarpgateError::Http {
+            url: input.url.clone(),
+            error: Box::new(error),
+        })
+    })?;
+
+    let memory = plugin.memory_new(Vec::from(body))?;
+
+    let output = SendRequestOutput {
+        body: Vec::new(),
+        body_length: memory.length,
+        body_offset: memory.offset,
+        status,
+    };
 
     plugin.memory_set_val(&mut outputs[0], serde_json::to_string(&output)?)?;
 
