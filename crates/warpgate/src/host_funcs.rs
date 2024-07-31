@@ -16,8 +16,9 @@ use warpgate_api::{
     SendRequestOutput,
 };
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct HostData {
+    pub http_cache: Arc<scc::HashMap<String, (u64, u64)>>,
     pub http_client: Arc<reqwest::Client>,
     pub virtual_paths: BTreeMap<PathBuf, PathBuf>,
     pub working_dir: PathBuf,
@@ -43,15 +44,16 @@ pub fn create_host_functions(data: HostData) -> Vec<Function> {
             "get_env_var",
             [ValType::I64],
             [ValType::I64],
-            UserData::new(data.clone()),
+            UserData::new(()),
             get_env_var,
         ),
+        Function::new("host_log", [ValType::I64], [], UserData::new(()), host_log),
         Function::new(
-            "host_log",
+            "send_request",
             [ValType::I64],
-            [],
+            [ValType::I64],
             UserData::new(data.clone()),
-            host_log,
+            send_request,
         ),
         Function::new(
             "set_env_var",
@@ -77,7 +79,7 @@ fn host_log(
     plugin: &mut CurrentPlugin,
     inputs: &[Val],
     _outputs: &mut [Val],
-    _user_data: UserData<HostData>,
+    _user_data: UserData<()>,
 ) -> Result<(), Error> {
     let input: HostLogInput = serde_json::from_str(plugin.memory_get_val(&inputs[0])?)?;
     let message = apply_style_tags(input.message);
@@ -233,46 +235,64 @@ fn send_request(
 
     let data = user_data.get()?;
     let data = data.lock().unwrap();
-    let handle = Handle::current();
 
-    trace!(url = &input.url, "Sending request from plugin");
+    let (offset, length, status) = match data.http_cache.get(&input.url) {
+        Some(cache) => {
+            trace!(url = &input.url, "Reusing request from cache");
 
-    let response = handle.block_on(async {
-        let mut client = data.http_client.get(&input.url);
+            let cache = cache.get();
 
-        if let Some(timeout) = plugin.time_remaining() {
-            client = client.timeout(timeout);
+            (cache.0, cache.1, 200)
         }
+        None => {
+            trace!(url = &input.url, "Sending request from plugin");
 
-        client.send().await.map_err(|error| WarpgateError::Http {
-            url: input.url.clone(),
-            error: Box::new(error),
-        })
-    })?;
+            let handle = Handle::current();
 
-    let status = response.status().as_u16();
+            let response = handle.block_on(async {
+                let mut client = data.http_client.get(&input.url);
 
-    trace!(
-        url = &input.url,
-        length = response.content_length(),
-        status,
-        ok = response.status().is_success(),
-        "Sent request from plugin"
-    );
+                if let Some(timeout) = plugin.time_remaining() {
+                    client = client.timeout(timeout);
+                }
 
-    let body = handle.block_on(async {
-        response.bytes().await.map_err(|error| WarpgateError::Http {
-            url: input.url.clone(),
-            error: Box::new(error),
-        })
-    })?;
+                client.send().await.map_err(|error| WarpgateError::Http {
+                    url: input.url.clone(),
+                    error: Box::new(error),
+                })
+            })?;
 
-    let memory = plugin.memory_new(Vec::from(body))?;
+            let status = response.status().as_u16();
+
+            trace!(
+                url = &input.url,
+                length = response.content_length(),
+                status,
+                ok = response.status().is_success(),
+                "Sent request from plugin"
+            );
+
+            let body = handle.block_on(async {
+                response.bytes().await.map_err(|error| WarpgateError::Http {
+                    url: input.url.clone(),
+                    error: Box::new(error),
+                })
+            })?;
+
+            let memory = plugin.memory_new(Vec::from(body))?;
+
+            let _ = data
+                .http_cache
+                .insert(input.url, (memory.offset, memory.length));
+
+            (memory.offset, memory.length, status)
+        }
+    };
 
     let output = SendRequestOutput {
         body: Vec::new(),
-        body_length: memory.length,
-        body_offset: memory.offset,
+        body_length: length,
+        body_offset: offset,
         status,
     };
 
@@ -286,7 +306,7 @@ fn get_env_var(
     plugin: &mut CurrentPlugin,
     inputs: &[Val],
     outputs: &mut [Val],
-    _user_data: UserData<HostData>,
+    _user_data: UserData<()>,
 ) -> Result<(), Error> {
     let name: String = plugin.memory_get_val(&inputs[0])?;
     let value = env::var(&name).unwrap_or_default();
