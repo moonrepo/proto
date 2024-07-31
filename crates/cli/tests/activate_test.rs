@@ -24,6 +24,32 @@ mod activate {
     }
 
     #[test]
+    fn passes_args_through() {
+        let sandbox = create_empty_proto_sandbox();
+
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("activate")
+                .arg("elvish")
+                .arg("--include-global")
+                .arg("--no-shim")
+                .arg("--no-bin");
+        });
+
+        assert_snapshot!(get_activate_output(&assert, &sandbox));
+    }
+
+    #[test]
+    fn supports_json_exports() {
+        let sandbox = create_empty_proto_sandbox();
+
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("activate").arg("nu").arg("--include-global");
+        });
+
+        assert_snapshot!(get_activate_output(&assert, &sandbox));
+    }
+
+    #[test]
     fn supports_one_tool() {
         let sandbox = create_empty_proto_sandbox();
         sandbox.create_file(".prototools", r#"node = "20.0.0""#);

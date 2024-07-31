@@ -1,0 +1,10 @@
+---
+source: crates/cli/tests/activate_test.rs
+expression: "get_activate_output(&assert, &sandbox)"
+---
+# proto hook
+set-env __ORIG_PATH $E:PATH
+
+set @edit:before-readline = $@edit:before-readline {
+  eval (proto activate elvish --include-global --no-shim --no-bin --export);
+}
