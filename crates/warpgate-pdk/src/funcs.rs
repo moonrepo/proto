@@ -1,18 +1,22 @@
-use crate::exec_command;
+use crate::api::populate_send_request_output;
+use crate::{exec_command, send_request};
 use extism_pdk::http::request;
 use extism_pdk::*;
 use serde::de::DeserializeOwned;
 use std::vec;
 use warpgate_api::{
-    AnyResult, ExecCommandInput, ExecCommandOutput, HostEnvironment, HostOS, TestEnvironment,
+    anyhow, AnyResult, ExecCommandInput, ExecCommandOutput, HostEnvironment, HostOS,
+    SendRequestInput, SendRequestOutput, TestEnvironment,
 };
 
 #[host_fn]
 extern "ExtismHost" {
     fn exec_command(input: Json<ExecCommandInput>) -> Json<ExecCommandOutput>;
+    fn send_request(input: Json<SendRequestInput>) -> Json<SendRequestOutput>;
 }
 
 /// Fetch the provided request and return a response object.
+#[deprecated]
 pub fn fetch(req: HttpRequest, body: Option<String>) -> AnyResult<HttpResponse> {
     debug!("Fetching <url>{}</url>", req.url);
 
@@ -21,6 +25,8 @@ pub fn fetch(req: HttpRequest, body: Option<String>) -> AnyResult<HttpResponse> 
 }
 
 /// Fetch the provided URL and deserialize the response as JSON.
+#[allow(deprecated)]
+#[deprecated(note = "Use `fetch_json` instead.")]
 pub fn fetch_url<R, U>(url: U) -> AnyResult<R>
 where
     R: DeserializeOwned,
@@ -30,6 +36,8 @@ where
 }
 
 /// Fetch the provided URL and deserialize the response as bytes.
+#[allow(deprecated)]
+#[deprecated(note = "Use `fetch_bytes` instead.")]
 pub fn fetch_url_bytes<U>(url: U) -> AnyResult<Vec<u8>>
 where
     U: AsRef<str>,
@@ -38,6 +46,8 @@ where
 }
 
 /// Fetch the provided URL and return the text response.
+#[allow(deprecated)]
+#[deprecated(note = "Use `fetch_text` instead.")]
 pub fn fetch_url_text<U>(url: U) -> AnyResult<String>
 where
     U: AsRef<str>,
@@ -47,6 +57,8 @@ where
 
 /// Fetch the provided URL, deserialize the response as JSON,
 /// and cache the response in memory for subsequent WASM function calls.
+#[allow(deprecated)]
+#[deprecated]
 pub fn fetch_url_with_cache<R, U>(url: U) -> AnyResult<R>
 where
     R: DeserializeOwned,
@@ -89,6 +101,60 @@ where
     }
 
     res.json()
+}
+
+fn do_fetch<U>(url: U) -> AnyResult<SendRequestOutput>
+where
+    U: AsRef<str>,
+{
+    let url = url.as_ref();
+    let response = send_request!(url);
+    let status = response.status;
+
+    if status != 200 {
+        let body = response.text()?;
+
+        debug!(
+            "Response body for <url>{}</url>: <muted>{}</muted>",
+            url, body
+        );
+
+        return Err(anyhow!(
+            "Failed to request <url>{url}</url> <mutedlight>({})</mutedlight>",
+            status
+        ));
+    }
+
+    if response.body.is_empty() {
+        return Err(anyhow!("Invalid response from <url>{url}</url>, no body"));
+    }
+
+    Ok(response)
+}
+
+/// Fetch the provided URL and deserialize the response as bytes.
+pub fn fetch_bytes<U>(url: U) -> AnyResult<Vec<u8>>
+where
+    U: AsRef<str>,
+{
+    Ok(do_fetch(url)?.body)
+}
+
+/// Fetch the provided URL and deserialize the response as JSON.
+pub fn fetch_json<U, R>(url: U) -> AnyResult<R>
+where
+    U: AsRef<str>,
+    R: DeserializeOwned,
+{
+    do_fetch(url)?.json()
+}
+
+/// Fetch the provided URL and deserialize the response as text.
+pub fn fetch_text<U>(url: U) -> AnyResult<String>
+where
+    U: AsRef<str>,
+{
+    do_fetch(url)?.text()
 }
 
 /// Load all git tags from the provided remote URL.
@@ -159,47 +225,6 @@ pub fn command_exists(env: &HostEnvironment, command: &str) -> bool {
     }
 
     debug!("Command does NOT exist");
-
-    false
-}
-
-/// Detect whether the current OS is utilizing musl instead of gnu.
-#[deprecated]
-pub fn is_musl(env: &HostEnvironment) -> bool {
-    if !env.os.is_unix() || env.os.is_mac() {
-        return false;
-    }
-
-    debug!("Checking if host is using musl");
-
-    let mut value = "".to_owned();
-
-    if command_exists(env, "ldd") {
-        if let Ok(res) = exec_command!(raw, "ldd", ["--version"]) {
-            if res.0.exit_code == 0 {
-                value = res.0.stdout.to_lowercase();
-            } else if res.0.exit_code == 1 {
-                // ldd on apline returns stderr with a 1 exit code
-                value = res.0.stderr.to_lowercase();
-            }
-        }
-    }
-
-    if value.is_empty() {
-        if let Ok(res) = exec_command!(raw, "uname") {
-            if res.0.exit_code == 0 {
-                value = res.0.stdout.to_lowercase();
-            }
-        }
-    }
-
-    if value.contains("musl") || value.contains("alpine") {
-        debug!("Host is using musl");
-
-        return true;
-    }
-
-    debug!("Host is NOT using musl");
 
     false
 }

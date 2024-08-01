@@ -52,6 +52,10 @@ pub fn testing_macros(_: ()) -> FnResult<()> {
     let _ = exec_command!(raw, "git", args);
     let _ = exec_command!(raw, "git", ["a", "b", "c"]);
 
+    // Requests
+    send_request!("https://some/url");
+    send_request!(input, SendRequestInput::new("https://some/url"));
+
     // Env vars
     let name = "VAR";
 

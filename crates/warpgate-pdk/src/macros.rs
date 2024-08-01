@@ -62,8 +62,8 @@ macro_rules! exec_command {
 macro_rules! send_request {
     (input, $input:expr) => {
         unsafe {
-            let output = send_request(Json($input))?.0;
-            warpgate_pdk::populate_send_request_output(&mut output);
+            let mut output = send_request(Json($input))?.0;
+            populate_send_request_output(&mut output);
             output
         }
     };

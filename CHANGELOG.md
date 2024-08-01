@@ -12,6 +12,11 @@
 
 ## Unreleased
 
+#### 💥 Breaking
+
+- WASM API
+  - Removed the `is_musl` function. Use the host environment instead.
+
 #### 🚀 Updates
 
 - WASM API

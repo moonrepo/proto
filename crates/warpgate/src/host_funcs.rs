@@ -281,9 +281,12 @@ fn send_request(
 
             let memory = plugin.memory_new(Vec::from(body))?;
 
-            let _ = data
-                .http_cache
-                .insert(input.url, (memory.offset, memory.length));
+            // Only cache successful requests
+            if status == 200 {
+                let _ = data
+                    .http_cache
+                    .insert(input.url, (memory.offset, memory.length));
+            }
 
             (memory.offset, memory.length, status)
         }
