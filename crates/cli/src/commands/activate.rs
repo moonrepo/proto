@@ -55,9 +55,6 @@ pub struct ActivateArgs {
     )]
     export: bool,
 
-    #[arg(long, help = "Include versions from global ~/.proto/.prototools")]
-    include_global: bool,
-
     #[arg(long, help = "Print the activate instructions in JSON format")]
     json: bool,
 
@@ -82,12 +79,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     }
 
     // Pre-load configuration
-    let manager = session.env.load_config_manager()?;
-    let config = if args.include_global {
-        manager.get_merged_config()?
-    } else {
-        manager.get_merged_config_without_global()?
-    };
+    let config = session.env.load_config()?;
 
     // Load necessary tools so that we can extract info
     let tools = session

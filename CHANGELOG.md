@@ -12,6 +12,8 @@
 
 ## Unreleased
 
+- Removed `--include-global` and `--only-local` flags from all applicable commands. Use the new `--config-mode` instead.
+
 #### 🚀 Updates
 
 - Added a new `--config-mode` global option that controls how configuration are loaded.

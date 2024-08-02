@@ -18,14 +18,8 @@ use tracing::debug;
 
 #[derive(Args, Clone, Debug)]
 pub struct StatusArgs {
-    #[arg(long, help = "Include versions from global ~/.proto/.prototools")]
-    include_global: bool,
-
     #[arg(long, help = "Print the active tools in JSON format")]
     json: bool,
-
-    #[arg(long, help = "Only check versions in local ./.prototools")]
-    only_local: bool,
 }
 
 #[derive(Debug, Default, Serialize)]
@@ -39,13 +33,16 @@ pub struct StatusItem {
 
 fn find_versions_in_configs(
     session: &ProtoSession,
-    args: &StatusArgs,
     items: &mut BTreeMap<Id, StatusItem>,
 ) -> AppResult {
-    for file in session.env.load_config_manager()?.files.iter().rev() {
+    let env = &session.env;
+    let manager = env.load_config_manager()?;
+
+    for file in manager.files.iter().rev() {
         if !file.exists
-            || !args.include_global && file.global
-            || args.only_local && !file.path.parent().is_some_and(|p| p == session.env.cwd)
+            || !env.config_mode.includes_global() && file.global
+            || env.config_mode.only_local()
+                && !file.path.parent().is_some_and(|p| p == session.env.cwd)
         {
             continue;
         }
@@ -160,7 +157,7 @@ pub async fn status(session: ProtoSession, args: StatusArgs) -> AppResult {
 
     let mut items = BTreeMap::default();
 
-    find_versions_in_configs(&session, &args, &mut items)?;
+    find_versions_in_configs(&session, &mut items)?;
     find_versions_from_ecosystem(&session, &mut items).await?;
 
     if items.is_empty() {
