@@ -5,7 +5,7 @@ use miette::IntoDiagnostic;
 use proto_core::{detect_version, Id, ProtoEnvironment};
 use serde::Serialize;
 use starbase::AppResult;
-use starbase_shell::{BoxedShell, Hook, ShellType, Statement};
+use starbase_shell::{Hook, ShellType, Statement};
 use starbase_utils::json;
 use std::env;
 use std::path::{Path, PathBuf};
@@ -46,38 +46,6 @@ impl ActivateInfo {
         self.env.extend(item.env.clone());
         self.tools.push(item);
     }
-
-    pub fn export(self, shell: BoxedShell, env: &ProtoEnvironment) -> String {
-        let mut output = vec![];
-
-        if !self.env.contains_key("PROTO_HOME") && env::var("PROTO_HOME").is_err() {
-            output.push(shell.format_env("PROTO_HOME", env.root.to_str()));
-        }
-
-        for (key, value) in &self.env {
-            output.push(shell.format_env(key, value.as_deref()));
-        }
-
-        let paths = self
-            .paths
-            .iter()
-            .filter_map(|path| path.to_str().map(|p| p.to_owned()))
-            .collect::<Vec<_>>();
-
-        if !paths.is_empty() {
-            output.push(shell.format(Statement::PrependPath {
-                paths: &paths,
-                key: Some("PATH"),
-                orig_key: if env::var("__ORIG_PATH").is_ok() {
-                    Some("__ORIG_PATH")
-                } else {
-                    None
-                },
-            }));
-        }
-
-        output.join("\n")
-    }
 }
 
 #[derive(Args, Clone, Debug)]
@@ -104,30 +72,6 @@ pub struct ActivateArgs {
     no_shim: bool,
 }
 
-fn build_hook_command(shell_type: &ShellType) -> String {
-    let mut command = format!("proto activate {}", shell_type);
-
-    for arg in env::args() {
-        if arg.starts_with("--") {
-            command.push(' ');
-            command.push_str(&arg);
-        }
-    }
-
-    match shell_type {
-        // These operate on JSON
-        ShellType::Nu => {
-            command.push_str(" --json");
-        }
-        // While these evaluate shell syntax
-        _ => {
-            command.push_str(" --export");
-        }
-    };
-
-    command
-}
-
 #[tracing::instrument(skip_all)]
 pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     // Detect the shell that we need to activate for
@@ -138,15 +82,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
 
     // If not exporting data, just print the activation syntax immediately
     if !args.export && !args.json {
-        println!(
-            "{}",
-            shell_type.build().format_hook(Hook::OnChangeDir {
-                command: build_hook_command(&shell_type),
-                prefix: "proto".into(),
-            })?
-        );
-
-        return Ok(());
+        return print_activation_hook(&shell_type);
     }
 
     // Pre-load configuration
@@ -218,7 +154,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
 
     // Output/export the information for the chosen shell
     if args.export {
-        println!("{}", info.export(shell_type.build(), &session.env));
+        print_activation_exports(&shell_type, &session.env, info)?;
 
         return Ok(());
     }
@@ -228,6 +164,79 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
 
         return Ok(());
     }
+
+    Ok(())
+}
+
+fn print_activation_hook(shell_type: &ShellType) -> AppResult {
+    let mut command = format!("proto activate {}", shell_type);
+
+    for arg in env::args() {
+        if arg.starts_with("--") {
+            command.push(' ');
+            command.push_str(&arg);
+        }
+    }
+
+    match shell_type {
+        // These operate on JSON
+        ShellType::Nu => {
+            command.push_str(" --json");
+        }
+        // While these evaluate shell syntax
+        _ => {
+            command.push_str(" --export");
+        }
+    };
+
+    println!(
+        "{}",
+        shell_type.build().format_hook(Hook::OnChangeDir {
+            command,
+            prefix: "proto".into(),
+        })?
+    );
+
+    Ok(())
+}
+
+fn print_activation_exports(
+    shell_type: &ShellType,
+    proto: &ProtoEnvironment,
+    info: ActivateInfo,
+) -> AppResult {
+    let shell = shell_type.build();
+    let mut output = vec![];
+
+    // Environment variables
+    if !info.env.contains_key("PROTO_HOME") && env::var("PROTO_HOME").is_err() {
+        output.push(shell.format_env("PROTO_HOME", proto.root.to_str()));
+    }
+
+    for (key, value) in &info.env {
+        output.push(shell.format_env(key, value.as_deref()));
+    }
+
+    // System paths
+    let paths = info
+        .paths
+        .iter()
+        .filter_map(|path| path.to_str().map(|p| p.to_owned()))
+        .collect::<Vec<_>>();
+
+    if !paths.is_empty() {
+        output.push(shell.format(Statement::PrependPath {
+            paths: &paths,
+            key: Some("PATH"),
+            orig_key: if env::var("__ORIG_PATH").is_ok() {
+                Some("__ORIG_PATH")
+            } else {
+                None
+            },
+        }));
+    }
+
+    println!("{}", output.join("\n"));
 
     Ok(())
 }
