@@ -6,12 +6,13 @@ use once_cell::sync::OnceCell;
 use proto_pdk_api::ToolInventoryMetadata;
 use proto_shim::{create_shim, locate_proto_exe};
 use starbase_utils::fs;
+use std::fmt;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tracing::instrument;
 use warpgate::Id;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Default)]
 pub struct Store {
     pub dir: PathBuf,
     pub bin_dir: PathBuf,
@@ -142,5 +143,18 @@ impl Store {
         fs::remove_file(shim_path)?;
 
         Ok(())
+    }
+}
+
+impl fmt::Debug for Store {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Store")
+            .field("dir", &self.dir)
+            .field("bin_dir", &self.bin_dir)
+            .field("inventory_dir", &self.inventory_dir)
+            .field("plugins_dir", &self.plugins_dir)
+            .field("shims_dir", &self.shims_dir)
+            .field("temp_dir", &self.temp_dir)
+            .finish()
     }
 }

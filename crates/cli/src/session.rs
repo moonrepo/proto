@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use miette::IntoDiagnostic;
 use proto_core::registry::ProtoRegistry;
 use proto_core::{
-    load_schema_plugin_with_proto, load_tool_from_locator, load_tool_with_proto, ConfigMode, Id,
+    load_schema_plugin_with_proto, load_tool_from_locator, load_tool_with_proto, Id,
     ProtoEnvironment, Tool, SCHEMA_PLUGIN_KEY,
 };
 use rustc_hash::FxHashSet;
@@ -23,24 +23,10 @@ pub struct ProtoSession {
 
 impl ProtoSession {
     pub fn new(cli: CLI) -> Self {
-        let mut env = ProtoEnvironment::default();
-
-        dbg!(&cli);
-
-        env.config_mode = cli.config_mode.unwrap_or_else(|| match cli.command {
-            Commands::Activate(_)
-            | Commands::Install(_)
-            | Commands::Outdated(_)
-            | Commands::Status(_) => ConfigMode::Upwards,
-            _ => ConfigMode::UpwardsGlobal,
-        });
-
-        dbg!(&env.config_mode);
-
         Self {
             cli,
             cli_version: env!("CARGO_PKG_VERSION").to_owned(),
-            env: Arc::new(env),
+            env: Arc::new(ProtoEnvironment::default()),
         }
     }
 
@@ -113,7 +99,7 @@ impl ProtoSession {
 #[async_trait]
 impl AppSession for ProtoSession {
     async fn startup(&mut self) -> AppResult {
-        self.env = Arc::new(detect_proto_env()?);
+        self.env = Arc::new(detect_proto_env(&self.cli)?);
 
         sync_current_proto_tool(&self.env, &self.cli_version)?;
 

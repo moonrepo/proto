@@ -1,6 +1,9 @@
+use crate::app::{App as CLI, Commands};
 use crate::helpers::fetch_latest_version;
 use miette::IntoDiagnostic;
-use proto_core::{is_offline, now, ProtoEnvironment, UnresolvedVersionSpec, PROTO_CONFIG_NAME};
+use proto_core::{
+    is_offline, now, ConfigMode, ProtoEnvironment, UnresolvedVersionSpec, PROTO_CONFIG_NAME,
+};
 use proto_installer::*;
 use proto_shim::get_exe_file_name;
 use semver::Version;
@@ -15,21 +18,35 @@ use tracing::{debug, instrument, trace};
 // STARTUP
 
 #[instrument(skip_all)]
-pub fn detect_proto_env() -> AppResult<ProtoEnvironment> {
-    ProtoEnvironment::new()
+pub fn detect_proto_env(cli: &CLI) -> AppResult<ProtoEnvironment> {
+    let mut env = ProtoEnvironment::new()?;
+
+    env.config_mode = cli.config_mode.unwrap_or_else(|| match cli.command {
+        Commands::Activate(_)
+        | Commands::Install(_)
+        | Commands::Outdated(_)
+        | Commands::Status(_) => ConfigMode::Upwards,
+        _ => ConfigMode::UpwardsGlobal,
+    });
+
+    Ok(env)
 }
 
 #[instrument(skip_all)]
 pub fn sync_current_proto_tool(env: &ProtoEnvironment, version: &str) -> AppResult {
-    let tool_dir = env.store.inventory_dir.join("proto").join(version);
-
-    if tool_dir.exists() {
-        return Ok(());
-    }
-
     let Ok(current_exe) = env::current_exe() else {
         return Ok(());
     };
+
+    let tool_dir = env.store.inventory_dir.join("proto").join(version);
+
+    if tool_dir.exists()
+        || current_exe
+            .iter()
+            .any(|comp| comp == "node_modules" || comp == ".cargo")
+    {
+        return Ok(());
+    }
 
     let exe_dir = current_exe.parent().unwrap_or(&env.store.bin_dir);
 
@@ -49,6 +66,8 @@ pub fn sync_current_proto_tool(env: &ProtoEnvironment, version: &str) -> AppResu
 
 #[instrument(skip_all)]
 pub fn load_proto_configs(env: &ProtoEnvironment) -> AppResult {
+    debug!("Using {} config loading mode", env.config_mode.to_string());
+
     env.load_config()?;
 
     Ok(())
