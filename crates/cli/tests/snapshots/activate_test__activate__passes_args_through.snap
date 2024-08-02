@@ -6,5 +6,5 @@ expression: "get_activate_output(&assert, &sandbox)"
 set-env __ORIG_PATH $E:PATH
 
 set @edit:before-readline = $@edit:before-readline {
-  eval (proto activate elvish --config-mode upwards --no-bin --no-shim --export);
+  eval (proto activate elvish --config-mode upwards-global --no-bin --no-shim --export);
 }
