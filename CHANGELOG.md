@@ -18,6 +18,7 @@
 
 #### 🚀 Updates
 
+- Improved performance slightly for `proto activate`.
 - Improved the logic around cleaning the `~/.proto/tools/proto` directory.
 - Updated the `auto-clean` setting to automatically run in more contexts.
 
