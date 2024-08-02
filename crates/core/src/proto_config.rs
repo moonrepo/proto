@@ -89,8 +89,8 @@ derive_enum!(
     pub enum ConfigMode {
         Global,
         Local,
-        #[default]
         Upwards,
+        #[default]
         UpwardsGlobal,
     }
 );
@@ -584,7 +584,6 @@ impl ProtoConfigManager {
         })
     }
 
-    #[deprecated]
     pub fn get_global_config(&self) -> miette::Result<&ProtoConfig> {
         self.global_config.get_or_try_init(|| {
             debug!("Loading global config only");
@@ -593,7 +592,6 @@ impl ProtoConfigManager {
         })
     }
 
-    #[deprecated]
     pub fn get_local_config(&self, cwd: &Path) -> miette::Result<&ProtoConfig> {
         self.local_config.get_or_try_init(|| {
             debug!("Loading local config only");
@@ -607,7 +605,6 @@ impl ProtoConfigManager {
         })
     }
 
-    #[deprecated]
     pub fn get_merged_config(&self) -> miette::Result<&ProtoConfig> {
         self.all_config.get_or_try_init(|| {
             debug!("Merging loaded configs");
@@ -616,7 +613,6 @@ impl ProtoConfigManager {
         })
     }
 
-    #[deprecated]
     pub fn get_merged_config_without_global(&self) -> miette::Result<&ProtoConfig> {
         self.all_config_no_global.get_or_try_init(|| {
             debug!("Merging loaded configs without global");
