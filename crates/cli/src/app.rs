@@ -78,7 +78,7 @@ pub struct App {
         env = "PROTO_CONFIG_MODE",
         help = "Mode in which to load configuration"
     )]
-    pub config_mode: ConfigMode,
+    pub config_mode: Option<ConfigMode>,
 
     #[arg(
         long,

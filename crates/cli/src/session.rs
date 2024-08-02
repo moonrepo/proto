@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use miette::IntoDiagnostic;
 use proto_core::registry::ProtoRegistry;
 use proto_core::{
-    load_schema_plugin_with_proto, load_tool_from_locator, load_tool_with_proto, Id,
+    load_schema_plugin_with_proto, load_tool_from_locator, load_tool_with_proto, ConfigMode, Id,
     ProtoEnvironment, Tool, SCHEMA_PLUGIN_KEY,
 };
 use rustc_hash::FxHashSet;
@@ -24,7 +24,11 @@ pub struct ProtoSession {
 impl ProtoSession {
     pub fn new(cli: CLI) -> Self {
         let mut env = ProtoEnvironment::default();
-        env.config_mode = cli.config_mode;
+
+        env.config_mode = cli.config_mode.unwrap_or_else(|| match cli.command {
+            Commands::Plugin { .. } => ConfigMode::UpwardsGlobal,
+            _ => ConfigMode::Upwards,
+        });
 
         Self {
             cli,

@@ -22,7 +22,6 @@ pub enum PinOption {
 
 #[derive(Args, Clone, Debug, Default)]
 pub struct InstallArgs {
-    // ONE
     #[arg(help = "ID of a single tool to install")]
     pub id: Option<Id>,
 
@@ -45,13 +44,6 @@ pub struct InstallArgs {
         help = "When installing one, pin the resolved version to .prototools"
     )]
     pub pin: Option<Option<PinOption>>,
-
-    // ALL
-    #[arg(
-        long,
-        help = "When installing all, include versions configured in global ~/.proto/.prototools"
-    )]
-    pub include_global: bool,
 
     // Passthrough args (after --)
     #[arg(
@@ -317,22 +309,14 @@ pub async fn install_one(
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn install_all(session: &ProtoSession, args: InstallArgs) -> AppResult {
+pub async fn install_all(session: &ProtoSession) -> AppResult {
     debug!("Loading all tools");
 
     let tools = session.load_tools().await?;
 
     debug!("Detecting tool versions to install");
 
-    let config = if args.include_global {
-        session.env.load_config_manager()?.get_merged_config()?
-    } else {
-        session
-            .env
-            .load_config_manager()?
-            .get_merged_config_without_global()?
-    };
-    let mut versions = config.versions.to_owned();
+    let mut versions = session.env.load_config()?.versions.to_owned();
     versions.remove("proto");
 
     for tool in &tools {
@@ -408,7 +392,7 @@ pub async fn install(session: ProtoSession, args: InstallArgs) -> AppResult {
             install_one(&session, args, &id, None).await?;
         }
         None => {
-            install_all(&session, args).await?;
+            install_all(&session).await?;
         }
     };
 

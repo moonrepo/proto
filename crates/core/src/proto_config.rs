@@ -95,6 +95,16 @@ derive_enum!(
     }
 );
 
+impl ConfigMode {
+    pub fn includes_global(&self) -> bool {
+        matches!(self, Self::Global | Self::UpwardsGlobal)
+    }
+
+    pub fn only_local(&self) -> bool {
+        matches!(self, Self::Local)
+    }
+}
+
 derive_enum!(
     #[derive(ConfigEnum, Default)]
     pub enum DetectStrategy {
