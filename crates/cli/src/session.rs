@@ -25,6 +25,8 @@ impl ProtoSession {
     pub fn new(cli: CLI) -> Self {
         let mut env = ProtoEnvironment::default();
 
+        dbg!(&cli);
+
         env.config_mode = cli.config_mode.unwrap_or_else(|| match cli.command {
             Commands::Activate(_)
             | Commands::Install(_)
@@ -32,6 +34,8 @@ impl ProtoSession {
             | Commands::Status(_) => ConfigMode::Upwards,
             _ => ConfigMode::UpwardsGlobal,
         });
+
+        dbg!(&env.config_mode);
 
         Self {
             cli,

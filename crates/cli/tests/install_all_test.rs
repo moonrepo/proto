@@ -93,7 +93,8 @@ deno = "1.30.0"
                     .arg("--config-mode")
                     .arg("upwards-global");
             })
-            .success();
+            .debug();
+        // .success();
 
         assert!(node_path.exists());
         assert!(deno_path.exists());

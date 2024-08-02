@@ -2,7 +2,7 @@ use crate::session::ProtoSession;
 use clap::Args;
 use indexmap::IndexMap;
 use miette::IntoDiagnostic;
-use proto_core::{detect_version, Id, UnresolvedVersionSpec};
+use proto_core::{detect_version, ConfigMode, Id, UnresolvedVersionSpec};
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_shell::{Hook, ShellType, Statement};
@@ -75,7 +75,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
 
     // If not exporting data, just print the activation syntax immediately
     if !args.export && !args.json {
-        return print_activation_hook(&shell_type);
+        return print_activation_hook(&shell_type, &args, session.cli.config_mode.as_ref());
     }
 
     // Pre-load configuration
@@ -181,14 +181,24 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     Ok(())
 }
 
-fn print_activation_hook(shell_type: &ShellType) -> AppResult {
+fn print_activation_hook(
+    shell_type: &ShellType,
+    args: &ActivateArgs,
+    config_mode: Option<&ConfigMode>,
+) -> AppResult {
     let mut command = format!("proto activate {}", shell_type);
 
-    for arg in env::args() {
-        if arg.starts_with("--") {
-            command.push(' ');
-            command.push_str(&arg);
-        }
+    if let Some(mode) = config_mode {
+        command.push_str(" --config-mode ");
+        command.push_str(&mode.to_string());
+    }
+
+    if args.no_bin {
+        command.push_str(" --no-bin");
+    }
+
+    if args.no_shim {
+        command.push_str(" --no-shim");
     }
 
     match shell_type {
