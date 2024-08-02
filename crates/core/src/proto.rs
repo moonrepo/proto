@@ -94,7 +94,6 @@ impl ProtoEnvironment {
     pub fn load_config(&self) -> miette::Result<&ProtoConfig> {
         let manager = self.load_config_manager()?;
 
-        #[allow(deprecated)]
         match self.config_mode {
             ConfigMode::Global => manager.get_global_config(),
             ConfigMode::Local => manager.get_local_config(&self.cwd),
