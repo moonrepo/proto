@@ -52,7 +52,8 @@ mod outdated {
 
         let assert = sandbox.run_bin(|cmd| {
             cmd.arg("outdated")
-                .arg("--only-local")
+                .arg("--config-mode")
+                .arg("local")
                 .current_dir(sandbox.path().join("a/b/c"));
         });
 
@@ -74,7 +75,8 @@ mod outdated {
 
         let assert = sandbox.run_bin(|cmd| {
             cmd.arg("outdated")
-                .arg("--include-global")
+                .arg("--config-mode")
+                .arg("upwards-global")
                 .current_dir(sandbox.path().join("a/b/c"));
         });
 
@@ -94,7 +96,8 @@ mod outdated {
 
         let assert = sandbox.run_bin(|cmd| {
             cmd.arg("outdated")
-                .arg("--include-global")
+                .arg("--config-mode")
+                .arg("upwards-global")
                 .current_dir(sandbox.path().join("a"));
         });
 
@@ -115,7 +118,8 @@ mod outdated {
             .run_bin(|cmd| {
                 cmd.arg("outdated")
                     .arg("--update")
-                    .arg("--include-global")
+                    .arg("--config-mode")
+                    .arg("upwards-global")
                     .current_dir(sandbox.path().join("a/b"));
             })
             .success();
@@ -138,7 +142,8 @@ mod outdated {
             .run_bin(|cmd| {
                 cmd.arg("outdated")
                     .arg("--update")
-                    .arg("--include-global")
+                    .arg("--config-mode")
+                    .arg("upwards-global")
                     .arg("--latest")
                     .current_dir(sandbox.path().join("a/b"));
             })

@@ -21,8 +21,10 @@
     - `global` - Only load `~/.proto/.prototools`.
     - `local` - Only load `./.prototools` in the current directory.
     - `upwards` - Load `.prototools` while traversing upwards, but do not load `~/.proto/.prototools`.
-    - `upwards-global` (default) - Load `.prototools` while traversing upwards, and do load `~/.proto/.prototools`.
-  - Because of this change, some commands may load more or less configs than they were before. This primarily affects `proto activate`, `proto outdated`, and `proto status`.
+    - `upwards-global` - Load `.prototools` while traversing upwards, and do load `~/.proto/.prototools`.
+  - When not provided, the default mode is dependent on the command being ran.
+    - For `activate`, `install`, `outdated`, `status` -> `upwards`
+    - Everything else -> `upwards-global`
 
 ## 0.39.5
 
