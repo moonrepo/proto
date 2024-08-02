@@ -49,7 +49,8 @@ mod status {
 
         let assert = sandbox.run_bin(|cmd| {
             cmd.arg("status")
-                .arg("--only-local")
+                .arg("--config-mode")
+                .arg("local")
                 .current_dir(sandbox.path().join("a/b/c"));
         });
 
@@ -71,7 +72,8 @@ mod status {
 
         let assert = sandbox.run_bin(|cmd| {
             cmd.arg("status")
-                .arg("--include-global")
+                .arg("--config-mode")
+                .arg("upwards-global")
                 .current_dir(sandbox.path().join("a/b/c"));
         });
 
@@ -107,7 +109,8 @@ mod status {
 
         let assert = sandbox.run_bin(|cmd| {
             cmd.arg("status")
-                .arg("--include-global")
+                .arg("--config-mode")
+                .arg("upwards-global")
                 .current_dir(sandbox.path().join("a"));
         });
 

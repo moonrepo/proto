@@ -99,7 +99,7 @@ impl ProtoSession {
 #[async_trait]
 impl AppSession for ProtoSession {
     async fn startup(&mut self) -> AppResult {
-        self.env = Arc::new(detect_proto_env()?);
+        self.env = Arc::new(detect_proto_env(&self.cli)?);
 
         sync_current_proto_tool(&self.env, &self.cli_version)?;
 

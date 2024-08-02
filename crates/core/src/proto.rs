@@ -1,7 +1,9 @@
 use crate::error::ProtoError;
 use crate::helpers::is_offline;
 use crate::layout::Store;
-use crate::proto_config::{ProtoConfig, ProtoConfigFile, ProtoConfigManager, PROTO_CONFIG_NAME};
+use crate::proto_config::{
+    ConfigMode, ProtoConfig, ProtoConfigFile, ProtoConfigManager, PROTO_CONFIG_NAME,
+};
 use once_cell::sync::OnceCell;
 use starbase_utils::dirs::home_dir;
 use starbase_utils::env::path_var;
@@ -15,6 +17,7 @@ use warpgate::PluginLoader;
 
 #[derive(Clone, Default)]
 pub struct ProtoEnvironment {
+    pub config_mode: ConfigMode,
     pub cwd: PathBuf,
     pub env_mode: Option<String>,
     pub home: PathBuf, // ~
@@ -48,6 +51,7 @@ impl ProtoEnvironment {
         debug!(store = ?root, "Creating proto environment, detecting store");
 
         Ok(ProtoEnvironment {
+            config_mode: ConfigMode::Upwards,
             cwd: env::current_dir().expect("Unable to determine current working directory!"),
             env_mode: env::var("PROTO_ENV").ok(),
             home: home.as_ref().to_owned(),
@@ -87,11 +91,18 @@ impl ProtoEnvironment {
         ])
     }
 
-    #[tracing::instrument(name = "load_all", skip_all)]
     pub fn load_config(&self) -> miette::Result<&ProtoConfig> {
-        self.load_config_manager()?.get_merged_config()
+        let manager = self.load_config_manager()?;
+
+        match self.config_mode {
+            ConfigMode::Global => manager.get_global_config(),
+            ConfigMode::Local => manager.get_local_config(&self.cwd),
+            ConfigMode::Upwards => manager.get_merged_config_without_global(),
+            ConfigMode::UpwardsGlobal => manager.get_merged_config(),
+        }
     }
 
+    #[tracing::instrument(name = "load_all", skip_all)]
     pub fn load_config_manager(&self) -> miette::Result<&ProtoConfigManager> {
         self.config_manager.get_or_try_init(|| {
             // Don't traverse passed the home directory,
@@ -128,6 +139,7 @@ impl AsRef<ProtoEnvironment> for ProtoEnvironment {
 impl fmt::Debug for ProtoEnvironment {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ProtoEnvironment")
+            .field("config_mode", &self.config_mode)
             .field("cwd", &self.cwd)
             .field("env_mode", &self.env_mode)
             .field("home", &self.home)

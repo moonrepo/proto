@@ -30,7 +30,8 @@ mod activate {
         let assert = sandbox.run_bin(|cmd| {
             cmd.arg("activate")
                 .arg("elvish")
-                .arg("--include-global")
+                .arg("--config-mode")
+                .arg("upwards-global")
                 .arg("--no-shim")
                 .arg("--no-bin");
         });
@@ -43,7 +44,10 @@ mod activate {
         let sandbox = create_empty_proto_sandbox();
 
         let assert = sandbox.run_bin(|cmd| {
-            cmd.arg("activate").arg("nu").arg("--include-global");
+            cmd.arg("activate")
+                .arg("nu")
+                .arg("--config-mode")
+                .arg("upwards-global");
         });
 
         assert_snapshot!(get_activate_output(&assert, &sandbox));
@@ -90,7 +94,8 @@ bun = "1.1.0"
             cmd.arg("activate")
                 .arg("elvish")
                 .arg("--export")
-                .arg("--include-global");
+                .arg("--config-mode")
+                .arg("upwards-global");
         });
 
         assert_snapshot!(get_activate_output(&assert, &sandbox));
