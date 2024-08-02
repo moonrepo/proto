@@ -7,6 +7,7 @@ use serde::Serialize;
 use starbase::AppResult;
 use starbase_shell::{Hook, ShellType, Statement};
 use starbase_utils::json;
+use std::collections::HashSet;
 use std::env;
 use std::path::{Path, PathBuf};
 use tokio::task::JoinSet;
@@ -14,7 +15,6 @@ use tokio::task::JoinSet;
 #[derive(Default, Serialize)]
 struct ActivateItem {
     pub id: Id,
-    pub env: IndexMap<String, Option<String>>,
     pub paths: Vec<PathBuf>,
 }
 
@@ -31,20 +31,16 @@ impl ActivateItem {
 struct ActivateInfo {
     pub env: IndexMap<String, Option<String>>,
     pub paths: Vec<PathBuf>,
-    pub tools: Vec<ActivateItem>,
 }
 
 impl ActivateInfo {
     pub fn collect(&mut self, item: ActivateItem) {
         // Don't use a set as we need to persist the order!
-        for path in &item.paths {
-            if !self.paths.contains(path) {
-                self.paths.push(path.to_owned());
+        for path in item.paths {
+            if !self.paths.contains(&path) {
+                self.paths.push(path);
             }
         }
-
-        self.env.extend(item.env.clone());
-        self.tools.push(item);
     }
 }
 
@@ -93,8 +89,11 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
         manager.get_merged_config_without_global()?
     };
 
-    // Load all the tools so that we can extract info
-    let tools = session.load_tools().await?;
+    // Load necessary tools so that we can extract info
+    let tools = session
+        .load_tools_with_filters(HashSet::from_iter(config.versions.keys()))
+        .await?;
+    let mut info = ActivateInfo::default();
     let mut set = JoinSet::<miette::Result<ActivateItem>>::new();
 
     for mut tool in tools {
@@ -102,6 +101,10 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
             continue;
         }
 
+        // Inherit all environment variables for the config
+        info.env.extend(config.get_env_vars(Some(&tool.id))?);
+
+        // Extract the version in a background thread
         set.spawn(async move {
             let mut item = ActivateItem::default();
 
@@ -125,31 +128,20 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
                 }
             }
 
-            // Inherit all environment variables for the config
-            let config = tool.proto.load_config()?;
-
-            item.env.extend(config.get_env_vars(Some(&tool.id))?);
             item.id = tool.id;
 
             Ok(item)
         });
     }
 
-    // Aggregate our list of shell exports
-    let mut info = ActivateInfo::default();
-
     // Put shims first so that they can detect newer versions
     if !args.no_shim {
         info.paths.push(session.env.store.shims_dir.clone());
     }
 
+    // Aggregate our list of shell exports
     while let Some(item) = set.join_next().await {
         info.collect(item.into_diagnostic()??);
-    }
-
-    // Put bins last as a last resort lookup
-    if !args.no_bin {
-        info.paths.push(session.env.store.bin_dir.clone());
     }
 
     // Inject necessary variables
@@ -160,14 +152,26 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
         );
     }
 
-    info.env.insert(
-        "PROTO_VERSION".into(),
-        // Allow it to be unset in case it was previously set
-        config.versions.get("proto").and_then(|spec| match spec {
-            UnresolvedVersionSpec::Semantic(version) => Some(version.to_string()),
-            _ => None,
-        }),
-    );
+    if let Some(UnresolvedVersionSpec::Semantic(version)) = config.versions.get("proto") {
+        info.env
+            .insert("PROTO_VERSION".into(), Some(version.to_string()));
+
+        info.paths.push(
+            session
+                .env
+                .store
+                .inventory_dir
+                .join("proto")
+                .join(version.to_string()),
+        );
+    } else {
+        info.env.insert("PROTO_VERSION".into(), None);
+    }
+
+    // Put bins last as a last resort lookup
+    if !args.no_bin {
+        info.paths.push(session.env.store.bin_dir.clone());
+    }
 
     // Output/export the information for the chosen shell
     if args.export {
