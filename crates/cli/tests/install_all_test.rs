@@ -89,7 +89,9 @@ deno = "1.30.0"
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("install").arg("--include-global");
+                cmd.arg("install")
+                    .arg("--config-mode")
+                    .arg("upwards-global");
             })
             .success();
 

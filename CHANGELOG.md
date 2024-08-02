@@ -26,7 +26,9 @@
     - `local` - Only load `./.prototools` in the current directory.
     - `upwards` (default) - Load `.prototools` while traversing upwards, but do not load `~/.proto/.prototools`.
     - `upwards-global` - Load `.prototools` while traversing upwards, and do load `~/.proto/.prototools`.
-  - Because of this change, some commands may load more or less configs than they were before. This primarily affects `proto activate`, `proto outdated`, and `proto status`.
+  - When not provided, the default mode is dependent on the command being ran.
+    - For `activate`, `install`, `outdated`, `status` -> `upwards`
+    - Everything else -> `upwards-global`
 - WASM API
   - Added `ToolMetadataOutput.config_schema`, which can be used to define a JSON schema for the plugins configuration.
   - Added a new `send_request` host function, that uses the same HTTP client as proto does.
