@@ -66,7 +66,10 @@ pub fn sync_current_proto_tool(env: &ProtoEnvironment, version: &str) -> AppResu
 
 #[instrument(skip_all)]
 pub fn load_proto_configs(env: &ProtoEnvironment) -> AppResult {
-    debug!("Using {} config loading mode", env.config_mode.to_string());
+    debug!(
+        "Loading configuration in {} mode",
+        env.config_mode.to_string()
+    );
 
     env.load_config()?;
 
