@@ -7,6 +7,7 @@ use crate::commands::{
 };
 use clap::builder::styling::{Color, Style, Styles};
 use clap::{Parser, Subcommand, ValueEnum};
+use proto_core::ConfigMode;
 use starbase_styles::color::Color as ColorType;
 use std::{
     env,
@@ -70,6 +71,15 @@ fn create_styles() -> Styles {
     styles = create_styles()
 )]
 pub struct App {
+    #[arg(
+        long,
+        short = 'c',
+        global = true,
+        env = "PROTO_CONFIG_MODE",
+        help = "Mode in which to load configuration"
+    )]
+    pub config_mode: ConfigMode,
+
     #[arg(
         long,
         global = true,

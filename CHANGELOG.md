@@ -10,6 +10,17 @@
 - [Rust](https://github.com/moonrepo/tools/blob/master/tools/rust/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/tools/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added a new `--config-mode` global option that controls how configuration are loaded.
+  - Supports the following values:
+    - `global` - Only load `~/.proto/.prototools`.
+    - `local` - Only load `./.prototools` in the current directory.
+    - `upwards` (default) - Load `.prototools` while traversing upwards, but do not load `~/.proto/.prototools`.
+    - `upwards-global` - Load `.prototools` while traversing upwards, and do load `~/.proto/.prototools`.
+
 ## 0.39.5
 
 #### 💥 Breaking

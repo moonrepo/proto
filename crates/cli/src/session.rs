@@ -23,10 +23,13 @@ pub struct ProtoSession {
 
 impl ProtoSession {
     pub fn new(cli: CLI) -> Self {
+        let mut env = ProtoEnvironment::default();
+        env.config_mode = cli.config_mode;
+
         Self {
             cli,
             cli_version: env!("CARGO_PKG_VERSION").to_owned(),
-            env: Arc::new(ProtoEnvironment::default()),
+            env: Arc::new(env),
         }
     }
 
