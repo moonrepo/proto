@@ -4,6 +4,7 @@ use clap::Args;
 use dialoguer::Confirm;
 use miette::IntoDiagnostic;
 use proto_core::{Id, ProtoError, Tool, VersionSpec};
+use proto_shim::get_exe_file_name;
 use rustc_hash::FxHashSet;
 use starbase::AppResult;
 use starbase_styles::color;
@@ -200,21 +201,31 @@ pub async fn clean_proto(session: &ProtoSession, days: u64) -> miette::Result<us
     let duration = Duration::from_secs(86400 * days);
     let mut clean_count = 0;
 
-    for file in fs::read_dir_all(session.env.store.inventory_dir.join("proto"))? {
-        let path = file.path();
+    for dir in fs::read_dir(session.env.store.inventory_dir.join("proto"))? {
+        let tool_dir = dir.path();
 
-        if path.is_file() {
-            let bytes = fs::remove_file_if_stale(&path, duration, now)?;
+        // Ignore hidden files
+        if !tool_dir.is_dir() {
+            continue;
+        }
 
-            if bytes > 0 {
-                debug!(
-                    "proto version {} hasn't been used in over {} days, removing",
-                    color::path(&path),
-                    days
-                );
+        let proto_file = tool_dir.join(get_exe_file_name("proto"));
 
-                clean_count += 1;
-            }
+        let is_stale = if proto_file.exists() {
+            fs::is_stale(proto_file, false, duration, now)?.is_some()
+        } else {
+            true
+        };
+
+        if is_stale {
+            debug!(
+                "proto version {} hasn't been used in over {} days, removing",
+                color::path(&tool_dir),
+                days
+            );
+
+            fs::remove_dir_all(tool_dir)?;
+            clean_count += 1;
         }
     }
 
