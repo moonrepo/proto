@@ -2,4 +2,5 @@
 source: crates/cli/tests/activate_test.rs
 expression: "get_activate_output(&assert, &sandbox)"
 ---
+unset-env PROTO_VERSION;
 set paths = [<WORKSPACE>/.proto/shims <WORKSPACE>/.proto/bin $@paths];

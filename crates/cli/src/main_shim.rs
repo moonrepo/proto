@@ -165,9 +165,6 @@ pub fn main() -> Result<()> {
 
     debug(|| "Running proto shim".into());
 
-    // Set the version variable so child processes utilize it
-    env::set_var("PROTO_VERSION", env!("CARGO_PKG_VERSION"));
-
     // Extract arguments to pass-through
     let args = env::args_os().collect::<Vec<_>>();
 

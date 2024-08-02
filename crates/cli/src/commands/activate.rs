@@ -2,7 +2,7 @@ use crate::session::ProtoSession;
 use clap::Args;
 use indexmap::IndexMap;
 use miette::IntoDiagnostic;
-use proto_core::{detect_version, Id, ProtoEnvironment};
+use proto_core::{detect_version, Id, UnresolvedVersionSpec};
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_shell::{Hook, ShellType, Statement};
@@ -152,9 +152,26 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
         info.paths.push(session.env.store.bin_dir.clone());
     }
 
+    // Inject necessary variables
+    if !info.env.contains_key("PROTO_HOME") && env::var("PROTO_HOME").is_err() {
+        info.env.insert(
+            "PROTO_HOME".into(),
+            session.env.root.to_str().map(|root| root.to_owned()),
+        );
+    }
+
+    info.env.insert(
+        "PROTO_VERSION".into(),
+        // Allow it to be unset in case it was previously set
+        config.versions.get("proto").and_then(|spec| match spec {
+            UnresolvedVersionSpec::Semantic(version) => Some(version.to_string()),
+            _ => None,
+        }),
+    );
+
     // Output/export the information for the chosen shell
     if args.export {
-        print_activation_exports(&shell_type, &session.env, info)?;
+        print_activation_exports(&shell_type, info)?;
 
         return Ok(());
     }
@@ -200,24 +217,14 @@ fn print_activation_hook(shell_type: &ShellType) -> AppResult {
     Ok(())
 }
 
-fn print_activation_exports(
-    shell_type: &ShellType,
-    proto: &ProtoEnvironment,
-    info: ActivateInfo,
-) -> AppResult {
+fn print_activation_exports(shell_type: &ShellType, info: ActivateInfo) -> AppResult {
     let shell = shell_type.build();
     let mut output = vec![];
-
-    // Environment variables
-    if !info.env.contains_key("PROTO_HOME") && env::var("PROTO_HOME").is_err() {
-        output.push(shell.format_env("PROTO_HOME", proto.root.to_str()));
-    }
 
     for (key, value) in &info.env {
         output.push(shell.format_env(key, value.as_deref()));
     }
 
-    // System paths
     let paths = info
         .paths
         .iter()
