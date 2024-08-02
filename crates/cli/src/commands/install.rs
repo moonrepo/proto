@@ -1,6 +1,5 @@
 use super::clean::clean_plugins;
 use super::pin::internal_pin;
-use crate::commands::clean::{internal_clean, CleanArgs};
 use crate::helpers::{create_progress_bar, disable_progress_bars, enable_progress_bars};
 use crate::session::ProtoSession;
 use crate::shell::{self, Export};
@@ -397,12 +396,6 @@ pub async fn install_all(session: &ProtoSession, args: InstallArgs) -> AppResult
     pb.finish_and_clear();
 
     println!("Successfully installed tools!");
-
-    if config.settings.auto_clean {
-        debug!("Auto-clean enabled, starting clean");
-
-        internal_clean(session, CleanArgs::default(), true).await?;
-    }
 
     Ok(())
 }

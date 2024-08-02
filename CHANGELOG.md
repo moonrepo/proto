@@ -10,6 +10,13 @@
 - [Rust](https://github.com/moonrepo/tools/blob/master/tools/rust/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/tools/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Improved the logic around cleaning the `~/.proto/tools/proto` directory.
+- Updated the `auto-clean` setting to automatically run in more contexts.
+
 ## 0.39.4
 
 #### 🐞 Fixes
