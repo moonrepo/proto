@@ -139,6 +139,7 @@ impl AsRef<ProtoEnvironment> for ProtoEnvironment {
 impl fmt::Debug for ProtoEnvironment {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ProtoEnvironment")
+            .field("config_mode", &self.config_mode)
             .field("cwd", &self.cwd)
             .field("env_mode", &self.env_mode)
             .field("home", &self.home)
