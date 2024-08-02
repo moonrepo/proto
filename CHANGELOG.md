@@ -12,6 +12,10 @@
 
 ## Unreleased
 
+#### 💥 Breaking
+
+- We've discovered a bug with the new "pin proto version" feature that will require non-trivial amount of work to resolve correctly. However, to resolve the bug at this time, the pinning functionality will now only work if you run `proto activate` in your shell.
+
 #### 🚀 Updates
 
 - Improved the logic around cleaning the `~/.proto/tools/proto` directory.
