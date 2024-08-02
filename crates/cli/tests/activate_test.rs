@@ -31,7 +31,7 @@ mod activate {
             cmd.arg("activate")
                 .arg("elvish")
                 .arg("--config-mode")
-                .arg("upwards")
+                .arg("upwards-global")
                 .arg("--no-shim")
                 .arg("--no-bin");
         });
@@ -47,7 +47,7 @@ mod activate {
             cmd.arg("activate")
                 .arg("nu")
                 .arg("--config-mode")
-                .arg("upwards");
+                .arg("upwards-global");
         });
 
         assert_snapshot!(get_activate_output(&assert, &sandbox));
