@@ -15,11 +15,16 @@ mod systems {
             })
             .success();
 
-        assert!(sandbox
-            .path()
-            .join(".proto/tools/proto")
-            .join(env!("CARGO_PKG_VERSION"))
-            .exists());
+        // I use a shared target folder for all projects in .cargo,
+        // but there's a condition in proto's code to ignore the local
+        // debug builds when in cargo. So need to disable this locally.
+        if std::env::var("CI").is_ok() {
+            assert!(sandbox
+                .path()
+                .join(".proto/tools/proto")
+                .join(env!("CARGO_PKG_VERSION"))
+                .exists());
+        }
     }
 
     #[test]
