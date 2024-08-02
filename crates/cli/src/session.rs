@@ -1,4 +1,5 @@
 use crate::app::{App as CLI, Commands};
+use crate::commands::clean::{internal_clean, CleanArgs};
 use crate::systems::*;
 use async_trait::async_trait;
 use miette::IntoDiagnostic;
@@ -11,6 +12,7 @@ use rustc_hash::FxHashSet;
 use starbase::{AppResult, AppSession};
 use std::sync::Arc;
 use tokio::task::JoinSet;
+use tracing::debug;
 
 #[derive(Clone)]
 pub struct ProtoSession {
@@ -33,6 +35,7 @@ impl ProtoSession {
             self.cli.command,
             Commands::Activate(_)
                 | Commands::Bin(_)
+                | Commands::Clean(_)
                 | Commands::Completions(_)
                 | Commands::Run(_)
                 | Commands::Setup(_)
@@ -113,6 +116,12 @@ impl AppSession for ProtoSession {
     async fn execute(&mut self) -> AppResult {
         if self.should_check_for_new_version() {
             check_for_new_version(Arc::clone(&self.env)).await?;
+
+            if self.env.load_config()?.settings.auto_clean {
+                debug!("Auto-clean enabled, starting clean");
+
+                internal_clean(self, CleanArgs::default(), true).await?;
+            }
         }
 
         Ok(())

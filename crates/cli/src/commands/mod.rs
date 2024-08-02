@@ -1,7 +1,7 @@
 mod activate;
 mod alias;
 mod bin;
-mod clean;
+pub mod clean;
 mod completions;
 pub mod debug;
 mod diagnose;
