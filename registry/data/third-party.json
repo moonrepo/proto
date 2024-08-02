@@ -643,6 +643,20 @@
       ]
     },
     {
+      "id": "packer",
+      "locator": "https://raw.githubusercontent.com/b4nst/proto-plugins/main/toml/packer.toml",
+      "format": "toml",
+      "name": "packer",
+      "description": "Create identical images for multiple platforms from a single source configuration.",
+      "author": "b4nst",
+      "homepageUrl": "https://www.packer.io/",
+      "repositoryUrl": "https://github.com/b4nst/proto-plugins/blob/main/toml/packer.toml",
+      "devicon": "packer",
+      "bins": [
+        "packer"
+      ]
+    },
+    {
       "id": "rattler-build",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/rattler-build/plugin.toml",
       "format": "toml",
