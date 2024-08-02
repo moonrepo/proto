@@ -19,6 +19,12 @@
 
 #### 🚀 Updates
 
+- Added a new `--config-mode` global option that controls how configuration are loaded.
+  - Supports the following values:
+    - `global` - Only load `~/.proto/.prototools`.
+    - `local` - Only load `./.prototools` in the current directory.
+    - `upwards` (default) - Load `.prototools` while traversing upwards, but do not load `~/.proto/.prototools`.
+    - `upwards-global` - Load `.prototools` while traversing upwards, and do load `~/.proto/.prototools`.
 - WASM API
   - Added `ToolMetadataOutput.config_schema`, which can be used to define a JSON schema for the plugins configuration.
   - Added a new `send_request` host function, that uses the same HTTP client as proto does.
