@@ -116,12 +116,16 @@ impl AppSession for ProtoSession {
     async fn execute(&mut self) -> AppResult {
         if self.should_check_for_new_version() {
             check_for_new_version(Arc::clone(&self.env)).await?;
+        }
 
-            if self.env.load_config()?.settings.auto_clean {
-                debug!("Auto-clean enabled, starting clean");
+        Ok(())
+    }
 
-                internal_clean(self, CleanArgs::default(), true).await?;
-            }
+    async fn shutdown(&mut self) -> AppResult {
+        if self.should_check_for_new_version() && self.env.load_config()?.settings.auto_clean {
+            debug!("Auto-clean enabled, starting clean");
+
+            internal_clean(self, CleanArgs::default(), true, false).await?;
         }
 
         Ok(())

@@ -1,4 +1,3 @@
-use super::clean::clean_plugins;
 use super::pin::internal_pin;
 use crate::helpers::{create_progress_bar, disable_progress_bars, enable_progress_bars};
 use crate::session::ProtoSession;
@@ -306,11 +305,6 @@ pub async fn install_one(
 
     // Sync shell profile
     update_shell(&tool, args.passthrough.clone())?;
-
-    // Clean plugins
-    debug!("Auto-cleaning plugins");
-
-    clean_plugins(session, 7).await?;
 
     Ok(tool)
 }
