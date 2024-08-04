@@ -1,3 +1,5 @@
+use std::env;
+
 use crate::error::ProtoCliError;
 use crate::helpers::fetch_latest_version;
 use crate::session::ProtoSession;
@@ -150,7 +152,8 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
             .inventory_dir
             .join("proto")
             .join(current.clone()),
-        true,
+        // Only relocate current when local
+        env::var("CI").is_err(),
     )?;
 
     pb.finish_and_clear();
