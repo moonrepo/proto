@@ -10,6 +10,16 @@
 - [Rust](https://github.com/moonrepo/tools/blob/master/tools/rust/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/tools/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- We rewrote our self-upgrade to account for more edge cases and based its functionality on [other implementations](https://github.com/mitsuhiko/self-replace) in the Rust ecosystem. It should be more reliable moving foward, but if you're on a broken version of proto that can't self-upgrade, reinstall proto entirely to pull the latest version.
+
+#### 🐞 Fixes
+
+- Fixed a "Failed to copy" or "Text file busy" error when self-upgrading proto.
+
 ## 0.39.6
 
 #### 🐞 Fixes
