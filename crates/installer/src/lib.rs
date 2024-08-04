@@ -1,11 +1,14 @@
 mod error;
+#[cfg(unix)]
+mod unix;
+#[cfg(windows)]
+mod windows;
 
 use futures::StreamExt;
 use starbase_archive::Archiver;
 use starbase_styles::color;
 use starbase_utils::fs::{self, FsError};
 use std::cmp;
-use std::env;
 use std::env::consts;
 use std::fmt::Debug;
 use std::io::Write;
@@ -13,6 +16,10 @@ use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 use system_env::SystemLibc;
 use tracing::{instrument, trace};
+#[cfg(unix)]
+use unix::*;
+#[cfg(windows)]
+use windows::*;
 
 pub use error::ProtoInstallerError;
 
@@ -117,11 +124,10 @@ pub async fn download_release(
 }
 
 #[instrument]
-pub fn unpack_release(
+pub fn install_release(
     download: DownloadResult,
     install_dir: impl AsRef<Path> + Debug,
     relocate_dir: impl AsRef<Path> + Debug,
-    relocate_current: bool,
 ) -> miette::Result<bool> {
     let temp_dir = download
         .archive_file
@@ -129,6 +135,7 @@ pub fn unpack_release(
         .unwrap()
         .join(&download.file_stem);
     let install_dir = install_dir.as_ref();
+    let relocate_dir = relocate_dir.as_ref();
     let bin_names = if cfg!(windows) {
         vec!["proto.exe", "proto-shim.exe"]
     } else {
@@ -138,66 +145,19 @@ pub fn unpack_release(
     trace!(
         source = ?download.archive_file,
         target = ?temp_dir,
-        "Unpacking downloaded proto release"
+        "Unpacking downloaded and installing proto release"
     );
 
     // Unpack the downloaded file
     Archiver::new(&temp_dir, &download.archive_file).unpack_from_ext()?;
 
-    // Move the old binaries
-    let relocate = |current_path: &Path, relocate_path: &Path| -> miette::Result<()> {
-        trace!(
-            source = ?current_path,
-            target = ?relocate_path,
-            "Relocating old proto binary to a new versioned location",
-        );
-
-        // Copy instead of rename/move so we avoid potential errors,
-        // like access denied
-        fs::copy_file(current_path, relocate_path)?;
-
-        // Track last used so operations like clean continue to work
-        // correctly, otherwise we get into a weird state!
-        fs::write_file(
-            relocate_path.parent().unwrap().join(".last-used"),
-            SystemTime::now()
-                .duration_since(SystemTime::UNIX_EPOCH)
-                .map(|d| d.as_millis())
-                .unwrap_or(0)
-                .to_string(),
-        )?;
-
-        Ok(())
-    };
-
-    for bin_name in &bin_names {
-        let output_path = install_dir.join(bin_name);
-        let relocate_path = relocate_dir.as_ref().join(bin_name);
-
-        if output_path.exists() && output_path != relocate_path {
-            relocate(&output_path, &relocate_path)?;
-        }
-
-        // If not installed at our standard location
-        if relocate_current {
-            if let Ok(current_exe) = env::current_exe() {
-                if current_exe != output_path
-                    && current_exe
-                        .file_name()
-                        .is_some_and(|name| name == *bin_name)
-                {
-                    relocate(&current_exe, &relocate_path)?;
-                }
-            }
-        }
-    }
-
     // Move the new binary to the install directory
-    let mut unpacked = false;
+    let mut installed = false;
 
     trace!(install_dir = ?install_dir, "Moving unpacked proto binaries to the install directory");
 
-    for bin_name in &bin_names {
+    for bin_name in bin_names {
+        let relocate_path = relocate_dir.join(bin_name);
         let output_path = install_dir.join(bin_name);
         let input_paths = vec![
             temp_dir.join(&download.file_stem).join(bin_name),
@@ -206,10 +166,14 @@ pub fn unpack_release(
 
         for input_path in input_paths {
             if input_path.exists() {
-                fs::copy_file(input_path, &output_path)?;
-                fs::update_perms(&output_path, None)?;
+                if output_path.exists() {
+                    self_replace(&output_path, &input_path, &relocate_path)?;
+                } else {
+                    fs::copy_file(input_path, &output_path)?;
+                    fs::update_perms(&output_path, None)?;
+                }
 
-                unpacked = true;
+                installed = true;
                 break;
             }
         }
@@ -218,5 +182,18 @@ pub fn unpack_release(
     fs::remove(temp_dir)?;
     fs::remove(download.archive_file)?;
 
-    Ok(unpacked)
+    // Track last used so operations like clean continue to work
+    // correctly, otherwise we get into a weird state!
+    if installed && relocate_dir.exists() {
+        fs::write_file(
+            relocate_dir.join(".last-used"),
+            SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .map(|d| d.as_millis())
+                .unwrap_or(0)
+                .to_string(),
+        )?;
+    }
+
+    Ok(installed)
 }
