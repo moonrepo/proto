@@ -167,9 +167,9 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
     if installed {
         #[allow(clippy::comparison_chain)]
         if target_version > current_version {
-            println!("Upgraded proto to v{}!", color::hash(&target));
+            println!("Upgraded proto to {}!", color::hash(&target));
         } else if target_version < current_version {
-            println!("Downgraded proto to v{}!", color::hash(&target));
+            println!("Downgraded proto to {}!", color::hash(&target));
         }
 
         return Ok(());
