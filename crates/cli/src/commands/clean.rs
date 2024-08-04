@@ -288,7 +288,12 @@ pub async fn purge_plugins(session: &ProtoSession, yes: bool) -> AppResult {
     Ok(())
 }
 
-pub async fn internal_clean(session: &ProtoSession, args: CleanArgs, yes: bool) -> AppResult {
+pub async fn internal_clean(
+    session: &ProtoSession,
+    args: CleanArgs,
+    yes: bool,
+    log: bool,
+) -> AppResult {
     let days = args.days.unwrap_or(30);
     let now = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
@@ -296,7 +301,7 @@ pub async fn internal_clean(session: &ProtoSession, args: CleanArgs, yes: bool) 
         .as_millis();
     let mut clean_count = 0;
 
-    println!("Finding installed tools to clean up...");
+    debug!("Finding installed tools to clean up...");
 
     for tool in session.load_tools().await? {
         clean_count += clean_tool(tool, now, days, yes).await?;
@@ -304,7 +309,7 @@ pub async fn internal_clean(session: &ProtoSession, args: CleanArgs, yes: bool) 
 
     clean_count += clean_proto(session, days as u64).await?;
 
-    if clean_count > 0 {
+    if log && clean_count > 0 {
         println!("Successfully cleaned {} versions", clean_count);
     }
 
@@ -312,7 +317,7 @@ pub async fn internal_clean(session: &ProtoSession, args: CleanArgs, yes: bool) 
 
     clean_count = clean_plugins(session, days as u64).await?;
 
-    if clean_count > 0 {
+    if log && clean_count > 0 {
         println!("Successfully cleaned up {} plugins", clean_count);
     }
 
@@ -321,7 +326,7 @@ pub async fn internal_clean(session: &ProtoSession, args: CleanArgs, yes: bool) 
     let results =
         fs::remove_dir_stale_contents(&session.env.store.temp_dir, Duration::from_secs(86400))?;
 
-    if results.files_deleted > 0 {
+    if log && results.files_deleted > 0 {
         println!(
             "Successfully cleaned {} temporary files ({} bytes)",
             results.files_deleted, results.bytes_saved
@@ -345,7 +350,7 @@ pub async fn clean(session: ProtoSession, args: CleanArgs) -> AppResult {
         return Ok(());
     }
 
-    internal_clean(&session, args, force_yes).await?;
+    internal_clean(&session, args, force_yes, true).await?;
 
     Ok(())
 }
