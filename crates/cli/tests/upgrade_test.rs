@@ -13,7 +13,9 @@ mod upgrade {
             .run_bin(|cmd| {
                 cmd.arg("upgrade").arg("0.39.0");
             })
-            .success();
+            .debug();
+
+        sandbox.debug_files();
 
         assert!(sandbox.path().join(".proto/bin/proto").exists());
         assert!(sandbox.path().join(".proto/bin/proto-shim").exists());
@@ -28,7 +30,9 @@ mod upgrade {
             .run_bin(|cmd| {
                 cmd.arg("upgrade").arg("0.39.0");
             })
-            .success();
+            .debug();
+
+        sandbox.debug_files();
 
         assert!(sandbox
             .path()
