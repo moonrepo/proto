@@ -45,10 +45,9 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
     let current = current_version.to_string();
 
     let has_explicit_target = args.target.is_some();
-    let target_version = match args.target {
-        Some(version) => version,
-        None => Version::parse(&latest).unwrap(),
-    };
+    let target_version = args
+        .target
+        .unwrap_or_else(|| Version::parse(&latest).unwrap());
     let target = target_version.to_string();
 
     debug!(

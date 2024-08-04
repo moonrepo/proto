@@ -1,4 +1,8 @@
 mod error;
+#[cfg(unix)]
+mod unix;
+#[cfg(windows)]
+mod windows;
 
 use futures::StreamExt;
 use starbase_archive::Archiver;
@@ -13,6 +17,10 @@ use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 use system_env::SystemLibc;
 use tracing::{instrument, trace};
+#[cfg(unix)]
+use unix::*;
+#[cfg(windows)]
+use windows::*;
 
 pub use error::ProtoInstallerError;
 
