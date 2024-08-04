@@ -1,5 +1,6 @@
 mod utils;
 
+use proto_shim::get_exe_file_name;
 use utils::*;
 
 mod upgrade {
@@ -8,43 +9,43 @@ mod upgrade {
     #[test]
     fn upgrades_to_a_version() {
         let sandbox = create_empty_proto_sandbox();
+        let main_exe = get_exe_file_name("proto");
+        let shim_exe = get_exe_file_name("proto-shim");
 
         sandbox
             .run_bin(|cmd| {
                 cmd.arg("upgrade").arg("0.39.0");
             })
-            .debug();
+            .success();
 
-        sandbox.debug_files();
-
-        assert!(sandbox.path().join(".proto/bin/proto").exists());
-        assert!(sandbox.path().join(".proto/bin/proto-shim").exists());
+        assert!(sandbox.path().join(".proto/bin").join(main_exe).exists());
+        assert!(sandbox.path().join(".proto/bin").join(shim_exe).exists());
     }
 
     #[test]
     fn relocates_existing_to_tools_dir() {
         let sandbox = create_empty_proto_sandbox();
         let version = env!("CARGO_PKG_VERSION");
+        let main_exe = get_exe_file_name("proto");
+        let shim_exe = get_exe_file_name("proto-shim");
 
         sandbox
             .run_bin(|cmd| {
                 cmd.arg("upgrade").arg("0.39.0");
             })
-            .debug();
-
-        sandbox.debug_files();
+            .success();
 
         assert!(sandbox
             .path()
             .join(".proto/tools/proto")
             .join(version)
-            .join("proto")
+            .join(main_exe)
             .exists());
         assert!(sandbox
             .path()
             .join(".proto/tools/proto")
             .join(version)
-            .join("proto-shim")
+            .join(shim_exe)
             .exists());
     }
 }
