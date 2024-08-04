@@ -89,6 +89,7 @@ pub async fn download_versioned_proto_tool(env: &ProtoEnvironment) -> AppResult 
             .await?,
             &tool_dir,
             &env.store.temp_dir,
+            false,
         )?;
     }
 
