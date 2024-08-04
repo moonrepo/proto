@@ -5,7 +5,7 @@ use crate::telemetry::{track_usage, Metric};
 use clap::Args;
 use indicatif::{ProgressBar, ProgressStyle};
 use proto_core::is_offline;
-use proto_installer::{determine_triple, download_release, install_release};
+use proto_installer::*;
 use semver::Version;
 use serde::Serialize;
 use starbase::AppResult;
@@ -125,7 +125,7 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
         "{bar:80.183/black} | {bytes:.239} / {total_bytes:.248} | {bytes_per_sec:.183} | eta {eta}",
     ).unwrap());
 
-    let result = download_release(
+    let download = download_release(
         &target_triple,
         &target,
         &session.env.store.temp_dir,
@@ -141,13 +141,8 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
     )
     .await?;
 
-    pb.finish_and_clear();
-
-    // Unpack the downloaded file
-    debug!(archive = ?result.archive_file, "Unpacking download");
-
-    let unpacked = install_release(
-        result,
+    let installed = install_release(
+        download,
         &session.env.store.bin_dir,
         session
             .env
@@ -155,8 +150,9 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
             .inventory_dir
             .join("proto")
             .join(current.clone()),
-        true,
     )?;
+
+    pb.finish_and_clear();
 
     // Track usage metrics
     track_usage(
@@ -168,7 +164,7 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
     )
     .await?;
 
-    if unpacked {
+    if installed {
         #[allow(clippy::comparison_chain)]
         if target_version > current_version {
             println!("Upgraded proto to v{}!", color::hash(&target));
