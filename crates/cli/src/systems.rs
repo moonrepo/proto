@@ -1,7 +1,7 @@
 use crate::helpers::fetch_latest_version;
 use miette::IntoDiagnostic;
 use proto_core::{is_offline, now, ProtoEnvironment, UnresolvedVersionSpec, PROTO_CONFIG_NAME};
-use proto_installer::{determine_triple, download_release, unpack_release};
+use proto_installer::{determine_triple, download_release, install_release};
 use proto_shim::get_exe_file_name;
 use semver::Version;
 use starbase::AppResult;
@@ -77,7 +77,7 @@ pub async fn download_versioned_proto_tool(env: &ProtoEnvironment) -> AppResult 
             PROTO_CONFIG_NAME
         );
 
-        unpack_release(
+        install_release(
             download_release(
                 &triple_target,
                 &version,

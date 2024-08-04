@@ -5,7 +5,7 @@ use crate::telemetry::{track_usage, Metric};
 use clap::Args;
 use indicatif::{ProgressBar, ProgressStyle};
 use proto_core::is_offline;
-use proto_installer::{determine_triple, download_release, unpack_release};
+use proto_installer::{determine_triple, download_release, install_release};
 use semver::Version;
 use serde::Serialize;
 use starbase::AppResult;
@@ -146,7 +146,7 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
     // Unpack the downloaded file
     debug!(archive = ?result.archive_file, "Unpacking download");
 
-    let unpacked = unpack_release(
+    let unpacked = install_release(
         result,
         &session.env.store.bin_dir,
         session
