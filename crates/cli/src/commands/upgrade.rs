@@ -150,6 +150,7 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
             .inventory_dir
             .join("proto")
             .join(current.clone()),
+        true,
     )?;
 
     pb.finish_and_clear();

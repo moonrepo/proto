@@ -8,12 +8,12 @@ use futures::StreamExt;
 use starbase_archive::Archiver;
 use starbase_styles::color;
 use starbase_utils::fs::{self, FsError};
-use std::cmp;
 use std::env::consts;
 use std::fmt::Debug;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
+use std::{cmp, env};
 use system_env::SystemLibc;
 use tracing::{instrument, trace};
 #[cfg(unix)]
@@ -128,6 +128,7 @@ pub fn install_release(
     download: DownloadResult,
     install_dir: impl AsRef<Path> + Debug,
     relocate_dir: impl AsRef<Path> + Debug,
+    relocate_current: bool,
 ) -> miette::Result<bool> {
     let temp_dir = download
         .archive_file
@@ -156,25 +157,39 @@ pub fn install_release(
 
     trace!(install_dir = ?install_dir, "Moving unpacked proto binaries to the install directory");
 
-    for bin_name in bin_names {
-        let relocate_path = relocate_dir.join(bin_name);
-        let output_path = install_dir.join(bin_name);
-        let input_paths = vec![
-            temp_dir.join(&download.file_stem).join(bin_name),
-            temp_dir.join(bin_name),
-        ];
+    let input_dirs = vec![temp_dir.join(&download.file_stem), temp_dir.clone()];
+    let mut output_dirs = vec![install_dir.to_path_buf()];
 
-        for input_path in input_paths {
-            if input_path.exists() {
+    if relocate_current {
+        if let Ok(current) = env::current_exe() {
+            let current_dir = current.parent().unwrap();
+
+            if current_dir != install_dir {
+                output_dirs.push(current_dir.to_path_buf());
+            }
+        }
+    }
+
+    for bin_name in &bin_names {
+        for input_dir in &input_dirs {
+            let input_path = input_dir.join(bin_name);
+
+            if !input_path.exists() {
+                continue;
+            }
+
+            for output_dir in &output_dirs {
+                let output_path = output_dir.join(bin_name);
+                let relocate_path = relocate_dir.join(bin_name);
+
                 if output_path.exists() {
                     self_replace(&output_path, &input_path, &relocate_path)?;
                 } else {
-                    fs::copy_file(input_path, &output_path)?;
+                    fs::copy_file(&input_path, &output_path)?;
                     fs::update_perms(&output_path, None)?;
                 }
 
                 installed = true;
-                break;
             }
         }
     }
