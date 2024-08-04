@@ -119,8 +119,10 @@ impl Tool {
                 id.to_owned(),
                 manifest,
                 create_host_functions(HostData {
+                    http_client: Arc::clone(proto.get_plugin_loader()?.get_client()?),
                     virtual_paths: proto.get_virtual_paths(),
                     working_dir: proto.cwd.clone(),
+                    ..Default::default()
                 }),
             )?),
         )

@@ -12,10 +12,10 @@ warpgate_api = { version = "0.9.0", path = "../warpgate-api" }
 extism = { workspace = true, features = ["http"] }
 miette = { workspace = true }
 once_cell = { workspace = true }
-once_map = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true, features = ["json", "rustls-tls-native-roots"] }
 schematic = { workspace = true, optional = true, features = ["schema"] }
+scc = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
@@ -23,6 +23,7 @@ starbase_archive = { workspace = true }
 starbase_utils = { workspace = true, features = ["glob", "net"] }
 starbase_styles = { workspace = true }
 thiserror = { workspace = true }
+tokio = { workspace = true }
 tracing = { workspace = true }
 
 # Enabling certs for extism!
@@ -30,7 +31,6 @@ ureq = { version = "2.10.0", features = ["native-certs"] }
 
 [dev-dependencies]
 starbase_sandbox = { workspace = true }
-tokio = { workspace = true }
 
 [features]
 default = []
