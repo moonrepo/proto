@@ -8,7 +8,7 @@ pub fn self_replace(
 ) -> miette::Result<()> {
     // If we're a symlink, we need to find the real location and operate on
     // that instead of the link.
-    let mut exe = current_exe.canonicalize().map_err(|error| FsError::Read {
+    let exe = current_exe.canonicalize().map_err(|error| FsError::Read {
         path: current_exe.to_path_buf(),
         error: Box::new(error),
     })?;
@@ -22,7 +22,7 @@ pub fn self_replace(
     let mut temp_exe = current_exe.to_path_buf();
     temp_exe.set_extension("temp.exe");
 
-    fs::copy_file(replace_with, temp_exe)?;
+    fs::copy_file(replace_with, &temp_exe)?;
 
     // And lastly, we move the temporary to the original location. This avoids
     // writing/copying data to the original, and instead does a rename/move.
