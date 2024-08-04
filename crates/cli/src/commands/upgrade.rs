@@ -152,8 +152,9 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
             .inventory_dir
             .join("proto")
             .join(current.clone()),
-        // Only relocate current when local
-        env::var("CI").is_err(),
+        // Don't relocate within our CI pipeline as it causes issues,
+        // but do relocate for other user's CI and local development
+        env::var("PROTO_TEST").is_err(),
     )?;
 
     pb.finish_and_clear();
