@@ -15,7 +15,6 @@ rustc-hash = { workspace = true }
 schematic = { workspace = true, optional = true, features = [
 	"schema",
 	"type_semver",
-	"type_serde_json",
 ] }
 semver = { workspace = true }
 serde = { workspace = true }

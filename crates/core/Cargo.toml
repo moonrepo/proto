@@ -25,11 +25,11 @@ reqwest = { workspace = true }
 rustc-hash = { workspace = true }
 schematic = { workspace = true, features = [
 	"config",
+	"env",
 	"toml",
 	"type_indexmap",
-	"type_serde_json",
-	"type_serde_toml",
 	"type_url",
+	"validate",
 ] }
 semver = { workspace = true }
 serde = { workspace = true }
