@@ -124,6 +124,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "asdf-plugin"
+version = "0.1.0"
+dependencies = [
+ "dirs 5.0.1",
+ "extism-pdk",
+ "proto_core",
+ "proto_pdk",
+ "proto_pdk_test_utils",
+ "serde",
+ "serde_json",
+ "starbase_sandbox",
+ "tokio",
+]
+
+[[package]]
 name = "assert_cmd"
 version = "2.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
