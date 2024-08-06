@@ -4,7 +4,7 @@ use once_cell::sync::OnceCell;
 use rustc_hash::FxHashMap;
 use schematic::{
     derive_enum, env, merge, Config, ConfigEnum, ConfigError, ConfigLoader, DefaultValueResult,
-    Format, HandlerError, MergeResult, PartialConfig, ValidateError, ValidateErrorType,
+    Format, MergeError, MergeResult, PartialConfig, Path as ErrorPath, ValidateError,
     ValidateResult, ValidatorError,
 };
 use serde::{Deserialize, Serialize};
@@ -33,7 +33,7 @@ fn merge_tools(
         prev.entry(key)
             .or_default()
             .merge(context, value)
-            .map_err(HandlerError::new)?;
+            .map_err(MergeError::new)?;
     }
 
     Ok(Some(prev))
@@ -333,21 +333,19 @@ impl ProtoConfig {
             .code(config_content, Format::Toml)?
             .load_partial(&())?;
 
-        config
-            .validate(&(), true)
-            .map_err(|error| ConfigError::Validator {
-                config: config_path.to_string(),
-                error: Box::new(error),
+        config.validate(&(), true).map_err(|error| match error {
+            ConfigError::Validator { error, .. } => ConfigError::Validator {
+                location: config_path.to_string(),
+                error,
                 help: Some(color::muted_light("https://moonrepo.dev/docs/proto/config")),
-            })?;
+            },
+            _ => error,
+        })?;
 
         // Because of serde flatten, unknown and invalid fields
         // do not trigger validation, so we need to manually handle it
         if let Some(fields) = &config.unknown {
-            let mut error = ValidatorError {
-                path: schematic::Path::new(vec![]),
-                errors: vec![],
-            };
+            let mut error = ValidatorError { errors: vec![] };
 
             for (field, value) in fields {
                 // Versions show up in both flattened maps...
@@ -368,15 +366,15 @@ impl ProtoConfig {
                     }
                 };
 
-                error.errors.push(ValidateErrorType::setting(
-                    error.path.join_key(field),
-                    ValidateError::new(message),
+                error.errors.push(ValidateError::with_path(
+                    message,
+                    ErrorPath::default().join_key(field),
                 ));
             }
 
             if !error.errors.is_empty() {
                 return Err(ConfigError::Validator {
-                    config: config_path.to_string(),
+                    location: config_path.to_string(),
                     error: Box::new(error),
                     help: Some(color::muted_light("https://moonrepo.dev/docs/proto/config")),
                 }
