@@ -17,6 +17,7 @@ permissions:
 
 jobs:
   build:
+    if: (github.event_name == 'schedule' && github.repository == 'moonrepo/proto') || (github.event_name != 'schedule')
     strategy:
       fail-fast: false
       matrix:
