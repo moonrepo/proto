@@ -80,23 +80,22 @@ impl PluginLoader {
 
         trace!(
             id = id.as_str(),
+            locator = locator.to_string(),
             "Loading plugin {}",
             color::id(id.as_str())
         );
 
         match locator {
             PluginLocator::File { file, path, .. } => {
-                let path = path.as_ref();
-                let path = path
-                    .ok_or_else(|| WarpgateError::SourceFileMissing {
-                        id: id.to_owned(),
-                        path: PathBuf::from(file),
-                    })?
-                    .canonicalize()
-                    .map_err(|_| WarpgateError::SourceFileMissing {
-                        id: id.to_owned(),
-                        path: path.unwrap().to_path_buf(),
-                    })?;
+                let file_buf = PathBuf::from(file);
+                let maybe_path = path.as_ref().unwrap_or(&file_buf);
+                let path =
+                    maybe_path
+                        .canonicalize()
+                        .map_err(|_| WarpgateError::SourceFileMissing {
+                            id: id.to_owned(),
+                            path: maybe_path.to_path_buf(),
+                        })?;
 
                 if path.exists() {
                     trace!(

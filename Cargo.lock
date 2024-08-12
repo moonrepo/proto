@@ -2901,6 +2901,7 @@ checksum = "9fb047393ef140f5e776b2bf7df0ddf0e390f140c4985863244e7700f8183bd7"
 dependencies = [
  "indexmap 2.2.6",
  "semver",
+ "serde",
  "serde_json",
  "toml 0.8.16",
  "url",
