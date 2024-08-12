@@ -346,9 +346,9 @@ dependencies = [
 
 [[package]]
 name = "castaway"
-version = "0.2.2"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a17ed5635fc8536268e5d4de1e22e81ac34419e5f052d4d51f4e01dcc263fcc"
+checksum = "0abae9be0aaf9ea96a3b1b8b1b55c602ca751eba1b1500220cea4ecbafe7c0d5"
 dependencies = [
  "rustversion",
 ]
@@ -2860,9 +2860,9 @@ dependencies = [
 
 [[package]]
 name = "schematic"
-version = "0.16.6"
+version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39662af6f427584874872ecc0e42888bccd0c42510d32d519c4ac9319f4c52f3"
+checksum = "4952b2fab03cea740a66c0ca502d16f31ad5d3cc0a803541778f20715ebd0088"
 dependencies = [
  "garde",
  "indexmap 2.2.6",
@@ -2882,9 +2882,9 @@ dependencies = [
 
 [[package]]
 name = "schematic_macros"
-version = "0.16.6"
+version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9747db30b2549f7a3d5c5c61e00a4da45d6fe7f4a413594ffc5e598f5ced1330"
+checksum = "4568cc8e3cc136c4231041062419bebcf69f13e8c05fb34d4c715cc5c33ebbc4"
 dependencies = [
  "convert_case",
  "darling",
@@ -2895,12 +2895,13 @@ dependencies = [
 
 [[package]]
 name = "schematic_types"
-version = "0.8.4"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6196a0b23e5b4ee02e3894a937606fc49ccc9211e1650a9bef759062cfff3d58"
+checksum = "9939a1953cd54de031828aabb6b9e37191c45328c0620f7286ccc76a35a6ac05"
 dependencies = [
  "indexmap 2.2.6",
  "semver",
+ "serde",
  "serde_json",
  "toml 0.8.16",
  "url",
@@ -2966,12 +2967,13 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.120"
+version = "1.0.122"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e0d21c9a8cae1235ad58a00c11cb40d4b1e5c784f1ef2c537876ed6ffd8b7c5"
+checksum = "784b6203951c57ff748476b126ccb5e8e2959a5c19e5c617ab1956be3dbc68da"
 dependencies = [
  "indexmap 2.2.6",
  "itoa",
+ "memchr",
  "ryu",
  "serde",
 ]
@@ -3205,9 +3207,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_styles"
-version = "0.4.1"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dcdc25102288ba49a8ae037a3de74dde8bcd519dfe00dc00dae4ed7344475983"
+checksum = "44854a14e28e3b1d602d802576162380504df73efae50d4b901934d25579524b"
 dependencies = [
  "dirs 5.0.1",
  "miette",

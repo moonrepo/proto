@@ -1,6 +1,6 @@
 use starbase_sandbox::{create_empty_sandbox, locate_fixture, Sandbox};
 use std::path::PathBuf;
-use warpgate::{GitHubLocator, Id, PluginLoader, PluginLocator};
+use warpgate::{FileLocator, GitHubLocator, Id, PluginLoader, PluginLocator, UrlLocator};
 
 fn create_loader() -> (Sandbox, PluginLoader) {
     let sandbox = create_empty_sandbox();
@@ -16,17 +16,17 @@ mod loader {
         use super::*;
 
         #[tokio::test]
-        #[should_panic(expected = "Cannot load test plugin, source file fake-file does not exist.")]
+        #[should_panic(expected = "Cannot load test plugin, source file")]
         async fn errors_missing_file() {
             let (_sandbox, loader) = create_loader();
 
             loader
                 .load_plugin(
                     Id::raw("test"),
-                    PluginLocator::File {
+                    PluginLocator::File(Box::new(FileLocator {
                         file: "".into(),
                         path: Some(PathBuf::from("fake-file")),
-                    },
+                    })),
                 )
                 .await
                 .unwrap();
@@ -40,20 +40,15 @@ mod loader {
             let path = loader
                 .load_plugin(
                     Id::raw("test"),
-                    PluginLocator::File {
+                    PluginLocator::File(Box::new(FileLocator {
                         file: "".into(),
                         path: Some(fixture.join("test.wasm")),
-                    },
+                    })),
                 )
                 .await
                 .unwrap();
 
-            // Path is UNC prefixed
-            if cfg!(windows) {
-                assert!(path.ends_with("loader\\test.wasm"));
-            } else {
-                assert_eq!(path, fixture.join("test.wasm"));
-            }
+            assert_eq!(path, fixture.join("test.wasm"));
         }
     }
 
@@ -68,7 +63,7 @@ mod loader {
             loader
                 .load_plugin(
                     Id::raw("test"),
-                    PluginLocator::Url { url: "https://github.com/moonrepo/deno-plugin/releases/download/v0.0.2/deno_plugin_invalid_name.wasm".into() },
+                    PluginLocator::Url(Box::new(UrlLocator { url: "https://github.com/moonrepo/deno-plugin/releases/download/v0.0.2/deno_plugin_invalid_name.wasm".into() })),
                 )
                 .await
                 .unwrap();
@@ -81,7 +76,7 @@ mod loader {
             let path = loader
                 .load_plugin(
                     Id::raw("test"),
-                    PluginLocator::Url { url: "https://github.com/moonrepo/deno-plugin/releases/download/v0.0.2/deno_plugin.wasm".into() },
+                    PluginLocator::Url(Box::new(UrlLocator { url: "https://github.com/moonrepo/deno-plugin/releases/download/v0.0.2/deno_plugin.wasm".into() })),
                 )
                 .await
                 .unwrap();
@@ -96,7 +91,7 @@ mod loader {
             let path = loader
                 .load_plugin(
                     Id::raw("test"),
-                    PluginLocator::Url { url: "https://github.com/moonrepo/deno-plugin/releases/latest/download/deno_plugin.wasm".into() },
+                    PluginLocator::Url(Box::new(UrlLocator { url: "https://github.com/moonrepo/deno-plugin/releases/latest/download/deno_plugin.wasm".into() })),
                 )
                 .await
                 .unwrap();

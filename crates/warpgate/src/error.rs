@@ -14,7 +14,6 @@ pub enum WarpgateError {
     #[error("Failed to make HTTP request for {}.", .url.style(Style::Url))]
     Http {
         url: String,
-
         #[source]
         error: Box<reqwest::Error>,
     },
@@ -24,7 +23,10 @@ pub enum WarpgateError {
     InternetConnectionRequired { message: String, url: String },
 
     #[diagnostic(code(plugin::invalid_id))]
-    #[error("Invalid plugin identifier {}, must be a valid kebab-case string.", .0.style(Style::Id))]
+    #[error(
+        "Invalid plugin identifier {}. May only contain letters, numbers, dashes, and underscores.",
+        .0.style(Style::Id),
+    )]
     InvalidID(String),
 
     #[diagnostic(code(plugin::source::file_missing))]
@@ -37,7 +39,7 @@ pub enum WarpgateError {
 
     #[diagnostic(code(plugin::github::asset_missing))]
     #[error(
-        "Cannot download {} plugin from GitHub ({}), no tag found or provided.",
+        "Cannot download {} plugin from GitHub ({}), no tag found, matched, or provided.",
         .id.style(Style::Id),
         .repo_slug.style(Style::Id),
     )]
@@ -109,11 +111,11 @@ pub enum WarpgateError {
     },
 
     #[diagnostic(
-        code(plugin::download::missing),
+        code(plugin::download::not_found),
         help = "Please refer to the plugin's official documentation."
     )]
     #[error(
-        "Plugin download {} does not exist. This version may not be supported for your current operating system or architecture, or the URL is incorrect.",
+        "Plugin download {} does not exist. Either this version may not be supported for your current operating system or architecture, or the URL is incorrect or malformed.",
         .url.style(Style::Url),
     )]
     DownloadNotFound { url: String },

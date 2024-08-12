@@ -4,12 +4,18 @@ use starbase_utils::fs;
 use std::path::PathBuf;
 use tracing::{debug, trace, warn};
 
+/// Configures the HTTPS client used for making requests.
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 #[serde(default, rename_all = "kebab-case")]
 #[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
 pub struct HttpOptions {
+    /// Allow invalid certificates. This is dangerous and should only be used as a last resort!
     pub allow_invalid_certs: bool,
+
+    /// A list of proxy URLs that all requests should pass through.
     pub proxies: Vec<String>,
+
+    /// Absolute path to the root certificate. Supports `.pem` and `.der` files.
     pub root_cert: Option<PathBuf>,
 }
 
@@ -59,7 +65,7 @@ pub fn create_http_client_with_options(options: &HttpOptions) -> miette::Result<
     }
 
     for proxy in &options.proxies {
-        trace!(proxy = &proxy, "Adding proxy to http client");
+        trace!(proxy, "Adding proxy to http client");
 
         if proxy.starts_with("http:") {
             client = client.proxy(reqwest::Proxy::http(proxy).into_diagnostic()?);

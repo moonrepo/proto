@@ -10,6 +10,13 @@
 - [Rust](https://github.com/moonrepo/tools/blob/master/tools/rust/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/tools/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- WASM API
+  - Added `ToolMetadataOutput.config_schema`, which can be used to define a JSON schema for the plugins configuration.
+
 ## 0.39.7
 
 #### 🚀 Updates

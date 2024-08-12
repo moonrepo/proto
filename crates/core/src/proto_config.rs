@@ -4,7 +4,7 @@ use once_cell::sync::OnceCell;
 use rustc_hash::FxHashMap;
 use schematic::{
     derive_enum, env, merge, Config, ConfigEnum, ConfigError, ConfigLoader, DefaultValueResult,
-    Format, HandlerError, MergeResult, PartialConfig, ValidateError, ValidateErrorType,
+    Format, MergeError, MergeResult, PartialConfig, Path as ErrorPath, ValidateError,
     ValidateResult, ValidatorError,
 };
 use serde::{Deserialize, Serialize};
@@ -19,7 +19,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tracing::{debug, instrument, trace};
 use version_spec::*;
-use warpgate::{HttpOptions, Id, PluginLocator};
+use warpgate::{HttpOptions, Id, PluginLocator, UrlLocator};
 
 pub const PROTO_CONFIG_NAME: &str = ".prototools";
 pub const SCHEMA_PLUGIN_KEY: &str = "internal-schema";
@@ -33,7 +33,7 @@ fn merge_tools(
         prev.entry(key)
             .or_default()
             .merge(context, value)
-            .map_err(HandlerError::new)?;
+            .map_err(MergeError::new)?;
     }
 
     Ok(Some(prev))
@@ -221,36 +221,36 @@ impl ProtoConfig {
         if !self.plugins.contains_key("bun") && is_allowed("bun") {
             self.plugins.insert(
                 Id::raw("bun"),
-                PluginLocator::Url {
+                PluginLocator::Url(Box::new(UrlLocator {
                     url: "https://github.com/moonrepo/tools/releases/download/bun_tool-v0.12.3/bun_tool.wasm".into()
-                }
+                }))
             );
         }
 
         if !self.plugins.contains_key("deno") && is_allowed("deno") {
             self.plugins.insert(
                 Id::raw("deno"),
-                PluginLocator::Url {
+                PluginLocator::Url(Box::new(UrlLocator {
                     url: "https://github.com/moonrepo/tools/releases/download/deno_tool-v0.11.4/deno_tool.wasm".into()
-                }
+                }))
             );
         }
 
         if !self.plugins.contains_key("go") && is_allowed("go") {
             self.plugins.insert(
                 Id::raw("go"),
-                PluginLocator::Url {
+                PluginLocator::Url(Box::new(UrlLocator {
                     url: "https://github.com/moonrepo/tools/releases/download/go_tool-v0.12.0/go_tool.wasm".into()
-                }
+                }))
             );
         }
 
         if !self.plugins.contains_key("node") && is_allowed("node") {
             self.plugins.insert(
                 Id::raw("node"),
-                PluginLocator::Url {
+                PluginLocator::Url(Box::new(UrlLocator {
                     url: "https://github.com/moonrepo/tools/releases/download/node_tool-v0.11.8/node_tool.wasm".into()
-                }
+                }))
             );
         }
 
@@ -258,9 +258,9 @@ impl ProtoConfig {
             if !self.plugins.contains_key(depman) && is_allowed(depman) {
                 self.plugins.insert(
                     Id::raw(depman),
-                    PluginLocator::Url {
+                    PluginLocator::Url(Box::new(UrlLocator {
                         url: "https://github.com/moonrepo/tools/releases/download/node_depman_tool-v0.12.0/node_depman_tool.wasm".into()
-                    }
+                    }))
                 );
             }
         }
@@ -268,27 +268,27 @@ impl ProtoConfig {
         if !self.plugins.contains_key("python") && is_allowed("python") {
             self.plugins.insert(
                 Id::raw("python"),
-                PluginLocator::Url {
+                PluginLocator::Url(Box::new(UrlLocator {
                     url: "https://github.com/moonrepo/tools/releases/download/python_tool-v0.10.5/python_tool.wasm".into()
-                }
+                }))
             );
         }
 
         if !self.plugins.contains_key("rust") && is_allowed("rust") {
             self.plugins.insert(
                 Id::raw("rust"),
-                PluginLocator::Url {
+                PluginLocator::Url(Box::new(UrlLocator {
                     url: "https://github.com/moonrepo/tools/releases/download/rust_tool-v0.10.6/rust_tool.wasm".into()
-                }
+                }))
             );
         }
 
         if !self.plugins.contains_key(SCHEMA_PLUGIN_KEY) {
             self.plugins.insert(
                 Id::raw(SCHEMA_PLUGIN_KEY),
-                PluginLocator::Url {
+                PluginLocator::Url(Box::new(UrlLocator {
                     url: "https://github.com/moonrepo/tools/releases/download/schema_tool-v0.14.1/schema_tool.wasm".into()
-                }
+                }))
             );
         }
     }
@@ -333,21 +333,19 @@ impl ProtoConfig {
             .code(config_content, Format::Toml)?
             .load_partial(&())?;
 
-        config
-            .validate(&(), true)
-            .map_err(|error| ConfigError::Validator {
-                config: config_path.to_string(),
-                error: Box::new(error),
+        config.validate(&(), true).map_err(|error| match error {
+            ConfigError::Validator { error, .. } => ConfigError::Validator {
+                location: config_path.to_string(),
+                error,
                 help: Some(color::muted_light("https://moonrepo.dev/docs/proto/config")),
-            })?;
+            },
+            _ => error,
+        })?;
 
         // Because of serde flatten, unknown and invalid fields
         // do not trigger validation, so we need to manually handle it
         if let Some(fields) = &config.unknown {
-            let mut error = ValidatorError {
-                path: schematic::Path::new(vec![]),
-                errors: vec![],
-            };
+            let mut error = ValidatorError { errors: vec![] };
 
             for (field, value) in fields {
                 // Versions show up in both flattened maps...
@@ -368,15 +366,15 @@ impl ProtoConfig {
                     }
                 };
 
-                error.errors.push(ValidateErrorType::setting(
-                    error.path.join_key(field),
-                    ValidateError::new(message),
+                error.errors.push(ValidateError::with_path(
+                    message,
+                    ErrorPath::default().join_key(field),
                 ));
             }
 
             if !error.errors.is_empty() {
                 return Err(ConfigError::Validator {
-                    config: config_path.to_string(),
+                    location: config_path.to_string(),
                     error: Box::new(error),
                     help: Some(color::muted_light("https://moonrepo.dev/docs/proto/config")),
                 }
@@ -397,13 +395,8 @@ impl ProtoConfig {
 
         if let Some(plugins) = &mut config.plugins {
             for locator in plugins.values_mut() {
-                if let PluginLocator::File {
-                    file,
-                    path: ref mut source_path,
-                    ..
-                } = locator
-                {
-                    let _ = source_path.insert(make_absolute(&PathBuf::from(&file)));
+                if let PluginLocator::File(ref mut inner) = locator {
+                    inner.path = Some(make_absolute(&inner.get_unresolved_path()));
                 }
             }
         }

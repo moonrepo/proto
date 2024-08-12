@@ -36,6 +36,7 @@ api_enum!(
         Language,
         DependencyManager,
         CLI,
+        VersionManager,
     }
 );
 
@@ -69,6 +70,14 @@ api_struct!(
 api_struct!(
     /// Output returned by the `register_tool` function.
     pub struct ToolMetadataOutput {
+        /// Schema shape of the tool's configuration.
+        // #[cfg(feature = "schematic")]
+        // #[cfg_attr(
+        //     feature = "schematic",
+        //     serde(default, skip_serializing_if = "Option::is_none")
+        // )]
+        // pub config_schema: Option<schematic::Schema>,
+
         /// Default alias or version to use as a fallback.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub default_version: Option<UnresolvedVersionSpec>,

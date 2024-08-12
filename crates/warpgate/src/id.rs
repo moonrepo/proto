@@ -5,7 +5,7 @@ use std::sync::LazyLock;
 use std::{borrow::Borrow, fmt, ops::Deref, str::FromStr};
 
 pub static ID_PATTERN: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new("^[a-z][a-z0-9-_]*$").unwrap());
+    LazyLock::new(|| Regex::new("^[a-zA-Z][a-zA-Z0-9-_]*$").unwrap());
 
 /// An identifier for plugins.
 #[derive(Clone, Default, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]

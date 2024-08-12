@@ -1,7 +1,8 @@
 mod utils;
 
 use proto_core::{
-    load_tool_from_locator, Id, PluginLocator, ProtoEnvironment, Tool, UnresolvedVersionSpec,
+    load_tool_from_locator, warpgate::FileLocator, warpgate::UrlLocator, Id, PluginLocator,
+    ProtoEnvironment, Tool, UnresolvedVersionSpec,
 };
 use starbase_sandbox::assert_snapshot;
 use starbase_sandbox::predicates::prelude::*;
@@ -53,10 +54,10 @@ mod plugins {
             load_tool_from_locator(
                 Id::raw("moon"),
                 env.to_owned(),
-                PluginLocator::File {
+                PluginLocator::File(Box::new(FileLocator {
                     file: "./tests/fixtures/moon-schema.toml".into(),
                     path: Some(root_dir.join("./tests/fixtures/moon-schema.toml")),
-                },
+                })),
             )
         })
         .await;
@@ -71,10 +72,10 @@ mod plugins {
             load_tool_from_locator(
                 Id::raw("moon"),
                 env.to_owned(),
-                PluginLocator::File {
+                PluginLocator::File(Box::new(FileLocator {
                     file: "./some/fake/path.toml".into(),
                     path: Some(root_dir.join("./some/fake/path.toml")),
-                },
+                })),
             )
         })
         .await;
@@ -86,10 +87,10 @@ mod plugins {
             load_tool_from_locator(
                 Id::raw("moon"),
                 env.to_owned(),
-                PluginLocator::Url {
+                PluginLocator::Url(Box::new(UrlLocator {
                     url: "https://raw.githubusercontent.com/moonrepo/moon/master/proto-plugin.toml"
                         .into(),
-                },
+                })),
             )
         })
         .await;
@@ -102,10 +103,10 @@ mod plugins {
             load_tool_from_locator(
                 Id::raw("moon"),
                 env.to_owned(),
-                PluginLocator::Url {
+                PluginLocator::Url(Box::new(UrlLocator {
                     url: "https://raw.githubusercontent.com/moonrepo/moon/some/fake/path.toml"
                         .into(),
-                },
+                })),
             )
         })
         .await;
