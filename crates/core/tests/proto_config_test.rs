@@ -9,7 +9,7 @@ use starbase_utils::json::JsonValue;
 use std::collections::BTreeMap;
 use std::env;
 use version_spec::UnresolvedVersionSpec;
-use warpgate::{GitHubLocator, HttpOptions, Id, PluginLocator};
+use warpgate::{FileLocator, GitHubLocator, HttpOptions, Id, PluginLocator};
 
 fn handle_error(report: miette::Report) {
     panic!(
@@ -196,10 +196,10 @@ foo = "file://../file.wasm"
             config.plugins.unwrap(),
             BTreeMap::from_iter([(
                 Id::raw("foo"),
-                PluginLocator::File {
+                PluginLocator::File(Box::new(FileLocator {
                     file: "../file.wasm".into(),
                     path: Some(sandbox.path().join("../file.wasm"))
-                }
+                }))
             )])
         );
     }
@@ -262,17 +262,17 @@ kebab-case = "file://./camel.toml"
             BTreeMap::from_iter([
                 (
                     Id::raw("foo"),
-                    PluginLocator::File {
+                    PluginLocator::File(Box::new(FileLocator {
                         file: "./test.toml".into(),
                         path: Some(sandbox.path().join("./test.toml"))
-                    }
+                    }))
                 ),
                 (
                     Id::raw("kebab-case"),
-                    PluginLocator::File {
+                    PluginLocator::File(Box::new(FileLocator {
                         file: "./camel.toml".into(),
                         path: Some(sandbox.path().join("./camel.toml"))
-                    }
+                    }))
                 )
             ])
         );
@@ -297,10 +297,10 @@ kebab-case = "file://./camel.toml"
 
         plugins.insert(
             Id::raw("foo"),
-            PluginLocator::File {
+            PluginLocator::File(Box::new(FileLocator {
                 file: "./test.toml".into(),
                 path: Some(sandbox.path().join("./test.toml")),
-            },
+            })),
         );
 
         let path = ProtoConfig::save_to(sandbox.path(), config).unwrap();
@@ -658,18 +658,18 @@ deno = "7.8.9"
 
         assert_eq!(
             config.plugins.get("node").unwrap(),
-            &PluginLocator::File {
+            &PluginLocator::File(Box::new(FileLocator {
                 file: "./node.toml".into(),
                 path: Some(sandbox.path().join("one/two/three/./node.toml"))
-            }
+            }))
         );
 
         assert_eq!(
             config.plugins.get("bun").unwrap(),
-            &PluginLocator::File {
+            &PluginLocator::File(Box::new(FileLocator {
                 file: "../bun.wasm".into(),
                 path: Some(sandbox.path().join("one/two/../bun.wasm"))
-            }
+            }))
         );
     }
 

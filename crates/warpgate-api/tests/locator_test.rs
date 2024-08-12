@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use warpgate_api::{GitHubLocator, PluginLocator};
+use warpgate_api::{FileLocator, GitHubLocator, PluginLocator};
 
 mod locator {
     use super::*;
@@ -7,10 +7,10 @@ mod locator {
     #[test]
     fn displays_correctly() {
         assert_eq!(
-            PluginLocator::File {
+            PluginLocator::File(Box::new(FileLocator {
                 file: "foo.wasm".into(),
                 path: Some(PathBuf::from("/abs/foo.wasm")),
-            }
+            }))
             .to_string(),
             "file://foo.wasm"
         );
@@ -101,10 +101,10 @@ mod locator {
         fn parses_file() {
             assert_eq!(
                 PluginLocator::try_from("file://file.wasm".to_string()).unwrap(),
-                PluginLocator::File {
+                PluginLocator::File(Box::new(FileLocator {
                     file: "file.wasm".into(),
                     path: None,
-                }
+                }))
             );
         }
 
@@ -112,10 +112,10 @@ mod locator {
         fn parses_file_legacy() {
             assert_eq!(
                 PluginLocator::try_from("source:file.wasm".to_string()).unwrap(),
-                PluginLocator::File {
+                PluginLocator::File(Box::new(FileLocator {
                     file: "file.wasm".into(),
                     path: None,
-                }
+                }))
             );
         }
 
@@ -123,17 +123,17 @@ mod locator {
         fn parses_file_rel() {
             assert_eq!(
                 PluginLocator::try_from("file://../file.wasm".to_string()).unwrap(),
-                PluginLocator::File {
+                PluginLocator::File(Box::new(FileLocator {
                     file: "../file.wasm".into(),
                     path: None,
-                }
+                }))
             );
             assert_eq!(
                 PluginLocator::try_from("file://./file.wasm".to_string()).unwrap(),
-                PluginLocator::File {
+                PluginLocator::File(Box::new(FileLocator {
                     file: "./file.wasm".into(),
                     path: None,
-                }
+                }))
             );
         }
 
@@ -141,17 +141,17 @@ mod locator {
         fn parses_file_rel_legacy() {
             assert_eq!(
                 PluginLocator::try_from("source:../file.wasm".to_string()).unwrap(),
-                PluginLocator::File {
+                PluginLocator::File(Box::new(FileLocator {
                     file: "../file.wasm".into(),
                     path: None,
-                }
+                }))
             );
             assert_eq!(
                 PluginLocator::try_from("source:./file.wasm".to_string()).unwrap(),
-                PluginLocator::File {
+                PluginLocator::File(Box::new(FileLocator {
                     file: "./file.wasm".into(),
                     path: None,
-                }
+                }))
             );
         }
     }

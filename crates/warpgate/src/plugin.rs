@@ -132,11 +132,9 @@ impl PluginContainer {
         let input = self.format_input(func, input)?;
         let cache_key = format!("{func}-{input}");
 
-        // Check if cache exists already in read-only mode
-        {
-            if let Some(data) = self.func_cache.get(&cache_key) {
-                return self.parse_output(func, data);
-            }
+        // Check if cache exists already
+        if let Some(data) = self.func_cache.get(&cache_key) {
+            return self.parse_output(func, data);
         }
 
         // Otherwise call the function and cache the result

@@ -17,4 +17,6 @@ pub use plugin::*;
 
 pub use extism::{Manifest as PluginManifest, Wasm};
 pub use warpgate_api as api;
-pub use warpgate_api::{GitHubLocator, PluginLocator, PluginLocatorError, VirtualPath};
+pub use warpgate_api::{
+    FileLocator, GitHubLocator, PluginLocator, PluginLocatorError, UrlLocator, VirtualPath,
+};

@@ -170,14 +170,16 @@ impl<'std> Printer<'std> {
 
     pub fn locator<L: AsRef<PluginLocator>>(&mut self, locator: L) {
         match locator.as_ref() {
-            PluginLocator::File { path, .. } => {
-                self.entry(
-                    "File",
-                    color::path(path.as_ref().unwrap().canonicalize().unwrap()),
-                );
+            PluginLocator::File(file) => {
+                self.entry("File", color::path(file.get_resolved_path()));
             }
             PluginLocator::GitHub(github) => {
                 self.entry("GitHub", color::label(&github.repo_slug));
+
+                if let Some(name) = &github.project_name {
+                    self.entry("Project", color::label(name));
+                }
+
                 self.entry(
                     "Tag",
                     color::hash(github.tag.as_deref().unwrap_or("latest")),

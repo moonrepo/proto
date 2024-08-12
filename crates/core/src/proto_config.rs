@@ -395,13 +395,8 @@ impl ProtoConfig {
 
         if let Some(plugins) = &mut config.plugins {
             for locator in plugins.values_mut() {
-                if let PluginLocator::File {
-                    file,
-                    path: ref mut source_path,
-                    ..
-                } = locator
-                {
-                    let _ = source_path.insert(make_absolute(&PathBuf::from(&file)));
+                if let PluginLocator::File(ref mut inner) = locator {
+                    inner.path = Some(make_absolute(&inner.get_unresolved_path()));
                 }
             }
         }

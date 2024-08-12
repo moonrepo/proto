@@ -1,6 +1,6 @@
 use starbase_sandbox::{create_empty_sandbox, locate_fixture, Sandbox};
 use std::path::PathBuf;
-use warpgate::{GitHubLocator, Id, PluginLoader, PluginLocator};
+use warpgate::{FileLocator, GitHubLocator, Id, PluginLoader, PluginLocator};
 
 fn create_loader() -> (Sandbox, PluginLoader) {
     let sandbox = create_empty_sandbox();
@@ -23,10 +23,10 @@ mod loader {
             loader
                 .load_plugin(
                     Id::raw("test"),
-                    PluginLocator::File {
+                    PluginLocator::File(Box::new(FileLocator {
                         file: "".into(),
                         path: Some(PathBuf::from("fake-file")),
-                    },
+                    })),
                 )
                 .await
                 .unwrap();
@@ -40,10 +40,10 @@ mod loader {
             let path = loader
                 .load_plugin(
                     Id::raw("test"),
-                    PluginLocator::File {
+                    PluginLocator::File(Box::new(FileLocator {
                         file: "".into(),
                         path: Some(fixture.join("test.wasm")),
-                    },
+                    })),
                 )
                 .await
                 .unwrap();

@@ -17,7 +17,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 use tracing::{instrument, trace};
-use warpgate_api::{GitHubLocator, PluginLocator};
+use warpgate_api::{FileLocator, GitHubLocator, PluginLocator, UrlLocator};
 
 pub type OfflineChecker = Arc<fn() -> bool>;
 
@@ -86,33 +86,7 @@ impl PluginLoader {
         );
 
         match locator {
-            PluginLocator::File { file, path, .. } => {
-                let file_buf = PathBuf::from(file);
-                let maybe_path = path.as_ref().unwrap_or(&file_buf);
-                let path =
-                    maybe_path
-                        .canonicalize()
-                        .map_err(|_| WarpgateError::SourceFileMissing {
-                            id: id.to_owned(),
-                            path: maybe_path.to_path_buf(),
-                        })?;
-
-                if path.exists() {
-                    trace!(
-                        id = id.as_str(),
-                        path = ?path,
-                        "Using source file",
-                    );
-
-                    Ok(path)
-                } else {
-                    Err(WarpgateError::SourceFileMissing {
-                        id: id.to_owned(),
-                        path: path.to_path_buf(),
-                    }
-                    .into())
-                }
-            }
+            PluginLocator::File(file) => self.load_plugin_from_file(id, file).await,
             PluginLocator::Url { url } => {
                 self.download_plugin(
                     id,
@@ -123,6 +97,51 @@ impl PluginLoader {
             }
             PluginLocator::GitHub(github) => self.download_plugin_from_github(id, github).await,
         }
+    }
+
+    /// Load a plugin from the file system.
+    #[instrument(skip(self))]
+    pub async fn load_plugin_from_file<I: AsRef<Id> + Debug>(
+        &self,
+        id: I,
+        locator: &FileLocator,
+    ) -> miette::Result<PathBuf> {
+        let id = id.as_ref();
+        let path = locator.get_resolved_path();
+
+        if path.exists() {
+            trace!(
+                id = id.as_str(),
+                path = ?path,
+                "Using source file",
+            );
+
+            Ok(path)
+        } else {
+            Err(WarpgateError::SourceFileMissing {
+                id: id.to_owned(),
+                path: path.to_path_buf(),
+            }
+            .into())
+        }
+    }
+
+    /// Load a plugin from a secure URL.
+    #[instrument(skip(self))]
+    pub async fn load_plugin_from_url<I: AsRef<Id> + Debug>(
+        &self,
+        id: I,
+        locator: &UrlLocator,
+    ) -> miette::Result<PathBuf> {
+        let id = id.as_ref();
+        let url = &locator.url;
+
+        self.download_plugin(
+            id,
+            url,
+            self.create_cache_path(id, url, url.contains("latest")),
+        )
+        .await
     }
 
     /// Create an absolute path to the plugin's destination file, located in the plugins directory.
