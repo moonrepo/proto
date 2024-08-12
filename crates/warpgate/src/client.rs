@@ -65,7 +65,7 @@ pub fn create_http_client_with_options(options: &HttpOptions) -> miette::Result<
     }
 
     for proxy in &options.proxies {
-        trace!(proxy = &proxy, "Adding proxy to http client");
+        trace!(proxy, "Adding proxy to http client");
 
         if proxy.starts_with("http:") {
             client = client.proxy(reqwest::Proxy::http(proxy).into_diagnostic()?);

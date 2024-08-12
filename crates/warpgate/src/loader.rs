@@ -6,12 +6,10 @@ use crate::helpers::{
 };
 use crate::id::Id;
 use once_cell::sync::OnceCell;
-use serde::de::DeserializeOwned;
 use sha2::{Digest, Sha256};
 use starbase_archive::is_supported_archive_extension;
 use starbase_styles::color;
 use starbase_utils::fs;
-use std::env;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -87,7 +85,7 @@ impl PluginLoader {
 
         match locator {
             PluginLocator::File(file) => self.load_plugin_from_file(id, file).await,
-            PluginLocator::GitHub(github) => self.download_plugin_from_github(id, github).await,
+            PluginLocator::GitHub(github) => self.load_plugin_from_github(id, github).await,
             PluginLocator::Url(url) => self.load_plugin_from_url(id, url).await,
         }
     }
@@ -117,6 +115,18 @@ impl PluginLoader {
             }
             .into())
         }
+    }
+
+    /// Load a plugin from a GitHub release.
+    #[instrument(skip(self))]
+    pub async fn load_plugin_from_github<I: AsRef<Id> + Debug>(
+        &self,
+        id: I,
+        locator: &GitHubLocator,
+    ) -> miette::Result<PathBuf> {
+        let id = id.as_ref();
+
+        self.download_plugin_from_github(id, locator).await
     }
 
     /// Load a plugin from a secure URL.
@@ -170,25 +180,19 @@ impl PluginLoader {
             return Ok(false);
         }
 
-        let metadata = fs::metadata(path)?;
-
-        let mut cached = if let Ok(filetime) = metadata.created().or_else(|_| metadata.modified()) {
-            let days = if fs::file_name(path).contains("-latest-") {
-                7
-            } else {
-                30
-            };
-
-            filetime > SystemTime::now() - Duration::from_secs(86400 * days)
-        } else {
-            false
-        };
+        let mut cached = fs::is_stale(
+            path,
+            false,
+            Duration::from_secs(86400 * 30), // 30 days
+            SystemTime::now(),
+        )?
+        .is_none();
 
         if !cached && self.is_offline() {
             cached = true;
         }
 
-        if !cached {
+        if !cached && path.exists() {
             fs::remove_file(path)?;
         }
 
@@ -302,8 +306,7 @@ impl PluginLoader {
         if let Some(tag) = &github.tag {
             found_tag = Some(tag.to_owned())
         } else if let Some(tag_prefix) = &github.project_name {
-            found_tag = self
-                .send_github_request::<Vec<GitHubApiTag>>(tags_url)
+            found_tag = send_github_request::<Vec<GitHubApiTag>>(self.get_client()?, &tags_url)
                 .await?
                 .into_iter()
                 .find(|row| {
@@ -342,7 +345,8 @@ impl PluginLoader {
             "Attempting to download plugin from GitHub release",
         );
 
-        let release: GitHubApiRelease = self.send_github_request(release_url).await?;
+        let release: GitHubApiRelease =
+            send_github_request(self.get_client()?, &release_url).await?;
 
         // Find a direct WASM asset first
         for asset in &release.assets {
@@ -385,23 +389,5 @@ impl PluginLoader {
             tag: release_tag,
         }
         .into())
-    }
-
-    async fn send_github_request<T: DeserializeOwned>(&self, url: String) -> miette::Result<T> {
-        let mut request = self.get_client()?.get(&url).query(&[("per_page", "100")]);
-
-        if let Ok(auth_token) = env::var("GITHUB_TOKEN") {
-            request = request.bearer_auth(auth_token);
-        }
-
-        let handle_error = |error: reqwest::Error| WarpgateError::Http {
-            error: Box::new(error),
-            url: url.clone(),
-        };
-
-        let response = request.send().await.map_err(handle_error)?;
-        let data: T = response.json().await.map_err(handle_error)?;
-
-        Ok(data)
     }
 }

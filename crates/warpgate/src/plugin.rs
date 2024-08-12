@@ -53,7 +53,7 @@ pub fn inject_default_manifest_config(
         .config
         .insert("plugin_id".to_string(), id.to_string());
 
-    trace!(env = %env, "Storing host environment");
+    trace!(id = id.as_str(), env = %env, "Storing host environment");
 
     manifest.config.insert("host_environment".to_string(), env);
 
@@ -82,6 +82,8 @@ impl PluginContainer {
         manifest: Manifest,
         functions: impl IntoIterator<Item = Function>,
     ) -> miette::Result<PluginContainer> {
+        trace!(id = id.as_str(), "Creating plugin container",);
+
         let plugin = Plugin::new(&manifest, functions, true).map_err(|error| {
             if is_incompatible_runtime(&error) {
                 WarpgateError::IncompatibleRuntime { id: id.clone() }
