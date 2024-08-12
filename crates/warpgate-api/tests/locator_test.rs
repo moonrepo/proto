@@ -102,7 +102,7 @@ mod locator {
             assert_eq!(
                 PluginLocator::try_from("file://file.wasm".to_string()).unwrap(),
                 PluginLocator::File(Box::new(FileLocator {
-                    file: "file.wasm".into(),
+                    file: "file://file.wasm".into(),
                     path: None,
                 }))
             );
@@ -113,7 +113,7 @@ mod locator {
             assert_eq!(
                 PluginLocator::try_from("source:file.wasm".to_string()).unwrap(),
                 PluginLocator::File(Box::new(FileLocator {
-                    file: "file.wasm".into(),
+                    file: "file://file.wasm".into(),
                     path: None,
                 }))
             );
@@ -124,14 +124,14 @@ mod locator {
             assert_eq!(
                 PluginLocator::try_from("file://../file.wasm".to_string()).unwrap(),
                 PluginLocator::File(Box::new(FileLocator {
-                    file: "../file.wasm".into(),
+                    file: "file://../file.wasm".into(),
                     path: None,
                 }))
             );
             assert_eq!(
                 PluginLocator::try_from("file://./file.wasm".to_string()).unwrap(),
                 PluginLocator::File(Box::new(FileLocator {
-                    file: "./file.wasm".into(),
+                    file: "file://./file.wasm".into(),
                     path: None,
                 }))
             );
@@ -142,14 +142,14 @@ mod locator {
             assert_eq!(
                 PluginLocator::try_from("source:../file.wasm".to_string()).unwrap(),
                 PluginLocator::File(Box::new(FileLocator {
-                    file: "../file.wasm".into(),
+                    file: "file://../file.wasm".into(),
                     path: None,
                 }))
             );
             assert_eq!(
                 PluginLocator::try_from("source:./file.wasm".to_string()).unwrap(),
                 PluginLocator::File(Box::new(FileLocator {
-                    file: "./file.wasm".into(),
+                    file: "file://./file.wasm".into(),
                     path: None,
                 }))
             );

@@ -86,7 +86,13 @@ impl schematic::Schematic for PluginLocator {
 impl Display for PluginLocator {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            PluginLocator::File(file) => write!(f, "{}", file.file),
+            PluginLocator::File(file) => {
+                if file.file.starts_with("file://") {
+                    write!(f, "{}", file.file)
+                } else {
+                    write!(f, "file://{}", file.file)
+                }
+            }
             PluginLocator::Url(url) => write!(f, "{}", url.url),
             PluginLocator::GitHub(github) => write!(
                 f,
