@@ -2,7 +2,7 @@ mod utils;
 
 use proto_core::{
     load_tool_from_locator, FileLocator, Id, PluginLocator, ProtoEnvironment, Tool,
-    UnresolvedVersionSpec,
+    UnresolvedVersionSpec, UrlLocator,
 };
 use starbase_sandbox::assert_snapshot;
 use starbase_sandbox::predicates::prelude::*;
@@ -87,10 +87,10 @@ mod plugins {
             load_tool_from_locator(
                 Id::raw("moon"),
                 env.to_owned(),
-                PluginLocator::Url {
+                PluginLocator::Url(Box::new(UrlLocator {
                     url: "https://raw.githubusercontent.com/moonrepo/moon/master/proto-plugin.toml"
                         .into(),
-                },
+                })),
             )
         })
         .await;
@@ -103,10 +103,10 @@ mod plugins {
             load_tool_from_locator(
                 Id::raw("moon"),
                 env.to_owned(),
-                PluginLocator::Url {
+                PluginLocator::Url(Box::new(UrlLocator {
                     url: "https://raw.githubusercontent.com/moonrepo/moon/some/fake/path.toml"
                         .into(),
-                },
+                })),
             )
         })
         .await;

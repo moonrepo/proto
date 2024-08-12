@@ -1,6 +1,6 @@
 use starbase_sandbox::{create_empty_sandbox, locate_fixture, Sandbox};
 use std::path::PathBuf;
-use warpgate::{FileLocator, GitHubLocator, Id, PluginLoader, PluginLocator};
+use warpgate::{FileLocator, GitHubLocator, Id, PluginLoader, PluginLocator, UrlLocator};
 
 fn create_loader() -> (Sandbox, PluginLoader) {
     let sandbox = create_empty_sandbox();
@@ -68,7 +68,7 @@ mod loader {
             loader
                 .load_plugin(
                     Id::raw("test"),
-                    PluginLocator::Url { url: "https://github.com/moonrepo/deno-plugin/releases/download/v0.0.2/deno_plugin_invalid_name.wasm".into() },
+                    PluginLocator::Url(Box::new(UrlLocator { url: "https://github.com/moonrepo/deno-plugin/releases/download/v0.0.2/deno_plugin_invalid_name.wasm".into() })),
                 )
                 .await
                 .unwrap();
@@ -81,7 +81,7 @@ mod loader {
             let path = loader
                 .load_plugin(
                     Id::raw("test"),
-                    PluginLocator::Url { url: "https://github.com/moonrepo/deno-plugin/releases/download/v0.0.2/deno_plugin.wasm".into() },
+                    PluginLocator::Url(Box::new(UrlLocator { url: "https://github.com/moonrepo/deno-plugin/releases/download/v0.0.2/deno_plugin.wasm".into() })),
                 )
                 .await
                 .unwrap();
@@ -96,7 +96,7 @@ mod loader {
             let path = loader
                 .load_plugin(
                     Id::raw("test"),
-                    PluginLocator::Url { url: "https://github.com/moonrepo/deno-plugin/releases/latest/download/deno_plugin.wasm".into() },
+                    PluginLocator::Url(Box::new(UrlLocator { url: "https://github.com/moonrepo/deno-plugin/releases/latest/download/deno_plugin.wasm".into() })),
                 )
                 .await
                 .unwrap();

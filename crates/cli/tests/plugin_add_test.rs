@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::PluginLocator;
+use proto_core::{PluginLocator, UrlLocator};
 use starbase_sandbox::predicates::prelude::*;
 use utils::*;
 
@@ -45,11 +45,11 @@ mod plugin_add {
 
         assert_eq!(
             config.plugins.get("id").unwrap(),
-            &PluginLocator::Url {
+            &PluginLocator::Url(Box::new(UrlLocator {
                 url:
                     "https://github.com/moonrepo/tools/releases/latest/download/example_plugin.wasm"
                         .into()
-            }
+            }))
         );
     }
 
@@ -76,11 +76,11 @@ mod plugin_add {
 
         assert_eq!(
             config.plugins.get("id").unwrap(),
-            &PluginLocator::Url {
+            &PluginLocator::Url(Box::new(UrlLocator {
                 url:
                     "https://github.com/moonrepo/tools/releases/latest/download/example_plugin.wasm"
                         .into()
-            }
+            }))
         );
     }
 }

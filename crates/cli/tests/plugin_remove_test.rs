@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::{Id, PluginLocator, ProtoConfig};
+use proto_core::{Id, PluginLocator, ProtoConfig, UrlLocator};
 use starbase_sandbox::predicates::prelude::*;
 use utils::*;
 
@@ -30,9 +30,9 @@ mod plugin_remove {
                 .get_or_insert(Default::default())
                 .insert(
                     Id::raw("id"),
-                    PluginLocator::Url {
+                    PluginLocator::Url(Box::new(UrlLocator {
                       url: "https://github.com/moonrepo/tools/releases/latest/download/example_plugin.wasm".into()
-                    },
+                    })),
                 );
         })
         .unwrap();
@@ -58,9 +58,9 @@ mod plugin_remove {
                 .get_or_insert(Default::default())
                 .insert(
                     Id::raw("id"),
-                    PluginLocator::Url {
+                    PluginLocator::Url(Box::new(UrlLocator {
                       url: "https://github.com/moonrepo/tools/releases/latest/download/example_plugin.wasm".into()
-                    },
+                    })),
                 );
         })
         .unwrap();

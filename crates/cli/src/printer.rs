@@ -185,8 +185,8 @@ impl<'std> Printer<'std> {
                     color::hash(github.tag.as_deref().unwrap_or("latest")),
                 );
             }
-            PluginLocator::Url { url } => {
-                self.entry("URL", color::url(url));
+            PluginLocator::Url(url) => {
+                self.entry("URL", color::url(&url.url));
             }
         };
     }

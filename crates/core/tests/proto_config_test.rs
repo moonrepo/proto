@@ -9,7 +9,7 @@ use starbase_utils::json::JsonValue;
 use std::collections::BTreeMap;
 use std::env;
 use version_spec::UnresolvedVersionSpec;
-use warpgate::{FileLocator, GitHubLocator, HttpOptions, Id, PluginLocator};
+use warpgate::{FileLocator, GitHubLocator, HttpOptions, Id, PluginLocator, UrlLocator};
 
 fn handle_error(report: miette::Report) {
     panic!(
@@ -163,9 +163,9 @@ bar = "https://moonrepo.dev/path/file.wasm"
             BTreeMap::from_iter([
                 (
                     Id::raw("bar"),
-                    PluginLocator::Url {
+                    PluginLocator::Url(Box::new(UrlLocator {
                         url: "https://moonrepo.dev/path/file.wasm".into()
-                    }
+                    }))
                 ),
                 (
                     Id::raw("foo"),

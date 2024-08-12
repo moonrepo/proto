@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use warpgate_api::{FileLocator, GitHubLocator, PluginLocator};
+use warpgate_api::{FileLocator, GitHubLocator, PluginLocator, UrlLocator};
 
 mod locator {
     use super::*;
@@ -16,9 +16,9 @@ mod locator {
         );
 
         assert_eq!(
-            PluginLocator::Url {
+            PluginLocator::Url(Box::new(UrlLocator {
                 url: "https://download.com/bar.wasm".into()
-            }
+            }))
             .to_string(),
             "https://download.com/bar.wasm"
         );
@@ -252,9 +252,9 @@ mod locator {
         fn parses_url() {
             assert_eq!(
                 PluginLocator::try_from("https://domain.com/file.wasm".to_string()).unwrap(),
-                PluginLocator::Url {
+                PluginLocator::Url(Box::new(UrlLocator {
                     url: "https://domain.com/file.wasm".into()
-                }
+                }))
             );
         }
 
@@ -262,9 +262,9 @@ mod locator {
         fn parses_url_legacy() {
             assert_eq!(
                 PluginLocator::try_from("source:https://domain.com/file.wasm".to_string()).unwrap(),
-                PluginLocator::Url {
+                PluginLocator::Url(Box::new(UrlLocator {
                     url: "https://domain.com/file.wasm".into()
-                }
+                }))
             );
         }
     }

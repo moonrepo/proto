@@ -87,7 +87,7 @@ impl Display for PluginLocator {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             PluginLocator::File(file) => write!(f, "{}", file.file),
-            PluginLocator::Url { url } => write!(f, "{}", url),
+            PluginLocator::Url(url) => write!(f, "{}", url.url),
             PluginLocator::GitHub(github) => write!(
                 f,
                 "github://{}{}{}",
@@ -177,7 +177,7 @@ impl TryFrom<String> for PluginLocator {
                 Ok(PluginLocator::GitHub(Box::new(github)))
             }
             "http" => Err(PluginLocatorError::SecureUrlsOnly),
-            "https" => Ok(PluginLocator::Url { url: value }),
+            "https" => Ok(PluginLocator::Url(Box::new(UrlLocator { url: value }))),
             unknown => Err(PluginLocatorError::UnknownProtocol(unknown.to_owned())),
         }
     }

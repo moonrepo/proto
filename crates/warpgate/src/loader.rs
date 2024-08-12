@@ -87,15 +87,8 @@ impl PluginLoader {
 
         match locator {
             PluginLocator::File(file) => self.load_plugin_from_file(id, file).await,
-            PluginLocator::Url { url } => {
-                self.download_plugin(
-                    id,
-                    url,
-                    self.create_cache_path(id, url, url.contains("latest")),
-                )
-                .await
-            }
             PluginLocator::GitHub(github) => self.download_plugin_from_github(id, github).await,
+            PluginLocator::Url(url) => self.load_plugin_from_url(id, url).await,
         }
     }
 
