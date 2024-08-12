@@ -22,7 +22,10 @@ impl FileLocator {
     }
 
     pub fn get_resolved_path(&self) -> PathBuf {
-        let mut path = self.get_unresolved_path();
+        let mut path = self
+            .path
+            .clone()
+            .unwrap_or_else(|| self.get_unresolved_path());
 
         if !path.is_absolute() {
             path = std::env::current_dir()

@@ -25,4 +25,5 @@ pub use version_spec::*;
 
 // Only export things consumers will actually need!
 pub use semver::{Version, VersionReq};
-pub use warpgate::{FileLocator, GitHubLocator, Id, PluginLocator, UrlLocator};
+pub use warpgate;
+pub use warpgate::{Id, PluginLocator};

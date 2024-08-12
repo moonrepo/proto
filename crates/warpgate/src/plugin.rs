@@ -82,7 +82,7 @@ impl PluginContainer {
         manifest: Manifest,
         functions: impl IntoIterator<Item = Function>,
     ) -> miette::Result<PluginContainer> {
-        trace!(id = id.as_str(), "Creating plugin container",);
+        trace!(id = id.as_str(), "Creating plugin container");
 
         let plugin = Plugin::new(&manifest, functions, true).map_err(|error| {
             if is_incompatible_runtime(&error) {

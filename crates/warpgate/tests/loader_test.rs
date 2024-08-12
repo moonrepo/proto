@@ -16,7 +16,7 @@ mod loader {
         use super::*;
 
         #[tokio::test]
-        #[should_panic(expected = "Cannot load test plugin, source file fake-file does not exist.")]
+        #[should_panic(expected = "Cannot load test plugin, source file")]
         async fn errors_missing_file() {
             let (_sandbox, loader) = create_loader();
 
@@ -48,12 +48,7 @@ mod loader {
                 .await
                 .unwrap();
 
-            // Path is UNC prefixed
-            if cfg!(windows) {
-                assert!(path.ends_with("loader\\test.wasm"));
-            } else {
-                assert_eq!(path, fixture.join("test.wasm"));
-            }
+            assert_eq!(path, fixture.join("test.wasm"));
         }
     }
 

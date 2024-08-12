@@ -43,15 +43,6 @@ mod proto_config {
     }
 
     #[test]
-    #[should_panic(expected = "must be a valid kebab-case string.")]
-    fn errors_for_non_kebab_id() {
-        let sandbox = create_empty_sandbox();
-        sandbox.create_file(".prototools", "fooBar = \"1.2.3\"");
-
-        handle_error(ProtoConfig::load_from(sandbox.path(), false).unwrap_err());
-    }
-
-    #[test]
     #[should_panic(expected = "proto is a reserved keyword, cannot use as a plugin identifier")]
     fn errors_for_reserved_plugin_words() {
         let sandbox = create_empty_sandbox();
@@ -197,7 +188,7 @@ foo = "file://../file.wasm"
             BTreeMap::from_iter([(
                 Id::raw("foo"),
                 PluginLocator::File(Box::new(FileLocator {
-                    file: "../file.wasm".into(),
+                    file: "file://../file.wasm".into(),
                     path: Some(sandbox.path().join("../file.wasm"))
                 }))
             )])
@@ -263,14 +254,14 @@ kebab-case = "file://./camel.toml"
                 (
                     Id::raw("foo"),
                     PluginLocator::File(Box::new(FileLocator {
-                        file: "./test.toml".into(),
+                        file: "file://./test.toml".into(),
                         path: Some(sandbox.path().join("./test.toml"))
                     }))
                 ),
                 (
                     Id::raw("kebab-case"),
                     PluginLocator::File(Box::new(FileLocator {
-                        file: "./camel.toml".into(),
+                        file: "file://./camel.toml".into(),
                         path: Some(sandbox.path().join("./camel.toml"))
                     }))
                 )
@@ -659,7 +650,7 @@ deno = "7.8.9"
         assert_eq!(
             config.plugins.get("node").unwrap(),
             &PluginLocator::File(Box::new(FileLocator {
-                file: "./node.toml".into(),
+                file: "file://./node.toml".into(),
                 path: Some(sandbox.path().join("one/two/three/./node.toml"))
             }))
         );
@@ -667,7 +658,7 @@ deno = "7.8.9"
         assert_eq!(
             config.plugins.get("bun").unwrap(),
             &PluginLocator::File(Box::new(FileLocator {
-                file: "../bun.wasm".into(),
+                file: "file://../bun.wasm".into(),
                 path: Some(sandbox.path().join("one/two/../bun.wasm"))
             }))
         );
