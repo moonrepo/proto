@@ -8,7 +8,9 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
-proto_pdk_api = { version = "0.22.0", path = "../pdk-api" }
+proto_pdk_api = { version = "0.22.0", path = "../pdk-api", features = [
+	"schematic",
+] }
 proto_shim = { version = "0.4.3", path = "../shim" }
 version_spec = { version = "0.6.1", path = "../version-spec", features = [
 	"schematic",
@@ -25,11 +27,11 @@ reqwest = { workspace = true }
 rustc-hash = { workspace = true }
 schematic = { workspace = true, features = [
 	"config",
+	"env",
 	"toml",
 	"type_indexmap",
-	"type_serde_json",
-	"type_serde_toml",
 	"type_url",
+	"validate",
 ] }
 semver = { workspace = true }
 serde = { workspace = true }

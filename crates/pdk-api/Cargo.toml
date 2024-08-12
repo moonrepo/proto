@@ -14,8 +14,8 @@ warpgate_api = { version = "0.9.0", path = "../warpgate-api" }
 rustc-hash = { workspace = true }
 schematic = { workspace = true, optional = true, features = [
 	"schema",
+	"schema_serde",
 	"type_semver",
-	"type_serde_json",
 ] }
 semver = { workspace = true }
 serde = { workspace = true }

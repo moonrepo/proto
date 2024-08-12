@@ -9,7 +9,7 @@ use starbase_utils::json::JsonValue;
 use std::collections::BTreeMap;
 use std::env;
 use version_spec::UnresolvedVersionSpec;
-use warpgate::{GitHubLocator, HttpOptions, Id, PluginLocator};
+use warpgate::{FileLocator, GitHubLocator, HttpOptions, Id, PluginLocator, UrlLocator};
 
 fn handle_error(report: miette::Report) {
     panic!(
@@ -38,15 +38,6 @@ mod proto_config {
     fn errors_for_non_plugins_table() {
         let sandbox = create_empty_sandbox();
         sandbox.create_file(".prototools", "[other]\nkey = 123");
-
-        handle_error(ProtoConfig::load_from(sandbox.path(), false).unwrap_err());
-    }
-
-    #[test]
-    #[should_panic(expected = "must be a valid kebab-case string.")]
-    fn errors_for_non_kebab_id() {
-        let sandbox = create_empty_sandbox();
-        sandbox.create_file(".prototools", "fooBar = \"1.2.3\"");
 
         handle_error(ProtoConfig::load_from(sandbox.path(), false).unwrap_err());
     }
@@ -163,9 +154,9 @@ bar = "https://moonrepo.dev/path/file.wasm"
             BTreeMap::from_iter([
                 (
                     Id::raw("bar"),
-                    PluginLocator::Url {
+                    PluginLocator::Url(Box::new(UrlLocator {
                         url: "https://moonrepo.dev/path/file.wasm".into()
-                    }
+                    }))
                 ),
                 (
                     Id::raw("foo"),
@@ -196,10 +187,10 @@ foo = "file://../file.wasm"
             config.plugins.unwrap(),
             BTreeMap::from_iter([(
                 Id::raw("foo"),
-                PluginLocator::File {
-                    file: "../file.wasm".into(),
+                PluginLocator::File(Box::new(FileLocator {
+                    file: "file://../file.wasm".into(),
                     path: Some(sandbox.path().join("../file.wasm"))
-                }
+                }))
             )])
         );
     }
@@ -262,17 +253,17 @@ kebab-case = "file://./camel.toml"
             BTreeMap::from_iter([
                 (
                     Id::raw("foo"),
-                    PluginLocator::File {
-                        file: "./test.toml".into(),
+                    PluginLocator::File(Box::new(FileLocator {
+                        file: "file://./test.toml".into(),
                         path: Some(sandbox.path().join("./test.toml"))
-                    }
+                    }))
                 ),
                 (
                     Id::raw("kebab-case"),
-                    PluginLocator::File {
-                        file: "./camel.toml".into(),
+                    PluginLocator::File(Box::new(FileLocator {
+                        file: "file://./camel.toml".into(),
                         path: Some(sandbox.path().join("./camel.toml"))
-                    }
+                    }))
                 )
             ])
         );
@@ -297,10 +288,10 @@ kebab-case = "file://./camel.toml"
 
         plugins.insert(
             Id::raw("foo"),
-            PluginLocator::File {
+            PluginLocator::File(Box::new(FileLocator {
                 file: "./test.toml".into(),
                 path: Some(sandbox.path().join("./test.toml")),
-            },
+            })),
         );
 
         let path = ProtoConfig::save_to(sandbox.path(), config).unwrap();
@@ -658,18 +649,18 @@ deno = "7.8.9"
 
         assert_eq!(
             config.plugins.get("node").unwrap(),
-            &PluginLocator::File {
-                file: "./node.toml".into(),
+            &PluginLocator::File(Box::new(FileLocator {
+                file: "file://./node.toml".into(),
                 path: Some(sandbox.path().join("one/two/three/./node.toml"))
-            }
+            }))
         );
 
         assert_eq!(
             config.plugins.get("bun").unwrap(),
-            &PluginLocator::File {
-                file: "../bun.wasm".into(),
+            &PluginLocator::File(Box::new(FileLocator {
+                file: "file://../bun.wasm".into(),
                 path: Some(sandbox.path().join("one/two/../bun.wasm"))
-            }
+            }))
         );
     }
 

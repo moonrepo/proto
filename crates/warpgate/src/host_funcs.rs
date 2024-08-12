@@ -176,7 +176,7 @@ fn exec_command(
 
         ExecCommandOutput {
             command: input.command.clone(),
-            exit_code: result.code().unwrap_or(0),
+            exit_code: result.code().unwrap_or(-1),
             stderr: String::new(),
             stdout: String::new(),
         }
@@ -185,7 +185,7 @@ fn exec_command(
 
         ExecCommandOutput {
             command: input.command.clone(),
-            exit_code: result.status.code().unwrap_or(0),
+            exit_code: result.status.code().unwrap_or(-1),
             stderr: String::from_utf8_lossy(&result.stderr).to_string(),
             stdout: String::from_utf8_lossy(&result.stdout).to_string(),
         }

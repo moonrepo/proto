@@ -53,7 +53,7 @@ pub fn inject_default_manifest_config(
         .config
         .insert("plugin_id".to_string(), id.to_string());
 
-    trace!(env = %env, "Storing host environment");
+    trace!(id = id.as_str(), env = %env, "Storing host environment");
 
     manifest.config.insert("host_environment".to_string(), env);
 
@@ -82,6 +82,8 @@ impl PluginContainer {
         manifest: Manifest,
         functions: impl IntoIterator<Item = Function>,
     ) -> miette::Result<PluginContainer> {
+        trace!(id = id.as_str(), "Creating plugin container");
+
         let plugin = Plugin::new(&manifest, functions, true).map_err(|error| {
             if is_incompatible_runtime(&error) {
                 WarpgateError::IncompatibleRuntime { id: id.clone() }
@@ -132,11 +134,9 @@ impl PluginContainer {
         let input = self.format_input(func, input)?;
         let cache_key = format!("{func}-{input}");
 
-        // Check if cache exists already in read-only mode
-        {
-            if let Some(data) = self.func_cache.get(&cache_key) {
-                return self.parse_output(func, data);
-            }
+        // Check if cache exists already
+        if let Some(data) = self.func_cache.get(&cache_key) {
+            return self.parse_output(func, data);
         }
 
         // Otherwise call the function and cache the result

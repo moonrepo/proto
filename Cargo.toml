@@ -23,7 +23,7 @@ reqwest = { version = "0.12.5", default-features = false, features = [
     "macos-system-configuration",
 ] }
 rustc-hash = "2.0.0"
-schematic = { version = "0.16.6", default-features = false }
+schematic = { version = "0.17.1", default-features = false }
 semver = { version = "1.0.23", features = ["serde"] }
 serde = { version = "1.0.204", features = ["derive"] }
 serde_json = "1.0.120"

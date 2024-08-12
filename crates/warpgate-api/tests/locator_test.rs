@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use warpgate_api::{GitHubLocator, PluginLocator};
+use warpgate_api::{FileLocator, GitHubLocator, PluginLocator, UrlLocator};
 
 mod locator {
     use super::*;
@@ -7,18 +7,18 @@ mod locator {
     #[test]
     fn displays_correctly() {
         assert_eq!(
-            PluginLocator::File {
+            PluginLocator::File(Box::new(FileLocator {
                 file: "foo.wasm".into(),
                 path: Some(PathBuf::from("/abs/foo.wasm")),
-            }
+            }))
             .to_string(),
             "file://foo.wasm"
         );
 
         assert_eq!(
-            PluginLocator::Url {
+            PluginLocator::Url(Box::new(UrlLocator {
                 url: "https://download.com/bar.wasm".into()
-            }
+            }))
             .to_string(),
             "https://download.com/bar.wasm"
         );
@@ -101,10 +101,10 @@ mod locator {
         fn parses_file() {
             assert_eq!(
                 PluginLocator::try_from("file://file.wasm".to_string()).unwrap(),
-                PluginLocator::File {
-                    file: "file.wasm".into(),
+                PluginLocator::File(Box::new(FileLocator {
+                    file: "file://file.wasm".into(),
                     path: None,
-                }
+                }))
             );
         }
 
@@ -112,10 +112,10 @@ mod locator {
         fn parses_file_legacy() {
             assert_eq!(
                 PluginLocator::try_from("source:file.wasm".to_string()).unwrap(),
-                PluginLocator::File {
-                    file: "file.wasm".into(),
+                PluginLocator::File(Box::new(FileLocator {
+                    file: "file://file.wasm".into(),
                     path: None,
-                }
+                }))
             );
         }
 
@@ -123,17 +123,17 @@ mod locator {
         fn parses_file_rel() {
             assert_eq!(
                 PluginLocator::try_from("file://../file.wasm".to_string()).unwrap(),
-                PluginLocator::File {
-                    file: "../file.wasm".into(),
+                PluginLocator::File(Box::new(FileLocator {
+                    file: "file://../file.wasm".into(),
                     path: None,
-                }
+                }))
             );
             assert_eq!(
                 PluginLocator::try_from("file://./file.wasm".to_string()).unwrap(),
-                PluginLocator::File {
-                    file: "./file.wasm".into(),
+                PluginLocator::File(Box::new(FileLocator {
+                    file: "file://./file.wasm".into(),
                     path: None,
-                }
+                }))
             );
         }
 
@@ -141,17 +141,17 @@ mod locator {
         fn parses_file_rel_legacy() {
             assert_eq!(
                 PluginLocator::try_from("source:../file.wasm".to_string()).unwrap(),
-                PluginLocator::File {
-                    file: "../file.wasm".into(),
+                PluginLocator::File(Box::new(FileLocator {
+                    file: "file://../file.wasm".into(),
                     path: None,
-                }
+                }))
             );
             assert_eq!(
                 PluginLocator::try_from("source:./file.wasm".to_string()).unwrap(),
-                PluginLocator::File {
-                    file: "./file.wasm".into(),
+                PluginLocator::File(Box::new(FileLocator {
+                    file: "file://./file.wasm".into(),
                     path: None,
-                }
+                }))
             );
         }
     }
@@ -252,9 +252,9 @@ mod locator {
         fn parses_url() {
             assert_eq!(
                 PluginLocator::try_from("https://domain.com/file.wasm".to_string()).unwrap(),
-                PluginLocator::Url {
+                PluginLocator::Url(Box::new(UrlLocator {
                     url: "https://domain.com/file.wasm".into()
-                }
+                }))
             );
         }
 
@@ -262,9 +262,9 @@ mod locator {
         fn parses_url_legacy() {
             assert_eq!(
                 PluginLocator::try_from("source:https://domain.com/file.wasm".to_string()).unwrap(),
-                PluginLocator::Url {
+                PluginLocator::Url(Box::new(UrlLocator {
                     url: "https://domain.com/file.wasm".into()
-                }
+                }))
             );
         }
     }

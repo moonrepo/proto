@@ -1,7 +1,41 @@
+use crate::locator_error::PluginLocatorError;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use std::path::PathBuf;
 use std::str::FromStr;
+
+/// A file system locator.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct FileLocator {
+    /// Path explicitly configured by a user (with file://).
+    pub file: String,
+
+    /// The file (above) resolved to an absolute path.
+    /// This must be done manually on the host side.
+    pub path: Option<PathBuf>,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl FileLocator {
+    pub fn get_unresolved_path(&self) -> PathBuf {
+        PathBuf::from(self.file.strip_prefix("file://").unwrap_or(&self.file))
+    }
+
+    pub fn get_resolved_path(&self) -> PathBuf {
+        let mut path = self
+            .path
+            .clone()
+            .unwrap_or_else(|| self.get_unresolved_path());
+
+        if !path.is_absolute() {
+            path = std::env::current_dir()
+                .expect("Could not determine working directory!")
+                .join(path);
+        }
+
+        path
+    }
+}
 
 /// A GitHub release locator.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -16,23 +50,11 @@ pub struct GitHubLocator {
     pub project_name: Option<String>,
 }
 
-/// Errors during plugin locator parsing.
-#[derive(thiserror::Error, Debug)]
-pub enum PluginLocatorError {
-    #[error("GitHub release locator requires a repository with organization scope (org/repo).")]
-    GitHubMissingOrg,
-
-    #[error("Missing plugin location (after protocol).")]
-    MissingLocation,
-
-    #[error("Missing plugin protocol.")]
-    MissingProtocol,
-
-    #[error("Only https URLs are supported for plugins.")]
-    SecureUrlsOnly,
-
-    #[error("Unknown plugin protocol `{0}`.")]
-    UnknownProtocol(String),
+/// A HTTPS URL locator.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct UrlLocator {
+    /// URL explicitly configured by a user (with https://).
+    pub url: String,
 }
 
 /// Strategies and protocols for locating plugins.
@@ -41,12 +63,7 @@ pub enum PluginLocatorError {
 pub enum PluginLocator {
     /// file:///abs/path/to/file.wasm
     /// file://../rel/path/to/file.wasm
-    File {
-        /// Configured path (without file://).
-        file: String,
-        /// Resolved absolute path.
-        path: Option<PathBuf>,
-    },
+    File(Box<FileLocator>),
 
     /// github://owner/repo
     /// github://owner/repo@tag
@@ -54,10 +71,7 @@ pub enum PluginLocator {
     GitHub(Box<GitHubLocator>),
 
     /// https://url/to/file.wasm
-    Url {
-        /// Configured URL (with https://).
-        url: String,
-    },
+    Url(Box<UrlLocator>),
 }
 
 #[cfg(feature = "schematic")]
@@ -75,8 +89,14 @@ impl schematic::Schematic for PluginLocator {
 impl Display for PluginLocator {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            PluginLocator::File { file, .. } => write!(f, "file://{}", file),
-            PluginLocator::Url { url } => write!(f, "{}", url),
+            PluginLocator::File(file) => {
+                if file.file.starts_with("file://") {
+                    write!(f, "{}", file.file)
+                } else {
+                    write!(f, "file://{}", file.file)
+                }
+            }
+            PluginLocator::Url(url) => write!(f, "{}", url.url),
             PluginLocator::GitHub(github) => write!(
                 f,
                 "github://{}{}{}",
@@ -138,10 +158,10 @@ impl TryFrom<String> for PluginLocator {
         }
 
         match protocol {
-            "file" => Ok(PluginLocator::File {
-                file: location.to_owned(),
+            "file" => Ok(PluginLocator::File(Box::new(FileLocator {
+                file: value,
                 path: None,
-            }),
+            }))),
             "github" => {
                 if !location.contains('/') {
                     return Err(PluginLocatorError::GitHubMissingOrg);
@@ -166,7 +186,7 @@ impl TryFrom<String> for PluginLocator {
                 Ok(PluginLocator::GitHub(Box::new(github)))
             }
             "http" => Err(PluginLocatorError::SecureUrlsOnly),
-            "https" => Ok(PluginLocator::Url { url: value }),
+            "https" => Ok(PluginLocator::Url(Box::new(UrlLocator { url: value }))),
             unknown => Err(PluginLocatorError::UnknownProtocol(unknown.to_owned())),
         }
     }

@@ -1,12 +1,14 @@
 mod host;
 mod host_funcs;
 mod locator;
+mod locator_error;
 mod virtual_path;
 
 pub use anyhow::anyhow;
 pub use host::*;
 pub use host_funcs::*;
 pub use locator::*;
+pub use locator_error::*;
 pub use virtual_path::*;
 
 /// Wrap a struct with common derives and serde required attributes.
