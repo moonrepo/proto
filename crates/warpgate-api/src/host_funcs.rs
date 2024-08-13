@@ -146,7 +146,6 @@ impl SendRequestInput {
     pub fn new(url: impl AsRef<str>) -> Self {
         Self {
             url: url.as_ref().to_owned(),
-            ..Default::default()
         }
     }
 }

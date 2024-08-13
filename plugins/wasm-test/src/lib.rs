@@ -10,6 +10,7 @@ extern "ExtismHost" {
     fn from_virtual_path(path: String) -> String;
     fn get_env_var(name: String) -> String;
     fn host_log(input: Json<HostLogInput>);
+    fn send_request(input: Json<SendRequestInput>) -> Json<SendRequestOutput>;
     fn set_env_var(name: String, value: String);
     fn to_virtual_path(path: String) -> String;
 }
@@ -205,8 +206,8 @@ struct NodeDistVersion {
 #[plugin_fn]
 pub fn load_versions(Json(_): Json<LoadVersionsInput>) -> FnResult<Json<LoadVersionsOutput>> {
     let mut output = LoadVersionsOutput::default();
-    let response: Vec<NodeDistVersion> =
-        fetch_url_with_cache("https://nodejs.org/dist/index.json")?;
+    let response: Vec<NodeDistVersion> = fetch_json("https://nodejs.org/dist/index.json")?;
+    // fetch_url_with_cache("https://nodejs.org/dist/index.json")?;
 
     for (index, item) in response.iter().enumerate() {
         let version = Version::parse(&item.version[1..])?;

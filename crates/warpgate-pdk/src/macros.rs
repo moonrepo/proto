@@ -60,13 +60,12 @@ macro_rules! exec_command {
 /// and return a response. Not OK responses must be handled by the guest.
 #[macro_export]
 macro_rules! send_request {
-    (input, $input:expr) => {
-        unsafe {
-            let mut output = send_request(Json($input))?.0;
-            populate_send_request_output(&mut output);
-            output
-        }
-    };
+    (input, $input:expr) => {{
+        #[allow(clippy::macro_metavars_in_unsafe)]
+        let mut output = unsafe { send_request(Json($input))?.0 };
+        populate_send_request_output(&mut output);
+        output
+    }};
     ($url:literal) => {
         send_request!(input, SendRequestInput::new($url))
     };

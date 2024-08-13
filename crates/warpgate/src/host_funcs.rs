@@ -18,7 +18,6 @@ use warpgate_api::{
 
 #[derive(Clone, Default)]
 pub struct HostData {
-    pub http_cache: Arc<scc::HashMap<String, (u64, u64)>>,
     pub http_client: Arc<reqwest::Client>,
     pub virtual_paths: BTreeMap<PathBuf, PathBuf>,
     pub working_dir: PathBuf,
@@ -236,66 +235,44 @@ fn send_request(
     let data = user_data.get()?;
     let data = data.lock().unwrap();
 
-    let (offset, length, status) = match data.http_cache.get(&input.url) {
-        Some(cache) => {
-            trace!(url = &input.url, "Reusing request from cache");
+    trace!(url = &input.url, "Sending request from plugin");
 
-            let cache = cache.get();
+    let response = Handle::current().block_on(async {
+        let mut client = data.http_client.get(&input.url);
 
-            (cache.0, cache.1, 200)
+        if let Some(timeout) = plugin.time_remaining() {
+            client = client.timeout(timeout);
         }
-        None => {
-            trace!(url = &input.url, "Sending request from plugin");
 
-            let handle = Handle::current();
+        client.send().await.map_err(|error| WarpgateError::Http {
+            url: input.url.clone(),
+            error: Box::new(error),
+        })
+    })?;
 
-            let response = handle.block_on(async {
-                let mut client = data.http_client.get(&input.url);
+    let status = response.status().as_u16();
 
-                if let Some(timeout) = plugin.time_remaining() {
-                    client = client.timeout(timeout);
-                }
+    trace!(
+        url = &input.url,
+        length = response.content_length(),
+        status,
+        ok = response.status().is_success(),
+        "Sent request from plugin"
+    );
 
-                client.send().await.map_err(|error| WarpgateError::Http {
-                    url: input.url.clone(),
-                    error: Box::new(error),
-                })
-            })?;
+    let body = Handle::current().block_on(async {
+        response.bytes().await.map_err(|error| WarpgateError::Http {
+            url: input.url.clone(),
+            error: Box::new(error),
+        })
+    })?;
 
-            let status = response.status().as_u16();
-
-            trace!(
-                url = &input.url,
-                length = response.content_length(),
-                status,
-                ok = response.status().is_success(),
-                "Sent request from plugin"
-            );
-
-            let body = handle.block_on(async {
-                response.bytes().await.map_err(|error| WarpgateError::Http {
-                    url: input.url.clone(),
-                    error: Box::new(error),
-                })
-            })?;
-
-            let memory = plugin.memory_new(Vec::from(body))?;
-
-            // Only cache successful requests
-            if status == 200 {
-                let _ = data
-                    .http_cache
-                    .insert(input.url, (memory.offset, memory.length));
-            }
-
-            (memory.offset, memory.length, status)
-        }
-    };
+    let memory = plugin.memory_new(Vec::from(body))?;
 
     let output = SendRequestOutput {
         body: Vec::new(),
-        body_length: length,
-        body_offset: offset,
+        body_length: memory.length,
+        body_offset: memory.offset,
         status,
     };
 

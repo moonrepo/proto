@@ -812,7 +812,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "toml 0.8.15",
+ "toml 0.8.19",
  "tracing",
  "tracing-subscriber",
  "ureq",
@@ -2000,7 +2000,7 @@ dependencies = [
  "shell-words",
  "starbase_archive",
  "starbase_styles",
- "starbase_utils 0.8.4",
+ "starbase_utils",
  "thiserror",
  "tracing",
  "url",
@@ -2025,6 +2025,7 @@ name = "proto_pdk_api"
 version = "0.22.0"
 dependencies = [
  "rustc-hash 2.0.0",
+ "schematic",
  "semver",
  "serde",
  "serde_json",
@@ -2042,13 +2043,13 @@ dependencies = [
  "proto_pdk_api",
  "serde",
  "serde_json",
- "starbase_sandbox 0.7.1",
+ "starbase_sandbox",
  "warpgate",
 ]
 
 [[package]]
 name = "proto_shim"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "command-group",
  "dirs 5.0.1",
@@ -2062,7 +2063,7 @@ dependencies = [
  "proto_pdk",
  "proto_pdk_test_utils",
  "serde",
- "starbase_sandbox 0.6.2",
+ "starbase_sandbox",
  "tokio",
 ]
 
@@ -2256,12 +2257,6 @@ name = "regex-syntax"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c08c74e62047bb2de4ff487b251e4a92e24f48745648451635cec7d591162d9f"
-
-[[package]]
-name = "relative-path"
-version = "1.9.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba39f3699c378cd8970968dcbff9c43159ea4cfbd88d43c00b22f2ef10a435d2"
 
 [[package]]
 name = "reqwest"
@@ -2473,9 +2468,9 @@ dependencies = [
 
 [[package]]
 name = "schematic"
-version = "0.16.6"
+version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39662af6f427584874872ecc0e42888bccd0c42510d32d519c4ac9319f4c52f3"
+checksum = "4952b2fab03cea740a66c0ca502d16f31ad5d3cc0a803541778f20715ebd0088"
 dependencies = [
  "garde",
  "indexmap 2.2.6",
@@ -2483,18 +2478,19 @@ dependencies = [
  "schematic_macros",
  "schematic_types",
  "serde",
+ "serde_json",
  "serde_path_to_error",
  "starbase_styles",
  "thiserror",
- "toml 0.8.15",
+ "toml 0.8.19",
  "tracing",
 ]
 
 [[package]]
 name = "schematic_macros"
-version = "0.16.6"
+version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9747db30b2549f7a3d5c5c61e00a4da45d6fe7f4a413594ffc5e598f5ced1330"
+checksum = "4568cc8e3cc136c4231041062419bebcf69f13e8c05fb34d4c715cc5c33ebbc4"
 dependencies = [
  "convert_case",
  "darling",
@@ -2505,13 +2501,15 @@ dependencies = [
 
 [[package]]
 name = "schematic_types"
-version = "0.8.4"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6196a0b23e5b4ee02e3894a937606fc49ccc9211e1650a9bef759062cfff3d58"
+checksum = "9939a1953cd54de031828aabb6b9e37191c45328c0620f7286ccc76a35a6ac05"
 dependencies = [
  "indexmap 2.2.6",
+ "semver",
+ "serde",
  "serde_json",
- "toml 0.8.15",
+ "toml 0.8.19",
  "url",
 ]
 
@@ -2585,6 +2583,7 @@ version = "1.0.121"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4ab380d7d9f22ef3f21ad3e6c1ebe8e4fc7a2000ccba2e4d71fc96f15b2cb609"
 dependencies = [
+ "indexmap 2.2.6",
  "itoa",
  "memchr",
  "ryu",
@@ -2603,9 +2602,9 @@ dependencies = [
 
 [[package]]
 name = "serde_spanned"
-version = "0.6.6"
+version = "0.6.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "79e674e01f999af37c49f70a6ede167a8a60b2503e56c5599532a65baa5969a0"
+checksum = "eb5b1b31579f3811bf615c144393417496f152e12ac8b7663bf664f4a815306d"
 dependencies = [
  "serde",
 ]
@@ -2741,28 +2740,12 @@ dependencies = [
  "miette",
  "rustc-hash 2.0.0",
  "starbase_styles",
- "starbase_utils 0.8.4",
+ "starbase_utils",
  "thiserror",
  "tracing",
  "xz2",
  "zip",
  "zstd",
-]
-
-[[package]]
-name = "starbase_sandbox"
-version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9dc8cc21fc2c389549297a2049074bf22a34aceb8ed8d31be6e1df42648abcb8"
-dependencies = [
- "assert_cmd",
- "assert_fs",
- "clean-path",
- "insta",
- "once_cell",
- "predicates",
- "pretty_assertions",
- "starbase_utils 0.7.5",
 ]
 
 [[package]]
@@ -2777,7 +2760,7 @@ dependencies = [
  "insta",
  "predicates",
  "pretty_assertions",
- "starbase_utils 0.8.4",
+ "starbase_utils",
 ]
 
 [[package]]
@@ -2789,20 +2772,6 @@ dependencies = [
  "dirs 5.0.1",
  "owo-colors",
  "supports-color",
-]
-
-[[package]]
-name = "starbase_utils"
-version = "0.7.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "06fac1efba629ebe53fd2363b0af2a7b4f9a2a79540e53b1f0bbdd08c3cb6fbf"
-dependencies = [
- "dirs 5.0.1",
- "once_cell",
- "relative-path",
- "starbase_styles",
- "thiserror",
- "tracing",
 ]
 
 [[package]]
@@ -2821,7 +2790,7 @@ dependencies = [
  "starbase_styles",
  "thiserror",
  "tokio",
- "toml 0.8.15",
+ "toml 0.8.19",
  "tracing",
  "url",
  "wax",
@@ -3066,21 +3035,21 @@ dependencies = [
 
 [[package]]
 name = "toml"
-version = "0.8.15"
+version = "0.8.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac2caab0bf757388c6c0ae23b3293fdb463fee59434529014f85e3263b995c28"
+checksum = "a1ed1f98e3fdc28d6d910e6737ae6ab1a93bf1985935a1193e68f93eeb68d24e"
 dependencies = [
  "serde",
  "serde_spanned",
  "toml_datetime",
- "toml_edit 0.22.16",
+ "toml_edit 0.22.20",
 ]
 
 [[package]]
 name = "toml_datetime"
-version = "0.6.6"
+version = "0.6.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4badfd56924ae69bcc9039335b2e017639ce3f9b001c393c1b2d1ef846ce2cbf"
+checksum = "0dd7358ecb8fc2f8d014bf86f6f638ce72ba252a2c3a2572f2a795f1d23efb41"
 dependencies = [
  "serde",
 ]
@@ -3098,15 +3067,15 @@ dependencies = [
 
 [[package]]
 name = "toml_edit"
-version = "0.22.16"
+version = "0.22.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "278f3d518e152219c994ce877758516bca5e118eaed6996192a774fb9fbf0788"
+checksum = "583c44c02ad26b0c3f3066fe629275e50627026c51ac2e595cca4c230ce1ce1d"
 dependencies = [
  "indexmap 2.2.6",
  "serde",
  "serde_spanned",
  "toml_datetime",
- "winnow 0.6.8",
+ "winnow 0.6.18",
 ]
 
 [[package]]
@@ -3361,7 +3330,7 @@ dependencies = [
  "sha2",
  "starbase_archive",
  "starbase_styles",
- "starbase_utils 0.8.4",
+ "starbase_utils",
  "system_env",
  "thiserror",
  "tokio",
@@ -3611,7 +3580,7 @@ dependencies = [
  "serde",
  "serde_derive",
  "sha2",
- "toml 0.8.15",
+ "toml 0.8.19",
  "windows-sys 0.52.0",
  "zstd",
 ]
@@ -4157,9 +4126,9 @@ dependencies = [
 
 [[package]]
 name = "winnow"
-version = "0.6.8"
+version = "0.6.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3c52e9c97a68071b23e836c9380edae937f17b9c4667bd021973efc689f618d"
+checksum = "68a9bda4691f099d435ad181000724da8e5899daa10713c2d432552b9ccd3a6f"
 dependencies = [
  "memchr",
 ]
