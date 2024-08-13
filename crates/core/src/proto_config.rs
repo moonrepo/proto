@@ -91,6 +91,7 @@ derive_enum!(
         Local,
         Upwards,
         #[default]
+        #[serde(alias = "all")]
         UpwardsGlobal,
     }
 );

@@ -21,7 +21,7 @@ use tracing::{debug, instrument, trace};
 pub fn detect_proto_env(cli: &CLI) -> AppResult<ProtoEnvironment> {
     let mut env = ProtoEnvironment::new()?;
 
-    env.config_mode = cli.config_mode.unwrap_or_else(|| match cli.command {
+    env.config_mode = cli.config_mode.unwrap_or(match cli.command {
         Commands::Activate(_)
         | Commands::Install(_)
         | Commands::Outdated(_)
