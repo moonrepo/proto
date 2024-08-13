@@ -21,9 +21,6 @@ use tracing::debug;
 
 #[derive(Args, Clone, Debug)]
 pub struct OutdatedArgs {
-    #[arg(long, help = "Include versions from global ~/.proto/.prototools")]
-    include_global: bool,
-
     #[arg(long, help = "Print the outdated tools in JSON format")]
     json: bool,
 
@@ -32,9 +29,6 @@ pub struct OutdatedArgs {
         help = "When updating versions, use the latest version instead of newest"
     )]
     latest: bool,
-
-    #[arg(long, help = "Only check versions in local ./.prototools")]
-    only_local: bool,
 
     #[arg(
         long,
@@ -68,7 +62,8 @@ fn get_in_major_range(spec: &UnresolvedVersionSpec) -> UnresolvedVersionSpec {
 
 #[tracing::instrument(skip_all)]
 pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
-    let manager = session.env.load_config_manager()?;
+    let env = &session.env;
+    let manager = env.load_config_manager()?;
 
     debug!("Determining outdated tools based on config...");
 
@@ -76,8 +71,8 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
 
     for file in manager.files.iter().rev() {
         if !file.exists
-            || !args.include_global && file.global
-            || args.only_local && !file.path.parent().is_some_and(|p| p == session.env.cwd)
+            || !env.config_mode.includes_global() && file.global
+            || env.config_mode.only_local() && !file.path.parent().is_some_and(|p| p == env.cwd)
         {
             continue;
         }

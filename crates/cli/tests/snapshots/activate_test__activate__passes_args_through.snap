@@ -6,7 +6,7 @@ expression: "get_activate_output(&assert, &sandbox)"
 set-env __ORIG_PATH $E:PATH
 
 fn _proto_hook {
-  eval (proto activate elvish --include-global --no-shim --no-bin --export);
+  eval (proto activate elvish --config-mode upwards-global --no-bin --no-shim --export);
 }
 
 set @edit:before-readline = $@edit:before-readline {

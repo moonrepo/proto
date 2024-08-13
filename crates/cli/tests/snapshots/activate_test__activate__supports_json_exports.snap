@@ -9,7 +9,7 @@ $env.config = ( $env.config | upsert hooks.env_change.PWD { |config|
   let list = ($config | get -i hooks.env_change.PWD) | default []
 
   $list | append { |before, after|
-    let data = proto activate nu --include-global --json | from json
+    let data = proto activate nu --config-mode upwards-global --json | from json
 
     $data | get env | items { |k, v|
       if $v == null {
