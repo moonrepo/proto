@@ -25,6 +25,7 @@ macro_rules! exec_command {
         exec_command!(raw, ExecCommandInput::pipe($cmd, $args))
     };
     (raw, $input:expr) => {
+        #[allow(clippy::macro_metavars_in_unsafe)]
         unsafe { exec_command(Json($input)) }
     };
 

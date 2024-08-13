@@ -16,7 +16,7 @@ extern "ExtismHost" {
 }
 
 /// Fetch the provided request and return a response object.
-#[deprecated]
+#[deprecated(note = "Use `fetch_*` instead.")]
 pub fn fetch(req: HttpRequest, body: Option<String>) -> AnyResult<HttpResponse> {
     debug!("Fetching <url>{}</url>", req.url);
 
@@ -58,7 +58,7 @@ where
 /// Fetch the provided URL, deserialize the response as JSON,
 /// and cache the response in memory for subsequent WASM function calls.
 #[allow(deprecated)]
-#[deprecated]
+#[deprecated(note = "Use `fetch_*` instead.")]
 pub fn fetch_url_with_cache<R, U>(url: U) -> AnyResult<R>
 where
     R: DeserializeOwned,
@@ -132,7 +132,7 @@ where
     Ok(response)
 }
 
-/// Fetch the provided URL and deserialize the response as bytes.
+/// Fetch the provided URL and return the response as bytes.
 pub fn fetch_bytes<U>(url: U) -> AnyResult<Vec<u8>>
 where
     U: AsRef<str>,
@@ -149,7 +149,7 @@ where
     do_fetch(url)?.json()
 }
 
-/// Fetch the provided URL and deserialize the response as text.
+/// Fetch the provided URL and return the response as text.
 pub fn fetch_text<U>(url: U) -> AnyResult<String>
 where
     U: AsRef<str>,
@@ -157,7 +157,7 @@ where
     do_fetch(url)?.text()
 }
 
-/// Load all git tags from the provided remote URL.
+/// Load all Git tags from the provided remote URL.
 /// The `git` binary must exist on the current machine.
 pub fn load_git_tags<U>(url: U) -> AnyResult<Vec<String>>
 where
@@ -211,9 +211,11 @@ pub fn command_exists(env: &HostEnvironment, command: &str) -> bool {
     );
 
     let result = if env.os == HostOS::Windows {
-        let line = format!("Get-Command {command}");
-
-        exec_command!(raw, "powershell", ["-Command", &line])
+        exec_command!(
+            raw,
+            "powershell",
+            ["-Command", format!("Get-Command {command}").as_str()]
+        )
     } else {
         exec_command!(raw, "which", [command])
     };
