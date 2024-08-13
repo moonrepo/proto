@@ -1,6 +1,7 @@
 use crate::virtual_path::VirtualPath;
-use crate::{api_enum, api_struct};
+use crate::{api_enum, api_struct, AnyResult};
 use rustc_hash::FxHashMap;
+use serde::de::DeserializeOwned;
 
 api_enum!(
     /// Target where host logs should be written to.
@@ -129,5 +130,56 @@ impl ExecCommandOutput {
         }
 
         out
+    }
+}
+
+api_struct!(
+    /// Input passed to the `send_request` host function.
+    pub struct SendRequestInput {
+        /// The URL to send to.
+        pub url: String,
+    }
+);
+
+impl SendRequestInput {
+    /// Create a new send request with the provided url.
+    pub fn new(url: impl AsRef<str>) -> Self {
+        Self {
+            url: url.as_ref().to_owned(),
+        }
+    }
+}
+
+impl From<&str> for SendRequestInput {
+    fn from(url: &str) -> Self {
+        SendRequestInput::new(url)
+    }
+}
+
+impl From<String> for SendRequestInput {
+    fn from(url: String) -> Self {
+        SendRequestInput::new(url)
+    }
+}
+
+api_struct!(
+    /// Output returned from the `send_request` host function.
+    pub struct SendRequestOutput {
+        pub body: Vec<u8>,
+        pub body_length: u64,
+        pub body_offset: u64,
+        pub status: u16,
+    }
+);
+
+impl SendRequestOutput {
+    /// Consume the response body and return as JSON.
+    pub fn json<T: DeserializeOwned>(self) -> AnyResult<T> {
+        Ok(serde_json::from_slice(&self.body)?)
+    }
+
+    /// Consume the response body and return as raw text.
+    pub fn text(self) -> AnyResult<String> {
+        Ok(String::from_utf8(self.body)?)
     }
 }

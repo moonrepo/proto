@@ -4,13 +4,13 @@ macro_rules! generate_download_install_tests {
         generate_download_install_tests!($id, $version, None);
     };
     ($id:literal, $version:literal, $schema:expr) => {
-        #[tokio::test]
+        #[tokio::test(flavor = "multi_thread")]
         async fn downloads_verifies_installs_tool() {
             let sandbox = create_empty_proto_sandbox();
             let mut plugin = if let Some(schema) = $schema {
-                sandbox.create_schema_plugin($id, schema)
+                sandbox.create_schema_plugin($id, schema).await
             } else {
-                sandbox.create_plugin($id)
+                sandbox.create_plugin($id).await
             };
             let spec = UnresolvedVersionSpec::parse($version).unwrap();
 
@@ -27,22 +27,22 @@ macro_rules! generate_download_install_tests {
             plugin.tool.get_exe_path().unwrap();
 
             // Check things exist
-            for bin in plugin.tool.get_bin_locations().unwrap() {
+            for bin in plugin.tool.get_bin_locations().await.unwrap() {
                 assert!(bin.path.exists());
             }
 
-            for shim in plugin.tool.get_shim_locations().unwrap() {
+            for shim in plugin.tool.get_shim_locations().await.unwrap() {
                 assert!(shim.path.exists());
             }
         }
 
-        #[tokio::test]
+        #[tokio::test(flavor = "multi_thread")]
         async fn downloads_prebuilt_and_checksum_to_temp() {
             let sandbox = create_empty_proto_sandbox();
             let mut plugin = if let Some(schema) = $schema {
-                sandbox.create_schema_plugin($id, schema)
+                sandbox.create_schema_plugin($id, schema).await
             } else {
-                sandbox.create_plugin($id)
+                sandbox.create_plugin($id).await
             };
             let mut tool = plugin.tool;
 
@@ -57,7 +57,7 @@ macro_rules! generate_download_install_tests {
             assert!(temp_dir.exists());
         }
 
-        #[tokio::test]
+        #[tokio::test(flavor = "multi_thread")]
         async fn doesnt_install_if_already_installed() {
             if $version == "canary" {
                 // Canary always overwrites instead of aborting
@@ -66,9 +66,9 @@ macro_rules! generate_download_install_tests {
 
             let sandbox = create_empty_proto_sandbox();
             let plugin = if let Some(schema) = $schema {
-                sandbox.create_schema_plugin($id, schema)
+                sandbox.create_schema_plugin($id, schema).await
             } else {
-                sandbox.create_plugin($id)
+                sandbox.create_plugin($id).await
             };
             let mut tool = plugin.tool;
             let spec = VersionSpec::parse($version).unwrap();
@@ -90,13 +90,13 @@ macro_rules! generate_resolve_versions_tests {
         generate_resolve_versions_tests!($id, { $( $k => $v, )* }, None);
     };
     ($id:literal, { $( $k:literal => $v:literal, )* }, $schema:expr) => {
-        #[tokio::test]
+        #[tokio::test(flavor = "multi_thread")]
         async fn resolves_latest_alias() {
             let sandbox = create_empty_proto_sandbox();
             let mut plugin = if let Some(schema) = $schema {
-                sandbox.create_schema_plugin($id, schema)
+                sandbox.create_schema_plugin($id, schema).await
             } else {
-                sandbox.create_plugin($id)
+                sandbox.create_plugin($id).await
             };
 
             plugin.tool.resolve_version(
@@ -107,13 +107,13 @@ macro_rules! generate_resolve_versions_tests {
             assert_ne!(plugin.tool.get_resolved_version(), "latest");
         }
 
-        #[tokio::test]
+        #[tokio::test(flavor = "multi_thread")]
         async fn resolve_version_or_alias() {
             let sandbox = create_empty_proto_sandbox();
             let mut plugin = if let Some(schema) = $schema {
-                sandbox.create_schema_plugin($id, schema)
+                sandbox.create_schema_plugin($id, schema).await
             } else {
-                sandbox.create_plugin($id)
+                sandbox.create_plugin($id).await
             };
 
             $(
@@ -130,7 +130,7 @@ macro_rules! generate_resolve_versions_tests {
             )*
         }
 
-        // #[tokio::test]
+        // #[tokio::test(flavor = "multi_thread")]
         // async fn resolve_custom_alias() {
         //
         //     let sandbox = create_empty_proto_sandbox();
@@ -140,7 +140,7 @@ macro_rules! generate_resolve_versions_tests {
         //         r#"{"aliases":{"example":"1.0.0"}}"#,
         //     );
 
-        //     let mut plugin = sandbox.create_plugin($id);
+        //     let mut plugin = sandbox.create_plugin($id).await;
 
         //     assert_eq!(
         //         plugin.tool.resolve_version("example").await.unwrap(),
@@ -148,14 +148,14 @@ macro_rules! generate_resolve_versions_tests {
         //     );
         // }
 
-        #[tokio::test]
+        #[tokio::test(flavor = "multi_thread")]
         #[should_panic(expected = "Failed to resolve unknown to a valid supported version")]
         async fn errors_invalid_alias() {
             let sandbox = create_empty_proto_sandbox();
             let mut plugin = if let Some(schema) = $schema {
-                sandbox.create_schema_plugin($id, schema)
+                sandbox.create_schema_plugin($id, schema).await
             } else {
-                sandbox.create_plugin($id)
+                sandbox.create_plugin($id).await
             };
 
             plugin.tool.resolve_version(
@@ -164,14 +164,14 @@ macro_rules! generate_resolve_versions_tests {
             ).await.unwrap();
         }
 
-        #[tokio::test]
+        #[tokio::test(flavor = "multi_thread")]
         #[should_panic(expected = "Failed to resolve 99.99.99 to a valid supported version")]
         async fn errors_invalid_version() {
             let sandbox = create_empty_proto_sandbox();
             let mut plugin = if let Some(schema) = $schema {
-                sandbox.create_schema_plugin($id, schema)
+                sandbox.create_schema_plugin($id, schema).await
             } else {
-                sandbox.create_plugin($id)
+                sandbox.create_plugin($id).await
             };
 
             plugin.tool.resolve_version(
@@ -191,13 +191,13 @@ macro_rules! generate_shims_test {
         generate_shims_test!($id, [ $($bin),* ], None);
     };
     ($id:literal, [ $($bin:literal),* ], $schema:expr) => {
-        #[tokio::test]
+        #[tokio::test(flavor = "multi_thread")]
         async fn creates_shims() {
             let sandbox = create_empty_proto_sandbox();
             let mut plugin = if let Some(schema) = $schema {
-                sandbox.create_schema_plugin($id, schema)
+                sandbox.create_schema_plugin($id, schema).await
             } else {
-                sandbox.create_plugin($id)
+                sandbox.create_plugin($id).await
             };
 
             plugin.tool.generate_shims(false).await.unwrap();

@@ -25,7 +25,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use tracing::{debug, instrument, trace, warn};
 use warpgate::{
-    host_funcs::{create_host_functions, HostData},
+    host::{create_host_functions, HostData},
     Id, PluginContainer, PluginLocator, PluginManifest, VirtualPath, Wasm,
 };
 
@@ -57,7 +57,7 @@ pub struct Tool {
 }
 
 impl Tool {
-    pub fn new(
+    pub async fn new(
         id: Id,
         proto: Arc<ProtoEnvironment>,
         plugin: Arc<PluginContainer>,
@@ -83,23 +83,23 @@ impl Tool {
             version: None,
         };
 
-        tool.register_tool()?;
+        tool.register_tool().await?;
 
         Ok(tool)
     }
 
     #[instrument(name = "new_tool", skip(proto, wasm))]
-    pub fn load<I: AsRef<Id> + Debug, P: AsRef<ProtoEnvironment>>(
+    pub async fn load<I: AsRef<Id> + Debug, P: AsRef<ProtoEnvironment>>(
         id: I,
         proto: P,
         wasm: Wasm,
     ) -> miette::Result<Self> {
         let proto = proto.as_ref();
 
-        Self::load_from_manifest(id, proto, Self::create_plugin_manifest(proto, wasm)?)
+        Self::load_from_manifest(id, proto, Self::create_plugin_manifest(proto, wasm)?).await
     }
 
-    pub fn load_from_manifest<I: AsRef<Id>, P: AsRef<ProtoEnvironment>>(
+    pub async fn load_from_manifest<I: AsRef<Id>, P: AsRef<ProtoEnvironment>>(
         id: I,
         proto: P,
         manifest: PluginManifest,
@@ -119,11 +119,13 @@ impl Tool {
                 id.to_owned(),
                 manifest,
                 create_host_functions(HostData {
+                    http_client: Arc::clone(proto.get_plugin_loader()?.get_client()?),
                     virtual_paths: proto.get_virtual_paths(),
                     working_dir: proto.cwd.clone(),
                 }),
             )?),
         )
+        .await
     }
 
     pub fn create_plugin_manifest<P: AsRef<ProtoEnvironment>>(
@@ -145,13 +147,15 @@ impl Tool {
         Ok(manifest)
     }
 
-    fn call_locate_executables(&self) -> miette::Result<LocateExecutablesOutput> {
-        self.plugin.cache_func_with(
-            "locate_executables",
-            LocateExecutablesInput {
-                context: self.create_context(),
-            },
-        )
+    async fn call_locate_executables(&self) -> miette::Result<LocateExecutablesOutput> {
+        self.plugin
+            .cache_func_with(
+                "locate_executables",
+                LocateExecutablesInput {
+                    context: self.create_context(),
+                },
+            )
+            .await
     }
 
     /// Disable internal caching when applicable.
@@ -228,13 +232,16 @@ impl Tool {
 
     /// Register the tool by loading initial metadata and persisting it.
     #[instrument(skip_all)]
-    pub fn register_tool(&mut self) -> miette::Result<()> {
-        let metadata: ToolMetadataOutput = self.plugin.cache_func_with(
-            "register_tool",
-            ToolMetadataInput {
-                id: self.id.to_string(),
-            },
-        )?;
+    pub async fn register_tool(&mut self) -> miette::Result<()> {
+        let metadata: ToolMetadataOutput = self
+            .plugin
+            .cache_func_with(
+                "register_tool",
+                ToolMetadataInput {
+                    id: self.id.to_string(),
+                },
+            )
+            .await?;
 
         let mut inventory = self
             .proto
@@ -273,19 +280,22 @@ impl Tool {
 
     /// Sync the local tool manifest with changes from the plugin.
     #[instrument(skip_all)]
-    pub fn sync_manifest(&mut self) -> miette::Result<()> {
-        if !self.plugin.has_func("sync_manifest") {
+    pub async fn sync_manifest(&mut self) -> miette::Result<()> {
+        if !self.plugin.has_func("sync_manifest").await {
             return Ok(());
         }
 
         debug!(tool = self.id.as_str(), "Syncing manifest with changes");
 
-        let sync_changes: SyncManifestOutput = self.plugin.call_func_with(
-            "sync_manifest",
-            SyncManifestInput {
-                context: self.create_context(),
-            },
-        )?;
+        let sync_changes: SyncManifestOutput = self
+            .plugin
+            .call_func_with(
+                "sync_manifest",
+                SyncManifestInput {
+                    context: self.create_context(),
+                },
+            )
+            .await?;
 
         if sync_changes.skip_sync {
             return Ok(());
@@ -350,12 +360,15 @@ impl Tool {
             }
 
             if env::var("PROTO_BYPASS_VERSION_CHECK").is_err() {
-                versions = self.plugin.cache_func_with(
-                    "load_versions",
-                    LoadVersionsInput {
-                        initial: initial_version.to_owned(),
-                    },
-                )?;
+                versions = self
+                    .plugin
+                    .cache_func_with(
+                        "load_versions",
+                        LoadVersionsInput {
+                            initial: initial_version.to_owned(),
+                        },
+                    )
+                    .await?;
 
                 self.inventory.save_remote_versions(&versions)?;
             }
@@ -418,7 +431,9 @@ impl Tool {
         }
 
         let resolver = self.load_version_resolver(initial_version).await?;
-        let version = self.resolve_version_candidate(&resolver, initial_version, true)?;
+        let version = self
+            .resolve_version_candidate(&resolver, initial_version, true)
+            .await?;
 
         debug!(
             tool = self.id.as_str(),
@@ -433,7 +448,7 @@ impl Tool {
     }
 
     #[instrument(name = "candidate", skip(self, resolver))]
-    pub fn resolve_version_candidate(
+    pub async fn resolve_version_candidate(
         &self,
         resolver: &VersionResolver<'_>,
         initial_candidate: &UnresolvedVersionSpec,
@@ -452,13 +467,16 @@ impl Tool {
             })
         };
 
-        if self.plugin.has_func("resolve_version") {
-            let result: ResolveVersionOutput = self.plugin.call_func_with(
-                "resolve_version",
-                ResolveVersionInput {
-                    initial: initial_candidate.to_owned(),
-                },
-            )?;
+        if self.plugin.has_func("resolve_version").await {
+            let result: ResolveVersionOutput = self
+                .plugin
+                .call_func_with(
+                    "resolve_version",
+                    ResolveVersionInput {
+                        initial: initial_candidate.to_owned(),
+                    },
+                )
+                .await?;
 
             if let Some(candidate) = result.candidate {
                 debug!(
@@ -490,12 +508,12 @@ impl Tool {
         &self,
         current_dir: &Path,
     ) -> miette::Result<Option<(UnresolvedVersionSpec, PathBuf)>> {
-        if !self.plugin.has_func("detect_version_files") {
+        if !self.plugin.has_func("detect_version_files").await {
             return Ok(None);
         }
 
-        let has_parser = self.plugin.has_func("parse_version_file");
-        let result: DetectVersionOutput = self.plugin.cache_func("detect_version_files")?;
+        let has_parser = self.plugin.has_func("parse_version_file").await;
+        let result: DetectVersionOutput = self.plugin.cache_func("detect_version_files").await?;
 
         if !result.ignore.is_empty() {
             if let Some(dir) = current_dir.to_str() {
@@ -525,13 +543,16 @@ impl Tool {
             }
 
             let version = if has_parser {
-                let result: ParseVersionFileOutput = self.plugin.call_func_with(
-                    "parse_version_file",
-                    ParseVersionFileInput {
-                        content,
-                        file: file.clone(),
-                    },
-                )?;
+                let result: ParseVersionFileOutput = self
+                    .plugin
+                    .call_func_with(
+                        "parse_version_file",
+                        ParseVersionFileInput {
+                            content,
+                            file: file.clone(),
+                        },
+                    )
+                    .await?;
 
                 if result.version.is_none() {
                     continue;
@@ -596,15 +617,18 @@ impl Tool {
         );
 
         // Allow plugin to provide their own checksum verification method
-        let verified = if self.plugin.has_func("verify_checksum") {
-            let result: VerifyChecksumOutput = self.plugin.call_func_with(
-                "verify_checksum",
-                VerifyChecksumInput {
-                    checksum_file: self.to_virtual_path(checksum_file),
-                    download_file: self.to_virtual_path(download_file),
-                    context: self.create_context(),
-                },
-            )?;
+        let verified = if self.plugin.has_func("verify_checksum").await {
+            let result: VerifyChecksumOutput = self
+                .plugin
+                .call_func_with(
+                    "verify_checksum",
+                    VerifyChecksumInput {
+                        checksum_file: self.to_virtual_path(checksum_file),
+                        download_file: self.to_virtual_path(download_file),
+                        context: self.create_context(),
+                    },
+                )
+                .await?;
 
             result.verified
 
@@ -636,7 +660,7 @@ impl Tool {
             "Installing tool by building from source"
         );
 
-        if !self.plugin.has_func("build_instructions") {
+        if !self.plugin.has_func("build_instructions").await {
             return Err(ProtoError::UnsupportedBuildFromSource {
                 tool: self.get_name().to_owned(),
             }
@@ -747,13 +771,16 @@ impl Tool {
         );
 
         let client = self.proto.get_plugin_loader()?.get_client()?;
-        let options: DownloadPrebuiltOutput = self.plugin.cache_func_with(
-            "download_prebuilt",
-            DownloadPrebuiltInput {
-                context: self.create_context(),
-                install_dir: self.to_virtual_path(install_dir),
-            },
-        )?;
+        let options: DownloadPrebuiltOutput = self
+            .plugin
+            .cache_func_with(
+                "download_prebuilt",
+                DownloadPrebuiltInput {
+                    context: self.create_context(),
+                    install_dir: self.to_virtual_path(install_dir),
+                },
+            )
+            .await?;
 
         let temp_dir = self.get_temp_dir();
 
@@ -807,15 +834,17 @@ impl Tool {
             "Attempting to unpack archive",
         );
 
-        if self.plugin.has_func("unpack_archive") {
-            self.plugin.call_func_without_output(
-                "unpack_archive",
-                UnpackArchiveInput {
-                    input_file: self.to_virtual_path(&download_file),
-                    output_dir: self.to_virtual_path(install_dir),
-                    context: self.create_context(),
-                },
-            )?;
+        if self.plugin.has_func("unpack_archive").await {
+            self.plugin
+                .call_func_without_output(
+                    "unpack_archive",
+                    UnpackArchiveInput {
+                        input_file: self.to_virtual_path(&download_file),
+                        output_dir: self.to_virtual_path(install_dir),
+                        context: self.create_context(),
+                    },
+                )
+                .await?;
         }
         // Is an archive, unpack it
         else if is_archive_file(&download_file) {
@@ -878,16 +907,19 @@ impl Tool {
 
         // If this function is defined, it acts like an escape hatch and
         // takes precedence over all other install strategies
-        if self.plugin.has_func("native_install") {
+        if self.plugin.has_func("native_install").await {
             debug!(tool = self.id.as_str(), "Installing tool natively");
 
-            let result: NativeInstallOutput = self.plugin.call_func_with(
-                "native_install",
-                NativeInstallInput {
-                    context: self.create_context(),
-                    install_dir: self.to_virtual_path(&install_dir),
-                },
-            )?;
+            let result: NativeInstallOutput = self
+                .plugin
+                .call_func_with(
+                    "native_install",
+                    NativeInstallInput {
+                        context: self.create_context(),
+                        install_dir: self.to_virtual_path(&install_dir),
+                    },
+                )
+                .await?;
 
             if !result.installed && !result.skip_install {
                 return Err(ProtoError::InstallFailed {
@@ -940,15 +972,18 @@ impl Tool {
             return Ok(false);
         }
 
-        if self.plugin.has_func("native_uninstall") {
+        if self.plugin.has_func("native_uninstall").await {
             debug!(tool = self.id.as_str(), "Uninstalling tool natively");
 
-            let result: NativeUninstallOutput = self.plugin.call_func_with(
-                "native_uninstall",
-                NativeUninstallInput {
-                    context: self.create_context(),
-                },
-            )?;
+            let result: NativeUninstallOutput = self
+                .plugin
+                .call_func_with(
+                    "native_uninstall",
+                    NativeUninstallInput {
+                        context: self.create_context(),
+                    },
+                )
+                .await?;
 
             if !result.uninstalled && !result.skip_uninstall {
                 return Err(ProtoError::UninstallFailed {
@@ -1036,8 +1071,8 @@ impl Tool {
     /// Return a list of all binaries that get created in `~/.proto/bin`.
     /// The list will contain the executable config, and an absolute path
     /// to the binaries final location.
-    pub fn get_bin_locations(&self) -> miette::Result<Vec<ExecutableLocation>> {
-        let options = self.call_locate_executables()?;
+    pub async fn get_bin_locations(&self) -> miette::Result<Vec<ExecutableLocation>> {
+        let options = self.call_locate_executables().await?;
         let mut locations = vec![];
 
         let mut add = |name: &str, config: ExecutableConfig, primary: bool| {
@@ -1069,8 +1104,8 @@ impl Tool {
     }
 
     /// Return location information for the primary executable within the tool directory.
-    pub fn get_exe_location(&self) -> miette::Result<Option<ExecutableLocation>> {
-        let options = self.call_locate_executables()?;
+    pub async fn get_exe_location(&self) -> miette::Result<Option<ExecutableLocation>> {
+        let options = self.call_locate_executables().await?;
 
         if let Some(primary) = options.primary {
             if let Some(exe_path) = &primary.exe_path {
@@ -1089,8 +1124,8 @@ impl Tool {
     /// Return a list of all shims that get created in `~/.proto/shims`.
     /// The list will contain the executable config, and an absolute path
     /// to the shims final location.
-    pub fn get_shim_locations(&self) -> miette::Result<Vec<ExecutableLocation>> {
-        let options = self.call_locate_executables()?;
+    pub async fn get_shim_locations(&self) -> miette::Result<Vec<ExecutableLocation>> {
+        let options = self.call_locate_executables().await?;
         let mut locations = vec![];
 
         let mut add = |name: &str, config: ExecutableConfig, primary: bool| {
@@ -1120,7 +1155,7 @@ impl Tool {
     pub async fn locate_executable(&mut self) -> miette::Result<()> {
         debug!(tool = self.id.as_str(), "Locating executable for tool");
 
-        let exe_path = if let Some(location) = self.get_exe_location()? {
+        let exe_path = if let Some(location) = self.get_exe_location().await? {
             location.path
         } else {
             self.get_product_dir().join(self.id.as_str())
@@ -1141,14 +1176,14 @@ impl Tool {
         .into())
     }
 
-    /// Locate the directories that global packages are installed to.
+    /// Locate the directory that local executables are installed to.
     #[instrument(skip_all)]
     pub async fn locate_exes_dir(&mut self) -> miette::Result<()> {
-        if !self.plugin.has_func("locate_executables") || self.exes_dir.is_some() {
+        if !self.plugin.has_func("locate_executables").await || self.exes_dir.is_some() {
             return Ok(());
         }
 
-        let options = self.call_locate_executables()?;
+        let options = self.call_locate_executables().await?;
 
         if let Some(exes_dir) = options.exes_dir {
             self.exes_dir = Some(self.get_product_dir().join(exes_dir));
@@ -1160,7 +1195,7 @@ impl Tool {
     /// Locate the directories that global packages are installed to.
     #[instrument(skip_all)]
     pub async fn locate_globals_dirs(&mut self) -> miette::Result<()> {
-        if !self.plugin.has_func("locate_executables") || !self.globals_dirs.is_empty() {
+        if !self.plugin.has_func("locate_executables").await || !self.globals_dirs.is_empty() {
             return Ok(());
         }
 
@@ -1170,7 +1205,7 @@ impl Tool {
         );
 
         let install_dir = self.get_product_dir();
-        let options = self.call_locate_executables()?;
+        let options = self.call_locate_executables().await?;
 
         self.globals_prefix = options.globals_prefix;
 
@@ -1232,7 +1267,7 @@ impl Tool {
     /// If find only is enabled, will only check if they exist, and not create.
     #[instrument(skip(self))]
     pub async fn generate_shims(&mut self, force: bool) -> miette::Result<()> {
-        let shims = self.get_shim_locations()?;
+        let shims = self.get_shim_locations().await?;
 
         if shims.is_empty() {
             return Ok(());
@@ -1323,7 +1358,7 @@ impl Tool {
     /// Symlink all primary and secondary binaries for the current tool.
     #[instrument(skip(self))]
     pub async fn symlink_bins(&mut self, force: bool) -> miette::Result<()> {
-        let bins = self.get_bin_locations()?;
+        let bins = self.get_bin_locations().await?;
 
         if bins.is_empty() {
             return Ok(());
@@ -1469,7 +1504,7 @@ impl Tool {
         })?;
 
         // Allow plugins to override manifest
-        self.sync_manifest()?;
+        self.sync_manifest().await?;
 
         Ok(true)
     }
@@ -1508,14 +1543,14 @@ impl Tool {
         // If no more default version, delete the symlink,
         // otherwise the OS will throw errors for missing sources
         if removed_default_version || self.inventory.manifest.installed_versions.is_empty() {
-            for bin in self.get_bin_locations()? {
+            for bin in self.get_bin_locations().await? {
                 self.proto.store.unlink_bin(&bin.path)?;
             }
         }
 
         // If no more versions in general, delete all shims
         if self.inventory.manifest.installed_versions.is_empty() {
-            for shim in self.get_shim_locations()? {
+            for shim in self.get_shim_locations().await? {
                 self.proto.store.remove_shim(&shim.path)?;
             }
         }

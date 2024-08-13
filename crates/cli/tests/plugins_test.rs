@@ -46,7 +46,7 @@ where
 mod plugins {
     use super::*;
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn downloads_and_installs_plugin_from_file() {
         run_tests(|env| {
             let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -81,7 +81,7 @@ mod plugins {
         .await;
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn downloads_and_installs_plugin_from_url() {
         run_tests(|env| {
             load_tool_from_locator(
