@@ -54,11 +54,11 @@ impl ProtoWasmSandbox {
         ConfigBuilder::new(&self.root, &self.home_dir)
     }
 
-    pub fn create_plugin(&self, id: &str) -> WasmTestWrapper {
-        self.create_plugin_with_config(id, |_| {})
+    pub async fn create_plugin(&self, id: &str) -> WasmTestWrapper {
+        self.create_plugin_with_config(id, |_| {}).await
     }
 
-    pub fn create_plugin_with_config(
+    pub async fn create_plugin_with_config(
         &self,
         id: &str,
         mut op: impl FnMut(&mut ConfigBuilder),
@@ -102,16 +102,17 @@ impl ProtoWasmSandbox {
         // );
 
         WasmTestWrapper {
-            tool: Tool::load_from_manifest(id, proto, manifest).unwrap(),
+            tool: Tool::load_from_manifest(id, proto, manifest).await.unwrap(),
         }
     }
 
-    pub fn create_schema_plugin(&self, id: &str, schema_path: PathBuf) -> WasmTestWrapper {
+    pub async fn create_schema_plugin(&self, id: &str, schema_path: PathBuf) -> WasmTestWrapper {
         self.create_schema_plugin_with_config(id, schema_path, |_| {})
+            .await
     }
 
     #[allow(unused_variables)]
-    pub fn create_schema_plugin_with_config(
+    pub async fn create_schema_plugin_with_config(
         &self,
         id: &str,
         schema_path: PathBuf,
@@ -130,6 +131,7 @@ impl ProtoWasmSandbox {
                 config.toml_schema(schema);
             }
         })
+        .await
     }
 }
 

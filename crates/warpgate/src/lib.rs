@@ -2,7 +2,7 @@ mod client;
 mod endpoints;
 mod error;
 mod helpers;
-pub mod host_funcs;
+pub mod host;
 mod id;
 mod loader;
 mod plugin;

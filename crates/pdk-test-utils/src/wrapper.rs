@@ -6,117 +6,146 @@ pub struct WasmTestWrapper {
 }
 
 impl WasmTestWrapper {
-    pub fn detect_version_files(&self) -> DetectVersionOutput {
-        self.tool.plugin.call_func("detect_version_files").unwrap()
+    pub async fn detect_version_files(&self) -> DetectVersionOutput {
+        self.tool
+            .plugin
+            .call_func("detect_version_files")
+            .await
+            .unwrap()
     }
 
-    pub fn download_prebuilt(&self, mut input: DownloadPrebuiltInput) -> DownloadPrebuiltOutput {
+    pub async fn download_prebuilt(
+        &self,
+        mut input: DownloadPrebuiltInput,
+    ) -> DownloadPrebuiltOutput {
         input.context = self.prepare_context(input.context);
 
         self.tool
             .plugin
             .call_func_with("download_prebuilt", input)
+            .await
             .unwrap()
     }
 
-    pub fn load_versions(&self, input: LoadVersionsInput) -> LoadVersionsOutput {
+    pub async fn load_versions(&self, input: LoadVersionsInput) -> LoadVersionsOutput {
         self.tool
             .plugin
             .call_func_with("load_versions", input)
+            .await
             .unwrap()
     }
 
-    pub fn locate_executables(&self, mut input: LocateExecutablesInput) -> LocateExecutablesOutput {
+    pub async fn locate_executables(
+        &self,
+        mut input: LocateExecutablesInput,
+    ) -> LocateExecutablesOutput {
         input.context = self.prepare_context(input.context);
 
         self.tool
             .plugin
             .call_func_with("locate_executables", input)
+            .await
             .unwrap()
     }
 
-    pub fn native_install(&self, mut input: NativeInstallInput) -> NativeInstallOutput {
+    pub async fn native_install(&self, mut input: NativeInstallInput) -> NativeInstallOutput {
         input.context = self.prepare_context(input.context);
 
         self.tool
             .plugin
             .call_func_with("native_install", input)
+            .await
             .unwrap()
     }
 
-    pub fn native_uninstall(&self, mut input: NativeUninstallInput) -> NativeUninstallOutput {
+    pub async fn native_uninstall(&self, mut input: NativeUninstallInput) -> NativeUninstallOutput {
         input.context = self.prepare_context(input.context);
 
         self.tool
             .plugin
             .call_func_with("native_uninstall", input)
+            .await
             .unwrap()
     }
 
-    pub fn parse_version_file(&self, input: ParseVersionFileInput) -> ParseVersionFileOutput {
+    pub async fn parse_version_file(&self, input: ParseVersionFileInput) -> ParseVersionFileOutput {
         self.tool
             .plugin
             .call_func_with("parse_version_file", input)
+            .await
             .unwrap()
     }
 
-    pub fn pre_install(&self, mut input: InstallHook) {
+    pub async fn pre_install(&self, mut input: InstallHook) {
         input.context = self.prepare_context(input.context);
 
         self.tool
             .plugin
             .call_func_without_output("pre_install", input)
+            .await
             .unwrap();
     }
 
-    pub fn pre_run(&self, mut input: RunHook) -> RunHookResult {
+    pub async fn pre_run(&self, mut input: RunHook) -> RunHookResult {
         input.context = self.prepare_context(input.context);
 
-        self.tool.plugin.call_func_with("pre_run", input).unwrap()
+        self.tool
+            .plugin
+            .call_func_with("pre_run", input)
+            .await
+            .unwrap()
     }
 
-    pub fn post_install(&self, mut input: InstallHook) {
+    pub async fn post_install(&self, mut input: InstallHook) {
         input.context = self.prepare_context(input.context);
 
         self.tool
             .plugin
             .call_func_without_output("post_install", input)
+            .await
             .unwrap();
     }
 
-    pub fn register_tool(&self, input: ToolMetadataInput) -> ToolMetadataOutput {
+    pub async fn register_tool(&self, input: ToolMetadataInput) -> ToolMetadataOutput {
         self.tool
             .plugin
             .call_func_with("register_tool", input)
+            .await
             .unwrap()
     }
 
-    pub fn resolve_version(&self, input: ResolveVersionInput) -> ResolveVersionOutput {
+    pub async fn resolve_version(&self, input: ResolveVersionInput) -> ResolveVersionOutput {
         self.tool
             .plugin
             .call_func_with("resolve_version", input)
+            .await
             .unwrap()
     }
 
-    pub fn sync_manifest(&self, mut input: SyncManifestInput) -> SyncManifestOutput {
+    pub async fn sync_manifest(&self, mut input: SyncManifestInput) -> SyncManifestOutput {
         input.context = self.prepare_context(input.context);
 
         self.tool
             .plugin
             .call_func_with("sync_manifest", input)
+            .await
             .unwrap()
     }
 
-    pub fn sync_shell_profile(&self, mut input: SyncShellProfileInput) -> SyncShellProfileOutput {
+    pub async fn sync_shell_profile(
+        &self,
+        mut input: SyncShellProfileInput,
+    ) -> SyncShellProfileOutput {
         input.context = self.prepare_context(input.context);
 
         self.tool
             .plugin
             .call_func_with("sync_shell_profile", input)
+            .await
             .unwrap()
     }
 
-    pub fn unpack_archive(&self, mut input: UnpackArchiveInput) {
+    pub async fn unpack_archive(&self, mut input: UnpackArchiveInput) {
         input.input_file = self.tool.to_virtual_path(&input.input_file);
         input.output_dir = self.tool.to_virtual_path(&input.output_dir);
 
@@ -124,16 +153,18 @@ impl WasmTestWrapper {
             .tool
             .plugin
             .call_func_with("unpack_archive", input)
+            .await
             .unwrap();
     }
 
-    pub fn verify_checksum(&self, mut input: VerifyChecksumInput) -> VerifyChecksumOutput {
+    pub async fn verify_checksum(&self, mut input: VerifyChecksumInput) -> VerifyChecksumOutput {
         input.checksum_file = self.tool.to_virtual_path(&input.checksum_file);
         input.download_file = self.tool.to_virtual_path(&input.download_file);
 
         self.tool
             .plugin
             .call_func_with("verify_checksum", input)
+            .await
             .unwrap()
     }
 

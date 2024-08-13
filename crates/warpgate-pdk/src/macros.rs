@@ -25,7 +25,10 @@ macro_rules! exec_command {
         exec_command!(raw, ExecCommandInput::pipe($cmd, $args))
     };
     (raw, $input:expr) => {
-        unsafe { exec_command(Json($input)) }
+        {
+            #[allow(clippy::macro_metavars_in_unsafe)]
+            unsafe { exec_command(Json($input)) }
+        }
     };
 
     // Pipe
@@ -53,6 +56,24 @@ macro_rules! exec_command {
     };
     ($cmd:expr, $args:expr) => {
         exec_command!(pipe, $cmd, $args)
+    };
+}
+
+/// Calls the `send_request` host function to send an HTTP request
+/// and return a response. Not OK responses must be handled by the guest.
+#[macro_export]
+macro_rules! send_request {
+    (input, $input:expr) => {{
+        #[allow(clippy::macro_metavars_in_unsafe)]
+        let mut output = unsafe { send_request(Json($input))?.0 };
+        populate_send_request_output(&mut output);
+        output
+    }};
+    ($url:literal) => {
+        send_request!(input, SendRequestInput::new($url))
+    };
+    ($url:expr) => {
+        send_request!(input, SendRequestInput::new($url))
     };
 }
 

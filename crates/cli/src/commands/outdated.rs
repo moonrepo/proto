@@ -129,8 +129,9 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
                 "Resolving current version"
             );
 
-            let current_version =
-                tool.resolve_version_candidate(&version_resolver, &config_version, true)?;
+            let current_version = tool
+                .resolve_version_candidate(&version_resolver, &config_version, true)
+                .await?;
             let newest_range = get_in_major_range(&config_version);
 
             debug!(
@@ -139,8 +140,9 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
                 "Resolving newest version"
             );
 
-            let newest_version =
-                tool.resolve_version_candidate(&version_resolver, &newest_range, false)?;
+            let newest_version = tool
+                .resolve_version_candidate(&version_resolver, &newest_range, false)
+                .await?;
 
             debug!(
                 id = tool.id.as_str(),
@@ -148,8 +150,9 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
                 "Resolving latest version"
             );
 
-            let latest_version =
-                tool.resolve_version_candidate(&version_resolver, &initial_version, true)?;
+            let latest_version = tool
+                .resolve_version_candidate(&version_resolver, &initial_version, true)
+                .await?;
 
             Result::<_, miette::Report>::Ok((
                 tool.id,

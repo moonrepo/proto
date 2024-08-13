@@ -12,10 +12,17 @@
 
 ## Unreleased
 
+#### 💥 Breaking
+
+- WASM API
+  - Removed the `is_musl` function. Use the host environment instead.
+
 #### 🚀 Updates
 
 - WASM API
   - Added `ToolMetadataOutput.config_schema`, which can be used to define a JSON schema for the plugins configuration.
+  - Added a new `send_request` host function, that uses the same HTTP client as proto does.
+  - Added `fetch_bytes`, `fetch_json`, and `fetch_text` functions that use this new host function.
 
 ## 0.39.7
 

@@ -48,16 +48,18 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
 
     let mut config = session.env.load_config()?.to_owned();
     let tool_config = config.tools.remove(&tool.id).unwrap_or_default();
+    let bins = tool.get_bin_locations().await?;
+    let shims = tool.get_shim_locations().await?;
 
     if args.json {
         let info = PluginInfo {
-            bins: tool.get_bin_locations()?,
+            bins,
             config: tool_config,
             exe_path: tool.get_exe_path()?.to_path_buf(),
             globals_dirs: tool.get_globals_dirs().to_owned(),
             globals_prefix: tool.get_globals_prefix().map(|p| p.to_owned()),
             inventory_dir: tool.get_inventory_dir(),
-            shims: tool.get_shim_locations()?,
+            shims,
             id: tool.id,
             name: tool.metadata.name.clone(),
             manifest: tool.inventory.manifest,
@@ -111,7 +113,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
 
         p.entry_list(
             "Binaries",
-            tool.get_bin_locations()?.into_iter().map(|bin| {
+            bins.into_iter().map(|bin| {
                 format!(
                     "{} {}",
                     color::path(bin.path),
@@ -127,7 +129,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
 
         p.entry_list(
             "Shims",
-            tool.get_shim_locations()?.into_iter().map(|shim| {
+            shims.into_iter().map(|shim| {
                 format!(
                     "{} {}",
                     color::path(shim.path),

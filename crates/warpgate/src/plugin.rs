@@ -4,14 +4,15 @@ use crate::helpers::{from_virtual_path, to_virtual_path};
 use crate::id::Id;
 use extism::{Error, Function, Manifest, Plugin};
 use miette::IntoDiagnostic;
-use once_map::OnceMap;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use starbase_styles::color::{self, apply_style_tags};
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 use system_env::{SystemArch, SystemLibc, SystemOS};
+use tokio::sync::RwLock;
+use tokio::task::block_in_place;
 use tracing::{instrument, trace};
 use warpgate_api::{HostEnvironment, VirtualPath};
 
@@ -67,7 +68,7 @@ pub struct PluginContainer {
     pub id: Id,
     pub manifest: Manifest,
 
-    func_cache: OnceMap<String, Vec<u8>>,
+    func_cache: Arc<scc::HashMap<String, Vec<u8>>>,
     plugin: Arc<RwLock<Plugin>>,
 }
 
@@ -105,7 +106,7 @@ impl PluginContainer {
             manifest,
             plugin: Arc::new(RwLock::new(plugin)),
             id,
-            func_cache: OnceMap::new(),
+            func_cache: Arc::new(scc::HashMap::new()),
         })
     }
 
@@ -116,17 +117,17 @@ impl PluginContainer {
 
     /// Call a function on the plugin with no input and cache the output before returning it.
     /// Subsequent calls will read from the cache.
-    pub fn cache_func<O>(&self, func: &str) -> miette::Result<O>
+    pub async fn cache_func<O>(&self, func: &str) -> miette::Result<O>
     where
         O: Debug + DeserializeOwned,
     {
-        self.cache_func_with(func, Empty::default())
+        self.cache_func_with(func, Empty::default()).await
     }
 
     /// Call a function on the plugin with the given input and cache the output
     /// before returning it. Subsequent calls with the same input will read from the cache.
     #[instrument(skip(self))]
-    pub fn cache_func_with<I, O>(&self, func: &str, input: I) -> miette::Result<O>
+    pub async fn cache_func_with<I, O>(&self, func: &str, input: I) -> miette::Result<O>
     where
         I: Debug + Serialize,
         O: Debug + DeserializeOwned,
@@ -136,57 +137,52 @@ impl PluginContainer {
 
         // Check if cache exists already
         if let Some(data) = self.func_cache.get(&cache_key) {
-            return self.parse_output(func, data);
+            return self.parse_output(func, data.get());
         }
 
         // Otherwise call the function and cache the result
-        let data = self.call(func, input)?;
+        let data = self.call(func, input).await?;
         let output: O = self.parse_output(func, &data)?;
 
-        self.func_cache.insert(cache_key, |_| data);
+        let _ = self.func_cache.insert(cache_key, data);
 
         Ok(output)
     }
 
     /// Call a function on the plugin with no input and return the output.
-    pub fn call_func<O>(&self, func: &str) -> miette::Result<O>
+    pub async fn call_func<O>(&self, func: &str) -> miette::Result<O>
     where
         O: Debug + DeserializeOwned,
     {
-        self.call_func_with(func, Empty::default())
+        self.call_func_with(func, Empty::default()).await
     }
 
     /// Call a function on the plugin with the given input and return the output.
     #[instrument(skip(self))]
-    pub fn call_func_with<I, O>(&self, func: &str, input: I) -> miette::Result<O>
+    pub async fn call_func_with<I, O>(&self, func: &str, input: I) -> miette::Result<O>
     where
         I: Debug + Serialize,
         O: Debug + DeserializeOwned,
     {
-        self.parse_output(func, &self.call(func, self.format_input(func, input)?)?)
+        self.parse_output(
+            func,
+            &self.call(func, self.format_input(func, input)?).await?,
+        )
     }
 
     /// Call a function on the plugin with the given input and ignore the output.
     #[instrument(skip(self))]
-    pub fn call_func_without_output<I>(&self, func: &str, input: I) -> miette::Result<()>
+    pub async fn call_func_without_output<I>(&self, func: &str, input: I) -> miette::Result<()>
     where
         I: Debug + Serialize,
     {
-        self.call(func, self.format_input(func, input)?)?;
+        self.call(func, self.format_input(func, input)?).await?;
         Ok(())
     }
 
     /// Return true if the plugin has a function with the given id.
-    pub fn has_func(&self, func: &str) -> bool {
-        self.plugin
-            .write()
-            .unwrap_or_else(|_| {
-                panic!(
-                    "Unable to acquire write access to `{}` WASM plugin.",
-                    self.id
-                )
-            })
-            .function_exists(func)
+    pub async fn has_func(&self, func: &str) -> bool {
+        self.plugin.write().await.function_exists(func)
     }
 
     /// Convert the provided virtual guest path to an absolute host path.
@@ -209,14 +205,8 @@ impl PluginContainer {
     }
 
     /// Call a function on the plugin with the given raw input and return the raw output.
-    pub fn call(&self, func: &str, input: impl AsRef<[u8]>) -> miette::Result<Vec<u8>> {
-        let mut instance = self.plugin.write().unwrap_or_else(|_| {
-            panic!(
-                "Unable to acquire write access to `{}` WASM plugin.",
-                self.id
-            )
-        });
-
+    pub async fn call(&self, func: &str, input: impl AsRef<[u8]>) -> miette::Result<Vec<u8>> {
+        let mut instance = self.plugin.write().await;
         let input = input.as_ref();
         let uuid = instance.id.to_string(); // Copy
 
@@ -224,11 +214,11 @@ impl PluginContainer {
             id = self.id.as_str(),
             plugin = &uuid,
             input = %String::from_utf8_lossy(input),
-            "Calling plugin function {}",
+            "Calling guest function {}",
             color::property(func),
         );
 
-        let output = instance.call(func, input).map_err(|error| {
+        let output = block_in_place(|| instance.call(func, input)).map_err(|error| {
             if is_incompatible_runtime(&error) {
                 return WarpgateError::IncompatibleRuntime {
                     id: self.id.clone(),
@@ -267,7 +257,7 @@ impl PluginContainer {
             id = self.id.as_str(),
             plugin = &uuid,
             output = %String::from_utf8_lossy(output),
-            "Called plugin function {}",
+            "Called guest function {}",
             color::property(func),
         );
 

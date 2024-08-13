@@ -23,7 +23,7 @@ mod version_detector {
         .unwrap()
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn uses_deepest_prototools() {
         let sandbox = create_empty_sandbox();
         sandbox.create_file("a/.prototools", "node = \"20\"");
@@ -63,7 +63,7 @@ mod version_detector {
         );
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn finds_first_available_prototools() {
         let sandbox = create_empty_sandbox();
         sandbox.create_file("a/.prototools", "node = \"20\"");
@@ -80,7 +80,7 @@ mod version_detector {
         );
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn finds_first_available_ecosystem() {
         let sandbox = create_empty_sandbox();
         sandbox.create_file(".prototools", "node = \"20\"");
@@ -97,7 +97,7 @@ mod version_detector {
         );
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn prefers_prototools() {
         let sandbox = create_empty_sandbox();
         sandbox.create_file("a/.prototools", "node = \"20\"");
@@ -116,7 +116,7 @@ mod version_detector {
         );
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn only_uses_prototools() {
         let sandbox = create_empty_sandbox();
         sandbox.create_file("a/package.json", r#"{ "engines": { "node": "16" } }"#);
