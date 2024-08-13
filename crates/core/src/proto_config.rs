@@ -17,7 +17,7 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use tracing::{debug, instrument, trace};
+use tracing::{debug, instrument};
 use version_spec::*;
 use warpgate::{HttpOptions, Id, PluginLocator, UrlLocator};
 
@@ -82,6 +82,28 @@ fn validate_reserved_words(
     }
 
     Ok(())
+}
+
+derive_enum!(
+    #[derive(ConfigEnum, Copy, Default)]
+    pub enum ConfigMode {
+        Global,
+        Local,
+        Upwards,
+        #[default]
+        #[serde(alias = "all")]
+        UpwardsGlobal,
+    }
+);
+
+impl ConfigMode {
+    pub fn includes_global(&self) -> bool {
+        matches!(self, Self::Global | Self::UpwardsGlobal)
+    }
+
+    pub fn only_local(&self) -> bool {
+        matches!(self, Self::Local)
+    }
 }
 
 derive_enum!(
@@ -521,8 +543,6 @@ impl ProtoConfigManager {
         end_dir: Option<&Path>,
         env_mode: Option<&String>,
     ) -> miette::Result<Self> {
-        trace!("Traversing upwards and loading {} files", PROTO_CONFIG_NAME);
-
         let mut current_dir = Some(start_dir.as_ref());
         let mut files = vec![];
 
@@ -586,7 +606,7 @@ impl ProtoConfigManager {
 
     pub fn get_merged_config(&self) -> miette::Result<&ProtoConfig> {
         self.all_config.get_or_try_init(|| {
-            debug!("Merging loaded configs");
+            debug!("Merging loaded configs with global");
 
             self.merge_configs(self.files.iter().collect())
         })
