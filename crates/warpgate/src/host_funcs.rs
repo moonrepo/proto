@@ -167,6 +167,7 @@ fn exec_command(
     };
 
     trace!(
+        plugin = plugin.id().to_string(),
         command = &input.command,
         args = ?input.args,
         env = ?input.env,
@@ -201,6 +202,7 @@ fn exec_command(
     let debug_output = bool_var("WARPGATE_DEBUG_COMMAND");
 
     trace!(
+        plugin = plugin.id().to_string(),
         command = ?bin,
         exit_code = output.exit_code,
         stderr = if debug_output {
@@ -235,7 +237,11 @@ fn send_request(
     let data = user_data.get()?;
     let data = data.lock().unwrap();
 
-    trace!(url = &input.url, "Sending request from plugin");
+    trace!(
+        plugin = plugin.id().to_string(),
+        url = &input.url,
+        "Sending request to URL",
+    );
 
     let response = Handle::current().block_on(async {
         let mut client = data.http_client.get(&input.url);
@@ -253,11 +259,12 @@ fn send_request(
     let status = response.status().as_u16();
 
     trace!(
+        plugin = plugin.id().to_string(),
         url = &input.url,
         length = response.content_length(),
         status,
         ok = response.status().is_success(),
-        "Sent request from plugin"
+        "Received response from URL"
     );
 
     let body = Handle::current().block_on(async {
@@ -292,6 +299,7 @@ fn get_env_var(
     let value = env::var(&name).unwrap_or_default();
 
     trace!(
+        plugin = plugin.id().to_string(),
         name = &name,
         value = &value,
         "Read environment variable from host"
@@ -325,6 +333,7 @@ fn set_env_var(
             .collect::<Vec<_>>();
 
         trace!(
+            plugin = plugin.id().to_string(),
             name = &name,
             path = ?new_path,
             "Adding paths to PATH environment variable on host"
@@ -336,6 +345,7 @@ fn set_env_var(
         env::set_var("PATH", env::join_paths(path)?);
     } else {
         trace!(
+            plugin = plugin.id().to_string(),
             name = &name,
             value = &value,
             "Wrote environment variable to host"
@@ -361,6 +371,7 @@ fn from_virtual_path(
     let real_path = helpers::from_virtual_path(&data.virtual_paths, &original_path);
 
     trace!(
+        plugin = plugin.id().to_string(),
         original_path = ?original_path,
         real_path = ?real_path,
         "Converted a path into a real path"
@@ -385,6 +396,7 @@ fn to_virtual_path(
     let virtual_path = helpers::to_virtual_path(&data.virtual_paths, &original_path);
 
     trace!(
+        plugin = plugin.id().to_string(),
         original_path = ?original_path,
         virtual_path = ?virtual_path.virtual_path(),
         "Converted a path into a virtual path"

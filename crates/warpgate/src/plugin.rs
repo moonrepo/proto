@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use system_env::{SystemArch, SystemLibc, SystemOS};
 use tokio::sync::RwLock;
+use tokio::task::block_in_place;
 use tracing::{instrument, trace};
 use warpgate_api::{HostEnvironment, VirtualPath};
 
@@ -217,7 +218,7 @@ impl PluginContainer {
             color::property(func),
         );
 
-        let output = instance.call(func, input).map_err(|error| {
+        let output = block_in_place(|| instance.call(func, input)).map_err(|error| {
             if is_incompatible_runtime(&error) {
                 return WarpgateError::IncompatibleRuntime {
                     id: self.id.clone(),
