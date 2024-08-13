@@ -12,6 +12,7 @@ _proto_hook() {
   fi
   trap - SIGINT
 }
+
 typeset -ag chpwd_functions
 if (( ! ${chpwd_functions[(I)_proto_hook]} )); then
   chpwd_functions=(_proto_hook $chpwd_functions)
