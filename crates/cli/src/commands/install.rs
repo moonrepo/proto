@@ -97,18 +97,21 @@ async fn pin_version(
     Ok(pin)
 }
 
-fn update_shell(tool: &Tool, passthrough_args: Vec<String>) -> miette::Result<()> {
-    if !tool.plugin.has_func("sync_shell_profile") {
+async fn update_shell(tool: &Tool, passthrough_args: Vec<String>) -> miette::Result<()> {
+    if !tool.plugin.has_func("sync_shell_profile").await {
         return Ok(());
     }
 
-    let output: SyncShellProfileOutput = tool.plugin.call_func_with(
-        "sync_shell_profile",
-        SyncShellProfileInput {
-            context: tool.create_context(),
-            passthrough_args,
-        },
-    )?;
+    let output: SyncShellProfileOutput = tool
+        .plugin
+        .call_func_with(
+            "sync_shell_profile",
+            SyncShellProfileInput {
+                context: tool.create_context(),
+                passthrough_args,
+            },
+        )
+        .await?;
 
     if output.skip_sync {
         return Ok(());
@@ -232,15 +235,17 @@ pub async fn install_one(
     env::set_var("PROTO_INSTALL", id.to_string());
 
     // Run before hook
-    if tool.plugin.has_func("pre_install") {
-        tool.plugin.call_func_without_output(
-            "pre_install",
-            InstallHook {
-                context: tool.create_context(),
-                passthrough_args: args.passthrough.clone(),
-                pinned: pin_type.is_some(),
-            },
-        )?;
+    if tool.plugin.has_func("pre_install").await {
+        tool.plugin
+            .call_func_without_output(
+                "pre_install",
+                InstallHook {
+                    context: tool.create_context(),
+                    passthrough_args: args.passthrough.clone(),
+                    pinned: pin_type.is_some(),
+                },
+            )
+            .await?;
     }
 
     // Install the tool
@@ -292,19 +297,21 @@ pub async fn install_one(
     .await?;
 
     // Run after hook
-    if tool.plugin.has_func("post_install") {
-        tool.plugin.call_func_without_output(
-            "post_install",
-            InstallHook {
-                context: tool.create_context(),
-                passthrough_args: args.passthrough.clone(),
-                pinned: pin_type.is_some(),
-            },
-        )?;
+    if tool.plugin.has_func("post_install").await {
+        tool.plugin
+            .call_func_without_output(
+                "post_install",
+                InstallHook {
+                    context: tool.create_context(),
+                    passthrough_args: args.passthrough.clone(),
+                    pinned: pin_type.is_some(),
+                },
+            )
+            .await?;
     }
 
     // Sync shell profile
-    update_shell(&tool, args.passthrough.clone())?;
+    update_shell(&tool, args.passthrough.clone()).await?;
 
     Ok(tool)
 }

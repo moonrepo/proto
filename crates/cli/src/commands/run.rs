@@ -50,12 +50,12 @@ fn is_trying_to_self_upgrade(tool: &Tool, args: &[String]) -> bool {
     false
 }
 
-fn get_executable(tool: &Tool, args: &RunArgs) -> miette::Result<ExecutableConfig> {
+async fn get_executable(tool: &Tool, args: &RunArgs) -> miette::Result<ExecutableConfig> {
     let tool_dir = tool.get_product_dir();
 
     // Run an alternate executable (via shim)
     if let Some(alt_name) = &args.alt {
-        for location in tool.get_shim_locations()? {
+        for location in tool.get_shim_locations().await? {
             if location.name == *alt_name {
                 let Some(exe_path) = &location.config.exe_path else {
                     continue;
@@ -87,7 +87,8 @@ fn get_executable(tool: &Tool, args: &RunArgs) -> miette::Result<ExecutableConfi
 
     // Otherwise use the primary
     let mut config = tool
-        .get_exe_location()?
+        .get_exe_location()
+        .await?
         .expect("Required executable information missing!")
         .config;
 
@@ -189,28 +190,30 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
     }
 
     // Determine the binary path to execute
-    let exe_config = get_executable(&tool, &args)?;
+    let exe_config = get_executable(&tool, &args).await?;
     let exe_path = exe_config
         .exe_path
         .as_ref()
         .expect("Could not determine executable path.");
 
     // Run before hook
-    let hook_result = if tool.plugin.has_func("pre_run") {
+    let hook_result = if tool.plugin.has_func("pre_run").await {
         tool.locate_globals_dirs().await?;
 
         let globals_dir = tool.get_globals_dir();
         let globals_prefix = tool.get_globals_prefix();
 
-        tool.plugin.call_func_with(
-            "pre_run",
-            RunHook {
-                context: tool.create_context(),
-                globals_dir: globals_dir.map(|dir| tool.to_virtual_path(dir)),
-                globals_prefix: globals_prefix.map(|p| p.to_owned()),
-                passthrough_args: args.passthrough.clone(),
-            },
-        )?
+        tool.plugin
+            .call_func_with(
+                "pre_run",
+                RunHook {
+                    context: tool.create_context(),
+                    globals_dir: globals_dir.map(|dir| tool.to_virtual_path(dir)),
+                    globals_prefix: globals_prefix.map(|p| p.to_owned()),
+                    passthrough_args: args.passthrough.clone(),
+                },
+            )
+            .await?
     } else {
         RunHookResult::default()
     };
