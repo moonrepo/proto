@@ -214,7 +214,7 @@ impl PluginContainer {
             id = self.id.as_str(),
             plugin = &uuid,
             input = %String::from_utf8_lossy(input),
-            "Calling plugin function {}",
+            "Calling guest function {}",
             color::property(func),
         );
 
@@ -257,7 +257,7 @@ impl PluginContainer {
             id = self.id.as_str(),
             plugin = &uuid,
             output = %String::from_utf8_lossy(output),
-            "Called plugin function {}",
+            "Called guest function {}",
             color::property(func),
         );
 

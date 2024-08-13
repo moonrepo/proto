@@ -8,9 +8,9 @@ macro_rules! generate_download_install_tests {
         async fn downloads_verifies_installs_tool() {
             let sandbox = create_empty_proto_sandbox();
             let mut plugin = if let Some(schema) = $schema {
-                sandbox.create_schema_plugin($id, schema)
+                sandbox.create_schema_plugin($id, schema).await
             } else {
-                sandbox.create_plugin($id)
+                sandbox.create_plugin($id).await
             };
             let spec = UnresolvedVersionSpec::parse($version).unwrap();
 
@@ -27,11 +27,11 @@ macro_rules! generate_download_install_tests {
             plugin.tool.get_exe_path().unwrap();
 
             // Check things exist
-            for bin in plugin.tool.get_bin_locations().unwrap() {
+            for bin in plugin.tool.get_bin_locations().await.unwrap() {
                 assert!(bin.path.exists());
             }
 
-            for shim in plugin.tool.get_shim_locations().unwrap() {
+            for shim in plugin.tool.get_shim_locations().await.unwrap() {
                 assert!(shim.path.exists());
             }
         }
@@ -40,9 +40,9 @@ macro_rules! generate_download_install_tests {
         async fn downloads_prebuilt_and_checksum_to_temp() {
             let sandbox = create_empty_proto_sandbox();
             let mut plugin = if let Some(schema) = $schema {
-                sandbox.create_schema_plugin($id, schema)
+                sandbox.create_schema_plugin($id, schema).await
             } else {
-                sandbox.create_plugin($id)
+                sandbox.create_plugin($id).await
             };
             let mut tool = plugin.tool;
 
@@ -66,9 +66,9 @@ macro_rules! generate_download_install_tests {
 
             let sandbox = create_empty_proto_sandbox();
             let plugin = if let Some(schema) = $schema {
-                sandbox.create_schema_plugin($id, schema)
+                sandbox.create_schema_plugin($id, schema).await
             } else {
-                sandbox.create_plugin($id)
+                sandbox.create_plugin($id).await
             };
             let mut tool = plugin.tool;
             let spec = VersionSpec::parse($version).unwrap();
@@ -94,9 +94,9 @@ macro_rules! generate_resolve_versions_tests {
         async fn resolves_latest_alias() {
             let sandbox = create_empty_proto_sandbox();
             let mut plugin = if let Some(schema) = $schema {
-                sandbox.create_schema_plugin($id, schema)
+                sandbox.create_schema_plugin($id, schema).await
             } else {
-                sandbox.create_plugin($id)
+                sandbox.create_plugin($id).await
             };
 
             plugin.tool.resolve_version(
@@ -111,9 +111,9 @@ macro_rules! generate_resolve_versions_tests {
         async fn resolve_version_or_alias() {
             let sandbox = create_empty_proto_sandbox();
             let mut plugin = if let Some(schema) = $schema {
-                sandbox.create_schema_plugin($id, schema)
+                sandbox.create_schema_plugin($id, schema).await
             } else {
-                sandbox.create_plugin($id)
+                sandbox.create_plugin($id).await
             };
 
             $(
@@ -140,7 +140,7 @@ macro_rules! generate_resolve_versions_tests {
         //         r#"{"aliases":{"example":"1.0.0"}}"#,
         //     );
 
-        //     let mut plugin = sandbox.create_plugin($id);
+        //     let mut plugin = sandbox.create_plugin($id).await;
 
         //     assert_eq!(
         //         plugin.tool.resolve_version("example").await.unwrap(),
@@ -153,9 +153,9 @@ macro_rules! generate_resolve_versions_tests {
         async fn errors_invalid_alias() {
             let sandbox = create_empty_proto_sandbox();
             let mut plugin = if let Some(schema) = $schema {
-                sandbox.create_schema_plugin($id, schema)
+                sandbox.create_schema_plugin($id, schema).await
             } else {
-                sandbox.create_plugin($id)
+                sandbox.create_plugin($id).await
             };
 
             plugin.tool.resolve_version(
@@ -169,9 +169,9 @@ macro_rules! generate_resolve_versions_tests {
         async fn errors_invalid_version() {
             let sandbox = create_empty_proto_sandbox();
             let mut plugin = if let Some(schema) = $schema {
-                sandbox.create_schema_plugin($id, schema)
+                sandbox.create_schema_plugin($id, schema).await
             } else {
-                sandbox.create_plugin($id)
+                sandbox.create_plugin($id).await
             };
 
             plugin.tool.resolve_version(
@@ -195,9 +195,9 @@ macro_rules! generate_shims_test {
         async fn creates_shims() {
             let sandbox = create_empty_proto_sandbox();
             let mut plugin = if let Some(schema) = $schema {
-                sandbox.create_schema_plugin($id, schema)
+                sandbox.create_schema_plugin($id, schema).await
             } else {
-                sandbox.create_plugin($id)
+                sandbox.create_plugin($id).await
             };
 
             plugin.tool.generate_shims(false).await.unwrap();

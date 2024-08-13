@@ -25,7 +25,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use tracing::{debug, instrument, trace, warn};
 use warpgate::{
-    host_funcs::{create_host_functions, HostData},
+    host::{create_host_functions, HostData},
     Id, PluginContainer, PluginLocator, PluginManifest, VirtualPath, Wasm,
 };
 

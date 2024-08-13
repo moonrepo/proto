@@ -128,7 +128,16 @@ fn exec_command(
     outputs: &mut [Val],
     user_data: UserData<HostData>,
 ) -> Result<(), Error> {
-    let input: ExecCommandInput = serde_json::from_str(plugin.memory_get_val(&inputs[0])?)?;
+    let input_raw: String = plugin.memory_get_val(&inputs[0])?;
+    let input: ExecCommandInput = serde_json::from_str(&input_raw)?;
+    let uuid = plugin.id().to_string();
+
+    trace!(
+        plugin = &uuid,
+        input = %input_raw,
+        "Calling host function {}",
+        color::label("exec_command"),
+    );
 
     let data = user_data.get()?;
     let data = data.lock().unwrap();
@@ -165,15 +174,6 @@ fn exec_command(
     } else {
         data.working_dir.clone()
     };
-
-    trace!(
-        plugin = plugin.id().to_string(),
-        command = &input.command,
-        args = ?input.args,
-        env = ?input.env,
-        cwd = ?cwd,
-        "Executing command from plugin"
-    );
 
     let mut command = create_process_command(bin, &input.args);
     command.envs(&input.env);
@@ -217,7 +217,8 @@ fn exec_command(
             None
         },
         stdout_len = output.stdout.len(),
-        "Executed command from plugin"
+        "Called host function {}",
+        color::label("exec_command"),
     );
 
     plugin.memory_set_val(&mut outputs[0], serde_json::to_string(&output)?)?;
@@ -232,16 +233,19 @@ fn send_request(
     outputs: &mut [Val],
     user_data: UserData<HostData>,
 ) -> Result<(), Error> {
-    let input: SendRequestInput = serde_json::from_str(plugin.memory_get_val(&inputs[0])?)?;
+    let input_raw: String = plugin.memory_get_val(&inputs[0])?;
+    let input: SendRequestInput = serde_json::from_str(&input_raw)?;
+    let uuid = plugin.id().to_string();
+
+    trace!(
+        plugin = &uuid,
+        input = %input_raw,
+        "Calling host function {}",
+        color::label("send_request"),
+    );
 
     let data = user_data.get()?;
     let data = data.lock().unwrap();
-
-    trace!(
-        plugin = plugin.id().to_string(),
-        url = &input.url,
-        "Sending request to URL",
-    );
 
     let response = Handle::current().block_on(async {
         let mut client = data.http_client.get(&input.url);
@@ -256,16 +260,8 @@ fn send_request(
         })
     })?;
 
+    let ok = response.status().is_success();
     let status = response.status().as_u16();
-
-    trace!(
-        plugin = plugin.id().to_string(),
-        url = &input.url,
-        length = response.content_length(),
-        status,
-        ok = response.status().is_success(),
-        "Received response from URL"
-    );
 
     let body = Handle::current().block_on(async {
         response.bytes().await.map_err(|error| WarpgateError::Http {
@@ -283,6 +279,15 @@ fn send_request(
         status,
     };
 
+    trace!(
+        plugin = &uuid,
+        ok,
+        status,
+        length = memory.length,
+        "Called host function {}",
+        color::label("send_request"),
+    );
+
     plugin.memory_set_val(&mut outputs[0], serde_json::to_string(&output)?)?;
 
     Ok(())
@@ -296,13 +301,22 @@ fn get_env_var(
     _user_data: UserData<()>,
 ) -> Result<(), Error> {
     let name: String = plugin.memory_get_val(&inputs[0])?;
+    let uuid = plugin.id().to_string();
+
+    trace!(
+        plugin = &uuid,
+        name = &name,
+        "Calling host function {}",
+        color::label("get_env_var"),
+    );
+
     let value = env::var(&name).unwrap_or_default();
 
     trace!(
-        plugin = plugin.id().to_string(),
-        name = &name,
+        plugin = &uuid,
         value = &value,
-        "Read environment variable from host"
+        "Called host function {}",
+        color::label("get_env_var"),
     );
 
     plugin.memory_set_val(&mut outputs[0], value)?;
@@ -319,6 +333,15 @@ fn set_env_var(
 ) -> Result<(), Error> {
     let name: String = plugin.memory_get_val(&inputs[0])?;
     let value: String = plugin.memory_get_val(&inputs[1])?;
+    let uuid = plugin.id().to_string();
+
+    trace!(
+        plugin = &uuid,
+        name = &name,
+        value = &value,
+        "Calling host function {}",
+        color::label("set_env_var"),
+    );
 
     if name == "PATH" {
         let data = user_data.get()?;
@@ -333,10 +356,11 @@ fn set_env_var(
             .collect::<Vec<_>>();
 
         trace!(
-            plugin = plugin.id().to_string(),
+            plugin = &uuid,
             name = &name,
             path = ?new_path,
-            "Adding paths to PATH environment variable on host"
+            "Called host function {}",
+            color::label("set_env_var"),
         );
 
         let mut path = paths();
@@ -345,10 +369,11 @@ fn set_env_var(
         env::set_var("PATH", env::join_paths(path)?);
     } else {
         trace!(
-            plugin = plugin.id().to_string(),
+            plugin = &uuid,
             name = &name,
             value = &value,
-            "Wrote environment variable to host"
+            "Called host function {}",
+            color::label("set_env_var"),
         );
 
         env::set_var(name, value);
@@ -365,16 +390,24 @@ fn from_virtual_path(
     user_data: UserData<HostData>,
 ) -> Result<(), Error> {
     let original_path = PathBuf::from(plugin.memory_get_val::<String>(&inputs[0])?);
+    let uuid = plugin.id().to_string();
+
+    trace!(
+        plugin = &uuid,
+        original_path = ?original_path,
+        "Calling host function {}",
+        color::label("from_virtual_path"),
+    );
 
     let data = user_data.get()?;
     let data = data.lock().unwrap();
     let real_path = helpers::from_virtual_path(&data.virtual_paths, &original_path);
 
     trace!(
-        plugin = plugin.id().to_string(),
-        original_path = ?original_path,
+        plugin = &uuid,
         real_path = ?real_path,
-        "Converted a path into a real path"
+        "Called host function {}",
+        color::label("from_virtual_path"),
     );
 
     plugin.memory_set_val(&mut outputs[0], real_path.to_string_lossy().to_string())?;
@@ -390,16 +423,24 @@ fn to_virtual_path(
     user_data: UserData<HostData>,
 ) -> Result<(), Error> {
     let original_path = PathBuf::from(plugin.memory_get_val::<String>(&inputs[0])?);
+    let uuid = plugin.id().to_string();
+
+    trace!(
+        plugin = &uuid,
+        original_path = ?original_path,
+        "Calling host function {}",
+        color::label("to_virtual_path"),
+    );
 
     let data = user_data.get()?;
     let data = data.lock().unwrap();
     let virtual_path = helpers::to_virtual_path(&data.virtual_paths, &original_path);
 
     trace!(
-        plugin = plugin.id().to_string(),
-        original_path = ?original_path,
+        plugin = &uuid,
         virtual_path = ?virtual_path.virtual_path(),
-        "Converted a path into a virtual path"
+        "Called host function {}",
+        color::label("to_virtual_path"),
     );
 
     plugin.memory_set_val(&mut outputs[0], serde_json::to_string(&virtual_path)?)?;
