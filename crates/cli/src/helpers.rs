@@ -51,9 +51,9 @@ pub fn create_theme() -> ColorfulTheme {
     }
 }
 
-pub fn enable_progress_bars() {
-    env::remove_var("PROTO_NO_PROGRESS");
-}
+// pub fn enable_progress_bars() {
+//     env::remove_var("PROTO_NO_PROGRESS");
+// }
 
 pub fn disable_progress_bars() {
     env::set_var("PROTO_NO_PROGRESS", "1");
@@ -89,8 +89,7 @@ pub fn create_progress_bar<S: AsRef<str>>(start: S) -> ProgressBar {
     pb
 }
 
-#[deprecated]
-pub fn create_progress_bar_old<S: AsRef<str>>(start: S) -> ProgressBar {
+pub fn create_progress_spinner<S: AsRef<str>>(start: S) -> ProgressBar {
     let pb = if bool_var("PROTO_NO_PROGRESS") {
         ProgressBar::hidden()
     } else {
@@ -99,18 +98,22 @@ pub fn create_progress_bar_old<S: AsRef<str>>(start: S) -> ProgressBar {
 
     pb.enable_steady_tick(Duration::from_millis(100));
     pb.set_message(start.as_ref().to_owned());
-    pb.set_style(ProgressStyle::with_template("").unwrap().tick_strings(&[
-        "━         ",
-        "━━        ",
-        "━━━       ",
-        "━━━━      ",
-        "━━━━━     ",
-        "━━━━━━    ",
-        "━━━━━━━   ",
-        "━━━━━━━━  ",
-        "━━━━━━━━━ ",
-        "━━━━━━━━━━",
-    ]));
+    pb.set_style(
+        ProgressStyle::with_template("{spinner:.183} | {msg}")
+            .unwrap()
+            .tick_strings(&[
+                "━         ",
+                "━━        ",
+                "━━━       ",
+                "━━━━      ",
+                "━━━━━     ",
+                "━━━━━━    ",
+                "━━━━━━━   ",
+                "━━━━━━━━  ",
+                "━━━━━━━━━ ",
+                "━━━━━━━━━━",
+            ]),
+    );
     pb
 }
 
