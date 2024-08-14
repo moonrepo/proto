@@ -4,7 +4,7 @@ use crate::session::ProtoSession;
 use crate::shell::{self, Export};
 use crate::telemetry::{track_usage, Metric};
 use clap::{Args, ValueEnum};
-use indicatif::ProgressBar;
+use indicatif::{MultiProgress, ProgressBar};
 use miette::IntoDiagnostic;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
 use proto_core::{Id, PinType, Tool, UnresolvedVersionSpec};
@@ -15,6 +15,7 @@ use starbase_styles::color;
 use std::env;
 use std::process;
 use std::time::Duration;
+use tokio::task::JoinSet;
 use tracing::{debug, instrument};
 
 #[derive(Clone, Debug, ValueEnum)]
@@ -366,7 +367,7 @@ async fn install_one(session: &ProtoSession, id: &Id, args: InstallArgs) -> miet
     Ok(tool)
 }
 
-#[tracing::instrument(skip_all)]
+#[instrument(skip_all)]
 pub async fn install_all(session: &ProtoSession) -> AppResult {
     debug!("Loading all tools");
 
@@ -395,50 +396,62 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
         process::exit(1);
     }
 
-    let pb = create_progress_bar_old(format!(
-        "Installing {} tools: {}",
-        versions.len(),
-        versions
-            .keys()
-            .map(color::id)
-            .collect::<Vec<_>>()
-            .join(", ")
-    ));
-
-    disable_progress_bars();
+    // Determine longest ID for use within progress bars
+    let longest_id = versions
+        .keys()
+        .fold(0, |acc, id| if id.len() > acc { id.len() } else { acc });
 
     // Then install each tool in parallel!
-    let mut futures = vec![];
+    let mpb = MultiProgress::new();
+    let mut set = JoinSet::new();
 
-    for tool in tools {
+    for mut tool in tools {
         if let Some(version) = versions.remove(&tool.id) {
-            let proto_clone = session.clone();
-            let id = tool.id.clone();
+            let pb = mpb.add(create_progress_bar(format!(
+                "Installing {}",
+                tool.get_name()
+            )));
 
-            futures.push(tokio::spawn(async move {
-                install_one(
-                    &proto_clone,
+            pb.set_prefix(color::id(format!(
+                "{}{}",
+                " ".repeat(longest_id - tool.id.len()),
+                tool.id
+            )));
+
+            set.spawn(async move {
+                do_install(
+                    &mut tool,
                     InstallArgs {
                         spec: Some(version),
                         ..Default::default()
                     },
-                    &id,
-                    Some(tool),
+                    pb,
                 )
                 .await
-            }));
+            });
         }
     }
 
-    for future in futures {
-        future.await.into_diagnostic()??;
+    let mut install_count = 0;
+    let mut existing_count = 0;
+
+    while let Some(result) = set.join_next().await {
+        if result.into_diagnostic()?? {
+            install_count += 1;
+        } else {
+            existing_count += 1;
+        }
     }
 
-    enable_progress_bars();
-
-    pb.finish_and_clear();
-
-    println!("Successfully installed tools!");
+    if install_count == 0 {
+        println!("All tools already installed")
+    } else if existing_count == 0 {
+        println!("Successfully installed {existing_count} tools!");
+    } else {
+        println!(
+            "Successfully installed {install_count} tools ({existing_count} already installed)!"
+        );
+    }
 
     Ok(())
 }
