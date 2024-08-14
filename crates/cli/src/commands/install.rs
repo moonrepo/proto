@@ -15,7 +15,7 @@ use starbase_styles::color;
 use std::env;
 use std::process;
 use std::time::Duration;
-use tracing::debug;
+use tracing::{debug, instrument};
 
 #[derive(Clone, Debug, ValueEnum)]
 pub enum PinOption {
@@ -187,7 +187,7 @@ async fn update_shell(tool: &Tool, passthrough_args: Vec<String>) -> miette::Res
     Ok(())
 }
 
-#[tracing::instrument(skip_all)]
+#[instrument(skip_all)]
 pub async fn do_install(
     tool: &mut Tool,
     args: InstallArgs,
@@ -279,7 +279,7 @@ pub async fn do_install(
         };
     });
 
-    pb.set_message("Installed!");
+    pb.set_message(format!("Installed {resolved_version}!"));
     pb.finish_and_clear();
 
     if !tool
@@ -335,19 +335,11 @@ pub async fn do_install(
     Ok(true)
 }
 
-#[tracing::instrument(skip(session, args, tool))]
-pub async fn install_one(
-    session: &ProtoSession,
-    args: InstallArgs,
-    id: &Id,
-    tool: Option<Tool>,
-) -> miette::Result<Tool> {
+#[instrument(skip(session, args))]
+async fn install_one(session: &ProtoSession, id: &Id, args: InstallArgs) -> miette::Result<Tool> {
     debug!(id = id.as_str(), "Loading tool");
 
-    let mut tool = match tool {
-        Some(tool) => tool,
-        None => session.load_tool(id).await?,
-    };
+    let mut tool = session.load_tool(id).await?;
 
     if tool.disable_progress_bars() {
         disable_progress_bars();
@@ -455,7 +447,7 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
 pub async fn install(session: ProtoSession, args: InstallArgs) -> AppResult {
     match args.id.clone() {
         Some(id) => {
-            install_one(&session, args, &id, None).await?;
+            install_one(&session, &id, args).await?;
         }
         None => {
             install_all(&session).await?;

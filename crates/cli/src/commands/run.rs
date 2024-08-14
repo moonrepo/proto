@@ -1,7 +1,8 @@
-use crate::commands::install::{install_one, InstallArgs};
+use crate::commands::install::{do_install, InstallArgs};
 use crate::error::ProtoCliError;
 use crate::session::ProtoSession;
 use clap::Args;
+use indicatif::ProgressBar;
 use miette::IntoDiagnostic;
 use proto_core::{detect_version, Id, ProtoError, Tool, UnresolvedVersionSpec};
 use proto_pdk_api::{ExecutableConfig, RunHook, RunHookResult};
@@ -177,16 +178,13 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
         // Install the tool
         debug!("Auto-install setting is configured, attempting to install");
 
-        tool = install_one(
-            &session,
-            InstallArgs {
-                spec: Some(tool.get_resolved_version().to_unresolved_spec()),
-                ..Default::default()
-            },
-            &args.id,
-            Some(tool),
-        )
-        .await?;
+        let install_args = InstallArgs {
+            id: Some(tool.id.clone()),
+            spec: Some(tool.get_resolved_version().to_unresolved_spec()),
+            ..Default::default()
+        };
+
+        do_install(&mut tool, install_args, ProgressBar::hidden()).await?;
     }
 
     // Determine the binary path to execute
