@@ -59,7 +59,38 @@ pub fn disable_progress_bars() {
     env::set_var("PROTO_NO_PROGRESS", "1");
 }
 
+pub fn get_progress_bar_default_template() -> String {
+    "{prefix} {bar:80.183/239} | {msg}".into()
+}
+
+pub fn get_progress_bar_download_template() -> String {
+    "{prefix} {bar:80.183/239} | {bytes:>5.239} / {total_bytes:5.248} | {bytes_per_sec:>5.183} | {msg}"
+        .into()
+}
+
+pub fn create_progress_bar_style<S: AsRef<str>>(template: S) -> ProgressStyle {
+    ProgressStyle::default_bar()
+        .progress_chars("━╾─")
+        .template(template.as_ref())
+        .unwrap()
+}
+
 pub fn create_progress_bar<S: AsRef<str>>(start: S) -> ProgressBar {
+    let pb = if bool_var("PROTO_NO_PROGRESS") {
+        ProgressBar::hidden()
+    } else {
+        ProgressBar::new(0)
+    };
+
+    pb.set_message(start.as_ref().to_owned());
+    pb.set_style(create_progress_bar_style(
+        get_progress_bar_default_template(),
+    ));
+    pb
+}
+
+#[deprecated]
+pub fn create_progress_bar_old<S: AsRef<str>>(start: S) -> ProgressBar {
     let pb = if bool_var("PROTO_NO_PROGRESS") {
         ProgressBar::hidden()
     } else {
@@ -68,24 +99,18 @@ pub fn create_progress_bar<S: AsRef<str>>(start: S) -> ProgressBar {
 
     pb.enable_steady_tick(Duration::from_millis(100));
     pb.set_message(start.as_ref().to_owned());
-    pb.set_style(
-        ProgressStyle::with_template(
-            "{spinner:.183} [{bytes:>5}/{total_bytes:5} {bytes_per_sec}/{eta}] {msg}",
-        )
-        .unwrap()
-        .tick_strings(&[
-            "━         ",
-            "━━        ",
-            "━━━       ",
-            "━━━━      ",
-            "━━━━━     ",
-            "━━━━━━    ",
-            "━━━━━━━   ",
-            "━━━━━━━━  ",
-            "━━━━━━━━━ ",
-            "━━━━━━━━━━",
-        ]),
-    );
+    pb.set_style(ProgressStyle::with_template("").unwrap().tick_strings(&[
+        "━         ",
+        "━━        ",
+        "━━━       ",
+        "━━━━      ",
+        "━━━━━     ",
+        "━━━━━━    ",
+        "━━━━━━━   ",
+        "━━━━━━━━  ",
+        "━━━━━━━━━ ",
+        "━━━━━━━━━━",
+    ]));
     pb
 }
 

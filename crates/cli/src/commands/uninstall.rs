@@ -1,5 +1,5 @@
 use crate::commands::clean::purge_tool;
-use crate::helpers::{create_progress_bar, disable_progress_bars};
+use crate::helpers::{create_progress_bar_old, disable_progress_bars};
 use crate::session::ProtoSession;
 use crate::telemetry::{track_usage, Metric};
 use clap::Args;
@@ -79,7 +79,7 @@ pub async fn uninstall(session: ProtoSession, args: UninstallArgs) -> AppResult 
         disable_progress_bars();
     }
 
-    let pb = create_progress_bar(format!(
+    let pb = create_progress_bar_old(format!(
         "Uninstalling {} {}",
         tool.get_name(),
         tool.get_resolved_version()

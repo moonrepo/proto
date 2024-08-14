@@ -1,9 +1,10 @@
 use super::pin::internal_pin;
-use crate::helpers::{create_progress_bar, disable_progress_bars, enable_progress_bars};
+use crate::helpers::*;
 use crate::session::ProtoSession;
 use crate::shell::{self, Export};
 use crate::telemetry::{track_usage, Metric};
 use clap::{Args, ValueEnum};
+use indicatif::ProgressBar;
 use miette::IntoDiagnostic;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
 use proto_core::{Id, PinType, Tool, UnresolvedVersionSpec};
@@ -13,6 +14,7 @@ use starbase_shell::ShellType;
 use starbase_styles::color;
 use std::env;
 use std::process;
+use std::time::Duration;
 use tracing::debug;
 
 #[derive(Clone, Debug, ValueEnum)]
@@ -52,6 +54,23 @@ pub struct InstallArgs {
         help = "When installing one, additional arguments to pass to the tool"
     )]
     pub passthrough: Vec<String>,
+}
+
+impl InstallArgs {
+    fn get_pin_type(&self) -> Option<PinType> {
+        self.pin.as_ref().map(|pin| match pin {
+            Some(PinOption::Global) => PinType::Global,
+            _ => PinType::Local,
+        })
+    }
+
+    fn get_unresolved_spec(&self) -> UnresolvedVersionSpec {
+        if self.canary {
+            UnresolvedVersionSpec::Canary
+        } else {
+            self.spec.clone().unwrap_or_default()
+        }
+    }
 }
 
 async fn pin_version(
@@ -168,53 +187,26 @@ async fn update_shell(tool: &Tool, passthrough_args: Vec<String>) -> miette::Res
     Ok(())
 }
 
-#[tracing::instrument(skip(session, args, tool))]
-pub async fn install_one(
-    session: &ProtoSession,
+#[tracing::instrument(skip_all)]
+pub async fn do_install(
+    tool: &mut Tool,
     args: InstallArgs,
-    id: &Id,
-    tool: Option<Tool>,
-) -> miette::Result<Tool> {
-    debug!(id = id.as_str(), "Loading tool");
-
-    let mut tool = match tool {
-        Some(tool) => tool,
-        None => session.load_tool(id).await?,
-    };
-
-    let version = if args.canary {
-        UnresolvedVersionSpec::Canary
-    } else {
-        args.spec.clone().unwrap_or_default()
-    };
-
-    let pin_type = args.pin.map(|pin| match pin {
-        Some(PinOption::Global) => PinType::Global,
-        _ => PinType::Local,
-    });
+    pb: ProgressBar,
+) -> miette::Result<bool> {
+    let version = args.get_unresolved_spec();
+    let pin_type = args.get_pin_type();
 
     // Disable version caching and always use the latest when installing
     tool.disable_caching();
-
-    if tool.disable_progress_bars() {
-        disable_progress_bars();
-    }
 
     // Resolve version first so subsequent steps can reference the resolved version
     tool.resolve_version(&version, false).await?;
 
     // Check if already installed, or if canary, overwrite previous install
     if !version.is_canary() && tool.is_setup(&version).await? {
-        pin_version(&mut tool, &version, &pin_type).await?;
+        pin_version(tool, &version, &pin_type).await?;
 
-        println!(
-            "{} {} has already been installed at {}",
-            tool.get_name(),
-            tool.get_resolved_version(),
-            color::path(tool.get_product_dir()),
-        );
-
-        return Ok(tool);
+        return Ok(false);
     }
 
     let resolved_version = tool.get_resolved_version();
@@ -225,7 +217,7 @@ pub async fn install_one(
         resolved_version.to_string(),
     );
 
-    env::set_var("PROTO_INSTALL", id.to_string());
+    env::set_var("PROTO_INSTALL", tool.id.to_string());
 
     // Run before hook
     if tool.plugin.has_func("pre_install").await {
@@ -249,53 +241,62 @@ pub async fn install_one(
         version
     );
 
-    let pb = create_progress_bar(format!(
-        "Installing {} {}",
-        tool.get_name(),
-        resolved_version
-    ));
     let pb2 = pb.clone();
-    let pb3 = pb.clone();
+    let on_download_chunk = Box::new(move |current, total| {
+        if current == 0 {
+            pb2.set_length(total);
+        } else {
+            pb2.set_position(current);
+        }
+    });
 
-    let installed = tool
+    let pb3 = pb.clone();
+    let on_phase_change = Box::new(move |phase| {
+        pb3.set_length(0);
+        pb3.set_position(0);
+
+        match phase {
+            InstallPhase::Verify => {
+                pb3.set_message("Verifying checksum");
+                pb3.set_style(create_progress_bar_style(
+                    get_progress_bar_default_template(),
+                ));
+                pb3.enable_steady_tick(Duration::from_millis(50));
+            }
+            InstallPhase::Unpack => {
+                pb3.set_message("Unpacking archive");
+                pb3.set_style(create_progress_bar_style(
+                    get_progress_bar_default_template(),
+                ));
+                pb3.enable_steady_tick(Duration::from_millis(50));
+            }
+            _ => {
+                pb3.set_message("Downloading pre-built");
+                pb3.set_style(create_progress_bar_style(
+                    get_progress_bar_download_template(),
+                ));
+            }
+        };
+    });
+
+    pb.set_message("Installed!");
+    pb.finish_and_clear();
+
+    if !tool
         .setup(
             &version,
             InstallOptions {
-                on_download_chunk: Some(Box::new(move |current, total| {
-                    if current == 0 {
-                        pb2.set_length(total);
-                    } else {
-                        pb2.set_position(current);
-                    }
-                })),
-                on_phase_change: Some(Box::new(move |phase| {
-                    pb3.set_length(0);
-                    pb3.set_position(0);
-                    pb3.set_message(match phase {
-                        InstallPhase::Verify => "Verifying checksum",
-                        InstallPhase::Unpack => "Unpacking archive",
-                        _ => "Downloading pre-built",
-                    });
-                })),
+                on_download_chunk: Some(on_download_chunk),
+                on_phase_change: Some(on_phase_change),
                 ..InstallOptions::default()
             },
         )
-        .await?;
-
-    pb.finish_and_clear();
-
-    if !installed {
-        return Ok(tool);
+        .await?
+    {
+        return Ok(false);
     }
 
-    let pinned = pin_version(&mut tool, &version, &pin_type).await?;
-
-    println!(
-        "{} {} has been installed to {}!",
-        tool.get_name(),
-        tool.get_resolved_version(),
-        color::path(tool.get_product_dir()),
-    );
+    let pinned = pin_version(tool, &version, &pin_type).await?;
 
     // Track usage metrics
     track_usage(
@@ -331,6 +332,45 @@ pub async fn install_one(
     // Sync shell profile
     update_shell(&tool, args.passthrough.clone()).await?;
 
+    Ok(true)
+}
+
+#[tracing::instrument(skip(session, args, tool))]
+pub async fn install_one(
+    session: &ProtoSession,
+    args: InstallArgs,
+    id: &Id,
+    tool: Option<Tool>,
+) -> miette::Result<Tool> {
+    debug!(id = id.as_str(), "Loading tool");
+
+    let mut tool = match tool {
+        Some(tool) => tool,
+        None => session.load_tool(id).await?,
+    };
+
+    if tool.disable_progress_bars() {
+        disable_progress_bars();
+    }
+
+    let pb = create_progress_bar(format!("Installing {}", tool.get_name()));
+
+    if do_install(&mut tool, args, pb).await? {
+        println!(
+            "{} {} has been installed to {}!",
+            tool.get_name(),
+            tool.get_resolved_version(),
+            color::path(tool.get_product_dir()),
+        );
+    } else {
+        println!(
+            "{} {} has already been installed at {}",
+            tool.get_name(),
+            tool.get_resolved_version(),
+            color::path(tool.get_product_dir()),
+        );
+    }
+
     Ok(tool)
 }
 
@@ -363,7 +403,7 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
         process::exit(1);
     }
 
-    let pb = create_progress_bar(format!(
+    let pb = create_progress_bar_old(format!(
         "Installing {} tools: {}",
         versions.len(),
         versions
