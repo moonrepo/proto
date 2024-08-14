@@ -5,7 +5,7 @@ use crate::shell::{self, Export};
 use crate::telemetry::{track_usage, Metric};
 use clap::{Args, ValueEnum};
 use miette::IntoDiagnostic;
-use proto_core::flow::install::InstallOptions;
+use proto_core::flow::install::{InstallOptions, InstallPhase};
 use proto_core::{Id, PinType, Tool, UnresolvedVersionSpec};
 use proto_pdk_api::{InstallHook, SyncShellProfileInput, SyncShellProfileOutput};
 use starbase::AppResult;
@@ -254,8 +254,33 @@ pub async fn install_one(
         tool.get_name(),
         resolved_version
     ));
+    let pb2 = pb.clone();
+    let pb3 = pb.clone();
 
-    let installed = tool.setup(&version, InstallOptions::default()).await?;
+    let installed = tool
+        .setup(
+            &version,
+            InstallOptions {
+                on_download_chunk: Some(Box::new(move |current, total| {
+                    if current == 0 {
+                        pb2.set_length(total);
+                    } else {
+                        pb2.set_position(current);
+                    }
+                })),
+                on_phase_change: Some(Box::new(move |phase| {
+                    pb3.set_length(0);
+                    pb3.set_position(0);
+                    pb3.set_message(match phase {
+                        InstallPhase::Verify => "Verifying checksum",
+                        InstallPhase::Unpack => "Unpacking archive",
+                        _ => "Downloading pre-built",
+                    });
+                })),
+                ..InstallOptions::default()
+            },
+        )
+        .await?;
 
     pb.finish_and_clear();
 

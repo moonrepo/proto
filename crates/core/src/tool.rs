@@ -17,6 +17,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Serialize;
 use starbase_archive::Archiver;
 use starbase_styles::color;
+use starbase_utils::net::DownloadOptions;
 use starbase_utils::{fs, net};
 use std::collections::BTreeMap;
 use std::env;
@@ -768,7 +769,7 @@ impl Tool {
     pub async fn install_from_prebuilt(
         &self,
         install_dir: &Path,
-        options: InstallOptions,
+        mut options: InstallOptions,
     ) -> miette::Result<()> {
         debug!(
             tool = self.id.as_str(),
@@ -795,10 +796,10 @@ impl Tool {
         });
 
         let download_url = params.download_url;
-        let download_file = match params.download_name {
-            Some(name) => temp_dir.join(name),
-            None => temp_dir.join(extract_filename_from_url(&download_url)?),
-        };
+        let download_file = temp_dir.join(match params.download_name {
+            Some(name) => name,
+            None => extract_filename_from_url(&download_url)?,
+        });
 
         if download_file.exists() {
             debug!(
@@ -808,7 +809,15 @@ impl Tool {
         } else {
             debug!(tool = self.id.as_str(), "Tool not downloaded, downloading");
 
-            net::download_from_url_with_client(&download_url, &download_file, client).await?;
+            net::download_from_url_with_options(
+                &download_url,
+                &download_file,
+                DownloadOptions {
+                    client: Some(client),
+                    on_chunk: options.on_download_chunk.take(),
+                },
+            )
+            .await?;
         }
 
         // Verify the checksum if applicable
@@ -828,7 +837,15 @@ impl Tool {
                     "Checksum does not exist, downloading"
                 );
 
-                net::download_from_url_with_client(&checksum_url, &checksum_file, client).await?;
+                net::download_from_url_with_options(
+                    &checksum_url,
+                    &checksum_file,
+                    DownloadOptions {
+                        client: Some(client),
+                        on_chunk: None,
+                    },
+                )
+                .await?;
             }
 
             self.verify_checksum(

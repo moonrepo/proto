@@ -69,20 +69,22 @@ pub fn create_progress_bar<S: AsRef<str>>(start: S) -> ProgressBar {
     pb.enable_steady_tick(Duration::from_millis(100));
     pb.set_message(start.as_ref().to_owned());
     pb.set_style(
-        ProgressStyle::with_template("{spinner:.183} {msg}")
-            .unwrap()
-            .tick_strings(&[
-                "━         ",
-                "━━        ",
-                "━━━       ",
-                "━━━━      ",
-                "━━━━━     ",
-                "━━━━━━    ",
-                "━━━━━━━   ",
-                "━━━━━━━━  ",
-                "━━━━━━━━━ ",
-                "━━━━━━━━━━",
-            ]),
+        ProgressStyle::with_template(
+            "{spinner:.183} [{bytes:>5}/{total_bytes:5} {bytes_per_sec}/{eta}] {msg}",
+        )
+        .unwrap()
+        .tick_strings(&[
+            "━         ",
+            "━━        ",
+            "━━━       ",
+            "━━━━      ",
+            "━━━━━     ",
+            "━━━━━━    ",
+            "━━━━━━━   ",
+            "━━━━━━━━  ",
+            "━━━━━━━━━ ",
+            "━━━━━━━━━━",
+        ]),
     );
     pb
 }
