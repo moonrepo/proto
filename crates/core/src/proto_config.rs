@@ -86,6 +86,7 @@ fn validate_reserved_words(
 
 derive_enum!(
     #[derive(ConfigEnum, Copy, Default)]
+    #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
     pub enum ConfigMode {
         Global,
         Local,

@@ -27,7 +27,7 @@ tokio = { workspace = true }
 tracing = { workspace = true }
 
 # Enabling certs for extism!
-ureq = { version = "2.10.0", features = ["native-certs"] }
+ureq = { version = "2.10.1", features = ["native-certs"] }
 
 [dev-dependencies]
 starbase_sandbox = { workspace = true }
