@@ -5,6 +5,7 @@ use crate::shell::{self, Export};
 use crate::telemetry::{track_usage, Metric};
 use clap::{Args, ValueEnum};
 use miette::IntoDiagnostic;
+use proto_core::flow::install::InstallOptions;
 use proto_core::{Id, PinType, Tool, UnresolvedVersionSpec};
 use proto_pdk_api::{InstallHook, SyncShellProfileInput, SyncShellProfileOutput};
 use starbase::AppResult;
@@ -254,7 +255,7 @@ pub async fn install_one(
         resolved_version
     ));
 
-    let installed = tool.setup(&version, false).await?;
+    let installed = tool.setup(&version, InstallOptions::default()).await?;
 
     pb.finish_and_clear();
 
