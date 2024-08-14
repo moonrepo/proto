@@ -57,7 +57,7 @@ uuid = { version = "1.10.0", features = ["v4"] }
 # Config for 'cargo dist'
 [workspace.metadata.dist]
 # The preferred cargo-dist version to use in CI (Cargo.toml SemVer syntax)
-cargo-dist-version = "0.16.0"
+cargo-dist-version = "0.21.0"
 # CI backends to support
 ci = ["github"]
 # Target platforms to build apps for (Rust target-triple syntax)
@@ -75,7 +75,7 @@ installers = []
 # Path that installers should place binaries in
 install-path = ["$PROTO_HOME/bin", "~/.proto/bin"]
 # Publish jobs to run in CI
-pr-run-mode = "plan" # "upload"
+pr-run-mode = "upload"
 # Skip checking whether the specified configuration files are up to date
 allow-dirty = ["ci"]
 
