@@ -100,7 +100,7 @@ pub fn register_tool(_: ()) -> FnResult<Json<ToolMetadataOutput>> {
 
     Ok(Json(ToolMetadataOutput {
         name: "WASM Test".into(),
-        type_of: PluginType::CLI,
+        type_of: PluginType::CommandLine,
         ..ToolMetadataOutput::default()
     }))
 }
