@@ -1,11 +1,12 @@
 use std::env;
 
 use crate::error::ProtoCliError;
-use crate::helpers::fetch_latest_version;
+use crate::helpers::{
+    create_progress_bar, create_progress_bar_download_style, fetch_latest_version,
+};
 use crate::session::ProtoSession;
 use crate::telemetry::{track_usage, Metric};
 use clap::Args;
-use indicatif::{ProgressBar, ProgressStyle};
 use proto_core::is_offline;
 use proto_installer::*;
 use semver::Version;
@@ -122,10 +123,8 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
     debug!("Download target: {}", target_triple);
 
     // Download the file and show a progress bar
-    let pb = ProgressBar::new(0);
-    pb.set_style(ProgressStyle::default_bar().progress_chars("━╾─").template(
-        "{bar:80.183/black} | {bytes:.239} / {total_bytes:.248} | {bytes_per_sec:.183} | eta {eta}",
-    ).unwrap());
+    let pb = create_progress_bar(format!("Upgrading to {}", target_version));
+    pb.set_style(create_progress_bar_download_style());
 
     let download = download_release(
         &target_triple,

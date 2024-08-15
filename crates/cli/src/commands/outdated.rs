@@ -6,7 +6,7 @@ use comfy_table::presets::NOTHING;
 use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
 use dialoguer::Confirm;
 use miette::IntoDiagnostic;
-use proto_core::{Id, ProtoConfig, UnresolvedVersionSpec, VersionSpec};
+use proto_core::{Id, ProtoConfig, UnresolvedVersionSpec, VersionSpec, PROTO_PLUGIN_KEY};
 use rustc_hash::FxHashSet;
 use semver::VersionReq;
 use serde::Serialize;
@@ -79,7 +79,7 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
 
         if let Some(file_versions) = &file.config.versions {
             for (tool_id, config_version) in file_versions {
-                if tool_id == "proto" {
+                if tool_id == PROTO_PLUGIN_KEY {
                     continue;
                 }
 

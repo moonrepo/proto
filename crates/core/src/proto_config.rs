@@ -23,6 +23,7 @@ use warpgate::{HttpOptions, Id, PluginLocator, UrlLocator};
 
 pub const PROTO_CONFIG_NAME: &str = ".prototools";
 pub const SCHEMA_PLUGIN_KEY: &str = "internal-schema";
+pub const PROTO_PLUGIN_KEY: &str = "proto";
 
 fn merge_tools(
     mut prev: BTreeMap<Id, PartialProtoToolConfig>,
@@ -75,7 +76,7 @@ fn validate_reserved_words(
     _context: &(),
     _finalize: bool,
 ) -> ValidateResult {
-    if value.contains_key("proto") {
+    if value.contains_key(PROTO_PLUGIN_KEY) {
         return Err(ValidateError::new(
             "proto is a reserved keyword, cannot use as a plugin identifier",
         ));
@@ -234,6 +235,12 @@ impl ProtoConfig {
         config.plugins
     }
 
+    pub fn builtin_proto_plugin(&self) -> PluginLocator {
+        PluginLocator::Url(Box::new(UrlLocator {
+            url: "https://github.com/moonrepo/tools/releases/download/proto_tool-v0.1.1/proto_tool.wasm".into()
+        }))
+    }
+
     pub fn inherit_builtin_plugins(&mut self) {
         let is_allowed = |id: &str| match &self.settings.builtin_plugins {
             BuiltinPlugins::Enabled(state) => *state,
@@ -312,6 +319,11 @@ impl ProtoConfig {
                     url: "https://github.com/moonrepo/tools/releases/download/schema_tool-v0.14.1/schema_tool.wasm".into()
                 }))
             );
+        }
+
+        if !self.plugins.contains_key(PROTO_PLUGIN_KEY) {
+            self.plugins
+                .insert(Id::raw(PROTO_PLUGIN_KEY), self.builtin_proto_plugin());
         }
     }
 

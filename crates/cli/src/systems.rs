@@ -13,7 +13,7 @@ use starbase_utils::fs;
 use std::env;
 use std::sync::Arc;
 use std::time::Duration;
-use tracing::{debug, instrument, trace};
+use tracing::{debug, instrument};
 
 // STARTUP
 
@@ -100,15 +100,7 @@ pub async fn download_versioned_proto_tool(env: &ProtoEnvironment) -> AppResult 
         );
 
         install_release(
-            download_release(
-                &triple_target,
-                &version,
-                &env.store.temp_dir,
-                |downloaded_size, total_size| {
-                    trace!("Downloaded {} of {} bytes", downloaded_size, total_size);
-                },
-            )
-            .await?,
+            download_release(&triple_target, &version, &env.store.temp_dir, |_, _| {}).await?,
             &tool_dir,
             &env.store.temp_dir,
             false,
