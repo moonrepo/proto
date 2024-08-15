@@ -1,10 +1,11 @@
 use crate::app::{App as CLI, Commands};
 use crate::helpers::fetch_latest_version;
+use crate::session::ProtoSession;
 use miette::IntoDiagnostic;
+use proto_core::flow::install::InstallOptions;
 use proto_core::{
     is_offline, now, ConfigMode, ProtoEnvironment, UnresolvedVersionSpec, PROTO_CONFIG_NAME,
 };
-use proto_installer::*;
 use proto_shim::get_exe_file_name;
 use semver::Version;
 use starbase::AppResult;
@@ -13,7 +14,7 @@ use starbase_utils::fs;
 use std::env;
 use std::sync::Arc;
 use std::time::Duration;
-use tracing::{debug, instrument, trace};
+use tracing::{debug, instrument};
 
 // STARTUP
 
@@ -32,36 +33,6 @@ pub fn detect_proto_env(cli: &CLI) -> AppResult<ProtoEnvironment> {
     Ok(env)
 }
 
-#[instrument(skip_all)]
-pub fn sync_current_proto_tool(env: &ProtoEnvironment, version: &str) -> AppResult {
-    let Ok(current_exe) = env::current_exe() else {
-        return Ok(());
-    };
-
-    let tool_dir = env.store.inventory_dir.join("proto").join(version);
-
-    if tool_dir.exists()
-        || current_exe
-            .iter()
-            .any(|comp| comp == "node_modules" || comp == ".cargo")
-    {
-        return Ok(());
-    }
-
-    let exe_dir = current_exe.parent().unwrap_or(&env.store.bin_dir);
-
-    for exe_name in [get_exe_file_name("proto"), get_exe_file_name("proto-shim")] {
-        let src_file = exe_dir.join(&exe_name);
-        let dst_file = tool_dir.join(&exe_name);
-
-        if src_file.exists() && !dst_file.exists() {
-            fs::copy_file(src_file, dst_file)?;
-        }
-    }
-
-    Ok(())
-}
-
 // ANALYZE
 
 #[instrument(skip_all)]
@@ -77,48 +48,48 @@ pub fn load_proto_configs(env: &ProtoEnvironment) -> AppResult {
 }
 
 #[instrument(skip_all)]
-pub async fn download_versioned_proto_tool(env: &ProtoEnvironment) -> AppResult {
-    let config = env
+pub async fn download_versioned_proto_tool(session: &ProtoSession) -> AppResult {
+    let config = session
+        .env
         .load_config_manager()?
         .get_merged_config_without_global()?;
 
-    if let Some(UnresolvedVersionSpec::Semantic(version)) = config.versions.get("proto") {
-        let version = version.to_string();
-        let tool_dir = env.store.inventory_dir.join("proto").join(&version);
-
-        if tool_dir.exists() || is_offline() {
+    if let Some(version) = config.versions.get("proto") {
+        // Only support fully-qualified versions as we need to prepend the
+        // tool directory into PATH, which doesn't support requirements
+        if !matches!(version, UnresolvedVersionSpec::Semantic(_)) {
             return Ok(());
         }
 
-        let triple_target = determine_triple()?;
+        let mut tool = session.load_proto_tool().await?;
 
-        debug!(
-            version = &version,
-            install_dir = ?tool_dir,
-            "Downloading a versioned proto because it was configured in {}",
-            PROTO_CONFIG_NAME
-        );
+        if !tool.is_installed() {
+            debug!(
+                version = version.to_string(),
+                "Downloading a versioned proto because it was configured in {}", PROTO_CONFIG_NAME
+            );
 
-        install_release(
-            download_release(
-                &triple_target,
-                &version,
-                &env.store.temp_dir,
-                |downloaded_size, total_size| {
-                    trace!("Downloaded {} of {} bytes", downloaded_size, total_size);
-                },
-            )
-            .await?,
-            &tool_dir,
-            &env.store.temp_dir,
-            false,
-        )?;
+            tool.setup(version, InstallOptions::default()).await?;
+        }
     }
 
     Ok(())
 }
 
 // EXECUTE
+
+#[instrument(skip_all)]
+pub fn clean_proto_backups(env: &ProtoEnvironment) -> AppResult {
+    for bin_name in [get_exe_file_name("proto"), get_exe_file_name("proto-shim")] {
+        let backup_path = env.store.bin_dir.join(format!("{bin_name}.backup"));
+
+        if backup_path.exists() {
+            let _ = fs::remove_file(backup_path);
+        }
+    }
+
+    Ok(())
+}
 
 #[instrument(skip_all)]
 pub async fn check_for_new_version(env: Arc<ProtoEnvironment>) -> AppResult {

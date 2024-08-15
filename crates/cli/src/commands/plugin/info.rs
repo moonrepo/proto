@@ -41,7 +41,9 @@ pub struct InfoPluginArgs {
 #[tracing::instrument(skip_all)]
 pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
     let mut tool = session.load_tool(&args.id).await?;
-    let version = detect_version(&tool, None).await?;
+    let version = detect_version(&tool, None)
+        .await
+        .unwrap_or_else(|_| UnresolvedVersionSpec::parse("*").unwrap());
 
     tool.resolve_version(&version, false).await?;
     tool.create_executables(false, false).await?;
