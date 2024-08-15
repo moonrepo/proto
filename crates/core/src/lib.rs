@@ -1,5 +1,6 @@
 pub mod checksum;
 mod error;
+pub mod flow;
 mod helpers;
 pub mod layout;
 mod proto;
