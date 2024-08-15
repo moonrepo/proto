@@ -9,6 +9,7 @@ pub enum InstallStrategy {
 
 pub enum InstallPhase {
     // Download -> verify -> unpack
+    Native,
     Download,
     Verify,
     Unpack,

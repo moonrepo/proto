@@ -948,6 +948,10 @@ impl Tool {
         if self.plugin.has_func("native_install").await {
             debug!(tool = self.id.as_str(), "Installing tool natively");
 
+            options.on_phase_change.as_ref().inspect(|func| {
+                func(InstallPhase::Native);
+            });
+
             let result: NativeInstallOutput = self
                 .plugin
                 .call_func_with(

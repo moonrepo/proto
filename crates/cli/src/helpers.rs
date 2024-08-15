@@ -59,19 +59,36 @@ pub fn disable_progress_bars() {
     env::set_var("PROTO_NO_PROGRESS", "1");
 }
 
-pub fn get_progress_bar_default_template() -> String {
-    "{prefix} {bar:80.183/239} | {msg}".into()
-}
-
-pub fn get_progress_bar_download_template() -> String {
-    "{prefix} {bar:80.183/239} | {bytes:>5.239} / {total_bytes:5.248} | {bytes_per_sec:>5.183} | {msg}"
-        .into()
-}
-
-pub fn create_progress_bar_style<S: AsRef<str>>(template: S) -> ProgressStyle {
+pub fn create_progress_bar_style() -> ProgressStyle {
     ProgressStyle::default_bar()
         .progress_chars("━╾─")
-        .template(template.as_ref())
+        .template("{prefix} {bar:20.183/239} | {msg}")
+        .unwrap()
+}
+
+pub fn create_progress_bar_download_style() -> ProgressStyle {
+    ProgressStyle::default_bar()
+        .progress_chars("━╾─")
+        .template("{prefix} {bar:20.183/239} | {bytes:>5.248} / {total_bytes:5.248} | {bytes_per_sec:>5.183} | {msg}")
+        .unwrap()
+}
+
+pub fn create_progress_spinner_style() -> ProgressStyle {
+    let mut chars = vec![];
+
+    for i in 1..=20 {
+        if i == 20 {
+            chars.push("━".repeat(20));
+        } else {
+            chars.push(format!("{}╾{}", "━".repeat(i - 1), " ".repeat(20 - i)));
+        }
+    }
+
+    let chars = chars.iter().map(|c| c.as_str()).collect::<Vec<_>>();
+
+    ProgressStyle::default_spinner()
+        .tick_strings(&chars)
+        .template("{prefix} {spinner:20.183/239} | {msg}")
         .unwrap()
 }
 
@@ -82,10 +99,10 @@ pub fn create_progress_bar<S: AsRef<str>>(start: S) -> ProgressBar {
         ProgressBar::new(0)
     };
 
+    pb.set_style(create_progress_bar_style());
     pb.set_message(start.as_ref().to_owned());
-    pb.set_style(create_progress_bar_style(
-        get_progress_bar_default_template(),
-    ));
+    pb.set_position(0);
+    pb.set_length(100);
     pb
 }
 
@@ -96,24 +113,9 @@ pub fn create_progress_spinner<S: AsRef<str>>(start: S) -> ProgressBar {
         ProgressBar::new_spinner()
     };
 
-    pb.enable_steady_tick(Duration::from_millis(100));
+    pb.set_style(create_progress_spinner_style());
     pb.set_message(start.as_ref().to_owned());
-    pb.set_style(
-        ProgressStyle::with_template("{spinner:.183} | {msg}")
-            .unwrap()
-            .tick_strings(&[
-                "━         ",
-                "━━        ",
-                "━━━       ",
-                "━━━━      ",
-                "━━━━━     ",
-                "━━━━━━    ",
-                "━━━━━━━   ",
-                "━━━━━━━━  ",
-                "━━━━━━━━━ ",
-                "━━━━━━━━━━",
-            ]),
-    );
+    pb.enable_steady_tick(Duration::from_millis(100));
     pb
 }
 
