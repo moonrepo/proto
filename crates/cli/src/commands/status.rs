@@ -4,7 +4,7 @@ use clap::Args;
 use comfy_table::presets::NOTHING;
 use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
 use miette::IntoDiagnostic;
-use proto_core::{Id, UnresolvedVersionSpec, VersionSpec};
+use proto_core::{Id, UnresolvedVersionSpec, VersionSpec, PROTO_PLUGIN_KEY};
 use rustc_hash::FxHashSet;
 use serde::Serialize;
 use starbase::AppResult;
@@ -49,7 +49,7 @@ fn find_versions_in_configs(
 
         if let Some(file_versions) = &file.config.versions {
             for (tool_id, config_version) in file_versions {
-                if tool_id == "proto" {
+                if tool_id == PROTO_PLUGIN_KEY {
                     continue;
                 }
 

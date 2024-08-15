@@ -6,7 +6,7 @@ use miette::IntoDiagnostic;
 use proto_core::registry::ProtoRegistry;
 use proto_core::{
     load_schema_plugin_with_proto, load_tool_from_locator, load_tool_with_proto, Id,
-    ProtoEnvironment, Tool, SCHEMA_PLUGIN_KEY,
+    ProtoEnvironment, Tool, PROTO_PLUGIN_KEY, SCHEMA_PLUGIN_KEY,
 };
 use rustc_hash::FxHashSet;
 use starbase::{AppResult, AppSession};
@@ -76,8 +76,8 @@ impl ProtoSession {
                 continue;
             }
 
-            // This shouldn't be treated as a "normal plugin"
-            if id == SCHEMA_PLUGIN_KEY {
+            // These shouldn't be treated as a "normal plugin"
+            if id == SCHEMA_PLUGIN_KEY || id == PROTO_PLUGIN_KEY {
                 continue;
             }
 
@@ -94,6 +94,15 @@ impl ProtoSession {
 
         Ok(tools)
     }
+
+    pub async fn load_proto_tool(&self) -> miette::Result<Tool> {
+        load_tool_from_locator(
+            Id::new(PROTO_PLUGIN_KEY)?,
+            &self.env,
+            self.env.load_config()?.builtin_proto_plugin(),
+        )
+        .await
+    }
 }
 
 #[async_trait]
@@ -101,19 +110,19 @@ impl AppSession for ProtoSession {
     async fn startup(&mut self) -> AppResult {
         self.env = Arc::new(detect_proto_env(&self.cli)?);
 
-        sync_current_proto_tool(&self.env, &self.cli_version)?;
-
         Ok(())
     }
 
     async fn analyze(&mut self) -> AppResult {
         load_proto_configs(&self.env)?;
-        download_versioned_proto_tool(&self.env).await?;
+        download_versioned_proto_tool(self).await?;
 
         Ok(())
     }
 
     async fn execute(&mut self) -> AppResult {
+        clean_proto_backups(&self.env)?;
+
         if self.should_check_for_new_version() {
             check_for_new_version(Arc::clone(&self.env)).await?;
         }

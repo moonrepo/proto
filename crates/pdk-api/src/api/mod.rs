@@ -32,10 +32,13 @@ api_enum!(
     /// Supported types of plugins.
     #[derive(Default)]
     pub enum PluginType {
+        #[serde(alias = "CLI")]
+        CommandLine,
         #[default]
         Language,
+        #[serde(alias = "PM")]
         DependencyManager,
-        CLI,
+        #[serde(alias = "VM")]
         VersionManager,
     }
 );
@@ -67,12 +70,8 @@ api_struct!(
     /// Output returned by the `register_tool` function.
     pub struct ToolMetadataOutput {
         /// Schema shape of the tool's configuration.
-        // #[cfg(feature = "schematic")]
-        // #[cfg_attr(
-        //     feature = "schematic",
-        //     serde(default, skip_serializing_if = "Option::is_none")
-        // )]
-        // pub config_schema: Option<schematic::Schema>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub config_schema: Option<schematic::Schema>,
 
         /// Default alias or version to use as a fallback.
         #[serde(default, skip_serializing_if = "Option::is_none")]

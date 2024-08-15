@@ -331,7 +331,7 @@ builtin-plugins = true
                 BuiltinPlugins::Enabled(true)
             );
 
-            assert_eq!(config.builtin_plugins().len(), 10);
+            assert_eq!(config.builtin_plugins().len(), 11);
         }
 
         #[test]
@@ -353,10 +353,10 @@ builtin-plugins = ["node", "go"]
                 BuiltinPlugins::Allowed(vec!["node".into(), "go".into()])
             );
 
-            assert_eq!(config.builtin_plugins().len(), 3);
+            assert_eq!(config.builtin_plugins().len(), 4);
             assert_eq!(
                 config.builtin_plugins().keys().collect::<Vec<_>>(),
-                ["go", "internal-schema", "node"]
+                ["go", "internal-schema", "node", "proto"]
             );
         }
 
@@ -379,7 +379,7 @@ builtin-plugins = false
                 BuiltinPlugins::Enabled(false)
             );
 
-            assert_eq!(config.builtin_plugins().len(), 1);
+            assert_eq!(config.builtin_plugins().len(), 2);
         }
 
         #[test]
@@ -401,7 +401,7 @@ builtin-plugins = []
                 BuiltinPlugins::Allowed(vec![])
             );
 
-            assert_eq!(config.builtin_plugins().len(), 1);
+            assert_eq!(config.builtin_plugins().len(), 2);
         }
     }
 
