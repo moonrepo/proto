@@ -22,7 +22,7 @@
 
 #### 🚀 Updates
 
-- Added a new `--config-mode` global option that controls how configuration are loaded.
+- Added a new `--config-mode` (`-c`) global option that controls how configuration are loaded.
   - Supports the following values:
     - `global` - Only load `~/.proto/.prototools`.
     - `local` - Only load `./.prototools` in the current directory.
@@ -40,6 +40,10 @@
   - Added `ToolMetadataOutput.config_schema`, which can be used to define a JSON schema for the plugins configuration.
   - Added a new `send_request` host function, that uses the same HTTP client as proto does.
   - Added `fetch_bytes`, `fetch_json`, and `fetch_text` functions that use this new host function.
+
+#### ⚙️ Internal
+
+- We now provide a plugin for proto itself, so you can now do `proto install proto`. However, this doesn't link bins/shims and is primarily used internally for upgrade/install flows.
 
 ## 0.39.7
 
