@@ -1,8 +1,8 @@
 use crate::commands::install::{do_install, InstallArgs};
 use crate::error::ProtoCliError;
+use crate::helpers::create_progress_bar;
 use crate::session::ProtoSession;
 use clap::Args;
-use indicatif::ProgressBar;
 use miette::IntoDiagnostic;
 use proto_core::{detect_version, Id, ProtoError, Tool, UnresolvedVersionSpec};
 use proto_pdk_api::{ExecutableConfig, RunHook, RunHookResult};
@@ -153,9 +153,10 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
     // Check if installed or install
     if !tool.is_setup(&version).await? {
         let config = tool.proto.load_config()?;
+        let resolved_version = tool.get_resolved_version();
 
         if !config.settings.auto_install {
-            let command = format!("proto install {} {}", tool.id, tool.get_resolved_version());
+            let command = format!("proto install {} {}", tool.id, resolved_version);
 
             if let Ok(source) = env::var("PROTO_DETECTED_FROM") {
                 return Err(ProtoError::MissingToolForRunWithSource {
@@ -176,15 +177,25 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
         }
 
         // Install the tool
-        debug!("Auto-install setting is configured, attempting to install");
+        println!(
+            "Auto-install is enabled, attempting to install {} {}",
+            tool.get_name(),
+            resolved_version,
+        );
 
         let install_args = InstallArgs {
             id: Some(tool.id.clone()),
-            spec: Some(tool.get_resolved_version().to_unresolved_spec()),
+            spec: Some(resolved_version.to_unresolved_spec()),
             ..Default::default()
         };
 
-        do_install(&mut tool, install_args, ProgressBar::hidden()).await?;
+        do_install(&mut tool, install_args, create_progress_bar("Installing")).await?;
+
+        println!(
+            "{} {} has been installed, continuing execution...",
+            tool.get_name(),
+            resolved_version,
+        );
     }
 
     // Determine the binary path to execute

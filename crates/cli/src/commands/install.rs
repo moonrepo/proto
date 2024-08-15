@@ -264,11 +264,11 @@ pub async fn do_install(
     );
 
     let pb2 = pb.clone();
-    let on_download_chunk = Box::new(move |current, total| {
-        if current == 0 {
-            pb2.set_length(total);
+    let on_download_chunk = Box::new(move |current_bytes, total_bytes| {
+        if current_bytes == 0 {
+            pb2.set_length(total_bytes);
         } else {
-            pb2.set_position(current);
+            pb2.set_position(current_bytes);
         }
     });
 
@@ -301,7 +301,7 @@ pub async fn do_install(
                 pb3.set_message("Unpacking archive");
             }
             InstallPhase::Download => {
-                pb3.set_message("Downloading pre-built");
+                pb3.set_message("Downloading pre-built archive");
             }
             _ => {}
         };
@@ -432,7 +432,7 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
             pb.set_style(create_progress_bar_style());
 
             set.spawn(async move {
-                sleep(Duration::from_millis(50)).await;
+                sleep(Duration::from_millis(25)).await;
 
                 // Defer writing content till the thread starts,
                 // otherwise the progress bars fail to render correctly
