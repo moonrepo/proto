@@ -52,10 +52,6 @@ api_struct!(
     /// Controls aspects of the tool inventory.
     #[serde(default)]
     pub struct ToolInventoryMetadata {
-        /// Disable progress bars when installing or uninstalling tools.
-        #[serde(skip_serializing_if = "is_false")]
-        pub disable_progress_bars: bool,
-
         /// Override the tool inventory directory (where all versions are installed).
         /// This is an advanced feature and should only be used when absolutely necessary.
         #[serde(skip_serializing_if = "Option::is_none")]

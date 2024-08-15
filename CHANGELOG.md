@@ -16,6 +16,7 @@
 
 - Removed `--include-global` and `--only-local` flags from all applicable commands. Use the new `--config-mode` instead.
 - WASM API
+  - Removed the `ToolMetadataOutput.inventory.disable_progress_bars` field.
   - Removed the `is_musl` function. Use the host environment instead.
   - Deprecated many functions.
 
@@ -30,6 +31,10 @@
   - When not provided, the default mode is dependent on the command being ran.
     - For `activate`, `install`, `outdated`, `status` -> `upwards`
     - Everything else -> `upwards-global`
+- Updated `proto install` to show detailed progress bars.
+  - Includes downloaded bytes / total bytes stats.
+  - Displays the current phase of the install (download, unpack, etc).
+  - Displays multiple progress bars when installing many tools.
 - Updated HTTP requests that occur from WASM to utilize the same HTTP client that proto does. This allows for the `[settings.http]` settings to be used, which weren't previously.
 - WASM API
   - Added `ToolMetadataOutput.config_schema`, which can be used to define a JSON schema for the plugins configuration.

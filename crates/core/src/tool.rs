@@ -1,5 +1,6 @@
 use crate::checksum::verify_checksum;
 use crate::error::ProtoError;
+use crate::flow::install::{InstallOptions, InstallPhase};
 use crate::helpers::{
     extract_filename_from_url, get_proto_version, is_archive_file, is_offline, ENV_VAR,
 };
@@ -16,6 +17,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Serialize;
 use starbase_archive::Archiver;
 use starbase_styles::color;
+use starbase_utils::net::DownloadOptions;
 use starbase_utils::{fs, net};
 use std::collections::BTreeMap;
 use std::env;
@@ -200,11 +202,6 @@ impl Tool {
     pub fn set_version(&mut self, version: VersionSpec) {
         self.product = self.inventory.create_product(&version);
         self.version = Some(version);
-    }
-
-    /// Disable progress bars when installing or uninstalling the tool.
-    pub fn disable_progress_bars(&self) -> bool {
-        self.metadata.inventory.disable_progress_bars
     }
 
     /// Convert a virtual path to a real path.
@@ -763,15 +760,19 @@ impl Tool {
 
     /// Download the tool (as an archive) from its distribution registry
     /// into the `~/.proto/tools/<version>` folder, and optionally verify checksums.
-    #[instrument(skip(self))]
-    pub async fn install_from_prebuilt(&self, install_dir: &Path) -> miette::Result<()> {
+    #[instrument(skip(self, options))]
+    pub async fn install_from_prebuilt(
+        &self,
+        install_dir: &Path,
+        mut options: InstallOptions,
+    ) -> miette::Result<()> {
         debug!(
             tool = self.id.as_str(),
             "Installing tool from a pre-built archive"
         );
 
         let client = self.proto.get_plugin_loader()?.get_client()?;
-        let options: DownloadPrebuiltOutput = self
+        let params: DownloadPrebuiltOutput = self
             .plugin
             .cache_func_with(
                 "download_prebuilt",
@@ -785,11 +786,15 @@ impl Tool {
         let temp_dir = self.get_temp_dir();
 
         // Download the prebuilt
-        let download_url = options.download_url;
-        let download_file = match options.download_name {
-            Some(name) => temp_dir.join(name),
-            None => temp_dir.join(extract_filename_from_url(&download_url)?),
-        };
+        options.on_phase_change.as_ref().inspect(|func| {
+            func(InstallPhase::Download);
+        });
+
+        let download_url = params.download_url;
+        let download_file = temp_dir.join(match params.download_name {
+            Some(name) => name,
+            None => extract_filename_from_url(&download_url)?,
+        });
 
         if download_file.exists() {
             debug!(
@@ -799,12 +804,24 @@ impl Tool {
         } else {
             debug!(tool = self.id.as_str(), "Tool not downloaded, downloading");
 
-            net::download_from_url_with_client(&download_url, &download_file, client).await?;
+            net::download_from_url_with_options(
+                &download_url,
+                &download_file,
+                DownloadOptions {
+                    client: Some(client),
+                    on_chunk: options.on_download_chunk.take(),
+                },
+            )
+            .await?;
         }
 
         // Verify the checksum if applicable
-        if let Some(checksum_url) = options.checksum_url {
-            let checksum_file = temp_dir.join(match options.checksum_name {
+        if let Some(checksum_url) = params.checksum_url {
+            options.on_phase_change.as_ref().inspect(|func| {
+                func(InstallPhase::Verify);
+            });
+
+            let checksum_file = temp_dir.join(match params.checksum_name {
                 Some(name) => name,
                 None => extract_filename_from_url(&checksum_url)?,
             });
@@ -815,13 +832,21 @@ impl Tool {
                     "Checksum does not exist, downloading"
                 );
 
-                net::download_from_url_with_client(&checksum_url, &checksum_file, client).await?;
+                net::download_from_url_with_options(
+                    &checksum_url,
+                    &checksum_file,
+                    DownloadOptions {
+                        client: Some(client),
+                        on_chunk: None,
+                    },
+                )
+                .await?;
             }
 
             self.verify_checksum(
                 &checksum_file,
                 &download_file,
-                options.checksum_public_key.as_deref(),
+                params.checksum_public_key.as_deref(),
             )
             .await?;
         }
@@ -835,6 +860,10 @@ impl Tool {
         );
 
         if self.plugin.has_func("unpack_archive").await {
+            options.on_phase_change.as_ref().inspect(|func| {
+                func(InstallPhase::Unpack);
+            });
+
             self.plugin
                 .call_func_without_output(
                     "unpack_archive",
@@ -848,9 +877,13 @@ impl Tool {
         }
         // Is an archive, unpack it
         else if is_archive_file(&download_file) {
+            options.on_phase_change.as_ref().inspect(|func| {
+                func(InstallPhase::Unpack);
+            });
+
             let mut archiver = Archiver::new(install_dir, &download_file);
 
-            if let Some(prefix) = &options.archive_prefix {
+            if let Some(prefix) = &params.archive_prefix {
                 archiver.set_prefix(prefix);
             }
 
@@ -875,8 +908,8 @@ impl Tool {
 
     /// Install a tool into proto, either by downloading and unpacking
     /// a pre-built archive, or by using a native installation method.
-    #[instrument(skip(self))]
-    pub async fn install(&mut self, _build: bool) -> miette::Result<bool> {
+    #[instrument(skip(self, options))]
+    pub async fn install(&mut self, options: InstallOptions) -> miette::Result<bool> {
         if self.is_installed() {
             debug!(
                 tool = self.id.as_str(),
@@ -909,6 +942,10 @@ impl Tool {
         // takes precedence over all other install strategies
         if self.plugin.has_func("native_install").await {
             debug!(tool = self.id.as_str(), "Installing tool natively");
+
+            options.on_phase_change.as_ref().inspect(|func| {
+                func(InstallPhase::Native);
+            });
 
             let result: NativeInstallOutput = self
                 .plugin
@@ -944,7 +981,7 @@ impl Tool {
             //     self.install_from_prebuilt(&install_dir).await?;
             // }
 
-            self.install_from_prebuilt(&install_dir).await?;
+            self.install_from_prebuilt(&install_dir, options).await?;
         }
 
         install_lock.unlock()?;
@@ -1464,15 +1501,15 @@ impl Tool {
 
     /// Setup the tool by resolving a semantic version, installing the tool,
     /// locating binaries, creating shims, and more.
-    #[instrument(skip(self))]
+    #[instrument(skip(self, options))]
     pub async fn setup(
         &mut self,
         initial_version: &UnresolvedVersionSpec,
-        build_from_source: bool,
+        options: InstallOptions,
     ) -> miette::Result<bool> {
         self.resolve_version(initial_version, false).await?;
 
-        if !self.install(build_from_source).await? {
+        if !self.install(options).await? {
             return Ok(false);
         }
 

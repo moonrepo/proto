@@ -6,7 +6,6 @@ use indicatif::{ProgressBar, ProgressStyle};
 use miette::IntoDiagnostic;
 use starbase_styles::color::{self, Color};
 use starbase_utils::env::bool_var;
-use std::env;
 use std::time::Duration;
 use tracing::debug;
 
@@ -51,39 +50,70 @@ pub fn create_theme() -> ColorfulTheme {
     }
 }
 
-pub fn enable_progress_bars() {
-    env::remove_var("PROTO_NO_PROGRESS");
+fn format_template_styles(template: &str) -> String {
+    let pipe = color::muted(" | ");
+    let slash = color::muted(" / ");
+
+    template.replace(" | ", &pipe).replace(" / ", &slash)
 }
 
-pub fn disable_progress_bars() {
-    env::set_var("PROTO_NO_PROGRESS", "1");
+pub fn create_progress_bar_style() -> ProgressStyle {
+    ProgressStyle::default_bar()
+        .progress_chars("━╾─")
+        .template(format_template_styles("{prefix} {bar:20.183/239} | {msg}").as_str())
+        .unwrap()
+}
+
+pub fn create_progress_bar_download_style() -> ProgressStyle {
+    ProgressStyle::default_bar()
+        .progress_chars("━╾─")
+        .template(format_template_styles("{prefix} {bar:20.183/239} | {bytes:>5.248} / {total_bytes:5.248} | {bytes_per_sec:>5.183} | {msg}").as_str())
+        .unwrap()
+}
+
+pub fn create_progress_spinner_style() -> ProgressStyle {
+    let mut chars = vec![];
+
+    for i in 1..=20 {
+        if i == 20 {
+            chars.push("━".repeat(20));
+        } else {
+            chars.push(format!("{}╾{}", "━".repeat(i - 1), " ".repeat(20 - i)));
+        }
+    }
+
+    let chars = chars.iter().map(|c| c.as_str()).collect::<Vec<_>>();
+
+    ProgressStyle::default_spinner()
+        .tick_strings(&chars)
+        .template(format_template_styles("{prefix} {spinner:20.183/239} | {msg}").as_str())
+        .unwrap()
 }
 
 pub fn create_progress_bar<S: AsRef<str>>(start: S) -> ProgressBar {
     let pb = if bool_var("PROTO_NO_PROGRESS") {
         ProgressBar::hidden()
     } else {
+        ProgressBar::new(0)
+    };
+
+    pb.set_style(create_progress_bar_style());
+    pb.set_message(start.as_ref().to_owned());
+    pb.set_position(0);
+    pb.set_length(100);
+    pb
+}
+
+pub fn create_progress_spinner<S: AsRef<str>>(start: S) -> ProgressBar {
+    let pb = if bool_var("PROTO_NO_PROGRESS") {
+        ProgressBar::hidden()
+    } else {
         ProgressBar::new_spinner()
     };
 
-    pb.enable_steady_tick(Duration::from_millis(100));
+    pb.set_style(create_progress_spinner_style());
     pb.set_message(start.as_ref().to_owned());
-    pb.set_style(
-        ProgressStyle::with_template("{spinner:.183} {msg}")
-            .unwrap()
-            .tick_strings(&[
-                "━         ",
-                "━━        ",
-                "━━━       ",
-                "━━━━      ",
-                "━━━━━     ",
-                "━━━━━━    ",
-                "━━━━━━━   ",
-                "━━━━━━━━  ",
-                "━━━━━━━━━ ",
-                "━━━━━━━━━━",
-            ]),
-    );
+    pb.enable_steady_tick(Duration::from_millis(100));
     pb
 }
 
