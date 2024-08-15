@@ -610,7 +610,7 @@ impl Tool {
             tool = self.id.as_str(),
             download_file = ?download_file,
             checksum_file = ?checksum_file,
-            "Verifiying checksum of downloaded file",
+            "Verifying checksum of downloaded file",
         );
 
         // Allow plugin to provide their own checksum verification method

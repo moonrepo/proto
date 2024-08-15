@@ -1,20 +1,18 @@
-use std::env;
-
+use crate::commands::install::{do_install, InstallArgs};
 use crate::error::ProtoCliError;
-use crate::helpers::{
-    create_progress_bar, create_progress_bar_download_style, fetch_latest_version,
-};
+use crate::helpers::{create_progress_bar, fetch_latest_version};
 use crate::session::ProtoSession;
 use crate::telemetry::{track_usage, Metric};
 use clap::Args;
-use proto_core::is_offline;
+use proto_core::{is_offline, Id, SemVer, UnresolvedVersionSpec};
 use proto_installer::*;
 use semver::Version;
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_styles::color;
 use starbase_utils::json;
-use tracing::{debug, trace};
+use std::env;
+use tracing::debug;
 
 #[derive(Args, Clone, Debug)]
 pub struct UpgradeArgs {
@@ -117,46 +115,33 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
         return Ok(());
     }
 
-    // Determine the download file based on target
-    let target_triple = determine_triple()?;
+    // Load the tool and install the new version
+    let mut tool = session.load_proto_tool().await?;
 
-    debug!("Download target: {}", target_triple);
-
-    // Download the file and show a progress bar
-    let pb = create_progress_bar(format!("Upgrading to {}", target_version));
-    pb.set_style(create_progress_bar_download_style());
-
-    let download = download_release(
-        &target_triple,
-        &target,
-        &session.env.store.temp_dir,
-        |downloaded_size, total_size| {
-            if downloaded_size == 0 {
-                pb.set_length(total_size);
-            } else {
-                pb.set_position(downloaded_size);
-            }
-
-            trace!("Downloaded {} of {} bytes", downloaded_size, total_size);
+    do_install(
+        &mut tool,
+        InstallArgs {
+            id: Some(Id::raw("proto")),
+            spec: Some(UnresolvedVersionSpec::Semantic(SemVer(
+                target_version.clone(),
+            ))),
+            ..Default::default()
         },
+        create_progress_bar(if target_version > current_version {
+            format!("Upgrading to {}", target_version)
+        } else {
+            format!("Downgrading to {}", target_version)
+        }),
     )
     .await?;
 
-    let installed = install_release(
-        download,
-        &session.env.store.bin_dir,
-        session
-            .env
-            .store
-            .inventory_dir
-            .join("proto")
-            .join(current.clone()),
+    let upgraded = replace_binaries(
+        tool.get_product_dir(),
+        session.env.store.bin_dir.clone(),
         // Don't relocate within our CI pipeline as it causes issues,
         // but do relocate for other user's CI and local development
         env::var("PROTO_TEST").is_err(),
     )?;
-
-    pb.finish_and_clear();
 
     // Track usage metrics
     track_usage(
@@ -168,11 +153,10 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
     )
     .await?;
 
-    if installed {
-        #[allow(clippy::comparison_chain)]
+    if upgraded {
         if target_version > current_version {
             println!("Upgraded proto to {}!", color::hash(&target));
-        } else if target_version < current_version {
+        } else {
             println!("Downgraded proto to {}!", color::hash(&target));
         }
 

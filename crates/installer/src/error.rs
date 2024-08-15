@@ -1,9 +1,13 @@
 use miette::Diagnostic;
 use starbase_styles::{Style, Stylize};
+use starbase_utils::net::NetError;
 use thiserror::Error;
 
 #[derive(Error, Debug, Diagnostic)]
 pub enum ProtoInstallerError {
+    #[error(transparent)]
+    Net(#[from] Box<NetError>),
+
     #[diagnostic(code(proto::installer::invalid_platform))]
     #[error("Unable to download and install proto, unsupported platform {} + {}.", .os, .arch)]
     InvalidPlatform { arch: String, os: String },
@@ -26,8 +30,5 @@ pub enum ProtoInstallerError {
         .version,
         format!("Status: {}", .status).style(Style::MutedLight),
     )]
-    DownloadNotAvailable {
-        version: String,
-        status: Box<reqwest::StatusCode>,
-    },
+    DownloadNotAvailable { version: String, status: String },
 }
