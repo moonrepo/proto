@@ -121,6 +121,8 @@ impl AppSession for ProtoSession {
     }
 
     async fn execute(&mut self) -> AppResult {
+        clean_proto_backups(&self.env)?;
+
         if self.should_check_for_new_version() {
             check_for_new_version(Arc::clone(&self.env)).await?;
         }

@@ -6,6 +6,7 @@ use proto_core::flow::install::InstallOptions;
 use proto_core::{
     is_offline, now, ConfigMode, ProtoEnvironment, UnresolvedVersionSpec, PROTO_CONFIG_NAME,
 };
+use proto_shim::get_exe_file_name;
 use semver::Version;
 use starbase::AppResult;
 use starbase_styles::color;
@@ -76,6 +77,19 @@ pub async fn download_versioned_proto_tool(session: &ProtoSession) -> AppResult 
 }
 
 // EXECUTE
+
+#[instrument(skip_all)]
+pub fn clean_proto_backups(env: &ProtoEnvironment) -> AppResult {
+    for bin_name in [get_exe_file_name("proto"), get_exe_file_name("proto-shim")] {
+        let backup_path = env.store.bin_dir.join(format!("{bin_name}.backup"));
+
+        if backup_path.exists() {
+            let _ = fs::remove_file(backup_path);
+        }
+    }
+
+    Ok(())
+}
 
 #[instrument(skip_all)]
 pub async fn check_for_new_version(env: Arc<ProtoEnvironment>) -> AppResult {
