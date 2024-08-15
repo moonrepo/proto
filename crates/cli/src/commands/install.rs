@@ -201,9 +201,11 @@ pub async fn do_install(
 
     let finish_pb = |installed: bool, resolved_version: &VersionSpec| {
         if installed {
-            pb.set_message(format!("Installed {name} {resolved_version}!"));
+            pb.set_message(format!("{name} {resolved_version} installed!"));
         } else {
-            pb.set_message(format!("{name} {resolved_version} already installed!"));
+            pb.set_message(color::muted_light(format!(
+                "{name} {resolved_version} already installed!"
+            )));
         }
 
         if args.id.is_some() {
@@ -355,7 +357,7 @@ pub async fn do_install(
     }
 
     // Sync shell profile
-    update_shell(&tool, args.passthrough.clone()).await?;
+    update_shell(tool, args.passthrough.clone()).await?;
 
     Ok(true)
 }
@@ -365,11 +367,6 @@ async fn install_one(session: &ProtoSession, id: &Id, args: InstallArgs) -> miet
     debug!(id = id.as_str(), "Loading tool");
 
     let mut tool = session.load_tool(id).await?;
-
-    if tool.disable_progress_bars() {
-        disable_progress_bars();
-    }
-
     let pb = create_progress_bar(format!("Installing {}", tool.get_name()));
 
     if do_install(&mut tool, args, pb).await? {
@@ -458,25 +455,16 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
         }
     }
 
-    let mut install_count = 0;
-    let mut existing_count = 0;
-
     while let Some(result) = set.join_next().await {
-        if result.into_diagnostic()?? {
-            install_count += 1;
-        } else {
-            existing_count += 1;
-        }
-    }
+        match result.into_diagnostic() {
+            Err(error) | Ok(Err(error)) => {
+                mpb.clear().into_diagnostic()?;
+                drop(mpb);
 
-    if install_count == 0 {
-        println!("All tools already installed")
-    } else if existing_count == 0 {
-        println!("Successfully installed {existing_count} tools!");
-    } else {
-        println!(
-            "Successfully installed {install_count} tools ({existing_count} already installed)!"
-        );
+                return Err(error);
+            }
+            _ => {}
+        };
     }
 
     Ok(())

@@ -6,7 +6,6 @@ use indicatif::{ProgressBar, ProgressStyle};
 use miette::IntoDiagnostic;
 use starbase_styles::color::{self, Color};
 use starbase_utils::env::bool_var;
-use std::env;
 use std::time::Duration;
 use tracing::debug;
 
@@ -51,25 +50,24 @@ pub fn create_theme() -> ColorfulTheme {
     }
 }
 
-// pub fn enable_progress_bars() {
-//     env::remove_var("PROTO_NO_PROGRESS");
-// }
+fn format_template_styles(template: &str) -> String {
+    let pipe = color::muted(" | ");
+    let slash = color::muted(" / ");
 
-pub fn disable_progress_bars() {
-    env::set_var("PROTO_NO_PROGRESS", "1");
+    template.replace(" | ", &pipe).replace(" / ", &slash)
 }
 
 pub fn create_progress_bar_style() -> ProgressStyle {
     ProgressStyle::default_bar()
         .progress_chars("━╾─")
-        .template("{prefix} {bar:20.183/239} | {msg}")
+        .template(format_template_styles("{prefix} {bar:20.183/239} | {msg}").as_str())
         .unwrap()
 }
 
 pub fn create_progress_bar_download_style() -> ProgressStyle {
     ProgressStyle::default_bar()
         .progress_chars("━╾─")
-        .template("{prefix} {bar:20.183/239} | {bytes:>5.248} / {total_bytes:5.248} | {bytes_per_sec:>5.183} | {msg}")
+        .template(format_template_styles("{prefix} {bar:20.183/239} | {bytes:>5.248} / {total_bytes:5.248} | {bytes_per_sec:>5.183} | {msg}").as_str())
         .unwrap()
 }
 
@@ -88,7 +86,7 @@ pub fn create_progress_spinner_style() -> ProgressStyle {
 
     ProgressStyle::default_spinner()
         .tick_strings(&chars)
-        .template("{prefix} {spinner:20.183/239} | {msg}")
+        .template(format_template_styles("{prefix} {spinner:20.183/239} | {msg}").as_str())
         .unwrap()
 }
 

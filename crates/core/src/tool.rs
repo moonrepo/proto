@@ -204,11 +204,6 @@ impl Tool {
         self.version = Some(version);
     }
 
-    /// Disable progress bars when installing or uninstalling the tool.
-    pub fn disable_progress_bars(&self) -> bool {
-        self.metadata.inventory.disable_progress_bars
-    }
-
     /// Convert a virtual path to a real path.
     pub fn from_virtual_path(&self, path: &Path) -> PathBuf {
         self.plugin.from_virtual_path(path)

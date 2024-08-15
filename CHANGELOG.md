@@ -16,6 +16,7 @@
 
 - Removed `--include-global` and `--only-local` flags from all applicable commands. Use the new `--config-mode` instead.
 - WASM API
+  - Removed the `ToolMetadataOutput.inventory.disable_progress_bars` field.
   - Removed the `is_musl` function. Use the host environment instead.
   - Deprecated many functions.
 
