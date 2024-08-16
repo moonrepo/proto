@@ -42,6 +42,17 @@
   - Added a new `send_request` host function, that uses the same HTTP client as proto does.
   - Added `fetch_bytes`, `fetch_json`, and `fetch_text` functions that use this new host function.
 
+#### 🧩 Plugins
+
+- Updated `bun_tool` to v0.13.
+- Updated `deno_tool` to v0.12.
+- Updated `go_tool` to v0.13.
+- Updated `node_tool` to v0.12.
+- Updated `node_depman_tool` to v0.13.
+- Updated `python_tool` to v0.11.
+- Updated `rust_tool` to v0.11.
+- Updated `schema_tool` to v0.15.
+
 #### ⚙️ Internal
 
 - We now provide a plugin for proto itself, so you can now do `proto install proto`. However, this doesn't link bins/shims and is primarily used internally for upgrade/install flows.
