@@ -6,7 +6,7 @@ use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use miette::IntoDiagnostic;
 use starbase_styles::color::{self, Color};
 use starbase_utils::env::bool_var;
-use std::time::Duration;
+use std::{io::IsTerminal, time::Duration};
 use tracing::debug;
 
 pub fn create_theme() -> ColorfulTheme {
@@ -90,8 +90,12 @@ pub fn create_progress_spinner_style() -> ProgressStyle {
         .unwrap()
 }
 
+fn is_hidden_progress() -> bool {
+    bool_var("PROTO_NO_PROGRESS") || !std::io::stderr().is_terminal()
+}
+
 pub fn create_multi_progress_bar() -> MultiProgress {
-    if bool_var("PROTO_NO_PROGRESS") {
+    if is_hidden_progress() {
         MultiProgress::with_draw_target(ProgressDrawTarget::hidden())
     } else {
         MultiProgress::new()
@@ -99,7 +103,7 @@ pub fn create_multi_progress_bar() -> MultiProgress {
 }
 
 pub fn create_progress_bar<S: AsRef<str>>(start: S) -> ProgressBar {
-    let pb = if bool_var("PROTO_NO_PROGRESS") {
+    let pb = if is_hidden_progress() {
         ProgressBar::hidden()
     } else {
         ProgressBar::new(0)
@@ -116,7 +120,7 @@ pub fn create_progress_bar<S: AsRef<str>>(start: S) -> ProgressBar {
 }
 
 pub fn create_progress_spinner<S: AsRef<str>>(start: S) -> ProgressBar {
-    let pb = if bool_var("PROTO_NO_PROGRESS") {
+    let pb = if is_hidden_progress() {
         ProgressBar::hidden()
     } else {
         ProgressBar::new_spinner()
