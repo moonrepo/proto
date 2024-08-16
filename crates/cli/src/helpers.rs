@@ -2,11 +2,11 @@ use dialoguer::{
     console::{style, Style},
     theme::ColorfulTheme,
 };
-use indicatif::{ProgressBar, ProgressStyle};
+use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use miette::IntoDiagnostic;
 use starbase_styles::color::{self, Color};
 use starbase_utils::env::bool_var;
-use std::time::Duration;
+use std::{io::IsTerminal, time::Duration};
 use tracing::debug;
 
 pub fn create_theme() -> ColorfulTheme {
@@ -90,8 +90,20 @@ pub fn create_progress_spinner_style() -> ProgressStyle {
         .unwrap()
 }
 
+fn is_hidden_progress() -> bool {
+    bool_var("PROTO_NO_PROGRESS") || !std::io::stderr().is_terminal()
+}
+
+pub fn create_multi_progress_bar() -> MultiProgress {
+    if is_hidden_progress() {
+        MultiProgress::with_draw_target(ProgressDrawTarget::hidden())
+    } else {
+        MultiProgress::new()
+    }
+}
+
 pub fn create_progress_bar<S: AsRef<str>>(start: S) -> ProgressBar {
-    let pb = if bool_var("PROTO_NO_PROGRESS") {
+    let pb = if is_hidden_progress() {
         ProgressBar::hidden()
     } else {
         ProgressBar::new(0)
@@ -101,11 +113,14 @@ pub fn create_progress_bar<S: AsRef<str>>(start: S) -> ProgressBar {
     pb.set_message(start.as_ref().to_owned());
     pb.set_position(0);
     pb.set_length(100);
+
+    print_progress_state(&pb);
+
     pb
 }
 
 pub fn create_progress_spinner<S: AsRef<str>>(start: S) -> ProgressBar {
-    let pb = if bool_var("PROTO_NO_PROGRESS") {
+    let pb = if is_hidden_progress() {
         ProgressBar::hidden()
     } else {
         ProgressBar::new_spinner()
@@ -114,7 +129,21 @@ pub fn create_progress_spinner<S: AsRef<str>>(start: S) -> ProgressBar {
     pb.set_style(create_progress_spinner_style());
     pb.set_message(start.as_ref().to_owned());
     pb.enable_steady_tick(Duration::from_millis(100));
+
+    print_progress_state(&pb);
+
     pb
+}
+
+// When not a TTY, we should display something to the user!
+pub fn print_progress_state(pb: &ProgressBar) {
+    if pb.is_hidden() {
+        let message = pb.message();
+
+        if !message.is_empty() {
+            println!("{}", format!("{} {message}", pb.prefix()).trim());
+        }
+    }
 }
 
 pub async fn fetch_latest_version() -> miette::Result<String> {
