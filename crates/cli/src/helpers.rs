@@ -131,13 +131,13 @@ pub fn create_progress_spinner<S: AsRef<str>>(start: S) -> ProgressBar {
     pb
 }
 
-// When no TTY, we should display something to the user!
+// When not a TTY, we should display something to the user!
 pub fn print_progress_state(pb: &ProgressBar) {
     if pb.is_hidden() {
         let message = pb.message();
 
         if !message.is_empty() {
-            println!("{}", format!("{} {}", pb.prefix(), pb.message()).trim());
+            println!("{}", format!("{} {message}", pb.prefix()).trim());
         }
     }
 }
