@@ -6,11 +6,11 @@ default-members = ["crates/cli"]
 [workspace.dependencies]
 anyhow = "1.0.86"
 async-trait = "0.1.81"
-clap = "4.5.15"
+clap = "4.5.16"
 clap_complete = "4.5.16"
 dirs = "5.0.1"
 extism = "1.0.0" # Lower for consumers
-extism-pdk = "1.2.0"
+extism-pdk = "1.2.1"
 human-sort = "0.2.2"
 indexmap = "2.4.0"
 miette = "7.2.0"
@@ -22,11 +22,11 @@ reqwest = { version = "0.12.5", default-features = false, features = [
     "macos-system-configuration",
 ] }
 rustc-hash = "2.0.0"
-scc = "2.1.14"
+scc = "2.1.15"
 schematic = { version = "0.17.2", default-features = false }
 semver = { version = "1.0.23", features = ["serde"] }
-serde = { version = "1.0.207", features = ["derive"] }
-serde_json = "1.0.124"
+serde = { version = "1.0.208", features = ["derive"] }
+serde_json = "1.0.125"
 sha2 = "0.10.8"
 shell-words = "1.1.0"
 starbase = { version = "0.8.2" }
