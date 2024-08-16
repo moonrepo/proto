@@ -18,6 +18,7 @@
 - WASM API
   - Removed the `ToolMetadataOutput.inventory.disable_progress_bars` field.
   - Removed the `is_musl` function. Use the host environment instead.
+  - Migrated testing APIs to async instead of sync.
   - Deprecated many functions.
 
 #### 🚀 Updates
@@ -40,6 +41,17 @@
   - Added `ToolMetadataOutput.config_schema`, which can be used to define a JSON schema for the plugins configuration.
   - Added a new `send_request` host function, that uses the same HTTP client as proto does.
   - Added `fetch_bytes`, `fetch_json`, and `fetch_text` functions that use this new host function.
+
+#### 🧩 Plugins
+
+- Updated `bun_tool` to v0.13.
+- Updated `deno_tool` to v0.12.
+- Updated `go_tool` to v0.13.
+- Updated `node_tool` to v0.12.
+- Updated `node_depman_tool` to v0.13.
+- Updated `python_tool` to v0.11.
+- Updated `rust_tool` to v0.11.
+- Updated `schema_tool` to v0.15.
 
 #### ⚙️ Internal
 

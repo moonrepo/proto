@@ -53,11 +53,11 @@ impl From<String> for HostLogInput {
 api_struct!(
     /// Input passed to the `exec_command` host function.
     pub struct ExecCommandInput {
-        /// Arguments to pass to the command.
-        pub args: Vec<String>,
-
         /// The command or script to execute.
         pub command: String,
+
+        /// Arguments to pass to the command.
+        pub args: Vec<String>,
 
         /// Environment variables to pass to the command.
         #[serde(default)]
