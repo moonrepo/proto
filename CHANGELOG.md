@@ -18,6 +18,7 @@
 - WASM API
   - Removed the `ToolMetadataOutput.inventory.disable_progress_bars` field.
   - Removed the `is_musl` function. Use the host environment instead.
+  - Migrated testing APIs to async instead of sync.
   - Deprecated many functions.
 
 #### 🚀 Updates
