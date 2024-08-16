@@ -4,7 +4,7 @@ use crate::session::ProtoSession;
 use crate::shell::{self, Export};
 use crate::telemetry::{track_usage, Metric};
 use clap::{Args, ValueEnum};
-use indicatif::{MultiProgress, ProgressBar};
+use indicatif::ProgressBar;
 use miette::IntoDiagnostic;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
 use proto_core::{Id, PinType, Tool, UnresolvedVersionSpec, VersionSpec};
@@ -208,14 +208,14 @@ pub async fn do_install(
             )));
         }
 
+        print_progress_state(&pb);
+
         if args.id.is_some() {
             pb.finish_and_clear();
         } else {
             pb.finish();
         }
     };
-
-    pb.set_message(format!("Installing {name} {version}"));
 
     // Disable version caching and always use the latest when installing
     tool.disable_caching();
@@ -305,6 +305,8 @@ pub async fn do_install(
             }
             _ => {}
         };
+
+        print_progress_state(&pb3);
     });
 
     let installed = tool
@@ -423,24 +425,29 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
         .fold(0, |acc, id| if id.len() > acc { id.len() } else { acc });
 
     // Then install each tool in parallel!
-    let mpb = MultiProgress::new();
+    let mpb = create_multi_progress_bar();
+    let pbs = create_progress_bar_style();
     let mut set = JoinSet::new();
 
     for mut tool in tools {
         if let Some(version) = versions.remove(&tool.id) {
             let pb = mpb.add(ProgressBar::new(0));
-            pb.set_style(create_progress_bar_style());
+            pb.set_style(pbs.clone());
 
+            // Defer writing content till the thread starts,
+            // otherwise the progress bars fail to render correctly
             set.spawn(async move {
                 sleep(Duration::from_millis(25)).await;
 
-                // Defer writing content till the thread starts,
-                // otherwise the progress bars fail to render correctly
                 pb.set_prefix(color::id(format!(
                     "{}{}",
                     " ".repeat(longest_id - tool.id.len()),
                     tool.id
                 )));
+
+                pb.set_message(format!("Installing {} {}", tool.get_name(), version));
+
+                print_progress_state(&pb);
 
                 do_install(
                     &mut tool,
@@ -455,6 +462,8 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
         }
     }
 
+    let total = set.len();
+
     while let Some(result) = set.join_next().await {
         match result.into_diagnostic() {
             Err(error) | Ok(Err(error)) => {
@@ -465,6 +474,11 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
             }
             _ => {}
         };
+    }
+
+    // When no TTY, we should display something to the user!
+    if mpb.is_hidden() {
+        println!("Successfully installed {} tools!", total);
     }
 
     Ok(())

@@ -2,7 +2,7 @@ use dialoguer::{
     console::{style, Style},
     theme::ColorfulTheme,
 };
-use indicatif::{ProgressBar, ProgressStyle};
+use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use miette::IntoDiagnostic;
 use starbase_styles::color::{self, Color};
 use starbase_utils::env::bool_var;
@@ -90,6 +90,14 @@ pub fn create_progress_spinner_style() -> ProgressStyle {
         .unwrap()
 }
 
+pub fn create_multi_progress_bar() -> MultiProgress {
+    if bool_var("PROTO_NO_PROGRESS") {
+        MultiProgress::with_draw_target(ProgressDrawTarget::hidden())
+    } else {
+        MultiProgress::new()
+    }
+}
+
 pub fn create_progress_bar<S: AsRef<str>>(start: S) -> ProgressBar {
     let pb = if bool_var("PROTO_NO_PROGRESS") {
         ProgressBar::hidden()
@@ -101,6 +109,9 @@ pub fn create_progress_bar<S: AsRef<str>>(start: S) -> ProgressBar {
     pb.set_message(start.as_ref().to_owned());
     pb.set_position(0);
     pb.set_length(100);
+
+    print_progress_state(&pb);
+
     pb
 }
 
@@ -114,7 +125,21 @@ pub fn create_progress_spinner<S: AsRef<str>>(start: S) -> ProgressBar {
     pb.set_style(create_progress_spinner_style());
     pb.set_message(start.as_ref().to_owned());
     pb.enable_steady_tick(Duration::from_millis(100));
+
+    print_progress_state(&pb);
+
     pb
+}
+
+// When no TTY, we should display something to the user!
+pub fn print_progress_state(pb: &ProgressBar) {
+    if pb.is_hidden() {
+        let message = pb.message();
+
+        if !message.is_empty() {
+            println!("{}", format!("{} {}", pb.prefix(), pb.message()).trim());
+        }
+    }
 }
 
 pub async fn fetch_latest_version() -> miette::Result<String> {
