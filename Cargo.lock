@@ -2306,7 +2306,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.40.0"
+version = "0.40.1"
 dependencies = [
  "indexmap 2.4.0",
  "miette",
