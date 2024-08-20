@@ -16,6 +16,10 @@
 
 - Improved Nushell generated syntax.
 
+#### 🐞 Fixes
+
+- Fixed `--help` not showing possible values for `--config-mode`.
+
 ## 0.40.0
 
 #### 💥 Breaking
