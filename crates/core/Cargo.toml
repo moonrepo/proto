@@ -18,6 +18,7 @@ version_spec = { version = "0.7.0", path = "../version-spec", features = [
 warpgate = { version = "0.17.0", path = "../warpgate", features = [
 	"schematic",
 ] }
+clap = { workspace = true, optional = true }
 indexmap = { workspace = true }
 miette = { workspace = true }
 minisign-verify = "0.2.1"
@@ -49,3 +50,7 @@ uuid = { workspace = true }
 [dev-dependencies]
 starbase_sandbox = { workspace = true }
 tokio = { workspace = true }
+
+[features]
+default = []
+clap = ["dep:clap"]
