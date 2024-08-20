@@ -107,7 +107,7 @@ impl Store {
         #[cfg(windows)]
         fs::copy_file(src_path, bin_path)?;
 
-        #[cfg(not(windows))]
+        #[cfg(unix)]
         std::os::unix::fs::symlink(src_path, bin_path).into_diagnostic()?;
 
         Ok(())
@@ -120,7 +120,7 @@ impl Store {
         fs::remove_file(bin_path)?;
 
         // Unix uses symlinks
-        #[cfg(not(windows))]
+        #[cfg(unix)]
         fs::remove_link(bin_path)?;
 
         Ok(())
