@@ -31,14 +31,14 @@ macro_rules! generate_download_install_tests {
             assert!(base_dir.exists());
 
             // Check bin path exists (would panic)
-            plugin.tool.get_exe_path().unwrap();
+            plugin.tool.locate_exe_file().await.unwrap();
 
             // Check things exist
-            for bin in plugin.tool.get_bin_locations().await.unwrap() {
+            for bin in plugin.tool.resolve_bin_locations().await.unwrap() {
                 assert!(bin.path.exists());
             }
 
-            for shim in plugin.tool.get_shim_locations().await.unwrap() {
+            for shim in plugin.tool.resolve_shim_locations().await.unwrap() {
                 assert!(shim.path.exists());
             }
         }
