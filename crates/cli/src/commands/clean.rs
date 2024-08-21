@@ -251,12 +251,12 @@ pub async fn purge_tool(session: &ProtoSession, id: &Id, yes: bool) -> miette::R
         fs::remove_dir_all(inventory_dir)?;
 
         // Delete binaries
-        for bin in tool.get_bin_locations().await? {
+        for bin in tool.resolve_bin_locations().await? {
             session.env.store.unlink_bin(&bin.path)?;
         }
 
         // Delete shims
-        for shim in tool.get_shim_locations().await? {
+        for shim in tool.resolve_shim_locations().await? {
             session.env.store.remove_shim(&shim.path)?;
         }
 

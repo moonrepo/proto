@@ -56,8 +56,8 @@ async fn get_executable(tool: &Tool, args: &RunArgs) -> miette::Result<Executabl
 
     // Run an alternate executable (via shim)
     if let Some(alt_name) = &args.alt {
-        for location in tool.get_shim_locations().await? {
-            if location.name == *alt_name {
+        for location in tool.resolve_shim_locations().await? {
+            if &location.name == alt_name {
                 let Some(exe_path) = &location.config.exe_path else {
                     continue;
                 };
@@ -88,11 +88,13 @@ async fn get_executable(tool: &Tool, args: &RunArgs) -> miette::Result<Executabl
 
     // Otherwise use the primary
     let mut config = tool
-        .get_exe_location()
+        .resolve_primary_exe_location()
         .await?
         .expect("Required executable information missing!")
         .config;
 
+    // We don't use `locate_exe_file` here because we need to handle
+    // tools whose primary file is not executable, like JavaScript!
     config.exe_path = Some(tool_dir.join(config.exe_path.as_ref().unwrap()));
 
     Ok(config)
@@ -212,18 +214,16 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
 
     // Run before hook
     let hook_result = if tool.plugin.has_func("pre_run").await {
-        tool.locate_globals_dirs().await?;
-
-        let globals_dir = tool.get_globals_dir();
-        let globals_prefix = tool.get_globals_prefix();
+        let globals_dir = tool.locate_globals_dir().await?;
+        let globals_prefix = tool.locate_globals_prefix().await?;
 
         tool.plugin
             .call_func_with(
                 "pre_run",
                 RunHook {
                     context: tool.create_context(),
-                    globals_dir: globals_dir.map(|dir| tool.to_virtual_path(dir)),
-                    globals_prefix: globals_prefix.map(|p| p.to_owned()),
+                    globals_dir: globals_dir.map(|dir| tool.to_virtual_path(&dir)),
+                    globals_prefix,
                     passthrough_args: args.passthrough.clone(),
                 },
             )
