@@ -51,7 +51,7 @@ fn is_trying_to_self_upgrade(tool: &Tool, args: &[String]) -> bool {
     false
 }
 
-async fn get_executable(tool: &mut Tool, args: &RunArgs) -> miette::Result<ExecutableConfig> {
+async fn get_executable(tool: &Tool, args: &RunArgs) -> miette::Result<ExecutableConfig> {
     let tool_dir = tool.get_product_dir();
 
     // Run an alternate executable (via shim)
@@ -87,10 +87,17 @@ async fn get_executable(tool: &mut Tool, args: &RunArgs) -> miette::Result<Execu
     }
 
     // Otherwise use the primary
-    Ok(ExecutableConfig {
-        exe_path: Some(tool.locate_exe_file().await?),
-        ..Default::default()
-    })
+    let mut config = tool
+        .resolve_primary_exe_location()
+        .await?
+        .expect("Required executable information missing!")
+        .config;
+
+    // We don't use `locate_exe_file` here because we need to handle
+    // tools whose primary file is not executable, like JavaScript!
+    config.exe_path = Some(tool_dir.join(config.exe_path.as_ref().unwrap()));
+
+    Ok(config)
 }
 
 fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
@@ -199,7 +206,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
     }
 
     // Determine the binary path to execute
-    let exe_config = get_executable(&mut tool, &args).await?;
+    let exe_config = get_executable(&tool, &args).await?;
     let exe_path = exe_config
         .exe_path
         .as_ref()
