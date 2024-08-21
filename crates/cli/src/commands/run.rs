@@ -51,13 +51,13 @@ fn is_trying_to_self_upgrade(tool: &Tool, args: &[String]) -> bool {
     false
 }
 
-async fn get_executable(tool: &Tool, args: &RunArgs) -> miette::Result<ExecutableConfig> {
+async fn get_executable(tool: &mut Tool, args: &RunArgs) -> miette::Result<ExecutableConfig> {
     let tool_dir = tool.get_product_dir();
 
     // Run an alternate executable (via shim)
     if let Some(alt_name) = &args.alt {
         for location in tool.resolve_shim_locations().await? {
-            if location.name == *alt_name {
+            if &location.name == alt_name {
                 let Some(exe_path) = &location.config.exe_path else {
                     continue;
                 };
@@ -87,15 +87,10 @@ async fn get_executable(tool: &Tool, args: &RunArgs) -> miette::Result<Executabl
     }
 
     // Otherwise use the primary
-    let mut config = tool
-        .resolve_primary_exe_location()
-        .await?
-        .expect("Required executable information missing!")
-        .config;
-
-    config.exe_path = Some(tool_dir.join(config.exe_path.as_ref().unwrap()));
-
-    Ok(config)
+    Ok(ExecutableConfig {
+        exe_path: Some(tool.locate_exe_file().await?),
+        ..Default::default()
+    })
 }
 
 fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
@@ -204,7 +199,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
     }
 
     // Determine the binary path to execute
-    let exe_config = get_executable(&tool, &args).await?;
+    let exe_config = get_executable(&mut tool, &args).await?;
     let exe_path = exe_config
         .exe_path
         .as_ref()
@@ -221,7 +216,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
                 RunHook {
                     context: tool.create_context(),
                     globals_dir: globals_dir.map(|dir| tool.to_virtual_path(&dir)),
-                    globals_prefix: globals_prefix.map(|p| p.to_owned()),
+                    globals_prefix,
                     passthrough_args: args.passthrough.clone(),
                 },
             )
