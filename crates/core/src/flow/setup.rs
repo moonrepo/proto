@@ -31,7 +31,9 @@ impl Tool {
             );
 
             if self.exe_file.is_none() {
-                self.create_executables(false, false).await?;
+                self.generate_shims(false).await?;
+                self.symlink_bins(false).await?;
+                self.locate_exe_file().await?;
             }
 
             return Ok(true);
@@ -56,7 +58,8 @@ impl Tool {
             return Ok(false);
         }
 
-        self.create_executables(false, false).await?;
+        self.generate_shims(false).await?;
+        self.symlink_bins(false).await?;
         self.cleanup().await?;
 
         let version = self.get_resolved_version();

@@ -46,7 +46,6 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
         .unwrap_or_else(|_| UnresolvedVersionSpec::parse("*").unwrap());
 
     tool.resolve_version(&version, false).await?;
-    tool.create_executables(false, false).await?;
 
     let mut config = session.env.load_config()?.to_owned();
     let tool_config = config.tools.remove(&tool.id).unwrap_or_default();

@@ -36,9 +36,10 @@ pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
     let version = detect_version(&tool, args.spec.clone()).await?;
 
     tool.resolve_version(&version, true).await?;
-    tool.create_executables(args.shim, args.bin).await?;
 
     if args.bin {
+        tool.symlink_bins(true).await?;
+
         for bin in tool.resolve_bin_locations().await? {
             if bin.primary {
                 println!("{}", bin.path.display());
@@ -48,6 +49,8 @@ pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
     }
 
     if args.shim {
+        tool.generate_shims(true).await?;
+
         for shim in tool.resolve_shim_locations().await? {
             if shim.primary {
                 println!("{}", shim.path.display());
