@@ -39,7 +39,7 @@ pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
     tool.create_executables(args.shim, args.bin).await?;
 
     if args.bin {
-        for bin in tool.get_bin_locations().await? {
+        for bin in tool.resolve_bin_locations().await? {
             if bin.primary {
                 println!("{}", bin.path.display());
                 return Ok(());
@@ -48,7 +48,7 @@ pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
     }
 
     if args.shim {
-        for shim in tool.get_shim_locations().await? {
+        for shim in tool.resolve_shim_locations().await? {
             if shim.primary {
                 println!("{}", shim.path.display());
                 return Ok(());
@@ -56,7 +56,7 @@ pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
         }
     }
 
-    println!("{}", tool.get_exe_path()?.display());
+    println!("{}", tool.locate_exe_file().await?.display());
 
     Ok(())
 }

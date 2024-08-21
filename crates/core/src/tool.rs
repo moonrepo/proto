@@ -1,5 +1,5 @@
 use crate::error::ProtoError;
-use crate::helpers::{get_proto_version, ENV_VAR};
+use crate::helpers::get_proto_version;
 use crate::layout::{Inventory, Product};
 use crate::proto::ProtoEnvironment;
 use crate::shim_registry::{Shim, ShimRegistry, ShimsMap};
@@ -7,11 +7,9 @@ use miette::IntoDiagnostic;
 use proto_pdk_api::*;
 use proto_shim::*;
 use rustc_hash::{FxHashMap, FxHashSet};
-use serde::Serialize;
 use starbase_styles::color;
 use starbase_utils::fs;
 use std::collections::BTreeMap;
-use std::env;
 use std::fmt::{self, Debug};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -21,14 +19,6 @@ use warpgate::{
     host::{create_host_functions, HostData},
     Id, PluginContainer, PluginLocator, PluginManifest, VirtualPath, Wasm,
 };
-
-#[derive(Debug, Default, Serialize)]
-pub struct ExecutableLocation {
-    pub config: ExecutableConfig,
-    pub name: String,
-    pub path: PathBuf,
-    pub primary: bool,
-}
 
 pub struct Tool {
     pub id: Id,
@@ -42,10 +32,11 @@ pub struct Tool {
     pub inventory: Inventory,
     pub product: Product,
 
-    // Private
+    // Cache
     pub(crate) cache: bool,
+    pub(crate) exe_file: Option<PathBuf>,
     pub(crate) exes_dir: Option<PathBuf>,
-    pub(crate) exe_path: Option<PathBuf>,
+    pub(crate) globals_dir: Option<PathBuf>,
     pub(crate) globals_dirs: Vec<PathBuf>,
     pub(crate) globals_prefix: Option<String>,
 }
@@ -63,8 +54,9 @@ impl Tool {
 
         let mut tool = Tool {
             cache: true,
+            exe_file: None,
             exes_dir: None,
-            exe_path: None,
+            globals_dir: None,
             globals_dirs: vec![],
             globals_prefix: None,
             id,
@@ -139,17 +131,6 @@ impl Tool {
         }
 
         Ok(manifest)
-    }
-
-    async fn call_locate_executables(&self) -> miette::Result<LocateExecutablesOutput> {
-        self.plugin
-            .cache_func_with(
-                "locate_executables",
-                LocateExecutablesInput {
-                    context: self.create_context(),
-                },
-            )
-            .await
     }
 
     /// Disable internal caching when applicable.
@@ -276,7 +257,7 @@ impl Tool {
 
         debug!(tool = self.id.as_str(), "Syncing manifest with changes");
 
-        let sync_changes: SyncManifestOutput = self
+        let output: SyncManifestOutput = self
             .plugin
             .call_func_with(
                 "sync_manifest",
@@ -286,14 +267,14 @@ impl Tool {
             )
             .await?;
 
-        if sync_changes.skip_sync {
+        if output.skip_sync {
             return Ok(());
         }
 
         let mut modified = false;
         let manifest = &mut self.inventory.manifest;
 
-        if let Some(versions) = sync_changes.versions {
+        if let Some(versions) = output.versions {
             modified = true;
 
             let mut entries = FxHashMap::default();
@@ -331,244 +312,9 @@ impl Tool {
         force_shims: bool,
         force_bins: bool,
     ) -> miette::Result<()> {
-        self.locate_executable().await?;
+        self.locate_exe_file().await?;
         self.generate_shims(force_shims).await?;
         self.symlink_bins(force_bins).await?;
-
-        Ok(())
-    }
-
-    /// Return an absolute path to the executable file for the tool.
-    pub fn get_exe_path(&self) -> miette::Result<&Path> {
-        self.exe_path.as_deref().ok_or_else(|| {
-            ProtoError::UnknownTool {
-                id: self.id.clone(),
-            }
-            .into()
-        })
-    }
-
-    /// Return an absolute path to the pre-installed executables directory.s
-    pub fn get_exes_dir(&self) -> Option<&PathBuf> {
-        self.exes_dir.as_ref()
-    }
-
-    /// Return an absolute path to the globals directory that actually exists.
-    pub fn get_globals_dir(&self) -> Option<&PathBuf> {
-        let lookup_count = self.globals_dirs.len() - 1;
-
-        for (index, dir) in self.globals_dirs.iter().enumerate() {
-            if dir.exists() || index == lookup_count {
-                debug!(tool = self.id.as_str(), dir = ?dir, "Found a usable globals directory");
-
-                return Some(dir);
-            }
-        }
-
-        None
-    }
-
-    /// Return a list of all possible globals directories.
-    pub fn get_globals_dirs(&self) -> &[PathBuf] {
-        &self.globals_dirs
-    }
-
-    /// Return a string that all globals are prefixed with. Will be used for filtering and listing.
-    pub fn get_globals_prefix(&self) -> Option<&str> {
-        self.globals_prefix.as_deref()
-    }
-
-    /// Return a list of all binaries that get created in `~/.proto/bin`.
-    /// The list will contain the executable config, and an absolute path
-    /// to the binaries final location.
-    pub async fn get_bin_locations(&self) -> miette::Result<Vec<ExecutableLocation>> {
-        let options = self.call_locate_executables().await?;
-        let mut locations = vec![];
-
-        let mut add = |name: &str, config: ExecutableConfig, primary: bool| {
-            if !config.no_bin
-                && config
-                    .exe_link_path
-                    .as_ref()
-                    .or(config.exe_path.as_ref())
-                    .is_some()
-            {
-                locations.push(ExecutableLocation {
-                    path: self.proto.store.bin_dir.join(get_exe_file_name(name)),
-                    name: name.to_owned(),
-                    config,
-                    primary,
-                });
-            }
-        };
-
-        if let Some(primary) = options.primary {
-            add(&self.id, primary, true);
-        }
-
-        for (name, secondary) in options.secondary {
-            add(&name, secondary, false);
-        }
-
-        Ok(locations)
-    }
-
-    /// Return location information for the primary executable within the tool directory.
-    pub async fn get_exe_location(&self) -> miette::Result<Option<ExecutableLocation>> {
-        let options = self.call_locate_executables().await?;
-
-        if let Some(primary) = options.primary {
-            if let Some(exe_path) = &primary.exe_path {
-                return Ok(Some(ExecutableLocation {
-                    path: self.get_product_dir().join(exe_path),
-                    name: self.id.to_string(),
-                    config: primary,
-                    primary: true,
-                }));
-            }
-        }
-
-        Ok(None)
-    }
-
-    /// Return a list of all shims that get created in `~/.proto/shims`.
-    /// The list will contain the executable config, and an absolute path
-    /// to the shims final location.
-    pub async fn get_shim_locations(&self) -> miette::Result<Vec<ExecutableLocation>> {
-        let options = self.call_locate_executables().await?;
-        let mut locations = vec![];
-
-        let mut add = |name: &str, config: ExecutableConfig, primary: bool| {
-            if !config.no_shim {
-                locations.push(ExecutableLocation {
-                    path: self.proto.store.shims_dir.join(get_shim_file_name(name)),
-                    name: name.to_owned(),
-                    config: config.clone(),
-                    primary,
-                });
-            }
-        };
-
-        if let Some(primary) = options.primary {
-            add(&self.id, primary, true);
-        }
-
-        for (name, secondary) in options.secondary {
-            add(&name, secondary, false);
-        }
-
-        Ok(locations)
-    }
-
-    /// Locate the primary executable from the tool directory.
-    #[instrument(skip_all)]
-    pub async fn locate_executable(&mut self) -> miette::Result<()> {
-        debug!(tool = self.id.as_str(), "Locating executable for tool");
-
-        let exe_path = if let Some(location) = self.get_exe_location().await? {
-            location.path
-        } else {
-            self.get_product_dir().join(self.id.as_str())
-        };
-
-        if exe_path.exists() {
-            debug!(tool = self.id.as_str(), exe_path = ?exe_path, "Found an executable");
-
-            self.exe_path = Some(exe_path);
-
-            return Ok(());
-        }
-
-        Err(ProtoError::MissingToolExecutable {
-            tool: self.get_name().to_owned(),
-            path: exe_path,
-        }
-        .into())
-    }
-
-    /// Locate the directory that local executables are installed to.
-    #[instrument(skip_all)]
-    pub async fn locate_exes_dir(&mut self) -> miette::Result<()> {
-        if !self.plugin.has_func("locate_executables").await || self.exes_dir.is_some() {
-            return Ok(());
-        }
-
-        let options = self.call_locate_executables().await?;
-
-        if let Some(exes_dir) = options.exes_dir {
-            self.exes_dir = Some(self.get_product_dir().join(exes_dir));
-        }
-
-        Ok(())
-    }
-
-    /// Locate the directories that global packages are installed to.
-    #[instrument(skip_all)]
-    pub async fn locate_globals_dirs(&mut self) -> miette::Result<()> {
-        if !self.plugin.has_func("locate_executables").await || !self.globals_dirs.is_empty() {
-            return Ok(());
-        }
-
-        debug!(
-            tool = self.id.as_str(),
-            "Locating globals bin directories for tool"
-        );
-
-        let install_dir = self.get_product_dir();
-        let options = self.call_locate_executables().await?;
-
-        self.globals_prefix = options.globals_prefix;
-
-        // Find all possible global directories that packages can be installed to
-        let mut resolved_dirs = vec![];
-
-        'outer: for dir_lookup in options.globals_lookup_dirs {
-            let mut dir = dir_lookup.clone();
-
-            // If a lookup contains an env var, find and replace it.
-            // If the var is not defined or is empty, skip this lookup.
-            for cap in ENV_VAR.captures_iter(&dir_lookup) {
-                let find_by = cap.get(0).unwrap().as_str();
-
-                let replace_with = match find_by {
-                    "$CWD" | "$PWD" => self.proto.cwd.clone(),
-                    "$HOME" => self.proto.home.clone(),
-                    "$PROTO_HOME" | "$PROTO_ROOT" => self.proto.root.clone(),
-                    "$TOOL_DIR" => install_dir.clone(),
-                    _ => match env::var_os(cap.get(1).unwrap().as_str()) {
-                        Some(value) => PathBuf::from(value),
-                        None => {
-                            continue 'outer;
-                        }
-                    },
-                };
-
-                if let Some(replacement) = replace_with.to_str() {
-                    dir = dir.replace(find_by, replacement);
-                } else {
-                    continue 'outer;
-                }
-            }
-
-            let dir = if let Some(dir_suffix) = dir.strip_prefix('~') {
-                self.proto.home.join(dir_suffix)
-            } else {
-                PathBuf::from(dir)
-            };
-
-            // Don't use a set as we need to persist the order!
-            if !resolved_dirs.contains(&dir) {
-                resolved_dirs.push(dir);
-            }
-        }
-
-        debug!(
-            tool = self.id.as_str(),
-            dirs = ?resolved_dirs,
-            "Located possible globals directories",
-        );
-
-        self.globals_dirs = resolved_dirs;
 
         Ok(())
     }
@@ -577,7 +323,7 @@ impl Tool {
     /// If find only is enabled, will only check if they exist, and not create.
     #[instrument(skip(self))]
     pub async fn generate_shims(&mut self, force: bool) -> miette::Result<()> {
-        let shims = self.get_shim_locations().await?;
+        let shims = self.resolve_shim_locations().await?;
 
         if shims.is_empty() {
             return Ok(());
@@ -668,7 +414,7 @@ impl Tool {
     /// Symlink all primary and secondary binaries for the current tool.
     #[instrument(skip(self))]
     pub async fn symlink_bins(&mut self, force: bool) -> miette::Result<()> {
-        let bins = self.get_bin_locations().await?;
+        let bins = self.resolve_bin_locations().await?;
 
         if bins.is_empty() {
             return Ok(());

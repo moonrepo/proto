@@ -1,3 +1,4 @@
 pub mod install;
-pub mod setup;
+pub mod locate;
 pub mod resolve;
+pub mod setup;

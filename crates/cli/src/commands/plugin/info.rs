@@ -2,8 +2,8 @@ use crate::printer::{format_env_var, format_value, Printer};
 use crate::session::ProtoSession;
 use clap::Args;
 use proto_core::{
-    detect_version, EnvVar, ExecutableLocation, Id, PluginLocator, ProtoToolConfig, ToolManifest,
-    UnresolvedVersionSpec,
+    detect_version, flow::locate::ExecutableLocation, EnvVar, Id, PluginLocator, ProtoToolConfig,
+    ToolManifest, UnresolvedVersionSpec,
 };
 use proto_pdk_api::ToolMetadataOutput;
 use serde::Serialize;
@@ -16,8 +16,8 @@ use std::path::PathBuf;
 pub struct PluginInfo {
     bins: Vec<ExecutableLocation>,
     config: ProtoToolConfig,
+    exe_file: PathBuf,
     exes_dir: Option<PathBuf>,
-    exe_path: PathBuf,
     globals_dirs: Vec<PathBuf>,
     globals_prefix: Option<String>,
     id: Id,
@@ -47,22 +47,20 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
 
     tool.resolve_version(&version, false).await?;
     tool.create_executables(false, false).await?;
-    tool.locate_exes_dir().await?;
-    tool.locate_globals_dirs().await?;
 
     let mut config = session.env.load_config()?.to_owned();
     let tool_config = config.tools.remove(&tool.id).unwrap_or_default();
-    let bins = tool.get_bin_locations().await?;
-    let shims = tool.get_shim_locations().await?;
+    let bins = tool.resolve_bin_locations().await?;
+    let shims = tool.resolve_shim_locations().await?;
 
     if args.json {
         let info = PluginInfo {
             bins,
             config: tool_config,
-            exes_dir: tool.get_exes_dir().map(|dir| dir.to_path_buf()),
-            exe_path: tool.get_exe_path()?.to_path_buf(),
-            globals_dirs: tool.get_globals_dirs().to_owned(),
-            globals_prefix: tool.get_globals_prefix().map(|p| p.to_owned()),
+            exe_file: tool.locate_exe_file().await?,
+            exes_dir: tool.locate_exes_dir().await?,
+            globals_dirs: tool.locate_globals_dirs().await?,
+            globals_prefix: tool.locate_globals_prefix().await?,
             inventory_dir: tool.get_inventory_dir(),
             shims,
             id: tool.id,
@@ -76,11 +74,6 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
 
         return Ok(());
     }
-
-    let mut version_resolver = tool
-        .load_version_resolver(&UnresolvedVersionSpec::default())
-        .await?;
-    version_resolver.aliases.extend(tool_config.aliases.clone());
 
     let mut printer = Printer::new();
     printer.header(&tool.id, &tool.metadata.name);
@@ -101,22 +94,32 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
 
     // INVENTORY
 
+    let exe_file = tool.locate_exe_file().await?;
+    let exes_dir = tool.locate_exes_dir().await?;
+    let globals_dirs = tool.locate_globals_dir().await?;
+    let globals_prefix = tool.locate_globals_prefix().await?;
+
+    let mut version_resolver = tool
+        .load_version_resolver(&UnresolvedVersionSpec::default())
+        .await?;
+    version_resolver.aliases.extend(tool_config.aliases.clone());
+
     printer.named_section("Inventory", |p| {
         p.entry("Store", color::path(tool.get_inventory_dir()));
 
-        p.entry("Executable", color::path(tool.get_exe_path()?));
+        p.entry("Executable", color::path(exe_file));
 
-        if let Some(dir) = tool.get_exes_dir() {
+        if let Some(dir) = exes_dir {
             p.entry("Executables directory", color::path(dir));
         }
 
-        if let Some(prefix) = tool.get_globals_prefix() {
+        if let Some(prefix) = globals_prefix {
             p.entry("Global packages prefix", color::property(prefix));
         }
 
         p.entry_list(
             "Global packages directories",
-            tool.get_globals_dirs().iter().map(color::path),
+            globals_dirs.iter().map(color::path),
             Some(color::failure("None")),
         );
 

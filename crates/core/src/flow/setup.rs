@@ -30,7 +30,7 @@ impl Tool {
                 "Tool has already been installed, locating binaries and shims",
             );
 
-            if self.exe_path.is_none() {
+            if self.exe_file.is_none() {
                 self.create_executables(false, false).await?;
             }
 
@@ -123,14 +123,14 @@ impl Tool {
         // If no more default version, delete the symlink,
         // otherwise the OS will throw errors for missing sources
         if removed_default_version || self.inventory.manifest.installed_versions.is_empty() {
-            for bin in self.get_bin_locations().await? {
+            for bin in self.resolve_bin_locations().await? {
                 self.proto.store.unlink_bin(&bin.path)?;
             }
         }
 
         // If no more versions in general, delete all shims
         if self.inventory.manifest.installed_versions.is_empty() {
-            for shim in self.get_shim_locations().await? {
+            for shim in self.resolve_shim_locations().await? {
                 self.proto.store.remove_shim(&shim.path)?;
             }
         }
