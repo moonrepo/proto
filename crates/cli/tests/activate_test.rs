@@ -95,7 +95,7 @@ bun = "1.1.0"
                 .arg("elvish")
                 .arg("--export")
                 .arg("--config-mode")
-                .arg("upwards-global");
+                .arg("all"); // upwards-global
         });
 
         assert_snapshot!(get_activate_output(&assert, &sandbox));

@@ -94,6 +94,7 @@ derive_enum!(
         Upwards,
         #[default]
         #[serde(alias = "all")]
+        #[cfg_attr(feature = "clap", value(alias("all")))]
         UpwardsGlobal,
     }
 );
