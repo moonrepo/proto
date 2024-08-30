@@ -10,6 +10,12 @@
 - [Rust](https://github.com/moonrepo/tools/blob/master/tools/rust/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/tools/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### ⚙️ Internal
+
+- Re-released as previous deploy failed.
+
 ## 0.40.3
 
 #### 🚀 Updates
