@@ -12,6 +12,10 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Added a new `settings.http.secure-proxies` setting that always handle https requests.
+
 #### 🐞 Fixes
 
 - Fixed an issue where partially downloaded files would trigger checksum failures.
