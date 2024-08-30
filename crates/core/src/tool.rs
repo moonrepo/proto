@@ -796,24 +796,17 @@ impl Tool {
             None => extract_filename_from_url(&download_url)?,
         });
 
-        if download_file.exists() {
-            debug!(
-                tool = self.id.as_str(),
-                "Tool already downloaded, continuing"
-            );
-        } else {
-            debug!(tool = self.id.as_str(), "Tool not downloaded, downloading");
+        debug!(tool = self.id.as_str(), "Downloading tool archive");
 
-            net::download_from_url_with_options(
-                &download_url,
-                &download_file,
-                DownloadOptions {
-                    client: Some(client),
-                    on_chunk: options.on_download_chunk.take(),
-                },
-            )
-            .await?;
-        }
+        net::download_from_url_with_options(
+            &download_url,
+            &download_file,
+            DownloadOptions {
+                client: Some(client),
+                on_chunk: options.on_download_chunk.take(),
+            },
+        )
+        .await?;
 
         // Verify the checksum if applicable
         if let Some(checksum_url) = params.checksum_url {
@@ -826,22 +819,17 @@ impl Tool {
                 None => extract_filename_from_url(&checksum_url)?,
             });
 
-            if !checksum_file.exists() {
-                debug!(
-                    tool = self.id.as_str(),
-                    "Checksum does not exist, downloading"
-                );
+            debug!(tool = self.id.as_str(), "Downloading tool checksum");
 
-                net::download_from_url_with_options(
-                    &checksum_url,
-                    &checksum_file,
-                    DownloadOptions {
-                        client: Some(client),
-                        on_chunk: None,
-                    },
-                )
-                .await?;
-            }
+            net::download_from_url_with_options(
+                &checksum_url,
+                &checksum_file,
+                DownloadOptions {
+                    client: Some(client),
+                    on_chunk: None,
+                },
+            )
+            .await?;
 
             self.verify_checksum(
                 &checksum_file,

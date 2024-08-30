@@ -10,6 +10,16 @@
 - [Rust](https://github.com/moonrepo/tools/blob/master/tools/rust/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/tools/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added a new `settings.http.secure-proxies` setting that always handles `https` requests.
+
+#### 🐞 Fixes
+
+- Fixed an issue where partially downloaded files would trigger checksum failures.
+
 ## 0.40.2
 
 #### 🐞 Fixes
