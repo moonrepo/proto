@@ -14,7 +14,7 @@
 
 #### 🚀 Updates
 
-- Added a new `settings.http.secure-proxies` setting that always handle https requests.
+- Added a new `settings.http.secure-proxies` setting that always handles `https` requests.
 
 #### 🐞 Fixes
 

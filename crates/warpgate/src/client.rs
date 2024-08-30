@@ -12,11 +12,11 @@ pub struct HttpOptions {
     /// Allow invalid certificates. This is dangerous and should only be used as a last resort!
     pub allow_invalid_certs: bool,
 
-    /// A list of proxy URLs that all requests should pass through. URLS that start with
-    /// `http` will handle insecure requests, while `https` will handle secure requests.
+    /// A list of proxy URLs that all requests should pass through. URLs that start with
+    /// `http:` will handle insecure requests, while `https:` will handle secure requests.
     pub proxies: Vec<String>,
 
-    /// A list of proxy URLs that all `https` requests should pass through.
+    /// A list of proxy URLs that all `https:` requests should pass through.
     pub secure_proxies: Vec<String>,
 
     /// Absolute path to the root certificate. Supports `.pem` and `.der` files.
