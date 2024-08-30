@@ -3835,6 +3835,7 @@ dependencies = [
  "extism",
  "miette",
  "once_cell",
+ "regalloc2",
  "regex",
  "reqwest",
  "scc",
