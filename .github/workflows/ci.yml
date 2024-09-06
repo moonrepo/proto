@@ -66,8 +66,9 @@ jobs:
       - uses: moonrepo/setup-rust@v1
         with:
           bins: cargo-wasi, cargo-nextest, just
-          cache: ${{ runner.os != 'Linux' }}
-          cache-base: "^(master|develop-)"
+          cache: false
+          # cache: ${{ runner.os != 'Linux' }}
+          # cache-base: "^(master|develop-)"
       - if: ${{ runner.os != 'Windows' }}
         run: just build-wasm
         env:
@@ -95,7 +96,8 @@ jobs:
       - uses: moonrepo/setup-rust@v1
         with:
           bins: cargo-wasi, just
-          cache-base: "^(master|develop-)"
+          cache: false
+          # cache-base: "^(master|develop-)"
       - run: just build
       - run: just build-wasm
       - run: cargo run -- --help

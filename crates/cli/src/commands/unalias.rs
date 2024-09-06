@@ -1,3 +1,4 @@
+use crate::helpers::{map_pin_type, PinOption};
 use crate::session::ProtoSession;
 use clap::Args;
 use proto_core::{Id, ProtoConfig};
@@ -15,9 +16,13 @@ pub struct UnaliasArgs {
 
     #[arg(
         long,
-        help = "Remove from the global ~/.proto/.prototools instead of local ./.prototools"
+        group = "pin",
+        help = "Remove from the global ~/.proto/.prototools"
     )]
     global: bool,
+
+    #[arg(long, group = "pin", help = "Location of .prototools to remove from")]
+    from: Option<PinOption>,
 }
 
 #[tracing::instrument(skip_all)]
@@ -25,15 +30,19 @@ pub async fn unalias(session: ProtoSession, args: UnaliasArgs) -> AppResult {
     let tool = session.load_tool(&args.id).await?;
     let mut value = None;
 
-    let config_path = ProtoConfig::update(tool.proto.get_config_dir(args.global), |config| {
-        if let Some(tool_configs) = &mut config.tools {
-            if let Some(tool_config) = tool_configs.get_mut(&tool.id) {
-                if let Some(aliases) = &mut tool_config.aliases {
-                    value = aliases.remove(&args.alias);
+    let config_path = ProtoConfig::update(
+        tool.proto
+            .get_config_dir(map_pin_type(args.global, args.from)),
+        |config| {
+            if let Some(tool_configs) = &mut config.tools {
+                if let Some(tool_config) = tool_configs.get_mut(&tool.id) {
+                    if let Some(aliases) = &mut tool_config.aliases {
+                        value = aliases.remove(&args.alias);
+                    }
                 }
             }
-        }
-    })?;
+        },
+    )?;
 
     let Some(value) = value else {
         eprintln!(

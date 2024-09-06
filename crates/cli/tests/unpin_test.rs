@@ -97,3 +97,30 @@ mod unpin_global {
         assert!(!config.versions.contains_key("node"));
     }
 }
+
+mod unpin_user {
+    use super::*;
+
+    #[test]
+    fn removes_existing_pin() {
+        let sandbox = create_empty_proto_sandbox();
+
+        ProtoConfig::update(sandbox.path().join(".home"), |config| {
+            config
+                .versions
+                .get_or_insert(Default::default())
+                .insert(Id::raw("node"), UnresolvedVersionSpec::Canary);
+        })
+        .unwrap();
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("unpin").arg("node").arg("--from").arg("user");
+            })
+            .success();
+
+        let config = load_config(sandbox.path().join(".home"));
+
+        assert!(!config.versions.contains_key("node"));
+    }
+}
