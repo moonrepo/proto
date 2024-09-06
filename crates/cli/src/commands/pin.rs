@@ -15,11 +15,11 @@ pub struct PinArgs {
     #[arg(required = true, help = "Version or alias of tool")]
     pub spec: UnresolvedVersionSpec,
 
-    #[arg(
-        long,
-        help = "Pin to the global ~/.proto/.prototools instead of local ./.prototools"
-    )]
+    #[arg(long, group = "pin", help = "Pin to the global ~/.proto/.prototools")]
     pub global: bool,
+
+    #[arg(long, group = "pin", help = "Pin to the user ~/.prototools")]
+    pub user: bool,
 
     #[arg(long, help = "Resolve the version before pinning")]
     pub resolve: bool,
@@ -29,6 +29,7 @@ pub async fn internal_pin(
     tool: &mut Tool,
     spec: &UnresolvedVersionSpec,
     global: bool,
+    user: bool,
     link: bool,
 ) -> miette::Result<PathBuf> {
     // Create symlink to this new version
@@ -36,12 +37,15 @@ pub async fn internal_pin(
         tool.symlink_bins(true).await?;
     }
 
-    let config_path = ProtoConfig::update(tool.proto.get_config_dir(global), |config| {
-        config
-            .versions
-            .get_or_insert(BTreeMap::default())
-            .insert(tool.id.clone(), spec.clone());
-    })?;
+    let config_path = ProtoConfig::update(
+        tool.proto.get_config_dir_from_flags(global, user),
+        |config| {
+            config
+                .versions
+                .get_or_insert(BTreeMap::default())
+                .insert(tool.id.clone(), spec.clone());
+        },
+    )?;
 
     debug!(
         version = spec.to_string(),
@@ -63,7 +67,7 @@ pub async fn pin(session: ProtoSession, args: PinArgs) -> AppResult {
         args.spec.clone()
     };
 
-    let config_path = internal_pin(&mut tool, &spec, args.global, false).await?;
+    let config_path = internal_pin(&mut tool, &spec, args.global, args.user, false).await?;
 
     println!(
         "Pinned {} to {} in {}",

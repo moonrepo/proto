@@ -16,11 +16,11 @@ pub struct AliasArgs {
     #[arg(required = true, help = "Version or alias to associate with")]
     spec: UnresolvedVersionSpec,
 
-    #[arg(
-        long,
-        help = "Add to the global ~/.proto/.prototools instead of local ./.prototools"
-    )]
+    #[arg(long, group = "pin", help = "Add to the global ~/.proto/.prototools")]
     global: bool,
+
+    #[arg(long, group = "pin", help = "Add to the user ~/.prototools")]
+    user: bool,
 }
 
 #[tracing::instrument(skip_all)]
@@ -40,16 +40,19 @@ pub async fn alias(session: ProtoSession, args: AliasArgs) -> AppResult {
 
     let tool = session.load_tool(&args.id).await?;
 
-    let config_path = ProtoConfig::update(tool.proto.get_config_dir(args.global), |config| {
-        let tool_configs = config.tools.get_or_insert(Default::default());
+    let config_path = ProtoConfig::update(
+        tool.proto.get_config_dir_from_flags(args.global, args.user),
+        |config| {
+            let tool_configs = config.tools.get_or_insert(Default::default());
 
-        tool_configs
-            .entry(tool.id.clone())
-            .or_default()
-            .aliases
-            .get_or_insert(Default::default())
-            .insert(args.alias.clone(), args.spec.clone());
-    })?;
+            tool_configs
+                .entry(tool.id.clone())
+                .or_default()
+                .aliases
+                .get_or_insert(Default::default())
+                .insert(args.alias.clone(), args.spec.clone());
+        },
+    )?;
 
     println!(
         "Added alias {} ({}) to config {}",

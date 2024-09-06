@@ -124,6 +124,7 @@ derive_enum!(
     pub enum PinType {
         Global,
         Local,
+        User,
     }
 );
 

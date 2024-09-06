@@ -12,9 +12,13 @@ pub struct RemovePluginArgs {
 
     #[arg(
         long,
-        help = "Remove from the global ~/.proto/.prototools instead of local ./.prototools"
+        group = "pin",
+        help = "Remove from the global ~/.proto/.prototools"
     )]
     global: bool,
+
+    #[arg(long, group = "pin", help = "Remove from the user ~/.prototools")]
+    user: bool,
 }
 
 #[tracing::instrument(skip_all)]
@@ -27,11 +31,16 @@ pub async fn remove(session: ProtoSession, args: RemovePluginArgs) -> AppResult 
         }
     }
 
-    let config_path = ProtoConfig::update(session.env.get_config_dir(args.global), |config| {
-        if let Some(plugins) = &mut config.plugins {
-            plugins.remove(&args.id);
-        }
-    })?;
+    let config_path = ProtoConfig::update(
+        session
+            .env
+            .get_config_dir_from_flags(args.global, args.user),
+        |config| {
+            if let Some(plugins) = &mut config.plugins {
+                plugins.remove(&args.id);
+            }
+        },
+    )?;
 
     println!(
         "Removed plugin {} from config {}",

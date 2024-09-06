@@ -23,6 +23,7 @@ use tracing::{debug, instrument};
 pub enum PinOption {
     Global,
     Local,
+    User,
 }
 
 #[derive(Args, Clone, Debug, Default)]
@@ -62,6 +63,7 @@ impl InstallArgs {
     fn get_pin_type(&self) -> Option<PinType> {
         self.pin.as_ref().map(|pin| match pin {
             Some(PinOption::Global) => PinType::Global,
+            Some(PinOption::User) => PinType::User,
             _ => PinType::Local,
         })
     }
@@ -105,7 +107,7 @@ async fn pin_version(
     }
 
     if pin {
-        internal_pin(tool, &spec, global, true).await?;
+        internal_pin(tool, &spec, global, false, true).await?;
     }
 
     Ok(pin)
