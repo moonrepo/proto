@@ -30,7 +30,12 @@ impl Deref for ProtoSandbox {
 
 fn apply_settings(sandbox: &mut Sandbox) {
     let root = sandbox.path().to_path_buf();
+    let home_dir = sandbox.path().join(".home");
     let proto_dir = sandbox.path().join(".proto");
+
+    // Folders must exist or tests fail!
+    fs::create_dir_all(&home_dir).unwrap();
+    fs::create_dir_all(&proto_dir).unwrap();
 
     let mut env = HashMap::new();
     env.insert("RUST_BACKTRACE", "1");
