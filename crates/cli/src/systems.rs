@@ -46,6 +46,7 @@ pub fn detect_proto_env(cli: &CLI) -> AppResult<ProtoEnvironment> {
 #[instrument(skip_all)]
 pub fn load_proto_configs(env: &ProtoEnvironment) -> AppResult {
     debug!(
+        working_dir = ?env.cwd,
         "Loading configuration in {} mode",
         env.config_mode.to_string()
     );
