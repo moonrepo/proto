@@ -688,6 +688,7 @@ impl ProtoConfigManager {
 
         let mut config = ProtoConfig::from_partial(partial.finalize(context)?);
         config.inherit_builtin_plugins();
+        config.setup_env_vars();
 
         debug!("Merged {} configs", count);
 
