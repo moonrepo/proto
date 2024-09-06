@@ -23,14 +23,14 @@ reqwest = { version = "0.12.7", default-features = false, features = [
 ] }
 rustc-hash = "2.0.0"
 scc = "2.1.16"
-schematic = { version = "0.17.3", default-features = false }
+schematic = { version = "0.17.4", default-features = false }
 semver = { version = "1.0.23", features = ["serde"] }
 serde = { version = "1.0.209", features = ["derive"] }
-serde_json = "1.0.127"
+serde_json = "1.0.128"
 sha2 = "0.10.8"
 shell-words = "1.1.0"
-starbase = { version = "0.8.2" }
-starbase_archive = { version = "0.8.4", features = [
+starbase = { version = "0.8.3" }
+starbase_archive = { version = "0.8.5", features = [
     "gz",
     "miette",
     "tar-gz",
@@ -40,17 +40,17 @@ starbase_archive = { version = "0.8.4", features = [
     "zip-deflate",
 ] }
 starbase_events = { version = "0.6.3" }
-starbase_sandbox = { version = "0.7.2" }
-starbase_shell = { version = "0.5.6", features = ["miette"] }
-starbase_styles = { version = "0.4.2" }
-starbase_utils = { version = "0.8.7", default-features = false, features = [
+starbase_sandbox = { version = "0.7.3" }
+starbase_shell = { version = "0.5.7", features = ["miette"] }
+starbase_styles = { version = "0.4.3" }
+starbase_utils = { version = "0.8.8", default-features = false, features = [
     "json",
     "miette",
     "net",
     "toml",
 ] }
 thiserror = "1.0.63"
-tokio = { version = "1.39.3", features = ["full", "tracing"] }
+tokio = { version = "1.40.0", features = ["full", "tracing"] }
 tracing = "0.1.40"
 uuid = { version = "1.10.0", features = ["v4"] }
 
