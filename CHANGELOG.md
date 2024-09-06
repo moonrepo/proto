@@ -23,6 +23,7 @@
   - `home` -> `user`
   - `store` -> `global`
 - Added new `settings.offline` settings that control how offline checks work.
+- Deprecated the `--global` flag.
 
 #### ⚙️ Internal
 
