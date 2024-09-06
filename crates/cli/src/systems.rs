@@ -20,6 +20,16 @@ use tracing::{debug, instrument};
 
 #[instrument(skip_all)]
 pub fn detect_proto_env(cli: &CLI) -> AppResult<ProtoEnvironment> {
+    #[cfg(test)]
+    let mut env = {
+        let sandbox = env::var("PROTO_SANDBOX")
+            .map(|value| std::path::PathBuf::from(&value))
+            .expect("Missing sandbox root for testing!");
+
+        ProtoEnvironment::new_testing(&sandbox)?
+    };
+
+    #[cfg(not(test))]
     let mut env = ProtoEnvironment::new()?;
 
     env.config_mode = cli.config_mode.unwrap_or(match cli.command {

@@ -29,6 +29,7 @@ impl Deref for ProtoSandbox {
 }
 
 fn apply_settings(sandbox: &mut Sandbox) {
+    let root = sandbox.path().to_path_buf();
     let proto_dir = sandbox.path().join(".proto");
     let home_dir = sandbox.path().join(".home");
 
@@ -37,6 +38,7 @@ fn apply_settings(sandbox: &mut Sandbox) {
     env.insert("WASMTIME_BACKTRACE_DETAILS", "1");
     env.insert("NO_COLOR", "1");
     env.insert("HOME", home_dir.to_str().unwrap());
+    env.insert("PROTO_SANDBOX", root.to_str().unwrap());
     env.insert("PROTO_HOME", proto_dir.to_str().unwrap());
     env.insert("PROTO_LOG", "trace");
     env.insert("PROTO_TEST", "true");
