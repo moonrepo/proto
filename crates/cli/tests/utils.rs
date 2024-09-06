@@ -30,11 +30,13 @@ impl Deref for ProtoSandbox {
 
 fn apply_settings(sandbox: &mut Sandbox) {
     let proto_dir = sandbox.path().join(".proto");
+    let home_dir = sandbox.path().join(".home");
 
     let mut env = HashMap::new();
     env.insert("RUST_BACKTRACE", "1");
     env.insert("WASMTIME_BACKTRACE_DETAILS", "1");
     env.insert("NO_COLOR", "1");
+    env.insert("HOME", home_dir.to_str().unwrap());
     env.insert("PROTO_HOME", proto_dir.to_str().unwrap());
     env.insert("PROTO_LOG", "trace");
     env.insert("PROTO_TEST", "true");

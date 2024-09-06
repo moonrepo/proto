@@ -146,3 +146,37 @@ mod alias_global {
         );
     }
 }
+
+mod alias_user {
+    use super::*;
+
+    #[test]
+    fn updates_config_file() {
+        let sandbox = create_empty_proto_sandbox();
+        let config_file = sandbox.path().join(".home/.prototools");
+
+        assert!(!config_file.exists());
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("alias")
+                    .arg("node")
+                    .arg("example")
+                    .arg("19.0.0")
+                    .arg("--user");
+            })
+            .debug();
+
+        assert!(config_file.exists());
+
+        let config = load_config(sandbox.path().join(".home"));
+
+        assert_eq!(
+            config.tools.get("node").unwrap().aliases,
+            BTreeMap::from_iter([(
+                "example".into(),
+                UnresolvedVersionSpec::parse("19.0.0").unwrap()
+            )])
+        );
+    }
+}

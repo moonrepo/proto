@@ -123,3 +123,36 @@ mod unalias_global {
         assert!(config.tools.get("node").unwrap().aliases.is_empty());
     }
 }
+
+mod unalias_user {
+    use super::*;
+
+    #[test]
+    fn removes_existing_alias() {
+        let sandbox = create_empty_proto_sandbox();
+
+        ProtoConfig::update(sandbox.path().join(".home"), |config| {
+            config.tools.get_or_insert(Default::default()).insert(
+                Id::raw("node"),
+                PartialProtoToolConfig {
+                    aliases: Some(BTreeMap::from_iter([(
+                        "example".into(),
+                        UnresolvedVersionSpec::parse("19.0.0").unwrap(),
+                    )])),
+                    ..Default::default()
+                },
+            );
+        })
+        .unwrap();
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("unalias").arg("node").arg("example").arg("--user");
+            })
+            .success();
+
+        let config = load_config(sandbox.path().join(".home"));
+
+        assert!(config.tools.get("node").unwrap().aliases.is_empty());
+    }
+}
