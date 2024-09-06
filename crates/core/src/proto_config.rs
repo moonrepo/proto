@@ -122,8 +122,11 @@ derive_enum!(
 derive_enum!(
     #[derive(ConfigEnum)]
     pub enum PinType {
+        #[serde(alias = "store")]
         Global,
+        #[serde(alias = "cwd")]
         Local,
+        #[serde(alias = "home")]
         User,
     }
 );

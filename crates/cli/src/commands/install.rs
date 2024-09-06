@@ -21,8 +21,11 @@ use tracing::{debug, instrument};
 
 #[derive(Clone, Debug, ValueEnum)]
 pub enum PinOption {
+    #[value(alias = "store")]
     Global,
+    #[value(alias = "cwd")]
     Local,
+    #[value(alias = "home")]
     User,
 }
 
