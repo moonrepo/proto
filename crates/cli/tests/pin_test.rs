@@ -253,3 +253,31 @@ mod pin_global {
         assert!(!link.exists());
     }
 }
+
+mod pin_user {
+    use super::*;
+
+    #[test]
+    fn writes_user_version_file() {
+        let sandbox = create_empty_proto_sandbox();
+        let version_file = sandbox.path().join(".home/.prototools");
+
+        assert!(!version_file.exists());
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("pin")
+                    .arg("node")
+                    .arg("19.0.0")
+                    .arg("--to")
+                    .arg("home");
+            })
+            .success();
+
+        assert!(version_file.exists());
+        assert_eq!(
+            fs::read_to_string(version_file).unwrap(),
+            "node = \"19.0.0\"\n"
+        )
+    }
+}

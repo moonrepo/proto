@@ -20,6 +20,14 @@ use tracing::{debug, instrument};
 
 #[instrument(skip_all)]
 pub fn detect_proto_env(cli: &CLI) -> AppResult<ProtoEnvironment> {
+    #[cfg(debug_assertions)]
+    let mut env = if let Ok(sandbox) = env::var("PROTO_SANDBOX") {
+        ProtoEnvironment::new_testing(&std::path::PathBuf::from(&sandbox))?
+    } else {
+        ProtoEnvironment::new()?
+    };
+
+    #[cfg(not(debug_assertions))]
     let mut env = ProtoEnvironment::new()?;
 
     env.config_mode = cli.config_mode.unwrap_or(match cli.command {
@@ -38,6 +46,7 @@ pub fn detect_proto_env(cli: &CLI) -> AppResult<ProtoEnvironment> {
 #[instrument(skip_all)]
 pub fn load_proto_configs(env: &ProtoEnvironment) -> AppResult {
     debug!(
+        working_dir = ?env.cwd,
         "Loading configuration in {} mode",
         env.config_mode.to_string()
     );

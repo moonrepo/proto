@@ -1,13 +1,42 @@
+use clap::ValueEnum;
 use dialoguer::{
     console::{style, Style},
     theme::ColorfulTheme,
 };
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use miette::IntoDiagnostic;
+use proto_core::PinType;
 use starbase_styles::color::{self, Color};
 use starbase_utils::env::bool_var;
 use std::{io::IsTerminal, time::Duration};
 use tracing::debug;
+
+#[derive(Clone, Copy, Debug, Default, ValueEnum)]
+pub enum PinOption {
+    #[value(alias = "store")]
+    Global,
+    #[default]
+    #[value(alias = "cwd")]
+    Local,
+    #[value(alias = "home")]
+    User,
+}
+
+pub fn map_pin_type(global: bool, option: Option<PinOption>) -> PinType {
+    if let Some(option) = option {
+        return match option {
+            PinOption::Global => PinType::Global,
+            PinOption::Local => PinType::Local,
+            PinOption::User => PinType::User,
+        };
+    }
+
+    if global {
+        PinType::Global
+    } else {
+        PinType::Local
+    }
+}
 
 pub fn create_theme() -> ColorfulTheme {
     ColorfulTheme {

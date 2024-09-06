@@ -75,4 +75,38 @@ mod plugin_remove {
 
         assert!(!config.plugins.contains_key("id"));
     }
+
+    #[test]
+    fn updates_user_file() {
+        let sandbox = create_empty_proto_sandbox();
+
+        ProtoConfig::update(sandbox.path().join(".home"), |config| {
+            config
+                .plugins
+                .get_or_insert(Default::default())
+                .insert(
+                    Id::raw("id"),
+                    PluginLocator::Url(Box::new(UrlLocator {
+                      url: "https://github.com/moonrepo/tools/releases/latest/download/example_plugin.wasm".into()
+                    })),
+                );
+        })
+        .unwrap();
+
+        sandbox.debug_files();
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("plugin")
+                    .arg("remove")
+                    .arg("id")
+                    .arg("--from")
+                    .arg("user");
+            })
+            .success();
+
+        let config = load_config(sandbox.path().join(".home"));
+
+        assert!(!config.plugins.contains_key("id"));
+    }
 }

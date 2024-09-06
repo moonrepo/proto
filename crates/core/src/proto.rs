@@ -2,7 +2,7 @@ use crate::error::ProtoError;
 use crate::helpers::is_offline;
 use crate::layout::Store;
 use crate::proto_config::{
-    ConfigMode, ProtoConfig, ProtoConfigFile, ProtoConfigManager, PROTO_CONFIG_NAME,
+    ConfigMode, PinType, ProtoConfig, ProtoConfigFile, ProtoConfigManager, PROTO_CONFIG_NAME,
 };
 use once_cell::sync::OnceCell;
 use starbase_utils::dirs::home_dir;
@@ -39,7 +39,6 @@ impl ProtoEnvironment {
 
     pub fn new_testing(sandbox: &Path) -> miette::Result<Self> {
         let mut env = Self::from(sandbox.join(".proto"), sandbox.join(".home"))?;
-        env.cwd = sandbox.to_path_buf();
         env.test_only = true;
 
         Ok(env)
@@ -47,14 +46,19 @@ impl ProtoEnvironment {
 
     pub fn from<R: AsRef<Path>, H: AsRef<Path>>(root: R, home: H) -> miette::Result<Self> {
         let root = root.as_ref();
+        let home = home.as_ref();
 
-        debug!(store = ?root, "Creating proto environment, detecting store");
+        debug!(
+            store = ?root,
+            home = ?home,
+            "Creating proto environment, detecting store",
+        );
 
         Ok(ProtoEnvironment {
             config_mode: ConfigMode::Upwards,
             cwd: env::current_dir().expect("Unable to determine current working directory!"),
             env_mode: env::var("PROTO_ENV").ok(),
-            home: home.as_ref().to_owned(),
+            home: home.to_owned(),
             root: root.to_owned(),
             config_manager: Arc::new(OnceCell::new()),
             plugin_loader: Arc::new(OnceCell::new()),
@@ -63,11 +67,11 @@ impl ProtoEnvironment {
         })
     }
 
-    pub fn get_config_dir(&self, global: bool) -> &Path {
-        if global {
-            &self.root
-        } else {
-            &self.cwd
+    pub fn get_config_dir(&self, pin: PinType) -> &Path {
+        match pin {
+            PinType::Global => &self.root,
+            PinType::Local => &self.cwd,
+            PinType::User => &self.home,
         }
     }
 
