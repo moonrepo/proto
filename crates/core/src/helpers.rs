@@ -4,6 +4,7 @@ use semver::Version;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use starbase_archive::is_supported_archive_extension;
+use starbase_utils::env::bool_var;
 use starbase_utils::fs;
 use starbase_utils::json::{self, JsonError};
 use starbase_utils::net;
@@ -36,20 +37,22 @@ pub fn is_offline() -> bool {
             };
         }
 
+        let override_default = bool_var("PROTO_OFFLINE_OVERRIDE_HOSTS");
+
         let timeout: u64 = env::var("PROTO_OFFLINE_TIMEOUT")
-            .map(|v| v.parse().expect("Invalid offline timeout."))
+            .map(|value| value.parse().expect("Invalid offline timeout."))
             .unwrap_or(750);
 
-        let hosts = env::var("PROTO_OFFLINE_HOSTS")
-            .map(|value| {
-                value
-                    .split(',')
-                    .map(|v| v.trim().to_owned())
-                    .collect::<Vec<_>>()
-            })
+        let custom_hosts: Vec<String> = env::var("PROTO_OFFLINE_HOSTS")
+            .map(|value| value.split(',').map(|v| v.trim().to_owned()).collect())
             .unwrap_or_default();
 
-        net::is_offline(timeout, hosts)
+        net::is_offline_with_options(net::OfflineOptions {
+            check_default_hosts: !override_default,
+            check_default_ips: !override_default,
+            custom_hosts,
+            timeout,
+        })
     })
 }
 

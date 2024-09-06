@@ -12,6 +12,10 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Added new `settings.offline` settings that control how offline checks work.
+
 #### ⚙️ Internal
 
 - Updated Rust to v1.81.

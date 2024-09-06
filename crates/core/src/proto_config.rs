@@ -174,6 +174,17 @@ pub struct ProtoToolConfig {
 
 #[derive(Clone, Config, Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
+pub struct ProtoOfflineConfig {
+    pub custom_hosts: Vec<String>,
+
+    pub override_default_hosts: bool,
+
+    #[setting(default = 750)]
+    pub timeout: u64,
+}
+
+#[derive(Clone, Config, Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct ProtoSettingsConfig {
     #[setting(env = "PROTO_AUTO_CLEAN", parse_env = env::parse_bool)]
     pub auto_clean: bool,
@@ -188,6 +199,9 @@ pub struct ProtoSettingsConfig {
     pub detect_strategy: DetectStrategy,
 
     pub http: HttpOptions,
+
+    #[setting(nested)]
+    pub offline: ProtoOfflineConfig,
 
     #[setting(env = "PROTO_PIN_LATEST")]
     pub pin_latest: Option<PinType>,
@@ -225,6 +239,32 @@ pub struct ProtoConfig {
 }
 
 impl ProtoConfig {
+    pub fn setup_env_vars(&self) {
+        use std::env;
+
+        if env::var("PROTO_OFFLINE_OVERRIDE_HOSTS").is_err()
+            && self.settings.offline.override_default_hosts
+        {
+            env::set_var("PROTO_OFFLINE_OVERRIDE_HOSTS", "true");
+        }
+
+        if env::var("PROTO_OFFLINE_HOSTS").is_err()
+            && !self.settings.offline.custom_hosts.is_empty()
+        {
+            env::set_var(
+                "PROTO_OFFLINE_HOSTS",
+                self.settings.offline.custom_hosts.join(","),
+            );
+        }
+
+        if env::var("PROTO_OFFLINE_TIMEOUT").is_err() {
+            env::set_var(
+                "PROTO_OFFLINE_TIMEOUT",
+                self.settings.offline.timeout.to_string(),
+            );
+        }
+    }
+
     pub fn builtin_plugins(&self) -> BTreeMap<Id, PluginLocator> {
         let mut config = ProtoConfig::default();
 
@@ -648,6 +688,7 @@ impl ProtoConfigManager {
 
         let mut config = ProtoConfig::from_partial(partial.finalize(context)?);
         config.inherit_builtin_plugins();
+        config.setup_env_vars();
 
         debug!("Merged {} configs", count);
 
