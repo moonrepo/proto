@@ -19,6 +19,7 @@
 #### ⚙️ Internal
 
 - Updated Rust to v1.81.
+- Updated WASM runtime.
 
 ## 0.40.4
 

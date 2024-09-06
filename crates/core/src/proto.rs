@@ -91,6 +91,13 @@ impl ProtoEnvironment {
         ])
     }
 
+    pub fn get_virtual_paths_compat(&self) -> BTreeMap<String, PathBuf> {
+        self.get_virtual_paths()
+            .into_iter()
+            .map(|(key, value)| (key.to_string_lossy().to_string(), value))
+            .collect()
+    }
+
     pub fn load_config(&self) -> miette::Result<&ProtoConfig> {
         let manager = self.load_config_manager()?;
 
