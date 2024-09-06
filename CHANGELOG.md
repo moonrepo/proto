@@ -15,11 +15,13 @@
 #### 🚀 Updates
 
 - Added support for updating the `~/.prototools` file (root of user home directory).
-  - Added `--pin=user` to `proto install`.
-  - Added `--user` to `proto alias`, `unalias`, `pin`, `unpin`, `plugin add`, and `plugin remove`.
-  - Added `store` as an alias for `global`.
-  - Added `cwd` as an alias for `local`.
-  - Added `home` as an alias for `user`.
+- Added `--pin=user` to `proto install`.
+- Added `--to=global|local|user` to `proto alias`, `pin`, and `plugin add`.
+- Added `--from=global|local|user` to `proto unalias`, `unpin`, and `plugin remove`.
+- Added aliases for pin locations.
+  - `cwd` -> `local`
+  - `home` -> `user`
+  - `store` -> `global`
 - Added new `settings.offline` settings that control how offline checks work.
 
 #### ⚙️ Internal

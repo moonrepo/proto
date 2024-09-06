@@ -83,4 +83,36 @@ mod plugin_add {
             }))
         );
     }
+
+    #[test]
+    fn updates_user_file() {
+        let sandbox = create_empty_proto_sandbox();
+        let config_file = sandbox.path().join(".home/.prototools");
+
+        assert!(!config_file.exists());
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("plugin")
+                    .arg("add")
+                    .arg("id")
+                    .arg("https://github.com/moonrepo/tools/releases/latest/download/example_plugin.wasm")
+                    .arg("--to")
+                    .arg("user");
+            })
+            .success();
+
+        assert!(config_file.exists());
+
+        let config = load_config(sandbox.path().join(".home"));
+
+        assert_eq!(
+            config.plugins.get("id").unwrap(),
+            &PluginLocator::Url(Box::new(UrlLocator {
+                url:
+                    "https://github.com/moonrepo/tools/releases/latest/download/example_plugin.wasm"
+                        .into()
+            }))
+        );
+    }
 }

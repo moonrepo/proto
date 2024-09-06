@@ -3,7 +3,7 @@ use crate::helpers::*;
 use crate::session::ProtoSession;
 use crate::shell::{self, Export};
 use crate::telemetry::{track_usage, Metric};
-use clap::{Args, ValueEnum};
+use clap::Args;
 use indicatif::ProgressBar;
 use miette::IntoDiagnostic;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
@@ -18,16 +18,6 @@ use std::time::Duration;
 use tokio::task::JoinSet;
 use tokio::time::sleep;
 use tracing::{debug, instrument};
-
-#[derive(Clone, Debug, ValueEnum)]
-pub enum PinOption {
-    #[value(alias = "store")]
-    Global,
-    #[value(alias = "cwd")]
-    Local,
-    #[value(alias = "home")]
-    User,
-}
 
 #[derive(Args, Clone, Debug, Default)]
 pub struct InstallArgs {
@@ -87,30 +77,30 @@ async fn pin_version(
 ) -> miette::Result<bool> {
     let config = tool.proto.load_config()?;
     let spec = tool.get_resolved_version().to_unresolved_spec();
-    let mut global = false;
+    let mut pin_type = PinType::Local;
     let mut pin = false;
 
     // via `--pin` arg
-    if let Some(pin_type) = arg_pin_type {
-        global = matches!(pin_type, PinType::Global);
+    if let Some(custom_type) = arg_pin_type {
+        pin_type = *custom_type;
         pin = true;
     }
     // Or the first time being installed
     else if !config.versions.contains_key(&tool.id) {
-        global = true;
+        pin_type = PinType::Global;
         pin = true;
     }
 
     // via `pin-latest` setting
     if initial_version.is_latest() {
-        if let Some(pin_type) = &config.settings.pin_latest {
-            global = matches!(pin_type, PinType::Global);
+        if let Some(custom_type) = &config.settings.pin_latest {
+            pin_type = *custom_type;
             pin = true;
         }
     }
 
     if pin {
-        internal_pin(tool, &spec, global, false, true).await?;
+        internal_pin(tool, &spec, pin_type, true).await?;
     }
 
     Ok(pin)

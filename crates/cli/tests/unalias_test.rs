@@ -147,7 +147,11 @@ mod unalias_user {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("unalias").arg("node").arg("example").arg("--user");
+                cmd.arg("unalias")
+                    .arg("node")
+                    .arg("example")
+                    .arg("--from")
+                    .arg("user");
             })
             .success();
 

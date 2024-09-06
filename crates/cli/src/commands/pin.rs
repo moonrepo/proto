@@ -1,6 +1,7 @@
+use crate::helpers::{map_pin_type, PinOption};
 use crate::session::ProtoSession;
 use clap::Args;
-use proto_core::{Id, ProtoConfig, Tool, UnresolvedVersionSpec};
+use proto_core::{Id, PinType, ProtoConfig, Tool, UnresolvedVersionSpec};
 use starbase::AppResult;
 use starbase_styles::color;
 use std::collections::BTreeMap;
@@ -18,34 +19,30 @@ pub struct PinArgs {
     #[arg(long, group = "pin", help = "Pin to the global ~/.proto/.prototools")]
     pub global: bool,
 
-    #[arg(long, group = "pin", help = "Pin to the user ~/.prototools")]
-    pub user: bool,
-
     #[arg(long, help = "Resolve the version before pinning")]
     pub resolve: bool,
+
+    #[arg(long, group = "pin", help = "Location of .prototools to pin to")]
+    pub to: Option<PinOption>,
 }
 
 pub async fn internal_pin(
     tool: &mut Tool,
     spec: &UnresolvedVersionSpec,
-    global: bool,
-    user: bool,
+    pin: PinType,
     link: bool,
 ) -> miette::Result<PathBuf> {
     // Create symlink to this new version
-    if global && link {
+    if pin == PinType::Global && link {
         tool.symlink_bins(true).await?;
     }
 
-    let config_path = ProtoConfig::update(
-        tool.proto.get_config_dir_from_flags(global, user),
-        |config| {
-            config
-                .versions
-                .get_or_insert(BTreeMap::default())
-                .insert(tool.id.clone(), spec.clone());
-        },
-    )?;
+    let config_path = ProtoConfig::update(tool.proto.get_config_dir(pin), |config| {
+        config
+            .versions
+            .get_or_insert(BTreeMap::default())
+            .insert(tool.id.clone(), spec.clone());
+    })?;
 
     debug!(
         version = spec.to_string(),
@@ -67,7 +64,8 @@ pub async fn pin(session: ProtoSession, args: PinArgs) -> AppResult {
         args.spec.clone()
     };
 
-    let config_path = internal_pin(&mut tool, &spec, args.global, args.user, false).await?;
+    let config_path =
+        internal_pin(&mut tool, &spec, map_pin_type(args.global, args.to), false).await?;
 
     println!(
         "Pinned {} to {} in {}",

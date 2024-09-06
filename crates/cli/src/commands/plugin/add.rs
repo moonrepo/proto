@@ -1,3 +1,4 @@
+use crate::helpers::{map_pin_type, PinOption};
 use crate::session::ProtoSession;
 use clap::Args;
 use proto_core::{Id, PluginLocator, ProtoConfig};
@@ -15,8 +16,8 @@ pub struct AddPluginArgs {
     #[arg(long, group = "pin", help = "Add to the global ~/.proto/.prototools")]
     global: bool,
 
-    #[arg(long, group = "pin", help = "Add to the user ~/.prototools")]
-    user: bool,
+    #[arg(long, group = "pin", help = "Location of .prototools to add to")]
+    to: Option<PinOption>,
 }
 
 #[tracing::instrument(skip_all)]
@@ -24,7 +25,7 @@ pub async fn add(session: ProtoSession, args: AddPluginArgs) -> AppResult {
     let config_path = ProtoConfig::update(
         session
             .env
-            .get_config_dir_from_flags(args.global, args.user),
+            .get_config_dir(map_pin_type(args.global, args.to)),
         |config| {
             config
                 .plugins

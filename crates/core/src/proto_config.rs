@@ -120,7 +120,7 @@ derive_enum!(
 );
 
 derive_enum!(
-    #[derive(ConfigEnum)]
+    #[derive(Copy, ConfigEnum)]
     pub enum PinType {
         #[serde(alias = "store")]
         Global,

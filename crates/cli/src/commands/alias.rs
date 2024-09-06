@@ -1,4 +1,5 @@
 use crate::error::ProtoCliError;
+use crate::helpers::{map_pin_type, PinOption};
 use crate::session::ProtoSession;
 use clap::Args;
 use proto_core::{is_alias_name, Id, ProtoConfig, UnresolvedVersionSpec};
@@ -19,8 +20,8 @@ pub struct AliasArgs {
     #[arg(long, group = "pin", help = "Add to the global ~/.proto/.prototools")]
     global: bool,
 
-    #[arg(long, group = "pin", help = "Add to the user ~/.prototools")]
-    user: bool,
+    #[arg(long, group = "pin", help = "Location of .prototools to add to")]
+    to: Option<PinOption>,
 }
 
 #[tracing::instrument(skip_all)]
@@ -41,7 +42,8 @@ pub async fn alias(session: ProtoSession, args: AliasArgs) -> AppResult {
     let tool = session.load_tool(&args.id).await?;
 
     let config_path = ProtoConfig::update(
-        tool.proto.get_config_dir_from_flags(args.global, args.user),
+        tool.proto
+            .get_config_dir(map_pin_type(args.global, args.to)),
         |config| {
             let tool_configs = config.tools.get_or_insert(Default::default());
 

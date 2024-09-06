@@ -163,9 +163,10 @@ mod alias_user {
                     .arg("node")
                     .arg("example")
                     .arg("19.0.0")
-                    .arg("--user");
+                    .arg("--to")
+                    .arg("user");
             })
-            .debug();
+            .success();
 
         assert!(config_file.exists());
 

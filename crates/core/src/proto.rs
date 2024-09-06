@@ -71,14 +71,6 @@ impl ProtoEnvironment {
         }
     }
 
-    pub fn get_config_dir_from_flags(&self, global: bool, user: bool) -> &Path {
-        match (global, user) {
-            (true, false) => self.get_config_dir(PinType::Global),
-            (false, true) => self.get_config_dir(PinType::User),
-            _ => self.get_config_dir(PinType::Local),
-        }
-    }
-
     pub fn get_plugin_loader(&self) -> miette::Result<&PluginLoader> {
         let config = self.load_config()?;
 

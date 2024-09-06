@@ -1,3 +1,4 @@
+use crate::helpers::{map_pin_type, PinOption};
 use crate::session::ProtoSession;
 use clap::Args;
 use proto_core::{Id, ProtoConfig};
@@ -20,8 +21,8 @@ pub struct UnaliasArgs {
     )]
     global: bool,
 
-    #[arg(long, group = "pin", help = "Remove from the user ~/.prototools")]
-    user: bool,
+    #[arg(long, group = "pin", help = "Location of .prototools to remove from")]
+    from: Option<PinOption>,
 }
 
 #[tracing::instrument(skip_all)]
@@ -30,7 +31,8 @@ pub async fn unalias(session: ProtoSession, args: UnaliasArgs) -> AppResult {
     let mut value = None;
 
     let config_path = ProtoConfig::update(
-        tool.proto.get_config_dir_from_flags(args.global, args.user),
+        tool.proto
+            .get_config_dir(map_pin_type(args.global, args.from)),
         |config| {
             if let Some(tool_configs) = &mut config.tools {
                 if let Some(tool_config) = tool_configs.get_mut(&tool.id) {

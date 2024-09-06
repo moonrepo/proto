@@ -266,7 +266,11 @@ mod pin_user {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("pin").arg("node").arg("19.0.0").arg("--user");
+                cmd.arg("pin")
+                    .arg("node")
+                    .arg("19.0.0")
+                    .arg("--to")
+                    .arg("home");
             })
             .success();
 
