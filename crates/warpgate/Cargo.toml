@@ -29,9 +29,6 @@ tracing = { workspace = true }
 # Enabling certs for extism!
 ureq = { version = "2.10.1", features = ["native-certs"] }
 
-# Temporary fix for broken builds!
-regalloc2 = "=0.9.3"
-
 [dev-dependencies]
 starbase_sandbox = { workspace = true }
 
