@@ -82,7 +82,7 @@ export interface ToolContext {
 }
 
 /** Supported types of plugins. */
-export type PluginType = 'language' | 'dependency-manager' | 'cli';
+export type PluginType = 'command-line' | 'language' | 'dependency-manager' | 'version-manager';
 
 /** Input passed to the `register_tool` function. */
 export interface ToolMetadataInput {
@@ -92,8 +92,6 @@ export interface ToolMetadataInput {
 
 /** Controls aspects of the tool inventory. */
 export interface ToolInventoryMetadata {
-	/** Disable progress bars when installing or uninstalling tools. */
-	disableProgressBars?: boolean;
 	/**
 	 * Override the tool inventory directory (where all versions are installed).
 	 * This is an advanced feature and should only be used when absolutely necessary.
@@ -105,6 +103,8 @@ export interface ToolInventoryMetadata {
 
 /** Output returned by the `register_tool` function. */
 export interface ToolMetadataOutput {
+	/** Schema shape of the tool's configuration. */
+	configSchema?: unknown | null;
 	/** Default alias or version to use as a fallback. */
 	defaultVersion?: UnresolvedVersionSpec | null;
 	/** Controls aspects of the tool inventory. */
@@ -121,7 +121,7 @@ export interface ToolMetadataOutput {
 	/**
 	 * Type of the tool.
 	 *
-	 * @type {'language' | 'dependency-manager' | 'cli'}
+	 * @type {'command-line' | 'language' | 'dependency-manager' | 'version-manager'}
 	 */
 	type: PluginType;
 }
