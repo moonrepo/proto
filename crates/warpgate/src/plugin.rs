@@ -7,6 +7,7 @@ use miette::IntoDiagnostic;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use starbase_styles::color::{self, apply_style_tags};
+use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -31,6 +32,14 @@ fn is_incompatible_runtime(error: &Error) -> bool {
     check(error.to_string())
 }
 
+// Compatibility with extism >= 1.6
+fn map_virtual_paths(paths_map: &BTreeMap<String, PathBuf>) -> BTreeMap<PathBuf, PathBuf> {
+    paths_map
+        .iter()
+        .map(|(key, value)| (PathBuf::from(key), value.to_owned()))
+        .collect()
+}
+
 /// Inject our default configuration into the provided plugin manifest.
 /// This will set `plugin_id` and `host_environment` for use within PDKs.
 #[instrument(skip(manifest))]
@@ -44,7 +53,10 @@ pub fn inject_default_manifest_config(
         arch: SystemArch::from_env(),
         libc: SystemLibc::detect(os),
         os,
-        home_dir: to_virtual_path(manifest.allowed_paths.as_ref().unwrap(), home_dir),
+        home_dir: to_virtual_path(
+            &map_virtual_paths(manifest.allowed_paths.as_ref().unwrap()),
+            home_dir,
+        ),
     })
     .into_diagnostic()?;
 
@@ -191,7 +203,9 @@ impl PluginContainer {
             return path.as_ref().to_path_buf();
         };
 
-        from_virtual_path(virtual_paths, path)
+        let paths = map_virtual_paths(virtual_paths);
+
+        from_virtual_path(&paths, path)
     }
 
     /// Convert the provided absolute host path to a virtual guest path suitable
@@ -201,7 +215,9 @@ impl PluginContainer {
             return VirtualPath::OnlyReal(path.as_ref().to_path_buf());
         };
 
-        to_virtual_path(virtual_paths, path)
+        let paths = map_virtual_paths(virtual_paths);
+
+        to_virtual_path(&paths, path)
     }
 
     /// Call a function on the plugin with the given raw input and return the raw output.
