@@ -10,6 +10,13 @@
 - [Rust](https://github.com/moonrepo/tools/blob/master/tools/rust/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/tools/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🧩 Plugins
+
+- Updated `node_tool` to v0.12.1.
+  - Fixed arm64 -> x64 compatibility not working correctly for versions < 16.
+
 ## 0.41.0
 
 #### 🚀 Updates
