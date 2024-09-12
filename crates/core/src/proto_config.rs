@@ -324,7 +324,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("node"),
                 PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/tools/releases/download/node_tool-v0.12.0/node_tool.wasm".into()
+                    url: "https://github.com/moonrepo/tools/releases/download/node_tool-v0.12.1/node_tool.wasm".into()
                 }))
             );
         }
