@@ -40,6 +40,12 @@ pub struct InstallArgs {
 
     #[arg(
         long,
+        help = "Force reinstallation of tool even if it is already installed"
+    )]
+    pub force: bool,
+
+    #[arg(
+        long,
         help = "When installing one, pin the resolved version to .prototools"
     )]
     pub pin: Option<Option<PinOption>>,
@@ -220,8 +226,8 @@ pub async fn do_install(
 
     let resolved_version = tool.get_resolved_version();
 
-    // Check if already installed, or if canary, overwrite previous install
-    if !version.is_canary() && tool.is_setup(&version).await? {
+    // Check if already installed, or if forced, overwrite previous install
+    if !args.force && tool.is_setup(&version).await? {
         pin_version(tool, &version, &pin_type).await?;
         finish_pb(false, &resolved_version);
 
@@ -310,6 +316,7 @@ pub async fn do_install(
             InstallOptions {
                 on_download_chunk: Some(on_download_chunk),
                 on_phase_change: Some(on_phase_change),
+                force: args.force,
                 ..InstallOptions::default()
             },
         )

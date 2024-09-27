@@ -6,6 +6,8 @@ use starbase_sandbox::predicates::prelude::*;
 use utils::*;
 
 mod install_uninstall {
+    use std::{fs, time::SystemTime};
+
     use super::*;
 
     #[test]
@@ -95,6 +97,93 @@ mod install_uninstall {
 
         assert.stdout(predicate::str::contains(
             "Node.js 19.0.0 has been uninstalled!",
+        ));
+    }
+
+    #[test]
+    fn install_and_reinstall_canary_tool() {
+        let sandbox = create_empty_proto_sandbox();
+        let tool_dir = sandbox.path().join(".proto/tools/node/canary");
+        let tool_bin = if cfg!(windows) {
+            sandbox.path().join(".proto/tools/node/canary/node.exe")
+        } else {
+            sandbox.path().join(".proto/tools/node/canary/bin/node")
+        };
+
+        assert!(!tool_dir.exists());
+        assert!(!tool_bin.exists());
+
+        // Install
+        let assert = sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install")
+                    .arg("node")
+                    .arg("canary")
+                    .arg("--")
+                    .arg("--no-bundled-npm");
+            })
+            .success();
+
+        assert!(tool_dir.exists());
+        assert!(tool_bin.exists());
+
+        assert.stdout(predicate::str::contains(
+            "Node.js canary has been installed to",
+        ));
+
+        // Support for ctime in tmpfs requires recent linux kernel (>6.11)
+        // touch the downloaded bin to modify the mtime instead
+        let mtime_original = fs::metadata(tool_bin.clone()).unwrap().modified().unwrap();
+        fs::File::options()
+            .write(true)
+            .open(tool_bin.clone())
+            .unwrap()
+            .set_modified(SystemTime::now())
+            .unwrap();
+        let mtime = fs::metadata(tool_bin.clone()).unwrap().modified().unwrap();
+        assert_ne!(mtime, mtime_original);
+
+        // Install without --force
+        let assert = sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install")
+                    .arg("node")
+                    .arg("canary")
+                    .arg("--")
+                    .arg("--no-bundled-npm");
+            })
+            .success();
+
+        assert!(tool_dir.exists());
+        assert!(tool_bin.exists());
+
+        let mtime_no_reinstall = fs::metadata(tool_bin.clone()).unwrap().modified().unwrap();
+        assert_eq!(mtime, mtime_no_reinstall);
+
+        assert.stdout(predicate::str::contains(
+            "Node.js canary has already been installed at",
+        ));
+
+        // Install with --force
+        let assert = sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install")
+                    .arg("node")
+                    .arg("--force")
+                    .arg("canary")
+                    .arg("--")
+                    .arg("--no-bundled-npm");
+            })
+            .success();
+
+        assert!(tool_dir.exists());
+        assert!(tool_bin.exists());
+
+        let mtime_reinstall = fs::metadata(tool_bin.clone()).unwrap().modified().unwrap();
+        assert_ne!(mtime, mtime_reinstall);
+
+        assert.stdout(predicate::str::contains(
+            "Node.js canary has been installed to",
         ));
     }
 
