@@ -33,6 +33,7 @@ pub struct InstallOptions {
     pub on_download_chunk: Option<OnChunkFn>,
     pub on_phase_change: Option<OnPhaseFn>,
     pub strategy: InstallStrategy,
+    pub force: bool,
 }
 
 impl Tool {
@@ -41,15 +42,9 @@ impl Tool {
     pub fn is_installed(&self) -> bool {
         let dir = self.get_product_dir();
 
-        self.version
-            .as_ref()
-            // Canary can be overwritten so treat as not-installed
-            .is_some_and(|v| {
-                !v.is_latest()
-                    && !v.is_canary()
-                    && self.inventory.manifest.installed_versions.contains(v)
-            })
-            && dir.exists()
+        self.version.as_ref().is_some_and(|v| {
+            !v.is_latest() && self.inventory.manifest.installed_versions.contains(v)
+        }) && dir.exists()
             && !fs::is_dir_locked(dir)
     }
 
@@ -354,7 +349,7 @@ impl Tool {
     /// a pre-built archive, or by using a native installation method.
     #[instrument(skip(self, options))]
     pub async fn install(&mut self, options: InstallOptions) -> miette::Result<bool> {
-        if self.is_installed() {
+        if self.is_installed() && !options.force {
             debug!(
                 tool = self.id.as_str(),
                 "Tool already installed, continuing"
