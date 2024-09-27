@@ -6,7 +6,7 @@ use starbase_sandbox::predicates::prelude::*;
 use utils::*;
 
 mod install_uninstall {
-    use std::fs;
+    use std::{fs, time::SystemTime};
 
     use super::*;
 
@@ -128,7 +128,16 @@ mod install_uninstall {
         ));
 
         // Support for ctime in tmpfs requires recent linux kernel (>6.11)
-        let ctime = fs::metadata(tool_bin.clone()).unwrap().created().unwrap();
+        // touch the downloaded bin to modify the mtime instead
+        let mtime_original = fs::metadata(tool_bin.clone()).unwrap().modified().unwrap();
+        fs::File::options()
+            .write(true)
+            .open(tool_bin.clone())
+            .unwrap()
+            .set_modified(SystemTime::now())
+            .unwrap();
+        let mtime = fs::metadata(tool_bin.clone()).unwrap().modified().unwrap();
+        assert_ne!(mtime, mtime_original);
 
         // Install without --force
         let assert = sandbox
@@ -144,8 +153,8 @@ mod install_uninstall {
         assert!(tool_dir.exists());
         assert!(tool_bin.exists());
 
-        let ctime_no_reinstall = fs::metadata(tool_bin.clone()).unwrap().created().unwrap();
-        assert_eq!(ctime, ctime_no_reinstall);
+        let mtime_no_reinstall = fs::metadata(tool_bin.clone()).unwrap().modified().unwrap();
+        assert_eq!(mtime, mtime_no_reinstall);
 
         assert.stdout(predicate::str::contains(
             "Node.js canary has already been installed at",
@@ -166,8 +175,8 @@ mod install_uninstall {
         assert!(tool_dir.exists());
         assert!(tool_bin.exists());
 
-        let ctime_reinstall = fs::metadata(tool_bin.clone()).unwrap().created().unwrap();
-        assert_ne!(ctime, ctime_reinstall);
+        let mtime_reinstall = fs::metadata(tool_bin.clone()).unwrap().modified().unwrap();
+        assert_ne!(mtime, mtime_reinstall);
 
         assert.stdout(predicate::str::contains(
             "Node.js canary has been installed to",
