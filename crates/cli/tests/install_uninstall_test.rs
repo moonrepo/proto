@@ -104,7 +104,11 @@ mod install_uninstall {
     fn install_and_reinstall_canary_tool() {
         let sandbox = create_empty_proto_sandbox();
         let tool_dir = sandbox.path().join(".proto/tools/node/canary");
-        let tool_bin = sandbox.path().join(".proto/tools/node/canary/bin/node");
+        let tool_bin = if cfg!(windows) {
+            sandbox.path().join(".proto/tools/node/canary/node.exe")
+        } else {
+            sandbox.path().join(".proto/tools/node/canary/bin/node")
+        };
 
         assert!(!tool_dir.exists());
         assert!(!tool_bin.exists());
