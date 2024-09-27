@@ -10,6 +10,27 @@
 - [Rust](https://github.com/moonrepo/tools/blob/master/tools/rust/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/tools/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added a `--force` option to `proto install` that can force a reinstall of an existing tool.
+
+#### 🐞 Fixes
+
+- Fixed an issue where `canary` versions could not be ran as they would always be reported as not installed.
+
+#### 🧩 Plugins
+
+- Updated `node_tool` to v0.12.2.
+  - Fixed "bundled" npm overwriting the pinned npm version.
+- Updated `node_depman_tool` to v0.13.1.
+  - Updated shared globals injection to work for all npm commands and not just add/remove.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.41.1
 
 #### 🧩 Plugins
