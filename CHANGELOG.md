@@ -12,6 +12,13 @@
 
 ## Unreleased
 
+#### 🧩 Plugins
+
+- Updated `node_tool` to v0.12.2.
+  - Fixed "bundled" npm overwriting the pinned npm version.
+- Updated `node_depman_tool` to v0.13.1.
+  - Updated shared globals injection to work for all npm commands and not just add/remove.
+
 #### ⚙️ Internal
 
 - Updated dependencies.
