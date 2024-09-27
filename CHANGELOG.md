@@ -12,6 +12,14 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Added a `--force` option to `proto install` that can force a reinstall of an existing tool.
+
+#### 🐞 Fixes
+
+- Fixed an issue where `canary` versions could not be ran as they would always be reported as not installed.
+
 #### 🧩 Plugins
 
 - Updated `node_tool` to v0.12.2.
