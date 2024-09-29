@@ -538,6 +538,19 @@
       ]
     },
     {
+      "id": "kubeseal",
+      "locator": "https://raw.githubusercontent.com/firleaf/proto-toml-plugins/main/plugins/kubeseal.toml",
+      "format": "toml",
+      "name": "kubeseal",
+      "description": "Sealed Secrets CLI.",
+      "author": "firleaf",
+      "homepageUrl": "https://github.com/bitnami-labs/sealed-secrets",
+      "repositoryUrl": "https://github.com/firleaf/proto-toml-plugins",
+      "bins": [
+        "kubeseal"
+      ]
+    },
+    {
       "id": "mage",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/mage/plugin.toml",
       "format": "toml",
