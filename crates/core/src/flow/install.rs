@@ -367,15 +367,16 @@ impl Tool {
 
         // Lock the install directory. If the inventory has been overridden,
         // lock the internal proto tool directory instead.
-        let install_lock = fs::lock_directory(if self.metadata.inventory.override_dir.is_some() {
-            self.proto
-                .store
-                .inventory_dir
-                .join(self.id.as_str())
-                .join(self.get_resolved_version().to_string())
-        } else {
-            install_dir.clone()
-        })?;
+        let _install_lock =
+            fs::lock_directory(if self.metadata.inventory.override_dir.is_some() {
+                self.proto
+                    .store
+                    .inventory_dir
+                    .join(self.id.as_str())
+                    .join(self.get_resolved_version().to_string())
+            } else {
+                install_dir.clone()
+            })?;
 
         // If this function is defined, it acts like an escape hatch and
         // takes precedence over all other install strategies
@@ -422,8 +423,6 @@ impl Tool {
 
             self.install_from_prebuilt(&install_dir, options).await?;
         }
-
-        install_lock.unlock()?;
 
         debug!(
             tool = self.id.as_str(),
