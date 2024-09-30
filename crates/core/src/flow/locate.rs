@@ -6,7 +6,7 @@ use proto_shim::{get_exe_file_name, get_shim_file_name};
 use serde::Serialize;
 use starbase_utils::fs;
 use std::env;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tracing::{debug, instrument};
 
 // Executable = File within the tool's install directory
@@ -166,6 +166,11 @@ impl Tool {
         .into())
     }
 
+    /// Return an absolute path to the executables directory, after it has been located.
+    pub fn get_exes_dir(&self) -> Option<&Path> {
+        self.exes_dir.as_deref()
+    }
+
     /// Locate the directory that local executables are installed to.
     #[instrument(skip_all)]
     pub async fn locate_exes_dir(&mut self) -> miette::Result<Option<PathBuf>> {
@@ -182,6 +187,11 @@ impl Tool {
         }
 
         Ok(self.exes_dir.clone())
+    }
+
+    /// Return an absolute path to the globals directory, after it has been located.
+    pub fn get_globals_dir(&self) -> Option<&Path> {
+        self.globals_dir.as_deref()
     }
 
     /// Return an absolute path to the globals directory that actually exists
@@ -226,6 +236,11 @@ impl Tool {
         }
 
         Ok(self.globals_dir.clone())
+    }
+
+    /// Return an absolute path to all globals directories, after they have been located.
+    pub fn get_globals_dirs(&self) -> &[PathBuf] {
+        &self.globals_dirs
     }
 
     /// Locate the directories that global packages are installed to.
@@ -303,6 +318,11 @@ impl Tool {
         self.globals_dirs = resolved_dirs.clone();
 
         Ok(resolved_dirs)
+    }
+
+    /// Return the globals prefix, after it has been located.
+    pub fn get_globals_prefix(&self) -> Option<&str> {
+        self.globals_prefix.as_deref()
     }
 
     /// Return a string that all globals are prefixed with. Will be used for filtering and listing.
