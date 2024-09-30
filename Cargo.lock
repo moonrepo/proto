@@ -1141,9 +1141,9 @@ dependencies = [
 
 [[package]]
 name = "flate2"
-version = "1.0.33"
+version = "1.0.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "324a1be68054ef05ad64b861cc9eaf1d623d2d8cb25b4bf2cb9cdd902b4bf253"
+checksum = "a1b589b4dc103969ad3cf85c950899926ec64300a1a46d76c03a6072957036f0"
 dependencies = [
  "crc32fast",
  "miniz_oxide 0.8.0",
@@ -1618,9 +1618,9 @@ dependencies = [
 
 [[package]]
 name = "insta"
-version = "1.39.0"
+version = "1.40.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "810ae6042d48e2c9e9215043563a58a80b877bc863228a74cf10c49d4620a6f5"
+checksum = "6593a41c7a73841868772495db7dc1e8ecab43bb5c0b6da2059246c4b506ab60"
 dependencies = [
  "console",
  "lazy_static",
@@ -2080,9 +2080,9 @@ checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 
 [[package]]
 name = "owo-colors"
-version = "4.0.0"
+version = "4.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "caff54706df99d2a78a5a4e3455ff45448d81ef1bb63c22cd14052ca0e993a3f"
+checksum = "fb37767f6569cd834a413442455e0f066d0d522de8630436e2a1761d9726ba56"
 
 [[package]]
 name = "parking_lot"
@@ -2225,9 +2225,9 @@ dependencies = [
 
 [[package]]
 name = "pretty_assertions"
-version = "1.4.0"
+version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af7cee1a6c8a5b9208b3cb1061f10c0cb689087b3d8ce85fb9d2dd7a29b6ba66"
+checksum = "3ae130e2f271fbc2ac3a40fb1d07180839cdbbe443c7a27e1e3c13c5cac0116d"
 dependencies = [
  "diff",
  "yansi",
@@ -2630,9 +2630,9 @@ checksum = "7a66a03ae7c801facd77a29370b4faec201768915ac14a721ba36f20bc9c209b"
 
 [[package]]
 name = "reqwest"
-version = "0.12.7"
+version = "0.12.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8f4955649ef5c38cc7f9e8aa41761d48fb9677197daea9984dc54f56aad5e63"
+checksum = "f713147fbe92361e52392c73b8c9e48c04c6625bce969ef54dc901e58e042a7b"
 dependencies = [
  "base64 0.22.1",
  "bytes",
@@ -2655,7 +2655,7 @@ dependencies = [
  "pin-project-lite",
  "quinn",
  "rustls",
- "rustls-native-certs 0.7.3",
+ "rustls-native-certs 0.8.0",
  "rustls-pemfile",
  "rustls-pki-types",
  "serde",
@@ -3167,9 +3167,9 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "starbase"
-version = "0.8.3"
+version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d570e2633bb3de97a90f6c6a00ea2f64cf3e266d73f5c4fe8acda60657f1cbf5"
+checksum = "b96991015da0d20598917ba69d8bf25a0209a9fa763b12c81e5d948f5c7b483f"
 dependencies = [
  "async-trait",
  "chrono",
@@ -3183,9 +3183,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_archive"
-version = "0.8.5"
+version = "0.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31083918eb12c825a8135a3f3c8fd0e557bf4bff06eb37a008163f5e609c93a6"
+checksum = "a73c7c7a0c2d121400cc27bdbbebd5827b84bbe936d6726cf5f1a5a6e311dfb0"
 dependencies = [
  "binstall-tar",
  "flate2",
@@ -3202,9 +3202,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_sandbox"
-version = "0.7.3"
+version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e050e1c42121e8f18b9ea67001311cef99dcd5b83a8f768c699e8b9c8070c487"
+checksum = "42da00b3ca0f2fe52e18416ed5b2d44c82e85351bcf797431aa1da5af903ee7c"
 dependencies = [
  "assert_cmd",
  "assert_fs",
@@ -3230,9 +3230,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_styles"
-version = "0.4.3"
+version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "21a18837e83f7754c667fddb2c954ce27a068f9d85053a88d41db4a81435b5fe"
+checksum = "49d8a8222c97b23595fe393ac35d62b88942bdc7e89c8c88736d9ea2c986dbae"
 dependencies = [
  "dirs 5.0.1",
  "miette",
@@ -3242,9 +3242,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_utils"
-version = "0.8.8"
+version = "0.8.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1ce33a82fb9712201db2672408701fe49f0a475132caf7ff39015a6a3410f2b"
+checksum = "f2d0416a2cd2f5e396df6851f52fc7b94c233a832d4e8fda660c22d141fb76ba"
 dependencies = [
  "dirs 5.0.1",
  "fs4",
@@ -4790,9 +4790,9 @@ dependencies = [
 
 [[package]]
 name = "yansi"
-version = "0.5.1"
+version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09041cd90cf85f7f8b2df60c646f853b7f535ce68f85244eb6731cf89fa498ec"
+checksum = "cfe53a6657fd280eaa890a3bc59152892ffa3e30101319d168b781ed6529b049"
 
 [[package]]
 name = "zerocopy"
