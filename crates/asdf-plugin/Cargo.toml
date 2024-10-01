@@ -1,0 +1,21 @@
+[package]
+name = "asdf-plugin"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ['cdylib']
+
+[dependencies]
+proto_pdk = { path = "../../crates/pdk" }
+proto_core = { version = "0.38.2", path = "../core" }
+extism-pdk = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+dirs = "5.0.1"
+
+[dev-dependencies]
+proto_pdk_test_utils = { path = "../../crates/pdk-test-utils" }
+starbase_sandbox = "*"
+tokio = { workspace = true }
