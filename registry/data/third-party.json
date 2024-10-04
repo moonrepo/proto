@@ -670,6 +670,19 @@
       ]
     },
     {
+      "id": "pkl",
+      "locator": "https://raw.githubusercontent.com/milesj/proto-plugins/refs/heads/master/pkl.toml",
+      "format": "toml",
+      "name": "pkl",
+      "description": "Configuration that is Programmable, Scalable, and Safe.",
+      "author": "milesj",
+      "homepageUrl": "https://pkl-lang.org/",
+      "repositoryUrl": "https://github.com/milesj/proto-plugins/blob/master/pkl.toml",
+      "bins": [
+        "pkl"
+      ]
+    },
+    {
       "id": "rattler-build",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/rattler-build/plugin.toml",
       "format": "toml",
