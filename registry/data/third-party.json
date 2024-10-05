@@ -840,6 +840,19 @@
       ]
     },
     {
+      "id": "tofu",
+      "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/tofu/plugin.toml",
+      "format": "toml",
+      "name": "OpenTofu",
+      "description": "OpenTofu lets you declaratively manage your cloud infrastructure.",
+      "author": "appthrust",
+      "homepageUrl": "https://opentofu.org/",
+      "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins/tree/main/tofu",
+      "bins": [
+        "tofu"
+      ]
+    },
+    {
       "id": "traefik",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/traefik/plugin.toml",
       "format": "toml",
