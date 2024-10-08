@@ -42,7 +42,7 @@ async-trait = { workspace = true }
 chrono = "0.4.38"
 clap = { workspace = true, features = ["derive", "env"] }
 clap_complete = { workspace = true }
-clap_complete_nushell = "4.5.3"
+clap_complete_nushell = "4.5.4"
 comfy-table = "7.1.1"
 dialoguer = "0.11.0"
 dirs = { workspace = true }
@@ -67,11 +67,11 @@ rust_json = "0.1.5"
 sigpipe = "0.1.3"
 
 # For extism/wastime
-extism = "1.6.0"
+extism = "1.7.0"
 regalloc2 = "=0.9.3"
-wasmtime = "23.0.0"
-wasi-common = "23.0.0"
-wiggle = "23.0.0"
+wasmtime = "23.0.2"
+wasi-common = "23.0.2"
+wiggle = "23.0.2"
 
 [dev-dependencies]
 starbase_sandbox = { workspace = true }
