@@ -136,6 +136,20 @@
       ]
     },
     {
+      "id": "chester",
+      "locator": "https://github.com/chester-lang/chester/raw/refs/heads/main/proto.toml",
+      "format": "toml",
+      "name": "chester",
+      "description": "Chester is a programming language.",
+      "author": "mio-19",
+      "homepageUrl": "https://github.com/chester-lang/chester",
+      "repositoryUrl": "https://github.com/chester-lang/chester",
+      "bins": [
+        "chester",
+        "chester-lsp"
+      ]
+    },
+    {
       "id": "cmake",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/cmake/plugin.toml",
       "format": "toml",
