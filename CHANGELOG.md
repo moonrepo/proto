@@ -16,6 +16,11 @@
 
 - Added support for bz2 archives.
 
+#### 🧩 Plugins
+
+- Updated `internal_schema_plugin` (TOML) to v0.15.1.
+  - Added `{versionMajor}`, `{versionMajorMinor}`, `{versionYear}`, `{versionYearMonth}`, `{versionPrerelease}`, and `{versionBuild}` tokens.
+
 #### ⚙️ Internal
 
 - Updated dependencies.
