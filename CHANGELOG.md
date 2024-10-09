@@ -10,6 +10,21 @@
 - [Rust](https://github.com/moonrepo/tools/blob/master/tools/rust/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/tools/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added support for bz2 archives.
+
+#### 🧩 Plugins
+
+- Updated `internal_schema_plugin` (TOML) to v0.15.1.
+  - Added `{versionMajor}`, `{versionMajorMinor}`, `{versionYear}`, `{versionYearMonth}`, `{versionPrerelease}`, and `{versionBuild}` tokens.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.41.3
 
 #### 🐞 Fixes
