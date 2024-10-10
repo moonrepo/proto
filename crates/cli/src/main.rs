@@ -13,7 +13,7 @@ use clap::Parser;
 use session::ProtoSession;
 use starbase::{
     tracing::{LogLevel, TracingOptions},
-    App,
+    App, MainResult,
 };
 use starbase_utils::{env::bool_var, string_vec};
 use std::{env, process::ExitCode};
@@ -32,7 +32,7 @@ fn get_tracing_modules() -> Vec<String> {
 }
 
 #[tokio::main]
-async fn main() -> miette::Result<ExitCode> {
+async fn main() -> MainResult {
     sigpipe::reset();
 
     let cli = CLI::parse();
