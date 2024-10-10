@@ -23,6 +23,13 @@ pub enum LogLevel {
     Info,
     Debug,
     Trace,
+    Verbose,
+}
+
+impl LogLevel {
+    pub fn is_verbose(&self) -> bool {
+        matches!(self, Self::Verbose)
+    }
 }
 
 impl Display for LogLevel {
@@ -36,7 +43,8 @@ impl Display for LogLevel {
                 LogLevel::Warn => "warn",
                 LogLevel::Info => "info",
                 LogLevel::Debug => "debug",
-                LogLevel::Trace => "trace",
+                // Must map to tracing levels
+                LogLevel::Trace | LogLevel::Verbose => "trace",
             }
         )?;
 
