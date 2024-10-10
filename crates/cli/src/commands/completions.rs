@@ -5,7 +5,6 @@ use clap_complete::{generate, Shell};
 use clap_complete_nushell::Nushell;
 use starbase::AppResult;
 use starbase_shell::ShellType;
-use std::process;
 
 #[derive(Args, Clone, Debug)]
 pub struct CompletionsArgs {
@@ -32,16 +31,16 @@ pub async fn completions(_session: ProtoSession, args: CompletionsArgs) -> AppRe
         ShellType::Nu => {
             generate(Nushell, &mut app, "proto", &mut stdio);
 
-            return Ok(());
+            return Ok(None);
         }
         unsupported => {
             eprintln!("{unsupported} does not currently support completions");
 
-            process::exit(1);
+            return Ok(Some(1));
         }
     };
 
     generate(clap_shell, &mut app, "proto", &mut stdio);
 
-    Ok(())
+    Ok(None)
 }

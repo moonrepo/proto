@@ -55,7 +55,7 @@ pub async fn setup(session: ProtoSession, args: SetupArgs) -> AppResult {
 
         already_setup_message(&session);
 
-        return Ok(());
+        return Ok(None);
     }
 
     debug!("Determining the shell to use");
@@ -117,7 +117,7 @@ pub async fn setup(session: ProtoSession, args: SetupArgs) -> AppResult {
         modified_system_env_path,
     );
 
-    Ok(())
+    Ok(None)
 }
 
 fn update_shell_profile(

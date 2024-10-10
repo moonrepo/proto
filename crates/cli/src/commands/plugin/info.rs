@@ -71,7 +71,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
 
         println!("{}", json::format(&info, true)?);
 
-        return Ok(());
+        return Ok(None);
     }
 
     let mut printer = Printer::new();
@@ -236,5 +236,5 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
 
     printer.flush();
 
-    Ok(())
+    Ok(None)
 }

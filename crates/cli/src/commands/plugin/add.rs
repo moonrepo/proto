@@ -40,5 +40,5 @@ pub async fn add(session: ProtoSession, args: AddPluginArgs) -> AppResult {
         color::path(config_path)
     );
 
-    Ok(())
+    Ok(None)
 }

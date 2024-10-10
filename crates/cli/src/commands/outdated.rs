@@ -177,7 +177,7 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
     if args.json {
         println!("{}", json::format(&items, true)?);
 
-        return Ok(());
+        return Ok(None);
     }
 
     // Print all the data in a table
@@ -278,5 +278,5 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
         );
     }
 
-    Ok(())
+    Ok(None)
 }

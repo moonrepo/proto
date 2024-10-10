@@ -8,8 +8,8 @@ use starbase::AppResult;
 use starbase_shell::ShellType;
 use starbase_styles::color;
 use starbase_utils::json;
+use std::env;
 use std::path::PathBuf;
-use std::{env, process};
 
 #[derive(Args, Clone, Debug)]
 pub struct DiagnoseArgs {
@@ -76,7 +76,7 @@ pub async fn diagnose(session: ProtoSession, args: DiagnoseArgs) -> AppResult {
             )?
         );
 
-        return Ok(());
+        return Ok(None);
     }
 
     if errors.is_empty() && warnings.is_empty() {
@@ -85,7 +85,7 @@ pub async fn diagnose(session: ProtoSession, args: DiagnoseArgs) -> AppResult {
             color::success("No issues detected with your proto installation!")
         );
 
-        return Ok(());
+        return Ok(None);
     }
 
     let shell = shell_type.build();
@@ -131,10 +131,10 @@ pub async fn diagnose(session: ProtoSession, args: DiagnoseArgs) -> AppResult {
     printer.flush();
 
     if !errors.is_empty() {
-        process::exit(1);
+        return Ok(Some(1));
     }
 
-    Ok(())
+    Ok(None)
 }
 
 async fn gather_errors(

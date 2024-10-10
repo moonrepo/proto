@@ -1207,9 +1207,9 @@ dependencies = [
 
 [[package]]
 name = "fs4"
-version = "0.9.1"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e8c6b3bd49c37d2aa3f3f2220233b29a7cd23f79d1fe70e5337d25fb390793de"
+checksum = "ec6fcfb3c0c1d71612528825042261419d5dade9678c39a781e05b63677d9b32"
 dependencies = [
  "rustix",
  "windows-sys 0.52.0",
@@ -3194,9 +3194,9 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "starbase"
-version = "0.8.4"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b96991015da0d20598917ba69d8bf25a0209a9fa763b12c81e5d948f5c7b483f"
+checksum = "6594c38c1c1633b74383501d15f9111141314fd4bd8d05dd58c7dddd226117ef"
 dependencies = [
  "async-trait",
  "chrono",
@@ -3245,9 +3245,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_shell"
-version = "0.5.7"
+version = "0.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe4f5b65f62c84056b27af750792c1bbd44eb80a27f028842ab9b28f9682df90"
+checksum = "bfcf49fdd3aa2a87175defb63325540f61346fc28e03bbbbdf56eff96025252f"
 dependencies = [
  "miette",
  "regex",
@@ -3270,9 +3270,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_utils"
-version = "0.8.9"
+version = "0.8.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f2d0416a2cd2f5e396df6851f52fc7b94c233a832d4e8fda660c22d141fb76ba"
+checksum = "302be829660e306e56225a20224b1ddcce97baae9c34a62742e8ac7d122f6508"
 dependencies = [
  "dirs 5.0.1",
  "fs4",
@@ -3370,9 +3370,9 @@ dependencies = [
 
 [[package]]
 name = "sysinfo"
-version = "0.31.4"
+version = "0.32.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "355dbe4f8799b304b05e1b0f05fc59b2a18d36645cf169607da45bde2f69a1be"
+checksum = "e3b5ae3f4f7d64646c46c4cae4e3f01d1c5d255c7406fdd7c7f999a94e488791"
 dependencies = [
  "core-foundation-sys",
  "libc",

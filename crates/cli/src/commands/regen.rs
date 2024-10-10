@@ -75,5 +75,5 @@ pub async fn regen(session: ProtoSession, args: RegenArgs) -> AppResult {
 
     println!("Regeneration complete!");
 
-    Ok(())
+    Ok(None)
 }

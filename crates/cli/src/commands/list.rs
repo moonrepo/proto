@@ -2,7 +2,6 @@ use crate::session::ProtoSession;
 use clap::Args;
 use proto_core::Id;
 use starbase::AppResult;
-use std::process;
 use tracing::debug;
 
 #[derive(Args, Clone, Debug)]
@@ -25,7 +24,7 @@ pub async fn list(session: ProtoSession, args: ListArgs) -> AppResult {
     if versions.is_empty() {
         eprintln!("No versions installed");
 
-        process::exit(1);
+        return Ok(Some(1));
     }
 
     versions.sort();
@@ -57,5 +56,5 @@ pub async fn list(session: ProtoSession, args: ListArgs) -> AppResult {
         }
     }
 
-    Ok(())
+    Ok(None)
 }

@@ -29,7 +29,7 @@ pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
                 .display()
         );
 
-        return Ok(());
+        return Ok(None);
     }
 
     let mut tool = session.load_tool(&args.id).await?;
@@ -43,7 +43,7 @@ pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
         for bin in tool.resolve_bin_locations().await? {
             if bin.primary {
                 println!("{}", bin.path.display());
-                return Ok(());
+                return Ok(None);
             }
         }
     }
@@ -54,12 +54,12 @@ pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
         for shim in tool.resolve_shim_locations().await? {
             if shim.primary {
                 println!("{}", shim.path.display());
-                return Ok(());
+                return Ok(None);
             }
         }
     }
 
     println!("{}", tool.locate_exe_file().await?.display());
 
-    Ok(())
+    Ok(None)
 }

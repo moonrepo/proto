@@ -285,7 +285,7 @@ pub async fn purge_plugins(session: &ProtoSession, yes: bool) -> AppResult {
         println!("Purged all downloaded plugins");
     }
 
-    Ok(())
+    Ok(None)
 }
 
 pub async fn internal_clean(
@@ -333,7 +333,7 @@ pub async fn internal_clean(
         );
     }
 
-    Ok(())
+    Ok(None)
 }
 
 #[tracing::instrument(skip_all)]
@@ -342,15 +342,15 @@ pub async fn clean(session: ProtoSession, args: CleanArgs) -> AppResult {
 
     if let Some(id) = &args.purge {
         purge_tool(&session, id, force_yes).await?;
-        return Ok(());
+        return Ok(None);
     }
 
     if args.purge_plugins {
         purge_plugins(&session, force_yes).await?;
-        return Ok(());
+        return Ok(None);
     }
 
     internal_clean(&session, args, force_yes, true).await?;
 
-    Ok(())
+    Ok(None)
 }

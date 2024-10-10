@@ -166,16 +166,16 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     if args.export {
         print_activation_exports(&shell_type, info)?;
 
-        return Ok(());
+        return Ok(None);
     }
 
     if args.json {
         println!("{}", json::format(&info, true)?);
 
-        return Ok(());
+        return Ok(None);
     }
 
-    Ok(())
+    Ok(None)
 }
 
 fn print_activation_hook(
@@ -217,7 +217,7 @@ fn print_activation_hook(
         })?
     );
 
-    Ok(())
+    Ok(None)
 }
 
 fn print_activation_exports(shell_type: &ShellType, info: ActivateInfo) -> AppResult {
@@ -248,5 +248,5 @@ fn print_activation_exports(shell_type: &ShellType, info: ActivateInfo) -> AppRe
 
     println!("{}", output.join("\n"));
 
-    Ok(())
+    Ok(None)
 }

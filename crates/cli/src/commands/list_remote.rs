@@ -2,7 +2,6 @@ use crate::session::ProtoSession;
 use clap::Args;
 use proto_core::{Id, UnresolvedVersionSpec};
 use starbase::AppResult;
-use std::process;
 use tracing::debug;
 
 #[derive(Args, Clone, Debug)]
@@ -29,7 +28,7 @@ pub async fn list_remote(session: ProtoSession, args: ListRemoteArgs) -> AppResu
     if versions.is_empty() {
         eprintln!("No versions available");
 
-        process::exit(1);
+        return Ok(Some(1));
     }
 
     versions.sort();
@@ -55,5 +54,5 @@ pub async fn list_remote(session: ProtoSession, args: ListRemoteArgs) -> AppResu
         );
     }
 
-    Ok(())
+    Ok(None)
 }

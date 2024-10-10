@@ -270,5 +270,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
     }
 
     // Must be the last line!
-    exec_command_and_replace(command).into_diagnostic()
+    exec_command_and_replace(command)
+        .into_diagnostic()
+        .map(|_| None)
 }

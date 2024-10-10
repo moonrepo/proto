@@ -13,7 +13,6 @@ use starbase::AppResult;
 use starbase_shell::ShellType;
 use starbase_styles::color;
 use std::env;
-use std::process;
 use std::time::Duration;
 use tokio::task::JoinSet;
 use tokio::time::sleep;
@@ -418,7 +417,7 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
     if versions.is_empty() {
         eprintln!("No versions have been configured, nothing to install!");
 
-        process::exit(1);
+        return Ok(Some(1));
     }
 
     // Determine longest ID for use within progress bars
@@ -483,7 +482,7 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
         println!("Successfully installed {} tools!", total);
     }
 
-    Ok(())
+    Ok(None)
 }
 
 #[instrument(skip_all)]
@@ -497,5 +496,5 @@ pub async fn install(session: ProtoSession, args: InstallArgs) -> AppResult {
         }
     };
 
-    Ok(())
+    Ok(None)
 }

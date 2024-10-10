@@ -65,7 +65,7 @@ pub async fn list(session: ProtoSession, args: ListPluginsArgs) -> AppResult {
 
         println!("{}", json::format(&items, true)?);
 
-        return Ok(());
+        return Ok(None);
     }
 
     let printer = Mutex::new(Printer::new());
@@ -163,7 +163,7 @@ pub async fn list(session: ProtoSession, args: ListPluginsArgs) -> AppResult {
 
     printer.lock().await.flush();
 
-    Ok(())
+    Ok(None)
 }
 
 fn create_datetime(millis: u128) -> Option<NaiveDateTime> {
