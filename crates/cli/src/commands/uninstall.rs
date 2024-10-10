@@ -5,7 +5,6 @@ use crate::telemetry::{track_usage, Metric};
 use clap::Args;
 use proto_core::{Id, ProtoConfig, Tool, UnresolvedVersionSpec};
 use starbase::AppResult;
-use std::process;
 use tracing::debug;
 
 #[derive(Args, Clone, Debug)]
@@ -57,7 +56,7 @@ pub async fn uninstall(session: ProtoSession, args: UninstallArgs) -> AppResult 
         // Track usage metrics
         track_uninstall(&tool, true).await?;
 
-        return Ok(());
+        return Ok(None);
     };
 
     // Uninstall a tool by version
@@ -70,7 +69,7 @@ pub async fn uninstall(session: ProtoSession, args: UninstallArgs) -> AppResult 
             tool.get_resolved_version(),
         );
 
-        process::exit(1);
+        return Ok(Some(1));
     }
 
     debug!("Uninstalling {} with version {}", tool.get_name(), spec);
@@ -88,7 +87,7 @@ pub async fn uninstall(session: ProtoSession, args: UninstallArgs) -> AppResult 
     pb.finish_and_clear();
 
     if !uninstalled {
-        return Ok(());
+        return Ok(None);
     }
 
     // Track usage metrics
@@ -100,7 +99,7 @@ pub async fn uninstall(session: ProtoSession, args: UninstallArgs) -> AppResult 
         tool.get_resolved_version(),
     );
 
-    Ok(())
+    Ok(None)
 }
 
 async fn track_uninstall(tool: &Tool, purged: bool) -> miette::Result<()> {

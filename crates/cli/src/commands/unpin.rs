@@ -4,7 +4,6 @@ use clap::Args;
 use proto_core::{Id, ProtoConfig};
 use starbase::AppResult;
 use starbase_styles::color;
-use std::process;
 
 #[derive(Args, Clone, Debug)]
 pub struct UnpinArgs {
@@ -45,7 +44,7 @@ pub async fn unpin(session: ProtoSession, args: UnpinArgs) -> AppResult {
     let Some(value) = value else {
         eprintln!("No version pinned in config {}", color::path(config_path));
 
-        process::exit(1);
+        return Ok(Some(1));
     };
 
     println!(
@@ -54,5 +53,5 @@ pub async fn unpin(session: ProtoSession, args: UnpinArgs) -> AppResult {
         color::path(config_path)
     );
 
-    Ok(())
+    Ok(None)
 }

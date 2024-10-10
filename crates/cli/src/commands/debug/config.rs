@@ -54,7 +54,7 @@ pub async fn config(session: ProtoSession, args: DebugConfigArgs) -> AppResult {
 
         println!("{}", json::format(&result, true)?);
 
-        return Ok(());
+        return Ok(None);
     }
 
     for file in manager.files.iter().rev() {
@@ -75,5 +75,5 @@ pub async fn config(session: ProtoSession, args: DebugConfigArgs) -> AppResult {
     print_toml(config)?;
     println!();
 
-    Ok(())
+    Ok(None)
 }

@@ -74,5 +74,5 @@ pub async fn pin(session: ProtoSession, args: PinArgs) -> AppResult {
         color::path(config_path),
     );
 
-    Ok(())
+    Ok(None)
 }

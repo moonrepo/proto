@@ -63,5 +63,5 @@ pub async fn alias(session: ProtoSession, args: AliasArgs) -> AppResult {
         color::path(config_path)
     );
 
-    Ok(())
+    Ok(None)
 }

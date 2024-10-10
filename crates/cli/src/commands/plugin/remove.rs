@@ -45,5 +45,5 @@ pub async fn remove(session: ProtoSession, args: RemovePluginArgs) -> AppResult 
         color::path(config_path)
     );
 
-    Ok(())
+    Ok(None)
 }

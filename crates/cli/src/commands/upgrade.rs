@@ -75,7 +75,7 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
             )?
         );
 
-        return Ok(());
+        return Ok(None);
     }
 
     // Only compare versions instead of upgrading
@@ -103,7 +103,7 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
             println!("An older version of proto is available: {}", target_chain);
         }
 
-        return Ok(());
+        return Ok(None);
     }
 
     if not_available {
@@ -112,7 +112,7 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
             color::hash(&current)
         );
 
-        return Ok(());
+        return Ok(None);
     }
 
     // Load the tool and install the new version
@@ -160,7 +160,7 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
             println!("Downgraded proto to {}!", color::hash(&target));
         }
 
-        return Ok(());
+        return Ok(None);
     }
 
     Err(ProtoCliError::UpgradeFailed {

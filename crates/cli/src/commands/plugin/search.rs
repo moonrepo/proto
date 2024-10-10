@@ -7,7 +7,6 @@ use proto_core::registry::{PluginAuthor, PluginFormat};
 use starbase::AppResult;
 use starbase_styles::color::{self, Style};
 use starbase_utils::json;
-use std::process;
 
 #[derive(Args, Clone, Debug)]
 pub struct SearchPluginArgs {
@@ -37,13 +36,13 @@ pub async fn search(session: ProtoSession, args: SearchPluginArgs) -> AppResult 
     if args.json {
         println!("{}", json::format(&queried_plugins, true)?);
 
-        return Ok(());
+        return Ok(None);
     }
 
     if queried_plugins.is_empty() {
         eprintln!("No plugins available for query \"{query}\"");
 
-        process::exit(1);
+        return Ok(Some(1));
     }
 
     // Print all the data in a table
@@ -100,5 +99,5 @@ pub async fn search(session: ProtoSession, args: SearchPluginArgs) -> AppResult 
 
     printer.flush();
 
-    Ok(())
+    Ok(None)
 }

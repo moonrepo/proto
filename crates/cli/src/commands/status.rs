@@ -65,7 +65,7 @@ fn find_versions_in_configs(
         };
     }
 
-    Ok(())
+    Ok(None)
 }
 
 async fn find_versions_from_ecosystem(
@@ -94,7 +94,7 @@ async fn find_versions_from_ecosystem(
         }
     }
 
-    Ok(())
+    Ok(None)
 }
 
 async fn resolve_item_versions(
@@ -148,7 +148,7 @@ async fn resolve_item_versions(
         };
     }
 
-    Ok(())
+    Ok(None)
 }
 
 #[tracing::instrument(skip_all)]
@@ -175,7 +175,7 @@ pub async fn status(session: ProtoSession, args: StatusArgs) -> AppResult {
     if args.json {
         println!("{}", json::format(&items, true)?);
 
-        return Ok(());
+        return Ok(None);
     }
 
     // Print all the data in a table
@@ -212,5 +212,5 @@ pub async fn status(session: ProtoSession, args: StatusArgs) -> AppResult {
 
     println!("\n{table}\n");
 
-    Ok(())
+    Ok(None)
 }

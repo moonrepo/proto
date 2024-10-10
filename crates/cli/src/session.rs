@@ -110,14 +110,14 @@ impl AppSession for ProtoSession {
     async fn startup(&mut self) -> AppResult {
         self.env = Arc::new(detect_proto_env(&self.cli)?);
 
-        Ok(())
+        Ok(None)
     }
 
     async fn analyze(&mut self) -> AppResult {
         load_proto_configs(&self.env)?;
         download_versioned_proto_tool(self).await?;
 
-        Ok(())
+        Ok(None)
     }
 
     async fn execute(&mut self) -> AppResult {
@@ -127,7 +127,7 @@ impl AppSession for ProtoSession {
             check_for_new_version(Arc::clone(&self.env)).await?;
         }
 
-        Ok(())
+        Ok(None)
     }
 
     async fn shutdown(&mut self) -> AppResult {
@@ -137,6 +137,6 @@ impl AppSession for ProtoSession {
             internal_clean(self, CleanArgs::default(), true, false).await?;
         }
 
-        Ok(())
+        Ok(None)
     }
 }

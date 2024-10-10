@@ -4,7 +4,6 @@ use clap::Args;
 use proto_core::{Id, ProtoConfig};
 use starbase::AppResult;
 use starbase_styles::color;
-use std::process;
 
 #[derive(Args, Clone, Debug)]
 pub struct UnaliasArgs {
@@ -51,7 +50,7 @@ pub async fn unalias(session: ProtoSession, args: UnaliasArgs) -> AppResult {
             color::path(config_path)
         );
 
-        process::exit(1);
+        return Ok(Some(1));
     };
 
     println!(
@@ -61,5 +60,5 @@ pub async fn unalias(session: ProtoSession, args: UnaliasArgs) -> AppResult {
         color::path(config_path)
     );
 
-    Ok(())
+    Ok(None)
 }

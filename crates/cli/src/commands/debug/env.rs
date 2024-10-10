@@ -74,5 +74,5 @@ pub async fn env(session: ProtoSession) -> AppResult {
 
     printer.flush();
 
-    Ok(())
+    Ok(None)
 }

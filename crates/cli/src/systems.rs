@@ -8,7 +8,6 @@ use proto_core::{
 };
 use proto_shim::get_exe_file_name;
 use semver::Version;
-use starbase::AppResult;
 use starbase_styles::color;
 use starbase_utils::fs;
 use std::env;
@@ -19,7 +18,7 @@ use tracing::{debug, instrument};
 // STARTUP
 
 #[instrument(skip_all)]
-pub fn detect_proto_env(cli: &CLI) -> AppResult<ProtoEnvironment> {
+pub fn detect_proto_env(cli: &CLI) -> miette::Result<ProtoEnvironment> {
     #[cfg(debug_assertions)]
     let mut env = if let Ok(sandbox) = env::var("PROTO_SANDBOX") {
         ProtoEnvironment::new_testing(&std::path::PathBuf::from(&sandbox))?
@@ -44,7 +43,7 @@ pub fn detect_proto_env(cli: &CLI) -> AppResult<ProtoEnvironment> {
 // ANALYZE
 
 #[instrument(skip_all)]
-pub fn load_proto_configs(env: &ProtoEnvironment) -> AppResult {
+pub fn load_proto_configs(env: &ProtoEnvironment) -> miette::Result<()> {
     debug!(
         working_dir = ?env.cwd,
         "Loading configuration in {} mode",
@@ -57,7 +56,7 @@ pub fn load_proto_configs(env: &ProtoEnvironment) -> AppResult {
 }
 
 #[instrument(skip_all)]
-pub async fn download_versioned_proto_tool(session: &ProtoSession) -> AppResult {
+pub async fn download_versioned_proto_tool(session: &ProtoSession) -> miette::Result<()> {
     let config = session
         .env
         .load_config_manager()?
@@ -88,7 +87,7 @@ pub async fn download_versioned_proto_tool(session: &ProtoSession) -> AppResult 
 // EXECUTE
 
 #[instrument(skip_all)]
-pub fn clean_proto_backups(env: &ProtoEnvironment) -> AppResult {
+pub fn clean_proto_backups(env: &ProtoEnvironment) -> miette::Result<()> {
     for bin_name in [get_exe_file_name("proto"), get_exe_file_name("proto-shim")] {
         let backup_path = env.store.bin_dir.join(format!("{bin_name}.backup"));
 
@@ -101,7 +100,7 @@ pub fn clean_proto_backups(env: &ProtoEnvironment) -> AppResult {
 }
 
 #[instrument(skip_all)]
-pub async fn check_for_new_version(env: Arc<ProtoEnvironment>) -> AppResult {
+pub async fn check_for_new_version(env: Arc<ProtoEnvironment>) -> miette::Result<()> {
     if
     // Don't check when running tests
     env.test_only ||
