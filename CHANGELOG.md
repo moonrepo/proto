@@ -12,6 +12,10 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Added a `--log verbose` level, which includes span information on top of the trace level.
+
 #### 🐞 Fixes
 
 - Fixed an issue where `--dump` can be interrupted.
