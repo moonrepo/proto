@@ -538,6 +538,19 @@
       ]
     },
     {
+      "id": "kompose",
+      "locator": "https://raw.githubusercontent.com/firleaf/proto-toml-plugins/main/plugins/kompose.toml",
+      "format": "toml",
+      "name": "kompose",
+      "description": "Go from Docker Compose to Kubernetes.",
+      "author": "firleaf",
+      "homepageUrl": "https://kompose.io/",
+      "repositoryUrl": "https://github.com/firleaf/proto-toml-plugins",
+      "bins": [
+        "kompose"
+      ]
+    },
+    {
       "id": "kubectl",
       "locator": "https://raw.githubusercontent.com/stk0vrfl0w/proto-toml-plugins/main/plugins/kubectl.toml",
       "format": "toml",
