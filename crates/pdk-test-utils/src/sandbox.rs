@@ -125,10 +125,7 @@ impl ProtoWasmSandbox {
             {
                 use crate::config_builder::ProtoConfigBuilder;
 
-                let schema = fs::read_to_string(&schema_path).unwrap();
-                let schema: serde_json::Value = toml::from_str(&schema).unwrap();
-
-                config.toml_schema(schema);
+                config.schema_config(proto_core::load_schema_config(&schema_path).unwrap());
             }
         })
         .await

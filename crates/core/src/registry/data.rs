@@ -7,8 +7,10 @@ use warpgate::{Id, PluginLocator};
 #[derive(Debug, Deserialize, Serialize, Schematic)]
 #[serde(rename_all = "lowercase")]
 pub enum PluginFormat {
+    Json,
     Toml,
     Wasm,
+    Yaml,
 }
 
 /// Information about a person.

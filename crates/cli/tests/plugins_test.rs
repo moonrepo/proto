@@ -57,7 +57,7 @@ mod plugins {
     use super::*;
 
     #[tokio::test(flavor = "multi_thread")]
-    async fn downloads_and_installs_plugin_from_file() {
+    async fn downloads_and_installs_toml_plugin_from_file() {
         run_tests(|env| {
             let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
@@ -67,6 +67,40 @@ mod plugins {
                 PluginLocator::File(Box::new(FileLocator {
                     file: "./tests/fixtures/moon-schema.toml".into(),
                     path: Some(root_dir.join("./tests/fixtures/moon-schema.toml")),
+                })),
+            )
+        })
+        .await;
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn downloads_and_installs_json_plugin_from_file() {
+        run_tests(|env| {
+            let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+
+            load_tool_from_locator(
+                Id::raw("moon"),
+                env.to_owned(),
+                PluginLocator::File(Box::new(FileLocator {
+                    file: "./tests/fixtures/moon-schema.json".into(),
+                    path: Some(root_dir.join("./tests/fixtures/moon-schema.json")),
+                })),
+            )
+        })
+        .await;
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn downloads_and_installs_yaml_plugin_from_file() {
+        run_tests(|env| {
+            let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+
+            load_tool_from_locator(
+                Id::raw("moon"),
+                env.to_owned(),
+                PluginLocator::File(Box::new(FileLocator {
+                    file: "./tests/fixtures/moon-schema.yaml".into(),
+                    path: Some(root_dir.join("./tests/fixtures/moon-schema.yaml")),
                 })),
             )
         })
@@ -333,7 +367,33 @@ mod plugins {
 
         #[test]
         fn supports_toml_schema() {
-            let sandbox = create_empty_proto_sandbox_with_tools();
+            let sandbox = create_empty_proto_sandbox_with_tools("toml");
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("moon-test");
+                })
+                .success();
+
+            // Doesn't create shims
+        }
+
+        #[test]
+        fn supports_json_schema() {
+            let sandbox = create_empty_proto_sandbox_with_tools("json");
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("moon-test");
+                })
+                .success();
+
+            // Doesn't create shims
+        }
+
+        #[test]
+        fn supports_yaml_schema() {
+            let sandbox = create_empty_proto_sandbox_with_tools("yaml");
 
             sandbox
                 .run_bin(|cmd| {
