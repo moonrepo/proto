@@ -61,10 +61,6 @@ pub fn create_empty_proto_sandbox() -> ProtoSandbox {
 
 pub fn create_empty_proto_sandbox_with_tools(ext: &str) -> ProtoSandbox {
     let sandbox = create_empty_proto_sandbox();
-    let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let schema_path = root_dir
-        .join("./tests/fixtures")
-        .join(format!("moon-schema.{ext}"));
 
     sandbox.create_file(
         ".prototools",
@@ -73,9 +69,8 @@ pub fn create_empty_proto_sandbox_with_tools(ext: &str) -> ProtoSandbox {
 moon-test = "1.0.0"
 
 [plugins]
-moon-test = "file://{}"
+moon-test = "file://./tests/fixtures/moon-schema.{ext}"
 "#,
-            schema_path.display()
         ),
     );
 

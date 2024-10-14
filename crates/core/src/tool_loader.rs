@@ -161,7 +161,7 @@ pub async fn load_tool_from_locator(
             Tool::create_plugin_manifest(proto, Wasm::file(plugin_path))?
         }
         Some("toml" | "json" | "jsonc" | "yaml" | "yml") => {
-            debug!(source = ?plugin_path, format = plugin_ext, "Loading non-WASM plugin");
+            debug!(format = plugin_ext, source = ?plugin_path, "Loading non-WASM plugin");
 
             let mut manifest = Tool::create_plugin_manifest(
                 proto,
