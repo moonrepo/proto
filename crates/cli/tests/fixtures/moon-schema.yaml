@@ -1,0 +1,18 @@
+bin: "moon-test"
+name: "moon-test"
+type: "cli"
+
+platform:
+  linux:
+    downloadFile: "moon-{arch}-unknown-linux-{libc}"
+  macos:
+    downloadFile: "moon-{arch}-apple-darwin"
+  windows:
+    downloadFile: "moon-{arch}-pc-windows-msvc.exe"
+
+install:
+  downloadUrl: "https://github.com/moonrepo/moon/releases/download/v{version}/{download_file}"
+  unpack: false
+
+resolve:
+  gitUrl: "https://github.com/moonrepo/moon"
