@@ -2,9 +2,10 @@ use crate::error::ProtoError;
 use crate::proto::ProtoEnvironment;
 use crate::proto_config::SCHEMA_PLUGIN_KEY;
 use crate::tool::Tool;
-use starbase_utils::{json, toml};
+use convert_case::{Case, Casing};
+use starbase_utils::{json, toml, yaml};
 use std::fmt::Debug;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tracing::{debug, instrument, trace};
 use warpgate::{inject_default_manifest_config, Id, PluginLocator, PluginManifest, Wasm};
 
@@ -82,6 +83,61 @@ pub async fn load_schema_plugin_with_proto(
         .await
 }
 
+pub fn load_schema_config(plugin_path: &Path) -> miette::Result<json::JsonValue> {
+    let mut is_toml = false;
+    let mut schema: json::JsonValue = match plugin_path
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap()
+    {
+        "toml" => {
+            is_toml = true;
+            toml::read_file(plugin_path)?
+        }
+        "json" | "jsonc" => json::read_file(plugin_path)?,
+        "yaml" | "yml" => yaml::read_file(plugin_path)?,
+        _ => unimplemented!(),
+    };
+
+    // Convert object keys to kebab-case since the original
+    // configuration format was based on TOML
+    fn convert_config(config: &mut json::JsonValue, is_toml: bool) {
+        match config {
+            json::JsonValue::Array(array) => {
+                for item in array {
+                    convert_config(item, is_toml);
+                }
+            }
+            json::JsonValue::Object(object) => {
+                let mut map = json::JsonMap::default();
+
+                for (key, value) in object.iter_mut() {
+                    convert_config(value, is_toml);
+
+                    map.insert(
+                        if is_toml {
+                            key.to_owned()
+                        } else {
+                            key.from_case(Case::Camel).to_case(Case::Kebab)
+                        },
+                        value.to_owned(),
+                    );
+                }
+
+                // serde_json doesn't allow mutating keys in place,
+                // so we need to rebuild the entire map...
+                object.clear();
+                object.extend(map);
+            }
+            _ => {}
+        }
+    }
+
+    convert_config(&mut schema, is_toml);
+
+    Ok(schema)
+}
+
 #[instrument(name = "load_tool", skip(proto))]
 pub async fn load_tool_from_locator(
     id: impl AsRef<Id> + Debug,
@@ -93,31 +149,34 @@ pub async fn load_tool_from_locator(
     let locator = locator.as_ref();
 
     let plugin_path = proto.get_plugin_loader()?.load_plugin(id, locator).await?;
+    let plugin_ext = plugin_path
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| ext.to_owned());
 
-    // If a TOML plugin, we need to load the WASM plugin for it,
-    // wrap it, and modify the plugin manifest.
-    let mut manifest = if plugin_path.extension().is_some_and(|ext| ext == "toml") {
-        debug!(source = ?plugin_path, "Loading TOML plugin");
+    let mut manifest = match plugin_ext.as_deref() {
+        Some("wasm") => {
+            debug!(source = ?plugin_path, "Loading WASM plugin");
 
-        let mut manifest = Tool::create_plugin_manifest(
-            proto,
-            Wasm::file(load_schema_plugin_with_proto(proto).await?),
-        )?;
+            Tool::create_plugin_manifest(proto, Wasm::file(plugin_path))?
+        }
+        Some("toml" | "json" | "jsonc" | "yaml" | "yml") => {
+            debug!(source = ?plugin_path, format = plugin_ext, "Loading non-WASM plugin");
 
-        // Convert TOML to JSON
-        let schema: json::JsonValue = toml::read_file(plugin_path)?;
-        let schema = json::format(&schema, false)?;
+            let mut manifest = Tool::create_plugin_manifest(
+                proto,
+                Wasm::file(load_schema_plugin_with_proto(proto).await?),
+            )?;
 
-        trace!(schema = %schema, "Storing schema settings");
+            let schema = json::format(&load_schema_config(&plugin_path)?, false)?;
 
-        manifest.config.insert("proto_schema".to_string(), schema);
-        manifest
+            trace!(schema = %schema, "Storing schema settings");
 
-        // Otherwise, just use the WASM plugin as is
-    } else {
-        debug!(source = ?plugin_path, "Loading WASM plugin");
-
-        Tool::create_plugin_manifest(proto, Wasm::file(plugin_path))?
+            manifest.config.insert("proto_schema".to_string(), schema);
+            manifest
+        }
+        // This case is handled by warpgate when loading the plugin
+        _ => unimplemented!(),
     };
 
     inject_default_manifest_config(id, &proto.home, &mut manifest)?;
