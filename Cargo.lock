@@ -2424,7 +2424,6 @@ dependencies = [
  "serde",
  "serde_json",
  "starbase_sandbox",
- "toml",
  "warpgate",
 ]
 

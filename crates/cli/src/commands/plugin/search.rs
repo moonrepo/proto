@@ -71,8 +71,10 @@ pub async fn search(session: ProtoSession, args: SearchPluginArgs) -> AppResult 
                     PluginAuthor::Object(author) => &author.name,
                 }),
                 Cell::new(match plugin.format {
+                    PluginFormat::Json => "JSON",
                     PluginFormat::Toml => "TOML",
                     PluginFormat::Wasm => "WASM",
+                    PluginFormat::Yaml => "YAML",
                 }),
                 Cell::new(&plugin.description),
                 Cell::new(plugin.locator.to_string())

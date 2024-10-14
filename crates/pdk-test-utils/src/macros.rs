@@ -12,7 +12,7 @@ macro_rules! generate_download_install_tests {
             } else {
                 sandbox.create_plugin($id).await
             };
-            let spec = UnresolvedVersionSpec::parse($version).unwrap();
+            let spec = UnresolvedVersionSpec::pafrse($version).unwrap();
 
             plugin
                 .tool
