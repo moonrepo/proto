@@ -14,7 +14,7 @@ pub struct DebugConfigResult<'a> {
 
 #[derive(Args, Clone, Debug)]
 pub struct DebugConfigArgs {
-    #[arg(long, help = "Print the list in JSON format")]
+    #[arg(long, help = "Print the data in JSON format")]
     json: bool,
 }
 

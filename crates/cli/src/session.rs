@@ -10,6 +10,7 @@ use proto_core::{
 };
 use rustc_hash::FxHashSet;
 use starbase::{AppResult, AppSession};
+use starbase_console::{Console, EmptyReporter};
 use std::sync::Arc;
 use tokio::task::JoinSet;
 use tracing::debug;
@@ -18,6 +19,7 @@ use tracing::debug;
 pub struct ProtoSession {
     pub cli: CLI,
     pub cli_version: String,
+    pub console: Console<EmptyReporter>,
     pub env: Arc<ProtoEnvironment>,
 }
 
@@ -26,6 +28,7 @@ impl ProtoSession {
         Self {
             cli,
             cli_version: env!("CARGO_PKG_VERSION").to_owned(),
+            console: Console::new(false),
             env: Arc::new(ProtoEnvironment::default()),
         }
     }
@@ -143,6 +146,9 @@ impl AppSession for ProtoSession {
 
             internal_clean(self, CleanArgs::default(), true, false).await?;
         }
+
+        self.console.out.flush()?;
+        self.console.err.flush()?;
 
         Ok(None)
     }

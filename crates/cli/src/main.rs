@@ -81,7 +81,7 @@ async fn main() -> MainResult {
                 Commands::Completions(args) => commands::completions(session, args).await,
                 Commands::Debug { command } => match command {
                     DebugCommands::Config(args) => commands::debug::config(session, args).await,
-                    DebugCommands::Env => commands::debug::env(session).await,
+                    DebugCommands::Env(args) => commands::debug::env(session, args).await,
                 },
                 Commands::Diagnose(args) => commands::diagnose(session, args).await,
                 Commands::Install(args) => commands::install(session, args).await,
