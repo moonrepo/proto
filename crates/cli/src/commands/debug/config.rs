@@ -1,9 +1,11 @@
-use crate::session::ProtoSession;
+use crate::session::{ProtoConsole, ProtoSession};
 use clap::Args;
+use iocraft::prelude::*;
 use proto_core::{ProtoConfig, ProtoConfigFile};
 use serde::Serialize;
 use starbase::AppResult;
-use starbase_styles::color::{self, OwoStyle};
+use starbase_console::ui::*;
+use starbase_styles::color;
 use starbase_utils::{json, toml};
 
 #[derive(Serialize)]
@@ -18,10 +20,8 @@ pub struct DebugConfigArgs {
     json: bool,
 }
 
-fn print_toml(value: impl Serialize) -> miette::Result<()> {
-    let contents = toml::format(&value, true)?;
-
-    let contents = contents
+fn print_toml(console: &ProtoConsole, value: impl Serialize) -> miette::Result<()> {
+    let contents = toml::format(&value, true)?
         .lines()
         .map(|line| {
             let indented_line = format!("  {line}");
@@ -35,7 +35,11 @@ fn print_toml(value: impl Serialize) -> miette::Result<()> {
         .collect::<Vec<_>>()
         .join("\n");
 
-    println!("{}", contents);
+    // TOML output is far too large to render with iocraft,
+    // so we unfortunately need to do all this manually
+    console.out.write_newline()?;
+    console.out.write_line(contents)?;
+    console.out.write_newline()?;
 
     Ok(())
 }
@@ -52,7 +56,10 @@ pub async fn config(session: ProtoSession, args: DebugConfigArgs) -> AppResult {
             files: manager.files.iter().rev().collect::<Vec<_>>(),
         };
 
-        println!("{}", json::format(&result, true)?);
+        session
+            .console
+            .out
+            .write_line(json::format(&result, true)?)?;
 
         return Ok(None);
     }
@@ -62,18 +69,28 @@ pub async fn config(session: ProtoSession, args: DebugConfigArgs) -> AppResult {
             continue;
         }
 
-        println!();
-        println!("{}", OwoStyle::new().bold().style(color::path(&file.path)));
-        print_toml(&file.config)?;
+        session.console.render(element! {
+            Container {
+                Section(
+                    title: file.path.to_string_lossy(),
+                    title_color: style_to_color(Style::Path)
+                )
+            }
+        })?;
+
+        print_toml(&session.console, &file.config)?;
     }
 
-    println!();
-    println!(
-        "{}",
-        OwoStyle::new().bold().style(color::id("Configuration"))
-    );
-    print_toml(config)?;
-    println!();
+    session.console.render(element! {
+        Container {
+            Section(
+                title: "Final configuration",
+                title_color: style_to_color(Style::Id)
+            )
+        }
+    })?;
+
+    print_toml(&session.console, config)?;
 
     Ok(None)
 }
