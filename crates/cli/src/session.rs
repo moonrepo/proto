@@ -15,11 +15,13 @@ use std::sync::Arc;
 use tokio::task::JoinSet;
 use tracing::debug;
 
+pub type ProtoConsole = Console<EmptyReporter>;
+
 #[derive(Clone)]
 pub struct ProtoSession {
     pub cli: CLI,
     pub cli_version: String,
-    pub console: Console<EmptyReporter>,
+    pub console: ProtoConsole,
     pub env: Arc<ProtoEnvironment>,
 }
 
