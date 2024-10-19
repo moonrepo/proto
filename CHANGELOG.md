@@ -102,6 +102,10 @@
   - Deprecated `LocateExecutablesOutput.primary` and `LocateExecutablesOutput.secondary` (use `exes` instead).
   - Updated `ToolMetadataOutput.plugin_version` to a `Version` type instead of `String`.
 
+#### 💥 Breaking
+
+- Removed `--global` arg from `proto plugin add|remove`.
+
 #### 🚀 Updates
 
 - Added support for JSON and YAML based configurations for non-WASM schema based plugins. This is an alternative to TOML, but supports all the same settings.

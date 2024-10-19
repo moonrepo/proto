@@ -1,7 +1,7 @@
 use crate::helpers::{map_pin_type, PinOption};
 use crate::session::ProtoSession;
 use clap::Args;
-use proto_core::{Id, PinType, ProtoConfig, Tool, UnresolvedVersionSpec};
+use proto_core::{Id, PinLocation, ProtoConfig, Tool, UnresolvedVersionSpec};
 use starbase::AppResult;
 use starbase_styles::color;
 use std::collections::BTreeMap;
@@ -29,7 +29,7 @@ pub struct PinArgs {
 pub async fn internal_pin(
     tool: &mut Tool,
     spec: &UnresolvedVersionSpec,
-    pin: PinType,
+    pin: PinLocation,
 ) -> miette::Result<PathBuf> {
     let config_path = ProtoConfig::update(tool.proto.get_config_dir(pin), |config| {
         config

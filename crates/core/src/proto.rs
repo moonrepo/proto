@@ -2,7 +2,7 @@ use crate::error::ProtoError;
 use crate::helpers::is_offline;
 use crate::layout::Store;
 use crate::proto_config::{
-    ConfigMode, PinType, ProtoConfig, ProtoConfigFile, ProtoConfigManager, PROTO_CONFIG_NAME,
+    ConfigMode, PinLocation, ProtoConfig, ProtoConfigFile, ProtoConfigManager, PROTO_CONFIG_NAME,
 };
 use once_cell::sync::OnceCell;
 use starbase_utils::dirs::home_dir;
@@ -71,11 +71,11 @@ impl ProtoEnvironment {
         })
     }
 
-    pub fn get_config_dir(&self, pin: PinType) -> &Path {
+    pub fn get_config_dir(&self, pin: PinLocation) -> &Path {
         match pin {
-            PinType::Global => &self.root,
-            PinType::Local => &self.cwd,
-            PinType::User => &self.home,
+            PinLocation::Global => &self.root,
+            PinLocation::Local => &self.cwd,
+            PinLocation::User => &self.home,
         }
     }
 

@@ -1,9 +1,9 @@
-use crate::helpers::{map_pin_type, PinOption};
 use crate::session::ProtoSession;
 use clap::Args;
-use proto_core::{Id, PluginLocator, ProtoConfig};
+use iocraft::prelude::*;
+use proto_core::{Id, PinLocation, PluginLocator, ProtoConfig};
 use starbase::AppResult;
-use starbase_styles::color;
+use starbase_console::ui::*;
 
 #[derive(Args, Clone, Debug)]
 pub struct AddPluginArgs {
@@ -13,26 +13,18 @@ pub struct AddPluginArgs {
     #[arg(required = true, help = "Locator string to find and load the plugin")]
     plugin: PluginLocator,
 
-    #[arg(long, group = "pin", help = "Add to the global ~/.proto/.prototools")]
-    global: bool,
-
-    #[arg(long, group = "pin", help = "Location of .prototools to add to")]
-    to: Option<PinOption>,
+    #[arg(long, default_value_t, help = "Location of .prototools to add to")]
+    to: PinLocation,
 }
 
 #[tracing::instrument(skip_all)]
 pub async fn add(session: ProtoSession, args: AddPluginArgs) -> AppResult {
-    let config_path = ProtoConfig::update(
-        session
-            .env
-            .get_config_dir(map_pin_type(args.global, args.to)),
-        |config| {
-            config
-                .plugins
-                .get_or_insert(Default::default())
-                .insert(args.id.clone(), args.plugin.clone());
-        },
-    )?;
+    let config_path = ProtoConfig::update(session.env.get_config_dir(args.to), |config| {
+        config
+            .plugins
+            .get_or_insert(Default::default())
+            .insert(args.id.clone(), args.plugin.clone());
+    })?;
 
     // Load the tool and verify it works. We can't load the tool with the
     // session as the config has already been cached, and doesn't reflect
@@ -64,6 +56,18 @@ pub async fn add(session: ProtoSession, args: AddPluginArgs) -> AppResult {
         color::id(&args.id),
         color::path(config_path)
     );
+
+    session.console.render(element! {
+        Notice(variant: Variant::Success) {
+            StyledText(
+                content: format!(
+                    "Added <id>{}</id> plugin to config <path>{}</path>",
+                    args.id,
+                    config_path.display(),
+                ),
+            )
+        }
+    })?;
 
     Ok(None)
 }

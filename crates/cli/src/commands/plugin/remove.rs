@@ -1,32 +1,23 @@
 use crate::error::ProtoCliError;
-use crate::helpers::{map_pin_type, PinOption};
 use crate::session::ProtoSession;
 use clap::Args;
-use proto_core::{Id, ProtoConfig, PROTO_CONFIG_NAME};
+use iocraft::prelude::*;
+use proto_core::{Id, PinLocation, ProtoConfig, PROTO_CONFIG_NAME};
 use starbase::AppResult;
-use starbase_styles::color;
+use starbase_console::ui::*;
 
 #[derive(Args, Clone, Debug)]
 pub struct RemovePluginArgs {
     #[arg(required = true, help = "ID of plugin")]
     id: Id,
 
-    #[arg(
-        long,
-        group = "pin",
-        help = "Remove from the global ~/.proto/.prototools"
-    )]
-    global: bool,
-
-    #[arg(long, group = "pin", help = "Location of .prototools to remove from")]
-    from: Option<PinOption>,
+    #[arg(long, default_value_t, help = "Location of .prototools to remove from")]
+    from: PinLocation,
 }
 
 #[tracing::instrument(skip_all)]
 pub async fn remove(session: ProtoSession, args: RemovePluginArgs) -> AppResult {
-    let config_dir = session
-        .env
-        .get_config_dir(map_pin_type(args.global, args.from));
+    let config_dir = session.env.get_config_dir(args.from);
     let config_path = config_dir.join(PROTO_CONFIG_NAME);
 
     if !config_path.exists() {
@@ -39,11 +30,17 @@ pub async fn remove(session: ProtoSession, args: RemovePluginArgs) -> AppResult 
         }
     })?;
 
-    println!(
-        "Removed plugin {} from config {}",
-        color::id(&args.id),
-        color::path(config_path)
-    );
+    session.console.render(element! {
+        Notice(variant: Variant::Success) {
+            StyledText(
+                content: format!(
+                    "Removed <id>{}</id> plugin from config <path>{}</path>",
+                    args.id,
+                    config_path.display(),
+                ),
+            )
+        }
+    })?;
 
     Ok(None)
 }
