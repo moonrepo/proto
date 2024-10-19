@@ -8,7 +8,7 @@ use crate::utils::install_graph::*;
 use clap::Args;
 use indicatif::ProgressBar;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
-use proto_core::{Id, PinType, Tool, UnresolvedVersionSpec, VersionSpec, PROTO_PLUGIN_KEY};
+use proto_core::{Id, PinLocation, Tool, UnresolvedVersionSpec, VersionSpec, PROTO_PLUGIN_KEY};
 use proto_pdk_api::{InstallHook, SyncShellProfileInput, SyncShellProfileOutput};
 use starbase::AppResult;
 use starbase_shell::ShellType;
@@ -60,11 +60,11 @@ pub struct InstallArgs {
 }
 
 impl InstallArgs {
-    fn get_pin_type(&self) -> Option<PinType> {
+    fn get_pin_type(&self) -> Option<PinLocation> {
         self.pin.as_ref().map(|pin| match pin {
-            Some(PinOption::Global) => PinType::Global,
-            Some(PinOption::User) => PinType::User,
-            _ => PinType::Local,
+            Some(PinOption::Global) => PinLocation::Global,
+            Some(PinOption::User) => PinLocation::User,
+            _ => PinLocation::Local,
         })
     }
 
@@ -97,7 +97,7 @@ pub fn enforce_requirements(
 async fn pin_version(
     tool: &mut Tool,
     initial_version: &UnresolvedVersionSpec,
-    arg_pin_type: &Option<PinType>,
+    arg_pin_type: &Option<PinLocation>,
 ) -> miette::Result<bool> {
     // Don't pin the proto tool itself as it's internal only
     if tool.id.as_str() == PROTO_PLUGIN_KEY {
@@ -106,7 +106,7 @@ async fn pin_version(
 
     let config = tool.proto.load_config()?;
     let spec = tool.get_resolved_version().to_unresolved_spec();
-    let mut pin_type = PinType::Local;
+    let mut pin_type = PinLocation::Local;
     let mut pin = false;
 
     // via `--pin` arg
@@ -116,7 +116,7 @@ async fn pin_version(
     }
     // Or the first time being installed
     else if !config.versions.contains_key(&tool.id) {
-        pin_type = PinType::Global;
+        pin_type = PinLocation::Global;
         pin = true;
     }
 

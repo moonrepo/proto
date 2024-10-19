@@ -5,7 +5,7 @@ use dialoguer::{
 };
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use miette::IntoDiagnostic;
-use proto_core::PinType;
+use proto_core::PinLocation;
 use starbase_styles::color::{self, Color};
 use starbase_utils::env::bool_var;
 use std::{io::IsTerminal, time::Duration};
@@ -22,19 +22,19 @@ pub enum PinOption {
     User,
 }
 
-pub fn map_pin_type(global: bool, option: Option<PinOption>) -> PinType {
+pub fn map_pin_type(global: bool, option: Option<PinOption>) -> PinLocation {
     if let Some(option) = option {
         return match option {
-            PinOption::Global => PinType::Global,
-            PinOption::Local => PinType::Local,
-            PinOption::User => PinType::User,
+            PinOption::Global => PinLocation::Global,
+            PinOption::Local => PinLocation::Local,
+            PinOption::User => PinLocation::User,
         };
     }
 
     if global {
-        PinType::Global
+        PinLocation::Global
     } else {
-        PinType::Local
+        PinLocation::Local
     }
 }
 
