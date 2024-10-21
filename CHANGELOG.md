@@ -10,6 +10,13 @@
 - [Rust](https://github.com/moonrepo/tools/blob/master/tools/rust/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/tools/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added more internal logging when executing commands or making requests.
+- Updated `PROTO_DEBUG_COMMAND` environment variable to support streaming the output of a running command to the terminal if set to "stream".
+
 ## 0.41.5
 
 #### 🚀 Updates

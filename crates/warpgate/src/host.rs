@@ -2,7 +2,7 @@ use crate::error::WarpgateError;
 use crate::helpers;
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
 use starbase_styles::color::{self, apply_style_tags};
-use starbase_utils::env::{bool_var, paths};
+use starbase_utils::env::paths;
 use starbase_utils::fs;
 use std::collections::BTreeMap;
 use std::env;
@@ -175,11 +175,26 @@ fn exec_command(
         data.working_dir.clone()
     };
 
+    // Create and execute command
+    trace!(
+        plugin = &uuid,
+        command = ?bin,
+        args = ?input.args,
+        cwd = ?cwd,
+        "Executing command on host machine"
+    );
+
     let mut command = create_process_command(bin, &input.args);
     command.envs(&input.env);
     command.current_dir(cwd);
 
-    let output = if input.stream {
+    let debug_output = env::var("WARPGATE_DEBUG_COMMAND").ok();
+
+    let output = if input.stream
+        || debug_output
+            .as_ref()
+            .is_some_and(|level| level == "all" || level == "stream")
+    {
         let result = command.spawn()?.wait()?;
 
         ExecCommandOutput {
@@ -199,19 +214,17 @@ fn exec_command(
         }
     };
 
-    let debug_output = bool_var("WARPGATE_DEBUG_COMMAND");
-
     trace!(
         plugin = plugin.id().to_string(),
         command = ?bin,
         exit_code = output.exit_code,
-        stderr = if debug_output {
+        stderr = if debug_output.is_some() {
             Some(&output.stderr)
         } else {
             None
         },
         stderr_len = output.stderr.len(),
-        stdout = if debug_output {
+        stdout = if debug_output.is_some() {
             Some(&output.stdout)
         } else {
             None
@@ -253,6 +266,12 @@ fn send_request(
         if let Some(timeout) = plugin.time_remaining() {
             client = client.timeout(timeout);
         }
+
+        trace!(
+            plugin = &uuid,
+            url = &input.url,
+            "Sending request from host machine"
+        );
 
         client.send().await.map_err(|error| WarpgateError::Http {
             url: input.url.clone(),
