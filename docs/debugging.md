@@ -10,8 +10,8 @@ A few environment variables are available to help with debugging:
 
 - `PROTO_LOG=trace` - The log level for proto. Best to use `trace`.
 - `PROTO_WASM_LOG=trace` - The log level for WASM plugins. Will write to a `<id>-debug.log` file in the current directory.
-- `PROTO_DEBUG_COMMAND=1` - Print full `exec_command!` output to the console.
-- `PROTO_CACHE=1` - Turn caching on or off.
+- `PROTO_DEBUG_COMMAND=true` - Print full `exec_command!` output to the console.
+- `PROTO_CACHE=true` - Turn caching on or off.
 
 ## Tests
 
