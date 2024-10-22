@@ -1,6 +1,6 @@
 [package]
 name = "proto_cli"
-version = "0.41.6"
+version = "0.41.7"
 edition = "2021"
 license = "MIT"
 description = "A multi-language version manager, a unified toolchain."
@@ -32,11 +32,11 @@ name = "proto-shim"
 path = "src/main_shim.rs"
 
 [dependencies]
-proto_core = { version = "0.41.6", path = "../core", features = ["clap"] }
-proto_installer = { version = "0.7.0", path = "../installer" }
-proto_pdk_api = { version = "0.23.0", path = "../pdk-api" }
+proto_core = { version = "0.41.7", path = "../core", features = ["clap"] }
+proto_installer = { version = "0.7.1", path = "../installer" }
+proto_pdk_api = { version = "0.23.1", path = "../pdk-api" }
 proto_shim = { version = "0.5.0", path = "../shim" }
-system_env = { version = "0.6.0", path = "../system-env" }
+system_env = { version = "0.6.1", path = "../system-env" }
 anyhow = { workspace = true }
 async-trait = { workspace = true }
 chrono = "0.4.38"
