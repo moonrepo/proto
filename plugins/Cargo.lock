@@ -2001,7 +2001,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.41.5"
+version = "0.41.6"
 dependencies = [
  "indexmap",
  "miette",
@@ -3317,7 +3317,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.18.0"
+version = "0.18.1"
 dependencies = [
  "extism",
  "miette",

@@ -1,4 +1,3 @@
-use std::env;
 use std::ffi::OsStr;
 use std::path::PathBuf;
 use std::process::Command;
@@ -7,6 +6,8 @@ use std::process::Command;
 /// by checking `PATH` and cycling through `PATHEXT` extensions.
 #[cfg(windows)]
 pub fn find_command_on_path<T: AsRef<OsStr>>(name: T) -> Option<PathBuf> {
+    use std::env;
+
     let Ok(system_path) = env::var("PATH") else {
         return None;
     };
@@ -46,6 +47,8 @@ pub fn find_command_on_path<T: AsRef<OsStr>>(name: T) -> Option<PathBuf> {
 /// Return an absolute path to the provided command by checking `PATH`.
 #[cfg(unix)]
 pub fn find_command_on_path<T: AsRef<OsStr>>(name: T) -> Option<PathBuf> {
+    use std::env;
+
     let Ok(system_path) = env::var("PATH") else {
         return None;
     };
@@ -60,6 +63,11 @@ pub fn find_command_on_path<T: AsRef<OsStr>>(name: T) -> Option<PathBuf> {
         }
     }
 
+    None
+}
+
+#[cfg(target_arch = "wasm32")]
+pub fn find_command_on_path<T: AsRef<OsStr>>(_name: T) -> Option<PathBuf> {
     None
 }
 
