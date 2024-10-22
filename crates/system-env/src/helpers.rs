@@ -23,7 +23,7 @@ pub fn find_command_on_path<T: AsRef<OsStr>>(name: T) -> Option<PathBuf> {
         if has_ext {
             let path = path_dir.join(name);
 
-            if path.exists() {
+            if path.exists() && path.is_file() {
                 return Some(path);
             }
         } else {
@@ -33,7 +33,7 @@ pub fn find_command_on_path<T: AsRef<OsStr>>(name: T) -> Option<PathBuf> {
 
                 let path = path_dir.join(file_name);
 
-                if path.exists() {
+                if path.exists() && path.is_file() {
                     return Some(path);
                 }
             }
@@ -44,7 +44,7 @@ pub fn find_command_on_path<T: AsRef<OsStr>>(name: T) -> Option<PathBuf> {
 }
 
 /// Return an absolute path to the provided command by checking `PATH`.
-#[cfg(not(windows))]
+#[cfg(unix)]
 pub fn find_command_on_path<T: AsRef<OsStr>>(name: T) -> Option<PathBuf> {
     let Ok(system_path) = env::var("PATH") else {
         return None;
@@ -55,7 +55,7 @@ pub fn find_command_on_path<T: AsRef<OsStr>>(name: T) -> Option<PathBuf> {
     for path_dir in env::split_paths(&system_path) {
         let path = path_dir.join(name);
 
-        if path.exists() {
+        if path.exists() && path.is_file() {
             return Some(path);
         }
     }
@@ -91,12 +91,8 @@ pub fn create_process_command<T: AsRef<OsStr>, I: IntoIterator<Item = A>, A: AsR
         find_command_on_path(bin).unwrap_or_else(|| bin.into())
     };
 
-    let bin_ext = bin_path
-        .extension()
-        .map(|ext| ext.to_string_lossy().to_lowercase());
-
     // If a Windows script, we must execute the command through powershell
-    match bin_ext.as_deref() {
+    match bin_path.extension().and_then(|ext| ext.to_str()) {
         Some("ps1" | "cmd" | "bat") => {
             // This conversion is unfortunate...
             let args = args
