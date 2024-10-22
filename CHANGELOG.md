@@ -10,6 +10,12 @@
 - [Rust](https://github.com/moonrepo/tools/blob/master/tools/rust/CHANGELOG.md)
 - [TOML schema](https://github.com/moonrepo/tools/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed an issue where command lookup within `PATH` may return an invalid result.
+
 ## 0.41.6
 
 #### 🚀 Updates
