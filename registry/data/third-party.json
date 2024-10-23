@@ -617,6 +617,19 @@
       ]
     },
     {
+      "id": "mockery",
+      "locator": "https://raw.githubusercontent.com/crashdump/proto-tools/main/toml-plugins/mockery/plugin.toml",
+      "format": "toml",
+      "name": "mockery",
+      "description": "Mockery is a mock code autogenerator for Go.",
+      "author": "crashdump",
+      "homepageUrl": "https://github.com/vektra/mockery",
+      "repositoryUrl": "https://github.com/crashdump/proto-tools",
+      "bins": [
+        "mockery"
+      ]
+    },
+    {
       "id": "moon",
       "locator": "https://raw.githubusercontent.com/moonrepo/moon/master/proto-plugin.toml",
       "format": "toml",
@@ -667,6 +680,19 @@
       "devicon": "openapi",
       "bins": [
         "openapi-changes"
+      ]
+    },
+    {
+      "id": "openfga",
+      "locator": "https://raw.githubusercontent.com/crashdump/proto-tools/main/toml-plugins/openfga/plugin.toml",
+      "format": "toml",
+      "name": "openfga",
+      "description": "OpenFGA is an open-source authorization solution that allows developers to build granular access control.",
+      "author": "crashdump",
+      "homepageUrl": "https://openfga.dev",
+      "repositoryUrl": "https://github.com/crashdump/proto-tools",
+      "bins": [
+        "openfga"
       ]
     },
     {
@@ -798,6 +824,19 @@
       "repositoryUrl": "https://github.com/stk0vrfl0w/proto-toml-plugins/blob/main/plugins/sops.toml",
       "bins": [
         "sops"
+      ]
+    },
+        {
+      "id": "staticcheck",
+      "locator": "https://raw.githubusercontent.com/crashdump/proto-tools/main/toml-plugins/staticcheck/plugin.toml",
+      "format": "toml",
+      "name": "staticcheck",
+      "description": "Staticcheck is a state of the art linter for the Go programming language. Using static analysis, it finds bugs and performance issues, offers simplifications, and enforces style rules.",
+      "author": "crashdump",
+      "homepageUrl": "https://staticcheck.dev",
+      "repositoryUrl": "https://github.com/crashdump/proto-tools",
+      "bins": [
+        "staticcheck"
       ]
     },
     {
