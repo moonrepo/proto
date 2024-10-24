@@ -283,6 +283,12 @@ fn send_request(
         )?
         .is_none()
     {
+        trace!(
+            plugin = &uuid,
+            cache = ?cache_path,
+            "Reusing request from local cache"
+        );
+
         body = fs::read_file_bytes(cache_path)?;
     }
     // Otherwise send the request and get the response
@@ -315,6 +321,7 @@ fn send_request(
             .and_then(|header| header.to_str().ok())
             .map_or(false, |header| {
                 header == "application/json"
+                    || header == "application/toml"
                     || header == "application/yaml"
                     || header.starts_with("text/")
             });
@@ -328,7 +335,7 @@ fn send_request(
 
         body = Vec::from(bytes);
 
-        // Don't cache all requests, only those that we want to!
+        // Don't cache all requests, only those that are text based!
         if should_cache {
             fs::write_file(&cache_path, &body)?;
         }
