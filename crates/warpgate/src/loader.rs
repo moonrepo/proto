@@ -2,11 +2,10 @@ use crate::client::{create_http_client_with_options, HttpOptions};
 use crate::endpoints::*;
 use crate::error::WarpgateError;
 use crate::helpers::{
-    determine_cache_extension, download_from_url_to_file, move_or_unpack_download,
+    create_cache_key, determine_cache_extension, download_from_url_to_file, move_or_unpack_download,
 };
 use crate::id::Id;
 use once_cell::sync::OnceCell;
-use sha2::{Digest, Sha256};
 use starbase_archive::is_supported_archive_extension;
 use starbase_styles::color;
 use starbase_utils::fs;
@@ -150,22 +149,13 @@ impl PluginLoader {
     /// Create an absolute path to the plugin's destination file, located in the plugins directory.
     /// Hash the source URL to ensure uniqueness of each plugin + version combination.
     pub fn create_cache_path(&self, id: &Id, url: &str, is_latest: bool) -> PathBuf {
-        let mut sha = Sha256::new();
-        sha.update(url);
-
-        if let Some(seed) = &self.seed {
-            sha.update(seed);
-        }
-
-        // Remove unwanted or unsafe file name characters
-        let safe_id = id.as_str().replace(['/', '@', '.', ' '], "");
-
         self.plugins_dir.join(format!(
-            "{}{}{:x}{}",
-            safe_id,
+            "{}{}{}{}",
+            // Remove unwanted or unsafe file name characters
+            id.as_str().replace(['/', '@', '.', ' '], ""),
             if is_latest { "-latest-" } else { "-" },
-            sha.finalize(),
-            determine_cache_extension(url)
+            create_cache_key(url, self.seed.as_deref()),
+            determine_cache_extension(url).unwrap_or(".wasm"),
         ))
     }
 
