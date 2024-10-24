@@ -61,7 +61,7 @@ impl Tool {
                 shim_entry.env_vars.extend(env_vars);
             }
 
-            if !shim.primary {
+            if !shim.config.primary {
                 shim_entry.parent = Some(self.id.to_string());
 
                 // Only use --alt when the secondary executable exists

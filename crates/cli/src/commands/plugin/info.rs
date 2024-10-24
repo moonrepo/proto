@@ -128,7 +128,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
                 format!(
                     "{} {}",
                     color::path(bin.path),
-                    if bin.primary {
+                    if bin.config.primary {
                         color::muted_light("(primary)")
                     } else {
                         "".into()
@@ -144,7 +144,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
                 format!(
                     "{} {}",
                     color::path(shim.path),
-                    if shim.primary {
+                    if shim.config.primary {
                         format_value("(primary)")
                     } else {
                         "".into()

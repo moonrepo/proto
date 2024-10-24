@@ -17,7 +17,6 @@ pub struct ExecutableLocation {
     pub config: ExecutableConfig,
     pub name: String,
     pub path: PathBuf,
-    pub primary: bool,
 }
 
 impl Tool {
@@ -36,13 +35,27 @@ impl Tool {
     pub async fn resolve_primary_exe_location(&self) -> miette::Result<Option<ExecutableLocation>> {
         let output = self.call_locate_executables().await?;
 
-        if let Some(primary) = output.primary {
+        for (name, config) in output.exes {
+            if config.primary {
+                if let Some(exe_path) = &config.exe_path {
+                    return Ok(Some(ExecutableLocation {
+                        path: self.get_product_dir().join(exe_path),
+                        name,
+                        config,
+                    }));
+                }
+            }
+        }
+
+        #[allow(deprecated)]
+        if let Some(mut primary) = output.primary {
             if let Some(exe_path) = &primary.exe_path {
+                primary.primary = true;
+
                 return Ok(Some(ExecutableLocation {
                     path: self.get_product_dir().join(exe_path),
                     name: self.id.to_string(),
                     config: primary,
-                    primary: true,
                 }));
             }
         }
@@ -55,14 +68,30 @@ impl Tool {
         let output = self.call_locate_executables().await?;
         let mut locations = vec![];
 
-        for (name, secondary) in output.secondary {
-            if let Some(exe_path) = &secondary.exe_path {
+        for (name, config) in output.exes {
+            if config.primary {
+                continue;
+            }
+
+            if let Some(exe_path) = &config.exe_path {
                 locations.push(ExecutableLocation {
                     path: self.get_product_dir().join(exe_path),
                     name,
-                    config: secondary,
-                    primary: false,
+                    config,
                 });
+            }
+        }
+
+        if locations.is_empty() {
+            #[allow(deprecated)]
+            for (name, secondary) in output.secondary {
+                if let Some(exe_path) = &secondary.exe_path {
+                    locations.push(ExecutableLocation {
+                        path: self.get_product_dir().join(exe_path),
+                        name,
+                        config: secondary,
+                    });
+                }
             }
         }
 
@@ -76,7 +105,7 @@ impl Tool {
         let output = self.call_locate_executables().await?;
         let mut locations = vec![];
 
-        let mut add = |name: &str, config: ExecutableConfig, primary: bool| {
+        let mut add = |name: String, config: ExecutableConfig| {
             if !config.no_bin
                 && config
                     .exe_link_path
@@ -85,20 +114,29 @@ impl Tool {
                     .is_some()
             {
                 locations.push(ExecutableLocation {
-                    path: self.proto.store.bin_dir.join(get_exe_file_name(name)),
-                    name: name.to_owned(),
+                    path: self.proto.store.bin_dir.join(get_exe_file_name(&name)),
+                    name,
                     config,
-                    primary,
                 });
             }
         };
 
-        if let Some(primary) = output.primary {
-            add(&self.id, primary, true);
-        }
+        if output.exes.is_empty() {
+            #[allow(deprecated)]
+            if let Some(mut primary) = output.primary {
+                primary.primary = true;
 
-        for (name, secondary) in output.secondary {
-            add(&name, secondary, false);
+                add(self.id.to_string(), primary);
+            }
+
+            #[allow(deprecated)]
+            for (name, secondary) in output.secondary {
+                add(name, secondary);
+            }
+        } else {
+            for (name, config) in output.exes {
+                add(name, config);
+            }
         }
 
         Ok(locations)
@@ -111,23 +149,32 @@ impl Tool {
         let output = self.call_locate_executables().await?;
         let mut locations = vec![];
 
-        let mut add = |name: &str, config: ExecutableConfig, primary: bool| {
+        let mut add = |name: String, config: ExecutableConfig| {
             if !config.no_shim {
                 locations.push(ExecutableLocation {
-                    path: self.proto.store.shims_dir.join(get_shim_file_name(name)),
-                    name: name.to_owned(),
-                    config: config.clone(),
-                    primary,
+                    path: self.proto.store.shims_dir.join(get_shim_file_name(&name)),
+                    name,
+                    config,
                 });
             }
         };
 
-        if let Some(primary) = output.primary {
-            add(&self.id, primary, true);
-        }
+        if output.exes.is_empty() {
+            #[allow(deprecated)]
+            if let Some(mut primary) = output.primary {
+                primary.primary = true;
 
-        for (name, secondary) in output.secondary {
-            add(&name, secondary, false);
+                add(self.id.to_string(), primary);
+            }
+
+            #[allow(deprecated)]
+            for (name, secondary) in output.secondary {
+                add(name, secondary);
+            }
+        } else {
+            for (name, config) in output.exes {
+                add(name, config);
+            }
         }
 
         Ok(locations)
