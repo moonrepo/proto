@@ -689,7 +689,7 @@
       "name": "openfga",
       "description": "OpenFGA is an open-source authorization solution that allows developers to build granular access control.",
       "author": "crashdump",
-      "homepageUrl": "https://openfga.dev",
+      "homepageUrl": "https://openfga.dev/",
       "repositoryUrl": "https://github.com/crashdump/proto-tools",
       "bins": [
         "openfga"
@@ -826,14 +826,14 @@
         "sops"
       ]
     },
-        {
+    {
       "id": "staticcheck",
       "locator": "https://raw.githubusercontent.com/crashdump/proto-tools/main/toml-plugins/staticcheck/plugin.toml",
       "format": "toml",
       "name": "staticcheck",
       "description": "Staticcheck is a state of the art linter for the Go programming language. Using static analysis, it finds bugs and performance issues, offers simplifications, and enforces style rules.",
       "author": "crashdump",
-      "homepageUrl": "https://staticcheck.dev",
+      "homepageUrl": "https://staticcheck.dev/",
       "repositoryUrl": "https://github.com/crashdump/proto-tools",
       "bins": [
         "staticcheck"
