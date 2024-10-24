@@ -19,14 +19,14 @@ pub fn create_cache_key(url: &str, seed: Option<&str>) -> String {
     format!("{:x}", sha.finalize())
 }
 
-pub fn determine_cache_extension(value: &str) -> &str {
+pub fn determine_cache_extension(value: &str) -> Option<&str> {
     for ext in [".toml", ".json", ".jsonc", ".yaml", ".yml", ".wasm", ".txt"] {
         if value.ends_with(ext) {
-            return ext;
+            return Some(ext);
         }
     }
 
-    ""
+    None
 }
 
 pub async fn download_from_url_to_file(

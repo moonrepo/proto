@@ -265,7 +265,7 @@ fn send_request(
     let cache_key = create_cache_key(&input.url, None);
     let cache_path = data.cache_dir.join("requests").join(format!(
         "{cache_key}{}",
-        determine_cache_extension(&input.url)
+        determine_cache_extension(&input.url).unwrap_or_default()
     ));
 
     // Data to collect

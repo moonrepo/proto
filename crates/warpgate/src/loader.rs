@@ -1,10 +1,10 @@
 use crate::client::{create_http_client_with_options, HttpOptions};
+use crate::endpoints::*;
 use crate::error::WarpgateError;
 use crate::helpers::{
-    determine_cache_extension, download_from_url_to_file, move_or_unpack_download,
+    create_cache_key, determine_cache_extension, download_from_url_to_file, move_or_unpack_download,
 };
 use crate::id::Id;
-use crate::{create_cache_key, endpoints::*};
 use once_cell::sync::OnceCell;
 use starbase_archive::is_supported_archive_extension;
 use starbase_styles::color;
@@ -155,7 +155,7 @@ impl PluginLoader {
             id.as_str().replace(['/', '@', '.', ' '], ""),
             if is_latest { "-latest-" } else { "-" },
             create_cache_key(url, self.seed.as_deref()),
-            determine_cache_extension(url),
+            determine_cache_extension(url).unwrap_or(".wasm"),
         ))
     }
 
