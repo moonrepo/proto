@@ -63,7 +63,7 @@ mod plugin_search {
     }
 
     #[test]
-    fn caches_results_locally() {
+    fn caches_results_in_store() {
         let sandbox = create_empty_proto_sandbox();
 
         sandbox
@@ -74,7 +74,7 @@ mod plugin_search {
 
         assert!(sandbox
             .path()
-            .join(".proto/temp/registry-external-plugins.json")
+            .join(".proto/cache/registry/external-plugins.json")
             .exists());
     }
 }

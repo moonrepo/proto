@@ -1,4 +1,5 @@
 use crate::error::WarpgateError;
+use sha2::{Digest, Sha256};
 use starbase_archive::{is_supported_archive_extension, Archiver};
 use starbase_utils::{fs, glob, net, net::NetError};
 use std::collections::BTreeMap;
@@ -7,14 +8,25 @@ use std::path::{Path, PathBuf};
 use tracing::instrument;
 use warpgate_api::VirtualPath;
 
-pub fn determine_cache_extension(value: &str) -> &str {
-    for ext in [".toml", ".json", ".jsonc", ".yaml", ".yml"] {
+pub fn create_cache_key(url: &str, seed: Option<&str>) -> String {
+    let mut sha = Sha256::new();
+    sha.update(url);
+
+    if let Some(seed) = seed {
+        sha.update(seed);
+    }
+
+    format!("{:x}", sha.finalize())
+}
+
+pub fn determine_cache_extension(value: &str) -> Option<&str> {
+    for ext in [".toml", ".json", ".jsonc", ".yaml", ".yml", ".wasm", ".txt"] {
         if value.ends_with(ext) {
-            return ext;
+            return Some(ext);
         }
     }
 
-    ".wasm"
+    None
 }
 
 pub async fn download_from_url_to_file(

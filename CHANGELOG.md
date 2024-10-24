@@ -8,7 +8,14 @@
 - [Node](https://github.com/moonrepo/tools/blob/master/tools/node/CHANGELOG.md)
 - [Python](https://github.com/moonrepo/tools/blob/master/tools/python/CHANGELOG.md)
 - [Rust](https://github.com/moonrepo/tools/blob/master/tools/rust/CHANGELOG.md)
-- [TOML schema](https://github.com/moonrepo/tools/blob/master/tools/internal-schema/CHANGELOG.md)
+- [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/tools/blob/master/tools/internal-schema/CHANGELOG.md)
+
+## Unreleased
+
+#### 🚀 Updates
+
+- Added support for JSON and YAML based configurations for non-WASM schema based plugins. This is an alternative to TOML, but supports all the same settings.
+- We now cache all text-based HTTP requests made from WASM plugins for 12 hours. This should greatly reduce the overhead cost of making requests, and will help for situations where an internet connection is lost.
 
 ## 0.41.7
 
@@ -41,7 +48,7 @@
 
 #### 🧩 Plugins
 
-- Updated `internal_schema_plugin` (TOML) to v0.15.1.
+- Updated `schema_tool` (TOML) to v0.15.1.
   - Added `{versionMajor}`, `{versionMajorMinor}`, `{versionYear}`, `{versionYearMonth}`, `{versionPrerelease}`, and `{versionBuild}` tokens.
 
 #### ⚙️ Internal

@@ -19,6 +19,7 @@ warpgate = { version = "0.18.2", path = "../warpgate", features = [
 	"schematic",
 ] }
 clap = { workspace = true, optional = true }
+convert_case = "0.6.0"
 indexmap = { workspace = true }
 miette = { workspace = true }
 minisign-verify = "0.2.2"
@@ -41,7 +42,7 @@ sha2 = { workspace = true }
 shell-words = { workspace = true }
 starbase_archive = { workspace = true }
 starbase_styles = { workspace = true }
-starbase_utils = { workspace = true, features = ["fs-lock"] }
+starbase_utils = { workspace = true, features = ["fs-lock", "yaml"] }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 url = { version = "2.5.2", features = ["serde"] }
