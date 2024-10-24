@@ -15,6 +15,7 @@
 #### 🚀 Updates
 
 - Added support for JSON and YAML based configurations for non-WASM schema based plugins. This is an alternative to TOML, but supports all the same settings.
+- We now cache all text-based HTTP requests made from WASM plugins for 12 hours. This should greatly reduce the overhead cost of making requests, and will help for situations where an internet connection is lost.
 
 ## 0.41.7
 
