@@ -78,6 +78,7 @@ impl ToolManifest {
 
         let get_keys = |version: &Version| -> Vec<String> {
             vec![
+                "*".to_string(),
                 format!("{}", version.major),
                 format!("{}.{}", version.major, version.minor),
             ]

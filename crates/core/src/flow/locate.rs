@@ -135,7 +135,11 @@ impl Tool {
                     .is_some()
             {
                 for (bucket_version, resolved_version) in &versions {
-                    let versioned_name = format!("{name}-{bucket_version}");
+                    let versioned_name = if bucket_version == "*" {
+                        name.clone()
+                    } else {
+                        format!("{name}-{bucket_version}")
+                    };
 
                     locations.push(ExecutableLocation {
                         path: self

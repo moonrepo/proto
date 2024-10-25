@@ -40,7 +40,7 @@ pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
     if args.bin {
         tool.symlink_bins(true).await?;
 
-        for bin in tool.resolve_bin_locations(false).await?.iter().rev() {
+        for bin in tool.resolve_bin_locations(false).await? {
             if bin.config.primary {
                 println!("{}", bin.path.display());
                 return Ok(None);
