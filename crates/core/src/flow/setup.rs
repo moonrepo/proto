@@ -103,7 +103,6 @@ impl Tool {
         }
 
         let version = self.get_resolved_version();
-        let mut removed_default_version = false;
 
         // Remove version from manifest
         let manifest = &mut self.inventory.manifest;
@@ -118,17 +117,14 @@ impl Tool {
                     debug!("Unpinning global version");
 
                     versions.remove(&self.id);
-                    removed_default_version = true;
                 }
             }
         })?;
 
         // If no more default version, delete the symlink,
         // otherwise the OS will throw errors for missing sources
-        if removed_default_version || self.inventory.manifest.installed_versions.is_empty() {
-            for bin in self.resolve_bin_locations().await? {
-                self.proto.store.unlink_bin(&bin.path)?;
-            }
+        for bin in self.resolve_bin_locations().await? {
+            self.proto.store.unlink_bin(&bin.path)?;
         }
 
         // If no more versions in general, delete all shims

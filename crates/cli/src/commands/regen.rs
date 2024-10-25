@@ -48,27 +48,26 @@ pub async fn regen(session: ProtoSession, args: RegenArgs) -> AppResult {
     debug!("Loading tools");
 
     let config = session.env.load_config()?;
-    let global_config = session.env.load_config_manager()?.get_global_config()?;
 
     for mut tool in session.load_tools().await? {
-        // Shims
+        // Shims - Create once for the configured version.
         if let Some(version) = config.versions.get(&tool.id) {
             debug!("Regenerating {} shim", tool.get_name());
 
             tool.resolve_version(version, true).await?;
-            tool.generate_shims(true).await?;
+            tool.generate_shims(false).await?;
         }
 
-        // Bins
-        // Symlinks are only based on the globally pinned versions,
-        // so we must reference that config instead of the merged one!
+        // Bins - Create for each installed version.
         if args.bin {
-            if let Some(version) = global_config.versions.get(&tool.id) {
-                debug!("Relinking {} bin", tool.get_name());
+            debug!("Relinking {} bin", tool.get_name());
+
+            for version in tool.inventory.manifest.installed_versions.clone() {
+                let version = version.to_unresolved_spec();
 
                 tool.version = None;
-                tool.resolve_version(version, true).await?;
-                tool.symlink_bins(true).await?;
+                tool.resolve_version(&version, true).await?;
+                tool.symlink_bins(false).await?;
             }
         }
     }

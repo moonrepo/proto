@@ -103,6 +103,7 @@ impl Tool {
     /// to the binaries final location.
     pub async fn resolve_bin_locations(&self) -> miette::Result<Vec<ExecutableLocation>> {
         let output = self.call_locate_executables().await?;
+        let version = self.get_resolved_version();
         let mut locations = vec![];
 
         let mut add = |name: String, config: ExecutableConfig| {
@@ -113,9 +114,15 @@ impl Tool {
                     .or(config.exe_path.as_ref())
                     .is_some()
             {
+                let versioned_name = format!("{name}-{version}");
+
                 locations.push(ExecutableLocation {
-                    path: self.proto.store.bin_dir.join(get_exe_file_name(&name)),
-                    name,
+                    path: self
+                        .proto
+                        .store
+                        .bin_dir
+                        .join(get_exe_file_name(&versioned_name)),
+                    name: versioned_name,
                     config,
                 });
             }

@@ -35,8 +35,6 @@ impl Tool {
         }
 
         let mut registry: ShimsMap = BTreeMap::default();
-        registry.insert(self.id.to_string(), Shim::default());
-
         let mut to_create = vec![];
 
         for shim in shims {
