@@ -105,7 +105,7 @@ async fn pin_version(
     }
 
     if pin {
-        internal_pin(tool, &spec, pin_type, true).await?;
+        internal_pin(tool, &spec, pin_type).await?;
     }
 
     Ok(pin)

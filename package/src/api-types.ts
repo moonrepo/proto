@@ -264,13 +264,6 @@ export interface ExecutableConfig {
 	/**
 	 * The file to execute, relative from the tool directory.
 	 * Does *not* support virtual paths.
-	 *
-	 * The following scenarios are powered by this field:
-	 * - Is the primary executable.
-	 * - For primary and secondary bins, the source file to be symlinked,
-	 * and the extension to use for the symlink file itself.
-	 * - For primary shim, this field is ignored.
-	 * - For secondary shims, the file to execute.
 	 */
 	exePath?: string | null;
 	/** Do not symlink a binary in `~/.proto/bin`. */
@@ -279,6 +272,8 @@ export interface ExecutableConfig {
 	noShim?: boolean;
 	/** The parent executable name required to execute the local executable path. */
 	parentExeName?: string | null;
+	/** Whether this is the primary executable or not. */
+	primary?: boolean;
 	/** Custom args to append to user-provided args within the generated shim. */
 	shimAfterArgs?: StringOrVec | null;
 	/** Custom args to prepend to user-provided args within the generated shim. */
@@ -290,8 +285,14 @@ export interface ExecutableConfig {
 /** Output returned by the `locate_executables` function. */
 export interface LocateExecutablesOutput {
 	/**
+	 * Configures executable information to be used as proto bins/shims.
+	 * The map key will be the name of the executable file.
+	 */
+	exes?: Record<string, ExecutableConfig>;
+	/**
 	 * Relative directory path from the tool install directory in which
-	 * pre-installed executables can be located.
+	 * pre-installed executables can be located. This directory path
+	 * will be used during `proto active`, but not for bins/shims.
 	 */
 	exesDir?: string | null;
 	/**

@@ -153,6 +153,7 @@ impl fmt::Debug for Store {
         f.debug_struct("Store")
             .field("dir", &self.dir)
             .field("bin_dir", &self.bin_dir)
+            .field("cache_dir", &self.cache_dir)
             .field("inventory_dir", &self.inventory_dir)
             .field("plugins_dir", &self.plugins_dir)
             .field("shims_dir", &self.shims_dir)

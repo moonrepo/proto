@@ -35,8 +35,6 @@ impl Tool {
         }
 
         let mut registry: ShimsMap = BTreeMap::default();
-        registry.insert(self.id.to_string(), Shim::default());
-
         let mut to_create = vec![];
 
         for shim in shims {
@@ -61,7 +59,7 @@ impl Tool {
                 shim_entry.env_vars.extend(env_vars);
             }
 
-            if !shim.primary {
+            if !shim.config.primary {
                 shim_entry.parent = Some(self.id.to_string());
 
                 // Only use --alt when the secondary executable exists

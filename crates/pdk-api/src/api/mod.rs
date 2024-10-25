@@ -284,13 +284,6 @@ api_struct!(
     pub struct ExecutableConfig {
         /// The file to execute, relative from the tool directory.
         /// Does *not* support virtual paths.
-        ///
-        /// The following scenarios are powered by this field:
-        /// - Is the primary executable.
-        /// - For primary and secondary bins, the source file to be symlinked,
-        ///   and the extension to use for the symlink file itself.
-        /// - For primary shim, this field is ignored.
-        /// - For secondary shims, the file to execute.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub exe_path: Option<PathBuf>,
 
@@ -310,6 +303,10 @@ api_struct!(
         /// The parent executable name required to execute the local executable path.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub parent_exe_name: Option<String>,
+
+        /// Whether this is the primary executable or not.
+        #[serde(skip_serializing_if = "is_false")]
+        pub primary: bool,
 
         /// Custom args to prepend to user-provided args within the generated shim.
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -333,6 +330,14 @@ impl ExecutableConfig {
         }
     }
 
+    pub fn new_primary<T: AsRef<str>>(exe_path: T) -> Self {
+        Self {
+            exe_path: Some(PathBuf::from(exe_path.as_ref())),
+            primary: true,
+            ..ExecutableConfig::default()
+        }
+    }
+
     pub fn with_parent<T: AsRef<str>, P: AsRef<str>>(exe_path: T, parent_exe: P) -> Self {
         Self {
             exe_path: Some(PathBuf::from(exe_path.as_ref())),
@@ -346,8 +351,14 @@ api_struct!(
     /// Output returned by the `locate_executables` function.
     #[serde(default)]
     pub struct LocateExecutablesOutput {
+        /// Configures executable information to be used as proto bins/shims.
+        /// The map key will be the name of the executable file.
+        #[serde(skip_serializing_if = "FxHashMap::is_empty")]
+        pub exes: FxHashMap<String, ExecutableConfig>,
+
         /// Relative directory path from the tool install directory in which
-        /// pre-installed executables can be located.
+        /// pre-installed executables can be located. This directory path
+        /// will be used during `proto active`, but not for bins/shims.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub exes_dir: Option<PathBuf>,
 
@@ -363,11 +374,13 @@ api_struct!(
 
         /// Configures the primary/default executable to create.
         /// If not provided, a primary shim and binary will *not* be created.
+        #[deprecated(note = "Use `exes` instead.")]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub primary: Option<ExecutableConfig>,
 
         /// Configures secondary/additional executables to create.
         /// The map key is the name of the shim/binary file.
+        #[deprecated(note = "Use `exes` instead.")]
         #[serde(skip_serializing_if = "FxHashMap::is_empty")]
         pub secondary: FxHashMap<String, ExecutableConfig>,
     }

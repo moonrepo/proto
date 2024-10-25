@@ -41,7 +41,7 @@ pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
         tool.symlink_bins(true).await?;
 
         for bin in tool.resolve_bin_locations().await? {
-            if bin.primary {
+            if bin.config.primary {
                 println!("{}", bin.path.display());
                 return Ok(None);
             }
@@ -52,7 +52,7 @@ pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
         tool.generate_shims(true).await?;
 
         for shim in tool.resolve_shim_locations().await? {
-            if shim.primary {
+            if shim.config.primary {
                 println!("{}", shim.path.display());
                 return Ok(None);
             }
