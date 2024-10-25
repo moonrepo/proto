@@ -49,7 +49,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
 
     let mut config = session.env.load_config()?.to_owned();
     let tool_config = config.tools.remove(&tool.id).unwrap_or_default();
-    let bins = tool.resolve_bin_locations().await?;
+    let bins = tool.resolve_bin_locations(true).await?;
     let shims = tool.resolve_shim_locations().await?;
 
     if args.json {
@@ -106,6 +106,11 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
     printer.named_section("Inventory", |p| {
         p.entry("Store", color::path(tool.get_inventory_dir()));
 
+        p.entry(
+            "Detected version",
+            color::symbol(tool.get_resolved_version().to_string()),
+        );
+
         p.entry("Executable", color::path(exe_file));
 
         if let Some(dir) = exes_dir {
@@ -123,22 +128,6 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
         );
 
         p.entry_list(
-            "Binaries",
-            bins.into_iter().map(|bin| {
-                format!(
-                    "{} {}",
-                    color::path(bin.path),
-                    if bin.config.primary {
-                        color::muted_light("(primary)")
-                    } else {
-                        "".into()
-                    }
-                )
-            }),
-            Some(color::failure("None")),
-        );
-
-        p.entry_list(
             "Shims",
             shims.into_iter().map(|shim| {
                 format!(
@@ -151,6 +140,13 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
                     }
                 )
             }),
+            Some(color::failure("None")),
+        );
+
+        p.entry_list(
+            "Binaries",
+            bins.into_iter()
+                .map(|bin| format!("{}", color::path(bin.path))),
             Some(color::failure("None")),
         );
 

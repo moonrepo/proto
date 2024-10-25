@@ -101,9 +101,23 @@ impl Tool {
     /// Return a list of all binaries that get created in `~/.proto/bin`.
     /// The list will contain the executable config, and an absolute path
     /// to the binaries final location.
-    pub async fn resolve_bin_locations(&self) -> miette::Result<Vec<ExecutableLocation>> {
+    pub async fn resolve_bin_locations(
+        &self,
+        include_all_versions: bool,
+    ) -> miette::Result<Vec<ExecutableLocation>> {
         let output = self.call_locate_executables().await?;
-        let version = self.get_resolved_version();
+        let versions = if include_all_versions {
+            self.inventory
+                .manifest
+                .installed_versions
+                .iter()
+                .collect::<Vec<_>>()
+        } else if let Some(version) = &self.version {
+            vec![version]
+        } else {
+            vec![]
+        };
+
         let mut locations = vec![];
 
         let mut add = |name: String, config: ExecutableConfig| {
@@ -114,17 +128,19 @@ impl Tool {
                     .or(config.exe_path.as_ref())
                     .is_some()
             {
-                let versioned_name = format!("{name}-{version}");
+                for version in &versions {
+                    let versioned_name = format!("{name}-{version}");
 
-                locations.push(ExecutableLocation {
-                    path: self
-                        .proto
-                        .store
-                        .bin_dir
-                        .join(get_exe_file_name(&versioned_name)),
-                    name: versioned_name,
-                    config,
-                });
+                    locations.push(ExecutableLocation {
+                        path: self
+                            .proto
+                            .store
+                            .bin_dir
+                            .join(get_exe_file_name(&versioned_name)),
+                        name: versioned_name,
+                        config: config.clone(),
+                    });
+                }
             }
         };
 
@@ -145,6 +161,8 @@ impl Tool {
                 add(name, config);
             }
         }
+
+        locations.sort_by(|a, d| a.path.cmp(&d.path));
 
         Ok(locations)
     }

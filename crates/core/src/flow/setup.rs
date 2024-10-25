@@ -121,16 +121,20 @@ impl Tool {
             }
         })?;
 
-        // If no more default version, delete the symlink,
-        // otherwise the OS will throw errors for missing sources
-        for bin in self.resolve_bin_locations().await? {
-            self.proto.store.unlink_bin(&bin.path)?;
-        }
-
-        // If no more versions in general, delete all shims
+        // If no more versions in general, delete all
         if self.inventory.manifest.installed_versions.is_empty() {
+            for bin in self.resolve_bin_locations(true).await? {
+                self.proto.store.unlink_bin(&bin.path)?;
+            }
+
             for shim in self.resolve_shim_locations().await? {
                 self.proto.store.remove_shim(&shim.path)?;
+            }
+        }
+        // Otherwise, delete bins for this specific version
+        else {
+            for bin in self.resolve_bin_locations(false).await? {
+                self.proto.store.unlink_bin(&bin.path)?;
             }
         }
 
