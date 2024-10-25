@@ -145,8 +145,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
 
         p.entry_list(
             "Binaries",
-            bins.into_iter()
-                .map(|bin| format!("{}", color::path(bin.path))),
+            bins.into_iter().map(|bin| color::path(bin.path)),
             Some(color::failure("None")),
         );
 

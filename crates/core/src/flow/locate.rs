@@ -3,6 +3,7 @@ use crate::helpers::ENV_VAR;
 use crate::tool::Tool;
 use proto_pdk_api::{ExecutableConfig, LocateExecutablesInput, LocateExecutablesOutput};
 use proto_shim::{get_exe_file_name, get_shim_file_name};
+use semver::Version;
 use serde::Serialize;
 use starbase_utils::fs;
 use std::env;
@@ -17,6 +18,9 @@ pub struct ExecutableLocation {
     pub config: ExecutableConfig,
     pub name: String,
     pub path: PathBuf,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version: Option<Version>,
 }
 
 impl Tool {
@@ -42,6 +46,7 @@ impl Tool {
                         path: self.get_product_dir().join(exe_path),
                         name,
                         config,
+                        version: None,
                     }));
                 }
             }
@@ -56,6 +61,7 @@ impl Tool {
                     path: self.get_product_dir().join(exe_path),
                     name: self.id.to_string(),
                     config: primary,
+                    version: None,
                 }));
             }
         }
@@ -78,6 +84,7 @@ impl Tool {
                     path: self.get_product_dir().join(exe_path),
                     name,
                     config,
+                    version: None,
                 });
             }
         }
@@ -90,6 +97,7 @@ impl Tool {
                         path: self.get_product_dir().join(exe_path),
                         name,
                         config: secondary,
+                        version: None,
                     });
                 }
             }
@@ -106,17 +114,15 @@ impl Tool {
         include_all_versions: bool,
     ) -> miette::Result<Vec<ExecutableLocation>> {
         let output = self.call_locate_executables().await?;
-        let versions = if include_all_versions {
-            self.inventory
-                .manifest
-                .installed_versions
-                .iter()
-                .collect::<Vec<_>>()
-        } else if let Some(version) = &self.version {
-            vec![version]
-        } else {
-            vec![]
-        };
+        let resolved_version = self.get_resolved_version();
+        let versions = self
+            .inventory
+            .manifest
+            .get_bucketed_versions(if include_all_versions {
+                None
+            } else {
+                resolved_version.as_version()
+            });
 
         let mut locations = vec![];
 
@@ -128,8 +134,8 @@ impl Tool {
                     .or(config.exe_path.as_ref())
                     .is_some()
             {
-                for version in &versions {
-                    let versioned_name = format!("{name}-{version}");
+                for (bucket_version, resolved_version) in &versions {
+                    let versioned_name = format!("{name}-{bucket_version}");
 
                     locations.push(ExecutableLocation {
                         path: self
@@ -139,6 +145,7 @@ impl Tool {
                             .join(get_exe_file_name(&versioned_name)),
                         name: versioned_name,
                         config: config.clone(),
+                        version: Some(resolved_version.to_owned()),
                     });
                 }
             }
@@ -162,7 +169,7 @@ impl Tool {
             }
         }
 
-        locations.sort_by(|a, d| a.path.cmp(&d.path));
+        locations.sort_by(|a, d| a.name.cmp(&d.name));
 
         Ok(locations)
     }
@@ -180,6 +187,7 @@ impl Tool {
                     path: self.proto.store.shims_dir.join(get_shim_file_name(&name)),
                     name,
                     config,
+                    version: None,
                 });
             }
         };

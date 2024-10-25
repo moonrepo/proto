@@ -115,10 +115,19 @@ impl Tool {
             );
         }
 
-        let tool_dir = self.get_product_dir();
         let mut to_create = vec![];
 
         for bin in bins {
+            let Some(bin_version) = bin.version else {
+                continue;
+            };
+
+            // Create a new product since we need to change the version for each bin
+            let tool_dir = self
+                .inventory
+                .create_product(&VersionSpec::Semantic(SemVer(bin_version)))
+                .dir;
+
             let input_path = tool_dir.join(
                 bin.config
                     .exe_link_path
@@ -126,6 +135,7 @@ impl Tool {
                     .or(bin.config.exe_path.as_ref())
                     .unwrap(),
             );
+
             let output_path = bin.path;
 
             if !input_path.exists() {
