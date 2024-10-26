@@ -42,7 +42,11 @@ mod clean {
     #[test]
     fn purges_tool_bin() {
         let sandbox = create_empty_proto_sandbox();
-        sandbox.create_file(".proto/tools/node/fake/file", "");
+        sandbox.create_file(".proto/tools/node/1.2.3/fake/file", "");
+        sandbox.create_file(
+            ".proto/tools/node/manifest.json",
+            r#"{ "installed_versions": ["1.2.3"] }"#,
+        );
         sandbox.create_file(".proto/bin/other", "");
 
         let bin = sandbox.path().join(".proto").join(if cfg!(windows) {
@@ -52,7 +56,11 @@ mod clean {
         });
 
         #[allow(deprecated)]
-        std::fs::soft_link(sandbox.path().join(".proto/tools/node/fake/file"), &bin).unwrap();
+        std::fs::soft_link(
+            sandbox.path().join(".proto/tools/node/1.2.3/fake/file"),
+            &bin,
+        )
+        .unwrap();
 
         sandbox
             .run_bin(|cmd| {

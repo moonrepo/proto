@@ -602,7 +602,36 @@ mod install_uninstall {
 
         #[cfg(not(windows))]
         #[test]
-        fn symlinks_bin_when_pinning() {
+        fn symlinks_bins() {
+            let sandbox = create_empty_proto_sandbox();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("node")
+                        .arg("19.0.0")
+                        .arg("--")
+                        .arg("--no-bundled-npm");
+                })
+                .success();
+
+            let link1 = sandbox.path().join(".proto/bin/node");
+            let link2 = sandbox.path().join(".proto/bin/node-19");
+            let link3 = sandbox.path().join(".proto/bin/node-19.0");
+            let src = sandbox.path().join(".proto/tools/node/19.0.0/bin/node");
+
+            assert!(link1.exists());
+            assert!(link2.exists());
+            assert!(link3.exists());
+
+            assert_eq!(std::fs::read_link(link1).unwrap(), src);
+            assert_eq!(std::fs::read_link(link2).unwrap(), src);
+            assert_eq!(std::fs::read_link(link3).unwrap(), src);
+        }
+
+        #[cfg(windows)]
+        #[test]
+        fn creates_bins() {
             let sandbox = create_empty_proto_sandbox();
 
             sandbox
@@ -616,78 +645,13 @@ mod install_uninstall {
                 })
                 .success();
 
-            let link = sandbox.path().join(".proto/bin").join("node");
+            let link1 = sandbox.path().join(".proto/bin/node.exe");
+            let link2 = sandbox.path().join(".proto/bin/node-19.exe");
+            let link3 = sandbox.path().join(".proto/bin/node-19.0.exe");
 
-            assert!(link.exists());
-
-            assert_eq!(
-                std::fs::read_link(link).unwrap(),
-                sandbox
-                    .path()
-                    .join(".proto/tools/node/19.0.0")
-                    .join("bin/node")
-            );
-        }
-
-        #[cfg(not(windows))]
-        #[test]
-        fn symlinks_bin_on_first_install_without_pinning() {
-            let sandbox = create_empty_proto_sandbox();
-
-            sandbox
-                .run_bin(|cmd| {
-                    cmd.arg("install")
-                        .arg("node")
-                        .arg("19.0.0")
-                        .arg("--")
-                        .arg("--no-bundled-npm");
-                })
-                .success();
-
-            let link = sandbox.path().join(".proto/bin").join("node");
-
-            assert!(link.exists());
-        }
-
-        #[cfg(windows)]
-        #[test]
-        fn creates_bin_when_pinning() {
-            let sandbox = create_empty_proto_sandbox();
-
-            sandbox
-                .run_bin(|cmd| {
-                    cmd.arg("install")
-                        .arg("node")
-                        .arg("19.0.0")
-                        .arg("--pin")
-                        .arg("--")
-                        .arg("--no-bundled-npm");
-                })
-                .success();
-
-            let link = sandbox.path().join(".proto/bin").join("node.exe");
-
-            assert!(link.exists());
-        }
-
-        #[cfg(windows)]
-        #[test]
-        fn creates_bin_on_first_install_without_pinning() {
-            let sandbox = create_empty_proto_sandbox();
-
-            sandbox
-                .run_bin(|cmd| {
-                    cmd.arg("install")
-                        .arg("node")
-                        .arg("19.0.0")
-                        .arg("--")
-                        .arg("--no-bundled-npm");
-                })
-                .success();
-
-            let link = sandbox.path().join(".proto/bin").join("node.exe");
-
-            assert!(link.exists());
+            assert!(link1.exists());
+            assert!(link2.exists());
+            assert!(link3.exists());
         }
     }
 }

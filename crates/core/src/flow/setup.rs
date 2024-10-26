@@ -59,7 +59,7 @@ impl Tool {
         }
 
         self.generate_shims(false).await?;
-        self.symlink_bins(false).await?;
+        self.symlink_bins(true).await?;
         self.cleanup().await?;
 
         let version = self.get_resolved_version();

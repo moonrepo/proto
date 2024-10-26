@@ -50,11 +50,10 @@ pub async fn regen(session: ProtoSession, args: RegenArgs) -> AppResult {
     let config = session.env.load_config()?;
 
     for mut tool in session.load_tools().await? {
-        // Shims - Create once for the configured version.
-        if let Some(version) = config.versions.get(&tool.id) {
+        // Shims - Create once if has a configured version.
+        if config.versions.contains_key(&tool.id) {
             debug!("Regenerating {} shim", tool.get_name());
 
-            tool.resolve_version(version, true).await?;
             tool.generate_shims(false).await?;
         }
 
