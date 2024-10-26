@@ -1,4 +1,5 @@
 use crate::flow::install::InstallOptions;
+use crate::layout::BinManager;
 use crate::proto_config::{PinType, ProtoConfig};
 use crate::tool::Tool;
 use crate::tool_manifest::ToolManifestVersion;
@@ -103,7 +104,9 @@ impl Tool {
         }
 
         let version = self.get_resolved_version();
-        let is_last_version = self.inventory.manifest.installed_versions.len() == 1
+        let mut bin_manager = BinManager::from_manifest(&self.inventory.manifest);
+
+        let is_last_installed_version = self.inventory.manifest.installed_versions.len() == 1
             && self
                 .inventory
                 .manifest
@@ -111,8 +114,11 @@ impl Tool {
                 .contains(&version);
 
         // If no more versions in general, delete all
-        if is_last_version {
-            for bin in self.resolve_bin_locations(true).await? {
+        if is_last_installed_version {
+            for bin in self
+                .resolve_bin_locations_with_manager(bin_manager, true)
+                .await?
+            {
                 self.proto.store.unlink_bin(&bin.path)?;
             }
 
@@ -121,8 +127,11 @@ impl Tool {
             }
         }
         // Otherwise, delete bins for this specific version
-        else {
-            for bin in self.resolve_bin_locations(false).await? {
+        else if bin_manager.remove_version_from_spec(&version) {
+            for bin in self
+                .resolve_bin_locations_with_manager(bin_manager, false)
+                .await?
+            {
                 self.proto.store.unlink_bin(&bin.path)?;
             }
         }

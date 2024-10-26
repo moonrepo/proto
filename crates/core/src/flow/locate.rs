@@ -1,5 +1,6 @@
 use crate::error::ProtoError;
 use crate::helpers::ENV_VAR;
+use crate::layout::BinManager;
 use crate::tool::Tool;
 use proto_pdk_api::{ExecutableConfig, LocateExecutablesInput, LocateExecutablesOutput};
 use proto_shim::{get_exe_file_name, get_shim_file_name};
@@ -113,18 +114,29 @@ impl Tool {
         &self,
         include_all_versions: bool,
     ) -> miette::Result<Vec<ExecutableLocation>> {
+        self.resolve_bin_locations_with_manager(
+            BinManager::from_manifest(&self.inventory.manifest),
+            include_all_versions,
+        )
+        .await
+    }
+
+    pub async fn resolve_bin_locations_with_manager(
+        &self,
+        bin_manager: BinManager,
+        include_all_versions: bool,
+    ) -> miette::Result<Vec<ExecutableLocation>> {
         let output = self.call_locate_executables().await?;
         let resolved_version = self.get_resolved_version();
-        let versions = self
-            .inventory
-            .manifest
-            .get_bucketed_versions(if include_all_versions {
-                None
-            } else {
-                resolved_version.as_version()
-            });
-
         let mut locations = vec![];
+
+        let versions = if include_all_versions {
+            bin_manager.get_buckets()
+        } else if let Some(version) = resolved_version.as_version() {
+            bin_manager.get_buckets_focused_to_version(version)
+        } else {
+            return Ok(locations);
+        };
 
         let mut add = |name: String, config: ExecutableConfig| {
             if !config.no_bin
@@ -135,7 +147,7 @@ impl Tool {
                     .is_some()
             {
                 for (bucket_version, resolved_version) in &versions {
-                    let versioned_name = if bucket_version == "*" {
+                    let versioned_name = if *bucket_version == "*" {
                         name.clone()
                     } else {
                         format!("{name}-{bucket_version}")
@@ -149,7 +161,7 @@ impl Tool {
                             .join(get_exe_file_name(&versioned_name)),
                         name: versioned_name,
                         config: config.clone(),
-                        version: Some(resolved_version.to_owned()),
+                        version: Some((*resolved_version).to_owned()),
                     });
                 }
             }
