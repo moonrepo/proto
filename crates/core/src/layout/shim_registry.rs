@@ -1,8 +1,8 @@
 use crate::helpers::{read_json_file_with_lock, write_json_file_with_lock};
-use crate::proto::ProtoEnvironment;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use std::path::Path;
 
 #[derive(Default, Deserialize, PartialEq, Serialize)]
 #[serde(default)]
@@ -28,12 +28,12 @@ pub type ShimsMap = BTreeMap<String, Shim>;
 pub struct ShimRegistry;
 
 impl ShimRegistry {
-    pub fn update<P: AsRef<ProtoEnvironment>>(proto: P, entries: ShimsMap) -> miette::Result<()> {
+    pub fn update(shims_dir: &Path, entries: ShimsMap) -> miette::Result<()> {
         if entries.is_empty() {
             return Ok(());
         }
 
-        let file = proto.as_ref().store.shims_dir.join("registry.json");
+        let file = shims_dir.join("registry.json");
 
         let mut config: ShimsMap = if file.exists() {
             read_json_file_with_lock(&file)?

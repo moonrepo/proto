@@ -6,7 +6,6 @@ pub mod layout;
 mod proto;
 mod proto_config;
 pub mod registry;
-mod shim_registry;
 mod tool;
 mod tool_loader;
 mod tool_manifest;

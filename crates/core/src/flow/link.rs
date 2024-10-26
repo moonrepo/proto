@@ -1,4 +1,4 @@
-use crate::shim_registry::{Shim, ShimRegistry, ShimsMap};
+use crate::layout::{Shim, ShimRegistry, ShimsMap};
 use crate::tool::Tool;
 use miette::IntoDiagnostic;
 use proto_pdk_api::*;
@@ -92,7 +92,7 @@ impl Tool {
                 );
             }
 
-            ShimRegistry::update(&self.proto, registry)?;
+            ShimRegistry::update(&self.proto.store.shims_dir, registry)?;
         }
 
         Ok(())
