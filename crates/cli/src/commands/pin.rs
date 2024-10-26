@@ -52,8 +52,9 @@ pub async fn pin(session: ProtoSession, args: PinArgs) -> AppResult {
     let mut tool = session.load_tool(&args.id).await?;
 
     let spec = if args.resolve {
-        tool.resolve_version(&args.spec, false).await?;
-        tool.get_resolved_version().to_unresolved_spec()
+        tool.resolve_version(&args.spec, false)
+            .await?
+            .to_unresolved_spec()
     } else {
         args.spec.clone()
     };

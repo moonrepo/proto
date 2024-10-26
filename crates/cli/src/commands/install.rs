@@ -221,9 +221,7 @@ pub async fn do_install(
     tool.disable_caching();
 
     // Resolve version first so subsequent steps can reference the resolved version
-    tool.resolve_version(&version, false).await?;
-
-    let resolved_version = tool.get_resolved_version();
+    let resolved_version = tool.resolve_version(&version, false).await?;
 
     // Check if already installed, or if forced, overwrite previous install
     if !args.force && tool.is_setup(&version).await? {

@@ -53,17 +53,12 @@ impl Tool {
         initial_version: &UnresolvedVersionSpec,
         options: InstallOptions,
     ) -> miette::Result<bool> {
-        self.resolve_version(initial_version, false).await?;
+        let version = self.resolve_version(initial_version, false).await?;
 
         if !self.install(options).await? {
             return Ok(false);
         }
 
-        self.generate_shims(false).await?;
-        self.symlink_bins(true).await?;
-        self.cleanup().await?;
-
-        let version = self.get_resolved_version();
         let default_version = self
             .metadata
             .default_version
@@ -89,6 +84,13 @@ impl Tool {
 
         // Allow plugins to override manifest
         self.sync_manifest().await?;
+
+        // Create all the things
+        self.generate_shims(false).await?;
+        self.symlink_bins(true).await?;
+
+        // Remove temp files
+        self.cleanup().await?;
 
         Ok(true)
     }
