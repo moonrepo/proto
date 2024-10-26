@@ -103,26 +103,15 @@ impl Tool {
         }
 
         let version = self.get_resolved_version();
-
-        // Remove version from manifest
-        let manifest = &mut self.inventory.manifest;
-        manifest.installed_versions.remove(&version);
-        manifest.versions.remove(&version);
-        manifest.save()?;
-
-        // Unpin global version if a match
-        ProtoConfig::update(self.proto.get_config_dir(PinType::Global), |config| {
-            if let Some(versions) = &mut config.versions {
-                if versions.get(&self.id).is_some_and(|v| v == &version) {
-                    debug!("Unpinning global version");
-
-                    versions.remove(&self.id);
-                }
-            }
-        })?;
+        let is_last_version = self.inventory.manifest.installed_versions.len() == 1
+            && self
+                .inventory
+                .manifest
+                .installed_versions
+                .contains(&version);
 
         // If no more versions in general, delete all
-        if self.inventory.manifest.installed_versions.is_empty() {
+        if is_last_version {
             for bin in self.resolve_bin_locations(true).await? {
                 self.proto.store.unlink_bin(&bin.path)?;
             }
@@ -137,6 +126,25 @@ impl Tool {
                 self.proto.store.unlink_bin(&bin.path)?;
             }
         }
+
+        // Unpin global version if a match
+        ProtoConfig::update(self.proto.get_config_dir(PinType::Global), |config| {
+            if let Some(versions) = &mut config.versions {
+                if versions.get(&self.id).is_some_and(|v| v == &version) {
+                    debug!("Unpinning global version");
+
+                    versions.remove(&self.id);
+                }
+            }
+        })?;
+
+        // Remove version from manifest
+        // We must do this last because the location resolves above
+        // require `installed_versions` to have values!
+        let manifest = &mut self.inventory.manifest;
+        manifest.installed_versions.remove(&version);
+        manifest.versions.remove(&version);
+        manifest.save()?;
 
         Ok(true)
     }
