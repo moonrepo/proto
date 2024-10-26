@@ -12,10 +12,23 @@
 
 ## Unreleased
 
+#### 💥 Breaking
+
+- Each tool's primary executable file name is no longer based on the plugin's identifier, and is now based on what's configured in the new `LocateExecutablesOutput.exes` setting.
+- We've reworked how the `~/.proto/bin` directory works. Instead of only symlinking globally pinned versions, we now create a symlink for every tool executable, and every major + minor version installed within that tool. For example, when we install `node`, we may have the following:
+  - `~/.proto/bin/node` - Points to the highest installed version.
+  - `~/.proto/bin/node-<major>` - Points to the highest version within that major range (`~major`). Is created for each separate major version, for example: `node-20`, `node-22`.
+  - `~/.proto/bin/node-<major>.<minor>` - Points to the highest version within that major + minor range (`~major.minor`). Is created for each separate major + minor version, for example: `node-20.1`, `node-22.4`.
+- WASM API
+  - Deprecated `LocateExecutablesOutput.primary` and `LocateExecutablesOutput.secondary` (use `exes` instead).
+
 #### 🚀 Updates
 
 - Added support for JSON and YAML based configurations for non-WASM schema based plugins. This is an alternative to TOML, but supports all the same settings.
 - We now cache all text-based HTTP requests made from WASM plugins for 12 hours. This should greatly reduce the overhead cost of making requests, and will help for situations where an internet connection is lost.
+- WASM API
+  - Added `ExecutableConfig.primary`.
+  - Added `LocateExecutablesOutput.exes`.
 
 ## 0.41.7
 
