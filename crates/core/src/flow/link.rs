@@ -101,7 +101,7 @@ impl Tool {
     /// Symlink all primary and secondary binaries for the current tool.
     #[instrument(skip(self))]
     pub async fn symlink_bins(&mut self, force: bool) -> miette::Result<()> {
-        let bins = self.resolve_bin_locations(false).await?;
+        let bins = self.resolve_bin_locations(true).await?;
 
         if bins.is_empty() {
             return Ok(());
