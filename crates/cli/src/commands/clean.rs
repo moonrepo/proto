@@ -333,6 +333,18 @@ pub async fn internal_clean(
         );
     }
 
+    debug!("Cleaning cache directory...");
+
+    let results =
+        fs::remove_dir_stale_contents(&session.env.store.cache_dir, Duration::from_secs(86400))?;
+
+    if log && results.files_deleted > 0 {
+        println!(
+            "Successfully cleaned {} cache files ({} bytes)",
+            results.files_deleted, results.bytes_saved
+        );
+    }
+
     Ok(None)
 }
 
