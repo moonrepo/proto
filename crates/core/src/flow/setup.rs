@@ -129,7 +129,7 @@ impl Tool {
             }
         }
         // Otherwise, delete bins for this specific version
-        else if bin_manager.remove_version_from_spec(&version) {
+        else if bin_manager.remove_version(&version) {
             for bin in self
                 .resolve_bin_locations_with_manager(bin_manager, false)
                 .await?

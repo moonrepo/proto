@@ -132,10 +132,8 @@ impl Tool {
 
         let versions = if include_all_versions {
             bin_manager.get_buckets()
-        } else if let Some(version) = resolved_version.as_version() {
-            bin_manager.get_buckets_focused_to_version(version)
         } else {
-            return Ok(locations);
+            bin_manager.get_buckets_focused_to_version(&resolved_version)
         };
 
         let mut add = |name: String, config: ExecutableConfig| {
@@ -161,7 +159,7 @@ impl Tool {
                             .join(get_exe_file_name(&versioned_name)),
                         name: versioned_name,
                         config: config.clone(),
-                        version: Some((*resolved_version).to_owned()),
+                        version: resolved_version.as_version().map(|v| v.to_owned()),
                     });
                 }
             }

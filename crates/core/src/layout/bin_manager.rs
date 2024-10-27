@@ -1,13 +1,12 @@
 use crate::tool_manifest::ToolManifest;
 use rustc_hash::{FxHashMap, FxHashSet};
-use semver::Version;
 use std::mem;
 use version_spec::VersionSpec;
 
 #[derive(Debug, Default)]
 pub struct BinManager {
-    buckets: FxHashMap<String, Version>,
-    versions: FxHashSet<Version>,
+    buckets: FxHashMap<String, VersionSpec>,
+    versions: FxHashSet<VersionSpec>,
 }
 
 impl BinManager {
@@ -15,23 +14,21 @@ impl BinManager {
         let mut manager = Self::default();
 
         for spec in &manifest.installed_versions {
-            if let Some(version) = spec.as_version() {
-                manager.add_version(version);
-            }
+            manager.add_version(spec);
         }
 
         manager
     }
 
-    pub fn get_buckets(&self) -> FxHashMap<&String, &Version> {
+    pub fn get_buckets(&self) -> FxHashMap<&String, &VersionSpec> {
         self.buckets.iter().collect()
     }
 
     pub fn get_buckets_focused_to_version(
         &self,
-        version: &Version,
-    ) -> FxHashMap<&String, &Version> {
-        let bucket_keys = self.get_keys(version);
+        spec: &VersionSpec,
+    ) -> FxHashMap<&String, &VersionSpec> {
+        let bucket_keys = self.get_keys(spec);
 
         self.buckets
             .iter()
@@ -39,19 +36,27 @@ impl BinManager {
             .collect()
     }
 
-    pub fn add_version(&mut self, version: &Version) {
-        for bucket_key in self.get_keys(version) {
+    pub fn add_version(&mut self, spec: &VersionSpec) {
+        if matches!(spec, VersionSpec::Alias(_)) {
+            return;
+        }
+
+        for bucket_key in self.get_keys(spec) {
+            if bucket_key == "canary" && !spec.is_canary() {
+                continue;
+            }
+
             if let Some(bucket_value) = self.buckets.get_mut(&bucket_key) {
                 // Always use the highest patch version
-                if version > bucket_value {
-                    *bucket_value = version.to_owned();
+                if spec > bucket_value {
+                    *bucket_value = spec.to_owned();
                 }
             } else {
-                self.buckets.insert(bucket_key.clone(), version.to_owned());
+                self.buckets.insert(bucket_key.clone(), spec.to_owned());
             }
         }
 
-        self.versions.insert(version.to_owned());
+        self.versions.insert(spec.to_owned());
     }
 
     pub fn rebuild_buckets(&mut self) {
@@ -62,20 +67,20 @@ impl BinManager {
         }
     }
 
-    pub fn remove_version(&mut self, version: &Version) -> bool {
+    pub fn remove_version(&mut self, spec: &VersionSpec) -> bool {
         let mut rebuild = false;
 
-        for bucket_key in self.get_keys(version) {
+        for bucket_key in self.get_keys(spec) {
             if self
                 .buckets
                 .get(&bucket_key)
-                .is_some_and(|bucket_value| bucket_value == version)
+                .is_some_and(|bucket_value| bucket_value == spec)
             {
                 rebuild = true;
             }
         }
 
-        self.versions.remove(version);
+        self.versions.remove(spec);
 
         if rebuild {
             self.rebuild_buckets();
@@ -84,19 +89,19 @@ impl BinManager {
         rebuild
     }
 
-    pub fn remove_version_from_spec(&mut self, spec: &VersionSpec) -> bool {
-        if let Some(version) = spec.as_version() {
-            return self.remove_version(version);
+    fn get_keys(&self, spec: &VersionSpec) -> Vec<String> {
+        let mut keys = vec![];
+
+        if spec.is_canary() {
+            keys.push("canary".to_string());
+        } else if let Some(version) = spec.as_version() {
+            keys.extend([
+                "*".to_string(),
+                format!("{}", version.major),
+                format!("{}.{}", version.major, version.minor),
+            ]);
         }
 
-        false
-    }
-
-    fn get_keys(&self, version: &Version) -> Vec<String> {
-        vec![
-            "*".to_string(),
-            format!("{}", version.major),
-            format!("{}.{}", version.major, version.minor),
-        ]
+        keys
     }
 }

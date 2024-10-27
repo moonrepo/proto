@@ -19,6 +19,7 @@
   - `~/.proto/bin/node` - Points to the highest installed version.
   - `~/.proto/bin/node-<major>` - Points to the highest version within that major range (`~major`). Is created for each separate major version, for example: `node-20`, `node-22`.
   - `~/.proto/bin/node-<major>.<minor>` - Points to the highest version within that major + minor range (`~major.minor`). Is created for each separate major + minor version, for example: `node-20.1`, `node-22.4`.
+  - `~/.proto/bin/node-canary` - Points to a canary install, if it exists.
 - WASM API
   - Deprecated `LocateExecutablesOutput.primary` and `LocateExecutablesOutput.secondary` (use `exes` instead).
 
