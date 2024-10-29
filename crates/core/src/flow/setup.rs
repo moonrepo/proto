@@ -1,4 +1,5 @@
 use crate::flow::install::InstallOptions;
+use crate::layout::BinManager;
 use crate::proto_config::{PinType, ProtoConfig};
 use crate::tool::Tool;
 use crate::tool_manifest::ToolManifestVersion;
@@ -52,17 +53,12 @@ impl Tool {
         initial_version: &UnresolvedVersionSpec,
         options: InstallOptions,
     ) -> miette::Result<bool> {
-        self.resolve_version(initial_version, false).await?;
+        let version = self.resolve_version(initial_version, false).await?;
 
         if !self.install(options).await? {
             return Ok(false);
         }
 
-        self.generate_shims(false).await?;
-        self.symlink_bins(false).await?;
-        self.cleanup().await?;
-
-        let version = self.get_resolved_version();
         let default_version = self
             .metadata
             .default_version
@@ -89,6 +85,13 @@ impl Tool {
         // Allow plugins to override manifest
         self.sync_manifest().await?;
 
+        // Create all the things
+        self.generate_shims(false).await?;
+        self.symlink_bins(true).await?;
+
+        // Remove temp files
+        self.cleanup().await?;
+
         Ok(true)
     }
 
@@ -103,13 +106,37 @@ impl Tool {
         }
 
         let version = self.get_resolved_version();
-        let mut removed_default_version = false;
+        let mut bin_manager = BinManager::from_manifest(&self.inventory.manifest);
 
-        // Remove version from manifest
-        let manifest = &mut self.inventory.manifest;
-        manifest.installed_versions.remove(&version);
-        manifest.versions.remove(&version);
-        manifest.save()?;
+        let is_last_installed_version = self.inventory.manifest.installed_versions.len() == 1
+            && self
+                .inventory
+                .manifest
+                .installed_versions
+                .contains(&version);
+
+        // If no more versions in general, delete all
+        if is_last_installed_version {
+            for bin in self
+                .resolve_bin_locations_with_manager(bin_manager, true)
+                .await?
+            {
+                self.proto.store.unlink_bin(&bin.path)?;
+            }
+
+            for shim in self.resolve_shim_locations().await? {
+                self.proto.store.remove_shim(&shim.path)?;
+            }
+        }
+        // Otherwise, delete bins for this specific version
+        else if bin_manager.remove_version(&version) {
+            for bin in self
+                .resolve_bin_locations_with_manager(bin_manager, false)
+                .await?
+            {
+                self.proto.store.unlink_bin(&bin.path)?;
+            }
+        }
 
         // Unpin global version if a match
         ProtoConfig::update(self.proto.get_config_dir(PinType::Global), |config| {
@@ -118,25 +145,17 @@ impl Tool {
                     debug!("Unpinning global version");
 
                     versions.remove(&self.id);
-                    removed_default_version = true;
                 }
             }
         })?;
 
-        // If no more default version, delete the symlink,
-        // otherwise the OS will throw errors for missing sources
-        if removed_default_version || self.inventory.manifest.installed_versions.is_empty() {
-            for bin in self.resolve_bin_locations().await? {
-                self.proto.store.unlink_bin(&bin.path)?;
-            }
-        }
-
-        // If no more versions in general, delete all shims
-        if self.inventory.manifest.installed_versions.is_empty() {
-            for shim in self.resolve_shim_locations().await? {
-                self.proto.store.remove_shim(&shim.path)?;
-            }
-        }
+        // Remove version from manifest
+        // We must do this last because the location resolves above
+        // require `installed_versions` to have values!
+        let manifest = &mut self.inventory.manifest;
+        manifest.installed_versions.remove(&version);
+        manifest.versions.remove(&version);
+        manifest.save()?;
 
         Ok(true)
     }

@@ -34,7 +34,7 @@ macro_rules! generate_download_install_tests {
             plugin.tool.locate_exe_file().await.unwrap();
 
             // Check things exist
-            for bin in plugin.tool.resolve_bin_locations().await.unwrap() {
+            for bin in plugin.tool.resolve_bin_locations(true).await.unwrap() {
                 assert!(bin.path.exists());
             }
 

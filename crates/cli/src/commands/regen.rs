@@ -12,6 +12,8 @@ pub struct RegenArgs {
 
 #[tracing::instrument(skip_all)]
 pub async fn regen(session: ProtoSession, args: RegenArgs) -> AppResult {
+    let store = &session.env.store;
+
     if args.bin {
         println!("Regenerating bins and shims...");
     } else {
@@ -21,13 +23,13 @@ pub async fn regen(session: ProtoSession, args: RegenArgs) -> AppResult {
     // Delete all shims
     debug!("Removing old shims");
 
-    fs::remove_dir_all(&session.env.store.shims_dir)?;
+    fs::remove_dir_all(&store.shims_dir)?;
 
     // Delete all bins (except for proto)
     if args.bin {
         debug!("Removing old bins");
 
-        for file in fs::read_dir_all(&session.env.store.bin_dir)? {
+        for file in fs::read_dir_all(&store.bin_dir)? {
             let path = file.path();
             let name = fs::file_name(&path);
 
@@ -40,7 +42,7 @@ pub async fn regen(session: ProtoSession, args: RegenArgs) -> AppResult {
                 continue;
             }
 
-            session.env.store.unlink_bin(&path)?;
+            store.unlink_bin(&path)?;
         }
     }
 
@@ -48,28 +50,20 @@ pub async fn regen(session: ProtoSession, args: RegenArgs) -> AppResult {
     debug!("Loading tools");
 
     let config = session.env.load_config()?;
-    let global_config = session.env.load_config_manager()?.get_global_config()?;
 
     for mut tool in session.load_tools().await? {
-        // Shims
-        if let Some(version) = config.versions.get(&tool.id) {
+        // Shims - Create once if has a configured version.
+        if config.versions.contains_key(&tool.id) {
             debug!("Regenerating {} shim", tool.get_name());
 
-            tool.resolve_version(version, true).await?;
             tool.generate_shims(true).await?;
         }
 
-        // Bins
-        // Symlinks are only based on the globally pinned versions,
-        // so we must reference that config instead of the merged one!
+        // Bins - Create for each installed version.
         if args.bin {
-            if let Some(version) = global_config.versions.get(&tool.id) {
-                debug!("Relinking {} bin", tool.get_name());
+            debug!("Relinking {} bin", tool.get_name());
 
-                tool.version = None;
-                tool.resolve_version(version, true).await?;
-                tool.symlink_bins(true).await?;
-            }
+            tool.symlink_bins(true).await?;
         }
     }
 
