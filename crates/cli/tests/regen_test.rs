@@ -9,6 +9,7 @@ fn install_node(sandbox: &Sandbox) {
         .run_bin(|cmd| {
             cmd.arg("install")
                 .arg("node")
+                .arg("20.0.0")
                 .arg("--pin")
                 .arg("--")
                 .arg("--no-bundled-npm");
@@ -148,22 +149,7 @@ mod regen_bin {
     }
 
     #[test]
-    fn doesnt_link_nonglobal_tools() {
-        let sandbox = create_empty_proto_sandbox();
-
-        sandbox.create_file(".prototools", r#"node = "20.0.0""#);
-
-        sandbox
-            .run_bin(|cmd| {
-                cmd.arg("regen").arg("--bin");
-            })
-            .success();
-
-        assert!(!get_bin_path(sandbox.path(), "node").exists());
-    }
-
-    #[test]
-    fn links_global_tools() {
+    fn links_tool_with_bucketed_versions() {
         let sandbox = create_empty_proto_sandbox();
 
         install_node(&sandbox);
@@ -175,5 +161,7 @@ mod regen_bin {
             .success();
 
         assert!(get_bin_path(sandbox.path(), "node").exists());
+        assert!(get_bin_path(sandbox.path(), "node-20").exists());
+        assert!(get_bin_path(sandbox.path(), "node-20.0").exists());
     }
 }

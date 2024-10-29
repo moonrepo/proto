@@ -42,17 +42,24 @@ mod clean {
     #[test]
     fn purges_tool_bin() {
         let sandbox = create_empty_proto_sandbox();
-        sandbox.create_file(".proto/tools/node/fake/file", "");
+        sandbox.create_file(".proto/tools/node/1.2.3/fake/file", "");
+        sandbox.create_file(
+            ".proto/tools/node/manifest.json",
+            r#"{ "installed_versions": ["1.2.3"] }"#,
+        );
         sandbox.create_file(".proto/bin/other", "");
 
-        let bin = sandbox.path().join(".proto").join(if cfg!(windows) {
-            "bin/node.exe"
-        } else {
-            "bin/node"
-        });
+        let bin1 = sandbox.path().join(".proto/bin/node");
+        let bin2 = sandbox.path().join(".proto/bin/node-1");
+        let bin3 = sandbox.path().join(".proto/bin/node-1.2");
+        let src = sandbox.path().join(".proto/tools/node/1.2.3/fake/file");
 
         #[allow(deprecated)]
-        std::fs::soft_link(sandbox.path().join(".proto/tools/node/fake/file"), &bin).unwrap();
+        std::fs::soft_link(&src, &bin1).unwrap();
+        #[allow(deprecated)]
+        std::fs::soft_link(&src, &bin2).unwrap();
+        #[allow(deprecated)]
+        std::fs::soft_link(&src, &bin3).unwrap();
 
         sandbox
             .run_bin(|cmd| {
@@ -60,8 +67,12 @@ mod clean {
             })
             .success();
 
-        assert!(!bin.exists());
-        assert!(bin.symlink_metadata().is_err());
+        assert!(!bin1.exists());
+        assert!(bin1.symlink_metadata().is_err());
+        assert!(!bin2.exists());
+        assert!(bin2.symlink_metadata().is_err());
+        assert!(!bin3.exists());
+        assert!(bin3.symlink_metadata().is_err());
     }
 
     #[test]

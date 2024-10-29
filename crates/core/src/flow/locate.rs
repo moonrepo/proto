@@ -1,8 +1,10 @@
 use crate::error::ProtoError;
 use crate::helpers::ENV_VAR;
+use crate::layout::BinManager;
 use crate::tool::Tool;
 use proto_pdk_api::{ExecutableConfig, LocateExecutablesInput, LocateExecutablesOutput};
 use proto_shim::{get_exe_file_name, get_shim_file_name};
+use semver::Version;
 use serde::Serialize;
 use starbase_utils::fs;
 use std::env;
@@ -17,7 +19,9 @@ pub struct ExecutableLocation {
     pub config: ExecutableConfig,
     pub name: String,
     pub path: PathBuf,
-    pub primary: bool,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version: Option<Version>,
 }
 
 impl Tool {
@@ -36,13 +40,29 @@ impl Tool {
     pub async fn resolve_primary_exe_location(&self) -> miette::Result<Option<ExecutableLocation>> {
         let output = self.call_locate_executables().await?;
 
-        if let Some(primary) = output.primary {
+        for (name, config) in output.exes {
+            if config.primary {
+                if let Some(exe_path) = &config.exe_path {
+                    return Ok(Some(ExecutableLocation {
+                        path: self.get_product_dir().join(exe_path),
+                        name,
+                        config,
+                        version: None,
+                    }));
+                }
+            }
+        }
+
+        #[allow(deprecated)]
+        if let Some(mut primary) = output.primary {
             if let Some(exe_path) = &primary.exe_path {
+                primary.primary = true;
+
                 return Ok(Some(ExecutableLocation {
                     path: self.get_product_dir().join(exe_path),
                     name: self.id.to_string(),
                     config: primary,
-                    primary: true,
+                    version: None,
                 }));
             }
         }
@@ -55,14 +75,32 @@ impl Tool {
         let output = self.call_locate_executables().await?;
         let mut locations = vec![];
 
-        for (name, secondary) in output.secondary {
-            if let Some(exe_path) = &secondary.exe_path {
+        for (name, config) in output.exes {
+            if config.primary {
+                continue;
+            }
+
+            if let Some(exe_path) = &config.exe_path {
                 locations.push(ExecutableLocation {
                     path: self.get_product_dir().join(exe_path),
                     name,
-                    config: secondary,
-                    primary: false,
+                    config,
+                    version: None,
                 });
+            }
+        }
+
+        if locations.is_empty() {
+            #[allow(deprecated)]
+            for (name, secondary) in output.secondary {
+                if let Some(exe_path) = &secondary.exe_path {
+                    locations.push(ExecutableLocation {
+                        path: self.get_product_dir().join(exe_path),
+                        name,
+                        config: secondary,
+                        version: None,
+                    });
+                }
             }
         }
 
@@ -72,11 +110,33 @@ impl Tool {
     /// Return a list of all binaries that get created in `~/.proto/bin`.
     /// The list will contain the executable config, and an absolute path
     /// to the binaries final location.
-    pub async fn resolve_bin_locations(&self) -> miette::Result<Vec<ExecutableLocation>> {
+    pub async fn resolve_bin_locations(
+        &self,
+        include_all_versions: bool,
+    ) -> miette::Result<Vec<ExecutableLocation>> {
+        self.resolve_bin_locations_with_manager(
+            BinManager::from_manifest(&self.inventory.manifest),
+            include_all_versions,
+        )
+        .await
+    }
+
+    pub async fn resolve_bin_locations_with_manager(
+        &self,
+        bin_manager: BinManager,
+        include_all_versions: bool,
+    ) -> miette::Result<Vec<ExecutableLocation>> {
         let output = self.call_locate_executables().await?;
+        let resolved_version = self.get_resolved_version();
         let mut locations = vec![];
 
-        let mut add = |name: &str, config: ExecutableConfig, primary: bool| {
+        let versions = if include_all_versions {
+            bin_manager.get_buckets()
+        } else {
+            bin_manager.get_buckets_focused_to_version(&resolved_version)
+        };
+
+        let mut add = |name: String, config: ExecutableConfig| {
             if !config.no_bin
                 && config
                     .exe_link_path
@@ -84,22 +144,46 @@ impl Tool {
                     .or(config.exe_path.as_ref())
                     .is_some()
             {
-                locations.push(ExecutableLocation {
-                    path: self.proto.store.bin_dir.join(get_exe_file_name(name)),
-                    name: name.to_owned(),
-                    config,
-                    primary,
-                });
+                for (bucket_version, resolved_version) in &versions {
+                    let versioned_name = if *bucket_version == "*" {
+                        name.clone()
+                    } else {
+                        format!("{name}-{bucket_version}")
+                    };
+
+                    locations.push(ExecutableLocation {
+                        path: self
+                            .proto
+                            .store
+                            .bin_dir
+                            .join(get_exe_file_name(&versioned_name)),
+                        name: versioned_name,
+                        config: config.clone(),
+                        version: resolved_version.as_version().map(|v| v.to_owned()),
+                    });
+                }
             }
         };
 
-        if let Some(primary) = output.primary {
-            add(&self.id, primary, true);
+        if output.exes.is_empty() {
+            #[allow(deprecated)]
+            if let Some(mut primary) = output.primary {
+                primary.primary = true;
+
+                add(self.id.to_string(), primary);
+            }
+
+            #[allow(deprecated)]
+            for (name, secondary) in output.secondary {
+                add(name, secondary);
+            }
+        } else {
+            for (name, config) in output.exes {
+                add(name, config);
+            }
         }
 
-        for (name, secondary) in output.secondary {
-            add(&name, secondary, false);
-        }
+        locations.sort_by(|a, d| a.name.cmp(&d.name));
 
         Ok(locations)
     }
@@ -111,23 +195,33 @@ impl Tool {
         let output = self.call_locate_executables().await?;
         let mut locations = vec![];
 
-        let mut add = |name: &str, config: ExecutableConfig, primary: bool| {
+        let mut add = |name: String, config: ExecutableConfig| {
             if !config.no_shim {
                 locations.push(ExecutableLocation {
-                    path: self.proto.store.shims_dir.join(get_shim_file_name(name)),
-                    name: name.to_owned(),
-                    config: config.clone(),
-                    primary,
+                    path: self.proto.store.shims_dir.join(get_shim_file_name(&name)),
+                    name,
+                    config,
+                    version: None,
                 });
             }
         };
 
-        if let Some(primary) = output.primary {
-            add(&self.id, primary, true);
-        }
+        if output.exes.is_empty() {
+            #[allow(deprecated)]
+            if let Some(mut primary) = output.primary {
+                primary.primary = true;
 
-        for (name, secondary) in output.secondary {
-            add(&name, secondary, false);
+                add(self.id.to_string(), primary);
+            }
+
+            #[allow(deprecated)]
+            for (name, secondary) in output.secondary {
+                add(name, secondary);
+            }
+        } else {
+            for (name, config) in output.exes {
+                add(name, config);
+            }
         }
 
         Ok(locations)

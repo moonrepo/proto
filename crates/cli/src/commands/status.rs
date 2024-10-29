@@ -121,9 +121,7 @@ async fn resolve_item_versions(
 
             // Resolve a version based on the configured spec, and ignore errors
             // as they indicate a version could not be resolved!
-            if tool.resolve_version(&config_version, false).await.is_ok() {
-                let version = tool.get_resolved_version();
-
+            if let Ok(version) = tool.resolve_version(&config_version, false).await {
                 // Determine the install status
                 if !version.is_latest() {
                     if tool.is_installed() {

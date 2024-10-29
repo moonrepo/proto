@@ -251,7 +251,7 @@ pub async fn purge_tool(session: &ProtoSession, id: &Id, yes: bool) -> miette::R
         fs::remove_dir_all(inventory_dir)?;
 
         // Delete binaries
-        for bin in tool.resolve_bin_locations().await? {
+        for bin in tool.resolve_bin_locations(true).await? {
             session.env.store.unlink_bin(&bin.path)?;
         }
 
@@ -329,6 +329,18 @@ pub async fn internal_clean(
     if log && results.files_deleted > 0 {
         println!(
             "Successfully cleaned {} temporary files ({} bytes)",
+            results.files_deleted, results.bytes_saved
+        );
+    }
+
+    debug!("Cleaning cache directory...");
+
+    let results =
+        fs::remove_dir_stale_contents(&session.env.store.cache_dir, Duration::from_secs(86400))?;
+
+    if log && results.files_deleted > 0 {
+        println!(
+            "Successfully cleaned {} cache files ({} bytes)",
             results.files_deleted, results.bytes_saved
         );
     }

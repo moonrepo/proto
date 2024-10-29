@@ -30,13 +30,7 @@ pub async fn internal_pin(
     tool: &mut Tool,
     spec: &UnresolvedVersionSpec,
     pin: PinType,
-    link: bool,
 ) -> miette::Result<PathBuf> {
-    // Create symlink to this new version
-    if pin == PinType::Global && link {
-        tool.symlink_bins(true).await?;
-    }
-
     let config_path = ProtoConfig::update(tool.proto.get_config_dir(pin), |config| {
         config
             .versions
@@ -58,14 +52,14 @@ pub async fn pin(session: ProtoSession, args: PinArgs) -> AppResult {
     let mut tool = session.load_tool(&args.id).await?;
 
     let spec = if args.resolve {
-        tool.resolve_version(&args.spec, false).await?;
-        tool.get_resolved_version().to_unresolved_spec()
+        tool.resolve_version(&args.spec, false)
+            .await?
+            .to_unresolved_spec()
     } else {
         args.spec.clone()
     };
 
-    let config_path =
-        internal_pin(&mut tool, &spec, map_pin_type(args.global, args.to), false).await?;
+    let config_path = internal_pin(&mut tool, &spec, map_pin_type(args.global, args.to)).await?;
 
     println!(
         "Pinned {} to {} in {}",

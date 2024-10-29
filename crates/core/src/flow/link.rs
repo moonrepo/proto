@@ -1,4 +1,4 @@
-use crate::shim_registry::{Shim, ShimRegistry, ShimsMap};
+use crate::layout::{Shim, ShimRegistry, ShimsMap};
 use crate::tool::Tool;
 use miette::IntoDiagnostic;
 use proto_pdk_api::*;
@@ -35,8 +35,6 @@ impl Tool {
         }
 
         let mut registry: ShimsMap = BTreeMap::default();
-        registry.insert(self.id.to_string(), Shim::default());
-
         let mut to_create = vec![];
 
         for shim in shims {
@@ -61,7 +59,7 @@ impl Tool {
                 shim_entry.env_vars.extend(env_vars);
             }
 
-            if !shim.primary {
+            if !shim.config.primary {
                 shim_entry.parent = Some(self.id.to_string());
 
                 // Only use --alt when the secondary executable exists
@@ -94,7 +92,7 @@ impl Tool {
                 );
             }
 
-            ShimRegistry::update(&self.proto, registry)?;
+            ShimRegistry::update(&self.proto.store.shims_dir, registry)?;
         }
 
         Ok(())
@@ -103,7 +101,7 @@ impl Tool {
     /// Symlink all primary and secondary binaries for the current tool.
     #[instrument(skip(self))]
     pub async fn symlink_bins(&mut self, force: bool) -> miette::Result<()> {
-        let bins = self.resolve_bin_locations().await?;
+        let bins = self.resolve_bin_locations(true).await?;
 
         if bins.is_empty() {
             return Ok(());
@@ -117,10 +115,19 @@ impl Tool {
             );
         }
 
-        let tool_dir = self.get_product_dir();
         let mut to_create = vec![];
 
         for bin in bins {
+            let Some(bin_version) = bin.version else {
+                continue;
+            };
+
+            // Create a new product since we need to change the version for each bin
+            let tool_dir = self
+                .inventory
+                .create_product(&VersionSpec::Semantic(SemVer(bin_version)))
+                .dir;
+
             let input_path = tool_dir.join(
                 bin.config
                     .exe_link_path
@@ -128,6 +135,7 @@ impl Tool {
                     .or(bin.config.exe_path.as_ref())
                     .unwrap(),
             );
+
             let output_path = bin.path;
 
             if !input_path.exists() {

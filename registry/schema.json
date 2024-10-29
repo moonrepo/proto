@@ -188,8 +188,10 @@
       "description": "Format of the plugin.",
       "type": "string",
       "enum": [
+        "json",
         "toml",
-        "wasm"
+        "wasm",
+        "yaml"
       ]
     },
     "PluginLocator": {
