@@ -53,6 +53,20 @@ pub enum ProtoError {
         download: PathBuf,
     },
 
+    #[diagnostic(code(proto::minimum_version_requirement))]
+    #[error(
+        "Unable to use the {tool} plugin with identifier {}, as it requires a minimum proto version of {}, but found {} instead.",
+        .id.style(Style::Id),
+        .expected.style(Style::Hash),
+        .actual.style(Style::Hash)
+    )]
+    InvalidMinimumVersion {
+        tool: String,
+        id: Id,
+        expected: String,
+        actual: String,
+    },
+
     #[diagnostic(code(proto::env::home_dir))]
     #[error("Unable to determine your home directory.")]
     MissingHomeDir,
