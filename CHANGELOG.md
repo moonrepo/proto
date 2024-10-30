@@ -32,6 +32,7 @@
   - Added `ExecutableConfig.primary`.
   - Added `LocateExecutablesOutput.exes`.
   - Added `ToolMetadataOutput.minimum_proto_version`.
+  - Added `ParseVersionFileInput.path`.
 
 #### ⚙️ Internal
 

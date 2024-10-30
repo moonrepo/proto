@@ -127,6 +127,9 @@ api_struct!(
 
         /// Name of file that's being parsed.
         pub file: String,
+
+        /// Virtual path to the file being parsed.
+        pub path: VirtualPath,
     }
 );
 
