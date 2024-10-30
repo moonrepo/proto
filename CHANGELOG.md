@@ -34,6 +34,10 @@
   - Added `ToolMetadataOutput.minimum_proto_version`.
   - Added `ParseVersionFileInput.path`.
 
+#### 🐞 Fixes
+
+- Fixed an issue where `proto upgrade` would pin `proto` to `~/.proto/.prototools`.
+
 #### ⚙️ Internal
 
 - Updated Rust to v1.82.

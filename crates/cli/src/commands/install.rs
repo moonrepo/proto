@@ -7,7 +7,7 @@ use clap::Args;
 use indicatif::ProgressBar;
 use miette::IntoDiagnostic;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
-use proto_core::{Id, PinType, Tool, UnresolvedVersionSpec, VersionSpec};
+use proto_core::{Id, PinType, Tool, UnresolvedVersionSpec, VersionSpec, PROTO_PLUGIN_KEY};
 use proto_pdk_api::{InstallHook, SyncShellProfileInput, SyncShellProfileOutput};
 use starbase::AppResult;
 use starbase_shell::ShellType;
@@ -80,6 +80,11 @@ async fn pin_version(
     initial_version: &UnresolvedVersionSpec,
     arg_pin_type: &Option<PinType>,
 ) -> miette::Result<bool> {
+    // Don't pin the proto tool itself as it's internal only
+    if tool.id.as_str() == PROTO_PLUGIN_KEY {
+        return Ok(false);
+    }
+
     let config = tool.proto.load_config()?;
     let spec = tool.get_resolved_version().to_unresolved_spec();
     let mut pin_type = PinType::Local;

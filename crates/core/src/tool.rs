@@ -210,18 +210,18 @@ impl Tool {
             )
             .await?;
 
-        if let Some(min_version) = &metadata.minimum_proto_version {
-            let cli_version = Version::parse(
+        if let Some(expected_version) = &metadata.minimum_proto_version {
+            let actual_version = Version::parse(
                 &env::var("PROTO_VERSION").unwrap_or_else(|_| env!("CARGO_PKG_VERSION").into()),
             )
             .into_diagnostic()?;
 
-            if &cli_version < min_version {
+            if &actual_version < expected_version {
                 return Err(ProtoError::InvalidMinimumVersion {
                     tool: metadata.name,
                     id: self.id.clone(),
-                    expected: min_version.to_string(),
-                    actual: cli_version.to_string(),
+                    expected: expected_version.to_string(),
+                    actual: actual_version.to_string(),
                 }
                 .into());
             }

@@ -1,6 +1,7 @@
 use proto_core::Tool;
 use proto_pdk_api::*;
 
+#[derive(Debug)]
 pub struct WasmTestWrapper {
     pub tool: Tool,
 }
@@ -68,7 +69,12 @@ impl WasmTestWrapper {
             .unwrap()
     }
 
-    pub async fn parse_version_file(&self, input: ParseVersionFileInput) -> ParseVersionFileOutput {
+    pub async fn parse_version_file(
+        &self,
+        mut input: ParseVersionFileInput,
+    ) -> ParseVersionFileOutput {
+        input.path = self.tool.to_virtual_path(&input.path);
+
         self.tool
             .plugin
             .call_func_with("parse_version_file", input)
