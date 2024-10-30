@@ -22,6 +22,7 @@
   - `~/.proto/bin/node-canary` - Points to a canary install, if it exists.
 - WASM API
   - Deprecated `LocateExecutablesOutput.primary` and `LocateExecutablesOutput.secondary` (use `exes` instead).
+  - Updated `ToolMetadataOutput.plugin_version` to a `Version` type instead of `String`.
 
 #### 🚀 Updates
 
@@ -30,6 +31,7 @@
 - WASM API
   - Added `ExecutableConfig.primary`.
   - Added `LocateExecutablesOutput.exes`.
+  - Added `ToolMetadataOutput.minimum_proto_version`.
 
 ## 0.41.7
 
