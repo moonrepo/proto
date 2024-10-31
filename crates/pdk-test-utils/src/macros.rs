@@ -198,7 +198,7 @@ macro_rules! generate_resolve_versions_tests {
 #[macro_export]
 macro_rules! generate_shims_test {
     ($id:literal) => {
-        generate_shims_test!($id, []);
+        generate_shims_test!($id, [$id]);
     };
     ($id:literal, [ $($bin:literal),* ]) => {
         generate_shims_test!($id, [ $($bin),* ], None);
@@ -214,14 +214,6 @@ macro_rules! generate_shims_test {
             };
 
             plugin.tool.generate_shims(false).await.unwrap();
-
-            assert!(
-                sandbox.proto_dir.join("shims").join(if cfg!(windows) {
-                    format!("{}.exe", $id)
-                } else {
-                    $id.to_string()
-                }).exists()
-            );
 
             $(
                 assert!(

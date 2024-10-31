@@ -4,12 +4,12 @@ use crate::layout::BinManager;
 use crate::tool::Tool;
 use proto_pdk_api::{ExecutableConfig, LocateExecutablesInput, LocateExecutablesOutput};
 use proto_shim::{get_exe_file_name, get_shim_file_name};
-use semver::Version;
 use serde::Serialize;
 use starbase_utils::fs;
 use std::env;
 use std::path::{Path, PathBuf};
 use tracing::{debug, instrument};
+use version_spec::VersionSpec;
 
 // Executable = File within the tool's install directory
 // Binary/shim = File within proto's store directories
@@ -21,7 +21,7 @@ pub struct ExecutableLocation {
     pub path: PathBuf,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub version: Option<Version>,
+    pub version: Option<VersionSpec>,
 }
 
 impl Tool {
@@ -159,7 +159,7 @@ impl Tool {
                             .join(get_exe_file_name(&versioned_name)),
                         name: versioned_name,
                         config: config.clone(),
-                        version: resolved_version.as_version().map(|v| v.to_owned()),
+                        version: Some((*resolved_version).to_owned()),
                     });
                 }
             }

@@ -81,12 +81,16 @@ api_struct!(
         #[serde(default)]
         pub inventory: ToolInventoryMetadata,
 
+        /// Minimum version of proto required to execute this plugin.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub minimum_proto_version: Option<Version>,
+
         /// Human readable name of the tool.
         pub name: String,
 
         /// Version of the plugin.
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        pub plugin_version: Option<String>,
+        pub plugin_version: Option<Version>,
 
         /// Names of commands that will self-upgrade the tool,
         /// and should be blocked from happening.
@@ -123,6 +127,9 @@ api_struct!(
 
         /// Name of file that's being parsed.
         pub file: String,
+
+        /// Virtual path to the file being parsed.
+        pub path: VirtualPath,
     }
 );
 

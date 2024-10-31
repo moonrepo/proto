@@ -15,13 +15,14 @@
 #### 💥 Breaking
 
 - Each tool's primary executable file name is no longer based on the plugin's identifier, and is now based on what's configured in the new `LocateExecutablesOutput.exes` setting.
-- We've reworked how the `~/.proto/bin` directory works. Instead of only symlinking globally pinned versions, we now create a symlink for every tool executable, and every major + minor version installed within that tool. For example, when we install `node`, we may have the following:
+- We've reworked how the `~/.proto/bin` directory works. Instead of only symlinking globally pinned versions (from `~/.proto/.prototools`), we now create a symlink for every tool executable, and every major + minor version installed within that tool. For example, when we install `node`, we may have the following:
   - `~/.proto/bin/node` - Points to the highest installed version.
   - `~/.proto/bin/node-<major>` - Points to the highest version within that major range (`~major`). Is created for each separate major version, for example: `node-20`, `node-22`.
   - `~/.proto/bin/node-<major>.<minor>` - Points to the highest version within that major + minor range (`~major.minor`). Is created for each separate major + minor version, for example: `node-20.1`, `node-22.4`.
   - `~/.proto/bin/node-canary` - Points to a canary install, if it exists.
 - WASM API
   - Deprecated `LocateExecutablesOutput.primary` and `LocateExecutablesOutput.secondary` (use `exes` instead).
+  - Updated `ToolMetadataOutput.plugin_version` to a `Version` type instead of `String`.
 
 #### 🚀 Updates
 
@@ -30,6 +31,34 @@
 - WASM API
   - Added `ExecutableConfig.primary`.
   - Added `LocateExecutablesOutput.exes`.
+  - Added `ToolMetadataOutput.minimum_proto_version`.
+  - Added `ParseVersionFileInput.path`.
+
+#### 🐞 Fixes
+
+- Fixed an issue where `proto upgrade` would pin `proto` to `~/.proto/.prototools`.
+
+#### 🧩 Plugins
+
+- Updated `bun_tool` to v0.14.
+- Updated `deno_tool` to v0.13.
+- Updated `go_tool` to v0.14.
+- Updated `node_tool` to v0.13.
+- Updated `node_depman_tool` to v0.14.
+  - Added support for `volta.extends`: https://docs.volta.sh/advanced/workspaces
+  - Updated `volta` to take precedence over `engines` in `package.json`.
+- Updated `python_tool` to v0.12.
+  - Removed `python<major>` and `pip<major>` executables. Use the new bins feature instead.
+  - Added `~/.local/bin` as a globals lookup directory.
+- Updated `rust_tool` to v0.12.
+- Updated `schema_tool` to v0.16.
+  - Removed `platform.*.bin-path` support (use `exe-path` instead).
+  - Deprecated `install.primary` and `install.secondary`.
+  - Added `install.exes` for defining primary and secondary executables.
+
+#### ⚙️ Internal
+
+- Updated Rust to v1.82.
 
 ## 0.41.7
 

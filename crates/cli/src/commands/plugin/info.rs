@@ -81,7 +81,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
 
     printer.named_section("Plugin", |p| {
         if let Some(version) = &tool.metadata.plugin_version {
-            p.entry("Version", color::hash(version));
+            p.entry("Version", color::hash(version.to_string()));
         }
 
         if let Some(locator) = &tool.locator {

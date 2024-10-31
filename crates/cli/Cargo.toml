@@ -32,9 +32,9 @@ name = "proto-shim"
 path = "src/main_shim.rs"
 
 [dependencies]
-proto_core = { version = "0.43.0", path = "../core", features = ["clap"] }
+proto_core = { version = "0.43.3", path = "../core", features = ["clap"] }
 proto_installer = { version = "0.7.1", path = "../installer" }
-proto_pdk_api = { version = "0.24.0", path = "../pdk-api" }
+proto_pdk_api = { version = "0.24.2", path = "../pdk-api" }
 proto_shim = { version = "0.5.0", path = "../shim" }
 system_env = { version = "0.6.1", path = "../system-env" }
 anyhow = { workspace = true }
@@ -67,11 +67,11 @@ rust_json = "0.1.5"
 sigpipe = "0.1.3"
 
 # For extism/wastime
-extism = "1.7.0"
+extism = "1.8.0"
 regalloc2 = "=0.9.3"
-wasmtime = "23.0.2"
-wasi-common = "23.0.2"
-wiggle = "23.0.2"
+wasmtime = "~23.0.3"
+wasi-common = "~23.0.3"
+wiggle = "~23.0.3"
 
 [dev-dependencies]
 starbase_sandbox = { workspace = true }
