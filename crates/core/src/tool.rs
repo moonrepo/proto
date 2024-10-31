@@ -2,14 +2,13 @@ use crate::error::ProtoError;
 use crate::helpers::get_proto_version;
 use crate::layout::{Inventory, Product};
 use crate::proto::ProtoEnvironment;
-use miette::IntoDiagnostic;
 use proto_pdk_api::*;
 use rustc_hash::{FxHashMap, FxHashSet};
 use starbase_styles::color;
+use std::fmt;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
-use std::{env, fmt};
 use tracing::{debug, instrument};
 use warpgate::{
     host::{create_host_functions, HostData},
@@ -210,9 +209,15 @@ impl Tool {
             )
             .await?;
 
+        #[cfg(not(debug_assertions))]
         if let Some(expected_version) = &metadata.minimum_proto_version {
+            use miette::IntoDiagnostic;
+
             let actual_version = Version::parse(
-                &env::var("PROTO_VERSION").unwrap_or_else(|_| env!("CARGO_PKG_VERSION").into()),
+                std::env::var("PROTO_VERSION")
+                    .ok()
+                    .as_ref()
+                    .unwrap_or_else(|_| env!("CARGO_PKG_VERSION")),
             )
             .into_diagnostic()?;
 

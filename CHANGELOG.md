@@ -38,6 +38,24 @@
 
 - Fixed an issue where `proto upgrade` would pin `proto` to `~/.proto/.prototools`.
 
+#### 🧩 Plugins
+
+- Updated `bun_tool` to v0.14.
+- Updated `deno_tool` to v0.13.
+- Updated `go_tool` to v0.14.
+- Updated `node_tool` to v0.13.
+- Updated `node_depman_tool` to v0.14.
+  - Added support for `volta.extends`: https://docs.volta.sh/advanced/workspaces
+  - Updated `volta` to take precedence over `engines` in `package.json`.
+- Updated `python_tool` to v0.12.
+  - Removed `python<major>` and `pip<major>` executables. Use the new bins feature instead.
+  - Added `~/.local/bin` as a globals lookup directory.
+- Updated `rust_tool` to v0.12.
+- Updated `schema_tool` to v0.16.
+  - Removed `platform.*.bin-path` support (use `exe-path` instead).
+  - Deprecated `install.primary` and `install.secondary`.
+  - Added `install.exes` for defining primary and secondary executables.
+
 #### ⚙️ Internal
 
 - Updated Rust to v1.82.
