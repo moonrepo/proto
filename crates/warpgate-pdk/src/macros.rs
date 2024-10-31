@@ -14,7 +14,10 @@ macro_rules! plugin_err {
 #[macro_export]
 macro_rules! exec_command {
     (input, $input:expr) => {
-        unsafe { exec_command(Json($input))?.0 }
+        {
+            #[allow(clippy::macro_metavars_in_unsafe)]
+            unsafe { exec_command(Json($input))?.0 }
+        }
     };
 
     // Raw result

@@ -227,6 +227,7 @@ impl Tool {
                         ParseVersionFileInput {
                             content,
                             file: file.clone(),
+                            path: self.to_virtual_path(&file_path),
                         },
                     )
                     .await?;
