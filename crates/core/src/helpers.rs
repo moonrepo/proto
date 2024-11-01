@@ -22,7 +22,15 @@ pub static ENV_VAR_SUB: LazyLock<Regex> =
 pub fn get_proto_version() -> &'static Version {
     static VERSION_CACHE: OnceLock<Version> = OnceLock::new();
 
-    VERSION_CACHE.get_or_init(|| Version::parse(env!("CARGO_PKG_VERSION")).unwrap())
+    VERSION_CACHE.get_or_init(|| {
+        Version::parse(
+            env::var("PROTO_VERSION")
+                .ok()
+                .as_deref()
+                .unwrap_or_else(|| env!("CARGO_PKG_VERSION")),
+        )
+        .unwrap()
+    })
 }
 
 pub fn is_offline() -> bool {
