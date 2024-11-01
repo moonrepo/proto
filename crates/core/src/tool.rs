@@ -216,8 +216,8 @@ impl Tool {
             let actual_version = Version::parse(
                 std::env::var("PROTO_VERSION")
                     .ok()
-                    .as_ref()
-                    .unwrap_or_else(|_| env!("CARGO_PKG_VERSION")),
+                    .as_deref()
+                    .unwrap_or_else(|| env!("CARGO_PKG_VERSION")),
             )
             .into_diagnostic()?;
 
