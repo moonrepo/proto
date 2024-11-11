@@ -503,7 +503,7 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
     if let Some(error) = maybe_error {
         trace!("Shutting down currently running background tasks as an error has occurred");
 
-        mpb.clear().into_diagnostic()?;
+        let _ = mpb.clear();
         drop(mpb);
 
         set.shutdown().await;
