@@ -12,6 +12,10 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Added more logging to debug the "File exists (os error 17)" issue.
+
 #### 🐞 Fixes
 
 - Fixed the wrong `proto_version` being passed to WASM function calls.

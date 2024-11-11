@@ -27,7 +27,7 @@ pub fn get_proto_version() -> &'static Version {
             env::var("PROTO_VERSION")
                 .ok()
                 .as_deref()
-                .unwrap_or_else(|| env!("CARGO_PKG_VERSION")),
+                .unwrap_or(env!("CARGO_PKG_VERSION")),
         )
         .unwrap()
     })

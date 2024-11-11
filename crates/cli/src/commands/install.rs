@@ -16,7 +16,7 @@ use std::env;
 use std::time::Duration;
 use tokio::task::JoinSet;
 use tokio::time::sleep;
-use tracing::{debug, instrument};
+use tracing::{debug, instrument, trace};
 
 #[derive(Args, Clone, Debug, Default)]
 pub struct InstallArgs {
@@ -435,12 +435,14 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
 
     for mut tool in tools {
         if let Some(version) = versions.remove(&tool.id) {
+            let tool_id = tool.id.clone();
+
             let pb = mpb.add(ProgressBar::new(0));
             pb.set_style(pbs.clone());
 
             // Defer writing content till the thread starts,
             // otherwise the progress bars fail to render correctly
-            set.spawn(async move {
+            let handle = set.spawn(async move {
                 sleep(Duration::from_millis(25)).await;
 
                 pb.set_prefix(color::id(format!(
@@ -463,21 +465,50 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
                 )
                 .await
             });
+
+            trace!(
+                task_id = handle.id().to_string(),
+                "Spawning {} in background task",
+                color::id(tool_id)
+            );
         }
     }
 
     let total = set.len();
+    let mut maybe_error: Option<miette::Report> = None;
 
-    while let Some(result) = set.join_next().await {
-        match result.into_diagnostic() {
-            Err(error) | Ok(Err(error)) => {
-                mpb.clear().into_diagnostic()?;
-                drop(mpb);
+    while let Some(result) = set.join_next_with_id().await {
+        match result {
+            Err(error) => {
+                trace!(task_id = error.id().to_string(), "Spawned task failed");
 
-                return Err(error);
+                maybe_error = Err(error).into_diagnostic().ok();
+                break;
             }
-            _ => {}
+            Ok((task_id, Err(error))) => {
+                trace!(
+                    task_id = task_id.to_string(),
+                    "Spawned task successful but with an error"
+                );
+
+                maybe_error = Some(error);
+                break;
+            }
+            Ok((task_id, Ok(_))) => {
+                trace!(task_id = task_id.to_string(), "Spawned task successful");
+            }
         };
+    }
+
+    if let Some(error) = maybe_error {
+        trace!("Shutting down currently running background tasks as an error has occurred");
+
+        mpb.clear().into_diagnostic()?;
+        drop(mpb);
+
+        set.shutdown().await;
+
+        return Err(error);
     }
 
     // When no TTY, we should display something to the user!

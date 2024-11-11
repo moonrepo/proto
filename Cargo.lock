@@ -1653,9 +1653,9 @@ dependencies = [
 
 [[package]]
 name = "insta"
-version = "1.41.0"
+version = "1.41.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1f72d3e19488cf7d8ea52d2fc0f8754fc933398b337cd3cbdb28aaeb35159ef"
+checksum = "7e9ffc4d4892617c50a928c52b2961cb5174b6fc6ebf252b2fac9d21955c48b8"
 dependencies = [
  "console",
  "lazy_static",
@@ -3186,9 +3186,9 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "starbase"
-version = "0.9.2"
+version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e385f65a4012e542a9519f3914fba9a7b46eb2c8f015b2963356914eea815df1"
+checksum = "b1b55189276998800e553d329ab7218e1a81688661901268a0cad0b774d6d70d"
 dependencies = [
  "async-trait",
  "chrono",
@@ -3202,9 +3202,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_archive"
-version = "0.8.7"
+version = "0.8.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ef6774ceaab5ff89017f475aa2b1db19998de5cc4df719ea65f1d5ba9b754e6"
+checksum = "10c4a2d20383c76bb79b369a1ce9bdecd33d3be283118ebfeaa7ef7bf9f8d9e0"
 dependencies = [
  "binstall-tar",
  "bzip2",
@@ -3222,9 +3222,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_sandbox"
-version = "0.7.4"
+version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42da00b3ca0f2fe52e18416ed5b2d44c82e85351bcf797431aa1da5af903ee7c"
+checksum = "79016af930d642aa6facd64e52b77e7635a3c3f7ced7478fd023c327a266293c"
 dependencies = [
  "assert_cmd",
  "assert_fs",
@@ -3237,9 +3237,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_shell"
-version = "0.5.8"
+version = "0.5.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfcf49fdd3aa2a87175defb63325540f61346fc28e03bbbbdf56eff96025252f"
+checksum = "dc0ebf0adaea675a16772903263bcad0433beeebc2a0f64ec4e9fbcf68d3261e"
 dependencies = [
  "miette",
  "regex",
@@ -3250,9 +3250,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_styles"
-version = "0.4.4"
+version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49d8a8222c97b23595fe393ac35d62b88942bdc7e89c8c88736d9ea2c986dbae"
+checksum = "358d0e98dc524ef2b838e9e70367c899d5ef8629f4efb44add57d92da6e75a8f"
 dependencies = [
  "dirs 5.0.1",
  "miette",
@@ -3262,9 +3262,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_utils"
-version = "0.8.10"
+version = "0.8.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "302be829660e306e56225a20224b1ddcce97baae9c34a62742e8ac7d122f6508"
+checksum = "599f8f6eff8c1a7cf770e2a68447140128255a9c10a6dfd58b29e7e766177c56"
 dependencies = [
  "dirs 5.0.1",
  "fs4",
@@ -3344,9 +3344,9 @@ checksum = "b7401a30af6cb5818bb64852270bb722533397edcfc7344954a38f420819ece2"
 
 [[package]]
 name = "syn"
-version = "2.0.85"
+version = "2.0.87"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5023162dfcd14ef8f32034d8bcd4cc5ddc61ef7a247c024a33e24e1f24d21b56"
+checksum = "25aa4ce346d03a6dcd68dd8b4010bcb74e54e62c90c573f394c46eae99aba32d"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3480,18 +3480,18 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "1.0.65"
+version = "1.0.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d11abd9594d9b38965ef50805c5e469ca9cc6f197f883f717e0269a3057b3d5"
+checksum = "b6aaf5339b578ea85b50e080feb250a3e8ae8cfcdff9a461c9ec2904bc923f52"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.65"
+version = "1.0.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae71770322cbd277e69d762a16c444af02aa0575ac0d174f0b9562d3b37f8602"
+checksum = "4fee6c4efc90059e10f81e6d42c60a18f76588c3d74cb83a0b242a2b6c7504c1"
 dependencies = [
  "proc-macro2",
  "quote",
