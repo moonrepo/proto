@@ -5,7 +5,6 @@ use crate::shell::{self, Export};
 use crate::telemetry::{track_usage, Metric};
 use clap::Args;
 use indicatif::ProgressBar;
-use miette::IntoDiagnostic;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
 use proto_core::{Id, PinType, Tool, UnresolvedVersionSpec, VersionSpec, PROTO_PLUGIN_KEY};
 use proto_pdk_api::{InstallHook, SyncShellProfileInput, SyncShellProfileOutput};
@@ -198,7 +197,7 @@ async fn update_shell(tool: &Tool, passthrough_args: Vec<String>) -> miette::Res
 pub async fn do_install(
     tool: &mut Tool,
     args: InstallArgs,
-    pb: ProgressBar,
+    pb: &ProgressBar,
 ) -> miette::Result<bool> {
     let version = args.get_unresolved_spec();
     let pin_type = args.get_pin_type();
@@ -375,7 +374,7 @@ async fn install_one(session: &ProtoSession, id: &Id, args: InstallArgs) -> miet
     let mut tool = session.load_tool(id).await?;
     let pb = create_progress_bar(format!("Installing {}", tool.get_name()));
 
-    if do_install(&mut tool, args, pb).await? {
+    if do_install(&mut tool, args, &pb).await? {
         println!(
             "{} {} has been installed to {}!",
             tool.get_name(),
@@ -452,18 +451,21 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
                 )));
 
                 pb.set_message(format!("Installing {} {}", tool.get_name(), version));
-
                 print_progress_state(&pb);
 
-                do_install(
+                if let Err(error) = do_install(
                     &mut tool,
                     InstallArgs {
                         spec: Some(version),
                         ..Default::default()
                     },
-                    pb,
+                    &pb,
                 )
                 .await
+                {
+                    pb.set_message(format!("Failed to install {}: {}", tool.get_name(), error));
+                    print_progress_state(&pb);
+                }
             });
 
             trace!(
@@ -474,46 +476,35 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
         }
     }
 
-    let total = set.len();
-    let mut maybe_error: Option<miette::Report> = None;
+    let mut installed_count = 0;
+    let mut failed_count = 0;
 
     while let Some(result) = set.join_next_with_id().await {
         match result {
             Err(error) => {
-                trace!(task_id = error.id().to_string(), "Spawned task failed");
-
-                maybe_error = Err(error).into_diagnostic().ok();
-                break;
-            }
-            Ok((task_id, Err(error))) => {
                 trace!(
-                    task_id = task_id.to_string(),
-                    "Spawned task successful but with an error"
+                    task_id = error.id().to_string(),
+                    "Spawned task failed: {}",
+                    error
                 );
-
-                maybe_error = Some(error);
-                break;
+                failed_count += 1;
             }
-            Ok((task_id, Ok(_))) => {
+            Ok((task_id, _)) => {
                 trace!(task_id = task_id.to_string(), "Spawned task successful");
+                installed_count += 1;
             }
         };
     }
 
-    if let Some(error) = maybe_error {
-        trace!("Shutting down currently running background tasks as an error has occurred");
-
-        let _ = mpb.clear();
-        drop(mpb);
-
-        set.shutdown().await;
-
-        return Err(error);
-    }
-
     // When no TTY, we should display something to the user!
     if mpb.is_hidden() {
-        println!("Successfully installed {} tools!", total);
+        if installed_count > 0 {
+            println!("Successfully installed {} tools!", installed_count);
+        }
+
+        if failed_count > 0 {
+            println!("Failed to install {} tools!", failed_count);
+        }
     }
 
     Ok(None)

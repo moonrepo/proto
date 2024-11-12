@@ -191,12 +191,9 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
             ..Default::default()
         };
 
-        do_install(
-            &mut tool,
-            install_args,
-            create_progress_bar(format!("Installing {resolved_version}")),
-        )
-        .await?;
+        let pb = create_progress_bar(format!("Installing {resolved_version}"));
+
+        do_install(&mut tool, install_args, &pb).await?;
 
         println!(
             "{} {} has been installed, continuing execution...",

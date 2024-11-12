@@ -14,6 +14,7 @@
 
 #### 🚀 Updates
 
+- When installing many tools with `proto install|use`, a failed install for a single tool will no longer abort the install of the other tools.
 - Added more logging to debug the "File exists (os error 17)" issue.
 
 #### 🐞 Fixes
