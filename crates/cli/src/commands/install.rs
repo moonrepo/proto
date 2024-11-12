@@ -212,7 +212,7 @@ pub async fn do_install(
             )));
         }
 
-        print_progress_state(&pb);
+        print_progress_state(pb);
 
         if args.id.is_some() {
             pb.finish_and_clear();

@@ -20,6 +20,7 @@
 #### 🐞 Fixes
 
 - Fixed the wrong `proto_version` being passed to WASM function calls.
+- When usign the Bash shell, will avoid using `.bash_profile` unless it explicitly exists. This is to support Ubuntu `.profile` setups.
 
 ## 0.42.0
 
