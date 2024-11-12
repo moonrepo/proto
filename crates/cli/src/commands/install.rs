@@ -463,7 +463,7 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
                 )
                 .await
                 {
-                    pb.set_message(format!("Failed to install {}: {}", tool.get_name(), error));
+                    pb.set_message(format!("Failed to install: {}", error));
                     print_progress_state(&pb);
                 }
             });
