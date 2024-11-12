@@ -58,6 +58,19 @@
       ]
     },
     {
+      "id": "atlas",
+      "locator": "https://raw.githubusercontent.com/crashdump/proto-tools/refs/heads/main/toml-plugins/atlas/plugin.toml",
+      "format": "toml",
+      "name": "atlas",
+      "description": "manage your database schema as code.",
+      "author": "crashdump",
+      "homepageUrl": "https://atlasgo.io",
+      "repositoryUrl": "https://github.com/crashdump/proto-tools",
+      "bins": [
+        "atlas"
+      ]
+    },
+    {
       "id": "bazel",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/bazel/plugin.toml",
       "format": "toml",
@@ -890,6 +903,19 @@
       "repositoryUrl": "https://github.com/stk0vrfl0w/proto-toml-plugins/blob/main/plugins/terragrunt.toml",
       "bins": [
         "terragrunt"
+      ]
+    },
+    {
+      "id": "tflint",
+      "locator": "https://raw.githubusercontent.com/crashdump/proto-tools/refs/heads/main/toml-plugins/tflint/plugin.toml",
+      "format": "toml",
+      "name": "tflint",
+      "description": "A Pluggable Terraform Linter.",
+      "author": "crashdump",
+      "homepageUrl": "https://github.com/terraform-linters/tflint",
+      "repositoryUrl": "https://github.com/crashdump/proto-tools",
+      "bins": [
+        "tflint"
       ]
     },
     {
