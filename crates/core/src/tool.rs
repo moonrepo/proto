@@ -211,17 +211,9 @@ impl Tool {
 
         #[cfg(not(debug_assertions))]
         if let Some(expected_version) = &metadata.minimum_proto_version {
-            use miette::IntoDiagnostic;
+            let actual_version = get_proto_version();
 
-            let actual_version = Version::parse(
-                std::env::var("PROTO_VERSION")
-                    .ok()
-                    .as_deref()
-                    .unwrap_or_else(|| env!("CARGO_PKG_VERSION")),
-            )
-            .into_diagnostic()?;
-
-            if &actual_version < expected_version {
+            if actual_version < expected_version {
                 return Err(ProtoError::InvalidMinimumVersion {
                     tool: metadata.name,
                     id: self.id.clone(),

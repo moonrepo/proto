@@ -10,6 +10,17 @@
 - [Rust](https://github.com/moonrepo/tools/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/tools/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- When installing many tools with `proto install|use`, a failed install for a single tool will no longer abort the install of the other tools.
+- Added more logging to debug the "File exists (os error 17)" issue.
+
+#### 🐞 Fixes
+
+- Fixed the wrong `proto_version` being passed to WASM function calls.
+
 ## 0.42.0
 
 #### 💥 Breaking

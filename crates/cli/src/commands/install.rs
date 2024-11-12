@@ -5,7 +5,6 @@ use crate::shell::{self, Export};
 use crate::telemetry::{track_usage, Metric};
 use clap::Args;
 use indicatif::ProgressBar;
-use miette::IntoDiagnostic;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
 use proto_core::{Id, PinType, Tool, UnresolvedVersionSpec, VersionSpec, PROTO_PLUGIN_KEY};
 use proto_pdk_api::{InstallHook, SyncShellProfileInput, SyncShellProfileOutput};
@@ -16,7 +15,7 @@ use std::env;
 use std::time::Duration;
 use tokio::task::JoinSet;
 use tokio::time::sleep;
-use tracing::{debug, instrument};
+use tracing::{debug, instrument, trace};
 
 #[derive(Args, Clone, Debug, Default)]
 pub struct InstallArgs {
@@ -198,7 +197,7 @@ async fn update_shell(tool: &Tool, passthrough_args: Vec<String>) -> miette::Res
 pub async fn do_install(
     tool: &mut Tool,
     args: InstallArgs,
-    pb: ProgressBar,
+    pb: &ProgressBar,
 ) -> miette::Result<bool> {
     let version = args.get_unresolved_spec();
     let pin_type = args.get_pin_type();
@@ -375,7 +374,7 @@ async fn install_one(session: &ProtoSession, id: &Id, args: InstallArgs) -> miet
     let mut tool = session.load_tool(id).await?;
     let pb = create_progress_bar(format!("Installing {}", tool.get_name()));
 
-    if do_install(&mut tool, args, pb).await? {
+    if do_install(&mut tool, args, &pb).await? {
         println!(
             "{} {} has been installed to {}!",
             tool.get_name(),
@@ -435,12 +434,14 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
 
     for mut tool in tools {
         if let Some(version) = versions.remove(&tool.id) {
+            let tool_id = tool.id.clone();
+
             let pb = mpb.add(ProgressBar::new(0));
             pb.set_style(pbs.clone());
 
             // Defer writing content till the thread starts,
             // otherwise the progress bars fail to render correctly
-            set.spawn(async move {
+            let handle = set.spawn(async move {
                 sleep(Duration::from_millis(25)).await;
 
                 pb.set_prefix(color::id(format!(
@@ -450,39 +451,60 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
                 )));
 
                 pb.set_message(format!("Installing {} {}", tool.get_name(), version));
-
                 print_progress_state(&pb);
 
-                do_install(
+                if let Err(error) = do_install(
                     &mut tool,
                     InstallArgs {
                         spec: Some(version),
                         ..Default::default()
                     },
-                    pb,
+                    &pb,
                 )
                 .await
+                {
+                    pb.set_message(format!("Failed to install: {}", error));
+                    print_progress_state(&pb);
+                }
             });
+
+            trace!(
+                task_id = handle.id().to_string(),
+                "Spawning {} in background task",
+                color::id(tool_id)
+            );
         }
     }
 
-    let total = set.len();
+    let mut installed_count = 0;
+    let mut failed_count = 0;
 
-    while let Some(result) = set.join_next().await {
-        match result.into_diagnostic() {
-            Err(error) | Ok(Err(error)) => {
-                mpb.clear().into_diagnostic()?;
-                drop(mpb);
-
-                return Err(error);
+    while let Some(result) = set.join_next_with_id().await {
+        match result {
+            Err(error) => {
+                trace!(
+                    task_id = error.id().to_string(),
+                    "Spawned task failed: {}",
+                    error
+                );
+                failed_count += 1;
             }
-            _ => {}
+            Ok((task_id, _)) => {
+                trace!(task_id = task_id.to_string(), "Spawned task successful");
+                installed_count += 1;
+            }
         };
     }
 
     // When no TTY, we should display something to the user!
     if mpb.is_hidden() {
-        println!("Successfully installed {} tools!", total);
+        if installed_count > 0 {
+            println!("Successfully installed {} tools!", installed_count);
+        }
+
+        if failed_count > 0 {
+            println!("Failed to install {} tools!", failed_count);
+        }
     }
 
     Ok(None)

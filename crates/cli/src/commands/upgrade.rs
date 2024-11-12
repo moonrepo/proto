@@ -118,6 +118,12 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
     // Load the tool and install the new version
     let mut tool = session.load_proto_tool().await?;
 
+    let pb = create_progress_bar(if target_version > current_version {
+        format!("Upgrading to {}", target_version)
+    } else {
+        format!("Downgrading to {}", target_version)
+    });
+
     do_install(
         &mut tool,
         InstallArgs {
@@ -127,11 +133,7 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
             ))),
             ..Default::default()
         },
-        create_progress_bar(if target_version > current_version {
-            format!("Upgrading to {}", target_version)
-        } else {
-            format!("Downgrading to {}", target_version)
-        }),
+        &pb,
     )
     .await?;
 
