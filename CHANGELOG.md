@@ -10,6 +10,12 @@
 - [Rust](https://github.com/moonrepo/tools/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/tools/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added `--on-init` option to `proto activate`, which will trigger the activation hook immediately in the shell, instead of waiting for a directory/prompt change to occur.
+
 ## 0.42.1
 
 #### 🚀 Updates
