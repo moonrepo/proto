@@ -2,13 +2,12 @@
 source: crates/cli/tests/activate_test.rs
 expression: "get_activate_output(&assert, &sandbox)"
 ---
-# proto hook
 set-env __ORIG_PATH $E:PATH
 
-fn _proto_hook {
+fn _proto_activate_hook {
   eval (proto activate elvish --config-mode upwards-global --no-bin --no-shim --export);
 }
 
 set @edit:before-readline = $@edit:before-readline {
-  _proto_hook
+  _proto_activate_hook
 }
