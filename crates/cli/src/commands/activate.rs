@@ -63,6 +63,9 @@ pub struct ActivateArgs {
 
     #[arg(long, help = "Don't include ~/.proto/shims in path lookup")]
     no_shim: bool,
+
+    #[arg(long, help = "Run activate hook on initialization and export")]
+    on_init: bool,
 }
 
 #[tracing::instrument(skip_all)]
@@ -213,9 +216,13 @@ fn print_activation_hook(
         "{}",
         shell_type.build().format_hook(Hook::OnChangeDir {
             command,
-            prefix: "proto".into(),
+            function: "_proto_activate_hook".into(),
         })?
     );
+
+    if args.on_init {
+        println!("\n_proto_activate_hook");
+    }
 
     Ok(None)
 }

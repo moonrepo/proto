@@ -3372,9 +3372,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_shell"
-version = "0.5.10"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb4ddfe965972d15e1b12fd0650c5bcfa0219b0c20bce763b66ffd88b75e6733"
+checksum = "64b465ae225b09ac539963cd85448fff7520e82320ff2a120f648990fb064229"
 dependencies = [
  "miette",
  "regex",

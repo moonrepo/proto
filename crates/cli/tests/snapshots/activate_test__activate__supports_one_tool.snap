@@ -4,7 +4,7 @@ expression: "get_activate_output(&assert, &sandbox)"
 ---
 export __ORIG_PATH="$PATH"
 
-_proto_hook() {
+_proto_activate_hook() {
   trap '' SIGINT
   output=$(proto activate zsh --export)
   if [ -n "$output" ]; then
@@ -14,6 +14,6 @@ _proto_hook() {
 }
 
 typeset -ag chpwd_functions
-if (( ! ${chpwd_functions[(I)_proto_hook]} )); then
-  chpwd_functions=(_proto_hook $chpwd_functions)
+if (( ! ${chpwd_functions[(I)_proto_activate_hook]} )); then
+  chpwd_functions=(_proto_activate_hook $chpwd_functions)
 fi

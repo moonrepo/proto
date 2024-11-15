@@ -4,7 +4,7 @@ expression: "get_activate_output(&assert, &sandbox)"
 ---
 export __ORIG_PATH="$PATH"
 
-_proto_hook() {
+_proto_activate_hook() {
   local previous_exit_status=$?;
   trap '' SIGINT;
   output=$(proto activate bash --export)
@@ -15,10 +15,10 @@ _proto_hook() {
   return $previous_exit_status;
 };
 
-if [[ ";${PROMPT_COMMAND[*]:-};" != *";_proto_hook;"* ]]; then
+if [[ ";${PROMPT_COMMAND[*]:-};" != *";_proto_activate_hook;"* ]]; then
   if [[ "$(declare -p PROMPT_COMMAND 2>&1)" == "declare -a"* ]]; then
-    PROMPT_COMMAND=(_proto_hook "${PROMPT_COMMAND[@]}")
+    PROMPT_COMMAND=(_proto_activate_hook "${PROMPT_COMMAND[@]}")
   else
-    PROMPT_COMMAND="_proto_hook${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
+    PROMPT_COMMAND="_proto_activate_hook${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
   fi
 fi
