@@ -1,11 +1,12 @@
 use crate::app::{App as CLI, Commands};
 use crate::commands::clean::{internal_clean, CleanArgs};
+use crate::error::ProtoCliError;
 use crate::systems::*;
 use async_trait::async_trait;
 use miette::IntoDiagnostic;
 use proto_core::registry::ProtoRegistry;
 use proto_core::{
-    load_schema_plugin_with_proto, load_tool_from_locator, load_tool_with_proto, Id,
+    load_schema_plugin_with_proto, load_tool_from_locator, load_tool_with_proto, Id, ProtoConfig,
     ProtoEnvironment, Tool, PROTO_PLUGIN_KEY, SCHEMA_PLUGIN_KEY,
 };
 use rustc_hash::FxHashSet;
@@ -48,7 +49,11 @@ impl ProtoSession {
     }
 
     pub async fn load_tool(&self, id: &Id) -> miette::Result<Tool> {
-        load_tool_with_proto(id, &self.env).await
+        let tool = load_tool_with_proto(id, &self.env).await?;
+
+        self.check_requirements(&tool, self.env.load_config()?)?;
+
+        Ok(tool)
     }
 
     pub async fn load_tools(&self) -> miette::Result<Vec<Tool>> {
@@ -92,6 +97,11 @@ impl ProtoSession {
             tools.push(result.into_diagnostic()??);
         }
 
+        // After all tools have been loaded, check requirements
+        for tool in &tools {
+            self.check_requirements(tool, config)?;
+        }
+
         Ok(tools)
     }
 
@@ -102,6 +112,20 @@ impl ProtoSession {
             self.env.load_config()?.builtin_proto_plugin(),
         )
         .await
+    }
+
+    fn check_requirements(&self, tool: &Tool, config: &ProtoConfig) -> miette::Result<()> {
+        for req_id in &tool.metadata.requires {
+            if !config.versions.contains_key(req_id) && !config.plugins.contains_key(req_id) {
+                return Err(ProtoCliError::ToolRequiresNotMet {
+                    tool: tool.get_name().to_owned(),
+                    requires: req_id.to_owned(),
+                }
+                .into());
+            }
+        }
+
+        Ok(())
     }
 }
 

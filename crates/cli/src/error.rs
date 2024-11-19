@@ -12,18 +12,18 @@ pub enum ProtoCliError {
 
     #[diagnostic(code(proto::cli::missing_tools_config))]
     #[error(
-			"No {} has been found in current directory. Attempted to find at {}.",
-			PROTO_CONFIG_NAME.style(Style::File),
-			.path.style(Style::Path),
-		)]
+        "No {} has been found in current directory. Attempted to find at {}.",
+        PROTO_CONFIG_NAME.style(Style::File),
+        .path.style(Style::Path),
+    )]
     MissingToolsConfigInCwd { path: PathBuf },
 
     #[diagnostic(code(proto::cli::missing_alternate_binary))]
     #[error(
-			"Unable to run, alternate binary {} does not exist. Attempted to find at {}.",
-			.bin.style(Style::File),
-			.path.style(Style::Path),
-		)]
+        "Unable to run, alternate binary {} does not exist. Attempted to find at {}.",
+        .bin.style(Style::File),
+        .path.style(Style::Path),
+    )]
     MissingRunAltBin { bin: String, path: PathBuf },
 
     #[diagnostic(code(proto::cli::no_configured_tools))]
@@ -41,6 +41,14 @@ pub enum ProtoCliError {
         .command.style(Style::Shell)
     )]
     NoSelfUpgrade { command: String, tool: String },
+
+    #[diagnostic(code(proto::cli::no_configured_tools))]
+    #[error(
+        "{} requires {} to function correctly, but it has not been installed.",
+        .tool,
+        .requires.style(Style::Id)
+    )]
+    ToolRequiresNotMet { tool: String, requires: String },
 
     #[diagnostic(code(proto::cli::upgrade_failed))]
     #[error("Failed to upgrade proto, {} could not be located after download!", .bin.style(Style::Shell))]

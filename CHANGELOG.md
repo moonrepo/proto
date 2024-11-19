@@ -25,6 +25,8 @@
 - Improved implementation of HTTP request/response caching. Now takes into account [HTTP cache semantics](https://github.com/kornelski/rusty-http-cache-semantics).
 - Updated `proto upgrade` to error if there's another process of proto currently running.
 - Updated `proto setup` to default to a fallback shell if none could be detected, instead of erroring.
+- WASM API
+  - Added `ToolMetadataOutput.requires`, allowing the plugin to require other plugins. For example, npm requires node.
 
 #### 🐞 Fixes
 
