@@ -94,7 +94,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
                 tool.metadata
                     .deprecations
                     .iter()
-                    .map(|msg| apply_style_tags(msg)),
+                    .map(apply_style_tags),
                 None,
             );
         }

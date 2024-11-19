@@ -45,7 +45,7 @@ pub async fn add(session: ProtoSession, args: AddPluginArgs) -> AppResult {
         for msg in &tool.metadata.deprecations {
             output.push_str("  ");
             output.push_str(&color::muted("-"));
-            output.push_str(" ");
+            output.push(' ');
             output.push_str(&apply_style_tags(msg));
             output.push('\n');
         }
