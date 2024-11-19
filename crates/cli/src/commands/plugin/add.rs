@@ -1,10 +1,9 @@
 use crate::helpers::{map_pin_type, PinOption};
 use crate::session::ProtoSession;
 use clap::Args;
-use proto_core::{Id, PluginLocator, ProtoConfig};
+use proto_core::{load_tool_from_locator, Id, PluginLocator, ProtoConfig};
 use starbase::AppResult;
 use starbase_styles::color::{self, apply_style_tags};
-use tracing::warn;
 
 #[derive(Args, Clone, Debug)]
 pub struct AddPluginArgs {
@@ -35,18 +34,23 @@ pub async fn add(session: ProtoSession, args: AddPluginArgs) -> AppResult {
         },
     )?;
 
-    // Load the tool and verify it works
-    let tool = session.load_tool(&args.id).await?;
+    // Load the tool and verify it works. We can't load the tool with the
+    // session as the config has already been cached, and doesn't reflect
+    // the recent addition!
+    let tool = load_tool_from_locator(&args.id, &session.env, &args.plugin).await?;
 
     if !tool.metadata.deprecations.is_empty() {
-        let mut output = String::from("Deprecation notices from the plugin:\n");
+        let mut output = color::caution("Deprecation notices from the plugin:\n");
 
         for msg in &tool.metadata.deprecations {
+            output.push_str("  ");
+            output.push_str(&color::muted("-"));
+            output.push_str(" ");
             output.push_str(&apply_style_tags(msg));
             output.push('\n');
         }
 
-        warn!("{output}");
+        println!("{output}");
     }
 
     println!(
