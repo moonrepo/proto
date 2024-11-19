@@ -91,10 +91,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
         if !tool.metadata.deprecations.is_empty() {
             p.entry_list(
                 "Deprecations",
-                tool.metadata
-                    .deprecations
-                    .iter()
-                    .map(apply_style_tags),
+                tool.metadata.deprecations.iter().map(apply_style_tags),
                 None,
             );
         }
