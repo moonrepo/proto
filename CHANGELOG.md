@@ -10,6 +10,19 @@
 - [Rust](https://github.com/moonrepo/tools/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/tools/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- When adding or viewing a plugin, we now display any deprecation messages from the plugin to the user.
+- WASM API
+  - Added `ToolMetadataOutput.deprecations`.
+
+#### 🧩 Plugins
+
+- Updated `schema_tool` to v0.16.1.
+  - Brought back `platform.*.bin-path` to support legacy plugin configs.
+
 ## 0.42.1
 
 #### 🚀 Updates

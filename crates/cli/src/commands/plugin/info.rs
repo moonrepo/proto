@@ -8,7 +8,7 @@ use proto_core::{
 use proto_pdk_api::ToolMetadataOutput;
 use serde::Serialize;
 use starbase::AppResult;
-use starbase_styles::color;
+use starbase_styles::color::{self, apply_style_tags};
 use starbase_utils::json;
 use std::path::PathBuf;
 
@@ -86,6 +86,14 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
 
         if let Some(locator) = &tool.locator {
             p.locator(locator);
+        }
+
+        if !tool.metadata.deprecations.is_empty() {
+            p.entry_list(
+                "Deprecations",
+                tool.metadata.deprecations.iter().map(apply_style_tags),
+                None,
+            );
         }
 
         Ok(())

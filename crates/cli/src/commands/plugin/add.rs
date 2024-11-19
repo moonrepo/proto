@@ -34,6 +34,31 @@ pub async fn add(session: ProtoSession, args: AddPluginArgs) -> AppResult {
         },
     )?;
 
+    // Load the tool and verify it works. We can't load the tool with the
+    // session as the config has already been cached, and doesn't reflect
+    // the recent addition!
+    #[cfg(not(debug_assertions))]
+    {
+        use proto_core::load_tool_from_locator;
+        use starbase_styles::color::apply_style_tags;
+
+        let tool = load_tool_from_locator(&args.id, &session.env, &args.plugin).await?;
+
+        if !tool.metadata.deprecations.is_empty() {
+            let mut output = color::caution("Deprecation notices from the plugin:\n");
+
+            for msg in &tool.metadata.deprecations {
+                output.push_str("  ");
+                output.push_str(&color::muted("-"));
+                output.push(' ');
+                output.push_str(&apply_style_tags(msg));
+                output.push('\n');
+            }
+
+            println!("{output}");
+        }
+    }
+
     println!(
         "Added plugin {} to config {}",
         color::id(&args.id),

@@ -77,6 +77,11 @@ api_struct!(
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub default_version: Option<UnresolvedVersionSpec>,
 
+        /// List of deprecation messages that will be displayed to users
+        /// of this plugin.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        pub deprecations: Vec<String>,
+
         /// Controls aspects of the tool inventory.
         #[serde(default)]
         pub inventory: ToolInventoryMetadata,
