@@ -3,7 +3,8 @@ use crate::session::ProtoSession;
 use clap::Args;
 use proto_core::{Id, PluginLocator, ProtoConfig};
 use starbase::AppResult;
-use starbase_styles::color;
+use starbase_styles::color::{self, apply_style_tags};
+use tracing::warn;
 
 #[derive(Args, Clone, Debug)]
 pub struct AddPluginArgs {
@@ -33,6 +34,20 @@ pub async fn add(session: ProtoSession, args: AddPluginArgs) -> AppResult {
                 .insert(args.id.clone(), args.plugin.clone());
         },
     )?;
+
+    // Load the tool and verify it works
+    let tool = session.load_tool(&args.id).await?;
+
+    if !tool.metadata.deprecations.is_empty() {
+        let mut output = String::from("Deprecation notices from the plugin:\n");
+
+        for msg in &tool.metadata.deprecations {
+            output.push_str(&apply_style_tags(msg));
+            output.push('\n');
+        }
+
+        warn!("{output}");
+    }
 
     println!(
         "Added plugin {} to config {}",
