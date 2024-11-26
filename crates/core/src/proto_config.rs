@@ -170,10 +170,17 @@ pub struct ProtoToolConfig {
     #[serde(skip_serializing_if = "IndexMap::is_empty")]
     pub env: IndexMap<String, EnvVar>,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub env_file: Option<PathBuf>,
+
     // Custom configuration to pass to plugins
     #[setting(merge = merge_fxhashmap)]
     #[serde(flatten, skip_serializing_if = "FxHashMap::is_empty")]
     pub config: FxHashMap<String, JsonValue>,
+
+    #[setting(merge = merge::append_vec)]
+    #[serde(skip)]
+    _env_files: Vec<PathBuf>,
 }
 
 #[derive(Clone, Config, Debug, Serialize)]
@@ -222,6 +229,9 @@ pub struct ProtoConfig {
     #[serde(skip_serializing_if = "IndexMap::is_empty")]
     pub env: IndexMap<String, EnvVar>,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub env_file: Option<PathBuf>,
+
     #[setting(nested, merge = merge_tools)]
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub tools: BTreeMap<Id, ProtoToolConfig>,
@@ -240,6 +250,10 @@ pub struct ProtoConfig {
     #[setting(merge = merge_fxhashmap)]
     #[serde(flatten, skip_serializing)]
     pub unknown: FxHashMap<String, TomlValue>,
+
+    #[setting(merge = merge::append_vec)]
+    #[serde(skip)]
+    _env_files: Vec<PathBuf>,
 }
 
 impl ProtoConfig {
@@ -402,7 +416,6 @@ impl ProtoConfig {
 
         debug!(file = ?path, "Loading {}", PROTO_CONFIG_NAME);
 
-        let config_path = path.to_string_lossy();
         let config_content = if with_lock {
             fs::read_file_with_lock(path)?
         } else {
@@ -415,7 +428,7 @@ impl ProtoConfig {
 
         config.validate(&(), true).map_err(|error| match error {
             ConfigError::Validator { error, .. } => ConfigError::Validator {
-                location: config_path.to_string(),
+                location: path.to_string_lossy().to_string(),
                 error,
                 help: Some(color::muted_light("https://moonrepo.dev/docs/proto/config")),
             },
@@ -454,7 +467,7 @@ impl ProtoConfig {
 
             if !error.errors.is_empty() {
                 return Err(ConfigError::Validator {
-                    location: config_path.to_string(),
+                    location: path.to_string_lossy().to_string(),
                     error: Box::new(error),
                     help: Some(color::muted_light("https://moonrepo.dev/docs/proto/config")),
                 }
@@ -487,6 +500,24 @@ impl ProtoConfig {
                     *root_cert = make_absolute(root_cert);
                 }
             }
+        }
+
+        if let Some(tools) = &mut config.tools {
+            for tool in tools.values_mut() {
+                if let Some(env_file) = &tool.env_file {
+                    config
+                        ._env_files
+                        .get_or_insert(vec![])
+                        .push(make_absolute(env_file));
+                }
+            }
+        }
+
+        if let Some(env_file) = &config.env_file {
+            config
+                ._env_files
+                .get_or_insert(vec![])
+                .push(make_absolute(env_file));
         }
 
         Ok(config)
@@ -528,18 +559,20 @@ impl ProtoConfig {
         filter_id: Option<&Id>,
     ) -> miette::Result<IndexMap<String, Option<String>>> {
         let mut base_vars = IndexMap::new();
-        base_vars.extend(self.env.iter());
+        base_vars.extend(self.load_env_files(&self._env_files)?);
+        base_vars.extend(self.env.clone());
 
         if let Some(id) = filter_id {
             if let Some(tool_config) = self.tools.get(id) {
-                base_vars.extend(tool_config.env.iter())
+                base_vars.extend(self.load_env_files(&tool_config._env_files)?);
+                base_vars.extend(tool_config.env.clone())
             }
         }
 
         let mut vars = IndexMap::<String, Option<String>>::new();
 
         for (key, value) in base_vars {
-            let key_exists = std::env::var(key).is_ok_and(|v| !v.is_empty());
+            let key_exists = std::env::var(&key).is_ok_and(|v| !v.is_empty());
             let value = value.to_value();
 
             // Don't override parent inherited vars
@@ -564,7 +597,20 @@ impl ProtoConfig {
                     .to_string()
             });
 
-            vars.insert(key.to_owned(), value);
+            vars.insert(key, value);
+        }
+
+        Ok(vars)
+    }
+
+    pub fn load_env_files(&self, paths: &[PathBuf]) -> miette::Result<IndexMap<String, EnvVar>> {
+        let mut vars = IndexMap::default();
+
+        for path in paths {
+            for item in dotenvy::from_path_iter(path).expect("TODO") {
+                let (key, value) = item.expect("TODO");
+                vars.insert(key, EnvVar::Value(value));
+            }
         }
 
         Ok(vars)
