@@ -1,3 +1,4 @@
+use compact_str::CompactString;
 use semver::Version;
 use version_spec::{CalVer, SemVer, VersionSpec};
 
@@ -13,19 +14,19 @@ mod resolved_spec {
     fn aliases() {
         assert_eq!(
             VersionSpec::parse("latest").unwrap(),
-            VersionSpec::Alias("latest".to_owned())
+            VersionSpec::Alias(CompactString::new("latest"))
         );
         assert_eq!(
             VersionSpec::parse("stable").unwrap(),
-            VersionSpec::Alias("stable".to_owned())
+            VersionSpec::Alias(CompactString::new("stable"))
         );
         assert_eq!(
             VersionSpec::parse("legacy-2023").unwrap(),
-            VersionSpec::Alias("legacy-2023".to_owned())
+            VersionSpec::Alias(CompactString::new("legacy-2023"))
         );
         assert_eq!(
             VersionSpec::parse("future/202x").unwrap(),
-            VersionSpec::Alias("future/202x".to_owned())
+            VersionSpec::Alias(CompactString::new("future/202x"))
         );
     }
 

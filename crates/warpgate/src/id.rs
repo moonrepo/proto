@@ -86,13 +86,13 @@ impl PartialEq<str> for Id {
 
 impl PartialEq<&str> for Id {
     fn eq(&self, other: &&str) -> bool {
-        &self.0 == other
+        self.0 == other
     }
 }
 
 impl PartialEq<String> for Id {
     fn eq(&self, other: &String) -> bool {
-        &self.0 == other
+        self.0 == other
     }
 }
 
