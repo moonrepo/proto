@@ -16,6 +16,10 @@
 
 - Added `--on-init` option to `proto activate`, which will trigger the activation hook immediately in the shell, instead of waiting for a directory/prompt change to occur.
 
+#### 🐞 Fixes
+
+- Fixed the order of shell profiles/configs when applicable.
+
 #### ⚙️ Internal
 
 - Updated wasmtime to v26 (from v23).
