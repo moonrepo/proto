@@ -432,7 +432,7 @@ impl ProtoConfig {
                 if config
                     .versions
                     .as_ref()
-                    .is_some_and(|versions| versions.contains_key(field))
+                    .is_some_and(|versions| versions.contains_key(field.as_str()))
                 {
                     continue;
                 }

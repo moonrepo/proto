@@ -1,4 +1,5 @@
 use crate::error::WarpgateError;
+use compact_str::CompactString;
 use regex::Regex;
 use serde::{de, Deserialize, Deserializer, Serialize};
 use std::sync::LazyLock;
@@ -9,7 +10,7 @@ pub static ID_PATTERN: LazyLock<Regex> =
 
 /// An identifier for plugins.
 #[derive(Clone, Default, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-pub struct Id(String);
+pub struct Id(CompactString);
 
 impl Id {
     pub fn new<S: AsRef<str>>(id: S) -> Result<Id, WarpgateError> {
@@ -23,7 +24,7 @@ impl Id {
     }
 
     pub fn raw<S: AsRef<str>>(id: S) -> Id {
-        Id(id.as_ref().to_owned())
+        Id(CompactString::new(id))
     }
 
     pub fn as_str(&self) -> &str {
@@ -57,11 +58,11 @@ impl AsRef<str> for Id {
     }
 }
 
-impl AsRef<String> for Id {
-    fn as_ref(&self) -> &String {
-        &self.0
-    }
-}
+// impl AsRef<String> for Id {
+//     fn as_ref(&self) -> &String {
+//         &self.0
+//     }
+// }
 
 impl AsRef<Id> for Id {
     fn as_ref(&self) -> &Id {
@@ -70,7 +71,7 @@ impl AsRef<Id> for Id {
 }
 
 impl Deref for Id {
-    type Target = String;
+    type Target = str;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -97,11 +98,11 @@ impl PartialEq<String> for Id {
 
 // Allows strings to be used for collection keys
 
-impl Borrow<String> for Id {
-    fn borrow(&self) -> &String {
-        &self.0
-    }
-}
+// impl Borrow<String> for Id {
+//     fn borrow(&self) -> &String {
+//         &self.0
+//     }
+// }
 
 impl Borrow<str> for Id {
     fn borrow(&self) -> &str {
