@@ -27,7 +27,7 @@ pub struct AliasArgs {
 #[tracing::instrument(skip_all)]
 pub async fn alias(session: ProtoSession, args: AliasArgs) -> AppResult {
     if let UnresolvedVersionSpec::Alias(inner_alias) = &args.spec {
-        if &args.alias == inner_alias {
+        if args.alias == inner_alias {
             return Err(ProtoCliError::NoMatchingAliasToVersion.into());
         }
     }

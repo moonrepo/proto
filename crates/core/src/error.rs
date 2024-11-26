@@ -56,7 +56,7 @@ pub enum ProtoError {
     #[diagnostic(code(proto::minimum_version_requirement))]
     #[error(
         "Unable to use the {tool} plugin with identifier {}, as it requires a minimum proto version of {}, but found {} instead.",
-        .id.style(Style::Id),
+        .id.to_string().style(Style::Id),
         .expected.style(Style::Hash),
         .actual.style(Style::Hash)
     )]
@@ -119,7 +119,7 @@ pub enum ProtoError {
     #[diagnostic(code(proto::tool::unknown))]
     #[error(
         "Unable to proceed, {} is not a built-in tool and has not been configured with {} in a {} file.\n\nLearn more about plugins: {}\nSearch community plugins: {}",
-        .id.style(Style::Id),
+        .id.to_string().style(Style::Id),
         "[plugins]".style(Style::Property),
         PROTO_CONFIG_NAME.style(Style::File),
         "https://moonrepo.dev/docs/proto/plugins".style(Style::Url),

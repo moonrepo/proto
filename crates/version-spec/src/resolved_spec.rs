@@ -3,6 +3,7 @@
 use crate::spec_error::SpecError;
 use crate::{clean_version_string, is_alias_name, is_calver, UnresolvedVersionSpec};
 use crate::{is_semver, version_types::*};
+use compact_str::CompactString;
 use semver::Version;
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -15,7 +16,7 @@ pub enum VersionSpec {
     /// A special canary target.
     Canary,
     /// An alias that is used as a map to a version.
-    Alias(String),
+    Alias(CompactString),
     /// A fully-qualified calendar version.
     Calendar(CalVer),
     /// A fully-qualified semantic version.
@@ -108,7 +109,7 @@ impl FromStr for VersionSpec {
         let value = clean_version_string(value);
 
         if is_alias_name(&value) {
-            return Ok(VersionSpec::Alias(value));
+            return Ok(VersionSpec::Alias(CompactString::new(value)));
         }
 
         if is_calver(&value) {

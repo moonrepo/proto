@@ -115,28 +115,31 @@ pub fn resolve_version(
             return Some(VersionSpec::Canary);
         }
         UnresolvedVersionSpec::Alias(alias) => {
-            trace!(alias, "Found an alias, resolving further");
+            trace!(alias = alias.as_str(), "Found an alias, resolving further");
 
             let mut alias_value = None;
 
             if let Some(config) = config {
-                alias_value = config.aliases.get(alias);
+                alias_value = config.aliases.get(alias.as_str());
             }
 
             if alias_value.is_none() {
-                alias_value = aliases.get(alias);
+                alias_value = aliases.get(alias.as_str());
             }
 
             if let Some(value) = alias_value {
                 trace!(
-                    alias,
+                    alias = alias.as_str(),
                     candidate = value.to_string(),
                     "Alias exists with a potential candidate"
                 );
 
                 return resolve_version(value, versions, aliases, manifest, config);
             } else {
-                trace!(alias, "Alias does not exist, trying others");
+                trace!(
+                    alias = alias.as_str(),
+                    "Alias does not exist, trying others"
+                );
             }
         }
         UnresolvedVersionSpec::Req(req) => {

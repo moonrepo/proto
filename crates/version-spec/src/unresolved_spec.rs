@@ -4,6 +4,7 @@ use crate::spec_error::SpecError;
 use crate::unresolved_parser::*;
 use crate::version_types::*;
 use crate::{clean_version_req_string, clean_version_string, is_alias_name, VersionSpec};
+use compact_str::CompactString;
 use semver::VersionReq;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display};
@@ -17,7 +18,7 @@ pub enum UnresolvedVersionSpec {
     /// A special canary target.
     Canary,
     /// An alias that is used as a map to a version.
-    Alias(String),
+    Alias(CompactString),
     /// A partial version, requirement, or range (`^`, `~`, etc).
     Req(VersionReq),
     /// A list of requirements to match any against (joined by `||`).
@@ -78,7 +79,7 @@ impl UnresolvedVersionSpec {
     pub fn to_resolved_spec(&self) -> VersionSpec {
         match self {
             Self::Canary => VersionSpec::Canary,
-            Self::Alias(alias) => VersionSpec::Alias(alias.to_owned()),
+            Self::Alias(alias) => VersionSpec::Alias(CompactString::new(alias)),
             Self::Calendar(version) => VersionSpec::Calendar(version.to_owned()),
             Self::Semantic(version) => VersionSpec::Semantic(version.to_owned()),
             _ => VersionSpec::default(),
@@ -116,7 +117,7 @@ impl FromStr for UnresolvedVersionSpec {
         let value = clean_version_string(value);
 
         if is_alias_name(&value) {
-            return Ok(UnresolvedVersionSpec::Alias(value));
+            return Ok(UnresolvedVersionSpec::Alias(CompactString::new(value)));
         }
 
         let value = clean_version_req_string(&value);

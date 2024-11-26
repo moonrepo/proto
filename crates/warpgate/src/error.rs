@@ -32,7 +32,7 @@ pub enum WarpgateError {
     #[diagnostic(code(plugin::source::file_missing))]
     #[error(
         "Cannot load {} plugin, source file {} does not exist.",
-        .id.style(Style::Id),
+        .id.to_string().style(Style::Id),
         .path.style(Style::Path),
     )]
     SourceFileMissing { id: Id, path: PathBuf },
@@ -40,7 +40,7 @@ pub enum WarpgateError {
     #[diagnostic(code(plugin::github::asset_missing))]
     #[error(
         "Cannot download {} plugin from GitHub ({}), no tag found, matched, or provided.",
-        .id.style(Style::Id),
+        .id.to_string().style(Style::Id),
         .repo_slug.style(Style::Id),
     )]
     GitHubTagMissing { id: Id, repo_slug: String },
@@ -48,7 +48,7 @@ pub enum WarpgateError {
     #[diagnostic(code(plugin::github::asset_missing))]
     #[error(
         "Cannot download {} plugin from GitHub ({}), no applicable asset found for release {}.",
-        .id.style(Style::Id),
+        .id.to_string().style(Style::Id),
         .repo_slug.style(Style::Id),
         .tag,
     )]
@@ -59,7 +59,7 @@ pub enum WarpgateError {
     },
 
     #[diagnostic(code(plugin::create::failed))]
-    #[error("Failed to load and create {} plugin: {error}", .id.style(Style::Id))]
+    #[error("Failed to load and create {} plugin: {error}", .id.to_string().style(Style::Id))]
     PluginCreateFailed {
         id: Id,
         #[source]
@@ -69,7 +69,7 @@ pub enum WarpgateError {
     #[diagnostic(code(plugin::call_func::failed))]
     #[error(
         "Failed to call {} plugin function {}:\n{error}",
-        .id.style(Style::Id),
+        .id.to_string().style(Style::Id),
         .func.style(Style::Property),
     )]
     PluginCallFailed { id: Id, func: String, error: String },
@@ -87,7 +87,7 @@ pub enum WarpgateError {
     #[diagnostic(code(plugin::call_func::format_input))]
     #[error(
         "Failed to format input for {} plugin function {} call.",
-        .id.style(Style::Id),
+        .id.to_string().style(Style::Id),
         .func.style(Style::Property),
     )]
     FormatInputFailed {
@@ -100,7 +100,7 @@ pub enum WarpgateError {
     #[diagnostic(code(plugin::call_func::parse_output))]
     #[error(
         "Failed to parse output of {} plugin function {} call.",
-        .id.style(Style::Id),
+        .id.to_string().style(Style::Id),
         .func.style(Style::Property),
     )]
     ParseOutputFailed {
@@ -146,7 +146,7 @@ pub enum WarpgateError {
     #[diagnostic(code(plugin::incompatible_runtime))]
     #[error(
         "The loaded {} plugin is incompatible with the current runtime.\nFor plugin consumers, try upgrading to a newer plugin version.\nFor plugin authors, upgrade to the latest runtime and release a new version.",
-        .id.style(Style::Id),
+        .id.to_string().style(Style::Id),
     )]
     IncompatibleRuntime { id: Id },
 }

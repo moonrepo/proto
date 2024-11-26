@@ -22,6 +22,7 @@
 
 #### ⚙️ Internal
 
+- Updated identifiers, versions, and locators to use [compact strings](https://crates.io/crates/compact_str).
 - Updated wasmtime to v26 (from v23).
 
 ## 0.42.2
