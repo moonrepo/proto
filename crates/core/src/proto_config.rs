@@ -13,6 +13,7 @@ use starbase_utils::json::JsonValue;
 use starbase_utils::toml::TomlValue;
 use starbase_utils::{fs, toml};
 use std::collections::BTreeMap;
+use std::ffi::OsStr;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::path::{Path, PathBuf};
@@ -24,6 +25,7 @@ use warpgate::{HttpOptions, Id, PluginLocator, UrlLocator};
 pub const PROTO_CONFIG_NAME: &str = ".prototools";
 pub const SCHEMA_PLUGIN_KEY: &str = "internal-schema";
 pub const PROTO_PLUGIN_KEY: &str = "proto";
+pub const ENV_FILE_KEY: &str = "file";
 
 fn merge_tools(
     mut prev: BTreeMap<Id, PartialProtoToolConfig>,
@@ -131,6 +133,12 @@ derive_enum!(
     }
 );
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct EnvFile {
+    pub path: PathBuf,
+    pub weight: usize,
+}
+
 #[derive(Clone, Config, Debug, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum EnvVar {
@@ -170,17 +178,14 @@ pub struct ProtoToolConfig {
     #[serde(skip_serializing_if = "IndexMap::is_empty")]
     pub env: IndexMap<String, EnvVar>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub env_file: Option<PathBuf>,
-
     // Custom configuration to pass to plugins
     #[setting(merge = merge_fxhashmap)]
     #[serde(flatten, skip_serializing_if = "FxHashMap::is_empty")]
     pub config: FxHashMap<String, JsonValue>,
 
-    #[setting(merge = merge::append_vec)]
+    #[setting(exclude, merge = merge::append_vec)]
     #[serde(skip)]
-    _env_files: Vec<PathBuf>,
+    _env_files: Vec<EnvFile>,
 }
 
 #[derive(Clone, Config, Debug, Serialize)]
@@ -229,9 +234,6 @@ pub struct ProtoConfig {
     #[serde(skip_serializing_if = "IndexMap::is_empty")]
     pub env: IndexMap<String, EnvVar>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub env_file: Option<PathBuf>,
-
     #[setting(nested, merge = merge_tools)]
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub tools: BTreeMap<Id, ProtoToolConfig>,
@@ -251,9 +253,9 @@ pub struct ProtoConfig {
     #[serde(flatten, skip_serializing)]
     pub unknown: FxHashMap<String, TomlValue>,
 
-    #[setting(merge = merge::append_vec)]
+    #[setting(exclude, merge = merge::append_vec)]
     #[serde(skip)]
-    _env_files: Vec<PathBuf>,
+    _env_files: Vec<EnvFile>,
 }
 
 impl ProtoConfig {
@@ -476,20 +478,22 @@ impl ProtoConfig {
         }
 
         // Update file paths to be absolute
-        let make_absolute = |file: &PathBuf| {
+        fn make_absolute<T: AsRef<OsStr>>(file: T, current_path: &Path) -> PathBuf {
+            let file = PathBuf::from(file.as_ref());
+
             if file.is_absolute() {
-                file.to_owned()
-            } else if let Some(dir) = path.parent() {
+                file
+            } else if let Some(dir) = current_path.parent() {
                 dir.join(file)
             } else {
                 PathBuf::from("/").join(file)
             }
-        };
+        }
 
         if let Some(plugins) = &mut config.plugins {
             for locator in plugins.values_mut() {
                 if let PluginLocator::File(ref mut inner) = locator {
-                    inner.path = Some(make_absolute(&inner.get_unresolved_path()));
+                    inner.path = Some(make_absolute(inner.get_unresolved_path(), path));
                 }
             }
         }
@@ -497,28 +501,35 @@ impl ProtoConfig {
         if let Some(settings) = &mut config.settings {
             if let Some(http) = &mut settings.http {
                 if let Some(root_cert) = &mut http.root_cert {
-                    *root_cert = make_absolute(root_cert);
+                    *root_cert = make_absolute(&root_cert, path);
                 }
             }
         }
+
+        let push_env_file = |env_map: Option<&mut IndexMap<String, PartialEnvVar>>,
+                             file_list: &mut Option<Vec<EnvFile>>,
+                             extra_weight: usize| {
+            if let Some(map) = env_map {
+                if let Some(PartialEnvVar::Value(env_file)) = map.get(ENV_FILE_KEY) {
+                    let list = file_list.get_or_insert(vec![]);
+
+                    list.push(EnvFile {
+                        path: make_absolute(env_file, path),
+                        weight: (path.to_str().map_or(0, |p| p.len()) * 10) + extra_weight,
+                    });
+                }
+
+                map.shift_remove(ENV_FILE_KEY);
+            }
+        };
 
         if let Some(tools) = &mut config.tools {
             for tool in tools.values_mut() {
-                if let Some(env_file) = &tool.env_file {
-                    config
-                        ._env_files
-                        .get_or_insert(vec![])
-                        .push(make_absolute(env_file));
-                }
+                push_env_file(tool.env.as_mut(), &mut tool._env_files, 5);
             }
         }
 
-        if let Some(env_file) = &config.env_file {
-            config
-                ._env_files
-                .get_or_insert(vec![])
-                .push(make_absolute(env_file));
-        }
+        push_env_file(config.env.as_mut(), &mut config._env_files, 0);
 
         Ok(config)
     }
@@ -552,19 +563,37 @@ impl ProtoConfig {
         Self::save_to(dir, config)
     }
 
+    pub fn get_env_files(&self, filter_id: Option<&Id>) -> Vec<&PathBuf> {
+        let mut paths: Vec<&EnvFile> = self._env_files.iter().collect();
+
+        if let Some(id) = filter_id {
+            if let Some(tool_config) = self.tools.get(id) {
+                paths.extend(&tool_config._env_files);
+            }
+        }
+
+        // Sort by weight so that we persist the order of env files
+        // when layers across directories exist!
+        paths.sort_by(|a, d| a.weight.cmp(&d.weight));
+
+        // Then only return the paths
+        paths.into_iter().map(|file| &file.path).collect()
+    }
+
     // We don't use a `BTreeMap` for env vars, so that variable interpolation
     // and order of declaration can work correctly!
     pub fn get_env_vars(
         &self,
         filter_id: Option<&Id>,
     ) -> miette::Result<IndexMap<String, Option<String>>> {
+        let env_files = self.get_env_files(filter_id);
+
         let mut base_vars = IndexMap::new();
-        base_vars.extend(self.load_env_files(&self._env_files)?);
+        base_vars.extend(self.load_env_files(&env_files)?);
         base_vars.extend(self.env.clone());
 
         if let Some(id) = filter_id {
             if let Some(tool_config) = self.tools.get(id) {
-                base_vars.extend(self.load_env_files(&tool_config._env_files)?);
                 base_vars.extend(tool_config.env.clone())
             }
         }
@@ -572,6 +601,10 @@ impl ProtoConfig {
         let mut vars = IndexMap::<String, Option<String>>::new();
 
         for (key, value) in base_vars {
+            if key == ENV_FILE_KEY {
+                continue;
+            }
+
             let key_exists = std::env::var(&key).is_ok_and(|v| !v.is_empty());
             let value = value.to_value();
 
@@ -603,7 +636,7 @@ impl ProtoConfig {
         Ok(vars)
     }
 
-    pub fn load_env_files(&self, paths: &[PathBuf]) -> miette::Result<IndexMap<String, EnvVar>> {
+    pub fn load_env_files(&self, paths: &[&PathBuf]) -> miette::Result<IndexMap<String, EnvVar>> {
         let mut vars = IndexMap::default();
 
         for path in paths {

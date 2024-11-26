@@ -136,6 +136,31 @@ BAZ_QUX = "abc"
     }
 
     #[test]
+    fn can_set_env_file() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(
+            ".prototools",
+            r#"
+[env]
+file = ".env"
+"#,
+        );
+
+        let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
+
+        assert_eq!(config.env.unwrap(), IndexMap::new());
+        assert_eq!(
+            config
+                ._env_files
+                .unwrap()
+                .into_iter()
+                .map(|file| file.path)
+                .collect::<Vec<_>>(),
+            vec![sandbox.path().join(".env")]
+        );
+    }
+
+    #[test]
     fn can_set_plugins() {
         let sandbox = create_empty_sandbox();
         sandbox.create_file(
@@ -578,6 +603,64 @@ NODE_PATH = false
                 map.insert("NODE_PATH".into(), EnvVar::State(false));
                 map
             });
+        }
+
+        #[test]
+        fn gathers_env_files() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                "a/b/.prototools",
+                r#"
+[env]
+file = ".env.b"
+
+[tools.node.env]
+file = ".env.tool-b"
+"#,
+            );
+            sandbox.create_file(
+                "a/.prototools",
+                r#"
+[env]
+file = ".env.a"
+
+[tools.node.env]
+file = ".env.tool-a"
+"#,
+            );
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[env]
+file = ".env"
+
+[tools.node.env]
+file = ".env.tool"
+"#,
+            );
+
+            let config = ProtoConfigManager::load(sandbox.path().join("a/b"), None, None)
+                .unwrap()
+                .get_merged_config()
+                .unwrap()
+                .to_owned();
+
+            assert_eq!(config.env, IndexMap::<String, EnvVar>::default());
+            assert_eq!(
+                config
+                    .get_env_files(Some(&Id::raw("node")))
+                    .into_iter()
+                    .cloned()
+                    .collect::<Vec<_>>(),
+                vec![
+                    sandbox.path().join(".env"),
+                    sandbox.path().join(".env.tool"),
+                    sandbox.path().join("a/.env.a"),
+                    sandbox.path().join("a/.env.tool-a"),
+                    sandbox.path().join("a/b/.env.b"),
+                    sandbox.path().join("a/b/.env.tool-b"),
+                ]
+            );
         }
     }
 }
