@@ -138,6 +138,7 @@ BAZ_QUX = "abc"
     #[test]
     fn can_set_env_file() {
         let sandbox = create_empty_sandbox();
+        sandbox.create_file(".env", "");
         sandbox.create_file(
             ".prototools",
             r#"
@@ -837,6 +838,8 @@ NODE_PATH = false
         #[test]
         fn gathers_env_files() {
             let sandbox = create_empty_sandbox();
+            sandbox.create_file("a/b/.env.b", "");
+            sandbox.create_file("a/b/.env.tool-b", "");
             sandbox.create_file(
                 "a/b/.prototools",
                 r#"
@@ -847,6 +850,8 @@ file = ".env.b"
 file = ".env.tool-b"
 "#,
             );
+            sandbox.create_file("a/.env.a", "");
+            sandbox.create_file("a/.env.tool-a", "");
             sandbox.create_file(
                 "a/.prototools",
                 r#"
@@ -857,6 +862,8 @@ file = ".env.a"
 file = ".env.tool-a"
 "#,
             );
+            sandbox.create_file(".env", "");
+            sandbox.create_file(".env.tool", "");
             sandbox.create_file(
                 ".prototools",
                 r#"
