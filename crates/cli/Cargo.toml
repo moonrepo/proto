@@ -43,11 +43,11 @@ chrono = "0.4.38"
 clap = { workspace = true, features = ["derive", "env"] }
 clap_complete = { workspace = true }
 clap_complete_nushell = "4.5.4"
-comfy-table = "7.1.1"
+comfy-table = "7.1.3"
 dialoguer = "0.11.0"
 dirs = { workspace = true }
 indexmap = { workspace = true }
-indicatif = { version = "0.17.8", features = ["improved_unicode"] }
+indicatif = { version = "0.17.9", features = ["improved_unicode"] }
 miette = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true, features = ["rustls-tls-native-roots"] }
