@@ -537,6 +537,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "compact_str"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6050c3a16ddab2e412160b31f2c871015704239bca62f72f6e5f0be631d3f644"
+dependencies = [
+ "castaway",
+ "cfg-if",
+ "itoa",
+ "rustversion",
+ "ryu",
+ "serde",
+ "static_assertions",
+]
+
+[[package]]
 name = "console"
 version = "0.15.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1295,7 +1310,7 @@ version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0a3233677ea1554a48235d81bb59d2a41654969a8e29a1316c48105fd1701693"
 dependencies = [
- "compact_str",
+ "compact_str 0.7.1",
  "garde_derive",
  "once_cell",
  "regex",
@@ -3990,6 +4005,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 name = "version_spec"
 version = "0.7.0"
 dependencies = [
+ "compact_str 0.8.0",
  "human-sort",
  "regex",
  "schematic",
@@ -4030,6 +4046,7 @@ dependencies = [
 name = "warpgate"
 version = "0.19.0"
 dependencies = [
+ "compact_str 0.8.0",
  "extism",
  "miette",
  "once_cell",
