@@ -27,10 +27,7 @@ pub fn find_profiles(shell: &BoxedShell, home_dir: &Path) -> miette::Result<Vec<
 }
 
 pub fn find_first_profile(shell: &BoxedShell, home_dir: &Path) -> miette::Result<PathBuf> {
-    let profiles = find_profiles(shell, home_dir)?;
-
-    // Check in reverse order as the most common profile is always last in the list
-    for profile in profiles.into_iter().rev() {
+    for profile in find_profiles(shell, home_dir)? {
         if profile.exists() {
             return Ok(profile);
         }
@@ -124,10 +121,7 @@ pub fn prompt_for_shell_profile(
     home_dir: &Path,
 ) -> miette::Result<Option<PathBuf>> {
     let theme = create_theme();
-
-    let mut profiles = find_profiles(shell, home_dir)?;
-    profiles.reverse();
-
+    let profiles = find_profiles(shell, home_dir)?;
     let mut items = profiles.iter().map(color::path).collect::<Vec<_>>();
     items.push("Other".to_owned());
     items.push("None".to_owned());

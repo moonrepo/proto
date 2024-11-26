@@ -43,11 +43,11 @@ chrono = "0.4.38"
 clap = { workspace = true, features = ["derive", "env"] }
 clap_complete = { workspace = true }
 clap_complete_nushell = "4.5.4"
-comfy-table = "7.1.1"
+comfy-table = "7.1.3"
 dialoguer = "0.11.0"
 dirs = { workspace = true }
 indexmap = { workspace = true }
-indicatif = { version = "0.17.8", features = ["improved_unicode"] }
+indicatif = { version = "0.17.9", features = ["improved_unicode"] }
 miette = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true, features = ["rustls-tls-native-roots"] }
@@ -67,11 +67,11 @@ rust_json = "0.1.5"
 sigpipe = "0.1.3"
 
 # For extism/wastime
-extism = "1.8.0"
-regalloc2 = "=0.9.3"
-wasmtime = "~23.0.3"
-wasi-common = "~23.0.3"
-wiggle = "~23.0.3"
+extism = "1.9.0"
+regalloc2 = "=0.10.2"
+wasmtime = "~26.0.1"
+wasi-common = "~26.0.1"
+wiggle = "~26.0.1"
 
 [dev-dependencies]
 starbase_sandbox = { workspace = true }
