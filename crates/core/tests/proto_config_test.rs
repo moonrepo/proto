@@ -143,12 +143,17 @@ BAZ_QUX = "abc"
             r#"
 [env]
 file = ".env"
+KEY = "value"
 "#,
         );
 
         let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
 
-        assert_eq!(config.env.unwrap(), IndexMap::new());
+        assert_eq!(config.env.unwrap(), {
+            let mut map = IndexMap::<String, PartialEnvVar>::default();
+            map.insert("KEY".into(), PartialEnvVar::Value("value".into()));
+            map
+        });
         assert_eq!(
             config
                 ._env_files
@@ -330,6 +335,230 @@ rust = "stable"
 foo = "file://./test.toml"
 "#,
         );
+    }
+
+    mod envs {
+        use super::*;
+
+        #[test]
+        #[should_panic(expected = "does not exist")]
+        fn errors_if_file_missing() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[env]
+file = ".env"
+"#,
+            );
+
+            ProtoConfigManager::load(sandbox.path(), None, None)
+                .unwrap()
+                .get_merged_config()
+                .unwrap();
+        }
+
+        #[test]
+        #[should_panic(expected = "Failed to parse .env file")]
+        fn errors_if_parse_fails() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".env",
+                r#"
+.KEY={invalid}
+"#,
+            );
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[env]
+file = ".env"
+"#,
+            );
+
+            ProtoConfigManager::load(sandbox.path(), None, None)
+                .unwrap()
+                .get_merged_config()
+                .unwrap()
+                .get_env_vars(None)
+                .unwrap();
+        }
+
+        #[test]
+        fn merges_vars_and_files() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".env",
+                r#"
+KEY1 = "file1"
+KEY3 = "file3"
+"#,
+            );
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[env]
+file = ".env"
+KEY1 = "value1"
+KEY2 = "value2"
+"#,
+            );
+
+            let config = ProtoConfigManager::load(sandbox.path(), None, None)
+                .unwrap()
+                .get_merged_config()
+                .unwrap()
+                .to_owned();
+
+            assert_eq!(config.get_env_vars(None).unwrap(), {
+                let mut map = IndexMap::<String, Option<String>>::default();
+                map.insert("KEY1".into(), Some("value1".into()));
+                map.insert("KEY2".into(), Some("value2".into()));
+                map.insert("KEY3".into(), Some("file3".into()));
+                map
+            });
+        }
+
+        #[test]
+        fn child_file_overwrites_parent() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".env",
+                r#"
+KEY = "parent"
+"#,
+            );
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[env]
+file = ".env"
+"#,
+            );
+            sandbox.create_file(
+                "child/.env",
+                r#"
+KEY = "child"
+"#,
+            );
+            sandbox.create_file(
+                "child/.prototools",
+                r#"
+[env]
+file = ".env"
+"#,
+            );
+
+            let config = ProtoConfigManager::load(sandbox.path().join("child"), None, None)
+                .unwrap()
+                .get_merged_config()
+                .unwrap()
+                .to_owned();
+
+            assert_eq!(config.get_env_vars(None).unwrap(), {
+                let mut map = IndexMap::<String, Option<String>>::default();
+                map.insert("KEY".into(), Some("child".into()));
+                map
+            });
+        }
+
+        #[test]
+        fn files_can_substitute_from_self() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".env",
+                r#"
+OTHER = "abc"
+KEY = "other=${OTHER}"
+"#,
+            );
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[env]
+file = ".env"
+"#,
+            );
+
+            let config = ProtoConfigManager::load(sandbox.path(), None, None)
+                .unwrap()
+                .get_merged_config()
+                .unwrap()
+                .to_owned();
+
+            assert_eq!(config.get_env_vars(None).unwrap(), {
+                let mut map = IndexMap::<String, Option<String>>::default();
+                map.insert("OTHER".into(), Some("abc".into()));
+                map.insert("KEY".into(), Some("other=abc".into()));
+                map
+            });
+        }
+
+        //         #[test]
+        //         fn files_can_substitute_from_process() {
+        //             let sandbox = create_empty_sandbox();
+        //             sandbox.create_file(
+        //                 ".env",
+        //                 r#"
+        // KEY = "process=${PROCESS_KEY}"
+        // "#,
+        //             );
+        //             sandbox.create_file(
+        //                 ".prototools",
+        //                 r#"
+        // [env]
+        // file = ".env"
+        // "#,
+        //             );
+
+        //             env::set_var("PROCESS_KEY", "abc");
+
+        //             let config = ProtoConfigManager::load(sandbox.path(), None, None)
+        //                 .unwrap()
+        //                 .get_merged_config()
+        //                 .unwrap()
+        //                 .to_owned();
+
+        //             env::remove_var("PROCESS_KEY");
+
+        //             assert_eq!(config.get_env_vars(None).unwrap(), {
+        //                 let mut map = IndexMap::<String, Option<String>>::default();
+        //                 map.insert("KEY".into(), Some("process=abc".into()));
+        //                 map
+        //             });
+        //         }
+
+        #[test]
+        fn vars_can_substitute_from_files() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".env",
+                r#"
+FILE=file
+"#,
+            );
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[env]
+file = ".env"
+KEY = "from=${FILE}"
+"#,
+            );
+
+            let config = ProtoConfigManager::load(sandbox.path(), None, None)
+                .unwrap()
+                .get_merged_config()
+                .unwrap()
+                .to_owned();
+
+            assert_eq!(config.get_env_vars(None).unwrap(), {
+                let mut map = IndexMap::<String, Option<String>>::default();
+                map.insert("FILE".into(), Some("file".into()));
+                map.insert("KEY".into(), Some("from=file".into()));
+                map
+            });
+        }
     }
 
     mod builtins {

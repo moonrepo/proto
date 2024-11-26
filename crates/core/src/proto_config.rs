@@ -1,3 +1,4 @@
+use crate::error::ProtoError;
 use crate::helpers::ENV_VAR_SUB;
 use indexmap::IndexMap;
 use once_cell::sync::OnceCell;
@@ -9,6 +10,7 @@ use schematic::{
 };
 use serde::{Deserialize, Serialize};
 use starbase_styles::color;
+use starbase_utils::fs::FsError;
 use starbase_utils::json::JsonValue;
 use starbase_utils::toml::TomlValue;
 use starbase_utils::{fs, toml};
@@ -508,28 +510,41 @@ impl ProtoConfig {
 
         let push_env_file = |env_map: Option<&mut IndexMap<String, PartialEnvVar>>,
                              file_list: &mut Option<Vec<EnvFile>>,
-                             extra_weight: usize| {
+                             extra_weight: usize|
+         -> miette::Result<()> {
             if let Some(map) = env_map {
                 if let Some(PartialEnvVar::Value(env_file)) = map.get(ENV_FILE_KEY) {
                     let list = file_list.get_or_insert(vec![]);
+                    let env_file_path = make_absolute(env_file, path);
+
+                    if !env_file_path.exists() {
+                        return Err(ProtoError::MissingEnvFile {
+                            path: env_file_path,
+                            config: env_file.to_owned(),
+                            config_path: path.to_path_buf(),
+                        }
+                        .into());
+                    }
 
                     list.push(EnvFile {
-                        path: make_absolute(env_file, path),
+                        path: env_file_path,
                         weight: (path.to_str().map_or(0, |p| p.len()) * 10) + extra_weight,
                     });
                 }
 
                 map.shift_remove(ENV_FILE_KEY);
             }
+
+            Ok(())
         };
 
         if let Some(tools) = &mut config.tools {
             for tool in tools.values_mut() {
-                push_env_file(tool.env.as_mut(), &mut tool._env_files, 5);
+                push_env_file(tool.env.as_mut(), &mut tool._env_files, 5)?;
             }
         }
 
-        push_env_file(config.env.as_mut(), &mut config._env_files, 0);
+        push_env_file(config.env.as_mut(), &mut config._env_files, 0)?;
 
         Ok(config)
     }
@@ -637,11 +652,29 @@ impl ProtoConfig {
     }
 
     pub fn load_env_files(&self, paths: &[&PathBuf]) -> miette::Result<IndexMap<String, EnvVar>> {
+        use dotenvy::Error;
+
         let mut vars = IndexMap::default();
 
+        let map_error = |error: dotenvy::Error, path: &Path| -> miette::Report {
+            match error {
+                Error::Io(inner) => FsError::Read {
+                    path: path.to_path_buf(),
+                    error: Box::new(inner),
+                }
+                .into(),
+                other => ProtoError::EnvFileParseFailed {
+                    path: path.to_path_buf(),
+                    error: Box::new(other),
+                }
+                .into(),
+            }
+        };
+
         for path in paths {
-            for item in dotenvy::from_path_iter(path).expect("TODO") {
-                let (key, value) = item.expect("TODO");
+            for item in dotenvy::from_path_iter(path).map_err(|error| map_error(error, path))? {
+                let (key, value) = item.map_err(|error| map_error(error, path))?;
+
                 vars.insert(key, EnvVar::Value(value));
             }
         }

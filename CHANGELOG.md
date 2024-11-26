@@ -15,6 +15,11 @@
 #### 🚀 Updates
 
 - Added `--on-init` option to `proto activate`, which will trigger the activation hook immediately in the shell, instead of waiting for a directory/prompt change to occur.
+- Added support for loading `.env` files through the special `env.file` and `tools.*.env.file` settings.
+  ```toml
+  [env]
+  file = ".env"
+  ```
 
 #### 🐞 Fixes
 
