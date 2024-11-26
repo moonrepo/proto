@@ -64,7 +64,7 @@
       "name": "atlas",
       "description": "manage your database schema as code.",
       "author": "crashdump",
-      "homepageUrl": "https://atlasgo.io",
+      "homepageUrl": "https://atlasgo.io/",
       "repositoryUrl": "https://github.com/crashdump/proto-tools",
       "bins": [
         "atlas"

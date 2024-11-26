@@ -107,8 +107,15 @@ export interface ToolMetadataOutput {
 	configSchema?: unknown | null;
 	/** Default alias or version to use as a fallback. */
 	defaultVersion?: UnresolvedVersionSpec | null;
+	/**
+	 * List of deprecation messages that will be displayed to users
+	 * of this plugin.
+	 */
+	deprecations?: string[];
 	/** Controls aspects of the tool inventory. */
 	inventory?: ToolInventoryMetadata;
+	/** Minimum version of proto required to execute this plugin. */
+	minimumProtoVersion?: string | null;
 	/** Human readable name of the tool. */
 	name: string;
 	/** Version of the plugin. */
@@ -140,6 +147,8 @@ export interface ParseVersionFileInput {
 	content: string;
 	/** Name of file that's being parsed. */
 	file: string;
+	/** Virtual path to the file being parsed. */
+	path: VirtualPath;
 }
 
 /** Output returned by the `parse_version_file` function. */

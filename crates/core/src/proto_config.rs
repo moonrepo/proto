@@ -652,13 +652,11 @@ impl ProtoConfig {
     }
 
     pub fn load_env_files(&self, paths: &[&PathBuf]) -> miette::Result<IndexMap<String, EnvVar>> {
-        use dotenvy::Error;
-
         let mut vars = IndexMap::default();
 
         let map_error = |error: dotenvy::Error, path: &Path| -> miette::Report {
             match error {
-                Error::Io(inner) => FsError::Read {
+                dotenvy::Error::Io(inner) => FsError::Read {
                     path: path.to_path_buf(),
                     error: Box::new(inner),
                 }
