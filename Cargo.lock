@@ -2425,7 +2425,7 @@ dependencies = [
  "starbase_styles",
  "starbase_utils",
  "system_env",
- "thiserror 1.0.69",
+ "thiserror 2.0.3",
  "tokio",
  "tracing",
  "wasi-common",
@@ -2469,7 +2469,7 @@ dependencies = [
  "starbase_sandbox",
  "starbase_styles",
  "starbase_utils",
- "thiserror 1.0.69",
+ "thiserror 2.0.3",
  "tokio",
  "tracing",
  "url",
@@ -2488,7 +2488,7 @@ dependencies = [
  "starbase_styles",
  "starbase_utils",
  "system_env",
- "thiserror 1.0.69",
+ "thiserror 2.0.3",
  "tracing",
 ]
 
@@ -2514,7 +2514,7 @@ dependencies = [
  "serde",
  "serde_json",
  "system_env",
- "thiserror 1.0.69",
+ "thiserror 2.0.3",
  "version_spec",
  "warpgate_api",
 ]
@@ -3307,9 +3307,9 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "starbase"
-version = "0.9.4"
+version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1b55189276998800e553d329ab7218e1a81688661901268a0cad0b774d6d70d"
+checksum = "472e15cb7da9f3348555a671fe61e58fc901ecdfc45972fe304a2f367e2eb424"
 dependencies = [
  "async-trait",
  "chrono",
@@ -3323,9 +3323,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_archive"
-version = "0.8.9"
+version = "0.8.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ddcd0a8668af71ac7aaec90d5c75237d48f7cfc2b68f0ca06cafc683e2ab584c"
+checksum = "2b4c102781eddb9417186f40eb49ef6e1b3dade352bbffe405e95c3427c6170b"
 dependencies = [
  "binstall-tar",
  "bzip2",
@@ -3334,7 +3334,7 @@ dependencies = [
  "rustc-hash",
  "starbase_styles",
  "starbase_utils",
- "thiserror 1.0.69",
+ "thiserror 2.0.3",
  "tracing",
  "xz2",
  "zip",
@@ -3343,9 +3343,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_sandbox"
-version = "0.7.6"
+version = "0.7.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00380c6d481a26cd65866100980aabc75b6ad3425ea7fe5b741fdf3ada9d7674"
+checksum = "eea28a45557a5974e6995a36bf34cb56bda35cbfc0d9536089c83e9c0d2414c1"
 dependencies = [
  "assert_cmd",
  "assert_fs",
@@ -3358,22 +3358,22 @@ dependencies = [
 
 [[package]]
 name = "starbase_shell"
-version = "0.6.2"
+version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fddcc1ed5eb1e74a3d3822b038fe15400ee393f57bed3ee128ffe64d4d8d7b27"
+checksum = "8c92e59e9cb8234c7d07f8260b7196c0d0cd29f4b31cfad8180bc3bcfe0c2619"
 dependencies = [
  "miette",
  "regex",
  "sysinfo",
- "thiserror 1.0.69",
+ "thiserror 2.0.3",
  "tracing",
 ]
 
 [[package]]
 name = "starbase_styles"
-version = "0.4.5"
+version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "358d0e98dc524ef2b838e9e70367c899d5ef8629f4efb44add57d92da6e75a8f"
+checksum = "b1664b29d64bf37a14a0f50ae4c1568eb712c7eb28fb489aabac81c36e5558c1"
 dependencies = [
  "dirs 5.0.1",
  "miette",
@@ -3383,9 +3383,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_utils"
-version = "0.8.12"
+version = "0.8.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92724184aae5faf89b2ded8ac247e24cb0720f3eb5ec163509fb6994cdfa6f9d"
+checksum = "fb5d48b4190c4e94d9f6e8dc3487228500f78d5920655d357b1a5c086a995c28"
 dependencies = [
  "dirs 5.0.1",
  "fs4",
@@ -3397,7 +3397,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "starbase_styles",
- "thiserror 1.0.69",
+ "thiserror 2.0.3",
  "tokio",
  "toml",
  "tracing",
@@ -3552,7 +3552,7 @@ dependencies = [
  "serde",
  "serde_json",
  "shell-words",
- "thiserror 1.0.69",
+ "thiserror 2.0.3",
 ]
 
 [[package]]
@@ -3995,7 +3995,7 @@ dependencies = [
  "schematic",
  "semver",
  "serde",
- "thiserror 1.0.69",
+ "thiserror 2.0.3",
 ]
 
 [[package]]
@@ -4045,7 +4045,7 @@ dependencies = [
  "starbase_styles",
  "starbase_utils",
  "system_env",
- "thiserror 1.0.69",
+ "thiserror 2.0.3",
  "tokio",
  "tracing",
  "ureq",
@@ -4062,7 +4062,7 @@ dependencies = [
  "serde",
  "serde_json",
  "system_env",
- "thiserror 1.0.69",
+ "thiserror 2.0.3",
 ]
 
 [[package]]

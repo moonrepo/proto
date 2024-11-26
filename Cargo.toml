@@ -29,8 +29,8 @@ serde = { version = "1.0.214", features = ["derive"] }
 serde_json = "1.0.133"
 sha2 = "0.10.8"
 shell-words = "1.1.0"
-starbase = { version = "0.9.4" }
-starbase_archive = { version = "0.8.9", features = [
+starbase = { version = "0.9.5" }
+starbase_archive = { version = "0.8.10", features = [
     "gz",
     "miette",
     "tar-bz2",
@@ -41,16 +41,16 @@ starbase_archive = { version = "0.8.9", features = [
     "zip-deflate",
 ] }
 starbase_events = { version = "0.6.3" }
-starbase_sandbox = { version = "0.7.6" }
-starbase_shell = { version = "0.6.2", features = ["miette"] }
-starbase_styles = { version = "0.4.5" }
-starbase_utils = { version = "0.8.12", default-features = false, features = [
+starbase_sandbox = { version = "0.7.7" }
+starbase_shell = { version = "0.6.3", features = ["miette"] }
+starbase_styles = { version = "0.4.6" }
+starbase_utils = { version = "0.8.13", default-features = false, features = [
     "json",
     "miette",
     "net",
     "toml",
 ] }
-thiserror = "1.0.65"
+thiserror = "2.0.3"
 tokio = { version = "1.41.0", features = ["full", "tracing"] }
 tracing = "0.1.40"
 uuid = { version = "1.11.0", features = ["v4"] }
