@@ -181,4 +181,28 @@ pub enum ProtoError {
         #[source]
         error: Box<std::io::Error>,
     },
+
+    #[diagnostic(code(proto::env::missing_file))]
+    #[error(
+        "The .env file {} does not exist. This was configured as {} in the config {}.",
+        .path.style(Style::Path),
+        .config.style(Style::File),
+        .config_path.style(Style::Path),
+    )]
+    MissingEnvFile {
+        path: PathBuf,
+        config: String,
+        config_path: PathBuf,
+    },
+
+    #[diagnostic(code(proto::env::parse_failed))]
+    #[error(
+        "Failed to parse .env file {}.",
+        .path.style(Style::Path),
+    )]
+    EnvFileParseFailed {
+        path: PathBuf,
+        #[source]
+        error: Box<dotenvy::Error>,
+    },
 }
