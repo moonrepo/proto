@@ -9,17 +9,18 @@ repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
 proto_pdk_api = { version = "0.24.3", path = "../pdk-api", features = [
-	"schematic",
+    "schematic",
 ] }
 proto_shim = { version = "0.5.0", path = "../shim" }
 version_spec = { version = "0.7.0", path = "../version-spec", features = [
-	"schematic",
+    "schematic",
 ] }
 warpgate = { version = "0.19.0", path = "../warpgate", features = [
-	"schematic",
+    "schematic",
 ] }
 clap = { workspace = true, optional = true }
 convert_case = "0.6.0"
+dotenvy = "0.15.7"
 indexmap = { workspace = true }
 miette = { workspace = true }
 minisign-verify = "0.2.2"
@@ -28,12 +29,12 @@ regex = { workspace = true }
 reqwest = { workspace = true }
 rustc-hash = { workspace = true }
 schematic = { workspace = true, features = [
-	"config",
-	"env",
-	"toml",
-	"type_indexmap",
-	"type_url",
-	"validate",
+    "config",
+    "env",
+    "toml",
+    "type_indexmap",
+    "type_url",
+    "validate",
 ] }
 semver = { workspace = true }
 serde = { workspace = true }
