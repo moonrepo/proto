@@ -72,7 +72,7 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
     for file in manager.files.iter().rev() {
         if !file.exists
             || !env.config_mode.includes_global() && file.global
-            || env.config_mode.only_local() && !file.path.parent().is_some_and(|p| p == env.cwd)
+            || env.config_mode.only_local() && file.path.parent().is_none_or(|p| p != env.cwd)
         {
             continue;
         }

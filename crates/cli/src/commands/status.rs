@@ -42,7 +42,7 @@ fn find_versions_in_configs(
         if !file.exists
             || !env.config_mode.includes_global() && file.global
             || env.config_mode.only_local()
-                && !file.path.parent().is_some_and(|p| p == session.env.cwd)
+                && file.path.parent().is_none_or(|p| p != session.env.cwd)
         {
             continue;
         }
