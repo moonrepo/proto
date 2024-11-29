@@ -154,7 +154,9 @@ pub fn create_http_client_with_options(options: &HttpOptions) -> miette::Result<
     // }
 
     if let Some(cache_dir) = &options.cache_dir {
-        use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache, HttpCacheOptions};
+        use http_cache_reqwest::{
+            CACacheManager, Cache, CacheMode, CacheOptions, HttpCache, HttpCacheOptions,
+        };
 
         trace!("Adding GET and HEAD request caching");
 
@@ -163,7 +165,14 @@ pub fn create_http_client_with_options(options: &HttpOptions) -> miette::Result<
                 path: cache_dir.to_owned(),
             },
             mode: CacheMode::Default,
-            options: HttpCacheOptions::default(),
+            options: HttpCacheOptions {
+                // https://github.com/kornelski/rusty-http-cache-semantics
+                cache_options: Some(CacheOptions {
+                    cache_heuristic: 0.025,
+                    ..Default::default()
+                }),
+                ..Default::default()
+            },
         }));
     }
 

@@ -14,14 +14,15 @@
 
 #### 🚀 Updates
 
-- Added `--on-init` option to `proto activate`, which will trigger the activation hook immediately in the shell, instead of waiting for a directory/prompt change to occur.
+- Added an `--on-init` option to `proto activate`, which will trigger the activation hook immediately in the shell, instead of waiting for a directory/prompt change to occur.
+  - If you were manually executing `_proto_hook` before, this will now fail. Please remove!
 - Added support for loading `.env` files through the special `env.file` and `tools.*.env.file` settings.
   ```toml
   [env]
   file = ".env"
   ```
 - Added support for `~/.netrc` configuration to all HTTP requests.
-- Improved implementation of HTTP request caching.
+- Improved implementation of HTTP request/response caching. Now takes into account [HTTP cache semantics](https://github.com/kornelski/rusty-http-cache-semantics).
 - Updated `proto upgrade` to error if there's another process of proto currently running.
 
 #### 🐞 Fixes
