@@ -25,6 +25,7 @@ reqwest = { version = "0.12.9", default-features = false, features = [
     "macos-system-configuration",
 ] }
 reqwest-middleware = "0.4.0"
+reqwest-netrc = "0.1.2"
 rustc-hash = "2.0.0"
 scc = "2.2.5"
 schematic = { version = "0.17.6", default-features = false }

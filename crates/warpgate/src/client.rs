@@ -3,6 +3,7 @@ use core::ops::Deref;
 use miette::IntoDiagnostic;
 use reqwest::Client;
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
+// use reqwest_netrc::NetrcMiddleware;
 use serde::{Deserialize, Serialize};
 use starbase_utils::fs;
 use std::path::PathBuf;
@@ -142,9 +143,16 @@ pub fn create_http_client_with_options(options: &HttpOptions) -> miette::Result<
 
     let client = client_builder.build().into_diagnostic()?;
 
-    trace!("Adding middleware to client");
+    trace!("Applying middleware to client");
 
-    let middleware_builder = ClientBuilder::new(client.clone());
+    let mut middleware_builder = ClientBuilder::new(client.clone());
+
+    // if let Ok(netrc) = NetrcMiddleware::new() {
+    //     trace!("Adding .netrc support");
+
+    //     middleware_builder = middleware_builder.with_init(netrc);
+    // }
+
     let middleware = middleware_builder.build();
 
     debug!("Created HTTP client");
