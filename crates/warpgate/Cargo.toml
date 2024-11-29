@@ -15,6 +15,7 @@ miette = { workspace = true }
 once_cell = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true, features = ["json", "rustls-tls-native-roots"] }
+reqwest-middleware = { workspace = true }
 schematic = { workspace = true, optional = true, features = ["schema"] }
 scc = { workspace = true }
 serde = { workspace = true }

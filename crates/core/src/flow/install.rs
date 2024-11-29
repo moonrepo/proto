@@ -253,7 +253,7 @@ impl Tool {
             &download_url,
             &download_file,
             DownloadOptions {
-                client: Some(client),
+                client: Some(client.to_inner()),
                 on_chunk: options.on_download_chunk.take(),
             },
         )
@@ -276,7 +276,7 @@ impl Tool {
                 &checksum_url,
                 &checksum_file,
                 DownloadOptions {
-                    client: Some(client),
+                    client: Some(client.to_inner()),
                     on_chunk: None,
                 },
             )

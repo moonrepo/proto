@@ -1,5 +1,6 @@
+use crate::client::HttpClient;
 use crate::error::WarpgateError;
-use crate::{create_cache_key, determine_cache_extension, helpers};
+use crate::helpers::{self, create_cache_key, determine_cache_extension};
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
 use reqwest::header;
 use starbase_styles::color::{self, apply_style_tags};
@@ -21,7 +22,7 @@ use warpgate_api::{
 #[derive(Clone, Default)]
 pub struct HostData {
     pub cache_dir: PathBuf,
-    pub http_client: Arc<reqwest::Client>,
+    pub http_client: Arc<HttpClient>,
     pub virtual_paths: BTreeMap<PathBuf, PathBuf>,
     pub working_dir: PathBuf,
 }
@@ -306,10 +307,10 @@ fn send_request(
                 client = client.timeout(timeout);
             }
 
-            client.send().await.map_err(|error| WarpgateError::Http {
-                url: input.url.clone(),
-                error: Box::new(error),
-            })
+            client
+                .send()
+                .await
+                .map_err(|error| HttpClient::map_error(input.url.clone(), error))
         })?;
 
         ok = response.status().is_success();
