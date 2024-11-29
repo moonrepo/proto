@@ -3,7 +3,6 @@ use core::ops::Deref;
 use miette::IntoDiagnostic;
 use reqwest::Client;
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
-// use reqwest_netrc::NetrcMiddleware;
 use serde::{Deserialize, Serialize};
 use starbase_utils::fs;
 use std::path::PathBuf;
@@ -148,10 +147,25 @@ pub fn create_http_client_with_options(options: &HttpOptions) -> miette::Result<
     let mut middleware_builder = ClientBuilder::new(client.clone());
 
     // if let Ok(netrc) = NetrcMiddleware::new() {
+    // use reqwest_netrc::NetrcMiddleware;
     //     trace!("Adding .netrc support");
 
     //     middleware_builder = middleware_builder.with_init(netrc);
     // }
+
+    if let Some(cache_dir) = &options.cache_dir {
+        use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache, HttpCacheOptions};
+
+        trace!("Adding GET and HEAD request caching");
+
+        middleware_builder = middleware_builder.with(Cache(HttpCache {
+            manager: CACacheManager {
+                path: cache_dir.to_owned(),
+            },
+            mode: CacheMode::Default,
+            options: HttpCacheOptions::default(),
+        }));
+    }
 
     let middleware = middleware_builder.build();
 

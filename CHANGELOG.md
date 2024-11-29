@@ -20,6 +20,8 @@
   [env]
   file = ".env"
   ```
+- Added support for `~/.netrc` configuration to all HTTP requests.
+- Improved implementation of HTTP request caching.
 - Updated `proto upgrade` to error if there's another process of proto currently running.
 
 #### 🐞 Fixes
