@@ -7,10 +7,10 @@ pub struct Printer<'std> {
     depth: u8,
 }
 
-unsafe impl<'std> Send for Printer<'std> {}
-unsafe impl<'std> Sync for Printer<'std> {}
+unsafe impl Send for Printer<'_> {}
+unsafe impl Sync for Printer<'_> {}
 
-impl<'std> Printer<'std> {
+impl Printer<'_> {
     pub fn new() -> Self {
         let stdout = std::io::stdout();
         let buffer = BufWriter::new(stdout.lock());
