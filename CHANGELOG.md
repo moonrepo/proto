@@ -29,6 +29,7 @@
 
 - Updated identifiers, versions, and locators to use [compact strings](https://crates.io/crates/compact_str).
 - Updated wasmtime to v26 (from v23).
+- Updated Rust to v1.83.
 
 ## 0.42.2
 
