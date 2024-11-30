@@ -20,7 +20,7 @@
   [env]
   file = ".env"
   ```
-- Updated `proto upgrade` to error if there's another instance of proto currently running.
+- Updated `proto upgrade` to error if there's another process of proto currently running.
 
 #### 🐞 Fixes
 

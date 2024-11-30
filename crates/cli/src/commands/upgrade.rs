@@ -175,6 +175,7 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
     .into())
 }
 
+#[cfg(not(debug_assertions))]
 fn is_running() -> Option<sysinfo::Pid> {
     debug!("Checking if proto is currently running in a separate process");
 
@@ -197,5 +198,11 @@ fn is_running() -> Option<sysinfo::Pid> {
         }
     }
 
+    None
+}
+
+// Don't check in tests!
+#[cfg(debug_assertions)]
+fn is_running() -> Option<sysinfo::Pid> {
     None
 }
