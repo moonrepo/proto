@@ -4411,6 +4411,7 @@ dependencies = [
  "reqwest",
  "reqwest-middleware 0.4.0",
  "reqwest-netrc",
+ "rust-netrc",
  "scc",
  "schematic",
  "serde",

@@ -1,8 +1,9 @@
 use crate::error::WarpgateError;
 use core::ops::Deref;
 use miette::IntoDiagnostic;
+use netrc::Netrc;
 use reqwest::Client;
-use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
+use reqwest_middleware::{ClientBuilder, ClientWithMiddleware, RequestBuilder, RequestInitialiser};
 use serde::{Deserialize, Serialize};
 use starbase_utils::fs;
 use std::path::PathBuf;
@@ -146,12 +147,11 @@ pub fn create_http_client_with_options(options: &HttpOptions) -> miette::Result<
 
     let mut middleware_builder = ClientBuilder::new(client.clone());
 
-    // if let Ok(netrc) = NetrcMiddleware::new() {
-    // use reqwest_netrc::NetrcMiddleware;
-    //     trace!("Adding .netrc support");
+    if let Ok(netrc) = NetrcMiddleware::new() {
+        trace!("Adding .netrc support");
 
-    //     middleware_builder = middleware_builder.with_init(netrc);
-    // }
+        middleware_builder = middleware_builder.with_init(netrc);
+    }
 
     if let Some(cache_dir) = &options.cache_dir {
         use http_cache_reqwest::{
@@ -181,4 +181,50 @@ pub fn create_http_client_with_options(options: &HttpOptions) -> miette::Result<
     debug!("Created HTTP client");
 
     Ok(HttpClient { client, middleware })
+}
+
+// TODO: Temporary until this lands
+// https://github.com/gribouille/netrc/issues/9
+pub struct NetrcMiddleware {
+    nrc: Netrc,
+}
+
+impl NetrcMiddleware {
+    pub fn new() -> netrc::Result<Self> {
+        Netrc::new().map(|nrc| NetrcMiddleware { nrc })
+    }
+}
+
+impl RequestInitialiser for NetrcMiddleware {
+    fn init(&self, req: RequestBuilder) -> RequestBuilder {
+        match req.try_clone() {
+            Some(nr) => req
+                .try_clone()
+                .unwrap()
+                .build()
+                .ok()
+                .and_then(|r| {
+                    r.url()
+                        .host_str()
+                        .and_then(|host| {
+                            self.nrc
+                                .hosts
+                                .get(host)
+                                .or_else(|| self.nrc.hosts.get("default"))
+                        })
+                        .map(|auth| {
+                            nr.basic_auth(
+                                &auth.login,
+                                if auth.password.is_empty() {
+                                    None
+                                } else {
+                                    Some(&auth.password)
+                                },
+                            )
+                        })
+                })
+                .unwrap_or(req),
+            None => req,
+        }
+    }
 }
