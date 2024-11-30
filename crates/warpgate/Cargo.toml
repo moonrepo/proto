@@ -11,10 +11,14 @@ system_env = { version = "0.6.1", path = "../system-env" }
 warpgate_api = { version = "0.10.1", path = "../warpgate-api" }
 compact_str = { workspace = true }
 extism = { workspace = true, features = ["http"] }
+http-cache-reqwest = { workspace = true }
 miette = { workspace = true }
 once_cell = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true, features = ["json", "rustls-tls-native-roots"] }
+reqwest-middleware = { workspace = true, features = ["json", "rustls-tls"] }
+reqwest-netrc = { workspace = true }
+rust-netrc = "0.1.2"
 schematic = { workspace = true, optional = true, features = ["schema"] }
 scc = { workspace = true }
 serde = { workspace = true }
