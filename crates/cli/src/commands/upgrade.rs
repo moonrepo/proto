@@ -40,6 +40,10 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
         return Err(ProtoCliError::UpgradeRequiresInternet.into());
     }
 
+    if let Some(pid) = is_running() {
+        return Err(ProtoCliError::CannotUpgradeProtoRunning { pid: pid.as_u32() }.into());
+    }
+
     let latest = fetch_latest_version().await?;
 
     let current_version = Version::parse(&session.cli_version).unwrap();
@@ -169,4 +173,36 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
         bin: "proto".into(),
     }
     .into())
+}
+
+#[cfg(not(debug_assertions))]
+fn is_running() -> Option<sysinfo::Pid> {
+    debug!("Checking if proto is currently running in a separate process");
+
+    let system = sysinfo::System::new_all();
+    let self_pid = std::process::id();
+
+    for process in system.processes_by_name("proto".as_ref()) {
+        if process.pid().as_u32() == self_pid {
+            continue;
+        }
+
+        let name = process.name();
+
+        if name == "proto"
+            || name == "proto-shim"
+            || name == "proto.exe"
+            || name == "proto-shim.exe"
+        {
+            return Some(process.pid());
+        }
+    }
+
+    None
+}
+
+// Don't check in tests!
+#[cfg(debug_assertions)]
+fn is_running() -> Option<sysinfo::Pid> {
+    None
 }

@@ -7,11 +7,11 @@ description = "A multi-language version manager, a unified toolchain."
 homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 keywords = [
-	"language",
-	"installer",
-	"version-manager",
-	"dependency-manager",
-	"package-manager",
+    "language",
+    "installer",
+    "version-manager",
+    "dependency-manager",
+    "package-manager",
 ]
 categories = ["development-tools"]
 readme = "../../README.md"
@@ -19,8 +19,8 @@ default-run = "proto"
 
 [package.metadata.release]
 pre-release-replacements = [
-	{ file = "../../version", search = "^(.+)$", replace = "{{version}}" },
-	{ file = "../../CHANGELOG.md", search = "Unreleased", replace = "{{version}}" },
+    { file = "../../version", search = "^(.+)$", replace = "{{version}}" },
+    { file = "../../CHANGELOG.md", search = "Unreleased", replace = "{{version}}" },
 ]
 
 [[bin]]
@@ -58,6 +58,9 @@ starbase = { workspace = true }
 starbase_shell = { workspace = true }
 starbase_styles = { workspace = true }
 starbase_utils = { workspace = true }
+sysinfo = { version = "0.32.1", default-features = false, features = [
+    "system",
+] }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
