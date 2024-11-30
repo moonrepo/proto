@@ -1,4 +1,4 @@
-use crate::client::{create_http_client_with_options, HttpOptions};
+use crate::client::{create_http_client_with_options, HttpClient, HttpOptions};
 use crate::endpoints::*;
 use crate::error::WarpgateError;
 use crate::helpers::{
@@ -23,7 +23,7 @@ pub type OfflineChecker = Arc<fn() -> bool>;
 #[derive(Clone)]
 pub struct PluginLoader {
     /// Instance of our HTTP client.
-    http_client: OnceCell<Arc<reqwest::Client>>,
+    http_client: OnceCell<Arc<HttpClient>>,
 
     /// Options to pass to the HTTP client.
     http_options: HttpOptions,
@@ -59,7 +59,7 @@ impl PluginLoader {
     }
 
     /// Return the HTTP client, or create it if it does not exist.
-    pub fn get_client(&self) -> miette::Result<&Arc<reqwest::Client>> {
+    pub fn get_client(&self) -> miette::Result<&Arc<HttpClient>> {
         self.http_client
             .get_or_try_init(|| create_http_client_with_options(&self.http_options).map(Arc::new))
     }

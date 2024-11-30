@@ -18,6 +18,10 @@ pub enum WarpgateError {
         error: Box<reqwest::Error>,
     },
 
+    #[diagnostic(code(plugin::http))]
+    #[error("Failed to make HTTP request for {}: {}", .url.style(Style::Url), .error.style(Style::MutedLight))]
+    HttpMiddleware { url: String, error: String },
+
     #[diagnostic(code(plugin::offline))]
     #[error("{message} An internet connection is required to request {}.", .url.style(Style::Url))]
     InternetConnectionRequired { message: String, url: String },

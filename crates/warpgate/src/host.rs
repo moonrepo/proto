@@ -1,7 +1,9 @@
+use crate::client::HttpClient;
 use crate::error::WarpgateError;
-use crate::{create_cache_key, determine_cache_extension, helpers};
+// use crate::helpers::{self, create_cache_key, determine_cache_extension};
+use crate::helpers;
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
-use reqwest::header;
+// use reqwest::header;
 use starbase_styles::color::{self, apply_style_tags};
 use starbase_utils::env::paths;
 use starbase_utils::fs;
@@ -9,7 +11,7 @@ use std::collections::BTreeMap;
 use std::env;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::{Duration, SystemTime};
+// use std::time::{Duration, SystemTime};
 use system_env::{create_process_command, find_command_on_path};
 use tokio::runtime::Handle;
 use tracing::{instrument, trace};
@@ -21,7 +23,7 @@ use warpgate_api::{
 #[derive(Clone, Default)]
 pub struct HostData {
     pub cache_dir: PathBuf,
-    pub http_client: Arc<reqwest::Client>,
+    pub http_client: Arc<HttpClient>,
     pub virtual_paths: BTreeMap<PathBuf, PathBuf>,
     pub working_dir: PathBuf,
 }
@@ -262,87 +264,116 @@ fn send_request(
 
     let data = user_data.get()?;
     let data = data.lock().unwrap();
-    let cache_key = create_cache_key(&input.url, None);
-    let cache_path = data.cache_dir.join("requests").join(format!(
-        "{cache_key}{}",
-        determine_cache_extension(&input.url).unwrap_or_default()
-    ));
+    // let cache_key = create_cache_key(&input.url, None);
+    // let cache_path = data.cache_dir.join("requests").join(format!(
+    //     "{cache_key}{}",
+    //     determine_cache_extension(&input.url).unwrap_or_default()
+    // ));
 
-    // Data to collect
-    let mut ok = true;
-    let mut status = 200;
-    let body;
+    // // Data to collect
+    // let mut ok = true;
+    // let mut status = 200;
+    // let body;
 
-    // Read from the cache if available and not stale
-    if cache_path.exists()
-        && fs::is_stale(
-            &cache_path,
-            false,
-            Duration::from_secs(60 * 60 * 12), // 12 hours
-            SystemTime::now(),
-        )?
-        .is_none()
-    {
-        trace!(
-            plugin = &uuid,
-            cache = ?cache_path,
-            "Reusing request from local cache"
-        );
+    // // Read from the cache if available and not stale
+    // if cache_path.exists()
+    //     && fs::is_stale(
+    //         &cache_path,
+    //         false,
+    //         Duration::from_secs(60 * 60 * 12), // 12 hours
+    //         SystemTime::now(),
+    //     )?
+    //     .is_none()
+    // {
+    //     trace!(
+    //         plugin = &uuid,
+    //         cache = ?cache_path,
+    //         "Reusing request from local cache"
+    //     );
 
-        body = fs::read_file_bytes(cache_path)?;
-    }
-    // Otherwise send the request and get the response
-    else {
-        trace!(
-            plugin = &uuid,
-            url = &input.url,
-            "Sending request from host machine"
-        );
+    //     body = fs::read_file_bytes(cache_path)?;
+    // }
+    // // Otherwise send the request and get the response
+    // else {
+    //     trace!(
+    //         plugin = &uuid,
+    //         url = &input.url,
+    //         "Sending request from host machine"
+    //     );
 
-        let response = Handle::current().block_on(async {
-            let mut client = data.http_client.get(&input.url);
+    //     let response = Handle::current().block_on(async {
+    //         let mut client = data.http_client.get(&input.url);
 
-            if let Some(timeout) = plugin.time_remaining() {
-                client = client.timeout(timeout);
-            }
+    //         if let Some(timeout) = plugin.time_remaining() {
+    //             client = client.timeout(timeout);
+    //         }
 
-            client.send().await.map_err(|error| WarpgateError::Http {
-                url: input.url.clone(),
-                error: Box::new(error),
-            })
-        })?;
+    //         client
+    //             .send()
+    //             .await
+    //             .map_err(|error| HttpClient::map_error(input.url.clone(), error))
+    //     })?;
 
-        ok = response.status().is_success();
-        status = response.status().as_u16();
+    //     ok = response.status().is_success();
+    //     status = response.status().as_u16();
 
-        let should_cache = response
-            .headers()
-            .get(header::CONTENT_TYPE)
-            .and_then(|header| header.to_str().ok())
-            .map_or(false, |header| {
-                header == "application/json"
-                    || header == "application/toml"
-                    || header == "application/yaml"
-                    || header.starts_with("text/")
-            });
+    //     let should_cache = response
+    //         .headers()
+    //         .get(header::CONTENT_TYPE)
+    //         .and_then(|header| header.to_str().ok())
+    //         .map_or(false, |header| {
+    //             header == "application/json"
+    //                 || header == "application/toml"
+    //                 || header == "application/yaml"
+    //                 || header.starts_with("text/")
+    //         });
 
-        let bytes = Handle::current().block_on(async {
-            response.bytes().await.map_err(|error| WarpgateError::Http {
-                url: input.url.clone(),
-                error: Box::new(error),
-            })
-        })?;
+    //     let bytes = Handle::current().block_on(async {
+    //         response.bytes().await.map_err(|error| WarpgateError::Http {
+    //             url: input.url.clone(),
+    //             error: Box::new(error),
+    //         })
+    //     })?;
 
-        body = Vec::from(bytes);
+    //     body = Vec::from(bytes);
 
-        // Don't cache all requests, only those that are text based!
-        if should_cache {
-            fs::write_file(&cache_path, &body)?;
+    //     // Don't cache all requests, only those that are text based!
+    //     if should_cache {
+    //         fs::write_file(&cache_path, &body)?;
+    //     }
+    // };
+
+    trace!(
+        plugin = &uuid,
+        url = &input.url,
+        "Sending request from host machine"
+    );
+
+    let response = Handle::current().block_on(async {
+        let mut client = data.http_client.get(&input.url);
+
+        if let Some(timeout) = plugin.time_remaining() {
+            client = client.timeout(timeout);
         }
-    };
+
+        client
+            .send()
+            .await
+            .map_err(|error| HttpClient::map_error(input.url.clone(), error))
+    })?;
+
+    let ok = response.status().is_success();
+    let status = response.status().as_u16();
+
+    let bytes = Handle::current().block_on(async {
+        response.bytes().await.map_err(|error| WarpgateError::Http {
+            url: input.url.clone(),
+            error: Box::new(error),
+        })
+    })?;
 
     // Create and return our intermediate shapes
-    let memory = plugin.memory_new(body)?;
+    let memory = plugin.memory_new(Vec::from(bytes))?;
 
     let output = SendRequestOutput {
         body: Vec::new(),

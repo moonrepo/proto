@@ -1,3 +1,4 @@
+use crate::client::HttpClient;
 use crate::error::WarpgateError;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -27,7 +28,7 @@ pub struct GitHubApiRelease {
 }
 
 pub async fn send_github_request<T: DeserializeOwned>(
-    client: &reqwest::Client,
+    client: &HttpClient,
     url: &str,
 ) -> miette::Result<T> {
     let mut request = client.get(url).query(&[("per_page", "100")]);
@@ -36,13 +37,15 @@ pub async fn send_github_request<T: DeserializeOwned>(
         request = request.bearer_auth(auth_token);
     }
 
-    let handle_error = |error: reqwest::Error| WarpgateError::Http {
+    let response = request
+        .send()
+        .await
+        .map_err(|error| HttpClient::map_error(url.to_owned(), error))?;
+
+    let data: T = response.json().await.map_err(|error| WarpgateError::Http {
         error: Box::new(error),
         url: url.to_owned(),
-    };
-
-    let response = request.send().await.map_err(handle_error)?;
-    let data: T = response.json().await.map_err(handle_error)?;
+    })?;
 
     Ok(data)
 }

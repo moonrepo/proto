@@ -1,3 +1,4 @@
+use crate::client::HttpClient;
 use crate::error::WarpgateError;
 use sha2::{Digest, Sha256};
 use starbase_archive::{is_supported_archive_extension, Archiver};
@@ -28,9 +29,11 @@ pub fn determine_cache_extension(value: &str) -> Option<&str> {
 pub async fn download_from_url_to_file(
     source_url: &str,
     temp_file: &Path,
-    client: &reqwest::Client,
+    client: &HttpClient,
 ) -> miette::Result<()> {
-    if let Err(error) = net::download_from_url_with_client(source_url, temp_file, client).await {
+    if let Err(error) =
+        net::download_from_url_with_client(source_url, temp_file, client.to_inner()).await
+    {
         return Err(match error {
             NetError::UrlNotFound { url } => WarpgateError::DownloadNotFound { url }.into(),
             _ => error.into(),
