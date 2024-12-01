@@ -492,7 +492,7 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
                         true
                     }
                     Err(error) => {
-                        print_progress_state(&pb, format!("Failed to install: {}", error));
+                        print_progress_state(&pb, error.to_string());
                         graph.mark_not_installed(&tool.id).await;
                         false
                     }

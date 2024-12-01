@@ -88,6 +88,14 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
             p.locator(locator);
         }
 
+        if !tool.metadata.requires.is_empty() {
+            p.entry_list(
+                "Requires plugins",
+                tool.metadata.requires.iter().map(|req| color::id(req)),
+                None,
+            );
+        }
+
         if !tool.metadata.deprecations.is_empty() {
             p.entry_list(
                 "Deprecations",

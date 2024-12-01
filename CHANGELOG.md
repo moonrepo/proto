@@ -14,6 +14,7 @@
 
 #### 🚀 Updates
 
+- Added a system that allows plugins to require other plugins to be installed, before they will install.
 - Added an `--on-init` option to `proto activate`, which will trigger the activation hook immediately in the shell, instead of waiting for a directory/prompt change to occur.
   - If you were manually executing `_proto_hook` before, this will now fail. Please remove!
 - Added support for loading `.env` files through the special `env.file` and `tools.*.env.file` settings.
@@ -23,6 +24,7 @@
   ```
 - Added support for `~/.netrc` configuration to all HTTP requests.
 - Improved implementation of HTTP request/response caching. Now takes into account [HTTP cache semantics](https://github.com/kornelski/rusty-http-cache-semantics).
+- Updated `proto install` to multi-install tools in topological order.
 - Updated `proto upgrade` to error if there's another process of proto currently running.
 - Updated `proto setup` to default to a fallback shell if none could be detected, instead of erroring.
 - WASM API
