@@ -3,6 +3,11 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+pub enum InstallStatus {
+    ReqFailed(Id),
+    WaitingOnReqs(Vec<Id>),
+}
+
 #[derive(Clone)]
 pub struct InstallGraph {
     /// Tools that must be installed
@@ -10,6 +15,9 @@ pub struct InstallGraph {
 
     /// Tools that have been installed
     installed: Arc<RwLock<FxHashSet<Id>>>,
+
+    /// Tools that have been not installed (some error occurred)
+    not_installed: Arc<RwLock<FxHashSet<Id>>>,
 
     /// Tools that require other tools to be installed
     /// before they can be installed
@@ -35,29 +43,46 @@ impl InstallGraph {
         Self {
             ids: Arc::new(ids),
             installed: Arc::new(RwLock::new(FxHashSet::default())),
+            not_installed: Arc::new(RwLock::new(FxHashSet::default())),
             requires: Arc::new(requires),
         }
     }
 
-    pub async fn can_install(&self, id: &Id) -> bool {
+    pub async fn check_install_status(&self, id: &Id) -> Option<InstallStatus> {
         if !self.ids.contains(id) {
-            return false;
+            return None;
         }
 
         if let Some(require_ids) = self.requires.get(id) {
             let installed = self.installed.read().await;
+            let not_installed = self.not_installed.read().await;
+            let mut waiting_on = vec![];
 
             for require_id in require_ids {
-                if self.ids.contains(require_id) && !installed.contains(require_id) {
-                    return false;
+                if !self.ids.contains(require_id) {
+                    continue;
                 }
+
+                if !installed.contains(require_id) {
+                    waiting_on.push(require_id.clone());
+                } else if not_installed.contains(require_id) {
+                    return Some(InstallStatus::ReqFailed(require_id.clone()));
+                }
+            }
+
+            if !waiting_on.is_empty() {
+                return Some(InstallStatus::WaitingOnReqs(waiting_on));
             }
         }
 
-        true
+        None
     }
 
     pub async fn mark_installed(&self, id: &Id) {
         self.installed.write().await.insert(id.to_owned());
+    }
+
+    pub async fn mark_not_installed(&self, id: &Id) {
+        self.not_installed.write().await.insert(id.to_owned());
     }
 }

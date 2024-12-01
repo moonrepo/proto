@@ -3,7 +3,7 @@ use crate::helpers::*;
 use crate::session::ProtoSession;
 use crate::shell::{self, Export};
 use crate::telemetry::{track_usage, Metric};
-use crate::utils::install_graph::InstallGraph;
+use crate::utils::install_graph::*;
 use clap::Args;
 use indicatif::ProgressBar;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
@@ -454,18 +454,25 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
                     tool.id
                 )));
 
-                if !tool.metadata.requires.is_empty() {
-                    print_progress_state(
-                        &pb,
-                        format!(
-                            "Waiting on requirements: {}",
-                            tool.metadata.requires.join(", ")
-                        ),
-                    );
+                while let Some(status) = graph.check_install_status(&tool.id).await {
+                    match status {
+                        InstallStatus::ReqFailed(req_id) => {
+                            print_progress_state(
+                                &pb,
+                                format!("Requirement {} failed to install", req_id),
+                            );
 
-                    while !graph.can_install(&tool.id).await {
-                        sleep(Duration::from_millis(100)).await;
-                    }
+                            return false;
+                        }
+                        InstallStatus::WaitingOnReqs(waiting_on) => {
+                            print_progress_state(
+                                &pb,
+                                format!("Waiting on requirements: {}", waiting_on.join(", ")),
+                            );
+                        }
+                    };
+
+                    sleep(Duration::from_millis(150)).await;
                 }
 
                 print_progress_state(&pb, format!("Installing {} {}", tool.get_name(), version));
@@ -482,9 +489,12 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
                 {
                     Ok(_) => {
                         graph.mark_installed(&tool.id).await;
+                        true
                     }
                     Err(error) => {
                         print_progress_state(&pb, format!("Failed to install: {}", error));
+                        graph.mark_not_installed(&tool.id).await;
+                        false
                     }
                 }
             });
@@ -510,9 +520,14 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
                 );
                 failed_count += 1;
             }
-            Ok((task_id, _)) => {
+            Ok((task_id, installed)) => {
                 trace!(task_id = task_id.to_string(), "Spawned task successful");
-                installed_count += 1;
+
+                if installed {
+                    installed_count += 1;
+                } else {
+                    failed_count += 1;
+                }
             }
         };
     }

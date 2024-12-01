@@ -164,17 +164,15 @@ pub fn create_progress_spinner<S: AsRef<str>>(start: S) -> ProgressBar {
 
 // When not a TTY, we should display something to the user!
 pub fn print_progress_state(pb: &ProgressBar, message: String) {
-    if !message.is_empty() {
-        pb.set_message(message);
+    if message.is_empty() {
+        return;
     }
+
+    pb.set_message(message);
 
     if pb.is_hidden() {
         // This expands tokens, so don't use the argument message!
-        let message = pb.message();
-
-        if !message.is_empty() {
-            println!("{}", format!("{} {message}", pb.prefix()).trim());
-        }
+        println!("{} {}", pb.prefix(), pb.message());
     }
 }
 
