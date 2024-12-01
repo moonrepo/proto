@@ -205,15 +205,14 @@ pub async fn do_install(
     let name = tool.get_name().to_owned();
 
     let finish_pb = |installed: bool, resolved_version: &VersionSpec| {
-        if installed {
-            pb.set_message(format!("{name} {resolved_version} installed!"));
-        } else {
-            pb.set_message(color::muted_light(format!(
-                "{name} {resolved_version} already installed!"
-            )));
-        }
-
-        print_progress_state(pb);
+        print_progress_state(
+            pb,
+            if installed {
+                format!("{name} {resolved_version} installed!")
+            } else {
+                color::muted_light(format!("{name} {resolved_version} already installed!"))
+            },
+        );
 
         if args.id.is_some() {
             pb.finish_and_clear();
@@ -296,20 +295,16 @@ pub async fn do_install(
         };
 
         // Messages
-        match phase {
-            InstallPhase::Verify => {
-                pb3.set_message("Verifying checksum");
+        print_progress_state(
+            &pb3,
+            match phase {
+                InstallPhase::Verify => "Verifying checksum",
+                InstallPhase::Unpack => "Unpacking archive",
+                InstallPhase::Download => "Downloading pre-built archive",
+                _ => "",
             }
-            InstallPhase::Unpack => {
-                pb3.set_message("Unpacking archive");
-            }
-            InstallPhase::Download => {
-                pb3.set_message("Downloading pre-built archive");
-            }
-            _ => {}
-        };
-
-        print_progress_state(&pb3);
+            .into(),
+        );
     });
 
     let installed = tool
@@ -460,19 +455,20 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
                 )));
 
                 if !tool.metadata.requires.is_empty() {
-                    pb.set_message(format!(
-                        "Waiting on requirements: {}",
-                        tool.metadata.requires.join(", ")
-                    ));
-                    print_progress_state(&pb);
+                    print_progress_state(
+                        &pb,
+                        format!(
+                            "Waiting on requirements: {}",
+                            tool.metadata.requires.join(", ")
+                        ),
+                    );
 
                     while !graph.can_install(&tool.id).await {
                         sleep(Duration::from_millis(100)).await;
                     }
                 }
 
-                pb.set_message(format!("Installing {} {}", tool.get_name(), version));
-                print_progress_state(&pb);
+                print_progress_state(&pb, format!("Installing {} {}", tool.get_name(), version));
 
                 match do_install(
                     &mut tool,
@@ -488,8 +484,7 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
                         graph.mark_installed(&tool.id).await;
                     }
                     Err(error) => {
-                        pb.set_message(format!("Failed to install: {}", error));
-                        print_progress_state(&pb);
+                        print_progress_state(&pb, format!("Failed to install: {}", error));
                     }
                 }
             });
