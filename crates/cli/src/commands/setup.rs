@@ -6,7 +6,7 @@ use crate::shell::{
 use clap::Args;
 use proto_shim::get_exe_file_name;
 use starbase::AppResult;
-use starbase_shell::{BoxedShell, ShellError, ShellType};
+use starbase_shell::{BoxedShell, ShellType};
 use starbase_styles::color;
 use std::env;
 use std::io::stdout;
@@ -70,7 +70,7 @@ pub async fn setup(session: ProtoSession, args: SetupArgs) -> AppResult {
 
                 prompt_for_shell()?
             } else {
-                return Err(ShellError::CouldNotDetectShell.into());
+                ShellType::default()
             }
         }
     };
@@ -83,7 +83,10 @@ pub async fn setup(session: ProtoSession, args: SetupArgs) -> AppResult {
         &shell,
         "proto",
         vec![
-            Export::Var("PROTO_HOME".into(), "$HOME/.proto".into()),
+            Export::Var(
+                "PROTO_HOME".into(),
+                env::var("PROTO_HOME").unwrap_or_else(|_| "$HOME/.proto".into()),
+            ),
             Export::Path(vec!["$PROTO_HOME/shims".into(), "$PROTO_HOME/bin".into()]),
         ],
     );
