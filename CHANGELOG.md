@@ -29,6 +29,11 @@
 
 - Fixed the order of shell profiles/configs when applicable.
 
+#### 🧩 Plugins
+
+- Updated `python_tool` to v0.12.1.
+  - Fixed an issue where our bin linking would point to an invalid executable path.
+
 #### ⚙️ Internal
 
 - Updated identifiers, versions, and locators to use [compact strings](https://crates.io/crates/compact_str).
