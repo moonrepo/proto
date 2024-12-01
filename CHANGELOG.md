@@ -29,6 +29,7 @@
 #### 🐞 Fixes
 
 - Fixed the order of shell profiles/configs when applicable.
+- Updated `proto setup` to inherit `PROTO_HOME` if already set, instead of defaulting to `$HOME/.proto`.
 
 #### ⚙️ Internal
 
