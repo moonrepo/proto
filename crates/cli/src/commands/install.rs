@@ -3,6 +3,7 @@ use crate::helpers::*;
 use crate::session::ProtoSession;
 use crate::shell::{self, Export};
 use crate::telemetry::{track_usage, Metric};
+use crate::utils::install_graph::InstallGraph;
 use clap::Args;
 use indicatif::ProgressBar;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
@@ -422,6 +423,12 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
         return Ok(Some(1));
     }
 
+    // Filter down tools to only those that have a version
+    let tools = tools
+        .into_iter()
+        .filter(|tool| versions.contains_key(&tool.id))
+        .collect::<Vec<_>>();
+
     // Determine longest ID for use within progress bars
     let longest_id = versions
         .keys()
@@ -430,11 +437,13 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
     // Then install each tool in parallel!
     let mpb = create_multi_progress_bar();
     let pbs = create_progress_bar_style();
+    let graph = InstallGraph::new(&tools);
     let mut set = JoinSet::new();
 
     for mut tool in tools {
         if let Some(version) = versions.remove(&tool.id) {
             let tool_id = tool.id.clone();
+            let graph = graph.clone();
 
             let pb = mpb.add(ProgressBar::new(0));
             pb.set_style(pbs.clone());
@@ -450,10 +459,22 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
                     tool.id
                 )));
 
+                if !tool.metadata.requires.is_empty() {
+                    pb.set_message(format!(
+                        "Waiting on requirements: {}",
+                        tool.metadata.requires.join(", ")
+                    ));
+                    print_progress_state(&pb);
+
+                    while !graph.can_install(&tool.id).await {
+                        sleep(Duration::from_millis(100)).await;
+                    }
+                }
+
                 pb.set_message(format!("Installing {} {}", tool.get_name(), version));
                 print_progress_state(&pb);
 
-                if let Err(error) = do_install(
+                match do_install(
                     &mut tool,
                     InstallArgs {
                         spec: Some(version),
@@ -463,8 +484,13 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
                 )
                 .await
                 {
-                    pb.set_message(format!("Failed to install: {}", error));
-                    print_progress_state(&pb);
+                    Ok(_) => {
+                        graph.mark_installed(&tool.id).await;
+                    }
+                    Err(error) => {
+                        pb.set_message(format!("Failed to install: {}", error));
+                        print_progress_state(&pb);
+                    }
                 }
             });
 

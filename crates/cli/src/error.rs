@@ -42,7 +42,10 @@ pub enum ProtoCliError {
     )]
     NoSelfUpgrade { command: String, tool: String },
 
-    #[diagnostic(code(proto::cli::no_configured_tools))]
+    #[diagnostic(
+        code(proto::cli::requirements_not_met),
+        help("Try adding the required tool to .prototools")
+    )]
     #[error(
         "{} requires {} to function correctly, but it has not been installed.",
         .tool,

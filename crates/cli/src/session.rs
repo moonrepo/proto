@@ -115,11 +115,13 @@ impl ProtoSession {
     }
 
     fn check_requirements(&self, tool: &Tool, config: &ProtoConfig) -> miette::Result<()> {
-        for req_id in &tool.metadata.requires {
-            if !config.versions.contains_key(req_id) && !config.plugins.contains_key(req_id) {
+        for require_id in &tool.metadata.requires {
+            if !config.versions.contains_key(require_id.as_str())
+                && !config.plugins.contains_key(require_id.as_str())
+            {
                 return Err(ProtoCliError::ToolRequiresNotMet {
                     tool: tool.get_name().to_owned(),
-                    requires: req_id.to_owned(),
+                    requires: require_id.to_owned(),
                 }
                 .into());
             }

@@ -7,6 +7,7 @@ mod session;
 mod shell;
 mod systems;
 mod telemetry;
+mod utils;
 
 use app::{App as CLI, Commands, DebugCommands, PluginCommands};
 use clap::Parser;
