@@ -24,10 +24,12 @@
 - Added support for `~/.netrc` configuration to all HTTP requests.
 - Improved implementation of HTTP request/response caching. Now takes into account [HTTP cache semantics](https://github.com/kornelski/rusty-http-cache-semantics).
 - Updated `proto upgrade` to error if there's another process of proto currently running.
+- Updated `proto setup` to default to a fallback shell if none could be detected, instead of erroring.
 
 #### 🐞 Fixes
 
 - Fixed the order of shell profiles/configs when applicable.
+- Updated `proto setup` to inherit `PROTO_HOME` if already set, instead of defaulting to `$HOME/.proto`.
 
 #### ⚙️ Internal
 
