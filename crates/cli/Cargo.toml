@@ -71,7 +71,6 @@ sigpipe = "0.1.3"
 
 # For extism/wastime
 extism = "1.9.1"
-regalloc2 = "=0.10.2"
 wasmtime = "~26.0.1"
 wasi-common = "~26.0.1"
 wiggle = "~26.0.1"
