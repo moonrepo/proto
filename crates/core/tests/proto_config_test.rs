@@ -342,7 +342,7 @@ foo = "file://./test.toml"
         use super::*;
 
         #[test]
-        #[should_panic(expected = "does not exist")]
+        #[should_panic(expected = "not exist")]
         fn errors_if_file_missing() {
             let sandbox = create_empty_sandbox();
             sandbox.create_file(

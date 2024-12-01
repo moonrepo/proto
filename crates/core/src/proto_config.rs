@@ -362,7 +362,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("python"),
                 PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/tools/releases/download/python_tool-v0.12.0/python_tool.wasm".into()
+                    url: "https://github.com/moonrepo/tools/releases/download/python_tool-v0.12.1/python_tool.wasm".into()
                 }))
             );
         }
