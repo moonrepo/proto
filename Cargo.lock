@@ -1086,9 +1086,9 @@ dependencies = [
 
 [[package]]
 name = "extism"
-version = "1.9.0"
+version = "1.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4b7dbc26280a335a1cb5547f99a6459b58d72568bf760306633a16c02826e88f"
+checksum = "f03e2cac5668dead4088aa9da25c9985f1a1b72edd3e31b201d2c044647b56f2"
 dependencies = [
  "anyhow",
  "cbindgen",
@@ -1112,9 +1112,9 @@ dependencies = [
 
 [[package]]
 name = "extism-convert"
-version = "1.9.0"
+version = "1.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "70a62907d60afa3fc0dfc273833fcb5bb68771f771ce137da1dab7916d856ce9"
+checksum = "a33423cbb1226c483f47a9cad883ee804caf45d8b0d2e5c03cd33d9e43ca5561"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -1128,9 +1128,9 @@ dependencies = [
 
 [[package]]
 name = "extism-convert-macros"
-version = "1.9.0"
+version = "1.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8cd75ee443312a8cd7a402e29fb369c1a2b72f532fd7cdaf34f3023e5d8963d5"
+checksum = "8bb132f6e20aab7e8eb3715e26ff8893c611abba73242e00771d740a0fbcb384"
 dependencies = [
  "manyhow",
  "proc-macro-crate",
@@ -1141,9 +1141,9 @@ dependencies = [
 
 [[package]]
 name = "extism-manifest"
-version = "1.9.0"
+version = "1.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8203adde7bb7a632122e387564314c804793773e9a701fd8cbb6b2c5940a6640"
+checksum = "6d9c8b50558af0a75ce08b8ef90a37fb018d99cc99a5f7365c33ba008afdbfb4"
 dependencies = [
  "base64 0.22.1",
  "serde",
@@ -2220,14 +2220,14 @@ dependencies = [
 
 [[package]]
 name = "miette"
-version = "7.2.0"
+version = "7.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4edc8853320c2a0dab800fbda86253c8938f6ea88510dc92c5f1ed20e794afc1"
+checksum = "317f146e2eb7021892722af37cf1b971f0a70c8406f487e24952667616192c64"
 dependencies = [
  "backtrace",
  "backtrace-ext",
  "cfg-if",
- "miette-derive 7.2.0",
+ "miette-derive 7.4.0",
  "owo-colors",
  "supports-color",
  "supports-hyperlinks",
@@ -2251,9 +2251,9 @@ dependencies = [
 
 [[package]]
 name = "miette-derive"
-version = "7.2.0"
+version = "7.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dcf09caffaac8068c346b6df2a7fc27a177fd20b39421a39ce0a211bde679a6c"
+checksum = "23c9b935fbe1d6cbd1dac857b54a688145e2d93f48db36010514d0f612d0ad67"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2620,7 +2620,7 @@ dependencies = [
  "extism",
  "indexmap",
  "indicatif",
- "miette 7.2.0",
+ "miette 7.4.0",
  "proto_core",
  "proto_installer",
  "proto_pdk_api",
@@ -2668,7 +2668,7 @@ dependencies = [
  "convert_case",
  "dotenvy",
  "indexmap",
- "miette 7.2.0",
+ "miette 7.4.0",
  "minisign-verify",
  "once_cell",
  "proto_pdk_api",
@@ -2699,7 +2699,7 @@ dependencies = [
 name = "proto_installer"
 version = "0.7.1"
 dependencies = [
- "miette 7.2.0",
+ "miette 7.4.0",
  "reqwest",
  "starbase_archive",
  "starbase_styles",
@@ -3124,9 +3124,9 @@ checksum = "719b953e2095829ee67db738b3bfa9fa368c94900df327b3f07fe6e794d2fe1f"
 
 [[package]]
 name = "rustc-hash"
-version = "2.0.0"
+version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "583034fd73374156e66797ed8e5b0d5690409c9226b22d87cb7f19821c05d152"
+checksum = "c7fb8039b3032c191086b10f11f319a6e99e1e82889c5cc6046f515c9db1d497"
 
 [[package]]
 name = "rustix"
@@ -3264,14 +3264,14 @@ dependencies = [
 
 [[package]]
 name = "schematic"
-version = "0.17.6"
+version = "0.17.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b13cc48a6f0f9cdb16cfa88f7a104e1e77483b03e154b0de40c68af41462d0db"
+checksum = "8ef9a634be1649ec5f5516e39eb78d2e84fcf5eef3792acae353d8ade6a7b391"
 dependencies = [
  "garde",
  "indexmap",
  "markdown",
- "miette 7.2.0",
+ "miette 7.4.0",
  "schemars",
  "schematic_macros",
  "schematic_types",
@@ -3279,16 +3279,16 @@ dependencies = [
  "serde_json",
  "serde_path_to_error",
  "starbase_styles",
- "thiserror 1.0.69",
+ "thiserror 2.0.3",
  "toml",
  "tracing",
 ]
 
 [[package]]
 name = "schematic_macros"
-version = "0.17.4"
+version = "0.17.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5336c468775c5083eaa2958608f68937c491686a079d108e246345f370623f9a"
+checksum = "26d2d4005b3b6482801d60ba093c550d25382401e0c4d1c3fbba80eb07e28626"
 dependencies = [
  "convert_case",
  "darling",
@@ -3299,9 +3299,9 @@ dependencies = [
 
 [[package]]
 name = "schematic_types"
-version = "0.9.5"
+version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "768ff9d8765442119bfb73b7808607f76f75fb2987932637d43b144d6ad5e3fe"
+checksum = "f320deb050277c5bcc79213b01d749f8a847a63713e76d5748fdad654f47ed52"
 dependencies = [
  "indexmap",
  "semver",
@@ -3584,12 +3584,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "smawk"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b7c388c1b5e93756d0c740965c41e8822f866621d41acbdf6336a6a168f8840c"
-
-[[package]]
 name = "socket2"
 version = "0.5.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3642,7 +3636,7 @@ checksum = "472e15cb7da9f3348555a671fe61e58fc901ecdfc45972fe304a2f367e2eb424"
 dependencies = [
  "async-trait",
  "chrono",
- "miette 7.2.0",
+ "miette 7.4.0",
  "starbase_styles",
  "tokio",
  "tracing",
@@ -3659,7 +3653,7 @@ dependencies = [
  "binstall-tar",
  "bzip2",
  "flate2",
- "miette 7.2.0",
+ "miette 7.4.0",
  "rustc-hash",
  "starbase_styles",
  "starbase_utils",
@@ -3691,7 +3685,7 @@ version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8c92e59e9cb8234c7d07f8260b7196c0d0cd29f4b31cfad8180bc3bcfe0c2619"
 dependencies = [
- "miette 7.2.0",
+ "miette 7.4.0",
  "regex",
  "sysinfo",
  "thiserror 2.0.3",
@@ -3705,7 +3699,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b1664b29d64bf37a14a0f50ae4c1568eb712c7eb28fb489aabac81c36e5558c1"
 dependencies = [
  "dirs 5.0.1",
- "miette 7.2.0",
+ "miette 7.4.0",
  "owo-colors",
  "supports-color",
 ]
@@ -3719,7 +3713,7 @@ dependencies = [
  "dirs 5.0.1",
  "fs4",
  "json-strip-comments",
- "miette 7.2.0",
+ "miette 7.4.0",
  "regex",
  "reqwest",
  "serde",
@@ -3914,12 +3908,12 @@ dependencies = [
 
 [[package]]
 name = "terminal_size"
-version = "0.3.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "21bebf2b7c9e0a515f6e0f8c51dc0f8e4696391e6f1ff30379559f8365fb0df7"
+checksum = "5352447f921fda68cf61b4101566c0bdb5104eff6804d0678e5227580ab6a4e9"
 dependencies = [
  "rustix",
- "windows-sys 0.48.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -3934,7 +3928,6 @@ version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23d434d3f8967a09480fb04132ebe0a3e088c173e6d0ee7897abbdf4eab0f8b9"
 dependencies = [
- "smawk",
  "unicode-linebreak",
  "unicode-width 0.1.14",
 ]
@@ -4152,9 +4145,9 @@ checksum = "8df9b6e13f2d32c91b9bd719c00d1958837bc7dec474d94952798cc8e69eeec3"
 
 [[package]]
 name = "tracing"
-version = "0.1.40"
+version = "0.1.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3523ab5a71916ccf420eebdf5521fcef02141234bbc0b8a49f2fdc4544364ef"
+checksum = "784e0ac535deb450455cbfa28a6f0df145ea1bb7ae51b821cf5e7927fdcfbdd0"
 dependencies = [
  "log",
  "pin-project-lite",
@@ -4164,9 +4157,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-attributes"
-version = "0.1.27"
+version = "0.1.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "34704c8d6ebcbc939824180af020566b01a7c01f80641264eba0999f6c2b6be7"
+checksum = "395ae124c09f9e6918a2310af6038fba074bcf474ac352496d5910dd59a2226d"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4405,7 +4398,7 @@ dependencies = [
  "compact_str 0.8.0",
  "extism",
  "http-cache-reqwest",
- "miette 7.2.0",
+ "miette 7.4.0",
  "once_cell",
  "regex",
  "reqwest",
