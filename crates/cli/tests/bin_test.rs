@@ -11,11 +11,11 @@ mod bin {
         let sandbox = create_empty_proto_sandbox();
 
         let assert = sandbox.run_bin(|cmd| {
-            cmd.arg("bin").arg("npm").arg("9.0.0");
+            cmd.arg("bin").arg("node").arg("19.0.0");
         });
 
         assert.inner.stderr(predicate::str::contains(
-            "Unable to find an executable for npm",
+            "Unable to find an executable for Node.js",
         ));
     }
 
@@ -25,22 +25,22 @@ mod bin {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("install").arg("npm").arg("9.0.0");
+                cmd.arg("install").arg("node").arg("19.0.0");
             })
             .success();
 
         let assert = sandbox.run_bin(|cmd| {
-            cmd.arg("bin").arg("npm").arg("9.0.0");
+            cmd.arg("bin").arg("node").arg("19.0.0");
         });
 
         if cfg!(windows) {
-            assert.inner.stdout(predicate::str::contains(
-                "tools\\npm\\9.0.0\\bin/npm-cli.js",
-            ));
+            assert
+                .inner
+                .stdout(predicate::str::contains("tools\\node\\19.0.0\\node.exe"));
         } else {
             assert
                 .inner
-                .stdout(predicate::str::contains("tools/npm/9.0.0/bin/npm-cli.js"));
+                .stdout(predicate::str::contains("tools/node/19.0.0/bin/node"));
         }
     }
 
@@ -50,20 +50,18 @@ mod bin {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("install").arg("npm").arg("9.0.0");
+                cmd.arg("install").arg("node").arg("19.0.0");
             })
             .success();
 
         let assert = sandbox.run_bin(|cmd| {
-            cmd.arg("bin").arg("npm").arg("9.0.0").arg("--bin");
+            cmd.arg("bin").arg("node").arg("19.0.0").arg("--bin");
         });
 
         if cfg!(windows) {
-            assert
-                .inner
-                .stdout(predicate::str::contains("bin/npm-cli.js"));
+            assert.inner.stdout(predicate::str::contains("node.exe"));
         } else {
-            assert.inner.stdout(predicate::str::contains("bin/npm"));
+            assert.inner.stdout(predicate::str::contains("bin/node"));
         }
     }
 
@@ -73,20 +71,20 @@ mod bin {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("install").arg("npm").arg("9.0.0");
+                cmd.arg("install").arg("node").arg("19.0.0");
             })
             .success();
 
         let assert = sandbox.run_bin(|cmd| {
-            cmd.arg("bin").arg("npm").arg("9.0.0").arg("--shim");
+            cmd.arg("bin").arg("node").arg("19.0.0").arg("--shim");
         });
 
         if cfg!(windows) {
             assert
                 .inner
-                .stdout(predicate::str::contains("shims\\npm.exe"));
+                .stdout(predicate::str::contains("shims\\node.exe"));
         } else {
-            assert.inner.stdout(predicate::str::contains("shims/npm"));
+            assert.inner.stdout(predicate::str::contains("shims/node"));
         }
     }
 }

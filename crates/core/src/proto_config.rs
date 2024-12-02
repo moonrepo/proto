@@ -352,7 +352,7 @@ impl ProtoConfig {
                 self.plugins.insert(
                     Id::raw(depman),
                     PluginLocator::Url(Box::new(UrlLocator {
-                        url: "https://github.com/moonrepo/tools/releases/download/node_depman_tool-v0.14.0/node_depman_tool.wasm".into()
+                        url: "https://github.com/moonrepo/tools/releases/download/node_depman_tool-v0.14.1/node_depman_tool.wasm".into()
                     }))
                 );
             }
@@ -380,7 +380,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw(SCHEMA_PLUGIN_KEY),
                 PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/tools/releases/download/schema_tool-v0.16.1/schema_tool.wasm".into()
+                    url: "https://github.com/moonrepo/tools/releases/download/schema_tool-v0.16.2/schema_tool.wasm".into()
                 }))
             );
         }

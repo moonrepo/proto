@@ -5,6 +5,7 @@ use miette::IntoDiagnostic;
 use proto_core::flow::install::InstallOptions;
 use proto_core::{
     is_offline, now, ConfigMode, ProtoEnvironment, UnresolvedVersionSpec, PROTO_CONFIG_NAME,
+    PROTO_PLUGIN_KEY,
 };
 use proto_shim::get_exe_file_name;
 use semver::Version;
@@ -62,7 +63,7 @@ pub async fn download_versioned_proto_tool(session: &ProtoSession) -> miette::Re
         .load_config_manager()?
         .get_merged_config_without_global()?;
 
-    if let Some(version) = config.versions.get("proto") {
+    if let Some(version) = config.versions.get(PROTO_PLUGIN_KEY) {
         // Only support fully-qualified versions as we need to prepend the
         // tool directory into PATH, which doesn't support requirements
         if !matches!(version, UnresolvedVersionSpec::Semantic(_)) {
