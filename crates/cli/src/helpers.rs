@@ -164,7 +164,7 @@ pub fn create_progress_spinner<S: AsRef<str>>(start: S) -> ProgressBar {
 
 // When not a TTY, we should display something to the user!
 pub fn print_progress_state(pb: &ProgressBar, message: String) {
-    if message.is_empty() {
+    if message.is_empty() || pb.message() == message {
         return;
     }
 

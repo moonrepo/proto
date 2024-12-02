@@ -3,11 +3,10 @@ mod utils;
 use proto_core::{Id, PinType, ProtoConfig, ToolManifest, UnresolvedVersionSpec, VersionSpec};
 use rustc_hash::FxHashSet;
 use starbase_sandbox::predicates::prelude::*;
+use std::{fs, time::SystemTime};
 use utils::*;
 
 mod install_uninstall {
-    use std::{fs, time::SystemTime};
-
     use super::*;
 
     #[test]
@@ -86,7 +85,6 @@ mod install_uninstall {
         ));
 
         // Uninstall
-
         let assert = sandbox
             .run_bin(|cmd| {
                 cmd.arg("uninstall").arg("node").arg("19.0.0");
@@ -246,7 +244,6 @@ mod install_uninstall {
         let manifest_file = sandbox.path().join(".proto/tools/node/manifest.json");
 
         // Install
-
         sandbox
             .run_bin(|cmd| {
                 cmd.arg("install")
@@ -652,6 +649,39 @@ mod install_uninstall {
             assert!(link1.exists());
             assert!(link2.exists());
             assert!(link3.exists());
+        }
+    }
+
+    mod reqs {
+        use super::*;
+
+        #[test]
+        fn errors_if_reqs_not_met() {
+            let sandbox = create_empty_proto_sandbox();
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("npm").arg("10.0.0");
+                })
+                .failure();
+
+            assert.stderr(predicate::str::contains(
+                "npm requires node to function correctly",
+            ));
+        }
+
+        #[test]
+        fn passes_if_reqs_met() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(".prototools", r#"node = "20""#);
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("npm").arg("10.0.0");
+                })
+                .success();
+
+            assert.stdout(predicate::str::contains("npm 10.0.0 has been installed"));
         }
     }
 }

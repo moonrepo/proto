@@ -44,7 +44,7 @@ pub enum ProtoCliError {
 
     #[diagnostic(
         code(proto::cli::requirements_not_met),
-        help("Try adding the required tool to .prototools")
+        help("Try configuring a version of the required tool in .prototools")
     )]
     #[error(
         "{} requires {} to function correctly, but it has not been installed.",
