@@ -1,6 +1,6 @@
 use crate::session::ProtoSession;
 use clap::Args;
-use proto_core::{detect_version, Id, UnresolvedVersionSpec};
+use proto_core::{detect_version, Id, UnresolvedVersionSpec, PROTO_PLUGIN_KEY};
 use proto_shim::{get_exe_file_name, locate_proto_exe};
 use starbase::AppResult;
 
@@ -21,7 +21,7 @@ pub struct BinArgs {
 
 #[tracing::instrument(skip_all)]
 pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
-    if args.id == "proto" {
+    if args.id == PROTO_PLUGIN_KEY {
         println!(
             "{}",
             locate_proto_exe("proto")

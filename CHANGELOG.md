@@ -37,8 +37,12 @@
 
 #### 🧩 Plugins
 
+- Updated `node_depman_tool` to v0.14.1.
+  - Added `node` as a required plugin.
 - Updated `python_tool` to v0.12.1.
   - Fixed an issue where our bin linking would point to an invalid executable path.
+- Updated `schema_tool` to v0.16.2.
+  - Added `metadata.requires`, for defining plugin requirements.
 
 #### ⚙️ Internal
 

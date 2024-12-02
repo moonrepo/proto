@@ -1,12 +1,11 @@
 use crate::app::{App as CLI, Commands};
 use crate::commands::clean::{internal_clean, CleanArgs};
-use crate::error::ProtoCliError;
 use crate::systems::*;
 use async_trait::async_trait;
 use miette::IntoDiagnostic;
 use proto_core::registry::ProtoRegistry;
 use proto_core::{
-    load_schema_plugin_with_proto, load_tool_from_locator, load_tool_with_proto, Id, ProtoConfig,
+    load_schema_plugin_with_proto, load_tool_from_locator, load_tool_with_proto, Id,
     ProtoEnvironment, Tool, PROTO_PLUGIN_KEY, SCHEMA_PLUGIN_KEY,
 };
 use rustc_hash::FxHashSet;
@@ -49,16 +48,19 @@ impl ProtoSession {
     }
 
     pub async fn load_tool(&self, id: &Id) -> miette::Result<Tool> {
-        let tool = load_tool_with_proto(id, &self.env).await?;
-
-        self.check_requirements(&tool, self.env.load_config()?)?;
-
-        Ok(tool)
+        load_tool_with_proto(id, &self.env).await
     }
 
     pub async fn load_tools(&self) -> miette::Result<Vec<Tool>> {
         self.load_tools_with_filters(FxHashSet::default()).await
     }
+
+    // pub async fn load_tools_for_versions(&self) -> miette::Result<Vec<Tool>> {
+    //     let config = self.env.load_config()?;
+    //     let filters = FxHashSet::from_iter(config.versions.keys());
+
+    //     self.load_tools_with_filters(filters).await
+    // }
 
     #[tracing::instrument(name = "load_tools", skip_all)]
     pub async fn load_tools_with_filters(
@@ -97,11 +99,6 @@ impl ProtoSession {
             tools.push(result.into_diagnostic()??);
         }
 
-        // After all tools have been loaded, check requirements
-        for tool in &tools {
-            self.check_requirements(tool, config)?;
-        }
-
         Ok(tools)
     }
 
@@ -112,22 +109,6 @@ impl ProtoSession {
             self.env.load_config()?.builtin_proto_plugin(),
         )
         .await
-    }
-
-    fn check_requirements(&self, tool: &Tool, config: &ProtoConfig) -> miette::Result<()> {
-        for require_id in &tool.metadata.requires {
-            if !config.versions.contains_key(require_id.as_str())
-                && !config.plugins.contains_key(require_id.as_str())
-            {
-                return Err(ProtoCliError::ToolRequiresNotMet {
-                    tool: tool.get_name().to_owned(),
-                    requires: require_id.to_owned(),
-                }
-                .into());
-            }
-        }
-
-        Ok(())
     }
 }
 

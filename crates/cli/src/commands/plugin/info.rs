@@ -90,8 +90,8 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
 
         if !tool.metadata.requires.is_empty() {
             p.entry_list(
-                "Requires plugins",
-                tool.metadata.requires.iter().map(|req| color::id(req)),
+                "Requires",
+                tool.metadata.requires.iter().map(color::id),
                 None,
             );
         }

@@ -1,4 +1,5 @@
 use super::pin::internal_pin;
+use crate::error::ProtoCliError;
 use crate::helpers::*;
 use crate::session::ProtoSession;
 use crate::shell::{self, Export};
@@ -12,6 +13,7 @@ use proto_pdk_api::{InstallHook, SyncShellProfileInput, SyncShellProfileOutput};
 use starbase::AppResult;
 use starbase_shell::ShellType;
 use starbase_styles::color;
+use std::collections::BTreeMap;
 use std::env;
 use std::time::Duration;
 use tokio::task::JoinSet;
@@ -73,6 +75,23 @@ impl InstallArgs {
             self.spec.clone().unwrap_or_default()
         }
     }
+}
+
+pub fn enforce_requirements(
+    tool: &Tool,
+    versions: &BTreeMap<Id, UnresolvedVersionSpec>,
+) -> miette::Result<()> {
+    for require_id in &tool.metadata.requires {
+        if !versions.contains_key(require_id.as_str()) {
+            return Err(ProtoCliError::ToolRequiresNotMet {
+                tool: tool.get_name().to_owned(),
+                requires: require_id.to_owned(),
+            }
+            .into());
+        }
+    }
+
+    Ok(())
 }
 
 async fn pin_version(
@@ -368,6 +387,13 @@ async fn install_one(session: &ProtoSession, id: &Id, args: InstallArgs) -> miet
     debug!(id = id.as_str(), "Loading tool");
 
     let mut tool = session.load_tool(id).await?;
+
+    // Load config including global versions,
+    // so that our requirements can be satisfied
+    let config = session.env.load_config_manager()?.get_merged_config()?;
+
+    enforce_requirements(&tool, &config.versions)?;
+
     let pb = create_progress_bar(format!("Installing {}", tool.get_name()));
 
     if do_install(&mut tool, args, &pb).await? {
@@ -398,7 +424,7 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
     debug!("Detecting tool versions to install");
 
     let mut versions = session.env.load_config()?.versions.to_owned();
-    versions.remove("proto");
+    versions.remove(PROTO_PLUGIN_KEY);
 
     for tool in &tools {
         if versions.contains_key(&tool.id) {
@@ -436,8 +462,11 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
     let mut set = JoinSet::new();
 
     for mut tool in tools {
-        if let Some(version) = versions.remove(&tool.id) {
+        enforce_requirements(&tool, &versions)?;
+
+        if let Some(version) = versions.get(&tool.id) {
             let tool_id = tool.id.clone();
+            let version = version.clone();
             let graph = graph.clone();
 
             let pb = mpb.add(ProgressBar::new(0));
