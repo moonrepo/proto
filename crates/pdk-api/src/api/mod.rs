@@ -97,6 +97,10 @@ api_struct!(
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub plugin_version: Option<Version>,
 
+        /// Other plugins that this plugin requires.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        pub requires: Vec<String>,
+
         /// Names of commands that will self-upgrade the tool,
         /// and should be blocked from happening.
         #[serde(default, skip_serializing_if = "Vec::is_empty")]

@@ -1,8 +1,10 @@
 use super::pin::internal_pin;
+use crate::error::ProtoCliError;
 use crate::helpers::*;
 use crate::session::ProtoSession;
 use crate::shell::{self, Export};
 use crate::telemetry::{track_usage, Metric};
+use crate::utils::install_graph::*;
 use clap::Args;
 use indicatif::ProgressBar;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
@@ -11,6 +13,7 @@ use proto_pdk_api::{InstallHook, SyncShellProfileInput, SyncShellProfileOutput};
 use starbase::AppResult;
 use starbase_shell::ShellType;
 use starbase_styles::color;
+use std::collections::BTreeMap;
 use std::env;
 use std::time::Duration;
 use tokio::task::JoinSet;
@@ -72,6 +75,23 @@ impl InstallArgs {
             self.spec.clone().unwrap_or_default()
         }
     }
+}
+
+pub fn enforce_requirements(
+    tool: &Tool,
+    versions: &BTreeMap<Id, UnresolvedVersionSpec>,
+) -> miette::Result<()> {
+    for require_id in &tool.metadata.requires {
+        if !versions.contains_key(require_id.as_str()) {
+            return Err(ProtoCliError::ToolRequiresNotMet {
+                tool: tool.get_name().to_owned(),
+                requires: require_id.to_owned(),
+            }
+            .into());
+        }
+    }
+
+    Ok(())
 }
 
 async fn pin_version(
@@ -204,15 +224,14 @@ pub async fn do_install(
     let name = tool.get_name().to_owned();
 
     let finish_pb = |installed: bool, resolved_version: &VersionSpec| {
-        if installed {
-            pb.set_message(format!("{name} {resolved_version} installed!"));
-        } else {
-            pb.set_message(color::muted_light(format!(
-                "{name} {resolved_version} already installed!"
-            )));
-        }
-
-        print_progress_state(pb);
+        print_progress_state(
+            pb,
+            if installed {
+                format!("{name} {resolved_version} installed!")
+            } else {
+                color::muted_light(format!("{name} {resolved_version} already installed!"))
+            },
+        );
 
         if args.id.is_some() {
             pb.finish_and_clear();
@@ -295,20 +314,16 @@ pub async fn do_install(
         };
 
         // Messages
-        match phase {
-            InstallPhase::Verify => {
-                pb3.set_message("Verifying checksum");
+        print_progress_state(
+            &pb3,
+            match phase {
+                InstallPhase::Verify => "Verifying checksum",
+                InstallPhase::Unpack => "Unpacking archive",
+                InstallPhase::Download => "Downloading pre-built archive",
+                _ => "",
             }
-            InstallPhase::Unpack => {
-                pb3.set_message("Unpacking archive");
-            }
-            InstallPhase::Download => {
-                pb3.set_message("Downloading pre-built archive");
-            }
-            _ => {}
-        };
-
-        print_progress_state(&pb3);
+            .into(),
+        );
     });
 
     let installed = tool
@@ -372,6 +387,13 @@ async fn install_one(session: &ProtoSession, id: &Id, args: InstallArgs) -> miet
     debug!(id = id.as_str(), "Loading tool");
 
     let mut tool = session.load_tool(id).await?;
+
+    // Load config including global versions,
+    // so that our requirements can be satisfied
+    let config = session.env.load_config_manager()?.get_merged_config()?;
+
+    enforce_requirements(&tool, &config.versions)?;
+
     let pb = create_progress_bar(format!("Installing {}", tool.get_name()));
 
     if do_install(&mut tool, args, &pb).await? {
@@ -402,7 +424,7 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
     debug!("Detecting tool versions to install");
 
     let mut versions = session.env.load_config()?.versions.to_owned();
-    versions.remove("proto");
+    versions.remove(PROTO_PLUGIN_KEY);
 
     for tool in &tools {
         if versions.contains_key(&tool.id) {
@@ -422,6 +444,12 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
         return Ok(Some(1));
     }
 
+    // Filter down tools to only those that have a version
+    let tools = tools
+        .into_iter()
+        .filter(|tool| versions.contains_key(&tool.id))
+        .collect::<Vec<_>>();
+
     // Determine longest ID for use within progress bars
     let longest_id = versions
         .keys()
@@ -430,11 +458,16 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
     // Then install each tool in parallel!
     let mpb = create_multi_progress_bar();
     let pbs = create_progress_bar_style();
+    let graph = InstallGraph::new(&tools);
     let mut set = JoinSet::new();
 
     for mut tool in tools {
-        if let Some(version) = versions.remove(&tool.id) {
+        enforce_requirements(&tool, &versions)?;
+
+        if let Some(version) = versions.get(&tool.id) {
             let tool_id = tool.id.clone();
+            let version = version.clone();
+            let graph = graph.clone();
 
             let pb = mpb.add(ProgressBar::new(0));
             pb.set_style(pbs.clone());
@@ -450,10 +483,30 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
                     tool.id
                 )));
 
-                pb.set_message(format!("Installing {} {}", tool.get_name(), version));
-                print_progress_state(&pb);
+                while let Some(status) = graph.check_install_status(&tool.id).await {
+                    match status {
+                        InstallStatus::ReqFailed(req_id) => {
+                            print_progress_state(
+                                &pb,
+                                format!("Requirement {} failed to install", req_id),
+                            );
 
-                if let Err(error) = do_install(
+                            return false;
+                        }
+                        InstallStatus::WaitingOnReqs(waiting_on) => {
+                            print_progress_state(
+                                &pb,
+                                format!("Waiting on requirements: {}", waiting_on.join(", ")),
+                            );
+                        }
+                    };
+
+                    sleep(Duration::from_millis(150)).await;
+                }
+
+                print_progress_state(&pb, format!("Installing {} {}", tool.get_name(), version));
+
+                match do_install(
                     &mut tool,
                     InstallArgs {
                         spec: Some(version),
@@ -463,8 +516,15 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
                 )
                 .await
                 {
-                    pb.set_message(format!("Failed to install: {}", error));
-                    print_progress_state(&pb);
+                    Ok(_) => {
+                        graph.mark_installed(&tool.id).await;
+                        true
+                    }
+                    Err(error) => {
+                        print_progress_state(&pb, error.to_string());
+                        graph.mark_not_installed(&tool.id).await;
+                        false
+                    }
                 }
             });
 
@@ -489,9 +549,14 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
                 );
                 failed_count += 1;
             }
-            Ok((task_id, _)) => {
+            Ok((task_id, installed)) => {
                 trace!(task_id = task_id.to_string(), "Spawned task successful");
-                installed_count += 1;
+
+                if installed {
+                    installed_count += 1;
+                } else {
+                    failed_count += 1;
+                }
             }
         };
     }

@@ -1,5 +1,6 @@
 mod utils;
 
+use starbase_sandbox::predicates::prelude::*;
 use utils::*;
 
 mod install_all {
@@ -97,5 +98,47 @@ deno = "1.30.0"
 
         assert!(node_path.exists());
         assert!(deno_path.exists());
+    }
+
+    mod reqs {
+        use super::*;
+
+        #[test]
+        fn errors_if_reqs_not_met() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(".prototools", r#"npm = "9.0.0""#);
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install");
+                })
+                .failure();
+
+            assert.stderr(predicate::str::contains(
+                "npm requires node to function correctly",
+            ));
+        }
+
+        #[test]
+        fn passes_if_reqs_met() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"node = "19.0.0"
+npm = "10.0.0"
+        "#,
+            );
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install");
+                })
+                .success();
+
+            assert.stdout(
+                predicate::str::contains("Waiting on requirements: node")
+                    .and(predicate::str::contains("npm 10.0.0 installed!")),
+            );
+        }
     }
 }

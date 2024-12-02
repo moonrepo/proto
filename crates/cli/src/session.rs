@@ -55,6 +55,13 @@ impl ProtoSession {
         self.load_tools_with_filters(FxHashSet::default()).await
     }
 
+    // pub async fn load_tools_for_versions(&self) -> miette::Result<Vec<Tool>> {
+    //     let config = self.env.load_config()?;
+    //     let filters = FxHashSet::from_iter(config.versions.keys());
+
+    //     self.load_tools_with_filters(filters).await
+    // }
+
     #[tracing::instrument(name = "load_tools", skip_all)]
     pub async fn load_tools_with_filters(
         &self,

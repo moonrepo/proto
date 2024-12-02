@@ -3,6 +3,7 @@ use crate::session::ProtoSession;
 use clap::Args;
 use dialoguer::Confirm;
 use miette::IntoDiagnostic;
+use proto_core::PROTO_PLUGIN_KEY;
 use proto_core::{Id, ProtoError, Tool, VersionSpec};
 use proto_shim::get_exe_file_name;
 use rustc_hash::FxHashSet;
@@ -201,7 +202,7 @@ pub async fn clean_proto(session: &ProtoSession, days: u64) -> miette::Result<us
     let duration = Duration::from_secs(86400 * days);
     let mut clean_count = 0;
 
-    for dir in fs::read_dir(session.env.store.inventory_dir.join("proto"))? {
+    for dir in fs::read_dir(session.env.store.inventory_dir.join(PROTO_PLUGIN_KEY))? {
         let tool_dir = dir.path();
 
         // Ignore hidden files

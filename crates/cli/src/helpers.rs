@@ -139,11 +139,10 @@ pub fn create_progress_bar<S: AsRef<str>>(start: S) -> ProgressBar {
     };
 
     pb.set_style(create_progress_bar_style());
-    pb.set_message(start.as_ref().to_owned());
     pb.set_position(0);
     pb.set_length(100);
 
-    print_progress_state(&pb);
+    print_progress_state(&pb, start.as_ref().to_owned());
 
     pb
 }
@@ -156,22 +155,24 @@ pub fn create_progress_spinner<S: AsRef<str>>(start: S) -> ProgressBar {
     };
 
     pb.set_style(create_progress_spinner_style());
-    pb.set_message(start.as_ref().to_owned());
     pb.enable_steady_tick(Duration::from_millis(100));
 
-    print_progress_state(&pb);
+    print_progress_state(&pb, start.as_ref().to_owned());
 
     pb
 }
 
 // When not a TTY, we should display something to the user!
-pub fn print_progress_state(pb: &ProgressBar) {
-    if pb.is_hidden() {
-        let message = pb.message();
+pub fn print_progress_state(pb: &ProgressBar, message: String) {
+    if message.is_empty() || pb.message() == message {
+        return;
+    }
 
-        if !message.is_empty() {
-            println!("{}", format!("{} {message}", pb.prefix()).trim());
-        }
+    pb.set_message(message);
+
+    if pb.is_hidden() {
+        // This expands tokens, so don't use the argument message!
+        println!("{} {}", pb.prefix(), pb.message());
     }
 }
 
