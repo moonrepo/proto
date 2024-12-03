@@ -1,24 +1,60 @@
 use crate::error::WarpgateError;
+use async_trait::async_trait;
 use core::ops::Deref;
 use miette::IntoDiagnostic;
 use netrc::Netrc;
-use reqwest::Client;
+use reqwest::{Client, Response, Url};
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware, RequestBuilder, RequestInitialiser};
 use serde::{Deserialize, Serialize};
-use starbase_utils::fs;
+use starbase_utils::{
+    fs,
+    net::{Downloader, NetError},
+};
 use std::path::PathBuf;
 use tracing::{debug, trace, warn};
+
+pub struct HttpDownloader {
+    client: HttpClient,
+}
+
+#[async_trait]
+impl Downloader for HttpDownloader {
+    async fn download(&self, url: Url) -> Result<Response, NetError> {
+        let url_string = url.to_string();
+
+        self.client
+            .get(url)
+            .send()
+            .await
+            .map_err(|error| match error {
+                reqwest_middleware::Error::Middleware(inner) => NetError::HttpUnknown {
+                    error: format!("{}", inner),
+                    url: url_string,
+                },
+                reqwest_middleware::Error::Reqwest(inner) => NetError::Http {
+                    error: Box::new(inner),
+                    url: url_string,
+                },
+            })
+    }
+}
 
 // `ClientWithMiddleware` doesn't allow access to their inner `Client`,
 // so we unfortunately need to keep a reference to both.
 // https://github.com/TrueLayer/reqwest-middleware/issues/203
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct HttpClient {
     client: Client,
     middleware: ClientWithMiddleware,
 }
 
 impl HttpClient {
+    pub fn create_downloader(&self) -> HttpDownloader {
+        HttpDownloader {
+            client: self.clone(),
+        }
+    }
+
     pub fn to_inner(&self) -> &Client {
         &self.client
     }

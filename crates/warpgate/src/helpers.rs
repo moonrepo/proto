@@ -31,8 +31,15 @@ pub async fn download_from_url_to_file(
     temp_file: &Path,
     client: &HttpClient,
 ) -> miette::Result<()> {
-    if let Err(error) =
-        net::download_from_url_with_client(source_url, temp_file, client.to_inner()).await
+    if let Err(error) = net::download_from_url_with_options(
+        source_url,
+        temp_file,
+        net::DownloadOptions {
+            downloader: Some(Box::new(client.create_downloader())),
+            ..Default::default()
+        },
+    )
+    .await
     {
         return Err(match error {
             NetError::UrlNotFound { url } => WarpgateError::DownloadNotFound { url }.into(),

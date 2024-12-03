@@ -253,7 +253,7 @@ impl Tool {
             &download_url,
             &download_file,
             DownloadOptions {
-                client: Some(client.to_inner()),
+                downloader: Some(Box::new(client.create_downloader())),
                 on_chunk: options.on_download_chunk.take(),
             },
         )
@@ -276,7 +276,7 @@ impl Tool {
                 &checksum_url,
                 &checksum_file,
                 DownloadOptions {
-                    client: Some(client.to_inner()),
+                    downloader: Some(Box::new(client.create_downloader())),
                     on_chunk: None,
                 },
             )
