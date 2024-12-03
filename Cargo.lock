@@ -3705,9 +3705,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_utils"
-version = "0.9.0"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c6f7f5c08ddfd2f9f50d81d4e165a3694577c7b906ce04b1c564dd2f102768ca"
+checksum = "a6e34eb4c6d9fc4f9d6159738a8844363d0dc23393718a53b4ea84e570ef9f58"
 dependencies = [
  "async-trait",
  "dirs 5.0.1",
@@ -4398,6 +4398,7 @@ dependencies = [
 name = "warpgate"
 version = "0.20.0"
 dependencies = [
+ "async-trait",
  "compact_str 0.8.0",
  "extism",
  "http-cache-reqwest",
