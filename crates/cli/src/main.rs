@@ -1,5 +1,6 @@
 mod app;
 mod commands;
+mod components;
 mod error;
 mod helpers;
 mod printer;

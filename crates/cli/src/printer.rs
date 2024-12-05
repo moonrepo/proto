@@ -90,31 +90,6 @@ impl Printer<'_> {
         writeln!(&mut self.buffer, "{}: {}", key.as_ref(), value.as_ref()).unwrap();
     }
 
-    pub fn entry_list<K: AsRef<str>, I: IntoIterator<Item = V>, V: AsRef<str>>(
-        &mut self,
-        key: K,
-        list: I,
-        empty: Option<String>,
-    ) {
-        let items = list.into_iter().collect::<Vec<_>>();
-
-        if items.is_empty() {
-            if let Some(fallback) = empty {
-                self.entry(key, fallback);
-            }
-        } else {
-            self.indent();
-
-            writeln!(&mut self.buffer, "{}:", key.as_ref()).unwrap();
-
-            self.depth += 1;
-
-            self.list(items);
-
-            self.depth -= 1;
-        }
-    }
-
     pub fn entry_map<
         K: AsRef<str>,
         I: IntoIterator<Item = (V1, V2)>,
@@ -194,12 +169,4 @@ impl Printer<'_> {
 
 pub fn format_value(value: impl AsRef<str>) -> String {
     color::muted_light(value)
-}
-
-pub fn format_env_var(value: &str) -> String {
-    if value.contains('/') || value.contains('\\') {
-        color::path(value)
-    } else {
-        format_value(value)
-    }
 }

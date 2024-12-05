@@ -1,3 +1,4 @@
+use crate::components::is_path_like;
 use crate::session::ProtoSession;
 use clap::Args;
 use iocraft::prelude::*;
@@ -164,8 +165,6 @@ pub async fn env(session: ProtoSession, args: DebugEnvArgs) -> AppResult {
                 ) {
                     Map {
                         #(environment.vars.into_iter().map(|(name, value)| {
-                            let is_path = value.contains('/') || value.contains('\\');
-
                             let name = element! {
                                 StyledText(
                                     content: name,
@@ -175,8 +174,8 @@ pub async fn env(session: ProtoSession, args: DebugEnvArgs) -> AppResult {
 
                             let value = element! {
                                 StyledText(
-                                    content: value,
-                                    style: if is_path {
+                                    content: &value,
+                                    style: if is_path_like(&value) {
                                         Style::Path
                                     } else {
                                         Style::MutedLight
