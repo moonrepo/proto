@@ -9,7 +9,7 @@ use starbase_styles::color;
 use starbase_utils::{json, toml};
 
 #[derive(Serialize)]
-pub struct DebugConfigResult<'a> {
+struct DebugConfigResult<'a> {
     config: &'a ProtoConfig,
     files: Vec<&'a ProtoConfigFile>,
 }
@@ -85,7 +85,7 @@ pub async fn config(session: ProtoSession, args: DebugConfigArgs) -> AppResult {
         Container {
             Section(
                 title: "Final configuration",
-                title_color: style_to_color(Style::Id)
+                title_color: style_to_color(Style::Shell), // pink brand
             )
         }
     })?;

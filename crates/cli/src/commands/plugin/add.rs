@@ -4,6 +4,7 @@ use iocraft::prelude::*;
 use proto_core::{Id, PinLocation, PluginLocator, ProtoConfig};
 use starbase::AppResult;
 use starbase_console::ui::*;
+use starbase_styles::color;
 
 #[derive(Args, Clone, Debug)]
 pub struct AddPluginArgs {
@@ -54,7 +55,7 @@ pub async fn add(session: ProtoSession, args: AddPluginArgs) -> AppResult {
     println!(
         "Added plugin {} to config {}",
         color::id(&args.id),
-        color::path(config_path)
+        color::path(&config_path)
     );
 
     session.console.render(element! {

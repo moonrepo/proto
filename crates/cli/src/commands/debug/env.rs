@@ -12,7 +12,7 @@ use std::env;
 use std::path::PathBuf;
 
 #[derive(Serialize)]
-pub struct DebugEnvEnvironment {
+struct EnvironmentInfo {
     arch: HostArch,
     configs: Vec<PathBuf>,
     os: HostOS,
@@ -22,9 +22,9 @@ pub struct DebugEnvEnvironment {
 }
 
 #[derive(Serialize)]
-pub struct DebugEnvResult<'a> {
+struct DebugEnvResult<'a> {
     store: &'a Store,
-    env: DebugEnvEnvironment,
+    env: EnvironmentInfo,
 }
 
 #[derive(Args, Clone, Debug)]
@@ -38,7 +38,7 @@ pub async fn env(session: ProtoSession, args: DebugEnvArgs) -> AppResult {
     let env = &session.env;
     let manager = env.load_config_manager()?;
 
-    let environment = DebugEnvEnvironment {
+    let environment = EnvironmentInfo {
         arch: HostArch::from_env(),
         configs: manager
             .files
@@ -91,31 +91,33 @@ pub async fn env(session: ProtoSession, args: DebugEnvArgs) -> AppResult {
     session.console.render(element! {
         Container {
             Section(title: "Store") {
-                #(store_paths.into_iter().map(|(title, path)| {
+                #(store_paths.into_iter().map(|(name, path)| {
                     element! {
                         Entry(
-                            title,
-                            content: path.to_string_lossy(),
-                            style: Style::Path
+                            name,
+                            value: element! {
+                                StyledText(content: path.to_string_lossy(), style: Style::Path)
+                            }.into_any(),
                         )
                     }
                 }))
             }
             Section(title: "Environment") {
                 Entry(
-                    title: "Proto version",
+                    name: "Proto version",
                     content: environment.proto_version,
                 )
                 Entry(
-                    title: "Operating system",
+                    name: "Operating system",
                     content: environment.os.to_string(),
                 )
                 Entry(
-                    title: "Architecture",
+                    name: "Architecture",
                     content: environment.arch.to_string(),
                 )
                 Entry(
-                    title: "Config sources",
+                    name: "Config sources",
+                    no_children: environment.configs.is_empty(),
                 ) {
                     List {
                         #(environment.configs.into_iter().map(|file| {
@@ -131,7 +133,8 @@ pub async fn env(session: ProtoSession, args: DebugEnvArgs) -> AppResult {
                     }
                 }
                 Entry(
-                    title: "Virtual paths"
+                    name: "Virtual paths",
+                    no_children: environment.virtual_paths.is_empty(),
                 ) {
                     Map {
                         #(environment.virtual_paths.into_iter().map(|(host, guest)| {
@@ -150,13 +153,14 @@ pub async fn env(session: ProtoSession, args: DebugEnvArgs) -> AppResult {
                             }.into_any();
 
                             element! {
-                                MapElement(name, value)
+                                MapItem(name, value)
                             }
                         }))
                     }
                 }
                 Entry(
-                    title: "Environment variables",
+                    name: "Environment variables",
+                    no_children: environment.vars.is_empty(),
                 ) {
                     Map {
                         #(environment.vars.into_iter().map(|(name, value)| {
@@ -181,7 +185,7 @@ pub async fn env(session: ProtoSession, args: DebugEnvArgs) -> AppResult {
                             }.into_any();
 
                             element! {
-                                MapElement(name, value)
+                                MapItem(name, value)
                             }
                         }))
                     }
