@@ -1964,25 +1964,6 @@ checksum = "5a611371471e98973dbcab4e0ec66c31a10bc356eeb4d54a0e05eac8158fe38c"
 
 [[package]]
 name = "iocraft"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46c89439a9dd17d5de7215a14928efae013d1b281f177ec3bfd3c9651ad579aa"
-dependencies = [
- "any_key",
- "bitflags",
- "crossterm",
- "futures",
- "generational-box",
- "indexmap",
- "iocraft-macros",
- "taffy",
- "textwrap",
- "unicode-width 0.1.14",
- "uuid",
-]
-
-[[package]]
-name = "iocraft"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f71fdb568f761189ce852729fc68b5a1e3003da0f845619cd71b8d4721d5b5e2"
@@ -2697,7 +2678,7 @@ dependencies = [
  "extism",
  "indexmap",
  "indicatif",
- "iocraft 0.3.2",
+ "iocraft",
  "miette 7.4.0",
  "proto_core",
  "proto_installer",
@@ -3763,7 +3744,7 @@ dependencies = [
 name = "starbase_console"
 version = "0.0.1"
 dependencies = [
- "iocraft 0.4.0",
+ "iocraft",
  "miette 7.4.0",
  "parking_lot",
  "starbase_styles 0.4.7",
