@@ -1493,6 +1493,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "grid"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "be136d9dacc2a13cc70bb6c8f902b414fb2641f8db1314637c6b7933411a8f82"
+
+[[package]]
 name = "h2"
 version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1964,9 +1970,9 @@ checksum = "5a611371471e98973dbcab4e0ec66c31a10bc356eeb4d54a0e05eac8158fe38c"
 
 [[package]]
 name = "iocraft"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f71fdb568f761189ce852729fc68b5a1e3003da0f845619cd71b8d4721d5b5e2"
+checksum = "0a29048c186c9e26d2a31922c2575cbb82a7133271f178df23fd2261a7be0555"
 dependencies = [
  "any_key",
  "bitflags",
@@ -3982,7 +3988,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9cb893bff0f80ae17d3a57e030622a967b8dbc90e38284d9b4b1442e23873c94"
 dependencies = [
  "arrayvec",
+ "grid",
  "num-traits",
+ "serde",
  "slotmap",
 ]
 
