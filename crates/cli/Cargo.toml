@@ -48,7 +48,7 @@ dialoguer = "0.11.0"
 dirs = { workspace = true }
 indexmap = { workspace = true }
 indicatif = { version = "0.17.9", features = ["improved_unicode"] }
-iocraft = "0.3.2"
+iocraft = { workspace = true }
 miette = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true, features = ["rustls-tls-native-roots"] }
