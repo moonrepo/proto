@@ -22,10 +22,6 @@ impl Printer<'_> {
         self.buffer.flush().unwrap();
     }
 
-    pub fn write(&mut self, data: impl AsRef<str>) {
-        writeln!(&mut self.buffer, "{}", data.as_ref()).unwrap();
-    }
-
     pub fn line(&mut self) {
         writeln!(&mut self.buffer).unwrap();
     }
