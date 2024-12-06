@@ -120,7 +120,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
                 }
             }
 
-            item.id = tool.id;
+            item.id = tool.id.clone();
 
             Ok(item)
         });

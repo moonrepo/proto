@@ -1,19 +1,20 @@
-use crate::components::{Locator, VersionsMap};
-use crate::session::ProtoSession;
+use crate::components::{AliasesMap, Locator, VersionsMap};
+use crate::session::{LoadToolOptions, ProtoSession};
 use clap::Args;
 use iocraft::prelude::element;
-use proto_core::{Id, PluginLocator, ProtoToolConfig, ToolManifest, UnresolvedVersionSpec};
+use proto_core::{ConfigMode, Id, PluginLocator, ProtoToolConfig, ToolManifest};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_utils::json;
+use std::collections::BTreeMap;
 
 #[derive(Serialize)]
-pub struct PluginItem<'a> {
+struct PluginItem {
     name: String,
     locator: Option<PluginLocator>,
-    config: Option<&'a ProtoToolConfig>,
+    config: ProtoToolConfig,
     manifest: ToolManifest,
 }
 
@@ -34,11 +35,15 @@ pub struct ListPluginsArgs {
 
 #[tracing::instrument(skip_all)]
 pub async fn list(session: ProtoSession, args: ListPluginsArgs) -> AppResult {
-    let mut config = session.env.load_config()?.to_owned();
-    let global_config = session.env.load_config_manager()?.get_global_config()?;
+    let global_config = session.load_config_with_mode(ConfigMode::Global)?;
 
     let mut tools = session
-        .load_tools_with_filters(FxHashSet::from_iter(&args.ids))
+        .load_tools_with_options(LoadToolOptions {
+            ids: FxHashSet::from_iter(args.ids.clone()),
+            inherit_local: true,
+            inherit_remote: true,
+            ..Default::default()
+        })
         .await?;
 
     tools.sort_by(|a, d| a.id.cmp(&d.id));
@@ -47,17 +52,14 @@ pub async fn list(session: ProtoSession, args: ListPluginsArgs) -> AppResult {
     if args.json {
         let items = tools
             .into_iter()
-            .map(|t| {
-                let tool_config = config.tools.get(&t.id);
-                let name = t.get_name().to_owned();
-
+            .map(|tool| {
                 (
-                    t.id,
+                    tool.id.clone(),
                     PluginItem {
-                        name,
-                        locator: t.locator,
-                        config: tool_config,
-                        manifest: t.inventory.manifest,
+                        name: tool.get_name().to_owned(),
+                        locator: tool.locator.clone(),
+                        config: tool.config.clone(),
+                        manifest: tool.inventory.manifest.clone(),
                     },
                 )
             })
@@ -71,21 +73,10 @@ pub async fn list(session: ProtoSession, args: ListPluginsArgs) -> AppResult {
         return Ok(None);
     }
 
-    let latest_version = UnresolvedVersionSpec::default();
-
     for tool in tools {
-        let tool_config = config.tools.remove(&tool.id).unwrap_or_default();
-
-        let mut version_resolver = tool.load_version_resolver(&latest_version).await?;
-        version_resolver.aliases.extend(tool_config.aliases);
-
-        let mut versions = tool
-            .inventory
-            .manifest
-            .installed_versions
-            .iter()
-            .collect::<Vec<_>>();
-        versions.sort();
+        let mut aliases = BTreeMap::default();
+        aliases.extend(&tool.remote_aliases);
+        aliases.extend(&tool.local_aliases);
 
         session.console.render(element! {
             Container {
@@ -120,28 +111,9 @@ pub async fn list(session: ProtoSession, args: ListPluginsArgs) -> AppResult {
                         Some(element! {
                             Entry(
                                 name: "Aliases",
-                                no_children: version_resolver.aliases.is_empty()
+                                no_children: aliases.is_empty()
                             ) {
-                                Map {
-                                    #(version_resolver.aliases.iter().map(|(alias, version)| {
-                                        element! {
-                                            MapItem(
-                                                name: element! {
-                                                    StyledText(
-                                                        content: alias,
-                                                        style: Style::Id
-                                                    )
-                                                }.into_any(),
-                                                value: element! {
-                                                    StyledText(
-                                                        content: version.to_string(),
-                                                        style: Style::Hash
-                                                    )
-                                                }.into_any()
-                                            )
-                                        }
-                                    }))
-                                }
+                                AliasesMap(aliases)
                             }
                         })
                     } else {
@@ -152,12 +124,12 @@ pub async fn list(session: ProtoSession, args: ListPluginsArgs) -> AppResult {
                         Some(element! {
                             Entry(
                                 name: "Versions",
-                                no_children: versions.is_empty()
+                                no_children: tool.installed_versions.is_empty()
                             ) {
                                 VersionsMap(
                                     default_version: global_config.versions.get(&tool.id),
                                     inventory: &tool.inventory,
-                                    versions,
+                                    versions: tool.installed_versions.iter().collect::<Vec<_>>(),
                                 )
                             }
                         })

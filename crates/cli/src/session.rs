@@ -1,12 +1,14 @@
 use crate::app::{App as CLI, Commands};
 use crate::commands::clean::{internal_clean, CleanArgs};
 use crate::systems::*;
+use crate::utils::tool_record::ToolRecord;
 use async_trait::async_trait;
 use miette::IntoDiagnostic;
 use proto_core::registry::ProtoRegistry;
 use proto_core::{
-    load_schema_plugin_with_proto, load_tool_from_locator, load_tool_with_proto, Id,
-    ProtoEnvironment, Tool, PROTO_PLUGIN_KEY, SCHEMA_PLUGIN_KEY,
+    detect_version, load_schema_plugin_with_proto, load_tool_from_locator, load_tool_with_proto,
+    ConfigMode, Id, ProtoConfig, ProtoEnvironment, Tool, UnresolvedVersionSpec, PROTO_PLUGIN_KEY,
+    SCHEMA_PLUGIN_KEY,
 };
 use rustc_hash::FxHashSet;
 use starbase::{AppResult, AppSession};
@@ -14,6 +16,14 @@ use starbase_console::{Console, EmptyReporter};
 use std::sync::Arc;
 use tokio::task::JoinSet;
 use tracing::debug;
+
+#[derive(Debug, Default)]
+pub struct LoadToolOptions {
+    pub detect_version: bool,
+    pub ids: FxHashSet<Id>,
+    pub inherit_local: bool,
+    pub inherit_remote: bool,
+}
 
 pub type ProtoConsole = Console<EmptyReporter>;
 
@@ -52,26 +62,67 @@ impl ProtoSession {
         ProtoRegistry::new(Arc::clone(&self.env))
     }
 
-    pub async fn load_tool(&self, id: &Id) -> miette::Result<Tool> {
-        load_tool_with_proto(id, &self.env).await
+    pub fn load_config(&self) -> miette::Result<&ProtoConfig> {
+        self.env.load_config()
     }
 
-    pub async fn load_tools(&self) -> miette::Result<Vec<Tool>> {
-        self.load_tools_with_filters(FxHashSet::default()).await
+    pub fn load_config_with_mode(&self, mode: ConfigMode) -> miette::Result<&ProtoConfig> {
+        self.env.load_config_with_mode(mode)
     }
 
-    // pub async fn load_tools_for_versions(&self) -> miette::Result<Vec<Tool>> {
-    //     let config = self.env.load_config()?;
-    //     let filters = FxHashSet::from_iter(config.versions.keys());
+    pub async fn load_tool(&self, id: &Id) -> miette::Result<ToolRecord> {
+        self.load_tool_with_options(id, LoadToolOptions::default())
+            .await
+    }
 
-    //     self.load_tools_with_filters(filters).await
-    // }
+    #[tracing::instrument(name = "load_tool", skip(self))]
+    pub async fn load_tool_with_options(
+        &self,
+        id: &Id,
+        options: LoadToolOptions,
+    ) -> miette::Result<ToolRecord> {
+        let mut record = ToolRecord::new(load_tool_with_proto(id, &self.env).await?);
 
-    #[tracing::instrument(name = "load_tools", skip_all)]
+        if options.inherit_remote {
+            record.inherit_from_remote().await?;
+        }
+
+        if options.inherit_local {
+            record.inherit_from_local(self.load_config()?);
+        }
+
+        if options.detect_version {
+            let version = detect_version(&record.tool, None)
+                .await
+                .unwrap_or_else(|_| UnresolvedVersionSpec::parse("*").unwrap());
+
+            record.tool.resolve_version(&version, false).await?;
+        }
+
+        Ok(record)
+    }
+
+    pub async fn load_tools(&self) -> miette::Result<Vec<ToolRecord>> {
+        self.load_tools_with_options(LoadToolOptions::default())
+            .await
+    }
+
     pub async fn load_tools_with_filters(
         &self,
-        filter: FxHashSet<&Id>,
-    ) -> miette::Result<Vec<Tool>> {
+        filters: FxHashSet<&Id>,
+    ) -> miette::Result<Vec<ToolRecord>> {
+        self.load_tools_with_options(LoadToolOptions {
+            ids: filters.into_iter().cloned().collect(),
+            ..Default::default()
+        })
+        .await
+    }
+
+    #[tracing::instrument(name = "load_tools", skip(self))]
+    pub async fn load_tools_with_options(
+        &self,
+        options: LoadToolOptions,
+    ) -> miette::Result<Vec<ToolRecord>> {
         let config = self.env.load_config()?;
 
         // Download the schema plugin before loading plugins.
@@ -80,11 +131,12 @@ impl ProtoSession {
         // collide when attempting to download the schema plugin!
         load_schema_plugin_with_proto(&self.env).await?;
 
-        let mut set = JoinSet::new();
-        let mut tools = vec![];
+        let mut set = JoinSet::<miette::Result<ToolRecord>>::new();
+        let mut records = vec![];
+        let inherit_remote = options.inherit_remote;
 
         for (id, locator) in &config.plugins {
-            if !filter.is_empty() && !filter.contains(id) {
+            if !options.ids.is_empty() && !options.ids.contains(id) {
                 continue;
             }
 
@@ -97,14 +149,28 @@ impl ProtoSession {
             let locator = locator.to_owned();
             let proto = Arc::clone(&self.env);
 
-            set.spawn(async move { load_tool_from_locator(id, proto, locator).await });
+            set.spawn(async move {
+                let mut record = ToolRecord::new(load_tool_from_locator(id, proto, locator).await?);
+
+                if inherit_remote {
+                    record.inherit_from_remote().await?;
+                }
+
+                Ok(record)
+            });
         }
 
         while let Some(result) = set.join_next().await {
-            tools.push(result.into_diagnostic()??);
+            let mut record: ToolRecord = result.into_diagnostic()??;
+
+            if options.inherit_local {
+                record.inherit_from_local(config);
+            }
+
+            records.push(record);
         }
 
-        Ok(tools)
+        Ok(records)
     }
 
     pub async fn load_proto_tool(&self) -> miette::Result<Tool> {

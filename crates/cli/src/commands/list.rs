@@ -19,7 +19,7 @@ pub async fn list(session: ProtoSession, args: ListArgs) -> AppResult {
 
     debug!(manifest = ?tool.inventory.manifest.path, "Using versions from manifest");
 
-    let mut versions = Vec::from_iter(tool.inventory.manifest.installed_versions);
+    let mut versions = Vec::from_iter(&tool.inventory.manifest.installed_versions);
 
     if versions.is_empty() {
         eprintln!("No versions installed");
