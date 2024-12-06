@@ -3,13 +3,13 @@ use proto_core::PluginLocator;
 use starbase_console::ui::{Entry, Style, StyledText};
 
 #[derive(Default, Props)]
-pub struct LocatorProps {
-    pub value: Option<PluginLocator>,
+pub struct LocatorProps<'a> {
+    pub value: Option<&'a PluginLocator>,
 }
 
 #[component]
-pub fn Locator<'a>(props: &LocatorProps) -> impl Into<AnyElement<'a>> {
-    match props.value.as_ref().expect("`value` prop required!") {
+pub fn Locator<'a>(props: &LocatorProps<'a>) -> impl Into<AnyElement<'a>> {
+    match props.value.as_ref().expect("`value` prop is required!") {
         PluginLocator::File(file) => element! {
             Entry(
                 name: "Source file",

@@ -48,6 +48,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
 
     tool.resolve_version(&version, false).await?;
 
+    let global_config = session.env.load_config_manager()?.get_global_config()?;
     let mut config = session.env.load_config()?.to_owned();
     let tool_config = config.tools.remove(&tool.id).unwrap_or_default();
     let bins = tool.resolve_bin_locations(true).await?;
@@ -113,7 +114,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
 
                 #(tool.locator.as_ref().map(|locator| {
                     element! {
-                        Locator(value: locator.to_owned())
+                        Locator(value: locator)
                     }
                 }))
 
@@ -285,18 +286,11 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
                     name: "Installed versions",
                     no_children: versions.is_empty()
                 ) {
-                    List {
-                        #(versions.into_iter().map(|version| {
-                            element! {
-                                ListItem {
-                                    StyledText(
-                                        content: version.to_string(),
-                                        style: Style::Hash
-                                    )
-                                }
-                            }
-                        }))
-                    }
+                    VersionsMap(
+                        default_version: global_config.versions.get(&tool.id),
+                        inventory: &tool.inventory,
+                        versions,
+                    )
                 }
                 Entry(
                     name: "Remote aliases",
@@ -372,7 +366,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
                                         )
                                     }.into_any(),
                                     value: element! {
-                                        EnvVar(value: value.to_owned())
+                                        EnvVar(value: value)
                                     }.into_any()
                                 )
                             }
