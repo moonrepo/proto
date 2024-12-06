@@ -79,7 +79,7 @@ async fn find_versions_from_ecosystem(
 
         set.spawn(async move {
             if let Ok(Some(detected)) = tool.detect_version_from(&env.cwd).await {
-                return Some((tool.id, detected.0, detected.1));
+                return Some((tool.id.clone(), detected.0, detected.1));
             }
 
             None
@@ -132,7 +132,7 @@ async fn resolve_item_versions(
                 }
             }
 
-            (tool.id, resolved_version, product_dir)
+            (tool.id.clone(), resolved_version, product_dir)
         });
     }
 

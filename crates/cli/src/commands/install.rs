@@ -412,7 +412,7 @@ async fn install_one(session: &ProtoSession, id: &Id, args: InstallArgs) -> miet
         );
     }
 
-    Ok(tool)
+    Ok(tool.tool)
 }
 
 #[instrument(skip_all)]

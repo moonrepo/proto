@@ -110,9 +110,13 @@ impl ProtoEnvironment {
     }
 
     pub fn load_config(&self) -> miette::Result<&ProtoConfig> {
+        self.load_config_with_mode(self.config_mode)
+    }
+
+    pub fn load_config_with_mode(&self, mode: ConfigMode) -> miette::Result<&ProtoConfig> {
         let manager = self.load_config_manager()?;
 
-        match self.config_mode {
+        match mode {
             ConfigMode::Global => manager.get_global_config(),
             ConfigMode::Local => manager.get_local_config(&self.cwd),
             ConfigMode::Upwards => manager.get_merged_config_without_global(),

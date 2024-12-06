@@ -28,6 +28,14 @@ pub async fn remove(session: ProtoSession, args: RemovePluginArgs) -> AppResult 
         if let Some(plugins) = &mut config.plugins {
             plugins.remove(&args.id);
         }
+
+        if let Some(tools) = &mut config.tools {
+            tools.remove(&args.id);
+        }
+
+        if let Some(versions) = &mut config.versions {
+            versions.remove(&args.id);
+        }
     })?;
 
     session.console.render(element! {

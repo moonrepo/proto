@@ -34,7 +34,7 @@ pub fn VersionsMap<'a>(props: &VersionsMapProps<'a>) -> impl Into<AnyElement<'a>
                 }
 
                 if props.default_version.is_some_and(|dv| dv == &version.to_unresolved_spec()) {
-                    comments.push("default version".into());
+                    comments.push("fallback version".into());
                     is_default = true;
                 }
 
