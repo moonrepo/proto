@@ -4,19 +4,19 @@ use proto_core::EnvVar as EnvVarConfig;
 use starbase_console::ui::{Style, StyledText};
 
 #[derive(Default, Props)]
-pub struct EnvVarProps {
-    pub value: Option<EnvVarConfig>,
+pub struct EnvVarProps<'a> {
+    pub value: Option<&'a EnvVarConfig>,
 }
 
 #[component]
-pub fn EnvVar<'a>(props: &EnvVarProps) -> impl Into<AnyElement<'a>> {
-    match props.value.as_ref().expect("`value` prop required!") {
+pub fn EnvVar<'a>(props: &EnvVarProps<'a>) -> impl Into<AnyElement<'a>> {
+    match props.value.as_ref().expect("`value` prop is required!") {
         EnvVarConfig::State(state) => {
             if *state {
                 element! {
                     StyledText(
                         content: "true",
-                        style: Style::MutedLight
+                        style: Style::Symbol
                     )
                 }
             } else {
