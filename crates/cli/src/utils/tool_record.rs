@@ -47,6 +47,7 @@ impl ToolRecord {
 
         self.remote_aliases.extend(version_resolver.aliases);
         self.remote_versions.extend(version_resolver.versions);
+        self.remote_versions.sort();
 
         Ok(())
     }
