@@ -1,7 +1,7 @@
 use crate::components::*;
 use crate::session::{LoadToolOptions, ProtoSession};
 use clap::Args;
-use iocraft::prelude::*;
+use iocraft::prelude::element;
 use proto_core::{
     flow::locate::ExecutableLocation, ConfigMode, Id, PluginLocator, ProtoToolConfig, ToolManifest,
 };

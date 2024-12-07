@@ -1,14 +1,13 @@
 use crate::error::ProtoCliError;
 use crate::session::ProtoSession;
 use clap::Args;
-use comfy_table::presets::NOTHING;
-use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
+use iocraft::prelude::{element, Size};
 use miette::IntoDiagnostic;
 use proto_core::{Id, UnresolvedVersionSpec, VersionSpec, PROTO_PLUGIN_KEY};
 use rustc_hash::FxHashSet;
 use serde::Serialize;
 use starbase::AppResult;
-use starbase_styles::color::Style;
+use starbase_console::ui::*;
 use starbase_utils::json;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -16,19 +15,19 @@ use std::sync::Arc;
 use tokio::task::JoinSet;
 use tracing::debug;
 
-#[derive(Args, Clone, Debug)]
-pub struct StatusArgs {
-    #[arg(long, help = "Print the active tools in JSON format")]
-    json: bool,
-}
-
 #[derive(Debug, Default, Serialize)]
-pub struct StatusItem {
+struct StatusItem {
     is_installed: bool,
     config_source: PathBuf,
     config_version: UnresolvedVersionSpec,
     resolved_version: Option<VersionSpec>,
     product_dir: Option<PathBuf>,
+}
+
+#[derive(Args, Clone, Debug)]
+pub struct StatusArgs {
+    #[arg(long, help = "Print the active tools in JSON format")]
+    json: bool,
 }
 
 fn find_versions_in_configs(
@@ -171,44 +170,87 @@ pub async fn status(session: ProtoSession, args: StatusArgs) -> AppResult {
 
     // Dump all the data as JSON
     if args.json {
-        println!("{}", json::format(&items, true)?);
+        session
+            .console
+            .out
+            .write_line(json::format(&items, true)?)?;
 
         return Ok(None);
     }
 
     // Print all the data in a table
-    let mut table = Table::new();
-    table.load_preset(NOTHING);
-    table.set_content_arrangement(ContentArrangement::Dynamic);
-
-    table.set_header(vec![
-        Cell::new("Tool").add_attribute(Attribute::Bold),
-        Cell::new("Configured").add_attribute(Attribute::Bold),
-        Cell::new("Resolved").add_attribute(Attribute::Bold),
-        Cell::new("Installed").add_attribute(Attribute::Bold),
-        Cell::new("Config").add_attribute(Attribute::Bold),
-    ]);
-
-    for (id, item) in items {
-        table.add_row(vec![
-            Cell::new(id).fg(Color::AnsiValue(Style::Id.color() as u8)),
-            Cell::new(&item.config_version),
-            if let Some(version) = item.resolved_version {
-                Cell::new(version.to_string()).fg(Color::AnsiValue(Style::Success.color() as u8))
-            } else {
-                Cell::new("Invalid").fg(Color::AnsiValue(Style::MutedLight.color() as u8))
-            },
-            if let Some(dir) = item.product_dir {
-                Cell::new(dir.to_string_lossy()).fg(Color::AnsiValue(Style::Path.color() as u8))
-            } else {
-                Cell::new("No").fg(Color::AnsiValue(Style::MutedLight.color() as u8))
-            },
-            Cell::new(item.config_source.to_string_lossy())
-                .fg(Color::AnsiValue(Style::Path.color() as u8)),
-        ]);
-    }
-
-    println!("\n{table}\n");
+    session.console.render(element! {
+        Container {
+            Table(
+                headers: vec![
+                    TableHeader::new("Tool", Size::Percent(10.0)),
+                    TableHeader::new("Configured", Size::Percent(10.0)),
+                    TableHeader::new("Resolved", Size::Percent(10.0)),
+                    TableHeader::new("Installed", Size::Percent(35.0)),
+                    TableHeader::new("Config", Size::Percent(35.0)),
+                ]
+            ) {
+                #(items.into_iter().enumerate().map(|(i, (id, item))| {
+                    element! {
+                        TableRow(row: i as i32) {
+                            TableCol(col: 0) {
+                                StyledText(
+                                    content: id.to_string(),
+                                    style: Style::Id
+                                )
+                            }
+                            TableCol(col: 1) {
+                                StyledText(
+                                    content: item.config_version.to_string(),
+                                    style: Style::Hash
+                                )
+                            }
+                            TableCol(col: 2) {
+                                #(if let Some(version) = item.resolved_version {
+                                    element! {
+                                        StyledText(
+                                            content: version.to_string(),
+                                            style: Style::Shell
+                                        )
+                                    }
+                                } else {
+                                    element! {
+                                        StyledText(
+                                            content: "Invalid",
+                                            style: Style::MutedLight
+                                        )
+                                    }
+                                })
+                            }
+                            TableCol(col: 3) {
+                                #(if let Some(dir) = item.product_dir {
+                                    element! {
+                                        StyledText(
+                                            content: dir.to_string_lossy(),
+                                            style: Style::Path
+                                        )
+                                    }
+                                } else {
+                                    element! {
+                                        StyledText(
+                                            content: "No",
+                                            style: Style::MutedLight
+                                        )
+                                    }
+                                })
+                            }
+                            TableCol(col: 4) {
+                                StyledText(
+                                    content: item.config_source.to_string_lossy(),
+                                    style: Style::Path
+                                )
+                            }
+                        }
+                    }
+                }))
+            }
+        }
+    })?;
 
     Ok(None)
 }
