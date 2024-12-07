@@ -3,7 +3,6 @@ mod commands;
 mod components;
 mod error;
 mod helpers;
-mod printer;
 mod session;
 mod shell;
 mod systems;
