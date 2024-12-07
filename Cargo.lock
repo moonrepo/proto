@@ -1244,6 +1244,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "flume"
+version = "0.11.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da0e4dd2a88388a1f4ccc7c9ce104604dab68d9f408dc34cd45823d5a9069095"
+dependencies = [
+ "futures-core",
+ "futures-sink",
+ "nanorand",
+ "spin",
+]
+
+[[package]]
 name = "fnv"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1447,8 +1459,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c4567c8db10ae91089c99af84c68c38da3ec2f087c3f82960bcdbf3656b6f4d7"
 dependencies = [
  "cfg-if",
+ "js-sys",
  "libc",
  "wasi",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -1988,10 +2002,29 @@ dependencies = [
 ]
 
 [[package]]
-name = "iocraft-macros"
-version = "0.1.7"
+name = "iocraft"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd89a0706c7f66bbc9b5049c67a94937e12ae233c4d94c97cdce180772902a1a"
+checksum = "28afcf27882ff64c5270876fcbc6ceb702f1d5d543ed314d4934c978dceff9a4"
+dependencies = [
+ "any_key",
+ "bitflags",
+ "crossterm",
+ "futures",
+ "generational-box",
+ "indexmap",
+ "iocraft-macros",
+ "taffy",
+ "textwrap",
+ "unicode-width 0.1.14",
+ "uuid",
+]
+
+[[package]]
+name = "iocraft-macros"
+version = "0.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7d0e726dcb066433b8c3f9c3fb49df64428fbd33777099be6426ab691fa38e33"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2364,6 +2397,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a785740271256c230f57462d3b83e52f998433a7062fc18f96d5999474a9f915"
 
 [[package]]
+name = "nanorand"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a51313c5820b0b02bd422f4b44776fbf47961755c74ce64afc73bfad10226c3"
+dependencies = [
+ "getrandom",
+]
+
+[[package]]
 name = "nix"
 version = "0.27.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2684,7 +2726,7 @@ dependencies = [
  "extism",
  "indexmap",
  "indicatif",
- "iocraft",
+ "iocraft 0.4.1",
  "miette 7.4.0",
  "proto_core",
  "proto_installer",
@@ -2702,7 +2744,7 @@ dependencies = [
  "starbase_console",
  "starbase_sandbox",
  "starbase_shell",
- "starbase_styles 0.4.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "starbase_styles 0.4.7",
  "starbase_utils",
  "sysinfo",
  "system_env",
@@ -2749,7 +2791,7 @@ dependencies = [
  "shell-words",
  "starbase_archive",
  "starbase_sandbox",
- "starbase_styles 0.4.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "starbase_styles 0.4.7",
  "starbase_utils",
  "thiserror 2.0.4",
  "tokio",
@@ -2767,7 +2809,7 @@ dependencies = [
  "miette 7.4.0",
  "reqwest",
  "starbase_archive",
- "starbase_styles 0.4.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "starbase_styles 0.4.7",
  "starbase_utils",
  "system_env",
  "thiserror 2.0.4",
@@ -3337,7 +3379,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_path_to_error",
- "starbase_styles 0.4.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "starbase_styles 0.4.7",
  "thiserror 2.0.4",
  "toml",
  "tracing",
@@ -3680,6 +3722,9 @@ name = "spin"
 version = "0.9.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6980e8d7511241f8acf4aebddbb1ff938df5eebe98691418c4468d0b72a96a67"
+dependencies = [
+ "lock_api",
+]
 
 [[package]]
 name = "sptr"
@@ -3719,7 +3764,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "miette 7.4.0",
- "starbase_styles 0.4.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "starbase_styles 0.4.7",
  "tokio",
  "tracing",
  "tracing-chrome",
@@ -3737,7 +3782,7 @@ dependencies = [
  "flate2",
  "miette 7.4.0",
  "rustc-hash",
- "starbase_styles 0.4.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "starbase_styles 0.4.7",
  "starbase_utils",
  "thiserror 2.0.4",
  "tracing",
@@ -3748,12 +3793,15 @@ dependencies = [
 
 [[package]]
 name = "starbase_console"
-version = "0.0.1"
+version = "0.1.0"
 dependencies = [
- "iocraft",
+ "crossterm",
+ "flume",
+ "iocraft 0.5.0",
  "miette 7.4.0",
  "parking_lot",
- "starbase_styles 0.4.7",
+ "starbase_styles 0.4.8",
+ "tokio",
  "tracing",
 ]
 
@@ -3788,20 +3836,20 @@ dependencies = [
 [[package]]
 name = "starbase_styles"
 version = "0.4.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1315c7a42b187ea3006f6b94bc4fed5c98de6077e6651ab295c6122fa7c8af05"
 dependencies = [
  "dirs 5.0.1",
+ "miette 7.4.0",
  "owo-colors",
  "supports-color",
 ]
 
 [[package]]
 name = "starbase_styles"
-version = "0.4.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1315c7a42b187ea3006f6b94bc4fed5c98de6077e6651ab295c6122fa7c8af05"
+version = "0.4.8"
 dependencies = [
  "dirs 5.0.1",
- "miette 7.4.0",
  "owo-colors",
  "supports-color",
 ]
@@ -3822,7 +3870,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
- "starbase_styles 0.4.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "starbase_styles 0.4.7",
  "thiserror 2.0.4",
  "tokio",
  "toml",
@@ -4536,7 +4584,7 @@ dependencies = [
  "sha2",
  "starbase_archive",
  "starbase_sandbox",
- "starbase_styles 0.4.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "starbase_styles 0.4.7",
  "starbase_utils",
  "system_env",
  "thiserror 2.0.4",

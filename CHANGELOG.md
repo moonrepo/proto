@@ -10,6 +10,12 @@
 - [Rust](https://github.com/moonrepo/tools/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/tools/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 💥 Breaking
+
+- Removed the `--global` option from `proto alias`, `unalias`, use `--to` or `--from` instead.
+
 ## 0.43.2
 
 #### 🐞 Fixes
