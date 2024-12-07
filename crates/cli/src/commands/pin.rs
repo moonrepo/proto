@@ -1,9 +1,10 @@
 use crate::helpers::{map_pin_type, PinOption};
 use crate::session::ProtoSession;
 use clap::Args;
+use iocraft::prelude::element;
 use proto_core::{Id, PinLocation, ProtoConfig, Tool, UnresolvedVersionSpec};
 use starbase::AppResult;
-use starbase_styles::color;
+use starbase_console::ui::*;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 use tracing::debug;
@@ -16,13 +17,10 @@ pub struct PinArgs {
     #[arg(required = true, help = "Version or alias of tool")]
     pub spec: UnresolvedVersionSpec,
 
-    #[arg(long, group = "pin", help = "Pin to the global ~/.proto/.prototools")]
-    pub global: bool,
-
     #[arg(long, help = "Resolve the version before pinning")]
     pub resolve: bool,
 
-    #[arg(long, group = "pin", help = "Location of .prototools to pin to")]
+    #[arg(long, help = "Location of .prototools to pin to")]
     pub to: Option<PinOption>,
 }
 
@@ -59,14 +57,30 @@ pub async fn pin(session: ProtoSession, args: PinArgs) -> AppResult {
         args.spec.clone()
     };
 
-    let config_path = internal_pin(&mut tool, &spec, map_pin_type(args.global, args.to)).await?;
+    let config_path = internal_pin(&mut tool, &spec, map_pin_type(false, args.to)).await?;
 
-    println!(
-        "Pinned {} to {} in {}",
-        tool.get_name(),
-        color::hash(args.spec.to_string()),
-        color::path(config_path),
-    );
+    session.console.render(element! {
+        Notice(variant: Variant::Success) {
+            StyledText(
+                content: if spec != args.spec {
+                    format!(
+                        "Pinned <id>{}</id> version <hash>{}</hash> (resolved from <hash>{}</hash>) to config <path>{}</path>",
+                        args.id,
+                        spec,
+                        args.spec,
+                        config_path.display()
+                    )
+                } else {
+                    format!(
+                        "Pinned <id>{}</id> version <hash>{}</hash> to config <path>{}</path>",
+                        args.id,
+                        args.spec,
+                        config_path.display()
+                    )
+                },
+            )
+        }
+    })?;
 
     Ok(None)
 }

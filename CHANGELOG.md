@@ -14,7 +14,7 @@
 
 #### 💥 Breaking
 
-- Removed the `--global` option from `proto alias`, `unalias`, use `--to` or `--from` instead.
+- Removed the `--global` option from `proto alias`, `unalias`, `pin`, and `unpin`, use `--to` or `--from` instead.
 
 ## 0.43.1
 
