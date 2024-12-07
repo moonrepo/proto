@@ -6,6 +6,7 @@ use dialoguer::{
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use miette::IntoDiagnostic;
 use proto_core::PinLocation;
+use semver::Version;
 use starbase_styles::color::{self, Color};
 use starbase_utils::env::bool_var;
 use std::{io::IsTerminal, time::Duration};
@@ -176,7 +177,7 @@ pub fn print_progress_state(pb: &ProgressBar, message: String) {
     }
 }
 
-pub async fn fetch_latest_version() -> miette::Result<String> {
+pub async fn fetch_latest_version() -> miette::Result<Version> {
     let version = reqwest::get("https://raw.githubusercontent.com/moonrepo/proto/master/version")
         .await
         .into_diagnostic()?
@@ -188,5 +189,5 @@ pub async fn fetch_latest_version() -> miette::Result<String> {
 
     debug!("Found latest version {}", color::hash(&version));
 
-    Ok(version)
+    Ok(Version::parse(&version).unwrap())
 }

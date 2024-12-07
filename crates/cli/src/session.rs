@@ -11,6 +11,7 @@ use proto_core::{
     SCHEMA_PLUGIN_KEY,
 };
 use rustc_hash::FxHashSet;
+use semver::Version;
 use starbase::{AppResult, AppSession};
 use starbase_console::{Console, EmptyReporter};
 use std::sync::Arc;
@@ -30,7 +31,7 @@ pub type ProtoConsole = Console<EmptyReporter>;
 #[derive(Clone)]
 pub struct ProtoSession {
     pub cli: CLI,
-    pub cli_version: String,
+    pub cli_version: Version,
     pub console: ProtoConsole,
     pub env: Arc<ProtoEnvironment>,
 }
@@ -39,7 +40,7 @@ impl ProtoSession {
     pub fn new(cli: CLI) -> Self {
         Self {
             cli,
-            cli_version: env!("CARGO_PKG_VERSION").to_owned(),
+            cli_version: Version::parse(env!("CARGO_PKG_VERSION")).unwrap(),
             console: Console::new(false),
             env: Arc::new(ProtoEnvironment::default()),
         }
@@ -202,7 +203,7 @@ impl AppSession for ProtoSession {
         clean_proto_backups(&self.env)?;
 
         if self.should_check_for_new_version() {
-            check_for_new_version(Arc::clone(&self.env)).await?;
+            check_for_new_version(Arc::clone(&self.env), &self.cli_version).await?;
         }
 
         Ok(None)

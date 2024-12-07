@@ -3,7 +3,6 @@ use crate::helpers::fetch_latest_version;
 use crate::session::ProtoSession;
 use clap::Args;
 use iocraft::prelude::{element, Box, Text};
-use semver::Version;
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;
@@ -202,7 +201,7 @@ async fn gather_warnings(
     let current_version = &session.cli_version;
     let latest_version = fetch_latest_version().await?;
 
-    if Version::parse(current_version).unwrap() < Version::parse(&latest_version).unwrap() {
+    if current_version < &latest_version {
         warnings.push(Issue {
             issue: format!(
                 "Current proto version <hash>{current_version}</hash> is outdated, latest is <hash>{latest_version}</hash>",
