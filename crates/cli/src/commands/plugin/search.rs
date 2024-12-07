@@ -1,6 +1,6 @@
 use crate::session::ProtoSession;
 use clap::Args;
-use iocraft::prelude::*;
+use iocraft::prelude::{element, Box, FlexDirection, Size, Text};
 use proto_core::registry::{PluginAuthor, PluginFormat};
 use proto_core::PluginLocator;
 use starbase::AppResult;

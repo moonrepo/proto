@@ -1,6 +1,6 @@
 use crate::session::ProtoSession;
 use clap::Args;
-use iocraft::prelude::*;
+use iocraft::prelude::element;
 use proto_core::{Id, PinLocation, PluginLocator, ProtoConfig};
 use starbase::AppResult;
 use starbase_console::ui::*;
