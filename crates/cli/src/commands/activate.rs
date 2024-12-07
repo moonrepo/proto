@@ -173,7 +173,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     }
 
     if args.json {
-        println!("{}", json::format(&info, true)?);
+        session.console.out.write_line(json::format(&info, true)?)?;
 
         return Ok(None);
     }

@@ -56,7 +56,7 @@ pub async fn search(session: ProtoSession, args: SearchPluginArgs) -> AppResult 
         Container {
             Box(padding_top: 1, padding_left: 1, flex_direction: FlexDirection::Column) {
                 StyledText(
-                    content: format!("Search results for: <shell>{query}</shell>"),
+                    content: format!("Search results for: <label>{query}</label>"),
                 )
                 StyledText(
                     content: "Learn more about plugins: <url>https://moonrepo.dev/docs/proto/plugins</url>"
