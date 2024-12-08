@@ -22,12 +22,12 @@ pub struct BinArgs {
 #[tracing::instrument(skip_all)]
 pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
     if args.id == PROTO_PLUGIN_KEY {
-        println!(
-            "{}",
+        session.console.out.write_line(
             locate_proto_exe("proto")
                 .unwrap_or(session.env.store.bin_dir.join(get_exe_file_name("proto")))
                 .display()
-        );
+                .to_string(),
+        )?;
 
         return Ok(None);
     }
@@ -42,7 +42,11 @@ pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
 
         for bin in tool.resolve_bin_locations(false).await? {
             if bin.config.primary {
-                println!("{}", bin.path.display());
+                session
+                    .console
+                    .out
+                    .write_line(bin.path.display().to_string())?;
+
                 return Ok(None);
             }
         }
@@ -53,13 +57,20 @@ pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
 
         for shim in tool.resolve_shim_locations().await? {
             if shim.config.primary {
-                println!("{}", shim.path.display());
+                session
+                    .console
+                    .out
+                    .write_line(shim.path.display().to_string())?;
+
                 return Ok(None);
             }
         }
     }
 
-    println!("{}", tool.locate_exe_file().await?.display());
+    session
+        .console
+        .out
+        .write_line(tool.locate_exe_file().await?.display().to_string())?;
 
     Ok(None)
 }

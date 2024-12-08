@@ -7,10 +7,14 @@ use crate::telemetry::{track_usage, Metric};
 use crate::utils::install_graph::*;
 use clap::Args;
 use indicatif::ProgressBar;
+use iocraft::prelude::{element, Box as UiBox};
 use proto_core::flow::install::{InstallOptions, InstallPhase};
-use proto_core::{Id, PinLocation, Tool, UnresolvedVersionSpec, VersionSpec, PROTO_PLUGIN_KEY};
+use proto_core::{
+    ConfigMode, Id, PinLocation, Tool, UnresolvedVersionSpec, VersionSpec, PROTO_PLUGIN_KEY,
+};
 use proto_pdk_api::{InstallHook, SyncShellProfileInput, SyncShellProfileOutput};
 use starbase::AppResult;
+use starbase_console::ui::*;
 use starbase_shell::ShellType;
 use starbase_styles::color;
 use std::collections::BTreeMap;
@@ -60,7 +64,7 @@ pub struct InstallArgs {
 }
 
 impl InstallArgs {
-    fn get_pin_type(&self) -> Option<PinLocation> {
+    fn get_pin_location(&self) -> Option<PinLocation> {
         self.pin.as_ref().map(|pin| match pin {
             Some(PinOption::Global) => PinLocation::Global,
             Some(PinOption::User) => PinLocation::User,
@@ -97,7 +101,7 @@ pub fn enforce_requirements(
 async fn pin_version(
     tool: &mut Tool,
     initial_version: &UnresolvedVersionSpec,
-    arg_pin_type: &Option<PinLocation>,
+    arg_pin_to: &Option<PinLocation>,
 ) -> miette::Result<bool> {
     // Don't pin the proto tool itself as it's internal only
     if tool.id.as_str() == PROTO_PLUGIN_KEY {
@@ -106,30 +110,30 @@ async fn pin_version(
 
     let config = tool.proto.load_config()?;
     let spec = tool.get_resolved_version().to_unresolved_spec();
-    let mut pin_type = PinLocation::Local;
+    let mut pin_to = PinLocation::Local;
     let mut pin = false;
 
     // via `--pin` arg
-    if let Some(custom_type) = arg_pin_type {
-        pin_type = *custom_type;
+    if let Some(custom_type) = arg_pin_to {
+        pin_to = *custom_type;
         pin = true;
     }
     // Or the first time being installed
-    else if !config.versions.contains_key(&tool.id) {
-        pin_type = PinLocation::Global;
+    else if !tool.inventory.dir.exists() {
+        pin_to = PinLocation::Global;
         pin = true;
     }
 
     // via `pin-latest` setting
     if initial_version.is_latest() {
         if let Some(custom_type) = &config.settings.pin_latest {
-            pin_type = *custom_type;
+            pin_to = *custom_type;
             pin = true;
         }
     }
 
     if pin {
-        internal_pin(tool, &spec, pin_type).await?;
+        internal_pin(tool, &spec, pin_to).await?;
     }
 
     Ok(pin)
@@ -202,7 +206,7 @@ async fn update_shell(tool: &Tool, passthrough_args: Vec<String>) -> miette::Res
             &exported_content,
             &output.check_var,
         )? {
-            println!(
+            debug!(
                 "Added {} to shell profile {}",
                 color::property(output.check_var),
                 color::path(updated_profile)
@@ -220,7 +224,7 @@ pub async fn do_install(
     pb: &ProgressBar,
 ) -> miette::Result<bool> {
     let version = args.get_unresolved_spec();
-    let pin_type = args.get_pin_type();
+    let pin_type = args.get_pin_location();
     let name = tool.get_name().to_owned();
 
     let finish_pb = |installed: bool, resolved_version: &VersionSpec| {
@@ -390,26 +394,38 @@ async fn install_one(session: &ProtoSession, id: &Id, args: InstallArgs) -> miet
 
     // Load config including global versions,
     // so that our requirements can be satisfied
-    let config = session.env.load_config_manager()?.get_merged_config()?;
+    let config = session.load_config_with_mode(ConfigMode::UpwardsGlobal)?;
 
     enforce_requirements(&tool, &config.versions)?;
 
     let pb = create_progress_bar(format!("Installing {}", tool.get_name()));
 
     if do_install(&mut tool, args, &pb).await? {
-        println!(
-            "{} {} has been installed to {}!",
-            tool.get_name(),
-            tool.get_resolved_version(),
-            color::path(tool.get_product_dir()),
-        );
+        session.console.render(element! {
+            Notice(variant: Variant::Success) {
+                StyledText(
+                    content: format!(
+                        "{} <hash>{}</hash> has been installed to <path>{}</path>!",
+                        tool.get_name(),
+                        tool.get_resolved_version(),
+                        tool.get_product_dir().display(),
+                    ),
+                )
+            }
+        })?;
     } else {
-        println!(
-            "{} {} has already been installed at {}",
-            tool.get_name(),
-            tool.get_resolved_version(),
-            color::path(tool.get_product_dir()),
-        );
+        session.console.render(element! {
+            Notice(variant: Variant::Info) {
+                StyledText(
+                    content: format!(
+                        "{} <hash>{}</hash> has already been installed at <path>{}</path>!",
+                        tool.get_name(),
+                        tool.get_resolved_version(),
+                        tool.get_product_dir().display(),
+                    ),
+                )
+            }
+        })?;
     }
 
     Ok(tool.tool)
@@ -423,7 +439,7 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
 
     debug!("Detecting tool versions to install");
 
-    let mut versions = session.env.load_config()?.versions.to_owned();
+    let mut versions = session.load_config()?.versions.to_owned();
     versions.remove(PROTO_PLUGIN_KEY);
 
     for tool in &tools {
@@ -439,7 +455,27 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
     }
 
     if versions.is_empty() {
-        eprintln!("No versions have been configured, nothing to install!");
+        session.console.render(element! {
+            Notice(variant: Variant::Caution) {
+                StyledText(
+                    content: "No versions have been configured, nothing to install!",
+                )
+                #(if session.env.config_mode == ConfigMode::UpwardsGlobal {
+                    None
+                } else {
+                    Some(element! {
+                        UiBox(margin_top: 1) {
+                            StyledText(
+                                content: format!(
+                                    "Configuration has been loaded in <symbol>{}</symbol> mode. Try changing the mode with <property>--config-mode</property> to include other pinned versions.",
+                                    session.env.config_mode
+                                )
+                            )
+                        }
+                    })
+                })
+            }
+        })?;
 
         return Ok(Some(1));
     }
@@ -564,11 +600,17 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
     // When no TTY, we should display something to the user!
     if mpb.is_hidden() {
         if installed_count > 0 {
-            println!("Successfully installed {} tools!", installed_count);
+            session
+                .console
+                .out
+                .write_line(format!("Successfully installed {} tools!", installed_count))?;
         }
 
         if failed_count > 0 {
-            println!("Failed to install {} tools!", failed_count);
+            session
+                .console
+                .out
+                .write_line(format!("Failed to install {} tools!", failed_count))?;
         }
     }
 

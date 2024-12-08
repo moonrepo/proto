@@ -27,9 +27,9 @@ pub struct PinArgs {
 pub async fn internal_pin(
     tool: &mut Tool,
     spec: &UnresolvedVersionSpec,
-    pin: PinLocation,
+    pin_to: PinLocation,
 ) -> miette::Result<PathBuf> {
-    let config_path = ProtoConfig::update(tool.proto.get_config_dir(pin), |config| {
+    let config_path = ProtoConfig::update(tool.proto.get_config_dir(pin_to), |config| {
         config
             .versions
             .get_or_insert(BTreeMap::default())
