@@ -7,7 +7,7 @@ use crate::telemetry::{track_usage, Metric};
 use crate::utils::install_graph::*;
 use clap::Args;
 use indicatif::ProgressBar;
-use iocraft::prelude::{element, Box as UiBox};
+use iocraft::prelude::element;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
 use proto_core::{
     ConfigMode, Id, PinLocation, Tool, UnresolvedVersionSpec, VersionSpec, PROTO_PLUGIN_KEY,
@@ -464,7 +464,7 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
                     None
                 } else {
                     Some(element! {
-                        UiBox(margin_top: 1) {
+                        View(margin_top: 1) {
                             StyledText(
                                 content: format!(
                                     "Configuration has been loaded in <symbol>{}</symbol> mode. Try changing the mode with <property>--config-mode</property> to include other pinned versions.",
