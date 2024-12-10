@@ -150,7 +150,7 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
                 .await?;
 
             Result::<_, miette::Report>::Ok((
-                tool.id,
+                tool.id.clone(),
                 OutdatedItem {
                     is_latest: current_version == latest_version,
                     is_outdated: newest_version > current_version
