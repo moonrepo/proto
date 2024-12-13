@@ -120,6 +120,8 @@ export interface ToolMetadataOutput {
 	name: string;
 	/** Version of the plugin. */
 	pluginVersion?: string | null;
+	/** Other plugins that this plugin requires. */
+	requires?: string[];
 	/**
 	 * Names of commands that will self-upgrade the tool,
 	 * and should be blocked from happening.

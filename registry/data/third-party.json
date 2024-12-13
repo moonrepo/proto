@@ -270,6 +270,19 @@
       ]
     },
     {
+      "id": "flux",
+      "locator": "https://raw.githubusercontent.com/b4nst/proto-plugins/refs/heads/main/toml/flux.toml",
+      "format": "toml",
+      "name": "flux",
+      "description": "Flux is a set of continuous and progressive delivery solutions for Kubernetes that are open and extensible.",
+      "author": "b4nst",
+      "homepageUrl": "https://fluxcd.io/",
+      "repositoryUrl": "https://github.com/b4nst/proto-plugins/blob/main/toml/flux.toml",
+      "bins": [
+        "flux"
+      ]
+    },
+    {
       "id": "fly",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/flyctl/plugin.toml",
       "format": "toml",
@@ -346,6 +359,19 @@
       "repositoryUrl": "https://github.com/stk0vrfl0w/proto-toml-plugins/blob/main/plugins/gojq.toml",
       "bins": [
         "gojq"
+      ]
+    },
+    {
+      "id": "golangci-lint",
+      "locator": "https://raw.githubusercontent.com/b4nst/proto-plugins/refs/heads/main/toml/golangci-lint.toml",
+      "format": "toml",
+      "name": "golangci-lint",
+      "description": "Fast linters runner for Go.",
+      "author": "b4nst",
+      "homepageUrl": "https://golangci-lint.run/",
+      "repositoryUrl": "https://github.com/b4nst/proto-plugins/blob/main/toml/golangci-lint.toml",
+      "bins": [
+        "golangci-lint"
       ]
     },
     {
@@ -746,6 +772,19 @@
       "repositoryUrl": "https://github.com/milesj/proto-plugins/blob/master/pkl.toml",
       "bins": [
         "pkl"
+      ]
+    },
+    {
+      "id": "protoc",
+      "locator": "https://raw.githubusercontent.com/b4nst/proto-plugins/refs/heads/main/toml/protoc.toml",
+      "format": "toml",
+      "name": "protoc",
+      "description": "Protocol Buffers - Google's data interchange format.",
+      "author": "b4nst",
+      "homepageUrl": "https://github.com/protocolbuffers/protobuf",
+      "repositoryUrl": "https://github.com/b4nst/proto-plugins/blob/main/toml/protoc.toml",
+      "bins": [
+        "protoc"
       ]
     },
     {
