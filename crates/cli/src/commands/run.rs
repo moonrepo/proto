@@ -8,6 +8,7 @@ use proto_core::{detect_version, Id, ProtoError, Tool, UnresolvedVersionSpec};
 use proto_pdk_api::{ExecutableConfig, RunHook, RunHookResult};
 use proto_shim::exec_command_and_replace;
 use starbase::AppResult;
+use starbase_utils::fs;
 use std::env;
 use std::ffi::OsStr;
 use std::process::Command;
@@ -213,6 +214,11 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
     let hook_result = if tool.plugin.has_func("pre_run").await {
         let globals_dir = tool.locate_globals_dir().await?;
         let globals_prefix = tool.locate_globals_prefix().await?;
+
+        // Ensure directory exists as some tools require it
+        if let Some(dir) = &globals_dir {
+            let _ = fs::create_dir_all(dir);
+        }
 
         tool.plugin
             .call_func_with(
