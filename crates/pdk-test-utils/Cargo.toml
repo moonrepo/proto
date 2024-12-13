@@ -8,7 +8,7 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
-proto_core = { version = "0.43.8", path = "../core" }
+proto_core = { version = "0.43.9", path = "../core" }
 proto_pdk_api = { version = "0.24.5", path = "../pdk-api" }
 warpgate = { version = "0.20.1", path = "../warpgate" }
 # extism = { workspace = true }
