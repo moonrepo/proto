@@ -10,6 +10,13 @@
 - [Rust](https://github.com/moonrepo/tools/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/tools/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed an issue where the globals directory may not exist for the `pre_run` hook.
+- Fixed invalid Nushell syntax generated from `proto activate`.
+
 ## 0.43.1
 
 #### 🐞 Fixes
