@@ -9,17 +9,16 @@ def _proto_activate_hook [] {
 
   $data | get env | items { |k, v|
     if $v == null {
-        hide_env $k
+        hide-env $k
     } else {
         load-env { ($k): $v }
     }
   }
 
-  let path_list = $env.__ORIG_PATH | split row (char esep)
-
-  $data | get paths | reverse | each { |p|
-    let path_list = ($path_list | prepend $p)
-  }
+  let path_list = [
+    ...($data | get paths | default [])
+    ...($env.__ORIG_PATH | split row (char esep))
+  ];
 
   $env.PATH = ($path_list | uniq)
 }
