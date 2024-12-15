@@ -1,13 +1,11 @@
-use crate::helpers::create_theme;
 use crate::session::ProtoSession;
 use clap::Args;
-use dialoguer::Confirm;
-use miette::IntoDiagnostic;
-use proto_core::PROTO_PLUGIN_KEY;
-use proto_core::{Id, ProtoError, Tool, VersionSpec};
+use iocraft::prelude::element;
+use proto_core::{Id, ProtoError, Tool, VersionSpec, PROTO_PLUGIN_KEY};
 use proto_shim::get_exe_file_name;
 use rustc_hash::FxHashSet;
 use starbase::AppResult;
+use starbase_console::ui::*;
 use starbase_styles::color;
 use starbase_utils::fs;
 use std::io::stdout;
@@ -47,7 +45,13 @@ fn is_older_than_days(now: u128, other: u128, days: u8) -> bool {
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miette::Result<usize> {
+pub async fn clean_tool(
+    session: &ProtoSession,
+    mut tool: Tool,
+    now: u128,
+    days: u8,
+    yes: bool,
+) -> miette::Result<usize> {
     println!("Checking {}", color::shell(tool.get_name()));
 
     if tool.metadata.inventory.override_dir.is_some() {
@@ -135,6 +139,7 @@ pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miett
 
     let count = versions_to_clean.len();
     let mut clean_count = 0;
+    let mut confirmed = false;
 
     if count == 0 {
         debug!("No versions to remove, continuing to next tool");
@@ -142,20 +147,25 @@ pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miett
         return Ok(0);
     }
 
-    if yes
-        || Confirm::with_theme(&create_theme())
-            .with_prompt(format!(
-                "Found {} versions, remove {}?",
-                count,
-                versions_to_clean
-                    .iter()
-                    .map(|v| color::hash(v.to_string()))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ))
-            .interact()
-            .into_diagnostic()?
-    {
+    session
+        .console
+        .render_interactive(element! {
+            Confirm(
+                label: format!(
+                    "Found {} versions, remove {}?",
+                    count,
+                    versions_to_clean
+                        .iter()
+                        .map(|v| format!("<hash>{v}</hash>"))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ),
+                value: &mut confirmed,
+            )
+        })
+        .await?;
+
+    if yes || confirmed {
         for version in versions_to_clean {
             tool.set_version(version);
             tool.teardown().await?;
@@ -237,17 +247,23 @@ pub async fn clean_proto(session: &ProtoSession, days: u64) -> miette::Result<us
 pub async fn purge_tool(session: &ProtoSession, id: &Id, yes: bool) -> miette::Result<Tool> {
     let tool = session.load_tool(id).await?;
     let inventory_dir = tool.get_inventory_dir();
+    let mut confirmed = false;
 
-    if yes
-        || Confirm::with_theme(&create_theme())
-            .with_prompt(format!(
-                "Purge all of {} at {}?",
-                tool.get_name(),
-                color::path(&inventory_dir)
-            ))
-            .interact()
-            .into_diagnostic()?
-    {
+    session
+        .console
+        .render_interactive(element! {
+            Confirm(
+                label: format!(
+                    "Purge all of {} at <path>{}</path>?",
+                    tool.get_name(),
+                    inventory_dir.display()
+                ),
+                value: &mut confirmed,
+            )
+        })
+        .await?;
+
+    if yes || confirmed {
         // Delete inventory
         fs::remove_dir_all(inventory_dir)?;
 
@@ -270,16 +286,22 @@ pub async fn purge_tool(session: &ProtoSession, id: &Id, yes: bool) -> miette::R
 #[tracing::instrument(skip_all)]
 pub async fn purge_plugins(session: &ProtoSession, yes: bool) -> AppResult {
     let plugins_dir = &session.env.store.plugins_dir;
+    let mut confirmed = false;
 
-    if yes
-        || Confirm::with_theme(&create_theme())
-            .with_prompt(format!(
-                "Purge all plugins in {}?",
-                color::path(plugins_dir)
-            ))
-            .interact()
-            .into_diagnostic()?
-    {
+    session
+        .console
+        .render_interactive(element! {
+            Confirm(
+                label: format!(
+                    "Purge all plugins in <path>{}</path>?",
+                    plugins_dir.display()
+                ),
+                value: &mut confirmed,
+            )
+        })
+        .await?;
+
+    if yes || confirmed {
         fs::remove_dir_all(plugins_dir)?;
         fs::create_dir_all(plugins_dir)?;
 
@@ -305,7 +327,7 @@ pub async fn internal_clean(
     debug!("Finding installed tools to clean up...");
 
     for tool in session.load_tools().await? {
-        clean_count += clean_tool(tool.tool, now, days, yes).await?;
+        clean_count += clean_tool(&session, tool.tool, now, days, yes).await?;
     }
 
     clean_count += clean_proto(session, days as u64).await?;

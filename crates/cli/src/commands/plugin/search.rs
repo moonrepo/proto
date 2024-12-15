@@ -64,8 +64,8 @@ pub async fn search(session: ProtoSession, args: SearchPluginArgs) -> AppResult 
             }
             Table(
                 headers: vec![
-                    TableHeader::new("Plugin", Size::Percent(8.0)),
-                    TableHeader::new("Author", Size::Percent(10.0)),
+                    TableHeader::new("Plugin", Size::Percent(10.0)),
+                    TableHeader::new("Author", Size::Percent(8.0)),
                     TableHeader::new("Format", Size::Percent(5.0)),
                     TableHeader::new("Description", Size::Percent(20.0)),
                     TableHeader::new("Locator", Size::Percent(57.0)),
