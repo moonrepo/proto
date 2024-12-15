@@ -327,7 +327,7 @@ pub async fn internal_clean(
     debug!("Finding installed tools to clean up...");
 
     for tool in session.load_tools().await? {
-        clean_count += clean_tool(&session, tool.tool, now, days, yes).await?;
+        clean_count += clean_tool(session, tool.tool, now, days, yes).await?;
     }
 
     clean_count += clean_proto(session, days as u64).await?;
