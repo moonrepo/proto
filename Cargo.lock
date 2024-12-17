@@ -3761,9 +3761,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_console"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0d660a40f9912b8f06e205fb1ec2db0e7056ebd2781b7a0c41f74d66b0932ef"
+checksum = "6d4523c06ecf368513e2414e16708320f0cb4a80f8741d8396860d59cc6e9e03"
 dependencies = [
  "crossterm",
  "flume",
@@ -3805,9 +3805,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_styles"
-version = "0.4.8"
+version = "0.4.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4d4dd948c7fe2118ff7b662c4171734c7dec02aaaea2bca7cc364d5cc7f4808"
+checksum = "81baa090153ac22b9e2666a01899a1797e88e4ae1fee84a0440862887d299219"
 dependencies = [
  "dirs 5.0.1",
  "miette 7.4.0",

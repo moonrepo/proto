@@ -13,7 +13,9 @@ use proto_core::{
 use rustc_hash::FxHashSet;
 use semver::Version;
 use starbase::{AppResult, AppSession};
+use starbase_console::ui::{style_to_color, ConsoleTheme};
 use starbase_console::{Console, EmptyReporter};
+use starbase_styles::Style;
 use std::sync::Arc;
 use tokio::task::JoinSet;
 use tracing::debug;
@@ -38,10 +40,14 @@ pub struct ProtoSession {
 
 impl ProtoSession {
     pub fn new(cli: CLI) -> Self {
+        let mut console = Console::<EmptyReporter>::new(false);
+        console.set_theme(ConsoleTheme::branded(style_to_color(Style::Shell)));
+        console.set_reporter(EmptyReporter);
+
         Self {
             cli,
             cli_version: Version::parse(env!("CARGO_PKG_VERSION")).unwrap(),
-            console: Console::new(false),
+            console,
             env: Arc::new(ProtoEnvironment::default()),
         }
     }
