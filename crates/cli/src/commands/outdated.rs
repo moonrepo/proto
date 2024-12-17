@@ -11,7 +11,6 @@ use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_utils::json;
 use std::collections::BTreeMap;
-use std::io::{stdout, IsTerminal};
 use std::path::PathBuf;
 use tokio::spawn;
 use tracing::debug;
@@ -248,23 +247,19 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
 
     let mut confirmed = false;
 
-    if stdout().is_terminal() {
-        session
-            .console
-            .render_interactive(element! {
-                Confirm(
-                    label: if args.latest {
-                        "Update config files with latest versions?"
-                    } else {
-                        "Update config files with newest versions?"
-                    },
-                    value: &mut confirmed,
-                )
-            })
-            .await?;
-    } else {
-        confirmed = true;
-    }
+    session
+        .console
+        .render_interactive(element! {
+            Confirm(
+                label: if args.latest {
+                    "Update config files with latest versions?"
+                } else {
+                    "Update config files with newest versions?"
+                },
+                value: &mut confirmed,
+            )
+        })
+        .await?;
 
     if confirmed {
         let mut updates: BTreeMap<PathBuf, BTreeMap<Id, UnresolvedVersionSpec>> = BTreeMap::new();

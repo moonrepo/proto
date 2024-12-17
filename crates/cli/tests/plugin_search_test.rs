@@ -31,7 +31,7 @@ mod plugin_search {
             })
             .failure();
 
-        assert.stderr(predicate::str::contains(
+        assert.stdout(predicate::str::contains(
             "no plugins found in the registry for the query gibberish",
         ));
     }
