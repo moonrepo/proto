@@ -1036,6 +1036,19 @@
       ]
     },
     {
+      "id": "wasmtime",
+      "locator": "https://raw.githubusercontent.com/isaac10334/wasmtime-proto/master/wasmtime.toml",
+      "format": "toml",
+      "name": "Wasmtime",
+      "description": "A lightweight WebAssembly runtime that is fast, secure, and standards-compliant.",
+      "author": "isaac10334",
+      "homepageUrl": "https://wasmtime.dev",
+      "repositoryUrl": "https://github.com/isaac10334/wasmtime-proto",
+      "bins": [
+        "wasmtime"
+      ]
+    },    
+    {
       "id": "wiretap",
       "locator": "https://raw.githubusercontent.com/ngoldack/proto-tools/main/tools/wiretap/wiretap.toml",
       "format": "toml",
