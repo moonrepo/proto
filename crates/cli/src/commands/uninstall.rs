@@ -1,5 +1,4 @@
 use crate::commands::clean::purge_tool;
-use crate::helpers::create_progress_spinner;
 use crate::session::ProtoSession;
 use crate::telemetry::{track_usage, Metric};
 use clap::Args;
@@ -47,24 +46,38 @@ fn unpin_version(session: &ProtoSession, args: &UninstallArgs) -> miette::Result
     Ok(())
 }
 
-#[tracing::instrument(skip_all)]
-pub async fn uninstall(session: ProtoSession, args: UninstallArgs) -> AppResult {
-    // Uninstall everything
-    let Some(spec) = &args.spec else {
-        let tool = purge_tool(&session, &args.id, args.yes).await?;
+async fn track_uninstall(tool: &Tool, all: bool) -> miette::Result<()> {
+    track_usage(
+        &tool.proto,
+        Metric::UninstallTool {
+            id: tool.id.to_string(),
+            plugin: tool
+                .locator
+                .as_ref()
+                .map(|loc| loc.to_string())
+                .unwrap_or_default(),
+            version: if all {
+                "*".into()
+            } else {
+                tool.get_resolved_version().to_string()
+            },
+        },
+    )
+    .await
+}
 
-        unpin_version(&session, &args)?;
+pub async fn uninstall_all() -> AppResult {
+    Ok(None)
+}
 
-        // Track usage metrics
-        track_uninstall(&tool, true).await?;
-
-        return Ok(None);
-    };
-
-    // Uninstall a tool by version
+pub async fn uninstall_one(
+    session: ProtoSession,
+    args: UninstallArgs,
+    spec: UnresolvedVersionSpec,
+) -> AppResult {
     let mut tool = session.load_tool(&args.id).await?;
 
-    if !tool.is_setup(spec).await? {
+    if !tool.is_setup(&spec).await? {
         session.console.render(element! {
             Notice(variant: Variant::Caution) {
                 StyledText(
@@ -82,23 +95,20 @@ pub async fn uninstall(session: ProtoSession, args: UninstallArgs) -> AppResult 
 
     debug!("Uninstalling {} with version {}", tool.get_name(), spec);
 
-    let pb = create_progress_spinner(format!(
-        "Uninstalling {} {}",
+    let progress = session.render_progress_loader()?;
+
+    progress.set_message(format!(
+        "Uninstalling {} <hash>{}</hash>",
         tool.get_name(),
         tool.get_resolved_version()
     ));
 
-    let uninstalled = tool.teardown().await?;
+    let result = tool.teardown().await;
+
+    progress.stop().await?;
+    result?;
 
     unpin_version(&session, &args)?;
-
-    pb.finish_and_clear();
-
-    if !uninstalled {
-        return Ok(None);
-    }
-
-    // Track usage metrics
     track_uninstall(&tool, false).await?;
 
     session.console.render(element! {
@@ -116,22 +126,22 @@ pub async fn uninstall(session: ProtoSession, args: UninstallArgs) -> AppResult 
     Ok(None)
 }
 
-async fn track_uninstall(tool: &Tool, purged: bool) -> miette::Result<()> {
-    track_usage(
-        &tool.proto,
-        Metric::UninstallTool {
-            id: tool.id.to_string(),
-            plugin: tool
-                .locator
-                .as_ref()
-                .map(|loc| loc.to_string())
-                .unwrap_or_default(),
-            version: if purged {
-                "*".into()
-            } else {
-                tool.get_resolved_version().to_string()
-            },
-        },
-    )
-    .await
+#[tracing::instrument(skip_all)]
+pub async fn uninstall(session: ProtoSession, args: UninstallArgs) -> AppResult {
+    // // Uninstall everything
+    // let Some(spec) = &args.spec else {
+    //     let tool = purge_tool(&session, &args.id, args.yes).await?;
+
+    //     unpin_version(&session, &args)?;
+
+    //     // Track usage metrics
+    //     track_uninstall(&tool, true).await?;
+
+    //     return Ok(None);
+    // };
+
+    match args.spec.clone() {
+        Some(spec) => uninstall_one(session, args, spec).await,
+        None => Ok(None),
+    }
 }
