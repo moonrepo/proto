@@ -1,20 +1,16 @@
 use crate::error::ProtoCliError;
-use crate::helpers::create_theme;
 use crate::session::ProtoSession;
 use clap::Args;
-use comfy_table::presets::NOTHING;
-use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
-use dialoguer::Confirm;
+use iocraft::prelude::{element, Size};
 use miette::IntoDiagnostic;
 use proto_core::{Id, ProtoConfig, UnresolvedVersionSpec, VersionSpec, PROTO_PLUGIN_KEY};
 use rustc_hash::FxHashSet;
 use semver::VersionReq;
 use serde::Serialize;
 use starbase::AppResult;
-use starbase_styles::color::{self, Style};
+use starbase_console::ui::*;
 use starbase_utils::json;
 use std::collections::BTreeMap;
-use std::io::{stdout, IsTerminal};
 use std::path::PathBuf;
 use tokio::spawn;
 use tracing::debug;
@@ -35,6 +31,9 @@ pub struct OutdatedArgs {
         help = "Update and write the versions to their respective configuration"
     )]
     update: bool,
+
+    #[arg(long, help = "Avoid and force confirm prompts", env = "PROTO_YES")]
+    yes: bool,
 }
 
 #[derive(Serialize)]
@@ -150,7 +149,7 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
                 .await?;
 
             Result::<_, miette::Report>::Ok((
-                tool.id,
+                tool.id.clone(),
                 OutdatedItem {
                     is_latest: current_version == latest_version,
                     is_outdated: newest_version > current_version
@@ -175,63 +174,97 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
 
     // Dump all the data as JSON
     if args.json {
-        println!("{}", json::format(&items, true)?);
+        session
+            .console
+            .out
+            .write_line(json::format(&items, true)?)?;
 
         return Ok(None);
     }
 
     // Print all the data in a table
-    let mut table = Table::new();
-    table.load_preset(NOTHING);
-    table.set_content_arrangement(ContentArrangement::Dynamic);
-
-    table.set_header(vec![
-        Cell::new("Tool").add_attribute(Attribute::Bold),
-        Cell::new("Current").add_attribute(Attribute::Bold),
-        Cell::new("Newest").add_attribute(Attribute::Bold),
-        Cell::new("Latest").add_attribute(Attribute::Bold),
-        Cell::new("Config").add_attribute(Attribute::Bold),
-    ]);
-
-    for (id, item) in &items {
-        table.add_row(vec![
-            Cell::new(id).fg(Color::AnsiValue(Style::Id.color() as u8)),
-            Cell::new(&item.current_version),
-            if item.newest_version == item.current_version {
-                Cell::new(&item.newest_version)
-                    .fg(Color::AnsiValue(Style::MutedLight.color() as u8))
-            } else {
-                Cell::new(&item.newest_version).fg(Color::AnsiValue(Style::Success.color() as u8))
-            },
-            if item.latest_version == item.current_version {
-                Cell::new(&item.latest_version)
-                    .fg(Color::AnsiValue(Style::MutedLight.color() as u8))
-            } else if item.latest_version == item.newest_version {
-                Cell::new(&item.latest_version).fg(Color::AnsiValue(Style::Success.color() as u8))
-            } else {
-                Cell::new(&item.latest_version).fg(Color::AnsiValue(Style::Failure.color() as u8))
-            },
-            Cell::new(item.config_source.to_string_lossy())
-                .fg(Color::AnsiValue(Style::Path.color() as u8)),
-        ]);
-    }
-
-    println!("\n{table}\n");
+    session.console.render(element! {
+        Container {
+            Table(
+                headers: vec![
+                    TableHeader::new("Tool", Size::Percent(10.0)),
+                    TableHeader::new("Current", Size::Percent(8.0)),
+                    TableHeader::new("Newest", Size::Percent(8.0)),
+                    TableHeader::new("Latest", Size::Percent(8.0)),
+                    TableHeader::new("Config", Size::Percent(66.0)),
+                ]
+            ) {
+                #(items.iter().enumerate().map(|(i, (id, item))| {
+                    element! {
+                        TableRow(row: i as i32) {
+                            TableCol(col: 0) {
+                                StyledText(
+                                    content: id.to_string(),
+                                    style: Style::Id
+                                )
+                            }
+                            TableCol(col: 1) {
+                                StyledText(
+                                    content: item.current_version.to_string(),
+                                )
+                            }
+                            TableCol(col: 2) {
+                                StyledText(
+                                    content: item.newest_version.to_string(),
+                                    style: if item.newest_version == item.current_version {
+                                        Style::MutedLight
+                                    } else {
+                                        Style::Success
+                                    }
+                                )
+                            }
+                            TableCol(col: 3) {
+                                StyledText(
+                                    content: item.latest_version.to_string(),
+                                    style: if item.latest_version == item.current_version {
+                                        Style::MutedLight
+                                    } else if item.latest_version == item.newest_version {
+                                        Style::Success
+                                    } else {
+                                        Style::Failure
+                                    }
+                                )
+                            }
+                            TableCol(col: 4) {
+                                StyledText(
+                                    content: item.config_source.to_string_lossy(),
+                                    style: Style::Path
+                                )
+                            }
+                        }
+                    }
+                }))
+            }
+        }
+    })?;
 
     // If updating versions, batch the changes based on config paths
-    let theme = create_theme();
+    if !args.update {
+        return Ok(None);
+    }
 
-    if args.update
-        && (!stdout().is_terminal()
-            || Confirm::with_theme(&theme)
-                .with_prompt(if args.latest {
+    let mut confirmed = false;
+
+    session
+        .console
+        .render_interactive(element! {
+            Confirm(
+                label: if args.latest {
                     "Update config files with latest versions?"
                 } else {
                     "Update config files with newest versions?"
-                })
-                .interact()
-                .into_diagnostic()?)
-    {
+                },
+                value: &mut confirmed,
+            )
+        })
+        .await?;
+
+    if args.yes || confirmed {
         let mut updates: BTreeMap<PathBuf, BTreeMap<Id, UnresolvedVersionSpec>> = BTreeMap::new();
 
         for (id, item) in &items {
@@ -249,12 +282,6 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
         }
 
         for (config_path, updated_versions) in updates {
-            println!(
-                "Updating {} with {} versions",
-                color::path(&config_path),
-                updated_versions.len()
-            );
-
             debug!(
                 config = ?config_path,
                 versions = ?updated_versions
@@ -272,10 +299,13 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
             })?;
         }
 
-        println!(
-            "Update complete! Run {} to install these new versions.",
-            color::shell("proto use")
-        );
+        session.console.render(element! {
+            Notice(variant: Variant::Success) {
+                StyledText(
+                    content: "Update complete! Run <shell>proto install</shell> to install these new versions."
+                )
+            }
+        })?;
     }
 
     Ok(None)

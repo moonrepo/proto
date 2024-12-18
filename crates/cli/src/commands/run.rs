@@ -180,11 +180,11 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
         }
 
         // Install the tool
-        println!(
+        session.console.out.write_line(format!(
             "Auto-install is enabled, attempting to install {} {}",
             tool.get_name(),
             resolved_version,
-        );
+        ))?;
 
         let install_args = InstallArgs {
             id: Some(tool.id.clone()),
@@ -196,11 +196,11 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
 
         do_install(&mut tool, install_args, &pb).await?;
 
-        println!(
+        session.console.out.write_line(format!(
             "{} {} has been installed, continuing execution...",
             tool.get_name(),
             resolved_version,
-        );
+        ))?;
     }
 
     // Determine the binary path to execute

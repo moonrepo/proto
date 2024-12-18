@@ -129,7 +129,8 @@ mod alias_global {
                     .arg("node")
                     .arg("example")
                     .arg("19.0.0")
-                    .arg("--global");
+                    .arg("--to")
+                    .arg("global");
             })
             .success();
 

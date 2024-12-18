@@ -14,7 +14,7 @@ mod uninstall {
             cmd.arg("uninstall").arg("node").arg("19.0.0");
         });
 
-        assert.inner.stderr(predicate::str::contains(
+        assert.inner.stdout(predicate::str::contains(
             "Node.js 19.0.0 has not been installed locally",
         ));
     }

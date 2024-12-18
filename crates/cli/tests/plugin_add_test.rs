@@ -66,7 +66,8 @@ mod plugin_add {
                     .arg("add")
                     .arg("id")
                     .arg("https://github.com/moonrepo/tools/releases/latest/download/example_plugin.wasm")
-                    .arg("--global");
+                    .arg("--to")
+                    .arg("global");
             })
             .success();
 
