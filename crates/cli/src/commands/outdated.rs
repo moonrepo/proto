@@ -31,6 +31,9 @@ pub struct OutdatedArgs {
         help = "Update and write the versions to their respective configuration"
     )]
     update: bool,
+
+    #[arg(long, help = "Avoid and force confirm prompts", env = "PROTO_YES")]
+    yes: bool,
 }
 
 #[derive(Serialize)]
@@ -261,7 +264,7 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
         })
         .await?;
 
-    if confirmed {
+    if args.yes || confirmed {
         let mut updates: BTreeMap<PathBuf, BTreeMap<Id, UnresolvedVersionSpec>> = BTreeMap::new();
 
         for (id, item) in &items {

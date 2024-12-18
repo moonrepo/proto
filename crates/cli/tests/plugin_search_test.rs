@@ -46,7 +46,7 @@ mod plugin_search {
             })
             .success();
 
-        assert.stdout(predicate::str::contains("Available for query: zig"));
+        assert.stdout(predicate::str::contains("Search results for: zig"));
     }
 
     #[test]

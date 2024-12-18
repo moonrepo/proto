@@ -16,6 +16,10 @@
 
 - Removed the `--global` option from `proto alias`, `unalias`, `pin`, and `unpin`, use `--to` or `--from` instead.
 
+## Unreleased
+
+- Added a `--yes` option to `proto outdated`, that skips confirmation prompts.
+
 ## 0.43.2
 
 #### 🐞 Fixes
