@@ -1,23 +1,17 @@
 use crate::helpers::{map_pin_type, PinOption};
 use crate::session::ProtoSession;
 use clap::Args;
+use iocraft::prelude::element;
 use proto_core::{Id, ProtoConfig};
 use starbase::AppResult;
-use starbase_styles::color;
+use starbase_console::ui::*;
 
 #[derive(Args, Clone, Debug)]
 pub struct UnpinArgs {
     #[arg(required = true, help = "ID of tool")]
     pub id: Id,
 
-    #[arg(
-        long,
-        group = "pin",
-        help = "Unpin from the global ~/.proto/.prototools"
-    )]
-    pub global: bool,
-
-    #[arg(long, group = "pin", help = "Location of .prototools to unpin from")]
+    #[arg(long, help = "Location of .prototools to unpin from")]
     pub from: Option<PinOption>,
 }
 
@@ -27,8 +21,7 @@ pub async fn unpin(session: ProtoSession, args: UnpinArgs) -> AppResult {
     let mut value = None;
 
     let config_path = ProtoConfig::update(
-        tool.proto
-            .get_config_dir(map_pin_type(args.global, args.from)),
+        tool.proto.get_config_dir(map_pin_type(false, args.from)),
         |config| {
             if let Some(versions) = &mut config.versions {
                 value = versions.remove(&tool.id);
@@ -42,16 +35,33 @@ pub async fn unpin(session: ProtoSession, args: UnpinArgs) -> AppResult {
     )?;
 
     let Some(value) = value else {
-        eprintln!("No version pinned in config {}", color::path(config_path));
+        session.console.render(element! {
+            Notice(variant: Variant::Caution) {
+                StyledText(
+                    content: format!(
+                        "No version pinned for <id>{}</id> in config <path>{}</path>",
+                        args.id,
+                        config_path.display()
+                    ),
+                )
+            }
+        })?;
 
         return Ok(Some(1));
     };
 
-    println!(
-        "Removed version {} from config {}",
-        color::hash(value.to_string()),
-        color::path(config_path)
-    );
+    session.console.render(element! {
+        Notice(variant: Variant::Success) {
+            StyledText(
+                content: format!(
+                    "Removed <id>{}</id> version <hash>{}</hash> from config <path>{}</path>",
+                    args.id,
+                    value.to_string(),
+                    config_path.display()
+                ),
+            )
+        }
+    })?;
 
     Ok(None)
 }

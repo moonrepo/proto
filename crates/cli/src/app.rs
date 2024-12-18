@@ -1,5 +1,5 @@
 use crate::commands::{
-    debug::DebugConfigArgs,
+    debug::{DebugConfigArgs, DebugEnvArgs},
     plugin::{AddPluginArgs, InfoPluginArgs, ListPluginsArgs, RemovePluginArgs, SearchPluginArgs},
     ActivateArgs, AliasArgs, BinArgs, CleanArgs, CompletionsArgs, DiagnoseArgs, InstallArgs,
     ListArgs, ListRemoteArgs, MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs,
@@ -288,7 +288,7 @@ pub enum DebugCommands {
     Config(DebugConfigArgs),
 
     #[command(name = "env", about = "Debug the current proto environment and store.")]
-    Env,
+    Env(DebugEnvArgs),
 }
 
 #[derive(Clone, Debug, Subcommand)]

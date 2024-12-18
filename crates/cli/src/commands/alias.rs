@@ -2,9 +2,10 @@ use crate::error::ProtoCliError;
 use crate::helpers::{map_pin_type, PinOption};
 use crate::session::ProtoSession;
 use clap::Args;
+use iocraft::prelude::element;
 use proto_core::{is_alias_name, Id, ProtoConfig, UnresolvedVersionSpec};
 use starbase::AppResult;
-use starbase_styles::color;
+use starbase_console::ui::*;
 
 #[derive(Args, Clone, Debug)]
 pub struct AliasArgs {
@@ -17,10 +18,7 @@ pub struct AliasArgs {
     #[arg(required = true, help = "Version or alias to associate with")]
     spec: UnresolvedVersionSpec,
 
-    #[arg(long, group = "pin", help = "Add to the global ~/.proto/.prototools")]
-    global: bool,
-
-    #[arg(long, group = "pin", help = "Location of .prototools to add to")]
+    #[arg(long, help = "Location of .prototools to add to")]
     to: Option<PinOption>,
 }
 
@@ -42,8 +40,7 @@ pub async fn alias(session: ProtoSession, args: AliasArgs) -> AppResult {
     let tool = session.load_tool(&args.id).await?;
 
     let config_path = ProtoConfig::update(
-        tool.proto
-            .get_config_dir(map_pin_type(args.global, args.to)),
+        tool.proto.get_config_dir(map_pin_type(false, args.to)),
         |config| {
             let tool_configs = config.tools.get_or_insert(Default::default());
 
@@ -56,12 +53,19 @@ pub async fn alias(session: ProtoSession, args: AliasArgs) -> AppResult {
         },
     )?;
 
-    println!(
-        "Added alias {} ({}) to config {}",
-        color::id(&args.alias),
-        color::muted_light(args.spec.to_string()),
-        color::path(config_path)
-    );
+    session.console.render(element! {
+        Notice(variant: Variant::Success) {
+            StyledText(
+                content: format!(
+                    "Added <id>{}</id> alias <id>{}</id> <mutedlight>({})</mutedlight> to config <path>{}</path>",
+                    args.id,
+                    args.alias,
+                    args.spec.to_string(),
+                    config_path.display()
+                ),
+            )
+        }
+    })?;
 
     Ok(None)
 }
