@@ -15,6 +15,7 @@
 #### 💥 Breaking
 
 - Removed the `--global` option from `proto alias`, `unalias`, `pin`, and `unpin`, use `--to` or `--from` instead.
+- Removed the `--purge` option from `proto clean`, use `proto uninstall` instead.
 
 ## Unreleased
 

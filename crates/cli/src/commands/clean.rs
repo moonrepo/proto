@@ -1,7 +1,7 @@
 use crate::session::ProtoSession;
 use clap::Args;
 use iocraft::prelude::element;
-use proto_core::{Id, ProtoError, Tool, VersionSpec, PROTO_PLUGIN_KEY};
+use proto_core::{ProtoError, Tool, VersionSpec, PROTO_PLUGIN_KEY};
 use proto_shim::get_exe_file_name;
 use rustc_hash::FxHashSet;
 use starbase::AppResult;
@@ -20,14 +20,6 @@ pub struct CleanArgs {
         help = "Clean tools and plugins older than the specified number of days"
     )]
     pub days: Option<u8>,
-
-    #[arg(
-        long,
-        help = "Purge and delete the installed tool by ID",
-        group = "purge-type",
-        value_name = "TOOL"
-    )]
-    pub purge: Option<Id>,
 
     #[arg(
         long,
@@ -243,46 +235,6 @@ pub async fn clean_proto(session: &ProtoSession, days: u64) -> miette::Result<us
     Ok(clean_count)
 }
 
-#[tracing::instrument(skip(session, yes))]
-pub async fn purge_tool(session: &ProtoSession, id: &Id, yes: bool) -> miette::Result<Tool> {
-    let tool = session.load_tool(id).await?;
-    let inventory_dir = tool.get_inventory_dir();
-    let mut confirmed = false;
-
-    session
-        .console
-        .render_interactive(element! {
-            Confirm(
-                label: format!(
-                    "Purge all of {} at <path>{}</path>?",
-                    tool.get_name(),
-                    inventory_dir.display()
-                ),
-                value: &mut confirmed,
-            )
-        })
-        .await?;
-
-    if yes || confirmed {
-        // Delete inventory
-        fs::remove_dir_all(inventory_dir)?;
-
-        // Delete binaries
-        for bin in tool.resolve_bin_locations(true).await? {
-            session.env.store.unlink_bin(&bin.path)?;
-        }
-
-        // Delete shims
-        for shim in tool.resolve_shim_locations().await? {
-            session.env.store.remove_shim(&shim.path)?;
-        }
-
-        println!("Purged {}", tool.get_name());
-    }
-
-    Ok(tool.tool)
-}
-
 #[tracing::instrument(skip_all)]
 pub async fn purge_plugins(session: &ProtoSession, yes: bool) -> AppResult {
     let plugins_dir = &session.env.store.plugins_dir;
@@ -374,11 +326,6 @@ pub async fn internal_clean(
 #[tracing::instrument(skip_all)]
 pub async fn clean(session: ProtoSession, args: CleanArgs) -> AppResult {
     let force_yes = args.yes || !stdout().is_terminal();
-
-    if let Some(id) = &args.purge {
-        purge_tool(&session, id, force_yes).await?;
-        return Ok(None);
-    }
 
     if args.purge_plugins {
         purge_plugins(&session, force_yes).await?;

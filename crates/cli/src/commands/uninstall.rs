@@ -1,4 +1,3 @@
-use crate::commands::clean::purge_tool;
 use crate::session::ProtoSession;
 use crate::telemetry::{track_usage, Metric};
 use clap::Args;
@@ -6,6 +5,7 @@ use iocraft::element;
 use proto_core::{Id, ProtoConfig, Tool, UnresolvedVersionSpec};
 use starbase::AppResult;
 use starbase_console::ui::*;
+use starbase_utils::fs;
 use tracing::debug;
 
 #[derive(Args, Clone, Debug)]
@@ -66,7 +66,76 @@ async fn track_uninstall(tool: &Tool, all: bool) -> miette::Result<()> {
     .await
 }
 
-pub async fn uninstall_all() -> AppResult {
+pub async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult {
+    let tool = session.load_tool(&args.id).await?;
+    let inventory_dir = tool.get_inventory_dir();
+    let version_count = tool.inventory.manifest.installed_versions.len();
+    let mut confirmed = false;
+
+    if !inventory_dir.exists() {
+        session.console.render(element! {
+            Notice(variant: Variant::Caution) {
+                StyledText(
+                    content: format!(
+                        "{} has not been installed locally",
+                        tool.get_name(),
+                    ),
+                )
+            }
+        })?;
+
+        return Ok(Some(1));
+    }
+
+    if !args.yes {
+        session
+            .console
+            .render_interactive(element! {
+                Confirm(
+                    label: format!(
+                        "Uninstall all {} versions of {} at <path>{}</path>?",
+                        version_count,
+                        tool.get_name(),
+                        inventory_dir.display()
+                    ),
+                    value: &mut confirmed,
+                )
+            })
+            .await?;
+    }
+
+    if !args.yes && !confirmed {
+        return Ok(None);
+    }
+
+    // Delete bins
+    for bin in tool.resolve_bin_locations(true).await? {
+        session.env.store.unlink_bin(&bin.path)?;
+    }
+
+    // Delete shims
+    for shim in tool.resolve_shim_locations().await? {
+        session.env.store.remove_shim(&shim.path)?;
+    }
+
+    // Delete inventory
+    fs::remove_dir_all(inventory_dir)?;
+    fs::remove_dir_all(tool.get_temp_dir())?;
+
+    unpin_version(&session, &args)?;
+    track_uninstall(&tool, true).await?;
+
+    session.console.render(element! {
+        Notice(variant: Variant::Success) {
+            StyledText(
+                content: format!(
+                    "{} has been completely uninstalled!",
+                    tool.get_name(),
+                ),
+            )
+        }
+    })?;
+
     Ok(None)
 }
 
@@ -128,20 +197,8 @@ pub async fn uninstall_one(
 
 #[tracing::instrument(skip_all)]
 pub async fn uninstall(session: ProtoSession, args: UninstallArgs) -> AppResult {
-    // // Uninstall everything
-    // let Some(spec) = &args.spec else {
-    //     let tool = purge_tool(&session, &args.id, args.yes).await?;
-
-    //     unpin_version(&session, &args)?;
-
-    //     // Track usage metrics
-    //     track_uninstall(&tool, true).await?;
-
-    //     return Ok(None);
-    // };
-
     match args.spec.clone() {
         Some(spec) => uninstall_one(session, args, spec).await,
-        None => Ok(None),
+        None => uninstall_all(session, args).await,
     }
 }
