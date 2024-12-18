@@ -17,6 +17,7 @@ use starbase::{AppResult, AppSession};
 use starbase_console::ui::{style_to_color, ConsoleTheme, ProgressLoader, ProgressReporter};
 use starbase_console::{Console, EmptyReporter};
 use starbase_styles::Style;
+use std::io::IsTerminal;
 use std::sync::Arc;
 use tokio::task::JoinSet;
 use tracing::debug;
@@ -206,6 +207,10 @@ impl ProtoSession {
         });
 
         Ok(ProgressInstance { reporter, handle })
+    }
+
+    pub fn skip_prompts(&self, yes: bool) -> bool {
+        yes || !std::io::stdout().is_terminal()
     }
 }
 

@@ -70,6 +70,7 @@ pub async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppRes
     let tool = session.load_tool(&args.id).await?;
     let inventory_dir = tool.get_inventory_dir();
     let version_count = tool.inventory.manifest.installed_versions.len();
+    let skip_prompts = session.skip_prompts(args.yes);
     let mut confirmed = false;
 
     if !inventory_dir.exists() {
@@ -87,7 +88,7 @@ pub async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppRes
         return Ok(Some(1));
     }
 
-    if !args.yes {
+    if !skip_prompts {
         session
             .console
             .render_interactive(element! {
@@ -104,9 +105,12 @@ pub async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppRes
             .await?;
     }
 
-    if !args.yes && !confirmed {
+    if !skip_prompts && !confirmed {
         return Ok(None);
     }
+
+    let progress = session.render_progress_loader()?;
+    progress.set_message(format!("Uninstalling {}", tool.get_name()));
 
     // Delete bins
     for bin in tool.resolve_bin_locations(true).await? {
@@ -121,6 +125,8 @@ pub async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppRes
     // Delete inventory
     fs::remove_dir_all(inventory_dir)?;
     fs::remove_dir_all(tool.get_temp_dir())?;
+
+    progress.stop().await?;
 
     unpin_version(&session, &args)?;
     track_uninstall(&tool, true).await?;
@@ -165,7 +171,6 @@ pub async fn uninstall_one(
     debug!("Uninstalling {} with version {}", tool.get_name(), spec);
 
     let progress = session.render_progress_loader()?;
-
     progress.set_message(format!(
         "Uninstalling {} <hash>{}</hash>",
         tool.get_name(),

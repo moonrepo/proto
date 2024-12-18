@@ -8,8 +8,6 @@ use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_styles::color;
 use starbase_utils::fs;
-use std::io::stdout;
-use std::io::IsTerminal;
 use std::time::{Duration, SystemTime};
 use tracing::debug;
 
@@ -325,14 +323,14 @@ pub async fn internal_clean(
 
 #[tracing::instrument(skip_all)]
 pub async fn clean(session: ProtoSession, args: CleanArgs) -> AppResult {
-    let force_yes = args.yes || !stdout().is_terminal();
+    let skip_prompts = session.skip_prompts(args.yes);
 
     if args.purge_plugins {
-        purge_plugins(&session, force_yes).await?;
+        purge_plugins(&session, skip_prompts).await?;
         return Ok(None);
     }
 
-    internal_clean(&session, args, force_yes, true).await?;
+    internal_clean(&session, args, skip_prompts, true).await?;
 
     Ok(None)
 }
