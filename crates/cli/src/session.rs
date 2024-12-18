@@ -199,11 +199,11 @@ impl ProtoSession {
         let console = self.console.clone();
 
         let handle = tokio::task::spawn(async move {
-            let _ = console
+            console
                 .render_loop(element! {
                     ProgressLoader(reporter: reporter_clone)
                 })
-                .await;
+                .await
         });
 
         Ok(ProgressInstance { reporter, handle })

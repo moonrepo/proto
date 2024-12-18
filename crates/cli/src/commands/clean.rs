@@ -137,23 +137,25 @@ pub async fn clean_tool(
         return Ok(0);
     }
 
-    session
-        .console
-        .render_interactive(element! {
-            Confirm(
-                label: format!(
-                    "Found {} versions, remove {}?",
-                    count,
-                    versions_to_clean
-                        .iter()
-                        .map(|v| format!("<hash>{v}</hash>"))
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                ),
-                value: &mut confirmed,
-            )
-        })
-        .await?;
+    if !yes {
+        session
+            .console
+            .render_interactive(element! {
+                Confirm(
+                    label: format!(
+                        "Found {} versions, remove {}?",
+                        count,
+                        versions_to_clean
+                            .iter()
+                            .map(|v| format!("<hash>{v}</hash>"))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ),
+                    value: &mut confirmed,
+                )
+            })
+            .await?;
+    }
 
     if yes || confirmed {
         for version in versions_to_clean {
@@ -238,18 +240,20 @@ pub async fn purge_plugins(session: &ProtoSession, yes: bool) -> AppResult {
     let plugins_dir = &session.env.store.plugins_dir;
     let mut confirmed = false;
 
-    session
-        .console
-        .render_interactive(element! {
-            Confirm(
-                label: format!(
-                    "Purge all plugins in <path>{}</path>?",
-                    plugins_dir.display()
-                ),
-                value: &mut confirmed,
-            )
-        })
-        .await?;
+    if !yes {
+        session
+            .console
+            .render_interactive(element! {
+                Confirm(
+                    label: format!(
+                        "Purge all plugins in <path>{}</path>?",
+                        plugins_dir.display()
+                    ),
+                    value: &mut confirmed,
+                )
+            })
+            .await?;
+    }
 
     if yes || confirmed {
         fs::remove_dir_all(plugins_dir)?;
