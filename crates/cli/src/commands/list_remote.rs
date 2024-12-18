@@ -1,7 +1,9 @@
-use crate::session::ProtoSession;
+use crate::session::{LoadToolOptions, ProtoSession};
 use clap::Args;
-use proto_core::{Id, UnresolvedVersionSpec};
+use iocraft::prelude::element;
+use proto_core::Id;
 use starbase::AppResult;
+use starbase_console::ui::*;
 use tracing::debug;
 
 #[derive(Args, Clone, Debug)]
@@ -15,43 +17,46 @@ pub struct ListRemoteArgs {
 
 #[tracing::instrument(skip_all)]
 pub async fn list_remote(session: ProtoSession, args: ListRemoteArgs) -> AppResult {
-    let mut tool = session.load_tool(&args.id).await?;
-    tool.disable_caching();
-
-    debug!("Loading versions");
-
-    let resolver = tool
-        .load_version_resolver(&UnresolvedVersionSpec::default())
+    let tool = session
+        .load_tool_with_options(
+            &args.id,
+            LoadToolOptions {
+                inherit_remote: true,
+                ..Default::default()
+            },
+        )
         .await?;
-    let mut versions = resolver.versions;
 
-    if versions.is_empty() {
-        eprintln!("No versions available");
+    debug!("Loading versions from remote");
+
+    if tool.remote_versions.is_empty() {
+        session.console.render(element! {
+            Notice(variant: Variant::Failure) {
+                StyledText(
+                    content: "No versions available from remote registry"
+                )
+            }
+        })?;
 
         return Ok(Some(1));
     }
 
-    versions.sort();
-
-    println!(
-        "{}",
-        versions
+    session.console.out.write_line(
+        tool.remote_versions
             .iter()
             .map(|v| v.to_string())
             .collect::<Vec<_>>()
-            .join("\n")
-    );
+            .join("\n"),
+    )?;
 
-    if args.aliases && !resolver.aliases.is_empty() {
-        println!(
-            "{}",
-            resolver
-                .aliases
+    if args.aliases && !tool.remote_aliases.is_empty() {
+        session.console.out.write_line(
+            tool.remote_aliases
                 .iter()
                 .map(|(k, v)| format!("{k} -> {v}"))
                 .collect::<Vec<_>>()
-                .join("\n")
-        );
+                .join("\n"),
+        )?;
     }
 
     Ok(None)

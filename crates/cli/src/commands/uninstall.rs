@@ -3,8 +3,10 @@ use crate::helpers::create_progress_spinner;
 use crate::session::ProtoSession;
 use crate::telemetry::{track_usage, Metric};
 use clap::Args;
+use iocraft::element;
 use proto_core::{Id, ProtoConfig, Tool, UnresolvedVersionSpec};
 use starbase::AppResult;
+use starbase_console::ui::*;
 use tracing::debug;
 
 #[derive(Args, Clone, Debug)]
@@ -63,11 +65,17 @@ pub async fn uninstall(session: ProtoSession, args: UninstallArgs) -> AppResult 
     let mut tool = session.load_tool(&args.id).await?;
 
     if !tool.is_setup(spec).await? {
-        eprintln!(
-            "{} {} has not been installed locally",
-            tool.get_name(),
-            tool.get_resolved_version(),
-        );
+        session.console.render(element! {
+            Notice(variant: Variant::Caution) {
+                StyledText(
+                    content: format!(
+                        "{} <hash>{}</hash> has not been installed locally",
+                        tool.get_name(),
+                        tool.get_resolved_version(),
+                    ),
+                )
+            }
+        })?;
 
         return Ok(Some(1));
     }
@@ -93,11 +101,17 @@ pub async fn uninstall(session: ProtoSession, args: UninstallArgs) -> AppResult 
     // Track usage metrics
     track_uninstall(&tool, false).await?;
 
-    println!(
-        "{} {} has been uninstalled!",
-        tool.get_name(),
-        tool.get_resolved_version(),
-    );
+    session.console.render(element! {
+        Notice(variant: Variant::Success) {
+            StyledText(
+                content: format!(
+                    "{} <hash>{}</hash> has been uninstalled!",
+                    tool.get_name(),
+                    tool.get_resolved_version(),
+                ),
+            )
+        }
+    })?;
 
     Ok(None)
 }

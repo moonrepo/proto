@@ -1,20 +1,20 @@
-use crate::printer::{format_value, Printer};
-use crate::session::ProtoSession;
-use chrono::{DateTime, NaiveDateTime};
+use crate::components::{AliasesMap, Locator, VersionsMap};
+use crate::session::{LoadToolOptions, ProtoSession};
 use clap::Args;
-use proto_core::{Id, PluginLocator, ProtoToolConfig, ToolManifest, UnresolvedVersionSpec};
+use iocraft::prelude::element;
+use proto_core::{ConfigMode, Id, PluginLocator, ProtoToolConfig, ToolManifest};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Serialize;
 use starbase::AppResult;
-use starbase_styles::color;
+use starbase_console::ui::*;
 use starbase_utils::json;
-use tokio::sync::Mutex;
+use std::collections::BTreeMap;
 
 #[derive(Serialize)]
-pub struct PluginItem<'a> {
+struct PluginItem {
     name: String,
     locator: Option<PluginLocator>,
-    config: Option<&'a ProtoToolConfig>,
+    config: ProtoToolConfig,
     manifest: ToolManifest,
 }
 
@@ -35,10 +35,15 @@ pub struct ListPluginsArgs {
 
 #[tracing::instrument(skip_all)]
 pub async fn list(session: ProtoSession, args: ListPluginsArgs) -> AppResult {
-    let mut config = session.env.load_config()?.to_owned();
+    let global_config = session.load_config_with_mode(ConfigMode::Global)?;
 
     let mut tools = session
-        .load_tools_with_filters(FxHashSet::from_iter(&args.ids))
+        .load_tools_with_options(LoadToolOptions {
+            ids: FxHashSet::from_iter(args.ids.clone()),
+            inherit_local: true,
+            inherit_remote: true,
+            ..Default::default()
+        })
         .await?;
 
     tools.sort_by(|a, d| a.id.cmp(&d.id));
@@ -47,126 +52,94 @@ pub async fn list(session: ProtoSession, args: ListPluginsArgs) -> AppResult {
     if args.json {
         let items = tools
             .into_iter()
-            .map(|t| {
-                let tool_config = config.tools.get(&t.id);
-                let name = t.get_name().to_owned();
-
+            .map(|tool| {
                 (
-                    t.id,
+                    tool.id.clone(),
                     PluginItem {
-                        name,
-                        locator: t.locator,
-                        config: tool_config,
-                        manifest: t.inventory.manifest,
+                        name: tool.get_name().to_owned(),
+                        locator: tool.locator.clone(),
+                        config: tool.config.clone(),
+                        manifest: tool.inventory.manifest.clone(),
                     },
                 )
             })
             .collect::<FxHashMap<_, _>>();
 
-        println!("{}", json::format(&items, true)?);
+        session
+            .console
+            .out
+            .write_line(json::format(&items, true)?)?;
 
         return Ok(None);
     }
 
-    let printer = Mutex::new(Printer::new());
-    let latest_version = UnresolvedVersionSpec::default();
-
     for tool in tools {
-        let tool_config = config.tools.remove(&tool.id).unwrap_or_default();
+        let mut aliases = BTreeMap::default();
+        aliases.extend(&tool.remote_aliases);
+        aliases.extend(&tool.local_aliases);
 
-        let mut versions = tool.load_version_resolver(&latest_version).await?;
-        versions.aliases.extend(tool_config.aliases);
-
-        let mut printer = printer.lock().await;
-
-        printer.line();
-        printer.header(&tool.id, &tool.metadata.name);
-
-        printer.section(|p| {
-            p.entry("Store", color::path(tool.get_inventory_dir()));
-
-            if let Some(locator) = &tool.locator {
-                p.locator(locator);
-            }
-
-            // --aliases
-            if args.aliases {
-                p.entry_map(
-                    "Aliases",
-                    versions
-                        .aliases
-                        .iter()
-                        .map(|(k, v)| (color::hash(k), format_value(v.to_string())))
-                        .collect::<Vec<_>>(),
-                    None,
-                );
-            }
-
-            // --versions
-            if args.versions {
-                let mut versions = tool
-                    .inventory
-                    .manifest
-                    .installed_versions
-                    .iter()
-                    .collect::<Vec<_>>();
-                versions.sort();
-
-                p.entry_map(
-                    "Versions",
-                    versions
-                        .iter()
-                        .map(|version| {
-                            let mut comments = vec![];
-                            let mut is_default = false;
-
-                            if let Some(meta) = &tool.inventory.manifest.versions.get(version) {
-                                if let Some(at) = create_datetime(meta.installed_at) {
-                                    comments.push(format!("installed {}", at.format("%x")));
-                                }
-
-                                if let Ok(Some(last_used)) =
-                                    tool.inventory.create_product(version).load_used_at()
-                                {
-                                    if let Some(at) = create_datetime(last_used) {
-                                        comments.push(format!("last used {}", at.format("%x")));
-                                    }
-                                }
-                            }
-
-                            if config
-                                .versions
-                                .get(&tool.id)
-                                .is_some_and(|dv| *dv == version.to_unresolved_spec())
-                            {
-                                comments.push("default version".into());
-                                is_default = true;
-                            }
-
-                            (
-                                if is_default {
-                                    color::invalid(version.to_string())
-                                } else {
-                                    color::hash(version.to_string())
-                                },
-                                format_value(comments.join(", ")),
+        session.console.render(element! {
+            Container {
+                Section(title: &tool.metadata.name) {
+                    Entry(
+                        name: "ID",
+                        value: element! {
+                            StyledText(
+                                content: tool.id.to_string(),
+                                style: Style::Id
                             )
-                        })
-                        .collect::<Vec<_>>(),
-                    None,
-                );
-            }
+                        }.into_any()
+                    )
 
-            Ok(())
+                    #(tool.locator.as_ref().map(|locator| {
+                        element! {
+                            Locator(value: locator)
+                        }
+                    }))
+
+                    Entry(
+                        name: "Store directory",
+                        value: element! {
+                            StyledText(
+                                content: tool.get_inventory_dir().to_string_lossy(),
+                                style: Style::Path
+                            )
+                        }.into_any()
+                    )
+
+                    #(if args.aliases {
+                        Some(element! {
+                            Entry(
+                                name: "Aliases",
+                                no_children: aliases.is_empty()
+                            ) {
+                                AliasesMap(aliases)
+                            }
+                        })
+                    } else {
+                        None
+                    })
+
+                    #(if args.versions {
+                        Some(element! {
+                            Entry(
+                                name: "Versions",
+                                no_children: tool.installed_versions.is_empty()
+                            ) {
+                                VersionsMap(
+                                    default_version: global_config.versions.get(&tool.id),
+                                    inventory: &tool.inventory,
+                                    versions: tool.installed_versions.iter().collect::<Vec<_>>(),
+                                )
+                            }
+                        })
+                    } else {
+                        None
+                    })
+                }
+            }
         })?;
     }
 
-    printer.lock().await.flush();
-
     Ok(None)
-}
-
-fn create_datetime(millis: u128) -> Option<NaiveDateTime> {
-    DateTime::from_timestamp((millis / 1000) as i64, ((millis % 1000) * 1_000_000) as u32)
-        .map(|dt| dt.naive_local())
 }

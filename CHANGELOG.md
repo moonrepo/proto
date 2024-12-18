@@ -10,6 +10,16 @@
 - [Rust](https://github.com/moonrepo/tools/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/tools/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 💥 Breaking
+
+- Removed the `--global` option from `proto alias`, `unalias`, `pin`, and `unpin`, use `--to` or `--from` instead.
+
+## Unreleased
+
+- Added a `--yes` option to `proto outdated`, that skips confirmation prompts.
+
 ## 0.43.2
 
 #### 🐞 Fixes
@@ -101,6 +111,10 @@
 - WASM API
   - Deprecated `LocateExecutablesOutput.primary` and `LocateExecutablesOutput.secondary` (use `exes` instead).
   - Updated `ToolMetadataOutput.plugin_version` to a `Version` type instead of `String`.
+
+#### 💥 Breaking
+
+- Removed `--global` arg from `proto plugin add|remove`.
 
 #### 🚀 Updates
 

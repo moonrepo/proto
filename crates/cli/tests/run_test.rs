@@ -190,9 +190,7 @@ mod run {
             })
             .success();
 
-        assert.stdout(predicate::str::contains(
-            "Node.js 19.0.0 has been installed",
-        ));
+        assert.stdout(predicate::str::contains("Node.js 19.0.0 installed"));
     }
 
     #[test]
@@ -211,9 +209,7 @@ mod run {
             })
             .success();
 
-        assert.stdout(predicate::str::contains(
-            "Node.js 19.0.0 has been installed",
-        ));
+        assert.stdout(predicate::str::contains("Node.js 19.0.0 installed"));
 
         env::remove_var("PROTO_AUTO_INSTALL");
     }
@@ -251,9 +247,7 @@ mod run {
             })
             .success();
 
-        assert.stdout(predicate::str::contains(
-            "Node.js 19.0.0 has been installed",
-        ));
+        assert.stdout(predicate::str::contains("Node.js 19.0.0 installed"));
 
         let assert = sandbox
             .run_bin(|cmd| {
@@ -265,7 +259,7 @@ mod run {
             })
             .success();
 
-        assert.stdout(predicate::str::contains("Node.js 19.0.0 has been installed").not());
+        assert.stdout(predicate::str::contains("Node.js 19.0.0 installed").not());
     }
 
     #[test]

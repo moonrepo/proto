@@ -1,7 +1,6 @@
 use crate::app::{App as CLI, Commands};
 use crate::helpers::fetch_latest_version;
 use crate::session::ProtoSession;
-use miette::IntoDiagnostic;
 use proto_core::flow::install::InstallOptions;
 use proto_core::{
     is_offline, now, ConfigMode, ProtoEnvironment, UnresolvedVersionSpec, PROTO_CONFIG_NAME,
@@ -101,7 +100,10 @@ pub fn clean_proto_backups(env: &ProtoEnvironment) -> miette::Result<()> {
 }
 
 #[instrument(skip_all)]
-pub async fn check_for_new_version(env: Arc<ProtoEnvironment>) -> miette::Result<()> {
+pub async fn check_for_new_version(
+    env: Arc<ProtoEnvironment>,
+    local_version: &Version,
+) -> miette::Result<()> {
     if
     // Don't check when running tests
     env.test_only ||
@@ -130,19 +132,20 @@ pub async fn check_for_new_version(env: Arc<ProtoEnvironment>) -> miette::Result
     }
 
     // Otherwise fetch and compare versions
-    let current_version = env!("CARGO_PKG_VERSION");
+    debug!(
+        current_version = local_version.to_string(),
+        "Checking for a new version of proto"
+    );
 
-    debug!(current_version, "Checking for a new version of proto");
-
-    let Ok(latest_version) = fetch_latest_version().await else {
+    let Ok(remote_version) = fetch_latest_version().await else {
         return Ok(());
     };
 
-    let local_version = Version::parse(current_version).into_diagnostic()?;
-    let remote_version = Version::parse(&latest_version).into_diagnostic()?;
-
-    if remote_version > local_version {
-        debug!(latest_version = &latest_version, "Found a newer version");
+    if local_version < &remote_version {
+        debug!(
+            latest_version = remote_version.to_string(),
+            "Found a newer version"
+        );
 
         println!(
             "✨ There's a new version of proto available, {} (currently on {})",
