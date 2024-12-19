@@ -2,8 +2,8 @@ use crate::commands::{
     debug::{DebugConfigArgs, DebugEnvArgs},
     plugin::{AddPluginArgs, InfoPluginArgs, ListPluginsArgs, RemovePluginArgs, SearchPluginArgs},
     ActivateArgs, AliasArgs, BinArgs, CleanArgs, CompletionsArgs, DiagnoseArgs, InstallArgs,
-    ListArgs, ListRemoteArgs, MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs,
-    StatusArgs, UnaliasArgs, UninstallArgs, UnpinArgs, UpgradeArgs, VersionsArgs,
+    MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs, StatusArgs, UnaliasArgs,
+    UninstallArgs, UnpinArgs, UpgradeArgs, VersionsArgs,
 };
 use clap::builder::styling::{Color, Style, Styles};
 use clap::{Parser, Subcommand, ValueEnum};
@@ -183,21 +183,6 @@ pub enum Commands {
         long_about = "Download and install one or many tools by version into ~/.proto/tools.\n\nIf no arguments are provided, will install all tools configured in .prototools.\n\nIf a name argument is provided, will install a single tool by version."
     )]
     Install(InstallArgs),
-
-    #[command(
-        alias = "ls",
-        name = "list",
-        about = "List installed versions for a tool."
-    )]
-    List(ListArgs),
-
-    #[command(
-        alias = "lsr",
-        name = "list-remote",
-        about = "List available versions for a tool.",
-        long_about = "List available versions by resolving versions from the tool's remote release manifest."
-    )]
-    ListRemote(ListRemoteArgs),
 
     #[command(
         name = "migrate",
