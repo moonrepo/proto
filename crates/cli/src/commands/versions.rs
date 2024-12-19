@@ -19,6 +19,9 @@ pub struct VersionsArgs {
     #[arg(long, help = "Include aliases in the output")]
     aliases: bool,
 
+    #[arg(long, help = "Only display installed versions")]
+    installed: bool,
+
     #[arg(long, help = "Print the versions in JSON format")]
     json: bool,
 }
@@ -67,14 +70,22 @@ pub async fn versions(session: ProtoSession, args: VersionsArgs) -> AppResult {
     let versions = tool
         .remote_versions
         .iter()
-        .map(|version| VersionItem {
-            installed_at: tool
+        .filter_map(|version| {
+            let installed_at = tool
                 .inventory
                 .manifest
                 .versions
                 .get(version)
-                .map(|meta| meta.installed_at),
-            version: version.to_owned(),
+                .map(|meta| meta.installed_at);
+
+            if args.installed && installed_at.is_none() {
+                None
+            } else {
+                Some(VersionItem {
+                    installed_at,
+                    version: version.to_owned(),
+                })
+            }
         })
         .collect::<Vec<_>>();
 
@@ -92,7 +103,7 @@ pub async fn versions(session: ProtoSession, args: VersionsArgs) -> AppResult {
 
     let mut aliases = IndexMap::<&String, &UnresolvedVersionSpec>::default();
 
-    if args.aliases {
+    if args.aliases && !args.installed {
         aliases.extend(&tool.remote_aliases);
         aliases.extend(&tool.local_aliases);
     }
