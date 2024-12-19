@@ -120,6 +120,7 @@ mod outdated {
                     .arg("--update")
                     .arg("--config-mode")
                     .arg("upwards-global")
+                    .arg("--yes")
                     .current_dir(sandbox.path().join("a/b"));
             })
             .success();
@@ -145,6 +146,7 @@ mod outdated {
                     .arg("--config-mode")
                     .arg("upwards-global")
                     .arg("--latest")
+                    .arg("--yes")
                     .current_dir(sandbox.path().join("a/b"));
             })
             .success();

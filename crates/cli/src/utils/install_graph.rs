@@ -1,4 +1,5 @@
-use proto_core::{Id, Tool};
+use super::tool_record::ToolRecord;
+use proto_core::Id;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -25,7 +26,7 @@ pub struct InstallGraph {
 }
 
 impl InstallGraph {
-    pub fn new(tools: &[Tool]) -> Self {
+    pub fn new(tools: &[ToolRecord]) -> Self {
         let mut ids = FxHashSet::default();
         let mut requires = FxHashMap::default();
 

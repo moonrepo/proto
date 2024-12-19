@@ -31,8 +31,8 @@ mod plugin_search {
             })
             .failure();
 
-        assert.stderr(predicate::str::contains(
-            "No plugins available for query \"gibberish\"",
+        assert.stdout(predicate::str::contains(
+            "no plugins found in the registry for the query gibberish",
         ));
     }
 
@@ -46,7 +46,7 @@ mod plugin_search {
             })
             .success();
 
-        assert.stdout(predicate::str::contains("Available for query: zig"));
+        assert.stdout(predicate::str::contains("Search results for: zig"));
     }
 
     #[test]

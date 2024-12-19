@@ -1,59 +1,81 @@
-use crate::helpers::create_theme;
 use crate::session::ProtoSession;
-use clap::Args;
-use dialoguer::Confirm;
-use miette::IntoDiagnostic;
-use proto_core::PROTO_PLUGIN_KEY;
-use proto_core::{Id, ProtoError, Tool, VersionSpec};
+use clap::{Args, ValueEnum};
+use iocraft::prelude::element;
+use proto_core::{ProtoError, Tool, VersionSpec, PROTO_PLUGIN_KEY};
 use proto_shim::get_exe_file_name;
 use rustc_hash::FxHashSet;
+use serde::Serialize;
 use starbase::AppResult;
+use starbase_console::ui::*;
 use starbase_styles::color;
-use starbase_utils::fs;
-use std::io::stdout;
-use std::io::IsTerminal;
+use starbase_utils::{fs, json};
+use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
-use tracing::debug;
+use tracing::{debug, instrument};
+
+#[derive(Clone, Debug, Default, ValueEnum)]
+pub enum CleanTarget {
+    #[default]
+    All,
+    Cache,
+    Plugins,
+    Temp,
+    Tools,
+}
 
 #[derive(Args, Clone, Debug, Default)]
 pub struct CleanArgs {
+    #[arg(value_enum, default_value_t, help = "Specific target to clean")]
+    pub target: CleanTarget,
+
     #[arg(
         long,
+        default_value_t = 30,
         help = "Clean tools and plugins older than the specified number of days"
     )]
-    pub days: Option<u8>,
-
-    #[arg(
-        long,
-        help = "Purge and delete the installed tool by ID",
-        group = "purge-type",
-        value_name = "TOOL"
-    )]
-    pub purge: Option<Id>,
-
-    #[arg(
-        long,
-        help = "Purge and delete all installed plugins",
-        group = "purge-type"
-    )]
-    pub purge_plugins: bool,
-
-    #[arg(long, help = "Avoid and force confirm prompts", env = "PROTO_YES")]
-    pub yes: bool,
+    pub days: u8,
 }
 
-fn is_older_than_days(now: u128, other: u128, days: u8) -> bool {
+#[derive(Default, Serialize)]
+pub struct CleanResult {
+    cache: Vec<StaleFile>,
+    plugins: Vec<StaleFile>,
+    temp: Vec<StaleFile>,
+    tools: Vec<StaleTool>,
+}
+
+#[derive(Serialize)]
+pub struct StaleTool {
+    dir: PathBuf,
+    id: String,
+    version: VersionSpec,
+}
+
+#[derive(Serialize)]
+pub struct StaleFile {
+    file: PathBuf,
+    size: u64,
+}
+
+fn is_older_than_days(now: u128, other: u128, days: u64) -> bool {
     (now - other) > ((days as u128) * 24 * 60 * 60 * 1000)
 }
 
-#[tracing::instrument(skip_all)]
-pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miette::Result<usize> {
-    println!("Checking {}", color::shell(tool.get_name()));
+#[instrument(skip_all)]
+pub async fn clean_tool(
+    session: &ProtoSession,
+    mut tool: Tool,
+    now: SystemTime,
+    days: u64,
+) -> miette::Result<Vec<StaleTool>> {
+    let mut cleaned = vec![];
+
+    debug!("Checking {}", tool.get_name());
 
     if tool.metadata.inventory.override_dir.is_some() {
         debug!("Using an external inventory, skipping");
 
-        return Ok(0);
+        return Ok(cleaned);
     }
 
     let inventory_dir = tool.get_inventory_dir();
@@ -61,10 +83,14 @@ pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miett
     if !inventory_dir.exists() {
         debug!("Not being used, skipping");
 
-        return Ok(0);
+        return Ok(cleaned);
     }
 
     let mut versions_to_clean = FxHashSet::<VersionSpec>::default();
+    let now_millis = now
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap()
+        .as_millis();
 
     debug!("Scanning file system for stale and untracked versions");
 
@@ -121,7 +147,7 @@ pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miett
         // - It was installed before we started tracking last used timestamps
         // - The tools run via external commands (e.g. moon)
         if let Ok(Some(last_used)) = tool.inventory.create_product(version).load_used_at() {
-            if is_older_than_days(now, last_used, days) {
+            if is_older_than_days(now_millis, last_used, days) {
                 debug!(
                     "Version {} hasn't been used in over {} days, removing",
                     color::hash(version.to_string()),
@@ -133,74 +159,62 @@ pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miett
         }
     }
 
-    let count = versions_to_clean.len();
-    let mut clean_count = 0;
-
-    if count == 0 {
+    if versions_to_clean.is_empty() {
         debug!("No versions to remove, continuing to next tool");
 
-        return Ok(0);
+        return Ok(cleaned);
     }
 
-    if yes
-        || Confirm::with_theme(&create_theme())
-            .with_prompt(format!(
-                "Found {} versions, remove {}?",
-                count,
-                versions_to_clean
-                    .iter()
-                    .map(|v| color::hash(v.to_string()))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ))
-            .interact()
-            .into_diagnostic()?
-    {
+    let skip_prompts = session.should_skip_prompts();
+    let mut confirmed = false;
+
+    if !skip_prompts {
+        session
+            .console
+            .render_interactive(element! {
+                Confirm(
+                    label: format!(
+                        "Found {} stale {} versions, remove {}?",
+                        versions_to_clean.len(),
+                        tool.get_name(),
+                        versions_to_clean
+                            .iter()
+                            .map(|v| format!("<hash>{v}</hash>"))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ),
+                    value: &mut confirmed,
+                )
+            })
+            .await?;
+    }
+
+    if skip_prompts || confirmed {
         for version in versions_to_clean {
+            cleaned.push(StaleTool {
+                dir: inventory_dir.join(version.to_string()),
+                id: tool.id.to_string(),
+                version: version.clone(),
+            });
+
             tool.set_version(version);
             tool.teardown().await?;
         }
-
-        clean_count += count;
     } else {
         debug!("Skipping remove, continuing to next tool");
     }
 
-    Ok(clean_count)
+    Ok(cleaned)
 }
 
-#[tracing::instrument(skip_all)]
-pub async fn clean_plugins(session: &ProtoSession, days: u64) -> miette::Result<usize> {
-    let now = SystemTime::now();
+#[instrument(skip_all)]
+pub async fn clean_proto_tool(
+    session: &ProtoSession,
+    now: SystemTime,
+    days: u64,
+) -> miette::Result<Vec<StaleTool>> {
     let duration = Duration::from_secs(86400 * days);
-    let mut clean_count = 0;
-
-    for file in fs::read_dir(&session.env.store.plugins_dir)? {
-        let path = file.path();
-
-        if path.is_file() {
-            let bytes = fs::remove_file_if_stale(&path, duration, now)?;
-
-            if bytes > 0 {
-                debug!(
-                    "Plugin {} hasn't been used in over {} days, removing",
-                    color::path(&path),
-                    days
-                );
-
-                clean_count += 1;
-            }
-        }
-    }
-
-    Ok(clean_count)
-}
-
-#[tracing::instrument(skip_all)]
-pub async fn clean_proto(session: &ProtoSession, days: u64) -> miette::Result<usize> {
-    let now = SystemTime::now();
-    let duration = Duration::from_secs(86400 * days);
-    let mut clean_count = 0;
+    let mut cleaned = vec![];
 
     for dir in fs::read_dir(session.env.store.inventory_dir.join(PROTO_PLUGIN_KEY))? {
         let tool_dir = dir.path();
@@ -211,6 +225,12 @@ pub async fn clean_proto(session: &ProtoSession, days: u64) -> miette::Result<us
         }
 
         let proto_file = tool_dir.join(get_exe_file_name("proto"));
+        let dir_name = fs::file_name(&tool_dir);
+
+        let version = VersionSpec::parse(&dir_name).map_err(|error| ProtoError::VersionSpec {
+            version: dir_name,
+            error: Box::new(error),
+        })?;
 
         let is_stale = if proto_file.exists() {
             fs::is_stale(proto_file, false, duration, now)?.is_some()
@@ -225,145 +245,186 @@ pub async fn clean_proto(session: &ProtoSession, days: u64) -> miette::Result<us
                 days
             );
 
-            fs::remove_dir_all(tool_dir)?;
-            clean_count += 1;
+            fs::remove_dir_all(&tool_dir)?;
+
+            cleaned.push(StaleTool {
+                dir: tool_dir,
+                id: PROTO_PLUGIN_KEY.to_owned(),
+                version,
+            });
         }
     }
 
-    Ok(clean_count)
+    Ok(cleaned)
 }
 
-#[tracing::instrument(skip(session, yes))]
-pub async fn purge_tool(session: &ProtoSession, id: &Id, yes: bool) -> miette::Result<Tool> {
-    let tool = session.load_tool(id).await?;
-    let inventory_dir = tool.get_inventory_dir();
+#[instrument(skip_all)]
+pub async fn clean_dir(dir: &Path, now: SystemTime, days: u64) -> miette::Result<Vec<StaleFile>> {
+    let duration = Duration::from_secs(86400 * days);
+    let mut cleaned = vec![];
 
-    if yes
-        || Confirm::with_theme(&create_theme())
-            .with_prompt(format!(
-                "Purge all of {} at {}?",
-                tool.get_name(),
-                color::path(&inventory_dir)
-            ))
-            .interact()
-            .into_diagnostic()?
-    {
-        // Delete inventory
-        fs::remove_dir_all(inventory_dir)?;
+    for file in fs::read_dir(dir)? {
+        let path = file.path();
 
-        // Delete binaries
-        for bin in tool.resolve_bin_locations(true).await? {
-            session.env.store.unlink_bin(&bin.path)?;
+        if path.is_file() {
+            let bytes = fs::remove_file_if_stale(&path, duration, now)?;
+
+            if bytes > 0 {
+                debug!(
+                    "File {} hasn't been used in over {} days, removing",
+                    color::path(&path),
+                    days
+                );
+
+                cleaned.push(StaleFile {
+                    file: path,
+                    size: bytes,
+                })
+            }
         }
-
-        // Delete shims
-        for shim in tool.resolve_shim_locations().await? {
-            session.env.store.remove_shim(&shim.path)?;
-        }
-
-        println!("Purged {}", tool.get_name());
     }
 
-    Ok(tool)
+    Ok(cleaned)
 }
 
-#[tracing::instrument(skip_all)]
-pub async fn purge_plugins(session: &ProtoSession, yes: bool) -> AppResult {
-    let plugins_dir = &session.env.store.plugins_dir;
-
-    if yes
-        || Confirm::with_theme(&create_theme())
-            .with_prompt(format!(
-                "Purge all plugins in {}?",
-                color::path(plugins_dir)
-            ))
-            .interact()
-            .into_diagnostic()?
-    {
-        fs::remove_dir_all(plugins_dir)?;
-        fs::create_dir_all(plugins_dir)?;
-
-        println!("Purged all downloaded plugins");
-    }
-
-    Ok(None)
-}
-
+#[instrument(skip_all)]
 pub async fn internal_clean(
     session: &ProtoSession,
-    args: CleanArgs,
-    yes: bool,
-    log: bool,
-) -> AppResult {
-    let days = args.days.unwrap_or(30);
-    let now = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap()
-        .as_millis();
-    let mut clean_count = 0;
+    args: &CleanArgs,
+) -> miette::Result<CleanResult> {
+    let days = args.days as u64;
+    let now = SystemTime::now();
+    let mut result = CleanResult::default();
 
-    debug!("Finding installed tools to clean up...");
+    if matches!(args.target, CleanTarget::All | CleanTarget::Tools) {
+        debug!("Cleaning installed tools...");
 
-    for tool in session.load_tools().await? {
-        clean_count += clean_tool(tool, now, days, yes).await?;
+        for tool in session.load_tools().await? {
+            result
+                .tools
+                .extend(clean_tool(session, tool.tool, now, days).await?);
+        }
+
+        result
+            .tools
+            .extend(clean_proto_tool(session, now, days).await?);
     }
 
-    clean_count += clean_proto(session, days as u64).await?;
+    if matches!(args.target, CleanTarget::All | CleanTarget::Plugins) {
+        debug!("Cleaning downloaded plugins...");
 
-    if log && clean_count > 0 {
-        println!("Successfully cleaned {} versions", clean_count);
+        result.plugins = clean_dir(&session.env.store.plugins_dir, now, days).await?;
     }
 
-    debug!("Finding installed plugins to clean up...");
+    if matches!(args.target, CleanTarget::All | CleanTarget::Temp) {
+        debug!("Cleaning temporary directory...");
 
-    clean_count = clean_plugins(session, days as u64).await?;
-
-    if log && clean_count > 0 {
-        println!("Successfully cleaned up {} plugins", clean_count);
+        result.temp = clean_dir(&session.env.store.temp_dir, now, days).await?;
     }
 
-    debug!("Cleaning temporary directory...");
+    if matches!(args.target, CleanTarget::All | CleanTarget::Cache) {
+        debug!("Cleaning cache directory...");
 
-    let results =
-        fs::remove_dir_stale_contents(&session.env.store.temp_dir, Duration::from_secs(86400))?;
-
-    if log && results.files_deleted > 0 {
-        println!(
-            "Successfully cleaned {} temporary files ({} bytes)",
-            results.files_deleted, results.bytes_saved
-        );
+        result.cache = clean_dir(&session.env.store.cache_dir, now, days).await?;
     }
 
-    debug!("Cleaning cache directory...");
-
-    let results =
-        fs::remove_dir_stale_contents(&session.env.store.cache_dir, Duration::from_secs(86400))?;
-
-    if log && results.files_deleted > 0 {
-        println!(
-            "Successfully cleaned {} cache files ({} bytes)",
-            results.files_deleted, results.bytes_saved
-        );
-    }
-
-    Ok(None)
+    Ok(result)
 }
 
-#[tracing::instrument(skip_all)]
+#[instrument(skip_all)]
 pub async fn clean(session: ProtoSession, args: CleanArgs) -> AppResult {
-    let force_yes = args.yes || !stdout().is_terminal();
+    let result = internal_clean(&session, &args).await?;
 
-    if let Some(id) = &args.purge {
-        purge_tool(&session, id, force_yes).await?;
+    if session.should_print_json() {
+        session
+            .console
+            .out
+            .write_line(json::format(&result, true)?)?;
+
         return Ok(None);
     }
 
-    if args.purge_plugins {
-        purge_plugins(&session, force_yes).await?;
-        return Ok(None);
-    }
+    let remove_count =
+        result.cache.len() + result.plugins.len() + result.temp.len() + result.tools.len();
 
-    internal_clean(&session, args, force_yes, true).await?;
+    if remove_count == 0 {
+        session.console.render(element! {
+            Notice(variant: Variant::Info) {
+                StyledText(
+                    content: format!("Clean complete but nothing was removed.\nNo artifacts were found older than {} days.", args.days)
+                )
+            }
+        })?;
+    } else {
+        session.console.render(element! {
+            Notice(variant: Variant::Success) {
+                StyledText(
+                    content: format!("Clean complete, {} artifacts removed:", remove_count)
+                )
+                List {
+                    #(if result.cache.is_empty() {
+                        None
+                    } else {
+                        Some(element! {
+                            ListItem {
+                                Text(
+                                    content: format!(
+                                        "{} cached items ({} bytes)",
+                                        result.cache.len(),
+                                        result.cache.iter().fold(0, |acc, x| acc + x.size)
+                                    )
+                                )
+                            }
+                        })
+                    })
+                    #(if result.plugins.is_empty() {
+                        None
+                    } else {
+                        Some(element! {
+                            ListItem {
+                                Text(
+                                    content: format!(
+                                        "{} downloaded plugins ({} bytes)",
+                                        result.plugins.len(),
+                                        result.plugins.iter().fold(0, |acc, x| acc + x.size)
+                                    )
+                                )
+                            }
+                        })
+                    })
+                    #(if result.temp.is_empty() {
+                        None
+                    } else {
+                        Some(element! {
+                            ListItem {
+                                Text(
+                                    content: format!(
+                                        "{} temporary files ({} bytes)",
+                                        result.temp.len(),
+                                        result.temp.iter().fold(0, |acc, x| acc + x.size)
+                                    )
+                                )
+                            }
+                        })
+                    })
+                    #(if result.tools.is_empty() {
+                        None
+                    } else {
+                        Some(element! {
+                            ListItem {
+                                Text(
+                                    content: format!(
+                                        "{} installed tool versions",
+                                        result.tools.len(),
+                                    )
+                                )
+                            }
+                        })
+                    })
+                }
+            }
+        })?;
+    }
 
     Ok(None)
 }

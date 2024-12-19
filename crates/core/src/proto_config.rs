@@ -124,13 +124,18 @@ derive_enum!(
 );
 
 derive_enum!(
-    #[derive(Copy, ConfigEnum)]
-    pub enum PinType {
+    #[derive(Copy, ConfigEnum, Default)]
+    #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
+    pub enum PinLocation {
         #[serde(alias = "store")]
+        #[cfg_attr(feature = "clap", value(alias("store")))]
         Global,
+        #[default]
         #[serde(alias = "cwd")]
+        #[cfg_attr(feature = "clap", value(alias("cwd")))]
         Local,
         #[serde(alias = "home")]
+        #[cfg_attr(feature = "clap", value(alias("home")))]
         User,
     }
 );
@@ -222,7 +227,7 @@ pub struct ProtoSettingsConfig {
     pub offline: ProtoOfflineConfig,
 
     #[setting(env = "PROTO_PIN_LATEST")]
-    pub pin_latest: Option<PinType>,
+    pub pin_latest: Option<PinLocation>,
 
     #[setting(default = true)]
     pub telemetry: bool,

@@ -151,7 +151,11 @@ mod pin_global {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("pin").arg("--global").arg("node").arg("19.0.0");
+                cmd.arg("pin")
+                    .arg("--to")
+                    .arg("global")
+                    .arg("node")
+                    .arg("19.0.0");
             })
             .success();
 
@@ -174,7 +178,11 @@ mod pin_global {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("pin").arg("--global").arg("npm").arg("bundled");
+                cmd.arg("pin")
+                    .arg("--to")
+                    .arg("global")
+                    .arg("npm")
+                    .arg("bundled");
             })
             .success();
 
@@ -197,7 +205,11 @@ mod pin_global {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("pin").arg("--global").arg("npm").arg("1.2");
+                cmd.arg("pin")
+                    .arg("--to")
+                    .arg("global")
+                    .arg("npm")
+                    .arg("1.2");
             })
             .success();
 
@@ -221,7 +233,8 @@ mod pin_global {
         sandbox
             .run_bin(|cmd| {
                 cmd.arg("pin")
-                    .arg("--global")
+                    .arg("--to")
+                    .arg("global")
                     .arg("npm")
                     .arg("6")
                     .arg("--resolve");
@@ -244,7 +257,11 @@ mod pin_global {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("pin").arg("--global").arg("node").arg("20");
+                cmd.arg("pin")
+                    .arg("--to")
+                    .arg("global")
+                    .arg("node")
+                    .arg("20");
             })
             .success();
 

@@ -2,7 +2,7 @@ use crate::session::ProtoSession;
 use clap::Args;
 use indexmap::IndexMap;
 use miette::IntoDiagnostic;
-use proto_core::{detect_version, ConfigMode, Id, UnresolvedVersionSpec};
+use proto_core::{detect_version, Id, UnresolvedVersionSpec};
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_shell::{Hook, ShellType, Statement};
@@ -55,9 +55,6 @@ pub struct ActivateArgs {
     )]
     export: bool,
 
-    #[arg(long, help = "Print the activate instructions in JSON format")]
-    json: bool,
-
     #[arg(long, help = "Don't include ~/.proto/bin in path lookup")]
     no_bin: bool,
 
@@ -77,8 +74,8 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     };
 
     // If not exporting data, just print the activation syntax immediately
-    if !args.export && !args.json {
-        return print_activation_hook(&shell_type, &args, session.cli.config_mode.as_ref());
+    if !args.export && !session.should_print_json() {
+        return print_activation_hook(&session, &shell_type, &args);
     }
 
     // Pre-load configuration
@@ -120,7 +117,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
                 }
             }
 
-            item.id = tool.id;
+            item.id = tool.id.clone();
 
             Ok(item)
         });
@@ -140,7 +137,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     if !info.env.contains_key("PROTO_HOME") && env::var("PROTO_HOME").is_err() {
         info.env.insert(
             "PROTO_HOME".into(),
-            session.env.root.to_str().map(|root| root.to_owned()),
+            session.env.store.dir.to_str().map(|root| root.to_owned()),
         );
     }
 
@@ -167,13 +164,13 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
 
     // Output/export the information for the chosen shell
     if args.export {
-        print_activation_exports(&shell_type, info)?;
+        print_activation_exports(&session, &shell_type, info)?;
 
         return Ok(None);
     }
 
-    if args.json {
-        println!("{}", json::format(&info, true)?);
+    if session.should_print_json() {
+        session.console.out.write_line(json::format(&info, true)?)?;
 
         return Ok(None);
     }
@@ -182,13 +179,13 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
 }
 
 fn print_activation_hook(
+    session: &ProtoSession,
     shell_type: &ShellType,
     args: &ActivateArgs,
-    config_mode: Option<&ConfigMode>,
 ) -> AppResult {
     let mut command = format!("proto activate {}", shell_type);
 
-    if let Some(mode) = config_mode {
+    if let Some(mode) = &session.cli.config_mode {
         command.push_str(" --config-mode ");
         command.push_str(&mode.to_string());
     }
@@ -212,22 +209,26 @@ fn print_activation_hook(
         }
     };
 
-    println!(
-        "{}",
-        shell_type.build().format_hook(Hook::OnChangeDir {
+    session
+        .console
+        .out
+        .write_line(shell_type.build().format_hook(Hook::OnChangeDir {
             command,
             function: "_proto_activate_hook".into(),
-        })?
-    );
+        })?)?;
 
     if args.on_init {
-        println!("\n_proto_activate_hook");
+        session.console.out.write_line("\n_proto_activate_hook")?;
     }
 
     Ok(None)
 }
 
-fn print_activation_exports(shell_type: &ShellType, info: ActivateInfo) -> AppResult {
+fn print_activation_exports(
+    session: &ProtoSession,
+    shell_type: &ShellType,
+    info: ActivateInfo,
+) -> AppResult {
     let shell = shell_type.build();
     let mut output = vec![];
 
@@ -253,7 +254,7 @@ fn print_activation_exports(shell_type: &ShellType, info: ActivateInfo) -> AppRe
         }));
     }
 
-    println!("{}", output.join("\n"));
+    session.console.out.write_line(output.join("\n"))?;
 
     Ok(None)
 }

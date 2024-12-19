@@ -1,6 +1,6 @@
 use indexmap::IndexMap;
 use proto_core::{
-    DetectStrategy, EnvVar, PartialEnvVar, PartialProtoSettingsConfig, PinType, ProtoConfig,
+    DetectStrategy, EnvVar, PartialEnvVar, PartialProtoSettingsConfig, PinLocation, ProtoConfig,
     ProtoConfigManager,
 };
 use schematic::ConfigError;
@@ -77,7 +77,7 @@ pin-latest = "global"
             PartialProtoSettingsConfig {
                 auto_clean: Some(true),
                 auto_install: Some(true),
-                pin_latest: Some(PinType::Global),
+                pin_latest: Some(PinLocation::Global),
                 ..Default::default()
             }
         );
@@ -103,7 +103,7 @@ pin-latest = "global"
             config.settings.detect_strategy,
             DetectStrategy::PreferPrototools
         );
-        assert_eq!(config.settings.pin_latest, Some(PinType::Local));
+        assert_eq!(config.settings.pin_latest, Some(PinLocation::Local));
 
         env::remove_var("PROTO_AUTO_CLEAN");
         env::remove_var("PROTO_AUTO_INSTALL");

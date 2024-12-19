@@ -1,8 +1,8 @@
 mod app;
 mod commands;
+mod components;
 mod error;
 mod helpers;
-mod printer;
 mod session;
 mod shell;
 mod systems;
@@ -53,7 +53,7 @@ async fn main() -> MainResult {
         dump_trace: cli.dump && !matches!(cli.command, Commands::Run { .. }),
         filter_modules: get_tracing_modules(),
         log_env: "PROTO_APP_LOG".into(),
-        show_spans: cli.log.as_ref().is_some_and(|level| level.is_verbose()),
+        show_spans: cli.log.is_verbose(),
         // test_env: "PROTO_TEST".into(),
         ..TracingOptions::default()
     });
@@ -80,13 +80,11 @@ async fn main() -> MainResult {
                 Commands::Clean(args) => commands::clean(session, args).await,
                 Commands::Completions(args) => commands::completions(session, args).await,
                 Commands::Debug { command } => match command {
-                    DebugCommands::Config(args) => commands::debug::config(session, args).await,
+                    DebugCommands::Config => commands::debug::config(session).await,
                     DebugCommands::Env => commands::debug::env(session).await,
                 },
                 Commands::Diagnose(args) => commands::diagnose(session, args).await,
                 Commands::Install(args) => commands::install(session, args).await,
-                Commands::List(args) => commands::list(session, args).await,
-                Commands::ListRemote(args) => commands::list_remote(session, args).await,
                 Commands::Migrate(args) => commands::migrate(session, args).await,
                 Commands::Outdated(args) => commands::outdated(session, args).await,
                 Commands::Pin(args) => commands::pin(session, args).await,
@@ -105,6 +103,7 @@ async fn main() -> MainResult {
                 Commands::Uninstall(args) => commands::uninstall(session, args).await,
                 Commands::Unpin(args) => commands::unpin(session, args).await,
                 Commands::Upgrade(args) => commands::upgrade(session, args).await,
+                Commands::Versions(args) => commands::versions(session, args).await,
             }
         })
         .await?;

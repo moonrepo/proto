@@ -5,6 +5,7 @@ use miette::IntoDiagnostic;
 use once_cell::sync::OnceCell;
 use proto_pdk_api::ToolInventoryMetadata;
 use proto_shim::{create_shim, locate_proto_exe};
+use serde::Serialize;
 use starbase_utils::fs;
 use std::fmt;
 use std::path::{Path, PathBuf};
@@ -12,7 +13,7 @@ use std::sync::Arc;
 use tracing::instrument;
 use warpgate::Id;
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Serialize)]
 pub struct Store {
     pub dir: PathBuf,
     pub bin_dir: PathBuf,
@@ -22,6 +23,7 @@ pub struct Store {
     pub shims_dir: PathBuf,
     pub temp_dir: PathBuf,
 
+    #[serde(skip)]
     shim_binary: Arc<OnceCell<Vec<u8>>>,
 }
 

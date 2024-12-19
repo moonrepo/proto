@@ -88,7 +88,7 @@ mod unpin_global {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("unpin").arg("node").arg("--global");
+                cmd.arg("unpin").arg("node").arg("--from").arg("global");
             })
             .success();
 
