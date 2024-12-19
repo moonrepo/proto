@@ -1,6 +1,8 @@
 use crate::session::ProtoSession;
 use clap::Args;
+use iocraft::prelude::element;
 use starbase::AppResult;
+use starbase_console::ui::*;
 use starbase_utils::fs;
 use tracing::debug;
 
@@ -13,12 +15,13 @@ pub struct RegenArgs {
 #[tracing::instrument(skip_all)]
 pub async fn regen(session: ProtoSession, args: RegenArgs) -> AppResult {
     let store = &session.env.store;
+    let progress = session.render_progress_loader()?;
 
-    session.console.out.write_line(if args.bin {
+    progress.set_message(if args.bin {
         "Regenerating bins and shims..."
     } else {
         "Regenerating shims..."
-    })?;
+    });
 
     // Delete all shims
     debug!("Removing old shims");
@@ -52,14 +55,14 @@ pub async fn regen(session: ProtoSession, args: RegenArgs) -> AppResult {
     let config = session.env.load_config()?;
 
     for mut tool in session.load_tools().await? {
-        // Shims - Create once if has a configured version.
+        // Shims - Create once if tool has a configured version
         if config.versions.contains_key(&tool.id) {
             debug!("Regenerating {} shim", tool.get_name());
 
             tool.generate_shims(true).await?;
         }
 
-        // Bins - Create for each installed version.
+        // Bins - Create for each installed version
         if args.bin {
             debug!("Relinking {} bin", tool.get_name());
 
@@ -67,7 +70,19 @@ pub async fn regen(session: ProtoSession, args: RegenArgs) -> AppResult {
         }
     }
 
-    session.console.out.write_line("Regeneration complete!")?;
+    progress.stop().await?;
+
+    session.console.render(element! {
+        Notice(variant: Variant::Success) {
+            StyledText(
+                content: if args.bin {
+                    "Regenerated bins and shims"
+                } else {
+                    "Regenerated shims"
+                },
+            )
+        }
+    })?;
 
     Ok(None)
 }
