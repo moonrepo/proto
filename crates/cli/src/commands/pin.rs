@@ -1,4 +1,3 @@
-use crate::helpers::{map_pin_type, PinOption};
 use crate::session::ProtoSession;
 use clap::Args;
 use iocraft::prelude::element;
@@ -20,8 +19,8 @@ pub struct PinArgs {
     #[arg(long, help = "Resolve the version before pinning")]
     pub resolve: bool,
 
-    #[arg(long, help = "Location of .prototools to pin to")]
-    pub to: Option<PinOption>,
+    #[arg(long, default_value_t, help = "Location of .prototools to pin to")]
+    pub to: PinLocation,
 }
 
 pub async fn internal_pin(
@@ -57,7 +56,7 @@ pub async fn pin(session: ProtoSession, args: PinArgs) -> AppResult {
         args.spec.clone()
     };
 
-    let config_path = internal_pin(&mut tool, &spec, map_pin_type(false, args.to)).await?;
+    let config_path = internal_pin(&mut tool, &spec, args.to).await?;
 
     session.console.render(element! {
         Notice(variant: Variant::Success) {
