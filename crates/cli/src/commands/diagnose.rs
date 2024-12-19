@@ -15,13 +15,10 @@ use std::path::PathBuf;
 pub struct DiagnoseArgs {
     #[arg(long, help = "Shell to diagnose for")]
     shell: Option<ShellType>,
-
-    #[arg(long, help = "Print the diagnosis in JSON format")]
-    json: bool,
 }
 
 #[derive(Serialize)]
-struct Diagnosis {
+struct DiagnoseResult {
     shell: String,
     shell_profile: PathBuf,
     errors: Vec<Issue>,
@@ -36,27 +33,21 @@ pub async fn diagnose(session: ProtoSession, args: DiagnoseArgs) -> AppResult {
         None => ShellType::try_detect()?,
     };
 
-    let paths = starbase_utils::env::paths();
-
-    // Disable ANSI colors in JSON output
-    if args.json {
-        env::set_var("NO_COLOR", "1");
-    }
-
     let mut tips = vec![];
+    let paths = starbase_utils::env::paths();
     let errors = gather_errors(&session, &paths, &mut tips).await?;
     let warnings = gather_warnings(&session, &paths, &mut tips).await?;
 
-    if args.json {
+    if session.should_print_json() {
         let shell = shell_type.build();
         let shell_path = session
             .env
             .store
             .load_preferred_profile()?
-            .unwrap_or_else(|| shell.get_env_path(&session.env.home));
+            .unwrap_or_else(|| shell.get_env_path(&session.env.home_dir));
 
         session.console.out.write_line(json::format(
-            &Diagnosis {
+            &DiagnoseResult {
                 shell: shell_type.to_string(),
                 shell_profile: shell_path,
                 errors,
@@ -85,7 +76,7 @@ pub async fn diagnose(session: ProtoSession, args: DiagnoseArgs) -> AppResult {
         .env
         .store
         .load_preferred_profile()?
-        .unwrap_or_else(|| shell.get_env_path(&session.env.home));
+        .unwrap_or_else(|| shell.get_env_path(&session.env.home_dir));
 
     session.console.render(element! {
         Container {

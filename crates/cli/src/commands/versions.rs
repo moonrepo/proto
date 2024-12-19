@@ -21,9 +21,6 @@ pub struct VersionsArgs {
 
     #[arg(long, help = "Only display installed versions")]
     installed: bool,
-
-    #[arg(long, help = "Print the versions in JSON format")]
-    json: bool,
 }
 
 #[derive(Serialize)]
@@ -34,7 +31,7 @@ pub struct VersionItem {
 }
 
 #[derive(Serialize)]
-pub struct VersionsInfo {
+pub struct VersionsResult {
     versions: Vec<VersionItem>,
     local_aliases: BTreeMap<String, UnresolvedVersionSpec>,
     remote_aliases: BTreeMap<String, UnresolvedVersionSpec>,
@@ -89,14 +86,17 @@ pub async fn versions(session: ProtoSession, args: VersionsArgs) -> AppResult {
         })
         .collect::<Vec<_>>();
 
-    if args.json {
-        let info = VersionsInfo {
+    if session.should_print_json() {
+        let result = VersionsResult {
             versions,
             local_aliases: tool.local_aliases,
             remote_aliases: tool.remote_aliases,
         };
 
-        session.console.out.write_line(json::format(&info, true)?)?;
+        session
+            .console
+            .out
+            .write_line(json::format(&result, true)?)?;
 
         return Ok(None);
     }

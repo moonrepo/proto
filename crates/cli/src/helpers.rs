@@ -1,43 +1,14 @@
-use clap::ValueEnum;
 use dialoguer::{
     console::{style, Style},
     theme::ColorfulTheme,
 };
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use miette::IntoDiagnostic;
-use proto_core::PinLocation;
 use semver::Version;
 use starbase_styles::color::{self, Color};
 use starbase_utils::env::bool_var;
 use std::io::IsTerminal;
 use tracing::debug;
-
-#[derive(Clone, Copy, Debug, Default, ValueEnum)]
-pub enum PinOption {
-    #[value(alias = "store")]
-    Global,
-    #[default]
-    #[value(alias = "cwd")]
-    Local,
-    #[value(alias = "home")]
-    User,
-}
-
-pub fn map_pin_type(global: bool, option: Option<PinOption>) -> PinLocation {
-    if let Some(option) = option {
-        return match option {
-            PinOption::Global => PinLocation::Global,
-            PinOption::Local => PinLocation::Local,
-            PinOption::User => PinLocation::User,
-        };
-    }
-
-    if global {
-        PinLocation::Global
-    } else {
-        PinLocation::Local
-    }
-}
 
 pub fn create_theme() -> ColorfulTheme {
     ColorfulTheme {
@@ -101,21 +72,25 @@ pub fn create_progress_bar_download_style() -> ProgressStyle {
         .unwrap()
 }
 
-pub fn create_progress_spinner_style() -> ProgressStyle {
-    let mut chars = vec![];
+pub fn create_progress_loader_frames() -> Vec<String> {
+    let mut frames = vec![];
 
     for i in 1..=20 {
         if i == 20 {
-            chars.push("━".repeat(20));
+            frames.push("━".repeat(20));
         } else {
-            chars.push(format!("{}╾{}", "━".repeat(i - 1), " ".repeat(20 - i)));
+            frames.push(format!("{}╾{}", "━".repeat(i - 1), " ".repeat(20 - i)));
         }
     }
 
-    let chars = chars.iter().map(|c| c.as_str()).collect::<Vec<_>>();
+    frames
+}
+pub fn create_progress_spinner_style() -> ProgressStyle {
+    let frames = create_progress_loader_frames();
+    let frames = frames.iter().map(|f| f.as_str()).collect::<Vec<_>>();
 
     ProgressStyle::default_spinner()
-        .tick_strings(&chars)
+        .tick_strings(&frames)
         .template(format_template_styles("{prefix} {spinner:20.183/239} | {msg}").as_str())
         .unwrap()
 }

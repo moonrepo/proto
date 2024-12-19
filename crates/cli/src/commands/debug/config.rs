@@ -1,5 +1,4 @@
 use crate::session::{ProtoConsole, ProtoSession};
-use clap::Args;
 use iocraft::prelude::*;
 use proto_core::{ProtoConfig, ProtoConfigFile};
 use serde::Serialize;
@@ -12,12 +11,6 @@ use starbase_utils::{json, toml};
 struct DebugConfigResult<'a> {
     config: &'a ProtoConfig,
     files: Vec<&'a ProtoConfigFile>,
-}
-
-#[derive(Args, Clone, Debug)]
-pub struct DebugConfigArgs {
-    #[arg(long, help = "Print the data in JSON format")]
-    json: bool,
 }
 
 fn print_toml(console: &ProtoConsole, value: impl Serialize) -> miette::Result<()> {
@@ -45,12 +38,12 @@ fn print_toml(console: &ProtoConsole, value: impl Serialize) -> miette::Result<(
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn config(session: ProtoSession, args: DebugConfigArgs) -> AppResult {
+pub async fn config(session: ProtoSession) -> AppResult {
     let env = &session.env;
     let manager = env.load_config_manager()?;
     let config = env.load_config()?;
 
-    if args.json {
+    if session.should_print_json() {
         let result = DebugConfigResult {
             config,
             files: manager.files.iter().rev().collect::<Vec<_>>(),

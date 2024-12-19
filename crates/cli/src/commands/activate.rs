@@ -55,9 +55,6 @@ pub struct ActivateArgs {
     )]
     export: bool,
 
-    #[arg(long, help = "Print the activate instructions in JSON format")]
-    json: bool,
-
     #[arg(long, help = "Don't include ~/.proto/bin in path lookup")]
     no_bin: bool,
 
@@ -77,7 +74,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     };
 
     // If not exporting data, just print the activation syntax immediately
-    if !args.export && !args.json {
+    if !args.export && !session.should_print_json() {
         return print_activation_hook(&session, &shell_type, &args);
     }
 
@@ -140,7 +137,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     if !info.env.contains_key("PROTO_HOME") && env::var("PROTO_HOME").is_err() {
         info.env.insert(
             "PROTO_HOME".into(),
-            session.env.root.to_str().map(|root| root.to_owned()),
+            session.env.store.dir.to_str().map(|root| root.to_owned()),
         );
     }
 
@@ -172,7 +169,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
         return Ok(None);
     }
 
-    if args.json {
+    if session.should_print_json() {
         session.console.out.write_line(json::format(&info, true)?)?;
 
         return Ok(None);

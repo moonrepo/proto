@@ -9,8 +9,6 @@ use starbase::AppResult;
 use starbase_shell::{BoxedShell, ShellType};
 use starbase_styles::color;
 use std::env;
-use std::io::stdout;
-use std::io::IsTerminal;
 use std::path::PathBuf;
 use tracing::debug;
 
@@ -36,14 +34,6 @@ pub struct SetupArgs {
         env = "PROTO_NO_MODIFY_PATH"
     )]
     no_modify_path: bool,
-
-    #[arg(
-        long,
-        short = 'y',
-        help = "Avoid interactive prompts and use defaults",
-        env = "PROTO_YES"
-    )]
-    yes: bool,
 }
 
 #[tracing::instrument(skip_all)]
@@ -60,7 +50,7 @@ pub async fn setup(session: ProtoSession, args: SetupArgs) -> AppResult {
 
     debug!("Determining the shell to use");
 
-    let interactive = !args.yes && env::var("CI").is_err() && stdout().is_terminal();
+    let interactive = !session.should_skip_prompts() && env::var("CI").is_err();
 
     let shell_type = match args.shell.or_else(ShellType::detect) {
         Some(value) => value,
@@ -134,11 +124,11 @@ fn update_shell_profile(
     let profile_path = if interactive {
         debug!("Prompting the user to select a shell profile");
 
-        prompt_for_shell_profile(shell, &session.env.cwd, &session.env.home)?
+        prompt_for_shell_profile(shell, &session.env.working_dir, &session.env.home_dir)?
     } else {
         debug!("Attempting to find a shell profile to update");
 
-        find_first_profile(shell, &session.env.home).ok()
+        find_first_profile(shell, &session.env.home_dir).ok()
     };
 
     // If we found a profile, update the global config so we can reference it

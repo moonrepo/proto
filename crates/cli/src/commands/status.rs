@@ -25,10 +25,7 @@ struct StatusItem {
 }
 
 #[derive(Args, Clone, Debug)]
-pub struct StatusArgs {
-    #[arg(long, help = "Print the active tools in JSON format")]
-    json: bool,
-}
+pub struct StatusArgs {}
 
 fn find_versions_in_configs(
     session: &ProtoSession,
@@ -41,7 +38,10 @@ fn find_versions_in_configs(
         if !file.exists
             || !env.config_mode.includes_global() && file.global
             || env.config_mode.only_local()
-                && file.path.parent().is_none_or(|p| p != session.env.cwd)
+                && file
+                    .path
+                    .parent()
+                    .is_none_or(|p| p != session.env.working_dir)
         {
             continue;
         }
@@ -77,7 +77,7 @@ async fn find_versions_from_ecosystem(
         let env = Arc::clone(&session.env);
 
         set.spawn(async move {
-            if let Ok(Some(detected)) = tool.detect_version_from(&env.cwd).await {
+            if let Ok(Some(detected)) = tool.detect_version_from(&env.working_dir).await {
                 return Some((tool.id.clone(), detected.0, detected.1));
             }
 
@@ -149,7 +149,7 @@ async fn resolve_item_versions(
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn status(session: ProtoSession, args: StatusArgs) -> AppResult {
+pub async fn status(session: ProtoSession, _args: StatusArgs) -> AppResult {
     debug!("Determining active tools based on config...");
 
     let mut items = BTreeMap::default();
@@ -168,8 +168,7 @@ pub async fn status(session: ProtoSession, args: StatusArgs) -> AppResult {
 
     resolve_item_versions(&session, &mut items).await?;
 
-    // Dump all the data as JSON
-    if args.json {
+    if session.should_print_json() {
         session
             .console
             .out
@@ -178,7 +177,6 @@ pub async fn status(session: ProtoSession, args: StatusArgs) -> AppResult {
         return Ok(None);
     }
 
-    // Print all the data in a table
     session.console.render(element! {
         Container {
             Table(

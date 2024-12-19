@@ -18,12 +18,11 @@ use warpgate::PluginLoader;
 #[derive(Clone, Default)]
 pub struct ProtoEnvironment {
     pub config_mode: ConfigMode,
-    pub cwd: PathBuf,
     pub env_mode: Option<String>,
-    pub home: PathBuf, // ~
-    pub root: PathBuf, // ~/.proto
+    pub home_dir: PathBuf, // ~
     pub store: Store,
     pub test_only: bool,
+    pub working_dir: PathBuf,
 
     config_manager: Arc<OnceCell<ProtoConfigManager>>,
     plugin_loader: Arc<OnceCell<PluginLoader>>,
@@ -60,10 +59,10 @@ impl ProtoEnvironment {
 
         Ok(ProtoEnvironment {
             config_mode: ConfigMode::Upwards,
-            cwd: env::current_dir().expect("Unable to determine current working directory!"),
+            working_dir: env::current_dir()
+                .expect("Unable to determine current working directory!"),
             env_mode: env::var("PROTO_ENV").ok(),
-            home: home.to_owned(),
-            root: root.to_owned(),
+            home_dir: home.to_owned(),
             config_manager: Arc::new(OnceCell::new()),
             plugin_loader: Arc::new(OnceCell::new()),
             test_only: env::var("PROTO_TEST").is_ok(),
@@ -73,9 +72,9 @@ impl ProtoEnvironment {
 
     pub fn get_config_dir(&self, pin: PinLocation) -> &Path {
         match pin {
-            PinLocation::Global => &self.root,
-            PinLocation::Local => &self.cwd,
-            PinLocation::User => &self.home,
+            PinLocation::Global => &self.store.dir,
+            PinLocation::Local => &self.working_dir,
+            PinLocation::User => &self.home_dir,
         }
     }
 
@@ -96,9 +95,9 @@ impl ProtoEnvironment {
 
     pub fn get_virtual_paths(&self) -> BTreeMap<PathBuf, PathBuf> {
         BTreeMap::from_iter([
-            (self.cwd.clone(), "/cwd".into()),
-            (self.root.clone(), "/proto".into()),
-            (self.home.clone(), "/userhome".into()),
+            (self.working_dir.clone(), "/cwd".into()),
+            (self.store.dir.clone(), "/proto".into()),
+            (self.home_dir.clone(), "/userhome".into()),
         ])
     }
 
@@ -118,7 +117,7 @@ impl ProtoEnvironment {
 
         match mode {
             ConfigMode::Global => manager.get_global_config(),
-            ConfigMode::Local => manager.get_local_config(&self.cwd),
+            ConfigMode::Local => manager.get_local_config(&self.working_dir),
             ConfigMode::Upwards => manager.get_merged_config_without_global(),
             ConfigMode::UpwardsGlobal => manager.get_merged_config(),
         }
@@ -129,22 +128,23 @@ impl ProtoEnvironment {
         self.config_manager.get_or_try_init(|| {
             // Don't traverse passed the home directory,
             // but only if working directory is within it!
-            let end_dir = if self.cwd.starts_with(&self.home) {
-                Some(self.home.as_path())
+            let end_dir = if self.working_dir.starts_with(&self.home_dir) {
+                Some(self.home_dir.as_path())
             } else {
                 None
             };
 
-            let mut manager = ProtoConfigManager::load(&self.cwd, end_dir, self.env_mode.as_ref())?;
+            let mut manager =
+                ProtoConfigManager::load(&self.working_dir, end_dir, self.env_mode.as_ref())?;
 
             // Always load the proto home/root config last
-            let path = self.root.join(PROTO_CONFIG_NAME);
+            let path = self.store.dir.join(PROTO_CONFIG_NAME);
 
             manager.files.push(ProtoConfigFile {
                 exists: path.exists(),
                 global: true,
                 path,
-                config: ProtoConfig::load_from(&self.root, true)?,
+                config: ProtoConfig::load_from(&self.store.dir, true)?,
             });
 
             Ok(manager)
@@ -162,12 +162,11 @@ impl fmt::Debug for ProtoEnvironment {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ProtoEnvironment")
             .field("config_mode", &self.config_mode)
-            .field("cwd", &self.cwd)
             .field("env_mode", &self.env_mode)
-            .field("home", &self.home)
-            .field("root", &self.root)
+            .field("home_dir", &self.home_dir)
             .field("store", &self.store)
             .field("test_only", &self.test_only)
+            .field("working_dir", &self.working_dir)
             .finish()
     }
 }

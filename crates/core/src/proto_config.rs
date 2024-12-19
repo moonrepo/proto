@@ -128,11 +128,14 @@ derive_enum!(
     #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
     pub enum PinLocation {
         #[serde(alias = "store")]
+        #[cfg_attr(feature = "clap", value(alias("store")))]
         Global,
         #[default]
         #[serde(alias = "cwd")]
+        #[cfg_attr(feature = "clap", value(alias("cwd")))]
         Local,
         #[serde(alias = "home")]
+        #[cfg_attr(feature = "clap", value(alias("home")))]
         User,
     }
 );
