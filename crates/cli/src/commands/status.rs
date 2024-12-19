@@ -38,7 +38,10 @@ fn find_versions_in_configs(
         if !file.exists
             || !env.config_mode.includes_global() && file.global
             || env.config_mode.only_local()
-                && file.path.parent().is_none_or(|p| p != session.env.cwd)
+                && file
+                    .path
+                    .parent()
+                    .is_none_or(|p| p != session.env.working_dir)
         {
             continue;
         }
@@ -74,7 +77,7 @@ async fn find_versions_from_ecosystem(
         let env = Arc::clone(&session.env);
 
         set.spawn(async move {
-            if let Ok(Some(detected)) = tool.detect_version_from(&env.cwd).await {
+            if let Ok(Some(detected)) = tool.detect_version_from(&env.working_dir).await {
                 return Some((tool.id.clone(), detected.0, detected.1));
             }
 

@@ -443,7 +443,7 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
             continue;
         }
 
-        if let Some((candidate, _)) = tool.detect_version_from(&session.env.cwd).await? {
+        if let Some((candidate, _)) = tool.detect_version_from(&session.env.working_dir).await? {
             debug!("Detected version {} for {}", candidate, tool.get_name());
 
             versions.insert(tool.id.clone(), candidate);

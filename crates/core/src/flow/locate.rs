@@ -372,9 +372,9 @@ impl Tool {
                 let find_by = cap.get(0).unwrap().as_str();
 
                 let replace_with = match find_by {
-                    "$CWD" | "$PWD" => self.proto.cwd.clone(),
-                    "$HOME" | "$USERHOME" => self.proto.home.clone(),
-                    "$PROTO_HOME" | "$PROTO_ROOT" => self.proto.root.clone(),
+                    "$CWD" | "$PWD" => self.proto.working_dir.clone(),
+                    "$HOME" | "$USERHOME" => self.proto.home_dir.clone(),
+                    "$PROTO_HOME" | "$PROTO_ROOT" => self.proto.store.dir.clone(),
                     "$TOOL_DIR" => install_dir.clone(),
                     _ => match env::var_os(cap.get(1).unwrap().as_str()) {
                         Some(value) => PathBuf::from(value),
@@ -392,7 +392,7 @@ impl Tool {
             }
 
             let dir = if let Some(dir_suffix) = dir.strip_prefix('~') {
-                self.proto.home.join(dir_suffix)
+                self.proto.home_dir.join(dir_suffix)
             } else {
                 PathBuf::from(dir)
             };

@@ -137,7 +137,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     if !info.env.contains_key("PROTO_HOME") && env::var("PROTO_HOME").is_err() {
         info.env.insert(
             "PROTO_HOME".into(),
-            session.env.root.to_str().map(|root| root.to_owned()),
+            session.env.store.dir.to_str().map(|root| root.to_owned()),
         );
     }
 

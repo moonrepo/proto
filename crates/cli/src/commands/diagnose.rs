@@ -44,7 +44,7 @@ pub async fn diagnose(session: ProtoSession, args: DiagnoseArgs) -> AppResult {
             .env
             .store
             .load_preferred_profile()?
-            .unwrap_or_else(|| shell.get_env_path(&session.env.home));
+            .unwrap_or_else(|| shell.get_env_path(&session.env.home_dir));
 
         session.console.out.write_line(json::format(
             &DiagnoseResult {
@@ -76,7 +76,7 @@ pub async fn diagnose(session: ProtoSession, args: DiagnoseArgs) -> AppResult {
         .env
         .store
         .load_preferred_profile()?
-        .unwrap_or_else(|| shell.get_env_path(&session.env.home));
+        .unwrap_or_else(|| shell.get_env_path(&session.env.home_dir));
 
     session.console.render(element! {
         Container {

@@ -124,11 +124,11 @@ fn update_shell_profile(
     let profile_path = if interactive {
         debug!("Prompting the user to select a shell profile");
 
-        prompt_for_shell_profile(shell, &session.env.cwd, &session.env.home)?
+        prompt_for_shell_profile(shell, &session.env.working_dir, &session.env.home_dir)?
     } else {
         debug!("Attempting to find a shell profile to update");
 
-        find_first_profile(shell, &session.env.home).ok()
+        find_first_profile(shell, &session.env.home_dir).ok()
     };
 
     // If we found a profile, update the global config so we can reference it
