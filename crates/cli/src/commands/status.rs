@@ -25,10 +25,7 @@ struct StatusItem {
 }
 
 #[derive(Args, Clone, Debug)]
-pub struct StatusArgs {
-    #[arg(long, help = "Print the active tools in JSON format")]
-    json: bool,
-}
+pub struct StatusArgs {}
 
 fn find_versions_in_configs(
     session: &ProtoSession,
@@ -149,7 +146,7 @@ async fn resolve_item_versions(
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn status(session: ProtoSession, args: StatusArgs) -> AppResult {
+pub async fn status(session: ProtoSession, _args: StatusArgs) -> AppResult {
     debug!("Determining active tools based on config...");
 
     let mut items = BTreeMap::default();
@@ -168,8 +165,7 @@ pub async fn status(session: ProtoSession, args: StatusArgs) -> AppResult {
 
     resolve_item_versions(&session, &mut items).await?;
 
-    // Dump all the data as JSON
-    if args.json {
+    if session.should_print_json() {
         session
             .console
             .out
@@ -178,7 +174,6 @@ pub async fn status(session: ProtoSession, args: StatusArgs) -> AppResult {
         return Ok(None);
     }
 
-    // Print all the data in a table
     session.console.render(element! {
         Container {
             Table(

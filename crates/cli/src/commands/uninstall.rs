@@ -63,7 +63,7 @@ async fn track_uninstall(tool: &Tool, all: bool) -> miette::Result<()> {
     .await
 }
 
-pub async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult {
+async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult {
     let tool = session.load_tool(&args.id).await?;
     let inventory_dir = tool.get_inventory_dir();
     let version_count = tool.inventory.manifest.installed_versions.len();
@@ -142,7 +142,7 @@ pub async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppRes
     Ok(None)
 }
 
-pub async fn uninstall_one(
+async fn uninstall_one(
     session: ProtoSession,
     args: UninstallArgs,
     spec: UnresolvedVersionSpec,

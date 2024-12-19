@@ -1,6 +1,5 @@
 use crate::components::is_path_like;
 use crate::session::ProtoSession;
-use clap::Args;
 use iocraft::prelude::*;
 use proto_core::layout::Store;
 use proto_pdk_api::{HostArch, HostOS};
@@ -25,17 +24,11 @@ struct EnvironmentInfo {
 #[derive(Serialize)]
 struct DebugEnvResult<'a> {
     store: &'a Store,
-    env: EnvironmentInfo,
-}
-
-#[derive(Args, Clone, Debug)]
-pub struct DebugEnvArgs {
-    #[arg(long, help = "Print the data in JSON format")]
-    json: bool,
+    env: &'a EnvironmentInfo,
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn env(session: ProtoSession, args: DebugEnvArgs) -> AppResult {
+pub async fn env(session: ProtoSession) -> AppResult {
     let env = &session.env;
     let manager = env.load_config_manager()?;
 
@@ -66,10 +59,10 @@ pub async fn env(session: ProtoSession, args: DebugEnvArgs) -> AppResult {
         virtual_paths: env.get_virtual_paths(),
     };
 
-    if args.json {
+    if session.should_print_json() {
         let result = DebugEnvResult {
             store: &env.store,
-            env: environment,
+            env: &environment,
         };
 
         session

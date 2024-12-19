@@ -1,5 +1,4 @@
 use crate::commands::{
-    debug::{DebugConfigArgs, DebugEnvArgs},
     plugin::{AddPluginArgs, InfoPluginArgs, ListPluginsArgs, RemovePluginArgs, SearchPluginArgs},
     ActivateArgs, AliasArgs, BinArgs, CleanArgs, CompletionsArgs, DiagnoseArgs, InstallArgs,
     MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs, StatusArgs, UnaliasArgs,
@@ -116,6 +115,14 @@ pub struct App {
     )]
     pub yes: bool,
 
+    #[arg(
+        long,
+        global = true,
+        env = "PROTO_JSON",
+        help = "Print as JSON (when applicable)"
+    )]
+    pub json: bool,
+
     #[command(subcommand)]
     pub command: Commands,
 }
@@ -127,6 +134,11 @@ impl App {
 
         if let Ok(value) = env::var("PROTO_DEBUG_COMMAND") {
             env::set_var("WARPGATE_DEBUG_COMMAND", value);
+        }
+
+        // Disable ANSI colors in JSON output
+        if self.json {
+            env::set_var("NO_COLOR", "1");
         }
     }
 }
@@ -282,10 +294,10 @@ pub enum DebugCommands {
         name = "config",
         about = "Debug all loaded .prototools config's for the current directory."
     )]
-    Config(DebugConfigArgs),
+    Config,
 
     #[command(name = "env", about = "Debug the current proto environment and store.")]
-    Env(DebugEnvArgs),
+    Env,
 }
 
 #[derive(Clone, Debug, Subcommand)]

@@ -209,6 +209,10 @@ impl ProtoSession {
         Ok(ProgressInstance { reporter, handle })
     }
 
+    pub fn should_print_json(&self) -> bool {
+        self.cli.json
+    }
+
     pub fn should_skip_prompts(&self) -> bool {
         self.cli.yes || !std::io::stdout().is_terminal()
     }

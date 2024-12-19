@@ -34,9 +34,6 @@ pub struct CleanArgs {
         help = "Clean tools and plugins older than the specified number of days"
     )]
     pub days: u8,
-
-    #[arg(long, help = "Print the clean result in JSON format")]
-    pub json: bool,
 }
 
 #[derive(Default, Serialize)]
@@ -336,15 +333,19 @@ pub async fn internal_clean(
 
 #[instrument(skip_all)]
 pub async fn clean(session: ProtoSession, args: CleanArgs) -> AppResult {
-    let data = internal_clean(&session, &args).await?;
+    let result = internal_clean(&session, &args).await?;
 
-    if args.json {
-        session.console.out.write_line(json::format(&data, true)?)?;
+    if session.should_print_json() {
+        session
+            .console
+            .out
+            .write_line(json::format(&result, true)?)?;
 
         return Ok(None);
     }
 
-    let remove_count = data.cache.len() + data.plugins.len() + data.temp.len() + data.tools.len();
+    let remove_count =
+        result.cache.len() + result.plugins.len() + result.temp.len() + result.tools.len();
 
     if remove_count == 0 {
         session.console.render(element! {
@@ -361,7 +362,7 @@ pub async fn clean(session: ProtoSession, args: CleanArgs) -> AppResult {
                     content: format!("Clean complete, {} artifacts removed:", remove_count)
                 )
                 List {
-                    #(if data.cache.is_empty() {
+                    #(if result.cache.is_empty() {
                         None
                     } else {
                         Some(element! {
@@ -369,14 +370,14 @@ pub async fn clean(session: ProtoSession, args: CleanArgs) -> AppResult {
                                 Text(
                                     content: format!(
                                         "{} cached items ({} bytes)",
-                                        data.cache.len(),
-                                        data.cache.iter().fold(0, |acc, x| acc + x.size)
+                                        result.cache.len(),
+                                        result.cache.iter().fold(0, |acc, x| acc + x.size)
                                     )
                                 )
                             }
                         })
                     })
-                    #(if data.plugins.is_empty() {
+                    #(if result.plugins.is_empty() {
                         None
                     } else {
                         Some(element! {
@@ -384,14 +385,14 @@ pub async fn clean(session: ProtoSession, args: CleanArgs) -> AppResult {
                                 Text(
                                     content: format!(
                                         "{} downloaded plugins ({} bytes)",
-                                        data.plugins.len(),
-                                        data.plugins.iter().fold(0, |acc, x| acc + x.size)
+                                        result.plugins.len(),
+                                        result.plugins.iter().fold(0, |acc, x| acc + x.size)
                                     )
                                 )
                             }
                         })
                     })
-                    #(if data.temp.is_empty() {
+                    #(if result.temp.is_empty() {
                         None
                     } else {
                         Some(element! {
@@ -399,14 +400,14 @@ pub async fn clean(session: ProtoSession, args: CleanArgs) -> AppResult {
                                 Text(
                                     content: format!(
                                         "{} temporary files ({} bytes)",
-                                        data.temp.len(),
-                                        data.temp.iter().fold(0, |acc, x| acc + x.size)
+                                        result.temp.len(),
+                                        result.temp.iter().fold(0, |acc, x| acc + x.size)
                                     )
                                 )
                             }
                         })
                     })
-                    #(if data.tools.is_empty() {
+                    #(if result.tools.is_empty() {
                         None
                     } else {
                         Some(element! {
@@ -414,7 +415,7 @@ pub async fn clean(session: ProtoSession, args: CleanArgs) -> AppResult {
                                 Text(
                                     content: format!(
                                         "{} installed tool versions",
-                                        data.tools.len(),
+                                        result.tools.len(),
                                     )
                                 )
                             }

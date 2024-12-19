@@ -11,9 +11,6 @@ use starbase_utils::json;
 pub struct SearchPluginArgs {
     #[arg(required = true, help = "Query to search available plugins")]
     query: String,
-
-    #[arg(long, help = "Print the plugins in JSON format")]
-    json: bool,
 }
 
 #[tracing::instrument(skip_all)]
@@ -31,7 +28,7 @@ pub async fn search(session: ProtoSession, args: SearchPluginArgs) -> AppResult 
         })
         .collect::<Vec<_>>();
 
-    if args.json {
+    if session.should_print_json() {
         session
             .console
             .out

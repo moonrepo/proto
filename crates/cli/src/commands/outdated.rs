@@ -17,9 +17,6 @@ use tracing::debug;
 
 #[derive(Args, Clone, Debug)]
 pub struct OutdatedArgs {
-    #[arg(long, help = "Print the outdated tools in JSON format")]
-    json: bool,
-
     #[arg(
         long,
         help = "When updating versions, use the latest version instead of newest"
@@ -169,8 +166,7 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
         items.insert(id, item);
     }
 
-    // Dump all the data as JSON
-    if args.json {
+    if session.should_print_json() {
         session
             .console
             .out
@@ -179,7 +175,6 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
         return Ok(None);
     }
 
-    // Print all the data in a table
     session.console.render(element! {
         Container {
             Table(
