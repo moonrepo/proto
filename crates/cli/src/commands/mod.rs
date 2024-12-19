@@ -20,6 +20,7 @@ mod unalias;
 mod uninstall;
 mod unpin;
 mod upgrade;
+mod versions;
 
 pub use activate::*;
 pub use alias::*;
@@ -41,3 +42,4 @@ pub use unalias::*;
 pub use uninstall::*;
 pub use unpin::*;
 pub use upgrade::*;
+pub use versions::*;
