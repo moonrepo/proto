@@ -119,7 +119,7 @@ pub async fn versions(session: ProtoSession, args: VersionsArgs) -> AppResult {
                                     content: format!(
                                         "<shell>{}</shell> <muted>-</muted> <mutedlight>installed {}</mutedlight>",
                                         item.version,
-                                        create_datetime(timestamp).unwrap().format("%x")
+                                        create_datetime(timestamp).unwrap_or_default().format("%x")
                                     ),
                                 )
                             }
