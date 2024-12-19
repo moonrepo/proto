@@ -1,6 +1,7 @@
 use crate::app::{App as CLI, Commands};
 use crate::commands::clean::{internal_clean, CleanArgs};
 use crate::systems::*;
+use crate::utils::progress_instance::ProgressInstance;
 use crate::utils::tool_record::ToolRecord;
 use async_trait::async_trait;
 use miette::IntoDiagnostic;
@@ -13,9 +14,10 @@ use proto_core::{
 use rustc_hash::FxHashSet;
 use semver::Version;
 use starbase::{AppResult, AppSession};
-use starbase_console::ui::{style_to_color, ConsoleTheme};
+use starbase_console::ui::{style_to_color, ConsoleTheme, ProgressLoader, ProgressReporter};
 use starbase_console::{Console, EmptyReporter};
 use starbase_styles::Style;
+use std::io::IsTerminal;
 use std::sync::Arc;
 use tokio::task::JoinSet;
 use tracing::debug;
@@ -187,6 +189,28 @@ impl ProtoSession {
             self.env.load_config()?.builtin_proto_plugin(),
         )
         .await
+    }
+
+    pub fn render_progress_loader(&self) -> miette::Result<ProgressInstance> {
+        use iocraft::prelude::element;
+
+        let reporter = ProgressReporter::default();
+        let reporter_clone = reporter.clone();
+        let console = self.console.clone();
+
+        let handle = tokio::task::spawn(async move {
+            console
+                .render_loop(element! {
+                    ProgressLoader(reporter: reporter_clone)
+                })
+                .await
+        });
+
+        Ok(ProgressInstance { reporter, handle })
+    }
+
+    pub fn skip_prompts(&self, yes: bool) -> bool {
+        yes || !std::io::stdout().is_terminal()
     }
 }
 
