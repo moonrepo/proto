@@ -9,7 +9,7 @@ use proto_core::PinLocation;
 use semver::Version;
 use starbase_styles::color::{self, Color};
 use starbase_utils::env::bool_var;
-use std::{io::IsTerminal, time::Duration};
+use std::io::IsTerminal;
 use tracing::debug;
 
 #[derive(Clone, Copy, Debug, Default, ValueEnum)]
@@ -142,21 +142,6 @@ pub fn create_progress_bar<S: AsRef<str>>(start: S) -> ProgressBar {
     pb.set_style(create_progress_bar_style());
     pb.set_position(0);
     pb.set_length(100);
-
-    print_progress_state(&pb, start.as_ref().to_owned());
-
-    pb
-}
-
-pub fn create_progress_spinner<S: AsRef<str>>(start: S) -> ProgressBar {
-    let pb = if is_hidden_progress() {
-        ProgressBar::hidden()
-    } else {
-        ProgressBar::new_spinner()
-    };
-
-    pb.set_style(create_progress_spinner_style());
-    pb.enable_steady_tick(Duration::from_millis(100));
 
     print_progress_state(&pb, start.as_ref().to_owned());
 

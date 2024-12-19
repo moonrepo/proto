@@ -1,5 +1,3 @@
-use crate::commands::clean::purge_tool;
-use crate::helpers::create_progress_spinner;
 use crate::session::ProtoSession;
 use crate::telemetry::{track_usage, Metric};
 use clap::Args;
@@ -7,6 +5,7 @@ use iocraft::element;
 use proto_core::{Id, ProtoConfig, Tool, UnresolvedVersionSpec};
 use starbase::AppResult;
 use starbase_console::ui::*;
+use starbase_utils::fs;
 use tracing::debug;
 
 #[derive(Args, Clone, Debug)]
@@ -47,24 +46,113 @@ fn unpin_version(session: &ProtoSession, args: &UninstallArgs) -> miette::Result
     Ok(())
 }
 
-#[tracing::instrument(skip_all)]
-pub async fn uninstall(session: ProtoSession, args: UninstallArgs) -> AppResult {
-    // Uninstall everything
-    let Some(spec) = &args.spec else {
-        let tool = purge_tool(&session, &args.id, args.yes).await?;
+async fn track_uninstall(tool: &Tool, all: bool) -> miette::Result<()> {
+    track_usage(
+        &tool.proto,
+        Metric::UninstallTool {
+            id: tool.id.to_string(),
+            plugin: tool
+                .locator
+                .as_ref()
+                .map(|loc| loc.to_string())
+                .unwrap_or_default(),
+            version: if all {
+                "*".into()
+            } else {
+                tool.get_resolved_version().to_string()
+            },
+        },
+    )
+    .await
+}
 
-        unpin_version(&session, &args)?;
+pub async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult {
+    let tool = session.load_tool(&args.id).await?;
+    let inventory_dir = tool.get_inventory_dir();
+    let version_count = tool.inventory.manifest.installed_versions.len();
+    let skip_prompts = session.skip_prompts(args.yes);
+    let mut confirmed = false;
 
-        // Track usage metrics
-        track_uninstall(&tool, true).await?;
+    if !inventory_dir.exists() {
+        session.console.render(element! {
+            Notice(variant: Variant::Caution) {
+                StyledText(
+                    content: format!(
+                        "{} has not been installed locally",
+                        tool.get_name(),
+                    ),
+                )
+            }
+        })?;
 
+        return Ok(Some(1));
+    }
+
+    if !skip_prompts {
+        session
+            .console
+            .render_interactive(element! {
+                Confirm(
+                    label: format!(
+                        "Uninstall all {} versions of {} at <path>{}</path>?",
+                        version_count,
+                        tool.get_name(),
+                        inventory_dir.display()
+                    ),
+                    value: &mut confirmed,
+                )
+            })
+            .await?;
+    }
+
+    if !skip_prompts && !confirmed {
         return Ok(None);
-    };
+    }
 
-    // Uninstall a tool by version
+    let progress = session.render_progress_loader()?;
+    progress.set_message(format!("Uninstalling {}", tool.get_name()));
+
+    // Delete bins
+    for bin in tool.resolve_bin_locations(true).await? {
+        session.env.store.unlink_bin(&bin.path)?;
+    }
+
+    // Delete shims
+    for shim in tool.resolve_shim_locations().await? {
+        session.env.store.remove_shim(&shim.path)?;
+    }
+
+    // Delete inventory
+    fs::remove_dir_all(inventory_dir)?;
+    fs::remove_dir_all(tool.get_temp_dir())?;
+
+    progress.stop().await?;
+
+    unpin_version(&session, &args)?;
+    track_uninstall(&tool, true).await?;
+
+    session.console.render(element! {
+        Notice(variant: Variant::Success) {
+            StyledText(
+                content: format!(
+                    "{} has been completely uninstalled!",
+                    tool.get_name(),
+                ),
+            )
+        }
+    })?;
+
+    Ok(None)
+}
+
+pub async fn uninstall_one(
+    session: ProtoSession,
+    args: UninstallArgs,
+    spec: UnresolvedVersionSpec,
+) -> AppResult {
     let mut tool = session.load_tool(&args.id).await?;
 
-    if !tool.is_setup(spec).await? {
+    if !tool.is_setup(&spec).await? {
         session.console.render(element! {
             Notice(variant: Variant::Caution) {
                 StyledText(
@@ -82,23 +170,19 @@ pub async fn uninstall(session: ProtoSession, args: UninstallArgs) -> AppResult 
 
     debug!("Uninstalling {} with version {}", tool.get_name(), spec);
 
-    let pb = create_progress_spinner(format!(
-        "Uninstalling {} {}",
+    let progress = session.render_progress_loader()?;
+    progress.set_message(format!(
+        "Uninstalling {} <hash>{}</hash>",
         tool.get_name(),
         tool.get_resolved_version()
     ));
 
-    let uninstalled = tool.teardown().await?;
+    let result = tool.teardown().await;
+
+    progress.stop().await?;
+    result?;
 
     unpin_version(&session, &args)?;
-
-    pb.finish_and_clear();
-
-    if !uninstalled {
-        return Ok(None);
-    }
-
-    // Track usage metrics
     track_uninstall(&tool, false).await?;
 
     session.console.render(element! {
@@ -116,22 +200,10 @@ pub async fn uninstall(session: ProtoSession, args: UninstallArgs) -> AppResult 
     Ok(None)
 }
 
-async fn track_uninstall(tool: &Tool, purged: bool) -> miette::Result<()> {
-    track_usage(
-        &tool.proto,
-        Metric::UninstallTool {
-            id: tool.id.to_string(),
-            plugin: tool
-                .locator
-                .as_ref()
-                .map(|loc| loc.to_string())
-                .unwrap_or_default(),
-            version: if purged {
-                "*".into()
-            } else {
-                tool.get_resolved_version().to_string()
-            },
-        },
-    )
-    .await
+#[tracing::instrument(skip_all)]
+pub async fn uninstall(session: ProtoSession, args: UninstallArgs) -> AppResult {
+    match args.spec.clone() {
+        Some(spec) => uninstall_one(session, args, spec).await,
+        None => uninstall_all(session, args).await,
+    }
 }
