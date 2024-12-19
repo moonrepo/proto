@@ -101,5 +101,5 @@ jobs:
       - run: just build
       - run: just build-wasm
       - run: cargo run -- --help
-      - run: cargo run -- list-remote node
-      - run: cargo run -- list-remote wasm-test
+      - run: cargo run -- versions node
+      - run: cargo run -- versions wasm-test
