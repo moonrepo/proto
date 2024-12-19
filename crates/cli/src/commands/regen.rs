@@ -18,19 +18,19 @@ pub async fn regen(session: ProtoSession, args: RegenArgs) -> AppResult {
     let progress = session.render_progress_loader()?;
 
     progress.set_message(if args.bin {
-        "Regenerating bins and shims..."
+        "Regenerating shims and bins..."
     } else {
         "Regenerating shims..."
     });
 
     // Delete all shims
-    debug!("Removing old shims");
+    progress.set_message("Removing old shims");
 
     fs::remove_dir_all(&store.shims_dir)?;
 
     // Delete all bins (except for proto)
     if args.bin {
-        debug!("Removing old bins");
+        progress.set_message("Removing old bins");
 
         for file in fs::read_dir_all(&store.bin_dir)? {
             let path = file.path();
@@ -50,11 +50,11 @@ pub async fn regen(session: ProtoSession, args: RegenArgs) -> AppResult {
     }
 
     // Regenerate everything!
-    debug!("Loading tools");
-
     let config = session.env.load_config()?;
 
     for mut tool in session.load_tools().await? {
+        progress.set_message(format!("Regenerating {}", tool.get_name()));
+
         // Shims - Create once if tool has a configured version
         if config.versions.contains_key(&tool.id) {
             debug!("Regenerating {} shim", tool.get_name());
@@ -76,9 +76,9 @@ pub async fn regen(session: ProtoSession, args: RegenArgs) -> AppResult {
         Notice(variant: Variant::Success) {
             StyledText(
                 content: if args.bin {
-                    "Regenerated bins and shims"
+                    "Regenerated shims and bins!"
                 } else {
-                    "Regenerated shims"
+                    "Regenerated shims!"
                 },
             )
         }
