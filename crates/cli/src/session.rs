@@ -1,5 +1,6 @@
 use crate::app::{App as CLI, Commands};
 use crate::commands::clean::{internal_clean, CleanArgs};
+use crate::helpers::create_progress_loader_frames;
 use crate::systems::*;
 use crate::utils::progress_instance::ProgressInstance;
 use crate::utils::tool_record::ToolRecord;
@@ -42,8 +43,11 @@ pub struct ProtoSession {
 
 impl ProtoSession {
     pub fn new(cli: CLI) -> Self {
+        let mut theme = ConsoleTheme::branded(style_to_color(Style::Shell));
+        theme.progress_loader_frames = create_progress_loader_frames();
+
         let mut console = Console::<EmptyReporter>::new(false);
-        console.set_theme(ConsoleTheme::branded(style_to_color(Style::Shell)));
+        console.set_theme(theme);
         console.set_reporter(EmptyReporter);
 
         Self {
@@ -209,8 +213,12 @@ impl ProtoSession {
         Ok(ProgressInstance { reporter, handle })
     }
 
-    pub fn skip_prompts(&self, yes: bool) -> bool {
-        yes || !std::io::stdout().is_terminal()
+    pub fn should_print_json(&self) -> bool {
+        self.cli.json
+    }
+
+    pub fn should_skip_prompts(&self) -> bool {
+        self.cli.yes || !std::io::stdout().is_terminal()
     }
 }
 
@@ -243,7 +251,10 @@ impl AppSession for ProtoSession {
         if self.should_check_for_new_version() && self.env.load_config()?.settings.auto_clean {
             debug!("Auto-clean enabled, starting clean");
 
-            internal_clean(self, &CleanArgs::default(), true).await?;
+            // Skip prompts!
+            self.cli.yes = true;
+
+            internal_clean(self, &CleanArgs::default()).await?;
         }
 
         self.console.out.flush()?;

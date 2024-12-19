@@ -1,9 +1,8 @@
 use crate::error::ProtoCliError;
-use crate::helpers::{map_pin_type, PinOption};
 use crate::session::ProtoSession;
 use clap::Args;
 use iocraft::prelude::element;
-use proto_core::{is_alias_name, Id, ProtoConfig, UnresolvedVersionSpec};
+use proto_core::{is_alias_name, Id, PinLocation, ProtoConfig, UnresolvedVersionSpec};
 use starbase::AppResult;
 use starbase_console::ui::*;
 
@@ -18,8 +17,8 @@ pub struct AliasArgs {
     #[arg(required = true, help = "Version or alias to associate with")]
     spec: UnresolvedVersionSpec,
 
-    #[arg(long, help = "Location of .prototools to add to")]
-    to: Option<PinOption>,
+    #[arg(long, default_value_t, help = "Location of .prototools to add to")]
+    to: PinLocation,
 }
 
 #[tracing::instrument(skip_all)]
@@ -39,19 +38,16 @@ pub async fn alias(session: ProtoSession, args: AliasArgs) -> AppResult {
 
     let tool = session.load_tool(&args.id).await?;
 
-    let config_path = ProtoConfig::update(
-        tool.proto.get_config_dir(map_pin_type(false, args.to)),
-        |config| {
-            let tool_configs = config.tools.get_or_insert(Default::default());
+    let config_path = ProtoConfig::update(tool.proto.get_config_dir(args.to), |config| {
+        let tool_configs = config.tools.get_or_insert(Default::default());
 
-            tool_configs
-                .entry(tool.id.clone())
-                .or_default()
-                .aliases
-                .get_or_insert(Default::default())
-                .insert(args.alias.clone(), args.spec.clone());
-        },
-    )?;
+        tool_configs
+            .entry(tool.id.clone())
+            .or_default()
+            .aliases
+            .get_or_insert(Default::default())
+            .insert(args.alias.clone(), args.spec.clone());
+    })?;
 
     session.console.render(element! {
         Notice(variant: Variant::Success) {

@@ -45,7 +45,7 @@ pub fn detect_proto_env(cli: &CLI) -> miette::Result<ProtoEnvironment> {
 #[instrument(skip_all)]
 pub fn load_proto_configs(env: &ProtoEnvironment) -> miette::Result<()> {
     debug!(
-        working_dir = ?env.cwd,
+        working_dir = ?env.working_dir,
         "Loading configuration in {} mode",
         env.config_mode.to_string()
     );

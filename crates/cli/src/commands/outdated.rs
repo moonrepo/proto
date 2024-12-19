@@ -17,9 +17,6 @@ use tracing::debug;
 
 #[derive(Args, Clone, Debug)]
 pub struct OutdatedArgs {
-    #[arg(long, help = "Print the outdated tools in JSON format")]
-    json: bool,
-
     #[arg(
         long,
         help = "When updating versions, use the latest version instead of newest"
@@ -31,9 +28,6 @@ pub struct OutdatedArgs {
         help = "Update and write the versions to their respective configuration"
     )]
     update: bool,
-
-    #[arg(long, help = "Avoid and force confirm prompts", env = "PROTO_YES")]
-    yes: bool,
 }
 
 #[derive(Serialize)]
@@ -71,7 +65,8 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
     for file in manager.files.iter().rev() {
         if !file.exists
             || !env.config_mode.includes_global() && file.global
-            || env.config_mode.only_local() && file.path.parent().is_none_or(|p| p != env.cwd)
+            || env.config_mode.only_local()
+                && file.path.parent().is_none_or(|p| p != env.working_dir)
         {
             continue;
         }
@@ -172,8 +167,7 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
         items.insert(id, item);
     }
 
-    // Dump all the data as JSON
-    if args.json {
+    if session.should_print_json() {
         session
             .console
             .out
@@ -182,7 +176,6 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
         return Ok(None);
     }
 
-    // Print all the data in a table
     session.console.render(element! {
         Container {
             Table(
@@ -248,7 +241,7 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
         return Ok(None);
     }
 
-    let skip_prompts = session.skip_prompts(args.yes);
+    let skip_prompts = session.should_skip_prompts();
     let mut confirmed = false;
 
     if !skip_prompts {

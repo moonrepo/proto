@@ -14,7 +14,7 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 #[derive(Serialize)]
-struct PluginInfo {
+struct InfoPluginResult {
     bins: Vec<ExecutableLocation>,
     config: ProtoToolConfig,
     exe_file: PathBuf,
@@ -34,9 +34,6 @@ struct PluginInfo {
 pub struct InfoPluginArgs {
     #[arg(required = true, help = "ID of plugin")]
     id: Id,
-
-    #[arg(long, help = "Print the info in JSON format")]
-    json: bool,
 }
 
 #[tracing::instrument(skip_all)]
@@ -58,8 +55,8 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
     let bins = tool.resolve_bin_locations(true).await?;
     let shims = tool.resolve_shim_locations().await?;
 
-    if args.json {
-        let info = PluginInfo {
+    if session.should_print_json() {
+        let result = InfoPluginResult {
             bins,
             config: tool.config.clone(),
             exe_file: tool.locate_exe_file().await?,
@@ -75,7 +72,10 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
             plugin: tool.locator.clone().unwrap(),
         };
 
-        session.console.out.write_line(json::format(&info, true)?)?;
+        session
+            .console
+            .out
+            .write_line(json::format(&result, true)?)?;
 
         return Ok(None);
     }

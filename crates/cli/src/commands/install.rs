@@ -53,7 +53,7 @@ pub struct InstallArgs {
         long,
         help = "When installing one, pin the resolved version to .prototools"
     )]
-    pub pin: Option<Option<PinOption>>,
+    pub pin: Option<Option<PinLocation>>,
 
     // Passthrough args (after --)
     #[arg(
@@ -65,11 +65,7 @@ pub struct InstallArgs {
 
 impl InstallArgs {
     fn get_pin_location(&self) -> Option<PinLocation> {
-        self.pin.as_ref().map(|pin| match pin {
-            Some(PinOption::Global) => PinLocation::Global,
-            Some(PinOption::User) => PinLocation::User,
-            _ => PinLocation::Local,
-        })
+        self.pin.as_ref().map(|pin| pin.unwrap_or_default())
     }
 
     fn get_unresolved_spec(&self) -> UnresolvedVersionSpec {
@@ -447,7 +443,7 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
             continue;
         }
 
-        if let Some((candidate, _)) = tool.detect_version_from(&session.env.cwd).await? {
+        if let Some((candidate, _)) = tool.detect_version_from(&session.env.working_dir).await? {
             debug!("Detected version {} for {}", candidate, tool.get_name());
 
             versions.insert(tool.id.clone(), candidate);

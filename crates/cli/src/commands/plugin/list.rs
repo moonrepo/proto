@@ -26,9 +26,6 @@ pub struct ListPluginsArgs {
     #[arg(long, help = "Include resolved aliases in the output")]
     aliases: bool,
 
-    #[arg(long, help = "Print the list in JSON format")]
-    json: bool,
-
     #[arg(long, help = "Include installed versions in the output")]
     versions: bool,
 }
@@ -48,8 +45,7 @@ pub async fn list(session: ProtoSession, args: ListPluginsArgs) -> AppResult {
 
     tools.sort_by(|a, d| a.id.cmp(&d.id));
 
-    // --json
-    if args.json {
+    if session.should_print_json() {
         let items = tools
             .into_iter()
             .map(|tool| {

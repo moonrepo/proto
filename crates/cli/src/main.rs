@@ -53,7 +53,7 @@ async fn main() -> MainResult {
         dump_trace: cli.dump && !matches!(cli.command, Commands::Run { .. }),
         filter_modules: get_tracing_modules(),
         log_env: "PROTO_APP_LOG".into(),
-        show_spans: cli.log.as_ref().is_some_and(|level| level.is_verbose()),
+        show_spans: cli.log.is_verbose(),
         // test_env: "PROTO_TEST".into(),
         ..TracingOptions::default()
     });
@@ -80,8 +80,8 @@ async fn main() -> MainResult {
                 Commands::Clean(args) => commands::clean(session, args).await,
                 Commands::Completions(args) => commands::completions(session, args).await,
                 Commands::Debug { command } => match command {
-                    DebugCommands::Config(args) => commands::debug::config(session, args).await,
-                    DebugCommands::Env(args) => commands::debug::env(session, args).await,
+                    DebugCommands::Config => commands::debug::config(session).await,
+                    DebugCommands::Env => commands::debug::env(session).await,
                 },
                 Commands::Diagnose(args) => commands::diagnose(session, args).await,
                 Commands::Install(args) => commands::install(session, args).await,

@@ -23,9 +23,6 @@ pub struct UpgradeArgs {
 
     #[arg(long, help = "Check versions only and avoid upgrading")]
     check: bool,
-
-    #[arg(long, help = "Print the upgrade in JSON format")]
-    json: bool,
 }
 
 #[derive(Serialize)]
@@ -66,7 +63,7 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
         || target_version == current_version;
 
     // Output in JSON so other tools can utilize it
-    if args.json {
+    if session.should_print_json() {
         session.console.out.write_line(json::format(
             &UpgradeInfo {
                 available: !not_available,

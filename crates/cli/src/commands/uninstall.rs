@@ -15,9 +15,6 @@ pub struct UninstallArgs {
 
     #[arg(help = "Version or alias of tool")]
     spec: Option<UnresolvedVersionSpec>,
-
-    #[arg(long, help = "Avoid and force confirm prompts", env = "PROTO_YES")]
-    yes: bool,
 }
 
 fn unpin_version(session: &ProtoSession, args: &UninstallArgs) -> miette::Result<()> {
@@ -66,11 +63,11 @@ async fn track_uninstall(tool: &Tool, all: bool) -> miette::Result<()> {
     .await
 }
 
-pub async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult {
+async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult {
     let tool = session.load_tool(&args.id).await?;
     let inventory_dir = tool.get_inventory_dir();
     let version_count = tool.inventory.manifest.installed_versions.len();
-    let skip_prompts = session.skip_prompts(args.yes);
+    let skip_prompts = session.should_skip_prompts();
     let mut confirmed = false;
 
     if !inventory_dir.exists() {
@@ -145,7 +142,7 @@ pub async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppRes
     Ok(None)
 }
 
-pub async fn uninstall_one(
+async fn uninstall_one(
     session: ProtoSession,
     args: UninstallArgs,
     spec: UnresolvedVersionSpec,
