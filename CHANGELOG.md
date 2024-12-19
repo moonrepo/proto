@@ -17,10 +17,12 @@
 - Removed the `proto list` and `proto list-remote` commands, use `proto versions` instead.
 - Removed the `--global` option from `proto alias`, `unalias`, `pin`, and `unpin`, use `--to` or `--from` instead.
 - Removed the `--purge` option from `proto clean`, use `proto uninstall` instead.
+- Removed the `--purge-plugins` option from `proto clean`, use `proto clean plugins` instead.
 
 #### 🚀 Updates
 
 - Added a `--yes` option to `proto outdated`, that skips confirmation prompts.
+- Added a `--json` option to `proto clean`, to capture the cleaned result as JSON.
 - Added a new command, `proto versions <tool>`, that lists all available remote and installed versions/aliases.
 
 ## 0.43.3

@@ -243,7 +243,7 @@ impl AppSession for ProtoSession {
         if self.should_check_for_new_version() && self.env.load_config()?.settings.auto_clean {
             debug!("Auto-clean enabled, starting clean");
 
-            internal_clean(self, CleanArgs::default(), true, false).await?;
+            internal_clean(self, &CleanArgs::default(), true).await?;
         }
 
         self.console.out.flush()?;
