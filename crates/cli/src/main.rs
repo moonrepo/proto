@@ -85,8 +85,6 @@ async fn main() -> MainResult {
                 },
                 Commands::Diagnose(args) => commands::diagnose(session, args).await,
                 Commands::Install(args) => commands::install(session, args).await,
-                Commands::List(args) => commands::list(session, args).await,
-                Commands::ListRemote(args) => commands::list_remote(session, args).await,
                 Commands::Migrate(args) => commands::migrate(session, args).await,
                 Commands::Outdated(args) => commands::outdated(session, args).await,
                 Commands::Pin(args) => commands::pin(session, args).await,
@@ -105,6 +103,7 @@ async fn main() -> MainResult {
                 Commands::Uninstall(args) => commands::uninstall(session, args).await,
                 Commands::Unpin(args) => commands::unpin(session, args).await,
                 Commands::Upgrade(args) => commands::upgrade(session, args).await,
+                Commands::Versions(args) => commands::versions(session, args).await,
             }
         })
         .await?;
