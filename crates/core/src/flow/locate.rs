@@ -294,9 +294,8 @@ impl Tool {
     pub async fn locate_globals_dir(&mut self) -> miette::Result<Option<PathBuf>> {
         if self.globals_dir.is_none() {
             let globals_dirs = self.locate_globals_dirs().await?;
-            let lookup_count = globals_dirs.len() - 1;
 
-            for (index, dir) in globals_dirs.into_iter().enumerate() {
+            for dir in &globals_dirs {
                 if !dir.exists() {
                     continue;
                 }
@@ -312,19 +311,20 @@ impl Tool {
                 if has_files {
                     debug!(tool = self.id.as_str(), dir = ?dir, "Found a usable globals directory");
 
-                    self.globals_dir = Some(dir);
+                    self.globals_dir = Some(dir.to_owned());
                     break;
                 }
+            }
 
-                if index == lookup_count {
+            if self.globals_dir.is_none() {
+                if let Some(dir) = globals_dirs.last() {
                     debug!(
                         tool = self.id.as_str(),
                         dir = ?dir,
                         "No usable globals directory found, falling back to the last entry",
                     );
 
-                    self.globals_dir = Some(dir);
-                    break;
+                    self.globals_dir = Some(dir.to_owned());
                 }
             }
         }
