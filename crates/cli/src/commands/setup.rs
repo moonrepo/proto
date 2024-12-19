@@ -9,8 +9,6 @@ use starbase::AppResult;
 use starbase_shell::{BoxedShell, ShellType};
 use starbase_styles::color;
 use std::env;
-use std::io::stdout;
-use std::io::IsTerminal;
 use std::path::PathBuf;
 use tracing::debug;
 
@@ -36,14 +34,6 @@ pub struct SetupArgs {
         env = "PROTO_NO_MODIFY_PATH"
     )]
     no_modify_path: bool,
-
-    #[arg(
-        long,
-        short = 'y',
-        help = "Avoid interactive prompts and use defaults",
-        env = "PROTO_YES"
-    )]
-    yes: bool,
 }
 
 #[tracing::instrument(skip_all)]
@@ -60,7 +50,7 @@ pub async fn setup(session: ProtoSession, args: SetupArgs) -> AppResult {
 
     debug!("Determining the shell to use");
 
-    let interactive = !args.yes && env::var("CI").is_err() && stdout().is_terminal();
+    let interactive = !session.should_skip_prompts() && env::var("CI").is_err();
 
     let shell_type = match args.shell.or_else(ShellType::detect) {
         Some(value) => value,

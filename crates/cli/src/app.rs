@@ -80,6 +80,7 @@ fn create_styles() -> Styles {
 )]
 pub struct App {
     #[arg(
+        value_enum,
         long,
         short = 'c',
         global = true,
@@ -98,12 +99,22 @@ pub struct App {
 
     #[arg(
         value_enum,
+        default_value_t,
         long,
         global = true,
         env = "PROTO_LOG",
         help = "Lowest log level to output"
     )]
-    pub log: Option<LogLevel>,
+    pub log: LogLevel,
+
+    #[arg(
+        long,
+        short = 'y',
+        global = true,
+        env = "PROTO_YES",
+        help = "Avoid all interactive prompts and use defaults"
+    )]
+    pub yes: bool,
 
     #[command(subcommand)]
     pub command: Commands,
@@ -111,15 +122,8 @@ pub struct App {
 
 impl App {
     pub fn setup_env_vars(&self) {
-        let version = env!("CARGO_PKG_VERSION");
-
-        if let Some(level) = &self.log {
-            env::set_var("PROTO_APP_LOG", level.to_string());
-        } else if let Ok(level) = env::var("PROTO_LOG") {
-            env::set_var("PROTO_APP_LOG", level);
-        }
-
-        env::set_var("PROTO_VERSION", version);
+        env::set_var("PROTO_APP_LOG", self.log.to_string());
+        env::set_var("PROTO_VERSION", env!("CARGO_PKG_VERSION"));
 
         if let Ok(value) = env::var("PROTO_DEBUG_COMMAND") {
             env::set_var("WARPGATE_DEBUG_COMMAND", value);

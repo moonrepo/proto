@@ -25,6 +25,7 @@
 - Added a `--json` option to `proto clean`, to capture the cleaned result as JSON.
 - Added a new command, `proto versions <tool>`, that lists all available remote and installed versions/aliases.
 - Updated `proto clean` to accept a target in which to clean as the 1st argument. For example, `proto clean cache`.
+- Moved the `--yes` option into a global option.
 
 ## 0.43.3
 

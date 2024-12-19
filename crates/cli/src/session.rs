@@ -209,8 +209,8 @@ impl ProtoSession {
         Ok(ProgressInstance { reporter, handle })
     }
 
-    pub fn skip_prompts(&self, yes: bool) -> bool {
-        yes || !std::io::stdout().is_terminal()
+    pub fn should_skip_prompts(&self) -> bool {
+        self.cli.yes || !std::io::stdout().is_terminal()
     }
 }
 
@@ -243,7 +243,10 @@ impl AppSession for ProtoSession {
         if self.should_check_for_new_version() && self.env.load_config()?.settings.auto_clean {
             debug!("Auto-clean enabled, starting clean");
 
-            internal_clean(self, &CleanArgs::default(), true).await?;
+            // Skip prompts!
+            self.cli.yes = true;
+
+            internal_clean(self, &CleanArgs::default()).await?;
         }
 
         self.console.out.flush()?;

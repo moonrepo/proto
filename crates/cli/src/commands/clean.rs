@@ -37,9 +37,6 @@ pub struct CleanArgs {
 
     #[arg(long, help = "Print the clean result in JSON format")]
     pub json: bool,
-
-    #[arg(long, help = "Avoid and force confirm prompts", env = "PROTO_YES")]
-    pub yes: bool,
 }
 
 #[derive(Default, Serialize)]
@@ -73,7 +70,6 @@ pub async fn clean_tool(
     mut tool: Tool,
     now: SystemTime,
     days: u64,
-    skip_prompts: bool,
 ) -> miette::Result<Vec<StaleTool>> {
     let mut cleaned = vec![];
 
@@ -172,6 +168,7 @@ pub async fn clean_tool(
         return Ok(cleaned);
     }
 
+    let skip_prompts = session.should_skip_prompts();
     let mut confirmed = false;
 
     if !skip_prompts {
@@ -297,7 +294,6 @@ pub async fn clean_dir(dir: &Path, now: SystemTime, days: u64) -> miette::Result
 pub async fn internal_clean(
     session: &ProtoSession,
     args: &CleanArgs,
-    skip_prompts: bool,
 ) -> miette::Result<CleanResult> {
     let days = args.days as u64;
     let now = SystemTime::now();
@@ -309,7 +305,7 @@ pub async fn internal_clean(
         for tool in session.load_tools().await? {
             result
                 .tools
-                .extend(clean_tool(session, tool.tool, now, days, skip_prompts).await?);
+                .extend(clean_tool(session, tool.tool, now, days).await?);
         }
 
         result
@@ -340,7 +336,7 @@ pub async fn internal_clean(
 
 #[instrument(skip_all)]
 pub async fn clean(session: ProtoSession, args: CleanArgs) -> AppResult {
-    let data = internal_clean(&session, &args, session.skip_prompts(args.yes)).await?;
+    let data = internal_clean(&session, &args).await?;
 
     if args.json {
         session.console.out.write_line(json::format(&data, true)?)?;
