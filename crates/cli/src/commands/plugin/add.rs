@@ -31,14 +31,11 @@ pub async fn add(session: ProtoSession, args: AddPluginArgs) -> AppResult {
     // the recent addition!
     #[cfg(not(debug_assertions))]
     {
-        use proto_core::load_tool_from_locator;
-        use starbase_styles::color::apply_style_tags;
-
-        let tool = load_tool_from_locator(&args.id, &session.env, &args.plugin).await?;
+        let tool = proto_core::load_tool_from_locator(&args.id, &session.env, &args.plugin).await?;
 
         if !tool.metadata.deprecations.is_empty() {
             session.console.render(element! {
-                Notice(title: "Deprecations", variant: Variant::Info) {
+                Notice(title: "Deprecations".to_owned(), variant: Variant::Info) {
                     List {
                         #(tool.metadata.deprecations.iter().map(|message| {
                             element! {

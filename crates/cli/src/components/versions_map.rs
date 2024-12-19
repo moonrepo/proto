@@ -1,4 +1,4 @@
-use chrono::{DateTime, NaiveDateTime};
+use super::create_datetime;
 use iocraft::prelude::*;
 use proto_core::layout::Inventory;
 use proto_core::{UnresolvedVersionSpec, VersionSpec};
@@ -62,9 +62,4 @@ pub fn VersionsMap<'a>(props: &VersionsMapProps<'a>) -> impl Into<AnyElement<'a>
             }))
         }
     }
-}
-
-fn create_datetime(millis: u128) -> Option<NaiveDateTime> {
-    DateTime::from_timestamp((millis / 1000) as i64, ((millis % 1000) * 1_000_000) as u32)
-        .map(|dt| dt.naive_local())
 }

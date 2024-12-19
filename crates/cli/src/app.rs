@@ -2,8 +2,8 @@ use crate::commands::{
     debug::{DebugConfigArgs, DebugEnvArgs},
     plugin::{AddPluginArgs, InfoPluginArgs, ListPluginsArgs, RemovePluginArgs, SearchPluginArgs},
     ActivateArgs, AliasArgs, BinArgs, CleanArgs, CompletionsArgs, DiagnoseArgs, InstallArgs,
-    ListArgs, ListRemoteArgs, MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs,
-    StatusArgs, UnaliasArgs, UninstallArgs, UnpinArgs, UpgradeArgs,
+    MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs, StatusArgs, UnaliasArgs,
+    UninstallArgs, UnpinArgs, UpgradeArgs, VersionsArgs,
 };
 use clap::builder::styling::{Color, Style, Styles};
 use clap::{Parser, Subcommand, ValueEnum};
@@ -185,21 +185,6 @@ pub enum Commands {
     Install(InstallArgs),
 
     #[command(
-        alias = "ls",
-        name = "list",
-        about = "List installed versions for a tool."
-    )]
-    List(ListArgs),
-
-    #[command(
-        alias = "lsr",
-        name = "list-remote",
-        about = "List available versions for a tool.",
-        long_about = "List available versions by resolving versions from the tool's remote release manifest."
-    )]
-    ListRemote(ListRemoteArgs),
-
-    #[command(
         name = "migrate",
         about = "Migrate breaking changes for the proto installation."
     )]
@@ -277,6 +262,14 @@ pub enum Commands {
         about = "Upgrade proto to the latest version."
     )]
     Upgrade(UpgradeArgs),
+
+    #[command(
+        alias = "vs",
+        name = "versions",
+        about = "List available versions for a tool.",
+        long_about = "List available versions for a tool by resolving versions from the tool's remote release manifest."
+    )]
+    Versions(VersionsArgs),
 }
 
 #[derive(Clone, Debug, Subcommand)]
@@ -296,7 +289,7 @@ pub enum PluginCommands {
     #[command(
         name = "add",
         about = "Add a plugin to manage a tool.",
-        long_about = "Add a plugin to the local ./.prototools config, or global ~/.proto/.prototools config."
+        long_about = "Add a plugin to a .prototools config file to enable and manage that tool."
     )]
     Add(AddPluginArgs),
 
@@ -315,7 +308,7 @@ pub enum PluginCommands {
     #[command(
         name = "remove",
         about = "Remove a plugin and unmanage a tool.",
-        long_about = "Remove a plugin from the local ./.prototools config, or global ~/.proto/.prototools config."
+        long_about = "Remove a plugin from a .prototools config file and unmanage that tool."
     )]
     Remove(RemovePluginArgs),
 
