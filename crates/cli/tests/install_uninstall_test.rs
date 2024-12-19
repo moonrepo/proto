@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::{Id, PinType, ProtoConfig, ToolManifest, UnresolvedVersionSpec, VersionSpec};
+use proto_core::{Id, PinLocation, ProtoConfig, ToolManifest, UnresolvedVersionSpec, VersionSpec};
 use rustc_hash::FxHashSet;
 use starbase_sandbox::predicates::prelude::*;
 use std::{fs, time::SystemTime};
@@ -477,7 +477,8 @@ mod install_uninstall {
 
             // Local
             ProtoConfig::update(sandbox.path(), |config| {
-                config.settings.get_or_insert(Default::default()).pin_latest = Some(PinType::Local);
+                config.settings.get_or_insert(Default::default()).pin_latest =
+                    Some(PinLocation::Local);
 
                 config.versions.get_or_insert(Default::default()).insert(
                     Id::raw("node"),
@@ -526,7 +527,7 @@ mod install_uninstall {
             // Local
             ProtoConfig::update(sandbox.path(), |config| {
                 config.settings.get_or_insert(Default::default()).pin_latest =
-                    Some(PinType::Global);
+                    Some(PinLocation::Global);
 
                 config.versions.get_or_insert(Default::default()).insert(
                     Id::raw("node"),
@@ -574,7 +575,8 @@ mod install_uninstall {
 
             // Local
             ProtoConfig::update(sandbox.path(), |config| {
-                config.settings.get_or_insert(Default::default()).pin_latest = Some(PinType::Local);
+                config.settings.get_or_insert(Default::default()).pin_latest =
+                    Some(PinLocation::Local);
             })
             .unwrap();
 

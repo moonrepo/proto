@@ -1,11 +1,10 @@
-use crate::printer::Printer;
 use crate::session::ProtoSession;
 use clap::Args;
-use comfy_table::presets::NOTHING;
-use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table};
+use iocraft::prelude::{element, Box, FlexDirection, Size, Text};
 use proto_core::registry::{PluginAuthor, PluginFormat};
+use proto_core::PluginLocator;
 use starbase::AppResult;
-use starbase_styles::color::{self, Style};
+use starbase_console::ui::*;
 use starbase_utils::json;
 
 #[derive(Args, Clone, Debug)]
@@ -32,74 +31,101 @@ pub async fn search(session: ProtoSession, args: SearchPluginArgs) -> AppResult 
         })
         .collect::<Vec<_>>();
 
-    // Dump all the data as JSON
     if args.json {
-        println!("{}", json::format(&queried_plugins, true)?);
+        session
+            .console
+            .out
+            .write_line(json::format(&queried_plugins, true)?)?;
 
         return Ok(None);
     }
 
     if queried_plugins.is_empty() {
-        eprintln!("No plugins available for query \"{query}\"");
+        session.console.render(element! {
+            Notice(title: "No results".to_owned(), variant: Variant::Caution) {
+                StyledText(
+                    content: format!("Please try again, there are no plugins found in the registry for the query <shell>{query}</shell>"),
+                )
+            }
+        })?;
 
         return Ok(Some(1));
     }
 
-    // Print all the data in a table
-    let mut printer = Printer::new();
-
-    printer.named_section("Plugins", |p| {
-        p.write(format!("Available for query: {}\n", color::property(query)));
-
-        let mut table = Table::new();
-        table.load_preset(NOTHING);
-        table.set_content_arrangement(ContentArrangement::Dynamic);
-
-        table.set_header(vec![
-            Cell::new("Plugin").add_attribute(Attribute::Bold),
-            Cell::new("Author").add_attribute(Attribute::Bold),
-            Cell::new("Format").add_attribute(Attribute::Bold),
-            Cell::new("Description").add_attribute(Attribute::Bold),
-            Cell::new("Locator").add_attribute(Attribute::Bold),
-        ]);
-
-        for plugin in queried_plugins {
-            table.add_row(vec![
-                Cell::new(&plugin.name).fg(Color::AnsiValue(Style::Id.color() as u8)),
-                Cell::new(match &plugin.author {
-                    PluginAuthor::String(name) => name,
-                    PluginAuthor::Object(author) => &author.name,
-                }),
-                Cell::new(match plugin.format {
-                    PluginFormat::Json => "JSON",
-                    PluginFormat::Toml => "TOML",
-                    PluginFormat::Wasm => "WASM",
-                    PluginFormat::Yaml => "YAML",
-                }),
-                Cell::new(&plugin.description),
-                Cell::new(plugin.locator.to_string())
-                    .fg(Color::AnsiValue(Style::Path.color() as u8)),
-            ]);
+    session.console.render(element! {
+        Container {
+            Box(padding_top: 1, padding_left: 1, flex_direction: FlexDirection::Column) {
+                StyledText(
+                    content: format!("Search results for: <label>{query}</label>"),
+                )
+                StyledText(
+                    content: "Learn more about plugins: <url>https://moonrepo.dev/docs/proto/plugins</url>"
+                )
+            }
+            Table(
+                headers: vec![
+                    TableHeader::new("Plugin", Size::Percent(10.0)),
+                    TableHeader::new("Author", Size::Percent(8.0)),
+                    TableHeader::new("Format", Size::Percent(5.0)),
+                    TableHeader::new("Description", Size::Percent(20.0)),
+                    TableHeader::new("Locator", Size::Percent(57.0)),
+                ]
+            ) {
+                #(queried_plugins.into_iter().enumerate().map(|(i, plugin)| {
+                    element! {
+                        TableRow(row: i as i32) {
+                            TableCol(col: 0) {
+                                StyledText(
+                                    content: &plugin.name,
+                                    style: Style::Id
+                                )
+                            }
+                            TableCol(col: 1) {
+                                Text(
+                                    content: match &plugin.author {
+                                        PluginAuthor::String(name) => name,
+                                        PluginAuthor::Object(author) => &author.name,
+                                    }
+                                )
+                            }
+                            TableCol(col: 2) {
+                                Text(
+                                    content: match plugin.format {
+                                        PluginFormat::Json => "JSON",
+                                        PluginFormat::Toml => "TOML",
+                                        PluginFormat::Wasm => "WASM",
+                                        PluginFormat::Yaml => "YAML",
+                                    }
+                                )
+                            }
+                            TableCol(col: 3) {
+                                Text(content: &plugin.description)
+                            }
+                            TableCol(col: 4) {
+                                StyledText(
+                                    content: plugin.locator.to_string(),
+                                    style: match plugin.locator {
+                                        PluginLocator::File(_) => Style::Path,
+                                        PluginLocator::Url(_) => Style::Url,
+                                        _ => Style::File,
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }))
+            }
+            Box(padding_bottom: 1, padding_left: 1, flex_direction: FlexDirection::Row) {
+                StyledText(
+                    content: "Find a plugin above that you want to use? Enable it with: ",
+                )
+                StyledText(
+                    content: "proto plugin add [id] [locator]",
+                    style: Style::Shell
+                )
+            }
         }
-
-        p.write(format!("{table}"));
-
-        Ok(())
     })?;
-
-    printer.named_section("Usage", |p| {
-        p.write("Find a plugin above that you want to use? Enable it with the command below.");
-        p.write(format!(
-            "Learn more about plugins: {}",
-            color::url("https://moonrepo.dev/docs/proto/plugins")
-        ));
-        p.line();
-        p.write(color::shell(" proto plugin add <id> <locator>"));
-
-        Ok(())
-    })?;
-
-    printer.flush();
 
     Ok(None)
 }

@@ -67,7 +67,11 @@ mod plugin_remove {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("plugin").arg("remove").arg("id").arg("--global");
+                cmd.arg("plugin")
+                    .arg("remove")
+                    .arg("id")
+                    .arg("--from")
+                    .arg("global");
             })
             .success();
 

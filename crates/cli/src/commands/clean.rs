@@ -1,17 +1,13 @@
-use crate::helpers::create_theme;
 use crate::session::ProtoSession;
 use clap::Args;
-use dialoguer::Confirm;
-use miette::IntoDiagnostic;
-use proto_core::PROTO_PLUGIN_KEY;
-use proto_core::{Id, ProtoError, Tool, VersionSpec};
+use iocraft::prelude::element;
+use proto_core::{ProtoError, Tool, VersionSpec, PROTO_PLUGIN_KEY};
 use proto_shim::get_exe_file_name;
 use rustc_hash::FxHashSet;
 use starbase::AppResult;
+use starbase_console::ui::*;
 use starbase_styles::color;
 use starbase_utils::fs;
-use std::io::stdout;
-use std::io::IsTerminal;
 use std::time::{Duration, SystemTime};
 use tracing::debug;
 
@@ -22,14 +18,6 @@ pub struct CleanArgs {
         help = "Clean tools and plugins older than the specified number of days"
     )]
     pub days: Option<u8>,
-
-    #[arg(
-        long,
-        help = "Purge and delete the installed tool by ID",
-        group = "purge-type",
-        value_name = "TOOL"
-    )]
-    pub purge: Option<Id>,
 
     #[arg(
         long,
@@ -47,7 +35,13 @@ fn is_older_than_days(now: u128, other: u128, days: u8) -> bool {
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miette::Result<usize> {
+pub async fn clean_tool(
+    session: &ProtoSession,
+    mut tool: Tool,
+    now: u128,
+    days: u8,
+    yes: bool,
+) -> miette::Result<usize> {
     println!("Checking {}", color::shell(tool.get_name()));
 
     if tool.metadata.inventory.override_dir.is_some() {
@@ -135,6 +129,7 @@ pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miett
 
     let count = versions_to_clean.len();
     let mut clean_count = 0;
+    let mut confirmed = false;
 
     if count == 0 {
         debug!("No versions to remove, continuing to next tool");
@@ -142,20 +137,27 @@ pub async fn clean_tool(mut tool: Tool, now: u128, days: u8, yes: bool) -> miett
         return Ok(0);
     }
 
-    if yes
-        || Confirm::with_theme(&create_theme())
-            .with_prompt(format!(
-                "Found {} versions, remove {}?",
-                count,
-                versions_to_clean
-                    .iter()
-                    .map(|v| color::hash(v.to_string()))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ))
-            .interact()
-            .into_diagnostic()?
-    {
+    if !yes {
+        session
+            .console
+            .render_interactive(element! {
+                Confirm(
+                    label: format!(
+                        "Found {} versions, remove {}?",
+                        count,
+                        versions_to_clean
+                            .iter()
+                            .map(|v| format!("<hash>{v}</hash>"))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ),
+                    value: &mut confirmed,
+                )
+            })
+            .await?;
+    }
+
+    if yes || confirmed {
         for version in versions_to_clean {
             tool.set_version(version);
             tool.teardown().await?;
@@ -233,53 +235,27 @@ pub async fn clean_proto(session: &ProtoSession, days: u64) -> miette::Result<us
     Ok(clean_count)
 }
 
-#[tracing::instrument(skip(session, yes))]
-pub async fn purge_tool(session: &ProtoSession, id: &Id, yes: bool) -> miette::Result<Tool> {
-    let tool = session.load_tool(id).await?;
-    let inventory_dir = tool.get_inventory_dir();
-
-    if yes
-        || Confirm::with_theme(&create_theme())
-            .with_prompt(format!(
-                "Purge all of {} at {}?",
-                tool.get_name(),
-                color::path(&inventory_dir)
-            ))
-            .interact()
-            .into_diagnostic()?
-    {
-        // Delete inventory
-        fs::remove_dir_all(inventory_dir)?;
-
-        // Delete binaries
-        for bin in tool.resolve_bin_locations(true).await? {
-            session.env.store.unlink_bin(&bin.path)?;
-        }
-
-        // Delete shims
-        for shim in tool.resolve_shim_locations().await? {
-            session.env.store.remove_shim(&shim.path)?;
-        }
-
-        println!("Purged {}", tool.get_name());
-    }
-
-    Ok(tool)
-}
-
 #[tracing::instrument(skip_all)]
 pub async fn purge_plugins(session: &ProtoSession, yes: bool) -> AppResult {
     let plugins_dir = &session.env.store.plugins_dir;
+    let mut confirmed = false;
 
-    if yes
-        || Confirm::with_theme(&create_theme())
-            .with_prompt(format!(
-                "Purge all plugins in {}?",
-                color::path(plugins_dir)
-            ))
-            .interact()
-            .into_diagnostic()?
-    {
+    if !yes {
+        session
+            .console
+            .render_interactive(element! {
+                Confirm(
+                    label: format!(
+                        "Purge all plugins in <path>{}</path>?",
+                        plugins_dir.display()
+                    ),
+                    value: &mut confirmed,
+                )
+            })
+            .await?;
+    }
+
+    if yes || confirmed {
         fs::remove_dir_all(plugins_dir)?;
         fs::create_dir_all(plugins_dir)?;
 
@@ -305,7 +281,7 @@ pub async fn internal_clean(
     debug!("Finding installed tools to clean up...");
 
     for tool in session.load_tools().await? {
-        clean_count += clean_tool(tool, now, days, yes).await?;
+        clean_count += clean_tool(session, tool.tool, now, days, yes).await?;
     }
 
     clean_count += clean_proto(session, days as u64).await?;
@@ -351,19 +327,14 @@ pub async fn internal_clean(
 
 #[tracing::instrument(skip_all)]
 pub async fn clean(session: ProtoSession, args: CleanArgs) -> AppResult {
-    let force_yes = args.yes || !stdout().is_terminal();
-
-    if let Some(id) = &args.purge {
-        purge_tool(&session, id, force_yes).await?;
-        return Ok(None);
-    }
+    let skip_prompts = session.skip_prompts(args.yes);
 
     if args.purge_plugins {
-        purge_plugins(&session, force_yes).await?;
+        purge_plugins(&session, skip_prompts).await?;
         return Ok(None);
     }
 
-    internal_clean(&session, args, force_yes, true).await?;
+    internal_clean(&session, args, skip_prompts, true).await?;
 
     Ok(None)
 }

@@ -14,11 +14,11 @@ pub struct RegenArgs {
 pub async fn regen(session: ProtoSession, args: RegenArgs) -> AppResult {
     let store = &session.env.store;
 
-    if args.bin {
-        println!("Regenerating bins and shims...");
+    session.console.out.write_line(if args.bin {
+        "Regenerating bins and shims..."
     } else {
-        println!("Regenerating shims...");
-    }
+        "Regenerating shims..."
+    })?;
 
     // Delete all shims
     debug!("Removing old shims");
@@ -67,7 +67,7 @@ pub async fn regen(session: ProtoSession, args: RegenArgs) -> AppResult {
         }
     }
 
-    println!("Regeneration complete!");
+    session.console.out.write_line("Regeneration complete!")?;
 
     Ok(None)
 }
