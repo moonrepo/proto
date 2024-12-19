@@ -17,14 +17,14 @@ mod clean {
     }
 
     #[test]
-    fn purges_plugins() {
+    fn cleans_plugins() {
         let sandbox = create_empty_proto_sandbox();
         sandbox.create_file(".proto/plugins/node_plugin.wasm", "");
         sandbox.create_file(".proto/plugins/npm_plugin.wasm", "");
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("clean").arg("--yes").arg("--purge-plugins");
+                cmd.arg("clean").arg("--yes").arg("plugins");
             })
             .success();
 

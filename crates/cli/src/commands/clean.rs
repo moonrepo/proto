@@ -1,5 +1,5 @@
 use crate::session::ProtoSession;
-use clap::Args;
+use clap::{Args, ValueEnum};
 use iocraft::prelude::element;
 use proto_core::{ProtoError, Tool, VersionSpec, PROTO_PLUGIN_KEY};
 use proto_shim::get_exe_file_name;
@@ -13,13 +13,27 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 use tracing::{debug, instrument};
 
+#[derive(Clone, Debug, Default, ValueEnum)]
+pub enum CleanTarget {
+    #[default]
+    All,
+    Cache,
+    Plugins,
+    Temp,
+    Tools,
+}
+
 #[derive(Args, Clone, Debug, Default)]
 pub struct CleanArgs {
+    #[arg(value_enum, default_value_t, help = "Specific target to clean")]
+    pub target: CleanTarget,
+
     #[arg(
         long,
+        default_value_t = 30,
         help = "Clean tools and plugins older than the specified number of days"
     )]
-    pub days: Option<u8>,
+    pub days: u8,
 
     #[arg(long, help = "Print the clean result in JSON format")]
     pub json: bool,
@@ -285,41 +299,48 @@ pub async fn internal_clean(
     args: &CleanArgs,
     skip_prompts: bool,
 ) -> miette::Result<CleanResult> {
-    let days = args.days.unwrap_or(30) as u64;
+    let days = args.days as u64;
     let now = SystemTime::now();
     let mut result = CleanResult::default();
 
-    debug!("Cleaning installed tools...");
+    if matches!(args.target, CleanTarget::All | CleanTarget::Tools) {
+        debug!("Cleaning installed tools...");
 
-    for tool in session.load_tools().await? {
+        for tool in session.load_tools().await? {
+            result
+                .tools
+                .extend(clean_tool(session, tool.tool, now, days, skip_prompts).await?);
+        }
+
         result
             .tools
-            .extend(clean_tool(session, tool.tool, now, days, skip_prompts).await?);
+            .extend(clean_proto_tool(session, now, days).await?);
     }
 
-    result
-        .tools
-        .extend(clean_proto_tool(session, now, days).await?);
+    if matches!(args.target, CleanTarget::All | CleanTarget::Plugins) {
+        debug!("Cleaning downloaded plugins...");
 
-    debug!("Cleaning downloaded plugins...");
+        result.plugins = clean_dir(&session.env.store.plugins_dir, now, days).await?;
+    }
 
-    result.plugins = clean_dir(&session.env.store.plugins_dir, now, days).await?;
+    if matches!(args.target, CleanTarget::All | CleanTarget::Temp) {
+        debug!("Cleaning temporary directory...");
 
-    debug!("Cleaning temporary directory...");
+        result.temp = clean_dir(&session.env.store.temp_dir, now, days).await?;
+    }
 
-    result.temp = clean_dir(&session.env.store.temp_dir, now, days).await?;
+    if matches!(args.target, CleanTarget::All | CleanTarget::Cache) {
+        debug!("Cleaning cache directory...");
 
-    debug!("Cleaning cache directory...");
-
-    result.cache = clean_dir(&session.env.store.cache_dir, now, days).await?;
+        result.cache = clean_dir(&session.env.store.cache_dir, now, days).await?;
+    }
 
     Ok(result)
 }
 
 #[instrument(skip_all)]
 pub async fn clean(session: ProtoSession, args: CleanArgs) -> AppResult {
-    let skip_prompts = session.skip_prompts(args.yes);
-    let data = internal_clean(&session, &args, skip_prompts).await?;
+    let data = internal_clean(&session, &args, session.skip_prompts(args.yes)).await?;
 
     if args.json {
         session.console.out.write_line(json::format(&data, true)?)?;
@@ -333,7 +354,7 @@ pub async fn clean(session: ProtoSession, args: CleanArgs) -> AppResult {
         session.console.render(element! {
             Notice(variant: Variant::Info) {
                 StyledText(
-                    content: format!("Clean complete but nothing was removed.\nNo artifacts were found older than {} days.", args.days.unwrap_or(30))
+                    content: format!("Clean complete but nothing was removed.\nNo artifacts were found older than {} days.", args.days)
                 )
             }
         })?;

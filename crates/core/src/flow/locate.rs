@@ -300,7 +300,7 @@ impl Tool {
                     continue;
                 }
 
-                let has_files = fs::read_dir(&dir).is_ok_and(|list| {
+                let has_files = fs::read_dir(dir).is_ok_and(|list| {
                     !list
                         .into_iter()
                         .filter(|entry| entry.path().is_file())
