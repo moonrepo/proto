@@ -1,5 +1,7 @@
 mod utils;
 
+use std::fs;
+use std::time::{Duration, SystemTime};
 use utils::*;
 
 mod clean {
@@ -19,12 +21,29 @@ mod clean {
     #[test]
     fn cleans_plugins() {
         let sandbox = create_empty_proto_sandbox();
-        sandbox.create_file(".proto/plugins/node_plugin.wasm", "");
-        sandbox.create_file(".proto/plugins/npm_plugin.wasm", "");
+        sandbox.create_file(".proto/plugins/node_plugin.wasm", "{}");
+        sandbox.create_file(".proto/plugins/npm_plugin.wasm", "{}");
+
+        fs::File::options()
+            .write(true)
+            .open(sandbox.path().join(".proto/plugins/node_plugin.wasm"))
+            .unwrap()
+            .set_times(
+                fs::FileTimes::new().set_accessed(
+                    SystemTime::now()
+                        .checked_sub(Duration::from_secs(86400 * 2))
+                        .unwrap(),
+                ),
+            )
+            .unwrap();
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("clean").arg("--yes").arg("plugins");
+                cmd.arg("clean")
+                    .arg("--yes")
+                    .arg("plugins")
+                    .arg("--days")
+                    .arg("1");
             })
             .success();
 
@@ -32,7 +51,7 @@ mod clean {
             .path()
             .join(".proto/plugins/node_plugin.wasm")
             .exists());
-        assert!(!sandbox
+        assert!(sandbox
             .path()
             .join(".proto/plugins/npm_plugin.wasm")
             .exists());
