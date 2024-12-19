@@ -248,23 +248,26 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
         return Ok(None);
     }
 
+    let skip_prompts = session.skip_prompts(args.yes);
     let mut confirmed = false;
 
-    session
-        .console
-        .render_interactive(element! {
-            Confirm(
-                label: if args.latest {
-                    "Update config files with latest versions?"
-                } else {
-                    "Update config files with newest versions?"
-                },
-                value: &mut confirmed,
-            )
-        })
-        .await?;
+    if !skip_prompts {
+        session
+            .console
+            .render_interactive(element! {
+                Confirm(
+                    label: if args.latest {
+                        "Update config files with latest versions?"
+                    } else {
+                        "Update config files with newest versions?"
+                    },
+                    value: &mut confirmed,
+                )
+            })
+            .await?;
+    }
 
-    if args.yes || confirmed {
+    if skip_prompts || confirmed {
         let mut updates: BTreeMap<PathBuf, BTreeMap<Id, UnresolvedVersionSpec>> = BTreeMap::new();
 
         for (id, item) in &items {
