@@ -112,7 +112,8 @@ mod unalias_global {
                 cmd.arg("unalias")
                     .arg("node")
                     .arg("example")
-                    .arg("--global");
+                    .arg("--from")
+                    .arg("global");
             })
             .success();
 

@@ -22,8 +22,8 @@ where
     let proto = ProtoEnvironment::new_testing(sandbox.path()).unwrap();
 
     // Paths must exist for things to work correctly!
-    fs::create_dir_all(&proto.root).unwrap();
-    fs::create_dir_all(&proto.home).unwrap();
+    fs::create_dir_all(&proto.store.dir).unwrap();
+    fs::create_dir_all(&proto.home_dir).unwrap();
 
     let mut tool = factory(&proto).await.unwrap();
 

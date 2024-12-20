@@ -1,6 +1,6 @@
 use crate::flow::install::InstallOptions;
 use crate::layout::BinManager;
-use crate::proto_config::{PinType, ProtoConfig};
+use crate::proto_config::{PinLocation, ProtoConfig};
 use crate::tool::Tool;
 use crate::tool_manifest::ToolManifestVersion;
 use proto_pdk_api::*;
@@ -74,7 +74,7 @@ impl Tool {
         manifest.save()?;
 
         // Pin the global version
-        ProtoConfig::update(self.proto.get_config_dir(PinType::Global), |config| {
+        ProtoConfig::update(self.proto.get_config_dir(PinLocation::Global), |config| {
             config
                 .versions
                 .get_or_insert(Default::default())
@@ -139,7 +139,7 @@ impl Tool {
         }
 
         // Unpin global version if a match
-        ProtoConfig::update(self.proto.get_config_dir(PinType::Global), |config| {
+        ProtoConfig::update(self.proto.get_config_dir(PinLocation::Global), |config| {
             if let Some(versions) = &mut config.versions {
                 if versions.get(&self.id).is_some_and(|v| v == &version) {
                     debug!("Unpinning global version");

@@ -103,7 +103,7 @@ impl Tool {
                     cache_dir: proto.store.cache_dir.clone(),
                     http_client: Arc::clone(proto.get_plugin_loader()?.get_client()?),
                     virtual_paths: proto.get_virtual_paths(),
-                    working_dir: proto.cwd.clone(),
+                    working_dir: proto.working_dir.clone(),
                 }),
             )?),
         )

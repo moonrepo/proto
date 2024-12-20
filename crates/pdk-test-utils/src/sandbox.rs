@@ -65,13 +65,13 @@ impl ProtoWasmSandbox {
     ) -> WasmTestWrapper {
         let id = Id::new(id).unwrap();
         let mut proto = ProtoEnvironment::new_testing(&self.root).unwrap();
-        proto.cwd = self.root.clone();
+        proto.working_dir = self.root.clone();
 
         // Create manifest
         let mut manifest =
             Tool::create_plugin_manifest(&proto, Wasm::file(&self.wasm_file)).unwrap();
 
-        inject_default_manifest_config(&id, &proto.home, &mut manifest).unwrap();
+        inject_default_manifest_config(&id, &proto.home_dir, &mut manifest).unwrap();
         inject_proto_manifest_config(&id, &proto, &mut manifest).unwrap();
 
         // Create config
