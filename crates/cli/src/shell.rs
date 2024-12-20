@@ -111,7 +111,7 @@ pub async fn prompt_for_shell(console: &ProtoConsole) -> miette::Result<ShellTyp
                     .iter()
                     .map(|item| SelectOption::new(item.to_string()))
                     .collect::<Vec<_>>(),
-                value: Some(&mut selected_index),
+                on_index: &mut selected_index,
             )
         })
         .await?;
@@ -142,7 +142,7 @@ pub async fn prompt_for_shell_profile(
             Select(
                 label: "Which profile or config file to update?",
                 options,
-                value: Some(&mut selected_index),
+                on_index: Some(&mut selected_index),
             )
         })
         .await?;
@@ -156,7 +156,7 @@ pub async fn prompt_for_shell_profile(
             .render_interactive(element! {
                 Input(
                     label: "Custom profile path?",
-                    value: Some(&mut custom_path),
+                    on_value: &mut custom_path,
                     validate: |new_value: String| {
                         if new_value.is_empty() || !PathBuf::from(new_value).is_absolute() {
                             Some("An absolute path is required".into())

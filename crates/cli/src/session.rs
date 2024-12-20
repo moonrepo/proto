@@ -43,11 +43,11 @@ pub struct ProtoSession {
 
 impl ProtoSession {
     pub fn new(cli: CLI) -> Self {
-        // let mut theme = ConsoleTheme::branded(style_to_color(Style::Shell));
-        // theme.progress_loader_frames = create_progress_loader_frames();
+        let mut theme = ConsoleTheme::branded(style_to_color(Style::Shell));
+        theme.progress_loader_frames = create_progress_loader_frames();
 
         let mut console = Console::<EmptyReporter>::new(false);
-        //  console.set_theme(theme);
+        console.set_theme(theme);
         console.set_reporter(EmptyReporter);
 
         Self {
