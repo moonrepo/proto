@@ -58,7 +58,7 @@ pub async fn setup(session: ProtoSession, args: SetupArgs) -> AppResult {
             if interactive {
                 debug!("Unable to detect, prompting the user to select a shell");
 
-                prompt_for_shell()?
+                prompt_for_shell(&session.console).await?
             } else {
                 ShellType::default()
             }
@@ -66,9 +66,6 @@ pub async fn setup(session: ProtoSession, args: SetupArgs) -> AppResult {
     };
 
     let shell = shell_type.build();
-
-    println!("Finishing proto installation...");
-
     let content = format_exports(
         &shell,
         "proto",
@@ -84,7 +81,7 @@ pub async fn setup(session: ProtoSession, args: SetupArgs) -> AppResult {
     let modified_profile_path = if args.no_modify_profile {
         None
     } else {
-        update_shell_profile(&shell, &session, &content, interactive)?
+        update_shell_profile(&session, &shell, &content, interactive).await?
     };
 
     #[allow(clippy::needless_bool)]
@@ -113,9 +110,9 @@ pub async fn setup(session: ProtoSession, args: SetupArgs) -> AppResult {
     Ok(None)
 }
 
-fn update_shell_profile(
-    shell: &BoxedShell,
+async fn update_shell_profile(
     session: &ProtoSession,
+    shell: &BoxedShell,
     content: &str,
     interactive: bool,
 ) -> miette::Result<Option<PathBuf>> {
@@ -124,7 +121,7 @@ fn update_shell_profile(
     let profile_path = if interactive {
         debug!("Prompting the user to select a shell profile");
 
-        prompt_for_shell_profile(shell, &session.env.working_dir, &session.env.home_dir)?
+        prompt_for_shell_profile(&session.console, shell, &session.env.home_dir).await?
     } else {
         debug!("Attempting to find a shell profile to update");
 
