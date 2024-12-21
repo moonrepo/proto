@@ -4,8 +4,11 @@ use crate::shell::{
     update_profile_if_not_setup, Export,
 };
 use clap::Args;
+use iocraft::prelude::{element, Box};
+use iocraft::FlexDirection;
 use proto_shim::get_exe_file_name;
 use starbase::AppResult;
+use starbase_console::ui::*;
 use starbase_shell::{BoxedShell, ShellType};
 use starbase_styles::color;
 use std::env;
@@ -36,14 +39,32 @@ pub struct SetupArgs {
     no_modify_path: bool,
 }
 
+const DISCORD: &str = "https://discord.gg/qCh9MEynv2";
+
 #[tracing::instrument(skip_all)]
 pub async fn setup(session: ProtoSession, args: SetupArgs) -> AppResult {
     let paths = starbase_utils::env::paths();
 
-    if paths.contains(&session.env.store.shims_dir) && paths.contains(&session.env.store.bin_dir) {
+    if paths.contains(&session.env.store.shims_dir) || paths.contains(&session.env.store.bin_dir) {
         debug!("Skipping setup, proto already exists in PATH");
 
-        already_setup_message(&session);
+        session.console.render(element! {
+            Notice(variant: Variant::Success) {
+                StyledText(
+                    content: format!(
+                        "Successfully installed proto to <path>{}</path>!",
+                        session.env.store.bin_dir.join(get_exe_file_name("proto")).display()
+                    ),
+                )
+                StyledText(
+                    content: format!(
+                        "Need help? Join our Discord <url>{}</url>",
+                        DISCORD
+                    ),
+                    style: Style::MutedLight
+                )
+            }
+        })?;
 
         return Ok(None);
     }
@@ -58,7 +79,7 @@ pub async fn setup(session: ProtoSession, args: SetupArgs) -> AppResult {
             if interactive {
                 debug!("Unable to detect, prompting the user to select a shell");
 
-                prompt_for_shell()?
+                prompt_for_shell(&session.console).await?
             } else {
                 ShellType::default()
             }
@@ -66,10 +87,7 @@ pub async fn setup(session: ProtoSession, args: SetupArgs) -> AppResult {
     };
 
     let shell = shell_type.build();
-
-    println!("Finishing proto installation...");
-
-    let content = format_exports(
+    let exported_content = format_exports(
         &shell,
         "proto",
         vec![
@@ -84,7 +102,7 @@ pub async fn setup(session: ProtoSession, args: SetupArgs) -> AppResult {
     let modified_profile_path = if args.no_modify_profile {
         None
     } else {
-        update_shell_profile(&shell, &session, &content, interactive)?
+        update_shell_profile(&session, &shell, &exported_content, interactive).await?
     };
 
     #[allow(clippy::needless_bool)]
@@ -103,19 +121,110 @@ pub async fn setup(session: ProtoSession, args: SetupArgs) -> AppResult {
         true
     };
 
-    finished_message(
-        &session,
-        content,
-        modified_profile_path,
-        modified_system_env_path,
-    );
+    let bin_path = session.env.store.bin_dir.join(get_exe_file_name("proto"));
+    let should_launch_terminal = modified_system_env_path || modified_profile_path.is_some();
+    let should_print_exports = !exported_content.is_empty() && modified_profile_path.is_none();
+
+    session.console.render(element! {
+        Notice(variant: Variant::Success) {
+            #(if let Some(shell_path) = modified_profile_path {
+                element! {
+                    Stack {
+                        StyledText(
+                            content: format!(
+                                "Successfully installed proto to <path>{}</path>,",
+                                bin_path.display()
+                            ),
+                        )
+                        StyledText(
+                            content: format!(
+                                "and updated the shell profile at <path>{}</path>!",
+                                shell_path.display()
+                            ),
+                        )
+                    }
+                }.into_any()
+            } else {
+                element! {
+                    StyledText(
+                        content: format!(
+                            "Successfully installed proto to <path>{}</path>!",
+                            bin_path.display()
+                        ),
+                    )
+                }.into_any()
+            })
+
+            #(if should_launch_terminal {
+                element! {
+                    Box(margin_top: 1) {
+                        StyledText(
+                            content: "Launch a new terminal to start using proto!",
+                            style: Style::Success
+                        )
+                    }
+                }
+            } else {
+                element! {
+                    Box(margin_top: 1, flex_direction: FlexDirection::Column) {
+                        #(if should_print_exports {
+                            element! {
+                                Stack {
+                                    StyledText(
+                                        content: "Add the following to your shell profile and launch a new terminal to get started:"
+                                    )
+                                    Box(padding_top: 1, padding_left: 2) {
+                                        StyledText(
+                                            content: exported_content.trim(),
+                                            style: Style::MutedLight
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            element! {
+                                Stack {
+                                    StyledText(
+                                        content: "Add the following to your <property>PATH</property> to get started:",
+                                    )
+                                    Box(padding_top: 1, padding_left: 2) {
+                                        StyledText(
+                                            content: if cfg!(windows) {
+                                                format!(
+                                                    "{};{}",
+                                                    session.env.store.shims_dir.display(),
+                                                    session.env.store.bin_dir.display()
+                                                )
+                                            } else {
+                                                "$HOME/.proto/shims:$HOME/.proto/bin".into()
+                                            },
+                                            style: Style::MutedLight
+                                        )
+                                    }
+                                }
+                            }
+                        })
+                    }
+                }
+            })
+
+            Box(margin_top: 1) {
+                StyledText(
+                    content: format!(
+                        "Need help? Join our Discord <url>{}</url>",
+                        DISCORD
+                    )
+                )
+            }
+        }
+    })?;
 
     Ok(None)
 }
 
-fn update_shell_profile(
-    shell: &BoxedShell,
+async fn update_shell_profile(
     session: &ProtoSession,
+    shell: &BoxedShell,
     content: &str,
     interactive: bool,
 ) -> miette::Result<Option<PathBuf>> {
@@ -124,7 +233,7 @@ fn update_shell_profile(
     let profile_path = if interactive {
         debug!("Prompting the user to select a shell profile");
 
-        prompt_for_shell_profile(shell, &session.env.working_dir, &session.env.home_dir)?
+        prompt_for_shell_profile(&session.console, shell, &session.env.home_dir).await?
     } else {
         debug!("Attempting to find a shell profile to update");
 
@@ -141,79 +250,4 @@ fn update_shell_profile(
     }
 
     Ok(profile_path)
-}
-
-fn help_message() {
-    println!(
-        "Need help? Join our Discord {}",
-        color::url("https://discord.gg/qCh9MEynv2")
-    );
-}
-
-fn already_setup_message(session: &ProtoSession) {
-    let installed_bin_path = session.env.store.bin_dir.join(get_exe_file_name("proto"));
-
-    println!(
-        "Successfully installed proto to {}!",
-        color::path(installed_bin_path),
-    );
-    help_message();
-}
-
-fn manual_system_path_message(session: &ProtoSession) {
-    println!(
-        "Add the following to your {} to get started:",
-        color::property("PATH")
-    );
-    println!();
-    println!(
-        "{}",
-        if cfg!(windows) {
-            // We avoid %USERPROFILE% as it only works in the user path and not system path
-            color::muted_light(format!(
-                "{};{}",
-                session.env.store.shims_dir.to_string_lossy(),
-                session.env.store.bin_dir.to_string_lossy()
-            ))
-        } else {
-            color::muted_light("$HOME/.proto/shims:$HOME/.proto/bin")
-        },
-    );
-}
-
-fn finished_message(
-    session: &ProtoSession,
-    exported_content: String,
-    modified_profile_path: Option<PathBuf>,
-    modified_system_env_path: bool,
-) {
-    let installed_bin_path = session.env.store.bin_dir.join(get_exe_file_name("proto"));
-
-    println!(
-        "Successfully installed proto to {}!",
-        color::path(installed_bin_path),
-    );
-
-    modified_profile_path.as_ref().inspect(|path| {
-        println!("The shell profile at {} was updated.", color::path(path));
-    });
-
-    if modified_system_env_path || modified_profile_path.is_some() {
-        println!("Launch a new terminal window to start using proto!");
-    } else if !exported_content.is_empty() && modified_profile_path.is_none() {
-        if cfg!(windows) {
-            manual_system_path_message(session);
-            println!();
-            println!("Or alternatively add the following to your shell profile:");
-        } else {
-            println!("Add the following to your shell profile to get started:");
-        }
-        println!();
-        println!("{}", color::muted_light(exported_content.trim()));
-    } else {
-        manual_system_path_message(session);
-    }
-
-    println!();
-    help_message();
 }

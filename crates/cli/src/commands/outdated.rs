@@ -254,7 +254,7 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
                     } else {
                         "Update config files with newest versions?"
                     },
-                    value: &mut confirmed,
+                    on_confirm: &mut confirmed,
                 )
             })
             .await?;
