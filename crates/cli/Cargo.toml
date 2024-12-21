@@ -39,7 +39,7 @@ proto_shim = { version = "0.5.0", path = "../shim" }
 system_env = { version = "0.6.1", path = "../system-env" }
 anyhow = { workspace = true }
 async-trait = { workspace = true }
-chrono = "0.4.38"
+chrono = "0.4.39"
 clap = { workspace = true, features = ["derive", "env"] }
 clap_complete = { workspace = true }
 clap_complete_nushell = "4.5.4"
@@ -58,7 +58,7 @@ starbase_console = { workspace = true }
 starbase_shell = { workspace = true }
 starbase_styles = { workspace = true }
 starbase_utils = { workspace = true }
-sysinfo = { version = "0.32.1", default-features = false, features = [
+sysinfo = { version = "0.33.0", default-features = false, features = [
     "system",
 ] }
 thiserror = { workspace = true }
