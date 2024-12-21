@@ -1,6 +1,6 @@
-use crate::helpers::create_theme;
-use dialoguer::{Input, Select};
-use miette::IntoDiagnostic;
+use crate::session::ProtoConsole;
+use iocraft::prelude::element;
+use starbase_console::ui::*;
 use starbase_shell::{BoxedShell, ShellType};
 use starbase_styles::color;
 use starbase_utils::fs;
@@ -99,60 +99,76 @@ pub fn update_profile_if_not_setup(
     Ok(true)
 }
 
-pub fn prompt_for_shell() -> miette::Result<ShellType> {
-    let theme = create_theme();
-    let items = ShellType::os_variants();
+pub async fn prompt_for_shell(console: &ProtoConsole) -> miette::Result<ShellType> {
+    let options = ShellType::os_variants();
+    let mut selected_index = 0;
 
-    let default_index = 0;
-    let selected_index = Select::with_theme(&theme)
-        .with_prompt("Which shell to use?")
-        .items(&items)
-        .default(default_index)
-        .interact_opt()
-        .into_diagnostic()?
-        .unwrap_or(default_index);
+    console
+        .render_interactive(element! {
+            Select(
+                label: "Which shell to use and configure?",
+                options: options
+                    .iter()
+                    .map(|item| SelectOption::new(item.to_string()))
+                    .collect::<Vec<_>>(),
+                on_index: &mut selected_index,
+            )
+        })
+        .await?;
 
-    Ok(items[selected_index])
+    Ok(options[selected_index])
 }
 
-pub fn prompt_for_shell_profile(
+pub async fn prompt_for_shell_profile(
+    console: &ProtoConsole,
     shell: &BoxedShell,
-    working_dir: &Path,
     home_dir: &Path,
 ) -> miette::Result<Option<PathBuf>> {
-    let theme = create_theme();
     let profiles = find_profiles(shell, home_dir)?;
-    let mut items = profiles.iter().map(color::path).collect::<Vec<_>>();
-    items.push("Other".to_owned());
-    items.push("None".to_owned());
 
-    let default_index = 0;
+    let mut options = profiles
+        .iter()
+        .map(|path| SelectOption::new(path.to_string_lossy()))
+        .collect::<Vec<_>>();
+    options.push(SelectOption::new("Other"));
+    options.push(SelectOption::new("None"));
+
+    let mut selected_index = 0;
     let other_index = profiles.len();
     let none_index = other_index + 1;
 
-    let selected_index = Select::with_theme(&theme)
-        .with_prompt("Which profile to update?")
-        .items(&items)
-        .default(default_index)
-        .interact_opt()
-        .into_diagnostic()?
-        .unwrap_or(default_index);
+    console
+        .render_interactive(element! {
+            Select(
+                label: "Which profile or config file to update?",
+                options,
+                on_index: Some(&mut selected_index),
+            )
+        })
+        .await?;
 
     let selected_profile = if selected_index == none_index {
         None
     } else if selected_index == other_index {
-        let custom_path = PathBuf::from(
-            Input::<String>::with_theme(&theme)
-                .with_prompt("Custom profile path?")
-                .interact_text()
-                .into_diagnostic()?,
-        );
+        let mut custom_path = String::new();
 
-        Some(if custom_path.is_absolute() {
-            custom_path
-        } else {
-            working_dir.join(custom_path)
-        })
+        console
+            .render_interactive(element! {
+                Input(
+                    label: "Custom profile path?",
+                    on_value: &mut custom_path,
+                    validate: |new_value: String| {
+                        if new_value.is_empty() || !PathBuf::from(new_value).is_absolute() {
+                            Some("An absolute path is required".into())
+                        } else {
+                            None
+                        }
+                    }
+                )
+            })
+            .await?;
+
+        Some(PathBuf::from(custom_path))
     } else {
         Some(profiles[selected_index].clone())
     };

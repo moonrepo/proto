@@ -96,7 +96,7 @@ async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult 
                         tool.get_name(),
                         inventory_dir.display()
                     ),
-                    value: &mut confirmed,
+                    on_confirm: &mut confirmed,
                 )
             })
             .await?;

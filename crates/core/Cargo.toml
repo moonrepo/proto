@@ -23,7 +23,7 @@ convert_case = "0.6.0"
 dotenvy = "0.15.7"
 indexmap = { workspace = true }
 miette = { workspace = true }
-minisign-verify = "0.2.2"
+minisign-verify = "0.2.3"
 once_cell = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true }
