@@ -183,7 +183,7 @@ pub async fn clean_tool(
                             .collect::<Vec<_>>()
                             .join(", ")
                     ),
-                    value: &mut confirmed,
+                    on_confirm: &mut confirmed,
                 )
             })
             .await?;

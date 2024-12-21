@@ -1,55 +1,10 @@
-use dialoguer::{
-    console::{style, Style},
-    theme::ColorfulTheme,
-};
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use miette::IntoDiagnostic;
 use semver::Version;
-use starbase_styles::color::{self, Color};
+use starbase_styles::color;
 use starbase_utils::env::bool_var;
 use std::io::IsTerminal;
 use tracing::debug;
-
-pub fn create_theme() -> ColorfulTheme {
-    ColorfulTheme {
-        defaults_style: Style::new().for_stderr().color256(Color::Pink as u8),
-        prompt_style: Style::new().for_stderr(),
-        prompt_prefix: style("?".to_string())
-            .for_stderr()
-            .color256(Color::Blue as u8),
-        prompt_suffix: style("›".to_string())
-            .for_stderr()
-            .color256(Color::Gray as u8),
-        success_prefix: style("✔".to_string())
-            .for_stderr()
-            .color256(Color::Green as u8),
-        success_suffix: style("·".to_string())
-            .for_stderr()
-            .color256(Color::Gray as u8),
-        error_prefix: style("✘".to_string())
-            .for_stderr()
-            .color256(Color::Red as u8),
-        error_style: Style::new().for_stderr().color256(Color::Pink as u8),
-        hint_style: Style::new().for_stderr().color256(Color::Purple as u8),
-        values_style: Style::new().for_stderr().color256(Color::Purple as u8),
-        active_item_style: Style::new().for_stderr().color256(Color::Teal as u8),
-        inactive_item_style: Style::new().for_stderr(),
-        active_item_prefix: style("❯".to_string())
-            .for_stderr()
-            .color256(Color::Teal as u8),
-        inactive_item_prefix: style(" ".to_string()).for_stderr(),
-        checked_item_prefix: style("✔".to_string())
-            .for_stderr()
-            .color256(Color::Teal as u8),
-        unchecked_item_prefix: style("✔".to_string())
-            .for_stderr()
-            .color256(Color::GrayLight as u8),
-        picked_item_prefix: style("❯".to_string())
-            .for_stderr()
-            .color256(Color::Teal as u8),
-        unpicked_item_prefix: style(" ".to_string()).for_stderr(),
-    }
-}
 
 fn format_template_styles(template: &str) -> String {
     let pipe = color::muted(" | ");
