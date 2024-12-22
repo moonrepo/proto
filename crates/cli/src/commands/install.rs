@@ -399,16 +399,20 @@ async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> miette
 
     // Create our workflow and setup the progress reporter
     let mut workflow = InstallWorkflow::new(tool);
-    let reporter = workflow.progress.clone();
+    let phase_reporter = workflow.phase_reporter.clone();
+    let progress_reporter = workflow.progress_reporter.clone();
     let console = session.console.clone();
 
     let handle = tokio::task::spawn(async move {
         console
             .render_loop(element! {
-                InstallProgress(reporter)
+                InstallProgress(phase_reporter, progress_reporter)
             })
             .await
     });
+
+    // Wait a bit for the component to be rendered
+    sleep(Duration::from_millis(50)).await;
 
     let result = workflow
         .install(
@@ -421,7 +425,7 @@ async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> miette
         )
         .await;
 
-    workflow.progress.exit();
+    workflow.progress_reporter.exit();
     handle.await.into_diagnostic()??;
 
     let outcome = result?;

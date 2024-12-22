@@ -5,9 +5,11 @@ use crate::utils::tool_record::ToolRecord;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
 use proto_core::{PinLocation, UnresolvedVersionSpec, PROTO_PLUGIN_KEY};
 use proto_pdk_api::{InstallHook, SyncShellProfileInput, SyncShellProfileOutput};
-use starbase_console::ui::{ProgressReporter, ProgressState};
+use starbase_console::ui::ProgressReporter;
 use starbase_shell::ShellType;
 use std::env;
+use std::time::Duration;
+use tokio::sync::broadcast::{self, Receiver, Sender};
 use tracing::debug;
 
 pub enum InstallOutcome {
@@ -24,14 +26,16 @@ pub struct InstallWorkflowParams {
 }
 
 pub struct InstallWorkflow {
-    pub progress: ProgressReporter,
+    pub phase_reporter: InstallPhaseReporter,
+    pub progress_reporter: ProgressReporter,
     pub tool: ToolRecord,
 }
 
 impl InstallWorkflow {
     pub fn new(tool: ToolRecord) -> Self {
         Self {
-            progress: ProgressReporter::default(),
+            phase_reporter: InstallPhaseReporter::default(),
+            progress_reporter: ProgressReporter::default(),
             tool,
         }
     }
@@ -41,8 +45,8 @@ impl InstallWorkflow {
         initial_version: UnresolvedVersionSpec,
         params: InstallWorkflowParams,
     ) -> miette::Result<InstallOutcome> {
-        self.progress.set_message(format!(
-            "Installing {} with specification <hash>{}</hash>",
+        self.progress_reporter.set_message(format!(
+            "Installing {} with specification <symbol>{}</symbol>",
             self.tool.get_name(),
             initial_version
         ));
@@ -129,13 +133,13 @@ impl InstallWorkflow {
         let resolved_version = self.tool.get_resolved_version();
 
         if resolved_version.to_string() == initial_version.to_string() {
-            self.progress.set_message(format!(
+            self.progress_reporter.set_message(format!(
                 "Installing {} <hash>{}</hash>",
                 self.tool.get_name(),
                 resolved_version
             ));
         } else {
-            self.progress.set_message(format!(
+            self.progress_reporter.set_message(format!(
                 "Installing {} <hash>{}</hash> <mutedlight>(from specification <symbol>{}</symbol>)</mutedlight>",
                 self.tool.get_name(),
                 resolved_version,
@@ -143,11 +147,18 @@ impl InstallWorkflow {
             ));
         }
 
-        let pb = self.progress.clone();
+        let ph = self.phase_reporter.clone();
+        let pb = self.progress_reporter.clone();
         let on_download_chunk = Box::new(move |current_bytes, total_bytes| {
             if current_bytes == total_bytes {
-                // Do nothing at 100%, otherwise the progress bar
+                // Do not set to 100%, otherwise the progress bar
                 // will immediately exit and stop rendering
+                pb.set_value(total_bytes - 1);
+
+                // Also trigger the next phase a bit early so that
+                // the component re-renders to a loader faster
+                ph.set(InstallPhase::Verify);
+                pb.wait(Duration::from_millis(25));
             } else if current_bytes == 0 {
                 pb.set_max(total_bytes);
             } else {
@@ -155,30 +166,26 @@ impl InstallWorkflow {
             }
         });
 
-        let pb = self.progress.clone();
+        let ph = self.phase_reporter.clone();
+        let pb = self.progress_reporter.clone();
         let on_phase_change = Box::new(move |phase| {
-            pb.set(ProgressState::CustomInt(phase as usize));
+            ph.set(phase);
 
-            match phase {
-                // Download phase is manually incremented based on streamed bytes
-                InstallPhase::Download => {}
-                // Other phases are automatically ticked as a loader
-                _ => {
-                    pb.set_max(100);
-                    pb.set_value(0);
-                }
-            };
+            // Download phase is manually incremented based on streamed bytes,
+            // while other phases are automatically ticked as a loader
+            if !matches!(phase, InstallPhase::Download) {
+                pb.set_max(100);
+                pb.set_value(0);
+            }
 
             let message = match phase {
                 InstallPhase::Verify => "Verifying checksum",
                 InstallPhase::Unpack => "Unpacking archive",
                 InstallPhase::Download => "Downloading pre-built archive <muted>|</muted> <mutedlight>{bytes} / {total_bytes}</mutedlight> <muted>|</muted> <shell>{bytes_per_sec}</shell>",
-                _ => "",
+                _ => return,
             };
 
-            if !message.is_empty() {
-                pb.set_message(message);
-            }
+            pb.set_message(message);
         });
 
         self.tool
@@ -349,10 +356,33 @@ impl InstallWorkflow {
             self.tool.get_resolved_version()
         );
 
-        self.progress.set_message(if installed {
+        self.progress_reporter.set_message(if installed {
             message
         } else {
             format!("<mutedlight>{message}</mutedlight>")
         });
+    }
+}
+
+#[derive(Clone)]
+pub struct InstallPhaseReporter {
+    tx: Sender<InstallPhase>,
+}
+
+impl Default for InstallPhaseReporter {
+    fn default() -> Self {
+        let (tx, _rx) = broadcast::channel::<InstallPhase>(1000);
+
+        Self { tx }
+    }
+}
+
+impl InstallPhaseReporter {
+    pub fn subscribe(&self) -> Receiver<InstallPhase> {
+        self.tx.subscribe()
+    }
+
+    pub fn set(&self, phase: InstallPhase) {
+        let _ = self.tx.send(phase);
     }
 }
