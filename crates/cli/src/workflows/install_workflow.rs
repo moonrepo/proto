@@ -5,7 +5,7 @@ use crate::utils::tool_record::ToolRecord;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
 use proto_core::{PinLocation, UnresolvedVersionSpec, PROTO_PLUGIN_KEY};
 use proto_pdk_api::{InstallHook, SyncShellProfileInput, SyncShellProfileOutput};
-use starbase_console::ui::ProgressReporter;
+use starbase_console::ui::{ProgressReporter, ProgressState};
 use starbase_shell::ShellType;
 use std::env;
 use tracing::debug;
@@ -38,7 +38,7 @@ impl InstallWorkflow {
 
     pub async fn install(
         &mut self,
-        initial_version: &UnresolvedVersionSpec,
+        initial_version: UnresolvedVersionSpec,
         params: InstallWorkflowParams,
     ) -> miette::Result<InstallOutcome> {
         self.progress.set_message(format!(
@@ -51,8 +51,8 @@ impl InstallWorkflow {
         self.tool.disable_caching();
 
         // Check if already installed, or if forced, overwrite previous install
-        if !params.force && self.tool.is_setup(initial_version).await? {
-            self.pin_version(initial_version, &params.pin_to).await?;
+        if !params.force && self.tool.is_setup(&initial_version).await? {
+            self.pin_version(&initial_version, &params.pin_to).await?;
             self.finish_progress(false);
 
             return Ok(InstallOutcome::AlreadyInstalled);
@@ -62,15 +62,14 @@ impl InstallWorkflow {
         self.pre_install(&params).await?;
 
         // Run install
-        let installed = self.do_install(initial_version, &params).await?;
-
-        self.finish_progress(installed);
+        let installed = self.do_install(&initial_version, &params).await?;
 
         if !installed {
             return Ok(InstallOutcome::FailedToInstall);
         }
 
-        let pinned = self.pin_version(initial_version, &params.pin_to).await?;
+        let pinned = self.pin_version(&initial_version, &params.pin_to).await?;
+        self.finish_progress(true);
 
         // Run post-install hooks
         self.post_install(&params).await?;
@@ -127,16 +126,29 @@ impl InstallWorkflow {
         initial_version: &UnresolvedVersionSpec,
         params: &InstallWorkflowParams,
     ) -> miette::Result<bool> {
-        self.progress.set_message(format!(
-            "Installing {} <hash>{}</hash> <mutedlight>(from specification {})</mutedlight>",
-            self.tool.get_name(),
-            self.tool.get_resolved_version(),
-            initial_version
-        ));
+        let resolved_version = self.tool.get_resolved_version();
+
+        if resolved_version.to_string() == initial_version.to_string() {
+            self.progress.set_message(format!(
+                "Installing {} <hash>{}</hash>",
+                self.tool.get_name(),
+                resolved_version
+            ));
+        } else {
+            self.progress.set_message(format!(
+                "Installing {} <hash>{}</hash> <mutedlight>(from specification <symbol>{}</symbol>)</mutedlight>",
+                self.tool.get_name(),
+                resolved_version,
+                initial_version
+            ));
+        }
 
         let pb = self.progress.clone();
         let on_download_chunk = Box::new(move |current_bytes, total_bytes| {
-            if current_bytes == 0 {
+            if current_bytes == total_bytes {
+                // Do nothing at 100%, otherwise the progress bar
+                // will immediately exit and stop rendering
+            } else if current_bytes == 0 {
                 pb.set_max(total_bytes);
             } else {
                 pb.set_value(current_bytes);
@@ -145,26 +157,22 @@ impl InstallWorkflow {
 
         let pb = self.progress.clone();
         let on_phase_change = Box::new(move |phase| {
-            pb.set_max(100);
-            pb.set_value(0);
+            pb.set(ProgressState::CustomInt(phase as usize));
 
             match phase {
                 // Download phase is manually incremented based on streamed bytes
-                InstallPhase::Download => {
-                    // pb3.set_style(create_progress_bar_download_style());
-                    // pb3.disable_steady_tick();
-                }
+                InstallPhase::Download => {}
                 // Other phases are automatically ticked as a loader
                 _ => {
-                    // pb3.set_style(create_progress_spinner_style());
-                    // pb3.enable_steady_tick(Duration::from_millis(100));
+                    pb.set_max(100);
+                    pb.set_value(0);
                 }
             };
 
             let message = match phase {
                 InstallPhase::Verify => "Verifying checksum",
                 InstallPhase::Unpack => "Unpacking archive",
-                InstallPhase::Download => "Downloading pre-built archive",
+                InstallPhase::Download => "Downloading pre-built archive <muted>|</muted> <mutedlight>{bytes} / {total_bytes}</mutedlight> <muted>|</muted> <shell>{bytes_per_sec}</shell>",
                 _ => "",
             };
 
@@ -346,8 +354,5 @@ impl InstallWorkflow {
         } else {
             format!("<mutedlight>{message}</mutedlight>")
         });
-
-        // TODO handle multiple
-        self.progress.exit();
     }
 }

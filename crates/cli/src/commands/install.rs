@@ -1,13 +1,16 @@
 use super::pin::internal_pin;
+use crate::components::InstallProgress;
 use crate::error::ProtoCliError;
 use crate::helpers::*;
 use crate::session::ProtoSession;
 use crate::shell::{self, Export};
 use crate::telemetry::{track_usage, Metric};
 use crate::utils::install_graph::*;
+use crate::workflows::{InstallOutcome, InstallWorkflow, InstallWorkflowParams};
 use clap::Args;
 use indicatif::ProgressBar;
 use iocraft::prelude::element;
+use miette::IntoDiagnostic;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
 use proto_core::{
     ConfigMode, Id, PinLocation, Tool, UnresolvedVersionSpec, VersionSpec, PROTO_PLUGIN_KEY,
@@ -383,10 +386,10 @@ pub async fn do_install(
 }
 
 #[instrument(skip(session, args))]
-async fn install_one(session: &ProtoSession, id: &Id, args: InstallArgs) -> miette::Result<Tool> {
+async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> miette::Result<()> {
     debug!(id = id.as_str(), "Loading tool");
 
-    let mut tool = session.load_tool(id).await?;
+    let tool = session.load_tool(&id).await?;
 
     // Load config including global versions,
     // so that our requirements can be satisfied
@@ -394,37 +397,69 @@ async fn install_one(session: &ProtoSession, id: &Id, args: InstallArgs) -> miet
 
     enforce_requirements(&tool, &config.versions)?;
 
-    let pb = create_progress_bar(format!("Installing {}", tool.get_name()));
+    // Create our workflow and setup the progress reporter
+    let mut workflow = InstallWorkflow::new(tool);
+    let reporter = workflow.progress.clone();
+    let console = session.console.clone();
 
-    if do_install(&mut tool, args, &pb).await? {
-        session.console.render(element! {
-            Notice(variant: Variant::Success) {
-                StyledText(
-                    content: format!(
-                        "{} <hash>{}</hash> has been installed to <path>{}</path>!",
-                        tool.get_name(),
-                        tool.get_resolved_version(),
-                        tool.get_product_dir().display(),
-                    ),
-                )
-            }
-        })?;
-    } else {
-        session.console.render(element! {
-            Notice(variant: Variant::Info) {
-                StyledText(
-                    content: format!(
-                        "{} <hash>{}</hash> has already been installed at <path>{}</path>!",
-                        tool.get_name(),
-                        tool.get_resolved_version(),
-                        tool.get_product_dir().display(),
-                    ),
-                )
-            }
-        })?;
-    }
+    let handle = tokio::task::spawn(async move {
+        console
+            .render_loop(element! {
+                InstallProgress(reporter)
+            })
+            .await
+    });
 
-    Ok(tool.tool)
+    let result = workflow
+        .install(
+            args.get_unresolved_spec(),
+            InstallWorkflowParams {
+                pin_to: args.get_pin_location(),
+                force: args.force,
+                passthrough_args: args.passthrough,
+            },
+        )
+        .await;
+
+    workflow.progress.exit();
+    handle.await.into_diagnostic()??;
+
+    let outcome = result?;
+    let tool = workflow.tool;
+
+    match outcome {
+        InstallOutcome::Installed => {
+            session.console.render(element! {
+                Notice(variant: Variant::Success) {
+                    StyledText(
+                        content: format!(
+                            "{} <hash>{}</hash> has been installed to <path>{}</path>!",
+                            tool.get_name(),
+                            tool.get_resolved_version(),
+                            tool.get_product_dir().display(),
+                        ),
+                    )
+                }
+            })?;
+        }
+        InstallOutcome::AlreadyInstalled => {
+            session.console.render(element! {
+                Notice(variant: Variant::Info) {
+                    StyledText(
+                        content: format!(
+                            "{} <hash>{}</hash> has already been installed at <path>{}</path>!",
+                            tool.get_name(),
+                            tool.get_resolved_version(),
+                            tool.get_product_dir().display(),
+                        ),
+                    )
+                }
+            })?;
+        }
+        _ => {}
+    };
+
+    Ok(())
 }
 
 #[instrument(skip_all)]
@@ -617,7 +652,7 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
 pub async fn install(session: ProtoSession, args: InstallArgs) -> AppResult {
     match args.id.clone() {
         Some(id) => {
-            install_one(&session, &id, args).await?;
+            install_one(session, args, id).await?;
         }
         None => {
             install_all(&session).await?;

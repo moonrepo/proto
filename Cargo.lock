@@ -3747,9 +3747,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_console"
-version = "0.2.0"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c872f6a248df2bfb2b0d3ec8bf2aa57e7a87d7dc69637c2e0f6d7bcb7afa79b"
+checksum = "49981a8288b849729b7456b146c5f6d615907bb0fecc0e2315a12779d55cb8e2"
 dependencies = [
  "crossterm",
  "flume",

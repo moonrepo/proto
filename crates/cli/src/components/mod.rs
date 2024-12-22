@@ -1,11 +1,13 @@
 mod aliases_map;
 mod env_var;
+mod install_progress;
 mod issues_list;
 mod locator;
 mod versions_map;
 
 pub use aliases_map::*;
 pub use env_var::*;
+pub use install_progress::*;
 pub use issues_list::*;
 pub use locator::*;
 pub use versions_map::*;

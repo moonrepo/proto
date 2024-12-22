@@ -10,19 +10,20 @@ use starbase_utils::{fs, net};
 use std::path::Path;
 use tracing::{debug, instrument};
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub enum InstallStrategy {
     BuildFromSource,
     #[default]
     DownloadPrebuilt,
 }
 
+#[derive(Clone, Copy, Debug)]
 pub enum InstallPhase {
-    Native,
+    Native = 0,
     // Download -> verify -> unpack
-    Download,
-    Verify,
-    Unpack,
+    Download = 1,
+    Verify = 2,
+    Unpack = 3,
 }
 
 pub use starbase_utils::net::OnChunkFn;

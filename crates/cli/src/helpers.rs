@@ -1,10 +1,30 @@
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use miette::IntoDiagnostic;
 use semver::Version;
+use starbase_console::ui::{style_to_color, ConsoleTheme, Style};
 use starbase_styles::color;
 use starbase_utils::env::bool_var;
 use std::io::IsTerminal;
 use tracing::debug;
+
+pub fn create_console_theme() -> ConsoleTheme {
+    let mut theme = ConsoleTheme::branded(style_to_color(Style::Shell));
+    let mut frames = vec![];
+
+    for i in 1..=20 {
+        if i == 20 {
+            frames.push("━".repeat(20));
+        } else {
+            frames.push(format!("{}╾{}", "━".repeat(i - 1), "─".repeat(20 - i)));
+        }
+    }
+
+    theme.progress_loader_frames = frames;
+    theme.progress_bar_filled_char = '━';
+    theme.progress_bar_unfilled_char = '─';
+    theme.progress_bar_position_char = '╾';
+    theme
+}
 
 fn format_template_styles(template: &str) -> String {
     let pipe = color::muted(" | ");
@@ -27,21 +47,17 @@ pub fn create_progress_bar_download_style() -> ProgressStyle {
         .unwrap()
 }
 
-pub fn create_progress_loader_frames() -> Vec<String> {
+pub fn create_progress_spinner_style() -> ProgressStyle {
     let mut frames = vec![];
 
     for i in 1..=20 {
         if i == 20 {
             frames.push("━".repeat(20));
         } else {
-            frames.push(format!("{}╾{}", "━".repeat(i - 1), " ".repeat(20 - i)));
+            frames.push(format!("{}╾{}", "━".repeat(i - 1), "─".repeat(20 - i)));
         }
     }
 
-    frames
-}
-pub fn create_progress_spinner_style() -> ProgressStyle {
-    let frames = create_progress_loader_frames();
     let frames = frames.iter().map(|f| f.as_str()).collect::<Vec<_>>();
 
     ProgressStyle::default_spinner()
