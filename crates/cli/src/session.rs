@@ -15,7 +15,7 @@ use proto_core::{
 use rustc_hash::FxHashSet;
 use semver::Version;
 use starbase::{AppResult, AppSession};
-use starbase_console::ui::{ProgressLoader, ProgressReporter};
+use starbase_console::ui::{Progress, ProgressDisplay, ProgressReporter};
 use starbase_console::{Console, EmptyReporter};
 use std::io::IsTerminal;
 use std::sync::Arc;
@@ -203,7 +203,10 @@ impl ProtoSession {
         let handle = tokio::task::spawn(async move {
             console
                 .render_loop(element! {
-                    ProgressLoader(reporter: reporter_clone)
+                    Progress(
+                        display: ProgressDisplay::Loader,
+                        reporter: reporter_clone,
+                    )
                 })
                 .await
         });

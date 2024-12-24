@@ -1,29 +1,18 @@
-use super::pin::internal_pin;
-use crate::components::InstallProgress;
+use crate::components::{InstallAllProgress, InstallProgress, InstallProgressProps};
 use crate::error::ProtoCliError;
-use crate::helpers::*;
 use crate::session::ProtoSession;
-use crate::shell::{self, Export};
-use crate::telemetry::{track_usage, Metric};
 use crate::utils::install_graph::*;
 use crate::workflows::{InstallOutcome, InstallWorkflow, InstallWorkflowParams};
 use clap::Args;
-use indicatif::ProgressBar;
 use iocraft::prelude::element;
 use miette::IntoDiagnostic;
-use proto_core::flow::install::{InstallOptions, InstallPhase};
-use proto_core::{
-    ConfigMode, Id, PinLocation, Tool, UnresolvedVersionSpec, VersionSpec, PROTO_PLUGIN_KEY,
-};
-use proto_pdk_api::{InstallHook, SyncShellProfileInput, SyncShellProfileOutput};
+use proto_core::{ConfigMode, Id, PinLocation, Tool, UnresolvedVersionSpec, PROTO_PLUGIN_KEY};
 use starbase::AppResult;
 use starbase_console::ui::*;
-use starbase_shell::ShellType;
 use starbase_styles::color;
 use std::collections::BTreeMap;
-use std::env;
 use std::time::Duration;
-use tokio::task::JoinSet;
+use tokio::task::{spawn, JoinSet};
 use tokio::time::sleep;
 use tracing::{debug, instrument, trace};
 
@@ -34,34 +23,28 @@ pub struct InstallArgs {
 
     #[arg(
         default_value = "latest",
-        help = "When installing one, the version or alias to install",
+        help = "When installing one tool, the version or alias to install",
         group = "version-type"
     )]
     pub spec: Option<UnresolvedVersionSpec>,
 
     #[arg(
         long,
-        help = "When installing one, use a canary (nightly, etc) version",
+        help = "When installing one tool, use a canary (nightly, etc) version",
         group = "version-type"
     )]
     pub canary: bool,
 
-    #[arg(
-        long,
-        help = "Force reinstallation of tool even if it is already installed"
-    )]
+    #[arg(long, help = "Force reinstallation even if it is already installed")]
     pub force: bool,
 
-    #[arg(
-        long,
-        help = "When installing one, pin the resolved version to .prototools"
-    )]
+    #[arg(long, help = "Pin the resolved version to .prototools")]
     pub pin: Option<Option<PinLocation>>,
 
     // Passthrough args (after --)
     #[arg(
         last = true,
-        help = "When installing one, additional arguments to pass to the tool"
+        help = "When installing one tool, additional arguments to pass to the tool"
     )]
     pub passthrough: Vec<String>,
 }
@@ -97,296 +80,8 @@ pub fn enforce_requirements(
     Ok(())
 }
 
-async fn pin_version(
-    tool: &mut Tool,
-    initial_version: &UnresolvedVersionSpec,
-    arg_pin_to: &Option<PinLocation>,
-) -> miette::Result<bool> {
-    // Don't pin the proto tool itself as it's internal only
-    if tool.id.as_str() == PROTO_PLUGIN_KEY {
-        return Ok(false);
-    }
-
-    let config = tool.proto.load_config()?;
-    let spec = tool.get_resolved_version().to_unresolved_spec();
-    let mut pin_to = PinLocation::Local;
-    let mut pin = false;
-
-    // via `--pin` arg
-    if let Some(custom_type) = arg_pin_to {
-        pin_to = *custom_type;
-        pin = true;
-    }
-    // Or the first time being installed
-    else if !tool.inventory.dir.exists() {
-        pin_to = PinLocation::Global;
-        pin = true;
-    }
-
-    // via `pin-latest` setting
-    if initial_version.is_latest() {
-        if let Some(custom_type) = &config.settings.pin_latest {
-            pin_to = *custom_type;
-            pin = true;
-        }
-    }
-
-    if pin {
-        internal_pin(tool, &spec, pin_to).await?;
-    }
-
-    Ok(pin)
-}
-
-async fn update_shell(tool: &Tool, passthrough_args: Vec<String>) -> miette::Result<()> {
-    if !tool.plugin.has_func("sync_shell_profile").await {
-        return Ok(());
-    }
-
-    let output: SyncShellProfileOutput = tool
-        .plugin
-        .call_func_with(
-            "sync_shell_profile",
-            SyncShellProfileInput {
-                context: tool.create_context(),
-                passthrough_args,
-            },
-        )
-        .await?;
-
-    if output.skip_sync {
-        return Ok(());
-    }
-
-    let shell_type = ShellType::try_detect()?;
-    let shell = shell_type.build();
-
-    debug!(
-        shell = ?shell_type,
-        env_vars = ?output.export_vars,
-        paths = ?output.extend_path,
-        "Updating shell profile",
-    );
-
-    let mut exports = vec![];
-
-    if let Some(export_vars) = output.export_vars {
-        for (key, value) in export_vars {
-            exports.push(Export::Var(key, value));
-        }
-    }
-
-    if let Some(extend_path) = output.extend_path {
-        exports.push(Export::Path(extend_path));
-    }
-
-    if exports.is_empty() {
-        return Ok(());
-    }
-
-    let profile_path = tool.proto.store.load_preferred_profile()?.and_then(|file| {
-        if file.exists() {
-            Some(file)
-        } else {
-            debug!(
-                profile = ?file,
-                "Configured shell profile path does not exist, will not use",
-            );
-
-            None
-        }
-    });
-
-    if let Some(updated_profile) = profile_path {
-        let exported_content = shell::format_exports(&shell, &tool.id, exports);
-
-        if shell::update_profile_if_not_setup(
-            &updated_profile,
-            &exported_content,
-            &output.check_var,
-        )? {
-            debug!(
-                "Added {} to shell profile {}",
-                color::property(output.check_var),
-                color::path(updated_profile)
-            );
-        }
-    }
-
-    Ok(())
-}
-
-#[instrument(skip_all)]
-pub async fn do_install(
-    tool: &mut Tool,
-    args: InstallArgs,
-    pb: &ProgressBar,
-) -> miette::Result<bool> {
-    let version = args.get_unresolved_spec();
-    let pin_type = args.get_pin_location();
-    let name = tool.get_name().to_owned();
-
-    let finish_pb = |installed: bool, resolved_version: &VersionSpec| {
-        print_progress_state(
-            pb,
-            if installed {
-                format!("{name} {resolved_version} installed!")
-            } else {
-                color::muted_light(format!("{name} {resolved_version} already installed!"))
-            },
-        );
-
-        if args.id.is_some() {
-            pb.finish_and_clear();
-        } else {
-            pb.finish();
-        }
-    };
-
-    // Disable version caching and always use the latest when installing
-    tool.disable_caching();
-
-    // Resolve version first so subsequent steps can reference the resolved version
-    let resolved_version = tool.resolve_version(&version, false).await?;
-
-    // Check if already installed, or if forced, overwrite previous install
-    if !args.force && tool.is_setup(&version).await? {
-        pin_version(tool, &version, &pin_type).await?;
-        finish_pb(false, &resolved_version);
-
-        return Ok(false);
-    }
-
-    // This ensures that the correct version is used by other processes
-    env::set_var(
-        format!("{}_VERSION", tool.get_env_var_prefix()),
-        resolved_version.to_string(),
-    );
-
-    env::set_var("PROTO_INSTALL", tool.id.to_string());
-
-    // Run before hook
-    if tool.plugin.has_func("pre_install").await {
-        tool.plugin
-            .call_func_without_output(
-                "pre_install",
-                InstallHook {
-                    context: tool.create_context(),
-                    passthrough_args: args.passthrough.clone(),
-                    pinned: pin_type.is_some(),
-                },
-            )
-            .await?;
-    }
-
-    // Install the tool
-    debug!(
-        "Installing {} with version {} (from {})",
-        tool.get_name(),
-        resolved_version,
-        version
-    );
-
-    let pb2 = pb.clone();
-    let on_download_chunk = Box::new(move |current_bytes, total_bytes| {
-        if current_bytes == 0 {
-            pb2.set_length(total_bytes);
-        } else {
-            pb2.set_position(current_bytes);
-        }
-    });
-
-    let pb3 = pb.clone();
-    let on_phase_change = Box::new(move |phase| {
-        pb3.reset();
-        pb3.set_length(100);
-        pb3.set_position(0);
-
-        // Styles
-        match phase {
-            // Download is manually incremented based on streamed bytes
-            InstallPhase::Download => {
-                pb3.set_style(create_progress_bar_download_style());
-                pb3.disable_steady_tick();
-            }
-            // Other phases are automatically ticked as a spinner
-            _ => {
-                pb3.set_style(create_progress_spinner_style());
-                pb3.enable_steady_tick(Duration::from_millis(100));
-            }
-        };
-
-        // Messages
-        print_progress_state(
-            &pb3,
-            match phase {
-                InstallPhase::Verify => "Verifying checksum",
-                InstallPhase::Unpack => "Unpacking archive",
-                InstallPhase::Download => "Downloading pre-built archive",
-                _ => "",
-            }
-            .into(),
-        );
-    });
-
-    let installed = tool
-        .setup(
-            &version,
-            InstallOptions {
-                on_download_chunk: Some(on_download_chunk),
-                on_phase_change: Some(on_phase_change),
-                force: args.force,
-                ..InstallOptions::default()
-            },
-        )
-        .await?;
-    let pinned = pin_version(tool, &version, &pin_type).await?;
-
-    finish_pb(installed, &resolved_version);
-
-    if !installed {
-        return Ok(false);
-    }
-
-    // Track usage metrics
-    track_usage(
-        &tool.proto,
-        Metric::InstallTool {
-            id: tool.id.to_string(),
-            plugin: tool
-                .locator
-                .as_ref()
-                .map(|loc| loc.to_string())
-                .unwrap_or_default(),
-            version: resolved_version.to_string(),
-            version_candidate: version.to_string(),
-            pinned,
-        },
-    )
-    .await?;
-
-    // Run after hook
-    if tool.plugin.has_func("post_install").await {
-        tool.plugin
-            .call_func_without_output(
-                "post_install",
-                InstallHook {
-                    context: tool.create_context(),
-                    passthrough_args: args.passthrough.clone(),
-                    pinned: pin_type.is_some(),
-                },
-            )
-            .await?;
-    }
-
-    // Sync shell profile
-    update_shell(tool, args.passthrough.clone()).await?;
-
-    Ok(true)
-}
-
-#[instrument(skip(session, args))]
-async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> miette::Result<()> {
+#[instrument(skip(session))]
+pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> AppResult {
     debug!(id = id.as_str(), "Loading tool");
 
     let tool = session.load_tool(&id).await?;
@@ -399,14 +94,13 @@ async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> miette
 
     // Create our workflow and setup the progress reporter
     let mut workflow = InstallWorkflow::new(tool);
-    let phase_reporter = workflow.phase_reporter.clone();
-    let progress_reporter = workflow.progress_reporter.clone();
+    let reporter = workflow.progress_reporter.clone();
     let console = session.console.clone();
 
-    let handle = tokio::task::spawn(async move {
+    let handle = spawn(async move {
         console
             .render_loop(element! {
-                InstallProgress(phase_reporter, progress_reporter)
+                InstallProgress(reporter)
             })
             .await
     });
@@ -420,6 +114,7 @@ async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> miette
             InstallWorkflowParams {
                 pin_to: args.get_pin_location(),
                 force: args.force,
+                multiple: false,
                 passthrough_args: args.passthrough,
             },
         )
@@ -463,11 +158,11 @@ async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> miette
         _ => {}
     };
 
-    Ok(())
+    Ok(None)
 }
 
-#[instrument(skip_all)]
-pub async fn install_all(session: &ProtoSession) -> AppResult {
+#[instrument(skip(session))]
+async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
     debug!("Loading all tools");
 
     let tools = session.load_tools().await?;
@@ -527,85 +222,113 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
         .fold(0, |acc, id| if id.len() > acc { id.len() } else { acc });
 
     // Then install each tool in parallel!
-    let mpb = create_multi_progress_bar();
-    let pbs = create_progress_bar_style();
-    let graph = InstallGraph::new(&tools);
+    let mut topo_graph = InstallGraph::new(&tools);
+    let mut progress_rows = BTreeMap::default();
     let mut set = JoinSet::new();
+    let force = args.force;
+    let pin_to = args.get_pin_location();
 
-    for mut tool in tools {
+    for tool in tools {
         enforce_requirements(&tool, &versions)?;
 
-        if let Some(version) = versions.get(&tool.id) {
-            let tool_id = tool.id.clone();
-            let version = version.clone();
-            let graph = graph.clone();
+        let Some(version) = versions.get(&tool.id) else {
+            continue;
+        };
 
-            let pb = mpb.add(ProgressBar::new(0));
-            pb.set_style(pbs.clone());
+        let tool_id = tool.id.clone();
+        let initial_version = version.clone();
+        let topo_graph = topo_graph.clone();
+        let mut workflow = InstallWorkflow::new(tool);
 
-            // Defer writing content till the thread starts,
-            // otherwise the progress bars fail to render correctly
-            let handle = set.spawn(async move {
-                sleep(Duration::from_millis(25)).await;
+        // Clone the progress reporters so that we can render
+        // multiple progress bars in parallel
+        progress_rows.insert(
+            tool_id.clone(),
+            InstallProgressProps {
+                reporter: Some(workflow.progress_reporter.clone()),
+            },
+        );
 
-                pb.set_prefix(color::id(format!(
-                    "{}{}",
-                    " ".repeat(longest_id - tool.id.len()),
-                    tool.id
-                )));
+        let handle = set.spawn(async move {
+            while let Some(status) = topo_graph.check_install_status(&workflow.tool.id).await {
+                match status {
+                    InstallStatus::ReqFailed(req_id) => {
+                        workflow.progress_reporter.set_message(format!(
+                            "Requirement <id>{}</id> failed to install",
+                            req_id
+                        ));
 
-                while let Some(status) = graph.check_install_status(&tool.id).await {
-                    match status {
-                        InstallStatus::ReqFailed(req_id) => {
-                            print_progress_state(
-                                &pb,
-                                format!("Requirement {} failed to install", req_id),
-                            );
+                        // Abort since requirement failed
+                        return InstallOutcome::FailedToInstall;
+                    }
+                    InstallStatus::WaitingOnReqs(waiting_on) => {
+                        workflow.progress_reporter.set_message(format!(
+                            "Waiting on requirements: {}",
+                            waiting_on
+                                .into_iter()
+                                .map(|req_id| format!("<id>{req_id}</id>"))
+                                .collect::<Vec<_>>()
+                                .join(", ")
+                        ));
+                    }
+                    InstallStatus::Waiting => {
+                        // Sleep
+                    }
+                };
 
-                            return false;
-                        }
-                        InstallStatus::WaitingOnReqs(waiting_on) => {
-                            print_progress_state(
-                                &pb,
-                                format!("Waiting on requirements: {}", waiting_on.join(", ")),
-                            );
-                        }
-                    };
+                sleep(Duration::from_millis(150)).await;
+            }
 
-                    sleep(Duration::from_millis(150)).await;
-                }
-
-                print_progress_state(&pb, format!("Installing {} {}", tool.get_name(), version));
-
-                match do_install(
-                    &mut tool,
-                    InstallArgs {
-                        spec: Some(version),
+            match workflow
+                .install(
+                    initial_version,
+                    InstallWorkflowParams {
+                        force,
+                        pin_to,
+                        multiple: true,
                         ..Default::default()
                     },
-                    &pb,
                 )
                 .await
-                {
-                    Ok(_) => {
-                        graph.mark_installed(&tool.id).await;
-                        true
-                    }
-                    Err(error) => {
-                        print_progress_state(&pb, error.to_string());
-                        graph.mark_not_installed(&tool.id).await;
-                        false
-                    }
+            {
+                Ok(outcome) => {
+                    topo_graph.mark_installed(&workflow.tool.id).await;
+                    outcome
                 }
-            });
+                Err(_error) => {
+                    topo_graph.mark_not_installed(&workflow.tool.id).await;
+                    InstallOutcome::FailedToInstall
+                }
+            }
+        });
 
-            trace!(
-                task_id = handle.id().to_string(),
-                "Spawning {} in background task",
-                color::id(tool_id)
-            );
-        }
+        trace!(
+            task_id = handle.id().to_string(),
+            "Spawning {} in background task",
+            color::id(tool_id)
+        );
     }
+
+    let reporter = ProgressReporter::default();
+    let reporter_clone = reporter.clone();
+    let console = session.console.clone();
+    let handle = spawn(async move {
+        console
+            .render_loop(element! {
+                InstallAllProgress(
+                    reporter: reporter_clone,
+                    tools: progress_rows,
+                    id_width: longest_id,
+                )
+            })
+            .await
+    });
+
+    // Wait a bit for the component to be rendered
+    sleep(Duration::from_millis(50)).await;
+
+    // Start installing tools after the component has rendered!
+    topo_graph.proceed();
 
     let mut installed_count = 0;
     let mut failed_count = 0;
@@ -618,50 +341,48 @@ pub async fn install_all(session: &ProtoSession) -> AppResult {
                     "Spawned task failed: {}",
                     error
                 );
+
                 failed_count += 1;
             }
-            Ok((task_id, installed)) => {
+            Ok((task_id, outcome)) => {
                 trace!(task_id = task_id.to_string(), "Spawned task successful");
 
-                if installed {
-                    installed_count += 1;
-                } else {
+                if matches!(outcome, InstallOutcome::FailedToInstall) {
                     failed_count += 1;
+                } else {
+                    installed_count += 1;
                 }
             }
         };
     }
 
-    // When no TTY, we should display something to the user!
-    if mpb.is_hidden() {
-        if installed_count > 0 {
-            session
-                .console
-                .out
-                .write_line(format!("Successfully installed {} tools!", installed_count))?;
-        }
+    reporter.exit();
+    handle.await.into_diagnostic()??;
 
-        if failed_count > 0 {
-            session
-                .console
-                .out
-                .write_line(format!("Failed to install {} tools!", failed_count))?;
-        }
-    }
+    // When no TTY, we should display something to the user!
+    // if mpb.is_hidden() {
+    //     if installed_count > 0 {
+    //         session
+    //             .console
+    //             .out
+    //             .write_line(format!("Successfully installed {} tools!", installed_count))?;
+    //     }
+
+    //     if failed_count > 0 {
+    //         session
+    //             .console
+    //             .out
+    //             .write_line(format!("Failed to install {} tools!", failed_count))?;
+    //     }
+    // }
 
     Ok(None)
 }
 
-#[instrument(skip_all)]
+#[instrument(skip(session))]
 pub async fn install(session: ProtoSession, args: InstallArgs) -> AppResult {
     match args.id.clone() {
-        Some(id) => {
-            install_one(session, args, id).await?;
-        }
-        None => {
-            install_all(&session).await?;
-        }
-    };
-
-    Ok(None)
+        Some(id) => install_one(session, args, id).await,
+        None => install_all(session, args).await,
+    }
 }

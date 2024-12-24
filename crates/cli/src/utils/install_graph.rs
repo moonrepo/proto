@@ -1,12 +1,14 @@
 use super::tool_record::ToolRecord;
 use proto_core::Id;
 use rustc_hash::{FxHashMap, FxHashSet};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
 pub enum InstallStatus {
     ReqFailed(Id),
     WaitingOnReqs(Vec<Id>),
+    Waiting,
 }
 
 #[derive(Clone)]
@@ -23,6 +25,10 @@ pub struct InstallGraph {
     /// Tools that require other tools to be installed
     /// before they can be installed
     requires: Arc<FxHashMap<Id, Vec<Id>>>,
+
+    /// We should wait to install all tools until
+    /// this boolean is turned off
+    waiting: Arc<AtomicBool>,
 }
 
 impl InstallGraph {
@@ -46,10 +52,15 @@ impl InstallGraph {
             installed: Arc::new(RwLock::new(FxHashSet::default())),
             not_installed: Arc::new(RwLock::new(FxHashSet::default())),
             requires: Arc::new(requires),
+            waiting: Arc::new(AtomicBool::new(true)),
         }
     }
 
     pub async fn check_install_status(&self, id: &Id) -> Option<InstallStatus> {
+        if self.waiting.load(Ordering::Relaxed) {
+            return Some(InstallStatus::Waiting);
+        }
+
         if !self.ids.contains(id) {
             return None;
         }
@@ -85,5 +96,9 @@ impl InstallGraph {
 
     pub async fn mark_not_installed(&self, id: &Id) {
         self.not_installed.write().await.insert(id.to_owned());
+    }
+
+    pub fn proceed(&mut self) {
+        self.waiting.store(false, Ordering::Release);
     }
 }

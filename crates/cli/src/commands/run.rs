@@ -1,6 +1,4 @@
-use crate::commands::install::{do_install, InstallArgs};
 use crate::error::ProtoCliError;
-use crate::helpers::create_progress_bar;
 use crate::session::ProtoSession;
 use clap::Args;
 use miette::IntoDiagnostic;
@@ -180,27 +178,27 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
         }
 
         // Install the tool
-        session.console.out.write_line(format!(
-            "Auto-install is enabled, attempting to install {} {}",
-            tool.get_name(),
-            resolved_version,
-        ))?;
+        // session.console.out.write_line(format!(
+        //     "Auto-install is enabled, attempting to install {} {}",
+        //     tool.get_name(),
+        //     resolved_version,
+        // ))?;
 
-        let install_args = InstallArgs {
-            id: Some(tool.id.clone()),
-            spec: Some(resolved_version.to_unresolved_spec()),
-            ..Default::default()
-        };
+        // let install_args = InstallArgs {
+        //     id: Some(tool.id.clone()),
+        //     spec: Some(resolved_version.to_unresolved_spec()),
+        //     ..Default::default()
+        // };
 
-        let pb = create_progress_bar(format!("Installing {resolved_version}"));
+        // let pb = create_progress_bar(format!("Installing {resolved_version}"));
 
-        do_install(&mut tool, install_args, &pb).await?;
+        // do_install(&mut tool, install_args, &pb).await?;
 
-        session.console.out.write_line(format!(
-            "{} {} has been installed, continuing execution...",
-            tool.get_name(),
-            resolved_version,
-        ))?;
+        // session.console.out.write_line(format!(
+        //     "{} {} has been installed, continuing execution...",
+        //     tool.get_name(),
+        //     resolved_version,
+        // ))?;
     }
 
     // Determine the binary path to execute

@@ -1,11 +1,11 @@
-use crate::commands::install::{do_install, InstallArgs};
+use crate::commands::install::{install_one, InstallArgs};
 use crate::error::ProtoCliError;
-use crate::helpers::{create_progress_bar, fetch_latest_version};
+use crate::helpers::fetch_latest_version;
 use crate::session::ProtoSession;
 use crate::telemetry::{track_usage, Metric};
 use clap::Args;
 use iocraft::prelude::element;
-use proto_core::{is_offline, Id, SemVer, UnresolvedVersionSpec};
+use proto_core::{is_offline, Id, PinLocation, SemVer, UnresolvedVersionSpec, PROTO_PLUGIN_KEY};
 use proto_installer::*;
 use semver::Version;
 use serde::Serialize;
@@ -114,29 +114,26 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
     }
 
     // Load the tool and install the new version
-    let mut tool = session.load_proto_tool().await?;
-
-    let pb = create_progress_bar(if target_version > current_version {
-        format!("Upgrading to {}", target_version)
-    } else {
-        format!("Downgrading to {}", target_version)
-    });
-
-    do_install(
-        &mut tool,
+    install_one(
+        session.clone(),
         InstallArgs {
-            id: Some(Id::raw("proto")),
             spec: Some(UnresolvedVersionSpec::Semantic(SemVer(
                 target_version.clone(),
             ))),
+            pin: Some(Some(PinLocation::Global)),
             ..Default::default()
         },
-        &pb,
+        Id::raw(PROTO_PLUGIN_KEY),
     )
     .await?;
 
     let upgraded = replace_binaries(
-        tool.get_product_dir(),
+        session
+            .env
+            .store
+            .inventory_dir
+            .join(PROTO_PLUGIN_KEY)
+            .join(target_version.to_string()),
         session.env.store.bin_dir.clone(),
         // Don't relocate within our CI pipeline as it causes issues,
         // but do relocate for other user's CI and local development
