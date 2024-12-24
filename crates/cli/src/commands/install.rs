@@ -11,6 +11,7 @@ use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_styles::color;
 use std::collections::BTreeMap;
+use std::sync::Arc;
 use std::time::Duration;
 use tokio::task::{spawn, JoinSet};
 use tokio::time::sleep;
@@ -217,9 +218,13 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
         .collect::<Vec<_>>();
 
     // Determine longest ID for use within progress bars
-    let longest_id = versions
-        .keys()
-        .fold(0, |acc, id| if id.len() > acc { id.len() } else { acc });
+    let longest_id = versions.keys().fold(0, |acc, id| {
+        if id.as_str().len() > acc {
+            id.as_str().len()
+        } else {
+            acc
+        }
+    });
 
     // Then install each tool in parallel!
     let mut topo_graph = InstallGraph::new(&tools);
@@ -245,7 +250,10 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
         progress_rows.insert(
             tool_id.clone(),
             InstallProgressProps {
-                reporter: Some(workflow.progress_reporter.clone()),
+                default_message: Some(format!("Preparing {} install...", workflow.tool.get_name())),
+                reporter: Some(OwnedOrShared::Shared(Arc::new(
+                    workflow.progress_reporter.clone(),
+                ))),
             },
         );
 

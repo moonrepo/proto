@@ -5,6 +5,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+#[derive(Debug)]
 pub enum InstallStatus {
     ReqFailed(Id),
     WaitingOnReqs(Vec<Id>),
