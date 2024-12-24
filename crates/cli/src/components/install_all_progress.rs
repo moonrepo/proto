@@ -48,7 +48,7 @@ pub fn InstallAllProgress<'a>(
         Stack {
             #(props.tools.iter().map(|(id, inner_props)| {
                 element! {
-                    Box {
+                    Box(key: id.to_string()) {
                         Box(
                             justify_content: JustifyContent::End,
                             width: props.id_width as u16,
@@ -60,6 +60,7 @@ pub fn InstallAllProgress<'a>(
                         }
                         Box(margin_left: 1) {
                             InstallProgress(
+                                default_message: inner_props.default_message.clone(),
                                 reporter: inner_props.reporter.clone(),
                             )
                         }

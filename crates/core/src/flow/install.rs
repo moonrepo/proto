@@ -19,11 +19,11 @@ pub enum InstallStrategy {
 
 #[derive(Clone, Copy, Debug)]
 pub enum InstallPhase {
-    Native = 0,
+    Native,
     // Download -> verify -> unpack
-    Download = 1,
-    Verify = 2,
-    Unpack = 3,
+    Download,
+    Verify,
+    Unpack,
 }
 
 pub use starbase_utils::net::OnChunkFn;
