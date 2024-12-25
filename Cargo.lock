@@ -2670,7 +2670,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.43.10"
+version = "0.44.0"
 dependencies = [
  "clap",
  "convert_case",
@@ -2746,7 +2746,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.30.4"
+version = "0.31.0"
 dependencies = [
  "proto_core",
  "proto_pdk_api",
