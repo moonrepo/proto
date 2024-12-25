@@ -28,12 +28,9 @@ pub fn InstallAllProgress<'a>(
         let mut receiver = reporter.subscribe();
 
         while let Ok(state) = receiver.recv().await {
-            match state {
-                ProgressState::Exit => {
-                    should_exit.set(true);
-                    break;
-                }
-                _ => {}
+            if let ProgressState::Exit = state {
+                should_exit.set(true);
+                break;
             }
         }
     });
@@ -41,11 +38,13 @@ pub fn InstallAllProgress<'a>(
     if should_exit.get() {
         system.exit();
 
-        return element!(Box).into_any();
+        // Don't return an empty element so that the final
+        // install progress is displayed to the user, otherwise
+        // they don't know which failed and which succeeded
     }
 
     element! {
-        Stack {
+        Box(flex_direction: FlexDirection::Column, margin_top: 1) {
             #(props.tools.iter().map(|(id, inner_props)| {
                 element! {
                     Box(key: id.to_string()) {

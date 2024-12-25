@@ -5,7 +5,7 @@ use crate::session::ProtoSession;
 use crate::telemetry::{track_usage, Metric};
 use clap::Args;
 use iocraft::prelude::element;
-use proto_core::{is_offline, Id, PinLocation, SemVer, UnresolvedVersionSpec, PROTO_PLUGIN_KEY};
+use proto_core::{is_offline, Id, SemVer, UnresolvedVersionSpec, PROTO_PLUGIN_KEY};
 use proto_installer::*;
 use semver::Version;
 use serde::Serialize;
@@ -117,10 +117,10 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
     install_one(
         session.clone(),
         InstallArgs {
+            internal: true,
             spec: Some(UnresolvedVersionSpec::Semantic(SemVer(
                 target_version.clone(),
             ))),
-            pin: Some(Some(PinLocation::Global)),
             ..Default::default()
         },
         Id::raw(PROTO_PLUGIN_KEY),

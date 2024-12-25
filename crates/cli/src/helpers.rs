@@ -12,7 +12,7 @@ pub fn create_console_theme() -> ConsoleTheme {
         if i == 20 {
             frames.push("━".repeat(20));
         } else {
-            frames.push(format!("{}╾{}", "━".repeat(i - 1), "─".repeat(20 - i)));
+            frames.push(format!("{}╾{}", "━".repeat(i - 1), " ".repeat(20 - i)));
         }
     }
 

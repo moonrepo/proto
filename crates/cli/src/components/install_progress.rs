@@ -13,7 +13,9 @@ pub fn InstallProgress<'a>(props: &mut InstallProgressProps) -> impl Into<AnyEle
         Box {
             Progress(
                 default_message: props.default_message.clone()
-                    .unwrap_or_else(|| "Preparing install...".into()),
+                    .unwrap_or_else(|| "Preparing install…".into()),
+                default_max: 0u64,
+                default_value: 0u64,
                 bar_width: 20u32, // Width of loader frames
                 reporter: props.reporter.take(),
             )

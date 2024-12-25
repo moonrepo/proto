@@ -9,10 +9,11 @@ use miette::IntoDiagnostic;
 use proto_core::{ConfigMode, Id, PinLocation, Tool, UnresolvedVersionSpec, PROTO_PLUGIN_KEY};
 use starbase::AppResult;
 use starbase_console::ui::*;
+use starbase_console::utils::formats::format_duration;
 use starbase_styles::color;
 use std::collections::BTreeMap;
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::task::{spawn, JoinSet};
 use tokio::time::sleep;
 use tracing::{debug, instrument, trace};
@@ -48,6 +49,10 @@ pub struct InstallArgs {
         help = "When installing one tool, additional arguments to pass to the tool"
     )]
     pub passthrough: Vec<String>,
+
+    // Used internally by other commands to trigger conditional logic
+    #[arg(hide = true, long)]
+    pub internal: bool,
 }
 
 impl InstallArgs {
@@ -89,9 +94,11 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
 
     // Load config including global versions,
     // so that our requirements can be satisfied
-    let config = session.load_config_with_mode(ConfigMode::UpwardsGlobal)?;
+    if !args.internal {
+        let config = session.load_config_with_mode(ConfigMode::UpwardsGlobal)?;
 
-    enforce_requirements(&tool, &config.versions)?;
+        enforce_requirements(&tool, &config.versions)?;
+    }
 
     // Create our workflow and setup the progress reporter
     let mut workflow = InstallWorkflow::new(tool);
@@ -126,6 +133,10 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
 
     let outcome = result?;
     let tool = workflow.tool;
+
+    if args.internal {
+        return Ok(None);
+    }
 
     match outcome {
         InstallOutcome::Installed => {
@@ -218,18 +229,15 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
         .collect::<Vec<_>>();
 
     // Determine longest ID for use within progress bars
-    let longest_id = versions.keys().fold(0, |acc, id| {
-        if id.as_str().len() > acc {
-            id.as_str().len()
-        } else {
-            acc
-        }
-    });
+    let longest_id = versions
+        .keys()
+        .fold(0, |acc, id| acc.max(id.as_str().len()));
 
     // Then install each tool in parallel!
     let mut topo_graph = InstallGraph::new(&tools);
     let mut progress_rows = BTreeMap::default();
     let mut set = JoinSet::new();
+    let started = Instant::now();
     let force = args.force;
     let pin_to = args.get_pin_location();
 
@@ -250,7 +258,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
         progress_rows.insert(
             tool_id.clone(),
             InstallProgressProps {
-                default_message: Some(format!("Preparing {} install...", workflow.tool.get_name())),
+                default_message: Some(format!("Preparing {} install…", workflow.tool.get_name())),
                 reporter: Some(OwnedOrShared::Shared(Arc::new(
                     workflow.progress_reporter.clone(),
                 ))),
@@ -303,7 +311,12 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
                     topo_graph.mark_installed(&workflow.tool.id).await;
                     outcome
                 }
-                Err(_error) => {
+                Err(error) => {
+                    trace!(
+                        "Failed to run {} install workflow: {error}",
+                        color::id(&workflow.tool.id)
+                    );
+
                     topo_graph.mark_not_installed(&workflow.tool.id).await;
                     InstallOutcome::FailedToInstall
                 }
@@ -320,6 +333,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
     let reporter = ProgressReporter::default();
     let reporter_clone = reporter.clone();
     let console = session.console.clone();
+
     let handle = spawn(async move {
         console
             .render_loop(element! {
@@ -367,22 +381,34 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
     reporter.exit();
     handle.await.into_diagnostic()??;
 
-    // When no TTY, we should display something to the user!
-    // if mpb.is_hidden() {
-    //     if installed_count > 0 {
-    //         session
-    //             .console
-    //             .out
-    //             .write_line(format!("Successfully installed {} tools!", installed_count))?;
-    //     }
-
-    //     if failed_count > 0 {
-    //         session
-    //             .console
-    //             .out
-    //             .write_line(format!("Failed to install {} tools!", failed_count))?;
-    //     }
-    // }
+    session.console.render(element! {
+        Notice(
+            variant: if failed_count == 0 {
+                Variant::Success
+            } else {
+                Variant::Caution
+            },
+        ) {
+            #((installed_count > 0).then(|| {
+                element! {
+                    StyledText(
+                        content: format!(
+                            "Installed {} tools in {}!",
+                            installed_count,
+                            format_duration(started.elapsed(), false),
+                        ),
+                    )
+                }
+            }))
+            #((failed_count > 0).then(|| {
+                element! {
+                    StyledText(
+                        content: format!("Failed to install {} tools!", failed_count),
+                    )
+                }
+            }))
+        }
+    })?;
 
     Ok(None)
 }

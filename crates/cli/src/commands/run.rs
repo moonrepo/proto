@@ -1,3 +1,4 @@
+use crate::commands::install::{install_one, InstallArgs};
 use crate::error::ProtoCliError;
 use crate::session::ProtoSession;
 use clap::Args;
@@ -151,7 +152,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
 
     let version = detect_version(&tool, args.spec.clone()).await?;
 
-    // Check if installed or install
+    // Check if installed or need to install
     if !tool.is_setup(&version).await? {
         let config = tool.proto.load_config()?;
         let resolved_version = tool.get_resolved_version();
@@ -178,27 +179,28 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
         }
 
         // Install the tool
-        // session.console.out.write_line(format!(
-        //     "Auto-install is enabled, attempting to install {} {}",
-        //     tool.get_name(),
-        //     resolved_version,
-        // ))?;
+        session.console.out.write_line(format!(
+            "Auto-install is enabled, attempting to install {} {}",
+            tool.get_name(),
+            resolved_version,
+        ))?;
 
-        // let install_args = InstallArgs {
-        //     id: Some(tool.id.clone()),
-        //     spec: Some(resolved_version.to_unresolved_spec()),
-        //     ..Default::default()
-        // };
+        install_one(
+            session.clone(),
+            InstallArgs {
+                internal: true,
+                spec: Some(resolved_version.to_unresolved_spec()),
+                ..Default::default()
+            },
+            tool.id.clone(),
+        )
+        .await?;
 
-        // let pb = create_progress_bar(format!("Installing {resolved_version}"));
-
-        // do_install(&mut tool, install_args, &pb).await?;
-
-        // session.console.out.write_line(format!(
-        //     "{} {} has been installed, continuing execution...",
-        //     tool.get_name(),
-        //     resolved_version,
-        // ))?;
+        session.console.out.write_line(format!(
+            "{} {} has been installed, continuing execution...",
+            tool.get_name(),
+            resolved_version,
+        ))?;
     }
 
     // Determine the binary path to execute
