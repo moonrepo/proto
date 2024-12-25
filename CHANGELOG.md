@@ -10,7 +10,7 @@
 - [Rust](https://github.com/moonrepo/tools/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/tools/blob/master/tools/internal-schema/CHANGELOG.md)
 
-## Unreleased
+## 0.44.0
 
 This is a unique release that focused primarily on cleaning up our current commands, either by removing arguments, or merging functionality. On top of that, we've refactored all the terminal output using a new UI library powered by [iocraft](https://docs.rs/iocraft/latest/iocraft/). Read the blog post for more information!
 
