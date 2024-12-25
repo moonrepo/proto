@@ -31,13 +31,13 @@ jobs:
             ext: ""
 
           - target: x86_64-apple-darwin
-            host: macos-12
+            host: macos-13
             ext: ""
             setup: |
               export MACOSX_DEPLOYMENT_TARGET="10.13";
 
           - target: aarch64-apple-darwin
-            host: macos-12
+            host: macos-13
             ext: ""
             setup: |
               export CC=$(xcrun -f clang);
