@@ -10,19 +10,20 @@ use starbase_utils::{fs, net};
 use std::path::Path;
 use tracing::{debug, instrument};
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub enum InstallStrategy {
     BuildFromSource,
     #[default]
     DownloadPrebuilt,
 }
 
+#[derive(Clone, Debug)]
 pub enum InstallPhase {
     Native,
     // Download -> verify -> unpack
-    Download,
-    Verify,
-    Unpack,
+    Download { url: String, file: String },
+    Verify { url: String, file: String },
+    Unpack { file: String },
 }
 
 pub use starbase_utils::net::OnChunkFn;
@@ -237,14 +238,18 @@ impl Tool {
             .await?;
 
         // Download the prebuilt
-        options.on_phase_change.as_ref().inspect(|func| {
-            func(InstallPhase::Download);
-        });
-
         let download_url = output.download_url;
-        let download_file = temp_dir.join(match output.download_name {
+        let download_filename = match output.download_name {
             Some(name) => name,
             None => extract_filename_from_url(&download_url)?,
+        };
+        let download_file = temp_dir.join(&download_filename);
+
+        options.on_phase_change.as_ref().inspect(|func| {
+            func(InstallPhase::Download {
+                url: download_url.clone(),
+                file: download_filename.clone(),
+            });
         });
 
         debug!(tool = self.id.as_str(), "Downloading tool archive");
@@ -261,13 +266,17 @@ impl Tool {
 
         // Verify the checksum if applicable
         if let Some(checksum_url) = output.checksum_url {
-            options.on_phase_change.as_ref().inspect(|func| {
-                func(InstallPhase::Verify);
-            });
-
-            let checksum_file = temp_dir.join(match output.checksum_name {
+            let checksum_filename = match output.checksum_name {
                 Some(name) => name,
                 None => extract_filename_from_url(&checksum_url)?,
+            };
+            let checksum_file = temp_dir.join(&checksum_filename);
+
+            options.on_phase_change.as_ref().inspect(|func| {
+                func(InstallPhase::Verify {
+                    url: checksum_url.clone(),
+                    file: checksum_filename.clone(),
+                });
             });
 
             debug!(tool = self.id.as_str(), "Downloading tool checksum");
@@ -300,7 +309,9 @@ impl Tool {
 
         if self.plugin.has_func("unpack_archive").await {
             options.on_phase_change.as_ref().inspect(|func| {
-                func(InstallPhase::Unpack);
+                func(InstallPhase::Unpack {
+                    file: download_filename.clone(),
+                });
             });
 
             self.plugin
@@ -317,7 +328,9 @@ impl Tool {
         // Is an archive, unpack it
         else if is_archive_file(&download_file) {
             options.on_phase_change.as_ref().inspect(|func| {
-                func(InstallPhase::Unpack);
+                func(InstallPhase::Unpack {
+                    file: download_filename.clone(),
+                });
             });
 
             let mut archiver = Archiver::new(install_dir, &download_file);

@@ -137,7 +137,7 @@ npm = "10.0.0"
 
             assert.stdout(
                 predicate::str::contains("Waiting on requirements: node")
-                    .and(predicate::str::contains("npm 10.0.0 installed!")),
+                    .and(predicate::str::contains("npm 10.0.0 installed")),
             );
         }
     }

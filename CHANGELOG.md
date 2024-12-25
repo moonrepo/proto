@@ -12,6 +12,8 @@
 
 ## Unreleased
 
+This is a unique release that focused primarily on cleaning up our current commands, either by removing arguments, or merging functionality. On top of that, we've refactored all the terminal output using a new UI library powered by [iocraft](https://docs.rs/iocraft/latest/iocraft/). Read the blog post for more information!
+
 #### 💥 Breaking
 
 - Removed the `proto list` and `proto list-remote` commands, use `proto versions` instead.
@@ -21,6 +23,7 @@
 
 #### 🚀 Updates
 
+- Implemented a new terminal user interface (TUI) and output style for _all_ commands.
 - Added a `--yes` option to `proto outdated`, that skips confirmation prompts.
 - Added a `--json` option to `proto clean`, to capture the cleaned result as JSON.
 - Added a new command, `proto versions <tool>`, that lists all available remote and installed versions/aliases.
