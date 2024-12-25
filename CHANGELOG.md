@@ -30,6 +30,11 @@ This is a unique release that focused primarily on cleaning up our current comma
 - Updated `proto clean` to accept a target in which to clean as the 1st argument. For example, `proto clean cache`.
 - Moved the `--json` and `--yes` options into global options.
 
+#### 🧩 Plugins
+
+- Updated `python_tool` to v0.12.2.
+  - Switched to `astral-sh/python-build-standalone` from `indygreg/python-build-standalone` for pre-built images.
+
 ## 0.43.3
 
 #### 🐞 Fixes

@@ -1,6 +1,6 @@
 [package]
 name = "proto_pdk_test_utils"
-version = "0.30.4"
+version = "0.31.0"
 edition = "2021"
 license = "MIT"
 description = "Utilities for testing proto WASM plugins."
@@ -8,9 +8,9 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
-proto_core = { version = "0.43.10", path = "../core" }
+proto_core = { version = "0.44.0", path = "../core" }
 proto_pdk_api = { version = "0.24.5", path = "../pdk-api" }
-warpgate = { version = "0.20.1", path = "../warpgate" }
+warpgate = { version = "0.20.2", path = "../warpgate" }
 # extism = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
