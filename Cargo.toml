@@ -4,7 +4,7 @@ members = ["crates/*"]
 default-members = ["crates/cli"]
 
 [workspace.dependencies]
-anyhow = "1.0.94"
+anyhow = "1.0.95"
 async-trait = "0.1.83"
 clap = "4.5.23"
 clap_complete = "4.5.40"
@@ -36,10 +36,10 @@ scc = "2.2.6"
 schematic = { version = "0.17.7", default-features = false }
 semver = { version = "1.0.24", features = ["serde"] }
 serde = { version = "1.0.216", features = ["derive"] }
-serde_json = "1.0.133"
+serde_json = "1.0.134"
 sha2 = "0.10.8"
 shell-words = "1.1.0"
-starbase = { version = "0.9.6", path = "../starbase/crates/app" }
+starbase = { version = "0.9.6" }
 starbase_archive = { version = "0.9.0", features = [
     "gz",
     "miette",
@@ -49,21 +49,17 @@ starbase_archive = { version = "0.9.0", features = [
     "tar-zstd",
     "zip",
     "zip-deflate",
-], path = "../starbase/crates/archive" }
-starbase_console = { version = "0.2.2", features = [
-    "ui",
-], path = "../starbase/crates/console" }
-starbase_sandbox = { version = "0.8.0", path = "../starbase/crates/sandbox" }
-starbase_shell = { version = "0.6.9", features = [
-    "miette",
-], path = "../starbase/crates/shell" }
-starbase_styles = { version = "0.4.9", path = "../starbase/crates/styles" }
+] }
+starbase_console = { version = "0.3.0", features = ["ui"] }
+starbase_sandbox = { version = "0.8.0" }
+starbase_shell = { version = "0.6.9", features = ["miette"] }
+starbase_styles = { version = "0.4.9" }
 starbase_utils = { version = "0.9.1", default-features = false, features = [
     "json",
     "miette",
     "net",
     "toml",
-], path = "../starbase/crates/utils" }
+] }
 thiserror = "2.0.9"
 tokio = { version = "1.42.0", features = ["full", "tracing"] }
 tracing = "0.1.41"
