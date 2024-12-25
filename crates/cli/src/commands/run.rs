@@ -1,6 +1,5 @@
-use crate::commands::install::{do_install, InstallArgs};
+use crate::commands::install::{install_one, InstallArgs};
 use crate::error::ProtoCliError;
-use crate::helpers::create_progress_bar;
 use crate::session::ProtoSession;
 use clap::Args;
 use miette::IntoDiagnostic;
@@ -153,7 +152,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
 
     let version = detect_version(&tool, args.spec.clone()).await?;
 
-    // Check if installed or install
+    // Check if installed or need to install
     if !tool.is_setup(&version).await? {
         let config = tool.proto.load_config()?;
         let resolved_version = tool.get_resolved_version();
@@ -186,15 +185,16 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
             resolved_version,
         ))?;
 
-        let install_args = InstallArgs {
-            id: Some(tool.id.clone()),
-            spec: Some(resolved_version.to_unresolved_spec()),
-            ..Default::default()
-        };
-
-        let pb = create_progress_bar(format!("Installing {resolved_version}"));
-
-        do_install(&mut tool, install_args, &pb).await?;
+        install_one(
+            session.clone(),
+            InstallArgs {
+                internal: true,
+                spec: Some(resolved_version.to_unresolved_spec()),
+                ..Default::default()
+            },
+            tool.id.clone(),
+        )
+        .await?;
 
         session.console.out.write_line(format!(
             "{} {} has been installed, continuing execution...",

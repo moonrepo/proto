@@ -6,7 +6,7 @@ use proto_core::{Id, ProtoConfig, Tool, UnresolvedVersionSpec};
 use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_utils::fs;
-use tracing::debug;
+use tracing::{debug, instrument};
 
 #[derive(Args, Clone, Debug)]
 pub struct UninstallArgs {
@@ -63,6 +63,7 @@ async fn track_uninstall(tool: &Tool, all: bool) -> miette::Result<()> {
     .await
 }
 
+#[instrument(skip(session))]
 async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult {
     let tool = session.load_tool(&args.id).await?;
     let inventory_dir = tool.get_inventory_dir();
@@ -142,6 +143,7 @@ async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult 
     Ok(None)
 }
 
+#[instrument(skip(session))]
 async fn uninstall_one(
     session: ProtoSession,
     args: UninstallArgs,
@@ -197,7 +199,7 @@ async fn uninstall_one(
     Ok(None)
 }
 
-#[tracing::instrument(skip_all)]
+#[instrument(skip(session))]
 pub async fn uninstall(session: ProtoSession, args: UninstallArgs) -> AppResult {
     match args.spec.clone() {
         Some(spec) => uninstall_one(session, args, spec).await,

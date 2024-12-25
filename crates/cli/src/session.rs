@@ -1,6 +1,6 @@
 use crate::app::{App as CLI, Commands};
 use crate::commands::clean::{internal_clean, CleanArgs};
-use crate::helpers::create_progress_loader_frames;
+use crate::helpers::create_console_theme;
 use crate::systems::*;
 use crate::utils::progress_instance::ProgressInstance;
 use crate::utils::tool_record::ToolRecord;
@@ -15,9 +15,8 @@ use proto_core::{
 use rustc_hash::FxHashSet;
 use semver::Version;
 use starbase::{AppResult, AppSession};
-use starbase_console::ui::{style_to_color, ConsoleTheme, ProgressLoader, ProgressReporter};
+use starbase_console::ui::{OwnedOrShared, Progress, ProgressDisplay, ProgressReporter};
 use starbase_console::{Console, EmptyReporter};
-use starbase_styles::Style;
 use std::io::IsTerminal;
 use std::sync::Arc;
 use tokio::task::JoinSet;
@@ -43,18 +42,17 @@ pub struct ProtoSession {
 
 impl ProtoSession {
     pub fn new(cli: CLI) -> Self {
-        let mut theme = ConsoleTheme::branded(style_to_color(Style::Shell));
-        theme.progress_loader_frames = create_progress_loader_frames();
+        let env = ProtoEnvironment::default();
 
         let mut console = Console::<EmptyReporter>::new(false);
-        console.set_theme(theme);
+        console.set_theme(create_console_theme());
         console.set_reporter(EmptyReporter);
 
         Self {
             cli,
             cli_version: Version::parse(env!("CARGO_PKG_VERSION")).unwrap(),
             console,
-            env: Arc::new(ProtoEnvironment::default()),
+            env: Arc::new(env),
         }
     }
 
@@ -198,14 +196,17 @@ impl ProtoSession {
     pub fn render_progress_loader(&self) -> miette::Result<ProgressInstance> {
         use iocraft::prelude::element;
 
-        let reporter = ProgressReporter::default();
-        let reporter_clone = reporter.clone();
+        let reporter = Arc::new(ProgressReporter::default());
+        let reporter_clone = OwnedOrShared::Shared(reporter.clone());
         let console = self.console.clone();
 
         let handle = tokio::task::spawn(async move {
             console
-                .render_loop(element! {
-                    ProgressLoader(reporter: reporter_clone)
+                .render_interactive(element! {
+                    Progress(
+                        display: ProgressDisplay::Loader,
+                        reporter: reporter_clone,
+                    )
                 })
                 .await
         });
