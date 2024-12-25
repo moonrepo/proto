@@ -15,7 +15,7 @@ use proto_core::{
 use rustc_hash::FxHashSet;
 use semver::Version;
 use starbase::{AppResult, AppSession};
-use starbase_console::ui::{Progress, ProgressDisplay, ProgressReporter};
+use starbase_console::ui::{OwnedOrShared, Progress, ProgressDisplay, ProgressReporter};
 use starbase_console::{Console, EmptyReporter};
 use std::io::IsTerminal;
 use std::sync::Arc;
@@ -196,13 +196,13 @@ impl ProtoSession {
     pub fn render_progress_loader(&self) -> miette::Result<ProgressInstance> {
         use iocraft::prelude::element;
 
-        let reporter = ProgressReporter::default();
-        let reporter_clone = reporter.clone();
+        let reporter = Arc::new(ProgressReporter::default());
+        let reporter_clone = OwnedOrShared::Shared(reporter.clone());
         let console = self.console.clone();
 
         let handle = tokio::task::spawn(async move {
             console
-                .render_loop(element! {
+                .render_interactive(element! {
                     Progress(
                         display: ProgressDisplay::Loader,
                         reporter: reporter_clone,
