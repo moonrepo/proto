@@ -1930,21 +1930,19 @@ checksum = "5a611371471e98973dbcab4e0ec66c31a10bc356eeb4d54a0e05eac8158fe38c"
 
 [[package]]
 name = "iocraft"
-version = "0.5.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6aa17731846833a741c47f7c4c7b319c8174f69c2c558dd916fe70495f804de7"
+checksum = "b9f5ac7cf1a16f1ba24ac908b41c2f2dcdcf1b5e5f24c0f922517f140173c4a0"
 dependencies = [
  "any_key",
  "bitflags",
  "crossterm",
  "futures",
  "generational-box",
- "indexmap",
  "iocraft-macros",
  "taffy",
  "textwrap",
  "unicode-width",
- "uuid",
 ]
 
 [[package]]
@@ -2672,7 +2670,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.43.10"
+version = "0.44.0"
 dependencies = [
  "clap",
  "convert_case",
@@ -2748,7 +2746,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.30.4"
+version = "0.31.0"
 dependencies = [
  "proto_core",
  "proto_pdk_api",
@@ -4431,7 +4429,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.20.1"
+version = "0.20.2"
 dependencies = [
  "async-trait",
  "compact_str 0.8.0",
