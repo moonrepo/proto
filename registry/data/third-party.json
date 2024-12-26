@@ -177,6 +177,19 @@
       ]
     },
     {
+      "id": "conan",
+      "locator": "https://raw.githubusercontent.com/isaac10334/conan-proto/main/conan.toml",
+      "format": "toml",
+      "name": "Conan",
+      "description": "An open-source C and C++ package manager.",
+      "author": "isaac10334",
+      "homepageUrl": "https://conan.io",
+      "repositoryUrl": "https://github.com/isaac10334/conan-proto",
+      "bins": [
+        "conan"
+      ]
+    },
+    {
       "id": "cosign",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/cosign/plugin.toml",
       "format": "toml",
