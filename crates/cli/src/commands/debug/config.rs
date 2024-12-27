@@ -28,8 +28,6 @@ fn print_toml(console: &ProtoConsole, value: impl Serialize) -> miette::Result<(
         .collect::<Vec<_>>()
         .join("\n");
 
-    // TOML output is far too large to render with iocraft,
-    // so we unfortunately need to do all this manually
     console.out.write_newline()?;
     console.out.write_line(contents)?;
     console.out.write_newline()?;

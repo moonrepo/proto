@@ -63,7 +63,7 @@ pub async fn pin(session: ProtoSession, args: PinArgs) -> AppResult {
             StyledText(
                 content: if spec != args.spec {
                     format!(
-                        "Pinned <id>{}</id> version <hash>{}</hash> (resolved from <hash>{}</hash>) to config <path>{}</path>",
+                        "Pinned <id>{}</id> version <version>{}</version> (resolved from <versionalt>{}</versionalt>) to config <path>{}</path>",
                         args.id,
                         spec,
                         args.spec,
@@ -71,7 +71,7 @@ pub async fn pin(session: ProtoSession, args: PinArgs) -> AppResult {
                     )
                 } else {
                     format!(
-                        "Pinned <id>{}</id> version <hash>{}</hash> to config <path>{}</path>",
+                        "Pinned <id>{}</id> version <version>{}</version> to config <path>{}</path>",
                         args.id,
                         args.spec,
                         config_path.display()

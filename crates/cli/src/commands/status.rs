@@ -177,15 +177,17 @@ pub async fn status(session: ProtoSession, _args: StatusArgs) -> AppResult {
         return Ok(None);
     }
 
+    let id_width = items.keys().fold(0, |acc, id| acc.max(id.as_str().len()));
+
     session.console.render(element! {
         Container {
             Table(
                 headers: vec![
-                    TableHeader::new("Tool", Size::Percent(10.0)),
-                    TableHeader::new("Configured", Size::Percent(10.0)),
-                    TableHeader::new("Resolved", Size::Percent(10.0)),
-                    TableHeader::new("Installed", Size::Percent(35.0)),
-                    TableHeader::new("Config", Size::Percent(35.0)),
+                    TableHeader::new("Tool", Size::Length((id_width + 3).max(10) as u32)),
+                    TableHeader::new("Configured", Size::Length(12)),
+                    TableHeader::new("Resolved", Size::Length(12)),
+                    TableHeader::new("Installed", Size::Percent(30.0)),
+                    TableHeader::new("Config", Size::Auto),
                 ]
             ) {
                 #(items.into_iter().enumerate().map(|(i, (id, item))| {
@@ -200,7 +202,7 @@ pub async fn status(session: ProtoSession, _args: StatusArgs) -> AppResult {
                             TableCol(col: 1) {
                                 StyledText(
                                     content: item.config_version.to_string(),
-                                    style: Style::Hash
+                                    style: Style::Invalid
                                 )
                             }
                             TableCol(col: 2) {
@@ -208,13 +210,13 @@ pub async fn status(session: ProtoSession, _args: StatusArgs) -> AppResult {
                                     element! {
                                         StyledText(
                                             content: version.to_string(),
-                                            style: Style::Shell
+                                            style: Style::Hash
                                         )
                                     }
                                 } else {
                                     element! {
                                         StyledText(
-                                            content: "Invalid",
+                                            content: "N/A",
                                             style: Style::MutedLight
                                         )
                                     }

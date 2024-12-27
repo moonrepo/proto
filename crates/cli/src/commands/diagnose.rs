@@ -2,7 +2,7 @@ use crate::components::{Issue, IssuesList};
 use crate::helpers::fetch_latest_version;
 use crate::session::ProtoSession;
 use clap::Args;
-use iocraft::prelude::{element, Box, Text};
+use iocraft::prelude::{element, Box, FlexDirection, Text};
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;
@@ -80,7 +80,7 @@ pub async fn diagnose(session: ProtoSession, args: DiagnoseArgs) -> AppResult {
 
     session.console.render(element! {
         Container {
-            Box(margin_bottom: 1) {
+            Box(margin_bottom: 1, flex_direction: FlexDirection::Column) {
                 Entry(
                     name: "Shell",
                     value: element! {
@@ -174,9 +174,9 @@ async fn gather_errors(
                 "Ensure the shims path comes before the bin path in your shell".into(),
             ),
             comment: Some(
-                "Runtime version detection will not work correctly unless shims are used".into(),
+                "Runtime version detection will not work correctly unless shims take priority".into(),
             ),
-        })
+        });
     }
 
     Ok(errors)
@@ -195,7 +195,7 @@ async fn gather_warnings(
     if current_version < &latest_version {
         warnings.push(Issue {
             issue: format!(
-                "Current proto version <hash>{current_version}</hash> is outdated, latest is <hash>{latest_version}</hash>",
+                "Current proto version <version>{current_version}</version> is outdated, latest is <version>{latest_version}</version>",
             ),
             resolution: Some("Run <shell>proto upgrade</shell> to update".into()),
             comment: None,

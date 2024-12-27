@@ -79,11 +79,12 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
 
     // Only compare versions instead of upgrading
     if args.check {
-        let target_chain =
-            format!("<hash>{current}</hash> <mutedlight>→</mutedlight> <hash>{target}</hash>");
+        let target_chain = format!(
+            "<version>{current}</version> <mutedlight>→</mutedlight> <version>{target}</version>"
+        );
 
         let content = if target_version == current_version {
-            format!("You're already on version <hash>{current}</hash> of proto!")
+            format!("You're already on version <version>{current}</version> of proto!")
         } else if has_explicit_target {
             format!("An explicit version of proto will be used: {target_chain}")
         } else if target_version > current_version {
@@ -105,7 +106,7 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
         session.console.render(element! {
             Notice(variant: Variant::Info) {
                 StyledText(
-                    content: format!("You're already on version <hash>{current}</hash> of proto!")
+                    content: format!("You're already on version <version>{current}</version> of proto!")
                 )
             }
         })?;
@@ -155,9 +156,9 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
             Notice(variant: Variant::Success) {
                 StyledText(
                     content: if target_version > current_version {
-                        format!("Upgraded proto to <hash>{target}</hash>!")
+                        format!("Upgraded proto to <version>{target}</version>!")
                     } else {
-                        format!("Downgraded proto to <hash>{target}</hash>!")
+                        format!("Downgraded proto to <version>{target}</version>!")
                     }
                 )
             }

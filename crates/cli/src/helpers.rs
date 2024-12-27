@@ -20,6 +20,13 @@ pub fn create_console_theme() -> ConsoleTheme {
     theme.progress_bar_filled_char = '━';
     theme.progress_bar_unfilled_char = '─';
     theme.progress_bar_position_char = '╾';
+
+    theme
+        .custom_tags
+        .insert("version".into(), style_to_color(Style::Success));
+    theme
+        .custom_tags
+        .insert("versionalt".into(), style_to_color(Style::Invalid));
     theme
 }
 

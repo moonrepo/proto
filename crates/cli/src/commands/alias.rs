@@ -53,7 +53,7 @@ pub async fn alias(session: ProtoSession, args: AliasArgs) -> AppResult {
         Notice(variant: Variant::Success) {
             StyledText(
                 content: format!(
-                    "Added <id>{}</id> alias <id>{}</id> <mutedlight>({})</mutedlight> to config <path>{}</path>",
+                    "Added <id>{}</id> alias <id>{}</id> <mutedlight>(with specification <versionalt>{}</versionalt>)</mutedlight> to config <path>{}</path>",
                     args.id,
                     args.alias,
                     args.spec.to_string(),

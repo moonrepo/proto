@@ -144,7 +144,7 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
                 Notice(variant: Variant::Success) {
                     StyledText(
                         content: format!(
-                            "{} <hash>{}</hash> has been installed to <path>{}</path>!",
+                            "{} <version>{}</version> has been installed to <path>{}</path>!",
                             tool.get_name(),
                             tool.get_resolved_version(),
                             tool.get_product_dir().display(),
@@ -158,7 +158,7 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
                 Notice(variant: Variant::Info) {
                     StyledText(
                         content: format!(
-                            "{} <hash>{}</hash> has already been installed at <path>{}</path>!",
+                            "{} <version>{}</version> has already been installed at <path>{}</path>!",
                             tool.get_name(),
                             tool.get_resolved_version(),
                             tool.get_product_dir().display(),
