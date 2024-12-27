@@ -97,6 +97,8 @@ mod status {
             cmd.arg("status");
         });
 
+        assert.debug();
+
         let output = assert.output();
 
         assert!(predicate::str::contains("node").eval(&output));
