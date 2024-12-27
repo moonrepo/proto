@@ -21,7 +21,7 @@ iocraft = "0.5.2"
 miette = "7.4.0"
 once_cell = "1.20.2"
 regex = { version = "1.11.1", default-features = false, features = ["std"] }
-reqwest = { version = "0.12.9", default-features = false, features = [
+reqwest = { version = "0.12.10", default-features = false, features = [
     "charset",
     "http2",
     "macos-system-configuration",
@@ -50,10 +50,10 @@ starbase_archive = { version = "0.9.0", features = [
     "zip",
     "zip-deflate",
 ] }
-starbase_console = { version = "0.3.1", features = ["ui"] }
+starbase_console = { version = "0.4.0", features = ["ui"] }
 starbase_sandbox = { version = "0.8.0" }
 starbase_shell = { version = "0.6.9", features = ["miette"] }
-starbase_styles = { version = "0.4.9" }
+starbase_styles = { version = "0.4.10" }
 starbase_utils = { version = "0.9.1", default-features = false, features = [
     "json",
     "miette",

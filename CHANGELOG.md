@@ -10,6 +10,12 @@
 - [Rust](https://github.com/moonrepo/tools/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/tools/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed some minor UI layout issues.
+
 ## 0.44.0
 
 This is a unique release that focused primarily on cleaning up our current commands, either by removing arguments, or merging functionality. On top of that, we've refactored all the terminal output using a new UI library powered by [iocraft](https://docs.rs/iocraft/latest/iocraft/). Read the blog post for more information!
@@ -27,6 +33,7 @@ This is a unique release that focused primarily on cleaning up our current comma
 - Added a `--yes` option to `proto outdated`, that skips confirmation prompts.
 - Added a `--json` option to `proto clean`, to capture the cleaned result as JSON.
 - Added a new command, `proto versions <tool>`, that lists all available remote and installed versions/aliases.
+- Added a confirmation prompt to `proto uninstall` flows.
 - Updated `proto clean` to accept a target in which to clean as the 1st argument. For example, `proto clean cache`.
 - Moved the `--json` and `--yes` options into global options.
 
