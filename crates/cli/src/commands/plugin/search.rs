@@ -1,7 +1,7 @@
 use crate::session::ProtoSession;
 use clap::Args;
 use iocraft::prelude::{element, Box, FlexDirection, Size, Text};
-use proto_core::registry::{PluginAuthor, PluginFormat};
+use proto_core::registry::PluginFormat;
 use proto_core::PluginLocator;
 use starbase::AppResult;
 use starbase_console::ui::*;
@@ -49,6 +49,13 @@ pub async fn search(session: ProtoSession, args: SearchPluginArgs) -> AppResult 
         return Ok(Some(1));
     }
 
+    let (name_width, author_width) = queried_plugins.iter().fold((0, 0), |acc, plugin| {
+        (
+            acc.0.max(plugin.name.len()),
+            acc.1.max(plugin.author.get_name().len()),
+        )
+    });
+
     session.console.render(element! {
         Container {
             Box(padding_top: 1, padding_left: 1, flex_direction: FlexDirection::Column) {
@@ -61,11 +68,11 @@ pub async fn search(session: ProtoSession, args: SearchPluginArgs) -> AppResult 
             }
             Table(
                 headers: vec![
-                    TableHeader::new("Plugin", Size::Percent(10.0)),
-                    TableHeader::new("Author", Size::Percent(8.0)),
-                    TableHeader::new("Format", Size::Percent(5.0)),
-                    TableHeader::new("Description", Size::Percent(20.0)),
-                    TableHeader::new("Locator", Size::Percent(57.0)),
+                    TableHeader::new("Plugin", Size::Length(name_width.max(6) as u32)),
+                    TableHeader::new("Author", Size::Length(author_width.max(6) as u32)),
+                    TableHeader::new("Format", Size::Length(6)),
+                    TableHeader::new("Description", Size::Percent(30.0)),
+                    TableHeader::new("Locator", Size::Auto),
                 ]
             ) {
                 #(queried_plugins.into_iter().enumerate().map(|(i, plugin)| {
@@ -79,10 +86,7 @@ pub async fn search(session: ProtoSession, args: SearchPluginArgs) -> AppResult 
                             }
                             TableCol(col: 1) {
                                 Text(
-                                    content: match &plugin.author {
-                                        PluginAuthor::String(name) => name,
-                                        PluginAuthor::Object(author) => &author.name,
-                                    }
+                                    content: plugin.author.get_name()
                                 )
                             }
                             TableCol(col: 2) {

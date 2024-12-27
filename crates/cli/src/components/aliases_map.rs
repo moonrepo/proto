@@ -24,7 +24,7 @@ pub fn AliasesMap<'a>(props: &AliasesMapProps<'a>) -> impl Into<AnyElement<'a>> 
                         value: element! {
                             StyledText(
                                 content: version.to_string(),
-                                style: Style::Hash
+                                style: Style::Invalid
                             )
                         }.into_any()
                     )

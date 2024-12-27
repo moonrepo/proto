@@ -33,6 +33,15 @@ pub enum PluginAuthor {
     Object(PluginPerson),
 }
 
+impl PluginAuthor {
+    pub fn get_name(&self) -> &str {
+        match self {
+            Self::String(name) => name,
+            Self::Object(author) => &author.name,
+        }
+    }
+}
+
 /// A file source where the plugin attempts to detect a version from.
 #[derive(Debug, Default, Deserialize, Serialize, Schematic)]
 pub struct PluginDetectionSource {

@@ -37,7 +37,7 @@ pub async fn unalias(session: ProtoSession, args: UnaliasArgs) -> AppResult {
             Notice(variant: Variant::Caution) {
                 StyledText(
                     content: format!(
-                        "Alias <label>{}</label> for <id>{}</id> not found in config <path>{}</path>",
+                        "Alias <id>{}</id> for <id>{}</id> not found in config <path>{}</path>",
                         args.alias,
                         args.id,
                         config_path.display()
@@ -53,7 +53,7 @@ pub async fn unalias(session: ProtoSession, args: UnaliasArgs) -> AppResult {
         Notice(variant: Variant::Success) {
             StyledText(
                 content: format!(
-                    "Removed <id>{}</id> alias <label>{}</label> <mutedlight>({})</mutedlight> from config <path>{}</path>",
+                    "Removed <id>{}</id> alias <id>{}</id> <mutedlight>(with specification <versionalt>{}</versionalt>)</mutedlight> from config <path>{}</path>",
                     args.id,
                     args.alias,
                     value.to_string(),

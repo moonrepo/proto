@@ -176,15 +176,17 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
         return Ok(None);
     }
 
+    let id_width = items.keys().fold(0, |acc, id| acc.max(id.as_str().len()));
+
     session.console.render(element! {
         Container {
             Table(
                 headers: vec![
-                    TableHeader::new("Tool", Size::Percent(10.0)),
-                    TableHeader::new("Current", Size::Percent(8.0)),
-                    TableHeader::new("Newest", Size::Percent(8.0)),
-                    TableHeader::new("Latest", Size::Percent(8.0)),
-                    TableHeader::new("Config", Size::Percent(66.0)),
+                    TableHeader::new("Tool", Size::Length((id_width + 3).max(10) as u32)),
+                    TableHeader::new("Current", Size::Length(10)),
+                    TableHeader::new("Newest", Size::Length(10)),
+                    TableHeader::new("Latest", Size::Length(10)),
+                    TableHeader::new("Config", Size::Auto),
                 ]
             ) {
                 #(items.iter().enumerate().map(|(i, (id, item))| {
@@ -250,9 +252,9 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
             .render_interactive(element! {
                 Confirm(
                     label: if args.latest {
-                        "Update config files with latest versions?"
+                        "Update config files with <label>latest</label> versions?"
                     } else {
-                        "Update config files with newest versions?"
+                        "Update config files with <label>newest</label> versions?"
                     },
                     on_confirm: &mut confirmed,
                 )

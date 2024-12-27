@@ -193,7 +193,7 @@ impl ProtoSession {
         .await
     }
 
-    pub fn render_progress_loader(&self) -> miette::Result<ProgressInstance> {
+    pub async fn render_progress_loader(&self) -> miette::Result<ProgressInstance> {
         use iocraft::prelude::element;
 
         let reporter = Arc::new(ProgressReporter::default());
@@ -210,6 +210,9 @@ impl ProtoSession {
                 })
                 .await
         });
+
+        // Wait a bit for the component to be rendered
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 
         Ok(ProgressInstance { reporter, handle })
     }

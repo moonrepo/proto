@@ -179,7 +179,7 @@ pub async fn clean_tool(
                         tool.get_name(),
                         versions_to_clean
                             .iter()
-                            .map(|v| format!("<hash>{v}</hash>"))
+                            .map(|v| format!("<version>{v}</version>"))
                             .collect::<Vec<_>>()
                             .join(", ")
                     ),

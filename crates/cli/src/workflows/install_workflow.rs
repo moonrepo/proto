@@ -48,7 +48,7 @@ impl InstallWorkflow {
         let started = Instant::now();
 
         self.progress_reporter.set_message(format!(
-            "Installing {} with specification <symbol>{}</symbol>",
+            "Installing {} with specification <versionalt>{}</versionalt>",
             self.tool.get_name(),
             initial_version
         ));
@@ -139,13 +139,13 @@ impl InstallWorkflow {
         self.progress_reporter.set_message(
             if initial_version == &resolved_version.to_unresolved_spec() {
                 format!(
-                    "Installing {} <hash>{}</hash>",
+                    "Installing {} <version>{}</version>",
                     self.tool.get_name(),
                     resolved_version
                 )
             } else {
                 format!(
-                    "Installing {} <hash>{}</hash> <mutedlight>(from specification <symbol>{}</symbol>)</mutedlight>",
+                    "Installing {} <version>{}</version> <mutedlight>(from specification <versionalt>{}</versionalt>)</mutedlight>",
                     self.tool.get_name(),
                     resolved_version,
                     initial_version
@@ -347,7 +347,7 @@ impl InstallWorkflow {
     fn finish_progress(&self, started: Instant) {
         self.progress_reporter
             .set_message(format!(
-                "{} <hash>{}</hash> installed <mutedlight>({})</mutedlight>!",
+                "{} <version>{}</version> installed <mutedlight>({})</mutedlight>!",
                 self.tool.get_name(),
                 self.tool.get_resolved_version(),
                 format_duration(started.elapsed(), true)

@@ -187,7 +187,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
                             value: element! {
                                 StyledText(
                                     content: version.to_string(),
-                                    style: Style::Hash
+                                    style: Style::Shell
                                 )
                             }.into_any()
                         )

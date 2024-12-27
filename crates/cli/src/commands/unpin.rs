@@ -50,7 +50,7 @@ pub async fn unpin(session: ProtoSession, args: UnpinArgs) -> AppResult {
         Notice(variant: Variant::Success) {
             StyledText(
                 content: format!(
-                    "Removed <id>{}</id> version <hash>{}</hash> from config <path>{}</path>",
+                    "Removed <id>{}</id> version <version>{}</version> from config <path>{}</path>",
                     args.id,
                     value.to_string(),
                     config_path.display()

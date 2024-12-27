@@ -107,7 +107,8 @@ async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult 
         return Ok(None);
     }
 
-    let progress = session.render_progress_loader()?;
+    let progress = session.render_progress_loader().await?;
+
     progress.set_message(format!("Uninstalling {}", tool.get_name()));
 
     // Delete bins
@@ -156,7 +157,7 @@ async fn uninstall_one(
             Notice(variant: Variant::Caution) {
                 StyledText(
                     content: format!(
-                        "{} <hash>{}</hash> has not been installed locally",
+                        "{} <version>{}</version> has not been installed locally",
                         tool.get_name(),
                         tool.get_resolved_version(),
                     ),
@@ -167,11 +168,36 @@ async fn uninstall_one(
         return Ok(Some(1));
     }
 
+    let skip_prompts = session.should_skip_prompts();
+    let mut confirmed = false;
+
+    if !skip_prompts {
+        session
+            .console
+            .render_interactive(element! {
+                Confirm(
+                    label: format!(
+                        "Uninstall {} version <version>{}</version> at <path>{}</path>?",
+                        tool.get_name(),
+                        tool.get_resolved_version(),
+                        tool.get_product_dir().display()
+                    ),
+                    on_confirm: &mut confirmed,
+                )
+            })
+            .await?;
+    }
+
+    if !skip_prompts && !confirmed {
+        return Ok(None);
+    }
+
     debug!("Uninstalling {} with version {}", tool.get_name(), spec);
 
-    let progress = session.render_progress_loader()?;
+    let progress = session.render_progress_loader().await?;
+
     progress.set_message(format!(
-        "Uninstalling {} <hash>{}</hash>",
+        "Uninstalling {} <version>{}</version>",
         tool.get_name(),
         tool.get_resolved_version()
     ));
@@ -188,7 +214,7 @@ async fn uninstall_one(
         Notice(variant: Variant::Success) {
             StyledText(
                 content: format!(
-                    "{} <hash>{}</hash> has been uninstalled!",
+                    "{} <version>{}</version> has been uninstalled!",
                     tool.get_name(),
                     tool.get_resolved_version(),
                 ),

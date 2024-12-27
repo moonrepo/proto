@@ -11,7 +11,7 @@ mod uninstall {
         let sandbox = create_empty_proto_sandbox();
 
         let assert = sandbox.run_bin(|cmd| {
-            cmd.arg("uninstall").arg("node").arg("19.0.0");
+            cmd.arg("uninstall").arg("node").arg("19.0.0").arg("--yes");
         });
 
         assert.inner.stdout(predicate::str::contains(
@@ -31,7 +31,7 @@ mod uninstall {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("uninstall").arg("node").arg("19.0.0");
+                cmd.arg("uninstall").arg("node").arg("19.0.0").arg("--yes");
             })
             .success();
 
@@ -47,7 +47,7 @@ mod uninstall {
         let sandbox = create_empty_proto_sandbox();
 
         let assert = sandbox.run_bin(|cmd| {
-            cmd.arg("uninstall").arg("node");
+            cmd.arg("uninstall").arg("node").arg("--yes");
         });
 
         assert.inner.stdout(predicate::str::contains(
