@@ -39,10 +39,6 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
         return Err(ProtoCliError::UpgradeRequiresInternet.into());
     }
 
-    if let Some(pid) = is_running() {
-        return Err(ProtoCliError::CannotUpgradeProtoRunning { pid: pid.as_u32() }.into());
-    }
-
     let latest_version = fetch_latest_version().await?;
     let latest = latest_version.to_string();
 
@@ -83,25 +79,24 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
             "<version>{current}</version> <mutedlight>→</mutedlight> <version>{target}</version>"
         );
 
-        let content = if target_version == current_version {
-            format!("You're already on version <version>{current}</version> of proto!")
-        } else if has_explicit_target {
-            format!("An explicit version of proto will be used: {target_chain}")
-        } else if target_version > current_version {
-            format!("A newer version of proto is available: {target_chain}")
-        } else {
-            format!("An older version of proto is available: {target_chain}")
-        };
-
         session.console.render(element! {
             Notice(variant: Variant::Info) {
-                StyledText(content)
+                StyledText(content: if target_version == current_version {
+                    format!("You're already on version <version>{current}</version> of proto!")
+                } else if has_explicit_target {
+                    format!("An explicit version of proto will be used: {target_chain}")
+                } else if target_version > current_version {
+                    format!("A newer version of proto is available: {target_chain}")
+                } else {
+                    format!("An older version of proto is available: {target_chain}")
+                })
             }
         })?;
 
         return Ok(None);
     }
 
+    // Already on the version, so exit early
     if not_available {
         session.console.render(element! {
             Notice(variant: Variant::Info) {
@@ -112,6 +107,40 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
         })?;
 
         return Ok(None);
+    }
+
+    // Confirm upgrade if another process is running
+    if let Some(pid) = is_running() {
+        session.console.render(element! {
+            Notice(variant: Variant::Caution) {
+                StyledText(
+                    content: format!("Another instance of <shell>proto</shell> is currently running with the process ID {}. You may run into issues if you continue.", pid)
+                )
+            }
+        })?;
+
+        let skip_prompts = session.should_skip_prompts();
+        let mut confirmed = false;
+
+        if !skip_prompts {
+            session
+                .console
+                .render_interactive(element! {
+                    Confirm(
+                        label: if target_version >= current_version {
+                            "Continue upgrade?"
+                        } else {
+                            "Continue downgrade?"
+                        },
+                        on_confirm: &mut confirmed,
+                    )
+                })
+                .await?;
+        }
+
+        if !skip_prompts && !confirmed {
+            return Ok(None);
+        }
     }
 
     // Load the tool and install the new version
@@ -155,7 +184,7 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
         session.console.render(element! {
             Notice(variant: Variant::Success) {
                 StyledText(
-                    content: if target_version > current_version {
+                    content: if target_version >= current_version {
                         format!("Upgraded proto to <version>{target}</version>!")
                     } else {
                         format!("Downgraded proto to <version>{target}</version>!")
@@ -175,10 +204,17 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
 
 #[cfg(not(debug_assertions))]
 fn is_running() -> Option<sysinfo::Pid> {
-    debug!("Checking if proto is currently running in a separate process");
+    use sysinfo::{ProcessStatus, ProcessesToUpdate};
 
-    let system = sysinfo::System::new_all();
     let self_pid = std::process::id();
+
+    debug!(
+        self_pid = self_pid,
+        "Checking if proto is currently running in a separate process"
+    );
+
+    let mut system = sysinfo::System::new();
+    system.refresh_processes(ProcessesToUpdate::All, true);
 
     for process in system.processes_by_name("proto".as_ref()) {
         if process.pid().as_u32() == self_pid {
@@ -186,11 +222,21 @@ fn is_running() -> Option<sysinfo::Pid> {
         }
 
         let name = process.name();
+        let status = process.status();
 
-        if name == "proto"
+        debug!(
+            pid = process.pid().as_u32(),
+            name = name.to_str(),
+            exe = ?process.exe(),
+            status = ?status,
+            "Found a potential process"
+        );
+
+        if (name == "proto"
             || name == "proto-shim"
             || name == "proto.exe"
-            || name == "proto-shim.exe"
+            || name == "proto-shim.exe")
+            && matches!(status, ProcessStatus::Run)
         {
             return Some(process.pid());
         }

@@ -10,6 +10,17 @@
 - [Rust](https://github.com/moonrepo/tools/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/tools/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Changed the "is proto process running?" check during `proto upgrade` to a confirmation prompt, instead of a hard error, allowing you to continue the upgrade if you so wish.
+  - Added more logging around the process checks to understand what is going on.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.44.1
 
 #### 🐞 Fixes
