@@ -61,10 +61,6 @@ pub enum ProtoCliError {
     #[error("Upgrading proto requires an internet connection!")]
     UpgradeRequiresInternet,
 
-    #[diagnostic(code(proto::cli::running_process))]
-    #[error("Unable to upgrade as an instance of proto is currently running with the process ID {}. Please stop this process then try again.", .pid.to_string().style(Style::Symbol))]
-    CannotUpgradeProtoRunning { pid: u32 },
-
     #[diagnostic(code(proto::cli::unknown_migration))]
     #[error("Unknown migration operation {}.", .op.style(Style::Symbol))]
     UnknownMigration { op: String },
