@@ -17,7 +17,7 @@ pub struct IssuesListProps {
 #[component]
 pub fn IssuesList<'a>(props: &IssuesListProps) -> impl Into<AnyElement<'a>> {
     element! {
-        List {
+        List(gap: 1) {
             #(props.issues.iter().map(|issue| {
                 element! {
                     ListItem {
@@ -41,9 +41,6 @@ pub fn IssuesList<'a>(props: &IssuesListProps) -> impl Into<AnyElement<'a>> {
                                 }
                             }
                         }))
-
-                        // Gap between items
-                        Box(padding_bottom: 1)
                     }
                 }
             }))
