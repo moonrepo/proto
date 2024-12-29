@@ -202,12 +202,19 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
     .into())
 }
 
-// #[cfg(not(debug_assertions))]
+#[cfg(not(debug_assertions))]
 fn is_running() -> Option<sysinfo::Pid> {
-    debug!("Checking if proto is currently running in a separate process");
+    use sysinfo::{ProcessStatus, ProcessesToUpdate};
 
-    let system = sysinfo::System::new_all();
     let self_pid = std::process::id();
+
+    debug!(
+        self_pid = self_pid,
+        "Checking if proto is currently running in a separate process"
+    );
+
+    let mut system = sysinfo::System::new();
+    system.refresh_processes(ProcessesToUpdate::All, true);
 
     for process in system.processes_by_name("proto".as_ref()) {
         if process.pid().as_u32() == self_pid {
@@ -215,11 +222,21 @@ fn is_running() -> Option<sysinfo::Pid> {
         }
 
         let name = process.name();
+        let status = process.status();
 
-        if name == "proto"
+        debug!(
+            pid = process.pid().as_u32(),
+            name = name.to_str(),
+            exe = ?process.exe(),
+            status = ?status,
+            "Found a potential process"
+        );
+
+        if (name == "proto"
             || name == "proto-shim"
             || name == "proto.exe"
-            || name == "proto-shim.exe"
+            || name == "proto-shim.exe")
+            && matches!(status, ProcessStatus::Run)
         {
             return Some(process.pid());
         }
@@ -229,7 +246,7 @@ fn is_running() -> Option<sysinfo::Pid> {
 }
 
 // Don't check in tests!
-// #[cfg(debug_assertions)]
-// fn is_running() -> Option<sysinfo::Pid> {
-//     None
-// }
+#[cfg(debug_assertions)]
+fn is_running() -> Option<sysinfo::Pid> {
+    None
+}
