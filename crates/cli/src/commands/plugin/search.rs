@@ -1,6 +1,6 @@
 use crate::session::ProtoSession;
 use clap::Args;
-use iocraft::prelude::{element, Box, FlexDirection, Size, Text};
+use iocraft::prelude::{element, FlexDirection, Size, Text, View};
 use proto_core::registry::PluginFormat;
 use proto_core::PluginLocator;
 use starbase::AppResult;
@@ -58,7 +58,7 @@ pub async fn search(session: ProtoSession, args: SearchPluginArgs) -> AppResult 
 
     session.console.render(element! {
         Container {
-            Box(padding_top: 1, padding_left: 1, flex_direction: FlexDirection::Column) {
+            View(padding_top: 1, padding_left: 1, flex_direction: FlexDirection::Column) {
                 StyledText(
                     content: format!("Search results for: <label>{query}</label>"),
                 )
@@ -116,7 +116,7 @@ pub async fn search(session: ProtoSession, args: SearchPluginArgs) -> AppResult 
                     }
                 }))
             }
-            Box(padding_bottom: 1, padding_left: 1, flex_direction: FlexDirection::Row) {
+            View(padding_bottom: 1, padding_left: 1, flex_direction: FlexDirection::Row) {
                 StyledText(
                     content: "Find a plugin above that you want to use? Enable it with: ",
                 )

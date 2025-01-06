@@ -10,7 +10,7 @@ pub struct InstallProgressProps {
 #[component]
 pub fn InstallProgress<'a>(props: &mut InstallProgressProps) -> impl Into<AnyElement<'a>> {
     element! {
-        Box {
+        View {
             Progress(
                 default_message: props.default_message.clone()
                     .unwrap_or_else(|| "Preparing install…".into()),

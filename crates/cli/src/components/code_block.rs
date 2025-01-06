@@ -10,7 +10,7 @@ pub struct CodeBlockProps {
 #[component]
 pub fn CodeBlock<'a>(props: &CodeBlockProps) -> impl Into<AnyElement<'a>> {
     element! {
-        Box(
+        View(
             flex_direction: FlexDirection::Column,
             padding_left: 2,
             padding_top: 1,

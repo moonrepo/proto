@@ -27,7 +27,7 @@ pub fn Locator<'a>(props: &LocatorProps<'a>) -> impl Into<AnyElement<'a>> {
                 name: "Source",
                 content: "GitHub".to_owned()
             ) {
-                Box(flex_direction: FlexDirection::Column) {
+                View(flex_direction: FlexDirection::Column) {
                     Entry(
                         name: "Repository",
                         value: element! {

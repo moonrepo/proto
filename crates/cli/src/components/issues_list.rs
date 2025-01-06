@@ -21,13 +21,13 @@ pub fn IssuesList<'a>(props: &IssuesListProps) -> impl Into<AnyElement<'a>> {
             #(props.issues.iter().map(|issue| {
                 element! {
                     ListItem {
-                        Box {
+                        View {
                             StyledText(content: "Issue: ", style: Style::MutedLight)
                             StyledText(content: &issue.issue)
                         }
                         #(issue.resolution.as_ref().map(|resolution| {
                             element! {
-                                Box {
+                                View {
                                     StyledText(content: "Resolution: ", style: Style::MutedLight)
                                     StyledText(content: resolution)
                                 }
@@ -35,7 +35,7 @@ pub fn IssuesList<'a>(props: &IssuesListProps) -> impl Into<AnyElement<'a>> {
                         }))
                         #(issue.comment.as_ref().map(|comment| {
                             element! {
-                                Box {
+                                View {
                                     StyledText(content: "Comment: ", style: Style::MutedLight)
                                     StyledText(content: comment)
                                 }

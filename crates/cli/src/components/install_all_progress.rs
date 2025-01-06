@@ -44,11 +44,11 @@ pub fn InstallAllProgress<'a>(
     }
 
     element! {
-        Box(flex_direction: FlexDirection::Column, margin_top: 1) {
+        View(flex_direction: FlexDirection::Column, margin_top: 1) {
             #(props.tools.iter().map(|(id, inner_props)| {
                 element! {
-                    Box(key: id.to_string()) {
-                        Box(
+                    View(key: id.to_string()) {
+                        View(
                             justify_content: JustifyContent::End,
                             width: props.id_width as u16,
                         ) {
@@ -57,7 +57,7 @@ pub fn InstallAllProgress<'a>(
                                 style: Style::Id,
                             )
                         }
-                        Box(margin_left: 1) {
+                        View(margin_left: 1) {
                             InstallProgress(
                                 default_message: inner_props.default_message.clone(),
                                 reporter: inner_props.reporter.clone(),

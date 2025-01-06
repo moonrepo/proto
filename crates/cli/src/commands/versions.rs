@@ -2,7 +2,7 @@ use crate::components::create_datetime;
 use crate::session::{LoadToolOptions, ProtoSession};
 use clap::Args;
 use indexmap::IndexMap;
-use iocraft::prelude::{element, Box};
+use iocraft::prelude::{element, View};
 use proto_core::{Id, UnresolvedVersionSpec, VersionSpec};
 use serde::Serialize;
 use starbase::AppResult;
@@ -112,7 +112,7 @@ pub async fn versions(session: ProtoSession, args: VersionsArgs) -> AppResult {
         Container {
             #(versions.into_iter().map(|item| {
                 element! {
-                    Box {
+                    View {
                         #(if let Some(timestamp) = item.installed_at {
                             element! {
                                 StyledText(
@@ -134,7 +134,7 @@ pub async fn versions(session: ProtoSession, args: VersionsArgs) -> AppResult {
 
             #(aliases.into_iter().map(|(alias, version)| {
                 element! {
-                    Box {
+                    View {
                         StyledText(content: format!("{alias} <muted>→</muted> {version}"))
                     }
                 }
