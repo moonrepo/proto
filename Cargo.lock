@@ -172,9 +172,9 @@ dependencies = [
 
 [[package]]
 name = "async-trait"
-version = "0.1.83"
+version = "0.1.84"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "721cae7de5c34fbb2acd27e21e6d2cf7b886dce0c27388d46c4e6c47ea4318dd"
+checksum = "1b1244b10dcd56c92219da4e14caa97e312079e185f04ba3eea25061561dc0a0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -572,9 +572,9 @@ dependencies = [
 
 [[package]]
 name = "compact_str"
-version = "0.8.0"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6050c3a16ddab2e412160b31f2c871015704239bca62f72f6e5f0be631d3f644"
+checksum = "3b79c4069c6cad78e2e0cdfcbd26275770669fb39fd308a752dc110e83b9af32"
 dependencies = [
  "castaway",
  "cfg-if",
@@ -1930,9 +1930,9 @@ checksum = "5a611371471e98973dbcab4e0ec66c31a10bc356eeb4d54a0e05eac8158fe38c"
 
 [[package]]
 name = "iocraft"
-version = "0.5.3"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb123fec8a58f6b1781bb5d0ee38dac04fac2bbfcf446130295f86831295ffa8"
+checksum = "3382430efd06240e442217ddbaad617d71d0962877e4eccbc4a3fbb43a5b392a"
 dependencies = [
  "any_key",
  "bitflags",
@@ -1947,9 +1947,9 @@ dependencies = [
 
 [[package]]
 name = "iocraft-macros"
-version = "0.1.8"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d0e726dcb066433b8c3f9c3fb49df64428fbd33777099be6426ab691fa38e33"
+checksum = "41115c1e8afddf13f7d87c8f5b7e0bdec76567cea630944c7ad4227702d018ec"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2981,9 +2981,9 @@ checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 
 [[package]]
 name = "reqwest"
-version = "0.12.11"
+version = "0.12.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7fe060fe50f524be480214aba758c71f99f90ee8c83c5a36b5e9e1d568eb4eb3"
+checksum = "43e734407157c3c2034e0258f5e4473ddb361b1e85f95a66690d67264d7cd1da"
 dependencies = [
  "base64 0.22.1",
  "bytes",
@@ -3692,9 +3692,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_console"
-version = "0.4.1"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba1e555584c1a9ff434d70824432cc8c91dd2a98a6b573c88453f1d1a74b46a8"
+checksum = "122bca1ee6abf7c9237480ac993a124fe36cb0b2f724a417e2408ba825135897"
 dependencies = [
  "crossterm",
  "iocraft",
@@ -4412,7 +4412,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 name = "version_spec"
 version = "0.7.1"
 dependencies = [
- "compact_str 0.8.0",
+ "compact_str 0.8.1",
  "human-sort",
  "regex",
  "schematic",
@@ -4454,7 +4454,7 @@ name = "warpgate"
 version = "0.20.2"
 dependencies = [
  "async-trait",
- "compact_str 0.8.0",
+ "compact_str 0.8.1",
  "extism",
  "http-cache-reqwest",
  "miette 7.4.0",
