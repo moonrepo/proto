@@ -4,7 +4,7 @@ use crate::shell::{
     update_profile_if_not_setup, Export,
 };
 use clap::Args;
-use iocraft::prelude::{element, Box};
+use iocraft::prelude::{element, View};
 use iocraft::FlexDirection;
 use proto_shim::get_exe_file_name;
 use starbase::AppResult;
@@ -157,7 +157,7 @@ pub async fn setup(session: ProtoSession, args: SetupArgs) -> AppResult {
 
             #(if should_launch_terminal {
                 element! {
-                    Box(margin_top: 1) {
+                    View(margin_top: 1) {
                         StyledText(
                             content: "Launch a new terminal to start using proto!",
                             style: Style::Success
@@ -166,14 +166,14 @@ pub async fn setup(session: ProtoSession, args: SetupArgs) -> AppResult {
                 }
             } else {
                 element! {
-                    Box(margin_top: 1, flex_direction: FlexDirection::Column) {
+                    View(margin_top: 1, flex_direction: FlexDirection::Column) {
                         #(if should_print_exports {
                             element! {
                                 Stack {
                                     StyledText(
                                         content: "Add the following to your shell profile and launch a new terminal to get started:"
                                     )
-                                    Box(padding_top: 1, padding_left: 2) {
+                                    View(padding_top: 1, padding_left: 2) {
                                         StyledText(
                                             content: exported_content.trim(),
                                             style: Style::MutedLight
@@ -187,7 +187,7 @@ pub async fn setup(session: ProtoSession, args: SetupArgs) -> AppResult {
                                     StyledText(
                                         content: "Add the following to your <property>PATH</property> to get started:",
                                     )
-                                    Box(padding_top: 1, padding_left: 2) {
+                                    View(padding_top: 1, padding_left: 2) {
                                         StyledText(
                                             content: if cfg!(windows) {
                                                 format!(
@@ -208,7 +208,7 @@ pub async fn setup(session: ProtoSession, args: SetupArgs) -> AppResult {
                 }
             })
 
-            Box(margin_top: 1) {
+            View(margin_top: 1) {
                 StyledText(
                     content: format!(
                         "Need help? Join our Discord <url>{}</url>",

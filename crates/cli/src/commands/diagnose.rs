@@ -2,7 +2,7 @@ use crate::components::{Issue, IssuesList};
 use crate::helpers::fetch_latest_version;
 use crate::session::ProtoSession;
 use clap::Args;
-use iocraft::prelude::{element, Box, FlexDirection, Text};
+use iocraft::prelude::{element, FlexDirection, Text, View};
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;
@@ -80,7 +80,7 @@ pub async fn diagnose(session: ProtoSession, args: DiagnoseArgs) -> AppResult {
 
     session.console.render(element! {
         Container {
-            Box(margin_bottom: 1, flex_direction: FlexDirection::Column) {
+            View(margin_bottom: 1, flex_direction: FlexDirection::Column) {
                 Entry(
                     name: "Shell",
                     value: element! {
