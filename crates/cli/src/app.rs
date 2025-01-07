@@ -11,7 +11,6 @@ use starbase_styles::color::Color as ColorType;
 use std::{
     env,
     fmt::{Display, Error, Formatter},
-    io::{stdout, IsTerminal},
 };
 
 #[derive(ValueEnum, Clone, Debug, Default)]
@@ -138,8 +137,9 @@ impl App {
         }
 
         // Disable ANSI colors in JSON output
-        if self.json || !stdout().is_terminal() {
+        if self.json {
             env::set_var("NO_COLOR", "1");
+            env::remove_var("FORCE_COLOR");
         }
     }
 }

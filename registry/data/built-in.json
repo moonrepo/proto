@@ -4,13 +4,13 @@
   "plugins": [
     {
       "id": "bun",
-      "locator": "github://moonrepo/tools/bun_tool",
+      "locator": "github://moonrepo/plugins/bun_tool",
       "format": "wasm",
       "name": "Bun",
       "description": "Bun is an all-in-one runtime and toolset for JavaScript and TypeScript, powered by Zig and Webkit.",
       "author": "moonrepo",
       "homepageUrl": "https://bun.sh/",
-      "repositoryUrl": "https://github.com/moonrepo/tools",
+      "repositoryUrl": "https://github.com/moonrepo/plugins",
       "devicon": "bun",
       "bins": [
         "bun",
@@ -22,13 +22,13 @@
     },
     {
       "id": "deno",
-      "locator": "github://moonrepo/tools/deno_tool",
+      "locator": "github://moonrepo/plugins/deno_tool",
       "format": "wasm",
       "name": "Deno",
       "description": "Deno is a secure runtime for JavaScript and TypeScript, powered by Rust and Chrome's V8 engine.",
       "author": "moonrepo",
       "homepageUrl": "https://deno.land/",
-      "repositoryUrl": "https://github.com/moonrepo/tools",
+      "repositoryUrl": "https://github.com/moonrepo/plugins",
       "devicon": "denojs",
       "bins": [
         "deno"
@@ -47,13 +47,13 @@
     },
     {
       "id": "go",
-      "locator": "github://moonrepo/tools/go_tool",
+      "locator": "github://moonrepo/plugins/go_tool",
       "format": "wasm",
       "name": "Go",
       "description": "Go is a simple, secure, and fast systems language.",
       "author": "moonrepo",
       "homepageUrl": "https://go.dev/",
-      "repositoryUrl": "https://github.com/moonrepo/tools",
+      "repositoryUrl": "https://github.com/moonrepo/plugins",
       "devicon": "go",
       "bins": [
         "go",
@@ -78,13 +78,13 @@
     },
     {
       "id": "node",
-      "locator": "github://moonrepo/tools/node_tool",
+      "locator": "github://moonrepo/plugins/node_tool",
       "format": "wasm",
       "name": "Node.js",
       "description": "Node.js is a JavaScript runtime built on Chrome's V8 engine.",
       "author": "moonrepo",
       "homepageUrl": "https://nodejs.org/",
-      "repositoryUrl": "https://github.com/moonrepo/tools",
+      "repositoryUrl": "https://github.com/moonrepo/plugins",
       "bins": [
         "node"
       ],
@@ -108,12 +108,12 @@
     },
     {
       "id": "npm",
-      "locator": "github://moonrepo/tools/node_depman_tool",
+      "locator": "github://moonrepo/plugins/node_depman_tool",
       "format": "wasm",
       "name": "npm",
       "description": "A Node.js package manager.",
       "author": "moonrepo",
-      "repositoryUrl": "https://github.com/moonrepo/tools",
+      "repositoryUrl": "https://github.com/moonrepo/plugins",
       "devicon": "npm",
       "bins": [
         "npm",
@@ -132,12 +132,12 @@
     },
     {
       "id": "pnpm",
-      "locator": "github://moonrepo/tools/node_depman_tool",
+      "locator": "github://moonrepo/plugins/node_depman_tool",
       "format": "wasm",
       "name": "pnpm",
       "description": "A Node.js package manager.",
       "author": "moonrepo",
-      "repositoryUrl": "https://github.com/moonrepo/tools",
+      "repositoryUrl": "https://github.com/moonrepo/plugins",
       "devicon": "pnpm",
       "bins": [
         "pnpm",
@@ -155,13 +155,13 @@
     },
     {
       "id": "python",
-      "locator": "github://moonrepo/tools/python_tool",
+      "locator": "github://moonrepo/plugins/python_tool",
       "format": "wasm",
       "name": "Python (experimental)",
       "description": "Python is a high-level, general-purpose programming language.",
       "author": "moonrepo",
       "homepageUrl": "https://www.python.org/",
-      "repositoryUrl": "https://github.com/moonrepo/tools",
+      "repositoryUrl": "https://github.com/moonrepo/plugins",
       "bins": [
         "python",
         "pip"
@@ -178,13 +178,13 @@
     },
     {
       "id": "rust",
-      "locator": "github://moonrepo/tools/rust_tool",
+      "locator": "github://moonrepo/plugins/rust_tool",
       "format": "wasm",
       "name": "Rust",
       "description": "Rust is a blazingly fast and memory-efficient systems language.",
       "author": "moonrepo",
       "homepageUrl": "https://www.rust-lang.org/",
-      "repositoryUrl": "https://github.com/moonrepo/tools",
+      "repositoryUrl": "https://github.com/moonrepo/plugins",
       "bins": [],
       "detectionSources": [
         {
@@ -202,12 +202,12 @@
     },
     {
       "id": "yarn",
-      "locator": "github://moonrepo/tools/node_depman_tool",
+      "locator": "github://moonrepo/plugins/node_depman_tool",
       "format": "wasm",
       "name": "Yarn",
       "description": "A Node.js package manager.",
       "author": "moonrepo",
-      "repositoryUrl": "https://github.com/moonrepo/tools",
+      "repositoryUrl": "https://github.com/moonrepo/plugins",
       "devicon": "yarn",
       "bins": [
         "yarn",

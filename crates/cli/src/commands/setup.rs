@@ -71,7 +71,7 @@ pub async fn setup(session: ProtoSession, args: SetupArgs) -> AppResult {
 
     debug!("Determining the shell to use");
 
-    let interactive = !session.should_skip_prompts() && env::var("CI").is_err();
+    let interactive = !session.should_skip_prompts();
 
     let shell_type = match args.shell.or_else(ShellType::detect) {
         Some(value) => value,

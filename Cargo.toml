@@ -5,9 +5,9 @@ default-members = ["crates/cli"]
 
 [workspace.dependencies]
 anyhow = "1.0.95"
-async-trait = "0.1.84"
-clap = "4.5.23"
-clap_complete = "4.5.40"
+async-trait = "0.1.85"
+clap = "4.5.24"
+clap_complete = "4.5.41"
 compact_str = { version = "0.8.1", default-features = false, features = [
     "serde",
 ] }
@@ -33,10 +33,10 @@ reqwest-middleware = { version = "0.4.0", default-features = false, features = [
 reqwest-netrc = "0.1.2"
 rustc-hash = "2.1.0"
 scc = "2.3.0"
-schematic = { version = "0.17.7", default-features = false }
+schematic = { version = "0.17.8", default-features = false }
 semver = { version = "1.0.24", features = ["serde"] }
 serde = { version = "1.0.217", features = ["derive"] }
-serde_json = "1.0.134"
+serde_json = "1.0.135"
 sha2 = "0.10.8"
 shell-words = "1.1.0"
 starbase = { version = "0.9.6" }
@@ -50,9 +50,9 @@ starbase_archive = { version = "0.9.0", features = [
     "zip",
     "zip-deflate",
 ] }
-starbase_console = { version = "0.4.2", features = ["ui"] }
+starbase_console = { version = "0.4.3", features = ["ui"] }
 starbase_sandbox = { version = "0.8.0" }
-starbase_shell = { version = "0.6.9", features = ["miette"] }
+starbase_shell = { version = "0.6.10", features = ["miette"] }
 starbase_styles = { version = "0.4.10" }
 starbase_utils = { version = "0.9.1", default-features = false, features = [
     "json",

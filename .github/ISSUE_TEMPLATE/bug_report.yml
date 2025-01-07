@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        If you're reporting an issue for a specific language/tool and _not_ for proto itself, please report the issue on the [official tools repository](https://github.com/moonrepo/tools).
+        If you're reporting an issue for a specific language/tool and _not_ for proto itself, please report the issue on the [official tools repository](https://github.com/moonrepo/plugins).
   - type: input
     attributes:
       label: What version?

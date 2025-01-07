@@ -31,7 +31,7 @@ mod plugin_remove {
                 .insert(
                     Id::raw("id"),
                     PluginLocator::Url(Box::new(UrlLocator {
-                      url: "https://github.com/moonrepo/tools/releases/latest/download/example_plugin.wasm".into()
+                      url: "https://github.com/moonrepo/plugins/releases/latest/download/example_plugin.wasm".into()
                     })),
                 );
         })
@@ -59,7 +59,7 @@ mod plugin_remove {
                 .insert(
                     Id::raw("id"),
                     PluginLocator::Url(Box::new(UrlLocator {
-                      url: "https://github.com/moonrepo/tools/releases/latest/download/example_plugin.wasm".into()
+                      url: "https://github.com/moonrepo/plugins/releases/latest/download/example_plugin.wasm".into()
                     })),
                 );
         })
@@ -91,7 +91,7 @@ mod plugin_remove {
                 .insert(
                     Id::raw("id"),
                     PluginLocator::Url(Box::new(UrlLocator {
-                      url: "https://github.com/moonrepo/tools/releases/latest/download/example_plugin.wasm".into()
+                      url: "https://github.com/moonrepo/plugins/releases/latest/download/example_plugin.wasm".into()
                     })),
                 );
         })

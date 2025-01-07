@@ -306,7 +306,7 @@ impl ProtoConfig {
 
     pub fn builtin_proto_plugin(&self) -> PluginLocator {
         PluginLocator::Url(Box::new(UrlLocator {
-            url: "https://github.com/moonrepo/tools/releases/download/proto_tool-v0.3.0/proto_tool.wasm".into()
+            url: "https://github.com/moonrepo/plugins/releases/download/proto_tool-v0.3.0/proto_tool.wasm".into()
         }))
     }
 
@@ -320,7 +320,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("bun"),
                 PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/tools/releases/download/bun_tool-v0.14.0/bun_tool.wasm".into()
+                    url: "https://github.com/moonrepo/plugins/releases/download/bun_tool-v0.14.0/bun_tool.wasm".into()
                 }))
             );
         }
@@ -329,7 +329,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("deno"),
                 PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/tools/releases/download/deno_tool-v0.13.0/deno_tool.wasm".into()
+                    url: "https://github.com/moonrepo/plugins/releases/download/deno_tool-v0.13.0/deno_tool.wasm".into()
                 }))
             );
         }
@@ -338,7 +338,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("go"),
                 PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/tools/releases/download/go_tool-v0.14.0/go_tool.wasm".into()
+                    url: "https://github.com/moonrepo/plugins/releases/download/go_tool-v0.14.0/go_tool.wasm".into()
                 }))
             );
         }
@@ -347,7 +347,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("node"),
                 PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/tools/releases/download/node_tool-v0.13.0/node_tool.wasm".into()
+                    url: "https://github.com/moonrepo/plugins/releases/download/node_tool-v0.13.0/node_tool.wasm".into()
                 }))
             );
         }
@@ -357,7 +357,7 @@ impl ProtoConfig {
                 self.plugins.insert(
                     Id::raw(depman),
                     PluginLocator::Url(Box::new(UrlLocator {
-                        url: "https://github.com/moonrepo/tools/releases/download/node_depman_tool-v0.14.1/node_depman_tool.wasm".into()
+                        url: "https://github.com/moonrepo/plugins/releases/download/node_depman_tool-v0.14.1/node_depman_tool.wasm".into()
                     }))
                 );
             }
@@ -367,7 +367,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("python"),
                 PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/tools/releases/download/python_tool-v0.12.2/python_tool.wasm".into()
+                    url: "https://github.com/moonrepo/plugins/releases/download/python_tool-v0.12.2/python_tool.wasm".into()
                 }))
             );
         }
@@ -376,7 +376,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("rust"),
                 PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/tools/releases/download/rust_tool-v0.12.0/rust_tool.wasm".into()
+                    url: "https://github.com/moonrepo/plugins/releases/download/rust_tool-v0.12.0/rust_tool.wasm".into()
                 }))
             );
         }
@@ -385,7 +385,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw(SCHEMA_PLUGIN_KEY),
                 PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/tools/releases/download/schema_tool-v0.16.2/schema_tool.wasm".into()
+                    url: "https://github.com/moonrepo/plugins/releases/download/schema_tool-v0.16.2/schema_tool.wasm".into()
                 }))
             );
         }

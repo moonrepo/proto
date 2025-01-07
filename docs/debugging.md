@@ -77,7 +77,7 @@ fn installs_without_minor() {
 
 # Debugging plugins
 
-Debugging WASM plugins is non-trivial. I'll use the Node.js plugin as an example: https://github.com/moonrepo/tools
+Debugging WASM plugins is non-trivial. I'll use the Node.js plugin as an example: https://github.com/moonrepo/plugins
 
 ## Building
 
@@ -116,7 +116,7 @@ proto has a few crates that are used directly by plugins: `proto_pdk`, `proto_pd
 
 We can easily add debugging/logging to these crates, and test them within our plugins, by using the `path` setting in `Cargo.toml`. This will force Cargo to use our local crates, instead of the crates from crates.io.
 
-For example in the Node.js plugin's [`Cargo.toml`](https://github.com/moonrepo/tools/blob/master/Cargo.toml), we can uncomment (or insert) the `path`s to point to crates in our local proto checkout:
+For example in the Node.js plugin's [`Cargo.toml`](https://github.com/moonrepo/plugins/blob/master/Cargo.toml), we can uncomment (or insert) the `path`s to point to crates in our local proto checkout:
 
 ```toml
 proto_pdk = { version = "0.8.0", path = "../../proto/crates/pdk" }
