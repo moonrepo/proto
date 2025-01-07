@@ -11,7 +11,6 @@ use starbase_styles::color::Color as ColorType;
 use std::{
     env,
     fmt::{Display, Error, Formatter},
-    io::{stdout, IsTerminal},
 };
 
 #[derive(ValueEnum, Clone, Debug, Default)]

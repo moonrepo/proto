@@ -15,6 +15,7 @@
 #### 🐞 Fixes
 
 - Fixed `NO_COLOR` and `FORCE_COLOR` being unexpectedly set in some situations.
+- Fixed an issue where PowerShell `proto activate` would fail to execute with `Invoke-Expression`.
 
 ## 0.44.3
 
