@@ -35,7 +35,7 @@ mod plugin_add {
                 cmd.arg("plugin")
                     .arg("add")
                     .arg("id")
-                    .arg("https://github.com/moonrepo/tools/releases/latest/download/example_plugin.wasm");
+                    .arg("https://github.com/moonrepo/plugins/releases/latest/download/example_plugin.wasm");
             })
             .success();
 
@@ -47,7 +47,7 @@ mod plugin_add {
             config.plugins.get("id").unwrap(),
             &PluginLocator::Url(Box::new(UrlLocator {
                 url:
-                    "https://github.com/moonrepo/tools/releases/latest/download/example_plugin.wasm"
+                    "https://github.com/moonrepo/plugins/releases/latest/download/example_plugin.wasm"
                         .into()
             }))
         );
@@ -65,7 +65,7 @@ mod plugin_add {
                 cmd.arg("plugin")
                     .arg("add")
                     .arg("id")
-                    .arg("https://github.com/moonrepo/tools/releases/latest/download/example_plugin.wasm")
+                    .arg("https://github.com/moonrepo/plugins/releases/latest/download/example_plugin.wasm")
                     .arg("--to")
                     .arg("global");
             })
@@ -79,7 +79,7 @@ mod plugin_add {
             config.plugins.get("id").unwrap(),
             &PluginLocator::Url(Box::new(UrlLocator {
                 url:
-                    "https://github.com/moonrepo/tools/releases/latest/download/example_plugin.wasm"
+                    "https://github.com/moonrepo/plugins/releases/latest/download/example_plugin.wasm"
                         .into()
             }))
         );
@@ -97,7 +97,7 @@ mod plugin_add {
                 cmd.arg("plugin")
                     .arg("add")
                     .arg("id")
-                    .arg("https://github.com/moonrepo/tools/releases/latest/download/example_plugin.wasm")
+                    .arg("https://github.com/moonrepo/plugins/releases/latest/download/example_plugin.wasm")
                     .arg("--to")
                     .arg("user");
             })
@@ -111,7 +111,7 @@ mod plugin_add {
             config.plugins.get("id").unwrap(),
             &PluginLocator::Url(Box::new(UrlLocator {
                 url:
-                    "https://github.com/moonrepo/tools/releases/latest/download/example_plugin.wasm"
+                    "https://github.com/moonrepo/plugins/releases/latest/download/example_plugin.wasm"
                         .into()
             }))
         );

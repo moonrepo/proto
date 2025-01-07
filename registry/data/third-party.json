@@ -183,7 +183,7 @@
       "name": "Conan",
       "description": "An open-source C and C++ package manager.",
       "author": "isaac10334",
-      "homepageUrl": "https://conan.io",
+      "homepageUrl": "https://conan.io/",
       "repositoryUrl": "https://github.com/isaac10334/conan-proto",
       "bins": [
         "conan"
@@ -1055,12 +1055,12 @@
       "name": "Wasmtime",
       "description": "A lightweight WebAssembly runtime that is fast, secure, and standards-compliant.",
       "author": "isaac10334",
-      "homepageUrl": "https://wasmtime.dev",
+      "homepageUrl": "https://wasmtime.dev/",
       "repositoryUrl": "https://github.com/isaac10334/wasmtime-proto",
       "bins": [
         "wasmtime"
       ]
-    },    
+    },
     {
       "id": "wiretap",
       "locator": "https://raw.githubusercontent.com/ngoldack/proto-tools/main/tools/wiretap/wiretap.toml",

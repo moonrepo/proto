@@ -192,9 +192,9 @@ mod locator {
         #[test]
         fn parses_slug_with_file() {
             assert_eq!(
-                PluginLocator::try_from("github://moonrepo/tools/bun_tool".to_string()).unwrap(),
+                PluginLocator::try_from("github://moonrepo/plugins/bun_tool".to_string()).unwrap(),
                 PluginLocator::GitHub(Box::new(GitHubLocator {
-                    repo_slug: "moonrepo/tools".into(),
+                    repo_slug: "moonrepo/plugins".into(),
                     tag: None,
                     project_name: Some("bun_tool".into()),
                 }))
@@ -228,10 +228,10 @@ mod locator {
         #[test]
         fn parses_tag_with_file() {
             assert_eq!(
-                PluginLocator::try_from("github://moonrepo/tools/bun_tool@v1.2.3".to_string())
+                PluginLocator::try_from("github://moonrepo/plugins/bun_tool@v1.2.3".to_string())
                     .unwrap(),
                 PluginLocator::GitHub(Box::new(GitHubLocator {
-                    repo_slug: "moonrepo/tools".into(),
+                    repo_slug: "moonrepo/plugins".into(),
                     tag: Some("v1.2.3".into()),
                     project_name: Some("bun_tool".into()),
                 }))

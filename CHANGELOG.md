@@ -2,20 +2,24 @@
 
 ## Plugin changelogs
 
-- [Bun](https://github.com/moonrepo/tools/blob/master/tools/bun/CHANGELOG.md)
-- [Deno](https://github.com/moonrepo/tools/blob/master/tools/deno/CHANGELOG.md)
-- [Go](https://github.com/moonrepo/tools/blob/master/tools/go/CHANGELOG.md)
-- [Node](https://github.com/moonrepo/tools/blob/master/tools/node/CHANGELOG.md)
-- [Python](https://github.com/moonrepo/tools/blob/master/tools/python/CHANGELOG.md)
-- [Rust](https://github.com/moonrepo/tools/blob/master/tools/rust/CHANGELOG.md)
-- [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/tools/blob/master/tools/internal-schema/CHANGELOG.md)
+- [Bun](https://github.com/moonrepo/plugins/blob/master/tools/bun/CHANGELOG.md)
+- [Deno](https://github.com/moonrepo/plugins/blob/master/tools/deno/CHANGELOG.md)
+- [Go](https://github.com/moonrepo/plugins/blob/master/tools/go/CHANGELOG.md)
+- [Node](https://github.com/moonrepo/plugins/blob/master/tools/node/CHANGELOG.md)
+- [Python](https://github.com/moonrepo/plugins/blob/master/tools/python/CHANGELOG.md)
+- [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
+- [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
 ## Unreleased
 
 #### 🐞 Fixes
 
 - Fixed `NO_COLOR` and `FORCE_COLOR` being unexpectedly set in some situations.
-- Fixed an issue where PowerShell `proto activate` would fail to execute with `Invoke-Expression`.
+- Potentially fixed an issue where PowerShell `proto activate` would fail to execute with `Invoke-Expression`.
+
+#### ⚙️ Internal
+
+- Renamed `moonrepo/tools` to `moonrepo/plugins`.
 
 ## 0.44.3
 
@@ -467,7 +471,7 @@ This is a unique release that focused primarily on cleaning up our current comma
   - All are enabled by default for backwards compatibility.
 - Added `PROTO_NO_MODIFY_PROFILE` and `PROTO_NO_MODIFY_PATH` environment variables to `proto setup` (for automated workflows).
 - Updated `proto status` to display and include versions from ecosystem files (`.nvmrc`, etc).
-- Updated `github://` plugin locators to support monorepos. Append the project name (that tags are prefixed with) to the path: `github://moonrepo/tools/node_tool`
+- Updated `github://` plugin locators to support monorepos. Append the project name (that tags are prefixed with) to the path: `github://moonrepo/plugins/node_tool`
 - Merged `proto use` and `proto install` commands. If no arguments are provided to `proto install`, it will install all configured tools.
 - You can now pin a version of proto itself within `.prototools`, and proto shims will attempt to run proto using that configured version, instead of the global version.
   ```toml
