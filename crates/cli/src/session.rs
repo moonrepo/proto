@@ -17,7 +17,6 @@ use semver::Version;
 use starbase::{AppResult, AppSession};
 use starbase_console::ui::{OwnedOrShared, Progress, ProgressDisplay, ProgressReporter};
 use starbase_console::{Console, EmptyReporter};
-use std::io::IsTerminal;
 use std::sync::Arc;
 use tokio::task::JoinSet;
 use tracing::debug;
@@ -222,7 +221,7 @@ impl ProtoSession {
     }
 
     pub fn should_skip_prompts(&self) -> bool {
-        self.cli.yes || !std::io::stdout().is_terminal()
+        self.cli.yes || std::env::var("CI").is_ok_and(|v| !v.is_empty())
     }
 }
 

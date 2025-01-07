@@ -14,6 +14,7 @@
 
 #### 🐞 Fixes
 
+- Fixed an issue where interactive prompts sometimes wouldn't be displayed.
 - Fixed `NO_COLOR` and `FORCE_COLOR` being unexpectedly set in some situations.
 - Potentially fixed an issue where PowerShell `proto activate` would fail to execute with `Invoke-Expression`.
 

@@ -116,11 +116,7 @@ pub async fn prompt_for_shell(console: &ProtoConsole) -> miette::Result<ShellTyp
         })
         .await?;
 
-    Ok(if console.out.is_terminal() {
-        options[selected_index]
-    } else {
-        ShellType::default()
-    })
+    Ok(options[selected_index])
 }
 
 pub async fn prompt_for_shell_profile(
@@ -151,7 +147,7 @@ pub async fn prompt_for_shell_profile(
         })
         .await?;
 
-    let selected_profile = if selected_index == none_index || !console.out.is_terminal() {
+    let selected_profile = if selected_index == none_index {
         None
     } else if selected_index == other_index {
         let mut custom_path = String::new();

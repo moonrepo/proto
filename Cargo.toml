@@ -6,8 +6,8 @@ default-members = ["crates/cli"]
 [workspace.dependencies]
 anyhow = "1.0.95"
 async-trait = "0.1.85"
-clap = "4.5.23"
-clap_complete = "4.5.40"
+clap = "4.5.24"
+clap_complete = "4.5.41"
 compact_str = { version = "0.8.1", default-features = false, features = [
     "serde",
 ] }
@@ -50,7 +50,7 @@ starbase_archive = { version = "0.9.0", features = [
     "zip",
     "zip-deflate",
 ] }
-starbase_console = { version = "0.4.2", features = ["ui"] }
+starbase_console = { version = "0.4.3", features = ["ui"] }
 starbase_sandbox = { version = "0.8.0" }
 starbase_shell = { version = "0.6.10", features = ["miette"] }
 starbase_styles = { version = "0.4.10" }
