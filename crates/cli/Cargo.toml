@@ -52,7 +52,7 @@ reqwest = { workspace = true, features = ["rustls-tls-native-roots"] }
 rustc-hash = { workspace = true }
 semver = { workspace = true }
 serde = { workspace = true }
-starbase = { workspace = true }
+starbase = { workspace = true, feature = ["log-compat"] }
 starbase_console = { workspace = true }
 starbase_shell = { workspace = true }
 starbase_styles = { workspace = true }
