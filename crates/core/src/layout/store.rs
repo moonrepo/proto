@@ -1,7 +1,6 @@
 use super::inventory::Inventory;
 use crate::error::ProtoError;
 use crate::tool_manifest::ToolManifest;
-use miette::IntoDiagnostic;
 use once_cell::sync::OnceCell;
 use proto_pdk_api::ToolInventoryMetadata;
 use proto_shim::{create_shim, locate_proto_exe};
@@ -109,10 +108,16 @@ impl Store {
         // Windows requires admin privileges to create soft/hard links,
         // so just copy the binary... annoying...
         #[cfg(windows)]
-        fs::copy_file(src_path, bin_path)?;
+        {
+            fs::copy_file(src_path, bin_path)?;
+        }
 
         #[cfg(unix)]
-        std::os::unix::fs::symlink(src_path, bin_path).into_diagnostic()?;
+        {
+            use miette::IntoDiagnostic;
+
+            std::os::unix::fs::symlink(src_path, bin_path).into_diagnostic()?;
+        }
 
         Ok(())
     }

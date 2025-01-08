@@ -42,7 +42,7 @@ async-trait = { workspace = true }
 chrono = "0.4.39"
 clap = { workspace = true, features = ["derive", "env"] }
 clap_complete = { workspace = true }
-clap_complete_nushell = "4.5.4"
+clap_complete_nushell = "4.5.5"
 dirs = { workspace = true }
 indexmap = { workspace = true }
 iocraft = { workspace = true }
@@ -79,4 +79,4 @@ starbase_sandbox = { workspace = true }
 shared_child = "1.0.1"
 
 [target."cfg(windows)".dependencies]
-winreg = { version = "0.52.0", default-features = false }
+winreg = { version = "0.53.0", default-features = false }

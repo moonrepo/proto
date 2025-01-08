@@ -12,13 +12,13 @@ pub(crate) fn do_add_to_path(dirs: Vec<PathBuf>) -> Result<bool> {
     let dirs: Vec<Vec<u16>> = dirs
         .iter()
         .map(|dir| OsString::from(dir).encode_wide().collect::<Vec<u16>>())
-        .filter(|dir| !path_contains(&current_path, &dir))
+        .filter(|dir| !path_contains(&current_path, dir))
         .collect();
 
     let new_path = dirs
         .iter()
         .chain([&current_path])
-        .fold(vec![], |acc, path| path_join(&acc, &path));
+        .fold(vec![], |acc, path| path_join(&acc, path));
 
     if current_path == new_path {
         debug!("System PATH already contains the new entries, leaving it untouched");
