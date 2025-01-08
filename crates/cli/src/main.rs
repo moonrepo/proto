@@ -35,7 +35,7 @@ fn get_tracing_modules() -> Vec<String> {
 
 #[tokio::main]
 async fn main() -> MainResult {
-    sigpipe::reset();
+    // sigpipe::reset();
 
     let cli = CLI::parse();
     cli.setup_env_vars();
