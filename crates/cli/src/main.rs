@@ -22,15 +22,7 @@ use std::{env, process::ExitCode};
 use tracing::debug;
 
 fn get_tracing_modules() -> Vec<String> {
-    let mut modules = string_vec![
-        "proto",
-        "schematic",
-        "starbase",
-        "warpgate",
-        "taffy",
-        "iocraft",
-        "crossterm"
-    ];
+    let mut modules = string_vec!["proto", "schematic", "starbase", "warpgate",];
 
     if bool_var("PROTO_DEBUG_WASM") || bool_var("PROTO_WASM_LOG") {
         modules.push("extism".into());
@@ -43,7 +35,7 @@ fn get_tracing_modules() -> Vec<String> {
 
 #[tokio::main]
 async fn main() -> MainResult {
-    // sigpipe::reset();
+    sigpipe::reset();
 
     let cli = CLI::parse();
     cli.setup_env_vars();
