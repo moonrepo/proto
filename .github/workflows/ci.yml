@@ -69,6 +69,7 @@ jobs:
           cache: false
           # cache: ${{ runner.os != 'Linux' }}
           # cache-base: "^(master|develop-)"
+          targets: wasm32-wasip1
       - if: ${{ runner.os != 'Windows' }}
         run: just build-wasm
         env:
@@ -98,6 +99,7 @@ jobs:
           bins: cargo-wasi, just
           cache: false
           # cache-base: "^(master|develop-)"
+          targets: wasm32-wasip1
       - run: just build
       - run: just build-wasm
       - run: cargo run -- --help
