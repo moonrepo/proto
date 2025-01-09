@@ -1,5 +1,5 @@
 use crate::app::{App as CLI, Commands};
-use crate::commands::clean::{internal_clean, CleanArgs};
+use crate::commands::clean::{internal_clean, CleanArgs, CleanTarget};
 use crate::helpers::create_console_theme;
 use crate::systems::*;
 use crate::utils::progress_instance::ProgressInstance;
@@ -251,13 +251,28 @@ impl AppSession for ProtoSession {
     }
 
     async fn shutdown(&mut self) -> AppResult {
-        if self.should_check_for_new_version() && self.env.load_config()?.settings.auto_clean {
+        if matches!(
+            self.cli.command,
+            Commands::Activate(_)
+                | Commands::Install(_)
+                | Commands::Outdated(_)
+                | Commands::Regen(_)
+                | Commands::Status(_)
+        ) && self.env.load_config()?.settings.auto_clean
+        {
             debug!("Auto-clean enabled, starting clean");
 
             // Skip prompts!
             self.cli.yes = true;
 
-            internal_clean(self, &CleanArgs::default()).await?;
+            internal_clean(
+                self,
+                &CleanArgs {
+                    target: CleanTarget::All,
+                    days: 30, // Doesn't inherit clap defaults
+                },
+            )
+            .await?;
         }
 
         self.console.out.flush()?;
