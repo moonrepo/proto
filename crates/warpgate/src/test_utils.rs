@@ -8,19 +8,22 @@ use warpgate_api::{HostArch, HostEnvironment, HostLibc, HostOS, TestEnvironment,
 pub fn find_target_dir<T: AsRef<Path>>(search_dir: T) -> Option<PathBuf> {
     let mut dir = search_dir.as_ref();
     let profiles = ["debug", "release"];
+    let targets = ["wasm32-wasip1", "wasm32-wasi"];
 
     loop {
         for profile in &profiles {
-            let next_target = dir.join("target/wasm32-wasi").join(profile);
+            for target in &targets {
+                let next_target = dir.join("target").join(target).join(profile);
 
-            if next_target.exists() {
-                return Some(next_target);
-            }
+                if next_target.exists() {
+                    return Some(next_target);
+                }
 
-            let next_target = dir.join("wasm32-wasi").join(profile);
+                let next_target = dir.join(target).join(profile);
 
-            if next_target.exists() {
-                return Some(next_target);
+                if next_target.exists() {
+                    return Some(next_target);
+                }
             }
         }
 
@@ -57,7 +60,7 @@ pub fn find_wasm_file() -> PathBuf {
 
     if !wasm_file.exists() {
         panic!(
-            "WASM file {} does not exist. Please build it with `cargo wasi build` before running tests!",
+            "WASM file {} does not exist. Please build it with `cargo build --target wasm32-wasip1` before running tests!",
             wasm_file.display()
         );
     }

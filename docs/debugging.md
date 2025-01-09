@@ -81,13 +81,13 @@ Debugging WASM plugins is non-trivial. I'll use the Node.js plugin as an example
 
 ## Building
 
-To start, build a debug target with `cargo wasi build` or `cargo build --target wasm32-wasi`. This will make it available at `target/wasm32-wasi/debug/<name>.wasm`.
+To start, build a debug target with `cargo build --target wasm32-wasip1`. This will make it available at `target/wasm32-wasip1/debug/<name>.wasm`.
 
 To execute the debug `.wasm` file within proto, we need to configure a `.prototools` file that points to our newly built file, for example:
 
 ```toml
 [plugins]
-node-test = "file://./target/wasm32-wasi/debug/node_plugin.wasm"
+node-test = "file://./target/wasm32-wasip1/debug/node_plugin.wasm"
 ```
 
 We can then execute it with proto as such:
@@ -108,7 +108,7 @@ PROTO_LOG=trace PROTO_WASM_LOG=trace PROTO_CACHE=off ~/proto/target/debug/proto 
 
 This will create a `<id>-debug.log` file in the current directory with all log output from the WASM plugin and Extism runtime.
 
-> When debugging a failing test, the WASM log file is written to `$CARGO_TARGET_DIR/wasm32-wasi/debug/<name>.log` instead.
+> When debugging a failing test, the WASM log file is written to `$CARGO_TARGET_DIR/wasm32-wasip1/debug/<name>.log` instead.
 
 # Debugging PDKs
 
