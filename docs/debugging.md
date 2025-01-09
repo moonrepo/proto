@@ -81,7 +81,7 @@ Debugging WASM plugins is non-trivial. I'll use the Node.js plugin as an example
 
 ## Building
 
-To start, build a debug target with `cargo wasi build` or `cargo build --target wasm32-wasi`. This will make it available at `target/wasm32-wasi/debug/<name>.wasm`.
+To start, build a debug target with `cargo build --target wasm32-wasip1`. This will make it available at `target/wasm32-wasi/debug/<name>.wasm`.
 
 To execute the debug `.wasm` file within proto, we need to configure a `.prototools` file that points to our newly built file, for example:
 
