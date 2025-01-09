@@ -7,7 +7,6 @@ use serde::Serialize;
 use starbase::AppResult;
 use starbase_shell::{Hook, ShellType, Statement};
 use starbase_utils::json;
-use std::collections::HashSet;
 use std::env;
 use std::path::{Path, PathBuf};
 use tokio::task::JoinSet;
@@ -82,9 +81,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     let config = session.env.load_config()?;
 
     // Load necessary tools so that we can extract info
-    let tools = session
-        .load_tools_with_filters(HashSet::from_iter(config.versions.keys()))
-        .await?;
+    let tools = session.load_tools().await?;
     let mut info = ActivateInfo::default();
     let mut set = JoinSet::<miette::Result<ActivateItem>>::new();
 
