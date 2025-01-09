@@ -12,9 +12,14 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Updated `auto-clean` to only run on the `proto activate`, `install`, `outdated`, `regen`, and `status` commands.
+
 #### 🐞 Fixes
 
 - Fixed an issue where `proto setup` would hang during proto installation when the command is piped into.
+- Fixed an issue where `auto-clean` would delete things over 0 days old.
 
 ## 0.44.4
 
