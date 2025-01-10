@@ -73,7 +73,8 @@ async fn find_versions_from_ecosystem(
 ) -> AppResult {
     let mut set = JoinSet::new();
 
-    for tool in session.load_tools().await? {
+    // We need all tools so we can attempt to detect a version
+    for tool in session.load_all_tools().await? {
         let env = Arc::clone(&session.env);
 
         set.spawn(async move {

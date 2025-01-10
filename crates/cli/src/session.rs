@@ -191,6 +191,16 @@ impl ProtoSession {
         Ok(records)
     }
 
+    pub async fn load_all_tools(&self) -> miette::Result<Vec<ToolRecord>> {
+        let config = self.load_config()?;
+
+        let mut set = FxHashSet::default();
+        set.extend(config.versions.keys().collect::<Vec<_>>());
+        set.extend(config.plugins.keys().collect::<Vec<_>>());
+
+        self.load_tools_with_filters(set).await
+    }
+
     pub async fn load_proto_tool(&self) -> miette::Result<Tool> {
         load_tool_from_locator(
             Id::new(PROTO_PLUGIN_KEY)?,

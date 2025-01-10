@@ -14,7 +14,7 @@
 
 #### 🚀 Updates
 
-- Updated parallel tool loading to only loads tools that have a configured version, instead of loading all tools that proto is aware of (like built-in tools). Should see better performance for commands that require loading multiple tools (like `proto install`, `proto outdated`, etc).
+- Updated parallel tool loading to only loads tools that have a configured version, instead of loading all tools that proto is aware of (like built-in tools). Should see better performance for commands that require loading multiple tools.
 
 #### ⚙️ Internal
 

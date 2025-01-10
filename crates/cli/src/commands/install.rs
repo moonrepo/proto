@@ -177,7 +177,8 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
 async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
     debug!("Loading all tools");
 
-    let tools = session.load_tools().await?;
+    // We need all tools so we can attempt to detect a version
+    let tools = session.load_all_tools().await?;
 
     debug!("Detecting tool versions to install");
 
