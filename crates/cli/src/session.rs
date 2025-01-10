@@ -131,9 +131,17 @@ impl ProtoSession {
     #[tracing::instrument(name = "load_tools", skip(self))]
     pub async fn load_tools_with_options(
         &self,
-        options: LoadToolOptions,
+        mut options: LoadToolOptions,
     ) -> miette::Result<Vec<ToolRecord>> {
         let config = self.env.load_config()?;
+
+        // If no filter IDs provided, inherit the IDs from the current
+        // config for every tool that has a version. Otherwise, we'll
+        // load all tools, even built-ins, when the user isn't using them.
+        // This causes quite a performance hit.
+        if options.ids.is_empty() {
+            options.ids.extend(config.versions.keys().cloned());
+        }
 
         // Download the schema plugin before loading plugins.
         // We must do this here, otherwise when multiple schema
@@ -181,6 +189,16 @@ impl ProtoSession {
         }
 
         Ok(records)
+    }
+
+    pub async fn load_all_tools(&self) -> miette::Result<Vec<ToolRecord>> {
+        let config = self.load_config()?;
+
+        let mut set = FxHashSet::default();
+        set.extend(config.versions.keys().collect::<Vec<_>>());
+        set.extend(config.plugins.keys().collect::<Vec<_>>());
+
+        self.load_tools_with_filters(set).await
     }
 
     pub async fn load_proto_tool(&self) -> miette::Result<Tool> {

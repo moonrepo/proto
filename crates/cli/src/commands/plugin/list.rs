@@ -36,7 +36,13 @@ pub async fn list(session: ProtoSession, args: ListPluginsArgs) -> AppResult {
 
     let mut tools = session
         .load_tools_with_options(LoadToolOptions {
-            ids: FxHashSet::from_iter(args.ids.clone()),
+            ids: FxHashSet::from_iter(if args.ids.is_empty() {
+                // Use plugins instead of versions since we want to
+                // list all plugins currently in use, even built-ins
+                global_config.plugins.keys().cloned().collect::<Vec<_>>()
+            } else {
+                args.ids.clone()
+            }),
             inherit_local: true,
             inherit_remote: true,
             ..Default::default()
