@@ -16,6 +16,10 @@
 
 - Updated parallel tool loading to only loads tools that have a configured version, instead of loading all tools that proto is aware of (like built-in tools). Should see better performance for commands that require loading multiple tools.
 
+#### 🐞 Fixes
+
+- Fixed an issue where PowerShell would error trying to remove an environment variable that hasn't been set.
+
 #### ⚙️ Internal
 
 - Updated Rust to v1.84.
