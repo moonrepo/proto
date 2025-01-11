@@ -1,6 +1,6 @@
 [package]
 name = "proto_core"
-version = "0.44.4"
+version = "0.44.5"
 edition = "2021"
 license = "MIT"
 description = "Core proto APIs."
@@ -15,7 +15,7 @@ proto_shim = { version = "0.5.0", path = "../shim" }
 version_spec = { version = "0.7.1", path = "../version-spec", features = [
     "schematic",
 ] }
-warpgate = { version = "0.20.2", path = "../warpgate", features = [
+warpgate = { version = "0.20.3", path = "../warpgate", features = [
     "schematic",
 ] }
 clap = { workspace = true, optional = true }
