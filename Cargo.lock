@@ -3643,9 +3643,9 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "starbase"
-version = "0.9.7"
+version = "0.9.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6f8f15e4180190a17edc9336a5359a012375cc09c4df7fd28286b4b332827023"
+checksum = "1c724a819d301240d0a381812c9d1b6d49a25f8d91067b4c50bc5e80a98f73cd"
 dependencies = [
  "async-trait",
  "chrono",
@@ -3709,9 +3709,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_shell"
-version = "0.6.11"
+version = "0.6.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a34748cffb5b35f67b66f748eb3917665ee9c239f8050e0bd26f6e4127bbb9b0"
+checksum = "4c1e1840cdc0bfea3a95d3b7611001ce7f20750328c9357283cfb05eb6dcb6db"
 dependencies = [
  "miette 7.4.0",
  "regex",
@@ -3734,9 +3734,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_utils"
-version = "0.9.2"
+version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "41eb6681a09a8d6e01481dbd77f10013fd3cba6ce04630f9888713db4d1d9a24"
+checksum = "bcf0fbbff304c62e8ac3b31d96ac986faf11d47ee2e11d6033412451cfefa45e"
 dependencies = [
  "async-trait",
  "dirs 5.0.1",
