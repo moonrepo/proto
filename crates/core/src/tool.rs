@@ -249,6 +249,7 @@ impl Tool {
                 .into());
             }
 
+            inventory.dir_original = Some(inventory.dir);
             inventory.dir = self.from_virtual_path(override_dir);
         }
 

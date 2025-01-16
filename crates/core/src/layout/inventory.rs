@@ -12,6 +12,7 @@ use version_spec::VersionSpec;
 pub struct Inventory {
     pub config: ToolInventoryMetadata,
     pub dir: PathBuf,
+    pub dir_original: Option<PathBuf>,
     pub manifest: ToolManifest,
     pub temp_dir: PathBuf,
 }
@@ -36,7 +37,11 @@ impl Inventory {
         &self,
         disable_cache: bool,
     ) -> miette::Result<Option<LoadVersionsOutput>> {
-        let cache_path = self.dir.join("remote-versions.json");
+        let cache_path = self
+            .dir_original
+            .as_ref()
+            .unwrap_or(&self.dir)
+            .join("remote-versions.json");
 
         // Attempt to read from the cache first
         if cache_path.exists() {
@@ -70,7 +75,14 @@ impl Inventory {
 
     #[instrument(skip_all)]
     pub fn save_remote_versions(&self, data: &LoadVersionsOutput) -> miette::Result<()> {
-        json::write_file(self.dir.join("remote-versions.json"), data, false)?;
+        json::write_file(
+            self.dir_original
+                .as_ref()
+                .unwrap_or(&self.dir)
+                .join("remote-versions.json"),
+            data,
+            false,
+        )?;
 
         Ok(())
     }

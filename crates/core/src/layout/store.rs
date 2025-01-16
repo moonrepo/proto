@@ -52,6 +52,7 @@ impl Store {
         Ok(Inventory {
             manifest: ToolManifest::load_from(&dir)?,
             dir,
+            dir_original: None,
             temp_dir: self.temp_dir.join(id.as_str()),
             config: config.to_owned(),
         })
