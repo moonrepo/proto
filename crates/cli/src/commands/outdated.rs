@@ -1,12 +1,9 @@
 use crate::error::ProtoCliError;
-use crate::session::ProtoSession;
+use crate::session::{LoadToolOptions, ProtoSession};
 use clap::Args;
 use iocraft::prelude::{element, Size};
 use miette::IntoDiagnostic;
-use proto_core::{
-    detect_version, Id, ProtoConfig, UnresolvedVersionSpec, VersionSpec, PROTO_CONFIG_NAME,
-    PROTO_PLUGIN_KEY,
-};
+use proto_core::{Id, ProtoConfig, UnresolvedVersionSpec, VersionSpec, PROTO_CONFIG_NAME};
 use semver::VersionReq;
 use serde::Serialize;
 use starbase::AppResult;
@@ -14,7 +11,6 @@ use starbase_console::ui::*;
 use starbase_styles::color;
 use starbase_utils::json;
 use std::collections::BTreeMap;
-use std::env;
 use std::path::PathBuf;
 use tokio::spawn;
 use tracing::{debug, warn};
@@ -62,10 +58,15 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
     debug!("Determining outdated tools based on config...");
 
     let mut futures = vec![];
+    let tools = session
+        .load_all_tools_with_options(LoadToolOptions {
+            detect_version: true,
+            ..Default::default()
+        })
+        .await?;
 
-    // We need all tools so we can attempt to detect a version
-    for mut tool in session.load_all_tools().await? {
-        if tool.id == PROTO_PLUGIN_KEY {
+    for mut tool in tools {
+        if tool.detected_version.is_none() {
             continue;
         }
 
@@ -74,11 +75,8 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
 
             debug!("Checking {}", tool.get_name());
 
-            let Ok(config_version) = detect_version(&tool, None).await else {
-                return Ok(None);
-            };
-
             let initial_version = UnresolvedVersionSpec::default(); // latest
+            let config_version = tool.detected_version.as_ref().unwrap();
             let version_resolver = tool.load_version_resolver(&initial_version).await?;
 
             debug!(
@@ -112,30 +110,28 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
                 .resolve_version_candidate(&version_resolver, &initial_version, true)
                 .await?;
 
-            Result::<_, miette::Report>::Ok(Some((
+            Result::<_, miette::Report>::Ok((
                 tool.id.clone(),
                 OutdatedItem {
                     is_latest: current_version == latest_version,
                     is_outdated: newest_version > current_version
                         || latest_version > current_version,
-                    config_source: env::var(format!("{}_DETECTED_FROM", tool.get_env_var_prefix()))
-                        .ok()
-                        .map(PathBuf::from),
-                    config_version,
+                    config_source: tool.detected_source,
+                    config_version: config_version.to_owned(),
                     current_version,
                     newest_version,
                     latest_version,
                 },
-            )))
+            ))
         }));
     }
 
     let mut items = BTreeMap::default();
 
     for future in futures {
-        if let Some((id, item)) = future.await.into_diagnostic()?? {
-            items.insert(id, item);
-        }
+        let (id, item) = future.await.into_diagnostic()??;
+
+        items.insert(id, item);
     }
 
     if items.is_empty() {

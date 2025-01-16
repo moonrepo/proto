@@ -8,8 +8,8 @@ use async_trait::async_trait;
 use miette::IntoDiagnostic;
 use proto_core::registry::ProtoRegistry;
 use proto_core::{
-    detect_version, load_schema_plugin_with_proto, load_tool_from_locator, load_tool_with_proto,
-    ConfigMode, Id, ProtoConfig, ProtoEnvironment, Tool, UnresolvedVersionSpec, PROTO_PLUGIN_KEY,
+    load_schema_plugin_with_proto, load_tool_from_locator, load_tool_with_proto, ConfigMode, Id,
+    ProtoConfig, ProtoEnvironment, Tool, UnresolvedVersionSpec, PROTO_PLUGIN_KEY,
     SCHEMA_PLUGIN_KEY,
 };
 use rustc_hash::FxHashSet;
@@ -102,9 +102,12 @@ impl ProtoSession {
         }
 
         if options.detect_version {
-            let version = detect_version(&record.tool, None)
-                .await
-                .unwrap_or_else(|_| UnresolvedVersionSpec::parse("*").unwrap());
+            record.detect_version().await;
+
+            let version = record
+                .detected_version
+                .clone()
+                .unwrap_or_else(|| UnresolvedVersionSpec::parse("*").unwrap());
 
             record.tool.resolve_version(&version, false).await?;
         }
@@ -117,6 +120,7 @@ impl ProtoSession {
             .await
     }
 
+    #[allow(dead_code)]
     pub async fn load_tools_with_filters(
         &self,
         filters: FxHashSet<&Id>,
@@ -151,7 +155,8 @@ impl ProtoSession {
 
         let mut set = JoinSet::<miette::Result<ToolRecord>>::new();
         let mut records = vec![];
-        let inherit_remote = options.inherit_remote;
+        let opt_inherit_remote = options.inherit_remote;
+        let opt_detect_version = options.detect_version;
 
         for (id, locator) in &config.plugins {
             if !options.ids.is_empty() && !options.ids.contains(id) {
@@ -170,8 +175,12 @@ impl ProtoSession {
             set.spawn(async move {
                 let mut record = ToolRecord::new(load_tool_from_locator(id, proto, locator).await?);
 
-                if inherit_remote {
+                if opt_inherit_remote {
                     record.inherit_from_remote().await?;
+                }
+
+                if opt_detect_version {
+                    record.detect_version().await;
                 }
 
                 Ok(record)
@@ -191,14 +200,25 @@ impl ProtoSession {
         Ok(records)
     }
 
+    #[allow(dead_code)]
     pub async fn load_all_tools(&self) -> miette::Result<Vec<ToolRecord>> {
+        self.load_all_tools_with_options(LoadToolOptions::default())
+            .await
+    }
+
+    pub async fn load_all_tools_with_options(
+        &self,
+        mut options: LoadToolOptions,
+    ) -> miette::Result<Vec<ToolRecord>> {
         let config = self.load_config()?;
 
         let mut set = FxHashSet::default();
         set.extend(config.versions.keys().collect::<Vec<_>>());
         set.extend(config.plugins.keys().collect::<Vec<_>>());
 
-        self.load_tools_with_filters(set).await
+        options.ids = set.into_iter().cloned().collect();
+
+        self.load_tools_with_options(options).await
     }
 
     pub async fn load_proto_tool(&self) -> miette::Result<Tool> {
