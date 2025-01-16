@@ -14,7 +14,7 @@
 
 #### 🚀 Updates
 
-- Updated `proto status` to respect the `settings.detect-strategy` setting.
+- Updated `proto outdated` and `proto status` to respect the `settings.detect-strategy` setting.
 
 #### 🐞 Fixes
 

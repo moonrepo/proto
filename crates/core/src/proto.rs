@@ -129,14 +129,9 @@ impl ProtoEnvironment {
             .files
             .iter()
             .filter(|file| {
-                if !self.config_mode.includes_global() && file.global
+                !(!self.config_mode.includes_global() && file.global
                     || self.config_mode.only_local()
-                        && file.path.parent().is_none_or(|p| p != self.working_dir)
-                {
-                    false
-                } else {
-                    true
-                }
+                        && file.path.parent().is_none_or(|p| p != self.working_dir))
             })
             .collect())
     }
