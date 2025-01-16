@@ -160,7 +160,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
         if !config.settings.auto_install {
             let command = format!("proto install {} {}", tool.id, resolved_version);
 
-            if let Ok(source) = env::var("PROTO_DETECTED_FROM") {
+            if let Ok(source) = env::var(format!("{}_DETECTED_FROM", tool.get_env_var_prefix())) {
                 return Err(ProtoError::MissingToolForRunWithSource {
                     tool: tool.get_name().to_owned(),
                     version: version.to_string(),

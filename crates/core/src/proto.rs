@@ -123,6 +123,24 @@ impl ProtoEnvironment {
         }
     }
 
+    pub fn load_config_files(&self) -> miette::Result<Vec<&ProtoConfigFile>> {
+        Ok(self
+            .load_config_manager()?
+            .files
+            .iter()
+            .filter(|file| {
+                if !self.config_mode.includes_global() && file.global
+                    || self.config_mode.only_local()
+                        && file.path.parent().is_none_or(|p| p != self.working_dir)
+                {
+                    false
+                } else {
+                    true
+                }
+            })
+            .collect())
+    }
+
     #[tracing::instrument(name = "load_all", skip_all)]
     pub fn load_config_manager(&self) -> miette::Result<&ProtoConfigManager> {
         self.config_manager.get_or_try_init(|| {

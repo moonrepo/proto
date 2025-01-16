@@ -3,22 +3,22 @@ use crate::session::ProtoSession;
 use clap::Args;
 use iocraft::prelude::{element, Size};
 use miette::IntoDiagnostic;
-use proto_core::{Id, UnresolvedVersionSpec, VersionSpec, PROTO_PLUGIN_KEY};
+use proto_core::{detect_version, Id, UnresolvedVersionSpec, VersionSpec, PROTO_PLUGIN_KEY};
 use rustc_hash::FxHashSet;
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_utils::json;
 use std::collections::BTreeMap;
+use std::env;
 use std::path::PathBuf;
-use std::sync::Arc;
 use tokio::task::JoinSet;
 use tracing::debug;
 
 #[derive(Debug, Default, Serialize)]
 struct StatusItem {
     is_installed: bool,
-    config_source: PathBuf,
+    config_source: Option<PathBuf>,
     config_version: UnresolvedVersionSpec,
     resolved_version: Option<VersionSpec>,
     product_dir: Option<PathBuf>,
@@ -27,59 +27,25 @@ struct StatusItem {
 #[derive(Args, Clone, Debug)]
 pub struct StatusArgs {}
 
-fn find_versions_in_configs(
-    session: &ProtoSession,
-    items: &mut BTreeMap<Id, StatusItem>,
-) -> AppResult {
-    let env = &session.env;
-    let manager = env.load_config_manager()?;
-
-    for file in manager.files.iter().rev() {
-        if !file.exists
-            || !env.config_mode.includes_global() && file.global
-            || env.config_mode.only_local()
-                && file
-                    .path
-                    .parent()
-                    .is_none_or(|p| p != session.env.working_dir)
-        {
-            continue;
-        }
-
-        if let Some(file_versions) = &file.config.versions {
-            for (tool_id, config_version) in file_versions {
-                if tool_id == PROTO_PLUGIN_KEY {
-                    continue;
-                }
-
-                items.insert(
-                    tool_id.to_owned(),
-                    StatusItem {
-                        config_source: file.path.to_owned(),
-                        config_version: config_version.to_owned(),
-                        ..Default::default()
-                    },
-                );
-            }
-        };
-    }
-
-    Ok(None)
-}
-
-async fn find_versions_from_ecosystem(
-    session: &ProtoSession,
-    items: &mut BTreeMap<Id, StatusItem>,
-) -> AppResult {
+async fn find_item_versions(session: &ProtoSession) -> miette::Result<BTreeMap<Id, StatusItem>> {
     let mut set = JoinSet::new();
+    let mut items = BTreeMap::<Id, StatusItem>::default();
 
     // We need all tools so we can attempt to detect a version
     for tool in session.load_all_tools().await? {
-        let env = Arc::clone(&session.env);
+        if tool.id == PROTO_PLUGIN_KEY {
+            continue;
+        }
 
         set.spawn(async move {
-            if let Ok(Some(detected)) = tool.detect_version_from(&env.working_dir).await {
-                return Some((tool.id.clone(), detected.0, detected.1));
+            if let Ok(detected) = detect_version(&tool, None).await {
+                return Some((
+                    tool.id.clone(),
+                    detected,
+                    env::var(format!("{}_DETECTED_FROM", tool.get_env_var_prefix()))
+                        .ok()
+                        .map(PathBuf::from),
+                ));
             }
 
             None
@@ -94,13 +60,13 @@ async fn find_versions_from_ecosystem(
         }
     }
 
-    Ok(None)
+    Ok(items)
 }
 
 async fn resolve_item_versions(
     session: &ProtoSession,
     items: &mut BTreeMap<Id, StatusItem>,
-) -> AppResult {
+) -> miette::Result<()> {
     let mut set = JoinSet::new();
 
     for mut tool in session
@@ -146,17 +112,14 @@ async fn resolve_item_versions(
         };
     }
 
-    Ok(None)
+    Ok(())
 }
 
 #[tracing::instrument(skip_all)]
 pub async fn status(session: ProtoSession, _args: StatusArgs) -> AppResult {
     debug!("Determining active tools based on config...");
 
-    let mut items = BTreeMap::default();
-
-    find_versions_in_configs(&session, &mut items)?;
-    find_versions_from_ecosystem(&session, &mut items).await?;
+    let mut items = find_item_versions(&session).await?;
 
     if items.is_empty() {
         return Err(ProtoCliError::NoConfiguredTools.into());
@@ -241,10 +204,21 @@ pub async fn status(session: ProtoSession, _args: StatusArgs) -> AppResult {
                                 })
                             }
                             TableCol(col: 4) {
-                                StyledText(
-                                    content: item.config_source.to_string_lossy(),
-                                    style: Style::Path
-                                )
+                                 #(if let Some(src) = item.config_source {
+                                    element! {
+                                        StyledText(
+                                            content: src.to_string_lossy(),
+                                            style: Style::Path
+                                        )
+                                    }
+                                } else {
+                                    element! {
+                                        StyledText(
+                                            content: "N/A",
+                                            style: Style::MutedLight
+                                        )
+                                    }
+                                })
                             }
                         }
                     }
