@@ -1,24 +1,20 @@
 use crate::error::ProtoCliError;
-use crate::session::ProtoSession;
+use crate::session::{LoadToolOptions, ProtoSession};
 use clap::Args;
 use iocraft::prelude::{element, Size};
-use miette::IntoDiagnostic;
-use proto_core::{Id, UnresolvedVersionSpec, VersionSpec, PROTO_PLUGIN_KEY};
-use rustc_hash::FxHashSet;
+use proto_core::{Id, UnresolvedVersionSpec, VersionSpec};
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_utils::json;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
-use std::sync::Arc;
-use tokio::task::JoinSet;
 use tracing::debug;
 
 #[derive(Debug, Default, Serialize)]
 struct StatusItem {
     is_installed: bool,
-    config_source: PathBuf,
+    config_source: Option<PathBuf>,
     config_version: UnresolvedVersionSpec,
     resolved_version: Option<VersionSpec>,
     product_dir: Option<PathBuf>,
@@ -27,136 +23,47 @@ struct StatusItem {
 #[derive(Args, Clone, Debug)]
 pub struct StatusArgs {}
 
-fn find_versions_in_configs(
-    session: &ProtoSession,
-    items: &mut BTreeMap<Id, StatusItem>,
-) -> AppResult {
-    let env = &session.env;
-    let manager = env.load_config_manager()?;
-
-    for file in manager.files.iter().rev() {
-        if !file.exists
-            || !env.config_mode.includes_global() && file.global
-            || env.config_mode.only_local()
-                && file
-                    .path
-                    .parent()
-                    .is_none_or(|p| p != session.env.working_dir)
-        {
-            continue;
-        }
-
-        if let Some(file_versions) = &file.config.versions {
-            for (tool_id, config_version) in file_versions {
-                if tool_id == PROTO_PLUGIN_KEY {
-                    continue;
-                }
-
-                items.insert(
-                    tool_id.to_owned(),
-                    StatusItem {
-                        config_source: file.path.to_owned(),
-                        config_version: config_version.to_owned(),
-                        ..Default::default()
-                    },
-                );
-            }
-        };
-    }
-
-    Ok(None)
-}
-
-async fn find_versions_from_ecosystem(
-    session: &ProtoSession,
-    items: &mut BTreeMap<Id, StatusItem>,
-) -> AppResult {
-    let mut set = JoinSet::new();
-
-    // We need all tools so we can attempt to detect a version
-    for tool in session.load_all_tools().await? {
-        let env = Arc::clone(&session.env);
-
-        set.spawn(async move {
-            if let Ok(Some(detected)) = tool.detect_version_from(&env.working_dir).await {
-                return Some((tool.id.clone(), detected.0, detected.1));
-            }
-
-            None
-        });
-    }
-
-    while let Some(result) = set.join_next().await {
-        if let Some((id, version, source)) = result.into_diagnostic()? {
-            let item = items.entry(id).or_default();
-            item.config_version = version;
-            item.config_source = source;
-        }
-    }
-
-    Ok(None)
-}
-
-async fn resolve_item_versions(
-    session: &ProtoSession,
-    items: &mut BTreeMap<Id, StatusItem>,
-) -> AppResult {
-    let mut set = JoinSet::new();
-
-    for mut tool in session
-        .load_tools_with_filters(FxHashSet::from_iter(items.keys()))
-        .await?
-    {
-        let Some(item) = items.get(&tool.id) else {
-            continue;
-        };
-
-        let config_version = item.config_version.to_owned();
-
-        set.spawn(async move {
-            debug!("Checking {}", tool.get_name());
-
-            let mut resolved_version = None;
-            let mut product_dir = None;
-
-            // Resolve a version based on the configured spec, and ignore errors
-            // as they indicate a version could not be resolved!
-            if let Ok(version) = tool.resolve_version(&config_version, false).await {
-                // Determine the install status
-                if !version.is_latest() {
-                    if tool.is_installed() {
-                        product_dir = Some(tool.get_product_dir());
-                    }
-
-                    resolved_version = Some(version);
-                }
-            }
-
-            (tool.id.clone(), resolved_version, product_dir)
-        });
-    }
-
-    while let Some(result) = set.join_next().await {
-        let (id, resolved_version, product_dir) = result.into_diagnostic()?;
-
-        if let Some(item) = items.get_mut(&id) {
-            item.is_installed = product_dir.is_some();
-            item.resolved_version = resolved_version;
-            item.product_dir = product_dir;
-        };
-    }
-
-    Ok(None)
-}
-
 #[tracing::instrument(skip_all)]
 pub async fn status(session: ProtoSession, _args: StatusArgs) -> AppResult {
     debug!("Determining active tools based on config...");
 
-    let mut items = BTreeMap::default();
+    let mut items = BTreeMap::<Id, StatusItem>::default();
+    let tools = session
+        .load_all_tools_with_options(LoadToolOptions {
+            detect_version: true,
+            ..Default::default()
+        })
+        .await?;
 
-    find_versions_in_configs(&session, &mut items)?;
-    find_versions_from_ecosystem(&session, &mut items).await?;
+    for mut tool in tools {
+        let Some(config_version) = tool.detected_version.clone() else {
+            continue;
+        };
+
+        debug!(
+            version = config_version.to_string(),
+            "Checking {}",
+            tool.get_name()
+        );
+
+        let item = items.entry(tool.id.clone()).or_default();
+
+        // Resolve a version based on the configured spec, and ignore errors
+        // as they indicate a version could not be resolved!
+        if let Ok(version) = tool.resolve_version(&config_version, false).await {
+            if !version.is_latest() {
+                if tool.is_installed() {
+                    item.is_installed = true;
+                    item.product_dir = Some(tool.get_product_dir());
+                }
+
+                item.resolved_version = Some(version);
+            }
+        }
+
+        item.config_version = config_version;
+        item.config_source = tool.detected_source;
+    }
 
     if items.is_empty() {
         return Err(ProtoCliError::NoConfiguredTools.into());
@@ -166,8 +73,6 @@ pub async fn status(session: ProtoSession, _args: StatusArgs) -> AppResult {
         tools = ?items.keys().map(|id| id.as_str()).collect::<Vec<_>>(),
         "Found tools with configured versions",
     );
-
-    resolve_item_versions(&session, &mut items).await?;
 
     if session.should_print_json() {
         session
@@ -241,10 +146,21 @@ pub async fn status(session: ProtoSession, _args: StatusArgs) -> AppResult {
                                 })
                             }
                             TableCol(col: 4) {
-                                StyledText(
-                                    content: item.config_source.to_string_lossy(),
-                                    style: Style::Path
-                                )
+                                 #(if let Some(src) = item.config_source {
+                                    element! {
+                                        StyledText(
+                                            content: src.to_string_lossy(),
+                                            style: Style::Path
+                                        )
+                                    }
+                                } else {
+                                    element! {
+                                        StyledText(
+                                            content: "N/A",
+                                            style: Style::MutedLight
+                                        )
+                                    }
+                                })
                             }
                         }
                     }

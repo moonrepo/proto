@@ -1,19 +1,19 @@
 use crate::error::ProtoCliError;
-use crate::session::ProtoSession;
+use crate::session::{LoadToolOptions, ProtoSession};
 use clap::Args;
 use iocraft::prelude::{element, Size};
 use miette::IntoDiagnostic;
-use proto_core::{Id, ProtoConfig, UnresolvedVersionSpec, VersionSpec, PROTO_PLUGIN_KEY};
-use rustc_hash::FxHashSet;
+use proto_core::{Id, ProtoConfig, UnresolvedVersionSpec, VersionSpec, PROTO_CONFIG_NAME};
 use semver::VersionReq;
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;
+use starbase_styles::color;
 use starbase_utils::json;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 use tokio::spawn;
-use tracing::debug;
+use tracing::{debug, warn};
 
 #[derive(Args, Clone, Debug)]
 pub struct OutdatedArgs {
@@ -34,7 +34,7 @@ pub struct OutdatedArgs {
 pub struct OutdatedItem {
     is_latest: bool,
     is_outdated: bool,
-    config_source: PathBuf,
+    config_source: Option<PathBuf>,
     config_version: UnresolvedVersionSpec,
     current_version: VersionSpec,
     newest_version: VersionSpec,
@@ -55,54 +55,20 @@ fn get_in_major_range(spec: &UnresolvedVersionSpec) -> UnresolvedVersionSpec {
 
 #[tracing::instrument(skip_all)]
 pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
-    let env = &session.env;
-    let manager = env.load_config_manager()?;
-
     debug!("Determining outdated tools based on config...");
 
-    let mut configured_tools = BTreeMap::default();
-
-    for file in manager.files.iter().rev() {
-        if !file.exists
-            || !env.config_mode.includes_global() && file.global
-            || env.config_mode.only_local()
-                && file.path.parent().is_none_or(|p| p != env.working_dir)
-        {
-            continue;
-        }
-
-        if let Some(file_versions) = &file.config.versions {
-            for (tool_id, config_version) in file_versions {
-                if tool_id == PROTO_PLUGIN_KEY {
-                    continue;
-                }
-
-                configured_tools.insert(
-                    tool_id.to_owned(),
-                    (config_version.to_owned(), file.path.to_owned()),
-                );
-            }
-        }
-    }
-
-    if configured_tools.is_empty() {
-        return Err(ProtoCliError::NoConfiguredTools.into());
-    }
-
-    debug!(
-        tools = ?configured_tools.keys().map(|id| id.as_str()).collect::<Vec<_>>(),
-        "Found tools with configured versions, loading them",
-    );
-
-    let tools = session
-        .load_tools_with_filters(FxHashSet::from_iter(configured_tools.keys()))
-        .await?;
     let mut futures = vec![];
+    let tools = session
+        .load_all_tools_with_options(LoadToolOptions {
+            detect_version: true,
+            ..Default::default()
+        })
+        .await?;
 
     for mut tool in tools {
-        let Some((config_version, config_source)) = configured_tools.remove(&tool.id) else {
+        if tool.detected_version.is_none() {
             continue;
-        };
+        }
 
         futures.push(spawn(async move {
             tool.disable_caching();
@@ -110,6 +76,7 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
             debug!("Checking {}", tool.get_name());
 
             let initial_version = UnresolvedVersionSpec::default(); // latest
+            let config_version = tool.detected_version.as_ref().unwrap();
             let version_resolver = tool.load_version_resolver(&initial_version).await?;
 
             debug!(
@@ -119,9 +86,9 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
             );
 
             let current_version = tool
-                .resolve_version_candidate(&version_resolver, &config_version, true)
+                .resolve_version_candidate(&version_resolver, config_version, true)
                 .await?;
-            let newest_range = get_in_major_range(&config_version);
+            let newest_range = get_in_major_range(config_version);
 
             debug!(
                 id = tool.id.as_str(),
@@ -149,8 +116,8 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
                     is_latest: current_version == latest_version,
                     is_outdated: newest_version > current_version
                         || latest_version > current_version,
-                    config_source,
-                    config_version,
+                    config_source: tool.detected_source,
+                    config_version: config_version.to_owned(),
                     current_version,
                     newest_version,
                     latest_version,
@@ -166,6 +133,15 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
 
         items.insert(id, item);
     }
+
+    if items.is_empty() {
+        return Err(ProtoCliError::NoConfiguredTools.into());
+    }
+
+    debug!(
+        tools = ?items.keys().map(|id| id.as_str()).collect::<Vec<_>>(),
+        "Found tools with configured versions, loading them",
+    );
 
     if session.should_print_json() {
         session
@@ -226,10 +202,21 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
                                 )
                             }
                             TableCol(col: 4) {
-                                StyledText(
-                                    content: item.config_source.to_string_lossy(),
-                                    style: Style::Path
-                                )
+                                #(if let Some(src) = &item.config_source {
+                                    element! {
+                                        StyledText(
+                                            content: src.to_string_lossy(),
+                                            style: Style::Path
+                                        )
+                                    }
+                                } else {
+                                    element! {
+                                        StyledText(
+                                            content: "N/A",
+                                            style: Style::MutedLight
+                                        )
+                                    }
+                                })
                             }
                         }
                     }
@@ -266,17 +253,29 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
         let mut updates: BTreeMap<PathBuf, BTreeMap<Id, UnresolvedVersionSpec>> = BTreeMap::new();
 
         for (id, item) in &items {
-            updates
-                .entry(item.config_source.clone())
-                .or_default()
-                .insert(
-                    id.to_owned(),
-                    if args.latest {
-                        item.latest_version.to_unresolved_spec()
-                    } else {
-                        item.newest_version.to_unresolved_spec()
-                    },
+            let Some(src) = &item.config_source else {
+                continue;
+            };
+
+            if !src.ends_with(PROTO_CONFIG_NAME) {
+                warn!(
+                    config = ?src,
+                    "Unable to update the version for {}, as its config source is not a {} file",
+                    color::id(id),
+                    color::file(PROTO_CONFIG_NAME),
                 );
+
+                continue;
+            }
+
+            updates.entry(src.to_owned()).or_default().insert(
+                id.to_owned(),
+                if args.latest {
+                    item.latest_version.to_unresolved_spec()
+                } else {
+                    item.newest_version.to_unresolved_spec()
+                },
+            );
         }
 
         for (config_path, updated_versions) in updates {

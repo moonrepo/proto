@@ -1,12 +1,12 @@
 use crate::components::{InstallAllProgress, InstallProgress, InstallProgressProps};
 use crate::error::ProtoCliError;
-use crate::session::ProtoSession;
+use crate::session::{LoadToolOptions, ProtoSession};
 use crate::utils::install_graph::*;
 use crate::workflows::{InstallOutcome, InstallWorkflow, InstallWorkflowParams};
 use clap::Args;
 use iocraft::prelude::element;
 use miette::IntoDiagnostic;
-use proto_core::{ConfigMode, Id, PinLocation, Tool, UnresolvedVersionSpec, PROTO_PLUGIN_KEY};
+use proto_core::{ConfigMode, Id, PinLocation, Tool, UnresolvedVersionSpec};
 use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_console::utils::formats::format_duration;
@@ -175,25 +175,21 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
 
 #[instrument(skip(session))]
 async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
-    debug!("Loading all tools");
+    debug!("Loading all tools and detecting versions to install");
 
-    // We need all tools so we can attempt to detect a version
-    let tools = session.load_all_tools().await?;
-
-    debug!("Detecting tool versions to install");
-
-    let mut versions = session.load_config()?.versions.to_owned();
-    versions.remove(PROTO_PLUGIN_KEY);
+    let mut versions = BTreeMap::default();
+    let tools = session
+        .load_all_tools_with_options(LoadToolOptions {
+            detect_version: true,
+            ..Default::default()
+        })
+        .await?;
 
     for tool in &tools {
-        if versions.contains_key(&tool.id) {
-            continue;
-        }
-
-        if let Some((candidate, _)) = tool.detect_version_from(&session.env.working_dir).await? {
+        if let Some(candidate) = &tool.detected_version {
             debug!("Detected version {} for {}", candidate, tool.get_name());
 
-            versions.insert(tool.id.clone(), candidate);
+            versions.insert(tool.id.clone(), candidate.to_owned());
         }
     }
 

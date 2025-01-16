@@ -7,16 +7,16 @@ use tracing::instrument;
 use tracing::{debug, trace};
 use version_spec::*;
 
-fn set_detected_env_var(path: &Path) {
-    env::set_var("PROTO_DETECTED_FROM", path);
+fn set_detected_env_var(prefix: String, path: &Path) {
+    env::set_var(format!("{prefix}_DETECTED_FROM"), path);
 }
 
 #[instrument(name = "first_available", skip_all)]
 pub async fn detect_version_first_available(
     tool: &Tool,
-    config_manager: &ProtoConfigManager,
+    config_files: &[&ProtoConfigFile],
 ) -> miette::Result<Option<UnresolvedVersionSpec>> {
-    for file in &config_manager.files {
+    for file in config_files {
         if let Some(versions) = &file.config.versions {
             if let Some(version) = versions.get(tool.id.as_str()) {
                 debug!(
@@ -26,7 +26,7 @@ pub async fn detect_version_first_available(
                     "Detected version from {} file", PROTO_CONFIG_NAME
                 );
 
-                set_detected_env_var(&file.path);
+                set_detected_env_var(tool.get_env_var_prefix(), &file.path);
 
                 return Ok(Some(version.to_owned()));
             }
@@ -42,7 +42,7 @@ pub async fn detect_version_first_available(
                 "Detected version from tool's ecosystem"
             );
 
-            set_detected_env_var(&file);
+            set_detected_env_var(tool.get_env_var_prefix(), &file);
 
             return Ok(Some(version));
         }
@@ -54,9 +54,9 @@ pub async fn detect_version_first_available(
 #[instrument(name = "only_prototools", skip_all)]
 pub async fn detect_version_only_prototools(
     tool: &Tool,
-    config_manager: &ProtoConfigManager,
+    config_files: &[&ProtoConfigFile],
 ) -> miette::Result<Option<UnresolvedVersionSpec>> {
-    for file in &config_manager.files {
+    for file in config_files {
         if let Some(versions) = &file.config.versions {
             if let Some(version) = versions.get(tool.id.as_str()) {
                 debug!(
@@ -66,7 +66,7 @@ pub async fn detect_version_only_prototools(
                     "Detected version from {} file", PROTO_CONFIG_NAME
                 );
 
-                set_detected_env_var(&file.path);
+                set_detected_env_var(tool.get_env_var_prefix(), &file.path);
 
                 return Ok(Some(version.to_owned()));
             }
@@ -79,15 +79,15 @@ pub async fn detect_version_only_prototools(
 #[instrument(name = "prefer_prototools", skip_all)]
 pub async fn detect_version_prefer_prototools(
     tool: &Tool,
-    config_manager: &ProtoConfigManager,
+    config_files: &[&ProtoConfigFile],
 ) -> miette::Result<Option<UnresolvedVersionSpec>> {
     // Check config files first
-    if let Some(version) = detect_version_only_prototools(tool, config_manager).await? {
+    if let Some(version) = detect_version_only_prototools(tool, config_files).await? {
         return Ok(Some(version));
     }
 
     // Then check the ecosystem
-    for file in &config_manager.files {
+    for file in config_files {
         let dir = file.path.parent().unwrap();
 
         if let Some((version, file)) = tool.detect_version_from(dir).await? {
@@ -98,7 +98,7 @@ pub async fn detect_version_prefer_prototools(
                 "Detected version from tool's ecosystem"
             );
 
-            set_detected_env_var(&file);
+            set_detected_env_var(tool.get_env_var_prefix(), &file);
 
             return Ok(Some(version));
         }
@@ -152,18 +152,18 @@ pub async fn detect_version(
         PROTO_CONFIG_NAME
     );
 
-    let config_manager = tool.proto.load_config_manager()?;
+    let config_files = tool.proto.load_config_files()?;
     let config = tool.proto.load_config()?;
 
     let detected_version = match config.settings.detect_strategy {
         DetectStrategy::FirstAvailable => {
-            detect_version_first_available(tool, config_manager).await?
+            detect_version_first_available(tool, &config_files).await?
         }
         DetectStrategy::PreferPrototools => {
-            detect_version_prefer_prototools(tool, config_manager).await?
+            detect_version_prefer_prototools(tool, &config_files).await?
         }
         DetectStrategy::OnlyPrototools => {
-            detect_version_only_prototools(tool, config_manager).await?
+            detect_version_only_prototools(tool, &config_files).await?
         }
     };
 

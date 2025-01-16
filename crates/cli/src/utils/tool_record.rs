@@ -1,10 +1,15 @@
 use core::ops::{Deref, DerefMut};
-use proto_core::{ProtoConfig, ProtoToolConfig, Tool, UnresolvedVersionSpec, VersionSpec};
+use proto_core::{
+    detect_version, ProtoConfig, ProtoToolConfig, Tool, UnresolvedVersionSpec, VersionSpec,
+};
 use std::collections::BTreeMap;
+use std::path::PathBuf;
 
 pub struct ToolRecord {
     pub tool: Tool,
     pub config: ProtoToolConfig,
+    pub detected_source: Option<PathBuf>,
+    pub detected_version: Option<UnresolvedVersionSpec>,
     pub installed_versions: Vec<VersionSpec>,
     pub local_aliases: BTreeMap<String, UnresolvedVersionSpec>,
     pub remote_aliases: BTreeMap<String, UnresolvedVersionSpec>,
@@ -25,10 +30,22 @@ impl ToolRecord {
         Self {
             tool,
             config: ProtoToolConfig::default(),
+            detected_source: None,
+            detected_version: None,
             local_aliases: BTreeMap::default(),
             remote_aliases: BTreeMap::default(),
             installed_versions: versions,
             remote_versions: vec![],
+        }
+    }
+
+    pub async fn detect_version(&mut self) {
+        if let Ok(config_version) = detect_version(&self.tool, None).await {
+            self.detected_version = Some(config_version);
+            self.detected_source =
+                std::env::var(format!("{}_DETECTED_FROM", self.tool.get_env_var_prefix()))
+                    .ok()
+                    .map(PathBuf::from);
         }
     }
 

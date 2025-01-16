@@ -51,7 +51,7 @@ pub fn locate_tool(id: &Id, proto: &ProtoEnvironment) -> miette::Result<PluginLo
 
     // And finally the built-in plugins (must include global config)
     if locator.is_none() {
-        let builtin_plugins = configs.get_merged_config()?.builtin_plugins();
+        let builtin_plugins = proto.load_config()?.builtin_plugins();
 
         if let Some(maybe_locator) = builtin_plugins.get(id) {
             debug!(

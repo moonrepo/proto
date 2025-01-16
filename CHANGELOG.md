@@ -10,6 +10,16 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Updated `proto install`, `proto outdated`, and `proto status` to respect the `settings.detect-strategy` setting.
+
+#### 🐞 Fixes
+
+- Fixed an issue where cached versions may be written to the wrong location.
+
 ## 0.44.6
 
 #### 🚀 Updates
