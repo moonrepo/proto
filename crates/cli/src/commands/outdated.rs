@@ -86,9 +86,9 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
             );
 
             let current_version = tool
-                .resolve_version_candidate(&version_resolver, &config_version, true)
+                .resolve_version_candidate(&version_resolver, config_version, true)
                 .await?;
-            let newest_range = get_in_major_range(&config_version);
+            let newest_range = get_in_major_range(config_version);
 
             debug!(
                 id = tool.id.as_str(),
