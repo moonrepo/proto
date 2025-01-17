@@ -1,6 +1,6 @@
 mod build_source;
 
-use crate::shapes::StringOrVec;
+use crate::shapes::*;
 use rustc_hash::FxHashMap;
 use std::path::PathBuf;
 use version_spec::{CalVer, SemVer, SpecError, UnresolvedVersionSpec, VersionSpec};
@@ -109,6 +109,9 @@ api_struct!(
         /// Type of the tool.
         #[serde(rename = "type")]
         pub type_of: PluginType,
+
+        /// Whether this plugin is unstable or not.
+        pub unstable: Switch,
     }
 );
 

@@ -17,3 +17,27 @@ impl StringOrVec {
         }
     }
 }
+
+api_enum!(
+    /// Either a boolean representing on or off, or a string representing on with a message.
+    #[serde(untagged)]
+    pub enum Switch {
+        Toggle(bool),
+        Message(String),
+    }
+);
+
+impl Default for Switch {
+    fn default() -> Self {
+        Self::Toggle(false)
+    }
+}
+
+impl Switch {
+    pub fn is_enabled(&self) -> bool {
+        match self {
+            Self::Toggle(value) => *value,
+            Self::Message(_) => true,
+        }
+    }
+}
