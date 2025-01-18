@@ -19,17 +19,20 @@ pub enum InstallStrategy {
     DownloadPrebuilt,
 }
 
+// Prebuilt: Download -> verify -> unpack
+// Build: InstallDeps -> CheckRequirements
 #[derive(Clone, Debug)]
 pub enum InstallPhase {
     Native,
-    // Download -> verify -> unpack
     Download { url: String, file: String },
     Verify { url: String, file: String },
     Unpack { file: String },
+    InstallDeps,
+    CheckRequirements,
 }
 
 pub use starbase_utils::net::OnChunkFn;
-pub type OnPhaseFn = Box<dyn Fn(InstallPhase) + Send>;
+pub type OnPhaseFn = Box<dyn Fn(InstallPhase) + Send + Sync>;
 
 #[derive(Default)]
 pub struct InstallOptions {
@@ -140,6 +143,7 @@ impl Tool {
             console: options.console.clone(),
             host_arch: HostArch::from_env(),
             host_os: HostOS::from_env(),
+            on_phase_change: options.on_phase_change.take(),
             skip_prompts: options.skip_prompts,
         };
 

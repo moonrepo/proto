@@ -183,7 +183,9 @@ impl InstallWorkflow {
                 InstallPhase::Native => "Installing natively".to_owned(),
                 InstallPhase::Verify { file, .. } => format!("Verifying checksum against <file>{file}</file>"),
                 InstallPhase::Unpack { file } => format!("Unpacking archive <file>{file}</file>"),
-                InstallPhase::Download { file, .. } => format!("Downloading pre-built archive <file>{file}</file> <muted>|</muted> <mutedlight>{{bytes}} / {{total_bytes}}</mutedlight> <muted>|</muted> <shell>{{bytes_per_sec}}</shell>")
+                InstallPhase::Download { file, .. } => format!("Downloading pre-built archive <file>{file}</file> <muted>|</muted> <mutedlight>{{bytes}} / {{total_bytes}}</mutedlight> <muted>|</muted> <shell>{{bytes_per_sec}}</shell>"),
+                InstallPhase::InstallDeps => "Installing system depedencies".into(),
+                InstallPhase::CheckRequirements => "Checking requirements".into(),
             });
         });
 

@@ -1,10 +1,13 @@
+pub use super::build_error::*;
+use super::install::{InstallPhase, OnPhaseFn};
+use crate::components::check_line::CheckLine;
 use crate::proto::ProtoConsole;
 use iocraft::element;
 use miette::IntoDiagnostic;
 use proto_pdk_api::{BuildRequirement, SystemDependency};
 use schematic::color::apply_style_tags;
 use semver::Version;
-use starbase_console::ui::{Container, ListItem, Section, StyledText};
+use starbase_console::ui::{Container, Section};
 use starbase_styles::color;
 use system_env::{find_command_on_path, SystemArch, SystemOS};
 use tokio::process::Command;
@@ -19,20 +22,22 @@ pub struct InstallBuildOptions {
     pub console: Option<ProtoConsole>,
     pub host_arch: SystemArch,
     pub host_os: SystemOS,
+    pub on_phase_change: Option<OnPhaseFn>,
     pub skip_prompts: bool,
 }
 
 struct StepManager<'a> {
-    errors: Vec<String>,
+    errors: u8,
     options: &'a InstallBuildOptions,
 }
 
 impl StepManager<'_> {
     pub fn new<'b>(options: &'b InstallBuildOptions) -> StepManager<'b> {
-        StepManager {
-            errors: vec![],
-            options,
-        }
+        StepManager { errors: 0, options }
+    }
+
+    pub fn has_errors(&self) -> bool {
+        self.errors > 0
     }
 
     pub fn render_header(&self, title: impl AsRef<str>) -> miette::Result<()> {
@@ -56,20 +61,8 @@ impl StepManager<'_> {
 
         if let Some(console) = &self.options.console {
             console.render(element! {
-                ListItem(
-                    bullet: if passed {
-                        "✔".to_owned()
-                    } else {
-                        "✘".to_owned()
-                    }
-                ) {
-                    StyledText(content: message)
-                }
+                CheckLine(passed, message)
             })?;
-
-            if !passed {
-                self.errors.push(apply_style_tags(message));
-            }
         } else {
             let message = apply_style_tags(message);
 
@@ -77,8 +70,11 @@ impl StepManager<'_> {
                 debug!("{message}");
             } else {
                 error!("{message}");
-                self.errors.push(message);
             }
+        }
+
+        if !passed {
+            self.errors += 1;
         }
 
         Ok(())
@@ -86,23 +82,38 @@ impl StepManager<'_> {
 }
 
 async fn run_command(cmd: &str, args: &[&str]) -> miette::Result<String> {
-    let cmd_line = color::shell(format!("{cmd} {}", args.join(" ")));
+    let cmd_line = format!("{cmd} {}", shell_words::join(args));
 
-    trace!("Running command {cmd_line}");
+    trace!("Running command {}", color::shell(&cmd_line));
 
     let output = Command::new(cmd)
         .args(args)
         .output()
         .await
-        .into_diagnostic()?;
+        .map_err(|error| ProtoBuildError::CommandFailed {
+            command: cmd_line.clone(),
+            error: Box::new(error),
+        })?;
+
+    let stderr = String::from_utf8(output.stderr).into_diagnostic()?;
+    let stdout = String::from_utf8(output.stdout).into_diagnostic()?;
+    let code = output.status.code().unwrap_or(-1);
+
+    trace!(
+        code,
+        stderr,
+        stdout,
+        "Ran command {}",
+        color::shell(&cmd_line)
+    );
 
     if !output.status.success() {
-        panic!();
+        return Err(ProtoBuildError::CommandNonZeroExit {
+            command: cmd_line.clone(),
+            code,
+        }
+        .into());
     }
-
-    let stdout = String::from_utf8(output.stdout).into_diagnostic()?;
-
-    trace!(stdout, "Ran command {cmd_line}");
 
     Ok(stdout)
 }
@@ -121,6 +132,10 @@ pub async fn install_system_dependencies(
 
     step.render_header("Installing system dependencies")?;
 
+    options.on_phase_change.as_ref().inspect(|func| {
+        func(InstallPhase::InstallDeps);
+    });
+
     Ok(())
 }
 
@@ -133,13 +148,17 @@ async fn get_command_version(cmd: &str, version_arg: &str) -> miette::Result<Ver
     let base_pattern = get_semver_regex().as_str();
     let pattern = regex::Regex::new(&base_pattern[1..(base_pattern.len() - 1)]).unwrap();
 
-    Ok(Version::parse(
-        pattern
-            .find(&output)
-            .map(|res| res.as_str())
-            .unwrap_or(&output),
+    let value = pattern
+        .find(&output)
+        .map(|res| res.as_str())
+        .unwrap_or(&output);
+
+    Ok(
+        Version::parse(value).map_err(|error| ProtoBuildError::VersionParseFailed {
+            value: value.to_owned(),
+            error: Box::new(error),
+        })?,
     )
-    .into_diagnostic()?)
 }
 
 pub async fn check_requirements(
@@ -154,9 +173,15 @@ pub async fn check_requirements(
 
     step.render_header("Checking requirements")?;
 
+    options.on_phase_change.as_ref().inspect(|func| {
+        func(InstallPhase::CheckRequirements);
+    });
+
     for req in reqs {
         match req {
             BuildRequirement::CommandExistsOnPath(cmd) => {
+                debug!(cmd, "Checking if a command exists on PATH");
+
                 if let Some(cmd_path) = find_command_on_path(cmd) {
                     step.render_check(
                         format!(
@@ -173,6 +198,11 @@ pub async fn check_requirements(
                 }
             }
             BuildRequirement::CommandVersion(cmd, version_req, version_arg) => {
+                debug!(
+                    cmd,
+                    "Checking if a command meets the required version of {version_req}"
+                );
+
                 let version =
                     get_command_version(cmd, version_arg.as_deref().unwrap_or("--version")).await?;
 
@@ -195,6 +225,11 @@ pub async fn check_requirements(
                 )?;
             }
             BuildRequirement::GitConfigSetting(config_key, expected_value) => {
+                debug!(
+                    config_key,
+                    expected_value, "Checking if a Git config setting has the expected value"
+                );
+
                 let actual_value = run_command("git", &["config", "--get", config_key]).await?;
 
                 if &actual_value == expected_value {
@@ -210,6 +245,8 @@ pub async fn check_requirements(
                 }
             }
             BuildRequirement::GitVersion(version_req) => {
+                debug!("Checking if Git meets the required version of {version_req}");
+
                 let version = get_command_version("git", "--version").await?;
 
                 if version_req.matches(&version) {
@@ -226,6 +263,8 @@ pub async fn check_requirements(
             }
             BuildRequirement::XcodeCommandLineTools => {
                 if options.host_os.is_mac() {
+                    debug!("Checking if Xcode command line tools are installed");
+
                     let result = run_command("xcode-select", &["--version"]).await;
 
                     if result.is_err() || result.is_ok_and(|out| out.is_empty()) {
@@ -240,10 +279,16 @@ pub async fn check_requirements(
             }
             BuildRequirement::WindowsDeveloperMode => {
                 if options.host_os.is_windows() {
+                    debug!("Checking if Windows developer mode is enabled");
+
                     // Is this possible from the command line?
                 }
             }
         };
+    }
+
+    if step.has_errors() {
+        return Err(ProtoBuildError::RequirementsNotMet.into());
     }
 
     Ok(())
