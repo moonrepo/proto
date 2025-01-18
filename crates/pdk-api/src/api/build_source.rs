@@ -1,3 +1,4 @@
+use super::is_false;
 use crate::ToolContext;
 use rustc_hash::FxHashMap;
 use semver::VersionReq;
@@ -20,7 +21,7 @@ api_struct!(
         pub url: String,
 
         /// A path prefix within the archive to remove.
-        #[serde(default)]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         pub prefix: Option<String>,
     }
 );
@@ -32,10 +33,11 @@ api_struct!(
         pub url: String,
 
         /// The branch/commit/tag to checkout.
-        pub reference: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub reference: Option<String>,
 
         /// Include submodules during checkout.
-        #[serde(default)]
+        #[serde(default, skip_serializing_if = "is_false")]
         pub submodules: bool,
     }
 );
@@ -61,14 +63,15 @@ api_struct!(
         pub bin: String,
 
         /// List of arguments.
+        #[serde(skip_serializing_if = "Vec::is_empty")]
         pub args: Vec<String>,
 
         /// Map of environment variables.
-        #[serde(default)]
+        #[serde(default, skip_serializing_if = "FxHashMap::is_empty")]
         pub env: FxHashMap<String, String>,
 
         /// The working directory.
-        #[serde(default)]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         pub cwd: Option<PathBuf>,
     }
 );
@@ -134,6 +137,7 @@ api_struct!(
     #[serde(default)]
     pub struct BuildInstructionsOutput {
         /// Link to the documentation/help.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub help_url: Option<String>,
 
         /// List of instructions to execute to build the tool, after system
@@ -147,6 +151,7 @@ api_struct!(
         pub requirements: Vec<BuildRequirement>,
 
         /// Location in which to acquire the source files.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub source: Option<SourceLocation>,
 
         /// List of system dependencies that are required for building from source.

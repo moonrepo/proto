@@ -32,7 +32,7 @@ struct StepManager<'a> {
 }
 
 impl StepManager<'_> {
-    pub fn new<'b>(options: &'b InstallBuildOptions) -> StepManager<'b> {
+    pub fn new(options: &InstallBuildOptions) -> StepManager<'_> {
         StepManager { errors: 0, options }
     }
 
@@ -269,7 +269,7 @@ pub async fn check_requirements(
 
                     if result.is_err() || result.is_ok_and(|out| out.is_empty()) {
                         step.render_check(
-                            format!("Xcode command line tools are NOT installed, install them with <shell>xcode-select --install</shell>"),
+                            "Xcode command line tools are NOT installed, install them with <shell>xcode-select --install</shell>",
                             false,
                         )?;
                     } else {

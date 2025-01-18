@@ -23,22 +23,21 @@ pub enum InstallOutcome {
 pub struct InstallWorkflowParams {
     pub build: bool,
     pub force: bool,
-    #[allow(dead_code)]
     pub multiple: bool,
     pub passthrough_args: Vec<String>,
     pub pin_to: Option<PinLocation>,
 }
 
 pub struct InstallWorkflow {
-    pub console: Option<ProtoConsole>,
+    pub console: ProtoConsole,
     pub progress_reporter: ProgressReporter,
     pub tool: ToolRecord,
 }
 
 impl InstallWorkflow {
-    pub fn new(tool: ToolRecord) -> Self {
+    pub fn new(tool: ToolRecord, console: ProtoConsole) -> Self {
         Self {
-            console: None,
+            console,
             progress_reporter: ProgressReporter::default(),
             tool,
         }
@@ -193,7 +192,11 @@ impl InstallWorkflow {
             .setup(
                 initial_version,
                 InstallOptions {
-                    console: self.console.clone(),
+                    console: if params.multiple {
+                        None
+                    } else {
+                        Some(self.console.clone())
+                    },
                     on_download_chunk: Some(on_download_chunk),
                     on_phase_change: Some(on_phase_change),
                     force: params.force,

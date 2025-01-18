@@ -104,29 +104,43 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
     }
 
     // Create our workflow and setup the progress reporter
-    let mut workflow = InstallWorkflow::new(tool);
-    workflow.console = Some(session.console.clone());
+    let mut workflow = InstallWorkflow::new(tool, session.console.clone());
+    let mut handle = None;
 
-    let reporter = workflow.progress_reporter.clone();
-    let console = session.console.clone();
+    // Only show the progress bars when not building
+    if args.build {
+        session.console.render(element! {
+            Notice(variant: Variant::Caution) {
+                StyledText(
+                    content: "Building from source is currently unstable. Please report general issues to <url>https://github.com/moonrepo/proto</url>",
+                )
+                StyledText(
+                    content: "and tool specific issues to <url>https://github.com/moonrepo/plugins</url>.",
+                )
+            }
+        })?;
+    } else {
+        let reporter = workflow.progress_reporter.clone();
+        let console = session.console.clone();
 
-    let handle = spawn(async move {
-        console
-            .render_loop(element! {
-                InstallProgress(reporter)
-            })
-            .await
-    });
+        handle = Some(spawn(async move {
+            console
+                .render_loop(element! {
+                    InstallProgress(reporter)
+                })
+                .await
+        }));
 
-    // Wait a bit for the component to be rendered
-    sleep(Duration::from_millis(50)).await;
+        // Wait a bit for the component to be rendered
+        sleep(Duration::from_millis(50)).await;
+    }
 
     let result = workflow
         .install(
             args.get_unresolved_spec(),
             InstallWorkflowParams {
-                build: args.build,
                 pin_to: args.get_pin_location(),
+                build: args.build,
                 force: args.force,
                 multiple: false,
                 passthrough_args: args.passthrough,
@@ -135,7 +149,10 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
         .await;
 
     workflow.progress_reporter.exit();
-    handle.await.into_diagnostic()??;
+
+    if let Some(handle) = handle {
+        handle.await.into_diagnostic()??;
+    }
 
     let outcome = result?;
     let tool = workflow.tool;
@@ -254,9 +271,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
         let tool_id = tool.id.clone();
         let initial_version = version.clone();
         let topo_graph = topo_graph.clone();
-
-        let mut workflow = InstallWorkflow::new(tool);
-        workflow.console = Some(session.console.clone());
+        let mut workflow = InstallWorkflow::new(tool, session.console.clone());
 
         // Clone the progress reporters so that we can render
         // multiple progress bars in parallel

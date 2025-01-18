@@ -9,7 +9,7 @@ use warpgate_api::*;
 pub use build_source::*;
 pub use semver::{Version, VersionReq};
 
-fn is_false(value: &bool) -> bool {
+pub(crate) fn is_false(value: &bool) -> bool {
     !(*value)
 }
 
