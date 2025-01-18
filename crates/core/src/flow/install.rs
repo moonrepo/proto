@@ -1,6 +1,8 @@
+use super::build::*;
 use crate::checksum::verify_checksum;
 use crate::error::ProtoError;
 use crate::helpers::{extract_filename_from_url, is_archive_file, is_offline};
+use crate::proto::ProtoConsole;
 use crate::tool::Tool;
 use proto_pdk_api::*;
 use proto_shim::*;
@@ -31,10 +33,12 @@ pub type OnPhaseFn = Box<dyn Fn(InstallPhase) + Send>;
 
 #[derive(Default)]
 pub struct InstallOptions {
+    pub console: Option<ProtoConsole>,
+    pub force: bool,
     pub on_download_chunk: Option<OnChunkFn>,
     pub on_phase_change: Option<OnPhaseFn>,
+    pub skip_prompts: bool,
     pub strategy: InstallStrategy,
-    pub force: bool,
 }
 
 impl Tool {
@@ -102,8 +106,12 @@ impl Tool {
         .into())
     }
 
-    #[instrument(skip(self))]
-    pub async fn build_from_source(&self, _install_dir: &Path) -> miette::Result<()> {
+    #[instrument(skip(self, options))]
+    pub async fn build_from_source(
+        &self,
+        install_dir: &Path,
+        mut options: InstallOptions,
+    ) -> miette::Result<()> {
         debug!(
             tool = self.id.as_str(),
             "Installing tool by building from source"
@@ -118,12 +126,30 @@ impl Tool {
 
         // let temp_dir = self.get_temp_dir();
 
-        // let options: BuildInstructionsOutput = self.plugin.cache_func_with(
-        //     "build_instructions",
-        //     BuildInstructionsInput {
-        //         context: self.create_context(),
-        //     },
-        // )?;
+        let output: BuildInstructionsOutput = self
+            .plugin
+            .cache_func_with(
+                "build_instructions",
+                BuildInstructionsInput {
+                    context: self.create_context(),
+                },
+            )
+            .await?;
+
+        let build_options = InstallBuildOptions {
+            console: options.console.clone(),
+            host_arch: HostArch::from_env(),
+            host_os: HostOS::from_env(),
+            skip_prompts: options.skip_prompts,
+        };
+
+        // Step 1
+        install_system_dependencies(&output.system_dependencies, &build_options).await?;
+
+        // Step 2
+        check_requirements(&output.requirements, &build_options).await?;
+
+        std::process::exit(1);
 
         // match &options.source {
         //     // Should this do anything?
@@ -425,16 +451,14 @@ impl Tool {
         }
 
         if !installed {
-            // // Build the tool from source
-            // if build {
-            //     self.build_from_source(&install_dir).await?;
-
-            // // Install from a prebuilt archive
-            // } else {
-            //     self.install_from_prebuilt(&install_dir).await?;
-            // }
-
-            self.install_from_prebuilt(&install_dir, options).await?;
+            // Build the tool from source
+            if matches!(options.strategy, InstallStrategy::BuildFromSource) {
+                self.build_from_source(&install_dir, options).await?;
+            }
+            // Install from a prebuilt archive
+            else {
+                self.install_from_prebuilt(&install_dir, options).await?;
+            }
         }
 
         debug!(

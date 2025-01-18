@@ -118,11 +118,10 @@ api_enum!(
     #[serde(tag = "type", content = "requirement", rename_all = "kebab-case")]
     pub enum BuildRequirement {
         CommandExistsOnPath(String),
+        CommandVersion(String, VersionReq, Option<String>),
         ManualIntercept(String), // url
         GitConfigSetting(String, String),
         GitVersion(VersionReq),
-        PythonVersion(VersionReq),
-        RubyVersion(VersionReq),
         // macOS
         XcodeCommandLineTools,
         // Windows

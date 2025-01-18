@@ -111,6 +111,7 @@ api_struct!(
         pub type_of: PluginType,
 
         /// Whether this plugin is unstable or not.
+        #[serde(default)]
         pub unstable: Switch,
     }
 );
@@ -377,7 +378,7 @@ api_struct!(
 
         /// Relative directory path from the tool install directory in which
         /// pre-installed executables can be located. This directory path
-        /// will be used during `proto active`, but not for bins/shims.
+        /// will be used during `proto activate`, but not for bins/shims.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub exes_dir: Option<PathBuf>,
 

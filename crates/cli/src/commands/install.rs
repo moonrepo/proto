@@ -30,6 +30,9 @@ pub struct InstallArgs {
     )]
     pub spec: Option<UnresolvedVersionSpec>,
 
+    #[arg(long, help = "Build from source instead of downloading a pre-built")]
+    pub build: bool,
+
     #[arg(
         long,
         help = "When installing one tool, use a canary (nightly, etc) version",
@@ -102,6 +105,8 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
 
     // Create our workflow and setup the progress reporter
     let mut workflow = InstallWorkflow::new(tool);
+    workflow.console = Some(session.console.clone());
+
     let reporter = workflow.progress_reporter.clone();
     let console = session.console.clone();
 
@@ -120,6 +125,7 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
         .install(
             args.get_unresolved_spec(),
             InstallWorkflowParams {
+                build: args.build,
                 pin_to: args.get_pin_location(),
                 force: args.force,
                 multiple: false,
@@ -248,7 +254,9 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
         let tool_id = tool.id.clone();
         let initial_version = version.clone();
         let topo_graph = topo_graph.clone();
+
         let mut workflow = InstallWorkflow::new(tool);
+        workflow.console = Some(session.console.clone());
 
         // Clone the progress reporters so that we can render
         // multiple progress bars in parallel
@@ -296,6 +304,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
                 .install(
                     initial_version,
                     InstallWorkflowParams {
+                        build: args.build,
                         force,
                         pin_to,
                         multiple: true,

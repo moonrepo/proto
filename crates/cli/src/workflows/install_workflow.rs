@@ -1,8 +1,9 @@
 use crate::commands::pin::internal_pin;
+use crate::session::ProtoConsole;
 use crate::shell::{self, Export};
 use crate::telemetry::*;
 use crate::utils::tool_record::ToolRecord;
-use proto_core::flow::install::{InstallOptions, InstallPhase};
+use proto_core::flow::install::{InstallOptions, InstallPhase, InstallStrategy};
 use proto_core::{PinLocation, UnresolvedVersionSpec, PROTO_PLUGIN_KEY};
 use proto_pdk_api::{InstallHook, SyncShellProfileInput, SyncShellProfileOutput};
 use starbase_console::ui::{ProgressDisplay, ProgressReporter};
@@ -20,6 +21,7 @@ pub enum InstallOutcome {
 
 #[derive(Default)]
 pub struct InstallWorkflowParams {
+    pub build: bool,
     pub force: bool,
     #[allow(dead_code)]
     pub multiple: bool,
@@ -28,6 +30,7 @@ pub struct InstallWorkflowParams {
 }
 
 pub struct InstallWorkflow {
+    pub console: Option<ProtoConsole>,
     pub progress_reporter: ProgressReporter,
     pub tool: ToolRecord,
 }
@@ -35,6 +38,7 @@ pub struct InstallWorkflow {
 impl InstallWorkflow {
     pub fn new(tool: ToolRecord) -> Self {
         Self {
+            console: None,
             progress_reporter: ProgressReporter::default(),
             tool,
         }
@@ -187,9 +191,15 @@ impl InstallWorkflow {
             .setup(
                 initial_version,
                 InstallOptions {
+                    console: self.console.clone(),
                     on_download_chunk: Some(on_download_chunk),
                     on_phase_change: Some(on_phase_change),
                     force: params.force,
+                    strategy: if params.build {
+                        InstallStrategy::BuildFromSource
+                    } else {
+                        InstallStrategy::DownloadPrebuilt
+                    },
                     ..InstallOptions::default()
                 },
             )

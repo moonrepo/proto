@@ -90,7 +90,7 @@ static SEMVER_REGEX: OnceLock<Regex> = OnceLock::new();
 pub fn get_semver_regex() -> &'static Regex {
     // https://semver.org/#backusnaur-form-grammar-for-valid-semver-versions
     SEMVER_REGEX.get_or_init(|| {
-        Regex::new(r"^(?<major>[0-9]+).(?<minor>[0-9]+).(?<patch>[0-9]+)(?<pre>-[-0-9a-zA-Z.]+)?(?<build>\+[-0-9a-zA-Z.]+)?$",)
+        Regex::new(r"^(?<major>[0-9]+).(?<minor>[0-9]+).(?<patch>[0-9]+)(?<pre>-[-0-9a-zA-Z.]+)?(?<build>\+[-0-9a-zA-Z.]+)?$")
         .unwrap()
     })
 }
