@@ -6,6 +6,7 @@ use crate::pm_vendor::*;
 
 /// Represents the current system, including architecture, operating system,
 /// and package manager information.
+#[derive(Debug)]
 pub struct System {
     /// Platform architecture.
     pub arch: SystemArch,
@@ -35,44 +36,28 @@ impl System {
     /// Return the command and arguments to "install a package" for the
     /// current package manager. Will replace `$` in an argument with the
     /// dependency name, derived from [`DependencyName`].
+    ///
+    /// The [`DependencyConfig`] must be filtered for the current operating
+    /// system and package manager beforehad.
     pub fn get_install_package_command(
         &self,
         dep_config: &DependencyConfig,
         interactive: bool,
-    ) -> Result<Vec<String>, Error> {
+    ) -> Result<Option<Vec<String>>, Error> {
         let os = dep_config.os.unwrap_or(self.os);
         let pm = dep_config.manager.unwrap_or(self.manager);
         let pm_config = pm.get_config();
         let mut args = vec![];
 
-        for arg in pm_config
-            .commands
-            .get(&CommandType::InstallPackage)
-            .cloned()
-            .unwrap()
-        {
+        let Some(base_args) = pm_config.commands.get(&CommandType::InstallPackage) else {
+            return Ok(None);
+        };
+
+        for arg in base_args {
             if arg == "$" {
-                for dep in dep_config.get_package_names(&os, &pm)? {
-                    if let Some(ver) = &dep_config.version {
-                        match &pm_config.version_arg {
-                            VersionArgument::None => {
-                                args.push(dep);
-                            }
-                            VersionArgument::Inline(op) => {
-                                args.push(format!("{dep}{op}{ver}"));
-                            }
-                            VersionArgument::Separate(opt) => {
-                                args.push(dep);
-                                args.push(opt.to_owned());
-                                args.push(ver.to_owned());
-                            }
-                        };
-                    } else {
-                        args.push(dep);
-                    }
-                }
+                args.extend(self.extract_package_args(dep_config, &pm_config, &pm, &os)?);
             } else {
-                args.push(arg);
+                args.push(arg.to_owned());
             }
         }
 
@@ -83,7 +68,50 @@ impl System {
             interactive,
         );
 
-        Ok(args)
+        Ok(Some(args))
+    }
+
+    /// Return the command and arguments to "install many packages" for the
+    /// current package manager. Will replace `$` in an argument with the
+    /// dependency name, derived from [`DependencyName`].
+    ///
+    /// The [`DependencyConfig`]s must be filtered for the current operating
+    /// system and package manager beforehad.
+    pub fn get_install_packages_command(
+        &self,
+        dep_configs: &[DependencyConfig],
+        interactive: bool,
+    ) -> Result<Option<Vec<String>>, Error> {
+        let pm_config = self.manager.get_config();
+        let mut args = vec![];
+
+        let Some(base_args) = pm_config.commands.get(&CommandType::InstallPackage) else {
+            return Ok(None);
+        };
+
+        for arg in base_args {
+            if arg == "$" {
+                for dep_config in dep_configs {
+                    args.extend(self.extract_package_args(
+                        dep_config,
+                        &pm_config,
+                        &self.manager,
+                        &self.os,
+                    )?);
+                }
+            } else {
+                args.push(arg.to_owned());
+            }
+        }
+
+        self.append_interactive(
+            CommandType::InstallPackage,
+            &pm_config,
+            &mut args,
+            interactive,
+        );
+
+        Ok(Some(args))
     }
 
     /// Return the command and arguments to "update the registry index"
@@ -104,7 +132,7 @@ impl System {
 
     /// Resolve and reduce the dependencies to a list that's applicable
     /// to the current system.
-    pub fn resolve_dependencies(&self, deps: Vec<SystemDependency>) -> Vec<DependencyConfig> {
+    pub fn resolve_dependencies(&self, deps: &[SystemDependency]) -> Vec<DependencyConfig> {
         let mut configs = vec![];
 
         for dep in deps {
@@ -146,5 +174,37 @@ impl System {
                 }
             };
         }
+    }
+
+    fn extract_package_args(
+        &self,
+        dep_config: &DependencyConfig,
+        pm_config: &PackageManagerConfig,
+        pm: &SystemPackageManager,
+        os: &SystemOS,
+    ) -> Result<Vec<String>, Error> {
+        let mut args = vec![];
+
+        for dep in dep_config.get_package_names(&os, &pm)? {
+            if let Some(ver) = &dep_config.version {
+                match &pm_config.version_arg {
+                    VersionArgument::None => {
+                        args.push(dep);
+                    }
+                    VersionArgument::Inline(op) => {
+                        args.push(format!("{dep}{op}{ver}"));
+                    }
+                    VersionArgument::Separate(opt) => {
+                        args.push(dep);
+                        args.push(opt.to_owned());
+                        args.push(ver.to_owned());
+                    }
+                };
+            } else {
+                args.push(dep);
+            }
+        }
+
+        Ok(args)
     }
 }

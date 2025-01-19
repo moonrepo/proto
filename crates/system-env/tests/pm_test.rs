@@ -21,19 +21,27 @@ mod pm {
             let many_cfg = many_dep();
 
             assert_eq!(
-                pm.get_install_package_command(&one_cfg, false).unwrap(),
+                pm.get_install_package_command(&one_cfg, false)
+                    .unwrap()
+                    .unwrap(),
                 vec!["apk", "add", "foo"]
             );
             assert_eq!(
-                pm.get_install_package_command(&one_cfg, true).unwrap(),
+                pm.get_install_package_command(&one_cfg, true)
+                    .unwrap()
+                    .unwrap(),
                 vec!["apk", "add", "foo", "-i"]
             );
             assert_eq!(
-                pm.get_install_package_command(&many_cfg, false).unwrap(),
+                pm.get_install_package_command(&many_cfg, false)
+                    .unwrap()
+                    .unwrap(),
                 vec!["apk", "add", "foo", "bar", "baz"]
             );
             assert_eq!(
-                pm.get_install_package_command(&many_cfg, true).unwrap(),
+                pm.get_install_package_command(&many_cfg, true)
+                    .unwrap()
+                    .unwrap(),
                 vec!["apk", "add", "foo", "bar", "baz", "-i"]
             );
         }
@@ -45,7 +53,9 @@ mod pm {
             cfg.version = Some("1.2.3".into());
 
             assert_eq!(
-                pm.get_install_package_command(&cfg, false).unwrap(),
+                pm.get_install_package_command(&cfg, false)
+                    .unwrap()
+                    .unwrap(),
                 vec!["apk", "add", "foo=1.2.3"]
             );
         }
@@ -75,15 +85,21 @@ mod pm {
             let many_cfg = many_dep();
 
             assert_eq!(
-                pm.get_install_package_command(&one_cfg, false).unwrap(),
+                pm.get_install_package_command(&one_cfg, false)
+                    .unwrap()
+                    .unwrap(),
                 vec!["apt", "install", "--install-recommends", "foo", "-y"]
             );
             assert_eq!(
-                pm.get_install_package_command(&one_cfg, true).unwrap(),
+                pm.get_install_package_command(&one_cfg, true)
+                    .unwrap()
+                    .unwrap(),
                 vec!["apt", "install", "--install-recommends", "foo"]
             );
             assert_eq!(
-                pm.get_install_package_command(&many_cfg, false).unwrap(),
+                pm.get_install_package_command(&many_cfg, false)
+                    .unwrap()
+                    .unwrap(),
                 vec![
                     "apt",
                     "install",
@@ -95,7 +111,9 @@ mod pm {
                 ]
             );
             assert_eq!(
-                pm.get_install_package_command(&many_cfg, true).unwrap(),
+                pm.get_install_package_command(&many_cfg, true)
+                    .unwrap()
+                    .unwrap(),
                 vec![
                     "apt",
                     "install",
@@ -114,7 +132,9 @@ mod pm {
             cfg.version = Some("1.2.3".into());
 
             assert_eq!(
-                pm.get_install_package_command(&cfg, false).unwrap(),
+                pm.get_install_package_command(&cfg, false)
+                    .unwrap()
+                    .unwrap(),
                 vec!["apt", "install", "--install-recommends", "foo=1.2.3", "-y"]
             );
         }
@@ -144,19 +164,27 @@ mod pm {
             let many_cfg = many_dep();
 
             assert_eq!(
-                pm.get_install_package_command(&one_cfg, false).unwrap(),
+                pm.get_install_package_command(&one_cfg, false)
+                    .unwrap()
+                    .unwrap(),
                 vec!["brew", "install", "foo"]
             );
             assert_eq!(
-                pm.get_install_package_command(&one_cfg, true).unwrap(),
+                pm.get_install_package_command(&one_cfg, true)
+                    .unwrap()
+                    .unwrap(),
                 vec!["brew", "install", "foo", "-i"]
             );
             assert_eq!(
-                pm.get_install_package_command(&many_cfg, false).unwrap(),
+                pm.get_install_package_command(&many_cfg, false)
+                    .unwrap()
+                    .unwrap(),
                 vec!["brew", "install", "foo", "bar", "baz"]
             );
             assert_eq!(
-                pm.get_install_package_command(&many_cfg, true).unwrap(),
+                pm.get_install_package_command(&many_cfg, true)
+                    .unwrap()
+                    .unwrap(),
                 vec!["brew", "install", "foo", "bar", "baz", "-i"]
             );
         }
@@ -168,7 +196,9 @@ mod pm {
             cfg.version = Some("1.2.3".into());
 
             assert_eq!(
-                pm.get_install_package_command(&cfg, false).unwrap(),
+                pm.get_install_package_command(&cfg, false)
+                    .unwrap()
+                    .unwrap(),
                 vec!["brew", "install", "foo@1.2.3"]
             );
         }
@@ -198,19 +228,27 @@ mod pm {
             let many_cfg = many_dep();
 
             assert_eq!(
-                pm.get_install_package_command(&one_cfg, false).unwrap(),
+                pm.get_install_package_command(&one_cfg, false)
+                    .unwrap()
+                    .unwrap(),
                 vec!["choco", "install", "foo", "-y"]
             );
             assert_eq!(
-                pm.get_install_package_command(&one_cfg, true).unwrap(),
+                pm.get_install_package_command(&one_cfg, true)
+                    .unwrap()
+                    .unwrap(),
                 vec!["choco", "install", "foo"]
             );
             assert_eq!(
-                pm.get_install_package_command(&many_cfg, false).unwrap(),
+                pm.get_install_package_command(&many_cfg, false)
+                    .unwrap()
+                    .unwrap(),
                 vec!["choco", "install", "foo", "bar", "baz", "-y"]
             );
             assert_eq!(
-                pm.get_install_package_command(&many_cfg, true).unwrap(),
+                pm.get_install_package_command(&many_cfg, true)
+                    .unwrap()
+                    .unwrap(),
                 vec!["choco", "install", "foo", "bar", "baz"]
             );
         }
@@ -222,7 +260,9 @@ mod pm {
             cfg.version = Some("1.2.3".into());
 
             assert_eq!(
-                pm.get_install_package_command(&cfg, false).unwrap(),
+                pm.get_install_package_command(&cfg, false)
+                    .unwrap()
+                    .unwrap(),
                 vec!["choco", "install", "foo", "--version", "1.2.3", "-y"]
             );
         }
@@ -245,19 +285,27 @@ mod pm {
             let many_cfg = many_dep();
 
             assert_eq!(
-                pm.get_install_package_command(&one_cfg, false).unwrap(),
+                pm.get_install_package_command(&one_cfg, false)
+                    .unwrap()
+                    .unwrap(),
                 vec!["dnf", "install", "foo", "-y"]
             );
             assert_eq!(
-                pm.get_install_package_command(&one_cfg, true).unwrap(),
+                pm.get_install_package_command(&one_cfg, true)
+                    .unwrap()
+                    .unwrap(),
                 vec!["dnf", "install", "foo"]
             );
             assert_eq!(
-                pm.get_install_package_command(&many_cfg, false).unwrap(),
+                pm.get_install_package_command(&many_cfg, false)
+                    .unwrap()
+                    .unwrap(),
                 vec!["dnf", "install", "foo", "bar", "baz", "-y"]
             );
             assert_eq!(
-                pm.get_install_package_command(&many_cfg, true).unwrap(),
+                pm.get_install_package_command(&many_cfg, true)
+                    .unwrap()
+                    .unwrap(),
                 vec!["dnf", "install", "foo", "bar", "baz"]
             );
         }
@@ -269,7 +317,9 @@ mod pm {
             cfg.version = Some("1.2.3".into());
 
             assert_eq!(
-                pm.get_install_package_command(&cfg, false).unwrap(),
+                pm.get_install_package_command(&cfg, false)
+                    .unwrap()
+                    .unwrap(),
                 vec!["dnf", "install", "foo-1.2.3", "-y"]
             );
         }
@@ -299,19 +349,27 @@ mod pm {
             let many_cfg = many_dep();
 
             assert_eq!(
-                pm.get_install_package_command(&one_cfg, false).unwrap(),
+                pm.get_install_package_command(&one_cfg, false)
+                    .unwrap()
+                    .unwrap(),
                 vec!["pacman", "-S", "foo", "--noconfirm"]
             );
             assert_eq!(
-                pm.get_install_package_command(&one_cfg, true).unwrap(),
+                pm.get_install_package_command(&one_cfg, true)
+                    .unwrap()
+                    .unwrap(),
                 vec!["pacman", "-S", "foo"]
             );
             assert_eq!(
-                pm.get_install_package_command(&many_cfg, false).unwrap(),
+                pm.get_install_package_command(&many_cfg, false)
+                    .unwrap()
+                    .unwrap(),
                 vec!["pacman", "-S", "foo", "bar", "baz", "--noconfirm"]
             );
             assert_eq!(
-                pm.get_install_package_command(&many_cfg, true).unwrap(),
+                pm.get_install_package_command(&many_cfg, true)
+                    .unwrap()
+                    .unwrap(),
                 vec!["pacman", "-S", "foo", "bar", "baz"]
             );
         }
@@ -323,7 +381,9 @@ mod pm {
             cfg.version = Some("1.2.3".into());
 
             assert_eq!(
-                pm.get_install_package_command(&cfg, false).unwrap(),
+                pm.get_install_package_command(&cfg, false)
+                    .unwrap()
+                    .unwrap(),
                 vec!["pacman", "-S", "foo>=1.2.3", "--noconfirm"]
             );
         }
@@ -353,19 +413,27 @@ mod pm {
             let many_cfg = many_dep();
 
             assert_eq!(
-                pm.get_install_package_command(&one_cfg, false).unwrap(),
+                pm.get_install_package_command(&one_cfg, false)
+                    .unwrap()
+                    .unwrap(),
                 vec!["pkg", "install", "foo", "-y"]
             );
             assert_eq!(
-                pm.get_install_package_command(&one_cfg, true).unwrap(),
+                pm.get_install_package_command(&one_cfg, true)
+                    .unwrap()
+                    .unwrap(),
                 vec!["pkg", "install", "foo"]
             );
             assert_eq!(
-                pm.get_install_package_command(&many_cfg, false).unwrap(),
+                pm.get_install_package_command(&many_cfg, false)
+                    .unwrap()
+                    .unwrap(),
                 vec!["pkg", "install", "foo", "bar", "baz", "-y"]
             );
             assert_eq!(
-                pm.get_install_package_command(&many_cfg, true).unwrap(),
+                pm.get_install_package_command(&many_cfg, true)
+                    .unwrap()
+                    .unwrap(),
                 vec!["pkg", "install", "foo", "bar", "baz"]
             );
         }
@@ -377,7 +445,9 @@ mod pm {
             cfg.version = Some("1.2.3".into());
 
             assert_eq!(
-                pm.get_install_package_command(&cfg, false).unwrap(),
+                pm.get_install_package_command(&cfg, false)
+                    .unwrap()
+                    .unwrap(),
                 vec!["pkg", "install", "foo", "-y"]
             );
         }
@@ -407,19 +477,27 @@ mod pm {
             let many_cfg = many_dep();
 
             assert_eq!(
-                pm.get_install_package_command(&one_cfg, false).unwrap(),
+                pm.get_install_package_command(&one_cfg, false)
+                    .unwrap()
+                    .unwrap(),
                 vec!["pkgin", "install", "foo", "-y"]
             );
             assert_eq!(
-                pm.get_install_package_command(&one_cfg, true).unwrap(),
+                pm.get_install_package_command(&one_cfg, true)
+                    .unwrap()
+                    .unwrap(),
                 vec!["pkgin", "install", "foo"]
             );
             assert_eq!(
-                pm.get_install_package_command(&many_cfg, false).unwrap(),
+                pm.get_install_package_command(&many_cfg, false)
+                    .unwrap()
+                    .unwrap(),
                 vec!["pkgin", "install", "foo", "bar", "baz", "-y"]
             );
             assert_eq!(
-                pm.get_install_package_command(&many_cfg, true).unwrap(),
+                pm.get_install_package_command(&many_cfg, true)
+                    .unwrap()
+                    .unwrap(),
                 vec!["pkgin", "install", "foo", "bar", "baz"]
             );
         }
@@ -431,7 +509,9 @@ mod pm {
             cfg.version = Some("1.2.3".into());
 
             assert_eq!(
-                pm.get_install_package_command(&cfg, false).unwrap(),
+                pm.get_install_package_command(&cfg, false)
+                    .unwrap()
+                    .unwrap(),
                 vec!["pkgin", "install", "foo-1.2.3", "-y"]
             );
         }
@@ -461,19 +541,27 @@ mod pm {
             let many_cfg = many_dep();
 
             assert_eq!(
-                pm.get_install_package_command(&one_cfg, false).unwrap(),
+                pm.get_install_package_command(&one_cfg, false)
+                    .unwrap()
+                    .unwrap(),
                 vec!["scoop", "install", "foo"]
             );
             assert_eq!(
-                pm.get_install_package_command(&one_cfg, true).unwrap(),
+                pm.get_install_package_command(&one_cfg, true)
+                    .unwrap()
+                    .unwrap(),
                 vec!["scoop", "install", "foo"]
             );
             assert_eq!(
-                pm.get_install_package_command(&many_cfg, false).unwrap(),
+                pm.get_install_package_command(&many_cfg, false)
+                    .unwrap()
+                    .unwrap(),
                 vec!["scoop", "install", "foo", "bar", "baz"]
             );
             assert_eq!(
-                pm.get_install_package_command(&many_cfg, true).unwrap(),
+                pm.get_install_package_command(&many_cfg, true)
+                    .unwrap()
+                    .unwrap(),
                 vec!["scoop", "install", "foo", "bar", "baz"]
             );
         }
@@ -485,7 +573,9 @@ mod pm {
             cfg.version = Some("1.2.3".into());
 
             assert_eq!(
-                pm.get_install_package_command(&cfg, false).unwrap(),
+                pm.get_install_package_command(&cfg, false)
+                    .unwrap()
+                    .unwrap(),
                 vec!["scoop", "install", "foo@1.2.3"]
             );
         }
@@ -515,19 +605,27 @@ mod pm {
             let many_cfg = many_dep();
 
             assert_eq!(
-                pm.get_install_package_command(&one_cfg, false).unwrap(),
+                pm.get_install_package_command(&one_cfg, false)
+                    .unwrap()
+                    .unwrap(),
                 vec!["yum", "install", "foo", "-y"]
             );
             assert_eq!(
-                pm.get_install_package_command(&one_cfg, true).unwrap(),
+                pm.get_install_package_command(&one_cfg, true)
+                    .unwrap()
+                    .unwrap(),
                 vec!["yum", "install", "foo"]
             );
             assert_eq!(
-                pm.get_install_package_command(&many_cfg, false).unwrap(),
+                pm.get_install_package_command(&many_cfg, false)
+                    .unwrap()
+                    .unwrap(),
                 vec!["yum", "install", "foo", "bar", "baz", "-y"]
             );
             assert_eq!(
-                pm.get_install_package_command(&many_cfg, true).unwrap(),
+                pm.get_install_package_command(&many_cfg, true)
+                    .unwrap()
+                    .unwrap(),
                 vec!["yum", "install", "foo", "bar", "baz"]
             );
         }
@@ -539,7 +637,9 @@ mod pm {
             cfg.version = Some("1.2.3".into());
 
             assert_eq!(
-                pm.get_install_package_command(&cfg, false).unwrap(),
+                pm.get_install_package_command(&cfg, false)
+                    .unwrap()
+                    .unwrap(),
                 vec!["yum", "install", "foo-1.2.3", "-y"]
             );
         }

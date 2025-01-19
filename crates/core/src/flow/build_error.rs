@@ -26,4 +26,8 @@ pub enum ProtoBuildError {
     #[diagnostic(code(proto::build::unmet_requirements))]
     #[error("Build requirements have not been met, unable to proceed.\nPlease satisfy the requirements before attempting the build again.")]
     RequirementsNotMet,
+
+    #[diagnostic(code(proto::build::cancelled))]
+    #[error("Build has been manually cancelled.")]
+    Cancelled,
 }

@@ -18,6 +18,10 @@ pub enum DependencyName {
 
     /// Multiple packages by name.
     Multiple(Vec<String>),
+
+    /// Multiple packages by name, but with different names (values)
+    /// depending on operating system or package manager (keys).
+    MultipleMap(HashMap<String, Vec<String>>),
 }
 
 impl Default for DependencyName {
@@ -57,15 +61,24 @@ impl DependencyConfig {
         os: &SystemOS,
         pm: &SystemPackageManager,
     ) -> Result<Vec<String>, Error> {
+        let pms = pm.to_string();
+        let oss = os.to_string();
+
         match &self.dep {
             DependencyName::Single(name) => Ok(vec![name.to_owned()]),
             DependencyName::SingleMap(map) => map
-                .get(&pm.to_string())
-                .or_else(|| map.get(&os.to_string()))
+                .get(&pms)
+                .or_else(|| map.get(&oss))
                 .or_else(|| map.get("*"))
                 .map(|name| vec![name.to_owned()])
                 .ok_or(Error::MissingName),
             DependencyName::Multiple(list) => Ok(list.clone()),
+            DependencyName::MultipleMap(map) => map
+                .get(&pms)
+                .or_else(|| map.get(&oss))
+                .or_else(|| map.get("*"))
+                .cloned()
+                .ok_or(Error::MissingName),
         }
     }
 }
@@ -78,16 +91,20 @@ pub enum SystemDependency {
     /// A single package by name.
     Name(String),
 
+    /// A single package by name, but with different names (values)
+    /// depending on operating system or package manager (keys).
+    NameMap(HashMap<String, String>),
+
     /// Multiple packages by name.
     Names(Vec<String>),
+
+    /// Multiple packages by name, but with different names (values)
+    /// depending on operating system or package manager (keys).
+    NamesMap(HashMap<String, Vec<String>>),
 
     /// Either a single or multiple package, defined as an
     /// explicit configuration object.
     Config(Box<DependencyConfig>),
-
-    /// A single package by name, but with different names (values)
-    /// depending on operating system or package manager (keys).
-    Map(HashMap<String, String>),
 }
 
 impl SystemDependency {
@@ -134,21 +151,25 @@ impl SystemDependency {
     }
 
     /// Convert and expand to a dependency configuration.
-    pub fn to_config(self) -> DependencyConfig {
+    pub fn to_config(&self) -> DependencyConfig {
         match self {
             Self::Name(name) => DependencyConfig {
-                dep: DependencyName::Single(name),
+                dep: DependencyName::Single(name.to_owned()),
+                ..DependencyConfig::default()
+            },
+            Self::NameMap(map) => DependencyConfig {
+                dep: DependencyName::SingleMap(map.to_owned()),
                 ..DependencyConfig::default()
             },
             Self::Names(names) => DependencyConfig {
-                dep: DependencyName::Multiple(names),
+                dep: DependencyName::Multiple(names.to_owned()),
                 ..DependencyConfig::default()
             },
-            Self::Map(map) => DependencyConfig {
-                dep: DependencyName::SingleMap(map),
+            Self::NamesMap(map) => DependencyConfig {
+                dep: DependencyName::MultipleMap(map.to_owned()),
                 ..DependencyConfig::default()
             },
-            Self::Config(config) => *config,
+            Self::Config(config) => (**config).to_owned(),
         }
     }
 }

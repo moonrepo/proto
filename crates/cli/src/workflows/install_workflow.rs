@@ -186,6 +186,7 @@ impl InstallWorkflow {
                 InstallPhase::InstallDeps => "Installing system depedencies".into(),
                 InstallPhase::CheckRequirements => "Checking requirements".into(),
                 InstallPhase::ExecuteInstructions => "Executing build instructions".into(),
+                InstallPhase::CloneRepository { url } => format!("Cloning repository <url>{url}</url>")
             });
         });
 

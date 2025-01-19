@@ -4,12 +4,14 @@ use crate::error::ProtoError;
 use crate::helpers::{extract_filename_from_url, is_archive_file, is_offline};
 use crate::proto::ProtoConsole;
 use crate::tool::Tool;
+use miette::IntoDiagnostic;
 use proto_pdk_api::*;
 use proto_shim::*;
 use starbase_archive::Archiver;
 use starbase_utils::net::DownloadOptions;
 use starbase_utils::{fs, net};
 use std::path::Path;
+use system_env::System;
 use tracing::{debug, instrument};
 
 #[derive(Debug, Default)]
@@ -30,6 +32,7 @@ pub enum InstallPhase {
     InstallDeps,
     CheckRequirements,
     ExecuteInstructions,
+    CloneRepository { url: String },
 }
 
 pub use starbase_utils::net::OnChunkFn;
@@ -140,14 +143,18 @@ impl Tool {
 
         let build_options = InstallBuildOptions {
             console: options.console.clone(),
-            host_arch: HostArch::from_env(),
-            host_os: HostOS::from_env(),
             on_phase_change: options.on_phase_change.take(),
             skip_prompts: options.skip_prompts,
+            system: System::new().into_diagnostic()?,
         };
 
         // Step 1
-        install_system_dependencies(&output.system_dependencies, &build_options).await?;
+        install_system_dependencies(
+            &output.system_dependencies,
+            &build_options,
+            output.help_url.as_deref(),
+        )
+        .await?;
 
         // Step 2
         check_requirements(&output.requirements, &build_options).await?;
@@ -170,73 +177,6 @@ impl Tool {
         // Step 4
         execute_instructions(&output.instructions, &build_options, install_dir).await?;
 
-        std::process::exit(1);
-
-        // match &options.source {
-        //     // Should this do anything?
-        //     SourceLocation::None => {
-        //         return Ok(());
-        //     }
-
-        //     // Download from archive
-        //     SourceLocation::Archive { url: archive_url } => {
-
-        //     }
-
-        //     // Clone from Git repository
-        //     SourceLocation::Git {
-        //         url: repo_url,
-        //         reference: ref_name,
-        //         submodules,
-        //     } => {
-        //         debug!(
-        //             tool = self.id.as_str(),
-        //             repo_url,
-        //             ref_name,
-        //             install_dir = ?install_dir,
-        //             "Attempting to clone a Git repository",
-        //         );
-
-        //         let run_git = |args: &[&str]| -> miette::Result<()> {
-        //             let status = Command::new("git")
-        //                 .args(args)
-        //                 .current_dir(install_dir)
-        //                 .spawn()
-        //                 .into_diagnostic()?
-        //                 .wait()
-        //                 .into_diagnostic()?;
-
-        //             if !status.success() {
-        //                 return Err(ProtoError::BuildFailed {
-        //                     tool: self.get_name().to_owned(),
-        //                     url: repo_url.clone(),
-        //                     status: format!("exit code {}", status),
-        //                 }
-        //                 .into());
-        //             }
-
-        //             Ok(())
-        //         };
-
-        //         // TODO, pull if already cloned
-
-        //         fs::create_dir_all(install_dir)?;
-
-        //         run_git(&[
-        //             "clone",
-        //             if *submodules {
-        //                 "--recurse-submodules"
-        //             } else {
-        //                 ""
-        //             },
-        //             repo_url,
-        //             ".",
-        //         ])?;
-
-        //         run_git(&["checkout", ref_name])?;
-        //     }
-        // };
-
         Ok(())
     }
 
@@ -252,6 +192,19 @@ impl Tool {
             tool = self.id.as_str(),
             "Installing tool by downloading a pre-built archive"
         );
+
+        // Lock the install directory. If the inventory has been overridden,
+        // lock the internal proto tool directory instead.
+        let _install_lock =
+            fs::lock_directory(if self.metadata.inventory.override_dir.is_some() {
+                self.proto
+                    .store
+                    .inventory_dir
+                    .join(self.id.as_str())
+                    .join(self.get_resolved_version().to_string())
+            } else {
+                install_dir.to_path_buf()
+            })?;
 
         let client = self.proto.get_plugin_loader()?.get_client()?;
         let temp_dir = self.get_temp_dir();
@@ -408,19 +361,6 @@ impl Tool {
         let install_dir = self.get_product_dir();
         let mut installed = false;
 
-        // Lock the install directory. If the inventory has been overridden,
-        // lock the internal proto tool directory instead.
-        let _install_lock =
-            fs::lock_directory(if self.metadata.inventory.override_dir.is_some() {
-                self.proto
-                    .store
-                    .inventory_dir
-                    .join(self.id.as_str())
-                    .join(self.get_resolved_version().to_string())
-            } else {
-                install_dir.clone()
-            })?;
-
         // If this function is defined, it acts like an escape hatch and
         // takes precedence over all other install strategies
         if self.plugin.has_func("native_install").await {
@@ -456,12 +396,17 @@ impl Tool {
 
         if !installed {
             // Build the tool from source
-            if matches!(options.strategy, InstallStrategy::BuildFromSource) {
-                self.build_from_source(&install_dir, options).await?;
+            let result = if matches!(options.strategy, InstallStrategy::BuildFromSource) {
+                self.build_from_source(&install_dir, options).await
             }
             // Install from a prebuilt archive
             else {
-                self.install_from_prebuilt(&install_dir, options).await?;
+                self.install_from_prebuilt(&install_dir, options).await
+            };
+
+            if result.is_err() {
+                fs::read_dir_all(&install_dir)?;
+                result?;
             }
         }
 
