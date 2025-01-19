@@ -20,7 +20,7 @@ pub enum InstallStrategy {
 }
 
 // Prebuilt: Download -> verify -> unpack
-// Build: InstallDeps -> CheckRequirements
+// Build: InstallDeps -> CheckRequirements -> ExecuteInstructions
 #[derive(Clone, Debug)]
 pub enum InstallPhase {
     Native,
@@ -29,6 +29,7 @@ pub enum InstallPhase {
     Unpack { file: String },
     InstallDeps,
     CheckRequirements,
+    ExecuteInstructions,
 }
 
 pub use starbase_utils::net::OnChunkFn;
@@ -127,8 +128,6 @@ impl Tool {
             .into());
         }
 
-        // let temp_dir = self.get_temp_dir();
-
         let output: BuildInstructionsOutput = self
             .plugin
             .cache_func_with(
@@ -152,6 +151,11 @@ impl Tool {
 
         // Step 2
         check_requirements(&output.requirements, &build_options).await?;
+
+        // Step 3
+
+        // Step 4
+        execute_instructions(&output.instructions, &build_options, install_dir).await?;
 
         std::process::exit(1);
 

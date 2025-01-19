@@ -4,18 +4,18 @@ use crate::components::check_line::CheckLine;
 use crate::proto::ProtoConsole;
 use iocraft::element;
 use miette::IntoDiagnostic;
-use proto_pdk_api::{BuildRequirement, SystemDependency};
+use proto_pdk_api::{BuildInstruction, BuildRequirement, SystemDependency};
 use schematic::color::apply_style_tags;
 use semver::Version;
-use starbase_console::ui::{Container, Section};
+use starbase_console::ui::{Container, ListItem, Section, StyledText};
 use starbase_styles::color;
+use starbase_utils::fs;
+use std::path::Path;
+use std::process::Stdio;
 use system_env::{find_command_on_path, SystemArch, SystemOS};
 use tokio::process::Command;
 use tracing::{debug, error, trace};
 use version_spec::get_semver_regex;
-
-// TODO
-// - phases
 
 #[derive(Default)]
 pub struct InstallBuildOptions {
@@ -79,21 +79,52 @@ impl StepManager<'_> {
 
         Ok(())
     }
+
+    pub fn render_checkpoint(&self, message: impl AsRef<str>) -> miette::Result<()> {
+        let message = message.as_ref();
+
+        if let Some(console) = &self.options.console {
+            console.render(element! {
+                ListItem {
+                    StyledText(content: message)
+                }
+            })?;
+        } else {
+            debug!("{}", apply_style_tags(message));
+        }
+
+        Ok(())
+    }
 }
 
-async fn run_command(cmd: &str, args: &[&str]) -> miette::Result<String> {
-    let cmd_line = format!("{cmd} {}", shell_words::join(args));
+async fn exec_command(command: &mut Command) -> miette::Result<String> {
+    let command_line = {
+        let inner = command.as_std();
+        let args = inner
+            .get_args()
+            .map(|arg| arg.to_string_lossy())
+            .collect::<Vec<_>>();
 
-    trace!("Running command {}", color::shell(&cmd_line));
+        format!("{:?} {}", inner.get_program(), shell_words::join(args))
+    };
 
-    let output = Command::new(cmd)
-        .args(args)
-        .output()
-        .await
+    trace!("Running command {}", color::shell(&command_line));
+
+    let child = command
+        .spawn()
         .map_err(|error| ProtoBuildError::CommandFailed {
-            command: cmd_line.clone(),
+            command: command_line.clone(),
             error: Box::new(error),
         })?;
+
+    let output =
+        child
+            .wait_with_output()
+            .await
+            .map_err(|error| ProtoBuildError::CommandFailed {
+                command: command_line.clone(),
+                error: Box::new(error),
+            })?;
 
     let stderr = String::from_utf8(output.stderr).into_diagnostic()?;
     let stdout = String::from_utf8(output.stdout).into_diagnostic()?;
@@ -104,18 +135,22 @@ async fn run_command(cmd: &str, args: &[&str]) -> miette::Result<String> {
         stderr,
         stdout,
         "Ran command {}",
-        color::shell(&cmd_line)
+        color::shell(&command_line)
     );
 
     if !output.status.success() {
         return Err(ProtoBuildError::CommandNonZeroExit {
-            command: cmd_line.clone(),
+            command: command_line.clone(),
             code,
         }
         .into());
     }
 
     Ok(stdout)
+}
+
+async fn exec_command_piped(command: &mut Command) -> miette::Result<String> {
+    exec_command(command.stderr(Stdio::piped()).stdout(Stdio::piped())).await
 }
 
 // STEP 1
@@ -142,7 +177,7 @@ pub async fn install_system_dependencies(
 // STEP 2
 
 async fn get_command_version(cmd: &str, version_arg: &str) -> miette::Result<Version> {
-    let output = run_command(cmd, &[version_arg]).await?;
+    let output = exec_command_piped(Command::new(cmd).arg(version_arg)).await?;
 
     // Remove leading ^ and trailing $
     let base_pattern = get_semver_regex().as_str();
@@ -230,7 +265,9 @@ pub async fn check_requirements(
                     expected_value, "Checking if a Git config setting has the expected value"
                 );
 
-                let actual_value = run_command("git", &["config", "--get", config_key]).await?;
+                let actual_value =
+                    exec_command_piped(Command::new("git").args(["config", "--get", config_key]))
+                        .await?;
 
                 if &actual_value == expected_value {
                     step.render_check(
@@ -265,7 +302,8 @@ pub async fn check_requirements(
                 if options.host_os.is_mac() {
                     debug!("Checking if Xcode command line tools are installed");
 
-                    let result = run_command("xcode-select", &["--version"]).await;
+                    let result =
+                        exec_command_piped(Command::new("xcode-select").arg("--version")).await;
 
                     if result.is_err() || result.is_ok_and(|out| out.is_empty()) {
                         step.render_check(
@@ -289,6 +327,98 @@ pub async fn check_requirements(
 
     if step.has_errors() {
         return Err(ProtoBuildError::RequirementsNotMet.into());
+    }
+
+    Ok(())
+}
+
+// STEP 4
+
+pub async fn execute_instructions(
+    instructions: &[BuildInstruction],
+    options: &InstallBuildOptions,
+    install_dir: &Path,
+) -> miette::Result<()> {
+    if instructions.is_empty() {
+        return Ok(());
+    }
+
+    let step = StepManager::new(options);
+
+    step.render_header("Executing build instructions")?;
+
+    options.on_phase_change.as_ref().inspect(|func| {
+        func(InstallPhase::ExecuteInstructions);
+    });
+
+    let make_absolute = |path: &Path| {
+        if path.is_absolute() {
+            path.to_path_buf()
+        } else {
+            install_dir.join(path)
+        }
+    };
+
+    let total = instructions.len();
+
+    for (index, instruction) in instructions.iter().enumerate() {
+        debug!("Executing build instruction {} of {total}", index + 1);
+
+        match instruction {
+            BuildInstruction::MakeExecutable(file) => {
+                step.render_checkpoint(format!(
+                    "Making file <file>{}</file> executable",
+                    file.display()
+                ))?;
+
+                fs::update_perms(make_absolute(file), None)?;
+            }
+            BuildInstruction::MoveFile(from, to) => {
+                step.render_checkpoint(format!(
+                    "Moving <file>{}</file> to <file>{}</file>",
+                    from.display(),
+                    to.display(),
+                ))?;
+
+                fs::rename(make_absolute(from), make_absolute(to))?;
+            }
+            BuildInstruction::RemoveDir(dir) => {
+                step.render_checkpoint(format!(
+                    "Removing directory <file>{}</file>",
+                    dir.display()
+                ))?;
+
+                fs::remove_dir_all(make_absolute(dir))?;
+            }
+            BuildInstruction::RemoveFile(file) => {
+                step.render_checkpoint(format!("Removing file <file>{}</file>", file.display()))?;
+
+                fs::remove_file(make_absolute(file))?;
+            }
+            BuildInstruction::RequestScript(_) => {
+                unimplemented!(); // TODO
+            }
+            BuildInstruction::RunCommand(cmd) => {
+                step.render_checkpoint(format!(
+                    "Running command <shell>{} {}</shell>",
+                    cmd.bin,
+                    shell_words::join(&cmd.args)
+                ))?;
+
+                exec_command(
+                    Command::new(&cmd.bin)
+                        .args(&cmd.args)
+                        .envs(&cmd.env)
+                        .current_dir(
+                            cmd.cwd
+                                .as_deref()
+                                .map(make_absolute)
+                                .unwrap_or_else(|| install_dir.to_path_buf()),
+                        ),
+                )
+                .await?;
+            }
+        };
     }
 
     Ok(())
