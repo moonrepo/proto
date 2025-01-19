@@ -1,4 +1,4 @@
-pub mod build;
+mod build;
 mod build_error;
 pub mod install;
 pub mod link;

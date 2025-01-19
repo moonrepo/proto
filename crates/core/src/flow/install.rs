@@ -153,6 +153,19 @@ impl Tool {
         check_requirements(&output.requirements, &build_options).await?;
 
         // Step 3
+        if let Some(source) = &output.source {
+            let temp_dir = self.get_temp_dir();
+            let client = self.proto.get_plugin_loader()?.get_client()?;
+
+            download_sources(
+                source,
+                &build_options,
+                install_dir,
+                &temp_dir,
+                client.to_inner(),
+            )
+            .await?;
+        }
 
         // Step 4
         execute_instructions(&output.instructions, &build_options, install_dir).await?;
@@ -167,24 +180,7 @@ impl Tool {
 
         //     // Download from archive
         //     SourceLocation::Archive { url: archive_url } => {
-        //         let download_file = temp_dir.join(extract_filename_from_url(archive_url)?);
 
-        //         debug!(
-        //             tool = self.id.as_str(),
-        //             archive_url,
-        //             download_file = ?download_file,
-        //             install_dir = ?install_dir,
-        //             "Attempting to download and unpack sources",
-        //         );
-
-        //         net::download_from_url_with_client(
-        //             archive_url,
-        //             &download_file,
-        //             self.proto.get_plugin_loader()?.get_client()?,
-        //         )
-        //         .await?;
-
-        //         Archiver::new(install_dir, &download_file).unpack_from_ext()?;
         //     }
 
         //     // Clone from Git repository

@@ -1,15 +1,17 @@
-pub use super::build_error::*;
+use super::build_error::*;
 use super::install::{InstallPhase, OnPhaseFn};
 use crate::components::check_line::CheckLine;
+use crate::helpers::extract_filename_from_url;
 use crate::proto::ProtoConsole;
 use iocraft::element;
 use miette::IntoDiagnostic;
-use proto_pdk_api::{BuildInstruction, BuildRequirement, SystemDependency};
+use proto_pdk_api::{BuildInstruction, BuildRequirement, SourceLocation, SystemDependency};
 use schematic::color::apply_style_tags;
 use semver::Version;
+use starbase_archive::Archiver;
 use starbase_console::ui::{Container, ListItem, Section, StyledText};
 use starbase_styles::color;
-use starbase_utils::fs;
+use starbase_utils::{fs, net};
 use std::path::Path;
 use std::process::Stdio;
 use system_env::{find_command_on_path, SystemArch, SystemOS};
@@ -44,6 +46,7 @@ impl StepManager<'_> {
         let title = title.as_ref();
 
         if let Some(console) = &self.options.console {
+            console.out.write_newline()?;
             console.render(element! {
                 Container {
                     Section(title)
@@ -85,7 +88,7 @@ impl StepManager<'_> {
 
         if let Some(console) = &self.options.console {
             console.render(element! {
-                ListItem {
+                ListItem(bullet: "❯".to_owned()) {
                     StyledText(content: message)
                 }
             })?;
@@ -105,7 +108,11 @@ async fn exec_command(command: &mut Command) -> miette::Result<String> {
             .map(|arg| arg.to_string_lossy())
             .collect::<Vec<_>>();
 
-        format!("{:?} {}", inner.get_program(), shell_words::join(args))
+        format!(
+            "{} {}",
+            inner.get_program().to_string_lossy(),
+            shell_words::join(args)
+        )
     };
 
     trace!("Running command {}", color::shell(&command_line));
@@ -332,6 +339,65 @@ pub async fn check_requirements(
     Ok(())
 }
 
+// STEP 3
+
+pub async fn download_sources(
+    source: &SourceLocation,
+    options: &InstallBuildOptions,
+    install_dir: &Path,
+    temp_dir: &Path,
+    client: &reqwest::Client,
+) -> miette::Result<()> {
+    let step = StepManager::new(options);
+
+    step.render_header("Acquiring source files")?;
+
+    match source {
+        SourceLocation::Archive(archive) => {
+            let filename = extract_filename_from_url(&archive.url)?;
+            let download_file = temp_dir.join(&filename);
+
+            // Download
+            options.on_phase_change.as_ref().inspect(|func| {
+                func(InstallPhase::Download {
+                    url: archive.url.clone(),
+                    file: filename.clone(),
+                });
+            });
+
+            step.render_checkpoint(format!(
+                "Downloading archive from <url>{}</url>",
+                archive.url
+            ))?;
+
+            net::download_from_url_with_client(&archive.url, &download_file, client).await?;
+
+            // Unpack
+            options.on_phase_change.as_ref().inspect(|func| {
+                func(InstallPhase::Unpack {
+                    file: filename.clone(),
+                });
+            });
+
+            step.render_checkpoint(format!(
+                "Unpacking archive to <path>{}</path>",
+                install_dir.display()
+            ))?;
+
+            let mut archiver = Archiver::new(install_dir, &download_file);
+
+            if let Some(prefix) = &archive.prefix {
+                archiver.set_prefix(prefix);
+            }
+
+            archiver.unpack_from_ext()?;
+        }
+        SourceLocation::Git(git) => todo!(),
+    };
+
+    Ok(())
+}
+
 // STEP 4
 
 pub async fn execute_instructions(
@@ -366,34 +432,43 @@ pub async fn execute_instructions(
 
         match instruction {
             BuildInstruction::MakeExecutable(file) => {
+                let file = make_absolute(file);
+
                 step.render_checkpoint(format!(
-                    "Making file <file>{}</file> executable",
+                    "Making file <path>{}</path> executable",
                     file.display()
                 ))?;
 
-                fs::update_perms(make_absolute(file), None)?;
+                fs::update_perms(file, None)?;
             }
             BuildInstruction::MoveFile(from, to) => {
+                let from = make_absolute(from);
+                let to = make_absolute(to);
+
                 step.render_checkpoint(format!(
-                    "Moving <file>{}</file> to <file>{}</file>",
+                    "Moving <path>{}</path> to <path>{}</path>",
                     from.display(),
                     to.display(),
                 ))?;
 
-                fs::rename(make_absolute(from), make_absolute(to))?;
+                fs::rename(from, to)?;
             }
             BuildInstruction::RemoveDir(dir) => {
+                let dir = make_absolute(dir);
+
                 step.render_checkpoint(format!(
-                    "Removing directory <file>{}</file>",
+                    "Removing directory <path>{}</path>",
                     dir.display()
                 ))?;
 
-                fs::remove_dir_all(make_absolute(dir))?;
+                fs::remove_dir_all(dir)?;
             }
             BuildInstruction::RemoveFile(file) => {
-                step.render_checkpoint(format!("Removing file <file>{}</file>", file.display()))?;
+                let file = make_absolute(file);
 
-                fs::remove_file(make_absolute(file))?;
+                step.render_checkpoint(format!("Removing file <path>{}</path>", file.display()))?;
+
+                fs::remove_file(file)?;
             }
             BuildInstruction::RequestScript(_) => {
                 unimplemented!(); // TODO
