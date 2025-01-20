@@ -141,6 +141,8 @@ impl Tool {
             )
             .await?;
 
+        let temp_dir = self.get_temp_dir();
+        let client = self.proto.get_plugin_loader()?.get_client()?;
         let build_options = InstallBuildOptions {
             console: options.console.clone(),
             on_phase_change: options.on_phase_change.take(),
@@ -161,9 +163,6 @@ impl Tool {
 
         // Step 3
         if let Some(source) = &output.source {
-            let temp_dir = self.get_temp_dir();
-            let client = self.proto.get_plugin_loader()?.get_client()?;
-
             download_sources(
                 source,
                 &build_options,
@@ -175,7 +174,14 @@ impl Tool {
         }
 
         // Step 4
-        execute_instructions(&output.instructions, &build_options, install_dir).await?;
+        execute_instructions(
+            &output.instructions,
+            &build_options,
+            install_dir,
+            &temp_dir,
+            client.to_inner(),
+        )
+        .await?;
 
         Ok(())
     }

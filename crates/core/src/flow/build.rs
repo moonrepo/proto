@@ -64,6 +64,9 @@ impl StepManager<'_> {
             console.render(element! {
                 CheckLine(passed, message)
             })?;
+
+            // Reset ANSI colors so the next line doesn't inherit it
+            console.out.write("\u{1b}[0m")?;
         } else {
             let message = apply_style_tags(message);
 
@@ -90,6 +93,9 @@ impl StepManager<'_> {
                     StyledText(content: message)
                 }
             })?;
+
+            // Reset ANSI colors so the next line doesn't inherit it
+            console.out.write("\u{1b}[0m")?;
         } else {
             debug!("{}", apply_style_tags(message));
         }
@@ -193,7 +199,7 @@ pub async fn install_system_dependencies(
     if let Some(console) = &options.console {
         console.render(element! {
             Container {
-                Section(title: "System information")
+                Section(title: "Build information")
                 View(padding_left: 2, flex_direction: FlexDirection::Column) {
                     Entry(name: "Operating system", content: system.os.to_string())
                     Entry(name: "Architecture", content: system.arch.to_string())
@@ -438,6 +444,10 @@ pub async fn download_sources(
 
     step.render_header("Acquiring source files")?;
 
+    // Ensure the install directory is empty,
+    // otherwise Git will fail and we also want to avoid
+    // colliding artifacts
+    fs::remove_dir_all(install_dir)?;
     fs::create_dir_all(install_dir)?;
 
     match source {
@@ -528,6 +538,8 @@ pub async fn execute_instructions(
     instructions: &[BuildInstruction],
     options: &InstallBuildOptions,
     install_dir: &Path,
+    temp_dir: &Path,
+    client: &reqwest::Client,
 ) -> miette::Result<()> {
     if instructions.is_empty() {
         return Ok(());
@@ -594,8 +606,15 @@ pub async fn execute_instructions(
 
                 fs::remove_file(file)?;
             }
-            BuildInstruction::RequestScript(_) => {
-                unimplemented!(); // TODO
+            BuildInstruction::RequestScript(url) => {
+                let filename = extract_filename_from_url(&url)?;
+                let download_file = temp_dir.join(&filename);
+
+                step.render_checkpoint(format!("Requesting script <url>{url}</url>"))?;
+
+                net::download_from_url_with_client(&url, &download_file, client).await?;
+
+                fs::rename(download_file, install_dir.join(filename))?;
             }
             BuildInstruction::RunCommand(cmd) => {
                 step.render_checkpoint(format!(
