@@ -9,7 +9,7 @@ use warpgate_api::*;
 pub use build_source::*;
 pub use semver::{Version, VersionReq};
 
-fn is_false(value: &bool) -> bool {
+pub(crate) fn is_false(value: &bool) -> bool {
     !(*value)
 }
 
@@ -66,12 +66,26 @@ api_struct!(
     }
 );
 
+api_enum!(
+    /// Supported strategies for installing a tool.
+    #[derive(Copy, Default)]
+    pub enum InstallStrategy {
+        BuildFromSource,
+        #[default]
+        DownloadPrebuilt,
+    }
+);
+
 api_struct!(
     /// Output returned by the `register_tool` function.
     pub struct ToolMetadataOutput {
         /// Schema shape of the tool's configuration.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub config_schema: Option<schematic::Schema>,
+
+        /// Default strategy to use when installing a tool.
+        #[serde(default)]
+        pub default_install_strategy: InstallStrategy,
 
         /// Default alias or version to use as a fallback.
         #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -111,6 +125,7 @@ api_struct!(
         pub type_of: PluginType,
 
         /// Whether this plugin is unstable or not.
+        #[serde(default)]
         pub unstable: Switch,
     }
 );
@@ -377,7 +392,7 @@ api_struct!(
 
         /// Relative directory path from the tool install directory in which
         /// pre-installed executables can be located. This directory path
-        /// will be used during `proto active`, but not for bins/shims.
+        /// will be used during `proto activate`, but not for bins/shims.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub exes_dir: Option<PathBuf>,
 

@@ -5,6 +5,7 @@ use crate::proto_config::{
     ConfigMode, PinLocation, ProtoConfig, ProtoConfigFile, ProtoConfigManager, PROTO_CONFIG_NAME,
 };
 use once_cell::sync::OnceCell;
+use starbase_console::{Console, EmptyReporter};
 use starbase_utils::dirs::home_dir;
 use starbase_utils::env::path_var;
 use std::collections::BTreeMap;
@@ -14,6 +15,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tracing::debug;
 use warpgate::PluginLoader;
+
+pub type ProtoConsole = Console<EmptyReporter>;
 
 #[derive(Clone, Default)]
 pub struct ProtoEnvironment {

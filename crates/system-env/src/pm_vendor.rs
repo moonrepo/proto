@@ -93,7 +93,7 @@ pub(crate) fn brew() -> PackageManagerConfig {
             ),
             (CommandType::UpdateIndex, string_vec!["brew", "update"]),
         ]),
-        prompt_arg: PromptArgument::Interactive("-i".into()),
+        prompt_arg: PromptArgument::None, // Interactive("-i".into()),
         prompt_for: vec![CommandType::InstallPackage],
         version_arg: VersionArgument::Inline("@".into()),
     }

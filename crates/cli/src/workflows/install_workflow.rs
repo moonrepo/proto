@@ -1,10 +1,11 @@
 use crate::commands::pin::internal_pin;
+use crate::session::ProtoConsole;
 use crate::shell::{self, Export};
 use crate::telemetry::*;
 use crate::utils::tool_record::ToolRecord;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
 use proto_core::{PinLocation, UnresolvedVersionSpec, PROTO_PLUGIN_KEY};
-use proto_pdk_api::{InstallHook, SyncShellProfileInput, SyncShellProfileOutput};
+use proto_pdk_api::{InstallHook, InstallStrategy, SyncShellProfileInput, SyncShellProfileOutput};
 use starbase_console::ui::{ProgressDisplay, ProgressReporter};
 use starbase_console::utils::formats::format_duration;
 use starbase_shell::ShellType;
@@ -16,28 +17,38 @@ pub enum InstallOutcome {
     AlreadyInstalled,
     Installed,
     FailedToInstall,
+    NotInstalled,
 }
 
-#[derive(Default)]
 pub struct InstallWorkflowParams {
     pub force: bool,
-    #[allow(dead_code)]
     pub multiple: bool,
     pub passthrough_args: Vec<String>,
     pub pin_to: Option<PinLocation>,
+    pub skip_prompts: bool,
+    pub strategy: Option<InstallStrategy>,
 }
 
 pub struct InstallWorkflow {
+    pub console: ProtoConsole,
     pub progress_reporter: ProgressReporter,
     pub tool: ToolRecord,
 }
 
 impl InstallWorkflow {
-    pub fn new(tool: ToolRecord) -> Self {
+    pub fn new(tool: ToolRecord, console: ProtoConsole) -> Self {
         Self {
+            console,
             progress_reporter: ProgressReporter::default(),
             tool,
         }
+    }
+
+    pub fn is_build(&self, strategy: Option<InstallStrategy>) -> bool {
+        matches!(
+            strategy.unwrap_or(self.tool.metadata.default_install_strategy),
+            InstallStrategy::BuildFromSource
+        )
     }
 
     pub async fn install(
@@ -46,6 +57,14 @@ impl InstallWorkflow {
         params: InstallWorkflowParams,
     ) -> miette::Result<InstallOutcome> {
         let started = Instant::now();
+
+        if params.multiple && self.is_build(params.strategy) {
+            self.progress_reporter.set_message(
+                "Build from source is currently not supported in the multi-install workflow",
+            );
+
+            return Ok(InstallOutcome::NotInstalled);
+        }
 
         self.progress_reporter.set_message(format!(
             "Installing {} with specification <versionalt>{}</versionalt>",
@@ -104,11 +123,6 @@ impl InstallWorkflow {
     async fn pre_install(&self, params: &InstallWorkflowParams) -> miette::Result<()> {
         let tool = &self.tool;
 
-        env::set_var(
-            format!("{}_VERSION", tool.get_env_var_prefix()),
-            tool.get_resolved_version().to_string(),
-        );
-
         env::set_var("PROTO_INSTALL", tool.id.to_string());
 
         if tool.plugin.has_func("pre_install").await {
@@ -135,6 +149,7 @@ impl InstallWorkflow {
         self.tool.resolve_version(initial_version, false).await?;
 
         let resolved_version = self.tool.get_resolved_version();
+        let default_strategy = self.tool.metadata.default_install_strategy;
 
         self.progress_reporter.set_message(
             if initial_version == &resolved_version.to_unresolved_spec() {
@@ -179,7 +194,11 @@ impl InstallWorkflow {
                 InstallPhase::Native => "Installing natively".to_owned(),
                 InstallPhase::Verify { file, .. } => format!("Verifying checksum against <file>{file}</file>"),
                 InstallPhase::Unpack { file } => format!("Unpacking archive <file>{file}</file>"),
-                InstallPhase::Download { file, .. } => format!("Downloading pre-built archive <file>{file}</file> <muted>|</muted> <mutedlight>{{bytes}} / {{total_bytes}}</mutedlight> <muted>|</muted> <shell>{{bytes_per_sec}}</shell>")
+                InstallPhase::Download { file, .. } => format!("Downloading pre-built archive <file>{file}</file> <muted>|</muted> <mutedlight>{{bytes}} / {{total_bytes}}</mutedlight> <muted>|</muted> <shell>{{bytes_per_sec}}</shell>"),
+                InstallPhase::InstallDeps => "Installing system dependencies".into(),
+                InstallPhase::CheckRequirements => "Checking requirements".into(),
+                InstallPhase::ExecuteInstructions => "Executing build instructions".into(),
+                InstallPhase::CloneRepository { url } => format!("Cloning repository <url>{url}</url>")
             });
         });
 
@@ -187,10 +206,18 @@ impl InstallWorkflow {
             .setup(
                 initial_version,
                 InstallOptions {
+                    // When installing multiple tools, we can't render the nice
+                    // UI for the build flow, so rely on the progress bars
+                    console: if params.multiple {
+                        None
+                    } else {
+                        Some(self.console.clone())
+                    },
                     on_download_chunk: Some(on_download_chunk),
                     on_phase_change: Some(on_phase_change),
                     force: params.force,
-                    ..InstallOptions::default()
+                    skip_prompts: params.skip_prompts,
+                    strategy: params.strategy.unwrap_or(default_strategy),
                 },
             )
             .await

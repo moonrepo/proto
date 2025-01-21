@@ -21,4 +21,7 @@ pub enum PluginError {
         arch: String,
         os: String,
     },
+
+    #[error("Build from source is currently not supported on Windows.")]
+    UnsupportedWindowsBuild,
 }
