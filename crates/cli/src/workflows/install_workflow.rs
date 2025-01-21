@@ -59,9 +59,9 @@ impl InstallWorkflow {
         let started = Instant::now();
 
         if params.multiple && self.is_build(params.strategy) {
-            self.progress_reporter.set_message(format!(
+            self.progress_reporter.set_message(
                 "Build from source is currently not supported in the multi-install workflow",
-            ));
+            );
 
             return Ok(InstallOutcome::NotInstalled);
         }
@@ -122,11 +122,6 @@ impl InstallWorkflow {
 
     async fn pre_install(&self, params: &InstallWorkflowParams) -> miette::Result<()> {
         let tool = &self.tool;
-
-        env::set_var(
-            format!("{}_VERSION", tool.get_env_var_prefix()),
-            tool.get_resolved_version().to_string(),
-        );
 
         env::set_var("PROTO_INSTALL", tool.id.to_string());
 

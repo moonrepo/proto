@@ -147,6 +147,10 @@ impl Tool {
             version: self.get_resolved_version(),
         };
 
+        // The build process may require using itself to build itself,
+        // so allow proto to use any available version instead of failing
+        std::env::set_var(format!("{}_VERSION", self.get_env_var_prefix()), "*");
+
         // Step 1
         install_system_dependencies(&output, &build_options).await?;
 
