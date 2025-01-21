@@ -105,10 +105,13 @@ impl Tool {
         .into())
     }
 
+    /// Build the tool from source using a set of requirements and instructions
+    /// into the `~/.proto/tools/<version>` folder.
     #[instrument(skip(self, options))]
     pub async fn build_from_source(
         &self,
         install_dir: &Path,
+        temp_dir: &Path,
         mut options: InstallOptions,
     ) -> miette::Result<()> {
         debug!(
@@ -133,47 +136,28 @@ impl Tool {
             )
             .await?;
 
-        let temp_dir = self.get_temp_dir();
-        let client = self.proto.get_plugin_loader()?.get_client()?;
         let build_options = InstallBuildOptions {
-            console: options.console.clone(),
+            console: options.console.as_ref(),
+            install_dir,
+            http_client: self.proto.get_plugin_loader()?.get_client()?,
             on_phase_change: options.on_phase_change.take(),
             skip_prompts: options.skip_prompts,
             system: System::default(),
+            temp_dir,
+            version: self.get_resolved_version(),
         };
 
         // Step 1
-        install_system_dependencies(
-            &output.system_dependencies,
-            &build_options,
-            output.help_url.as_deref(),
-        )
-        .await?;
+        install_system_dependencies(&output, &build_options).await?;
 
         // Step 2
-        check_requirements(&output.requirements, &build_options).await?;
+        check_requirements(&output, &build_options).await?;
 
         // Step 3
-        if let Some(source) = &output.source {
-            download_sources(
-                source,
-                &build_options,
-                install_dir,
-                &temp_dir,
-                client.to_inner(),
-            )
-            .await?;
-        }
+        download_sources(&output, &build_options).await?;
 
         // Step 4
-        execute_instructions(
-            &output.instructions,
-            &build_options,
-            install_dir,
-            &temp_dir,
-            client.to_inner(),
-        )
-        .await?;
+        execute_instructions(&output, &build_options).await?;
 
         Ok(())
     }
@@ -184,6 +168,7 @@ impl Tool {
     pub async fn install_from_prebuilt(
         &self,
         install_dir: &Path,
+        temp_dir: &Path,
         mut options: InstallOptions,
     ) -> miette::Result<()> {
         debug!(
@@ -198,21 +183,7 @@ impl Tool {
             .into());
         }
 
-        // Lock the install directory. If the inventory has been overridden,
-        // lock the internal proto tool directory instead.
-        let _install_lock =
-            fs::lock_directory(if self.metadata.inventory.override_dir.is_some() {
-                self.proto
-                    .store
-                    .inventory_dir
-                    .join(self.id.as_str())
-                    .join(self.get_resolved_version().to_string())
-            } else {
-                install_dir.to_path_buf()
-            })?;
-
         let client = self.proto.get_plugin_loader()?.get_client()?;
-        let temp_dir = self.get_temp_dir();
 
         let output: DownloadPrebuiltOutput = self
             .plugin
@@ -363,8 +334,14 @@ impl Tool {
             return Err(ProtoError::InternetConnectionRequired.into());
         }
 
+        let temp_dir = self.get_temp_dir();
         let install_dir = self.get_product_dir();
         let mut installed = false;
+
+        // Lock the temporary directory instead of the install directory,
+        // because the latter needs to be clean for "build from source",
+        // and the `.lock` file breaks that contract
+        let mut install_lock = fs::lock_directory(&temp_dir)?;
 
         // If this function is defined, it acts like an escape hatch and
         // takes precedence over all other install strategies
@@ -402,16 +379,29 @@ impl Tool {
         if !installed {
             // Build the tool from source
             let result = if matches!(options.strategy, InstallStrategy::BuildFromSource) {
-                self.build_from_source(&install_dir, options).await
+                self.build_from_source(&install_dir, &temp_dir, options)
+                    .await
             }
             // Install from a prebuilt archive
             else {
-                self.install_from_prebuilt(&install_dir, options).await
+                self.install_from_prebuilt(&install_dir, &temp_dir, options)
+                    .await
             };
 
-            if result.is_err() {
-                fs::read_dir_all(&install_dir)?;
-                result?;
+            // Clean up if the install failed
+            if let Err(error) = result {
+                debug!(
+                    tool = self.id.as_str(),
+                    install_dir = ?install_dir,
+                    "Failed to install tool, cleaning up",
+                );
+
+                install_lock.unlock()?;
+
+                fs::remove_dir_all(&install_dir)?;
+                fs::remove_dir_all(&temp_dir)?;
+
+                return Err(error);
             }
         }
 

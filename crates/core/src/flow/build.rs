@@ -5,7 +5,7 @@ use crate::helpers::extract_filename_from_url;
 use crate::proto::ProtoConsole;
 use iocraft::prelude::{element, FlexDirection, View};
 use miette::IntoDiagnostic;
-use proto_pdk_api::{BuildInstruction, BuildRequirement, SourceLocation, SystemDependency};
+use proto_pdk_api::{BuildInstruction, BuildInstructionsOutput, BuildRequirement, SourceLocation};
 use schematic::color::apply_style_tags;
 use semver::Version;
 use starbase_archive::Archiver;
@@ -17,22 +17,27 @@ use std::process::Stdio;
 use system_env::{find_command_on_path, is_command_on_path, System};
 use tokio::process::Command;
 use tracing::{debug, error, trace};
-use version_spec::get_semver_regex;
+use version_spec::{get_semver_regex, VersionSpec};
+use warpgate::HttpClient;
 
-pub struct InstallBuildOptions {
-    pub console: Option<ProtoConsole>,
+pub struct InstallBuildOptions<'a> {
+    pub console: Option<&'a ProtoConsole>,
+    pub http_client: &'a HttpClient,
+    pub install_dir: &'a Path,
     pub on_phase_change: Option<OnPhaseFn>,
     pub skip_prompts: bool,
     pub system: System,
+    pub temp_dir: &'a Path,
+    pub version: VersionSpec,
 }
 
 struct StepManager<'a> {
     errors: u8,
-    options: &'a InstallBuildOptions,
+    options: &'a InstallBuildOptions<'a>,
 }
 
 impl StepManager<'_> {
-    pub fn new(options: &InstallBuildOptions) -> StepManager<'_> {
+    pub fn new<'a>(options: &'a InstallBuildOptions<'a>) -> StepManager<'a> {
         StepManager { errors: 0, options }
     }
 
@@ -183,9 +188,8 @@ async fn exec_command_piped(command: &mut Command) -> miette::Result<String> {
 // STEP 1
 
 pub async fn install_system_dependencies(
-    deps: &[SystemDependency],
-    options: &InstallBuildOptions,
-    help_url: Option<&str>,
+    build: &BuildInstructionsOutput,
+    options: &InstallBuildOptions<'_>,
 ) -> miette::Result<()> {
     let step = StepManager::new(options);
     let system = &options.system;
@@ -202,7 +206,10 @@ pub async fn install_system_dependencies(
                             Entry(name: "Package manager", content: pm.to_string())
                         }
                     }))
-                    #(help_url.map(|url| {
+                    Entry(name: "Version", value: element! {
+                        StyledText(content: options.version.to_string(), style: Style::Hash)
+                    }.into_any())
+                    #(build.help_url.as_ref().map(|url| {
                         element! {
                             Entry(name: "Documentation", value: element! {
                                 StyledText(content: url, style: Style::Url)
@@ -240,7 +247,7 @@ pub async fn install_system_dependencies(
         exec_command(Command::new(index_args.remove(0)).args(index_args)).await?;
     }
 
-    let dep_configs = system.resolve_dependencies(deps);
+    let dep_configs = system.resolve_dependencies(&build.system_dependencies);
 
     if !dep_configs.is_empty() {
         if let Some(mut install_args) = system
@@ -291,10 +298,10 @@ async fn get_command_version(cmd: &str, version_arg: &str) -> miette::Result<Ver
 }
 
 pub async fn check_requirements(
-    reqs: &[BuildRequirement],
-    options: &InstallBuildOptions,
+    build: &BuildInstructionsOutput,
+    options: &InstallBuildOptions<'_>,
 ) -> miette::Result<()> {
-    if reqs.is_empty() {
+    if build.requirements.is_empty() {
         return Ok(());
     }
 
@@ -306,7 +313,7 @@ pub async fn check_requirements(
         func(InstallPhase::CheckRequirements);
     });
 
-    for req in reqs {
+    for req in &build.requirements {
         match req {
             BuildRequirement::CommandExistsOnPath(cmd) => {
                 debug!(cmd, "Checking if a command exists on PATH");
@@ -439,26 +446,27 @@ pub async fn check_requirements(
 // STEP 3
 
 pub async fn download_sources(
-    source: &SourceLocation,
-    options: &InstallBuildOptions,
-    install_dir: &Path,
-    temp_dir: &Path,
-    client: &reqwest::Client,
+    build: &BuildInstructionsOutput,
+    options: &InstallBuildOptions<'_>,
 ) -> miette::Result<()> {
+    let Some(source) = &build.source else {
+        return Ok(());
+    };
+
     let step = StepManager::new(options);
 
     step.render_header("Acquiring source files")?;
 
     // Ensure the install directory is empty,
     // otherwise Git will fail and we also want to avoid
-    // colliding artifacts
-    fs::remove_dir_all(install_dir)?;
-    fs::create_dir_all(install_dir)?;
+    // colliding/stale artifacts
+    fs::remove_dir_all(options.install_dir)?;
+    fs::create_dir_all(options.install_dir)?;
 
     match source {
         SourceLocation::Archive(archive) => {
             let filename = extract_filename_from_url(&archive.url)?;
-            let download_file = temp_dir.join(&filename);
+            let download_file = options.temp_dir.join(&filename);
 
             // Download
             options.on_phase_change.as_ref().inspect(|func| {
@@ -473,7 +481,12 @@ pub async fn download_sources(
                 archive.url
             ))?;
 
-            net::download_from_url_with_client(&archive.url, &download_file, client).await?;
+            net::download_from_url_with_client(
+                &archive.url,
+                &download_file,
+                options.http_client.to_inner(),
+            )
+            .await?;
 
             // Unpack
             options.on_phase_change.as_ref().inspect(|func| {
@@ -484,10 +497,10 @@ pub async fn download_sources(
 
             step.render_checkpoint(format!(
                 "Unpacking archive to <path>{}</path>",
-                install_dir.display()
+                options.install_dir.display()
             ))?;
 
-            let mut archiver = Archiver::new(install_dir, &download_file);
+            let mut archiver = Archiver::new(options.install_dir, &download_file);
 
             if let Some(prefix) = &archive.prefix {
                 archiver.set_prefix(prefix);
@@ -513,7 +526,7 @@ pub async fn download_sources(
                     })
                     .arg(&git.url)
                     .arg(".")
-                    .current_dir(install_dir),
+                    .current_dir(options.install_dir),
             )
             .await?;
 
@@ -527,7 +540,7 @@ pub async fn download_sources(
                     Command::new("git")
                         .arg("checkout")
                         .arg(reference)
-                        .current_dir(install_dir),
+                        .current_dir(options.install_dir),
                 )
                 .await?;
             }
@@ -540,13 +553,10 @@ pub async fn download_sources(
 // STEP 4
 
 pub async fn execute_instructions(
-    instructions: &[BuildInstruction],
-    options: &InstallBuildOptions,
-    install_dir: &Path,
-    temp_dir: &Path,
-    client: &reqwest::Client,
+    build: &BuildInstructionsOutput,
+    options: &InstallBuildOptions<'_>,
 ) -> miette::Result<()> {
-    if instructions.is_empty() {
+    if build.instructions.is_empty() {
         return Ok(());
     }
 
@@ -562,13 +572,13 @@ pub async fn execute_instructions(
         if path.is_absolute() {
             path.to_path_buf()
         } else {
-            install_dir.join(path)
+            options.install_dir.join(path)
         }
     };
 
-    let total = instructions.len();
+    let total = build.instructions.len();
 
-    for (index, instruction) in instructions.iter().enumerate() {
+    for (index, instruction) in build.instructions.iter().enumerate() {
         debug!("Executing build instruction {} of {total}", index + 1);
 
         match instruction {
@@ -613,13 +623,18 @@ pub async fn execute_instructions(
             }
             BuildInstruction::RequestScript(url) => {
                 let filename = extract_filename_from_url(url)?;
-                let download_file = temp_dir.join(&filename);
+                let download_file = options.temp_dir.join(&filename);
 
                 step.render_checkpoint(format!("Requesting script <url>{url}</url>"))?;
 
-                net::download_from_url_with_client(url, &download_file, client).await?;
+                net::download_from_url_with_client(
+                    url,
+                    &download_file,
+                    options.http_client.to_inner(),
+                )
+                .await?;
 
-                fs::rename(download_file, install_dir.join(filename))?;
+                fs::rename(download_file, options.install_dir.join(filename))?;
             }
             BuildInstruction::RunCommand(cmd) => {
                 step.render_checkpoint(format!(
@@ -636,7 +651,7 @@ pub async fn execute_instructions(
                             cmd.cwd
                                 .as_deref()
                                 .map(make_absolute)
-                                .unwrap_or_else(|| install_dir.to_path_buf()),
+                                .unwrap_or_else(|| options.install_dir.to_path_buf()),
                         ),
                 )
                 .await?;
