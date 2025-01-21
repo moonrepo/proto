@@ -16,7 +16,7 @@
 
 - Added a new interactive "build from source" flow for many built-in tools.
   - Added `--build` and `--no-build` to `proto install`.
-  - Supported for `deno`, `go`, and `node`.
+  - Supported for `deno`, `go`, `node`, and `python`.
 - WASM API
   - Added a `build_instructions` plugin function for building from source, with associated structs and enums.
   - Added a `ToolMetadataOutput.default_install_strategy` field, which defaults to prebuilds.

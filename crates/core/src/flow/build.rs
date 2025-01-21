@@ -505,6 +505,12 @@ pub async fn download_sources(
     build: &BuildInstructionsOutput,
     options: &InstallBuildOptions<'_>,
 ) -> miette::Result<()> {
+    // Ensure the install directory is empty, otherwise Git will fail and
+    // we also want to avoid colliding/stale artifacts. This should also
+    // run if there's no source, as it's required for instructions!
+    fs::remove_dir_all(options.install_dir)?;
+    fs::create_dir_all(options.install_dir)?;
+
     let Some(source) = &build.source else {
         return Ok(());
     };
@@ -512,12 +518,6 @@ pub async fn download_sources(
     let step = StepManager::new(options);
 
     step.render_header("Acquiring source files")?;
-
-    // Ensure the install directory is empty,
-    // otherwise Git will fail and we also want to avoid
-    // colliding/stale artifacts
-    fs::remove_dir_all(options.install_dir)?;
-    fs::create_dir_all(options.install_dir)?;
 
     match source {
         SourceLocation::Archive(archive) => {
@@ -613,10 +613,12 @@ pub async fn execute_instructions(
     for (index, instruction) in build.instructions.iter().enumerate() {
         debug!("Executing build instruction {} of {total}", index + 1);
 
+        let prefix = format!("<mutedlight>[{}/{total}]</mutedlight>", index + 1);
+
         match instruction {
             BuildInstruction::InstallBuilder(builder) => {
                 step.render_checkpoint(format!(
-                    "Installing <id>{}</id> builder (<url>{}<url>)",
+                    "{prefix} Installing <id>{}</id> builder (<url>{}<url>)",
                     builder.id, builder.git.url
                 ))?;
 
@@ -640,7 +642,7 @@ pub async fn execute_instructions(
                 let file = make_absolute(file);
 
                 step.render_checkpoint(format!(
-                    "Making file <path>{}</path> executable",
+                    "{prefix} Making file <path>{}</path> executable",
                     file.display()
                 ))?;
 
@@ -651,7 +653,7 @@ pub async fn execute_instructions(
                 let to = make_absolute(to);
 
                 step.render_checkpoint(format!(
-                    "Moving <path>{}</path> to <path>{}</path>",
+                    "{prefix} Moving <path>{}</path> to <path>{}</path>",
                     from.display(),
                     to.display(),
                 ))?;
@@ -662,7 +664,7 @@ pub async fn execute_instructions(
                 let dir = make_absolute(dir);
 
                 step.render_checkpoint(format!(
-                    "Removing directory <path>{}</path>",
+                    "{prefix} Removing directory <path>{}</path>",
                     dir.display()
                 ))?;
 
@@ -671,7 +673,10 @@ pub async fn execute_instructions(
             BuildInstruction::RemoveFile(file) => {
                 let file = make_absolute(file);
 
-                step.render_checkpoint(format!("Removing file <path>{}</path>", file.display()))?;
+                step.render_checkpoint(format!(
+                    "{prefix} Removing file <path>{}</path>",
+                    file.display()
+                ))?;
 
                 fs::remove_file(file)?;
             }
@@ -679,7 +684,7 @@ pub async fn execute_instructions(
                 let filename = extract_filename_from_url(url)?;
                 let download_file = options.temp_dir.join(&filename);
 
-                step.render_checkpoint(format!("Requesting script <url>{url}</url>"))?;
+                step.render_checkpoint(format!("{prefix} Requesting script <url>{url}</url>"))?;
 
                 net::download_from_url_with_client(
                     url,
@@ -702,7 +707,7 @@ pub async fn execute_instructions(
                 };
 
                 step.render_checkpoint(format!(
-                    "Running command <shell>{} {}</shell>",
+                    "{prefix} Running command <shell>{} {}</shell>",
                     exe.file_name().unwrap().to_str().unwrap(),
                     shell_words::join(&cmd.args)
                 ))?;
@@ -722,7 +727,7 @@ pub async fn execute_instructions(
             }
             BuildInstruction::SetEnvVar(key, value) => {
                 step.render_checkpoint(format!(
-                    "Setting environment variable <property>{key}</property> to <symbol>{value}</symbol>",
+                    "{prefix} Setting environment variable <property>{key}</property> to <symbol>{value}</symbol>",
                 ))?;
 
                 std::env::set_var(key, value);
