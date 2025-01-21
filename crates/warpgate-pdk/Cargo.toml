@@ -1,6 +1,6 @@
 [package]
 name = "warpgate_pdk"
-version = "0.8.1"
+version = "0.9.0"
 edition = "2021"
 license = "MIT"
 description = "Reusable WASM macros and functions for plugin developer kits."
@@ -8,6 +8,6 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
-warpgate_api = { version = "0.10.1", path = "../warpgate-api" }
+warpgate_api = { version = "0.11.0", path = "../warpgate-api" }
 extism-pdk = { workspace = true }
 serde = { workspace = true }
