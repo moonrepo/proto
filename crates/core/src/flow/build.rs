@@ -1,6 +1,5 @@
 use super::build_error::*;
 use super::install::{InstallPhase, OnPhaseFn};
-use crate::components::check_line::CheckLine;
 use crate::helpers::extract_filename_from_url;
 use crate::proto::ProtoConsole;
 use iocraft::prelude::{element, FlexDirection, View};
@@ -9,7 +8,9 @@ use proto_pdk_api::{BuildInstruction, BuildInstructionsOutput, BuildRequirement,
 use schematic::color::apply_style_tags;
 use semver::Version;
 use starbase_archive::Archiver;
-use starbase_console::ui::{Confirm, Container, Entry, ListItem, Section, Style, StyledText};
+use starbase_console::ui::{
+    Confirm, Container, Entry, ListCheck, ListItem, Section, Style, StyledText,
+};
 use starbase_styles::color;
 use starbase_utils::{fs, net};
 use std::path::Path;
@@ -67,7 +68,9 @@ impl StepManager<'_> {
 
         if let Some(console) = &self.options.console {
             console.render(element! {
-                CheckLine(passed, message)
+                ListCheck(checked: passed) {
+                    StyledText(content: message)
+                }
             })?;
         } else {
             let message = apply_style_tags(message);

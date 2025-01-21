@@ -191,7 +191,7 @@ impl InstallWorkflow {
                 InstallPhase::Verify { file, .. } => format!("Verifying checksum against <file>{file}</file>"),
                 InstallPhase::Unpack { file } => format!("Unpacking archive <file>{file}</file>"),
                 InstallPhase::Download { file, .. } => format!("Downloading pre-built archive <file>{file}</file> <muted>|</muted> <mutedlight>{{bytes}} / {{total_bytes}}</mutedlight> <muted>|</muted> <shell>{{bytes_per_sec}}</shell>"),
-                InstallPhase::InstallDeps => "Installing system depedencies".into(),
+                InstallPhase::InstallDeps => "Installing system dependencies".into(),
                 InstallPhase::CheckRequirements => "Checking requirements".into(),
                 InstallPhase::ExecuteInstructions => "Executing build instructions".into(),
                 InstallPhase::CloneRepository { url } => format!("Cloning repository <url>{url}</url>")
@@ -202,6 +202,8 @@ impl InstallWorkflow {
             .setup(
                 initial_version,
                 InstallOptions {
+                    // When installing multiple tools, we can't render the nice
+                    // UI for the build flow, so rely on the progress bars
                     console: if params.multiple {
                         None
                     } else {

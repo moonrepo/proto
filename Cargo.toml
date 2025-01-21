@@ -51,7 +51,7 @@ starbase_archive = { version = "0.9.1", features = [
     "zip",
     "zip-deflate",
 ] }
-starbase_console = { version = "0.4.4", features = [
+starbase_console = { version = "0.4.6", features = [
     "ui",
 ] } # , path = "../starbase/crates/console" }
 starbase_sandbox = { version = "0.8.1" }

@@ -10,6 +10,18 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added a new interactive "build from source" flow for many built-in tools.
+  - Added `--build` and `--no-build` to `proto install`.
+  - Supported for `deno`, `go`, and `node`.
+- WASM API
+  - Added a `build_instructions` plugin function for building from source, with associated structs and enums.
+  - Added a `ToolMetadataOutput.default_install_strategy` field, which defaults to prebuilds.
+  - Added a `ToolMetadataOutput.unstable` field, which can mark the tool as unstable.
+
 ## 0.44.7
 
 #### 🚀 Updates
