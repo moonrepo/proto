@@ -1,6 +1,8 @@
+use super::build::*;
 use crate::checksum::verify_checksum;
 use crate::error::ProtoError;
 use crate::helpers::{extract_filename_from_url, is_archive_file, is_offline};
+use crate::proto::ProtoConsole;
 use crate::tool::Tool;
 use proto_pdk_api::*;
 use proto_shim::*;
@@ -8,33 +10,34 @@ use starbase_archive::Archiver;
 use starbase_utils::net::DownloadOptions;
 use starbase_utils::{fs, net};
 use std::path::Path;
+use system_env::System;
 use tracing::{debug, instrument};
 
-#[derive(Debug, Default)]
-pub enum InstallStrategy {
-    BuildFromSource,
-    #[default]
-    DownloadPrebuilt,
-}
-
+// Prebuilt: Download -> verify -> unpack
+// Build: InstallDeps -> CheckRequirements -> ExecuteInstructions -> ...
 #[derive(Clone, Debug)]
 pub enum InstallPhase {
     Native,
-    // Download -> verify -> unpack
     Download { url: String, file: String },
     Verify { url: String, file: String },
     Unpack { file: String },
+    InstallDeps,
+    CheckRequirements,
+    ExecuteInstructions,
+    CloneRepository { url: String },
 }
 
 pub use starbase_utils::net::OnChunkFn;
-pub type OnPhaseFn = Box<dyn Fn(InstallPhase) + Send>;
+pub type OnPhaseFn = Box<dyn Fn(InstallPhase) + Send + Sync>;
 
 #[derive(Default)]
 pub struct InstallOptions {
+    pub console: Option<ProtoConsole>,
+    pub force: bool,
     pub on_download_chunk: Option<OnChunkFn>,
     pub on_phase_change: Option<OnPhaseFn>,
+    pub skip_prompts: bool,
     pub strategy: InstallStrategy,
-    pub force: bool,
 }
 
 impl Tool {
@@ -102,8 +105,15 @@ impl Tool {
         .into())
     }
 
-    #[instrument(skip(self))]
-    pub async fn build_from_source(&self, _install_dir: &Path) -> miette::Result<()> {
+    /// Build the tool from source using a set of requirements and instructions
+    /// into the `~/.proto/tools/<version>` folder.
+    #[instrument(skip(self, options))]
+    pub async fn build_from_source(
+        &self,
+        install_dir: &Path,
+        temp_dir: &Path,
+        mut options: InstallOptions,
+    ) -> miette::Result<()> {
         debug!(
             tool = self.id.as_str(),
             "Installing tool by building from source"
@@ -116,96 +126,42 @@ impl Tool {
             .into());
         }
 
-        // let temp_dir = self.get_temp_dir();
+        let output: BuildInstructionsOutput = self
+            .plugin
+            .cache_func_with(
+                "build_instructions",
+                BuildInstructionsInput {
+                    context: self.create_context(),
+                },
+            )
+            .await?;
 
-        // let options: BuildInstructionsOutput = self.plugin.cache_func_with(
-        //     "build_instructions",
-        //     BuildInstructionsInput {
-        //         context: self.create_context(),
-        //     },
-        // )?;
+        let build_options = InstallBuildOptions {
+            console: options.console.as_ref(),
+            install_dir,
+            http_client: self.proto.get_plugin_loader()?.get_client()?,
+            on_phase_change: options.on_phase_change.take(),
+            skip_prompts: options.skip_prompts,
+            system: System::default(),
+            temp_dir,
+            version: self.get_resolved_version(),
+        };
 
-        // match &options.source {
-        //     // Should this do anything?
-        //     SourceLocation::None => {
-        //         return Ok(());
-        //     }
+        // The build process may require using itself to build itself,
+        // so allow proto to use any available version instead of failing
+        std::env::set_var(format!("{}_VERSION", self.get_env_var_prefix()), "*");
 
-        //     // Download from archive
-        //     SourceLocation::Archive { url: archive_url } => {
-        //         let download_file = temp_dir.join(extract_filename_from_url(archive_url)?);
+        // Step 1
+        install_system_dependencies(&output, &build_options).await?;
 
-        //         debug!(
-        //             tool = self.id.as_str(),
-        //             archive_url,
-        //             download_file = ?download_file,
-        //             install_dir = ?install_dir,
-        //             "Attempting to download and unpack sources",
-        //         );
+        // Step 2
+        check_requirements(&output, &build_options).await?;
 
-        //         net::download_from_url_with_client(
-        //             archive_url,
-        //             &download_file,
-        //             self.proto.get_plugin_loader()?.get_client()?,
-        //         )
-        //         .await?;
+        // Step 3
+        download_sources(&output, &build_options).await?;
 
-        //         Archiver::new(install_dir, &download_file).unpack_from_ext()?;
-        //     }
-
-        //     // Clone from Git repository
-        //     SourceLocation::Git {
-        //         url: repo_url,
-        //         reference: ref_name,
-        //         submodules,
-        //     } => {
-        //         debug!(
-        //             tool = self.id.as_str(),
-        //             repo_url,
-        //             ref_name,
-        //             install_dir = ?install_dir,
-        //             "Attempting to clone a Git repository",
-        //         );
-
-        //         let run_git = |args: &[&str]| -> miette::Result<()> {
-        //             let status = Command::new("git")
-        //                 .args(args)
-        //                 .current_dir(install_dir)
-        //                 .spawn()
-        //                 .into_diagnostic()?
-        //                 .wait()
-        //                 .into_diagnostic()?;
-
-        //             if !status.success() {
-        //                 return Err(ProtoError::BuildFailed {
-        //                     tool: self.get_name().to_owned(),
-        //                     url: repo_url.clone(),
-        //                     status: format!("exit code {}", status),
-        //                 }
-        //                 .into());
-        //             }
-
-        //             Ok(())
-        //         };
-
-        //         // TODO, pull if already cloned
-
-        //         fs::create_dir_all(install_dir)?;
-
-        //         run_git(&[
-        //             "clone",
-        //             if *submodules {
-        //                 "--recurse-submodules"
-        //             } else {
-        //                 ""
-        //             },
-        //             repo_url,
-        //             ".",
-        //         ])?;
-
-        //         run_git(&["checkout", ref_name])?;
-        //     }
-        // };
+        // Step 4
+        execute_instructions(&output, &build_options, &self.proto).await?;
 
         Ok(())
     }
@@ -216,6 +172,7 @@ impl Tool {
     pub async fn install_from_prebuilt(
         &self,
         install_dir: &Path,
+        temp_dir: &Path,
         mut options: InstallOptions,
     ) -> miette::Result<()> {
         debug!(
@@ -223,8 +180,14 @@ impl Tool {
             "Installing tool by downloading a pre-built archive"
         );
 
+        if !self.plugin.has_func("download_prebuilt").await {
+            return Err(ProtoError::UnsupportedDownloadPrebuilt {
+                tool: self.get_name().to_owned(),
+            }
+            .into());
+        }
+
         let client = self.proto.get_plugin_loader()?.get_client()?;
-        let temp_dir = self.get_temp_dir();
 
         let output: DownloadPrebuiltOutput = self
             .plugin
@@ -375,21 +338,14 @@ impl Tool {
             return Err(ProtoError::InternetConnectionRequired.into());
         }
 
+        let temp_dir = self.get_temp_dir();
         let install_dir = self.get_product_dir();
         let mut installed = false;
 
-        // Lock the install directory. If the inventory has been overridden,
-        // lock the internal proto tool directory instead.
-        let _install_lock =
-            fs::lock_directory(if self.metadata.inventory.override_dir.is_some() {
-                self.proto
-                    .store
-                    .inventory_dir
-                    .join(self.id.as_str())
-                    .join(self.get_resolved_version().to_string())
-            } else {
-                install_dir.clone()
-            })?;
+        // Lock the temporary directory instead of the install directory,
+        // because the latter needs to be clean for "build from source",
+        // and the `.lock` file breaks that contract
+        let mut install_lock = fs::lock_directory(&temp_dir)?;
 
         // If this function is defined, it acts like an escape hatch and
         // takes precedence over all other install strategies
@@ -425,16 +381,32 @@ impl Tool {
         }
 
         if !installed {
-            // // Build the tool from source
-            // if build {
-            //     self.build_from_source(&install_dir).await?;
+            // Build the tool from source
+            let result = if matches!(options.strategy, InstallStrategy::BuildFromSource) {
+                self.build_from_source(&install_dir, &temp_dir, options)
+                    .await
+            }
+            // Install from a prebuilt archive
+            else {
+                self.install_from_prebuilt(&install_dir, &temp_dir, options)
+                    .await
+            };
 
-            // // Install from a prebuilt archive
-            // } else {
-            //     self.install_from_prebuilt(&install_dir).await?;
-            // }
+            // Clean up if the install failed
+            if let Err(error) = result {
+                debug!(
+                    tool = self.id.as_str(),
+                    install_dir = ?install_dir,
+                    "Failed to install tool, cleaning up",
+                );
 
-            self.install_from_prebuilt(&install_dir, options).await?;
+                install_lock.unlock()?;
+
+                fs::remove_dir_all(&install_dir)?;
+                fs::remove_dir_all(&temp_dir)?;
+
+                return Err(error);
+            }
         }
 
         debug!(

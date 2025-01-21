@@ -16,6 +16,7 @@ use warpgate::Id;
 pub struct Store {
     pub dir: PathBuf,
     pub bin_dir: PathBuf,
+    pub builders_dir: PathBuf,
     pub cache_dir: PathBuf,
     pub inventory_dir: PathBuf,
     pub plugins_dir: PathBuf,
@@ -32,6 +33,7 @@ impl Store {
         Self {
             dir: dir.to_path_buf(),
             bin_dir: dir.join("bin"),
+            builders_dir: dir.join("builders"),
             cache_dir: dir.join("cache"),
             inventory_dir: dir.join("tools"),
             plugins_dir: dir.join("plugins"),

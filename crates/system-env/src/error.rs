@@ -6,6 +6,9 @@ pub enum Error {
     #[error("No system package manager was detected.")]
     MissingPackageManager,
 
+    #[error("A system package manager is required for this operation.")]
+    RequiredPackageManager,
+
     #[error("Unknown or unsupported system package manager `{0}`.")]
     UnknownPackageManager(String),
 }

@@ -59,6 +59,7 @@ macro_rules! generate_download_install_tests {
 
             tool.install_from_prebuilt(
                 &tool.get_product_dir(),
+                &temp_dir,
                 proto_pdk_test_utils::flow::install::InstallOptions::default(),
             )
             .await

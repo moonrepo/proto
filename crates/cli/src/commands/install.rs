@@ -7,6 +7,7 @@ use clap::Args;
 use iocraft::prelude::element;
 use miette::IntoDiagnostic;
 use proto_core::{ConfigMode, Id, PinLocation, Tool, UnresolvedVersionSpec};
+use proto_pdk_api::InstallStrategy;
 use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_console::utils::formats::format_duration;
@@ -29,6 +30,20 @@ pub struct InstallArgs {
         group = "version-type"
     )]
     pub spec: Option<UnresolvedVersionSpec>,
+
+    #[arg(
+        long,
+        help = "Build from source instead of downloading a pre-built",
+        group = "build-type"
+    )]
+    pub build: bool,
+
+    #[arg(
+        long,
+        help = "Download a pre-built instead of building from source",
+        group = "build-type"
+    )]
+    pub no_build: bool,
 
     #[arg(
         long,
@@ -56,6 +71,16 @@ pub struct InstallArgs {
 }
 
 impl InstallArgs {
+    fn get_strategy(&self) -> Option<InstallStrategy> {
+        if self.build {
+            Some(InstallStrategy::BuildFromSource)
+        } else if self.no_build {
+            Some(InstallStrategy::DownloadPrebuilt)
+        } else {
+            None
+        }
+    }
+
     fn get_pin_location(&self) -> Option<PinLocation> {
         self.pin.as_ref().map(|pin| pin.unwrap_or_default())
     }
@@ -101,35 +126,56 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
     }
 
     // Create our workflow and setup the progress reporter
-    let mut workflow = InstallWorkflow::new(tool);
-    let reporter = workflow.progress_reporter.clone();
-    let console = session.console.clone();
+    let mut workflow = InstallWorkflow::new(tool, session.console.clone());
+    let mut handle = None;
 
-    let handle = spawn(async move {
-        console
-            .render_loop(element! {
-                InstallProgress(reporter)
-            })
-            .await
-    });
+    // Only show the progress bars when not building
+    if workflow.is_build(args.get_strategy()) {
+        session.console.render(element! {
+            Notice(variant: Variant::Caution) {
+                StyledText(
+                    content: "Building from source is currently unstable. Please report general issues to <url>https://github.com/moonrepo/proto</url>",
+                )
+                StyledText(
+                    content: "and tool specific issues to <url>https://github.com/moonrepo/plugins</url>.",
+                )
+            }
+        })?;
+    } else {
+        let reporter = workflow.progress_reporter.clone();
+        let console = session.console.clone();
 
-    // Wait a bit for the component to be rendered
-    sleep(Duration::from_millis(50)).await;
+        handle = Some(spawn(async move {
+            console
+                .render_loop(element! {
+                    InstallProgress(reporter)
+                })
+                .await
+        }));
+
+        // Wait a bit for the component to be rendered
+        sleep(Duration::from_millis(50)).await;
+    }
 
     let result = workflow
         .install(
             args.get_unresolved_spec(),
             InstallWorkflowParams {
                 pin_to: args.get_pin_location(),
+                strategy: args.get_strategy(),
                 force: args.force,
                 multiple: false,
                 passthrough_args: args.passthrough,
+                skip_prompts: session.should_skip_prompts(),
             },
         )
         .await;
 
     workflow.progress_reporter.exit();
-    handle.await.into_diagnostic()??;
+
+    if let Some(handle) = handle {
+        handle.await.into_diagnostic()??;
+    }
 
     let outcome = result?;
     let tool = workflow.tool;
@@ -237,6 +283,8 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
     let started = Instant::now();
     let force = args.force;
     let pin_to = args.get_pin_location();
+    let skip_prompts = session.should_skip_prompts();
+    let strategy = args.get_strategy();
 
     for tool in tools {
         enforce_requirements(&tool, &versions)?;
@@ -248,7 +296,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
         let tool_id = tool.id.clone();
         let initial_version = version.clone();
         let topo_graph = topo_graph.clone();
-        let mut workflow = InstallWorkflow::new(tool);
+        let mut workflow = InstallWorkflow::new(tool, session.console.clone());
 
         // Clone the progress reporters so that we can render
         // multiple progress bars in parallel
@@ -297,9 +345,11 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
                     initial_version,
                     InstallWorkflowParams {
                         force,
-                        pin_to,
                         multiple: true,
-                        ..Default::default()
+                        passthrough_args: vec![],
+                        pin_to,
+                        skip_prompts,
+                        strategy,
                     },
                 )
                 .await

@@ -1,6 +1,6 @@
 [package]
 name = "proto_installer"
-version = "0.8.0"
+version = "0.9.0"
 edition = "2021"
 license = "MIT"
 description = "Download and install proto."
@@ -8,7 +8,7 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
-system_env = { version = "0.6.1", path = "../system-env" }
+system_env = { version = "0.7.0", path = "../system-env" }
 miette = { workspace = true }
 reqwest = { workspace = true, features = ["stream"] }
 starbase_archive = { workspace = true }

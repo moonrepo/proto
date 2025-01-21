@@ -1,3 +1,4 @@
+use super::is_false;
 use crate::ToolContext;
 use rustc_hash::FxHashMap;
 use semver::VersionReq;
@@ -20,7 +21,7 @@ api_struct!(
         pub url: String,
 
         /// A path prefix within the archive to remove.
-        #[serde(default)]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         pub prefix: Option<String>,
     }
 );
@@ -32,10 +33,11 @@ api_struct!(
         pub url: String,
 
         /// The branch/commit/tag to checkout.
-        pub reference: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub reference: Option<String>,
 
         /// Include submodules during checkout.
-        #[serde(default)]
+        #[serde(default, skip_serializing_if = "is_false")]
         pub submodules: bool,
     }
 );
@@ -55,29 +57,48 @@ api_enum!(
 );
 
 api_struct!(
+    /// A builder and its parameters for installing the builder.
+    pub struct BuilderInstruction {
+        /// Unique identifier for this builder.
+        pub id: String,
+
+        /// Main executable, relative from the source root.
+        pub exe: PathBuf,
+
+        /// The Git source location for the builder.
+        pub git: GitSource,
+    }
+);
+
+api_struct!(
     /// A command and its parameters to be executed as a child process.
     pub struct CommandInstruction {
         /// The binary on `PATH`.
         pub bin: String,
 
+        /// If the binary should reference a builder executable.
+        pub builder: bool,
+
         /// List of arguments.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
         pub args: Vec<String>,
 
         /// Map of environment variables.
-        #[serde(default)]
+        #[serde(default, skip_serializing_if = "FxHashMap::is_empty")]
         pub env: FxHashMap<String, String>,
 
         /// The working directory.
-        #[serde(default)]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         pub cwd: Option<PathBuf>,
     }
 );
 
 impl CommandInstruction {
-    /// Create a new command.
+    /// Create a new command with the binary and arguments.
     pub fn new<I: IntoIterator<Item = V>, V: AsRef<str>>(bin: &str, args: I) -> Self {
         Self {
             bin: bin.to_owned(),
+            builder: false,
             args: args
                 .into_iter()
                 .map(|arg| arg.as_ref().to_owned())
@@ -86,12 +107,22 @@ impl CommandInstruction {
             cwd: None,
         }
     }
+
+    /// Create a new command that executes a binary from a builder with the arguments.
+    pub fn with_builder<I: IntoIterator<Item = V>, V: AsRef<str>>(id: &str, args: I) -> Self {
+        let mut cmd = Self::new(id, args);
+        cmd.builder = true;
+        cmd
+    }
 }
 
 api_enum!(
     /// An instruction to execute.
     #[serde(tag = "type", content = "instruction", rename_all = "kebab-case")]
     pub enum BuildInstruction {
+        /// Install a builder locally that can be referenced in subsequent instructions.
+        InstallBuilder(Box<BuilderInstruction>),
+
         /// Update a file and make it executable.
         MakeExecutable(PathBuf),
 
@@ -110,6 +141,9 @@ api_enum!(
         /// Execute a command as a child process.
         #[cfg_attr(feature = "schematic", schema(nested))]
         RunCommand(Box<CommandInstruction>),
+
+        /// Set an environment variable.
+        SetEnvVar(String, String),
     }
 );
 
@@ -118,11 +152,10 @@ api_enum!(
     #[serde(tag = "type", content = "requirement", rename_all = "kebab-case")]
     pub enum BuildRequirement {
         CommandExistsOnPath(String),
+        CommandVersion(String, VersionReq, Option<String>),
         ManualIntercept(String), // url
         GitConfigSetting(String, String),
         GitVersion(VersionReq),
-        PythonVersion(VersionReq),
-        RubyVersion(VersionReq),
         // macOS
         XcodeCommandLineTools,
         // Windows
@@ -135,6 +168,7 @@ api_struct!(
     #[serde(default)]
     pub struct BuildInstructionsOutput {
         /// Link to the documentation/help.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub help_url: Option<String>,
 
         /// List of instructions to execute to build the tool, after system
@@ -148,6 +182,7 @@ api_struct!(
         pub requirements: Vec<BuildRequirement>,
 
         /// Location in which to acquire the source files.
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub source: Option<SourceLocation>,
 
         /// List of system dependencies that are required for building from source.

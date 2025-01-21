@@ -111,10 +111,13 @@ impl SystemOS {
     /// Return the provided file name formatted with the extension (without dot)
     /// when on Windows. On Unix, returns the name as-is.
     pub fn get_file_name(&self, name: impl AsRef<str>, windows_ext: impl AsRef<str>) -> String {
-        if self.is_windows() {
-            format!("{}.{}", name.as_ref(), windows_ext.as_ref())
+        let name = name.as_ref();
+        let ext = windows_ext.as_ref();
+
+        if self.is_windows() && !name.ends_with(ext) {
+            format!("{}.{ext}", name)
         } else {
-            name.as_ref().to_owned()
+            name.to_owned()
         }
     }
 

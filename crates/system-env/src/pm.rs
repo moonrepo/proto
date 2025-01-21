@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 
 /// Package manager of the system environment.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
 #[serde(rename_all = "kebab-case")]
 pub enum SystemPackageManager {
@@ -27,6 +27,10 @@ pub enum SystemPackageManager {
     #[serde(alias = "chocolatey")]
     Choco,
     Scoop,
+
+    // Used for name indexing
+    #[serde(alias = "*")]
+    All,
 }
 
 impl SystemPackageManager {
@@ -110,6 +114,7 @@ impl SystemPackageManager {
             Self::Brew => brew(),
             Self::Choco => choco(),
             Self::Scoop => scoop(),
+            Self::All => unreachable!(),
         }
     }
 }

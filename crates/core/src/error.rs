@@ -127,8 +127,12 @@ pub enum ProtoError {
     )]
     UnknownTool { id: Id },
 
+    #[diagnostic(code(proto::prebuilt::unsupported))]
+    #[error("Downloading a pre-built is not supported for {tool}. Try building from source by passing {}.", "--build".style(Style::Shell))]
+    UnsupportedDownloadPrebuilt { tool: String },
+
     #[diagnostic(code(proto::build::unsupported))]
-    #[error("Build from source is not supported for {tool}.")]
+    #[error("Building from source is not supported for {tool}. Try downloading a pre-built by passing {}.", "--no-build".style(Style::Shell))]
     UnsupportedBuildFromSource { tool: String },
 
     #[diagnostic(
