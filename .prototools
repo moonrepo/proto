@@ -5,6 +5,7 @@ deno-test = "file://../moonrepo/plugins/target/wasm32-wasip1/debug/deno_tool.was
 go-test = "file://../moonrepo/plugins/target/wasm32-wasip1/debug/go_tool.wasm"
 node-test = "file://../moonrepo/plugins/target/wasm32-wasip1/debug/node_tool.wasm"
 moon-test = "file://../moonrepo/plugins/target/wasm32-wasip1/debug/moon_tool.wasm"
+python-test = "file://../moonrepo/plugins/target/wasm32-wasip1/debug/python_tool.wasm"
 wasm-test = "file://./plugins/target/wasm32-wasip1/debug/proto_wasm_test.wasm"
 
 # [tools.wasm-test]

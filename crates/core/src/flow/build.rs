@@ -1,10 +1,13 @@
 use super::build_error::*;
 use super::install::{InstallPhase, OnPhaseFn};
 use crate::helpers::extract_filename_from_url;
-use crate::proto::ProtoConsole;
+use crate::proto::{ProtoConsole, ProtoEnvironment};
 use iocraft::prelude::{element, FlexDirection, View};
 use miette::IntoDiagnostic;
-use proto_pdk_api::{BuildInstruction, BuildInstructionsOutput, BuildRequirement, SourceLocation};
+use proto_pdk_api::{
+    BuildInstruction, BuildInstructionsOutput, BuildRequirement, GitSource, SourceLocation,
+};
+use rustc_hash::FxHashMap;
 use schematic::color::apply_style_tags;
 use semver::Version;
 use starbase_archive::Archiver;
@@ -13,7 +16,7 @@ use starbase_console::ui::{
 };
 use starbase_styles::color;
 use starbase_utils::{fs, net};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use system_env::{find_command_on_path, is_command_on_path, System};
 use tokio::process::Command;
@@ -129,21 +132,25 @@ impl StepManager<'_> {
 }
 
 async fn exec_command(command: &mut Command) -> miette::Result<String> {
-    let command_line = {
-        let inner = command.as_std();
-        let args = inner
-            .get_args()
-            .map(|arg| arg.to_string_lossy())
-            .collect::<Vec<_>>();
-
-        format!(
-            "{} {}",
-            inner.get_program().to_string_lossy(),
-            shell_words::join(args)
+    let inner = command.as_std();
+    let command_line = format!(
+        "{} {}",
+        inner.get_program().to_string_lossy(),
+        shell_words::join(
+            inner
+                .get_args()
+                .map(|arg| arg.to_string_lossy())
+                .collect::<Vec<_>>()
         )
-    };
+    );
 
-    trace!("Running command {}", color::shell(&command_line));
+    trace!(
+        cwd = ?inner.get_current_dir(),
+        env = ?inner.get_envs()
+            .filter_map(|(key, val)| val.map(|v| (key, v.to_string_lossy())))
+            .collect::<FxHashMap<_, _>>(),
+        "Running command {}", color::shell(&command_line)
+    );
 
     let child = command
         .spawn()
@@ -186,6 +193,52 @@ async fn exec_command(command: &mut Command) -> miette::Result<String> {
 
 async fn exec_command_piped(command: &mut Command) -> miette::Result<String> {
     exec_command(command.stderr(Stdio::piped()).stdout(Stdio::piped())).await
+}
+
+async fn checkout_git_repo(
+    git: &GitSource,
+    cwd: &Path,
+    step: &StepManager<'_>,
+) -> miette::Result<()> {
+    if cwd.join(".git").exists() {
+        exec_command(
+            Command::new("git")
+                .args(["pull", "--ff", "--prune"])
+                .current_dir(cwd),
+        )
+        .await?;
+
+        return Ok(());
+    }
+
+    fs::create_dir_all(cwd)?;
+
+    exec_command(
+        Command::new("git")
+            .args(if git.submodules {
+                vec!["clone", "--recurse-submodules"]
+            } else {
+                vec!["clone"]
+            })
+            .arg(&git.url)
+            .arg(".")
+            .current_dir(cwd),
+    )
+    .await?;
+
+    if let Some(reference) = &git.reference {
+        step.render_checkpoint(format!("Checking out reference <hash>{}</hash>", reference))?;
+
+        exec_command(
+            Command::new("git")
+                .arg("checkout")
+                .arg(reference)
+                .current_dir(cwd),
+        )
+        .await?;
+    }
+
+    Ok(())
 }
 
 // STEP 1
@@ -520,33 +573,7 @@ pub async fn download_sources(
 
             step.render_checkpoint(format!("Cloning repository <url>{}</url>", git.url))?;
 
-            exec_command(
-                Command::new("git")
-                    .args(if git.submodules {
-                        vec!["clone", "--recurse-submodules"]
-                    } else {
-                        vec!["clone"]
-                    })
-                    .arg(&git.url)
-                    .arg(".")
-                    .current_dir(options.install_dir),
-            )
-            .await?;
-
-            if let Some(reference) = &git.reference {
-                step.render_checkpoint(format!(
-                    "Checking out reference <hash>{}</hash>",
-                    reference
-                ))?;
-
-                exec_command(
-                    Command::new("git")
-                        .arg("checkout")
-                        .arg(reference)
-                        .current_dir(options.install_dir),
-                )
-                .await?;
-            }
+            checkout_git_repo(git, options.install_dir, &step).await?;
         }
     };
 
@@ -558,6 +585,7 @@ pub async fn download_sources(
 pub async fn execute_instructions(
     build: &BuildInstructionsOutput,
     options: &InstallBuildOptions<'_>,
+    proto: &ProtoEnvironment,
 ) -> miette::Result<()> {
     if build.instructions.is_empty() {
         return Ok(());
@@ -580,11 +608,34 @@ pub async fn execute_instructions(
     };
 
     let total = build.instructions.len();
+    let mut builder_exes = FxHashMap::default();
 
     for (index, instruction) in build.instructions.iter().enumerate() {
         debug!("Executing build instruction {} of {total}", index + 1);
 
         match instruction {
+            BuildInstruction::InstallBuilder(builder) => {
+                step.render_checkpoint(format!(
+                    "Installing <id>{}</id> builder (<url>{}<url>)",
+                    builder.id, builder.git.url
+                ))?;
+
+                let builder_dir = proto.store.builders_dir.join(&builder.id);
+                let builder_exe = builder_dir.join(&builder.exe);
+
+                checkout_git_repo(&builder.git, &builder_dir, &step).await?;
+
+                if !builder_exe.exists() {
+                    return Err(ProtoBuildError::MissingBuilderExe {
+                        exe: builder_exe,
+                        id: builder.id.clone(),
+                    }
+                    .into());
+                }
+
+                fs::update_perms(&builder_exe, None)?;
+                builder_exes.insert(builder.id.clone(), builder_exe);
+            }
             BuildInstruction::MakeExecutable(file) => {
                 let file = make_absolute(file);
 
@@ -640,14 +691,24 @@ pub async fn execute_instructions(
                 fs::rename(download_file, options.install_dir.join(filename))?;
             }
             BuildInstruction::RunCommand(cmd) => {
+                let exe = if cmd.builder {
+                    builder_exes.get(&cmd.bin).cloned().ok_or_else(|| {
+                        ProtoBuildError::MissingBuilder {
+                            id: cmd.bin.clone(),
+                        }
+                    })?
+                } else {
+                    PathBuf::from(&cmd.bin)
+                };
+
                 step.render_checkpoint(format!(
                     "Running command <shell>{} {}</shell>",
-                    cmd.bin,
+                    exe.file_name().unwrap().to_str().unwrap(),
                     shell_words::join(&cmd.args)
                 ))?;
 
                 exec_command(
-                    Command::new(&cmd.bin)
+                    Command::new(exe)
                         .args(&cmd.args)
                         .envs(&cmd.env)
                         .current_dir(

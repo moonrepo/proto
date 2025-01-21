@@ -1,6 +1,7 @@
 use miette::Diagnostic;
 use starbase_styles::{Style, Stylize};
 use std::io;
+use std::path::PathBuf;
 use thiserror::Error;
 
 #[derive(Error, Debug, Diagnostic)]
@@ -9,6 +10,7 @@ pub enum ProtoBuildError {
     #[error("Failed to execute command {}.", .command.style(Style::Shell))]
     CommandFailed {
         command: String,
+        #[source]
         error: Box<io::Error>,
     },
 
@@ -16,10 +18,19 @@ pub enum ProtoBuildError {
     #[error("Command {} returned a {code} exit code.", .command.style(Style::Shell))]
     CommandNonZeroExit { command: String, code: i32 },
 
+    #[diagnostic(code(proto::install::build::missing_builder))]
+    #[error("Builder {} has not been installed.",  .id.style(Style::Id))]
+    MissingBuilder { id: String },
+
+    #[diagnostic(code(proto::install::build::missing_builder_exe))]
+    #[error("Executable {} from builder {} does not exist.", .exe.style(Style::Path), .id.style(Style::Id))]
+    MissingBuilderExe { exe: PathBuf, id: String },
+
     #[diagnostic(code(proto::install::build::parse_version_failed))]
     #[error("Failed to parse version from {}.", .value.style(Style::Symbol))]
     VersionParseFailed {
         value: String,
+        #[source]
         error: Box<semver::Error>,
     },
 

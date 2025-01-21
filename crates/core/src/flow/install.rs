@@ -157,7 +157,7 @@ impl Tool {
         download_sources(&output, &build_options).await?;
 
         // Step 4
-        execute_instructions(&output, &build_options).await?;
+        execute_instructions(&output, &build_options, &self.proto).await?;
 
         Ok(())
     }

@@ -57,10 +57,27 @@ api_enum!(
 );
 
 api_struct!(
+    /// A builder and its parameters for installing the builder.
+    pub struct BuilderInstruction {
+        /// Unique identifier for this builder.
+        pub id: String,
+
+        /// Main executable, relative from the source root.
+        pub exe: PathBuf,
+
+        /// The Git source location for the builder.
+        pub git: GitSource,
+    }
+);
+
+api_struct!(
     /// A command and its parameters to be executed as a child process.
     pub struct CommandInstruction {
         /// The binary on `PATH`.
         pub bin: String,
+
+        /// If the binary should reference a builder executable.
+        pub builder: bool,
 
         /// List of arguments.
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -81,6 +98,7 @@ impl CommandInstruction {
     pub fn new<I: IntoIterator<Item = V>, V: AsRef<str>>(bin: &str, args: I) -> Self {
         Self {
             bin: bin.to_owned(),
+            builder: false,
             args: args
                 .into_iter()
                 .map(|arg| arg.as_ref().to_owned())
@@ -89,12 +107,22 @@ impl CommandInstruction {
             cwd: None,
         }
     }
+
+    /// Create a new command that executes a binary from a builder with the arguments.
+    pub fn with_builder<I: IntoIterator<Item = V>, V: AsRef<str>>(id: &str, args: I) -> Self {
+        let mut cmd = Self::new(id, args);
+        cmd.builder = true;
+        cmd
+    }
 }
 
 api_enum!(
     /// An instruction to execute.
     #[serde(tag = "type", content = "instruction", rename_all = "kebab-case")]
     pub enum BuildInstruction {
+        /// Install a builder locally that can be referenced in subsequent instructions.
+        InstallBuilder(Box<BuilderInstruction>),
+
         /// Update a file and make it executable.
         MakeExecutable(PathBuf),
 
