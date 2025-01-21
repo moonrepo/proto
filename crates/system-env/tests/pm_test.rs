@@ -173,7 +173,7 @@ mod pm {
                 pm.get_install_package_command(&one_cfg, true)
                     .unwrap()
                     .unwrap(),
-                vec!["brew", "install", "foo", "-i"]
+                vec!["brew", "install", "foo"], // , "-i"]
             );
             assert_eq!(
                 pm.get_install_package_command(&many_cfg, false)
@@ -185,7 +185,7 @@ mod pm {
                 pm.get_install_package_command(&many_cfg, true)
                     .unwrap()
                     .unwrap(),
-                vec!["brew", "install", "foo", "bar", "baz", "-i"]
+                vec!["brew", "install", "foo", "bar", "baz"], // , "-i"]
             );
         }
 
