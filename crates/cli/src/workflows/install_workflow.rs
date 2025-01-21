@@ -3,9 +3,9 @@ use crate::session::ProtoConsole;
 use crate::shell::{self, Export};
 use crate::telemetry::*;
 use crate::utils::tool_record::ToolRecord;
-use proto_core::flow::install::{InstallOptions, InstallPhase, InstallStrategy};
+use proto_core::flow::install::{InstallOptions, InstallPhase};
 use proto_core::{PinLocation, UnresolvedVersionSpec, PROTO_PLUGIN_KEY};
-use proto_pdk_api::{InstallHook, SyncShellProfileInput, SyncShellProfileOutput};
+use proto_pdk_api::{InstallHook, InstallStrategy, SyncShellProfileInput, SyncShellProfileOutput};
 use starbase_console::ui::{ProgressDisplay, ProgressReporter};
 use starbase_console::utils::formats::format_duration;
 use starbase_shell::ShellType;
@@ -19,13 +19,13 @@ pub enum InstallOutcome {
     FailedToInstall,
 }
 
-#[derive(Default)]
 pub struct InstallWorkflowParams {
-    pub build: bool,
     pub force: bool,
     pub multiple: bool,
     pub passthrough_args: Vec<String>,
     pub pin_to: Option<PinLocation>,
+    pub skip_prompts: bool,
+    pub strategy: Option<InstallStrategy>,
 }
 
 pub struct InstallWorkflow {
@@ -41,6 +41,13 @@ impl InstallWorkflow {
             progress_reporter: ProgressReporter::default(),
             tool,
         }
+    }
+
+    pub fn is_build(&self, strategy: Option<InstallStrategy>) -> bool {
+        matches!(
+            strategy.unwrap_or(self.tool.metadata.default_install_strategy),
+            InstallStrategy::BuildFromSource
+        )
     }
 
     pub async fn install(
@@ -138,6 +145,7 @@ impl InstallWorkflow {
         self.tool.resolve_version(initial_version, false).await?;
 
         let resolved_version = self.tool.get_resolved_version();
+        let default_strategy = self.tool.metadata.default_install_strategy;
 
         self.progress_reporter.set_message(
             if initial_version == &resolved_version.to_unresolved_spec() {
@@ -202,12 +210,8 @@ impl InstallWorkflow {
                     on_download_chunk: Some(on_download_chunk),
                     on_phase_change: Some(on_phase_change),
                     force: params.force,
-                    strategy: if params.build {
-                        InstallStrategy::BuildFromSource
-                    } else {
-                        InstallStrategy::DownloadPrebuilt
-                    },
-                    ..InstallOptions::default()
+                    skip_prompts: params.skip_prompts,
+                    strategy: params.strategy.unwrap_or(default_strategy),
                 },
             )
             .await

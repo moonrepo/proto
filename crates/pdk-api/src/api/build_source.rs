@@ -77,7 +77,7 @@ api_struct!(
 );
 
 impl CommandInstruction {
-    /// Create a new command.
+    /// Create a new command with the binary and arguments.
     pub fn new<I: IntoIterator<Item = V>, V: AsRef<str>>(bin: &str, args: I) -> Self {
         Self {
             bin: bin.to_owned(),
@@ -113,6 +113,9 @@ api_enum!(
         /// Execute a command as a child process.
         #[cfg_attr(feature = "schematic", schema(nested))]
         RunCommand(Box<CommandInstruction>),
+
+        /// Set an environment variable.
+        SetEnvVar(String, String),
     }
 );
 

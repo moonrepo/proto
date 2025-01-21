@@ -64,9 +64,6 @@ impl StepManager<'_> {
             console.render(element! {
                 CheckLine(passed, message)
             })?;
-
-            // Reset ANSI colors so the next line doesn't inherit it
-            console.out.write("\u{1b}[0m")?;
         } else {
             let message = apply_style_tags(message);
 
@@ -93,9 +90,6 @@ impl StepManager<'_> {
                     StyledText(content: message)
                 }
             })?;
-
-            // Reset ANSI colors so the next line doesn't inherit it
-            console.out.write("\u{1b}[0m")?;
         } else {
             debug!("{}", apply_style_tags(message));
         }
@@ -203,7 +197,11 @@ pub async fn install_system_dependencies(
                 View(padding_left: 2, flex_direction: FlexDirection::Column) {
                     Entry(name: "Operating system", content: system.os.to_string())
                     Entry(name: "Architecture", content: system.arch.to_string())
-                    Entry(name: "Package manager", content: system.manager.to_string())
+                    #(system.manager.map(|pm| {
+                        element! {
+                            Entry(name: "Package manager", content: pm.to_string())
+                        }
+                    }))
                     #(help_url.map(|url| {
                         element! {
                             Entry(name: "Documentation", value: element! {
@@ -223,13 +221,20 @@ pub async fn install_system_dependencies(
         );
     }
 
+    let Some(pm) = system.manager else {
+        return Ok(());
+    };
+
     step.render_header("Installing system dependencies")?;
 
     options.on_phase_change.as_ref().inspect(|func| {
         func(InstallPhase::InstallDeps);
     });
 
-    if let Some(mut index_args) = system.get_update_index_command(!options.skip_prompts) {
+    if let Some(mut index_args) = system
+        .get_update_index_command(!options.skip_prompts)
+        .into_diagnostic()?
+    {
         step.render_checkpoint("Updating package manager index")?;
 
         exec_command(Command::new(index_args.remove(0)).args(index_args)).await?;
@@ -244,10 +249,10 @@ pub async fn install_system_dependencies(
         {
             step.render_checkpoint(format!(
                 "Required <shell>{}</shell> packages: {}",
-                system.manager,
+                pm,
                 dep_configs
                     .iter()
-                    .filter_map(|cfg| cfg.get_package_names(&system.os, &system.manager).ok())
+                    .filter_map(|cfg| cfg.get_package_names(&pm).ok())
                     .flatten()
                     .map(|name| format!("<id>{name}</id>"))
                     .collect::<Vec<_>>()
@@ -607,12 +612,12 @@ pub async fn execute_instructions(
                 fs::remove_file(file)?;
             }
             BuildInstruction::RequestScript(url) => {
-                let filename = extract_filename_from_url(&url)?;
+                let filename = extract_filename_from_url(url)?;
                 let download_file = temp_dir.join(&filename);
 
                 step.render_checkpoint(format!("Requesting script <url>{url}</url>"))?;
 
-                net::download_from_url_with_client(&url, &download_file, client).await?;
+                net::download_from_url_with_client(url, &download_file, client).await?;
 
                 fs::rename(download_file, install_dir.join(filename))?;
             }
@@ -635,6 +640,13 @@ pub async fn execute_instructions(
                         ),
                 )
                 .await?;
+            }
+            BuildInstruction::SetEnvVar(key, value) => {
+                step.render_checkpoint(format!(
+                    "Setting environment variable <property>{key}</property> to <symbol>{value}</symbol>",
+                ))?;
+
+                std::env::set_var(key, value);
             }
         };
     }

@@ -65,11 +65,11 @@ mod pm {
             let pm = System::with_manager(SystemPackageManager::Apk);
 
             assert_eq!(
-                pm.get_update_index_command(false).unwrap(),
+                pm.get_update_index_command(false).unwrap().unwrap(),
                 vec!["apk", "update"]
             );
             assert_eq!(
-                pm.get_update_index_command(true).unwrap(),
+                pm.get_update_index_command(true).unwrap().unwrap(),
                 vec!["apk", "update", "-i"]
             );
         }
@@ -144,11 +144,11 @@ mod pm {
             let pm = System::with_manager(SystemPackageManager::Apt);
 
             assert_eq!(
-                pm.get_update_index_command(false).unwrap(),
+                pm.get_update_index_command(false).unwrap().unwrap(),
                 vec!["apt", "update", "-y"]
             );
             assert_eq!(
-                pm.get_update_index_command(true).unwrap(),
+                pm.get_update_index_command(true).unwrap().unwrap(),
                 vec!["apt", "update"]
             );
         }
@@ -208,11 +208,11 @@ mod pm {
             let pm = System::with_manager(SystemPackageManager::Brew);
 
             assert_eq!(
-                pm.get_update_index_command(false).unwrap(),
+                pm.get_update_index_command(false).unwrap().unwrap(),
                 vec!["brew", "update"]
             );
             assert_eq!(
-                pm.get_update_index_command(true).unwrap(),
+                pm.get_update_index_command(true).unwrap().unwrap(),
                 vec!["brew", "update"]
             );
         }
@@ -271,7 +271,7 @@ mod pm {
         fn update_index() {
             let pm = System::with_manager(SystemPackageManager::Choco);
 
-            assert_eq!(pm.get_update_index_command(false), None);
+            assert_eq!(pm.get_update_index_command(false).unwrap(), None);
         }
     }
 
@@ -329,11 +329,11 @@ mod pm {
             let pm = System::with_manager(SystemPackageManager::Dnf);
 
             assert_eq!(
-                pm.get_update_index_command(false).unwrap(),
+                pm.get_update_index_command(false).unwrap().unwrap(),
                 vec!["dnf", "check-update", "-y"]
             );
             assert_eq!(
-                pm.get_update_index_command(true).unwrap(),
+                pm.get_update_index_command(true).unwrap().unwrap(),
                 vec!["dnf", "check-update"]
             );
         }
@@ -393,11 +393,11 @@ mod pm {
             let pm = System::with_manager(SystemPackageManager::Pacman);
 
             assert_eq!(
-                pm.get_update_index_command(false).unwrap(),
+                pm.get_update_index_command(false).unwrap().unwrap(),
                 vec!["pacman", "-Syy"]
             );
             assert_eq!(
-                pm.get_update_index_command(true).unwrap(),
+                pm.get_update_index_command(true).unwrap().unwrap(),
                 vec!["pacman", "-Syy"]
             );
         }
@@ -457,11 +457,11 @@ mod pm {
             let pm = System::with_manager(SystemPackageManager::Pkg);
 
             assert_eq!(
-                pm.get_update_index_command(false).unwrap(),
+                pm.get_update_index_command(false).unwrap().unwrap(),
                 vec!["pkg", "update"]
             );
             assert_eq!(
-                pm.get_update_index_command(true).unwrap(),
+                pm.get_update_index_command(true).unwrap().unwrap(),
                 vec!["pkg", "update"]
             );
         }
@@ -521,11 +521,11 @@ mod pm {
             let pm = System::with_manager(SystemPackageManager::Pkgin);
 
             assert_eq!(
-                pm.get_update_index_command(false).unwrap(),
+                pm.get_update_index_command(false).unwrap().unwrap(),
                 vec!["pkgin", "update", "-y"]
             );
             assert_eq!(
-                pm.get_update_index_command(true).unwrap(),
+                pm.get_update_index_command(true).unwrap().unwrap(),
                 vec!["pkgin", "update"]
             );
         }
@@ -585,11 +585,11 @@ mod pm {
             let pm = System::with_manager(SystemPackageManager::Scoop);
 
             assert_eq!(
-                pm.get_update_index_command(false).unwrap(),
+                pm.get_update_index_command(false).unwrap().unwrap(),
                 vec!["scoop", "update"]
             );
             assert_eq!(
-                pm.get_update_index_command(true).unwrap(),
+                pm.get_update_index_command(true).unwrap().unwrap(),
                 vec!["scoop", "update"]
             );
         }
@@ -649,11 +649,11 @@ mod pm {
             let pm = System::with_manager(SystemPackageManager::Yum);
 
             assert_eq!(
-                pm.get_update_index_command(false).unwrap(),
+                pm.get_update_index_command(false).unwrap().unwrap(),
                 vec!["yum", "check-update"]
             );
             assert_eq!(
-                pm.get_update_index_command(true).unwrap(),
+                pm.get_update_index_command(true).unwrap().unwrap(),
                 vec!["yum", "check-update"]
             );
         }

@@ -66,12 +66,26 @@ api_struct!(
     }
 );
 
+api_enum!(
+    /// Supported strategies for installing a tool.
+    #[derive(Copy, Default)]
+    pub enum InstallStrategy {
+        BuildFromSource,
+        #[default]
+        DownloadPrebuilt,
+    }
+);
+
 api_struct!(
     /// Output returned by the `register_tool` function.
     pub struct ToolMetadataOutput {
         /// Schema shape of the tool's configuration.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub config_schema: Option<schematic::Schema>,
+
+        /// Default strategy to use when installing a tool.
+        #[serde(default)]
+        pub default_install_strategy: InstallStrategy,
 
         /// Default alias or version to use as a fallback.
         #[serde(default, skip_serializing_if = "Option::is_none")]

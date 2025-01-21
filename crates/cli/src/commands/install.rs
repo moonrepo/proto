@@ -7,6 +7,7 @@ use clap::Args;
 use iocraft::prelude::element;
 use miette::IntoDiagnostic;
 use proto_core::{ConfigMode, Id, PinLocation, Tool, UnresolvedVersionSpec};
+use proto_pdk_api::InstallStrategy;
 use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_console::utils::formats::format_duration;
@@ -30,8 +31,19 @@ pub struct InstallArgs {
     )]
     pub spec: Option<UnresolvedVersionSpec>,
 
-    #[arg(long, help = "Build from source instead of downloading a pre-built")]
+    #[arg(
+        long,
+        help = "Build from source instead of downloading a pre-built",
+        group = "build-type"
+    )]
     pub build: bool,
+
+    #[arg(
+        long,
+        help = "Download a pre-built instead of building from source",
+        group = "build-type"
+    )]
+    pub no_build: bool,
 
     #[arg(
         long,
@@ -59,6 +71,16 @@ pub struct InstallArgs {
 }
 
 impl InstallArgs {
+    fn get_strategy(&self) -> Option<InstallStrategy> {
+        if self.build {
+            Some(InstallStrategy::BuildFromSource)
+        } else if self.no_build {
+            Some(InstallStrategy::DownloadPrebuilt)
+        } else {
+            None
+        }
+    }
+
     fn get_pin_location(&self) -> Option<PinLocation> {
         self.pin.as_ref().map(|pin| pin.unwrap_or_default())
     }
@@ -108,7 +130,7 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
     let mut handle = None;
 
     // Only show the progress bars when not building
-    if args.build {
+    if workflow.is_build(args.get_strategy()) {
         session.console.render(element! {
             Notice(variant: Variant::Caution) {
                 StyledText(
@@ -140,10 +162,11 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
             args.get_unresolved_spec(),
             InstallWorkflowParams {
                 pin_to: args.get_pin_location(),
-                build: args.build,
+                strategy: args.get_strategy(),
                 force: args.force,
                 multiple: false,
                 passthrough_args: args.passthrough,
+                skip_prompts: session.should_skip_prompts(),
             },
         )
         .await;
@@ -260,6 +283,8 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
     let started = Instant::now();
     let force = args.force;
     let pin_to = args.get_pin_location();
+    let skip_prompts = session.should_skip_prompts();
+    let strategy = args.get_strategy();
 
     for tool in tools {
         enforce_requirements(&tool, &versions)?;
@@ -319,11 +344,12 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
                 .install(
                     initial_version,
                     InstallWorkflowParams {
-                        build: args.build,
                         force,
-                        pin_to,
                         multiple: true,
-                        ..Default::default()
+                        passthrough_args: vec![],
+                        pin_to,
+                        skip_prompts,
+                        strategy,
                     },
                 )
                 .await

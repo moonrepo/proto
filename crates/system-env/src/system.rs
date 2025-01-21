@@ -12,23 +12,33 @@ pub struct System {
     pub arch: SystemArch,
 
     /// Package manager.
-    pub manager: SystemPackageManager,
+    pub manager: Option<SystemPackageManager>,
 
     /// Operating system.
     pub os: SystemOS,
 }
 
+impl Default for System {
+    fn default() -> Self {
+        Self {
+            arch: SystemArch::from_env(),
+            manager: SystemPackageManager::detect().ok(),
+            os: SystemOS::from_env(),
+        }
+    }
+}
+
 impl System {
     /// Create a new instance and detect system information.
     pub fn new() -> Result<Self, Error> {
-        Ok(System::with_manager(SystemPackageManager::detect()?))
+        Ok(Self::with_manager(SystemPackageManager::detect()?))
     }
 
     /// Create a new instance with the provided package manager.
     pub fn with_manager(manager: SystemPackageManager) -> Self {
-        System {
+        Self {
             arch: SystemArch::from_env(),
-            manager,
+            manager: Some(manager),
             os: SystemOS::from_env(),
         }
     }
@@ -44,8 +54,10 @@ impl System {
         dep_config: &DependencyConfig,
         interactive: bool,
     ) -> Result<Option<Vec<String>>, Error> {
-        let os = dep_config.os.unwrap_or(self.os);
-        let pm = dep_config.manager.unwrap_or(self.manager);
+        let Some(pm) = dep_config.manager.or(self.manager) else {
+            return Err(Error::RequiredPackageManager);
+        };
+
         let pm_config = pm.get_config();
         let mut args = vec![];
 
@@ -55,7 +67,7 @@ impl System {
 
         for arg in base_args {
             if arg == "$" {
-                args.extend(self.extract_package_args(dep_config, &pm_config, &pm, &os)?);
+                args.extend(self.extract_package_args(dep_config, &pm_config, &pm)?);
             } else {
                 args.push(arg.to_owned());
             }
@@ -82,7 +94,11 @@ impl System {
         dep_configs: &[DependencyConfig],
         interactive: bool,
     ) -> Result<Option<Vec<String>>, Error> {
-        let pm_config = self.manager.get_config();
+        let Some(pm) = self.manager else {
+            return Err(Error::RequiredPackageManager);
+        };
+
+        let pm_config = pm.get_config();
         let mut args = vec![];
 
         let Some(base_args) = pm_config.commands.get(&CommandType::InstallPackage) else {
@@ -92,12 +108,7 @@ impl System {
         for arg in base_args {
             if arg == "$" {
                 for dep_config in dep_configs {
-                    args.extend(self.extract_package_args(
-                        dep_config,
-                        &pm_config,
-                        &self.manager,
-                        &self.os,
-                    )?);
+                    args.extend(self.extract_package_args(dep_config, &pm_config, &pm)?);
                 }
             } else {
                 args.push(arg.to_owned());
@@ -116,18 +127,25 @@ impl System {
 
     /// Return the command and arguments to "update the registry index"
     /// for the current package manager.
-    pub fn get_update_index_command(&self, interactive: bool) -> Option<Vec<String>> {
-        let pm_config = self.manager.get_config();
+    pub fn get_update_index_command(
+        &self,
+        interactive: bool,
+    ) -> Result<Option<Vec<String>>, Error> {
+        let Some(pm) = self.manager else {
+            return Err(Error::RequiredPackageManager);
+        };
+
+        let pm_config = pm.get_config();
 
         if let Some(args) = pm_config.commands.get(&CommandType::UpdateIndex) {
             let mut args = args.to_owned();
 
             self.append_interactive(CommandType::UpdateIndex, &pm_config, &mut args, interactive);
 
-            return Some(args);
+            return Ok(Some(args));
         }
 
-        None
+        Ok(None)
     }
 
     /// Resolve and reduce the dependencies to a list that's applicable
@@ -143,6 +161,14 @@ impl System {
             }
 
             if config.arch.as_ref().is_some_and(|a| a != &self.arch) {
+                continue;
+            }
+
+            if let Some(pm) = &self.manager {
+                if config.manager.as_ref().is_some_and(|m| m != pm) {
+                    continue;
+                }
+            } else if config.manager.is_some() {
                 continue;
             }
 
@@ -181,11 +207,10 @@ impl System {
         dep_config: &DependencyConfig,
         pm_config: &PackageManagerConfig,
         pm: &SystemPackageManager,
-        os: &SystemOS,
     ) -> Result<Vec<String>, Error> {
         let mut args = vec![];
 
-        for dep in dep_config.get_package_names(&os, &pm)? {
+        for dep in dep_config.get_package_names(pm)? {
             if let Some(ver) = &dep_config.version {
                 match &pm_config.version_arg {
                     VersionArgument::None => {

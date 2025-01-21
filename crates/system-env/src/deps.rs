@@ -13,15 +13,15 @@ pub enum DependencyName {
     Single(String),
 
     /// A single package by name, but with different names (values)
-    /// depending on operating system or package manager (keys).
-    SingleMap(HashMap<String, String>),
+    /// depending on package manager (keys).
+    SingleMap(HashMap<SystemPackageManager, String>),
 
     /// Multiple packages by name.
     Multiple(Vec<String>),
 
     /// Multiple packages by name, but with different names (values)
-    /// depending on operating system or package manager (keys).
-    MultipleMap(HashMap<String, Vec<String>>),
+    /// depending on package manager (keys).
+    MultipleMap(HashMap<SystemPackageManager, Vec<String>>),
 }
 
 impl Default for DependencyName {
@@ -56,27 +56,18 @@ pub struct DependencyConfig {
 
 impl DependencyConfig {
     /// Get a list of package names for the provided OS and package manager.
-    pub fn get_package_names(
-        &self,
-        os: &SystemOS,
-        pm: &SystemPackageManager,
-    ) -> Result<Vec<String>, Error> {
-        let pms = pm.to_string();
-        let oss = os.to_string();
-
+    pub fn get_package_names(&self, pm: &SystemPackageManager) -> Result<Vec<String>, Error> {
         match &self.dep {
             DependencyName::Single(name) => Ok(vec![name.to_owned()]),
             DependencyName::SingleMap(map) => map
-                .get(&pms)
-                .or_else(|| map.get(&oss))
-                .or_else(|| map.get("*"))
+                .get(pm)
+                .or_else(|| map.get(&SystemPackageManager::All))
                 .map(|name| vec![name.to_owned()])
                 .ok_or(Error::MissingName),
             DependencyName::Multiple(list) => Ok(list.clone()),
             DependencyName::MultipleMap(map) => map
-                .get(&pms)
-                .or_else(|| map.get(&oss))
-                .or_else(|| map.get("*"))
+                .get(pm)
+                .or_else(|| map.get(&SystemPackageManager::All))
                 .cloned()
                 .ok_or(Error::MissingName),
         }
@@ -92,15 +83,15 @@ pub enum SystemDependency {
     Name(String),
 
     /// A single package by name, but with different names (values)
-    /// depending on operating system or package manager (keys).
-    NameMap(HashMap<String, String>),
+    /// depending on  package manager (keys).
+    NameMap(HashMap<SystemPackageManager, String>),
 
     /// Multiple packages by name.
     Names(Vec<String>),
 
     /// Multiple packages by name, but with different names (values)
-    /// depending on operating system or package manager (keys).
-    NamesMap(HashMap<String, Vec<String>>),
+    /// depending on package manager (keys).
+    NamesMap(HashMap<SystemPackageManager, Vec<String>>),
 
     /// Either a single or multiple package, defined as an
     /// explicit configuration object.
@@ -109,8 +100,8 @@ pub enum SystemDependency {
 
 impl SystemDependency {
     /// Create a single dependency by name.
-    pub fn name(name: &str) -> SystemDependency {
-        SystemDependency::Name(name.to_owned())
+    pub fn name(name: impl AsRef<str>) -> SystemDependency {
+        SystemDependency::Name(name.as_ref().to_owned())
     }
 
     /// Create multiple dependencies by name.
@@ -123,29 +114,44 @@ impl SystemDependency {
     }
 
     /// Create a single dependency by name for the target architecture.
-    pub fn for_arch(name: &str, arch: SystemArch) -> SystemDependency {
+    pub fn for_arch(arch: SystemArch, name: impl AsRef<str>) -> SystemDependency {
         SystemDependency::Config(Box::new(DependencyConfig {
             arch: Some(arch),
-            dep: DependencyName::Single(name.into()),
+            dep: DependencyName::Single(name.as_ref().into()),
             ..DependencyConfig::default()
         }))
     }
 
     /// Create a single dependency by name for the target operating system.
-    pub fn for_os(name: &str, os: SystemOS) -> SystemDependency {
+    pub fn for_os(os: SystemOS, name: impl AsRef<str>) -> SystemDependency {
         SystemDependency::Config(Box::new(DependencyConfig {
-            dep: DependencyName::Single(name.into()),
+            dep: DependencyName::Single(name.as_ref().into()),
             os: Some(os),
             ..DependencyConfig::default()
         }))
     }
 
     /// Create a single dependency by name for the target operating system and architecture.
-    pub fn for_os_arch(name: &str, os: SystemOS, arch: SystemArch) -> SystemDependency {
+    pub fn for_os_arch(os: SystemOS, arch: SystemArch, name: impl AsRef<str>) -> SystemDependency {
         SystemDependency::Config(Box::new(DependencyConfig {
             arch: Some(arch),
-            dep: DependencyName::Single(name.into()),
+            dep: DependencyName::Single(name.as_ref().into()),
             os: Some(os),
+            ..DependencyConfig::default()
+        }))
+    }
+
+    /// Create multiple dependencies by name for the target package manager.
+    pub fn for_pm<I, V>(pm: SystemPackageManager, names: I) -> SystemDependency
+    where
+        I: IntoIterator<Item = V>,
+        V: AsRef<str>,
+    {
+        SystemDependency::Config(Box::new(DependencyConfig {
+            dep: DependencyName::Multiple(
+                names.into_iter().map(|n| n.as_ref().to_owned()).collect(),
+            ),
+            manager: Some(pm),
             ..DependencyConfig::default()
         }))
     }

@@ -17,7 +17,7 @@ extism-pdk = "1.3.0"
 http-cache-reqwest = "0.15.0"
 human-sort = "0.2.2"
 indexmap = "2.7.0"
-iocraft = "0.6.1"
+iocraft = "0.6.2"
 # iocraft = { git = "https://github.com/ccbrown/iocraft.git", branch = "main" }
 miette = "7.4.0"
 once_cell = "1.20.2"

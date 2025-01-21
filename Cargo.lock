@@ -947,13 +947,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "dirs"
+version = "6.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3e8aa94d75141228480295a7d0e7feb620b1a5ad9f12bc40be62411e38cce4e"
+dependencies = [
+ "dirs-sys 0.5.0",
+]
+
+[[package]]
 name = "dirs-sys"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1b1d1d91c932ef41c0f2663aa8b0ca0342d444d842c06914aa0a7e352d0bada6"
 dependencies = [
  "libc",
- "redox_users",
+ "redox_users 0.4.6",
  "winapi",
 ]
 
@@ -965,8 +974,20 @@ checksum = "520f05a5cbd335fae5a99ff7a6ab8627577660ee5cfd6a94a6a929b52ff0321c"
 dependencies = [
  "libc",
  "option-ext",
- "redox_users",
+ "redox_users 0.4.6",
  "windows-sys 0.48.0",
+]
+
+[[package]]
+name = "dirs-sys"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e01a3366d27ee9890022452ee61b2b63a67e6f13f58900b651ff5665f0bb1fab"
+dependencies = [
+ "libc",
+ "option-ext",
+ "redox_users 0.5.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -976,7 +997,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4ebda144c4fe02d1f7ea1a7d9641b6fc6b580adcfa024ae48797ecdeb6825b4d"
 dependencies = [
  "libc",
- "redox_users",
+ "redox_users 0.4.6",
  "winapi",
 ]
 
@@ -1917,9 +1938,9 @@ checksum = "5a611371471e98973dbcab4e0ec66c31a10bc356eeb4d54a0e05eac8158fe38c"
 
 [[package]]
 name = "iocraft"
-version = "0.6.1"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44a6c534027c6c1355aa1e223ed9786e2f0362d5ddbca8cc95512665ec70d516"
+checksum = "5a34280c018dcd0a94d2c7a8b2999578d62ffee4decf52b01aeabd77a980932c"
 dependencies = [
  "any_key",
  "bitflags",
@@ -2902,6 +2923,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "redox_users"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd6f9d3d47bdd2ad6945c5015a226ec6155d0bcdfd8f7cd29f86b71f8de99d2b"
+dependencies = [
+ "getrandom",
+ "libredox",
+ "thiserror 2.0.11",
+]
+
+[[package]]
 name = "reflink-copy"
 version = "0.1.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3682,9 +3714,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_console"
-version = "0.4.4"
+version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "499b8afb848cd44603f363b7bcb10fc1bb80747f2aae3628b5fbda5395bf47c2"
+checksum = "a6587275399b87d19fcbde14f1825027e6984b64f7166f823e62ddb9a5478009"
 dependencies = [
  "crossterm",
  "iocraft",
@@ -3725,11 +3757,11 @@ dependencies = [
 
 [[package]]
 name = "starbase_styles"
-version = "0.4.11"
+version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa762771c938c1d2435b6ee09791cf47492ba9f80ac2496ad93f722a33c15b7e"
+checksum = "65b486cfc419b43fee8b42a87f8d654c1c1d439df34cdf1bfa152cc6bdf8456d"
 dependencies = [
- "dirs 5.0.1",
+ "dirs 6.0.0",
  "miette 7.4.0",
  "owo-colors",
  "supports-color",

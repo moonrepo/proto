@@ -4,7 +4,6 @@ use crate::error::ProtoError;
 use crate::helpers::{extract_filename_from_url, is_archive_file, is_offline};
 use crate::proto::ProtoConsole;
 use crate::tool::Tool;
-use miette::IntoDiagnostic;
 use proto_pdk_api::*;
 use proto_shim::*;
 use starbase_archive::Archiver;
@@ -14,15 +13,8 @@ use std::path::Path;
 use system_env::System;
 use tracing::{debug, instrument};
 
-#[derive(Debug, Default)]
-pub enum InstallStrategy {
-    BuildFromSource,
-    #[default]
-    DownloadPrebuilt,
-}
-
 // Prebuilt: Download -> verify -> unpack
-// Build: InstallDeps -> CheckRequirements -> ExecuteInstructions
+// Build: InstallDeps -> CheckRequirements -> ExecuteInstructions -> ...
 #[derive(Clone, Debug)]
 pub enum InstallPhase {
     Native,
@@ -147,7 +139,7 @@ impl Tool {
             console: options.console.clone(),
             on_phase_change: options.on_phase_change.take(),
             skip_prompts: options.skip_prompts,
-            system: System::new().into_diagnostic()?,
+            system: System::default(),
         };
 
         // Step 1
@@ -198,6 +190,13 @@ impl Tool {
             tool = self.id.as_str(),
             "Installing tool by downloading a pre-built archive"
         );
+
+        if !self.plugin.has_func("download_prebuilt").await {
+            return Err(ProtoError::UnsupportedDownloadPrebuilt {
+                tool: self.get_name().to_owned(),
+            }
+            .into());
+        }
 
         // Lock the install directory. If the inventory has been overridden,
         // lock the internal proto tool directory instead.
