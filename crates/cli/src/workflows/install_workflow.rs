@@ -5,13 +5,15 @@ use crate::telemetry::*;
 use crate::utils::tool_record::ToolRecord;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
 use proto_core::{PinLocation, UnresolvedVersionSpec, PROTO_PLUGIN_KEY};
-use proto_pdk_api::{InstallHook, InstallStrategy, SyncShellProfileInput, SyncShellProfileOutput};
+use proto_pdk_api::{
+    InstallHook, InstallStrategy, Switch, SyncShellProfileInput, SyncShellProfileOutput,
+};
 use starbase_console::ui::{ProgressDisplay, ProgressReporter};
 use starbase_console::utils::formats::format_duration;
 use starbase_shell::ShellType;
 use std::env;
 use std::time::{Duration, Instant};
-use tracing::debug;
+use tracing::{debug, warn};
 
 pub enum InstallOutcome {
     AlreadyInstalled,
@@ -37,6 +39,18 @@ pub struct InstallWorkflow {
 
 impl InstallWorkflow {
     pub fn new(tool: ToolRecord, console: ProtoConsole) -> Self {
+        if tool.metadata.unstable.is_enabled() {
+            warn!(
+                "{} is currently unstable. {}",
+                tool.get_name(),
+                if let Switch::Message(msg) = &tool.metadata.unstable {
+                    msg
+                } else {
+                    ""
+                }
+            );
+        }
+
         Self {
             console,
             progress_reporter: ProgressReporter::default(),

@@ -5,8 +5,12 @@
 - [Bun](https://github.com/moonrepo/plugins/blob/master/tools/bun/CHANGELOG.md)
 - [Deno](https://github.com/moonrepo/plugins/blob/master/tools/deno/CHANGELOG.md)
 - [Go](https://github.com/moonrepo/plugins/blob/master/tools/go/CHANGELOG.md)
+- [moon](https://github.com/moonrepo/plugins/blob/master/tools/moon/CHANGELOG.md)
 - [Node](https://github.com/moonrepo/plugins/blob/master/tools/node/CHANGELOG.md)
+- [npm, pnpm, yarn](https://github.com/moonrepo/plugins/blob/master/tools/node-depman/CHANGELOG.md)
 - [Python](https://github.com/moonrepo/plugins/blob/master/tools/python/CHANGELOG.md)
+- [uv](https://github.com/moonrepo/plugins/blob/master/tools/python_uv/CHANGELOG.md)
+- [Ruby](https://github.com/moonrepo/plugins/blob/master/tools/ruby/CHANGELOG.md)
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
@@ -14,14 +18,32 @@
 
 #### 🚀 Updates
 
+- Added new built-in tools: `moon`, `uv` (Python), and `ruby`.
 - Added a new interactive "build from source" flow for many built-in tools.
   - Added `--build` and `--no-build` to `proto install`.
-  - Supported for `deno`, `go`, `node`, `python`, and `ruby`.
+  - Supported for `deno`, `go`, `moon`, `node`, `python`, and `ruby`.
 - WASM API
   - Added a `build_instructions` plugin function for building from source, with associated structs and enums.
   - Added a `ToolMetadataOutput.default_install_strategy` field, which defaults to prebuilds.
   - Added a `ToolMetadataOutput.unstable` field, which can mark the tool as unstable.
   - Added a `ToolContext.temp_dir` field.
+
+#### 🧩 Plugins
+
+- Added `moon_tool` v0.1.
+- Added `python_uv_tool` v0.1.
+- Added `ruby_tool` v0.1 (via `ruby-build`).
+- Updated `bun_tool` to v0.14.1.
+- Updated `deno_tool` to v0.14.
+  - Added build from source support.
+- Updated `go_tool` to v0.15.
+  - Added build from source support.
+- Updated `node_tool` to v0.14.
+  - Added build from source support.
+- Updated `node_depman_tool` to v0.14.2.
+- Updated `python_tool` to v0.13.
+  - Added build from source support (via `python-build`).
+- Updated `rust_tool` to v0.12.1.
 
 ## 0.44.7
 

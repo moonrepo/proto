@@ -77,6 +77,19 @@
       ]
     },
     {
+      "id": "moon",
+      "locator": "github://moonrepo/plugins/moon_tool",
+      "format": "wasm",
+      "name": "moon",
+      "description": "moon is a multi-language build system and codebase management tool.",
+      "author": "moonrepo",
+      "homepageUrl": "https://moonrepo.dev/moon",
+      "repositoryUrl": "https://github.com/moonrepo/plugins",
+      "bins": [
+        "moon"
+      ]
+    },
+    {
       "id": "node",
       "locator": "github://moonrepo/plugins/node_tool",
       "format": "wasm",
@@ -85,6 +98,7 @@
       "author": "moonrepo",
       "homepageUrl": "https://nodejs.org/",
       "repositoryUrl": "https://github.com/moonrepo/plugins",
+      "devicon": "nodejs",
       "bins": [
         "node"
       ],
@@ -157,11 +171,12 @@
       "id": "python",
       "locator": "github://moonrepo/plugins/python_tool",
       "format": "wasm",
-      "name": "Python (experimental)",
+      "name": "Python",
       "description": "Python is a high-level, general-purpose programming language.",
       "author": "moonrepo",
       "homepageUrl": "https://www.python.org/",
       "repositoryUrl": "https://github.com/moonrepo/plugins",
+      "devicon": "python",
       "bins": [
         "python",
         "pip"
@@ -177,6 +192,29 @@
       ]
     },
     {
+      "id": "ruby",
+      "locator": "github://moonrepo/plugins/ruby_tool",
+      "format": "wasm",
+      "name": "Ruby",
+      "description": "A dynamic, open source programming language with a focus on simplicity and productivity.",
+      "author": "moonrepo",
+      "homepageUrl": "https://www.ruby-lang.org/en/",
+      "repositoryUrl": "https://github.com/moonrepo/plugins",
+      "devicon": "ruby",
+      "bins": [
+        "ruby",
+        "rake",
+        "gem",
+        "bundle"
+      ],
+      "detectionSources": [
+        {
+          "file": ".ruby-version",
+          "url": "https://github.com/rbenv/rbenv"
+        }
+      ]
+    },
+    {
       "id": "rust",
       "locator": "github://moonrepo/plugins/rust_tool",
       "format": "wasm",
@@ -185,6 +223,7 @@
       "author": "moonrepo",
       "homepageUrl": "https://www.rust-lang.org/",
       "repositoryUrl": "https://github.com/moonrepo/plugins",
+      "devicon": "rust",
       "bins": [],
       "detectionSources": [
         {
@@ -198,6 +237,20 @@
         "$CARGO_INSTALL_ROOT/bin",
         "$CARGO_HOME/bin",
         "~/.cargo/bin"
+      ]
+    },
+    {
+      "id": "uv",
+      "locator": "github://moonrepo/plugins/python_uv_tool",
+      "format": "wasm",
+      "name": "uv",
+      "description": "An extremely fast Python package and project manager.",
+      "author": "moonrepo",
+      "homepageUrl": "https://docs.astral.sh/uv",
+      "repositoryUrl": "https://github.com/astral-sh/uv",
+      "bins": [
+        "uv",
+        "uvx"
       ]
     },
     {

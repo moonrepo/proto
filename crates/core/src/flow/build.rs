@@ -16,6 +16,7 @@ use starbase_console::ui::{
 };
 use starbase_styles::color;
 use starbase_utils::{fs, net};
+use std::env;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use system_env::{find_command_on_path, is_command_on_path, System};
@@ -47,6 +48,11 @@ impl StepManager<'_> {
 
     pub fn has_errors(&self) -> bool {
         self.errors > 0
+    }
+
+    #[allow(dead_code)]
+    pub fn is_ci(&self) -> bool {
+        env::var("CI").is_ok_and(|v| !v.is_empty())
     }
 
     pub fn render_header(&self, title: impl AsRef<str>) -> miette::Result<()> {
@@ -294,19 +300,32 @@ pub async fn install_system_dependencies(
         func(InstallPhase::InstallDeps);
     });
 
-    if let Some(mut index_args) = system
+    // In CI, like GitHub Actions, package manager commands
+    // need to be ran with sudo on Linux. Has to be a better way?
+    let wrap_with_sudo = |base_args| {
+        let mut args = vec![];
+        #[cfg(target_os = "linux")]
+        if step.is_ci() {
+            args.push("sudo".to_string());
+        }
+        args.extend(base_args);
+        args
+    };
+
+    if let Some(index_args) = system
         .get_update_index_command(!options.skip_prompts)
         .into_diagnostic()?
     {
         step.render_checkpoint("Updating package manager index")?;
 
-        exec_command(Command::new(index_args.remove(0)).args(index_args)).await?;
+        let mut args = wrap_with_sudo(index_args);
+        exec_command(Command::new(args.remove(0)).args(args)).await?;
     }
 
     let dep_configs = system.resolve_dependencies(&build.system_dependencies);
 
     if !dep_configs.is_empty() {
-        if let Some(mut install_args) = system
+        if let Some(install_args) = system
             .get_install_packages_command(&dep_configs, !options.skip_prompts)
             .into_diagnostic()?
         {
@@ -324,7 +343,8 @@ pub async fn install_system_dependencies(
 
             step.prompt_continue("Install packages?").await?;
 
-            exec_command(Command::new(install_args.remove(0)).args(install_args)).await?;
+            let mut args = wrap_with_sudo(install_args);
+            exec_command(Command::new(args.remove(0)).args(args)).await?;
         }
     }
 
@@ -730,7 +750,7 @@ pub async fn execute_instructions(
                     "{prefix} Setting environment variable <property>{key}</property> to <symbol>{value}</symbol>",
                 ))?;
 
-                std::env::set_var(key, value);
+                env::set_var(key, value);
             }
         };
     }

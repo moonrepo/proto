@@ -3742,9 +3742,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_archive"
-version = "0.9.3"
+version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "550327b4bb767734859d2bca7ed08ba362ac289fbf3fbf52ae54c41ce68f25a2"
+checksum = "2ce12cbf3c33fd5376cddcab20c12309ca938f4320e35aa764a51f7a60df7669"
 dependencies = [
  "binstall-tar",
  "bzip2",
