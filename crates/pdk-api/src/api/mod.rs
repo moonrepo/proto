@@ -20,6 +20,9 @@ api_struct!(
         #[serde(default)]
         pub proto_version: Option<Version>,
 
+        /// Virtual path to the tool's temporary directory.
+        pub temp_dir: VirtualPath,
+
         /// Virtual path to the tool's installation directory.
         pub tool_dir: VirtualPath,
 

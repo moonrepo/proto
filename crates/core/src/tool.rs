@@ -191,6 +191,7 @@ impl Tool {
     pub fn create_context(&self) -> ToolContext {
         ToolContext {
             proto_version: Some(get_proto_version().to_owned()),
+            temp_dir: self.to_virtual_path(&self.get_temp_dir()),
             tool_dir: self.to_virtual_path(&self.get_product_dir()),
             version: self.get_resolved_version(),
         }

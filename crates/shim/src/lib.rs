@@ -1,12 +1,10 @@
-#[cfg(not(windows))]
+#[cfg(unix)]
 mod unix;
-
 #[cfg(windows)]
 mod windows;
 
-#[cfg(not(windows))]
+#[cfg(unix)]
 pub use unix::*;
-
 #[cfg(windows)]
 pub use windows::*;
 
