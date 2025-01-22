@@ -2694,7 +2694,7 @@ dependencies = [
 
 [[package]]
 name = "proto_codegen"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "proto_core",
  "proto_pdk_api",
@@ -2704,7 +2704,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.45.1"
+version = "0.45.2"
 dependencies = [
  "clap",
  "convert_case",
@@ -2756,7 +2756,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.26.0"
+version = "0.26.1"
 dependencies = [
  "extism-pdk",
  "proto_pdk_api",
@@ -2767,7 +2767,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.25.1"
+version = "0.25.2"
 dependencies = [
  "proto_pdk_api",
  "rustc-hash",
@@ -2783,7 +2783,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.32.0"
+version = "0.32.1"
 dependencies = [
  "proto_core",
  "proto_pdk_api",
