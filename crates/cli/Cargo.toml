@@ -79,4 +79,4 @@ starbase_sandbox = { workspace = true }
 shared_child = "1.0.1"
 
 [target."cfg(windows)".dependencies]
-winreg = { version = "0.53.0", default-features = false }
+winreg = { version = "0.55.0", default-features = false }

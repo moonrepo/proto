@@ -21,6 +21,7 @@
   - Added a `build_instructions` plugin function for building from source, with associated structs and enums.
   - Added a `ToolMetadataOutput.default_install_strategy` field, which defaults to prebuilds.
   - Added a `ToolMetadataOutput.unstable` field, which can mark the tool as unstable.
+  - Added a `ToolContext.temp_dir` field.
 
 ## 0.44.7
 

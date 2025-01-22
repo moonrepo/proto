@@ -8,5 +8,10 @@ homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
-command-group = "5.0.1"
 dirs = { workspace = true }
+
+[target."cfg(windows)".dependencies]
+process-wrap = { version = "8.2.0", default-features = false, features = [
+	"std",
+	"job-object",
+] }
