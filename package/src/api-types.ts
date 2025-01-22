@@ -75,6 +75,8 @@ export type PluginLocator = string;
 export interface ToolContext {
 	/** The version of proto (the core crate) calling plugin functions. */
 	protoVersion?: string | null;
+	/** Virtual path to the tool's temporary directory. */
+	tempDir: VirtualPath;
 	/** Virtual path to the tool's installation directory. */
 	toolDir: VirtualPath;
 	/** Current version. Will be a "latest" alias if not resolved. */
@@ -101,10 +103,21 @@ export interface ToolInventoryMetadata {
 	versionSuffix?: string | null;
 }
 
+/** Supported strategies for installing a tool. */
+export type InstallStrategy = 'build-from-source' | 'download-prebuilt';
+
+export type Switch = boolean | string;
+
 /** Output returned by the `register_tool` function. */
 export interface ToolMetadataOutput {
 	/** Schema shape of the tool's configuration. */
 	configSchema?: unknown | null;
+	/**
+	 * Default strategy to use when installing a tool.
+	 *
+	 * @type {'build-from-source' | 'download-prebuilt'}
+	 */
+	defaultInstallStrategy?: InstallStrategy;
 	/** Default alias or version to use as a fallback. */
 	defaultVersion?: UnresolvedVersionSpec | null;
 	/**
@@ -133,6 +146,8 @@ export interface ToolMetadataOutput {
 	 * @type {'command-line' | 'language' | 'dependency-manager' | 'version-manager'}
 	 */
 	type: PluginType;
+	/** Whether this plugin is unstable or not. */
+	unstable?: Switch;
 }
 
 /** Output returned by the `detect_version_files` function. */
@@ -303,7 +318,7 @@ export interface LocateExecutablesOutput {
 	/**
 	 * Relative directory path from the tool install directory in which
 	 * pre-installed executables can be located. This directory path
-	 * will be used during `proto active`, but not for bins/shims.
+	 * will be used during `proto activate`, but not for bins/shims.
 	 */
 	exesDir?: string | null;
 	/**
@@ -460,7 +475,7 @@ export interface ArchiveSource {
 /** Source code is located in a Git repository. */
 export interface GitSource {
 	/** The branch/commit/tag to checkout. */
-	reference: string;
+	reference?: string | null;
 	/** Include submodules during checkout. */
 	submodules?: boolean;
 	type: 'git';
@@ -471,6 +486,17 @@ export interface GitSource {
 export type SourceLocation = ArchiveSource | GitSource;
 
 export type BuildInstruction = {
+	/** A builder and its parameters for installing the builder. */
+	instruction: {
+		/** Main executable, relative from the source root. */
+		exe: string;
+		/** The Git source location for the builder. */
+		git: GitSource;
+		/** Unique identifier for this builder. */
+		id: string;
+	};
+	type: 'install-builder';
+} | {
 	instruction: string;
 	type: 'make-executable';
 } | {
@@ -489,20 +515,28 @@ export type BuildInstruction = {
 	/** A command and its parameters to be executed as a child process. */
 	instruction: {
 		/** List of arguments. */
-		args: string[];
+		args?: string[];
 		/** The binary on `PATH`. */
 		bin: string;
+		/** If the binary should reference a builder executable. */
+		builder: boolean;
 		/** The working directory. */
 		cwd?: string | null;
 		/** Map of environment variables. */
 		env?: Record<string, string>;
 	};
 	type: 'run-command';
+} | {
+	instruction: [string, string];
+	type: 'set-env-var';
 };
 
 export type BuildRequirement = {
 	requirement: string;
 	type: 'command-exists-on-path';
+} | {
+	requirement: [string, string, string | null];
+	type: 'command-version';
 } | {
 	requirement: string;
 	type: 'manual-intercept';
@@ -513,12 +547,6 @@ export type BuildRequirement = {
 	requirement: string;
 	type: 'git-version';
 } | {
-	requirement: string;
-	type: 'python-version';
-} | {
-	requirement: string;
-	type: 'ruby-version';
-} | {
 	requirement: 'xcode-command-line-tools';
 	type: 'xcode-command-line-tools';
 } | {
@@ -526,12 +554,12 @@ export type BuildRequirement = {
 	type: 'windows-developer-mode';
 };
 
-export type DependencyName = string | Record<string, string> | string[];
-
 /** Package manager of the system environment. */
-export type SystemPackageManager = 'pkg' | 'pkgin' | 'apk' | 'apt' | 'dnf' | 'pacman' | 'yum' | 'brew' | 'choco' | 'scoop';
+export type SystemPackageManager = 'pkg' | 'pkgin' | 'apk' | 'apt' | 'dnf' | 'pacman' | 'yum' | 'brew' | 'choco' | 'scoop' | 'all';
 
-export type SystemDependency = string | string[] | {
+export type DependencyName = string | Record<SystemPackageManager, string> | string[] | Record<SystemPackageManager, string[]>;
+
+export type SystemDependency = string | Record<SystemPackageManager, string> | string[] | Record<SystemPackageManager, string[]> | {
 	/** Only install on this architecture. */
 	arch?: SystemArch | null;
 	/** The dependency name or name(s) to install. */
@@ -544,7 +572,7 @@ export type SystemDependency = string | string[] | {
 	sudo?: boolean;
 	/** The version to install. */
 	version?: string | null;
-} | Record<string, string>;
+};
 
 /** Output returned by the `build_instructions` function. */
 export interface BuildInstructionsOutput {

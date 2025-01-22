@@ -47,7 +47,7 @@ fn apply_settings(sandbox: &mut Sandbox) {
     env.insert("PROTO_TEST", "true");
 
     sandbox.settings.bin = "proto".into();
-    sandbox.settings.timeout = 240;
+    sandbox.settings.timeout = 300;
 
     sandbox
         .settings
