@@ -408,6 +408,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
+name = "cfg_aliases"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
+
+[[package]]
 name = "clean-path"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -418,16 +424,6 @@ name = "cobs"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "67ba02a97a2bd10f4b59b25c7973101c79642302776489e030cd13cdab09ed15"
-
-[[package]]
-name = "command-group"
-version = "5.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a68fa787550392a9d58f44c21a3022cfb3ea3e2458b7f85d3b399d0ceeccf409"
-dependencies = [
- "nix",
- "winapi",
-]
 
 [[package]]
 name = "compact_str"
@@ -2209,12 +2205,13 @@ checksum = "a785740271256c230f57462d3b83e52f998433a7062fc18f96d5999474a9f915"
 
 [[package]]
 name = "nix"
-version = "0.27.1"
+version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2eb04e9c688eff1c89d72b407f168cf79bb9e867a9d3323ed6c01519eb9cc053"
+checksum = "71e2746dc3a24dd78b3cfcb7be93368c6de9963d30f43a6a73998a9cf4b17b46"
 dependencies = [
  "bitflags",
  "cfg-if",
+ "cfg_aliases",
  "libc",
 ]
 
@@ -2469,6 +2466,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "process-wrap"
+version = "8.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d35f4dc9988d1326b065b4def5e950c3ed727aa03e3151b86cc9e2aec6b03f54"
+dependencies = [
+ "indexmap",
+ "nix",
+ "tracing",
+ "windows",
+]
+
+[[package]]
 name = "prost"
 version = "0.13.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2493,7 +2502,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.44.6"
+version = "0.45.0"
 dependencies = [
  "convert_case",
  "dotenvy",
@@ -2516,7 +2525,7 @@ dependencies = [
  "starbase_archive",
  "starbase_console",
  "starbase_styles",
- "starbase_utils 0.10.0",
+ "starbase_utils",
  "system_env",
  "thiserror 2.0.11",
  "tokio",
@@ -2529,7 +2538,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.25.5"
+version = "0.26.0"
 dependencies = [
  "extism-pdk",
  "proto_pdk_api",
@@ -2540,7 +2549,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.24.6"
+version = "0.25.0"
 dependencies = [
  "rustc-hash 2.1.0",
  "schematic",
@@ -2555,13 +2564,13 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.31.0"
+version = "0.32.0"
 dependencies = [
  "proto_core",
  "proto_pdk_api",
  "serde",
  "serde_json",
- "starbase_sandbox 0.8.2",
+ "starbase_sandbox",
  "warpgate",
 ]
 
@@ -2569,8 +2578,8 @@ dependencies = [
 name = "proto_shim"
 version = "0.5.0"
 dependencies = [
- "command-group",
  "dirs 6.0.0",
+ "process-wrap",
 ]
 
 [[package]]
@@ -2581,7 +2590,7 @@ dependencies = [
  "proto_pdk",
  "proto_pdk_test_utils",
  "serde",
- "starbase_sandbox 0.7.4",
+ "starbase_sandbox",
  "tokio",
 ]
 
@@ -3455,7 +3464,7 @@ dependencies = [
  "miette 7.4.0",
  "rustc-hash 2.1.0",
  "starbase_styles",
- "starbase_utils 0.10.0",
+ "starbase_utils",
  "thiserror 2.0.11",
  "tracing",
  "xz2",
@@ -3480,21 +3489,6 @@ dependencies = [
 
 [[package]]
 name = "starbase_sandbox"
-version = "0.7.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42da00b3ca0f2fe52e18416ed5b2d44c82e85351bcf797431aa1da5af903ee7c"
-dependencies = [
- "assert_cmd",
- "assert_fs",
- "clean-path",
- "insta",
- "predicates",
- "pretty_assertions",
- "starbase_utils 0.8.10",
-]
-
-[[package]]
-name = "starbase_sandbox"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf641da9f534f7c67e318a75cb30bd37ef9de303fb77483c431c2e27a912ee56"
@@ -3505,7 +3499,7 @@ dependencies = [
  "insta",
  "predicates",
  "pretty_assertions",
- "starbase_utils 0.10.0",
+ "starbase_utils",
 ]
 
 [[package]]
@@ -3517,18 +3511,6 @@ dependencies = [
  "dirs 6.0.0",
  "owo-colors",
  "supports-color",
-]
-
-[[package]]
-name = "starbase_utils"
-version = "0.8.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "302be829660e306e56225a20224b1ddcce97baae9c34a62742e8ac7d122f6508"
-dependencies = [
- "dirs 5.0.1",
- "starbase_styles",
- "thiserror 1.0.64",
- "tracing",
 ]
 
 [[package]]
@@ -3652,7 +3634,7 @@ dependencies = [
 
 [[package]]
 name = "system_env"
-version = "0.6.1"
+version = "0.7.0"
 dependencies = [
  "schematic",
  "serde",
@@ -4131,7 +4113,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "version_spec"
-version = "0.7.1"
+version = "0.7.2"
 dependencies = [
  "compact_str",
  "human-sort",
@@ -4172,7 +4154,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.20.3"
+version = "0.21.0"
 dependencies = [
  "async-trait",
  "compact_str",
@@ -4192,7 +4174,7 @@ dependencies = [
  "sha2",
  "starbase_archive",
  "starbase_styles",
- "starbase_utils 0.10.0",
+ "starbase_utils",
  "system_env",
  "thiserror 2.0.11",
  "tokio",
@@ -4203,7 +4185,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_api"
-version = "0.10.1"
+version = "0.11.0"
 dependencies = [
  "anyhow",
  "rustc-hash 2.1.0",
@@ -4216,7 +4198,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_pdk"
-version = "0.8.1"
+version = "0.9.0"
 dependencies = [
  "extism-pdk",
  "serde",
