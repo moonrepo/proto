@@ -222,6 +222,26 @@ mod plugins {
         }
 
         #[test]
+        fn supports_moon() {
+            let sandbox = create_empty_proto_sandbox();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("moon");
+                })
+                .success();
+
+            create_shim_command(sandbox.path(), "moon")
+                .arg("--version")
+                .assert()
+                .success();
+
+            assert_snapshot!(
+                fs::read_to_string(sandbox.path().join(".proto/shims/registry.json")).unwrap()
+            );
+        }
+
+        #[test]
         fn supports_node() {
             let sandbox = create_empty_proto_sandbox();
 
@@ -344,6 +364,46 @@ mod plugins {
             create_shim_command(sandbox.path(), "python")
                 .arg("--version")
                 .env("PROTO_PYTHON_VERSION", "3.12.0")
+                .assert()
+                .success();
+
+            assert_snapshot!(
+                fs::read_to_string(sandbox.path().join(".proto/shims/registry.json")).unwrap()
+            );
+        }
+
+        #[test]
+        fn supports_uv() {
+            let sandbox = create_empty_proto_sandbox();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("uv");
+                })
+                .success();
+
+            create_shim_command(sandbox.path(), "uv")
+                .arg("--version")
+                .assert()
+                .success();
+
+            assert_snapshot!(
+                fs::read_to_string(sandbox.path().join(".proto/shims/registry.json")).unwrap()
+            );
+        }
+
+        #[test]
+        fn supports_ruby() {
+            let sandbox = create_empty_proto_sandbox();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("ruby").arg("--yes");
+                })
+                .success();
+
+            create_shim_command(sandbox.path(), "ruby")
+                .arg("--version")
                 .assert()
                 .success();
 
