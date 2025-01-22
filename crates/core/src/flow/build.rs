@@ -50,6 +50,7 @@ impl StepManager<'_> {
         self.errors > 0
     }
 
+    #[allow(dead_code)]
     pub fn is_ci(&self) -> bool {
         env::var("CI").is_ok_and(|v| !v.is_empty())
     }

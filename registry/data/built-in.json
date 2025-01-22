@@ -98,6 +98,7 @@
       "author": "moonrepo",
       "homepageUrl": "https://nodejs.org/",
       "repositoryUrl": "https://github.com/moonrepo/plugins",
+      "devicon": "nodejs",
       "bins": [
         "node"
       ],
@@ -175,6 +176,7 @@
       "author": "moonrepo",
       "homepageUrl": "https://www.python.org/",
       "repositoryUrl": "https://github.com/moonrepo/plugins",
+      "devicon": "python",
       "bins": [
         "python",
         "pip"
@@ -198,6 +200,7 @@
       "author": "moonrepo",
       "homepageUrl": "https://www.ruby-lang.org/en/",
       "repositoryUrl": "https://github.com/moonrepo/plugins",
+      "devicon": "ruby",
       "bins": [
         "ruby",
         "rake",
@@ -220,6 +223,7 @@
       "author": "moonrepo",
       "homepageUrl": "https://www.rust-lang.org/",
       "repositoryUrl": "https://github.com/moonrepo/plugins",
+      "devicon": "rust",
       "bins": [],
       "detectionSources": [
         {
