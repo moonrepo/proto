@@ -2704,7 +2704,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.45.0"
+version = "0.45.1"
 dependencies = [
  "clap",
  "convert_case",
@@ -2767,7 +2767,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.25.0"
+version = "0.25.1"
 dependencies = [
  "proto_pdk_api",
  "rustc-hash",
