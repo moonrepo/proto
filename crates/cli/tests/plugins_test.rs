@@ -378,12 +378,14 @@ mod plugins {
 
             sandbox.sandbox.debug_files();
 
-            sandbox.run_bin(|cmd| {
+            let assert = sandbox.run_bin(|cmd| {
                 cmd.arg("install").arg("uv");
             });
             // .success();
 
             sandbox.sandbox.debug_files();
+
+            assert.debug();
 
             create_shim_command(sandbox.path(), "uv")
                 .arg("--version")

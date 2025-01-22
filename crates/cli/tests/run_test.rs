@@ -190,7 +190,10 @@ mod run {
             })
             .success();
 
-        assert.stdout(predicate::str::contains("installed"));
+        // Output on macos is truncated
+        if cfg!(not(target_os = "macos")) {
+            assert.stdout(predicate::str::contains("installed"));
+        }
     }
 
     #[test]
@@ -209,7 +212,10 @@ mod run {
             })
             .success();
 
-        assert.stdout(predicate::str::contains("installed"));
+        // Output on macos is truncated
+        if cfg!(not(target_os = "macos")) {
+            assert.stdout(predicate::str::contains("installed"));
+        }
 
         env::remove_var("PROTO_AUTO_INSTALL");
     }
