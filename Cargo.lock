@@ -2621,6 +2621,7 @@ checksum = "d35f4dc9988d1326b065b4def5e950c3ed727aa03e3151b86cc9e2aec6b03f54"
 dependencies = [
  "indexmap",
  "nix",
+ "tracing",
  "windows 0.59.0",
 ]
 
