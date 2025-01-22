@@ -376,16 +376,11 @@ mod plugins {
         fn supports_uv() {
             let sandbox = create_empty_proto_sandbox();
 
-            sandbox.sandbox.debug_files();
-
-            let assert = sandbox.run_bin(|cmd| {
-                cmd.arg("install").arg("uv");
-            });
-            // .success();
-
-            sandbox.sandbox.debug_files();
-
-            assert.debug();
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("uv");
+                })
+                .success();
 
             create_shim_command(sandbox.path(), "uv")
                 .arg("--version")

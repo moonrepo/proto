@@ -299,11 +299,11 @@ pub async fn install_system_dependencies(
         func(InstallPhase::InstallDeps);
     });
 
-    // In CI, like GitHub actions, package manager commands
-    // need to be ran with sudo. Has to be a better way?
+    // In CI, like GitHub Actions, package manager commands
+    // need to be ran with sudo on Linux. Has to be a better way?
     let wrap_with_sudo = |base_args| {
         let mut args = vec![];
-        #[cfg(unix)]
+        #[cfg(target_os = "linux")]
         if step.is_ci() {
             args.push("sudo".to_string());
         }

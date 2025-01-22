@@ -253,7 +253,10 @@ mod run {
             })
             .success();
 
-        assert.stdout(predicate::str::contains("Node.js 19.0.0 installed"));
+        // Output on macos is truncated
+        if cfg!(not(target_os = "macos")) {
+            assert.stdout(predicate::str::contains("Node.js 19.0.0 installed"));
+        }
 
         let assert = sandbox
             .run_bin(|cmd| {
@@ -265,7 +268,10 @@ mod run {
             })
             .success();
 
-        assert.stdout(predicate::str::contains("Node.js 19.0.0 installed").not());
+        // Output on macos is truncated
+        if cfg!(not(target_os = "macos")) {
+            assert.stdout(predicate::str::contains("Node.js 19.0.0 installed").not());
+        }
     }
 
     #[test]
