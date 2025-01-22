@@ -245,7 +245,8 @@
       "homepageUrl": "https://docs.astral.sh/uv",
       "repositoryUrl": "https://github.com/astral-sh/uv",
       "bins": [
-        "uv"
+        "uv",
+        "uvx"
       ]
     },
     {

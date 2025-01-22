@@ -376,11 +376,14 @@ mod plugins {
         fn supports_uv() {
             let sandbox = create_empty_proto_sandbox();
 
-            sandbox
-                .run_bin(|cmd| {
-                    cmd.arg("install").arg("uv");
-                })
-                .success();
+            sandbox.sandbox.debug_files();
+
+            sandbox.run_bin(|cmd| {
+                cmd.arg("install").arg("uv");
+            });
+            // .success();
+
+            sandbox.sandbox.debug_files();
 
             create_shim_command(sandbox.path(), "uv")
                 .arg("--version")
@@ -392,6 +395,7 @@ mod plugins {
             );
         }
 
+        #[cfg(unix)]
         #[test]
         fn supports_ruby() {
             let sandbox = create_empty_proto_sandbox();

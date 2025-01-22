@@ -5,8 +5,12 @@
 - [Bun](https://github.com/moonrepo/plugins/blob/master/tools/bun/CHANGELOG.md)
 - [Deno](https://github.com/moonrepo/plugins/blob/master/tools/deno/CHANGELOG.md)
 - [Go](https://github.com/moonrepo/plugins/blob/master/tools/go/CHANGELOG.md)
+- [moon](https://github.com/moonrepo/plugins/blob/master/tools/moon/CHANGELOG.md)
 - [Node](https://github.com/moonrepo/plugins/blob/master/tools/node/CHANGELOG.md)
+- [npm, pnpm, yarn](https://github.com/moonrepo/plugins/blob/master/tools/node-depman/CHANGELOG.md)
 - [Python](https://github.com/moonrepo/plugins/blob/master/tools/python/CHANGELOG.md)
+- [uv](https://github.com/moonrepo/plugins/blob/master/tools/python_uv/CHANGELOG.md)
+- [Ruby](https://github.com/moonrepo/plugins/blob/master/tools/ruby/CHANGELOG.md)
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
