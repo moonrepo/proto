@@ -88,10 +88,8 @@ impl ProtoEnvironment {
             let mut options = config.settings.http.clone();
             options.cache_dir = Some(self.store.cache_dir.join("requests"));
 
-            let mut loader = PluginLoader::new(
-                &self.store.plugins_dir,
-                &self.store.temp_dir.join("plugins"),
-            );
+            let mut loader =
+                PluginLoader::new(&self.store.plugins_dir, self.store.temp_dir.join("plugins"));
             loader.set_client_options(&options);
             loader.set_offline_checker(is_offline);
 
