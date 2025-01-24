@@ -79,7 +79,8 @@ impl Tool {
 
         // Only lock the directory and create shims if necessary
         if !to_create.is_empty() {
-            let _lock = fs::lock_directory(&self.proto.store.shims_dir)?;
+            // let _lock = fs::lock_directory(&self.proto.store.shims_dir)?;
+            fs::create_dir_all(&self.proto.store.shims_dir)?;
 
             for shim_path in to_create {
                 self.proto.store.create_shim(&shim_path)?;
@@ -155,7 +156,8 @@ impl Tool {
 
         // Only lock the directory and create bins if necessary
         if !to_create.is_empty() {
-            let _lock = fs::lock_directory(&self.proto.store.bin_dir)?;
+            // let _lock = fs::lock_directory(&self.proto.store.bin_dir)?;
+            fs::create_dir_all(&self.proto.store.bin_dir)?;
 
             for (input_path, output_path) in to_create {
                 debug!(
