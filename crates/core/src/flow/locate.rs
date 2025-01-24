@@ -111,7 +111,7 @@ impl Tool {
     /// The list will contain the executable config, and an absolute path
     /// to the binaries final location.
     pub async fn resolve_bin_locations(
-        &self,
+        &mut self,
         include_all_versions: bool,
     ) -> miette::Result<Vec<ExecutableLocation>> {
         self.resolve_bin_locations_with_manager(
@@ -122,29 +122,46 @@ impl Tool {
     }
 
     pub async fn resolve_bin_locations_with_manager(
-        &self,
+        &mut self,
         bin_manager: BinManager,
         include_all_versions: bool,
     ) -> miette::Result<Vec<ExecutableLocation>> {
-        let output = self.call_locate_executables().await?;
-        let resolved_version = self.get_resolved_version();
+        let original_version = self.get_resolved_version();
         let mut locations = vec![];
 
         let versions = if include_all_versions {
             bin_manager.get_buckets()
         } else {
-            bin_manager.get_buckets_focused_to_version(&resolved_version)
+            bin_manager.get_buckets_focused_to_version(&original_version)
         };
 
-        let mut add = |name: String, config: ExecutableConfig| {
-            if !config.no_bin
-                && config
-                    .exe_link_path
-                    .as_ref()
-                    .or(config.exe_path.as_ref())
-                    .is_some()
-            {
-                for (bucket_version, resolved_version) in &versions {
+        // Loop through each version, extract the locations,
+        // and append it to the master list
+        for (bucket_version, resolved_version) in versions {
+            // Locate the executables for this specific version,
+            // as the logic in how they are located may have changed
+            // between versions, and we simply can't rely on the
+            // latest version being completely backwards compatible
+            self.set_version(resolved_version.to_owned());
+
+            let output: LocateExecutablesOutput = self
+                .plugin
+                .cache_func_with(
+                    "locate_executables",
+                    LocateExecutablesInput {
+                        context: self.create_context(),
+                    },
+                )
+                .await?;
+
+            let mut add = |name: String, config: ExecutableConfig| {
+                if !config.no_bin
+                    && config
+                        .exe_link_path
+                        .as_ref()
+                        .or(config.exe_path.as_ref())
+                        .is_some()
+                {
                     let versioned_name = if *bucket_version == "*" {
                         name.clone()
                     } else {
@@ -162,27 +179,28 @@ impl Tool {
                         version: Some((*resolved_version).to_owned()),
                     });
                 }
-            }
-        };
+            };
 
-        if output.exes.is_empty() {
-            #[allow(deprecated)]
-            if let Some(mut primary) = output.primary {
-                primary.primary = true;
+            if output.exes.is_empty() {
+                #[allow(deprecated)]
+                if let Some(mut primary) = output.primary {
+                    primary.primary = true;
 
-                add(self.id.to_string(), primary);
-            }
+                    add(self.id.to_string(), primary);
+                }
 
-            #[allow(deprecated)]
-            for (name, secondary) in output.secondary {
-                add(name, secondary);
-            }
-        } else {
-            for (name, config) in output.exes {
-                add(name, config);
+                #[allow(deprecated)]
+                for (name, secondary) in output.secondary {
+                    add(name, secondary);
+                }
+            } else {
+                for (name, config) in output.exes {
+                    add(name, config);
+                }
             }
         }
 
+        self.set_version(original_version);
         locations.sort_by(|a, d| a.name.cmp(&d.name));
 
         Ok(locations)

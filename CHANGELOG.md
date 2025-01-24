@@ -14,6 +14,17 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed an issue where generating all the `~/.proto/bin` files for a tool may result in missing file warnings. Previously, we assumed that the exe locations from the resolved version would apply to all the versions being linked, but this isn't always true and isn't backwards compatible. We've now updated the bin linking to make a WASM API call for _each_ version being linked when locating exes, in hopes that this now finds the correct locations.
+
+#### 🧩 Plugins
+
+- Updated `python_tool` to v0.13.1.
+  - Improved logic that detects legacy installs.
+
 ## 0.45.0
 
 #### 🚀 Updates
