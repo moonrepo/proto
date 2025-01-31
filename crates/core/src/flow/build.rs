@@ -210,20 +210,22 @@ async fn exec_command_piped(command: &mut Command) -> miette::Result<String> {
     exec_command(command.stderr(Stdio::piped()).stdout(Stdio::piped())).await
 }
 
-async fn exec_command_with_sudo(
+async fn exec_command_with_privileges(
     command: &mut Command,
-    elevated_bin: Option<&str>,
+    elevated_program: Option<&str>,
 ) -> miette::Result<String> {
     let command_line = before_exec(command);
 
     let output = match spawn_command(command).await {
         Ok(output) => output,
         Err(error) => {
+            dbg!(&error, &elevated_program);
+
             // We may require elevated access, let's try it again
-            if error.kind() == ErrorKind::PermissionDenied && elevated_bin.is_some() {
+            if error.kind() == ErrorKind::PermissionDenied && elevated_program.is_some() {
                 let inner = command.as_std();
 
-                let mut sudo_command = Command::new(elevated_bin.unwrap());
+                let mut sudo_command = Command::new(elevated_program.unwrap());
                 sudo_command.arg(inner.get_program());
                 sudo_command.args(inner.get_args());
 
@@ -357,15 +359,17 @@ pub async fn install_system_dependencies(
         func(InstallPhase::InstallDeps);
     });
 
+    let elevated_command = pm.get_elevated_command();
+
     if let Some(mut index_args) = system
         .get_update_index_command(!options.skip_prompts)
         .into_diagnostic()?
     {
         step.render_checkpoint("Updating package manager index")?;
 
-        exec_command_with_sudo(
+        exec_command_with_privileges(
             Command::new(index_args.remove(0)).args(index_args),
-            pm.get_elevated_command(),
+            elevated_command,
         )
         .await?;
     }
@@ -391,9 +395,9 @@ pub async fn install_system_dependencies(
 
             step.prompt_continue("Install packages?").await?;
 
-            exec_command_with_sudo(
+            exec_command_with_privileges(
                 Command::new(install_args.remove(0)).args(install_args),
-                pm.get_elevated_command(),
+                elevated_command,
             )
             .await?;
         }
