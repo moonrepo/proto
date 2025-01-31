@@ -123,12 +123,14 @@ impl SystemPackageManager {
     /// "doas" or "sudo", and on Windows this does nothing.
     pub fn get_elevated_command(&self) -> Option<&str> {
         #[cfg(unix)]
-        if is_command_on_path("doas") {
-            Some("doas")
-        } else if is_command_on_path("sudo") {
-            Some("sudo")
-        } else {
-            None
+        {
+            if is_command_on_path("doas") {
+                Some("doas")
+            } else if is_command_on_path("sudo") {
+                Some("sudo")
+            } else {
+                None
+            }
         }
 
         #[cfg(windows)]
