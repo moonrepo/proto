@@ -17,8 +17,9 @@ use starbase_console::ui::{
 use starbase_styles::color;
 use starbase_utils::{fs, net};
 use std::env;
+use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
-use std::process::Stdio;
+use std::process::{Output, Stdio};
 use system_env::{find_command_on_path, is_command_on_path, System};
 use tokio::process::Command;
 use tracing::{debug, error, trace};
@@ -137,7 +138,14 @@ impl StepManager<'_> {
     }
 }
 
-async fn exec_command(command: &mut Command) -> miette::Result<String> {
+async fn spawn_command(command: &mut Command) -> std::io::Result<Output> {
+    let child = command.spawn()?;
+    let output = child.wait_with_output().await?;
+
+    Ok(output)
+}
+
+fn before_exec(command: &Command) -> String {
     let inner = command.as_std();
     let command_line = format!(
         "{} {}",
@@ -158,22 +166,10 @@ async fn exec_command(command: &mut Command) -> miette::Result<String> {
         "Running command {}", color::shell(&command_line)
     );
 
-    let child = command
-        .spawn()
-        .map_err(|error| ProtoBuildError::CommandFailed {
-            command: command_line.clone(),
-            error: Box::new(error),
-        })?;
+    command_line
+}
 
-    let output =
-        child
-            .wait_with_output()
-            .await
-            .map_err(|error| ProtoBuildError::CommandFailed {
-                command: command_line.clone(),
-                error: Box::new(error),
-            })?;
-
+fn after_exec(command_line: String, output: Output) -> miette::Result<String> {
     let stderr = String::from_utf8(output.stderr).into_diagnostic()?;
     let stdout = String::from_utf8(output.stdout).into_diagnostic()?;
     let code = output.status.code().unwrap_or(-1);
@@ -188,7 +184,7 @@ async fn exec_command(command: &mut Command) -> miette::Result<String> {
 
     if !output.status.success() {
         return Err(ProtoBuildError::CommandNonZeroExit {
-            command: command_line.clone(),
+            command: command_line,
             code,
         }
         .into());
@@ -197,8 +193,69 @@ async fn exec_command(command: &mut Command) -> miette::Result<String> {
     Ok(stdout)
 }
 
+async fn exec_command(command: &mut Command) -> miette::Result<String> {
+    let command_line = before_exec(command);
+
+    let output = spawn_command(command)
+        .await
+        .map_err(|error| ProtoBuildError::CommandFailed {
+            command: command_line.clone(),
+            error: Box::new(error),
+        })?;
+
+    after_exec(command_line, output)
+}
+
 async fn exec_command_piped(command: &mut Command) -> miette::Result<String> {
     exec_command(command.stderr(Stdio::piped()).stdout(Stdio::piped())).await
+}
+
+async fn exec_command_with_sudo(
+    command: &mut Command,
+    elevated_bin: Option<&str>,
+) -> miette::Result<String> {
+    let command_line = before_exec(command);
+
+    let output = match spawn_command(command).await {
+        Ok(output) => output,
+        Err(error) => {
+            // We may require elevated access, let's try it again
+            if error.kind() == ErrorKind::PermissionDenied && elevated_bin.is_some() {
+                let inner = command.as_std();
+
+                let mut sudo_command = Command::new(elevated_bin.unwrap());
+                sudo_command.arg(inner.get_program());
+                sudo_command.args(inner.get_args());
+
+                for (key, value) in inner.get_envs() {
+                    if let Some(value) = value {
+                        sudo_command.env(key, value);
+                    } else {
+                        sudo_command.env_remove(key);
+                    }
+                }
+
+                if let Some(dir) = inner.get_current_dir() {
+                    sudo_command.current_dir(dir);
+                }
+
+                spawn_command(&mut sudo_command).await.map_err(|error| {
+                    ProtoBuildError::CommandFailed {
+                        command: command_line.clone(),
+                        error: Box::new(error),
+                    }
+                })?
+            } else {
+                return Err(ProtoBuildError::CommandFailed {
+                    command: command_line.clone(),
+                    error: Box::new(error),
+                }
+                .into());
+            }
+        }
+    };
+
+    after_exec(command_line, output)
 }
 
 async fn checkout_git_repo(
@@ -300,32 +357,23 @@ pub async fn install_system_dependencies(
         func(InstallPhase::InstallDeps);
     });
 
-    // In CI, like GitHub Actions, package manager commands
-    // need to be ran with sudo on Linux. Has to be a better way?
-    let wrap_with_sudo = |base_args| {
-        let mut args = vec![];
-        #[cfg(target_os = "linux")]
-        if step.is_ci() {
-            args.push("sudo".to_string());
-        }
-        args.extend(base_args);
-        args
-    };
-
-    if let Some(index_args) = system
+    if let Some(mut index_args) = system
         .get_update_index_command(!options.skip_prompts)
         .into_diagnostic()?
     {
         step.render_checkpoint("Updating package manager index")?;
 
-        let mut args = wrap_with_sudo(index_args);
-        exec_command(Command::new(args.remove(0)).args(args)).await?;
+        exec_command_with_sudo(
+            Command::new(index_args.remove(0)).args(index_args),
+            pm.get_elevated_command(),
+        )
+        .await?;
     }
 
     let dep_configs = system.resolve_dependencies(&build.system_dependencies);
 
     if !dep_configs.is_empty() {
-        if let Some(install_args) = system
+        if let Some(mut install_args) = system
             .get_install_packages_command(&dep_configs, !options.skip_prompts)
             .into_diagnostic()?
         {
@@ -343,8 +391,11 @@ pub async fn install_system_dependencies(
 
             step.prompt_continue("Install packages?").await?;
 
-            let mut args = wrap_with_sudo(install_args);
-            exec_command(Command::new(args.remove(0)).args(args)).await?;
+            exec_command_with_sudo(
+                Command::new(install_args.remove(0)).args(install_args),
+                pm.get_elevated_command(),
+            )
+            .await?;
         }
     }
 

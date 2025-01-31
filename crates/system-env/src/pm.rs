@@ -1,4 +1,5 @@
 use crate::error::Error;
+use crate::helpers::is_command_on_path;
 use crate::pm_vendor::*;
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -116,6 +117,22 @@ impl SystemPackageManager {
             Self::Scoop => scoop(),
             Self::All => unreachable!(),
         }
+    }
+
+    /// Return the command to use for elevated access. On Unix, this will use
+    /// "doas" or "sudo", and on Windows this does nothing.
+    pub fn get_elevated_command(&self) -> Option<&str> {
+        #[cfg(unix)]
+        if is_command_on_path("doas") {
+            Some("doas")
+        } else if is_command_on_path("sudo") {
+            Some("sudo")
+        } else {
+            None
+        }
+
+        #[cfg(windows)]
+        None
     }
 }
 
