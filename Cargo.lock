@@ -3963,6 +3963,7 @@ dependencies = [
 name = "system_env"
 version = "0.7.0"
 dependencies = [
+ "regex",
  "schematic",
  "serde",
  "serde_json",
