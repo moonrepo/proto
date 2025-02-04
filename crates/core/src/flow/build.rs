@@ -803,20 +803,36 @@ pub async fn execute_instructions(
                 ))?;
 
                 let builder_dir = proto.store.builders_dir.join(&builder.id);
-                let builder_exe = builder_dir.join(&builder.exe);
 
                 checkout_git_repo(&builder.git, &builder_dir, &step).await?;
 
-                if !builder_exe.exists() {
-                    return Err(ProtoBuildError::MissingBuilderExe {
-                        exe: builder_exe,
-                        id: builder.id.clone(),
-                    }
-                    .into());
-                }
+                let main_exe_name = String::new();
+                let mut exes = FxHashMap::default();
+                exes.extend(&builder.exes);
+                exes.insert(&main_exe_name, &builder.exe);
 
-                fs::update_perms(&builder_exe, None)?;
-                builder_exes.insert(builder.id.clone(), builder_exe);
+                for (exe_name, exe_rel_path) in exes {
+                    let exe_abs_path = builder_dir.join(exe_rel_path);
+
+                    if !exe_abs_path.exists() {
+                        return Err(ProtoBuildError::MissingBuilderExe {
+                            exe: exe_abs_path,
+                            id: builder.id.clone(),
+                        }
+                        .into());
+                    }
+
+                    fs::update_perms(&exe_abs_path, None)?;
+
+                    builder_exes.insert(
+                        if exe_name.is_empty() {
+                            builder.id.clone()
+                        } else {
+                            format!("{}:{exe_name}", builder.id)
+                        },
+                        exe_abs_path,
+                    );
+                }
             }
             BuildInstruction::MakeExecutable(file) => {
                 let file = make_absolute(file);

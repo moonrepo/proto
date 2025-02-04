@@ -2,6 +2,7 @@ use super::is_false;
 use crate::ToolContext;
 use rustc_hash::FxHashMap;
 use semver::VersionReq;
+use std::collections::HashMap;
 use std::path::PathBuf;
 use system_env::SystemDependency;
 use warpgate_api::{api_enum, api_struct};
@@ -62,8 +63,11 @@ api_struct!(
         /// Unique identifier for this builder.
         pub id: String,
 
-        /// Main executable, relative from the source root.
+        /// Primary executable, relative from the source root.
         pub exe: PathBuf,
+
+        /// Secondary executables, relative from the source root.
+        pub exes: HashMap<String, PathBuf>,
 
         /// The Git source location for the builder.
         pub git: GitSource,

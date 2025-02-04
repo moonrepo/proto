@@ -22,6 +22,9 @@
   - Instead of installing all system dependencies, we will now only install those that are missing.
   - Before installing, we now prompt you whether to install, skip, or use `sudo`.
   - Git repositories are now cloned with depth=1.
+  - Builders can now configure secondary executables.
+- WASM API
+  - Added `BuilderInstruction.exes` field.
 
 #### 🧩 Plugins
 
