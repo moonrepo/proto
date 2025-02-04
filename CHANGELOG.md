@@ -18,9 +18,10 @@
 
 #### 🚀 Updates
 
-- Made some improvements to build from source.
+- Improved build from source.
   - Instead of installing all system dependencies, we will now only install those that are missing.
   - Before installing, we now prompt you whether to install, skip, or use `sudo`.
+  - Git repositories are now cloned with depth=1.
 
 #### 🧩 Plugins
 

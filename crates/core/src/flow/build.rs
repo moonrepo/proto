@@ -280,6 +280,7 @@ async fn checkout_git_repo(
             } else {
                 vec!["clone"]
             })
+            .args(["--depth", "1"])
             .arg(&git.url)
             .arg(".")
             .current_dir(cwd),
