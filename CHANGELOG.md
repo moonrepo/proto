@@ -31,6 +31,10 @@
 - Updated `schema_tool` to v0.16.4.
   - Added additional `version` tokens to TOML, JSON, and YAML plugins.
 
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.45.1
 
 #### 🐞 Fixes
