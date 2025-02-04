@@ -57,20 +57,51 @@ pub struct DependencyConfig {
 impl DependencyConfig {
     /// Get a list of package names for the provided OS and package manager.
     pub fn get_package_names(&self, pm: &SystemPackageManager) -> Result<Vec<String>, Error> {
-        match &self.dep {
-            DependencyName::Single(name) => Ok(vec![name.to_owned()]),
+        Ok(self
+            .get_package_names_and_versions(pm)?
+            .into_keys()
+            .collect())
+    }
+
+    /// Get a list of package names and optional versions for the provided OS and package manager.
+    pub fn get_package_names_and_versions(
+        &self,
+        pm: &SystemPackageManager,
+    ) -> Result<HashMap<String, Option<String>>, Error> {
+        let names = match &self.dep {
+            DependencyName::Single(name) => vec![name.to_owned()],
             DependencyName::SingleMap(map) => map
                 .get(pm)
                 .or_else(|| map.get(&SystemPackageManager::All))
                 .map(|name| vec![name.to_owned()])
-                .ok_or(Error::MissingName),
-            DependencyName::Multiple(list) => Ok(list.clone()),
+                .ok_or(Error::MissingName)?,
+            DependencyName::Multiple(list) => list.clone(),
             DependencyName::MultipleMap(map) => map
                 .get(pm)
                 .or_else(|| map.get(&SystemPackageManager::All))
                 .cloned()
-                .ok_or(Error::MissingName),
-        }
+                .ok_or(Error::MissingName)?,
+        };
+
+        Ok(names
+            .into_iter()
+            .map(|name| {
+                if name.contains('@') {
+                    name.split_once('@')
+                        .map(|(a, b)| (a.to_owned(), Some(b.to_owned())))
+                        .unwrap()
+                } else {
+                    (name, self.version.clone())
+                }
+            })
+            .collect())
+    }
+
+    /// Return true if the current config has the provided package name.
+    pub fn has_name(&self, pm: &SystemPackageManager, name: &str) -> bool {
+        self.get_package_names(pm)
+            .map(|names| names.iter().any(|n| n == name))
+            .unwrap_or(false)
     }
 }
 

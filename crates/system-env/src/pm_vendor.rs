@@ -22,7 +22,7 @@ impl ListParser {
                 "(?<version>(\\d+)(\\.\\d+)?(\\.\\d+)?(-[a-z0-9-_+.]+)?)",
             )
             .replace("<distro>", "(?<distro>[a-zA-Z0-9-_,]+)")
-            .replace("<tag>", "(?<tag>@[0-9.]+)")
+            .replace("<tag>", "(?<tag>@[0-9.]+)?")
             .replace("<arch>", "(x86_64|amd64|aarch64|arm64)");
 
         ListParser {

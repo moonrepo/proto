@@ -9,18 +9,20 @@ use proto_pdk_api::{
 };
 use rustc_hash::FxHashMap;
 use schematic::color::apply_style_tags;
-use semver::Version;
+use semver::{Version, VersionReq};
 use starbase_archive::Archiver;
 use starbase_console::ui::{
-    Confirm, Container, Entry, ListCheck, ListItem, Section, Style, StyledText,
+    Confirm, Container, Entry, ListCheck, ListItem, Section, Select, SelectOption, Style,
+    StyledText,
 };
 use starbase_styles::color;
 use starbase_utils::{fs, net};
 use std::env;
-use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::process::{Output, Stdio};
-use system_env::{find_command_on_path, is_command_on_path, System};
+use system_env::{
+    find_command_on_path, is_command_on_path, DependencyConfig, DependencyName, System,
+};
 use tokio::process::Command;
 use tracing::{debug, error, trace};
 use version_spec::{get_semver_regex, VersionSpec};
@@ -136,6 +138,29 @@ impl StepManager<'_> {
 
         Ok(())
     }
+
+    pub async fn prompt_select(
+        &self,
+        label: &str,
+        options: Vec<SelectOption>,
+        default_index: usize,
+    ) -> miette::Result<usize> {
+        let mut selected_index = default_index;
+
+        if self.options.skip_prompts {
+            return Ok(selected_index);
+        }
+
+        if let Some(console) = &self.options.console {
+            console
+                .render_interactive(element! {
+                    Select(label, options, on_index: &mut selected_index)
+                })
+                .await?;
+        }
+
+        Ok(selected_index)
+    }
 }
 
 async fn spawn_command(command: &mut Command) -> std::io::Result<Output> {
@@ -145,7 +170,7 @@ async fn spawn_command(command: &mut Command) -> std::io::Result<Output> {
     Ok(output)
 }
 
-fn before_exec(command: &Command) -> String {
+async fn exec_command(command: &mut Command) -> miette::Result<String> {
     let inner = command.as_std();
     let command_line = format!(
         "{} {}",
@@ -166,10 +191,13 @@ fn before_exec(command: &Command) -> String {
         "Running command {}", color::shell(&command_line)
     );
 
-    command_line
-}
+    let output = spawn_command(command)
+        .await
+        .map_err(|error| ProtoBuildError::CommandFailed {
+            command: command_line.clone(),
+            error: Box::new(error),
+        })?;
 
-fn after_exec(command_line: String, output: Output) -> miette::Result<String> {
     let stderr = String::from_utf8(output.stderr).into_diagnostic()?;
     let stdout = String::from_utf8(output.stdout).into_diagnostic()?;
     let code = output.status.code().unwrap_or(-1);
@@ -193,71 +221,38 @@ fn after_exec(command_line: String, output: Output) -> miette::Result<String> {
     Ok(stdout)
 }
 
-async fn exec_command(command: &mut Command) -> miette::Result<String> {
-    let command_line = before_exec(command);
-
-    let output = spawn_command(command)
-        .await
-        .map_err(|error| ProtoBuildError::CommandFailed {
-            command: command_line.clone(),
-            error: Box::new(error),
-        })?;
-
-    after_exec(command_line, output)
-}
-
-async fn exec_command_piped(command: &mut Command) -> miette::Result<String> {
-    exec_command(command.stderr(Stdio::piped()).stdout(Stdio::piped())).await
-}
-
 async fn exec_command_with_privileges(
     command: &mut Command,
     elevated_program: Option<&str>,
 ) -> miette::Result<String> {
-    let command_line = before_exec(command);
+    match elevated_program {
+        Some(program) => {
+            let inner = command.as_std();
 
-    let output = match spawn_command(command).await {
-        Ok(output) => output,
-        Err(error) => {
-            dbg!(&error, &elevated_program);
+            let mut sudo_command = Command::new(program);
+            sudo_command.arg(inner.get_program());
+            sudo_command.args(inner.get_args());
 
-            // We may require elevated access, let's try it again
-            if error.kind() == ErrorKind::PermissionDenied && elevated_program.is_some() {
-                let inner = command.as_std();
-
-                let mut sudo_command = Command::new(elevated_program.unwrap());
-                sudo_command.arg(inner.get_program());
-                sudo_command.args(inner.get_args());
-
-                for (key, value) in inner.get_envs() {
-                    if let Some(value) = value {
-                        sudo_command.env(key, value);
-                    } else {
-                        sudo_command.env_remove(key);
-                    }
+            for (key, value) in inner.get_envs() {
+                if let Some(value) = value {
+                    sudo_command.env(key, value);
+                } else {
+                    sudo_command.env_remove(key);
                 }
-
-                if let Some(dir) = inner.get_current_dir() {
-                    sudo_command.current_dir(dir);
-                }
-
-                spawn_command(&mut sudo_command).await.map_err(|error| {
-                    ProtoBuildError::CommandFailed {
-                        command: command_line.clone(),
-                        error: Box::new(error),
-                    }
-                })?
-            } else {
-                return Err(ProtoBuildError::CommandFailed {
-                    command: command_line.clone(),
-                    error: Box::new(error),
-                }
-                .into());
             }
-        }
-    };
 
-    after_exec(command_line, output)
+            if let Some(dir) = inner.get_current_dir() {
+                sudo_command.current_dir(dir);
+            }
+
+            exec_command(&mut sudo_command).await
+        }
+        None => exec_command(command).await,
+    }
+}
+
+async fn exec_command_piped(command: &mut Command) -> miette::Result<String> {
+    exec_command(command.stderr(Stdio::piped()).stdout(Stdio::piped())).await
 }
 
 async fn checkout_git_repo(
@@ -312,7 +307,7 @@ pub async fn install_system_dependencies(
     build: &BuildInstructionsOutput,
     options: &InstallBuildOptions<'_>,
 ) -> miette::Result<()> {
-    let step = StepManager::new(options);
+    let mut step = StepManager::new(options);
     let system = &options.system;
 
     if let Some(console) = &options.console {
@@ -359,8 +354,122 @@ pub async fn install_system_dependencies(
         func(InstallPhase::InstallDeps);
     });
 
-    let elevated_command = pm.get_elevated_command();
+    // Determine packages to install
+    let pm_config = pm.get_config();
+    let dep_configs = system.resolve_dependencies(&build.system_dependencies);
 
+    // 1) Check if packages have already been installed
+    let mut not_installed_packages = FxHashMap::from_iter(
+        dep_configs
+            .iter()
+            .filter_map(|cfg| cfg.get_package_names_and_versions(&pm).ok())
+            .flatten(),
+    );
+
+    if let Some(mut list_args) = system
+        .get_list_packages_command(!options.skip_prompts)
+        .into_diagnostic()?
+    {
+        step.render_checkpoint(format!("Checking <shell>{pm}</shell> installed packages"))?;
+
+        let list_output =
+            exec_command_piped(Command::new(list_args.remove(0)).args(list_args)).await?;
+        let installed_packages = pm_config.list_parser.parse(&list_output);
+        let mut skipped_packages = FxHashMap::default();
+
+        not_installed_packages.retain(|name, constraint| {
+            let retained = match (
+                constraint.as_ref(),
+                installed_packages.get(name).and_then(|con| con.as_ref()),
+            ) {
+                (Some(required_version), Some(installed_version)) => {
+                    if let (Ok(req), Ok(ver)) = (
+                        VersionReq::parse(required_version),
+                        Version::parse(installed_version),
+                    ) {
+                        // Doesn't match, so we need to install
+                        !req.matches(&ver)
+                    } else {
+                        // Unable to parse, so install just in case
+                        true
+                    }
+                }
+
+                // Not enough information, so just check if installed
+                _ => !installed_packages.contains_key(name),
+            };
+
+            if !retained {
+                skipped_packages.insert(name.clone(), constraint.clone());
+            }
+
+            retained
+        });
+
+        // Print packages that are already installed
+        for (package, version) in skipped_packages {
+            step.render_check(
+                match version {
+                    Some(version) => {
+                        format!("<id>{package}</id> v{version} already installed")
+                    }
+                    None => format!("<id>{package}</id> already installed"),
+                },
+                true,
+            )?;
+        }
+    }
+
+    // Print the packages that are not installed
+    for (package, version) in &not_installed_packages {
+        step.render_check(
+            match version {
+                Some(version) => {
+                    format!("<id>{package}</id> v{version} is not installed")
+                }
+                None => format!("<id>{package}</id> is not installed"),
+            },
+            false,
+        )?;
+    }
+
+    // 2) Prompt the user to choose an install strategy
+    let mut elevated_command = pm.get_elevated_command();
+    let mut select_options = vec![
+        SelectOption::new("No, and stop building"),
+        SelectOption::new("No, but try building anyways"),
+        SelectOption::new("Yes, as current user"),
+    ];
+    let mut default_index = select_options.len() - 1;
+
+    if let Some(sudo) = elevated_command {
+        select_options.push(SelectOption::new(format!(
+            "Yes, with elevated privileges ({sudo})"
+        )));
+
+        // Always run with elevated in CI
+        if env::var("CI").is_ok() {
+            default_index += 1;
+        }
+    }
+
+    match step
+        .prompt_select("Install missing packages?", select_options, default_index)
+        .await?
+    {
+        0 => {
+            return Err(ProtoBuildError::Cancelled.into());
+        }
+        1 => {
+            return Ok(());
+        }
+        2 => {
+            elevated_command = None;
+        }
+        _ => {}
+    }
+
+    // 3) Update the current registry index
     if let Some(mut index_args) = system
         .get_update_index_command(!options.skip_prompts)
         .into_diagnostic()?
@@ -374,33 +483,28 @@ pub async fn install_system_dependencies(
         .await?;
     }
 
-    let dep_configs = system.resolve_dependencies(&build.system_dependencies);
+    // Recreate the dep configs since they've been filtered
+    let dep_configs = not_installed_packages
+        .into_iter()
+        .map(|(name, version)| DependencyConfig {
+            dep: DependencyName::Single(name),
+            version,
+            ..Default::default()
+        })
+        .collect::<Vec<_>>();
 
-    if !dep_configs.is_empty() {
-        if let Some(mut install_args) = system
-            .get_install_packages_command(&dep_configs, !options.skip_prompts)
-            .into_diagnostic()?
-        {
-            step.render_checkpoint(format!(
-                "Required <shell>{}</shell> packages: {}",
-                pm,
-                dep_configs
-                    .iter()
-                    .filter_map(|cfg| cfg.get_package_names(&pm).ok())
-                    .flatten()
-                    .map(|name| format!("<id>{name}</id>"))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ))?;
+    // 4) Install the missing packages
+    if let Some(mut install_args) = system
+        .get_install_packages_command(&dep_configs, !options.skip_prompts)
+        .into_diagnostic()?
+    {
+        step.render_checkpoint(format!("Installing <shell>{pm}</shell> packages",))?;
 
-            step.prompt_continue("Install packages?").await?;
-
-            exec_command_with_privileges(
-                Command::new(install_args.remove(0)).args(install_args),
-                elevated_command,
-            )
-            .await?;
-        }
+        exec_command_with_privileges(
+            Command::new(install_args.remove(0)).args(install_args),
+            elevated_command,
+        )
+        .await?;
     }
 
     Ok(())

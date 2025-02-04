@@ -125,27 +125,22 @@ impl System {
         Ok(Some(args))
     }
 
+    /// Return the command and arguments to "list installed packages"
+    /// for the current package manager.
+    pub fn get_list_packages_command(
+        &self,
+        interactive: bool,
+    ) -> Result<Option<Vec<String>>, Error> {
+        self.extract_command(CommandType::ListPackages, interactive)
+    }
+
     /// Return the command and arguments to "update the registry index"
     /// for the current package manager.
     pub fn get_update_index_command(
         &self,
         interactive: bool,
     ) -> Result<Option<Vec<String>>, Error> {
-        let Some(pm) = self.manager else {
-            return Err(Error::RequiredPackageManager);
-        };
-
-        let pm_config = pm.get_config();
-
-        if let Some(args) = pm_config.commands.get(&CommandType::UpdateIndex) {
-            let mut args = args.to_owned();
-
-            self.append_interactive(CommandType::UpdateIndex, &pm_config, &mut args, interactive);
-
-            return Ok(Some(args));
-        }
-
-        Ok(None)
+        self.extract_command(CommandType::UpdateIndex, interactive)
     }
 
     /// Resolve and reduce the dependencies to a list that's applicable
@@ -200,6 +195,28 @@ impl System {
                 }
             };
         }
+    }
+
+    fn extract_command(
+        &self,
+        command: CommandType,
+        interactive: bool,
+    ) -> Result<Option<Vec<String>>, Error> {
+        let Some(pm) = self.manager else {
+            return Err(Error::RequiredPackageManager);
+        };
+
+        let pm_config = pm.get_config();
+
+        if let Some(args) = pm_config.commands.get(&command) {
+            let mut args = args.to_owned();
+
+            self.append_interactive(command, &pm_config, &mut args, interactive);
+
+            return Ok(Some(args));
+        }
+
+        Ok(None)
     }
 
     fn extract_package_args(
