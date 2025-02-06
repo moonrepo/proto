@@ -61,6 +61,20 @@ mod pm {
         }
 
         #[test]
+        fn list_packages() {
+            let pm = System::with_manager(SystemPackageManager::Apk);
+
+            assert_eq!(
+                pm.get_list_packages_command(false).unwrap().unwrap(),
+                vec!["apk", "list", "--installed"]
+            );
+            assert_eq!(
+                pm.get_list_packages_command(true).unwrap().unwrap(),
+                vec!["apk", "list", "--installed"]
+            );
+        }
+
+        #[test]
         fn update_index() {
             let pm = System::with_manager(SystemPackageManager::Apk);
 
@@ -140,6 +154,20 @@ mod pm {
         }
 
         #[test]
+        fn list_packages() {
+            let pm = System::with_manager(SystemPackageManager::Apt);
+
+            assert_eq!(
+                pm.get_list_packages_command(false).unwrap().unwrap(),
+                vec!["apt", "list", "--installed"]
+            );
+            assert_eq!(
+                pm.get_list_packages_command(true).unwrap().unwrap(),
+                vec!["apt", "list", "--installed"]
+            );
+        }
+
+        #[test]
         fn update_index() {
             let pm = System::with_manager(SystemPackageManager::Apt);
 
@@ -200,6 +228,20 @@ mod pm {
                     .unwrap()
                     .unwrap(),
                 vec!["brew", "install", "foo@1.2.3"]
+            );
+        }
+
+        #[test]
+        fn list_packages() {
+            let pm = System::with_manager(SystemPackageManager::Brew);
+
+            assert_eq!(
+                pm.get_list_packages_command(false).unwrap().unwrap(),
+                vec!["brew", "list", "--formula", "--versions"]
+            );
+            assert_eq!(
+                pm.get_list_packages_command(true).unwrap().unwrap(),
+                vec!["brew", "list", "--formula", "--versions"]
             );
         }
 
@@ -268,6 +310,20 @@ mod pm {
         }
 
         #[test]
+        fn list_packages() {
+            let pm = System::with_manager(SystemPackageManager::Choco);
+
+            assert_eq!(
+                pm.get_list_packages_command(false).unwrap().unwrap(),
+                vec!["choco", "list"]
+            );
+            assert_eq!(
+                pm.get_list_packages_command(true).unwrap().unwrap(),
+                vec!["choco", "list"]
+            );
+        }
+
+        #[test]
         fn update_index() {
             let pm = System::with_manager(SystemPackageManager::Choco);
 
@@ -321,6 +377,20 @@ mod pm {
                     .unwrap()
                     .unwrap(),
                 vec!["dnf", "install", "foo-1.2.3", "-y"]
+            );
+        }
+
+        #[test]
+        fn list_packages() {
+            let pm = System::with_manager(SystemPackageManager::Dnf);
+
+            assert_eq!(
+                pm.get_list_packages_command(false).unwrap().unwrap(),
+                vec!["dnf", "list", "installed"]
+            );
+            assert_eq!(
+                pm.get_list_packages_command(true).unwrap().unwrap(),
+                vec!["dnf", "list", "installed"]
             );
         }
 
@@ -389,6 +459,20 @@ mod pm {
         }
 
         #[test]
+        fn list_packages() {
+            let pm = System::with_manager(SystemPackageManager::Pacman);
+
+            assert_eq!(
+                pm.get_list_packages_command(false).unwrap().unwrap(),
+                vec!["pacman", "-Q"]
+            );
+            assert_eq!(
+                pm.get_list_packages_command(true).unwrap().unwrap(),
+                vec!["pacman", "-Q"]
+            );
+        }
+
+        #[test]
         fn update_index() {
             let pm = System::with_manager(SystemPackageManager::Pacman);
 
@@ -449,6 +533,20 @@ mod pm {
                     .unwrap()
                     .unwrap(),
                 vec!["pkg", "install", "foo", "-y"]
+            );
+        }
+
+        #[test]
+        fn list_packages() {
+            let pm = System::with_manager(SystemPackageManager::Pkg);
+
+            assert_eq!(
+                pm.get_list_packages_command(false).unwrap().unwrap(),
+                vec!["pkg", "info", "--all"]
+            );
+            assert_eq!(
+                pm.get_list_packages_command(true).unwrap().unwrap(),
+                vec!["pkg", "info", "--all"]
             );
         }
 
@@ -517,6 +615,20 @@ mod pm {
         }
 
         #[test]
+        fn list_packages() {
+            let pm = System::with_manager(SystemPackageManager::Pkgin);
+
+            assert_eq!(
+                pm.get_list_packages_command(false).unwrap().unwrap(),
+                vec!["pkgin", "list"]
+            );
+            assert_eq!(
+                pm.get_list_packages_command(true).unwrap().unwrap(),
+                vec!["pkgin", "list"]
+            );
+        }
+
+        #[test]
         fn update_index() {
             let pm = System::with_manager(SystemPackageManager::Pkgin);
 
@@ -581,6 +693,20 @@ mod pm {
         }
 
         #[test]
+        fn list_packages() {
+            let pm = System::with_manager(SystemPackageManager::Scoop);
+
+            assert_eq!(
+                pm.get_list_packages_command(false).unwrap().unwrap(),
+                vec!["scoop", "list"]
+            );
+            assert_eq!(
+                pm.get_list_packages_command(true).unwrap().unwrap(),
+                vec!["scoop", "list"]
+            );
+        }
+
+        #[test]
         fn update_index() {
             let pm = System::with_manager(SystemPackageManager::Scoop);
 
@@ -641,6 +767,20 @@ mod pm {
                     .unwrap()
                     .unwrap(),
                 vec!["yum", "install", "foo-1.2.3", "-y"]
+            );
+        }
+
+        #[test]
+        fn list_packages() {
+            let pm = System::with_manager(SystemPackageManager::Yum);
+
+            assert_eq!(
+                pm.get_list_packages_command(false).unwrap().unwrap(),
+                vec!["yum", "list", "installed"]
+            );
+            assert_eq!(
+                pm.get_list_packages_command(true).unwrap().unwrap(),
+                vec!["yum", "list", "installed"]
             );
         }
 
