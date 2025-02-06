@@ -28,7 +28,9 @@ impl WasmTestWrapper {
             .unwrap()
     }
 
-    pub async fn load_versions(&self, input: LoadVersionsInput) -> LoadVersionsOutput {
+    pub async fn load_versions(&self, mut input: LoadVersionsInput) -> LoadVersionsOutput {
+        input.context = self.prepare_context(input.context);
+
         self.tool
             .plugin
             .call_func_with("load_versions", input)
@@ -120,7 +122,9 @@ impl WasmTestWrapper {
             .unwrap()
     }
 
-    pub async fn resolve_version(&self, input: ResolveVersionInput) -> ResolveVersionOutput {
+    pub async fn resolve_version(&self, mut input: ResolveVersionInput) -> ResolveVersionOutput {
+        input.context = self.prepare_context(input.context);
+
         self.tool
             .plugin
             .call_func_with("resolve_version", input)

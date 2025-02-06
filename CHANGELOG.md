@@ -25,6 +25,8 @@
   - Builders can now configure secondary executables.
 - WASM API
   - Added `BuilderInstruction.exes` field.
+  - Added `LoadVersionsInput.context` field.
+  - Added `ResolveVersionInput.context` field.
 
 #### 🧩 Plugins
 
