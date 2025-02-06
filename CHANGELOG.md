@@ -14,6 +14,13 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🧩 Plugins
+
+- Updated `schema_tool` to v0.16.4.
+  - Added additional `version` tokens to TOML, JSON, and YAML plugins.
+
 ## 0.45.1
 
 #### 🐞 Fixes
