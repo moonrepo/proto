@@ -54,31 +54,22 @@ impl System {
         dep_config: &DependencyConfig,
         interactive: bool,
     ) -> Result<Option<Vec<String>>, Error> {
-        let Some(pm) = dep_config.manager.or(self.manager) else {
-            return Err(Error::RequiredPackageManager);
-        };
-
-        let pm_config = pm.get_config();
-        let mut args = vec![];
-
-        let Some(base_args) = pm_config.commands.get(&CommandType::InstallPackage) else {
+        let Some(base_args) = self.extract_command(CommandType::InstallPackage, interactive)?
+        else {
             return Ok(None);
         };
+
+        let mut args = vec![];
+        let pm = self.manager.as_ref().unwrap();
+        let pm_config = pm.get_config();
 
         for arg in base_args {
             if arg == "$" {
                 args.extend(self.extract_package_args(dep_config, &pm_config, &pm)?);
             } else {
-                args.push(arg.to_owned());
+                args.push(arg);
             }
         }
-
-        self.append_interactive(
-            CommandType::InstallPackage,
-            &pm_config,
-            &mut args,
-            interactive,
-        );
 
         Ok(Some(args))
     }
@@ -94,16 +85,14 @@ impl System {
         dep_configs: &[DependencyConfig],
         interactive: bool,
     ) -> Result<Option<Vec<String>>, Error> {
-        let Some(pm) = self.manager else {
-            return Err(Error::RequiredPackageManager);
-        };
-
-        let pm_config = pm.get_config();
-        let mut args = vec![];
-
-        let Some(base_args) = pm_config.commands.get(&CommandType::InstallPackage) else {
+        let Some(base_args) = self.extract_command(CommandType::InstallPackage, interactive)?
+        else {
             return Ok(None);
         };
+
+        let mut args = vec![];
+        let pm = self.manager.as_ref().unwrap();
+        let pm_config = pm.get_config();
 
         for arg in base_args {
             if arg == "$" {
@@ -111,16 +100,9 @@ impl System {
                     args.extend(self.extract_package_args(dep_config, &pm_config, &pm)?);
                 }
             } else {
-                args.push(arg.to_owned());
+                args.push(arg);
             }
         }
-
-        self.append_interactive(
-            CommandType::InstallPackage,
-            &pm_config,
-            &mut args,
-            interactive,
-        );
 
         Ok(Some(args))
     }

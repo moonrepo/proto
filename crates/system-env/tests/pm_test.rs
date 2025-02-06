@@ -5,7 +5,7 @@ fn one_dep() -> DependencyConfig {
 }
 
 fn many_dep() -> DependencyConfig {
-    SystemDependency::names(["foo", "bar", "baz"]).to_config()
+    SystemDependency::names(["bar", "baz", "foo"]).to_config()
 }
 
 mod pm {
@@ -36,13 +36,13 @@ mod pm {
                 pm.get_install_package_command(&many_cfg, false)
                     .unwrap()
                     .unwrap(),
-                vec!["apk", "add", "foo", "bar", "baz"]
+                vec!["apk", "add", "bar", "baz", "foo"]
             );
             assert_eq!(
                 pm.get_install_package_command(&many_cfg, true)
                     .unwrap()
                     .unwrap(),
-                vec!["apk", "add", "foo", "bar", "baz", "-i"]
+                vec!["apk", "add", "bar", "baz", "foo", "-i"]
             );
         }
 
@@ -104,9 +104,9 @@ mod pm {
                     "apt",
                     "install",
                     "--install-recommends",
-                    "foo",
                     "bar",
                     "baz",
+                    "foo",
                     "-y"
                 ]
             );
@@ -118,9 +118,9 @@ mod pm {
                     "apt",
                     "install",
                     "--install-recommends",
-                    "foo",
                     "bar",
-                    "baz"
+                    "baz",
+                    "foo",
                 ]
             );
         }
@@ -179,13 +179,13 @@ mod pm {
                 pm.get_install_package_command(&many_cfg, false)
                     .unwrap()
                     .unwrap(),
-                vec!["brew", "install", "foo", "bar", "baz"]
+                vec!["brew", "install", "bar", "baz", "foo"]
             );
             assert_eq!(
                 pm.get_install_package_command(&many_cfg, true)
                     .unwrap()
                     .unwrap(),
-                vec!["brew", "install", "foo", "bar", "baz"], // , "-i"]
+                vec!["brew", "install", "bar", "baz", "foo"], // , "-i"]
             );
         }
 
@@ -243,13 +243,13 @@ mod pm {
                 pm.get_install_package_command(&many_cfg, false)
                     .unwrap()
                     .unwrap(),
-                vec!["choco", "install", "foo", "bar", "baz", "-y"]
+                vec!["choco", "install", "bar", "baz", "foo", "-y"]
             );
             assert_eq!(
                 pm.get_install_package_command(&many_cfg, true)
                     .unwrap()
                     .unwrap(),
-                vec!["choco", "install", "foo", "bar", "baz"]
+                vec!["choco", "install", "bar", "baz", "foo"]
             );
         }
 
@@ -300,13 +300,13 @@ mod pm {
                 pm.get_install_package_command(&many_cfg, false)
                     .unwrap()
                     .unwrap(),
-                vec!["dnf", "install", "foo", "bar", "baz", "-y"]
+                vec!["dnf", "install", "bar", "baz", "foo", "-y"]
             );
             assert_eq!(
                 pm.get_install_package_command(&many_cfg, true)
                     .unwrap()
                     .unwrap(),
-                vec!["dnf", "install", "foo", "bar", "baz"]
+                vec!["dnf", "install", "bar", "baz", "foo"]
             );
         }
 
@@ -364,13 +364,13 @@ mod pm {
                 pm.get_install_package_command(&many_cfg, false)
                     .unwrap()
                     .unwrap(),
-                vec!["pacman", "-S", "foo", "bar", "baz", "--noconfirm"]
+                vec!["pacman", "-S", "bar", "baz", "foo", "--noconfirm"]
             );
             assert_eq!(
                 pm.get_install_package_command(&many_cfg, true)
                     .unwrap()
                     .unwrap(),
-                vec!["pacman", "-S", "foo", "bar", "baz"]
+                vec!["pacman", "-S", "bar", "baz", "foo"]
             );
         }
 
@@ -428,13 +428,13 @@ mod pm {
                 pm.get_install_package_command(&many_cfg, false)
                     .unwrap()
                     .unwrap(),
-                vec!["pkg", "install", "foo", "bar", "baz", "-y"]
+                vec!["pkg", "install", "bar", "baz", "foo", "-y"]
             );
             assert_eq!(
                 pm.get_install_package_command(&many_cfg, true)
                     .unwrap()
                     .unwrap(),
-                vec!["pkg", "install", "foo", "bar", "baz"]
+                vec!["pkg", "install", "bar", "baz", "foo"]
             );
         }
 
@@ -492,13 +492,13 @@ mod pm {
                 pm.get_install_package_command(&many_cfg, false)
                     .unwrap()
                     .unwrap(),
-                vec!["pkgin", "install", "foo", "bar", "baz", "-y"]
+                vec!["pkgin", "install", "bar", "baz", "foo", "-y"]
             );
             assert_eq!(
                 pm.get_install_package_command(&many_cfg, true)
                     .unwrap()
                     .unwrap(),
-                vec!["pkgin", "install", "foo", "bar", "baz"]
+                vec!["pkgin", "install", "bar", "baz", "foo"]
             );
         }
 
@@ -556,13 +556,13 @@ mod pm {
                 pm.get_install_package_command(&many_cfg, false)
                     .unwrap()
                     .unwrap(),
-                vec!["scoop", "install", "foo", "bar", "baz"]
+                vec!["scoop", "install", "bar", "baz", "foo"]
             );
             assert_eq!(
                 pm.get_install_package_command(&many_cfg, true)
                     .unwrap()
                     .unwrap(),
-                vec!["scoop", "install", "foo", "bar", "baz"]
+                vec!["scoop", "install", "bar", "baz", "foo"]
             );
         }
 
@@ -620,13 +620,13 @@ mod pm {
                 pm.get_install_package_command(&many_cfg, false)
                     .unwrap()
                     .unwrap(),
-                vec!["yum", "install", "foo", "bar", "baz", "-y"]
+                vec!["yum", "install", "bar", "baz", "foo", "-y"]
             );
             assert_eq!(
                 pm.get_install_package_command(&many_cfg, true)
                     .unwrap()
                     .unwrap(),
-                vec!["yum", "install", "foo", "bar", "baz"]
+                vec!["yum", "install", "bar", "baz", "foo"]
             );
         }
 

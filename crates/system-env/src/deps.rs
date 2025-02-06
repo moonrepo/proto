@@ -57,10 +57,14 @@ pub struct DependencyConfig {
 impl DependencyConfig {
     /// Get a list of package names for the provided OS and package manager.
     pub fn get_package_names(&self, pm: &SystemPackageManager) -> Result<Vec<String>, Error> {
-        Ok(self
+        let mut names = self
             .get_package_names_and_versions(pm)?
             .into_keys()
-            .collect())
+            .collect::<Vec<_>>();
+
+        names.sort();
+
+        Ok(names)
     }
 
     /// Get a list of package names and optional versions for the provided OS and package manager.
