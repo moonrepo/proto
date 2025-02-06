@@ -1,5 +1,4 @@
 use crate::error::Error;
-use crate::helpers::is_command_on_path;
 use crate::pm_vendor::*;
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -122,13 +121,22 @@ impl SystemPackageManager {
     /// Return the command to use for elevated access. On Unix, this will use
     /// "doas" or "sudo", and on Windows or WASM this does nothing.
     pub fn get_elevated_command(&self) -> Option<&str> {
+        // Does not support sudo!
+        if matches!(self, Self::Brew | Self::All) {
+            return None;
+        }
+
         #[cfg(unix)]
-        if is_command_on_path("doas") {
-            Some("doas")
-        } else if is_command_on_path("sudo") {
-            Some("sudo")
-        } else {
-            None
+        {
+            use crate::is_command_on_path;
+
+            if is_command_on_path("doas") {
+                Some("doas")
+            } else if is_command_on_path("sudo") {
+                Some("sudo")
+            } else {
+                None
+            }
         }
 
         #[cfg(any(windows, target_arch = "wasm32"))]
