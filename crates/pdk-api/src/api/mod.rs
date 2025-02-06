@@ -31,17 +31,17 @@ api_struct!(
     }
 );
 
-api_enum!(
+api_unit_enum!(
     /// Supported types of plugins.
-    #[derive(Default)]
     pub enum PluginType {
-        #[serde(alias = "CLI")]
+        #[serde(alias = "CLI", alias = "CommandLine")] // TEMP
         CommandLine,
         #[default]
+        #[serde(alias = "Language")]
         Language,
-        #[serde(alias = "PM")]
+        #[serde(alias = "PM", alias = "DependencyManager")] // TEMP
         DependencyManager,
-        #[serde(alias = "VM")]
+        #[serde(alias = "VM", alias = "VersionManager")] // TEMP
         VersionManager,
     }
 );
@@ -69,12 +69,13 @@ api_struct!(
     }
 );
 
-api_enum!(
+api_unit_enum!(
     /// Supported strategies for installing a tool.
-    #[derive(Copy, Default)]
     pub enum InstallStrategy {
+        #[serde(alias = "BuildFromSource")] // TEMP
         BuildFromSource,
         #[default]
+        #[serde(alias = "DownloadPrebuilt")] // TEMP
         DownloadPrebuilt,
     }
 );
@@ -428,6 +429,9 @@ api_struct!(
 api_struct!(
     /// Input passed to the `load_versions` function.
     pub struct LoadVersionsInput {
+        /// Current tool context.
+        pub context: ToolContext,
+
         /// The alias or version currently being resolved.
         pub initial: UnresolvedVersionSpec,
     }
@@ -503,6 +507,9 @@ impl LoadVersionsOutput {
 api_struct!(
     /// Input passed to the `resolve_version` function.
     pub struct ResolveVersionInput {
+        /// Current tool context.
+        pub context: ToolContext,
+
         /// The alias or version currently being resolved.
         pub initial: UnresolvedVersionSpec,
     }

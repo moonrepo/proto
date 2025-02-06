@@ -36,41 +36,77 @@ impl Default for DependencyName {
 #[serde(default)]
 pub struct DependencyConfig {
     /// Only install on this architecture.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub arch: Option<SystemArch>,
 
     /// The dependency name or name(s) to install.
     pub dep: DependencyName,
 
     /// Only install with this package manager.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub manager: Option<SystemPackageManager>,
 
     /// Only install on this operating system.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub os: Option<SystemOS>,
 
-    /// Install using sudo.
-    pub sudo: bool,
-
     /// The version to install.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
 }
 
 impl DependencyConfig {
     /// Get a list of package names for the provided OS and package manager.
     pub fn get_package_names(&self, pm: &SystemPackageManager) -> Result<Vec<String>, Error> {
-        match &self.dep {
-            DependencyName::Single(name) => Ok(vec![name.to_owned()]),
+        let mut names = self
+            .get_package_names_and_versions(pm)?
+            .into_keys()
+            .collect::<Vec<_>>();
+
+        names.sort();
+
+        Ok(names)
+    }
+
+    /// Get a list of package names and optional versions for the provided OS and package manager.
+    pub fn get_package_names_and_versions(
+        &self,
+        pm: &SystemPackageManager,
+    ) -> Result<HashMap<String, Option<String>>, Error> {
+        let names = match &self.dep {
+            DependencyName::Single(name) => vec![name.to_owned()],
             DependencyName::SingleMap(map) => map
                 .get(pm)
                 .or_else(|| map.get(&SystemPackageManager::All))
                 .map(|name| vec![name.to_owned()])
-                .ok_or(Error::MissingName),
-            DependencyName::Multiple(list) => Ok(list.clone()),
+                .ok_or(Error::MissingName)?,
+            DependencyName::Multiple(list) => list.clone(),
             DependencyName::MultipleMap(map) => map
                 .get(pm)
                 .or_else(|| map.get(&SystemPackageManager::All))
                 .cloned()
-                .ok_or(Error::MissingName),
-        }
+                .ok_or(Error::MissingName)?,
+        };
+
+        Ok(names
+            .into_iter()
+            .map(|name| {
+                if name.contains('@') {
+                    name.split_once('@')
+                        .map(|(a, b)| (a.to_owned(), Some(b.to_owned())))
+                        .unwrap()
+                } else {
+                    (name, self.version.clone())
+                }
+            })
+            .collect())
+    }
+
+    /// Return true if the current config has the provided package name.
+    pub fn has_name(&self, pm: &SystemPackageManager, name: &str) -> bool {
+        self.get_package_names(pm)
+            .map(|names| names.iter().any(|n| n == name))
+            .unwrap_or(false)
     }
 }
 

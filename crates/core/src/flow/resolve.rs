@@ -42,6 +42,7 @@ impl Tool {
                     .cache_func_with(
                         "load_versions",
                         LoadVersionsInput {
+                            context: self.create_context(),
                             initial: initial_version.to_owned(),
                         },
                     )
@@ -150,6 +151,7 @@ impl Tool {
                 .call_func_with(
                     "resolve_version",
                     ResolveVersionInput {
+                        context: self.create_context(),
                         initial: initial_candidate.to_owned(),
                     },
                 )

@@ -62,8 +62,12 @@ api_struct!(
         /// Unique identifier for this builder.
         pub id: String,
 
-        /// Main executable, relative from the source root.
+        /// Primary executable, relative from the source root.
         pub exe: PathBuf,
+
+        /// Secondary executables, relative from the source root.
+        #[serde(default, skip_serializing_if = "FxHashMap::is_empty")]
+        pub exes: FxHashMap<String, PathBuf>,
 
         /// The Git source location for the builder.
         pub git: GitSource,

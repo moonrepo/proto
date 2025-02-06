@@ -488,8 +488,10 @@ export type SourceLocation = ArchiveSource | GitSource;
 export type BuildInstruction = {
 	/** A builder and its parameters for installing the builder. */
 	instruction: {
-		/** Main executable, relative from the source root. */
+		/** Primary executable, relative from the source root. */
 		exe: string;
+		/** Secondary executables, relative from the source root. */
+		exes: Record<string, string>;
 		/** The Git source location for the builder. */
 		git: GitSource;
 		/** Unique identifier for this builder. */

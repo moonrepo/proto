@@ -16,10 +16,26 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Improved build from source.
+  - Instead of installing all system dependencies, we will now only install those that are missing.
+  - Before installing, we now prompt you whether to install, skip, or use `sudo`.
+  - Git repositories are now cloned with depth=1.
+  - Builders can now configure secondary executables.
+- WASM API
+  - Added `BuilderInstruction.exes` field.
+  - Added `LoadVersionsInput.context` field.
+  - Added `ResolveVersionInput.context` field.
+
 #### 🧩 Plugins
 
 - Updated `schema_tool` to v0.16.4.
   - Added additional `version` tokens to TOML, JSON, and YAML plugins.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
 
 ## 0.45.1
 

@@ -117,6 +117,31 @@ impl SystemPackageManager {
             Self::All => unreachable!(),
         }
     }
+
+    /// Return the command to use for elevated access. On Unix, this will use
+    /// "doas" or "sudo", and on Windows or WASM this does nothing.
+    pub fn get_elevated_command(&self) -> Option<&str> {
+        // Does not support sudo!
+        if matches!(self, Self::Brew | Self::All) {
+            return None;
+        }
+
+        #[cfg(unix)]
+        {
+            use crate::is_command_on_path;
+
+            if is_command_on_path("doas") {
+                Some("doas")
+            } else if is_command_on_path("sudo") {
+                Some("sudo")
+            } else {
+                None
+            }
+        }
+
+        #[cfg(any(windows, target_arch = "wasm32"))]
+        None
+    }
 }
 
 impl fmt::Display for SystemPackageManager {

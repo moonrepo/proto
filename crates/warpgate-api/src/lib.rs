@@ -31,6 +31,17 @@ macro_rules! api_enum {
     };
 }
 
+/// Wrap a unit-only enum with common derives and serde required attributes.
+#[macro_export]
+macro_rules! api_unit_enum {
+    ($struct:item) => {
+        #[derive(Clone, Copy, Debug, Default, serde::Deserialize, PartialEq, serde::Serialize)]
+        #[serde(rename_all = "kebab-case")]
+        #[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
+        $struct
+    };
+}
+
 api_struct!(
     /// Represents an empty input.
     pub struct EmptyInput {}
