@@ -31,9 +31,8 @@ api_struct!(
     }
 );
 
-api_enum!(
+api_unit_enum!(
     /// Supported types of plugins.
-    #[derive(Default)]
     pub enum PluginType {
         #[serde(alias = "CLI")]
         CommandLine,
@@ -69,9 +68,8 @@ api_struct!(
     }
 );
 
-api_enum!(
+api_unit_enum!(
     /// Supported strategies for installing a tool.
-    #[derive(Copy, Default)]
     pub enum InstallStrategy {
         BuildFromSource,
         #[default]

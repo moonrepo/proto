@@ -1,12 +1,10 @@
 use crate::virtual_path::VirtualPath;
-use crate::{api_enum, api_struct, AnyResult};
+use crate::{api_struct, api_unit_enum, AnyResult};
 use rustc_hash::FxHashMap;
 use serde::de::DeserializeOwned;
 
-api_enum!(
+api_unit_enum!(
     /// Target where host logs should be written to.
-    #[derive(Default)]
-    #[serde(rename_all = "lowercase")]
     pub enum HostLogTarget {
         Stderr,
         Stdout,

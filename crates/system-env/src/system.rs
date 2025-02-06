@@ -65,7 +65,7 @@ impl System {
 
         for arg in base_args {
             if arg == "$" {
-                args.extend(self.extract_package_args(dep_config, &pm_config, &pm)?);
+                args.extend(self.extract_package_args(dep_config, &pm_config, pm)?);
             } else {
                 args.push(arg);
             }
@@ -97,7 +97,7 @@ impl System {
         for arg in base_args {
             if arg == "$" {
                 for dep_config in dep_configs {
-                    args.extend(self.extract_package_args(dep_config, &pm_config, &pm)?);
+                    args.extend(self.extract_package_args(dep_config, &pm_config, pm)?);
                 }
             } else {
                 args.push(arg);

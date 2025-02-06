@@ -34,7 +34,13 @@ impl ListParser {
         let mut packages = HashMap::default();
 
         for line in output.lines() {
-            if let Some(caps) = self.regex.captures(line.trim()) {
+            let line = line.trim();
+
+            if line.starts_with('#') || line.starts_with("//") {
+                continue;
+            }
+
+            if let Some(caps) = self.regex.captures(line) {
                 let Some(name) = caps.name("package") else {
                     continue;
                 };

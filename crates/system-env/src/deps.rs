@@ -36,21 +36,22 @@ impl Default for DependencyName {
 #[serde(default)]
 pub struct DependencyConfig {
     /// Only install on this architecture.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub arch: Option<SystemArch>,
 
     /// The dependency name or name(s) to install.
     pub dep: DependencyName,
 
     /// Only install with this package manager.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub manager: Option<SystemPackageManager>,
 
     /// Only install on this operating system.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub os: Option<SystemOS>,
 
-    /// Install using sudo.
-    pub sudo: bool,
-
     /// The version to install.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
 }
 
