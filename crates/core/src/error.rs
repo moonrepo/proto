@@ -72,10 +72,6 @@ pub enum ProtoError {
     )]
     MissingShimBinary { bin_dir: PathBuf },
 
-    #[diagnostic(code(proto::execute::missing_file))]
-    #[error("Unable to find an executable for {tool}, expected file {} does not exist.", .path.style(Style::Path))]
-    MissingToolExecutable { tool: String, path: PathBuf },
-
     #[diagnostic(code(proto::tool::required))]
     #[error(
         "This project requires {tool} {}, but this version has not been installed. Install it with {}, or enable the {} setting to automatically install missing versions!",
