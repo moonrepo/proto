@@ -44,15 +44,6 @@ pub enum ProtoError {
     #[error("Unable to determine your home directory.")]
     MissingHomeDir,
 
-    #[diagnostic(code(proto::shim::missing_binary))]
-    #[error(
-        "Unable to create shims as the {} binary cannot be found.\nLooked in the {} environment variable and {} directory.",
-        "proto-shim".style(Style::Id),
-        "PROTO_HOME".style(Style::Property),
-        .bin_dir.style(Style::Path),
-    )]
-    MissingShimBinary { bin_dir: PathBuf },
-
     #[diagnostic(code(proto::tool::required))]
     #[error(
         "This project requires {tool} {}, but this version has not been installed. Install it with {}, or enable the {} setting to automatically install missing versions!",
@@ -116,14 +107,6 @@ pub enum ProtoError {
         version: String,
         #[source]
         error: Box<version_spec::SpecError>,
-    },
-
-    #[diagnostic(code(proto::shim::create_failed))]
-    #[error("Failed to create shim {}.", .path.style(Style::Path))]
-    CreateShimFailed {
-        path: PathBuf,
-        #[source]
-        error: Box<std::io::Error>,
     },
 
     #[diagnostic(code(proto::env::missing_file))]

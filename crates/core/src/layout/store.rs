@@ -1,5 +1,5 @@
 use super::inventory::Inventory;
-use crate::error::ProtoError;
+use super::layout_error::ProtoLayoutError;
 use crate::tool_manifest::ToolManifest;
 use once_cell::sync::OnceCell;
 use proto_pdk_api::ToolInventoryMetadata;
@@ -89,8 +89,10 @@ impl Store {
     pub fn load_shim_binary(&self) -> miette::Result<&Vec<u8>> {
         self.shim_binary.get_or_try_init(|| {
             Ok(fs::read_file_bytes(
-                locate_proto_exe("proto-shim").ok_or_else(|| ProtoError::MissingShimBinary {
-                    bin_dir: self.bin_dir.clone(),
+                locate_proto_exe("proto-shim").ok_or_else(|| {
+                    ProtoLayoutError::MissingShimBinary {
+                        bin_dir: self.bin_dir.clone(),
+                    }
                 })?,
             )?)
         })
@@ -141,7 +143,7 @@ impl Store {
     #[instrument(skip(self))]
     pub fn create_shim(&self, shim_path: &Path) -> miette::Result<()> {
         create_shim(self.load_shim_binary()?, shim_path).map_err(|error| {
-            ProtoError::CreateShimFailed {
+            ProtoLayoutError::FailedCreateShim {
                 path: shim_path.to_owned(),
                 error: Box::new(error),
             }
