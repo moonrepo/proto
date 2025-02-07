@@ -1,7 +1,7 @@
+use crate::env::ProtoEnvironment;
 use crate::error::ProtoErrorOld;
 use crate::helpers::get_proto_version;
 use crate::layout::{Inventory, Product};
-use crate::proto::ProtoEnvironment;
 use proto_pdk_api::*;
 use rustc_hash::{FxHashMap, FxHashSet};
 use starbase_styles::color;

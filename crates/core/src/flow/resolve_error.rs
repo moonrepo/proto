@@ -26,6 +26,24 @@ pub enum ProtoResolveError {
         version: String,
     },
 
+    #[diagnostic(code(proto::resolve::invalid_version))]
+    #[error("Invalid version or requirement {}.", .version.style(Style::Hash))]
+    InvalidVersionSpec {
+        version: String,
+        #[source]
+        error: Box<version_spec::SpecError>,
+    },
+
+    #[diagnostic(
+        code(proto::resolve::undetected_version),
+        help = "Has the tool been installed?"
+    )]
+    #[error(
+        "Failed to detect an applicable version to run {tool} with. Try pinning a version with {} or explicitly passing the version as an argument or environment variable.",
+        "proto pin".style(Style::Shell),
+    )]
+    FailedVersionDetect { tool: String },
+
     #[diagnostic(
         code(proto::resolve::unresolved_version),
         help = "Does this version exist and has it been released?"

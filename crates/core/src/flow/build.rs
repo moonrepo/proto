@@ -1,7 +1,7 @@
 use super::build_error::*;
 use super::install::{InstallPhase, OnPhaseFn};
+use crate::env::{ProtoConsole, ProtoEnvironment};
 use crate::helpers::extract_filename_from_url;
-use crate::proto::{ProtoConsole, ProtoEnvironment};
 use iocraft::prelude::{element, FlexDirection, View};
 use miette::IntoDiagnostic;
 use proto_pdk_api::{

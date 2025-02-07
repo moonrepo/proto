@@ -83,30 +83,12 @@ pub enum ProtoErrorOld {
     )]
     UnknownTool { id: Id },
 
-    #[diagnostic(
-        code(proto::version::undetected),
-        help = "Has the tool been installed?"
-    )]
-    #[error(
-        "Failed to detect an applicable version to run {tool} with. Try pinning a version with {} or passing the version as an argument.",
-        "proto pin".style(Style::Shell),
-    )]
-    VersionDetectFailed { tool: String },
-
     #[diagnostic(code(proto::http))]
     #[error("Failed to request {}.", .url.style(Style::Url))]
     Http {
         url: String,
         #[source]
         error: Box<reqwest::Error>,
-    },
-
-    #[diagnostic(code(proto::version::invalid))]
-    #[error("Invalid version or requirement {}.", .version.style(Style::Hash))]
-    VersionSpec {
-        version: String,
-        #[source]
-        error: Box<version_spec::SpecError>,
     },
 
     #[diagnostic(code(proto::env::missing_file))]

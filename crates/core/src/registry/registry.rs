@@ -1,4 +1,4 @@
-use crate::proto::ProtoEnvironment;
+use crate::env::ProtoEnvironment;
 use crate::registry::data::{PluginEntry, PluginRegistryDocument};
 use crate::registry::registry_error::ProtoRegistryError;
 use starbase_utils::{fs, json};
