@@ -37,6 +37,14 @@ fn get_proto_home() -> Result<PathBuf> {
         return Ok(root.into());
     }
 
+    if let Ok(root) = env::var("XDG_DATA_HOME") {
+        let xdg_dir = PathBuf::from(root).join(".proto");
+
+        debug(|| format!("Found in `XDG_DATA_HOME` environment variable: {xdg_dir:?}"));
+
+        return Ok(xdg_dir);
+    }
+
     let home_dir = dirs::home_dir()
         .ok_or_else(|| anyhow!("Unable to determine user home directory."))?
         .join(".proto");

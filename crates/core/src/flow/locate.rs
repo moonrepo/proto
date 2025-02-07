@@ -391,7 +391,7 @@ impl Tool {
 
                 let replace_with = match find_by {
                     "$CWD" | "$PWD" => self.proto.working_dir.clone(),
-                    "$HOME" | "$USERHOME" => self.proto.home_dir.clone(),
+                    "$HOME" | "$USERHOME" | "$USERPROFILE" => self.proto.home_dir.clone(),
                     "$PROTO_HOME" | "$PROTO_ROOT" => self.proto.store.dir.clone(),
                     "$TOOL_DIR" => install_dir.clone(),
                     _ => match env::var_os(cap.get(1).unwrap().as_str()) {
