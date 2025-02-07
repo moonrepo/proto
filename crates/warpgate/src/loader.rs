@@ -1,10 +1,10 @@
 use crate::client::{create_http_client_with_options, HttpClient, HttpOptions};
 use crate::endpoints::*;
-use crate::error::WarpgateError;
 use crate::helpers::{
     create_cache_key, determine_cache_extension, download_from_url_to_file, move_or_unpack_download,
 };
 use crate::id::Id;
+use crate::loader_error::WarpgateLoaderError;
 use once_cell::sync::OnceCell;
 use starbase_archive::is_supported_archive_extension;
 use starbase_styles::color;
@@ -108,7 +108,7 @@ impl PluginLoader {
 
             Ok(path)
         } else {
-            Err(WarpgateError::MissingSourceFile {
+            Err(WarpgateLoaderError::MissingSourceFile {
                 id: id.to_owned(),
                 path: path.to_path_buf(),
             }
@@ -230,7 +230,7 @@ impl PluginLoader {
         }
 
         if self.is_offline() {
-            return Err(WarpgateError::RequiredInternetConnection {
+            return Err(WarpgateLoaderError::RequiredInternetConnection {
                 message: "Unable to download plugin.".into(),
                 url: source_url.to_owned(),
             }
@@ -271,7 +271,7 @@ impl PluginLoader {
         }
 
         if self.is_offline() {
-            return Err(WarpgateError::RequiredInternetConnection {
+            return Err(WarpgateLoaderError::RequiredInternetConnection {
                 message: format!(
                     "Unable to download plugin {} from GitHub.",
                     PluginLocator::GitHub(Box::new(github.to_owned()))
@@ -309,7 +309,7 @@ impl PluginLoader {
         }
 
         let Some(release_tag) = found_tag else {
-            return Err(WarpgateError::MissingGitHubTag {
+            return Err(WarpgateLoaderError::MissingGitHubTag {
                 id: id.to_owned(),
                 repo_slug: github.repo_slug.to_owned(),
             }
@@ -373,7 +373,7 @@ impl PluginLoader {
             }
         }
 
-        Err(WarpgateError::MissingGitHubAsset {
+        Err(WarpgateLoaderError::MissingGitHubAsset {
             id: id.to_owned(),
             repo_slug: github.repo_slug.to_owned(),
             tag: release_tag,

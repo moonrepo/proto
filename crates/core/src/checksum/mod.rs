@@ -15,7 +15,7 @@ pub fn verify_checksum(
         Some("minisig" | "minisign") => minisign::verify_checksum(
             download_file,
             checksum_file,
-            checksum_public_key.ok_or_else(|| ProtoChecksumError::MissingChecksumPublicKey)?,
+            checksum_public_key.ok_or(ProtoChecksumError::MissingChecksumPublicKey)?,
         ),
         _ => sha256::verify_checksum(download_file, checksum_file),
     }

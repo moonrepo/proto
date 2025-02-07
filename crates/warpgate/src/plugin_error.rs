@@ -64,4 +64,10 @@ pub enum WarpgatePluginError {
         .0.style(Style::Id),
     )]
     InvalidID(String),
+
+    #[diagnostic(code(plugin::wasm::missing_command))]
+    #[error(
+        "Command or script {} does not exist. Unable to execute from plugin.", .command.style(Style::Shell)
+    )]
+    MissingCommand { command: String },
 }
