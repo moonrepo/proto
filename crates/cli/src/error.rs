@@ -18,6 +18,34 @@ pub enum ProtoCliError {
     )]
     MissingToolsConfigInCwd { path: PathBuf },
 
+    #[diagnostic(code(proto::tool::required))]
+    #[error(
+        "This project requires {tool} {}, but this version has not been installed. Install it with {}, or enable the {} setting to automatically install missing versions!",
+        .version.style(Style::Hash),
+        .command.style(Style::Shell),
+        "auto-install".style(Style::Property),
+    )]
+    MissingToolForRun {
+        tool: String,
+        version: String,
+        command: String,
+    },
+
+    #[diagnostic(code(proto::tool::required))]
+    #[error(
+        "This project requires {tool} {} (detected from {}), but this version has not been installed. Install it with {}, or enable the {} setting to automatically install missing versions!",
+        .version.style(Style::Hash),
+        .path.style(Style::Path),
+        .command.style(Style::Shell),
+        "auto-install".style(Style::Property),
+    )]
+    MissingToolForRunWithSource {
+        tool: String,
+        version: String,
+        command: String,
+        path: PathBuf,
+    },
+
     #[diagnostic(code(proto::cli::missing_alternate_binary))]
     #[error(
         "Unable to run, alternate binary {} does not exist. Attempted to find at {}.",

@@ -3,7 +3,7 @@ use crate::error::ProtoCliError;
 use crate::session::ProtoSession;
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::{detect_version, Id, ProtoErrorOld, Tool, UnresolvedVersionSpec};
+use proto_core::{detect_version, Id, Tool, UnresolvedVersionSpec};
 use proto_pdk_api::{ExecutableConfig, RunHook, RunHookResult};
 use proto_shim::exec_command_and_replace;
 use starbase::AppResult;
@@ -161,7 +161,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
             let command = format!("proto install {} {}", tool.id, resolved_version);
 
             if let Ok(source) = env::var(format!("{}_DETECTED_FROM", tool.get_env_var_prefix())) {
-                return Err(ProtoErrorOld::MissingToolForRunWithSource {
+                return Err(ProtoCliError::MissingToolForRunWithSource {
                     tool: tool.get_name().to_owned(),
                     version: version.to_string(),
                     command,
@@ -170,7 +170,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
                 .into());
             }
 
-            return Err(ProtoErrorOld::MissingToolForRun {
+            return Err(ProtoCliError::MissingToolForRun {
                 tool: tool.get_name().to_owned(),
                 version: version.to_string(),
                 command,
