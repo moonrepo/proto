@@ -14,13 +14,6 @@ pub enum WarpgateError {
     #[error("{message} An internet connection is required to request {}.", .url.style(Style::Url))]
     RequiredInternetConnection { message: String, url: String },
 
-    #[diagnostic(code(plugin::invalid_id))]
-    #[error(
-        "Invalid plugin identifier {}. May only contain letters, numbers, dashes, and underscores.",
-        .0.style(Style::Id),
-    )]
-    InvalidID(String),
-
     #[diagnostic(code(plugin::source::file_missing))]
     #[error(
         "Cannot load {} plugin, source file {} does not exist.",
@@ -50,57 +43,11 @@ pub enum WarpgateError {
         tag: String,
     },
 
-    #[diagnostic(code(plugin::create::failed))]
-    #[error("Failed to load and create {} plugin: {error}", .id.to_string().style(Style::Id))]
-    FailedPluginCreate {
-        id: Id,
-        #[source]
-        error: Box<extism::Error>,
-    },
-
-    #[diagnostic(code(plugin::call_func::failed))]
-    #[error(
-        "Failed to call {} plugin function {}:\n{error}",
-        .id.to_string().style(Style::Id),
-        .func.style(Style::Property),
-    )]
-    PluginCallFailed { id: Id, func: String, error: String },
-
-    #[diagnostic(code(plugin::call_func::failed))]
-    #[error("{error}")]
-    PluginCallFailedRelease { error: String },
-
     #[diagnostic(code(plugin::missing_command))]
     #[error(
         "Command or script {} does not exist. Unable to execute from plugin.", .command.style(Style::Shell)
     )]
     PluginCommandMissing { command: String },
-
-    #[diagnostic(code(plugin::call_func::format_input))]
-    #[error(
-        "Failed to format input for {} plugin function {} call.",
-        .id.to_string().style(Style::Id),
-        .func.style(Style::Property),
-    )]
-    FormatInputFailed {
-        id: Id,
-        func: String,
-        #[source]
-        error: Box<serde_json::Error>,
-    },
-
-    #[diagnostic(code(plugin::call_func::parse_output))]
-    #[error(
-        "Failed to parse output of {} plugin function {} call.",
-        .id.to_string().style(Style::Id),
-        .func.style(Style::Property),
-    )]
-    ParseOutputFailed {
-        id: Id,
-        func: String,
-        #[source]
-        error: Box<serde_json::Error>,
-    },
 
     #[diagnostic(
         code(plugin::download::not_found),
@@ -134,11 +81,4 @@ pub enum WarpgateError {
         .path.style(Style::Path),
     )]
     DownloadUnknownType { path: PathBuf },
-
-    #[diagnostic(code(plugin::incompatible_runtime))]
-    #[error(
-        "The loaded {} plugin is incompatible with the current runtime.\nFor plugin consumers, try upgrading to a newer plugin version.\nFor plugin authors, upgrade to the latest runtime and release a new version.",
-        .id.to_string().style(Style::Id),
-    )]
-    IncompatibleRuntime { id: Id },
 }

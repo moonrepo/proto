@@ -1,7 +1,7 @@
 use crate::endpoints::Empty;
-use crate::error::WarpgateError;
 use crate::helpers::{from_virtual_path, to_virtual_path};
 use crate::id::Id;
+use crate::plugin_error::WarpgatePluginError;
 use extism::{Error, Function, Manifest, Plugin};
 use miette::IntoDiagnostic;
 use serde::de::DeserializeOwned;
@@ -99,9 +99,9 @@ impl PluginContainer {
 
         let plugin = Plugin::new(&manifest, functions, true).map_err(|error| {
             if is_incompatible_runtime(&error) {
-                WarpgateError::IncompatibleRuntime { id: id.clone() }
+                WarpgatePluginError::IncompatibleRuntime { id: id.clone() }
             } else {
-                WarpgateError::FailedPluginCreate {
+                WarpgatePluginError::FailedContainer {
                     id: id.clone(),
                     error: Box::new(error),
                 }
@@ -236,7 +236,7 @@ impl PluginContainer {
 
         let output = block_in_place(|| instance.call(func, input)).map_err(|error| {
             if is_incompatible_runtime(&error) {
-                return WarpgateError::IncompatibleRuntime {
+                return WarpgatePluginError::IncompatibleRuntime {
                     id: self.id.clone(),
                 };
             }
@@ -254,7 +254,7 @@ impl PluginContainer {
             // When in debug mode, include more information around errors.
             #[cfg(debug_assertions)]
             {
-                WarpgateError::PluginCallFailed {
+                WarpgatePluginError::FailedPluginCall {
                     id: self.id.clone(),
                     func: func.to_owned(),
                     error: message,
@@ -265,7 +265,7 @@ impl PluginContainer {
             // previous variant, so this is a special variant that renders as-is.
             #[cfg(not(debug_assertions))]
             {
-                WarpgateError::PluginCallFailedRelease { error: message }
+                WarpgatePluginError::FailedPluginCallRelease { error: message }
             }
         })?;
 
@@ -282,7 +282,7 @@ impl PluginContainer {
 
     fn format_input<I: Serialize>(&self, func: &str, input: I) -> miette::Result<String> {
         Ok(
-            serde_json::to_string(&input).map_err(|error| WarpgateError::FormatInputFailed {
+            serde_json::to_string(&input).map_err(|error| WarpgatePluginError::InvalidInput {
                 id: self.id.clone(),
                 func: func.to_owned(),
                 error: Box::new(error),
@@ -292,7 +292,7 @@ impl PluginContainer {
 
     fn parse_output<O: DeserializeOwned>(&self, func: &str, data: &[u8]) -> miette::Result<O> {
         Ok(
-            serde_json::from_slice(data).map_err(|error| WarpgateError::ParseOutputFailed {
+            serde_json::from_slice(data).map_err(|error| WarpgatePluginError::InvalidOutput {
                 id: self.id.clone(),
                 func: func.to_owned(),
                 error: Box::new(error),

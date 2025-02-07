@@ -7,6 +7,7 @@ pub mod host;
 mod id;
 mod loader;
 mod plugin;
+mod plugin_error;
 pub mod test_utils;
 
 pub use client::*;
@@ -16,6 +17,7 @@ pub use helpers::*;
 pub use id::*;
 pub use loader::*;
 pub use plugin::*;
+pub use plugin_error::*;
 
 pub use extism::{Manifest as PluginManifest, Wasm};
 pub use warpgate_api as api;
