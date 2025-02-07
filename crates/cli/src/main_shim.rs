@@ -38,7 +38,7 @@ fn get_proto_home() -> Result<PathBuf> {
     }
 
     if let Ok(root) = env::var("XDG_DATA_HOME") {
-        let xdg_dir = PathBuf::from(root).join(".proto");
+        let xdg_dir = PathBuf::from(root).join("proto");
 
         debug(|| format!("Found in `XDG_DATA_HOME` environment variable: {xdg_dir:?}"));
 

@@ -94,14 +94,12 @@ pub async fn setup(session: ProtoSession, args: SetupArgs) -> AppResult {
             Export::Var(
                 "PROTO_HOME".into(),
                 env::var("PROTO_HOME").unwrap_or_else(|_| {
-                    format!(
-                        "{}/.proto",
-                        if env::var("XDG_DATA_HOME").is_ok() {
-                            "$XDG_DATA_HOME"
-                        } else {
-                            "$HOME"
-                        }
-                    )
+                    if env::var("XDG_DATA_HOME").is_ok() {
+                        "$XDG_DATA_HOME/proto"
+                    } else {
+                        "$HOME/.proto"
+                    }
+                    .into()
                 }),
             ),
             Export::Path(vec!["$PROTO_HOME/shims".into(), "$PROTO_HOME/bin".into()]),
