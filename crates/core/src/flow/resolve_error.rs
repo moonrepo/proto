@@ -11,7 +11,7 @@ pub enum ProtoResolveError {
         .command.style(Style::Shell),
         .bin_dir.style(Style::Path)
     )]
-    InternetConnectionRequiredForVersion { command: String, bin_dir: PathBuf },
+    RequiredInternetConnectionForVersion { command: String, bin_dir: PathBuf },
 
     #[diagnostic(code(proto::resolve::invalid_detected_version))]
     #[error(

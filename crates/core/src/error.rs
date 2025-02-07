@@ -26,12 +26,6 @@ pub enum ProtoError {
     #[error("Internet connection required, unable to download, install, or run tools.")]
     InternetConnectionRequired,
 
-    #[diagnostic(code(proto::verify::missing_public_key))]
-    #[error(
-        "A {} is required to verify this tool.", "checksum_public_key".style(Style::Property)
-    )]
-    MissingChecksumPublicKey,
-
     #[diagnostic(code(proto::minimum_version_requirement))]
     #[error(
         "Unable to use the {tool} plugin with identifier {}, as it requires a minimum proto version of {}, but found {} instead.",
@@ -114,13 +108,6 @@ pub enum ProtoError {
         url: String,
         #[source]
         error: Box<reqwest::Error>,
-    },
-
-    #[diagnostic(code(proto::verify::minisign))]
-    #[error("Failed to verify minisign checksum.")]
-    Minisign {
-        #[source]
-        error: Box<minisign_verify::Error>,
     },
 
     #[diagnostic(code(proto::version::invalid))]

@@ -29,7 +29,7 @@ impl Tool {
         // Nothing cached, so load from the plugin
         if !cached {
             if is_offline() {
-                return Err(ProtoResolveError::InternetConnectionRequiredForVersion {
+                return Err(ProtoResolveError::RequiredInternetConnectionForVersion {
                     command: format!("{}_VERSION=1.2.3 {}", self.get_env_var_prefix(), self.id),
                     bin_dir: self.proto.store.bin_dir.clone(),
                 }

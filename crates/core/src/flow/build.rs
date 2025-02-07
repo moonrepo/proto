@@ -193,7 +193,7 @@ async fn exec_command(command: &mut Command) -> miette::Result<String> {
 
     let output = spawn_command(command)
         .await
-        .map_err(|error| ProtoBuildError::CommandFailed {
+        .map_err(|error| ProtoBuildError::FailedCommand {
             command: command_line.clone(),
             error: Box::new(error),
         })?;
@@ -211,7 +211,7 @@ async fn exec_command(command: &mut Command) -> miette::Result<String> {
     );
 
     if !output.status.success() {
-        return Err(ProtoBuildError::CommandNonZeroExit {
+        return Err(ProtoBuildError::FailedCommandNonZeroExit {
             command: command_line,
             code,
         }
@@ -526,7 +526,7 @@ async fn get_command_version(cmd: &str, version_arg: &str) -> miette::Result<Ver
         .unwrap_or(&output);
 
     Ok(
-        Version::parse(value).map_err(|error| ProtoBuildError::VersionParseFailed {
+        Version::parse(value).map_err(|error| ProtoBuildError::FailedVersionParse {
             value: value.to_owned(),
             error: Box::new(error),
         })?,
