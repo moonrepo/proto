@@ -14,6 +14,12 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added `$XDG_DATA_HOME` support when detecting the proto store. Will be used if `$PROTO_HOME` is not set, and will fallback to `$HOME/.proto`.
+
 ## 0.45.2
 
 #### 🚀 Updates
