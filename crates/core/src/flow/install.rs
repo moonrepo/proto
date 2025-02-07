@@ -1,4 +1,5 @@
 use super::build::*;
+pub use super::build_error::ProtoBuildError;
 use crate::checksum::verify_checksum;
 use crate::error::ProtoError;
 use crate::helpers::{extract_filename_from_url, is_archive_file, is_offline};

@@ -1,4 +1,4 @@
-use crate::error::ProtoError;
+pub use super::resolve_error::ProtoResolveError;
 use crate::helpers::is_offline;
 use crate::tool::Tool;
 use crate::version_resolver::VersionResolver;
@@ -29,7 +29,7 @@ impl Tool {
         // Nothing cached, so load from the plugin
         if !cached {
             if is_offline() {
-                return Err(ProtoError::InternetConnectionRequiredForVersion {
+                return Err(ProtoResolveError::InternetConnectionRequiredForVersion {
                     command: format!("{}_VERSION=1.2.3 {}", self.get_env_var_prefix(), self.id),
                     bin_dir: self.proto.store.bin_dir.clone(),
                 }
@@ -139,7 +139,7 @@ impl Tool {
                 resolver.resolve_without_manifest(candidate)
             };
 
-            result.ok_or_else(|| ProtoError::VersionResolveFailed {
+            result.ok_or_else(|| ProtoResolveError::FailedVersionResolve {
                 tool: self.get_name().to_owned(),
                 version: candidate.to_string(),
             })
@@ -240,9 +240,12 @@ impl Tool {
 
                 output.version.unwrap()
             } else {
-                UnresolvedVersionSpec::parse(&content).map_err(|error| ProtoError::VersionSpec {
-                    version: content,
-                    error: Box::new(error),
+                UnresolvedVersionSpec::parse(&content).map_err(|error| {
+                    ProtoResolveError::InvalidDetectedVersionSpec {
+                        error: Box::new(error),
+                        path: file_path.clone(),
+                        version: content,
+                    }
                 })?
             };
 

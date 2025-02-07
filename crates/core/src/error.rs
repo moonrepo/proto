@@ -30,14 +30,6 @@ pub enum ProtoError {
     #[error("Internet connection required, unable to download, install, or run tools.")]
     InternetConnectionRequired,
 
-    #[diagnostic(code(proto::misc::offline_version_required))]
-    #[error(
-        "Internet connection required to load and resolve a valid version. To work around this:\n - Pass a semantic version explicitly: {}\n - Execute the non-shim binaries instead: {}",
-        .command.style(Style::Shell),
-        .bin_dir.style(Style::Path)
-    )]
-    InternetConnectionRequiredForVersion { command: String, bin_dir: PathBuf },
-
     #[diagnostic(code(proto::verify::missing_public_key))]
     #[error(
         "A {} is required to verify this tool.", "checksum_public_key".style(Style::Property)
@@ -144,16 +136,6 @@ pub enum ProtoError {
         "proto pin".style(Style::Shell),
     )]
     VersionDetectFailed { tool: String },
-
-    #[diagnostic(
-        code(proto::version::unresolved),
-        help = "Does this version exist and has it been released?"
-    )]
-    #[error(
-        "Failed to resolve {} to a valid supported version for {tool}.",
-        .version.style(Style::Hash),
-    )]
-    VersionResolveFailed { tool: String, version: String },
 
     #[diagnostic(code(proto::http))]
     #[error("Failed to request {}.", .url.style(Style::Url))]
