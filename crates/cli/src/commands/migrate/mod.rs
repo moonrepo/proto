@@ -22,7 +22,7 @@ pub async fn migrate(_session: ProtoSession, args: MigrateArgs) -> AppResult {
     //     }
     // }
 
-    return Err(ProtoCliError::UnknownMigration {
+    return Err(ProtoCliError::MigrateUnknownOperation {
         op: args.operation.to_owned(),
     }
     .into());

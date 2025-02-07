@@ -79,7 +79,7 @@ async fn get_executable(tool: &Tool, args: &RunArgs) -> miette::Result<Executabl
             }
         }
 
-        return Err(ProtoCliError::MissingRunAltBin {
+        return Err(ProtoCliError::RunMissingAltBin {
             bin: alt_name.to_owned(),
             path: tool_dir,
         }
@@ -143,7 +143,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
 
     // Avoid running the tool's native self-upgrade as it conflicts with proto
     if is_trying_to_self_upgrade(&tool, &args.passthrough) {
-        return Err(ProtoCliError::NoSelfUpgrade {
+        return Err(ProtoCliError::RunNoSelfUpgrade {
             command: format!("proto install {} --pin", tool.id),
             tool: tool.get_name().to_owned(),
         }
@@ -161,7 +161,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
             let command = format!("proto install {} {}", tool.id, resolved_version);
 
             if let Ok(source) = env::var(format!("{}_DETECTED_FROM", tool.get_env_var_prefix())) {
-                return Err(ProtoCliError::MissingToolForRunWithSource {
+                return Err(ProtoCliError::RunMissingToolWithSource {
                     tool: tool.get_name().to_owned(),
                     version: version.to_string(),
                     command,
@@ -170,7 +170,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
                 .into());
             }
 
-            return Err(ProtoCliError::MissingToolForRun {
+            return Err(ProtoCliError::RunMissingTool {
                 tool: tool.get_name().to_owned(),
                 version: version.to_string(),
                 command,
