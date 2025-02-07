@@ -2,7 +2,7 @@ use miette::Diagnostic;
 use thiserror::Error;
 
 #[derive(Error, Debug, Diagnostic)]
-pub enum ProtoError {
+pub enum ProtoEnvError {
     #[diagnostic(code(proto::env::home_dir))]
     #[error("Unable to determine your home directory.")]
     MissingHomeDir,

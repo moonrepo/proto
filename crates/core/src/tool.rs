@@ -1,7 +1,7 @@
 use crate::env::ProtoEnvironment;
-use crate::error::ProtoErrorOld;
 use crate::helpers::get_proto_version;
 use crate::layout::{Inventory, Product};
+use crate::tool_error::ProtoToolError;
 use proto_pdk_api::*;
 use rustc_hash::{FxHashMap, FxHashSet};
 use starbase_styles::color;
@@ -215,7 +215,7 @@ impl Tool {
             let actual_version = get_proto_version();
 
             if actual_version < expected_version {
-                return Err(ProtoErrorOld::InvalidMinimumVersion {
+                return Err(ProtoToolError::InvalidMinimumVersion {
                     tool: metadata.name,
                     id: self.id.clone(),
                     expected: expected_version.to_string(),
@@ -243,7 +243,7 @@ impl Tool {
             if override_dir_path.is_none()
                 || override_dir_path.as_ref().is_some_and(|p| p.is_relative())
             {
-                return Err(ProtoErrorOld::AbsoluteInventoryDir {
+                return Err(ProtoToolError::RequiredAbsoluteInventoryDir {
                     tool: metadata.name.clone(),
                     dir: override_dir_path.unwrap_or_else(|| PathBuf::from("<unknown>")),
                 }
