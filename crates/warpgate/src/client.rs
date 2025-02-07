@@ -1,4 +1,4 @@
-use crate::error::WarpgateError;
+use crate::client_error::WarpgateClientError;
 use async_trait::async_trait;
 use core::ops::Deref;
 use miette::IntoDiagnostic;
@@ -59,13 +59,13 @@ impl HttpClient {
         &self.client
     }
 
-    pub fn map_error(url: String, error: reqwest_middleware::Error) -> WarpgateError {
+    pub fn map_error(url: String, error: reqwest_middleware::Error) -> WarpgateClientError {
         match error {
-            reqwest_middleware::Error::Middleware(inner) => WarpgateError::HttpMiddleware {
+            reqwest_middleware::Error::Middleware(inner) => WarpgateClientError::HttpMiddleware {
                 error: format!("{}", inner),
                 url,
             },
-            reqwest_middleware::Error::Reqwest(inner) => WarpgateError::Http {
+            reqwest_middleware::Error::Reqwest(inner) => WarpgateClientError::Http {
                 error: Box::new(inner),
                 url,
             },
@@ -129,14 +129,22 @@ pub fn create_http_client_with_options(options: &HttpOptions) -> miette::Result<
         match root_cert.extension().and_then(|ext| ext.to_str()) {
             Some("der") => {
                 client_builder = client_builder.add_root_certificate(
-                    reqwest::Certificate::from_der(&fs::read_file_bytes(root_cert)?)
-                        .into_diagnostic()?,
+                    reqwest::Certificate::from_der(&fs::read_file_bytes(root_cert)?).map_err(
+                        |error| WarpgateClientError::InvalidCert {
+                            path: root_cert.to_path_buf(),
+                            error: Box::new(error),
+                        },
+                    )?,
                 )
             }
             Some("pem") => {
                 client_builder = client_builder.add_root_certificate(
-                    reqwest::Certificate::from_pem(&fs::read_file_bytes(root_cert)?)
-                        .into_diagnostic()?,
+                    reqwest::Certificate::from_pem(&fs::read_file_bytes(root_cert)?).map_err(
+                        |error| WarpgateClientError::InvalidCert {
+                            path: root_cert.to_path_buf(),
+                            error: Box::new(error),
+                        },
+                    )?,
                 )
             }
             _ => {
@@ -165,7 +173,13 @@ pub fn create_http_client_with_options(options: &HttpOptions) -> miette::Result<
         trace!(proxies = ?insecure_proxies, "Adding insecure proxies to client");
 
         for proxy in insecure_proxies {
-            client_builder = client_builder.proxy(reqwest::Proxy::http(proxy).into_diagnostic()?);
+            client_builder =
+                client_builder.proxy(reqwest::Proxy::http(proxy).map_err(|error| {
+                    WarpgateClientError::InvalidProxy {
+                        url: proxy.to_owned(),
+                        error: Box::new(error),
+                    }
+                })?);
         }
     }
 
@@ -173,7 +187,13 @@ pub fn create_http_client_with_options(options: &HttpOptions) -> miette::Result<
         trace!(proxies = ?secure_proxies, "Adding secure proxies to client");
 
         for proxy in secure_proxies {
-            client_builder = client_builder.proxy(reqwest::Proxy::https(proxy).into_diagnostic()?);
+            client_builder =
+                client_builder.proxy(reqwest::Proxy::https(proxy).map_err(|error| {
+                    WarpgateClientError::InvalidProxy {
+                        url: proxy.to_owned(),
+                        error: Box::new(error),
+                    }
+                })?);
         }
     }
 

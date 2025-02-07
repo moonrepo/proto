@@ -26,6 +26,7 @@ pub fn determine_cache_extension(value: &str) -> Option<&str> {
         .find(|ext| value.ends_with(ext))
 }
 
+#[instrument(skip(client))]
 pub async fn download_from_url_to_file(
     source_url: &str,
     temp_file: &Path,

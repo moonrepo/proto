@@ -1,4 +1,5 @@
 mod client;
+mod client_error;
 mod endpoints;
 mod error;
 mod helpers;
@@ -9,6 +10,7 @@ mod plugin;
 pub mod test_utils;
 
 pub use client::*;
+pub use client_error::*;
 pub use error::*;
 pub use helpers::*;
 pub use id::*;

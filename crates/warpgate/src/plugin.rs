@@ -101,7 +101,7 @@ impl PluginContainer {
             if is_incompatible_runtime(&error) {
                 WarpgateError::IncompatibleRuntime { id: id.clone() }
             } else {
-                WarpgateError::PluginCreateFailed {
+                WarpgateError::FailedPluginCreate {
                     id: id.clone(),
                     error: Box::new(error),
                 }

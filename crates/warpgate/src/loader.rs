@@ -108,7 +108,7 @@ impl PluginLoader {
 
             Ok(path)
         } else {
-            Err(WarpgateError::SourceFileMissing {
+            Err(WarpgateError::MissingSourceFile {
                 id: id.to_owned(),
                 path: path.to_path_buf(),
             }
@@ -230,7 +230,7 @@ impl PluginLoader {
         }
 
         if self.is_offline() {
-            return Err(WarpgateError::InternetConnectionRequired {
+            return Err(WarpgateError::RequiredInternetConnection {
                 message: "Unable to download plugin.".into(),
                 url: source_url.to_owned(),
             }
@@ -271,7 +271,7 @@ impl PluginLoader {
         }
 
         if self.is_offline() {
-            return Err(WarpgateError::InternetConnectionRequired {
+            return Err(WarpgateError::RequiredInternetConnection {
                 message: format!(
                     "Unable to download plugin {} from GitHub.",
                     PluginLocator::GitHub(Box::new(github.to_owned()))
@@ -309,7 +309,7 @@ impl PluginLoader {
         }
 
         let Some(release_tag) = found_tag else {
-            return Err(WarpgateError::GitHubTagMissing {
+            return Err(WarpgateError::MissingGitHubTag {
                 id: id.to_owned(),
                 repo_slug: github.repo_slug.to_owned(),
             }
@@ -373,7 +373,7 @@ impl PluginLoader {
             }
         }
 
-        Err(WarpgateError::GitHubAssetMissing {
+        Err(WarpgateError::MissingGitHubAsset {
             id: id.to_owned(),
             repo_slug: github.repo_slug.to_owned(),
             tag: release_tag,

@@ -164,7 +164,7 @@ impl TryFrom<String> for PluginLocator {
             }))),
             "github" => {
                 if !location.contains('/') {
-                    return Err(PluginLocatorError::GitHubMissingOrg);
+                    return Err(PluginLocatorError::MissingGitHubOrg);
                 }
 
                 let mut github = GitHubLocator::default();

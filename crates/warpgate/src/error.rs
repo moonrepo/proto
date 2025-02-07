@@ -10,21 +10,9 @@ pub enum WarpgateError {
     #[error("{0}")]
     Serde(String),
 
-    #[diagnostic(code(plugin::http))]
-    #[error("Failed to make HTTP request for {}.", .url.style(Style::Url))]
-    Http {
-        url: String,
-        #[source]
-        error: Box<reqwest::Error>,
-    },
-
-    #[diagnostic(code(plugin::http))]
-    #[error("Failed to make HTTP request for {}: {}", .url.style(Style::Url), .error.style(Style::MutedLight))]
-    HttpMiddleware { url: String, error: String },
-
     #[diagnostic(code(plugin::offline))]
     #[error("{message} An internet connection is required to request {}.", .url.style(Style::Url))]
-    InternetConnectionRequired { message: String, url: String },
+    RequiredInternetConnection { message: String, url: String },
 
     #[diagnostic(code(plugin::invalid_id))]
     #[error(
@@ -39,7 +27,7 @@ pub enum WarpgateError {
         .id.to_string().style(Style::Id),
         .path.style(Style::Path),
     )]
-    SourceFileMissing { id: Id, path: PathBuf },
+    MissingSourceFile { id: Id, path: PathBuf },
 
     #[diagnostic(code(plugin::github::asset_missing))]
     #[error(
@@ -47,7 +35,7 @@ pub enum WarpgateError {
         .id.to_string().style(Style::Id),
         .repo_slug.style(Style::Id),
     )]
-    GitHubTagMissing { id: Id, repo_slug: String },
+    MissingGitHubTag { id: Id, repo_slug: String },
 
     #[diagnostic(code(plugin::github::asset_missing))]
     #[error(
@@ -56,7 +44,7 @@ pub enum WarpgateError {
         .repo_slug.style(Style::Id),
         .tag,
     )]
-    GitHubAssetMissing {
+    MissingGitHubAsset {
         id: Id,
         repo_slug: String,
         tag: String,
@@ -64,7 +52,7 @@ pub enum WarpgateError {
 
     #[diagnostic(code(plugin::create::failed))]
     #[error("Failed to load and create {} plugin: {error}", .id.to_string().style(Style::Id))]
-    PluginCreateFailed {
+    FailedPluginCreate {
         id: Id,
         #[source]
         error: Box<extism::Error>,

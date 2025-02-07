@@ -1,6 +1,7 @@
 use crate::client::HttpClient;
 use crate::error::WarpgateError;
 // use crate::helpers::{self, create_cache_key, determine_cache_extension};
+use crate::client_error::WarpgateClientError;
 use crate::helpers;
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
 // use reqwest::header;
@@ -288,10 +289,13 @@ fn send_request(
     let status = response.status().as_u16();
 
     let bytes = Handle::current().block_on(async {
-        response.bytes().await.map_err(|error| WarpgateError::Http {
-            url: input.url.clone(),
-            error: Box::new(error),
-        })
+        response
+            .bytes()
+            .await
+            .map_err(|error| WarpgateClientError::Http {
+                url: input.url.clone(),
+                error: Box::new(error),
+            })
     })?;
 
     // Create and return our intermediate shapes
