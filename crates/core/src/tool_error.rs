@@ -1,4 +1,4 @@
-use crate::proto_config::PROTO_CONFIG_NAME;
+use crate::config::PROTO_CONFIG_NAME;
 use miette::Diagnostic;
 use starbase_styles::{Style, Stylize};
 use std::path::PathBuf;

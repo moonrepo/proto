@@ -1,5 +1,5 @@
+use crate::config::SCHEMA_PLUGIN_KEY;
 use crate::env::ProtoEnvironment;
-use crate::proto_config::SCHEMA_PLUGIN_KEY;
 use crate::tool::Tool;
 use crate::tool_error::ProtoToolError;
 use convert_case::{Case, Casing};

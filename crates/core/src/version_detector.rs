@@ -1,5 +1,5 @@
+use crate::config::*;
 use crate::flow::resolve::ProtoResolveError;
-use crate::proto_config::*;
 use crate::tool::Tool;
 use std::env;
 use std::path::Path;

@@ -1,7 +1,7 @@
 use crate::session::ProtoSession;
 use clap::{Args, ValueEnum};
 use iocraft::prelude::element;
-use proto_core::{ProtoErrorOld, Tool, VersionSpec, PROTO_PLUGIN_KEY};
+use proto_core::{flow::resolve::ProtoResolveError, Tool, VersionSpec, PROTO_PLUGIN_KEY};
 use proto_shim::get_exe_file_name;
 use rustc_hash::FxHashSet;
 use serde::Serialize;
@@ -109,11 +109,12 @@ pub async fn clean_tool(
                 continue;
             }
 
-            let version =
-                VersionSpec::parse(&dir_name).map_err(|error| ProtoErrorOld::VersionSpec {
+            let version = VersionSpec::parse(&dir_name).map_err(|error| {
+                ProtoResolveError::InvalidVersionSpec {
                     version: dir_name,
                     error: Box::new(error),
-                })?;
+                }
+            })?;
 
             if !tool.inventory.manifest.versions.contains_key(&version) {
                 debug!(
@@ -227,11 +228,12 @@ pub async fn clean_proto_tool(
         let proto_file = tool_dir.join(get_exe_file_name("proto"));
         let dir_name = fs::file_name(&tool_dir);
 
-        let version =
-            VersionSpec::parse(&dir_name).map_err(|error| ProtoErrorOld::VersionSpec {
+        let version = VersionSpec::parse(&dir_name).map_err(|error| {
+            ProtoResolveError::InvalidVersionSpec {
                 version: dir_name,
                 error: Box::new(error),
-            })?;
+            }
+        })?;
 
         let is_stale = if proto_file.exists() {
             fs::is_stale(proto_file, false, duration, now)?.is_some()

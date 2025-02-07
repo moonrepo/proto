@@ -1,9 +1,9 @@
+use crate::config::{
+    ConfigMode, PinLocation, ProtoConfig, ProtoConfigFile, ProtoConfigManager, PROTO_CONFIG_NAME,
+};
 use crate::env_error::ProtoEnvError;
 use crate::helpers::is_offline;
 use crate::layout::Store;
-use crate::proto_config::{
-    ConfigMode, PinLocation, ProtoConfig, ProtoConfigFile, ProtoConfigManager, PROTO_CONFIG_NAME,
-};
 use once_cell::sync::OnceCell;
 use starbase_console::{Console, EmptyReporter};
 use starbase_utils::dirs::home_dir;
