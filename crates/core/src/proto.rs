@@ -34,7 +34,9 @@ pub struct ProtoEnvironment {
 impl ProtoEnvironment {
     pub fn new() -> miette::Result<Self> {
         let home = home_dir().ok_or(ProtoError::MissingHomeDir)?;
-        let mut root = path_var("PROTO_HOME").unwrap_or_else(|| home.join(".proto"));
+        let mut root = path_var("PROTO_HOME")
+            .or_else(|| path_var("XDG_DATA_HOME").map(|xdg| xdg.join("proto")))
+            .unwrap_or_else(|| home.join(".proto"));
 
         if let Ok(rel_root) = root.strip_prefix("~") {
             root = home.join(rel_root);
