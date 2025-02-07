@@ -6,7 +6,7 @@ use thiserror::Error;
 use warpgate::Id;
 
 #[derive(Error, Debug, Diagnostic)]
-pub enum ProtoError {
+pub enum ProtoErrorOld {
     #[error("{0}")]
     Message(String),
 

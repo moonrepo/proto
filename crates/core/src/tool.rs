@@ -1,4 +1,4 @@
-use crate::error::ProtoError;
+use crate::error::ProtoErrorOld;
 use crate::helpers::get_proto_version;
 use crate::layout::{Inventory, Product};
 use crate::proto::ProtoEnvironment;
@@ -215,7 +215,7 @@ impl Tool {
             let actual_version = get_proto_version();
 
             if actual_version < expected_version {
-                return Err(ProtoError::InvalidMinimumVersion {
+                return Err(ProtoErrorOld::InvalidMinimumVersion {
                     tool: metadata.name,
                     id: self.id.clone(),
                     expected: expected_version.to_string(),
@@ -243,7 +243,7 @@ impl Tool {
             if override_dir_path.is_none()
                 || override_dir_path.as_ref().is_some_and(|p| p.is_relative())
             {
-                return Err(ProtoError::AbsoluteInventoryDir {
+                return Err(ProtoErrorOld::AbsoluteInventoryDir {
                     tool: metadata.name.clone(),
                     dir: override_dir_path.unwrap_or_else(|| PathBuf::from("<unknown>")),
                 }

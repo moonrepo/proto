@@ -1,4 +1,4 @@
-use crate::error::ProtoError;
+use crate::error::ProtoErrorOld;
 use crate::helpers::ENV_VAR_SUB;
 use indexmap::IndexMap;
 use once_cell::sync::OnceCell;
@@ -550,7 +550,7 @@ impl ProtoConfig {
                     let env_file_path = make_absolute(env_file, path);
 
                     if !env_file_path.exists() {
-                        return Err(ProtoError::MissingEnvFile {
+                        return Err(ProtoErrorOld::MissingEnvFile {
                             path: env_file_path,
                             config: env_file.to_owned(),
                             config_path: path.to_path_buf(),
@@ -693,7 +693,7 @@ impl ProtoConfig {
                     error: Box::new(inner),
                 }
                 .into(),
-                other => ProtoError::EnvFileParseFailed {
+                other => ProtoErrorOld::EnvFileParseFailed {
                     path: path.to_path_buf(),
                     error: Box::new(other),
                 }

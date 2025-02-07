@@ -1,4 +1,4 @@
-use crate::error::ProtoError;
+use crate::error::ProtoErrorOld;
 use crate::helpers::is_offline;
 use crate::layout::Store;
 use crate::proto_config::{
@@ -33,7 +33,7 @@ pub struct ProtoEnvironment {
 
 impl ProtoEnvironment {
     pub fn new() -> miette::Result<Self> {
-        let home = home_dir().ok_or(ProtoError::MissingHomeDir)?;
+        let home = home_dir().ok_or(ProtoErrorOld::MissingHomeDir)?;
         let mut root = path_var("PROTO_HOME")
             .or_else(|| path_var("XDG_DATA_HOME").map(|xdg| xdg.join("proto")))
             .unwrap_or_else(|| home.join(".proto"));

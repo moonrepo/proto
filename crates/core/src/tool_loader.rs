@@ -1,4 +1,4 @@
-use crate::error::ProtoError;
+use crate::error::ProtoErrorOld;
 use crate::proto::ProtoEnvironment;
 use crate::proto_config::SCHEMA_PLUGIN_KEY;
 use crate::tool::Tool;
@@ -64,7 +64,7 @@ pub fn locate_tool(id: &Id, proto: &ProtoEnvironment) -> miette::Result<PluginLo
     }
 
     let Some(locator) = locator else {
-        return Err(ProtoError::UnknownTool { id: id.to_owned() }.into());
+        return Err(ProtoErrorOld::UnknownTool { id: id.to_owned() }.into());
     };
 
     Ok(locator)
