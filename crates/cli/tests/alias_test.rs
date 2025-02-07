@@ -18,7 +18,7 @@ mod alias_local {
 
         assert
             .inner
-            .stderr(predicate::str::contains("unknown is not a built-in tool"));
+            .stderr(predicate::str::contains("unknown is not a built-in plugin"));
     }
 
     #[test]

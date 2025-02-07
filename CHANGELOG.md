@@ -19,6 +19,7 @@
 #### 🚀 Updates
 
 - Added `$XDG_DATA_HOME` support when detecting the proto store. Will be used if `$PROTO_HOME` is not set, and will fallback to `$HOME/.proto`.
+- Improved our errors implementation, rewriting some error messages, and updating error codes.
 
 ## 0.45.2
 
