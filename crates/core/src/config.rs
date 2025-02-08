@@ -20,6 +20,7 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use system_env::{SystemOS, SystemPackageManager};
 use tracing::{debug, instrument};
 use version_spec::*;
 use warpgate::{HttpOptions, Id, PluginLocator, UrlLocator};
@@ -174,6 +175,17 @@ fn default_builtin_plugins(_context: &()) -> DefaultValueResult<BuiltinPlugins> 
 }
 
 #[derive(Clone, Config, Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct ProtoBuildConfig {
+    pub exclude_packages: Vec<String>,
+
+    #[setting(default = true)]
+    pub install_system_packages: bool,
+
+    pub system_package_manager: FxHashMap<SystemOS, Option<SystemPackageManager>>,
+}
+
+#[derive(Clone, Config, Debug, Serialize)]
 #[config(allow_unknown_fields)]
 #[serde(rename_all = "kebab-case")]
 pub struct ProtoToolConfig {
@@ -214,6 +226,9 @@ pub struct ProtoSettingsConfig {
 
     #[setting(env = "PROTO_AUTO_INSTALL", parse_env = env::parse_bool)]
     pub auto_install: bool,
+
+    #[setting(nested)]
+    pub build: ProtoBuildConfig,
 
     #[setting(default = default_builtin_plugins)]
     pub builtin_plugins: BuiltinPlugins,
