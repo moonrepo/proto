@@ -62,7 +62,7 @@ impl UnresolvedParser {
                 // Requirement operator
                 '=' | '~' | '^' | '>' | '<' => {
                     if self.in_part != ParsePart::Start && self.in_part != ParsePart::ReqPrefix {
-                        return Err(SpecError::ParseInvalidReq);
+                        return Err(SpecError::InvalidParseRequirement);
                     }
 
                     self.in_part = ParsePart::ReqPrefix;
@@ -100,7 +100,7 @@ impl UnresolvedParser {
                         if ch == 'v' || ch == 'V' {
                             continue;
                         } else {
-                            return Err(SpecError::ParseUnknownChar(ch));
+                            return Err(SpecError::UnknownParseChar(ch));
                         }
                     }
                 },
@@ -219,7 +219,7 @@ impl UnresolvedParser {
                     }
                 }
                 _ => {
-                    return Err(SpecError::ParseUnknownChar(ch));
+                    return Err(SpecError::UnknownParseChar(ch));
                 }
             }
         }
@@ -286,7 +286,7 @@ impl UnresolvedParser {
                 output.push_str(year);
             }
         } else if self.major_year.is_empty() {
-            return Err(SpecError::ParseMissingMajorPart);
+            return Err(SpecError::MissingParseMajorPart);
         } else {
             output.push_str(self.get_part(&self.major_year));
         }

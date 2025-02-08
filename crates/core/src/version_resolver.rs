@@ -1,4 +1,4 @@
-use crate::proto_config::ProtoToolConfig;
+use crate::config::ProtoToolConfig;
 use crate::tool_manifest::ToolManifest;
 use proto_pdk_api::LoadVersionsOutput;
 use semver::VersionReq;

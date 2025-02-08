@@ -1,4 +1,4 @@
-use crate::error::WarpgateError;
+use crate::plugin_error::WarpgatePluginError;
 use compact_str::CompactString;
 use regex::Regex;
 use serde::{de, Deserialize, Deserializer, Serialize};
@@ -13,11 +13,11 @@ pub static ID_PATTERN: LazyLock<Regex> =
 pub struct Id(CompactString);
 
 impl Id {
-    pub fn new<S: AsRef<str>>(id: S) -> Result<Id, WarpgateError> {
+    pub fn new<S: AsRef<str>>(id: S) -> Result<Id, WarpgatePluginError> {
         let id = id.as_ref();
 
         if !ID_PATTERN.is_match(id) {
-            return Err(WarpgateError::InvalidID(id.to_owned()));
+            return Err(WarpgatePluginError::InvalidID(id.to_owned()));
         }
 
         Ok(Self::raw(id))
@@ -113,7 +113,7 @@ impl Borrow<str> for Id {
 // Parsing values
 
 impl FromStr for Id {
-    type Err = WarpgateError;
+    type Err = WarpgatePluginError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Id::new(s)

@@ -40,7 +40,7 @@ impl CalVer {
     /// so that we can utilize the [`semver::Version`] type.
     pub fn parse(value: &str) -> Result<Self, SpecError> {
         let Some(caps) = get_calver_regex().captures(value) else {
-            return Err(SpecError::CalverInvalidFormat);
+            return Err(SpecError::InvalidCalverFormat);
         };
 
         // Short years (less than 4 characters) are relative

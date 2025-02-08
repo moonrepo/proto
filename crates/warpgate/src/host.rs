@@ -1,9 +1,8 @@
 use crate::client::HttpClient;
-use crate::error::WarpgateError;
-// use crate::helpers::{self, create_cache_key, determine_cache_extension};
+use crate::client_error::WarpgateClientError;
 use crate::helpers;
+use crate::plugin_error::WarpgatePluginError;
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
-// use reqwest::header;
 use starbase_styles::color::{self, apply_style_tags};
 use starbase_utils::env::paths;
 use starbase_utils::fs;
@@ -11,7 +10,6 @@ use std::collections::BTreeMap;
 use std::env;
 use std::path::PathBuf;
 use std::sync::Arc;
-// use std::time::{Duration, SystemTime};
 use system_env::{create_process_command, find_command_on_path};
 use tokio::runtime::Handle;
 use tracing::{instrument, trace};
@@ -167,7 +165,7 @@ fn exec_command(
     };
 
     let Some(bin) = &maybe_bin else {
-        return Err(WarpgateError::PluginCommandMissing {
+        return Err(WarpgatePluginError::MissingCommand {
             command: input.command.clone(),
         }
         .into());
@@ -288,10 +286,13 @@ fn send_request(
     let status = response.status().as_u16();
 
     let bytes = Handle::current().block_on(async {
-        response.bytes().await.map_err(|error| WarpgateError::Http {
-            url: input.url.clone(),
-            error: Box::new(error),
-        })
+        response
+            .bytes()
+            .await
+            .map_err(|error| WarpgateClientError::Http {
+                url: input.url.clone(),
+                error: Box::new(error),
+            })
     })?;
 
     // Create and return our intermediate shapes

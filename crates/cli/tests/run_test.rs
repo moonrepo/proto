@@ -285,7 +285,7 @@ mod run {
             .failure();
 
         assert.stderr(predicate::str::contains(
-            "plugin-name is not a built-in tool",
+            "plugin-name is not a built-in plugin",
         ));
     }
 

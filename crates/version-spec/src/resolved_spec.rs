@@ -120,7 +120,7 @@ impl FromStr for VersionSpec {
             return Ok(VersionSpec::Semantic(SemVer::parse(&value)?));
         }
 
-        Err(SpecError::ResolvedUnknownFormat(value.to_owned()))
+        Err(SpecError::UnknownResolvedFormat(value.to_owned()))
     }
 }
 

@@ -1,4 +1,4 @@
-use crate::proto::ProtoEnvironment;
+use crate::env::ProtoEnvironment;
 use crate::registry::data::{PluginEntry, PluginRegistryDocument};
 use crate::registry::registry_error::ProtoRegistryError;
 use starbase_utils::{fs, json};
@@ -95,13 +95,13 @@ impl ProtoRegistry {
 
         let data: PluginRegistryDocument = reqwest::get(&data_url)
             .await
-            .map_err(|error| ProtoRegistryError::RequestFailed {
+            .map_err(|error| ProtoRegistryError::FailedRequest {
                 url: data_url,
                 error: Box::new(error),
             })?
             .json()
             .await
-            .map_err(|error| ProtoRegistryError::ParseFailed {
+            .map_err(|error| ProtoRegistryError::FailedParse {
                 error: Box::new(error),
             })?;
 

@@ -1,5 +1,5 @@
 use crate::client::HttpClient;
-use crate::error::WarpgateError;
+use crate::loader_error::WarpgateLoaderError;
 use sha2::{Digest, Sha256};
 use starbase_archive::{is_supported_archive_extension, Archiver};
 use starbase_utils::{fs, glob, net, net::NetError};
@@ -26,6 +26,7 @@ pub fn determine_cache_extension(value: &str) -> Option<&str> {
         .find(|ext| value.ends_with(ext))
 }
 
+#[instrument(skip(client))]
 pub async fn download_from_url_to_file(
     source_url: &str,
     temp_file: &Path,
@@ -42,7 +43,7 @@ pub async fn download_from_url_to_file(
     .await
     {
         return Err(match error {
-            NetError::UrlNotFound { url } => WarpgateError::DownloadNotFound { url }.into(),
+            NetError::UrlNotFound { url } => WarpgateLoaderError::NotFound { url }.into(),
             _ => error.into(),
         });
     };
@@ -61,7 +62,7 @@ pub fn move_or_unpack_download(temp_file: &Path, dest_file: &Path) -> miette::Re
         let wasm_files = glob::walk_files(&out_dir, ["**/*.wasm"])?;
 
         if wasm_files.is_empty() {
-            return Err(WarpgateError::DownloadNoWasm {
+            return Err(WarpgateLoaderError::NoWasmFound {
                 path: temp_file.to_path_buf(),
             }
             .into());
@@ -89,7 +90,7 @@ pub fn move_or_unpack_download(temp_file: &Path, dest_file: &Path) -> miette::Re
         }
 
         Some(ext) => {
-            return Err(WarpgateError::DownloadUnsupportedExtension {
+            return Err(WarpgateLoaderError::UnsupportedDownloadExtension {
                 ext: ext.to_owned(),
                 path: temp_file.to_path_buf(),
             }
@@ -97,7 +98,7 @@ pub fn move_or_unpack_download(temp_file: &Path, dest_file: &Path) -> miette::Re
         }
 
         None => {
-            return Err(WarpgateError::DownloadUnknownType {
+            return Err(WarpgateLoaderError::UnknownDownloadType {
                 path: temp_file.to_path_buf(),
             }
             .into());

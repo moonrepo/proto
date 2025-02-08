@@ -1,4 +1,4 @@
-use crate::error::ProtoError;
+pub use super::locate_error::ProtoLocateError;
 use crate::helpers::ENV_VAR;
 use crate::layout::BinManager;
 use crate::tool::Tool;
@@ -271,7 +271,7 @@ impl Tool {
             return Ok(exe_file);
         }
 
-        Err(ProtoError::MissingToolExecutable {
+        Err(ProtoLocateError::MissingToolExecutable {
             tool: self.get_name().to_owned(),
             path: exe_file,
         }

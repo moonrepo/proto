@@ -160,7 +160,7 @@ mod locator {
         use super::*;
 
         #[test]
-        #[should_panic(expected = "GitHubMissingOrg")]
+        #[should_panic(expected = "MissingGitHubOrg")]
         fn errors_no_slug() {
             PluginLocator::try_from("github://moonrepo".to_string()).unwrap();
         }

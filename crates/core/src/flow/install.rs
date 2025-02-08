@@ -1,8 +1,10 @@
 use super::build::*;
+pub use super::build_error::ProtoBuildError;
+pub use super::install_error::ProtoInstallError;
 use crate::checksum::verify_checksum;
-use crate::error::ProtoError;
+use crate::env::ProtoConsole;
+use crate::env_error::ProtoEnvError;
 use crate::helpers::{extract_filename_from_url, is_archive_file, is_offline};
-use crate::proto::ProtoConsole;
 use crate::tool::Tool;
 use proto_pdk_api::*;
 use proto_shim::*;
@@ -98,7 +100,7 @@ impl Tool {
             return Ok(true);
         }
 
-        Err(ProtoError::InvalidChecksum {
+        Err(ProtoInstallError::InvalidChecksum {
             checksum: checksum_file.to_path_buf(),
             download: download_file.to_path_buf(),
         }
@@ -120,7 +122,7 @@ impl Tool {
         );
 
         if !self.plugin.has_func("build_instructions").await {
-            return Err(ProtoError::UnsupportedBuildFromSource {
+            return Err(ProtoInstallError::UnsupportedBuildFromSource {
                 tool: self.get_name().to_owned(),
             }
             .into());
@@ -181,7 +183,7 @@ impl Tool {
         );
 
         if !self.plugin.has_func("download_prebuilt").await {
-            return Err(ProtoError::UnsupportedDownloadPrebuilt {
+            return Err(ProtoInstallError::UnsupportedDownloadPrebuilt {
                 tool: self.get_name().to_owned(),
             }
             .into());
@@ -335,7 +337,7 @@ impl Tool {
         }
 
         if is_offline() {
-            return Err(ProtoError::InternetConnectionRequired.into());
+            return Err(ProtoEnvError::RequiredInternetConnection.into());
         }
 
         let temp_dir = self.get_temp_dir();
@@ -368,7 +370,7 @@ impl Tool {
                 .await?;
 
             if !output.installed && !output.skip_install {
-                return Err(ProtoError::InstallFailed {
+                return Err(ProtoInstallError::FailedInstall {
                     tool: self.get_name().to_owned(),
                     error: output.error.unwrap_or_default(),
                 }
@@ -446,7 +448,7 @@ impl Tool {
                 .await?;
 
             if !output.uninstalled && !output.skip_uninstall {
-                return Err(ProtoError::UninstallFailed {
+                return Err(ProtoInstallError::FailedUninstall {
                     tool: self.get_name().to_owned(),
                     error: output.error.unwrap_or_default(),
                 }

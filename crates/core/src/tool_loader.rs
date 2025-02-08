@@ -1,7 +1,7 @@
-use crate::error::ProtoError;
-use crate::proto::ProtoEnvironment;
-use crate::proto_config::SCHEMA_PLUGIN_KEY;
+use crate::config::SCHEMA_PLUGIN_KEY;
+use crate::env::ProtoEnvironment;
 use crate::tool::Tool;
+use crate::tool_error::ProtoToolError;
 use convert_case::{Case, Casing};
 use starbase_utils::{json, toml, yaml};
 use std::fmt::Debug;
@@ -64,7 +64,7 @@ pub fn locate_tool(id: &Id, proto: &ProtoEnvironment) -> miette::Result<PluginLo
     }
 
     let Some(locator) = locator else {
-        return Err(ProtoError::UnknownTool { id: id.to_owned() }.into());
+        return Err(ProtoToolError::UnknownTool { id: id.to_owned() }.into());
     };
 
     Ok(locator)

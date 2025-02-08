@@ -65,7 +65,7 @@ mod resolved_spec {
     }
 
     #[test]
-    #[should_panic(expected = "ResolvedUnknownFormat")]
+    #[should_panic(expected = "UnknownResolvedFormat")]
     fn error_invalid_char() {
         VersionSpec::parse("%").unwrap();
     }
