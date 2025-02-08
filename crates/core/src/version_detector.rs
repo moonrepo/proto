@@ -1,5 +1,5 @@
-use crate::error::ProtoError;
-use crate::proto_config::*;
+use crate::config::*;
+use crate::flow::resolve::ProtoResolveError;
 use crate::tool::Tool;
 use std::env;
 use std::path::Path;
@@ -136,7 +136,7 @@ pub async fn detect_version(
 
             return Ok(
                 UnresolvedVersionSpec::parse(&session_version).map_err(|error| {
-                    ProtoError::VersionSpec {
+                    ProtoResolveError::InvalidVersionSpec {
                         version: session_version,
                         error: Box::new(error),
                     }
@@ -172,7 +172,7 @@ pub async fn detect_version(
     }
 
     // We didn't find anything!
-    Err(ProtoError::VersionDetectFailed {
+    Err(ProtoResolveError::FailedVersionDetect {
         tool: tool.get_name().to_owned(),
     }
     .into())

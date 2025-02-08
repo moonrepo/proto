@@ -100,7 +100,7 @@ pub fn enforce_requirements(
 ) -> miette::Result<()> {
     for require_id in &tool.metadata.requires {
         if !versions.contains_key(require_id.as_str()) {
-            return Err(ProtoCliError::ToolRequiresNotMet {
+            return Err(ProtoCliError::InstallRequirementsNotMet {
                 tool: tool.get_name().to_owned(),
                 requires: require_id.to_owned(),
             }

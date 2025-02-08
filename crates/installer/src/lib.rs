@@ -84,7 +84,7 @@ pub async fn download_release(
     )
     .await
     .map_err(|error| match error {
-        NetError::Http { url, error } => ProtoInstallerError::DownloadFailed { url, error },
+        NetError::Http { url, error } => ProtoInstallerError::FailedDownload { url, error },
         NetError::DownloadFailed { status, .. } => ProtoInstallerError::DownloadNotAvailable {
             version: version.to_owned(),
             status,

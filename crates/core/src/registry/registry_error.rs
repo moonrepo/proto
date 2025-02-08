@@ -4,16 +4,16 @@ use thiserror::Error;
 
 #[derive(Error, Debug, Diagnostic)]
 pub enum ProtoRegistryError {
-    #[diagnostic(code(proto_registry::parse_failed))]
+    #[diagnostic(code(proto::registry::parse_failed))]
     #[error("Failed to parse registry plugin data.")]
-    ParseFailed {
+    FailedParse {
         #[source]
         error: Box<reqwest::Error>,
     },
 
-    #[diagnostic(code(proto_registry::request_failed))]
+    #[diagnostic(code(proto::registry::request_failed))]
     #[error("Failed to request plugins from registry {}.", .url.style(Style::Url))]
-    RequestFailed {
+    FailedRequest {
         url: String,
         #[source]
         error: Box<reqwest::Error>,

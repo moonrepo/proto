@@ -1,5 +1,5 @@
 use crate::client::HttpClient;
-use crate::error::WarpgateError;
+use crate::client_error::WarpgateClientError;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::env;
@@ -42,10 +42,13 @@ pub async fn send_github_request<T: DeserializeOwned>(
         .await
         .map_err(|error| HttpClient::map_error(url.to_owned(), error))?;
 
-    let data: T = response.json().await.map_err(|error| WarpgateError::Http {
-        error: Box::new(error),
-        url: url.to_owned(),
-    })?;
+    let data: T = response
+        .json()
+        .await
+        .map_err(|error| WarpgateClientError::Http {
+            error: Box::new(error),
+            url: url.to_owned(),
+        })?;
 
     Ok(data)
 }

@@ -25,12 +25,12 @@ pub struct AliasArgs {
 pub async fn alias(session: ProtoSession, args: AliasArgs) -> AppResult {
     if let UnresolvedVersionSpec::Alias(inner_alias) = &args.spec {
         if args.alias == inner_alias {
-            return Err(ProtoCliError::NoMatchingAliasToVersion.into());
+            return Err(ProtoCliError::AliasNoMatchingToVersion.into());
         }
     }
 
     if !is_alias_name(&args.alias) {
-        return Err(ProtoCliError::InvalidAliasName {
+        return Err(ProtoCliError::AliasInvalidName {
             alias: args.alias.clone(),
         }
         .into());

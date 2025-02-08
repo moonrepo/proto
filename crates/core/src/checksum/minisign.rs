@@ -1,4 +1,4 @@
-use crate::error::ProtoError;
+use super::checksum_error::ProtoChecksumError;
 use minisign_verify::*;
 use starbase_utils::fs;
 use std::path::Path;
@@ -9,7 +9,7 @@ pub fn verify_checksum(
     checksum_file: &Path,
     checksum_public_key: &str,
 ) -> miette::Result<bool> {
-    let handle_error = |error: Error| ProtoError::Minisign {
+    let handle_error = |error: Error| ProtoChecksumError::Minisign {
         error: Box::new(error),
     };
 

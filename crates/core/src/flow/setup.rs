@@ -1,6 +1,6 @@
+use crate::config::{PinLocation, ProtoConfig};
 use crate::flow::install::InstallOptions;
 use crate::layout::BinManager;
-use crate::proto_config::{PinLocation, ProtoConfig};
 use crate::tool::Tool;
 use crate::tool_manifest::ToolManifestVersion;
 use proto_pdk_api::*;

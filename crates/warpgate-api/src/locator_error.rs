@@ -4,7 +4,7 @@ pub enum PluginLocatorError {
     #[error(
         "GitHub release locator requires a repository name with organization scope (org/repo)."
     )]
-    GitHubMissingOrg,
+    MissingGitHubOrg,
 
     #[error("Missing plugin location (after protocol).")]
     MissingLocation,

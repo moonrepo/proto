@@ -1,9 +1,9 @@
-use crate::error::ProtoError;
-use crate::helpers::is_offline;
-use crate::layout::Store;
-use crate::proto_config::{
+use crate::config::{
     ConfigMode, PinLocation, ProtoConfig, ProtoConfigFile, ProtoConfigManager, PROTO_CONFIG_NAME,
 };
+use crate::env_error::ProtoEnvError;
+use crate::helpers::is_offline;
+use crate::layout::Store;
 use once_cell::sync::OnceCell;
 use starbase_console::{Console, EmptyReporter};
 use starbase_utils::dirs::home_dir;
@@ -33,7 +33,7 @@ pub struct ProtoEnvironment {
 
 impl ProtoEnvironment {
     pub fn new() -> miette::Result<Self> {
-        let home = home_dir().ok_or(ProtoError::MissingHomeDir)?;
+        let home = home_dir().ok_or(ProtoEnvError::MissingHomeDir)?;
         let mut root = path_var("PROTO_HOME")
             .or_else(|| path_var("XDG_DATA_HOME").map(|xdg| xdg.join("proto")))
             .unwrap_or_else(|| home.join(".proto"));
@@ -64,8 +64,7 @@ impl ProtoEnvironment {
 
         Ok(ProtoEnvironment {
             config_mode: ConfigMode::Upwards,
-            working_dir: env::current_dir()
-                .expect("Unable to determine current working directory!"),
+            working_dir: env::current_dir().map_err(|_| ProtoEnvError::MissingWorkingDir)?,
             env_mode: env::var("PROTO_ENV").ok(),
             home_dir: home.to_owned(),
             config_manager: Arc::new(OnceCell::new()),
