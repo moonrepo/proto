@@ -133,6 +133,9 @@ api_enum!(
         /// Move a file from source to destination.
         MoveFile(PathBuf, PathBuf),
 
+        /// Remove all files except those matching the provided list.
+        RemoveAllExcept(Vec<PathBuf>),
+
         /// Remove a directory.
         RemoveDir(PathBuf),
 

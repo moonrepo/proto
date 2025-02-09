@@ -19,7 +19,11 @@
 #### 🚀 Updates
 
 - Added `$XDG_DATA_HOME` support when detecting the proto store. Will be used if `$PROTO_HOME` is not set, and will fallback to `$HOME/.proto`.
+- Added `settings.build` configuration, allowing aspects of the build from source process to be customized.
+- Disabled HTTP request caching when in a Docker container.
 - Improved our errors implementation, rewriting some error messages, and updating error codes.
+- WASM API
+  - Added `BuildInstruction::RemoveAllExcept` variant.
 
 ## 0.45.2
 
