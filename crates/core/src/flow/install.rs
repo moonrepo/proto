@@ -9,6 +9,7 @@ use crate::tool::Tool;
 use proto_pdk_api::*;
 use proto_shim::*;
 use starbase_archive::Archiver;
+use starbase_styles::color;
 use starbase_utils::net::DownloadOptions;
 use starbase_utils::{fs, net};
 use std::path::Path;
@@ -138,13 +139,36 @@ impl Tool {
             )
             .await?;
 
+        let mut system = System::default();
+        let config = self.proto.load_config()?;
+
+        if let Some(pm) = config.settings.build.system_package_manager.get(&system.os) {
+            if let Some(pm) = pm {
+                system.manager = Some(*pm);
+
+                debug!(
+                    "Overwriting system package manager to {} for {}",
+                    pm, system.os
+                );
+            } else {
+                system.manager = None;
+
+                debug!(
+                    "Disabling system package manager because {} was disabled for {}",
+                    color::property("settings.build.system-package-manager"),
+                    system.os
+                );
+            }
+        }
+
         let build_options = InstallBuildOptions {
+            config: &config.settings.build,
             console: options.console.as_ref(),
             install_dir,
             http_client: self.proto.get_plugin_loader()?.get_client()?,
             on_phase_change: options.on_phase_change.take(),
             skip_prompts: options.skip_prompts,
-            system: System::default(),
+            system,
             temp_dir,
             version: self.get_resolved_version(),
         };
@@ -153,8 +177,18 @@ impl Tool {
         // so allow proto to use any available version instead of failing
         std::env::set_var(format!("{}_VERSION", self.get_env_var_prefix()), "*");
 
+        // Step 0
+        log_build_information(&output, &build_options)?;
+
         // Step 1
-        install_system_dependencies(&output, &build_options).await?;
+        if config.settings.build.install_system_packages {
+            install_system_dependencies(&output, &build_options).await?;
+        } else {
+            debug!(
+                "Not installing system dependencies because {} was disabled",
+                color::property("settings.build.install-system-packages"),
+            );
+        }
 
         // Step 2
         check_requirements(&output, &build_options).await?;

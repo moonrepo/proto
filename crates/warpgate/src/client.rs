@@ -7,6 +7,7 @@ use reqwest::{Client, Response, Url};
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware, RequestBuilder, RequestInitialiser};
 use serde::{Deserialize, Serialize};
 use starbase_utils::{
+    env::is_docker,
     fs,
     net::{Downloader, NetError},
 };
@@ -210,26 +211,28 @@ pub fn create_http_client_with_options(options: &HttpOptions) -> miette::Result<
     }
 
     if let Some(cache_dir) = &options.cache_dir {
-        use http_cache_reqwest::{
-            CACacheManager, Cache, CacheMode, CacheOptions, HttpCache, HttpCacheOptions,
-        };
+        if !is_docker() {
+            use http_cache_reqwest::{
+                CACacheManager, Cache, CacheMode, CacheOptions, HttpCache, HttpCacheOptions,
+            };
 
-        trace!("Adding GET and HEAD request caching");
+            trace!("Adding GET and HEAD request caching");
 
-        middleware_builder = middleware_builder.with(Cache(HttpCache {
-            manager: CACacheManager {
-                path: cache_dir.to_owned(),
-            },
-            mode: CacheMode::Default,
-            options: HttpCacheOptions {
-                // https://github.com/kornelski/rusty-http-cache-semantics
-                cache_options: Some(CacheOptions {
-                    cache_heuristic: 0.025,
+            middleware_builder = middleware_builder.with(Cache(HttpCache {
+                manager: CACacheManager {
+                    path: cache_dir.to_owned(),
+                },
+                mode: CacheMode::Default,
+                options: HttpCacheOptions {
+                    // https://github.com/kornelski/rusty-http-cache-semantics
+                    cache_options: Some(CacheOptions {
+                        cache_heuristic: 0.025,
+                        ..Default::default()
+                    }),
                     ..Default::default()
-                }),
-                ..Default::default()
-            },
-        }));
+                },
+            }));
+        }
     }
 
     let middleware = middleware_builder.build();

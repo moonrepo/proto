@@ -1,5 +1,6 @@
 use super::build_error::*;
 use super::install::{InstallPhase, OnPhaseFn};
+use crate::config::ProtoBuildConfig;
 use crate::env::{ProtoConsole, ProtoEnvironment};
 use crate::helpers::extract_filename_from_url;
 use iocraft::prelude::{element, FlexDirection, View};
@@ -16,7 +17,8 @@ use starbase_console::ui::{
     StyledText,
 };
 use starbase_styles::color;
-use starbase_utils::{fs, net};
+use starbase_utils::fs::LOCK_FILE;
+use starbase_utils::{env::is_ci, fs, net};
 use std::env;
 use std::path::{Path, PathBuf};
 use std::process::{Output, Stdio};
@@ -29,6 +31,7 @@ use version_spec::{get_semver_regex, VersionSpec};
 use warpgate::HttpClient;
 
 pub struct InstallBuildOptions<'a> {
+    pub config: &'a ProtoBuildConfig,
     pub console: Option<&'a ProtoConsole>,
     pub http_client: &'a HttpClient,
     pub install_dir: &'a Path,
@@ -51,11 +54,6 @@ impl StepManager<'_> {
 
     pub fn has_errors(&self) -> bool {
         self.errors > 0
-    }
-
-    #[allow(dead_code)]
-    pub fn is_ci(&self) -> bool {
-        env::var("CI").is_ok_and(|v| !v.is_empty())
     }
 
     pub fn render_header(&self, title: impl AsRef<str>) -> miette::Result<()> {
@@ -302,13 +300,12 @@ async fn checkout_git_repo(
     Ok(())
 }
 
-// STEP 1
+// STEP 0
 
-pub async fn install_system_dependencies(
+pub fn log_build_information(
     build: &BuildInstructionsOutput,
     options: &InstallBuildOptions<'_>,
 ) -> miette::Result<()> {
-    let mut step = StepManager::new(options);
     let system = &options.system;
 
     if let Some(console) = &options.console {
@@ -323,7 +320,7 @@ pub async fn install_system_dependencies(
                             Entry(name: "Package manager", content: pm.to_string())
                         }
                     }))
-                    Entry(name: "Version", value: element! {
+                    Entry(name: "Target version", value: element! {
                         StyledText(content: options.version.to_string(), style: Style::Hash)
                     }.into_any())
                     #(build.help_url.as_ref().map(|url| {
@@ -345,15 +342,20 @@ pub async fn install_system_dependencies(
         );
     }
 
+    Ok(())
+}
+
+// STEP 1
+
+pub async fn install_system_dependencies(
+    build: &BuildInstructionsOutput,
+    options: &InstallBuildOptions<'_>,
+) -> miette::Result<()> {
+    let system = &options.system;
+
     let Some(pm) = system.manager else {
         return Ok(());
     };
-
-    step.render_header("Installing system dependencies")?;
-
-    options.on_phase_change.as_ref().inspect(|func| {
-        func(InstallPhase::InstallDeps);
-    });
 
     // Determine packages to install
     let pm_config = pm.get_config();
@@ -366,6 +368,21 @@ pub async fn install_system_dependencies(
             .filter_map(|cfg| cfg.get_package_names_and_versions(&pm).ok())
             .flatten(),
     );
+
+    for excluded in &options.config.exclude_packages {
+        not_installed_packages.remove(excluded);
+    }
+
+    if not_installed_packages.is_empty() {
+        return Ok(());
+    }
+
+    let mut step = StepManager::new(options);
+    step.render_header("Installing system dependencies")?;
+
+    options.on_phase_change.as_ref().inspect(|func| {
+        func(InstallPhase::InstallDeps);
+    });
 
     if let Some(mut list_args) = system
         .get_list_packages_command(!options.skip_prompts)
@@ -434,6 +451,10 @@ pub async fn install_system_dependencies(
         )?;
     }
 
+    if not_installed_packages.is_empty() {
+        return Ok(());
+    }
+
     // 2) Prompt the user to choose an install strategy
     let mut elevated_command = pm.get_elevated_command();
     let mut select_options = vec![
@@ -449,7 +470,7 @@ pub async fn install_system_dependencies(
         )));
 
         // Always run with elevated in CI
-        if env::var("CI").is_ok() {
+        if is_ci() {
             default_index += 1;
         }
     }
@@ -855,6 +876,27 @@ pub async fn execute_instructions(
                 ))?;
 
                 fs::rename(from, to)?;
+            }
+            BuildInstruction::RemoveAllExcept(exceptions) => {
+                let dir = options.install_dir;
+
+                step.render_checkpoint(format!(
+                    "{prefix} Removing directory <path>{}</path> except for {}",
+                    dir.display(),
+                    exceptions
+                        .iter()
+                        .map(|p| format!("<file>{}</file>", p.display()))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ))?;
+
+                let mut exclude = exceptions.to_owned();
+
+                // If we don't exclude the lock, it will trigger a permissions error
+                // when we attempt to remove it, failing the entire build
+                exclude.push(LOCK_FILE.into());
+
+                fs::remove_dir_all_except(dir, exclude)?;
             }
             BuildInstruction::RemoveDir(dir) => {
                 let dir = make_absolute(dir);
