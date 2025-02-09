@@ -1,4 +1,4 @@
-use crate::components::{InstallAllProgress, InstallProgress, InstallProgressProps};
+use crate::components::{InstallAllProgress, InstallProgressProps};
 use crate::error::ProtoCliError;
 use crate::session::{LoadToolOptions, ProtoSession};
 use crate::utils::install_graph::*;
@@ -127,9 +127,7 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
 
     // Create our workflow and setup the progress reporter
     let mut workflow = InstallWorkflow::new(tool, session.console.clone());
-    let mut handle = None;
 
-    // Only show the progress bars when not building
     if workflow.is_build(args.get_strategy()) {
         session.console.render(element! {
             Notice(variant: Variant::Caution) {
@@ -141,20 +139,10 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
                 )
             }
         })?;
+    } else if workflow.is_tty() {
+        workflow.render_single_progress().await;
     } else {
-        let reporter = workflow.progress_reporter.clone();
-        let console = session.console.clone();
-
-        handle = Some(spawn(async move {
-            console
-                .render_loop(element! {
-                    InstallProgress(reporter)
-                })
-                .await
-        }));
-
-        // Wait a bit for the component to be rendered
-        sleep(Duration::from_millis(50)).await;
+        workflow.monitor_messages();
     }
 
     let result = workflow
@@ -171,14 +159,8 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
         )
         .await;
 
-    workflow.progress_reporter.exit();
-
-    if let Some(handle) = handle {
-        handle.await.into_diagnostic()??;
-    }
-
+    let tool = workflow.shutdown().await?;
     let outcome = result?;
-    let tool = workflow.tool;
 
     if args.internal {
         return Ok(None);

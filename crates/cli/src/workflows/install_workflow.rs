@@ -1,18 +1,24 @@
 use crate::commands::pin::internal_pin;
+use crate::components::InstallProgress;
 use crate::session::ProtoConsole;
 use crate::shell::{self, Export};
 use crate::telemetry::*;
 use crate::utils::tool_record::ToolRecord;
+use iocraft::element;
+use miette::IntoDiagnostic;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
 use proto_core::{PinLocation, UnresolvedVersionSpec, PROTO_PLUGIN_KEY};
 use proto_pdk_api::{
     InstallHook, InstallStrategy, Switch, SyncShellProfileInput, SyncShellProfileOutput,
 };
-use starbase_console::ui::{ProgressDisplay, ProgressReporter};
+use starbase_console::ui::{ProgressDisplay, ProgressReporter, ProgressState};
 use starbase_console::utils::formats::format_duration;
 use starbase_shell::ShellType;
+use starbase_utils::env::bool_var;
 use std::env;
 use std::time::{Duration, Instant};
+use tokio::task::JoinHandle;
+use tokio::time::sleep;
 use tracing::{debug, warn};
 
 pub enum InstallOutcome {
@@ -35,6 +41,9 @@ pub struct InstallWorkflow {
     pub console: ProtoConsole,
     pub progress_reporter: ProgressReporter,
     pub tool: ToolRecord,
+
+    monitor_handle: Option<JoinHandle<()>>,
+    render_handle: Option<JoinHandle<miette::Result<()>>>,
 }
 
 impl InstallWorkflow {
@@ -55,6 +64,8 @@ impl InstallWorkflow {
             console,
             progress_reporter: ProgressReporter::default(),
             tool,
+            monitor_handle: None,
+            render_handle: None,
         }
     }
 
@@ -63,6 +74,10 @@ impl InstallWorkflow {
             strategy.unwrap_or(self.tool.metadata.default_install_strategy),
             InstallStrategy::BuildFromSource
         )
+    }
+
+    pub fn is_tty(&self) -> bool {
+        bool_var("NO_TTY") || self.console.out.is_terminal()
     }
 
     pub async fn install(
@@ -383,6 +398,52 @@ impl InstallWorkflow {
         }
 
         Ok(())
+    }
+
+    pub async fn render_single_progress(&mut self) {
+        let reporter = self.progress_reporter.clone();
+        let console = self.console.clone();
+
+        self.render_handle = Some(tokio::spawn(async move {
+            console
+                .render_loop(element! {
+                    InstallProgress(reporter)
+                })
+                .await
+        }));
+
+        // Wait a bit for the component to be rendered
+        sleep(Duration::from_millis(50)).await;
+    }
+
+    pub fn monitor_messages(&mut self) {
+        let reporter = self.progress_reporter.clone();
+        let console = self.console.clone();
+        let prefix = format!("[{}] ", self.tool.id);
+
+        self.monitor_handle = Some(tokio::spawn(async move {
+            let mut receiver = reporter.subscribe();
+
+            while let Ok(state) = receiver.recv().await {
+                if let ProgressState::Message(message) = state {
+                    let _ = console.out.write_line_with_prefix(message, &prefix);
+                }
+            }
+        }));
+    }
+
+    pub async fn shutdown(mut self) -> miette::Result<ToolRecord> {
+        self.progress_reporter.exit();
+
+        if let Some(handle) = self.render_handle.take() {
+            handle.await.into_diagnostic()??;
+        }
+
+        if let Some(handle) = self.monitor_handle.take() {
+            handle.await.into_diagnostic()?;
+        }
+
+        Ok(self.tool)
     }
 
     fn finish_progress(&self, started: Instant) {
