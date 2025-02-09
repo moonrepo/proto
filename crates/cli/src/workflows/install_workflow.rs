@@ -14,6 +14,7 @@ use proto_pdk_api::{
 use starbase_console::ui::{ProgressDisplay, ProgressReporter, ProgressState};
 use starbase_console::utils::formats::format_duration;
 use starbase_shell::ShellType;
+use starbase_styles::color::{self, apply_style_tags};
 use starbase_utils::env::bool_var;
 use std::env;
 use std::time::{Duration, Instant};
@@ -77,7 +78,7 @@ impl InstallWorkflow {
     }
 
     pub fn is_tty(&self) -> bool {
-        bool_var("NO_TTY") || self.console.out.is_terminal()
+        !bool_var("NO_TTY") && self.console.out.is_terminal()
     }
 
     pub async fn install(
@@ -219,15 +220,29 @@ impl InstallWorkflow {
                     .set_value(0);
             }
 
+            // Use the suffix for progress tokens so that they don't appear
+            // in the normal message. This helps with non-TTY scenarios
+            if matches!(phase, InstallPhase::Download { .. }) {
+                pb.set_suffix(" <muted>|</muted> <mutedlight>{bytes} / {total_bytes}</mutedlight> <muted>|</muted> <shell>{bytes_per_sec}</shell>");
+            } else {
+                pb.set_suffix("");
+            }
+
             pb.set_message(match phase {
                 InstallPhase::Native => "Installing natively".to_owned(),
-                InstallPhase::Verify { file, .. } => format!("Verifying checksum against <file>{file}</file>"),
+                InstallPhase::Verify { file, .. } => {
+                    format!("Verifying checksum against <file>{file}</file>")
+                }
                 InstallPhase::Unpack { file } => format!("Unpacking archive <file>{file}</file>"),
-                InstallPhase::Download { file, .. } => format!("Downloading pre-built archive <file>{file}</file> <muted>|</muted> <mutedlight>{{bytes}} / {{total_bytes}}</mutedlight> <muted>|</muted> <shell>{{bytes_per_sec}}</shell>"),
+                InstallPhase::Download { file, .. } => {
+                    format!("Downloading pre-built archive <file>{file}</file>")
+                }
                 InstallPhase::InstallDeps => "Installing system dependencies".into(),
                 InstallPhase::CheckRequirements => "Checking requirements".into(),
                 InstallPhase::ExecuteInstructions => "Executing build instructions".into(),
-                InstallPhase::CloneRepository { url } => format!("Cloning repository <url>{url}</url>")
+                InstallPhase::CloneRepository { url } => {
+                    format!("Cloning repository <url>{url}</url>")
+                }
             });
         });
 
@@ -419,14 +434,28 @@ impl InstallWorkflow {
     pub fn monitor_messages(&mut self) {
         let reporter = self.progress_reporter.clone();
         let console = self.console.clone();
-        let prefix = format!("[{}] ", self.tool.id);
+        let prefix = color::muted_light(format!("[{}] ", self.tool.id));
 
         self.monitor_handle = Some(tokio::spawn(async move {
             let mut receiver = reporter.subscribe();
 
             while let Ok(state) = receiver.recv().await {
-                if let ProgressState::Message(message) = state {
-                    let _ = console.out.write_line_with_prefix(message, &prefix);
+                match state {
+                    ProgressState::Exit => {
+                        break;
+                    }
+                    ProgressState::Message(message) => {
+                        let _ = console.out.write_line_with_prefix(
+                            apply_style_tags(
+                                // Compatibility with the UI theme
+                                message
+                                    .replace("version>", "hash>")
+                                    .replace("versionalt>", "symbol>"),
+                            ),
+                            &prefix,
+                        );
+                    }
+                    _ => {}
                 }
             }
         }));
