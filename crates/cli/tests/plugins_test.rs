@@ -159,8 +159,6 @@ mod plugins {
     mod builtins {
         use super::*;
 
-        // macos is very flaky!
-        #[cfg(not(target_os = "macos"))]
         #[test]
         fn supports_bun() {
             let sandbox = create_empty_proto_sandbox();
