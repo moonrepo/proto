@@ -3,6 +3,7 @@ use super::install::{InstallPhase, OnPhaseFn};
 use crate::config::ProtoBuildConfig;
 use crate::env::{ProtoConsole, ProtoEnvironment};
 use crate::helpers::extract_filename_from_url;
+use crate::utils::process::*;
 use iocraft::prelude::{element, FlexDirection, View};
 use miette::IntoDiagnostic;
 use proto_pdk_api::{
@@ -16,17 +17,15 @@ use starbase_console::ui::{
     Confirm, Container, Entry, ListCheck, ListItem, Section, Select, SelectOption, Style,
     StyledText,
 };
-use starbase_styles::color;
 use starbase_utils::fs::LOCK_FILE;
 use starbase_utils::{env::is_ci, fs, net};
 use std::env;
 use std::path::{Path, PathBuf};
-use std::process::{Output, Stdio};
 use system_env::{
     find_command_on_path, is_command_on_path, DependencyConfig, DependencyName, System,
 };
 use tokio::process::Command;
-use tracing::{debug, error, trace};
+use tracing::{debug, error};
 use version_spec::{get_semver_regex, VersionSpec};
 use warpgate::HttpClient;
 
@@ -159,98 +158,6 @@ impl StepManager<'_> {
 
         Ok(selected_index)
     }
-}
-
-async fn spawn_command(command: &mut Command) -> std::io::Result<Output> {
-    let child = command.spawn()?;
-    let output = child.wait_with_output().await?;
-
-    Ok(output)
-}
-
-async fn exec_command(command: &mut Command) -> miette::Result<String> {
-    let inner = command.as_std();
-    let command_line = format!(
-        "{} {}",
-        inner.get_program().to_string_lossy(),
-        shell_words::join(
-            inner
-                .get_args()
-                .map(|arg| arg.to_string_lossy())
-                .collect::<Vec<_>>()
-        )
-    );
-
-    trace!(
-        cwd = ?inner.get_current_dir(),
-        env = ?inner.get_envs()
-            .filter_map(|(key, val)| val.map(|v| (key, v.to_string_lossy())))
-            .collect::<FxHashMap<_, _>>(),
-        "Running command {}", color::shell(&command_line)
-    );
-
-    let output = spawn_command(command)
-        .await
-        .map_err(|error| ProtoBuildError::FailedCommand {
-            command: command_line.clone(),
-            error: Box::new(error),
-        })?;
-
-    let stderr = String::from_utf8(output.stderr).into_diagnostic()?;
-    let stdout = String::from_utf8(output.stdout).into_diagnostic()?;
-    let code = output.status.code().unwrap_or(-1);
-
-    trace!(
-        code,
-        stderr,
-        stdout,
-        "Ran command {}",
-        color::shell(&command_line)
-    );
-
-    if !output.status.success() {
-        return Err(ProtoBuildError::FailedCommandNonZeroExit {
-            command: command_line,
-            code,
-        }
-        .into());
-    }
-
-    Ok(stdout)
-}
-
-async fn exec_command_with_privileges(
-    command: &mut Command,
-    elevated_program: Option<&str>,
-) -> miette::Result<String> {
-    match elevated_program {
-        Some(program) => {
-            let inner = command.as_std();
-
-            let mut sudo_command = Command::new(program);
-            sudo_command.arg(inner.get_program());
-            sudo_command.args(inner.get_args());
-
-            for (key, value) in inner.get_envs() {
-                if let Some(value) = value {
-                    sudo_command.env(key, value);
-                } else {
-                    sudo_command.env_remove(key);
-                }
-            }
-
-            if let Some(dir) = inner.get_current_dir() {
-                sudo_command.current_dir(dir);
-            }
-
-            exec_command(&mut sudo_command).await
-        }
-        None => exec_command(command).await,
-    }
-}
-
-async fn exec_command_piped(command: &mut Command) -> miette::Result<String> {
-    exec_command(command.stderr(Stdio::piped()).stdout(Stdio::piped())).await
 }
 
 async fn checkout_git_repo(
@@ -392,7 +299,7 @@ pub async fn install_system_dependencies(
 
         let list_output =
             exec_command_piped(Command::new(list_args.remove(0)).args(list_args)).await?;
-        let installed_packages = pm_config.list_parser.parse(&list_output);
+        let installed_packages = pm_config.list_parser.parse(&list_output.stdout);
         let mut skipped_packages = FxHashMap::default();
 
         not_installed_packages.retain(|name, constraint| {
@@ -535,7 +442,9 @@ pub async fn install_system_dependencies(
 // STEP 2
 
 async fn get_command_version(cmd: &str, version_arg: &str) -> miette::Result<Version> {
-    let output = exec_command_piped(Command::new(cmd).arg(version_arg)).await?;
+    let output = exec_command_piped(Command::new(cmd).arg(version_arg))
+        .await?
+        .stdout;
 
     // Remove leading ^ and trailing $
     let base_pattern = get_semver_regex().as_str();
@@ -635,7 +544,8 @@ pub async fn check_requirements(
 
                 let actual_value =
                     exec_command_piped(Command::new("git").args(["config", "--get", config_key]))
-                        .await?;
+                        .await?
+                        .stdout;
 
                 if &actual_value == expected_value {
                     step.render_check(
@@ -673,7 +583,7 @@ pub async fn check_requirements(
                     let result =
                         exec_command_piped(Command::new("xcode-select").arg("--version")).await;
 
-                    if result.is_err() || result.is_ok_and(|out| out.is_empty()) {
+                    if result.is_err() || result.is_ok_and(|out| out.stdout.is_empty()) {
                         step.render_check(
                             "Xcode command line tools are NOT installed, install them with <shell>xcode-select --install</shell>",
                             false,
