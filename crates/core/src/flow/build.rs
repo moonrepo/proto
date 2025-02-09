@@ -151,7 +151,7 @@ impl StepManager<'_> {
         if let Some(console) = &self.options.console {
             console
                 .render_interactive(element! {
-                    Select(label, options, on_index: &mut selected_index)
+                    Select(label, options, default_index, on_index: &mut selected_index)
                 })
                 .await?;
         }

@@ -161,6 +161,9 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
     let tool = workflow.tool;
 
     if args.internal {
+        session.console.err.flush()?;
+        session.console.out.flush()?;
+
         return Ok(None);
     }
 
