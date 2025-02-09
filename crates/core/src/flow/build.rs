@@ -8,7 +8,7 @@ use miette::IntoDiagnostic;
 use proto_pdk_api::{
     BuildInstruction, BuildInstructionsOutput, BuildRequirement, GitSource, SourceLocation,
 };
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use schematic::color::apply_style_tags;
 use semver::{Version, VersionReq};
 use starbase_archive::Archiver;
@@ -17,9 +17,9 @@ use starbase_console::ui::{
     StyledText,
 };
 use starbase_styles::color;
-use starbase_utils::{fs, net};
+use starbase_utils::{fs, glob, net};
 use std::env;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::process::{Output, Stdio};
 use system_env::{
     find_command_on_path, is_command_on_path, DependencyConfig, DependencyName, System,
@@ -866,7 +866,7 @@ pub async fn execute_instructions(
                     file.display()
                 ))?;
 
-                fs::update_perms(file, None)?;
+                // fs::update_perms(file, None)?;
             }
             BuildInstruction::MoveFile(from, to) => {
                 let from = make_absolute(from);
@@ -878,7 +878,75 @@ pub async fn execute_instructions(
                     to.display(),
                 ))?;
 
-                fs::rename(from, to)?;
+                // fs::rename(from, to)?;
+            }
+            BuildInstruction::RemoveAllExcept(exceptions) => {
+                let base_dir = options.install_dir;
+
+                step.render_checkpoint(format!(
+                    "{prefix} Removing directory <path>{}</path> except for {}",
+                    base_dir.display(),
+                    exceptions
+                        .iter()
+                        .map(|p| format!("<file>{}</file>", p.display()))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ))?;
+
+                let files_to_keep = FxHashSet::from_iter(exceptions);
+                let mut dirs_to_keep = FxHashSet::<PathBuf>::default();
+                let mut paths_to_remove = FxHashSet::<PathBuf>::default();
+
+                for file in &files_to_keep {
+                    if base_dir.join(file).is_dir() {
+                        dirs_to_keep.insert(file.to_path_buf());
+                    } else if let Some(parent) = file.parent() {
+                        // `parent()` can return a `Some("")`...
+                        if parent.to_str().is_some_and(|p| p.is_empty()) {
+                            continue;
+                        }
+
+                        dirs_to_keep.insert(parent.to_owned());
+                    }
+                }
+
+                for abs_path in glob::walk(base_dir, ["**/*", "!.lock"])? {
+                    let rel_path = abs_path.strip_prefix(base_dir).unwrap_or(&abs_path);
+
+                    if files_to_keep.iter().any(|path| *path == rel_path) {
+                        continue;
+                    }
+
+                    // Path must be nested in a folder that we need to keep,
+                    // so mark it as an individual file to remove
+                    if dirs_to_keep.iter().any(|dir| rel_path.starts_with(dir)) {
+                        paths_to_remove.insert(rel_path.to_owned());
+                    }
+                    // Path is within a folder that we plan to remove, so ignore
+                    else if paths_to_remove
+                        .iter()
+                        .any(|path| rel_path == path || rel_path.starts_with(path))
+                    {
+                        continue;
+                    }
+                    // Otherwise include the highest parent directory (or file) to remove,
+                    // so we reduce how many calls we make
+                    else {
+                        for component in rel_path.components() {
+                            if let Component::Normal(first) = component {
+                                paths_to_remove.insert(PathBuf::from(first));
+                            }
+
+                            break;
+                        }
+                    }
+                }
+
+                for path in paths_to_remove {
+                    if !files_to_keep.contains(&path) {
+                        fs::remove(path)?;
+                    }
+                }
             }
             BuildInstruction::RemoveDir(dir) => {
                 let dir = make_absolute(dir);

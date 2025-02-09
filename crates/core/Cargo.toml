@@ -46,7 +46,7 @@ shell-words = { workspace = true }
 starbase_archive = { workspace = true }
 starbase_console = { workspace = true, features = ["ui"] }
 starbase_styles = { workspace = true }
-starbase_utils = { workspace = true, features = ["fs-lock", "yaml"] }
+starbase_utils = { workspace = true, features = ["fs-lock", "glob", "yaml"] }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
