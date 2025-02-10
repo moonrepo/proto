@@ -1619,7 +1619,7 @@ dependencies = [
  "http-cache",
  "http-cache-semantics",
  "reqwest",
- "reqwest-middleware 0.4.0",
+ "reqwest-middleware",
  "serde",
  "url",
 ]
@@ -3095,21 +3095,6 @@ dependencies = [
 
 [[package]]
 name = "reqwest-middleware"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "562ceb5a604d3f7c885a792d42c199fd8af239d0a51b2fa6a78aafa092452b04"
-dependencies = [
- "anyhow",
- "async-trait",
- "http",
- "reqwest",
- "serde",
- "thiserror 1.0.69",
- "tower-service",
-]
-
-[[package]]
-name = "reqwest-middleware"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d1ccd3b55e711f91a9885a2fa6fbbb2e39db1776420b062efc058c6410f7e5e3"
@@ -3125,11 +3110,11 @@ dependencies = [
 
 [[package]]
 name = "reqwest-netrc"
-version = "0.1.2"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3000378f31e2aff16946083125d5e317f89bd12ca8160ef4cff21c445c2376f"
+checksum = "ae09db8d40fdf48baa5400ef133a7481516a9818b4d55573241c936312af359b"
 dependencies = [
- "reqwest-middleware 0.3.3",
+ "reqwest-middleware",
  "rust-netrc",
 ]
 
@@ -4543,9 +4528,8 @@ dependencies = [
  "once_cell",
  "regex",
  "reqwest",
- "reqwest-middleware 0.4.0",
+ "reqwest-middleware",
  "reqwest-netrc",
- "rust-netrc",
  "scc",
  "schematic",
  "serde",

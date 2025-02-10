@@ -730,7 +730,7 @@ pub async fn check_requirements(
                 }
             }
             BuildRequirement::XcodeCommandLineTools => {
-                if builder.options.system.os.is_mac() {
+                if builder.get_system().os.is_mac() {
                     debug!("Checking if Xcode command line tools are installed");
 
                     let result = builder
@@ -748,7 +748,7 @@ pub async fn check_requirements(
                 }
             }
             BuildRequirement::WindowsDeveloperMode => {
-                if builder.options.system.os.is_windows() {
+                if builder.get_system().os.is_windows() {
                     debug!("Checking if Windows developer mode is enabled");
 
                     // Is this possible from the command line?
