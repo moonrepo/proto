@@ -31,7 +31,7 @@ reqwest-middleware = { version = "0.4.0", default-features = false, features = [
     "charset",
     "http2",
 ] }
-reqwest-netrc = "0.1.2"
+reqwest-netrc = "0.1.3"
 rustc-hash = "2.1.1"
 scc = "2.3.3"
 schematic = { version = "0.17.11", default-features = false }
@@ -51,10 +51,10 @@ starbase_archive = { version = "0.9.4", features = [
     "zip",
     "zip-deflate",
 ] }
-starbase_console = { version = "0.4.6", features = ["ui"] }
+starbase_console = { version = "0.4.7", features = ["ui"] }
 starbase_sandbox = { version = "0.8.2" }
 starbase_shell = { version = "0.6.13", features = ["miette"] }
-starbase_styles = { version = "0.4.11" }
+starbase_styles = { version = "0.4.13" }
 starbase_utils = { version = "0.10.2", default-features = false, features = [
     "json",
     "miette",

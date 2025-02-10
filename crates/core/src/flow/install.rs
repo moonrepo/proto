@@ -40,6 +40,7 @@ pub struct InstallOptions {
     pub on_download_chunk: Option<OnChunkFn>,
     pub on_phase_change: Option<OnPhaseFn>,
     pub skip_prompts: bool,
+    pub skip_ui: bool,
     pub strategy: InstallStrategy,
 }
 
@@ -161,16 +162,40 @@ impl Tool {
             }
         }
 
-        let build_options = InstallBuildOptions {
+        let mut builder = Builder::new(BuilderOptions {
             config: &config.settings.build,
-            console: options.console.as_ref(),
+            console: options
+                .console
+                .as_ref()
+                .expect("Console required for builder!"),
             install_dir,
             http_client: self.proto.get_plugin_loader()?.get_client()?,
             on_phase_change: options.on_phase_change.take(),
             skip_prompts: options.skip_prompts,
+            skip_ui: options.skip_ui,
             system,
             temp_dir,
             version: self.get_resolved_version(),
+        });
+
+        // If any step in the build process fails, we should write
+        // a log file so that the user can debug it, otherwise the
+        // piped commands are hidden from the user
+        let handle_error = |result: miette::Result<()>, instance: &Builder| {
+            if
+            // Always write
+            instance.options.config.write_log_file ||
+                // Only write if an error and no direct UI
+                result.is_err() && instance.options.skip_ui
+            {
+                instance.write_log_file(
+                    self.proto
+                        .working_dir
+                        .join(format!("proto-{}-build.log", self.id)),
+                )?;
+            }
+
+            result
         };
 
         // The build process may require using itself to build itself,
@@ -178,11 +203,14 @@ impl Tool {
         std::env::set_var(format!("{}_VERSION", self.get_env_var_prefix()), "*");
 
         // Step 0
-        log_build_information(&output, &build_options)?;
+        handle_error(log_build_information(&mut builder, &output), &builder)?;
 
         // Step 1
         if config.settings.build.install_system_packages {
-            install_system_dependencies(&output, &build_options).await?;
+            handle_error(
+                install_system_dependencies(&mut builder, &output).await,
+                &builder,
+            )?;
         } else {
             debug!(
                 "Not installing system dependencies because {} was disabled",
@@ -191,13 +219,16 @@ impl Tool {
         }
 
         // Step 2
-        check_requirements(&output, &build_options).await?;
+        handle_error(check_requirements(&mut builder, &output).await, &builder)?;
 
         // Step 3
-        download_sources(&output, &build_options).await?;
+        handle_error(download_sources(&mut builder, &output).await, &builder)?;
 
         // Step 4
-        execute_instructions(&output, &build_options, &self.proto).await?;
+        handle_error(
+            execute_instructions(&mut builder, &output, &self.proto).await,
+            &builder,
+        )?;
 
         Ok(())
     }

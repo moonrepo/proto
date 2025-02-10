@@ -20,6 +20,9 @@
 
 - Added `$XDG_DATA_HOME` support when detecting the proto store. Will be used if `$PROTO_HOME` is not set, and will fallback to `$HOME/.proto`.
 - Added `settings.build` configuration, allowing aspects of the build from source process to be customized.
+- Updated `proto install` to log checkpoints instead of rendering progress bars in a non-TTY environment.
+- Updated `proto install` to support build from source when installing multiple tools.
+  - If the build fails, a markdown compatible log file will be written to the current directory.
 - Disabled HTTP request caching when in a Docker container.
 - Improved our errors implementation, rewriting some error messages, and updating error codes.
 - WASM API

@@ -11,6 +11,7 @@ mod tool;
 mod tool_error;
 mod tool_loader;
 mod tool_manifest;
+mod utils;
 mod version_detector;
 mod version_resolver;
 

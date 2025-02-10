@@ -1,11 +1,10 @@
-use crate::components::{InstallAllProgress, InstallProgress, InstallProgressProps};
 use crate::error::ProtoCliError;
 use crate::session::{LoadToolOptions, ProtoSession};
 use crate::utils::install_graph::*;
-use crate::workflows::{InstallOutcome, InstallWorkflow, InstallWorkflowParams};
+use crate::utils::tool_record::ToolRecord;
+use crate::workflows::{InstallOutcome, InstallWorkflowManager, InstallWorkflowParams};
 use clap::Args;
 use iocraft::prelude::element;
-use miette::IntoDiagnostic;
 use proto_core::{ConfigMode, Id, PinLocation, Tool, UnresolvedVersionSpec};
 use proto_pdk_api::InstallStrategy;
 use starbase::AppResult;
@@ -13,11 +12,10 @@ use starbase_console::ui::*;
 use starbase_console::utils::formats::format_duration;
 use starbase_styles::color;
 use std::collections::BTreeMap;
-use std::sync::Arc;
 use std::time::{Duration, Instant};
-use tokio::task::{spawn, JoinSet};
+use tokio::task::JoinSet;
 use tokio::time::sleep;
-use tracing::{debug, instrument, trace};
+use tracing::{debug, info, instrument, trace};
 
 #[derive(Args, Clone, Debug, Default)]
 pub struct InstallArgs {
@@ -71,6 +69,30 @@ pub struct InstallArgs {
 }
 
 impl InstallArgs {
+    async fn filter_tools(&self, tools: Vec<ToolRecord>) -> Vec<ToolRecord> {
+        let mut list = vec![];
+
+        if self.build {
+            info!("Build mode enabled. Only tools that support build from source will install.");
+
+            for tool in tools {
+                if tool.plugin.has_func("build_instructions").await {
+                    list.push(tool);
+                }
+            }
+        } else if self.no_build {
+            info!("Prebuilt mode enabled. Only tools that support prebuilts will install.");
+
+            for tool in tools {
+                if tool.plugin.has_func("download_prebuilt").await {
+                    list.push(tool);
+                }
+            }
+        }
+
+        list
+    }
+
     fn get_strategy(&self) -> Option<InstallStrategy> {
         if self.build {
             Some(InstallStrategy::BuildFromSource)
@@ -126,10 +148,9 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
     }
 
     // Create our workflow and setup the progress reporter
-    let mut workflow = InstallWorkflow::new(tool, session.console.clone());
-    let mut handle = None;
+    let mut workflow_manager = InstallWorkflowManager::new(session.console.clone());
+    let mut workflow = workflow_manager.create_workflow(tool);
 
-    // Only show the progress bars when not building
     if workflow.is_build(args.get_strategy()) {
         session.console.render(element! {
             Notice(variant: Variant::Caution) {
@@ -142,19 +163,7 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
             }
         })?;
     } else {
-        let reporter = workflow.progress_reporter.clone();
-        let console = session.console.clone();
-
-        handle = Some(spawn(async move {
-            console
-                .render_loop(element! {
-                    InstallProgress(reporter)
-                })
-                .await
-        }));
-
-        // Wait a bit for the component to be rendered
-        sleep(Duration::from_millis(50)).await;
+        workflow_manager.render_single_progress().await;
     }
 
     let result = workflow
@@ -171,16 +180,15 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
         )
         .await;
 
-    workflow.progress_reporter.exit();
-
-    if let Some(handle) = handle {
-        handle.await.into_diagnostic()??;
-    }
+    workflow_manager.stop_rendering().await?;
 
     let outcome = result?;
     let tool = workflow.tool;
 
     if args.internal {
+        session.console.err.flush()?;
+        session.console.out.flush()?;
+
         return Ok(None);
     }
 
@@ -239,7 +247,18 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
         }
     }
 
-    if versions.is_empty() {
+    // Filter down tools to only those that have a version
+    let mut tools = tools
+        .into_iter()
+        .filter(|tool| versions.contains_key(&tool.id))
+        .collect::<Vec<_>>();
+
+    // And handle build/prebuilt modes
+    if args.build || args.no_build {
+        tools = args.filter_tools(tools).await;
+    }
+
+    if tools.is_empty() {
         session.console.render(element! {
             Notice(variant: Variant::Caution) {
                 StyledText(
@@ -265,20 +284,9 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
         return Ok(Some(1));
     }
 
-    // Filter down tools to only those that have a version
-    let tools = tools
-        .into_iter()
-        .filter(|tool| versions.contains_key(&tool.id))
-        .collect::<Vec<_>>();
-
-    // Determine longest ID for use within progress bars
-    let longest_id = versions
-        .keys()
-        .fold(0, |acc, id| acc.max(id.as_str().len()));
-
     // Then install each tool in parallel!
     let mut topo_graph = InstallGraph::new(&tools);
-    let mut progress_rows = BTreeMap::default();
+    let mut workflow_manager = InstallWorkflowManager::new(session.console.clone());
     let mut set = JoinSet::new();
     let started = Instant::now();
     let force = args.force;
@@ -296,19 +304,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
         let tool_id = tool.id.clone();
         let initial_version = version.clone();
         let topo_graph = topo_graph.clone();
-        let mut workflow = InstallWorkflow::new(tool, session.console.clone());
-
-        // Clone the progress reporters so that we can render
-        // multiple progress bars in parallel
-        progress_rows.insert(
-            tool_id.clone(),
-            InstallProgressProps {
-                default_message: Some(format!("Preparing {} install…", workflow.tool.get_name())),
-                reporter: Some(OwnedOrShared::Shared(Arc::new(
-                    workflow.progress_reporter.clone(),
-                ))),
-            },
-        );
+        let mut workflow = workflow_manager.create_workflow(tool);
 
         let handle = set.spawn(async move {
             while let Some(status) = topo_graph.check_install_status(&workflow.tool.id).await {
@@ -377,26 +373,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
         );
     }
 
-    let reporter = ProgressReporter::default();
-    let reporter_clone = reporter.clone();
-    let console = session.console.clone();
-
-    let handle = spawn(async move {
-        console
-            .render_loop(element! {
-                InstallAllProgress(
-                    reporter: reporter_clone,
-                    tools: progress_rows,
-                    id_width: longest_id,
-                )
-            })
-            .await
-    });
-
-    // Wait a bit for the component to be rendered
-    sleep(Duration::from_millis(50)).await;
-
-    // Start installing tools after the component has rendered!
+    workflow_manager.render_multiple_progress().await;
     topo_graph.proceed();
 
     let mut installed_count = 0;
@@ -425,8 +402,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
         };
     }
 
-    reporter.exit();
-    handle.await.into_diagnostic()??;
+    workflow_manager.stop_rendering().await?;
 
     session.console.render(element! {
         Notice(

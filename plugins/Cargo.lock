@@ -1503,7 +1503,7 @@ dependencies = [
  "http-cache",
  "http-cache-semantics",
  "reqwest",
- "reqwest-middleware 0.4.0",
+ "reqwest-middleware",
  "serde",
  "url",
 ]
@@ -2282,9 +2282,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.20.2"
+version = "1.20.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1261fe7e33c73b354eab43b1273a57c8f967d0391e80353e51f764ac02cf6775"
+checksum = "945462a4b81e43c4e3ba96bd7b49d834c6f61198356aa858733bc4acf3cbe62e"
 
 [[package]]
 name = "openssl-probe"
@@ -2514,7 +2514,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.45.3"
+version = "0.45.4"
 dependencies = [
  "convert_case",
  "dotenvy",
@@ -2550,7 +2550,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.26.1"
+version = "0.26.2"
 dependencies = [
  "extism-pdk",
  "proto_pdk_api",
@@ -2561,7 +2561,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.25.2"
+version = "0.25.3"
 dependencies = [
  "rustc-hash 2.1.1",
  "schematic",
@@ -2576,7 +2576,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.32.1"
+version = "0.32.2"
 dependencies = [
  "proto_core",
  "proto_pdk_api",
@@ -2870,21 +2870,6 @@ dependencies = [
 
 [[package]]
 name = "reqwest-middleware"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "562ceb5a604d3f7c885a792d42c199fd8af239d0a51b2fa6a78aafa092452b04"
-dependencies = [
- "anyhow",
- "async-trait",
- "http",
- "reqwest",
- "serde",
- "thiserror 1.0.64",
- "tower-service",
-]
-
-[[package]]
-name = "reqwest-middleware"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d1ccd3b55e711f91a9885a2fa6fbbb2e39db1776420b062efc058c6410f7e5e3"
@@ -2900,11 +2885,11 @@ dependencies = [
 
 [[package]]
 name = "reqwest-netrc"
-version = "0.1.2"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3000378f31e2aff16946083125d5e317f89bd12ca8160ef4cff21c445c2376f"
+checksum = "ae09db8d40fdf48baa5400ef133a7481516a9818b4d55573241c936312af359b"
 dependencies = [
- "reqwest-middleware 0.3.3",
+ "reqwest-middleware",
  "rust-netrc",
 ]
 
@@ -3486,9 +3471,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_console"
-version = "0.4.6"
+version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dfb2fd7146c0e55b53ab44aa4a178d4f27f2fd5ce33718054207cf8aaeacc020"
+checksum = "f667f7b971e933e5298c15233bbc0caed7b49492fc73cd148dc6802576bfcc0d"
 dependencies = [
  "crossterm",
  "iocraft",
@@ -3516,9 +3501,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_styles"
-version = "0.4.12"
+version = "0.4.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "65b486cfc419b43fee8b42a87f8d654c1c1d439df34cdf1bfa152cc6bdf8456d"
+checksum = "f947bf66e858922ddd27eef15656f4ac4fa11401cfdccbc4140674ea68ee6465"
 dependencies = [
  "dirs 6.0.0",
  "owo-colors",
@@ -3527,9 +3512,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_utils"
-version = "0.10.1"
+version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1823e3b2cc103e71a5c04501cea963dada8488620760c92028bc6770eee33bfd"
+checksum = "e22b27b7f476b5b6beffe16e694ff4ae8d38f808612b7eef9e279c3cf47eb856"
 dependencies = [
  "async-trait",
  "dirs 6.0.0",
@@ -3646,7 +3631,7 @@ dependencies = [
 
 [[package]]
 name = "system_env"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "regex",
  "schematic",
@@ -4167,7 +4152,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.21.0"
+version = "0.21.1"
 dependencies = [
  "async-trait",
  "compact_str",
@@ -4177,9 +4162,8 @@ dependencies = [
  "once_cell",
  "regex",
  "reqwest",
- "reqwest-middleware 0.4.0",
+ "reqwest-middleware",
  "reqwest-netrc",
- "rust-netrc",
  "scc",
  "schematic",
  "serde",
@@ -4198,7 +4182,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_api"
-version = "0.11.0"
+version = "0.11.1"
 dependencies = [
  "anyhow",
  "rustc-hash 2.1.1",
@@ -4211,7 +4195,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_pdk"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "extism-pdk",
  "serde",
