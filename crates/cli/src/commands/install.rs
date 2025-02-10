@@ -1,6 +1,7 @@
 use crate::error::ProtoCliError;
 use crate::session::{LoadToolOptions, ProtoSession};
 use crate::utils::install_graph::*;
+use crate::utils::tool_record::ToolRecord;
 use crate::workflows::{InstallOutcome, InstallWorkflowManager, InstallWorkflowParams};
 use clap::Args;
 use iocraft::prelude::element;
@@ -14,7 +15,7 @@ use std::collections::BTreeMap;
 use std::time::{Duration, Instant};
 use tokio::task::JoinSet;
 use tokio::time::sleep;
-use tracing::{debug, instrument, trace};
+use tracing::{debug, info, instrument, trace};
 
 #[derive(Args, Clone, Debug, Default)]
 pub struct InstallArgs {
@@ -68,6 +69,30 @@ pub struct InstallArgs {
 }
 
 impl InstallArgs {
+    async fn filter_tools(&self, tools: Vec<ToolRecord>) -> Vec<ToolRecord> {
+        let mut list = vec![];
+
+        if self.build {
+            info!("Build mode enabled. Only tools that support build from source will install.");
+
+            for tool in tools {
+                if tool.plugin.has_func("build_instructions").await {
+                    list.push(tool);
+                }
+            }
+        } else if self.no_build {
+            info!("Prebuilt mode enabled. Only tools that support prebuilts will install.");
+
+            for tool in tools {
+                if tool.plugin.has_func("download_prebuilt").await {
+                    list.push(tool);
+                }
+            }
+        }
+
+        list
+    }
+
     fn get_strategy(&self) -> Option<InstallStrategy> {
         if self.build {
             Some(InstallStrategy::BuildFromSource)
@@ -222,6 +247,17 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
         }
     }
 
+    // Filter down tools to only those that have a version
+    let mut tools = tools
+        .into_iter()
+        .filter(|tool| versions.contains_key(&tool.id))
+        .collect::<Vec<_>>();
+
+    // And handle build/prebuilt modes
+    if args.build || args.no_build {
+        tools = args.filter_tools(tools).await;
+    }
+
     if versions.is_empty() {
         session.console.render(element! {
             Notice(variant: Variant::Caution) {
@@ -247,12 +283,6 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
 
         return Ok(Some(1));
     }
-
-    // Filter down tools to only those that have a version
-    let tools = tools
-        .into_iter()
-        .filter(|tool| versions.contains_key(&tool.id))
-        .collect::<Vec<_>>();
 
     // Then install each tool in parallel!
     let mut topo_graph = InstallGraph::new(&tools);
