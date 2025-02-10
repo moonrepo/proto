@@ -78,14 +78,6 @@ pub async fn exec_command(command: &mut Command) -> miette::Result<ProcessResult
         color::shell(&command_line)
     );
 
-    if !output.status.success() {
-        return Err(ProtoProcessError::FailedCommandNonZeroExit {
-            command: command_line,
-            code,
-        }
-        .into());
-    }
-
     Ok(ProcessResult {
         command: command_line,
         stderr,

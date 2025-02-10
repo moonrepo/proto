@@ -3,7 +3,7 @@ use super::install::{InstallPhase, OnPhaseFn};
 use crate::config::ProtoBuildConfig;
 use crate::env::{ProtoConsole, ProtoEnvironment};
 use crate::helpers::extract_filename_from_url;
-use crate::utils::process::*;
+use crate::utils::process::{self, ProcessResult};
 use iocraft::prelude::{element, FlexDirection, View};
 use miette::IntoDiagnostic;
 use proto_pdk_api::{
@@ -21,6 +21,7 @@ use starbase_utils::fs::LOCK_FILE;
 use starbase_utils::{env::is_ci, fs, net};
 use std::env;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use system_env::{
     find_command_on_path, is_command_on_path, DependencyConfig, DependencyName, System,
 };
@@ -44,7 +45,7 @@ pub struct BuilderOptions<'a> {
 
 enum BuilderStepOperation {
     Checkpoint(String),
-    Command(ProcessResult),
+    Command(Arc<ProcessResult>),
 }
 
 struct BuilderStep {
@@ -59,7 +60,7 @@ pub struct Builder<'a> {
 }
 
 impl Builder<'_> {
-    pub fn new<'a>(options: BuilderOptions<'a>) -> Builder<'a> {
+    pub fn new(options: BuilderOptions<'_>) -> Builder<'_> {
         Builder {
             errors: 0,
             options,
@@ -188,6 +189,52 @@ impl Builder<'_> {
 
         Ok(selected_index)
     }
+
+    pub async fn exec_command(
+        &mut self,
+        command: &mut Command,
+        piped: bool,
+    ) -> miette::Result<Arc<ProcessResult>> {
+        self.handle_process_result(if self.options.skip_ui || piped {
+            process::exec_command_piped(command).await?
+        } else {
+            process::exec_command(command).await?
+        })
+    }
+
+    pub async fn exec_command_with_privileges(
+        &mut self,
+        command: &mut Command,
+        elevated_program: Option<&str>,
+        piped: bool,
+    ) -> miette::Result<Arc<ProcessResult>> {
+        self.handle_process_result(if self.options.skip_ui || piped {
+            process::exec_command_with_privileges_piped(command, elevated_program).await?
+        } else {
+            process::exec_command_with_privileges(command, elevated_program).await?
+        })
+    }
+
+    fn handle_process_result(
+        &mut self,
+        result: ProcessResult,
+    ) -> miette::Result<Arc<ProcessResult>> {
+        let result = Arc::new(result);
+
+        if let Some(step) = &mut self.steps.last_mut() {
+            step.ops.push(BuilderStepOperation::Command(result.clone()));
+        }
+
+        if result.exit_code > 0 {
+            return Err(process::ProtoProcessError::FailedCommandNonZeroExit {
+                command: result.command.clone(),
+                code: result.exit_code,
+            }
+            .into());
+        }
+
+        Ok(result)
+    }
 }
 
 async fn checkout_git_repo(
@@ -196,42 +243,48 @@ async fn checkout_git_repo(
     builder: &mut Builder<'_>,
 ) -> miette::Result<()> {
     if cwd.join(".git").exists() {
-        exec_command(
-            Command::new("git")
-                .args(["pull", "--ff", "--prune"])
-                .current_dir(cwd),
-        )
-        .await?;
+        builder
+            .exec_command(
+                Command::new("git")
+                    .args(["pull", "--ff", "--prune"])
+                    .current_dir(cwd),
+                false,
+            )
+            .await?;
 
         return Ok(());
     }
 
     fs::create_dir_all(cwd)?;
 
-    exec_command(
-        Command::new("git")
-            .args(if git.submodules {
-                vec!["clone", "--recurse-submodules"]
-            } else {
-                vec!["clone"]
-            })
-            .args(["--depth", "1"])
-            .arg(&git.url)
-            .arg(".")
-            .current_dir(cwd),
-    )
-    .await?;
+    builder
+        .exec_command(
+            Command::new("git")
+                .args(if git.submodules {
+                    vec!["clone", "--recurse-submodules"]
+                } else {
+                    vec!["clone"]
+                })
+                .args(["--depth", "1"])
+                .arg(&git.url)
+                .arg(".")
+                .current_dir(cwd),
+            false,
+        )
+        .await?;
 
     if let Some(reference) = &git.reference {
         builder.render_checkpoint(format!("Checking out reference <hash>{}</hash>", reference))?;
 
-        exec_command(
-            Command::new("git")
-                .arg("checkout")
-                .arg(reference)
-                .current_dir(cwd),
-        )
-        .await?;
+        builder
+            .exec_command(
+                Command::new("git")
+                    .arg("checkout")
+                    .arg(reference)
+                    .current_dir(cwd),
+                false,
+            )
+            .await?;
     }
 
     Ok(())
@@ -327,8 +380,9 @@ pub async fn install_system_dependencies(
     {
         builder.render_checkpoint(format!("Checking <shell>{pm}</shell> installed packages"))?;
 
-        let list_output =
-            exec_command_piped(Command::new(list_args.remove(0)).args(list_args)).await?;
+        let list_output = builder
+            .exec_command(Command::new(list_args.remove(0)).args(list_args), true)
+            .await?;
         let installed_packages = pm_config.list_parser.parse(&list_output.stdout);
         let mut skipped_packages = FxHashMap::default();
 
@@ -436,11 +490,13 @@ pub async fn install_system_dependencies(
     {
         builder.render_checkpoint("Updating package manager index")?;
 
-        exec_command_with_privileges(
-            Command::new(index_args.remove(0)).args(index_args),
-            elevated_command,
-        )
-        .await?;
+        builder
+            .exec_command_with_privileges(
+                Command::new(index_args.remove(0)).args(index_args),
+                elevated_command,
+                false,
+            )
+            .await?;
     }
 
     // Recreate the dep configs since they've been filtered
@@ -461,11 +517,13 @@ pub async fn install_system_dependencies(
     {
         builder.render_checkpoint(format!("Installing <shell>{pm}</shell> packages",))?;
 
-        exec_command_with_privileges(
-            Command::new(install_args.remove(0)).args(install_args),
-            elevated_command,
-        )
-        .await?;
+        builder
+            .exec_command_with_privileges(
+                Command::new(install_args.remove(0)).args(install_args),
+                elevated_command,
+                false,
+            )
+            .await?;
     }
 
     Ok(())
@@ -473,19 +531,23 @@ pub async fn install_system_dependencies(
 
 // STEP 2
 
-async fn get_command_version(cmd: &str, version_arg: &str) -> miette::Result<Version> {
-    let output = exec_command_piped(Command::new(cmd).arg(version_arg))
-        .await?
-        .stdout;
+async fn get_command_version(
+    cmd: &str,
+    version_arg: &str,
+    builder: &mut Builder<'_>,
+) -> miette::Result<Version> {
+    let output = builder
+        .exec_command(Command::new(cmd).arg(version_arg), true)
+        .await?;
 
     // Remove leading ^ and trailing $
     let base_pattern = get_semver_regex().as_str();
     let pattern = regex::Regex::new(&base_pattern[1..(base_pattern.len() - 1)]).unwrap();
 
     let value = pattern
-        .find(&output)
+        .find(&output.stdout)
         .map(|res| res.as_str())
-        .unwrap_or(&output);
+        .unwrap_or(&output.stdout);
 
     Ok(
         Version::parse(value).map_err(|error| ProtoBuildError::FailedVersionParse {
@@ -536,9 +598,12 @@ pub async fn check_requirements(
                 );
 
                 if is_command_on_path(cmd) {
-                    let version =
-                        get_command_version(cmd, version_arg.as_deref().unwrap_or("--version"))
-                            .await?;
+                    let version = get_command_version(
+                        cmd,
+                        version_arg.as_deref().unwrap_or("--version"),
+                        builder,
+                    )
+                    .await?;
 
                     if version_req.matches(&version) {
                         builder.render_check(
@@ -572,12 +637,15 @@ pub async fn check_requirements(
                     expected_value, "Checking if a Git config setting has the expected value"
                 );
 
-                let actual_value =
-                    exec_command_piped(Command::new("git").args(["config", "--get", config_key]))
-                        .await?
-                        .stdout;
+                let result = builder
+                    .exec_command(
+                        Command::new("git").args(["config", "--get", config_key]),
+                        true,
+                    )
+                    .await?;
+                let actual_value = &result.stdout;
 
-                if &actual_value == expected_value {
+                if actual_value == expected_value {
                     builder.render_check(
                         format!("Git config <property>{config_key}</property> matches the required value of <symbol>{expected_value}</symbol>"),
                         true,
@@ -592,7 +660,7 @@ pub async fn check_requirements(
             BuildRequirement::GitVersion(version_req) => {
                 debug!("Checking if Git meets the required version of {version_req}");
 
-                let version = get_command_version("git", "--version").await?;
+                let version = get_command_version("git", "--version", builder).await?;
 
                 if version_req.matches(&version) {
                     builder.render_check(
@@ -610,8 +678,9 @@ pub async fn check_requirements(
                 if builder.options.system.os.is_mac() {
                     debug!("Checking if Xcode command line tools are installed");
 
-                    let result =
-                        exec_command_piped(Command::new("xcode-select").arg("--version")).await;
+                    let result = builder
+                        .exec_command(Command::new("xcode-select").arg("--version"), true)
+                        .await;
 
                     if result.is_err() || result.is_ok_and(|out| out.stdout.is_empty()) {
                         builder.render_check(
@@ -887,18 +956,20 @@ pub async fn execute_instructions(
                     shell_words::join(&cmd.args)
                 ))?;
 
-                exec_command(
-                    Command::new(exe)
-                        .args(&cmd.args)
-                        .envs(&cmd.env)
-                        .current_dir(
-                            cmd.cwd
-                                .as_deref()
-                                .map(make_absolute)
-                                .unwrap_or_else(|| builder.options.install_dir.to_path_buf()),
-                        ),
-                )
-                .await?;
+                builder
+                    .exec_command(
+                        Command::new(exe)
+                            .args(&cmd.args)
+                            .envs(&cmd.env)
+                            .current_dir(
+                                cmd.cwd
+                                    .as_deref()
+                                    .map(make_absolute)
+                                    .unwrap_or_else(|| builder.options.install_dir.to_path_buf()),
+                            ),
+                        false,
+                    )
+                    .await?;
             }
             BuildInstruction::SetEnvVar(key, value) => {
                 builder.render_checkpoint(format!(
