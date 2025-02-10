@@ -178,16 +178,39 @@ impl Tool {
             version: self.get_resolved_version(),
         });
 
+        // If any step in the build process fails, we should write
+        // a log file so that the user can debug it, otherwise the
+        // piped commands are hidden from the user
+        let handle_error = |result: miette::Result<()>, instance: &Builder| {
+            if
+            // Always write
+            instance.options.config.write_log_file ||
+                // Only write if an error and no direct UI
+                result.is_err() && instance.options.skip_ui
+            {
+                instance.write_log_file(
+                    self.proto
+                        .working_dir
+                        .join(format!("proto-{}-build.log", self.id)),
+                )?;
+            }
+
+            result
+        };
+
         // The build process may require using itself to build itself,
         // so allow proto to use any available version instead of failing
         std::env::set_var(format!("{}_VERSION", self.get_env_var_prefix()), "*");
 
         // Step 0
-        log_build_information(&mut builder, &output)?;
+        handle_error(log_build_information(&mut builder, &output), &builder)?;
 
         // Step 1
         if config.settings.build.install_system_packages {
-            install_system_dependencies(&mut builder, &output).await?;
+            handle_error(
+                install_system_dependencies(&mut builder, &output).await,
+                &builder,
+            )?;
         } else {
             debug!(
                 "Not installing system dependencies because {} was disabled",
@@ -196,13 +219,16 @@ impl Tool {
         }
 
         // Step 2
-        check_requirements(&mut builder, &output).await?;
+        handle_error(check_requirements(&mut builder, &output).await, &builder)?;
 
         // Step 3
-        download_sources(&mut builder, &output).await?;
+        handle_error(download_sources(&mut builder, &output).await, &builder)?;
 
         // Step 4
-        execute_instructions(&mut builder, &output, &self.proto).await?;
+        handle_error(
+            execute_instructions(&mut builder, &output, &self.proto).await,
+            &builder,
+        )?;
 
         Ok(())
     }

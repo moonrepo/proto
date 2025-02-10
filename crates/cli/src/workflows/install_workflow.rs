@@ -28,7 +28,6 @@ pub enum InstallOutcome {
     AlreadyInstalled,
     Installed,
     FailedToInstall,
-    NotInstalled,
 }
 
 pub struct InstallWorkflowParams {
@@ -80,14 +79,6 @@ impl InstallWorkflow {
         params: InstallWorkflowParams,
     ) -> miette::Result<InstallOutcome> {
         let started = Instant::now();
-
-        if params.multiple && self.is_build(params.strategy) {
-            self.progress_reporter.set_message(
-                "Build from source is currently not supported in the multi-install workflow",
-            );
-
-            return Ok(InstallOutcome::NotInstalled);
-        }
 
         self.progress_reporter.set_message(format!(
             "Installing {} with specification <versionalt>{}</versionalt>",

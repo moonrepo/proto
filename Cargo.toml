@@ -54,7 +54,7 @@ starbase_archive = { version = "0.9.4", features = [
 starbase_console = { version = "0.4.7", features = ["ui"] }
 starbase_sandbox = { version = "0.8.2" }
 starbase_shell = { version = "0.6.13", features = ["miette"] }
-starbase_styles = { version = "0.4.11" }
+starbase_styles = { version = "0.4.13" }
 starbase_utils = { version = "0.10.2", default-features = false, features = [
     "json",
     "miette",

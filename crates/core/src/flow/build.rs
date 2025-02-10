@@ -10,7 +10,7 @@ use proto_pdk_api::{
     BuildInstruction, BuildInstructionsOutput, BuildRequirement, GitSource, SourceLocation,
 };
 use rustc_hash::FxHashMap;
-use schematic::color::apply_style_tags;
+use schematic::color::{apply_style_tags, remove_style_tags};
 use semver::{Version, VersionReq};
 use starbase_archive::Archiver;
 use starbase_console::ui::{
@@ -54,8 +54,8 @@ struct BuilderStep {
 }
 
 pub struct Builder<'a> {
+    pub options: BuilderOptions<'a>,
     errors: u8,
-    options: BuilderOptions<'a>,
     steps: Vec<BuilderStep>,
 }
 
@@ -234,6 +234,61 @@ impl Builder<'_> {
         }
 
         Ok(result)
+    }
+
+    pub fn write_log_file(&self, log_path: PathBuf) -> miette::Result<()> {
+        let mut output = vec![];
+
+        for (i, step) in self.steps.iter().enumerate() {
+            output.push(format!("# Step {}: {}", i + 1, step.title));
+            output.push("".into());
+
+            for op in &step.ops {
+                match op {
+                    BuilderStepOperation::Checkpoint(title) => {
+                        output.push(format!("## {}", remove_style_tags(title)));
+                    }
+                    BuilderStepOperation::Command(result) => {
+                        output.push(format!("### `{}`", result.command));
+                        output.push("".into());
+
+                        if let Some(cwd) = &result.working_dir {
+                            output.push(format!("WORKING DIR: {}", cwd.display()));
+                            output.push("".into());
+                        }
+
+                        output.push(format!("EXIT CODE: {}", result.exit_code));
+                        output.push("".into());
+
+                        output.push("STDERR:".into());
+
+                        if result.stderr.is_empty() {
+                            output.push("".into());
+                        } else {
+                            output.push("```".into());
+                            output.push(result.stderr.trim().to_owned());
+                            output.push("```".into());
+                        }
+
+                        output.push("STDOUT:".into());
+
+                        if result.stdout.is_empty() {
+                            output.push("".into());
+                        } else {
+                            output.push("```".into());
+                            output.push(result.stdout.trim().to_owned());
+                            output.push("```".into());
+                        }
+                    }
+                };
+
+                output.push("".into());
+            }
+        }
+
+        fs::write_file(log_path, output.join("\n"))?;
+
+        Ok(())
     }
 }
 

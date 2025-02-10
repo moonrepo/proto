@@ -2,6 +2,7 @@ use miette::{Diagnostic, IntoDiagnostic};
 use rustc_hash::FxHashMap;
 use starbase_styles::{color, Style, Stylize};
 use std::io;
+use std::path::PathBuf;
 use std::process::{Output, Stdio};
 use thiserror::Error;
 use tokio::process::Command;
@@ -28,6 +29,7 @@ pub struct ProcessResult {
     pub exit_code: i32,
     pub stderr: String,
     pub stdout: String,
+    pub working_dir: Option<PathBuf>,
 }
 
 async fn spawn_command(command: &mut Command) -> std::io::Result<Output> {
@@ -58,6 +60,7 @@ pub async fn exec_command(command: &mut Command) -> miette::Result<ProcessResult
         "Running command {}", color::shell(&command_line)
     );
 
+    let working_dir = inner.get_current_dir().map(PathBuf::from);
     let output =
         spawn_command(command)
             .await
@@ -72,8 +75,16 @@ pub async fn exec_command(command: &mut Command) -> miette::Result<ProcessResult
 
     trace!(
         code,
-        stderr,
-        stdout,
+        stderr = if stderr.len() > 250 {
+            "<truncated>"
+        } else {
+            &stderr
+        },
+        stdout = if stdout.len() > 250 {
+            "<truncated>"
+        } else {
+            &stdout
+        },
         "Ran command {}",
         color::shell(&command_line)
     );
@@ -83,6 +94,7 @@ pub async fn exec_command(command: &mut Command) -> miette::Result<ProcessResult
         stderr,
         stdout,
         exit_code: code,
+        working_dir,
     })
 }
 
