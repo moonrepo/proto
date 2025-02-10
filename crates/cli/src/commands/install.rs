@@ -258,7 +258,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
         tools = args.filter_tools(tools).await;
     }
 
-    if versions.is_empty() {
+    if tools.is_empty() {
         session.console.render(element! {
             Notice(variant: Variant::Caution) {
                 StyledText(
