@@ -1,25 +1,33 @@
 use crate::commands::pin::internal_pin;
+use crate::components::{InstallAllProgress, InstallProgress, InstallProgressProps};
 use crate::session::ProtoConsole;
 use crate::shell::{self, Export};
 use crate::telemetry::*;
 use crate::utils::tool_record::ToolRecord;
+use iocraft::element;
+use miette::IntoDiagnostic;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
-use proto_core::{PinLocation, UnresolvedVersionSpec, PROTO_PLUGIN_KEY};
+use proto_core::{Id, PinLocation, UnresolvedVersionSpec, PROTO_PLUGIN_KEY};
 use proto_pdk_api::{
     InstallHook, InstallStrategy, Switch, SyncShellProfileInput, SyncShellProfileOutput,
 };
-use starbase_console::ui::{ProgressDisplay, ProgressReporter};
+use starbase_console::ui::{OwnedOrShared, ProgressDisplay, ProgressReporter, ProgressState};
 use starbase_console::utils::formats::format_duration;
 use starbase_shell::ShellType;
+use starbase_styles::color::{self, apply_style_tags};
+use starbase_utils::env::bool_var;
+use std::collections::BTreeMap;
 use std::env;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
+use tokio::task::JoinHandle;
+use tokio::time::sleep;
 use tracing::{debug, warn};
 
 pub enum InstallOutcome {
     AlreadyInstalled,
     Installed,
     FailedToInstall,
-    NotInstalled,
 }
 
 pub struct InstallWorkflowParams {
@@ -71,14 +79,6 @@ impl InstallWorkflow {
         params: InstallWorkflowParams,
     ) -> miette::Result<InstallOutcome> {
         let started = Instant::now();
-
-        if params.multiple && self.is_build(params.strategy) {
-            self.progress_reporter.set_message(
-                "Build from source is currently not supported in the multi-install workflow",
-            );
-
-            return Ok(InstallOutcome::NotInstalled);
-        }
 
         self.progress_reporter.set_message(format!(
             "Installing {} with specification <versionalt>{}</versionalt>",
@@ -204,15 +204,29 @@ impl InstallWorkflow {
                     .set_value(0);
             }
 
+            // Use the suffix for progress tokens so that they don't appear
+            // in the normal message. This helps with non-TTY scenarios
+            if matches!(phase, InstallPhase::Download { .. }) {
+                pb.set_suffix(" <muted>|</muted> <mutedlight>{bytes} / {total_bytes}</mutedlight> <muted>|</muted> <shell>{bytes_per_sec}</shell>");
+            } else {
+                pb.set_suffix("");
+            }
+
             pb.set_message(match phase {
                 InstallPhase::Native => "Installing natively".to_owned(),
-                InstallPhase::Verify { file, .. } => format!("Verifying checksum against <file>{file}</file>"),
+                InstallPhase::Verify { file, .. } => {
+                    format!("Verifying checksum against <file>{file}</file>")
+                }
                 InstallPhase::Unpack { file } => format!("Unpacking archive <file>{file}</file>"),
-                InstallPhase::Download { file, .. } => format!("Downloading pre-built archive <file>{file}</file> <muted>|</muted> <mutedlight>{{bytes}} / {{total_bytes}}</mutedlight> <muted>|</muted> <shell>{{bytes_per_sec}}</shell>"),
+                InstallPhase::Download { file, .. } => {
+                    format!("Downloading pre-built archive <file>{file}</file>")
+                }
                 InstallPhase::InstallDeps => "Installing system dependencies".into(),
                 InstallPhase::CheckRequirements => "Checking requirements".into(),
                 InstallPhase::ExecuteInstructions => "Executing build instructions".into(),
-                InstallPhase::CloneRepository { url } => format!("Cloning repository <url>{url}</url>")
+                InstallPhase::CloneRepository { url } => {
+                    format!("Cloning repository <url>{url}</url>")
+                }
             });
         });
 
@@ -220,17 +234,14 @@ impl InstallWorkflow {
             .setup(
                 initial_version,
                 InstallOptions {
-                    // When installing multiple tools, we can't render the nice
-                    // UI for the build flow, so rely on the progress bars
-                    console: if params.multiple {
-                        None
-                    } else {
-                        Some(self.console.clone())
-                    },
+                    console: Some(self.console.clone()),
                     on_download_chunk: Some(on_download_chunk),
                     on_phase_change: Some(on_phase_change),
                     force: params.force,
                     skip_prompts: params.skip_prompts,
+                    // When installing multiple tools, we can't render the nice
+                    // UI for the build flow, so rely on the progress bars
+                    skip_ui: params.multiple,
                     strategy: params.strategy.unwrap_or(default_strategy),
                 },
             )
@@ -385,17 +396,170 @@ impl InstallWorkflow {
         Ok(())
     }
 
-    fn finish_progress(&self, started: Instant) {
+    fn finish_progress(&mut self, started: Instant) {
+        let duration = format_duration(started.elapsed(), true);
+        let mut message = format!(
+            "{} <version>{}</version> installed",
+            self.tool.get_name(),
+            self.tool.get_resolved_version(),
+        );
+
+        if duration != "0s" {
+            message.push(' ');
+            message.push_str(&format!("<mutedlight>({duration})</mutedlight>"));
+        }
+
         self.progress_reporter
-            .set_message(format!(
-                "{} <version>{}</version> installed <mutedlight>({})</mutedlight>!",
-                self.tool.get_name(),
-                self.tool.get_resolved_version(),
-                format_duration(started.elapsed(), true)
-            ))
+            .set_message(message)
             .set_display(ProgressDisplay::Bar)
             .set_tick(None)
             .set_max(100)
             .set_value(100);
+    }
+}
+
+pub struct InstallWorkflowManager {
+    pub console: ProtoConsole,
+    pub progress_reporters: BTreeMap<Id, ProgressReporter>,
+
+    monitor_handles: Vec<JoinHandle<()>>,
+    render_handle: Option<JoinHandle<miette::Result<()>>>,
+}
+
+impl InstallWorkflowManager {
+    pub fn new(console: ProtoConsole) -> Self {
+        Self {
+            console,
+            progress_reporters: BTreeMap::default(),
+            monitor_handles: vec![],
+            render_handle: None,
+        }
+    }
+
+    pub fn create_workflow(&mut self, tool: ToolRecord) -> InstallWorkflow {
+        let workflow = InstallWorkflow::new(tool, self.console.clone());
+
+        self.progress_reporters
+            .insert(workflow.tool.id.clone(), workflow.progress_reporter.clone());
+
+        workflow
+    }
+
+    pub fn is_tty(&self) -> bool {
+        !bool_var("NO_TTY") && self.console.out.is_terminal()
+    }
+
+    pub async fn render_single_progress(&mut self) {
+        if !self.is_tty() {
+            self.monitor_messages();
+            return;
+        }
+
+        let reporter = self.progress_reporters.values().next().unwrap().clone();
+        let console = self.console.clone();
+
+        self.render_handle = Some(tokio::spawn(async move {
+            console
+                .render_loop(element! {
+                    InstallProgress(reporter)
+                })
+                .await
+        }));
+
+        // Wait a bit for the component to be rendered
+        sleep(Duration::from_millis(50)).await;
+    }
+
+    pub async fn render_multiple_progress(&mut self) {
+        if !self.is_tty() {
+            self.monitor_messages();
+            return;
+        }
+
+        let reporter = ProgressReporter::default();
+        let reporter_clone = reporter.clone();
+        let console = self.console.clone();
+
+        let tools = self
+            .progress_reporters
+            .iter()
+            .map(|(id, reporter)| {
+                (
+                    id.to_owned(),
+                    InstallProgressProps {
+                        default_message: Some("Preparing install…".into()),
+                        reporter: Some(OwnedOrShared::Shared(Arc::new(reporter.clone()))),
+                    },
+                )
+            })
+            .collect::<BTreeMap<_, _>>();
+
+        let id_width = self
+            .progress_reporters
+            .keys()
+            .fold(0, |acc, id| acc.max(id.as_str().len()));
+
+        self.render_handle = Some(tokio::spawn(async move {
+            console
+                .render_loop(element! {
+                    InstallAllProgress(
+                        reporter: reporter_clone,
+                        tools,
+                        id_width,
+                    )
+                })
+                .await
+        }));
+
+        // Wait a bit for the component to be rendered
+        sleep(Duration::from_millis(50)).await;
+    }
+
+    pub fn monitor_messages(&mut self) {
+        for (id, reporter) in &self.progress_reporters {
+            let reporter = reporter.clone();
+            let console = self.console.clone();
+            let prefix = color::muted_light(format!("[{}] ", id));
+
+            self.monitor_handles.push(tokio::spawn(async move {
+                let mut receiver = reporter.subscribe();
+
+                while let Ok(state) = receiver.recv().await {
+                    match state {
+                        ProgressState::Exit => {
+                            break;
+                        }
+                        ProgressState::Message(message) => {
+                            let _ = console.out.write_line_with_prefix(
+                                apply_style_tags(
+                                    // Compatibility with the UI theme
+                                    message
+                                        .replace("version>", "hash>")
+                                        .replace("versionalt>", "symbol>"),
+                                ),
+                                &prefix,
+                            );
+                        }
+                        _ => {}
+                    }
+                }
+            }));
+        }
+    }
+
+    pub async fn stop_rendering(mut self) -> miette::Result<()> {
+        self.progress_reporters.values().for_each(|reporter| {
+            reporter.exit();
+        });
+
+        for handle in self.monitor_handles {
+            handle.await.into_diagnostic()?;
+        }
+
+        if let Some(handle) = self.render_handle.take() {
+            handle.await.into_diagnostic()??;
+        }
+
+        Ok(())
     }
 }

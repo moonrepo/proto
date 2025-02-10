@@ -183,6 +183,8 @@ pub struct ProtoBuildConfig {
     pub install_system_packages: bool,
 
     pub system_package_manager: FxHashMap<SystemOS, Option<SystemPackageManager>>,
+
+    pub write_log_file: bool,
 }
 
 #[derive(Clone, Config, Debug, Serialize)]
