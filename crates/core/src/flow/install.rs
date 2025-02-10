@@ -40,6 +40,7 @@ pub struct InstallOptions {
     pub on_download_chunk: Option<OnChunkFn>,
     pub on_phase_change: Option<OnPhaseFn>,
     pub skip_prompts: bool,
+    pub skip_ui: bool,
     pub strategy: InstallStrategy,
 }
 
@@ -161,28 +162,32 @@ impl Tool {
             }
         }
 
-        let build_options = InstallBuildOptions {
+        let mut builder = Builder::new(BuilderOptions {
             config: &config.settings.build,
-            console: options.console.as_ref(),
+            console: options
+                .console
+                .as_ref()
+                .expect("Console required for builder!"),
             install_dir,
             http_client: self.proto.get_plugin_loader()?.get_client()?,
             on_phase_change: options.on_phase_change.take(),
             skip_prompts: options.skip_prompts,
+            skip_ui: options.skip_ui,
             system,
             temp_dir,
             version: self.get_resolved_version(),
-        };
+        });
 
         // The build process may require using itself to build itself,
         // so allow proto to use any available version instead of failing
         std::env::set_var(format!("{}_VERSION", self.get_env_var_prefix()), "*");
 
         // Step 0
-        log_build_information(&output, &build_options)?;
+        log_build_information(&mut builder, &output)?;
 
         // Step 1
         if config.settings.build.install_system_packages {
-            install_system_dependencies(&output, &build_options).await?;
+            install_system_dependencies(&mut builder, &output).await?;
         } else {
             debug!(
                 "Not installing system dependencies because {} was disabled",
@@ -191,13 +196,13 @@ impl Tool {
         }
 
         // Step 2
-        check_requirements(&output, &build_options).await?;
+        check_requirements(&mut builder, &output).await?;
 
         // Step 3
-        download_sources(&output, &build_options).await?;
+        download_sources(&mut builder, &output).await?;
 
         // Step 4
-        execute_instructions(&output, &build_options, &self.proto).await?;
+        execute_instructions(&mut builder, &output, &self.proto).await?;
 
         Ok(())
     }

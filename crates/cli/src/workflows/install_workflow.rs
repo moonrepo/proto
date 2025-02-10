@@ -243,17 +243,14 @@ impl InstallWorkflow {
             .setup(
                 initial_version,
                 InstallOptions {
-                    // When installing multiple tools, we can't render the nice
-                    // UI for the build flow, so rely on the progress bars
-                    console: if params.multiple {
-                        None
-                    } else {
-                        Some(self.console.clone())
-                    },
+                    console: Some(self.console.clone()),
                     on_download_chunk: Some(on_download_chunk),
                     on_phase_change: Some(on_phase_change),
                     force: params.force,
                     skip_prompts: params.skip_prompts,
+                    // When installing multiple tools, we can't render the nice
+                    // UI for the build flow, so rely on the progress bars
+                    skip_ui: params.multiple,
                     strategy: params.strategy.unwrap_or(default_strategy),
                 },
             )

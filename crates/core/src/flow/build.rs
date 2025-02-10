@@ -29,44 +29,71 @@ use tracing::{debug, error};
 use version_spec::{get_semver_regex, VersionSpec};
 use warpgate::HttpClient;
 
-pub struct InstallBuildOptions<'a> {
+pub struct BuilderOptions<'a> {
     pub config: &'a ProtoBuildConfig,
-    pub console: Option<&'a ProtoConsole>,
+    pub console: &'a ProtoConsole,
     pub http_client: &'a HttpClient,
     pub install_dir: &'a Path,
     pub on_phase_change: Option<OnPhaseFn>,
     pub skip_prompts: bool,
+    pub skip_ui: bool,
     pub system: System,
     pub temp_dir: &'a Path,
     pub version: VersionSpec,
 }
 
-struct StepManager<'a> {
-    errors: u8,
-    options: &'a InstallBuildOptions<'a>,
+enum BuilderStepOperation {
+    Checkpoint(String),
+    Command(ProcessResult),
 }
 
-impl StepManager<'_> {
-    pub fn new<'a>(options: &'a InstallBuildOptions<'a>) -> StepManager<'a> {
-        StepManager { errors: 0, options }
+struct BuilderStep {
+    title: String,
+    ops: Vec<BuilderStepOperation>,
+}
+
+pub struct Builder<'a> {
+    errors: u8,
+    options: BuilderOptions<'a>,
+    steps: Vec<BuilderStep>,
+}
+
+impl Builder<'_> {
+    pub fn new<'a>(options: BuilderOptions<'a>) -> Builder<'a> {
+        Builder {
+            errors: 0,
+            options,
+            steps: vec![],
+        }
+    }
+
+    pub fn get_system(&self) -> &System {
+        &self.options.system
     }
 
     pub fn has_errors(&self) -> bool {
         self.errors > 0
     }
 
-    pub fn render_header(&self, title: impl AsRef<str>) -> miette::Result<()> {
+    pub fn render_header(&mut self, title: impl AsRef<str>) -> miette::Result<()> {
         let title = title.as_ref();
 
-        if let Some(console) = &self.options.console {
+        self.errors = 0;
+        self.steps.push(BuilderStep {
+            title: title.to_owned(),
+            ops: vec![],
+        });
+
+        if self.options.skip_ui {
+            debug!("{title}");
+        } else {
+            let console = &self.options.console;
             console.out.write_newline()?;
             console.render(element! {
                 Container {
                     Section(title)
                 }
             })?;
-        } else {
-            debug!("{title}");
         }
 
         Ok(())
@@ -75,13 +102,7 @@ impl StepManager<'_> {
     pub fn render_check(&mut self, message: impl AsRef<str>, passed: bool) -> miette::Result<()> {
         let message = message.as_ref();
 
-        if let Some(console) = &self.options.console {
-            console.render(element! {
-                ListCheck(checked: passed) {
-                    StyledText(content: message)
-                }
-            })?;
-        } else {
+        if self.options.skip_ui {
             let message = apply_style_tags(message);
 
             if passed {
@@ -89,6 +110,12 @@ impl StepManager<'_> {
             } else {
                 error!("{message}");
             }
+        } else {
+            self.options.console.render(element! {
+                ListCheck(checked: passed) {
+                    StyledText(content: message)
+                }
+            })?;
         }
 
         if !passed {
@@ -98,39 +125,43 @@ impl StepManager<'_> {
         Ok(())
     }
 
-    pub fn render_checkpoint(&self, message: impl AsRef<str>) -> miette::Result<()> {
+    pub fn render_checkpoint(&mut self, message: impl AsRef<str>) -> miette::Result<()> {
         let message = message.as_ref();
 
-        if let Some(console) = &self.options.console {
-            console.render(element! {
+        if let Some(step) = &mut self.steps.last_mut() {
+            step.ops
+                .push(BuilderStepOperation::Checkpoint(message.to_owned()));
+        }
+
+        if self.options.skip_ui {
+            debug!("{}", apply_style_tags(message));
+        } else {
+            self.options.console.render(element! {
                 ListItem(bullet: "❯".to_owned()) {
                     StyledText(content: message)
                 }
             })?;
-        } else {
-            debug!("{}", apply_style_tags(message));
         }
 
         Ok(())
     }
 
     pub async fn prompt_continue(&self, label: &str) -> miette::Result<()> {
-        if self.options.skip_prompts {
+        if self.options.skip_prompts || self.options.skip_ui {
             return Ok(());
         }
 
-        if let Some(console) = &self.options.console {
-            let mut confirmed = false;
+        let mut confirmed = false;
 
-            console
-                .render_interactive(element! {
-                    Confirm(label, on_confirm: &mut confirmed)
-                })
-                .await?;
+        self.options
+            .console
+            .render_interactive(element! {
+                Confirm(label, on_confirm: &mut confirmed)
+            })
+            .await?;
 
-            if !confirmed {
-                return Err(ProtoBuildError::Cancelled.into());
-            }
+        if !confirmed {
+            return Err(ProtoBuildError::Cancelled.into());
         }
 
         Ok(())
@@ -144,17 +175,16 @@ impl StepManager<'_> {
     ) -> miette::Result<usize> {
         let mut selected_index = default_index;
 
-        if self.options.skip_prompts {
+        if self.options.skip_prompts || self.options.skip_ui {
             return Ok(selected_index);
         }
 
-        if let Some(console) = &self.options.console {
-            console
-                .render_interactive(element! {
-                    Select(label, options, default_index, on_index: &mut selected_index)
-                })
-                .await?;
-        }
+        self.options
+            .console
+            .render_interactive(element! {
+                Select(label, options, default_index, on_index: &mut selected_index)
+            })
+            .await?;
 
         Ok(selected_index)
     }
@@ -163,7 +193,7 @@ impl StepManager<'_> {
 async fn checkout_git_repo(
     git: &GitSource,
     cwd: &Path,
-    step: &StepManager<'_>,
+    builder: &mut Builder<'_>,
 ) -> miette::Result<()> {
     if cwd.join(".git").exists() {
         exec_command(
@@ -193,7 +223,7 @@ async fn checkout_git_repo(
     .await?;
 
     if let Some(reference) = &git.reference {
-        step.render_checkpoint(format!("Checking out reference <hash>{}</hash>", reference))?;
+        builder.render_checkpoint(format!("Checking out reference <hash>{}</hash>", reference))?;
 
         exec_command(
             Command::new("git")
@@ -210,13 +240,20 @@ async fn checkout_git_repo(
 // STEP 0
 
 pub fn log_build_information(
+    builder: &mut Builder,
     build: &BuildInstructionsOutput,
-    options: &InstallBuildOptions<'_>,
 ) -> miette::Result<()> {
-    let system = &options.system;
+    let system = &builder.options.system;
 
-    if let Some(console) = &options.console {
-        console.render(element! {
+    if builder.options.skip_ui {
+        debug!(
+            os = ?system.os,
+            arch = ?system.arch,
+            pm = ?system.manager,
+            "Gathering system information",
+        );
+    } else {
+        builder.options.console.render(element! {
             Container {
                 Section(title: "Build information")
                 View(padding_left: 2, flex_direction: FlexDirection::Column) {
@@ -228,7 +265,7 @@ pub fn log_build_information(
                         }
                     }))
                     Entry(name: "Target version", value: element! {
-                        StyledText(content: options.version.to_string(), style: Style::Hash)
+                        StyledText(content: builder.options.version.to_string(), style: Style::Hash)
                     }.into_any())
                     #(build.help_url.as_ref().map(|url| {
                         element! {
@@ -240,13 +277,6 @@ pub fn log_build_information(
                 }
             }
         })?;
-    } else {
-        debug!(
-            os = ?system.os,
-            arch = ?system.arch,
-            pm = ?system.manager,
-            "Gathering system information",
-        );
     }
 
     Ok(())
@@ -255,18 +285,18 @@ pub fn log_build_information(
 // STEP 1
 
 pub async fn install_system_dependencies(
+    builder: &mut Builder<'_>,
     build: &BuildInstructionsOutput,
-    options: &InstallBuildOptions<'_>,
 ) -> miette::Result<()> {
-    let system = &options.system;
-
-    let Some(pm) = system.manager else {
+    let Some(pm) = builder.options.system.manager else {
         return Ok(());
     };
 
     // Determine packages to install
     let pm_config = pm.get_config();
-    let dep_configs = system.resolve_dependencies(&build.system_dependencies);
+    let dep_configs = builder
+        .get_system()
+        .resolve_dependencies(&build.system_dependencies);
 
     // 1) Check if packages have already been installed
     let mut not_installed_packages = FxHashMap::from_iter(
@@ -276,7 +306,7 @@ pub async fn install_system_dependencies(
             .flatten(),
     );
 
-    for excluded in &options.config.exclude_packages {
+    for excluded in &builder.options.config.exclude_packages {
         not_installed_packages.remove(excluded);
     }
 
@@ -284,18 +314,18 @@ pub async fn install_system_dependencies(
         return Ok(());
     }
 
-    let mut step = StepManager::new(options);
-    step.render_header("Installing system dependencies")?;
+    builder.render_header("Installing system dependencies")?;
 
-    options.on_phase_change.as_ref().inspect(|func| {
+    builder.options.on_phase_change.as_ref().inspect(|func| {
         func(InstallPhase::InstallDeps);
     });
 
-    if let Some(mut list_args) = system
-        .get_list_packages_command(!options.skip_prompts)
+    if let Some(mut list_args) = builder
+        .get_system()
+        .get_list_packages_command(!builder.options.skip_prompts)
         .into_diagnostic()?
     {
-        step.render_checkpoint(format!("Checking <shell>{pm}</shell> installed packages"))?;
+        builder.render_checkpoint(format!("Checking <shell>{pm}</shell> installed packages"))?;
 
         let list_output =
             exec_command_piped(Command::new(list_args.remove(0)).args(list_args)).await?;
@@ -333,7 +363,7 @@ pub async fn install_system_dependencies(
 
         // Print packages that are already installed
         for (package, version) in skipped_packages {
-            step.render_check(
+            builder.render_check(
                 match version {
                     Some(version) => {
                         format!("<id>{package}</id> v{version} already installed")
@@ -347,7 +377,7 @@ pub async fn install_system_dependencies(
 
     // Print the packages that are not installed
     for (package, version) in &not_installed_packages {
-        step.render_check(
+        builder.render_check(
             match version {
                 Some(version) => {
                     format!("<id>{package}</id> v{version} is not installed")
@@ -382,7 +412,7 @@ pub async fn install_system_dependencies(
         }
     }
 
-    match step
+    match builder
         .prompt_select("Install missing packages?", select_options, default_index)
         .await?
     {
@@ -399,11 +429,12 @@ pub async fn install_system_dependencies(
     }
 
     // 3) Update the current registry index
-    if let Some(mut index_args) = system
-        .get_update_index_command(!options.skip_prompts)
+    if let Some(mut index_args) = builder
+        .get_system()
+        .get_update_index_command(!builder.options.skip_prompts)
         .into_diagnostic()?
     {
-        step.render_checkpoint("Updating package manager index")?;
+        builder.render_checkpoint("Updating package manager index")?;
 
         exec_command_with_privileges(
             Command::new(index_args.remove(0)).args(index_args),
@@ -423,11 +454,12 @@ pub async fn install_system_dependencies(
         .collect::<Vec<_>>();
 
     // 4) Install the missing packages
-    if let Some(mut install_args) = system
-        .get_install_packages_command(&dep_configs, !options.skip_prompts)
+    if let Some(mut install_args) = builder
+        .get_system()
+        .get_install_packages_command(&dep_configs, !builder.options.skip_prompts)
         .into_diagnostic()?
     {
-        step.render_checkpoint(format!("Installing <shell>{pm}</shell> packages",))?;
+        builder.render_checkpoint(format!("Installing <shell>{pm}</shell> packages",))?;
 
         exec_command_with_privileges(
             Command::new(install_args.remove(0)).args(install_args),
@@ -464,18 +496,16 @@ async fn get_command_version(cmd: &str, version_arg: &str) -> miette::Result<Ver
 }
 
 pub async fn check_requirements(
+    builder: &mut Builder<'_>,
     build: &BuildInstructionsOutput,
-    options: &InstallBuildOptions<'_>,
 ) -> miette::Result<()> {
     if build.requirements.is_empty() {
         return Ok(());
     }
 
-    let mut step = StepManager::new(options);
+    builder.render_header("Checking requirements")?;
 
-    step.render_header("Checking requirements")?;
-
-    options.on_phase_change.as_ref().inspect(|func| {
+    builder.options.on_phase_change.as_ref().inspect(|func| {
         func(InstallPhase::CheckRequirements);
     });
 
@@ -485,7 +515,7 @@ pub async fn check_requirements(
                 debug!(cmd, "Checking if a command exists on PATH");
 
                 if let Some(cmd_path) = find_command_on_path(cmd) {
-                    step.render_check(
+                    builder.render_check(
                         format!(
                             "Command <shell>{cmd}</shell> exists on PATH: <path>{}</path>",
                             cmd_path.display()
@@ -493,7 +523,7 @@ pub async fn check_requirements(
                         true,
                     )?;
                 } else {
-                    step.render_check(
+                    builder.render_check(
                         format!("Command <shell>{cmd}</shell> does NOT exist on PATH, please install it and try again"),
                         false,
                     )?;
@@ -511,30 +541,30 @@ pub async fn check_requirements(
                             .await?;
 
                     if version_req.matches(&version) {
-                        step.render_check(
+                        builder.render_check(
                             format!("Command <shell>{cmd}</shell> meets the minimum required version of {version_req}"),
                             true,
                         )?;
                     } else {
-                        step.render_check(
+                        builder.render_check(
                             format!("Command <shell>{cmd}</shell> does NOT meet the minimum required version of {version_req}, found {version}"),
                             false,
                         )?;
                     }
                 } else {
-                    step.render_check(
+                    builder.render_check(
                         format!("Command <shell>{cmd}</shell> does NOT exist on PATH, please install it and try again"),
                         false,
                     )?;
                 }
             }
             BuildRequirement::ManualIntercept(url) => {
-                step.render_check(
+                builder.render_check(
                     format!("Please read the following documentation before proceeding: <url>{url}</url>"),
                     true,
                 )?;
 
-                step.prompt_continue("Continue install?").await?;
+                builder.prompt_continue("Continue install?").await?;
             }
             BuildRequirement::GitConfigSetting(config_key, expected_value) => {
                 debug!(
@@ -548,12 +578,12 @@ pub async fn check_requirements(
                         .stdout;
 
                 if &actual_value == expected_value {
-                    step.render_check(
+                    builder.render_check(
                         format!("Git config <property>{config_key}</property> matches the required value of <symbol>{expected_value}</symbol>"),
                         true,
                     )?;
                 } else {
-                    step.render_check(
+                    builder.render_check(
                         format!("Git config <property>{config_key}</property> does NOT match the required value or <symbol>{expected_value}</symbol>, found {actual_value}"),
                         false,
                     )?;
@@ -565,36 +595,36 @@ pub async fn check_requirements(
                 let version = get_command_version("git", "--version").await?;
 
                 if version_req.matches(&version) {
-                    step.render_check(
+                    builder.render_check(
                         format!("Git meets the minimum required version of {version_req}"),
                         true,
                     )?;
                 } else {
-                    step.render_check(
+                    builder.render_check(
                         format!("Git does NOT meet the minimum required version of {version_req}, found {version}"),
                         false,
                     )?;
                 }
             }
             BuildRequirement::XcodeCommandLineTools => {
-                if options.system.os.is_mac() {
+                if builder.options.system.os.is_mac() {
                     debug!("Checking if Xcode command line tools are installed");
 
                     let result =
                         exec_command_piped(Command::new("xcode-select").arg("--version")).await;
 
                     if result.is_err() || result.is_ok_and(|out| out.stdout.is_empty()) {
-                        step.render_check(
+                        builder.render_check(
                             "Xcode command line tools are NOT installed, install them with <shell>xcode-select --install</shell>",
                             false,
                         )?;
                     } else {
-                        step.render_check("Xcode command line tools are installed", true)?;
+                        builder.render_check("Xcode command line tools are installed", true)?;
                     }
                 }
             }
             BuildRequirement::WindowsDeveloperMode => {
-                if options.system.os.is_windows() {
+                if builder.options.system.os.is_windows() {
                     debug!("Checking if Windows developer mode is enabled");
 
                     // Is this possible from the command line?
@@ -603,7 +633,7 @@ pub async fn check_requirements(
         };
     }
 
-    if step.has_errors() {
+    if builder.has_errors() {
         return Err(ProtoBuildError::RequirementsNotMet.into());
     }
 
@@ -613,37 +643,35 @@ pub async fn check_requirements(
 // STEP 3
 
 pub async fn download_sources(
+    builder: &mut Builder<'_>,
     build: &BuildInstructionsOutput,
-    options: &InstallBuildOptions<'_>,
 ) -> miette::Result<()> {
     // Ensure the install directory is empty, otherwise Git will fail and
     // we also want to avoid colliding/stale artifacts. This should also
     // run if there's no source, as it's required for instructions!
-    fs::remove_dir_all(options.install_dir)?;
-    fs::create_dir_all(options.install_dir)?;
+    fs::remove_dir_all(builder.options.install_dir)?;
+    fs::create_dir_all(builder.options.install_dir)?;
 
     let Some(source) = &build.source else {
         return Ok(());
     };
 
-    let step = StepManager::new(options);
-
-    step.render_header("Acquiring source files")?;
+    builder.render_header("Acquiring source files")?;
 
     match source {
         SourceLocation::Archive(archive) => {
             let filename = extract_filename_from_url(&archive.url)?;
-            let download_file = options.temp_dir.join(&filename);
+            let download_file = builder.options.temp_dir.join(&filename);
 
             // Download
-            options.on_phase_change.as_ref().inspect(|func| {
+            builder.options.on_phase_change.as_ref().inspect(|func| {
                 func(InstallPhase::Download {
                     url: archive.url.clone(),
                     file: filename.clone(),
                 });
             });
 
-            step.render_checkpoint(format!(
+            builder.render_checkpoint(format!(
                 "Downloading archive from <url>{}</url>",
                 archive.url
             ))?;
@@ -651,23 +679,23 @@ pub async fn download_sources(
             net::download_from_url_with_client(
                 &archive.url,
                 &download_file,
-                options.http_client.to_inner(),
+                builder.options.http_client.to_inner(),
             )
             .await?;
 
             // Unpack
-            options.on_phase_change.as_ref().inspect(|func| {
+            builder.options.on_phase_change.as_ref().inspect(|func| {
                 func(InstallPhase::Unpack {
                     file: filename.clone(),
                 });
             });
 
-            step.render_checkpoint(format!(
+            builder.render_checkpoint(format!(
                 "Unpacking archive to <path>{}</path>",
-                options.install_dir.display()
+                builder.options.install_dir.display()
             ))?;
 
-            let mut archiver = Archiver::new(options.install_dir, &download_file);
+            let mut archiver = Archiver::new(builder.options.install_dir, &download_file);
 
             if let Some(prefix) = &archive.prefix {
                 archiver.set_prefix(prefix);
@@ -676,15 +704,15 @@ pub async fn download_sources(
             archiver.unpack_from_ext()?;
         }
         SourceLocation::Git(git) => {
-            options.on_phase_change.as_ref().inspect(|func| {
+            builder.options.on_phase_change.as_ref().inspect(|func| {
                 func(InstallPhase::CloneRepository {
                     url: git.url.clone(),
                 });
             });
 
-            step.render_checkpoint(format!("Cloning repository <url>{}</url>", git.url))?;
+            builder.render_checkpoint(format!("Cloning repository <url>{}</url>", git.url))?;
 
-            checkout_git_repo(git, options.install_dir, &step).await?;
+            checkout_git_repo(git, builder.options.install_dir, builder).await?;
         }
     };
 
@@ -694,19 +722,17 @@ pub async fn download_sources(
 // STEP 4
 
 pub async fn execute_instructions(
+    builder: &mut Builder<'_>,
     build: &BuildInstructionsOutput,
-    options: &InstallBuildOptions<'_>,
     proto: &ProtoEnvironment,
 ) -> miette::Result<()> {
     if build.instructions.is_empty() {
         return Ok(());
     }
 
-    let step = StepManager::new(options);
+    builder.render_header("Executing build instructions")?;
 
-    step.render_header("Executing build instructions")?;
-
-    options.on_phase_change.as_ref().inspect(|func| {
+    builder.options.on_phase_change.as_ref().inspect(|func| {
         func(InstallPhase::ExecuteInstructions);
     });
 
@@ -714,7 +740,7 @@ pub async fn execute_instructions(
         if path.is_absolute() {
             path.to_path_buf()
         } else {
-            options.install_dir.join(path)
+            builder.options.install_dir.join(path)
         }
     };
 
@@ -727,20 +753,20 @@ pub async fn execute_instructions(
         let prefix = format!("<mutedlight>[{}/{total}]</mutedlight>", index + 1);
 
         match instruction {
-            BuildInstruction::InstallBuilder(builder) => {
-                step.render_checkpoint(format!(
+            BuildInstruction::InstallBuilder(item) => {
+                builder.render_checkpoint(format!(
                     "{prefix} Installing <id>{}</id> builder (<url>{}<url>)",
-                    builder.id, builder.git.url
+                    item.id, item.git.url
                 ))?;
 
-                let builder_dir = proto.store.builders_dir.join(&builder.id);
+                let builder_dir = proto.store.builders_dir.join(&item.id);
 
-                checkout_git_repo(&builder.git, &builder_dir, &step).await?;
+                checkout_git_repo(&item.git, &builder_dir, builder).await?;
 
                 let main_exe_name = String::new();
                 let mut exes = FxHashMap::default();
-                exes.extend(&builder.exes);
-                exes.insert(&main_exe_name, &builder.exe);
+                exes.extend(&item.exes);
+                exes.insert(&main_exe_name, &item.exe);
 
                 for (exe_name, exe_rel_path) in exes {
                     let exe_abs_path = builder_dir.join(exe_rel_path);
@@ -748,7 +774,7 @@ pub async fn execute_instructions(
                     if !exe_abs_path.exists() {
                         return Err(ProtoBuildError::MissingBuilderExe {
                             exe: exe_abs_path,
-                            id: builder.id.clone(),
+                            id: item.id.clone(),
                         }
                         .into());
                     }
@@ -757,9 +783,9 @@ pub async fn execute_instructions(
 
                     builder_exes.insert(
                         if exe_name.is_empty() {
-                            builder.id.clone()
+                            item.id.clone()
                         } else {
-                            format!("{}:{exe_name}", builder.id)
+                            format!("{}:{exe_name}", item.id)
                         },
                         exe_abs_path,
                     );
@@ -768,7 +794,7 @@ pub async fn execute_instructions(
             BuildInstruction::MakeExecutable(file) => {
                 let file = make_absolute(file);
 
-                step.render_checkpoint(format!(
+                builder.render_checkpoint(format!(
                     "{prefix} Making file <path>{}</path> executable",
                     file.display()
                 ))?;
@@ -779,7 +805,7 @@ pub async fn execute_instructions(
                 let from = make_absolute(from);
                 let to = make_absolute(to);
 
-                step.render_checkpoint(format!(
+                builder.render_checkpoint(format!(
                     "{prefix} Moving <path>{}</path> to <path>{}</path>",
                     from.display(),
                     to.display(),
@@ -788,9 +814,9 @@ pub async fn execute_instructions(
                 fs::rename(from, to)?;
             }
             BuildInstruction::RemoveAllExcept(exceptions) => {
-                let dir = options.install_dir;
+                let dir = builder.options.install_dir;
 
-                step.render_checkpoint(format!(
+                builder.render_checkpoint(format!(
                     "{prefix} Removing directory <path>{}</path> except for {}",
                     dir.display(),
                     exceptions
@@ -811,7 +837,7 @@ pub async fn execute_instructions(
             BuildInstruction::RemoveDir(dir) => {
                 let dir = make_absolute(dir);
 
-                step.render_checkpoint(format!(
+                builder.render_checkpoint(format!(
                     "{prefix} Removing directory <path>{}</path>",
                     dir.display()
                 ))?;
@@ -821,7 +847,7 @@ pub async fn execute_instructions(
             BuildInstruction::RemoveFile(file) => {
                 let file = make_absolute(file);
 
-                step.render_checkpoint(format!(
+                builder.render_checkpoint(format!(
                     "{prefix} Removing file <path>{}</path>",
                     file.display()
                 ))?;
@@ -830,18 +856,19 @@ pub async fn execute_instructions(
             }
             BuildInstruction::RequestScript(url) => {
                 let filename = extract_filename_from_url(url)?;
-                let download_file = options.temp_dir.join(&filename);
+                let download_file = builder.options.temp_dir.join(&filename);
 
-                step.render_checkpoint(format!("{prefix} Requesting script <url>{url}</url>"))?;
+                builder
+                    .render_checkpoint(format!("{prefix} Requesting script <url>{url}</url>"))?;
 
                 net::download_from_url_with_client(
                     url,
                     &download_file,
-                    options.http_client.to_inner(),
+                    builder.options.http_client.to_inner(),
                 )
                 .await?;
 
-                fs::rename(download_file, options.install_dir.join(filename))?;
+                fs::rename(download_file, builder.options.install_dir.join(filename))?;
             }
             BuildInstruction::RunCommand(cmd) => {
                 let exe = if cmd.builder {
@@ -854,7 +881,7 @@ pub async fn execute_instructions(
                     PathBuf::from(&cmd.bin)
                 };
 
-                step.render_checkpoint(format!(
+                builder.render_checkpoint(format!(
                     "{prefix} Running command <shell>{} {}</shell>",
                     exe.file_name().unwrap().to_str().unwrap(),
                     shell_words::join(&cmd.args)
@@ -868,13 +895,13 @@ pub async fn execute_instructions(
                             cmd.cwd
                                 .as_deref()
                                 .map(make_absolute)
-                                .unwrap_or_else(|| options.install_dir.to_path_buf()),
+                                .unwrap_or_else(|| builder.options.install_dir.to_path_buf()),
                         ),
                 )
                 .await?;
             }
             BuildInstruction::SetEnvVar(key, value) => {
-                step.render_checkpoint(format!(
+                builder.render_checkpoint(format!(
                     "{prefix} Setting environment variable <property>{key}</property> to <symbol>{value}</symbol>",
                 ))?;
 
