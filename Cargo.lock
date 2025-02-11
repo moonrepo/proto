@@ -2686,6 +2686,7 @@ dependencies = [
  "semver",
  "serde",
  "shared_child",
+ "shell-words",
  "sigpipe",
  "starbase",
  "starbase_console",

@@ -38,14 +38,24 @@ fn is_trying_to_self_upgrade(tool: &Tool, args: &[String]) -> bool {
         return false;
     }
 
-    for arg in args {
-        // Find first non-option arg
-        if arg.starts_with('-') {
-            continue;
+    // Expand "self upgrade" string into ["self", "upgrade"] list
+    let mut match_groups = vec![];
+
+    for arg_string in &tool.metadata.self_upgrade_commands {
+        if let Ok(arg_list) = shell_words::split(&arg_string) {
+            match_groups.push(arg_list);
+        }
+    }
+
+    // Then match the args in sequence
+    'outer: for match_list in match_groups {
+        for (index, match_arg) in match_list.into_iter().enumerate() {
+            if args.get(index).is_some_and(|arg| arg != &match_arg) {
+                continue 'outer;
+            }
         }
 
-        // And then check if an upgrade command
-        return tool.metadata.self_upgrade_commands.contains(arg);
+        return true;
     }
 
     false
