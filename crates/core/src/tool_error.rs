@@ -1,4 +1,5 @@
 use crate::config::PROTO_CONFIG_NAME;
+use crate::tool_spec::ToolBackend;
 use miette::Diagnostic;
 use starbase_styles::{Style, Stylize};
 use std::path::PathBuf;
@@ -21,9 +22,28 @@ pub enum ProtoToolError {
         actual: String,
     },
 
+    #[diagnostic(code(proto::tool::invalid_spec))]
+    #[error("Invalid version or requirement in tool specification {}.", .spec.style(Style::Hash))]
+    InvalidVersionSpec {
+        spec: String,
+        #[source]
+        error: Box<version_spec::SpecError>,
+    },
+
     #[diagnostic(code(proto::tool::invalid_inventory_dir))]
     #[error("{tool} inventory directory has been overridden with {} but it's not an absolute path. Only absolute paths are supported.", .dir.style(Style::Path))]
     RequiredAbsoluteInventoryDir { tool: String, dir: PathBuf },
+
+    #[diagnostic(code(proto::tool::unknown_backend))]
+    #[error(
+        "Unknown backend in tool specification {}. Only {} are supported.",
+        .spec.style(Style::Hash),
+        .backends.iter().map(|be| be.to_string().style(Style::Id)).collect::<Vec<_>>().join(", ")
+    )]
+    UnknownBackend {
+        backends: Vec<ToolBackend>,
+        spec: String,
+    },
 
     #[diagnostic(code(proto::tool::unknown_id))]
     #[error(
