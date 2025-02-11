@@ -28,6 +28,11 @@
 - WASM API
   - Added `BuildInstruction::RemoveAllExcept` variant.
 
+#### ⚙️ Internal
+
+- Updated dependencies.
+- Updated wasmtime to v29 (from v26).
+
 ## 0.45.2
 
 #### 🚀 Updates
