@@ -42,7 +42,7 @@ fn is_trying_to_self_upgrade(tool: &Tool, args: &[String]) -> bool {
     let mut match_groups = vec![];
 
     for arg_string in &tool.metadata.self_upgrade_commands {
-        if let Ok(arg_list) = shell_words::split(&arg_string) {
+        if let Ok(arg_list) = shell_words::split(arg_string) {
             match_groups.push(arg_list);
         }
     }
