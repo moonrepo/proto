@@ -21,14 +21,18 @@ use starbase_utils::fs::LOCK_FILE;
 use starbase_utils::{env::is_ci, fs, net};
 use std::env;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use system_env::{
     find_command_on_path, is_command_on_path, DependencyConfig, DependencyName, System,
+    SystemPackageManager,
 };
 use tokio::process::Command;
+use tokio::sync::{Mutex, OwnedMutexGuard};
 use tracing::{debug, error};
 use version_spec::{get_semver_regex, VersionSpec};
 use warpgate::HttpClient;
+
+static BUILD_LOCKS: OnceLock<scc::HashMap<String, Arc<Mutex<()>>>> = OnceLock::new();
 
 pub struct BuilderOptions<'a> {
     pub config: &'a ProtoBuildConfig,
@@ -290,6 +294,13 @@ impl Builder<'_> {
 
         Ok(())
     }
+
+    pub async fn acquire_lock(&self, pm: &SystemPackageManager) -> OwnedMutexGuard<()> {
+        let locks = BUILD_LOCKS.get_or_init(scc::HashMap::default);
+        let entry = locks.entry(pm.to_string()).or_default();
+
+        entry.get().clone().lock_owned().await
+    }
 }
 
 async fn checkout_git_repo(
@@ -433,6 +444,8 @@ pub async fn install_system_dependencies(
         .get_list_packages_command(!builder.options.skip_prompts)
         .into_diagnostic()?
     {
+        let _lock = builder.acquire_lock(&pm).await;
+
         builder.render_checkpoint(format!("Checking <shell>{pm}</shell> installed packages"))?;
 
         let list_output = builder
@@ -543,6 +556,8 @@ pub async fn install_system_dependencies(
         .get_update_index_command(!builder.options.skip_prompts)
         .into_diagnostic()?
     {
+        let _lock = builder.acquire_lock(&pm).await;
+
         builder.render_checkpoint("Updating package manager index")?;
 
         builder
@@ -570,6 +585,8 @@ pub async fn install_system_dependencies(
         .get_install_packages_command(&dep_configs, !builder.options.skip_prompts)
         .into_diagnostic()?
     {
+        let _lock = builder.acquire_lock(&pm).await;
+
         builder.render_checkpoint(format!("Installing <shell>{pm}</shell> packages",))?;
 
         builder
