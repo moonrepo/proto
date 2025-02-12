@@ -11,7 +11,7 @@ use tracing::{debug, instrument};
 impl Tool {
     #[instrument(skip(self))]
     pub async fn is_setup_with_spec(&mut self, spec: &ToolSpec) -> miette::Result<bool> {
-        self.backend = spec.backend;
+        self.resolve_version_with_spec(spec, true).await?;
         self.is_setup(&spec.req).await
     }
 

@@ -50,10 +50,10 @@ pub async fn pin(session: ProtoSession, args: PinArgs) -> AppResult {
     let mut spec = args.spec.clone();
 
     if args.resolve {
-        let res = tool.resolve_version_with_spec(&spec, false).await?;
-
-        spec.req = res.to_unresolved_spec();
-        spec.res = Some(res);
+        spec.req = tool
+            .resolve_version_with_spec(&spec, false)
+            .await?
+            .to_unresolved_spec();
     }
 
     let config_path = internal_pin(&mut tool, &spec, args.to).await?;

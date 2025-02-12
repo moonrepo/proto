@@ -160,7 +160,7 @@ impl InstallWorkflow {
         spec: &ToolSpec,
         params: &InstallWorkflowParams,
     ) -> miette::Result<bool> {
-        self.tool.resolve_version(&spec.req, false).await?;
+        self.tool.resolve_version_with_spec(spec, false).await?;
 
         let resolved_version = self.tool.get_resolved_version();
         let default_strategy = self.tool.metadata.default_install_strategy;

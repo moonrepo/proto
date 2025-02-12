@@ -345,6 +345,8 @@ export interface LocateExecutablesOutput {
 
 /** Input passed to the `load_versions` function. */
 export interface LoadVersionsInput {
+	/** Current tool context. */
+	context: ToolContext;
 	/** The alias or version currently being resolved. */
 	initial: UnresolvedVersionSpec;
 }
@@ -363,6 +365,8 @@ export interface LoadVersionsOutput {
 
 /** Input passed to the `resolve_version` function. */
 export interface ResolveVersionInput {
+	/** Current tool context. */
+	context: ToolContext;
 	/** The alias or version currently being resolved. */
 	initial: UnresolvedVersionSpec;
 }
@@ -491,7 +495,7 @@ export type BuildInstruction = {
 		/** Primary executable, relative from the source root. */
 		exe: string;
 		/** Secondary executables, relative from the source root. */
-		exes: Record<string, string>;
+		exes?: Record<string, string>;
 		/** The Git source location for the builder. */
 		git: GitSource;
 		/** Unique identifier for this builder. */
@@ -504,6 +508,9 @@ export type BuildInstruction = {
 } | {
 	instruction: [string, string];
 	type: 'move-file';
+} | {
+	instruction: string[];
+	type: 'remove-all-except';
 } | {
 	instruction: string;
 	type: 'remove-dir';
@@ -570,8 +577,6 @@ export type SystemDependency = string | Record<SystemPackageManager, string> | s
 	manager?: SystemPackageManager | null;
 	/** Only install on this operating system. */
 	os?: SystemOS | null;
-	/** Install using sudo. */
-	sudo?: boolean;
 	/** The version to install. */
 	version?: string | null;
 };
