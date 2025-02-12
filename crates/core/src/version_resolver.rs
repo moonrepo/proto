@@ -120,7 +120,7 @@ pub fn resolve_version(
             let mut alias_value = None;
 
             if let Some(config) = config {
-                alias_value = config.aliases.get(alias.as_str());
+                alias_value = config.aliases.get(alias.as_str()).map(|spec| &spec.req);
             }
 
             if alias_value.is_none() {

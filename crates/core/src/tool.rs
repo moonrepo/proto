@@ -2,6 +2,7 @@ use crate::env::ProtoEnvironment;
 use crate::helpers::get_proto_version;
 use crate::layout::{Inventory, Product};
 use crate::tool_error::ProtoToolError;
+use crate::tool_spec::Backend;
 use proto_pdk_api::*;
 use rustc_hash::{FxHashMap, FxHashSet};
 use starbase_styles::color;
@@ -16,9 +17,10 @@ use warpgate::{
 };
 
 pub struct Tool {
+    pub backend: Backend,
     pub id: Id,
-    pub metadata: ToolMetadataOutput,
     pub locator: Option<PluginLocator>,
+    pub metadata: ToolMetadataOutput,
     pub plugin: Arc<PluginContainer>,
     pub proto: Arc<ProtoEnvironment>,
     pub version: Option<VersionSpec>,
@@ -48,6 +50,7 @@ impl Tool {
         );
 
         let mut tool = Tool {
+            backend: Backend::Proto,
             cache: true,
             exe_file: None,
             exes_dir: None,

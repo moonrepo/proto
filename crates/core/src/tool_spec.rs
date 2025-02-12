@@ -1,26 +1,46 @@
 use crate::tool_error::ProtoToolError;
-use schematic::ConfigEnum;
+use schematic::{derive_enum, ConfigEnum};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
-use version_spec::UnresolvedVersionSpec;
+use version_spec::{UnresolvedVersionSpec, VersionSpec};
 
-#[derive(Clone, Copy, ConfigEnum, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
-pub enum ToolBackend {
-    Asdf,
-    Proto,
-}
+derive_enum!(
+    #[derive(Copy, ConfigEnum, Default, Hash)]
+    pub enum Backend {
+        Asdf,
+        #[default]
+        Proto,
+    }
+);
 
-#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(into = "String", try_from = "String")]
 pub struct ToolSpec {
-    pub backend: ToolBackend,
-    pub spec: UnresolvedVersionSpec,
+    pub backend: Backend,
+
+    // Requested version/requirement
+    pub req: UnresolvedVersionSpec,
+
+    // Resolved version
+    pub res: Option<VersionSpec>,
 }
 
 impl ToolSpec {
+    pub fn new(req: UnresolvedVersionSpec) -> Self {
+        Self {
+            backend: Backend::Proto,
+            req,
+            res: None,
+        }
+    }
+
     pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, ProtoToolError> {
         Self::from_str(value.as_ref())
+    }
+
+    pub fn resolve(&mut self, res: VersionSpec) {
+        self.res = Some(res);
     }
 }
 
@@ -30,29 +50,30 @@ impl FromStr for ToolSpec {
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         let (backend, spec) = if let Some((prefix, suffix)) = value.split_once(':') {
             let backend = if prefix == "proto" {
-                ToolBackend::Proto
+                Backend::Proto
             } else if prefix == "asdf" {
-                ToolBackend::Asdf
+                Backend::Asdf
             } else {
                 return Err(ProtoToolError::UnknownBackend {
-                    backends: ToolBackend::variants(),
+                    backends: Backend::variants(),
                     spec: value.to_owned(),
                 });
             };
 
             (backend, suffix)
         } else {
-            (ToolBackend::Proto, value)
+            (Backend::Proto, value)
         };
 
         Ok(Self {
             backend,
-            spec: UnresolvedVersionSpec::parse(spec).map_err(|error| {
+            req: UnresolvedVersionSpec::parse(spec).map_err(|error| {
                 ProtoToolError::InvalidVersionSpec {
                     spec: value.to_owned(),
                     error: Box::new(error),
                 }
             })?,
+            res: None,
         })
     }
 }
@@ -71,17 +92,57 @@ impl Into<String> for ToolSpec {
     }
 }
 
+impl From<UnresolvedVersionSpec> for ToolSpec {
+    fn from(value: UnresolvedVersionSpec) -> Self {
+        Self::new(value)
+    }
+}
+
+impl PartialEq<UnresolvedVersionSpec> for ToolSpec {
+    fn eq(&self, other: &UnresolvedVersionSpec) -> bool {
+        &self.req == other
+    }
+}
+
+impl PartialEq<VersionSpec> for ToolSpec {
+    fn eq(&self, other: &VersionSpec) -> bool {
+        &self.req == other
+    }
+}
+
+impl AsRef<ToolSpec> for ToolSpec {
+    fn as_ref(&self) -> &ToolSpec {
+        self
+    }
+}
+
+impl AsRef<UnresolvedVersionSpec> for ToolSpec {
+    fn as_ref(&self) -> &UnresolvedVersionSpec {
+        &self.req
+    }
+}
+
 impl fmt::Display for ToolSpec {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.backend {
-            ToolBackend::Asdf => {
+            Backend::Asdf => {
                 write!(f, "asdf:")?;
             }
-            ToolBackend::Proto => {
+            Backend::Proto => {
                 // No prefix
             }
         };
 
-        write!(f, "{}", self.spec)
+        write!(f, "{}", self.req)
+    }
+}
+
+impl schematic::Schematic for ToolSpec {
+    fn schema_name() -> Option<String> {
+        Some("ToolSpec".into())
+    }
+
+    fn build_schema(mut schema: schematic::SchemaBuilder) -> schematic::Schema {
+        schema.string_default()
     }
 }

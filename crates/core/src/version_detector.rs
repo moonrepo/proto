@@ -28,7 +28,7 @@ pub async fn detect_version_first_available(
 
                 set_detected_env_var(tool.get_env_var_prefix(), &file.path);
 
-                return Ok(Some(version.to_owned()));
+                return Ok(Some(version.req.to_owned()));
             }
         }
 
@@ -68,7 +68,7 @@ pub async fn detect_version_only_prototools(
 
                 set_detected_env_var(tool.get_env_var_prefix(), &file.path);
 
-                return Ok(Some(version.to_owned()));
+                return Ok(Some(version.req.to_owned()));
             }
         }
     }

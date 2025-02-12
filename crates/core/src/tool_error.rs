@@ -1,5 +1,5 @@
 use crate::config::PROTO_CONFIG_NAME;
-use crate::tool_spec::ToolBackend;
+use crate::tool_spec::Backend;
 use miette::Diagnostic;
 use starbase_styles::{Style, Stylize};
 use std::path::PathBuf;
@@ -41,7 +41,7 @@ pub enum ProtoToolError {
         .backends.iter().map(|be| be.to_string().style(Style::Id)).collect::<Vec<_>>().join(", ")
     )]
     UnknownBackend {
-        backends: Vec<ToolBackend>,
+        backends: Vec<Backend>,
         spec: String,
     },
 

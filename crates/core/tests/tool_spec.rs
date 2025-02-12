@@ -1,4 +1,4 @@
-use proto_core::{ToolBackend, ToolSpec, UnresolvedVersionSpec};
+use proto_core::{Backend, ToolSpec, UnresolvedVersionSpec};
 
 mod tool_spec {
     use super::*;
@@ -20,8 +20,8 @@ mod tool_spec {
         assert_eq!(
             ToolSpec::parse("latest").unwrap(),
             ToolSpec {
-                backend: ToolBackend::Proto,
-                spec: UnresolvedVersionSpec::Alias("latest".into()),
+                backend: Backend::Proto,
+                req: UnresolvedVersionSpec::Alias("latest".into()),
             }
         );
     }
@@ -31,15 +31,15 @@ mod tool_spec {
         assert_eq!(
             ToolSpec::parse("asdf:latest").unwrap(),
             ToolSpec {
-                backend: ToolBackend::Asdf,
-                spec: UnresolvedVersionSpec::Alias("latest".into()),
+                backend: Backend::Asdf,
+                req: UnresolvedVersionSpec::Alias("latest".into()),
             }
         );
         assert_eq!(
             ToolSpec::parse("proto:latest").unwrap(),
             ToolSpec {
-                backend: ToolBackend::Proto,
-                spec: UnresolvedVersionSpec::Alias("latest".into()),
+                backend: Backend::Proto,
+                req: UnresolvedVersionSpec::Alias("latest".into()),
             }
         );
     }
@@ -49,8 +49,8 @@ mod tool_spec {
         assert_eq!(
             ToolSpec::parse("canary").unwrap(),
             ToolSpec {
-                backend: ToolBackend::Proto,
-                spec: UnresolvedVersionSpec::parse("canary").unwrap(),
+                backend: Backend::Proto,
+                req: UnresolvedVersionSpec::parse("canary").unwrap(),
             }
         );
     }
@@ -60,15 +60,15 @@ mod tool_spec {
         assert_eq!(
             ToolSpec::parse("asdf:canary").unwrap(),
             ToolSpec {
-                backend: ToolBackend::Asdf,
-                spec: UnresolvedVersionSpec::Canary,
+                backend: Backend::Asdf,
+                req: UnresolvedVersionSpec::Canary,
             }
         );
         assert_eq!(
             ToolSpec::parse("proto:canary").unwrap(),
             ToolSpec {
-                backend: ToolBackend::Proto,
-                spec: UnresolvedVersionSpec::Canary,
+                backend: Backend::Proto,
+                req: UnresolvedVersionSpec::Canary,
             }
         );
     }
@@ -78,8 +78,8 @@ mod tool_spec {
         assert_eq!(
             ToolSpec::parse("2025-01-01").unwrap(),
             ToolSpec {
-                backend: ToolBackend::Proto,
-                spec: UnresolvedVersionSpec::parse("2025-01-01").unwrap(),
+                backend: Backend::Proto,
+                req: UnresolvedVersionSpec::parse("2025-01-01").unwrap(),
             }
         );
     }
@@ -89,15 +89,15 @@ mod tool_spec {
         assert_eq!(
             ToolSpec::parse("asdf:2025-01-01").unwrap(),
             ToolSpec {
-                backend: ToolBackend::Asdf,
-                spec: UnresolvedVersionSpec::parse("2025-01-01").unwrap(),
+                backend: Backend::Asdf,
+                req: UnresolvedVersionSpec::parse("2025-01-01").unwrap(),
             }
         );
         assert_eq!(
             ToolSpec::parse("proto:2025-01-01").unwrap(),
             ToolSpec {
-                backend: ToolBackend::Proto,
-                spec: UnresolvedVersionSpec::parse("2025-01-01").unwrap(),
+                backend: Backend::Proto,
+                req: UnresolvedVersionSpec::parse("2025-01-01").unwrap(),
             }
         );
     }
@@ -107,8 +107,8 @@ mod tool_spec {
         assert_eq!(
             ToolSpec::parse("1.2.3").unwrap(),
             ToolSpec {
-                backend: ToolBackend::Proto,
-                spec: UnresolvedVersionSpec::parse("1.2.3").unwrap(),
+                backend: Backend::Proto,
+                req: UnresolvedVersionSpec::parse("1.2.3").unwrap(),
             }
         );
     }
@@ -118,15 +118,15 @@ mod tool_spec {
         assert_eq!(
             ToolSpec::parse("asdf:1.2.3").unwrap(),
             ToolSpec {
-                backend: ToolBackend::Asdf,
-                spec: UnresolvedVersionSpec::parse("1.2.3").unwrap(),
+                backend: Backend::Asdf,
+                req: UnresolvedVersionSpec::parse("1.2.3").unwrap(),
             }
         );
         assert_eq!(
             ToolSpec::parse("proto:1.2.3").unwrap(),
             ToolSpec {
-                backend: ToolBackend::Proto,
-                spec: UnresolvedVersionSpec::parse("1.2.3").unwrap(),
+                backend: Backend::Proto,
+                req: UnresolvedVersionSpec::parse("1.2.3").unwrap(),
             }
         );
     }
@@ -136,8 +136,8 @@ mod tool_spec {
         assert_eq!(
             ToolSpec::parse("^2").unwrap(),
             ToolSpec {
-                backend: ToolBackend::Proto,
-                spec: UnresolvedVersionSpec::parse("^2").unwrap(),
+                backend: Backend::Proto,
+                req: UnresolvedVersionSpec::parse("^2").unwrap(),
             }
         );
     }
@@ -147,15 +147,15 @@ mod tool_spec {
         assert_eq!(
             ToolSpec::parse("asdf:^2").unwrap(),
             ToolSpec {
-                backend: ToolBackend::Asdf,
-                spec: UnresolvedVersionSpec::parse("^2").unwrap(),
+                backend: Backend::Asdf,
+                req: UnresolvedVersionSpec::parse("^2").unwrap(),
             }
         );
         assert_eq!(
             ToolSpec::parse("proto:~1.2").unwrap(),
             ToolSpec {
-                backend: ToolBackend::Proto,
-                spec: UnresolvedVersionSpec::parse("~1.2").unwrap(),
+                backend: Backend::Proto,
+                req: UnresolvedVersionSpec::parse("~1.2").unwrap(),
             }
         );
     }
