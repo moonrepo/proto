@@ -24,7 +24,7 @@ pub struct InstallArgs {
 
     #[arg(
         default_value = "latest",
-        help = "When installing one tool, the version or alias to install",
+        help = "When installing one tool, the version specification to install",
         group = "version-type"
     )]
     pub spec: Option<ToolSpec>,
@@ -50,7 +50,7 @@ pub struct InstallArgs {
     )]
     pub canary: bool,
 
-    #[arg(long, help = "Force reinstallation even if it is already installed")]
+    #[arg(long, help = "Force reinstallation even if already installed")]
     pub force: bool,
 
     #[arg(long, help = "Pin the resolved version to .prototools")]
@@ -240,7 +240,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
         if let Some(candidate) = &tool.detected_version {
             debug!("Detected version {} for {}", candidate, tool.get_name());
 
-            versions.insert(tool.id.clone(), candidate.to_owned());
+            versions.insert(tool.id.clone(), ToolSpec::new(candidate.to_owned()));
         }
     }
 

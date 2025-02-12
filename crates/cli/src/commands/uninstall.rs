@@ -13,7 +13,7 @@ pub struct UninstallArgs {
     #[arg(required = true, help = "ID of tool")]
     id: Id,
 
-    #[arg(help = "Version or alias of tool")]
+    #[arg(help = "Version specification to uninstall")]
     spec: Option<ToolSpec>,
 }
 
@@ -148,7 +148,7 @@ async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult 
 async fn uninstall_one(session: ProtoSession, args: UninstallArgs, spec: ToolSpec) -> AppResult {
     let mut tool = session.load_tool(&args.id).await?;
 
-    if !tool.is_setup(&spec.req).await? {
+    if !tool.is_setup_with_spec(&spec).await? {
         session.console.render(element! {
             Notice(variant: Variant::Caution) {
                 StyledText(

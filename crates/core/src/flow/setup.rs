@@ -10,9 +10,9 @@ use tracing::{debug, instrument};
 
 impl Tool {
     #[instrument(skip(self))]
-    pub async fn is_setup_with_spec(&mut self, initial_spec: &ToolSpec) -> miette::Result<bool> {
-        self.backend = initial_spec.backend;
-        self.is_setup(&initial_spec.req).await
+    pub async fn is_setup_with_spec(&mut self, spec: &ToolSpec) -> miette::Result<bool> {
+        self.backend = spec.backend;
+        self.is_setup(&spec.req).await
     }
 
     /// Return true if the tool has been setup (installed and binaries are located).
@@ -55,11 +55,11 @@ impl Tool {
     #[instrument(skip(self, options))]
     pub async fn setup_with_spec(
         &mut self,
-        initial_spec: &ToolSpec,
+        spec: &ToolSpec,
         options: InstallOptions,
     ) -> miette::Result<bool> {
-        self.backend = initial_spec.backend;
-        self.setup(&initial_spec.req, options).await
+        self.backend = spec.backend;
+        self.setup(&spec.req, options).await
     }
 
     /// Setup the tool by resolving a semantic version, installing the tool,

@@ -14,7 +14,7 @@ pub struct AliasArgs {
     #[arg(required = true, help = "Alias name")]
     alias: String,
 
-    #[arg(required = true, help = "Version or alias to associate with")]
+    #[arg(required = true, help = "Version specification to alias")]
     spec: ToolSpec,
 
     #[arg(long, default_value_t, help = "Location of .prototools to add to")]

@@ -1,6 +1,6 @@
-use crate::config::*;
 use crate::flow::resolve::ProtoResolveError;
 use crate::tool::Tool;
+use crate::{config::*, ToolSpec};
 use std::env;
 use std::path::Path;
 use tracing::instrument;
@@ -176,4 +176,17 @@ pub async fn detect_version(
         tool: tool.get_name().to_owned(),
     }
     .into())
+}
+
+#[instrument(skip_all)]
+pub async fn detect_version_with_spec(
+    tool: &Tool,
+    forced_spec: Option<ToolSpec>,
+) -> miette::Result<ToolSpec> {
+    let detected = detect_version(tool, forced_spec.clone().map(|spec| spec.req)).await?;
+
+    let mut spec = forced_spec.unwrap_or_default();
+    spec.req = detected;
+
+    Ok(spec)
 }

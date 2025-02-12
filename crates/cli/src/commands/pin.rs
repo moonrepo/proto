@@ -13,7 +13,7 @@ pub struct PinArgs {
     #[arg(required = true, help = "ID of tool")]
     pub id: Id,
 
-    #[arg(required = true, help = "Version or alias of tool")]
+    #[arg(required = true, help = "Version specification to pin")]
     pub spec: ToolSpec,
 
     #[arg(long, help = "Resolve the version before pinning")]
@@ -50,10 +50,10 @@ pub async fn pin(session: ProtoSession, args: PinArgs) -> AppResult {
     let mut spec = args.spec.clone();
 
     if args.resolve {
-        spec.req = tool
-            .resolve_version(&args.spec.req, false)
-            .await?
-            .to_unresolved_spec();
+        let res = tool.resolve_version_with_spec(&spec, false).await?;
+
+        spec.req = res.to_unresolved_spec();
+        spec.res = Some(res);
     }
 
     let config_path = internal_pin(&mut tool, &spec, args.to).await?;

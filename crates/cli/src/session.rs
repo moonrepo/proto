@@ -9,7 +9,7 @@ use miette::IntoDiagnostic;
 use proto_core::registry::ProtoRegistry;
 use proto_core::{
     load_schema_plugin_with_proto, load_tool_from_locator, load_tool_with_proto, ConfigMode, Id,
-    ProtoConfig, ProtoEnvironment, Tool, UnresolvedVersionSpec, PROTO_PLUGIN_KEY,
+    ProtoConfig, ProtoEnvironment, Tool, ToolSpec, UnresolvedVersionSpec, PROTO_PLUGIN_KEY,
     SCHEMA_PLUGIN_KEY,
 };
 use rustc_hash::FxHashSet;
@@ -104,12 +104,14 @@ impl ProtoSession {
         if options.detect_version {
             record.detect_version().await;
 
-            let version = record
-                .detected_version
-                .clone()
-                .unwrap_or_else(|| UnresolvedVersionSpec::parse("*").unwrap());
+            let spec = ToolSpec::new(
+                record
+                    .detected_version
+                    .clone()
+                    .unwrap_or_else(|| UnresolvedVersionSpec::parse("*").unwrap()),
+            );
 
-            record.tool.resolve_version(&version, false).await?;
+            record.tool.resolve_version_with_spec(&spec, false).await?;
         }
 
         Ok(record)
