@@ -270,11 +270,11 @@ kebab-case = "file://./camel.toml"
             BTreeMap::from_iter([
                 (
                     Id::raw("node"),
-                    UnresolvedVersionSpec::parse("12.0.0").unwrap()
+                    UnresolvedVersionSpec::parse("12.0.0").unwrap().into()
                 ),
                 (
                     Id::raw("rust"),
-                    UnresolvedVersionSpec::Alias("stable".into())
+                    UnresolvedVersionSpec::Alias("stable".into()).into()
                 ),
             ])
         );
@@ -308,11 +308,11 @@ kebab-case = "file://./camel.toml"
 
         versions.insert(
             Id::raw("node"),
-            UnresolvedVersionSpec::parse("12.0.0").unwrap(),
+            UnresolvedVersionSpec::parse("12.0.0").unwrap().into(),
         );
         versions.insert(
             Id::raw("rust"),
-            UnresolvedVersionSpec::Alias("stable".into()),
+            UnresolvedVersionSpec::Alias("stable".into()).into(),
         );
 
         let plugins = config.plugins.get_or_insert(Default::default());
@@ -773,11 +773,11 @@ value = "4.5.6"
                 BTreeMap::from_iter([
                     (
                         "stable".to_owned(),
-                        UnresolvedVersionSpec::parse("1.0.0").unwrap()
+                        UnresolvedVersionSpec::parse("1.0.0").unwrap().into()
                     ),
                     (
                         "value".to_owned(),
-                        UnresolvedVersionSpec::parse("1.2.3").unwrap()
+                        UnresolvedVersionSpec::parse("1.2.3").unwrap().into()
                     ),
                 ])
             );
@@ -953,15 +953,15 @@ deno = "7.8.9"
             BTreeMap::from_iter([
                 (
                     Id::raw("node"),
-                    UnresolvedVersionSpec::parse("1.2.3").unwrap()
+                    UnresolvedVersionSpec::parse("1.2.3").unwrap().into()
                 ),
                 (
                     Id::raw("bun"),
-                    UnresolvedVersionSpec::parse("4.5.6").unwrap()
+                    UnresolvedVersionSpec::parse("4.5.6").unwrap().into()
                 ),
                 (
                     Id::raw("deno"),
-                    UnresolvedVersionSpec::parse("7.8.9").unwrap()
+                    UnresolvedVersionSpec::parse("7.8.9").unwrap().into()
                 ),
             ])
         );
@@ -1018,11 +1018,11 @@ bun = "1.2.3"
             BTreeMap::from_iter([
                 (
                     Id::raw("node"),
-                    UnresolvedVersionSpec::parse("1.2.3").unwrap()
+                    UnresolvedVersionSpec::parse("1.2.3").unwrap().into()
                 ),
                 (
                     Id::raw("deno"),
-                    UnresolvedVersionSpec::parse("7.8.9").unwrap()
+                    UnresolvedVersionSpec::parse("7.8.9").unwrap().into()
                 ),
             ])
         );
@@ -1064,7 +1064,7 @@ bun = "1.2.3"
             config.versions,
             BTreeMap::from_iter([(
                 Id::raw("node"),
-                UnresolvedVersionSpec::parse("1.2.3").unwrap()
+                UnresolvedVersionSpec::parse("1.2.3").unwrap().into()
             ),])
         );
     }
@@ -1097,11 +1097,11 @@ deno = "7.8.9"
             BTreeMap::from_iter([
                 (
                     Id::raw("node"),
-                    UnresolvedVersionSpec::parse("1.2.3").unwrap()
+                    UnresolvedVersionSpec::parse("1.2.3").unwrap().into()
                 ),
                 (
                     Id::raw("deno"),
-                    UnresolvedVersionSpec::parse("7.8.9").unwrap()
+                    UnresolvedVersionSpec::parse("7.8.9").unwrap().into()
                 ),
             ])
         );
@@ -1134,11 +1134,11 @@ deno = "7.8.9"
             BTreeMap::from_iter([
                 (
                     Id::raw("node"),
-                    UnresolvedVersionSpec::parse("7.8.9").unwrap()
+                    UnresolvedVersionSpec::parse("7.8.9").unwrap().into()
                 ),
                 (
                     Id::raw("deno"),
-                    UnresolvedVersionSpec::parse("7.8.9").unwrap()
+                    UnresolvedVersionSpec::parse("7.8.9").unwrap().into()
                 ),
             ])
         );
@@ -1173,11 +1173,11 @@ deno = "7.8.9"
             BTreeMap::from_iter([
                 (
                     Id::raw("node"),
-                    UnresolvedVersionSpec::parse("7.8.9").unwrap()
+                    UnresolvedVersionSpec::parse("7.8.9").unwrap().into()
                 ),
                 (
                     Id::raw("deno"),
-                    UnresolvedVersionSpec::parse("7.8.9").unwrap()
+                    UnresolvedVersionSpec::parse("7.8.9").unwrap().into()
                 ),
             ])
         );

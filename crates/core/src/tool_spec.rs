@@ -86,6 +86,7 @@ impl TryFrom<String> for ToolSpec {
     }
 }
 
+#[allow(clippy::from_over_into)]
 impl Into<String> for ToolSpec {
     fn into(self) -> String {
         self.to_string()

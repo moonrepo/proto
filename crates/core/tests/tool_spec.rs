@@ -22,6 +22,7 @@ mod tool_spec {
             ToolSpec {
                 backend: Backend::Proto,
                 req: UnresolvedVersionSpec::Alias("latest".into()),
+                res: None,
             }
         );
     }
@@ -33,6 +34,7 @@ mod tool_spec {
             ToolSpec {
                 backend: Backend::Asdf,
                 req: UnresolvedVersionSpec::Alias("latest".into()),
+                res: None,
             }
         );
         assert_eq!(
@@ -40,6 +42,7 @@ mod tool_spec {
             ToolSpec {
                 backend: Backend::Proto,
                 req: UnresolvedVersionSpec::Alias("latest".into()),
+                res: None,
             }
         );
     }
@@ -51,6 +54,7 @@ mod tool_spec {
             ToolSpec {
                 backend: Backend::Proto,
                 req: UnresolvedVersionSpec::parse("canary").unwrap(),
+                res: None,
             }
         );
     }
@@ -62,6 +66,7 @@ mod tool_spec {
             ToolSpec {
                 backend: Backend::Asdf,
                 req: UnresolvedVersionSpec::Canary,
+                res: None,
             }
         );
         assert_eq!(
@@ -69,6 +74,7 @@ mod tool_spec {
             ToolSpec {
                 backend: Backend::Proto,
                 req: UnresolvedVersionSpec::Canary,
+                res: None,
             }
         );
     }
@@ -80,6 +86,7 @@ mod tool_spec {
             ToolSpec {
                 backend: Backend::Proto,
                 req: UnresolvedVersionSpec::parse("2025-01-01").unwrap(),
+                res: None,
             }
         );
     }
@@ -91,6 +98,7 @@ mod tool_spec {
             ToolSpec {
                 backend: Backend::Asdf,
                 req: UnresolvedVersionSpec::parse("2025-01-01").unwrap(),
+                res: None,
             }
         );
         assert_eq!(
@@ -98,6 +106,7 @@ mod tool_spec {
             ToolSpec {
                 backend: Backend::Proto,
                 req: UnresolvedVersionSpec::parse("2025-01-01").unwrap(),
+                res: None,
             }
         );
     }
@@ -109,6 +118,7 @@ mod tool_spec {
             ToolSpec {
                 backend: Backend::Proto,
                 req: UnresolvedVersionSpec::parse("1.2.3").unwrap(),
+                res: None,
             }
         );
     }
@@ -120,6 +130,7 @@ mod tool_spec {
             ToolSpec {
                 backend: Backend::Asdf,
                 req: UnresolvedVersionSpec::parse("1.2.3").unwrap(),
+                res: None,
             }
         );
         assert_eq!(
@@ -127,6 +138,7 @@ mod tool_spec {
             ToolSpec {
                 backend: Backend::Proto,
                 req: UnresolvedVersionSpec::parse("1.2.3").unwrap(),
+                res: None,
             }
         );
     }
@@ -138,6 +150,7 @@ mod tool_spec {
             ToolSpec {
                 backend: Backend::Proto,
                 req: UnresolvedVersionSpec::parse("^2").unwrap(),
+                res: None,
             }
         );
     }
@@ -149,6 +162,7 @@ mod tool_spec {
             ToolSpec {
                 backend: Backend::Asdf,
                 req: UnresolvedVersionSpec::parse("^2").unwrap(),
+                res: None,
             }
         );
         assert_eq!(
@@ -156,6 +170,7 @@ mod tool_spec {
             ToolSpec {
                 backend: Backend::Proto,
                 req: UnresolvedVersionSpec::parse("~1.2").unwrap(),
+                res: None,
             }
         );
     }
