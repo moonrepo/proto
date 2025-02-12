@@ -2,7 +2,7 @@ use crate::session::ProtoSession;
 use crate::telemetry::{track_usage, Metric};
 use clap::Args;
 use iocraft::element;
-use proto_core::{Id, ProtoConfig, Tool, UnresolvedVersionSpec};
+use proto_core::{Id, ProtoConfig, Tool, ToolSpec};
 use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_utils::fs;
@@ -14,7 +14,7 @@ pub struct UninstallArgs {
     id: Id,
 
     #[arg(help = "Version or alias of tool")]
-    spec: Option<UnresolvedVersionSpec>,
+    spec: Option<ToolSpec>,
 }
 
 fn unpin_version(session: &ProtoSession, args: &UninstallArgs) -> miette::Result<()> {
@@ -145,14 +145,10 @@ async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult 
 }
 
 #[instrument(skip(session))]
-async fn uninstall_one(
-    session: ProtoSession,
-    args: UninstallArgs,
-    spec: UnresolvedVersionSpec,
-) -> AppResult {
+async fn uninstall_one(session: ProtoSession, args: UninstallArgs, spec: ToolSpec) -> AppResult {
     let mut tool = session.load_tool(&args.id).await?;
 
-    if !tool.is_setup(&spec).await? {
+    if !tool.is_setup(&spec.req).await? {
         session.console.render(element! {
             Notice(variant: Variant::Caution) {
                 StyledText(

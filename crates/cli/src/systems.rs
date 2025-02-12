@@ -65,7 +65,7 @@ pub async fn download_versioned_proto_tool(session: &ProtoSession) -> miette::Re
     if let Some(version) = config.versions.get(PROTO_PLUGIN_KEY) {
         // Only support fully-qualified versions as we need to prepend the
         // tool directory into PATH, which doesn't support requirements
-        if !matches!(version, UnresolvedVersionSpec::Semantic(_)) {
+        if !matches!(version.req, UnresolvedVersionSpec::Semantic(_)) {
             return Ok(());
         }
 
@@ -77,7 +77,8 @@ pub async fn download_versioned_proto_tool(session: &ProtoSession) -> miette::Re
                 "Downloading a versioned proto because it was configured in {}", PROTO_CONFIG_NAME
             );
 
-            tool.setup(version, InstallOptions::default()).await?;
+            tool.setup_with_spec(version, InstallOptions::default())
+                .await?;
         }
     }
 

@@ -7,7 +7,7 @@ use crate::utils::tool_record::ToolRecord;
 use iocraft::element;
 use miette::IntoDiagnostic;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
-use proto_core::{Id, PinLocation, UnresolvedVersionSpec, PROTO_PLUGIN_KEY};
+use proto_core::{Id, PinLocation, ToolSpec, PROTO_PLUGIN_KEY};
 use proto_pdk_api::{
     InstallHook, InstallStrategy, Switch, SyncShellProfileInput, SyncShellProfileOutput,
 };
@@ -75,7 +75,7 @@ impl InstallWorkflow {
 
     pub async fn install(
         &mut self,
-        initial_version: UnresolvedVersionSpec,
+        spec: ToolSpec,
         params: InstallWorkflowParams,
     ) -> miette::Result<InstallOutcome> {
         let started = Instant::now();
@@ -83,15 +83,15 @@ impl InstallWorkflow {
         self.progress_reporter.set_message(format!(
             "Installing {} with specification <versionalt>{}</versionalt>",
             self.tool.get_name(),
-            initial_version
+            spec
         ));
 
         // Disable version caching and always use the latest when installing
         self.tool.disable_caching();
 
         // Check if already installed, or if forced, overwrite previous install
-        if !params.force && self.tool.is_setup(&initial_version).await? {
-            self.pin_version(&initial_version, &params.pin_to).await?;
+        if !params.force && self.tool.is_setup_with_spec(&spec).await? {
+            self.pin_version(&spec, &params.pin_to).await?;
             self.finish_progress(started);
 
             return Ok(InstallOutcome::AlreadyInstalled);
@@ -101,13 +101,13 @@ impl InstallWorkflow {
         self.pre_install(&params).await?;
 
         // Run install
-        let installed = self.do_install(&initial_version, &params).await?;
+        let installed = self.do_install(&spec, &params).await?;
 
         if !installed {
             return Ok(InstallOutcome::FailedToInstall);
         }
 
-        let pinned = self.pin_version(&initial_version, &params.pin_to).await?;
+        let pinned = self.pin_version(&spec, &params.pin_to).await?;
         self.finish_progress(started);
 
         // Run post-install hooks
@@ -125,7 +125,7 @@ impl InstallWorkflow {
                     .map(|loc| loc.to_string())
                     .unwrap_or_default(),
                 version: self.tool.get_resolved_version().to_string(),
-                version_candidate: initial_version.to_string(),
+                version_candidate: spec.req.to_string(),
                 pinned,
             },
         )
@@ -157,16 +157,16 @@ impl InstallWorkflow {
 
     async fn do_install(
         &mut self,
-        initial_version: &UnresolvedVersionSpec,
+        spec: &ToolSpec,
         params: &InstallWorkflowParams,
     ) -> miette::Result<bool> {
-        self.tool.resolve_version(initial_version, false).await?;
+        self.tool.resolve_version(&spec.req, false).await?;
 
         let resolved_version = self.tool.get_resolved_version();
         let default_strategy = self.tool.metadata.default_install_strategy;
 
         self.progress_reporter.set_message(
-            if initial_version == &resolved_version.to_unresolved_spec() {
+            if spec.req == resolved_version.to_unresolved_spec() {
                 format!(
                     "Installing {} <version>{}</version>",
                     self.tool.get_name(),
@@ -177,7 +177,7 @@ impl InstallWorkflow {
                     "Installing {} <version>{}</version> <mutedlight>(from specification <versionalt>{}</versionalt>)</mutedlight>",
                     self.tool.get_name(),
                     resolved_version,
-                    initial_version
+                    spec
                 )
             }
         );
@@ -231,8 +231,8 @@ impl InstallWorkflow {
         });
 
         self.tool
-            .setup(
-                initial_version,
+            .setup_with_spec(
+                spec,
                 InstallOptions {
                     console: Some(self.console.clone()),
                     on_download_chunk: Some(on_download_chunk),
@@ -271,7 +271,7 @@ impl InstallWorkflow {
 
     async fn pin_version(
         &mut self,
-        initial_version: &UnresolvedVersionSpec,
+        spec: &ToolSpec,
         arg_pin_to: &Option<PinLocation>,
     ) -> miette::Result<bool> {
         // Don't pin the proto tool itself as it's internal only
@@ -295,7 +295,7 @@ impl InstallWorkflow {
         }
 
         // via `pin-latest` setting
-        if initial_version.is_latest() {
+        if spec.req.is_latest() {
             if let Some(custom_type) = &config.settings.pin_latest {
                 pin_to = *custom_type;
                 pin = true;
@@ -303,14 +303,10 @@ impl InstallWorkflow {
         }
 
         if pin {
-            let resolved_version = self.tool.get_resolved_version();
+            let resolved_spec =
+                ToolSpec::new(self.tool.get_resolved_version().to_unresolved_spec());
 
-            internal_pin(
-                &mut self.tool.tool,
-                &resolved_version.to_unresolved_spec(),
-                pin_to,
-            )
-            .await?;
+            internal_pin(&mut self.tool.tool, &resolved_spec, pin_to).await?;
         }
 
         Ok(pin)

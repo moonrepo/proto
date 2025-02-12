@@ -1,7 +1,7 @@
 use crate::session::ProtoSession;
 use clap::Args;
 use iocraft::prelude::element;
-use proto_core::{Id, PinLocation, ProtoConfig, Tool, UnresolvedVersionSpec};
+use proto_core::{Id, PinLocation, ProtoConfig, Tool, ToolSpec};
 use starbase::AppResult;
 use starbase_console::ui::*;
 use std::collections::BTreeMap;
@@ -14,7 +14,7 @@ pub struct PinArgs {
     pub id: Id,
 
     #[arg(required = true, help = "Version or alias of tool")]
-    pub spec: UnresolvedVersionSpec,
+    pub spec: ToolSpec,
 
     #[arg(long, help = "Resolve the version before pinning")]
     pub resolve: bool,
@@ -25,7 +25,7 @@ pub struct PinArgs {
 
 pub async fn internal_pin(
     tool: &mut Tool,
-    spec: &UnresolvedVersionSpec,
+    spec: &ToolSpec,
     pin_to: PinLocation,
 ) -> miette::Result<PathBuf> {
     let config_path = ProtoConfig::update(tool.proto.get_config_dir(pin_to), |config| {
@@ -47,14 +47,14 @@ pub async fn internal_pin(
 #[tracing::instrument(skip_all)]
 pub async fn pin(session: ProtoSession, args: PinArgs) -> AppResult {
     let mut tool = session.load_tool(&args.id).await?;
+    let mut spec = args.spec.clone();
 
-    let spec = if args.resolve {
-        tool.resolve_version(&args.spec, false)
+    if args.resolve {
+        spec.req = tool
+            .resolve_version(&args.spec.req, false)
             .await?
-            .to_unresolved_spec()
-    } else {
-        args.spec.clone()
-    };
+            .to_unresolved_spec();
+    }
 
     let config_path = internal_pin(&mut tool, &spec, args.to).await?;
 

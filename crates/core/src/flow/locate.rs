@@ -245,6 +245,11 @@ impl Tool {
         Ok(locations)
     }
 
+    /// Return an absolute path to the primary executable file, after it has been located.
+    pub fn get_exe_file(&self) -> Option<&Path> {
+        self.exe_file.as_deref()
+    }
+
     /// Locate the primary executable from the tool directory.
     #[instrument(skip_all)]
     pub async fn locate_exe_file(&mut self) -> miette::Result<PathBuf> {

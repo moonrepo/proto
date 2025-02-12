@@ -5,7 +5,7 @@ use crate::utils::tool_record::ToolRecord;
 use crate::workflows::{InstallOutcome, InstallWorkflowManager, InstallWorkflowParams};
 use clap::Args;
 use iocraft::prelude::element;
-use proto_core::{ConfigMode, Id, PinLocation, Tool, UnresolvedVersionSpec};
+use proto_core::{ConfigMode, Id, PinLocation, Tool, ToolSpec, UnresolvedVersionSpec};
 use proto_pdk_api::InstallStrategy;
 use starbase::AppResult;
 use starbase_console::ui::*;
@@ -27,7 +27,7 @@ pub struct InstallArgs {
         help = "When installing one tool, the version or alias to install",
         group = "version-type"
     )]
-    pub spec: Option<UnresolvedVersionSpec>,
+    pub spec: Option<ToolSpec>,
 
     #[arg(
         long,
@@ -107,19 +107,16 @@ impl InstallArgs {
         self.pin.as_ref().map(|pin| pin.unwrap_or_default())
     }
 
-    fn get_unresolved_spec(&self) -> UnresolvedVersionSpec {
+    fn get_tool_spec(&self) -> ToolSpec {
         if self.canary {
-            UnresolvedVersionSpec::Canary
+            ToolSpec::new(UnresolvedVersionSpec::Canary)
         } else {
             self.spec.clone().unwrap_or_default()
         }
     }
 }
 
-pub fn enforce_requirements(
-    tool: &Tool,
-    versions: &BTreeMap<Id, UnresolvedVersionSpec>,
-) -> miette::Result<()> {
+pub fn enforce_requirements(tool: &Tool, versions: &BTreeMap<Id, ToolSpec>) -> miette::Result<()> {
     for require_id in &tool.metadata.requires {
         if !versions.contains_key(require_id.as_str()) {
             return Err(ProtoCliError::InstallRequirementsNotMet {
@@ -168,7 +165,7 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
 
     let result = workflow
         .install(
-            args.get_unresolved_spec(),
+            args.get_tool_spec(),
             InstallWorkflowParams {
                 pin_to: args.get_pin_location(),
                 strategy: args.get_strategy(),

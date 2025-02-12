@@ -289,7 +289,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
                     no_children: tool.installed_versions.is_empty()
                 ) {
                     VersionsMap(
-                        default_version: global_config.versions.get(&tool.id),
+                        default_version: global_config.versions.get(&tool.id).map(|spec| &spec.req),
                         inventory: &tool.inventory,
                         versions: tool.installed_versions.iter().collect::<Vec<_>>(),
                     )
@@ -298,7 +298,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
                     name: "Remote aliases",
                     no_children: tool.remote_aliases.is_empty()
                 ) {
-                    AliasesMap(
+                    SpecAliasesMap(
                         aliases: tool.remote_aliases.iter().collect::<BTreeMap<_, _>>()
                     )
                 }
@@ -315,7 +315,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
                     name: "Local aliases",
                     no_children: tool.local_aliases.is_empty()
                 ) {
-                    AliasesMap(
+                    SpecAliasesMap(
                         aliases: tool.local_aliases.iter().collect::<BTreeMap<_, _>>()
                     )
                 }
