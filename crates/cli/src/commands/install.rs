@@ -135,7 +135,7 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
     debug!(id = id.as_str(), "Loading tool");
 
     let spec = args.get_tool_spec();
-    let tool = session.load_tool(&id, Some(spec.backend)).await?;
+    let tool = session.load_tool(&id, spec.backend).await?;
 
     // Load config including global versions,
     // so that our requirements can be satisfied

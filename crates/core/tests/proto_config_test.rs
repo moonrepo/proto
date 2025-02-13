@@ -121,7 +121,7 @@ pin-latest = "global"
         assert_eq!(
             config.versions.unwrap().get("node").unwrap(),
             &ToolSpec {
-                backend: Backend::Asdf,
+                backend: Some(Backend::Asdf),
                 req: UnresolvedVersionSpec::parse("20.0.0").unwrap(),
                 res: None
             }
@@ -729,7 +729,7 @@ value = "asdf:4.5.6"
                 BTreeMap::from_iter([(
                     "value".to_owned(),
                     ToolSpec {
-                        backend: Backend::Asdf,
+                        backend: Some(Backend::Asdf),
                         req: UnresolvedVersionSpec::parse("4.5.6").unwrap(),
                         res: None
                     }

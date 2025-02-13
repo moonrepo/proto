@@ -154,7 +154,7 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
 #[tracing::instrument(skip_all)]
 pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
     let mut tool = session
-        .load_tool(&args.id, args.spec.clone().map(|spec| spec.backend))
+        .load_tool(&args.id, args.spec.clone().and_then(|spec| spec.backend))
         .await?;
 
     // Avoid running the tool's native self-upgrade as it conflicts with proto

@@ -15,7 +15,7 @@ pub const MANIFEST_NAME: &str = "manifest.json";
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(default)]
 pub struct ToolManifestVersion {
-    pub backend: Backend,
+    pub backend: Option<Backend>,
     pub no_clean: bool,
     pub installed_at: u128,
 }
@@ -23,7 +23,7 @@ pub struct ToolManifestVersion {
 impl Default for ToolManifestVersion {
     fn default() -> Self {
         Self {
-            backend: Backend::Proto,
+            backend: None,
             no_clean: bool_var("PROTO_NO_CLEAN"),
             installed_at: now(),
         }

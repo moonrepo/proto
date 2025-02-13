@@ -146,7 +146,7 @@ async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult 
 
 #[instrument(skip(session))]
 async fn uninstall_one(session: ProtoSession, args: UninstallArgs, spec: ToolSpec) -> AppResult {
-    let mut tool = session.load_tool(&args.id, Some(spec.backend)).await?;
+    let mut tool = session.load_tool(&args.id, spec.backend).await?;
 
     if !tool.is_setup_with_spec(&spec).await? {
         session.console.render(element! {

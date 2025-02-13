@@ -123,24 +123,19 @@ impl ProtoSession {
             .await
     }
 
-    #[allow(dead_code)]
-    pub async fn load_tools_with_filters(
-        &self,
-        filters: FxHashSet<&Id>,
-    ) -> miette::Result<Vec<ToolRecord>> {
-        self.load_tools_with_options(LoadToolOptions {
-            ids: filters.into_iter().cloned().collect(),
-            ..Default::default()
-        })
-        .await
-    }
-
     #[tracing::instrument(name = "load_tools", skip(self))]
     pub async fn load_tools_with_options(
         &self,
         mut options: LoadToolOptions,
     ) -> miette::Result<Vec<ToolRecord>> {
         let config = self.env.load_config()?;
+
+        // Gather the IDs of all possible tools. We can't just use the
+        // `plugins` map, because some tools may not have a plugin entry,
+        // for example, those using backends.
+        let mut ids = vec![];
+        ids.extend(config.plugins.keys());
+        ids.extend(config.versions.keys());
 
         // If no filter IDs provided, inherit the IDs from the current
         // config for every tool that has a version. Otherwise, we'll
@@ -161,7 +156,7 @@ impl ProtoSession {
         let opt_inherit_remote = options.inherit_remote;
         let opt_detect_version = options.detect_version;
 
-        for (id, locator) in &config.plugins {
+        for id in ids {
             if !options.ids.is_empty() && !options.ids.contains(id) {
                 continue;
             }
@@ -172,11 +167,10 @@ impl ProtoSession {
             }
 
             let id = id.to_owned();
-            let locator = locator.to_owned();
             let proto = Arc::clone(&self.env);
 
             set.spawn(async move {
-                let mut record = ToolRecord::new(load_tool_from_locator(id, proto, locator).await?);
+                let mut record = ToolRecord::new(load_tool(&id, &proto, None).await?);
 
                 if opt_inherit_remote {
                     record.inherit_from_remote().await?;

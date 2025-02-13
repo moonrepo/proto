@@ -36,7 +36,7 @@ pub async fn alias(session: ProtoSession, args: AliasArgs) -> AppResult {
         .into());
     }
 
-    let tool = session.load_tool(&args.id, Some(args.spec.backend)).await?;
+    let tool = session.load_tool(&args.id, args.spec.backend).await?;
 
     let config_path = ProtoConfig::update(tool.proto.get_config_dir(args.to), |config| {
         let tool_configs = config.tools.get_or_insert(Default::default());

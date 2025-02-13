@@ -6,18 +6,16 @@ use std::str::FromStr;
 use version_spec::{UnresolvedVersionSpec, VersionSpec};
 
 derive_enum!(
-    #[derive(Copy, ConfigEnum, Default, Hash)]
+    #[derive(Copy, ConfigEnum, Hash)]
     pub enum Backend {
         Asdf,
-        #[default]
-        Proto,
     }
 );
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(into = "String", try_from = "String")]
 pub struct ToolSpec {
-    pub backend: Backend,
+    pub backend: Option<Backend>,
 
     // Requested version/requirement
     pub req: UnresolvedVersionSpec,
@@ -29,7 +27,7 @@ pub struct ToolSpec {
 impl ToolSpec {
     pub fn new(req: UnresolvedVersionSpec) -> Self {
         Self {
-            backend: Backend::Proto,
+            backend: None,
             req,
             res: None,
         }
@@ -50,9 +48,9 @@ impl FromStr for ToolSpec {
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         let (backend, spec) = if let Some((prefix, suffix)) = value.split_once(':') {
             let backend = if prefix == "proto" {
-                Backend::Proto
+                None
             } else if prefix == "asdf" {
-                Backend::Asdf
+                Some(Backend::Asdf)
             } else {
                 return Err(ProtoToolError::UnknownBackend {
                     backends: Backend::variants(),
@@ -62,7 +60,7 @@ impl FromStr for ToolSpec {
 
             (backend, suffix)
         } else {
-            (Backend::Proto, value)
+            (None, value)
         };
 
         Ok(Self {
@@ -125,14 +123,13 @@ impl AsRef<UnresolvedVersionSpec> for ToolSpec {
 
 impl fmt::Display for ToolSpec {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self.backend {
-            Backend::Asdf => {
-                write!(f, "asdf:")?;
-            }
-            Backend::Proto => {
-                // No prefix
-            }
-        };
+        if let Some(backend) = self.backend {
+            match backend {
+                Backend::Asdf => {
+                    write!(f, "asdf:")?;
+                }
+            };
+        }
 
         write!(f, "{}", self.req)
     }

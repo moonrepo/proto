@@ -17,7 +17,7 @@ use warpgate::{
 };
 
 pub struct Tool {
-    pub backend: Backend,
+    pub backend: Option<Backend>,
     pub id: Id,
     pub locator: Option<PluginLocator>,
     pub metadata: ToolMetadataOutput,
@@ -50,7 +50,7 @@ impl Tool {
         );
 
         let mut tool = Tool {
-            backend: Backend::Proto,
+            backend: None,
             cache: true,
             exe_file: None,
             exes_dir: None,

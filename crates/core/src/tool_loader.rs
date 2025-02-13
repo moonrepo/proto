@@ -188,26 +188,29 @@ pub async fn load_tool_from_locator(
 pub async fn load_tool(
     id: &Id,
     proto: &ProtoEnvironment,
-    backend: Option<Backend>,
+    mut backend: Option<Backend>,
 ) -> miette::Result<Tool> {
     // Determine the backend plugin to use
-    let backend = match backend {
-        Some(be) => be,
-        None => proto
-            .load_config()?
-            .tools
-            .get(id)
-            .and_then(|cfg| Some(cfg.backend))
-            .unwrap_or_default(),
-    };
+    if backend.is_none() {
+        let config = proto.load_config()?;
+
+        // Check the version spec first, as that takes priority
+        if let Some(spec) = config.versions.get(id) {
+            backend = spec.backend;
+        }
+
+        // Otherwise fallback to the tool config
+        if backend.is_none() {
+            backend = config.tools.get(id).and_then(|cfg| cfg.backend);
+        }
+    }
 
     // If backend is proto, use the tool's plugin,
     // otherwise use the backend plugin itself
-    let locator = if backend == Backend::Proto {
-        locate_tool(id, proto)?
-    } else {
-        locate_tool(&Id::raw(backend.to_string()), proto)?
+    let locator_id = match backend {
+        Some(be) => Id::raw(be.to_string()),
+        None => id.to_owned(),
     };
 
-    load_tool_from_locator(id, proto, locator).await
+    load_tool_from_locator(id, proto, locate_tool(&locator_id, proto)?).await
 }
