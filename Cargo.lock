@@ -2889,7 +2889,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.34.0"
+version = "0.34.1"
 dependencies = [
  "proto_core",
  "proto_pdk_api",
