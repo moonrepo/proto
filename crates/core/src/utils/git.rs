@@ -1,4 +1,4 @@
-use super::process;
+use super::process::exec_command_piped;
 use proto_pdk_api::GitSource;
 use starbase_utils::fs;
 use std::path::Path;
@@ -34,12 +34,12 @@ pub async fn clone_or_pull_repo(src: &GitSource, target_dir: &Path) -> miette::R
     fs::create_dir_all(target_dir)?;
 
     if target_dir.join(".git").exists() {
-        process::exec_command_piped(&mut new_pull(target_dir)).await?;
+        exec_command_piped(&mut new_pull(target_dir)).await?;
     } else {
-        process::exec_command_piped(&mut new_clone(src, target_dir)).await?;
+        exec_command_piped(&mut new_clone(src, target_dir)).await?;
 
         if let Some(reference) = &src.reference {
-            process::exec_command_piped(&mut new_checkout(reference, target_dir)).await?;
+            exec_command_piped(&mut new_checkout(reference, target_dir)).await?;
         }
     }
 

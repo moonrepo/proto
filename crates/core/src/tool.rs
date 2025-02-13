@@ -7,6 +7,7 @@ use crate::utils::{archive, git};
 use proto_pdk_api::*;
 use rustc_hash::{FxHashMap, FxHashSet};
 use starbase_styles::color;
+use starbase_utils::fs;
 use std::fmt;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -65,7 +66,7 @@ impl Tool {
             id,
             inventory: Inventory::default(),
             locator: None,
-            metadata: RegisterToolOutput::default(),
+            metadata: ToolMetadata::default(),
             plugin,
             product: Product::default(),
             proto,
@@ -330,6 +331,10 @@ impl Tool {
                 git::clone_or_pull_repo(&src, &backend_dir).await?;
             }
         };
+
+        for exe in metadata.exes {
+            fs::update_perms(backend_dir.join(exe), None)?;
+        }
 
         self.backend_registered = true;
 

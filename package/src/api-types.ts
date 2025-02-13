@@ -11,6 +11,9 @@ export type SystemOS = 'android' | 'dragonfly' | 'freebsd' | 'ios' | 'linux' | '
 /** Libc being used in the system environment. */
 export type SystemLibc = 'gnu' | 'musl' | 'unknown';
 
+/** Package manager of the system environment. */
+export type SystemPackageManager = 'pkg' | 'pkgin' | 'apk' | 'apt' | 'dnf' | 'pacman' | 'yum' | 'brew' | 'choco' | 'scoop' | 'all';
+
 export type VersionSpec = string;
 
 export type UnresolvedVersionSpec = string;
@@ -86,12 +89,6 @@ export interface ToolContext {
 /** Supported types of plugins. */
 export type PluginType = 'command-line' | 'language' | 'dependency-manager' | 'version-manager';
 
-/** Input passed to the `register_tool` function. */
-export interface ToolMetadataInput {
-	/** ID of the tool, as it was configured. */
-	id: string;
-}
-
 /** Controls aspects of the tool inventory. */
 export interface ToolInventoryMetadata {
 	/**
@@ -103,13 +100,19 @@ export interface ToolInventoryMetadata {
 	versionSuffix?: string | null;
 }
 
+/** Input passed to the `register_tool` function. */
+export interface RegisterToolInput {
+	/** ID of the tool, as it was configured. */
+	id: string;
+}
+
 /** Supported strategies for installing a tool. */
 export type InstallStrategy = 'build-from-source' | 'download-prebuilt';
 
 export type Switch = boolean | string;
 
 /** Output returned by the `register_tool` function. */
-export interface ToolMetadataOutput {
+export interface RegisterToolOutput {
 	/** Schema shape of the tool's configuration. */
 	configSchema?: unknown | null;
 	/**
@@ -148,6 +151,49 @@ export interface ToolMetadataOutput {
 	type: PluginType;
 	/** Whether this plugin is unstable or not. */
 	unstable?: Switch;
+}
+
+/** Input passed to the `register_backend` function. */
+export interface RegisterBackendInput {
+	/** Current tool context. */
+	context: ToolContext;
+	/** ID of the tool, as it was configured. */
+	id: string;
+}
+
+/** Source code is contained in an archive. */
+export interface ArchiveSource {
+	/** A path prefix within the archive to remove. */
+	prefix?: string | null;
+	type: 'archive';
+	/** The URL to download the archive from. */
+	url: string;
+}
+
+/** Source code is located in a Git repository. */
+export interface GitSource {
+	/** The branch/commit/tag to checkout. */
+	reference?: string | null;
+	/** Include submodules during checkout. */
+	submodules?: boolean;
+	type: 'git';
+	/** The URL of the Git remote. */
+	url: string;
+}
+
+export type SourceLocation = ArchiveSource | GitSource;
+
+/** Output returned by the `register_backend` function. */
+export interface RegisterBackendOutput {
+	/** Unique identifier for this backend. Will be used as the folder name. */
+	backendId: string;
+	/**
+	 * List of executables, relative from the backend directory,
+	 * that will be executed in the context of proto.
+	 */
+	exes?: string[];
+	/** Location in which to acquire source files for the backend. */
+	source?: SourceLocation | null;
 }
 
 /** Output returned by the `detect_version_files` function. */
@@ -467,28 +513,6 @@ export interface BuildInstructionsInput {
 	context: ToolContext;
 }
 
-/** Source code is contained in an archive. */
-export interface ArchiveSource {
-	/** A path prefix within the archive to remove. */
-	prefix?: string | null;
-	type: 'archive';
-	/** The URL to download the archive from. */
-	url: string;
-}
-
-/** Source code is located in a Git repository. */
-export interface GitSource {
-	/** The branch/commit/tag to checkout. */
-	reference?: string | null;
-	/** Include submodules during checkout. */
-	submodules?: boolean;
-	type: 'git';
-	/** The URL of the Git remote. */
-	url: string;
-}
-
-export type SourceLocation = ArchiveSource | GitSource;
-
 export type BuildInstruction = {
 	/** A builder and its parameters for installing the builder. */
 	instruction: {
@@ -562,9 +586,6 @@ export type BuildRequirement = {
 	requirement: 'windows-developer-mode';
 	type: 'windows-developer-mode';
 };
-
-/** Package manager of the system environment. */
-export type SystemPackageManager = 'pkg' | 'pkgin' | 'apk' | 'apt' | 'dnf' | 'pacman' | 'yum' | 'brew' | 'choco' | 'scoop' | 'all';
 
 export type DependencyName = string | Record<SystemPackageManager, string> | string[] | Record<SystemPackageManager, string[]>;
 

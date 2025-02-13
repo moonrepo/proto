@@ -161,6 +161,11 @@ api_struct!(
         /// Unique identifier for this backend. Will be used as the folder name.
         pub backend_id: String,
 
+        /// List of executables, relative from the backend directory,
+        /// that will be executed in the context of proto.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        pub exes: Vec<PathBuf>,
+
         /// Location in which to acquire source files for the backend.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub source: Option<SourceLocation>,

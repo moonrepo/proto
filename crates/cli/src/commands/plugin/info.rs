@@ -4,8 +4,8 @@ use clap::Args;
 use iocraft::prelude::element;
 use proto_core::{
     flow::locate::ExecutableLocation, ConfigMode, Id, PluginLocator, ProtoToolConfig, ToolManifest,
+    ToolMetadata,
 };
-use proto_pdk_api::RegisterToolOutput;
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;
@@ -24,7 +24,7 @@ struct InfoPluginResult {
     id: Id,
     inventory_dir: PathBuf,
     manifest: ToolManifest,
-    metadata: RegisterToolOutput,
+    metadata: ToolMetadata,
     name: String,
     plugin: PluginLocator,
     shims: Vec<ExecutableLocation>,

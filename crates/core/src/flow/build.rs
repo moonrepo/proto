@@ -776,7 +776,7 @@ pub async fn download_sources(
 
     match source {
         SourceLocation::Archive(archive) => {
-            if archive::should_unpack(&archive, builder.options.install_dir)? {
+            if archive::should_unpack(archive, builder.options.install_dir)? {
                 let filename = extract_filename_from_url(&archive.url)?;
 
                 // Download
@@ -793,7 +793,7 @@ pub async fn download_sources(
                 ))?;
 
                 let download_file = archive::download(
-                    &archive,
+                    archive,
                     builder.options.temp_dir,
                     builder.options.http_client.to_inner(),
                 )
@@ -811,7 +811,7 @@ pub async fn download_sources(
                     builder.options.install_dir.display()
                 ))?;
 
-                archive::unpack(&archive, builder.options.install_dir, &download_file)?;
+                archive::unpack(archive, builder.options.install_dir, &download_file)?;
             }
         }
         SourceLocation::Git(git) => {
