@@ -42,6 +42,10 @@ pub struct DependencyConfig {
     /// The dependency name or name(s) to install.
     pub dep: DependencyName,
 
+    /// The name of the executable (without ext) that this
+    /// dependency installs, and can be found when searching `PATH`.
+    pub exe_name: Option<String>,
+
     /// Only install with this package manager.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub manager: Option<SystemPackageManager>,
