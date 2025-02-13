@@ -16,6 +16,11 @@
 
 ## Unreleased
 
+#### 💥 Breaking
+
+- WASM API
+  - Removed deprecated `fetch`, `fetch_url`, `fetch_url_bytes`, `fetch_url_text`, and `fetch_url_with_cache` helper functions. Use the newer fetch functions instead.
+
 #### 🚀 Updates
 
 - Added `$XDG_DATA_HOME` support when detecting the proto store. Will be used if `$PROTO_HOME` is not set, and will fallback to `$HOME/.proto`.
@@ -28,7 +33,8 @@
 - Started on a new "backend" plugin system, allowing third-party tools to be used as proto plugins. For example, asdf on Unix, and scoop on Windows. This will land in the next release.
 - WASM API
   - Added `BuildInstruction::RemoveAllExcept` variant.
-  - Added `register_backend` function.
+  - Added `register_backend` plugin function.
+  - Added `fetch`, `exec`, `exec_captured`, and `exec_streamed` helper functions.
   - Renamed `ToolMetadataInput` to `RegisterToolInput`.
   - Renamed `ToolMetadataOutput` to `RegisterToolOutput`.
 

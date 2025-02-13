@@ -1,6 +1,5 @@
 use crate::api::populate_send_request_output;
 use crate::{exec_command, send_request};
-use extism_pdk::http::request;
 use extism_pdk::*;
 use serde::de::DeserializeOwned;
 use std::vec;
@@ -15,100 +14,10 @@ extern "ExtismHost" {
     fn send_request(input: Json<SendRequestInput>) -> Json<SendRequestOutput>;
 }
 
-/// Fetch the provided request and return a response object.
-#[deprecated(note = "Use `fetch_*` instead.")]
-pub fn fetch(req: HttpRequest, body: Option<String>) -> AnyResult<HttpResponse> {
-    debug!("Fetching <url>{}</url>", req.url);
-
-    request(&req, body)
-        .map_err(|error| error.context(format!("Failed to make request to <url>{}</url>", req.url)))
-}
-
-/// Fetch the provided URL and deserialize the response as JSON.
-#[allow(deprecated)]
-#[deprecated(note = "Use `fetch_json` instead.")]
-pub fn fetch_url<R, U>(url: U) -> AnyResult<R>
-where
-    R: DeserializeOwned,
-    U: AsRef<str>,
-{
-    fetch(HttpRequest::new(url.as_ref()), None)?.json()
-}
-
-/// Fetch the provided URL and deserialize the response as bytes.
-#[allow(deprecated)]
-#[deprecated(note = "Use `fetch_bytes` instead.")]
-pub fn fetch_url_bytes<U>(url: U) -> AnyResult<Vec<u8>>
-where
-    U: AsRef<str>,
-{
-    Ok(fetch(HttpRequest::new(url.as_ref()), None)?.body())
-}
-
-/// Fetch the provided URL and return the text response.
-#[allow(deprecated)]
-#[deprecated(note = "Use `fetch_text` instead.")]
-pub fn fetch_url_text<U>(url: U) -> AnyResult<String>
-where
-    U: AsRef<str>,
-{
-    String::from_bytes(&fetch_url_bytes(url)?)
-}
-
-/// Fetch the provided URL, deserialize the response as JSON,
-/// and cache the response in memory for subsequent WASM function calls.
-#[allow(deprecated)]
-#[deprecated(note = "Use `fetch_*` instead.")]
-pub fn fetch_url_with_cache<R, U>(url: U) -> AnyResult<R>
-where
-    R: DeserializeOwned,
-    U: AsRef<str>,
-{
-    let url = url.as_ref();
-    let req = HttpRequest::new(url);
-
-    // Only cache GET requests
-    let cache = req.method.is_none()
-        || req
-            .method
-            .as_ref()
-            .is_some_and(|m| m.to_uppercase() == "GET");
-
-    if cache {
-        if let Some(body) = var::get::<Vec<u8>>(url)? {
-            debug!(
-                "Reading <url>{}</url> from cache <mutedlight>(length = {})</mutedlight>",
-                url,
-                body.len()
-            );
-
-            return Ok(json::from_slice(&body)?);
-        }
-    }
-
-    let res = fetch(req, None)?;
-
-    if cache {
-        let body = res.body();
-
-        debug!(
-            "Writing <url>{}</url> to cache <mutedlight>(length = {})</mutedlight>",
-            url,
-            body.len()
-        );
-
-        var::set(url, body)?;
-    }
-
-    res.json()
-}
-
-fn do_fetch<U>(url: U) -> AnyResult<SendRequestOutput>
-where
-    U: AsRef<str>,
-{
-    let url = url.as_ref();
-    let response = send_request!(url);
+/// Fetch the requested input and return a response.
+pub fn fetch(input: SendRequestInput) -> AnyResult<SendRequestOutput> {
+    let url = input.url.clone();
+    let response = send_request!(input, input);
     let status = response.status;
 
     if status != 200 {
@@ -137,7 +46,7 @@ pub fn fetch_bytes<U>(url: U) -> AnyResult<Vec<u8>>
 where
     U: AsRef<str>,
 {
-    Ok(do_fetch(url)?.body)
+    Ok(fetch(SendRequestInput::new(url))?.body)
 }
 
 /// Fetch the provided URL and deserialize the response as JSON.
@@ -146,7 +55,7 @@ where
     U: AsRef<str>,
     R: DeserializeOwned,
 {
-    do_fetch(url)?.json()
+    fetch(SendRequestInput::new(url))?.json()
 }
 
 /// Fetch the provided URL and return the response as text.
@@ -154,7 +63,32 @@ pub fn fetch_text<U>(url: U) -> AnyResult<String>
 where
     U: AsRef<str>,
 {
-    do_fetch(url)?.text()
+    fetch(SendRequestInput::new(url))?.text()
+}
+
+/// Execute a command on the host with the provided input.
+pub fn exec(input: ExecCommandInput) -> AnyResult<ExecCommandOutput> {
+    Ok(exec_command!(input, input))
+}
+
+/// Execute a command on the host and capture its output (pipe).
+pub fn exec_captured<C, I, A>(command: C, args: I) -> AnyResult<ExecCommandOutput>
+where
+    C: AsRef<str>,
+    I: IntoIterator<Item = A>,
+    A: AsRef<str>,
+{
+    exec(ExecCommandInput::pipe(command, args))
+}
+
+/// Execute a command on the host and stream its output to the console (inherit).
+pub fn exec_streamed<C, I, A>(command: C, args: I) -> AnyResult<ExecCommandOutput>
+where
+    C: AsRef<str>,
+    I: IntoIterator<Item = A>,
+    A: AsRef<str>,
+{
+    exec(ExecCommandInput::inherit(command, args))
 }
 
 /// Load all Git tags from the provided remote URL.
@@ -167,13 +101,11 @@ where
 
     debug!("Loading Git tags from remote <url>{}</url>", url);
 
-    let output = exec_command!(
-        pipe,
-        "git",
-        ["ls-remote", "--tags", "--sort", "version:refname", url]
-    );
-
     let mut tags: Vec<String> = vec![];
+    let output = exec_captured(
+        "git",
+        ["ls-remote", "--tags", "--sort", "version:refname", url],
+    )?;
 
     if output.exit_code != 0 {
         debug!("Failed to load Git tags");
@@ -211,16 +143,15 @@ pub fn command_exists(env: &HostEnvironment, command: &str) -> bool {
     );
 
     let result = if env.os == HostOS::Windows {
-        exec_command!(
-            raw,
+        exec_captured(
             "powershell",
-            ["-Command", format!("Get-Command {command}").as_str()]
+            ["-Command", format!("Get-Command {command}").as_str()],
         )
     } else {
-        exec_command!(raw, "which", [command])
+        exec_captured("which", [command])
     };
 
-    if result.is_ok_and(|res| res.0.exit_code == 0) {
+    if result.is_ok_and(|res| res.exit_code == 0) {
         debug!("Command does exist");
 
         return true;
