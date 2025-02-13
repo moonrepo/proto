@@ -58,7 +58,7 @@ impl Tool {
         spec: &ToolSpec,
         options: InstallOptions,
     ) -> miette::Result<bool> {
-        self.backend = spec.backend;
+        self.resolve_version_with_spec(spec, false).await?;
         self.setup(&spec.req, options).await
     }
 

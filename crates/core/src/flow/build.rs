@@ -309,7 +309,7 @@ async fn checkout_git_repo(
     builder: &mut Builder<'_>,
 ) -> miette::Result<()> {
     if cwd.join(".git").exists() {
-        builder.exec_command(&mut git::pull(cwd), false).await?;
+        builder.exec_command(&mut git::new_pull(cwd), false).await?;
 
         return Ok(());
     }
@@ -317,14 +317,14 @@ async fn checkout_git_repo(
     fs::create_dir_all(cwd)?;
 
     builder
-        .exec_command(&mut git::clone(git, cwd), false)
+        .exec_command(&mut git::new_clone(git, cwd), false)
         .await?;
 
     if let Some(reference) = &git.reference {
         builder.render_checkpoint(format!("Checking out reference <hash>{}</hash>", reference))?;
 
         builder
-            .exec_command(&mut git::checkout(reference, cwd), false)
+            .exec_command(&mut git::new_checkout(reference, cwd), false)
             .await?;
     }
 
@@ -776,45 +776,43 @@ pub async fn download_sources(
 
     match source {
         SourceLocation::Archive(archive) => {
-            let filename = extract_filename_from_url(&archive.url)?;
+            if archive::should_unpack(&archive, builder.options.install_dir)? {
+                let filename = extract_filename_from_url(&archive.url)?;
 
-            // Download
-            builder.options.on_phase_change.as_ref().inspect(|func| {
-                func(InstallPhase::Download {
-                    url: archive.url.clone(),
-                    file: filename.clone(),
+                // Download
+                builder.options.on_phase_change.as_ref().inspect(|func| {
+                    func(InstallPhase::Download {
+                        url: archive.url.clone(),
+                        file: filename.clone(),
+                    });
                 });
-            });
 
-            builder.render_checkpoint(format!(
-                "Downloading archive from <url>{}</url>",
-                archive.url
-            ))?;
+                builder.render_checkpoint(format!(
+                    "Downloading archive from <url>{}</url>",
+                    archive.url
+                ))?;
 
-            let download_file = archive::download(
-                &archive.url,
-                builder.options.temp_dir,
-                builder.options.http_client.to_inner(),
-            )
-            .await?;
+                let download_file = archive::download(
+                    &archive,
+                    builder.options.temp_dir,
+                    builder.options.http_client.to_inner(),
+                )
+                .await?;
 
-            // Unpack
-            builder.options.on_phase_change.as_ref().inspect(|func| {
-                func(InstallPhase::Unpack {
-                    file: filename.clone(),
+                // Unpack
+                builder.options.on_phase_change.as_ref().inspect(|func| {
+                    func(InstallPhase::Unpack {
+                        file: filename.clone(),
+                    });
                 });
-            });
 
-            builder.render_checkpoint(format!(
-                "Unpacking archive to <path>{}</path>",
-                builder.options.install_dir.display()
-            ))?;
+                builder.render_checkpoint(format!(
+                    "Unpacking archive to <path>{}</path>",
+                    builder.options.install_dir.display()
+                ))?;
 
-            archive::unpack(
-                builder.options.install_dir,
-                &download_file,
-                archive.prefix.as_deref(),
-            )?;
+                archive::unpack(&archive, builder.options.install_dir, &download_file)?;
+            }
         }
         SourceLocation::Git(git) => {
             builder.options.on_phase_change.as_ref().inspect(|func| {

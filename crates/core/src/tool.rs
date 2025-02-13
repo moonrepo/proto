@@ -3,11 +3,10 @@ use crate::helpers::get_proto_version;
 use crate::layout::{Inventory, Product};
 use crate::tool_error::ProtoToolError;
 use crate::tool_spec::Backend;
-use crate::utils::{archive, git, process};
+use crate::utils::{archive, git};
 use proto_pdk_api::*;
 use rustc_hash::{FxHashMap, FxHashSet};
 use starbase_styles::color;
-use starbase_utils::fs;
 use std::fmt;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -34,6 +33,7 @@ pub struct Tool {
     pub product: Product,
 
     // Cache
+    pub(crate) backend_registered: bool,
     pub(crate) cache: bool,
     pub(crate) exe_file: Option<PathBuf>,
     pub(crate) exes_dir: Option<PathBuf>,
@@ -55,6 +55,7 @@ impl Tool {
 
         let mut tool = Tool {
             backend: None,
+            backend_registered: false,
             cache: true,
             exe_file: None,
             exes_dir: None,
@@ -268,10 +269,13 @@ impl Tool {
         Ok(())
     }
 
-    /// Register the tool by loading initial metadata and persisting it.
+    /// Register the backend by acquiring necessary source files.
     #[instrument(skip_all)]
     pub async fn register_backend(&mut self) -> miette::Result<()> {
-        if !self.plugin.has_func("register_backend").await {
+        if !self.plugin.has_func("register_backend").await
+            || self.backend.is_none()
+            || self.backend_registered
+        {
             return Ok(());
         }
 
@@ -300,8 +304,6 @@ impl Tool {
             "Acquiring backend sources",
         );
 
-        fs::create_dir_all(&backend_dir)?;
-
         match source {
             SourceLocation::Archive(src) => {
                 debug!(
@@ -310,12 +312,13 @@ impl Tool {
                     "Downloading backend archive",
                 );
 
-                let http_client = self.proto.get_plugin_loader()?.get_client()?;
-                let archive_file =
-                    archive::download(&src.url, &self.proto.store.temp_dir, http_client.to_inner())
-                        .await?;
-
-                archive::unpack(&backend_dir, &archive_file, src.prefix.as_deref())?;
+                archive::download_and_unpack(
+                    &src,
+                    &backend_dir,
+                    &self.proto.store.temp_dir,
+                    self.proto.get_plugin_loader()?.get_client()?.to_inner(),
+                )
+                .await?;
             }
             SourceLocation::Git(src) => {
                 debug!(
@@ -324,18 +327,11 @@ impl Tool {
                     "Cloning backend repository",
                 );
 
-                if backend_dir.join(".git").exists() {
-                    process::exec_command_piped(&mut git::pull(&backend_dir)).await?;
-                } else {
-                    process::exec_command_piped(&mut git::clone(&src, &backend_dir)).await?;
-
-                    if let Some(reference) = &src.reference {
-                        process::exec_command_piped(&mut git::checkout(reference, &backend_dir))
-                            .await?;
-                    }
-                }
+                git::clone_or_pull_repo(&src, &backend_dir).await?;
             }
         };
+
+        self.backend_registered = true;
 
         Ok(())
     }

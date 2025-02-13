@@ -363,7 +363,7 @@ impl Tool {
                 });
             });
 
-            let (ext, unpacked_path) = archive::unpack(
+            let (ext, unpacked_path) = archive::unpack_raw(
                 install_dir,
                 &download_file,
                 output.archive_prefix.as_deref(),

@@ -1,7 +1,7 @@
 pub use super::resolve_error::ProtoResolveError;
 use crate::helpers::is_offline;
 use crate::tool::Tool;
-use crate::tool_spec::ToolSpec;
+use crate::tool_spec::{Backend, ToolSpec};
 use crate::version_resolver::VersionResolver;
 use proto_pdk_api::*;
 use starbase_utils::fs;
@@ -67,12 +67,20 @@ impl Tool {
         Ok(resolver)
     }
 
+    /// Given a custom backend, resolve and register it to acquire necessary files.
+    pub async fn resolve_backend(&mut self, backend: Option<Backend>) -> miette::Result<()> {
+        self.backend = backend;
+        self.register_backend().await?;
+
+        Ok(())
+    }
+
     pub async fn resolve_version_with_spec(
         &mut self,
         spec: &ToolSpec,
         short_circuit: bool,
     ) -> miette::Result<VersionSpec> {
-        self.backend = spec.backend;
+        self.resolve_backend(spec.backend).await?;
         self.resolve_version(&spec.req, short_circuit).await
     }
 

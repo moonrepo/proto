@@ -210,7 +210,7 @@ pub async fn load_tool(
     };
 
     let mut tool = load_tool_from_locator(id, proto, locate_tool(&locator_id, proto)?).await?;
-    tool.backend = backend;
+    tool.resolve_backend(backend).await?;
 
     Ok(tool)
 }
