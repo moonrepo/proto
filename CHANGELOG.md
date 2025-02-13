@@ -35,6 +35,7 @@
   - Added `BuildInstruction::RemoveAllExcept` variant.
   - Added `register_backend` plugin function.
   - Added `fetch`, `exec`, `exec_captured`, `exec_streamed`, `get_host_env_var`, `set_host_env_var`, `add_host_paths`, `into_real_path`, and `into_virtual_path` helper functions.
+  - Added `generate_build_install_tests!` test macro.
   - Renamed `ToolMetadataInput` to `RegisterToolInput`.
   - Renamed `ToolMetadataOutput` to `RegisterToolOutput`.
 
