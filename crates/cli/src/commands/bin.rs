@@ -1,6 +1,6 @@
 use crate::session::ProtoSession;
 use clap::Args;
-use proto_core::{detect_version, Id, UnresolvedVersionSpec, PROTO_PLUGIN_KEY};
+use proto_core::{detect_version_with_spec, Id, ToolSpec, PROTO_PLUGIN_KEY};
 use proto_shim::{get_exe_file_name, locate_proto_exe};
 use starbase::AppResult;
 
@@ -12,8 +12,8 @@ pub struct BinArgs {
     #[arg(long, help = "Display symlinked binary path when available")]
     bin: bool,
 
-    #[arg(help = "Version or alias of tool")]
-    spec: Option<UnresolvedVersionSpec>,
+    #[arg(help = "Version specification to locate")]
+    spec: Option<ToolSpec>,
 
     #[arg(long, help = "Display shim path when available")]
     shim: bool,
@@ -32,10 +32,12 @@ pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
         return Ok(None);
     }
 
-    let mut tool = session.load_tool(&args.id).await?;
-    let version = detect_version(&tool, args.spec.clone()).await?;
+    let mut tool = session
+        .load_tool(&args.id, args.spec.clone().and_then(|spec| spec.backend))
+        .await?;
+    let spec = detect_version_with_spec(&tool, args.spec.clone()).await?;
 
-    tool.resolve_version(&version, true).await?;
+    tool.resolve_version_with_spec(&spec, true).await?;
 
     if args.bin {
         tool.symlink_bins(true).await?;

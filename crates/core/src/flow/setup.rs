@@ -3,11 +3,18 @@ use crate::flow::install::InstallOptions;
 use crate::layout::BinManager;
 use crate::tool::Tool;
 use crate::tool_manifest::ToolManifestVersion;
+use crate::tool_spec::ToolSpec;
 use proto_pdk_api::*;
 use starbase_utils::fs;
 use tracing::{debug, instrument};
 
 impl Tool {
+    #[instrument(skip(self))]
+    pub async fn is_setup_with_spec(&mut self, spec: &ToolSpec) -> miette::Result<bool> {
+        self.resolve_version_with_spec(spec, true).await?;
+        self.is_setup(&spec.req).await
+    }
+
     /// Return true if the tool has been setup (installed and binaries are located).
     #[instrument(skip(self))]
     pub async fn is_setup(
@@ -45,6 +52,16 @@ impl Tool {
         Ok(false)
     }
 
+    #[instrument(skip(self, options))]
+    pub async fn setup_with_spec(
+        &mut self,
+        spec: &ToolSpec,
+        options: InstallOptions,
+    ) -> miette::Result<bool> {
+        self.resolve_version_with_spec(spec, false).await?;
+        self.setup(&spec.req, options).await
+    }
+
     /// Setup the tool by resolving a semantic version, installing the tool,
     /// locating binaries, creating shims, and more.
     #[instrument(skip(self, options))]
@@ -68,9 +85,13 @@ impl Tool {
         // Add version to manifest
         let manifest = &mut self.inventory.manifest;
         manifest.installed_versions.insert(version.clone());
-        manifest
-            .versions
-            .insert(version.clone(), ToolManifestVersion::default());
+        manifest.versions.insert(
+            version.clone(),
+            ToolManifestVersion {
+                backend: self.backend,
+                ..Default::default()
+            },
+        );
         manifest.save()?;
 
         // Pin the global version
@@ -79,7 +100,7 @@ impl Tool {
                 .versions
                 .get_or_insert(Default::default())
                 .entry(self.id.clone())
-                .or_insert(default_version);
+                .or_insert(ToolSpec::new(default_version));
         })?;
 
         // Allow plugins to override manifest

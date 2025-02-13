@@ -13,6 +13,7 @@ fn generate_types() {
     generator.add::<HostArch>();
     generator.add::<HostOS>();
     generator.add::<HostLibc>();
+    generator.add::<HostPackageManager>();
 
     // version_spec
     generator.add::<VersionSpec>();
@@ -31,9 +32,11 @@ fn generate_types() {
     // proto
     generator.add::<ToolContext>();
     generator.add::<PluginType>();
-    generator.add::<ToolMetadataInput>();
     generator.add::<ToolInventoryMetadata>();
-    generator.add::<ToolMetadataOutput>();
+    generator.add::<RegisterToolInput>();
+    generator.add::<RegisterToolOutput>();
+    generator.add::<RegisterBackendInput>();
+    generator.add::<RegisterBackendOutput>();
     generator.add::<DetectVersionOutput>();
     generator.add::<ParseVersionFileInput>();
     generator.add::<ParseVersionFileOutput>();

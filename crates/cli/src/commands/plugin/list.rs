@@ -1,4 +1,4 @@
-use crate::components::{AliasesMap, Locator, VersionsMap};
+use crate::components::{Locator, SpecAliasesMap, VersionsMap};
 use crate::session::{LoadToolOptions, ProtoSession};
 use clap::Args;
 use iocraft::prelude::element;
@@ -115,7 +115,7 @@ pub async fn list(session: ProtoSession, args: ListPluginsArgs) -> AppResult {
                                 name: "Aliases",
                                 no_children: aliases.is_empty()
                             ) {
-                                AliasesMap(aliases)
+                                SpecAliasesMap(aliases)
                             }
                         })
                     } else {
@@ -129,7 +129,7 @@ pub async fn list(session: ProtoSession, args: ListPluginsArgs) -> AppResult {
                                 no_children: tool.installed_versions.is_empty()
                             ) {
                                 VersionsMap(
-                                    default_version: global_config.versions.get(&tool.id),
+                                    default_version: global_config.versions.get(&tool.id).map(|spec| &spec.req),
                                     inventory: &tool.inventory,
                                     versions: tool.installed_versions.iter().collect::<Vec<_>>(),
                                 )

@@ -2,7 +2,7 @@ use crate::error::ProtoCliError;
 use crate::session::ProtoSession;
 use clap::Args;
 use iocraft::prelude::element;
-use proto_core::{is_alias_name, Id, PinLocation, ProtoConfig, UnresolvedVersionSpec};
+use proto_core::{is_alias_name, Id, PinLocation, ProtoConfig, ToolSpec, UnresolvedVersionSpec};
 use starbase::AppResult;
 use starbase_console::ui::*;
 
@@ -14,8 +14,8 @@ pub struct AliasArgs {
     #[arg(required = true, help = "Alias name")]
     alias: String,
 
-    #[arg(required = true, help = "Version or alias to associate with")]
-    spec: UnresolvedVersionSpec,
+    #[arg(required = true, help = "Version specification to alias")]
+    spec: ToolSpec,
 
     #[arg(long, default_value_t, help = "Location of .prototools to add to")]
     to: PinLocation,
@@ -23,7 +23,7 @@ pub struct AliasArgs {
 
 #[tracing::instrument(skip_all)]
 pub async fn alias(session: ProtoSession, args: AliasArgs) -> AppResult {
-    if let UnresolvedVersionSpec::Alias(inner_alias) = &args.spec {
+    if let UnresolvedVersionSpec::Alias(inner_alias) = &args.spec.req {
         if args.alias == inner_alias {
             return Err(ProtoCliError::AliasNoMatchingToVersion.into());
         }
@@ -36,7 +36,7 @@ pub async fn alias(session: ProtoSession, args: AliasArgs) -> AppResult {
         .into());
     }
 
-    let tool = session.load_tool(&args.id).await?;
+    let tool = session.load_tool(&args.id, args.spec.backend).await?;
 
     let config_path = ProtoConfig::update(tool.proto.get_config_dir(args.to), |config| {
         let tool_configs = config.tools.get_or_insert(Default::default());

@@ -8,8 +8,8 @@ use async_trait::async_trait;
 use miette::IntoDiagnostic;
 use proto_core::registry::ProtoRegistry;
 use proto_core::{
-    load_schema_plugin_with_proto, load_tool_from_locator, load_tool_with_proto, ConfigMode, Id,
-    ProtoConfig, ProtoEnvironment, Tool, UnresolvedVersionSpec, PROTO_PLUGIN_KEY,
+    load_schema_plugin_with_proto, load_tool, load_tool_from_locator, Backend, ConfigMode, Id,
+    ProtoConfig, ProtoEnvironment, Tool, ToolSpec, UnresolvedVersionSpec, PROTO_PLUGIN_KEY,
     SCHEMA_PLUGIN_KEY,
 };
 use rustc_hash::FxHashSet;
@@ -80,8 +80,8 @@ impl ProtoSession {
         self.env.load_config_with_mode(mode)
     }
 
-    pub async fn load_tool(&self, id: &Id) -> miette::Result<ToolRecord> {
-        self.load_tool_with_options(id, LoadToolOptions::default())
+    pub async fn load_tool(&self, id: &Id, backend: Option<Backend>) -> miette::Result<ToolRecord> {
+        self.load_tool_with_options(id, backend, LoadToolOptions::default())
             .await
     }
 
@@ -89,9 +89,10 @@ impl ProtoSession {
     pub async fn load_tool_with_options(
         &self,
         id: &Id,
+        backend: Option<Backend>,
         options: LoadToolOptions,
     ) -> miette::Result<ToolRecord> {
-        let mut record = ToolRecord::new(load_tool_with_proto(id, &self.env).await?);
+        let mut record = ToolRecord::new(load_tool(id, &self.env, backend).await?);
 
         if options.inherit_remote {
             record.inherit_from_remote().await?;
@@ -104,12 +105,14 @@ impl ProtoSession {
         if options.detect_version {
             record.detect_version().await;
 
-            let version = record
-                .detected_version
-                .clone()
-                .unwrap_or_else(|| UnresolvedVersionSpec::parse("*").unwrap());
+            let spec = ToolSpec::new(
+                record
+                    .detected_version
+                    .clone()
+                    .unwrap_or_else(|| UnresolvedVersionSpec::parse("*").unwrap()),
+            );
 
-            record.tool.resolve_version(&version, false).await?;
+            record.tool.resolve_version_with_spec(&spec, false).await?;
         }
 
         Ok(record)
@@ -120,24 +123,19 @@ impl ProtoSession {
             .await
     }
 
-    #[allow(dead_code)]
-    pub async fn load_tools_with_filters(
-        &self,
-        filters: FxHashSet<&Id>,
-    ) -> miette::Result<Vec<ToolRecord>> {
-        self.load_tools_with_options(LoadToolOptions {
-            ids: filters.into_iter().cloned().collect(),
-            ..Default::default()
-        })
-        .await
-    }
-
     #[tracing::instrument(name = "load_tools", skip(self))]
     pub async fn load_tools_with_options(
         &self,
         mut options: LoadToolOptions,
     ) -> miette::Result<Vec<ToolRecord>> {
         let config = self.env.load_config()?;
+
+        // Gather the IDs of all possible tools. We can't just use the
+        // `plugins` map, because some tools may not have a plugin entry,
+        // for example, those using backends.
+        let mut ids = vec![];
+        ids.extend(config.plugins.keys());
+        ids.extend(config.versions.keys());
 
         // If no filter IDs provided, inherit the IDs from the current
         // config for every tool that has a version. Otherwise, we'll
@@ -158,7 +156,7 @@ impl ProtoSession {
         let opt_inherit_remote = options.inherit_remote;
         let opt_detect_version = options.detect_version;
 
-        for (id, locator) in &config.plugins {
+        for id in ids {
             if !options.ids.is_empty() && !options.ids.contains(id) {
                 continue;
             }
@@ -169,11 +167,10 @@ impl ProtoSession {
             }
 
             let id = id.to_owned();
-            let locator = locator.to_owned();
             let proto = Arc::clone(&self.env);
 
             set.spawn(async move {
-                let mut record = ToolRecord::new(load_tool_from_locator(id, proto, locator).await?);
+                let mut record = ToolRecord::new(load_tool(&id, &proto, None).await?);
 
                 if opt_inherit_remote {
                     record.inherit_from_remote().await?;

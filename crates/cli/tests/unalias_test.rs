@@ -31,7 +31,7 @@ mod unalias_local {
                 PartialProtoToolConfig {
                     aliases: Some(BTreeMap::from_iter([(
                         "example".into(),
-                        UnresolvedVersionSpec::parse("19.0.0").unwrap(),
+                        UnresolvedVersionSpec::parse("19.0.0").unwrap().into(),
                     )])),
                     ..Default::default()
                 },
@@ -60,7 +60,7 @@ mod unalias_local {
                 PartialProtoToolConfig {
                     aliases: Some(BTreeMap::from_iter([(
                         "example".into(),
-                        UnresolvedVersionSpec::parse("19.0.0").unwrap(),
+                        UnresolvedVersionSpec::parse("19.0.0").unwrap().into(),
                     )])),
                     ..Default::default()
                 },
@@ -80,7 +80,7 @@ mod unalias_local {
             config.tools.get("node").unwrap().aliases,
             BTreeMap::from_iter([(
                 "example".into(),
-                UnresolvedVersionSpec::parse("19.0.0").unwrap()
+                UnresolvedVersionSpec::parse("19.0.0").unwrap().into()
             )])
         );
     }
@@ -99,7 +99,7 @@ mod unalias_global {
                 PartialProtoToolConfig {
                     aliases: Some(BTreeMap::from_iter([(
                         "example".into(),
-                        UnresolvedVersionSpec::parse("19.0.0").unwrap(),
+                        UnresolvedVersionSpec::parse("19.0.0").unwrap().into(),
                     )])),
                     ..Default::default()
                 },
@@ -136,7 +136,7 @@ mod unalias_user {
                 PartialProtoToolConfig {
                     aliases: Some(BTreeMap::from_iter([(
                         "example".into(),
-                        UnresolvedVersionSpec::parse("19.0.0").unwrap(),
+                        UnresolvedVersionSpec::parse("19.0.0").unwrap().into(),
                     )])),
                     ..Default::default()
                 },

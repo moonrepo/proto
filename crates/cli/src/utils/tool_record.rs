@@ -1,6 +1,7 @@
 use core::ops::{Deref, DerefMut};
 use proto_core::{
-    detect_version, ProtoConfig, ProtoToolConfig, Tool, UnresolvedVersionSpec, VersionSpec,
+    detect_version, ProtoConfig, ProtoToolConfig, Tool, ToolSpec, UnresolvedVersionSpec,
+    VersionSpec,
 };
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -11,8 +12,8 @@ pub struct ToolRecord {
     pub detected_source: Option<PathBuf>,
     pub detected_version: Option<UnresolvedVersionSpec>,
     pub installed_versions: Vec<VersionSpec>,
-    pub local_aliases: BTreeMap<String, UnresolvedVersionSpec>,
-    pub remote_aliases: BTreeMap<String, UnresolvedVersionSpec>,
+    pub local_aliases: BTreeMap<String, ToolSpec>,
+    pub remote_aliases: BTreeMap<String, ToolSpec>,
     pub remote_versions: Vec<VersionSpec>,
 }
 
@@ -62,7 +63,12 @@ impl ToolRecord {
             .load_version_resolver(&UnresolvedVersionSpec::default())
             .await?;
 
-        self.remote_aliases.extend(version_resolver.aliases);
+        self.remote_aliases.extend(
+            version_resolver
+                .aliases
+                .into_iter()
+                .map(|(k, v)| (k, ToolSpec::new(v))),
+        );
         self.remote_versions.extend(version_resolver.versions);
         self.remote_versions.sort();
 

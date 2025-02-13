@@ -3,7 +3,7 @@ use crate::session::{LoadToolOptions, ProtoSession};
 use clap::Args;
 use indexmap::IndexMap;
 use iocraft::prelude::{element, View};
-use proto_core::{Id, UnresolvedVersionSpec, VersionSpec};
+use proto_core::{Id, ToolSpec, VersionSpec};
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;
@@ -33,8 +33,8 @@ pub struct VersionItem {
 #[derive(Serialize)]
 pub struct VersionsResult {
     versions: Vec<VersionItem>,
-    local_aliases: BTreeMap<String, UnresolvedVersionSpec>,
-    remote_aliases: BTreeMap<String, UnresolvedVersionSpec>,
+    local_aliases: BTreeMap<String, ToolSpec>,
+    remote_aliases: BTreeMap<String, ToolSpec>,
 }
 
 #[tracing::instrument(skip_all)]
@@ -42,6 +42,7 @@ pub async fn versions(session: ProtoSession, args: VersionsArgs) -> AppResult {
     let tool = session
         .load_tool_with_options(
             &args.id,
+            None,
             LoadToolOptions {
                 inherit_local: true,
                 inherit_remote: true,
@@ -101,7 +102,7 @@ pub async fn versions(session: ProtoSession, args: VersionsArgs) -> AppResult {
         return Ok(None);
     }
 
-    let mut aliases = IndexMap::<&String, &UnresolvedVersionSpec>::default();
+    let mut aliases = IndexMap::<&String, &ToolSpec>::default();
 
     if args.aliases && !args.installed {
         aliases.extend(&tool.remote_aliases);
@@ -135,7 +136,7 @@ pub async fn versions(session: ProtoSession, args: VersionsArgs) -> AppResult {
             #(aliases.into_iter().map(|(alias, version)| {
                 element! {
                     View {
-                        StyledText(content: format!("{alias} <muted>→</muted> {version}"))
+                        StyledText(content: format!("{alias} <muted>→</muted> {}", version.req))
                     }
                 }
             }))

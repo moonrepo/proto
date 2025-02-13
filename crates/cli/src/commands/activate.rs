@@ -138,7 +138,9 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
         );
     }
 
-    if let Some(UnresolvedVersionSpec::Semantic(version)) = config.versions.get("proto") {
+    if let Some(UnresolvedVersionSpec::Semantic(version)) =
+        config.versions.get("proto").map(|spec| &spec.req)
+    {
         info.env
             .insert("PROTO_VERSION".into(), Some(version.to_string()));
 

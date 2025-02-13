@@ -1,7 +1,7 @@
 use indexmap::IndexMap;
 use proto_core::{
-    DetectStrategy, EnvVar, PartialEnvVar, PartialProtoSettingsConfig, PinLocation, ProtoConfig,
-    ProtoConfigManager,
+    Backend, DetectStrategy, EnvVar, PartialEnvVar, PartialProtoSettingsConfig, PinLocation,
+    ProtoConfig, ProtoConfigManager, ToolSpec,
 };
 use schematic::ConfigError;
 use starbase_sandbox::create_empty_sandbox;
@@ -109,6 +109,23 @@ pin-latest = "global"
         env::remove_var("PROTO_AUTO_INSTALL");
         env::remove_var("PROTO_DETECT_STRATEGY");
         env::remove_var("PROTO_PIN_LATEST");
+    }
+
+    #[test]
+    fn can_set_backend_with_version() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(".prototools", r#"node = "asdf:20.0.0""#);
+
+        let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
+
+        assert_eq!(
+            config.versions.unwrap().get("node").unwrap(),
+            &ToolSpec {
+                backend: Some(Backend::Asdf),
+                req: UnresolvedVersionSpec::parse("20.0.0").unwrap(),
+                res: None
+            }
+        );
     }
 
     #[test]
@@ -270,11 +287,11 @@ kebab-case = "file://./camel.toml"
             BTreeMap::from_iter([
                 (
                     Id::raw("node"),
-                    UnresolvedVersionSpec::parse("12.0.0").unwrap()
+                    UnresolvedVersionSpec::parse("12.0.0").unwrap().into()
                 ),
                 (
                     Id::raw("rust"),
-                    UnresolvedVersionSpec::Alias("stable".into())
+                    UnresolvedVersionSpec::Alias("stable".into()).into()
                 ),
             ])
         );
@@ -308,11 +325,11 @@ kebab-case = "file://./camel.toml"
 
         versions.insert(
             Id::raw("node"),
-            UnresolvedVersionSpec::parse("12.0.0").unwrap(),
+            UnresolvedVersionSpec::parse("12.0.0").unwrap().into(),
         );
         versions.insert(
             Id::raw("rust"),
-            UnresolvedVersionSpec::Alias("stable".into()),
+            UnresolvedVersionSpec::Alias("stable".into()).into(),
         );
 
         let plugins = config.plugins.get_or_insert(Default::default());
@@ -665,6 +682,62 @@ builtin-plugins = []
         use rustc_hash::FxHashMap;
 
         #[test]
+        fn can_set_backend() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[tools.node]
+backend = "asdf"
+"#,
+            );
+
+            let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
+
+            assert_eq!(
+                config
+                    .tools
+                    .unwrap()
+                    .get("node")
+                    .unwrap()
+                    .backend
+                    .as_ref()
+                    .unwrap(),
+                &Backend::Asdf
+            );
+        }
+
+        #[test]
+        fn can_set_backend_with_aliases() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[tools.node.aliases]
+value = "asdf:4.5.6"
+"#,
+            );
+
+            let config = ProtoConfigManager::load(sandbox.path(), None, None)
+                .unwrap()
+                .get_merged_config()
+                .unwrap()
+                .to_owned();
+
+            assert_eq!(
+                config.tools.get("node").unwrap().aliases,
+                BTreeMap::from_iter([(
+                    "value".to_owned(),
+                    ToolSpec {
+                        backend: Some(Backend::Asdf),
+                        req: UnresolvedVersionSpec::parse("4.5.6").unwrap(),
+                        res: None
+                    }
+                ),])
+            );
+        }
+
+        #[test]
         fn can_set_extra_settings() {
             let sandbox = create_empty_sandbox();
             sandbox.create_file(
@@ -773,11 +846,11 @@ value = "4.5.6"
                 BTreeMap::from_iter([
                     (
                         "stable".to_owned(),
-                        UnresolvedVersionSpec::parse("1.0.0").unwrap()
+                        UnresolvedVersionSpec::parse("1.0.0").unwrap().into()
                     ),
                     (
                         "value".to_owned(),
-                        UnresolvedVersionSpec::parse("1.2.3").unwrap()
+                        UnresolvedVersionSpec::parse("1.2.3").unwrap().into()
                     ),
                 ])
             );
@@ -953,15 +1026,15 @@ deno = "7.8.9"
             BTreeMap::from_iter([
                 (
                     Id::raw("node"),
-                    UnresolvedVersionSpec::parse("1.2.3").unwrap()
+                    UnresolvedVersionSpec::parse("1.2.3").unwrap().into()
                 ),
                 (
                     Id::raw("bun"),
-                    UnresolvedVersionSpec::parse("4.5.6").unwrap()
+                    UnresolvedVersionSpec::parse("4.5.6").unwrap().into()
                 ),
                 (
                     Id::raw("deno"),
-                    UnresolvedVersionSpec::parse("7.8.9").unwrap()
+                    UnresolvedVersionSpec::parse("7.8.9").unwrap().into()
                 ),
             ])
         );
@@ -1018,11 +1091,11 @@ bun = "1.2.3"
             BTreeMap::from_iter([
                 (
                     Id::raw("node"),
-                    UnresolvedVersionSpec::parse("1.2.3").unwrap()
+                    UnresolvedVersionSpec::parse("1.2.3").unwrap().into()
                 ),
                 (
                     Id::raw("deno"),
-                    UnresolvedVersionSpec::parse("7.8.9").unwrap()
+                    UnresolvedVersionSpec::parse("7.8.9").unwrap().into()
                 ),
             ])
         );
@@ -1064,7 +1137,7 @@ bun = "1.2.3"
             config.versions,
             BTreeMap::from_iter([(
                 Id::raw("node"),
-                UnresolvedVersionSpec::parse("1.2.3").unwrap()
+                UnresolvedVersionSpec::parse("1.2.3").unwrap().into()
             ),])
         );
     }
@@ -1097,11 +1170,11 @@ deno = "7.8.9"
             BTreeMap::from_iter([
                 (
                     Id::raw("node"),
-                    UnresolvedVersionSpec::parse("1.2.3").unwrap()
+                    UnresolvedVersionSpec::parse("1.2.3").unwrap().into()
                 ),
                 (
                     Id::raw("deno"),
-                    UnresolvedVersionSpec::parse("7.8.9").unwrap()
+                    UnresolvedVersionSpec::parse("7.8.9").unwrap().into()
                 ),
             ])
         );
@@ -1134,11 +1207,11 @@ deno = "7.8.9"
             BTreeMap::from_iter([
                 (
                     Id::raw("node"),
-                    UnresolvedVersionSpec::parse("7.8.9").unwrap()
+                    UnresolvedVersionSpec::parse("7.8.9").unwrap().into()
                 ),
                 (
                     Id::raw("deno"),
-                    UnresolvedVersionSpec::parse("7.8.9").unwrap()
+                    UnresolvedVersionSpec::parse("7.8.9").unwrap().into()
                 ),
             ])
         );
@@ -1173,11 +1246,11 @@ deno = "7.8.9"
             BTreeMap::from_iter([
                 (
                     Id::raw("node"),
-                    UnresolvedVersionSpec::parse("7.8.9").unwrap()
+                    UnresolvedVersionSpec::parse("7.8.9").unwrap().into()
                 ),
                 (
                     Id::raw("deno"),
-                    UnresolvedVersionSpec::parse("7.8.9").unwrap()
+                    UnresolvedVersionSpec::parse("7.8.9").unwrap().into()
                 ),
             ])
         );

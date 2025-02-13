@@ -1,19 +1,21 @@
-mod aliases_map;
+// mod aliases_map;
 mod code_block;
 mod env_var;
 mod install_all_progress;
 mod install_progress;
 mod issues_list;
 mod locator;
+mod spec_aliases_map;
 mod versions_map;
 
-pub use aliases_map::*;
+// pub use aliases_map::*;
 pub use code_block::*;
 pub use env_var::*;
 pub use install_all_progress::*;
 pub use install_progress::*;
 pub use issues_list::*;
 pub use locator::*;
+pub use spec_aliases_map::*;
 pub use versions_map::*;
 
 use chrono::{DateTime, NaiveDateTime};

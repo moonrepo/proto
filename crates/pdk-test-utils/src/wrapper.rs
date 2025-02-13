@@ -114,7 +114,17 @@ impl WasmTestWrapper {
             .unwrap();
     }
 
-    pub async fn register_tool(&self, input: ToolMetadataInput) -> ToolMetadataOutput {
+    pub async fn register_backend(&self, mut input: RegisterBackendInput) -> RegisterBackendOutput {
+        input.context = self.prepare_context(input.context);
+
+        self.tool
+            .plugin
+            .call_func_with("register_backend", input)
+            .await
+            .unwrap()
+    }
+
+    pub async fn register_tool(&self, input: RegisterToolInput) -> RegisterToolOutput {
         self.tool
             .plugin
             .call_func_with("register_tool", input)

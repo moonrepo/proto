@@ -297,7 +297,7 @@ mod install_uninstall {
             ProtoConfig::update(sandbox.path(), |config| {
                 config.versions.get_or_insert(Default::default()).insert(
                     Id::raw("node"),
-                    UnresolvedVersionSpec::parse("18.0.0").unwrap(),
+                    UnresolvedVersionSpec::parse("18.0.0").unwrap().into(),
                 );
             })
             .unwrap();
@@ -343,7 +343,7 @@ mod install_uninstall {
             ProtoConfig::update(sandbox.path().join(".proto"), |config| {
                 config.versions.get_or_insert(Default::default()).insert(
                     Id::raw("node"),
-                    UnresolvedVersionSpec::parse("18.0.0").unwrap(),
+                    UnresolvedVersionSpec::parse("18.0.0").unwrap().into(),
                 );
             })
             .unwrap();
@@ -390,7 +390,7 @@ mod install_uninstall {
             ProtoConfig::update(sandbox.path(), |config| {
                 config.versions.get_or_insert(Default::default()).insert(
                     Id::raw("node"),
-                    UnresolvedVersionSpec::parse("18.0.0").unwrap(),
+                    UnresolvedVersionSpec::parse("18.0.0").unwrap().into(),
                 );
             })
             .unwrap();
@@ -447,7 +447,7 @@ mod install_uninstall {
             ProtoConfig::update(sandbox.path(), |config| {
                 config.versions.get_or_insert(Default::default()).insert(
                     Id::raw("node"),
-                    UnresolvedVersionSpec::parse("18.0.0").unwrap(),
+                    UnresolvedVersionSpec::parse("18.0.0").unwrap().into(),
                 );
             })
             .unwrap();
@@ -482,7 +482,7 @@ mod install_uninstall {
 
                 config.versions.get_or_insert(Default::default()).insert(
                     Id::raw("node"),
-                    UnresolvedVersionSpec::parse("16.0.0").unwrap(),
+                    UnresolvedVersionSpec::parse("16.0.0").unwrap().into(),
                 );
             })
             .unwrap();
@@ -491,7 +491,7 @@ mod install_uninstall {
             ProtoConfig::update(sandbox.path().join(".proto"), |config| {
                 config.versions.get_or_insert(Default::default()).insert(
                     Id::raw("node"),
-                    UnresolvedVersionSpec::parse("18.0.0").unwrap(),
+                    UnresolvedVersionSpec::parse("18.0.0").unwrap().into(),
                 );
             })
             .unwrap();
@@ -531,7 +531,7 @@ mod install_uninstall {
 
                 config.versions.get_or_insert(Default::default()).insert(
                     Id::raw("node"),
-                    UnresolvedVersionSpec::parse("16.0.0").unwrap(),
+                    UnresolvedVersionSpec::parse("16.0.0").unwrap().into(),
                 );
             })
             .unwrap();
@@ -540,7 +540,7 @@ mod install_uninstall {
             ProtoConfig::update(sandbox.path().join(".proto"), |config| {
                 config.versions.get_or_insert(Default::default()).insert(
                     Id::raw("node"),
-                    UnresolvedVersionSpec::parse("18.0.0").unwrap(),
+                    UnresolvedVersionSpec::parse("18.0.0").unwrap().into(),
                 );
             })
             .unwrap();

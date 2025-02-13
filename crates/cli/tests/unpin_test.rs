@@ -29,7 +29,7 @@ mod unpin_local {
             config
                 .versions
                 .get_or_insert(Default::default())
-                .insert(Id::raw("node"), UnresolvedVersionSpec::Canary);
+                .insert(Id::raw("node"), UnresolvedVersionSpec::Canary.into());
         })
         .unwrap();
 
@@ -52,7 +52,7 @@ mod unpin_local {
             config
                 .versions
                 .get_or_insert(Default::default())
-                .insert(Id::raw("bun"), UnresolvedVersionSpec::Canary);
+                .insert(Id::raw("bun"), UnresolvedVersionSpec::Canary.into());
         })
         .unwrap();
 
@@ -66,7 +66,7 @@ mod unpin_local {
 
         assert_eq!(
             config.versions,
-            BTreeMap::from_iter([(Id::raw("bun"), UnresolvedVersionSpec::Canary)])
+            BTreeMap::from_iter([(Id::raw("bun"), UnresolvedVersionSpec::Canary.into())])
         );
     }
 }
@@ -82,7 +82,7 @@ mod unpin_global {
             config
                 .versions
                 .get_or_insert(Default::default())
-                .insert(Id::raw("node"), UnresolvedVersionSpec::Canary);
+                .insert(Id::raw("node"), UnresolvedVersionSpec::Canary.into());
         })
         .unwrap();
 
@@ -109,7 +109,7 @@ mod unpin_user {
             config
                 .versions
                 .get_or_insert(Default::default())
-                .insert(Id::raw("node"), UnresolvedVersionSpec::Canary);
+                .insert(Id::raw("node"), UnresolvedVersionSpec::Canary.into());
         })
         .unwrap();
 

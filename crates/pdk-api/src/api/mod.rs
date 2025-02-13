@@ -1,4 +1,5 @@
-mod build_source;
+mod build;
+mod source;
 
 use crate::shapes::*;
 use rustc_hash::FxHashMap;
@@ -6,8 +7,9 @@ use std::path::PathBuf;
 use version_spec::{CalVer, SemVer, SpecError, UnresolvedVersionSpec, VersionSpec};
 use warpgate_api::*;
 
-pub use build_source::*;
+pub use build::*;
 pub use semver::{Version, VersionReq};
+pub use source::*;
 
 pub(crate) fn is_false(value: &bool) -> bool {
     !(*value)
@@ -48,11 +50,14 @@ api_unit_enum!(
 
 api_struct!(
     /// Input passed to the `register_tool` function.
-    pub struct ToolMetadataInput {
+    pub struct RegisterToolInput {
         /// ID of the tool, as it was configured.
         pub id: String,
     }
 );
+
+#[deprecated(note = "Use `RegisterToolInput` instead.")]
+pub type ToolMetadataInput = RegisterToolInput;
 
 api_struct!(
     /// Controls aspects of the tool inventory.
@@ -82,7 +87,7 @@ api_unit_enum!(
 
 api_struct!(
     /// Output returned by the `register_tool` function.
-    pub struct ToolMetadataOutput {
+    pub struct RegisterToolOutput {
         /// Schema shape of the tool's configuration.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub config_schema: Option<schematic::Schema>,
@@ -131,6 +136,39 @@ api_struct!(
         /// Whether this plugin is unstable or not.
         #[serde(default)]
         pub unstable: Switch,
+    }
+);
+
+#[deprecated(note = "Use `RegisterToolOutput` instead.")]
+pub type ToolMetadataOutput = RegisterToolOutput;
+
+// BACKEND
+
+api_struct!(
+    /// Input passed to the `register_backend` function.
+    pub struct RegisterBackendInput {
+        /// Current tool context.
+        pub context: ToolContext,
+
+        /// ID of the tool, as it was configured.
+        pub id: String,
+    }
+);
+
+api_struct!(
+    /// Output returned by the `register_backend` function.
+    pub struct RegisterBackendOutput {
+        /// Unique identifier for this backend. Will be used as the folder name.
+        pub backend_id: String,
+
+        /// List of executables, relative from the backend directory,
+        /// that will be executed in the context of proto.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        pub exes: Vec<PathBuf>,
+
+        /// Location in which to acquire source files for the backend.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub source: Option<SourceLocation>,
     }
 );
 
