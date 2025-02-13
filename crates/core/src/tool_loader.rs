@@ -2,6 +2,7 @@ use crate::config::SCHEMA_PLUGIN_KEY;
 use crate::env::ProtoEnvironment;
 use crate::tool::Tool;
 use crate::tool_error::ProtoToolError;
+use crate::tool_spec::Backend;
 use convert_case::{Case, Casing};
 use starbase_utils::{json, toml, yaml};
 use std::fmt::Debug;
@@ -85,17 +86,13 @@ pub async fn load_schema_plugin_with_proto(
 
 pub fn load_schema_config(plugin_path: &Path) -> miette::Result<json::JsonValue> {
     let mut is_toml = false;
-    let mut schema: json::JsonValue = match plugin_path
-        .extension()
-        .and_then(|ext| ext.to_str())
-        .unwrap()
-    {
-        "toml" => {
+    let mut schema: json::JsonValue = match plugin_path.extension().and_then(|ext| ext.to_str()) {
+        Some("toml") => {
             is_toml = true;
             toml::read_file(plugin_path)?
         }
-        "json" | "jsonc" => json::read_file(plugin_path)?,
-        "yaml" | "yml" => yaml::read_file(plugin_path)?,
+        Some("json" | "jsonc") => json::read_file(plugin_path)?,
+        Some("yaml" | "yml") => yaml::read_file(plugin_path)?,
         _ => unimplemented!(),
     };
 
@@ -149,12 +146,9 @@ pub async fn load_tool_from_locator(
     let locator = locator.as_ref();
 
     let plugin_path = proto.get_plugin_loader()?.load_plugin(id, locator).await?;
-    let plugin_ext = plugin_path
-        .extension()
-        .and_then(|ext| ext.to_str())
-        .map(|ext| ext.to_owned());
+    let plugin_ext = plugin_path.extension().and_then(|ext| ext.to_str());
 
-    let mut manifest = match plugin_ext.as_deref() {
+    let mut manifest = match plugin_ext {
         Some("wasm") => {
             debug!(source = ?plugin_path, "Loading WASM plugin");
 
@@ -188,6 +182,35 @@ pub async fn load_tool_from_locator(
     Ok(tool)
 }
 
-pub async fn load_tool_with_proto(id: &Id, proto: &ProtoEnvironment) -> miette::Result<Tool> {
-    load_tool_from_locator(id, proto, locate_tool(id, proto)?).await
+pub async fn load_tool(
+    id: &Id,
+    proto: &ProtoEnvironment,
+    mut backend: Option<Backend>,
+) -> miette::Result<Tool> {
+    // Determine the backend plugin to use
+    if backend.is_none() {
+        let config = proto.load_config()?;
+
+        // Check the version spec first, as that takes priority
+        if let Some(spec) = config.versions.get(id) {
+            backend = spec.backend;
+        }
+
+        // Otherwise fallback to the tool config
+        if backend.is_none() {
+            backend = config.tools.get(id).and_then(|cfg| cfg.backend);
+        }
+    }
+
+    // If backend is proto, use the tool's plugin,
+    // otherwise use the backend plugin itself
+    let locator_id = match backend {
+        Some(be) => Id::raw(be.to_string()),
+        None => id.to_owned(),
+    };
+
+    let mut tool = load_tool_from_locator(id, proto, locate_tool(&locator_id, proto)?).await?;
+    tool.resolve_backend(backend).await?;
+
+    Ok(tool)
 }

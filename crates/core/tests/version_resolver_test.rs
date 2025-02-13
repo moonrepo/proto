@@ -60,11 +60,11 @@ mod version_resolver {
 
         config.aliases.insert(
             "latest-manifest".into(),
-            UnresolvedVersionSpec::Semantic(SemVer(Version::new(8, 0, 0))),
+            UnresolvedVersionSpec::Semantic(SemVer(Version::new(8, 0, 0))).into(),
         );
         config.aliases.insert(
             "stable-manifest".into(),
-            UnresolvedVersionSpec::Alias("stable".into()),
+            UnresolvedVersionSpec::Alias("stable".into()).into(),
         );
 
         config

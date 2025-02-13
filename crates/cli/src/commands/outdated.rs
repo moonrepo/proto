@@ -3,7 +3,9 @@ use crate::session::{LoadToolOptions, ProtoSession};
 use clap::Args;
 use iocraft::prelude::{element, Size};
 use miette::IntoDiagnostic;
-use proto_core::{Id, ProtoConfig, UnresolvedVersionSpec, VersionSpec, PROTO_CONFIG_NAME};
+use proto_core::{
+    Id, ProtoConfig, ToolSpec, UnresolvedVersionSpec, VersionSpec, PROTO_CONFIG_NAME,
+};
 use semver::VersionReq;
 use serde::Serialize;
 use starbase::AppResult;
@@ -289,10 +291,17 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
             );
 
             ProtoConfig::update(config_path, |config| {
-                config
-                    .versions
-                    .get_or_insert(Default::default())
-                    .extend(updated_versions);
+                let versions = config.versions.get_or_insert(Default::default());
+
+                // Try and preserve any spec backend's
+                for (id, updated_version) in updated_versions {
+                    versions
+                        .entry(id)
+                        .and_modify(|spec| {
+                            spec.req = updated_version.clone();
+                        })
+                        .or_insert_with(|| ToolSpec::new(updated_version));
+                }
             })?;
         }
 

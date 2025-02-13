@@ -15,6 +15,7 @@ use warpgate::Id;
 #[derive(Clone, Default, Serialize)]
 pub struct Store {
     pub dir: PathBuf,
+    pub backends_dir: PathBuf,
     pub bin_dir: PathBuf,
     pub builders_dir: PathBuf,
     pub cache_dir: PathBuf,
@@ -32,6 +33,7 @@ impl Store {
     pub fn new(dir: &Path) -> Self {
         Self {
             dir: dir.to_path_buf(),
+            backends_dir: dir.join("backends"),
             bin_dir: dir.join("bin"),
             builders_dir: dir.join("builders"),
             cache_dir: dir.join("cache"),

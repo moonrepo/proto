@@ -3,7 +3,7 @@ use crate::error::ProtoCliError;
 use crate::session::ProtoSession;
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::{detect_version, Id, Tool, UnresolvedVersionSpec};
+use proto_core::{detect_version_with_spec, Id, Tool, ToolSpec};
 use proto_pdk_api::{ExecutableConfig, RunHook, RunHookResult};
 use proto_shim::exec_command_and_replace;
 use starbase::AppResult;
@@ -19,10 +19,14 @@ pub struct RunArgs {
     #[arg(required = true, help = "ID of tool")]
     id: Id,
 
-    #[arg(help = "Version or alias of tool")]
-    spec: Option<UnresolvedVersionSpec>,
+    #[arg(help = "Version specification to run")]
+    spec: Option<ToolSpec>,
 
-    #[arg(long, help = "Name of an alternate (secondary) binary to run")]
+    #[arg(
+        long,
+        hide = true,
+        help = "Name of an alternate (secondary) binary to run"
+    )]
     alt: Option<String>,
 
     // Passthrough args (after --)
@@ -149,7 +153,9 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
 
 #[tracing::instrument(skip_all)]
 pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
-    let mut tool = session.load_tool(&args.id).await?;
+    let mut tool = session
+        .load_tool(&args.id, args.spec.clone().and_then(|spec| spec.backend))
+        .await?;
 
     // Avoid running the tool's native self-upgrade as it conflicts with proto
     if is_trying_to_self_upgrade(&tool, &args.passthrough) {
@@ -160,10 +166,10 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
         .into());
     }
 
-    let version = detect_version(&tool, args.spec.clone()).await?;
+    let spec = detect_version_with_spec(&tool, args.spec.clone()).await?;
 
     // Check if installed or need to install
-    if !tool.is_setup(&version).await? {
+    if !tool.is_setup_with_spec(&spec).await? {
         let config = tool.proto.load_config()?;
         let resolved_version = tool.get_resolved_version();
 
@@ -173,7 +179,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
             if let Ok(source) = env::var(format!("{}_DETECTED_FROM", tool.get_env_var_prefix())) {
                 return Err(ProtoCliError::RunMissingToolWithSource {
                     tool: tool.get_name().to_owned(),
-                    version: version.to_string(),
+                    version: spec.to_string(),
                     command,
                     path: source.into(),
                 }
@@ -182,7 +188,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
 
             return Err(ProtoCliError::RunMissingTool {
                 tool: tool.get_name().to_owned(),
-                version: version.to_string(),
+                version: spec.to_string(),
                 command,
             }
             .into());
@@ -199,7 +205,11 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
             session.clone(),
             InstallArgs {
                 internal: true,
-                spec: Some(resolved_version.to_unresolved_spec()),
+                spec: Some(ToolSpec {
+                    backend: spec.backend,
+                    req: resolved_version.to_unresolved_spec(),
+                    res: Some(resolved_version.clone()),
+                }),
                 ..Default::default()
             },
             tool.id.clone(),

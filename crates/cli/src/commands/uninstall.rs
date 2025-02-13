@@ -2,7 +2,7 @@ use crate::session::ProtoSession;
 use crate::telemetry::{track_usage, Metric};
 use clap::Args;
 use iocraft::element;
-use proto_core::{Id, ProtoConfig, Tool, UnresolvedVersionSpec};
+use proto_core::{Id, ProtoConfig, Tool, ToolSpec};
 use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_utils::fs;
@@ -13,8 +13,8 @@ pub struct UninstallArgs {
     #[arg(required = true, help = "ID of tool")]
     id: Id,
 
-    #[arg(help = "Version or alias of tool")]
-    spec: Option<UnresolvedVersionSpec>,
+    #[arg(help = "Version specification to uninstall")]
+    spec: Option<ToolSpec>,
 }
 
 fn unpin_version(session: &ProtoSession, args: &UninstallArgs) -> miette::Result<()> {
@@ -65,7 +65,7 @@ async fn track_uninstall(tool: &Tool, all: bool) -> miette::Result<()> {
 
 #[instrument(skip(session))]
 async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult {
-    let mut tool = session.load_tool(&args.id).await?;
+    let mut tool = session.load_tool(&args.id, None).await?;
     let inventory_dir = tool.get_inventory_dir();
     let version_count = tool.inventory.manifest.installed_versions.len();
     let skip_prompts = session.should_skip_prompts();
@@ -145,14 +145,10 @@ async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult 
 }
 
 #[instrument(skip(session))]
-async fn uninstall_one(
-    session: ProtoSession,
-    args: UninstallArgs,
-    spec: UnresolvedVersionSpec,
-) -> AppResult {
-    let mut tool = session.load_tool(&args.id).await?;
+async fn uninstall_one(session: ProtoSession, args: UninstallArgs, spec: ToolSpec) -> AppResult {
+    let mut tool = session.load_tool(&args.id, spec.backend).await?;
 
-    if !tool.is_setup(&spec).await? {
+    if !tool.is_setup_with_spec(&spec).await? {
         session.console.render(element! {
             Notice(variant: Variant::Caution) {
                 StyledText(

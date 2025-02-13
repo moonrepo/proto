@@ -2,9 +2,12 @@ use crate::env::ProtoEnvironment;
 use crate::helpers::get_proto_version;
 use crate::layout::{Inventory, Product};
 use crate::tool_error::ProtoToolError;
+use crate::tool_spec::Backend;
+use crate::utils::{archive, git};
 use proto_pdk_api::*;
 use rustc_hash::{FxHashMap, FxHashSet};
 use starbase_styles::color;
+use starbase_utils::fs;
 use std::fmt;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -15,10 +18,13 @@ use warpgate::{
     Id, PluginContainer, PluginLocator, PluginManifest, VirtualPath, Wasm,
 };
 
+pub type ToolMetadata = RegisterToolOutput;
+
 pub struct Tool {
+    pub backend: Option<Backend>,
     pub id: Id,
-    pub metadata: ToolMetadataOutput,
     pub locator: Option<PluginLocator>,
+    pub metadata: ToolMetadata,
     pub plugin: Arc<PluginContainer>,
     pub proto: Arc<ProtoEnvironment>,
     pub version: Option<VersionSpec>,
@@ -28,6 +34,7 @@ pub struct Tool {
     pub product: Product,
 
     // Cache
+    pub(crate) backend_registered: bool,
     pub(crate) cache: bool,
     pub(crate) exe_file: Option<PathBuf>,
     pub(crate) exes_dir: Option<PathBuf>,
@@ -48,6 +55,8 @@ impl Tool {
         );
 
         let mut tool = Tool {
+            backend: None,
+            backend_registered: false,
             cache: true,
             exe_file: None,
             exes_dir: None,
@@ -57,7 +66,7 @@ impl Tool {
             id,
             inventory: Inventory::default(),
             locator: None,
-            metadata: ToolMetadataOutput::default(),
+            metadata: ToolMetadata::default(),
             plugin,
             product: Product::default(),
             proto,
@@ -200,11 +209,11 @@ impl Tool {
     /// Register the tool by loading initial metadata and persisting it.
     #[instrument(skip_all)]
     pub async fn register_tool(&mut self) -> miette::Result<()> {
-        let metadata: ToolMetadataOutput = self
+        let metadata: RegisterToolOutput = self
             .plugin
             .cache_func_with(
                 "register_tool",
-                ToolMetadataInput {
+                RegisterToolInput {
                     id: self.id.to_string(),
                 },
             )
@@ -257,6 +266,77 @@ impl Tool {
         self.product = inventory.create_product(&self.get_resolved_version());
         self.inventory = inventory;
         self.metadata = metadata;
+
+        Ok(())
+    }
+
+    /// Register the backend by acquiring necessary source files.
+    #[instrument(skip_all)]
+    pub async fn register_backend(&mut self) -> miette::Result<()> {
+        if !self.plugin.has_func("register_backend").await
+            || self.backend.is_none()
+            || self.backend_registered
+        {
+            return Ok(());
+        }
+
+        let metadata: RegisterBackendOutput = self
+            .plugin
+            .cache_func_with(
+                "register_backend",
+                RegisterBackendInput {
+                    context: self.create_context(),
+                    id: self.id.to_string(),
+                },
+            )
+            .await?;
+
+        let Some(source) = metadata.source else {
+            panic!("Source is required for backends!");
+        };
+
+        let backend_id = metadata.backend_id;
+        let backend_dir = self.proto.store.backends_dir.join(&backend_id);
+
+        debug!(
+            tool = self.id.as_str(),
+            backend_id,
+            backend_dir = ?backend_dir,
+            "Acquiring backend sources",
+        );
+
+        match source {
+            SourceLocation::Archive(src) => {
+                debug!(
+                    tool = self.id.as_str(),
+                    url = &src.url,
+                    "Downloading backend archive",
+                );
+
+                archive::download_and_unpack(
+                    &src,
+                    &backend_dir,
+                    &self.proto.store.temp_dir,
+                    self.proto.get_plugin_loader()?.get_client()?.to_inner(),
+                )
+                .await?;
+            }
+            SourceLocation::Git(src) => {
+                debug!(
+                    tool = self.id.as_str(),
+                    url = &src.url,
+                    "Cloning backend repository",
+                );
+
+                git::clone_or_pull_repo(&src, &backend_dir).await?;
+            }
+        };
+
+        for exe in metadata.exes {
+            fs::update_perms(backend_dir.join(exe), None)?;
+        }
+
+        self.backend_registered = true;
 
         Ok(())
     }

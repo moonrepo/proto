@@ -5,7 +5,7 @@ use crate::utils::tool_record::ToolRecord;
 use crate::workflows::{InstallOutcome, InstallWorkflowManager, InstallWorkflowParams};
 use clap::Args;
 use iocraft::prelude::element;
-use proto_core::{ConfigMode, Id, PinLocation, Tool, UnresolvedVersionSpec};
+use proto_core::{ConfigMode, Id, PinLocation, Tool, ToolSpec, UnresolvedVersionSpec};
 use proto_pdk_api::InstallStrategy;
 use starbase::AppResult;
 use starbase_console::ui::*;
@@ -24,10 +24,10 @@ pub struct InstallArgs {
 
     #[arg(
         default_value = "latest",
-        help = "When installing one tool, the version or alias to install",
+        help = "When installing one tool, the version specification to install",
         group = "version-type"
     )]
-    pub spec: Option<UnresolvedVersionSpec>,
+    pub spec: Option<ToolSpec>,
 
     #[arg(
         long,
@@ -50,7 +50,7 @@ pub struct InstallArgs {
     )]
     pub canary: bool,
 
-    #[arg(long, help = "Force reinstallation even if it is already installed")]
+    #[arg(long, help = "Force reinstallation even if already installed")]
     pub force: bool,
 
     #[arg(long, help = "Pin the resolved version to .prototools")]
@@ -107,19 +107,16 @@ impl InstallArgs {
         self.pin.as_ref().map(|pin| pin.unwrap_or_default())
     }
 
-    fn get_unresolved_spec(&self) -> UnresolvedVersionSpec {
+    fn get_tool_spec(&self) -> ToolSpec {
         if self.canary {
-            UnresolvedVersionSpec::Canary
+            ToolSpec::new(UnresolvedVersionSpec::Canary)
         } else {
             self.spec.clone().unwrap_or_default()
         }
     }
 }
 
-pub fn enforce_requirements(
-    tool: &Tool,
-    versions: &BTreeMap<Id, UnresolvedVersionSpec>,
-) -> miette::Result<()> {
+pub fn enforce_requirements(tool: &Tool, versions: &BTreeMap<Id, ToolSpec>) -> miette::Result<()> {
     for require_id in &tool.metadata.requires {
         if !versions.contains_key(require_id.as_str()) {
             return Err(ProtoCliError::InstallRequirementsNotMet {
@@ -137,7 +134,8 @@ pub fn enforce_requirements(
 pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> AppResult {
     debug!(id = id.as_str(), "Loading tool");
 
-    let tool = session.load_tool(&id).await?;
+    let spec = args.get_tool_spec();
+    let tool = session.load_tool(&id, spec.backend).await?;
 
     // Load config including global versions,
     // so that our requirements can be satisfied
@@ -168,7 +166,7 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
 
     let result = workflow
         .install(
-            args.get_unresolved_spec(),
+            spec,
             InstallWorkflowParams {
                 pin_to: args.get_pin_location(),
                 strategy: args.get_strategy(),
@@ -243,7 +241,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
         if let Some(candidate) = &tool.detected_version {
             debug!("Detected version {} for {}", candidate, tool.get_name());
 
-            versions.insert(tool.id.clone(), candidate.to_owned());
+            versions.insert(tool.id.clone(), ToolSpec::new(candidate.to_owned()));
         }
     }
 

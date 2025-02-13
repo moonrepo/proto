@@ -1,5 +1,6 @@
 use crate::config_error::ProtoConfigError;
 use crate::helpers::ENV_VAR_SUB;
+use crate::tool_spec::{Backend, ToolSpec};
 use indexmap::IndexMap;
 use once_cell::sync::OnceCell;
 use rustc_hash::FxHashMap;
@@ -22,7 +23,6 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use system_env::{SystemOS, SystemPackageManager};
 use tracing::{debug, instrument};
-use version_spec::*;
 use warpgate::{HttpOptions, Id, PluginLocator, UrlLocator};
 
 pub const PROTO_CONFIG_NAME: &str = ".prototools";
@@ -193,7 +193,9 @@ pub struct ProtoBuildConfig {
 pub struct ProtoToolConfig {
     #[setting(merge = merge::merge_btreemap)]
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
-    pub aliases: BTreeMap<String, UnresolvedVersionSpec>,
+    pub aliases: BTreeMap<String, ToolSpec>,
+
+    pub backend: Option<Backend>,
 
     #[setting(nested, merge = merge_indexmap)]
     #[serde(skip_serializing_if = "IndexMap::is_empty")]
@@ -271,7 +273,7 @@ pub struct ProtoConfig {
 
     #[setting(merge = merge::merge_btreemap)]
     #[serde(flatten)]
-    pub versions: BTreeMap<Id, UnresolvedVersionSpec>,
+    pub versions: BTreeMap<Id, ToolSpec>,
 
     #[setting(merge = merge_fxhashmap)]
     #[serde(flatten, skip_serializing)]

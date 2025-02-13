@@ -148,9 +148,7 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
         session.clone(),
         InstallArgs {
             internal: true,
-            spec: Some(UnresolvedVersionSpec::Semantic(SemVer(
-                target_version.clone(),
-            ))),
+            spec: Some(UnresolvedVersionSpec::Semantic(SemVer(target_version.clone())).into()),
             ..Default::default()
         },
         Id::raw(PROTO_PLUGIN_KEY),
