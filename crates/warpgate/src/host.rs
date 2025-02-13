@@ -18,6 +18,7 @@ use warpgate_api::{
     SendRequestOutput,
 };
 
+/// Data passed to each host function.
 #[derive(Clone, Default)]
 pub struct HostData {
     pub cache_dir: PathBuf,
@@ -26,6 +27,7 @@ pub struct HostData {
     pub working_dir: PathBuf,
 }
 
+/// Create a list of our built-in host functions.
 pub fn create_host_functions(data: HostData) -> Vec<Function> {
     vec![
         Function::new(

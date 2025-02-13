@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 use tracing::instrument;
 use warpgate_api::VirtualPath;
 
+/// Create a SHA256 hash key based on the provided URL and seed.
 pub fn create_cache_key(url: &str, seed: Option<&str>) -> String {
     let mut sha = Sha256::new();
     sha.update(url);
@@ -20,21 +21,25 @@ pub fn create_cache_key(url: &str, seed: Option<&str>) -> String {
     format!("{:x}", sha.finalize())
 }
 
+/// Determine the extension to use for a cache file, based on our
+/// list of supported extensions.
 pub fn determine_cache_extension(value: &str) -> Option<&str> {
     [".toml", ".json", ".jsonc", ".yaml", ".yml", ".wasm", ".txt"]
         .into_iter()
         .find(|ext| value.ends_with(ext))
 }
 
+/// Download a file from the provided URL, with the provided HTTP(S)
+/// client, and save it to a destination location.
 #[instrument(skip(client))]
 pub async fn download_from_url_to_file(
     source_url: &str,
-    temp_file: &Path,
+    dest_file: &Path,
     client: &HttpClient,
 ) -> miette::Result<()> {
     if let Err(error) = net::download_from_url_with_options(
         source_url,
-        temp_file,
+        dest_file,
         net::DownloadOptions {
             downloader: Some(Box::new(client.create_downloader())),
             ..Default::default()
@@ -51,6 +56,8 @@ pub async fn download_from_url_to_file(
     Ok(())
 }
 
+/// If the temporary file is an archive, unpack it into the destination,
+/// otherwise more the file into the destination.
 #[instrument]
 pub fn move_or_unpack_download(temp_file: &Path, dest_file: &Path) -> miette::Result<()> {
     // Archive supported file extensions

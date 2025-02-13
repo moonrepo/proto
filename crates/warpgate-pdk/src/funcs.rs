@@ -1,5 +1,5 @@
 use crate::api::populate_send_request_output;
-use crate::{exec_command, host_env, real_path, send_request, virtual_path};
+use crate::{exec_command, send_request};
 use extism_pdk::*;
 use serde::de::DeserializeOwned;
 use std::ffi::OsStr;
@@ -14,10 +14,10 @@ use warpgate_api::{
 extern "ExtismHost" {
     fn exec_command(input: Json<ExecCommandInput>) -> Json<ExecCommandOutput>;
     fn from_virtual_path(input: String) -> String;
-    fn get_env_var(key: &str) -> String;
+    fn get_env_var(key: String) -> String;
     fn send_request(input: Json<SendRequestInput>) -> Json<SendRequestOutput>;
     fn set_env_var(name: String, value: String);
-    fn to_virtual_path(input: String) -> String;
+    fn to_virtual_path(input: String) -> Json<VirtualPath>;
 }
 
 /// Fetch the requested input and return a response.
@@ -173,7 +173,9 @@ pub fn get_host_env_var<K>(key: K) -> AnyResult<Option<String>>
 where
     K: AsRef<str>,
 {
-    Ok(host_env!(key.as_ref()))
+    let inner = unsafe { get_env_var(key.as_ref().into())? };
+
+    Ok(if inner.is_empty() { None } else { Some(inner) })
 }
 
 /// Set the value of an environment variable on the host machine.
@@ -182,7 +184,7 @@ where
     K: AsRef<str>,
     V: AsRef<str>,
 {
-    host_env!(key.as_ref(), value.as_ref());
+    unsafe { set_env_var(key.as_ref().into(), value.as_ref().into())? };
 
     Ok(())
 }
@@ -198,9 +200,7 @@ where
         .map(|p| p.as_ref().to_owned())
         .collect::<Vec<_>>();
 
-    host_env!("PATH", paths.join(":"));
-
-    Ok(())
+    set_host_env_var("PATH", paths.join(":"))
 }
 
 /// Convert the provided path into a [`PathBuf`] instance,
@@ -209,7 +209,9 @@ pub fn into_real_path<P>(path: P) -> AnyResult<PathBuf>
 where
     P: AsRef<OsStr>,
 {
-    Ok(real_path!(path.as_ref().to_string_lossy()))
+    Ok(PathBuf::from(unsafe {
+        from_virtual_path(path.as_ref().to_string_lossy().into())?
+    }))
 }
 
 /// Convert the provided path into a [`VirtualPath`] instance,
@@ -218,7 +220,9 @@ pub fn into_virtual_path<P>(path: P) -> AnyResult<VirtualPath>
 where
     P: AsRef<OsStr>,
 {
-    Ok(virtual_path!(path.as_ref().to_string_lossy()))
+    let data = unsafe { to_virtual_path(path.as_ref().to_string_lossy().into())? };
+
+    Ok(data.0)
 }
 
 /// Return the ID for the current plugin.

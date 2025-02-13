@@ -3,6 +3,7 @@ use starbase_styles::{Style, Stylize};
 use std::path::PathBuf;
 use thiserror::Error;
 
+/// HTTP(S) client errors.
 #[derive(Debug, Diagnostic, Error)]
 pub enum WarpgateClientError {
     #[diagnostic(code(plugin::http_client::request_failed))]
