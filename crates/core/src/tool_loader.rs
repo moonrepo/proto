@@ -146,12 +146,9 @@ pub async fn load_tool_from_locator(
     let locator = locator.as_ref();
 
     let plugin_path = proto.get_plugin_loader()?.load_plugin(id, locator).await?;
-    let plugin_ext = plugin_path
-        .extension()
-        .and_then(|ext| ext.to_str())
-        .map(|ext| ext.to_owned());
+    let plugin_ext = plugin_path.extension().and_then(|ext| ext.to_str());
 
-    let mut manifest = match plugin_ext.as_deref() {
+    let mut manifest = match plugin_ext {
         Some("wasm") => {
             debug!(source = ?plugin_path, "Loading WASM plugin");
 
@@ -212,5 +209,8 @@ pub async fn load_tool(
         None => id.to_owned(),
     };
 
-    load_tool_from_locator(id, proto, locate_tool(&locator_id, proto)?).await
+    let mut tool = load_tool_from_locator(id, proto, locate_tool(&locator_id, proto)?).await?;
+    tool.backend = backend;
+
+    Ok(tool)
 }

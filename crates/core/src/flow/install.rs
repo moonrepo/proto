@@ -6,9 +6,9 @@ use crate::env::ProtoConsole;
 use crate::env_error::ProtoEnvError;
 use crate::helpers::{extract_filename_from_url, is_archive_file, is_offline};
 use crate::tool::Tool;
+use crate::utils::archive;
 use proto_pdk_api::*;
 use proto_shim::*;
-use starbase_archive::Archiver;
 use starbase_styles::color;
 use starbase_utils::net::DownloadOptions;
 use starbase_utils::{fs, net};
@@ -363,13 +363,11 @@ impl Tool {
                 });
             });
 
-            let mut archiver = Archiver::new(install_dir, &download_file);
-
-            if let Some(prefix) = &output.archive_prefix {
-                archiver.set_prefix(prefix);
-            }
-
-            let (ext, unpacked_path) = archiver.unpack_from_ext()?;
+            let (ext, unpacked_path) = archive::unpack(
+                install_dir,
+                &download_file,
+                output.archive_prefix.as_deref(),
+            )?;
 
             // If the archive was `.gz` without tar or other formats,
             // it's a single file, so assume a binary and update perms

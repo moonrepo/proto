@@ -4,6 +4,7 @@ use crate::config::ProtoBuildConfig;
 use crate::env::{ProtoConsole, ProtoEnvironment};
 use crate::helpers::extract_filename_from_url;
 use crate::utils::process::{self, ProcessResult};
+use crate::utils::{archive, git};
 use iocraft::prelude::{element, FlexDirection, View};
 use miette::IntoDiagnostic;
 use proto_pdk_api::{
@@ -12,7 +13,6 @@ use proto_pdk_api::{
 use rustc_hash::FxHashMap;
 use schematic::color::{apply_style_tags, remove_style_tags};
 use semver::{Version, VersionReq};
-use starbase_archive::Archiver;
 use starbase_console::ui::{
     Confirm, Container, Entry, ListCheck, ListItem, Section, Select, SelectOption, Style,
     StyledText,
@@ -309,14 +309,7 @@ async fn checkout_git_repo(
     builder: &mut Builder<'_>,
 ) -> miette::Result<()> {
     if cwd.join(".git").exists() {
-        builder
-            .exec_command(
-                Command::new("git")
-                    .args(["pull", "--ff", "--prune"])
-                    .current_dir(cwd),
-                false,
-            )
-            .await?;
+        builder.exec_command(&mut git::pull(cwd), false).await?;
 
         return Ok(());
     }
@@ -324,32 +317,14 @@ async fn checkout_git_repo(
     fs::create_dir_all(cwd)?;
 
     builder
-        .exec_command(
-            Command::new("git")
-                .args(if git.submodules {
-                    vec!["clone", "--recurse-submodules"]
-                } else {
-                    vec!["clone"]
-                })
-                .args(["--depth", "1"])
-                .arg(&git.url)
-                .arg(".")
-                .current_dir(cwd),
-            false,
-        )
+        .exec_command(&mut git::clone(git, cwd), false)
         .await?;
 
     if let Some(reference) = &git.reference {
         builder.render_checkpoint(format!("Checking out reference <hash>{}</hash>", reference))?;
 
         builder
-            .exec_command(
-                Command::new("git")
-                    .arg("checkout")
-                    .arg(reference)
-                    .current_dir(cwd),
-                false,
-            )
+            .exec_command(&mut git::checkout(reference, cwd), false)
             .await?;
     }
 
@@ -802,7 +777,6 @@ pub async fn download_sources(
     match source {
         SourceLocation::Archive(archive) => {
             let filename = extract_filename_from_url(&archive.url)?;
-            let download_file = builder.options.temp_dir.join(&filename);
 
             // Download
             builder.options.on_phase_change.as_ref().inspect(|func| {
@@ -817,9 +791,9 @@ pub async fn download_sources(
                 archive.url
             ))?;
 
-            net::download_from_url_with_client(
+            let download_file = archive::download(
                 &archive.url,
-                &download_file,
+                builder.options.temp_dir,
                 builder.options.http_client.to_inner(),
             )
             .await?;
@@ -836,13 +810,11 @@ pub async fn download_sources(
                 builder.options.install_dir.display()
             ))?;
 
-            let mut archiver = Archiver::new(builder.options.install_dir, &download_file);
-
-            if let Some(prefix) = &archive.prefix {
-                archiver.set_prefix(prefix);
-            }
-
-            archiver.unpack_from_ext()?;
+            archive::unpack(
+                builder.options.install_dir,
+                &download_file,
+                archive.prefix.as_deref(),
+            )?;
         }
         SourceLocation::Git(git) => {
             builder.options.on_phase_change.as_ref().inspect(|func| {

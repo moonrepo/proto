@@ -25,8 +25,12 @@
   - If the build fails, a markdown compatible log file will be written to the current directory.
 - Disabled HTTP request caching when in a Docker container.
 - Improved our errors implementation, rewriting some error messages, and updating error codes.
+- Started on a new "backend" plugin system, allowing third-party tools to be used as proto plugins. For example, asdf on Unix, and scoop on Windows. This will land in the next release.
 - WASM API
   - Added `BuildInstruction::RemoveAllExcept` variant.
+  - Added `register_backend` function.
+  - Renamed `ToolMetadataInput` to `RegisterToolInput`.
+  - Renamed `ToolMetadataOutput` to `RegisterToolOutput`.
 
 #### ⚙️ Internal
 
