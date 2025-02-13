@@ -19,7 +19,7 @@ macro_rules! generate_build_install_tests {
                 .setup(
                     &spec,
                     proto_pdk_test_utils::flow::install::InstallOptions {
-                        strategy: proto_pdk_api::InstallStrategy::BuildFromSource,
+                        strategy: proto_pdk_test_utils::InstallStrategy::BuildFromSource,
                         skip_prompts: true,
                         skip_ui: true,
                         ..Default::default()
