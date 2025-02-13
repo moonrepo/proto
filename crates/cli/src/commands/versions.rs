@@ -42,6 +42,7 @@ pub async fn versions(session: ProtoSession, args: VersionsArgs) -> AppResult {
     let tool = session
         .load_tool_with_options(
             &args.id,
+            None,
             LoadToolOptions {
                 inherit_local: true,
                 inherit_remote: true,

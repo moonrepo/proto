@@ -134,7 +134,8 @@ pub fn enforce_requirements(tool: &Tool, versions: &BTreeMap<Id, ToolSpec>) -> m
 pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> AppResult {
     debug!(id = id.as_str(), "Loading tool");
 
-    let tool = session.load_tool(&id).await?;
+    let spec = args.get_tool_spec();
+    let tool = session.load_tool(&id, Some(spec.backend)).await?;
 
     // Load config including global versions,
     // so that our requirements can be satisfied
@@ -165,7 +166,7 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
 
     let result = workflow
         .install(
-            args.get_tool_spec(),
+            spec,
             InstallWorkflowParams {
                 pin_to: args.get_pin_location(),
                 strategy: args.get_strategy(),

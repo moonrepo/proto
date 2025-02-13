@@ -65,7 +65,7 @@ async fn track_uninstall(tool: &Tool, all: bool) -> miette::Result<()> {
 
 #[instrument(skip(session))]
 async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult {
-    let mut tool = session.load_tool(&args.id).await?;
+    let mut tool = session.load_tool(&args.id, None).await?;
     let inventory_dir = tool.get_inventory_dir();
     let version_count = tool.inventory.manifest.installed_versions.len();
     let skip_prompts = session.should_skip_prompts();
@@ -146,7 +146,7 @@ async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult 
 
 #[instrument(skip(session))]
 async fn uninstall_one(session: ProtoSession, args: UninstallArgs, spec: ToolSpec) -> AppResult {
-    let mut tool = session.load_tool(&args.id).await?;
+    let mut tool = session.load_tool(&args.id, Some(spec.backend)).await?;
 
     if !tool.is_setup_with_spec(&spec).await? {
         session.console.render(element! {

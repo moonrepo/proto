@@ -19,7 +19,7 @@ pub struct UnaliasArgs {
 
 #[tracing::instrument(skip_all)]
 pub async fn unalias(session: ProtoSession, args: UnaliasArgs) -> AppResult {
-    let tool = session.load_tool(&args.id).await?;
+    let tool = session.load_tool(&args.id, None).await?;
     let mut value = None;
 
     let config_path = ProtoConfig::update(tool.proto.get_config_dir(args.from), |config| {

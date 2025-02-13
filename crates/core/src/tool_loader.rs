@@ -2,6 +2,7 @@ use crate::config::SCHEMA_PLUGIN_KEY;
 use crate::env::ProtoEnvironment;
 use crate::tool::Tool;
 use crate::tool_error::ProtoToolError;
+use crate::tool_spec::Backend;
 use convert_case::{Case, Casing};
 use starbase_utils::{json, toml, yaml};
 use std::fmt::Debug;
@@ -85,17 +86,13 @@ pub async fn load_schema_plugin_with_proto(
 
 pub fn load_schema_config(plugin_path: &Path) -> miette::Result<json::JsonValue> {
     let mut is_toml = false;
-    let mut schema: json::JsonValue = match plugin_path
-        .extension()
-        .and_then(|ext| ext.to_str())
-        .unwrap()
-    {
-        "toml" => {
+    let mut schema: json::JsonValue = match plugin_path.extension().and_then(|ext| ext.to_str()) {
+        Some("toml") => {
             is_toml = true;
             toml::read_file(plugin_path)?
         }
-        "json" | "jsonc" => json::read_file(plugin_path)?,
-        "yaml" | "yml" => yaml::read_file(plugin_path)?,
+        Some("json" | "jsonc") => json::read_file(plugin_path)?,
+        Some("yaml" | "yml") => yaml::read_file(plugin_path)?,
         _ => unimplemented!(),
     };
 
@@ -188,6 +185,29 @@ pub async fn load_tool_from_locator(
     Ok(tool)
 }
 
-pub async fn load_tool_with_proto(id: &Id, proto: &ProtoEnvironment) -> miette::Result<Tool> {
-    load_tool_from_locator(id, proto, locate_tool(id, proto)?).await
+pub async fn load_tool(
+    id: &Id,
+    proto: &ProtoEnvironment,
+    backend: Option<Backend>,
+) -> miette::Result<Tool> {
+    // Determine the backend plugin to use
+    let backend = match backend {
+        Some(be) => be,
+        None => proto
+            .load_config()?
+            .tools
+            .get(id)
+            .and_then(|cfg| Some(cfg.backend))
+            .unwrap_or_default(),
+    };
+
+    // If backend is proto, use the tool's plugin,
+    // otherwise use the backend plugin itself
+    let locator = if backend == Backend::Proto {
+        locate_tool(id, proto)?
+    } else {
+        locate_tool(&Id::raw(backend.to_string()), proto)?
+    };
+
+    load_tool_from_locator(id, proto, locator).await
 }

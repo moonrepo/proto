@@ -8,7 +8,7 @@ use async_trait::async_trait;
 use miette::IntoDiagnostic;
 use proto_core::registry::ProtoRegistry;
 use proto_core::{
-    load_schema_plugin_with_proto, load_tool_from_locator, load_tool_with_proto, ConfigMode, Id,
+    load_schema_plugin_with_proto, load_tool, load_tool_from_locator, Backend, ConfigMode, Id,
     ProtoConfig, ProtoEnvironment, Tool, ToolSpec, UnresolvedVersionSpec, PROTO_PLUGIN_KEY,
     SCHEMA_PLUGIN_KEY,
 };
@@ -80,8 +80,8 @@ impl ProtoSession {
         self.env.load_config_with_mode(mode)
     }
 
-    pub async fn load_tool(&self, id: &Id) -> miette::Result<ToolRecord> {
-        self.load_tool_with_options(id, LoadToolOptions::default())
+    pub async fn load_tool(&self, id: &Id, backend: Option<Backend>) -> miette::Result<ToolRecord> {
+        self.load_tool_with_options(id, backend, LoadToolOptions::default())
             .await
     }
 
@@ -89,9 +89,10 @@ impl ProtoSession {
     pub async fn load_tool_with_options(
         &self,
         id: &Id,
+        backend: Option<Backend>,
         options: LoadToolOptions,
     ) -> miette::Result<ToolRecord> {
-        let mut record = ToolRecord::new(load_tool_with_proto(id, &self.env).await?);
+        let mut record = ToolRecord::new(load_tool(id, &self.env, backend).await?);
 
         if options.inherit_remote {
             record.inherit_from_remote().await?;

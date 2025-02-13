@@ -43,6 +43,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
     let mut tool = session
         .load_tool_with_options(
             &args.id,
+            None,
             LoadToolOptions {
                 detect_version: true,
                 inherit_local: true,

@@ -32,7 +32,9 @@ pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
         return Ok(None);
     }
 
-    let mut tool = session.load_tool(&args.id).await?;
+    let mut tool = session
+        .load_tool(&args.id, args.spec.clone().map(|spec| spec.backend))
+        .await?;
     let spec = detect_version_with_spec(&tool, args.spec.clone()).await?;
 
     tool.resolve_version_with_spec(&spec, true).await?;
