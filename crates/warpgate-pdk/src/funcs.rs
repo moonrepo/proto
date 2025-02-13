@@ -1,17 +1,23 @@
 use crate::api::populate_send_request_output;
-use crate::{exec_command, send_request};
+use crate::{exec_command, host_env, real_path, send_request, virtual_path};
 use extism_pdk::*;
 use serde::de::DeserializeOwned;
+use std::ffi::OsStr;
+use std::path::PathBuf;
 use std::vec;
 use warpgate_api::{
     anyhow, AnyResult, ExecCommandInput, ExecCommandOutput, HostEnvironment, HostOS,
-    SendRequestInput, SendRequestOutput, TestEnvironment,
+    SendRequestInput, SendRequestOutput, TestEnvironment, VirtualPath,
 };
 
 #[host_fn]
 extern "ExtismHost" {
     fn exec_command(input: Json<ExecCommandInput>) -> Json<ExecCommandOutput>;
+    fn from_virtual_path(input: String) -> String;
+    fn get_env_var(key: &str) -> String;
     fn send_request(input: Json<SendRequestInput>) -> Json<SendRequestOutput>;
+    fn set_env_var(name: String, value: String);
+    fn to_virtual_path(input: String) -> String;
 }
 
 /// Fetch the requested input and return a response.
@@ -92,7 +98,7 @@ where
 }
 
 /// Load all Git tags from the provided remote URL.
-/// The `git` binary must exist on the current machine.
+/// The `git` binary must exist on the host machine.
 pub fn load_git_tags<U>(url: U) -> AnyResult<Vec<String>>
 where
     U: AsRef<str>,
@@ -160,6 +166,59 @@ pub fn command_exists(env: &HostEnvironment, command: &str) -> bool {
     debug!("Command does NOT exist");
 
     false
+}
+
+/// Return the value of an environment variable on the host machine.
+pub fn get_host_env_var<K>(key: K) -> AnyResult<Option<String>>
+where
+    K: AsRef<str>,
+{
+    Ok(host_env!(key.as_ref()))
+}
+
+/// Set the value of an environment variable on the host machine.
+pub fn set_host_env_var<K, V>(key: K, value: V) -> AnyResult<()>
+where
+    K: AsRef<str>,
+    V: AsRef<str>,
+{
+    host_env!(key.as_ref(), value.as_ref());
+
+    Ok(())
+}
+
+/// Append paths to the `PATH` environment variable on the host machine.
+pub fn add_host_paths<I, P>(paths: I) -> AnyResult<()>
+where
+    I: IntoIterator<Item = P>,
+    P: AsRef<str>,
+{
+    let paths = paths
+        .into_iter()
+        .map(|p| p.as_ref().to_owned())
+        .collect::<Vec<_>>();
+
+    host_env!("PATH", paths.join(":"));
+
+    Ok(())
+}
+
+/// Convert the provided path into a [`PathBuf`] instance,
+/// with the prefix resolved absolutely to the host.
+pub fn into_real_path<P>(path: P) -> AnyResult<PathBuf>
+where
+    P: AsRef<OsStr>,
+{
+    Ok(real_path!(path.as_ref().to_string_lossy()))
+}
+
+/// Convert the provided path into a [`VirtualPath`] instance,
+/// with the prefix resolved to the WASM virtual whitelist.
+pub fn into_virtual_path<P>(path: P) -> AnyResult<VirtualPath>
+where
+    P: AsRef<OsStr>,
+{
+    Ok(virtual_path!(path.as_ref().to_string_lossy()))
 }
 
 /// Return the ID for the current plugin.

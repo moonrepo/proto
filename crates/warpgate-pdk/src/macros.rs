@@ -1,4 +1,4 @@
-/// Return an error message wrapped in [`WithReturnCode`], for use within `#[plugin_fn]`.
+/// Return an error message wrapped in `WithReturnCode` , for use within `#[plugin_fn]`.
 #[macro_export]
 macro_rules! plugin_err {
     (code = $code:expr, $($arg:tt)+) => {
@@ -99,7 +99,7 @@ macro_rules! host_env {
             } else {
                 Some(inner)
             }
-        };
+        }
     };
 }
 
