@@ -1,6 +1,6 @@
 use crate::config_error::ProtoConfigError;
 use crate::helpers::ENV_VAR_SUB;
-use crate::tool_spec::ToolSpec;
+use crate::tool_spec::{Backend, ToolSpec};
 use indexmap::IndexMap;
 use once_cell::sync::OnceCell;
 use rustc_hash::FxHashMap;
@@ -194,6 +194,8 @@ pub struct ProtoToolConfig {
     #[setting(merge = merge::merge_btreemap)]
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub aliases: BTreeMap<String, ToolSpec>,
+
+    pub backend: Backend,
 
     #[setting(nested, merge = merge_indexmap)]
     #[serde(skip_serializing_if = "IndexMap::is_empty")]
