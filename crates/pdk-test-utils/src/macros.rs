@@ -14,7 +14,7 @@ macro_rules! generate_build_install_tests {
             };
             let spec = UnresolvedVersionSpec::parse($version).unwrap();
 
-            plugin
+            let result = plugin
                 .tool
                 .setup(
                     &spec,
@@ -26,8 +26,20 @@ macro_rules! generate_build_install_tests {
                         ..Default::default()
                     },
                 )
-                .await
-                .unwrap();
+                .await;
+
+            // Print the log so we can debug
+            if result.is_err() {
+                println!(
+                    "{}",
+                    std::fs::read_to_string(
+                        sandbox.path().join(format!("proto-{}-build.log", $id))
+                    )
+                    .unwrap()
+                );
+            }
+
+            result.unwrap();
 
             // Check install dir exists
             let base_dir = sandbox.proto_dir.join("tools").join($id).join($version);
