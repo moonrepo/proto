@@ -5,7 +5,7 @@ macro_rules! generate_build_install_tests {
     };
     ($id:literal, $version:literal, $schema:expr) => {
         #[tokio::test(flavor = "multi_thread")]
-        async fn buils_installs_tool_from_source() {
+        async fn builds_installs_tool_from_source() {
             let sandbox = create_empty_proto_sandbox();
             let mut plugin = if let Some(schema) = $schema {
                 sandbox.create_schema_plugin($id, schema).await
@@ -19,6 +19,7 @@ macro_rules! generate_build_install_tests {
                 .setup(
                     &spec,
                     proto_pdk_test_utils::flow::install::InstallOptions {
+                        console: Some(proto_pdk_test_utils::ProtoConsole::new_testing()),
                         strategy: proto_pdk_test_utils::InstallStrategy::BuildFromSource,
                         skip_prompts: true,
                         skip_ui: true,
