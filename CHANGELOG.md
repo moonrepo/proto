@@ -16,6 +16,11 @@
 
 ## Unreleased
 
+#### 💥 Breaking
+
+- WASM API
+  - Removed deprecated `fetch`, `fetch_url`, `fetch_url_bytes`, `fetch_url_text`, and `fetch_url_with_cache` helper functions. Use the newer fetch functions instead.
+
 #### 🚀 Updates
 
 - Added `$XDG_DATA_HOME` support when detecting the proto store. Will be used if `$PROTO_HOME` is not set, and will fallback to `$HOME/.proto`.
@@ -25,12 +30,29 @@
   - If the build fails, a markdown compatible log file will be written to the current directory.
 - Disabled HTTP request caching when in a Docker container.
 - Improved our errors implementation, rewriting some error messages, and updating error codes.
-- Started on a new "backend" plugin system, allowing third-party tools to be used as proto plugins. For example, asdf on Unix, and scoop on Windows. This will land in the next release.
+- Started on a new "backend" plugin system, allowing third-party tools to be used as proto plugins.
+  - For example, asdf on Unix, and scoop on Windows. This will land in the next release.
 - WASM API
   - Added `BuildInstruction::RemoveAllExcept` variant.
-  - Added `register_backend` function.
+  - Added `register_backend` plugin function.
+  - Added `fetch`, `exec`, `exec_captured`, `exec_streamed`, `get_host_env_var`, `set_host_env_var`, `add_host_paths`, `into_real_path`, and `into_virtual_path` helper functions.
+  - Added `generate_build_install_tests!` test macro.
   - Renamed `ToolMetadataInput` to `RegisterToolInput`.
   - Renamed `ToolMetadataOutput` to `RegisterToolOutput`.
+
+#### 🧩 Plugins
+
+- Updated `bun_tool` to v0.15.
+- Updated `deno_tool` to v0.15.
+- Updated `go_tool` to v0.16.
+- Updated `moon_tool` v0.3.
+- Updated `node_tool` to v0.16.
+- Updated `node_depman_tool` to v0.15.
+- Updated `python_tool` to v0.14.
+- Updated `python_uv_tool` v0.2.
+- Updated `ruby_tool` v0.2.
+- Updated `rust_tool` to v0.13.
+- Updated `schema_tool` to v0.17.
 
 #### ⚙️ Internal
 

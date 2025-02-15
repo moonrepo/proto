@@ -2809,7 +2809,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.45.4"
+version = "0.47.0"
 dependencies = [
  "clap",
  "convert_case",
@@ -2848,7 +2848,7 @@ dependencies = [
 
 [[package]]
 name = "proto_installer"
-version = "0.9.0"
+version = "0.11.0"
 dependencies = [
  "miette 7.5.0",
  "reqwest",
@@ -2862,7 +2862,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.26.2"
+version = "0.27.0"
 dependencies = [
  "extism-pdk",
  "proto_pdk_api",
@@ -2873,7 +2873,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.25.3"
+version = "0.26.0"
 dependencies = [
  "proto_pdk_api",
  "rustc-hash",
@@ -2889,7 +2889,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.32.2"
+version = "0.34.4"
 dependencies = [
  "proto_core",
  "proto_pdk_api",
@@ -4076,7 +4076,7 @@ dependencies = [
 
 [[package]]
 name = "system_env"
-version = "0.7.1"
+version = "0.7.2"
 dependencies = [
  "regex",
  "schematic",
@@ -4626,7 +4626,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "version_spec"
-version = "0.7.2"
+version = "0.8.0"
 dependencies = [
  "compact_str",
  "human-sort",
@@ -4667,7 +4667,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.21.1"
+version = "0.22.1"
 dependencies = [
  "async-trait",
  "compact_str",
@@ -4698,7 +4698,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_api"
-version = "0.11.1"
+version = "0.12.0"
 dependencies = [
  "anyhow",
  "rustc-hash",
@@ -4711,7 +4711,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_pdk"
-version = "0.9.1"
+version = "0.11.0"
 dependencies = [
  "extism-pdk",
  "serde",

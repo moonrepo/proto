@@ -14,6 +14,7 @@ use starbase_utils::{
 use std::path::PathBuf;
 use tracing::{debug, trace, warn};
 
+/// A downloader that uses our internal HTTP(S) client.
 pub struct HttpDownloader {
     client: HttpClient,
 }
@@ -43,6 +44,8 @@ impl Downloader for HttpDownloader {
 // `ClientWithMiddleware` doesn't allow access to their inner `Client`,
 // so we unfortunately need to keep a reference to both.
 // https://github.com/TrueLayer/reqwest-middleware/issues/203
+
+/// An HTTP(S) client with middleware that wraps [`reqwest::Client`].
 #[derive(Clone, Default)]
 pub struct HttpClient {
     client: Client,
@@ -82,7 +85,7 @@ impl Deref for HttpClient {
     }
 }
 
-/// Configures the HTTPS client used for making requests.
+/// Configures the HTTP(S) client used for making requests.
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 #[serde(default, rename_all = "kebab-case")]
 #[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
@@ -104,12 +107,12 @@ pub struct HttpOptions {
     pub root_cert: Option<PathBuf>,
 }
 
-/// Create an HTTP/HTTPS client that'll be used for downloading files.
+/// Create an HTTP(S) client that'll be used for downloading files.
 pub fn create_http_client() -> miette::Result<HttpClient> {
     create_http_client_with_options(&HttpOptions::default())
 }
 
-/// Create an HTTP/HTTPS client with the provided options, that'll be
+/// Create an HTTP(S) client with the provided options, that'll be
 /// used for downloading files.
 pub fn create_http_client_with_options(options: &HttpOptions) -> miette::Result<HttpClient> {
     debug!("Creating HTTP client");

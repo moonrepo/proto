@@ -50,15 +50,17 @@ impl From<String> for HostLogInput {
 
 api_struct!(
     /// Input passed to the `exec_command` host function.
+    #[serde(default)]
     pub struct ExecCommandInput {
         /// The command or script to execute.
         pub command: String,
 
         /// Arguments to pass to the command.
+        #[serde(skip_serializing_if = "Vec::is_empty")]
         pub args: Vec<String>,
 
         /// Environment variables to pass to the command.
-        #[serde(default)]
+        #[serde(skip_serializing_if = "FxHashMap::is_empty")]
         pub env: FxHashMap<String, String>,
 
         /// Mark the command as executable before executing.
@@ -66,11 +68,10 @@ api_struct!(
         pub set_executable: bool,
 
         /// Stream the output instead of capturing it.
-        #[serde(default)]
         pub stream: bool,
 
         /// Override the current working directory.
-        #[serde(default)]
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub working_dir: Option<VirtualPath>,
     }
 );

@@ -3,6 +3,7 @@ use miette::Diagnostic;
 use starbase_styles::{Style, Stylize};
 use thiserror::Error;
 
+/// Plugin/runtime errors.
 #[derive(Debug, Diagnostic, Error)]
 pub enum WarpgatePluginError {
     #[diagnostic(code(plugin::wasm::failed_container))]
