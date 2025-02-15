@@ -96,7 +96,7 @@ mod uninstall {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("uninstall").arg("node").arg("19.0.0");
+                cmd.arg("uninstall").arg("node").arg("19.0.0").arg("--yes");
             })
             .success();
 

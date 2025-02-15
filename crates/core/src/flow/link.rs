@@ -77,10 +77,13 @@ impl Tool {
             registry.insert(shim.name.clone(), shim_entry);
         }
 
-        // Only lock the directory and create shims if necessary
+        // Only create shims if necessary
         if !to_create.is_empty() {
-            // let _lock = fs::lock_directory(&self.proto.store.shims_dir)?;
             fs::create_dir_all(&self.proto.store.shims_dir)?;
+
+            // Lock for our tests because of race conditions
+            #[cfg(debug_assertions)]
+            let _lock = fs::lock_directory(&self.proto.store.shims_dir)?;
 
             for shim_path in to_create {
                 self.proto.store.create_shim(&shim_path)?;
@@ -154,10 +157,13 @@ impl Tool {
             to_create.push((input_path, output_path));
         }
 
-        // Only lock the directory and create bins if necessary
+        // Only create bins if necessary
         if !to_create.is_empty() {
-            // let _lock = fs::lock_directory(&self.proto.store.bin_dir)?;
             fs::create_dir_all(&self.proto.store.bin_dir)?;
+
+            // Lock for our tests because of race conditions
+            #[cfg(debug_assertions)]
+            let _lock = fs::lock_directory(&self.proto.store.bin_dir)?;
 
             for (input_path, output_path) in to_create {
                 debug!(
