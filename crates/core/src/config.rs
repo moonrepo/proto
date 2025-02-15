@@ -366,7 +366,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("moon"),
                 PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/moon_tool-v0.2.0/moon_tool.wasm".into()
+                    url: "https://github.com/moonrepo/plugins/releases/download/moon_tool-v0.3.0/moon_tool.wasm".into()
                 }))
             );
         }
@@ -375,7 +375,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("node"),
                 PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/node_tool-v0.15.0/node_tool.wasm".into()
+                    url: "https://github.com/moonrepo/plugins/releases/download/node_tool-v0.16.0/node_tool.wasm".into()
                 }))
             );
         }

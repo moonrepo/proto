@@ -45,8 +45,8 @@
 - Updated `bun_tool` to v0.15.
 - Updated `deno_tool` to v0.15.
 - Updated `go_tool` to v0.16.
-- Updated `moon_tool` v0.2.
-- Updated `node_tool` to v0.15.
+- Updated `moon_tool` v0.3.
+- Updated `node_tool` to v0.16.
 - Updated `node_depman_tool` to v0.15.
 - Updated `python_tool` to v0.14.
 - Updated `python_uv_tool` v0.2.
