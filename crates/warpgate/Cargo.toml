@@ -8,7 +8,7 @@ repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
 system_env = { version = "0.7.2", path = "../system-env" }
-warpgate_api = { version = "0.12.0", path = "../warpgate-api" }
+warpgate_api = { version = "0.12.1", path = "../warpgate-api" }
 async-trait = { workspace = true }
 compact_str = { workspace = true }
 extism = { workspace = true, features = ["http"] }
