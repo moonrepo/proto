@@ -4,6 +4,7 @@ use starbase_styles::{Style, Stylize};
 use std::path::PathBuf;
 use thiserror::Error;
 
+/// Loader errors.
 #[derive(Debug, Diagnostic, Error)]
 pub enum WarpgateLoaderError {
     #[diagnostic(code(plugin::loader::github::asset_missing))]

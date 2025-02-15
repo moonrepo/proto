@@ -5,6 +5,7 @@ use serde::{de, Deserialize, Deserializer, Serialize};
 use std::sync::LazyLock;
 use std::{borrow::Borrow, fmt, ops::Deref, str::FromStr};
 
+#[doc(hidden)]
 pub static ID_PATTERN: LazyLock<Regex> =
     LazyLock::new(|| Regex::new("^[a-zA-Z][a-zA-Z0-9-_]*$").unwrap());
 

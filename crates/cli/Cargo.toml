@@ -32,11 +32,11 @@ name = "proto-shim"
 path = "src/main_shim.rs"
 
 [dependencies]
-proto_core = { version = "0.45.4", path = "../core", features = ["clap"] }
-proto_installer = { version = "0.9.0", path = "../installer" }
-proto_pdk_api = { version = "0.25.3", path = "../pdk-api" }
+proto_core = { version = "0.47.0", path = "../core", features = ["clap"] }
+proto_installer = { version = "0.11.0", path = "../installer" }
+proto_pdk_api = { version = "0.26.0", path = "../pdk-api" }
 proto_shim = { version = "0.6.0", path = "../shim" }
-system_env = { version = "0.7.1", path = "../system-env" }
+system_env = { version = "0.7.2", path = "../system-env" }
 anyhow = { workspace = true }
 async-trait = { workspace = true }
 chrono = "0.4.39"

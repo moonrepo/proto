@@ -5,6 +5,7 @@ use std::env;
 use std::path::{Path, PathBuf};
 use warpgate_api::{HostArch, HostEnvironment, HostLibc, HostOS, TestEnvironment, VirtualPath};
 
+/// Find the WASM compiled target directory.
 pub fn find_target_dir<T: AsRef<Path>>(search_dir: T) -> Option<PathBuf> {
     let mut dir = search_dir.as_ref();
     let profiles = ["debug", "release"];
@@ -40,6 +41,8 @@ pub fn find_target_dir<T: AsRef<Path>>(search_dir: T) -> Option<PathBuf> {
     None
 }
 
+/// Find an applicable WASM file to return tests with. Will attempt to find
+/// the file based on the Cargo package name and target directories.
 pub fn find_wasm_file() -> PathBuf {
     let wasm_file_name = env::var("CARGO_PKG_NAME").expect("Missing CARGO_PKG_NAME!");
 

@@ -42,6 +42,10 @@ pub struct DependencyConfig {
     /// The dependency name or name(s) to install.
     pub dep: DependencyName,
 
+    /// The name of the executable (without ext) that this
+    /// dependency installs, and can be found when searching `PATH`.
+    pub exe_name: Option<String>,
+
     /// Only install with this package manager.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub manager: Option<SystemPackageManager>,
@@ -192,6 +196,14 @@ impl SystemDependency {
         }))
     }
 
+    /// Convert into the `Config` variant.
+    pub fn into_config(self) -> SystemDependency {
+        match self {
+            Self::Config(config) => SystemDependency::Config(config),
+            _ => SystemDependency::Config(Box::new(self.to_config())),
+        }
+    }
+
     /// Convert and expand to a dependency configuration.
     pub fn to_config(&self) -> DependencyConfig {
         match self {
@@ -213,5 +225,18 @@ impl SystemDependency {
             },
             Self::Config(config) => (**config).to_owned(),
         }
+    }
+
+    /// Convert to the `Config` variant and allow the [`DependencyConfig`]
+    /// to be mutated through a callback function.
+    pub fn with_config(self, mut op: impl FnMut(&mut DependencyConfig)) -> SystemDependency {
+        let mut config = match self {
+            Self::Config(config) => *config,
+            _ => self.to_config(),
+        };
+
+        op(&mut config);
+
+        Self::Config(Box::new(config))
     }
 }
