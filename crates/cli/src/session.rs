@@ -133,7 +133,7 @@ impl ProtoSession {
         // Gather the IDs of all possible tools. We can't just use the
         // `plugins` map, because some tools may not have a plugin entry,
         // for example, those using backends.
-        let mut ids = vec![];
+        let mut ids = FxHashSet::default();
         ids.extend(config.plugins.keys());
         ids.extend(config.versions.keys());
 
