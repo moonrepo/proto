@@ -47,13 +47,17 @@ mod clean {
             })
             .success();
 
-        assert!(!sandbox
-            .path()
-            .join(".proto/plugins/node_plugin.wasm")
-            .exists());
-        assert!(sandbox
-            .path()
-            .join(".proto/plugins/npm_plugin.wasm")
-            .exists());
+        assert!(
+            !sandbox
+                .path()
+                .join(".proto/plugins/node_plugin.wasm")
+                .exists()
+        );
+        assert!(
+            sandbox
+                .path()
+                .join(".proto/plugins/npm_plugin.wasm")
+                .exists()
+        );
     }
 }

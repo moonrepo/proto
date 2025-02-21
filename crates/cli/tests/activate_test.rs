@@ -4,7 +4,7 @@ mod utils;
 #[cfg(unix)]
 mod activate {
     use crate::utils::*;
-    use starbase_sandbox::{assert_snapshot, Sandbox, SandboxAssert};
+    use starbase_sandbox::{Sandbox, SandboxAssert, assert_snapshot};
 
     fn get_activate_output(assert: &SandboxAssert, sandbox: &Sandbox) -> String {
         let root = sandbox.path().to_str().unwrap();

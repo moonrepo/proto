@@ -94,11 +94,7 @@ macro_rules! host_env {
         unsafe {
             let inner = get_env_var($name.try_into()?)?;
 
-            if inner.is_empty() {
-                None
-            } else {
-                Some(inner)
-            }
+            if inner.is_empty() { None } else { Some(inner) }
         }
     };
 }

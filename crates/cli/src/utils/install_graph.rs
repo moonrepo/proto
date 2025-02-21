@@ -1,8 +1,8 @@
 use super::tool_record::ToolRecord;
 use proto_core::Id;
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::sync::RwLock;
 
 #[derive(Debug)]

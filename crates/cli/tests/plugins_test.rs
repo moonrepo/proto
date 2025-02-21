@@ -2,8 +2,8 @@ mod utils;
 
 use proto_core::flow::install::InstallOptions;
 use proto_core::{
-    load_tool_from_locator, warpgate::FileLocator, warpgate::UrlLocator, Id, PluginLocator,
-    ProtoEnvironment, Tool, UnresolvedVersionSpec,
+    Id, PluginLocator, ProtoEnvironment, Tool, UnresolvedVersionSpec, load_tool_from_locator,
+    warpgate::FileLocator, warpgate::UrlLocator,
 };
 use starbase_sandbox::assert_snapshot;
 use starbase_sandbox::predicates::prelude::*;

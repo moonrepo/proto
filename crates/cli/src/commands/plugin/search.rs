@@ -1,8 +1,8 @@
 use crate::session::ProtoSession;
 use clap::Args;
-use iocraft::prelude::{element, FlexDirection, Size, Text, View};
-use proto_core::registry::PluginFormat;
+use iocraft::prelude::{FlexDirection, Size, Text, View, element};
 use proto_core::PluginLocator;
+use proto_core::registry::PluginFormat;
 use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_utils::json;

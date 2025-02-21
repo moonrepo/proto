@@ -1,5 +1,5 @@
 use proto_core::{
-    resolve_version, ProtoToolConfig, SemVer, ToolManifest, UnresolvedVersionSpec, VersionSpec,
+    ProtoToolConfig, SemVer, ToolManifest, UnresolvedVersionSpec, VersionSpec, resolve_version,
 };
 use semver::Version;
 use std::collections::BTreeMap;

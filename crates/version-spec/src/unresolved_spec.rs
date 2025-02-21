@@ -3,7 +3,7 @@
 use crate::spec_error::SpecError;
 use crate::unresolved_parser::*;
 use crate::version_types::*;
-use crate::{clean_version_req_string, clean_version_string, is_alias_name, VersionSpec};
+use crate::{VersionSpec, clean_version_req_string, clean_version_string, is_alias_name};
 use compact_str::CompactString;
 use semver::VersionReq;
 use serde::{Deserialize, Serialize};

@@ -1,8 +1,8 @@
 use miette::IntoDiagnostic;
 use regex::Regex;
 use semver::Version;
-use serde::de::DeserializeOwned;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 use starbase_archive::is_supported_archive_extension;
 use starbase_utils::env::bool_var;
 use starbase_utils::fs;

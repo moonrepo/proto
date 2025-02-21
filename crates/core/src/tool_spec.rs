@@ -1,5 +1,5 @@
 use crate::tool_error::ProtoToolError;
-use schematic::{derive_enum, ConfigEnum};
+use schematic::{ConfigEnum, derive_enum};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;

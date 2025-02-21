@@ -1,7 +1,7 @@
 [package]
 name = "warpgate"
 version = "0.22.1"
-edition = "2021"
+edition = "2024"
 license = "MIT"
 description = "Download, resolve, and manage Extism WASM plugins."
 repository = "https://github.com/moonrepo/proto"

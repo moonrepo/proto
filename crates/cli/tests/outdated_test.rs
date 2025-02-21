@@ -156,11 +156,15 @@ mod outdated {
                 .unwrap()
                 .contains("6.0.0")
         );
-        assert!(!fs::read_to_string(sandbox.path().join("a/.prototools"))
-            .unwrap()
-            .contains("19.0.0"));
-        assert!(!fs::read_to_string(sandbox.path().join("a/b/.prototools"))
-            .unwrap()
-            .contains("8.0.0"));
+        assert!(
+            !fs::read_to_string(sandbox.path().join("a/.prototools"))
+                .unwrap()
+                .contains("19.0.0")
+        );
+        assert!(
+            !fs::read_to_string(sandbox.path().join("a/b/.prototools"))
+                .unwrap()
+                .contains("8.0.0")
+        );
     }
 }

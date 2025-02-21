@@ -2,7 +2,7 @@ use process_wrap::std::*;
 use std::fs;
 use std::io;
 use std::path::Path;
-use std::process::{exit, Command};
+use std::process::{Command, exit};
 
 // Use job objects for process grouping, as there's no way to replace the process.
 // @see https://github.com/rust-lang/cargo/blob/master/crates/cargo-util/src/process_builder.rs#L617

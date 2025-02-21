@@ -1,4 +1,4 @@
-use crate::client::{create_http_client_with_options, HttpClient, HttpOptions};
+use crate::client::{HttpClient, HttpOptions, create_http_client_with_options};
 use crate::endpoints::*;
 use crate::helpers::{
     create_cache_key, determine_cache_extension, download_from_url_to_file, move_or_unpack_download,

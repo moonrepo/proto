@@ -2,7 +2,7 @@ use crate::components::{Issue, IssuesList};
 use crate::helpers::fetch_latest_version;
 use crate::session::ProtoSession;
 use clap::Args;
-use iocraft::prelude::{element, FlexDirection, Text, View};
+use iocraft::prelude::{FlexDirection, Text, View, element};
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;

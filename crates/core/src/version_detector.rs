@@ -1,6 +1,6 @@
 use crate::flow::resolve::ProtoResolveError;
 use crate::tool::Tool;
-use crate::{config::*, ToolSpec};
+use crate::{ToolSpec, config::*};
 use std::env;
 use std::path::Path;
 use tracing::instrument;
@@ -8,7 +8,7 @@ use tracing::{debug, trace};
 use version_spec::*;
 
 fn set_detected_env_var(prefix: String, path: &Path) {
-    env::set_var(format!("{prefix}_DETECTED_FROM"), path);
+    unsafe { env::set_var(format!("{prefix}_DETECTED_FROM"), path) };
 }
 
 #[instrument(name = "first_available", skip_all)]
@@ -148,8 +148,7 @@ pub async fn detect_version(
     // Traverse upwards and attempt to detect a version
     trace!(
         tool = tool.id.as_str(),
-        "Attempting to find version from {} files",
-        PROTO_CONFIG_NAME
+        "Attempting to find version from {} files", PROTO_CONFIG_NAME
     );
 
     let config_files = tool.proto.load_config_files()?;

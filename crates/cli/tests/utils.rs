@@ -2,7 +2,7 @@
 
 use proto_core::{ProtoConfig, ProtoConfigManager};
 use proto_shim::get_exe_file_name;
-use starbase_sandbox::{assert_cmd, Sandbox};
+use starbase_sandbox::{Sandbox, assert_cmd};
 use std::collections::HashMap;
 use std::fs;
 use std::ops::Deref;

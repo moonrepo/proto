@@ -1,9 +1,9 @@
 // NOTE: We want to keep the shim binary as lean as possible,
 // so these imports primarily use std, and avoid fat crates.
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use proto_shim::{exec_command_and_replace, locate_proto_exe};
-use rust_json::{json_parse, JsonElem as Json};
+use rust_json::{JsonElem as Json, json_parse};
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::path::PathBuf;

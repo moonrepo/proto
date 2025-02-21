@@ -1,6 +1,6 @@
 mod utils;
 
-use starbase_sandbox::{assert_snapshot, predicates::prelude::*, Sandbox};
+use starbase_sandbox::{Sandbox, assert_snapshot, predicates::prelude::*};
 use std::{env, fs};
 use utils::*;
 

@@ -1,5 +1,5 @@
 use crate::app::{App as CLI, Commands};
-use crate::commands::clean::{internal_clean, CleanArgs, CleanTarget};
+use crate::commands::clean::{CleanArgs, CleanTarget, internal_clean};
 use crate::helpers::create_console_theme;
 use crate::systems::*;
 use crate::utils::progress_instance::ProgressInstance;
@@ -8,9 +8,9 @@ use async_trait::async_trait;
 use miette::IntoDiagnostic;
 use proto_core::registry::ProtoRegistry;
 use proto_core::{
-    load_schema_plugin_with_proto, load_tool, load_tool_from_locator, Backend, ConfigMode, Id,
-    ProtoConfig, ProtoEnvironment, Tool, ToolSpec, UnresolvedVersionSpec, PROTO_PLUGIN_KEY,
-    SCHEMA_PLUGIN_KEY,
+    Backend, ConfigMode, Id, PROTO_PLUGIN_KEY, ProtoConfig, ProtoEnvironment, SCHEMA_PLUGIN_KEY,
+    Tool, ToolSpec, UnresolvedVersionSpec, load_schema_plugin_with_proto, load_tool,
+    load_tool_from_locator,
 };
 use rustc_hash::FxHashSet;
 use semver::Version;

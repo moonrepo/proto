@@ -155,10 +155,12 @@ macro_rules! generate_download_install_tests {
 
             std::fs::create_dir_all(&tool.get_product_dir()).unwrap();
 
-            assert!(!tool
-                .install(proto_pdk_test_utils::flow::install::InstallOptions::default())
-                .await
-                .unwrap());
+            assert!(
+                !tool
+                    .install(proto_pdk_test_utils::flow::install::InstallOptions::default())
+                    .await
+                    .unwrap()
+            );
         }
     };
 }

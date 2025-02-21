@@ -5,9 +5,9 @@ use indexmap::IndexMap;
 use once_cell::sync::OnceCell;
 use rustc_hash::FxHashMap;
 use schematic::{
-    derive_enum, env, merge, Config, ConfigEnum, ConfigError, ConfigLoader, DefaultValueResult,
-    Format, MergeError, MergeResult, PartialConfig, Path as ErrorPath, ValidateError,
-    ValidateResult, ValidatorError,
+    Config, ConfigEnum, ConfigError, ConfigLoader, DefaultValueResult, Format, MergeError,
+    MergeResult, PartialConfig, Path as ErrorPath, ValidateError, ValidateResult, ValidatorError,
+    derive_enum, env, merge,
 };
 use serde::{Deserialize, Serialize};
 use starbase_styles::color;
@@ -291,23 +291,27 @@ impl ProtoConfig {
         if env::var("PROTO_OFFLINE_OVERRIDE_HOSTS").is_err()
             && self.settings.offline.override_default_hosts
         {
-            env::set_var("PROTO_OFFLINE_OVERRIDE_HOSTS", "true");
+            unsafe { env::set_var("PROTO_OFFLINE_OVERRIDE_HOSTS", "true") };
         }
 
         if env::var("PROTO_OFFLINE_HOSTS").is_err()
             && !self.settings.offline.custom_hosts.is_empty()
         {
-            env::set_var(
-                "PROTO_OFFLINE_HOSTS",
-                self.settings.offline.custom_hosts.join(","),
-            );
+            unsafe {
+                env::set_var(
+                    "PROTO_OFFLINE_HOSTS",
+                    self.settings.offline.custom_hosts.join(","),
+                )
+            };
         }
 
         if env::var("PROTO_OFFLINE_TIMEOUT").is_err() {
-            env::set_var(
-                "PROTO_OFFLINE_TIMEOUT",
-                self.settings.offline.timeout.to_string(),
-            );
+            unsafe {
+                env::set_var(
+                    "PROTO_OFFLINE_TIMEOUT",
+                    self.settings.offline.timeout.to_string(),
+                )
+            };
         }
     }
 
@@ -545,7 +549,7 @@ impl ProtoConfig {
 
         if let Some(plugins) = &mut config.plugins {
             for locator in plugins.values_mut() {
-                if let PluginLocator::File(ref mut inner) = locator {
+                if let PluginLocator::File(inner) = locator {
                     inner.path = Some(make_absolute(inner.get_unresolved_path(), path));
                 }
             }

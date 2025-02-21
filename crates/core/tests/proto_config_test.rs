@@ -88,10 +88,12 @@ pin-latest = "global"
         let sandbox = create_empty_sandbox();
         sandbox.create_file(".prototools", "");
 
-        env::set_var("PROTO_AUTO_CLEAN", "1");
-        env::set_var("PROTO_AUTO_INSTALL", "true");
-        env::set_var("PROTO_DETECT_STRATEGY", "prefer-prototools");
-        env::set_var("PROTO_PIN_LATEST", "local");
+        unsafe {
+            env::set_var("PROTO_AUTO_CLEAN", "1");
+            env::set_var("PROTO_AUTO_INSTALL", "true");
+            env::set_var("PROTO_DETECT_STRATEGY", "prefer-prototools");
+            env::set_var("PROTO_PIN_LATEST", "local");
+        };
 
         // Need to use the manager since it runs the finalize process
         let manager = ProtoConfigManager::load(sandbox.path(), None, None).unwrap();
@@ -105,10 +107,12 @@ pin-latest = "global"
         );
         assert_eq!(config.settings.pin_latest, Some(PinLocation::Local));
 
-        env::remove_var("PROTO_AUTO_CLEAN");
-        env::remove_var("PROTO_AUTO_INSTALL");
-        env::remove_var("PROTO_DETECT_STRATEGY");
-        env::remove_var("PROTO_PIN_LATEST");
+        unsafe {
+            env::remove_var("PROTO_AUTO_CLEAN");
+            env::remove_var("PROTO_AUTO_INSTALL");
+            env::remove_var("PROTO_DETECT_STRATEGY");
+            env::remove_var("PROTO_PIN_LATEST");
+        };
     }
 
     #[test]

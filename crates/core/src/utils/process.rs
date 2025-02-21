@@ -1,6 +1,6 @@
 use miette::{Diagnostic, IntoDiagnostic};
 use rustc_hash::FxHashMap;
-use starbase_styles::{color, Style, Stylize};
+use starbase_styles::{Style, Stylize, color};
 use std::io;
 use std::path::PathBuf;
 use std::process::{Output, Stdio};

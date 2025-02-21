@@ -2,7 +2,7 @@ use crate::error::ProtoCliError;
 use crate::session::ProtoSession;
 use clap::Args;
 use iocraft::prelude::element;
-use proto_core::{is_alias_name, Id, PinLocation, ProtoConfig, ToolSpec, UnresolvedVersionSpec};
+use proto_core::{Id, PinLocation, ProtoConfig, ToolSpec, UnresolvedVersionSpec, is_alias_name};
 use starbase::AppResult;
 use starbase_console::ui::*;
 

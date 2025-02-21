@@ -36,10 +36,12 @@ mod uninstall {
             .success();
 
         assert!(!sandbox.path().join(".proto/tools/node/19.0.0").exists());
-        assert!(sandbox
-            .path()
-            .join(".proto/tools/node/manifest.json")
-            .exists());
+        assert!(
+            sandbox
+                .path()
+                .join(".proto/tools/node/manifest.json")
+                .exists()
+        );
     }
 
     #[test]

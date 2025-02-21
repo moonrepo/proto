@@ -22,7 +22,9 @@ pub enum ProtoBuildError {
     MissingBuilderExe { exe: PathBuf, id: String },
 
     #[diagnostic(code(proto::install::build::unmet_requirements))]
-    #[error("Build requirements have not been met, unable to proceed.\nPlease satisfy the requirements before attempting the build again.")]
+    #[error(
+        "Build requirements have not been met, unable to proceed.\nPlease satisfy the requirements before attempting the build again."
+    )]
     RequirementsNotMet,
 
     #[diagnostic(code(proto::install::build::cancelled))]
