@@ -8,7 +8,7 @@ pub struct CodeBlockProps {
 }
 
 #[component]
-pub fn CodeBlock<'a>(props: &CodeBlockProps) -> impl Into<AnyElement<'a>> {
+pub fn CodeBlock<'a>(props: &CodeBlockProps) -> impl Into<AnyElement<'a>> + use<'a> {
     element! {
         View(
             flex_direction: FlexDirection::Column,

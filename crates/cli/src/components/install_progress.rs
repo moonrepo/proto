@@ -8,7 +8,9 @@ pub struct InstallProgressProps {
 }
 
 #[component]
-pub fn InstallProgress<'a>(props: &mut InstallProgressProps) -> impl Into<AnyElement<'a>> {
+pub fn InstallProgress<'a>(
+    props: &mut InstallProgressProps,
+) -> impl Into<AnyElement<'a>> + use<'a> {
     element! {
         View {
             Progress(

@@ -9,7 +9,7 @@ pub struct EnvVarProps<'a> {
 }
 
 #[component]
-pub fn EnvVar<'a>(props: &EnvVarProps<'a>) -> impl Into<AnyElement<'a>> {
+pub fn EnvVar<'a>(props: &EnvVarProps<'a>) -> impl Into<AnyElement<'a>> + use<'a> {
     match props.value.as_ref().expect("`value` prop is required!") {
         EnvVarConfig::State(state) => {
             if *state {

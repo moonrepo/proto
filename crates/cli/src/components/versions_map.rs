@@ -12,7 +12,7 @@ pub struct VersionsMapProps<'a> {
 }
 
 #[component]
-pub fn VersionsMap<'a>(props: &VersionsMapProps<'a>) -> impl Into<AnyElement<'a>> {
+pub fn VersionsMap<'a>(props: &VersionsMapProps<'a>) -> impl Into<AnyElement<'a>> + use<'a> {
     let inventory = props.inventory.expect("`inventory` prop is required!");
 
     element! {

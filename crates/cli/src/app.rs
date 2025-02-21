@@ -129,17 +129,22 @@ pub struct App {
 
 impl App {
     pub fn setup_env_vars(&self) {
-        env::set_var("PROTO_APP_LOG", self.log.to_string());
-        env::set_var("PROTO_VERSION", env!("CARGO_PKG_VERSION"));
+        // TODO: Audit that the environment access only happens in single-threaded code.
+        unsafe { env::set_var("PROTO_APP_LOG", self.log.to_string()) };
+        // TODO: Audit that the environment access only happens in single-threaded code.
+        unsafe { env::set_var("PROTO_VERSION", env!("CARGO_PKG_VERSION")) };
 
         if let Ok(value) = env::var("PROTO_DEBUG_COMMAND") {
-            env::set_var("WARPGATE_DEBUG_COMMAND", value);
+            // TODO: Audit that the environment access only happens in single-threaded code.
+            unsafe { env::set_var("WARPGATE_DEBUG_COMMAND", value) };
         }
 
         // Disable ANSI colors in JSON output
         if self.json {
-            env::set_var("NO_COLOR", "1");
-            env::remove_var("FORCE_COLOR");
+            // TODO: Audit that the environment access only happens in single-threaded code.
+            unsafe { env::set_var("NO_COLOR", "1") };
+            // TODO: Audit that the environment access only happens in single-threaded code.
+            unsafe { env::remove_var("FORCE_COLOR") };
         }
     }
 }

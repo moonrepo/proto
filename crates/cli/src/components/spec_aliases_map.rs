@@ -9,7 +9,7 @@ pub struct SpecAliasesMapProps<'a> {
 }
 
 #[component]
-pub fn SpecAliasesMap<'a>(props: &SpecAliasesMapProps<'a>) -> impl Into<AnyElement<'a>> {
+pub fn SpecAliasesMap<'a>(props: &SpecAliasesMapProps<'a>) -> impl Into<AnyElement<'a>> + use<'a> {
     element! {
         Map {
             #(props.aliases.iter().map(|(alias, version)| {

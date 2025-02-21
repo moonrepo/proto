@@ -51,10 +51,13 @@ impl InstallWorkflow {
             warn!(
                 "{} is currently unstable. {}",
                 tool.get_name(),
-                if let Switch::Message(msg) = &tool.metadata.unstable {
-                    msg
-                } else {
-                    ""
+                match &tool.metadata.unstable {
+                    Switch::Message(msg) => {
+                        msg
+                    }
+                    _ => {
+                        ""
+                    }
                 }
             );
         }
@@ -137,7 +140,8 @@ impl InstallWorkflow {
     async fn pre_install(&self, params: &InstallWorkflowParams) -> miette::Result<()> {
         let tool = &self.tool;
 
-        env::set_var("PROTO_INSTALL", tool.id.to_string());
+        // TODO: Audit that the environment access only happens in single-threaded code.
+        unsafe { env::set_var("PROTO_INSTALL", tool.id.to_string()) };
 
         if tool.plugin.has_func("pre_install").await {
             tool.plugin
