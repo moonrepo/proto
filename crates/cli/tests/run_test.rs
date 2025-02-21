@@ -197,7 +197,6 @@ mod run {
     fn auto_installs_if_missing_with_env_var() {
         let sandbox = create_empty_proto_sandbox();
 
-        // TODO: Audit that the environment access only happens in single-threaded code.
         unsafe { env::set_var("PROTO_AUTO_INSTALL", "true") };
 
         let assert = sandbox
@@ -212,7 +211,6 @@ mod run {
 
         assert.stdout(predicate::str::contains("installed"));
 
-        // TODO: Audit that the environment access only happens in single-threaded code.
         unsafe { env::remove_var("PROTO_AUTO_INSTALL") };
     }
 
