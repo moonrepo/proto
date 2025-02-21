@@ -1,7 +1,7 @@
 use crate::plugin_error::WarpgatePluginError;
 use compact_str::CompactString;
 use regex::Regex;
-use serde::{de, Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, de};
 use std::sync::LazyLock;
 use std::{borrow::Borrow, fmt, ops::Deref, str::FromStr};
 

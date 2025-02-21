@@ -1,7 +1,7 @@
 [package]
 name = "proto_pdk_test_utils"
 version = "0.34.4"
-edition = "2021"
+edition = "2024"
 license = "MIT"
 description = "Utilities for testing proto WASM plugins."
 homepage = "https://moonrepo.dev/proto"

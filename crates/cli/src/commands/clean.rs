@@ -1,7 +1,7 @@
 use crate::session::ProtoSession;
 use clap::{Args, ValueEnum};
 use iocraft::prelude::element;
-use proto_core::{flow::resolve::ProtoResolveError, Tool, VersionSpec, PROTO_PLUGIN_KEY};
+use proto_core::{PROTO_PLUGIN_KEY, Tool, VersionSpec, flow::resolve::ProtoResolveError};
 use proto_shim::get_exe_file_name;
 use rustc_hash::FxHashSet;
 use serde::Serialize;

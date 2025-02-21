@@ -1,5 +1,5 @@
 use crate::config::{
-    ConfigMode, PinLocation, ProtoConfig, ProtoConfigFile, ProtoConfigManager, PROTO_CONFIG_NAME,
+    ConfigMode, PROTO_CONFIG_NAME, PinLocation, ProtoConfig, ProtoConfigFile, ProtoConfigManager,
 };
 use crate::env_error::ProtoEnvError;
 use crate::helpers::is_offline;

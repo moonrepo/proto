@@ -1,6 +1,6 @@
 use miette::IntoDiagnostic;
 use semver::Version;
-use starbase_console::ui::{style_to_color, ConsoleTheme, Style};
+use starbase_console::ui::{ConsoleTheme, Style, style_to_color};
 use starbase_styles::color;
 use tracing::debug;
 

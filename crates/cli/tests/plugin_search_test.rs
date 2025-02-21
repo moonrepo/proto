@@ -72,9 +72,11 @@ mod plugin_search {
             })
             .success();
 
-        assert!(sandbox
-            .path()
-            .join(".proto/cache/registry/external-plugins.json")
-            .exists());
+        assert!(
+            sandbox
+                .path()
+                .join(".proto/cache/registry/external-plugins.json")
+                .exists()
+        );
     }
 }

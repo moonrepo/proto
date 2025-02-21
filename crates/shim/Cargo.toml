@@ -1,7 +1,7 @@
 [package]
 name = "proto_shim"
 version = "0.6.0"
-edition = "2021"
+edition = "2024"
 license = "MIT"
 description = "Utilities for working with proto shims."
 homepage = "https://moonrepo.dev/proto"

@@ -2,7 +2,7 @@ use crate::session::ProtoSession;
 use clap::Args;
 use indexmap::IndexMap;
 use miette::IntoDiagnostic;
-use proto_core::{detect_version, Id, UnresolvedVersionSpec};
+use proto_core::{Id, UnresolvedVersionSpec, detect_version};
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_shell::{Hook, ShellType, Statement};

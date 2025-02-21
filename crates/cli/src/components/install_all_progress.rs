@@ -15,7 +15,7 @@ pub struct InstallAllProgressProps {
 pub fn InstallAllProgress<'a>(
     props: &mut InstallAllProgressProps,
     mut hooks: Hooks,
-) -> impl Into<AnyElement<'a>> {
+) -> impl Into<AnyElement<'a>> + use<'a> {
     let mut system = hooks.use_context_mut::<SystemContext>();
     let mut should_exit = hooks.use_state(|| false);
     let reporter = props.reporter.take();

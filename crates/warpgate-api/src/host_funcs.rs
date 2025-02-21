@@ -1,5 +1,5 @@
 use crate::virtual_path::VirtualPath;
-use crate::{api_struct, api_unit_enum, AnyResult};
+use crate::{AnyResult, api_struct, api_unit_enum};
 use rustc_hash::FxHashMap;
 use serde::de::DeserializeOwned;
 

@@ -2,7 +2,7 @@ use crate::components::create_datetime;
 use crate::session::{LoadToolOptions, ProtoSession};
 use clap::Args;
 use indexmap::IndexMap;
-use iocraft::prelude::{element, View};
+use iocraft::prelude::{View, element};
 use proto_core::{Id, ToolSpec, VersionSpec};
 use serde::Serialize;
 use starbase::AppResult;

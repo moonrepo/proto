@@ -1,4 +1,4 @@
-use version_spec::{parse, ParseKind};
+use version_spec::{ParseKind, parse};
 
 mod unresolved_parser {
     use super::*;

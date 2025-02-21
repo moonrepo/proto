@@ -1,7 +1,7 @@
 #![allow(clippy::from_over_into)]
 
 use crate::spec_error::SpecError;
-use crate::{clean_version_string, is_alias_name, is_calver, UnresolvedVersionSpec};
+use crate::{UnresolvedVersionSpec, clean_version_string, is_alias_name, is_calver};
 use crate::{is_semver, version_types::*};
 use compact_str::CompactString;
 use semver::Version;

@@ -1,4 +1,4 @@
-use proto_core::{is_offline, ProtoEnvironment};
+use proto_core::{ProtoEnvironment, is_offline};
 use rustc_hash::FxHashMap;
 use std::env::{self, consts};
 use tracing::debug;

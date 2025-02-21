@@ -265,9 +265,11 @@ mod install_uninstall {
             manifest.installed_versions,
             FxHashSet::from_iter([VersionSpec::parse("19.0.0").unwrap()])
         );
-        assert!(manifest
-            .versions
-            .contains_key(&VersionSpec::parse("19.0.0").unwrap()));
+        assert!(
+            manifest
+                .versions
+                .contains_key(&VersionSpec::parse("19.0.0").unwrap())
+        );
 
         // Uninstall
         sandbox
@@ -281,9 +283,11 @@ mod install_uninstall {
 
         assert_eq!(config.versions.get("node"), None);
         assert_eq!(manifest.installed_versions, FxHashSet::default());
-        assert!(!manifest
-            .versions
-            .contains_key(&VersionSpec::parse("19.0.0").unwrap()));
+        assert!(
+            !manifest
+                .versions
+                .contains_key(&VersionSpec::parse("19.0.0").unwrap())
+        );
     }
 
     mod pin {

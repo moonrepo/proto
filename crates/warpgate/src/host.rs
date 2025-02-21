@@ -394,7 +394,7 @@ fn set_env_var(
         let mut path = paths();
         path.extend(new_path);
 
-        env::set_var("PATH", env::join_paths(path)?);
+        unsafe { env::set_var("PATH", env::join_paths(path)?) };
     } else {
         trace!(
             plugin = &uuid,
@@ -404,7 +404,7 @@ fn set_env_var(
             color::label("set_env_var"),
         );
 
-        env::set_var(name, value);
+        unsafe { env::set_var(name, value) };
     }
 
     Ok(())

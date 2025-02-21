@@ -1,11 +1,11 @@
-use crate::commands::install::{install_one, InstallArgs};
+use crate::commands::install::{InstallArgs, install_one};
 use crate::error::ProtoCliError;
 use crate::helpers::fetch_latest_version;
 use crate::session::ProtoSession;
-use crate::telemetry::{track_usage, Metric};
+use crate::telemetry::{Metric, track_usage};
 use clap::Args;
 use iocraft::prelude::element;
-use proto_core::{is_offline, Id, SemVer, UnresolvedVersionSpec, PROTO_PLUGIN_KEY};
+use proto_core::{Id, PROTO_PLUGIN_KEY, SemVer, UnresolvedVersionSpec, is_offline};
 use proto_installer::*;
 use semver::Version;
 use serde::Serialize;

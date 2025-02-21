@@ -1,11 +1,11 @@
 use crate::session::ProtoSession;
 use crate::shell::{
-    find_first_profile, format_exports, prompt_for_shell, prompt_for_shell_profile,
-    update_profile_if_not_setup, Export,
+    Export, find_first_profile, format_exports, prompt_for_shell, prompt_for_shell_profile,
+    update_profile_if_not_setup,
 };
 use clap::Args;
-use iocraft::prelude::{element, View};
 use iocraft::FlexDirection;
+use iocraft::prelude::{View, element};
 use proto_shim::get_exe_file_name;
 use starbase::AppResult;
 use starbase_console::ui::*;

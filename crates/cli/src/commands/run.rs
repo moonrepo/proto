@@ -1,9 +1,9 @@
-use crate::commands::install::{install_one, InstallArgs};
+use crate::commands::install::{InstallArgs, install_one};
 use crate::error::ProtoCliError;
 use crate::session::ProtoSession;
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::{detect_version_with_spec, Id, Tool, ToolSpec};
+use proto_core::{Id, Tool, ToolSpec, detect_version_with_spec};
 use proto_pdk_api::{ExecutableConfig, RunHook, RunHookResult};
 use proto_shim::exec_command_and_replace;
 use starbase::AppResult;

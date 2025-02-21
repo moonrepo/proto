@@ -154,8 +154,8 @@ mod shim_bin {
     #[test]
     #[cfg(not(windows))]
     fn handles_signals() {
-        use shared_child::unix::SharedChildExt;
         use shared_child::SharedChild;
+        use shared_child::unix::SharedChildExt;
         use std::os::unix::process::ExitStatusExt;
 
         let sandbox = create_empty_proto_sandbox();

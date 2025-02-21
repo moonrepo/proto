@@ -14,8 +14,8 @@ use app::{App as CLI, Commands, DebugCommands, PluginCommands};
 use clap::Parser;
 use session::ProtoSession;
 use starbase::{
-    tracing::{LogLevel, TracingOptions},
     App, MainResult,
+    tracing::{LogLevel, TracingOptions},
 };
 use starbase_utils::{env::bool_var, string_vec};
 use std::{env, process::ExitCode};

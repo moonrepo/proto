@@ -1,10 +1,10 @@
 use crate::error::ProtoCliError;
 use crate::session::{LoadToolOptions, ProtoSession};
 use clap::Args;
-use iocraft::prelude::{element, Size};
+use iocraft::prelude::{Size, element};
 use miette::IntoDiagnostic;
 use proto_core::{
-    Id, ProtoConfig, ToolSpec, UnresolvedVersionSpec, VersionSpec, PROTO_CONFIG_NAME,
+    Id, PROTO_CONFIG_NAME, ProtoConfig, ToolSpec, UnresolvedVersionSpec, VersionSpec,
 };
 use semver::VersionReq;
 use serde::Serialize;

@@ -14,8 +14,8 @@ use std::sync::Arc;
 use std::time::Duration;
 use tracing::{debug, instrument};
 use warpgate::{
-    host::{create_host_functions, HostData},
     Id, PluginContainer, PluginLocator, PluginManifest, VirtualPath, Wasm,
+    host::{HostData, create_host_functions},
 };
 
 pub type ToolMetadata = RegisterToolOutput;

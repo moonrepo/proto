@@ -1,8 +1,8 @@
 use crate::commands::{
-    plugin::{AddPluginArgs, InfoPluginArgs, ListPluginsArgs, RemovePluginArgs, SearchPluginArgs},
     ActivateArgs, AliasArgs, BinArgs, CleanArgs, CompletionsArgs, DiagnoseArgs, InstallArgs,
     MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs, StatusArgs, UnaliasArgs,
     UninstallArgs, UnpinArgs, UpgradeArgs, VersionsArgs,
+    plugin::{AddPluginArgs, InfoPluginArgs, ListPluginsArgs, RemovePluginArgs, SearchPluginArgs},
 };
 use clap::builder::styling::{Color, Style, Styles};
 use clap::{Parser, Subcommand, ValueEnum};
@@ -129,17 +129,19 @@ pub struct App {
 
 impl App {
     pub fn setup_env_vars(&self) {
-        env::set_var("PROTO_APP_LOG", self.log.to_string());
-        env::set_var("PROTO_VERSION", env!("CARGO_PKG_VERSION"));
+        unsafe {
+            env::set_var("PROTO_APP_LOG", self.log.to_string());
+            env::set_var("PROTO_VERSION", env!("CARGO_PKG_VERSION"));
 
-        if let Ok(value) = env::var("PROTO_DEBUG_COMMAND") {
-            env::set_var("WARPGATE_DEBUG_COMMAND", value);
-        }
+            if let Ok(value) = env::var("PROTO_DEBUG_COMMAND") {
+                env::set_var("WARPGATE_DEBUG_COMMAND", value);
+            }
 
-        // Disable ANSI colors in JSON output
-        if self.json {
-            env::set_var("NO_COLOR", "1");
-            env::remove_var("FORCE_COLOR");
+            // Disable ANSI colors in JSON output
+            if self.json {
+                env::set_var("NO_COLOR", "1");
+                env::remove_var("FORCE_COLOR");
+            }
         }
     }
 }
