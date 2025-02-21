@@ -71,6 +71,8 @@ pub async fn download_versioned_proto_tool(session: &ProtoSession) -> miette::Re
 
         let mut tool = session.load_proto_tool().await?;
 
+        tool.resolve_version_with_spec(spec, true).await?;
+
         if !tool.is_installed() {
             debug!(
                 version = spec.to_string(),

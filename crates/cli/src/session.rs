@@ -162,7 +162,7 @@ impl ProtoSession {
             }
 
             // These shouldn't be treated as a "normal plugin"
-            if id == SCHEMA_PLUGIN_KEY || id == PROTO_PLUGIN_KEY {
+            if id == SCHEMA_PLUGIN_KEY {
                 continue;
             }
 

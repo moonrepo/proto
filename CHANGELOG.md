@@ -14,6 +14,23 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added shim support to the internal `proto` tool, allowing the proto version to be pinned in `.prototools`, and the version to dynamically be detected at runtime. This enables a specific proto version to be used per project.
+- Updated `proto install` to now install proto if a version has been defined.
+
+#### 🧩 Plugins
+
+- Updated `proto_tool` to v0.5.1.
+  - Now supports shims.
+
+#### ⚙️ Internal
+
+- Updated Rust to v1.85.
+- Updated dependencies.
+
 ## 0.46.1
 
 #### 🐞 Fixes

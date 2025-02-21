@@ -137,6 +137,26 @@ npm = "9.0.0"
             "npm = \"6.14.18\"\n"
         )
     }
+
+    #[test]
+    fn can_set_proto() {
+        let sandbox = create_empty_proto_sandbox();
+        let version_file = sandbox.path().join(".prototools");
+
+        assert!(!version_file.exists());
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("pin").arg("proto").arg("0.45.0");
+            })
+            .success();
+
+        assert!(version_file.exists());
+        assert_eq!(
+            fs::read_to_string(version_file).unwrap(),
+            "proto = \"0.45.0\"\n"
+        )
+    }
 }
 
 mod pin_global {
@@ -269,6 +289,30 @@ mod pin_global {
 
         assert!(!link.exists());
     }
+
+    #[test]
+    fn can_set_proto() {
+        let sandbox = create_empty_proto_sandbox();
+        let version_file = sandbox.path().join(".proto/.prototools");
+
+        assert!(!version_file.exists());
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("pin")
+                    .arg("proto")
+                    .arg("0.45.0")
+                    .arg("--to")
+                    .arg("global");
+            })
+            .success();
+
+        assert!(version_file.exists());
+        assert_eq!(
+            fs::read_to_string(version_file).unwrap(),
+            "proto = \"0.45.0\"\n"
+        )
+    }
 }
 
 mod pin_user {
@@ -295,6 +339,30 @@ mod pin_user {
         assert_eq!(
             fs::read_to_string(version_file).unwrap(),
             "node = \"19.0.0\"\n"
+        )
+    }
+
+    #[test]
+    fn can_set_proto() {
+        let sandbox = create_empty_proto_sandbox();
+        let version_file = sandbox.path().join(".home/.prototools");
+
+        assert!(!version_file.exists());
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("pin")
+                    .arg("proto")
+                    .arg("0.45.0")
+                    .arg("--to")
+                    .arg("home");
+            })
+            .success();
+
+        assert!(version_file.exists());
+        assert_eq!(
+            fs::read_to_string(version_file).unwrap(),
+            "proto = \"0.45.0\"\n"
         )
     }
 }
