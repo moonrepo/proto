@@ -200,7 +200,7 @@ impl Tool {
 
         // The build process may require using itself to build itself,
         // so allow proto to use any available version instead of failing
-        std::env::set_var(format!("{}_VERSION", self.get_env_var_prefix()), "*");
+        unsafe { std::env::set_var(format!("{}_VERSION", self.get_env_var_prefix()), "*") };
 
         // Step 0
         handle_error(log_build_information(&mut builder, &output), &builder)?;

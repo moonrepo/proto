@@ -1,5 +1,5 @@
-use proto_core::layout::BinManager;
 use proto_core::VersionSpec;
+use proto_core::layout::BinManager;
 use rustc_hash::FxHashMap;
 
 mod bin_manager {

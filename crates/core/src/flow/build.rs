@@ -5,7 +5,7 @@ use crate::env::{ProtoConsole, ProtoEnvironment};
 use crate::helpers::extract_filename_from_url;
 use crate::utils::process::{self, ProcessResult};
 use crate::utils::{archive, git};
-use iocraft::prelude::{element, FlexDirection, View};
+use iocraft::prelude::{FlexDirection, View, element};
 use miette::IntoDiagnostic;
 use proto_pdk_api::{
     BuildInstruction, BuildInstructionsOutput, BuildRequirement, GitSource, SourceLocation,
@@ -23,13 +23,13 @@ use std::env;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, OnceLock};
 use system_env::{
-    find_command_on_path, is_command_on_path, DependencyConfig, DependencyName, System,
-    SystemPackageManager,
+    DependencyConfig, DependencyName, System, SystemPackageManager, find_command_on_path,
+    is_command_on_path,
 };
 use tokio::process::Command;
 use tokio::sync::{Mutex, OwnedMutexGuard};
 use tracing::{debug, error};
-use version_spec::{get_semver_regex, VersionSpec};
+use version_spec::{VersionSpec, get_semver_regex};
 use warpgate::HttpClient;
 
 static BUILD_LOCKS: OnceLock<scc::HashMap<String, Arc<Mutex<()>>>> = OnceLock::new();
@@ -1018,7 +1018,7 @@ pub async fn execute_instructions(
                     "{prefix} Setting environment variable <property>{key}</property> to <symbol>{value}</symbol>",
                 ))?;
 
-                env::set_var(key, value);
+                unsafe { env::set_var(key, value) };
             }
         };
     }

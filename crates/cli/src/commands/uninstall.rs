@@ -1,5 +1,5 @@
 use crate::session::ProtoSession;
-use crate::telemetry::{track_usage, Metric};
+use crate::telemetry::{Metric, track_usage};
 use clap::Args;
 use iocraft::element;
 use proto_core::{Id, ProtoConfig, Tool, ToolSpec};

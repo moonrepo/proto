@@ -1,7 +1,7 @@
 [package]
 name = "proto_pdk_api"
 version = "0.26.0"
-edition = "2021"
+edition = "2024"
 license = "MIT"
 description = "Core APIs for creating proto WASM plugins."
 homepage = "https://moonrepo.dev/proto"

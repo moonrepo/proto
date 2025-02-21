@@ -1,9 +1,9 @@
-use miette::{miette, IntoDiagnostic, Result};
+use miette::{IntoDiagnostic, Result, miette};
 use std::ffi::OsString;
 use std::os::windows::ffi::OsStrExt;
 use std::path::PathBuf;
 use tracing::debug;
-use winreg::enums::{RegType, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE};
+use winreg::enums::{HKEY_CURRENT_USER, KEY_READ, KEY_WRITE, RegType};
 use winreg::{RegKey, RegValue};
 
 pub(crate) fn do_add_to_path(dirs: Vec<PathBuf>) -> Result<bool> {

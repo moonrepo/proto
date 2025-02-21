@@ -1,7 +1,7 @@
 use core::ops::{Deref, DerefMut};
 use proto_core::{
-    detect_version, ProtoConfig, ProtoToolConfig, Tool, ToolSpec, UnresolvedVersionSpec,
-    VersionSpec,
+    ProtoConfig, ProtoToolConfig, Tool, ToolSpec, UnresolvedVersionSpec, VersionSpec,
+    detect_version,
 };
 use std::collections::BTreeMap;
 use std::path::PathBuf;

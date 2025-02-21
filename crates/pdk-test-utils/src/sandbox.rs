@@ -1,14 +1,14 @@
 use crate::wrapper::WasmTestWrapper;
-use proto_core::{inject_proto_manifest_config, ProtoEnvironment, Tool};
-use starbase_sandbox::{create_empty_sandbox, create_sandbox, Sandbox};
+use proto_core::{ProtoEnvironment, Tool, inject_proto_manifest_config};
+use starbase_sandbox::{Sandbox, create_empty_sandbox, create_sandbox};
 use std::ops::Deref;
 use std::path::PathBuf;
 use std::rc::Rc;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::{fmt, fs};
 use warpgate::test_utils::*;
-use warpgate::{inject_default_manifest_config, Id, Wasm};
+use warpgate::{Id, Wasm, inject_default_manifest_config};
 
 pub struct ProtoWasmSandbox {
     pub sandbox: Sandbox,

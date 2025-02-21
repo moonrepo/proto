@@ -3,8 +3,8 @@ use crate::helpers::fetch_latest_version;
 use crate::session::ProtoSession;
 use proto_core::flow::install::InstallOptions;
 use proto_core::{
-    is_offline, now, ConfigMode, ProtoEnvironment, UnresolvedVersionSpec, PROTO_CONFIG_NAME,
-    PROTO_PLUGIN_KEY,
+    ConfigMode, PROTO_CONFIG_NAME, PROTO_PLUGIN_KEY, ProtoEnvironment, UnresolvedVersionSpec,
+    is_offline, now,
 };
 use proto_shim::get_exe_file_name;
 use semver::Version;

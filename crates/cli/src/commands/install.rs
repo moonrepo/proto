@@ -382,8 +382,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
             Err(error) => {
                 trace!(
                     task_id = error.id().to_string(),
-                    "Spawned task failed: {}",
-                    error
+                    "Spawned task failed: {}", error
                 );
 
                 failed_count += 1;

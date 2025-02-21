@@ -91,17 +91,17 @@ pub fn testing_macros(_: ()) -> FnResult<()> {
 }
 
 #[plugin_fn]
-pub fn register_tool(_: ()) -> FnResult<Json<ToolMetadataOutput>> {
+pub fn register_tool(_: ()) -> FnResult<Json<RegisterToolOutput>> {
     host_log!(stdout, "Registering tool");
 
     let config = get_tool_config::<WasmTestConfig>()?;
 
     host_log!("Config = {:?}", config);
 
-    Ok(Json(ToolMetadataOutput {
+    Ok(Json(RegisterToolOutput {
         name: "WASM Test".into(),
         type_of: PluginType::CommandLine,
-        ..ToolMetadataOutput::default()
+        ..RegisterToolOutput::default()
     }))
 }
 
@@ -188,10 +188,13 @@ pub fn locate_executables(
 
     Ok(Json(LocateExecutablesOutput {
         globals_lookup_dirs: vec!["$WASM_ROOT/bin".into(), "$HOME/.wasm/bin".into()],
-        primary: Some(ExecutableConfig::new(
-            env.os.for_native("bin/node", "node.exe"),
-        )),
-        secondary: HashMap::from_iter([("global1".into(), ExecutableConfig::new("bin/global1"))]),
+        exes: HashMap::from_iter([
+            (
+                "node".into(),
+                ExecutableConfig::new_primary(env.os.for_native("bin/node", "node.exe")),
+            ),
+            ("global1".into(), ExecutableConfig::new("bin/global1")),
+        ]),
         ..LocateExecutablesOutput::default()
     }))
 }

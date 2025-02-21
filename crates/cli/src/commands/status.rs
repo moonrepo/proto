@@ -1,7 +1,7 @@
 use crate::error::ProtoCliError;
 use crate::session::{LoadToolOptions, ProtoSession};
 use clap::Args;
-use iocraft::prelude::{element, Size};
+use iocraft::prelude::{Size, element};
 use proto_core::{Id, UnresolvedVersionSpec, VersionSpec};
 use serde::Serialize;
 use starbase::AppResult;

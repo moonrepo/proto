@@ -1,6 +1,6 @@
 use crate::session::ProtoSession;
 use clap::Args;
-use proto_core::{detect_version_with_spec, Id, ToolSpec, PROTO_PLUGIN_KEY};
+use proto_core::{Id, PROTO_PLUGIN_KEY, ToolSpec, detect_version_with_spec};
 use proto_shim::{get_exe_file_name, locate_proto_exe};
 use starbase::AppResult;
 

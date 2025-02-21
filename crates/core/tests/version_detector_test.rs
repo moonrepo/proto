@@ -1,7 +1,7 @@
 use proto_core::{
+    ProtoConfig, ProtoConfigManager, ProtoEnvironment, Tool, UnresolvedVersionSpec,
     detect_version_first_available, detect_version_only_prototools,
-    detect_version_prefer_prototools, load_tool_from_locator, ProtoConfig, ProtoConfigManager,
-    ProtoEnvironment, Tool, UnresolvedVersionSpec,
+    detect_version_prefer_prototools, load_tool_from_locator,
 };
 use starbase_sandbox::create_empty_sandbox;
 use std::path::Path;

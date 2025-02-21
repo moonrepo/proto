@@ -1,4 +1,4 @@
-use starbase_sandbox::{create_empty_sandbox, locate_fixture, Sandbox};
+use starbase_sandbox::{Sandbox, create_empty_sandbox, locate_fixture};
 use std::path::PathBuf;
 use warpgate::{FileLocator, GitHubLocator, Id, PluginLoader, PluginLocator, UrlLocator};
 

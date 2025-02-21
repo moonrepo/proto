@@ -6,8 +6,8 @@ use std::ffi::OsStr;
 use std::path::PathBuf;
 use std::vec;
 use warpgate_api::{
-    anyhow, AnyResult, ExecCommandInput, ExecCommandOutput, HostEnvironment, HostOS,
-    SendRequestInput, SendRequestOutput, TestEnvironment, VirtualPath,
+    AnyResult, ExecCommandInput, ExecCommandOutput, HostEnvironment, HostOS, SendRequestInput,
+    SendRequestOutput, TestEnvironment, VirtualPath, anyhow,
 };
 
 #[host_fn]

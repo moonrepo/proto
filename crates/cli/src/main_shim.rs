@@ -1,30 +1,24 @@
 // NOTE: We want to keep the shim binary as lean as possible,
 // so these imports primarily use std, and avoid fat crates.
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use proto_shim::{exec_command_and_replace, locate_proto_exe};
-use rust_json::{json_parse, JsonElem as Json};
+use rust_json::{JsonElem as Json, json_parse};
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::path::PathBuf;
 use std::process::Command;
+use std::sync::OnceLock;
 use std::{env, fs};
 
-static mut DEBUG: Option<bool> = None;
+static DEBUG: OnceLock<bool> = OnceLock::new();
 
 // We don't want to pull the entire `tracing` or `log` crates
 // into this binary, as we want it to be super lean. So we have
 // this very rudimentary logging system.
-#[allow(static_mut_refs)]
 fn debug(op: impl FnOnce() -> String) {
-    unsafe {
-        if DEBUG.is_none() {
-            DEBUG = Some(env::var("PROTO_DEBUG_SHIM").is_ok());
-        }
-
-        if DEBUG.is_some_and(|enabled| enabled) {
-            println!("{}", op());
-        }
+    if *DEBUG.get_or_init(|| env::var("PROTO_DEBUG_SHIM").is_ok()) {
+        println!("{}", op());
     }
 }
 
@@ -45,7 +39,8 @@ fn get_proto_home() -> Result<PathBuf> {
         return Ok(xdg_dir);
     }
 
-    let home_dir = dirs::home_dir()
+    #[allow(deprecated)]
+    let home_dir = env::home_dir()
         .ok_or_else(|| anyhow!("Unable to determine user home directory."))?
         .join(".proto");
 

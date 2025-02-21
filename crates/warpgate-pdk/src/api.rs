@@ -1,4 +1,4 @@
-use extism_pdk::{memory::internal::load, MemoryHandle};
+use extism_pdk::{MemoryHandle, memory::internal::load};
 use warpgate_api::SendRequestOutput;
 
 #[doc(hidden)]

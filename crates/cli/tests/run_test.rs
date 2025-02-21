@@ -1,6 +1,6 @@
 mod utils;
 
-use starbase_sandbox::{assert_snapshot, predicates::prelude::*, Sandbox};
+use starbase_sandbox::{Sandbox, assert_snapshot, predicates::prelude::*};
 use std::{env, fs};
 use utils::*;
 
@@ -197,7 +197,7 @@ mod run {
     fn auto_installs_if_missing_with_env_var() {
         let sandbox = create_empty_proto_sandbox();
 
-        env::set_var("PROTO_AUTO_INSTALL", "true");
+        unsafe { env::set_var("PROTO_AUTO_INSTALL", "true") };
 
         let assert = sandbox
             .run_bin(|cmd| {
@@ -211,7 +211,7 @@ mod run {
 
         assert.stdout(predicate::str::contains("installed"));
 
-        env::remove_var("PROTO_AUTO_INSTALL");
+        unsafe { env::remove_var("PROTO_AUTO_INSTALL") };
     }
 
     #[test]
