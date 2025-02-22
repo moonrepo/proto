@@ -3,9 +3,9 @@ use crate::error::ProtoCliError;
 use crate::session::ProtoSession;
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::{Id, Tool, ToolSpec, detect_version_with_spec};
+use proto_core::{Id, PROTO_PLUGIN_KEY, Tool, ToolSpec, detect_version_with_spec};
 use proto_pdk_api::{ExecutableConfig, RunHook, RunHookResult};
-use proto_shim::exec_command_and_replace;
+use proto_shim::{exec_command_and_replace, locate_proto_exe};
 use starbase::AppResult;
 use starbase_utils::fs;
 use std::env;
@@ -37,8 +37,20 @@ pub struct RunArgs {
     passthrough: Vec<String>,
 }
 
+fn should_use_global_proto(tool: &Tool) -> miette::Result<bool> {
+    Ok(tool.id == PROTO_PLUGIN_KEY
+        && !tool
+            .proto
+            .load_config()?
+            .versions
+            .contains_key(PROTO_PLUGIN_KEY))
+}
+
 fn is_trying_to_self_upgrade(tool: &Tool, args: &[String]) -> bool {
-    if tool.metadata.self_upgrade_commands.is_empty() {
+    if tool.id == PROTO_PLUGIN_KEY
+        || tool.metadata.self_upgrade_commands.is_empty()
+        || args.is_empty()
+    {
         return false;
     }
 
@@ -119,13 +131,16 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
     exe_config: &ExecutableConfig,
     args: I,
 ) -> miette::Result<Command> {
-    let exe_path = exe_config.exe_path.as_ref().unwrap();
+    let exe_path = exe_config
+        .exe_path
+        .as_ref()
+        .expect("Could not determine executable path.");
     let args = args
         .into_iter()
         .map(|arg| arg.as_ref().to_os_string())
         .collect::<Vec<_>>();
 
-    let command = if let Some(parent_exe_path) = &exe_config.parent_exe_name {
+    let mut command = if let Some(parent_exe_path) = &exe_config.parent_exe_name {
         let mut exe_args = vec![exe_path.as_os_str().to_os_string()];
         exe_args.extend(args);
 
@@ -148,6 +163,17 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
         create_process_command(exe_path, args)
     };
 
+    for (key, value) in tool.proto.load_config()?.get_env_vars(Some(&tool.id))? {
+        match value {
+            Some(value) => {
+                command.env(key, value);
+            }
+            None => {
+                command.env_remove(key);
+            }
+        };
+    }
+
     Ok(command)
 }
 
@@ -156,6 +182,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
     let mut tool = session
         .load_tool(&args.id, args.spec.clone().and_then(|spec| spec.backend))
         .await?;
+    let mut use_global_proto = should_use_global_proto(&tool)?;
 
     // Avoid running the tool's native self-upgrade as it conflicts with proto
     if is_trying_to_self_upgrade(&tool, &args.passthrough) {
@@ -166,14 +193,59 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
         .into());
     }
 
-    let spec = detect_version_with_spec(&tool, args.spec.clone()).await?;
+    // Detect a version to run with
+    let spec = if use_global_proto {
+        ToolSpec::parse("*")?
+    } else {
+        detect_version_with_spec(&tool, args.spec.clone()).await?
+    };
 
     // Check if installed or need to install
-    if !tool.is_setup_with_spec(&spec).await? {
+    if tool.is_setup_with_spec(&spec).await? {
+        if tool.id == PROTO_PLUGIN_KEY {
+            use_global_proto = false;
+        }
+    } else {
         let config = tool.proto.load_config()?;
         let resolved_version = tool.get_resolved_version();
 
-        if !config.settings.auto_install {
+        // Auto-install the missing tool
+        if config.settings.auto_install {
+            session.console.out.write_line(format!(
+                "Auto-install is enabled, attempting to install {} {}",
+                tool.get_name(),
+                resolved_version,
+            ))?;
+
+            install_one(
+                session.clone(),
+                InstallArgs {
+                    internal: true,
+                    spec: Some(ToolSpec {
+                        backend: spec.backend,
+                        req: resolved_version.to_unresolved_spec(),
+                        res: Some(resolved_version.clone()),
+                    }),
+                    ..Default::default()
+                },
+                tool.id.clone(),
+            )
+            .await?;
+
+            session.console.out.write_line(format!(
+                "{} {} has been installed, continuing execution...",
+                tool.get_name(),
+                resolved_version,
+            ))?;
+        }
+        // If this is the proto tool running, continue instead of failing
+        else if use_global_proto {
+            debug!(
+                "No proto version detected or located, falling back to the global proto binary!"
+            );
+        }
+        // Otherwise fail with a not installed error
+        else {
             let command = format!("proto install {} {}", tool.id, resolved_version);
 
             if let Ok(source) = env::var(format!("{}_DETECTED_FROM", tool.get_env_var_prefix())) {
@@ -193,42 +265,17 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
             }
             .into());
         }
-
-        // Install the tool
-        session.console.out.write_line(format!(
-            "Auto-install is enabled, attempting to install {} {}",
-            tool.get_name(),
-            resolved_version,
-        ))?;
-
-        install_one(
-            session.clone(),
-            InstallArgs {
-                internal: true,
-                spec: Some(ToolSpec {
-                    backend: spec.backend,
-                    req: resolved_version.to_unresolved_spec(),
-                    res: Some(resolved_version.clone()),
-                }),
-                ..Default::default()
-            },
-            tool.id.clone(),
-        )
-        .await?;
-
-        session.console.out.write_line(format!(
-            "{} {} has been installed, continuing execution...",
-            tool.get_name(),
-            resolved_version,
-        ))?;
     }
 
     // Determine the binary path to execute
-    let exe_config = get_executable(&tool, &args).await?;
-    let exe_path = exe_config
-        .exe_path
-        .as_ref()
-        .expect("Could not determine executable path.");
+    let exe_config = if use_global_proto {
+        ExecutableConfig {
+            exe_path: locate_proto_exe("proto"),
+            ..Default::default()
+        }
+    } else {
+        get_executable(&tool, &args).await?
+    };
 
     // Run before hook
     let hook_result = if tool.plugin.has_func("pre_run").await {
@@ -258,17 +305,6 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
     // Create and run the command
     let mut command = create_command(&tool, &exe_config, &args.passthrough)?;
 
-    for (key, value) in tool.proto.load_config()?.get_env_vars(Some(&tool.id))? {
-        match value {
-            Some(value) => {
-                command.env(key, value);
-            }
-            None => {
-                command.env_remove(key);
-            }
-        };
-    }
-
     if let Some(hook_args) = hook_result.args {
         command.args(hook_args);
     }
@@ -284,7 +320,12 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
         )
         .env(
             format!("{}_BIN", tool.get_env_var_prefix()),
-            exe_path.to_string_lossy().to_string(),
+            exe_config
+                .exe_path
+                .as_ref()
+                .unwrap()
+                .to_string_lossy()
+                .to_string(),
         );
 
     // Update the last used timestamp
