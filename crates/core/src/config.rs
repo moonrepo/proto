@@ -329,7 +329,7 @@ impl ProtoConfig {
 
     pub fn builtin_proto_plugin(&self) -> PluginLocator {
         PluginLocator::Url(Box::new(UrlLocator {
-            url: "https://github.com/moonrepo/plugins/releases/download/proto_tool-v0.5.0/proto_tool.wasm".into()
+            url: "https://github.com/moonrepo/plugins/releases/download/proto_tool-v0.5.1/proto_tool.wasm".into()
         }))
     }
 

@@ -6,6 +6,7 @@ use proto_core::{
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
+#[derive(Debug)]
 pub struct ToolRecord {
     pub tool: Tool,
     pub config: ProtoToolConfig,

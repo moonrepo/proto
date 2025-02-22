@@ -1,11 +1,6 @@
 use crate::app::{App as CLI, Commands};
 use crate::helpers::fetch_latest_version;
-use crate::session::ProtoSession;
-use proto_core::flow::install::InstallOptions;
-use proto_core::{
-    ConfigMode, PROTO_CONFIG_NAME, PROTO_PLUGIN_KEY, ProtoEnvironment, UnresolvedVersionSpec,
-    is_offline, now,
-};
+use proto_core::{ConfigMode, ProtoEnvironment, is_offline, now};
 use proto_shim::get_exe_file_name;
 use semver::Version;
 use starbase_styles::color;
@@ -51,36 +46,6 @@ pub fn load_proto_configs(env: &ProtoEnvironment) -> miette::Result<()> {
     );
 
     env.load_config()?;
-
-    Ok(())
-}
-
-#[instrument(skip_all)]
-pub async fn download_versioned_proto_tool(session: &ProtoSession) -> miette::Result<()> {
-    let config = session
-        .env
-        .load_config_manager()?
-        .get_merged_config_without_global()?;
-
-    if let Some(spec) = config.versions.get(PROTO_PLUGIN_KEY) {
-        // Only support fully-qualified versions as we need to prepend the
-        // tool directory into PATH, which doesn't support requirements
-        if !matches!(spec.req, UnresolvedVersionSpec::Semantic(_)) {
-            return Ok(());
-        }
-
-        let mut tool = session.load_proto_tool().await?;
-
-        if !tool.is_installed() {
-            debug!(
-                version = spec.to_string(),
-                "Downloading a versioned proto because it was configured in {}", PROTO_CONFIG_NAME
-            );
-
-            tool.setup_with_spec(spec, InstallOptions::default())
-                .await?;
-        }
-    }
 
     Ok(())
 }

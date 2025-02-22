@@ -1,7 +1,6 @@
 use crate::session::ProtoSession;
 use clap::Args;
-use proto_core::{Id, PROTO_PLUGIN_KEY, ToolSpec, detect_version_with_spec};
-use proto_shim::{get_exe_file_name, locate_proto_exe};
+use proto_core::{Id, ToolSpec, detect_version_with_spec};
 use starbase::AppResult;
 
 #[derive(Args, Clone, Debug)]
@@ -21,17 +20,6 @@ pub struct BinArgs {
 
 #[tracing::instrument(skip_all)]
 pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
-    if args.id == PROTO_PLUGIN_KEY {
-        session.console.out.write_line(
-            locate_proto_exe("proto")
-                .unwrap_or(session.env.store.bin_dir.join(get_exe_file_name("proto")))
-                .display()
-                .to_string(),
-        )?;
-
-        return Ok(None);
-    }
-
     let mut tool = session
         .load_tool(&args.id, args.spec.clone().and_then(|spec| spec.backend))
         .await?;

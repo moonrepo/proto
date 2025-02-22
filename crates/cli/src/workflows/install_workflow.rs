@@ -7,7 +7,7 @@ use crate::utils::tool_record::ToolRecord;
 use iocraft::element;
 use miette::IntoDiagnostic;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
-use proto_core::{Id, PROTO_PLUGIN_KEY, PinLocation, ToolSpec};
+use proto_core::{Id, PinLocation, ToolSpec};
 use proto_pdk_api::{
     InstallHook, InstallStrategy, Switch, SyncShellProfileInput, SyncShellProfileOutput,
 };
@@ -278,11 +278,6 @@ impl InstallWorkflow {
         spec: &ToolSpec,
         arg_pin_to: &Option<PinLocation>,
     ) -> miette::Result<bool> {
-        // Don't pin the proto tool itself as it's internal only
-        if self.tool.id.as_str() == PROTO_PLUGIN_KEY {
-            return Ok(false);
-        }
-
         let config = self.tool.proto.load_config()?;
         let mut pin_to = PinLocation::Local;
         let mut pin = false;
