@@ -195,7 +195,9 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
 
     // Detect a version to run with
     let spec = if use_global_proto {
-        ToolSpec::parse("*")?
+        args.spec
+            .clone()
+            .unwrap_or_else(|| ToolSpec::parse("*").unwrap())
     } else {
         detect_version_with_spec(&tool, args.spec.clone()).await?
     };
@@ -271,6 +273,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
     let exe_config = if use_global_proto {
         ExecutableConfig {
             exe_path: locate_proto_exe("proto"),
+            primary: true,
             ..Default::default()
         }
     } else {
@@ -320,12 +323,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
         )
         .env(
             format!("{}_BIN", tool.get_env_var_prefix()),
-            exe_config
-                .exe_path
-                .as_ref()
-                .unwrap()
-                .to_string_lossy()
-                .to_string(),
+            exe_config.exe_path.as_ref().unwrap(),
         );
 
     // Update the last used timestamp

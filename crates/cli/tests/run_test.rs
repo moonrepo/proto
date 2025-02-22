@@ -408,4 +408,92 @@ FOURTH = "ignores-$FIRST-$PARENT"
             assert_snapshot!(assert.output_standardized());
         }
     }
+
+    mod proto {
+        use super::*;
+
+        #[test]
+        fn runs_the_global_exe_if_nothing_installed() {
+            let sandbox = create_empty_proto_sandbox();
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("run").arg("proto").arg("--").arg("--version");
+                })
+                .success();
+
+            assert.stdout(predicate::str::contains("0.45.0").not());
+        }
+
+        #[test]
+        fn runs_the_installed_exe() {
+            let sandbox = create_empty_proto_sandbox();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("proto").arg("0.45.0");
+                })
+                .success();
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("run")
+                        .arg("proto")
+                        .arg("0.45.0")
+                        .arg("--")
+                        .arg("--version");
+                })
+                .success();
+
+            assert.stdout(predicate::str::contains("0.45.0"));
+        }
+
+        #[test]
+        fn runs_using_version_detection() {
+            let sandbox = create_empty_proto_sandbox();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("proto").arg("0.45.0");
+                })
+                .success();
+
+            // Env var
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.env("PROTO_PROTO_VERSION", "0.45.0")
+                        .arg("run")
+                        .arg("proto")
+                        .arg("--")
+                        .arg("--version");
+                })
+                .success();
+
+            assert.stdout(predicate::str::contains("0.45.0"));
+
+            // Local version
+            sandbox.create_file(".prototools", "proto = \"0.45.0\"");
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("run").arg("proto").arg("--").arg("--version");
+                })
+                .success();
+
+            assert.stdout(predicate::str::contains("0.45.0"));
+
+            fs::remove_file(sandbox.path().join(".prototools")).unwrap();
+
+            // Global version
+            sandbox.create_file(".proto/.prototools", "proto = \"0.45.0\"");
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("run").arg("proto").arg("--").arg("--version");
+                })
+                .success();
+
+            assert.stdout(predicate::str::contains("0.45.0"));
+        }
+    }
 }
