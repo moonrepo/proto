@@ -19,8 +19,8 @@
 
 #### 🚀 Updates
 
+- Added a new built-in tool: `poetry` (Python)
 - Added shim support to the internal `proto` tool, allowing the proto version to be pinned in `.prototools`, and the version to dynamically be detected at runtime. This enables a specific proto version to be used per project.
-- Added new built-in tool: `poetry` (Python)
 - Updated `proto install` to now install proto if a version has been defined.
 - Updated offline connection checks to also ping IPv6 addresses for Google & CloudFlare DNS.
   - Added a `PROTO_OFFLINE_IP_VERSION` to control which version to only check against.
@@ -29,8 +29,11 @@
 
 #### 🧩 Plugins
 
+- Added `python_poetry_tool` v0.1.
 - Updated `proto_tool` to v0.5.1.
   - Now supports shims.
+- Updated `rust_tool` to v0.13.1.
+  - Better rustup install handling.
 
 #### ⚙️ Internal
 

@@ -375,7 +375,20 @@ mod plugins {
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install").arg("poetry");
+                    cmd.arg("install").arg("python").arg("3.12.0");
+                })
+                .success();
+
+            // `poetry` is called in a post-install hook,
+            // so we need to make it available on PATH
+            let mut paths = vec![sandbox.path().join(".proto/shims")];
+            paths.extend(starbase_utils::env::paths());
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("poetry")
+                        .env("PATH", std::env::join_paths(paths).unwrap());
                 })
                 .success();
 
