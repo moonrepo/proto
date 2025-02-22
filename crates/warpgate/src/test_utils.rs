@@ -65,18 +65,18 @@ pub fn find_wasm_file() -> PathBuf {
         env::var("CARGO_PKG_NAME").expect("Missing CARGO_PKG_NAME!")
     );
 
-    match traverse_target_dir(
-        path_var("CARGO_MANIFEST_DIR").expect("Missing CARGO_MANIFEST_DIR!"),
-        &wasm_file,
-    ) {
-        Some(path) => path,
-        None => {
-            panic!(
-                "WASM file `{}` does not exist. Please build it with `cargo build --target wasm32-wasip1` before running tests!",
-                wasm_file
-            );
+    for env_var in ["CARGO_MANIFEST_DIR", "CARGO_TARGET_DIR"] {
+        if let Some(env_path) = path_var(env_var) {
+            if let Some(wasm_path) = traverse_target_dir(env_path, &wasm_file) {
+                return wasm_path;
+            }
         }
     }
+
+    panic!(
+        "WASM file `{}` does not exist. Please build it with `cargo build --target wasm32-wasip1` before running tests!",
+        wasm_file
+    );
 }
 
 pub struct ConfigBuilder {

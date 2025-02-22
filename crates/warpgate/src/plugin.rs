@@ -194,7 +194,7 @@ impl PluginContainer {
 
     /// Return true if the plugin has a function with the given id.
     pub async fn has_func(&self, func: &str) -> bool {
-        self.plugin.write().await.function_exists(func)
+        self.plugin.read().await.function_exists(func)
     }
 
     /// Convert the provided virtual guest path to an absolute host path.
