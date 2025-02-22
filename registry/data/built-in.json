@@ -168,6 +168,25 @@
       ]
     },
     {
+      "id": "poetry",
+      "locator": "github://moonrepo/plugins/python_poetry_tool",
+      "format": "wasm",
+      "name": "Poetry",
+      "description": "Python packaging and dependency management made easy.",
+      "author": "moonrepo",
+      "homepageUrl": "https://python-poetry.org/",
+      "repositoryUrl": "https://github.com/python-poetry/poetry",
+      "devicon": "poetry",
+      "bins": [
+        "poetry"
+      ],
+      "detectionSources": [
+        {
+          "file": ".poetry-version"
+        }
+      ]
+    },
+    {
       "id": "python",
       "locator": "github://moonrepo/plugins/python_tool",
       "format": "wasm",

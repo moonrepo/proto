@@ -34,13 +34,13 @@ export type VirtualPath = string;
 /** Input passed to the `exec_command` host function. */
 export interface ExecCommandInput {
 	/** Arguments to pass to the command. */
-	args: string[];
+	args?: string[];
 	/** The command or script to execute. */
-	command: string;
+	command?: string;
 	/** Environment variables to pass to the command. */
 	env?: Record<string, string>;
 	/** Mark the command as executable before executing. */
-	setExecutable: boolean;
+	setExecutable?: boolean;
 	/** Stream the output instead of capturing it. */
 	stream?: boolean;
 	/** Override the current working directory. */
@@ -272,6 +272,8 @@ export interface DownloadPrebuiltOutput {
 	 * and will be removed when unpacking the archive.
 	 */
 	archivePrefix?: string | null;
+	/** The checksum hash itself. */
+	checksum?: string | null;
 	/**
 	 * File name of the checksum to download. If not provided,
 	 * will attempt to extract it from the URL.
@@ -594,6 +596,11 @@ export type SystemDependency = string | Record<SystemPackageManager, string> | s
 	arch?: SystemArch | null;
 	/** The dependency name or name(s) to install. */
 	dep?: DependencyName;
+	/**
+	 * The name of the executable (without ext) that this
+	 * dependency installs, and can be found when searching `PATH`.
+	 */
+	exeName?: string | null;
 	/** Only install with this package manager. */
 	manager?: SystemPackageManager | null;
 	/** Only install on this operating system. */

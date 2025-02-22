@@ -8,6 +8,7 @@
 - [moon](https://github.com/moonrepo/plugins/blob/master/tools/moon/CHANGELOG.md)
 - [Node](https://github.com/moonrepo/plugins/blob/master/tools/node/CHANGELOG.md)
 - [npm, pnpm, yarn](https://github.com/moonrepo/plugins/blob/master/tools/node-depman/CHANGELOG.md)
+- [Poetry](https://github.com/moonrepo/plugins/blob/master/tools/python_poetry/CHANGELOG.md)
 - [Python](https://github.com/moonrepo/plugins/blob/master/tools/python/CHANGELOG.md)
 - [uv](https://github.com/moonrepo/plugins/blob/master/tools/python_uv/CHANGELOG.md)
 - [Ruby](https://github.com/moonrepo/plugins/blob/master/tools/ruby/CHANGELOG.md)
@@ -19,6 +20,7 @@
 #### 🚀 Updates
 
 - Added shim support to the internal `proto` tool, allowing the proto version to be pinned in `.prototools`, and the version to dynamically be detected at runtime. This enables a specific proto version to be used per project.
+- Added new built-in tool: `poetry` (Python)
 - Updated `proto install` to now install proto if a version has been defined.
 - Updated offline connection checks to also ping IPv6 addresses for Google & CloudFlare DNS.
   - Added a `PROTO_OFFLINE_IP_VERSION` to control which version to only check against.
