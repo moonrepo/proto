@@ -285,6 +285,10 @@ api_struct!(
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub archive_prefix: Option<String>,
 
+        /// The checksum hash itself.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub checksum: Option<String>,
+
         /// File name of the checksum to download. If not provided,
         /// will attempt to extract it from the URL.
         #[serde(default, skip_serializing_if = "Option::is_none")]
