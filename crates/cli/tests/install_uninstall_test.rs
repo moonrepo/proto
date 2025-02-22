@@ -61,6 +61,38 @@ mod install_uninstall {
     }
 
     #[test]
+    fn installs_and_uninstalls_proto() {
+        let sandbox = create_empty_proto_sandbox();
+        let tool_dir = sandbox.path().join(".proto/tools/proto/0.45.0");
+
+        assert!(!tool_dir.exists());
+
+        // Install
+        let assert = sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install").arg("proto").arg("0.45.0");
+            })
+            .success();
+
+        assert!(tool_dir.exists());
+
+        assert.stdout(predicate::str::contains("proto 0.45.0 has been installed"));
+
+        // Uninstall
+        let assert = sandbox
+            .run_bin(|cmd| {
+                cmd.arg("uninstall").arg("proto").arg("0.45.0").arg("--yes");
+            })
+            .success();
+
+        assert!(!tool_dir.exists());
+
+        assert.stdout(predicate::str::contains(
+            "proto 0.45.0 has been uninstalled!",
+        ));
+    }
+
+    #[test]
     fn installs_and_uninstalls_tool() {
         let sandbox = create_empty_proto_sandbox();
         let tool_dir = sandbox.path().join(".proto/tools/node/19.0.0");
@@ -87,7 +119,7 @@ mod install_uninstall {
         // Uninstall
         let assert = sandbox
             .run_bin(|cmd| {
-                cmd.arg("uninstall").arg("node").arg("19.0.0");
+                cmd.arg("uninstall").arg("node").arg("19.0.0").arg("--yes");
             })
             .success();
 
@@ -274,7 +306,7 @@ mod install_uninstall {
         // Uninstall
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("uninstall").arg("node").arg("19.0.0");
+                cmd.arg("uninstall").arg("node").arg("19.0.0").arg("--yes");
             })
             .success();
 

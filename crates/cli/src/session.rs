@@ -6,11 +6,9 @@ use crate::utils::progress_instance::ProgressInstance;
 use crate::utils::tool_record::ToolRecord;
 use async_trait::async_trait;
 use miette::IntoDiagnostic;
-use proto_core::registry::ProtoRegistry;
 use proto_core::{
-    Backend, ConfigMode, Id, PROTO_PLUGIN_KEY, ProtoConfig, ProtoEnvironment, SCHEMA_PLUGIN_KEY,
-    Tool, ToolSpec, UnresolvedVersionSpec, load_schema_plugin_with_proto, load_tool,
-    load_tool_from_locator,
+    Backend, ConfigMode, Id, ProtoConfig, ProtoEnvironment, SCHEMA_PLUGIN_KEY, ToolSpec,
+    UnresolvedVersionSpec, load_schema_plugin_with_proto, load_tool, registry::ProtoRegistry,
 };
 use rustc_hash::FxHashSet;
 use semver::Version;
@@ -162,7 +160,7 @@ impl ProtoSession {
             }
 
             // These shouldn't be treated as a "normal plugin"
-            if id == SCHEMA_PLUGIN_KEY || id == PROTO_PLUGIN_KEY {
+            if id == SCHEMA_PLUGIN_KEY {
                 continue;
             }
 
@@ -218,15 +216,6 @@ impl ProtoSession {
         self.load_tools_with_options(options).await
     }
 
-    pub async fn load_proto_tool(&self) -> miette::Result<Tool> {
-        load_tool_from_locator(
-            Id::new(PROTO_PLUGIN_KEY)?,
-            &self.env,
-            self.env.load_config()?.builtin_proto_plugin(),
-        )
-        .await
-    }
-
     pub async fn render_progress_loader(&self) -> miette::Result<ProgressInstance> {
         use iocraft::prelude::element;
 
@@ -270,7 +259,6 @@ impl AppSession for ProtoSession {
 
     async fn analyze(&mut self) -> AppResult {
         load_proto_configs(&self.env)?;
-        download_versioned_proto_tool(self).await?;
 
         Ok(None)
     }

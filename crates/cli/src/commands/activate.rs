@@ -143,6 +143,8 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     {
         info.env
             .insert("PROTO_VERSION".into(), Some(version.to_string()));
+        info.env
+            .insert("PROTO_PROTO_VERSION".into(), Some(version.to_string()));
 
         info.paths.push(
             session
