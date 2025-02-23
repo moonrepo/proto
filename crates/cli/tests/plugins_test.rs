@@ -384,20 +384,13 @@ mod plugins {
             let mut paths = vec![sandbox.path().join(".proto/shims")];
             paths.extend(starbase_utils::env::paths());
 
-            sandbox.run_bin(|cmd| {
-                cmd.arg("install")
-                    .arg("poetry")
-                    .env("PATH", std::env::join_paths(paths).unwrap());
-            });
-            // .success();
-
-            for entry in std::fs::read_dir(sandbox.path()).unwrap() {
-                let entry = entry.unwrap();
-
-                if entry.path().extension().is_some_and(|ext| ext == "log") {
-                    println!("{}", std::fs::read_to_string(entry.path()).unwrap());
-                }
-            }
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("poetry")
+                        .env("PATH", std::env::join_paths(paths).unwrap());
+                })
+                .success();
 
             create_shim_command(sandbox.path(), "poetry")
                 .arg("--version")
