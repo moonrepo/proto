@@ -55,10 +55,15 @@ pub fn is_offline() -> bool {
             .map(|value| value.split(',').map(|v| v.trim().to_owned()).collect())
             .unwrap_or_default();
 
+        let ip_version = env::var("PROTO_OFFLINE_IP_VERSION").unwrap_or_default();
+
         net::is_offline_with_options(net::OfflineOptions {
             check_default_hosts: !override_default,
             check_default_ips: !override_default,
             custom_hosts,
+            custom_ips: vec![],
+            ip_v4: ip_version.is_empty() || ip_version == "4",
+            ip_v6: ip_version.is_empty() || ip_version == "6",
             timeout,
         })
     })

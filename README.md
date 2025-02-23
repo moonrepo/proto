@@ -28,7 +28,7 @@ proto is a pluggable next-generation version manager for multiple programming la
 - Go
 - moon
 - Node (and npm, pnpm, yarn)
-- Python (and uv)
+- Python (and poetry, uv)
 - Ruby
 - Rust
 - ... [and more via plugins!](https://moonrepo.dev/docs/proto/tools)

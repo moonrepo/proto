@@ -35,6 +35,27 @@ impl VirtualPath {
         }
     }
 
+    /// Return the parent directory as a new [`VirtualPath`] instance.
+    /// If the root is traversed to, a `/` will always be returned instead
+    /// of returning a [`None`] value.
+    pub fn parent(&self) -> VirtualPath {
+        match self {
+            Self::OnlyReal(base) => Self::OnlyReal(base.parent().unwrap_or(&base).to_path_buf()),
+            Self::WithReal {
+                path: base,
+                virtual_prefix,
+                real_prefix,
+            } => Self::WithReal {
+                path: match base.parent() {
+                    Some(parent) => parent.to_owned(),
+                    None => PathBuf::from("/"),
+                },
+                virtual_prefix: virtual_prefix.clone(),
+                real_prefix: real_prefix.clone(),
+            },
+        }
+    }
+
     /// Return any path available, either virtual or real, regardless of any
     /// conditions. This is primarily used for debugging.
     pub fn any_path(&self) -> &Path {

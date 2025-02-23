@@ -69,44 +69,7 @@ macro_rules! generate_download_install_tests {
         generate_download_install_tests!($id, $version, None);
     };
     ($id:literal, $version:literal, $schema:expr) => {
-        #[tokio::test(flavor = "multi_thread")]
-        async fn downloads_verifies_installs_tool() {
-            let sandbox = create_empty_proto_sandbox();
-            let mut plugin = if let Some(schema) = $schema {
-                sandbox.create_schema_plugin($id, schema).await
-            } else {
-                sandbox.create_plugin($id).await
-            };
-            let spec = UnresolvedVersionSpec::parse($version).unwrap();
-
-            plugin
-                .tool
-                .setup(
-                    &spec,
-                    proto_pdk_test_utils::flow::install::InstallOptions::default(),
-                )
-                .await
-                .unwrap();
-
-            // Check install dir exists
-            let base_dir = sandbox.proto_dir.join("tools").join($id).join($version);
-            let tool_dir = plugin.tool.get_product_dir();
-
-            assert_eq!(tool_dir, base_dir);
-            assert!(base_dir.exists());
-
-            // Check bin path exists (would panic)
-            plugin.tool.locate_exe_file().await.unwrap();
-
-            // Check things exist
-            for bin in plugin.tool.resolve_bin_locations(true).await.unwrap() {
-                assert!(bin.path.exists());
-            }
-
-            for shim in plugin.tool.resolve_shim_locations().await.unwrap() {
-                assert!(shim.path.exists());
-            }
-        }
+        proto_pdk_test_utils::generate_native_install_tests!($id, $version, $schema);
 
         #[tokio::test(flavor = "multi_thread")]
         async fn downloads_prebuilt_and_checksum_to_temp() {
@@ -161,6 +124,53 @@ macro_rules! generate_download_install_tests {
                     .await
                     .unwrap()
             );
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! generate_native_install_tests {
+    ($id:literal, $version:literal) => {
+        generate_native_install_tests!($id, $version, None);
+    };
+    ($id:literal, $version:literal, $schema:expr) => {
+        #[tokio::test(flavor = "multi_thread")]
+        async fn installs_tool() {
+            let sandbox = create_empty_proto_sandbox();
+            let mut plugin = if let Some(schema) = $schema {
+                sandbox.create_schema_plugin($id, schema).await
+            } else {
+                sandbox.create_plugin($id).await
+            };
+            let spec = UnresolvedVersionSpec::parse($version).unwrap();
+
+            plugin
+                .tool
+                .setup(
+                    &spec,
+                    proto_pdk_test_utils::flow::install::InstallOptions::default(),
+                )
+                .await
+                .unwrap();
+
+            // Check install dir exists
+            let base_dir = sandbox.proto_dir.join("tools").join($id).join($version);
+            let tool_dir = plugin.tool.get_product_dir();
+
+            assert_eq!(tool_dir, base_dir);
+            assert!(base_dir.exists());
+
+            // Check bin path exists (would panic)
+            plugin.tool.locate_exe_file().await.unwrap();
+
+            // Check things exist
+            for bin in plugin.tool.resolve_bin_locations(true).await.unwrap() {
+                assert!(bin.path.exists());
+            }
+
+            for shim in plugin.tool.resolve_shim_locations().await.unwrap() {
+                assert!(shim.path.exists());
+            }
         }
     };
 }

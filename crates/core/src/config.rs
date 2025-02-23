@@ -395,6 +395,15 @@ impl ProtoConfig {
             }
         }
 
+        if !self.plugins.contains_key("poetry") && is_allowed("poetry") {
+            self.plugins.insert(
+                Id::raw("poetry"),
+                PluginLocator::Url(Box::new(UrlLocator {
+                    url: "https://github.com/moonrepo/plugins/releases/download/python_poetry_tool-v0.1.1/python_poetry_tool.wasm".into()
+                }))
+            );
+        }
+
         if !self.plugins.contains_key("python") && is_allowed("python") {
             self.plugins.insert(
                 Id::raw("python"),
@@ -426,7 +435,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("rust"),
                 PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/rust_tool-v0.13.0/rust_tool.wasm".into()
+                    url: "https://github.com/moonrepo/plugins/releases/download/rust_tool-v0.13.1/rust_tool.wasm".into()
                 }))
             );
         }

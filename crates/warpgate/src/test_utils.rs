@@ -5,22 +5,33 @@ use std::env;
 use std::path::{Path, PathBuf};
 use warpgate_api::{HostArch, HostEnvironment, HostLibc, HostOS, TestEnvironment, VirtualPath};
 
-/// Find the WASM compiled target directory.
-pub fn find_target_dir<T: AsRef<Path>>(search_dir: T) -> Option<PathBuf> {
+fn traverse_target_dir<T: AsRef<Path>, F: AsRef<str>>(
+    search_dir: T,
+    search_file: F,
+) -> Option<PathBuf> {
     let mut dir = search_dir.as_ref();
-    let profiles = ["debug", "release"];
+    let file = search_file.as_ref();
+    let profiles = ["release", "debug"];
     let targets = ["wasm32-wasip1", "wasm32-wasi"];
 
     loop {
         for profile in &profiles {
             for target in &targets {
-                let next_target = dir.join("target").join(target).join(profile);
+                let mut next_target = dir.join("target").join(target).join(profile);
+
+                if !file.is_empty() {
+                    next_target = next_target.join(file);
+                }
 
                 if next_target.exists() {
                     return Some(next_target);
                 }
 
-                let next_target = dir.join(target).join(profile);
+                let mut next_target = dir.join(target).join(profile);
+
+                if !file.is_empty() {
+                    next_target = next_target.join(file);
+                }
 
                 if next_target.exists() {
                     return Some(next_target);
@@ -41,34 +52,31 @@ pub fn find_target_dir<T: AsRef<Path>>(search_dir: T) -> Option<PathBuf> {
     None
 }
 
+/// Find the WASM compiled target directory.
+pub fn find_target_dir<T: AsRef<Path>>(search_dir: T) -> Option<PathBuf> {
+    traverse_target_dir(search_dir, "")
+}
+
 /// Find an applicable WASM file to return tests with. Will attempt to find
 /// the file based on the Cargo package name and target directories.
 pub fn find_wasm_file() -> PathBuf {
-    let wasm_file_name = env::var("CARGO_PKG_NAME").expect("Missing CARGO_PKG_NAME!");
+    let wasm_file = format!(
+        "{}.wasm",
+        env::var("CARGO_PKG_NAME").expect("Missing CARGO_PKG_NAME!")
+    );
 
-    let mut wasm_target_dir =
-        find_target_dir(path_var("CARGO_MANIFEST_DIR").expect("Missing CARGO_MANIFEST_DIR!"));
-
-    if wasm_target_dir.is_none() {
-        if let Some(dir) = path_var("CARGO_TARGET_DIR") {
-            wasm_target_dir = find_target_dir(dir);
+    for env_var in ["CARGO_MANIFEST_DIR", "CARGO_TARGET_DIR"] {
+        if let Some(env_path) = path_var(env_var) {
+            if let Some(wasm_path) = traverse_target_dir(env_path, &wasm_file) {
+                return wasm_path;
+            }
         }
     }
 
-    let Some(wasm_target_dir) = wasm_target_dir else {
-        panic!("Could not find a target directory!");
-    };
-
-    let wasm_file = wasm_target_dir.join(format!("{wasm_file_name}.wasm"));
-
-    if !wasm_file.exists() {
-        panic!(
-            "WASM file {} does not exist. Please build it with `cargo build --target wasm32-wasip1` before running tests!",
-            wasm_file.display()
-        );
-    }
-
-    wasm_file
+    panic!(
+        "WASM file `{}` does not exist. Please build it with `cargo build --target wasm32-wasip1` before running tests!",
+        wasm_file
+    );
 }
 
 pub struct ConfigBuilder {

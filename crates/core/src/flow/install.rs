@@ -327,6 +327,19 @@ impl Tool {
                 output.checksum_public_key.as_deref(),
             )
             .await?;
+        } else if let Some(checksum) = output.checksum {
+            let checksum_file = temp_dir.join("CHECKSUM");
+
+            fs::write_file(&checksum_file, &checksum)?;
+
+            debug!(tool = self.id.as_str(), checksum, "Using provided checksum");
+
+            self.verify_checksum(
+                &checksum_file,
+                &download_file,
+                output.checksum_public_key.as_deref(),
+            )
+            .await?;
         }
 
         // Attempt to unpack the archive
