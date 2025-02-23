@@ -171,6 +171,7 @@ pub fn download_prebuilt(
         checksum_url: Some(format!("https://nodejs.org/dist/v{version}/SHASUMS256.txt")),
         checksum_name: None,
         checksum_public_key: None,
+        ..Default::default()
     }))
 }
 

@@ -1,6 +1,6 @@
 [package]
 name = "system_env"
-version = "0.7.2"
+version = "0.8.0"
 edition = "2024"
 license = "MIT"
 description = "Information about the system environment: operating system, architecture, package manager, etc."

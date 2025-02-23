@@ -370,6 +370,39 @@ mod plugins {
         }
 
         #[test]
+        fn supports_poetry() {
+            let sandbox = create_empty_proto_sandbox();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("python").arg("3.12.0");
+                })
+                .success();
+
+            // `poetry` is called in a post-install hook,
+            // so we need to make it available on PATH
+            let mut paths = vec![sandbox.path().join(".proto/shims")];
+            paths.extend(starbase_utils::env::paths());
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("poetry")
+                        .env("PATH", std::env::join_paths(paths).unwrap());
+                })
+                .success();
+
+            create_shim_command(sandbox.path(), "poetry")
+                .arg("--version")
+                .assert()
+                .success();
+
+            assert_snapshot!(
+                fs::read_to_string(sandbox.path().join(".proto/shims/registry.json")).unwrap()
+            );
+        }
+
+        #[test]
         fn supports_uv() {
             let sandbox = create_empty_proto_sandbox();
 
