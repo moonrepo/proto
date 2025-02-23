@@ -26,6 +26,8 @@
   - Added a `PROTO_OFFLINE_IP_VERSION` to control which version to only check against.
 - WASM API
   - Added `DownloadPrebuiltOutput.checksum` field.
+  - Added `DetectVersionInput` struct.
+  - Added `ParseVersionFileInput.context` field.
 
 #### 🧩 Plugins
 

@@ -175,6 +175,14 @@ api_struct!(
 // VERSION DETECTION
 
 api_struct!(
+    /// Input passed to the `detect_version_files` function.
+    pub struct DetectVersionInput {
+        /// Current tool context.
+        pub context: ToolContext,
+    }
+);
+
+api_struct!(
     /// Output returned by the `detect_version_files` function.
     #[serde(default)]
     pub struct DetectVersionOutput {
@@ -193,6 +201,9 @@ api_struct!(
     pub struct ParseVersionFileInput {
         /// File contents to parse/extract a version from.
         pub content: String,
+
+        /// Current tool context.
+        pub context: ToolContext,
 
         /// Name of file that's being parsed.
         pub file: String,
