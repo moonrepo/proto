@@ -1,6 +1,8 @@
 mod utils;
 
-use proto_core::{Id, PartialProtoToolConfig, ProtoConfig, UnresolvedVersionSpec};
+use proto_core::{
+    Backend, Id, PartialProtoToolConfig, ProtoConfig, ToolSpec, UnresolvedVersionSpec,
+};
 use starbase_sandbox::predicates::prelude::*;
 use std::collections::BTreeMap;
 use utils::*;
@@ -47,6 +49,40 @@ mod alias_local {
             BTreeMap::from_iter([(
                 "example".into(),
                 UnresolvedVersionSpec::parse("19.0.0").unwrap().into()
+            )])
+        );
+    }
+
+    #[test]
+    fn updates_config_file_with_backend() {
+        let sandbox = create_empty_proto_sandbox();
+        let config_file = sandbox.path().join(".prototools");
+
+        assert!(!config_file.exists());
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("alias")
+                    .arg("node")
+                    .arg("example")
+                    .arg("asdf:19.0.0")
+                    .current_dir(sandbox.path());
+            })
+            .success();
+
+        assert!(config_file.exists());
+
+        let config = load_config(sandbox.path());
+
+        assert_eq!(
+            config.tools.get("node").unwrap().aliases,
+            BTreeMap::from_iter([(
+                "example".into(),
+                ToolSpec {
+                    backend: Some(Backend::Asdf),
+                    req: UnresolvedVersionSpec::parse("19.0.0").unwrap(),
+                    res: None,
+                }
             )])
         );
     }

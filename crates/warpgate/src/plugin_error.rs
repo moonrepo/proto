@@ -24,7 +24,7 @@ pub enum WarpgatePluginError {
     FailedPluginCall { id: Id, func: String, error: String },
 
     #[diagnostic(code(plugin::wasm::failed_function_call))]
-    #[error("{}", apply_style_tags(.error),)]
+    #[error("{}", apply_style_tags(.error))]
     FailedPluginCallRelease { error: String },
 
     #[diagnostic(code(plugin::wasm::incompatible_runtime))]

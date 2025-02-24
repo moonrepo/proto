@@ -722,4 +722,45 @@ mod install_uninstall {
             assert.stdout(predicate::str::contains("npm 10.0.0 has been installed"));
         }
     }
+
+    mod backend {
+        use super::*;
+
+        #[test]
+        fn installs_and_uninstalls_asdf_tool() {
+            let sandbox = create_empty_proto_sandbox();
+            let tool_dir = sandbox.path().join(".proto/tools/act/0.2.70");
+
+            assert!(!tool_dir.exists());
+
+            // Install
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("act").arg("asdf:0.2.70");
+                })
+                .success();
+
+            assert!(tool_dir.exists());
+
+            assert.stdout(predicate::str::contains(
+                "asdf:act 0.2.70 has been installed",
+            ));
+
+            // Uninstall
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("uninstall")
+                        .arg("act")
+                        .arg("asdf:0.2.70")
+                        .arg("--yes");
+                })
+                .success();
+
+            assert!(!tool_dir.exists());
+
+            assert.stdout(predicate::str::contains(
+                "asdf:act 0.2.70 has been uninstalled!",
+            ));
+        }
+    }
 }

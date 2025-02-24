@@ -157,6 +157,26 @@ npm = "9.0.0"
             "proto = \"0.45.0\"\n"
         )
     }
+
+    #[test]
+    fn can_set_asdf_backend() {
+        let sandbox = create_empty_proto_sandbox();
+        let version_file = sandbox.path().join(".prototools");
+
+        assert!(!version_file.exists());
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("pin").arg("act").arg("asdf:0.2.70");
+            })
+            .success();
+
+        assert!(version_file.exists());
+        assert_eq!(
+            fs::read_to_string(version_file).unwrap(),
+            "act = \"asdf:0.2.70\"\n"
+        )
+    }
 }
 
 mod pin_global {
