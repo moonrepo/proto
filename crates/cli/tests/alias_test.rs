@@ -63,9 +63,9 @@ mod alias_local {
         sandbox
             .run_bin(|cmd| {
                 cmd.arg("alias")
-                    .arg("node")
+                    .arg("act")
                     .arg("example")
-                    .arg("asdf:19.0.0")
+                    .arg("asdf:0.2")
                     .current_dir(sandbox.path());
             })
             .success();
@@ -75,12 +75,12 @@ mod alias_local {
         let config = load_config(sandbox.path());
 
         assert_eq!(
-            config.tools.get("node").unwrap().aliases,
+            config.tools.get("act").unwrap().aliases,
             BTreeMap::from_iter([(
                 "example".into(),
                 ToolSpec {
                     backend: Some(Backend::Asdf),
-                    req: UnresolvedVersionSpec::parse("19.0.0").unwrap(),
+                    req: UnresolvedVersionSpec::parse("0.2").unwrap(),
                     res: None,
                 }
             )])

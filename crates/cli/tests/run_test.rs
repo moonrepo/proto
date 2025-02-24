@@ -496,4 +496,88 @@ FOURTH = "ignores-$FIRST-$PARENT"
             assert.stdout(predicate::str::contains("0.45.0"));
         }
     }
+
+    mod backend {
+        use super::*;
+
+        #[test]
+        fn errors_if_not_installed() {
+            let sandbox = create_empty_proto_sandbox();
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("run").arg("act").arg("asdf:0.2");
+                })
+                .failure();
+
+            assert.stderr(predicate::str::contains(
+                "This project requires asdf:act ~0.2",
+            ));
+        }
+
+        #[test]
+        fn errors_if_no_version_detected() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[tools.act]
+backend = "asdf"
+"#,
+            );
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("run").arg("act");
+                })
+                .failure();
+
+            assert.stderr(predicate::str::contains(
+                "Failed to detect an applicable version",
+            ));
+        }
+
+        #[test]
+        fn runs_a_tool() {
+            let sandbox = create_empty_proto_sandbox();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("act").arg("asdf:0.2.70");
+                })
+                .success();
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("run")
+                        .arg("act")
+                        .arg("asdf:0.2.70")
+                        .arg("--")
+                        .arg("--version");
+                })
+                .success();
+
+            assert.stdout(predicate::str::contains("0.2.70"));
+        }
+
+        #[test]
+        fn runs_a_tool_using_version_detection() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(".prototools", "act = \"asdf:0.2.70\"");
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("act").arg("asdf:0.2.70");
+                })
+                .success();
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("run").arg("act").arg("--").arg("--version");
+                })
+                .success();
+
+            assert.stdout(predicate::str::contains("0.2.70"));
+        }
+    }
 }
