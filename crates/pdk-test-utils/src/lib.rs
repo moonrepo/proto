@@ -5,8 +5,8 @@ mod wrapper;
 
 pub use config_builder::*;
 pub use proto_core::{
-    Id, ProtoConfig, ProtoConsole, ProtoEnvironment, Tool, ToolManifest, UnresolvedVersionSpec,
-    Version, VersionReq, VersionSpec, flow,
+    Backend, Id, ProtoConfig, ProtoConsole, ProtoEnvironment, Tool, ToolManifest, ToolSpec,
+    UnresolvedVersionSpec, Version, VersionReq, VersionSpec, flow,
 };
 pub use proto_pdk_api::*;
 pub use sandbox::*;

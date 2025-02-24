@@ -1,5 +1,5 @@
 use crate::wrapper::WasmTestWrapper;
-use proto_core::{ProtoEnvironment, Tool, inject_proto_manifest_config};
+use proto_core::{Backend, ProtoEnvironment, Tool, inject_proto_manifest_config};
 use starbase_sandbox::{Sandbox, create_empty_sandbox, create_sandbox};
 use std::ops::Deref;
 use std::path::PathBuf;
@@ -56,6 +56,12 @@ impl ProtoWasmSandbox {
 
     pub async fn create_plugin(&self, id: &str) -> WasmTestWrapper {
         self.create_plugin_with_config(id, |_| {}).await
+    }
+
+    pub async fn create_plugin_with_backend(&self, id: &str, backend: Backend) -> WasmTestWrapper {
+        let mut plugin = self.create_plugin_with_config(id, |_| {}).await;
+        plugin.set_backend(backend).await;
+        plugin
     }
 
     pub async fn create_plugin_with_config(
