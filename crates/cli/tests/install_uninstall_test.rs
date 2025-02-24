@@ -762,5 +762,61 @@ mod install_uninstall {
                 "asdf:act 0.2.70 has been uninstalled!",
             ));
         }
+
+        #[test]
+        fn installs_with_shortname() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[tools.newrelic]
+asdf-shortname = "newrelic-cli"
+"#,
+            );
+
+            let tool_dir = sandbox.path().join(".proto/tools/newrelic/0.97.0");
+
+            assert!(!tool_dir.exists());
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("newrelic").arg("asdf:0.97.0");
+                })
+                .success();
+
+            assert!(tool_dir.exists());
+
+            assert.stdout(predicate::str::contains(
+                "asdf:newrelic 0.97.0 has been installed",
+            ));
+        }
+
+        #[test]
+        fn installs_with_custom_repo() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[tools.newrelic]
+asdf-repository = "https://github.com/NeoHsu/asdf-newrelic-cli"
+"#,
+            );
+
+            let tool_dir = sandbox.path().join(".proto/tools/newrelic/0.97.0");
+
+            assert!(!tool_dir.exists());
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("newrelic").arg("asdf:0.97.0");
+                })
+                .success();
+
+            assert!(tool_dir.exists());
+
+            assert.stdout(predicate::str::contains(
+                "asdf:newrelic 0.97.0 has been installed",
+            ));
+        }
     }
 }
