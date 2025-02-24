@@ -17,6 +17,12 @@
 
 ## Unreleased
 
+#### 💥 Breaking
+
+- WASM API
+  - Deprecated `LocateExecutablesOutput.exes_dir` field.
+  - Removed `LocateExecutablesOutput.primary`, and `secondary` fields.
+
 #### 🚀 Updates
 
 - Added a new built-in tool: `poetry` (Python)
@@ -27,6 +33,7 @@
 - WASM API
   - Added `DownloadPrebuiltOutput.checksum` field.
   - Added `DetectVersionInput` struct.
+  - Added `LocateExecutablesOutput.exes_dirs` field.
   - Added `ParseVersionFileInput.context` field.
 
 #### 🧩 Plugins
