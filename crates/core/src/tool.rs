@@ -333,7 +333,11 @@ impl Tool {
         };
 
         for exe in metadata.exes {
-            fs::update_perms(backend_dir.join(exe), None)?;
+            let exe_path = backend_dir.join(exe);
+
+            if exe_path.exists() {
+                fs::update_perms(exe_path, None)?;
+            }
         }
 
         self.backend_registered = true;
