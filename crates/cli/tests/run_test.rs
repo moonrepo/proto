@@ -497,6 +497,7 @@ FOURTH = "ignores-$FIRST-$PARENT"
         }
     }
 
+    #[cfg(not(windows))]
     mod backend {
         use super::*;
 

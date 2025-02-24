@@ -723,6 +723,7 @@ mod install_uninstall {
         }
     }
 
+    #[cfg(not(windows))]
     mod backend {
         use super::*;
 

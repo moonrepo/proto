@@ -343,7 +343,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("asdf"),
                 PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/asdf_backend-v0.1.1/asdf_backend.wasm".into()
+                    url: "https://github.com/moonrepo/plugins/releases/download/asdf_backend-v0.1.2/asdf_backend.wasm".into()
                 }))
             );
         }

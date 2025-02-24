@@ -54,40 +54,6 @@ mod alias_local {
     }
 
     #[test]
-    fn updates_config_file_with_backend() {
-        let sandbox = create_empty_proto_sandbox();
-        let config_file = sandbox.path().join(".prototools");
-
-        assert!(!config_file.exists());
-
-        sandbox
-            .run_bin(|cmd| {
-                cmd.arg("alias")
-                    .arg("act")
-                    .arg("example")
-                    .arg("asdf:0.2")
-                    .current_dir(sandbox.path());
-            })
-            .success();
-
-        assert!(config_file.exists());
-
-        let config = load_config(sandbox.path());
-
-        assert_eq!(
-            config.tools.get("act").unwrap().aliases,
-            BTreeMap::from_iter([(
-                "example".into(),
-                ToolSpec {
-                    backend: Some(Backend::Asdf),
-                    req: UnresolvedVersionSpec::parse("0.2").unwrap(),
-                    res: None,
-                }
-            )])
-        );
-    }
-
-    #[test]
     fn can_overwrite_existing_alias() {
         let sandbox = create_empty_proto_sandbox();
 
@@ -146,6 +112,45 @@ mod alias_local {
         assert
             .inner
             .stderr(predicate::str::contains("Cannot map an alias to itself."));
+    }
+
+    #[cfg(not(windows))]
+    mod backend {
+        use super::*;
+
+        #[test]
+        fn can_set_asdf() {
+            let sandbox = create_empty_proto_sandbox();
+            let config_file = sandbox.path().join(".prototools");
+
+            assert!(!config_file.exists());
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("alias")
+                        .arg("act")
+                        .arg("example")
+                        .arg("asdf:0.2")
+                        .current_dir(sandbox.path());
+                })
+                .success();
+
+            assert!(config_file.exists());
+
+            let config = load_config(sandbox.path());
+
+            assert_eq!(
+                config.tools.get("act").unwrap().aliases,
+                BTreeMap::from_iter([(
+                    "example".into(),
+                    ToolSpec {
+                        backend: Some(Backend::Asdf),
+                        req: UnresolvedVersionSpec::parse("0.2").unwrap(),
+                        res: None,
+                    }
+                )])
+            );
+        }
     }
 }
 
