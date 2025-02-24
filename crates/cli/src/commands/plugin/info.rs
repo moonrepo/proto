@@ -17,7 +17,7 @@ use std::path::PathBuf;
 struct InfoPluginResult {
     bins: Vec<ExecutableLocation>,
     config: ProtoToolConfig,
-    exe_file: PathBuf,
+    exe_file: Option<PathBuf>,
     exes_dirs: Vec<PathBuf>,
     globals_dirs: Vec<PathBuf>,
     globals_prefix: Option<String>,
@@ -45,7 +45,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
             &args.id,
             None,
             LoadToolOptions {
-                detect_version: true,
+                detect_version: args.id != "asdf",
                 inherit_local: true,
                 inherit_remote: true,
                 ..Default::default()
@@ -60,7 +60,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
         let result = InfoPluginResult {
             bins,
             config: tool.config.clone(),
-            exe_file: tool.locate_exe_file().await?,
+            exe_file: tool.locate_exe_file().await.ok(),
             exes_dirs: tool.locate_exes_dirs().await?,
             globals_dirs: tool.locate_globals_dirs().await?,
             globals_prefix: tool.locate_globals_prefix().await?,
@@ -83,6 +83,9 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
 
     // PLUGIN
 
+    let is_backend = tool.plugin.has_func("register_backend").await;
+    let is_tool = !is_backend;
+
     session.console.render(element! {
         Container {
             Section(title: "Plugin") {
@@ -101,8 +104,20 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
                 )
                 Entry(
                     name: "Type",
-                    content: format!("{:?}", tool.metadata.type_of),
+                    content: if is_backend {
+                        "Backend".to_string()
+                    } else {
+                        "Tool".to_string()
+                    },
                 )
+                #(is_tool.then(|| {
+                    element! {
+                        Entry(
+                            name: "Category",
+                            content: format!("{:?}", tool.metadata.type_of),
+                        )
+                    }
+                }))
                 #(tool.metadata.plugin_version.as_ref().map(|version| {
                     element! {
                         Entry(
@@ -162,9 +177,13 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
         }
     })?;
 
+    if is_backend {
+        return Ok(None);
+    }
+
     // INVENTORY
 
-    let exe_file = tool.locate_exe_file().await?;
+    let exe_file = tool.locate_exe_file().await.ok();
     let exes_dirs = tool.locate_exes_dirs().await?;
     let globals_dir = tool.locate_globals_dir().await?;
     let globals_prefix = tool.locate_globals_prefix().await?;
@@ -203,15 +222,19 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
                         )
                     }.into_any()
                 )
-                Entry(
-                    name: "Executable file",
-                    value: element! {
-                        StyledText(
-                            content: exe_file.to_string_lossy(),
-                            style: Style::Path
+                #(exe_file.map(|file| {
+                    element! {
+                        Entry(
+                            name: "Executable file",
+                            value: element! {
+                                StyledText(
+                                    content: file.to_string_lossy(),
+                                    style: Style::Path
+                                )
+                            }.into_any()
                         )
-                    }.into_any()
-                )
+                    }
+                }))
                 Entry(
                     name: "Executables directories",
                     no_children: exes_dirs.is_empty()
