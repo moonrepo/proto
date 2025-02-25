@@ -19,8 +19,16 @@ pub enum ProtoProcessError {
     },
 
     #[diagnostic(code(proto::process::command_failed))]
-    #[error("Command {} returned a {code} exit code.", .command.style(Style::Shell))]
-    FailedCommandNonZeroExit { command: String, code: i32 },
+    #[error(
+        "Command {} returned a {code} exit code.\n{}",
+        .command.style(Style::Shell),
+        .stderr.style(Style::MutedLight),
+    )]
+    FailedCommandNonZeroExit {
+        command: String,
+        code: i32,
+        stderr: String,
+    },
 }
 
 #[allow(dead_code)]
@@ -141,4 +149,17 @@ pub async fn exec_command_with_privileges_piped(
         elevated_program,
     )
     .await
+}
+
+pub fn handle_exec(result: ProcessResult) -> miette::Result<ProcessResult> {
+    if result.exit_code > 0 {
+        return Err(ProtoProcessError::FailedCommandNonZeroExit {
+            command: result.command.clone(),
+            code: result.exit_code,
+            stderr: result.stderr.clone(),
+        }
+        .into());
+    }
+
+    Ok(result)
 }

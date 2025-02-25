@@ -236,7 +236,7 @@ pub async fn clean_proto_tool(
         })?;
 
         let is_stale = if proto_file.exists() {
-            fs::is_stale(proto_file, false, duration, now)?.is_some()
+            fs::is_stale(proto_file, true, duration, now)?.is_some()
         } else {
             true
         };
@@ -303,11 +303,16 @@ pub async fn internal_clean(
         debug!("Cleaning installed tools...");
 
         for tool in session.load_tools().await? {
+            if tool.id == PROTO_PLUGIN_KEY {
+                continue;
+            }
+
             result
                 .tools
                 .extend(clean_tool(session, tool.tool, now, days).await?);
         }
 
+        // proto has special handling
         result
             .tools
             .extend(clean_proto_tool(session, now, days).await?);

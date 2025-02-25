@@ -1,4 +1,5 @@
 [plugins]
+# asdf = "file://../moonrepo/plugins/target/wasm32-wasip1/release/asdf_backend.wasm"
 # deno-test = "file://../moonrepo/plugins/target/wasm32-wasip1/debug/deno_tool.wasm"
 # go-test = "file://../moonrepo/plugins/target/wasm32-wasip1/debug/go_tool.wasm"
 # node-test = "file://../moonrepo/plugins/target/wasm32-wasip1/debug/node_tool.wasm"

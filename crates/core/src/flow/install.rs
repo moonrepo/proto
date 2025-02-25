@@ -434,6 +434,8 @@ impl Tool {
                 func(InstallPhase::Native);
             });
 
+            fs::create_dir_all(&install_dir)?;
+
             let output: NativeInstallOutput = self
                 .plugin
                 .call_func_with(

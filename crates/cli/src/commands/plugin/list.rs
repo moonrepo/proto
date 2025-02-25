@@ -80,6 +80,8 @@ pub async fn list(session: ProtoSession, args: ListPluginsArgs) -> AppResult {
         aliases.extend(&tool.remote_aliases);
         aliases.extend(&tool.local_aliases);
 
+        let is_tool = !tool.plugin.has_func("register_backend").await;
+
         session.console.render(element! {
             Container {
                 Section(title: &tool.metadata.name) {
@@ -99,17 +101,21 @@ pub async fn list(session: ProtoSession, args: ListPluginsArgs) -> AppResult {
                         }
                     }))
 
-                    Entry(
-                        name: "Store directory",
-                        value: element! {
-                            StyledText(
-                                content: tool.get_inventory_dir().to_string_lossy(),
-                                style: Style::Path
+                    #(is_tool.then(|| {
+                        element! {
+                            Entry(
+                                name: "Store directory",
+                                value: element! {
+                                    StyledText(
+                                        content: tool.get_inventory_dir().to_string_lossy(),
+                                        style: Style::Path
+                                    )
+                                }.into_any()
                             )
-                        }.into_any()
-                    )
+                        }
+                    }))
 
-                    #(if args.aliases {
+                    #(if args.aliases && is_tool {
                         Some(element! {
                             Entry(
                                 name: "Aliases",
@@ -122,7 +128,7 @@ pub async fn list(session: ProtoSession, args: ListPluginsArgs) -> AppResult {
                         None
                     })
 
-                    #(if args.versions {
+                    #(if args.versions && is_tool {
                         Some(element! {
                             Entry(
                                 name: "Versions",

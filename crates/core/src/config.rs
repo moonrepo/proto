@@ -339,6 +339,15 @@ impl ProtoConfig {
             BuiltinPlugins::Allowed(list) => list.iter().any(|aid| aid == id),
         };
 
+        if !self.plugins.contains_key("asdf") && is_allowed("asdf") {
+            self.plugins.insert(
+                Id::raw("asdf"),
+                PluginLocator::Url(Box::new(UrlLocator {
+                    url: "https://github.com/moonrepo/plugins/releases/download/asdf_backend-v0.1.2/asdf_backend.wasm".into()
+                }))
+            );
+        }
+
         if !self.plugins.contains_key("bun") && is_allowed("bun") {
             self.plugins.insert(
                 Id::raw("bun"),

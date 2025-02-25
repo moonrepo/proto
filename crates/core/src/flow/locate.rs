@@ -53,20 +53,6 @@ impl Tool {
             }
         }
 
-        #[allow(deprecated)]
-        if let Some(mut primary) = output.primary {
-            if let Some(exe_path) = &primary.exe_path {
-                primary.primary = true;
-
-                return Ok(Some(ExecutableLocation {
-                    path: self.get_product_dir().join(exe_path),
-                    name: self.id.to_string(),
-                    config: primary,
-                    version: None,
-                }));
-            }
-        }
-
         Ok(None)
     }
 
@@ -87,20 +73,6 @@ impl Tool {
                     config,
                     version: None,
                 });
-            }
-        }
-
-        if locations.is_empty() {
-            #[allow(deprecated)]
-            for (name, secondary) in output.secondary {
-                if let Some(exe_path) = &secondary.exe_path {
-                    locations.push(ExecutableLocation {
-                        path: self.get_product_dir().join(exe_path),
-                        name,
-                        config: secondary,
-                        version: None,
-                    });
-                }
             }
         }
 
@@ -181,19 +153,7 @@ impl Tool {
                 }
             };
 
-            if output.exes.is_empty() {
-                #[allow(deprecated)]
-                if let Some(mut primary) = output.primary {
-                    primary.primary = true;
-
-                    add(self.id.to_string(), primary);
-                }
-
-                #[allow(deprecated)]
-                for (name, secondary) in output.secondary {
-                    add(name, secondary);
-                }
-            } else {
+            if !output.exes.is_empty() {
                 for (name, config) in output.exes {
                     add(name, config);
                 }
@@ -224,19 +184,7 @@ impl Tool {
             }
         };
 
-        if output.exes.is_empty() {
-            #[allow(deprecated)]
-            if let Some(mut primary) = output.primary {
-                primary.primary = true;
-
-                add(self.id.to_string(), primary);
-            }
-
-            #[allow(deprecated)]
-            for (name, secondary) in output.secondary {
-                add(name, secondary);
-            }
-        } else {
+        if !output.exes.is_empty() {
             for (name, config) in output.exes {
                 add(name, config);
             }
@@ -283,27 +231,34 @@ impl Tool {
         .into())
     }
 
-    /// Return an absolute path to the executables directory, after it has been located.
+    /// Return an absolute path to the primary executables directory (first in the list),
+    /// after it has been located.
     pub fn get_exes_dir(&self) -> Option<&Path> {
-        self.exes_dir.as_deref()
+        self.exes_dirs.first().map(|dir| dir.as_ref())
+    }
+
+    /// Return an absolute path to all executable directories, after they have been located.
+    pub fn get_exes_dirs(&self) -> &[PathBuf] {
+        &self.exes_dirs
     }
 
     /// Locate the directory that local executables are installed to.
     #[instrument(skip_all)]
-    pub async fn locate_exes_dir(&mut self) -> miette::Result<Option<PathBuf>> {
-        if self.exes_dir.is_none() {
-            if !self.plugin.has_func("locate_executables").await {
-                return Ok(None);
-            }
-
+    pub async fn locate_exes_dirs(&mut self) -> miette::Result<Vec<PathBuf>> {
+        if self.exes_dirs.is_empty() && self.plugin.has_func("locate_executables").await {
             let output = self.call_locate_executables().await?;
 
-            if let Some(exes_dir) = output.exes_dir {
-                self.exes_dir = Some(self.get_product_dir().join(exes_dir));
+            #[allow(deprecated)]
+            if let Some(dir) = output.exes_dir {
+                self.exes_dirs.push(self.get_product_dir().join(dir));
+            } else {
+                for dir in output.exes_dirs {
+                    self.exes_dirs.push(self.get_product_dir().join(dir));
+                }
             }
         }
 
-        Ok(self.exes_dir.clone())
+        Ok(self.exes_dirs.clone())
     }
 
     /// Return an absolute path to the globals directory, after it has been located.

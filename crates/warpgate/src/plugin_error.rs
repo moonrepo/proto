@@ -1,6 +1,6 @@
 use crate::id::Id;
 use miette::Diagnostic;
-use starbase_styles::{Style, Stylize};
+use starbase_styles::{Style, Stylize, color::apply_style_tags};
 use thiserror::Error;
 
 /// Plugin/runtime errors.
@@ -16,14 +16,15 @@ pub enum WarpgatePluginError {
 
     #[diagnostic(code(plugin::wasm::failed_function_call))]
     #[error(
-        "Failed to call {} plugin function {}:\n{error}",
+        "Failed to call {} plugin function {}:\n{}",
         .id.to_string().style(Style::Id),
         .func.style(Style::Property),
+        apply_style_tags(.error),
     )]
     FailedPluginCall { id: Id, func: String, error: String },
 
     #[diagnostic(code(plugin::wasm::failed_function_call))]
-    #[error("{error}")]
+    #[error("{}", apply_style_tags(.error))]
     FailedPluginCallRelease { error: String },
 
     #[diagnostic(code(plugin::wasm::incompatible_runtime))]
