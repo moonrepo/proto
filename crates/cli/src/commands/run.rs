@@ -253,7 +253,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
             if let Ok(source) = env::var(format!("{}_DETECTED_FROM", tool.get_env_var_prefix())) {
                 return Err(ProtoCliError::RunMissingToolWithSource {
                     tool: tool.get_name().to_owned(),
-                    version: spec.to_string(),
+                    version: spec.req.to_string(),
                     command,
                     path: source.into(),
                 }
@@ -262,7 +262,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
 
             return Err(ProtoCliError::RunMissingTool {
                 tool: tool.get_name().to_owned(),
-                version: spec.to_string(),
+                version: spec.req.to_string(),
                 command,
             }
             .into());

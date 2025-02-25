@@ -1,5 +1,6 @@
 use crate::env::ProtoEnvironment;
-use crate::helpers::get_proto_version;
+use crate::env_error::ProtoEnvError;
+use crate::helpers::{get_proto_version, is_offline};
 use crate::layout::{Inventory, Product};
 use crate::tool_error::ProtoToolError;
 use crate::tool_spec::Backend;
@@ -37,7 +38,7 @@ pub struct Tool {
     pub(crate) backend_registered: bool,
     pub(crate) cache: bool,
     pub(crate) exe_file: Option<PathBuf>,
-    pub(crate) exes_dir: Option<PathBuf>,
+    pub(crate) exes_dirs: Vec<PathBuf>,
     pub(crate) globals_dir: Option<PathBuf>,
     pub(crate) globals_dirs: Vec<PathBuf>,
     pub(crate) globals_prefix: Option<String>,
@@ -59,7 +60,7 @@ impl Tool {
             backend_registered: false,
             cache: true,
             exe_file: None,
-            exes_dir: None,
+            exes_dirs: vec![],
             globals_dir: None,
             globals_dirs: vec![],
             globals_prefix: None,
@@ -298,6 +299,10 @@ impl Tool {
         let backend_id = metadata.backend_id;
         let backend_dir = self.proto.store.backends_dir.join(&backend_id);
 
+        if is_offline() {
+            return Err(ProtoEnvError::RequiredInternetConnection.into());
+        }
+
         debug!(
             tool = self.id.as_str(),
             backend_id,
@@ -333,7 +338,11 @@ impl Tool {
         };
 
         for exe in metadata.exes {
-            fs::update_perms(backend_dir.join(exe), None)?;
+            let exe_path = backend_dir.join(exe);
+
+            if exe_path.exists() {
+                fs::update_perms(exe_path, None)?;
+            }
         }
 
         self.backend_registered = true;

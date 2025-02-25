@@ -40,7 +40,7 @@ impl VirtualPath {
     /// of returning a [`None`] value.
     pub fn parent(&self) -> VirtualPath {
         match self {
-            Self::OnlyReal(base) => Self::OnlyReal(base.parent().unwrap_or(&base).to_path_buf()),
+            Self::OnlyReal(base) => Self::OnlyReal(base.parent().unwrap_or(base).to_path_buf()),
             Self::WithReal {
                 path: base,
                 virtual_prefix,

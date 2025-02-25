@@ -175,6 +175,14 @@ api_struct!(
 // VERSION DETECTION
 
 api_struct!(
+    /// Input passed to the `detect_version_files` function.
+    pub struct DetectVersionInput {
+        /// Current tool context.
+        pub context: ToolContext,
+    }
+);
+
+api_struct!(
     /// Output returned by the `detect_version_files` function.
     #[serde(default)]
     pub struct DetectVersionOutput {
@@ -193,6 +201,9 @@ api_struct!(
     pub struct ParseVersionFileInput {
         /// File contents to parse/extract a version from.
         pub content: String,
+
+        /// Current tool context.
+        pub context: ToolContext,
 
         /// Name of file that's being parsed.
         pub file: String,
@@ -436,11 +447,15 @@ api_struct!(
         #[serde(skip_serializing_if = "FxHashMap::is_empty")]
         pub exes: FxHashMap<String, ExecutableConfig>,
 
+        #[deprecated(note = "Use `exes_dirs` instead.")]
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub exes_dir: Option<PathBuf>,
+
         /// Relative directory path from the tool install directory in which
         /// pre-installed executables can be located. This directory path
         /// will be used during `proto activate`, but not for bins/shims.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub exes_dir: Option<PathBuf>,
+        #[serde(skip_serializing_if = "Vec::is_empty")]
+        pub exes_dirs: Vec<PathBuf>,
 
         /// List of directory paths to find the globals installation directory.
         /// Each path supports environment variable expansion.
@@ -451,18 +466,6 @@ api_struct!(
         /// when listing and filtering available globals.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub globals_prefix: Option<String>,
-
-        /// Configures the primary/default executable to create.
-        /// If not provided, a primary shim and binary will *not* be created.
-        #[deprecated(note = "Use `exes` instead.")]
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub primary: Option<ExecutableConfig>,
-
-        /// Configures secondary/additional executables to create.
-        /// The map key is the name of the shim/binary file.
-        #[deprecated(note = "Use `exes` instead.")]
-        #[serde(skip_serializing_if = "FxHashMap::is_empty")]
-        pub secondary: FxHashMap<String, ExecutableConfig>,
     }
 );
 

@@ -105,7 +105,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
             // Resolve the version and locate executables
             if tool.is_setup(&version).await? {
                 // Higher priority over globals
-                if let Some(exes_dir) = tool.locate_exes_dir().await? {
+                for exes_dir in tool.locate_exes_dirs().await? {
                     item.add_path(&exes_dir);
                 }
 

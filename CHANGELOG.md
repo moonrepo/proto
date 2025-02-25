@@ -17,8 +17,27 @@
 
 ## Unreleased
 
+#### 💥 Breaking
+
+- WASM API
+  - Deprecated `LocateExecutablesOutput.exes_dir` field.
+  - Removed `LocateExecutablesOutput.primary`, and `secondary` fields.
+
 #### 🚀 Updates
 
+- Added a new plugin type, `backend`, that allows us to use plugins from 3rd-party version/package managers, with initial support for [asdf](https://asdf-vm.com) (Unix only).
+  - To enable, prefix the version with `asdf:`, for example:
+    ```
+    act = "asdf:0.2"
+    ```
+  - Or set the new `backend` tool setting.
+    ```
+    [tools.act]
+    backend = "asdf"
+    ```
+  - The asdf repository will be cloned into `~/.proto/backends`, and the scripts provided will be executed on-demand.
+  - Currently does not support the `exec-env` script, which may be required for certain tools.
+  - Thanks to @LorenzoBloedow for the contribution!
 - Added a new built-in tool: `poetry` (Python)
 - Added shim support to the internal `proto` tool, allowing the proto version to be pinned in `.prototools`, and the version to dynamically be detected at runtime. This enables a specific proto version to be used per project.
 - Updated `proto install` to now install proto if a version has been defined.
@@ -26,9 +45,13 @@
   - Added a `PROTO_OFFLINE_IP_VERSION` to control which version to only check against.
 - WASM API
   - Added `DownloadPrebuiltOutput.checksum` field.
+  - Added `DetectVersionInput` struct.
+  - Added `LocateExecutablesOutput.exes_dirs` field.
+  - Added `ParseVersionFileInput.context` field.
 
 #### 🧩 Plugins
 
+- Added `asdf_backend` v0.1.
 - Added `python_poetry_tool` v0.1.
 - Updated `proto_tool` to v0.5.1.
   - Now supports shims.

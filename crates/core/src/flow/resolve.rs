@@ -210,7 +210,15 @@ impl Tool {
         }
 
         let has_parser = self.plugin.has_func("parse_version_file").await;
-        let output: DetectVersionOutput = self.plugin.cache_func("detect_version_files").await?;
+        let output: DetectVersionOutput = self
+            .plugin
+            .cache_func_with(
+                "detect_version_files",
+                DetectVersionInput {
+                    context: self.create_context(),
+                },
+            )
+            .await?;
 
         if !output.ignore.is_empty() {
             if let Some(dir) = current_dir.to_str() {
@@ -246,6 +254,7 @@ impl Tool {
                         "parse_version_file",
                         ParseVersionFileInput {
                             content,
+                            context: self.create_context(),
                             file: file.clone(),
                             path: self.to_virtual_path(&file_path),
                         },

@@ -1,16 +1,16 @@
 use miette::Diagnostic;
-use starbase_styles::{Style, Stylize};
+use starbase_styles::{Style, Stylize, color::apply_style_tags};
 use std::path::PathBuf;
 use thiserror::Error;
 
 #[derive(Error, Debug, Diagnostic)]
 pub enum ProtoInstallError {
     #[diagnostic(code(proto::install::failed))]
-    #[error("Failed to install {tool}. {error}")]
+    #[error("Failed to install {tool}. {}", apply_style_tags(.error))]
     FailedInstall { tool: String, error: String },
 
     #[diagnostic(code(proto::uninstall::failed))]
-    #[error("Failed to uninstall {tool}. {error}")]
+    #[error("Failed to uninstall {tool}. {}", apply_style_tags(.error))]
     FailedUninstall { tool: String, error: String },
 
     #[diagnostic(code(proto::install::invalid_checksum))]

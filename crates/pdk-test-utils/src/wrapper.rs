@@ -1,4 +1,4 @@
-use proto_core::Tool;
+use proto_core::{Backend, Tool};
 use proto_pdk_api::*;
 
 #[derive(Debug)]
@@ -7,10 +7,17 @@ pub struct WasmTestWrapper {
 }
 
 impl WasmTestWrapper {
-    pub async fn detect_version_files(&self) -> DetectVersionOutput {
+    pub async fn set_backend(&mut self, backend: Backend) {
+        self.tool.backend = Some(backend);
+        self.tool.register_backend().await.unwrap();
+    }
+
+    pub async fn detect_version_files(&self, mut input: DetectVersionInput) -> DetectVersionOutput {
+        input.context = self.prepare_context(input.context);
+
         self.tool
             .plugin
-            .call_func("detect_version_files")
+            .call_func_with("detect_version_files", input)
             .await
             .unwrap()
     }
@@ -75,6 +82,7 @@ impl WasmTestWrapper {
         &self,
         mut input: ParseVersionFileInput,
     ) -> ParseVersionFileOutput {
+        input.context = self.prepare_context(input.context);
         input.path = self.tool.to_virtual_path(&input.path);
 
         self.tool
@@ -189,14 +197,21 @@ impl WasmTestWrapper {
     }
 
     fn prepare_context(&self, context: ToolContext) -> ToolContext {
-        let dir = if context.tool_dir.any_path().components().count() == 0 {
+        let tool_dir = if context.tool_dir.any_path().components().count() == 0 {
             self.tool.get_product_dir()
         } else {
             context.tool_dir.any_path().to_path_buf()
         };
 
+        let temp_dir = if context.temp_dir.any_path().components().count() == 0 {
+            self.tool.get_temp_dir()
+        } else {
+            context.temp_dir.any_path().to_path_buf()
+        };
+
         ToolContext {
-            tool_dir: self.tool.to_virtual_path(&dir),
+            temp_dir: self.tool.to_virtual_path(&temp_dir),
+            tool_dir: self.tool.to_virtual_path(&tool_dir),
             ..context
         }
     }

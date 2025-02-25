@@ -233,6 +233,7 @@ impl Builder<'_> {
             return Err(process::ProtoProcessError::FailedCommandNonZeroExit {
                 command: result.command.clone(),
                 code: result.exit_code,
+                stderr: result.stderr.clone(),
             }
             .into());
         }

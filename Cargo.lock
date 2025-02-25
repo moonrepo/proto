@@ -2799,7 +2799,7 @@ dependencies = [
 
 [[package]]
 name = "proto_codegen"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "proto_core",
  "proto_pdk_api",
@@ -2809,7 +2809,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.47.2"
+version = "0.47.4"
 dependencies = [
  "clap",
  "convert_case",
@@ -2848,7 +2848,7 @@ dependencies = [
 
 [[package]]
 name = "proto_installer"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "miette 7.5.0",
  "reqwest",
@@ -2862,7 +2862,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.28.0"
+version = "0.28.1"
 dependencies = [
  "extism-pdk",
  "proto_pdk_api",
@@ -2873,7 +2873,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.27.0"
+version = "0.27.3"
 dependencies = [
  "proto_pdk_api",
  "rustc-hash",
@@ -2889,7 +2889,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.35.0"
+version = "0.35.2"
 dependencies = [
  "proto_core",
  "proto_pdk_api",
@@ -3191,9 +3191,9 @@ dependencies = [
 
 [[package]]
 name = "reqwest-middleware"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1ccd3b55e711f91a9885a2fa6fbbb2e39db1776420b062efc058c6410f7e5e3"
+checksum = "64e8975513bd9a7a43aad01030e79b3498e05db14e9d945df6483e8cf9b8c4c4"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4660,7 +4660,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.23.1"
+version = "0.23.2"
 dependencies = [
  "async-trait",
  "compact_str",
@@ -4691,7 +4691,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_api"
-version = "0.13.1"
+version = "0.13.2"
 dependencies = [
  "anyhow",
  "rustc-hash",
@@ -4704,7 +4704,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_pdk"
-version = "0.12.0"
+version = "0.12.1"
 dependencies = [
  "extism-pdk",
  "serde",
