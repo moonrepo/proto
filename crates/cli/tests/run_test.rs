@@ -506,13 +506,13 @@ FOURTH = "ignores-$FIRST-$PARENT"
             let sandbox = create_empty_proto_sandbox();
 
             let assert = sandbox.run_bin(|cmd| {
-                cmd.arg("run").arg("act").arg("asdf:0.2");
+                cmd.arg("run").arg("zig").arg("asdf:0.13");
             });
 
             assert.debug();
 
             assert.failure().stderr(predicate::str::contains(
-                "This project requires asdf:act ~0.2",
+                "This project requires asdf:zig ~0.13",
             ));
         }
 
@@ -522,14 +522,14 @@ FOURTH = "ignores-$FIRST-$PARENT"
             sandbox.create_file(
                 ".prototools",
                 r#"
-[tools.act]
+[tools.zig]
 backend = "asdf"
 "#,
             );
 
             let assert = sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("run").arg("act");
+                    cmd.arg("run").arg("zig");
                 })
                 .failure();
 
@@ -544,41 +544,41 @@ backend = "asdf"
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install").arg("act").arg("asdf:0.2.70");
+                    cmd.arg("install").arg("zig").arg("asdf:0.13.0");
                 })
                 .success();
 
             let assert = sandbox
                 .run_bin(|cmd| {
                     cmd.arg("run")
-                        .arg("act")
-                        .arg("asdf:0.2.70")
+                        .arg("zig")
+                        .arg("asdf:0.13.0")
                         .arg("--")
-                        .arg("--version");
+                        .arg("version");
                 })
                 .success();
 
-            assert.stdout(predicate::str::contains("0.2.70"));
+            assert.stdout(predicate::str::contains("0.13.0"));
         }
 
         #[test]
         fn runs_a_tool_using_version_detection() {
             let sandbox = create_empty_proto_sandbox();
-            sandbox.create_file(".prototools", "act = \"asdf:0.2.70\"");
+            sandbox.create_file(".prototools", "zig = \"asdf:0.13.0\"");
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install").arg("act").arg("asdf:0.2.70");
+                    cmd.arg("install").arg("zig").arg("asdf:0.13.0");
                 })
                 .success();
 
             let assert = sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("run").arg("act").arg("--").arg("--version");
+                    cmd.arg("run").arg("zig").arg("--").arg("version");
                 })
                 .success();
 
-            assert.stdout(predicate::str::contains("0.2.70"));
+            assert.stdout(predicate::str::contains("0.13.0"));
         }
     }
 }

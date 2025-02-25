@@ -730,29 +730,29 @@ mod install_uninstall {
         #[test]
         fn installs_and_uninstalls_asdf_tool() {
             let sandbox = create_empty_proto_sandbox();
-            let tool_dir = sandbox.path().join(".proto/tools/act/0.2.70");
+            let tool_dir = sandbox.path().join(".proto/tools/zig/0.13.0");
 
             assert!(!tool_dir.exists());
 
             // Install
             let assert = sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install").arg("act").arg("asdf:0.2.70");
+                    cmd.arg("install").arg("zig").arg("asdf:0.13.0");
                 })
                 .success();
 
             assert!(tool_dir.exists());
 
             assert.stdout(predicate::str::contains(
-                "asdf:act 0.2.70 has been installed",
+                "asdf:zig 0.13.0 has been installed",
             ));
 
             // Uninstall
             let assert = sandbox
                 .run_bin(|cmd| {
                     cmd.arg("uninstall")
-                        .arg("act")
-                        .arg("asdf:0.2.70")
+                        .arg("zig")
+                        .arg("asdf:0.13.0")
                         .arg("--yes");
                 })
                 .success();
@@ -760,7 +760,7 @@ mod install_uninstall {
             assert!(!tool_dir.exists());
 
             assert.stdout(predicate::str::contains(
-                "asdf:act 0.2.70 has been uninstalled!",
+                "asdf:zig 0.13.0 has been uninstalled!",
             ));
         }
 
