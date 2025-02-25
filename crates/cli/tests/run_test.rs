@@ -505,13 +505,13 @@ FOURTH = "ignores-$FIRST-$PARENT"
         fn errors_if_not_installed() {
             let sandbox = create_empty_proto_sandbox();
 
-            let assert = sandbox
-                .run_bin(|cmd| {
-                    cmd.arg("run").arg("act").arg("asdf:0.2");
-                })
-                .failure();
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("run").arg("act").arg("asdf:0.2");
+            });
 
-            assert.stderr(predicate::str::contains(
+            assert.debug();
+
+            assert.failure().stderr(predicate::str::contains(
                 "This project requires asdf:act ~0.2",
             ));
         }
