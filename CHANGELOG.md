@@ -15,6 +15,15 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed the version backend being lost when pinning via `proto install --pin`.
+- Fixed some issues with `proto regen` that require a resolved version to function correctly.
+- Fixed the backend repository being `git` pulled too often.
+- Fixed backend related shims failing with a no executable found error.
+
 ## 0.47.0
 
 #### 💥 Breaking

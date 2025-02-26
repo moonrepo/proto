@@ -41,7 +41,9 @@ impl Tool {
             if self.exe_file.is_none() {
                 self.generate_shims(false).await?;
                 self.symlink_bins(false).await?;
-                self.locate_exe_file().await?;
+
+                // This conflicts with `proto run`...
+                // self.locate_exe_file().await?;
             }
 
             return Ok(true);
@@ -100,7 +102,7 @@ impl Tool {
                 .versions
                 .get_or_insert(Default::default())
                 .entry(self.id.clone())
-                .or_insert(ToolSpec::new(default_version));
+                .or_insert_with(|| ToolSpec::new_backend(default_version, self.backend));
         })?;
 
         // Allow plugins to override manifest

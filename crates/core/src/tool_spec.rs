@@ -33,6 +33,14 @@ impl ToolSpec {
         }
     }
 
+    pub fn new_backend(req: UnresolvedVersionSpec, backend: Option<Backend>) -> Self {
+        Self {
+            backend,
+            req,
+            res: None,
+        }
+    }
+
     pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, ProtoToolError> {
         Self::from_str(value.as_ref())
     }

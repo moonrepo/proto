@@ -1,6 +1,9 @@
 mod utils;
 
-use proto_core::{Id, PinLocation, ProtoConfig, ToolManifest, UnresolvedVersionSpec, VersionSpec};
+use proto_core::{
+    Backend, Id, PinLocation, ProtoConfig, ToolManifest, ToolSpec, UnresolvedVersionSpec,
+    VersionSpec,
+};
 use rustc_hash::FxHashSet;
 use starbase_sandbox::predicates::prelude::*;
 use std::{fs, time::SystemTime};
@@ -762,6 +765,31 @@ mod install_uninstall {
             assert.stdout(predicate::str::contains(
                 "asdf:zig 0.13.0 has been uninstalled!",
             ));
+        }
+
+        #[test]
+        fn installs_and_pins_backend() {
+            let sandbox = create_empty_proto_sandbox();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("zig")
+                        .arg("asdf:0.13.0")
+                        .arg("--pin")
+                        .arg("local");
+                })
+                .success();
+
+            let config = load_config(sandbox.path());
+
+            assert_eq!(
+                config.versions.get("zig").unwrap(),
+                &ToolSpec::new_backend(
+                    UnresolvedVersionSpec::parse("0.13.0").unwrap(),
+                    Some(Backend::Asdf)
+                )
+            );
         }
 
         #[test]

@@ -56,9 +56,10 @@ pub async fn regen(session: ProtoSession, args: RegenArgs) -> AppResult {
         progress.set_message(format!("Regenerating {}", tool.get_name()));
 
         // Shims - Create once if tool has a configured version
-        if config.versions.contains_key(&tool.id) {
+        if let Some(version) = config.versions.get(&tool.id) {
             debug!("Regenerating {} shim", tool.get_name());
 
+            tool.resolve_version_with_spec(version, true).await?;
             tool.generate_shims(true).await?;
         }
 

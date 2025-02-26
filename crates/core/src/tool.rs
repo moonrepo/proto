@@ -299,6 +299,12 @@ impl Tool {
         let backend_id = metadata.backend_id;
         let backend_dir = self.proto.store.backends_dir.join(&backend_id);
 
+        if backend_dir.exists() {
+            self.backend_registered = true;
+
+            return Ok(());
+        }
+
         if is_offline() {
             return Err(ProtoEnvError::RequiredInternetConnection.into());
         }
