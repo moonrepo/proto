@@ -22,6 +22,7 @@
 - Fixed the version backend being lost when pinning via `proto install --pin`.
 - Fixed some issues with `proto regen` that require a resolved version to function correctly.
 - Fixed the backend repository being `git` pulled too often.
+- Fixed backend related shims failing with a no executable found error.
 
 ## 0.47.0
 

@@ -41,7 +41,9 @@ impl Tool {
             if self.exe_file.is_none() {
                 self.generate_shims(false).await?;
                 self.symlink_bins(false).await?;
-                self.locate_exe_file().await?;
+
+                // This conflicts with `proto run`...
+                // self.locate_exe_file().await?;
             }
 
             return Ok(true);
