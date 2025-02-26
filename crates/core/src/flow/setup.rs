@@ -100,7 +100,7 @@ impl Tool {
                 .versions
                 .get_or_insert(Default::default())
                 .entry(self.id.clone())
-                .or_insert(ToolSpec::new(default_version));
+                .or_insert_with(|| ToolSpec::new_backend(default_version, self.backend));
         })?;
 
         // Allow plugins to override manifest

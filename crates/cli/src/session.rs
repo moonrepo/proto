@@ -103,11 +103,12 @@ impl ProtoSession {
         if options.detect_version {
             record.detect_version().await;
 
-            let spec = ToolSpec::new(
+            let spec = ToolSpec::new_backend(
                 record
                     .detected_version
                     .clone()
                     .unwrap_or_else(|| UnresolvedVersionSpec::parse("*").unwrap()),
+                backend,
             );
 
             record.tool.resolve_version_with_spec(&spec, false).await?;

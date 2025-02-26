@@ -302,8 +302,10 @@ impl InstallWorkflow {
         }
 
         if pin {
-            let resolved_spec =
-                ToolSpec::new(self.tool.get_resolved_version().to_unresolved_spec());
+            let resolved_spec = ToolSpec::new_backend(
+                self.tool.get_resolved_version().to_unresolved_spec(),
+                spec.backend,
+            );
 
             internal_pin(&mut self.tool.tool, &resolved_spec, pin_to).await?;
         }
