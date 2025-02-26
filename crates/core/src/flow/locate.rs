@@ -111,8 +111,7 @@ impl Tool {
         // Loop through each version, extract the locations,
         // and append it to the master list
         for (bucket_version, resolved_version) in versions {
-            if let Some(resolved_setting) = self.inventory.manifest.versions.get(&resolved_version)
-            {
+            if let Some(resolved_setting) = self.inventory.manifest.versions.get(resolved_version) {
                 self.backend = resolved_setting.backend;
             }
 
