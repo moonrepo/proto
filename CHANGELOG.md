@@ -20,6 +20,7 @@
 #### 🐞 Fixes
 
 - Fixed the version backend being lost when pinning via `proto install --pin`.
+- Fixed some issues with `proto regen` that require a resolved version to function correctly.
 
 ## 0.47.0
 
