@@ -117,7 +117,7 @@ fn host_log(
             error!(data = ?input.data, "{message}");
         }
         HostLogTarget::Warn => {
-            debug!(data = ?input.data, "{message}");
+            warn!(data = ?input.data, "{message}");
         }
         _ => {
             trace!(data = ?input.data, "{message}");

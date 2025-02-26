@@ -42,15 +42,15 @@ pub async fn clone_or_pull_repo(src: &GitSource, target_dir: &Path) -> miette::R
         let mut should_pull = true;
 
         if last_pull_path.exists() {
-            let now_millis = SystemTime::now()
-                .duration_since(SystemTime::UNIX_EPOCH)
-                .unwrap()
-                .as_millis();
-
             if let Some(last_timestamp) = fs::read_file(&last_pull_path)
                 .ok()
                 .and_then(|value| value.parse::<u128>().ok())
             {
+                let now_millis = SystemTime::now()
+                    .duration_since(SystemTime::UNIX_EPOCH)
+                    .unwrap()
+                    .as_millis();
+
                 // Every 7 days
                 if (now_millis - last_timestamp) < (7 * 24 * 60 * 60 * 1000) {
                     should_pull = false;
