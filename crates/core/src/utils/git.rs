@@ -34,7 +34,8 @@ pub async fn clone_or_pull_repo(src: &GitSource, target_dir: &Path) -> miette::R
     fs::create_dir_all(target_dir)?;
 
     if target_dir.join(".git").exists() {
-        handle_exec(exec_command_piped(&mut new_pull(target_dir)).await?)?;
+        // TODO revisit
+        // handle_exec(exec_command_piped(&mut new_pull(target_dir)).await?)?;
     } else {
         handle_exec(exec_command_piped(&mut new_clone(src, target_dir)).await?)?;
 
