@@ -22,6 +22,7 @@
 - WASM API
   - Added a new `ToolUnresolvedContext` type to better differentiate what values are actually available during certain operations.
   - Added `BuildInstructionsInput.install_dir` and `LocateExecutablesInput.install_dir` field.
+  - Added `RunHookResult.paths` field.
 
 #### 🐞 Fixes
 
