@@ -219,6 +219,17 @@ impl Tool {
         }
     }
 
+    /// Return contextual information to pass to WASM plugin functions,
+    /// representing an unresolved state, which has no version or tool
+    /// data.
+    pub fn create_unresolved_context(&self) -> ToolUnresolvedContext {
+        ToolUnresolvedContext {
+            proto_version: Some(get_proto_version().to_owned()),
+            temp_dir: self.to_virtual_path(&self.inventory.temp_dir),
+            version: self.version.clone(),
+        }
+    }
+
     /// Register the tool by loading initial metadata and persisting it.
     #[instrument(skip_all)]
     pub async fn register_tool(&mut self) -> miette::Result<()> {
@@ -298,7 +309,7 @@ impl Tool {
             .cache_func_with(
                 "register_backend",
                 RegisterBackendInput {
-                    context: self.create_context(),
+                    context: self.create_unresolved_context(),
                     id: self.id.to_string(),
                 },
             )

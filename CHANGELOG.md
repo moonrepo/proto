@@ -17,6 +17,12 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- WASM API
+  - Added a new `ToolUnresolvedContext` type to better differentiate what values are actually available during certain operations.
+  - Added `BuildInstructionsInput.install_dir` and `LocateExecutablesInput.install_dir` field.
+
 #### 🐞 Fixes
 
 - Fixed an issue where `proto plugin` sub-commands wouldn't work correctly with backend related tools.

@@ -136,6 +136,7 @@ impl Tool {
                 "build_instructions",
                 BuildInstructionsInput {
                     context: self.create_context(),
+                    install_dir: self.to_virtual_path(install_dir),
                 },
             )
             .await?;
@@ -521,6 +522,7 @@ impl Tool {
                     "native_uninstall",
                     NativeUninstallInput {
                         context: self.create_context(),
+                        uninstall_dir: self.to_virtual_path(&install_dir),
                     },
                 )
                 .await?;

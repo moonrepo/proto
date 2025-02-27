@@ -4,13 +4,16 @@ use rustc_hash::FxHashMap;
 use semver::VersionReq;
 use std::path::PathBuf;
 use system_env::SystemDependency;
-use warpgate_api::{api_enum, api_struct};
+use warpgate_api::{VirtualPath, api_enum, api_struct};
 
 api_struct!(
     /// Input passed to the `build_instructions` function.
     pub struct BuildInstructionsInput {
         /// Current tool context.
         pub context: ToolContext,
+
+        /// Virtual directory to install to.
+        pub install_dir: VirtualPath,
     }
 );
 
