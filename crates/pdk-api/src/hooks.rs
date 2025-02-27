@@ -1,5 +1,6 @@
 use crate::api::ToolContext;
 use rustc_hash::FxHashMap;
+use std::path::PathBuf;
 use warpgate_api::*;
 
 api_struct!(
@@ -45,5 +46,8 @@ api_struct!(
         /// Additional environment variables to pass to the running command.
         /// Will overwrite any existing variables.
         pub env: Option<FxHashMap<String, String>>,
+
+        /// Additional paths to prepend to `PATH` for the running command.
+        pub paths: Option<Vec<PathBuf>>,
     }
 );

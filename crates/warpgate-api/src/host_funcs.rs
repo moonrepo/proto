@@ -6,8 +6,14 @@ use serde::de::DeserializeOwned;
 api_unit_enum!(
     /// Target where host logs should be written to.
     pub enum HostLogTarget {
+        // Console
         Stderr,
         Stdout,
+        // Levels
+        Debug,
+        Error,
+        Trace,
+        Warn,
         #[default]
         Tracing,
     }

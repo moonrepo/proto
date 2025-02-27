@@ -15,6 +15,31 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Improved the asdf backend integration.
+- WASM API
+  - Added a new `ToolUnresolvedContext` type to better differentiate what values are actually available during certain operations.
+  - Added `BuildInstructionsInput.install_dir` and `LocateExecutablesInput.install_dir` field.
+  - Added `RunHookResult.paths` field.
+
+#### 🧩 Plugins
+
+- Updated `asdf_backend` to v0.2.
+  - Added `exec-env` experimental script support. Runs as a `pre-run` hook to extract any set environment variables.
+  - Added `latest-stable` script support when the alias "stable" is used for a version.
+  - Reduced the amount of calls made for converting `/proto/backends` virtual paths into a real path.
+
+#### 🐞 Fixes
+
+- Fixed an issue where `proto plugin` sub-commands wouldn't work correctly with backend related tools.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.47.1
 
 #### 🐞 Fixes

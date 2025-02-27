@@ -33,6 +33,21 @@ api_struct!(
     }
 );
 
+api_struct!(
+    /// Information about the current state of the tool.
+    pub struct ToolUnresolvedContext {
+        /// The version of proto (the core crate) calling plugin functions.
+        #[serde(default)]
+        pub proto_version: Option<Version>,
+
+        /// Virtual path to the tool's temporary directory.
+        pub temp_dir: VirtualPath,
+
+        /// Current version if defined.
+        pub version: Option<VersionSpec>,
+    }
+);
+
 api_unit_enum!(
     /// Supported types of plugins.
     pub enum PluginType {
@@ -148,7 +163,7 @@ api_struct!(
     /// Input passed to the `register_backend` function.
     pub struct RegisterBackendInput {
         /// Current tool context.
-        pub context: ToolContext,
+        pub context: ToolUnresolvedContext,
 
         /// ID of the tool, as it was configured.
         pub id: String,
@@ -178,7 +193,7 @@ api_struct!(
     /// Input passed to the `detect_version_files` function.
     pub struct DetectVersionInput {
         /// Current tool context.
-        pub context: ToolContext,
+        pub context: ToolUnresolvedContext,
     }
 );
 
@@ -203,7 +218,7 @@ api_struct!(
         pub content: String,
 
         /// Current tool context.
-        pub context: ToolContext,
+        pub context: ToolUnresolvedContext,
 
         /// Name of file that's being parsed.
         pub file: String,
@@ -258,6 +273,9 @@ api_struct!(
     pub struct NativeUninstallInput {
         /// Current tool context.
         pub context: ToolContext,
+
+        /// Virtual directory to uninstall from.
+        pub uninstall_dir: VirtualPath,
     }
 );
 
@@ -366,6 +384,9 @@ api_struct!(
     pub struct LocateExecutablesInput {
         /// Current tool context.
         pub context: ToolContext,
+
+        /// Virtual directory the tool was installed to.
+        pub install_dir: VirtualPath,
     }
 );
 
@@ -475,7 +496,7 @@ api_struct!(
     /// Input passed to the `load_versions` function.
     pub struct LoadVersionsInput {
         /// Current tool context.
-        pub context: ToolContext,
+        pub context: ToolUnresolvedContext,
 
         /// The alias or version currently being resolved.
         pub initial: UnresolvedVersionSpec,
@@ -553,7 +574,7 @@ api_struct!(
     /// Input passed to the `resolve_version` function.
     pub struct ResolveVersionInput {
         /// Current tool context.
-        pub context: ToolContext,
+        pub context: ToolUnresolvedContext,
 
         /// The alias or version currently being resolved.
         pub initial: UnresolvedVersionSpec,

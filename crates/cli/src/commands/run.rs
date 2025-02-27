@@ -7,7 +7,7 @@ use proto_core::{Id, PROTO_PLUGIN_KEY, Tool, ToolSpec, detect_version_with_spec}
 use proto_pdk_api::{ExecutableConfig, RunHook, RunHookResult};
 use proto_shim::{exec_command_and_replace, locate_proto_exe};
 use starbase::AppResult;
-use starbase_utils::fs;
+use starbase_utils::{env::paths, fs};
 use std::env;
 use std::ffi::OsStr;
 use std::process::Command;
@@ -314,6 +314,11 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
 
     if let Some(hook_env) = hook_result.env {
         command.envs(hook_env);
+    }
+
+    if let Some(mut hook_paths) = hook_result.paths {
+        hook_paths.extend(paths());
+        command.env("PATH", env::join_paths(hook_paths).into_diagnostic()?);
     }
 
     command

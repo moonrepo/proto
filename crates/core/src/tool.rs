@@ -7,6 +7,7 @@ use crate::tool_spec::Backend;
 use crate::utils::{archive, git};
 use proto_pdk_api::*;
 use rustc_hash::{FxHashMap, FxHashSet};
+use schematic::ConfigEnum;
 use starbase_styles::color;
 use starbase_utils::fs;
 use std::fmt;
@@ -177,6 +178,17 @@ impl Tool {
         self.product.dir.clone()
     }
 
+    /// Return true if this tool instance is a backend plugin.
+    pub async fn is_backend_plugin(&self) -> bool {
+        if self.plugin.has_func("register_backend").await {
+            Backend::variants()
+                .iter()
+                .any(|var| var.to_string() == self.id.as_str())
+        } else {
+            false
+        }
+    }
+
     /// Explicitly set the version to use.
     pub fn set_version(&mut self, version: VersionSpec) {
         self.product = self.inventory.create_product(&version);
@@ -204,6 +216,17 @@ impl Tool {
             temp_dir: self.to_virtual_path(&self.get_temp_dir()),
             tool_dir: self.to_virtual_path(&self.get_product_dir()),
             version: self.get_resolved_version(),
+        }
+    }
+
+    /// Return contextual information to pass to WASM plugin functions,
+    /// representing an unresolved state, which has no version or tool
+    /// data.
+    pub fn create_unresolved_context(&self) -> ToolUnresolvedContext {
+        ToolUnresolvedContext {
+            proto_version: Some(get_proto_version().to_owned()),
+            temp_dir: self.to_virtual_path(&self.inventory.temp_dir),
+            version: self.version.clone(),
         }
     }
 
@@ -286,24 +309,21 @@ impl Tool {
             .cache_func_with(
                 "register_backend",
                 RegisterBackendInput {
-                    context: self.create_context(),
+                    context: self.create_unresolved_context(),
                     id: self.id.to_string(),
                 },
             )
             .await?;
 
         let Some(source) = metadata.source else {
-            panic!("Source is required for backends!");
+            self.backend_registered = true;
+
+            return Ok(());
         };
 
         let backend_id = metadata.backend_id;
         let backend_dir = self.proto.store.backends_dir.join(&backend_id);
-
-        if backend_dir.exists() {
-            self.backend_registered = true;
-
-            return Ok(());
-        }
+        let update_perms = !backend_dir.exists();
 
         if is_offline() {
             return Err(ProtoEnvError::RequiredInternetConnection.into());
@@ -318,19 +338,21 @@ impl Tool {
 
         match source {
             SourceLocation::Archive(src) => {
-                debug!(
-                    tool = self.id.as_str(),
-                    url = &src.url,
-                    "Downloading backend archive",
-                );
+                if !backend_dir.exists() {
+                    debug!(
+                        tool = self.id.as_str(),
+                        url = &src.url,
+                        "Downloading backend archive",
+                    );
 
-                archive::download_and_unpack(
-                    &src,
-                    &backend_dir,
-                    &self.proto.store.temp_dir,
-                    self.proto.get_plugin_loader()?.get_client()?.to_inner(),
-                )
-                .await?;
+                    archive::download_and_unpack(
+                        &src,
+                        &backend_dir,
+                        &self.proto.store.temp_dir,
+                        self.proto.get_plugin_loader()?.get_client()?.to_inner(),
+                    )
+                    .await?;
+                }
             }
             SourceLocation::Git(src) => {
                 debug!(
@@ -343,11 +365,13 @@ impl Tool {
             }
         };
 
-        for exe in metadata.exes {
-            let exe_path = backend_dir.join(exe);
+        if update_perms {
+            for exe in metadata.exes {
+                let exe_path = backend_dir.join(exe);
 
-            if exe_path.exists() {
-                fs::update_perms(exe_path, None)?;
+                if exe_path.exists() {
+                    fs::update_perms(exe_path, None)?;
+                }
             }
         }
 

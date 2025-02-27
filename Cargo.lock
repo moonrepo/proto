@@ -480,23 +480,23 @@ checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 
 [[package]]
 name = "chrono"
-version = "0.4.39"
+version = "0.4.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e36cc9d416881d2e24f9a963be5fb1cd90966419ac844274161d10488b3e825"
+checksum = "1a7964611d71df112cb1730f2ee67324fcf4d0fc6606acbbe9bfe06df124637c"
 dependencies = [
  "android-tzdata",
  "iana-time-zone",
  "js-sys",
  "num-traits",
  "wasm-bindgen",
- "windows-targets 0.52.6",
+ "windows-link",
 ]
 
 [[package]]
 name = "clap"
-version = "4.5.30"
+version = "4.5.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92b7b18d71fad5313a1e320fa9897994228ce274b60faa4d694fe0ea89cd9e6d"
+checksum = "027bb0d98429ae334a8698531da7077bdf906419543a35a55c2cb1b66437d767"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -504,9 +504,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.5.30"
+version = "4.5.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a35db2071778a7344791a4fb4f95308b5673d219dee3ae348b86642574ecc90c"
+checksum = "5589e0cba072e0f3d23791efac0fd8627b49c829c196a492e88168e6a669d863"
 dependencies = [
  "anstream",
  "anstyle",
@@ -516,9 +516,9 @@ dependencies = [
 
 [[package]]
 name = "clap_complete"
-version = "4.5.45"
+version = "4.5.46"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e3040c8291884ddf39445dc033c70abc2bc44a42f0a3a00571a0f483a83f0cd"
+checksum = "f5c5508ea23c5366f77e53f5a0070e5a84e51687ec3ef9e0464c86dc8d13ce98"
 dependencies = [
  "clap",
 ]
@@ -590,6 +590,20 @@ dependencies = [
  "itoa",
  "rustversion",
  "ryu",
+ "static_assertions",
+]
+
+[[package]]
+name = "compact_str"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3fdb1325a1cece981e8a296ab8f0f9b63ae357bd0784a9faaf548cc7b480707a"
+dependencies = [
+ "castaway",
+ "cfg-if",
+ "itoa",
+ "rustversion",
+ "ryu",
  "serde",
  "static_assertions",
 ]
@@ -631,6 +645,15 @@ name = "convert_case"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bb402b8d4c85569410425650ce3eddc7d698ed96d39a73f941b08fb63082f1e7"
+dependencies = [
+ "unicode-segmentation",
+]
+
+[[package]]
+name = "convert_case"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "baaaa0ecca5b51987b9423ccdc971514dd8b0bb7b4060b983d3664dad3f1f89f"
 dependencies = [
  "unicode-segmentation",
 ]
@@ -1417,7 +1440,7 @@ version = "0.22.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a989bd2fd12136080f7825ff410d9239ce84a2a639487fc9d924ee42e2fb84f"
 dependencies = [
- "compact_str",
+ "compact_str 0.8.1",
  "garde_derive",
  "once_cell",
  "regex",
@@ -2809,10 +2832,10 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.47.6"
+version = "0.47.7"
 dependencies = [
  "clap",
- "convert_case",
+ "convert_case 0.8.0",
  "dotenvy",
  "indexmap",
  "iocraft",
@@ -2862,7 +2885,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.28.2"
+version = "0.28.3"
 dependencies = [
  "extism-pdk",
  "proto_pdk_api",
@@ -2873,7 +2896,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.27.4"
+version = "0.27.5"
 dependencies = [
  "proto_pdk_api",
  "rustc-hash",
@@ -2889,7 +2912,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.35.3"
+version = "0.35.4"
 dependencies = [
  "proto_core",
  "proto_pdk_api",
@@ -3467,7 +3490,7 @@ version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fff7e059a5ee4c5bb3e32fa4ee074b4413d84434cad51fc903956499487dcd5c"
 dependencies = [
- "convert_case",
+ "convert_case 0.7.1",
  "darling",
  "proc-macro2",
  "quote",
@@ -4592,9 +4615,9 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "uuid"
-version = "1.14.0"
+version = "1.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93d59ca99a559661b96bf898d8fce28ed87935fd2bea9f05983c1464dd6c71b1"
+checksum = "e0f540e3240398cce6128b64ba83fdbdd86129c16a3aa1a3a252efd66eb3d587"
 dependencies = [
  "getrandom 0.3.1",
 ]
@@ -4621,7 +4644,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 name = "version_spec"
 version = "0.9.0"
 dependencies = [
- "compact_str",
+ "compact_str 0.9.0",
  "human-sort",
  "regex",
  "schematic",
@@ -4660,10 +4683,10 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.23.3"
+version = "0.23.4"
 dependencies = [
  "async-trait",
- "compact_str",
+ "compact_str 0.9.0",
  "extism",
  "http-cache-reqwest",
  "miette 7.5.0",
@@ -4691,7 +4714,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_api"
-version = "0.13.3"
+version = "0.13.4"
 dependencies = [
  "anyhow",
  "rustc-hash",

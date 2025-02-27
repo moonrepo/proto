@@ -13,7 +13,7 @@ impl WasmTestWrapper {
     }
 
     pub async fn detect_version_files(&self, mut input: DetectVersionInput) -> DetectVersionOutput {
-        input.context = self.prepare_context(input.context);
+        input.context = self.prepare_unresolved_context(input.context);
 
         self.tool
             .plugin
@@ -36,7 +36,7 @@ impl WasmTestWrapper {
     }
 
     pub async fn load_versions(&self, mut input: LoadVersionsInput) -> LoadVersionsOutput {
-        input.context = self.prepare_context(input.context);
+        input.context = self.prepare_unresolved_context(input.context);
 
         self.tool
             .plugin
@@ -82,7 +82,7 @@ impl WasmTestWrapper {
         &self,
         mut input: ParseVersionFileInput,
     ) -> ParseVersionFileOutput {
-        input.context = self.prepare_context(input.context);
+        input.context = self.prepare_unresolved_context(input.context);
         input.path = self.tool.to_virtual_path(&input.path);
 
         self.tool
@@ -123,7 +123,7 @@ impl WasmTestWrapper {
     }
 
     pub async fn register_backend(&self, mut input: RegisterBackendInput) -> RegisterBackendOutput {
-        input.context = self.prepare_context(input.context);
+        input.context = self.prepare_unresolved_context(input.context);
 
         self.tool
             .plugin
@@ -141,7 +141,7 @@ impl WasmTestWrapper {
     }
 
     pub async fn resolve_version(&self, mut input: ResolveVersionInput) -> ResolveVersionOutput {
-        input.context = self.prepare_context(input.context);
+        input.context = self.prepare_unresolved_context(input.context);
 
         self.tool
             .plugin
@@ -212,6 +212,19 @@ impl WasmTestWrapper {
         ToolContext {
             temp_dir: self.tool.to_virtual_path(&temp_dir),
             tool_dir: self.tool.to_virtual_path(&tool_dir),
+            ..context
+        }
+    }
+
+    fn prepare_unresolved_context(&self, context: ToolUnresolvedContext) -> ToolUnresolvedContext {
+        let temp_dir = if context.temp_dir.any_path().components().count() == 0 {
+            self.tool.get_temp_dir()
+        } else {
+            context.temp_dir.any_path().to_path_buf()
+        };
+
+        ToolUnresolvedContext {
+            temp_dir: self.tool.to_virtual_path(&temp_dir),
             ..context
         }
     }

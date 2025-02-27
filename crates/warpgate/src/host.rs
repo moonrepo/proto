@@ -12,7 +12,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use system_env::{create_process_command, find_command_on_path};
 use tokio::runtime::Handle;
-use tracing::{instrument, trace};
+use tracing::{debug, error, instrument, trace, warn};
 use warpgate_api::{
     ExecCommandInput, ExecCommandOutput, HostLogInput, HostLogTarget, SendRequestInput,
     SendRequestOutput,
@@ -109,15 +109,18 @@ fn host_log(
                 );
             }
         }
-        HostLogTarget::Tracing => {
-            if input.data.is_empty() {
-                trace!("{message}");
-            } else {
-                trace!(
-                    data = ?input.data,
-                    "{message}"
-                );
-            }
+        // Levels
+        HostLogTarget::Debug => {
+            debug!(data = ?input.data, "{message}");
+        }
+        HostLogTarget::Error => {
+            error!(data = ?input.data, "{message}");
+        }
+        HostLogTarget::Warn => {
+            warn!(data = ?input.data, "{message}");
+        }
+        _ => {
+            trace!(data = ?input.data, "{message}");
         }
     };
 
