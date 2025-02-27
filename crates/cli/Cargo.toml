@@ -39,7 +39,7 @@ proto_shim = { version = "0.7.0", path = "../shim" }
 system_env = { version = "0.8.0", path = "../system-env" }
 anyhow = { workspace = true }
 async-trait = { workspace = true }
-chrono = "0.4.39"
+chrono = "0.4.40"
 clap = { workspace = true, features = ["derive", "env"] }
 clap_complete = { workspace = true }
 clap_complete_nushell = "4.5.5"

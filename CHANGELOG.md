@@ -27,14 +27,18 @@
 
 #### 🧩 Plugins
 
-- Added `asdf_backend` v0.2.
-  - Added `exec-env` experimental support. Runs as a `pre-run` hook to extract any set environment variables.
+- Updated `asdf_backend` to v0.2.
+  - Added `exec-env` experimental script support. Runs as a `pre-run` hook to extract any set environment variables.
   - Added `latest-stable` script support when the alias "stable" is used for a version.
   - Reduced the amount of calls made for converting `/proto/backends` virtual paths into a real path.
 
 #### 🐞 Fixes
 
 - Fixed an issue where `proto plugin` sub-commands wouldn't work correctly with backend related tools.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
 
 ## 0.47.1
 

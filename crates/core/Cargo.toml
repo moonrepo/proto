@@ -20,7 +20,7 @@ warpgate = { version = "0.23.4", path = "../warpgate", features = [
     "schematic",
 ] }
 clap = { workspace = true, optional = true }
-convert_case = "0.7.1"
+convert_case = "0.8.0"
 dotenvy = "0.15.7"
 indexmap = { workspace = true }
 iocraft = { workspace = true }
