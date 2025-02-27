@@ -19,10 +19,18 @@
 
 #### 🚀 Updates
 
+- Improved the asdf backend integration.
 - WASM API
   - Added a new `ToolUnresolvedContext` type to better differentiate what values are actually available during certain operations.
   - Added `BuildInstructionsInput.install_dir` and `LocateExecutablesInput.install_dir` field.
   - Added `RunHookResult.paths` field.
+
+#### 🧩 Plugins
+
+- Added `asdf_backend` v0.2.
+  - Added `exec-env` experimental support. Runs as a `pre-run` hook to extract any set environment variables.
+  - Added `latest-stable` script support when the alias "stable" is used for a version.
+  - Reduced the amount of calls made for converting `/proto/backends` virtual paths into a real path.
 
 #### 🐞 Fixes
 
