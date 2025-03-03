@@ -283,6 +283,24 @@
       ]
     },
     {
+      "id": "flutter",
+      "locator": "github://KonstantinKai/proto-flutter-plugin",
+      "format": "wasm",
+      "name": "Flutter",
+      "description": "Flutter is an open source framework for building beautiful, natively compiled, multi-platform applications from a single codebase.",
+      "author": {
+        "name": "Konstantin Kai",
+        "email": "kai@konstantinkai.dev"
+      },
+      "homepageUrl": "https://flutter.dev/",
+      "repositoryUrl": "https://github.com/KonstantinKai/proto-flutter-plugin",
+      "devicon": "flutter",
+      "bins": [
+        "flutter",
+        "dart"
+      ]
+    },
+    {
       "id": "flux",
       "locator": "https://raw.githubusercontent.com/b4nst/proto-plugins/refs/heads/main/toml/flux.toml",
       "format": "toml",
