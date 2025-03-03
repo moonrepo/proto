@@ -2914,6 +2914,7 @@ dependencies = [
 name = "proto_pdk_test_utils"
 version = "0.35.4"
 dependencies = [
+ "extism",
  "proto_core",
  "proto_pdk_api",
  "serde",
