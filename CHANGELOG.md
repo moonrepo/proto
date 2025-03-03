@@ -15,6 +15,12 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Removed the global pinning that is triggered during `proto upgrade`. This fixes a weird edge case that puts your store in a broken state. This change won't be noticeable until after you upgrade to this version.
+
 ## 0.47.2
 
 #### 🚀 Updates
