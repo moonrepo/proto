@@ -2,6 +2,7 @@ use miette::IntoDiagnostic;
 use semver::Version;
 use starbase_console::ui::{ConsoleTheme, Style, style_to_color};
 use starbase_styles::color;
+use starbase_utils::json::JsonValue;
 use tracing::debug;
 
 pub fn create_console_theme() -> ConsoleTheme {
@@ -31,13 +32,21 @@ pub fn create_console_theme() -> ConsoleTheme {
 }
 
 pub async fn fetch_latest_version() -> miette::Result<Version> {
-    let version = reqwest::get("https://raw.githubusercontent.com/moonrepo/proto/master/version")
+    let client = reqwest::Client::new();
+    let release: JsonValue = client
+        .get("https://api.github.com/repos/moonrepo/proto/releases/latest")
+        .header("User-Agent", "moonrepo-proto-cli")
+        .send()
         .await
         .into_diagnostic()?
-        .text()
+        .json()
         .await
-        .into_diagnostic()?
-        .trim()
+        .into_diagnostic()?;
+
+    let version = release["tag_name"]
+        .as_str()
+        .ok_or_else(|| miette::miette!("Invalid release format"))?
+        .trim_start_matches('v')
         .to_string();
 
     debug!("Found latest version {}", color::hash(&version));
