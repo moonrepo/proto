@@ -229,6 +229,34 @@
       ]
     },
     {
+      "id": "dart",
+      "locator": "github://KonstantinKai/proto-dart-plugin",
+      "format": "wasm",
+      "name": "Dart",
+      "description": "An approachable, portable, and productive language for high-quality apps on any platform",
+      "author": {
+        "name": "Konstantin Kai",
+        "email": "kai@konstantinkai.dev"
+      },
+      "homepageUrl": "https://dart.dev/",
+      "repositoryUrl": "https://github.com/KonstantinKai/proto-dart-plugin",
+      "devicon": "dart",
+      "bins": [
+        "dart",
+        "dartaotruntime"
+      ],
+      "detectionSources": [
+        {
+          "file": "pubspec.yaml",
+          "url": "https://dart.dev/tools/pub/pubspec"
+        }
+      ],
+      "globalsDirs": [
+        "$PUB_CACHE/bin",
+        "$HOME/.pub-cache/bin"
+      ]
+    },
+    {
       "id": "direnv",
       "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/direnv/plugin.toml",
       "format": "toml",
@@ -298,6 +326,15 @@
       "bins": [
         "flutter",
         "dart"
+      ],
+      "detectionSources": [
+        {
+          "file": "pubspec.yaml",
+          "url": "https://dart.dev/tools/pub/pubspec"
+        }
+      ],
+      "globalsDirs": [
+        "$FLUTTER_ROOT/bin"
       ]
     },
     {
