@@ -45,11 +45,11 @@ pub async fn fetch_latest_version() -> miette::Result<Version> {
 
     let version = release["tag_name"]
         .as_str()
-        .ok_or_else(|| miette::miette!("Invalid release format"))?
+        .ok_or_else(|| miette::miette!("Invalid release format: {}", release["tag_name"]))?
         .trim_start_matches('v')
         .to_string();
 
     debug!("Found latest version {}", color::hash(&version));
 
-    Ok(Version::parse(&version).unwrap())
+    Ok(Version::parse(&version).into_diagnostic()?)
 }
