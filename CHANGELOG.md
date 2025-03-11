@@ -17,6 +17,10 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Reduced the amount of `locate_executables` calls for certain flows when linking binaries.
+
 #### 🐞 Fixes
 
 - Fixed an issue where `proto activate` would load more plugins than necessary, causing a performance hit.
