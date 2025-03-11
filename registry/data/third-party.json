@@ -271,6 +271,19 @@
       ]
     },
     {
+      "id": "dotenvx",
+      "locator": "https://gist.githubusercontent.com/alexbepple/9740643dbe1b2d423490b1fee21af807/raw/e2d85b647da191d339dfbf3e3e1cefb21616e7c7/dotenvx.toml",
+      "repositoryUrl": "https://gist.github.com/alexbepple/9740643dbe1b2d423490b1fee21af807",
+      "format": "toml",
+      "author": "alexbepple",
+      "name": "dotenvx",
+      "homepageUrl": "https://dotenvx.com/",
+      "description": "Inject your env at runtime. A better dotenv – from the creator of dotenv.",
+      "bins": [
+        "dotenvx"
+      ]
+    },
+    {
       "id": "dotnet",
       "locator": "github://Phault/proto-dotnet-plugin",
       "format": "wasm",
