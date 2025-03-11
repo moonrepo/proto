@@ -19,6 +19,7 @@
 
 #### 🐞 Fixes
 
+- Fixed an issue where `proto activate` would load more plugins than necessary, causing a performance hit.
 - Fixed an issue during `--build` where the system package manager would error attempting to load existing packages.
 
 #### ⚙️ Internal

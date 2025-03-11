@@ -117,6 +117,7 @@ impl ProtoSession {
         Ok(record)
     }
 
+    /// Load tools that have a configured version.
     pub async fn load_tools(&self) -> miette::Result<Vec<ToolRecord>> {
         self.load_tools_with_options(LoadToolOptions::default())
             .await
@@ -156,7 +157,7 @@ impl ProtoSession {
         let opt_detect_version = options.detect_version;
 
         for id in ids {
-            if !options.ids.is_empty() && !options.ids.contains(id) {
+            if !options.ids.contains(id) {
                 continue;
             }
 
@@ -196,7 +197,7 @@ impl ProtoSession {
         Ok(records)
     }
 
-    #[allow(dead_code)]
+    /// Load all tools, even those not configured with a version.
     pub async fn load_all_tools(&self) -> miette::Result<Vec<ToolRecord>> {
         self.load_all_tools_with_options(LoadToolOptions::default())
             .await
