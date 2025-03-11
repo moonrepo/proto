@@ -19,6 +19,9 @@
 
 #### 🚀 Updates
 
+- Updated `proto run` (and shims) to not error with "not a built-in plugin" when the executable exists globally on `PATH`, but is currently not configured/managed by proto in the working directory.
+  - This error can occur when a `~/.proto/shims` file exists for a tool, but the version/plugin is not configured.
+  - This should make interoperability a little bit nicer.
 - Reduced the amount of `locate_executables` calls for certain flows when linking binaries.
 
 #### 🐞 Fixes

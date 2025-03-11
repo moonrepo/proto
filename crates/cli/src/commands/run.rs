@@ -3,13 +3,18 @@ use crate::error::ProtoCliError;
 use crate::session::ProtoSession;
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::{Id, PROTO_PLUGIN_KEY, Tool, ToolSpec, detect_version_with_spec};
+use proto_core::{
+    Id, PROTO_PLUGIN_KEY, ProtoEnvironment, ProtoToolError, Tool, ToolSpec,
+    detect_version_with_spec,
+};
 use proto_pdk_api::{ExecutableConfig, RunHook, RunHookResult};
 use proto_shim::{exec_command_and_replace, locate_proto_exe};
 use starbase::AppResult;
+use starbase_styles::color;
 use starbase_utils::{env::paths, fs};
 use std::env;
 use std::ffi::OsStr;
+use std::path::PathBuf;
 use std::process::Command;
 use system_env::create_process_command;
 use tracing::debug;
@@ -77,13 +82,13 @@ fn is_trying_to_self_upgrade(tool: &Tool, args: &[String]) -> bool {
     false
 }
 
-async fn get_executable(tool: &Tool, args: &RunArgs) -> miette::Result<ExecutableConfig> {
+async fn get_tool_executable(tool: &Tool, alt: Option<&str>) -> miette::Result<ExecutableConfig> {
     let tool_dir = tool.get_product_dir();
 
     // Run an alternate executable (via shim)
-    if let Some(alt_name) = &args.alt {
+    if let Some(alt_name) = alt {
         for location in tool.resolve_shim_locations().await? {
-            if &location.name == alt_name {
+            if location.name == alt_name {
                 let Some(exe_path) = &location.config.exe_path else {
                     continue;
                 };
@@ -124,6 +129,32 @@ async fn get_executable(tool: &Tool, args: &RunArgs) -> miette::Result<Executabl
     config.exe_path = Some(tool_dir.join(config.exe_path.as_ref().unwrap()));
 
     Ok(config)
+}
+
+fn get_global_executable(env: &ProtoEnvironment, name: &str) -> Option<PathBuf> {
+    let Ok(system_path) = env::var("PATH") else {
+        return None;
+    };
+
+    let exe_name = if cfg!(windows) {
+        format!("{name}.exe")
+    } else {
+        name.to_owned()
+    };
+
+    for path_dir in env::split_paths(&system_path) {
+        if path_dir.starts_with(&env.store.bin_dir) || path_dir.starts_with(&env.store.shims_dir) {
+            continue;
+        }
+
+        let path = path_dir.join(&exe_name);
+
+        if path.exists() && path.is_file() {
+            return Some(path);
+        }
+    }
+
+    None
 }
 
 fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
@@ -177,11 +208,52 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
     Ok(command)
 }
 
+fn run_global_tool(
+    session: ProtoSession,
+    args: RunArgs,
+    error: ProtoToolError,
+) -> miette::Result<()> {
+    // If we hit this error, it means we have a shim for this tool,
+    // but no configured version, BUT, this tool may exist on `PATH`
+    // outside of proto, so try and fallback to it!
+    if let ProtoToolError::UnknownTool { id } = &error {
+        let config = session.load_config()?;
+
+        if !config.plugins.contains_key(id) {
+            if let Some(global_exe) = get_global_executable(&session.env, id.as_str()) {
+                debug!(
+                    global_exe = ?global_exe,
+                    "Tool {} is currently not managed by proto but exists on PATH, falling back to the global executable",
+                    color::id(id),
+                );
+
+                return exec_command_and_replace(create_process_command(
+                    global_exe,
+                    args.passthrough,
+                ))
+                .into_diagnostic();
+            }
+        }
+    }
+
+    Err(error.into())
+}
+
 #[tracing::instrument(skip_all)]
 pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
-    let mut tool = session
+    let mut tool = match session
         .load_tool(&args.id, args.spec.clone().and_then(|spec| spec.backend))
-        .await?;
+        .await
+    {
+        Ok(tool) => tool,
+        Err(error) => {
+            return match error.downcast::<ProtoToolError>() {
+                Ok(tool_error) => run_global_tool(session, args, tool_error).map(|_| None),
+                Err(error) => Err(error),
+            };
+        }
+    };
+
     let mut use_global_proto = should_use_global_proto(&tool)?;
 
     // Avoid running the tool's native self-upgrade as it conflicts with proto
@@ -277,7 +349,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
             ..Default::default()
         }
     } else {
-        get_executable(&tool, &args).await?
+        get_tool_executable(&tool, args.alt.as_deref()).await?
     };
 
     // Run before hook

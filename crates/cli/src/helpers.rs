@@ -51,5 +51,5 @@ pub async fn fetch_latest_version() -> miette::Result<Version> {
 
     debug!("Found latest version {}", color::hash(&version));
 
-    Ok(Version::parse(&version).into_diagnostic()?)
+    Version::parse(&version).into_diagnostic()
 }

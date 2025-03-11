@@ -16,6 +16,20 @@ mod run {
     use super::*;
 
     #[test]
+    fn doesnt_error_for_tools_on_path_but_not_configured_in_proto() {
+        let sandbox = create_empty_proto_sandbox();
+
+        let assert = sandbox
+            .run_bin(|cmd| {
+                cmd.arg("run").arg("git");
+            })
+            // `git` with no args is exit 1
+            .failure();
+
+        assert.stdout(predicate::str::contains("usage: git"));
+    }
+
+    #[test]
     fn errors_if_not_installed() {
         let sandbox = create_empty_proto_sandbox();
 
