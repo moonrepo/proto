@@ -11,6 +11,7 @@ use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::time::Instant;
 use system_env::{SystemArch, SystemLibc, SystemOS};
 use tokio::sync::RwLock;
 use tokio::task::block_in_place;
@@ -225,6 +226,7 @@ impl PluginContainer {
         let mut instance = self.plugin.write().await;
         let input = input.as_ref();
         let uuid = instance.id.to_string(); // Copy
+        let instant = Instant::now();
 
         trace!(
             id = self.id.as_str(),
@@ -273,6 +275,7 @@ impl PluginContainer {
             id = self.id.as_str(),
             plugin = &uuid,
             output = %String::from_utf8_lossy(output),
+            elapsed = ?instant.elapsed(),
             "Called guest function {}",
             color::property(func),
         );
