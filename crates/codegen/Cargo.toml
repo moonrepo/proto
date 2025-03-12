@@ -9,7 +9,7 @@ publish = false
 dist = false
 
 [dependencies]
-proto_core = { version = "0.47.8", path = "../core" }
+proto_core = { version = "0.47.9", path = "../core" }
 proto_pdk_api = { version = "0.27.5", path = "../pdk-api", features = [
 	"schematic",
 ] }
