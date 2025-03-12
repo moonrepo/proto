@@ -3,6 +3,7 @@ use semver::Version;
 use starbase_console::ui::{ConsoleTheme, Style, style_to_color};
 use starbase_styles::color;
 use starbase_utils::json::JsonValue;
+use std::env;
 use tracing::debug;
 
 pub fn create_console_theme() -> ConsoleTheme {
@@ -31,25 +32,44 @@ pub fn create_console_theme() -> ConsoleTheme {
     theme
 }
 
-pub async fn fetch_latest_version() -> miette::Result<Version> {
-    let client = reqwest::Client::new();
-    let release: JsonValue = client
-        .get("https://api.github.com/repos/moonrepo/proto/releases/latest")
-        .header("User-Agent", "moonrepo-proto-cli")
-        .send()
-        .await
-        .into_diagnostic()?
-        .json()
-        .await
-        .into_diagnostic()?;
+async fn fetch_from_github(url: &str) -> reqwest::Result<reqwest::Response> {
+    let mut request = reqwest::Client::new()
+        .get(url)
+        .header("User-Agent", "moonrepo-proto-cli");
 
-    let version = release["tag_name"]
-        .as_str()
-        .ok_or_else(|| miette::miette!("Invalid release format"))?
-        .trim_start_matches('v')
-        .to_string();
+    if let Ok(token) = env::var("GITHUB_TOKEN") {
+        request = request.header("Authorization", format!("Bearer {token}"));
+    }
+
+    request.send().await
+}
+
+async fn inner_fetch_latest_version() -> reqwest::Result<String> {
+    let release: JsonValue =
+        fetch_from_github("https://api.github.com/repos/moonrepo/proto/releases/latest")
+            .await?
+            .json()
+            .await?;
+
+    let version = match release.get("tag_name") {
+        Some(JsonValue::String(tag)) => tag.trim_start_matches('v').to_string(),
+        // Tag field doesn't exist, or the request failed,
+        // or the data is incomplete, so fallback
+        _ => {
+            fetch_from_github("https://raw.githubusercontent.com/moonrepo/proto/master/version")
+                .await?
+                .text()
+                .await?
+        }
+    };
 
     debug!("Found latest version {}", color::hash(&version));
 
-    Ok(Version::parse(&version).unwrap())
+    Ok(version)
+}
+
+pub async fn fetch_latest_version() -> miette::Result<Version> {
+    let version = inner_fetch_latest_version().await.into_diagnostic()?;
+
+    Version::parse(version.trim()).into_diagnostic()
 }

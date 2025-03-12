@@ -15,6 +15,24 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Updated `proto run` (and shims) to not error with "not a built-in plugin" when the executable exists globally on `PATH`, but is currently not configured/managed by proto in the working directory.
+  - This error can occur when a `~/.proto/shims` file exists for a tool, but the version/plugin is not configured.
+  - This should make interoperability a little bit nicer.
+- Reduced the amount of `locate_executables` calls for certain flows when linking binaries.
+
+#### 🐞 Fixes
+
+- Fixed an issue where `proto activate` would load more plugins than necessary, causing a performance hit.
+- Fixed an issue during `--build` where the system package manager would error attempting to load existing packages.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.47.3
 
 #### 🐞 Fixes

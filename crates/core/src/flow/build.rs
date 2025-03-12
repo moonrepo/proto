@@ -415,10 +415,9 @@ pub async fn install_system_dependencies(
         func(InstallPhase::InstallDeps);
     });
 
-    if let Some(mut list_args) = builder
+    if let Ok(Some(mut list_args)) = builder
         .get_system()
         .get_list_packages_command(!builder.options.skip_prompts)
-        .into_diagnostic()?
     {
         let _lock = builder.acquire_lock(&pm).await;
 

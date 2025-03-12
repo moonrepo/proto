@@ -302,7 +302,7 @@ pub async fn internal_clean(
     if matches!(args.target, CleanTarget::All | CleanTarget::Tools) {
         debug!("Cleaning installed tools...");
 
-        for tool in session.load_tools().await? {
+        for tool in session.load_all_tools().await? {
             if tool.id == PROTO_PLUGIN_KEY {
                 continue;
             }
