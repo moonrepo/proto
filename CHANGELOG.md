@@ -15,6 +15,12 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed an issue where `proto upgrade` would fail when the `proto` shim is intercepting the execution.
+
 ## 0.47.4
 
 #### 🚀 Updates
