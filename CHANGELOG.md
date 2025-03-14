@@ -20,6 +20,7 @@
 #### 🐞 Fixes
 
 - Fixed an issue where `proto upgrade` would fail when the `proto` shim is intercepting the execution.
+- Fixed an issue where the `load_versions` WASM call would fail for plugins with an older PDK version.
 
 ## 0.47.4
 

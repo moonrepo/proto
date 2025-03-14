@@ -226,7 +226,13 @@ impl Tool {
         ToolUnresolvedContext {
             proto_version: Some(get_proto_version().to_owned()),
             temp_dir: self.to_virtual_path(&self.inventory.temp_dir),
-            version: self.version.clone(),
+            // version: self.version.clone(),
+            // TODO: temporary until 3rd-party plugins update their PDKs
+            tool_dir: self.to_virtual_path(&self.proto.store.inventory_dir),
+            version: self
+                .version
+                .clone()
+                .or_else(|| Some(VersionSpec::Alias("latest".into()))),
         }
     }
 
