@@ -17,6 +17,12 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Added a way for plugins to prepend arguments for parent executable based commands.
+- WASM API
+  - Added `ExecutableConfig.parent_exe_args`.
+
 #### 🐞 Fixes
 
 - Fixed an issue where `proto upgrade` would fail when the `proto` shim is intercepting the execution.

@@ -417,6 +417,11 @@ api_struct!(
         #[serde(skip_serializing_if = "is_false")]
         pub no_shim: bool,
 
+        /// List of arguments to append to the parent executable, but prepend before
+        /// all other arguments.
+        #[serde(skip_serializing_if = "Vec::is_empty")]
+        pub parent_exe_args: Vec<String>,
+
         /// The parent executable name required to execute the local executable path.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub parent_exe_name: Option<String>,

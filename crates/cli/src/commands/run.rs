@@ -166,24 +166,28 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
         .exe_path
         .as_ref()
         .expect("Could not determine executable path.");
-    let args = args
-        .into_iter()
-        .map(|arg| arg.as_ref().to_os_string())
-        .collect::<Vec<_>>();
+    let base_args = args.into_iter().collect::<Vec<_>>();
 
     let mut command = if let Some(parent_exe_path) = &exe_config.parent_exe_name {
-        let mut exe_args = vec![exe_path.as_os_str().to_os_string()];
-        exe_args.extend(args);
+        let mut args = exe_config
+            .parent_exe_args
+            .iter()
+            .map(OsStr::new)
+            .collect::<Vec<_>>();
+        args.push(exe_path.as_os_str());
+        args.extend(base_args.iter().map(|arg| arg.as_ref()));
 
         debug!(
             bin = ?parent_exe_path,
-            args = ?exe_args,
+            args = ?args,
             pid = std::process::id(),
             "Running {}", tool.get_name(),
         );
 
-        create_process_command(parent_exe_path, exe_args)
+        create_process_command(parent_exe_path, args)
     } else {
+        let args = base_args.iter().map(|arg| arg.as_ref()).collect::<Vec<_>>();
+
         debug!(
             bin = ?exe_path,
             args = ?args,
