@@ -19,7 +19,7 @@ api_struct!(
     /// Information about the current state of the tool.
     pub struct ToolContext {
         /// The version of proto (the core crate) calling plugin functions.
-        #[serde(default)]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         pub proto_version: Option<Version>,
 
         /// Virtual path to the tool's temporary directory.
@@ -37,14 +37,19 @@ api_struct!(
     /// Information about the current state of the tool.
     pub struct ToolUnresolvedContext {
         /// The version of proto (the core crate) calling plugin functions.
-        #[serde(default)]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         pub proto_version: Option<Version>,
 
         /// Virtual path to the tool's temporary directory.
         pub temp_dir: VirtualPath,
 
         /// Current version if defined.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         pub version: Option<VersionSpec>,
+
+        // TODO: temporary compat with `ToolContext`
+        #[doc(hidden)]
+        pub tool_dir: VirtualPath,
     }
 );
 
