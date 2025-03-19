@@ -4,6 +4,7 @@ use crate::tool::Tool;
 use crate::tool_error::ProtoToolError;
 use crate::tool_spec::Backend;
 use convert_case::{Case, Casing};
+use rustc_hash::FxHashSet;
 use starbase_utils::{json, toml, yaml};
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
@@ -96,29 +97,47 @@ pub fn load_schema_config(plugin_path: &Path) -> miette::Result<json::JsonValue>
         _ => unimplemented!(),
     };
 
+    // These are maps with user provided keys, so we shouldn't conver the casing
+    let preserved_keys = FxHashSet::from_iter([
+        "aliases",
+        "arch",
+        "exes",
+        "libc",
+        "platform",
+        "secondary",
+        "shim_env_vars",
+    ]);
+
     // Convert object keys to kebab-case since the original
     // configuration format was based on TOML
-    fn convert_config(config: &mut json::JsonValue, is_toml: bool) {
+    fn convert_config(
+        config: &mut json::JsonValue,
+        is_toml: bool,
+        parent_key: &str,
+        preserved_keys: &FxHashSet<&str>,
+    ) {
+        // shim_env_vars, arch, libc, exes, secondary, aliases, platform
         match config {
             json::JsonValue::Array(array) => {
                 for item in array {
-                    convert_config(item, is_toml);
+                    convert_config(item, is_toml, parent_key, preserved_keys);
                 }
             }
             json::JsonValue::Object(object) => {
                 let mut map = json::JsonMap::default();
 
                 for (key, value) in object.iter_mut() {
-                    convert_config(value, is_toml);
+                    let new_key = if is_toml {
+                        key.to_owned()
+                    } else {
+                        key.from_case(Case::Camel).to_case(Case::Kebab)
+                    };
 
-                    map.insert(
-                        if is_toml {
-                            key.to_owned()
-                        } else {
-                            key.from_case(Case::Camel).to_case(Case::Kebab)
-                        },
-                        value.to_owned(),
-                    );
+                    if !preserved_keys.contains(new_key.as_str()) {
+                        convert_config(value, is_toml, &new_key, preserved_keys);
+                    }
+
+                    map.insert(new_key, value.to_owned());
                 }
 
                 // serde_json doesn't allow mutating keys in place,
@@ -130,7 +149,7 @@ pub fn load_schema_config(plugin_path: &Path) -> miette::Result<json::JsonValue>
         }
     }
 
-    convert_config(&mut schema, is_toml);
+    convert_config(&mut schema, is_toml, "", &preserved_keys);
 
     Ok(schema)
 }

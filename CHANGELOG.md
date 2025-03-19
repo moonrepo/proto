@@ -17,6 +17,10 @@
 
 ## Unreleased
 
+#### 🐞 Fixes
+
+- Fixed an issue where we were converting the casing of certain JSON/YAML schema keys that shouldn't be converted.
+
 #### ⚙️ Internal
 
 - Updated Rust to v1.85.1.
