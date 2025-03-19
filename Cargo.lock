@@ -2898,7 +2898,7 @@ dependencies = [
 
 [[package]]
 name = "proto_shim"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "dirs 6.0.0",
 ]
