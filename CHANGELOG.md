@@ -15,6 +15,23 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added `PROTO_AUTO_INSTALL_HIDE_OUTPUT` to install the progress output when auto-install is triggered.
+- Updated auto-install output not to show when `--version` or `--help` is passed.
+
+#### 🐞 Fixes
+
+- Attempted fix for an issue where CTRL-C/BREAK signals were not propagating correctly on Windows.
+- Fixed an issue where we were converting the casing of certain JSON/YAML schema keys that shouldn't be converted.
+
+#### ⚙️ Internal
+
+- Updated Rust to v1.85.1.
+- Updated dependencies.
+
 ## 0.47.5
 
 #### 🚀 Updates

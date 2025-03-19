@@ -1,4 +1,4 @@
-use process_wrap::std::*;
+// use process_wrap::std::*;
 use std::fs;
 use std::io;
 use std::path::Path;
@@ -6,9 +6,11 @@ use std::process::{Command, exit};
 
 // Use job objects for process grouping, as there's no way to replace the process.
 // @see https://github.com/rust-lang/cargo/blob/master/crates/cargo-util/src/process_builder.rs#L617
-pub fn exec_command_and_replace(command: Command) -> io::Result<()> {
-    let mut command = StdCommandWrap::from(command);
-    command.wrap(JobObject);
+
+// Do nothing, since Windows sends CTRL-C/BREAK to all processes connected to the current console
+pub fn exec_command_and_replace(mut command: Command) -> io::Result<()> {
+    // let mut command = StdCommandWrap::from(command);
+    // command.wrap(JobObject);
 
     let mut child = command.spawn()?;
     let status = child.wait()?;
