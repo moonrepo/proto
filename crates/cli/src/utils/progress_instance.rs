@@ -1,11 +1,12 @@
 use miette::IntoDiagnostic;
+use starbase_console::ConsoleError;
 use starbase_console::ui::ProgressReporter;
 use std::ops::Deref;
 use std::sync::Arc;
 use tokio::task::JoinHandle;
 
 pub struct ProgressInstance {
-    pub handle: JoinHandle<miette::Result<()>>,
+    pub handle: JoinHandle<Result<(), ConsoleError>>,
     pub reporter: Arc<ProgressReporter>,
 }
 

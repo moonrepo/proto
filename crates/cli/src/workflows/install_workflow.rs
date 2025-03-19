@@ -11,6 +11,7 @@ use proto_core::{Id, PinLocation, ToolSpec};
 use proto_pdk_api::{
     InstallHook, InstallStrategy, Switch, SyncShellProfileInput, SyncShellProfileOutput,
 };
+use starbase_console::ConsoleError;
 use starbase_console::ui::{OwnedOrShared, ProgressDisplay, ProgressReporter, ProgressState};
 use starbase_console::utils::formats::format_duration;
 use starbase_shell::ShellType;
@@ -420,7 +421,7 @@ pub struct InstallWorkflowManager {
     pub progress_reporters: BTreeMap<Id, ProgressReporter>,
 
     monitor_handles: Vec<JoinHandle<()>>,
-    render_handle: Option<JoinHandle<miette::Result<()>>>,
+    render_handle: Option<JoinHandle<Result<(), ConsoleError>>>,
 }
 
 impl InstallWorkflowManager {
