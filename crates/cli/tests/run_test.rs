@@ -200,7 +200,8 @@ mod run {
                     .arg("node")
                     .arg("19.0.0")
                     .arg("--")
-                    .arg("--version");
+                    .arg("-e")
+                    .arg("'//'");
             })
             .success();
 
@@ -219,7 +220,8 @@ mod run {
                     .arg("node")
                     .arg("19.0.0")
                     .arg("--")
-                    .arg("--version");
+                    .arg("-e")
+                    .arg("'//'");
             })
             .success();
 
@@ -236,7 +238,12 @@ mod run {
 
         let assert = sandbox
             .run_bin(|cmd| {
-                cmd.arg("run").arg("node").arg("19.0.0");
+                cmd.arg("run")
+                    .arg("node")
+                    .arg("19.0.0")
+                    .arg("--")
+                    .arg("-e")
+                    .arg("'//'");
             })
             .failure();
 
@@ -257,7 +264,8 @@ mod run {
                     .arg("node")
                     .arg("19.0.0")
                     .arg("--")
-                    .arg("--version");
+                    .arg("-e")
+                    .arg("'//'");
             })
             .success();
 
@@ -269,7 +277,8 @@ mod run {
                     .arg("node")
                     .arg("19.0.0")
                     .arg("--")
-                    .arg("--version");
+                    .arg("-e")
+                    .arg("'//'");
             })
             .success();
 

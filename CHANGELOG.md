@@ -20,6 +20,7 @@
 #### 🚀 Updates
 
 - Added `PROTO_AUTO_INSTALL_HIDE_OUTPUT` to install the progress output when auto-install is triggered.
+- Updated auto-install output not to show when `--version` or `--help` is passed.
 
 #### 🐞 Fixes
 
