@@ -105,7 +105,7 @@ pub fn load_schema_config(plugin_path: &Path) -> miette::Result<json::JsonValue>
         "libc",
         "platform",
         "secondary",
-        "shim_env_vars",
+        "shim-env-vars",
     ]);
 
     // Convert object keys to kebab-case since the original
@@ -113,30 +113,28 @@ pub fn load_schema_config(plugin_path: &Path) -> miette::Result<json::JsonValue>
     fn convert_config(
         config: &mut json::JsonValue,
         preserved_keys: &FxHashSet<&str>,
+        parent_key: &str,
         is_toml: bool,
     ) {
-        // shim_env_vars, arch, libc, exes, secondary, aliases, platform
         match config {
             json::JsonValue::Array(array) => {
                 for item in array {
-                    convert_config(item, preserved_keys, is_toml);
+                    convert_config(item, preserved_keys, parent_key, is_toml);
                 }
             }
             json::JsonValue::Object(object) => {
                 let mut map = json::JsonMap::default();
 
                 for (key, value) in object.iter_mut() {
-                    let new_key = if is_toml {
+                    let next_key = if is_toml || preserved_keys.contains(parent_key) {
                         key.to_owned()
                     } else {
                         key.from_case(Case::Camel).to_case(Case::Kebab)
                     };
 
-                    if !preserved_keys.contains(new_key.as_str()) {
-                        convert_config(value, preserved_keys, is_toml);
-                    }
+                    convert_config(value, preserved_keys, &next_key, is_toml);
 
-                    map.insert(new_key, value.to_owned());
+                    map.insert(next_key, value.to_owned());
                 }
 
                 // serde_json doesn't allow mutating keys in place,
@@ -148,7 +146,7 @@ pub fn load_schema_config(plugin_path: &Path) -> miette::Result<json::JsonValue>
         }
     }
 
-    convert_config(&mut schema, &preserved_keys, is_toml);
+    convert_config(&mut schema, &preserved_keys, "", is_toml);
 
     Ok(schema)
 }
