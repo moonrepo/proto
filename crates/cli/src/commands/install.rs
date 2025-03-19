@@ -63,6 +63,9 @@ pub struct InstallArgs {
     )]
     pub passthrough: Vec<String>,
 
+    #[arg(long, help = "Hide install progress output excluding errors")]
+    pub quiet: bool,
+
     // Used internally by other commands to trigger conditional logic
     #[arg(hide = true, long)]
     pub internal: bool,
@@ -146,20 +149,22 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
     }
 
     // Create our workflow and setup the progress reporter
-    let mut workflow_manager = InstallWorkflowManager::new(session.console.clone());
+    let mut workflow_manager = InstallWorkflowManager::new(session.console.clone(), args.quiet);
     let mut workflow = workflow_manager.create_workflow(tool);
 
     if workflow.is_build(args.get_strategy()) {
-        session.console.render(element! {
-            Notice(variant: Variant::Caution) {
-                StyledText(
-                    content: "Building from source is currently unstable. Please report general issues to <url>https://github.com/moonrepo/proto</url>",
-                )
-                StyledText(
-                    content: "and tool specific issues to <url>https://github.com/moonrepo/plugins</url>.",
-                )
-            }
-        })?;
+        if !args.quiet {
+            session.console.render(element! {
+                Notice(variant: Variant::Caution) {
+                    StyledText(
+                        content: "Building from source is currently unstable. Please report general issues to <url>https://github.com/moonrepo/proto</url>",
+                    )
+                    StyledText(
+                        content: "and tool specific issues to <url>https://github.com/moonrepo/plugins</url>.",
+                    )
+                }
+            })?;
+        }
     } else {
         workflow_manager.render_single_progress().await;
     }
@@ -183,7 +188,7 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
     let outcome = result?;
     let tool = workflow.tool;
 
-    if args.internal {
+    if args.internal || args.quiet {
         session.console.err.flush()?;
         session.console.out.flush()?;
 
@@ -284,7 +289,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
 
     // Then install each tool in parallel!
     let mut topo_graph = InstallGraph::new(&tools);
-    let mut workflow_manager = InstallWorkflowManager::new(session.console.clone());
+    let mut workflow_manager = InstallWorkflowManager::new(session.console.clone(), args.quiet);
     let mut set = JoinSet::new();
     let started = Instant::now();
     let force = args.force;
@@ -401,6 +406,10 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
 
     workflow_manager.stop_rendering().await?;
 
+    if args.quiet && failed_count == 0 {
+        return Ok(None);
+    }
+
     session.console.render(element! {
         Notice(
             variant: if failed_count == 0 {
@@ -430,7 +439,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
         }
     })?;
 
-    Ok(None)
+    Ok(Some(failed_count))
 }
 
 #[instrument(skip(session))]

@@ -8,7 +8,7 @@ use std::process::{Command, exit};
 // @see https://github.com/rust-lang/cargo/blob/master/crates/cargo-util/src/process_builder.rs#L617
 
 // Do nothing, since Windows sends CTRL-C/BREAK to all processes connected to the current console
-pub fn exec_command_and_replace(command: Command) -> io::Result<()> {
+pub fn exec_command_and_replace(mut command: Command) -> io::Result<()> {
     // let mut command = StdCommandWrap::from(command);
     // command.wrap(JobObject);
 

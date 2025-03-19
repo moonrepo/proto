@@ -17,6 +17,10 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Added `PROTO_AUTO_INSTALL_HIDE_OUTPUT` to install the progress output when auto-install is triggered.
+
 #### 🐞 Fixes
 
 - Attempted fix for an issue where CTRL-C/BREAK signals were not propagating correctly on Windows.

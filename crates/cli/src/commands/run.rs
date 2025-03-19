@@ -11,6 +11,7 @@ use proto_pdk_api::{ExecutableConfig, RunHook, RunHookResult};
 use proto_shim::{exec_command_and_replace, locate_proto_exe};
 use starbase::AppResult;
 use starbase_styles::color;
+use starbase_utils::env::bool_var;
 use starbase_utils::{env::paths, fs};
 use std::env;
 use std::ffi::OsStr;
@@ -49,6 +50,11 @@ fn should_use_global_proto(tool: &Tool) -> miette::Result<bool> {
             .load_config()?
             .versions
             .contains_key(PROTO_PLUGIN_KEY))
+}
+
+fn should_hide_auto_install_output(args: &[String]) -> bool {
+    bool_var("PROTO_AUTO_INSTALL_HIDE_OUTPUT")
+        || args.iter().any(|arg| arg == "--version" || arg == "--help")
 }
 
 fn is_trying_to_self_upgrade(tool: &Tool, args: &[String]) -> bool {
@@ -289,16 +295,21 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
 
         // Auto-install the missing tool
         if config.settings.auto_install {
-            session.console.out.write_line(format!(
-                "Auto-install is enabled, attempting to install {} {}",
-                tool.get_name(),
-                resolved_version,
-            ))?;
+            let hide_output = should_hide_auto_install_output(&args.passthrough);
+
+            if !hide_output {
+                session.console.out.write_line(format!(
+                    "Auto-install is enabled, attempting to install {} {}",
+                    tool.get_name(),
+                    resolved_version,
+                ))?;
+            }
 
             install_one(
                 session.clone(),
                 InstallArgs {
                     internal: true,
+                    quiet: hide_output,
                     spec: Some(ToolSpec {
                         backend: spec.backend,
                         req: resolved_version.to_unresolved_spec(),
@@ -310,11 +321,13 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
             )
             .await?;
 
-            session.console.out.write_line(format!(
-                "{} {} has been installed, continuing execution...",
-                tool.get_name(),
-                resolved_version,
-            ))?;
+            if !hide_output {
+                session.console.out.write_line(format!(
+                    "{} {} has been installed, continuing execution...",
+                    tool.get_name(),
+                    resolved_version,
+                ))?;
+            }
         }
         // If this is the proto tool running, continue instead of failing
         else if use_global_proto {

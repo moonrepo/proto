@@ -141,7 +141,6 @@ impl InstallWorkflow {
     async fn pre_install(&self, params: &InstallWorkflowParams) -> miette::Result<()> {
         let tool = &self.tool;
 
-        // TODO: Audit that the environment access only happens in single-threaded code.
         unsafe { env::set_var("PROTO_INSTALL", tool.id.to_string()) };
 
         if tool.plugin.has_func("pre_install").await {
@@ -419,18 +418,20 @@ impl InstallWorkflow {
 pub struct InstallWorkflowManager {
     pub console: ProtoConsole,
     pub progress_reporters: BTreeMap<Id, ProgressReporter>,
+    pub quiet: bool,
 
     monitor_handles: Vec<JoinHandle<()>>,
     render_handle: Option<JoinHandle<Result<(), ConsoleError>>>,
 }
 
 impl InstallWorkflowManager {
-    pub fn new(console: ProtoConsole) -> Self {
+    pub fn new(console: ProtoConsole, quiet: bool) -> Self {
         Self {
             console,
             progress_reporters: BTreeMap::default(),
             monitor_handles: vec![],
             render_handle: None,
+            quiet,
         }
     }
 
@@ -448,6 +449,10 @@ impl InstallWorkflowManager {
     }
 
     pub async fn render_single_progress(&mut self) {
+        if self.quiet {
+            return;
+        }
+
         if !self.is_tty() {
             self.monitor_messages();
             return;
@@ -469,6 +474,10 @@ impl InstallWorkflowManager {
     }
 
     pub async fn render_multiple_progress(&mut self) {
+        if self.quiet {
+            return;
+        }
+
         if !self.is_tty() {
             self.monitor_messages();
             return;
