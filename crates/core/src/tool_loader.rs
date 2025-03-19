@@ -112,15 +112,14 @@ pub fn load_schema_config(plugin_path: &Path) -> miette::Result<json::JsonValue>
     // configuration format was based on TOML
     fn convert_config(
         config: &mut json::JsonValue,
-        is_toml: bool,
-        parent_key: &str,
         preserved_keys: &FxHashSet<&str>,
+        is_toml: bool,
     ) {
         // shim_env_vars, arch, libc, exes, secondary, aliases, platform
         match config {
             json::JsonValue::Array(array) => {
                 for item in array {
-                    convert_config(item, is_toml, parent_key, preserved_keys);
+                    convert_config(item, preserved_keys, is_toml);
                 }
             }
             json::JsonValue::Object(object) => {
@@ -134,7 +133,7 @@ pub fn load_schema_config(plugin_path: &Path) -> miette::Result<json::JsonValue>
                     };
 
                     if !preserved_keys.contains(new_key.as_str()) {
-                        convert_config(value, is_toml, &new_key, preserved_keys);
+                        convert_config(value, preserved_keys, is_toml);
                     }
 
                     map.insert(new_key, value.to_owned());
@@ -149,7 +148,7 @@ pub fn load_schema_config(plugin_path: &Path) -> miette::Result<json::JsonValue>
         }
     }
 
-    convert_config(&mut schema, is_toml, "", &preserved_keys);
+    convert_config(&mut schema, &preserved_keys, is_toml);
 
     Ok(schema)
 }

@@ -19,6 +19,7 @@
 
 #### 🐞 Fixes
 
+- Attempted fix for an issue where CTRL-C/BREAK signals were not propagating correctly on Windows.
 - Fixed an issue where we were converting the casing of certain JSON/YAML schema keys that shouldn't be converted.
 
 #### ⚙️ Internal
