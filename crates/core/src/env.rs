@@ -166,7 +166,7 @@ impl ProtoEnvironment {
             });
 
             // Remove the pinned `proto` version from global/user configs,
-            // as it causes massive recursion and `proto` process chains 
+            // as it causes massive recursion and `proto` process chains
             manager.remove_proto_pins();
 
             Ok(manager)

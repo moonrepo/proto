@@ -835,7 +835,12 @@ impl ProtoConfigManager {
         self.global_config.get_or_try_init(|| {
             debug!("Loading global config only");
 
-            self.merge_configs(self.files.iter().filter(|file| file.location == PinLocation::Global).collect())
+            self.merge_configs(
+                self.files
+                    .iter()
+                    .filter(|file| file.location == PinLocation::Global)
+                    .collect(),
+            )
         })
     }
 
@@ -864,7 +869,12 @@ impl ProtoConfigManager {
         self.all_config_no_global.get_or_try_init(|| {
             debug!("Merging loaded configs without global");
 
-            self.merge_configs(self.files.iter().filter(|file| file.location != PinLocation::Global).collect())
+            self.merge_configs(
+                self.files
+                    .iter()
+                    .filter(|file| file.location != PinLocation::Global)
+                    .collect(),
+            )
         })
     }
 
