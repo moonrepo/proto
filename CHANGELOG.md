@@ -24,6 +24,10 @@
   - We automatically attempt to remove the old shims, but if you run into any weirdness, you may need to manually remove `~/.proto/shims/proto` and `~/.proto/shims/proto-shim`.
   - We'll revisit this feature in a future release.
 
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.47.6
 
 #### 🚀 Updates
