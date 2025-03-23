@@ -15,6 +15,19 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 💥 Breaking
+
+- Reverted the ability for proto to shim itself, and in turn the ability to pin the proto version.
+  - This was causing large process trees, where proto would recursivelay call itself, and eating up a lot of resources.
+  - We automatically attempt to remove the old shims, but if you run into any weirdness, you may need to manually remove `~/.proto/shims/proto` and `~/.proto/shims/proto-shim`.
+  - We'll revisit this feature in a future release.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.47.6
 
 #### 🚀 Updates

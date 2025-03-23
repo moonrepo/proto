@@ -44,12 +44,18 @@ pub struct RunArgs {
 }
 
 fn should_use_global_proto(tool: &Tool) -> miette::Result<bool> {
-    Ok(tool.id == PROTO_PLUGIN_KEY
-        && !tool
-            .proto
-            .load_config()?
-            .versions
-            .contains_key(PROTO_PLUGIN_KEY))
+    if tool.id != PROTO_PLUGIN_KEY {
+        return Ok(false);
+    }
+
+    let config = tool.proto.load_config()?;
+
+    Ok(
+        // No pinnned version
+        !config.versions.contains_key(PROTO_PLUGIN_KEY)
+        // Pinned but the same as the running process
+        || config.versions.get(PROTO_PLUGIN_KEY).is_some_and(|v| v.req.to_string() == env!("CARGO_PKG_VERSION")),
+    )
 }
 
 fn should_hide_auto_install_output(args: &[String]) -> bool {
@@ -410,15 +416,17 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
         command.env("PATH", env::join_paths(hook_paths).into_diagnostic()?);
     }
 
-    command
-        .env(
-            format!("{}_VERSION", tool.get_env_var_prefix()),
-            tool.get_resolved_version().to_string(),
-        )
-        .env(
-            format!("{}_BIN", tool.get_env_var_prefix()),
-            exe_config.exe_path.as_ref().unwrap(),
-        );
+    if !use_global_proto {
+        command
+            .env(
+                format!("{}_VERSION", tool.get_env_var_prefix()),
+                tool.get_resolved_version().to_string(),
+            )
+            .env(
+                format!("{}_BIN", tool.get_env_var_prefix()),
+                exe_config.exe_path.as_ref().unwrap(),
+            );
+    }
 
     // Update the last used timestamp
     if env::var("PROTO_SKIP_USED_AT").is_err() {

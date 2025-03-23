@@ -329,7 +329,7 @@ impl ProtoConfig {
 
     pub fn builtin_proto_plugin(&self) -> PluginLocator {
         PluginLocator::Url(Box::new(UrlLocator {
-            url: "https://github.com/moonrepo/plugins/releases/download/proto_tool-v0.5.2/proto_tool.wasm".into()
+            url: "https://github.com/moonrepo/plugins/releases/download/proto_tool-v0.5.3/proto_tool.wasm".into()
         }))
     }
 
@@ -757,7 +757,7 @@ impl ProtoConfig {
 #[derive(Debug, Serialize)]
 pub struct ProtoConfigFile {
     pub exists: bool,
-    pub global: bool,
+    pub location: PinLocation,
     pub path: PathBuf,
     pub config: PartialProtoConfig,
 }
@@ -788,13 +788,20 @@ impl ProtoConfigManager {
         let mut files = vec![];
 
         while let Some(dir) = current_dir {
+            let is_end = end_dir.is_some_and(|end| end == dir);
+            let location = if is_end {
+                PinLocation::User
+            } else {
+                PinLocation::Local
+            };
+
             if let Some(env) = env_mode {
                 let env_path = dir.join(format!("{}.{env}", PROTO_CONFIG_NAME));
 
                 files.push(ProtoConfigFile {
                     config: ProtoConfig::load(&env_path, false)?,
                     exists: env_path.exists(),
-                    global: false,
+                    location,
                     path: env_path,
                 });
             }
@@ -804,11 +811,11 @@ impl ProtoConfigManager {
             files.push(ProtoConfigFile {
                 config: ProtoConfig::load(&path, false)?,
                 exists: path.exists(),
-                global: false,
+                location,
                 path,
             });
 
-            if end_dir.is_some_and(|end| end == dir) {
+            if is_end {
                 break;
             }
 
@@ -828,7 +835,12 @@ impl ProtoConfigManager {
         self.global_config.get_or_try_init(|| {
             debug!("Loading global config only");
 
-            self.merge_configs(self.files.iter().filter(|file| file.global).collect())
+            self.merge_configs(
+                self.files
+                    .iter()
+                    .filter(|file| file.location == PinLocation::Global)
+                    .collect(),
+            )
         })
     }
 
@@ -857,8 +869,27 @@ impl ProtoConfigManager {
         self.all_config_no_global.get_or_try_init(|| {
             debug!("Merging loaded configs without global");
 
-            self.merge_configs(self.files.iter().filter(|file| !file.global).collect())
+            self.merge_configs(
+                self.files
+                    .iter()
+                    .filter(|file| file.location != PinLocation::Global)
+                    .collect(),
+            )
         })
+    }
+
+    pub(crate) fn remove_proto_pins(&mut self) {
+        self.files.iter_mut().for_each(|file| {
+            if file.location != PinLocation::Local {
+                if let Some(versions) = &mut file.config.versions {
+                    versions.remove(PROTO_PLUGIN_KEY);
+                }
+
+                if let Some(unknown) = &mut file.config.unknown {
+                    unknown.remove(PROTO_PLUGIN_KEY);
+                }
+            }
+        });
     }
 
     fn merge_configs(&self, files: Vec<&ProtoConfigFile>) -> miette::Result<ProtoConfig> {
