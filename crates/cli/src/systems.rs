@@ -35,6 +35,20 @@ pub fn detect_proto_env(cli: &CLI) -> miette::Result<ProtoEnvironment> {
     Ok(env)
 }
 
+// Temporary!
+#[instrument(skip_all)]
+pub fn remove_proto_shims(env: &ProtoEnvironment) -> miette::Result<()> {
+    for shim_name in [get_exe_file_name("proto"), get_exe_file_name("proto-shim")] {
+        let shim_path = env.store.shims_dir.join(shim_name);
+
+        if shim_path.exists() {
+            let _ = fs::remove_file(shim_path);
+        }
+    }
+
+    Ok(())
+}
+
 // ANALYZE
 
 #[instrument(skip_all)]
