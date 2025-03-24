@@ -51,7 +51,7 @@ starbase_archive = { version = "0.10.1", features = [
     "zip",
     "zip-deflate",
 ] }
-starbase_console = { version = "0.6.4", features = ["miette", "ui"] }
+starbase_console = { version = "=0.6.2", features = ["miette", "ui"] }
 starbase_sandbox = { version = "0.9.1" }
 starbase_shell = { version = "0.7.1", features = ["miette"] }
 starbase_styles = { version = "0.5.1" }
