@@ -100,13 +100,7 @@ mod status {
         let output = assert.output();
 
         assert!(predicate::str::contains("node").eval(&output));
-
-        if cfg!(windows) {
-            // Text wrapping
-            assert!(predicate::str::contains("pack").eval(&output));
-        } else {
-            assert!(predicate::str::contains("package.json").eval(&output));
-        }
+        assert!(predicate::str::contains(">=20").eval(&output));
     }
 
     #[test]
