@@ -17,9 +17,14 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Added `ash` shell support (primarily for alpine).
+
 #### ⚙️ Internal
 
 - Updated Rust to v1.86.0.
+- Updated dependencies.
 
 ## 0.47.8
 
