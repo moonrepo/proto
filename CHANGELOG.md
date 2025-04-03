@@ -15,6 +15,17 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added `ash` shell support (primarily for alpine).
+
+#### ⚙️ Internal
+
+- Updated Rust to v1.86.0.
+- Updated dependencies.
+
 ## 0.47.8
 
 #### 🐞 Fixes
