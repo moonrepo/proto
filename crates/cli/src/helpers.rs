@@ -1,3 +1,4 @@
+use crate::error::ProtoCliError;
 use miette::IntoDiagnostic;
 use semver::Version;
 use starbase_console::ui::{ConsoleTheme, Style, style_to_color};
@@ -37,39 +38,44 @@ async fn fetch_from_github(url: &str) -> reqwest::Result<reqwest::Response> {
         .get(url)
         .header("User-Agent", "moonrepo-proto-cli");
 
-    if let Ok(token) = env::var("GITHUB_TOKEN") {
+    if let Ok(token) = env::var("PROTO_GITHUB_TOKEN") {
         request = request.header("Authorization", format!("Bearer {token}"));
     }
 
     request.send().await
 }
 
-async fn inner_fetch_latest_version() -> reqwest::Result<String> {
-    let release: JsonValue =
-        fetch_from_github("https://api.github.com/repos/moonrepo/proto/releases/latest")
-            .await?
-            .json()
+async fn inner_fetch_latest_version() -> reqwest::Result<Option<String>> {
+    let response =
+        fetch_from_github("https://api.github.com/repos/moonrepo/proto/releases/latest").await?;
+
+    if response.status().is_success() {
+        let release: JsonValue = response.json().await?;
+
+        if let Some(JsonValue::String(tag)) = release.get("tag_name") {
+            return Ok(Some(tag.trim_start_matches('v').to_string()));
+        }
+    }
+
+    // Tag field doesn't exist, or the request failed,
+    // or the data is incomplete, so fallback
+    let response =
+        fetch_from_github("https://raw.githubusercontent.com/moonrepo/proto/master/version")
             .await?;
 
-    let version = match release.get("tag_name") {
-        Some(JsonValue::String(tag)) => tag.trim_start_matches('v').to_string(),
-        // Tag field doesn't exist, or the request failed,
-        // or the data is incomplete, so fallback
-        _ => {
-            fetch_from_github("https://raw.githubusercontent.com/moonrepo/proto/master/version")
-                .await?
-                .text()
-                .await?
-        }
+    if response.status().is_success() {
+        return Ok(Some(response.text().await?.trim().to_string()));
+    }
+
+    Ok(None)
+}
+
+pub async fn fetch_latest_version() -> miette::Result<Version> {
+    let Some(version) = inner_fetch_latest_version().await.into_diagnostic()? else {
+        return Err(ProtoCliError::FailedToFetchVersion.into());
     };
 
     debug!("Found latest version {}", color::hash(&version));
 
-    Ok(version)
-}
-
-pub async fn fetch_latest_version() -> miette::Result<Version> {
-    let version = inner_fetch_latest_version().await.into_diagnostic()?;
-
-    Version::parse(version.trim()).into_diagnostic()
+    Version::parse(&version).into_diagnostic()
 }

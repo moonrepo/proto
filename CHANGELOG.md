@@ -15,6 +15,16 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed an issue where `proto upgrade` would fail to fetch the latest version.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.47.9
 
 #### 🚀 Updates
