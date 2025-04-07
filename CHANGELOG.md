@@ -17,6 +17,10 @@
 
 ## Unreleased
 
+#### 🐞 Fixes
+
+- Fixed an issue where `proto upgrade` would fail to fetch the latest version.
+
 #### ⚙️ Internal
 
 - Updated dependencies.
