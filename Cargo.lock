@@ -2787,7 +2787,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.47.10"
+version = "0.47.11"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2842,7 +2842,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.47.15"
+version = "0.47.16"
 dependencies = [
  "clap",
  "convert_case",
@@ -2881,7 +2881,7 @@ dependencies = [
 
 [[package]]
 name = "proto_installer"
-version = "0.12.3"
+version = "0.12.4"
 dependencies = [
  "miette 7.5.0",
  "reqwest",
@@ -4718,7 +4718,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.23.9"
+version = "0.23.10"
 dependencies = [
  "async-trait",
  "compact_str 0.9.0",
