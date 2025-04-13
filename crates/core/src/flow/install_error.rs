@@ -1,5 +1,5 @@
 use miette::Diagnostic;
-use starbase_styles::{Style, Stylize, color::apply_style_tags};
+use starbase_styles::{Style, Stylize, apply_style_tags};
 use std::path::PathBuf;
 use thiserror::Error;
 

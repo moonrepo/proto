@@ -1,6 +1,6 @@
 use crate::id::Id;
 use miette::Diagnostic;
-use starbase_styles::{Style, Stylize, color::apply_style_tags};
+use starbase_styles::{Style, Stylize, apply_style_tags};
 use thiserror::Error;
 
 /// Plugin/runtime errors.

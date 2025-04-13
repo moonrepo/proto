@@ -15,7 +15,7 @@ use starbase_console::ConsoleError;
 use starbase_console::ui::{OwnedOrShared, ProgressDisplay, ProgressReporter, ProgressState};
 use starbase_console::utils::formats::format_duration;
 use starbase_shell::ShellType;
-use starbase_styles::color::{self, apply_style_tags};
+use starbase_styles::{apply_style_tags, color};
 use starbase_utils::env::bool_var;
 use std::collections::BTreeMap;
 use std::env;

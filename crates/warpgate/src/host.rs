@@ -3,7 +3,7 @@ use crate::client_error::WarpgateClientError;
 use crate::helpers;
 use crate::plugin_error::WarpgatePluginError;
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
-use starbase_styles::color::{self, apply_style_tags};
+use starbase_styles::{apply_style_tags, color};
 use starbase_utils::env::paths;
 use starbase_utils::fs;
 use std::collections::BTreeMap;
