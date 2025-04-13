@@ -2938,6 +2938,7 @@ name = "proto_shim"
 version = "0.7.2"
 dependencies = [
  "dirs 6.0.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
