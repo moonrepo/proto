@@ -14,6 +14,13 @@ use std::{
 };
 
 #[derive(ValueEnum, Clone, Debug, Default)]
+pub enum AppTheme {
+    #[default]
+    Dark,
+    Light,
+}
+
+#[derive(ValueEnum, Clone, Debug, Default)]
 pub enum LogLevel {
     Off,
     Error,
@@ -108,20 +115,30 @@ pub struct App {
 
     #[arg(
         long,
+        global = true,
+        env = "PROTO_JSON",
+        help = "Print as JSON (when applicable)"
+    )]
+    pub json: bool,
+
+    #[arg(
+        value_enum,
+        default_value_t,
+        long,
+        global = true,
+        env = "PROTO_THEME",
+        help = "Terminal theme to print with"
+    )]
+    pub theme: AppTheme,
+
+    #[arg(
+        long,
         short = 'y',
         global = true,
         env = "PROTO_YES",
         help = "Avoid all interactive prompts and use defaults"
     )]
     pub yes: bool,
-
-    #[arg(
-        long,
-        global = true,
-        env = "PROTO_JSON",
-        help = "Print as JSON (when applicable)"
-    )]
-    pub json: bool,
 
     #[command(subcommand)]
     pub command: Commands,
@@ -136,6 +153,14 @@ impl App {
             if let Ok(value) = env::var("PROTO_DEBUG_COMMAND") {
                 env::set_var("WARPGATE_DEBUG_COMMAND", value);
             }
+
+            env::set_var(
+                "STARBASE_THEME",
+                match self.theme {
+                    AppTheme::Dark => "dark",
+                    AppTheme::Light => "light",
+                },
+            );
 
             // Disable ANSI colors in JSON output
             if self.json {
