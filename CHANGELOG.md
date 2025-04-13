@@ -19,7 +19,8 @@
 
 #### 🚀 Updates
 
-- Added a new Ctrl+C handler on Windows for shims, that should pass the signal down to the underlying binary, instead of being captured in the shim. This is based on Cargo's implementation.
+- Added a new Ctrl+C handler on Windows for shims, that should pass the signal down to the
+  underlying executable, instead of being captured in the shim. This is based on Cargo's implementation.
 
 ## 0.47.11
 

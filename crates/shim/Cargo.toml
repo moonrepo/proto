@@ -12,6 +12,5 @@ dirs = { workspace = true }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.59.0", default-features = false, features = [
-	# "Win32_System_Console",
 	"Win32_System_Threading",
 ] }
