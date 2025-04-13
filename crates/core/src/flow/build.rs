@@ -11,12 +11,12 @@ use proto_pdk_api::{
     BuildInstruction, BuildInstructionsOutput, BuildRequirement, GitSource, SourceLocation,
 };
 use rustc_hash::FxHashMap;
-use schematic::color::{apply_style_tags, remove_style_tags};
 use semver::{Version, VersionReq};
 use starbase_console::ui::{
     Confirm, Container, Entry, ListCheck, ListItem, Section, Select, SelectOption, Style,
     StyledText,
 };
+use starbase_styles::{apply_style_tags, remove_style_tags};
 use starbase_utils::fs::LOCK_FILE;
 use starbase_utils::{env::is_ci, fs, net};
 use std::env;

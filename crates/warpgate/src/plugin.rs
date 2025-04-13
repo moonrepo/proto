@@ -6,7 +6,7 @@ use extism::{Error, Function, Manifest, Plugin};
 use miette::IntoDiagnostic;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-use starbase_styles::color::{self, apply_style_tags};
+use starbase_styles::{apply_style_tags, color};
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};

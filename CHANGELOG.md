@@ -15,6 +15,17 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added a light terminal theme. Can be enabled with `--theme=light` or `PROTO_THEME=light`.
+  - This is still a work in progress. Open to feedback on color/contrast choices.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.47.10
 
 #### 🐞 Fixes
