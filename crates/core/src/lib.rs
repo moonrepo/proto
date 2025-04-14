@@ -6,6 +6,7 @@ mod env_error;
 pub mod flow;
 mod helpers;
 pub mod layout;
+pub mod lockfile;
 pub mod registry;
 mod tool;
 mod tool_error;

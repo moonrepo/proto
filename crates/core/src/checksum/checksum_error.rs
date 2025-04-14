@@ -16,4 +16,14 @@ pub enum ProtoChecksumError {
         "A {} is required to verify this tool. This setting must be implemented in the plugin.", "checksum_public_key".style(Style::Property)
     )]
     MissingChecksumPublicKey,
+
+    #[diagnostic(code(proto::checksum::missing_type))]
+    #[error("Checksum type is not defined.")]
+    MissingChecksumType,
+
+    #[diagnostic(code(proto::checksum::unknown_type))]
+    #[error(
+        "Unknown or unsupported checksum type {}.", .kind.style(Style::Property)
+    )]
+    UnknownChecksumType { kind: String },
 }
