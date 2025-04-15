@@ -103,7 +103,8 @@ impl Tool {
         record.suffix = self.inventory.config.version_suffix.clone();
 
         let lockfile = &mut self.inventory.lockfile;
-        lockfile.installed.insert(version, record.clone());
+        lockfile.versions.insert(version, record.clone());
+        lockfile.save()?;
 
         // Pin the global version
         ProtoConfig::update(self.proto.get_config_dir(PinLocation::Global), |config| {

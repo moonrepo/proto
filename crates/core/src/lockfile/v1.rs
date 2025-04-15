@@ -29,7 +29,7 @@ pub struct LockfileRecord {
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Lockfile {
-    pub installed: BTreeMap<VersionSpec, LockfileRecord>,
+    pub versions: BTreeMap<VersionSpec, LockfileRecord>,
 
     #[serde(skip)]
     pub path: PathBuf,
