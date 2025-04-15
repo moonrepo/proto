@@ -1,3 +1,4 @@
+use super::ChecksumRecord;
 use super::checksum_error::ProtoChecksumError;
 use minisign_verify::*;
 use starbase_utils::fs;
@@ -8,7 +9,7 @@ pub fn verify_checksum(
     download_file: &Path,
     checksum_file: &Path,
     checksum_public_key: &str,
-) -> miette::Result<bool> {
+) -> miette::Result<Option<ChecksumRecord>> {
     let handle_error = |error: Error| ProtoChecksumError::Minisign {
         error: Box::new(error),
     };
@@ -22,5 +23,7 @@ pub fn verify_checksum(
         )
         .map_err(handle_error)?;
 
-    Ok(true)
+    Ok(Some(ChecksumRecord::Minisign(
+        checksum_public_key.to_owned(),
+    )))
 }

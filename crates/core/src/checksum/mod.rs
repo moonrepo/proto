@@ -14,7 +14,7 @@ pub fn verify_checksum(
     download_file: &Path,
     checksum_file: &Path,
     checksum_public_key: Option<&str>,
-) -> miette::Result<bool> {
+) -> miette::Result<Option<ChecksumRecord>> {
     match checksum_file.extension().and_then(|ext| ext.to_str()) {
         Some("minisig" | "minisign") => minisign::verify_checksum(
             download_file,

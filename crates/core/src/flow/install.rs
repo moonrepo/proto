@@ -90,7 +90,7 @@ impl Tool {
 
         // Otherwise attempt to verify it ourselves
         } else {
-            verify_checksum(download_file, checksum_file, checksum_public_key)?
+            verify_checksum(download_file, checksum_file, checksum_public_key)?.is_some()
         };
 
         if verified {

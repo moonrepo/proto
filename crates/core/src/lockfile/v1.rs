@@ -1,9 +1,9 @@
-use crate::checksum::ProtoChecksumError;
+use crate::checksum::ChecksumRecord;
 use crate::helpers::{read_json_file_with_lock, write_json_file_with_lock};
 use crate::tool_spec::Backend;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use std::fmt::{self, Debug};
+use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use tracing::{debug, instrument};
 use version_spec::VersionSpec;
@@ -17,7 +17,7 @@ pub struct LockfileRecord {
     pub backend: Option<Backend>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub checksum: Option<LockfileChecksum>,
+    pub checksum: Option<ChecksumRecord>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub plugin: Option<String>,
