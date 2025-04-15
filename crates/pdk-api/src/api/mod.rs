@@ -378,7 +378,25 @@ api_struct!(
 api_struct!(
     /// Output returned by the `verify_checksum` function.
     pub struct VerifyChecksumOutput {
+        /// The checksum/hash that was generated and verified.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub checksum: Option<String>,
+
+        /// The type of checksum and operation used.
+        #[serde(default, skip_serializing_if = "Option::is_none", rename = "type")]
+        pub type_of: Option<ChecksumType>,
+
+        /// Was the checksum correct?
         pub verified: bool,
+    }
+);
+
+api_unit_enum!(
+    /// Supported checksum verifiers.
+    pub enum ChecksumType {
+        Minisign,
+        #[default]
+        Sha256,
     }
 );
 

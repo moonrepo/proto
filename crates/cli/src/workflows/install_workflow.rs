@@ -7,6 +7,7 @@ use crate::utils::tool_record::ToolRecord;
 use iocraft::element;
 use miette::IntoDiagnostic;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
+use proto_core::lockfile::LockfileRecord;
 use proto_core::{Id, PinLocation, ToolSpec};
 use proto_pdk_api::{
     InstallHook, InstallStrategy, Switch, SyncShellProfileInput, SyncShellProfileOutput,
@@ -105,9 +106,9 @@ impl InstallWorkflow {
         self.pre_install(&params).await?;
 
         // Run install
-        let installed = self.do_install(&spec, &params).await?;
+        let record = self.do_install(&spec, &params).await?;
 
-        if !installed {
+        if record.is_none() {
             return Ok(InstallOutcome::FailedToInstall);
         }
 
@@ -163,7 +164,7 @@ impl InstallWorkflow {
         &mut self,
         spec: &ToolSpec,
         params: &InstallWorkflowParams,
-    ) -> miette::Result<bool> {
+    ) -> miette::Result<Option<LockfileRecord>> {
         self.tool.resolve_version_with_spec(spec, false).await?;
 
         let resolved_version = self.tool.get_resolved_version();

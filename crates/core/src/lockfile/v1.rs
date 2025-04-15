@@ -20,7 +20,7 @@ pub struct LockfileRecord {
     pub checksum: Option<ChecksumRecord>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub plugin: Option<String>,
+    pub source: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub suffix: Option<String>,
