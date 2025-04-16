@@ -10,7 +10,7 @@ use version_spec::VersionSpec;
 
 pub const LOCKFILE_NAME: &str = "lockfile.json";
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct LockfileRecord {
     #[serde(skip_serializing_if = "Option::is_none")]

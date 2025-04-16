@@ -182,6 +182,11 @@ impl Tool {
             }
         })?;
 
+        // Remove version from lockfile
+        let lockfile = &mut self.inventory.lockfile;
+        lockfile.versions.remove(&version);
+        lockfile.save()?;
+
         // Remove version from manifest
         // We must do this last because the location resolves above
         // require `installed_versions` to have values!

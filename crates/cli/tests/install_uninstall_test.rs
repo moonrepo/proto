@@ -2,11 +2,13 @@ mod utils;
 
 use proto_core::{
     Backend, Id, PinLocation, ProtoConfig, ToolManifest, ToolSpec, UnresolvedVersionSpec,
-    VersionSpec,
+    VersionSpec, checksum::ChecksumRecord, lockfile::*,
 };
 use rustc_hash::FxHashSet;
 use starbase_sandbox::predicates::prelude::*;
-use std::{fs, time::SystemTime};
+use std::collections::BTreeMap;
+use std::fs;
+use std::time::SystemTime;
 use utils::*;
 
 mod install_uninstall {
@@ -846,6 +848,51 @@ asdf-repository = "https://github.com/NeoHsu/asdf-newrelic-cli"
             assert.stdout(predicate::str::contains(
                 "asdf:newrelic 0.97.0 has been installed",
             ));
+        }
+    }
+
+    mod lockfile {
+        use super::*;
+
+        #[test]
+        fn adds_and_removes_lockfile_entries() {
+            let sandbox = create_empty_proto_sandbox();
+            let lockfile_path = sandbox.path().join(".proto/tools/node/lockfile.json");
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("node").arg("18.12.0");
+                })
+                .success();
+
+            assert!(lockfile_path.exists());
+
+            let lockfile = Lockfile::load(&lockfile_path).unwrap();
+
+            assert_eq!(
+                lockfile.versions,
+                BTreeMap::from_iter([(
+                    VersionSpec::parse("18.12.0").unwrap(),
+                    LockfileRecord {
+                        checksum: Some(ChecksumRecord::Sha256(
+                            "e37d6b4fbb4ca4ef3af0a095ff9089d7a5c3c80d4bc36d916987406f06573464"
+                                .into()
+                        )),
+                        source: Some("https://nodejs.org/download/release/v18.12.0/node-v18.12.0-darwin-arm64.tar.xz".into()),
+                        ..Default::default()
+                    }
+                )])
+            );
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("uninstall").arg("node").arg("18.12.0").arg("--yes");
+                })
+                .success();
+
+            let lockfile = Lockfile::load(&lockfile_path).unwrap();
+
+            assert!(lockfile.versions.is_empty());
         }
     }
 }

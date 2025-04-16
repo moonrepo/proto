@@ -25,7 +25,7 @@ pub fn verify_checksum(
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(into = "String", try_from = "String")]
 pub enum ChecksumRecord {
     Minisign(String),
@@ -37,11 +37,11 @@ impl FromStr for ChecksumRecord {
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         match value.split_once(':') {
-            Some((pre, suf)) => match pre {
-                "minisign" => Ok(Self::Minisign(suf.to_owned())),
-                "sha256" => Ok(Self::Sha256(suf.to_owned())),
+            Some((tag, hash)) => match tag {
+                "minisign" => Ok(Self::Minisign(hash.to_owned())),
+                "sha256" => Ok(Self::Sha256(hash.to_owned())),
                 _ => Err(ProtoChecksumError::UnknownChecksumType {
-                    kind: pre.to_owned(),
+                    kind: tag.to_owned(),
                 }),
             },
             None => Err(ProtoChecksumError::MissingChecksumType),
