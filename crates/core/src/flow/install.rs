@@ -120,6 +120,54 @@ impl Tool {
         .into())
     }
 
+    /// Verify the installation is legitimate by comparing it to a lockfile record.
+    #[instrument(skip(self))]
+    pub fn verify_lockfile(
+        &self,
+        checksum: &ChecksumRecord,
+        source: Option<&str>,
+    ) -> miette::Result<()> {
+        let Some(version) = &self.version else {
+            return Ok(());
+        };
+
+        // No lockfile record yet
+        let Some(record) = self.inventory.lockfile.versions.get(version) else {
+            return Ok(());
+        };
+
+        // If we have different backends, then the installation strategy
+        // and content/files which are hashed may differ, so avoid verify
+        if self.backend != record.backend {
+            return Ok(());
+        }
+
+        debug!(
+            tool = self.id.as_str(),
+            checksum = checksum.to_string(),
+            "Verifying checksum against lockfile",
+        );
+
+        if let Some(lockfile_checksum) = &record.checksum {
+            if checksum != lockfile_checksum {
+                return Err(match source {
+                    Some(source) => ProtoInstallError::MismatchedChecksumWithSource {
+                        checksum: checksum.to_string(),
+                        lockfile_checksum: lockfile_checksum.to_string(),
+                        source_url: source.to_owned(),
+                    },
+                    None => ProtoInstallError::MismatchedChecksum {
+                        checksum: checksum.to_string(),
+                        lockfile_checksum: lockfile_checksum.to_string(),
+                    },
+                }
+                .into());
+            }
+        }
+
+        Ok(())
+    }
+
     /// Build the tool from source using a set of requirements and instructions
     /// into the `~/.proto/tools/<version>` folder.
     #[instrument(skip(self, options))]
@@ -364,6 +412,11 @@ impl Tool {
                 )
                 .await?,
             );
+        }
+
+        // Verify against lockfile
+        if let Some(checksum) = &record.checksum {
+            self.verify_lockfile(checksum, record.source.as_deref())?;
         }
 
         // Attempt to unpack the archive

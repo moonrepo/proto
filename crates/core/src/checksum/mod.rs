@@ -32,6 +32,15 @@ pub enum ChecksumRecord {
     Sha256(String),
 }
 
+impl ChecksumRecord {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Minisign(hash) => hash,
+            Self::Sha256(hash) => hash,
+        }
+    }
+}
+
 impl FromStr for ChecksumRecord {
     type Err = ProtoChecksumError;
 

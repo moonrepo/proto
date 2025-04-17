@@ -1,6 +1,8 @@
 mod utils;
 
+use proto_core::{VersionSpec, checksum::ChecksumRecord, lockfile::*};
 use starbase_sandbox::predicates::prelude::*;
+use std::collections::BTreeMap;
 use utils::*;
 
 mod install_all {
@@ -138,6 +140,86 @@ npm = "10.0.0"
             assert.stdout(
                 predicate::str::contains("Waiting on requirements: node")
                     .and(predicate::str::contains("npm 10.0.0 installed")),
+            );
+        }
+    }
+
+    mod lockfile {
+        use super::*;
+
+        #[test]
+        fn installs_all_tools() {
+            let sandbox = create_empty_proto_sandbox();
+            let node_path = sandbox.path().join(".proto/tools/node/19.0.0");
+            let npm_path = sandbox.path().join(".proto/tools/npm/9.0.0");
+            let deno_path = sandbox.path().join(".proto/tools/deno/1.30.0");
+
+            sandbox.create_file(
+                ".prototools",
+                r#"node = "19.0.0"
+npm = "9.0.0"
+deno = "1.30.0"
+    "#,
+            );
+
+            assert!(!node_path.exists());
+            assert!(!npm_path.exists());
+            assert!(!deno_path.exists());
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install"); // use
+                })
+                .success();
+
+            assert!(node_path.exists());
+            assert!(npm_path.exists());
+            assert!(deno_path.exists());
+
+            assert_eq!(
+                Lockfile::load(node_path.parent().unwrap().join("lockfile.json")).unwrap().versions,
+                BTreeMap::from_iter([(
+                    VersionSpec::parse("19.0.0").unwrap(),
+                    LockfileRecord {
+                        checksum: Some(ChecksumRecord::Sha256(
+                            "76c550a8f2aa9611ce9148d6d3a5af900c2cbbc4b35ba68d545f63239c2d24e9"
+                                .into()
+                        )),
+                        source: Some("https://nodejs.org/download/release/v19.0.0/node-v19.0.0-darwin-arm64.tar.xz".into()),
+                        ..Default::default()
+                    }
+                )])
+            );
+
+            assert_eq!(
+                Lockfile::load(npm_path.parent().unwrap().join("lockfile.json"))
+                    .unwrap()
+                    .versions,
+                BTreeMap::from_iter([(
+                    VersionSpec::parse("9.0.0").unwrap(),
+                    LockfileRecord {
+                        checksum: None,
+                        source: Some("https://registry.npmjs.org/npm/-/npm-9.0.0.tgz".into()),
+                        ..Default::default()
+                    }
+                )])
+            );
+
+            assert_eq!(
+                Lockfile::load(deno_path.parent().unwrap().join("lockfile.json"))
+                    .unwrap()
+                    .versions,
+                BTreeMap::from_iter([(
+                    VersionSpec::parse("1.30.0").unwrap(),
+                    LockfileRecord {
+                        checksum: None,
+                        source: Some(
+                            "https://dl.deno.land/release/v1.30.0/deno-aarch64-apple-darwin.zip"
+                                .into()
+                        ),
+                        ..Default::default()
+                    }
+                )])
             );
         }
     }

@@ -894,5 +894,33 @@ asdf-repository = "https://github.com/NeoHsu/asdf-newrelic-cli"
 
             assert!(lockfile.versions.is_empty());
         }
+
+        #[test]
+        fn errors_if_checksum_mismatch() {
+            let sandbox = create_empty_proto_sandbox();
+            let lockfile_path = sandbox.path().join(".proto/tools/node/lockfile.json");
+
+            fs::create_dir_all(lockfile_path.parent().unwrap()).unwrap();
+
+            fs::write(
+                &lockfile_path,
+                r#"{
+    "versions": {
+        "18.12.0": {
+            "checksum": "sha256:12345somefakehash67890"
+        }
+    }
+}"#,
+            )
+            .unwrap();
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("node").arg("18.12.0");
+                })
+                .failure();
+
+            assert.stderr(predicate::str::contains("Checksum mismatch"));
+        }
     }
 }

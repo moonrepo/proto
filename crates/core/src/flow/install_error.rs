@@ -24,6 +24,36 @@ pub enum ProtoInstallError {
         download: PathBuf,
     },
 
+    #[diagnostic(
+        code(proto::install::mismatched_checksum),
+        help = "Is this install legitimate?"
+    )]
+    #[error(
+        "Checksum mismatch! Received {} but expected {}.",
+        .checksum.style(Style::Hash),
+        .lockfile_checksum.style(Style::Hash),
+    )]
+    MismatchedChecksum {
+        checksum: String,
+        lockfile_checksum: String,
+    },
+
+    #[diagnostic(
+        code(proto::install::mismatched_checksum),
+        help = "Is this install legitimate?"
+    )]
+    #[error(
+        "Checksum mismatch for {}! Received {} but expected {}.",
+        .source_url.style(Style::Url),
+        .checksum.style(Style::Hash),
+        .lockfile_checksum.style(Style::Hash),
+    )]
+    MismatchedChecksumWithSource {
+        checksum: String,
+        lockfile_checksum: String,
+        source_url: String,
+    },
+
     #[diagnostic(code(proto::install::prebuilt_unsupported))]
     #[error("Downloading a pre-built is not supported for {tool}. Try building from source by passing {}.", "--build".style(Style::Shell))]
     UnsupportedDownloadPrebuilt { tool: String },
