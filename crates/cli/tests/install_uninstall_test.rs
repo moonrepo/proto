@@ -870,6 +870,23 @@ asdf-repository = "https://github.com/NeoHsu/asdf-newrelic-cli"
 
             let lockfile = ToolLockfile::load(&lockfile_path).unwrap();
 
+            #[cfg(target_os = "linux")]
+            assert_eq!(
+                lockfile.versions,
+                BTreeMap::from_iter([(
+                    VersionSpec::parse("18.12.0").unwrap(),
+                    LockfileRecord {
+                        checksum: Some(Checksum::Sha256(
+                            "9429e26d9a35cb079897f0a22622fe89ff597976259a8fcb38b7d08b154789dc"
+                                .into()
+                        )),
+                        source: Some("https://nodejs.org/download/release/v18.12.0/node-v18.12.0-linux-x64.tar.xz".into()),
+                        ..Default::default()
+                    }
+                )])
+            );
+
+            #[cfg(target_os = "macos")]
             assert_eq!(
                 lockfile.versions,
                 BTreeMap::from_iter([(
@@ -880,6 +897,22 @@ asdf-repository = "https://github.com/NeoHsu/asdf-newrelic-cli"
                                 .into()
                         )),
                         source: Some("https://nodejs.org/download/release/v18.12.0/node-v18.12.0-darwin-arm64.tar.xz".into()),
+                        ..Default::default()
+                    }
+                )])
+            );
+
+            #[cfg(target_os = "windows")]
+            assert_eq!(
+                lockfile.versions,
+                BTreeMap::from_iter([(
+                    VersionSpec::parse("18.12.0").unwrap(),
+                    LockfileRecord {
+                        checksum: Some(Checksum::Sha256(
+                            "56a3a49e0e4701f169bb742ea98f5006800229e2e3bf7e10493642f392416ac8"
+                                .into()
+                        )),
+                        source: Some("https://nodejs.org/download/release/v18.12.0/node-v18.12.0-win-x64.zip".into()),
                         ..Default::default()
                     }
                 )])
