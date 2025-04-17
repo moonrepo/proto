@@ -25,6 +25,7 @@ use tokio::task::JoinHandle;
 use tokio::time::sleep;
 use tracing::{debug, warn};
 
+#[derive(Debug)]
 pub enum InstallOutcome {
     AlreadyInstalled,
     Installed,

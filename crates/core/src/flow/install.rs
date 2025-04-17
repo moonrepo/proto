@@ -65,7 +65,7 @@ impl Tool {
         checksum_file: &Path,
         download_file: &Path,
         checksum_public_key: Option<&str>,
-    ) -> miette::Result<ChecksumRecord> {
+    ) -> miette::Result<Checksum> {
         debug!(
             tool = self.id.as_str(),
             download_file = ?download_file,
@@ -88,13 +88,7 @@ impl Tool {
                 .await?;
 
             if output.verified {
-                match (output.checksum, output.type_of) {
-                    (Some(hash), Some(ChecksumType::Minisign)) => {
-                        Some(ChecksumRecord::Minisign(hash))
-                    }
-                    (Some(hash), Some(ChecksumType::Sha256)) => Some(ChecksumRecord::Sha256(hash)),
-                    _ => None,
-                }
+                output.checksum
             } else {
                 None
             }
@@ -134,30 +128,45 @@ impl Tool {
 
         // If we have different backends, then the installation strategy
         // and content/files which are hashed may differ, so avoid verify
-        if self.backend != lockfile.backend {
+        if record.backend != lockfile.backend {
             return Ok(());
         }
 
-        debug!(
-            tool = self.id.as_str(),
-            checksum = record.checksum.to_string(),
-            "Verifying checksum against lockfile",
-        );
+        let make_error = |actual: String, expected: String| match &record.source {
+            Some(source) => ProtoInstallError::MismatchedChecksumWithSource {
+                checksum: actual,
+                lockfile_checksum: expected,
+                source_url: source.to_owned(),
+            },
+            None => ProtoInstallError::MismatchedChecksum {
+                checksum: actual,
+                lockfile_checksum: expected,
+            },
+        };
 
-        if record.checksum != lockfile.checksum {
-            return Err(match &record.source {
-                Some(source) => ProtoInstallError::MismatchedChecksumWithSource {
-                    checksum: record.checksum.to_string(),
-                    lockfile_checksum: lockfile.checksum.to_string(),
-                    source_url: source.to_owned(),
-                },
-                None => ProtoInstallError::MismatchedChecksum {
-                    checksum: record.checksum.to_string(),
-                    lockfile_checksum: lockfile.checksum.to_string(),
-                },
+        match (&record.checksum, &lockfile.checksum) {
+            (Some(rc), Some(lc)) => {
+                debug!(
+                    tool = self.id.as_str(),
+                    checksum = rc.to_string(),
+                    "Verifying checksum against lockfile",
+                );
+
+                if rc != lc {
+                    return Err(make_error(rc.to_string(), lc.to_string()).into());
+                }
             }
-            .into());
-        }
+            // Only the lockfile has a checksum, so compare the sources.
+            // If the sources are the same, something wrong is happening,
+            // but if they are different, then it may be a different install
+            // strategy, so let it happen
+            (None, Some(lc)) => {
+                if record.source == lockfile.source {
+                    return Err(make_error("(missing)".into(), lc.to_string()).into());
+                }
+            }
+            _ => {}
+        };
 
         Ok(())
     }
@@ -256,7 +265,7 @@ impl Tool {
         // so allow proto to use any available version instead of failing
         unsafe { std::env::set_var(format!("{}_VERSION", self.get_env_var_prefix()), "*") };
 
-        let mut record = LockfileRecord::default();
+        let mut record = LockfileRecord::new(self.backend);
 
         // Step 0
         handle_error(log_build_information(&mut builder, &output), &builder)?;
@@ -326,7 +335,7 @@ impl Tool {
             )
             .await?;
 
-        let mut record = LockfileRecord::default();
+        let mut record = LockfileRecord::new(self.backend);
 
         // Download the prebuilt
         let download_url = output.download_url;
@@ -383,13 +392,14 @@ impl Tool {
             )
             .await?;
 
-            record.checksum = self
-                .verify_checksum(
+            record.checksum = Some(
+                self.verify_checksum(
                     &checksum_file,
                     &download_file,
                     output.checksum_public_key.as_deref(),
                 )
-                .await?;
+                .await?,
+            );
         }
         // Verify against an explicitly provided checksum
         else if let Some(checksum) = output.checksum {
@@ -399,17 +409,18 @@ impl Tool {
 
             debug!(tool = self.id.as_str(), checksum, "Using provided checksum");
 
-            record.checksum = self
-                .verify_checksum(
+            record.checksum = Some(
+                self.verify_checksum(
                     &checksum_file,
                     &download_file,
                     output.checksum_public_key.as_deref(),
                 )
-                .await?;
+                .await?,
+            );
         }
         // No available checksum, so generate one ourselves for the lockfile
         else {
-            record.checksum = ChecksumRecord::Sha256(hash_file_contents(&download_file)?);
+            record.checksum = Some(Checksum::Sha256(hash_file_contents(&download_file)?));
         }
 
         // Verify against lockfile
@@ -494,7 +505,6 @@ impl Tool {
 
         let temp_dir = self.get_temp_dir();
         let install_dir = self.get_product_dir();
-        let mut installed = false;
 
         // Lock the temporary directory instead of the install directory,
         // because the latter needs to be clean for "build from source",
@@ -523,21 +533,20 @@ impl Tool {
                 )
                 .await?;
 
-            if !output.installed && !output.skip_install {
+            if output.installed {
+                let mut record = LockfileRecord::new(self.backend);
+                record.checksum = output.checksum;
+
+                return Ok(Some(record));
+            }
+
+            if !output.skip_install {
                 return Err(ProtoInstallError::FailedInstall {
                     tool: self.get_name().to_owned(),
                     error: output.error.unwrap_or_default(),
                 }
                 .into());
-
-            // If native install fails, attempt other installers
-            } else {
-                installed = output.installed;
             }
-        }
-
-        if installed {
-            return Ok(None);
         }
 
         // Build the tool from source

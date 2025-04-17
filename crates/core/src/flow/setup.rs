@@ -77,7 +77,7 @@ impl Tool {
 
         // Returns nothing if already installed
         let Some(mut record) = self.install(options).await? else {
-            return Ok(None);
+            return Ok(self.inventory.lockfile.versions.get(&version).cloned());
         };
 
         let default_version = self

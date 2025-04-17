@@ -2,7 +2,7 @@ mod checksum_error;
 mod minisign;
 mod sha256;
 
-use crate::lockfile::ChecksumRecord;
+use proto_pdk_api::Checksum;
 use std::path::Path;
 
 pub use checksum_error::*;
@@ -13,7 +13,7 @@ pub fn verify_checksum(
     download_file: &Path,
     checksum_file: &Path,
     checksum_public_key: Option<&str>,
-) -> miette::Result<Option<ChecksumRecord>> {
+) -> miette::Result<Option<Checksum>> {
     match checksum_file.extension().and_then(|ext| ext.to_str()) {
         Some("minisig" | "minisign") => minisign::verify_checksum(
             download_file,

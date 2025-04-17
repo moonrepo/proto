@@ -1,6 +1,7 @@
 mod utils;
 
-use proto_core::{ChecksumRecord, LockfileRecord, ToolLockfile, VersionSpec};
+use proto_core::{LockfileRecord, ToolLockfile, VersionSpec};
+use proto_pdk_api::Checksum;
 use starbase_sandbox::predicates::prelude::*;
 use std::collections::BTreeMap;
 use utils::*;
@@ -181,10 +182,10 @@ deno = "1.30.0"
                 BTreeMap::from_iter([(
                     VersionSpec::parse("19.0.0").unwrap(),
                     LockfileRecord {
-                        checksum: ChecksumRecord::Sha256(
+                        checksum: Some(Checksum::Sha256(
                             "76c550a8f2aa9611ce9148d6d3a5af900c2cbbc4b35ba68d545f63239c2d24e9"
                                 .into()
-                        ),
+                        )),
                         source: Some("https://nodejs.org/download/release/v19.0.0/node-v19.0.0-darwin-arm64.tar.xz".into()),
                         ..Default::default()
                     }
@@ -198,10 +199,10 @@ deno = "1.30.0"
                 BTreeMap::from_iter([(
                     VersionSpec::parse("9.0.0").unwrap(),
                     LockfileRecord {
-                        checksum: ChecksumRecord::Sha256(
+                        checksum: Some(Checksum::Sha256(
                             "84e7b6c2b573a549782056f4348c76969a90cd861441fa25469545d3600e2ee3"
                                 .into()
-                        ),
+                        )),
                         source: Some("https://registry.npmjs.org/npm/-/npm-9.0.0.tgz".into()),
                         ..Default::default()
                     }
@@ -215,10 +216,10 @@ deno = "1.30.0"
                 BTreeMap::from_iter([(
                     VersionSpec::parse("1.30.0").unwrap(),
                     LockfileRecord {
-                        checksum: ChecksumRecord::Sha256(
+                        checksum: Some(Checksum::Sha256(
                             "80c6a6f9e4dbda8cd024dd6ac39a64306eded98d532efa8bf12ddc9c12626a1d"
                                 .into()
-                        ),
+                        )),
                         source: Some(
                             "https://dl.deno.land/release/v1.30.0/deno-aarch64-apple-darwin.zip"
                                 .into()

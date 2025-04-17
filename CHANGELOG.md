@@ -24,7 +24,8 @@
 - Added internal lockfiles that will validate against checksums for authenticity.
   - Lockfiles are stored for each tool in their inventory directory: `~/.proto/tools/<name>/lockfile.json`
 - WASM API
-  - Added `VerifyChecksumOutput.checksum` and `type` fields.
+  - Added `NativeInstallOutput.checksum` field.
+  - Added `VerifyChecksumOutput.checksum` field.
 
 ## 0.47.11
 

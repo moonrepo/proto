@@ -1,4 +1,5 @@
 mod build;
+mod checksum;
 mod source;
 
 use crate::shapes::*;
@@ -8,6 +9,7 @@ use version_spec::{CalVer, SemVer, SpecError, UnresolvedVersionSpec, VersionSpec
 use warpgate_api::*;
 
 pub use build::*;
+pub use checksum::*;
 pub use semver::{Version, VersionReq};
 pub use source::*;
 
@@ -260,6 +262,10 @@ api_struct!(
 api_struct!(
     /// Output returned by the `native_install` function.
     pub struct NativeInstallOutput {
+        /// A checksum/hash that was generated.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub checksum: Option<Checksum>,
+
         /// Error message if the install failed.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub error: Option<String>,
@@ -380,23 +386,10 @@ api_struct!(
     pub struct VerifyChecksumOutput {
         /// The checksum/hash that was generated and verified.
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        pub checksum: Option<String>,
-
-        /// The type of checksum and operation used.
-        #[serde(default, skip_serializing_if = "Option::is_none", rename = "type")]
-        pub type_of: Option<ChecksumType>,
+        pub checksum: Option<Checksum>,
 
         /// Was the checksum correct?
         pub verified: bool,
-    }
-);
-
-api_unit_enum!(
-    /// Supported checksum verifiers.
-    pub enum ChecksumType {
-        Minisign,
-        #[default]
-        Sha256,
     }
 );
 
