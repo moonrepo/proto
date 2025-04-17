@@ -219,11 +219,11 @@ deno = "1.30.0"
                         VersionSpec::parse("1.30.0").unwrap(),
                         LockfileRecord {
                             checksum: Some(Checksum::Sha256(
-                                "80c6a6f9e4dbda8cd024dd6ac39a64306eded98d532efa8bf12ddc9c12626a1d"
+                                "77ebb253b3bc8ba5ca62b44b60e8b8555c1b3d0011fbcebd1d52291652f834a8"
                                     .into()
                             )),
                             source: Some(
-                                "https://dl.deno.land/release/v1.30.0/deno-aarch64-apple-darwin.zip"
+                                "https://dl.deno.land/release/v1.30.0/deno-x86_64-unknown-linux-gnu.zip"
                                     .into()
                             ),
                             ..Default::default()
@@ -329,11 +329,11 @@ deno = "1.30.0"
                         VersionSpec::parse("1.30.0").unwrap(),
                         LockfileRecord {
                             checksum: Some(Checksum::Sha256(
-                                "80c6a6f9e4dbda8cd024dd6ac39a64306eded98d532efa8bf12ddc9c12626a1d"
+                                "3644c734d4a21e9db8e3992d081ca0e742e986674a6be0eff113ffc5fa5416eb"
                                     .into()
                             )),
                             source: Some(
-                                "https://dl.deno.land/release/v1.30.0/deno-aarch64-apple-darwin.zip"
+                                "https://dl.deno.land/release/v1.30.0/deno-x86_64-pc-windows-msvc.zip"
                                     .into()
                             ),
                             ..Default::default()
