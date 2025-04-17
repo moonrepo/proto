@@ -1,12 +1,15 @@
 mod utils;
 
 use proto_core::{
-    Backend, Id, PinLocation, ProtoConfig, ToolManifest, ToolSpec, UnresolvedVersionSpec,
-    VersionSpec,
+    Backend, Id, LockfileRecord, PinLocation, ProtoConfig, ToolLockfile, ToolManifest, ToolSpec,
+    UnresolvedVersionSpec, VersionSpec,
 };
+use proto_pdk_api::Checksum;
 use rustc_hash::FxHashSet;
 use starbase_sandbox::predicates::prelude::*;
-use std::{fs, time::SystemTime};
+use std::collections::BTreeMap;
+use std::fs;
+use std::time::SystemTime;
 use utils::*;
 
 mod install_uninstall {
@@ -846,6 +849,112 @@ asdf-repository = "https://github.com/NeoHsu/asdf-newrelic-cli"
             assert.stdout(predicate::str::contains(
                 "asdf:newrelic 0.97.0 has been installed",
             ));
+        }
+    }
+
+    mod lockfile {
+        use super::*;
+
+        #[test]
+        fn adds_and_removes_lockfile_entries() {
+            let sandbox = create_empty_proto_sandbox();
+            let lockfile_path = sandbox.path().join(".proto/tools/node/lockfile.json");
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("node").arg("18.12.0");
+                })
+                .success();
+
+            assert!(lockfile_path.exists());
+
+            let lockfile = ToolLockfile::load(&lockfile_path).unwrap();
+
+            #[cfg(target_os = "linux")]
+            assert_eq!(
+                lockfile.versions,
+                BTreeMap::from_iter([(
+                    VersionSpec::parse("18.12.0").unwrap(),
+                    LockfileRecord {
+                        checksum: Some(Checksum::Sha256(
+                            "9429e26d9a35cb079897f0a22622fe89ff597976259a8fcb38b7d08b154789dc"
+                                .into()
+                        )),
+                        source: Some("https://nodejs.org/download/release/v18.12.0/node-v18.12.0-linux-x64.tar.xz".into()),
+                        ..Default::default()
+                    }
+                )])
+            );
+
+            #[cfg(target_os = "macos")]
+            assert_eq!(
+                lockfile.versions,
+                BTreeMap::from_iter([(
+                    VersionSpec::parse("18.12.0").unwrap(),
+                    LockfileRecord {
+                        checksum: Some(Checksum::Sha256(
+                            "e37d6b4fbb4ca4ef3af0a095ff9089d7a5c3c80d4bc36d916987406f06573464"
+                                .into()
+                        )),
+                        source: Some("https://nodejs.org/download/release/v18.12.0/node-v18.12.0-darwin-arm64.tar.xz".into()),
+                        ..Default::default()
+                    }
+                )])
+            );
+
+            #[cfg(target_os = "windows")]
+            assert_eq!(
+                lockfile.versions,
+                BTreeMap::from_iter([(
+                    VersionSpec::parse("18.12.0").unwrap(),
+                    LockfileRecord {
+                        checksum: Some(Checksum::Sha256(
+                            "56a3a49e0e4701f169bb742ea98f5006800229e2e3bf7e10493642f392416ac8"
+                                .into()
+                        )),
+                        source: Some("https://nodejs.org/download/release/v18.12.0/node-v18.12.0-win-x64.zip".into()),
+                        ..Default::default()
+                    }
+                )])
+            );
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("uninstall").arg("node").arg("18.12.0").arg("--yes");
+                })
+                .success();
+
+            let lockfile = ToolLockfile::load(&lockfile_path).unwrap();
+
+            assert!(lockfile.versions.is_empty());
+        }
+
+        #[test]
+        fn errors_if_checksum_mismatch() {
+            let sandbox = create_empty_proto_sandbox();
+            let lockfile_path = sandbox.path().join(".proto/tools/node/lockfile.json");
+
+            fs::create_dir_all(lockfile_path.parent().unwrap()).unwrap();
+
+            fs::write(
+                &lockfile_path,
+                r#"{
+    "versions": {
+        "18.12.0": {
+            "checksum": "sha256:12345somefakehash67890"
+        }
+    }
+}"#,
+            )
+            .unwrap();
+
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("node").arg("18.12.0");
+                })
+                .failure();
+
+            assert.stderr(predicate::str::contains("Checksum mismatch"));
         }
     }
 }

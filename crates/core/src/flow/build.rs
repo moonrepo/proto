@@ -3,6 +3,7 @@ use super::install::{InstallPhase, OnPhaseFn};
 use crate::config::ProtoBuildConfig;
 use crate::env::{ProtoConsole, ProtoEnvironment};
 use crate::helpers::extract_filename_from_url;
+use crate::lockfile::LockfileRecord;
 use crate::utils::process::{self, ProcessResult};
 use crate::utils::{archive, git};
 use iocraft::prelude::{FlexDirection, View, element};
@@ -761,6 +762,7 @@ pub async fn check_requirements(
 pub async fn download_sources(
     builder: &mut Builder<'_>,
     build: &BuildInstructionsOutput,
+    lockfile: &mut LockfileRecord,
 ) -> miette::Result<()> {
     // Ensure the install directory is empty, otherwise Git will fail and
     // we also want to avoid colliding/stale artifacts. This should also
@@ -776,6 +778,8 @@ pub async fn download_sources(
 
     match source {
         SourceLocation::Archive(archive) => {
+            lockfile.source = Some(archive.url.clone());
+
             if archive::should_unpack(archive, builder.options.install_dir)? {
                 let filename = extract_filename_from_url(&archive.url)?;
 
@@ -815,6 +819,11 @@ pub async fn download_sources(
             }
         }
         SourceLocation::Git(git) => {
+            lockfile.source = Some(match &git.reference {
+                Some(rev) => format!("{}#{rev}", git.url),
+                None => git.url.clone(),
+            });
+
             builder.options.on_phase_change.as_ref().inspect(|func| {
                 func(InstallPhase::CloneRepository {
                     url: git.url.clone(),
