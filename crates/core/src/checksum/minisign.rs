@@ -1,5 +1,5 @@
-use super::ChecksumRecord;
 use super::checksum_error::ProtoChecksumError;
+use crate::lockfile::ChecksumRecord;
 use minisign_verify::*;
 use starbase_utils::fs;
 use std::path::Path;

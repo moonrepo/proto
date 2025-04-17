@@ -1,6 +1,6 @@
 use super::product::Product;
 use crate::helpers::{is_cache_enabled, is_offline};
-use crate::lockfile::Lockfile;
+use crate::tool_lockfile::ToolLockfile;
 use crate::tool_manifest::ToolManifest;
 use proto_pdk_api::{LoadVersionsOutput, ToolInventoryMetadata};
 use starbase_utils::{fs, json};
@@ -14,7 +14,7 @@ pub struct Inventory {
     pub config: ToolInventoryMetadata,
     pub dir: PathBuf,
     pub dir_original: Option<PathBuf>,
-    pub lockfile: Lockfile,
+    pub lockfile: ToolLockfile,
     pub manifest: ToolManifest,
     pub temp_dir: PathBuf,
 }

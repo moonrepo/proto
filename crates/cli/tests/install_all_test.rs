@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::{VersionSpec, checksum::ChecksumRecord, lockfile::*};
+use proto_core::{ChecksumRecord, LockfileRecord, ToolLockfile, VersionSpec};
 use starbase_sandbox::predicates::prelude::*;
 use std::collections::BTreeMap;
 use utils::*;
@@ -177,7 +177,7 @@ deno = "1.30.0"
             assert!(deno_path.exists());
 
             assert_eq!(
-                Lockfile::load(node_path.parent().unwrap().join("lockfile.json")).unwrap().versions,
+                ToolLockfile::load(node_path.parent().unwrap().join("lockfile.json")).unwrap().versions,
                 BTreeMap::from_iter([(
                     VersionSpec::parse("19.0.0").unwrap(),
                     LockfileRecord {
@@ -192,7 +192,7 @@ deno = "1.30.0"
             );
 
             assert_eq!(
-                Lockfile::load(npm_path.parent().unwrap().join("lockfile.json"))
+                ToolLockfile::load(npm_path.parent().unwrap().join("lockfile.json"))
                     .unwrap()
                     .versions,
                 BTreeMap::from_iter([(
@@ -206,7 +206,7 @@ deno = "1.30.0"
             );
 
             assert_eq!(
-                Lockfile::load(deno_path.parent().unwrap().join("lockfile.json"))
+                ToolLockfile::load(deno_path.parent().unwrap().join("lockfile.json"))
                     .unwrap()
                     .versions,
                 BTreeMap::from_iter([(

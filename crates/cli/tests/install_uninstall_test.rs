@@ -1,8 +1,8 @@
 mod utils;
 
 use proto_core::{
-    Backend, Id, PinLocation, ProtoConfig, ToolManifest, ToolSpec, UnresolvedVersionSpec,
-    VersionSpec, checksum::ChecksumRecord, lockfile::*,
+    Backend, ChecksumRecord, Id, LockfileRecord, PinLocation, ProtoConfig, ToolLockfile,
+    ToolManifest, ToolSpec, UnresolvedVersionSpec, VersionSpec,
 };
 use rustc_hash::FxHashSet;
 use starbase_sandbox::predicates::prelude::*;
@@ -867,7 +867,7 @@ asdf-repository = "https://github.com/NeoHsu/asdf-newrelic-cli"
 
             assert!(lockfile_path.exists());
 
-            let lockfile = Lockfile::load(&lockfile_path).unwrap();
+            let lockfile = ToolLockfile::load(&lockfile_path).unwrap();
 
             assert_eq!(
                 lockfile.versions,
@@ -890,7 +890,7 @@ asdf-repository = "https://github.com/NeoHsu/asdf-newrelic-cli"
                 })
                 .success();
 
-            let lockfile = Lockfile::load(&lockfile_path).unwrap();
+            let lockfile = ToolLockfile::load(&lockfile_path).unwrap();
 
             assert!(lockfile.versions.is_empty());
         }

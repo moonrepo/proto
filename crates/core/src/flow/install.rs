@@ -1,11 +1,11 @@
 use super::build::*;
 pub use super::build_error::ProtoBuildError;
 pub use super::install_error::ProtoInstallError;
-use crate::checksum::{ChecksumRecord, verify_checksum};
+use crate::checksum::verify_checksum;
 use crate::env::ProtoConsole;
 use crate::env_error::ProtoEnvError;
 use crate::helpers::{extract_filename_from_url, is_archive_file, is_offline};
-use crate::lockfile::LockfileRecord;
+use crate::lockfile::*;
 use crate::tool::Tool;
 use crate::utils::archive;
 use proto_pdk_api::*;
