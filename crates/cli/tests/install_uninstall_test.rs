@@ -75,8 +75,7 @@ mod install_uninstall {
             .run_bin(|cmd| {
                 cmd.arg("install").arg("node");
             })
-            .debug();
-        // .success();
+            .success();
 
         assert!(sandbox.path().join(".proto/tools/node/17.9.1").exists());
     }
