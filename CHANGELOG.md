@@ -23,6 +23,7 @@
   underlying executable, instead of being captured in the shim. This is based on Cargo's implementation.
 - Added internal lockfiles that will validate against checksums for authenticity.
   - Lockfiles are stored for each tool in their inventory directory: `~/.proto/tools/<name>/lockfile.json`
+- Updated `proto install <tool>` to detect a version from the current directory if a version is not provided.
 - WASM API
   - Added `NativeInstallOutput.checksum` field.
   - Added `VerifyChecksumOutput.checksum` field.
