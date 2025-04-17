@@ -69,7 +69,7 @@ mod install_uninstall {
     #[test]
     fn installs_via_detection() {
         let sandbox = create_empty_proto_sandbox();
-        sandbox.create_file(".nvmrc", "17");
+        sandbox.create_file(".node-version", "17");
 
         sandbox
             .run_bin(|cmd| {

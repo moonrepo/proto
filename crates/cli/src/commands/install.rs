@@ -23,7 +23,6 @@ pub struct InstallArgs {
     pub id: Option<Id>,
 
     #[arg(
-        default_value = "latest",
         help = "When installing one tool, the version specification to install",
         group = "version-type"
     )]
@@ -132,6 +131,8 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
     let tool = session
         .load_tool(&id, args.spec.as_ref().and_then(|spec| spec.backend))
         .await?;
+
+    dbg!(&args);
 
     // Attempt to detect a version if one was not provided,
     // otherwise fallback to "latest"
