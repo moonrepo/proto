@@ -1,7 +1,7 @@
 use super::build::*;
 pub use super::build_error::ProtoBuildError;
 pub use super::install_error::ProtoInstallError;
-use crate::checksum::verify_checksum;
+use crate::checksum::{hash_file_contents, verify_checksum};
 use crate::env::ProtoConsole;
 use crate::env_error::ProtoEnvError;
 use crate::helpers::{extract_filename_from_url, is_archive_file, is_offline};
@@ -122,47 +122,41 @@ impl Tool {
 
     /// Verify the installation is legitimate by comparing it to a lockfile record.
     #[instrument(skip(self))]
-    pub fn verify_lockfile(
-        &self,
-        checksum: &ChecksumRecord,
-        source: Option<&str>,
-    ) -> miette::Result<()> {
+    pub fn verify_lockfile(&self, record: &LockfileRecord) -> miette::Result<()> {
         let Some(version) = &self.version else {
             return Ok(());
         };
 
         // No lockfile record yet
-        let Some(record) = self.inventory.lockfile.versions.get(version) else {
+        let Some(lockfile) = self.inventory.lockfile.versions.get(version) else {
             return Ok(());
         };
 
         // If we have different backends, then the installation strategy
         // and content/files which are hashed may differ, so avoid verify
-        if self.backend != record.backend {
+        if self.backend != lockfile.backend {
             return Ok(());
         }
 
         debug!(
             tool = self.id.as_str(),
-            checksum = checksum.to_string(),
+            checksum = record.checksum.to_string(),
             "Verifying checksum against lockfile",
         );
 
-        if let Some(lockfile_checksum) = &record.checksum {
-            if checksum != lockfile_checksum {
-                return Err(match source {
-                    Some(source) => ProtoInstallError::MismatchedChecksumWithSource {
-                        checksum: checksum.to_string(),
-                        lockfile_checksum: lockfile_checksum.to_string(),
-                        source_url: source.to_owned(),
-                    },
-                    None => ProtoInstallError::MismatchedChecksum {
-                        checksum: checksum.to_string(),
-                        lockfile_checksum: lockfile_checksum.to_string(),
-                    },
-                }
-                .into());
+        if record.checksum != lockfile.checksum {
+            return Err(match &record.source {
+                Some(source) => ProtoInstallError::MismatchedChecksumWithSource {
+                    checksum: record.checksum.to_string(),
+                    lockfile_checksum: lockfile.checksum.to_string(),
+                    source_url: source.to_owned(),
+                },
+                None => ProtoInstallError::MismatchedChecksum {
+                    checksum: record.checksum.to_string(),
+                    lockfile_checksum: lockfile.checksum.to_string(),
+                },
             }
+            .into());
         }
 
         Ok(())
@@ -362,7 +356,7 @@ impl Tool {
         )
         .await?;
 
-        // Verify the checksum if applicable
+        // Verify against a URL that contains the checksum
         if let Some(checksum_url) = output.checksum_url {
             let checksum_filename = match output.checksum_name {
                 Some(name) => name,
@@ -389,35 +383,37 @@ impl Tool {
             )
             .await?;
 
-            record.checksum = Some(
-                self.verify_checksum(
+            record.checksum = self
+                .verify_checksum(
                     &checksum_file,
                     &download_file,
                     output.checksum_public_key.as_deref(),
                 )
-                .await?,
-            );
-        } else if let Some(checksum) = output.checksum {
+                .await?;
+        }
+        // Verify against an explicitly provided checksum
+        else if let Some(checksum) = output.checksum {
             let checksum_file = temp_dir.join("CHECKSUM");
 
             fs::write_file(&checksum_file, &checksum)?;
 
             debug!(tool = self.id.as_str(), checksum, "Using provided checksum");
 
-            record.checksum = Some(
-                self.verify_checksum(
+            record.checksum = self
+                .verify_checksum(
                     &checksum_file,
                     &download_file,
                     output.checksum_public_key.as_deref(),
                 )
-                .await?,
-            );
+                .await?;
+        }
+        // No available checksum, so generate one ourselves for the lockfile
+        else {
+            record.checksum = ChecksumRecord::Sha256(hash_file_contents(&download_file)?);
         }
 
         // Verify against lockfile
-        if let Some(checksum) = &record.checksum {
-            self.verify_lockfile(checksum, record.source.as_deref())?;
-        }
+        self.verify_lockfile(&record)?;
 
         // Attempt to unpack the archive
         debug!(

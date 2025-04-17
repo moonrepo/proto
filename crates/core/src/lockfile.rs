@@ -4,20 +4,30 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{self, Debug};
 use std::str::FromStr;
 
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
-#[serde(default, deny_unknown_fields)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct LockfileRecord {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub backend: Option<Backend>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub checksum: Option<ChecksumRecord>,
+    pub checksum: ChecksumRecord,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub suffix: Option<String>,
+}
+
+impl Default for LockfileRecord {
+    fn default() -> Self {
+        Self {
+            backend: None,
+            checksum: ChecksumRecord::Sha256("unknown".into()),
+            source: None,
+            suffix: None,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]

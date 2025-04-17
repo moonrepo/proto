@@ -874,10 +874,10 @@ asdf-repository = "https://github.com/NeoHsu/asdf-newrelic-cli"
                 BTreeMap::from_iter([(
                     VersionSpec::parse("18.12.0").unwrap(),
                     LockfileRecord {
-                        checksum: Some(ChecksumRecord::Sha256(
+                        checksum: ChecksumRecord::Sha256(
                             "e37d6b4fbb4ca4ef3af0a095ff9089d7a5c3c80d4bc36d916987406f06573464"
                                 .into()
-                        )),
+                        ),
                         source: Some("https://nodejs.org/download/release/v18.12.0/node-v18.12.0-darwin-arm64.tar.xz".into()),
                         ..Default::default()
                     }

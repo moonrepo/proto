@@ -6,6 +6,7 @@ use crate::lockfile::ChecksumRecord;
 use std::path::Path;
 
 pub use checksum_error::*;
+pub use sha256::hash_file_contents;
 
 #[tracing::instrument(skip_all)]
 pub fn verify_checksum(
