@@ -67,6 +67,21 @@ mod install_uninstall {
     }
 
     #[test]
+    fn installs_via_detection() {
+        let sandbox = create_empty_proto_sandbox();
+        sandbox.create_file(".nvmrc", "17");
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install").arg("node");
+            })
+            .debug();
+        // .success();
+
+        assert!(sandbox.path().join(".proto/tools/node/17.9.1").exists());
+    }
+
+    #[test]
     fn installs_and_uninstalls_proto() {
         let sandbox = create_empty_proto_sandbox();
         let tool_dir = sandbox.path().join(".proto/tools/proto/0.45.0");

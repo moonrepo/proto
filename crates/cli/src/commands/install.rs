@@ -139,13 +139,17 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
         ToolSpec::new(UnresolvedVersionSpec::Canary)
     } else if let Some(spec) = &args.spec {
         spec.to_owned()
-    } else {
+    } else if !args.internal {
         if let Some((spec, _)) = tool.detect_version_from(&session.env.working_dir).await? {
             ToolSpec::new(spec)
         } else {
             ToolSpec::default()
         }
+    } else {
+        ToolSpec::default()
     };
+
+    dbg!(&spec);
 
     // Load config including global versions,
     // so that our requirements can be satisfied
