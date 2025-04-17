@@ -1,10 +1,11 @@
 use super::build::*;
 pub use super::build_error::ProtoBuildError;
 pub use super::install_error::ProtoInstallError;
-use crate::checksum::verify_checksum;
+use crate::checksum::{hash_file_contents, verify_checksum};
 use crate::env::ProtoConsole;
 use crate::env_error::ProtoEnvError;
 use crate::helpers::{extract_filename_from_url, is_archive_file, is_offline};
+use crate::lockfile::*;
 use crate::tool::Tool;
 use crate::utils::archive;
 use proto_pdk_api::*;
@@ -64,7 +65,7 @@ impl Tool {
         checksum_file: &Path,
         download_file: &Path,
         checksum_public_key: Option<&str>,
-    ) -> miette::Result<bool> {
+    ) -> miette::Result<Option<Checksum>> {
         debug!(
             tool = self.id.as_str(),
             download_file = ?download_file,
@@ -72,8 +73,11 @@ impl Tool {
             "Verifying checksum of downloaded file",
         );
 
+        let checksum;
+        let verified;
+
         // Allow plugin to provide their own checksum verification method
-        let verified = if self.plugin.has_func("verify_checksum").await {
+        if self.plugin.has_func("verify_checksum").await {
             let output: VerifyChecksumOutput = self
                 .plugin
                 .call_func_with(
@@ -86,12 +90,14 @@ impl Tool {
                 )
                 .await?;
 
-            output.verified
-
+            checksum = output.checksum;
+            verified = output.verified;
+        }
         // Otherwise attempt to verify it ourselves
-        } else {
-            verify_checksum(download_file, checksum_file, checksum_public_key)?
-        };
+        else {
+            checksum = verify_checksum(download_file, checksum_file, checksum_public_key)?;
+            verified = checksum.is_some();
+        }
 
         if verified {
             debug!(
@@ -99,7 +105,7 @@ impl Tool {
                 "Successfully verified, checksum matches"
             );
 
-            return Ok(true);
+            return Ok(checksum);
         }
 
         Err(ProtoInstallError::InvalidChecksum {
@@ -107,6 +113,63 @@ impl Tool {
             download: download_file.to_path_buf(),
         }
         .into())
+    }
+
+    /// Verify the installation is legitimate by comparing it to a lockfile record.
+    #[instrument(skip(self))]
+    pub fn verify_lockfile(&self, record: &LockfileRecord) -> miette::Result<()> {
+        let Some(version) = &self.version else {
+            return Ok(());
+        };
+
+        // No lockfile record yet
+        let Some(lockfile) = self.inventory.lockfile.versions.get(version) else {
+            return Ok(());
+        };
+
+        // If we have different backends, then the installation strategy
+        // and content/files which are hashed may differ, so avoid verify
+        if record.backend != lockfile.backend {
+            return Ok(());
+        }
+
+        let make_error = |actual: String, expected: String| match &record.source {
+            Some(source) => ProtoInstallError::MismatchedChecksumWithSource {
+                checksum: actual,
+                lockfile_checksum: expected,
+                source_url: source.to_owned(),
+            },
+            None => ProtoInstallError::MismatchedChecksum {
+                checksum: actual,
+                lockfile_checksum: expected,
+            },
+        };
+
+        match (&record.checksum, &lockfile.checksum) {
+            (Some(rc), Some(lc)) => {
+                debug!(
+                    tool = self.id.as_str(),
+                    checksum = rc.to_string(),
+                    "Verifying checksum against lockfile",
+                );
+
+                if rc != lc {
+                    return Err(make_error(rc.to_string(), lc.to_string()).into());
+                }
+            }
+            // Only the lockfile has a checksum, so compare the sources.
+            // If the sources are the same, something wrong is happening,
+            // but if they are different, then it may be a different install
+            // strategy, so let it happen
+            (None, Some(lc)) => {
+                if record.source == lockfile.source {
+                    return Err(make_error("(missing)".into(), lc.to_string()).into());
+                }
+            }
+            _ => {}
+        };
+
+        Ok(())
     }
 
     /// Build the tool from source using a set of requirements and instructions
@@ -117,7 +180,7 @@ impl Tool {
         install_dir: &Path,
         temp_dir: &Path,
         mut options: InstallOptions,
-    ) -> miette::Result<()> {
+    ) -> miette::Result<LockfileRecord> {
         debug!(
             tool = self.id.as_str(),
             "Installing tool by building from source"
@@ -203,6 +266,8 @@ impl Tool {
         // so allow proto to use any available version instead of failing
         unsafe { std::env::set_var(format!("{}_VERSION", self.get_env_var_prefix()), "*") };
 
+        let mut record = LockfileRecord::new(self.backend);
+
         // Step 0
         handle_error(log_build_information(&mut builder, &output), &builder)?;
 
@@ -223,7 +288,10 @@ impl Tool {
         handle_error(check_requirements(&mut builder, &output).await, &builder)?;
 
         // Step 3
-        handle_error(download_sources(&mut builder, &output).await, &builder)?;
+        handle_error(
+            download_sources(&mut builder, &output, &mut record).await,
+            &builder,
+        )?;
 
         // Step 4
         handle_error(
@@ -231,7 +299,7 @@ impl Tool {
             &builder,
         )?;
 
-        Ok(())
+        Ok(record)
     }
 
     /// Download the tool (as an archive) from its distribution registry
@@ -242,7 +310,7 @@ impl Tool {
         install_dir: &Path,
         temp_dir: &Path,
         mut options: InstallOptions,
-    ) -> miette::Result<()> {
+    ) -> miette::Result<LockfileRecord> {
         debug!(
             tool = self.id.as_str(),
             "Installing tool by downloading a pre-built archive"
@@ -268,6 +336,8 @@ impl Tool {
             )
             .await?;
 
+        let mut record = LockfileRecord::new(self.backend);
+
         // Download the prebuilt
         let download_url = output.download_url;
         let download_filename = match output.download_name {
@@ -276,6 +346,7 @@ impl Tool {
         };
         let download_file = temp_dir.join(&download_filename);
 
+        record.source = Some(download_url.clone());
         options.on_phase_change.as_ref().inspect(|func| {
             func(InstallPhase::Download {
                 url: download_url.clone(),
@@ -295,7 +366,7 @@ impl Tool {
         )
         .await?;
 
-        // Verify the checksum if applicable
+        // Verify against a URL that contains the checksum
         if let Some(checksum_url) = output.checksum_url {
             let checksum_filename = match output.checksum_name {
                 Some(name) => name,
@@ -322,26 +393,37 @@ impl Tool {
             )
             .await?;
 
-            self.verify_checksum(
-                &checksum_file,
-                &download_file,
-                output.checksum_public_key.as_deref(),
-            )
-            .await?;
-        } else if let Some(checksum) = output.checksum {
+            record.checksum = self
+                .verify_checksum(
+                    &checksum_file,
+                    &download_file,
+                    output.checksum_public_key.as_deref(),
+                )
+                .await?;
+        }
+        // Verify against an explicitly provided checksum
+        else if let Some(checksum) = output.checksum {
             let checksum_file = temp_dir.join("CHECKSUM");
 
             fs::write_file(&checksum_file, &checksum)?;
 
             debug!(tool = self.id.as_str(), checksum, "Using provided checksum");
 
-            self.verify_checksum(
-                &checksum_file,
-                &download_file,
-                output.checksum_public_key.as_deref(),
-            )
-            .await?;
+            record.checksum = self
+                .verify_checksum(
+                    &checksum_file,
+                    &download_file,
+                    output.checksum_public_key.as_deref(),
+                )
+                .await?;
         }
+        // No available checksum, so generate one ourselves for the lockfile
+        else {
+            record.checksum = Some(Checksum::Sha256(hash_file_contents(&download_file)?));
+        }
+
+        // Verify against lockfile
+        self.verify_lockfile(&record)?;
 
         // Attempt to unpack the archive
         debug!(
@@ -397,20 +479,23 @@ impl Tool {
             fs::update_perms(install_path, None)?;
         }
 
-        Ok(())
+        Ok(record)
     }
 
     /// Install a tool into proto, either by downloading and unpacking
     /// a pre-built archive, or by using a native installation method.
     #[instrument(skip(self, options))]
-    pub async fn install(&mut self, options: InstallOptions) -> miette::Result<bool> {
+    pub async fn install(
+        &mut self,
+        options: InstallOptions,
+    ) -> miette::Result<Option<LockfileRecord>> {
         if self.is_installed() && !options.force {
             debug!(
                 tool = self.id.as_str(),
                 "Tool already installed, continuing"
             );
 
-            return Ok(false);
+            return Ok(None);
         }
 
         if is_offline() {
@@ -419,7 +504,6 @@ impl Tool {
 
         let temp_dir = self.get_temp_dir();
         let install_dir = self.get_product_dir();
-        let mut installed = false;
 
         // Lock the temporary directory instead of the install directory,
         // because the latter needs to be clean for "build from source",
@@ -448,33 +532,46 @@ impl Tool {
                 )
                 .await?;
 
-            if !output.installed && !output.skip_install {
+            if output.installed {
+                let mut record = LockfileRecord::new(self.backend);
+                record.checksum = output.checksum;
+
+                return Ok(Some(record));
+            }
+
+            if !output.skip_install {
                 return Err(ProtoInstallError::FailedInstall {
                     tool: self.get_name().to_owned(),
                     error: output.error.unwrap_or_default(),
                 }
                 .into());
-
-            // If native install fails, attempt other installers
-            } else {
-                installed = output.installed;
             }
         }
 
-        if !installed {
-            // Build the tool from source
-            let result = if matches!(options.strategy, InstallStrategy::BuildFromSource) {
-                self.build_from_source(&install_dir, &temp_dir, options)
-                    .await
+        // Build the tool from source
+        let result = if matches!(options.strategy, InstallStrategy::BuildFromSource) {
+            self.build_from_source(&install_dir, &temp_dir, options)
+                .await
+        }
+        // Install from a prebuilt archive
+        else {
+            self.install_from_prebuilt(&install_dir, &temp_dir, options)
+                .await
+        };
+
+        match result {
+            Ok(record) => {
+                debug!(
+                    tool = self.id.as_str(),
+                    install_dir = ?install_dir,
+                    "Successfully installed tool",
+                );
+
+                Ok(Some(record))
             }
-            // Install from a prebuilt archive
-            else {
-                self.install_from_prebuilt(&install_dir, &temp_dir, options)
-                    .await
-            };
 
             // Clean up if the install failed
-            if let Err(error) = result {
+            Err(error) => {
                 debug!(
                     tool = self.id.as_str(),
                     install_dir = ?install_dir,
@@ -486,17 +583,9 @@ impl Tool {
                 fs::remove_dir_all(&install_dir)?;
                 fs::remove_dir_all(&temp_dir)?;
 
-                return Err(error);
+                Err(error)
             }
         }
-
-        debug!(
-            tool = self.id.as_str(),
-            install_dir = ?install_dir,
-            "Successfully installed tool",
-        );
-
-        Ok(true)
     }
 
     /// Uninstall the tool by deleting the current install directory.

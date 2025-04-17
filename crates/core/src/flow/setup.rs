@@ -1,6 +1,7 @@
 use crate::config::{PinLocation, ProtoConfig};
 use crate::flow::install::InstallOptions;
 use crate::layout::BinManager;
+use crate::lockfile::LockfileRecord;
 use crate::tool::Tool;
 use crate::tool_manifest::ToolManifestVersion;
 use crate::tool_spec::ToolSpec;
@@ -59,7 +60,7 @@ impl Tool {
         &mut self,
         spec: &ToolSpec,
         options: InstallOptions,
-    ) -> miette::Result<bool> {
+    ) -> miette::Result<Option<LockfileRecord>> {
         self.resolve_version_with_spec(spec, false).await?;
         self.setup(&spec.req, options).await
     }
@@ -71,12 +72,13 @@ impl Tool {
         &mut self,
         initial_version: &UnresolvedVersionSpec,
         options: InstallOptions,
-    ) -> miette::Result<bool> {
+    ) -> miette::Result<Option<LockfileRecord>> {
         let version = self.resolve_version(initial_version, false).await?;
 
-        if !self.install(options).await? {
-            return Ok(false);
-        }
+        // Returns nothing if already installed
+        let Some(mut record) = self.install(options).await? else {
+            return Ok(self.inventory.lockfile.versions.get(&version).cloned());
+        };
 
         let default_version = self
             .metadata
@@ -95,6 +97,14 @@ impl Tool {
             },
         );
         manifest.save()?;
+
+        // Add version to lockfile
+        record.backend = self.backend;
+        record.suffix = self.inventory.config.version_suffix.clone();
+
+        let lockfile = &mut self.inventory.lockfile;
+        lockfile.versions.insert(version, record.clone());
+        lockfile.save()?;
 
         // Pin the global version
         ProtoConfig::update(self.proto.get_config_dir(PinLocation::Global), |config| {
@@ -115,7 +125,7 @@ impl Tool {
         // Remove temp files
         self.cleanup().await?;
 
-        Ok(true)
+        Ok(Some(record))
     }
 
     /// Teardown the tool by uninstalling the current version, removing the version
@@ -171,6 +181,11 @@ impl Tool {
                 }
             }
         })?;
+
+        // Remove version from lockfile
+        let lockfile = &mut self.inventory.lockfile;
+        lockfile.versions.remove(&version);
+        lockfile.save()?;
 
         // Remove version from manifest
         // We must do this last because the location resolves above

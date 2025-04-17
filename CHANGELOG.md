@@ -21,6 +21,11 @@
 
 - Added a new Ctrl+C handler on Windows for shims, that should pass the signal down to the
   underlying executable, instead of being captured in the shim. This is based on Cargo's implementation.
+- Added internal lockfiles that will validate against checksums for authenticity.
+  - Lockfiles are stored for each tool in their inventory directory: `~/.proto/tools/<name>/lockfile.json`
+- WASM API
+  - Added `NativeInstallOutput.checksum` field.
+  - Added `VerifyChecksumOutput.checksum` field.
 
 ## 0.47.11
 
