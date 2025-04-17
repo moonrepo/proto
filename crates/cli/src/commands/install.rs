@@ -23,7 +23,6 @@ pub struct InstallArgs {
     pub id: Option<Id>,
 
     #[arg(
-        default_value = "latest",
         help = "When installing one tool, the version specification to install",
         group = "version-type"
     )]
@@ -109,14 +108,6 @@ impl InstallArgs {
     fn get_pin_location(&self) -> Option<PinLocation> {
         self.pin.as_ref().map(|pin| pin.unwrap_or_default())
     }
-
-    fn get_tool_spec(&self) -> ToolSpec {
-        if self.canary {
-            ToolSpec::new(UnresolvedVersionSpec::Canary)
-        } else {
-            self.spec.clone().unwrap_or_default()
-        }
-    }
 }
 
 pub fn enforce_requirements(tool: &Tool, versions: &BTreeMap<Id, ToolSpec>) -> miette::Result<()> {
@@ -137,8 +128,21 @@ pub fn enforce_requirements(tool: &Tool, versions: &BTreeMap<Id, ToolSpec>) -> m
 pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> AppResult {
     debug!(id = id.as_str(), "Loading tool");
 
-    let spec = args.get_tool_spec();
-    let tool = session.load_tool(&id, spec.backend).await?;
+    let tool = session
+        .load_tool(&id, args.spec.as_ref().and_then(|spec| spec.backend))
+        .await?;
+
+    // Attempt to detect a version if one was not provided,
+    // otherwise fallback to "latest"
+    let spec = if args.canary {
+        ToolSpec::new(UnresolvedVersionSpec::Canary)
+    } else if let Some(spec) = &args.spec {
+        spec.to_owned()
+    } else if let Some((spec, _)) = tool.detect_version_from(&session.env.working_dir).await? {
+        ToolSpec::new(spec)
+    } else {
+        ToolSpec::default()
+    };
 
     // Load config including global versions,
     // so that our requirements can be satisfied
