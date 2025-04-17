@@ -65,7 +65,7 @@ impl Tool {
         checksum_file: &Path,
         download_file: &Path,
         checksum_public_key: Option<&str>,
-    ) -> miette::Result<Checksum> {
+    ) -> miette::Result<Option<Checksum>> {
         debug!(
             tool = self.id.as_str(),
             download_file = ?download_file,
@@ -73,8 +73,11 @@ impl Tool {
             "Verifying checksum of downloaded file",
         );
 
+        let checksum;
+        let verified;
+
         // Allow plugin to provide their own checksum verification method
-        let record = if self.plugin.has_func("verify_checksum").await {
+        if self.plugin.has_func("verify_checksum").await {
             let output: VerifyChecksumOutput = self
                 .plugin
                 .call_func_with(
@@ -87,24 +90,22 @@ impl Tool {
                 )
                 .await?;
 
-            if output.verified {
-                output.checksum
-            } else {
-                None
-            }
+            checksum = output.checksum;
+            verified = output.verified;
         }
         // Otherwise attempt to verify it ourselves
         else {
-            verify_checksum(download_file, checksum_file, checksum_public_key)?
-        };
+            checksum = verify_checksum(download_file, checksum_file, checksum_public_key)?;
+            verified = checksum.is_some();
+        }
 
-        if let Some(record) = record {
+        if verified {
             debug!(
                 tool = self.id.as_str(),
                 "Successfully verified, checksum matches"
             );
 
-            return Ok(record);
+            return Ok(checksum);
         }
 
         Err(ProtoInstallError::InvalidChecksum {
@@ -392,14 +393,13 @@ impl Tool {
             )
             .await?;
 
-            record.checksum = Some(
-                self.verify_checksum(
+            record.checksum = self
+                .verify_checksum(
                     &checksum_file,
                     &download_file,
                     output.checksum_public_key.as_deref(),
                 )
-                .await?,
-            );
+                .await?;
         }
         // Verify against an explicitly provided checksum
         else if let Some(checksum) = output.checksum {
@@ -409,14 +409,13 @@ impl Tool {
 
             debug!(tool = self.id.as_str(), checksum, "Using provided checksum");
 
-            record.checksum = Some(
-                self.verify_checksum(
+            record.checksum = self
+                .verify_checksum(
                     &checksum_file,
                     &download_file,
                     output.checksum_public_key.as_deref(),
                 )
-                .await?,
-            );
+                .await?;
         }
         // No available checksum, so generate one ourselves for the lockfile
         else {
