@@ -19,13 +19,13 @@ export type VersionSpec = string;
 export type UnresolvedVersionSpec = string;
 
 /** Target where host logs should be written to. */
-export type HostLogTarget = 'stderr' | 'stdout' | 'tracing';
+export type HostLogTarget = 'stderr' | 'stdout' | 'debug' | 'error' | 'trace' | 'warn' | 'tracing';
 
 /** Input passed to the `host_log` host function. */
 export interface HostLogInput {
 	data?: Record<string, unknown>;
 	message: string;
-	/** @type {'stderr' | 'stdout' | 'tracing'} */
+	/** @type {'stderr' | 'stdout' | 'debug' | 'error' | 'trace' | 'warn' | 'tracing'} */
 	target?: HostLogTarget;
 }
 
@@ -153,10 +153,21 @@ export interface RegisterToolOutput {
 	unstable?: Switch;
 }
 
+/** Information about the current state of the tool. */
+export interface ToolUnresolvedContext {
+	/** The version of proto (the core crate) calling plugin functions. */
+	protoVersion?: string | null;
+	/** Virtual path to the tool's temporary directory. */
+	tempDir: VirtualPath;
+	toolDir: VirtualPath;
+	/** Current version if defined. */
+	version?: VersionSpec | null;
+}
+
 /** Input passed to the `register_backend` function. */
 export interface RegisterBackendInput {
 	/** Current tool context. */
-	context: ToolContext;
+	context: ToolUnresolvedContext;
 	/** ID of the tool, as it was configured. */
 	id: string;
 }
@@ -208,6 +219,8 @@ export interface DetectVersionOutput {
 export interface ParseVersionFileInput {
 	/** File contents to parse/extract a version from. */
 	content: string;
+	/** Current tool context. */
+	context: ToolUnresolvedContext;
 	/** Name of file that's being parsed. */
 	file: string;
 	/** Virtual path to the file being parsed. */
@@ -245,6 +258,8 @@ export interface NativeInstallOutput {
 export interface NativeUninstallInput {
 	/** Current tool context. */
 	context: ToolContext;
+	/** Virtual directory to uninstall from. */
+	uninstallDir: VirtualPath;
 }
 
 /** Output returned by the `native_uninstall` function. */
@@ -324,6 +339,8 @@ export interface VerifyChecksumOutput {
 export interface LocateExecutablesInput {
 	/** Current tool context. */
 	context: ToolContext;
+	/** Virtual directory the tool was installed to. */
+	installDir: VirtualPath;
 }
 
 export type StringOrVec = string | string[];
@@ -344,6 +361,11 @@ export interface ExecutableConfig {
 	noBin?: boolean;
 	/** Do not generate a shim in `~/.proto/shims`. */
 	noShim?: boolean;
+	/**
+	 * List of arguments to append to the parent executable, but prepend before
+	 * all other arguments.
+	 */
+	parentExeArgs?: string[];
 	/** The parent executable name required to execute the local executable path. */
 	parentExeName?: string | null;
 	/** Whether this is the primary executable or not. */
@@ -363,12 +385,13 @@ export interface LocateExecutablesOutput {
 	 * The map key will be the name of the executable file.
 	 */
 	exes?: Record<string, ExecutableConfig>;
+	exesDir?: string | null;
 	/**
 	 * Relative directory path from the tool install directory in which
 	 * pre-installed executables can be located. This directory path
 	 * will be used during `proto activate`, but not for bins/shims.
 	 */
-	exesDir?: string | null;
+	exesDirs?: string[];
 	/**
 	 * List of directory paths to find the globals installation directory.
 	 * Each path supports environment variable expansion.
@@ -379,22 +402,12 @@ export interface LocateExecutablesOutput {
 	 * when listing and filtering available globals.
 	 */
 	globalsPrefix?: string | null;
-	/**
-	 * Configures the primary/default executable to create.
-	 * If not provided, a primary shim and binary will *not* be created.
-	 */
-	primary?: ExecutableConfig | null;
-	/**
-	 * Configures secondary/additional executables to create.
-	 * The map key is the name of the shim/binary file.
-	 */
-	secondary?: Record<string, ExecutableConfig>;
 }
 
 /** Input passed to the `load_versions` function. */
 export interface LoadVersionsInput {
 	/** Current tool context. */
-	context: ToolContext;
+	context: ToolUnresolvedContext;
 	/** The alias or version currently being resolved. */
 	initial: UnresolvedVersionSpec;
 }
@@ -414,7 +427,7 @@ export interface LoadVersionsOutput {
 /** Input passed to the `resolve_version` function. */
 export interface ResolveVersionInput {
 	/** Current tool context. */
-	context: ToolContext;
+	context: ToolUnresolvedContext;
 	/** The alias or version currently being resolved. */
 	initial: UnresolvedVersionSpec;
 }
@@ -507,12 +520,16 @@ export interface RunHookResult {
 	 * Will overwrite any existing variables.
 	 */
 	env?: Record<string, string> | null;
+	/** Additional paths to prepend to `PATH` for the running command. */
+	paths?: string[] | null;
 }
 
 /** Input passed to the `build_instructions` function. */
 export interface BuildInstructionsInput {
 	/** Current tool context. */
 	context: ToolContext;
+	/** Virtual directory to install to. */
+	installDir: VirtualPath;
 }
 
 export type BuildInstruction = {
