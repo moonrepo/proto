@@ -19,14 +19,23 @@
 
 #### 🚀 Updates
 
-- Added a new Ctrl+C handler on Windows for shims, that should pass the signal down to the
-  underlying executable, instead of being captured in the shim. This is based on Cargo's implementation.
 - Added internal lockfiles that will validate against checksums for authenticity.
   - Lockfiles are stored for each tool in their inventory directory: `~/.proto/tools/<name>/lockfile.json`
+- Added a new Ctrl+C handler on Windows for shims, that should pass the signal down to the
+  underlying executable, instead of being captured in the shim. This is based on Cargo's implementation.
 - Updated `proto install <tool>` to detect a version from the current directory if a version is not provided.
 - WASM API
   - Added `NativeInstallOutput.checksum` field.
   - Added `VerifyChecksumOutput.checksum` field.
+
+#### 🧩 Plugins
+
+- Updated `deno_tool` to v0.15.2.
+  - Added checksum support for versions >= v2.
+
+#### ⚙️ Internal
+
+- Linux binaries are now built on Ubuntu v22 instead of v20.
 
 ## 0.47.11
 
