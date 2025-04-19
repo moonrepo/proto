@@ -28,12 +28,15 @@
 - Updated `proto install <tool>` to detect a version from the current directory if a version is not provided.
 - WASM API
   - Added `NativeInstallOutput.checksum` field.
-  - Added `VerifyChecksumOutput.checksum` field.
+  - Added `VerifyChecksumInput.download_checksum` field.
 
 #### 🧩 Plugins
 
-- Updated `deno_tool` to v0.15.2.
+- Updated `deno_tool` to v0.15.3.
   - Added checksum support for versions >= v2.
+  - Switched to GitHub releases for download URLs.
+- Updated `schema_tool` to v0.17.2.
+  - Added fields: `platform.*.exes-dirs`, `install.exes.*.parent-exe-args`, `detect.ignore`
 
 #### ⚙️ Internal
 
