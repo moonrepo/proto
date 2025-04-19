@@ -34,6 +34,21 @@ pub fn generate_checksum(
                 .ok_or(ProtoChecksumError::MissingChecksumPublicKey)?
                 .to_owned(),
         )),
-        _ => Ok(Checksum::Sha256(hash_file_contents(&download_file)?)),
+        // Some("sha256" | "sha256sum") => Ok(Checksum::Sha256(hash_file_contents(&download_file)?)),
+        // _ => {
+        //     let checksum_file_name = fs::file_name(&checksum_file);
+
+        //     match checksum_file_name.to_lowercase().as_str() {
+        //         "checksums.txt" | "shasums256.txt" => {
+        //             Ok(Checksum::Sha256(hash_file_contents(&download_file)?))
+        //         }
+        //         _ => Err(ProtoChecksumError::UnknownChecksumType {
+        //             file: checksum_file_name,
+        //         }
+        //         .into()),
+        //     }
+        // }
+        // TODO change in v2
+        _ => Ok(Checksum::Sha256(hash_file_contents(download_file)?)),
     }
 }

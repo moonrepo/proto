@@ -41,7 +41,7 @@ pub fn verify_checksum(
         // <checksum> *<file>
         // <checksum>
         if line == checksum_hash
-            || (line.starts_with(&checksum_hash) && line.ends_with(&download_file_name))
+            || (line.starts_with(checksum_hash) && line.ends_with(&download_file_name))
         {
             return Ok(true);
         }
