@@ -327,7 +327,7 @@ api_struct!(
 
         /// The checksum hash itself.
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        pub checksum: Option<String>,
+        pub checksum: Option<Checksum>,
 
         /// File name of the checksum to download. If not provided,
         /// will attempt to extract it from the URL.
@@ -376,6 +376,12 @@ api_struct!(
         /// Virtual path to the checksum file.
         pub checksum_file: VirtualPath,
 
+        /// A checksum of the downloaded file. The type of hash
+        /// is derived from the checksum file's extension, otherwise
+        /// it defaults to SHA256.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub download_checksum: Option<Checksum>,
+
         /// Virtual path to the downloaded file.
         pub download_file: VirtualPath,
     }
@@ -384,10 +390,6 @@ api_struct!(
 api_struct!(
     /// Output returned by the `verify_checksum` function.
     pub struct VerifyChecksumOutput {
-        /// The checksum/hash that was generated and verified.
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        pub checksum: Option<Checksum>,
-
         /// Was the checksum correct?
         pub verified: bool,
     }

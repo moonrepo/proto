@@ -361,7 +361,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("deno"),
                 PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/deno_tool-v0.15.1/deno_tool.wasm".into()
+                    url: "https://github.com/moonrepo/plugins/releases/download/deno_tool-v0.15.2/deno_tool.wasm".into()
                 }))
             );
         }
