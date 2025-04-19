@@ -41,6 +41,7 @@
 #### ⚙️ Internal
 
 - Linux binaries are now built on Ubuntu v22 instead of v20.
+- Updated dependencies.
 
 ## 0.47.11
 
