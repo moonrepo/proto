@@ -76,7 +76,7 @@ impl Tool {
         let version = self.resolve_version(initial_version, false).await?;
 
         // Returns nothing if already installed
-        let Some(mut record) = self.install(options).await? else {
+        let Some(record) = self.install(options).await? else {
             return Ok(self.inventory.get_locked_record(&version).cloned());
         };
 
@@ -86,10 +86,6 @@ impl Tool {
             .clone()
             .unwrap_or_else(|| version.to_unresolved_spec());
 
-        // Prepare lockfile record
-        record.backend = self.backend;
-        record.suffix = self.inventory.config.version_suffix.clone();
-
         // Add version to manifest
         let manifest = &mut self.inventory.manifest;
         manifest.installed_versions.insert(version.clone());
@@ -97,6 +93,7 @@ impl Tool {
             version.clone(),
             ToolManifestVersion {
                 lock: Some(record.clone()),
+                suffix: self.inventory.config.version_suffix.clone(),
                 ..Default::default()
             },
         );

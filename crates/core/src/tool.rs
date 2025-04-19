@@ -6,10 +6,10 @@ use crate::tool_error::ProtoToolError;
 use crate::tool_spec::Backend;
 use crate::utils::{archive, git};
 use proto_pdk_api::*;
-use rustc_hash::{FxHashMap, FxHashSet};
 use schematic::ConfigEnum;
 use starbase_styles::color;
 use starbase_utils::fs;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -415,8 +415,8 @@ impl Tool {
         if let Some(versions) = output.versions {
             modified = true;
 
-            let mut entries = FxHashMap::default();
-            let mut installed = FxHashSet::default();
+            let mut entries = BTreeMap::default();
+            let mut installed = BTreeSet::default();
 
             for key in versions {
                 let value = manifest.versions.get(&key).cloned().unwrap_or_default();
