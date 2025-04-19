@@ -1,15 +1,14 @@
 use super::checksum_error::ProtoChecksumError;
 use minisign_verify::*;
-use proto_pdk_api::Checksum;
 use starbase_utils::fs;
 use std::path::Path;
 
-#[tracing::instrument(name = "minisign")]
+#[tracing::instrument(name = "verify_minisign_checksum")]
 pub fn verify_checksum(
     download_file: &Path,
     checksum_file: &Path,
     checksum_public_key: &str,
-) -> miette::Result<Option<Checksum>> {
+) -> miette::Result<bool> {
     let handle_error = |error: Error| ProtoChecksumError::Minisign {
         error: Box::new(error),
     };
@@ -23,5 +22,5 @@ pub fn verify_checksum(
         )
         .map_err(handle_error)?;
 
-    Ok(Some(Checksum::Minisign(checksum_public_key.to_owned())))
+    Ok(true)
 }
