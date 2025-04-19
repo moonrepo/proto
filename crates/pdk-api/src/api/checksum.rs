@@ -22,6 +22,9 @@ pub enum Checksum {
 
     /// File hash.
     Sha256(String),
+
+    /// File hash.
+    Sha512(String),
 }
 
 impl Checksum {
@@ -29,6 +32,7 @@ impl Checksum {
         match self {
             Self::Minisign(hash) => hash,
             Self::Sha256(hash) => hash,
+            Self::Sha512(hash) => hash,
         }
     }
 }
@@ -41,6 +45,7 @@ impl FromStr for Checksum {
             Some((tag, hash)) => match tag {
                 "minisign" => Ok(Self::Minisign(hash.to_owned())),
                 "sha256" => Ok(Self::Sha256(hash.to_owned())),
+                "sha512" => Ok(Self::Sha256(hash.to_owned())),
                 _ => Err(ChecksumError::UnknownChecksumType {
                     kind: tag.to_owned(),
                 }),
@@ -63,6 +68,7 @@ impl fmt::Display for Checksum {
         match self {
             Self::Minisign(hash) => write!(f, "minisign:{hash}"),
             Self::Sha256(hash) => write!(f, "sha256:{hash}"),
+            Self::Sha512(hash) => write!(f, "sha512:{hash}"),
         }
     }
 }

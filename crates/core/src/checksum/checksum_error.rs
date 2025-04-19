@@ -15,15 +15,25 @@ pub enum ProtoChecksumError {
     #[error(
         "A {} is required to verify this tool. This setting must be implemented in the plugin.", "checksum_public_key".style(Style::Property)
     )]
-    MissingChecksumPublicKey,
+    MissingPublicKey,
 
     #[diagnostic(
-        code(proto::checksum::unknown_checksum_type),
+        code(proto::checksum::unknown_type),
         help = "Try using a more explicit file extension."
     )]
     #[error(
-        "Unknown or unsupported checksum type. Unable to derive the type from {}.",
+        "Unknown checksum type. Unable to derive the type from {}.",
         .file.style(Style::File)
     )]
-    UnknownChecksumType { file: String },
+    UnknownType { file: String },
+
+    #[diagnostic(
+        code(proto::checksum::unsupported_algorithm),
+        help = "Try using a more explicit file extension."
+    )]
+    #[error(
+        "Unsupported checksum algorithm {}.",
+        .algo.style(Style::Symbol)
+    )]
+    UnsupportedAlgorithm { algo: String },
 }

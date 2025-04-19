@@ -1,11 +1,11 @@
-use sha2::{Digest, Sha256};
+use sha2::{Digest, Sha256, Sha512};
 use starbase_utils::fs::{self, FsError};
 use std::io;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 use tracing::trace;
 
-pub fn hash_file_contents<P: AsRef<Path>>(path: P) -> miette::Result<String> {
+pub fn hash_file_contents_sha256<P: AsRef<Path>>(path: P) -> miette::Result<String> {
     let path = path.as_ref();
 
     trace!(file = ?path, "Calculating SHA256 checksum");
@@ -25,7 +25,27 @@ pub fn hash_file_contents<P: AsRef<Path>>(path: P) -> miette::Result<String> {
     Ok(hash)
 }
 
-#[tracing::instrument(name = "sha256")]
+pub fn hash_file_contents_sha512<P: AsRef<Path>>(path: P) -> miette::Result<String> {
+    let path = path.as_ref();
+
+    trace!(file = ?path, "Calculating SHA512 checksum");
+
+    let mut file = fs::open_file(path)?;
+    let mut sha = Sha512::new();
+
+    io::copy(&mut file, &mut sha).map_err(|error| FsError::Read {
+        path: path.to_path_buf(),
+        error: Box::new(error),
+    })?;
+
+    let hash = format!("{:x}", sha.finalize());
+
+    trace!(hash, "Calculated hash");
+
+    Ok(hash)
+}
+
+#[tracing::instrument(name = "verify_sha_checksum")]
 pub fn verify_checksum(
     download_file: &Path,
     checksum_file: &Path,
