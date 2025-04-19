@@ -906,7 +906,7 @@ asdf-repository = "https://github.com/NeoHsu/asdf-newrelic-cli"
                 BTreeMap::from_iter([(
                     VersionSpec::parse("18.12.0").unwrap(),
                     LockfileRecord {
-                        checksum: Some(Checksum::Sha256(
+                        checksum: Some(Checksum::sha256(
                             "e37d6b4fbb4ca4ef3af0a095ff9089d7a5c3c80d4bc36d916987406f06573464"
                                 .into()
                         )),

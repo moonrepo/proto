@@ -424,7 +424,7 @@ impl Tool {
         }
         // No available checksum, so generate one ourselves for the lockfile
         else {
-            record.checksum = Some(Checksum::Sha256(hash_file_contents_sha256(&download_file)?));
+            record.checksum = Some(Checksum::sha256(hash_file_contents_sha256(&download_file)?));
         }
 
         // Verify against lockfile

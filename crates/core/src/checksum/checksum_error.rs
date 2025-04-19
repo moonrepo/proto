@@ -18,19 +18,16 @@ pub enum ProtoChecksumError {
     MissingPublicKey,
 
     #[diagnostic(
-        code(proto::checksum::unknown_type),
+        code(proto::checksum::unknown_algorithm),
         help = "Try using a more explicit file extension."
     )]
     #[error(
-        "Unknown checksum type. Unable to derive the type from {}.",
+        "Unknown checksum algorithm. Unable to derive from {}.",
         .file.style(Style::File)
     )]
-    UnknownType { file: String },
+    UnknownAlgorithm { file: String },
 
-    #[diagnostic(
-        code(proto::checksum::unsupported_algorithm),
-        help = "Try using a more explicit file extension."
-    )]
+    #[diagnostic(code(proto::checksum::unsupported_algorithm))]
     #[error(
         "Unsupported checksum algorithm {}.",
         .algo.style(Style::Symbol)

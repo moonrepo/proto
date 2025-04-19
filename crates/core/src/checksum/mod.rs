@@ -2,7 +2,7 @@ mod checksum_error;
 mod minisign;
 mod sha;
 
-use proto_pdk_api::Checksum;
+use proto_pdk_api::{Checksum, ChecksumAlgorithm};
 use starbase_utils::fs;
 use std::path::Path;
 
@@ -15,13 +15,17 @@ pub fn verify_checksum(
     checksum_file: &Path,
     checksum: &Checksum,
 ) -> miette::Result<bool> {
-    match checksum {
-        Checksum::Minisign(public_key) => {
-            minisign::verify_checksum(download_file, checksum_file, public_key)
-        }
-        Checksum::Sha256(hash) | Checksum::Sha512(hash) => {
-            sha::verify_checksum(download_file, checksum_file, hash)
-        }
+    match checksum.algo {
+        ChecksumAlgorithm::Minisign => minisign::verify_checksum(
+            download_file,
+            checksum_file,
+            checksum.key.as_deref().unwrap(),
+        ),
+        ChecksumAlgorithm::Sha256 | ChecksumAlgorithm::Sha512 => sha::verify_checksum(
+            download_file,
+            checksum_file,
+            checksum.hash.as_deref().unwrap(),
+        ),
     }
 }
 
@@ -31,40 +35,40 @@ pub fn generate_checksum(
     checksum_file: &Path,
     checksum_public_key: Option<&str>,
 ) -> miette::Result<Checksum> {
-    match detect_checksum_algorithm(checksum_file)?.as_str() {
-        "minisign" => Ok(Checksum::Minisign(
+    match detect_checksum_algorithm(checksum_file)? {
+        ChecksumAlgorithm::Minisign => Ok(Checksum::minisign(
             checksum_public_key
                 .ok_or(ProtoChecksumError::MissingPublicKey)?
                 .to_owned(),
         )),
-        "sha512" => Ok(Checksum::Sha512(hash_file_contents_sha512(download_file)?)),
-        _ => Ok(Checksum::Sha256(hash_file_contents_sha256(download_file)?)),
+        ChecksumAlgorithm::Sha512 => {
+            Ok(Checksum::sha512(hash_file_contents_sha512(download_file)?))
+        }
+        _ => Ok(Checksum::sha256(hash_file_contents_sha256(download_file)?)),
     }
 }
 
 #[tracing::instrument(skip_all)]
-pub fn detect_checksum_algorithm(checksum_file: &Path) -> miette::Result<String> {
+pub fn detect_checksum_algorithm(checksum_file: &Path) -> miette::Result<ChecksumAlgorithm> {
     // Check file extension
     let mut algo = match checksum_file.extension().and_then(|ext| ext.to_str()) {
-        Some("minisig" | "minisign") => "minisign",
-        Some("sha256" | "sha256sum") => "sha256",
-        Some("sha512" | "sha512sum") => "sha512",
-        _ => "",
-    }
-    .to_owned();
+        Some("minisig" | "minisign") => Some(ChecksumAlgorithm::Minisign),
+        Some("sha256" | "sha256sum") => Some(ChecksumAlgorithm::Sha256),
+        Some("sha512" | "sha512sum") => Some(ChecksumAlgorithm::Sha512),
+        _ => None,
+    };
 
     // Then check file name
-    if algo.is_empty() {
+    if algo.is_none() {
         algo = match fs::file_name(checksum_file).to_lowercase().as_str() {
-            "shasums256.txt" => "sha256",
-            "shasums512.txt" => "sha512",
-            _ => "",
-        }
-        .to_owned();
+            "shasums256.txt" => Some(ChecksumAlgorithm::Sha256),
+            "shasums512.txt" => Some(ChecksumAlgorithm::Sha512),
+            _ => None,
+        };
     }
 
     // Then check the file contents
-    if algo.is_empty() {
+    if algo.is_none() {
         let contents = fs::read_file(checksum_file)?;
 
         for line in contents.lines() {
@@ -76,7 +80,17 @@ pub fn detect_checksum_algorithm(checksum_file: &Path) -> miette::Result<String>
             if line.contains(':') {
                 if let Some((label, value)) = line.split_once(':') {
                     if label.trim() == "Algorithm" {
-                        algo = value.trim().to_owned();
+                        algo = match value.trim() {
+                            "SHA256" => Some(ChecksumAlgorithm::Sha256),
+                            "SHA512" => Some(ChecksumAlgorithm::Sha512),
+                            other => {
+                                return Err(ProtoChecksumError::UnsupportedAlgorithm {
+                                    algo: other.into(),
+                                }
+                                .into());
+                            }
+                        };
+
                         break;
                     }
                 }
@@ -87,9 +101,9 @@ pub fn detect_checksum_algorithm(checksum_file: &Path) -> miette::Result<String>
             // Unix
             if let Some((hash, _)) = line.split_once("  ") {
                 if hash.len() == 64 {
-                    algo = "sha256".to_owned();
+                    algo = Some(ChecksumAlgorithm::Sha256);
                 } else if hash.len() == 128 {
-                    algo = "sha512".to_owned();
+                    algo = Some(ChecksumAlgorithm::Sha512);
                 }
 
                 break;
@@ -97,9 +111,10 @@ pub fn detect_checksum_algorithm(checksum_file: &Path) -> miette::Result<String>
         }
     }
 
-    if algo == "minisign" || algo == "sha256" || algo == "sha512" {
-        return Ok(algo);
-    }
-
-    Err(ProtoChecksumError::UnsupportedAlgorithm { algo }.into())
+    algo.ok_or_else(|| {
+        ProtoChecksumError::UnknownAlgorithm {
+            file: fs::file_name(checksum_file),
+        }
+        .into()
+    })
 }

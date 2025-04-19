@@ -23,6 +23,7 @@
   - Lockfiles are stored for each tool in their inventory directory: `~/.proto/tools/<name>/lockfile.json`
 - Added a new Ctrl+C handler on Windows for shims, that should pass the signal down to the
   underlying executable, instead of being captured in the shim. This is based on Cargo's implementation.
+- Added support for SHA512 checksums.
 - Added support for Windows checksum files generated with `Get-FileHash`.
 - Updated `proto install <tool>` to detect a version from the current directory if a version is not provided.
 - WASM API
