@@ -10,9 +10,7 @@ repository = "https://github.com/moonrepo/proto"
 [dependencies]
 dirs = { workspace = true }
 
-# [target."cfg(windows)".dependencies]
-# process-wrap = { version = "8.2.0", default-features = false, features = [
-# 	"std",
-# 	"job-object",
-# 	"tracing",
-# ] }
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59.0", default-features = false, features = [
+	"Win32_System_Threading",
+] }

@@ -343,7 +343,14 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
         }
         // Otherwise fail with a not installed error
         else {
-            let command = format!("proto install {} {}", tool.id, resolved_version);
+            let command = format!(
+                "proto install {} {}",
+                match tool.backend {
+                    Some(backend) => format!("{backend}:{}", tool.id),
+                    None => tool.id.to_string(),
+                },
+                resolved_version
+            );
 
             if let Ok(source) = env::var(format!("{}_DETECTED_FROM", tool.get_env_var_prefix())) {
                 return Err(ProtoCliError::RunMissingToolWithSource {

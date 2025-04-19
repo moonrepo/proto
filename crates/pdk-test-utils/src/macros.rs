@@ -140,10 +140,10 @@ macro_rules! generate_download_install_tests {
             std::fs::create_dir_all(&tool.get_product_dir()).unwrap();
 
             assert!(
-                !tool
-                    .install(flow::install::InstallOptions::default())
+                tool.install(flow::install::InstallOptions::default())
                     .await
                     .unwrap()
+                    .is_none()
             );
         }
     };
