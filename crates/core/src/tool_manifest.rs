@@ -1,4 +1,5 @@
 use crate::helpers::{now, read_json_file_with_lock, write_json_file_with_lock};
+use crate::lockfile::LockfileRecord;
 use crate::tool_spec::Backend;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
@@ -15,9 +16,11 @@ pub const MANIFEST_NAME: &str = "manifest.json";
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(default)]
 pub struct ToolManifestVersion {
+    // TODO deprecated
     pub backend: Option<Backend>,
     pub no_clean: bool,
     pub installed_at: u128,
+    pub lock: Option<LockfileRecord>,
 }
 
 impl Default for ToolManifestVersion {
@@ -26,6 +29,7 @@ impl Default for ToolManifestVersion {
             backend: None,
             no_clean: bool_var("PROTO_NO_CLEAN"),
             installed_at: now(),
+            lock: None,
         }
     }
 }

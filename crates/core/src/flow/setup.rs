@@ -77,7 +77,7 @@ impl Tool {
 
         // Returns nothing if already installed
         let Some(mut record) = self.install(options).await? else {
-            return Ok(self.inventory.lockfile.versions.get(&version).cloned());
+            return Ok(self.inventory.get_locked_record(&version).cloned());
         };
 
         let default_version = self
@@ -86,25 +86,21 @@ impl Tool {
             .clone()
             .unwrap_or_else(|| version.to_unresolved_spec());
 
+        // Prepare lockfile record
+        record.backend = self.backend;
+        record.suffix = self.inventory.config.version_suffix.clone();
+
         // Add version to manifest
         let manifest = &mut self.inventory.manifest;
         manifest.installed_versions.insert(version.clone());
         manifest.versions.insert(
             version.clone(),
             ToolManifestVersion {
-                backend: self.backend,
+                lock: Some(record.clone()),
                 ..Default::default()
             },
         );
         manifest.save()?;
-
-        // Add version to lockfile
-        record.backend = self.backend;
-        record.suffix = self.inventory.config.version_suffix.clone();
-
-        let lockfile = &mut self.inventory.lockfile;
-        lockfile.versions.insert(version, record.clone());
-        lockfile.save()?;
 
         // Pin the global version
         ProtoConfig::update(self.proto.get_config_dir(PinLocation::Global), |config| {
@@ -182,12 +178,7 @@ impl Tool {
             }
         })?;
 
-        // Remove version from lockfile
-        let lockfile = &mut self.inventory.lockfile;
-        lockfile.versions.remove(&version);
-        lockfile.save()?;
-
-        // Remove version from manifest
+        // Remove version from manifest/lockfile
         // We must do this last because the location resolves above
         // require `installed_versions` to have values!
         let manifest = &mut self.inventory.manifest;
