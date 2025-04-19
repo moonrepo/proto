@@ -1,6 +1,5 @@
 use super::inventory::Inventory;
 use super::layout_error::ProtoLayoutError;
-use crate::tool_lockfile::ToolLockfile;
 use crate::tool_manifest::ToolManifest;
 use once_cell::sync::OnceCell;
 use proto_pdk_api::ToolInventoryMetadata;
@@ -55,7 +54,6 @@ impl Store {
         let dir = self.inventory_dir.join(id.as_str());
 
         Ok(Inventory {
-            lockfile: ToolLockfile::load_from(&dir)?,
             manifest: ToolManifest::load_from(&dir)?,
             dir,
             dir_original: None,

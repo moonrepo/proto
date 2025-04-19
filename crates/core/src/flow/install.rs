@@ -122,7 +122,7 @@ impl Tool {
         };
 
         // No lockfile record yet
-        let Some(lockfile) = self.inventory.lockfile.versions.get(version) else {
+        let Some(lockfile) = self.inventory.get_locked_record(version) else {
             return Ok(());
         };
 

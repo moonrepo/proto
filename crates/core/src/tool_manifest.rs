@@ -1,8 +1,9 @@
 use crate::helpers::{now, read_json_file_with_lock, write_json_file_with_lock};
+use crate::lockfile::LockfileRecord;
 use crate::tool_spec::Backend;
-use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use starbase_utils::env::bool_var;
+use std::collections::{BTreeMap, BTreeSet};
 use std::{
     fmt::Debug,
     path::{Path, PathBuf},
@@ -15,9 +16,19 @@ pub const MANIFEST_NAME: &str = "manifest.json";
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(default)]
 pub struct ToolManifestVersion {
+    // TODO deprecated
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub backend: Option<Backend>,
+
     pub no_clean: bool,
+
     pub installed_at: u128,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lock: Option<LockfileRecord>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub suffix: Option<String>,
 }
 
 impl Default for ToolManifestVersion {
@@ -26,6 +37,8 @@ impl Default for ToolManifestVersion {
             backend: None,
             no_clean: bool_var("PROTO_NO_CLEAN"),
             installed_at: now(),
+            lock: None,
+            suffix: None,
         }
     }
 }
@@ -33,9 +46,9 @@ impl Default for ToolManifestVersion {
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct ToolManifest {
-    pub installed_versions: FxHashSet<VersionSpec>,
+    pub installed_versions: BTreeSet<VersionSpec>,
     pub shim_version: u8,
-    pub versions: FxHashMap<VersionSpec, ToolManifestVersion>,
+    pub versions: BTreeMap<VersionSpec, ToolManifestVersion>,
 
     #[serde(skip)]
     pub path: PathBuf,
