@@ -66,11 +66,19 @@ impl FromStr for Checksum {
     type Err = ChecksumError;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
+        if !value.contains(':') {
+            if value.len() == 64 {
+                return Ok(Self::sha256(value.to_owned()));
+            } else if value.len() == 128 {
+                return Ok(Self::sha512(value.to_owned()));
+            }
+        }
+
         match value.split_once(':') {
             Some((tag, hash)) => match tag {
                 "minisign" => Ok(Self::minisign(hash.to_owned())),
                 "sha256" => Ok(Self::sha256(hash.to_owned())),
-                "sha512" => Ok(Self::sha256(hash.to_owned())),
+                "sha512" => Ok(Self::sha512(hash.to_owned())),
                 _ => Err(ChecksumError::UnsupportedAlgorithm {
                     kind: tag.to_owned(),
                 }),

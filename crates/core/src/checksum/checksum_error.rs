@@ -1,5 +1,6 @@
 use miette::Diagnostic;
 use starbase_styles::{Style, Stylize};
+use std::path::PathBuf;
 use thiserror::Error;
 
 #[derive(Error, Debug, Diagnostic)]
@@ -23,9 +24,9 @@ pub enum ProtoChecksumError {
     )]
     #[error(
         "Unknown checksum algorithm. Unable to derive from {}.",
-        .file.style(Style::File)
+        .path.style(Style::Path)
     )]
-    UnknownAlgorithm { file: String },
+    UnknownAlgorithm { path: PathBuf },
 
     #[diagnostic(code(proto::checksum::unsupported_algorithm))]
     #[error(

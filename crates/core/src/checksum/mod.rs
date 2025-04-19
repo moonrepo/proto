@@ -113,7 +113,7 @@ pub fn detect_checksum_algorithm(checksum_file: &Path) -> miette::Result<Checksu
 
     algo.ok_or_else(|| {
         ProtoChecksumError::UnknownAlgorithm {
-            file: fs::file_name(checksum_file),
+            path: checksum_file.to_path_buf(),
         }
         .into()
     })
