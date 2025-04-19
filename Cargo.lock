@@ -2821,7 +2821,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.48.0"
+version = "0.48.1"
 dependencies = [
  "clap",
  "convert_case",
@@ -2874,7 +2874,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.28.5"
+version = "0.28.6"
 dependencies = [
  "extism-pdk",
  "proto_pdk_api",
@@ -2885,7 +2885,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.27.8"
+version = "0.27.9"
 dependencies = [
  "proto_pdk_api",
  "rustc-hash",
@@ -2901,7 +2901,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.36.0"
+version = "0.36.1"
 dependencies = [
  "extism",
  "proto_core",
