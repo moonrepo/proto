@@ -13,10 +13,14 @@ pub enum ChecksumError {
     UnknownChecksumType { kind: String },
 }
 
+/// Represents a checksum for a specific algorithm.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(into = "String", try_from = "String")]
 pub enum Checksum {
+    /// Public key.
     Minisign(String),
+
+    /// File hash.
     Sha256(String),
 }
 

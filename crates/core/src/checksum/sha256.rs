@@ -1,4 +1,3 @@
-use proto_pdk_api::Checksum;
 use sha2::{Digest, Sha256};
 use starbase_utils::fs::{self, FsError};
 use std::io;
@@ -30,8 +29,8 @@ pub fn hash_file_contents<P: AsRef<Path>>(path: P) -> miette::Result<String> {
 pub fn verify_checksum(
     download_file: &Path,
     checksum_file: &Path,
-) -> miette::Result<Option<Checksum>> {
-    let checksum_hash = hash_file_contents(download_file)?;
+    checksum_hash: &str,
+) -> miette::Result<bool> {
     let download_file_name = fs::file_name(download_file);
 
     for line in BufReader::new(fs::open_file(checksum_file)?)
@@ -44,9 +43,9 @@ pub fn verify_checksum(
         if line == checksum_hash
             || (line.starts_with(&checksum_hash) && line.ends_with(&download_file_name))
         {
-            return Ok(Some(Checksum::Sha256(checksum_hash)));
+            return Ok(true);
         }
     }
 
-    Ok(None)
+    Ok(false)
 }
