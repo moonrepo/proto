@@ -1,7 +1,7 @@
 use super::build::*;
 pub use super::build_error::ProtoBuildError;
 pub use super::install_error::ProtoInstallError;
-use crate::checksum::{hash_file_contents, verify_checksum};
+use crate::checksum::*;
 use crate::env::ProtoConsole;
 use crate::env_error::ProtoEnvError;
 use crate::helpers::{extract_filename_from_url, is_archive_file, is_offline};
@@ -65,7 +65,7 @@ impl Tool {
         checksum_file: &Path,
         download_file: &Path,
         checksum_public_key: Option<&str>,
-    ) -> miette::Result<Option<Checksum>> {
+    ) -> miette::Result<Checksum> {
         debug!(
             tool = self.id.as_str(),
             download_file = ?download_file,
@@ -73,7 +73,7 @@ impl Tool {
             "Verifying checksum of downloaded file",
         );
 
-        let checksum;
+        let checksum = generate_checksum(download_file, checksum_file, checksum_public_key)?;
         let verified;
 
         // Allow plugin to provide their own checksum verification method
@@ -85,18 +85,17 @@ impl Tool {
                     VerifyChecksumInput {
                         checksum_file: self.to_virtual_path(checksum_file),
                         download_file: self.to_virtual_path(download_file),
+                        download_checksum: Some(checksum.clone()),
                         context: self.create_context(),
                     },
                 )
                 .await?;
 
-            checksum = output.checksum;
             verified = output.verified;
         }
         // Otherwise attempt to verify it ourselves
         else {
-            checksum = verify_checksum(download_file, checksum_file, checksum_public_key)?;
-            verified = checksum.is_some();
+            verified = verify_checksum(download_file, checksum_file, &checksum)?;
         }
 
         if verified {
@@ -393,33 +392,39 @@ impl Tool {
             )
             .await?;
 
-            record.checksum = self
-                .verify_checksum(
+            record.checksum = Some(
+                self.verify_checksum(
                     &checksum_file,
                     &download_file,
                     output.checksum_public_key.as_deref(),
                 )
-                .await?;
+                .await?,
+            );
         }
         // Verify against an explicitly provided checksum
         else if let Some(checksum) = output.checksum {
             let checksum_file = temp_dir.join("CHECKSUM");
 
-            fs::write_file(&checksum_file, &checksum)?;
+            fs::write_file(&checksum_file, checksum.to_string())?;
 
-            debug!(tool = self.id.as_str(), checksum, "Using provided checksum");
+            debug!(
+                tool = self.id.as_str(),
+                checksum = checksum.to_string(),
+                "Using provided checksum"
+            );
 
-            record.checksum = self
-                .verify_checksum(
+            record.checksum = Some(
+                self.verify_checksum(
                     &checksum_file,
                     &download_file,
                     output.checksum_public_key.as_deref(),
                 )
-                .await?;
+                .await?,
+            );
         }
         // No available checksum, so generate one ourselves for the lockfile
         else {
-            record.checksum = Some(Checksum::Sha256(hash_file_contents(&download_file)?));
+            record.checksum = Some(Checksum::sha256(hash_file_contents_sha256(&download_file)?));
         }
 
         // Verify against lockfile
