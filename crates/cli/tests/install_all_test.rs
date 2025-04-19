@@ -223,7 +223,7 @@ deno = "1.30.0"
                                     .into()
                             )),
                             source: Some(
-                                "https://dl.deno.land/release/v1.30.0/deno-x86_64-unknown-linux-gnu.zip"
+                                "https://github.com/denoland/deno/releases/download/v1.30.0/deno-x86_64-unknown-linux-gnu.zip"
                                     .into()
                             ),
                             ..Default::default()
@@ -278,7 +278,7 @@ deno = "1.30.0"
                                     .into()
                             )),
                             source: Some(
-                                "https://dl.deno.land/release/v1.30.0/deno-aarch64-apple-darwin.zip"
+                                "https://github.com/denoland/deno/releases/download/v1.30.0/deno-aarch64-apple-darwin.zip"
                                     .into()
                             ),
                             ..Default::default()
@@ -333,7 +333,7 @@ deno = "1.30.0"
                                     .into()
                             )),
                             source: Some(
-                                "https://dl.deno.land/release/v1.30.0/deno-x86_64-pc-windows-msvc.zip"
+                                "https://github.com/denoland/deno/releases/download/v1.30.0/deno-x86_64-pc-windows-msvc.zip"
                                     .into()
                             ),
                             ..Default::default()
