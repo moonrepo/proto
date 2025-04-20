@@ -162,7 +162,7 @@ impl ProtoEnvironment {
                 location: PinLocation::Global,
                 lockfile: None,
                 path,
-                config: ProtoConfig::load_from(&self.store.dir, true)?,
+                config: ProtoConfig::load_from(&self.store.dir)?,
             });
 
             // Remove the pinned `proto` version from global/user configs,

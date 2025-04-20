@@ -1,7 +1,7 @@
 use crate::tool_spec::Backend;
 use proto_pdk_api::Checksum;
 use serde::{Deserialize, Serialize};
-use starbase_utils::{fs, toml};
+use starbase_utils::toml;
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
@@ -60,10 +60,7 @@ impl ProtoLockfile {
 
         debug!(file = ?path, "Loading lockfile");
 
-        let content = fs::read_file_with_lock(path)?;
-        let lockfile: Self = toml::parse(&content)?;
-
-        Ok(lockfile)
+        Ok(toml::read_file(&path)?)
     }
 
     #[instrument(name = "save_lockfile", skip(lockfile))]
@@ -78,7 +75,7 @@ impl ProtoLockfile {
             path.join(PROTO_LOCKFILE_NAME)
         };
 
-        fs::write_file_with_lock(&file, toml::format(&lockfile, true)?)?;
+        toml::write_file(&file, &lockfile, true)?;
 
         Ok(file)
     }

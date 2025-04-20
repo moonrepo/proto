@@ -462,27 +462,18 @@ impl ProtoConfig {
         }
     }
 
-    pub fn load_from<P: AsRef<Path>>(
-        dir: P,
-        with_lock: bool,
-    ) -> miette::Result<PartialProtoConfig> {
+    pub fn load_from<P: AsRef<Path>>(dir: P) -> miette::Result<PartialProtoConfig> {
         let dir = dir.as_ref();
 
-        Self::load(
-            if dir.ends_with(PROTO_CONFIG_NAME) {
-                dir.to_path_buf()
-            } else {
-                dir.join(PROTO_CONFIG_NAME)
-            },
-            with_lock,
-        )
+        Self::load(if dir.ends_with(PROTO_CONFIG_NAME) {
+            dir.to_path_buf()
+        } else {
+            dir.join(PROTO_CONFIG_NAME)
+        })
     }
 
     #[instrument(name = "load_config")]
-    pub fn load<P: AsRef<Path> + Debug>(
-        path: P,
-        with_lock: bool,
-    ) -> miette::Result<PartialProtoConfig> {
+    pub fn load<P: AsRef<Path> + Debug>(path: P) -> miette::Result<PartialProtoConfig> {
         let path = path.as_ref();
 
         if !path.exists() {
@@ -491,11 +482,7 @@ impl ProtoConfig {
 
         debug!(file = ?path, "Loading {}", PROTO_CONFIG_NAME);
 
-        let config_content = if with_lock {
-            fs::read_file_with_lock(path)?
-        } else {
-            fs::read_file(path)?
-        };
+        let config_content = fs::read_file(path)?;
 
         let mut config = ConfigLoader::<ProtoConfig>::new()
             .code(config_content, Format::Toml)?
@@ -632,7 +619,7 @@ impl ProtoConfig {
             path.join(PROTO_CONFIG_NAME)
         };
 
-        fs::write_file_with_lock(&file, toml::format(&config, true)?)?;
+        toml::write_file(&file, &config, true)?;
 
         Ok(file)
     }
@@ -642,7 +629,7 @@ impl ProtoConfig {
         op: F,
     ) -> miette::Result<PathBuf> {
         let dir = dir.as_ref();
-        let mut config = Self::load_from(dir, true)?;
+        let mut config = Self::load_from(dir)?;
 
         op(&mut config);
 

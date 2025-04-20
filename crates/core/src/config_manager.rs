@@ -53,7 +53,7 @@ impl ProtoConfigManager {
                 let env_path = dir.join(format!("{}.{env}", PROTO_CONFIG_NAME));
 
                 files.push(ProtoConfigFile {
-                    config: ProtoConfig::load(&env_path, false)?,
+                    config: ProtoConfig::load(&env_path)?,
                     exists: env_path.exists(),
                     location,
                     lockfile: None,
@@ -65,7 +65,7 @@ impl ProtoConfigManager {
             let lock_path = dir.join(PROTO_LOCKFILE_NAME);
 
             files.push(ProtoConfigFile {
-                config: ProtoConfig::load(&config_path, false)?,
+                config: ProtoConfig::load(&config_path)?,
                 exists: config_path.exists(),
                 location,
                 lockfile: if lock_path.exists() {
