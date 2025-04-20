@@ -30,7 +30,7 @@ mod proto_config {
         let sandbox = create_empty_sandbox();
         sandbox.create_file(".prototools", "node = 123");
 
-        handle_error(ProtoConfig::load_from(sandbox.path(), false).unwrap_err());
+        handle_error(ProtoConfig::load_from(sandbox.path()).unwrap_err());
     }
 
     #[test]
@@ -39,7 +39,7 @@ mod proto_config {
         let sandbox = create_empty_sandbox();
         sandbox.create_file(".prototools", "[other]\nkey = 123");
 
-        handle_error(ProtoConfig::load_from(sandbox.path(), false).unwrap_err());
+        handle_error(ProtoConfig::load_from(sandbox.path()).unwrap_err());
     }
 
     #[test]
@@ -54,7 +54,7 @@ proto = "file://./file.toml"
 "#,
         );
 
-        handle_error(ProtoConfig::load_from(sandbox.path(), false).unwrap_err());
+        handle_error(ProtoConfig::load_from(sandbox.path()).unwrap_err());
     }
 
     #[test]
@@ -70,7 +70,7 @@ pin-latest = "global"
 "#,
         );
 
-        let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
+        let config = ProtoConfig::load_from(sandbox.path()).unwrap();
 
         assert_eq!(
             config.settings.unwrap(),
@@ -120,7 +120,7 @@ pin-latest = "global"
         let sandbox = create_empty_sandbox();
         sandbox.create_file(".prototools", r#"node = "asdf:20.0.0""#);
 
-        let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
+        let config = ProtoConfig::load_from(sandbox.path()).unwrap();
 
         assert_eq!(
             config.versions.unwrap().get("node").unwrap(),
@@ -145,7 +145,7 @@ BAZ_QUX = "abc"
 "#,
         );
 
-        let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
+        let config = ProtoConfig::load_from(sandbox.path()).unwrap();
 
         assert_eq!(config.env.unwrap(), {
             let mut map = IndexMap::new();
@@ -169,7 +169,7 @@ KEY = "value"
 "#,
         );
 
-        let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
+        let config = ProtoConfig::load_from(sandbox.path()).unwrap();
 
         assert_eq!(config.env.unwrap(), {
             let mut map = IndexMap::<String, PartialEnvVar>::default();
@@ -199,7 +199,7 @@ bar = "https://moonrepo.dev/path/file.wasm"
 "#,
         );
 
-        let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
+        let config = ProtoConfig::load_from(sandbox.path()).unwrap();
 
         assert_eq!(
             config.plugins.unwrap(),
@@ -233,7 +233,7 @@ foo = "file://../file.wasm"
 "#,
         );
 
-        let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
+        let config = ProtoConfig::load_from(sandbox.path()).unwrap();
 
         assert_eq!(
             config.plugins.unwrap(),
@@ -258,7 +258,7 @@ root-cert = "../cert.pem"
 "#,
         );
 
-        let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
+        let config = ProtoConfig::load_from(sandbox.path()).unwrap();
 
         assert_eq!(
             config.settings.unwrap().http.unwrap(),
@@ -284,7 +284,7 @@ kebab-case = "file://./camel.toml"
 "#,
         );
 
-        let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
+        let config = ProtoConfig::load_from(sandbox.path()).unwrap();
 
         assert_eq!(
             config.versions.unwrap(),
@@ -324,7 +324,7 @@ kebab-case = "file://./camel.toml"
     #[test]
     fn formats_plugins_table() {
         let sandbox = create_empty_sandbox();
-        let mut config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
+        let mut config = ProtoConfig::load_from(sandbox.path()).unwrap();
         let versions = config.versions.get_or_insert(Default::default());
 
         versions.insert(
@@ -599,8 +599,7 @@ builtin-plugins = true
 "#,
             );
 
-            let config =
-                ProtoConfig::from_partial(ProtoConfig::load_from(sandbox.path(), false).unwrap());
+            let config = ProtoConfig::from_partial(ProtoConfig::load_from(sandbox.path()).unwrap());
 
             assert_eq!(
                 config.settings.builtin_plugins,
@@ -621,8 +620,7 @@ builtin-plugins = ["node", "go"]
 "#,
             );
 
-            let config =
-                ProtoConfig::from_partial(ProtoConfig::load_from(sandbox.path(), false).unwrap());
+            let config = ProtoConfig::from_partial(ProtoConfig::load_from(sandbox.path()).unwrap());
 
             assert_eq!(
                 config.settings.builtin_plugins,
@@ -647,8 +645,7 @@ builtin-plugins = false
 "#,
             );
 
-            let config =
-                ProtoConfig::from_partial(ProtoConfig::load_from(sandbox.path(), false).unwrap());
+            let config = ProtoConfig::from_partial(ProtoConfig::load_from(sandbox.path()).unwrap());
 
             assert_eq!(
                 config.settings.builtin_plugins,
@@ -669,8 +666,7 @@ builtin-plugins = []
 "#,
             );
 
-            let config =
-                ProtoConfig::from_partial(ProtoConfig::load_from(sandbox.path(), false).unwrap());
+            let config = ProtoConfig::from_partial(ProtoConfig::load_from(sandbox.path()).unwrap());
 
             assert_eq!(
                 config.settings.builtin_plugins,
@@ -696,7 +692,7 @@ backend = "asdf"
 "#,
             );
 
-            let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
+            let config = ProtoConfig::load_from(sandbox.path()).unwrap();
 
             assert_eq!(
                 config
@@ -753,7 +749,7 @@ intercept-globals = false
 "#,
             );
 
-            let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
+            let config = ProtoConfig::load_from(sandbox.path()).unwrap();
 
             assert_eq!(
                 config

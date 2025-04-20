@@ -8,12 +8,13 @@ use std::path::{Path, PathBuf};
 use tracing::debug;
 
 #[derive(Debug, Serialize)]
-pub struct ProtoConfigFile {
+pub struct ProtoFiles {
     pub exists: bool,
     pub location: PinLocation,
     pub lockfile: Option<ProtoLockfile>,
-    pub path: PathBuf,
+    pub lockfile_path: Option<PathBuf>,
     pub config: PartialProtoConfig,
+    pub config_path: PathBuf,
 }
 
 #[derive(Debug)]
@@ -24,12 +25,12 @@ pub struct ProtoConfigManager {
     // loaded last, and is the last entry in the list.
     // For directories without a config, we still insert
     // an empty entry. This helps with traversal logic.
-    pub files: Vec<ProtoConfigFile>,
+    pub files: Vec<ProtoFiles>,
 
-    all_config: OnceCell<ProtoConfig>,
-    all_config_no_global: OnceCell<ProtoConfig>,
-    global_config: OnceCell<ProtoConfig>,
-    local_config: OnceCell<ProtoConfig>,
+    all: OnceCell<(ProtoConfig, ProtoLockfile)>,
+    all_no_global: OnceCell<(ProtoConfig, ProtoLockfile)>,
+    global: OnceCell<(ProtoConfig, ProtoLockfile)>,
+    local: OnceCell<(ProtoConfig, ProtoLockfile)>,
 }
 
 impl ProtoConfigManager {
@@ -52,28 +53,30 @@ impl ProtoConfigManager {
             if let Some(env) = env_mode {
                 let env_path = dir.join(format!("{}.{env}", PROTO_CONFIG_NAME));
 
-                files.push(ProtoConfigFile {
-                    config: ProtoConfig::load(&env_path)?,
+                files.push(ProtoFiles {
                     exists: env_path.exists(),
+                    config: ProtoConfig::load(&env_path)?,
+                    config_path: env_path,
                     location,
                     lockfile: None,
-                    path: env_path,
+                    lockfile_path: None,
                 });
             }
 
             let config_path = dir.join(PROTO_CONFIG_NAME);
-            let lock_path = dir.join(PROTO_LOCKFILE_NAME);
+            let lockfile_path = dir.join(PROTO_LOCKFILE_NAME);
 
-            files.push(ProtoConfigFile {
+            files.push(ProtoFiles {
                 config: ProtoConfig::load(&config_path)?,
                 exists: config_path.exists(),
                 location,
-                lockfile: if lock_path.exists() {
-                    Some(ProtoLockfile::load(lock_path)?)
+                lockfile: if lockfile_path.exists() {
+                    Some(ProtoLockfile::load(&lockfile_path)?)
                 } else {
                     None
                 },
-                path: config_path,
+                lockfile_path: Some(lockfile_path),
+                config_path,
             });
 
             if is_end {
@@ -85,58 +88,35 @@ impl ProtoConfigManager {
 
         Ok(Self {
             files,
-            all_config: OnceCell::new(),
-            all_config_no_global: OnceCell::new(),
-            global_config: OnceCell::new(),
-            local_config: OnceCell::new(),
+            all: OnceCell::new(),
+            all_no_global: OnceCell::new(),
+            global: OnceCell::new(),
+            local: OnceCell::new(),
         })
     }
 
     pub fn get_global_config(&self) -> miette::Result<&ProtoConfig> {
-        self.global_config.get_or_try_init(|| {
-            debug!("Loading global config only");
-
-            self.merge_configs(
-                self.files
-                    .iter()
-                    .filter(|file| file.location == PinLocation::Global)
-                    .collect(),
-            )
-        })
+        Ok(&self.get_global()?.0)
     }
 
     pub fn get_local_config(&self, cwd: &Path) -> miette::Result<&ProtoConfig> {
-        self.local_config.get_or_try_init(|| {
-            debug!("Loading local config only");
+        Ok(&self.get_local(cwd)?.0)
+    }
 
-            self.merge_configs(
-                self.files
-                    .iter()
-                    .filter(|file| file.path.parent().is_some_and(|dir| dir == cwd))
-                    .collect(),
-            )
-        })
+    pub fn get_local_lockfile(&self, cwd: &Path) -> miette::Result<&ProtoLockfile> {
+        Ok(&self.get_local(cwd)?.1)
     }
 
     pub fn get_merged_config(&self) -> miette::Result<&ProtoConfig> {
-        self.all_config.get_or_try_init(|| {
-            debug!("Merging loaded configs with global");
+        Ok(&self.get_all()?.0)
+    }
 
-            self.merge_configs(self.files.iter().collect())
-        })
+    pub fn get_merged_lockfile(&self) -> miette::Result<&ProtoLockfile> {
+        Ok(&self.get_all()?.1)
     }
 
     pub fn get_merged_config_without_global(&self) -> miette::Result<&ProtoConfig> {
-        self.all_config_no_global.get_or_try_init(|| {
-            debug!("Merging loaded configs without global");
-
-            self.merge_configs(
-                self.files
-                    .iter()
-                    .filter(|file| file.location != PinLocation::Global)
-                    .collect(),
-            )
-        })
+        Ok(&self.get_all_without_global()?.0)
     }
 
     pub(crate) fn remove_proto_pins(&mut self) {
@@ -153,24 +133,84 @@ impl ProtoConfigManager {
         });
     }
 
-    fn merge_configs(&self, files: Vec<&ProtoConfigFile>) -> miette::Result<ProtoConfig> {
-        let mut partial = PartialProtoConfig::default();
-        let mut count = 0;
+    fn get_global(&self) -> miette::Result<&(ProtoConfig, ProtoLockfile)> {
+        self.global.get_or_try_init(|| {
+            debug!("Loading global config only");
+
+            self.merge_files(
+                self.files
+                    .iter()
+                    .filter(|file| file.location == PinLocation::Global)
+                    .collect(),
+            )
+        })
+    }
+
+    fn get_local(&self, cwd: &Path) -> miette::Result<&(ProtoConfig, ProtoLockfile)> {
+        self.local.get_or_try_init(|| {
+            debug!("Loading local config/lockfile only");
+
+            self.merge_files(
+                self.files
+                    .iter()
+                    .filter(|file| file.config_path.parent().is_some_and(|dir| dir == cwd))
+                    .collect(),
+            )
+        })
+    }
+
+    fn get_all(&self) -> miette::Result<&(ProtoConfig, ProtoLockfile)> {
+        self.all.get_or_try_init(|| {
+            debug!("Merging loaded configs/lockfiles with global");
+
+            self.merge_files(self.files.iter().collect())
+        })
+    }
+
+    fn get_all_without_global(&self) -> miette::Result<&(ProtoConfig, ProtoLockfile)> {
+        self.all_no_global.get_or_try_init(|| {
+            debug!("Merging loaded configs/lockfiles without global");
+
+            self.merge_files(
+                self.files
+                    .iter()
+                    .filter(|file| file.location != PinLocation::Global)
+                    .collect(),
+            )
+        })
+    }
+
+    fn merge_files(&self, files: Vec<&ProtoFiles>) -> miette::Result<(ProtoConfig, ProtoLockfile)> {
+        let mut lockfile = ProtoLockfile::default();
+        let mut lockfile_count = 0;
+        let mut config = PartialProtoConfig::default();
+        let mut config_count = 0;
         let context = &();
 
         for file in files.iter().rev() {
             if file.exists {
-                partial.merge(context, file.config.to_owned())?;
-                count += 1;
+                config.merge(context, file.config.to_owned())?;
+                config_count += 1;
+
+                // Lockfiles cannot exist in the global location
+                if file.location != PinLocation::Global {
+                    if let Some(inner_lockfile) = &file.lockfile {
+                        lockfile.tools.extend(inner_lockfile.tools.clone());
+                        lockfile_count += 1;
+                    }
+                }
             }
         }
 
-        let mut config = ProtoConfig::from_partial(partial.finalize(context)?);
+        let mut config = ProtoConfig::from_partial(config.finalize(context)?);
         config.inherit_builtin_plugins();
         config.setup_env_vars();
 
-        debug!("Merged {} configs", count);
+        debug!(
+            "Merged {} configs and {} lockfiles",
+            config_count, lockfile_count
+        );
 
-        Ok(config)
+        Ok((config, lockfile))
     }
 }

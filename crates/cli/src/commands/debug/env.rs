@@ -39,7 +39,7 @@ pub async fn env(session: ProtoSession) -> AppResult {
             .iter()
             .filter_map(|file| {
                 if file.exists {
-                    Some(file.path.to_path_buf())
+                    Some(file.config_path.to_path_buf())
                 } else {
                     None
                 }

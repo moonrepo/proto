@@ -38,7 +38,7 @@ impl LockfileRecord {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct ProtoLockfile {
     pub tools: BTreeMap<Id, LockfileRecord>,
 }
@@ -60,7 +60,7 @@ impl ProtoLockfile {
 
         debug!(file = ?path, "Loading lockfile");
 
-        Ok(toml::read_file(&path)?)
+        Ok(toml::read_file(path)?)
     }
 
     #[instrument(name = "save_lockfile", skip(lockfile))]

@@ -16,7 +16,7 @@ fn set_detected_env_var(prefix: String, path: &Path) {
 #[instrument(name = "first_available", skip_all)]
 pub async fn detect_version_first_available(
     tool: &Tool,
-    config_files: &[&ProtoConfigFile],
+    config_files: &[&ProtoFiles],
 ) -> miette::Result<Option<UnresolvedVersionSpec>> {
     for file in config_files {
         if let Some(versions) = &file.config.versions {
@@ -24,17 +24,17 @@ pub async fn detect_version_first_available(
                 debug!(
                     tool = tool.id.as_str(),
                     version = version.to_string(),
-                    file = ?file.path,
+                    file = ?file.config_path,
                     "Detected version from {} file", PROTO_CONFIG_NAME
                 );
 
-                set_detected_env_var(tool.get_env_var_prefix(), &file.path);
+                set_detected_env_var(tool.get_env_var_prefix(), &file.config_path);
 
                 return Ok(Some(version.req.to_owned()));
             }
         }
 
-        let dir = file.path.parent().unwrap();
+        let dir = file.config_path.parent().unwrap();
 
         if let Some((version, file)) = tool.detect_version_from(dir).await? {
             debug!(
@@ -56,7 +56,7 @@ pub async fn detect_version_first_available(
 #[instrument(name = "only_prototools", skip_all)]
 pub async fn detect_version_only_prototools(
     tool: &Tool,
-    config_files: &[&ProtoConfigFile],
+    config_files: &[&ProtoFiles],
 ) -> miette::Result<Option<UnresolvedVersionSpec>> {
     for file in config_files {
         if let Some(versions) = &file.config.versions {
@@ -64,11 +64,11 @@ pub async fn detect_version_only_prototools(
                 debug!(
                     tool = tool.id.as_str(),
                     version = version.to_string(),
-                    file = ?file.path,
+                    file = ?file.config_path,
                     "Detected version from {} file", PROTO_CONFIG_NAME
                 );
 
-                set_detected_env_var(tool.get_env_var_prefix(), &file.path);
+                set_detected_env_var(tool.get_env_var_prefix(), &file.config_path);
 
                 return Ok(Some(version.req.to_owned()));
             }
@@ -81,7 +81,7 @@ pub async fn detect_version_only_prototools(
 #[instrument(name = "prefer_prototools", skip_all)]
 pub async fn detect_version_prefer_prototools(
     tool: &Tool,
-    config_files: &[&ProtoConfigFile],
+    config_files: &[&ProtoFiles],
 ) -> miette::Result<Option<UnresolvedVersionSpec>> {
     // Check config files first
     if let Some(version) = detect_version_only_prototools(tool, config_files).await? {
@@ -90,7 +90,7 @@ pub async fn detect_version_prefer_prototools(
 
     // Then check the ecosystem
     for file in config_files {
-        let dir = file.path.parent().unwrap();
+        let dir = file.config_path.parent().unwrap();
 
         if let Some((version, file)) = tool.detect_version_from(dir).await? {
             debug!(

@@ -1,4 +1,5 @@
 pub use super::resolve_error::ProtoResolveError;
+use crate::ProtoLockfile;
 use crate::helpers::is_offline;
 use crate::tool::Tool;
 use crate::tool_spec::{Backend, ToolSpec};
@@ -73,6 +74,22 @@ impl Tool {
         self.register_backend().await?;
 
         Ok(())
+    }
+
+    pub async fn resolve_version_from_lockfile(
+        &mut self,
+        lockfile: &ProtoLockfile,
+    ) -> miette::Result<bool> {
+        if let Some(record) = lockfile.tools.get(&self.id) {
+            if let Some(spec) = &record.version {
+                self.resolve_backend(record.backend).await?;
+                self.set_version(spec.to_owned());
+
+                return Ok(true);
+            }
+        }
+
+        Ok(false)
     }
 
     pub async fn resolve_version_with_spec(

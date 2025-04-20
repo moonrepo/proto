@@ -1,8 +1,9 @@
 use crate::config::{ConfigMode, PROTO_CONFIG_NAME, PinLocation, ProtoConfig};
-use crate::config_manager::{ProtoConfigFile, ProtoConfigManager};
+use crate::config_manager::{ProtoConfigManager, ProtoFiles};
 use crate::env_error::ProtoEnvError;
 use crate::helpers::is_offline;
 use crate::layout::Store;
+use crate::lockfile::ProtoLockfile;
 use once_cell::sync::OnceCell;
 use starbase_console::{Console, EmptyReporter};
 use starbase_utils::dirs::home_dir;
@@ -127,7 +128,7 @@ impl ProtoEnvironment {
         }
     }
 
-    pub fn load_config_files(&self) -> miette::Result<Vec<&ProtoConfigFile>> {
+    pub fn load_config_files(&self) -> miette::Result<Vec<&ProtoFiles>> {
         Ok(self
             .load_config_manager()?
             .files
@@ -135,12 +136,15 @@ impl ProtoEnvironment {
             .filter(|file| {
                 !(!self.config_mode.includes_global() && file.location == PinLocation::Global
                     || self.config_mode.only_local()
-                        && file.path.parent().is_none_or(|p| p != self.working_dir))
+                        && file
+                            .config_path
+                            .parent()
+                            .is_none_or(|p| p != self.working_dir))
             })
             .collect())
     }
 
-    #[tracing::instrument(name = "load_all", skip_all)]
+    #[tracing::instrument(name = "load_all_configs", skip_all)]
     pub fn load_config_manager(&self) -> miette::Result<&ProtoConfigManager> {
         self.config_manager.get_or_try_init(|| {
             // Don't traverse passed the home directory,
@@ -157,11 +161,12 @@ impl ProtoEnvironment {
             // Always load the proto home/root config last
             let path = self.store.dir.join(PROTO_CONFIG_NAME);
 
-            manager.files.push(ProtoConfigFile {
+            manager.files.push(ProtoFiles {
                 exists: path.exists(),
                 location: PinLocation::Global,
                 lockfile: None,
-                path,
+                lockfile_path: None,
+                config_path: path,
                 config: ProtoConfig::load_from(&self.store.dir)?,
             });
 
@@ -170,6 +175,23 @@ impl ProtoEnvironment {
             manager.remove_proto_pins();
 
             Ok(manager)
+        })
+    }
+
+    pub fn load_lockfile(&self) -> miette::Result<Option<&ProtoLockfile>> {
+        self.load_lockfile_with_mode(self.config_mode)
+    }
+
+    pub fn load_lockfile_with_mode(
+        &self,
+        mode: ConfigMode,
+    ) -> miette::Result<Option<&ProtoLockfile>> {
+        let manager = self.load_config_manager()?;
+
+        Ok(match mode {
+            ConfigMode::Global => None,
+            ConfigMode::Local => Some(manager.get_local_lockfile(&self.working_dir)?),
+            _ => Some(manager.get_merged_lockfile()?),
         })
     }
 }

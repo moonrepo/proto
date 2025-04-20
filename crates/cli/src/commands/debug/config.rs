@@ -1,7 +1,7 @@
 use crate::components::CodeBlock;
 use crate::session::ProtoSession;
 use iocraft::prelude::*;
-use proto_core::{ProtoConfig, ProtoConfigFile};
+use proto_core::{ProtoConfig, ProtoFiles};
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;
@@ -10,7 +10,7 @@ use starbase_utils::{json, toml};
 #[derive(Serialize)]
 struct DebugConfigResult<'a> {
     config: &'a ProtoConfig,
-    files: Vec<&'a ProtoConfigFile>,
+    files: Vec<&'a ProtoFiles>,
 }
 
 #[tracing::instrument(skip_all)]
@@ -43,7 +43,7 @@ pub async fn config(session: ProtoSession) -> AppResult {
         session.console.render(element! {
             Container {
                 Section(
-                    title: file.path.to_string_lossy(),
+                    title: file.config_path.to_string_lossy(),
                     title_color: style_to_color(Style::Path)
                 )
                 CodeBlock(code, format: "toml")

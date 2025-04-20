@@ -43,7 +43,11 @@ pub fn locate_tool(id: &Id, proto: &ProtoEnvironment) -> miette::Result<PluginLo
     for file in &configs.files {
         if let Some(plugins) = &file.config.plugins {
             if let Some(maybe_locator) = plugins.get(id) {
-                debug!(file = ?file.path, plugin = maybe_locator.to_string(), "Found a plugin");
+                debug!(
+                    file = ?file.config_path,
+                    plugin = maybe_locator.to_string(),
+                    "Found a plugin",
+                );
 
                 locator = Some(maybe_locator.to_owned());
                 break;
