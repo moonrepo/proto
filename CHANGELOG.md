@@ -22,6 +22,7 @@
 - Added internal lockfile records that will validate against checksums for authenticity.
   - Records are stored for each tool in their inventory manifest: `~/.proto/tools/<name>/manifest.json`
   - This is not retroactive and will only apply to installed tools going forward.
+  - In the next release, we'll be looking into per-directory lockfiles: `.protolock`.
 - Added a new Ctrl+C handler on Windows for shims, that should pass the signal down to the
   underlying executable, instead of being captured in the shim. This is based on Cargo's implementation.
 - Added support for SHA512 checksums.
