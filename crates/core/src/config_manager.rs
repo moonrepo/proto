@@ -99,6 +99,10 @@ impl ProtoConfigManager {
         Ok(&self.get_global()?.0)
     }
 
+    pub fn get_global_lockfile(&self) -> miette::Result<&ProtoLockfile> {
+        Ok(&self.get_global()?.1)
+    }
+
     pub fn get_local_config(&self, cwd: &Path) -> miette::Result<&ProtoConfig> {
         Ok(&self.get_local(cwd)?.0)
     }

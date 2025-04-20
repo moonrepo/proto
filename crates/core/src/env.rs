@@ -178,21 +178,18 @@ impl ProtoEnvironment {
         })
     }
 
-    pub fn load_lockfile(&self) -> miette::Result<Option<&ProtoLockfile>> {
+    pub fn load_lockfile(&self) -> miette::Result<&ProtoLockfile> {
         self.load_lockfile_with_mode(self.config_mode)
     }
 
-    pub fn load_lockfile_with_mode(
-        &self,
-        mode: ConfigMode,
-    ) -> miette::Result<Option<&ProtoLockfile>> {
+    pub fn load_lockfile_with_mode(&self, mode: ConfigMode) -> miette::Result<&ProtoLockfile> {
         let manager = self.load_config_manager()?;
 
-        Ok(match mode {
-            ConfigMode::Global => None,
-            ConfigMode::Local => Some(manager.get_local_lockfile(&self.working_dir)?),
-            _ => Some(manager.get_merged_lockfile()?),
-        })
+        match mode {
+            ConfigMode::Global => manager.get_global_lockfile(),
+            ConfigMode::Local => manager.get_local_lockfile(&self.working_dir),
+            _ => manager.get_merged_lockfile(),
+        }
     }
 }
 

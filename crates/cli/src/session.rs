@@ -7,8 +7,9 @@ use crate::utils::tool_record::ToolRecord;
 use async_trait::async_trait;
 use miette::IntoDiagnostic;
 use proto_core::{
-    Backend, ConfigMode, Id, ProtoConfig, ProtoEnvironment, SCHEMA_PLUGIN_KEY, ToolSpec,
-    UnresolvedVersionSpec, load_schema_plugin_with_proto, load_tool, registry::ProtoRegistry,
+    Backend, ConfigMode, Id, ProtoConfig, ProtoEnvironment, ProtoLockfile, SCHEMA_PLUGIN_KEY,
+    ToolSpec, UnresolvedVersionSpec, load_schema_plugin_with_proto, load_tool,
+    registry::ProtoRegistry,
 };
 use rustc_hash::FxHashSet;
 use semver::Version;
@@ -76,6 +77,15 @@ impl ProtoSession {
 
     pub fn load_config_with_mode(&self, mode: ConfigMode) -> miette::Result<&ProtoConfig> {
         self.env.load_config_with_mode(mode)
+    }
+
+    #[allow(dead_code)]
+    pub fn load_lockfile(&self) -> miette::Result<&ProtoLockfile> {
+        self.env.load_lockfile()
+    }
+
+    pub fn load_lockfile_with_mode(&self, mode: ConfigMode) -> miette::Result<&ProtoLockfile> {
+        self.env.load_lockfile_with_mode(mode)
     }
 
     pub async fn load_tool(&self, id: &Id, backend: Option<Backend>) -> miette::Result<ToolRecord> {

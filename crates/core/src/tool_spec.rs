@@ -139,7 +139,10 @@ impl fmt::Display for ToolSpec {
             };
         }
 
-        write!(f, "{}", self.req)
+        match &self.res {
+            Some(res) => write!(f, "{}", res),
+            None => write!(f, "{}", self.req),
+        }
     }
 }
 

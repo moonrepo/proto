@@ -5,7 +5,9 @@ use crate::utils::tool_record::ToolRecord;
 use crate::workflows::{InstallOutcome, InstallWorkflowManager, InstallWorkflowParams};
 use clap::Args;
 use iocraft::prelude::element;
-use proto_core::{ConfigMode, Id, PinLocation, Tool, ToolSpec, UnresolvedVersionSpec};
+use proto_core::{
+    ConfigMode, Id, PinLocation, Tool, ToolSpec, UnresolvedVersionSpec, detect_version,
+};
 use proto_pdk_api::InstallStrategy;
 use starbase::AppResult;
 use starbase_console::ui::*;
@@ -110,7 +112,7 @@ impl InstallArgs {
     }
 }
 
-pub fn enforce_requirements(tool: &Tool, versions: &BTreeMap<Id, ToolSpec>) -> miette::Result<()> {
+fn enforce_requirements(tool: &Tool, versions: &BTreeMap<Id, ToolSpec>) -> miette::Result<()> {
     for require_id in &tool.metadata.requires {
         if !versions.contains_key(require_id.as_str()) {
             return Err(ProtoCliError::InstallRequirementsNotMet {
@@ -122,6 +124,50 @@ pub fn enforce_requirements(tool: &Tool, versions: &BTreeMap<Id, ToolSpec>) -> m
     }
 
     Ok(())
+}
+
+async fn get_install_spec(
+    session: &ProtoSession,
+    tool: &ToolRecord,
+    detect: bool,
+) -> miette::Result<Option<ToolSpec>> {
+    // Only inherit lockfile versions from the current directory
+    let lockfile = session.load_lockfile_with_mode(ConfigMode::Local)?;
+
+    if let Some(record) = lockfile.tools.get(&tool.id) {
+        if let Some(version) = &record.version {
+            debug!(
+                "Inherited version {} from lockfile for {}",
+                version,
+                tool.get_name()
+            );
+
+            return Ok(Some(ToolSpec {
+                backend: record.backend,
+                req: version.to_unresolved_spec(),
+                res: Some(version.to_owned()),
+            }));
+        }
+    }
+
+    let detected_spec = match tool.detected_version.clone() {
+        Some(spec) => Some(spec),
+        None => {
+            if detect {
+                detect_version(tool, None).await.ok()
+            } else {
+                None
+            }
+        }
+    };
+
+    if let Some(candidate) = detected_spec {
+        debug!("Detected version {} for {}", candidate, tool.get_name());
+
+        return Ok(Some(ToolSpec::new(candidate)));
+    }
+
+    Ok(None)
 }
 
 #[instrument(skip(session))]
@@ -136,10 +182,10 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
     // otherwise fallback to "latest"
     let spec = if args.canary {
         ToolSpec::new(UnresolvedVersionSpec::Canary)
-    } else if let Some(spec) = &args.spec {
-        spec.to_owned()
-    } else if let Some((spec, _)) = tool.detect_version_from(&session.env.working_dir).await? {
-        ToolSpec::new(spec)
+    } else if let Some(spec) = args.spec.clone() {
+        spec
+    } else if let Some(spec) = get_install_spec(&session, &tool, true).await? {
+        spec
     } else {
         ToolSpec::default()
     };
@@ -247,10 +293,8 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
         .await?;
 
     for tool in &tools {
-        if let Some(candidate) = &tool.detected_version {
-            debug!("Detected version {} for {}", candidate, tool.get_name());
-
-            versions.insert(tool.id.clone(), ToolSpec::new(candidate.to_owned()));
+        if let Some(spec) = get_install_spec(&session, tool, false).await? {
+            versions.insert(tool.id.clone(), spec);
         }
     }
 
