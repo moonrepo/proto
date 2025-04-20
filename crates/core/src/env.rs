@@ -1,6 +1,5 @@
-use crate::config::{
-    ConfigMode, PROTO_CONFIG_NAME, PinLocation, ProtoConfig, ProtoConfigFile, ProtoConfigManager,
-};
+use crate::config::{ConfigMode, PROTO_CONFIG_NAME, PinLocation, ProtoConfig};
+use crate::config_manager::{ProtoConfigFile, ProtoConfigManager};
 use crate::env_error::ProtoEnvError;
 use crate::helpers::is_offline;
 use crate::layout::Store;
@@ -161,6 +160,7 @@ impl ProtoEnvironment {
             manager.files.push(ProtoConfigFile {
                 exists: path.exists(),
                 location: PinLocation::Global,
+                lockfile: None,
                 path,
                 config: ProtoConfig::load_from(&self.store.dir, true)?,
             });

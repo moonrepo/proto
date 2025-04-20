@@ -1,6 +1,7 @@
 pub mod checksum;
 mod config;
 mod config_error;
+mod config_manager;
 mod env;
 mod env_error;
 pub mod flow;
@@ -19,6 +20,7 @@ mod version_resolver;
 
 pub use config::*;
 pub use config_error::*;
+pub use config_manager::*;
 pub use env::*;
 pub use env_error::*;
 pub use helpers::*;
