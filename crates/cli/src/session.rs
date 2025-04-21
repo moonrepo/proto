@@ -8,7 +8,7 @@ use async_trait::async_trait;
 use miette::IntoDiagnostic;
 use proto_core::{
     Backend, ConfigMode, Id, ProtoConfig, ProtoEnvironment, SCHEMA_PLUGIN_KEY, ToolSpec,
-    UnresolvedVersionSpec, load_schema_plugin_with_proto, load_tool, registry::ProtoRegistry,
+    load_schema_plugin_with_proto, load_tool, registry::ProtoRegistry,
 };
 use rustc_hash::FxHashSet;
 use semver::Version;
@@ -103,13 +103,11 @@ impl ProtoSession {
         if options.detect_version {
             record.detect_version().await;
 
-            let spec = ToolSpec::new_backend(
-                record
-                    .detected_version
-                    .clone()
-                    .unwrap_or_else(|| UnresolvedVersionSpec::parse("*").unwrap()),
-                backend,
-            );
+            let mut spec = record
+                .detected_version
+                .clone()
+                .unwrap_or_else(|| ToolSpec::parse("*").unwrap());
+            spec.backend = backend;
 
             record.tool.resolve_version(&spec, false).await?;
         }

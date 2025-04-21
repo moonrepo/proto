@@ -250,7 +250,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
         if let Some(candidate) = &tool.detected_version {
             debug!("Detected version {} for {}", candidate, tool.get_name());
 
-            versions.insert(tool.id.clone(), ToolSpec::new(candidate.to_owned()));
+            versions.insert(tool.id.clone(), candidate.to_owned());
         }
     }
 

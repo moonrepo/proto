@@ -108,20 +108,7 @@ pub async fn detect_version_prefer_prototools(
 }
 
 #[instrument(skip_all)]
-pub async fn detect_version(
-    tool: &Tool,
-    forced_version: Option<UnresolvedVersionSpec>,
-) -> miette::Result<UnresolvedVersionSpec> {
-    if let Some(candidate) = forced_version {
-        debug!(
-            tool = tool.id.as_str(),
-            version = ?candidate,
-            "Using explicit version passed on the command line",
-        );
-
-        return Ok(candidate);
-    }
-
+pub async fn detect_version(tool: &Tool) -> miette::Result<ToolSpec> {
     // Env var takes highest priority
     let env_var = format!("{}_VERSION", tool.get_env_var_prefix());
 
@@ -134,14 +121,12 @@ pub async fn detect_version(
                 "Detected version from environment variable",
             );
 
-            return Ok(
-                UnresolvedVersionSpec::parse(&session_version).map_err(|error| {
-                    ProtoResolveError::InvalidVersionSpec {
-                        version: session_version,
-                        error: Box::new(error),
-                    }
-                })?,
-            );
+            return Ok(UnresolvedVersionSpec::parse(&session_version)
+                .map_err(|error| ProtoResolveError::InvalidVersionSpec {
+                    version: session_version,
+                    error: Box::new(error),
+                })?
+                .into());
         }
     }
 
@@ -167,7 +152,7 @@ pub async fn detect_version(
     };
 
     if let Some(version) = detected_version {
-        return Ok(version);
+        return Ok(version.into());
     }
 
     // We didn't find anything!
@@ -175,17 +160,4 @@ pub async fn detect_version(
         tool: tool.get_name().to_owned(),
     }
     .into())
-}
-
-#[instrument(skip_all)]
-pub async fn detect_version_with_spec(
-    tool: &Tool,
-    forced_spec: Option<ToolSpec>,
-) -> miette::Result<ToolSpec> {
-    let detected = detect_version(tool, forced_spec.clone().map(|spec| spec.req)).await?;
-
-    let mut spec = forced_spec.unwrap_or_default();
-    spec.req = detected;
-
-    Ok(spec)
 }
