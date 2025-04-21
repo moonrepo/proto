@@ -25,7 +25,7 @@ pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
         .await?;
     let spec = detect_version_with_spec(&tool, args.spec.clone()).await?;
 
-    tool.resolve_version_with_spec(&spec, true).await?;
+    tool.resolve_version(&spec, true).await?;
 
     if args.bin {
         tool.symlink_bins(true).await?;

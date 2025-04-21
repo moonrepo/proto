@@ -75,30 +75,23 @@ impl Tool {
         Ok(())
     }
 
-    pub async fn resolve_version_with_spec(
-        &mut self,
-        spec: &ToolSpec,
-        short_circuit: bool,
-    ) -> miette::Result<VersionSpec> {
-        self.resolve_backend(spec.backend).await?;
-        self.resolve_version(&spec.req, short_circuit).await
-    }
-
-    /// Given an initial version, resolve it to a fully qualifed and semantic version
+    /// Given an initial spec, resolve it to a fully qualifed and semantic version
     /// (or alias) according to the tool's ecosystem.
     #[instrument(skip(self))]
     pub async fn resolve_version(
         &mut self,
-        initial_version: &UnresolvedVersionSpec,
+        spec: &ToolSpec,
         short_circuit: bool,
     ) -> miette::Result<VersionSpec> {
         if self.version.is_some() {
             return Ok(self.get_resolved_version());
         }
 
+        self.resolve_backend(spec.backend).await?;
+
         debug!(
             tool = self.id.as_str(),
-            initial_version = initial_version.to_string(),
+            initial_version = spec.to_string(),
             "Resolving a semantic version or alias",
         );
 
@@ -107,12 +100,12 @@ impl Tool {
         // Also canary is a special type that we can simply just use.
         if short_circuit
             && matches!(
-                initial_version,
+                spec.req,
                 UnresolvedVersionSpec::Calendar(_) | UnresolvedVersionSpec::Semantic(_)
             )
-            || matches!(initial_version, UnresolvedVersionSpec::Canary)
+            || matches!(spec.req, UnresolvedVersionSpec::Canary)
         {
-            let version = initial_version.to_resolved_spec();
+            let version = spec.to_resolved_spec();
 
             debug!(
                 tool = self.id.as_str(),
@@ -126,9 +119,9 @@ impl Tool {
             return Ok(version);
         }
 
-        let resolver = self.load_version_resolver(initial_version).await?;
+        let resolver = self.load_version_resolver(&spec.req).await?;
         let version = self
-            .resolve_version_candidate(&resolver, initial_version, true)
+            .resolve_version_candidate(&resolver, &spec.req, true)
             .await?;
 
         debug!(

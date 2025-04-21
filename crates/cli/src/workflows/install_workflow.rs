@@ -95,7 +95,7 @@ impl InstallWorkflow {
         self.tool.disable_caching();
 
         // Check if already installed, or if forced, overwrite previous install
-        if !params.force && self.tool.is_setup_with_spec(&spec).await? {
+        if !params.force && self.tool.is_setup(&spec).await? {
             self.pin_version(&spec, &params.pin_to).await?;
             self.finish_progress(started);
 
@@ -165,7 +165,7 @@ impl InstallWorkflow {
         spec: &ToolSpec,
         params: &InstallWorkflowParams,
     ) -> miette::Result<Option<LockfileRecord>> {
-        self.tool.resolve_version_with_spec(spec, false).await?;
+        self.tool.resolve_version(spec, false).await?;
 
         let resolved_version = self.tool.get_resolved_version();
         let default_strategy = self.tool.metadata.default_install_strategy;
@@ -236,7 +236,7 @@ impl InstallWorkflow {
         });
 
         self.tool
-            .setup_with_spec(
+            .setup(
                 spec,
                 InstallOptions {
                     console: Some(self.console.clone()),

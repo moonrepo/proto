@@ -291,7 +291,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
     };
 
     // Check if installed or need to install
-    if tool.is_setup_with_spec(&spec).await? {
+    if tool.is_setup(&spec).await? {
         if tool.id == PROTO_PLUGIN_KEY {
             use_global_proto = false;
         }

@@ -2,7 +2,7 @@ use crate::error::ProtoCliError;
 use crate::session::{LoadToolOptions, ProtoSession};
 use clap::Args;
 use iocraft::prelude::{Size, element};
-use proto_core::{Id, UnresolvedVersionSpec, VersionSpec};
+use proto_core::{Id, ToolSpec, UnresolvedVersionSpec, VersionSpec};
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;
@@ -47,10 +47,11 @@ pub async fn status(session: ProtoSession, _args: StatusArgs) -> AppResult {
         );
 
         let item = items.entry(tool.id.clone()).or_default();
+        let spec = ToolSpec::new(config_version.clone());
 
         // Resolve a version based on the configured spec, and ignore errors
         // as they indicate a version could not be resolved!
-        if let Ok(version) = tool.resolve_version(&config_version, false).await {
+        if let Ok(version) = tool.resolve_version(&spec, false).await {
             if !version.is_latest() {
                 if tool.is_installed() {
                     item.is_installed = true;

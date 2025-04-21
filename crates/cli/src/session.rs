@@ -111,7 +111,7 @@ impl ProtoSession {
                 backend,
             );
 
-            record.tool.resolve_version_with_spec(&spec, false).await?;
+            record.tool.resolve_version(&spec, false).await?;
         }
 
         Ok(record)
