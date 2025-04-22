@@ -2,6 +2,7 @@ pub use super::detect_error::ProtoDetectError;
 use super::resolve_error::ProtoResolveError;
 use crate::config::{DetectStrategy, PROTO_CONFIG_NAME, ProtoConfigFile};
 use crate::tool::Tool;
+use crate::tool_spec::ToolSpec;
 use proto_pdk_api::*;
 use starbase_utils::fs;
 use std::env;
@@ -111,10 +112,7 @@ pub async fn detect_version_prefer_prototools(
 
 impl Tool {
     #[instrument(skip(self))]
-    pub async fn detect_version(
-        &self,
-        current_dir: &Path,
-    ) -> miette::Result<Option<UnresolvedVersionSpec>> {
+    pub async fn detect_version(&self) -> miette::Result<ToolSpec> {
         // Env var takes highest priority
         let env_var = format!("{}_VERSION", self.get_env_var_prefix());
 

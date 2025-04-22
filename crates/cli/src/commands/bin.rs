@@ -1,6 +1,6 @@
 use crate::session::ProtoSession;
 use clap::Args;
-use proto_core::{Id, ToolSpec, detect_version};
+use proto_core::{Id, ToolSpec};
 use starbase::AppResult;
 
 #[derive(Args, Clone, Debug)]
@@ -26,7 +26,7 @@ pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
 
     let spec = match args.spec.clone() {
         Some(spec) => spec,
-        None => detect_version(&tool).await?,
+        None => tool.detect_version().await?,
     };
 
     tool.resolve_version(&spec, true).await?;

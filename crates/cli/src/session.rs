@@ -101,7 +101,7 @@ impl ProtoSession {
         }
 
         if options.detect_version {
-            record.detect_version().await;
+            record.detect_version_and_source().await;
 
             let mut spec = record
                 .detected_version
@@ -175,7 +175,7 @@ impl ProtoSession {
                 }
 
                 if opt_detect_version {
-                    record.detect_version().await;
+                    record.detect_version_and_source().await;
                 }
 
                 Ok(record)

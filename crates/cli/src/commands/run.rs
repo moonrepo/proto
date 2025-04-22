@@ -3,9 +3,7 @@ use crate::error::ProtoCliError;
 use crate::session::ProtoSession;
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::{
-    Id, PROTO_PLUGIN_KEY, ProtoEnvironment, ProtoToolError, Tool, ToolSpec, detect_version,
-};
+use proto_core::{Id, PROTO_PLUGIN_KEY, ProtoEnvironment, ProtoToolError, Tool, ToolSpec};
 use proto_pdk_api::{ExecutableConfig, RunHook, RunHookResult};
 use proto_shim::{exec_command_and_replace, locate_proto_exe};
 use starbase::AppResult;
@@ -290,7 +288,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
     } else if let Some(spec) = args.spec.clone() {
         spec
     } else {
-        detect_version(&tool).await?
+        tool.detect_version().await?
     };
 
     // Check if installed or need to install
