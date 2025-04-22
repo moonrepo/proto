@@ -4,10 +4,8 @@ use crate::tool::Tool;
 use crate::tool_spec::{Backend, ToolSpec};
 use crate::version_resolver::VersionResolver;
 use proto_pdk_api::*;
-use starbase_utils::fs;
 use std::env;
-use std::path::{Path, PathBuf};
-use tracing::{debug, instrument, trace};
+use tracing::{debug, instrument};
 
 impl Tool {
     /// Load available versions to install and return a resolver instance.
@@ -190,95 +188,5 @@ impl Tool {
         }
 
         Ok(resolve(initial_candidate)?)
-    }
-
-    /// Attempt to detect an applicable version from the provided directory.
-    #[instrument(skip(self))]
-    pub async fn detect_version_from(
-        &self,
-        current_dir: &Path,
-    ) -> miette::Result<Option<(UnresolvedVersionSpec, PathBuf)>> {
-        if !self.plugin.has_func("detect_version_files").await {
-            return Ok(None);
-        }
-
-        let has_parser = self.plugin.has_func("parse_version_file").await;
-        let output: DetectVersionOutput = self
-            .plugin
-            .cache_func_with(
-                "detect_version_files",
-                DetectVersionInput {
-                    context: self.create_unresolved_context(),
-                },
-            )
-            .await?;
-
-        if !output.ignore.is_empty() {
-            if let Some(dir) = current_dir.to_str() {
-                if output.ignore.iter().any(|ignore| dir.contains(ignore)) {
-                    return Ok(None);
-                }
-            }
-        }
-
-        trace!(
-            tool = self.id.as_str(),
-            dir = ?current_dir,
-            "Attempting to detect a version from directory"
-        );
-
-        for file in output.files {
-            let file_path = current_dir.join(&file);
-
-            if !file_path.exists() {
-                continue;
-            }
-
-            let content = fs::read_file(&file_path)?.trim().to_owned();
-
-            if content.is_empty() {
-                continue;
-            }
-
-            let version = if has_parser {
-                let output: ParseVersionFileOutput = self
-                    .plugin
-                    .call_func_with(
-                        "parse_version_file",
-                        ParseVersionFileInput {
-                            content,
-                            context: self.create_unresolved_context(),
-                            file: file.clone(),
-                            path: self.to_virtual_path(&file_path),
-                        },
-                    )
-                    .await?;
-
-                if output.version.is_none() {
-                    continue;
-                }
-
-                output.version.unwrap()
-            } else {
-                UnresolvedVersionSpec::parse(&content).map_err(|error| {
-                    ProtoResolveError::InvalidDetectedVersionSpec {
-                        error: Box::new(error),
-                        path: file_path.clone(),
-                        version: content,
-                    }
-                })?
-            };
-
-            debug!(
-                tool = self.id.as_str(),
-                file = ?file_path,
-                version = version.to_string(),
-                "Detected a version"
-            );
-
-            return Ok(Some((version, file_path)));
-        }
-
-        Ok(None)
     }
 }
