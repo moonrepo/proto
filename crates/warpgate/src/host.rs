@@ -277,6 +277,10 @@ fn send_request(
     let response = Handle::current().block_on(async {
         let mut client = data.http_client.get(&input.url);
 
+        for (name, value) in input.headers {
+            client = client.header(name, value);
+        }
+
         if let Some(timeout) = plugin.time_remaining() {
             client = client.timeout(timeout);
         }

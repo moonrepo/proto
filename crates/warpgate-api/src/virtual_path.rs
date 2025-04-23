@@ -51,7 +51,13 @@ pub enum VirtualPath {
     /// A virtual path with prefixes to determine a real path.
     Virtual {
         path: PathBuf,
+
+        // Rename the field to greatly reduce the size of the JSON,
+        // but support an alias for legacy plugins using the old format
+        #[serde(rename = "vp", alias = "virtual_prefix")]
         virtual_prefix: PathBuf,
+
+        #[serde(rename = "rp", alias = "real_prefix")]
         real_prefix: PathBuf,
     },
 
