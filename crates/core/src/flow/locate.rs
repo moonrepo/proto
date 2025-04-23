@@ -31,7 +31,7 @@ impl Tool {
                 "locate_executables",
                 LocateExecutablesInput {
                     context: self.create_context(),
-                    install_dir: self.to_virtual_path(&self.get_product_dir()),
+                    install_dir: self.to_virtual_path(self.get_product_dir()),
                 },
             )
             .await
@@ -132,7 +132,7 @@ impl Tool {
                     "locate_executables",
                     LocateExecutablesInput {
                         context: self.create_context(),
-                        install_dir: self.to_virtual_path(&self.get_product_dir()),
+                        install_dir: self.to_virtual_path(self.get_product_dir()),
                     },
                 )
                 .await?;

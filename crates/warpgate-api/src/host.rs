@@ -1,6 +1,5 @@
 use crate::api_struct;
 use crate::virtual_path::VirtualPath;
-use std::path::PathBuf;
 
 pub use system_env::{SystemArch as HostArch, SystemLibc as HostLibc, SystemOS as HostOS};
 
@@ -18,6 +17,6 @@ api_struct!(
     /// Information about the current testing environment.
     pub struct TestEnvironment {
         pub ci: bool,
-        pub sandbox: PathBuf,
+        pub sandbox: VirtualPath,
     }
 );
