@@ -52,10 +52,10 @@ pub enum VirtualPath {
     Virtual {
         path: PathBuf,
 
-        #[serde(rename(deserialize = "v"), alias = "v")]
+        #[serde(alias = "v")]
         virtual_prefix: PathBuf,
 
-        #[serde(rename(deserialize = "r"), alias = "r")]
+        #[serde(alias = "r")]
         real_prefix: PathBuf,
     },
 
