@@ -145,7 +145,7 @@ api_struct!(
         pub url: String,
 
         /// HTTP headers to inject into the request.
-        #[serde(skip_serializing_if = "FxHashMap::is_empty")]
+        #[serde(default, skip_serializing_if = "FxHashMap::is_empty")]
         pub headers: FxHashMap<String, String>,
     }
 );

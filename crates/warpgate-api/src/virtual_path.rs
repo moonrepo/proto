@@ -52,12 +52,10 @@ pub enum VirtualPath {
     Virtual {
         path: PathBuf,
 
-        // Rename the field to greatly reduce the size of the JSON,
-        // but support an alias for legacy plugins using the old format
-        #[serde(rename = "vp", alias = "virtual_prefix")]
+        #[serde(rename(deserialize = "v"))]
         virtual_prefix: PathBuf,
 
-        #[serde(rename = "rp", alias = "real_prefix")]
+        #[serde(rename(deserialize = "r"))]
         real_prefix: PathBuf,
     },
 
