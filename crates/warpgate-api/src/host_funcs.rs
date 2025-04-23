@@ -151,6 +151,10 @@ api_struct!(
     pub struct SendRequestInput {
         /// The URL to send to.
         pub url: String,
+
+        /// HTTP headers to inject into the request.
+        #[serde(default, skip_serializing_if = "FxHashMap::is_empty")]
+        pub headers: FxHashMap<String, String>,
     }
 );
 
@@ -159,6 +163,7 @@ impl SendRequestInput {
     pub fn new(url: impl AsRef<str>) -> Self {
         Self {
             url: url.as_ref().to_owned(),
+            ..Default::default()
         }
     }
 }

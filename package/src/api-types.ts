@@ -69,7 +69,7 @@ export interface HostEnvironment {
 /** Information about the current testing environment. */
 export interface TestEnvironment {
 	ci: boolean;
-	sandbox: string;
+	sandbox: VirtualPath;
 }
 
 export type PluginLocator = string;
@@ -244,8 +244,12 @@ export interface NativeInstallInput {
 	installDir: VirtualPath;
 }
 
+export type Checksum = string;
+
 /** Output returned by the `native_install` function. */
 export interface NativeInstallOutput {
+	/** A checksum/hash that was generated. */
+	checksum?: Checksum | null;
 	/** Error message if the install failed. */
 	error?: string | null;
 	/** Whether the install was successful. */
@@ -288,7 +292,7 @@ export interface DownloadPrebuiltOutput {
 	 */
 	archivePrefix?: string | null;
 	/** The checksum hash itself. */
-	checksum?: string | null;
+	checksum?: Checksum | null;
 	/**
 	 * File name of the checksum to download. If not provided,
 	 * will attempt to extract it from the URL.
@@ -326,12 +330,19 @@ export interface VerifyChecksumInput {
 	checksumFile: VirtualPath;
 	/** Current tool context. */
 	context: ToolContext;
+	/**
+	 * A checksum of the downloaded file. The type of hash
+	 * is derived from the checksum file's extension, otherwise
+	 * it defaults to SHA256.
+	 */
+	downloadChecksum?: Checksum | null;
 	/** Virtual path to the downloaded file. */
 	downloadFile: VirtualPath;
 }
 
 /** Output returned by the `verify_checksum` function. */
 export interface VerifyChecksumOutput {
+	/** Was the checksum correct? */
 	verified: boolean;
 }
 
