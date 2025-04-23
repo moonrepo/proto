@@ -40,7 +40,7 @@ impl FileLocator {
 /// A GitHub release locator.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct GitHubLocator {
-    /// Organization and repository slug: `owner/repo`.
+    /// Owner/org and repository name: `owner/repo`.
     pub repo_slug: String,
 
     /// Explicit release tag to use. Defaults to `latest`.

@@ -2581,7 +2581,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.47.16"
+version = "0.48.2"
 dependencies = [
  "convert_case",
  "dotenvy",
@@ -2618,7 +2618,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.28.4"
+version = "0.28.7"
 dependencies = [
  "extism-pdk",
  "proto_pdk_api",
@@ -2629,7 +2629,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.27.6"
+version = "0.27.10"
 dependencies = [
  "rustc-hash",
  "schematic",
@@ -2644,7 +2644,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.35.6"
+version = "0.36.2"
 dependencies = [
  "extism",
  "proto_core",
@@ -2657,7 +2657,7 @@ dependencies = [
 
 [[package]]
 name = "proto_shim"
-version = "0.7.2"
+version = "0.7.3"
 dependencies = [
  "dirs 6.0.0",
  "windows-sys 0.59.0",

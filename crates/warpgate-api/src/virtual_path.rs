@@ -1,33 +1,83 @@
 use serde::{Deserialize, Serialize};
+use std::ffi::OsStr;
 use std::fmt;
-use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
+
+#[macro_export]
+macro_rules! inherit_methods {
+    (comparator, [$($method:ident),+ $(,)?]) => {
+        $(
+            #[doc = concat!("Inherited from [`PathBuf.", stringify!($method), "`].")]
+            pub fn $method(&self, value: impl AsRef<Path>) -> bool {
+                self.any_path().$method(value)
+            }
+        )*
+    };
+    (getter, [$($method:ident),+ $(,)?]) => {
+        $(
+            #[doc = concat!("Inherited from [`PathBuf.", stringify!($method), "`].")]
+            pub fn $method(&self) -> Option<&OsStr> {
+                self.any_path().$method()
+            }
+        )*
+    };
+    (setter, [$($method:ident),+ $(,)?]) => {
+        $(
+            #[doc = concat!("Inherited from [`PathBuf.", stringify!($method), "`].")]
+            pub fn $method(&mut self, value: impl AsRef<OsStr>) {
+                let path = match self {
+                    Self::Real(base) => base,
+                    Self::Virtual { path: base, .. } => base,
+                };
+
+                path.$method(value);
+            }
+        )*
+    };
+    ([$($method:ident),+ $(,)?]) => {
+        $(
+            #[doc = concat!("Inherited from [`PathBuf.", stringify!($method), "`].")]
+            pub fn $method(&self) -> bool {
+                self.any_path().$method()
+            }
+        )*
+    };
+}
 
 /// A container for WASI virtual paths that can also keep a reference to the original real path.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum VirtualPath {
     /// A virtual path with prefixes to determine a real path.
-    WithReal {
+    Virtual {
         path: PathBuf,
+
+        #[serde(alias = "v")]
         virtual_prefix: PathBuf,
+
+        #[serde(alias = "r")]
         real_prefix: PathBuf,
     },
 
     /// Only a real path. Could not be matched with a virtual prefix.
-    OnlyReal(PathBuf),
+    Real(PathBuf),
 }
 
 impl VirtualPath {
+    inherit_methods!([exists, has_root, is_absolute, is_dir, is_file, is_relative]);
+    inherit_methods!(getter, [extension, file_name, file_stem]);
+    inherit_methods!(setter, [set_extension, set_file_name]);
+    inherit_methods!(comparator, [ends_with, starts_with]);
+
     /// Append the path part and return a new [`VirtualPath`] instance.
     pub fn join<P: AsRef<Path>>(&self, path: P) -> VirtualPath {
         match self {
-            Self::OnlyReal(base) => Self::OnlyReal(base.join(path.as_ref())),
-            Self::WithReal {
+            Self::Real(base) => Self::Real(base.join(path.as_ref())),
+            Self::Virtual {
                 path: base,
                 virtual_prefix,
                 real_prefix,
-            } => Self::WithReal {
+            } => Self::Virtual {
                 path: base.join(path.as_ref()),
                 virtual_prefix: virtual_prefix.clone(),
                 real_prefix: real_prefix.clone(),
@@ -36,57 +86,54 @@ impl VirtualPath {
     }
 
     /// Return the parent directory as a new [`VirtualPath`] instance.
-    /// If the root is traversed to, a `/` will always be returned instead
-    /// of returning a [`None`] value.
-    pub fn parent(&self) -> VirtualPath {
+    pub fn parent(&self) -> Option<VirtualPath> {
         match self {
-            Self::OnlyReal(base) => Self::OnlyReal(base.parent().unwrap_or(base).to_path_buf()),
-            Self::WithReal {
+            Self::Real(base) => base.parent().map(|parent| Self::Real(parent.to_owned())),
+            Self::Virtual {
                 path: base,
                 virtual_prefix,
                 real_prefix,
-            } => Self::WithReal {
-                path: match base.parent() {
-                    Some(parent) => parent.to_owned(),
-                    None => PathBuf::from("/"),
-                },
+            } => base.parent().map(|parent| Self::Virtual {
+                path: parent.to_owned(),
                 virtual_prefix: virtual_prefix.clone(),
                 real_prefix: real_prefix.clone(),
-            },
+            }),
         }
     }
 
     /// Return any path available, either virtual or real, regardless of any
     /// conditions. This is primarily used for debugging.
-    pub fn any_path(&self) -> &Path {
+    pub fn any_path(&self) -> &PathBuf {
         match self {
-            Self::OnlyReal(path) => path,
-            Self::WithReal { path, .. } => path,
+            Self::Real(path) => path,
+            Self::Virtual { path, .. } => path,
         }
     }
 
     /// Return the original real path. If we don't have access to prefixes,
     /// or removing prefix fails, or the real path doesn't exist, returns `None`.
     pub fn real_path(&self) -> Option<PathBuf> {
-        match self {
-            Self::OnlyReal(path) => {
-                if path.is_absolute() && path.exists() {
-                    Some(path.to_owned())
-                } else {
-                    None
-                }
-            }
-            Self::WithReal { real_prefix, .. } => {
+        let path = match self {
+            Self::Real(path) => Some(path.to_path_buf()),
+            Self::Virtual { real_prefix, .. } => {
                 self.without_prefix().map(|path| real_prefix.join(path))
             }
-        }
+        };
+
+        path.and_then(|path| {
+            if path.is_absolute() && path.exists() {
+                Some(path.to_owned())
+            } else {
+                None
+            }
+        })
     }
 
     /// Return the virtual path. If a real path only, returns `None`.
     pub fn virtual_path(&self) -> Option<PathBuf> {
         match self {
-            Self::OnlyReal(_) => None,
-            Self::WithReal { path, .. } => Some(path.to_owned()),
+            Self::Real(_) => None,
+            Self::Virtual { path, .. } => Some(path.to_owned()),
         }
     }
 
@@ -94,8 +141,8 @@ impl VirtualPath {
     /// If we don't have access to prefixes, returns `None`.
     pub fn without_prefix(&self) -> Option<&Path> {
         match self {
-            Self::OnlyReal(_) => None,
-            Self::WithReal {
+            Self::Real(_) => None,
+            Self::Virtual {
                 path,
                 virtual_prefix,
                 ..
@@ -121,27 +168,7 @@ impl schematic::Schematic for VirtualPath {
 
 impl Default for VirtualPath {
     fn default() -> Self {
-        Self::OnlyReal(PathBuf::new())
-    }
-}
-
-impl Deref for VirtualPath {
-    type Target = PathBuf;
-
-    fn deref(&self) -> &Self::Target {
-        match self {
-            Self::OnlyReal(path) => path,
-            Self::WithReal { path, .. } => path,
-        }
-    }
-}
-
-impl DerefMut for VirtualPath {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        match self {
-            Self::OnlyReal(path) => path,
-            Self::WithReal { path, .. } => path,
-        }
+        Self::Real(PathBuf::new())
     }
 }
 
@@ -154,6 +181,12 @@ impl fmt::Display for VirtualPath {
 impl AsRef<VirtualPath> for VirtualPath {
     fn as_ref(&self) -> &VirtualPath {
         self
+    }
+}
+
+impl AsRef<PathBuf> for VirtualPath {
+    fn as_ref(&self) -> &PathBuf {
+        self.any_path()
     }
 }
 

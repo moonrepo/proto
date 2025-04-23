@@ -169,12 +169,12 @@ pub fn to_virtual_path(
             virtual_path = PathBuf::from(virtual_path.to_string_lossy().replace('\\', "/"));
         }
 
-        return VirtualPath::WithReal {
+        return VirtualPath::Virtual {
             path: virtual_path,
             virtual_prefix: guest_path.to_path_buf(),
             real_prefix: host_path.to_path_buf(),
         };
     }
 
-    VirtualPath::OnlyReal(path.to_owned())
+    VirtualPath::Real(path.to_owned())
 }

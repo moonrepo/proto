@@ -10,7 +10,7 @@ use schematic::ConfigEnum;
 use starbase_styles::color;
 use starbase_utils::fs;
 use std::collections::{BTreeMap, BTreeSet};
-use std::fmt;
+use std::fmt::{self, Debug};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
@@ -196,12 +196,12 @@ impl Tool {
     }
 
     /// Convert a virtual path to a real path.
-    pub fn from_virtual_path(&self, path: &Path) -> PathBuf {
+    pub fn from_virtual_path(&self, path: impl AsRef<Path> + Debug) -> PathBuf {
         self.plugin.from_virtual_path(path)
     }
 
     /// Convert a real path to a virtual path.
-    pub fn to_virtual_path(&self, path: &Path) -> VirtualPath {
+    pub fn to_virtual_path(&self, path: impl AsRef<Path> + Debug) -> VirtualPath {
         self.plugin.to_virtual_path(path)
     }
 }
@@ -213,8 +213,8 @@ impl Tool {
     pub fn create_context(&self) -> ToolContext {
         ToolContext {
             proto_version: Some(get_proto_version().to_owned()),
-            temp_dir: self.to_virtual_path(&self.get_temp_dir()),
-            tool_dir: self.to_virtual_path(&self.get_product_dir()),
+            temp_dir: self.to_virtual_path(self.get_temp_dir()),
+            tool_dir: self.to_virtual_path(self.get_product_dir()),
             version: self.get_resolved_version(),
         }
     }
