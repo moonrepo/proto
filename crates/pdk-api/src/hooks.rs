@@ -10,11 +10,17 @@ api_struct!(
         /// Current tool context.
         pub context: ToolContext,
 
+        /// Whether the install was forced or not.
+        pub forced: bool,
+
         /// Arguments passed after `--` that was directly passed to the tool's binary.
         pub passthrough_args: Vec<String>,
 
-        /// Whether the resolved version was pinned
+        /// Whether the resolved version was pinned.
         pub pinned: bool,
+
+        /// Hide install output.
+        pub quiet: bool,
     }
 );
 

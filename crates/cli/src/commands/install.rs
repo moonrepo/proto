@@ -182,6 +182,7 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
                 force: args.force,
                 multiple: false,
                 passthrough_args: args.passthrough,
+                quiet: args.quiet,
                 skip_prompts: session.should_skip_prompts(),
             },
         )
@@ -353,6 +354,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
                         pin_to,
                         skip_prompts,
                         strategy,
+                        quiet: args.quiet,
                     },
                 )
                 .await

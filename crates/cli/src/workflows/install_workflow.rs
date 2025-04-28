@@ -37,6 +37,7 @@ pub struct InstallWorkflowParams {
     pub multiple: bool,
     pub passthrough_args: Vec<String>,
     pub pin_to: Option<PinLocation>,
+    pub quiet: bool,
     pub skip_prompts: bool,
     pub strategy: Option<InstallStrategy>,
 }
@@ -150,8 +151,10 @@ impl InstallWorkflow {
                     "pre_install",
                     InstallHook {
                         context: tool.create_context(),
+                        forced: params.force,
                         passthrough_args: params.passthrough_args.clone(),
                         pinned: params.pin_to.is_some(),
+                        quiet: params.quiet,
                     },
                 )
                 .await?;
@@ -262,8 +265,10 @@ impl InstallWorkflow {
                     "post_install",
                     InstallHook {
                         context: tool.create_context(),
+                        forced: params.force,
                         passthrough_args: params.passthrough_args.clone(),
                         pinned: params.pin_to.is_some(),
+                        quiet: params.quiet,
                     },
                 )
                 .await?;
