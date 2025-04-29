@@ -20,7 +20,12 @@
 #### 🚀 Updates
 
 - WASM API
+  - Added `HostEnvironment.ci` field.
   - Added `InstallHook.forced` and `quiet` fields.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
 
 ## 0.48.0
 

@@ -1,5 +1,5 @@
 use serde::Serialize;
-use starbase_utils::env::path_var;
+use starbase_utils::env::{is_ci, path_var};
 use std::collections::HashMap;
 use std::env;
 use std::path::{Path, PathBuf};
@@ -118,6 +118,7 @@ impl ConfigBuilder {
     pub fn host(&mut self, os: HostOS, arch: HostArch) -> &mut Self {
         self.host_environment(HostEnvironment {
             arch,
+            ci: is_ci(),
             libc: HostLibc::detect(os),
             os,
             home_dir: VirtualPath::default(),
