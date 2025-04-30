@@ -8,6 +8,7 @@ api_struct!(
     /// Information about the host environment (the current runtime).
     pub struct HostEnvironment {
         pub arch: HostArch,
+        pub ci: bool,
         pub libc: HostLibc,
         pub os: HostOS,
         pub home_dir: VirtualPath,

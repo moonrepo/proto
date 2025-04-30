@@ -21,13 +21,10 @@ api_unit_enum!(
 
 api_struct!(
     /// Input passed to the `host_log` host function.
+    #[serde(default)]
     pub struct HostLogInput {
-        #[serde(default)]
         pub data: FxHashMap<String, serde_json::Value>,
-
         pub message: String,
-
-        #[serde(default)]
         pub target: HostLogTarget,
     }
 );
@@ -58,7 +55,8 @@ api_struct!(
     /// Input passed to the `exec_command` host function.
     #[serde(default)]
     pub struct ExecCommandInput {
-        /// The command or script to execute.
+        /// The command or script to execute. Accepts an executable
+        /// on `PATH` or a virtual path.
         pub command: String,
 
         /// Arguments to pass to the command.
@@ -83,6 +81,18 @@ api_struct!(
 );
 
 impl ExecCommandInput {
+    /// Create a new command that inherits and streams the output.
+    pub fn new<C, I, V>(command: C, args: I) -> ExecCommandInput
+    where
+        C: AsRef<str>,
+        I: IntoIterator<Item = V>,
+        V: AsRef<str>,
+    {
+        let mut input = Self::pipe(command, args);
+        input.stream = true;
+        input
+    }
+
     /// Create a new command that pipes and captures the output.
     pub fn pipe<C, I, V>(command: C, args: I) -> ExecCommandInput
     where
@@ -104,9 +114,7 @@ impl ExecCommandInput {
         I: IntoIterator<Item = V>,
         V: AsRef<str>,
     {
-        let mut input = Self::pipe(command, args);
-        input.stream = true;
-        input
+        Self::new(command, args)
     }
 }
 

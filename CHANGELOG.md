@@ -15,6 +15,23 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- WASM API
+  - Added `HostEnvironment.ci` field.
+  - Added `InstallHook.forced` and `quiet` fields.
+
+#### 🧩 Plugins
+
+- Updated `node_tool` to v0.16.2.
+  - Fixed `bundled-npm` install not respecting `--force` and `--quiet` args.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.48.0
 
 #### 🚀 Updates

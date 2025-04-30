@@ -7,6 +7,7 @@ use miette::IntoDiagnostic;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use starbase_styles::{apply_style_tags, color};
+use starbase_utils::env::is_ci;
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
@@ -52,6 +53,7 @@ pub fn inject_default_manifest_config(
     let os = SystemOS::from_env();
     let env = serde_json::to_string(&HostEnvironment {
         arch: SystemArch::from_env(),
+        ci: is_ci(),
         libc: SystemLibc::detect(os),
         os,
         home_dir: to_virtual_path(

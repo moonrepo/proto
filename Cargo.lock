@@ -311,12 +311,11 @@ checksum = "d71b6127be86fdcfddb610f7182ac57211d4b18a3e9c82eb2d17662f2227ad6a"
 
 [[package]]
 name = "bzip2"
-version = "0.4.4"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bdb116a6ef3f6c3698828873ad02c3014b3c85cadb88496095628e3ef1e347f8"
+checksum = "49ecfb22d906f800d4fe833b6282cf4dc1c298f5057ca0b5445e5c209735ca47"
 dependencies = [
  "bzip2-sys",
- "libc",
 ]
 
 [[package]]
@@ -515,9 +514,9 @@ dependencies = [
 
 [[package]]
 name = "clap_complete"
-version = "4.5.47"
+version = "4.5.48"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c06f5378ea264ad4f82bbc826628b5aad714a75abf6ece087e923010eb937fb6"
+checksum = "be8c97f3a6f02b9e24cadc12aaba75201d18754b53ea0a9d99642f806ccdb4c9"
 dependencies = [
  "clap",
 ]
@@ -1978,14 +1977,12 @@ dependencies = [
 
 [[package]]
 name = "insta"
-version = "1.42.2"
+version = "1.43.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50259abbaa67d11d2bcafc7ba1d094ed7a0c70e3ce893f0d0997f73558cb3084"
+checksum = "ab2d11b2f17a45095b8c3603928ba29d7d918d7129d0d0641a36ba73cf07daa6"
 dependencies = [
  "console",
- "linked-hash-map",
  "once_cell",
- "pin-project",
  "similar",
 ]
 
@@ -2007,9 +2004,9 @@ checksum = "06432fb54d3be7964ecd3649233cddf80db2832f47fec34c01f65b3d9d774983"
 
 [[package]]
 name = "iocraft"
-version = "0.7.6"
+version = "0.7.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "185f4f41d92340cdd202bcdd1a7e8c3b4ea06880114db642ed1a96a0d84b4ec1"
+checksum = "8bf8193e6d644dda2ec6ea2e7fa0a88e73f7cbb32bc3123b278d6457bc08e609"
 dependencies = [
  "any_key",
  "bitflags",
@@ -2018,7 +2015,6 @@ dependencies = [
  "generational-box",
  "iocraft-macros",
  "taffy",
- "textwrap",
  "unicode-width 0.1.14",
 ]
 
@@ -2218,12 +2214,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "linked-hash-map"
-version = "0.5.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0717cef1bc8b636c6e1c1bbdefc09e6322da8a9321966e8928ef80d20f7f770f"
-
-[[package]]
 name = "linux-raw-sys"
 version = "0.4.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2362,21 +2352,20 @@ dependencies = [
 
 [[package]]
 name = "miette"
-version = "7.5.0"
+version = "7.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a955165f87b37fd1862df2a59547ac542c77ef6d17c666f619d1ad22dd89484"
+checksum = "5f98efec8807c63c752b5bd61f862c165c115b0a35685bdcfd9238c7aeb592b7"
 dependencies = [
  "backtrace",
  "backtrace-ext",
  "cfg-if",
- "miette-derive 7.5.0",
+ "miette-derive 7.6.0",
  "owo-colors",
  "supports-color",
  "supports-hyperlinks",
  "supports-unicode",
  "terminal_size",
  "textwrap",
- "thiserror 1.0.69",
  "unicode-width 0.1.14",
 ]
 
@@ -2393,9 +2382,9 @@ dependencies = [
 
 [[package]]
 name = "miette-derive"
-version = "7.5.0"
+version = "7.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf45bf44ab49be92fd1227a3be6fc6f617f1a337c06af54981048574d8783147"
+checksum = "db5b29714e950dbb20d5e6f74f9dcec4edbcc1067bb7f8ed198c097b8c1a818b"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2593,26 +2582,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3148f5046208a5d56bcfc03053e3ca6334e51da8dfb19b6cdc8b306fae3283e"
 
 [[package]]
-name = "pin-project"
-version = "1.1.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "677f1add503faace112b9f1373e43e9e054bfdd22ff1a63c1bc485eaec6a6a8a"
-dependencies = [
- "pin-project-internal",
-]
-
-[[package]]
-name = "pin-project-internal"
-version = "1.1.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e918e4ff8c4549eb882f14b3a4bc8c8bc93de829416eacf579f1207a8fbf861"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "pin-project-lite"
 version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2772,7 +2741,7 @@ dependencies = [
  "extism",
  "indexmap",
  "iocraft",
- "miette 7.5.0",
+ "miette 7.6.0",
  "proto_core",
  "proto_installer",
  "proto_pdk_api",
@@ -2822,7 +2791,7 @@ dependencies = [
  "dotenvy",
  "indexmap",
  "iocraft",
- "miette 7.5.0",
+ "miette 7.6.0",
  "minisign-verify",
  "once_cell",
  "proto_pdk_api",
@@ -2856,7 +2825,7 @@ dependencies = [
 name = "proto_installer"
 version = "0.12.4"
 dependencies = [
- "miette 7.5.0",
+ "miette 7.6.0",
  "reqwest",
  "starbase_archive",
  "starbase_styles",
@@ -2868,7 +2837,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.28.7"
+version = "0.28.8"
 dependencies = [
  "extism-pdk",
  "proto_pdk_api",
@@ -2879,7 +2848,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.27.10"
+version = "0.27.11"
 dependencies = [
  "proto_pdk_api",
  "rustc-hash",
@@ -3492,7 +3461,7 @@ dependencies = [
  "garde",
  "indexmap",
  "markdown",
- "miette 7.5.0",
+ "miette 7.6.0",
  "schemars",
  "schematic_macros",
  "schematic_types",
@@ -3818,12 +3787,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "smawk"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b7c388c1b5e93756d0c740965c41e8822f866621d41acbdf6336a6a168f8840c"
-
-[[package]]
 name = "socket2"
 version = "0.5.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3864,13 +3827,13 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "starbase"
-version = "0.10.2"
+version = "0.10.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3e88836ebb24bde8f9e63fe6b955ca3e324325de3ee936cca0b4b089bcbf287"
+checksum = "9baa4344fdcd13641a2759524366b1391017ab687af4d75b3f6227c475b1ad2c"
 dependencies = [
  "async-trait",
  "chrono",
- "miette 7.5.0",
+ "miette 7.6.0",
  "starbase_styles",
  "tokio",
  "tracing",
@@ -3880,14 +3843,14 @@ dependencies = [
 
 [[package]]
 name = "starbase_archive"
-version = "0.10.3"
+version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1556978037d67428ba5003433729e4f32cb41eb260d6e1ee99724f1d74267739"
+checksum = "e823b2cad7f9a3c1961509def9467fb60be8f888543e43bfb0639684e73cfdb3"
 dependencies = [
  "binstall-tar",
  "bzip2",
  "flate2",
- "miette 7.5.0",
+ "miette 7.6.0",
  "rustc-hash",
  "starbase_styles",
  "starbase_utils",
@@ -3900,13 +3863,13 @@ dependencies = [
 
 [[package]]
 name = "starbase_console"
-version = "0.6.7"
+version = "0.6.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f96a428bb014a9f2320b001da5f75ce2ef45d336d333411431d581c009c74fb"
+checksum = "44f588690467402e638e7fe40df8e1ddbf67408ec501df1e181daff7bfb0fd0d"
 dependencies = [
  "crossterm",
  "iocraft",
- "miette 7.5.0",
+ "miette 7.6.0",
  "parking_lot",
  "starbase_styles",
  "thiserror 2.0.12",
@@ -3916,9 +3879,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_sandbox"
-version = "0.9.1"
+version = "0.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "07d5d0b317e6e9370c675acf5273a1af884c86b8310a1ea50d52aebef62ddd94"
+checksum = "23540641386a29737c8516b042c3d00706c182e5179297bf0c01315009b3ea40"
 dependencies = [
  "assert_cmd",
  "assert_fs",
@@ -3931,11 +3894,11 @@ dependencies = [
 
 [[package]]
 name = "starbase_shell"
-version = "0.7.3"
+version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "55eea0c752835b845e203e18b82933d2f38b0af059188a378fd3184ca82437dd"
+checksum = "b33055ec1687a6128bc7d72dc7f64a201184596f79e93734917e07f7f2ea41a2"
 dependencies = [
- "miette 7.5.0",
+ "miette 7.6.0",
  "regex",
  "sysinfo",
  "thiserror 2.0.12",
@@ -3944,28 +3907,28 @@ dependencies = [
 
 [[package]]
 name = "starbase_styles"
-version = "0.6.0"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd1333c654161a61bb2a89aa474aad3d1f393e9ac442d5c48f6924b4062e8c50"
+checksum = "2b99f52ded6436b764ba37723d366029d4ff640e21e51b2f5b72c6e73b851e07"
 dependencies = [
  "dirs 6.0.0",
- "miette 7.5.0",
+ "miette 7.6.0",
  "owo-colors",
  "supports-color",
 ]
 
 [[package]]
 name = "starbase_utils"
-version = "0.11.6"
+version = "0.11.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae2263828399f7637ec390eed434e0d0dd09cab3f4cd38622db87d496fc462c5"
+checksum = "df4c7412c9f9354e313530cba288b990f9a85138a62ae0d6d11beb7b296858a7"
 dependencies = [
  "async-trait",
  "dirs 6.0.0",
  "fs4",
  "json-strip-comments",
  "jwalk",
- "miette 7.5.0",
+ "miette 7.6.0",
  "regex",
  "reqwest",
  "serde",
@@ -4174,7 +4137,6 @@ version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c13547615a44dc9c452a8a534638acdf07120d4b6847c8178705da06306a3057"
 dependencies = [
- "smawk",
  "unicode-linebreak",
  "unicode-width 0.2.0",
 ]
@@ -4351,9 +4313,9 @@ dependencies = [
 
 [[package]]
 name = "toml"
-version = "0.8.20"
+version = "0.8.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd87a5cdd6ffab733b2f74bc4fd7ee5fff6634124999ac278c35fc78c6120148"
+checksum = "05ae329d1f08c4d17a59bed7ff5b5a769d062e64a62d34a3261b219e62cd5aae"
 dependencies = [
  "serde",
  "serde_spanned",
@@ -4363,25 +4325,32 @@ dependencies = [
 
 [[package]]
 name = "toml_datetime"
-version = "0.6.8"
+version = "0.6.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0dd7358ecb8fc2f8d014bf86f6f638ce72ba252a2c3a2572f2a795f1d23efb41"
+checksum = "3da5db5a963e24bc68be8b17b6fa82814bb22ee8660f192bb182771d498f09a3"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "toml_edit"
-version = "0.22.24"
+version = "0.22.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "17b4795ff5edd201c7cd6dca065ae59972ce77d1b80fa0a84d94950ece7d1474"
+checksum = "310068873db2c5b3e7659d2cc35d21855dbafa50d1ce336397c666e3cb08137e"
 dependencies = [
  "indexmap",
  "serde",
  "serde_spanned",
  "toml_datetime",
+ "toml_write",
  "winnow",
 ]
+
+[[package]]
+name = "toml_write"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bfb942dfe1d8e29a7ee7fcbde5bd2b9a25fb89aa70caea2eba3bee836ff41076"
 
 [[package]]
 name = "tower"
@@ -4691,13 +4660,13 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.23.10"
+version = "0.23.11"
 dependencies = [
  "async-trait",
  "compact_str 0.9.0",
  "extism",
  "http-cache-reqwest",
- "miette 7.5.0",
+ "miette 7.6.0",
  "once_cell",
  "regex",
  "reqwest",
@@ -4722,7 +4691,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_api"
-version = "0.13.4"
+version = "0.13.5"
 dependencies = [
  "anyhow",
  "rustc-hash",
@@ -4735,7 +4704,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_pdk"
-version = "0.12.2"
+version = "0.12.3"
 dependencies = [
  "extism-pdk",
  "serde",
