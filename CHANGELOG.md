@@ -23,6 +23,11 @@
   - Added `HostEnvironment.ci` field.
   - Added `InstallHook.forced` and `quiet` fields.
 
+#### 🧩 Plugins
+
+- Updated `node_tool` to v0.16.2.
+  - Fixed `bundled-npm` install not respecting `--force` and `--quiet` args.
+
 #### ⚙️ Internal
 
 - Updated dependencies.
