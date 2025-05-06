@@ -31,6 +31,19 @@
       ]
     },
     {
+      "id": "air",
+      "locator": "https://raw.githubusercontent.com/jamesukiyo/proto-plugins/master/air.toml",
+      "format": "toml",
+      "name": "air",
+      "description": "Live reload for Go apps",
+      "author": "jamesukiyo",
+      "homepageUrl": "https://github.com/air-verse/air",
+      "repositoryUrl": "https://github.com/jamesukiyo/proto-plugins",
+      "bins": [
+        "air"
+      ]
+    },
+    {
       "id": "argo",
       "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/argo/plugin.toml",
       "format": "toml",
@@ -711,6 +724,19 @@
       ]
     },
     {
+      "id": "migrate",
+      "locator": "https://raw.githubusercontent.com/jamesukiyo/proto-plugins/master/migrate.toml",
+      "format": "toml",
+      "name": "migrate",
+      "description": "Database migrations. CLI and Golang library.",
+      "author": "jamesukiyo",
+      "homepageUrl": "https://github.com/golang-migrate/migrate",
+      "repositoryUrl": "https://github.com/jamesukiyo/proto-plugins",
+      "bins": [
+        "migrate"
+      ]
+    },
+    {
       "id": "mise",
       "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/mise/plugin.toml",
       "format": "toml",
@@ -944,6 +970,19 @@
       "repositoryUrl": "https://github.com/stk0vrfl0w/proto-toml-plugins/blob/main/plugins/sops.toml",
       "bins": [
         "sops"
+      ]
+    },
+    {
+      "id": "sqlc",
+      "locator": "https://raw.githubusercontent.com/jamesukiyo/proto-plugins/master/sqlc.toml",
+      "format": "toml",
+      "name": "sqlc",
+      "description": "Generate type-safe code from SQL",
+      "author": "jamesukiyo",
+      "homepageUrl": "https://github.com/sqlc-dev/sqlc",
+      "repositoryUrl": "https://github.com/jamesukiyo/proto-plugins",
+      "bins": [
+        "sqlc"
       ]
     },
     {
