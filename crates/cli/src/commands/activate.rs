@@ -2,7 +2,7 @@ use crate::session::ProtoSession;
 use clap::Args;
 use indexmap::IndexMap;
 use miette::IntoDiagnostic;
-use proto_core::{Id, UnresolvedVersionSpec, detect_version};
+use proto_core::{Id, UnresolvedVersionSpec};
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_shell::{Hook, ShellType, Statement};
@@ -98,12 +98,12 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
             let mut item = ActivateItem::default();
 
             // Detect a version, otherwise return early
-            let Ok(version) = detect_version(&tool, None).await else {
+            let Ok(spec) = tool.detect_version().await else {
                 return Ok(item);
             };
 
             // Resolve the version and locate executables
-            if tool.is_setup(&version).await? {
+            if tool.is_setup(&spec).await? {
                 // Higher priority over globals
                 for exes_dir in tool.locate_exes_dirs().await? {
                     item.add_path(&exes_dir);

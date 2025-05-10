@@ -1,9 +1,8 @@
-use core::ops::{Deref, DerefMut};
 use proto_core::{
     ProtoConfig, ProtoToolConfig, Tool, ToolSpec, UnresolvedVersionSpec, VersionSpec,
-    detect_version,
 };
 use std::collections::BTreeMap;
+use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 
 #[derive(Debug)]
@@ -11,7 +10,7 @@ pub struct ToolRecord {
     pub tool: Tool,
     pub config: ProtoToolConfig,
     pub detected_source: Option<PathBuf>,
-    pub detected_version: Option<UnresolvedVersionSpec>,
+    pub detected_version: Option<ToolSpec>,
     pub installed_versions: Vec<VersionSpec>,
     pub local_aliases: BTreeMap<String, ToolSpec>,
     pub remote_aliases: BTreeMap<String, ToolSpec>,
@@ -41,8 +40,8 @@ impl ToolRecord {
         }
     }
 
-    pub async fn detect_version(&mut self) {
-        if let Ok(config_version) = detect_version(&self.tool, None).await {
+    pub async fn detect_version_and_source(&mut self) {
+        if let Ok(config_version) = self.tool.detect_version().await {
             self.detected_version = Some(config_version);
             self.detected_source =
                 std::env::var(format!("{}_DETECTED_FROM", self.tool.get_env_var_prefix()))

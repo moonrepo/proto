@@ -1,5 +1,7 @@
 mod build;
 mod build_error;
+pub mod detect;
+mod detect_error;
 pub mod install;
 mod install_error;
 pub mod link;

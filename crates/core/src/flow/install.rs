@@ -17,7 +17,7 @@ use std::path::Path;
 use system_env::System;
 use tracing::{debug, instrument};
 
-// Prebuilt: Download -> verify -> unpack
+// Prebuilt: Download -> Verify -> Unpack
 // Build: InstallDeps -> CheckRequirements -> ExecuteInstructions -> ...
 #[derive(Clone, Debug)]
 pub enum InstallPhase {

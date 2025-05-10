@@ -36,7 +36,7 @@ macro_rules! generate_build_install_tests {
 
             let result = plugin
                 .tool
-                .setup_with_spec(
+                .setup(
                     &spec,
                     flow::install::InstallOptions {
                         console: Some(ProtoConsole::new_testing()),
@@ -104,7 +104,7 @@ macro_rules! generate_download_install_tests {
             let mut plugin = create_plugin!(sandbox, $id, $schema);
             let mut tool = plugin.tool;
 
-            tool.resolve_version_with_spec(&ToolSpec::parse($version).unwrap(), false)
+            tool.resolve_version(&ToolSpec::parse($version).unwrap(), false)
                 .await
                 .unwrap();
 
@@ -163,7 +163,7 @@ macro_rules! generate_native_install_tests {
 
             plugin
                 .tool
-                .setup_with_spec(&spec, flow::install::InstallOptions::default())
+                .setup(&spec, flow::install::InstallOptions::default())
                 .await
                 .unwrap();
 
@@ -205,7 +205,7 @@ macro_rules! generate_resolve_versions_tests {
             let sandbox = create_empty_proto_sandbox();
             let mut plugin = create_plugin!(sandbox, $id, $schema);
 
-            plugin.tool.resolve_version_with_spec(
+            plugin.tool.resolve_version(
                 &ToolSpec::parse("latest").unwrap(),
                 false,
             ).await.unwrap();
@@ -221,7 +221,7 @@ macro_rules! generate_resolve_versions_tests {
             sandbox.sandbox.debug_files();
 
             $(
-                plugin.tool.resolve_version_with_spec(
+                plugin.tool.resolve_version(
                     &ToolSpec::parse($k).unwrap(),
                     false,
                 ).await.unwrap();
@@ -240,7 +240,7 @@ macro_rules! generate_resolve_versions_tests {
             let sandbox = create_empty_proto_sandbox();
             let mut plugin = create_plugin!(sandbox, $id, $schema);
 
-            plugin.tool.resolve_version_with_spec(
+            plugin.tool.resolve_version(
                 &ToolSpec::parse("unknown").unwrap(),
                 false,
             ).await.unwrap();
@@ -252,7 +252,7 @@ macro_rules! generate_resolve_versions_tests {
             let sandbox = create_empty_proto_sandbox();
             let mut plugin = create_plugin!(sandbox, $id, $schema);
 
-            plugin.tool.resolve_version_with_spec(
+            plugin.tool.resolve_version(
                 &ToolSpec::parse("99.99.99").unwrap(),
                 false,
             ).await.unwrap();
