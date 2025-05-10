@@ -251,11 +251,11 @@ impl Tool {
                 // Only write if an error and no direct UI
                 result.is_err() && instance.options.skip_ui
             {
-                instance.write_log_file(
-                    self.proto
-                        .working_dir
-                        .join(format!("proto-{}-build.log", self.id)),
-                )?;
+                // instance.write_log_file(
+                //     self.proto
+                //         .working_dir
+                //         .join(format!("proto-{}-build.log", self.id)),
+                // )?;
             }
 
             result
@@ -268,14 +268,11 @@ impl Tool {
         let mut record = LockfileRecord::new(self.backend);
 
         // Step 0
-        handle_error(log_build_information(&mut builder, &output), &builder)?;
+        log_build_information(&mut builder, &output)?;
 
         // Step 1
         if config.settings.build.install_system_packages {
-            handle_error(
-                install_system_dependencies(&mut builder, &output).await,
-                &builder,
-            )?;
+            install_system_dependencies(&mut builder, &output).await?;
         } else {
             debug!(
                 "Not installing system dependencies because {} was disabled",
@@ -284,19 +281,13 @@ impl Tool {
         }
 
         // Step 2
-        handle_error(check_requirements(&mut builder, &output).await, &builder)?;
+        check_requirements(&mut builder, &output).await?;
 
         // Step 3
-        handle_error(
-            download_sources(&mut builder, &output, &mut record).await,
-            &builder,
-        )?;
+        download_sources(&mut builder, &output, &mut record).await?;
 
         // Step 4
-        handle_error(
-            execute_instructions(&mut builder, &output, &self.proto).await,
-            &builder,
-        )?;
+        execute_instructions(&mut builder, &output, &self.proto).await?;
 
         Ok(record)
     }
