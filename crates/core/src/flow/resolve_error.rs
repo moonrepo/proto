@@ -13,19 +13,6 @@ pub enum ProtoResolveError {
     )]
     RequiredInternetConnectionForVersion { command: String, bin_dir: PathBuf },
 
-    #[diagnostic(code(proto::resolve::invalid_detected_version))]
-    #[error(
-      "Invalid version or requirement {} detected from {}.",
-      .version.style(Style::Hash),
-      .path.style(Style::Path),
-    )]
-    InvalidDetectedVersionSpec {
-        #[source]
-        error: Box<version_spec::SpecError>,
-        path: PathBuf,
-        version: String,
-    },
-
     #[diagnostic(code(proto::resolve::invalid_version))]
     #[error("Invalid version or requirement {}.", .version.style(Style::Hash))]
     InvalidVersionSpec {

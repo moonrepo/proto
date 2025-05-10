@@ -3,16 +3,15 @@ use crate::error::ProtoCliError;
 use crate::session::ProtoSession;
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::{
-    Id, PROTO_PLUGIN_KEY, ProtoEnvironment, ProtoToolError, Tool, ToolSpec,
-    detect_version_with_spec,
-};
+use proto_core::{Id, PROTO_PLUGIN_KEY, ProtoEnvironment, ProtoToolError, Tool, ToolSpec};
 use proto_pdk_api::{ExecutableConfig, RunHook, RunHookResult};
 use proto_shim::{exec_command_and_replace, locate_proto_exe};
 use starbase::AppResult;
 use starbase_styles::color;
-use starbase_utils::env::bool_var;
-use starbase_utils::{env::paths, fs};
+use starbase_utils::{
+    env::{bool_var, paths},
+    fs,
+};
 use std::env;
 use std::ffi::OsStr;
 use std::path::PathBuf;
@@ -286,12 +285,14 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
         args.spec
             .clone()
             .unwrap_or_else(|| ToolSpec::parse("*").unwrap())
+    } else if let Some(spec) = args.spec.clone() {
+        spec
     } else {
-        detect_version_with_spec(&tool, args.spec.clone()).await?
+        tool.detect_version().await?
     };
 
     // Check if installed or need to install
-    if tool.is_setup_with_spec(&spec).await? {
+    if tool.is_setup(&spec).await? {
         if tool.id == PROTO_PLUGIN_KEY {
             use_global_proto = false;
         }

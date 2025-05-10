@@ -4,10 +4,8 @@ use crate::tool::Tool;
 use crate::tool_spec::{Backend, ToolSpec};
 use crate::version_resolver::VersionResolver;
 use proto_pdk_api::*;
-use starbase_utils::fs;
 use std::env;
-use std::path::{Path, PathBuf};
-use tracing::{debug, instrument, trace};
+use tracing::{debug, instrument};
 
 impl Tool {
     /// Load available versions to install and return a resolver instance.
@@ -75,30 +73,23 @@ impl Tool {
         Ok(())
     }
 
-    pub async fn resolve_version_with_spec(
-        &mut self,
-        spec: &ToolSpec,
-        short_circuit: bool,
-    ) -> miette::Result<VersionSpec> {
-        self.resolve_backend(spec.backend).await?;
-        self.resolve_version(&spec.req, short_circuit).await
-    }
-
-    /// Given an initial version, resolve it to a fully qualifed and semantic version
+    /// Given an initial spec, resolve it to a fully qualifed and semantic version
     /// (or alias) according to the tool's ecosystem.
     #[instrument(skip(self))]
     pub async fn resolve_version(
         &mut self,
-        initial_version: &UnresolvedVersionSpec,
+        spec: &ToolSpec,
         short_circuit: bool,
     ) -> miette::Result<VersionSpec> {
         if self.version.is_some() {
             return Ok(self.get_resolved_version());
         }
 
+        self.resolve_backend(spec.backend).await?;
+
         debug!(
             tool = self.id.as_str(),
-            initial_version = initial_version.to_string(),
+            initial_version = spec.to_string(),
             "Resolving a semantic version or alias",
         );
 
@@ -107,12 +98,12 @@ impl Tool {
         // Also canary is a special type that we can simply just use.
         if short_circuit
             && matches!(
-                initial_version,
+                spec.req,
                 UnresolvedVersionSpec::Calendar(_) | UnresolvedVersionSpec::Semantic(_)
             )
-            || matches!(initial_version, UnresolvedVersionSpec::Canary)
+            || matches!(spec.req, UnresolvedVersionSpec::Canary)
         {
-            let version = initial_version.to_resolved_spec();
+            let version = spec.to_resolved_spec();
 
             debug!(
                 tool = self.id.as_str(),
@@ -126,9 +117,9 @@ impl Tool {
             return Ok(version);
         }
 
-        let resolver = self.load_version_resolver(initial_version).await?;
+        let resolver = self.load_version_resolver(&spec.req).await?;
         let version = self
-            .resolve_version_candidate(&resolver, initial_version, true)
+            .resolve_version_candidate(&resolver, &spec.req, true)
             .await?;
 
         debug!(
@@ -197,95 +188,5 @@ impl Tool {
         }
 
         Ok(resolve(initial_candidate)?)
-    }
-
-    /// Attempt to detect an applicable version from the provided directory.
-    #[instrument(skip(self))]
-    pub async fn detect_version_from(
-        &self,
-        current_dir: &Path,
-    ) -> miette::Result<Option<(UnresolvedVersionSpec, PathBuf)>> {
-        if !self.plugin.has_func("detect_version_files").await {
-            return Ok(None);
-        }
-
-        let has_parser = self.plugin.has_func("parse_version_file").await;
-        let output: DetectVersionOutput = self
-            .plugin
-            .cache_func_with(
-                "detect_version_files",
-                DetectVersionInput {
-                    context: self.create_unresolved_context(),
-                },
-            )
-            .await?;
-
-        if !output.ignore.is_empty() {
-            if let Some(dir) = current_dir.to_str() {
-                if output.ignore.iter().any(|ignore| dir.contains(ignore)) {
-                    return Ok(None);
-                }
-            }
-        }
-
-        trace!(
-            tool = self.id.as_str(),
-            dir = ?current_dir,
-            "Attempting to detect a version from directory"
-        );
-
-        for file in output.files {
-            let file_path = current_dir.join(&file);
-
-            if !file_path.exists() {
-                continue;
-            }
-
-            let content = fs::read_file(&file_path)?.trim().to_owned();
-
-            if content.is_empty() {
-                continue;
-            }
-
-            let version = if has_parser {
-                let output: ParseVersionFileOutput = self
-                    .plugin
-                    .call_func_with(
-                        "parse_version_file",
-                        ParseVersionFileInput {
-                            content,
-                            context: self.create_unresolved_context(),
-                            file: file.clone(),
-                            path: self.to_virtual_path(&file_path),
-                        },
-                    )
-                    .await?;
-
-                if output.version.is_none() {
-                    continue;
-                }
-
-                output.version.unwrap()
-            } else {
-                UnresolvedVersionSpec::parse(&content).map_err(|error| {
-                    ProtoResolveError::InvalidDetectedVersionSpec {
-                        error: Box::new(error),
-                        path: file_path.clone(),
-                        version: content,
-                    }
-                })?
-            };
-
-            debug!(
-                tool = self.id.as_str(),
-                file = ?file_path,
-                version = version.to_string(),
-                "Detected a version"
-            );
-
-            return Ok(Some((version, file_path)));
-        }
-
-        Ok(None)
     }
 }

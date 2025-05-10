@@ -5,24 +5,14 @@ use crate::lockfile::LockfileRecord;
 use crate::tool::Tool;
 use crate::tool_manifest::ToolManifestVersion;
 use crate::tool_spec::ToolSpec;
-use proto_pdk_api::*;
 use starbase_utils::fs;
 use tracing::{debug, instrument};
 
 impl Tool {
-    #[instrument(skip(self))]
-    pub async fn is_setup_with_spec(&mut self, spec: &ToolSpec) -> miette::Result<bool> {
-        self.resolve_version_with_spec(spec, true).await?;
-        self.is_setup(&spec.req).await
-    }
-
     /// Return true if the tool has been setup (installed and binaries are located).
     #[instrument(skip(self))]
-    pub async fn is_setup(
-        &mut self,
-        initial_version: &UnresolvedVersionSpec,
-    ) -> miette::Result<bool> {
-        self.resolve_version(initial_version, true).await?;
+    pub async fn is_setup(&mut self, spec: &ToolSpec) -> miette::Result<bool> {
+        self.resolve_version(spec, true).await?;
 
         let install_dir = self.get_product_dir();
 
@@ -55,25 +45,15 @@ impl Tool {
         Ok(false)
     }
 
-    #[instrument(skip(self, options))]
-    pub async fn setup_with_spec(
-        &mut self,
-        spec: &ToolSpec,
-        options: InstallOptions,
-    ) -> miette::Result<Option<LockfileRecord>> {
-        self.resolve_version_with_spec(spec, false).await?;
-        self.setup(&spec.req, options).await
-    }
-
     /// Setup the tool by resolving a semantic version, installing the tool,
     /// locating binaries, creating shims, and more.
     #[instrument(skip(self, options))]
     pub async fn setup(
         &mut self,
-        initial_version: &UnresolvedVersionSpec,
+        spec: &ToolSpec,
         options: InstallOptions,
     ) -> miette::Result<Option<LockfileRecord>> {
-        let version = self.resolve_version(initial_version, false).await?;
+        let version = self.resolve_version(spec, false).await?;
 
         // Returns nothing if already installed
         let Some(record) = self.install(options).await? else {

@@ -14,7 +14,6 @@ mod tool_loader;
 mod tool_manifest;
 mod tool_spec;
 mod utils;
-mod version_detector;
 mod version_resolver;
 
 pub use config::*;
@@ -28,7 +27,6 @@ pub use tool_error::*;
 pub use tool_loader::*;
 pub use tool_manifest::*;
 pub use tool_spec::*;
-pub use version_detector::*;
 pub use version_resolver::*;
 pub use version_spec::*;
 

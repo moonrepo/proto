@@ -2,7 +2,7 @@ use crate::error::ProtoCliError;
 use crate::session::{LoadToolOptions, ProtoSession};
 use clap::Args;
 use iocraft::prelude::{Size, element};
-use proto_core::{Id, UnresolvedVersionSpec, VersionSpec};
+use proto_core::{Id, ToolSpec, VersionSpec};
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;
@@ -15,7 +15,7 @@ use tracing::debug;
 struct StatusItem {
     is_installed: bool,
     config_source: Option<PathBuf>,
-    config_version: UnresolvedVersionSpec,
+    config_version: ToolSpec,
     resolved_version: Option<VersionSpec>,
     product_dir: Option<PathBuf>,
 }
@@ -36,21 +36,17 @@ pub async fn status(session: ProtoSession, _args: StatusArgs) -> AppResult {
         .await?;
 
     for mut tool in tools {
-        let Some(config_version) = tool.detected_version.clone() else {
+        let Some(spec) = tool.detected_version.clone() else {
             continue;
         };
 
-        debug!(
-            version = config_version.to_string(),
-            "Checking {}",
-            tool.get_name()
-        );
+        debug!(version = spec.to_string(), "Checking {}", tool.get_name());
 
         let item = items.entry(tool.id.clone()).or_default();
 
         // Resolve a version based on the configured spec, and ignore errors
         // as they indicate a version could not be resolved!
-        if let Ok(version) = tool.resolve_version(&config_version, false).await {
+        if let Ok(version) = tool.resolve_version(&spec, false).await {
             if !version.is_latest() {
                 if tool.is_installed() {
                     item.is_installed = true;
@@ -61,7 +57,7 @@ pub async fn status(session: ProtoSession, _args: StatusArgs) -> AppResult {
             }
         }
 
-        item.config_version = config_version;
+        item.config_version = spec;
         item.config_source = tool.detected_source;
     }
 
