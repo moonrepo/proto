@@ -15,6 +15,19 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Updated multi `proto install` to write an error log when a tool fails to install.
+- WASM API
+  - Added `SendRequestInput.headers` field.
+  - Reworked the `VirtualPath` enum/type.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.48.1
 
 #### 🚀 Updates
@@ -27,10 +40,6 @@
 
 - Updated `node_tool` to v0.16.2.
   - Fixed `bundled-npm` install not respecting `--force` and `--quiet` args.
-
-#### ⚙️ Internal
-
-- Updated dependencies.
 
 ## 0.48.0
 
