@@ -259,6 +259,5 @@ pub fn verify_checksum(
         verified: input.download_file.exists()
             && input.checksum_file.exists()
             && input.context.version != "19.0.0",
-        ..Default::default()
     }))
 }
