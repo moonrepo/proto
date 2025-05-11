@@ -110,13 +110,9 @@ macro_rules! generate_download_install_tests {
 
             let temp_dir = tool.get_temp_dir();
 
-            tool.install_from_prebuilt(
-                &tool.get_product_dir(),
-                &temp_dir,
-                flow::install::InstallOptions::default(),
-            )
-            .await
-            .unwrap();
+            tool.install(flow::install::InstallOptions::default())
+                .await
+                .unwrap();
 
             assert!(temp_dir.exists());
         }
