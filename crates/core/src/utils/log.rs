@@ -29,6 +29,25 @@ impl LogWriter {
         buffer.push("".into());
     }
 
+    pub fn add_error(&self, error: impl AsRef<dyn std::error::Error>) {
+        let error = error.as_ref();
+
+        let mut buffer = self.buffer.lock().unwrap();
+        buffer.push("**ERROR**:".into());
+        buffer.push(format!("> {error}"));
+        buffer.push("".into());
+
+        let mut source = error.source();
+
+        while let Some(cause) = source {
+            buffer.push("**CAUSED BY**:".into());
+            buffer.push(format!("> {cause}"));
+            buffer.push("".into());
+
+            source = cause.source();
+        }
+    }
+
     // pub fn add_line(&self) {
     //     let mut buffer = self.buffer.lock().unwrap();
     //     buffer.push("".into());
@@ -52,9 +71,12 @@ impl LogWriter {
 
     pub fn write_to(&self, path: PathBuf) -> miette::Result<()> {
         let mut buffer = self.buffer.lock().unwrap();
-        buffer.push("".into());
 
-        fs::write_file(path, buffer.join("\n"))?;
+        if !buffer.is_empty() {
+            buffer.push("".into());
+
+            fs::write_file(path, buffer.join("\n"))?;
+        }
 
         Ok(())
     }

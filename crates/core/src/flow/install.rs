@@ -576,6 +576,8 @@ impl Tool {
 
                 // Only write if an error and no direct UI
                 if is_build && config.settings.build.write_log_file || skip_ui {
+                    log.add_header(1, "Failure");
+                    log.add_error(&error);
                     log.write_to(log_path)?;
                 }
 
