@@ -79,3 +79,15 @@ pub async fn fetch_latest_version() -> miette::Result<Version> {
 
     Version::parse(&version).into_diagnostic()
 }
+
+pub fn join_list(mut list: Vec<String>) -> String {
+    match list.len() {
+        0 => String::new(),
+        1 | 2 => list.join(" and "),
+        _ => {
+            let last = list.remove(list.len() - 1);
+
+            format!("{}, and {}", list.join(", "), last)
+        }
+    }
+}

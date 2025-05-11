@@ -39,7 +39,7 @@ proto_shim = { version = "0.7.3", path = "../shim" }
 system_env = { version = "0.8.0", path = "../system-env" }
 anyhow = { workspace = true }
 async-trait = { workspace = true }
-chrono = "0.4.40"
+chrono = "0.4.41"
 clap = { workspace = true, features = ["derive", "env"] }
 clap_complete = { workspace = true }
 clap_complete_nushell = "4.5.5"
@@ -77,7 +77,7 @@ wiggle = "~29.0.1"
 
 [dev-dependencies]
 starbase_sandbox = { workspace = true }
-shared_child = "1.0.1"
+shared_child = "1.0.2"
 
 [target."cfg(windows)".dependencies]
 winreg = { version = "0.55.0", default-features = false }

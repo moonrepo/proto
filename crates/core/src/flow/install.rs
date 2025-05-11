@@ -8,12 +8,14 @@ use crate::helpers::{extract_filename_from_url, is_archive_file, is_offline};
 use crate::lockfile::*;
 use crate::tool::Tool;
 use crate::utils::archive;
+use crate::utils::log::LogWriter;
 use proto_pdk_api::*;
 use proto_shim::*;
 use starbase_styles::color;
 use starbase_utils::net::DownloadOptions;
 use starbase_utils::{fs, net};
 use std::path::Path;
+use std::sync::Arc;
 use system_env::System;
 use tracing::{debug, instrument};
 
@@ -32,12 +34,13 @@ pub enum InstallPhase {
 }
 
 pub use starbase_utils::net::OnChunkFn;
-pub type OnPhaseFn = Box<dyn Fn(InstallPhase) + Send + Sync>;
+pub type OnPhaseFn = Arc<dyn Fn(InstallPhase) + Send + Sync>;
 
 #[derive(Default)]
 pub struct InstallOptions {
     pub console: Option<ProtoConsole>,
     pub force: bool,
+    pub log_writer: Option<LogWriter>,
     pub on_download_chunk: Option<OnChunkFn>,
     pub on_phase_change: Option<OnPhaseFn>,
     pub skip_prompts: bool,
@@ -174,7 +177,7 @@ impl Tool {
     /// Build the tool from source using a set of requirements and instructions
     /// into the `~/.proto/tools/<version>` folder.
     #[instrument(skip(self, options))]
-    pub async fn build_from_source(
+    async fn build_from_source(
         &self,
         install_dir: &Path,
         temp_dir: &Path,
@@ -233,6 +236,10 @@ impl Tool {
                 .expect("Console required for builder!"),
             install_dir,
             http_client: self.proto.get_plugin_loader()?.get_client()?,
+            log_writer: options
+                .log_writer
+                .as_ref()
+                .expect("Logger required for builder!"),
             on_phase_change: options.on_phase_change.take(),
             skip_prompts: options.skip_prompts,
             skip_ui: options.skip_ui,
@@ -241,26 +248,6 @@ impl Tool {
             version: self.get_resolved_version(),
         });
 
-        // If any step in the build process fails, we should write
-        // a log file so that the user can debug it, otherwise the
-        // piped commands are hidden from the user
-        let handle_error = |result: miette::Result<()>, instance: &Builder| {
-            if
-            // Always write
-            instance.options.config.write_log_file ||
-                // Only write if an error and no direct UI
-                result.is_err() && instance.options.skip_ui
-            {
-                instance.write_log_file(
-                    self.proto
-                        .working_dir
-                        .join(format!("proto-{}-build.log", self.id)),
-                )?;
-            }
-
-            result
-        };
-
         // The build process may require using itself to build itself,
         // so allow proto to use any available version instead of failing
         unsafe { std::env::set_var(format!("{}_VERSION", self.get_env_var_prefix()), "*") };
@@ -268,14 +255,11 @@ impl Tool {
         let mut record = LockfileRecord::new(self.backend);
 
         // Step 0
-        handle_error(log_build_information(&mut builder, &output), &builder)?;
+        log_build_information(&mut builder, &output)?;
 
         // Step 1
         if config.settings.build.install_system_packages {
-            handle_error(
-                install_system_dependencies(&mut builder, &output).await,
-                &builder,
-            )?;
+            install_system_dependencies(&mut builder, &output).await?;
         } else {
             debug!(
                 "Not installing system dependencies because {} was disabled",
@@ -284,19 +268,13 @@ impl Tool {
         }
 
         // Step 2
-        handle_error(check_requirements(&mut builder, &output).await, &builder)?;
+        check_requirements(&mut builder, &output).await?;
 
         // Step 3
-        handle_error(
-            download_sources(&mut builder, &output, &mut record).await,
-            &builder,
-        )?;
+        download_sources(&mut builder, &output, &mut record).await?;
 
         // Step 4
-        handle_error(
-            execute_instructions(&mut builder, &output, &self.proto).await,
-            &builder,
-        )?;
+        execute_instructions(&mut builder, &output, &self.proto).await?;
 
         Ok(record)
     }
@@ -304,7 +282,7 @@ impl Tool {
     /// Download the tool (as an archive) from its distribution registry
     /// into the `~/.proto/tools/<version>` folder, and optionally verify checksums.
     #[instrument(skip(self, options))]
-    pub async fn install_from_prebuilt(
+    async fn install_from_prebuilt(
         &self,
         install_dir: &Path,
         temp_dir: &Path,

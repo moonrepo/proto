@@ -11,7 +11,7 @@ use starbase_utils::env::is_ci;
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use std::time::Instant;
 use system_env::{SystemArch, SystemLibc, SystemOS};
 use tokio::sync::RwLock;
@@ -76,6 +76,8 @@ pub fn inject_default_manifest_config(
     Ok(())
 }
 
+pub type OnCallFn = Arc<dyn Fn(&str, Option<&str>, Option<&str>) + Send + Sync>;
+
 /// A container around Extism's [`Plugin`] and [`Manifest`] types that provides convenience
 /// methods for calling and caching functions from the WASM plugin. It also provides
 /// additional methods for easily working with WASI and virtual paths.
@@ -84,6 +86,7 @@ pub struct PluginContainer {
     pub manifest: Manifest,
 
     func_cache: Arc<scc::HashMap<String, Vec<u8>>>,
+    on_call_func: Arc<OnceLock<OnCallFn>>,
     plugin: Arc<RwLock<Plugin>>,
 }
 
@@ -122,12 +125,18 @@ impl PluginContainer {
             plugin: Arc::new(RwLock::new(plugin)),
             id,
             func_cache: Arc::new(scc::HashMap::new()),
+            on_call_func: Arc::new(OnceLock::new()),
         })
     }
 
     /// Create a new container with the provided manifest.
     pub fn new_without_functions(id: Id, manifest: Manifest) -> miette::Result<PluginContainer> {
         Self::new(id, manifest, [])
+    }
+
+    /// Set a callback handler to be executed when calling a plugin function.
+    pub fn set_on_call(&self, func: OnCallFn) {
+        let _ = self.on_call_func.set(func);
     }
 
     /// Call a function on the plugin with no input and cache the output before returning it.
@@ -227,16 +236,21 @@ impl PluginContainer {
     pub async fn call(&self, func: &str, input: impl AsRef<[u8]>) -> miette::Result<Vec<u8>> {
         let mut instance = self.plugin.write().await;
         let input = input.as_ref();
+        let input_string = String::from_utf8_lossy(input);
         let uuid = instance.id.to_string(); // Copy
         let instant = Instant::now();
 
         trace!(
             id = self.id.as_str(),
             plugin = &uuid,
-            input = %String::from_utf8_lossy(input),
+            input = %input_string,
             "Calling guest function {}",
             color::property(func),
         );
+
+        if let Some(callback) = self.on_call_func.get() {
+            callback(func, Some(&input_string), None);
+        }
 
         let output = block_in_place(|| instance.call(func, input)).map_err(|error| {
             if is_incompatible_runtime(&error) {
@@ -273,14 +287,20 @@ impl PluginContainer {
             }
         })?;
 
+        let output_string = String::from_utf8_lossy(output);
+
         trace!(
             id = self.id.as_str(),
             plugin = &uuid,
-            output = %String::from_utf8_lossy(output),
+            output = %output_string,
             elapsed = ?instant.elapsed(),
             "Called guest function {}",
             color::property(func),
         );
+
+        if let Some(callback) = self.on_call_func.get() {
+            callback(func, None, Some(&output_string));
+        }
 
         Ok(output.to_vec())
     }

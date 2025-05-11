@@ -4,6 +4,7 @@ use crate::config::ProtoBuildConfig;
 use crate::env::{ProtoConsole, ProtoEnvironment};
 use crate::helpers::extract_filename_from_url;
 use crate::lockfile::LockfileRecord;
+use crate::utils::log::LogWriter;
 use crate::utils::process::{self, ProcessResult};
 use crate::utils::{archive, git};
 use iocraft::prelude::{FlexDirection, View, element};
@@ -40,6 +41,7 @@ pub struct BuilderOptions<'a> {
     pub console: &'a ProtoConsole,
     pub http_client: &'a HttpClient,
     pub install_dir: &'a Path,
+    pub log_writer: &'a LogWriter,
     pub on_phase_change: Option<OnPhaseFn>,
     pub skip_prompts: bool,
     pub skip_ui: bool,
@@ -48,29 +50,14 @@ pub struct BuilderOptions<'a> {
     pub version: VersionSpec,
 }
 
-enum BuilderStepOperation {
-    Checkpoint(String),
-    Command(Arc<ProcessResult>),
-}
-
-struct BuilderStep {
-    title: String,
-    ops: Vec<BuilderStepOperation>,
-}
-
 pub struct Builder<'a> {
     pub options: BuilderOptions<'a>,
     errors: u8,
-    steps: Vec<BuilderStep>,
 }
 
 impl Builder<'_> {
     pub fn new(options: BuilderOptions<'_>) -> Builder<'_> {
-        Builder {
-            errors: 0,
-            options,
-            steps: vec![],
-        }
+        Builder { errors: 0, options }
     }
 
     pub fn get_system(&self) -> &System {
@@ -85,10 +72,7 @@ impl Builder<'_> {
         let title = title.as_ref();
 
         self.errors = 0;
-        self.steps.push(BuilderStep {
-            title: title.to_owned(),
-            ops: vec![],
-        });
+        self.options.log_writer.add_header(title);
 
         if self.options.skip_ui {
             debug!("{title}");
@@ -134,10 +118,9 @@ impl Builder<'_> {
     pub fn render_checkpoint(&mut self, message: impl AsRef<str>) -> miette::Result<()> {
         let message = message.as_ref();
 
-        if let Some(step) = &mut self.steps.last_mut() {
-            step.ops
-                .push(BuilderStepOperation::Checkpoint(message.to_owned()));
-        }
+        self.options
+            .log_writer
+            .add_section(remove_style_tags(message));
 
         if self.options.skip_ui {
             debug!("{}", apply_style_tags(message));
@@ -226,9 +209,15 @@ impl Builder<'_> {
     ) -> miette::Result<Arc<ProcessResult>> {
         let result = Arc::new(result);
 
-        if let Some(step) = &mut self.steps.last_mut() {
-            step.ops.push(BuilderStepOperation::Command(result.clone()));
-        }
+        let log = self.options.log_writer;
+        log.add_subsection(format!("Child process: `{}`", result.command));
+        log.add_value_opt(
+            "WORKING DIR",
+            result.working_dir.as_ref().and_then(|dir| dir.to_str()),
+        );
+        log.add_value("EXIT CODE", result.exit_code.to_string());
+        log.add_code("STDERR", &result.stderr);
+        log.add_code("STDOUT", &result.stdout);
 
         if result.exit_code > 0 {
             return Err(process::ProtoProcessError::FailedCommandNonZeroExit {
@@ -240,61 +229,6 @@ impl Builder<'_> {
         }
 
         Ok(result)
-    }
-
-    pub fn write_log_file(&self, log_path: PathBuf) -> miette::Result<()> {
-        let mut output = vec![];
-
-        for (i, step) in self.steps.iter().enumerate() {
-            output.push(format!("# Step {}: {}", i + 1, step.title));
-            output.push("".into());
-
-            for op in &step.ops {
-                match op {
-                    BuilderStepOperation::Checkpoint(title) => {
-                        output.push(format!("## {}", remove_style_tags(title)));
-                    }
-                    BuilderStepOperation::Command(result) => {
-                        output.push(format!("### `{}`", result.command));
-                        output.push("".into());
-
-                        if let Some(cwd) = &result.working_dir {
-                            output.push(format!("WORKING DIR: {}", cwd.display()));
-                            output.push("".into());
-                        }
-
-                        output.push(format!("EXIT CODE: {}", result.exit_code));
-                        output.push("".into());
-
-                        output.push("STDERR:".into());
-
-                        if result.stderr.is_empty() {
-                            output.push("".into());
-                        } else {
-                            output.push("```".into());
-                            output.push(result.stderr.trim().to_owned());
-                            output.push("```".into());
-                        }
-
-                        output.push("STDOUT:".into());
-
-                        if result.stdout.is_empty() {
-                            output.push("".into());
-                        } else {
-                            output.push("```".into());
-                            output.push(result.stdout.trim().to_owned());
-                            output.push("```".into());
-                        }
-                    }
-                };
-
-                output.push("".into());
-            }
-        }
-
-        fs::write_file(log_path, output.join("\n"))?;
-
-        Ok(())
     }
 
     pub async fn acquire_lock(&self, pm: &SystemPackageManager) -> OwnedMutexGuard<()> {
