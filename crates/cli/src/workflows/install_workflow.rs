@@ -35,6 +35,7 @@ pub enum InstallOutcome {
 
 pub struct InstallWorkflowParams {
     pub force: bool,
+    pub log_writer: Option<LogWriter>,
     pub multiple: bool,
     pub passthrough_args: Vec<String>,
     pub pin_to: Option<PinLocation>,
@@ -141,6 +142,53 @@ impl InstallWorkflow {
         Ok(InstallOutcome::Installed)
     }
 
+    pub async fn install_with_logging(
+        &mut self,
+        spec: ToolSpec,
+        mut params: InstallWorkflowParams,
+    ) -> miette::Result<InstallOutcome> {
+        let log = match params.log_writer.clone() {
+            Some(writer) => writer,
+            None => {
+                let writer = LogWriter::default();
+                params.log_writer = Some(writer.clone());
+                writer
+            }
+        };
+
+        let log_path = self
+            .tool
+            .proto
+            .working_dir
+            .join(format!("proto-{}-install.log", self.tool.id));
+
+        let is_build = self.is_build(params.strategy);
+        let is_multiple = params.multiple;
+
+        match self.install(spec, params).await {
+            Ok(record) => {
+                let config = self.tool.proto.load_config()?;
+
+                // Always write if configured to
+                if is_build && config.settings.build.write_log_file {
+                    log.write_to(log_path)?;
+                }
+
+                Ok(record)
+            }
+            Err(error) => {
+                // Only write if an error and no direct UI
+                if is_build || is_multiple {
+                    log.add_header(1, "Failure");
+                    log.add_error(&error);
+                    log.write_to(log_path)?;
+                }
+
+                Err(error)
+            }
+        }
+    }
+
     async fn pre_install(&self, params: &InstallWorkflowParams) -> miette::Result<()> {
         let tool = &self.tool;
 
@@ -239,15 +287,7 @@ impl InstallWorkflow {
             });
         });
 
-        let log = LogWriter::default();
-        let log_path = self
-            .tool
-            .proto
-            .working_dir
-            .join(format!("proto-{}-install.log", self.tool.id));
-
-        match self
-            .tool
+        self.tool
             .setup(
                 spec,
                 InstallOptions {
@@ -255,7 +295,7 @@ impl InstallWorkflow {
                     on_download_chunk: Some(on_download_chunk),
                     on_phase_change: Some(on_phase_change),
                     force: params.force,
-                    log_writer: Some(log.clone()),
+                    log_writer: params.log_writer.clone(),
                     skip_prompts: params.skip_prompts,
                     // When installing multiple tools, we can't render the nice
                     // UI for the build flow, so rely on the progress bars
@@ -264,28 +304,6 @@ impl InstallWorkflow {
                 },
             )
             .await
-        {
-            Ok(record) => {
-                let config = self.tool.proto.load_config()?;
-
-                // Always write if configured to
-                if self.is_build(params.strategy) && config.settings.build.write_log_file {
-                    log.write_to(log_path)?;
-                }
-
-                Ok(record)
-            }
-            Err(error) => {
-                // Only write if an error and no direct UI
-                if self.is_build(params.strategy) || params.multiple {
-                    log.add_header(1, "Failure");
-                    log.add_error(&error);
-                    log.write_to(log_path)?;
-                }
-
-                Err(error)
-            }
-        }
     }
 
     async fn post_install(&self, params: &InstallWorkflowParams) -> miette::Result<()> {

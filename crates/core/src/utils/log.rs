@@ -31,10 +31,11 @@ impl LogWriter {
 
     pub fn add_error(&self, error: impl AsRef<dyn std::error::Error>) {
         let error = error.as_ref();
+        let ansi = regex::Regex::new(r"\x1b\[([\x30-\x3f]*[\x20-\x2f]*[\x40-\x7e])").unwrap();
 
         let mut buffer = self.buffer.lock().unwrap();
         buffer.push("**ERROR**:".into());
-        buffer.push(format!("> {error}"));
+        buffer.push(format!("> {}", ansi.replace_all(&error.to_string(), "")));
         buffer.push("".into());
 
         let mut source = error.source();

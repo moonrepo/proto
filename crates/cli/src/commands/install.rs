@@ -177,6 +177,7 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
         .install(
             spec,
             InstallWorkflowParams {
+                log_writer: None,
                 pin_to: args.get_pin_location(),
                 strategy: args.get_strategy(),
                 force: args.force,
@@ -345,10 +346,11 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
             }
 
             match workflow
-                .install(
+                .install_with_logging(
                     initial_version,
                     InstallWorkflowParams {
                         force,
+                        log_writer: None,
                         multiple: true,
                         passthrough_args: vec![],
                         pin_to,
@@ -438,7 +440,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
             #((failed_count > 0).then(|| {
                 element! {
                     StyledText(
-                        content: format!("Failed to install {} tools!", failed_count),
+                        content: format!("Failed to install {} tools! A log has been written to the current directory.", failed_count),
                     )
                 }
             }))
