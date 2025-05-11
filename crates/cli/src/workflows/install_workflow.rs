@@ -7,6 +7,7 @@ use crate::utils::tool_record::ToolRecord;
 use iocraft::element;
 use miette::IntoDiagnostic;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
+use proto_core::utils::log::LogWriter;
 use proto_core::{Id, LockfileRecord, PinLocation, ToolSpec};
 use proto_pdk_api::{
     InstallHook, InstallStrategy, Switch, SyncShellProfileInput, SyncShellProfileOutput,
@@ -238,7 +239,15 @@ impl InstallWorkflow {
             });
         });
 
-        self.tool
+        let log = LogWriter::default();
+        let log_path = self
+            .tool
+            .proto
+            .working_dir
+            .join(format!("proto-{}-install.log", self.tool.id));
+
+        match self
+            .tool
             .setup(
                 spec,
                 InstallOptions {
@@ -246,6 +255,7 @@ impl InstallWorkflow {
                     on_download_chunk: Some(on_download_chunk),
                     on_phase_change: Some(on_phase_change),
                     force: params.force,
+                    log_writer: Some(log.clone()),
                     skip_prompts: params.skip_prompts,
                     // When installing multiple tools, we can't render the nice
                     // UI for the build flow, so rely on the progress bars
@@ -254,6 +264,28 @@ impl InstallWorkflow {
                 },
             )
             .await
+        {
+            Ok(record) => {
+                let config = self.tool.proto.load_config()?;
+
+                // Always write if configured to
+                if self.is_build(params.strategy) && config.settings.build.write_log_file {
+                    log.write_to(log_path)?;
+                }
+
+                Ok(record)
+            }
+            Err(error) => {
+                // Only write if an error and no direct UI
+                if self.is_build(params.strategy) || params.multiple {
+                    log.add_header(1, "Failure");
+                    log.add_error(&error);
+                    log.write_to(log_path)?;
+                }
+
+                Err(error)
+            }
+        }
     }
 
     async fn post_install(&self, params: &InstallWorkflowParams) -> miette::Result<()> {

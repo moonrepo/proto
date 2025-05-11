@@ -1,10 +1,10 @@
 use starbase_utils::fs;
 use std::path::PathBuf;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct LogWriter {
-    buffer: Mutex<Vec<String>>,
+    buffer: Arc<Mutex<Vec<String>>>,
 }
 
 impl LogWriter {
