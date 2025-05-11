@@ -6,7 +6,7 @@ default-members = ["crates/cli"]
 [workspace.dependencies]
 anyhow = "1.0.97"
 async-trait = "0.1.88"
-clap = "4.5.36"
+clap = "4.5.38"
 clap_complete = "4.5.50"
 compact_str = { version = "0.9.0", default-features = false, features = [
     "serde",
