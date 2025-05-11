@@ -7,6 +7,7 @@ use crate::utils::tool_record::ToolRecord;
 use iocraft::element;
 use miette::IntoDiagnostic;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
+use proto_core::utils::log::LogWriter;
 use proto_core::{Id, LockfileRecord, PinLocation, ToolSpec};
 use proto_pdk_api::{
     InstallHook, InstallStrategy, Switch, SyncShellProfileInput, SyncShellProfileOutput,
@@ -27,13 +28,14 @@ use tracing::{debug, warn};
 
 #[derive(Debug)]
 pub enum InstallOutcome {
-    AlreadyInstalled,
-    Installed,
-    FailedToInstall,
+    AlreadyInstalled(Id),
+    Installed(Id),
+    FailedToInstall(Id),
 }
 
 pub struct InstallWorkflowParams {
     pub force: bool,
+    pub log_writer: Option<LogWriter>,
     pub multiple: bool,
     pub passthrough_args: Vec<String>,
     pub pin_to: Option<PinLocation>,
@@ -95,12 +97,16 @@ impl InstallWorkflow {
         // Disable version caching and always use the latest when installing
         self.tool.disable_caching();
 
+        params.log_writer.as_ref().inspect(|log| {
+            log.add_header("Checking installation");
+        });
+
         // Check if already installed, or if forced, overwrite previous install
         if !params.force && self.tool.is_setup(&spec).await? {
             self.pin_version(&spec, &params.pin_to).await?;
             self.finish_progress(started);
 
-            return Ok(InstallOutcome::AlreadyInstalled);
+            return Ok(InstallOutcome::AlreadyInstalled(self.tool.id.clone()));
         }
 
         // Run pre-install hooks
@@ -110,7 +116,7 @@ impl InstallWorkflow {
         let record = self.do_install(&spec, &params).await?;
 
         if record.is_none() {
-            return Ok(InstallOutcome::FailedToInstall);
+            return Ok(InstallOutcome::FailedToInstall(self.tool.id.clone()));
         }
 
         let pinned = self.pin_version(&spec, &params.pin_to).await?;
@@ -137,11 +143,82 @@ impl InstallWorkflow {
         )
         .await?;
 
-        Ok(InstallOutcome::Installed)
+        Ok(InstallOutcome::Installed(self.tool.id.clone()))
+    }
+
+    pub async fn install_with_logging(
+        &mut self,
+        spec: ToolSpec,
+        mut params: InstallWorkflowParams,
+    ) -> miette::Result<InstallOutcome> {
+        let log = match params.log_writer.clone() {
+            Some(writer) => writer,
+            None => {
+                let writer = LogWriter::default();
+                params.log_writer = Some(writer.clone());
+                writer
+            }
+        };
+        let log_path = self
+            .tool
+            .proto
+            .working_dir
+            .join(format!("proto-{}-install.log", self.tool.id));
+
+        // Capture plugin calls
+        let on_log = log.clone();
+
+        self.tool
+            .plugin
+            .set_on_call(Arc::new(move |func, input, output| {
+                if let Some(input) = input {
+                    on_log.add_subsection(format!("Plugin call: `{func}`"));
+                    on_log.add_code("INPUT", input);
+                } else if let Some(output) = output {
+                    on_log.add_code("OUTPUT", output);
+                }
+            }));
+
+        // Write a log based on result
+        let is_build = self.is_build(params.strategy);
+        let is_multiple = params.multiple;
+
+        if is_build {
+            log.add_title("Building from source");
+        } else {
+            log.add_title("Downloading pre-built");
+        }
+
+        match self.install(spec, params).await {
+            Ok(record) => {
+                let config = self.tool.proto.load_config()?;
+
+                // Always write if configured to
+                if is_build && config.settings.build.write_log_file {
+                    log.write_to(log_path)?;
+                }
+
+                Ok(record)
+            }
+            Err(error) => {
+                // Only write if an error and no direct UI
+                if is_build || is_multiple {
+                    log.add_title("Failure");
+                    log.add_error(&error);
+                    log.write_to(log_path)?;
+                }
+
+                Err(error)
+            }
+        }
     }
 
     async fn pre_install(&self, params: &InstallWorkflowParams) -> miette::Result<()> {
         let tool = &self.tool;
+
+        params.log_writer.as_ref().inspect(|log| {
+            log.add_header("Running pre-install hooks");
+        });
 
         unsafe { env::set_var("PROTO_INSTALL", tool.id.to_string()) };
 
@@ -168,6 +245,10 @@ impl InstallWorkflow {
         spec: &ToolSpec,
         params: &InstallWorkflowParams,
     ) -> miette::Result<Option<LockfileRecord>> {
+        params.log_writer.as_ref().inspect(|log| {
+            log.add_header("Installing tool");
+        });
+
         self.tool.resolve_version(spec, false).await?;
 
         let resolved_version = self.tool.get_resolved_version();
@@ -200,7 +281,7 @@ impl InstallWorkflow {
         });
 
         let pb = self.progress_reporter.clone();
-        let on_phase_change = Box::new(move |phase| {
+        let on_phase_change = Arc::new(move |phase| {
             // Download phase is manually incremented based on streamed bytes,
             // while other phases are automatically ticked as a loader
             if matches!(phase, InstallPhase::Download { .. }) {
@@ -246,6 +327,7 @@ impl InstallWorkflow {
                     on_download_chunk: Some(on_download_chunk),
                     on_phase_change: Some(on_phase_change),
                     force: params.force,
+                    log_writer: params.log_writer.clone(),
                     skip_prompts: params.skip_prompts,
                     // When installing multiple tools, we can't render the nice
                     // UI for the build flow, so rely on the progress bars
@@ -258,6 +340,10 @@ impl InstallWorkflow {
 
     async fn post_install(&self, params: &InstallWorkflowParams) -> miette::Result<()> {
         let tool = &self.tool;
+
+        params.log_writer.as_ref().inspect(|log| {
+            log.add_header("Running post-install hooks");
+        });
 
         if tool.plugin.has_func("post_install").await {
             tool.plugin

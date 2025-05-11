@@ -103,6 +103,29 @@ deno = "1.30.0"
         assert!(deno_path.exists());
     }
 
+    #[test]
+    fn creates_log_for_each_failed_tool() {
+        let sandbox = create_empty_proto_sandbox();
+
+        sandbox.create_file(
+            ".prototools",
+            r#"node = "invalid"
+bun = "invalid"
+deno = "latest"
+    "#,
+        );
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install"); // use
+            })
+            .failure();
+
+        assert!(sandbox.path().join("proto-node-install.log").exists());
+        assert!(sandbox.path().join("proto-bun-install.log").exists());
+        assert!(!sandbox.path().join("proto-deno-install.log").exists());
+    }
+
     mod reqs {
         use super::*;
 

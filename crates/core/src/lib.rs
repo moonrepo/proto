@@ -13,7 +13,7 @@ mod tool_error;
 mod tool_loader;
 mod tool_manifest;
 mod tool_spec;
-mod utils;
+pub mod utils;
 mod version_resolver;
 
 pub use config::*;

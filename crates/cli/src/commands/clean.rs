@@ -1,3 +1,4 @@
+use crate::helpers::join_list;
 use crate::session::ProtoSession;
 use clap::{Args, ValueEnum};
 use iocraft::prelude::element;
@@ -178,11 +179,12 @@ pub async fn clean_tool(
                         "Found {} stale {} versions, remove {}?",
                         versions_to_clean.len(),
                         tool.get_name(),
-                        versions_to_clean
-                            .iter()
-                            .map(|v| format!("<version>{v}</version>"))
-                            .collect::<Vec<_>>()
-                            .join(", ")
+                        join_list(
+                            versions_to_clean
+                                .iter()
+                                .map(|v| format!("<version>{v}</version>"))
+                                .collect::<Vec<_>>()
+                        )
                     ),
                     on_confirm: &mut confirmed,
                 )
