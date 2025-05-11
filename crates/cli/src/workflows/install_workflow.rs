@@ -28,9 +28,9 @@ use tracing::{debug, warn};
 
 #[derive(Debug)]
 pub enum InstallOutcome {
-    AlreadyInstalled,
-    Installed,
-    FailedToInstall,
+    AlreadyInstalled(Id),
+    Installed(Id),
+    FailedToInstall(Id),
 }
 
 pub struct InstallWorkflowParams {
@@ -102,7 +102,7 @@ impl InstallWorkflow {
             self.pin_version(&spec, &params.pin_to).await?;
             self.finish_progress(started);
 
-            return Ok(InstallOutcome::AlreadyInstalled);
+            return Ok(InstallOutcome::AlreadyInstalled(self.tool.id.clone()));
         }
 
         // Run pre-install hooks
@@ -112,7 +112,7 @@ impl InstallWorkflow {
         let record = self.do_install(&spec, &params).await?;
 
         if record.is_none() {
-            return Ok(InstallOutcome::FailedToInstall);
+            return Ok(InstallOutcome::FailedToInstall(self.tool.id.clone()));
         }
 
         let pinned = self.pin_version(&spec, &params.pin_to).await?;
@@ -139,7 +139,7 @@ impl InstallWorkflow {
         )
         .await?;
 
-        Ok(InstallOutcome::Installed)
+        Ok(InstallOutcome::Installed(self.tool.id.clone()))
     }
 
     pub async fn install_with_logging(

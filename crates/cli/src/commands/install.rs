@@ -1,4 +1,5 @@
 use crate::error::ProtoCliError;
+use crate::helpers::join_list;
 use crate::session::{LoadToolOptions, ProtoSession};
 use crate::utils::install_graph::*;
 use crate::utils::tool_record::ToolRecord;
@@ -174,7 +175,7 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
     }
 
     let result = workflow
-        .install(
+        .install_with_logging(
             spec,
             InstallWorkflowParams {
                 log_writer: None,
@@ -202,7 +203,7 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
     }
 
     match outcome {
-        InstallOutcome::Installed => {
+        InstallOutcome::Installed(_) => {
             session.console.render(element! {
                 Notice(variant: Variant::Success) {
                     StyledText(
@@ -216,7 +217,7 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
                 }
             })?;
         }
-        InstallOutcome::AlreadyInstalled => {
+        InstallOutcome::AlreadyInstalled(_) => {
             session.console.render(element! {
                 Notice(variant: Variant::Info) {
                     StyledText(
@@ -325,7 +326,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
                         ));
 
                         // Abort since requirement failed
-                        return InstallOutcome::FailedToInstall;
+                        return InstallOutcome::FailedToInstall(workflow.tool.id.clone());
                     }
                     InstallStatus::WaitingOnReqs(waiting_on) => {
                         workflow.progress_reporter.set_message(format!(
@@ -372,7 +373,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
                     );
 
                     topo_graph.mark_not_installed(&workflow.tool.id).await;
-                    InstallOutcome::FailedToInstall
+                    InstallOutcome::FailedToInstall(workflow.tool.id.clone())
                 }
             }
         });
@@ -387,8 +388,8 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
     workflow_manager.render_multiple_progress().await;
     topo_graph.proceed();
 
-    let mut installed_count = 0;
-    let mut failed_count = 0;
+    let mut installed = vec![];
+    let mut failed = vec![];
 
     while let Some(result) = set.join_next_with_id().await {
         match result {
@@ -398,21 +399,28 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
                     "Spawned task failed: {}", error
                 );
 
-                failed_count += 1;
+                // What to do here?
+                failed.push(Id::raw("unknown"));
             }
             Ok((task_id, outcome)) => {
                 trace!(task_id = task_id.to_string(), "Spawned task successful");
 
-                if matches!(outcome, InstallOutcome::FailedToInstall) {
-                    failed_count += 1;
-                } else {
-                    installed_count += 1;
+                match outcome {
+                    InstallOutcome::FailedToInstall(id) => {
+                        failed.push(id);
+                    }
+                    InstallOutcome::AlreadyInstalled(id) | InstallOutcome::Installed(id) => {
+                        installed.push(id);
+                    }
                 }
             }
         };
     }
 
     workflow_manager.stop_rendering().await?;
+
+    let installed_count = installed.len();
+    let failed_count = failed.len();
 
     if args.quiet && failed_count == 0 {
         return Ok(None);
@@ -430,8 +438,8 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
                 element! {
                     StyledText(
                         content: format!(
-                            "Installed {} tools in {}!",
-                            installed_count,
+                            "Installed {} in {}!",
+                            join_list(installed.into_iter().map(color::id).collect::<Vec<_>>()),
                             format_duration(started.elapsed(), false),
                         ),
                     )
@@ -440,14 +448,17 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
             #((failed_count > 0).then(|| {
                 element! {
                     StyledText(
-                        content: format!("Failed to install {} tools! A log has been written to the current directory.", failed_count),
+                        content: format!(
+                            "Failed to install {}! A log has been written to the current directory.",
+                            join_list(failed.into_iter().map(color::id).collect::<Vec<_>>()),
+                        ),
                     )
                 }
             }))
         }
     })?;
 
-    Ok(Some(failed_count))
+    Ok(Some(failed_count as u8))
 }
 
 #[instrument(skip(session))]
