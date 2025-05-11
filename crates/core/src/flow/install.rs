@@ -15,6 +15,7 @@ use starbase_styles::color;
 use starbase_utils::net::DownloadOptions;
 use starbase_utils::{fs, net};
 use std::path::Path;
+use std::sync::Arc;
 use system_env::System;
 use tracing::{debug, instrument};
 
@@ -33,7 +34,7 @@ pub enum InstallPhase {
 }
 
 pub use starbase_utils::net::OnChunkFn;
-pub type OnPhaseFn = Box<dyn Fn(InstallPhase) + Send + Sync>;
+pub type OnPhaseFn = Arc<dyn Fn(InstallPhase) + Send + Sync>;
 
 #[derive(Default)]
 pub struct InstallOptions {

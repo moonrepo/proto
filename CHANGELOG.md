@@ -19,7 +19,7 @@
 
 #### 🚀 Updates
 
-- Updated multi `proto install` to write an error log when a tool fails to install.
+- Updated multi `proto install` to write a markdown compatible error log when a tool fails to install.
 - Removed timeouts from plugin calls.
 - WASM API
   - Added `SendRequestInput.headers` field.

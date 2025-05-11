@@ -72,7 +72,7 @@ impl Builder<'_> {
         let title = title.as_ref();
 
         self.errors = 0;
-        self.options.log_writer.add_header(1, title);
+        self.options.log_writer.add_header(title);
 
         if self.options.skip_ui {
             debug!("{title}");
@@ -120,7 +120,7 @@ impl Builder<'_> {
 
         self.options
             .log_writer
-            .add_header(2, remove_style_tags(message));
+            .add_section(remove_style_tags(message));
 
         if self.options.skip_ui {
             debug!("{}", apply_style_tags(message));
@@ -210,7 +210,7 @@ impl Builder<'_> {
         let result = Arc::new(result);
 
         let log = self.options.log_writer;
-        log.add_header(3, format!("`{}`", result.command));
+        log.add_subsection(format!("Child process: `{}`", result.command));
         log.add_value_opt(
             "WORKING DIR",
             result.working_dir.as_ref().and_then(|dir| dir.to_str()),

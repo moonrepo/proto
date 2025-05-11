@@ -8,10 +8,26 @@ pub struct LogWriter {
 }
 
 impl LogWriter {
-    pub fn add_header(&self, depth: u8, title: impl AsRef<str>) {
+    fn add_title_row(&self, depth: u8, title: impl AsRef<str>) {
         let mut buffer = self.buffer.lock().unwrap();
         buffer.push(format!("{} {}", "#".repeat(depth as usize), title.as_ref()));
         buffer.push("".into());
+    }
+
+    pub fn add_title(&self, title: impl AsRef<str>) {
+        self.add_title_row(1, title);
+    }
+
+    pub fn add_header(&self, title: impl AsRef<str>) {
+        self.add_title_row(2, title);
+    }
+
+    pub fn add_section(&self, title: impl AsRef<str>) {
+        self.add_title_row(3, title);
+    }
+
+    pub fn add_subsection(&self, title: impl AsRef<str>) {
+        self.add_title_row(4, title);
     }
 
     pub fn add_code(&self, label: impl AsRef<str>, value: impl AsRef<str>) {
@@ -33,18 +49,12 @@ impl LogWriter {
         let error = error.as_ref();
         let ansi = regex::Regex::new(r"\x1b\[([\x30-\x3f]*[\x20-\x2f]*[\x40-\x7e])").unwrap();
 
-        let mut buffer = self.buffer.lock().unwrap();
-        buffer.push("**ERROR**:".into());
-        buffer.push(format!("> {}", ansi.replace_all(&error.to_string(), "")));
-        buffer.push("".into());
+        self.add_code("ERROR", ansi.replace_all(&error.to_string(), ""));
 
         let mut source = error.source();
 
         while let Some(cause) = source {
-            buffer.push("**CAUSED BY**:".into());
-            buffer.push(format!("> {cause}"));
-            buffer.push("".into());
-
+            self.add_code("CAUSED BY", ansi.replace_all(&cause.to_string(), ""));
             source = cause.source();
         }
     }
