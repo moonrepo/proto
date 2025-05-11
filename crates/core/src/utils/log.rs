@@ -1,5 +1,5 @@
 use starbase_utils::fs;
-use std::path::Path;
+use std::path::PathBuf;
 use std::sync::Mutex;
 
 #[derive(Default)]
@@ -29,10 +29,10 @@ impl LogWriter {
         buffer.push("".into());
     }
 
-    pub fn add_line(&self) {
-        let mut buffer = self.buffer.lock().unwrap();
-        buffer.push("".into());
-    }
+    // pub fn add_line(&self) {
+    //     let mut buffer = self.buffer.lock().unwrap();
+    //     buffer.push("".into());
+    // }
 
     pub fn add_value(&self, label: impl AsRef<str>, value: impl AsRef<str>) {
         let mut buffer = self.buffer.lock().unwrap();
@@ -44,7 +44,13 @@ impl LogWriter {
         buffer.push("".into());
     }
 
-    pub fn write_to(&self, path: &Path) -> miette::Result<()> {
+    pub fn add_value_opt<T: AsRef<str>>(&self, label: impl AsRef<str>, value: Option<T>) {
+        if let Some(value) = value {
+            self.add_value(label, value);
+        }
+    }
+
+    pub fn write_to(&self, path: PathBuf) -> miette::Result<()> {
         let mut buffer = self.buffer.lock().unwrap();
         buffer.push("".into());
 

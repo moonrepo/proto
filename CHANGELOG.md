@@ -20,6 +20,7 @@
 #### 🚀 Updates
 
 - Updated multi `proto install` to write an error log when a tool fails to install.
+- Removed timeouts from plugin calls.
 - WASM API
   - Added `SendRequestInput.headers` field.
   - Reworked the `VirtualPath` enum/type.

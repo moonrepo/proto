@@ -8,6 +8,7 @@ use crate::helpers::{extract_filename_from_url, is_archive_file, is_offline};
 use crate::lockfile::*;
 use crate::tool::Tool;
 use crate::utils::archive;
+use crate::utils::log::LogWriter;
 use proto_pdk_api::*;
 use proto_shim::*;
 use starbase_styles::color;
@@ -173,11 +174,12 @@ impl Tool {
 
     /// Build the tool from source using a set of requirements and instructions
     /// into the `~/.proto/tools/<version>` folder.
-    #[instrument(skip(self, options))]
-    pub async fn build_from_source(
+    #[instrument(skip(self, log, options))]
+    async fn build_from_source(
         &self,
         install_dir: &Path,
         temp_dir: &Path,
+        log: &LogWriter,
         mut options: InstallOptions,
     ) -> miette::Result<LockfileRecord> {
         debug!(
@@ -233,6 +235,7 @@ impl Tool {
                 .expect("Console required for builder!"),
             install_dir,
             http_client: self.proto.get_plugin_loader()?.get_client()?,
+            log_writer: log,
             on_phase_change: options.on_phase_change.take(),
             skip_prompts: options.skip_prompts,
             skip_ui: options.skip_ui,
@@ -240,26 +243,6 @@ impl Tool {
             temp_dir,
             version: self.get_resolved_version(),
         });
-
-        // If any step in the build process fails, we should write
-        // a log file so that the user can debug it, otherwise the
-        // piped commands are hidden from the user
-        let handle_error = |result: miette::Result<()>, instance: &Builder| {
-            if
-            // Always write
-            instance.options.config.write_log_file ||
-                // Only write if an error and no direct UI
-                result.is_err() && instance.options.skip_ui
-            {
-                // instance.write_log_file(
-                //     self.proto
-                //         .working_dir
-                //         .join(format!("proto-{}-build.log", self.id)),
-                // )?;
-            }
-
-            result
-        };
 
         // The build process may require using itself to build itself,
         // so allow proto to use any available version instead of failing
@@ -294,11 +277,12 @@ impl Tool {
 
     /// Download the tool (as an archive) from its distribution registry
     /// into the `~/.proto/tools/<version>` folder, and optionally verify checksums.
-    #[instrument(skip(self, options))]
-    pub async fn install_from_prebuilt(
+    #[instrument(skip(self, log, options))]
+    async fn install_from_prebuilt(
         &self,
         install_dir: &Path,
         temp_dir: &Path,
+        log: &LogWriter,
         mut options: InstallOptions,
     ) -> miette::Result<LockfileRecord> {
         debug!(
@@ -498,8 +482,16 @@ impl Tool {
             return Err(ProtoEnvError::RequiredInternetConnection.into());
         }
 
+        let config = self.proto.load_config()?;
         let temp_dir = self.get_temp_dir();
         let install_dir = self.get_product_dir();
+
+        // Setup logging to write files on failure
+        let log = LogWriter::default();
+        let log_path = self
+            .proto
+            .working_dir
+            .join(format!("proto-{}-install.log", self.id));
 
         // Lock the temporary directory instead of the install directory,
         // because the latter needs to be clean for "build from source",
@@ -544,14 +536,17 @@ impl Tool {
             }
         }
 
+        let is_build = matches!(options.strategy, InstallStrategy::BuildFromSource);
+        let skip_ui = options.skip_ui;
+
         // Build the tool from source
-        let result = if matches!(options.strategy, InstallStrategy::BuildFromSource) {
-            self.build_from_source(&install_dir, &temp_dir, options)
+        let result = if is_build {
+            self.build_from_source(&install_dir, &temp_dir, &log, options)
                 .await
         }
         // Install from a prebuilt archive
         else {
-            self.install_from_prebuilt(&install_dir, &temp_dir, options)
+            self.install_from_prebuilt(&install_dir, &temp_dir, &log, options)
                 .await
         };
 
@@ -563,6 +558,11 @@ impl Tool {
                     "Successfully installed tool",
                 );
 
+                // Always write if configured to
+                if is_build && config.settings.build.write_log_file {
+                    log.write_to(log_path)?;
+                }
+
                 Ok(Some(record))
             }
 
@@ -573,6 +573,11 @@ impl Tool {
                     install_dir = ?install_dir,
                     "Failed to install tool, cleaning up",
                 );
+
+                // Only write if an error and no direct UI
+                if is_build && config.settings.build.write_log_file || skip_ui {
+                    log.write_to(log_path)?;
+                }
 
                 install_lock.unlock()?;
 
