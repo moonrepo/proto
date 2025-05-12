@@ -272,7 +272,7 @@ impl InstallWorkflow {
         );
 
         let pb = self.progress_reporter.clone();
-        let on_download_chunk = Box::new(move |current_bytes, total_bytes| {
+        let on_download_chunk = Arc::new(move |current_bytes, total_bytes| {
             if current_bytes == 0 {
                 pb.set_max(total_bytes);
             } else {
