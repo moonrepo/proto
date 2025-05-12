@@ -6,8 +6,10 @@ use proto_core::{Id, UnresolvedVersionSpec};
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_shell::{Hook, ShellType, Statement};
+use starbase_utils::env::paths;
 use starbase_utils::json;
 use std::env;
+use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use tokio::task::JoinSet;
 
@@ -27,12 +29,12 @@ impl ActivateItem {
 }
 
 #[derive(Default, Serialize)]
-struct ActivateInfo {
+struct ActivateCollection {
     pub env: IndexMap<String, Option<String>>,
     pub paths: Vec<PathBuf>,
 }
 
-impl ActivateInfo {
+impl ActivateCollection {
     pub fn collect(&mut self, item: ActivateItem) {
         // Don't use a set as we need to persist the order!
         for path in item.paths {
@@ -74,7 +76,9 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
 
     // If not exporting data, just print the activation syntax immediately
     if !args.export && !session.should_print_json() {
-        return print_activation_hook(&session, &shell_type, &args);
+        print_activation_hook(&session, &shell_type, &args)?;
+
+        return Ok(None);
     }
 
     // Pre-load configuration
@@ -82,7 +86,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
 
     // Load necessary tools so that we can extract info
     let tools = session.load_tools().await?;
-    let mut info = ActivateInfo::default();
+    let mut collection = ActivateCollection::default();
     let mut set = JoinSet::<miette::Result<ActivateItem>>::new();
 
     for mut tool in tools {
@@ -91,7 +95,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
         }
 
         // Inherit all environment variables for the config
-        info.env.extend(config.get_env_vars(Some(&tool.id))?);
+        collection.env.extend(config.get_env_vars(Some(&tool.id))?);
 
         // Extract the version in a background thread
         set.spawn(async move {
@@ -122,17 +126,17 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
 
     // Put shims first so that they can detect newer versions
     if !args.no_shim {
-        info.paths.push(session.env.store.shims_dir.clone());
+        collection.paths.push(session.env.store.shims_dir.clone());
     }
 
     // Aggregate our list of shell exports
     while let Some(item) = set.join_next().await {
-        info.collect(item.into_diagnostic()??);
+        collection.collect(item.into_diagnostic()??);
     }
 
     // Inject necessary variables
-    if !info.env.contains_key("PROTO_HOME") && env::var("PROTO_HOME").is_err() {
-        info.env.insert(
+    if !collection.env.contains_key("PROTO_HOME") && env::var("PROTO_HOME").is_err() {
+        collection.env.insert(
             "PROTO_HOME".into(),
             session.env.store.dir.to_str().map(|root| root.to_owned()),
         );
@@ -141,12 +145,14 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     if let Some(UnresolvedVersionSpec::Semantic(version)) =
         config.versions.get("proto").map(|spec| &spec.req)
     {
-        info.env
+        collection
+            .env
             .insert("PROTO_VERSION".into(), Some(version.to_string()));
-        info.env
+        collection
+            .env
             .insert("PROTO_PROTO_VERSION".into(), Some(version.to_string()));
 
-        info.paths.push(
+        collection.paths.push(
             session
                 .env
                 .store
@@ -155,25 +161,22 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
                 .join(version.to_string()),
         );
     } else {
-        info.env.insert("PROTO_VERSION".into(), None);
+        collection.env.insert("PROTO_VERSION".into(), None);
     }
 
     // Put bins last as a last resort lookup
     if !args.no_bin {
-        info.paths.push(session.env.store.bin_dir.clone());
+        collection.paths.push(session.env.store.bin_dir.clone());
     }
 
     // Output/export the information for the chosen shell
     if args.export {
-        print_activation_exports(&session, &shell_type, info)?;
-
-        return Ok(None);
-    }
-
-    if session.should_print_json() {
-        session.console.out.write_line(json::format(&info, true)?)?;
-
-        return Ok(None);
+        print_activation_exports(&session, &shell_type, collection)?;
+    } else if session.should_print_json() {
+        session
+            .console
+            .out
+            .write_line(json::format(&collection, true)?)?;
     }
 
     Ok(None)
@@ -183,7 +186,7 @@ fn print_activation_hook(
     session: &ProtoSession,
     shell_type: &ShellType,
     args: &ActivateArgs,
-) -> AppResult {
+) -> miette::Result<()> {
     let mut command = format!("proto activate {}", shell_type);
 
     if let Some(mode) = &session.cli.config_mode {
@@ -222,40 +225,66 @@ fn print_activation_hook(
         session.console.out.write_line("\n_proto_activate_hook")?;
     }
 
-    Ok(None)
+    Ok(())
 }
 
 fn print_activation_exports(
     session: &ProtoSession,
     shell_type: &ShellType,
-    info: ActivateInfo,
-) -> AppResult {
+    info: ActivateCollection,
+) -> miette::Result<()> {
     let shell = shell_type.build();
     let mut output = vec![];
 
-    for (key, value) in &info.env {
-        output.push(shell.format_env(key, value.as_deref()));
+    for (key, value) in info.env {
+        output.push(shell.format_env(&key, value.as_deref()));
     }
 
-    let paths = info
-        .paths
-        .iter()
-        .filter_map(|path| path.to_str().map(|p| p.to_owned()))
-        .collect::<Vec<_>>();
+    if !info.paths.is_empty() {
+        let value = reset_and_join_paths(session, info.paths)?;
 
-    if !paths.is_empty() {
-        output.push(shell.format(Statement::PrependPath {
-            paths: &paths,
-            key: Some("PATH"),
-            orig_key: if env::var("__ORIG_PATH").is_ok() {
-                Some("__ORIG_PATH")
-            } else {
-                None
-            },
-        }));
+        if let Some(value) = value.to_str() {
+            output.push(shell.format(Statement::SetEnv { key: "PATH", value }));
+        }
     }
 
     session.console.out.write_line(output.join("\n"))?;
 
-    Ok(None)
+    Ok(())
+}
+
+fn reset_and_join_paths(
+    session: &ProtoSession,
+    join_paths: Vec<PathBuf>,
+) -> miette::Result<OsString> {
+    let start_path = session.env.store.dir.join("activate-start");
+    let stop_path = session.env.store.dir.join("activate-stop");
+
+    // Create a new `PATH` list with our activated tools. Use fake
+    // marker paths to indicate a boundary.
+    let mut reset_paths = vec![];
+    reset_paths.push(start_path.clone());
+    reset_paths.extend(join_paths);
+    reset_paths.push(stop_path.clone());
+
+    // `PATH` may have already been activated, so we need to remove
+    // paths that proto has injected, otherwise this paths list
+    // will continue to grow and grow.
+    let mut in_activate = false;
+
+    for path in paths() {
+        if path == start_path {
+            in_activate = true;
+            continue;
+        } else if path == stop_path {
+            in_activate = false;
+            continue;
+        } else if in_activate {
+            continue;
+        }
+
+        reset_paths.push(path);
+    }
+
+    env::join_paths(reset_paths).into_diagnostic()
 }
