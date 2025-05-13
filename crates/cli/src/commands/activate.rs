@@ -3,6 +3,7 @@ use clap::Args;
 use indexmap::IndexMap;
 use miette::IntoDiagnostic;
 use proto_core::{Id, UnresolvedVersionSpec};
+use rustc_hash::FxHashSet;
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_shell::{Hook, ShellType, Statement};
@@ -271,6 +272,7 @@ fn reset_and_join_paths(
     // paths that proto has injected, otherwise this paths list
     // will continue to grow and grow.
     let mut in_activate = false;
+    let mut dupe_paths = FxHashSet::from_iter(reset_paths.clone());
 
     for path in paths() {
         if path == start_path {
@@ -279,11 +281,15 @@ fn reset_and_join_paths(
         } else if path == stop_path {
             in_activate = false;
             continue;
-        } else if in_activate {
+        } else if in_activate
+            || dupe_paths.contains(&path)
+            || path.starts_with(&session.env.store.dir)
+        {
             continue;
         }
 
-        reset_paths.push(path);
+        reset_paths.push(path.clone());
+        dupe_paths.insert(path);
     }
 
     env::join_paths(reset_paths).into_diagnostic()
