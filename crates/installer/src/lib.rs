@@ -12,6 +12,7 @@ use std::env;
 use std::env::consts;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::time::SystemTime;
 use system_env::SystemLibc;
 use tracing::{instrument, trace};
@@ -56,7 +57,7 @@ pub async fn download_release(
     triple: &str,
     version: &str,
     temp_dir: impl AsRef<Path> + Debug,
-    on_chunk: impl Fn(u64, u64) + Send + 'static,
+    on_chunk: impl Fn(u64, u64) + Send + Sync + 'static,
 ) -> miette::Result<DownloadResult> {
     let target_ext = if cfg!(windows) { "zip" } else { "tar.xz" };
     let target_file = format!("proto_cli-{triple}");
@@ -78,7 +79,7 @@ pub async fn download_release(
         &download_url,
         &archive_file,
         DownloadOptions {
-            on_chunk: Some(Box::new(on_chunk)),
+            on_chunk: Some(Arc::new(on_chunk)),
             ..DownloadOptions::default()
         },
     )
