@@ -181,7 +181,7 @@ impl Tool {
         &self,
         install_dir: &Path,
         temp_dir: &Path,
-        mut options: InstallOptions,
+        options: InstallOptions,
     ) -> miette::Result<LockfileRecord> {
         debug!(
             tool = self.id.as_str(),
@@ -240,7 +240,7 @@ impl Tool {
                 .log_writer
                 .as_ref()
                 .expect("Logger required for builder!"),
-            on_phase_change: options.on_phase_change.take(),
+            on_phase_change: options.on_phase_change.clone(),
             skip_prompts: options.skip_prompts,
             skip_ui: options.skip_ui,
             system,
@@ -286,7 +286,7 @@ impl Tool {
         &self,
         install_dir: &Path,
         temp_dir: &Path,
-        mut options: InstallOptions,
+        options: InstallOptions,
     ) -> miette::Result<LockfileRecord> {
         debug!(
             tool = self.id.as_str(),
@@ -338,7 +338,7 @@ impl Tool {
             &download_file,
             DownloadOptions {
                 downloader: Some(Box::new(client.create_downloader())),
-                on_chunk: options.on_download_chunk.take(),
+                on_chunk: options.on_download_chunk.clone(),
             },
         )
         .await?;

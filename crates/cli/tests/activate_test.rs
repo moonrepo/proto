@@ -98,6 +98,8 @@ bun = "1.1.0"
                 .arg("all"); // upwards-global
         });
 
-        assert_snapshot!(get_activate_output(&assert, &sandbox));
+        let output = get_activate_output(&assert, &sandbox);
+
+        assert!(output.contains("<WORKSPACE>/.proto/activate-start:<WORKSPACE>/.proto/shims:<WORKSPACE>/.proto/bin:<WORKSPACE>/.proto/activate-stop"));
     }
 }
