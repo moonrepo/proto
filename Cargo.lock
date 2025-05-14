@@ -2817,7 +2817,7 @@ dependencies = [
 
 [[package]]
 name = "proto_installer"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "miette 7.6.0",
  "reqwest",
@@ -2831,7 +2831,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.28.8"
+version = "0.28.9"
 dependencies = [
  "extism-pdk",
  "proto_pdk_api",
@@ -2842,7 +2842,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.27.11"
+version = "0.27.12"
 dependencies = [
  "proto_pdk_api",
  "rustc-hash",
