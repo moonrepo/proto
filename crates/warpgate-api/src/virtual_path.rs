@@ -3,11 +3,10 @@ use std::ffi::OsStr;
 use std::fmt;
 use std::path::{Path, PathBuf};
 
-#[macro_export]
 macro_rules! inherit_methods {
     (comparator, [$($method:ident),+ $(,)?]) => {
         $(
-            #[doc = concat!("Inherited from [`PathBuf.", stringify!($method), "`].")]
+            #[doc = concat!("Inherited from [`PathBuf::", stringify!($method), "`].")]
             pub fn $method(&self, value: impl AsRef<Path>) -> bool {
                 self.any_path().$method(value)
             }
@@ -15,7 +14,7 @@ macro_rules! inherit_methods {
     };
     (getter, [$($method:ident),+ $(,)?]) => {
         $(
-            #[doc = concat!("Inherited from [`PathBuf.", stringify!($method), "`].")]
+            #[doc = concat!("Inherited from [`PathBuf::", stringify!($method), "`].")]
             pub fn $method(&self) -> Option<&OsStr> {
                 self.any_path().$method()
             }
@@ -23,7 +22,7 @@ macro_rules! inherit_methods {
     };
     (setter, [$($method:ident),+ $(,)?]) => {
         $(
-            #[doc = concat!("Inherited from [`PathBuf.", stringify!($method), "`].")]
+            #[doc = concat!("Inherited from [`PathBuf::", stringify!($method), "`].")]
             pub fn $method(&mut self, value: impl AsRef<OsStr>) {
                 let path = match self {
                     Self::Real(base) => base,
@@ -36,7 +35,7 @@ macro_rules! inherit_methods {
     };
     ([$($method:ident),+ $(,)?]) => {
         $(
-            #[doc = concat!("Inherited from [`PathBuf.", stringify!($method), "`].")]
+            #[doc = concat!("Inherited from [`PathBuf::", stringify!($method), "`].")]
             pub fn $method(&self) -> bool {
                 self.any_path().$method()
             }
@@ -111,7 +110,7 @@ impl VirtualPath {
     }
 
     /// Return the original real path. If we don't have access to prefixes,
-    /// or removing prefix fails, or the real path doesn't exist, returns `None`.
+    /// or removing prefix fails, or the real path isn't absolute, returns `None`.
     pub fn real_path(&self) -> Option<PathBuf> {
         let path = match self {
             Self::Real(path) => Some(path.to_path_buf()),
@@ -120,13 +119,13 @@ impl VirtualPath {
             }
         };
 
-        path.and_then(|path| {
-            if path.is_absolute() && path.exists() {
-                Some(path.to_owned())
-            } else {
-                None
-            }
-        })
+        path.and_then(|path| if path.is_absolute() { Some(path) } else { None })
+    }
+
+    /// Return the original real path as a string.
+    pub fn real_path_string(&self) -> Option<String> {
+        self.real_path()
+            .and_then(|path| path.to_str().map(|path| path.to_owned()))
     }
 
     /// Return the virtual path. If a real path only, returns `None`.
@@ -135,6 +134,12 @@ impl VirtualPath {
             Self::Real(_) => None,
             Self::Virtual { path, .. } => Some(path.to_owned()),
         }
+    }
+
+    /// Return the virtual path as a string.
+    pub fn virtual_path_string(&self) -> Option<String> {
+        self.virtual_path()
+            .and_then(|path| path.to_str().map(|path| path.to_owned()))
     }
 
     /// Return the current path without a virtual prefix.
@@ -193,5 +198,11 @@ impl AsRef<PathBuf> for VirtualPath {
 impl AsRef<Path> for VirtualPath {
     fn as_ref(&self) -> &Path {
         self.any_path()
+    }
+}
+
+impl AsRef<OsStr> for VirtualPath {
+    fn as_ref(&self) -> &OsStr {
+        self.any_path().as_os_str()
     }
 }

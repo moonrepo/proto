@@ -15,6 +15,17 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed a regression with virtual paths that broke path composition.
+  - This primarily affects the `rust` tool.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.49.0
 
 #### 🚀 Updates
