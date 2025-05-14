@@ -1,6 +1,6 @@
 [package]
 name = "proto_codegen"
-version = "0.5.3"
+version = "0.6.0"
 edition = "2024"
 license = "MIT"
 publish = false
@@ -9,7 +9,7 @@ publish = false
 dist = false
 
 [dependencies]
-proto_core = { version = "0.48.3", path = "../core" }
+proto_core = { version = "0.49.0", path = "../core" }
 proto_pdk_api = { version = "0.27.12", path = "../pdk-api", features = [
 	"schematic",
 ] }
