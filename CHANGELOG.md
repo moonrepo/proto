@@ -19,6 +19,7 @@
 
 #### 🚀 Updates
 
+- Added a new RFC for lockfiles: https://github.com/moonrepo/proto/issues/779
 - Updated `proto activate` to no longer take a snapshot of `PATH` that can become stale.
 - Updated multi `proto install` to write a markdown compatible error log when a tool fails to install.
 - Removed timeouts from plugin calls.
