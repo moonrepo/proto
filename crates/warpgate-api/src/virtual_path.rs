@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 macro_rules! inherit_methods {
     (comparator, [$($method:ident),+ $(,)?]) => {
         $(
-            #[doc = concat!("Inherited from [`PathBuf::", stringify!($method), "`].")]
+            #[doc = concat!("Inherited from [`Path::", stringify!($method), "`].")]
             pub fn $method(&self, value: impl AsRef<Path>) -> bool {
                 self.any_path().$method(value)
             }
@@ -14,7 +14,7 @@ macro_rules! inherit_methods {
     };
     (getter, [$($method:ident),+ $(,)?]) => {
         $(
-            #[doc = concat!("Inherited from [`PathBuf::", stringify!($method), "`].")]
+            #[doc = concat!("Inherited from [`Path::", stringify!($method), "`].")]
             pub fn $method(&self) -> Option<&OsStr> {
                 self.any_path().$method()
             }
@@ -35,7 +35,7 @@ macro_rules! inherit_methods {
     };
     ([$($method:ident),+ $(,)?]) => {
         $(
-            #[doc = concat!("Inherited from [`PathBuf::", stringify!($method), "`].")]
+            #[doc = concat!("Inherited from [`Path::", stringify!($method), "`].")]
             pub fn $method(&self) -> bool {
                 self.any_path().$method()
             }
@@ -126,6 +126,12 @@ impl VirtualPath {
     pub fn real_path_string(&self) -> Option<String> {
         self.real_path()
             .and_then(|path| path.to_str().map(|path| path.to_owned()))
+    }
+
+    /// Convert the virtual path into a [`PathBuf`] instance. This *does not*
+    /// convert it into a real path.
+    pub fn to_path_buf(&self) -> PathBuf {
+        self.any_path().to_path_buf()
     }
 
     /// Return the virtual path. If a real path only, returns `None`.
