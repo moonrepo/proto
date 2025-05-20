@@ -4734,7 +4734,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_api"
-version = "0.14.1"
+version = "0.14.2"
 dependencies = [
  "anyhow",
  "rustc-hash",
