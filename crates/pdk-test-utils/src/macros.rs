@@ -40,6 +40,7 @@ macro_rules! generate_build_install_tests {
                     &spec,
                     flow::install::InstallOptions {
                         console: Some(ProtoConsole::new_testing()),
+                        log_writer: Some(Default::default()),
                         strategy: InstallStrategy::BuildFromSource,
                         skip_prompts: true,
                         skip_ui: true,
