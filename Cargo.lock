@@ -2767,7 +2767,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.49.1"
+version = "0.49.2"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2822,7 +2822,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.49.1"
+version = "0.49.2"
 dependencies = [
  "clap",
  "convert_case",
