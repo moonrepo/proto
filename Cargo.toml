@@ -13,7 +13,7 @@ compact_str = { version = "0.9.0", default-features = false, features = [
 ] }
 dirs = "6.0.0"
 extism = ">=1.6.0" # Lower for consumers
-extism-pdk = "1.4.0"
+extism-pdk = "1.4.1"
 http-cache-reqwest = "0.15.1"
 human-sort = "0.2.2"
 indexmap = "2.9.0"
@@ -47,9 +47,9 @@ starbase_archive = { version = "0.10.6", features = [
     "tar-all",
     "zip-all",
 ] }
-starbase_console = { version = "0.6.9", features = ["miette", "ui"] }
+starbase_console = { version = "0.6.10", features = ["miette", "ui"] }
 starbase_sandbox = { version = "0.9.3" }
-starbase_shell = { version = "0.7.5", features = ["miette"] }
+starbase_shell = { version = "0.7.6", features = ["miette"] }
 starbase_styles = { version = "0.6.2" }
 starbase_utils = { version = "0.11.10", default-features = false, features = [
     "json",

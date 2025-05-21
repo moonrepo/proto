@@ -21,9 +21,16 @@
 
 - Added support for bzip2, xz/lzma, and zstd compression for zip archives.
 
+#### 🐞 Fixes
+
+- Fixed an issue where terminal prompt validation would not trigger.
+- Fixed some Nushell issues for the `proto activate` flow.
+  - You'll need to regenerate the module: `(proto activate nu) | save ~/.config/nushell/proto-hook.nu`
+
 #### ⚙️ Internal
 
 - Updated Rust to v1.87.0.
+- Updated dependencies.
 
 ## 0.49.1
 
