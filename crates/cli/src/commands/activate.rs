@@ -32,6 +32,8 @@ impl ActivateItem {
 #[derive(Default, Serialize)]
 struct ActivateCollection {
     pub env: IndexMap<String, Option<String>>,
+    pub path: Option<String>,
+    #[serde(skip)]
     pub paths: Vec<PathBuf>,
 }
 
@@ -173,7 +175,15 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     // Output/export the information for the chosen shell
     if args.export {
         print_activation_exports(&session, &shell_type, collection)?;
-    } else if session.should_print_json() {
+
+        return Ok(None);
+    }
+
+    if session.should_print_json() {
+        collection.path = reset_and_join_paths(&session, std::mem::take(&mut collection.paths))?
+            .into_string()
+            .ok();
+
         session
             .console
             .out
