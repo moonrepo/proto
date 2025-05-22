@@ -25,6 +25,8 @@
 #### 🧩 Plugins
 
 - Updated all plugins to pull in the path fixes.
+- Updated `node_tool` to v0.16.2.
+  - Added experimental musl (alpine) support.
 
 ## 0.49.2
 
