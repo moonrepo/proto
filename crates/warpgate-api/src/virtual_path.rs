@@ -110,16 +110,14 @@ impl VirtualPath {
     }
 
     /// Return the original real path. If we don't have access to prefixes,
-    /// or removing prefix fails, or the real path isn't absolute, returns `None`.
+    /// or removing prefix fails, returns `None`.
     pub fn real_path(&self) -> Option<PathBuf> {
-        let path = match self {
+        match self {
             Self::Real(path) => Some(path.to_path_buf()),
             Self::Virtual { real_prefix, .. } => {
                 self.without_prefix().map(|path| real_prefix.join(path))
             }
-        };
-
-        path.and_then(|path| if path.is_absolute() { Some(path) } else { None })
+        }
     }
 
     /// Return the original real path as a string.
