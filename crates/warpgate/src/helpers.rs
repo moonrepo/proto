@@ -135,15 +135,11 @@ pub fn from_virtual_path(
         if let Ok(rel_path) = path.strip_prefix(guest_path) {
             let real_path = host_path.join(rel_path);
 
-            if cfg!(windows) {
-                return PathBuf::from(real_path.to_string_lossy().replace('/', "\\"));
-            }
-
-            return real_path;
+            return prepare_from_path(&real_path);
         }
     }
 
-    path.to_owned()
+    prepare_from_path(path)
 }
 
 /// Convert the provided absolute host path to a virtual guest path suitable
@@ -156,7 +152,7 @@ pub fn to_virtual_path(
     let path = path.as_ref();
 
     for (host_path, guest_path) in sort_virtual_paths(paths_map) {
-        let mut virtual_path = if path.starts_with(guest_path) {
+        let virtual_path = if path.starts_with(guest_path) {
             path.to_owned()
         } else if let Ok(rel_path) = path.strip_prefix(host_path) {
             guest_path.join(rel_path)
@@ -164,17 +160,36 @@ pub fn to_virtual_path(
             continue;
         };
 
-        // Only forward slashes are allowed in WASI
-        if cfg!(windows) {
-            virtual_path = PathBuf::from(virtual_path.to_string_lossy().replace('\\', "/"));
-        }
-
         return VirtualPath::Virtual {
-            path: virtual_path,
-            virtual_prefix: guest_path.to_path_buf(),
-            real_prefix: host_path.to_path_buf(),
+            path: prepare_to_path(&virtual_path),
+            virtual_prefix: prepare_to_path(guest_path),
+            real_prefix: prepare_to_path(host_path),
         };
     }
 
-    VirtualPath::Real(path.to_owned())
+    VirtualPath::Real(prepare_to_path(path))
+}
+
+#[cfg(unix)]
+fn prepare_to_path(path: &Path) -> PathBuf {
+    path.to_path_buf()
+}
+
+#[cfg(unix)]
+fn prepare_from_path(path: &Path) -> PathBuf {
+    path.to_path_buf()
+}
+
+// Only forward slashes are allowed in WASI. This is also required
+// when joining paths in WASM, because mismatched separators will
+// cause issues.
+
+#[cfg(windows)]
+fn prepare_to_path(path: &Path) -> PathBuf {
+    PathBuf::from(path.to_string_lossy().replace('\\', "/"))
+}
+
+#[cfg(windows)]
+fn prepare_from_path(path: &Path) -> PathBuf {
+    PathBuf::from(path.to_string_lossy().replace('/', "\\"))
 }

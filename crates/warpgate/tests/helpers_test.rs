@@ -36,7 +36,7 @@ fn converts_virtual_paths() {
 
     // No match
     let b1 = to_virtual_path(&paths, "C:\\Unknown\\prefix\\some\\path");
-    assert_eq!(b1.to_string(), "C:\\Unknown\\prefix\\some\\path");
+    assert_eq!(b1.to_string(), "C:/Unknown/prefix/some/path");
 
     let b2 = from_virtual_path(&paths, b1);
     assert_eq!(b2.to_str().unwrap(), "C:\\Unknown\\prefix\\some\\path");
