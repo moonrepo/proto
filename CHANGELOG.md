@@ -20,6 +20,7 @@
 #### 🐞 Fixes
 
 - Fixed some weird WASM path handling issues on Windows. For third-party plugin authors, we suggest pulling in the latest PDKs and releasing a new version.
+- Fixed an issue where the "new version available" message would appear when running a tool's `--version` and `--help` commands.
 
 #### 🧩 Plugins
 
