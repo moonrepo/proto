@@ -329,7 +329,7 @@ impl ProtoConfig {
 
     pub fn builtin_proto_plugin(&self) -> PluginLocator {
         PluginLocator::Url(Box::new(UrlLocator {
-            url: "https://github.com/moonrepo/plugins/releases/download/proto_tool-v0.5.3/proto_tool.wasm".into()
+            url: "https://github.com/moonrepo/plugins/releases/download/proto_tool-v0.5.4/proto_tool.wasm".into()
         }))
     }
 
@@ -343,7 +343,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("asdf"),
                 PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/asdf_backend-v0.2.0/asdf_backend.wasm".into()
+                    url: "https://github.com/moonrepo/plugins/releases/download/asdf_backend-v0.2.1/asdf_backend.wasm".into()
                 }))
             );
         }
@@ -352,7 +352,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("bun"),
                 PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/bun_tool-v0.15.1/bun_tool.wasm".into()
+                    url: "https://github.com/moonrepo/plugins/releases/download/bun_tool-v0.15.2/bun_tool.wasm".into()
                 }))
             );
         }
@@ -361,7 +361,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("deno"),
                 PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/deno_tool-v0.15.3/deno_tool.wasm".into()
+                    url: "https://github.com/moonrepo/plugins/releases/download/deno_tool-v0.15.4/deno_tool.wasm".into()
                 }))
             );
         }
@@ -370,7 +370,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("go"),
                 PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/go_tool-v0.16.1/go_tool.wasm".into()
+                    url: "https://github.com/moonrepo/plugins/releases/download/go_tool-v0.16.2/go_tool.wasm".into()
                 }))
             );
         }
@@ -379,7 +379,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("moon"),
                 PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/moon_tool-v0.3.1/moon_tool.wasm".into()
+                    url: "https://github.com/moonrepo/plugins/releases/download/moon_tool-v0.3.2/moon_tool.wasm".into()
                 }))
             );
         }
@@ -388,7 +388,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("node"),
                 PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/node_tool-v0.16.2/node_tool.wasm".into()
+                    url: "https://github.com/moonrepo/plugins/releases/download/node_tool-v0.16.3/node_tool.wasm".into()
                 }))
             );
         }
@@ -398,7 +398,7 @@ impl ProtoConfig {
                 self.plugins.insert(
                     Id::raw(depman),
                     PluginLocator::Url(Box::new(UrlLocator {
-                        url: "https://github.com/moonrepo/plugins/releases/download/node_depman_tool-v0.15.1/node_depman_tool.wasm".into()
+                        url: "https://github.com/moonrepo/plugins/releases/download/node_depman_tool-v0.15.2/node_depman_tool.wasm".into()
                     }))
                 );
             }
@@ -408,7 +408,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("poetry"),
                 PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/python_poetry_tool-v0.1.2/python_poetry_tool.wasm".into()
+                    url: "https://github.com/moonrepo/plugins/releases/download/python_poetry_tool-v0.1.3/python_poetry_tool.wasm".into()
                 }))
             );
         }
@@ -417,7 +417,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("python"),
                 PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/python_tool-v0.14.1/python_tool.wasm".into()
+                    url: "https://github.com/moonrepo/plugins/releases/download/python_tool-v0.14.2/python_tool.wasm".into()
                 }))
             );
         }
@@ -426,7 +426,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("uv"),
                 PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/python_uv_tool-v0.2.1/python_uv_tool.wasm".into()
+                    url: "https://github.com/moonrepo/plugins/releases/download/python_uv_tool-v0.2.2/python_uv_tool.wasm".into()
                 }))
             );
         }
@@ -435,7 +435,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("ruby"),
                 PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/ruby_tool-v0.2.1/ruby_tool.wasm".into()
+                    url: "https://github.com/moonrepo/plugins/releases/download/ruby_tool-v0.2.2/ruby_tool.wasm".into()
                 }))
             );
         }
@@ -444,7 +444,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("rust"),
                 PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/rust_tool-v0.13.2/rust_tool.wasm".into()
+                    url: "https://github.com/moonrepo/plugins/releases/download/rust_tool-v0.13.3/rust_tool.wasm".into()
                 }))
             );
         }
@@ -453,7 +453,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw(SCHEMA_PLUGIN_KEY),
                 PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/schema_tool-v0.17.2/schema_tool.wasm".into()
+                    url: "https://github.com/moonrepo/plugins/releases/download/schema_tool-v0.17.3/schema_tool.wasm".into()
                 }))
             );
         }

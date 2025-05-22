@@ -15,6 +15,16 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed some weird WASM path handling issues on Windows. For third-party plugin authors, we suggest pulling in the latest PDKs and releasing a new version.
+
+#### 🧩 Plugins
+
+- Updated all plugins to pull in the path fixes.
+
 ## 0.49.2
 
 #### 🚀 Updates
