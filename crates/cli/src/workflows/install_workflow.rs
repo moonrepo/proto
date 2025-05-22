@@ -629,15 +629,17 @@ impl InstallWorkflowManager {
                             break;
                         }
                         ProgressState::Message(message) => {
-                            let _ = console.out.write_line_with_prefix(
-                                apply_style_tags(
-                                    // Compatibility with the UI theme
-                                    message
-                                        .replace("version>", "hash>")
-                                        .replace("versionalt>", "symbol>"),
-                                ),
-                                &prefix,
-                            );
+                            if !console.out.is_quiet() {
+                                let _ = console.out.write_line_with_prefix(
+                                    apply_style_tags(
+                                        // Compatibility with the UI theme
+                                        message
+                                            .replace("version>", "hash>")
+                                            .replace("versionalt>", "symbol>"),
+                                    ),
+                                    &prefix,
+                                );
+                            }
                         }
                         _ => {}
                     }

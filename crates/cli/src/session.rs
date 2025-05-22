@@ -60,7 +60,6 @@ impl ProtoSession {
                 | Commands::Bin(_)
                 | Commands::Clean(_)
                 | Commands::Completions(_)
-                | Commands::Run(_)
                 | Commands::Setup(_)
                 | Commands::Upgrade(_)
         )
@@ -268,7 +267,7 @@ impl AppSession for ProtoSession {
         clean_proto_backups(&self.env)?;
 
         if self.should_check_for_new_version() {
-            check_for_new_version(Arc::clone(&self.env), &self.cli_version).await?;
+            check_for_new_version(&self.env, &self.console, &self.cli_version).await?;
         }
 
         Ok(None)

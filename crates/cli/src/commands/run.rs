@@ -304,7 +304,9 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
         if config.settings.auto_install {
             let hide_output = should_hide_auto_install_output(&args.passthrough);
 
-            if !hide_output {
+            if hide_output {
+                session.console.set_quiet(true);
+            } else {
                 session.console.out.write_line(format!(
                     "Auto-install is enabled, attempting to install {} {}",
                     tool.get_name(),
@@ -328,7 +330,9 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
             )
             .await?;
 
-            if !hide_output {
+            if hide_output {
+                session.console.set_quiet(false);
+            } else {
                 session.console.out.write_line(format!(
                     "{} {} has been installed, continuing execution...",
                     tool.get_name(),

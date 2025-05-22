@@ -15,6 +15,19 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed some weird WASM path handling issues on Windows. For third-party plugin authors, we suggest pulling in the latest PDKs and releasing a new version.
+- Fixed an issue where the "new version available" message would appear when running a tool's `--version` and `--help` commands.
+
+#### 🧩 Plugins
+
+- Updated all plugins to pull in the path fixes.
+- Updated `node_tool` to v0.16.2.
+  - Added experimental musl (alpine) support.
+
 ## 0.49.2
 
 #### 🚀 Updates

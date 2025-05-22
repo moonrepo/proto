@@ -1,12 +1,11 @@
 use crate::app::{App as CLI, Commands};
 use crate::helpers::fetch_latest_version;
-use proto_core::{ConfigMode, ProtoEnvironment, is_offline, now};
+use proto_core::{ConfigMode, ProtoConsole, ProtoEnvironment, is_offline, now};
 use proto_shim::get_exe_file_name;
 use semver::Version;
 use starbase_styles::color;
 use starbase_utils::fs;
 use std::env;
-use std::sync::Arc;
 use std::time::Duration;
 use tracing::{debug, instrument};
 
@@ -81,7 +80,8 @@ pub fn clean_proto_backups(env: &ProtoEnvironment) -> miette::Result<()> {
 
 #[instrument(skip_all)]
 pub async fn check_for_new_version(
-    env: Arc<ProtoEnvironment>,
+    env: &ProtoEnvironment,
+    console: &ProtoConsole,
     local_version: &Version,
 ) -> miette::Result<()> {
     if
@@ -127,19 +127,21 @@ pub async fn check_for_new_version(
             "Found a newer version"
         );
 
-        println!(
-            "✨ There's a new version of proto available, {} (currently on {})",
-            color::hash(remote_version.to_string()),
-            color::muted_light(local_version.to_string()),
-        );
+        if !console.out.is_quiet() {
+            console.out.write_line(format!(
+                "✨ There's a new version of proto available, {} (currently on {})",
+                color::hash(remote_version.to_string()),
+                color::muted_light(local_version.to_string()),
+            ))?;
 
-        println!(
-            "✨ Run {} or install from {}",
-            color::shell("proto upgrade"),
-            color::url("https://moonrepo.dev/docs/proto/install"),
-        );
+            console.out.write_line(format!(
+                "✨ Run {} or install from {}",
+                color::shell("proto upgrade"),
+                color::url("https://moonrepo.dev/docs/proto/install"),
+            ))?;
 
-        println!();
+            console.out.write_newline()?;
+        }
     }
 
     // And write the cache
