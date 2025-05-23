@@ -129,3 +129,8 @@ pub fn write_json_file_with_lock<T: Serialize>(
 
     Ok(())
 }
+
+/// Check if the current execution is via the proto-shim binary
+pub fn is_running_from_shim() -> bool {
+    env::var("PROTO_SHIM_NAME").is_ok() && env::var("PROTO_SHIM_PATH").is_ok()
+}

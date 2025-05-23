@@ -3,7 +3,7 @@ use crate::error::ProtoCliError;
 use crate::session::ProtoSession;
 use clap::Args;
 use miette::IntoDiagnostic;
-use proto_core::{Id, PROTO_PLUGIN_KEY, ProtoEnvironment, ProtoToolError, Tool, ToolSpec};
+use proto_core::{Id, PROTO_PLUGIN_KEY, ProtoEnvironment, ProtoToolError, Tool, ToolSpec, is_running_from_shim};
 use proto_pdk_api::{ExecutableConfig, RunHook, RunHookResult};
 use proto_shim::{exec_command_and_replace, locate_proto_exe};
 use starbase::AppResult;
@@ -234,7 +234,9 @@ fn run_global_tool(
     if let ProtoToolError::UnknownTool { id } = &error {
         let config = session.load_config()?;
 
-        if !config.plugins.contains_key(id) {
+        let is_shim = is_running_from_shim();
+
+        if is_shim || !config.plugins.contains_key(id) {
             if let Some(global_exe) = get_global_executable(&session.env, id.as_str()) {
                 debug!(
                     global_exe = ?global_exe,
