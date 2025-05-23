@@ -1,6 +1,6 @@
 [package]
 name = "warpgate_api"
-version = "0.14.3"
+version = "0.14.4"
 edition = "2024"
 license = "MIT"
 description = "APIs for working with Warpgate plugins."
