@@ -86,16 +86,35 @@ impl VirtualPath {
 
     /// Return the parent directory as a new [`VirtualPath`] instance.
     pub fn parent(&self) -> Option<VirtualPath> {
+        // If at the root (`/`), then we have gone outside the allowed
+        // virtual paths, so there's no parent to use!
+        fn is_root(path: &Path) -> bool {
+            path.to_str()
+                .is_some_and(|comp| comp.is_empty() || comp == "/")
+        }
+
         match self {
-            Self::Real(base) => base.parent().map(|parent| Self::Real(parent.to_owned())),
+            Self::Real(base) => base.parent().and_then(|parent| {
+                if is_root(parent) {
+                    None
+                } else {
+                    Some(Self::Real(parent.to_owned()))
+                }
+            }),
             Self::Virtual {
                 path: base,
                 virtual_prefix,
                 real_prefix,
-            } => base.parent().map(|parent| Self::Virtual {
-                path: parent.to_owned(),
-                virtual_prefix: virtual_prefix.clone(),
-                real_prefix: real_prefix.clone(),
+            } => base.parent().and_then(|parent| {
+                if is_root(parent) {
+                    None
+                } else {
+                    Some(Self::Virtual {
+                        path: parent.to_owned(),
+                        virtual_prefix: virtual_prefix.clone(),
+                        real_prefix: real_prefix.clone(),
+                    })
+                }
             }),
         }
     }
