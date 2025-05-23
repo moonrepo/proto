@@ -1,5 +1,6 @@
 use crate::config::SCHEMA_PLUGIN_KEY;
 use crate::env::ProtoEnvironment;
+use crate::helpers::is_running_from_shim;
 use crate::tool::Tool;
 use crate::tool_error::ProtoToolError;
 use crate::tool_spec::Backend;
@@ -52,7 +53,8 @@ pub fn locate_tool(id: &Id, proto: &ProtoEnvironment) -> miette::Result<PluginLo
     }
 
     // And finally the built-in plugins (must include global config)
-    if locator.is_none() {
+    // Note: if we are running from a shim the tool must be within the config files
+    if locator.is_none() && !is_running_from_shim() {
         let builtin_plugins = proto.load_config()?.builtin_plugins();
 
         if let Some(maybe_locator) = builtin_plugins.get(id) {
