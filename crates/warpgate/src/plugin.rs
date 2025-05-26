@@ -7,7 +7,7 @@ use miette::IntoDiagnostic;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use starbase_styles::{apply_style_tags, color};
-use starbase_utils::env::is_ci;
+use starbase_utils::env::{bool_var, is_ci};
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
@@ -85,6 +85,7 @@ pub struct PluginContainer {
     pub id: Id,
     pub manifest: Manifest,
 
+    debug_call: bool,
     func_cache: Arc<scc::HashMap<String, Vec<u8>>>,
     on_call_func: Arc<OnceLock<OnCallFn>>,
     plugin: Arc<RwLock<Plugin>>,
@@ -126,6 +127,7 @@ impl PluginContainer {
             id,
             func_cache: Arc::new(scc::HashMap::new()),
             on_call_func: Arc::new(OnceLock::new()),
+            debug_call: bool_var("WARPGATE_DEBUG_CALL"),
         })
     }
 
@@ -243,7 +245,11 @@ impl PluginContainer {
         trace!(
             id = self.id.as_str(),
             plugin = &uuid,
-            input = %input_string,
+            input = %(if input_string.len() > 5000 && !self.debug_call {
+                "(truncated)"
+            } else {
+                &input_string
+            }),
             "Calling guest function {}",
             color::property(func),
         );
@@ -292,7 +298,11 @@ impl PluginContainer {
         trace!(
             id = self.id.as_str(),
             plugin = &uuid,
-            output = %output_string,
+            output = %(if output_string.len() > 5000 && !self.debug_call {
+                "(truncated)"
+            } else {
+                &output_string
+            }),
             elapsed = ?instant.elapsed(),
             "Called guest function {}",
             color::property(func),

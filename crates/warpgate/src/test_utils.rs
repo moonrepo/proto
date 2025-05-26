@@ -101,7 +101,7 @@ impl ConfigBuilder {
 
         if !self.config.contains_key("test_environment") {
             self.test_environment(TestEnvironment {
-                ci: env::var("CI").is_ok(),
+                ci: is_ci(),
                 sandbox: VirtualPath::Real(self.sandbox_root.clone()),
             });
         }
