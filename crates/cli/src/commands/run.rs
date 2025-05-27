@@ -3,6 +3,7 @@ use crate::error::ProtoCliError;
 use crate::session::ProtoSession;
 use clap::Args;
 use miette::IntoDiagnostic;
+use proto_core::flow::detect::ProtoDetectError;
 use proto_core::{Id, PROTO_PLUGIN_KEY, ProtoEnvironment, ProtoToolError, Tool, ToolSpec};
 use proto_pdk_api::{ExecutableConfig, RunHook, RunHookResult};
 use proto_shim::{exec_command_and_replace, locate_proto_exe};
@@ -226,32 +227,33 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
 fn run_global_tool(
     session: ProtoSession,
     args: RunArgs,
-    error: ProtoToolError,
+    error: miette::Report,
 ) -> miette::Result<()> {
-    // If we hit this error, it means we have a shim for this tool,
-    // but no configured version, BUT, this tool may exist on `PATH`
-    // outside of proto, so try and fallback to it!
-    if let ProtoToolError::UnknownTool { id } = &error {
-        let config = session.load_config()?;
+    // It is possible that we have a shim for the tool, but can not find the
+    // plugin or version. However, this tool may exist on `PATH` outside
+    // of proto, so try and fallback to it!
+    let try_global = matches!(
+        error.downcast_ref::<ProtoToolError>(),
+        Some(ProtoToolError::UnknownTool { .. })
+    ) || matches!(
+        error.downcast_ref::<ProtoDetectError>(),
+        Some(ProtoDetectError::FailedVersionDetect { .. })
+    );
 
-        if !config.plugins.contains_key(id) {
-            if let Some(global_exe) = get_global_executable(&session.env, id.as_str()) {
-                debug!(
-                    global_exe = ?global_exe,
-                    "Tool {} is currently not managed by proto but exists on PATH, falling back to the global executable",
-                    color::id(id),
-                );
+    if try_global {
+        if let Some(global_exe) = get_global_executable(&session.env, args.id.as_str()) {
+            debug!(
+                global_exe = ?global_exe,
+                "Tool {} is currently not managed by proto but exists on PATH, falling back to the global executable",
+                color::id(args.id),
+            );
 
-                return exec_command_and_replace(create_process_command(
-                    global_exe,
-                    args.passthrough,
-                ))
+            return exec_command_and_replace(create_process_command(global_exe, args.passthrough))
                 .into_diagnostic();
-            }
         }
     }
 
-    Err(error.into())
+    Err(error)
 }
 
 #[tracing::instrument(skip_all)]
@@ -262,10 +264,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
     {
         Ok(tool) => tool,
         Err(error) => {
-            return match error.downcast::<ProtoToolError>() {
-                Ok(tool_error) => run_global_tool(session, args, tool_error).map(|_| None),
-                Err(error) => Err(error),
-            };
+            return run_global_tool(session, args, error).map(|_| None);
         }
     };
 
@@ -288,7 +287,12 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
     } else if let Some(spec) = args.spec.clone() {
         spec
     } else {
-        tool.detect_version().await?
+        match tool.detect_version().await {
+            Ok(spec) => spec,
+            Err(error) => {
+                return run_global_tool(session, args, error).map(|_| None);
+            }
+        }
     };
 
     // Check if installed or need to install
