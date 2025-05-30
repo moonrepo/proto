@@ -3735,6 +3735,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "shell-quote"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fb502615975ae2365825521fa1529ca7648fd03ce0b0746604e0683856ecd7e4"
+
+[[package]]
 name = "shell-words"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3952,12 +3958,13 @@ dependencies = [
 
 [[package]]
 name = "starbase_shell"
-version = "0.7.6"
+version = "0.7.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c85e1029e5c109ed696b962e4b15b2f15ba7befc204356836108f83a201bfb3"
+checksum = "be5d17b9de116c34b8ba30ac47a43e7b42501a3ebc2794cb9f9e4e29b98d73b1"
 dependencies = [
  "miette 7.6.0",
  "regex",
+ "shell-quote",
  "sysinfo",
  "thiserror 2.0.12",
  "tracing",

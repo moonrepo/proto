@@ -17,6 +17,10 @@
 
 ## Unreleased
 
+#### 🐞 Fixes
+
+- Fixed some shell quoting/escaping issues on Bash/Zsh.
+
 #### ⚙️ Internal
 
 - Updated dependencies.
