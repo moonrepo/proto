@@ -17,6 +17,11 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Updated `proto run` (and shims) to fallback and run a global executable on `PATH` of the same name if a version was not configured and detected.
+  - This change aims to mitigate a situation where the `~/.proto/shims` file takes precedence on `PATH` but proto should not be used.
+
 #### 🐞 Fixes
 
 - Fixed some shell quoting/escaping issues on Bash/Zsh.
