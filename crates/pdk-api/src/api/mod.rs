@@ -3,6 +3,7 @@ mod checksum;
 mod source;
 
 use crate::shapes::*;
+use derive_setters::Setters;
 use rustc_hash::FxHashMap;
 use std::path::PathBuf;
 use version_spec::{CalVer, SemVer, SpecError, UnresolvedVersionSpec, VersionSpec};
@@ -410,15 +411,18 @@ api_struct!(
 
 api_struct!(
     /// Configuration for generated shim and symlinked binary files.
+    #[derive(Setters)]
     #[serde(default)]
     pub struct ExecutableConfig {
         /// The file to execute, relative from the tool directory.
         /// Does *not* support virtual paths.
+        #[setters(no_option)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub exe_path: Option<PathBuf>,
 
         /// The executable path to use for symlinking binaries instead of `exe_path`.
         /// This should only be used when `exe_path` is a non-standard executable.
+        #[setters(no_option)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub exe_link_path: Option<PathBuf>,
 
@@ -436,6 +440,7 @@ api_struct!(
         pub parent_exe_args: Vec<String>,
 
         /// The parent executable name required to execute the local executable path.
+        #[setters(into, no_option)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub parent_exe_name: Option<String>,
 
@@ -444,14 +449,17 @@ api_struct!(
         pub primary: bool,
 
         /// Custom args to prepend to user-provided args within the generated shim.
+        #[setters(no_option)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub shim_before_args: Option<StringOrVec>,
 
         /// Custom args to append to user-provided args within the generated shim.
+        #[setters(no_option)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub shim_after_args: Option<StringOrVec>,
 
         /// Custom environment variables to set when executing the shim.
+        #[setters(no_option)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub shim_env_vars: Option<FxHashMap<String, String>>,
     }

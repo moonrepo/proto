@@ -996,6 +996,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "derive_setters"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d9c848e86c87e5cc305313041c5677d4d95d60baa71cf95e5f6ea2554bb629ff"
+dependencies = [
+ "darling",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "diff"
 version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2901,6 +2913,7 @@ dependencies = [
 name = "proto_pdk_api"
 version = "0.27.12"
 dependencies = [
+ "derive_setters",
  "proto_pdk_api",
  "rustc-hash",
  "schematic",
@@ -4774,6 +4787,7 @@ name = "warpgate_api"
 version = "0.14.4"
 dependencies = [
  "anyhow",
+ "derive_setters",
  "rustc-hash",
  "schematic",
  "serde",

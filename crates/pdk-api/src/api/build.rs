@@ -1,5 +1,6 @@
 use super::source::*;
 use crate::ToolContext;
+use derive_setters::Setters;
 use rustc_hash::FxHashMap;
 use semver::VersionReq;
 use std::path::PathBuf;
@@ -19,8 +20,10 @@ api_struct!(
 
 api_struct!(
     /// A builder and its parameters for installing the builder.
+    #[derive(Setters)]
     pub struct BuilderInstruction {
         /// Unique identifier for this builder.
+        #[setters(into)]
         pub id: String,
 
         /// Primary executable, relative from the source root.
@@ -37,8 +40,10 @@ api_struct!(
 
 api_struct!(
     /// A command and its parameters to be executed as a child process.
+    #[derive(Setters)]
     pub struct CommandInstruction {
         /// The binary on `PATH`.
+        #[setters(into)]
         pub bin: String,
 
         /// If the binary should reference a builder executable.
@@ -53,6 +58,7 @@ api_struct!(
         pub env: FxHashMap<String, String>,
 
         /// The working directory.
+        #[setters(no_option)]
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub cwd: Option<PathBuf>,
     }
