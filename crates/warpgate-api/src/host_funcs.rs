@@ -1,5 +1,6 @@
 use crate::virtual_path::VirtualPath;
 use crate::{AnyResult, api_struct, api_unit_enum};
+use derive_setters::Setters;
 use rustc_hash::FxHashMap;
 use serde::de::DeserializeOwned;
 
@@ -21,10 +22,14 @@ api_unit_enum!(
 
 api_struct!(
     /// Input passed to the `host_log` host function.
+    #[derive(Setters)]
     #[serde(default)]
     pub struct HostLogInput {
         pub data: FxHashMap<String, serde_json::Value>,
+
+        #[setters(into)]
         pub message: String,
+
         pub target: HostLogTarget,
     }
 );
@@ -53,10 +58,12 @@ impl From<String> for HostLogInput {
 
 api_struct!(
     /// Input passed to the `exec_command` host function.
+    #[derive(Setters)]
     #[serde(default)]
     pub struct ExecCommandInput {
         /// The command or script to execute. Accepts an executable
         /// on `PATH` or a virtual path.
+        #[setters(into)]
         pub command: String,
 
         /// Arguments to pass to the command.
@@ -68,13 +75,16 @@ api_struct!(
         pub env: FxHashMap<String, String>,
 
         /// Mark the command as executable before executing.
+        #[setters(skip)]
         #[doc(hidden)]
         pub set_executable: bool,
 
         /// Stream the output instead of capturing it.
+        #[setters(bool)]
         pub stream: bool,
 
         /// Override the current working directory.
+        #[setters(rename = "cwd", no_option)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub working_dir: Option<VirtualPath>,
     }
@@ -148,8 +158,10 @@ impl ExecCommandOutput {
 
 api_struct!(
     /// Input passed to the `send_request` host function.
+    #[derive(Setters)]
     pub struct SendRequestInput {
         /// The URL to send to.
+        #[setters(into)]
         pub url: String,
 
         /// HTTP headers to inject into the request.

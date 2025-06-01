@@ -10,6 +10,7 @@ repository = "https://github.com/moonrepo/proto"
 [dependencies]
 system_env = { version = "0.8.0", path = "../system-env" }
 anyhow = { workspace = true }
+derive_setters = { workspace = true }
 rustc-hash = { workspace = true }
 schematic = { workspace = true, optional = true, features = ["schema", "json"] }
 serde = { workspace = true }
