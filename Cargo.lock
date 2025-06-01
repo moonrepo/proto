@@ -2900,7 +2900,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.28.9"
+version = "0.28.10"
 dependencies = [
  "extism-pdk",
  "proto_pdk_api",
@@ -2911,7 +2911,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.27.12"
+version = "0.27.13"
 dependencies = [
  "derive_setters",
  "proto_pdk_api",
@@ -4784,7 +4784,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_api"
-version = "0.14.4"
+version = "0.14.5"
 dependencies = [
  "anyhow",
  "derive_setters",
@@ -4798,7 +4798,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_pdk"
-version = "0.13.1"
+version = "0.13.2"
 dependencies = [
  "extism-pdk",
  "serde",
