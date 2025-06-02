@@ -1,3 +1,4 @@
+use super::checksum_error::ProtoChecksumError;
 use sha2::{Digest, Sha256, Sha512};
 use starbase_utils::fs::{self, FsError};
 use std::io;
@@ -5,7 +6,7 @@ use std::io::{BufRead, BufReader};
 use std::path::Path;
 use tracing::trace;
 
-pub fn hash_file_contents_sha256<P: AsRef<Path>>(path: P) -> miette::Result<String> {
+pub fn hash_file_contents_sha256<P: AsRef<Path>>(path: P) -> Result<String, FsError> {
     let path = path.as_ref();
 
     trace!(file = ?path, "Calculating SHA256 checksum");
@@ -25,7 +26,7 @@ pub fn hash_file_contents_sha256<P: AsRef<Path>>(path: P) -> miette::Result<Stri
     Ok(hash)
 }
 
-pub fn hash_file_contents_sha512<P: AsRef<Path>>(path: P) -> miette::Result<String> {
+pub fn hash_file_contents_sha512<P: AsRef<Path>>(path: P) -> Result<String, FsError> {
     let path = path.as_ref();
 
     trace!(file = ?path, "Calculating SHA512 checksum");
@@ -50,10 +51,15 @@ pub fn verify_checksum(
     download_file: &Path,
     checksum_file: &Path,
     checksum_hash: &str,
-) -> miette::Result<bool> {
+) -> Result<bool, ProtoChecksumError> {
     let download_file_name = fs::file_name(download_file);
 
-    for line in BufReader::new(fs::open_file(checksum_file)?)
+    for line in
+        BufReader::new(
+            fs::open_file(checksum_file).map_err(|error| ProtoChecksumError::Sha {
+                error: Box::new(error),
+            })?,
+        )
         .lines()
         .map_while(Result::ok)
     {

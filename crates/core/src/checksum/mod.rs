@@ -14,7 +14,7 @@ pub fn verify_checksum(
     download_file: &Path,
     checksum_file: &Path,
     checksum: &Checksum,
-) -> miette::Result<bool> {
+) -> Result<bool, ProtoChecksumError> {
     match checksum.algo {
         ChecksumAlgorithm::Minisign => minisign::verify_checksum(
             download_file,
@@ -34,22 +34,30 @@ pub fn generate_checksum(
     download_file: &Path,
     checksum_file: &Path,
     checksum_public_key: Option<&str>,
-) -> miette::Result<Checksum> {
+) -> Result<Checksum, ProtoChecksumError> {
     match detect_checksum_algorithm(checksum_file)? {
         ChecksumAlgorithm::Minisign => Ok(Checksum::minisign(
             checksum_public_key
                 .ok_or(ProtoChecksumError::MissingPublicKey)?
                 .to_owned(),
         )),
-        ChecksumAlgorithm::Sha512 => {
-            Ok(Checksum::sha512(hash_file_contents_sha512(download_file)?))
-        }
-        _ => Ok(Checksum::sha256(hash_file_contents_sha256(download_file)?)),
+        ChecksumAlgorithm::Sha512 => Ok(Checksum::sha512(
+            hash_file_contents_sha512(download_file).map_err(|error| ProtoChecksumError::Sha {
+                error: Box::new(error),
+            })?,
+        )),
+        _ => Ok(Checksum::sha256(
+            hash_file_contents_sha256(download_file).map_err(|error| ProtoChecksumError::Sha {
+                error: Box::new(error),
+            })?,
+        )),
     }
 }
 
 #[tracing::instrument(skip_all)]
-pub fn detect_checksum_algorithm(checksum_file: &Path) -> miette::Result<ChecksumAlgorithm> {
+pub fn detect_checksum_algorithm(
+    checksum_file: &Path,
+) -> Result<ChecksumAlgorithm, ProtoChecksumError> {
     // Check file extension
     let mut algo = match checksum_file.extension().and_then(|ext| ext.to_str()) {
         Some("minisig" | "minisign") => Some(ChecksumAlgorithm::Minisign),
