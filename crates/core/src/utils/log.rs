@@ -1,4 +1,4 @@
-use starbase_utils::fs;
+use starbase_utils::fs::{self, FsError};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
@@ -80,7 +80,7 @@ impl LogWriter {
         }
     }
 
-    pub fn write_to(&self, path: PathBuf) -> miette::Result<()> {
+    pub fn write_to(&self, path: PathBuf) -> Result<(), FsError> {
         let mut buffer = self.buffer.lock().unwrap();
 
         if !buffer.is_empty() {

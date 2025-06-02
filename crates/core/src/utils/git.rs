@@ -1,4 +1,4 @@
-use super::process::{exec_command_piped, handle_exec};
+use super::process::{ProtoProcessError, exec_command_piped, handle_exec};
 use crate::helpers::now;
 use proto_pdk_api::GitSource;
 use starbase_utils::fs;
@@ -32,7 +32,10 @@ pub fn new_pull(cwd: &Path) -> Command {
     cmd
 }
 
-pub async fn clone_or_pull_repo(src: &GitSource, target_dir: &Path) -> miette::Result<()> {
+pub async fn clone_or_pull_repo(
+    src: &GitSource,
+    target_dir: &Path,
+) -> Result<(), ProtoProcessError> {
     fs::create_dir_all(target_dir)?;
 
     let mut update_last_pull = false;

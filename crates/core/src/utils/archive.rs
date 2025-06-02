@@ -1,10 +1,35 @@
 use crate::helpers::extract_filename_from_url;
 use proto_pdk_api::ArchiveSource;
 use starbase_archive::Archiver;
+use starbase_utils::fs::FsError;
+use starbase_utils::net::NetError;
 use starbase_utils::{fs, net};
 use std::path::{Path, PathBuf};
+use thiserror::Error;
 
-pub fn should_unpack(src: &ArchiveSource, target_dir: &Path) -> miette::Result<bool> {
+#[derive(Error, Debug)]
+#[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
+pub enum ProtoArchiveError {
+    #[error(transparent)]
+    Fs(#[from] Box<FsError>),
+
+    #[error(transparent)]
+    Net(#[from] Box<NetError>),
+}
+
+impl From<FsError> for ProtoArchiveError {
+    fn from(e: FsError) -> ProtoArchiveError {
+        ProtoArchiveError::Fs(Box::new(e))
+    }
+}
+
+impl From<NetError> for ProtoArchiveError {
+    fn from(e: NetError) -> ProtoArchiveError {
+        ProtoArchiveError::Net(Box::new(e))
+    }
+}
+
+pub fn should_unpack(src: &ArchiveSource, target_dir: &Path) -> Result<bool, ProtoArchiveError> {
     let url_file = target_dir.join(".archive-url");
     let mut unpack = true;
 
@@ -29,7 +54,7 @@ pub async fn download(
     src: &ArchiveSource,
     temp_dir: &Path,
     client: &reqwest::Client,
-) -> miette::Result<PathBuf> {
+) -> Result<PathBuf, ProtoArchiveError> {
     let filename = extract_filename_from_url(&src.url)?;
     let archive_file = temp_dir.join(&filename);
 
@@ -42,7 +67,7 @@ pub fn unpack(
     src: &ArchiveSource,
     target_dir: &Path,
     archive_file: &Path,
-) -> miette::Result<(String, PathBuf)> {
+) -> Result<(String, PathBuf), ProtoArchiveError> {
     let result = unpack_raw(target_dir, archive_file, src.prefix.as_deref());
 
     fs::write_file(target_dir.join(".archive-url"), &src.url)?;
@@ -54,7 +79,7 @@ pub fn unpack_raw(
     target_dir: &Path,
     archive_file: &Path,
     prefix: Option<&str>,
-) -> miette::Result<(String, PathBuf)> {
+) -> Result<(String, PathBuf), ProtoArchiveError> {
     let mut archiver = Archiver::new(target_dir, archive_file);
 
     if let Some(prefix) = prefix {
@@ -69,7 +94,7 @@ pub async fn download_and_unpack(
     target_dir: &Path,
     temp_dir: &Path,
     client: &reqwest::Client,
-) -> miette::Result<()> {
+) -> Result<(), ProtoArchiveError> {
     if should_unpack(src, target_dir)? {
         let archive_file = download(src, temp_dir, client).await?;
 
