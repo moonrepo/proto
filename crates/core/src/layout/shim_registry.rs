@@ -1,3 +1,4 @@
+use super::layout_error::ProtoLayoutError;
 use crate::helpers::{read_json_file_with_lock, write_json_file_with_lock};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -28,7 +29,7 @@ pub type ShimsMap = BTreeMap<String, Shim>;
 pub struct ShimRegistry;
 
 impl ShimRegistry {
-    pub fn update(shims_dir: &Path, entries: ShimsMap) -> miette::Result<()> {
+    pub fn update(shims_dir: &Path, entries: ShimsMap) -> Result<(), ProtoLayoutError> {
         if entries.is_empty() {
             return Ok(());
         }
