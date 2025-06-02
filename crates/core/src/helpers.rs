@@ -1,4 +1,3 @@
-use miette::IntoDiagnostic;
 use regex::Regex;
 use semver::Version;
 use serde::Serialize;
@@ -87,11 +86,11 @@ pub fn now() -> u128 {
         .unwrap_or(0)
 }
 
-pub fn extract_filename_from_url<U: AsRef<str>>(url: U) -> miette::Result<String> {
-    let url = url::Url::parse(url.as_ref()).into_diagnostic()?;
+pub fn extract_filename_from_url<U: AsRef<str>>(url: U) -> String {
+    let url = url::Url::parse(url.as_ref()).unwrap();
     let mut segments = url.path_segments().unwrap();
 
-    Ok(segments.next_back().unwrap().to_owned())
+    segments.next_back().unwrap().to_owned()
 }
 
 pub fn read_json_file_with_lock<T: DeserializeOwned>(

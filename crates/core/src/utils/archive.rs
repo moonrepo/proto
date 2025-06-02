@@ -55,7 +55,7 @@ pub async fn download(
     temp_dir: &Path,
     client: &reqwest::Client,
 ) -> Result<PathBuf, ProtoArchiveError> {
-    let filename = extract_filename_from_url(&src.url)?;
+    let filename = extract_filename_from_url(&src.url);
     let archive_file = temp_dir.join(&filename);
 
     net::download_from_url_with_client(&src.url, &archive_file, client).await?;
