@@ -1,14 +1,25 @@
 use crate::config::PROTO_CONFIG_NAME;
 use crate::tool_spec::Backend;
-use miette::Diagnostic;
 use starbase_styles::{Style, Stylize};
+use starbase_utils::fs::FsError;
+use starbase_utils::json::JsonError;
 use std::path::PathBuf;
 use thiserror::Error;
 use warpgate::Id;
 
-#[derive(Error, Debug, Diagnostic)]
+#[derive(Error, Debug)]
+#[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
 pub enum ProtoToolError {
-    #[diagnostic(code(proto::tool::minimum_version_requirement))]
+    #[error(transparent)]
+    Fs(#[from] Box<FsError>),
+
+    #[error(transparent)]
+    Json(#[from] Box<JsonError>),
+
+    #[cfg_attr(
+        feature = "miette",
+        diagnostic(code(proto::tool::minimum_version_requirement))
+    )]
     #[error(
         "Unable to use the {tool} plugin with identifier {}, as it requires a minimum proto version of {}, but found {} instead.",
         .id.to_string().style(Style::Id),
@@ -22,7 +33,7 @@ pub enum ProtoToolError {
         actual: String,
     },
 
-    #[diagnostic(code(proto::tool::invalid_spec))]
+    #[cfg_attr(feature = "miette", diagnostic(code(proto::tool::invalid_spec)))]
     #[error("Invalid version or requirement in tool specification {}.", .spec.style(Style::Hash))]
     InvalidVersionSpec {
         spec: String,
@@ -30,11 +41,14 @@ pub enum ProtoToolError {
         error: Box<version_spec::SpecError>,
     },
 
-    #[diagnostic(code(proto::tool::invalid_inventory_dir))]
+    #[cfg_attr(
+        feature = "miette",
+        diagnostic(code(proto::tool::invalid_inventory_dir))
+    )]
     #[error("{tool} inventory directory has been overridden with {} but it's not an absolute path. Only absolute paths are supported.", .dir.style(Style::Path))]
     RequiredAbsoluteInventoryDir { tool: String, dir: PathBuf },
 
-    #[diagnostic(code(proto::tool::unknown_backend))]
+    #[cfg_attr(feature = "miette", diagnostic(code(proto::tool::unknown_backend)))]
     #[error(
         "Unknown backend in tool specification {}. Only {} are supported.",
         .spec.style(Style::Hash),
@@ -45,7 +59,7 @@ pub enum ProtoToolError {
         spec: String,
     },
 
-    #[diagnostic(code(proto::tool::unknown_id))]
+    #[cfg_attr(feature = "miette", diagnostic(code(proto::tool::unknown_id)))]
     #[error(
         "Unable to proceed, {} is not a built-in plugin and has not been configured with {} in a {} file.\n\nLearn more about plugins: {}\nSearch community plugins: {}",
         .id.to_string().style(Style::Id),
@@ -55,4 +69,16 @@ pub enum ProtoToolError {
         format!("proto plugin search {}", .id).style(Style::Shell),
     )]
     UnknownTool { id: Id },
+}
+
+impl From<FsError> for ProtoToolError {
+    fn from(e: FsError) -> ProtoToolError {
+        ProtoToolError::Fs(Box::new(e))
+    }
+}
+
+impl From<JsonError> for ProtoToolError {
+    fn from(e: JsonError) -> ProtoToolError {
+        ProtoToolError::Json(Box::new(e))
+    }
 }

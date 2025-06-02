@@ -50,7 +50,7 @@ impl Tool {
         id: Id,
         proto: Arc<ProtoEnvironment>,
         plugin: Arc<PluginContainer>,
-    ) -> miette::Result<Self> {
+    ) -> Result<Self, ProtoToolError> {
         debug!(
             "Created tool {} and its WASM runtime",
             color::id(id.as_str())
@@ -85,7 +85,7 @@ impl Tool {
         id: I,
         proto: P,
         wasm: Wasm,
-    ) -> miette::Result<Self> {
+    ) -> Result<Self, ProtoToolError> {
         let proto = proto.as_ref();
 
         Self::load_from_manifest(id, proto, Self::create_plugin_manifest(proto, wasm)?).await
@@ -95,7 +95,7 @@ impl Tool {
         id: I,
         proto: P,
         manifest: PluginManifest,
-    ) -> miette::Result<Self> {
+    ) -> Result<Self, ProtoToolError> {
         let id = id.as_ref();
         let proto = proto.as_ref();
 
@@ -124,7 +124,7 @@ impl Tool {
     pub fn create_plugin_manifest<P: AsRef<ProtoEnvironment>>(
         proto: P,
         wasm: Wasm,
-    ) -> miette::Result<PluginManifest> {
+    ) -> Result<PluginManifest, ProtoToolError> {
         let proto = proto.as_ref();
 
         let mut manifest = PluginManifest::new([wasm]);
@@ -238,7 +238,7 @@ impl Tool {
 
     /// Register the tool by loading initial metadata and persisting it.
     #[instrument(skip_all)]
-    pub async fn register_tool(&mut self) -> miette::Result<()> {
+    pub async fn register_tool(&mut self) -> Result<(), ProtoToolError> {
         let metadata: RegisterToolOutput = self
             .plugin
             .cache_func_with(
@@ -302,7 +302,7 @@ impl Tool {
 
     /// Register the backend by acquiring necessary source files.
     #[instrument(skip_all)]
-    pub async fn register_backend(&mut self) -> miette::Result<()> {
+    pub async fn register_backend(&mut self) -> Result<(), ProtoToolError> {
         if !self.plugin.has_func("register_backend").await
             || self.backend.is_none()
             || self.backend_registered
@@ -388,7 +388,7 @@ impl Tool {
 
     /// Sync the local tool manifest with changes from the plugin.
     #[instrument(skip_all)]
-    pub async fn sync_manifest(&mut self) -> miette::Result<()> {
+    pub async fn sync_manifest(&mut self) -> Result<(), ProtoToolError> {
         if !self.plugin.has_func("sync_manifest").await {
             return Ok(());
         }
