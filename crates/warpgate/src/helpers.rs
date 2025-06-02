@@ -36,7 +36,7 @@ pub async fn download_from_url_to_file(
     source_url: &str,
     dest_file: &Path,
     client: &HttpClient,
-) -> miette::Result<()> {
+) -> Result<(), WarpgateLoaderError> {
     if let Err(error) = net::download_from_url_with_options(
         source_url,
         dest_file,
@@ -49,7 +49,10 @@ pub async fn download_from_url_to_file(
     {
         return Err(match error {
             NetError::UrlNotFound { url } => WarpgateLoaderError::NotFound { url }.into(),
-            _ => error.into(),
+            e => WarpgateLoaderError::FailedDownload {
+                url: source_url.into(),
+                error: Box::new(e),
+            },
         });
     };
 
@@ -59,12 +62,17 @@ pub async fn download_from_url_to_file(
 /// If the temporary file is an archive, unpack it into the destination,
 /// otherwise more the file into the destination.
 #[instrument]
-pub fn move_or_unpack_download(temp_file: &Path, dest_file: &Path) -> miette::Result<()> {
+pub fn move_or_unpack_download(
+    temp_file: &Path,
+    dest_file: &Path,
+) -> Result<(), WarpgateLoaderError> {
     // Archive supported file extensions
     if is_supported_archive_extension(temp_file) {
         let out_dir = temp_file.parent().unwrap().join("out");
 
-        Archiver::new(&out_dir, temp_file).unpack_from_ext()?;
+        Archiver::new(&out_dir, temp_file)
+            .unpack_from_ext()
+            .unwrap(); // TODO
 
         let wasm_files = glob::walk_files(&out_dir, ["**/*.wasm"])?;
 

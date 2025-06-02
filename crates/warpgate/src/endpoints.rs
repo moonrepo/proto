@@ -30,7 +30,7 @@ pub struct GitHubApiRelease {
 pub async fn send_github_request<T: DeserializeOwned>(
     client: &HttpClient,
     url: &str,
-) -> miette::Result<T> {
+) -> Result<T, WarpgateClientError> {
     let mut request = client.get(url).query(&[("per_page", "100")]);
 
     if let Ok(auth_token) = env::var("GITHUB_TOKEN") {

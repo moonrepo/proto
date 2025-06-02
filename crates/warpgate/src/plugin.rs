@@ -3,7 +3,6 @@ use crate::helpers::{from_virtual_path, to_virtual_path};
 use crate::id::Id;
 use crate::plugin_error::WarpgatePluginError;
 use extism::{Error, Function, Manifest, Plugin};
-use miette::IntoDiagnostic;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use starbase_styles::{apply_style_tags, color};
@@ -49,7 +48,7 @@ pub fn inject_default_manifest_config(
     id: &Id,
     home_dir: &Path,
     manifest: &mut Manifest,
-) -> miette::Result<()> {
+) -> Result<(), WarpgatePluginError> {
     let os = SystemOS::from_env();
     let env = serde_json::to_string(&HostEnvironment {
         arch: SystemArch::from_env(),
@@ -61,7 +60,11 @@ pub fn inject_default_manifest_config(
             home_dir,
         ),
     })
-    .into_diagnostic()?;
+    .map_err(|error| WarpgatePluginError::InvalidInput {
+        id: id.to_owned(),
+        func: "host_environment".into(),
+        error: Box::new(error),
+    })?;
 
     trace!(id = id.as_str(), "Storing plugin identifier");
 
@@ -101,7 +104,7 @@ impl PluginContainer {
         id: Id,
         manifest: Manifest,
         functions: impl IntoIterator<Item = Function>,
-    ) -> miette::Result<PluginContainer> {
+    ) -> Result<PluginContainer, WarpgatePluginError> {
         trace!(id = id.as_str(), "Creating plugin container");
 
         let plugin = Plugin::new(&manifest, functions, true).map_err(|error| {
@@ -132,7 +135,10 @@ impl PluginContainer {
     }
 
     /// Create a new container with the provided manifest.
-    pub fn new_without_functions(id: Id, manifest: Manifest) -> miette::Result<PluginContainer> {
+    pub fn new_without_functions(
+        id: Id,
+        manifest: Manifest,
+    ) -> Result<PluginContainer, WarpgatePluginError> {
         Self::new(id, manifest, [])
     }
 
@@ -143,7 +149,7 @@ impl PluginContainer {
 
     /// Call a function on the plugin with no input and cache the output before returning it.
     /// Subsequent calls will read from the cache.
-    pub async fn cache_func<O>(&self, func: &str) -> miette::Result<O>
+    pub async fn cache_func<O>(&self, func: &str) -> Result<O, WarpgatePluginError>
     where
         O: Debug + DeserializeOwned,
     {
@@ -153,7 +159,11 @@ impl PluginContainer {
     /// Call a function on the plugin with the given input and cache the output
     /// before returning it. Subsequent calls with the same input will read from the cache.
     #[instrument(skip(self))]
-    pub async fn cache_func_with<I, O>(&self, func: &str, input: I) -> miette::Result<O>
+    pub async fn cache_func_with<I, O>(
+        &self,
+        func: &str,
+        input: I,
+    ) -> Result<O, WarpgatePluginError>
     where
         I: Debug + Serialize,
         O: Debug + DeserializeOwned,
@@ -176,7 +186,7 @@ impl PluginContainer {
     }
 
     /// Call a function on the plugin with no input and return the output.
-    pub async fn call_func<O>(&self, func: &str) -> miette::Result<O>
+    pub async fn call_func<O>(&self, func: &str) -> Result<O, WarpgatePluginError>
     where
         O: Debug + DeserializeOwned,
     {
@@ -185,7 +195,7 @@ impl PluginContainer {
 
     /// Call a function on the plugin with the given input and return the output.
     #[instrument(skip(self))]
-    pub async fn call_func_with<I, O>(&self, func: &str, input: I) -> miette::Result<O>
+    pub async fn call_func_with<I, O>(&self, func: &str, input: I) -> Result<O, WarpgatePluginError>
     where
         I: Debug + Serialize,
         O: Debug + DeserializeOwned,
@@ -198,7 +208,11 @@ impl PluginContainer {
 
     /// Call a function on the plugin with the given input and ignore the output.
     #[instrument(skip(self))]
-    pub async fn call_func_without_output<I>(&self, func: &str, input: I) -> miette::Result<()>
+    pub async fn call_func_without_output<I>(
+        &self,
+        func: &str,
+        input: I,
+    ) -> Result<(), WarpgatePluginError>
     where
         I: Debug + Serialize,
     {
@@ -235,7 +249,11 @@ impl PluginContainer {
     }
 
     /// Call a function on the plugin with the given raw input and return the raw output.
-    pub async fn call(&self, func: &str, input: impl AsRef<[u8]>) -> miette::Result<Vec<u8>> {
+    pub async fn call(
+        &self,
+        func: &str,
+        input: impl AsRef<[u8]>,
+    ) -> Result<Vec<u8>, WarpgatePluginError> {
         let mut instance = self.plugin.write().await;
         let input = input.as_ref();
         let input_string = String::from_utf8_lossy(input);
@@ -315,23 +333,27 @@ impl PluginContainer {
         Ok(output.to_vec())
     }
 
-    fn format_input<I: Serialize>(&self, func: &str, input: I) -> miette::Result<String> {
-        Ok(
-            serde_json::to_string(&input).map_err(|error| WarpgatePluginError::InvalidInput {
-                id: self.id.clone(),
-                func: func.to_owned(),
-                error: Box::new(error),
-            })?,
-        )
+    fn format_input<I: Serialize>(
+        &self,
+        func: &str,
+        input: I,
+    ) -> Result<String, WarpgatePluginError> {
+        serde_json::to_string(&input).map_err(|error| WarpgatePluginError::InvalidInput {
+            id: self.id.clone(),
+            func: func.to_owned(),
+            error: Box::new(error),
+        })
     }
 
-    fn parse_output<O: DeserializeOwned>(&self, func: &str, data: &[u8]) -> miette::Result<O> {
-        Ok(
-            serde_json::from_slice(data).map_err(|error| WarpgatePluginError::InvalidOutput {
-                id: self.id.clone(),
-                func: func.to_owned(),
-                error: Box::new(error),
-            })?,
-        )
+    fn parse_output<O: DeserializeOwned>(
+        &self,
+        func: &str,
+        data: &[u8],
+    ) -> Result<O, WarpgatePluginError> {
+        serde_json::from_slice(data).map_err(|error| WarpgatePluginError::InvalidOutput {
+            id: self.id.clone(),
+            func: func.to_owned(),
+            error: Box::new(error),
+        })
     }
 }
