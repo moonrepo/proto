@@ -5,6 +5,7 @@ mod detect_error;
 pub mod install;
 mod install_error;
 pub mod link;
+mod link_error;
 pub mod locate;
 mod locate_error;
 pub mod resolve;

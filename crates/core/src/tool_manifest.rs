@@ -1,9 +1,9 @@
 use crate::helpers::{now, read_json_file_with_lock, write_json_file_with_lock};
 use crate::lockfile::LockfileRecord;
-use crate::tool_error::ProtoToolError;
 use crate::tool_spec::Backend;
 use serde::{Deserialize, Serialize};
 use starbase_utils::env::bool_var;
+use starbase_utils::json::JsonError;
 use std::collections::{BTreeMap, BTreeSet};
 use std::{
     fmt::Debug,
@@ -56,12 +56,12 @@ pub struct ToolManifest {
 }
 
 impl ToolManifest {
-    pub fn load_from<P: AsRef<Path>>(dir: P) -> Result<Self, ProtoToolError> {
+    pub fn load_from<P: AsRef<Path>>(dir: P) -> Result<Self, JsonError> {
         Self::load(dir.as_ref().join(MANIFEST_NAME))
     }
 
     #[instrument(name = "load_tool_manifest")]
-    pub fn load<P: AsRef<Path> + Debug>(path: P) -> Result<Self, ProtoToolError> {
+    pub fn load<P: AsRef<Path> + Debug>(path: P) -> Result<Self, JsonError> {
         let path = path.as_ref();
 
         debug!(file = ?path, "Loading {}", MANIFEST_NAME);
@@ -78,7 +78,7 @@ impl ToolManifest {
     }
 
     #[instrument(name = "save_tool_manifest", skip(self))]
-    pub fn save(&self) -> Result<(), ProtoToolError> {
+    pub fn save(&self) -> Result<(), JsonError> {
         debug!(file = ?self.path, "Saving manifest");
 
         write_json_file_with_lock(&self.path, self)?;

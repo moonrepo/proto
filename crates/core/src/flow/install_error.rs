@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use thiserror::Error;
 
 #[derive(Error, Debug, Diagnostic)]
+#[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
 pub enum ProtoInstallError {
     #[diagnostic(code(proto::install::failed))]
     #[error("Failed to install {tool}. {}", apply_style_tags(.error))]

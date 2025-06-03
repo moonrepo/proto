@@ -1,6 +1,7 @@
 pub use super::resolve_error::ProtoResolveError;
 use crate::helpers::is_offline;
 use crate::tool::Tool;
+use crate::tool_error::ProtoToolError;
 use crate::tool_spec::{Backend, ToolSpec};
 use crate::version_resolver::VersionResolver;
 use proto_pdk_api::*;
@@ -14,7 +15,7 @@ impl Tool {
     pub async fn load_version_resolver(
         &self,
         initial_version: &UnresolvedVersionSpec,
-    ) -> miette::Result<VersionResolver> {
+    ) -> Result<VersionResolver, ProtoResolveError> {
         debug!(tool = self.id.as_str(), "Loading available versions");
 
         let mut versions = LoadVersionsOutput::default();
@@ -66,7 +67,10 @@ impl Tool {
     }
 
     /// Given a custom backend, resolve and register it to acquire necessary files.
-    pub async fn resolve_backend(&mut self, backend: Option<Backend>) -> miette::Result<()> {
+    pub async fn resolve_backend(
+        &mut self,
+        backend: Option<Backend>,
+    ) -> Result<(), ProtoToolError> {
         self.backend = backend;
         self.register_backend().await?;
 
@@ -80,7 +84,7 @@ impl Tool {
         &mut self,
         spec: &ToolSpec,
         short_circuit: bool,
-    ) -> miette::Result<VersionSpec> {
+    ) -> Result<VersionSpec, ProtoResolveError> {
         if self.version.is_some() {
             return Ok(self.get_resolved_version());
         }
@@ -140,7 +144,7 @@ impl Tool {
         resolver: &VersionResolver<'_>,
         initial_candidate: &UnresolvedVersionSpec,
         with_manifest: bool,
-    ) -> miette::Result<VersionSpec> {
+    ) -> Result<VersionSpec, ProtoResolveError> {
         let resolve = |candidate: &UnresolvedVersionSpec| {
             let result = if with_manifest {
                 resolver.resolve(candidate)

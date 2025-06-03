@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use thiserror::Error;
 
 #[derive(Error, Debug, Diagnostic)]
+#[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
 pub enum ProtoDetectError {
     #[diagnostic(code(proto::detect::invalid_version))]
     #[error(
