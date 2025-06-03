@@ -1,11 +1,26 @@
-use miette::Diagnostic;
+use crate::config_error::ProtoConfigError;
+use crate::layout::ProtoLayoutError;
+use crate::tool_error::ProtoToolError;
 use starbase_styles::{Style, Stylize};
 use std::path::PathBuf;
 use thiserror::Error;
+use warpgate::WarpgatePluginError;
 
-#[derive(Error, Debug, Diagnostic)]
+#[derive(Error, Debug)]
 #[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
 pub enum ProtoResolveError {
+    #[error(transparent)]
+    Config(#[from] Box<ProtoConfigError>),
+
+    #[error(transparent)]
+    Layout(#[from] Box<ProtoLayoutError>),
+
+    #[error(transparent)]
+    Plugin(#[from] Box<WarpgatePluginError>),
+
+    #[error(transparent)]
+    Tool(#[from] Box<ProtoToolError>),
+
     #[cfg_attr(
         feature = "miette",
         diagnostic(code(proto::resolve::offline::version_required))
@@ -50,4 +65,28 @@ pub enum ProtoResolveError {
         .version.style(Style::Hash),
     )]
     FailedVersionResolve { tool: String, version: String },
+}
+
+impl From<ProtoConfigError> for ProtoResolveError {
+    fn from(e: ProtoConfigError) -> ProtoResolveError {
+        ProtoResolveError::Config(Box::new(e))
+    }
+}
+
+impl From<ProtoLayoutError> for ProtoResolveError {
+    fn from(e: ProtoLayoutError) -> ProtoResolveError {
+        ProtoResolveError::Layout(Box::new(e))
+    }
+}
+
+impl From<WarpgatePluginError> for ProtoResolveError {
+    fn from(e: WarpgatePluginError) -> ProtoResolveError {
+        ProtoResolveError::Plugin(Box::new(e))
+    }
+}
+
+impl From<ProtoToolError> for ProtoResolveError {
+    fn from(e: ProtoToolError) -> ProtoResolveError {
+        ProtoResolveError::Tool(Box::new(e))
+    }
 }

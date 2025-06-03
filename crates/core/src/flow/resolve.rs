@@ -1,7 +1,6 @@
 pub use super::resolve_error::ProtoResolveError;
 use crate::helpers::is_offline;
 use crate::tool::Tool;
-use crate::tool_error::ProtoToolError;
 use crate::tool_spec::{Backend, ToolSpec};
 use crate::version_resolver::VersionResolver;
 use proto_pdk_api::*;
@@ -70,7 +69,7 @@ impl Tool {
     pub async fn resolve_backend(
         &mut self,
         backend: Option<Backend>,
-    ) -> Result<(), ProtoToolError> {
+    ) -> Result<(), ProtoResolveError> {
         self.backend = backend;
         self.register_backend().await?;
 

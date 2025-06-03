@@ -68,7 +68,7 @@ impl Tool {
         checksum_file: &Path,
         download_file: &Path,
         checksum_public_key: Option<&str>,
-    ) -> miette::Result<Checksum> {
+    ) -> Result<Checksum, ProtoInstallError> {
         debug!(
             tool = self.id.as_str(),
             download_file = ?download_file,
@@ -119,7 +119,7 @@ impl Tool {
 
     /// Verify the installation is legitimate by comparing it to a lockfile record.
     #[instrument(skip(self))]
-    pub fn verify_lockfile(&self, record: &LockfileRecord) -> miette::Result<()> {
+    pub fn verify_lockfile(&self, record: &LockfileRecord) -> Result<(), ProtoInstallError> {
         let Some(version) = &self.version else {
             return Ok(());
         };
@@ -182,7 +182,7 @@ impl Tool {
         install_dir: &Path,
         temp_dir: &Path,
         options: InstallOptions,
-    ) -> miette::Result<LockfileRecord> {
+    ) -> Result<LockfileRecord, ProtoInstallError> {
         debug!(
             tool = self.id.as_str(),
             "Installing tool by building from source"
@@ -191,8 +191,7 @@ impl Tool {
         if !self.plugin.has_func("build_instructions").await {
             return Err(ProtoInstallError::UnsupportedBuildFromSource {
                 tool: self.get_name().to_owned(),
-            }
-            .into());
+            });
         }
 
         let output: BuildInstructionsOutput = self
@@ -287,7 +286,7 @@ impl Tool {
         install_dir: &Path,
         temp_dir: &Path,
         options: InstallOptions,
-    ) -> miette::Result<LockfileRecord> {
+    ) -> Result<LockfileRecord, ProtoInstallError> {
         debug!(
             tool = self.id.as_str(),
             "Installing tool by downloading a pre-built archive"
@@ -296,8 +295,7 @@ impl Tool {
         if !self.plugin.has_func("download_prebuilt").await {
             return Err(ProtoInstallError::UnsupportedDownloadPrebuilt {
                 tool: self.get_name().to_owned(),
-            }
-            .into());
+            });
         }
 
         let client = self.proto.get_plugin_loader()?.get_client()?;
@@ -319,7 +317,7 @@ impl Tool {
         let download_url = output.download_url;
         let download_filename = match output.download_name {
             Some(name) => name,
-            None => extract_filename_from_url(&download_url)?,
+            None => extract_filename_from_url(&download_url),
         };
         let download_file = temp_dir.join(&download_filename);
 
@@ -347,7 +345,7 @@ impl Tool {
         if let Some(checksum_url) = output.checksum_url {
             let checksum_filename = match output.checksum_name {
                 Some(name) => name,
-                None => extract_filename_from_url(&checksum_url)?,
+                None => extract_filename_from_url(&checksum_url),
             };
             let checksum_file = temp_dir.join(&checksum_filename);
 
@@ -471,7 +469,7 @@ impl Tool {
     pub async fn install(
         &mut self,
         options: InstallOptions,
-    ) -> miette::Result<Option<LockfileRecord>> {
+    ) -> Result<Option<LockfileRecord>, ProtoInstallError> {
         if self.is_installed() && !options.force {
             debug!(
                 tool = self.id.as_str(),
@@ -573,7 +571,7 @@ impl Tool {
 
     /// Uninstall the tool by deleting the current install directory.
     #[instrument(skip_all)]
-    pub async fn uninstall(&self) -> miette::Result<bool> {
+    pub async fn uninstall(&self) -> Result<bool, ProtoInstallError> {
         let install_dir = self.get_product_dir();
 
         if !install_dir.exists() {
