@@ -25,7 +25,7 @@ convert_case = "0.8.0"
 dotenvy = "0.15.7"
 indexmap = { workspace = true }
 iocraft = { workspace = true }
-miette = { workspace = true }
+miette = { workspace = true, optional = true }
 minisign-verify = "0.2.4"
 once_cell = { workspace = true }
 regex = { workspace = true }
@@ -62,4 +62,4 @@ tokio = { workspace = true }
 [features]
 default = []
 clap = ["dep:clap"]
-miette = []         #["dep:miette"]
+miette = ["dep:miette"]

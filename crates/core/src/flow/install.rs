@@ -3,7 +3,6 @@ pub use super::build_error::ProtoBuildError;
 pub use super::install_error::ProtoInstallError;
 use crate::checksum::*;
 use crate::env::ProtoConsole;
-use crate::env_error::ProtoEnvError;
 use crate::helpers::{extract_filename_from_url, is_archive_file, is_offline};
 use crate::lockfile::*;
 use crate::tool::Tool;
@@ -480,7 +479,7 @@ impl Tool {
         }
 
         if is_offline() {
-            return Err(ProtoEnvError::RequiredInternetConnection.into());
+            return Err(ProtoInstallError::RequiredInternetConnection);
         }
 
         let temp_dir = self.get_temp_dir();

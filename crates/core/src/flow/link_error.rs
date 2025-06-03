@@ -1,8 +1,8 @@
 use super::locate_error::ProtoLocateError;
 use crate::layout::ProtoLayoutError;
+use crate::tool_error::ProtoToolError;
 use starbase_styles::{Style, Stylize};
 use starbase_utils::fs::FsError;
-use starbase_utils::json::JsonError;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -12,13 +12,13 @@ pub enum ProtoLinkError {
     Fs(#[from] Box<FsError>),
 
     #[error(transparent)]
-    Json(#[from] Box<JsonError>),
-
-    #[error(transparent)]
     Layout(#[from] Box<ProtoLayoutError>),
 
     #[error(transparent)]
     Locate(#[from] Box<ProtoLocateError>),
+
+    #[error(transparent)]
+    Tool(#[from] Box<ProtoToolError>),
 
     #[cfg_attr(feature = "miette", diagnostic(code(proto::link::failed_args_parse)))]
     #[error("Failed to parse shim arguments string {}.", .args.style(Style::Shell))]
@@ -35,12 +35,6 @@ impl From<FsError> for ProtoLinkError {
     }
 }
 
-impl From<JsonError> for ProtoLinkError {
-    fn from(e: JsonError) -> ProtoLinkError {
-        ProtoLinkError::Json(Box::new(e))
-    }
-}
-
 impl From<ProtoLayoutError> for ProtoLinkError {
     fn from(e: ProtoLayoutError) -> ProtoLinkError {
         ProtoLinkError::Layout(Box::new(e))
@@ -50,5 +44,11 @@ impl From<ProtoLayoutError> for ProtoLinkError {
 impl From<ProtoLocateError> for ProtoLinkError {
     fn from(e: ProtoLocateError) -> ProtoLinkError {
         ProtoLinkError::Locate(Box::new(e))
+    }
+}
+
+impl From<ProtoToolError> for ProtoLinkError {
+    fn from(e: ProtoToolError) -> ProtoLinkError {
+        ProtoLinkError::Tool(Box::new(e))
     }
 }

@@ -11,3 +11,4 @@ mod locate_error;
 pub mod resolve;
 mod resolve_error;
 pub mod setup;
+mod setup_error;

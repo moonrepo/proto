@@ -1,15 +1,20 @@
 use super::build_error::ProtoBuildError;
 use crate::checksum::ProtoChecksumError;
 use crate::config_error::ProtoConfigError;
+use crate::utils::archive::ProtoArchiveError;
 use starbase_styles::{Style, Stylize, apply_style_tags};
 use starbase_utils::fs::FsError;
+use starbase_utils::net::NetError;
 use std::path::PathBuf;
 use thiserror::Error;
-use warpgate::WarpgatePluginError;
+use warpgate::{WarpgateClientError, WarpgatePluginError};
 
 #[derive(Error, Debug)]
 #[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
 pub enum ProtoInstallError {
+    #[error(transparent)]
+    Archive(#[from] Box<ProtoArchiveError>),
+
     #[error(transparent)]
     Build(#[from] Box<ProtoBuildError>),
 
@@ -17,10 +22,16 @@ pub enum ProtoInstallError {
     Checksum(#[from] Box<ProtoChecksumError>),
 
     #[error(transparent)]
+    Client(#[from] Box<WarpgateClientError>),
+
+    #[error(transparent)]
     Config(#[from] Box<ProtoConfigError>),
 
     #[error(transparent)]
     Fs(#[from] Box<FsError>),
+
+    #[error(transparent)]
+    Net(#[from] Box<NetError>),
 
     #[error(transparent)]
     Plugin(#[from] Box<WarpgatePluginError>),
@@ -93,6 +104,16 @@ pub enum ProtoInstallError {
     )]
     #[error("Building from source is not supported for {tool}. Try downloading a pre-built by passing {}.", "--no-build".style(Style::Shell))]
     UnsupportedBuildFromSource { tool: String },
+
+    #[cfg_attr(feature = "miette", diagnostic(code(proto::offline)))]
+    #[error("Internet connection required, unable to download, install, or run tools.")]
+    RequiredInternetConnection,
+}
+
+impl From<ProtoArchiveError> for ProtoInstallError {
+    fn from(e: ProtoArchiveError) -> ProtoInstallError {
+        ProtoInstallError::Archive(Box::new(e))
+    }
 }
 
 impl From<ProtoBuildError> for ProtoInstallError {
@@ -107,6 +128,12 @@ impl From<ProtoChecksumError> for ProtoInstallError {
     }
 }
 
+impl From<WarpgateClientError> for ProtoInstallError {
+    fn from(e: WarpgateClientError) -> ProtoInstallError {
+        ProtoInstallError::Client(Box::new(e))
+    }
+}
+
 impl From<ProtoConfigError> for ProtoInstallError {
     fn from(e: ProtoConfigError) -> ProtoInstallError {
         ProtoInstallError::Config(Box::new(e))
@@ -116,6 +143,12 @@ impl From<ProtoConfigError> for ProtoInstallError {
 impl From<FsError> for ProtoInstallError {
     fn from(e: FsError) -> ProtoInstallError {
         ProtoInstallError::Fs(Box::new(e))
+    }
+}
+
+impl From<NetError> for ProtoInstallError {
+    fn from(e: NetError) -> ProtoInstallError {
+        ProtoInstallError::Net(Box::new(e))
     }
 }
 
