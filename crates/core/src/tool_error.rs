@@ -1,5 +1,6 @@
 use crate::config::PROTO_CONFIG_NAME;
 use crate::config_error::ProtoConfigError;
+use crate::flow::resolve::ProtoResolveError;
 use crate::layout::ProtoLayoutError;
 use crate::tool_spec::Backend;
 use crate::utils::archive::ProtoArchiveError;
@@ -7,9 +8,11 @@ use crate::utils::process::ProtoProcessError;
 use starbase_styles::{Style, Stylize};
 use starbase_utils::fs::FsError;
 use starbase_utils::json::JsonError;
+use starbase_utils::toml::TomlError;
+use starbase_utils::yaml::YamlError;
 use std::path::PathBuf;
 use thiserror::Error;
-use warpgate::{Id, WarpgateClientError, WarpgatePluginError};
+use warpgate::{Id, WarpgateClientError, WarpgateLoaderError, WarpgatePluginError};
 
 #[derive(Error, Debug)]
 #[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
@@ -33,10 +36,22 @@ pub enum ProtoToolError {
     Layout(#[from] Box<ProtoLayoutError>),
 
     #[error(transparent)]
+    Loader(#[from] Box<WarpgateLoaderError>),
+
+    #[error(transparent)]
     Plugin(#[from] Box<WarpgatePluginError>),
 
     #[error(transparent)]
     Process(#[from] Box<ProtoProcessError>),
+
+    #[error(transparent)]
+    Resolve(#[from] Box<ProtoResolveError>),
+
+    #[error(transparent)]
+    Toml(#[from] Box<TomlError>),
+
+    #[error(transparent)]
+    Yaml(#[from] Box<YamlError>),
 
     #[cfg_attr(
         feature = "miette",
@@ -129,6 +144,12 @@ impl From<ProtoLayoutError> for ProtoToolError {
     }
 }
 
+impl From<WarpgateLoaderError> for ProtoToolError {
+    fn from(e: WarpgateLoaderError) -> ProtoToolError {
+        ProtoToolError::Loader(Box::new(e))
+    }
+}
+
 impl From<WarpgatePluginError> for ProtoToolError {
     fn from(e: WarpgatePluginError) -> ProtoToolError {
         ProtoToolError::Plugin(Box::new(e))
@@ -138,5 +159,23 @@ impl From<WarpgatePluginError> for ProtoToolError {
 impl From<ProtoProcessError> for ProtoToolError {
     fn from(e: ProtoProcessError) -> ProtoToolError {
         ProtoToolError::Process(Box::new(e))
+    }
+}
+
+impl From<ProtoResolveError> for ProtoToolError {
+    fn from(e: ProtoResolveError) -> ProtoToolError {
+        ProtoToolError::Resolve(Box::new(e))
+    }
+}
+
+impl From<TomlError> for ProtoToolError {
+    fn from(e: TomlError) -> ProtoToolError {
+        ProtoToolError::Toml(Box::new(e))
+    }
+}
+
+impl From<YamlError> for ProtoToolError {
+    fn from(e: YamlError) -> ProtoToolError {
+        ProtoToolError::Yaml(Box::new(e))
     }
 }

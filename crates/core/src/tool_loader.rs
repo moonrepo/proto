@@ -79,10 +79,12 @@ pub async fn load_schema_plugin_with_proto(
     let schema_id = Id::raw(SCHEMA_PLUGIN_KEY);
     let schema_locator = locate_tool(&schema_id, proto)?;
 
-    proto
+    let path = proto
         .get_plugin_loader()?
         .load_plugin(schema_id, schema_locator)
-        .await
+        .await?;
+
+    Ok(path)
 }
 
 pub fn load_schema_config(plugin_path: &Path) -> Result<json::JsonValue, ProtoToolError> {
