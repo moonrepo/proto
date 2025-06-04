@@ -1,7 +1,7 @@
 mod utils;
 
 use proto_core::{
-    Id, PluginLocator, ProtoEnvironment, ProtoToolError, Tool, ToolSpec, UnresolvedVersionSpec,
+    Id, PluginLocator, ProtoEnvironment, ProtoLoaderError, Tool, ToolSpec, UnresolvedVersionSpec,
     flow::install::InstallOptions, load_tool_from_locator, warpgate::FileLocator,
     warpgate::UrlLocator,
 };
@@ -15,7 +15,7 @@ use utils::*;
 async fn run_tests<F, Fut>(factory: F)
 where
     F: FnOnce(&ProtoEnvironment) -> Fut,
-    Fut: Future<Output = Result<Tool, ProtoToolError>>,
+    Fut: Future<Output = Result<Tool, ProtoLoaderError>>,
 {
     let sandbox = create_empty_proto_sandbox();
     let proto = ProtoEnvironment::new_testing(sandbox.path()).unwrap();
