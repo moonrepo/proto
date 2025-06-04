@@ -48,7 +48,7 @@ pub async fn download_from_url_to_file(
     .await
     {
         return Err(match error {
-            NetError::UrlNotFound { url } => WarpgateLoaderError::NotFound { url }.into(),
+            NetError::UrlNotFound { url } => WarpgateLoaderError::NotFound { url },
             e => WarpgateLoaderError::FailedDownload {
                 url: source_url.into(),
                 error: Box::new(e),
@@ -77,8 +77,7 @@ pub fn move_or_unpack_download(
         if wasm_files.is_empty() {
             return Err(WarpgateLoaderError::NoWasmFound {
                 path: temp_file.to_path_buf(),
-            }
-            .into());
+            });
 
             // Find a release file first, as some archives include the target folder
         } else if let Some(release_wasm) = wasm_files
@@ -106,15 +105,13 @@ pub fn move_or_unpack_download(
             return Err(WarpgateLoaderError::UnsupportedDownloadExtension {
                 ext: ext.to_owned(),
                 path: temp_file.to_path_buf(),
-            }
-            .into());
+            });
         }
 
         None => {
             return Err(WarpgateLoaderError::UnknownDownloadType {
                 path: temp_file.to_path_buf(),
-            }
-            .into());
+            });
         }
     };
 

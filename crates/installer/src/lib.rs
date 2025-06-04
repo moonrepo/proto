@@ -36,8 +36,7 @@ pub fn determine_triple() -> Result<String, ProtoInstallerError> {
             return Err(ProtoInstallerError::InvalidPlatform {
                 arch: arch.to_owned(),
                 os: os.to_owned(),
-            }
-            .into());
+            });
         }
     };
 

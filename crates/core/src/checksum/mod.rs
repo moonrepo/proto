@@ -94,8 +94,7 @@ pub fn detect_checksum_algorithm(
                             other => {
                                 return Err(ProtoChecksumError::UnsupportedAlgorithm {
                                     algo: other.into(),
-                                }
-                                .into());
+                                });
                             }
                         };
 
@@ -119,10 +118,7 @@ pub fn detect_checksum_algorithm(
         }
     }
 
-    algo.ok_or_else(|| {
-        ProtoChecksumError::UnknownAlgorithm {
-            path: checksum_file.to_path_buf(),
-        }
-        .into()
+    algo.ok_or_else(|| ProtoChecksumError::UnknownAlgorithm {
+        path: checksum_file.to_path_buf(),
     })
 }

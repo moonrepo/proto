@@ -112,8 +112,7 @@ impl PluginLoader {
             Err(WarpgateLoaderError::MissingSourceFile {
                 id: id.to_owned(),
                 path: path.to_path_buf(),
-            }
-            .into())
+            })
         }
     }
 
@@ -234,8 +233,7 @@ impl PluginLoader {
             return Err(WarpgateLoaderError::RequiredInternetConnection {
                 message: "Unable to download plugin.".into(),
                 url: source_url.to_owned(),
-            }
-            .into());
+            });
         }
 
         trace!(
@@ -278,8 +276,7 @@ impl PluginLoader {
                     PluginLocator::GitHub(Box::new(github.to_owned()))
                 ),
                 url: "https://api.github.com".into(),
-            }
-            .into());
+            });
         }
 
         // Fetch all tags then find a matching tag + release
@@ -313,8 +310,7 @@ impl PluginLoader {
             return Err(WarpgateLoaderError::MissingGitHubTag {
                 id: id.to_owned(),
                 repo_slug: github.repo_slug.to_owned(),
-            }
-            .into());
+            });
         };
 
         let release_url = if release_tag == "latest" {
@@ -378,7 +374,6 @@ impl PluginLoader {
             id: id.to_owned(),
             repo_slug: github.repo_slug.to_owned(),
             tag: release_tag,
-        }
-        .into())
+        })
     }
 }

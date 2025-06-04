@@ -281,8 +281,7 @@ impl Tool {
                 return Err(ProtoToolError::RequiredAbsoluteInventoryDir {
                     tool: metadata.name.clone(),
                     dir: override_dir_path.unwrap_or_else(|| PathBuf::from("<unknown>")),
-                }
-                .into());
+                });
             }
 
             inventory.dir_original = Some(inventory.dir);

@@ -112,8 +112,7 @@ impl Tool {
         Err(ProtoInstallError::InvalidChecksum {
             checksum: checksum_file.to_path_buf(),
             download: download_file.to_path_buf(),
-        }
-        .into())
+        })
     }
 
     /// Verify the installation is legitimate by comparing it to a lockfile record.
@@ -155,7 +154,7 @@ impl Tool {
                 );
 
                 if rc != lc {
-                    return Err(make_error(rc.to_string(), lc.to_string()).into());
+                    return Err(make_error(rc.to_string(), lc.to_string()));
                 }
             }
             // Only the lockfile has a checksum, so compare the sources.
@@ -164,7 +163,7 @@ impl Tool {
             // strategy, so let it happen
             (None, Some(lc)) => {
                 if record.source == lockfile.source {
-                    return Err(make_error("(missing)".into(), lc.to_string()).into());
+                    return Err(make_error("(missing)".into(), lc.to_string()));
                 }
             }
             _ => {}
@@ -523,8 +522,7 @@ impl Tool {
                 return Err(ProtoInstallError::FailedInstall {
                     tool: self.get_name().to_owned(),
                     error: output.error.unwrap_or_default(),
-                }
-                .into());
+                });
             }
         }
 
@@ -600,8 +598,7 @@ impl Tool {
                 return Err(ProtoInstallError::FailedUninstall {
                     tool: self.get_name().to_owned(),
                     error: output.error.unwrap_or_default(),
-                }
-                .into());
+                });
             }
         }
 

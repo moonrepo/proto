@@ -33,8 +33,7 @@ impl Tool {
                 return Err(ProtoResolveError::RequiredInternetConnectionForVersion {
                     command: format!("{}_VERSION=1.2.3 {}", self.get_env_var_prefix(), self.id),
                     bin_dir: self.proto.store.bin_dir.clone(),
-                }
-                .into());
+                });
             }
 
             if env::var("PROTO_BYPASS_VERSION_CHECK").is_err() {
@@ -264,7 +263,7 @@ impl Tool {
                     "Received a possible version or alias to use",
                 );
 
-                return Ok(resolve(&candidate)?);
+                return resolve(&candidate);
             }
 
             if let Some(candidate) = output.version {
@@ -278,6 +277,6 @@ impl Tool {
             }
         }
 
-        Ok(resolve(initial_candidate)?)
+        resolve(initial_candidate)
     }
 }

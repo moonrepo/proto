@@ -249,8 +249,7 @@ impl Tool {
         Err(ProtoLocateError::MissingToolExecutable {
             tool: self.get_name().to_owned(),
             path: exe_file,
-        }
-        .into())
+        })
     }
 
     /// Return an absolute path to the primary executables directory (first in the list),

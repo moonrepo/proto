@@ -452,7 +452,7 @@ pub async fn install_system_dependencies(
         .await?
     {
         0 => {
-            return Err(ProtoBuildError::Cancelled.into());
+            return Err(ProtoBuildError::Cancelled);
         }
         1 => {
             return Ok(());
@@ -532,12 +532,10 @@ async fn get_command_version(
         .map(|res| res.as_str())
         .unwrap_or(&output.stdout);
 
-    Ok(
-        Version::parse(value).map_err(|error| ProtoBuildError::FailedVersionParse {
-            value: value.to_owned(),
-            error: Box::new(error),
-        })?,
-    )
+    Version::parse(value).map_err(|error| ProtoBuildError::FailedVersionParse {
+        value: value.to_owned(),
+        error: Box::new(error),
+    })
 }
 
 pub async fn check_requirements(
@@ -830,8 +828,7 @@ pub async fn execute_instructions(
                         return Err(ProtoBuildError::MissingBuilderExe {
                             exe: exe_abs_path,
                             id: item.id.clone(),
-                        }
-                        .into());
+                        });
                     }
 
                     fs::update_perms(&exe_abs_path, None)?;
