@@ -6,6 +6,7 @@ use warpgate::WarpgatePluginError;
 #[derive(Error, Debug)]
 #[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
 pub enum ProtoLocateError {
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Plugin(#[from] Box<WarpgatePluginError>),
 

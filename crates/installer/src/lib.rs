@@ -181,9 +181,7 @@ pub fn install_release(
     );
 
     // Unpack the downloaded file
-    Archiver::new(&temp_dir, &download.archive_file)
-        .unpack_from_ext()
-        .unwrap(); // TODO
+    Archiver::new(&temp_dir, &download.archive_file).unpack_from_ext()?;
 
     // Move the new binary to the install directory
     let mut installed = false;

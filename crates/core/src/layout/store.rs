@@ -54,7 +54,7 @@ impl Store {
         let dir = self.inventory_dir.join(id.as_str());
 
         Ok(Inventory {
-            manifest: ToolManifest::load_from(&dir).unwrap(), // TODO
+            manifest: ToolManifest::load_from(&dir)?,
             dir,
             dir_original: None,
             temp_dir: self.temp_dir.join(id.as_str()),

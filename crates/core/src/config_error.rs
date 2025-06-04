@@ -8,12 +8,15 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 #[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
 pub enum ProtoConfigError {
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Fs(#[from] Box<FsError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Schematic(#[from] Box<ConfigError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Toml(#[from] Box<TomlError>),
 

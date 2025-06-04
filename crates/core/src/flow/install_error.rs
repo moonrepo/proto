@@ -12,27 +12,35 @@ use warpgate::{WarpgateClientError, WarpgatePluginError};
 #[derive(Error, Debug)]
 #[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
 pub enum ProtoInstallError {
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Archive(#[from] Box<ProtoArchiveError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Build(#[from] Box<ProtoBuildError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Checksum(#[from] Box<ProtoChecksumError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Client(#[from] Box<WarpgateClientError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Config(#[from] Box<ProtoConfigError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Fs(#[from] Box<FsError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Net(#[from] Box<NetError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Plugin(#[from] Box<WarpgatePluginError>),
 

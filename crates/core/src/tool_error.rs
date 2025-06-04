@@ -17,39 +17,51 @@ use warpgate::{Id, WarpgateClientError, WarpgateLoaderError, WarpgatePluginError
 #[derive(Error, Debug)]
 #[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
 pub enum ProtoToolError {
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Archive(#[from] Box<ProtoArchiveError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Client(#[from] Box<WarpgateClientError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Config(#[from] Box<ProtoConfigError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Fs(#[from] Box<FsError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Json(#[from] Box<JsonError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Layout(#[from] Box<ProtoLayoutError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Loader(#[from] Box<WarpgateLoaderError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Plugin(#[from] Box<WarpgatePluginError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Process(#[from] Box<ProtoProcessError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Resolve(#[from] Box<ProtoResolveError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Toml(#[from] Box<TomlError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Yaml(#[from] Box<YamlError>),
 

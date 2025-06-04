@@ -319,7 +319,8 @@ impl InstallWorkflow {
             });
         });
 
-        self.tool
+        let record = self
+            .tool
             .setup(
                 spec,
                 InstallOptions {
@@ -335,7 +336,9 @@ impl InstallWorkflow {
                     strategy: params.strategy.unwrap_or(default_strategy),
                 },
             )
-            .await
+            .await?;
+
+        Ok(record)
     }
 
     async fn post_install(&self, params: &InstallWorkflowParams) -> miette::Result<()> {

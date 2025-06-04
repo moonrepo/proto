@@ -10,18 +10,23 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 #[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
 pub enum ProtoBuildError {
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Archive(#[from] Box<ProtoArchiveError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Console(#[from] Box<ConsoleError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Fs(#[from] Box<FsError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Net(#[from] Box<NetError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Process(#[from] Box<ProtoProcessError>),
 

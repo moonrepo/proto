@@ -11,6 +11,7 @@ use tracing::trace;
 #[derive(Error, Debug)]
 #[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
 pub enum ProtoProcessError {
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Fs(#[from] Box<FsError>),
 

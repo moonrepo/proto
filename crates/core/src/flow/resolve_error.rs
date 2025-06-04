@@ -9,15 +9,19 @@ use warpgate::WarpgatePluginError;
 #[derive(Error, Debug)]
 #[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
 pub enum ProtoResolveError {
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Config(#[from] Box<ProtoConfigError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Layout(#[from] Box<ProtoLayoutError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Plugin(#[from] Box<WarpgatePluginError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Tool(#[from] Box<ProtoToolError>),
 

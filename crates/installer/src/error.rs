@@ -1,3 +1,4 @@
+use starbase_archive::ArchiveError;
 use starbase_styles::{Style, Stylize};
 use starbase_utils::fs::FsError;
 use starbase_utils::net::NetError;
@@ -6,9 +7,15 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 #[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
 pub enum ProtoInstallerError {
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[error(transparent)]
+    Archive(#[from] Box<ArchiveError>),
+
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Fs(#[from] Box<FsError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Net(#[from] Box<NetError>),
 
@@ -44,6 +51,12 @@ pub enum ProtoInstallerError {
         format!("Status: {}", .status).style(Style::MutedLight),
     )]
     DownloadNotAvailable { version: String, status: String },
+}
+
+impl From<ArchiveError> for ProtoInstallerError {
+    fn from(e: ArchiveError) -> ProtoInstallerError {
+        ProtoInstallerError::Archive(Box::new(e))
+    }
 }
 
 impl From<FsError> for ProtoInstallerError {

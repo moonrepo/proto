@@ -1,6 +1,6 @@
 use crate::helpers::extract_filename_from_url;
 use proto_pdk_api::ArchiveSource;
-use starbase_archive::Archiver;
+use starbase_archive::{ArchiveError, Archiver};
 use starbase_utils::fs::FsError;
 use starbase_utils::net::NetError;
 use starbase_utils::{fs, net};
@@ -10,11 +10,23 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 #[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
 pub enum ProtoArchiveError {
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[error(transparent)]
+    Archive(#[from] Box<ArchiveError>),
+
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Fs(#[from] Box<FsError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Net(#[from] Box<NetError>),
+}
+
+impl From<ArchiveError> for ProtoArchiveError {
+    fn from(e: ArchiveError) -> ProtoArchiveError {
+        ProtoArchiveError::Archive(Box::new(e))
+    }
 }
 
 impl From<FsError> for ProtoArchiveError {
@@ -86,7 +98,7 @@ pub fn unpack_raw(
         archiver.set_prefix(prefix);
     }
 
-    Ok(archiver.unpack_from_ext().unwrap()) // TODO
+    Ok(archiver.unpack_from_ext()?)
 }
 
 pub async fn download_and_unpack(

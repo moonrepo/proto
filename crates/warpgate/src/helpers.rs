@@ -70,9 +70,7 @@ pub fn move_or_unpack_download(
     if is_supported_archive_extension(temp_file) {
         let out_dir = temp_file.parent().unwrap().join("out");
 
-        Archiver::new(&out_dir, temp_file)
-            .unpack_from_ext()
-            .unwrap(); // TODO
+        Archiver::new(&out_dir, temp_file).unpack_from_ext()?;
 
         let wasm_files = glob::walk_files(&out_dir, ["**/*.wasm"])?;
 

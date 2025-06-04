@@ -7,6 +7,7 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 #[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
 pub enum WarpgateClientError {
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Fs(#[from] Box<FsError>),
 

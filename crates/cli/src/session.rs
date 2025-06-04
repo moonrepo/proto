@@ -70,11 +70,11 @@ impl ProtoSession {
     }
 
     pub fn load_config(&self) -> miette::Result<&ProtoConfig> {
-        self.env.load_config()
+        Ok(self.env.load_config()?)
     }
 
     pub fn load_config_with_mode(&self, mode: ConfigMode) -> miette::Result<&ProtoConfig> {
-        self.env.load_config_with_mode(mode)
+        Ok(self.env.load_config_with_mode(mode)?)
     }
 
     pub async fn load_tool(&self, id: &Id, backend: Option<Backend>) -> miette::Result<ToolRecord> {

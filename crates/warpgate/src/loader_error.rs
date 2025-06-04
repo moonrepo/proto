@@ -12,15 +12,19 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 #[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
 pub enum WarpgateLoaderError {
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Archive(#[from] Box<ArchiveError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Client(#[from] Box<WarpgateClientError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Fs(#[from] Box<FsError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Glob(#[from] Box<GlobError>),
 

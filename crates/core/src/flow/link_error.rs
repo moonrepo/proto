@@ -3,20 +3,29 @@ use crate::layout::ProtoLayoutError;
 use crate::tool_error::ProtoToolError;
 use starbase_styles::{Style, Stylize};
 use starbase_utils::fs::FsError;
+use starbase_utils::json::JsonError;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 #[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
 pub enum ProtoLinkError {
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Fs(#[from] Box<FsError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[error(transparent)]
+    Json(#[from] Box<JsonError>),
+
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Layout(#[from] Box<ProtoLayoutError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Locate(#[from] Box<ProtoLocateError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Tool(#[from] Box<ProtoToolError>),
 
@@ -32,6 +41,12 @@ pub enum ProtoLinkError {
 impl From<FsError> for ProtoLinkError {
     fn from(e: FsError) -> ProtoLinkError {
         ProtoLinkError::Fs(Box::new(e))
+    }
+}
+
+impl From<JsonError> for ProtoLinkError {
+    fn from(e: JsonError) -> ProtoLinkError {
+        ProtoLinkError::Json(Box::new(e))
     }
 }
 

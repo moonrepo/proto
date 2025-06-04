@@ -5,29 +5,41 @@ use crate::flow::locate::ProtoLocateError;
 use crate::flow::resolve::ProtoResolveError;
 use crate::layout::ProtoLayoutError;
 use crate::tool_error::ProtoToolError;
+use starbase_utils::json::JsonError;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 #[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
 pub enum ProtoSetupError {
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Config(#[from] Box<ProtoConfigError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Install(#[from] Box<ProtoInstallError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[error(transparent)]
+    Json(#[from] Box<JsonError>),
+
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Layout(#[from] Box<ProtoLayoutError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Link(#[from] Box<ProtoLinkError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Locate(#[from] Box<ProtoLocateError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Resolve(#[from] Box<ProtoResolveError>),
 
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Tool(#[from] Box<ProtoToolError>),
 }
@@ -44,6 +56,11 @@ impl From<ProtoInstallError> for ProtoSetupError {
     }
 }
 
+impl From<JsonError> for ProtoSetupError {
+    fn from(e: JsonError) -> ProtoSetupError {
+        ProtoSetupError::Json(Box::new(e))
+    }
+}
 impl From<ProtoLayoutError> for ProtoSetupError {
     fn from(e: ProtoLayoutError) -> ProtoSetupError {
         ProtoSetupError::Layout(Box::new(e))
