@@ -6,7 +6,9 @@ use crate::lockfile::LockfileRecord;
 use crate::tool::Tool;
 use crate::tool_manifest::ToolManifestVersion;
 use crate::tool_spec::ToolSpec;
+use proto_pdk_api::{SyncManifestInput, SyncManifestOutput};
 use starbase_utils::fs;
+use std::collections::{BTreeMap, BTreeSet};
 use tracing::{debug, instrument};
 
 impl Tool {
@@ -178,6 +180,56 @@ impl Tool {
         fs::remove_dir_all(self.get_temp_dir()).map_err(|error| {
             ProtoSetupError::Install(Box::new(ProtoInstallError::Fs(Box::new(error))))
         })?;
+
+        Ok(())
+    }
+
+    /// Sync the local tool manifest with changes from the plugin.
+    #[instrument(skip_all)]
+    pub async fn sync_manifest(&mut self) -> Result<(), ProtoSetupError> {
+        if !self.plugin.has_func("sync_manifest").await {
+            return Ok(());
+        }
+
+        debug!(tool = self.id.as_str(), "Syncing manifest with changes");
+
+        let output: SyncManifestOutput = self
+            .plugin
+            .call_func_with(
+                "sync_manifest",
+                SyncManifestInput {
+                    context: self.create_context(),
+                },
+            )
+            .await?;
+
+        if output.skip_sync {
+            return Ok(());
+        }
+
+        let mut modified = false;
+        let manifest = &mut self.inventory.manifest;
+
+        if let Some(versions) = output.versions {
+            modified = true;
+
+            let mut entries = BTreeMap::default();
+            let mut installed = BTreeSet::default();
+
+            for key in versions {
+                let value = manifest.versions.get(&key).cloned().unwrap_or_default();
+
+                installed.insert(key.clone());
+                entries.insert(key, value);
+            }
+
+            manifest.versions = entries;
+            manifest.installed_versions = installed;
+        }
+
+        if modified {
+            manifest.save()?;
+        }
 
         Ok(())
     }

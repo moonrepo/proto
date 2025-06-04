@@ -4,9 +4,9 @@ use crate::flow::link::ProtoLinkError;
 use crate::flow::locate::ProtoLocateError;
 use crate::flow::resolve::ProtoResolveError;
 use crate::layout::ProtoLayoutError;
-use crate::tool_error::ProtoToolError;
 use starbase_utils::json::JsonError;
 use thiserror::Error;
+use warpgate::WarpgatePluginError;
 
 #[derive(Error, Debug, miette::Diagnostic)]
 pub enum ProtoSetupError {
@@ -36,11 +36,11 @@ pub enum ProtoSetupError {
 
     #[diagnostic(transparent)]
     #[error(transparent)]
-    Resolve(#[from] Box<ProtoResolveError>),
+    Plugin(#[from] Box<WarpgatePluginError>),
 
     #[diagnostic(transparent)]
     #[error(transparent)]
-    Tool(#[from] Box<ProtoToolError>),
+    Resolve(#[from] Box<ProtoResolveError>),
 }
 
 impl From<ProtoConfigError> for ProtoSetupError {
@@ -78,14 +78,14 @@ impl From<ProtoLocateError> for ProtoSetupError {
     }
 }
 
-impl From<ProtoResolveError> for ProtoSetupError {
-    fn from(e: ProtoResolveError) -> ProtoSetupError {
-        ProtoSetupError::Resolve(Box::new(e))
+impl From<WarpgatePluginError> for ProtoSetupError {
+    fn from(e: WarpgatePluginError) -> ProtoSetupError {
+        ProtoSetupError::Plugin(Box::new(e))
     }
 }
 
-impl From<ProtoToolError> for ProtoSetupError {
-    fn from(e: ProtoToolError) -> ProtoSetupError {
-        ProtoSetupError::Tool(Box::new(e))
+impl From<ProtoResolveError> for ProtoSetupError {
+    fn from(e: ProtoResolveError) -> ProtoSetupError {
+        ProtoSetupError::Resolve(Box::new(e))
     }
 }

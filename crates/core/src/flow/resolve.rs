@@ -2,8 +2,10 @@ pub use super::resolve_error::ProtoResolveError;
 use crate::helpers::is_offline;
 use crate::tool::Tool;
 use crate::tool_spec::{Backend, ToolSpec};
+use crate::utils::{archive, git};
 use crate::version_resolver::VersionResolver;
 use proto_pdk_api::*;
+use starbase_utils::fs;
 use std::env;
 use tracing::{debug, instrument};
 
@@ -63,6 +65,92 @@ impl Tool {
         }
 
         Ok(resolver)
+    }
+
+    /// Register the backend by acquiring necessary source files.
+    #[instrument(skip_all)]
+    pub async fn register_backend(&mut self) -> Result<(), ProtoResolveError> {
+        if !self.plugin.has_func("register_backend").await
+            || self.backend.is_none()
+            || self.backend_registered
+        {
+            return Ok(());
+        }
+
+        let metadata: RegisterBackendOutput = self
+            .plugin
+            .cache_func_with(
+                "register_backend",
+                RegisterBackendInput {
+                    context: self.create_unresolved_context(),
+                    id: self.id.to_string(),
+                },
+            )
+            .await?;
+
+        let Some(source) = metadata.source else {
+            self.backend_registered = true;
+
+            return Ok(());
+        };
+
+        let backend_id = metadata.backend_id;
+        let backend_dir = self.proto.store.backends_dir.join(&backend_id);
+        let update_perms = !backend_dir.exists();
+
+        // if is_offline() {
+        //     return Err(ProtoEnvError::RequiredInternetConnection.into());
+        // }
+
+        debug!(
+            tool = self.id.as_str(),
+            backend_id,
+            backend_dir = ?backend_dir,
+            "Acquiring backend sources",
+        );
+
+        match source {
+            SourceLocation::Archive(src) => {
+                if !backend_dir.exists() {
+                    debug!(
+                        tool = self.id.as_str(),
+                        url = &src.url,
+                        "Downloading backend archive",
+                    );
+
+                    archive::download_and_unpack(
+                        &src,
+                        &backend_dir,
+                        &self.proto.store.temp_dir,
+                        self.proto.get_plugin_loader()?.get_client()?.to_inner(),
+                    )
+                    .await?;
+                }
+            }
+            SourceLocation::Git(src) => {
+                debug!(
+                    tool = self.id.as_str(),
+                    url = &src.url,
+                    "Cloning backend repository",
+                );
+
+                git::clone_or_pull_repo(&src, &backend_dir).await?;
+            }
+        };
+
+        if update_perms {
+            for exe in metadata.exes {
+                let exe_path = backend_dir.join(exe);
+
+                if exe_path.exists() {
+                    fs::update_perms(exe_path, None)?;
+                }
+            }
+        }
+
+        self.backend_registered = true;
+
+        Ok(())
     }
 
     /// Given a custom backend, resolve and register it to acquire necessary files.
