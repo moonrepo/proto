@@ -40,6 +40,9 @@ pub enum ProtoDetectError {
     FailedVersionDetect { tool: String },
 }
 
+unsafe impl Send for ProtoDetectError {}
+unsafe impl Sync for ProtoDetectError {}
+
 impl From<ProtoConfigError> for ProtoDetectError {
     fn from(e: ProtoConfigError) -> ProtoDetectError {
         ProtoDetectError::Config(Box::new(e))

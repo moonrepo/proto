@@ -17,6 +17,9 @@ pub enum ProtoLocateError {
     MissingToolExecutable { tool: String, path: PathBuf },
 }
 
+unsafe impl Send for ProtoLocateError {}
+unsafe impl Sync for ProtoLocateError {}
+
 impl From<WarpgatePluginError> for ProtoLocateError {
     fn from(e: WarpgatePluginError) -> ProtoLocateError {
         ProtoLocateError::Plugin(Box::new(e))

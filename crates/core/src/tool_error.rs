@@ -42,6 +42,9 @@ pub enum ProtoToolError {
     RequiredAbsoluteInventoryDir { tool: String, dir: PathBuf },
 }
 
+unsafe impl Send for ProtoToolError {}
+unsafe impl Sync for ProtoToolError {}
+
 impl From<WarpgateClientError> for ProtoToolError {
     fn from(e: WarpgateClientError) -> ProtoToolError {
         ProtoToolError::Client(Box::new(e))

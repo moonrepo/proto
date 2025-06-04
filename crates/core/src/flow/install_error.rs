@@ -105,6 +105,9 @@ pub enum ProtoInstallError {
     RequiredInternetConnection,
 }
 
+unsafe impl Send for ProtoInstallError {}
+unsafe impl Sync for ProtoInstallError {}
+
 impl From<ProtoArchiveError> for ProtoInstallError {
     fn from(e: ProtoArchiveError) -> ProtoInstallError {
         ProtoInstallError::Archive(Box::new(e))

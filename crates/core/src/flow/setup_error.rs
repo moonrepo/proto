@@ -43,6 +43,9 @@ pub enum ProtoSetupError {
     Resolve(#[from] Box<ProtoResolveError>),
 }
 
+unsafe impl Send for ProtoSetupError {}
+unsafe impl Sync for ProtoSetupError {}
+
 impl From<ProtoConfigError> for ProtoSetupError {
     fn from(e: ProtoConfigError) -> ProtoSetupError {
         ProtoSetupError::Config(Box::new(e))

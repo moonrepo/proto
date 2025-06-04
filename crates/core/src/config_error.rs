@@ -44,6 +44,9 @@ pub enum ProtoConfigError {
     },
 }
 
+unsafe impl Send for ProtoConfigError {}
+unsafe impl Sync for ProtoConfigError {}
+
 impl From<FsError> for ProtoConfigError {
     fn from(e: FsError) -> ProtoConfigError {
         ProtoConfigError::Fs(Box::new(e))
