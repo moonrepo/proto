@@ -6,30 +6,29 @@ use starbase_utils::fs::FsError;
 use starbase_utils::json::JsonError;
 use thiserror::Error;
 
-#[derive(Error, Debug)]
-#[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
+#[derive(Error, Debug, miette::Diagnostic)]
 pub enum ProtoLinkError {
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Fs(#[from] Box<FsError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Json(#[from] Box<JsonError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Layout(#[from] Box<ProtoLayoutError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Locate(#[from] Box<ProtoLocateError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Tool(#[from] Box<ProtoToolError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(code(proto::link::failed_args_parse)))]
+    #[diagnostic(code(proto::link::failed_args_parse))]
     #[error("Failed to parse shim arguments string {}.", .args.style(Style::Shell))]
     FailedArgsParse {
         args: String,

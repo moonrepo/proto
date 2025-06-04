@@ -8,14 +8,13 @@ use thiserror::Error;
 use tokio::process::Command;
 use tracing::trace;
 
-#[derive(Error, Debug)]
-#[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
+#[derive(Error, Debug, miette::Diagnostic)]
 pub enum ProtoProcessError {
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Fs(#[from] Box<FsError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(code(proto::process::command_failed)))]
+    #[diagnostic(code(proto::process::command_failed))]
     #[error("Failed to execute command {}.", .command.style(Style::Shell))]
     FailedCommand {
         command: String,
@@ -23,7 +22,7 @@ pub enum ProtoProcessError {
         error: Box<io::Error>,
     },
 
-    #[cfg_attr(feature = "miette", diagnostic(code(proto::process::command_failed)))]
+    #[diagnostic(code(proto::process::command_failed))]
     #[error(
         "Command {} returned a {code} exit code.\n{}",
         .command.style(Style::Shell),

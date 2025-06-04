@@ -9,50 +9,49 @@ use std::path::PathBuf;
 use thiserror::Error;
 use warpgate::{WarpgateClientError, WarpgatePluginError};
 
-#[derive(Error, Debug)]
-#[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
+#[derive(Error, Debug, miette::Diagnostic)]
 pub enum ProtoInstallError {
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Archive(#[from] Box<ProtoArchiveError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Build(#[from] Box<ProtoBuildError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Checksum(#[from] Box<ProtoChecksumError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Client(#[from] Box<WarpgateClientError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Config(#[from] Box<ProtoConfigError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Fs(#[from] Box<FsError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Net(#[from] Box<NetError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Plugin(#[from] Box<WarpgatePluginError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(code(proto::install::failed)))]
+    #[diagnostic(code(proto::install::failed))]
     #[error("Failed to install {tool}. {}", apply_style_tags(.error))]
     FailedInstall { tool: String, error: String },
 
-    #[cfg_attr(feature = "miette", diagnostic(code(proto::uninstall::failed)))]
+    #[diagnostic(code(proto::uninstall::failed))]
     #[error("Failed to uninstall {tool}. {}", apply_style_tags(.error))]
     FailedUninstall { tool: String, error: String },
 
-    #[cfg_attr(feature = "miette", diagnostic(code(proto::install::invalid_checksum)))]
+    #[diagnostic(code(proto::install::invalid_checksum))]
     #[error(
         "Checksum has failed for {}, which was verified using {}.",
         .download.style(Style::Path),
@@ -63,12 +62,9 @@ pub enum ProtoInstallError {
         download: PathBuf,
     },
 
-    #[cfg_attr(
-        feature = "miette",
-        diagnostic(
-            code(proto::install::mismatched_checksum),
-            help = "Is this install legitimate?"
-        )
+    #[diagnostic(
+        code(proto::install::mismatched_checksum),
+        help = "Is this install legitimate?"
     )]
     #[error(
         "Checksum mismatch! Received {} but expected {}.",
@@ -80,12 +76,9 @@ pub enum ProtoInstallError {
         lockfile_checksum: String,
     },
 
-    #[cfg_attr(
-        feature = "miette",
-        diagnostic(
-            code(proto::install::mismatched_checksum),
-            help = "Is this install legitimate?"
-        )
+    #[diagnostic(
+        code(proto::install::mismatched_checksum),
+        help = "Is this install legitimate?"
     )]
     #[error(
         "Checksum mismatch for {}! Received {} but expected {}.",
@@ -99,21 +92,15 @@ pub enum ProtoInstallError {
         source_url: String,
     },
 
-    #[cfg_attr(
-        feature = "miette",
-        diagnostic(code(proto::install::prebuilt_unsupported))
-    )]
+    #[diagnostic(code(proto::install::prebuilt_unsupported))]
     #[error("Downloading a pre-built is not supported for {tool}. Try building from source by passing {}.", "--build".style(Style::Shell))]
     UnsupportedDownloadPrebuilt { tool: String },
 
-    #[cfg_attr(
-        feature = "miette",
-        diagnostic(code(proto::install::build_unsupported))
-    )]
+    #[diagnostic(code(proto::install::build_unsupported))]
     #[error("Building from source is not supported for {tool}. Try downloading a pre-built by passing {}.", "--no-build".style(Style::Shell))]
     UnsupportedBuildFromSource { tool: String },
 
-    #[cfg_attr(feature = "miette", diagnostic(code(proto::offline)))]
+    #[diagnostic(code(proto::offline))]
     #[error("Internet connection required, unable to download, install, or run tools.")]
     RequiredInternetConnection,
 }

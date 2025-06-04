@@ -7,18 +7,17 @@ use starbase_utils::{fs, net};
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 
-#[derive(Error, Debug)]
-#[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
+#[derive(Error, Debug, miette::Diagnostic)]
 pub enum ProtoArchiveError {
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Archive(#[from] Box<ArchiveError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Fs(#[from] Box<FsError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Net(#[from] Box<NetError>),
 }

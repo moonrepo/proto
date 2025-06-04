@@ -3,17 +3,13 @@ use std::path::PathBuf;
 use thiserror::Error;
 use warpgate::WarpgatePluginError;
 
-#[derive(Error, Debug)]
-#[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
+#[derive(Error, Debug, miette::Diagnostic)]
 pub enum ProtoLocateError {
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Plugin(#[from] Box<WarpgatePluginError>),
 
-    #[cfg_attr(
-        feature = "miette",
-        diagnostic(code(proto::locate::missing_executable))
-    )]
+    #[diagnostic(code(proto::locate::missing_executable))]
     #[error(
       "Unable to find an executable for {tool}, expected file {} does not exist.",
       .path.style(Style::Path),

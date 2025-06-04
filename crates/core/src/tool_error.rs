@@ -14,61 +14,57 @@ use std::path::PathBuf;
 use thiserror::Error;
 use warpgate::{Id, WarpgateClientError, WarpgateLoaderError, WarpgatePluginError};
 
-#[derive(Error, Debug)]
-#[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
+#[derive(Error, Debug, miette::Diagnostic)]
 pub enum ProtoToolError {
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Archive(#[from] Box<ProtoArchiveError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Client(#[from] Box<WarpgateClientError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Config(#[from] Box<ProtoConfigError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Fs(#[from] Box<FsError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Json(#[from] Box<JsonError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Layout(#[from] Box<ProtoLayoutError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Loader(#[from] Box<WarpgateLoaderError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Plugin(#[from] Box<WarpgatePluginError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Process(#[from] Box<ProtoProcessError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Resolve(#[from] Box<ProtoResolveError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Toml(#[from] Box<TomlError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Yaml(#[from] Box<YamlError>),
 
-    #[cfg_attr(
-        feature = "miette",
-        diagnostic(code(proto::tool::minimum_version_requirement))
-    )]
+    #[diagnostic(code(proto::tool::minimum_version_requirement))]
     #[error(
         "Unable to use the {tool} plugin with identifier {}, as it requires a minimum proto version of {}, but found {} instead.",
         .id.to_string().style(Style::Id),
@@ -82,7 +78,7 @@ pub enum ProtoToolError {
         actual: String,
     },
 
-    #[cfg_attr(feature = "miette", diagnostic(code(proto::tool::invalid_spec)))]
+    #[diagnostic(code(proto::tool::invalid_spec))]
     #[error("Invalid version or requirement in tool specification {}.", .spec.style(Style::Hash))]
     InvalidVersionSpec {
         spec: String,
@@ -90,14 +86,11 @@ pub enum ProtoToolError {
         error: Box<version_spec::SpecError>,
     },
 
-    #[cfg_attr(
-        feature = "miette",
-        diagnostic(code(proto::tool::invalid_inventory_dir))
-    )]
+    #[diagnostic(code(proto::tool::invalid_inventory_dir))]
     #[error("{tool} inventory directory has been overridden with {} but it's not an absolute path. Only absolute paths are supported.", .dir.style(Style::Path))]
     RequiredAbsoluteInventoryDir { tool: String, dir: PathBuf },
 
-    #[cfg_attr(feature = "miette", diagnostic(code(proto::tool::unknown_backend)))]
+    #[diagnostic(code(proto::tool::unknown_backend))]
     #[error(
         "Unknown backend in tool specification {}. Only {} are supported.",
         .spec.style(Style::Hash),
@@ -108,7 +101,7 @@ pub enum ProtoToolError {
         spec: String,
     },
 
-    #[cfg_attr(feature = "miette", diagnostic(code(proto::tool::unknown_id)))]
+    #[diagnostic(code(proto::tool::unknown_id))]
     #[error(
         "Unable to proceed, {} is not a built-in plugin and has not been configured with {} in a {} file.\n\nLearn more about plugins: {}\nSearch community plugins: {}",
         .id.to_string().style(Style::Id),

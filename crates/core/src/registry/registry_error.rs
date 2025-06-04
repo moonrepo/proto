@@ -3,25 +3,24 @@ use starbase_utils::fs::FsError;
 use starbase_utils::json::JsonError;
 use thiserror::Error;
 
-#[derive(Error, Debug)]
-#[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
+#[derive(Error, Debug, miette::Diagnostic)]
 pub enum ProtoRegistryError {
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Fs(#[from] Box<FsError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Json(#[from] Box<JsonError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(code(proto::registry::parse_failed)))]
+    #[diagnostic(code(proto::registry::parse_failed))]
     #[error("Failed to parse registry plugin data.")]
     FailedParse {
         #[source]
         error: Box<reqwest::Error>,
     },
 
-    #[cfg_attr(feature = "miette", diagnostic(code(proto::registry::request_failed)))]
+    #[diagnostic(code(proto::registry::request_failed))]
     #[error("Failed to request plugins from registry {}.", .url.style(Style::Url))]
     FailedRequest {
         url: String,

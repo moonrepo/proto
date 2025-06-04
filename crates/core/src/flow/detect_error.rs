@@ -5,22 +5,21 @@ use std::path::PathBuf;
 use thiserror::Error;
 use warpgate::WarpgatePluginError;
 
-#[derive(Error, Debug)]
-#[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
+#[derive(Error, Debug, miette::Diagnostic)]
 pub enum ProtoDetectError {
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Config(#[from] Box<ProtoConfigError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Fs(#[from] Box<FsError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Plugin(#[from] Box<WarpgatePluginError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(code(proto::detect::invalid_version)))]
+    #[diagnostic(code(proto::detect::invalid_version))]
     #[error(
       "Invalid version or requirement {} detected from {}.",
       .version.style(Style::Hash),
@@ -33,10 +32,7 @@ pub enum ProtoDetectError {
         version: String,
     },
 
-    #[cfg_attr(
-        feature = "miette",
-        diagnostic(code(proto::detect::failed), help = "Has the tool been installed?")
-    )]
+    #[diagnostic(code(proto::detect::failed), help = "Has the tool been installed?")]
     #[error(
         "Failed to detect an applicable version to run {tool} with. Try pinning a version with {} or explicitly passing the version as an argument or environment variable.",
         "proto pin".style(Style::Shell),

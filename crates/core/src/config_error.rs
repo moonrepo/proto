@@ -5,22 +5,21 @@ use starbase_utils::toml::TomlError;
 use std::path::PathBuf;
 use thiserror::Error;
 
-#[derive(Error, Debug)]
-#[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
+#[derive(Error, Debug, miette::Diagnostic)]
 pub enum ProtoConfigError {
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Fs(#[from] Box<FsError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Schematic(#[from] Box<ConfigError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Toml(#[from] Box<TomlError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(code(proto::config::env_parse_failed)))]
+    #[diagnostic(code(proto::config::env_parse_failed))]
     #[error(
         "Failed to parse .env file {}.",
         .path.style(Style::Path),
@@ -31,7 +30,7 @@ pub enum ProtoConfigError {
         error: Box<dotenvy::Error>,
     },
 
-    #[cfg_attr(feature = "miette", diagnostic(code(proto::config::missing_env_file)))]
+    #[diagnostic(code(proto::config::missing_env_file))]
     #[error(
         "The .env file {} does not exist. This was configured as {} in the config {}.",
         .path.style(Style::Path),

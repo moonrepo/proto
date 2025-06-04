@@ -1,9 +1,9 @@
 mod utils;
 
-use proto_core::flow::install::InstallOptions;
 use proto_core::{
-    Id, PluginLocator, ProtoEnvironment, Tool, ToolSpec, UnresolvedVersionSpec,
-    load_tool_from_locator, warpgate::FileLocator, warpgate::UrlLocator,
+    Id, PluginLocator, ProtoEnvironment, ProtoToolError, Tool, ToolSpec, UnresolvedVersionSpec,
+    flow::install::InstallOptions, load_tool_from_locator, warpgate::FileLocator,
+    warpgate::UrlLocator,
 };
 use starbase_sandbox::assert_snapshot;
 use starbase_sandbox::predicates::prelude::*;
@@ -15,7 +15,7 @@ use utils::*;
 async fn run_tests<F, Fut>(factory: F)
 where
     F: FnOnce(&ProtoEnvironment) -> Fut,
-    Fut: Future<Output = miette::Result<Tool>>,
+    Fut: Future<Output = Result<Tool, ProtoToolError>>,
 {
     let sandbox = create_empty_proto_sandbox();
     let proto = ProtoEnvironment::new_testing(sandbox.path()).unwrap();

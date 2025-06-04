@@ -4,21 +4,17 @@ use starbase_utils::json::JsonError;
 use std::path::PathBuf;
 use thiserror::Error;
 
-#[derive(Error, Debug)]
-#[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
+#[derive(Error, Debug, miette::Diagnostic)]
 pub enum ProtoLayoutError {
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Fs(#[from] Box<FsError>),
 
-    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[diagnostic(transparent)]
     #[error(transparent)]
     Json(#[from] Box<JsonError>),
 
-    #[cfg_attr(
-        feature = "miette",
-        diagnostic(code(proto::store::shim::create_failed))
-    )]
+    #[diagnostic(code(proto::store::shim::create_failed))]
     #[error("Failed to create shim {}.", .path.style(Style::Path))]
     FailedCreateShim {
         path: PathBuf,
@@ -26,10 +22,7 @@ pub enum ProtoLayoutError {
         error: Box<std::io::Error>,
     },
 
-    #[cfg_attr(
-        feature = "miette",
-        diagnostic(code(proto::store::shim::missing_binary))
-    )]
+    #[diagnostic(code(proto::store::shim::missing_binary))]
     #[error(
         "Unable to create shims as the {} binary cannot be found.\nLooked in the {} environment variable and {} directory.",
         "proto-shim".style(Style::Id),
