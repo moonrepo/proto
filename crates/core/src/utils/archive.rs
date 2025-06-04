@@ -86,7 +86,7 @@ pub fn unpack_raw(
         archiver.set_prefix(prefix);
     }
 
-    archiver.unpack_from_ext()
+    Ok(archiver.unpack_from_ext().unwrap()) // TODO
 }
 
 pub async fn download_and_unpack(

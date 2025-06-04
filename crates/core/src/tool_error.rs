@@ -1,20 +1,42 @@
 use crate::config::PROTO_CONFIG_NAME;
+use crate::config_error::ProtoConfigError;
+use crate::layout::ProtoLayoutError;
 use crate::tool_spec::Backend;
+use crate::utils::archive::ProtoArchiveError;
+use crate::utils::process::ProtoProcessError;
 use starbase_styles::{Style, Stylize};
 use starbase_utils::fs::FsError;
 use starbase_utils::json::JsonError;
 use std::path::PathBuf;
 use thiserror::Error;
-use warpgate::Id;
+use warpgate::{Id, WarpgateClientError, WarpgatePluginError};
 
 #[derive(Error, Debug)]
 #[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
 pub enum ProtoToolError {
     #[error(transparent)]
+    Archive(#[from] Box<ProtoArchiveError>),
+
+    #[error(transparent)]
+    Client(#[from] Box<WarpgateClientError>),
+
+    #[error(transparent)]
+    Config(#[from] Box<ProtoConfigError>),
+
+    #[error(transparent)]
     Fs(#[from] Box<FsError>),
 
     #[error(transparent)]
     Json(#[from] Box<JsonError>),
+
+    #[error(transparent)]
+    Layout(#[from] Box<ProtoLayoutError>),
+
+    #[error(transparent)]
+    Plugin(#[from] Box<WarpgatePluginError>),
+
+    #[error(transparent)]
+    Process(#[from] Box<ProtoProcessError>),
 
     #[cfg_attr(
         feature = "miette",
@@ -71,6 +93,24 @@ pub enum ProtoToolError {
     UnknownTool { id: Id },
 }
 
+impl From<ProtoArchiveError> for ProtoToolError {
+    fn from(e: ProtoArchiveError) -> ProtoToolError {
+        ProtoToolError::Archive(Box::new(e))
+    }
+}
+
+impl From<WarpgateClientError> for ProtoToolError {
+    fn from(e: WarpgateClientError) -> ProtoToolError {
+        ProtoToolError::Client(Box::new(e))
+    }
+}
+
+impl From<ProtoConfigError> for ProtoToolError {
+    fn from(e: ProtoConfigError) -> ProtoToolError {
+        ProtoToolError::Config(Box::new(e))
+    }
+}
+
 impl From<FsError> for ProtoToolError {
     fn from(e: FsError) -> ProtoToolError {
         ProtoToolError::Fs(Box::new(e))
@@ -80,5 +120,23 @@ impl From<FsError> for ProtoToolError {
 impl From<JsonError> for ProtoToolError {
     fn from(e: JsonError) -> ProtoToolError {
         ProtoToolError::Json(Box::new(e))
+    }
+}
+
+impl From<ProtoLayoutError> for ProtoToolError {
+    fn from(e: ProtoLayoutError) -> ProtoToolError {
+        ProtoToolError::Layout(Box::new(e))
+    }
+}
+
+impl From<WarpgatePluginError> for ProtoToolError {
+    fn from(e: WarpgatePluginError) -> ProtoToolError {
+        ProtoToolError::Plugin(Box::new(e))
+    }
+}
+
+impl From<ProtoProcessError> for ProtoToolError {
+    fn from(e: ProtoProcessError) -> ProtoToolError {
+        ProtoToolError::Process(Box::new(e))
     }
 }

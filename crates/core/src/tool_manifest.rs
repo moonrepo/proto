@@ -1,6 +1,6 @@
-use crate::ProtoToolError;
 use crate::helpers::{now, read_json_file_with_lock, write_json_file_with_lock};
 use crate::lockfile::LockfileRecord;
+use crate::tool_error::ProtoToolError;
 use crate::tool_spec::Backend;
 use serde::{Deserialize, Serialize};
 use starbase_utils::env::bool_var;

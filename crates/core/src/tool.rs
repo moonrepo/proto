@@ -1,6 +1,5 @@
 use crate::env::ProtoEnvironment;
-use crate::env_error::ProtoEnvError;
-use crate::helpers::{get_proto_version, is_offline};
+use crate::helpers::get_proto_version;
 use crate::layout::{Inventory, Product};
 use crate::tool_error::ProtoToolError;
 use crate::tool_spec::Backend;
@@ -331,9 +330,9 @@ impl Tool {
         let backend_dir = self.proto.store.backends_dir.join(&backend_id);
         let update_perms = !backend_dir.exists();
 
-        if is_offline() {
-            return Err(ProtoEnvError::RequiredInternetConnection.into());
-        }
+        // if is_offline() {
+        //     return Err(ProtoEnvError::RequiredInternetConnection.into());
+        // }
 
         debug!(
             tool = self.id.as_str(),

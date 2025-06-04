@@ -1,5 +1,6 @@
 use crate::helpers::{read_json_file_with_lock, write_json_file_with_lock};
 use crate::lockfile::*;
+use crate::tool_error::ProtoToolError;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::fmt::Debug;
@@ -19,12 +20,12 @@ pub struct ToolLockfile {
 }
 
 impl ToolLockfile {
-    pub fn load_from<P: AsRef<Path>>(dir: P) -> Result<Self, JsonError> {
+    pub fn load_from<P: AsRef<Path>>(dir: P) -> Result<Self, ProtoToolError> {
         Self::load(dir.as_ref().join(LOCKFILE_NAME))
     }
 
     #[instrument(name = "load_tool_lockfile")]
-    pub fn load<P: AsRef<Path> + Debug>(path: P) -> Result<Self, JsonError> {
+    pub fn load<P: AsRef<Path> + Debug>(path: P) -> Result<Self, ProtoToolError> {
         let path = path.as_ref();
 
         debug!(file = ?path, "Loading lockfile");
@@ -41,7 +42,7 @@ impl ToolLockfile {
     }
 
     #[instrument(name = "save_tool_lockfile", skip(self))]
-    pub fn save(&self) -> Result<(), JsonError> {
+    pub fn save(&self) -> Result<(), ProtoToolError> {
         debug!(file = ?self.path, "Saving lockfile");
 
         write_json_file_with_lock(&self.path, self)?;
