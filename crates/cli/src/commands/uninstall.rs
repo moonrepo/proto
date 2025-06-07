@@ -1,8 +1,9 @@
+use crate::error::ProtoCliError;
 use crate::session::ProtoSession;
 use crate::telemetry::{Metric, track_usage};
 use clap::Args;
 use iocraft::element;
-use proto_core::{Id, ProtoConfig, Tool, ToolSpec};
+use proto_core::{Id, ProtoConfig, ProtoConfigError, Tool, ToolSpec};
 use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_utils::fs;
@@ -17,7 +18,7 @@ pub struct UninstallArgs {
     spec: Option<ToolSpec>,
 }
 
-fn unpin_version(session: &ProtoSession, args: &UninstallArgs) -> miette::Result<()> {
+fn unpin_version(session: &ProtoSession, args: &UninstallArgs) -> Result<(), ProtoConfigError> {
     let manager = session.env.load_config_manager()?;
 
     for file in &manager.files {
@@ -43,7 +44,7 @@ fn unpin_version(session: &ProtoSession, args: &UninstallArgs) -> miette::Result
     Ok(())
 }
 
-async fn track_uninstall(tool: &Tool, all: bool) -> miette::Result<()> {
+async fn track_uninstall(tool: &Tool, all: bool) -> Result<(), ProtoCliError> {
     track_usage(
         &tool.proto,
         Metric::UninstallTool {

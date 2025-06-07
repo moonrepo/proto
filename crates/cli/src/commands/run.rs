@@ -224,33 +224,23 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
     Ok(command)
 }
 
+// It is possible that we have a shim for the tool, but can not find the
+// plugin or version. However, this tool may exist on `PATH` outside
+// of proto, so try and fallback to it!
 fn run_global_tool(
     session: ProtoSession,
     args: RunArgs,
     error: miette::Report,
 ) -> miette::Result<()> {
-    // It is possible that we have a shim for the tool, but can not find the
-    // plugin or version. However, this tool may exist on `PATH` outside
-    // of proto, so try and fallback to it!
-    let try_global = matches!(
-        error.downcast_ref::<ProtoLoaderError>(),
-        Some(ProtoLoaderError::UnknownTool { .. })
-    ) || matches!(
-        error.downcast_ref::<ProtoDetectError>(),
-        Some(ProtoDetectError::FailedVersionDetect { .. })
-    );
+    if let Some(global_exe) = get_global_executable(&session.env, args.id.as_str()) {
+        debug!(
+            global_exe = ?global_exe,
+            "Tool {} is currently not managed by proto but exists on PATH, falling back to the global executable",
+            color::id(args.id),
+        );
 
-    if try_global {
-        if let Some(global_exe) = get_global_executable(&session.env, args.id.as_str()) {
-            debug!(
-                global_exe = ?global_exe,
-                "Tool {} is currently not managed by proto but exists on PATH, falling back to the global executable",
-                color::id(args.id),
-            );
-
-            return exec_command_and_replace(create_process_command(global_exe, args.passthrough))
-                .into_diagnostic();
-        }
+        return exec_command_and_replace(create_process_command(global_exe, args.passthrough))
+            .into_diagnostic();
     }
 
     Err(error)
@@ -263,7 +253,13 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
         .await
     {
         Ok(tool) => tool,
-        Err(error) => return run_global_tool(session, args, error).map(|_| None),
+        Err(error) => {
+            return if matches!(error, ProtoLoaderError::UnknownTool { .. }) {
+                run_global_tool(session, args, error.into()).map(|_| None)
+            } else {
+                Err(error.into())
+            };
+        }
     };
 
     let mut use_global_proto = should_use_global_proto(&tool)?;
@@ -287,7 +283,13 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
     } else {
         match tool.detect_version().await {
             Ok(spec) => spec,
-            Err(error) => return run_global_tool(session, args, error.into()).map(|_| None),
+            Err(error) => {
+                return if matches!(error, ProtoDetectError::FailedVersionDetect { .. }) {
+                    run_global_tool(session, args, error.into()).map(|_| None)
+                } else {
+                    Err(error.into())
+                };
+            }
         }
     };
 

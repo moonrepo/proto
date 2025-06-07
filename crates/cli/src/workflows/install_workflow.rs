@@ -1,13 +1,12 @@
 use crate::commands::pin::internal_pin;
 use crate::components::{InstallAllProgress, InstallProgress, InstallProgressProps};
+use crate::error::ProtoCliError;
 use crate::session::ProtoConsole;
 use crate::shell::{self, Export};
 use crate::telemetry::*;
 use crate::utils::tool_record::ToolRecord;
 use iocraft::element;
-use miette::IntoDiagnostic;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
-use proto_core::flow::setup::ProtoSetupError;
 use proto_core::utils::log::LogWriter;
 use proto_core::{Id, LockfileRecord, PinLocation, ToolSpec};
 use proto_pdk_api::{
@@ -86,7 +85,7 @@ impl InstallWorkflow {
         &mut self,
         spec: ToolSpec,
         params: InstallWorkflowParams,
-    ) -> Result<InstallOutcome, ProtoSetupError> {
+    ) -> Result<InstallOutcome, ProtoCliError> {
         let started = Instant::now();
 
         self.progress_reporter.set_message(format!(
@@ -151,7 +150,7 @@ impl InstallWorkflow {
         &mut self,
         spec: ToolSpec,
         mut params: InstallWorkflowParams,
-    ) -> miette::Result<InstallOutcome> {
+    ) -> Result<InstallOutcome, ProtoCliError> {
         let log = match params.log_writer.clone() {
             Some(writer) => writer,
             None => {
@@ -214,7 +213,7 @@ impl InstallWorkflow {
         }
     }
 
-    async fn pre_install(&self, params: &InstallWorkflowParams) -> Result<(), ProtoSetupError> {
+    async fn pre_install(&self, params: &InstallWorkflowParams) -> Result<(), ProtoCliError> {
         let tool = &self.tool;
 
         params.log_writer.as_ref().inspect(|log| {
@@ -245,7 +244,7 @@ impl InstallWorkflow {
         &mut self,
         spec: &ToolSpec,
         params: &InstallWorkflowParams,
-    ) -> Result<Option<LockfileRecord>, ProtoSetupError> {
+    ) -> Result<Option<LockfileRecord>, ProtoCliError> {
         params.log_writer.as_ref().inspect(|log| {
             log.add_header("Installing tool");
         });
@@ -342,7 +341,7 @@ impl InstallWorkflow {
         Ok(record)
     }
 
-    async fn post_install(&self, params: &InstallWorkflowParams) -> Result<(), ProtoSetupError> {
+    async fn post_install(&self, params: &InstallWorkflowParams) -> Result<(), ProtoCliError> {
         let tool = &self.tool;
 
         params.log_writer.as_ref().inspect(|log| {
@@ -373,7 +372,7 @@ impl InstallWorkflow {
         &mut self,
         spec: &ToolSpec,
         arg_pin_to: &Option<PinLocation>,
-    ) -> Result<bool, ProtoSetupError> {
+    ) -> Result<bool, ProtoCliError> {
         let config = self.tool.proto.load_config()?;
         let mut pin_to = PinLocation::Local;
         let mut pin = false;
@@ -409,7 +408,7 @@ impl InstallWorkflow {
         Ok(pin)
     }
 
-    async fn update_shell(&self, params: &InstallWorkflowParams) -> Result<(), ProtoSetupError> {
+    async fn update_shell(&self, params: &InstallWorkflowParams) -> Result<(), ProtoCliError> {
         let tool = &self.tool;
 
         if !tool.plugin.has_func("sync_shell_profile").await {
@@ -653,6 +652,8 @@ impl InstallWorkflowManager {
     }
 
     pub async fn stop_rendering(mut self) -> miette::Result<()> {
+        use miette::IntoDiagnostic;
+
         self.progress_reporters.values().for_each(|reporter| {
             reporter.exit();
         });
