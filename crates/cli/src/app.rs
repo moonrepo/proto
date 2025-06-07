@@ -11,6 +11,7 @@ use starbase_styles::color::Color as ColorType;
 use std::{
     env,
     fmt::{Display, Error, Formatter},
+    path::PathBuf,
 };
 
 #[derive(ValueEnum, Clone, Debug, Default)]
@@ -112,6 +113,14 @@ pub struct App {
         help = "Lowest log level to output"
     )]
     pub log: LogLevel,
+
+    #[arg(
+        long,
+        global = true,
+        env = "PROTO_LOG_FILE",
+        help = "Path to a file to write logs to"
+    )]
+    pub log_file: Option<PathBuf>,
 
     #[arg(
         long,
