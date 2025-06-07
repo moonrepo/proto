@@ -1,10 +1,19 @@
-use miette::Diagnostic;
 use starbase_styles::{Style, Stylize};
+use starbase_utils::fs::FsError;
+use starbase_utils::json::JsonError;
 use std::path::PathBuf;
 use thiserror::Error;
 
-#[derive(Error, Debug, Diagnostic)]
+#[derive(Error, Debug, miette::Diagnostic)]
 pub enum ProtoLayoutError {
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Fs(#[from] Box<FsError>),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Json(#[from] Box<JsonError>),
+
     #[diagnostic(code(proto::store::shim::create_failed))]
     #[error("Failed to create shim {}.", .path.style(Style::Path))]
     FailedCreateShim {
@@ -21,4 +30,16 @@ pub enum ProtoLayoutError {
         .bin_dir.style(Style::Path),
     )]
     MissingShimBinary { bin_dir: PathBuf },
+}
+
+impl From<FsError> for ProtoLayoutError {
+    fn from(e: FsError) -> ProtoLayoutError {
+        ProtoLayoutError::Fs(Box::new(e))
+    }
+}
+
+impl From<JsonError> for ProtoLayoutError {
+    fn from(e: JsonError) -> ProtoLayoutError {
+        ProtoLayoutError::Json(Box::new(e))
+    }
 }

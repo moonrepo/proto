@@ -2,6 +2,7 @@ use crate::session::ProtoSession;
 use clap::Args;
 use indexmap::IndexMap;
 use miette::IntoDiagnostic;
+use proto_core::flow::setup::ProtoSetupError;
 use proto_core::{Id, UnresolvedVersionSpec};
 use rustc_hash::FxHashSet;
 use serde::Serialize;
@@ -90,7 +91,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     // Load necessary tools so that we can extract info
     let tools = session.load_tools().await?;
     let mut collection = ActivateCollection::default();
-    let mut set = JoinSet::<miette::Result<ActivateItem>>::new();
+    let mut set = JoinSet::<Result<ActivateItem, ProtoSetupError>>::new();
 
     for mut tool in tools {
         if !config.versions.contains_key(&tool.id) {

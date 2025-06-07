@@ -467,7 +467,7 @@ impl ProtoConfig {
     pub fn load_from<P: AsRef<Path>>(
         dir: P,
         with_lock: bool,
-    ) -> miette::Result<PartialProtoConfig> {
+    ) -> Result<PartialProtoConfig, ProtoConfigError> {
         let dir = dir.as_ref();
 
         Self::load(
@@ -484,7 +484,7 @@ impl ProtoConfig {
     pub fn load<P: AsRef<Path> + Debug>(
         path: P,
         with_lock: bool,
-    ) -> miette::Result<PartialProtoConfig> {
+    ) -> Result<PartialProtoConfig, ProtoConfigError> {
         let path = path.as_ref();
 
         if !path.exists() {
@@ -584,7 +584,7 @@ impl ProtoConfig {
         let push_env_file = |env_map: Option<&mut IndexMap<String, PartialEnvVar>>,
                              file_list: &mut Option<Vec<EnvFile>>,
                              extra_weight: usize|
-         -> miette::Result<()> {
+         -> Result<(), ProtoConfigError> {
             if let Some(map) = env_map {
                 if let Some(PartialEnvVar::Value(env_file)) = map.get(ENV_FILE_KEY) {
                     let list = file_list.get_or_insert(vec![]);
@@ -595,8 +595,7 @@ impl ProtoConfig {
                             path: env_file_path,
                             config: env_file.to_owned(),
                             config_path: path.to_path_buf(),
-                        }
-                        .into());
+                        });
                     }
 
                     list.push(EnvFile {
@@ -626,7 +625,7 @@ impl ProtoConfig {
     pub fn save_to<P: AsRef<Path> + Debug>(
         dir: P,
         config: PartialProtoConfig,
-    ) -> miette::Result<PathBuf> {
+    ) -> Result<PathBuf, ProtoConfigError> {
         let path = dir.as_ref();
         let file = if path.ends_with(PROTO_CONFIG_NAME) {
             path.to_path_buf()
@@ -642,7 +641,7 @@ impl ProtoConfig {
     pub fn update<P: AsRef<Path>, F: FnOnce(&mut PartialProtoConfig)>(
         dir: P,
         op: F,
-    ) -> miette::Result<PathBuf> {
+    ) -> Result<PathBuf, ProtoConfigError> {
         let dir = dir.as_ref();
         let mut config = Self::load_from(dir, true)?;
 
@@ -673,7 +672,7 @@ impl ProtoConfig {
     pub fn get_env_vars(
         &self,
         filter_id: Option<&Id>,
-    ) -> miette::Result<IndexMap<String, Option<String>>> {
+    ) -> Result<IndexMap<String, Option<String>>, ProtoConfigError> {
         let env_files = self.get_env_files(filter_id);
 
         let mut base_vars = IndexMap::new();
@@ -724,21 +723,22 @@ impl ProtoConfig {
         Ok(vars)
     }
 
-    pub fn load_env_files(&self, paths: &[&PathBuf]) -> miette::Result<IndexMap<String, EnvVar>> {
+    pub fn load_env_files(
+        &self,
+        paths: &[&PathBuf],
+    ) -> Result<IndexMap<String, EnvVar>, ProtoConfigError> {
         let mut vars = IndexMap::default();
 
-        let map_error = |error: dotenvy::Error, path: &Path| -> miette::Report {
+        let map_error = |error: dotenvy::Error, path: &Path| -> ProtoConfigError {
             match error {
-                dotenvy::Error::Io(inner) => FsError::Read {
+                dotenvy::Error::Io(inner) => ProtoConfigError::Fs(Box::new(FsError::Read {
                     path: path.to_path_buf(),
                     error: Box::new(inner),
-                }
-                .into(),
+                })),
                 other => ProtoConfigError::FailedParseEnvFile {
                     path: path.to_path_buf(),
                     error: Box::new(other),
-                }
-                .into(),
+                },
             }
         };
 
@@ -783,7 +783,7 @@ impl ProtoConfigManager {
         start_dir: impl AsRef<Path>,
         end_dir: Option<&Path>,
         env_mode: Option<&String>,
-    ) -> miette::Result<Self> {
+    ) -> Result<Self, ProtoConfigError> {
         let mut current_dir = Some(start_dir.as_ref());
         let mut files = vec![];
 
@@ -831,7 +831,7 @@ impl ProtoConfigManager {
         })
     }
 
-    pub fn get_global_config(&self) -> miette::Result<&ProtoConfig> {
+    pub fn get_global_config(&self) -> Result<&ProtoConfig, ProtoConfigError> {
         self.global_config.get_or_try_init(|| {
             debug!("Loading global config only");
 
@@ -844,7 +844,7 @@ impl ProtoConfigManager {
         })
     }
 
-    pub fn get_local_config(&self, cwd: &Path) -> miette::Result<&ProtoConfig> {
+    pub fn get_local_config(&self, cwd: &Path) -> Result<&ProtoConfig, ProtoConfigError> {
         self.local_config.get_or_try_init(|| {
             debug!("Loading local config only");
 
@@ -857,7 +857,7 @@ impl ProtoConfigManager {
         })
     }
 
-    pub fn get_merged_config(&self) -> miette::Result<&ProtoConfig> {
+    pub fn get_merged_config(&self) -> Result<&ProtoConfig, ProtoConfigError> {
         self.all_config.get_or_try_init(|| {
             debug!("Merging loaded configs with global");
 
@@ -865,7 +865,7 @@ impl ProtoConfigManager {
         })
     }
 
-    pub fn get_merged_config_without_global(&self) -> miette::Result<&ProtoConfig> {
+    pub fn get_merged_config_without_global(&self) -> Result<&ProtoConfig, ProtoConfigError> {
         self.all_config_no_global.get_or_try_init(|| {
             debug!("Merging loaded configs without global");
 
@@ -892,7 +892,7 @@ impl ProtoConfigManager {
         });
     }
 
-    fn merge_configs(&self, files: Vec<&ProtoConfigFile>) -> miette::Result<ProtoConfig> {
+    fn merge_configs(&self, files: Vec<&ProtoConfigFile>) -> Result<ProtoConfig, ProtoConfigError> {
         let mut partial = PartialProtoConfig::default();
         let mut count = 0;
         let context = &();

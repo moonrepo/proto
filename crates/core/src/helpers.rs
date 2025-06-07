@@ -1,4 +1,3 @@
-use miette::IntoDiagnostic;
 use regex::Regex;
 use semver::Version;
 use serde::Serialize;
@@ -87,14 +86,27 @@ pub fn now() -> u128 {
         .unwrap_or(0)
 }
 
-pub fn extract_filename_from_url<U: AsRef<str>>(url: U) -> miette::Result<String> {
-    let url = url::Url::parse(url.as_ref()).into_diagnostic()?;
-    let mut segments = url.path_segments().unwrap();
+pub fn extract_filename_from_url<U: AsRef<str>>(url: U) -> String {
+    let base = url.as_ref();
 
-    Ok(segments.next_back().unwrap().to_owned())
+    match url::Url::parse(base) {
+        Ok(url) => {
+            let mut segments = url.path_segments().unwrap();
+
+            segments.next_back().unwrap().to_owned()
+        }
+        Err(_) => if let Some(i) = base.rfind('/') {
+            &base[i + 1..]
+        } else {
+            "unknown"
+        }
+        .into(),
+    }
 }
 
-pub fn read_json_file_with_lock<T: DeserializeOwned>(path: impl AsRef<Path>) -> miette::Result<T> {
+pub fn read_json_file_with_lock<T: DeserializeOwned>(
+    path: impl AsRef<Path>,
+) -> Result<T, JsonError> {
     let path = path.as_ref();
     let mut content = fs::read_file_with_lock(path)?;
 
@@ -117,7 +129,7 @@ pub fn read_json_file_with_lock<T: DeserializeOwned>(path: impl AsRef<Path>) -> 
 pub fn write_json_file_with_lock<T: Serialize>(
     path: impl AsRef<Path>,
     data: &T,
-) -> miette::Result<()> {
+) -> Result<(), JsonError> {
     let path = path.as_ref();
 
     let data = json::serde_json::to_string_pretty(data).map_err(|error| JsonError::WriteFile {

@@ -111,14 +111,16 @@ impl InstallArgs {
     }
 }
 
-pub fn enforce_requirements(tool: &Tool, versions: &BTreeMap<Id, ToolSpec>) -> miette::Result<()> {
+pub fn enforce_requirements(
+    tool: &Tool,
+    versions: &BTreeMap<Id, ToolSpec>,
+) -> Result<(), ProtoCliError> {
     for require_id in &tool.metadata.requires {
         if !versions.contains_key(require_id.as_str()) {
             return Err(ProtoCliError::InstallRequirementsNotMet {
                 tool: tool.get_name().to_owned(),
                 requires: require_id.to_owned(),
-            }
-            .into());
+            });
         }
     }
 

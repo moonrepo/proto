@@ -1,3 +1,4 @@
+use proto_core::flow::resolve::ProtoResolveError;
 use proto_core::{
     ProtoConfig, ProtoToolConfig, Tool, ToolSpec, UnresolvedVersionSpec, VersionSpec,
 };
@@ -57,7 +58,7 @@ impl ToolRecord {
         }
     }
 
-    pub async fn inherit_from_remote(&mut self) -> miette::Result<()> {
+    pub async fn inherit_from_remote(&mut self) -> Result<(), ProtoResolveError> {
         let version_resolver = self
             .tool
             .load_version_resolver(&UnresolvedVersionSpec::default())

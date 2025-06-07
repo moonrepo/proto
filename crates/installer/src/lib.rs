@@ -24,7 +24,7 @@ pub use windows::*;
 pub use error::ProtoInstallerError;
 
 #[instrument]
-pub fn determine_triple() -> miette::Result<String> {
+pub fn determine_triple() -> Result<String, ProtoInstallerError> {
     let target = match (consts::OS, consts::ARCH) {
         ("linux", arch) => format!(
             "{arch}-unknown-linux-{}",
@@ -36,8 +36,7 @@ pub fn determine_triple() -> miette::Result<String> {
             return Err(ProtoInstallerError::InvalidPlatform {
                 arch: arch.to_owned(),
                 os: os.to_owned(),
-            }
-            .into());
+            });
         }
     };
 
@@ -58,7 +57,7 @@ pub async fn download_release(
     version: &str,
     temp_dir: impl AsRef<Path> + Debug,
     on_chunk: impl Fn(u64, u64) + Send + Sync + 'static,
-) -> miette::Result<DownloadResult> {
+) -> Result<DownloadResult, ProtoInstallerError> {
     let target_ext = if cfg!(windows) { "zip" } else { "tar.xz" };
     let target_file = format!("proto_cli-{triple}");
 
@@ -106,7 +105,7 @@ pub fn replace_binaries(
     source_dir: impl AsRef<Path> + Debug,
     target_dir: impl AsRef<Path> + Debug,
     relocate_current: bool,
-) -> miette::Result<bool> {
+) -> Result<bool, ProtoInstallerError> {
     let source_dir = source_dir.as_ref();
     let target_dir = target_dir.as_ref();
     let bin_names = if cfg!(windows) {
@@ -160,7 +159,7 @@ pub fn install_release(
     install_dir: impl AsRef<Path> + Debug,
     relocate_dir: impl AsRef<Path> + Debug,
     relocate_current: bool,
-) -> miette::Result<bool> {
+) -> Result<bool, ProtoInstallerError> {
     let temp_dir = download
         .archive_file
         .parent()

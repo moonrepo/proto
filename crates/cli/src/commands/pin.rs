@@ -1,7 +1,7 @@
 use crate::session::ProtoSession;
 use clap::Args;
 use iocraft::prelude::element;
-use proto_core::{Id, PinLocation, ProtoConfig, Tool, ToolSpec};
+use proto_core::{Id, PinLocation, ProtoConfig, ProtoConfigError, Tool, ToolSpec};
 use starbase::AppResult;
 use starbase_console::ui::*;
 use std::collections::BTreeMap;
@@ -27,7 +27,7 @@ pub async fn internal_pin(
     tool: &mut Tool,
     spec: &ToolSpec,
     pin_to: PinLocation,
-) -> miette::Result<PathBuf> {
+) -> Result<PathBuf, ProtoConfigError> {
     let config_path = ProtoConfig::update(tool.proto.get_config_dir(pin_to), |config| {
         config
             .versions

@@ -1,3 +1,4 @@
+use crate::error::ProtoCliError;
 use proto_core::{ProtoEnvironment, is_offline};
 use rustc_hash::FxHashMap;
 use std::env::{self, consts};
@@ -70,7 +71,7 @@ impl Metric {
     }
 }
 
-pub async fn track_usage(proto: &ProtoEnvironment, metric: Metric) -> miette::Result<()> {
+pub async fn track_usage(proto: &ProtoEnvironment, metric: Metric) -> Result<(), ProtoCliError> {
     let config = proto.load_config()?;
 
     if !config.settings.telemetry || is_offline() || proto.test_only {

@@ -24,7 +24,7 @@ impl ProtoRegistry {
         }
     }
 
-    pub async fn load_plugins(&mut self) -> miette::Result<Vec<&PluginEntry>> {
+    pub async fn load_plugins(&mut self) -> Result<Vec<&PluginEntry>, ProtoRegistryError> {
         self.load_internal_plugins().await?;
         self.load_external_plugins().await?;
 
@@ -36,7 +36,7 @@ impl ProtoRegistry {
     }
 
     #[instrument(skip(self))]
-    pub async fn load_internal_plugins(&mut self) -> miette::Result<Vec<&PluginEntry>> {
+    pub async fn load_internal_plugins(&mut self) -> Result<Vec<&PluginEntry>, ProtoRegistryError> {
         if self.internal.is_empty() {
             debug!("Loading built-in plugins registry data");
 
@@ -55,7 +55,7 @@ impl ProtoRegistry {
     }
 
     #[instrument(skip(self))]
-    pub async fn load_external_plugins(&mut self) -> miette::Result<Vec<&PluginEntry>> {
+    pub async fn load_external_plugins(&mut self) -> Result<Vec<&PluginEntry>, ProtoRegistryError> {
         if self.external.is_empty() {
             debug!("Loading third-party plugins registry data");
 
@@ -77,7 +77,7 @@ impl ProtoRegistry {
         &self,
         temp_file: PathBuf,
         data_url: String,
-    ) -> miette::Result<Vec<PluginEntry>> {
+    ) -> Result<Vec<PluginEntry>, ProtoRegistryError> {
         // Cache should refresh every 24 hours
         let now = SystemTime::now();
         let duration = Duration::from_secs(86400);

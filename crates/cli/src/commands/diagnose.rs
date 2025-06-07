@@ -1,4 +1,5 @@
 use crate::components::{Issue, IssuesList};
+use crate::error::ProtoCliError;
 use crate::helpers::fetch_latest_version;
 use crate::session::ProtoSession;
 use clap::Args;
@@ -145,7 +146,7 @@ async fn gather_errors(
     session: &ProtoSession,
     paths: &[PathBuf],
     _tips: &mut [String],
-) -> miette::Result<Vec<Issue>> {
+) -> Result<Vec<Issue>, ProtoCliError> {
     let mut errors = vec![];
     let mut has_shims_before_bins = false;
     let mut found_shims = false;
@@ -186,7 +187,7 @@ async fn gather_warnings(
     session: &ProtoSession,
     paths: &[PathBuf],
     tips: &mut Vec<String>,
-) -> miette::Result<Vec<Issue>> {
+) -> Result<Vec<Issue>, ProtoCliError> {
     let mut warnings = vec![];
 
     let current_version = &session.cli_version;

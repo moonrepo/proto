@@ -1,4 +1,5 @@
 use crate::client::{HttpClient, HttpOptions, create_http_client_with_options};
+use crate::client_error::WarpgateClientError;
 use crate::endpoints::*;
 use crate::helpers::{
     create_cache_key, determine_cache_extension, download_from_url_to_file, move_or_unpack_download,
@@ -59,7 +60,7 @@ impl PluginLoader {
     }
 
     /// Return the HTTP client, or create it if it does not exist.
-    pub fn get_client(&self) -> miette::Result<&Arc<HttpClient>> {
+    pub fn get_client(&self) -> Result<&Arc<HttpClient>, WarpgateClientError> {
         self.http_client
             .get_or_try_init(|| create_http_client_with_options(&self.http_options).map(Arc::new))
     }
@@ -71,7 +72,7 @@ impl PluginLoader {
         &self,
         id: I,
         locator: L,
-    ) -> miette::Result<PathBuf> {
+    ) -> Result<PathBuf, WarpgateLoaderError> {
         let id = id.as_ref();
         let locator = locator.as_ref();
 
@@ -95,7 +96,7 @@ impl PluginLoader {
         &self,
         id: I,
         locator: &FileLocator,
-    ) -> miette::Result<PathBuf> {
+    ) -> Result<PathBuf, WarpgateLoaderError> {
         let id = id.as_ref();
         let path = locator.get_resolved_path();
 
@@ -111,8 +112,7 @@ impl PluginLoader {
             Err(WarpgateLoaderError::MissingSourceFile {
                 id: id.to_owned(),
                 path: path.to_path_buf(),
-            }
-            .into())
+            })
         }
     }
 
@@ -122,7 +122,7 @@ impl PluginLoader {
         &self,
         id: I,
         locator: &GitHubLocator,
-    ) -> miette::Result<PathBuf> {
+    ) -> Result<PathBuf, WarpgateLoaderError> {
         let id = id.as_ref();
 
         self.download_plugin_from_github(id, locator).await
@@ -134,7 +134,7 @@ impl PluginLoader {
         &self,
         id: I,
         locator: &UrlLocator,
-    ) -> miette::Result<PathBuf> {
+    ) -> Result<PathBuf, WarpgateLoaderError> {
         let id = id.as_ref();
         let url = &locator.url;
 
@@ -163,7 +163,7 @@ impl PluginLoader {
     /// If using a latest strategy (no explicit version or tag), the cache
     /// is only valid for 7 days (to ensure not stale), otherwise forever.
     #[instrument(name = "is_plugin_cached", skip(self))]
-    pub fn is_cached(&self, id: &Id, path: &Path) -> miette::Result<bool> {
+    pub fn is_cached(&self, id: &Id, path: &Path) -> Result<bool, WarpgateLoaderError> {
         if !path.exists() {
             trace!(id = id.as_str(), "Plugin not cached, downloading");
 
@@ -224,7 +224,7 @@ impl PluginLoader {
         id: &Id,
         source_url: &str,
         dest_file: PathBuf,
-    ) -> miette::Result<PathBuf> {
+    ) -> Result<PathBuf, WarpgateLoaderError> {
         if self.is_cached(id, &dest_file)? {
             return Ok(dest_file);
         }
@@ -233,8 +233,7 @@ impl PluginLoader {
             return Err(WarpgateLoaderError::RequiredInternetConnection {
                 message: "Unable to download plugin.".into(),
                 url: source_url.to_owned(),
-            }
-            .into());
+            });
         }
 
         trace!(
@@ -257,7 +256,7 @@ impl PluginLoader {
         &self,
         id: &Id,
         github: &GitHubLocator,
-    ) -> miette::Result<PathBuf> {
+    ) -> Result<PathBuf, WarpgateLoaderError> {
         // Check the cache first using the repository slug as the seed,
         // so that we can avoid making unnecessary HTTP requests.
         let plugin_path = self.create_cache_path(
@@ -277,8 +276,7 @@ impl PluginLoader {
                     PluginLocator::GitHub(Box::new(github.to_owned()))
                 ),
                 url: "https://api.github.com".into(),
-            }
-            .into());
+            });
         }
 
         // Fetch all tags then find a matching tag + release
@@ -312,8 +310,7 @@ impl PluginLoader {
             return Err(WarpgateLoaderError::MissingGitHubTag {
                 id: id.to_owned(),
                 repo_slug: github.repo_slug.to_owned(),
-            }
-            .into());
+            });
         };
 
         let release_url = if release_tag == "latest" {
@@ -377,7 +374,6 @@ impl PluginLoader {
             id: id.to_owned(),
             repo_slug: github.repo_slug.to_owned(),
             tag: release_tag,
-        }
-        .into())
+        })
     }
 }

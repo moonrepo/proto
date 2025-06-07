@@ -1,7 +1,6 @@
 use crate::client_error::WarpgateClientError;
 use async_trait::async_trait;
 use core::ops::Deref;
-use miette::IntoDiagnostic;
 use reqwest::{Client, Response, Url};
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_netrc::NetrcMiddleware;
@@ -108,13 +107,15 @@ pub struct HttpOptions {
 }
 
 /// Create an HTTP(S) client that'll be used for downloading files.
-pub fn create_http_client() -> miette::Result<HttpClient> {
+pub fn create_http_client() -> Result<HttpClient, WarpgateClientError> {
     create_http_client_with_options(&HttpOptions::default())
 }
 
 /// Create an HTTP(S) client with the provided options, that'll be
 /// used for downloading files.
-pub fn create_http_client_with_options(options: &HttpOptions) -> miette::Result<HttpClient> {
+pub fn create_http_client_with_options(
+    options: &HttpOptions,
+) -> Result<HttpClient, WarpgateClientError> {
     debug!("Creating HTTP client");
 
     let mut client_builder = reqwest::Client::builder()
@@ -201,7 +202,11 @@ pub fn create_http_client_with_options(options: &HttpOptions) -> miette::Result<
         }
     }
 
-    let client = client_builder.build().into_diagnostic()?;
+    let client = client_builder
+        .build()
+        .map_err(|error| WarpgateClientError::Client {
+            error: Box::new(error),
+        })?;
 
     trace!("Applying middleware to client");
 

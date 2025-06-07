@@ -5,15 +5,15 @@ use crate::env::{ProtoConsole, ProtoEnvironment};
 use crate::helpers::extract_filename_from_url;
 use crate::lockfile::LockfileRecord;
 use crate::utils::log::LogWriter;
-use crate::utils::process::{self, ProcessResult};
+use crate::utils::process::{self, ProcessResult, ProtoProcessError};
 use crate::utils::{archive, git};
 use iocraft::prelude::{FlexDirection, View, element};
-use miette::IntoDiagnostic;
 use proto_pdk_api::{
     BuildInstruction, BuildInstructionsOutput, BuildRequirement, GitSource, SourceLocation,
 };
 use rustc_hash::FxHashMap;
 use semver::{Version, VersionReq};
+use starbase_console::ConsoleError;
 use starbase_console::ui::{
     Confirm, Container, Entry, ListCheck, ListItem, Section, Select, SelectOption, Style,
     StyledText,
@@ -68,7 +68,7 @@ impl Builder<'_> {
         self.errors > 0
     }
 
-    pub fn render_header(&mut self, title: impl AsRef<str>) -> miette::Result<()> {
+    pub fn render_header(&mut self, title: impl AsRef<str>) -> Result<(), ConsoleError> {
         let title = title.as_ref();
 
         self.errors = 0;
@@ -89,7 +89,11 @@ impl Builder<'_> {
         Ok(())
     }
 
-    pub fn render_check(&mut self, message: impl AsRef<str>, passed: bool) -> miette::Result<()> {
+    pub fn render_check(
+        &mut self,
+        message: impl AsRef<str>,
+        passed: bool,
+    ) -> Result<(), ConsoleError> {
         let message = message.as_ref();
 
         if self.options.skip_ui {
@@ -115,7 +119,7 @@ impl Builder<'_> {
         Ok(())
     }
 
-    pub fn render_checkpoint(&mut self, message: impl AsRef<str>) -> miette::Result<()> {
+    pub fn render_checkpoint(&mut self, message: impl AsRef<str>) -> Result<(), ConsoleError> {
         let message = message.as_ref();
 
         self.options
@@ -135,7 +139,7 @@ impl Builder<'_> {
         Ok(())
     }
 
-    pub async fn prompt_continue(&self, label: &str) -> miette::Result<()> {
+    pub async fn prompt_continue(&self, label: &str) -> Result<(), ProtoBuildError> {
         if self.options.skip_prompts || self.options.skip_ui {
             return Ok(());
         }
@@ -150,7 +154,7 @@ impl Builder<'_> {
             .await?;
 
         if !confirmed {
-            return Err(ProtoBuildError::Cancelled.into());
+            return Err(ProtoBuildError::Cancelled);
         }
 
         Ok(())
@@ -161,7 +165,7 @@ impl Builder<'_> {
         label: &str,
         options: Vec<SelectOption>,
         default_index: usize,
-    ) -> miette::Result<usize> {
+    ) -> Result<usize, ProtoBuildError> {
         let mut selected_index = default_index;
 
         if self.options.skip_prompts || self.options.skip_ui {
@@ -182,7 +186,7 @@ impl Builder<'_> {
         &mut self,
         command: &mut Command,
         piped: bool,
-    ) -> miette::Result<Arc<ProcessResult>> {
+    ) -> Result<Arc<ProcessResult>, ProtoProcessError> {
         self.handle_process_result(if self.options.skip_ui || piped {
             process::exec_command_piped(command).await?
         } else {
@@ -195,7 +199,7 @@ impl Builder<'_> {
         command: &mut Command,
         elevated_program: Option<&str>,
         piped: bool,
-    ) -> miette::Result<Arc<ProcessResult>> {
+    ) -> Result<Arc<ProcessResult>, ProtoProcessError> {
         self.handle_process_result(if self.options.skip_ui || piped {
             process::exec_command_with_privileges_piped(command, elevated_program).await?
         } else {
@@ -206,7 +210,7 @@ impl Builder<'_> {
     fn handle_process_result(
         &mut self,
         result: ProcessResult,
-    ) -> miette::Result<Arc<ProcessResult>> {
+    ) -> Result<Arc<ProcessResult>, ProtoProcessError> {
         let result = Arc::new(result);
 
         let log = self.options.log_writer;
@@ -220,12 +224,11 @@ impl Builder<'_> {
         log.add_code("STDOUT", &result.stdout);
 
         if result.exit_code > 0 {
-            return Err(process::ProtoProcessError::FailedCommandNonZeroExit {
+            return Err(ProtoProcessError::FailedCommandNonZeroExit {
                 command: result.command.clone(),
                 code: result.exit_code,
                 stderr: result.stderr.clone(),
-            }
-            .into());
+            });
         }
 
         Ok(result)
@@ -243,7 +246,7 @@ async fn checkout_git_repo(
     git: &GitSource,
     cwd: &Path,
     builder: &mut Builder<'_>,
-) -> miette::Result<()> {
+) -> Result<(), ProtoBuildError> {
     if cwd.join(".git").exists() {
         builder.exec_command(&mut git::new_pull(cwd), false).await?;
 
@@ -272,7 +275,7 @@ async fn checkout_git_repo(
 pub fn log_build_information(
     builder: &mut Builder,
     build: &BuildInstructionsOutput,
-) -> miette::Result<()> {
+) -> Result<(), ProtoBuildError> {
     let system = &builder.options.system;
 
     if builder.options.skip_ui {
@@ -317,7 +320,7 @@ pub fn log_build_information(
 pub async fn install_system_dependencies(
     builder: &mut Builder<'_>,
     build: &BuildInstructionsOutput,
-) -> miette::Result<()> {
+) -> Result<(), ProtoBuildError> {
     let Some(pm) = builder.options.system.manager else {
         return Ok(());
     };
@@ -449,7 +452,7 @@ pub async fn install_system_dependencies(
         .await?
     {
         0 => {
-            return Err(ProtoBuildError::Cancelled.into());
+            return Err(ProtoBuildError::Cancelled);
         }
         1 => {
             return Ok(());
@@ -463,8 +466,7 @@ pub async fn install_system_dependencies(
     // 3) Update the current registry index
     if let Some(mut index_args) = builder
         .get_system()
-        .get_update_index_command(!builder.options.skip_prompts)
-        .into_diagnostic()?
+        .get_update_index_command(!builder.options.skip_prompts)?
     {
         let _lock = builder.acquire_lock(&pm).await;
 
@@ -492,8 +494,7 @@ pub async fn install_system_dependencies(
     // 4) Install the missing packages
     if let Some(mut install_args) = builder
         .get_system()
-        .get_install_packages_command(&dep_configs, !builder.options.skip_prompts)
-        .into_diagnostic()?
+        .get_install_packages_command(&dep_configs, !builder.options.skip_prompts)?
     {
         let _lock = builder.acquire_lock(&pm).await;
 
@@ -517,7 +518,7 @@ async fn get_command_version(
     cmd: &str,
     version_arg: &str,
     builder: &mut Builder<'_>,
-) -> miette::Result<Version> {
+) -> Result<Version, ProtoBuildError> {
     let output = builder
         .exec_command(Command::new(cmd).arg(version_arg), true)
         .await?;
@@ -531,18 +532,16 @@ async fn get_command_version(
         .map(|res| res.as_str())
         .unwrap_or(&output.stdout);
 
-    Ok(
-        Version::parse(value).map_err(|error| ProtoBuildError::FailedVersionParse {
-            value: value.to_owned(),
-            error: Box::new(error),
-        })?,
-    )
+    Version::parse(value).map_err(|error| ProtoBuildError::FailedVersionParse {
+        value: value.to_owned(),
+        error: Box::new(error),
+    })
 }
 
 pub async fn check_requirements(
     builder: &mut Builder<'_>,
     build: &BuildInstructionsOutput,
-) -> miette::Result<()> {
+) -> Result<(), ProtoBuildError> {
     if build.requirements.is_empty() {
         return Ok(());
     }
@@ -685,7 +684,7 @@ pub async fn check_requirements(
     }
 
     if builder.has_errors() {
-        return Err(ProtoBuildError::RequirementsNotMet.into());
+        return Err(ProtoBuildError::RequirementsNotMet);
     }
 
     Ok(())
@@ -697,7 +696,7 @@ pub async fn download_sources(
     builder: &mut Builder<'_>,
     build: &BuildInstructionsOutput,
     lockfile: &mut LockfileRecord,
-) -> miette::Result<()> {
+) -> Result<(), ProtoBuildError> {
     // Ensure the install directory is empty, otherwise Git will fail and
     // we also want to avoid colliding/stale artifacts. This should also
     // run if there's no source, as it's required for instructions!
@@ -715,7 +714,7 @@ pub async fn download_sources(
             lockfile.source = Some(archive.url.clone());
 
             if archive::should_unpack(archive, builder.options.install_dir)? {
-                let filename = extract_filename_from_url(&archive.url)?;
+                let filename = extract_filename_from_url(&archive.url);
 
                 // Download
                 builder.options.on_phase_change.as_ref().inspect(|func| {
@@ -779,7 +778,7 @@ pub async fn execute_instructions(
     builder: &mut Builder<'_>,
     build: &BuildInstructionsOutput,
     proto: &ProtoEnvironment,
-) -> miette::Result<()> {
+) -> Result<(), ProtoBuildError> {
     if build.instructions.is_empty() {
         return Ok(());
     }
@@ -829,8 +828,7 @@ pub async fn execute_instructions(
                         return Err(ProtoBuildError::MissingBuilderExe {
                             exe: exe_abs_path,
                             id: item.id.clone(),
-                        }
-                        .into());
+                        });
                     }
 
                     fs::update_perms(&exe_abs_path, None)?;
@@ -909,7 +907,7 @@ pub async fn execute_instructions(
                 fs::remove_file(file)?;
             }
             BuildInstruction::RequestScript(url) => {
-                let filename = extract_filename_from_url(url)?;
+                let filename = extract_filename_from_url(url);
                 let download_file = builder.options.temp_dir.join(&filename);
 
                 builder

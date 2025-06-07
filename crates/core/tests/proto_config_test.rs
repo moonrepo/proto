@@ -3,23 +3,12 @@ use proto_core::{
     Backend, DetectStrategy, EnvVar, PartialEnvVar, PartialProtoSettingsConfig, PinLocation,
     ProtoConfig, ProtoConfigManager, ToolSpec,
 };
-use schematic::ConfigError;
 use starbase_sandbox::create_empty_sandbox;
 use starbase_utils::json::JsonValue;
 use std::collections::BTreeMap;
 use std::env;
 use version_spec::UnresolvedVersionSpec;
 use warpgate::{FileLocator, GitHubLocator, HttpOptions, Id, PluginLocator, UrlLocator};
-
-fn handle_error(report: miette::Report) {
-    panic!(
-        "{}",
-        report
-            .downcast_ref::<ConfigError>()
-            .unwrap()
-            .to_full_string()
-    );
-}
 
 mod proto_config {
     use super::*;
@@ -30,7 +19,7 @@ mod proto_config {
         let sandbox = create_empty_sandbox();
         sandbox.create_file(".prototools", "node = 123");
 
-        handle_error(ProtoConfig::load_from(sandbox.path(), false).unwrap_err());
+        ProtoConfig::load_from(sandbox.path(), false).unwrap();
     }
 
     #[test]
@@ -39,7 +28,7 @@ mod proto_config {
         let sandbox = create_empty_sandbox();
         sandbox.create_file(".prototools", "[other]\nkey = 123");
 
-        handle_error(ProtoConfig::load_from(sandbox.path(), false).unwrap_err());
+        ProtoConfig::load_from(sandbox.path(), false).unwrap();
     }
 
     #[test]
@@ -54,7 +43,7 @@ proto = "file://./file.toml"
 "#,
         );
 
-        handle_error(ProtoConfig::load_from(sandbox.path(), false).unwrap_err());
+        ProtoConfig::load_from(sandbox.path(), false).unwrap();
     }
 
     #[test]
@@ -363,7 +352,7 @@ foo = "file://./test.toml"
         use super::*;
 
         #[test]
-        #[should_panic(expected = "not exist")]
+        #[should_panic(expected = "MissingEnvFile")]
         fn errors_if_file_missing() {
             let sandbox = create_empty_sandbox();
             sandbox.create_file(
@@ -381,7 +370,7 @@ file = ".env"
         }
 
         #[test]
-        #[should_panic(expected = "Failed to parse .env file")]
+        #[should_panic(expected = "FailedParseEnvFile")]
         fn errors_if_parse_fails() {
             let sandbox = create_empty_sandbox();
             sandbox.create_file(

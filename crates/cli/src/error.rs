@@ -1,6 +1,13 @@
 use miette::Diagnostic;
-use proto_core::PROTO_CONFIG_NAME;
+use proto_core::flow::resolve::ProtoResolveError;
+use proto_core::flow::setup::ProtoSetupError;
+use proto_core::layout::ProtoLayoutError;
+use proto_core::warpgate::WarpgatePluginError;
+use proto_core::{PROTO_CONFIG_NAME, ProtoConfigError};
+use starbase_console::ConsoleError;
+use starbase_shell::ShellError;
 use starbase_styles::{Style, Stylize};
+use starbase_utils::fs::FsError;
 use std::path::PathBuf;
 use thiserror::Error;
 
@@ -8,6 +15,41 @@ use thiserror::Error;
 
 #[derive(Error, Debug, Diagnostic)]
 pub enum ProtoCliError {
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Config(#[from] Box<ProtoConfigError>),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Console(#[from] Box<ConsoleError>),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Fs(#[from] Box<FsError>),
+
+    #[error(transparent)]
+    Http(#[from] Box<reqwest::Error>),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Layout(#[from] Box<ProtoLayoutError>),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Plugin(#[from] Box<WarpgatePluginError>),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Resolve(#[from] Box<ProtoResolveError>),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Setup(#[from] Box<ProtoSetupError>),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Shell(#[from] Box<ShellError>),
+
     #[diagnostic(code(proto::no_configured_tools))]
     #[error("No tools have been configured in {}.", PROTO_CONFIG_NAME.style(Style::File))]
     NoConfiguredTools,
@@ -106,4 +148,58 @@ pub enum ProtoCliError {
     )]
     #[error("Failed to fetch the latest available version.")]
     FailedToFetchVersion,
+}
+
+impl From<ProtoConfigError> for ProtoCliError {
+    fn from(e: ProtoConfigError) -> ProtoCliError {
+        ProtoCliError::Config(Box::new(e))
+    }
+}
+
+impl From<ConsoleError> for ProtoCliError {
+    fn from(e: ConsoleError) -> ProtoCliError {
+        ProtoCliError::Console(Box::new(e))
+    }
+}
+
+impl From<FsError> for ProtoCliError {
+    fn from(e: FsError) -> ProtoCliError {
+        ProtoCliError::Fs(Box::new(e))
+    }
+}
+
+impl From<reqwest::Error> for ProtoCliError {
+    fn from(e: reqwest::Error) -> ProtoCliError {
+        ProtoCliError::Http(Box::new(e))
+    }
+}
+
+impl From<ProtoLayoutError> for ProtoCliError {
+    fn from(e: ProtoLayoutError) -> ProtoCliError {
+        ProtoCliError::Layout(Box::new(e))
+    }
+}
+
+impl From<WarpgatePluginError> for ProtoCliError {
+    fn from(e: WarpgatePluginError) -> ProtoCliError {
+        ProtoCliError::Plugin(Box::new(e))
+    }
+}
+
+impl From<ProtoResolveError> for ProtoCliError {
+    fn from(e: ProtoResolveError) -> ProtoCliError {
+        ProtoCliError::Resolve(Box::new(e))
+    }
+}
+
+impl From<ProtoSetupError> for ProtoCliError {
+    fn from(e: ProtoSetupError) -> ProtoCliError {
+        ProtoCliError::Setup(Box::new(e))
+    }
+}
+
+impl From<ShellError> for ProtoCliError {
+    fn from(e: ShellError) -> ProtoCliError {
+        ProtoCliError::Shell(Box::new(e))
+    }
 }

@@ -1,12 +1,30 @@
-use miette::Diagnostic;
 use starbase_styles::{Style, Stylize};
+use starbase_utils::fs::FsError;
 use std::path::PathBuf;
 use thiserror::Error;
 
 /// HTTP(S) client errors.
-#[derive(Debug, Diagnostic, Error)]
+#[derive(Debug, Error)]
+#[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
 pub enum WarpgateClientError {
-    #[diagnostic(code(plugin::http_client::request_failed))]
+    #[cfg_attr(feature = "miette", diagnostic(transparent))]
+    #[error(transparent)]
+    Fs(#[from] Box<FsError>),
+
+    #[cfg_attr(
+        feature = "miette",
+        diagnostic(code(plugin::http_client::create_failed))
+    )]
+    #[error("Failed to create HTTP client.")]
+    Client {
+        #[source]
+        error: Box<reqwest::Error>,
+    },
+
+    #[cfg_attr(
+        feature = "miette",
+        diagnostic(code(plugin::http_client::request_failed))
+    )]
     #[error("Failed to make HTTP request for {}.", .url.style(Style::Url))]
     Http {
         url: String,
@@ -14,7 +32,10 @@ pub enum WarpgateClientError {
         error: Box<reqwest::Error>,
     },
 
-    #[diagnostic(code(plugin::http_client::request_failed))]
+    #[cfg_attr(
+        feature = "miette",
+        diagnostic(code(plugin::http_client::request_failed))
+    )]
     #[error(
       "Failed to make HTTP request for {}: {}",
       .url.style(Style::Url),
@@ -22,7 +43,10 @@ pub enum WarpgateClientError {
     )]
     HttpMiddleware { url: String, error: String },
 
-    #[diagnostic(code(plugin::http_client::invalid_cert))]
+    #[cfg_attr(
+        feature = "miette",
+        diagnostic(code(plugin::http_client::invalid_cert))
+    )]
     #[error("Invalid certificate {}.", .path.style(Style::Path))]
     InvalidCert {
         path: PathBuf,
@@ -30,11 +54,20 @@ pub enum WarpgateClientError {
         error: Box<reqwest::Error>,
     },
 
-    #[diagnostic(code(plugin::http_client::invalid_proxy))]
+    #[cfg_attr(
+        feature = "miette",
+        diagnostic(code(plugin::http_client::invalid_proxy))
+    )]
     #[error("Invalid proxy {}.", .url.style(Style::Url))]
     InvalidProxy {
         url: String,
         #[source]
         error: Box<reqwest::Error>,
     },
+}
+
+impl From<FsError> for WarpgateClientError {
+    fn from(e: FsError) -> WarpgateClientError {
+        WarpgateClientError::Fs(Box::new(e))
+    }
 }

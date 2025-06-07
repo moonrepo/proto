@@ -1,5 +1,4 @@
 pub use super::detect_error::ProtoDetectError;
-use super::resolve_error::ProtoResolveError;
 use crate::config::{DetectStrategy, PROTO_CONFIG_NAME, ProtoConfigFile};
 use crate::tool::Tool;
 use crate::tool_spec::ToolSpec;
@@ -16,7 +15,7 @@ fn set_detected_env_var(prefix: String, path: &Path) {
 fn detect_from_proto_config(
     tool: &Tool,
     file: &ProtoConfigFile,
-) -> miette::Result<Option<UnresolvedVersionSpec>> {
+) -> Result<Option<UnresolvedVersionSpec>, ProtoDetectError> {
     if let Some(versions) = &file.config.versions {
         if let Some(version) = versions.get(tool.id.as_str()) {
             debug!(
@@ -38,7 +37,7 @@ fn detect_from_proto_config(
 async fn detect_from_tool_ecosystem(
     tool: &Tool,
     file: &ProtoConfigFile,
-) -> miette::Result<Option<UnresolvedVersionSpec>> {
+) -> Result<Option<UnresolvedVersionSpec>, ProtoDetectError> {
     if let Some((version, file)) = tool
         .detect_version_from(file.path.parent().unwrap())
         .await?
@@ -62,7 +61,7 @@ async fn detect_from_tool_ecosystem(
 pub async fn detect_version_first_available(
     tool: &Tool,
     config_files: &[&ProtoConfigFile],
-) -> miette::Result<Option<UnresolvedVersionSpec>> {
+) -> Result<Option<UnresolvedVersionSpec>, ProtoDetectError> {
     for file in config_files {
         if let Some(version) = detect_from_proto_config(tool, file)? {
             return Ok(Some(version));
@@ -80,7 +79,7 @@ pub async fn detect_version_first_available(
 pub async fn detect_version_only_prototools(
     tool: &Tool,
     config_files: &[&ProtoConfigFile],
-) -> miette::Result<Option<UnresolvedVersionSpec>> {
+) -> Result<Option<UnresolvedVersionSpec>, ProtoDetectError> {
     for file in config_files {
         if let Some(version) = detect_from_proto_config(tool, file)? {
             return Ok(Some(version));
@@ -94,7 +93,7 @@ pub async fn detect_version_only_prototools(
 pub async fn detect_version_prefer_prototools(
     tool: &Tool,
     config_files: &[&ProtoConfigFile],
-) -> miette::Result<Option<UnresolvedVersionSpec>> {
+) -> Result<Option<UnresolvedVersionSpec>, ProtoDetectError> {
     // Check config files first
     if let Some(version) = detect_version_only_prototools(tool, config_files).await? {
         return Ok(Some(version));
@@ -112,7 +111,7 @@ pub async fn detect_version_prefer_prototools(
 
 impl Tool {
     #[instrument(skip(self))]
-    pub async fn detect_version(&self) -> miette::Result<ToolSpec> {
+    pub async fn detect_version(&self) -> Result<ToolSpec, ProtoDetectError> {
         // Env var takes highest priority
         let env_var = format!("{}_VERSION", self.get_env_var_prefix());
 
@@ -126,7 +125,8 @@ impl Tool {
                 );
 
                 return Ok(UnresolvedVersionSpec::parse(&session_version)
-                    .map_err(|error| ProtoResolveError::InvalidVersionSpec {
+                    .map_err(|error| ProtoDetectError::InvalidDetectedVersionSpec {
+                        path: PathBuf::from(env_var),
                         version: session_version,
                         error: Box::new(error),
                     })?
@@ -162,8 +162,7 @@ impl Tool {
         // We didn't find anything!
         Err(ProtoDetectError::FailedVersionDetect {
             tool: self.get_name().to_owned(),
-        }
-        .into())
+        })
     }
 
     /// Attempt to detect a version from the provided directory by scanning for applicable files.
@@ -171,7 +170,7 @@ impl Tool {
     pub async fn detect_version_from(
         &self,
         current_dir: &Path,
-    ) -> miette::Result<Option<(UnresolvedVersionSpec, PathBuf)>> {
+    ) -> Result<Option<(UnresolvedVersionSpec, PathBuf)>, ProtoDetectError> {
         if !self.plugin.has_func("detect_version_files").await {
             return Ok(None);
         }

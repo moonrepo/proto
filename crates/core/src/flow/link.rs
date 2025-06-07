@@ -1,6 +1,6 @@
+pub use super::link_error::ProtoLinkError;
 use crate::layout::{Shim, ShimRegistry, ShimsMap};
 use crate::tool::Tool;
-use miette::IntoDiagnostic;
 use proto_pdk_api::*;
 use proto_shim::*;
 use starbase_utils::fs;
@@ -11,7 +11,7 @@ impl Tool {
     /// Create shim files for the current tool if they are missing or out of date.
     /// If find only is enabled, will only check if they exist, and not create.
     #[instrument(skip(self))]
-    pub async fn generate_shims(&mut self, force: bool) -> miette::Result<()> {
+    pub async fn generate_shims(&mut self, force: bool) -> Result<(), ProtoLinkError> {
         let shims = self.resolve_shim_locations().await?;
 
         if shims.is_empty() {
@@ -43,14 +43,24 @@ impl Tool {
             // Handle before and after args
             if let Some(before_args) = shim.config.shim_before_args {
                 shim_entry.before_args = match before_args {
-                    StringOrVec::String(value) => shell_words::split(&value).into_diagnostic()?,
+                    StringOrVec::String(value) => shell_words::split(&value).map_err(|error| {
+                        ProtoLinkError::FailedArgsParse {
+                            args: value,
+                            error: Box::new(error),
+                        }
+                    })?,
                     StringOrVec::Vec(value) => value,
                 };
             }
 
             if let Some(after_args) = shim.config.shim_after_args {
                 shim_entry.after_args = match after_args {
-                    StringOrVec::String(value) => shell_words::split(&value).into_diagnostic()?,
+                    StringOrVec::String(value) => shell_words::split(&value).map_err(|error| {
+                        ProtoLinkError::FailedArgsParse {
+                            args: value,
+                            error: Box::new(error),
+                        }
+                    })?,
                     StringOrVec::Vec(value) => value,
                 };
             }
@@ -104,7 +114,7 @@ impl Tool {
 
     /// Symlink all primary and secondary binaries for the current tool.
     #[instrument(skip(self))]
-    pub async fn symlink_bins(&mut self, force: bool) -> miette::Result<()> {
+    pub async fn symlink_bins(&mut self, force: bool) -> Result<(), ProtoLinkError> {
         let bins = self.resolve_bin_locations(force).await?;
 
         if bins.is_empty() {

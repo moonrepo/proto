@@ -8,7 +8,7 @@ pub fn verify_checksum(
     download_file: &Path,
     checksum_file: &Path,
     checksum_public_key: &str,
-) -> miette::Result<bool> {
+) -> Result<bool, ProtoChecksumError> {
     let handle_error = |error: Error| ProtoChecksumError::Minisign {
         error: Box::new(error),
     };

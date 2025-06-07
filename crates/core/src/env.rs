@@ -1,6 +1,7 @@
 use crate::config::{
     ConfigMode, PROTO_CONFIG_NAME, PinLocation, ProtoConfig, ProtoConfigFile, ProtoConfigManager,
 };
+use crate::config_error::ProtoConfigError;
 use crate::env_error::ProtoEnvError;
 use crate::helpers::is_offline;
 use crate::layout::Store;
@@ -32,7 +33,7 @@ pub struct ProtoEnvironment {
 }
 
 impl ProtoEnvironment {
-    pub fn new() -> miette::Result<Self> {
+    pub fn new() -> Result<Self, ProtoEnvError> {
         let home = home_dir().ok_or(ProtoEnvError::MissingHomeDir)?;
         let mut root = path_var("PROTO_HOME")
             .or_else(|| path_var("XDG_DATA_HOME").map(|xdg| xdg.join("proto")))
@@ -45,14 +46,14 @@ impl ProtoEnvironment {
         Self::from(root, home)
     }
 
-    pub fn new_testing(sandbox: &Path) -> miette::Result<Self> {
+    pub fn new_testing(sandbox: &Path) -> Result<Self, ProtoEnvError> {
         let mut env = Self::from(sandbox.join(".proto"), sandbox.join(".home"))?;
         env.test_only = true;
 
         Ok(env)
     }
 
-    pub fn from<R: AsRef<Path>, H: AsRef<Path>>(root: R, home: H) -> miette::Result<Self> {
+    pub fn from<R: AsRef<Path>, H: AsRef<Path>>(root: R, home: H) -> Result<Self, ProtoEnvError> {
         let root = root.as_ref();
         let home = home.as_ref();
 
@@ -82,7 +83,7 @@ impl ProtoEnvironment {
         }
     }
 
-    pub fn get_plugin_loader(&self) -> miette::Result<&PluginLoader> {
+    pub fn get_plugin_loader(&self) -> Result<&PluginLoader, ProtoConfigError> {
         let config = self.load_config()?;
 
         self.plugin_loader.get_or_try_init(|| {
@@ -113,11 +114,14 @@ impl ProtoEnvironment {
             .collect()
     }
 
-    pub fn load_config(&self) -> miette::Result<&ProtoConfig> {
+    pub fn load_config(&self) -> Result<&ProtoConfig, ProtoConfigError> {
         self.load_config_with_mode(self.config_mode)
     }
 
-    pub fn load_config_with_mode(&self, mode: ConfigMode) -> miette::Result<&ProtoConfig> {
+    pub fn load_config_with_mode(
+        &self,
+        mode: ConfigMode,
+    ) -> Result<&ProtoConfig, ProtoConfigError> {
         let manager = self.load_config_manager()?;
 
         match mode {
@@ -128,7 +132,7 @@ impl ProtoEnvironment {
         }
     }
 
-    pub fn load_config_files(&self) -> miette::Result<Vec<&ProtoConfigFile>> {
+    pub fn load_config_files(&self) -> Result<Vec<&ProtoConfigFile>, ProtoConfigError> {
         Ok(self
             .load_config_manager()?
             .files
@@ -142,7 +146,7 @@ impl ProtoEnvironment {
     }
 
     #[tracing::instrument(name = "load_all", skip_all)]
-    pub fn load_config_manager(&self) -> miette::Result<&ProtoConfigManager> {
+    pub fn load_config_manager(&self) -> Result<&ProtoConfigManager, ProtoConfigError> {
         self.config_manager.get_or_try_init(|| {
             // Don't traverse passed the home directory,
             // but only if working directory is within it!

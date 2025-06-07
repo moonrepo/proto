@@ -1,15 +1,11 @@
 use crate::env::ProtoEnvironment;
-use crate::env_error::ProtoEnvError;
-use crate::helpers::{get_proto_version, is_offline};
+use crate::helpers::get_proto_version;
 use crate::layout::{Inventory, Product};
 use crate::tool_error::ProtoToolError;
 use crate::tool_spec::Backend;
-use crate::utils::{archive, git};
 use proto_pdk_api::*;
 use schematic::ConfigEnum;
 use starbase_styles::color;
-use starbase_utils::fs;
-use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::{self, Debug};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -50,7 +46,7 @@ impl Tool {
         id: Id,
         proto: Arc<ProtoEnvironment>,
         plugin: Arc<PluginContainer>,
-    ) -> miette::Result<Self> {
+    ) -> Result<Self, ProtoToolError> {
         debug!(
             "Created tool {} and its WASM runtime",
             color::id(id.as_str())
@@ -85,7 +81,7 @@ impl Tool {
         id: I,
         proto: P,
         wasm: Wasm,
-    ) -> miette::Result<Self> {
+    ) -> Result<Self, ProtoToolError> {
         let proto = proto.as_ref();
 
         Self::load_from_manifest(id, proto, Self::create_plugin_manifest(proto, wasm)?).await
@@ -95,7 +91,7 @@ impl Tool {
         id: I,
         proto: P,
         manifest: PluginManifest,
-    ) -> miette::Result<Self> {
+    ) -> Result<Self, ProtoToolError> {
         let id = id.as_ref();
         let proto = proto.as_ref();
 
@@ -124,7 +120,7 @@ impl Tool {
     pub fn create_plugin_manifest<P: AsRef<ProtoEnvironment>>(
         proto: P,
         wasm: Wasm,
-    ) -> miette::Result<PluginManifest> {
+    ) -> Result<PluginManifest, ProtoToolError> {
         let proto = proto.as_ref();
 
         let mut manifest = PluginManifest::new([wasm]);
@@ -238,7 +234,7 @@ impl Tool {
 
     /// Register the tool by loading initial metadata and persisting it.
     #[instrument(skip_all)]
-    pub async fn register_tool(&mut self) -> miette::Result<()> {
+    pub async fn register_tool(&mut self) -> Result<(), ProtoToolError> {
         let metadata: RegisterToolOutput = self
             .plugin
             .cache_func_with(
@@ -285,8 +281,7 @@ impl Tool {
                 return Err(ProtoToolError::RequiredAbsoluteInventoryDir {
                     tool: metadata.name.clone(),
                     dir: override_dir_path.unwrap_or_else(|| PathBuf::from("<unknown>")),
-                }
-                .into());
+                });
             }
 
             inventory.dir_original = Some(inventory.dir);
@@ -296,142 +291,6 @@ impl Tool {
         self.product = inventory.create_product(&self.get_resolved_version());
         self.inventory = inventory;
         self.metadata = metadata;
-
-        Ok(())
-    }
-
-    /// Register the backend by acquiring necessary source files.
-    #[instrument(skip_all)]
-    pub async fn register_backend(&mut self) -> miette::Result<()> {
-        if !self.plugin.has_func("register_backend").await
-            || self.backend.is_none()
-            || self.backend_registered
-        {
-            return Ok(());
-        }
-
-        let metadata: RegisterBackendOutput = self
-            .plugin
-            .cache_func_with(
-                "register_backend",
-                RegisterBackendInput {
-                    context: self.create_unresolved_context(),
-                    id: self.id.to_string(),
-                },
-            )
-            .await?;
-
-        let Some(source) = metadata.source else {
-            self.backend_registered = true;
-
-            return Ok(());
-        };
-
-        let backend_id = metadata.backend_id;
-        let backend_dir = self.proto.store.backends_dir.join(&backend_id);
-        let update_perms = !backend_dir.exists();
-
-        if is_offline() {
-            return Err(ProtoEnvError::RequiredInternetConnection.into());
-        }
-
-        debug!(
-            tool = self.id.as_str(),
-            backend_id,
-            backend_dir = ?backend_dir,
-            "Acquiring backend sources",
-        );
-
-        match source {
-            SourceLocation::Archive(src) => {
-                if !backend_dir.exists() {
-                    debug!(
-                        tool = self.id.as_str(),
-                        url = &src.url,
-                        "Downloading backend archive",
-                    );
-
-                    archive::download_and_unpack(
-                        &src,
-                        &backend_dir,
-                        &self.proto.store.temp_dir,
-                        self.proto.get_plugin_loader()?.get_client()?.to_inner(),
-                    )
-                    .await?;
-                }
-            }
-            SourceLocation::Git(src) => {
-                debug!(
-                    tool = self.id.as_str(),
-                    url = &src.url,
-                    "Cloning backend repository",
-                );
-
-                git::clone_or_pull_repo(&src, &backend_dir).await?;
-            }
-        };
-
-        if update_perms {
-            for exe in metadata.exes {
-                let exe_path = backend_dir.join(exe);
-
-                if exe_path.exists() {
-                    fs::update_perms(exe_path, None)?;
-                }
-            }
-        }
-
-        self.backend_registered = true;
-
-        Ok(())
-    }
-
-    /// Sync the local tool manifest with changes from the plugin.
-    #[instrument(skip_all)]
-    pub async fn sync_manifest(&mut self) -> miette::Result<()> {
-        if !self.plugin.has_func("sync_manifest").await {
-            return Ok(());
-        }
-
-        debug!(tool = self.id.as_str(), "Syncing manifest with changes");
-
-        let output: SyncManifestOutput = self
-            .plugin
-            .call_func_with(
-                "sync_manifest",
-                SyncManifestInput {
-                    context: self.create_context(),
-                },
-            )
-            .await?;
-
-        if output.skip_sync {
-            return Ok(());
-        }
-
-        let mut modified = false;
-        let manifest = &mut self.inventory.manifest;
-
-        if let Some(versions) = output.versions {
-            modified = true;
-
-            let mut entries = BTreeMap::default();
-            let mut installed = BTreeSet::default();
-
-            for key in versions {
-                let value = manifest.versions.get(&key).cloned().unwrap_or_default();
-
-                installed.insert(key.clone());
-                entries.insert(key, value);
-            }
-
-            manifest.versions = entries;
-            manifest.installed_versions = installed;
-        }
-
-        if modified {
-            manifest.save()?;
-        }
 
         Ok(())
     }

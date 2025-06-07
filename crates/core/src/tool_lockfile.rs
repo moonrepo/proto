@@ -19,12 +19,12 @@ pub struct ToolLockfile {
 }
 
 impl ToolLockfile {
-    pub fn load_from<P: AsRef<Path>>(dir: P) -> miette::Result<Self> {
+    pub fn load_from<P: AsRef<Path>>(dir: P) -> Result<Self, JsonError> {
         Self::load(dir.as_ref().join(LOCKFILE_NAME))
     }
 
     #[instrument(name = "load_tool_lockfile")]
-    pub fn load<P: AsRef<Path> + Debug>(path: P) -> miette::Result<Self> {
+    pub fn load<P: AsRef<Path> + Debug>(path: P) -> Result<Self, JsonError> {
         let path = path.as_ref();
 
         debug!(file = ?path, "Loading lockfile");
@@ -41,7 +41,7 @@ impl ToolLockfile {
     }
 
     #[instrument(name = "save_tool_lockfile", skip(self))]
-    pub fn save(&self) -> miette::Result<()> {
+    pub fn save(&self) -> Result<(), JsonError> {
         debug!(file = ?self.path, "Saving lockfile");
 
         write_json_file_with_lock(&self.path, self)?;
