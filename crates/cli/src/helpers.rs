@@ -1,5 +1,4 @@
 use crate::error::ProtoCliError;
-use miette::IntoDiagnostic;
 use semver::Version;
 use starbase_console::ui::{ConsoleTheme, Style, style_to_color};
 use starbase_styles::color;
@@ -70,14 +69,14 @@ async fn inner_fetch_latest_version() -> reqwest::Result<Option<String>> {
     Ok(None)
 }
 
-pub async fn fetch_latest_version() -> miette::Result<Version> {
-    let Some(version) = inner_fetch_latest_version().await.into_diagnostic()? else {
-        return Err(ProtoCliError::FailedToFetchVersion.into());
+pub async fn fetch_latest_version() -> Result<Version, ProtoCliError> {
+    let Some(version) = inner_fetch_latest_version().await? else {
+        return Err(ProtoCliError::FailedToFetchVersion);
     };
 
     debug!("Found latest version {}", color::hash(&version));
 
-    Version::parse(&version).into_diagnostic()
+    Ok(Version::parse(&version).unwrap())
 }
 
 pub fn join_list(mut list: Vec<String>) -> String {

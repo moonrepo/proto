@@ -244,7 +244,7 @@ async fn update_shell_profile(
     } else {
         debug!("Attempting to find a shell profile to update");
 
-        find_first_profile(shell, &session.env.home_dir).ok()
+        Some(find_first_profile(shell, &session.env.home_dir))
     };
 
     // If we found a profile, update the global config so we can reference it

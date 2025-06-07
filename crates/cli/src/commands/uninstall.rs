@@ -107,7 +107,7 @@ async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult 
         return Ok(None);
     }
 
-    let progress = session.render_progress_loader().await?;
+    let progress = session.render_progress_loader().await;
 
     progress.set_message(format!("Uninstalling {}", tool.get_name()));
 
@@ -190,7 +190,7 @@ async fn uninstall_one(session: ProtoSession, args: UninstallArgs, spec: ToolSpe
 
     debug!("Uninstalling {} with version {}", tool.get_name(), spec);
 
-    let progress = session.render_progress_loader().await?;
+    let progress = session.render_progress_loader().await;
 
     progress.set_message(format!(
         "Uninstalling {} <version>{}</version>",

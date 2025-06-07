@@ -7,6 +7,7 @@ use crate::utils::tool_record::ToolRecord;
 use iocraft::element;
 use miette::IntoDiagnostic;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
+use proto_core::flow::setup::ProtoSetupError;
 use proto_core::utils::log::LogWriter;
 use proto_core::{Id, LockfileRecord, PinLocation, ToolSpec};
 use proto_pdk_api::{
@@ -85,7 +86,7 @@ impl InstallWorkflow {
         &mut self,
         spec: ToolSpec,
         params: InstallWorkflowParams,
-    ) -> miette::Result<InstallOutcome> {
+    ) -> Result<InstallOutcome, ProtoSetupError> {
         let started = Instant::now();
 
         self.progress_reporter.set_message(format!(
@@ -213,7 +214,7 @@ impl InstallWorkflow {
         }
     }
 
-    async fn pre_install(&self, params: &InstallWorkflowParams) -> miette::Result<()> {
+    async fn pre_install(&self, params: &InstallWorkflowParams) -> Result<(), ProtoSetupError> {
         let tool = &self.tool;
 
         params.log_writer.as_ref().inspect(|log| {
@@ -244,7 +245,7 @@ impl InstallWorkflow {
         &mut self,
         spec: &ToolSpec,
         params: &InstallWorkflowParams,
-    ) -> miette::Result<Option<LockfileRecord>> {
+    ) -> Result<Option<LockfileRecord>, ProtoSetupError> {
         params.log_writer.as_ref().inspect(|log| {
             log.add_header("Installing tool");
         });
@@ -341,7 +342,7 @@ impl InstallWorkflow {
         Ok(record)
     }
 
-    async fn post_install(&self, params: &InstallWorkflowParams) -> miette::Result<()> {
+    async fn post_install(&self, params: &InstallWorkflowParams) -> Result<(), ProtoSetupError> {
         let tool = &self.tool;
 
         params.log_writer.as_ref().inspect(|log| {
@@ -372,7 +373,7 @@ impl InstallWorkflow {
         &mut self,
         spec: &ToolSpec,
         arg_pin_to: &Option<PinLocation>,
-    ) -> miette::Result<bool> {
+    ) -> Result<bool, ProtoSetupError> {
         let config = self.tool.proto.load_config()?;
         let mut pin_to = PinLocation::Local;
         let mut pin = false;
@@ -408,7 +409,7 @@ impl InstallWorkflow {
         Ok(pin)
     }
 
-    async fn update_shell(&self, params: &InstallWorkflowParams) -> miette::Result<()> {
+    async fn update_shell(&self, params: &InstallWorkflowParams) -> Result<(), ProtoSetupError> {
         let tool = &self.tool;
 
         if !tool.plugin.has_func("sync_shell_profile").await {

@@ -5,11 +5,11 @@ use crate::systems::*;
 use crate::utils::progress_instance::ProgressInstance;
 use crate::utils::tool_record::ToolRecord;
 use async_trait::async_trait;
-use miette::IntoDiagnostic;
 use proto_core::{
     Backend, ConfigMode, Id, ProtoConfig, ProtoEnvironment, SCHEMA_PLUGIN_KEY, ToolSpec,
     load_schema_plugin_with_proto, load_tool, registry::ProtoRegistry,
 };
+use proto_core::{ProtoConfigError, ProtoLoaderError};
 use rustc_hash::FxHashSet;
 use semver::Version;
 use starbase::{AppResult, AppSession};
@@ -69,15 +69,22 @@ impl ProtoSession {
         ProtoRegistry::new(Arc::clone(&self.env))
     }
 
-    pub fn load_config(&self) -> miette::Result<&ProtoConfig> {
-        Ok(self.env.load_config()?)
+    pub fn load_config(&self) -> Result<&ProtoConfig, ProtoConfigError> {
+        self.env.load_config()
     }
 
-    pub fn load_config_with_mode(&self, mode: ConfigMode) -> miette::Result<&ProtoConfig> {
-        Ok(self.env.load_config_with_mode(mode)?)
+    pub fn load_config_with_mode(
+        &self,
+        mode: ConfigMode,
+    ) -> Result<&ProtoConfig, ProtoConfigError> {
+        self.env.load_config_with_mode(mode)
     }
 
-    pub async fn load_tool(&self, id: &Id, backend: Option<Backend>) -> miette::Result<ToolRecord> {
+    pub async fn load_tool(
+        &self,
+        id: &Id,
+        backend: Option<Backend>,
+    ) -> Result<ToolRecord, ProtoLoaderError> {
         self.load_tool_with_options(id, backend, LoadToolOptions::default())
             .await
     }
@@ -88,7 +95,7 @@ impl ProtoSession {
         id: &Id,
         backend: Option<Backend>,
         options: LoadToolOptions,
-    ) -> miette::Result<ToolRecord> {
+    ) -> Result<ToolRecord, ProtoLoaderError> {
         let mut record = ToolRecord::new(load_tool(id, &self.env, backend).await?);
 
         if options.inherit_remote {
@@ -115,7 +122,7 @@ impl ProtoSession {
     }
 
     /// Load tools that have a configured version.
-    pub async fn load_tools(&self) -> miette::Result<Vec<ToolRecord>> {
+    pub async fn load_tools(&self) -> Result<Vec<ToolRecord>, ProtoLoaderError> {
         self.load_tools_with_options(LoadToolOptions::default())
             .await
     }
@@ -124,7 +131,7 @@ impl ProtoSession {
     pub async fn load_tools_with_options(
         &self,
         mut options: LoadToolOptions,
-    ) -> miette::Result<Vec<ToolRecord>> {
+    ) -> Result<Vec<ToolRecord>, ProtoLoaderError> {
         let config = self.env.load_config()?;
 
         // Gather the IDs of all possible tools. We can't just use the
@@ -148,7 +155,7 @@ impl ProtoSession {
         // collide when attempting to download the schema plugin!
         load_schema_plugin_with_proto(&self.env).await?;
 
-        let mut set = JoinSet::<miette::Result<ToolRecord>>::new();
+        let mut set = JoinSet::<Result<ToolRecord, ProtoLoaderError>>::new();
         let mut records = vec![];
         let opt_inherit_remote = options.inherit_remote;
         let opt_detect_version = options.detect_version;
@@ -182,7 +189,7 @@ impl ProtoSession {
         }
 
         while let Some(result) = set.join_next().await {
-            let mut record: ToolRecord = result.into_diagnostic()??;
+            let mut record: ToolRecord = result.unwrap()?;
 
             if options.inherit_local {
                 record.inherit_from_local(config);
@@ -195,7 +202,7 @@ impl ProtoSession {
     }
 
     /// Load all tools, even those not configured with a version.
-    pub async fn load_all_tools(&self) -> miette::Result<Vec<ToolRecord>> {
+    pub async fn load_all_tools(&self) -> Result<Vec<ToolRecord>, ProtoLoaderError> {
         self.load_all_tools_with_options(LoadToolOptions::default())
             .await
     }
@@ -203,7 +210,7 @@ impl ProtoSession {
     pub async fn load_all_tools_with_options(
         &self,
         mut options: LoadToolOptions,
-    ) -> miette::Result<Vec<ToolRecord>> {
+    ) -> Result<Vec<ToolRecord>, ProtoLoaderError> {
         let config = self.load_config()?;
 
         let mut set = FxHashSet::default();
@@ -215,7 +222,7 @@ impl ProtoSession {
         self.load_tools_with_options(options).await
     }
 
-    pub async fn render_progress_loader(&self) -> miette::Result<ProgressInstance> {
+    pub async fn render_progress_loader(&self) -> ProgressInstance {
         use iocraft::prelude::element;
 
         let reporter = Arc::new(ProgressReporter::default());
@@ -236,7 +243,7 @@ impl ProtoSession {
         // Wait a bit for the component to be rendered
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 
-        Ok(ProgressInstance { reporter, handle })
+        ProgressInstance { reporter, handle }
     }
 
     pub fn should_print_json(&self) -> bool {

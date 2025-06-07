@@ -1,4 +1,3 @@
-use miette::IntoDiagnostic;
 use starbase_console::ConsoleError;
 use starbase_console::ui::ProgressReporter;
 use std::ops::Deref;
@@ -11,9 +10,9 @@ pub struct ProgressInstance {
 }
 
 impl ProgressInstance {
-    pub async fn stop(self) -> miette::Result<()> {
+    pub async fn stop(self) -> Result<(), ConsoleError> {
         self.reporter.exit();
-        self.handle.await.into_diagnostic()??;
+        self.handle.await.unwrap()?;
 
         Ok(())
     }

@@ -15,7 +15,7 @@ pub struct RegenArgs {
 #[tracing::instrument(skip_all)]
 pub async fn regen(session: ProtoSession, args: RegenArgs) -> AppResult {
     let store = &session.env.store;
-    let progress = session.render_progress_loader().await?;
+    let progress = session.render_progress_loader().await;
 
     progress.set_message(if args.bin {
         "Regenerating shims and bins..."

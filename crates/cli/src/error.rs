@@ -1,5 +1,6 @@
 use miette::Diagnostic;
-use proto_core::PROTO_CONFIG_NAME;
+use proto_core::layout::ProtoLayoutError;
+use proto_core::{PROTO_CONFIG_NAME, ProtoConfigError};
 use starbase_styles::{Style, Stylize};
 use std::path::PathBuf;
 use thiserror::Error;
@@ -8,6 +9,17 @@ use thiserror::Error;
 
 #[derive(Error, Debug, Diagnostic)]
 pub enum ProtoCliError {
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Config(#[from] Box<ProtoConfigError>),
+
+    #[error(transparent)]
+    Http(#[from] Box<reqwest::Error>),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Layout(#[from] Box<ProtoLayoutError>),
+
     #[diagnostic(code(proto::no_configured_tools))]
     #[error("No tools have been configured in {}.", PROTO_CONFIG_NAME.style(Style::File))]
     NoConfiguredTools,
@@ -106,4 +118,22 @@ pub enum ProtoCliError {
     )]
     #[error("Failed to fetch the latest available version.")]
     FailedToFetchVersion,
+}
+
+impl From<ProtoConfigError> for ProtoCliError {
+    fn from(e: ProtoConfigError) -> ProtoCliError {
+        ProtoCliError::Config(Box::new(e))
+    }
+}
+
+impl From<reqwest::Error> for ProtoCliError {
+    fn from(e: reqwest::Error) -> ProtoCliError {
+        ProtoCliError::Http(Box::new(e))
+    }
+}
+
+impl From<ProtoLayoutError> for ProtoCliError {
+    fn from(e: ProtoLayoutError) -> ProtoCliError {
+        ProtoCliError::Layout(Box::new(e))
+    }
 }
