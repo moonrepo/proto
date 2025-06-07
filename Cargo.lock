@@ -3219,9 +3219,9 @@ checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 
 [[package]]
 name = "reqwest"
-version = "0.12.18"
+version = "0.12.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e98ff6b0dbbe4d5a37318f433d4fc82babd21631f194d370409ceb2e40b2f0b5"
+checksum = "a2f8e5513d63f2e5b386eb5106dc67eaf3f84e95258e210489136b8b92ad6119"
 dependencies = [
  "base64 0.22.1",
  "bytes",
@@ -3525,9 +3525,9 @@ dependencies = [
 
 [[package]]
 name = "schematic"
-version = "0.18.5"
+version = "0.18.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1bbdefb8813c5c5905cc2af1eebd1f89ec89cd397745b98055a10c0883df92d8"
+checksum = "397988c4db2af16aae6f34d7c12e91e2a6f9cb98c0067d6e2ac2e8e56f9aa865"
 dependencies = [
  "garde",
  "indexmap",
@@ -3547,9 +3547,9 @@ dependencies = [
 
 [[package]]
 name = "schematic_macros"
-version = "0.18.4"
+version = "0.18.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b57b72efd10abf9fa6fc064b3a0616f7b588321c914fe7da6e3a94ecc266e36"
+checksum = "34d1b42cdaa842e110bef5df244a9c38e663fc96bd99634a777c887935bf1451"
 dependencies = [
  "convert_case",
  "darling",
@@ -3560,9 +3560,9 @@ dependencies = [
 
 [[package]]
 name = "schematic_types"
-version = "0.10.2"
+version = "0.10.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b57d406829eeb15dcdb5e8b450310458cfe337f298f804e2e5c0d2c59eb764e4"
+checksum = "df2deb654ef5193a523af751173ef6e93e728db875ca7086b085d92196beda9a"
 dependencies = [
  "indexmap",
  "semver",
@@ -3971,9 +3971,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_shell"
-version = "0.7.7"
+version = "0.7.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be5d17b9de116c34b8ba30ac47a43e7b42501a3ebc2794cb9f9e4e29b98d73b1"
+checksum = "da94ee148a195eea93b23acd1078ccc268865f54cb855ee63e0c1dad87046b41"
 dependencies = [
  "miette 7.6.0",
  "regex",
@@ -4092,9 +4092,9 @@ dependencies = [
 
 [[package]]
 name = "sysinfo"
-version = "0.35.1"
+version = "0.35.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "79251336d17c72d9762b8b54be4befe38d2db56fbbc0241396d70f173c39d47a"
+checksum = "3c3ffa3e4ff2b324a57f7aeb3c349656c7b127c3c189520251a648102a92496e"
 dependencies = [
  "libc",
  "memchr",
@@ -4448,9 +4448,9 @@ dependencies = [
 
 [[package]]
 name = "tower-http"
-version = "0.6.4"
+version = "0.6.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0fdb0c213ca27a9f57ab69ddb290fd80d970922355b83ae380b395d3986b8a2e"
+checksum = "adc82fd73de2a9722ac5da747f12383d2bfdb93591ee6c58486e0097890f05f2"
 dependencies = [
  "bitflags",
  "bytes",

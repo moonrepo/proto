@@ -23,7 +23,7 @@ iocraft = "0.7.9"
 miette = "7.6.0"
 once_cell = "1.21.3"
 regex = { version = "1.11.1", default-features = false, features = ["std"] }
-reqwest = { version = "0.12.18", default-features = false, features = [
+reqwest = { version = "0.12.19", default-features = false, features = [
     "charset",
     "http2",
     "macos-system-configuration",
@@ -35,7 +35,7 @@ reqwest-middleware = { version = "0.4.2", default-features = false, features = [
 reqwest-netrc = "0.1.3"
 rustc-hash = "2.1.1"
 scc = "2.3.3"
-schematic = { version = "0.18.5", default-features = false }
+schematic = { version = "0.18.8", default-features = false }
 semver = { version = "1.0.26", features = ["serde"] }
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
@@ -50,7 +50,7 @@ starbase_archive = { version = "0.10.6", features = [
 ] }
 starbase_console = { version = "0.6.11", features = ["miette", "ui"] }
 starbase_sandbox = { version = "0.9.3" }
-starbase_shell = { version = "0.7.7", features = ["miette"] }
+starbase_shell = { version = "0.7.8", features = ["miette"] }
 starbase_styles = { version = "0.6.2" }
 starbase_utils = { version = "0.11.10", default-features = false, features = [
     "json",
