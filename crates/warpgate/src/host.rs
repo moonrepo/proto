@@ -177,8 +177,8 @@ fn exec_command(
     };
 
     // Determine working directory
-    let cwd = if let Some(working_dir) = &input.working_dir {
-        helpers::from_virtual_path(&data.virtual_paths, working_dir)
+    let cwd = if let Some(cwd) = &input.cwd {
+        helpers::from_virtual_path(&data.virtual_paths, cwd)
     } else {
         data.working_dir.clone()
     };
