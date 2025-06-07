@@ -134,7 +134,7 @@ fn host_log(
 fn get_default_shell() -> ShellType {
     static SHELL_CACHE: OnceLock<ShellType> = OnceLock::new();
 
-    *SHELL_CACHE.get_or_init(|| ShellType::detect_with_fallback())
+    *SHELL_CACHE.get_or_init(ShellType::detect_with_fallback)
 }
 
 #[instrument(name = "host_func_exec_command", skip_all)]
@@ -192,7 +192,7 @@ fn exec_command(
     };
 
     // Determine the shell
-    let shell = match input.shell {
+    let shell = match input.shell.or_else(|| env::var("PROTO_SHELL").ok()) {
         Some(name) => ShellType::from_str(&name)?.build(),
         None => get_default_shell().build(),
     };

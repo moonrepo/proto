@@ -584,6 +584,7 @@ mod install_uninstall {
                 .run_bin(|cmd| {
                     cmd.arg("install")
                         .arg("node")
+                        .arg("latest")
                         .arg("--")
                         .arg("--no-bundled-npm");
                 })
@@ -633,6 +634,7 @@ mod install_uninstall {
                 .run_bin(|cmd| {
                     cmd.arg("install")
                         .arg("node")
+                        .arg("latest")
                         .arg("--")
                         .arg("--no-bundled-npm");
                 })
