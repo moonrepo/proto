@@ -1,12 +1,28 @@
 use crate::session::ProtoSession;
-use clap::Args;
+use clap::{Args, ValueEnum};
 use proto_core::{Id, ToolSpec};
 use starbase::AppResult;
+
+#[derive(Clone, Debug, ValueEnum)]
+enum BinDirType {
+    Exes,
+    Globals,
+}
 
 #[derive(Args, Clone, Debug)]
 pub struct BinArgs {
     #[arg(required = true, help = "ID of tool")]
     id: Id,
+
+    #[arg(long, help = "List all paths instead of just one")]
+    all: bool,
+
+    #[arg(
+        value_enum,
+        long,
+        help = "Display the chosen directory path if available"
+    )]
+    dir: Option<BinDirType>,
 
     #[arg(long, help = "Display symlinked binary path when available")]
     bin: bool,
@@ -61,10 +77,19 @@ pub async fn bin(session: ProtoSession, args: BinArgs) -> AppResult {
         }
     }
 
-    session
-        .console
-        .out
-        .write_line(tool.locate_exe_file().await?.display().to_string())?;
+    let paths = match args.dir {
+        None => vec![tool.locate_exe_file().await?],
+        Some(BinDirType::Exes) => tool.locate_exes_dirs().await?,
+        Some(BinDirType::Globals) => tool.locate_globals_dirs().await?,
+    };
+
+    if args.all {
+        for path in paths {
+            session.console.out.write_line(path.display().to_string())?;
+        }
+    } else if let Some(path) = paths.first() {
+        session.console.out.write_line(path.display().to_string())?;
+    }
 
     Ok(None)
 }

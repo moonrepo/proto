@@ -26,6 +26,9 @@
 - Updated the `proto activate` command:
   - Will now run the initialization hook immediately, instead of waiting for a directory change. Because of this, the `--on-init` option has been deprecated.
   - Added a new `--no-init` option that will skip the initialization hook. This functions like it did previously.
+- Updated the `proto bin` command:
+  - Added a new `--dir` option that will print a directory instead of a file. Supports the value "exes" or "globals".
+  - Added a new `--all` option that will print all paths, instead of just the first.
 
 ## 0.49.5
 

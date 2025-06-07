@@ -199,8 +199,8 @@ pub enum Commands {
 
     #[command(
         name = "bin",
-        about = "Display the absolute path to a tools executable.",
-        long_about = "Display the absolute path to a tools executable. If no version is provided,\nit will be detected from the current environment."
+        about = "Display the absolute path to a tool's executable(s).",
+        long_about = "Display the absolute path to a tool's executable(s). If no version is provided,\nit will be detected from the current environment."
     )]
     Bin(BinArgs),
 
