@@ -19,7 +19,7 @@
 
 #### 💥 Breaking
 
-- Deprecated the `--on-init` option for `proto activate`, as it is no longer needed.
+- Updated `proto install <tool>` to install a version pinned in `.prototools`, instead of the latest version. If you want to install the latest version, you can use `proto install <tool> latest`.
 
 #### 🚀 Updates
 
