@@ -3,13 +3,15 @@ use crate::client_error::WarpgateClientError;
 use crate::helpers;
 use crate::plugin_error::WarpgatePluginError;
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
+use starbase_shell::ShellType;
 use starbase_styles::{apply_style_tags, color};
 use starbase_utils::env::paths;
 use starbase_utils::fs;
 use std::collections::BTreeMap;
 use std::env;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::str::FromStr;
+use std::sync::{Arc, OnceLock};
 use system_env::{create_process_command, find_command_on_path};
 use tokio::runtime::Handle;
 use tracing::{debug, error, instrument, trace, warn};
@@ -129,6 +131,12 @@ fn host_log(
 
 // Commands
 
+fn get_default_shell() -> ShellType {
+    static SHELL_CACHE: OnceLock<ShellType> = OnceLock::new();
+
+    *SHELL_CACHE.get_or_init(|| ShellType::detect_with_fallback())
+}
+
 #[instrument(name = "host_func_exec_command", skip_all)]
 fn exec_command(
     plugin: &mut CurrentPlugin,
@@ -183,16 +191,40 @@ fn exec_command(
         data.working_dir.clone()
     };
 
+    // Determine the shell
+    let shell = match input.shell {
+        Some(name) => ShellType::from_str(&name)?.build(),
+        None => get_default_shell().build(),
+    };
+    let shell_bin = shell.to_string();
+
     // Create and execute command
     trace!(
         plugin = &uuid,
-        command = ?bin,
+        shell = &shell_bin,
+        command = &input.command,
         args = ?input.args,
         cwd = ?cwd,
         "Executing command on host machine"
     );
 
-    let mut command = create_process_command(bin, &input.args);
+    let command_line = format!(
+        "{} {}",
+        input.command,
+        input
+            .args
+            .iter()
+            .map(|arg| if arg.starts_with('-') {
+                arg.to_owned()
+            } else {
+                shell.quote(arg)
+            })
+            .collect::<Vec<_>>()
+            .join(" ")
+    );
+
+    let mut command = create_process_command(shell_bin, shell.get_exec_command().shell_args);
+    command.arg(command_line);
     command.envs(&input.env);
     command.current_dir(cwd);
 
@@ -224,6 +256,7 @@ fn exec_command(
 
     trace!(
         plugin = plugin.id().to_string(),
+        shell = ?command.get_program().to_string_lossy(),
         command = ?bin,
         exit_code = output.exit_code,
         stderr = if debug_output.is_some() {

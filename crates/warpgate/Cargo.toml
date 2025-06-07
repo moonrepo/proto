@@ -26,6 +26,7 @@ serde_json = { workspace = true }
 sha2 = { workspace = true }
 starbase_archive = { workspace = true }
 starbase_utils = { workspace = true, features = ["glob", "net"] }
+starbase_shell = { workspace = true }
 starbase_styles = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }

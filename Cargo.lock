@@ -4747,6 +4747,7 @@ dependencies = [
  "sha2",
  "starbase_archive",
  "starbase_sandbox",
+ "starbase_shell",
  "starbase_styles",
  "starbase_utils",
  "system_env",

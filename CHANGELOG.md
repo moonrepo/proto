@@ -23,6 +23,7 @@
 
 #### 🚀 Updates
 
+- Commands executed from WASM plugins will now always run within a shell.
 - Updated the `proto activate` command:
   - Will now run the initialization hook immediately, instead of waiting for a directory change. Because of this, the `--on-init` option has been deprecated.
   - Added a new `--no-init` option that will skip the initialization hook. This functions like it did previously.
