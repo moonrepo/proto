@@ -12,7 +12,10 @@ pub struct ProgressInstance {
 impl ProgressInstance {
     pub async fn stop(self) -> Result<(), ConsoleError> {
         self.reporter.exit();
-        self.handle.await.unwrap()?;
+
+        if let Ok(result) = self.handle.await {
+            result?;
+        }
 
         Ok(())
     }

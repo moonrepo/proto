@@ -1,9 +1,8 @@
+use crate::error::ProtoCliError;
 use proto_core::{ProtoEnvironment, is_offline};
 use rustc_hash::FxHashMap;
 use std::env::{self, consts};
 use tracing::debug;
-
-use crate::error::ProtoCliError;
 
 pub enum Metric {
     InstallTool {

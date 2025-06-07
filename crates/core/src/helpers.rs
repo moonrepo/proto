@@ -87,10 +87,21 @@ pub fn now() -> u128 {
 }
 
 pub fn extract_filename_from_url<U: AsRef<str>>(url: U) -> String {
-    let url = url::Url::parse(url.as_ref()).unwrap();
-    let mut segments = url.path_segments().unwrap();
+    let base = url.as_ref();
 
-    segments.next_back().unwrap().to_owned()
+    match url::Url::parse(base) {
+        Ok(url) => {
+            let mut segments = url.path_segments().unwrap();
+
+            segments.next_back().unwrap().to_owned()
+        }
+        Err(_) => if let Some(i) = base.rfind('/') {
+            &base[i + 1..]
+        } else {
+            "unknown"
+        }
+        .into(),
+    }
 }
 
 pub fn read_json_file_with_lock<T: DeserializeOwned>(

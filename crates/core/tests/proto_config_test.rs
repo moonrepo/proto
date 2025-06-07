@@ -352,7 +352,7 @@ foo = "file://./test.toml"
         use super::*;
 
         #[test]
-        #[should_panic(expected = "not exist")]
+        #[should_panic(expected = "MissingEnvFile")]
         fn errors_if_file_missing() {
             let sandbox = create_empty_sandbox();
             sandbox.create_file(
@@ -370,7 +370,7 @@ file = ".env"
         }
 
         #[test]
-        #[should_panic(expected = "Failed to parse .env file")]
+        #[should_panic(expected = "FailedParseEnvFile")]
         fn errors_if_parse_fails() {
             let sandbox = create_empty_sandbox();
             sandbox.create_file(

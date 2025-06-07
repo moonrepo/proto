@@ -16,7 +16,7 @@ mod loader {
         use super::*;
 
         #[tokio::test]
-        #[should_panic(expected = "Cannot load test plugin, source file")]
+        #[should_panic(expected = "MissingSourceFile")]
         async fn errors_missing_file() {
             let (_sandbox, loader) = create_loader();
 
@@ -56,7 +56,7 @@ mod loader {
         use super::*;
 
         #[tokio::test]
-        #[should_panic(expected = "does not exist")]
+        #[should_panic(expected = "NotFound")]
         async fn errors_broken_url() {
             let (_sandbox, loader) = create_loader();
 
@@ -104,9 +104,7 @@ mod loader {
         use super::*;
 
         #[tokio::test]
-        #[should_panic(
-            expected = "Cannot download test plugin from GitHub (moonrepo/invalid-repo)"
-        )]
+        #[should_panic(expected = "MissingGitHubAsset")]
         async fn errors_invalid_slug() {
             let (_sandbox, loader) = create_loader();
 

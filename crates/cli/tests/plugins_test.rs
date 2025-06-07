@@ -107,7 +107,7 @@ mod plugins {
     }
 
     #[tokio::test]
-    #[should_panic(expected = "does not exist")]
+    #[should_panic(expected = "MissingSourceFile")]
     async fn errors_for_missing_file() {
         run_tests(|env| {
             let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -140,7 +140,7 @@ mod plugins {
     }
 
     #[tokio::test]
-    #[should_panic(expected = "does not exist")]
+    #[should_panic(expected = "NotFound")]
     async fn errors_for_broken_url() {
         run_tests(|env| {
             load_tool_from_locator(
