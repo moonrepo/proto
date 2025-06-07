@@ -87,9 +87,6 @@ pub enum ProtoResolveError {
     },
 }
 
-unsafe impl Send for ProtoResolveError {}
-unsafe impl Sync for ProtoResolveError {}
-
 impl From<ProtoArchiveError> for ProtoResolveError {
     fn from(e: ProtoArchiveError) -> ProtoResolveError {
         ProtoResolveError::Archive(Box::new(e))

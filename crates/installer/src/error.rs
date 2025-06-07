@@ -53,9 +53,6 @@ pub enum ProtoInstallerError {
     DownloadNotAvailable { version: String, status: String },
 }
 
-unsafe impl Send for ProtoInstallerError {}
-unsafe impl Sync for ProtoInstallerError {}
-
 impl From<ArchiveError> for ProtoInstallerError {
     fn from(e: ArchiveError) -> ProtoInstallerError {
         ProtoInstallerError::Archive(Box::new(e))

@@ -94,9 +94,6 @@ pub struct PluginContainer {
     plugin: Arc<RwLock<Plugin>>,
 }
 
-unsafe impl Send for PluginContainer {}
-unsafe impl Sync for PluginContainer {}
-
 impl PluginContainer {
     /// Create a new container with the provided manifest and host functions.
     #[instrument(name = "new_plugin", skip(manifest, functions))]

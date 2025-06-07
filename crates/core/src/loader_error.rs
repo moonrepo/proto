@@ -55,9 +55,6 @@ pub enum ProtoLoaderError {
     UnknownTool { id: Id },
 }
 
-unsafe impl Send for ProtoLoaderError {}
-unsafe impl Sync for ProtoLoaderError {}
-
 impl From<ProtoConfigError> for ProtoLoaderError {
     fn from(e: ProtoConfigError) -> ProtoLoaderError {
         ProtoLoaderError::Config(Box::new(e))

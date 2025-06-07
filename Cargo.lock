@@ -3500,9 +3500,9 @@ dependencies = [
 
 [[package]]
 name = "schematic"
-version = "0.18.6"
+version = "0.18.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ce947fb41e16ee8d80897703b415da35e3c8de77504f7b5787daeae598b4f8b"
+checksum = "397988c4db2af16aae6f34d7c12e91e2a6f9cb98c0067d6e2ac2e8e56f9aa865"
 dependencies = [
  "garde",
  "indexmap",
@@ -3522,9 +3522,9 @@ dependencies = [
 
 [[package]]
 name = "schematic_macros"
-version = "0.18.5"
+version = "0.18.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "78cc9c4bd37e621d600425f5024580411a5b0d06bbd6c5a675b71cc45f2245f3"
+checksum = "34d1b42cdaa842e110bef5df244a9c38e663fc96bd99634a777c887935bf1451"
 dependencies = [
  "convert_case",
  "darling",
@@ -3895,9 +3895,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_archive"
-version = "0.11.0"
+version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39cbd8efc6d740a6a2d12372e0bea72b495602b35586fb68e310f9f6f6a68e79"
+checksum = "a5f7db01494973fc89dfdab5762746f22d9f6b175112183bb913bba8c4a601e7"
 dependencies = [
  "binstall-tar",
  "bzip2",

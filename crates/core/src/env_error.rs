@@ -10,6 +10,3 @@ pub enum ProtoEnvError {
     #[error("Unable to determine current working directory!")]
     MissingWorkingDir,
 }
-
-unsafe impl Send for ProtoEnvError {}
-unsafe impl Sync for ProtoEnvError {}

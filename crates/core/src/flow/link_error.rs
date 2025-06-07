@@ -32,9 +32,6 @@ pub enum ProtoLinkError {
     },
 }
 
-unsafe impl Send for ProtoLinkError {}
-unsafe impl Sync for ProtoLinkError {}
-
 impl From<FsError> for ProtoLinkError {
     fn from(e: FsError) -> ProtoLinkError {
         ProtoLinkError::Fs(Box::new(e))

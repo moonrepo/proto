@@ -59,9 +59,6 @@ pub enum ProtoBuildError {
     Cancelled,
 }
 
-unsafe impl Send for ProtoBuildError {}
-unsafe impl Sync for ProtoBuildError {}
-
 impl From<ProtoArchiveError> for ProtoBuildError {
     fn from(e: ProtoArchiveError) -> ProtoBuildError {
         ProtoBuildError::Archive(Box::new(e))
