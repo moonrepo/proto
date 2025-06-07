@@ -15,6 +15,18 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 💥 Breaking
+
+- Deprecated the `--on-init` option for `proto activate`, as it is no longer needed.
+
+#### 🚀 Updates
+
+- Updated the `proto activate` command:
+  - Will now run the initialization hook immediately, instead of waiting for a directory change. Because of this, the `--on-init` option has been deprecated.
+  - Added a new `--no-init` option that will skip the initialization hook. This functions like it did previously.
+
 ## 0.49.5
 
 #### 🚀 Updates

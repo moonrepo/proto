@@ -102,4 +102,16 @@ bun = "1.1.0"
 
         assert!(output.contains("<WORKSPACE>/.proto/activate-start:<WORKSPACE>/.proto/shims:<WORKSPACE>/.proto/bin:<WORKSPACE>/.proto/activate-stop"));
     }
+
+    #[test]
+    fn can_disable_init() {
+        let sandbox = create_empty_proto_sandbox();
+        sandbox.create_file(".prototools", r#"node = "20.0.0""#);
+
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("activate").arg("zsh").arg("--no-init");
+        });
+
+        assert_snapshot!(get_activate_output(&assert, &sandbox));
+    }
 }

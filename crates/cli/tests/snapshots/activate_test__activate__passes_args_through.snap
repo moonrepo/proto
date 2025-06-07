@@ -11,3 +11,5 @@ fn _proto_activate_hook {
 set @edit:before-readline = $@edit:before-readline {
   _proto_activate_hook
 }
+
+_proto_activate_hook

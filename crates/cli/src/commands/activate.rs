@@ -14,6 +14,7 @@ use std::env;
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use tokio::task::JoinSet;
+use tracing::warn;
 
 #[derive(Default, Serialize)]
 struct ActivateItem {
@@ -62,6 +63,9 @@ pub struct ActivateArgs {
 
     #[arg(long, help = "Don't include ~/.proto/bin in path lookup")]
     no_bin: bool,
+
+    #[arg(long, help = "Do not run activate hook on initialization")]
+    no_init: bool,
 
     #[arg(long, help = "Don't include ~/.proto/shims in path lookup")]
     no_shim: bool,
@@ -225,6 +229,12 @@ fn print_activation_hook(
         }
     };
 
+    if args.on_init {
+        warn!(
+            "The --on-init option is deprecated and can be removed. This functionality is now the default."
+        );
+    }
+
     session
         .console
         .out
@@ -233,7 +243,7 @@ fn print_activation_hook(
             function: "_proto_activate_hook".into(),
         })?)?;
 
-    if args.on_init {
+    if !args.no_init {
         session.console.out.write_line("\n_proto_activate_hook")?;
     }
 
