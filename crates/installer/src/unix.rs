@@ -6,7 +6,7 @@ pub fn self_replace(
     current_exe: &Path,
     replace_with: &Path,
     relocate_to: &Path,
-) -> miette::Result<()> {
+) -> Result<(), FsError> {
     // If we're a symlink, we need to find the real location and operate on
     // that instead of the link.
     let exe = current_exe.canonicalize().map_err(|error| FsError::Read {

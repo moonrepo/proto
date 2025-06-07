@@ -1,9 +1,9 @@
 mod utils;
 
-use proto_core::flow::install::InstallOptions;
 use proto_core::{
-    Id, PluginLocator, ProtoEnvironment, Tool, ToolSpec, UnresolvedVersionSpec,
-    load_tool_from_locator, warpgate::FileLocator, warpgate::UrlLocator,
+    Id, PluginLocator, ProtoEnvironment, ProtoLoaderError, Tool, ToolSpec, UnresolvedVersionSpec,
+    flow::install::InstallOptions, load_tool_from_locator, warpgate::FileLocator,
+    warpgate::UrlLocator,
 };
 use starbase_sandbox::assert_snapshot;
 use starbase_sandbox::predicates::prelude::*;
@@ -15,7 +15,7 @@ use utils::*;
 async fn run_tests<F, Fut>(factory: F)
 where
     F: FnOnce(&ProtoEnvironment) -> Fut,
-    Fut: Future<Output = miette::Result<Tool>>,
+    Fut: Future<Output = Result<Tool, ProtoLoaderError>>,
 {
     let sandbox = create_empty_proto_sandbox();
     let proto = ProtoEnvironment::new_testing(sandbox.path()).unwrap();
@@ -107,7 +107,7 @@ mod plugins {
     }
 
     #[tokio::test]
-    #[should_panic(expected = "does not exist")]
+    #[should_panic(expected = "MissingSourceFile")]
     async fn errors_for_missing_file() {
         run_tests(|env| {
             let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -140,7 +140,7 @@ mod plugins {
     }
 
     #[tokio::test]
-    #[should_panic(expected = "does not exist")]
+    #[should_panic(expected = "NotFound")]
     async fn errors_for_broken_url() {
         run_tests(|env| {
             load_tool_from_locator(

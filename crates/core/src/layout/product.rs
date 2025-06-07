@@ -1,3 +1,4 @@
+use super::layout_error::ProtoLayoutError;
 use crate::helpers::now;
 use starbase_utils::fs;
 use std::path::PathBuf;
@@ -12,7 +13,7 @@ pub struct Product {
 
 impl Product {
     #[instrument(skip(self))]
-    pub fn load_used_at(&self) -> miette::Result<Option<u128>> {
+    pub fn load_used_at(&self) -> Result<Option<u128>, ProtoLayoutError> {
         let file = self.dir.join(".last-used");
 
         if file.exists() {
@@ -27,7 +28,7 @@ impl Product {
     }
 
     #[instrument(skip(self))]
-    pub fn track_used_at(&self) -> miette::Result<()> {
+    pub fn track_used_at(&self) -> Result<(), ProtoLayoutError> {
         fs::write_file(self.dir.join(".last-used"), now().to_string())?;
 
         Ok(())

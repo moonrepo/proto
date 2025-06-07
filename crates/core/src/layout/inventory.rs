@@ -1,3 +1,4 @@
+use super::layout_error::ProtoLayoutError;
 use super::product::Product;
 use crate::helpers::{is_cache_enabled, is_offline};
 use crate::lockfile::LockfileRecord;
@@ -44,7 +45,7 @@ impl Inventory {
     pub fn load_remote_versions(
         &self,
         disable_cache: bool,
-    ) -> miette::Result<Option<LoadVersionsOutput>> {
+    ) -> Result<Option<LoadVersionsOutput>, ProtoLayoutError> {
         let cache_path = self
             .dir_original
             .as_ref()
@@ -82,7 +83,7 @@ impl Inventory {
     }
 
     #[instrument(skip_all)]
-    pub fn save_remote_versions(&self, data: &LoadVersionsOutput) -> miette::Result<()> {
+    pub fn save_remote_versions(&self, data: &LoadVersionsOutput) -> Result<(), ProtoLayoutError> {
         json::write_file(
             self.dir_original
                 .as_ref()

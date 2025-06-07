@@ -1,17 +1,20 @@
+pub use super::setup_error::ProtoSetupError;
 use crate::config::{PinLocation, ProtoConfig};
-use crate::flow::install::InstallOptions;
+use crate::flow::install::{InstallOptions, ProtoInstallError};
 use crate::layout::BinManager;
 use crate::lockfile::LockfileRecord;
 use crate::tool::Tool;
 use crate::tool_manifest::ToolManifestVersion;
 use crate::tool_spec::ToolSpec;
+use proto_pdk_api::{SyncManifestInput, SyncManifestOutput};
 use starbase_utils::fs;
+use std::collections::{BTreeMap, BTreeSet};
 use tracing::{debug, instrument};
 
 impl Tool {
     /// Return true if the tool has been setup (installed and binaries are located).
     #[instrument(skip(self))]
-    pub async fn is_setup(&mut self, spec: &ToolSpec) -> miette::Result<bool> {
+    pub async fn is_setup(&mut self, spec: &ToolSpec) -> Result<bool, ProtoSetupError> {
         self.resolve_version(spec, true).await?;
 
         let install_dir = self.get_product_dir();
@@ -52,7 +55,7 @@ impl Tool {
         &mut self,
         spec: &ToolSpec,
         options: InstallOptions,
-    ) -> miette::Result<Option<LockfileRecord>> {
+    ) -> Result<Option<LockfileRecord>, ProtoSetupError> {
         let version = self.resolve_version(spec, false).await?;
 
         // Returns nothing if already installed
@@ -104,7 +107,7 @@ impl Tool {
     /// Teardown the tool by uninstalling the current version, removing the version
     /// from the manifest, and cleaning up temporary files. Return true if the teardown occurred.
     #[instrument(skip_all)]
-    pub async fn teardown(&mut self) -> miette::Result<bool> {
+    pub async fn teardown(&mut self) -> Result<bool, ProtoSetupError> {
         self.cleanup().await?;
 
         if !self.uninstall().await? {
@@ -168,13 +171,65 @@ impl Tool {
 
     /// Delete temporary files and downloads for the current version.
     #[instrument(skip_all)]
-    pub async fn cleanup(&mut self) -> miette::Result<()> {
+    pub async fn cleanup(&mut self) -> Result<(), ProtoSetupError> {
         debug!(
             tool = self.id.as_str(),
             "Cleaning up temporary files and downloads"
         );
 
-        fs::remove_dir_all(self.get_temp_dir())?;
+        fs::remove_dir_all(self.get_temp_dir()).map_err(|error| {
+            ProtoSetupError::Install(Box::new(ProtoInstallError::Fs(Box::new(error))))
+        })?;
+
+        Ok(())
+    }
+
+    /// Sync the local tool manifest with changes from the plugin.
+    #[instrument(skip_all)]
+    pub async fn sync_manifest(&mut self) -> Result<(), ProtoSetupError> {
+        if !self.plugin.has_func("sync_manifest").await {
+            return Ok(());
+        }
+
+        debug!(tool = self.id.as_str(), "Syncing manifest with changes");
+
+        let output: SyncManifestOutput = self
+            .plugin
+            .call_func_with(
+                "sync_manifest",
+                SyncManifestInput {
+                    context: self.create_context(),
+                },
+            )
+            .await?;
+
+        if output.skip_sync {
+            return Ok(());
+        }
+
+        let mut modified = false;
+        let manifest = &mut self.inventory.manifest;
+
+        if let Some(versions) = output.versions {
+            modified = true;
+
+            let mut entries = BTreeMap::default();
+            let mut installed = BTreeSet::default();
+
+            for key in versions {
+                let value = manifest.versions.get(&key).cloned().unwrap_or_default();
+
+                installed.insert(key.clone());
+                entries.insert(key, value);
+            }
+
+            manifest.versions = entries;
+            manifest.installed_versions = installed;
+        }
+
+        if modified {
+            manifest.save()?;
+        }
 
         Ok(())
     }

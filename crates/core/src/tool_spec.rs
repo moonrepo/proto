@@ -1,4 +1,4 @@
-use crate::tool_error::ProtoToolError;
+use crate::flow::resolve::ProtoResolveError;
 use schematic::{ConfigEnum, derive_enum};
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -41,7 +41,7 @@ impl ToolSpec {
         }
     }
 
-    pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, ProtoToolError> {
+    pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, ProtoResolveError> {
         Self::from_str(value.as_ref())
     }
 
@@ -58,7 +58,7 @@ impl ToolSpec {
 }
 
 impl FromStr for ToolSpec {
-    type Err = ProtoToolError;
+    type Err = ProtoResolveError;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         let (backend, spec) = if let Some((prefix, suffix)) = value.split_once(':') {
@@ -67,7 +67,7 @@ impl FromStr for ToolSpec {
             } else if prefix == "asdf" {
                 Some(Backend::Asdf)
             } else {
-                return Err(ProtoToolError::UnknownBackend {
+                return Err(ProtoResolveError::UnknownBackend {
                     backends: Backend::variants(),
                     spec: value.to_owned(),
                 });
@@ -81,8 +81,8 @@ impl FromStr for ToolSpec {
         Ok(Self {
             backend,
             req: UnresolvedVersionSpec::parse(spec).map_err(|error| {
-                ProtoToolError::InvalidVersionSpec {
-                    spec: value.to_owned(),
+                ProtoResolveError::InvalidVersionSpec {
+                    version: value.to_owned(),
                     error: Box::new(error),
                 }
             })?,
@@ -92,7 +92,7 @@ impl FromStr for ToolSpec {
 }
 
 impl TryFrom<String> for ToolSpec {
-    type Error = ProtoToolError;
+    type Error = ProtoResolveError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         Self::from_str(&value)

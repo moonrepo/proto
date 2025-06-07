@@ -1,7 +1,7 @@
 use crate::config::SCHEMA_PLUGIN_KEY;
 use crate::env::ProtoEnvironment;
+use crate::loader_error::ProtoLoaderError;
 use crate::tool::Tool;
-use crate::tool_error::ProtoToolError;
 use crate::tool_spec::Backend;
 use convert_case::{Case, Casing};
 use rustc_hash::FxHashSet;
@@ -16,7 +16,7 @@ pub fn inject_proto_manifest_config(
     id: &Id,
     proto: &ProtoEnvironment,
     manifest: &mut PluginManifest,
-) -> miette::Result<()> {
+) -> Result<(), ProtoLoaderError> {
     let config = proto.load_config()?;
 
     if let Some(tool_config) = config.tools.get(id) {
@@ -33,7 +33,7 @@ pub fn inject_proto_manifest_config(
 }
 
 #[instrument(skip(proto))]
-pub fn locate_tool(id: &Id, proto: &ProtoEnvironment) -> miette::Result<PluginLocator> {
+pub fn locate_tool(id: &Id, proto: &ProtoEnvironment) -> Result<PluginLocator, ProtoLoaderError> {
     let mut locator = None;
     let configs = proto.load_config_manager()?;
 
@@ -66,7 +66,7 @@ pub fn locate_tool(id: &Id, proto: &ProtoEnvironment) -> miette::Result<PluginLo
     }
 
     let Some(locator) = locator else {
-        return Err(ProtoToolError::UnknownTool { id: id.to_owned() }.into());
+        return Err(ProtoLoaderError::UnknownTool { id: id.to_owned() });
     };
 
     Ok(locator)
@@ -74,18 +74,20 @@ pub fn locate_tool(id: &Id, proto: &ProtoEnvironment) -> miette::Result<PluginLo
 
 pub async fn load_schema_plugin_with_proto(
     proto: impl AsRef<ProtoEnvironment>,
-) -> miette::Result<PathBuf> {
+) -> Result<PathBuf, ProtoLoaderError> {
     let proto = proto.as_ref();
     let schema_id = Id::raw(SCHEMA_PLUGIN_KEY);
     let schema_locator = locate_tool(&schema_id, proto)?;
 
-    proto
+    let path = proto
         .get_plugin_loader()?
         .load_plugin(schema_id, schema_locator)
-        .await
+        .await?;
+
+    Ok(path)
 }
 
-pub fn load_schema_config(plugin_path: &Path) -> miette::Result<json::JsonValue> {
+pub fn load_schema_config(plugin_path: &Path) -> Result<json::JsonValue, ProtoLoaderError> {
     let mut is_toml = false;
     let mut schema: json::JsonValue = match plugin_path.extension().and_then(|ext| ext.to_str()) {
         Some("toml") => {
@@ -156,7 +158,7 @@ pub async fn load_tool_from_locator(
     id: impl AsRef<Id> + Debug,
     proto: impl AsRef<ProtoEnvironment>,
     locator: impl AsRef<PluginLocator> + Debug,
-) -> miette::Result<Tool> {
+) -> Result<Tool, ProtoLoaderError> {
     let id = id.as_ref();
     let proto = proto.as_ref();
     let locator = locator.as_ref();
@@ -202,7 +204,7 @@ pub async fn load_tool(
     id: &Id,
     proto: &ProtoEnvironment,
     mut backend: Option<Backend>,
-) -> miette::Result<Tool> {
+) -> Result<Tool, ProtoLoaderError> {
     // Determine the backend plugin to use
     if backend.is_none() {
         let config = proto.load_config()?;

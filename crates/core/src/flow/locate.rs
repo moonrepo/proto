@@ -25,8 +25,11 @@ pub struct ExecutableLocation {
 }
 
 impl Tool {
-    pub(crate) async fn call_locate_executables(&self) -> miette::Result<LocateExecutablesOutput> {
-        self.plugin
+    pub(crate) async fn call_locate_executables(
+        &self,
+    ) -> Result<LocateExecutablesOutput, ProtoLocateError> {
+        Ok(self
+            .plugin
             .cache_func_with(
                 "locate_executables",
                 LocateExecutablesInput {
@@ -34,11 +37,13 @@ impl Tool {
                     install_dir: self.to_virtual_path(self.get_product_dir()),
                 },
             )
-            .await
+            .await?)
     }
 
     /// Return location information for the primary executable within the tool directory.
-    pub async fn resolve_primary_exe_location(&self) -> miette::Result<Option<ExecutableLocation>> {
+    pub async fn resolve_primary_exe_location(
+        &self,
+    ) -> Result<Option<ExecutableLocation>, ProtoLocateError> {
         let output = self.call_locate_executables().await?;
 
         for (name, config) in output.exes {
@@ -58,7 +63,9 @@ impl Tool {
     }
 
     /// Return location information for all secondary executables within the tool directory.
-    pub async fn resolve_secondary_exe_locations(&self) -> miette::Result<Vec<ExecutableLocation>> {
+    pub async fn resolve_secondary_exe_locations(
+        &self,
+    ) -> Result<Vec<ExecutableLocation>, ProtoLocateError> {
         let output = self.call_locate_executables().await?;
         let mut locations = vec![];
 
@@ -86,7 +93,7 @@ impl Tool {
     pub async fn resolve_bin_locations(
         &mut self,
         include_all_versions: bool,
-    ) -> miette::Result<Vec<ExecutableLocation>> {
+    ) -> Result<Vec<ExecutableLocation>, ProtoLocateError> {
         self.resolve_bin_locations_with_manager(
             BinManager::from_manifest(&self.inventory.manifest),
             include_all_versions,
@@ -98,7 +105,7 @@ impl Tool {
         &mut self,
         bin_manager: BinManager,
         include_all_versions: bool,
-    ) -> miette::Result<Vec<ExecutableLocation>> {
+    ) -> Result<Vec<ExecutableLocation>, ProtoLocateError> {
         let original_backend = self.backend;
         let original_version = self.get_resolved_version();
         let mut locations = vec![];
@@ -182,7 +189,9 @@ impl Tool {
     /// Return a list of all shims that get created in `~/.proto/shims`.
     /// The list will contain the executable config, and an absolute path
     /// to the shims final location.
-    pub async fn resolve_shim_locations(&self) -> miette::Result<Vec<ExecutableLocation>> {
+    pub async fn resolve_shim_locations(
+        &self,
+    ) -> Result<Vec<ExecutableLocation>, ProtoLocateError> {
         let output = self.call_locate_executables().await?;
         let mut locations = vec![];
 
@@ -213,7 +222,7 @@ impl Tool {
 
     /// Locate the primary executable from the tool directory.
     #[instrument(skip_all)]
-    pub async fn locate_exe_file(&mut self) -> miette::Result<PathBuf> {
+    pub async fn locate_exe_file(&mut self) -> Result<PathBuf, ProtoLocateError> {
         if self.exe_file.is_some() {
             return Ok(self.exe_file.clone().unwrap());
         }
@@ -240,8 +249,7 @@ impl Tool {
         Err(ProtoLocateError::MissingToolExecutable {
             tool: self.get_name().to_owned(),
             path: exe_file,
-        }
-        .into())
+        })
     }
 
     /// Return an absolute path to the primary executables directory (first in the list),
@@ -257,7 +265,7 @@ impl Tool {
 
     /// Locate the directory that local executables are installed to.
     #[instrument(skip_all)]
-    pub async fn locate_exes_dirs(&mut self) -> miette::Result<Vec<PathBuf>> {
+    pub async fn locate_exes_dirs(&mut self) -> Result<Vec<PathBuf>, ProtoLocateError> {
         if self.exes_dirs.is_empty() && self.plugin.has_func("locate_executables").await {
             let output = self.call_locate_executables().await?;
 
@@ -282,7 +290,7 @@ impl Tool {
     /// Return an absolute path to the globals directory that actually exists
     /// and contains files (binaries).
     #[instrument(skip_all)]
-    pub async fn locate_globals_dir(&mut self) -> miette::Result<Option<PathBuf>> {
+    pub async fn locate_globals_dir(&mut self) -> Result<Option<PathBuf>, ProtoLocateError> {
         if self.globals_dir.is_none() {
             let globals_dirs = self.locate_globals_dirs().await?;
 
@@ -331,7 +339,7 @@ impl Tool {
     /// Locate the directories that global packages are installed to.
     /// Will expand environment variables, and filter out invalid paths.
     #[instrument(skip_all)]
-    pub async fn locate_globals_dirs(&mut self) -> miette::Result<Vec<PathBuf>> {
+    pub async fn locate_globals_dirs(&mut self) -> Result<Vec<PathBuf>, ProtoLocateError> {
         if !self.globals_dirs.is_empty() {
             return Ok(self.globals_dirs.clone());
         }
@@ -412,7 +420,7 @@ impl Tool {
 
     /// Return a string that all globals are prefixed with. Will be used for filtering and listing.
     #[instrument(skip_all)]
-    pub async fn locate_globals_prefix(&mut self) -> miette::Result<Option<String>> {
+    pub async fn locate_globals_prefix(&mut self) -> Result<Option<String>, ProtoLocateError> {
         if self.globals_prefix.is_none() {
             if !self.plugin.has_func("locate_executables").await {
                 return Ok(None);

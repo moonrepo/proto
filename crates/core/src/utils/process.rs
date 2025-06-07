@@ -1,6 +1,6 @@
-use miette::{Diagnostic, IntoDiagnostic};
 use rustc_hash::FxHashMap;
 use starbase_styles::{Style, Stylize, color};
+use starbase_utils::fs::FsError;
 use std::io;
 use std::path::PathBuf;
 use std::process::{Output, Stdio};
@@ -8,8 +8,12 @@ use thiserror::Error;
 use tokio::process::Command;
 use tracing::trace;
 
-#[derive(Error, Debug, Diagnostic)]
+#[derive(Error, Debug, miette::Diagnostic)]
 pub enum ProtoProcessError {
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Fs(#[from] Box<FsError>),
+
     #[diagnostic(code(proto::process::command_failed))]
     #[error("Failed to execute command {}.", .command.style(Style::Shell))]
     FailedCommand {
@@ -31,6 +35,12 @@ pub enum ProtoProcessError {
     },
 }
 
+impl From<FsError> for ProtoProcessError {
+    fn from(e: FsError) -> ProtoProcessError {
+        ProtoProcessError::Fs(Box::new(e))
+    }
+}
+
 #[allow(dead_code)]
 pub struct ProcessResult {
     pub command: String,
@@ -47,7 +57,7 @@ async fn spawn_command(command: &mut Command) -> std::io::Result<Output> {
     Ok(output)
 }
 
-pub async fn exec_command(command: &mut Command) -> miette::Result<ProcessResult> {
+pub async fn exec_command(command: &mut Command) -> Result<ProcessResult, ProtoProcessError> {
     let inner = command.as_std();
     let command_line = format!(
         "{} {}",
@@ -77,8 +87,8 @@ pub async fn exec_command(command: &mut Command) -> miette::Result<ProcessResult
                 error: Box::new(error),
             })?;
 
-    let stderr = String::from_utf8(output.stderr).into_diagnostic()?;
-    let stdout = String::from_utf8(output.stdout).into_diagnostic()?;
+    let stderr = String::from_utf8(output.stderr).unwrap_or_default();
+    let stdout = String::from_utf8(output.stdout).unwrap_or_default();
     let code = output.status.code().unwrap_or(-1);
 
     trace!(
@@ -106,14 +116,14 @@ pub async fn exec_command(command: &mut Command) -> miette::Result<ProcessResult
     })
 }
 
-pub async fn exec_command_piped(command: &mut Command) -> miette::Result<ProcessResult> {
+pub async fn exec_command_piped(command: &mut Command) -> Result<ProcessResult, ProtoProcessError> {
     exec_command(command.stderr(Stdio::piped()).stdout(Stdio::piped())).await
 }
 
 pub async fn exec_command_with_privileges(
     command: &mut Command,
     elevated_program: Option<&str>,
-) -> miette::Result<ProcessResult> {
+) -> Result<ProcessResult, ProtoProcessError> {
     match elevated_program {
         Some(program) => {
             let inner = command.as_std();
@@ -143,7 +153,7 @@ pub async fn exec_command_with_privileges(
 pub async fn exec_command_with_privileges_piped(
     command: &mut Command,
     elevated_program: Option<&str>,
-) -> miette::Result<ProcessResult> {
+) -> Result<ProcessResult, ProtoProcessError> {
     exec_command_with_privileges(
         command.stderr(Stdio::piped()).stdout(Stdio::piped()),
         elevated_program,
@@ -151,14 +161,13 @@ pub async fn exec_command_with_privileges_piped(
     .await
 }
 
-pub fn handle_exec(result: ProcessResult) -> miette::Result<ProcessResult> {
+pub fn handle_exec(result: ProcessResult) -> Result<ProcessResult, ProtoProcessError> {
     if result.exit_code > 0 {
         return Err(ProtoProcessError::FailedCommandNonZeroExit {
             command: result.command.clone(),
             code: result.exit_code,
             stderr: result.stderr.clone(),
-        }
-        .into());
+        });
     }
 
     Ok(result)
