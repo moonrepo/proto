@@ -16,6 +16,19 @@
         "bun",
         "bunx"
       ],
+      "detectionSources": [
+        {
+          "file": ".bumrc",
+          "url": "https://github.com/owenizedd/bum"
+        },
+        {
+          "file": ".bun-version"
+        },
+        {
+          "file": "package.json",
+          "label": "volta, engines, packageManager"
+        }
+      ],
       "globalsDirs": [
         "~/.bun/bin"
       ]
@@ -113,7 +126,7 @@
         },
         {
           "file": "package.json",
-          "label": "engines"
+          "label": "volta, engines"
         }
       ],
       "globalsDirs": [
@@ -137,7 +150,7 @@
       "detectionSources": [
         {
           "file": "package.json",
-          "label": "engines / package manager"
+          "label": "volta, engines, packageManager"
         }
       ],
       "globalsDirs": [
@@ -160,7 +173,7 @@
       "detectionSources": [
         {
           "file": "package.json",
-          "label": "engines / package manager"
+          "label": "volta, engines, packageManager"
         }
       ],
       "globalsDirs": [
@@ -270,6 +283,15 @@
       "bins": [
         "uv",
         "uvx"
+      ],
+      "detectionSources": [
+        {
+          "file": "uv.toml",
+          "url": "https://docs.astral.sh/uv/reference/settings/#required-version"
+        },
+        {
+          "file": "pyproject.toml"
+        }
       ]
     },
     {
@@ -288,7 +310,7 @@
       "detectionSources": [
         {
           "file": "package.json",
-          "label": "engines / package manager"
+          "label": "volta, engines, packageManager"
         }
       ],
       "globalsDirs": [
