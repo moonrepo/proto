@@ -142,7 +142,9 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
     } else if let Some(spec) = &args.spec {
         spec.to_owned()
     } else if let Some((spec, _)) = tool.detect_version_from(&session.env.working_dir).await? {
-        ToolSpec::new(spec)
+        spec.into()
+    } else if let Some(spec) = session.load_config()?.versions.get(&tool.id) {
+        spec.to_owned()
     } else {
         ToolSpec::default()
     };

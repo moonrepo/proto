@@ -38,3 +38,5 @@ export-env {
         }
     })
 }
+
+_proto_activate_hook

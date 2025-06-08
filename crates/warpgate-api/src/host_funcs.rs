@@ -79,14 +79,19 @@ api_struct!(
         #[doc(hidden)]
         pub set_executable: bool,
 
+        /// Set the shell to execute the command with, for example "bash".
+        /// If not defined, will be detected from the parent process.
+        #[setters(into, strip_option)]
+        pub shell: Option<String>,
+
         /// Stream the output instead of capturing it.
         #[setters(bool)]
         pub stream: bool,
 
         /// Override the current working directory.
-        #[setters(rename = "cwd", no_option)]
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub working_dir: Option<VirtualPath>,
+        #[setters(strip_option)]
+        #[serde(alias = "working_dir", skip_serializing_if = "Option::is_none")]
+        pub cwd: Option<VirtualPath>,
     }
 );
 

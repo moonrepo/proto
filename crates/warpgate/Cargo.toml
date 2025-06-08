@@ -8,7 +8,7 @@ repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
 system_env = { version = "0.8.0", path = "../system-env" }
-warpgate_api = { version = "0.14.5", path = "../warpgate-api" }
+warpgate_api = { version = "0.15.0", path = "../warpgate-api" }
 async-trait = { workspace = true }
 compact_str = { workspace = true }
 extism = { workspace = true, features = ["http"] }
@@ -26,6 +26,7 @@ serde_json = { workspace = true }
 sha2 = { workspace = true }
 starbase_archive = { workspace = true }
 starbase_utils = { workspace = true, features = ["glob", "net"] }
+starbase_shell = { workspace = true }
 starbase_styles = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }

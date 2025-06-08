@@ -7,3 +7,5 @@ set -gx __ORIG_PATH $PATH
 function _proto_activate_hook --on-variable PWD;
   proto activate fish --export | source
 end;
+
+_proto_activate_hook
