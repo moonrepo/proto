@@ -1,5 +1,5 @@
 pub use super::locate_error::ProtoLocateError;
-use crate::helpers::ENV_VAR;
+use crate::helpers::{ENV_VAR, normalize_path_separators};
 use crate::layout::BinManager;
 use crate::tool::Tool;
 use proto_pdk_api::{ExecutableConfig, LocateExecutablesInput, LocateExecutablesOutput};
@@ -50,7 +50,9 @@ impl Tool {
             if config.primary {
                 if let Some(exe_path) = &config.exe_path {
                     return Ok(Some(ExecutableLocation {
-                        path: self.get_product_dir().join(exe_path),
+                        path: self
+                            .get_product_dir()
+                            .join(normalize_path_separators(exe_path)),
                         name,
                         config,
                         version: None,
@@ -76,7 +78,9 @@ impl Tool {
 
             if let Some(exe_path) = &config.exe_path {
                 locations.push(ExecutableLocation {
-                    path: self.get_product_dir().join(exe_path),
+                    path: self
+                        .get_product_dir()
+                        .join(normalize_path_separators(exe_path)),
                     name,
                     config,
                     version: None,
@@ -271,10 +275,12 @@ impl Tool {
 
             #[allow(deprecated)]
             if let Some(dir) = output.exes_dir {
-                self.exes_dirs.push(self.get_product_dir().join(dir));
+                self.exes_dirs
+                    .push(self.get_product_dir().join(normalize_path_separators(dir)));
             } else {
                 for dir in output.exes_dirs {
-                    self.exes_dirs.push(self.get_product_dir().join(dir));
+                    self.exes_dirs
+                        .push(self.get_product_dir().join(normalize_path_separators(dir)));
                 }
             }
         }
@@ -391,9 +397,11 @@ impl Tool {
             }
 
             let dir = if let Some(dir_suffix) = dir.strip_prefix('~') {
-                self.proto.home_dir.join(dir_suffix)
+                self.proto
+                    .home_dir
+                    .join(normalize_path_separators(dir_suffix))
             } else {
-                PathBuf::from(dir)
+                PathBuf::from(normalize_path_separators(dir))
             };
 
             // Don't use a set as we need to persist the order!

@@ -1,5 +1,5 @@
 pub use super::resolve_error::ProtoResolveError;
-use crate::helpers::is_offline;
+use crate::helpers::{is_offline, normalize_path_separators};
 use crate::tool::Tool;
 use crate::tool_spec::{Backend, ToolSpec};
 use crate::utils::{archive, git};
@@ -139,7 +139,7 @@ impl Tool {
 
         if update_perms {
             for exe in metadata.exes {
-                let exe_path = backend_dir.join(exe);
+                let exe_path = backend_dir.join(normalize_path_separators(exe));
 
                 if exe_path.exists() {
                     fs::update_perms(exe_path, None)?;
