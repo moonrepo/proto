@@ -416,13 +416,13 @@ api_struct!(
     pub struct ExecutableConfig {
         /// The file to execute, relative from the tool directory.
         /// Does *not* support virtual paths.
-        #[setters(no_option)]
+        #[setters(strip_option)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub exe_path: Option<PathBuf>,
 
         /// The executable path to use for symlinking binaries instead of `exe_path`.
         /// This should only be used when `exe_path` is a non-standard executable.
-        #[setters(no_option)]
+        #[setters(strip_option)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub exe_link_path: Option<PathBuf>,
 
@@ -440,7 +440,7 @@ api_struct!(
         pub parent_exe_args: Vec<String>,
 
         /// The parent executable name required to execute the local executable path.
-        #[setters(into, no_option)]
+        #[setters(into, strip_option)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub parent_exe_name: Option<String>,
 
@@ -449,17 +449,17 @@ api_struct!(
         pub primary: bool,
 
         /// Custom args to prepend to user-provided args within the generated shim.
-        #[setters(no_option)]
+        #[setters(strip_option)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub shim_before_args: Option<StringOrVec>,
 
         /// Custom args to append to user-provided args within the generated shim.
-        #[setters(no_option)]
+        #[setters(strip_option)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub shim_after_args: Option<StringOrVec>,
 
         /// Custom environment variables to set when executing the shim.
-        #[setters(no_option)]
+        #[setters(strip_option)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub shim_env_vars: Option<FxHashMap<String, String>>,
     }

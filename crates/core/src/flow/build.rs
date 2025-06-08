@@ -2,7 +2,7 @@ use super::build_error::*;
 use super::install::{InstallPhase, OnPhaseFn};
 use crate::config::ProtoBuildConfig;
 use crate::env::{ProtoConsole, ProtoEnvironment};
-use crate::helpers::extract_filename_from_url;
+use crate::helpers::{extract_filename_from_url, normalize_path_separators};
 use crate::lockfile::LockfileRecord;
 use crate::utils::log::LogWriter;
 use crate::utils::process::{self, ProcessResult, ProtoProcessError};
@@ -791,9 +791,12 @@ pub async fn execute_instructions(
 
     let make_absolute = |path: &Path| {
         if path.is_absolute() {
-            path.to_path_buf()
+            PathBuf::from(normalize_path_separators(path))
         } else {
-            builder.options.install_dir.join(path)
+            builder
+                .options
+                .install_dir
+                .join(normalize_path_separators(path))
         }
     };
 
@@ -822,7 +825,7 @@ pub async fn execute_instructions(
                 exes.insert(&main_exe_name, &item.exe);
 
                 for (exe_name, exe_rel_path) in exes {
-                    let exe_abs_path = builder_dir.join(exe_rel_path);
+                    let exe_abs_path = builder_dir.join(normalize_path_separators(exe_rel_path));
 
                     if !exe_abs_path.exists() {
                         return Err(ProtoBuildError::MissingBuilderExe {

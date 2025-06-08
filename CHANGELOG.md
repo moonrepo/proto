@@ -15,6 +15,23 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 💥 Breaking
+
+- Updated `proto install <tool>` to install a version pinned in `.prototools`, instead of the latest version. If you want to install the latest version, you can use `proto install <tool> latest`.
+
+#### 🚀 Updates
+
+- Commands executed from WASM plugins will now always run within a shell.
+  - Added a `PROTO_SHELL` environment variable that can be used to defined which shell to use, otherwise defaults to the current process shell.
+- Updated the `proto activate` command:
+  - Will now run the initialization hook immediately, instead of waiting for a directory change. Because of this, the `--on-init` option has been deprecated.
+  - Added a new `--no-init` option that will skip the initialization hook. This functions like it did previously.
+- Updated the `proto bin` command:
+  - Added a new `--dir` option that will print a directory instead of a file. Supports the value "exes" or "globals".
+  - Added a new `--all` option that will print all paths, instead of just the first.
+
 ## 0.49.5
 
 #### 🚀 Updates

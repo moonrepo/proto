@@ -9,7 +9,7 @@ repository = "https://github.com/moonrepo/proto"
 
 [dependencies]
 proto_core = { version = "0.49.4", path = "../core" }
-proto_pdk_api = { version = "0.27.13", path = "../pdk-api" }
+proto_pdk_api = { version = "0.27.14", path = "../pdk-api" }
 warpgate = { version = "0.24.3", path = "../warpgate" }
 extism = { workspace = true }
 serde = { workspace = true }

@@ -58,7 +58,7 @@ api_struct!(
         pub env: FxHashMap<String, String>,
 
         /// The working directory.
-        #[setters(no_option)]
+        #[setters(strip_option)]
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub cwd: Option<PathBuf>,
     }

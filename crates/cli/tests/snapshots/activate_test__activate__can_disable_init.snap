@@ -17,5 +17,3 @@ typeset -ag chpwd_functions
 if (( ! ${chpwd_functions[(I)_proto_activate_hook]} )); then
   chpwd_functions=(_proto_activate_hook $chpwd_functions)
 fi
-
-_proto_activate_hook

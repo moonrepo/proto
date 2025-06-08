@@ -87,4 +87,62 @@ mod bin {
             assert.inner.stdout(predicate::str::contains("shims/node"));
         }
     }
+
+    #[test]
+    fn returns_exes_dir() {
+        let sandbox = create_empty_proto_sandbox();
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install").arg("node").arg("19.0.0");
+            })
+            .success();
+
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("bin")
+                .arg("node")
+                .arg("19.0.0")
+                .arg("--dir")
+                .arg("exes");
+        });
+
+        if cfg!(windows) {
+            assert
+                .inner
+                .stdout(predicate::str::contains("tools\\node\\19.0.0"));
+        } else {
+            assert
+                .inner
+                .stdout(predicate::str::contains("tools/node/19.0.0/bin"));
+        }
+    }
+
+    #[test]
+    fn returns_globals_dir() {
+        let sandbox = create_empty_proto_sandbox();
+
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install").arg("node").arg("19.0.0");
+            })
+            .success();
+
+        let assert = sandbox.run_bin(|cmd| {
+            cmd.arg("bin")
+                .arg("node")
+                .arg("19.0.0")
+                .arg("--dir")
+                .arg("globals");
+        });
+
+        if cfg!(windows) {
+            assert
+                .inner
+                .stdout(predicate::str::contains("tools\\node\\globals\\bin"));
+        } else {
+            assert
+                .inner
+                .stdout(predicate::str::contains("tools/node/globals/bin"));
+        }
+    }
 }
