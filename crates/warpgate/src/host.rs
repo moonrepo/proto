@@ -3,7 +3,7 @@ use crate::client_error::WarpgateClientError;
 use crate::helpers;
 use crate::plugin_error::WarpgatePluginError;
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
-use starbase_shell::ShellType;
+use starbase_shell::{BoxedShell, ShellType};
 use starbase_styles::{apply_style_tags, color};
 use starbase_utils::env::paths;
 use starbase_utils::fs;
@@ -137,6 +137,20 @@ fn get_default_shell() -> ShellType {
     *SHELL_CACHE.get_or_init(ShellType::detect_with_fallback)
 }
 
+fn quote_shell_arg(shell: &BoxedShell, arg: &str) -> String {
+    // An option or already quoted
+    if arg.starts_with(['-', '"', '\'']) || arg.starts_with("$'") {
+        return arg.to_owned();
+    }
+
+    // Requires double quotes
+    if shell.requires_expansion(arg) || arg.contains(' ') {
+        return format!("\"{arg}\"");
+    }
+
+    arg.to_owned()
+}
+
 #[instrument(name = "host_func_exec_command", skip_all)]
 fn exec_command(
     plugin: &mut CurrentPlugin,
@@ -214,16 +228,12 @@ fn exec_command(
         input
             .args
             .iter()
-            .map(|arg| if arg.starts_with('-') {
-                arg.to_owned()
-            } else {
-                shell.quote(arg)
-            })
+            .map(|arg| quote_shell_arg(&shell, arg))
             .collect::<Vec<_>>()
             .join(" ")
     );
 
-    let mut command = create_process_command(shell_bin, shell.get_exec_command().shell_args);
+    let mut command = create_process_command(&shell_bin, vec!["-c"]);
     command.arg(command_line);
     command.envs(&input.env);
     command.current_dir(cwd);
