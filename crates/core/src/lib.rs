@@ -36,3 +36,15 @@ pub use version_spec::*;
 pub use semver::{Version, VersionReq};
 pub use warpgate;
 pub use warpgate::{Id, PluginLocator};
+
+pub mod cfg {
+    pub mod toml {
+        pub use toml_edit::*;
+
+        pub fn implicit_table() -> Item {
+            let mut item = table();
+            item.as_table_mut().unwrap().set_implicit(true);
+            item
+        }
+    }
+}
