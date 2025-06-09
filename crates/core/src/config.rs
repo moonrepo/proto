@@ -632,7 +632,6 @@ impl ProtoConfig {
         Self::save_to(dir, toml::format(&config, true)?)
     }
 
-    #[deprecated]
     pub fn update<P: AsRef<Path>, F: FnOnce(&mut PartialProtoConfig)>(
         dir: P,
         op: F,

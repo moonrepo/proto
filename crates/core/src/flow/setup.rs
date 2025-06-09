@@ -153,10 +153,7 @@ impl Tool {
 
         // Unpin global version if a match
         ProtoConfig::update_document(self.proto.get_config_dir(PinLocation::Global), |doc| {
-            if doc[self.id.as_str()]
-                .as_str()
-                .is_some_and(|v| v == version.to_string())
-            {
+            if doc[self.id.as_str()].as_str().is_some_and(|v| version == v) {
                 debug!("Unpinning global version");
 
                 doc.as_table_mut().remove(&self.id);

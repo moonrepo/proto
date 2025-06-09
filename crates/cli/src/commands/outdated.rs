@@ -5,7 +5,7 @@ use iocraft::prelude::{Size, element};
 use miette::IntoDiagnostic;
 use proto_core::flow::resolve::ProtoResolveError;
 use proto_core::{
-    Id, PROTO_CONFIG_NAME, ProtoConfig, ToolSpec, UnresolvedVersionSpec, VersionSpec,
+    Id, PROTO_CONFIG_NAME, ProtoConfig, ToolSpec, UnresolvedVersionSpec, VersionSpec, cfg,
 };
 use semver::VersionReq;
 use serde::Serialize;
@@ -291,17 +291,26 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
                 "Updating config with versions",
             );
 
-            ProtoConfig::update(config_path, |config| {
-                let versions = config.versions.get_or_insert(Default::default());
+            ProtoConfig::update_document(config_path, |doc| {
+                // let versions = config.versions.get_or_insert(Default::default());
 
-                // Try and preserve any spec backend's
                 for (id, updated_version) in updated_versions {
-                    versions
-                        .entry(id)
-                        .and_modify(|spec| {
-                            spec.req = updated_version.clone();
-                        })
-                        .or_insert_with(|| ToolSpec::new(updated_version));
+                    // Try and preserve any spec backend's
+                    if let Some(version) = doc[&id].as_str() {
+                        if let Some((backend, _)) = version.split_once(':') {
+                            doc[&id] = cfg::value(format!("{backend}:{updated_version}"));
+                            continue;
+                        }
+                    }
+
+                    doc[&id] = cfg::value(ToolSpec::new(updated_version).to_string());
+
+                    // versions
+                    //     .entry(id)
+                    //     .and_modify(|spec| {
+                    //         spec.req = updated_version.clone();
+                    //     })
+                    //     .or_insert_with(|| ToolSpec::new(updated_version));
                 }
             })?;
         }

@@ -26,18 +26,29 @@ fn unpin_version(session: &ProtoSession, args: &UninstallArgs) -> Result<(), Pro
             continue;
         }
 
-        ProtoConfig::update(&file.path, |config| {
-            if let Some(versions) = &mut config.versions {
-                let remove = if let Some(version) = versions.get(&args.id) {
-                    args.spec.is_none() || args.spec.as_ref().is_some_and(|spec| spec == version)
-                } else {
-                    false
-                };
-
-                if remove {
-                    versions.remove(&args.id);
+        ProtoConfig::update_document(&file.path, |doc| {
+            if let Some(version) = doc[args.id.as_str()].as_str() {
+                if args.spec.is_none()
+                    || args
+                        .spec
+                        .as_ref()
+                        .is_some_and(|spec| spec.to_string() == version)
+                {
+                    doc.as_table_mut().remove(&args.id);
                 }
             }
+
+            // if let Some(versions) = &mut config.versions {
+            //     let remove = if let Some(version) = versions.get(&args.id) {
+            //         args.spec.is_none() || args.spec.as_ref().is_some_and(|spec| spec == version)
+            //     } else {
+            //         false
+            //     };
+
+            //     if remove {
+            //         versions.remove(&args.id);
+            //     }
+            // }
         })?;
     }
 
