@@ -24,13 +24,25 @@ pub async fn unalias(session: ProtoSession, args: UnaliasArgs) -> AppResult {
 
     let config_path = ProtoConfig::update_document(tool.proto.get_config_dir(args.from), |doc| {
         if let Some(tools) = doc["tools"].as_table_mut() {
-            if let Some(record) = tools.get_mut(&tool.id) {
+            if let Some(record) = tools.get_mut(&tool.id).and_then(|item| item.as_table_mut()) {
                 if let Some(aliases) = record
                     .get_mut("aliases")
                     .and_then(|item| item.as_table_mut())
                 {
                     value = aliases.remove(&args.alias);
+
+                    if aliases.is_empty() {
+                        record.remove("aliases");
+                    }
                 }
+
+                if record.is_empty() {
+                    tools.remove(&tool.id);
+                }
+            }
+
+            if tools.is_empty() {
+                doc.as_table_mut().remove("tools");
             }
         }
 

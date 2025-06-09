@@ -24,18 +24,36 @@ pub async fn remove(session: ProtoSession, args: RemovePluginArgs) -> AppResult 
         return Err(ProtoCliError::MissingToolsConfigInCwd { path: config_path }.into());
     }
 
-    let config_path = ProtoConfig::update(config_dir, |config| {
-        if let Some(plugins) = &mut config.plugins {
+    let config_path = ProtoConfig::update_document(config_dir, |doc| {
+        if let Some(plugins) = doc["plugins"].as_table_mut() {
             plugins.remove(&args.id);
+
+            if plugins.is_empty() {
+                doc.as_table_mut().remove("plugins");
+            }
         }
 
-        if let Some(tools) = &mut config.tools {
+        if let Some(tools) = doc["tools"].as_table_mut() {
             tools.remove(&args.id);
+
+            if tools.is_empty() {
+                doc.as_table_mut().remove("tools");
+            }
         }
 
-        if let Some(versions) = &mut config.versions {
-            versions.remove(&args.id);
-        }
+        doc.as_table_mut().remove(&args.id);
+
+        // if let Some(plugins) = &mut config.plugins {
+        //     plugins.remove(&args.id);
+        // }
+
+        // if let Some(tools) = &mut config.tools {
+        //     tools.remove(&args.id);
+        // }
+
+        // if let Some(versions) = &mut config.versions {
+        //     versions.remove(&args.id);
+        // }
     })?;
 
     session.console.render(element! {
