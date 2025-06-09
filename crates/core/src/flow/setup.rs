@@ -1,4 +1,5 @@
 pub use super::setup_error::ProtoSetupError;
+use crate::cfg;
 use crate::config::{PinLocation, ProtoConfig};
 use crate::flow::install::{InstallOptions, ProtoInstallError};
 use crate::layout::BinManager;
@@ -84,10 +85,8 @@ impl Tool {
 
         // Pin the global version
         ProtoConfig::update_document(self.proto.get_config_dir(PinLocation::Global), |doc| {
-            use toml_edit::value;
-
             doc[self.id.as_str()] =
-                value(ToolSpec::new_backend(default_version, self.backend).to_string());
+                cfg::value(ToolSpec::new_backend(default_version, self.backend).to_string());
 
             // config
             //     .versions

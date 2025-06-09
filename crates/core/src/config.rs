@@ -625,6 +625,13 @@ impl ProtoConfig {
         Ok(file)
     }
 
+    pub fn save_partial_to<P: AsRef<Path> + Debug>(
+        dir: P,
+        config: PartialProtoConfig,
+    ) -> Result<PathBuf, ProtoConfigError> {
+        Self::save_to(dir, toml::format(&config, true)?)
+    }
+
     #[deprecated]
     pub fn update<P: AsRef<Path>, F: FnOnce(&mut PartialProtoConfig)>(
         dir: P,
@@ -635,7 +642,7 @@ impl ProtoConfig {
 
         op(&mut config);
 
-        Self::save_to(dir, toml::format(&config, true)?)
+        Self::save_partial_to(dir, config)
     }
 
     pub fn update_document<P: AsRef<Path>, F: FnOnce(&mut DocumentMut)>(

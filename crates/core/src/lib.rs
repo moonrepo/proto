@@ -37,14 +37,13 @@ pub use semver::{Version, VersionReq};
 pub use warpgate;
 pub use warpgate::{Id, PluginLocator};
 
+// For document editing
 pub mod cfg {
-    pub mod toml {
-        pub use toml_edit::*;
+    pub use toml_edit::*;
 
-        pub fn implicit_table() -> Item {
-            let mut item = table();
-            item.as_table_mut().unwrap().set_implicit(true);
-            item
-        }
+    pub fn implicit_table() -> Item {
+        let mut item = table();
+        item.as_table_mut().unwrap().set_implicit(true);
+        item
     }
 }

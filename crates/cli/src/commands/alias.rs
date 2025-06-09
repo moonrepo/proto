@@ -3,7 +3,7 @@ use crate::session::ProtoSession;
 use clap::Args;
 use iocraft::prelude::element;
 use proto_core::{
-    Id, PinLocation, ProtoConfig, ToolSpec, UnresolvedVersionSpec, cfg::toml, is_alias_name,
+    Id, PinLocation, ProtoConfig, ToolSpec, UnresolvedVersionSpec, cfg, is_alias_name,
 };
 use starbase::AppResult;
 use starbase_console::ui::*;
@@ -41,11 +41,11 @@ pub async fn alias(session: ProtoSession, args: AliasArgs) -> AppResult {
     let tool = session.load_tool(&args.id, args.spec.backend).await?;
 
     let config_path = ProtoConfig::update_document(tool.proto.get_config_dir(args.to), |doc| {
-        let tools = doc["tools"].or_insert(toml::implicit_table());
-        let record = tools[tool.id.as_str()].or_insert(toml::implicit_table());
-        let aliases = record["aliases"].or_insert(toml::implicit_table());
+        let tools = doc["tools"].or_insert(cfg::implicit_table());
+        let record = tools[tool.id.as_str()].or_insert(cfg::implicit_table());
+        let aliases = record["aliases"].or_insert(cfg::implicit_table());
 
-        aliases[&args.alias] = toml::value(args.spec.to_string());
+        aliases[&args.alias] = cfg::value(args.spec.to_string());
 
         // let tool_configs = config.tools.get_or_insert(Default::default());
 
