@@ -134,7 +134,7 @@ impl ProtoEnvironment {
             .files
             .iter()
             .filter(|file| {
-                !(!self.config_mode.includes_global() && file.global
+                !(!self.config_mode.includes_global() && file.location == PinLocation::Global
                     || self.config_mode.only_local()
                         && file.path.parent().is_none_or(|p| p != self.working_dir))
             })
@@ -160,10 +160,14 @@ impl ProtoEnvironment {
 
             manager.files.push(ProtoConfigFile {
                 exists: path.exists(),
-                global: true,
+                location: PinLocation::Global,
                 path,
                 config: ProtoConfig::load_from(&self.store.dir, true)?,
             });
+
+            // Remove the pinned `proto` version from global/user configs,
+            // as it causes massive recursion and `proto` process chains
+            manager.remove_proto_pins();
 
             Ok(manager)
         })

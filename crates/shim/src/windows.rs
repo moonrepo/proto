@@ -1,14 +1,28 @@
-use process_wrap::std::*;
 use std::fs;
-use std::io;
+use std::io::{self, Error, ErrorKind};
 use std::path::Path;
 use std::process::{Command, exit};
+use windows_sys::Win32::Foundation::{BOOL, FALSE, TRUE};
+use windows_sys::Win32::System::Console::SetConsoleCtrlHandler;
 
-// Use job objects for process grouping, as there's no way to replace the process.
-// @see https://github.com/rust-lang/cargo/blob/master/crates/cargo-util/src/process_builder.rs#L617
-pub fn exec_command_and_replace(command: Command) -> io::Result<()> {
-    let mut command = StdCommandWrap::from(command);
-    command.wrap(JobObject);
+// @see https://github.com/rust-lang/cargo/blob/master/crates/cargo-util/src/process_builder.rs#L605
+unsafe extern "system" fn ctrlc_handler(_: u32) -> BOOL {
+    // Do nothing; let the child process handle it.
+    TRUE
+}
+
+// Do "nothing", since Windows sends CTRL-C/BREAK to all processes connected
+// to the current console. However, we don't want the shim process to capture it,
+// but the underlying process should, so try and pass it through.
+pub fn exec_command_and_replace(mut command: Command) -> io::Result<()> {
+    unsafe {
+        if SetConsoleCtrlHandler(Some(ctrlc_handler), TRUE) == FALSE {
+            return Err(Error::new(
+                ErrorKind::Other,
+                "Could not set Ctrl-C handler.",
+            ));
+        }
+    }
 
     let mut child = command.spawn()?;
     let status = child.wait()?;

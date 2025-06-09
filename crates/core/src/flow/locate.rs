@@ -31,7 +31,7 @@ impl Tool {
                 "locate_executables",
                 LocateExecutablesInput {
                     context: self.create_context(),
-                    install_dir: self.to_virtual_path(&self.get_product_dir()),
+                    install_dir: self.to_virtual_path(self.get_product_dir()),
                 },
             )
             .await
@@ -113,7 +113,11 @@ impl Tool {
         // and append it to the master list
         for (bucket_version, resolved_version) in versions {
             if let Some(resolved_setting) = self.inventory.manifest.versions.get(resolved_version) {
-                self.backend = resolved_setting.backend;
+                self.backend = resolved_setting
+                    .lock
+                    .as_ref()
+                    .and_then(|lock| lock.backend)
+                    .or(resolved_setting.backend);
             }
 
             // Locate the executables for this specific version,
@@ -128,7 +132,7 @@ impl Tool {
                     "locate_executables",
                     LocateExecutablesInput {
                         context: self.create_context(),
-                        install_dir: self.to_virtual_path(&self.get_product_dir()),
+                        install_dir: self.to_virtual_path(self.get_product_dir()),
                     },
                 )
                 .await?;

@@ -1,5 +1,6 @@
 use serde::Serialize;
-use starbase_utils::env::path_var;
+use starbase_utils::env::{is_ci, path_var};
+use starbase_utils::fs;
 use std::collections::HashMap;
 use std::env;
 use std::path::{Path, PathBuf};
@@ -57,7 +58,7 @@ pub fn find_target_dir<T: AsRef<Path>>(search_dir: T) -> Option<PathBuf> {
     traverse_target_dir(search_dir, "")
 }
 
-/// Find an applicable WASM file to return tests with. Will attempt to find
+/// Find an applicable WASM file to run tests with. Will attempt to find
 /// the file based on the Cargo package name and target directories.
 pub fn find_wasm_file() -> PathBuf {
     let wasm_file = format!(
@@ -76,6 +77,38 @@ pub fn find_wasm_file() -> PathBuf {
     panic!(
         "WASM file `{}` does not exist. Please build it with `cargo build --target wasm32-wasip1` before running tests!",
         wasm_file
+    );
+}
+
+/// Enable logging for the provided WASM file by extracting any `tracing` logs
+/// fired from within WASM and writing them to a local file in the current directory.
+pub fn enable_wasm_logging(wasm_file: &Path) {
+    use std::io::Write;
+
+    let log_file = std::env::current_dir().unwrap().join(
+        wasm_file
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or_default()
+            .replace(".wasm", ".log"),
+    );
+
+    // Remove the file otherwise it keeps growing
+    if log_file.exists() {
+        let _ = fs::remove_file(&log_file);
+    }
+
+    let _ = extism::set_log_callback(
+        move |line| {
+            let mut file = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(&log_file)
+                .unwrap();
+
+            file.write_all(line.as_bytes()).unwrap();
+        },
+        "trace",
     );
 }
 
@@ -101,8 +134,8 @@ impl ConfigBuilder {
 
         if !self.config.contains_key("test_environment") {
             self.test_environment(TestEnvironment {
-                ci: env::var("CI").is_ok(),
-                sandbox: self.sandbox_root.clone(),
+                ci: is_ci(),
+                sandbox: VirtualPath::Real(self.sandbox_root.clone()),
             });
         }
 
@@ -118,6 +151,7 @@ impl ConfigBuilder {
     pub fn host(&mut self, os: HostOS, arch: HostArch) -> &mut Self {
         self.host_environment(HostEnvironment {
             arch,
+            ci: is_ci(),
             libc: HostLibc::detect(os),
             os,
             home_dir: VirtualPath::default(),
@@ -126,7 +160,7 @@ impl ConfigBuilder {
 
     pub fn host_environment(&mut self, mut env: HostEnvironment) -> &mut Self {
         if env.home_dir.real_path().is_none() || env.home_dir.virtual_path().is_none() {
-            env.home_dir = VirtualPath::WithReal {
+            env.home_dir = VirtualPath::Virtual {
                 path: PathBuf::from("/userhome"),
                 virtual_prefix: PathBuf::from("/userhome"),
                 real_prefix: self.sandbox_home_dir.clone(),

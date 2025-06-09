@@ -48,6 +48,13 @@ impl ToolSpec {
     pub fn resolve(&mut self, res: VersionSpec) {
         self.res = Some(res);
     }
+
+    pub fn to_resolved_spec(&self) -> VersionSpec {
+        match self.res.clone() {
+            Some(res) => res,
+            None => self.req.to_resolved_spec(),
+        }
+    }
 }
 
 impl FromStr for ToolSpec {

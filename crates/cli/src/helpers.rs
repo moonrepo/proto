@@ -1,8 +1,10 @@
+use crate::error::ProtoCliError;
 use miette::IntoDiagnostic;
 use semver::Version;
 use starbase_console::ui::{ConsoleTheme, Style, style_to_color};
 use starbase_styles::color;
 use starbase_utils::json::JsonValue;
+use std::env;
 use tracing::debug;
 
 pub fn create_console_theme() -> ConsoleTheme {
@@ -31,25 +33,61 @@ pub fn create_console_theme() -> ConsoleTheme {
     theme
 }
 
-pub async fn fetch_latest_version() -> miette::Result<Version> {
-    let client = reqwest::Client::new();
-    let release: JsonValue = client
-        .get("https://api.github.com/repos/moonrepo/proto/releases/latest")
-        .header("User-Agent", "moonrepo-proto-cli")
-        .send()
-        .await
-        .into_diagnostic()?
-        .json()
-        .await
-        .into_diagnostic()?;
+async fn fetch_from_github(url: &str) -> reqwest::Result<reqwest::Response> {
+    let mut request = reqwest::Client::new()
+        .get(url)
+        .header("User-Agent", "moonrepo-proto-cli");
 
-    let version = release["tag_name"]
-        .as_str()
-        .ok_or_else(|| miette::miette!("Invalid release format"))?
-        .trim_start_matches('v')
-        .to_string();
+    if let Ok(token) = env::var("PROTO_GITHUB_TOKEN") {
+        request = request.header("Authorization", format!("Bearer {token}"));
+    }
+
+    request.send().await
+}
+
+async fn inner_fetch_latest_version() -> reqwest::Result<Option<String>> {
+    let response =
+        fetch_from_github("https://api.github.com/repos/moonrepo/proto/releases/latest").await?;
+
+    if response.status().is_success() {
+        let release: JsonValue = response.json().await?;
+
+        if let Some(JsonValue::String(tag)) = release.get("tag_name") {
+            return Ok(Some(tag.trim_start_matches('v').to_string()));
+        }
+    }
+
+    // Tag field doesn't exist, or the request failed,
+    // or the data is incomplete, so fallback
+    let response =
+        fetch_from_github("https://raw.githubusercontent.com/moonrepo/proto/master/version")
+            .await?;
+
+    if response.status().is_success() {
+        return Ok(Some(response.text().await?.trim().to_string()));
+    }
+
+    Ok(None)
+}
+
+pub async fn fetch_latest_version() -> miette::Result<Version> {
+    let Some(version) = inner_fetch_latest_version().await.into_diagnostic()? else {
+        return Err(ProtoCliError::FailedToFetchVersion.into());
+    };
 
     debug!("Found latest version {}", color::hash(&version));
 
-    Ok(Version::parse(&version).unwrap())
+    Version::parse(&version).into_diagnostic()
+}
+
+pub fn join_list(mut list: Vec<String>) -> String {
+    match list.len() {
+        0 => String::new(),
+        1 | 2 => list.join(" and "),
+        _ => {
+            let last = list.remove(list.len() - 1);
+
+            format!("{}, and {}", list.join(", "), last)
+        }
+    }
 }

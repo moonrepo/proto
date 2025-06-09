@@ -8,7 +8,7 @@ use async_trait::async_trait;
 use miette::IntoDiagnostic;
 use proto_core::{
     Backend, ConfigMode, Id, ProtoConfig, ProtoEnvironment, SCHEMA_PLUGIN_KEY, ToolSpec,
-    UnresolvedVersionSpec, load_schema_plugin_with_proto, load_tool, registry::ProtoRegistry,
+    load_schema_plugin_with_proto, load_tool, registry::ProtoRegistry,
 };
 use rustc_hash::FxHashSet;
 use semver::Version;
@@ -60,7 +60,6 @@ impl ProtoSession {
                 | Commands::Bin(_)
                 | Commands::Clean(_)
                 | Commands::Completions(_)
-                | Commands::Run(_)
                 | Commands::Setup(_)
                 | Commands::Upgrade(_)
         )
@@ -101,22 +100,21 @@ impl ProtoSession {
         }
 
         if options.detect_version {
-            record.detect_version().await;
+            record.detect_version_and_source().await;
 
-            let spec = ToolSpec::new_backend(
-                record
-                    .detected_version
-                    .clone()
-                    .unwrap_or_else(|| UnresolvedVersionSpec::parse("*").unwrap()),
-                backend,
-            );
+            let mut spec = record
+                .detected_version
+                .clone()
+                .unwrap_or_else(|| ToolSpec::parse("*").unwrap());
+            spec.backend = backend;
 
-            record.tool.resolve_version_with_spec(&spec, false).await?;
+            record.tool.resolve_version(&spec, false).await?;
         }
 
         Ok(record)
     }
 
+    /// Load tools that have a configured version.
     pub async fn load_tools(&self) -> miette::Result<Vec<ToolRecord>> {
         self.load_tools_with_options(LoadToolOptions::default())
             .await
@@ -156,7 +154,7 @@ impl ProtoSession {
         let opt_detect_version = options.detect_version;
 
         for id in ids {
-            if !options.ids.is_empty() && !options.ids.contains(id) {
+            if !options.ids.contains(id) {
                 continue;
             }
 
@@ -176,7 +174,7 @@ impl ProtoSession {
                 }
 
                 if opt_detect_version {
-                    record.detect_version().await;
+                    record.detect_version_and_source().await;
                 }
 
                 Ok(record)
@@ -196,7 +194,7 @@ impl ProtoSession {
         Ok(records)
     }
 
-    #[allow(dead_code)]
+    /// Load all tools, even those not configured with a version.
     pub async fn load_all_tools(&self) -> miette::Result<Vec<ToolRecord>> {
         self.load_all_tools_with_options(LoadToolOptions::default())
             .await
@@ -265,10 +263,11 @@ impl AppSession for ProtoSession {
     }
 
     async fn execute(&mut self) -> AppResult {
+        remove_proto_shims(&self.env)?;
         clean_proto_backups(&self.env)?;
 
         if self.should_check_for_new_version() {
-            check_for_new_version(Arc::clone(&self.env), &self.cli_version).await?;
+            check_for_new_version(&self.env, &self.console, &self.cli_version).await?;
         }
 
         Ok(None)

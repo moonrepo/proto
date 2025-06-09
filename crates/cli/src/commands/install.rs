@@ -1,4 +1,5 @@
 use crate::error::ProtoCliError;
+use crate::helpers::join_list;
 use crate::session::{LoadToolOptions, ProtoSession};
 use crate::utils::install_graph::*;
 use crate::utils::tool_record::ToolRecord;
@@ -23,7 +24,6 @@ pub struct InstallArgs {
     pub id: Option<Id>,
 
     #[arg(
-        default_value = "latest",
         help = "When installing one tool, the version specification to install",
         group = "version-type"
     )]
@@ -62,6 +62,9 @@ pub struct InstallArgs {
         help = "When installing one tool, additional arguments to pass to the tool"
     )]
     pub passthrough: Vec<String>,
+
+    #[arg(long, help = "Hide install progress output excluding errors")]
+    pub quiet: bool,
 
     // Used internally by other commands to trigger conditional logic
     #[arg(hide = true, long)]
@@ -106,14 +109,6 @@ impl InstallArgs {
     fn get_pin_location(&self) -> Option<PinLocation> {
         self.pin.as_ref().map(|pin| pin.unwrap_or_default())
     }
-
-    fn get_tool_spec(&self) -> ToolSpec {
-        if self.canary {
-            ToolSpec::new(UnresolvedVersionSpec::Canary)
-        } else {
-            self.spec.clone().unwrap_or_default()
-        }
-    }
 }
 
 pub fn enforce_requirements(tool: &Tool, versions: &BTreeMap<Id, ToolSpec>) -> miette::Result<()> {
@@ -134,8 +129,21 @@ pub fn enforce_requirements(tool: &Tool, versions: &BTreeMap<Id, ToolSpec>) -> m
 pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> AppResult {
     debug!(id = id.as_str(), "Loading tool");
 
-    let spec = args.get_tool_spec();
-    let tool = session.load_tool(&id, spec.backend).await?;
+    let tool = session
+        .load_tool(&id, args.spec.as_ref().and_then(|spec| spec.backend))
+        .await?;
+
+    // Attempt to detect a version if one was not provided,
+    // otherwise fallback to "latest"
+    let spec = if args.canary {
+        ToolSpec::new(UnresolvedVersionSpec::Canary)
+    } else if let Some(spec) = &args.spec {
+        spec.to_owned()
+    } else if let Some((spec, _)) = tool.detect_version_from(&session.env.working_dir).await? {
+        ToolSpec::new(spec)
+    } else {
+        ToolSpec::default()
+    };
 
     // Load config including global versions,
     // so that our requirements can be satisfied
@@ -146,33 +154,37 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
     }
 
     // Create our workflow and setup the progress reporter
-    let mut workflow_manager = InstallWorkflowManager::new(session.console.clone());
+    let mut workflow_manager = InstallWorkflowManager::new(session.console.clone(), args.quiet);
     let mut workflow = workflow_manager.create_workflow(tool);
 
     if workflow.is_build(args.get_strategy()) {
-        session.console.render(element! {
-            Notice(variant: Variant::Caution) {
-                StyledText(
-                    content: "Building from source is currently unstable. Please report general issues to <url>https://github.com/moonrepo/proto</url>",
-                )
-                StyledText(
-                    content: "and tool specific issues to <url>https://github.com/moonrepo/plugins</url>.",
-                )
-            }
-        })?;
+        if !args.quiet {
+            session.console.render(element! {
+                Notice(variant: Variant::Caution) {
+                    StyledText(
+                        content: "Building from source is currently unstable. Please report general issues to <url>https://github.com/moonrepo/proto</url>",
+                    )
+                    StyledText(
+                        content: "and tool specific issues to <url>https://github.com/moonrepo/plugins</url>.",
+                    )
+                }
+            })?;
+        }
     } else {
         workflow_manager.render_single_progress().await;
     }
 
     let result = workflow
-        .install(
+        .install_with_logging(
             spec,
             InstallWorkflowParams {
+                log_writer: None,
                 pin_to: args.get_pin_location(),
                 strategy: args.get_strategy(),
                 force: args.force,
                 multiple: false,
                 passthrough_args: args.passthrough,
+                quiet: args.quiet,
                 skip_prompts: session.should_skip_prompts(),
             },
         )
@@ -183,7 +195,7 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
     let outcome = result?;
     let tool = workflow.tool;
 
-    if args.internal {
+    if args.internal || args.quiet {
         session.console.err.flush()?;
         session.console.out.flush()?;
 
@@ -191,7 +203,7 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
     }
 
     match outcome {
-        InstallOutcome::Installed => {
+        InstallOutcome::Installed(_) => {
             session.console.render(element! {
                 Notice(variant: Variant::Success) {
                     StyledText(
@@ -205,7 +217,7 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
                 }
             })?;
         }
-        InstallOutcome::AlreadyInstalled => {
+        InstallOutcome::AlreadyInstalled(_) => {
             session.console.render(element! {
                 Notice(variant: Variant::Info) {
                     StyledText(
@@ -241,7 +253,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
         if let Some(candidate) = &tool.detected_version {
             debug!("Detected version {} for {}", candidate, tool.get_name());
 
-            versions.insert(tool.id.clone(), ToolSpec::new(candidate.to_owned()));
+            versions.insert(tool.id.clone(), candidate.to_owned());
         }
     }
 
@@ -284,7 +296,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
 
     // Then install each tool in parallel!
     let mut topo_graph = InstallGraph::new(&tools);
-    let mut workflow_manager = InstallWorkflowManager::new(session.console.clone());
+    let mut workflow_manager = InstallWorkflowManager::new(session.console.clone(), args.quiet);
     let mut set = JoinSet::new();
     let started = Instant::now();
     let force = args.force;
@@ -314,7 +326,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
                         ));
 
                         // Abort since requirement failed
-                        return InstallOutcome::FailedToInstall;
+                        return InstallOutcome::FailedToInstall(workflow.tool.id.clone());
                     }
                     InstallStatus::WaitingOnReqs(waiting_on) => {
                         workflow.progress_reporter.set_message(format!(
@@ -335,15 +347,17 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
             }
 
             match workflow
-                .install(
+                .install_with_logging(
                     initial_version,
                     InstallWorkflowParams {
                         force,
+                        log_writer: None,
                         multiple: true,
                         passthrough_args: vec![],
                         pin_to,
                         skip_prompts,
                         strategy,
+                        quiet: args.quiet,
                     },
                 )
                 .await
@@ -359,7 +373,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
                     );
 
                     topo_graph.mark_not_installed(&workflow.tool.id).await;
-                    InstallOutcome::FailedToInstall
+                    InstallOutcome::FailedToInstall(workflow.tool.id.clone())
                 }
             }
         });
@@ -374,8 +388,8 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
     workflow_manager.render_multiple_progress().await;
     topo_graph.proceed();
 
-    let mut installed_count = 0;
-    let mut failed_count = 0;
+    let mut installed = vec![];
+    let mut failed = vec![];
 
     while let Some(result) = set.join_next_with_id().await {
         match result {
@@ -385,21 +399,32 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
                     "Spawned task failed: {}", error
                 );
 
-                failed_count += 1;
+                // What to do here?
+                failed.push(Id::raw("unknown"));
             }
             Ok((task_id, outcome)) => {
                 trace!(task_id = task_id.to_string(), "Spawned task successful");
 
-                if matches!(outcome, InstallOutcome::FailedToInstall) {
-                    failed_count += 1;
-                } else {
-                    installed_count += 1;
+                match outcome {
+                    InstallOutcome::FailedToInstall(id) => {
+                        failed.push(id);
+                    }
+                    InstallOutcome::AlreadyInstalled(id) | InstallOutcome::Installed(id) => {
+                        installed.push(id);
+                    }
                 }
             }
         };
     }
 
     workflow_manager.stop_rendering().await?;
+
+    let installed_count = installed.len();
+    let failed_count = failed.len();
+
+    if args.quiet && failed_count == 0 {
+        return Ok(None);
+    }
 
     session.console.render(element! {
         Notice(
@@ -413,8 +438,8 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
                 element! {
                     StyledText(
                         content: format!(
-                            "Installed {} tools in {}!",
-                            installed_count,
+                            "Installed {} in {}!",
+                            join_list(installed.into_iter().map(color::id).collect::<Vec<_>>()),
                             format_duration(started.elapsed(), false),
                         ),
                     )
@@ -423,14 +448,17 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
             #((failed_count > 0).then(|| {
                 element! {
                     StyledText(
-                        content: format!("Failed to install {} tools!", failed_count),
+                        content: format!(
+                            "Failed to install {}! A log has been written to the current directory.",
+                            join_list(failed.into_iter().map(color::id).collect::<Vec<_>>()),
+                        ),
                     )
                 }
             }))
         }
     })?;
 
-    Ok(None)
+    Ok(Some(failed_count as u8))
 }
 
 #[instrument(skip(session))]

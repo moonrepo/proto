@@ -1,27 +1,18 @@
 use crate::config::{PinLocation, ProtoConfig};
 use crate::flow::install::InstallOptions;
 use crate::layout::BinManager;
+use crate::lockfile::LockfileRecord;
 use crate::tool::Tool;
 use crate::tool_manifest::ToolManifestVersion;
 use crate::tool_spec::ToolSpec;
-use proto_pdk_api::*;
 use starbase_utils::fs;
 use tracing::{debug, instrument};
 
 impl Tool {
-    #[instrument(skip(self))]
-    pub async fn is_setup_with_spec(&mut self, spec: &ToolSpec) -> miette::Result<bool> {
-        self.resolve_version_with_spec(spec, true).await?;
-        self.is_setup(&spec.req).await
-    }
-
     /// Return true if the tool has been setup (installed and binaries are located).
     #[instrument(skip(self))]
-    pub async fn is_setup(
-        &mut self,
-        initial_version: &UnresolvedVersionSpec,
-    ) -> miette::Result<bool> {
-        self.resolve_version(initial_version, true).await?;
+    pub async fn is_setup(&mut self, spec: &ToolSpec) -> miette::Result<bool> {
+        self.resolve_version(spec, true).await?;
 
         let install_dir = self.get_product_dir();
 
@@ -54,29 +45,20 @@ impl Tool {
         Ok(false)
     }
 
-    #[instrument(skip(self, options))]
-    pub async fn setup_with_spec(
-        &mut self,
-        spec: &ToolSpec,
-        options: InstallOptions,
-    ) -> miette::Result<bool> {
-        self.resolve_version_with_spec(spec, false).await?;
-        self.setup(&spec.req, options).await
-    }
-
     /// Setup the tool by resolving a semantic version, installing the tool,
     /// locating binaries, creating shims, and more.
     #[instrument(skip(self, options))]
     pub async fn setup(
         &mut self,
-        initial_version: &UnresolvedVersionSpec,
+        spec: &ToolSpec,
         options: InstallOptions,
-    ) -> miette::Result<bool> {
-        let version = self.resolve_version(initial_version, false).await?;
+    ) -> miette::Result<Option<LockfileRecord>> {
+        let version = self.resolve_version(spec, false).await?;
 
-        if !self.install(options).await? {
-            return Ok(false);
-        }
+        // Returns nothing if already installed
+        let Some(record) = self.install(options).await? else {
+            return Ok(self.inventory.get_locked_record(&version).cloned());
+        };
 
         let default_version = self
             .metadata
@@ -90,7 +72,8 @@ impl Tool {
         manifest.versions.insert(
             version.clone(),
             ToolManifestVersion {
-                backend: self.backend,
+                lock: Some(record.clone()),
+                suffix: self.inventory.config.version_suffix.clone(),
                 ..Default::default()
             },
         );
@@ -115,7 +98,7 @@ impl Tool {
         // Remove temp files
         self.cleanup().await?;
 
-        Ok(true)
+        Ok(Some(record))
     }
 
     /// Teardown the tool by uninstalling the current version, removing the version
@@ -172,7 +155,7 @@ impl Tool {
             }
         })?;
 
-        // Remove version from manifest
+        // Remove version from manifest/lockfile
         // We must do this last because the location resolves above
         // require `installed_versions` to have values!
         let manifest = &mut self.inventory.manifest;

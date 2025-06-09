@@ -1,13 +1,16 @@
 mod build;
+mod checksum;
 mod source;
 
 use crate::shapes::*;
+use derive_setters::Setters;
 use rustc_hash::FxHashMap;
 use std::path::PathBuf;
 use version_spec::{CalVer, SemVer, SpecError, UnresolvedVersionSpec, VersionSpec};
 use warpgate_api::*;
 
 pub use build::*;
+pub use checksum::*;
 pub use semver::{Version, VersionReq};
 pub use source::*;
 
@@ -19,7 +22,7 @@ api_struct!(
     /// Information about the current state of the tool.
     pub struct ToolContext {
         /// The version of proto (the core crate) calling plugin functions.
-        #[serde(default)]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         pub proto_version: Option<Version>,
 
         /// Virtual path to the tool's temporary directory.
@@ -37,14 +40,19 @@ api_struct!(
     /// Information about the current state of the tool.
     pub struct ToolUnresolvedContext {
         /// The version of proto (the core crate) calling plugin functions.
-        #[serde(default)]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         pub proto_version: Option<Version>,
 
         /// Virtual path to the tool's temporary directory.
         pub temp_dir: VirtualPath,
 
         /// Current version if defined.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         pub version: Option<VersionSpec>,
+
+        // TODO: temporary compat with `ToolContext`
+        #[doc(hidden)]
+        pub tool_dir: VirtualPath,
     }
 );
 
@@ -255,6 +263,10 @@ api_struct!(
 api_struct!(
     /// Output returned by the `native_install` function.
     pub struct NativeInstallOutput {
+        /// A checksum/hash that was generated.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub checksum: Option<Checksum>,
+
         /// Error message if the install failed.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub error: Option<String>,
@@ -316,7 +328,7 @@ api_struct!(
 
         /// The checksum hash itself.
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        pub checksum: Option<String>,
+        pub checksum: Option<Checksum>,
 
         /// File name of the checksum to download. If not provided,
         /// will attempt to extract it from the URL.
@@ -365,6 +377,12 @@ api_struct!(
         /// Virtual path to the checksum file.
         pub checksum_file: VirtualPath,
 
+        /// A checksum of the downloaded file. The type of hash
+        /// is derived from the checksum file's extension, otherwise
+        /// it defaults to SHA256.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub download_checksum: Option<Checksum>,
+
         /// Virtual path to the downloaded file.
         pub download_file: VirtualPath,
     }
@@ -373,6 +391,7 @@ api_struct!(
 api_struct!(
     /// Output returned by the `verify_checksum` function.
     pub struct VerifyChecksumOutput {
+        /// Was the checksum correct?
         pub verified: bool,
     }
 );
@@ -392,15 +411,18 @@ api_struct!(
 
 api_struct!(
     /// Configuration for generated shim and symlinked binary files.
+    #[derive(Setters)]
     #[serde(default)]
     pub struct ExecutableConfig {
         /// The file to execute, relative from the tool directory.
         /// Does *not* support virtual paths.
+        #[setters(no_option)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub exe_path: Option<PathBuf>,
 
         /// The executable path to use for symlinking binaries instead of `exe_path`.
         /// This should only be used when `exe_path` is a non-standard executable.
+        #[setters(no_option)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub exe_link_path: Option<PathBuf>,
 
@@ -412,7 +434,13 @@ api_struct!(
         #[serde(skip_serializing_if = "is_false")]
         pub no_shim: bool,
 
+        /// List of arguments to append to the parent executable, but prepend before
+        /// all other arguments.
+        #[serde(skip_serializing_if = "Vec::is_empty")]
+        pub parent_exe_args: Vec<String>,
+
         /// The parent executable name required to execute the local executable path.
+        #[setters(into, no_option)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub parent_exe_name: Option<String>,
 
@@ -421,14 +449,17 @@ api_struct!(
         pub primary: bool,
 
         /// Custom args to prepend to user-provided args within the generated shim.
+        #[setters(no_option)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub shim_before_args: Option<StringOrVec>,
 
         /// Custom args to append to user-provided args within the generated shim.
+        #[setters(no_option)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub shim_after_args: Option<StringOrVec>,
 
         /// Custom environment variables to set when executing the shim.
+        #[setters(no_option)]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub shim_env_vars: Option<FxHashMap<String, String>>,
     }

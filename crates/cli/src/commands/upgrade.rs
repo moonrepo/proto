@@ -155,17 +155,15 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
     )
     .await?;
 
+    let tool_dir = session.env.store.inventory_dir.join(PROTO_PLUGIN_KEY);
+    let is_current_exe_managed = env::current_exe().is_ok_and(|exe| exe.starts_with(&tool_dir));
+
     let upgraded = replace_binaries(
-        session
-            .env
-            .store
-            .inventory_dir
-            .join(PROTO_PLUGIN_KEY)
-            .join(target_version.to_string()),
+        tool_dir.join(target_version.to_string()),
         session.env.store.bin_dir.clone(),
         // Don't relocate within our CI pipeline as it causes issues,
         // but do relocate for other user's CI and local development
-        env::var("PROTO_TEST").is_err(),
+        !is_current_exe_managed && env::var("PROTO_TEST").is_err(),
     )?;
 
     // Track usage metrics

@@ -11,7 +11,15 @@ use starbase_styles::color::Color as ColorType;
 use std::{
     env,
     fmt::{Display, Error, Formatter},
+    path::PathBuf,
 };
+
+#[derive(ValueEnum, Clone, Debug, Default)]
+pub enum AppTheme {
+    #[default]
+    Dark,
+    Light,
+}
 
 #[derive(ValueEnum, Clone, Debug, Default)]
 pub enum LogLevel {
@@ -108,12 +116,11 @@ pub struct App {
 
     #[arg(
         long,
-        short = 'y',
         global = true,
-        env = "PROTO_YES",
-        help = "Avoid all interactive prompts and use defaults"
+        env = "PROTO_LOG_FILE",
+        help = "Path to a file to write logs to"
     )]
-    pub yes: bool,
+    pub log_file: Option<PathBuf>,
 
     #[arg(
         long,
@@ -122,6 +129,25 @@ pub struct App {
         help = "Print as JSON (when applicable)"
     )]
     pub json: bool,
+
+    #[arg(
+        value_enum,
+        default_value_t,
+        long,
+        global = true,
+        env = "PROTO_THEME",
+        help = "Terminal theme to print with"
+    )]
+    pub theme: AppTheme,
+
+    #[arg(
+        long,
+        short = 'y',
+        global = true,
+        env = "PROTO_YES",
+        help = "Avoid all interactive prompts and use defaults"
+    )]
+    pub yes: bool,
 
     #[command(subcommand)]
     pub command: Commands,
@@ -136,6 +162,14 @@ impl App {
             if let Ok(value) = env::var("PROTO_DEBUG_COMMAND") {
                 env::set_var("WARPGATE_DEBUG_COMMAND", value);
             }
+
+            env::set_var(
+                "STARBASE_THEME",
+                match self.theme {
+                    AppTheme::Dark => "dark",
+                    AppTheme::Light => "light",
+                },
+            );
 
             // Disable ANSI colors in JSON output
             if self.json {

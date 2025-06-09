@@ -2,8 +2,8 @@ mod utils;
 
 use proto_core::flow::install::InstallOptions;
 use proto_core::{
-    Id, PluginLocator, ProtoEnvironment, Tool, UnresolvedVersionSpec, load_tool_from_locator,
-    warpgate::FileLocator, warpgate::UrlLocator,
+    Id, PluginLocator, ProtoEnvironment, Tool, ToolSpec, UnresolvedVersionSpec,
+    load_tool_from_locator, warpgate::FileLocator, warpgate::UrlLocator,
 };
 use starbase_sandbox::assert_snapshot;
 use starbase_sandbox::predicates::prelude::*;
@@ -27,7 +27,7 @@ where
     let mut tool = factory(&proto).await.unwrap();
 
     tool.setup(
-        &UnresolvedVersionSpec::parse("1.0.0").unwrap(),
+        &ToolSpec::new(UnresolvedVersionSpec::parse("1.0.0").unwrap()),
         InstallOptions::default(),
     )
     .await

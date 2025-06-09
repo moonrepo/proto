@@ -36,10 +36,11 @@ macro_rules! generate_build_install_tests {
 
             let result = plugin
                 .tool
-                .setup_with_spec(
+                .setup(
                     &spec,
                     flow::install::InstallOptions {
                         console: Some(ProtoConsole::new_testing()),
+                        log_writer: Some(Default::default()),
                         strategy: InstallStrategy::BuildFromSource,
                         skip_prompts: true,
                         skip_ui: true,
@@ -104,19 +105,15 @@ macro_rules! generate_download_install_tests {
             let mut plugin = create_plugin!(sandbox, $id, $schema);
             let mut tool = plugin.tool;
 
-            tool.resolve_version_with_spec(&ToolSpec::parse($version).unwrap(), false)
+            tool.resolve_version(&ToolSpec::parse($version).unwrap(), false)
                 .await
                 .unwrap();
 
             let temp_dir = tool.get_temp_dir();
 
-            tool.install_from_prebuilt(
-                &tool.get_product_dir(),
-                &temp_dir,
-                flow::install::InstallOptions::default(),
-            )
-            .await
-            .unwrap();
+            tool.install(flow::install::InstallOptions::default())
+                .await
+                .unwrap();
 
             assert!(temp_dir.exists());
         }
@@ -140,10 +137,10 @@ macro_rules! generate_download_install_tests {
             std::fs::create_dir_all(&tool.get_product_dir()).unwrap();
 
             assert!(
-                !tool
-                    .install(flow::install::InstallOptions::default())
+                tool.install(flow::install::InstallOptions::default())
                     .await
                     .unwrap()
+                    .is_none()
             );
         }
     };
@@ -163,7 +160,7 @@ macro_rules! generate_native_install_tests {
 
             plugin
                 .tool
-                .setup_with_spec(&spec, flow::install::InstallOptions::default())
+                .setup(&spec, flow::install::InstallOptions::default())
                 .await
                 .unwrap();
 
@@ -205,7 +202,7 @@ macro_rules! generate_resolve_versions_tests {
             let sandbox = create_empty_proto_sandbox();
             let mut plugin = create_plugin!(sandbox, $id, $schema);
 
-            plugin.tool.resolve_version_with_spec(
+            plugin.tool.resolve_version(
                 &ToolSpec::parse("latest").unwrap(),
                 false,
             ).await.unwrap();
@@ -221,7 +218,7 @@ macro_rules! generate_resolve_versions_tests {
             sandbox.sandbox.debug_files();
 
             $(
-                plugin.tool.resolve_version_with_spec(
+                plugin.tool.resolve_version(
                     &ToolSpec::parse($k).unwrap(),
                     false,
                 ).await.unwrap();
@@ -240,7 +237,7 @@ macro_rules! generate_resolve_versions_tests {
             let sandbox = create_empty_proto_sandbox();
             let mut plugin = create_plugin!(sandbox, $id, $schema);
 
-            plugin.tool.resolve_version_with_spec(
+            plugin.tool.resolve_version(
                 &ToolSpec::parse("unknown").unwrap(),
                 false,
             ).await.unwrap();
@@ -252,7 +249,7 @@ macro_rules! generate_resolve_versions_tests {
             let sandbox = create_empty_proto_sandbox();
             let mut plugin = create_plugin!(sandbox, $id, $schema);
 
-            plugin.tool.resolve_version_with_spec(
+            plugin.tool.resolve_version(
                 &ToolSpec::parse("99.99.99").unwrap(),
                 false,
             ).await.unwrap();

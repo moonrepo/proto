@@ -2,13 +2,9 @@ use crate::wrapper::WasmTestWrapper;
 use proto_core::{Backend, ProtoEnvironment, Tool, inject_proto_manifest_config};
 use starbase_sandbox::{Sandbox, create_empty_sandbox, create_sandbox};
 use std::fmt;
-use std::fs::{self, OpenOptions};
-use std::io::Write;
+use std::fs;
 use std::ops::Deref;
 use std::path::PathBuf;
-use std::rc::Rc;
-use std::sync::Mutex;
-use std::sync::atomic::{AtomicBool, Ordering};
 use warpgate::test_utils::*;
 use warpgate::{Id, Wasm, inject_default_manifest_config};
 
@@ -18,9 +14,6 @@ pub struct ProtoWasmSandbox {
     pub proto_dir: PathBuf,
     pub root: PathBuf,
     pub wasm_file: PathBuf,
-    pub wasm_logs: Rc<Mutex<Vec<String>>>,
-
-    dropped: Rc<AtomicBool>,
 }
 
 impl ProtoWasmSandbox {
@@ -40,16 +33,7 @@ impl ProtoWasmSandbox {
             root,
             sandbox,
             wasm_file,
-            wasm_logs: Rc::new(Mutex::new(vec![])),
-            dropped: Rc::new(AtomicBool::new(false)),
         }
-    }
-
-    pub fn debug_logs(&self) {
-        println!(
-            "WASM LOGS:\n{}\n",
-            self.wasm_logs.lock().unwrap().join("\n")
-        );
     }
 
     pub fn create_config(&self) -> ConfigBuilder {
@@ -88,28 +72,6 @@ impl ProtoWasmSandbox {
 
         manifest.config.extend(config.build());
 
-        // Track logs
-        // let logs = Rc::clone(&self.wasm_logs);
-        // let dropped = Rc::clone(&self.dropped);
-
-        // let _ = extism::set_log_callback(
-        //     move |line| {
-        //         if dropped.load(Ordering::Relaxed) == false
-        //             && !line.is_empty()
-        //             && (line.contains("extism::")
-        //                 || line.contains("warpgate::")
-        //                 || line.contains("proto"))
-        //         {
-        //             // Test may have finished but this closure is still executing,
-        //             // so don't unwrap() and avoid any failures
-        //             if let Ok(mut lock) = logs.try_lock() {
-        //                 lock.push(line.to_owned());
-        //             }
-        //         }
-        //     },
-        //     "debug",
-        // );
-
         WasmTestWrapper {
             tool: Tool::load_from_manifest(id, proto, manifest).await.unwrap(),
         }
@@ -141,37 +103,7 @@ impl ProtoWasmSandbox {
     }
 
     pub fn enable_logging(&self) {
-        let log_file = std::env::current_dir().unwrap().join(
-            self.wasm_file
-                .file_name()
-                .and_then(|name| name.to_str())
-                .unwrap_or_default()
-                .replace(".wasm", ".log"),
-        );
-
-        // Remove the file otherwise it keeps growing
-        if log_file.exists() {
-            let _ = fs::remove_file(&log_file);
-        }
-
-        let _ = extism::set_log_callback(
-            move |line| {
-                let mut file = OpenOptions::new()
-                    .create(true)
-                    .append(true)
-                    .open(&log_file)
-                    .unwrap();
-
-                file.write_all(line.as_bytes()).unwrap();
-            },
-            "trace",
-        );
-    }
-}
-
-impl Drop for ProtoWasmSandbox {
-    fn drop(&mut self) {
-        self.dropped.store(true, Ordering::Release)
+        enable_wasm_logging(&self.wasm_file);
     }
 }
 
@@ -190,7 +122,6 @@ impl fmt::Debug for ProtoWasmSandbox {
             .field("proto_dir", &self.proto_dir)
             .field("root", &self.root)
             .field("wasm_file", &self.wasm_file)
-            .field("wasm_logs", &self.wasm_logs)
             .finish()
     }
 }

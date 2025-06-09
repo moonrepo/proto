@@ -1,5 +1,5 @@
 use miette::Diagnostic;
-use starbase_styles::{Style, Stylize, color::apply_style_tags};
+use starbase_styles::{Style, Stylize, apply_style_tags};
 use std::path::PathBuf;
 use thiserror::Error;
 
@@ -22,6 +22,36 @@ pub enum ProtoInstallError {
     InvalidChecksum {
         checksum: PathBuf,
         download: PathBuf,
+    },
+
+    #[diagnostic(
+        code(proto::install::mismatched_checksum),
+        help = "Is this install legitimate?"
+    )]
+    #[error(
+        "Checksum mismatch! Received {} but expected {}.",
+        .checksum.style(Style::Hash),
+        .lockfile_checksum.style(Style::Hash),
+    )]
+    MismatchedChecksum {
+        checksum: String,
+        lockfile_checksum: String,
+    },
+
+    #[diagnostic(
+        code(proto::install::mismatched_checksum),
+        help = "Is this install legitimate?"
+    )]
+    #[error(
+        "Checksum mismatch for {}! Received {} but expected {}.",
+        .source_url.style(Style::Url),
+        .checksum.style(Style::Hash),
+        .lockfile_checksum.style(Style::Hash),
+    )]
+    MismatchedChecksumWithSource {
+        checksum: String,
+        lockfile_checksum: String,
+        source_url: String,
     },
 
     #[diagnostic(code(proto::install::prebuilt_unsupported))]

@@ -15,6 +15,236 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## 0.49.5
+
+#### 🚀 Updates
+
+- Added a global `--log-file` option (and `PROTO_LOG_FILE` environment variable) that will write all logs to a file.
+  - This is useful for debugging issues that are hard to reproduce, or when you want to keep a log of the commands ran.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
+## 0.49.4
+
+#### 🚀 Updates
+
+- Updated `proto run` (and shims) to fallback and run a global executable on `PATH` of the same name if a version was not configured and detected.
+  - This change aims to mitigate a situation where the `~/.proto/shims` file takes precedence on `PATH` but proto should not be used.
+
+#### 🐞 Fixes
+
+- Fixed some shell quoting/escaping issues on Bash/Zsh.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+- Updated wasmtime to v30 (from v29).
+
+## 0.49.3
+
+#### 🐞 Fixes
+
+- Fixed some weird WASM path handling issues on Windows. For third-party plugin authors, we suggest pulling in the latest PDKs and releasing a new version.
+- Fixed an issue where the "new version available" message would appear when running a tool's `--version` and `--help` commands.
+
+#### 🧩 Plugins
+
+- Updated all plugins to pull in the path fixes.
+- Updated `node_tool` to v0.16.2.
+  - Added experimental musl (alpine) support.
+
+## 0.49.2
+
+#### 🚀 Updates
+
+- Added support for bzip2, xz/lzma, and zstd compression for zip archives.
+
+#### 🐞 Fixes
+
+- Fixed an issue where terminal prompt validation would not trigger.
+- Fixed some Nushell issues for the `proto activate` flow.
+  - You'll need to regenerate the module: `(proto activate nu) | save ~/.config/nushell/proto-hook.nu`
+
+#### ⚙️ Internal
+
+- Updated Rust to v1.87.0.
+- Updated dependencies.
+
+## 0.49.1
+
+#### 🐞 Fixes
+
+- Fixed a regression with virtual paths that broke path composition.
+  - This primarily affects the `rust` tool.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
+## 0.49.0
+
+#### 🚀 Updates
+
+- Added a new RFC for lockfiles: https://github.com/moonrepo/proto/issues/779
+- Updated `proto activate` to no longer take a snapshot of `PATH` that can become stale.
+- Updated multi `proto install` to write a markdown compatible error log when a tool fails to install.
+- Removed timeouts from plugin calls.
+- WASM API
+  - Added `SendRequestInput.headers` field.
+  - Reworked the `VirtualPath` enum/type.
+
+#### 🐞 Fixes
+
+- Fixed `PATH` modifications after `proto activate` being lost.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
+## 0.48.1
+
+#### 🚀 Updates
+
+- WASM API
+  - Added `HostEnvironment.ci` field.
+  - Added `InstallHook.forced` and `quiet` fields.
+
+#### 🧩 Plugins
+
+- Updated `node_tool` to v0.16.2.
+  - Fixed `bundled-npm` install not respecting `--force` and `--quiet` args.
+
+## 0.48.0
+
+#### 🚀 Updates
+
+- Added internal lockfile records that will validate against checksums for authenticity.
+  - Records are stored for each tool in their inventory manifest: `~/.proto/tools/<name>/manifest.json`
+  - This is not retroactive and will only apply to installed tools going forward.
+- Added a new Ctrl+C handler on Windows for shims, that should pass the signal down to the
+  underlying executable, instead of being captured in the shim. This is based on Cargo's implementation.
+- Added support for SHA512 checksums.
+- Added support for Windows checksum files generated with `Get-FileHash`.
+- Updated `proto install <tool>` to detect a version from the current directory if a version is not provided.
+- WASM API
+  - Added `Checksum` and `ChecksumAlgorithm` APIs.
+  - Added `NativeInstallOutput.checksum` field.
+  - Added `VerifyChecksumInput.download_checksum` field.
+
+#### 🧩 Plugins
+
+- Updated `deno_tool` to v0.15.3.
+  - Added checksum support for versions >= v2.
+  - Switched to GitHub releases for download URLs.
+- Updated `schema_tool` to v0.17.2.
+  - Added fields: `platform.*.exes-dirs`, `install.exes.*.parent-exe-args`, `detect.ignore`
+
+#### ⚙️ Internal
+
+- Linux binaries are now built on Ubuntu v22 instead of v20.
+- Updated dependencies.
+
+## 0.47.11
+
+#### 🚀 Updates
+
+- Added a light terminal theme. Can be enabled with `--theme=light` or `PROTO_THEME=light`.
+  - This is still a work in progress. Open to feedback on color/contrast choices.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
+## 0.47.10
+
+#### 🐞 Fixes
+
+- Fixed an issue where `proto upgrade` would fail to fetch the latest version.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
+## 0.47.9
+
+#### 🚀 Updates
+
+- Added `ash` shell support (primarily for alpine).
+
+#### ⚙️ Internal
+
+- Updated Rust to v1.86.0.
+- Updated dependencies.
+
+## 0.47.8
+
+#### 🐞 Fixes
+
+- Fixed an issue where progress bars were rendering incorrectly.
+
+## 0.47.7
+
+#### 💥 Breaking
+
+- Reverted the ability for proto to shim itself, and in turn the ability to pin the proto version.
+  - This was causing large process trees, where proto would recursivelay call itself, and eating up a lot of resources.
+  - We automatically attempt to remove the old shims, but if you run into any weirdness, you may need to manually remove `~/.proto/shims/proto` and `~/.proto/shims/proto-shim`.
+  - We'll revisit this feature in a future release.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
+## 0.47.6
+
+#### 🚀 Updates
+
+- Added `PROTO_AUTO_INSTALL_HIDE_OUTPUT` to install the progress output when auto-install is triggered.
+- Updated auto-install output not to show when `--version` or `--help` is passed.
+
+#### 🐞 Fixes
+
+- Attempted fix for an issue where CTRL-C/BREAK signals were not propagating correctly on Windows.
+- Fixed an issue where we were converting the casing of certain JSON/YAML schema keys that shouldn't be converted.
+
+#### ⚙️ Internal
+
+- Updated Rust to v1.85.1.
+- Updated dependencies.
+
+## 0.47.5
+
+#### 🚀 Updates
+
+- Added a way for plugins to prepend arguments for parent executable based commands.
+- WASM API
+  - Added `ExecutableConfig.parent_exe_args`.
+
+#### 🐞 Fixes
+
+- Fixed an issue where `proto upgrade` would fail when the `proto` shim is intercepting the execution.
+- Fixed an issue where the `load_versions` WASM call would fail for plugins with an older PDK version.
+
+## 0.47.4
+
+#### 🚀 Updates
+
+- Updated `proto run` (and shims) to not error with "not a built-in plugin" when the executable exists globally on `PATH`, but is currently not configured/managed by proto in the working directory.
+  - This error can occur when a `~/.proto/shims` file exists for a tool, but the version/plugin is not configured.
+  - This should make interoperability a little bit nicer.
+- Reduced the amount of `locate_executables` calls for certain flows when linking binaries.
+
+#### 🐞 Fixes
+
+- Fixed an issue where `proto activate` would load more plugins than necessary, causing a performance hit.
+- Fixed an issue during `--build` where the system package manager would error attempting to load existing packages.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.47.3
 
 #### 🐞 Fixes

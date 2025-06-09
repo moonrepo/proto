@@ -37,7 +37,7 @@ pub struct OutdatedItem {
     is_latest: bool,
     is_outdated: bool,
     config_source: Option<PathBuf>,
-    config_version: UnresolvedVersionSpec,
+    config_version: ToolSpec,
     current_version: VersionSpec,
     newest_version: VersionSpec,
     latest_version: VersionSpec,
@@ -88,9 +88,9 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
             );
 
             let current_version = tool
-                .resolve_version_candidate(&version_resolver, config_version, true)
+                .resolve_version_candidate(&version_resolver, &config_version.req, true)
                 .await?;
-            let newest_range = get_in_major_range(config_version);
+            let newest_range = get_in_major_range(&config_version.req);
 
             debug!(
                 id = tool.id.as_str(),

@@ -1,6 +1,6 @@
 [package]
 name = "proto_shim"
-version = "0.7.0"
+version = "0.7.3"
 edition = "2024"
 license = "MIT"
 description = "Utilities for working with proto shims."
@@ -10,9 +10,7 @@ repository = "https://github.com/moonrepo/proto"
 [dependencies]
 dirs = { workspace = true }
 
-[target."cfg(windows)".dependencies]
-process-wrap = { version = "8.2.0", default-features = false, features = [
-	"std",
-	"job-object",
-	"tracing",
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59.0", default-features = false, features = [
+	"Win32_System_Threading",
 ] }

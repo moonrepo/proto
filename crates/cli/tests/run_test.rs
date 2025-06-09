@@ -16,6 +16,20 @@ mod run {
     use super::*;
 
     #[test]
+    fn doesnt_error_for_tools_on_path_but_not_configured_in_proto() {
+        let sandbox = create_empty_proto_sandbox();
+
+        let assert = sandbox
+            .run_bin(|cmd| {
+                cmd.arg("run").arg("git");
+            })
+            // `git` with no args is exit 1
+            .failure();
+
+        assert.stdout(predicate::str::contains("usage: git"));
+    }
+
+    #[test]
     fn errors_if_not_installed() {
         let sandbox = create_empty_proto_sandbox();
 
@@ -34,15 +48,29 @@ mod run {
     fn errors_if_no_version_detected() {
         let sandbox = create_empty_proto_sandbox();
 
+        // Note that moon must not be installed in the system without proto for this test to pass.
         let assert = sandbox
             .run_bin(|cmd| {
-                cmd.arg("run").arg("node");
+                cmd.arg("run").arg("moon");
             })
             .failure();
 
         assert.stderr(predicate::str::contains(
             "Failed to detect an applicable version",
         ));
+    }
+
+    #[test]
+    fn runs_tool_from_path_if_proto_fails() {
+        let sandbox = create_empty_proto_sandbox();
+
+        // Note that node must be installed in the system without proto for this test to pass.
+        // In github CI task runners this is usually the case.
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("run").arg("node").arg("--version");
+            })
+            .success();
     }
 
     #[test]
@@ -186,7 +214,8 @@ mod run {
                     .arg("node")
                     .arg("19.0.0")
                     .arg("--")
-                    .arg("--version");
+                    .arg("-e")
+                    .arg("'//'");
             })
             .success();
 
@@ -205,7 +234,8 @@ mod run {
                     .arg("node")
                     .arg("19.0.0")
                     .arg("--")
-                    .arg("--version");
+                    .arg("-e")
+                    .arg("'//'");
             })
             .success();
 
@@ -222,7 +252,12 @@ mod run {
 
         let assert = sandbox
             .run_bin(|cmd| {
-                cmd.arg("run").arg("node").arg("19.0.0");
+                cmd.arg("run")
+                    .arg("node")
+                    .arg("19.0.0")
+                    .arg("--")
+                    .arg("-e")
+                    .arg("'//'");
             })
             .failure();
 
@@ -243,7 +278,8 @@ mod run {
                     .arg("node")
                     .arg("19.0.0")
                     .arg("--")
-                    .arg("--version");
+                    .arg("-e")
+                    .arg("'//'");
             })
             .success();
 
@@ -255,7 +291,8 @@ mod run {
                     .arg("node")
                     .arg("19.0.0")
                     .arg("--")
-                    .arg("--version");
+                    .arg("-e")
+                    .arg("'//'");
             })
             .success();
 

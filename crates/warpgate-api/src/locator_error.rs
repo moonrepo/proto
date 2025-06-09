@@ -1,9 +1,7 @@
 /// Errors during plugin locator parsing.
 #[derive(thiserror::Error, Debug)]
 pub enum PluginLocatorError {
-    #[error(
-        "GitHub release locator requires a repository name with organization scope (org/repo)."
-    )]
+    #[error("GitHub release locator requires a repository name with owner scope (owner/repo).")]
     MissingGitHubOrg,
 
     #[error("Missing plugin location (after protocol).")]

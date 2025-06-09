@@ -99,4 +99,11 @@ pub enum ProtoCliError {
     #[diagnostic(code(proto::commands::upgrade::offline))]
     #[error("Upgrading proto requires an internet connection!")]
     UpgradeRequiresInternet,
+
+    #[diagnostic(
+        code(proto::commands::upgrade::fetch_version_failed),
+        help = "Can you connect to github.com?"
+    )]
+    #[error("Failed to fetch the latest available version.")]
+    FailedToFetchVersion,
 }

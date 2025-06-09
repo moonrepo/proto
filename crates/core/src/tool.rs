@@ -6,11 +6,11 @@ use crate::tool_error::ProtoToolError;
 use crate::tool_spec::Backend;
 use crate::utils::{archive, git};
 use proto_pdk_api::*;
-use rustc_hash::{FxHashMap, FxHashSet};
 use schematic::ConfigEnum;
 use starbase_styles::color;
 use starbase_utils::fs;
-use std::fmt;
+use std::collections::{BTreeMap, BTreeSet};
+use std::fmt::{self, Debug};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
@@ -130,7 +130,7 @@ impl Tool {
         let mut manifest = PluginManifest::new([wasm]);
         manifest = manifest.with_allowed_host("*");
         manifest = manifest.with_allowed_paths(proto.get_virtual_paths_compat().into_iter());
-        manifest = manifest.with_timeout(Duration::from_secs(90));
+        // manifest = manifest.with_timeout(Duration::from_secs(90));
 
         #[cfg(debug_assertions)]
         {
@@ -196,12 +196,12 @@ impl Tool {
     }
 
     /// Convert a virtual path to a real path.
-    pub fn from_virtual_path(&self, path: &Path) -> PathBuf {
+    pub fn from_virtual_path(&self, path: impl AsRef<Path> + Debug) -> PathBuf {
         self.plugin.from_virtual_path(path)
     }
 
     /// Convert a real path to a virtual path.
-    pub fn to_virtual_path(&self, path: &Path) -> VirtualPath {
+    pub fn to_virtual_path(&self, path: impl AsRef<Path> + Debug) -> VirtualPath {
         self.plugin.to_virtual_path(path)
     }
 }
@@ -213,8 +213,8 @@ impl Tool {
     pub fn create_context(&self) -> ToolContext {
         ToolContext {
             proto_version: Some(get_proto_version().to_owned()),
-            temp_dir: self.to_virtual_path(&self.get_temp_dir()),
-            tool_dir: self.to_virtual_path(&self.get_product_dir()),
+            temp_dir: self.to_virtual_path(self.get_temp_dir()),
+            tool_dir: self.to_virtual_path(self.get_product_dir()),
             version: self.get_resolved_version(),
         }
     }
@@ -226,7 +226,13 @@ impl Tool {
         ToolUnresolvedContext {
             proto_version: Some(get_proto_version().to_owned()),
             temp_dir: self.to_virtual_path(&self.inventory.temp_dir),
-            version: self.version.clone(),
+            // version: self.version.clone(),
+            // TODO: temporary until 3rd-party plugins update their PDKs
+            tool_dir: self.to_virtual_path(&self.proto.store.inventory_dir),
+            version: self
+                .version
+                .clone()
+                .or_else(|| Some(VersionSpec::Alias("latest".into()))),
         }
     }
 
@@ -409,8 +415,8 @@ impl Tool {
         if let Some(versions) = output.versions {
             modified = true;
 
-            let mut entries = FxHashMap::default();
-            let mut installed = FxHashSet::default();
+            let mut entries = BTreeMap::default();
+            let mut installed = BTreeSet::default();
 
             for key in versions {
                 let value = manifest.versions.get(&key).cloned().unwrap_or_default();

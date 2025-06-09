@@ -1,5 +1,6 @@
 use super::product::Product;
 use crate::helpers::{is_cache_enabled, is_offline};
+use crate::lockfile::LockfileRecord;
 use crate::tool_manifest::ToolManifest;
 use proto_pdk_api::{LoadVersionsOutput, ToolInventoryMetadata};
 use starbase_utils::{fs, json};
@@ -30,6 +31,13 @@ impl Inventory {
             dir: self.dir.join(name),
             version: spec.to_owned(),
         }
+    }
+
+    pub fn get_locked_record(&self, version: &VersionSpec) -> Option<&LockfileRecord> {
+        self.manifest
+            .versions
+            .get(version)
+            .and_then(|man| man.lock.as_ref())
     }
 
     #[instrument(skip(self))]
