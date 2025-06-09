@@ -27,7 +27,7 @@ fn unpin_version(session: &ProtoSession, args: &UninstallArgs) -> Result<(), Pro
         }
 
         ProtoConfig::update_document(&file.path, |doc| {
-            if let Some(version) = doc[args.id.as_str()].as_str() {
+            if let Some(version) = doc.get(&args.id).and_then(|item| item.as_str()) {
                 if args.spec.is_none()
                     || args
                         .spec

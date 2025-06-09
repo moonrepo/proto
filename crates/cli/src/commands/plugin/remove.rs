@@ -25,7 +25,7 @@ pub async fn remove(session: ProtoSession, args: RemovePluginArgs) -> AppResult 
     }
 
     let config_path = ProtoConfig::update_document(config_dir, |doc| {
-        if let Some(plugins) = doc["plugins"].as_table_mut() {
+        if let Some(plugins) = doc.get_mut("plugins").and_then(|item| item.as_table_mut()) {
             plugins.remove(&args.id);
 
             if plugins.is_empty() {
@@ -33,7 +33,7 @@ pub async fn remove(session: ProtoSession, args: RemovePluginArgs) -> AppResult 
             }
         }
 
-        if let Some(tools) = doc["tools"].as_table_mut() {
+        if let Some(tools) = doc.get_mut("tools").and_then(|item| item.as_table_mut()) {
             tools.remove(&args.id);
 
             if tools.is_empty() {

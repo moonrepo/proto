@@ -296,7 +296,7 @@ pub async fn outdated(session: ProtoSession, args: OutdatedArgs) -> AppResult {
 
                 for (id, updated_version) in updated_versions {
                     // Try and preserve any spec backend's
-                    if let Some(version) = doc[&id].as_str() {
+                    if let Some(version) = doc.get(&id).and_then(|item| item.as_str()) {
                         if let Some((backend, _)) = version.split_once(':') {
                             doc[&id] = cfg::value(format!("{backend}:{updated_version}"));
                             continue;

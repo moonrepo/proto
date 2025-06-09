@@ -85,8 +85,10 @@ impl Tool {
 
         // Pin the global version
         ProtoConfig::update_document(self.proto.get_config_dir(PinLocation::Global), |doc| {
-            doc[self.id.as_str()] =
-                cfg::value(ToolSpec::new_backend(default_version, self.backend).to_string());
+            if !doc.contains_key(&self.id) {
+                doc[self.id.as_str()] =
+                    cfg::value(ToolSpec::new_backend(default_version, self.backend).to_string());
+            }
 
             // config
             //     .versions
@@ -153,7 +155,11 @@ impl Tool {
 
         // Unpin global version if a match
         ProtoConfig::update_document(self.proto.get_config_dir(PinLocation::Global), |doc| {
-            if doc[self.id.as_str()].as_str().is_some_and(|v| version == v) {
+            if doc
+                .get(&self.id)
+                .and_then(|item| item.as_str())
+                .is_some_and(|v| version == v)
+            {
                 debug!("Unpinning global version");
 
                 doc.as_table_mut().remove(&self.id);
