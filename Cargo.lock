@@ -2852,6 +2852,7 @@ dependencies = [
  "system_env",
  "thiserror 2.0.12",
  "tokio",
+ "toml_edit",
  "tracing",
  "url",
  "uuid",
