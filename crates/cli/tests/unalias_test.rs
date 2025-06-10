@@ -47,7 +47,7 @@ mod unalias_local {
 
         let config = load_config(sandbox.path());
 
-        assert!(config.tools.get("node").unwrap().aliases.is_empty());
+        assert!(!config.tools.contains_key("node"));
     }
 
     #[test]
@@ -119,7 +119,7 @@ mod unalias_global {
 
         let config = load_config(sandbox.path().join(".proto"));
 
-        assert!(config.tools.get("node").unwrap().aliases.is_empty());
+        assert!(!config.tools.contains_key("node"));
     }
 }
 
@@ -156,6 +156,6 @@ mod unalias_user {
 
         let config = load_config(sandbox.path().join(".home"));
 
-        assert!(config.tools.get("node").unwrap().aliases.is_empty());
+        assert!(!config.tools.contains_key("node"));
     }
 }
