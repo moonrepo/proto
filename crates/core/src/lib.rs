@@ -10,6 +10,7 @@ mod loader;
 mod loader_error;
 mod lockfile;
 pub mod registry;
+mod settings;
 mod tool;
 mod tool_error;
 mod tool_manifest;

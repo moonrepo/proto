@@ -1,9 +1,9 @@
 use crate::config_error::ProtoConfigError;
 use crate::helpers::ENV_VAR_SUB;
+use crate::settings::RegexSetting;
 use crate::tool_spec::{Backend, ToolSpec};
 use indexmap::IndexMap;
 use once_cell::sync::OnceCell;
-use regex::Regex;
 use rustc_hash::FxHashMap;
 use schematic::{
     Config, ConfigEnum, ConfigError, ConfigLoader, DefaultValueResult, Format, MergeError,
@@ -264,7 +264,7 @@ pub struct ProtoSettingsConfig {
 
     #[setting(merge = merge_indexmap)]
     #[serde(skip_serializing_if = "IndexMap::is_empty")]
-    pub url_rewrites: IndexMap<String, String>,
+    pub url_rewrites: IndexMap<RegexSetting, String>,
 }
 
 #[derive(Clone, Config, Debug, Serialize)]
@@ -788,12 +788,7 @@ impl ProtoConfig {
         let mut url = url.as_ref().to_owned();
 
         for (pattern, replacement) in &self.settings.url_rewrites {
-            let re = Regex::new(pattern).map_err(|error| ProtoConfigError::FailedParseRegex {
-                pattern: pattern.to_owned(),
-                error: Box::new(error),
-            })?;
-
-            url = re.replace_all(&url, replacement).to_string();
+            url = pattern.replace_all(&url, replacement).to_string();
         }
 
         Ok(url)

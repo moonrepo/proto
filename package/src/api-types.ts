@@ -24,7 +24,7 @@ export type HostLogTarget = 'stderr' | 'stdout' | 'debug' | 'error' | 'trace' | 
 /** Input passed to the `host_log` host function. */
 export interface HostLogInput {
 	data?: Record<string, unknown>;
-	message: string;
+	message?: string;
 	/** @type {'stderr' | 'stdout' | 'debug' | 'error' | 'trace' | 'warn' | 'tracing'} */
 	target?: HostLogTarget;
 }
@@ -35,16 +35,24 @@ export type VirtualPath = string;
 export interface ExecCommandInput {
 	/** Arguments to pass to the command. */
 	args?: string[];
-	/** The command or script to execute. */
+	/**
+	 * The command or script to execute. Accepts an executable
+	 * on `PATH` or a virtual path.
+	 */
 	command?: string;
+	/** Override the current working directory. */
+	cwd?: VirtualPath | null;
 	/** Environment variables to pass to the command. */
 	env?: Record<string, string>;
 	/** Mark the command as executable before executing. */
 	setExecutable?: boolean;
+	/**
+	 * Set the shell to execute the command with, for example "bash".
+	 * If not defined, will be detected from the parent process.
+	 */
+	shell?: string | null;
 	/** Stream the output instead of capturing it. */
 	stream?: boolean;
-	/** Override the current working directory. */
-	workingDir?: VirtualPath | null;
 }
 
 /** Output returned from the `exec_command` host function. */
@@ -59,6 +67,7 @@ export interface ExecCommandOutput {
 export interface HostEnvironment {
 	/** @type {'x86' | 'x64' | 'arm' | 'arm64' | 'longarm64' | 'm68k' | 'mips' | 'mips64' | 'powerpc' | 'powerpc64' | 'riscv64' | 's390x' | 'sparc64'} */
 	arch: SystemArch;
+	ci: boolean;
 	homeDir: VirtualPath;
 	/** @type {'gnu' | 'musl' | 'unknown'} */
 	libc: SystemLibc;
@@ -501,10 +510,14 @@ export interface SyncShellProfileOutput {
 export interface InstallHook {
 	/** Current tool context. */
 	context: ToolContext;
+	/** Whether the install was forced or not. */
+	forced: boolean;
 	/** Arguments passed after `--` that was directly passed to the tool's binary. */
 	passthroughArgs: string[];
-	/** Whether the resolved version was pinned */
+	/** Whether the resolved version was pinned. */
 	pinned: boolean;
+	/** Hide install output. */
+	quiet: boolean;
 }
 
 /**
