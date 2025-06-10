@@ -22,6 +22,7 @@ use std::hash::Hash;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use system_env::{SystemOS, SystemPackageManager};
+use toml_edit::DocumentMut;
 use tracing::{debug, instrument};
 use warpgate::{HttpOptions, Id, PluginLocator, UrlLocator};
 
@@ -468,16 +469,7 @@ impl ProtoConfig {
         dir: P,
         with_lock: bool,
     ) -> Result<PartialProtoConfig, ProtoConfigError> {
-        let dir = dir.as_ref();
-
-        Self::load(
-            if dir.ends_with(PROTO_CONFIG_NAME) {
-                dir.to_path_buf()
-            } else {
-                dir.join(PROTO_CONFIG_NAME)
-            },
-            with_lock,
-        )
+        Self::load(Self::resolve_path(dir), with_lock)
     }
 
     #[instrument(name = "load_config")]
@@ -622,20 +614,22 @@ impl ProtoConfig {
     }
 
     #[instrument(name = "save_config", skip(config))]
-    pub fn save_to<P: AsRef<Path> + Debug>(
+    pub fn save_to<P: AsRef<Path> + Debug, C: AsRef<[u8]>>(
+        dir: P,
+        config: C,
+    ) -> Result<PathBuf, ProtoConfigError> {
+        let file = Self::resolve_path(dir);
+
+        fs::write_file_with_lock(&file, &config)?;
+
+        Ok(file)
+    }
+
+    pub fn save_partial_to<P: AsRef<Path> + Debug>(
         dir: P,
         config: PartialProtoConfig,
     ) -> Result<PathBuf, ProtoConfigError> {
-        let path = dir.as_ref();
-        let file = if path.ends_with(PROTO_CONFIG_NAME) {
-            path.to_path_buf()
-        } else {
-            path.join(PROTO_CONFIG_NAME)
-        };
-
-        fs::write_file_with_lock(&file, toml::format(&config, true)?)?;
-
-        Ok(file)
+        Self::save_to(dir, toml::format(&config, true)?)
     }
 
     pub fn update<P: AsRef<Path>, F: FnOnce(&mut PartialProtoConfig)>(
@@ -647,7 +641,30 @@ impl ProtoConfig {
 
         op(&mut config);
 
-        Self::save_to(dir, config)
+        Self::save_partial_to(dir, config)
+    }
+
+    pub fn update_document<P: AsRef<Path>, F: FnOnce(&mut DocumentMut)>(
+        dir: P,
+        op: F,
+    ) -> Result<PathBuf, ProtoConfigError> {
+        let path = Self::resolve_path(dir);
+        let config = if path.exists() {
+            fs::read_file_with_lock(&path)?
+        } else {
+            String::new()
+        };
+        let mut document =
+            config
+                .parse::<DocumentMut>()
+                .map_err(|error| ProtoConfigError::FailedUpdate {
+                    path: path.clone(),
+                    error: Box::new(error),
+                })?;
+
+        op(&mut document);
+
+        Self::save_to(path, document.to_string())
     }
 
     pub fn get_env_files(&self, filter_id: Option<&Id>) -> Vec<&PathBuf> {
@@ -751,6 +768,16 @@ impl ProtoConfig {
         }
 
         Ok(vars)
+    }
+
+    fn resolve_path(path: impl AsRef<Path>) -> PathBuf {
+        let path = path.as_ref();
+
+        if path.ends_with(PROTO_CONFIG_NAME) {
+            path.to_path_buf()
+        } else {
+            path.join(PROTO_CONFIG_NAME)
+        }
     }
 }
 

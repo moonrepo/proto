@@ -1,10 +1,9 @@
 use crate::session::ProtoSession;
 use clap::Args;
 use iocraft::prelude::element;
-use proto_core::{Id, PinLocation, ProtoConfig, ProtoConfigError, Tool, ToolSpec};
+use proto_core::{Id, PinLocation, ProtoConfig, ProtoConfigError, Tool, ToolSpec, cfg};
 use starbase::AppResult;
 use starbase_console::ui::*;
-use std::collections::BTreeMap;
 use std::path::PathBuf;
 use tracing::debug;
 
@@ -28,11 +27,13 @@ pub async fn internal_pin(
     spec: &ToolSpec,
     pin_to: PinLocation,
 ) -> Result<PathBuf, ProtoConfigError> {
-    let config_path = ProtoConfig::update(tool.proto.get_config_dir(pin_to), |config| {
-        config
-            .versions
-            .get_or_insert(BTreeMap::default())
-            .insert(tool.id.clone(), spec.clone());
+    let config_path = ProtoConfig::update_document(tool.proto.get_config_dir(pin_to), |doc| {
+        doc[tool.id.as_str()] = cfg::value(spec.to_string());
+
+        // config
+        //     .versions
+        //     .get_or_insert(Default::default())
+        //     .insert(tool.id.clone(), spec.clone());
     })?;
 
     debug!(

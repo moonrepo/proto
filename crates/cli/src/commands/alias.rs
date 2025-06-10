@@ -2,7 +2,9 @@ use crate::error::ProtoCliError;
 use crate::session::ProtoSession;
 use clap::Args;
 use iocraft::prelude::element;
-use proto_core::{Id, PinLocation, ProtoConfig, ToolSpec, UnresolvedVersionSpec, is_alias_name};
+use proto_core::{
+    Id, PinLocation, ProtoConfig, ToolSpec, UnresolvedVersionSpec, cfg, is_alias_name,
+};
 use starbase::AppResult;
 use starbase_console::ui::*;
 
@@ -38,15 +40,21 @@ pub async fn alias(session: ProtoSession, args: AliasArgs) -> AppResult {
 
     let tool = session.load_tool(&args.id, args.spec.backend).await?;
 
-    let config_path = ProtoConfig::update(tool.proto.get_config_dir(args.to), |config| {
-        let tool_configs = config.tools.get_or_insert(Default::default());
+    let config_path = ProtoConfig::update_document(tool.proto.get_config_dir(args.to), |doc| {
+        let tools = doc["tools"].or_insert(cfg::implicit_table());
+        let record = tools[tool.id.as_str()].or_insert(cfg::implicit_table());
+        let aliases = record["aliases"].or_insert(cfg::implicit_table());
 
-        tool_configs
-            .entry(tool.id.clone())
-            .or_default()
-            .aliases
-            .get_or_insert(Default::default())
-            .insert(args.alias.clone(), args.spec.clone());
+        aliases[&args.alias] = cfg::value(args.spec.to_string());
+
+        // let tool_configs = config.tools.get_or_insert(Default::default());
+
+        // tool_configs
+        //     .entry(tool.id.clone())
+        //     .or_default()
+        //     .aliases
+        //     .get_or_insert(Default::default())
+        //     .insert(args.alias.clone(), args.spec.clone());
     })?;
 
     session.console.render(element! {

@@ -23,6 +23,7 @@
 
 #### 🚀 Updates
 
+- Comments are now preserved when updating TOML config files (`.prototools`, etc).
 - Commands executed from WASM plugins will now always run within a shell.
   - Added a `PROTO_SHELL` environment variable that can be used to defined which shell to use, otherwise defaults to the current process shell.
 - Updated the `proto activate` command:

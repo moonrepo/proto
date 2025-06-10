@@ -30,6 +30,17 @@ pub enum ProtoConfigError {
         error: Box<dotenvy::Error>,
     },
 
+    #[diagnostic(code(proto::config::failed_update))]
+    #[error(
+        "Failed to update config {}.",
+        .path.style(Style::Path),
+    )]
+    FailedUpdate {
+        path: PathBuf,
+        #[source]
+        error: Box<toml_edit::TomlError>,
+    },
+
     #[diagnostic(code(proto::config::missing_env_file))]
     #[error(
         "The .env file {} does not exist. This was configured as {} in the config {}.",

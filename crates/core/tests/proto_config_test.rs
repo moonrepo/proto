@@ -335,7 +335,7 @@ kebab-case = "file://./camel.toml"
             })),
         );
 
-        let path = ProtoConfig::save_to(sandbox.path(), config).unwrap();
+        let path = ProtoConfig::save_partial_to(sandbox.path(), config).unwrap();
 
         assert_eq!(
             std::fs::read_to_string(path).unwrap(),

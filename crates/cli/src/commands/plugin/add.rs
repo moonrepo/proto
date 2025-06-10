@@ -1,7 +1,7 @@
 use crate::session::ProtoSession;
 use clap::Args;
 use iocraft::prelude::element;
-use proto_core::{Id, PinLocation, PluginLocator, ProtoConfig};
+use proto_core::{Id, PinLocation, PluginLocator, ProtoConfig, cfg};
 use starbase::AppResult;
 use starbase_console::ui::*;
 
@@ -19,11 +19,14 @@ pub struct AddPluginArgs {
 
 #[tracing::instrument(skip_all)]
 pub async fn add(session: ProtoSession, args: AddPluginArgs) -> AppResult {
-    let config_path = ProtoConfig::update(session.env.get_config_dir(args.to), |config| {
-        config
-            .plugins
-            .get_or_insert(Default::default())
-            .insert(args.id.clone(), args.plugin.clone());
+    let config_path = ProtoConfig::update_document(session.env.get_config_dir(args.to), |doc| {
+        let plugins = doc["plugins"].or_insert(cfg::table());
+        plugins[args.id.as_str()] = cfg::value(args.plugin.to_string());
+
+        // config
+        //     .plugins
+        //     .get_or_insert(Default::default())
+        //     .insert(args.id.clone(), args.plugin.clone());
     })?;
 
     // Load the tool and verify it works. We can't load the tool with the
