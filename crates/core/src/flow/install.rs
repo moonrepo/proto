@@ -313,7 +313,7 @@ impl Tool {
         let mut record = LockfileRecord::new(self.backend);
 
         // Download the prebuilt
-        let download_url = config.rewrite_url(output.download_url)?;
+        let download_url = config.rewrite_url(output.download_url);
         let download_filename = match output.download_name {
             Some(name) => name,
             None => extract_filename_from_url(&download_url),
@@ -342,7 +342,7 @@ impl Tool {
 
         // Verify against a URL that contains the checksum
         if let Some(checksum_url) = output.checksum_url {
-            let checksum_url = config.rewrite_url(checksum_url)?;
+            let checksum_url = config.rewrite_url(checksum_url);
             let checksum_filename = match output.checksum_name {
                 Some(name) => name,
                 None => extract_filename_from_url(&checksum_url),

@@ -784,14 +784,14 @@ impl ProtoConfig {
         Ok(vars)
     }
 
-    pub fn rewrite_url(&self, url: impl AsRef<str>) -> Result<String, ProtoConfigError> {
+    pub fn rewrite_url(&self, url: impl AsRef<str>) -> String {
         let mut url = url.as_ref().to_owned();
 
         for (pattern, replacement) in &self.settings.url_rewrites {
             url = pattern.replace_all(&url, replacement).to_string();
         }
 
-        Ok(url)
+        url
     }
 
     fn resolve_path(path: impl AsRef<Path>) -> PathBuf {

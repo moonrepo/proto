@@ -112,7 +112,7 @@ impl Tool {
         match source {
             SourceLocation::Archive(mut src) => {
                 if !backend_dir.exists() {
-                    src.url = config.rewrite_url(src.url)?;
+                    src.url = config.rewrite_url(src.url);
 
                     debug!(
                         tool = self.id.as_str(),

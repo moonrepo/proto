@@ -26,6 +26,7 @@ pub use helpers::*;
 pub use loader::*;
 pub use loader_error::*;
 pub use lockfile::*;
+pub use settings::*;
 pub use tool::*;
 pub use tool_error::*;
 pub use tool_manifest::*;

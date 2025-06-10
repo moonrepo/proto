@@ -64,7 +64,7 @@ pub fn locate_tool(id: &Id, proto: &ProtoEnvironment) -> Result<PluginLocator, P
 
     // Rewrite if a URL
     if let PluginLocator::Url(inner) = &mut locator {
-        inner.url = config.rewrite_url(&inner.url)?;
+        inner.url = config.rewrite_url(&inner.url);
     }
 
     Ok(locator)
