@@ -178,13 +178,17 @@ fn default_builtin_plugins(_context: &()) -> DefaultValueResult<BuiltinPlugins> 
 #[derive(Clone, Config, Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct ProtoBuildConfig {
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[setting(env = "PROTO_BUILD_EXCLUDE_PACKAGES", parse_env = env::split_comma)]
     pub exclude_packages: Vec<String>,
 
-    #[setting(default = true)]
+    #[setting(default = true, env = "PROTO_BUILD_INSTALL_SYSTEM_PACKAGES", parse_env = env::parse_bool)]
     pub install_system_packages: bool,
 
+    #[serde(skip_serializing_if = "FxHashMap::is_empty")]
     pub system_package_manager: FxHashMap<SystemOS, Option<SystemPackageManager>>,
 
+    #[setting(env = "PROTO_BUILD_WRITE_LOG_FILE", parse_env = env::parse_bool)]
     pub write_log_file: bool,
 }
 
@@ -196,6 +200,7 @@ pub struct ProtoToolConfig {
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub aliases: BTreeMap<String, ToolSpec>,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub backend: Option<Backend>,
 
     #[setting(nested, merge = merge_indexmap)]
@@ -215,11 +220,14 @@ pub struct ProtoToolConfig {
 #[derive(Clone, Config, Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct ProtoOfflineConfig {
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[setting(env = "PROTO_OFFLINE_HOSTS", parse_env = env::split_comma)]
     pub custom_hosts: Vec<String>,
 
+    #[setting(env = "PROTO_OFFLINE_OVERRIDE_HOSTS", parse_env = env::parse_bool)]
     pub override_default_hosts: bool,
 
-    #[setting(default = 750)]
+    #[setting(default = 750, env = "PROTO_OFFLINE_TIMEOUT")]
     pub timeout: u64,
 }
 
@@ -246,10 +254,11 @@ pub struct ProtoSettingsConfig {
     #[setting(nested)]
     pub offline: ProtoOfflineConfig,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[setting(env = "PROTO_PIN_LATEST")]
     pub pin_latest: Option<PinLocation>,
 
-    #[setting(default = true)]
+    #[setting(default = true, env = "PROTO_TELEMETRY", parse_env = env::parse_bool)]
     pub telemetry: bool,
 }
 

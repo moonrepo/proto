@@ -26,6 +26,7 @@
 - Comments are now preserved when updating TOML config files (`.prototools`, etc).
 - Commands executed from WASM plugins will now always run within a shell.
   - Added a `PROTO_SHELL` environment variable that can be used to defined which shell to use, otherwise defaults to the current process shell.
+- Added environment variable support to many non-tool related `.prototools` settings.
 - Updated the `proto activate` command:
   - Will now run the initialization hook immediately, instead of waiting for a directory change. Because of this, the `--on-init` option has been deprecated.
   - Added a new `--no-init` option that will skip the initialization hook. This functions like it did previously.
