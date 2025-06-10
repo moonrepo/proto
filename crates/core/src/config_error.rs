@@ -30,6 +30,17 @@ pub enum ProtoConfigError {
         error: Box<dotenvy::Error>,
     },
 
+    #[diagnostic(code(proto::config::regex_parse_failed))]
+    #[error(
+        "Failed to parse regex pattern {}.",
+        .pattern.style(Style::Symbol),
+    )]
+    FailedParseRegex {
+        pattern: String,
+        #[source]
+        error: Box<regex::Error>,
+    },
+
     #[diagnostic(code(proto::config::failed_update))]
     #[error(
         "Failed to update config {}.",

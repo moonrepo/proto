@@ -19,17 +19,19 @@
 
 #### 💥 Breaking
 
-- Updated `proto install <tool>` to install a version pinned in `.prototools`, instead of the latest version. If you want to install the latest version, you can use `proto install <tool> latest`.
+- Updated `proto install <tool>` (without version) to install a version pinned in `.prototools`, instead of the latest version. If you want to install the latest version, you can use `proto install <tool> latest`.
 
 #### 🚀 Updates
 
 - Comments are now preserved when updating TOML config files (`.prototools`, etc).
 - Commands executed from WASM plugins will now always run within a shell.
-  - Added a `PROTO_SHELL` environment variable that can be used to defined which shell to use, otherwise defaults to the current process shell.
+  - Added a `PROTO_SHELL` environment variable that can be set to define which shell to use, otherwise defaults to the current process shell.
 - Added environment variable support to many non-tool related `.prototools` settings.
+- Added a new `settings.url-rewrites` setting that allows you to rewrite URLs using regex patterns.
+  - This is useful if you have an internal mirror or proxy that you want to use.
 - Updated the `proto activate` command:
   - Will now run the initialization hook immediately, instead of waiting for a directory change. Because of this, the `--on-init` option has been deprecated.
-  - Added a new `--no-init` option that will skip the initialization hook. This functions like it did previously.
+  - Added a new `--no-init` option that will skip the initialization hook. This will function like it did previously.
 - Updated the `proto bin` command:
   - Added a new `--dir` option that will print a directory instead of a file. Supports the value "exes" or "globals".
   - Added a new `--all` option that will print all paths, instead of just the first.

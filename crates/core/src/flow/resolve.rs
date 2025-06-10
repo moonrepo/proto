@@ -96,6 +96,7 @@ impl Tool {
         let backend_id = metadata.backend_id;
         let backend_dir = self.proto.store.backends_dir.join(&backend_id);
         let update_perms = !backend_dir.exists();
+        let config = self.proto.load_config()?;
 
         // if is_offline() {
         //     return Err(ProtoEnvError::RequiredInternetConnection.into());
@@ -109,8 +110,10 @@ impl Tool {
         );
 
         match source {
-            SourceLocation::Archive(src) => {
+            SourceLocation::Archive(mut src) => {
                 if !backend_dir.exists() {
+                    src.url = config.rewrite_url(src.url)?;
+
                     debug!(
                         tool = self.id.as_str(),
                         url = &src.url,

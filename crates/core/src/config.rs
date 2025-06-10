@@ -3,6 +3,7 @@ use crate::helpers::ENV_VAR_SUB;
 use crate::tool_spec::{Backend, ToolSpec};
 use indexmap::IndexMap;
 use once_cell::sync::OnceCell;
+use regex::Regex;
 use rustc_hash::FxHashMap;
 use schematic::{
     Config, ConfigEnum, ConfigError, ConfigLoader, DefaultValueResult, Format, MergeError,
@@ -260,6 +261,10 @@ pub struct ProtoSettingsConfig {
 
     #[setting(default = true, env = "PROTO_TELEMETRY", parse_env = env::parse_bool)]
     pub telemetry: bool,
+
+    #[setting(merge = merge_indexmap)]
+    #[serde(skip_serializing_if = "IndexMap::is_empty")]
+    pub url_rewrites: IndexMap<String, String>,
 }
 
 #[derive(Clone, Config, Debug, Serialize)]
@@ -777,6 +782,21 @@ impl ProtoConfig {
         }
 
         Ok(vars)
+    }
+
+    pub fn rewrite_url(&self, url: impl AsRef<str>) -> Result<String, ProtoConfigError> {
+        let mut url = url.as_ref().to_owned();
+
+        for (pattern, replacement) in &self.settings.url_rewrites {
+            let re = Regex::new(pattern).map_err(|error| ProtoConfigError::FailedParseRegex {
+                pattern: pattern.to_owned(),
+                error: Box::new(error),
+            })?;
+
+            url = re.replace_all(&url, replacement).to_string();
+        }
+
+        Ok(url)
     }
 
     fn resolve_path(path: impl AsRef<Path>) -> PathBuf {

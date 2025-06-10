@@ -35,27 +35,20 @@ pub fn inject_proto_manifest_config(
 #[instrument(skip(proto))]
 pub fn locate_tool(id: &Id, proto: &ProtoEnvironment) -> Result<PluginLocator, ProtoLoaderError> {
     let mut locator = None;
-    let configs = proto.load_config_manager()?;
+    let config = proto.load_config()?;
 
     debug!(tool = id.as_str(), "Finding a configured plugin");
 
     // Check config files for plugins
-    for file in &configs.files {
-        if let Some(plugins) = &file.config.plugins {
-            if let Some(maybe_locator) = plugins.get(id) {
-                debug!(file = ?file.path, plugin = maybe_locator.to_string(), "Found a plugin");
+    if let Some(maybe_locator) = config.plugins.get(id) {
+        debug!(plugin = maybe_locator.to_string(), "Found a plugin");
 
-                locator = Some(maybe_locator.to_owned());
-                break;
-            }
-        }
+        locator = Some(maybe_locator.to_owned());
     }
 
     // And finally the built-in plugins (must include global config)
     if locator.is_none() {
-        let builtin_plugins = proto.load_config()?.builtin_plugins();
-
-        if let Some(maybe_locator) = builtin_plugins.get(id) {
+        if let Some(maybe_locator) = config.builtin_plugins().get(id) {
             debug!(
                 plugin = maybe_locator.to_string(),
                 "Using a built-in plugin"
@@ -65,9 +58,14 @@ pub fn locate_tool(id: &Id, proto: &ProtoEnvironment) -> Result<PluginLocator, P
         }
     }
 
-    let Some(locator) = locator else {
+    let Some(mut locator) = locator else {
         return Err(ProtoLoaderError::UnknownTool { id: id.to_owned() });
     };
+
+    // Rewrite if a URL
+    if let PluginLocator::Url(inner) = &mut locator {
+        inner.url = config.rewrite_url(&inner.url)?;
+    }
 
     Ok(locator)
 }
