@@ -1,7 +1,7 @@
 use indexmap::IndexMap;
 use proto_core::{
     Backend, DetectStrategy, EnvVar, PartialEnvVar, PartialProtoSettingsConfig, PinLocation,
-    ProtoConfig, ProtoConfigManager, ToolSpec,
+    ProtoConfig, ProtoConfigManager, RegexSetting, ToolSpec,
 };
 use starbase_sandbox::create_empty_sandbox;
 use starbase_utils::json::JsonValue;
@@ -962,6 +962,58 @@ file = ".env.tool"
                     sandbox.path().join("a/b/.env.b"),
                     sandbox.path().join("a/b/.env.tool-b"),
                 ]
+            );
+        }
+    }
+
+    mod url_rewrites {
+        use schematic::Config;
+
+        use super::*;
+
+        #[test]
+        fn can_set_regex_setting() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[settings.url-rewrites]
+"github.com/(\\w+)/(\\w+)" = "replaced.com/$1/$2"
+"#,
+            );
+
+            let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
+
+            assert_eq!(
+                config.settings.unwrap(),
+                PartialProtoSettingsConfig {
+                    url_rewrites: Some(IndexMap::from_iter([(
+                        RegexSetting::try_from("github.com/(\\w+)/(\\w+)".to_string()).unwrap(),
+                        "replaced.com/$1/$2".into()
+                    ),])),
+                    ..Default::default()
+                }
+            );
+        }
+
+        #[test]
+        fn rewrites_urls() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[settings.url-rewrites]
+"github.com/(\\w+)/(\\w+)" = "replaced.com/$1/$2"
+"mo+n" = "lunar"
+"#,
+            );
+
+            let config =
+                ProtoConfig::from_partial(ProtoConfig::load_from(sandbox.path(), false).unwrap());
+
+            assert_eq!(
+                config.rewrite_url("https://github.com/moonrepo/moon/releases/download/v1.37.1/moon-x86_64-apple-darwin"),
+                "https://replaced.com/lunarrepo/lunar/releases/download/v1.37.1/lunar-x86_64-apple-darwin",
             );
         }
     }
