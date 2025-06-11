@@ -1,6 +1,6 @@
 [package]
 name = "proto_installer"
-version = "0.12.5"
+version = "0.13.0"
 edition = "2024"
 license = "MIT"
 description = "Download and install proto."

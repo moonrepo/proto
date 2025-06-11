@@ -69,12 +69,13 @@ impl Tool {
     /// Register the backend by acquiring necessary source files.
     #[instrument(skip_all)]
     pub async fn register_backend(&mut self) -> Result<(), ProtoResolveError> {
-        if !self.plugin.has_func("register_backend").await
-            || self.backend.is_none()
-            || self.backend_registered
-        {
+        if !self.plugin.has_func("register_backend").await || self.backend_registered {
             return Ok(());
         }
+
+        let Some(backend) = &self.backend else {
+            return Ok(());
+        };
 
         let metadata: RegisterBackendOutput = self
             .plugin
@@ -94,7 +95,12 @@ impl Tool {
         };
 
         let backend_id = metadata.backend_id;
-        let backend_dir = self.proto.store.backends_dir.join(&backend_id);
+        let backend_dir = self
+            .proto
+            .store
+            .backends_dir
+            .join(backend.to_string()) // asdf
+            .join(&backend_id); // node
         let update_perms = !backend_dir.exists();
         let config = self.proto.load_config()?;
 

@@ -19,12 +19,18 @@ pub fn verify_checksum(
         ChecksumAlgorithm::Minisign => minisign::verify_checksum(
             download_file,
             checksum_file,
-            checksum.key.as_deref().unwrap(),
+            checksum
+                .key
+                .as_deref()
+                .expect("Expected a public key for minisign checksum"),
         ),
         ChecksumAlgorithm::Sha256 | ChecksumAlgorithm::Sha512 => sha::verify_checksum(
             download_file,
             checksum_file,
-            checksum.hash.as_deref().unwrap(),
+            checksum
+                .hash
+                .as_deref()
+                .expect("Expected a hash for SHA checksum"),
         ),
     }
 }
