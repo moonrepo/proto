@@ -379,9 +379,10 @@ impl Tool {
         }
         // Verify against an explicitly provided checksum
         else if let Some(checksum) = output.checksum {
-            let checksum_file = temp_dir.join("CHECKSUM");
+            let checksum_file =
+                temp_dir.join(format!("CHECKSUM.{:?}", checksum.algo).to_lowercase());
 
-            fs::write_file(&checksum_file, checksum.to_string())?;
+            fs::write_file(&checksum_file, checksum.hash.as_deref().unwrap_or_default())?;
 
             debug!(
                 tool = self.id.as_str(),
@@ -393,7 +394,10 @@ impl Tool {
                 self.verify_checksum(
                     &checksum_file,
                     &download_file,
-                    output.checksum_public_key.as_deref(),
+                    checksum
+                        .key
+                        .as_deref()
+                        .or(output.checksum_public_key.as_deref()),
                 )
                 .await?,
             );

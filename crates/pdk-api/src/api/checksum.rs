@@ -32,7 +32,7 @@ pub struct Checksum {
     /// Public key.
     pub key: Option<String>,
 
-    /// File hash.
+    /// File hash / private key.
     pub hash: Option<String>,
 }
 

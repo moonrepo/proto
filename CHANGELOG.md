@@ -36,6 +36,10 @@
   - Added a new `--dir` option that will print a directory instead of a file. Supports the value "exes" or "globals".
   - Added a new `--all` option that will print all paths, instead of just the first.
 
+#### 🐞 Fixes
+
+- Fixed an issue where plugins that provide a checksum directly, instead of a URL, would fail to verify the checksum correctly.
+
 ## 0.49.5
 
 #### 🚀 Updates
