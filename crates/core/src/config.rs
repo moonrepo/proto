@@ -358,7 +358,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("asdf"),
                 PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/asdf_backend-v0.2.1/asdf_backend.wasm".into()
+                    url: "https://github.com/moonrepo/plugins/releases/download/asdf_backend-v0.3.0/asdf_backend.wasm".into()
                 }))
             );
         }
@@ -367,7 +367,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("bun"),
                 PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/bun_tool-v0.15.2/bun_tool.wasm".into()
+                    url: "https://github.com/moonrepo/plugins/releases/download/bun_tool-v0.16.0/bun_tool.wasm".into()
                 }))
             );
         }
@@ -403,7 +403,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("node"),
                 PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/node_tool-v0.16.4/node_tool.wasm".into()
+                    url: "https://github.com/moonrepo/plugins/releases/download/node_tool-v0.17.0/node_tool.wasm".into()
                 }))
             );
         }
@@ -413,7 +413,7 @@ impl ProtoConfig {
                 self.plugins.insert(
                     Id::raw(depman),
                     PluginLocator::Url(Box::new(UrlLocator {
-                        url: "https://github.com/moonrepo/plugins/releases/download/node_depman_tool-v0.15.2/node_depman_tool.wasm".into()
+                        url: "https://github.com/moonrepo/plugins/releases/download/node_depman_tool-v0.16.0/node_depman_tool.wasm".into()
                     }))
                 );
             }
@@ -441,7 +441,7 @@ impl ProtoConfig {
             self.plugins.insert(
                 Id::raw("uv"),
                 PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/python_uv_tool-v0.2.2/python_uv_tool.wasm".into()
+                    url: "https://github.com/moonrepo/plugins/releases/download/python_uv_tool-v0.3.0/python_uv_tool.wasm".into()
                 }))
             );
         }
