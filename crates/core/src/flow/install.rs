@@ -226,7 +226,7 @@ impl Tool {
         }
 
         let mut builder = Builder::new(BuilderOptions {
-            config: &config.settings.build,
+            config,
             console: options
                 .console
                 .as_ref()
