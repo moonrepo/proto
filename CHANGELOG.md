@@ -40,6 +40,21 @@
 
 - Fixed an issue where plugins that provide a checksum directly, instead of a URL, would fail to verify the checksum correctly.
 - Fixed an issue with the asdf backend where a plugin expects the checkout folder to have a specific name.
+- Fixed some path normalization issues on Windows.
+
+#### 🧩 Plugins
+
+- Updated `asdf_backend` to v0.3.
+  - Updated the backend ID/path to `asdf/<tool>` instead of `asdf-<tool>`.
+  - Updated scripts to extract the command/shell to execute with from its shebang.
+- Updated `bun_tool` to v0.16.
+  - Added detection sources: `.bumrc`, `.bun-version`, `package.json` (volta, engines, packageManager)
+- Updated `node_tool` to v0.17.
+  - Added support for `volta.extends` when detecting a version.
+- Updated `node_depman_tool` to v0.16.
+  - Improved `package.json` parsing.
+- Updated `python_uv_tool` to v0.3.
+  - Added detection sources: `uv.toml`, `pyproject.toml`
 
 #### ⚙️ Internal
 
