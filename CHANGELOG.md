@@ -41,6 +41,10 @@
 - Fixed an issue where plugins that provide a checksum directly, instead of a URL, would fail to verify the checksum correctly.
 - Fixed an issue with the asdf backend where a plugin expects the checkout folder to have a specific name.
 
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.49.5
 
 #### 🚀 Updates

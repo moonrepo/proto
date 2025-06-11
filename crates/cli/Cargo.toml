@@ -44,7 +44,7 @@ async-trait = { workspace = true }
 chrono = "0.4.41"
 clap = { workspace = true, features = ["derive", "env"] }
 clap_complete = { workspace = true }
-clap_complete_nushell = "4.5.6"
+clap_complete_nushell = "4.5.7"
 dirs = { workspace = true }
 indexmap = { workspace = true }
 iocraft = { workspace = true }
