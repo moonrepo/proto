@@ -1,6 +1,6 @@
 use super::build_error::*;
 use super::install::{InstallPhase, OnPhaseFn};
-use crate::config::ProtoBuildConfig;
+use crate::config::ProtoConfig;
 use crate::env::{ProtoConsole, ProtoEnvironment};
 use crate::helpers::{extract_filename_from_url, normalize_path_separators};
 use crate::lockfile::LockfileRecord;
@@ -37,7 +37,7 @@ use warpgate::HttpClient;
 static BUILD_LOCKS: OnceLock<scc::HashMap<String, Arc<Mutex<()>>>> = OnceLock::new();
 
 pub struct BuilderOptions<'a> {
-    pub config: &'a ProtoBuildConfig,
+    pub config: &'a ProtoConfig,
     pub console: &'a ProtoConsole,
     pub http_client: &'a HttpClient,
     pub install_dir: &'a Path,
@@ -339,7 +339,7 @@ pub async fn install_system_dependencies(
             .flatten(),
     );
 
-    for excluded in &builder.options.config.exclude_packages {
+    for excluded in &builder.options.config.settings.build.exclude_packages {
         not_installed_packages.remove(excluded);
     }
 
@@ -711,9 +711,12 @@ pub async fn download_sources(
 
     match source {
         SourceLocation::Archive(archive) => {
+            let mut archive = archive.to_owned();
+            archive.url = builder.options.config.rewrite_url(archive.url);
+
             lockfile.source = Some(archive.url.clone());
 
-            if archive::should_unpack(archive, builder.options.install_dir)? {
+            if archive::should_unpack(&archive, builder.options.install_dir)? {
                 let filename = extract_filename_from_url(&archive.url);
 
                 // Download
@@ -730,7 +733,7 @@ pub async fn download_sources(
                 ))?;
 
                 let download_file = archive::download(
-                    archive,
+                    &archive,
                     builder.options.temp_dir,
                     builder.options.http_client.to_inner(),
                 )
@@ -748,7 +751,7 @@ pub async fn download_sources(
                     builder.options.install_dir.display()
                 ))?;
 
-                archive::unpack(archive, builder.options.install_dir, &download_file)?;
+                archive::unpack(&archive, builder.options.install_dir, &download_file)?;
             }
         }
         SourceLocation::Git(git) => {
@@ -910,14 +913,15 @@ pub async fn execute_instructions(
                 fs::remove_file(file)?;
             }
             BuildInstruction::RequestScript(url) => {
-                let filename = extract_filename_from_url(url);
+                let url = builder.options.config.rewrite_url(url);
+                let filename = extract_filename_from_url(&url);
                 let download_file = builder.options.temp_dir.join(&filename);
 
                 builder
                     .render_checkpoint(format!("{prefix} Requesting script <url>{url}</url>"))?;
 
                 net::download_from_url_with_client(
-                    url,
+                    &url,
                     &download_file,
                     builder.options.http_client.to_inner(),
                 )

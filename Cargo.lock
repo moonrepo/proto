@@ -3541,6 +3541,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df2deb654ef5193a523af751173ef6e93e728db875ca7086b085d92196beda9a"
 dependencies = [
  "indexmap",
+ "regex",
  "semver",
  "serde",
  "serde_json",
