@@ -394,10 +394,10 @@ impl Tool {
                 self.verify_checksum(
                     &checksum_file,
                     &download_file,
-                    checksum
-                        .key
+                    output
+                        .checksum_public_key
                         .as_deref()
-                        .or(output.checksum_public_key.as_deref()),
+                        .or(checksum.key.as_deref()),
                 )
                 .await?,
             );
