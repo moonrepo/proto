@@ -35,8 +35,8 @@ pub async fn env(session: ProtoSession) -> AppResult {
     let environment = EnvironmentInfo {
         arch: HostArch::from_env(),
         configs: manager
-            .files
-            .iter()
+            .get_config_files()
+            .into_iter()
             .filter_map(|file| {
                 if file.exists {
                     Some(file.path.to_path_buf())

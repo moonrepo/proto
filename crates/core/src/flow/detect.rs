@@ -141,7 +141,7 @@ impl Tool {
             "Attempting to find version from {} files", PROTO_CONFIG_NAME
         );
 
-        let config_files = self.proto.load_files()?;
+        let config_files = self.proto.load_config_files()?;
         let config = self.proto.load_config()?;
 
         let detected_version = match config.settings.detect_strategy {

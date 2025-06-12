@@ -37,7 +37,7 @@ mod version_detector {
         let manager = ProtoFileManager::load(sandbox.path().join("a/b/c"), None, None).unwrap();
 
         assert_eq!(
-            detect_version_first_available(&tool, &manager.files.iter().collect::<Vec<_>>())
+            detect_version_first_available(&tool, &manager.get_config_files())
                 .await
                 .unwrap(),
             Some(UnresolvedVersionSpec::parse("~16").unwrap())
@@ -46,7 +46,7 @@ mod version_detector {
         let manager = ProtoFileManager::load(sandbox.path().join("a/b"), None, None).unwrap();
 
         assert_eq!(
-            detect_version_first_available(&tool, &manager.files.iter().collect::<Vec<_>>())
+            detect_version_first_available(&tool, &manager.get_config_files())
                 .await
                 .unwrap(),
             Some(UnresolvedVersionSpec::parse("~18").unwrap())
@@ -55,7 +55,7 @@ mod version_detector {
         let manager = ProtoFileManager::load(sandbox.path().join("a"), None, None).unwrap();
 
         assert_eq!(
-            detect_version_first_available(&tool, &manager.files.iter().collect::<Vec<_>>())
+            detect_version_first_available(&tool, &manager.get_config_files())
                 .await
                 .unwrap(),
             Some(UnresolvedVersionSpec::parse("~20").unwrap())
@@ -72,7 +72,7 @@ mod version_detector {
         let manager = ProtoFileManager::load(sandbox.path().join("a/b"), None, None).unwrap();
 
         assert_eq!(
-            detect_version_first_available(&tool, &manager.files.iter().collect::<Vec<_>>())
+            detect_version_first_available(&tool, &manager.get_config_files())
                 .await
                 .unwrap(),
             Some(UnresolvedVersionSpec::parse("~20").unwrap())
@@ -89,7 +89,7 @@ mod version_detector {
         let manager = ProtoFileManager::load(sandbox.path().join("a/b"), None, None).unwrap();
 
         assert_eq!(
-            detect_version_first_available(&tool, &manager.files.iter().collect::<Vec<_>>())
+            detect_version_first_available(&tool, &manager.get_config_files())
                 .await
                 .unwrap(),
             Some(UnresolvedVersionSpec::parse("~18").unwrap())
@@ -108,7 +108,7 @@ mod version_detector {
         let manager = ProtoFileManager::load(sandbox.path().join("a/b/c"), None, None).unwrap();
 
         assert_eq!(
-            detect_version_prefer_prototools(&tool, &manager.files.iter().collect::<Vec<_>>())
+            detect_version_prefer_prototools(&tool, &manager.get_config_files())
                 .await
                 .unwrap(),
             Some(UnresolvedVersionSpec::parse("~18").unwrap())
@@ -126,7 +126,7 @@ mod version_detector {
         let manager = ProtoFileManager::load(sandbox.path().join("a/b"), None, None).unwrap();
 
         assert_eq!(
-            detect_version_only_prototools(&tool, &manager.files.iter().collect::<Vec<_>>())
+            detect_version_only_prototools(&tool, &manager.get_config_files())
                 .await
                 .unwrap(),
             Some(UnresolvedVersionSpec::parse("~18").unwrap())
@@ -135,7 +135,7 @@ mod version_detector {
         let manager = ProtoFileManager::load(sandbox.path().join("a"), None, None).unwrap();
 
         assert_eq!(
-            detect_version_only_prototools(&tool, &manager.files.iter().collect::<Vec<_>>())
+            detect_version_only_prototools(&tool, &manager.get_config_files())
                 .await
                 .unwrap(),
             None

@@ -22,7 +22,11 @@ pub async fn config(session: ProtoSession) -> AppResult {
     if session.should_print_json() {
         let result = DebugConfigResult {
             config,
-            files: manager.files.iter().rev().collect::<Vec<_>>(),
+            files: manager
+                .get_config_files()
+                .into_iter()
+                .rev()
+                .collect::<Vec<_>>(),
         };
 
         session
@@ -33,7 +37,7 @@ pub async fn config(session: ProtoSession) -> AppResult {
         return Ok(None);
     }
 
-    for file in manager.files.iter().rev() {
+    for file in manager.get_config_files().into_iter().rev() {
         if !file.exists {
             continue;
         }

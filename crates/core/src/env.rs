@@ -1,7 +1,7 @@
 use crate::config::{ConfigMode, PROTO_CONFIG_NAME, PinLocation, ProtoConfig};
 use crate::config_error::ProtoConfigError;
 use crate::env_error::ProtoEnvError;
-use crate::file_manager::{ProtoFile, ProtoFileManager};
+use crate::file_manager::{ProtoDirEntry, ProtoFile, ProtoFileManager};
 use crate::helpers::is_offline;
 use crate::layout::Store;
 use once_cell::sync::OnceCell;
@@ -131,16 +131,21 @@ impl ProtoEnvironment {
         }
     }
 
-    pub fn load_files(&self) -> Result<Vec<&ProtoFile>, ProtoConfigError> {
+    pub fn load_config_files(&self) -> Result<Vec<&ProtoFile>, ProtoConfigError> {
         Ok(self
             .load_file_manager()?
-            .files
+            .entries
             .iter()
-            .filter(|file| {
-                !(!self.config_mode.includes_global() && file.location == PinLocation::Global
-                    || self.config_mode.only_local()
-                        && file.path.parent().is_none_or(|p| p != self.working_dir))
+            .filter_map(|dir| {
+                if !self.config_mode.includes_global() && dir.location == PinLocation::Global
+                    || self.config_mode.only_local() && dir.path != self.working_dir
+                {
+                    None
+                } else {
+                    Some(&dir.configs)
+                }
             })
+            .flatten()
             .collect())
     }
 
@@ -161,11 +166,15 @@ impl ProtoEnvironment {
             // Always load the proto home/root config last
             let path = self.store.dir.join(PROTO_CONFIG_NAME);
 
-            manager.files.push(ProtoFile {
-                exists: path.exists(),
+            manager.entries.push(ProtoDirEntry {
+                path: self.store.dir.clone(),
                 location: PinLocation::Global,
-                path,
-                config: ProtoConfig::load_from(&self.store.dir, true)?,
+                configs: vec![ProtoFile {
+                    exists: path.exists(),
+                    path,
+                    config: ProtoConfig::load_from(&self.store.dir, true)?,
+                }],
+                lock: None,
             });
 
             // Remove the pinned `proto` version from global/user configs,
