@@ -19,7 +19,7 @@ pub struct UninstallArgs {
 }
 
 fn unpin_version(session: &ProtoSession, args: &UninstallArgs) -> Result<(), ProtoConfigError> {
-    let manager = session.env.load_config_manager()?;
+    let manager = session.env.load_file_manager()?;
 
     for file in &manager.files {
         if !file.exists {

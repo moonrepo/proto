@@ -30,7 +30,7 @@ struct DebugEnvResult<'a> {
 #[tracing::instrument(skip_all)]
 pub async fn env(session: ProtoSession) -> AppResult {
     let env = &session.env;
-    let manager = env.load_config_manager()?;
+    let manager = env.load_file_manager()?;
 
     let environment = EnvironmentInfo {
         arch: HostArch::from_env(),

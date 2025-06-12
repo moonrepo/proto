@@ -1,7 +1,7 @@
 use indexmap::IndexMap;
 use proto_core::{
     Backend, DetectStrategy, EnvVar, PartialEnvVar, PartialProtoSettingsConfig, PinLocation,
-    ProtoConfig, ProtoConfigManager, RegexSetting, ToolSpec,
+    ProtoConfig, ProtoFileManager, RegexSetting, ToolSpec,
 };
 use starbase_sandbox::create_empty_sandbox;
 use starbase_utils::json::JsonValue;
@@ -85,7 +85,7 @@ pin-latest = "global"
         };
 
         // Need to use the manager since it runs the finalize process
-        let manager = ProtoConfigManager::load(sandbox.path(), None, None).unwrap();
+        let manager = ProtoFileManager::load(sandbox.path(), None, None).unwrap();
         let config = manager.get_merged_config().unwrap();
 
         assert!(config.settings.auto_clean);
@@ -363,7 +363,7 @@ file = ".env"
 "#,
             );
 
-            ProtoConfigManager::load(sandbox.path(), None, None)
+            ProtoFileManager::load(sandbox.path(), None, None)
                 .unwrap()
                 .get_merged_config()
                 .unwrap();
@@ -387,7 +387,7 @@ file = ".env"
 "#,
             );
 
-            ProtoConfigManager::load(sandbox.path(), None, None)
+            ProtoFileManager::load(sandbox.path(), None, None)
                 .unwrap()
                 .get_merged_config()
                 .unwrap()
@@ -415,7 +415,7 @@ KEY2 = "value2"
 "#,
             );
 
-            let config = ProtoConfigManager::load(sandbox.path(), None, None)
+            let config = ProtoFileManager::load(sandbox.path(), None, None)
                 .unwrap()
                 .get_merged_config()
                 .unwrap()
@@ -460,7 +460,7 @@ file = ".env"
 "#,
             );
 
-            let config = ProtoConfigManager::load(sandbox.path().join("child"), None, None)
+            let config = ProtoFileManager::load(sandbox.path().join("child"), None, None)
                 .unwrap()
                 .get_merged_config()
                 .unwrap()
@@ -491,7 +491,7 @@ file = ".env"
 "#,
             );
 
-            let config = ProtoConfigManager::load(sandbox.path(), None, None)
+            let config = ProtoFileManager::load(sandbox.path(), None, None)
                 .unwrap()
                 .get_merged_config()
                 .unwrap()
@@ -557,7 +557,7 @@ KEY = "from=${FILE}"
 "#,
             );
 
-            let config = ProtoConfigManager::load(sandbox.path(), None, None)
+            let config = ProtoFileManager::load(sandbox.path(), None, None)
                 .unwrap()
                 .get_merged_config()
                 .unwrap()
@@ -711,7 +711,7 @@ value = "asdf:4.5.6"
 "#,
             );
 
-            let config = ProtoConfigManager::load(sandbox.path(), None, None)
+            let config = ProtoFileManager::load(sandbox.path(), None, None)
                 .unwrap()
                 .get_merged_config()
                 .unwrap()
@@ -788,7 +788,7 @@ value = "root"
 "#,
             );
 
-            let config = ProtoConfigManager::load(sandbox.path().join("a/b"), None, None)
+            let config = ProtoFileManager::load(sandbox.path().join("a/b"), None, None)
                 .unwrap()
                 .get_merged_config()
                 .unwrap()
@@ -828,7 +828,7 @@ value = "4.5.6"
 "#,
             );
 
-            let config = ProtoConfigManager::load(sandbox.path().join("a/b"), None, None)
+            let config = ProtoFileManager::load(sandbox.path().join("a/b"), None, None)
                 .unwrap()
                 .get_merged_config()
                 .unwrap()
@@ -880,7 +880,7 @@ NODE_PATH = false
 "#,
             );
 
-            let config = ProtoConfigManager::load(sandbox.path().join("a/b"), None, None)
+            let config = ProtoFileManager::load(sandbox.path().join("a/b"), None, None)
                 .unwrap()
                 .get_merged_config()
                 .unwrap()
@@ -941,7 +941,7 @@ file = ".env.tool"
 "#,
             );
 
-            let config = ProtoConfigManager::load(sandbox.path().join("a/b"), None, None)
+            let config = ProtoFileManager::load(sandbox.path().join("a/b"), None, None)
                 .unwrap()
                 .get_merged_config()
                 .unwrap()
@@ -1063,7 +1063,7 @@ deno = "7.8.9"
         );
 
         let manager =
-            ProtoConfigManager::load(sandbox.path().join("one/two/three"), None, None).unwrap();
+            ProtoFileManager::load(sandbox.path().join("one/two/three"), None, None).unwrap();
         let config = manager.get_merged_config().unwrap();
 
         assert_eq!(
@@ -1128,7 +1128,7 @@ bun = "1.2.3"
         );
 
         let manager =
-            ProtoConfigManager::load(sandbox.path().join("one/two/three"), None, None).unwrap();
+            ProtoFileManager::load(sandbox.path().join("one/two/three"), None, None).unwrap();
         let config = manager.get_merged_config_without_global().unwrap();
 
         assert_eq!(
@@ -1173,7 +1173,7 @@ bun = "1.2.3"
         );
 
         let manager =
-            ProtoConfigManager::load(sandbox.path().join("one/two/three"), None, None).unwrap();
+            ProtoFileManager::load(sandbox.path().join("one/two/three"), None, None).unwrap();
         let config = manager
             .get_local_config(&sandbox.path().join("one/two/three"))
             .unwrap();
@@ -1207,7 +1207,7 @@ deno = "7.8.9"
         );
 
         let manager =
-            ProtoConfigManager::load(sandbox.path(), None, Some(&"production".to_owned())).unwrap();
+            ProtoFileManager::load(sandbox.path(), None, Some(&"production".to_owned())).unwrap();
         let config = manager.get_local_config(sandbox.path()).unwrap();
 
         assert_eq!(
@@ -1244,7 +1244,7 @@ deno = "7.8.9"
 "#,
         );
 
-        let manager = ProtoConfigManager::load(sandbox.path(), None, None).unwrap();
+        let manager = ProtoFileManager::load(sandbox.path(), None, None).unwrap();
         let config = manager.get_local_config(sandbox.path()).unwrap();
 
         assert_eq!(
@@ -1282,8 +1282,7 @@ deno = "7.8.9"
         );
 
         let manager =
-            ProtoConfigManager::load(sandbox.path(), None, Some(&"development".to_owned()))
-                .unwrap();
+            ProtoFileManager::load(sandbox.path(), None, Some(&"development".to_owned())).unwrap();
         let config = manager.get_local_config(sandbox.path()).unwrap();
 
         assert_eq!(

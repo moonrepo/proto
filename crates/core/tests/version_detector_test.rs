@@ -1,5 +1,5 @@
 use proto_core::{
-    ProtoConfig, ProtoConfigManager, ProtoEnvironment, Tool, UnresolvedVersionSpec,
+    ProtoConfig, ProtoEnvironment, ProtoFileManager, Tool, UnresolvedVersionSpec,
     flow::detect::{
         detect_version_first_available, detect_version_only_prototools,
         detect_version_prefer_prototools,
@@ -34,7 +34,7 @@ mod version_detector {
         sandbox.create_file("a/b/c/.prototools", "node = \"16\"");
 
         let tool = create_node(sandbox.path()).await;
-        let manager = ProtoConfigManager::load(sandbox.path().join("a/b/c"), None, None).unwrap();
+        let manager = ProtoFileManager::load(sandbox.path().join("a/b/c"), None, None).unwrap();
 
         assert_eq!(
             detect_version_first_available(&tool, &manager.files.iter().collect::<Vec<_>>())
@@ -43,7 +43,7 @@ mod version_detector {
             Some(UnresolvedVersionSpec::parse("~16").unwrap())
         );
 
-        let manager = ProtoConfigManager::load(sandbox.path().join("a/b"), None, None).unwrap();
+        let manager = ProtoFileManager::load(sandbox.path().join("a/b"), None, None).unwrap();
 
         assert_eq!(
             detect_version_first_available(&tool, &manager.files.iter().collect::<Vec<_>>())
@@ -52,7 +52,7 @@ mod version_detector {
             Some(UnresolvedVersionSpec::parse("~18").unwrap())
         );
 
-        let manager = ProtoConfigManager::load(sandbox.path().join("a"), None, None).unwrap();
+        let manager = ProtoFileManager::load(sandbox.path().join("a"), None, None).unwrap();
 
         assert_eq!(
             detect_version_first_available(&tool, &manager.files.iter().collect::<Vec<_>>())
@@ -69,7 +69,7 @@ mod version_detector {
         sandbox.create_file("package.json", r#"{ "engines": { "node": "18" } }"#);
 
         let tool = create_node(sandbox.path()).await;
-        let manager = ProtoConfigManager::load(sandbox.path().join("a/b"), None, None).unwrap();
+        let manager = ProtoFileManager::load(sandbox.path().join("a/b"), None, None).unwrap();
 
         assert_eq!(
             detect_version_first_available(&tool, &manager.files.iter().collect::<Vec<_>>())
@@ -86,7 +86,7 @@ mod version_detector {
         sandbox.create_file("a/package.json", r#"{ "engines": { "node": "18" } }"#);
 
         let tool = create_node(sandbox.path()).await;
-        let manager = ProtoConfigManager::load(sandbox.path().join("a/b"), None, None).unwrap();
+        let manager = ProtoFileManager::load(sandbox.path().join("a/b"), None, None).unwrap();
 
         assert_eq!(
             detect_version_first_available(&tool, &manager.files.iter().collect::<Vec<_>>())
@@ -105,7 +105,7 @@ mod version_detector {
         sandbox.create_file("a/b/c/package.json", r#"{ "engines": { "node": "19" } }"#);
 
         let tool = create_node(sandbox.path()).await;
-        let manager = ProtoConfigManager::load(sandbox.path().join("a/b/c"), None, None).unwrap();
+        let manager = ProtoFileManager::load(sandbox.path().join("a/b/c"), None, None).unwrap();
 
         assert_eq!(
             detect_version_prefer_prototools(&tool, &manager.files.iter().collect::<Vec<_>>())
@@ -123,7 +123,7 @@ mod version_detector {
         sandbox.create_file("a/b/package.json", r#"{ "engines": { "node": "17" } }"#);
 
         let tool = create_node(sandbox.path()).await;
-        let manager = ProtoConfigManager::load(sandbox.path().join("a/b"), None, None).unwrap();
+        let manager = ProtoFileManager::load(sandbox.path().join("a/b"), None, None).unwrap();
 
         assert_eq!(
             detect_version_only_prototools(&tool, &manager.files.iter().collect::<Vec<_>>())
@@ -132,7 +132,7 @@ mod version_detector {
             Some(UnresolvedVersionSpec::parse("~18").unwrap())
         );
 
-        let manager = ProtoConfigManager::load(sandbox.path().join("a"), None, None).unwrap();
+        let manager = ProtoFileManager::load(sandbox.path().join("a"), None, None).unwrap();
 
         assert_eq!(
             detect_version_only_prototools(&tool, &manager.files.iter().collect::<Vec<_>>())
