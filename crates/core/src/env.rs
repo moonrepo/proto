@@ -141,7 +141,7 @@ impl ProtoEnvironment {
         }
     }
 
-    pub fn load_config_files(&self) -> Result<Vec<&ProtoFile>, ProtoConfigError> {
+    pub fn load_config_files(&self) -> Result<Vec<&ProtoConfigFile>, ProtoConfigError> {
         Ok(self
             .load_file_manager()?
             .entries

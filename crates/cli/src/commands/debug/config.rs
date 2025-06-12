@@ -1,7 +1,7 @@
 use crate::components::CodeBlock;
 use crate::session::ProtoSession;
 use iocraft::prelude::*;
-use proto_core::{ProtoConfig, ProtoFile};
+use proto_core::{ProtoConfig, ProtoConfigFile};
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;
@@ -10,7 +10,7 @@ use starbase_utils::{json, toml};
 #[derive(Serialize)]
 struct DebugConfigResult<'a> {
     config: &'a ProtoConfig,
-    files: Vec<&'a ProtoFile>,
+    files: Vec<&'a ProtoConfigFile>,
 }
 
 #[tracing::instrument(skip_all)]
