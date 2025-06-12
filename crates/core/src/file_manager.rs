@@ -1,9 +1,10 @@
 use crate::config::*;
 use crate::config_error::ProtoConfigError;
-use crate::lockfile::Lockfile;
+use crate::lockfile::*;
 use once_cell::sync::OnceCell;
 use schematic::{Config, PartialConfig};
 use serde::Serialize;
+use starbase_utils::fs;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -21,7 +22,7 @@ pub struct ProtoDirEntry {
     pub path: PathBuf,
     pub location: PinLocation,
     pub configs: Vec<ProtoConfigFile>,
-    pub lock: Option<Lockfile>,
+    pub lock: Option<ProtoLock>,
 }
 
 #[derive(Debug)]
@@ -69,6 +70,7 @@ impl ProtoFileManager {
                 });
             }
 
+            let lock_path = dir.join(PROTO_LOCK_NAME);
             let path = dir.join(PROTO_CONFIG_NAME);
 
             configs.push(ProtoConfigFile {
@@ -100,6 +102,8 @@ impl ProtoFileManager {
                 } else {
                     locked_dirs.push(dir.to_path_buf());
                 }
+            } else if lock_path.exists() {
+                fs::remove_file(lock_path)?;
             }
 
             entries.push(ProtoDirEntry {
@@ -107,7 +111,7 @@ impl ProtoFileManager {
                 location,
                 configs,
                 lock: if load_lockfile {
-                    Some(Lockfile::load_from(dir)?)
+                    Some(ProtoLock::load_from(dir)?)
                 } else {
                     None
                 },
@@ -127,6 +131,10 @@ impl ProtoFileManager {
             global_config: Arc::new(OnceCell::new()),
             local_config: Arc::new(OnceCell::new()),
         })
+    }
+
+    pub fn get_lock(&self) -> Option<&ProtoLock> {
+        self.entries.iter().find_map(|entry| entry.lock.as_ref())
     }
 
     pub fn get_config_files(&self) -> Vec<&ProtoConfigFile> {

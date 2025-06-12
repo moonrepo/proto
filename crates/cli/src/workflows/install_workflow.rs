@@ -8,7 +8,7 @@ use crate::utils::tool_record::ToolRecord;
 use iocraft::element;
 use proto_core::flow::install::{InstallOptions, InstallPhase};
 use proto_core::utils::log::LogWriter;
-use proto_core::{Id, LockfileRecord, PinLocation, ToolSpec};
+use proto_core::{Id, LockRecord, PinLocation, ToolSpec};
 use proto_pdk_api::{
     InstallHook, InstallStrategy, Switch, SyncShellProfileInput, SyncShellProfileOutput,
 };
@@ -244,7 +244,7 @@ impl InstallWorkflow {
         &mut self,
         spec: &ToolSpec,
         params: &InstallWorkflowParams,
-    ) -> Result<Option<LockfileRecord>, ProtoCliError> {
+    ) -> Result<Option<LockRecord>, ProtoCliError> {
         params.log_writer.as_ref().inspect(|log| {
             log.add_header("Installing tool");
         });

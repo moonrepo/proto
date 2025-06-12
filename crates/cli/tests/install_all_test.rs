@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::{LockfileRecord, ToolManifest, VersionSpec};
+use proto_core::{LockRecord, ToolManifest, VersionSpec};
 use proto_pdk_api::Checksum;
 use starbase_sandbox::predicates::prelude::*;
 use std::path::Path;
@@ -200,7 +200,7 @@ deno = "1.30.0"
             assert!(npm_path.exists());
             assert!(deno_path.exists());
 
-            fn get_lock(dir: &Path, spec: VersionSpec) -> LockfileRecord {
+            fn get_lock(dir: &Path, spec: VersionSpec) -> LockRecord {
                 let mut manifest = ToolManifest::load_from(dir).unwrap();
                 manifest.versions.remove(&spec).unwrap().lock.unwrap()
             }
@@ -254,7 +254,7 @@ deno = "1.30.0"
             {
                 assert_eq!(
                     get_lock(node_path.parent().unwrap(), VersionSpec::parse("19.0.0").unwrap()),
-                    LockfileRecord {
+                    LockRecord {
                         checksum: Some(Checksum::sha256(
                             "76c550a8f2aa9611ce9148d6d3a5af900c2cbbc4b35ba68d545f63239c2d24e9"
                                 .into()
@@ -269,7 +269,7 @@ deno = "1.30.0"
                         npm_path.parent().unwrap(),
                         VersionSpec::parse("9.0.0").unwrap()
                     ),
-                    LockfileRecord {
+                    LockRecord {
                         checksum: Some(Checksum::sha256(
                             "84e7b6c2b573a549782056f4348c76969a90cd861441fa25469545d3600e2ee3"
                                 .into()
@@ -281,7 +281,7 @@ deno = "1.30.0"
 
                 assert_eq!(
                     get_lock(deno_path.parent().unwrap(), VersionSpec::parse("1.30.0").unwrap()),
-                    LockfileRecord {
+                    LockRecord {
                         checksum: Some(Checksum::sha256(
                             "80c6a6f9e4dbda8cd024dd6ac39a64306eded98d532efa8bf12ddc9c12626a1d"
                                 .into()
