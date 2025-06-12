@@ -250,6 +250,8 @@ pub struct ProtoSettingsConfig {
 
     pub http: HttpOptions,
 
+    pub lockfile: bool,
+
     #[setting(nested)]
     pub offline: ProtoOfflineConfig,
 

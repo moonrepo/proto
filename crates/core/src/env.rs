@@ -1,7 +1,7 @@
 use crate::config::{ConfigMode, PROTO_CONFIG_NAME, PinLocation, ProtoConfig};
 use crate::config_error::ProtoConfigError;
 use crate::env_error::ProtoEnvError;
-use crate::file_manager::{ProtoDirEntry, ProtoFile, ProtoFileManager};
+use crate::file_manager::{ProtoConfigFile, ProtoDirEntry, ProtoFileManager};
 use crate::helpers::is_offline;
 use crate::layout::Store;
 use once_cell::sync::OnceCell;
@@ -131,7 +131,7 @@ impl ProtoEnvironment {
         }
     }
 
-    pub fn load_config_files(&self) -> Result<Vec<&ProtoFile>, ProtoConfigError> {
+    pub fn load_config_files(&self) -> Result<Vec<&ProtoConfigFile>, ProtoConfigError> {
         Ok(self
             .load_file_manager()?
             .entries
@@ -169,7 +169,7 @@ impl ProtoEnvironment {
             manager.entries.push(ProtoDirEntry {
                 path: self.store.dir.clone(),
                 location: PinLocation::Global,
-                configs: vec![ProtoFile {
+                configs: vec![ProtoConfigFile {
                     exists: path.exists(),
                     path,
                     config: ProtoConfig::load_from(&self.store.dir, true)?,

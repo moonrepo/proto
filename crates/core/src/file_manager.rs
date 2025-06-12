@@ -10,7 +10,7 @@ use std::sync::Arc;
 use tracing::debug;
 
 #[derive(Debug, Serialize)]
-pub struct ProtoFile {
+pub struct ProtoConfigFile {
     pub exists: bool,
     pub path: PathBuf,
     pub config: PartialProtoConfig,
@@ -20,7 +20,7 @@ pub struct ProtoFile {
 pub struct ProtoDirEntry {
     pub path: PathBuf,
     pub location: PinLocation,
-    pub configs: Vec<ProtoFile>,
+    pub configs: Vec<ProtoConfigFile>,
     pub lock: Option<Lockfile>,
 }
 
@@ -48,6 +48,7 @@ impl ProtoFileManager {
     ) -> Result<Self, ProtoConfigError> {
         let mut current_dir = Some(start_dir.as_ref());
         let mut entries = vec![];
+        let mut locked_dirs: Vec<PathBuf> = vec![];
 
         while let Some(dir) = current_dir {
             let mut configs = vec![];
@@ -61,7 +62,7 @@ impl ProtoFileManager {
             if let Some(env) = env_mode {
                 let env_path = dir.join(format!("{}.{env}", PROTO_CONFIG_NAME));
 
-                configs.push(ProtoFile {
+                configs.push(ProtoConfigFile {
                     config: ProtoConfig::load(&env_path, false)?,
                     exists: env_path.exists(),
                     path: env_path,
@@ -70,19 +71,46 @@ impl ProtoFileManager {
 
             let path = dir.join(PROTO_CONFIG_NAME);
 
-            configs.push(ProtoFile {
+            configs.push(ProtoConfigFile {
                 config: ProtoConfig::load(&path, false)?,
                 exists: path.exists(),
                 path,
             });
 
+            // Only load the lockfile if any of the configs
+            // in the current directory are enabled
+            let load_lockfile = location == PinLocation::Local
+                && configs.iter().any(|file| {
+                    file.config
+                        .settings
+                        .as_ref()
+                        .and_then(|settings| settings.lockfile)
+                        .unwrap_or(false)
+                });
+
+            if load_lockfile {
+                if let Some(locked_dir) = locked_dirs
+                    .iter()
+                    .find(|child_dir| child_dir.starts_with(dir))
+                {
+                    return Err(ProtoConfigError::AlreadyLocked {
+                        child_dir: locked_dir.into(),
+                        parent_dir: dir.into(),
+                    });
+                } else {
+                    locked_dirs.push(dir.to_path_buf());
+                }
+            }
+
             entries.push(ProtoDirEntry {
                 path: dir.to_path_buf(),
                 location,
                 configs,
-                // Load the lockfile if any of the configs
-                // in the current directory are enabled
-                lock: Some(Lockfile::load_from(dir)?), // TODO
+                lock: if load_lockfile {
+                    Some(Lockfile::load_from(dir)?)
+                } else {
+                    None
+                },
             });
 
             if is_end {
@@ -101,7 +129,7 @@ impl ProtoFileManager {
         })
     }
 
-    pub fn get_config_files(&self) -> Vec<&ProtoFile> {
+    pub fn get_config_files(&self) -> Vec<&ProtoConfigFile> {
         self.entries.iter().flat_map(|dir| &dir.configs).collect()
     }
 
@@ -194,7 +222,7 @@ impl ProtoFileManager {
         });
     }
 
-    fn merge_configs(&self, files: Vec<&ProtoFile>) -> Result<ProtoConfig, ProtoConfigError> {
+    fn merge_configs(&self, files: Vec<&ProtoConfigFile>) -> Result<ProtoConfig, ProtoConfigError> {
         let mut partial = PartialProtoConfig::default();
         let mut count = 0;
         let context = &();

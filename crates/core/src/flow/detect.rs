@@ -1,6 +1,6 @@
 pub use super::detect_error::ProtoDetectError;
 use crate::config::{DetectStrategy, PROTO_CONFIG_NAME};
-use crate::file_manager::ProtoFile;
+use crate::file_manager::ProtoConfigFile;
 use crate::tool::Tool;
 use crate::tool_spec::ToolSpec;
 use proto_pdk_api::*;
@@ -15,7 +15,7 @@ fn set_detected_env_var(prefix: String, path: &Path) {
 
 fn detect_from_proto_config(
     tool: &Tool,
-    file: &ProtoFile,
+    file: &ProtoConfigFile,
 ) -> Result<Option<UnresolvedVersionSpec>, ProtoDetectError> {
     if let Some(versions) = &file.config.versions {
         if let Some(version) = versions.get(tool.id.as_str()) {
@@ -37,7 +37,7 @@ fn detect_from_proto_config(
 
 async fn detect_from_tool_ecosystem(
     tool: &Tool,
-    file: &ProtoFile,
+    file: &ProtoConfigFile,
 ) -> Result<Option<UnresolvedVersionSpec>, ProtoDetectError> {
     if let Some((version, file)) = tool
         .detect_version_from(file.path.parent().unwrap())
@@ -61,7 +61,7 @@ async fn detect_from_tool_ecosystem(
 #[instrument(skip_all)]
 pub async fn detect_version_first_available(
     tool: &Tool,
-    config_files: &[&ProtoFile],
+    config_files: &[&ProtoConfigFile],
 ) -> Result<Option<UnresolvedVersionSpec>, ProtoDetectError> {
     for file in config_files {
         if let Some(version) = detect_from_proto_config(tool, file)? {
@@ -79,7 +79,7 @@ pub async fn detect_version_first_available(
 #[instrument(skip_all)]
 pub async fn detect_version_only_prototools(
     tool: &Tool,
-    config_files: &[&ProtoFile],
+    config_files: &[&ProtoConfigFile],
 ) -> Result<Option<UnresolvedVersionSpec>, ProtoDetectError> {
     for file in config_files {
         if let Some(version) = detect_from_proto_config(tool, file)? {
@@ -93,7 +93,7 @@ pub async fn detect_version_only_prototools(
 #[instrument(skip_all)]
 pub async fn detect_version_prefer_prototools(
     tool: &Tool,
-    config_files: &[&ProtoFile],
+    config_files: &[&ProtoConfigFile],
 ) -> Result<Option<UnresolvedVersionSpec>, ProtoDetectError> {
     // Check config files first
     if let Some(version) = detect_version_only_prototools(tool, config_files).await? {
