@@ -1,5 +1,6 @@
 pub use super::detect_error::ProtoDetectError;
-use crate::config::{DetectStrategy, PROTO_CONFIG_NAME, ProtoConfigFile};
+use crate::config::{DetectStrategy, PROTO_CONFIG_NAME};
+use crate::file_manager::ProtoConfigFile;
 use crate::tool::Tool;
 use crate::tool_spec::ToolSpec;
 use proto_pdk_api::*;

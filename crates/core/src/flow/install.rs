@@ -117,7 +117,7 @@ impl Tool {
 
     /// Verify the installation is legitimate by comparing it to a lockfile record.
     #[instrument(skip(self))]
-    pub fn verify_lockfile(&self, record: &LockfileRecord) -> Result<(), ProtoInstallError> {
+    pub fn verify_lockfile(&self, record: &LockRecord) -> Result<(), ProtoInstallError> {
         let Some(version) = &self.version else {
             return Ok(());
         };
@@ -180,7 +180,7 @@ impl Tool {
         install_dir: &Path,
         temp_dir: &Path,
         options: InstallOptions,
-    ) -> Result<LockfileRecord, ProtoInstallError> {
+    ) -> Result<LockRecord, ProtoInstallError> {
         debug!(
             tool = self.id.as_str(),
             "Installing tool by building from source"
@@ -249,7 +249,7 @@ impl Tool {
         // so allow proto to use any available version instead of failing
         unsafe { std::env::set_var(format!("{}_VERSION", self.get_env_var_prefix()), "*") };
 
-        let mut record = LockfileRecord::new(self.backend);
+        let mut record = LockRecord::new(self.backend);
 
         // Step 0
         log_build_information(&mut builder, &output)?;
@@ -284,7 +284,7 @@ impl Tool {
         install_dir: &Path,
         temp_dir: &Path,
         options: InstallOptions,
-    ) -> Result<LockfileRecord, ProtoInstallError> {
+    ) -> Result<LockRecord, ProtoInstallError> {
         debug!(
             tool = self.id.as_str(),
             "Installing tool by downloading a pre-built archive"
@@ -310,7 +310,7 @@ impl Tool {
             )
             .await?;
 
-        let mut record = LockfileRecord::new(self.backend);
+        let mut record = LockRecord::new(self.backend);
 
         // Download the prebuilt
         let download_url = config.rewrite_url(output.download_url);
@@ -473,7 +473,7 @@ impl Tool {
     pub async fn install(
         &mut self,
         options: InstallOptions,
-    ) -> Result<Option<LockfileRecord>, ProtoInstallError> {
+    ) -> Result<Option<LockRecord>, ProtoInstallError> {
         if self.is_installed() && !options.force {
             debug!(
                 tool = self.id.as_str(),
@@ -518,7 +518,7 @@ impl Tool {
                 .await?;
 
             if output.installed {
-                let mut record = LockfileRecord::new(self.backend);
+                let mut record = LockRecord::new(self.backend);
                 record.checksum = output.checksum;
 
                 return Ok(Some(record));

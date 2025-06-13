@@ -5,8 +5,10 @@ use crate::unresolved_parser::*;
 use crate::version_types::*;
 use crate::{VersionSpec, clean_version_req_string, clean_version_string, is_alias_name};
 use compact_str::CompactString;
+use human_sort::compare;
 use semver::VersionReq;
 use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
 
@@ -193,5 +195,23 @@ impl PartialEq<VersionSpec> for UnresolvedVersionSpec {
 impl AsRef<UnresolvedVersionSpec> for UnresolvedVersionSpec {
     fn as_ref(&self) -> &UnresolvedVersionSpec {
         self
+    }
+}
+
+impl PartialOrd<UnresolvedVersionSpec> for UnresolvedVersionSpec {
+    fn partial_cmp(&self, other: &UnresolvedVersionSpec) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for UnresolvedVersionSpec {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match (self, other) {
+            (Self::Canary, Self::Canary) => Ordering::Equal,
+            (Self::Alias(l), Self::Alias(r)) => l.cmp(r),
+            (Self::Calendar(l), Self::Calendar(r)) => l.cmp(r),
+            (Self::Semantic(l), Self::Semantic(r)) => l.cmp(r),
+            _ => compare(&self.to_string(), &other.to_string()),
+        }
     }
 }
