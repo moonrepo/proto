@@ -3,7 +3,7 @@ use crate::cfg;
 use crate::config::{PinLocation, ProtoConfig};
 use crate::flow::install::{InstallOptions, ProtoInstallError};
 use crate::layout::BinManager;
-use crate::lockfile::LockfileRecord;
+use crate::lockfile::LockRecord;
 use crate::tool::Tool;
 use crate::tool_manifest::ToolManifestVersion;
 use crate::tool_spec::ToolSpec;
@@ -56,7 +56,7 @@ impl Tool {
         &mut self,
         spec: &ToolSpec,
         options: InstallOptions,
-    ) -> Result<Option<LockfileRecord>, ProtoSetupError> {
+    ) -> Result<Option<LockRecord>, ProtoSetupError> {
         let version = self.resolve_version(spec, false).await?;
 
         // Returns nothing if already installed

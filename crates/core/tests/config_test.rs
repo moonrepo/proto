@@ -1,7 +1,7 @@
 use indexmap::IndexMap;
 use proto_core::{
     Backend, DetectStrategy, EnvVar, PartialEnvVar, PartialProtoSettingsConfig, PinLocation,
-    ProtoConfig, ProtoConfigEnvOptions, ProtoConfigManager, RegexSetting, ToolSpec,
+    ProtoConfig, ProtoConfigEnvOptions, ProtoFileManager, RegexSetting, ToolSpec,
 };
 use starbase_sandbox::create_empty_sandbox;
 use starbase_utils::json::JsonValue;
@@ -10,7 +10,7 @@ use std::env;
 use version_spec::UnresolvedVersionSpec;
 use warpgate::{FileLocator, GitHubLocator, HttpOptions, Id, PluginLocator, UrlLocator};
 
-mod proto_config {
+mod config {
     use super::*;
 
     #[test]
@@ -85,7 +85,7 @@ pin-latest = "global"
         };
 
         // Need to use the manager since it runs the finalize process
-        let manager = ProtoConfigManager::load(sandbox.path(), None, None).unwrap();
+        let manager = ProtoFileManager::load(sandbox.path(), None, None).unwrap();
         let config = manager.get_merged_config().unwrap();
 
         assert!(config.settings.auto_clean);
@@ -371,7 +371,7 @@ file = ".env"
 "#,
             );
 
-            ProtoConfigManager::load(sandbox.path(), None, None)
+            ProtoFileManager::load(sandbox.path(), None, None)
                 .unwrap()
                 .get_merged_config()
                 .unwrap();
@@ -395,7 +395,7 @@ file = ".env"
 "#,
             );
 
-            ProtoConfigManager::load(sandbox.path(), None, None)
+            ProtoFileManager::load(sandbox.path(), None, None)
                 .unwrap()
                 .get_merged_config()
                 .unwrap()
@@ -423,7 +423,7 @@ KEY2 = "value2"
 "#,
             );
 
-            let config = ProtoConfigManager::load(sandbox.path(), None, None)
+            let config = ProtoFileManager::load(sandbox.path(), None, None)
                 .unwrap()
                 .get_merged_config()
                 .unwrap()
@@ -468,7 +468,7 @@ file = ".env"
 "#,
             );
 
-            let config = ProtoConfigManager::load(sandbox.path().join("child"), None, None)
+            let config = ProtoFileManager::load(sandbox.path().join("child"), None, None)
                 .unwrap()
                 .get_merged_config()
                 .unwrap()
@@ -499,7 +499,7 @@ file = ".env"
 "#,
             );
 
-            let config = ProtoConfigManager::load(sandbox.path(), None, None)
+            let config = ProtoFileManager::load(sandbox.path(), None, None)
                 .unwrap()
                 .get_merged_config()
                 .unwrap()
@@ -565,7 +565,7 @@ KEY = "from=${FILE}"
 "#,
             );
 
-            let config = ProtoConfigManager::load(sandbox.path(), None, None)
+            let config = ProtoFileManager::load(sandbox.path(), None, None)
                 .unwrap()
                 .get_merged_config()
                 .unwrap()
@@ -719,7 +719,7 @@ value = "asdf:4.5.6"
 "#,
             );
 
-            let config = ProtoConfigManager::load(sandbox.path(), None, None)
+            let config = ProtoFileManager::load(sandbox.path(), None, None)
                 .unwrap()
                 .get_merged_config()
                 .unwrap()
@@ -734,7 +734,7 @@ value = "asdf:4.5.6"
                         req: UnresolvedVersionSpec::parse("4.5.6").unwrap(),
                         res: None
                     }
-                ),])
+                )])
             );
         }
 
@@ -796,7 +796,7 @@ value = "root"
 "#,
             );
 
-            let config = ProtoConfigManager::load(sandbox.path().join("a/b"), None, None)
+            let config = ProtoFileManager::load(sandbox.path().join("a/b"), None, None)
                 .unwrap()
                 .get_merged_config()
                 .unwrap()
@@ -836,7 +836,7 @@ value = "4.5.6"
 "#,
             );
 
-            let config = ProtoConfigManager::load(sandbox.path().join("a/b"), None, None)
+            let config = ProtoFileManager::load(sandbox.path().join("a/b"), None, None)
                 .unwrap()
                 .get_merged_config()
                 .unwrap()
@@ -888,7 +888,7 @@ NODE_PATH = false
 "#,
             );
 
-            let config = ProtoConfigManager::load(sandbox.path().join("a/b"), None, None)
+            let config = ProtoFileManager::load(sandbox.path().join("a/b"), None, None)
                 .unwrap()
                 .get_merged_config()
                 .unwrap()
@@ -949,7 +949,7 @@ file = ".env.tool"
 "#,
             );
 
-            let config = ProtoConfigManager::load(sandbox.path().join("a/b"), None, None)
+            let config = ProtoFileManager::load(sandbox.path().join("a/b"), None, None)
                 .unwrap()
                 .get_merged_config()
                 .unwrap()
@@ -1003,7 +1003,7 @@ file = ".env.tool"
                     url_rewrites: Some(IndexMap::from_iter([(
                         RegexSetting::try_from("github.com/(\\w+)/(\\w+)".to_string()).unwrap(),
                         "replaced.com/$1/$2".into()
-                    ),])),
+                    )])),
                     ..Default::default()
                 }
             );
@@ -1029,288 +1029,5 @@ file = ".env.tool"
                 "https://replaced.com/lunarrepo/lunar/releases/download/v1.37.1/lunar-x86_64-apple-darwin",
             );
         }
-    }
-}
-
-mod proto_config_manager {
-    use super::*;
-
-    #[test]
-    fn merges_traversing_upwards() {
-        let sandbox = create_empty_sandbox();
-
-        sandbox.create_file(
-            "one/two/three/.prototools",
-            r#"
-node = "1.2.3"
-
-[plugins]
-node = "file://./node.toml"
-"#,
-        );
-
-        sandbox.create_file(
-            "one/two/.prototools",
-            r#"
-[plugins]
-bun = "file://../bun.wasm"
-"#,
-        );
-
-        sandbox.create_file(
-            "one/.prototools",
-            r#"
-bun = "4.5.6"
-
-[plugins]
-node = "file://../node.toml"
-"#,
-        );
-
-        sandbox.create_file(
-            ".prototools",
-            r#"
-node = "7.8.9"
-deno = "7.8.9"
-"#,
-        );
-
-        let manager =
-            ProtoConfigManager::load(sandbox.path().join("one/two/three"), None, None).unwrap();
-        let config = manager.get_merged_config().unwrap();
-
-        assert_eq!(
-            config.versions,
-            BTreeMap::from_iter([
-                (
-                    Id::raw("node"),
-                    UnresolvedVersionSpec::parse("1.2.3").unwrap().into()
-                ),
-                (
-                    Id::raw("bun"),
-                    UnresolvedVersionSpec::parse("4.5.6").unwrap().into()
-                ),
-                (
-                    Id::raw("deno"),
-                    UnresolvedVersionSpec::parse("7.8.9").unwrap().into()
-                ),
-            ])
-        );
-
-        assert_eq!(
-            config.plugins.get("node").unwrap(),
-            &PluginLocator::File(Box::new(FileLocator {
-                file: "file://./node.toml".into(),
-                path: Some(sandbox.path().join("one/two/three/./node.toml"))
-            }))
-        );
-
-        assert_eq!(
-            config.plugins.get("bun").unwrap(),
-            &PluginLocator::File(Box::new(FileLocator {
-                file: "file://../bun.wasm".into(),
-                path: Some(sandbox.path().join("one/two/../bun.wasm"))
-            }))
-        );
-    }
-
-    #[test]
-    fn merges_traversing_upwards_without_global() {
-        let sandbox = create_empty_sandbox();
-
-        sandbox.create_file(
-            "one/two/three/.prototools",
-            r#"
-node = "1.2.3"
-"#,
-        );
-
-        sandbox.create_file(
-            ".prototools",
-            r#"
-node = "7.8.9"
-deno = "7.8.9"
-"#,
-        );
-
-        sandbox.create_file(
-            ".proto/.prototools",
-            r#"
-bun = "1.2.3"
-"#,
-        );
-
-        let manager =
-            ProtoConfigManager::load(sandbox.path().join("one/two/three"), None, None).unwrap();
-        let config = manager.get_merged_config_without_global().unwrap();
-
-        assert_eq!(
-            config.versions,
-            BTreeMap::from_iter([
-                (
-                    Id::raw("node"),
-                    UnresolvedVersionSpec::parse("1.2.3").unwrap().into()
-                ),
-                (
-                    Id::raw("deno"),
-                    UnresolvedVersionSpec::parse("7.8.9").unwrap().into()
-                ),
-            ])
-        );
-    }
-
-    #[test]
-    fn merges_local_only() {
-        let sandbox = create_empty_sandbox();
-
-        sandbox.create_file(
-            "one/two/three/.prototools",
-            r#"
-node = "1.2.3"
-"#,
-        );
-
-        sandbox.create_file(
-            ".prototools",
-            r#"
-node = "7.8.9"
-deno = "7.8.9"
-"#,
-        );
-
-        sandbox.create_file(
-            ".proto/.prototools",
-            r#"
-bun = "1.2.3"
-"#,
-        );
-
-        let manager =
-            ProtoConfigManager::load(sandbox.path().join("one/two/three"), None, None).unwrap();
-        let config = manager
-            .get_local_config(&sandbox.path().join("one/two/three"))
-            .unwrap();
-
-        assert_eq!(
-            config.versions,
-            BTreeMap::from_iter([(
-                Id::raw("node"),
-                UnresolvedVersionSpec::parse("1.2.3").unwrap().into()
-            ),])
-        );
-    }
-
-    #[test]
-    fn supports_env_mode() {
-        let sandbox = create_empty_sandbox();
-
-        sandbox.create_file(
-            ".prototools.production",
-            r#"
-node = "1.2.3"
-"#,
-        );
-
-        sandbox.create_file(
-            ".prototools",
-            r#"
-node = "7.8.9"
-deno = "7.8.9"
-"#,
-        );
-
-        let manager =
-            ProtoConfigManager::load(sandbox.path(), None, Some(&"production".to_owned())).unwrap();
-        let config = manager.get_local_config(sandbox.path()).unwrap();
-
-        assert_eq!(
-            config.versions,
-            BTreeMap::from_iter([
-                (
-                    Id::raw("node"),
-                    UnresolvedVersionSpec::parse("1.2.3").unwrap().into()
-                ),
-                (
-                    Id::raw("deno"),
-                    UnresolvedVersionSpec::parse("7.8.9").unwrap().into()
-                ),
-            ])
-        );
-    }
-
-    #[test]
-    fn ignores_env_file_when_mode_not_defined() {
-        let sandbox = create_empty_sandbox();
-
-        sandbox.create_file(
-            ".prototools.production",
-            r#"
-node = "1.2.3"
-"#,
-        );
-
-        sandbox.create_file(
-            ".prototools",
-            r#"
-node = "7.8.9"
-deno = "7.8.9"
-"#,
-        );
-
-        let manager = ProtoConfigManager::load(sandbox.path(), None, None).unwrap();
-        let config = manager.get_local_config(sandbox.path()).unwrap();
-
-        assert_eq!(
-            config.versions,
-            BTreeMap::from_iter([
-                (
-                    Id::raw("node"),
-                    UnresolvedVersionSpec::parse("7.8.9").unwrap().into()
-                ),
-                (
-                    Id::raw("deno"),
-                    UnresolvedVersionSpec::parse("7.8.9").unwrap().into()
-                ),
-            ])
-        );
-    }
-
-    #[test]
-    fn ignores_env_file_when_mode_not_matching() {
-        let sandbox = create_empty_sandbox();
-
-        sandbox.create_file(
-            ".prototools.production",
-            r#"
-node = "1.2.3"
-"#,
-        );
-
-        sandbox.create_file(
-            ".prototools",
-            r#"
-node = "7.8.9"
-deno = "7.8.9"
-"#,
-        );
-
-        let manager =
-            ProtoConfigManager::load(sandbox.path(), None, Some(&"development".to_owned()))
-                .unwrap();
-        let config = manager.get_local_config(sandbox.path()).unwrap();
-
-        assert_eq!(
-            config.versions,
-            BTreeMap::from_iter([
-                (
-                    Id::raw("node"),
-                    UnresolvedVersionSpec::parse("7.8.9").unwrap().into()
-                ),
-                (
-                    Id::raw("deno"),
-                    UnresolvedVersionSpec::parse("7.8.9").unwrap().into()
-                ),
-            ])
-        );
     }
 }
