@@ -5,6 +5,7 @@ use crate::unresolved_parser::*;
 use crate::version_types::*;
 use crate::{VersionSpec, clean_version_req_string, clean_version_string, is_alias_name};
 use compact_str::CompactString;
+use human_sort::compare;
 use semver::VersionReq;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
@@ -199,18 +200,18 @@ impl AsRef<UnresolvedVersionSpec> for UnresolvedVersionSpec {
 
 impl PartialOrd<UnresolvedVersionSpec> for UnresolvedVersionSpec {
     fn partial_cmp(&self, other: &UnresolvedVersionSpec) -> Option<Ordering> {
-        match (self, other) {
-            (Self::Canary, Self::Canary) => Some(Ordering::Equal),
-            (Self::Alias(l), Self::Alias(r)) => l.partial_cmp(r),
-            (Self::Calendar(l), Self::Calendar(r)) => l.partial_cmp(r),
-            (Self::Semantic(l), Self::Semantic(r)) => l.partial_cmp(r),
-            _ => self.to_string().partial_cmp(&other.to_string()),
-        }
+        Some(self.cmp(other))
     }
 }
 
 impl Ord for UnresolvedVersionSpec {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap_or(Ordering::Equal)
+        match (self, other) {
+            (Self::Canary, Self::Canary) => Ordering::Equal,
+            (Self::Alias(l), Self::Alias(r)) => l.cmp(r),
+            (Self::Calendar(l), Self::Calendar(r)) => l.cmp(r),
+            (Self::Semantic(l), Self::Semantic(r)) => l.cmp(r),
+            _ => compare(&self.to_string(), &other.to_string()),
+        }
     }
 }

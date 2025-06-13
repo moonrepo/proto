@@ -19,7 +19,7 @@ pub struct LockRecord {
     pub backend: Option<Backend>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub requirement: Option<UnresolvedVersionSpec>,
+    pub spec: Option<UnresolvedVersionSpec>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub version: Option<VersionSpec>,

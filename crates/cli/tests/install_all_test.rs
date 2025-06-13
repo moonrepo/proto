@@ -209,7 +209,7 @@ deno = "1.30.0"
             {
                 assert_eq!(
                     get_lock(node_path.parent().unwrap(), VersionSpec::parse("19.0.0").unwrap()),
-                    LockfileRecord {
+                    LockRecord {
                         checksum: Some(Checksum::sha256(
                             "a16fa0fd4ba7dff0f9476778dbabe535250c99a121db4c65c2a68a2506097698"
                                 .into()
@@ -224,7 +224,7 @@ deno = "1.30.0"
                         npm_path.parent().unwrap(),
                         VersionSpec::parse("9.0.0").unwrap()
                     ),
-                    LockfileRecord {
+                    LockRecord {
                         checksum: Some(Checksum::sha256(
                             "84e7b6c2b573a549782056f4348c76969a90cd861441fa25469545d3600e2ee3"
                                 .into()
@@ -236,7 +236,7 @@ deno = "1.30.0"
 
                 assert_eq!(
                     get_lock(deno_path.parent().unwrap(), VersionSpec::parse("1.30.0").unwrap()),
-                    LockfileRecord {
+                    LockRecord {
                         checksum: Some(Checksum::sha256(
                             "77ebb253b3bc8ba5ca62b44b60e8b8555c1b3d0011fbcebd1d52291652f834a8"
                                 .into()
@@ -302,7 +302,7 @@ deno = "1.30.0"
                         node_path.parent().unwrap(),
                         VersionSpec::parse("19.0.0").unwrap()
                     ),
-                    LockfileRecord {
+                    LockRecord {
                         checksum: Some(Checksum::sha256(
                             "94fdfb96a041b1a9cafd1ee1bb42ab57a5b73f6a3606cd222ae96c5768bdb31d"
                                 .into()
@@ -320,7 +320,7 @@ deno = "1.30.0"
                         npm_path.parent().unwrap(),
                         VersionSpec::parse("9.0.0").unwrap()
                     ),
-                    LockfileRecord {
+                    LockRecord {
                         checksum: Some(Checksum::sha256(
                             "84e7b6c2b573a549782056f4348c76969a90cd861441fa25469545d3600e2ee3"
                                 .into()
@@ -332,7 +332,7 @@ deno = "1.30.0"
 
                 assert_eq!(
                     get_lock(deno_path.parent().unwrap(), VersionSpec::parse("1.30.0").unwrap()),
-                    LockfileRecord {
+                    LockRecord {
                         checksum: Some(Checksum::sha256(
                             "3644c734d4a21e9db8e3992d081ca0e742e986674a6be0eff113ffc5fa5416eb"
                                 .into()

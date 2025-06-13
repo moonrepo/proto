@@ -368,7 +368,7 @@ lockfile = true
                 ".protolock",
                 r#"
 [[tools.node]]
-requirement = "7.8.9"
+spec = "7.8.9"
 "#,
             );
 
@@ -392,7 +392,7 @@ bun = "1.2.3"
                 BTreeMap::from_iter([(
                     Id::raw("node"),
                     vec![LockRecord {
-                        requirement: Some(UnresolvedVersionSpec::parse("7.8.9").unwrap()),
+                        spec: Some(UnresolvedVersionSpec::parse("7.8.9").unwrap()),
                         ..Default::default()
                     }]
                 )])
@@ -417,7 +417,7 @@ lockfile = true
                 ".protolock",
                 r#"
 [[tools.node]]
-requirement = "7.8.9"
+spec = "7.8.9"
 "#,
             );
 
@@ -434,7 +434,7 @@ requirement = "7.8.9"
                 BTreeMap::from_iter([(
                     Id::raw("node"),
                     vec![LockRecord {
-                        requirement: Some(UnresolvedVersionSpec::parse("7.8.9").unwrap()),
+                        spec: Some(UnresolvedVersionSpec::parse("7.8.9").unwrap()),
                         ..Default::default()
                     }]
                 )])
@@ -456,7 +456,7 @@ node = "1.2.3"
                 ".protolock",
                 r#"
 [[tools.node]]
-requirement = "1.2.3"
+spec = "1.2.3"
 "#,
             );
 
@@ -508,7 +508,7 @@ lockfile = true
                 ".proto/.protolock",
                 r#"
 [[tools.node]]
-requirement = "1.2.3"
+spec = "1.2.3"
 "#,
             );
 
@@ -540,7 +540,7 @@ lockfile = true
                 ".home/.protolock",
                 r#"
 [[tools.node]]
-requirement = "1.2.3"
+spec = "1.2.3"
 "#,
             );
 
@@ -572,7 +572,7 @@ lockfile = false
                 ".protolock",
                 r#"
 [[tools.node]]
-requirement = "7.8.9"
+spec = "7.8.9"
 "#,
             );
 

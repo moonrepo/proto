@@ -250,6 +250,7 @@ pub struct ProtoSettingsConfig {
 
     pub http: HttpOptions,
 
+    #[serde(alias = "unstable-lockfile")]
     pub lockfile: bool,
 
     #[setting(nested)]
