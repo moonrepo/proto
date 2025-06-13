@@ -49,7 +49,7 @@ deno = "7.8.9"
 
         let manager = ProtoFileManager::load(
             sandbox.path().join("one/two/three"),
-            Some(sandbox.path()),
+            Some(sandbox.path().parent().unwrap()),
             None,
         )
         .unwrap();
@@ -118,7 +118,7 @@ bun = "1.2.3"
 
         let manager = ProtoFileManager::load(
             sandbox.path().join("one/two/three"),
-            Some(sandbox.path()),
+            Some(sandbox.path().parent().unwrap()),
             None,
         )
         .unwrap();
@@ -167,7 +167,7 @@ bun = "1.2.3"
 
         let manager = ProtoFileManager::load(
             sandbox.path().join("one/two/three"),
-            Some(sandbox.path()),
+            Some(sandbox.path().parent().unwrap()),
             None,
         )
         .unwrap();
@@ -205,7 +205,7 @@ deno = "7.8.9"
 
         let manager = ProtoFileManager::load(
             sandbox.path(),
-            Some(sandbox.path()),
+            Some(sandbox.path().parent().unwrap()),
             Some(&"production".to_owned()),
         )
         .unwrap();
@@ -245,7 +245,9 @@ deno = "7.8.9"
 "#,
         );
 
-        let manager = ProtoFileManager::load(sandbox.path(), Some(sandbox.path()), None).unwrap();
+        let manager =
+            ProtoFileManager::load(sandbox.path(), Some(sandbox.path().parent().unwrap()), None)
+                .unwrap();
         let config = manager.get_local_config(sandbox.path()).unwrap();
 
         assert_eq!(
@@ -284,7 +286,7 @@ deno = "7.8.9"
 
         let manager = ProtoFileManager::load(
             sandbox.path(),
-            Some(sandbox.path()),
+            Some(sandbox.path().parent().unwrap()),
             Some(&"development".to_owned()),
         )
         .unwrap();
@@ -333,7 +335,12 @@ lockfile = true
 "#,
             );
 
-            ProtoFileManager::load(sandbox.path().join("one"), Some(sandbox.path()), None).unwrap();
+            ProtoFileManager::load(
+                sandbox.path().join("one"),
+                Some(sandbox.path().parent().unwrap()),
+                None,
+            )
+            .unwrap();
         }
 
         #[test]
@@ -360,7 +367,7 @@ lockfile = true
             sandbox.create_file(
                 ".protolock",
                 r#"
-[tools.node]
+[[tools.node]]
 requirement = "7.8.9"
 "#,
             );
@@ -372,19 +379,22 @@ bun = "1.2.3"
 "#,
             );
 
-            let manager =
-                ProtoFileManager::load(sandbox.path().join("one"), Some(sandbox.path()), None)
-                    .unwrap();
+            let manager = ProtoFileManager::load(
+                sandbox.path().join("one"),
+                Some(sandbox.path().parent().unwrap()),
+                None,
+            )
+            .unwrap();
             let lockfile = manager.get_lock().unwrap();
 
             assert_eq!(
                 lockfile.tools,
                 BTreeMap::from_iter([(
                     Id::raw("node"),
-                    LockRecord {
+                    vec![LockRecord {
                         requirement: Some(UnresolvedVersionSpec::parse("7.8.9").unwrap()),
                         ..Default::default()
-                    }
+                    }]
                 )])
             );
         }
@@ -406,14 +416,14 @@ lockfile = true
             sandbox.create_file(
                 ".protolock",
                 r#"
-[tools.node]
+[[tools.node]]
 requirement = "7.8.9"
 "#,
             );
 
             let manager = ProtoFileManager::load(
                 sandbox.path().join("one"),
-                Some(sandbox.path()),
+                Some(sandbox.path().parent().unwrap()),
                 Some(&"production".to_owned()),
             )
             .unwrap();
@@ -423,10 +433,10 @@ requirement = "7.8.9"
                 lockfile.tools,
                 BTreeMap::from_iter([(
                     Id::raw("node"),
-                    LockRecord {
+                    vec![LockRecord {
                         requirement: Some(UnresolvedVersionSpec::parse("7.8.9").unwrap()),
                         ..Default::default()
-                    }
+                    }]
                 )])
             );
         }
@@ -445,13 +455,17 @@ node = "1.2.3"
             sandbox.create_file(
                 ".protolock",
                 r#"
-[tools.node]
+[[tools.node]]
 requirement = "1.2.3"
 "#,
             );
 
-            let manager =
-                ProtoFileManager::load(sandbox.path(), Some(sandbox.path()), None).unwrap();
+            let manager = ProtoFileManager::load(
+                sandbox.path(),
+                Some(sandbox.path().parent().unwrap()),
+                None,
+            )
+            .unwrap();
 
             assert!(manager.get_lock().is_none());
 
@@ -466,8 +480,12 @@ lockfile = false
 "#,
             );
 
-            let manager =
-                ProtoFileManager::load(sandbox.path(), Some(sandbox.path()), None).unwrap();
+            let manager = ProtoFileManager::load(
+                sandbox.path(),
+                Some(sandbox.path().parent().unwrap()),
+                None,
+            )
+            .unwrap();
 
             assert!(manager.get_lock().is_none());
         }
@@ -489,13 +507,17 @@ lockfile = true
             sandbox.create_file(
                 ".proto/.protolock",
                 r#"
-[tools.node]
+[[tools.node]]
 requirement = "1.2.3"
 "#,
             );
 
-            let manager =
-                ProtoFileManager::load(sandbox.path(), Some(sandbox.path()), None).unwrap();
+            let manager = ProtoFileManager::load(
+                sandbox.path(),
+                Some(sandbox.path().parent().unwrap()),
+                None,
+            )
+            .unwrap();
 
             assert!(manager.get_lock().is_none());
         }
@@ -517,13 +539,17 @@ lockfile = true
             sandbox.create_file(
                 ".home/.protolock",
                 r#"
-[tools.node]
+[[tools.node]]
 requirement = "1.2.3"
 "#,
             );
 
-            let manager =
-                ProtoFileManager::load(sandbox.path(), Some(sandbox.path()), None).unwrap();
+            let manager = ProtoFileManager::load(
+                sandbox.path(),
+                Some(sandbox.path().parent().unwrap()),
+                None,
+            )
+            .unwrap();
 
             assert!(manager.get_lock().is_none());
         }
@@ -545,14 +571,17 @@ lockfile = false
             sandbox.create_file(
                 ".protolock",
                 r#"
-[tools.node]
+[[tools.node]]
 requirement = "7.8.9"
 "#,
             );
 
-            let manager =
-                ProtoFileManager::load(sandbox.path().join("one"), Some(sandbox.path()), None)
-                    .unwrap();
+            let manager = ProtoFileManager::load(
+                sandbox.path().join("one"),
+                Some(sandbox.path().parent().unwrap()),
+                None,
+            )
+            .unwrap();
 
             assert!(manager.get_lock().is_none());
             assert!(!sandbox.path().join(".protolock").exists());

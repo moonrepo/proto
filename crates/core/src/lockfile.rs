@@ -48,7 +48,7 @@ pub struct ProtoLock {
     pub plugins: BTreeMap<Id, LockRecord>,
 
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
-    pub tools: BTreeMap<Id, LockRecord>,
+    pub tools: BTreeMap<Id, Vec<LockRecord>>,
 
     #[serde(skip)]
     pub path: PathBuf,
