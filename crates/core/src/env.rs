@@ -1,8 +1,7 @@
-use crate::config::{
-    ConfigMode, PROTO_CONFIG_NAME, PinLocation, ProtoConfig, ProtoConfigFile, ProtoConfigManager,
-};
+use crate::config::{ConfigMode, PROTO_CONFIG_NAME, PinLocation, ProtoConfig};
 use crate::config_error::ProtoConfigError;
 use crate::env_error::ProtoEnvError;
+use crate::file_manager::{ProtoConfigFile, ProtoDirEntry, ProtoFileManager};
 use crate::helpers::is_offline;
 use crate::layout::Store;
 use once_cell::sync::OnceCell;
@@ -29,7 +28,7 @@ pub struct ProtoEnvironment {
     pub test_only: bool,
     pub working_dir: PathBuf,
 
-    config_manager: Arc<OnceCell<ProtoConfigManager>>,
+    file_manager: Arc<OnceCell<ProtoFileManager>>,
     plugin_loader: Arc<OnceCell<PluginLoader>>,
 }
 
@@ -69,7 +68,7 @@ impl ProtoEnvironment {
             working_dir: env::current_dir().map_err(|_| ProtoEnvError::MissingWorkingDir)?,
             env_mode: env::var("PROTO_ENV").ok(),
             home_dir: home.to_owned(),
-            config_manager: Arc::new(OnceCell::new()),
+            file_manager: Arc::new(OnceCell::new()),
             plugin_loader: Arc::new(OnceCell::new()),
             test_only: env::var("PROTO_TEST").is_ok(),
             store: Store::new(root),
@@ -128,7 +127,7 @@ impl ProtoEnvironment {
         &self,
         mode: ConfigMode,
     ) -> Result<&ProtoConfig, ProtoConfigError> {
-        let manager = self.load_config_manager()?;
+        let manager = self.load_file_manager()?;
 
         match mode {
             ConfigMode::Global => manager.get_global_config(),
@@ -140,20 +139,25 @@ impl ProtoEnvironment {
 
     pub fn load_config_files(&self) -> Result<Vec<&ProtoConfigFile>, ProtoConfigError> {
         Ok(self
-            .load_config_manager()?
-            .files
+            .load_file_manager()?
+            .entries
             .iter()
-            .filter(|file| {
-                !(!self.config_mode.includes_global() && file.location == PinLocation::Global
-                    || self.config_mode.only_local()
-                        && file.path.parent().is_none_or(|p| p != self.working_dir))
+            .filter_map(|dir| {
+                if !self.config_mode.includes_global() && dir.location == PinLocation::Global
+                    || self.config_mode.only_local() && dir.path != self.working_dir
+                {
+                    None
+                } else {
+                    Some(&dir.configs)
+                }
             })
+            .flatten()
             .collect())
     }
 
     #[tracing::instrument(name = "load_all", skip_all)]
-    pub fn load_config_manager(&self) -> Result<&ProtoConfigManager, ProtoConfigError> {
-        self.config_manager.get_or_try_init(|| {
+    pub fn load_file_manager(&self) -> Result<&ProtoFileManager, ProtoConfigError> {
+        self.file_manager.get_or_try_init(|| {
             // Don't traverse passed the home directory,
             // but only if working directory is within it!
             let end_dir = if self.working_dir.starts_with(&self.home_dir) {
@@ -163,16 +167,20 @@ impl ProtoEnvironment {
             };
 
             let mut manager =
-                ProtoConfigManager::load(&self.working_dir, end_dir, self.env_mode.as_ref())?;
+                ProtoFileManager::load(&self.working_dir, end_dir, self.env_mode.as_ref())?;
 
             // Always load the proto home/root config last
             let path = self.store.dir.join(PROTO_CONFIG_NAME);
 
-            manager.files.push(ProtoConfigFile {
-                exists: path.exists(),
+            manager.entries.push(ProtoDirEntry {
+                path: self.store.dir.clone(),
                 location: PinLocation::Global,
-                path,
-                config: ProtoConfig::load_from(&self.store.dir, true)?,
+                configs: vec![ProtoConfigFile {
+                    exists: path.exists(),
+                    path,
+                    config: ProtoConfig::load_from(&self.store.dir, true)?,
+                }],
+                lock: None,
             });
 
             // Remove the pinned `proto` version from global/user configs,

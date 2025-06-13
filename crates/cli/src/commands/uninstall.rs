@@ -19,37 +19,39 @@ pub struct UninstallArgs {
 }
 
 fn unpin_version(session: &ProtoSession, args: &UninstallArgs) -> Result<(), ProtoConfigError> {
-    let manager = session.env.load_config_manager()?;
+    let manager = session.env.load_file_manager()?;
 
-    for file in &manager.files {
-        if !file.exists {
-            continue;
-        }
-
-        ProtoConfig::update_document(&file.path, |doc| {
-            if let Some(version) = doc.get(&args.id).and_then(|item| item.as_str()) {
-                if args.spec.is_none()
-                    || args
-                        .spec
-                        .as_ref()
-                        .is_some_and(|spec| spec.to_string() == version)
-                {
-                    doc.as_table_mut().remove(&args.id);
-                }
+    for entry in &manager.entries {
+        for file in &entry.configs {
+            if !file.exists {
+                continue;
             }
 
-            // if let Some(versions) = &mut config.versions {
-            //     let remove = if let Some(version) = versions.get(&args.id) {
-            //         args.spec.is_none() || args.spec.as_ref().is_some_and(|spec| spec == version)
-            //     } else {
-            //         false
-            //     };
+            ProtoConfig::update_document(&file.path, |doc| {
+                if let Some(version) = doc.get(&args.id).and_then(|item| item.as_str()) {
+                    if args.spec.is_none()
+                        || args
+                            .spec
+                            .as_ref()
+                            .is_some_and(|spec| spec.to_string() == version)
+                    {
+                        doc.as_table_mut().remove(&args.id);
+                    }
+                }
 
-            //     if remove {
-            //         versions.remove(&args.id);
-            //     }
-            // }
-        })?;
+                // if let Some(versions) = &mut config.versions {
+                //     let remove = if let Some(version) = versions.get(&args.id) {
+                //         args.spec.is_none() || args.spec.as_ref().is_some_and(|spec| spec == version)
+                //     } else {
+                //         false
+                //     };
+
+                //     if remove {
+                //         versions.remove(&args.id);
+                //     }
+                // }
+            })?;
+        }
     }
 
     Ok(())

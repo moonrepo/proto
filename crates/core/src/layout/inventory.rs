@@ -1,7 +1,7 @@
 use super::layout_error::ProtoLayoutError;
 use super::product::Product;
 use crate::helpers::{is_cache_enabled, is_offline};
-use crate::lockfile::LockfileRecord;
+use crate::lockfile::LockRecord;
 use crate::tool_manifest::ToolManifest;
 use proto_pdk_api::{LoadVersionsOutput, ToolInventoryMetadata};
 use starbase_utils::{fs, json};
@@ -34,7 +34,7 @@ impl Inventory {
         }
     }
 
-    pub fn get_locked_record(&self, version: &VersionSpec) -> Option<&LockfileRecord> {
+    pub fn get_locked_record(&self, version: &VersionSpec) -> Option<&LockRecord> {
         self.manifest
             .versions
             .get(version)

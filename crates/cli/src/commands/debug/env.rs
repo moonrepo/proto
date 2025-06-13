@@ -30,13 +30,13 @@ struct DebugEnvResult<'a> {
 #[tracing::instrument(skip_all)]
 pub async fn env(session: ProtoSession) -> AppResult {
     let env = &session.env;
-    let manager = env.load_config_manager()?;
+    let manager = env.load_file_manager()?;
 
     let environment = EnvironmentInfo {
         arch: HostArch::from_env(),
         configs: manager
-            .files
-            .iter()
+            .get_config_files()
+            .into_iter()
             .filter_map(|file| {
                 if file.exists {
                     Some(file.path.to_path_buf())
