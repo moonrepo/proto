@@ -3,7 +3,7 @@ use super::install::{InstallPhase, OnPhaseFn};
 use crate::config::ProtoConfig;
 use crate::env::{ProtoConsole, ProtoEnvironment};
 use crate::helpers::{extract_filename_from_url, normalize_path_separators};
-use crate::lockfile::LockfileRecord;
+use crate::lockfile::LockRecord;
 use crate::utils::log::LogWriter;
 use crate::utils::process::{self, ProcessResult, ProtoProcessError};
 use crate::utils::{archive, git};
@@ -695,7 +695,7 @@ pub async fn check_requirements(
 pub async fn download_sources(
     builder: &mut Builder<'_>,
     build: &BuildInstructionsOutput,
-    lockfile: &mut LockfileRecord,
+    lockfile: &mut LockRecord,
 ) -> Result<(), ProtoBuildError> {
     // Ensure the install directory is empty, otherwise Git will fail and
     // we also want to avoid colliding/stale artifacts. This should also

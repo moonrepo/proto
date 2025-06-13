@@ -1,6 +1,6 @@
 ---
 source: crates/cli/tests/outdated_test.rs
-expression: "vec![fs::read_to_string(sandbox.path().join(\".proto/.prototools\")).unwrap(),\nfs::read_to_string(sandbox.path().join(\"a/.prototools\")).unwrap(),\nfs::read_to_string(sandbox.path().join(\"a/b/.prototools\")).unwrap(),]"
+expression: "vec![fs::read_to_string(sandbox.path().join(\".proto/.prototools\")).unwrap(),\nfs::read_to_string(sandbox.path().join(\"a/.prototools\")).unwrap(),\nfs::read_to_string(sandbox.path().join(\"a/b/.prototools\")).unwrap()]"
 ---
 [
     "go = \"1.19.13\"\n",
