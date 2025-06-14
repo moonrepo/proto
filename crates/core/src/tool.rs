@@ -1,6 +1,7 @@
 use crate::env::ProtoEnvironment;
 use crate::helpers::get_proto_version;
 use crate::layout::{Inventory, Product};
+use crate::lockfile::LockRecord;
 use crate::tool_error::ProtoToolError;
 use crate::tool_spec::Backend;
 use proto_pdk_api::*;
@@ -39,6 +40,7 @@ pub struct Tool {
     pub(crate) globals_dir: Option<PathBuf>,
     pub(crate) globals_dirs: Vec<PathBuf>,
     pub(crate) globals_prefix: Option<String>,
+    pub(crate) version_locked: Option<LockRecord>,
 }
 
 impl Tool {
@@ -69,6 +71,7 @@ impl Tool {
             product: Product::default(),
             proto,
             version: None,
+            version_locked: None,
         };
 
         tool.register_tool().await?;

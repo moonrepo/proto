@@ -192,6 +192,25 @@ impl Tool {
             "Resolving a semantic version or alias",
         );
 
+        if let Some(record) = self.resolve_locked_record(spec)? {
+            let version = record
+                .version
+                .clone()
+                .expect("Version missing from lockfile record!");
+
+            debug!(
+                tool = self.id.as_str(),
+                version = version.to_string(),
+                "Resolved to {} (from lockfile)",
+                version
+            );
+
+            self.set_version(version.clone());
+            self.version_locked = Some(record);
+
+            return Ok(version);
+        }
+
         // If we have a fully qualified semantic version,
         // exit early and assume the version is legitimate!
         // Also canary is a special type that we can simply just use.

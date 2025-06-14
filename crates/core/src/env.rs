@@ -4,6 +4,7 @@ use crate::env_error::ProtoEnvError;
 use crate::file_manager::{ProtoConfigFile, ProtoDirEntry, ProtoFileManager};
 use crate::helpers::is_offline;
 use crate::layout::Store;
+use crate::lockfile::ProtoLock;
 use once_cell::sync::OnceCell;
 use starbase_console::{Console, EmptyReporter};
 use starbase_utils::dirs::home_dir;
@@ -157,6 +158,10 @@ impl ProtoEnvironment {
             })
             .flatten()
             .collect())
+    }
+
+    pub fn load_lock(&self) -> Result<Option<&ProtoLock>, ProtoConfigError> {
+        Ok(self.load_file_manager()?.get_lock())
     }
 
     #[tracing::instrument(name = "load_all", skip_all)]
