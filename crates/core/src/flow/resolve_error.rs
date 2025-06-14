@@ -1,4 +1,5 @@
 use crate::config_error::ProtoConfigError;
+use crate::flow::lock::ProtoLockError;
 use crate::layout::ProtoLayoutError;
 use crate::tool_spec::Backend;
 use crate::utils::archive::ProtoArchiveError;
@@ -30,6 +31,10 @@ pub enum ProtoResolveError {
     #[diagnostic(transparent)]
     #[error(transparent)]
     Layout(#[from] Box<ProtoLayoutError>),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Lock(#[from] Box<ProtoLockError>),
 
     #[diagnostic(transparent)]
     #[error(transparent)]
@@ -114,6 +119,12 @@ impl From<FsError> for ProtoResolveError {
 impl From<ProtoLayoutError> for ProtoResolveError {
     fn from(e: ProtoLayoutError) -> ProtoResolveError {
         ProtoResolveError::Layout(Box::new(e))
+    }
+}
+
+impl From<ProtoLockError> for ProtoResolveError {
+    fn from(e: ProtoLockError) -> ProtoResolveError {
+        ProtoResolveError::Lock(Box::new(e))
     }
 }
 
