@@ -4,7 +4,40 @@ use crate::tool::Tool;
 use crate::tool_spec::ToolSpec;
 use tracing::{debug, instrument};
 
+// [ ] install many
+//      [x] resolve version from lockfile
+//      [x] validate lock record
+//      [ ] create lockfile if it does not exist
+//      [ ] error if spec/req is not found in lockfile
+// [ ] install one
+//      [x] resolve version from lockfile
+//      [x] validate lock record
+// [x] install one version
+//      [x] don't resolve version from lockfile
+//      [x] validate lock record
+// [ ] outdated
+//      [ ] add locked label to table
+//      [ ] integrate with --update
+// [x] run
+//      [x] resolve version from lockfile
+// [ ] status
+//      [ ] add locked label to table
+
 impl Tool {
+    pub fn get_locked_record(&self) -> Option<&LockRecord> {
+        // From lockfile (after being resolved)
+        if let Some(record) = &self.version_locked {
+            return Some(record);
+        }
+
+        // From manifest
+        if let Some(version) = &self.version {
+            return self.inventory.get_locked_record(version);
+        }
+
+        None
+    }
+
     pub fn get_locked_records(&self) -> Result<Option<Vec<&LockRecord>>, ProtoLockError> {
         Ok(self
             .proto
@@ -37,18 +70,10 @@ impl Tool {
 
     /// Verify the installation is legitimate by comparing it to the internal lockfile record.
     #[instrument(skip(self))]
-    pub fn verify_locked_record(&self, record: &LockRecord) -> Result<(), ProtoLockError> {
-        let Some(version) = &self.version else {
-            return Ok(());
-        };
-
+    pub fn verify_locked_record(&self, install_record: &LockRecord) -> Result<(), ProtoLockError> {
         // Extract the lock record from the lockfile first,
         // otherwise try the internal manifest
-        let Some(locked) = self
-            .version_locked
-            .as_ref()
-            .or_else(|| self.inventory.get_locked_record(version))
-        else {
+        let Some(locked_record) = self.get_locked_record() else {
             return Ok(());
         };
 
@@ -58,7 +83,7 @@ impl Tool {
         //     return Ok(());
         // }
 
-        let make_error = |actual: String, expected: String| match &record.source {
+        let make_error = |actual: String, expected: String| match &install_record.source {
             Some(source) => ProtoLockError::MismatchedChecksumWithSource {
                 checksum: actual,
                 lockfile_checksum: expected,
@@ -70,25 +95,26 @@ impl Tool {
             },
         };
 
-        match (&record.checksum, &locked.checksum) {
-            (Some(rc), Some(lc)) => {
+        match (&install_record.checksum, &locked_record.checksum) {
+            (Some(ir), Some(lr)) => {
                 debug!(
                     tool = self.id.as_str(),
-                    checksum = rc.to_string(),
+                    checksum = ir.to_string(),
+                    locked_checksum = lr.to_string(),
                     "Verifying checksum against lockfile",
                 );
 
-                if rc != lc {
-                    return Err(make_error(rc.to_string(), lc.to_string()));
+                if ir != lr {
+                    return Err(make_error(ir.to_string(), lr.to_string()));
                 }
             }
             // Only the lockfile has a checksum, so compare the sources.
             // If the sources are the same, something wrong is happening,
             // but if they are different, then it may be a different install
             // strategy, so let it happen
-            (None, Some(lc)) => {
-                if record.source == locked.source {
-                    return Err(make_error("(missing)".into(), lc.to_string()));
+            (None, Some(lr)) => {
+                if install_record.source == locked_record.source {
+                    return Err(make_error("(missing)".into(), lr.to_string()));
                 }
             }
             _ => {}

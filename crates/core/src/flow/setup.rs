@@ -59,16 +59,18 @@ impl Tool {
     ) -> Result<Option<LockRecord>, ProtoSetupError> {
         let version = self.resolve_version(spec, false).await?;
 
-        // Returns nothing if already installed
-        let Some(record) = self.install(options).await? else {
-            return Ok(self.inventory.get_locked_record(&version).cloned());
+        let record = match self.install(options).await? {
+            // Update lock record with resolved spec information
+            Some(mut record) => {
+                record.version = Some(version.clone());
+                record.spec = Some(spec.req.clone());
+                record
+            }
+            // Return an existing lock record if already installed
+            None => {
+                return Ok(self.get_locked_record().cloned());
+            }
         };
-
-        let default_version = self
-            .metadata
-            .default_version
-            .clone()
-            .unwrap_or_else(|| version.to_unresolved_spec());
 
         // Add version to manifest
         let manifest = &mut self.inventory.manifest;
@@ -86,8 +88,16 @@ impl Tool {
         // Pin the global version
         ProtoConfig::update_document(self.proto.get_config_dir(PinLocation::Global), |doc| {
             if !doc.contains_key(&self.id) {
-                doc[self.id.as_str()] =
-                    cfg::value(ToolSpec::new_backend(default_version, self.backend).to_string());
+                doc[self.id.as_str()] = cfg::value(
+                    ToolSpec::new_backend(
+                        self.metadata
+                            .default_version
+                            .clone()
+                            .unwrap_or_else(|| version.to_unresolved_spec()),
+                        self.backend,
+                    )
+                    .to_string(),
+                );
             }
 
             // config
