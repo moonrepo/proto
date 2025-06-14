@@ -192,23 +192,26 @@ impl Tool {
             "Resolving a semantic version or alias",
         );
 
-        if let Some(record) = self.resolve_locked_record(spec)? {
-            let version = record
-                .version
-                .clone()
-                .expect("Version missing from lockfile record!");
+        // If requested, resolve the version from a lockfile
+        if spec.read_lockfile {
+            if let Some(record) = self.resolve_locked_record(spec)? {
+                let version = record
+                    .version
+                    .clone()
+                    .expect("Version missing from lockfile record!");
 
-            debug!(
-                tool = self.id.as_str(),
-                version = version.to_string(),
-                "Resolved to {} (from lockfile)",
-                version
-            );
+                debug!(
+                    tool = self.id.as_str(),
+                    version = version.to_string(),
+                    "Resolved to {} (from lockfile)",
+                    version
+                );
 
-            self.set_version(version.clone());
-            self.version_locked = Some(record);
+                self.set_version(version.clone());
+                self.version_locked = Some(record);
 
-            return Ok(version);
+                return Ok(version);
+            }
         }
 
         // If we have a fully qualified semantic version,

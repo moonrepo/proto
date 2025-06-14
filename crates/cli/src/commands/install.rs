@@ -137,7 +137,7 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
 
     // Attempt to detect a version if one was not provided,
     // otherwise fallback to "latest"
-    let spec = if args.canary {
+    let mut spec = if args.canary {
         ToolSpec::new(UnresolvedVersionSpec::Canary)
     } else if let Some(spec) = &args.spec {
         spec.to_owned()
@@ -148,6 +148,10 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
     } else {
         ToolSpec::default()
     };
+
+    // Don't resolve the version from a lockfile if we
+    // have provided an explicit version
+    spec.read_lockfile = !(args.canary || args.spec.is_some());
 
     // Load config including global versions,
     // so that our requirements can be satisfied
