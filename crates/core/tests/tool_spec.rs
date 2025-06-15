@@ -20,9 +20,8 @@ mod tool_spec {
         assert_eq!(
             ToolSpec::parse("latest").unwrap(),
             ToolSpec {
-                backend: None,
                 req: UnresolvedVersionSpec::Alias("latest".into()),
-                res: None,
+                ..Default::default()
             }
         );
     }
@@ -34,15 +33,14 @@ mod tool_spec {
             ToolSpec {
                 backend: Some(Backend::Asdf),
                 req: UnresolvedVersionSpec::Alias("latest".into()),
-                res: None,
+                ..Default::default()
             }
         );
         assert_eq!(
             ToolSpec::parse("proto:latest").unwrap(),
             ToolSpec {
-                backend: None,
                 req: UnresolvedVersionSpec::Alias("latest".into()),
-                res: None,
+                ..Default::default()
             }
         );
     }
@@ -52,9 +50,8 @@ mod tool_spec {
         assert_eq!(
             ToolSpec::parse("canary").unwrap(),
             ToolSpec {
-                backend: None,
                 req: UnresolvedVersionSpec::parse("canary").unwrap(),
-                res: None,
+                ..Default::default()
             }
         );
     }
@@ -66,15 +63,14 @@ mod tool_spec {
             ToolSpec {
                 backend: Some(Backend::Asdf),
                 req: UnresolvedVersionSpec::Canary,
-                res: None,
+                ..Default::default()
             }
         );
         assert_eq!(
             ToolSpec::parse("proto:canary").unwrap(),
             ToolSpec {
-                backend: None,
                 req: UnresolvedVersionSpec::Canary,
-                res: None,
+                ..Default::default()
             }
         );
     }
@@ -84,9 +80,8 @@ mod tool_spec {
         assert_eq!(
             ToolSpec::parse("2025-01-01").unwrap(),
             ToolSpec {
-                backend: None,
                 req: UnresolvedVersionSpec::parse("2025-01-01").unwrap(),
-                res: None,
+                ..Default::default()
             }
         );
     }
@@ -98,7 +93,7 @@ mod tool_spec {
             ToolSpec {
                 backend: Some(Backend::Asdf),
                 req: UnresolvedVersionSpec::parse("2025-01-01").unwrap(),
-                res: None,
+                ..Default::default()
             }
         );
         assert_eq!(
@@ -106,7 +101,7 @@ mod tool_spec {
             ToolSpec {
                 backend: None,
                 req: UnresolvedVersionSpec::parse("2025-01-01").unwrap(),
-                res: None,
+                ..Default::default()
             }
         );
     }
@@ -116,9 +111,8 @@ mod tool_spec {
         assert_eq!(
             ToolSpec::parse("1.2.3").unwrap(),
             ToolSpec {
-                backend: None,
                 req: UnresolvedVersionSpec::parse("1.2.3").unwrap(),
-                res: None,
+                ..Default::default()
             }
         );
     }
@@ -130,15 +124,14 @@ mod tool_spec {
             ToolSpec {
                 backend: Some(Backend::Asdf),
                 req: UnresolvedVersionSpec::parse("1.2.3").unwrap(),
-                res: None,
+                ..Default::default()
             }
         );
         assert_eq!(
             ToolSpec::parse("proto:1.2.3").unwrap(),
             ToolSpec {
-                backend: None,
                 req: UnresolvedVersionSpec::parse("1.2.3").unwrap(),
-                res: None,
+                ..Default::default()
             }
         );
     }
@@ -148,9 +141,8 @@ mod tool_spec {
         assert_eq!(
             ToolSpec::parse("^2").unwrap(),
             ToolSpec {
-                backend: None,
                 req: UnresolvedVersionSpec::parse("^2").unwrap(),
-                res: None,
+                ..Default::default()
             }
         );
     }
@@ -162,7 +154,7 @@ mod tool_spec {
             ToolSpec {
                 backend: Some(Backend::Asdf),
                 req: UnresolvedVersionSpec::parse("^2").unwrap(),
-                res: None,
+                ..Default::default()
             }
         );
         assert_eq!(
@@ -170,7 +162,7 @@ mod tool_spec {
             ToolSpec {
                 backend: None,
                 req: UnresolvedVersionSpec::parse("~1.2").unwrap(),
-                res: None,
+                ..Default::default()
             }
         );
     }

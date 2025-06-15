@@ -1,4 +1,5 @@
 use super::build_error::ProtoBuildError;
+use super::lock_error::ProtoLockError;
 use crate::checksum::ProtoChecksumError;
 use crate::config_error::ProtoConfigError;
 use crate::utils::archive::ProtoArchiveError;
@@ -41,6 +42,10 @@ pub enum ProtoInstallError {
 
     #[diagnostic(transparent)]
     #[error(transparent)]
+    Lock(#[from] Box<ProtoLockError>),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
     Plugin(#[from] Box<WarpgatePluginError>),
 
     #[diagnostic(code(proto::install::failed))]
@@ -60,36 +65,6 @@ pub enum ProtoInstallError {
     InvalidChecksum {
         checksum: PathBuf,
         download: PathBuf,
-    },
-
-    #[diagnostic(
-        code(proto::install::mismatched_checksum),
-        help = "Is this install legitimate?"
-    )]
-    #[error(
-        "Checksum mismatch! Received {} but expected {}.",
-        .checksum.style(Style::Hash),
-        .lockfile_checksum.style(Style::Hash),
-    )]
-    MismatchedChecksum {
-        checksum: String,
-        lockfile_checksum: String,
-    },
-
-    #[diagnostic(
-        code(proto::install::mismatched_checksum),
-        help = "Is this install legitimate?"
-    )]
-    #[error(
-        "Checksum mismatch for {}! Received {} but expected {}.",
-        .source_url.style(Style::Url),
-        .checksum.style(Style::Hash),
-        .lockfile_checksum.style(Style::Hash),
-    )]
-    MismatchedChecksumWithSource {
-        checksum: String,
-        lockfile_checksum: String,
-        source_url: String,
     },
 
     #[diagnostic(code(proto::install::prebuilt_unsupported))]
@@ -138,6 +113,12 @@ impl From<ProtoConfigError> for ProtoInstallError {
 impl From<FsError> for ProtoInstallError {
     fn from(e: FsError) -> ProtoInstallError {
         ProtoInstallError::Fs(Box::new(e))
+    }
+}
+
+impl From<ProtoLockError> for ProtoInstallError {
+    fn from(e: ProtoLockError) -> ProtoInstallError {
+        ProtoInstallError::Lock(Box::new(e))
     }
 }
 

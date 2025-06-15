@@ -146,7 +146,7 @@ mod alias_local {
                     ToolSpec {
                         backend: Some(Backend::Asdf),
                         req: UnresolvedVersionSpec::parse("0.2").unwrap(),
-                        res: None,
+                        ..Default::default()
                     }
                 )])
             );
