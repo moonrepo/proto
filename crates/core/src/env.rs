@@ -14,6 +14,7 @@ use std::env;
 use std::fmt;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::time::Duration;
 use tracing::debug;
 use warpgate::PluginLoader;
 
@@ -92,6 +93,11 @@ impl ProtoEnvironment {
 
             let mut loader =
                 PluginLoader::new(&self.store.plugins_dir, self.store.temp_dir.join("plugins"));
+
+            if let Some(secs) = config.settings.cache_duration {
+                loader.set_cache_duration(Duration::from_secs(secs));
+            }
+
             loader.set_client_options(&options);
             loader.set_offline_checker(is_offline);
 

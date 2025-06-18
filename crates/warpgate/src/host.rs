@@ -137,6 +137,18 @@ fn get_default_shell() -> ShellType {
     *SHELL_CACHE.get_or_init(ShellType::detect_with_fallback)
 }
 
+fn get_shell_bin_path(bin_name: &str) -> PathBuf {
+    // pwsh.exe isn't available on all Windows machines by default,
+    // but powershell.exe typically is
+    if bin_name == "pwsh" {
+        return find_command_on_path("pwsh")
+            .or_else(|| find_command_on_path("powershell"))
+            .unwrap_or_else(|| "powershell".into());
+    }
+
+    find_command_on_path(bin_name).unwrap_or_else(|| bin_name.into())
+}
+
 fn quote_shell_arg(shell: &BoxedShell, arg: &str) -> String {
     // An option or already quoted
     if arg.starts_with(['-', '"', '\'']) || arg.starts_with("$'") {
@@ -211,6 +223,7 @@ fn exec_command(
         None => get_default_shell().build(),
     };
     let shell_bin = shell.to_string();
+    let shell_bin_path = get_shell_bin_path(&shell_bin);
 
     // Create and execute command
     trace!(
@@ -233,7 +246,7 @@ fn exec_command(
             .join(" ")
     );
 
-    let mut command = create_process_command(&shell_bin, vec!["-c"]);
+    let mut command = create_process_command(&shell_bin_path, vec!["-c"]);
     command.arg(command_line);
     command.envs(&input.env);
     command.current_dir(cwd);
@@ -266,7 +279,7 @@ fn exec_command(
 
     trace!(
         plugin = plugin.id().to_string(),
-        shell = ?command.get_program().to_string_lossy(),
+        shell = ?shell_bin_path,
         command = ?bin,
         exit_code = output.exit_code,
         stderr = if debug_output.is_some() {

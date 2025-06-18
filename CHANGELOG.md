@@ -15,6 +15,18 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added a `cache-duration` setting and `PROTO_CACHE_DURATION` environment variable, to control how long plugins are cached for (in seconds).
+- Updated Windows shell to use `powershell.exe` if `pwsh.exe` is not available.
+
+#### 🧩 Plugins
+
+- Updated `schema_tool` to v0.17.4.
+  - Added `metadata.default-version` and `metadata.plugin-version` fields.
+
 ## 0.50.0
 
 #### 💥 Breaking
