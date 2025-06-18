@@ -21,6 +21,11 @@
 
 - Updated Windows shell to use `powershell.exe` if `pwsh.exe` is not available.
 
+#### 🧩 Plugins
+
+- Updated `schema_tool` to v0.17.4.
+  - Added `metadata.default-version` and `metadata.plugin-version` fields.
+
 ## 0.50.0
 
 #### 💥 Breaking
