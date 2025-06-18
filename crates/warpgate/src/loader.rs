@@ -23,6 +23,9 @@ pub type OfflineChecker = Arc<fn() -> bool>;
 /// and caching the `.wasm` file to the host's file system.
 #[derive(Clone)]
 pub struct PluginLoader {
+    /// Duration in seconds in which to cache downloaded plugins.
+    cache_duration: Duration,
+
     /// Instance of our HTTP client.
     http_client: OnceCell<Arc<HttpClient>>,
 
@@ -50,6 +53,7 @@ impl PluginLoader {
         trace!(cache_dir = ?plugins_dir, "Creating plugin loader");
 
         Self {
+            cache_duration: Duration::from_secs(86400 * 30), // 30 days
             http_client: OnceCell::new(),
             http_options: HttpOptions::default(),
             offline_checker: None,
@@ -161,7 +165,7 @@ impl PluginLoader {
 
     /// Check if the plugin has been downloaded and is cached.
     /// If using a latest strategy (no explicit version or tag), the cache
-    /// is only valid for 7 days (to ensure not stale), otherwise forever.
+    /// is only valid for a duration (to ensure not stale), otherwise forever.
     #[instrument(name = "is_plugin_cached", skip(self))]
     pub fn is_cached(&self, id: &Id, path: &Path) -> Result<bool, WarpgateLoaderError> {
         if !path.exists() {
@@ -170,13 +174,17 @@ impl PluginLoader {
             return Ok(false);
         }
 
-        let mut cached = fs::is_stale(
-            path,
-            false,
-            Duration::from_secs(86400 * 30), // 30 days
-            SystemTime::now(),
-        )?
-        .is_none();
+        if self.cache_duration.is_zero() {
+            trace!(
+                id = id.as_str(),
+                "Plugin caching has been disabled, downloading"
+            );
+
+            return Ok(false);
+        }
+
+        let mut cached =
+            fs::is_stale(path, false, self.cache_duration, SystemTime::now())?.is_none();
 
         if !cached && self.is_offline() {
             cached = true;
@@ -201,6 +209,11 @@ impl PluginLoader {
             .as_ref()
             .map(|op| op())
             .unwrap_or_default()
+    }
+
+    /// Set the cache duration.
+    pub fn set_cache_duration(&mut self, duration: Duration) {
+        self.cache_duration = duration;
     }
 
     /// Set the options to pass to the HTTP client.

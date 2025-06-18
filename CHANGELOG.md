@@ -17,8 +17,9 @@
 
 ## Unreleased
 
-#### 🐞 Fixes
+#### 🚀 Updates
 
+- Added a `cache-duration` setting and `PROTO_CACHE_DURATION` environment variable, to control how long plugins are cached for (in seconds).
 - Updated Windows shell to use `powershell.exe` if `pwsh.exe` is not available.
 
 #### 🧩 Plugins

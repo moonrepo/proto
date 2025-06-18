@@ -247,6 +247,9 @@ pub struct ProtoSettingsConfig {
     #[setting(default = default_builtin_plugins)]
     pub builtin_plugins: BuiltinPlugins,
 
+    #[setting(env = "PROTO_CACHE_DURATION")]
+    pub cache_duration: Option<u64>,
+
     #[setting(env = "PROTO_DETECT_STRATEGY")]
     pub detect_strategy: DetectStrategy,
 
