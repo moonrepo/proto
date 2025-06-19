@@ -49,32 +49,34 @@ pub fn inject_default_manifest_config(
     home_dir: &Path,
     manifest: &mut Manifest,
 ) -> Result<(), WarpgatePluginError> {
-    let os = SystemOS::from_env();
-    let env = serde_json::to_string(&HostEnvironment {
-        arch: SystemArch::from_env(),
-        ci: is_ci(),
-        libc: SystemLibc::detect(os),
-        os,
-        home_dir: to_virtual_path(
-            &map_virtual_paths(manifest.allowed_paths.as_ref().unwrap()),
-            home_dir,
-        ),
-    })
-    .map_err(|error| WarpgatePluginError::InvalidInput {
-        id: id.to_owned(),
-        func: "host_environment".into(),
-        error: Box::new(error),
-    })?;
+    if !manifest.config.contains_key("plugin_id") {
+        trace!(id = id.as_str(), "Storing plugin identifier");
 
-    trace!(id = id.as_str(), "Storing plugin identifier");
+        manifest.config.insert("plugin_id".into(), id.to_string());
+    }
 
-    manifest
-        .config
-        .insert("plugin_id".to_string(), id.to_string());
+    if !manifest.config.contains_key("host_environment") {
+        let os = SystemOS::from_env();
+        let env = serde_json::to_string(&HostEnvironment {
+            arch: SystemArch::from_env(),
+            ci: is_ci(),
+            libc: SystemLibc::detect(os),
+            os,
+            home_dir: to_virtual_path(
+                &map_virtual_paths(manifest.allowed_paths.as_ref().unwrap()),
+                home_dir,
+            ),
+        })
+        .map_err(|error| WarpgatePluginError::InvalidInput {
+            id: id.to_owned(),
+            func: "host_environment".into(),
+            error: Box::new(error),
+        })?;
 
-    trace!(id = id.as_str(), env = %env, "Storing host environment");
+        trace!(id = id.as_str(), env = %env, "Storing host environment");
 
-    manifest.config.insert("host_environment".to_string(), env);
+        manifest.config.insert("host_environment".into(), env);
+    }
 
     Ok(())
 }

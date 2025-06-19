@@ -112,6 +112,7 @@ pub fn enable_wasm_logging(wasm_file: &Path) {
     );
 }
 
+#[derive(Debug)]
 pub struct ConfigBuilder {
     config: HashMap<String, String>,
     sandbox_root: PathBuf,
