@@ -176,6 +176,7 @@ impl ConfigBuilder {
     }
 
     pub fn plugin_id(&mut self, id: impl AsRef<str>) -> &mut Self {
-        self.insert("plugin_id", id.as_ref())
+        self.config.insert("plugin_id".into(), id.as_ref().into());
+        self
     }
 }
