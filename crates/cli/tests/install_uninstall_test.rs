@@ -1,8 +1,7 @@
 mod utils;
 
 use proto_core::{
-    Backend, Id, LockRecord, PinLocation, ProtoConfig, ToolManifest, ToolSpec,
-    UnresolvedVersionSpec, VersionSpec,
+    Id, LockfileRecord, PinLocation, ProtoConfig, ToolManifest, UnresolvedVersionSpec, VersionSpec,
 };
 use proto_pdk_api::Checksum;
 use starbase_sandbox::predicates::prelude::*;

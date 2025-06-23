@@ -1,11 +1,18 @@
 use crate::client::{HttpClient, HttpOptions, create_http_client_with_options};
 use crate::client_error::WarpgateClientError;
-use crate::endpoints::*;
 use crate::helpers::{
     create_cache_key, determine_cache_extension, download_from_url_to_file, move_or_unpack_download,
 };
 use crate::id::Id;
 use crate::loader_error::WarpgateLoaderError;
+use crate::{
+    RegistryConfig, WASM_LAYER_MEDIA_TYPE_JSON, WASM_LAYER_MEDIA_TYPE_TOML,
+    WASM_LAYER_MEDIA_TYPE_WASM, WASM_LAYER_MEDIA_TYPE_YAML, endpoints::*,
+};
+use docker_credential::{CredentialRetrievalError, DockerCredential};
+use oci_client::Reference;
+use oci_client::client::{Client, ClientConfig};
+use oci_client::secrets::RegistryAuth;
 use once_cell::sync::OnceCell;
 use starbase_archive::is_supported_archive_extension;
 use starbase_styles::color;
@@ -14,9 +21,8 @@ use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
-use tracing::{instrument, trace};
+use tracing::{debug, instrument, trace, warn};
 use warpgate_api::{FileLocator, GitHubLocator, PluginLocator, UrlLocator};
-
 pub type OfflineChecker = Arc<fn() -> bool>;
 
 /// A system for loading plugins from a locator strategy,
@@ -43,6 +49,12 @@ pub struct PluginLoader {
 
     /// A unique seed for generating hashes.
     seed: Option<String>,
+
+    /// Plugin registry locations
+    registries: Vec<RegistryConfig>,
+
+    /// OCI client
+    oci_client: OnceCell<Arc<Client>>,
 }
 
 impl PluginLoader {
@@ -60,7 +72,25 @@ impl PluginLoader {
             plugins_dir: plugins_dir.to_owned(),
             temp_dir: temp_dir.as_ref().to_owned(),
             seed: None,
+            registries: vec![],
+            oci_client: OnceCell::new(),
         }
+    }
+
+    pub fn add_registry(&mut self, registry: RegistryConfig) {
+        self.registries.push(registry.clone());
+    }
+
+    pub fn add_registries(&mut self, registries: Vec<RegistryConfig>) {
+        for r in registries {
+            self.add_registry(r);
+        }
+    }
+
+    /// Return an OCI client, or create it is it does not exists.
+    pub fn get_oci_client(&self) -> Result<&Arc<Client>, WarpgateClientError> {
+        self.oci_client
+            .get_or_try_init(|| Ok(Arc::new(Client::new(ClientConfig::default()))))
     }
 
     /// Return the HTTP client, or create it if it does not exist.
@@ -91,6 +121,7 @@ impl PluginLoader {
             PluginLocator::File(file) => self.load_plugin_from_file(id, file).await,
             PluginLocator::GitHub(github) => self.load_plugin_from_github(id, github).await,
             PluginLocator::Url(url) => self.load_plugin_from_url(id, url).await,
+            PluginLocator::Registry(registry) => self.load_plugin_from_registry(id, registry).await,
         }
     }
 
@@ -148,6 +179,134 @@ impl PluginLoader {
             self.create_cache_path(id, url, url.contains("latest")),
         )
         .await
+    }
+
+    /// Load a plugin from an OCI registry.
+    #[instrument(skip(self))]
+    pub async fn load_plugin_from_registry<I: AsRef<Id> + Debug>(
+        &self,
+        id: I,
+        locator: &warpgate_api::RegistryLocator,
+    ) -> Result<PathBuf, WarpgateLoaderError> {
+        let id = id.as_ref();
+        let location = locator.image.as_str();
+        let mut registries = self.registries.clone();
+
+        let reference = match Reference::try_from(location.to_string()) {
+            Ok(result) => {
+                let mut parts = result.repository().split('/');
+                let org = parts.next().unwrap_or_default().to_owned();
+
+                debug!("Using registry {location} for plugin {id} with organization {org}");
+
+                registries.push(RegistryConfig {
+                    registry: result.registry().to_string(),
+                    organization: Some(org),
+                });
+                result
+            }
+            Err(_) => {
+                return Err(WarpgateLoaderError::OCIReferenceError {
+                    message: "No valid registry reference.".into(),
+                    location: location.to_string(),
+                });
+            }
+        };
+
+        let tag = reference.tag().unwrap_or("latest");
+
+        for registry in registries {
+            debug!(
+                "Searching registry {} for {id}:{:?}",
+                registry.registry,
+                reference.tag()
+            );
+
+            let auth = match docker_credential::get_credential(&registry.registry) {
+                Err(CredentialRetrievalError::ConfigNotFound) => RegistryAuth::Anonymous,
+                Err(CredentialRetrievalError::NoCredentialConfigured) => RegistryAuth::Anonymous,
+                Err(e) => {
+                    warn!(
+                        "Error handling docker configuration file: {}, using anonymous auth",
+                        e
+                    );
+                    RegistryAuth::Anonymous
+                }
+                Ok(DockerCredential::UsernamePassword(username, password)) => {
+                    debug!("Found docker credentials");
+                    RegistryAuth::Basic(username, password)
+                }
+                Ok(DockerCredential::IdentityToken(_)) => {
+                    debug!(
+                        "Cannot use contents of docker config, identity token not supported. Using anonymous auth"
+                    );
+                    RegistryAuth::Anonymous
+                }
+            };
+            let image_ref = if let Some(org) = &registry.organization {
+                // If the registry has an organization, prepend it to the image reference
+                format!("{}/{}/{}:{tag}", registry.registry, org, id)
+            } else {
+                format!("{}/{}:{tag}", registry.registry, id)
+            };
+
+            let search_reference = Reference::try_from(image_ref.as_str()).unwrap();
+
+            let Ok(image) = self
+                .get_oci_client()?
+                .pull(
+                    &search_reference,
+                    &auth,
+                    vec![
+                        WASM_LAYER_MEDIA_TYPE_WASM,
+                        WASM_LAYER_MEDIA_TYPE_TOML,
+                        WASM_LAYER_MEDIA_TYPE_YAML,
+                        WASM_LAYER_MEDIA_TYPE_JSON,
+                    ],
+                )
+                .await
+            else {
+                debug!(
+                    registry = ?registry,
+                    location = ?location,
+                    "Incompatible layer media type"
+                );
+                continue;
+            };
+
+            if let Some(layer) = image.layers.first() {
+                let ext = match layer.media_type.as_str() {
+                    WASM_LAYER_MEDIA_TYPE_WASM => ".wasm",
+                    WASM_LAYER_MEDIA_TYPE_TOML => ".toml",
+                    WASM_LAYER_MEDIA_TYPE_YAML => ".yaml",
+                    WASM_LAYER_MEDIA_TYPE_JSON => ".json",
+                    _ => {
+                        warn!(
+                            "Unsupported layer media type: {} for plugin {}",
+                            layer.media_type, id
+                        );
+                        continue;
+                    }
+                };
+
+                let file_path = self.plugins_dir.join(format!(
+                    "{id}-{}.{ext}",
+                    layer.sha256_digest().strip_prefix("sha256:").unwrap()
+                ));
+                starbase_utils::fs::write_file(&file_path, &layer.data).map_err(|e| {
+                    WarpgateLoaderError::OCIReferenceError {
+                        message: e.to_string(),
+                        location: location.to_string(),
+                    }
+                })?;
+                return Ok(file_path);
+            }
+        }
+
+        Err(WarpgateLoaderError::OCIReferenceError {
+            message: "No valid registry found or no valid layer.".into(),
+            location: location.to_string(),
+        })
     }
 
     /// Create an absolute path to the plugin's destination file, located in the plugins directory.

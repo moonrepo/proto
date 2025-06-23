@@ -57,6 +57,13 @@ pub struct UrlLocator {
     pub url: String,
 }
 
+/// A OCI Registry locator.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct RegistryLocator {
+    /// The image name, e.g., `plugins/python`.
+    pub image: String,
+}
+
 /// Strategies and protocols for locating plugins.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(untagged, into = "String", try_from = "String")]
@@ -72,6 +79,10 @@ pub enum PluginLocator {
 
     /// https://url/to/file.wasm
     Url(Box<UrlLocator>),
+
+    /// registry://plugins/python
+    /// registry://plugins/python:tag
+    Registry(Box<RegistryLocator>),
 }
 
 #[cfg(feature = "schematic")]
@@ -112,6 +123,7 @@ impl Display for PluginLocator {
                     .map(|t| format!("@{t}"))
                     .unwrap_or_default()
             ),
+            PluginLocator::Registry(registry) => write!(f, "{}", registry.image),
         }
     }
 }
@@ -187,6 +199,9 @@ impl TryFrom<String> for PluginLocator {
             }
             "http" => Err(PluginLocatorError::SecureUrlsOnly),
             "https" => Ok(PluginLocator::Url(Box::new(UrlLocator { url: value }))),
+            "registry" => Ok(PluginLocator::Registry(Box::new(RegistryLocator {
+                image: location.to_string(),
+            }))),
             unknown => Err(PluginLocatorError::UnknownProtocol(unknown.to_owned())),
         }
     }
