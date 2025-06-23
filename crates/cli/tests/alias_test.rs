@@ -1,8 +1,6 @@
 mod utils;
 
-use proto_core::{
-    Backend, Id, PartialProtoToolConfig, ProtoConfig, ToolSpec, UnresolvedVersionSpec,
-};
+use proto_core::{Id, PartialProtoToolConfig, ProtoConfig, UnresolvedVersionSpec};
 use starbase_sandbox::predicates::prelude::*;
 use std::collections::BTreeMap;
 use utils::*;

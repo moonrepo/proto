@@ -6,6 +6,7 @@ pub mod host;
 mod id;
 mod loader;
 mod loader_error;
+mod oci_registry;
 mod plugin;
 mod plugin_error;
 pub mod test_utils;
@@ -16,6 +17,7 @@ pub use helpers::*;
 pub use id::*;
 pub use loader::*;
 pub use loader_error::*;
+pub use oci_registry::*;
 pub use plugin::*;
 pub use plugin_error::*;
 

@@ -18,6 +18,8 @@ pub async fn search(session: ProtoSession, args: SearchPluginArgs) -> AppResult 
     let mut registry = session.create_registry();
     let plugins = registry.load_external_plugins().await?;
 
+    // ADD POSSIBLITY TO SEARCH THROUGH OCI REGISTRY
+
     let query = &args.query;
     let queried_plugins = plugins
         .into_iter()
