@@ -229,7 +229,7 @@ impl PluginLoader {
                     })?;
 
                 if let Some(layer) = image.layers.first() {
-                    let file_path = self.plugins_dir.join(format!("{id}.wasm"));
+                    let file_path = self.plugins_dir.join(format!("{id}-{}.wasm", layer.sha256_digest().strip_prefix("sha256:").unwrap()));                    
                     std::fs::write(&file_path, &layer.data).map_err(|e| {
                         WarpgateLoaderError::OCIReferenceError {
                             message: e.to_string(),
@@ -250,47 +250,6 @@ impl PluginLoader {
                 location: location.to_string(),
             })
         }
-
-        // let reference = Reference::try_from(location)
-        //     .map_err(|e| WarpgateLoaderError::OCIReferenceError { message: e.to_string(), location: location.to_string() })?;
-
-        // if let Some(registry) = reference.resolve_registry().strip_prefix("https://") {
-        //     warn!("Using registry: {}", registry);
-        // } else {
-        //     warn!("Using default registry: {}", reference.resolve_registry());
-        // }
-
-        // let server = reference
-        //     .resolve_registry()
-        //     .strip_suffix('/')
-        //     .unwrap_or_else(|| reference.resolve_registry());
-
-        // let auth = match docker_credential::get_credential(server) {
-        //     Err(CredentialRetrievalError::ConfigNotFound) => RegistryAuth::Anonymous,
-        //     Err(CredentialRetrievalError::NoCredentialConfigured) => RegistryAuth::Anonymous,
-        //     Err(e) => panic!("Error handling docker configuration file: {}", e),
-        //     Ok(DockerCredential::UsernamePassword(username, password)) => {
-        //         debug!("Found docker credentials");
-        //         RegistryAuth::Basic(username, password)
-        //     }
-        //     Ok(DockerCredential::IdentityToken(_)) => {
-        //         warn!("Cannot use contents of docker config, identity token not supported. Using anonymous auth");
-        //         RegistryAuth::Anonymous
-        //     }
-        // };
-
-        // let image = client.pull(&reference, &auth, vec![manifest::WASM_LAYER_MEDIA_TYPE]).await
-        //     .map_err(|e| WarpgateLoaderError::OCIReferenceError { message: e.to_string(), location: location.to_string() })?;
-
-        // if let Some(layer) = image.layers.first() {
-        //     let file_path = self.plugins_dir.join(format!("{id}.wasm"));
-        //     std::fs::write(&file_path, &layer.data)
-        //         .map_err(|e| WarpgateLoaderError::OCIReferenceError { message: e.to_string(), location: location.to_string() })?;
-
-        //     Ok(file_path)
-        // } else {
-        //     Err(WarpgateLoaderError::OCIReferenceError { message: "Layer is not valid.".into(), location: location.to_string() })
-        // }
     }
 
     /// Create an absolute path to the plugin's destination file, located in the plugins directory.
