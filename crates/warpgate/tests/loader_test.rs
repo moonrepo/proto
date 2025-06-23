@@ -27,6 +27,7 @@ mod loader {
                         file: "".into(),
                         path: Some(PathBuf::from("fake-file")),
                     })),
+                    vec![],
                 )
                 .await
                 .unwrap();
@@ -44,6 +45,7 @@ mod loader {
                         file: "".into(),
                         path: Some(fixture.join("test.wasm")),
                     })),
+                    vec![],
                 )
                 .await
                 .unwrap();
@@ -64,6 +66,7 @@ mod loader {
                 .load_plugin(
                     Id::raw("test"),
                     PluginLocator::Url(Box::new(UrlLocator { url: "https://github.com/moonrepo/deno-plugin/releases/download/v0.0.2/deno_plugin_invalid_name.wasm".into() })),
+                    vec![],
                 )
                 .await
                 .unwrap();
@@ -77,6 +80,7 @@ mod loader {
                 .load_plugin(
                     Id::raw("test"),
                     PluginLocator::Url(Box::new(UrlLocator { url: "https://github.com/moonrepo/deno-plugin/releases/download/v0.0.2/deno_plugin.wasm".into() })),
+                    vec![],
                 )
                 .await
                 .unwrap();
@@ -92,6 +96,7 @@ mod loader {
                 .load_plugin(
                     Id::raw("test"),
                     PluginLocator::Url(Box::new(UrlLocator { url: "https://github.com/moonrepo/deno-plugin/releases/latest/download/deno_plugin.wasm".into() })),
+                    vec![],
                 )
                 .await
                 .unwrap();
@@ -116,6 +121,7 @@ mod loader {
                         tag: None,
                         project_name: None,
                     })),
+                    vec![],
                 )
                 .await
                 .unwrap();
@@ -133,6 +139,7 @@ mod loader {
                         tag: Some("v0.0.3".into()),
                         project_name: None,
                     })),
+                    vec![],
                 )
                 .await
                 .unwrap();
@@ -152,6 +159,7 @@ mod loader {
                         tag: None,
                         project_name: None,
                     })),
+                    vec![],
                 )
                 .await
                 .unwrap();

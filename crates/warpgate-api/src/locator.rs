@@ -57,6 +57,13 @@ pub struct UrlLocator {
     pub url: String,
 }
 
+/// A OCI Registry locator.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct OciLocator {
+    /// The image name, e.g., `plugins/python`.
+    pub image: String,
+}
+
 /// Strategies and protocols for locating plugins.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(untagged, into = "String", try_from = "String")]
@@ -72,6 +79,10 @@ pub enum PluginLocator {
 
     /// https://url/to/file.wasm
     Url(Box<UrlLocator>),
+
+    /// oci://plugins/python
+    /// oci://plugins/python:tag
+    Oci(Box<OciLocator>),
 }
 
 #[cfg(feature = "schematic")]
@@ -112,6 +123,7 @@ impl Display for PluginLocator {
                     .map(|t| format!("@{t}"))
                     .unwrap_or_default()
             ),
+            PluginLocator::Oci(oci) => write!(f, "{}", oci.image),
         }
     }
 }
@@ -137,6 +149,8 @@ impl TryFrom<String> for PluginLocator {
             }
         } else if value.starts_with("github:") && !value.contains("//") {
             return Self::try_from(format!("github://{}", &value[7..]));
+        } else if value.starts_with("oci:") && !value.contains("//") {
+            return Self::try_from(format!("oci://{}", &value[6..]));
         }
 
         if !value.contains("://") {
@@ -187,6 +201,7 @@ impl TryFrom<String> for PluginLocator {
             }
             "http" => Err(PluginLocatorError::SecureUrlsOnly),
             "https" => Ok(PluginLocator::Url(Box::new(UrlLocator { url: value }))),
+            "oci" => Ok(PluginLocator::Oci(Box::new(OciLocator { image: value }))),
             unknown => Err(PluginLocatorError::UnknownProtocol(unknown.to_owned())),
         }
     }

@@ -8,7 +8,7 @@ use rustc_hash::FxHashSet;
 use starbase_utils::{json, toml, yaml};
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
-use tracing::{debug, instrument, trace};
+use tracing::{debug, instrument, trace, warn};
 use warpgate::{Id, PluginLocator, PluginManifest, Wasm, inject_default_manifest_config};
 
 #[instrument(skip(proto, manifest))]
@@ -33,7 +33,10 @@ pub fn inject_proto_manifest_config(
 }
 
 #[instrument(skip(proto))]
-pub fn locate_tool(id: &Id, proto: &ProtoEnvironment) -> Result<PluginLocator, ProtoLoaderError> {
+pub async fn locate_tool(
+    id: &Id,
+    proto: &ProtoEnvironment,
+) -> Result<PluginLocator, ProtoLoaderError> {
     let mut locator = None;
     let config = proto.load_config()?;
 
@@ -58,6 +61,15 @@ pub fn locate_tool(id: &Id, proto: &ProtoEnvironment) -> Result<PluginLocator, P
         }
     }
 
+    // Search in oci registries
+    if locator.is_none() {
+        if let Ok(oci_locator) = PluginLocator::try_from(format!("oci://{}", id.as_str())) {
+            debug!(plugin = oci_locator.to_string(), "Using oci regitry");
+
+            locator = Some(oci_locator.to_owned());
+        }
+    }
+
     let Some(mut locator) = locator else {
         return Err(ProtoLoaderError::UnknownTool { id: id.to_owned() });
     };
@@ -75,11 +87,16 @@ pub async fn load_schema_plugin_with_proto(
 ) -> Result<PathBuf, ProtoLoaderError> {
     let proto = proto.as_ref();
     let schema_id = Id::raw(SCHEMA_PLUGIN_KEY);
-    let schema_locator = locate_tool(&schema_id, proto)?;
+    let schema_locator = locate_tool(&schema_id, proto).await?;
+    let config = proto.load_config()?;
 
     let path = proto
         .get_plugin_loader()?
-        .load_plugin(schema_id, schema_locator)
+        .load_plugin(
+            schema_id,
+            schema_locator,
+            config.settings.registries.clone().unwrap_or_default(),
+        )
         .await?;
 
     Ok(path)
@@ -160,8 +177,16 @@ pub async fn load_tool_from_locator(
     let id = id.as_ref();
     let proto = proto.as_ref();
     let locator = locator.as_ref();
+    let config = proto.load_config()?;
 
-    let plugin_path = proto.get_plugin_loader()?.load_plugin(id, locator).await?;
+    let plugin_path = proto
+        .get_plugin_loader()?
+        .load_plugin(
+            id,
+            locator,
+            config.settings.registries.clone().unwrap_or_default(),
+        )
+        .await?;
     let plugin_ext = plugin_path.extension().and_then(|ext| ext.to_str());
 
     let mut manifest = match plugin_ext {
@@ -225,7 +250,8 @@ pub async fn load_tool(
         None => id.to_owned(),
     };
 
-    let mut tool = load_tool_from_locator(id, proto, locate_tool(&locator_id, proto)?).await?;
+    let mut tool =
+        load_tool_from_locator(id, proto, locate_tool(&locator_id, proto).await?).await?;
     tool.resolve_backend(backend).await?;
 
     Ok(tool)

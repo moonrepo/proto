@@ -1,11 +1,16 @@
 use crate::client::{HttpClient, HttpOptions, create_http_client_with_options};
 use crate::client_error::WarpgateClientError;
-use crate::endpoints::*;
 use crate::helpers::{
     create_cache_key, determine_cache_extension, download_from_url_to_file, move_or_unpack_download,
 };
 use crate::id::Id;
 use crate::loader_error::WarpgateLoaderError;
+use crate::{OciRegistry, endpoints::*};
+use docker_credential::{CredentialRetrievalError, DockerCredential};
+use oci_client::Reference;
+use oci_client::client::{Client, ClientConfig};
+use oci_client::manifest;
+use oci_client::secrets::RegistryAuth;
 use once_cell::sync::OnceCell;
 use starbase_archive::is_supported_archive_extension;
 use starbase_styles::color;
@@ -14,9 +19,8 @@ use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
-use tracing::{instrument, trace};
+use tracing::{debug, instrument, trace, warn};
 use warpgate_api::{FileLocator, GitHubLocator, PluginLocator, UrlLocator};
-
 pub type OfflineChecker = Arc<fn() -> bool>;
 
 /// A system for loading plugins from a locator strategy,
@@ -76,6 +80,7 @@ impl PluginLoader {
         &self,
         id: I,
         locator: L,
+        registries: Vec<OciRegistry>,
     ) -> Result<PathBuf, WarpgateLoaderError> {
         let id = id.as_ref();
         let locator = locator.as_ref();
@@ -91,6 +96,7 @@ impl PluginLoader {
             PluginLocator::File(file) => self.load_plugin_from_file(id, file).await,
             PluginLocator::GitHub(github) => self.load_plugin_from_github(id, github).await,
             PluginLocator::Url(url) => self.load_plugin_from_url(id, url).await,
+            PluginLocator::Oci(oci) => self.load_plugin_from_oci(id, oci, registries).await,
         }
     }
 
@@ -148,6 +154,143 @@ impl PluginLoader {
             self.create_cache_path(id, url, url.contains("latest")),
         )
         .await
+    }
+
+    /// Load a plugin from an OCI registry.
+    #[instrument(skip(self))]
+    pub async fn load_plugin_from_oci<I: AsRef<Id> + Debug>(
+        &self,
+        id: I,
+        locator: &warpgate_api::OciLocator,
+        registries: Vec<OciRegistry>,
+    ) -> Result<PathBuf, WarpgateLoaderError> {
+        let id = id.as_ref();
+        let client = Client::new(ClientConfig::default());
+
+        let location = if locator.image.as_str().starts_with("oci://") {
+            &locator.image.as_str()[6..]
+        } else {
+            locator.image.as_str()
+        };
+
+        if let Ok(reference) = Reference::try_from(location.to_string()) {
+            let registries: Option<Vec<OciRegistry>> =
+                if let Some(reg) = reference.resolve_registry().strip_suffix('/') {
+                    Some(vec![OciRegistry {
+                        registry: reg.to_string(),
+                        organization: None,
+                    }])
+                } else {
+                    // If no registry is specified, use the configured registries
+                    Some(registries)
+                };
+
+            let tag: String = if let Some(tag) = reference.tag() {
+                tag.into()
+            } else {
+                "latest".to_string()
+            };
+
+            for registry in registries.unwrap() {
+                debug!("Searching registry {} for {id}:{tag}", registry.registry);
+
+                let auth = match docker_credential::get_credential(&registry.registry) {
+                    Err(CredentialRetrievalError::ConfigNotFound) => RegistryAuth::Anonymous,
+                    Err(CredentialRetrievalError::NoCredentialConfigured) => {
+                        RegistryAuth::Anonymous
+                    }
+                    Err(e) => panic!("Error handling docker configuration file: {}", e),
+                    Ok(DockerCredential::UsernamePassword(username, password)) => {
+                        debug!("Found docker credentials");
+                        RegistryAuth::Basic(username, password)
+                    }
+                    Ok(DockerCredential::IdentityToken(_)) => {
+                        debug!(
+                            "Cannot use contents of docker config, identity token not supported. Using anonymous auth"
+                        );
+                        RegistryAuth::Anonymous
+                    }
+                };
+
+                let image_ref = if let Some(org) = &registry.organization {
+                    // If the registry has an organization, prepend it to the image reference
+                    format!("{}/{}/{}:{tag}", registry.registry, org, id)
+                } else {
+                    format!("{}/{}:{tag}", registry.registry, id)
+                };
+
+                let reference = Reference::try_from(image_ref.as_str()).unwrap();
+                let image = client
+                    .pull(&reference, &auth, vec![manifest::WASM_LAYER_MEDIA_TYPE])
+                    .await
+                    .map_err(|e| WarpgateLoaderError::OCIReferenceError {
+                        message: e.to_string(),
+                        location: location.to_string(),
+                    })?;
+
+                if let Some(layer) = image.layers.first() {
+                    let file_path = self.plugins_dir.join(format!("{id}.wasm"));
+                    std::fs::write(&file_path, &layer.data).map_err(|e| {
+                        WarpgateLoaderError::OCIReferenceError {
+                            message: e.to_string(),
+                            location: location.to_string(),
+                        }
+                    })?;
+
+                    return Ok(file_path);
+                }
+            }
+            Err(WarpgateLoaderError::OCIReferenceError {
+                message: "No valid registry found or no valid layer.".into(),
+                location: location.to_string(),
+            })
+        } else {
+            Err(WarpgateLoaderError::OCIReferenceError {
+                message: "No valid registry found or no valid layer.".into(),
+                location: location.to_string(),
+            })
+        }
+
+        // let reference = Reference::try_from(location)
+        //     .map_err(|e| WarpgateLoaderError::OCIReferenceError { message: e.to_string(), location: location.to_string() })?;
+
+        // if let Some(registry) = reference.resolve_registry().strip_prefix("https://") {
+        //     warn!("Using registry: {}", registry);
+        // } else {
+        //     warn!("Using default registry: {}", reference.resolve_registry());
+        // }
+
+        // let server = reference
+        //     .resolve_registry()
+        //     .strip_suffix('/')
+        //     .unwrap_or_else(|| reference.resolve_registry());
+
+        // let auth = match docker_credential::get_credential(server) {
+        //     Err(CredentialRetrievalError::ConfigNotFound) => RegistryAuth::Anonymous,
+        //     Err(CredentialRetrievalError::NoCredentialConfigured) => RegistryAuth::Anonymous,
+        //     Err(e) => panic!("Error handling docker configuration file: {}", e),
+        //     Ok(DockerCredential::UsernamePassword(username, password)) => {
+        //         debug!("Found docker credentials");
+        //         RegistryAuth::Basic(username, password)
+        //     }
+        //     Ok(DockerCredential::IdentityToken(_)) => {
+        //         warn!("Cannot use contents of docker config, identity token not supported. Using anonymous auth");
+        //         RegistryAuth::Anonymous
+        //     }
+        // };
+
+        // let image = client.pull(&reference, &auth, vec![manifest::WASM_LAYER_MEDIA_TYPE]).await
+        //     .map_err(|e| WarpgateLoaderError::OCIReferenceError { message: e.to_string(), location: location.to_string() })?;
+
+        // if let Some(layer) = image.layers.first() {
+        //     let file_path = self.plugins_dir.join(format!("{id}.wasm"));
+        //     std::fs::write(&file_path, &layer.data)
+        //         .map_err(|e| WarpgateLoaderError::OCIReferenceError { message: e.to_string(), location: location.to_string() })?;
+
+        //     Ok(file_path)
+        // } else {
+        //     Err(WarpgateLoaderError::OCIReferenceError { message: "Layer is not valid.".into(), location: location.to_string() })
+        // }
     }
 
     /// Create an absolute path to the plugin's destination file, located in the plugins directory.
