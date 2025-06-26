@@ -2,8 +2,9 @@ use std::fs;
 use std::io::{self, Error, ErrorKind};
 use std::path::Path;
 use std::process::{Command, exit};
-use windows_sys::Win32::Foundation::{BOOL, FALSE, TRUE};
+use windows_sys::Win32::Foundation::{FALSE, TRUE};
 use windows_sys::Win32::System::Console::SetConsoleCtrlHandler;
+use windows_sys::core::BOOL;
 
 // @see https://github.com/rust-lang/cargo/blob/master/crates/cargo-util/src/process_builder.rs#L605
 unsafe extern "system" fn ctrlc_handler(_: u32) -> BOOL {
