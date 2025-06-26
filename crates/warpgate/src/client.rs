@@ -29,7 +29,7 @@ impl Downloader for HttpDownloader {
             .await
             .map_err(|error| match error {
                 reqwest_middleware::Error::Middleware(inner) => NetError::HttpUnknown {
-                    error: format!("{}", inner),
+                    error: format!("{inner}"),
                     url: url_string,
                 },
                 reqwest_middleware::Error::Reqwest(inner) => NetError::Http {
@@ -65,7 +65,7 @@ impl HttpClient {
     pub fn map_error(url: String, error: reqwest_middleware::Error) -> WarpgateClientError {
         match error {
             reqwest_middleware::Error::Middleware(inner) => WarpgateClientError::HttpMiddleware {
-                error: format!("{}", inner),
+                error: format!("{inner}"),
                 url,
             },
             reqwest_middleware::Error::Reqwest(inner) => WarpgateClientError::Http {

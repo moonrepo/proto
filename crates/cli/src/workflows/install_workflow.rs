@@ -621,7 +621,7 @@ impl InstallWorkflowManager {
         for (id, reporter) in &self.progress_reporters {
             let reporter = reporter.clone();
             let console = self.console.clone();
-            let prefix = color::muted_light(format!("[{}] ", id));
+            let prefix = color::muted_light(format!("[{id}] "));
 
             self.monitor_handles.push(tokio::spawn(async move {
                 let mut receiver = reporter.subscribe();

@@ -141,7 +141,7 @@ impl Into<String> for VersionSpec {
 impl fmt::Debug for VersionSpec {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // Debug version as a string instead of a struct
-        write!(f, "{}", self)
+        write!(f, "{self}")
     }
 }
 
@@ -149,9 +149,9 @@ impl fmt::Display for VersionSpec {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Canary => write!(f, "canary"),
-            Self::Alias(alias) => write!(f, "{}", alias),
-            Self::Calendar(version) => write!(f, "{}", version),
-            Self::Semantic(version) => write!(f, "{}", version),
+            Self::Alias(alias) => write!(f, "{alias}"),
+            Self::Calendar(version) => write!(f, "{version}"),
+            Self::Semantic(version) => write!(f, "{version}"),
         }
     }
 }

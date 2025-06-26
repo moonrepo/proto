@@ -186,12 +186,11 @@ impl Tool {
             )
             .await?;
 
-        if !output.ignore.is_empty() {
-            if let Some(dir) = current_dir.to_str()
-                && output.ignore.iter().any(|ignore| dir.contains(ignore))
-            {
-                return Ok(None);
-            }
+        if !output.ignore.is_empty()
+            && let Some(dir) = current_dir.to_str()
+            && output.ignore.iter().any(|ignore| dir.contains(ignore))
+        {
+            return Ok(None);
         }
 
         trace!(

@@ -75,8 +75,7 @@ pub fn find_wasm_file() -> PathBuf {
     }
 
     panic!(
-        "WASM file `{}` does not exist. Please build it with `cargo build --target wasm32-wasip1` before running tests!",
-        wasm_file
+        "WASM file `{wasm_file}` does not exist. Please build it with `cargo build --target wasm32-wasip1` before running tests!"
     );
 }
 
