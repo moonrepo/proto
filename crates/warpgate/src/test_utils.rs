@@ -67,10 +67,10 @@ pub fn find_wasm_file() -> PathBuf {
     );
 
     for env_var in ["CARGO_MANIFEST_DIR", "CARGO_TARGET_DIR"] {
-        if let Some(env_path) = path_var(env_var) {
-            if let Some(wasm_path) = traverse_target_dir(env_path, &wasm_file) {
-                return wasm_path;
-            }
+        if let Some(env_path) = path_var(env_var)
+            && let Some(wasm_path) = traverse_target_dir(env_path, &wasm_file)
+        {
+            return wasm_path;
         }
     }
 

@@ -16,19 +16,19 @@ fn detect_from_proto_config(
     tool: &Tool,
     file: &ProtoConfigFile,
 ) -> Result<Option<UnresolvedVersionSpec>, ProtoDetectError> {
-    if let Some(versions) = &file.config.versions {
-        if let Some(version) = versions.get(tool.id.as_str()) {
-            debug!(
-                tool = tool.id.as_str(),
-                version = version.to_string(),
-                file = ?file.path,
-                "Detected version from {} file", PROTO_CONFIG_NAME
-            );
+    if let Some(versions) = &file.config.versions
+        && let Some(version) = versions.get(tool.id.as_str())
+    {
+        debug!(
+            tool = tool.id.as_str(),
+            version = version.to_string(),
+            file = ?file.path,
+            "Detected version from {} file", PROTO_CONFIG_NAME
+        );
 
-            set_detected_env_var(tool.get_env_var_prefix(), &file.path);
+        set_detected_env_var(tool.get_env_var_prefix(), &file.path);
 
-            return Ok(Some(version.req.to_owned()));
-        }
+        return Ok(Some(version.req.to_owned()));
     }
 
     Ok(None)
@@ -187,10 +187,10 @@ impl Tool {
             .await?;
 
         if !output.ignore.is_empty() {
-            if let Some(dir) = current_dir.to_str() {
-                if output.ignore.iter().any(|ignore| dir.contains(ignore)) {
-                    return Ok(None);
-                }
+            if let Some(dir) = current_dir.to_str()
+                && output.ignore.iter().any(|ignore| dir.contains(ignore))
+            {
+                return Ok(None);
             }
         }
 

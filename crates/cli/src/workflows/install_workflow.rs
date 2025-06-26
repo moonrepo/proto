@@ -389,11 +389,11 @@ impl InstallWorkflow {
         }
 
         // via `pin-latest` setting
-        if spec.req.is_latest() {
-            if let Some(custom_type) = &config.settings.pin_latest {
-                pin_to = *custom_type;
-                pin = true;
-            }
+        if spec.req.is_latest()
+            && let Some(custom_type) = &config.settings.pin_latest
+        {
+            pin_to = *custom_type;
+            pin = true;
         }
 
         if pin {

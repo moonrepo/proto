@@ -17,10 +17,10 @@ impl Product {
         let file = self.dir.join(".last-used");
 
         if file.exists() {
-            if let Ok(contents) = fs::read_file(file) {
-                if let Ok(value) = contents.parse::<u128>() {
-                    return Ok(Some(value));
-                }
+            if let Ok(contents) = fs::read_file(file)
+                && let Ok(value) = contents.parse::<u128>()
+            {
+                return Ok(Some(value));
             }
         }
 
