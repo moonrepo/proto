@@ -229,6 +229,7 @@ pub fn create_http_client_with_options(
             middleware_builder = middleware_builder.with(Cache(HttpCache {
                 manager: CACacheManager {
                     path: cache_dir.to_owned(),
+                    remove_opts: Default::default(),
                 },
                 mode: CacheMode::Default,
                 options: HttpCacheOptions {
