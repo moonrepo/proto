@@ -2840,7 +2840,7 @@ dependencies = [
 
 [[package]]
 name = "proto_codegen"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "proto_core",
  "proto_pdk_api",
@@ -2850,7 +2850,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.50.2"
+version = "0.50.3"
 dependencies = [
  "clap",
  "convert_case",
@@ -2890,7 +2890,7 @@ dependencies = [
 
 [[package]]
 name = "proto_installer"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "miette 7.6.0",
  "reqwest",
@@ -2904,7 +2904,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.29.0"
+version = "0.29.1"
 dependencies = [
  "extism-pdk",
  "proto_pdk_api",
@@ -2915,7 +2915,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.28.0"
+version = "0.28.1"
 dependencies = [
  "derive_setters",
  "proto_pdk_api",
@@ -2932,7 +2932,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_test_utils"
-version = "0.38.0"
+version = "0.38.1"
 dependencies = [
  "extism",
  "proto_core",
@@ -2945,7 +2945,7 @@ dependencies = [
 
 [[package]]
 name = "proto_shim"
-version = "0.7.3"
+version = "0.7.4"
 dependencies = [
  "dirs 6.0.0",
  "windows-sys 0.60.2",
@@ -4155,7 +4155,7 @@ dependencies = [
 
 [[package]]
 name = "system_env"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "regex",
  "schematic",
@@ -4723,7 +4723,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "version_spec"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "compact_str 0.9.0",
  "human-sort",
@@ -4764,7 +4764,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.25.3"
+version = "0.25.4"
 dependencies = [
  "async-trait",
  "compact_str 0.9.0",
@@ -4796,7 +4796,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_api"
-version = "0.15.1"
+version = "0.15.2"
 dependencies = [
  "anyhow",
  "derive_setters",
@@ -4810,7 +4810,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_pdk"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "extism-pdk",
  "serde",
