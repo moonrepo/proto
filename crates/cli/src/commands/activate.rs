@@ -3,7 +3,7 @@ use clap::Args;
 use indexmap::IndexMap;
 use miette::IntoDiagnostic;
 use proto_core::flow::setup::ProtoSetupError;
-use proto_core::{Id, UnresolvedVersionSpec};
+use proto_core::{Id, ProtoConfigEnvOptions, UnresolvedVersionSpec};
 use rustc_hash::FxHashSet;
 use serde::Serialize;
 use starbase::AppResult;
@@ -97,13 +97,26 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     let mut collection = ActivateCollection::default();
     let mut set = JoinSet::<Result<ActivateItem, ProtoSetupError>>::new();
 
+    // Inherit shared environment variables
+    collection
+        .env
+        .extend(config.get_env_vars(ProtoConfigEnvOptions {
+            include_shared: true,
+            ..Default::default()
+        })?);
+
     for mut tool in tools {
         if !config.versions.contains_key(&tool.id) {
             continue;
         }
 
-        // Inherit all environment variables for the config
-        collection.env.extend(config.get_env_vars(Some(&tool.id))?);
+        // Inherit tool environment variables
+        collection
+            .env
+            .extend(config.get_env_vars(ProtoConfigEnvOptions {
+                tool_id: Some(tool.id.clone()),
+                ..Default::default()
+            })?);
 
         // Extract the version in a background thread
         set.spawn(async move {
@@ -256,13 +269,45 @@ fn print_activation_exports(
     info: ActivateCollection,
 ) -> miette::Result<()> {
     let shell = shell_type.build();
+    let mut env_being_set = vec![];
     let mut output = vec![];
 
+    // Remove previously set variables
+    if let Ok(env_to_remove) = env::var("_PROTO_ACTIVATED_ENV") {
+        for key in env_to_remove.split(',') {
+            if !info.env.contains_key(key) {
+                output.push(shell.format_env_unset(key));
+            }
+        }
+    }
+
+    // Set/remove new variables
     for (key, value) in info.env {
+        if value.is_some() {
+            env_being_set.push(key.clone());
+        }
+
         output.push(shell.format_env(&key, value.as_deref()));
     }
 
+    if !env_being_set.is_empty() {
+        output.push(shell.format_env_set("_PROTO_ACTIVATED_ENV", &env_being_set.join(",")));
+    }
+
+    // Set new `PATH`
     if !info.paths.is_empty() {
+        output.push(
+            shell.format_env_set(
+                "_PROTO_ACTIVATED_PATH",
+                &info
+                    .paths
+                    .iter()
+                    .flat_map(|p| p.to_str())
+                    .collect::<Vec<_>>()
+                    .join(","),
+            ),
+        );
+
         let value = reset_and_join_paths(session, info.paths)?;
 
         if let Some(value) = value.to_str() {

@@ -4,7 +4,9 @@ use crate::session::ProtoSession;
 use clap::Args;
 use miette::IntoDiagnostic;
 use proto_core::flow::detect::ProtoDetectError;
-use proto_core::{Id, PROTO_PLUGIN_KEY, ProtoEnvironment, ProtoLoaderError, Tool, ToolSpec};
+use proto_core::{
+    Id, PROTO_PLUGIN_KEY, ProtoConfigEnvOptions, ProtoEnvironment, ProtoLoaderError, Tool, ToolSpec,
+};
 use proto_pdk_api::{ExecutableConfig, RunHook, RunHookResult};
 use proto_shim::{exec_command_and_replace, locate_proto_exe};
 use starbase::AppResult;
@@ -210,7 +212,15 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
         create_process_command(exe_path, args)
     };
 
-    for (key, value) in tool.proto.load_config()?.get_env_vars(Some(&tool.id))? {
+    for (key, value) in tool
+        .proto
+        .load_config()?
+        .get_env_vars(ProtoConfigEnvOptions {
+            check_process: true,
+            include_shared: true,
+            tool_id: Some(tool.id.clone()),
+        })?
+    {
         match value {
             Some(value) => {
                 command.env(key, value);
