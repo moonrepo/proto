@@ -3,7 +3,7 @@ use clap::Args;
 use indexmap::IndexMap;
 use miette::IntoDiagnostic;
 use proto_core::flow::setup::ProtoSetupError;
-use proto_core::{Id, UnresolvedVersionSpec};
+use proto_core::{Id, ProtoConfigEnvOptions, UnresolvedVersionSpec};
 use rustc_hash::FxHashSet;
 use serde::Serialize;
 use starbase::AppResult;
@@ -97,13 +97,26 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     let mut collection = ActivateCollection::default();
     let mut set = JoinSet::<Result<ActivateItem, ProtoSetupError>>::new();
 
+    // Inherit shared environment variables
+    collection
+        .env
+        .extend(config.get_env_vars(ProtoConfigEnvOptions {
+            include_shared: true,
+            ..Default::default()
+        })?);
+
     for mut tool in tools {
         if !config.versions.contains_key(&tool.id) {
             continue;
         }
 
-        // Inherit all environment variables for the config
-        collection.env.extend(config.get_env_vars(Some(&tool.id))?);
+        // Inherit tool environment variables
+        collection
+            .env
+            .extend(config.get_env_vars(ProtoConfigEnvOptions {
+                tool_id: Some(tool.id.clone()),
+                ..Default::default()
+            })?);
 
         // Extract the version in a background thread
         set.spawn(async move {

@@ -683,11 +683,15 @@ impl ProtoConfig {
         Self::save_to(path, document.to_string())
     }
 
-    pub fn get_env_files(&self, filter_id: Option<&Id>) -> Vec<&PathBuf> {
-        let mut paths: Vec<&EnvFile> = self._env_files.iter().collect();
+    pub fn get_env_files(&self, options: ProtoConfigEnvOptions) -> Vec<&PathBuf> {
+        let mut paths: Vec<&EnvFile> = vec![];
 
-        if let Some(id) = filter_id
-            && let Some(tool_config) = self.tools.get(id)
+        if options.include_shared {
+            paths.extend(&self._env_files);
+        }
+
+        if let Some(tool_id) = &options.tool_id
+            && let Some(tool_config) = self.tools.get(tool_id)
         {
             paths.extend(&tool_config._env_files);
         }
@@ -704,16 +708,22 @@ impl ProtoConfig {
     // and order of declaration can work correctly!
     pub fn get_env_vars(
         &self,
-        filter_id: Option<&Id>,
+        options: ProtoConfigEnvOptions,
     ) -> Result<IndexMap<String, Option<String>>, ProtoConfigError> {
-        let env_files = self.get_env_files(filter_id);
+        let env_files = self.get_env_files(options.clone());
 
         let mut base_vars = IndexMap::new();
-        base_vars.extend(self.load_env_files(&env_files)?);
-        base_vars.extend(self.env.clone());
 
-        if let Some(id) = filter_id {
-            if let Some(tool_config) = self.tools.get(id) {
+        if !env_files.is_empty() {
+            base_vars.extend(self.load_env_files(&env_files)?);
+        }
+
+        if options.include_shared {
+            base_vars.extend(self.env.clone());
+        }
+
+        if let Some(tool_id) = &options.tool_id {
+            if let Some(tool_config) = self.tools.get(tool_id) {
                 base_vars.extend(tool_config.env.clone())
             }
         }
@@ -725,7 +735,8 @@ impl ProtoConfig {
                 continue;
             }
 
-            let key_exists = std::env::var(&key).is_ok_and(|v| !v.is_empty());
+            let key_exists =
+                options.check_process && std::env::var(&key).is_ok_and(|v| !v.is_empty());
             let value = value.to_value();
 
             // Don't override parent inherited vars
@@ -805,6 +816,13 @@ impl ProtoConfig {
             path.join(PROTO_CONFIG_NAME)
         }
     }
+}
+
+#[derive(Clone, Default)]
+pub struct ProtoConfigEnvOptions {
+    pub check_process: bool,
+    pub include_shared: bool,
+    pub tool_id: Option<Id>,
 }
 
 #[derive(Debug, Serialize)]

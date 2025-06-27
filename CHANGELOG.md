@@ -20,6 +20,7 @@
 #### 🐞 Fixes
 
 - Fixed an issue with `proto activate` where previously set environment variables would not be unset when changing directories.
+- Fixed an issue with `proto activate` where `[env]` variables would sometimes not be set.
 
 #### ⚙️ Internal
 
