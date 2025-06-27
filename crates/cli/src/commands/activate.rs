@@ -291,21 +291,22 @@ fn print_activation_exports(
     }
 
     if !env_being_set.is_empty() {
-        unsafe { env::set_var("_PROTO_ACTIVATED_ENV", env_being_set.join(",")) };
+        output.push(shell.format_env_set("_PROTO_ACTIVATED_ENV", &env_being_set.join(",")));
     }
 
     // Set new `PATH`
     if !info.paths.is_empty() {
-        unsafe {
-            env::set_var(
+        output.push(
+            shell.format_env_set(
                 "_PROTO_ACTIVATED_PATH",
-                info.paths
+                &info
+                    .paths
                     .iter()
                     .flat_map(|p| p.to_str())
                     .collect::<Vec<_>>()
                     .join(","),
-            )
-        };
+            ),
+        );
 
         let value = reset_and_join_paths(session, info.paths)?;
 

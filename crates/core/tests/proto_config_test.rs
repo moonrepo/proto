@@ -1,7 +1,7 @@
 use indexmap::IndexMap;
 use proto_core::{
     Backend, DetectStrategy, EnvVar, PartialEnvVar, PartialProtoSettingsConfig, PinLocation,
-    ProtoConfig, ProtoConfigManager, RegexSetting, ToolSpec,
+    ProtoConfig, ProtoConfigEnvOptions, ProtoConfigManager, RegexSetting, ToolSpec,
 };
 use starbase_sandbox::create_empty_sandbox;
 use starbase_utils::json::JsonValue;
@@ -351,6 +351,14 @@ foo = "file://./test.toml"
     mod envs {
         use super::*;
 
+        fn new_env_options() -> ProtoConfigEnvOptions {
+            ProtoConfigEnvOptions {
+                check_process: true,
+                include_shared: true,
+                tool_id: None,
+            }
+        }
+
         #[test]
         #[should_panic(expected = "MissingEnvFile")]
         fn errors_if_file_missing() {
@@ -391,7 +399,7 @@ file = ".env"
                 .unwrap()
                 .get_merged_config()
                 .unwrap()
-                .get_env_vars(None)
+                .get_env_vars(new_env_options())
                 .unwrap();
         }
 
@@ -421,7 +429,7 @@ KEY2 = "value2"
                 .unwrap()
                 .to_owned();
 
-            assert_eq!(config.get_env_vars(None).unwrap(), {
+            assert_eq!(config.get_env_vars(new_env_options()).unwrap(), {
                 let mut map = IndexMap::<String, Option<String>>::default();
                 map.insert("KEY1".into(), Some("value1".into()));
                 map.insert("KEY2".into(), Some("value2".into()));
@@ -466,7 +474,7 @@ file = ".env"
                 .unwrap()
                 .to_owned();
 
-            assert_eq!(config.get_env_vars(None).unwrap(), {
+            assert_eq!(config.get_env_vars(new_env_options()).unwrap(), {
                 let mut map = IndexMap::<String, Option<String>>::default();
                 map.insert("KEY".into(), Some("child".into()));
                 map
@@ -497,7 +505,7 @@ file = ".env"
                 .unwrap()
                 .to_owned();
 
-            assert_eq!(config.get_env_vars(None).unwrap(), {
+            assert_eq!(config.get_env_vars(new_env_options()).unwrap(), {
                 let mut map = IndexMap::<String, Option<String>>::default();
                 map.insert("OTHER".into(), Some("abc".into()));
                 map.insert("KEY".into(), Some("other=abc".into()));
@@ -563,7 +571,7 @@ KEY = "from=${FILE}"
                 .unwrap()
                 .to_owned();
 
-            assert_eq!(config.get_env_vars(None).unwrap(), {
+            assert_eq!(config.get_env_vars(new_env_options()).unwrap(), {
                 let mut map = IndexMap::<String, Option<String>>::default();
                 map.insert("FILE".into(), Some("file".into()));
                 map.insert("KEY".into(), Some("from=file".into()));
@@ -950,7 +958,12 @@ file = ".env.tool"
             assert_eq!(config.env, IndexMap::<String, EnvVar>::default());
             assert_eq!(
                 config
-                    .get_env_files(Some(&Id::raw("node")))
+                    .get_env_files(ProtoConfigEnvOptions {
+                        check_process: true,
+                        include_shared: true,
+                        tool_id: Some(Id::raw("node")),
+                        ..Default::default()
+                    })
                     .into_iter()
                     .cloned()
                     .collect::<Vec<_>>(),
