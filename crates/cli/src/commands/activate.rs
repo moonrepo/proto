@@ -256,13 +256,44 @@ fn print_activation_exports(
     info: ActivateCollection,
 ) -> miette::Result<()> {
     let shell = shell_type.build();
+    let mut env_being_set = vec![];
     let mut output = vec![];
 
+    // Remove previously set variables
+    if let Ok(env_to_remove) = env::var("_PROTO_ACTIVATED_ENV") {
+        for key in env_to_remove.split(',') {
+            if !info.env.contains_key(key) {
+                output.push(shell.format_env_unset(key));
+            }
+        }
+    }
+
+    // Set/remove new variables
     for (key, value) in info.env {
+        if value.is_some() {
+            env_being_set.push(key.clone());
+        }
+
         output.push(shell.format_env(&key, value.as_deref()));
     }
 
+    if !env_being_set.is_empty() {
+        unsafe { env::set_var("_PROTO_ACTIVATED_ENV", env_being_set.join(",")) };
+    }
+
+    // Set new `PATH`
     if !info.paths.is_empty() {
+        unsafe {
+            env::set_var(
+                "_PROTO_ACTIVATED_PATH",
+                info.paths
+                    .iter()
+                    .flat_map(|p| p.to_str())
+                    .collect::<Vec<_>>()
+                    .join(","),
+            )
+        };
+
         let value = reset_and_join_paths(session, info.paths)?;
 
         if let Some(value) = value.to_str() {

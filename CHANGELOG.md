@@ -17,6 +17,10 @@
 
 ## Unreleased
 
+#### 🐞 Fixes
+
+- Fixed an issue with `proto activate` where previously set environment variables would not be unset when changing directories.
+
 #### ⚙️ Internal
 
 - Updated Rust to v1.88.0.
