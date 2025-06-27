@@ -25,7 +25,7 @@ impl Inventory {
         let mut name = spec.to_string();
 
         if let Some(suffix) = &self.config.version_suffix {
-            name = format!("{}{}", name, suffix);
+            name = format!("{name}{suffix}");
         }
 
         Product {

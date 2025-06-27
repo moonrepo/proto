@@ -582,12 +582,11 @@ impl ProtoConfig {
             }
         }
 
-        if let Some(settings) = &mut config.settings {
-            if let Some(http) = &mut settings.http {
-                if let Some(root_cert) = &mut http.root_cert {
-                    *root_cert = make_absolute(&root_cert, path);
-                }
-            }
+        if let Some(settings) = &mut config.settings
+            && let Some(http) = &mut settings.http
+            && let Some(root_cert) = &mut http.root_cert
+        {
+            *root_cert = make_absolute(&root_cert, path);
         }
 
         let push_env_file = |env_map: Option<&mut IndexMap<String, PartialEnvVar>>,
@@ -687,10 +686,10 @@ impl ProtoConfig {
     pub fn get_env_files(&self, filter_id: Option<&Id>) -> Vec<&PathBuf> {
         let mut paths: Vec<&EnvFile> = self._env_files.iter().collect();
 
-        if let Some(id) = filter_id {
-            if let Some(tool_config) = self.tools.get(id) {
-                paths.extend(&tool_config._env_files);
-            }
+        if let Some(id) = filter_id
+            && let Some(tool_config) = self.tools.get(id)
+        {
+            paths.extend(&tool_config._env_files);
         }
 
         // Sort by weight so that we persist the order of env files
@@ -850,7 +849,7 @@ impl ProtoConfigManager {
             };
 
             if let Some(env) = env_mode {
-                let env_path = dir.join(format!("{}.{env}", PROTO_CONFIG_NAME));
+                let env_path = dir.join(format!("{PROTO_CONFIG_NAME}.{env}"));
 
                 files.push(ProtoConfigFile {
                     config: ProtoConfig::load(&env_path, false)?,

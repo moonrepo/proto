@@ -162,8 +162,8 @@ impl Display for UnresolvedVersionSpec {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Canary => write!(f, "canary"),
-            Self::Alias(alias) => write!(f, "{}", alias),
-            Self::Req(req) => write!(f, "{}", req),
+            Self::Alias(alias) => write!(f, "{alias}"),
+            Self::Req(req) => write!(f, "{req}"),
             Self::ReqAny(reqs) => write!(
                 f,
                 "{}",
@@ -172,8 +172,8 @@ impl Display for UnresolvedVersionSpec {
                     .collect::<Vec<_>>()
                     .join(" || ")
             ),
-            Self::Calendar(version) => write!(f, "{}", version),
-            Self::Semantic(version) => write!(f, "{}", version),
+            Self::Calendar(version) => write!(f, "{version}"),
+            Self::Semantic(version) => write!(f, "{version}"),
         }
     }
 }

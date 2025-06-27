@@ -231,10 +231,10 @@ pub fn resolve_version(
 ) -> FnResult<Json<ResolveVersionOutput>> {
     let mut output = ResolveVersionOutput::default();
 
-    if let UnresolvedVersionSpec::Alias(alias) = &input.initial {
-        if alias == "node" {
-            output.candidate = Some(UnresolvedVersionSpec::Alias("latest".into()));
-        }
+    if let UnresolvedVersionSpec::Alias(alias) = &input.initial
+        && alias == "node"
+    {
+        output.candidate = Some(UnresolvedVersionSpec::Alias("latest".into()));
     }
 
     Ok(Json(output))

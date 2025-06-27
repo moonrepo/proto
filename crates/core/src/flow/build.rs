@@ -260,7 +260,7 @@ async fn checkout_git_repo(
         .await?;
 
     if let Some(reference) = &git.reference {
-        builder.render_checkpoint(format!("Checking out reference <hash>{}</hash>", reference))?;
+        builder.render_checkpoint(format!("Checking out reference <hash>{reference}</hash>"))?;
 
         builder
             .exec_command(&mut git::new_checkout(reference, cwd), false)

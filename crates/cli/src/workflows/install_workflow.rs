@@ -389,11 +389,11 @@ impl InstallWorkflow {
         }
 
         // via `pin-latest` setting
-        if spec.req.is_latest() {
-            if let Some(custom_type) = &config.settings.pin_latest {
-                pin_to = *custom_type;
-                pin = true;
-            }
+        if spec.req.is_latest()
+            && let Some(custom_type) = &config.settings.pin_latest
+        {
+            pin_to = *custom_type;
+            pin = true;
         }
 
         if pin {
@@ -621,7 +621,7 @@ impl InstallWorkflowManager {
         for (id, reporter) in &self.progress_reporters {
             let reporter = reporter.clone();
             let console = self.console.clone();
-            let prefix = color::muted_light(format!("[{}] ", id));
+            let prefix = color::muted_light(format!("[{id}] "));
 
             self.monitor_handles.push(tokio::spawn(async move {
                 let mut receiver = reporter.subscribe();

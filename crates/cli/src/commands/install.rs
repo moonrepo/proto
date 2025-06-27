@@ -325,8 +325,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
                 match status {
                     InstallStatus::ReqFailed(req_id) => {
                         workflow.progress_reporter.set_message(format!(
-                            "Requirement <id>{}</id> failed to install",
-                            req_id
+                            "Requirement <id>{req_id}</id> failed to install"
                         ));
 
                         // Abort since requirement failed

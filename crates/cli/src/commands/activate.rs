@@ -203,7 +203,7 @@ fn print_activation_hook(
     shell_type: &ShellType,
     args: &ActivateArgs,
 ) -> miette::Result<()> {
-    let mut command = format!("proto activate {}", shell_type);
+    let mut command = format!("proto activate {shell_type}");
 
     if let Some(mode) = &session.cli.config_mode {
         command.push_str(" --config-mode ");
