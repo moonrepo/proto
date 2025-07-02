@@ -61,12 +61,15 @@ pub async fn locate_tool(
         }
     }
 
-    // Search in oci registries
+    // Search in registries
     if locator.is_none() {
-        if let Ok(oci_locator) = PluginLocator::try_from(format!("oci://{}", id.as_str())) {
-            debug!(plugin = oci_locator.to_string(), "Using oci regitry");
+        if let Ok(maybe_locator) = PluginLocator::try_from(format!("registry://{}", id.as_str())) {
+            debug!(
+                plugin = maybe_locator.to_string(),
+                "Using a registry plugin"
+            );
 
-            locator = Some(oci_locator.to_owned());
+            locator = Some(maybe_locator.to_owned());
         }
     }
 
@@ -88,15 +91,10 @@ pub async fn load_schema_plugin_with_proto(
     let proto = proto.as_ref();
     let schema_id = Id::raw(SCHEMA_PLUGIN_KEY);
     let schema_locator = locate_tool(&schema_id, proto).await?;
-    let config = proto.load_config()?;
 
     let path = proto
         .get_plugin_loader()?
-        .load_plugin(
-            schema_id,
-            schema_locator,
-            config.settings.registries.clone().unwrap_or_default(),
-        )
+        .load_plugin(schema_id, schema_locator)
         .await?;
 
     Ok(path)
@@ -177,16 +175,8 @@ pub async fn load_tool_from_locator(
     let id = id.as_ref();
     let proto = proto.as_ref();
     let locator = locator.as_ref();
-    let config = proto.load_config()?;
 
-    let plugin_path = proto
-        .get_plugin_loader()?
-        .load_plugin(
-            id,
-            locator,
-            config.settings.registries.clone().unwrap_or_default(),
-        )
-        .await?;
+    let plugin_path = proto.get_plugin_loader()?.load_plugin(id, locator).await?;
     let plugin_ext = plugin_path.extension().and_then(|ext| ext.to_str());
 
     let mut manifest = match plugin_ext {

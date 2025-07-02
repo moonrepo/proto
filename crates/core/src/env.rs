@@ -94,6 +94,10 @@ impl ProtoEnvironment {
             let mut loader =
                 PluginLoader::new(&self.store.plugins_dir, self.store.temp_dir.join("plugins"));
 
+            if let Some(registries) = config.settings.registries.clone() {
+                loader.add_registries(registries);
+            };
+
             if let Some(secs) = config.settings.cache_duration {
                 loader.set_cache_duration(Duration::from_secs(secs));
             }

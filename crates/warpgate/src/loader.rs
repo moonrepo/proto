@@ -5,7 +5,7 @@ use crate::helpers::{
 };
 use crate::id::Id;
 use crate::loader_error::WarpgateLoaderError;
-use crate::{OciRegistry, endpoints::*};
+use crate::{RegistryConfig, endpoints::*};
 use docker_credential::{CredentialRetrievalError, DockerCredential};
 use oci_client::Reference;
 use oci_client::client::{Client, ClientConfig};
@@ -47,6 +47,12 @@ pub struct PluginLoader {
 
     /// A unique seed for generating hashes.
     seed: Option<String>,
+
+    /// Plugin registry locations
+    registries: Vec<RegistryConfig>,
+
+    /// OCI client
+    oci_client: OnceCell<Arc<Client>>,
 }
 
 impl PluginLoader {
@@ -64,7 +70,25 @@ impl PluginLoader {
             plugins_dir: plugins_dir.to_owned(),
             temp_dir: temp_dir.as_ref().to_owned(),
             seed: None,
+            registries: vec![],
+            oci_client: OnceCell::new(),
         }
+    }
+
+    pub fn add_registry(&mut self, registry: RegistryConfig) {
+        self.registries.push(registry.clone());
+    }
+
+    pub fn add_registries(&mut self, registries: Vec<RegistryConfig>) {
+        for r in registries {
+            self.add_registry(r);
+        }
+    }
+
+    /// Return an OCI client, or create it is it does not exists.
+    pub fn get_oci_client(&self) -> Result<&Arc<Client>, WarpgateClientError> {
+        self.oci_client
+            .get_or_try_init(|| Ok(Arc::new(Client::new(ClientConfig::default()))))
     }
 
     /// Return the HTTP client, or create it if it does not exist.
@@ -80,7 +104,6 @@ impl PluginLoader {
         &self,
         id: I,
         locator: L,
-        registries: Vec<OciRegistry>,
     ) -> Result<PathBuf, WarpgateLoaderError> {
         let id = id.as_ref();
         let locator = locator.as_ref();
@@ -96,7 +119,7 @@ impl PluginLoader {
             PluginLocator::File(file) => self.load_plugin_from_file(id, file).await,
             PluginLocator::GitHub(github) => self.load_plugin_from_github(id, github).await,
             PluginLocator::Url(url) => self.load_plugin_from_url(id, url).await,
-            PluginLocator::Oci(oci) => self.load_plugin_from_oci(id, oci, registries).await,
+            PluginLocator::Registry(registry) => self.load_plugin_from_registry(id, registry).await,
         }
     }
 
@@ -158,98 +181,101 @@ impl PluginLoader {
 
     /// Load a plugin from an OCI registry.
     #[instrument(skip(self))]
-    pub async fn load_plugin_from_oci<I: AsRef<Id> + Debug>(
+    pub async fn load_plugin_from_registry<I: AsRef<Id> + Debug>(
         &self,
         id: I,
-        locator: &warpgate_api::OciLocator,
-        registries: Vec<OciRegistry>,
+        locator: &warpgate_api::RegistryLocator,
     ) -> Result<PathBuf, WarpgateLoaderError> {
         let id = id.as_ref();
-        let client = Client::new(ClientConfig::default());
+        let location = locator.image.as_str();
+        let mut registries = self.registries.clone();
 
-        let location = if locator.image.as_str().starts_with("oci://") {
-            &locator.image.as_str()[6..]
-        } else {
-            locator.image.as_str()
+        let reference = match Reference::try_from(location.to_string()) {
+            Ok(result) => {
+                let mut parts = result.repository().split('/');
+                let org = parts.next().unwrap_or_default().to_owned();
+
+                debug!("Using registry {location} for plugin {id} with organization {org}");
+
+                registries.push(RegistryConfig {
+                    registry: result.registry().to_string(),
+                    organization: Some(org),
+                });
+                result
+            }
+            Err(_) => {
+                return Err(WarpgateLoaderError::OCIReferenceError {
+                    message: "No valid registry reference.".into(),
+                    location: location.to_string(),
+                });
+            }
         };
 
-        if let Ok(reference) = Reference::try_from(location.to_string()) {
-            let registries: Option<Vec<OciRegistry>> =
-                if let Some(reg) = reference.resolve_registry().strip_suffix('/') {
-                    Some(vec![OciRegistry {
-                        registry: reg.to_string(),
-                        organization: None,
-                    }])
-                } else {
-                    // If no registry is specified, use the configured registries
-                    Some(registries)
-                };
+        let tag = reference.tag().unwrap();
 
-            let tag: String = if let Some(tag) = reference.tag() {
-                tag.into()
+        for registry in registries {
+            debug!(
+                "Searching registry {} for {id}:{:?}",
+                registry.registry,
+                reference.tag()
+            );
+
+            let auth = match docker_credential::get_credential(&registry.registry) {
+                Err(CredentialRetrievalError::ConfigNotFound) => RegistryAuth::Anonymous,
+                Err(CredentialRetrievalError::NoCredentialConfigured) => RegistryAuth::Anonymous,
+                Err(e) => panic!("Error handling docker configuration file: {}", e),
+                Ok(DockerCredential::UsernamePassword(username, password)) => {
+                    debug!("Found docker credentials");
+                    RegistryAuth::Basic(username, password)
+                }
+                Ok(DockerCredential::IdentityToken(_)) => {
+                    debug!(
+                        "Cannot use contents of docker config, identity token not supported. Using anonymous auth"
+                    );
+                    RegistryAuth::Anonymous
+                }
+            };
+            let image_ref = if let Some(org) = &registry.organization {
+                // If the registry has an organization, prepend it to the image reference
+                format!("{}/{}/{}:{tag}", registry.registry, org, id)
             } else {
-                "latest".to_string()
+                format!("{}/{}:{tag}", registry.registry, id)
             };
 
-            for registry in registries.unwrap() {
-                debug!("Searching registry {} for {id}:{tag}", registry.registry);
+            let search_reference = Reference::try_from(image_ref.as_str()).unwrap();
 
-                let auth = match docker_credential::get_credential(&registry.registry) {
-                    Err(CredentialRetrievalError::ConfigNotFound) => RegistryAuth::Anonymous,
-                    Err(CredentialRetrievalError::NoCredentialConfigured) => {
-                        RegistryAuth::Anonymous
-                    }
-                    Err(e) => panic!("Error handling docker configuration file: {}", e),
-                    Ok(DockerCredential::UsernamePassword(username, password)) => {
-                        debug!("Found docker credentials");
-                        RegistryAuth::Basic(username, password)
-                    }
-                    Ok(DockerCredential::IdentityToken(_)) => {
-                        debug!(
-                            "Cannot use contents of docker config, identity token not supported. Using anonymous auth"
-                        );
-                        RegistryAuth::Anonymous
-                    }
-                };
+            let image = self
+                .get_oci_client()?
+                .pull(
+                    &search_reference,
+                    &auth,
+                    vec![manifest::WASM_LAYER_MEDIA_TYPE],
+                )
+                .await
+                .map_err(|e| WarpgateLoaderError::OCIReferenceError {
+                    message: e.to_string(),
+                    location: location.to_string(),
+                })?;
 
-                let image_ref = if let Some(org) = &registry.organization {
-                    // If the registry has an organization, prepend it to the image reference
-                    format!("{}/{}/{}:{tag}", registry.registry, org, id)
-                } else {
-                    format!("{}/{}:{tag}", registry.registry, id)
-                };
-
-                let reference = Reference::try_from(image_ref.as_str()).unwrap();
-                let image = client
-                    .pull(&reference, &auth, vec![manifest::WASM_LAYER_MEDIA_TYPE])
-                    .await
-                    .map_err(|e| WarpgateLoaderError::OCIReferenceError {
+            if let Some(layer) = image.layers.first() {
+                let file_path = self.plugins_dir.join(format!(
+                    "{id}-{}.wasm",
+                    layer.sha256_digest().strip_prefix("sha256:").unwrap()
+                ));
+                starbase_utils::fs::write_file(&file_path, &layer.data).map_err(|e| {
+                    WarpgateLoaderError::OCIReferenceError {
                         message: e.to_string(),
                         location: location.to_string(),
-                    })?;
-
-                if let Some(layer) = image.layers.first() {
-                    let file_path = self.plugins_dir.join(format!("{id}-{}.wasm", layer.sha256_digest().strip_prefix("sha256:").unwrap()));                    
-                    std::fs::write(&file_path, &layer.data).map_err(|e| {
-                        WarpgateLoaderError::OCIReferenceError {
-                            message: e.to_string(),
-                            location: location.to_string(),
-                        }
-                    })?;
-
-                    return Ok(file_path);
-                }
+                    }
+                })?;
+                return Ok(file_path);
             }
-            Err(WarpgateLoaderError::OCIReferenceError {
-                message: "No valid registry found or no valid layer.".into(),
-                location: location.to_string(),
-            })
-        } else {
-            Err(WarpgateLoaderError::OCIReferenceError {
-                message: "No valid registry found or no valid layer.".into(),
-                location: location.to_string(),
-            })
         }
+
+        Err(WarpgateLoaderError::OCIReferenceError {
+            message: "No valid registry found or no valid layer.".into(),
+            location: location.to_string(),
+        })
     }
 
     /// Create an absolute path to the plugin's destination file, located in the plugins directory.

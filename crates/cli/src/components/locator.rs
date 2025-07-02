@@ -22,9 +22,9 @@ pub fn Locator<'a>(props: &LocatorProps<'a>) -> impl Into<AnyElement<'a>> + use<
             )
         }
         .into_any(),
-        PluginLocator::Oci(path) => element! {
+        PluginLocator::Registry(path) => element! {
             Entry(
-                name: "OCI image",
+                name: "Registry image",
                 value: element! {
                     StyledText(
                         content: path.image.clone(),
