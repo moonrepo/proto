@@ -5,11 +5,13 @@ use crate::helpers::{
 };
 use crate::id::Id;
 use crate::loader_error::WarpgateLoaderError;
-use crate::{RegistryConfig, endpoints::*};
+use crate::{
+    RegistryConfig, WASM_LAYER_MEDIA_TYPE_JSON, WASM_LAYER_MEDIA_TYPE_TOML,
+    WASM_LAYER_MEDIA_TYPE_WASM, WASM_LAYER_MEDIA_TYPE_YAML, endpoints::*,
+};
 use docker_credential::{CredentialRetrievalError, DockerCredential};
 use oci_client::Reference;
 use oci_client::client::{Client, ClientConfig};
-use oci_client::manifest;
 use oci_client::secrets::RegistryAuth;
 use once_cell::sync::OnceCell;
 use starbase_archive::is_supported_archive_extension;
@@ -249,7 +251,12 @@ impl PluginLoader {
                 .pull(
                     &search_reference,
                     &auth,
-                    vec![manifest::WASM_LAYER_MEDIA_TYPE],
+                    vec![
+                        WASM_LAYER_MEDIA_TYPE_WASM,
+                        WASM_LAYER_MEDIA_TYPE_TOML,
+                        WASM_LAYER_MEDIA_TYPE_YAML,
+                        WASM_LAYER_MEDIA_TYPE_JSON,
+                    ],
                 )
                 .await
                 .map_err(|e| WarpgateLoaderError::OCIReferenceError {
@@ -258,8 +265,22 @@ impl PluginLoader {
                 })?;
 
             if let Some(layer) = image.layers.first() {
+                let ext = match layer.media_type.as_str() {
+                    WASM_LAYER_MEDIA_TYPE_WASM => ".wasm",
+                    WASM_LAYER_MEDIA_TYPE_TOML => ".toml",
+                    WASM_LAYER_MEDIA_TYPE_YAML => ".yaml",
+                    WASM_LAYER_MEDIA_TYPE_JSON => ".json",
+                    _ => {
+                        warn!(
+                            "Unsupported layer media type: {} for plugin {}",
+                            layer.media_type, id
+                        );
+                        continue;
+                    }
+                };
+
                 let file_path = self.plugins_dir.join(format!(
-                    "{id}-{}.wasm",
+                    "{id}-{}.{ext}",
                     layer.sha256_digest().strip_prefix("sha256:").unwrap()
                 ));
                 starbase_utils::fs::write_file(&file_path, &layer.data).map_err(|e| {
