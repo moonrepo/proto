@@ -1,7 +1,7 @@
 mod utils;
 
 use proto_core::{
-    Backend, Id, LockfileRecord, PinLocation, ProtoConfig, ToolManifest, ToolSpec,
+    Backend, Id, LockRecord, PinLocation, ProtoConfig, ToolManifest, ToolSpec,
     UnresolvedVersionSpec, VersionSpec,
 };
 use proto_pdk_api::Checksum;
@@ -921,7 +921,7 @@ asdf-repository = "https://github.com/NeoHsu/asdf-newrelic-cli"
             #[cfg(target_os = "linux")]
             assert_eq!(
                 lock,
-                LockfileRecord {
+                LockRecord {
                     checksum: Some(Checksum::sha256(
                         "9429e26d9a35cb079897f0a22622fe89ff597976259a8fcb38b7d08b154789dc"
                             .into()
@@ -934,7 +934,7 @@ asdf-repository = "https://github.com/NeoHsu/asdf-newrelic-cli"
             #[cfg(target_os = "macos")]
             assert_eq!(
                 lock,
-                LockfileRecord {
+                LockRecord {
                     checksum: Some(Checksum::sha256(
                         "e37d6b4fbb4ca4ef3af0a095ff9089d7a5c3c80d4bc36d916987406f06573464"
                             .into()
@@ -947,7 +947,7 @@ asdf-repository = "https://github.com/NeoHsu/asdf-newrelic-cli"
             #[cfg(target_os = "windows")]
             assert_eq!(
                 lock,
-                LockfileRecord {
+                LockRecord {
                     checksum: Some(Checksum::sha256(
                         "56a3a49e0e4701f169bb742ea98f5006800229e2e3bf7e10493642f392416ac8".into()
                     )),
