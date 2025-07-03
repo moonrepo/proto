@@ -60,7 +60,16 @@ pub struct UrlLocator {
 /// A OCI Registry locator.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct RegistryLocator {
-    /// The image name, e.g., `plugins/python`.
+    /// Registry host, e.g. docker.io
+    pub registry: Option<String>,
+
+    /// namespace and organization structure: `org/namespace1/namespace2`.
+    pub repo_slug: Option<String>,
+
+    /// Explicit release tag to use. Defaults to `latest`.
+    pub tag: Option<String>,
+
+    /// The image name, e.g., `python`.
     pub image: String,
 }
 
@@ -123,7 +132,7 @@ impl Display for PluginLocator {
                     .map(|t| format!("@{t}"))
                     .unwrap_or_default()
             ),
-            PluginLocator::Registry(registry) => write!(f, "{}", registry.image),
+            PluginLocator::Registry(registry) => write!(f, "registry://{}", registry.image),
         }
     }
 }
@@ -199,9 +208,38 @@ impl TryFrom<String> for PluginLocator {
             }
             "http" => Err(PluginLocatorError::SecureUrlsOnly),
             "https" => Ok(PluginLocator::Url(Box::new(UrlLocator { url: value }))),
-            "registry" => Ok(PluginLocator::Registry(Box::new(RegistryLocator {
-                image: location.to_string(),
-            }))),
+            "registry" => {
+                let mut registry = RegistryLocator::default();
+                let mut query = location;
+
+                if let Some(index) = query.find(":") {
+                    registry.tag = Some(query[index + 1..].into());
+                    query = &query[0..index];
+                }
+
+                if let Some(index) = query.find("/") {
+                    registry.registry = Some(query[0..index].into());
+                    query = &query[index + 1..];
+                }
+
+                if let Some(index) = query.rfind('/') {
+                    registry.image = query[index + 1..].into();
+                    query = &query[0..index];
+                } else {
+                    registry.image = query.into();
+                    query = &query[0..0];
+                }
+
+                if !query.is_empty() {
+                    registry.repo_slug = Some(query.into());
+                }
+
+                if registry.image.is_empty() {
+                    return Err(PluginLocatorError::MissingRegistryImage);
+                }
+
+                Ok(PluginLocator::Registry(Box::new(registry)))
+            }
             unknown => Err(PluginLocatorError::UnknownProtocol(unknown.to_owned())),
         }
     }

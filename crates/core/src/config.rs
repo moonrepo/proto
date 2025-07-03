@@ -270,6 +270,7 @@ pub struct ProtoSettingsConfig {
     #[serde(skip_serializing_if = "IndexMap::is_empty")]
     pub url_rewrites: IndexMap<RegexSetting, String>,
 
+    #[setting(merge = merge::append_vec)]
     pub registries: Option<Vec<RegistryConfig>>,
 }
 

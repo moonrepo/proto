@@ -78,7 +78,7 @@ impl PluginLoader {
     }
 
     pub fn add_registry(&mut self, registry: RegistryConfig) {
-        self.registries.push(registry.clone());
+        self.registries.push(registry);
     }
 
     pub fn add_registries(&mut self, registries: Vec<RegistryConfig>) {
@@ -192,35 +192,22 @@ impl PluginLoader {
         let location = locator.image.as_str();
         let mut registries = self.registries.clone();
 
-        let reference = match Reference::try_from(location.to_string()) {
-            Ok(result) => {
-                let mut parts = result.repository().split('/');
-                let org = parts.next().unwrap_or_default().to_owned();
+        debug!(
+            locator = ?locator,
+            "Scan and load from registries"
+        );
 
-                debug!("Using registry {location} for plugin {id} with organization {org}");
+        if let Some(registry) = &locator.registry {
+            registries.push(RegistryConfig {
+                registry: registry.to_string(),
+                organization: locator.repo_slug.clone(),
+            });
+        }
 
-                registries.push(RegistryConfig {
-                    registry: result.registry().to_string(),
-                    organization: Some(org),
-                });
-                result
-            }
-            Err(_) => {
-                return Err(WarpgateLoaderError::OCIReferenceError {
-                    message: "No valid registry reference.".into(),
-                    location: location.to_string(),
-                });
-            }
-        };
-
-        let tag = reference.tag().unwrap_or("latest");
+        let tag = locator.tag.clone().unwrap_or("latest".into());
 
         for registry in registries {
-            debug!(
-                "Searching registry {} for {id}:{:?}",
-                registry.registry,
-                reference.tag()
-            );
+            debug!("Searching registry {} for {id}:{tag}", registry.registry);
 
             let auth = match docker_credential::get_credential(&registry.registry) {
                 Err(CredentialRetrievalError::ConfigNotFound) => RegistryAuth::Anonymous,
@@ -290,7 +277,7 @@ impl PluginLoader {
                 };
 
                 let file_path = self.plugins_dir.join(format!(
-                    "{id}-{}.{ext}",
+                    "{id}-{}{ext}",
                     layer.sha256_digest().strip_prefix("sha256:").unwrap()
                 ));
                 starbase_utils::fs::write_file(&file_path, &layer.data).map_err(|e| {
