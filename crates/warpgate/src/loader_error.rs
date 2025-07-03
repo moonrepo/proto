@@ -116,6 +116,13 @@ pub enum WarpgateLoaderError {
         .path.style(Style::Path),
     )]
     UnknownDownloadType { path: PathBuf },
+
+    #[cfg_attr(feature = "miette", diagnostic(code(plugin::loader::unknown_type)))]
+    #[error(
+        "OCI reference error: {message}. {}",
+        .location.style(Style::Path),
+    )]
+    OCIReferenceError { message: String, location: String },
 }
 
 impl From<ArchiveError> for WarpgateLoaderError {

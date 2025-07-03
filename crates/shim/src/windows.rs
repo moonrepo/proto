@@ -1,5 +1,5 @@
 use std::fs;
-use std::io::{self, Error, ErrorKind};
+use std::io::{self, Error};
 use std::path::Path;
 use std::process::{Command, exit};
 use windows_sys::Win32::Foundation::{FALSE, TRUE};
@@ -18,10 +18,7 @@ unsafe extern "system" fn ctrlc_handler(_: u32) -> BOOL {
 pub fn exec_command_and_replace(mut command: Command) -> io::Result<()> {
     unsafe {
         if SetConsoleCtrlHandler(Some(ctrlc_handler), TRUE) == FALSE {
-            return Err(Error::new(
-                ErrorKind::Other,
-                "Could not set Ctrl-C handler.",
-            ));
+            return Err(Error::other("Could not set Ctrl-C handler."));
         }
     }
 

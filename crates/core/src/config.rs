@@ -23,7 +23,7 @@ use std::path::{Path, PathBuf};
 use system_env::{SystemOS, SystemPackageManager};
 use toml_edit::DocumentMut;
 use tracing::{debug, instrument};
-use warpgate::{HttpOptions, Id, PluginLocator, UrlLocator};
+use warpgate::{HttpOptions, Id, PluginLocator, RegistryConfig, UrlLocator};
 
 pub const PROTO_CONFIG_NAME: &str = ".prototools";
 pub const SCHEMA_PLUGIN_KEY: &str = "internal-schema";
@@ -269,6 +269,9 @@ pub struct ProtoSettingsConfig {
     #[setting(merge = merge_indexmap)]
     #[serde(skip_serializing_if = "IndexMap::is_empty")]
     pub url_rewrites: IndexMap<RegexSetting, String>,
+
+    #[setting(merge = merge::append_vec)]
+    pub registries: Option<Vec<RegistryConfig>>,
 }
 
 #[derive(Clone, Config, Debug, Serialize)]

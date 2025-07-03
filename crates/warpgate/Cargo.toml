@@ -14,7 +14,9 @@ compact_str = { workspace = true }
 extism = { workspace = true, features = ["http"] }
 http-cache-reqwest = { workspace = true }
 miette = { workspace = true, optional = true }
+oci-client = { workspace = true }
 once_cell = { workspace = true }
+docker_credential = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true, features = ["json", "rustls-tls-native-roots"] }
 reqwest-middleware = { workspace = true, features = ["json", "rustls-tls"] }
