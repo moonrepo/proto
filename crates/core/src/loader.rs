@@ -33,10 +33,7 @@ pub fn inject_proto_manifest_config(
 }
 
 #[instrument(skip(proto))]
-pub async fn locate_tool(
-    id: &Id,
-    proto: &ProtoEnvironment,
-) -> Result<PluginLocator, ProtoLoaderError> {
+pub fn locate_tool(id: &Id, proto: &ProtoEnvironment) -> Result<PluginLocator, ProtoLoaderError> {
     let mut locator = None;
     let config = proto.load_config()?;
 
@@ -62,7 +59,7 @@ pub async fn locate_tool(
     }
 
     // Search in registries
-    if locator.is_none() {
+    if locator.is_none() && config.settings.registries.is_some() {
         if let Ok(maybe_locator) = PluginLocator::try_from(format!("registry://{}", id.as_str())) {
             debug!(
                 plugin = maybe_locator.to_string(),
@@ -90,7 +87,7 @@ pub async fn load_schema_plugin_with_proto(
 ) -> Result<PathBuf, ProtoLoaderError> {
     let proto = proto.as_ref();
     let schema_id = Id::raw(SCHEMA_PLUGIN_KEY);
-    let schema_locator = locate_tool(&schema_id, proto).await?;
+    let schema_locator = locate_tool(&schema_id, proto)?;
 
     let path = proto
         .get_plugin_loader()?
@@ -240,8 +237,7 @@ pub async fn load_tool(
         None => id.to_owned(),
     };
 
-    let mut tool =
-        load_tool_from_locator(id, proto, locate_tool(&locator_id, proto).await?).await?;
+    let mut tool = load_tool_from_locator(id, proto, locate_tool(&locator_id, proto)?).await?;
     tool.resolve_backend(backend).await?;
 
     Ok(tool)

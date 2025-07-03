@@ -213,7 +213,7 @@ impl PluginLoader {
             }
         };
 
-        let tag = reference.tag().unwrap();
+        let tag = reference.tag().unwrap_or("latest");
 
         for registry in registries {
             debug!(
@@ -225,7 +225,13 @@ impl PluginLoader {
             let auth = match docker_credential::get_credential(&registry.registry) {
                 Err(CredentialRetrievalError::ConfigNotFound) => RegistryAuth::Anonymous,
                 Err(CredentialRetrievalError::NoCredentialConfigured) => RegistryAuth::Anonymous,
-                Err(e) => panic!("Error handling docker configuration file: {}", e),
+                Err(e) => {
+                    warn!(
+                        "Error handling docker configuration file: {}, using anonymous auth",
+                        e
+                    );
+                    RegistryAuth::Anonymous
+                }
                 Ok(DockerCredential::UsernamePassword(username, password)) => {
                     debug!("Found docker credentials");
                     RegistryAuth::Basic(username, password)
@@ -246,7 +252,7 @@ impl PluginLoader {
 
             let search_reference = Reference::try_from(image_ref.as_str()).unwrap();
 
-            let image = self
+            let Ok(image) = self
                 .get_oci_client()?
                 .pull(
                     &search_reference,
@@ -259,10 +265,14 @@ impl PluginLoader {
                     ],
                 )
                 .await
-                .map_err(|e| WarpgateLoaderError::OCIReferenceError {
-                    message: e.to_string(),
-                    location: location.to_string(),
-                })?;
+            else {
+                debug!(
+                    registry = ?registry,
+                    location = ?location,
+                    "Incompatible layer media type"
+                );
+                continue;
+            };
 
             if let Some(layer) = image.layers.first() {
                 let ext = match layer.media_type.as_str() {
