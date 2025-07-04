@@ -17,6 +17,10 @@
 
 ## Unreleased
 
+#### 🐞 Fixes
+
+- Fixed an issue with `proto activate` that would generate invalid Fish syntax.
+
 #### ⚙️ Internal
 
 - Updated dependencies.

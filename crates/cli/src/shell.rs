@@ -47,7 +47,7 @@ pub fn format_exports(shell: &BoxedShell, comment: &str, exports: Vec<Export>) -
 
     for export in exports {
         lines.push(match export {
-            Export::Path(paths) => shell.format_path_set(&paths),
+            Export::Path(paths) => shell.format_path_prepend(&paths),
             Export::Var(key, value) => shell.format_env_set(&key, &value),
         });
     }
