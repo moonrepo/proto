@@ -962,7 +962,6 @@ file = ".env.tool"
                         check_process: true,
                         include_shared: true,
                         tool_id: Some(Id::raw("node")),
-                        ..Default::default()
                     })
                     .into_iter()
                     .cloned()

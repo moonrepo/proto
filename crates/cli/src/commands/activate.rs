@@ -7,11 +7,10 @@ use proto_core::{Id, ProtoConfigEnvOptions, UnresolvedVersionSpec};
 use rustc_hash::FxHashSet;
 use serde::Serialize;
 use starbase::AppResult;
-use starbase_shell::{Hook, ShellType, Statement};
+use starbase_shell::{Hook, ShellType};
 use starbase_utils::env::paths;
 use starbase_utils::json;
 use std::env;
-use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use tokio::task::JoinSet;
 use tracing::warn;
@@ -198,9 +197,13 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     }
 
     if session.should_print_json() {
-        collection.path = reset_and_join_paths(&session, std::mem::take(&mut collection.paths))?
-            .into_string()
-            .ok();
+        collection.path = env::join_paths(reset_and_join_paths(
+            &session,
+            std::mem::take(&mut collection.paths),
+        ))
+        .into_diagnostic()?
+        .into_string()
+        .ok();
 
         session
             .console
@@ -308,10 +311,10 @@ fn print_activation_exports(
             ),
         );
 
-        let value = reset_and_join_paths(session, info.paths)?;
+        let paths = reset_and_join_paths(session, info.paths);
 
-        if let Some(value) = value.to_str() {
-            output.push(shell.format(Statement::SetEnv { key: "PATH", value }));
+        if !paths.is_empty() {
+            output.push(shell.format_path_set(&paths));
         }
     }
 
@@ -320,10 +323,7 @@ fn print_activation_exports(
     Ok(())
 }
 
-fn reset_and_join_paths(
-    session: &ProtoSession,
-    join_paths: Vec<PathBuf>,
-) -> miette::Result<OsString> {
+fn reset_and_join_paths(session: &ProtoSession, join_paths: Vec<PathBuf>) -> Vec<String> {
     let start_path = session.env.store.dir.join("activate-start");
     let stop_path = session.env.store.dir.join("activate-stop");
 
@@ -358,5 +358,8 @@ fn reset_and_join_paths(
         dupe_paths.insert(path);
     }
 
-    env::join_paths(reset_paths).into_diagnostic()
+    reset_paths
+        .into_iter()
+        .map(|path| path.to_string_lossy().to_string())
+        .collect()
 }

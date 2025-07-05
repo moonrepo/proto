@@ -15,6 +15,16 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed an issue with `proto activate` that would generate invalid Fish syntax.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.50.2
 
 #### 🐞 Fixes
