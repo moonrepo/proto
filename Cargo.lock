@@ -4777,7 +4777,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.25.4"
+version = "0.25.5"
 dependencies = [
  "async-trait",
  "compact_str 0.9.0",
