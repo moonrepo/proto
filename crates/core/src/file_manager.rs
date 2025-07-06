@@ -61,7 +61,7 @@ impl ProtoFileManager {
             };
 
             if let Some(env) = env_mode {
-                let env_path = dir.join(format!("{}.{env}", PROTO_CONFIG_NAME));
+                let env_path = dir.join(format!("{PROTO_CONFIG_NAME}.{env}"));
 
                 configs.push(ProtoConfigFile {
                     config: ProtoConfig::load(&env_path, false)?,
