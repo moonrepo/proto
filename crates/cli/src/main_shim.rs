@@ -28,7 +28,7 @@ fn get_proto_home() -> Result<PathBuf> {
     debug!("Determining proto home direcory");
 
     if let Ok(root) = env::var("PROTO_HOME") {
-        debug!("Found in `PROTO_HOME` environment variable: {}", root);
+        debug!("Found in `PROTO_HOME` environment variable: {root}");
 
         return Ok(root.into());
     }
@@ -36,7 +36,7 @@ fn get_proto_home() -> Result<PathBuf> {
     if let Ok(root) = env::var("XDG_DATA_HOME") {
         let xdg_dir = PathBuf::from(root).join("proto");
 
-        debug!("Found in `XDG_DATA_HOME` environment variable: {:?}", xdg_dir);
+        debug!("Found in `XDG_DATA_HOME` environment variable: {xdg_dir:?}");
 
         return Ok(xdg_dir);
     }
@@ -46,7 +46,7 @@ fn get_proto_home() -> Result<PathBuf> {
         .ok_or_else(|| anyhow!("Unable to determine user home directory."))?
         .join(".proto");
 
-    debug!("Using system home directory: {:?}", home_dir);
+    debug!("Using system home directory: {home_dir:?}");
 
     Ok(home_dir)
 }
@@ -58,13 +58,13 @@ fn create_command(args: Vec<OsString>, shim_name: &str) -> Result<Command> {
 
     // Load the shims registry if it exists
     if registry_path.exists() {
-        debug!("Loading shim registry config: {:?}", registry_path);
+        debug!("Loading shim registry config: {registry_path:?}");
 
         let file = fs::read_to_string(registry_path)?;
         let mut registry = json_parse(&file).unwrap_or(Json::Null);
 
-        debug!("Loaded: {}", file);
-        debug!("Extracting {} config", shim_name);
+        debug!("Loaded: {file}");
+        debug!("Extracting {shim_name} config");
 
         if let Json::Object(shims) = &mut registry {
             if let Some(shim_entry) = shims.remove(shim_name) {
@@ -118,7 +118,7 @@ fn create_command(args: Vec<OsString>, shim_name: &str) -> Result<Command> {
     // Create the command and handle alternate logic
     let proto_bin = locate_proto_exe("proto").unwrap_or_else(|| "proto".into());
 
-    debug!("Locating proto binary: {:?}", proto_bin);
+    debug!("Locating proto binary: {proto_bin:?}");
 
     let mut command = Command::new(proto_bin);
 
@@ -128,24 +128,24 @@ fn create_command(args: Vec<OsString>, shim_name: &str) -> Result<Command> {
 
     if let Json::Str(parent_name) = &shim["parent"] {
         debug!("Inheriting config `parent`");
-        debug!("Running parent tool {}", parent_name);
+        debug!("Running parent tool {parent_name}");
 
         command.args(["run", parent_name]);
 
         if matches!(shim["alt_bin"], Json::Bool(true)) {
             debug!("Inheriting config `alt_bin`");
-            debug!("Running tool alternate {}", shim_name);
+            debug!("Running tool alternate {shim_name}");
 
             command.args(["--alt", shim_name]);
         }
     } else {
-        debug!("Running tool {}", shim_name);
+        debug!("Running tool {shim_name}");
 
         command.args(["run", shim_name]);
     }
 
     if !passthrough_args.is_empty() {
-        debug!("Passing through arguments: {:?}", passthrough_args);
+        debug!("Passing through arguments: {passthrough_args:?}");
 
         command.arg("--");
         command.args(passthrough_args);
@@ -174,11 +174,11 @@ pub fn main() -> Result<()> {
     // Extract arguments to pass-through
     let args = env::args_os().collect::<Vec<_>>();
 
-    debug!("Extracting arguments: {:?}", args);
+    debug!("Extracting arguments: {args:?}");
 
     let exe_path = env::current_exe().unwrap_or_else(|_| PathBuf::from(&args[0]));
 
-    debug!("Extracting current executable: {:?}", exe_path);
+    debug!("Extracting current executable: {exe_path:?}");
 
     // Extract the tool from the shim's file name
     let shim_name = exe_path
@@ -188,7 +188,7 @@ pub fn main() -> Result<()> {
         .to_lowercase()
         .replace(".exe", "");
 
-    debug!("Determining tool from shim name: {}", shim_name);
+    debug!("Determining tool from shim name: {shim_name}");
 
     if shim_name.is_empty() || shim_name.contains("proto-shim") {
         return Err(anyhow!(
