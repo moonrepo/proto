@@ -94,6 +94,82 @@ mod locator {
         PluginLocator::try_from("file://".to_string()).unwrap();
     }
 
+    mod registry {
+        use warpgate_api::RegistryLocator;
+
+        use super::*;
+
+        #[test]
+        #[should_panic(expected = "MissingLocation")]
+        fn error_no_image() {
+            PluginLocator::try_from("registry://".to_string()).unwrap();
+        }
+
+        #[test]
+        #[should_panic(expected = "MissingRegistryImage")]
+        fn error_no_image_but_tag() {
+            PluginLocator::try_from("registry://:v0.0.0".to_string()).unwrap();
+        }
+
+        #[test]
+        fn parses_image() {
+            assert_eq!(
+                PluginLocator::try_from("registry://java".to_string()).unwrap(),
+                PluginLocator::Registry(Box::new(RegistryLocator {
+                    registry: None,
+                    repo_slug: None,
+                    tag: None,
+                    image: "java".into(),
+                }))
+            );
+        }
+
+        #[test]
+        fn parses_slug() {
+            assert_eq!(
+                PluginLocator::try_from("registry://moonrepo/java".to_string()).unwrap(),
+                PluginLocator::Registry(Box::new(RegistryLocator {
+                    registry: Some("moonrepo".into()),
+                    repo_slug: None,
+                    tag: None,
+                    image: "java".into(),
+                }))
+            );
+        }
+
+        #[test]
+        fn parses_deep_slug() {
+            assert_eq!(
+                PluginLocator::try_from(
+                    "registry://moonrepo/org/namespace1/namspace2/java".to_string()
+                )
+                .unwrap(),
+                PluginLocator::Registry(Box::new(RegistryLocator {
+                    registry: Some("moonrepo".into()),
+                    repo_slug: Some("org/namespace1/namspace2".into()),
+                    tag: None,
+                    image: "java".into(),
+                }))
+            );
+        }
+
+        #[test]
+        fn parses_tag_data() {
+            assert_eq!(
+                PluginLocator::try_from(
+                    "registry://moonrepo/org/namespace1/namspace2/java:something".to_string()
+                )
+                .unwrap(),
+                PluginLocator::Registry(Box::new(RegistryLocator {
+                    registry: Some("moonrepo".into()),
+                    repo_slug: Some("org/namespace1/namspace2".into()),
+                    tag: Some("something".into()),
+                    image: "java".into(),
+                }))
+            );
+        }
+    }
+
     mod file {
         use super::*;
 
