@@ -8,7 +8,7 @@ use rustc_hash::FxHashSet;
 use starbase_utils::{json, toml, yaml};
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
-use tracing::{debug, instrument, trace};
+use tracing::{debug, instrument, trace, warn};
 use warpgate::{Id, PluginLocator, PluginManifest, Wasm, inject_default_manifest_config};
 
 #[instrument(skip(proto, manifest))]
@@ -52,6 +52,18 @@ pub fn locate_tool(id: &Id, proto: &ProtoEnvironment) -> Result<PluginLocator, P
             debug!(
                 plugin = maybe_locator.to_string(),
                 "Using a built-in plugin"
+            );
+
+            locator = Some(maybe_locator.to_owned());
+        }
+    }
+
+    // Search in registries
+    if locator.is_none() && config.settings.registries.is_some() {
+        if let Ok(maybe_locator) = PluginLocator::try_from(format!("registry://{}", id.as_str())) {
+            debug!(
+                plugin = maybe_locator.to_string(),
+                "Using a registry plugin"
             );
 
             locator = Some(maybe_locator.to_owned());
