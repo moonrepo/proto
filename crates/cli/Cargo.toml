@@ -1,6 +1,6 @@
 [package]
 name = "proto_cli"
-version = "0.50.2"
+version = "0.50.3"
 edition = "2024"
 license = "MIT"
 description = "A multi-language version manager, a unified toolchain."
@@ -32,7 +32,7 @@ name = "proto-shim"
 path = "src/main_shim.rs"
 
 [dependencies]
-proto_core = { version = "0.50.3", path = "../core", features = ["clap"] }
+proto_core = { version = "0.50.4", path = "../core", features = ["clap"] }
 proto_installer = { version = "0.13.1", path = "../installer", features = [
     "miette",
 ] }
@@ -79,7 +79,7 @@ wiggle = "~30.0.2"
 
 [dev-dependencies]
 starbase_sandbox = { workspace = true }
-shared_child = "1.0.2"
+shared_child = "1.1.1"
 
 [target."cfg(windows)".dependencies]
 winreg = { version = "0.55.0", default-features = false }
