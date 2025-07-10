@@ -1,5 +1,6 @@
 use crate::config_error::ProtoConfigError;
 use starbase_styles::{Style, Stylize};
+use starbase_utils::toml::TomlError;
 use thiserror::Error;
 
 #[derive(Error, Debug, miette::Diagnostic)]
@@ -7,6 +8,10 @@ pub enum ProtoLockError {
     #[diagnostic(transparent)]
     #[error(transparent)]
     Config(#[from] Box<ProtoConfigError>),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Toml(#[from] Box<TomlError>),
 
     #[diagnostic(
         code(proto::install::mismatched_checksum),
@@ -42,5 +47,11 @@ pub enum ProtoLockError {
 impl From<ProtoConfigError> for ProtoLockError {
     fn from(e: ProtoConfigError) -> ProtoLockError {
         ProtoLockError::Config(Box::new(e))
+    }
+}
+
+impl From<TomlError> for ProtoLockError {
+    fn from(e: TomlError) -> ProtoLockError {
+        ProtoLockError::Toml(Box::new(e))
     }
 }

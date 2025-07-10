@@ -24,7 +24,22 @@ use tracing::{debug, instrument};
 //      [ ] add locked label to table
 
 impl Tool {
-    pub fn get_locked_record(&self) -> Option<&LockRecord> {
+    pub fn create_or_update_lockfile(&self, record: &LockRecord) -> Result<(), ProtoLockError> {
+        let Some(mut lock) = self.proto.load_lock_mut()? else {
+            return Ok(());
+        };
+
+        lock.tools
+            .entry(self.id.clone())
+            .or_default()
+            .push(record.to_owned());
+
+        lock.save()?;
+
+        Ok(())
+    }
+
+    pub fn get_resolved_locked_record(&self) -> Option<&LockRecord> {
         // From lockfile (after being resolved)
         if let Some(record) = &self.version_locked {
             return Some(record);
@@ -38,20 +53,16 @@ impl Tool {
         None
     }
 
-    pub fn get_locked_records(&self) -> Result<Option<Vec<&LockRecord>>, ProtoLockError> {
-        Ok(self
-            .proto
-            .load_lock()?
-            .and_then(|lock| lock.tools.get(&self.id))
-            .map(|records| records.iter().collect()))
-    }
-
     #[instrument(skip(self))]
     pub fn resolve_locked_record(
         &self,
         spec: &ToolSpec,
     ) -> Result<Option<LockRecord>, ProtoLockError> {
-        if let Some(records) = self.get_locked_records()? {
+        let Some(lock) = self.proto.load_lock()? else {
+            return Ok(None);
+        };
+
+        if let Some(records) = lock.tools.get(&self.id) {
             for record in records {
                 if spec.backend == record.backend
                     && record.version.is_some()
@@ -73,7 +84,7 @@ impl Tool {
     pub fn verify_locked_record(&self, install_record: &LockRecord) -> Result<(), ProtoLockError> {
         // Extract the lock record from the lockfile first,
         // otherwise try the internal manifest
-        let Some(locked_record) = self.get_locked_record() else {
+        let Some(locked_record) = self.get_resolved_locked_record() else {
             return Ok(());
         };
 

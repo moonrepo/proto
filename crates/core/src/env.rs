@@ -13,7 +13,7 @@ use std::collections::BTreeMap;
 use std::env;
 use std::fmt;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, RwLockReadGuard, RwLockWriteGuard};
 use std::time::Duration;
 use tracing::debug;
 use warpgate::PluginLoader;
@@ -160,8 +160,12 @@ impl ProtoEnvironment {
             .collect())
     }
 
-    pub fn load_lock(&self) -> Result<Option<&ProtoLock>, ProtoConfigError> {
+    pub fn load_lock(&self) -> Result<Option<RwLockReadGuard<ProtoLock>>, ProtoConfigError> {
         Ok(self.load_file_manager()?.get_lock())
+    }
+
+    pub fn load_lock_mut(&self) -> Result<Option<RwLockWriteGuard<ProtoLock>>, ProtoConfigError> {
+        Ok(self.load_file_manager()?.get_lock_mut())
     }
 
     #[tracing::instrument(name = "load_all", skip_all)]
@@ -189,7 +193,7 @@ impl ProtoEnvironment {
                     path,
                     config: ProtoConfig::load_from(&self.store.dir, true)?,
                 }],
-                lock: None,
+                locked: false,
             });
 
             // Remove the pinned `proto` version from global/user configs,

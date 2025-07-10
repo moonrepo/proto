@@ -7,7 +7,7 @@ use serde::Serialize;
 use starbase_utils::fs;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use tracing::debug;
 
 #[derive(Debug, Serialize)]
@@ -22,7 +22,7 @@ pub struct ProtoDirEntry {
     pub path: PathBuf,
     pub location: PinLocation,
     pub configs: Vec<ProtoConfigFile>,
-    pub lock: Option<ProtoLock>,
+    pub locked: bool,
 }
 
 #[derive(Debug)]
@@ -39,6 +39,9 @@ pub struct ProtoFileManager {
     all_config_no_global: Arc<OnceCell<ProtoConfig>>,
     global_config: Arc<OnceCell<ProtoConfig>>,
     local_config: Arc<OnceCell<ProtoConfig>>,
+
+    lock: Arc<RwLock<ProtoLock>>,
+    locked: bool,
 }
 
 impl ProtoFileManager {
@@ -50,6 +53,8 @@ impl ProtoFileManager {
         let mut current_dir = Some(start_dir.as_ref());
         let mut entries = vec![];
         let mut locked_dirs: Vec<PathBuf> = vec![];
+        let mut locked = false;
+        let mut lock = ProtoLock::default();
 
         while let Some(dir) = current_dir {
             let mut configs = vec![];
@@ -102,6 +107,9 @@ impl ProtoFileManager {
                 } else {
                     locked_dirs.push(dir.to_path_buf());
                 }
+
+                lock = ProtoLock::load_from(dir)?;
+                locked = true;
             } else if lock_path.exists() {
                 fs::remove_file(lock_path)?;
             }
@@ -110,11 +118,7 @@ impl ProtoFileManager {
                 path: dir.to_path_buf(),
                 location,
                 configs,
-                lock: if load_lockfile {
-                    Some(ProtoLock::load_from(dir)?)
-                } else {
-                    None
-                },
+                locked: load_lockfile,
             });
 
             if is_end {
@@ -130,11 +134,17 @@ impl ProtoFileManager {
             all_config_no_global: Arc::new(OnceCell::new()),
             global_config: Arc::new(OnceCell::new()),
             local_config: Arc::new(OnceCell::new()),
+            locked,
+            lock: Arc::new(RwLock::new(lock)),
         })
     }
 
-    pub fn get_lock(&self) -> Option<&ProtoLock> {
-        self.entries.iter().find_map(|entry| entry.lock.as_ref())
+    pub fn get_lock(&self) -> Option<RwLockReadGuard<ProtoLock>> {
+        self.locked.then(|| self.lock.read().unwrap())
+    }
+
+    pub fn get_lock_mut(&self) -> Option<RwLockWriteGuard<ProtoLock>> {
+        self.locked.then(|| self.lock.write().unwrap())
     }
 
     pub fn get_config_files(&self) -> Vec<&ProtoConfigFile> {

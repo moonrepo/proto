@@ -896,7 +896,7 @@ asdf-repository = "https://github.com/NeoHsu/asdf-newrelic-cli"
         }
     }
 
-    mod lockfile {
+    mod manifest_lockfile {
         use super::*;
 
         #[test]
