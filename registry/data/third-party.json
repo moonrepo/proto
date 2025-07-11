@@ -270,6 +270,19 @@
       ]
     },
     {
+      "id": "dbmate",
+      "locator": "https://raw.githubusercontent.com/risk1996/proto-plugins/refs/heads/main/dbmate/plugin.toml",
+      "format": "toml",
+      "name": "dbmate",
+      "description": "A lightweight, framework-agnostic database migration tool.",
+      "author": "risk1996",
+      "homepageUrl": "https://github.com/amacneil/dbmate",
+      "repositoryUrl": "https://github.com/risk1996/proto-plugins",
+      "bins": [
+        "dbmate"
+      ]
+    },
+    {
       "id": "direnv",
       "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/direnv/plugin.toml",
       "format": "toml",
@@ -896,6 +909,19 @@
     },
     {
       "id": "ruff",
+      "locator": "https://raw.githubusercontent.com/risk1996/proto-plugins/refs/heads/main/ruff/plugin.toml",
+      "format": "toml",
+      "name": "Ruff",
+      "description": "An extremely fast Python linter and code formatter, written in Rust.",
+      "author": "risk1996",
+      "homepageUrl": "https://docs.astral.sh/ruff/",
+      "repositoryUrl": "https://github.com/risk1996/proto-plugins",
+      "bins": [
+        "ruff"
+      ]
+    },
+    {
+      "id": "ruff",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/ruff/plugin.toml",
       "format": "toml",
       "name": "Ruff",
@@ -1140,6 +1166,19 @@
       "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
       "bins": [
         "uv"
+      ]
+    },
+    {
+      "id": "vale",
+      "locator": "https://raw.githubusercontent.com/risk1996/proto-plugins/refs/heads/main/vale/plugin.toml",
+      "format": "toml",
+      "name": "vale",
+      "description": "Vale is an open-source, command-line tool that brings your editorial style guide to life.",
+      "author": "risk1996",
+      "homepageUrl": "https://vale.sh",
+      "repositoryUrl": "https://github.com/risk1996/proto-plugins",
+      "bins": [
+        "vale"
       ]
     },
     {
