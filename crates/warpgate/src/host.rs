@@ -10,6 +10,7 @@ use starbase_utils::fs;
 use std::collections::BTreeMap;
 use std::env;
 use std::path::PathBuf;
+use std::process::Stdio;
 use std::str::FromStr;
 use std::sync::{Arc, OnceLock};
 use std::time::Instant;
@@ -185,6 +186,7 @@ fn exec_command(
 
     let data = user_data.get()?;
     let data = data.lock().unwrap();
+    let debug_output = env::var("WARPGATE_DEBUG_COMMAND").ok();
 
     // Relative or absolute file path
     let maybe_bin = if input.command.contains('/') || input.command.contains('\\') {
@@ -200,8 +202,9 @@ fn exec_command(
         } else {
             None
         }
+    }
     // Command on PATH
-    } else {
+    else {
         find_command_on_path(&input.command)
     };
 
@@ -243,10 +246,21 @@ fn exec_command(
     command.arg(command_line);
     command.envs(&input.env);
     command.current_dir(&cwd);
+    command.stdin(Stdio::null());
+
+    let should_stream = input.stream
+        || debug_output
+            .as_ref()
+            .is_some_and(|level| level == "all" || level == "stream");
+
+    if should_stream {
+        command.stderr(Stdio::inherit()).stdout(Stdio::inherit());
+    } else {
+        command.stderr(Stdio::piped()).stdout(Stdio::piped());
+    }
 
     let mut child = command.spawn()?;
     let pid = child.id();
-    let debug_output = env::var("WARPGATE_DEBUG_COMMAND").ok();
 
     trace!(
         plugin = &uuid,
@@ -258,11 +272,7 @@ fn exec_command(
         "Executing command on host machine"
     );
 
-    let output = if input.stream
-        || debug_output
-            .as_ref()
-            .is_some_and(|level| level == "all" || level == "stream")
-    {
+    let output = if should_stream {
         let result = child.wait()?;
 
         ExecCommandOutput {
