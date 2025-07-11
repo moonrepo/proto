@@ -19,6 +19,17 @@ pub enum ProtoConfigError {
     #[error(transparent)]
     Toml(#[from] Box<TomlError>),
 
+    #[diagnostic(code(proto::config::lockfile_already_exists))]
+    #[error(
+        "Unable to lock the directory {} as a lock file already exists in the child directory {}. Nested lock files are not supported. Instead, lock the parent directory.",
+        .parent_dir.style(Style::Path),
+        .child_dir.style(Style::Path),
+    )]
+    AlreadyLocked {
+        child_dir: PathBuf,
+        parent_dir: PathBuf,
+    },
+
     #[diagnostic(code(proto::config::env_parse_failed))]
     #[error(
         "Failed to parse .env file {}.",

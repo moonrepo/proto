@@ -13,6 +13,9 @@ pub enum PluginLocatorError {
     #[error("Only secure URLs (https://) are supported for plugins.")]
     SecureUrlsOnly,
 
+    #[error("Missing registry image.")]
+    MissingRegistryImage,
+
     #[error("Unknown plugin protocol `{0}`.")]
     UnknownProtocol(String),
 }

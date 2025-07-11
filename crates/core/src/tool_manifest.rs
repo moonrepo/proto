@@ -1,5 +1,5 @@
 use crate::helpers::{now, read_json_file_with_lock, write_json_file_with_lock};
-use crate::lockfile::LockfileRecord;
+use crate::lockfile::LockRecord;
 use crate::tool_spec::Backend;
 use serde::{Deserialize, Serialize};
 use starbase_utils::env::bool_var;
@@ -26,7 +26,7 @@ pub struct ToolManifestVersion {
     pub installed_at: u128,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub lock: Option<LockfileRecord>,
+    pub lock: Option<LockRecord>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub suffix: Option<String>,

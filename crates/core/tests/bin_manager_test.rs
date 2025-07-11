@@ -56,7 +56,7 @@ mod bin_manager {
 
         assert_eq!(
             bins.get_buckets(),
-            FxHashMap::from_iter([(&"canary".to_string(), &v1),])
+            FxHashMap::from_iter([(&"canary".to_string(), &v1)])
         );
     }
 
