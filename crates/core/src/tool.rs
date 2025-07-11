@@ -130,7 +130,7 @@ impl Tool {
 
         #[cfg(debug_assertions)]
         {
-            manifest = manifest.with_timeout(Duration::from_secs(120));
+            manifest = manifest.with_timeout(Duration::from_secs(300));
         }
 
         Ok(manifest)

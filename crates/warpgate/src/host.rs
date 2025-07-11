@@ -10,8 +10,10 @@ use starbase_utils::fs;
 use std::collections::BTreeMap;
 use std::env;
 use std::path::PathBuf;
+use std::process::Stdio;
 use std::str::FromStr;
 use std::sync::{Arc, OnceLock};
+use std::time::Instant;
 use system_env::{create_process_command, find_command_on_path};
 use tokio::runtime::Handle;
 use tracing::{debug, error, instrument, trace, warn};
@@ -170,6 +172,7 @@ fn exec_command(
     outputs: &mut [Val],
     user_data: UserData<HostData>,
 ) -> Result<(), Error> {
+    let instant = Instant::now();
     let input_raw: String = plugin.memory_get_val(&inputs[0])?;
     let input: ExecCommandInput = serde_json::from_str(&input_raw)?;
     let uuid = plugin.id().to_string();
@@ -183,6 +186,7 @@ fn exec_command(
 
     let data = user_data.get()?;
     let data = data.lock().unwrap();
+    let debug_output = env::var("WARPGATE_DEBUG_COMMAND").ok();
 
     // Relative or absolute file path
     let maybe_bin = if input.command.contains('/') || input.command.contains('\\') {
@@ -198,8 +202,9 @@ fn exec_command(
         } else {
             None
         }
+    }
     // Command on PATH
-    } else {
+    else {
         find_command_on_path(&input.command)
     };
 
@@ -226,15 +231,6 @@ fn exec_command(
     let shell_bin_path = get_shell_bin_path(&shell_bin);
 
     // Create and execute command
-    trace!(
-        plugin = &uuid,
-        shell = &shell_bin,
-        command = &input.command,
-        args = ?input.args,
-        cwd = ?cwd,
-        "Executing command on host machine"
-    );
-
     let command_line = format!(
         "{} {}",
         input.command,
@@ -249,16 +245,35 @@ fn exec_command(
     let mut command = create_process_command(&shell_bin_path, vec!["-c"]);
     command.arg(command_line);
     command.envs(&input.env);
-    command.current_dir(cwd);
+    command.current_dir(&cwd);
+    command.stdin(Stdio::null());
 
-    let debug_output = env::var("WARPGATE_DEBUG_COMMAND").ok();
-
-    let output = if input.stream
+    let should_stream = input.stream
         || debug_output
             .as_ref()
-            .is_some_and(|level| level == "all" || level == "stream")
-    {
-        let result = command.spawn()?.wait()?;
+            .is_some_and(|level| level == "all" || level == "stream");
+
+    if should_stream {
+        command.stderr(Stdio::inherit()).stdout(Stdio::inherit());
+    } else {
+        command.stderr(Stdio::piped()).stdout(Stdio::piped());
+    }
+
+    let mut child = command.spawn()?;
+    let pid = child.id();
+
+    trace!(
+        plugin = &uuid,
+        shell = &shell_bin,
+        command = &input.command,
+        args = ?input.args,
+        cwd = ?cwd,
+        pid = pid,
+        "Executing command on host machine"
+    );
+
+    let output = if should_stream {
+        let result = child.wait()?;
 
         ExecCommandOutput {
             command: input.command.clone(),
@@ -267,7 +282,7 @@ fn exec_command(
             stdout: String::new(),
         }
     } else {
-        let result = command.output()?;
+        let result = child.wait_with_output()?;
 
         ExecCommandOutput {
             command: input.command.clone(),
@@ -281,6 +296,7 @@ fn exec_command(
         plugin = plugin.id().to_string(),
         shell = ?shell_bin_path,
         command = ?bin,
+        pid = pid,
         exit_code = output.exit_code,
         stderr = if debug_output.is_some() {
             Some(&output.stderr)
@@ -294,8 +310,9 @@ fn exec_command(
             None
         },
         stdout_len = output.stdout.len(),
-        "Called host function {}",
+        "Called host function {} in {:?}",
         color::label("exec_command"),
+        instant.elapsed()
     );
 
     plugin.memory_set_val(&mut outputs[0], serde_json::to_string(&output)?)?;
@@ -310,6 +327,7 @@ fn send_request(
     outputs: &mut [Val],
     user_data: UserData<HostData>,
 ) -> Result<(), Error> {
+    let instant = Instant::now();
     let input_raw: String = plugin.memory_get_val(&inputs[0])?;
     let input: SendRequestInput = serde_json::from_str(&input_raw)?;
     let uuid = plugin.id().to_string();
@@ -375,8 +393,9 @@ fn send_request(
         ok,
         status,
         length = memory.length,
-        "Called host function {}",
+        "Called host function {} in {:?}",
         color::label("send_request"),
+        instant.elapsed()
     );
 
     plugin.memory_set_val(&mut outputs[0], serde_json::to_string(&output)?)?;

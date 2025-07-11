@@ -434,7 +434,14 @@ pub async fn install_system_dependencies(
         SelectOption::new("No, but try building anyways"),
         SelectOption::new("Yes, as current user"),
     ];
-    let mut default_index = select_options.len() - 1;
+
+    // When installing multiple tools, we can't prompt the user to install
+    // deps, but we should try to build anyways
+    let mut default_index = if builder.options.skip_ui {
+        1
+    } else {
+        select_options.len() - 1
+    };
 
     if let Some(sudo) = elevated_command {
         select_options.push(SelectOption::new(format!(

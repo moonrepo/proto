@@ -15,6 +15,20 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added timing information to plugin process executions and network requests.
+
+#### 🐞 Fixes
+
+- Fixed an issue where installing multiple tools would fail when one of the tools is building from source and attempts to install system dependencies. For now when installing multiple tools, system dependencies will not be installed and the build assumes they exist.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.50.3
 
 #### 🐞 Fixes
