@@ -116,7 +116,7 @@ pin-latest = "global"
             &ToolSpec {
                 backend: Some(Backend::Asdf),
                 req: UnresolvedVersionSpec::parse("20.0.0").unwrap(),
-                res: None
+                ..Default::default()
             }
         );
     }
@@ -732,7 +732,8 @@ value = "asdf:4.5.6"
                     ToolSpec {
                         backend: Some(Backend::Asdf),
                         req: UnresolvedVersionSpec::parse("4.5.6").unwrap(),
-                        res: None
+                        res: None,
+                        ..Default::default()
                     }
                 )])
             );

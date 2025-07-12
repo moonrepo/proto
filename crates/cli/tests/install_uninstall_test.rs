@@ -896,7 +896,7 @@ asdf-repository = "https://github.com/NeoHsu/asdf-newrelic-cli"
         }
     }
 
-    mod lockfile {
+    mod manifest_lockfile {
         use super::*;
 
         #[test]
@@ -922,6 +922,8 @@ asdf-repository = "https://github.com/NeoHsu/asdf-newrelic-cli"
             assert_eq!(
                 lock,
                 LockRecord {
+                    spec: Some(UnresolvedVersionSpec::parse("18.12.0").unwrap()),
+                    version: Some(VersionSpec::parse("18.12.0").unwrap()),
                     checksum: Some(Checksum::sha256(
                         "9429e26d9a35cb079897f0a22622fe89ff597976259a8fcb38b7d08b154789dc"
                             .into()
@@ -935,6 +937,8 @@ asdf-repository = "https://github.com/NeoHsu/asdf-newrelic-cli"
             assert_eq!(
                 lock,
                 LockRecord {
+                    spec: Some(UnresolvedVersionSpec::parse("18.12.0").unwrap()),
+                    version: Some(VersionSpec::parse("18.12.0").unwrap()),
                     checksum: Some(Checksum::sha256(
                         "e37d6b4fbb4ca4ef3af0a095ff9089d7a5c3c80d4bc36d916987406f06573464"
                             .into()
@@ -948,6 +952,8 @@ asdf-repository = "https://github.com/NeoHsu/asdf-newrelic-cli"
             assert_eq!(
                 lock,
                 LockRecord {
+                    spec: Some(UnresolvedVersionSpec::parse("18.12.0").unwrap()),
+                    version: Some(VersionSpec::parse("18.12.0").unwrap()),
                     checksum: Some(Checksum::sha256(
                         "56a3a49e0e4701f169bb742ea98f5006800229e2e3bf7e10493642f392416ac8".into()
                     )),

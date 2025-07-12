@@ -484,6 +484,24 @@ impl ProtoConfig {
             self.plugins
                 .insert(Id::raw(PROTO_PLUGIN_KEY), self.builtin_proto_plugin());
         }
+
+        #[cfg(debug_assertions)]
+        {
+            use warpgate::{FileLocator, test_utils::find_wasm_file_with_name};
+
+            if let Some(path) = find_wasm_file_with_name("protostar_tool") {
+                let locator = PluginLocator::File(Box::new(FileLocator {
+                    file: fs::file_name(&path),
+                    path: Some(path),
+                }));
+
+                self.plugins
+                    .insert(Id::raw("protostar-alt1"), locator.clone());
+                self.plugins
+                    .insert(Id::raw("protostar-alt2"), locator.clone());
+                self.plugins.insert(Id::raw("protostar"), locator);
+            }
+        }
     }
 
     pub fn load_from<P: AsRef<Path>>(

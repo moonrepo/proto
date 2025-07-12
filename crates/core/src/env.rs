@@ -4,6 +4,7 @@ use crate::env_error::ProtoEnvError;
 use crate::file_manager::{ProtoConfigFile, ProtoDirEntry, ProtoFileManager};
 use crate::helpers::is_offline;
 use crate::layout::Store;
+use crate::lockfile::ProtoLock;
 use once_cell::sync::OnceCell;
 use starbase_console::{Console, EmptyReporter};
 use starbase_utils::dirs::home_dir;
@@ -12,7 +13,7 @@ use std::collections::BTreeMap;
 use std::env;
 use std::fmt;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, RwLockReadGuard, RwLockWriteGuard};
 use std::time::Duration;
 use tracing::debug;
 use warpgate::PluginLoader;
@@ -159,6 +160,14 @@ impl ProtoEnvironment {
             .collect())
     }
 
+    pub fn load_lock(&self) -> Result<Option<RwLockReadGuard<ProtoLock>>, ProtoConfigError> {
+        Ok(self.load_file_manager()?.get_lock())
+    }
+
+    pub fn load_lock_mut(&self) -> Result<Option<RwLockWriteGuard<ProtoLock>>, ProtoConfigError> {
+        Ok(self.load_file_manager()?.get_lock_mut())
+    }
+
     #[tracing::instrument(name = "load_all", skip_all)]
     pub fn load_file_manager(&self) -> Result<&ProtoFileManager, ProtoConfigError> {
         self.file_manager.get_or_try_init(|| {
@@ -184,7 +193,7 @@ impl ProtoEnvironment {
                     path,
                     config: ProtoConfig::load_from(&self.store.dir, true)?,
                 }],
-                lock: None,
+                locked: false,
             });
 
             // Remove the pinned `proto` version from global/user configs,

@@ -192,21 +192,43 @@ impl Tool {
             "Resolving a semantic version or alias",
         );
 
+        let mut candidate = spec.req.clone();
+
+        // If requested, resolve the version from a lockfile
+        if spec.read_lockfile {
+            if let Some(record) = self.resolve_locked_record(spec)? {
+                let version = record
+                    .version
+                    .clone()
+                    .expect("Version missing from lockfile record!");
+
+                debug!(
+                    tool = self.id.as_str(),
+                    spec = candidate.to_string(),
+                    "Inherited version {} from lockfile",
+                    version
+                );
+
+                self.version_locked = Some(record);
+                candidate = version.to_unresolved_spec();
+            }
+        }
+
         // If we have a fully qualified semantic version,
         // exit early and assume the version is legitimate!
         // Also canary is a special type that we can simply just use.
         if short_circuit
             && matches!(
-                spec.req,
+                candidate,
                 UnresolvedVersionSpec::Calendar(_) | UnresolvedVersionSpec::Semantic(_)
             )
-            || matches!(spec.req, UnresolvedVersionSpec::Canary)
+            || matches!(candidate, UnresolvedVersionSpec::Canary)
         {
-            let version = spec.to_resolved_spec();
+            let version = candidate.to_resolved_spec();
 
             debug!(
                 tool = self.id.as_str(),
-                version = version.to_string(),
+                spec = candidate.to_string(),
                 "Resolved to {} (without validation)",
                 version
             );
@@ -216,14 +238,14 @@ impl Tool {
             return Ok(version);
         }
 
-        let resolver = self.load_version_resolver(&spec.req).await?;
+        let resolver = self.load_version_resolver(&candidate).await?;
         let version = self
-            .resolve_version_candidate(&resolver, &spec.req, true)
+            .resolve_version_candidate(&resolver, &candidate, true)
             .await?;
 
         debug!(
             tool = self.id.as_str(),
-            version = version.to_string(),
+            spec = candidate.to_string(),
             "Resolved to {}",
             version
         );

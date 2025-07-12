@@ -61,22 +61,27 @@ pub fn find_target_dir<T: AsRef<Path>>(search_dir: T) -> Option<PathBuf> {
 /// Find an applicable WASM file to run tests with. Will attempt to find
 /// the file based on the Cargo package name and target directories.
 pub fn find_wasm_file() -> PathBuf {
-    let wasm_file = format!(
-        "{}.wasm",
-        env::var("CARGO_PKG_NAME").expect("Missing CARGO_PKG_NAME!")
-    );
+    let name = env::var("CARGO_PKG_NAME").expect("Missing CARGO_PKG_NAME!");
+
+    find_wasm_file_with_name(&name).unwrap_or_else(|| {
+        panic!("WASM file `{name}.wasm` does not exist. Please build it with `cargo build --target wasm32-wasip1` before running tests!")
+    })
+}
+
+/// Find an applicable WASM file with the provided name to run tests with.
+/// Will attempt to find the file based on the Cargo package name and target directories.
+pub fn find_wasm_file_with_name(name: &str) -> Option<PathBuf> {
+    let wasm_file = format!("{name}.wasm");
 
     for env_var in ["CARGO_MANIFEST_DIR", "CARGO_TARGET_DIR"] {
         if let Some(env_path) = path_var(env_var)
             && let Some(wasm_path) = traverse_target_dir(env_path, &wasm_file)
         {
-            return wasm_path;
+            return Some(wasm_path);
         }
     }
 
-    panic!(
-        "WASM file `{wasm_file}` does not exist. Please build it with `cargo build --target wasm32-wasip1` before running tests!"
-    );
+    None
 }
 
 /// Enable logging for the provided WASM file by extracting any `tracing` logs

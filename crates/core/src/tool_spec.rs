@@ -12,24 +12,29 @@ derive_enum!(
     }
 );
 
-#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(into = "String", try_from = "String")]
 pub struct ToolSpec {
     pub backend: Option<Backend>,
 
-    // Requested version/requirement
+    /// Requested version/requirement.
     pub req: UnresolvedVersionSpec,
 
-    // Resolved version
+    /// Resolved version.
     pub res: Option<VersionSpec>,
+
+    /// Resolve a version from the lockfile?
+    pub read_lockfile: bool,
+
+    /// Update the lockfile when applicable?
+    pub write_lockfile: bool,
 }
 
 impl ToolSpec {
     pub fn new(req: UnresolvedVersionSpec) -> Self {
         Self {
-            backend: None,
             req,
-            res: None,
+            ..Default::default()
         }
     }
 
@@ -37,8 +42,17 @@ impl ToolSpec {
         Self {
             backend,
             req,
-            res: None,
+            ..Default::default()
         }
+    }
+
+    pub fn is_fully_qualified(&self) -> bool {
+        matches!(
+            self.req,
+            UnresolvedVersionSpec::Canary
+                | UnresolvedVersionSpec::Calendar(_)
+                | UnresolvedVersionSpec::Semantic(_)
+        )
     }
 
     pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, ProtoResolveError> {
@@ -53,6 +67,18 @@ impl ToolSpec {
         match self.res.clone() {
             Some(res) => res,
             None => self.req.to_resolved_spec(),
+        }
+    }
+}
+
+impl Default for ToolSpec {
+    fn default() -> Self {
+        Self {
+            backend: None,
+            req: UnresolvedVersionSpec::default(),
+            res: None,
+            read_lockfile: true,
+            write_lockfile: true,
         }
     }
 }
@@ -86,7 +112,7 @@ impl FromStr for ToolSpec {
                     error: Box::new(error),
                 }
             })?,
-            res: None,
+            ..Default::default()
         })
     }
 }

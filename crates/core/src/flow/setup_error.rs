@@ -2,6 +2,7 @@ use crate::config_error::ProtoConfigError;
 use crate::flow::install::ProtoInstallError;
 use crate::flow::link::ProtoLinkError;
 use crate::flow::locate::ProtoLocateError;
+use crate::flow::lock::ProtoLockError;
 use crate::flow::resolve::ProtoResolveError;
 use crate::layout::ProtoLayoutError;
 use starbase_utils::json::JsonError;
@@ -36,6 +37,10 @@ pub enum ProtoSetupError {
 
     #[diagnostic(transparent)]
     #[error(transparent)]
+    Lock(#[from] Box<ProtoLockError>),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
     Plugin(#[from] Box<WarpgatePluginError>),
 
     #[diagnostic(transparent)]
@@ -60,6 +65,7 @@ impl From<JsonError> for ProtoSetupError {
         ProtoSetupError::Json(Box::new(e))
     }
 }
+
 impl From<ProtoLayoutError> for ProtoSetupError {
     fn from(e: ProtoLayoutError) -> ProtoSetupError {
         ProtoSetupError::Layout(Box::new(e))
@@ -75,6 +81,12 @@ impl From<ProtoLinkError> for ProtoSetupError {
 impl From<ProtoLocateError> for ProtoSetupError {
     fn from(e: ProtoLocateError) -> ProtoSetupError {
         ProtoSetupError::Locate(Box::new(e))
+    }
+}
+
+impl From<ProtoLockError> for ProtoSetupError {
+    fn from(e: ProtoLockError) -> ProtoSetupError {
+        ProtoSetupError::Lock(Box::new(e))
     }
 }
 
