@@ -81,6 +81,10 @@ pub fn find_wasm_file_with_name(name: &str) -> Option<PathBuf> {
         }
     }
 
+    if let Some(wasm_path) = traverse_target_dir(env::current_dir().unwrap(), &wasm_file) {
+        return Some(wasm_path);
+    }
+
     None
 }
 
