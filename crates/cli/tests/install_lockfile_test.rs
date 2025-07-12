@@ -36,7 +36,7 @@ mod install_lockfile {
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install").arg("node").arg("18.12.0");
+                    cmd.arg("install").arg("protostar").arg("5.0.0");
                 })
                 .success();
 
@@ -44,15 +44,15 @@ mod install_lockfile {
 
             let lockfile = ProtoLock::load(lockfile_path).unwrap();
 
-            let record = lockfile.tools.get("node").unwrap().first().unwrap();
+            let record = lockfile.tools.get("protostar").unwrap().first().unwrap();
 
             assert_eq!(
                 record.spec.as_ref().unwrap(),
-                &UnresolvedVersionSpec::parse("18.12.0").unwrap()
+                &UnresolvedVersionSpec::parse("5.0.0").unwrap()
             );
             assert_eq!(
                 record.version.as_ref().unwrap(),
-                &VersionSpec::parse("18.12.0").unwrap()
+                &VersionSpec::parse("5.0.0").unwrap()
             );
             assert_eq!(
                 record.checksum.as_ref().unwrap().algo,
@@ -71,7 +71,7 @@ mod install_lockfile {
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install").arg("node").arg("18.12.0");
+                    cmd.arg("install").arg("protostar").arg("5.0.0");
                 })
                 .success();
 
@@ -84,24 +84,24 @@ mod install_lockfile {
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install").arg("node").arg("18.12.0");
+                    cmd.arg("install").arg("protostar").arg("5.0.0");
                 })
                 .success();
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install").arg("node").arg("18.12.0");
+                    cmd.arg("install").arg("protostar").arg("5.0.0");
                 })
                 .success();
 
             let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
-            let records = lockfile.tools.get("node").unwrap();
+            let records = lockfile.tools.get("protostar").unwrap();
 
             assert_eq!(records.len(), 1);
 
             let record = records.first().unwrap();
 
-            assert_record!(record, "18.12.0");
+            assert_record!(record, "5.0.0");
         }
 
         #[test]
@@ -110,22 +110,22 @@ mod install_lockfile {
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install").arg("node").arg("^18.12");
+                    cmd.arg("install").arg("protostar").arg("^5.0");
                 })
                 .success();
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install").arg("node").arg("18.12.0");
+                    cmd.arg("install").arg("protostar").arg("5.0.0");
                 })
                 .success();
 
             let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
-            let records = lockfile.tools.get("node").unwrap();
+            let records = lockfile.tools.get("protostar").unwrap();
 
             assert_eq!(records.len(), 2);
-            assert_record!(records[0], "^18.12", "18.20.8");
-            assert_record!(records[1], "18.12.0");
+            assert_record!(records[0], "^5.0", "5.10.15");
+            assert_record!(records[1], "5.0.0");
         }
 
         #[test]
@@ -134,26 +134,26 @@ mod install_lockfile {
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install").arg("deno").arg("2.4.0");
+                    cmd.arg("install").arg("protostar-alt1").arg("2.4.0");
                 })
                 .success();
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install").arg("bun").arg("1.2.0");
+                    cmd.arg("install").arg("protostar-alt2").arg("1.2.0");
                 })
                 .success();
 
             let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
-            let deno = lockfile.tools.get("deno").unwrap();
+            let alt1 = lockfile.tools.get("protostar-alt1").unwrap();
 
-            assert_eq!(deno.len(), 1);
-            assert_record!(deno[0], "2.4.0");
+            assert_eq!(alt1.len(), 1);
+            assert_record!(alt1[0], "2.4.0");
 
-            let bun = lockfile.tools.get("bun").unwrap();
+            let alt2 = lockfile.tools.get("protostar-alt2").unwrap();
 
-            assert_eq!(bun.len(), 1);
-            assert_record!(bun[0], "1.2.0");
+            assert_eq!(alt2.len(), 1);
+            assert_record!(alt2[0], "1.2.0");
         }
 
         #[test]
@@ -162,26 +162,26 @@ mod install_lockfile {
             sandbox.create_file(
                 ".protolock",
                 r#"
-[[tools.node]]
-spec = "^18.20"
-version = "18.20.0"
+[[tools.protostar]]
+spec = "^5.10"
+version = "5.10.0"
 "#,
             );
 
             sandbox
                 .run_bin(|cmd| {
                     cmd.arg("install")
-                        .arg("node")
-                        .arg("^18.20")
+                        .arg("protostar")
+                        .arg("^5.10")
                         .arg("--update-lockfile");
                 })
                 .success();
 
             let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
-            let records = lockfile.tools.get("node").unwrap();
+            let records = lockfile.tools.get("protostar").unwrap();
 
             assert_eq!(records.len(), 1);
-            assert_record!(records[0], "^18.20", "18.20.8");
+            assert_record!(records[0], "^5.10", "5.10.15");
         }
 
         #[test]
@@ -190,26 +190,26 @@ version = "18.20.0"
             sandbox.create_file(
                 ".protolock",
                 r#"
-[[tools.node]]
-spec = "^18.20"
-version = "18.20.100"
+[[tools.protostar]]
+spec = "^5.10"
+version = "5.10.100"
 "#,
             );
 
             sandbox
                 .run_bin(|cmd| {
                     cmd.arg("install")
-                        .arg("node")
-                        .arg("^18.20")
+                        .arg("protostar")
+                        .arg("^5.10")
                         .arg("--update-lockfile");
                 })
                 .success();
 
             let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
-            let records = lockfile.tools.get("node").unwrap();
+            let records = lockfile.tools.get("protostar").unwrap();
 
             assert_eq!(records.len(), 1);
-            assert_record!(records[0], "^18.20", "18.20.100");
+            assert_record!(records[0], "^5.10", "5.10.100");
         }
 
         #[test]
@@ -218,19 +218,19 @@ version = "18.20.100"
             sandbox.create_file(
                 ".protolock",
                 r#"
-[[tools.node]]
-spec = "^18.20"
-version = "18.20.100"
+[[tools.protostar]]
+spec = "^5.10"
+version = "5.10.100"
 "#,
             );
 
             let assert = sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install").arg("node").arg("^18.20");
+                    cmd.arg("install").arg("protostar").arg("^5.10");
                 })
                 .failure();
 
-            assert.stderr(predicate::str::contains("Unable to download file"));
+            assert.stderr(predicate::str::contains("Invalid version"));
         }
 
         #[test]
@@ -239,20 +239,22 @@ version = "18.20.100"
             sandbox.create_file(
                 ".protolock",
                 r#"
-[[tools.node]]
-spec = "18.20.8"
-version = "18.20.8"
+[[tools.protostar]]
+spec = "5.10.0"
+version = "5.10.0"
 checksum = "sha256:invalid"
 "#,
             );
 
-            let assert = sandbox
-                .run_bin(|cmd| {
-                    cmd.arg("install").arg("node").arg("18.20.8");
-                })
-                .failure();
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("install").arg("protostar").arg("5.10.0");
+            });
 
-            assert.stderr(predicate::str::contains("Checksum mismatch"));
+            assert.debug();
+
+            assert
+                .failure()
+                .stderr(predicate::str::contains("Checksum mismatch"));
         }
 
         #[test]
@@ -261,9 +263,9 @@ checksum = "sha256:invalid"
             sandbox.create_file(
                 ".protolock",
                 r#"
-[[tools.node]]
-spec = "18.20.8"
-version = "18.20.8"
+[[tools.protostar]]
+spec = "5.10.8"
+version = "5.10.8"
 checksum = "sha256:invalid"
 "#,
             );
@@ -271,17 +273,17 @@ checksum = "sha256:invalid"
             sandbox
                 .run_bin(|cmd| {
                     cmd.arg("install")
-                        .arg("node")
-                        .arg("18.20.8")
+                        .arg("protostar")
+                        .arg("5.10.8")
                         .arg("--update-lockfile");
                 })
                 .success();
 
             let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
-            let records = lockfile.tools.get("node").unwrap();
+            let records = lockfile.tools.get("protostar").unwrap();
 
             assert_eq!(records.len(), 1);
-            assert_record!(records[0], "18.20.8");
+            assert_record!(records[0], "5.10.8");
 
             let checksum = records[0].checksum.as_ref().unwrap();
 

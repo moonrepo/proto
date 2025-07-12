@@ -350,9 +350,6 @@ impl Tool {
             record.checksum = Some(Checksum::sha256(hash_file_contents_sha256(&download_file)?));
         }
 
-        // Verify against lockfile
-        self.verify_locked_record(&record)?;
-
         // Attempt to unpack the archive
         debug!(
             tool = self.id.as_str(),
@@ -464,6 +461,9 @@ impl Tool {
                 let mut record = LockRecord::new(self.backend);
                 record.checksum = output.checksum;
 
+                // Verify against lockfile
+                self.verify_locked_record(&record)?;
+
                 return Ok(Some(record));
             }
 
@@ -488,6 +488,9 @@ impl Tool {
 
         match result {
             Ok(record) => {
+                // Verify against lockfile
+                self.verify_locked_record(&record)?;
+
                 debug!(
                     tool = self.id.as_str(),
                     install_dir = ?install_dir,
