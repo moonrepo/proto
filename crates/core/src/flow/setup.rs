@@ -73,7 +73,9 @@ impl Tool {
         };
 
         // Add record to lockfile
-        self.create_or_update_lockfile(&record)?;
+        if spec.write_lockfile {
+            self.create_or_update_lockfile(&record)?;
+        }
 
         // Add version to manifest
         let manifest = &mut self.inventory.manifest;

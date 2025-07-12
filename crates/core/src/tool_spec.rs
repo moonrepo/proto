@@ -46,6 +46,15 @@ impl ToolSpec {
         }
     }
 
+    pub fn is_fully_qualified(&self) -> bool {
+        matches!(
+            self.req,
+            UnresolvedVersionSpec::Canary
+                | UnresolvedVersionSpec::Calendar(_)
+                | UnresolvedVersionSpec::Semantic(_)
+        )
+    }
+
     pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, ProtoResolveError> {
         Self::from_str(value.as_ref())
     }

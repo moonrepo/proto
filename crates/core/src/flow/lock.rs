@@ -7,7 +7,7 @@ use tracing::{debug, instrument};
 // [ ] install many
 //      [x] resolve version from lockfile
 //      [x] validate lock record
-//      [ ] create lockfile if it does not exist
+//      [x] create lockfile if it does not exist
 //      [ ] error if spec/req is not found in lockfile
 // [ ] install one
 //      [x] resolve version from lockfile
@@ -15,6 +15,8 @@ use tracing::{debug, instrument};
 // [x] install one version
 //      [x] don't resolve version from lockfile
 //      [x] validate lock record
+// [ ] uninstall
+//      [ ] remove from lockfile
 // [ ] outdated
 //      [ ] add locked label to table
 //      [ ] integrate with --update
@@ -29,10 +31,29 @@ impl Tool {
             return Ok(());
         };
 
-        lock.tools
-            .entry(self.id.clone())
-            .or_default()
-            .push(record.to_owned());
+        let mut record = record.to_owned();
+
+        // Remove this field for the lockfile as its only used internally!
+        record.source = None;
+
+        let records = lock.tools.entry(self.id.clone()).or_default();
+
+        // Find an existing record with the same spec
+        match records
+            .iter_mut()
+            .find(|existing| existing.spec == record.spec)
+        {
+            Some(existing) => {
+                // If the new record has a higher version,
+                // we should replace the existing record with it
+                if record.version.as_ref().unwrap() >= existing.version.as_ref().unwrap() {
+                    *existing = record;
+                }
+            }
+            None => {
+                records.push(record);
+            }
+        };
 
         lock.save()?;
 
@@ -90,9 +111,9 @@ impl Tool {
 
         // If we have different backends, then the installation strategy
         // and content/files which are hashed may differ, so avoid verify
-        // if record.backend != locked.backend {
-        //     return Ok(());
-        // }
+        if install_record.backend != locked_record.backend {
+            return Ok(());
+        }
 
         let make_error = |actual: String, expected: String| match &install_record.source {
             Some(source) => ProtoLockError::MismatchedChecksumWithSource {

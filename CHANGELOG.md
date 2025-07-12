@@ -15,6 +15,12 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 💥 Breaking
+
+- Removed `--canary` from `proto install`, just use `canary` as the version specifier instead.
+
 ## 0.50.4
 
 #### 🚀 Updates
