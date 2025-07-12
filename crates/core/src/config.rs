@@ -485,20 +485,17 @@ impl ProtoConfig {
                 .insert(Id::raw(PROTO_PLUGIN_KEY), self.builtin_proto_plugin());
         }
 
-        #[cfg(debug_assertions)]
+        #[cfg(any(debug_assertions, test))]
         {
             use warpgate::{FileLocator, test_utils::find_wasm_file_with_name};
 
-            if let Some(path) = find_wasm_file_with_name("protostar_tool") {
+            if let Some(path) = find_wasm_file_with_name("proto_mocked_tool") {
                 let locator = PluginLocator::File(Box::new(FileLocator {
                     file: fs::file_name(&path),
                     path: Some(path),
                 }));
 
-                self.plugins
-                    .insert(Id::raw("protostar-alt1"), locator.clone());
-                self.plugins
-                    .insert(Id::raw("protostar-alt2"), locator.clone());
+                self.plugins.insert(Id::raw("moonshot"), locator.clone());
                 self.plugins.insert(Id::raw("protostar"), locator);
             }
         }

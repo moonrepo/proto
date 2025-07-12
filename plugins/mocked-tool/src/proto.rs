@@ -4,15 +4,10 @@ use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use std::fs;
 
-#[host_fn]
-extern "ExtismHost" {
-    fn exec_command(input: Json<ExecCommandInput>) -> Json<ExecCommandOutput>;
-}
-
 #[plugin_fn]
-pub fn register_tool(Json(_): Json<RegisterToolInput>) -> FnResult<Json<RegisterToolOutput>> {
+pub fn register_tool(Json(input): Json<RegisterToolInput>) -> FnResult<Json<RegisterToolOutput>> {
     Ok(Json(RegisterToolOutput {
-        name: "protostar".into(),
+        name: input.id,
         type_of: PluginType::CommandLine,
         plugin_version: Version::parse(env!("CARGO_PKG_VERSION")).ok(),
         ..RegisterToolOutput::default()
@@ -23,14 +18,16 @@ pub fn register_tool(Json(_): Json<RegisterToolInput>) -> FnResult<Json<Register
 pub fn detect_version_files(
     Json(_): Json<DetectVersionInput>,
 ) -> FnResult<Json<DetectVersionOutput>> {
+    let id = get_plugin_id()?;
+
     Ok(Json(DetectVersionOutput {
-        files: vec![".protostarrc".into(), ".protostar.json".into()],
+        files: vec![format!(".{id}rc"), format!(".{id}.json")],
         ignore: vec![],
     }))
 }
 
 #[derive(Deserialize)]
-struct ProtostarJson {
+struct VersionJson {
     version: Option<String>,
 }
 
@@ -39,9 +36,10 @@ pub fn parse_version_file(
     Json(input): Json<ParseVersionFileInput>,
 ) -> FnResult<Json<ParseVersionFileOutput>> {
     let mut version = None;
+    let id = get_plugin_id()?;
 
-    if input.file == ".protostar.json" {
-        let json: ProtostarJson = json::from_str(&input.content)?;
+    if input.file == format!(".{id}.json") {
+        let json: VersionJson = json::from_str(&input.content)?;
 
         if let Some(constraint) = json.version {
             version = Some(UnresolvedVersionSpec::parse(constraint)?);
@@ -102,11 +100,12 @@ pub fn resolve_version(
 pub fn native_install(
     Json(input): Json<NativeInstallInput>,
 ) -> FnResult<Json<NativeInstallOutput>> {
+    let id = get_plugin_id()?;
     let env = get_host_environment()?;
     let version = &input.context.version;
 
     check_supported_os_and_arch(
-        "protostar",
+        &id,
         &env,
         permutations! [
             HostOS::Linux => [HostArch::X64, HostArch::Arm64],
@@ -124,20 +123,20 @@ pub fn native_install(
     }
 
     // Create the primary executable
-    fs::write(input.install_dir.join(env.os.get_exe_name("protostar")), "")?;
+    fs::write(input.install_dir.join(env.os.get_exe_name(&id)), "")?;
 
     // Create other executables
     let lib_dir = input.install_dir.join("lib");
 
     fs::create_dir_all(&lib_dir)?;
-    fs::write(lib_dir.join(env.os.get_exe_name("psdbg")), "")?;
-    fs::write(lib_dir.join(env.os.get_exe_name("psfmt")), "")?;
-    fs::write(lib_dir.join(env.os.get_exe_name("psx")), "")?;
+    fs::write(lib_dir.join(env.os.get_exe_name(format!("{id}-dbg"))), "")?;
+    fs::write(lib_dir.join(env.os.get_exe_name(format!("{id}-fmt"))), "")?;
+    fs::write(lib_dir.join(env.os.get_exe_name(format!("{id}x"))), "")?;
 
     // We need a checksum for tests to work,
     // so base it on the version so every hash is different
     let sha = Sha256::digest(input.context.version.to_string());
-    let hash = format!("{:x}", sha);
+    let hash = format!("{sha:x}");
 
     Ok(Json(NativeInstallOutput {
         checksum: Some(Checksum::sha256(hash)),
@@ -150,21 +149,24 @@ pub fn native_install(
 pub fn locate_executables(
     Json(_): Json<LocateExecutablesInput>,
 ) -> FnResult<Json<LocateExecutablesOutput>> {
-    let mut output = LocateExecutablesOutput::default();
+    let id = get_plugin_id()?;
     let env = get_host_environment()?;
+    let mut output = LocateExecutablesOutput::default();
 
     // Executables
     output.exes.insert(
-        "protostar".into(),
-        ExecutableConfig::new_primary(env.os.get_exe_name("protostar")),
+        id.clone(),
+        ExecutableConfig::new_primary(env.os.get_exe_name(&id)),
     );
+
     output.exes_dirs.push("lib".into());
 
     // Globals
-    output.globals_lookup_dirs.push("$PROTOSTAR_BIN".into());
     output
         .globals_lookup_dirs
-        .push("$HOME/.protostar/bin".into());
+        .push(format!("${id}_BIN").to_uppercase().replace('-', "_"));
+
+    output.globals_lookup_dirs.push(format!("$HOME/.{id}/bin"));
 
     Ok(Json(output))
 }

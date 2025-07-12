@@ -61,7 +61,7 @@ pub struct InstallArgs {
 
     #[arg(
         long,
-        help = "Bypass the lockfile and update it with the installed version"
+        help = "Don't inherit a version from the lockfile and update the record"
     )]
     pub update_lockfile: bool,
 
@@ -146,8 +146,7 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
         ToolSpec::default()
     };
 
-    // Don't resolve the version from a lockfile if we
-    // have provided an explicit version
+    // Don't resolve the version from a lockfile
     spec.read_lockfile = !args.update_lockfile;
 
     // Load config including global versions,

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["protostar", "wasm-test"]
+members = ["mocked-tool", "wasm-test"]
 
 [workspace.dependencies]
 extism-pdk = "1.4.1"

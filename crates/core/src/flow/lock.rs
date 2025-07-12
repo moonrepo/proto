@@ -41,7 +41,7 @@ impl Tool {
         // Find an existing record with the same spec
         match records
             .iter_mut()
-            .find(|existing| existing.spec == record.spec)
+            .find(|existing| existing.backend == record.backend && existing.spec == record.spec)
         {
             Some(existing) => {
                 // If the new record has a higher version,

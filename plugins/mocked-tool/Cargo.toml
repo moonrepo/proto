@@ -1,5 +1,5 @@
 [package]
-name = "protostar_tool"
+name = "proto_mocked_tool"
 version = "0.0.1"
 edition = "2024"
 license = "MIT"
