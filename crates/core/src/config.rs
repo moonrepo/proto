@@ -489,12 +489,6 @@ impl ProtoConfig {
         {
             use warpgate::{FileLocator, test_utils::find_wasm_file_with_name};
 
-            dbg!(
-                "DEBUG CONFIG",
-                find_wasm_file_with_name("proto_mocked_tool"),
-                std::env::current_dir()
-            );
-
             if let Some(path) = find_wasm_file_with_name("proto_mocked_tool") {
                 let locator = PluginLocator::File(Box::new(FileLocator {
                     file: fs::file_name(&path),

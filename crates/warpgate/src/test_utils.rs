@@ -73,7 +73,11 @@ pub fn find_wasm_file() -> PathBuf {
 pub fn find_wasm_file_with_name(name: &str) -> Option<PathBuf> {
     let wasm_file = format!("{name}.wasm");
 
-    for env_var in ["CARGO_MANIFEST_DIR", "CARGO_TARGET_DIR"] {
+    for env_var in [
+        "CARGO_MANIFEST_DIR",
+        "CARGO_TARGET_DIR",
+        "WARPGATE_PLUGINS_DIR",
+    ] {
         if let Some(env_path) = path_var(env_var)
             && let Some(wasm_path) = traverse_target_dir(env_path, &wasm_file)
         {

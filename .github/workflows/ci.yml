@@ -85,6 +85,7 @@ jobs:
           PROTO_DEBUG_COMMAND: 1
           RUST_BACKTRACE: 1
           WASMTIME_BACKTRACE_DETAILS: 1
+          WARPGATE_PLUGINS_DIR: ./plugins
   run:
     name: Run
     runs-on: ${{ matrix.os }}
