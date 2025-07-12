@@ -489,12 +489,6 @@ impl ProtoConfig {
         {
             use warpgate::{FileLocator, test_utils::find_wasm_file_with_name};
 
-            dbg!(
-                "DEBUG CONFIG",
-                std::env::current_dir(),
-                find_wasm_file_with_name("proto_mocked_tool"),
-            );
-
             let wasm_path = find_wasm_file_with_name("proto_mocked_tool")
                 .expect("Test plugins not available. Run `just build-wasm` to build them!");
 

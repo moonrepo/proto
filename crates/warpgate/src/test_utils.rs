@@ -15,12 +15,12 @@ fn traverse_target_dir<T: AsRef<Path>, F: AsRef<str>>(
     let profiles = ["release", "debug"];
     let targets = ["wasm32-wasip1", "wasm32-wasi"];
 
-    dbg!("traverse_target_dir", dir);
-
     loop {
         for profile in &profiles {
             for target in &targets {
                 let mut next_target = dir.join("target").join(target).join(profile);
+
+                dbg!(&next_target);
 
                 if !file.is_empty() {
                     next_target = next_target.join(file);
@@ -76,9 +76,9 @@ pub fn find_wasm_file_with_name(name: &str) -> Option<PathBuf> {
     let wasm_file = format!("{name}.wasm");
 
     for env_var in [
+        "WARPGATE_PLUGINS_DIR",
         "CARGO_MANIFEST_DIR",
         "CARGO_TARGET_DIR",
-        "WARPGATE_PLUGINS_DIR",
     ] {
         dbg!("find_wasm_file_with_name", &env_var, path_var(env_var));
 
