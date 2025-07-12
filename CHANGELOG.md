@@ -24,7 +24,7 @@
 #### 🚀 Updates
 
 - Added unstable lockfile support through a `.protolock` file.
-  - Can be enabled per-directory with the new `settings.unstable-lockfile` setting.
+  - Can be enabled per-project with the new `settings.unstable-lockfile` setting.
 - Updated `proto install` to support lockfiles.
   - Versions will be inherited from the lockfile if there's a matching specification record.
   - Checksums of downloaded tools are stored and validated in the lockfile.
