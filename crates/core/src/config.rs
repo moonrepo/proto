@@ -489,15 +489,22 @@ impl ProtoConfig {
         {
             use warpgate::{FileLocator, test_utils::find_wasm_file_with_name};
 
-            if let Some(path) = find_wasm_file_with_name("proto_mocked_tool") {
-                let locator = PluginLocator::File(Box::new(FileLocator {
-                    file: fs::file_name(&path),
-                    path: Some(path),
-                }));
+            dbg!(
+                "DEBUG CONFIG",
+                std::env::current_dir(),
+                find_wasm_file_with_name("proto_mocked_tool"),
+            );
 
-                self.plugins.insert(Id::raw("moonshot"), locator.clone());
-                self.plugins.insert(Id::raw("protostar"), locator);
-            }
+            let wasm_path = find_wasm_file_with_name("proto_mocked_tool")
+                .expect("Test plugins not available. Run `just build-wasm` to build them!");
+
+            let locator = PluginLocator::File(Box::new(FileLocator {
+                file: fs::file_name(&wasm_path),
+                path: Some(wasm_path),
+            }));
+
+            self.plugins.insert(Id::raw("moonshot"), locator.clone());
+            self.plugins.insert(Id::raw("protostar"), locator);
         }
     }
 

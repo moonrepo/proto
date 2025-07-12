@@ -15,6 +15,8 @@ fn traverse_target_dir<T: AsRef<Path>, F: AsRef<str>>(
     let profiles = ["release", "debug"];
     let targets = ["wasm32-wasip1", "wasm32-wasi"];
 
+    dbg!("traverse_target_dir", dir);
+
     loop {
         for profile in &profiles {
             for target in &targets {
@@ -78,6 +80,8 @@ pub fn find_wasm_file_with_name(name: &str) -> Option<PathBuf> {
         "CARGO_TARGET_DIR",
         "WARPGATE_PLUGINS_DIR",
     ] {
+        dbg!("find_wasm_file_with_name", &env_var, path_var(env_var));
+
         if let Some(env_path) = path_var(env_var)
             && let Some(wasm_path) = traverse_target_dir(env_path, &wasm_file)
         {
