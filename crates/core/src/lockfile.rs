@@ -14,7 +14,7 @@ pub const PROTO_LOCK_NAME: &str = ".protolock";
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 #[serde(default)]
-pub struct LockfileRecord {
+pub struct LockRecord {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub backend: Option<Backend>,
 

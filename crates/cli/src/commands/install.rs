@@ -148,6 +148,7 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
 
     // Don't resolve the version from a lockfile
     spec.read_lockfile = !args.update_lockfile;
+    spec.write_lockfile = !args.internal;
 
     // Load config including global versions,
     // so that our requirements can be satisfied
@@ -315,8 +316,11 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
             continue;
         };
 
+        let mut spec = version.clone();
+        spec.read_lockfile = !args.update_lockfile;
+        spec.write_lockfile = !args.internal;
+
         let tool_id = tool.id.clone();
-        let initial_version = version.clone();
         let topo_graph = topo_graph.clone();
         let mut workflow = workflow_manager.create_workflow(tool);
 
@@ -351,7 +355,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
 
             match workflow
                 .install_with_logging(
-                    initial_version,
+                    spec,
                     InstallWorkflowParams {
                         force,
                         log_writer: None,
