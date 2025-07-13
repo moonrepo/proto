@@ -632,7 +632,7 @@ builtin-plugins = ["node", "go"]
                 [
                     "go",
                     "internal-schema",
-                    "moonshot",
+                    "moonstone",
                     "node",
                     "proto",
                     "protostar",

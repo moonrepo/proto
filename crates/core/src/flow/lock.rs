@@ -3,20 +3,21 @@ use crate::lockfile::LockRecord;
 use crate::tool::Tool;
 use crate::tool_spec::ToolSpec;
 use tracing::{debug, instrument};
+use version_spec::VersionSpec;
 
-// [ ] install many
+// [x] install many
 //      [x] resolve version from lockfile
 //      [x] validate lock record
 //      [x] create lockfile if it does not exist
 //      [ ] error if spec/req is not found in lockfile
-// [ ] install one
+// [x] install one
 //      [x] resolve version from lockfile
 //      [x] validate lock record
 // [x] install one version
 //      [x] don't resolve version from lockfile
 //      [x] validate lock record
-// [ ] uninstall
-//      [ ] remove from lockfile
+// [x] uninstall
+//      [x] remove from lockfile
 // [ ] outdated
 //      [ ] add locked label to table
 //      [ ] integrate with --update
@@ -26,7 +27,7 @@ use tracing::{debug, instrument};
 //      [ ] add locked label to table
 
 impl Tool {
-    pub fn create_or_update_lockfile(&self, record: &LockRecord) -> Result<(), ProtoLockError> {
+    pub fn insert_record_into_lockfile(&self, record: &LockRecord) -> Result<(), ProtoLockError> {
         let Some(mut lock) = self.proto.load_lock_mut()? else {
             return Ok(());
         };
@@ -54,6 +55,46 @@ impl Tool {
                 records.push(record);
             }
         };
+
+        lock.save()?;
+
+        Ok(())
+    }
+
+    pub fn remove_from_lockfile(&self) -> Result<(), ProtoLockError> {
+        let Some(mut lock) = self.proto.load_lock_mut()? else {
+            return Ok(());
+        };
+
+        lock.tools.remove(&self.id);
+        lock.save()?;
+
+        Ok(())
+    }
+
+    pub fn remove_version_from_lockfile(
+        &self,
+        version: &VersionSpec,
+    ) -> Result<(), ProtoLockError> {
+        let Some(mut lock) = self.proto.load_lock_mut()? else {
+            return Ok(());
+        };
+
+        if let Some(records) = lock.tools.get_mut(&self.id) {
+            records.retain(|record| {
+                !(record.backend == self.backend
+                    && record.spec.as_ref().is_some_and(|spec| spec == version)
+                    && record.version.as_ref().is_some_and(|ver| ver == version))
+            });
+        }
+
+        if lock
+            .tools
+            .get(&self.id)
+            .is_none_or(|records| records.is_empty())
+        {
+            lock.tools.remove(&self.id);
+        }
 
         lock.save()?;
 

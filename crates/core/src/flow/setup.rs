@@ -74,7 +74,7 @@ impl Tool {
 
         // Add record to lockfile
         if spec.write_lockfile {
-            self.create_or_update_lockfile(&record)?;
+            self.insert_record_into_lockfile(&record)?;
         }
 
         // Add version to manifest
@@ -128,16 +128,22 @@ impl Tool {
     /// Teardown the tool by uninstalling the current version, removing the version
     /// from the manifest, and cleaning up temporary files. Return true if the teardown occurred.
     #[instrument(skip_all)]
-    pub async fn teardown(&mut self) -> Result<bool, ProtoSetupError> {
+    pub async fn teardown(&mut self, spec: &ToolSpec) -> Result<bool, ProtoSetupError> {
         self.cleanup().await?;
+
+        let version = self.resolve_version(spec, false).await?;
 
         if !self.uninstall().await? {
             return Ok(false);
         }
 
-        let version = self.get_resolved_version();
-        let mut bin_manager = BinManager::from_manifest(&self.inventory.manifest);
+        // Remove record from lockfile
+        if spec.write_lockfile {
+            self.remove_version_from_lockfile(&version)?;
+        }
 
+        // Delete bins and shims
+        let mut bin_manager = BinManager::from_manifest(&self.inventory.manifest);
         let is_last_installed_version = self.inventory.manifest.installed_versions.len() == 1
             && self
                 .inventory

@@ -140,7 +140,7 @@ mod install_lockfile {
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install").arg("moonshot").arg("1.2.0");
+                    cmd.arg("install").arg("moonstone").arg("1.2.0");
                 })
                 .success();
 
@@ -150,7 +150,7 @@ mod install_lockfile {
             assert_eq!(alt1.len(), 1);
             assert_record!(alt1[0], "2.4.0");
 
-            let alt2 = lockfile.tools.get("moonshot").unwrap();
+            let alt2 = lockfile.tools.get("moonstone").unwrap();
 
             assert_eq!(alt2.len(), 1);
             assert_record!(alt2[0], "1.2.0");

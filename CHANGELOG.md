@@ -29,6 +29,8 @@
   - Versions will be inherited from the lockfile if there's a matching specification record.
   - Checksums of downloaded tools are stored and validated in the lockfile.
   - Added an `--update-lockfile` flag, which will bypass the lockfile record.
+- Updated `proto uninstall` to support lockfiles.
+  - Will remove any matching record from the lockfile.
 
 ## 0.50.4
 

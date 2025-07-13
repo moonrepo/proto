@@ -497,7 +497,7 @@ impl ProtoConfig {
                 path: Some(wasm_path),
             }));
 
-            self.plugins.insert(Id::raw("moonshot"), locator.clone());
+            self.plugins.insert(Id::raw("moonstone"), locator.clone());
             self.plugins.insert(Id::raw("protostar"), locator);
         }
     }
