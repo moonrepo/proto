@@ -1,0 +1,11 @@
+[[tools.moonstone]]
+spec = "5.0.0"
+version = "5.0.0"
+
+[[tools.protostar]]
+spec = "^4.5"
+version = "4.5.15"
+
+[[tools.protostar]]
+spec = "5.10.0"
+version = "5.10.0"

@@ -1,5 +1,5 @@
 [package]
-name = "proto_wasm_test"
+name = "proto_mocked_tool"
 version = "0.0.1"
 edition = "2024"
 license = "MIT"
@@ -12,8 +12,4 @@ crate-type = ["cdylib"]
 proto_pdk = { path = "../../crates/pdk" }
 extism-pdk = { workspace = true }
 serde = { workspace = true }
-
-[dev-dependencies]
-proto_pdk_test_utils = { path = "../../crates/pdk-test-utils" }
-starbase_sandbox = "*"
-tokio = { workspace = true }
+sha2 = "0.10.9"

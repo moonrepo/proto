@@ -6,7 +6,7 @@ use crate::utils::tool_record::ToolRecord;
 use crate::workflows::{InstallOutcome, InstallWorkflowManager, InstallWorkflowParams};
 use clap::Args;
 use iocraft::prelude::element;
-use proto_core::{ConfigMode, Id, PinLocation, Tool, ToolSpec, UnresolvedVersionSpec};
+use proto_core::{ConfigMode, Id, PinLocation, Tool, ToolSpec};
 use proto_pdk_api::InstallStrategy;
 use starbase::AppResult;
 use starbase_console::ui::*;
@@ -43,13 +43,6 @@ pub struct InstallArgs {
     )]
     pub no_build: bool,
 
-    #[arg(
-        long,
-        help = "When installing one tool, use a canary (nightly, etc) version",
-        group = "version-type"
-    )]
-    pub canary: bool,
-
     #[arg(long, help = "Force reinstallation even if already installed")]
     pub force: bool,
 
@@ -65,6 +58,12 @@ pub struct InstallArgs {
 
     #[arg(long, help = "Hide install progress output excluding errors")]
     pub quiet: bool,
+
+    #[arg(
+        long,
+        help = "Don't inherit a version from the lockfile and update the record"
+    )]
+    pub update_lockfile: bool,
 
     // Used internally by other commands to trigger conditional logic
     #[arg(hide = true, long)]
@@ -137,9 +136,7 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
 
     // Attempt to detect a version if one was not provided,
     // otherwise fallback to "latest"
-    let spec = if args.canary {
-        ToolSpec::new(UnresolvedVersionSpec::Canary)
-    } else if let Some(spec) = &args.spec {
+    let mut spec = if let Some(spec) = &args.spec {
         spec.to_owned()
     } else if let Some((spec, _)) = tool.detect_version_from(&session.env.working_dir).await? {
         spec.into()
@@ -148,6 +145,9 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
     } else {
         ToolSpec::default()
     };
+
+    // Don't resolve the version from a lockfile
+    spec.read_lockfile = !args.update_lockfile;
 
     // Load config including global versions,
     // so that our requirements can be satisfied

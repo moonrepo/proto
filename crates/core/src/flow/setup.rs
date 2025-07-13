@@ -59,16 +59,23 @@ impl Tool {
     ) -> Result<Option<LockRecord>, ProtoSetupError> {
         let version = self.resolve_version(spec, false).await?;
 
-        // Returns nothing if already installed
-        let Some(record) = self.install(options).await? else {
-            return Ok(self.inventory.get_locked_record(&version).cloned());
+        let record = match self.install(options).await? {
+            // Update lock record with resolved spec information
+            Some(mut record) => {
+                record.version = Some(version.clone());
+                record.spec = Some(spec.req.clone());
+                record
+            }
+            // Return an existing lock record if already installed
+            None => {
+                return Ok(self.get_resolved_locked_record().cloned());
+            }
         };
 
-        let default_version = self
-            .metadata
-            .default_version
-            .clone()
-            .unwrap_or_else(|| version.to_unresolved_spec());
+        // Add record to lockfile
+        if spec.write_lockfile {
+            self.insert_record_into_lockfile(&record)?;
+        }
 
         // Add version to manifest
         let manifest = &mut self.inventory.manifest;
@@ -86,8 +93,16 @@ impl Tool {
         // Pin the global version
         ProtoConfig::update_document(self.proto.get_config_dir(PinLocation::Global), |doc| {
             if !doc.contains_key(&self.id) {
-                doc[self.id.as_str()] =
-                    cfg::value(ToolSpec::new_backend(default_version, self.backend).to_string());
+                doc[self.id.as_str()] = cfg::value(
+                    ToolSpec::new_backend(
+                        self.metadata
+                            .default_version
+                            .clone()
+                            .unwrap_or_else(|| version.to_unresolved_spec()),
+                        self.backend,
+                    )
+                    .to_string(),
+                );
             }
 
             // config
@@ -113,16 +128,22 @@ impl Tool {
     /// Teardown the tool by uninstalling the current version, removing the version
     /// from the manifest, and cleaning up temporary files. Return true if the teardown occurred.
     #[instrument(skip_all)]
-    pub async fn teardown(&mut self) -> Result<bool, ProtoSetupError> {
+    pub async fn teardown(&mut self, spec: &ToolSpec) -> Result<bool, ProtoSetupError> {
         self.cleanup().await?;
+
+        let version = self.resolve_version(spec, false).await?;
 
         if !self.uninstall().await? {
             return Ok(false);
         }
 
-        let version = self.get_resolved_version();
-        let mut bin_manager = BinManager::from_manifest(&self.inventory.manifest);
+        // Remove record from lockfile
+        if spec.write_lockfile {
+            self.remove_version_from_lockfile(&version)?;
+        }
 
+        // Delete bins and shims
+        let mut bin_manager = BinManager::from_manifest(&self.inventory.manifest);
         let is_last_installed_version = self.inventory.manifest.installed_versions.len() == 1
             && self
                 .inventory

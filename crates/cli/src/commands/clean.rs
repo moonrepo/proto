@@ -2,6 +2,7 @@ use crate::helpers::join_list;
 use crate::session::ProtoSession;
 use clap::{Args, ValueEnum};
 use iocraft::prelude::element;
+use proto_core::ToolSpec;
 use proto_core::{PROTO_PLUGIN_KEY, Tool, VersionSpec, flow::resolve::ProtoResolveError};
 use proto_shim::get_exe_file_name;
 use rustc_hash::FxHashSet;
@@ -200,8 +201,8 @@ pub async fn clean_tool(
                 version: version.clone(),
             });
 
-            tool.set_version(version);
-            tool.teardown().await?;
+            tool.teardown(&ToolSpec::new(version.to_unresolved_spec()))
+                .await?;
         }
     } else {
         debug!("Skipping remove, continuing to next tool");
