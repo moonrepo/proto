@@ -20,8 +20,6 @@ fn traverse_target_dir<T: AsRef<Path>, F: AsRef<str>>(
             for target in &targets {
                 let mut next_target = dir.join("target").join(target).join(profile);
 
-                dbg!(&next_target);
-
                 if !file.is_empty() {
                     next_target = next_target.join(file);
                 }
@@ -80,8 +78,6 @@ pub fn find_wasm_file_with_name(name: &str) -> Option<PathBuf> {
         "CARGO_MANIFEST_DIR",
         "CARGO_TARGET_DIR",
     ] {
-        dbg!("find_wasm_file_with_name", &env_var, path_var(env_var));
-
         if let Some(env_path) = path_var(env_var)
             && let Some(wasm_path) = traverse_target_dir(env_path, &wasm_file)
         {
