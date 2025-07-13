@@ -3,7 +3,8 @@ name = "proto_installer"
 version = "0.13.1"
 edition = "2024"
 license = "MIT"
-description = "Download and install proto."
+description = "DEPRECATED: Download and install proto."
+keywords = ["deprecated"]
 homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
 
