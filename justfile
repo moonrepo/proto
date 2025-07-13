@@ -11,7 +11,7 @@ build-shim:
 	cargo build --bin proto-shim
 
 build-wasm:
-	cd plugins && cargo build --workspace --target wasm32-wasip1
+	cd plugins && cargo build --workspace --target wasm32-wasip1 --release
 
 check:
 	cargo check --workspace

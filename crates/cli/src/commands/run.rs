@@ -335,6 +335,8 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
                         backend: spec.backend,
                         req: resolved_version.to_unresolved_spec(),
                         res: Some(resolved_version.clone()),
+                        read_lockfile: false,
+                        write_lockfile: false,
                     }),
                     ..Default::default()
                 },

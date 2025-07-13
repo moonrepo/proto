@@ -1,8 +1,8 @@
 [workspace]
 resolver = "3"
-members = ["wasm-test"]
+members = ["mocked-tool", "wasm-test"]
 
 [workspace.dependencies]
-extism-pdk = "1.4.0"
+extism-pdk = "1.4.1"
 serde = { version = "1.0.219", features = ["derive"] }
-tokio = { version = "1.45.0", features = ["full"] }
+tokio = { version = "1.46.1", features = ["full"] }

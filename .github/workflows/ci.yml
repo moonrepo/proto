@@ -9,8 +9,8 @@ on:
   pull_request:
 
 env:
-  # For setup-rust
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For setup-rust
+  WARPGATE_PLUGINS_DIR: ${{ github.workspace }}/plugins
 
 jobs:
   codegen:
@@ -72,8 +72,6 @@ jobs:
           targets: wasm32-wasip1
       - if: ${{ runner.os != 'Windows' }}
         run: just build-wasm
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         # Windows runs out of disk space
       - if: ${{ runner.os == 'Windows' }}
         run: |
@@ -81,7 +79,6 @@ jobs:
           node .github/actions/delete-target-files.js;
       - run: just test-ci
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PROTO_DEBUG_COMMAND: 1
           RUST_BACKTRACE: 1
           WASMTIME_BACKTRACE_DETAILS: 1

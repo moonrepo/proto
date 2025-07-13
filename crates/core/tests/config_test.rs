@@ -116,7 +116,7 @@ pin-latest = "global"
             &ToolSpec {
                 backend: Some(Backend::Asdf),
                 req: UnresolvedVersionSpec::parse("20.0.0").unwrap(),
-                res: None
+                ..Default::default()
             }
         );
     }
@@ -604,7 +604,7 @@ builtin-plugins = true
                 BuiltinPlugins::Enabled(true)
             );
 
-            assert_eq!(config.builtin_plugins().len(), 16);
+            assert_eq!(config.builtin_plugins().len(), 18);
         }
 
         #[test]
@@ -626,10 +626,17 @@ builtin-plugins = ["node", "go"]
                 BuiltinPlugins::Allowed(vec!["node".into(), "go".into()])
             );
 
-            assert_eq!(config.builtin_plugins().len(), 4);
+            assert_eq!(config.builtin_plugins().len(), 6);
             assert_eq!(
                 config.builtin_plugins().keys().collect::<Vec<_>>(),
-                ["go", "internal-schema", "node", "proto"]
+                [
+                    "go",
+                    "internal-schema",
+                    "moonstone",
+                    "node",
+                    "proto",
+                    "protostar",
+                ]
             );
         }
 
@@ -652,7 +659,7 @@ builtin-plugins = false
                 BuiltinPlugins::Enabled(false)
             );
 
-            assert_eq!(config.builtin_plugins().len(), 2);
+            assert_eq!(config.builtin_plugins().len(), 4);
         }
 
         #[test]
@@ -674,7 +681,7 @@ builtin-plugins = []
                 BuiltinPlugins::Allowed(vec![])
             );
 
-            assert_eq!(config.builtin_plugins().len(), 2);
+            assert_eq!(config.builtin_plugins().len(), 4);
         }
     }
 
@@ -732,7 +739,8 @@ value = "asdf:4.5.6"
                     ToolSpec {
                         backend: Some(Backend::Asdf),
                         req: UnresolvedVersionSpec::parse("4.5.6").unwrap(),
-                        res: None
+                        res: None,
+                        ..Default::default()
                     }
                 )])
             );

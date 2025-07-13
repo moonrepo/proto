@@ -139,6 +139,9 @@ async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult 
     fs::remove_dir_all(inventory_dir)?;
     fs::remove_dir_all(tool.get_temp_dir())?;
 
+    // Remove from lockfile
+    tool.remove_from_lockfile()?;
+
     progress.stop().await?;
 
     unpin_version(&session, &args)?;
@@ -212,7 +215,7 @@ async fn uninstall_one(session: ProtoSession, args: UninstallArgs, spec: ToolSpe
         tool.get_resolved_version()
     ));
 
-    let result = tool.teardown().await;
+    let result = tool.teardown(&spec).await;
 
     progress.stop().await?;
     result?;
