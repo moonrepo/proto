@@ -26,5 +26,7 @@ pr-run-mode = "upload"
 allow-dirty = ["ci"]
 
 [dist.github-custom-runners]
+x86_64-unknown-linux-gnu = "depot-ubuntu-24.04-4"
+x86_64-unknown-linux-musl = "depot-ubuntu-24.04-4"
 aarch64-unknown-linux-gnu = "depot-ubuntu-24.04-arm-4"
 aarch64-unknown-linux-musl = "depot-ubuntu-24.04-arm-4"
