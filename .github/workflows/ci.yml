@@ -10,7 +10,7 @@ on:
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For setup-rust
-  WARPGATE_PLUGINS_DIR: /Users/runner/work/proto/proto/plugins
+  WARPGATE_PLUGINS_DIR: $HOME/work/proto/proto/plugins
 
 jobs:
   codegen:
