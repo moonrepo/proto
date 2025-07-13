@@ -632,10 +632,10 @@ builtin-plugins = ["node", "go"]
                 [
                     "go",
                     "internal-schema",
+                    "moonshot",
                     "node",
                     "proto",
                     "protostar",
-                    "moonshot"
                 ]
             );
         }
@@ -659,7 +659,7 @@ builtin-plugins = false
                 BuiltinPlugins::Enabled(false)
             );
 
-            assert_eq!(config.builtin_plugins().len(), 2);
+            assert_eq!(config.builtin_plugins().len(), 4);
         }
 
         #[test]
