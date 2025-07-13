@@ -1,6 +1,6 @@
 [package]
 name = "proto_installer"
-version = "0.13.1"
+version = "0.13.2"
 edition = "2024"
 license = "MIT"
 description = "DEPRECATED: Download and install proto."

@@ -3176,7 +3176,7 @@ dependencies = [
 
 [[package]]
 name = "proto_installer"
-version = "0.13.1"
+version = "0.13.2"
 dependencies = [
  "miette 7.6.0",
  "reqwest",
