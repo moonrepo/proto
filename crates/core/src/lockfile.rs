@@ -78,6 +78,14 @@ impl ProtoLock {
 
     #[instrument(name = "save_lock", skip(self))]
     pub fn save(&self) -> Result<(), TomlError> {
+        if self.plugins.is_empty() && self.tools.is_empty() {
+            debug!(file = ?self.path, "Removing lock file because its empty");
+
+            fs::remove_file(&self.path)?;
+
+            return Ok(());
+        }
+
         debug!(file = ?self.path, "Saving lock file");
 
         let content = toml::format(self, true)?;

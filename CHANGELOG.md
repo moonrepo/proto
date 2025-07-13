@@ -15,6 +15,23 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 💥 Breaking
+
+- Removed `--canary` from `proto install`, just use `canary` as the version specifier instead.
+
+#### 🚀 Updates
+
+- Added unstable lockfile support through a `.protolock` file.
+  - Can be enabled per-project with the new `settings.unstable-lockfile` setting.
+- Updated `proto install` to support lockfiles.
+  - Versions will be inherited from the lockfile if there's a matching specification record.
+  - Checksums of downloaded tools are stored and validated in the lockfile.
+  - Added an `--update-lockfile` flag, which will bypass the lockfile record.
+- Updated `proto uninstall` to support lockfiles.
+  - Will remove any matching record from the lockfile.
+
 ## 0.50.4
 
 #### 🚀 Updates

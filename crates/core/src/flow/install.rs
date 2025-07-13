@@ -115,63 +115,6 @@ impl Tool {
         })
     }
 
-    /// Verify the installation is legitimate by comparing it to a lockfile record.
-    #[instrument(skip(self))]
-    pub fn verify_lockfile(&self, record: &LockRecord) -> Result<(), ProtoInstallError> {
-        let Some(version) = &self.version else {
-            return Ok(());
-        };
-
-        // No lockfile record yet
-        let Some(lockfile) = self.inventory.get_locked_record(version) else {
-            return Ok(());
-        };
-
-        // If we have different backends, then the installation strategy
-        // and content/files which are hashed may differ, so avoid verify
-        if record.backend != lockfile.backend {
-            return Ok(());
-        }
-
-        let make_error = |actual: String, expected: String| match &record.source {
-            Some(source) => ProtoInstallError::MismatchedChecksumWithSource {
-                checksum: actual,
-                lockfile_checksum: expected,
-                source_url: source.to_owned(),
-            },
-            None => ProtoInstallError::MismatchedChecksum {
-                checksum: actual,
-                lockfile_checksum: expected,
-            },
-        };
-
-        match (&record.checksum, &lockfile.checksum) {
-            (Some(rc), Some(lc)) => {
-                debug!(
-                    tool = self.id.as_str(),
-                    checksum = rc.to_string(),
-                    "Verifying checksum against lockfile",
-                );
-
-                if rc != lc {
-                    return Err(make_error(rc.to_string(), lc.to_string()));
-                }
-            }
-            // Only the lockfile has a checksum, so compare the sources.
-            // If the sources are the same, something wrong is happening,
-            // but if they are different, then it may be a different install
-            // strategy, so let it happen
-            (None, Some(lc)) => {
-                if record.source == lockfile.source {
-                    return Err(make_error("(missing)".into(), lc.to_string()));
-                }
-            }
-            _ => {}
-        };
-
-        Ok(())
-    }
-
     /// Build the tool from source using a set of requirements and instructions
     /// into the `~/.proto/tools/<version>` folder.
     #[instrument(skip(self, options))]
@@ -407,9 +350,6 @@ impl Tool {
             record.checksum = Some(Checksum::sha256(hash_file_contents_sha256(&download_file)?));
         }
 
-        // Verify against lockfile
-        self.verify_lockfile(&record)?;
-
         // Attempt to unpack the archive
         debug!(
             tool = self.id.as_str(),
@@ -521,6 +461,9 @@ impl Tool {
                 let mut record = LockRecord::new(self.backend);
                 record.checksum = output.checksum;
 
+                // Verify against lockfile
+                self.verify_locked_record(&record)?;
+
                 return Ok(Some(record));
             }
 
@@ -545,6 +488,9 @@ impl Tool {
 
         match result {
             Ok(record) => {
+                // Verify against lockfile
+                self.verify_locked_record(&record)?;
+
                 debug!(
                     tool = self.id.as_str(),
                     install_dir = ?install_dir,
