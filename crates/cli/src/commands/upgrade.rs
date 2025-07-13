@@ -6,15 +6,16 @@ use crate::telemetry::{Metric, track_usage};
 use clap::Args;
 use iocraft::prelude::element;
 use proto_core::{Id, PROTO_PLUGIN_KEY, SemVer, UnresolvedVersionSpec, is_offline};
-use proto_installer::*;
 use semver::Version;
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_styles::color;
-use starbase_utils::json;
+use starbase_utils::{fs, fs::FsError, json};
 use std::env;
-use tracing::debug;
+use std::fmt::Debug;
+use std::path::Path;
+use tracing::{debug, instrument};
 
 #[derive(Args, Clone, Debug)]
 pub struct UpgradeArgs {
@@ -155,6 +156,7 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
     )
     .await?;
 
+    // Replace the global binaries
     let tool_dir = session.env.store.inventory_dir.join(PROTO_PLUGIN_KEY);
     let is_current_exe_managed = env::current_exe().is_ok_and(|exe| exe.starts_with(&tool_dir));
 
@@ -245,4 +247,117 @@ fn is_running() -> Option<sysinfo::Pid> {
 #[cfg(debug_assertions)]
 fn is_running() -> Option<sysinfo::Pid> {
     None
+}
+
+#[instrument]
+fn replace_binaries(
+    source_dir: impl AsRef<Path> + Debug,
+    target_dir: impl AsRef<Path> + Debug,
+    relocate_current: bool,
+) -> Result<bool, ProtoCliError> {
+    let source_dir = source_dir.as_ref();
+    let target_dir = target_dir.as_ref();
+    let bin_names = if cfg!(windows) {
+        vec!["proto.exe", "proto-shim.exe"]
+    } else {
+        vec!["proto", "proto-shim"]
+    };
+
+    let mut output_dirs = vec![target_dir.to_path_buf()];
+
+    if relocate_current {
+        if let Ok(current) = env::current_exe() {
+            let current_dir = current.parent().unwrap();
+
+            if current_dir != target_dir {
+                output_dirs.push(current_dir.to_path_buf());
+            }
+        }
+    }
+
+    let mut replaced = false;
+
+    for bin_name in bin_names {
+        let input_path = source_dir.join(bin_name);
+
+        if !input_path.exists() {
+            continue;
+        }
+
+        for output_dir in &output_dirs {
+            let output_path = output_dir.join(bin_name);
+            let relocate_path = output_dir.join(format!("{bin_name}.backup"));
+
+            if output_path.exists() {
+                self_replace(&output_path, &input_path, &relocate_path)?;
+            } else {
+                fs::copy_file(&input_path, &output_path)?;
+                fs::update_perms(&output_path, None)?;
+            }
+
+            replaced = true;
+        }
+    }
+
+    Ok(replaced)
+}
+
+#[cfg(unix)]
+fn self_replace(
+    current_exe: &Path,
+    replace_with: &Path,
+    relocate_to: &Path,
+) -> Result<(), FsError> {
+    use std::os::unix::fs::PermissionsExt;
+
+    // If we're a symlink, we need to find the real location and operate on
+    // that instead of the link.
+    let exe = current_exe.canonicalize().map_err(|error| FsError::Read {
+        path: current_exe.to_path_buf(),
+        error: Box::new(error),
+    })?;
+    let perms = fs::metadata(&exe)?.permissions();
+
+    // Relocate the current executable. We do a rename/move as it keeps the
+    // same inode's, just changes the literal path. This allows the binary
+    // to keep executing without failure. A copy will *not* work!
+    fs::rename(exe, relocate_to)?;
+
+    // We then copy the replacement executable to the original location,
+    // and attempt to persist the original permissions.
+    fs::copy_file(replace_with, current_exe)?;
+    fs::update_perms(current_exe, Some(perms.mode()))?;
+
+    Ok(())
+}
+
+#[cfg(windows)]
+fn self_replace(
+    current_exe: &Path,
+    replace_with: &Path,
+    relocate_to: &Path,
+) -> Result<(), FsError> {
+    // If we're a symlink, we need to find the real location and operate on
+    // that instead of the link.
+    let exe = current_exe.canonicalize().map_err(|error| FsError::Read {
+        path: current_exe.to_path_buf(),
+        error: Box::new(error),
+    })?;
+
+    // Relocate the current executable. We do a rename/move as it keeps the
+    // same ID/handle, just changes the literal path. This allows the binary
+    // to keep executing without failure. A copy will *not* work!
+    fs::rename(exe, relocate_to)?;
+
+    // We then copy the replacement executable to a temporary location.
+    let mut temp_exe = current_exe.to_path_buf();
+    temp_exe.set_extension("temp.exe");
+
+    fs::copy_file(replace_with, &temp_exe)?;
+
+    // And lastly, we move the temporary to the original location. This avoids
+    // writing/copying data to the original, and instead does a rename/move.
+    fs::rename(temp_exe, current_exe)?;
+
+    Ok(())
 }

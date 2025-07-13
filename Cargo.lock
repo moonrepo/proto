@@ -3093,7 +3093,6 @@ dependencies = [
  "iocraft",
  "miette 7.6.0",
  "proto_core",
- "proto_installer",
  "proto_pdk_api",
  "proto_shim",
  "regex",
@@ -3172,20 +3171,6 @@ dependencies = [
  "uuid",
  "version_spec",
  "warpgate",
-]
-
-[[package]]
-name = "proto_installer"
-version = "0.13.2"
-dependencies = [
- "miette 7.6.0",
- "reqwest",
- "starbase_archive",
- "starbase_styles",
- "starbase_utils",
- "system_env",
- "thiserror 2.0.12",
- "tracing",
 ]
 
 [[package]]
