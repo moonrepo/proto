@@ -10,7 +10,6 @@ use starbase_styles::color;
 use std::fmt::{self, Debug};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::Duration;
 use tracing::{debug, instrument};
 use warpgate::{
     Id, PluginContainer, PluginLocator, PluginManifest, VirtualPath, Wasm,
@@ -133,6 +132,8 @@ impl Tool {
 
         #[cfg(debug_assertions)]
         {
+            use std::time::Duration;
+
             manifest = manifest.with_timeout(Duration::from_secs(300));
         }
 
