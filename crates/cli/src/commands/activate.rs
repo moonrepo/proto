@@ -347,10 +347,7 @@ fn reset_and_join_paths(session: &ProtoSession, join_paths: Vec<PathBuf>) -> Vec
         } else if path == stop_path {
             in_activate = false;
             continue;
-        } else if in_activate
-            || dupe_paths.contains(&path)
-            || path.starts_with(&session.env.store.dir)
-        {
+        } else if in_activate || dupe_paths.contains(&path) {
             continue;
         }
 
