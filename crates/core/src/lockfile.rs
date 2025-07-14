@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
-#[serde(deny_unknown_fields)]
+#[serde(default)]
 pub struct LockfileRecord {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub backend: Option<Backend>,
