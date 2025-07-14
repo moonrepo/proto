@@ -1,6 +1,6 @@
 mod utils;
 
-use starbase_sandbox::{assert_snapshot, get_assert_output};
+use starbase_sandbox::{assert_snapshot, get_assert_output, locate_fixture};
 use std::path::PathBuf;
 use utils::*;
 
@@ -8,7 +8,7 @@ mod shim_bin {
     use super::*;
 
     fn get_fixture(name: &str) -> PathBuf {
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(name)
+        locate_fixture("shim").join(name)
     }
 
     #[test]
@@ -17,16 +17,12 @@ mod shim_bin {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("install")
-                    .arg("node")
-                    .arg("--pin")
-                    .arg("--")
-                    .arg("--no-bundled-npm");
+                cmd.arg("install").arg("node").arg("--pin");
             })
             .success();
 
         let mut shim = create_shim_command(sandbox.path(), "node");
-        shim.arg(get_fixture("tests/fixtures/shim-standard.mjs"));
+        shim.arg(get_fixture("shim-standard.mjs"));
         shim.env_remove("PROTO_LOG");
 
         let assert = shim.assert();
@@ -40,16 +36,12 @@ mod shim_bin {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("install")
-                    .arg("node")
-                    .arg("--pin")
-                    .arg("--")
-                    .arg("--no-bundled-npm");
+                cmd.arg("install").arg("node").arg("--pin");
             })
             .success();
 
         let mut shim = create_shim_command(sandbox.path(), "node");
-        shim.arg(get_fixture("tests/fixtures/shim-timeout.mjs"));
+        shim.arg(get_fixture("shim-timeout.mjs"));
         shim.env_remove("PROTO_LOG");
 
         let assert = shim.assert();
@@ -63,16 +55,12 @@ mod shim_bin {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("install")
-                    .arg("node")
-                    .arg("--pin")
-                    .arg("--")
-                    .arg("--no-bundled-npm");
+                cmd.arg("install").arg("node").arg("--pin");
             })
             .success();
 
         let mut shim = create_shim_command(sandbox.path(), "node");
-        shim.arg(get_fixture("tests/fixtures/shim-tla.mjs"));
+        shim.arg(get_fixture("shim-tla.mjs"));
         shim.env_remove("PROTO_LOG");
 
         let assert = shim.assert();
@@ -86,16 +74,12 @@ mod shim_bin {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("install")
-                    .arg("node")
-                    .arg("--pin")
-                    .arg("--")
-                    .arg("--no-bundled-npm");
+                cmd.arg("install").arg("node").arg("--pin");
             })
             .success();
 
         let mut shim = create_shim_command(sandbox.path(), "node");
-        shim.arg(get_fixture("tests/fixtures/shim-piped-stdin.mjs"));
+        shim.arg(get_fixture("shim-piped-stdin.mjs"));
         shim.env_remove("PROTO_LOG");
         shim.write_stdin("this data comes from stdin");
 
@@ -110,18 +94,14 @@ mod shim_bin {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("install")
-                    .arg("node")
-                    .arg("--pin")
-                    .arg("--")
-                    .arg("--no-bundled-npm");
+                cmd.arg("install").arg("node").arg("--pin");
             })
             .success();
 
         let mut shim = create_shim_command(sandbox.path(), "node");
-        shim.arg(get_fixture("tests/fixtures/shim-piped-stdin.mjs"));
+        shim.arg(get_fixture("shim-piped-stdin.mjs"));
         shim.env_remove("PROTO_LOG");
-        shim.pipe_stdin("tests/fixtures/piped-data.txt").unwrap();
+        shim.pipe_stdin(get_fixture("piped-data.txt")).unwrap();
 
         let assert = shim.assert();
 
@@ -134,20 +114,16 @@ mod shim_bin {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("install")
-                    .arg("node")
-                    .arg("--pin")
-                    .arg("--")
-                    .arg("--no-bundled-npm");
+                cmd.arg("install").arg("node").arg("--pin");
             })
             .success();
 
         let mut shim = create_shim_command(sandbox.path(), "node");
-        shim.arg(get_fixture("tests/fixtures/shim-code-0.mjs"));
+        shim.arg(get_fixture("shim-code-0.mjs"));
         shim.assert().code(0);
 
         let mut shim = create_shim_command(sandbox.path(), "node");
-        shim.arg(get_fixture("tests/fixtures/shim-code-1.mjs"));
+        shim.arg(get_fixture("shim-code-1.mjs"));
         shim.assert().code(1);
     }
 
@@ -162,16 +138,12 @@ mod shim_bin {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("install")
-                    .arg("node")
-                    .arg("--pin")
-                    .arg("--")
-                    .arg("--no-bundled-npm");
+                cmd.arg("install").arg("node").arg("--pin");
             })
             .success();
 
         let mut shim = create_shim_command_std(sandbox.path(), "node");
-        shim.arg(get_fixture("tests/fixtures/shim-signal.mjs"));
+        shim.arg(get_fixture("shim-signal.mjs"));
         shim.env_remove("PROTO_LOG");
 
         // Interrupt / SIGINT
@@ -200,11 +172,7 @@ mod shim_bin {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("install")
-                    .arg("node")
-                    .arg("--pin")
-                    .arg("--")
-                    .arg("--no-bundled-npm");
+                cmd.arg("install").arg("node").arg("--pin");
             })
             .success();
 
@@ -213,7 +181,7 @@ mod shim_bin {
         shim.env("PROTO_LOG", "trace");
         shim.env("PROTO_HOME", sandbox.path().join(".proto"));
         shim.env("PROTO_NODE_VERSION", "latest");
-        shim.arg(get_fixture("tests/fixtures/shim-code-0.mjs"));
+        shim.arg(get_fixture("shim-code-0.mjs"));
 
         let mut cmd = starbase_sandbox::assert_cmd::Command::from_std(shim);
         cmd.assert().success();
