@@ -604,7 +604,7 @@ builtin-plugins = true
                 BuiltinPlugins::Enabled(true)
             );
 
-            assert_eq!(config.builtin_plugins().len(), 18);
+            assert_eq!(config.builtin_plugins().len(), 20);
         }
 
         #[test]
@@ -632,9 +632,11 @@ builtin-plugins = ["node", "go"]
                 [
                     "go",
                     "internal-schema",
+                    "moonbase",
                     "moonstone",
                     "node",
                     "proto",
+                    "protoform",
                     "protostar",
                 ]
             );
@@ -659,7 +661,7 @@ builtin-plugins = false
                 BuiltinPlugins::Enabled(false)
             );
 
-            assert_eq!(config.builtin_plugins().len(), 4);
+            assert_eq!(config.builtin_plugins().len(), 6);
         }
 
         #[test]
@@ -681,7 +683,7 @@ builtin-plugins = []
                 BuiltinPlugins::Allowed(vec![])
             );
 
-            assert_eq!(config.builtin_plugins().len(), 4);
+            assert_eq!(config.builtin_plugins().len(), 6);
         }
     }
 

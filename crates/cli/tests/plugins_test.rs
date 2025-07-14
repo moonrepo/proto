@@ -64,8 +64,8 @@ mod plugins {
                 Id::raw("moon"),
                 env.to_owned(),
                 PluginLocator::File(Box::new(FileLocator {
-                    file: "./tests/fixtures/moon-schema.toml".into(),
-                    path: Some(root_dir.join("./tests/fixtures/moon-schema.toml")),
+                    file: "./tests/__fixtures__/moon-schema.toml".into(),
+                    path: Some(root_dir.join("./tests/__fixtures__/moon-schema.toml")),
                 })),
             )
         })
@@ -81,8 +81,8 @@ mod plugins {
                 Id::raw("moon"),
                 env.to_owned(),
                 PluginLocator::File(Box::new(FileLocator {
-                    file: "./tests/fixtures/moon-schema.json".into(),
-                    path: Some(root_dir.join("./tests/fixtures/moon-schema.json")),
+                    file: "./tests/__fixtures__/moon-schema.json".into(),
+                    path: Some(root_dir.join("./tests/__fixtures__/moon-schema.json")),
                 })),
             )
         })
@@ -98,8 +98,8 @@ mod plugins {
                 Id::raw("moon"),
                 env.to_owned(),
                 PluginLocator::File(Box::new(FileLocator {
-                    file: "./tests/fixtures/moon-schema.yaml".into(),
-                    path: Some(root_dir.join("./tests/fixtures/moon-schema.yaml")),
+                    file: "./tests/__fixtures__/moon-schema.yaml".into(),
+                    path: Some(root_dir.join("./tests/__fixtures__/moon-schema.yaml")),
                 })),
             )
         })
@@ -239,7 +239,7 @@ mod plugins {
         }
 
         #[test]
-        fn supports_node() {
+        fn supports_node_and_package_managers() {
             let sandbox = create_empty_proto_sandbox();
 
             sandbox
@@ -253,21 +253,6 @@ mod plugins {
                 .assert()
                 .success();
 
-            assert_snapshot!(
-                fs::read_to_string(sandbox.path().join(".proto/shims/registry.json")).unwrap()
-            );
-        }
-
-        #[test]
-        fn supports_npm() {
-            let sandbox = create_empty_proto_sandbox();
-
-            // sandbox
-            //     .run_bin(|cmd| {
-            //         cmd.arg("install").arg("node");
-            //     })
-            //     .success();
-
             sandbox
                 .run_bin(|cmd| {
                     cmd.arg("install").arg("npm");
@@ -279,21 +264,6 @@ mod plugins {
                 .assert()
                 .success();
 
-            assert_snapshot!(
-                fs::read_to_string(sandbox.path().join(".proto/shims/registry.json")).unwrap()
-            );
-        }
-
-        #[test]
-        fn supports_pnpm() {
-            let sandbox = create_empty_proto_sandbox();
-
-            // sandbox
-            //     .run_bin(|cmd| {
-            //         cmd.arg("install").arg("node");
-            //     })
-            //     .success();
-
             sandbox
                 .run_bin(|cmd| {
                     cmd.arg("install").arg("pnpm");
@@ -304,21 +274,6 @@ mod plugins {
                 .arg("--version")
                 .assert()
                 .success();
-
-            assert_snapshot!(
-                fs::read_to_string(sandbox.path().join(".proto/shims/registry.json")).unwrap()
-            );
-        }
-
-        #[test]
-        fn supports_yarn() {
-            let sandbox = create_empty_proto_sandbox();
-
-            // sandbox
-            //     .run_bin(|cmd| {
-            //         cmd.arg("install").arg("node");
-            //     })
-            //     .success();
 
             sandbox
                 .run_bin(|cmd| {
