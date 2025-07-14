@@ -1,8 +1,7 @@
 mod utils;
 
 use proto_core::{
-    Backend, Id, LockRecord, PinLocation, ProtoConfig, ToolManifest, ToolSpec,
-    UnresolvedVersionSpec, VersionSpec,
+    Id, LockRecord, PinLocation, ProtoConfig, ToolManifest, UnresolvedVersionSpec, VersionSpec,
 };
 use proto_pdk_api::Checksum;
 use starbase_sandbox::predicates::prelude::*;
@@ -11,7 +10,7 @@ use std::fs;
 use std::time::SystemTime;
 use utils::*;
 
-mod install_uninstall {
+mod install_one {
     use super::*;
 
     #[test]
@@ -20,15 +19,16 @@ mod install_uninstall {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("install")
-                    .arg("node")
-                    .arg("18.12")
-                    .arg("--")
-                    .arg("--no-bundled-npm");
+                cmd.arg("install").arg("protostar").arg("2.5");
             })
             .success();
 
-        assert!(sandbox.path().join(".proto/tools/node/18.12.1").exists());
+        assert!(
+            sandbox
+                .path()
+                .join(".proto/tools/protostar/2.5.15")
+                .exists()
+        );
     }
 
     #[test]
@@ -37,15 +37,16 @@ mod install_uninstall {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("install")
-                    .arg("node")
-                    .arg("17")
-                    .arg("--")
-                    .arg("--no-bundled-npm");
+                cmd.arg("install").arg("protostar").arg("2");
             })
             .success();
 
-        assert!(sandbox.path().join(".proto/tools/node/17.9.1").exists());
+        assert!(
+            sandbox
+                .path()
+                .join(".proto/tools/protostar/2.10.15")
+                .exists()
+        );
     }
 
     #[test]
@@ -54,58 +55,59 @@ mod install_uninstall {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("install")
-                    .arg("node")
-                    .arg("gallium")
-                    .arg("--")
-                    .arg("--no-bundled-npm");
+                cmd.arg("install").arg("protostar").arg("stable");
             })
             .success();
 
-        assert!(sandbox.path().join(".proto/tools/node/16.20.2").exists());
+        assert!(sandbox.path().join(".proto/tools/protostar/5.0.0").exists());
     }
 
     #[test]
     fn installs_via_detection() {
         let sandbox = create_empty_proto_sandbox();
-        sandbox.create_file(".node-version", "17");
+        sandbox.create_file(".protostarrc", "1.2.3");
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("install").arg("node");
+                cmd.arg("install").arg("protostar");
             })
             .success();
 
-        assert!(sandbox.path().join(".proto/tools/node/17.9.1").exists());
+        assert!(sandbox.path().join(".proto/tools/protostar/1.2.3").exists());
     }
 
     #[test]
     fn installs_via_prototools() {
         let sandbox = create_empty_proto_sandbox();
-        sandbox.create_file(".prototools", "node = \"17\"");
+        sandbox.create_file(".prototools", "protostar = \"1.2.3\"");
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("install").arg("node");
+                cmd.arg("install").arg("protostar");
             })
             .success();
 
-        assert!(sandbox.path().join(".proto/tools/node/17.9.1").exists());
+        assert!(sandbox.path().join(".proto/tools/protostar/1.2.3").exists());
     }
 
     #[test]
     fn installs_latest_if_no_version() {
         let sandbox = create_empty_proto_sandbox();
 
-        assert!(!sandbox.path().join(".proto/tools/node").exists());
+        assert!(!sandbox.path().join(".proto/tools/protostar").exists());
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("install").arg("node");
+                cmd.arg("install").arg("protostar");
             })
             .success();
 
-        assert!(sandbox.path().join(".proto/tools/node").exists());
+        assert!(
+            sandbox
+                .path()
+                .join(".proto/tools/protostar/5.10.15")
+                .exists()
+        );
     }
 
     #[test]
@@ -143,49 +145,52 @@ mod install_uninstall {
     #[test]
     fn installs_and_uninstalls_tool() {
         let sandbox = create_empty_proto_sandbox();
-        let tool_dir = sandbox.path().join(".proto/tools/node/19.0.0");
+        let tool_dir = sandbox.path().join(".proto/tools/protostar/5.0.0");
 
         assert!(!tool_dir.exists());
 
         // Install
         let assert = sandbox
             .run_bin(|cmd| {
-                cmd.arg("install")
-                    .arg("node")
-                    .arg("19.0.0")
-                    .arg("--")
-                    .arg("--no-bundled-npm");
+                cmd.arg("install").arg("protostar").arg("5.0.0");
             })
             .success();
 
         assert!(tool_dir.exists());
 
         assert.stdout(predicate::str::contains(
-            "Node.js 19.0.0 has been installed",
+            "protostar 5.0.0 has been installed",
         ));
 
         // Uninstall
         let assert = sandbox
             .run_bin(|cmd| {
-                cmd.arg("uninstall").arg("node").arg("19.0.0").arg("--yes");
+                cmd.arg("uninstall")
+                    .arg("protostar")
+                    .arg("5.0.0")
+                    .arg("--yes");
             })
             .success();
 
         assert!(!tool_dir.exists());
 
         assert.stdout(predicate::str::contains(
-            "Node.js 19.0.0 has been uninstalled!",
+            "protostar 5.0.0 has been uninstalled!",
         ));
     }
 
     #[test]
     fn install_and_reinstall_canary_tool() {
         let sandbox = create_empty_proto_sandbox();
-        let tool_dir = sandbox.path().join(".proto/tools/node/canary");
+        let tool_dir = sandbox.path().join(".proto/tools/protostar/canary");
         let tool_bin = if cfg!(windows) {
-            sandbox.path().join(".proto/tools/node/canary/node.exe")
+            sandbox
+                .path()
+                .join(".proto/tools/protostar/canary/protostar.exe")
         } else {
-            sandbox.path().join(".proto/tools/node/canary/bin/node")
+            sandbox
+                .path()
+                .join(".proto/tools/protostar/canary/protostar")
         };
 
         assert!(!tool_dir.exists());
@@ -194,11 +199,7 @@ mod install_uninstall {
         // Install
         let assert = sandbox
             .run_bin(|cmd| {
-                cmd.arg("install")
-                    .arg("node")
-                    .arg("canary")
-                    .arg("--")
-                    .arg("--no-bundled-npm");
+                cmd.arg("install").arg("protostar").arg("canary");
             })
             .success();
 
@@ -206,7 +207,7 @@ mod install_uninstall {
         assert!(tool_bin.exists());
 
         assert.stdout(predicate::str::contains(
-            "Node.js canary has been installed to",
+            "protostar canary has been installed to",
         ));
 
         // Support for ctime in tmpfs requires recent linux kernel (>6.11)
@@ -224,11 +225,7 @@ mod install_uninstall {
         // Install without --force
         let assert = sandbox
             .run_bin(|cmd| {
-                cmd.arg("install")
-                    .arg("node")
-                    .arg("canary")
-                    .arg("--")
-                    .arg("--no-bundled-npm");
+                cmd.arg("install").arg("protostar").arg("canary");
             })
             .success();
 
@@ -239,18 +236,16 @@ mod install_uninstall {
         assert_eq!(mtime, mtime_no_reinstall);
 
         assert.stdout(predicate::str::contains(
-            "Node.js canary has already been installed at",
+            "protostar canary has already been installed at",
         ));
 
         // Install with --force
         let assert = sandbox
             .run_bin(|cmd| {
                 cmd.arg("install")
-                    .arg("node")
-                    .arg("--force")
+                    .arg("protostar")
                     .arg("canary")
-                    .arg("--")
-                    .arg("--no-bundled-npm");
+                    .arg("--force");
             })
             .success();
 
@@ -261,7 +256,7 @@ mod install_uninstall {
         assert_ne!(mtime, mtime_reinstall);
 
         assert.stdout(predicate::str::contains(
-            "Node.js canary has been installed to",
+            "protostar canary has been installed to",
         ));
     }
 
@@ -271,26 +266,18 @@ mod install_uninstall {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("install")
-                    .arg("node")
-                    .arg("19.0.0")
-                    .arg("--")
-                    .arg("--no-bundled-npm");
+                cmd.arg("install").arg("protostar").arg("1.0.0");
             })
             .success();
 
         let assert = sandbox
             .run_bin(|cmd| {
-                cmd.arg("install")
-                    .arg("node")
-                    .arg("19.0.0")
-                    .arg("--")
-                    .arg("--no-bundled-npm");
+                cmd.arg("install").arg("protostar").arg("1.0.0");
             })
             .success();
 
         assert.stdout(predicate::str::contains(
-            "Node.js 19.0.0 has already been installed",
+            "protostar 1.0.0 has already been installed",
         ));
     }
 
@@ -300,18 +287,14 @@ mod install_uninstall {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("install")
-                    .arg("node")
-                    .arg("19.0.0")
-                    .arg("--")
-                    .arg("--no-bundled-npm");
+                cmd.arg("install").arg("protostar").arg("1.0.0");
             })
             .success();
 
         if cfg!(windows) {
-            assert!(sandbox.path().join(".proto/shims/node.exe").exists());
+            assert!(sandbox.path().join(".proto/shims/protostar.exe").exists());
         } else {
-            assert!(sandbox.path().join(".proto/shims/node").exists());
+            assert!(sandbox.path().join(".proto/shims/protostar").exists());
         }
 
         // Check that the registry was created also
@@ -321,16 +304,12 @@ mod install_uninstall {
     #[test]
     fn updates_the_manifest_when_installing() {
         let sandbox = create_empty_proto_sandbox();
-        let manifest_file = sandbox.path().join(".proto/tools/node/manifest.json");
+        let manifest_file = sandbox.path().join(".proto/tools/protostar/manifest.json");
 
         // Install
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("install")
-                    .arg("node")
-                    .arg("19.0.0")
-                    .arg("--")
-                    .arg("--no-bundled-npm");
+                cmd.arg("install").arg("protostar").arg("1.0.0");
             })
             .success();
 
@@ -338,35 +317,38 @@ mod install_uninstall {
         let config = load_config(sandbox.path().join(".proto"));
 
         assert_eq!(
-            config.versions.get("node").unwrap(),
-            &UnresolvedVersionSpec::parse("19.0.0").unwrap()
+            config.versions.get("protostar").unwrap(),
+            &UnresolvedVersionSpec::parse("1.0.0").unwrap()
         );
         assert_eq!(
             manifest.installed_versions,
-            BTreeSet::from_iter([VersionSpec::parse("19.0.0").unwrap()])
+            BTreeSet::from_iter([VersionSpec::parse("1.0.0").unwrap()])
         );
         assert!(
             manifest
                 .versions
-                .contains_key(&VersionSpec::parse("19.0.0").unwrap())
+                .contains_key(&VersionSpec::parse("1.0.0").unwrap())
         );
 
         // Uninstall
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("uninstall").arg("node").arg("19.0.0").arg("--yes");
+                cmd.arg("uninstall")
+                    .arg("protostar")
+                    .arg("1.0.0")
+                    .arg("--yes");
             })
             .success();
 
         let manifest = ToolManifest::load(&manifest_file).unwrap();
         let config = load_config(sandbox.path().join(".proto"));
 
-        assert_eq!(config.versions.get("node"), None);
+        assert_eq!(config.versions.get("protostar"), None);
         assert_eq!(manifest.installed_versions, BTreeSet::default());
         assert!(
             !manifest
                 .versions
-                .contains_key(&VersionSpec::parse("19.0.0").unwrap())
+                .contains_key(&VersionSpec::parse("1.0.0").unwrap())
         );
     }
 
@@ -376,12 +358,12 @@ mod install_uninstall {
         #[test]
         fn can_pin_when_installing() {
             let sandbox = create_empty_proto_sandbox();
-            let manifest_file = sandbox.path().join(".proto/tools/node/manifest.json");
+            let manifest_file = sandbox.path().join(".proto/tools/protostar/manifest.json");
 
             ProtoConfig::update(sandbox.path(), |config| {
                 config.versions.get_or_insert(Default::default()).insert(
-                    Id::raw("node"),
-                    UnresolvedVersionSpec::parse("18.0.0").unwrap().into(),
+                    Id::raw("protostar"),
+                    UnresolvedVersionSpec::parse("1.0.0").unwrap().into(),
                 );
             })
             .unwrap();
@@ -389,17 +371,15 @@ mod install_uninstall {
             let mut manifest = ToolManifest::load(&manifest_file).unwrap();
             manifest
                 .installed_versions
-                .insert(VersionSpec::parse("18.0.0").unwrap());
+                .insert(VersionSpec::parse("1.0.0").unwrap());
             manifest.save().unwrap();
 
             sandbox
                 .run_bin(|cmd| {
                     cmd.arg("install")
-                        .arg("node")
-                        .arg("19.0.0")
-                        .arg("--pin")
-                        .arg("--")
-                        .arg("--no-bundled-npm");
+                        .arg("protostar")
+                        .arg("2.0.0")
+                        .arg("--pin");
                 })
                 .success();
 
@@ -407,14 +387,14 @@ mod install_uninstall {
             let config = load_config(sandbox.path());
 
             assert_eq!(
-                config.versions.get("node").unwrap(),
-                &UnresolvedVersionSpec::parse("19.0.0").unwrap()
+                config.versions.get("protostar").unwrap(),
+                &UnresolvedVersionSpec::parse("2.0.0").unwrap()
             );
             assert_eq!(
                 manifest.installed_versions,
                 BTreeSet::from_iter([
-                    VersionSpec::parse("18.0.0").unwrap(),
-                    VersionSpec::parse("19.0.0").unwrap(),
+                    VersionSpec::parse("1.0.0").unwrap(),
+                    VersionSpec::parse("2.0.0").unwrap(),
                 ])
             );
         }
@@ -422,12 +402,12 @@ mod install_uninstall {
         #[test]
         fn can_pin_global_explicitly() {
             let sandbox = create_empty_proto_sandbox();
-            let manifest_file = sandbox.path().join(".proto/tools/node/manifest.json");
+            let manifest_file = sandbox.path().join(".proto/tools/protostar/manifest.json");
 
             ProtoConfig::update(sandbox.path().join(".proto"), |config| {
                 config.versions.get_or_insert(Default::default()).insert(
-                    Id::raw("node"),
-                    UnresolvedVersionSpec::parse("18.0.0").unwrap().into(),
+                    Id::raw("protostar"),
+                    UnresolvedVersionSpec::parse("1.0.0").unwrap().into(),
                 );
             })
             .unwrap();
@@ -435,18 +415,16 @@ mod install_uninstall {
             let mut manifest = ToolManifest::load(&manifest_file).unwrap();
             manifest
                 .installed_versions
-                .insert(VersionSpec::parse("18.0.0").unwrap());
+                .insert(VersionSpec::parse("1.0.0").unwrap());
             manifest.save().unwrap();
 
             sandbox
                 .run_bin(|cmd| {
                     cmd.arg("install")
-                        .arg("node")
-                        .arg("19.0.0")
+                        .arg("protostar")
+                        .arg("2.0.0")
                         .arg("--pin")
-                        .arg("global")
-                        .arg("--")
-                        .arg("--no-bundled-npm");
+                        .arg("global");
                 })
                 .success();
 
@@ -454,14 +432,14 @@ mod install_uninstall {
             let config = load_config(sandbox.path().join(".proto"));
 
             assert_eq!(
-                config.versions.get("node").unwrap(),
-                &UnresolvedVersionSpec::parse("19.0.0").unwrap()
+                config.versions.get("protostar").unwrap(),
+                &UnresolvedVersionSpec::parse("2.0.0").unwrap()
             );
             assert_eq!(
                 manifest.installed_versions,
                 BTreeSet::from_iter([
-                    VersionSpec::parse("18.0.0").unwrap(),
-                    VersionSpec::parse("19.0.0").unwrap(),
+                    VersionSpec::parse("1.0.0").unwrap(),
+                    VersionSpec::parse("2.0.0").unwrap(),
                 ])
             );
         }
@@ -469,12 +447,12 @@ mod install_uninstall {
         #[test]
         fn can_pin_local_explicitly() {
             let sandbox = create_empty_proto_sandbox();
-            let manifest_file = sandbox.path().join(".proto/tools/node/manifest.json");
+            let manifest_file = sandbox.path().join(".proto/tools/protostar/manifest.json");
 
             ProtoConfig::update(sandbox.path(), |config| {
                 config.versions.get_or_insert(Default::default()).insert(
-                    Id::raw("node"),
-                    UnresolvedVersionSpec::parse("18.0.0").unwrap().into(),
+                    Id::raw("protostar"),
+                    UnresolvedVersionSpec::parse("1.0.0").unwrap().into(),
                 );
             })
             .unwrap();
@@ -482,18 +460,16 @@ mod install_uninstall {
             let mut manifest = ToolManifest::load(&manifest_file).unwrap();
             manifest
                 .installed_versions
-                .insert(VersionSpec::parse("18.0.0").unwrap());
+                .insert(VersionSpec::parse("1.0.0").unwrap());
             manifest.save().unwrap();
 
             sandbox
                 .run_bin(|cmd| {
                     cmd.arg("install")
-                        .arg("node")
-                        .arg("19.0.0")
+                        .arg("protostar")
+                        .arg("2.0.0")
                         .arg("--pin")
-                        .arg("local")
-                        .arg("--")
-                        .arg("--no-bundled-npm");
+                        .arg("local");
                 })
                 .success();
 
@@ -501,14 +477,14 @@ mod install_uninstall {
             let config = load_config(sandbox.path());
 
             assert_eq!(
-                config.versions.get("node").unwrap(),
-                &UnresolvedVersionSpec::parse("19.0.0").unwrap()
+                config.versions.get("protostar").unwrap(),
+                &UnresolvedVersionSpec::parse("2.0.0").unwrap()
             );
             assert_eq!(
                 manifest.installed_versions,
                 BTreeSet::from_iter([
-                    VersionSpec::parse("18.0.0").unwrap(),
-                    VersionSpec::parse("19.0.0").unwrap(),
+                    VersionSpec::parse("1.0.0").unwrap(),
+                    VersionSpec::parse("2.0.0").unwrap(),
                 ])
             );
         }
@@ -519,19 +495,15 @@ mod install_uninstall {
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install")
-                        .arg("node")
-                        .arg("19.0.0")
-                        .arg("--")
-                        .arg("--no-bundled-npm");
+                    cmd.arg("install").arg("protostar").arg("1.0.0");
                 })
                 .success();
 
             // Manually change it to something else
             ProtoConfig::update(sandbox.path(), |config| {
                 config.versions.get_or_insert(Default::default()).insert(
-                    Id::raw("node"),
-                    UnresolvedVersionSpec::parse("18.0.0").unwrap().into(),
+                    Id::raw("protostar"),
+                    UnresolvedVersionSpec::parse("5.0.0").unwrap().into(),
                 );
             })
             .unwrap();
@@ -539,19 +511,17 @@ mod install_uninstall {
             sandbox
                 .run_bin(|cmd| {
                     cmd.arg("install")
-                        .arg("node")
-                        .arg("19.0.0")
-                        .arg("--pin")
-                        .arg("--")
-                        .arg("--no-bundled-npm");
+                        .arg("protostar")
+                        .arg("1.0.0")
+                        .arg("--pin");
                 })
                 .success();
 
             let config = load_config(sandbox.path());
 
             assert_eq!(
-                config.versions.get("node").unwrap(),
-                &UnresolvedVersionSpec::parse("19.0.0").unwrap()
+                config.versions.get("protostar").unwrap(),
+                &UnresolvedVersionSpec::parse("1.0.0").unwrap()
             );
         }
 
@@ -565,8 +535,8 @@ mod install_uninstall {
                     Some(PinLocation::Local);
 
                 config.versions.get_or_insert(Default::default()).insert(
-                    Id::raw("node"),
-                    UnresolvedVersionSpec::parse("16.0.0").unwrap().into(),
+                    Id::raw("protostar"),
+                    UnresolvedVersionSpec::parse("1.0.0").unwrap().into(),
                 );
             })
             .unwrap();
@@ -574,34 +544,30 @@ mod install_uninstall {
             // Global
             ProtoConfig::update(sandbox.path().join(".proto"), |config| {
                 config.versions.get_or_insert(Default::default()).insert(
-                    Id::raw("node"),
-                    UnresolvedVersionSpec::parse("18.0.0").unwrap().into(),
+                    Id::raw("protostar"),
+                    UnresolvedVersionSpec::parse("2.0.0").unwrap().into(),
                 );
             })
             .unwrap();
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install")
-                        .arg("node")
-                        .arg("latest")
-                        .arg("--")
-                        .arg("--no-bundled-npm");
+                    cmd.arg("install").arg("protostar").arg("latest");
                 })
                 .success();
 
             let global_config = load_config(sandbox.path().join(".proto"));
 
             assert_eq!(
-                global_config.versions.get("node").unwrap(),
-                &UnresolvedVersionSpec::parse("18.0.0").unwrap()
+                global_config.versions.get("protostar").unwrap(),
+                &UnresolvedVersionSpec::parse("2.0.0").unwrap()
             );
 
             let local_config = load_config(sandbox.path());
 
             assert_ne!(
-                local_config.versions.get("node").unwrap(),
-                &UnresolvedVersionSpec::parse("16.0.0").unwrap()
+                local_config.versions.get("protostar").unwrap(),
+                &UnresolvedVersionSpec::parse("1.0.0").unwrap()
             );
         }
 
@@ -615,8 +581,8 @@ mod install_uninstall {
                     Some(PinLocation::Global);
 
                 config.versions.get_or_insert(Default::default()).insert(
-                    Id::raw("node"),
-                    UnresolvedVersionSpec::parse("16.0.0").unwrap().into(),
+                    Id::raw("protostar"),
+                    UnresolvedVersionSpec::parse("1.0.0").unwrap().into(),
                 );
             })
             .unwrap();
@@ -624,34 +590,30 @@ mod install_uninstall {
             // Global
             ProtoConfig::update(sandbox.path().join(".proto"), |config| {
                 config.versions.get_or_insert(Default::default()).insert(
-                    Id::raw("node"),
-                    UnresolvedVersionSpec::parse("18.0.0").unwrap().into(),
+                    Id::raw("protostar"),
+                    UnresolvedVersionSpec::parse("2.0.0").unwrap().into(),
                 );
             })
             .unwrap();
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install")
-                        .arg("node")
-                        .arg("latest")
-                        .arg("--")
-                        .arg("--no-bundled-npm");
+                    cmd.arg("install").arg("protostar").arg("latest");
                 })
                 .success();
 
             let global_config = load_config(sandbox.path().join(".proto"));
 
             assert_ne!(
-                global_config.versions.get("node").unwrap(),
-                &UnresolvedVersionSpec::parse("18.0.0").unwrap()
+                global_config.versions.get("protostar").unwrap(),
+                &UnresolvedVersionSpec::parse("2.0.0").unwrap()
             );
 
             let local_config = load_config(sandbox.path());
 
             assert_eq!(
-                local_config.versions.get("node").unwrap(),
-                &UnresolvedVersionSpec::parse("16.0.0").unwrap()
+                local_config.versions.get("protostar").unwrap(),
+                &UnresolvedVersionSpec::parse("1.0.0").unwrap()
             );
         }
 
@@ -668,17 +630,13 @@ mod install_uninstall {
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install")
-                        .arg("node")
-                        .arg("20.0.0")
-                        .arg("--")
-                        .arg("--no-bundled-npm");
+                    cmd.arg("install").arg("protostar").arg("1.0.0");
                 })
                 .success();
 
             let local_config = load_config(sandbox.path());
 
-            assert_eq!(local_config.versions.get("node"), None);
+            assert_eq!(local_config.versions.get("protostar"), None);
         }
     }
 
@@ -692,18 +650,16 @@ mod install_uninstall {
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install")
-                        .arg("node")
-                        .arg("19.0.0")
-                        .arg("--")
-                        .arg("--no-bundled-npm");
+                    cmd.arg("install").arg("protostar").arg("1.0.0");
                 })
                 .success();
 
-            let link1 = sandbox.path().join(".proto/bin/node");
-            let link2 = sandbox.path().join(".proto/bin/node-19");
-            let link3 = sandbox.path().join(".proto/bin/node-19.0");
-            let src = sandbox.path().join(".proto/tools/node/19.0.0/bin/node");
+            let link1 = sandbox.path().join(".proto/bin/protostar");
+            let link2 = sandbox.path().join(".proto/bin/protostar-1");
+            let link3 = sandbox.path().join(".proto/bin/protostar-1.0");
+            let src = sandbox
+                .path()
+                .join(".proto/tools/protostar/1.0.0/protostar");
 
             assert!(link1.exists());
             assert!(link2.exists());
@@ -721,18 +677,13 @@ mod install_uninstall {
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install")
-                        .arg("node")
-                        .arg("19.0.0")
-                        .arg("--pin")
-                        .arg("--")
-                        .arg("--no-bundled-npm");
+                    cmd.arg("install").arg("protostar").arg("1.0.0");
                 })
                 .success();
 
-            let link1 = sandbox.path().join(".proto/bin/node.exe");
-            let link2 = sandbox.path().join(".proto/bin/node-19.exe");
-            let link3 = sandbox.path().join(".proto/bin/node-19.0.exe");
+            let link1 = sandbox.path().join(".proto/bin/protostar.exe");
+            let link2 = sandbox.path().join(".proto/bin/protostar-1.exe");
+            let link3 = sandbox.path().join(".proto/bin/protostar-1.0.exe");
 
             assert!(link1.exists());
             assert!(link2.exists());
@@ -740,7 +691,7 @@ mod install_uninstall {
         }
     }
 
-    mod reqs {
+    mod requirements {
         use super::*;
 
         #[test]
@@ -749,149 +700,28 @@ mod install_uninstall {
 
             let assert = sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install").arg("npm").arg("10.0.0");
+                    cmd.arg("install").arg("moonbase").arg("1.0.0");
                 })
                 .failure();
 
             assert.stderr(predicate::str::contains(
-                "npm requires node to function correctly",
+                "moonbase requires moonstone to function correctly",
             ));
         }
 
         #[test]
         fn passes_if_reqs_met() {
             let sandbox = create_empty_proto_sandbox();
-            sandbox.create_file(".prototools", r#"node = "20""#);
+            sandbox.create_file(".prototools", r#"moonstone = "2""#);
 
             let assert = sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install").arg("npm").arg("10.0.0");
+                    cmd.arg("install").arg("moonbase").arg("1.0.0");
                 })
                 .success();
-
-            assert.stdout(predicate::str::contains("npm 10.0.0 has been installed"));
-        }
-    }
-
-    #[cfg(not(windows))]
-    mod backend {
-        use super::*;
-
-        #[test]
-        fn installs_and_uninstalls_asdf_tool() {
-            let sandbox = create_empty_proto_sandbox();
-            let tool_dir = sandbox.path().join(".proto/tools/zig/0.13.0");
-
-            assert!(!tool_dir.exists());
-
-            // Install
-            let assert = sandbox
-                .run_bin(|cmd| {
-                    cmd.arg("install").arg("zig").arg("asdf:0.13.0");
-                })
-                .success();
-
-            assert!(tool_dir.exists());
 
             assert.stdout(predicate::str::contains(
-                "asdf:zig 0.13.0 has been installed",
-            ));
-
-            // Uninstall
-            let assert = sandbox
-                .run_bin(|cmd| {
-                    cmd.arg("uninstall")
-                        .arg("zig")
-                        .arg("asdf:0.13.0")
-                        .arg("--yes");
-                })
-                .success();
-
-            assert!(!tool_dir.exists());
-
-            assert.stdout(predicate::str::contains(
-                "asdf:zig 0.13.0 has been uninstalled!",
-            ));
-        }
-
-        #[test]
-        fn installs_and_pins_backend() {
-            let sandbox = create_empty_proto_sandbox();
-
-            sandbox
-                .run_bin(|cmd| {
-                    cmd.arg("install")
-                        .arg("zig")
-                        .arg("asdf:0.13.0")
-                        .arg("--pin")
-                        .arg("local");
-                })
-                .success();
-
-            let config = load_config(sandbox.path());
-
-            assert_eq!(
-                config.versions.get("zig").unwrap(),
-                &ToolSpec::new_backend(
-                    UnresolvedVersionSpec::parse("0.13.0").unwrap(),
-                    Some(Backend::Asdf)
-                )
-            );
-        }
-
-        #[test]
-        fn installs_with_shortname() {
-            let sandbox = create_empty_proto_sandbox();
-            sandbox.create_file(
-                ".prototools",
-                r#"
-[tools.newrelic]
-asdf-shortname = "newrelic-cli"
-"#,
-            );
-
-            let tool_dir = sandbox.path().join(".proto/tools/newrelic/0.97.0");
-
-            assert!(!tool_dir.exists());
-
-            let assert = sandbox
-                .run_bin(|cmd| {
-                    cmd.arg("install").arg("newrelic").arg("asdf:0.97.0");
-                })
-                .success();
-
-            assert!(tool_dir.exists());
-
-            assert.stdout(predicate::str::contains(
-                "asdf:newrelic 0.97.0 has been installed",
-            ));
-        }
-
-        #[test]
-        fn installs_with_custom_repo() {
-            let sandbox = create_empty_proto_sandbox();
-            sandbox.create_file(
-                ".prototools",
-                r#"
-[tools.newrelic]
-asdf-repository = "https://github.com/NeoHsu/asdf-newrelic-cli"
-"#,
-            );
-
-            let tool_dir = sandbox.path().join(".proto/tools/newrelic/0.97.0");
-
-            assert!(!tool_dir.exists());
-
-            let assert = sandbox
-                .run_bin(|cmd| {
-                    cmd.arg("install").arg("newrelic").arg("asdf:0.97.0");
-                })
-                .success();
-
-            assert!(tool_dir.exists());
-
-            assert.stdout(predicate::str::contains(
-                "asdf:newrelic 0.97.0 has been installed",
+                "moonbase 1.0.0 has been installed",
             ));
         }
     }
@@ -905,74 +735,42 @@ asdf-repository = "https://github.com/NeoHsu/asdf-newrelic-cli"
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install").arg("node").arg("18.12.0");
+                    cmd.arg("install").arg("protostar").arg("1.0.0");
                 })
                 .success();
 
             let mut manifest =
-                ToolManifest::load_from(sandbox.path().join(".proto/tools/node")).unwrap();
+                ToolManifest::load_from(sandbox.path().join(".proto/tools/protostar")).unwrap();
             let lock = manifest
                 .versions
-                .remove(&VersionSpec::parse("18.12.0").unwrap())
+                .remove(&VersionSpec::parse("1.0.0").unwrap())
                 .unwrap()
                 .lock
                 .unwrap();
 
-            #[cfg(target_os = "linux")]
             assert_eq!(
                 lock,
                 LockRecord {
-                    spec: Some(UnresolvedVersionSpec::parse("18.12.0").unwrap()),
-                    version: Some(VersionSpec::parse("18.12.0").unwrap()),
+                    spec: Some(UnresolvedVersionSpec::parse("1.0.0").unwrap()),
+                    version: Some(VersionSpec::parse("1.0.0").unwrap()),
                     checksum: Some(Checksum::sha256(
-                        "9429e26d9a35cb079897f0a22622fe89ff597976259a8fcb38b7d08b154789dc"
-                            .into()
+                        "92521fc3cbd964bdc9f584a991b89fddaa5754ed1cc96d6d42445338669c1305".into()
                     )),
-                    source: Some("https://nodejs.org/download/release/v18.12.0/node-v18.12.0-linux-x64.tar.xz".into()),
-                    ..Default::default()
-                }
-            );
-
-            #[cfg(target_os = "macos")]
-            assert_eq!(
-                lock,
-                LockRecord {
-                    spec: Some(UnresolvedVersionSpec::parse("18.12.0").unwrap()),
-                    version: Some(VersionSpec::parse("18.12.0").unwrap()),
-                    checksum: Some(Checksum::sha256(
-                        "e37d6b4fbb4ca4ef3af0a095ff9089d7a5c3c80d4bc36d916987406f06573464"
-                            .into()
-                    )),
-                    source: Some("https://nodejs.org/download/release/v18.12.0/node-v18.12.0-darwin-arm64.tar.xz".into()),
-                    ..Default::default()
-                }
-            );
-
-            #[cfg(target_os = "windows")]
-            assert_eq!(
-                lock,
-                LockRecord {
-                    spec: Some(UnresolvedVersionSpec::parse("18.12.0").unwrap()),
-                    version: Some(VersionSpec::parse("18.12.0").unwrap()),
-                    checksum: Some(Checksum::sha256(
-                        "56a3a49e0e4701f169bb742ea98f5006800229e2e3bf7e10493642f392416ac8".into()
-                    )),
-                    source: Some(
-                        "https://nodejs.org/download/release/v18.12.0/node-v18.12.0-win-x64.zip"
-                            .into()
-                    ),
                     ..Default::default()
                 }
             );
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("uninstall").arg("node").arg("18.12.0").arg("--yes");
+                    cmd.arg("uninstall")
+                        .arg("protostar")
+                        .arg("1.0.0")
+                        .arg("--yes");
                 })
                 .success();
 
             let manifest =
-                ToolManifest::load_from(sandbox.path().join(".proto/tools/node")).unwrap();
+                ToolManifest::load_from(sandbox.path().join(".proto/tools/protostar")).unwrap();
 
             assert!(manifest.versions.is_empty());
         }
@@ -980,7 +778,7 @@ asdf-repository = "https://github.com/NeoHsu/asdf-newrelic-cli"
         #[test]
         fn errors_if_checksum_mismatch() {
             let sandbox = create_empty_proto_sandbox();
-            let manifest_path = sandbox.path().join(".proto/tools/node/manifest.json");
+            let manifest_path = sandbox.path().join(".proto/tools/protostar/manifest.json");
 
             fs::create_dir_all(manifest_path.parent().unwrap()).unwrap();
 
@@ -988,7 +786,7 @@ asdf-repository = "https://github.com/NeoHsu/asdf-newrelic-cli"
                 manifest_path,
                 r#"{
     "versions": {
-        "18.12.0": {
+        "1.0.0": {
             "lock": {
                 "checksum": "sha256:12345somefakehash67890"
             }
@@ -1000,7 +798,7 @@ asdf-repository = "https://github.com/NeoHsu/asdf-newrelic-cli"
 
             let assert = sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install").arg("node").arg("18.12.0");
+                    cmd.arg("install").arg("protostar").arg("1.0.0");
                 })
                 .failure();
 

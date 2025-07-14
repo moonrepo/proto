@@ -21,7 +21,7 @@ macro_rules! assert_record {
     };
 }
 
-mod install_lockfile {
+mod install_one_lockfile {
     use super::*;
 
     mod create_or_update {
