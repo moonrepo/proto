@@ -350,9 +350,7 @@ impl ProtoConfig {
     }
 
     pub fn builtin_proto_plugin(&self) -> PluginLocator {
-        PluginLocator::Url(Box::new(UrlLocator {
-            url: "https://github.com/moonrepo/plugins/releases/download/proto_tool-v0.5.4/proto_tool.wasm".into()
-        }))
+        find_debug_locator_with_version("proto_tool", "0.5.4")
     }
 
     pub fn inherit_builtin_plugins(&mut self) {
@@ -364,54 +362,42 @@ impl ProtoConfig {
         if !self.plugins.contains_key("asdf") && is_allowed("asdf") {
             self.plugins.insert(
                 Id::raw("asdf"),
-                PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/asdf_backend-v0.3.0/asdf_backend.wasm".into()
-                }))
+                find_debug_locator_with_version("asdf_backend", "0.3.0"),
             );
         }
 
         if !self.plugins.contains_key("bun") && is_allowed("bun") {
             self.plugins.insert(
                 Id::raw("bun"),
-                PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/bun_tool-v0.16.0/bun_tool.wasm".into()
-                }))
+                find_debug_locator_with_version("bun_tool", "0.16.0"),
             );
         }
 
         if !self.plugins.contains_key("deno") && is_allowed("deno") {
             self.plugins.insert(
                 Id::raw("deno"),
-                PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/deno_tool-v0.15.4/deno_tool.wasm".into()
-                }))
+                find_debug_locator_with_version("deno_tool", "0.15.4"),
             );
         }
 
         if !self.plugins.contains_key("go") && is_allowed("go") {
             self.plugins.insert(
                 Id::raw("go"),
-                PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/go_tool-v0.16.2/go_tool.wasm".into()
-                }))
+                find_debug_locator_with_version("go_tool", "0.16.2"),
             );
         }
 
         if !self.plugins.contains_key("moon") && is_allowed("moon") {
             self.plugins.insert(
                 Id::raw("moon"),
-                PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/moon_tool-v0.3.2/moon_tool.wasm".into()
-                }))
+                find_debug_locator_with_version("moon_tool", "0.3.2"),
             );
         }
 
         if !self.plugins.contains_key("node") && is_allowed("node") {
             self.plugins.insert(
                 Id::raw("node"),
-                PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/node_tool-v0.17.0/node_tool.wasm".into()
-                }))
+                find_debug_locator_with_version("node_tool", "0.17.0"),
             );
         }
 
@@ -419,9 +405,7 @@ impl ProtoConfig {
             if !self.plugins.contains_key(depman) && is_allowed(depman) {
                 self.plugins.insert(
                     Id::raw(depman),
-                    PluginLocator::Url(Box::new(UrlLocator {
-                        url: "https://github.com/moonrepo/plugins/releases/download/node_depman_tool-v0.16.0/node_depman_tool.wasm".into()
-                    }))
+                    find_debug_locator_with_version("node_depman_tool", "0.16.0"),
                 );
             }
         }
@@ -429,54 +413,42 @@ impl ProtoConfig {
         if !self.plugins.contains_key("poetry") && is_allowed("poetry") {
             self.plugins.insert(
                 Id::raw("poetry"),
-                PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/python_poetry_tool-v0.1.3/python_poetry_tool.wasm".into()
-                }))
+                find_debug_locator_with_version("python_poetry_tool", "0.1.3"),
             );
         }
 
         if !self.plugins.contains_key("python") && is_allowed("python") {
             self.plugins.insert(
                 Id::raw("python"),
-                PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/python_tool-v0.14.2/python_tool.wasm".into()
-                }))
+                find_debug_locator_with_version("python_tool", "0.14.2"),
             );
         }
 
         if !self.plugins.contains_key("uv") && is_allowed("uv") {
             self.plugins.insert(
                 Id::raw("uv"),
-                PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/python_uv_tool-v0.3.0/python_uv_tool.wasm".into()
-                }))
+                find_debug_locator_with_version("python_uv_tool", "0.3.0"),
             );
         }
 
         if !self.plugins.contains_key("ruby") && is_allowed("ruby") {
             self.plugins.insert(
                 Id::raw("ruby"),
-                PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/ruby_tool-v0.2.2/ruby_tool.wasm".into()
-                }))
+                find_debug_locator_with_version("ruby_tool", "0.2.2"),
             );
         }
 
         if !self.plugins.contains_key("rust") && is_allowed("rust") {
             self.plugins.insert(
                 Id::raw("rust"),
-                PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/rust_tool-v0.13.3/rust_tool.wasm".into()
-                }))
+                find_debug_locator_with_version("rust_tool", "0.13.3"),
             );
         }
 
         if !self.plugins.contains_key(SCHEMA_PLUGIN_KEY) {
             self.plugins.insert(
                 Id::raw(SCHEMA_PLUGIN_KEY),
-                PluginLocator::Url(Box::new(UrlLocator {
-                    url: "https://github.com/moonrepo/plugins/releases/download/schema_tool-v0.17.4/schema_tool.wasm".into()
-                }))
+                find_debug_locator_with_version("schema_tool", "0.17.4"),
             );
         }
 
@@ -487,15 +459,8 @@ impl ProtoConfig {
 
         #[cfg(any(debug_assertions, test))]
         {
-            use warpgate::{FileLocator, test_utils::find_wasm_file_with_name};
-
-            let wasm_path = find_wasm_file_with_name("proto_mocked_tool")
+            let locator = find_debug_locator("proto_mocked_tool")
                 .expect("Test plugins not available. Run `just build-wasm` to build them!");
-
-            let locator = PluginLocator::File(Box::new(FileLocator {
-                file: fs::file_name(&wasm_path),
-                path: Some(wasm_path),
-            }));
 
             self.plugins.insert(Id::raw("moonbase"), locator.clone());
             self.plugins.insert(Id::raw("moonstone"), locator.clone());
@@ -845,4 +810,30 @@ pub struct ProtoConfigEnvOptions {
     pub check_process: bool,
     pub include_shared: bool,
     pub tool_id: Option<Id>,
+}
+
+fn find_debug_locator(name: &str) -> Option<PluginLocator> {
+    #[cfg(any(debug_assertions, test))]
+    {
+        use warpgate::{FileLocator, test_utils::find_wasm_file_with_name};
+
+        if let Some(wasm_path) = find_wasm_file_with_name(name) {
+            return Some(PluginLocator::File(Box::new(FileLocator {
+                file: fs::file_name(&wasm_path),
+                path: Some(wasm_path),
+            })));
+        }
+    }
+
+    None
+}
+
+fn find_debug_locator_with_version(name: &str, version: &str) -> PluginLocator {
+    find_debug_locator(name).unwrap_or_else(|| {
+        PluginLocator::Url(Box::new(UrlLocator {
+            url: format!(
+                "https://github.com/moonrepo/plugins/releases/download/{name}-v{version}/{name}.wasm"
+            ),
+        }))
+    })
 }
