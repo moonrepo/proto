@@ -244,10 +244,7 @@ mod plugins {
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install")
-                        .arg("node")
-                        .arg("--")
-                        .arg("--no-bundled-npm");
+                    cmd.arg("install").arg("node");
                 })
                 .success();
 
@@ -265,14 +262,11 @@ mod plugins {
         fn supports_npm() {
             let sandbox = create_empty_proto_sandbox();
 
-            sandbox
-                .run_bin(|cmd| {
-                    cmd.arg("install")
-                        .arg("node")
-                        .arg("--")
-                        .arg("--no-bundled-npm");
-                })
-                .success();
+            // sandbox
+            //     .run_bin(|cmd| {
+            //         cmd.arg("install").arg("node");
+            //     })
+            //     .success();
 
             sandbox
                 .run_bin(|cmd| {
@@ -294,14 +288,11 @@ mod plugins {
         fn supports_pnpm() {
             let sandbox = create_empty_proto_sandbox();
 
-            sandbox
-                .run_bin(|cmd| {
-                    cmd.arg("install")
-                        .arg("node")
-                        .arg("--")
-                        .arg("--no-bundled-npm");
-                })
-                .success();
+            // sandbox
+            //     .run_bin(|cmd| {
+            //         cmd.arg("install").arg("node");
+            //     })
+            //     .success();
 
             sandbox
                 .run_bin(|cmd| {
@@ -323,14 +314,11 @@ mod plugins {
         fn supports_yarn() {
             let sandbox = create_empty_proto_sandbox();
 
-            sandbox
-                .run_bin(|cmd| {
-                    cmd.arg("install")
-                        .arg("node")
-                        .arg("--")
-                        .arg("--no-bundled-npm");
-                })
-                .success();
+            // sandbox
+            //     .run_bin(|cmd| {
+            //         cmd.arg("install").arg("node");
+            //     })
+            //     .success();
 
             sandbox
                 .run_bin(|cmd| {
