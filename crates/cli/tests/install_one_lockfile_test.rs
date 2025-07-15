@@ -124,8 +124,10 @@ mod install_one_lockfile {
             let records = lockfile.tools.get("protostar").unwrap();
 
             assert_eq!(records.len(), 2);
-            assert_record!(records[0], "^5.0", "5.10.15");
-            assert_record!(records[1], "5.0.0");
+
+            // Sorted!
+            assert_record!(records[0], "5.0.0");
+            assert_record!(records[1], "^5.0", "5.10.15");
         }
 
         #[test]

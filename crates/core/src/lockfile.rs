@@ -3,6 +3,7 @@ use proto_pdk_api::Checksum;
 use serde::{Deserialize, Serialize};
 use starbase_utils::fs;
 use starbase_utils::toml::{self, TomlError};
+use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
@@ -96,6 +97,15 @@ impl ProtoLock {
         )?;
 
         Ok(())
+    }
+
+    pub fn sort_records(&mut self) {
+        for records in self.tools.values_mut() {
+            records.sort_by(|a, d| match (a.spec.as_ref(), d.spec.as_ref()) {
+                (Some(a_spec), Some(d_spec)) => a_spec.cmp(d_spec),
+                _ => Ordering::Less,
+            });
+        }
     }
 
     fn resolve_path(path: impl AsRef<Path>) -> PathBuf {
