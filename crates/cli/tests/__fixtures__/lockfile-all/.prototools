@@ -1,0 +1,7 @@
+protostar = "1"
+protoform = "2.1"
+moonbase = "3.2.1"
+moonstone = "4.10"
+
+[settings]
+unstable-lockfile = true

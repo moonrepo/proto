@@ -16,14 +16,14 @@ mod pin_local {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("pin").arg("node").arg("19.0.0");
+                cmd.arg("pin").arg("protostar").arg("1.0.0");
             })
             .success();
 
         assert!(version_file.exists());
         assert_eq!(
             fs::read_to_string(version_file).unwrap(),
-            "node = \"19.0.0\"\n"
+            "protostar = \"1.0.0\"\n"
         )
     }
 
@@ -34,20 +34,20 @@ mod pin_local {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("pin").arg("node").arg("19.0.0");
+                cmd.arg("pin").arg("protostar").arg("1.0.0");
             })
             .success();
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("pin").arg("npm").arg("9.0.0");
+                cmd.arg("pin").arg("moonstone").arg("2.0.0");
             })
             .success();
 
         assert_eq!(
             fs::read_to_string(version_file).unwrap(),
-            r#"node = "19.0.0"
-npm = "9.0.0"
+            r#"protostar = "1.0.0"
+moonstone = "2.0.0"
 "#
         )
     }
@@ -59,21 +59,21 @@ npm = "9.0.0"
 
         sandbox.create_file(
             ".prototools",
-            r#"node = "16.0.0"
-npm = "9.0.0"
+            r#"protostar = "1.0.0"
+moonstone = "2.0.0"
 "#,
         );
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("pin").arg("node").arg("19");
+                cmd.arg("pin").arg("protostar").arg("2");
             })
             .success();
 
         assert_eq!(
             fs::read_to_string(version_file).unwrap(),
-            r#"node = "~19"
-npm = "9.0.0"
+            r#"protostar = "~2"
+moonstone = "2.0.0"
 "#
         );
     }
@@ -87,14 +87,14 @@ npm = "9.0.0"
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("pin").arg("npm").arg("bundled");
+                cmd.arg("pin").arg("protostar").arg("bundled");
             })
             .success();
 
         assert!(version_file.exists());
         assert_eq!(
             fs::read_to_string(version_file).unwrap(),
-            "npm = \"bundled\"\n"
+            "protostar = \"bundled\"\n"
         )
     }
 
@@ -107,14 +107,14 @@ npm = "9.0.0"
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("pin").arg("npm").arg("1.2");
+                cmd.arg("pin").arg("protostar").arg("1.2");
             })
             .success();
 
         assert!(version_file.exists());
         assert_eq!(
             fs::read_to_string(version_file).unwrap(),
-            "npm = \"~1.2\"\n"
+            "protostar = \"~1.2\"\n"
         )
     }
 
@@ -127,14 +127,14 @@ npm = "9.0.0"
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("pin").arg("npm").arg("6").arg("--resolve");
+                cmd.arg("pin").arg("protostar").arg("5").arg("--resolve");
             })
             .success();
 
         assert!(version_file.exists());
         assert_eq!(
             fs::read_to_string(version_file).unwrap(),
-            "npm = \"6.14.18\"\n"
+            "protostar = \"5.10.15\"\n"
         )
     }
 
@@ -199,8 +199,8 @@ mod pin_global {
                 cmd.arg("pin")
                     .arg("--to")
                     .arg("global")
-                    .arg("node")
-                    .arg("19.0.0");
+                    .arg("protostar")
+                    .arg("1.0.0");
             })
             .success();
 
@@ -209,8 +209,8 @@ mod pin_global {
         let config = load_config(sandbox.path().join(".proto"));
 
         assert_eq!(
-            config.versions.get("node").unwrap(),
-            &UnresolvedVersionSpec::parse("19.0.0").unwrap()
+            config.versions.get("protostar").unwrap(),
+            &UnresolvedVersionSpec::parse("1.0.0").unwrap()
         );
     }
 
@@ -226,7 +226,7 @@ mod pin_global {
                 cmd.arg("pin")
                     .arg("--to")
                     .arg("global")
-                    .arg("npm")
+                    .arg("protostar")
                     .arg("bundled");
             })
             .success();
@@ -236,7 +236,7 @@ mod pin_global {
         let config = load_config(sandbox.path().join(".proto"));
 
         assert_eq!(
-            config.versions.get("npm").unwrap(),
+            config.versions.get("protostar").unwrap(),
             &UnresolvedVersionSpec::Alias("bundled".into())
         );
     }
@@ -253,7 +253,7 @@ mod pin_global {
                 cmd.arg("pin")
                     .arg("--to")
                     .arg("global")
-                    .arg("npm")
+                    .arg("protostar")
                     .arg("1.2");
             })
             .success();
@@ -263,7 +263,7 @@ mod pin_global {
         let config = load_config(sandbox.path().join(".proto"));
 
         assert_eq!(
-            config.versions.get("npm").unwrap(),
+            config.versions.get("protostar").unwrap(),
             &UnresolvedVersionSpec::parse("1.2").unwrap()
         );
     }
@@ -280,8 +280,8 @@ mod pin_global {
                 cmd.arg("pin")
                     .arg("--to")
                     .arg("global")
-                    .arg("npm")
-                    .arg("6")
+                    .arg("protostar")
+                    .arg("5")
                     .arg("--resolve");
             })
             .success();
@@ -291,8 +291,8 @@ mod pin_global {
         let config = load_config(sandbox.path().join(".proto"));
 
         assert_eq!(
-            config.versions.get("npm").unwrap(),
-            &UnresolvedVersionSpec::parse("6.14.18").unwrap()
+            config.versions.get("protostar").unwrap(),
+            &UnresolvedVersionSpec::parse("5.10.15").unwrap()
         );
     }
 
@@ -305,12 +305,12 @@ mod pin_global {
                 cmd.arg("pin")
                     .arg("--to")
                     .arg("global")
-                    .arg("node")
-                    .arg("20");
+                    .arg("protostar")
+                    .arg("1");
             })
             .success();
 
-        let link = get_bin_path(sandbox.path(), "node");
+        let link = get_bin_path(sandbox.path(), "protostar");
 
         assert!(!link.exists());
     }
@@ -353,8 +353,8 @@ mod pin_user {
         sandbox
             .run_bin(|cmd| {
                 cmd.arg("pin")
-                    .arg("node")
-                    .arg("19.0.0")
+                    .arg("protostar")
+                    .arg("1.0.0")
                     .arg("--to")
                     .arg("home");
             })
@@ -363,7 +363,7 @@ mod pin_user {
         assert!(version_file.exists());
         assert_eq!(
             fs::read_to_string(version_file).unwrap(),
-            "node = \"19.0.0\"\n"
+            "protostar = \"1.0.0\"\n"
         )
     }
 
