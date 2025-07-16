@@ -13,3 +13,5 @@ proto_pdk = { path = "../../crates/pdk" }
 extism-pdk = { workspace = true }
 serde = { workspace = true }
 sha2 = "0.10.9"
+starbase_utils = { workspace = true }
+tracing = { workspace = true }

@@ -8,9 +8,9 @@ node = "latest"
 # moon-test = "file://../moonrepo/plugins/target/wasm32-wasip1/release/moon_tool.wasm"
 # python-test = "file://../moonrepo/plugins/target/wasm32-wasip1/release/python_tool.wasm"
 # ruby-test = "file://../moonrepo/plugins/target/wasm32-wasip1/release/ruby_tool.wasm"
-wasm-test = "file://./plugins/target/wasm32-wasip1/release/proto_wasm_test.wasm"
+api-usage = "file://./plugins/target/wasm32-wasip1/release/api_usage_test.wasm"
 
-# [tools.wasm-test]
+# [tools.api-usage]
 # number = 123
 # string = "foo"
 # boolean = true

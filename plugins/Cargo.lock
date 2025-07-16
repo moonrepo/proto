@@ -2925,6 +2925,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "proto_api_usage"
+version = "0.0.1"
+dependencies = [
+ "extism-pdk",
+ "proto_pdk",
+ "proto_pdk_test_utils",
+ "serde",
+ "starbase_sandbox",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "proto_core"
 version = "0.50.6"
 dependencies = [
@@ -2972,6 +2985,8 @@ dependencies = [
  "proto_pdk",
  "serde",
  "sha2",
+ "starbase_utils",
+ "tracing",
 ]
 
 [[package]]
@@ -3020,18 +3035,6 @@ version = "0.7.4"
 dependencies = [
  "dirs 6.0.0",
  "windows-sys 0.60.2",
-]
-
-[[package]]
-name = "proto_wasm_test"
-version = "0.0.1"
-dependencies = [
- "extism-pdk",
- "proto_pdk",
- "proto_pdk_test_utils",
- "serde",
- "starbase_sandbox",
- "tokio",
 ]
 
 [[package]]

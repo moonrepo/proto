@@ -2,7 +2,7 @@ use extism_pdk::*;
 use proto_pdk::*;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
-use std::fs;
+use starbase_utils::fs;
 
 #[plugin_fn]
 pub fn register_tool(Json(input): Json<RegisterToolInput>) -> FnResult<Json<RegisterToolOutput>> {
@@ -128,15 +128,15 @@ pub fn native_install(
     }
 
     // Create the primary executable
-    fs::write(input.install_dir.join(env.os.get_exe_name(&id)), "")?;
+    fs::write_file(input.install_dir.join(env.os.get_exe_name(&id)), "")?;
 
     // Create other executables
     let lib_dir = input.install_dir.join("lib");
 
     fs::create_dir_all(&lib_dir)?;
-    fs::write(lib_dir.join(env.os.get_exe_name(format!("{id}-dbg"))), "")?;
-    fs::write(lib_dir.join(env.os.get_exe_name(format!("{id}-fmt"))), "")?;
-    fs::write(lib_dir.join(env.os.get_exe_name(format!("{id}x"))), "")?;
+    fs::write_file(lib_dir.join(env.os.get_exe_name(format!("{id}-dbg"))), "")?;
+    fs::write_file(lib_dir.join(env.os.get_exe_name(format!("{id}-fmt"))), "")?;
+    fs::write_file(lib_dir.join(env.os.get_exe_name(format!("{id}x"))), "")?;
 
     // We need a checksum for tests to work,
     // so base it on the version so every hash is different
@@ -163,6 +163,7 @@ pub fn locate_executables(
         id.clone(),
         ExecutableConfig::new_primary(env.os.get_exe_name(&id)),
     );
+
     output.exes.insert(
         format!("{id}x"),
         ExecutableConfig::new(env.os.get_exe_name(format!("lib/{id}x"))),

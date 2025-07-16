@@ -101,4 +101,4 @@ jobs:
       - run: just build-wasm
       - run: cargo run -- --help
       - run: cargo run -- versions node
-      - run: cargo run -- versions wasm-test
+      - run: cargo run -- versions protostar
