@@ -164,7 +164,7 @@ pub fn locate_executables(
         ExecutableConfig::new_primary(env.os.get_exe_name(&id)),
     );
     output.exes.insert(
-        id.clone(),
+        format!("{id}x"),
         ExecutableConfig::new(env.os.get_exe_name(format!("lib/{id}x"))),
     );
 
