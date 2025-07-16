@@ -1,6 +1,6 @@
 node = "latest"
 
-[plugins]
+# [plugins]
 # asdf = "file://../moonrepo/plugins/target/wasm32-wasip1/release/asdf_backend.wasm"
 # deno-test = "file://../moonrepo/plugins/target/wasm32-wasip1/release/deno_tool.wasm"
 # go-test = "file://../moonrepo/plugins/target/wasm32-wasip1/release/go_tool.wasm"
@@ -9,11 +9,10 @@ node = "latest"
 # python-test = "file://../moonrepo/plugins/target/wasm32-wasip1/release/python_tool.wasm"
 # ruby-test = "file://../moonrepo/plugins/target/wasm32-wasip1/release/ruby_tool.wasm"
 # api-usage = "file://./plugins/target/wasm32-wasip1/release/proto_api_usage.wasm"
-api-usage = "file:///Users/miles/.cargo/shared-target/wasm32-wasip1/release/proto_api_usage.wasm"
 
-[tools.api-usage]
-number = 123
-string = "foo"
-boolean = true
-list = ["a", "b", "c"]
-map = { "a" = 123 }
+# [tools.api-usage]
+# number = 123
+# string = "foo"
+# boolean = true
+# list = ["a", "b", "c"]
+# map = { "a" = 123 }
