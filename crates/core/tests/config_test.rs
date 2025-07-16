@@ -626,7 +626,7 @@ builtin-plugins = ["node", "go"]
                 BuiltinPlugins::Allowed(vec!["node".into(), "go".into()])
             );
 
-            assert_eq!(config.builtin_plugins().len(), 6);
+            assert_eq!(config.builtin_plugins().len(), 8);
             assert_eq!(
                 config.builtin_plugins().keys().collect::<Vec<_>>(),
                 [
