@@ -92,12 +92,14 @@ pub fn testing_macros(_: ()) -> FnResult<()> {
 
 #[plugin_fn]
 pub fn register_tool(_: ()) -> FnResult<Json<RegisterToolOutput>> {
+    initialize_tracing();
+
     host_log!(stdout, "Registering tool");
-    tracing::error!("Error");
-    tracing::warn!("Warning");
-    tracing::info!("Info");
-    tracing::debug!("Debug");
-    tracing::trace!("Trace");
+    tracing::error!(num = 123, "Error");
+    tracing::warn!(bool = true, "Warning");
+    tracing::info!(str = "string", "Info");
+    tracing::debug!(vec = ?[1,2,3], "Debug");
+    tracing::trace!(tup = ?("a", "b", "c"), "Trace");
 
     let config = get_tool_config::<WasmTestConfig>()?;
 

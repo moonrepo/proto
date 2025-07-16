@@ -9,7 +9,7 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-proto_pdk = { path = "../../crates/pdk" }
+proto_pdk = { path = "../../crates/pdk", features = ["tracing"] }
 extism-pdk = { workspace = true }
 serde = { workspace = true }
 sha2 = "0.10.9"

@@ -2997,6 +2997,8 @@ dependencies = [
  "proto_pdk_api",
  "rustc-hash",
  "serde",
+ "tracing",
+ "tracing-subscriber",
  "warpgate_pdk",
 ]
 

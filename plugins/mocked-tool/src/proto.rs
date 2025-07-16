@@ -6,6 +6,8 @@ use starbase_utils::fs;
 
 #[plugin_fn]
 pub fn register_tool(Json(input): Json<RegisterToolInput>) -> FnResult<Json<RegisterToolOutput>> {
+    initialize_tracing();
+
     Ok(Json(RegisterToolOutput {
         name: input.id.clone(),
         type_of: PluginType::CommandLine,

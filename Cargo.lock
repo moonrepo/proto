@@ -3188,9 +3188,12 @@ name = "proto_pdk"
 version = "0.29.1"
 dependencies = [
  "extism-pdk",
+ "proto_pdk",
  "proto_pdk_api",
  "rustc-hash",
  "serde",
+ "tracing",
+ "tracing-subscriber",
  "warpgate_pdk",
 ]
 
