@@ -29,19 +29,19 @@ mod unpin_local {
             config
                 .versions
                 .get_or_insert(Default::default())
-                .insert(Id::raw("node"), UnresolvedVersionSpec::Canary.into());
+                .insert(Id::raw("protostar"), UnresolvedVersionSpec::Canary.into());
         })
         .unwrap();
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("unpin").arg("node");
+                cmd.arg("unpin").arg("protostar");
             })
             .success();
 
         let config = load_config(sandbox.path());
 
-        assert!(!config.versions.contains_key("node"));
+        assert!(!config.versions.contains_key("protostar"));
     }
 
     #[test]
@@ -52,13 +52,13 @@ mod unpin_local {
             config
                 .versions
                 .get_or_insert(Default::default())
-                .insert(Id::raw("bun"), UnresolvedVersionSpec::Canary.into());
+                .insert(Id::raw("moonstone"), UnresolvedVersionSpec::Canary.into());
         })
         .unwrap();
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("unpin").arg("node");
+                cmd.arg("unpin").arg("protostar");
             })
             .failure();
 
@@ -66,7 +66,7 @@ mod unpin_local {
 
         assert_eq!(
             config.versions,
-            BTreeMap::from_iter([(Id::raw("bun"), UnresolvedVersionSpec::Canary.into())])
+            BTreeMap::from_iter([(Id::raw("moonstone"), UnresolvedVersionSpec::Canary.into())])
         );
     }
 }
@@ -82,19 +82,22 @@ mod unpin_global {
             config
                 .versions
                 .get_or_insert(Default::default())
-                .insert(Id::raw("node"), UnresolvedVersionSpec::Canary.into());
+                .insert(Id::raw("protostar"), UnresolvedVersionSpec::Canary.into());
         })
         .unwrap();
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("unpin").arg("node").arg("--from").arg("global");
+                cmd.arg("unpin")
+                    .arg("protostar")
+                    .arg("--from")
+                    .arg("global");
             })
             .success();
 
         let config = load_config(sandbox.path().join(".proto"));
 
-        assert!(!config.versions.contains_key("node"));
+        assert!(!config.versions.contains_key("protostar"));
     }
 }
 
@@ -109,18 +112,18 @@ mod unpin_user {
             config
                 .versions
                 .get_or_insert(Default::default())
-                .insert(Id::raw("node"), UnresolvedVersionSpec::Canary.into());
+                .insert(Id::raw("protostar"), UnresolvedVersionSpec::Canary.into());
         })
         .unwrap();
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("unpin").arg("node").arg("--from").arg("user");
+                cmd.arg("unpin").arg("protostar").arg("--from").arg("user");
             })
             .success();
 
         let config = load_config(sandbox.path().join(".home"));
 
-        assert!(!config.versions.contains_key("node"));
+        assert!(!config.versions.contains_key("protostar"));
     }
 }

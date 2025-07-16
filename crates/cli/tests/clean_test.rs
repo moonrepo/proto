@@ -21,12 +21,12 @@ mod clean {
     #[test]
     fn cleans_plugins() {
         let sandbox = create_empty_proto_sandbox();
-        sandbox.create_file(".proto/plugins/node_plugin.wasm", "{}");
-        sandbox.create_file(".proto/plugins/npm_plugin.wasm", "{}");
+        sandbox.create_file(".proto/plugins/a_plugin.wasm", "{}");
+        sandbox.create_file(".proto/plugins/b_plugin.wasm", "{}");
 
         fs::File::options()
             .write(true)
-            .open(sandbox.path().join(".proto/plugins/node_plugin.wasm"))
+            .open(sandbox.path().join(".proto/plugins/a_plugin.wasm"))
             .unwrap()
             .set_times(
                 fs::FileTimes::new().set_accessed(
@@ -47,17 +47,7 @@ mod clean {
             })
             .success();
 
-        assert!(
-            !sandbox
-                .path()
-                .join(".proto/plugins/node_plugin.wasm")
-                .exists()
-        );
-        assert!(
-            sandbox
-                .path()
-                .join(".proto/plugins/npm_plugin.wasm")
-                .exists()
-        );
+        assert!(!sandbox.path().join(".proto/plugins/a_plugin.wasm").exists());
+        assert!(sandbox.path().join(".proto/plugins/b_plugin.wasm").exists());
     }
 }

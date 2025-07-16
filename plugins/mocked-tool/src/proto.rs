@@ -7,9 +7,14 @@ use std::fs;
 #[plugin_fn]
 pub fn register_tool(Json(input): Json<RegisterToolInput>) -> FnResult<Json<RegisterToolOutput>> {
     Ok(Json(RegisterToolOutput {
-        name: input.id,
+        name: input.id.clone(),
         type_of: PluginType::CommandLine,
         plugin_version: Version::parse(env!("CARGO_PKG_VERSION")).ok(),
+        requires: if input.id == "moonbase" {
+            vec!["moonstone".into()]
+        } else {
+            vec![]
+        },
         ..RegisterToolOutput::default()
     }))
 }
@@ -157,6 +162,10 @@ pub fn locate_executables(
     output.exes.insert(
         id.clone(),
         ExecutableConfig::new_primary(env.os.get_exe_name(&id)),
+    );
+    output.exes.insert(
+        format!("{id}x"),
+        ExecutableConfig::new(env.os.get_exe_name(format!("lib/{id}x"))),
     );
 
     output.exes_dirs.push("lib".into());

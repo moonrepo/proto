@@ -1,4 +1,4 @@
-# elixir = "asdf:latest"
+node = "latest"
 
 [plugins]
 # asdf = "file://../moonrepo/plugins/target/wasm32-wasip1/release/asdf_backend.wasm"

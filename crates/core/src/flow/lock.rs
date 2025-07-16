@@ -9,7 +9,7 @@ use version_spec::VersionSpec;
 //      [x] resolve version from lockfile
 //      [x] validate lock record
 //      [x] create lockfile if it does not exist
-//      [ ] error if spec/req is not found in lockfile
+//      [x] error if spec/req is not found in lockfile
 // [x] install one
 //      [x] resolve version from lockfile
 //      [x] validate lock record
@@ -56,6 +56,7 @@ impl Tool {
             }
         };
 
+        lock.sort_records();
         lock.save()?;
 
         Ok(())
@@ -96,6 +97,7 @@ impl Tool {
             lock.tools.remove(&self.id);
         }
 
+        lock.sort_records();
         lock.save()?;
 
         Ok(())

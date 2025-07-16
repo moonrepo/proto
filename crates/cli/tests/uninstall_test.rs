@@ -11,11 +11,14 @@ mod uninstall {
         let sandbox = create_empty_proto_sandbox();
 
         let assert = sandbox.run_bin(|cmd| {
-            cmd.arg("uninstall").arg("node").arg("19.0.0").arg("--yes");
+            cmd.arg("uninstall")
+                .arg("protostar")
+                .arg("1.0.0")
+                .arg("--yes");
         });
 
         assert.inner.stdout(predicate::str::contains(
-            "Node.js 19.0.0 has not been installed locally",
+            "protostar 1.0.0 has not been installed locally",
         ));
     }
 
@@ -25,21 +28,24 @@ mod uninstall {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("install").arg("node").arg("19.0.0");
+                cmd.arg("install").arg("protostar").arg("1.0.0");
             })
             .success();
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("uninstall").arg("node").arg("19.0.0").arg("--yes");
+                cmd.arg("uninstall")
+                    .arg("protostar")
+                    .arg("1.0.0")
+                    .arg("--yes");
             })
             .success();
 
-        assert!(!sandbox.path().join(".proto/tools/node/19.0.0").exists());
+        assert!(!sandbox.path().join(".proto/tools/protostar/1.0.0").exists());
         assert!(
             sandbox
                 .path()
-                .join(".proto/tools/node/manifest.json")
+                .join(".proto/tools/protostar/manifest.json")
                 .exists()
         );
     }
@@ -49,11 +55,11 @@ mod uninstall {
         let sandbox = create_empty_proto_sandbox();
 
         let assert = sandbox.run_bin(|cmd| {
-            cmd.arg("uninstall").arg("node").arg("--yes");
+            cmd.arg("uninstall").arg("protostar").arg("--yes");
         });
 
         assert.inner.stdout(predicate::str::contains(
-            "Node.js has not been installed locally",
+            "protostar has not been installed locally",
         ));
     }
 
@@ -63,42 +69,45 @@ mod uninstall {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("install").arg("node").arg("19.0.0");
+                cmd.arg("install").arg("protostar").arg("1.0.0");
             })
             .success();
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("install").arg("node").arg("20.0.0");
+                cmd.arg("install").arg("protostar").arg("2.0.0");
             })
             .success();
 
-        assert!(sandbox.path().join(".proto/tools/node/19.0.0").exists());
-        assert!(sandbox.path().join(".proto/tools/node/20.0.0").exists());
+        assert!(sandbox.path().join(".proto/tools/protostar/1.0.0").exists());
+        assert!(sandbox.path().join(".proto/tools/protostar/2.0.0").exists());
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("uninstall").arg("node").arg("--yes");
+                cmd.arg("uninstall").arg("protostar").arg("--yes");
             })
             .success();
 
-        assert!(!sandbox.path().join(".proto/tools/node").exists());
+        assert!(!sandbox.path().join(".proto/tools/protostar").exists());
     }
 
     #[test]
     fn unpins_from_config() {
         let sandbox = create_empty_proto_sandbox();
-        sandbox.create_file(".prototools", r#"node = "19.0.0""#);
+        sandbox.create_file(".prototools", r#"protostar = "1.0.0""#);
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("install").arg("node").arg("19.0.0");
+                cmd.arg("install").arg("protostar").arg("1.0.0");
             })
             .success();
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("uninstall").arg("node").arg("19.0.0").arg("--yes");
+                cmd.arg("uninstall")
+                    .arg("protostar")
+                    .arg("1.0.0")
+                    .arg("--yes");
             })
             .success();
 
@@ -113,17 +122,19 @@ mod uninstall {
     #[test]
     fn removes_tool_bins() {
         let sandbox = create_empty_proto_sandbox();
-        sandbox.create_file(".proto/tools/node/1.2.3/fake/file", "");
+        sandbox.create_file(".proto/tools/protostar/1.2.3/fake/file", "");
         sandbox.create_file(
-            ".proto/tools/node/manifest.json",
+            ".proto/tools/protostar/manifest.json",
             r#"{ "installed_versions": ["1.2.3"] }"#,
         );
         sandbox.create_file(".proto/bin/other", "");
 
-        let bin1 = sandbox.path().join(".proto/bin/node");
-        let bin2 = sandbox.path().join(".proto/bin/node-1");
-        let bin3 = sandbox.path().join(".proto/bin/node-1.2");
-        let src = sandbox.path().join(".proto/tools/node/1.2.3/fake/file");
+        let bin1 = sandbox.path().join(".proto/bin/protostar");
+        let bin2 = sandbox.path().join(".proto/bin/protostar-1");
+        let bin3 = sandbox.path().join(".proto/bin/protostar-1.2");
+        let src = sandbox
+            .path()
+            .join(".proto/tools/protostar/1.2.3/fake/file");
 
         std::fs::soft_link(&src, &bin1).unwrap();
         std::fs::soft_link(&src, &bin2).unwrap();
@@ -131,7 +142,7 @@ mod uninstall {
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("uninstall").arg("--yes").arg("node");
+                cmd.arg("uninstall").arg("--yes").arg("protostar");
             })
             .success();
 
@@ -146,24 +157,20 @@ mod uninstall {
     #[test]
     fn removes_tool_shims() {
         let sandbox = create_empty_proto_sandbox();
-        sandbox.create_file(".proto/tools/npm/manifest.json", "{}");
-        sandbox.create_file(".proto/shims/npm", "");
-        sandbox.create_file(".proto/shims/npm.exe", "");
-        sandbox.create_file(".proto/shims/npx", "");
-        sandbox.create_file(".proto/shims/npx.exe", "");
+        sandbox.create_file(".proto/tools/protostar/manifest.json", "{}");
+        sandbox.create_file(".proto/shims/protostar", "");
+        sandbox.create_file(".proto/shims/protostar.exe", "");
 
         sandbox
             .run_bin(|cmd| {
-                cmd.arg("uninstall").arg("--yes").arg("npm");
+                cmd.arg("uninstall").arg("--yes").arg("protostar");
             })
             .success();
 
         if cfg!(windows) {
-            assert!(!sandbox.path().join(".proto/shims/npm.exe").exists());
-            assert!(!sandbox.path().join(".proto/shims/npx.exe").exists());
+            assert!(!sandbox.path().join(".proto\\shims\\protostar.exe").exists());
         } else {
-            assert!(!sandbox.path().join(".proto/shims/npm").exists());
-            assert!(!sandbox.path().join(".proto/shims/npx").exists());
+            assert!(!sandbox.path().join(".proto/shims/protostar").exists());
         }
     }
 }
