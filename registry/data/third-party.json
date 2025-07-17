@@ -1175,7 +1175,7 @@
       "name": "vale",
       "description": "Vale is an open-source, command-line tool that brings your editorial style guide to life.",
       "author": "risk1996",
-      "homepageUrl": "https://vale.sh",
+      "homepageUrl": "https://vale.sh/",
       "repositoryUrl": "https://github.com/risk1996/proto-plugins",
       "bins": [
         "vale"

@@ -110,7 +110,7 @@ impl Tool {
                 manifest,
                 create_host_functions(HostData {
                     cache_dir: proto.store.cache_dir.clone(),
-                    http_client: Arc::clone(proto.get_plugin_loader()?.get_client()?),
+                    http_client: Arc::clone(proto.get_plugin_loader()?.get_http_client()?),
                     virtual_paths: proto.get_virtual_paths(),
                     working_dir: proto.working_dir.clone(),
                 }),

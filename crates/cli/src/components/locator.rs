@@ -28,7 +28,7 @@ pub fn Locator<'a>(props: &LocatorProps<'a>) -> impl Into<AnyElement<'a>> + use<
                 value: element! {
                     StyledText(
                         content: path.image.clone(),
-                        style: Style::Path
+                        style: Style::File
                     )
                 }.into_any()
             )

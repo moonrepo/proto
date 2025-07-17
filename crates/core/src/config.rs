@@ -75,6 +75,30 @@ where
     Ok(Some(prev))
 }
 
+fn validate_default_registry(
+    value: &str,
+    partial: &PartialProtoSettingsConfig,
+    _context: &(),
+    finalize: bool,
+) -> ValidateResult {
+    if finalize
+        && let Some(registries) = &partial.registries
+        && !registries.iter().any(|reg| reg.registry == value)
+    {
+        let existing = registries
+            .iter()
+            .map(|reg| reg.registry.clone())
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        return Err(ValidateError::new(format!(
+            "default registry {value} does not exist, available registries: {existing}"
+        )));
+    }
+
+    Ok(())
+}
+
 fn validate_reserved_words(
     value: &BTreeMap<Id, PluginLocator>,
     _partial: &PartialProtoConfig,
@@ -248,6 +272,10 @@ pub struct ProtoSettingsConfig {
     #[setting(env = "PROTO_CACHE_DURATION")]
     pub cache_duration: Option<u64>,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[setting(env = "PROTO_DEFAULT_REGISTRY", validate = validate_default_registry)]
+    pub default_registry: Option<String>,
+
     #[setting(env = "PROTO_DETECT_STRATEGY")]
     pub detect_strategy: DetectStrategy,
 
@@ -263,15 +291,16 @@ pub struct ProtoSettingsConfig {
     #[setting(env = "PROTO_PIN_LATEST")]
     pub pin_latest: Option<PinLocation>,
 
+    #[setting(merge = merge::append_vec)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub registries: Vec<RegistryConfig>,
+
     #[setting(default = true, env = "PROTO_TELEMETRY", parse_env = env::parse_bool)]
     pub telemetry: bool,
 
     #[setting(merge = merge_indexmap)]
     #[serde(skip_serializing_if = "IndexMap::is_empty")]
     pub url_rewrites: IndexMap<RegexSetting, String>,
-
-    #[setting(merge = merge::append_vec)]
-    pub registries: Option<Vec<RegistryConfig>>,
 }
 
 #[derive(Clone, Config, Debug, Serialize)]
