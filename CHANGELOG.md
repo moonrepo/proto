@@ -42,8 +42,7 @@
   - Added a new `registry://` locator: `registry://ghcr.io/org/plugin`.
   - Plugins are stored as a layer/artifact within the OCI image.
   - Supports all plugin formats, WASM, TOML, JSON, and YAML.
-  - Can customize registries with the new `settings.registries` setting.
-  - Can set the default registry with the `settings.default-registry` setting.
+  - Can customize registries with the new `settings.unstable-registries` setting.
 
 #### ⚙️ Internal
 
