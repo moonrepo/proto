@@ -13,3 +13,10 @@ warpgate_pdk = { version = "0.14.1", path = "../warpgate-pdk" }
 extism-pdk = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
+
+[dev-dependencies]
+proto_pdk = { path = ".", features = ["tracing"] }
+
+[features]
+default = []
+tracing = ["warpgate_pdk/tracing"]

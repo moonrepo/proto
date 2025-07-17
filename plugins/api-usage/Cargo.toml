@@ -1,5 +1,5 @@
 [package]
-name = "proto_wasm_test"
+name = "proto_api_usage"
 version = "0.0.1"
 edition = "2024"
 license = "MIT"
@@ -9,9 +9,10 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-proto_pdk = { path = "../../crates/pdk" }
+proto_pdk = { path = "../../crates/pdk", features = ["tracing"] }
 extism-pdk = { workspace = true }
 serde = { workspace = true }
+tracing = { workspace = true }
 
 [dev-dependencies]
 proto_pdk_test_utils = { path = "../../crates/pdk-test-utils" }
