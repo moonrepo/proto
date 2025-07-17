@@ -292,7 +292,7 @@ pub struct ProtoSettingsConfig {
     pub pin_latest: Option<PinLocation>,
 
     #[setting(merge = merge::append_vec)]
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(alias = "unstable-registries", skip_serializing_if = "Vec::is_empty")]
     pub registries: Vec<RegistryConfig>,
 
     #[setting(default = true, env = "PROTO_TELEMETRY", parse_env = env::parse_bool)]
