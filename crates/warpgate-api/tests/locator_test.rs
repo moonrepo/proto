@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use warpgate_api::{FileLocator, GitHubLocator, PluginLocator, UrlLocator};
+use warpgate_api::{FileLocator, GitHubLocator, PluginLocator, RegistryLocator, UrlLocator};
 
 mod locator {
     use super::*;
@@ -95,8 +95,6 @@ mod locator {
     }
 
     mod registry {
-        use warpgate_api::RegistryLocator;
-
         use super::*;
 
         #[test]
@@ -117,7 +115,7 @@ mod locator {
                 PluginLocator::try_from("registry://java".to_string()).unwrap(),
                 PluginLocator::Registry(Box::new(RegistryLocator {
                     registry: None,
-                    repo_slug: None,
+                    namespace: None,
                     tag: None,
                     image: "java".into(),
                 }))
@@ -129,8 +127,8 @@ mod locator {
             assert_eq!(
                 PluginLocator::try_from("registry://moonrepo/java".to_string()).unwrap(),
                 PluginLocator::Registry(Box::new(RegistryLocator {
-                    registry: Some("moonrepo".into()),
-                    repo_slug: None,
+                    registry: None,
+                    namespace: Some("moonrepo".into()),
                     tag: None,
                     image: "java".into(),
                 }))
@@ -145,8 +143,24 @@ mod locator {
                 )
                 .unwrap(),
                 PluginLocator::Registry(Box::new(RegistryLocator {
-                    registry: Some("moonrepo".into()),
-                    repo_slug: Some("org/namespace1/namspace2".into()),
+                    registry: None,
+                    namespace: Some("moonrepo/org/namespace1/namspace2".into()),
+                    tag: None,
+                    image: "java".into(),
+                }))
+            );
+        }
+
+        #[test]
+        fn parses_deep_slug_with_domain() {
+            assert_eq!(
+                PluginLocator::try_from(
+                    "registry://registry.moonrepo.dev/org/namespace1/namspace2/java".to_string()
+                )
+                .unwrap(),
+                PluginLocator::Registry(Box::new(RegistryLocator {
+                    registry: Some("registry.moonrepo.dev".into()),
+                    namespace: Some("org/namespace1/namspace2".into()),
                     tag: None,
                     image: "java".into(),
                 }))
@@ -161,8 +175,25 @@ mod locator {
                 )
                 .unwrap(),
                 PluginLocator::Registry(Box::new(RegistryLocator {
-                    registry: Some("moonrepo".into()),
-                    repo_slug: Some("org/namespace1/namspace2".into()),
+                    registry: None,
+                    namespace: Some("moonrepo/org/namespace1/namspace2".into()),
+                    tag: Some("something".into()),
+                    image: "java".into(),
+                }))
+            );
+        }
+
+        #[test]
+        fn parses_tag_data_with_domain() {
+            assert_eq!(
+                PluginLocator::try_from(
+                    "registry://ghcr.io/moonrepo/org/namespace1/namspace2/java:something"
+                        .to_string()
+                )
+                .unwrap(),
+                PluginLocator::Registry(Box::new(RegistryLocator {
+                    registry: Some("ghcr.io".into()),
+                    namespace: Some("moonrepo/org/namespace1/namspace2".into()),
                     tag: Some("something".into()),
                     image: "java".into(),
                 }))

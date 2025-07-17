@@ -175,7 +175,7 @@ impl Tool {
                 .as_ref()
                 .expect("Console required for builder!"),
             install_dir,
-            http_client: self.proto.get_plugin_loader()?.get_client()?,
+            http_client: self.proto.get_plugin_loader()?.get_http_client()?,
             log_writer: options
                 .log_writer
                 .as_ref()
@@ -239,7 +239,7 @@ impl Tool {
             });
         }
 
-        let client = self.proto.get_plugin_loader()?.get_client()?;
+        let client = self.proto.get_plugin_loader()?.get_http_client()?;
         let config = self.proto.load_config()?;
 
         let output: DownloadPrebuiltOutput = self

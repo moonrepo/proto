@@ -1,18 +1,21 @@
 use crate::client::{HttpClient, HttpOptions, create_http_client_with_options};
 use crate::client_error::WarpgateClientError;
+use crate::endpoints::*;
 use crate::helpers::{
     create_cache_key, determine_cache_extension, download_from_url_to_file, move_or_unpack_download,
 };
 use crate::id::Id;
 use crate::loader_error::WarpgateLoaderError;
-use crate::{
+use crate::registry_config::{
     RegistryConfig, WASM_LAYER_MEDIA_TYPE_JSON, WASM_LAYER_MEDIA_TYPE_TOML,
-    WASM_LAYER_MEDIA_TYPE_WASM, WASM_LAYER_MEDIA_TYPE_YAML, endpoints::*,
+    WASM_LAYER_MEDIA_TYPE_WASM, WASM_LAYER_MEDIA_TYPE_YAML,
 };
 use docker_credential::{CredentialRetrievalError, DockerCredential};
-use oci_client::Reference;
-use oci_client::client::{Client, ClientConfig};
-use oci_client::secrets::RegistryAuth;
+use oci_client::{
+    Reference,
+    client::{Client as OciClient, ClientConfig},
+    secrets::RegistryAuth,
+};
 use once_cell::sync::OnceCell;
 use starbase_archive::is_supported_archive_extension;
 use starbase_styles::color;
@@ -22,7 +25,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 use tracing::{debug, instrument, trace, warn};
-use warpgate_api::{FileLocator, GitHubLocator, PluginLocator, UrlLocator};
+use warpgate_api::{FileLocator, GitHubLocator, PluginLocator, RegistryLocator, UrlLocator};
+
 pub type OfflineChecker = Arc<fn() -> bool>;
 
 /// A system for loading plugins from a locator strategy,
@@ -53,8 +57,8 @@ pub struct PluginLoader {
     /// Plugin registry locations
     registries: Vec<RegistryConfig>,
 
-    /// OCI client
-    oci_client: OnceCell<Arc<Client>>,
+    /// OCI client instance.
+    oci_client: OnceCell<Arc<OciClient>>,
 }
 
 impl PluginLoader {
@@ -77,24 +81,26 @@ impl PluginLoader {
         }
     }
 
+    /// Add an OCI registry as a backend.
     pub fn add_registry(&mut self, registry: RegistryConfig) {
         self.registries.push(registry);
     }
 
+    /// Add multiple OCI registries as a backend.
     pub fn add_registries(&mut self, registries: Vec<RegistryConfig>) {
-        for r in registries {
-            self.add_registry(r);
+        for registry in registries {
+            self.add_registry(registry);
         }
     }
 
     /// Return an OCI client, or create it is it does not exists.
-    pub fn get_oci_client(&self) -> Result<&Arc<Client>, WarpgateClientError> {
+    pub fn get_oci_client(&self) -> Result<&Arc<OciClient>, WarpgateClientError> {
         self.oci_client
-            .get_or_try_init(|| Ok(Arc::new(Client::new(ClientConfig::default()))))
+            .get_or_try_init(|| Ok(Arc::new(OciClient::new(ClientConfig::default()))))
     }
 
     /// Return the HTTP client, or create it if it does not exist.
-    pub fn get_client(&self) -> Result<&Arc<HttpClient>, WarpgateClientError> {
+    pub fn get_http_client(&self) -> Result<&Arc<HttpClient>, WarpgateClientError> {
         self.http_client
             .get_or_try_init(|| create_http_client_with_options(&self.http_options).map(Arc::new))
     }
@@ -186,25 +192,27 @@ impl PluginLoader {
     pub async fn load_plugin_from_registry<I: AsRef<Id> + Debug>(
         &self,
         id: I,
-        locator: &warpgate_api::RegistryLocator,
+        locator: &RegistryLocator,
     ) -> Result<PathBuf, WarpgateLoaderError> {
         let id = id.as_ref();
         let location = locator.image.as_str();
-        let mut registries = self.registries.clone();
+        let mut registries = vec![];
 
         debug!(
             locator = ?locator,
-            "Scan and load from registries"
+            "Scanning and loading from registries"
         );
 
         if let Some(registry) = &locator.registry {
             registries.push(RegistryConfig {
                 registry: registry.to_string(),
-                organization: locator.repo_slug.clone(),
+                namespace: locator.namespace.clone(),
             });
         }
 
-        let tag = locator.tag.clone().unwrap_or("latest".into());
+        registries.extend(self.registries.clone());
+
+        let tag = locator.tag.as_deref().unwrap_or("latest");
 
         for registry in registries {
             debug!("Searching registry {} for {id}:{tag}", registry.registry);
@@ -230,19 +238,14 @@ impl PluginLoader {
                     RegistryAuth::Anonymous
                 }
             };
-            let image_ref = if let Some(org) = &registry.organization {
-                // If the registry has an organization, prepend it to the image reference
-                format!("{}/{}/{}:{tag}", registry.registry, org, id)
-            } else {
-                format!("{}/{}:{tag}", registry.registry, id)
-            };
 
-            let search_reference = Reference::try_from(image_ref.as_str()).unwrap();
+            let search_ref =
+                Reference::try_from(registry.get_reference_with_tag(id, tag).as_str()).unwrap();
 
             let Ok(image) = self
                 .get_oci_client()?
                 .pull(
-                    &search_reference,
+                    &search_ref,
                     &auth,
                     vec![
                         WASM_LAYER_MEDIA_TYPE_WASM,
@@ -280,12 +283,14 @@ impl PluginLoader {
                     "{id}-{}{ext}",
                     layer.sha256_digest().strip_prefix("sha256:").unwrap()
                 ));
-                starbase_utils::fs::write_file(&file_path, &layer.data).map_err(|e| {
+
+                fs::write_file(&file_path, &layer.data).map_err(|e| {
                     WarpgateLoaderError::OCIReferenceError {
                         message: e.to_string(),
                         location: location.to_string(),
                     }
                 })?;
+
                 return Ok(file_path);
             }
         }
@@ -404,7 +409,7 @@ impl PluginLoader {
 
         let temp_file = self.temp_dir.join(fs::file_name(&dest_file));
 
-        download_from_url_to_file(source_url, &temp_file, self.get_client()?).await?;
+        download_from_url_to_file(source_url, &temp_file, self.get_http_client()?).await?;
         move_or_unpack_download(&temp_file, &dest_file)?;
 
         Ok(dest_file)
@@ -453,14 +458,15 @@ impl PluginLoader {
         if let Some(tag) = &github.tag {
             found_tag = Some(tag.to_owned())
         } else if let Some(tag_prefix) = &github.project_name {
-            found_tag = send_github_request::<Vec<GitHubApiTag>>(self.get_client()?, &tags_url)
-                .await?
-                .into_iter()
-                .find(|row| {
-                    row.name.starts_with(format!("{tag_prefix}@").as_str())
-                        || row.name.starts_with(format!("{tag_prefix}-").as_str())
-                })
-                .map(|row| row.name);
+            found_tag =
+                send_github_request::<Vec<GitHubApiTag>>(self.get_http_client()?, &tags_url)
+                    .await?
+                    .into_iter()
+                    .find(|row| {
+                        row.name.starts_with(format!("{tag_prefix}@").as_str())
+                            || row.name.starts_with(format!("{tag_prefix}-").as_str())
+                    })
+                    .map(|row| row.name);
         } else {
             found_tag = Some("latest".into());
         }
@@ -492,7 +498,7 @@ impl PluginLoader {
         );
 
         let release: GitHubApiRelease =
-            send_github_request(self.get_client()?, &release_url).await?;
+            send_github_request(self.get_http_client()?, &release_url).await?;
 
         // Find a direct WASM asset first
         for asset in &release.assets {
