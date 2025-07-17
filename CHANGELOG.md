@@ -41,7 +41,6 @@
 
 #### ⚙️ Internal
 
-- Updated logging within WASM plugins to be bubbled up to the host under the `extism::pdk` prefix. This is currently experimental!
 - Updated dependencies.
 
 ## 0.50.5
