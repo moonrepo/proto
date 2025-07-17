@@ -59,8 +59,17 @@ pub fn locate_tool(id: &Id, proto: &ProtoEnvironment) -> Result<PluginLocator, P
     }
 
     // Search in registries
-    if locator.is_none() && config.settings.registries.is_some() {
-        if let Ok(maybe_locator) = PluginLocator::try_from(format!("registry://{}", id.as_str())) {
+    if locator.is_none()
+        && let Some(default_registry) = &config.settings.default_registry
+        && let Some(registry) = config
+            .settings
+            .registries
+            .iter()
+            .find(|reg| &reg.registry == default_registry)
+    {
+        if let Ok(maybe_locator) =
+            PluginLocator::try_from(format!("registry://{}", registry.get_reference(id)))
+        {
             debug!(
                 plugin = maybe_locator.to_string(),
                 "Using a registry plugin"

@@ -130,7 +130,10 @@ impl Tool {
                         &src,
                         &backend_dir,
                         &self.proto.store.temp_dir,
-                        self.proto.get_plugin_loader()?.get_client()?.to_inner(),
+                        self.proto
+                            .get_plugin_loader()?
+                            .get_http_client()?
+                            .to_inner(),
                     )
                     .await?;
                 }

@@ -57,20 +57,20 @@ pub struct UrlLocator {
     pub url: String,
 }
 
-/// A OCI Registry locator.
+/// An OCI registry locator.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct RegistryLocator {
-    /// Registry host, e.g. docker.io
+    /// Registry host: `ghcr.io`.
     pub registry: Option<String>,
 
-    /// namespace and organization structure: `org/namespace1/namespace2`.
-    pub repo_slug: Option<String>,
+    /// Namespace or organization: `org/namespace`.
+    pub namespace: Option<String>,
+
+    /// The image name (plugin identifier): `plugin`
+    pub image: String,
 
     /// Explicit release tag to use. Defaults to `latest`.
     pub tag: Option<String>,
-
-    /// The image name, e.g., `python`.
-    pub image: String,
 }
 
 /// Strategies and protocols for locating plugins.
@@ -132,7 +132,20 @@ impl Display for PluginLocator {
                     .map(|t| format!("@{t}"))
                     .unwrap_or_default()
             ),
-            PluginLocator::Registry(registry) => write!(f, "registry://{}", registry.image),
+            PluginLocator::Registry(registry) => write!(
+                f,
+                "registry://{}:{}",
+                vec![
+                    registry.registry.clone(),
+                    registry.namespace.clone(),
+                    Some(registry.image.clone())
+                ]
+                .into_iter()
+                .flatten()
+                .collect::<Vec<_>>()
+                .join("/"),
+                registry.tag.as_deref().unwrap_or("latest")
+            ),
         }
     }
 }
@@ -218,8 +231,13 @@ impl TryFrom<String> for PluginLocator {
                 }
 
                 if let Some(index) = query.find("/") {
-                    registry.registry = Some(query[0..index].into());
-                    query = &query[index + 1..];
+                    let inner = &query[0..index];
+
+                    // Domains contain a period for the TLD
+                    if inner.contains('.') {
+                        registry.registry = Some(inner.into());
+                        query = &query[index + 1..];
+                    }
                 }
 
                 if let Some(index) = query.rfind('/') {
@@ -231,7 +249,7 @@ impl TryFrom<String> for PluginLocator {
                 }
 
                 if !query.is_empty() {
-                    registry.repo_slug = Some(query.into());
+                    registry.namespace = Some(query.into());
                 }
 
                 if registry.image.is_empty() {

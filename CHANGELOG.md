@@ -26,16 +26,21 @@
 - Added unstable lockfile support through a `.protolock` file.
   - Can be enabled per-project with the new `settings.unstable-lockfile` setting.
   - This feature is still a work in progress and hasn't been fully implemented yet.
-- Updated `proto install` to support lockfiles.
-  - Versions will be inherited from the lockfile if there's a matching specification record.
-  - Checksums of downloaded tools are stored and validated in the lockfile.
-  - Added an `--update-lockfile` flag, which will bypass the lockfile record.
-- Updated `proto uninstall` to support lockfiles.
-  - Will remove any matching record from the lockfile.
+  - Updated `proto install` to support lockfiles.
+    - Versions will be inherited from the lockfile if there's a matching specification record.
+    - Checksums of downloaded tools are stored and validated in the lockfile.
+    - Added an `--update-lockfile` flag, which will bypass the lockfile record.
+  - Updated `proto uninstall` to support lockfiles.
+    - Will remove any matching record from the lockfile.
+- Added unstable support for OCI registries as a plugin storage mechanism.
+  - Added a new `registry://` locator: `registry://ghcr.io/org/plugin`.
+  - Plugins are stored as a layer/artifact within the OCI image.
+  - Supports all plugin formats, WASM, TOML, JSON, and YAML.
+  - Can customize registries with the new `settings.registries` setting.
+  - Can set the default registry with the `settings.default-registry` setting.
 
 #### ⚙️ Internal
 
-- Updated logging within WASM plugins to be bubbled up to the host under the `extism::pdk` prefix. This is currently experimental!
 - Updated dependencies.
 
 ## 0.50.5
