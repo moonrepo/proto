@@ -20,7 +20,7 @@
 #### 🐞 Fixes
 
 - Fixed an issue what would cause an "unknown field `spec`" error within moon when there were conflicting proto versions.
-  - Tools that were installed with proto 0.51.x before this patch will have a broken manifest. You'll need to manually modify the manifest and removed the `spec` field, or force re-install the tool.
+  - Tools that were installed with proto 0.51.x before this patch will have a broken manifest. You'll need to manually modify the manifest and remove the `spec` and `version` fields within the `lock` entry, or force re-install the tool.
 
 ## 0.51.1
 

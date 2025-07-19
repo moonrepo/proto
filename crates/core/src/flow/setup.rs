@@ -85,7 +85,7 @@ impl Tool {
             ToolManifestVersion {
                 lock: Some(LockRecord {
                     // Only track fields the manifest cares about
-                    backend: record.backend.clone(),
+                    backend: record.backend,
                     checksum: record.checksum.clone(),
                     source: record.source.clone(),
                     ..Default::default()
