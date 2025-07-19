@@ -317,6 +317,13 @@ pub fn log_build_information(
 
 // STEP 1
 
+enum InstallSystemDepsChoice {
+    NoAndAbort = 0,
+    NoButContinue = 1,
+    Yes = 2,
+    YesButElevated = 3,
+}
+
 pub async fn install_system_dependencies(
     builder: &mut Builder<'_>,
     build: &BuildInstructionsOutput,
@@ -438,9 +445,9 @@ pub async fn install_system_dependencies(
     // When installing multiple tools, we can't prompt the user to install
     // deps, but we should try to build anyways
     let mut default_index = if builder.options.skip_ui {
-        1
+        InstallSystemDepsChoice::NoButContinue
     } else {
-        select_options.len() - 1
+        InstallSystemDepsChoice::Yes
     };
 
     if let Some(sudo) = elevated_command {
@@ -450,21 +457,25 @@ pub async fn install_system_dependencies(
 
         // Always run with elevated in CI
         if is_ci() {
-            default_index += 1;
+            default_index = InstallSystemDepsChoice::YesButElevated;
         }
     }
 
     match builder
-        .prompt_select("Install missing packages?", select_options, default_index)
+        .prompt_select(
+            "Install missing packages?",
+            select_options,
+            default_index as usize,
+        )
         .await?
     {
-        0 => {
+        x if x == InstallSystemDepsChoice::NoAndAbort as usize => {
             return Err(ProtoBuildError::Cancelled);
         }
-        1 => {
+        x if x == InstallSystemDepsChoice::NoButContinue as usize => {
             return Ok(());
         }
-        2 => {
+        x if x == InstallSystemDepsChoice::Yes as usize => {
             elevated_command = None;
         }
         _ => {}

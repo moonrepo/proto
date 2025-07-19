@@ -15,6 +15,12 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed an issue with build from source flows that would not attempt to auto-install system dependencies in CI.
+
 ## 0.51.2
 
 #### 🐞 Fixes
