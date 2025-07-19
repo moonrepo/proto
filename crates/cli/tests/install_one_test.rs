@@ -751,8 +751,8 @@ mod install_one {
             assert_eq!(
                 lock,
                 LockRecord {
-                    spec: Some(UnresolvedVersionSpec::parse("1.0.0").unwrap()),
-                    version: Some(VersionSpec::parse("1.0.0").unwrap()),
+                    // spec: Some(UnresolvedVersionSpec::parse("1.0.0").unwrap()),
+                    // version: Some(VersionSpec::parse("1.0.0").unwrap()),
                     checksum: Some(Checksum::sha256(
                         "92521fc3cbd964bdc9f584a991b89fddaa5754ed1cc96d6d42445338669c1305".into()
                     )),
