@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::{LockRecord, ToolManifest, UnresolvedVersionSpec, VersionSpec};
+use proto_core::{LockRecord, ToolManifest, VersionSpec};
 use proto_pdk_api::Checksum;
 use starbase_sandbox::predicates::prelude::*;
 use std::path::Path;
@@ -211,8 +211,8 @@ moonbase = "3.0.0"
                     VersionSpec::parse("1.0.0").unwrap()
                 ),
                 LockRecord {
-                    spec: Some(UnresolvedVersionSpec::parse("1.0.0").unwrap()),
-                    version: Some(VersionSpec::parse("1.0.0").unwrap()),
+                    // spec: Some(UnresolvedVersionSpec::parse("1.0.0").unwrap()),
+                    // version: Some(VersionSpec::parse("1.0.0").unwrap()),
                     checksum: Some(Checksum::sha256(
                         "92521fc3cbd964bdc9f584a991b89fddaa5754ed1cc96d6d42445338669c1305".into()
                     )),
@@ -226,8 +226,8 @@ moonbase = "3.0.0"
                     VersionSpec::parse("2.0.0").unwrap()
                 ),
                 LockRecord {
-                    spec: Some(UnresolvedVersionSpec::parse("2.0.0").unwrap()),
-                    version: Some(VersionSpec::parse("2.0.0").unwrap()),
+                    // spec: Some(UnresolvedVersionSpec::parse("2.0.0").unwrap()),
+                    // version: Some(VersionSpec::parse("2.0.0").unwrap()),
                     checksum: Some(Checksum::sha256(
                         "f22abd6773ab232869321ad4b1e47ac0c908febf4f3a2bd10c8066140f741261".into()
                     )),
@@ -241,8 +241,8 @@ moonbase = "3.0.0"
                     VersionSpec::parse("3.0.0").unwrap()
                 ),
                 LockRecord {
-                    spec: Some(UnresolvedVersionSpec::parse("3.0.0").unwrap()),
-                    version: Some(VersionSpec::parse("3.0.0").unwrap()),
+                    // spec: Some(UnresolvedVersionSpec::parse("3.0.0").unwrap()),
+                    // version: Some(VersionSpec::parse("3.0.0").unwrap()),
                     checksum: Some(Checksum::sha256(
                         "c9163ff21f1f2b0390dc48bdda47179718f772f507a7cebceca59ce1a7129029".into()
                     )),
