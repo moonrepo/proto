@@ -60,9 +60,13 @@ url = { version = "2.5.4", features = ["serde"] }
 uuid = { workspace = true }
 
 [dev-dependencies]
+proto_core = { path = ".", features = ["test-plugins"] }
 starbase_sandbox = { workspace = true }
 tokio = { workspace = true }
 
 [features]
 default = []
 clap = ["dep:clap"]
+
+# Internal only!
+test-plugins = []

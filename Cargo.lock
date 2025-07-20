@@ -3155,6 +3155,7 @@ dependencies = [
  "minisign-verify",
  "oci-client",
  "once_cell",
+ "proto_core",
  "proto_pdk_api",
  "proto_shim",
  "regex",

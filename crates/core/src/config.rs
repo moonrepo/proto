@@ -486,7 +486,7 @@ impl ProtoConfig {
                 .insert(Id::raw(PROTO_PLUGIN_KEY), self.builtin_proto_plugin());
         }
 
-        #[cfg(any(debug_assertions, test))]
+        #[cfg(all(any(debug_assertions, test), feature = "test-plugins"))]
         {
             let locator = find_debug_locator("proto_mocked_tool")
                 .expect("Test plugins not available. Run `just build-wasm` to build them!");
