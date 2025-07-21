@@ -180,7 +180,7 @@ mod install_one {
     }
 
     #[test]
-    fn install_and_reinstall_canary_tool() {
+    fn installs_and_reinstalls_canary_tool() {
         let sandbox = create_empty_proto_sandbox();
         let tool_dir = sandbox.path().join(".proto/tools/protostar/canary");
         let tool_bin = if cfg!(windows) {
@@ -258,6 +258,40 @@ mod install_one {
         assert.stdout(predicate::str::contains(
             "protostar canary has been installed to",
         ));
+    }
+
+    #[test]
+    fn subsequent_req_install_doesnt_resolve_from_manifest() {
+        let sandbox = create_empty_proto_sandbox();
+
+        // Install a non-latest version
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install").arg("protostar").arg("2.5.10");
+            })
+            .success();
+
+        assert!(
+            sandbox
+                .path()
+                .join(".proto/tools/protostar/2.5.10")
+                .exists()
+        );
+
+        // Install again with a requirement that should resolve
+        // to the latest version
+        sandbox
+            .run_bin(|cmd| {
+                cmd.arg("install").arg("protostar").arg("~2.5");
+            })
+            .success();
+
+        assert!(
+            sandbox
+                .path()
+                .join(".proto/tools/protostar/2.5.15")
+                .exists()
+        );
     }
 
     #[test]

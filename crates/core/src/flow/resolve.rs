@@ -243,7 +243,7 @@ impl Tool {
 
         let resolver = self.load_version_resolver(&candidate).await?;
         let version = self
-            .resolve_version_candidate(&resolver, &candidate, true)
+            .resolve_version_candidate(&resolver, &candidate, spec.resolve_from_manifest)
             .await?;
 
         debug!(
