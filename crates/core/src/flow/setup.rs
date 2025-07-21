@@ -83,13 +83,7 @@ impl Tool {
         manifest.versions.insert(
             version.clone(),
             ToolManifestVersion {
-                lock: Some(LockRecord {
-                    // Only track fields the manifest cares about
-                    backend: record.backend,
-                    checksum: record.checksum.clone(),
-                    source: record.source.clone(),
-                    ..Default::default()
-                }),
+                lock: Some(record.for_manifest()),
                 suffix: self.inventory.config.version_suffix.clone(),
                 ..Default::default()
             },

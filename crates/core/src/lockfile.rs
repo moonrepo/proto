@@ -40,6 +40,19 @@ impl LockRecord {
             ..Default::default()
         }
     }
+
+    pub fn for_manifest(&self) -> Self {
+        let mut record = self.clone();
+        record.spec = None;
+        record.version = None;
+        record
+    }
+
+    pub fn for_lockfile(&self) -> Self {
+        let mut record = self.clone();
+        record.source = None;
+        record
+    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]

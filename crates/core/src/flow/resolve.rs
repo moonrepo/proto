@@ -48,7 +48,9 @@ impl Tool {
                     )
                     .await?;
 
-                self.inventory.save_remote_versions(&versions)?;
+                if !versions.versions.is_empty() {
+                    self.inventory.save_remote_versions(&versions)?;
+                }
             }
         }
 

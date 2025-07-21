@@ -32,11 +32,7 @@ impl Tool {
             return Ok(());
         };
 
-        let mut record = record.to_owned();
-
-        // Remove this field for the lockfile as its only used internally!
-        record.source = None;
-
+        let record = record.for_lockfile();
         let records = lock.tools.entry(self.id.clone()).or_default();
 
         // Find an existing record with the same spec
