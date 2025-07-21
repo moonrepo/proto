@@ -22,6 +22,10 @@
 - Fixed an issue where `proto install <tool> <req>` would resolve to a version from the local manifest, instead of remote available versions.
 - Fixed an issue that would cache remote versions for a tool when there were none available (network issue, etc).
 
+#### ⚙️ Internal
+
+- Added MSRV (`package.rust-version`) to all Rust crates.
+
 ## 0.51.3
 
 #### 🐞 Fixes

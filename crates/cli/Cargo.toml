@@ -16,6 +16,7 @@ keywords = [
 categories = ["development-tools"]
 readme = "../../README.md"
 default-run = "proto"
+rust-version = "1.88.0"
 
 [package.metadata.release]
 pre-release-replacements = [

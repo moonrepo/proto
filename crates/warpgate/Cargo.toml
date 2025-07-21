@@ -5,6 +5,7 @@ edition = "2024"
 license = "MIT"
 description = "Download, resolve, and manage Extism WASM plugins."
 repository = "https://github.com/moonrepo/proto"
+rust-version = "1.88.0"
 
 [dependencies]
 system_env = { version = "0.8.1", path = "../system-env" }
