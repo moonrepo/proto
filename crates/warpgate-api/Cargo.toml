@@ -1,6 +1,6 @@
 [package]
 name = "warpgate_api"
-version = "0.16.0"
+version = "0.16.1"
 edition = "2024"
 license = "MIT"
 description = "APIs for working with Warpgate plugins."
@@ -9,7 +9,7 @@ repository = "https://github.com/moonrepo/proto"
 rust-version = "1.85.0"
 
 [dependencies]
-system_env = { version = "0.8.1", path = "../system-env" }
+system_env = { version = "0.8.2", path = "../system-env" }
 anyhow = { workspace = true }
 derive_setters = { workspace = true }
 rustc-hash = { workspace = true }
