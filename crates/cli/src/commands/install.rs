@@ -146,6 +146,9 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
         ToolSpec::default()
     };
 
+    // Don't resolve the version from the manifest
+    spec.resolve_from_manifest = false;
+
     // Don't resolve the version from a lockfile
     spec.read_lockfile = !args.update_lockfile;
     spec.write_lockfile = !args.internal;

@@ -16,6 +16,7 @@ keywords = [
 categories = ["development-tools"]
 readme = "../../README.md"
 default-run = "proto"
+rust-version = "1.88.0"
 
 [package.metadata.release]
 pre-release-replacements = [
@@ -80,3 +81,7 @@ shared_child = "1.1.1"
 
 [target."cfg(windows)".dependencies]
 winreg = { version = "0.55.0", default-features = false }
+
+[features]
+default = []
+test-plugins = ["proto_core/test-plugins"]

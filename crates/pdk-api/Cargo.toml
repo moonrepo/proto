@@ -6,6 +6,7 @@ license = "MIT"
 description = "Core APIs for creating proto WASM plugins."
 homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
+rust-version = "1.85.0"
 
 [dependencies]
 system_env = { version = "0.8.1", path = "../system-env" }

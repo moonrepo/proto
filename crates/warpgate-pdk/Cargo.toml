@@ -6,6 +6,7 @@ license = "MIT"
 description = "Reusable WASM macros and functions for plugin developer kits."
 homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
+rust-version = "1.85.0"
 
 [dependencies]
 warpgate_api = { version = "0.16.0", path = "../warpgate-api" }

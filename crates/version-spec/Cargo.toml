@@ -6,6 +6,7 @@ license = "MIT"
 description = "A specification for working with partial, full, or aliased versions. Supports semver and calver."
 homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
+rust-version = "1.85.0"
 
 [dependencies]
 compact_str = { workspace = true }

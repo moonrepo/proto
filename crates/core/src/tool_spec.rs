@@ -26,6 +26,9 @@ pub struct ToolSpec {
     /// Resolve a version from the lockfile?
     pub read_lockfile: bool,
 
+    /// Resolve a version from the manifest?
+    pub resolve_from_manifest: bool,
+
     /// Update the lockfile when applicable?
     pub write_lockfile: bool,
 }
@@ -78,6 +81,7 @@ impl Default for ToolSpec {
             req: UnresolvedVersionSpec::default(),
             res: None,
             read_lockfile: true,
+            resolve_from_manifest: true,
             write_lockfile: true,
         }
     }

@@ -6,6 +6,7 @@ license = "MIT"
 description = "A plugin development kit for creating proto WASM plugins."
 homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
+rust-version = "1.85.0"
 
 [dependencies]
 proto_pdk_api = { version = "0.29.0", path = "../pdk-api" }

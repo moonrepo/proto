@@ -18,6 +18,11 @@ pub struct VersionResolver<'tool> {
 impl<'tool> VersionResolver<'tool> {
     pub fn from_output(output: LoadVersionsOutput) -> Self {
         let mut resolver = Self::default();
+
+        if output.versions.is_empty() {
+            return resolver;
+        }
+
         resolver.versions.extend(output.versions);
 
         for (alias, spec) in output.aliases {

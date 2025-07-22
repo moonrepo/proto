@@ -6,6 +6,7 @@ license = "MIT"
 description = "Information about the system environment: operating system, architecture, package manager, etc."
 homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
+rust-version = "1.85.0"
 
 [dependencies]
 regex = { workspace = true }

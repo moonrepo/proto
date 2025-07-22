@@ -2939,7 +2939,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.51.0"
+version = "0.51.4"
 dependencies = [
  "convert_case",
  "docker_credential",
