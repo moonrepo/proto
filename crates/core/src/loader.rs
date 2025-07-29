@@ -58,24 +58,44 @@ pub fn locate_tool(id: &Id, proto: &ProtoEnvironment) -> Result<PluginLocator, P
         }
     }
 
-    // Search in registries
-    if locator.is_none()
-        && let Some(default_registry) = &config.settings.default_registry
-        && let Some(registry) = config
-            .settings
-            .registries
-            .iter()
-            .find(|reg| &reg.registry == default_registry)
-    {
-        if let Ok(maybe_locator) =
-            PluginLocator::try_from(format!("registry://{}", registry.get_reference(id)))
-        {
-            debug!(
-                plugin = maybe_locator.to_string(),
-                "Using a registry plugin"
-            );
+    // Search in registries which fits to the default registry
+    if locator.is_none() {
+        // Search first in default registries, can be multiple namespaces, first wins
+        if let Some(default_registry) = &config.settings.default_registry {
+            debug!(default_registry, "Search first default registry in config");
 
-            locator = Some(maybe_locator.to_owned());
+            locator = config
+                .settings
+                .registries
+                .iter()
+                .filter(|&req| req.registry == *default_registry)
+                .filter_map(|reg| {
+                    PluginLocator::try_from(format!("registry://{}", reg.get_reference(id))).ok()
+                })
+                .collect::<Vec<_>>()
+                .first()
+                .cloned();
+
+            debug!(
+                locator = ?locator,
+                "Filtered registry locator"
+            );
+        }
+    }
+
+    // Search in all defined registries
+    if locator.is_none() {
+        for registry in &config.settings.registries {
+            if let Ok(maybe_locator) =
+                PluginLocator::try_from(format!("registry://{}", registry.get_reference(id)))
+            {
+                debug!(
+                    plugin = maybe_locator.to_string(),
+                    "Using a registry plugin"
+                );
+
+                locator = Some(maybe_locator.to_owned());
+            }
         }
     }
 
