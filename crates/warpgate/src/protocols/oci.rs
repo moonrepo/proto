@@ -1,9 +1,9 @@
 use super::{LoadFrom, LoaderProtocol};
+use crate::clients::OciClient;
 use crate::id::Id;
 use crate::loader_error::WarpgateLoaderError;
 use crate::registry_config::*;
-use oci_client::errors::OciDistributionError;
-use oci_client::{Reference, client::Client as OciClient};
+use oci_client::{Reference, errors::OciDistributionError};
 use std::sync::Arc;
 use tracing::trace;
 use warpgate_api::RegistryLocator;

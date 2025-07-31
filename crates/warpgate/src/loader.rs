@@ -1,6 +1,4 @@
-use crate::clients::{
-    HttpClient, HttpOptions, WarpgateHttpClientError, create_http_client_with_options,
-};
+use crate::clients::*;
 use crate::helpers::{
     create_cache_key, determine_cache_extension, download_from_url_to_file, move_or_unpack_download,
 };
@@ -8,7 +6,6 @@ use crate::id::Id;
 use crate::loader_error::WarpgateLoaderError;
 use crate::protocols::{FileLoader, GitHubLoader, HttpLoader, LoadFrom, LoaderProtocol, OciLoader};
 use crate::registry_config::RegistryConfig;
-use oci_client::client::{Client as OciClient, ClientConfig};
 use once_cell::sync::OnceCell;
 use starbase_styles::color;
 use starbase_utils::fs;
@@ -132,7 +129,7 @@ impl PluginLoader {
     /// Return an OCI client, or create it if it does not exist.
     pub fn get_oci_client(&self) -> Result<&Arc<OciClient>, WarpgateHttpClientError> {
         self.oci_client
-            .get_or_try_init(|| Ok(Arc::new(OciClient::new(ClientConfig::default()))))
+            .get_or_try_init(|| Ok(Arc::new(OciClient::default())))
     }
 
     /// Return the HTTP client, or create it if it does not exist.
