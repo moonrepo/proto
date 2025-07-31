@@ -2,7 +2,7 @@ use super::{LoadFrom, LoaderProtocol};
 use crate::clients::OciClient;
 use crate::id::Id;
 use crate::loader_error::WarpgateLoaderError;
-use crate::registry_config::*;
+use crate::registry::*;
 use oci_client::{Reference, errors::OciDistributionError};
 use std::sync::Arc;
 use tracing::trace;

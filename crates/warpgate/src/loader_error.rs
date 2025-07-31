@@ -128,6 +128,7 @@ pub enum WarpgateLoaderError {
         .reference.to_string().style(Style::Path),
     )]
     OciDistributionError {
+        #[source]
         error: Box<OciDistributionError>,
         reference: Box<Reference>,
     },

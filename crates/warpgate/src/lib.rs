@@ -7,7 +7,7 @@ mod loader_error;
 mod plugin;
 mod plugin_error;
 mod protocols;
-mod registry_config;
+mod registry;
 pub mod test_utils;
 
 pub use clients::*;
@@ -17,7 +17,7 @@ pub use loader::*;
 pub use loader_error::*;
 pub use plugin::*;
 pub use plugin_error::*;
-pub use registry_config::*;
+pub use registry::*;
 
 pub use extism::{Manifest as PluginManifest, Wasm};
 pub use warpgate_api as api;

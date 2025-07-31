@@ -5,7 +5,7 @@ use crate::helpers::{
 use crate::id::Id;
 use crate::loader_error::WarpgateLoaderError;
 use crate::protocols::{FileLoader, GitHubLoader, HttpLoader, LoadFrom, LoaderProtocol, OciLoader};
-use crate::registry_config::RegistryConfig;
+use crate::registry::RegistryConfig;
 use once_cell::sync::OnceCell;
 use starbase_styles::color;
 use starbase_utils::fs;
