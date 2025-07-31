@@ -1,4 +1,4 @@
-use crate::client::HttpClient;
+use crate::clients::HttpClient;
 use crate::loader_error::WarpgateLoaderError;
 use sha2::{Digest, Sha256};
 use starbase_archive::{Archiver, is_supported_archive_extension};
@@ -9,10 +9,10 @@ use std::path::{Path, PathBuf};
 use tracing::instrument;
 use warpgate_api::{PluginLocator, UrlLocator, VirtualPath};
 
-/// Create a SHA256 hash key based on the provided URL and seed.
-pub fn create_cache_key(url: &str, seed: Option<&str>) -> String {
+/// Create a SHA256 hash key based on the provided value and seed.
+pub fn create_cache_key(value: &str, seed: Option<&str>) -> String {
     let mut sha = Sha256::new();
-    sha.update(url);
+    sha.update(value);
 
     if let Some(seed) = seed {
         sha.update(seed);
