@@ -9,10 +9,10 @@ use std::path::{Path, PathBuf};
 use tracing::instrument;
 use warpgate_api::VirtualPath;
 
-/// Create a SHA256 hash key based on the provided URL and seed.
-pub fn create_cache_key(url: &str, seed: Option<&str>) -> String {
+/// Create a SHA256 hash key based on the provided value and seed.
+pub fn create_cache_key(value: &str, seed: Option<&str>) -> String {
     let mut sha = Sha256::new();
-    sha.update(url);
+    sha.update(value);
 
     if let Some(seed) = seed {
         sha.update(seed);
