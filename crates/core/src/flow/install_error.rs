@@ -8,7 +8,7 @@ use starbase_utils::fs::FsError;
 use starbase_utils::net::NetError;
 use std::path::PathBuf;
 use thiserror::Error;
-use warpgate::{WarpgateClientError, WarpgatePluginError};
+use warpgate::{WarpgateHttpClientError, WarpgatePluginError};
 
 #[derive(Error, Debug, miette::Diagnostic)]
 pub enum ProtoInstallError {
@@ -26,15 +26,15 @@ pub enum ProtoInstallError {
 
     #[diagnostic(transparent)]
     #[error(transparent)]
-    Client(#[from] Box<WarpgateClientError>),
-
-    #[diagnostic(transparent)]
-    #[error(transparent)]
     Config(#[from] Box<ProtoConfigError>),
 
     #[diagnostic(transparent)]
     #[error(transparent)]
     Fs(#[from] Box<FsError>),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    HttpClient(#[from] Box<WarpgateHttpClientError>),
 
     #[diagnostic(transparent)]
     #[error(transparent)]
@@ -98,9 +98,9 @@ impl From<ProtoChecksumError> for ProtoInstallError {
     }
 }
 
-impl From<WarpgateClientError> for ProtoInstallError {
-    fn from(e: WarpgateClientError) -> ProtoInstallError {
-        ProtoInstallError::Client(Box::new(e))
+impl From<WarpgateHttpClientError> for ProtoInstallError {
+    fn from(e: WarpgateHttpClientError) -> ProtoInstallError {
+        ProtoInstallError::HttpClient(Box::new(e))
     }
 }
 
