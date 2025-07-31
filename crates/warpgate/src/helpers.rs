@@ -1,4 +1,4 @@
-use crate::client::HttpClient;
+use crate::clients::HttpClient;
 use crate::loader_error::WarpgateLoaderError;
 use sha2::{Digest, Sha256};
 use starbase_archive::{Archiver, is_supported_archive_extension};

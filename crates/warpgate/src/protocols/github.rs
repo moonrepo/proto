@@ -1,6 +1,5 @@
 use super::{LoadFrom, LoaderProtocol};
-use crate::client::HttpClient;
-use crate::client_error::WarpgateClientError;
+use crate::clients::{HttpClient, WarpgateHttpClientError};
 use crate::id::Id;
 use crate::loader_error::WarpgateLoaderError;
 use serde::Deserialize;
@@ -18,7 +17,10 @@ pub struct GitHubLoader {
 }
 
 impl GitHubLoader {
-    async fn request_api<T: DeserializeOwned>(&self, url: &str) -> Result<T, WarpgateClientError> {
+    async fn request_api<T: DeserializeOwned>(
+        &self,
+        url: &str,
+    ) -> Result<T, WarpgateHttpClientError> {
         let mut request = self.client.get(url).query(&[("per_page", "100")]);
 
         if let Ok(auth_token) = env::var("GITHUB_TOKEN") {
@@ -33,7 +35,7 @@ impl GitHubLoader {
         let data: T = response
             .json()
             .await
-            .map_err(|error| WarpgateClientError::Http {
+            .map_err(|error| WarpgateHttpClientError::Http {
                 error: Box::new(error),
                 url: url.to_owned(),
             })?;

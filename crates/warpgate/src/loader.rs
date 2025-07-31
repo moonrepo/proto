@@ -1,5 +1,6 @@
-use crate::client::{HttpClient, HttpOptions, create_http_client_with_options};
-use crate::client_error::WarpgateClientError;
+use crate::clients::{
+    HttpClient, HttpOptions, WarpgateHttpClientError, create_http_client_with_options,
+};
 use crate::helpers::{
     create_cache_key, determine_cache_extension, download_from_url_to_file, move_or_unpack_download,
 };
@@ -129,13 +130,13 @@ impl PluginLoader {
     }
 
     /// Return an OCI client, or create it if it does not exist.
-    pub fn get_oci_client(&self) -> Result<&Arc<OciClient>, WarpgateClientError> {
+    pub fn get_oci_client(&self) -> Result<&Arc<OciClient>, WarpgateHttpClientError> {
         self.oci_client
             .get_or_try_init(|| Ok(Arc::new(OciClient::new(ClientConfig::default()))))
     }
 
     /// Return the HTTP client, or create it if it does not exist.
-    pub fn get_http_client(&self) -> Result<&Arc<HttpClient>, WarpgateClientError> {
+    pub fn get_http_client(&self) -> Result<&Arc<HttpClient>, WarpgateHttpClientError> {
         self.http_client
             .get_or_try_init(|| create_http_client_with_options(&self.http_options).map(Arc::new))
     }
@@ -321,10 +322,10 @@ impl PluginLoader {
             "Downloading plugin from URL"
         );
 
-        let temp_file = self.temp_dir.join(fs::file_name(&dest_file));
+        let temp_file = self.temp_dir.join(fs::file_name(dest_file));
 
         download_from_url_to_file(source_url, &temp_file, self.get_http_client()?).await?;
-        move_or_unpack_download(&temp_file, &dest_file)?;
+        move_or_unpack_download(&temp_file, dest_file)?;
 
         Ok(())
     }

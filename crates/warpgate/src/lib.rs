@@ -1,5 +1,4 @@
-mod client;
-mod client_error;
+mod clients;
 mod helpers;
 pub mod host;
 mod id;
@@ -11,8 +10,7 @@ mod protocols;
 mod registry_config;
 pub mod test_utils;
 
-pub use client::*;
-pub use client_error::*;
+pub use clients::*;
 pub use helpers::*;
 pub use id::*;
 pub use loader::*;

@@ -60,7 +60,7 @@ impl OciLoader {
                 } else {
                     Err(WarpgateLoaderError::OciDistributionError {
                         error: Box::new(error),
-                        reference,
+                        reference: Box::new(reference),
                     })
                 };
             }
