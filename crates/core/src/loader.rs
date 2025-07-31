@@ -58,31 +58,6 @@ pub fn locate_tool(id: &Id, proto: &ProtoEnvironment) -> Result<PluginLocator, P
         }
     }
 
-    // Search in registries which fits to the default registry
-    if locator.is_none() {
-        // Search first in default registries, can be multiple namespaces, first wins
-        if let Some(default_registry) = &config.settings.default_registry {
-            debug!(default_registry, "Search first default registry in config");
-
-            locator = config
-                .settings
-                .registries
-                .iter()
-                .filter(|&req| req.registry == *default_registry)
-                .filter_map(|reg| {
-                    PluginLocator::try_from(format!("registry://{}", reg.get_reference(id))).ok()
-                })
-                .collect::<Vec<_>>()
-                .first()
-                .cloned();
-
-            debug!(
-                locator = ?locator,
-                "Filtered registry locator"
-            );
-        }
-    }
-
     // Search in all defined registries
     if locator.is_none() {
         for registry in &config.settings.registries {
