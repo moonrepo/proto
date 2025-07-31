@@ -1,5 +1,4 @@
-use crate::client::HttpClient;
-use crate::client_error::WarpgateClientError;
+use crate::clients::{HttpClient, WarpgateHttpClientError};
 use crate::helpers;
 use crate::plugin_error::WarpgatePluginError;
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
@@ -372,7 +371,7 @@ fn send_request(
         response
             .bytes()
             .await
-            .map_err(|error| WarpgateClientError::Http {
+            .map_err(|error| WarpgateHttpClientError::Http {
                 url: input.url.clone(),
                 error: Box::new(error),
             })

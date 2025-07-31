@@ -3,17 +3,17 @@ use crate::layout::ProtoLayoutError;
 use starbase_styles::{Style, Stylize};
 use std::path::PathBuf;
 use thiserror::Error;
-use warpgate::{Id, WarpgateClientError, WarpgatePluginError};
+use warpgate::{Id, WarpgateHttpClientError, WarpgatePluginError};
 
 #[derive(Error, Debug, miette::Diagnostic)]
 pub enum ProtoToolError {
     #[diagnostic(transparent)]
     #[error(transparent)]
-    Client(#[from] Box<WarpgateClientError>),
+    Config(#[from] Box<ProtoConfigError>),
 
     #[diagnostic(transparent)]
     #[error(transparent)]
-    Config(#[from] Box<ProtoConfigError>),
+    HttpClient(#[from] Box<WarpgateHttpClientError>),
 
     #[diagnostic(transparent)]
     #[error(transparent)]
@@ -42,9 +42,9 @@ pub enum ProtoToolError {
     RequiredAbsoluteInventoryDir { tool: String, dir: PathBuf },
 }
 
-impl From<WarpgateClientError> for ProtoToolError {
-    fn from(e: WarpgateClientError) -> ProtoToolError {
-        ProtoToolError::Client(Box::new(e))
+impl From<WarpgateHttpClientError> for ProtoToolError {
+    fn from(e: WarpgateHttpClientError) -> ProtoToolError {
+        ProtoToolError::HttpClient(Box::new(e))
     }
 }
 

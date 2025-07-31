@@ -98,7 +98,7 @@ impl ProtoEnvironment {
                 loader.set_cache_duration(Duration::from_secs(secs));
             }
 
-            loader.set_client_options(&options);
+            loader.set_http_client_options(&options);
             loader.set_offline_checker(is_offline);
             loader.add_registries(config.settings.registries.clone());
 

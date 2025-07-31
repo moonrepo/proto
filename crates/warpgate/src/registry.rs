@@ -1,4 +1,7 @@
+use docker_credential::{CredentialRetrievalError, DockerCredential};
+use oci_client::secrets::RegistryAuth;
 use serde::{Deserialize, Serialize};
+use tracing::{trace, warn};
 
 pub const WASM_LAYER_MEDIA_TYPE_WASM: &str = "application/wasm";
 pub const WASM_LAYER_MEDIA_TYPE_TOML: &str = "application/toml";
@@ -18,6 +21,31 @@ pub struct RegistryConfig {
 }
 
 impl RegistryConfig {
+    /// Return the Docker credential's for the current registry host.
+    pub fn get_credential(&self) -> RegistryAuth {
+        match docker_credential::get_credential(&self.registry) {
+            Ok(DockerCredential::UsernamePassword(username, password)) => {
+                trace!("Found Docker credentials (username and password)");
+
+                RegistryAuth::Basic(username, password)
+            }
+            Ok(DockerCredential::IdentityToken(_)) => {
+                trace!(
+                    "Cannot use contents of Docker config, identity token not supported; using anonymous auth"
+                );
+
+                RegistryAuth::Anonymous
+            }
+            Err(CredentialRetrievalError::ConfigNotFound) => RegistryAuth::Anonymous,
+            Err(CredentialRetrievalError::NoCredentialConfigured) => RegistryAuth::Anonymous,
+            Err(error) => {
+                warn!("Error handling Docker configuration file: {error}; using anonymous auth",);
+
+                RegistryAuth::Anonymous
+            }
+        }
+    }
+
     /// Return a fully-qualified reference with the provided ID.
     pub fn get_reference(&self, id: &str) -> String {
         let mut reference = String::new();

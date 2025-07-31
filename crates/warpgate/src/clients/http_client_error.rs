@@ -6,7 +6,7 @@ use thiserror::Error;
 /// HTTP(S) client errors.
 #[derive(Debug, Error)]
 #[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
-pub enum WarpgateClientError {
+pub enum WarpgateHttpClientError {
     #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
     Fs(#[from] Box<FsError>),
@@ -66,8 +66,8 @@ pub enum WarpgateClientError {
     },
 }
 
-impl From<FsError> for WarpgateClientError {
-    fn from(e: FsError) -> WarpgateClientError {
-        WarpgateClientError::Fs(Box::new(e))
+impl From<FsError> for WarpgateHttpClientError {
+    fn from(e: FsError) -> WarpgateHttpClientError {
+        WarpgateHttpClientError::Fs(Box::new(e))
     }
 }

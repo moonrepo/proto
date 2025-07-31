@@ -1,5 +1,7 @@
-use crate::client_error::WarpgateClientError;
+use crate::clients::WarpgateHttpClientError;
 use crate::id::Id;
+use oci_client::Reference;
+use oci_client::errors::OciDistributionError;
 use starbase_archive::ArchiveError;
 use starbase_styles::{Style, Stylize};
 use starbase_utils::fs::FsError;
@@ -18,11 +20,11 @@ pub enum WarpgateLoaderError {
 
     #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
-    Client(#[from] Box<WarpgateClientError>),
+    Fs(#[from] Box<FsError>),
 
     #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
-    Fs(#[from] Box<FsError>),
+    HttpClient(#[from] Box<WarpgateHttpClientError>),
 
     #[cfg_attr(feature = "miette", diagnostic(transparent))]
     #[error(transparent)]
@@ -117,7 +119,24 @@ pub enum WarpgateLoaderError {
     )]
     UnknownDownloadType { path: PathBuf },
 
-    #[cfg_attr(feature = "miette", diagnostic(code(plugin::loader::unknown_type)))]
+    #[cfg_attr(
+        feature = "miette",
+        diagnostic(code(plugin::loader::registry::load_failure))
+    )]
+    #[error(
+        "Failed to load plugin from {} registry.",
+        .reference.to_string().style(Style::Path),
+    )]
+    OciDistributionError {
+        #[source]
+        error: Box<OciDistributionError>,
+        reference: Box<Reference>,
+    },
+
+    #[cfg_attr(
+        feature = "miette",
+        diagnostic(code(plugin::loader::registry::reference_failure))
+    )]
     #[error(
         "OCI reference error: {message}. {}",
         .location.style(Style::Path),
@@ -131,9 +150,9 @@ impl From<ArchiveError> for WarpgateLoaderError {
     }
 }
 
-impl From<WarpgateClientError> for WarpgateLoaderError {
-    fn from(e: WarpgateClientError) -> WarpgateLoaderError {
-        WarpgateLoaderError::Client(Box::new(e))
+impl From<WarpgateHttpClientError> for WarpgateLoaderError {
+    fn from(e: WarpgateHttpClientError) -> WarpgateLoaderError {
+        WarpgateLoaderError::HttpClient(Box::new(e))
     }
 }
 
