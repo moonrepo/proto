@@ -1,4 +1,4 @@
-use crate::client_error::WarpgateClientError;
+use super::WarpgateHttpClientError;
 use async_trait::async_trait;
 use core::ops::Deref;
 use reqwest::{Client, Response, Url};
@@ -62,13 +62,15 @@ impl HttpClient {
         &self.client
     }
 
-    pub fn map_error(url: String, error: reqwest_middleware::Error) -> WarpgateClientError {
+    pub fn map_error(url: String, error: reqwest_middleware::Error) -> WarpgateHttpClientError {
         match error {
-            reqwest_middleware::Error::Middleware(inner) => WarpgateClientError::HttpMiddleware {
-                error: format!("{inner}"),
-                url,
-            },
-            reqwest_middleware::Error::Reqwest(inner) => WarpgateClientError::Http {
+            reqwest_middleware::Error::Middleware(inner) => {
+                WarpgateHttpClientError::HttpMiddleware {
+                    error: format!("{inner}"),
+                    url,
+                }
+            }
+            reqwest_middleware::Error::Reqwest(inner) => WarpgateHttpClientError::Http {
                 error: Box::new(inner),
                 url,
             },
@@ -107,7 +109,7 @@ pub struct HttpOptions {
 }
 
 /// Create an HTTP(S) client that'll be used for downloading files.
-pub fn create_http_client() -> Result<HttpClient, WarpgateClientError> {
+pub fn create_http_client() -> Result<HttpClient, WarpgateHttpClientError> {
     create_http_client_with_options(&HttpOptions::default())
 }
 
@@ -115,7 +117,7 @@ pub fn create_http_client() -> Result<HttpClient, WarpgateClientError> {
 /// used for downloading files.
 pub fn create_http_client_with_options(
     options: &HttpOptions,
-) -> Result<HttpClient, WarpgateClientError> {
+) -> Result<HttpClient, WarpgateHttpClientError> {
     debug!("Creating HTTP client");
 
     let mut client_builder = reqwest::Client::builder()
@@ -135,7 +137,7 @@ pub fn create_http_client_with_options(
             Some("der") => {
                 client_builder = client_builder.add_root_certificate(
                     reqwest::Certificate::from_der(&fs::read_file_bytes(root_cert)?).map_err(
-                        |error| WarpgateClientError::InvalidCert {
+                        |error| WarpgateHttpClientError::InvalidCert {
                             path: root_cert.to_path_buf(),
                             error: Box::new(error),
                         },
@@ -145,7 +147,7 @@ pub fn create_http_client_with_options(
             Some("pem") => {
                 client_builder = client_builder.add_root_certificate(
                     reqwest::Certificate::from_pem(&fs::read_file_bytes(root_cert)?).map_err(
-                        |error| WarpgateClientError::InvalidCert {
+                        |error| WarpgateHttpClientError::InvalidCert {
                             path: root_cert.to_path_buf(),
                             error: Box::new(error),
                         },
@@ -180,7 +182,7 @@ pub fn create_http_client_with_options(
         for proxy in insecure_proxies {
             client_builder =
                 client_builder.proxy(reqwest::Proxy::http(proxy).map_err(|error| {
-                    WarpgateClientError::InvalidProxy {
+                    WarpgateHttpClientError::InvalidProxy {
                         url: proxy.to_owned(),
                         error: Box::new(error),
                     }
@@ -194,7 +196,7 @@ pub fn create_http_client_with_options(
         for proxy in secure_proxies {
             client_builder =
                 client_builder.proxy(reqwest::Proxy::https(proxy).map_err(|error| {
-                    WarpgateClientError::InvalidProxy {
+                    WarpgateHttpClientError::InvalidProxy {
                         url: proxy.to_owned(),
                         error: Box::new(error),
                     }
@@ -204,7 +206,7 @@ pub fn create_http_client_with_options(
 
     let client = client_builder
         .build()
-        .map_err(|error| WarpgateClientError::Client {
+        .map_err(|error| WarpgateHttpClientError::Client {
             error: Box::new(error),
         })?;
 
