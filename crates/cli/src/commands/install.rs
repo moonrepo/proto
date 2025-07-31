@@ -7,7 +7,7 @@ use crate::workflows::{InstallOutcome, InstallWorkflowManager, InstallWorkflowPa
 use clap::Args;
 use iocraft::prelude::element;
 use proto_core::{ConfigMode, Id, PinLocation, Tool, ToolSpec};
-use proto_pdk_api::InstallStrategy;
+use proto_pdk_api::{InstallStrategy, PluginFunction};
 use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_console::utils::formats::format_duration;
@@ -78,7 +78,11 @@ impl InstallArgs {
             info!("Build mode enabled. Only tools that support build from source will install.");
 
             for tool in tools {
-                if tool.plugin.has_func("build_instructions").await {
+                if tool
+                    .plugin
+                    .has_func(PluginFunction::BuildInstructions)
+                    .await
+                {
                     list.push(tool);
                 }
             }
@@ -86,7 +90,7 @@ impl InstallArgs {
             info!("Prebuilt mode enabled. Only tools that support prebuilts will install.");
 
             for tool in tools {
-                if tool.plugin.has_func("download_prebuilt").await {
+                if tool.plugin.has_func(PluginFunction::DownloadPrebuilt).await {
                     list.push(tool);
                 }
             }

@@ -17,7 +17,7 @@ impl WasmTestWrapper {
 
         self.tool
             .plugin
-            .call_func_with("detect_version_files", input)
+            .call_func_with(PluginFunction::DetectVersionFiles, input)
             .await
             .unwrap()
     }
@@ -30,7 +30,7 @@ impl WasmTestWrapper {
 
         self.tool
             .plugin
-            .call_func_with("download_prebuilt", input)
+            .call_func_with(PluginFunction::DownloadPrebuilt, input)
             .await
             .unwrap()
     }
@@ -40,7 +40,7 @@ impl WasmTestWrapper {
 
         self.tool
             .plugin
-            .call_func_with("load_versions", input)
+            .call_func_with(PluginFunction::LoadVersions, input)
             .await
             .unwrap()
     }
@@ -53,7 +53,7 @@ impl WasmTestWrapper {
 
         self.tool
             .plugin
-            .call_func_with("locate_executables", input)
+            .call_func_with(PluginFunction::LocateExecutables, input)
             .await
             .unwrap()
     }
@@ -63,7 +63,7 @@ impl WasmTestWrapper {
 
         self.tool
             .plugin
-            .call_func_with("native_install", input)
+            .call_func_with(PluginFunction::NativeInstall, input)
             .await
             .unwrap()
     }
@@ -73,7 +73,7 @@ impl WasmTestWrapper {
 
         self.tool
             .plugin
-            .call_func_with("native_uninstall", input)
+            .call_func_with(PluginFunction::NativeUninstall, input)
             .await
             .unwrap()
     }
@@ -87,7 +87,7 @@ impl WasmTestWrapper {
 
         self.tool
             .plugin
-            .call_func_with("parse_version_file", input)
+            .call_func_with(PluginFunction::ParseVersionFile, input)
             .await
             .unwrap()
     }
@@ -97,7 +97,7 @@ impl WasmTestWrapper {
 
         self.tool
             .plugin
-            .call_func_without_output("pre_install", input)
+            .call_func_without_output(HookFunction::PreInstall, input)
             .await
             .unwrap();
     }
@@ -107,7 +107,7 @@ impl WasmTestWrapper {
 
         self.tool
             .plugin
-            .call_func_with("pre_run", input)
+            .call_func_with(HookFunction::PreRun, input)
             .await
             .unwrap()
     }
@@ -117,7 +117,7 @@ impl WasmTestWrapper {
 
         self.tool
             .plugin
-            .call_func_without_output("post_install", input)
+            .call_func_without_output(HookFunction::PostInstall, input)
             .await
             .unwrap();
     }
@@ -127,7 +127,7 @@ impl WasmTestWrapper {
 
         self.tool
             .plugin
-            .call_func_with("register_backend", input)
+            .call_func_with(PluginFunction::RegisterBackend, input)
             .await
             .unwrap()
     }
@@ -135,7 +135,7 @@ impl WasmTestWrapper {
     pub async fn register_tool(&self, input: RegisterToolInput) -> RegisterToolOutput {
         self.tool
             .plugin
-            .call_func_with("register_tool", input)
+            .call_func_with(PluginFunction::RegisterTool, input)
             .await
             .unwrap()
     }
@@ -145,7 +145,7 @@ impl WasmTestWrapper {
 
         self.tool
             .plugin
-            .call_func_with("resolve_version", input)
+            .call_func_with(PluginFunction::ResolveVersion, input)
             .await
             .unwrap()
     }
@@ -155,7 +155,7 @@ impl WasmTestWrapper {
 
         self.tool
             .plugin
-            .call_func_with("sync_manifest", input)
+            .call_func_with(PluginFunction::SyncManifest, input)
             .await
             .unwrap()
     }
@@ -168,7 +168,7 @@ impl WasmTestWrapper {
 
         self.tool
             .plugin
-            .call_func_with("sync_shell_profile", input)
+            .call_func_with(PluginFunction::SyncShellProfile, input)
             .await
             .unwrap()
     }
@@ -180,7 +180,7 @@ impl WasmTestWrapper {
         let _: EmptyInput = self
             .tool
             .plugin
-            .call_func_with("unpack_archive", input)
+            .call_func_with(PluginFunction::UnpackArchive, input)
             .await
             .unwrap();
     }
@@ -191,7 +191,7 @@ impl WasmTestWrapper {
 
         self.tool
             .plugin
-            .call_func_with("verify_checksum", input)
+            .call_func_with(PluginFunction::VerifyChecksum, input)
             .await
             .unwrap()
     }
