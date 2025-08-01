@@ -185,5 +185,30 @@ KEY2 = "value2"
 
             assert!(output.contains("<WORKSPACE>/.proto/activate-start <WORKSPACE>/.proto/shims <WORKSPACE>/.proto/bin <WORKSPACE>/.proto/activate-stop"));
         }
+
+        #[test]
+        fn tracks_used_at() {
+            let sandbox = create_empty_proto_sandbox();
+            sandbox.create_file(".prototools", r#"protostar = "1.0.0""#);
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("protostar").arg("1.0.0");
+                })
+                .success();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("activate").arg("zsh").arg("--export");
+                })
+                .success();
+
+            assert!(
+                sandbox
+                    .path()
+                    .join(".proto/tools/protostar/1.0.0/.last-used")
+                    .exists()
+            );
+        }
     }
 }

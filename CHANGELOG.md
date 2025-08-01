@@ -15,6 +15,21 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Improved `registry://` fallthrough handling.
+
+#### 🐞 Fixes
+
+- Fixed an issue where auto-clean would delete a tool, but our "last used" logic would leave around stale artifacts, resulting in missing tool/executable errors.
+- Fixed an issue where activated tools would not track a last used at, and could be accidentally deleted by auto-clean.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.51.4
 
 #### 🐞 Fixes

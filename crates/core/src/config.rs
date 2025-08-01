@@ -1,13 +1,12 @@
 use crate::config_error::ProtoConfigError;
 use crate::helpers::ENV_VAR_SUB;
-use crate::settings::RegexSetting;
 use crate::tool_spec::{Backend, ToolSpec};
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use schematic::{
     Config, ConfigEnum, ConfigError, ConfigLoader, DefaultValueResult, Format, MergeError,
-    MergeResult, PartialConfig, Path as ErrorPath, ValidateError, ValidateResult, ValidatorError,
-    derive_enum, env, merge,
+    MergeResult, PartialConfig, Path as ErrorPath, RegexSetting, ValidateError, ValidateResult,
+    ValidatorError, derive_enum, env, merge,
 };
 use serde::{Deserialize, Serialize};
 use starbase_styles::color;
