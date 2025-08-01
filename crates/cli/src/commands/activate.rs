@@ -136,6 +136,9 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
                 for globals_dir in tool.locate_globals_dirs().await? {
                     item.add_path(&globals_dir);
                 }
+
+                // Mark it as used so that auto-clean doesn't remove it!
+                tool.product.track_used_at()?;
             }
 
             item.id = tool.id.clone();

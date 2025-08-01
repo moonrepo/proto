@@ -20,6 +20,7 @@
 #### 🐞 Fixes
 
 - Fixed an issue where auto-clean would delete a tool, but our "last used" logic would leave around stale artifacts, resulting in missing tool/executable errors.
+- Fixed an issue where activated tools would not track a last used at, and could be accidentally deleted by auto-clean.
 
 #### ⚙️ Internal
 

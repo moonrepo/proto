@@ -1,8 +1,9 @@
 use indexmap::IndexMap;
 use proto_core::{
     Backend, DetectStrategy, EnvVar, PartialEnvVar, PartialProtoSettingsConfig, PinLocation,
-    ProtoConfig, ProtoConfigEnvOptions, ProtoFileManager, RegexSetting, ToolSpec,
+    ProtoConfig, ProtoConfigEnvOptions, ProtoFileManager, ToolSpec,
 };
+use schematic::RegexSetting;
 use starbase_sandbox::create_empty_sandbox;
 use starbase_utils::json::JsonValue;
 use std::collections::BTreeMap;
