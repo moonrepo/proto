@@ -17,6 +17,10 @@
 
 ## Unreleased
 
+#### 🐞 Fixes
+
+- Fixed an issue where auto-clean would delete a tool, but our "last used" logic would leave around stale artifacts, resulting in missing tool/executable errors.
+
 #### ⚙️ Internal
 
 - Updated dependencies.
