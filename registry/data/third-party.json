@@ -1221,6 +1221,19 @@
       ]
     },
     {
+      "id": "xcodes",
+      "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/xcodes/plugin.toml",
+      "format": "toml",
+      "name": "xcodes",
+      "description": "xcodes is the command-line tool to install and switch between multiple versions of Xcode.",
+      "author": "appthrust",
+      "homepageUrl": "https://github.com/XcodesOrg/xcodes",
+      "repositoryUrl": "https://github.com/appthrust/proto-toml-plugins/tree/main/xcodes",
+      "bins": [
+        "xcodes"
+      ]
+    },
+    {
       "id": "yq",
       "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/yq/plugin.toml",
       "format": "toml",
