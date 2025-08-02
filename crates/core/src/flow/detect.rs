@@ -172,15 +172,19 @@ impl Tool {
         &self,
         current_dir: &Path,
     ) -> Result<Option<(UnresolvedVersionSpec, PathBuf)>, ProtoDetectError> {
-        if !self.plugin.has_func("detect_version_files").await {
+        if !self
+            .plugin
+            .has_func(PluginFunction::DetectVersionFiles)
+            .await
+        {
             return Ok(None);
         }
 
-        let has_parser = self.plugin.has_func("parse_version_file").await;
+        let has_parser = self.plugin.has_func(PluginFunction::ParseVersionFile).await;
         let output: DetectVersionOutput = self
             .plugin
             .cache_func_with(
-                "detect_version_files",
+                PluginFunction::DetectVersionFiles,
                 DetectVersionInput {
                     context: self.create_unresolved_context(),
                 },
@@ -217,7 +221,7 @@ impl Tool {
                 let output: ParseVersionFileOutput = self
                     .plugin
                     .call_func_with(
-                        "parse_version_file",
+                        PluginFunction::ParseVersionFile,
                         ParseVersionFileInput {
                             content,
                             context: self.create_unresolved_context(),

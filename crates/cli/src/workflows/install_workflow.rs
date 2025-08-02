@@ -10,7 +10,8 @@ use proto_core::flow::install::{InstallOptions, InstallPhase};
 use proto_core::utils::log::LogWriter;
 use proto_core::{Id, LockRecord, PinLocation, ToolSpec};
 use proto_pdk_api::{
-    InstallHook, InstallStrategy, Switch, SyncShellProfileInput, SyncShellProfileOutput,
+    HookFunction, InstallHook, InstallStrategy, PluginFunction, Switch, SyncShellProfileInput,
+    SyncShellProfileOutput,
 };
 use starbase_console::ConsoleError;
 use starbase_console::ui::{OwnedOrShared, ProgressDisplay, ProgressReporter, ProgressState};
@@ -222,10 +223,10 @@ impl InstallWorkflow {
 
         unsafe { env::set_var("PROTO_INSTALL", tool.id.to_string()) };
 
-        if tool.plugin.has_func("pre_install").await {
+        if tool.plugin.has_func(HookFunction::PreInstall).await {
             tool.plugin
                 .call_func_without_output(
-                    "pre_install",
+                    HookFunction::PreInstall,
                     InstallHook {
                         context: tool.create_context(),
                         forced: params.force,
@@ -348,10 +349,10 @@ impl InstallWorkflow {
             log.add_header("Running post-install hooks");
         });
 
-        if tool.plugin.has_func("post_install").await {
+        if tool.plugin.has_func(HookFunction::PostInstall).await {
             tool.plugin
                 .call_func_without_output(
-                    "post_install",
+                    HookFunction::PostInstall,
                     InstallHook {
                         context: tool.create_context(),
                         forced: params.force,
@@ -411,14 +412,14 @@ impl InstallWorkflow {
     async fn update_shell(&self, params: &InstallWorkflowParams) -> Result<(), ProtoCliError> {
         let tool = &self.tool;
 
-        if !tool.plugin.has_func("sync_shell_profile").await {
+        if !tool.plugin.has_func(PluginFunction::SyncShellProfile).await {
             return Ok(());
         }
 
         let output: SyncShellProfileOutput = tool
             .plugin
             .call_func_with(
-                "sync_shell_profile",
+                PluginFunction::SyncShellProfile,
                 SyncShellProfileInput {
                     context: tool.create_context(),
                     passthrough_args: params.passthrough_args.clone(),

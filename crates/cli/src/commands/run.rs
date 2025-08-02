@@ -7,7 +7,7 @@ use proto_core::flow::detect::ProtoDetectError;
 use proto_core::{
     Id, PROTO_PLUGIN_KEY, ProtoConfigEnvOptions, ProtoEnvironment, ProtoLoaderError, Tool, ToolSpec,
 };
-use proto_pdk_api::{ExecutableConfig, RunHook, RunHookResult};
+use proto_pdk_api::{ExecutableConfig, HookFunction, RunHook, RunHookResult};
 use proto_shim::{exec_command_and_replace, locate_proto_exe};
 use starbase::AppResult;
 use starbase_styles::color;
@@ -403,7 +403,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
     };
 
     // Run before hook
-    let hook_result = if tool.plugin.has_func("pre_run").await {
+    let hook_result = if tool.plugin.has_func(HookFunction::PreRun).await {
         let globals_dir = tool.locate_globals_dir().await?;
         let globals_prefix = tool.locate_globals_prefix().await?;
 
@@ -414,7 +414,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
 
         tool.plugin
             .call_func_with(
-                "pre_run",
+                HookFunction::PreRun,
                 RunHook {
                     context: tool.create_context(),
                     globals_dir: globals_dir.map(|dir| tool.to_virtual_path(&dir)),

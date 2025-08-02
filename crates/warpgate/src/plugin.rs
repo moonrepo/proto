@@ -148,8 +148,9 @@ impl PluginContainer {
 
     /// Call a function on the plugin with no input and cache the output before returning it.
     /// Subsequent calls will read from the cache.
-    pub async fn cache_func<O>(&self, func: &str) -> Result<O, WarpgatePluginError>
+    pub async fn cache_func<F, O>(&self, func: F) -> Result<O, WarpgatePluginError>
     where
+        F: Debug + AsRef<str>,
         O: Debug + DeserializeOwned,
     {
         self.cache_func_with(func, Empty::default()).await
@@ -158,15 +159,17 @@ impl PluginContainer {
     /// Call a function on the plugin with the given input and cache the output
     /// before returning it. Subsequent calls with the same input will read from the cache.
     #[instrument(skip(self))]
-    pub async fn cache_func_with<I, O>(
+    pub async fn cache_func_with<F, I, O>(
         &self,
-        func: &str,
+        func: F,
         input: I,
     ) -> Result<O, WarpgatePluginError>
     where
+        F: Debug + AsRef<str>,
         I: Debug + Serialize,
         O: Debug + DeserializeOwned,
     {
+        let func = func.as_ref();
         let input = self.format_input(func, input)?;
         let cache_key = format!("{func}-{input}");
 
@@ -185,8 +188,9 @@ impl PluginContainer {
     }
 
     /// Call a function on the plugin with no input and return the output.
-    pub async fn call_func<O>(&self, func: &str) -> Result<O, WarpgatePluginError>
+    pub async fn call_func<F, O>(&self, func: F) -> Result<O, WarpgatePluginError>
     where
+        F: Debug + AsRef<str>,
         O: Debug + DeserializeOwned,
     {
         self.call_func_with(func, Empty::default()).await
@@ -194,11 +198,13 @@ impl PluginContainer {
 
     /// Call a function on the plugin with the given input and return the output.
     #[instrument(skip(self))]
-    pub async fn call_func_with<I, O>(&self, func: &str, input: I) -> Result<O, WarpgatePluginError>
+    pub async fn call_func_with<F, I, O>(&self, func: F, input: I) -> Result<O, WarpgatePluginError>
     where
+        F: Debug + AsRef<str>,
         I: Debug + Serialize,
         O: Debug + DeserializeOwned,
     {
+        let func = func.as_ref();
         self.parse_output(
             func,
             &self.call(func, self.format_input(func, input)?).await?,
@@ -207,21 +213,23 @@ impl PluginContainer {
 
     /// Call a function on the plugin with the given input and ignore the output.
     #[instrument(skip(self))]
-    pub async fn call_func_without_output<I>(
+    pub async fn call_func_without_output<F, I>(
         &self,
-        func: &str,
+        func: F,
         input: I,
     ) -> Result<(), WarpgatePluginError>
     where
+        F: Debug + AsRef<str>,
         I: Debug + Serialize,
     {
+        let func = func.as_ref();
         self.call(func, self.format_input(func, input)?).await?;
         Ok(())
     }
 
     /// Return true if the plugin has a function with the given id.
-    pub async fn has_func(&self, func: &str) -> bool {
-        self.plugin.read().await.function_exists(func)
+    pub async fn has_func(&self, func: impl AsRef<str>) -> bool {
+        self.plugin.read().await.function_exists(func.as_ref())
     }
 
     /// Convert the provided virtual guest path to an absolute host path.

@@ -79,11 +79,11 @@ impl Tool {
         let verified;
 
         // Allow plugin to provide their own checksum verification method
-        if self.plugin.has_func("verify_checksum").await {
+        if self.plugin.has_func(PluginFunction::VerifyChecksum).await {
             let output: VerifyChecksumOutput = self
                 .plugin
                 .call_func_with(
-                    "verify_checksum",
+                    PluginFunction::VerifyChecksum,
                     VerifyChecksumInput {
                         checksum_file: self.to_virtual_path(checksum_file),
                         download_file: self.to_virtual_path(download_file),
@@ -129,7 +129,11 @@ impl Tool {
             "Installing tool by building from source"
         );
 
-        if !self.plugin.has_func("build_instructions").await {
+        if !self
+            .plugin
+            .has_func(PluginFunction::BuildInstructions)
+            .await
+        {
             return Err(ProtoInstallError::UnsupportedBuildFromSource {
                 tool: self.get_name().to_owned(),
             });
@@ -138,7 +142,7 @@ impl Tool {
         let output: BuildInstructionsOutput = self
             .plugin
             .cache_func_with(
-                "build_instructions",
+                PluginFunction::BuildInstructions,
                 BuildInstructionsInput {
                     context: self.create_context(),
                     install_dir: self.to_virtual_path(install_dir),
@@ -233,7 +237,7 @@ impl Tool {
             "Installing tool by downloading a pre-built archive"
         );
 
-        if !self.plugin.has_func("download_prebuilt").await {
+        if !self.plugin.has_func(PluginFunction::DownloadPrebuilt).await {
             return Err(ProtoInstallError::UnsupportedDownloadPrebuilt {
                 tool: self.get_name().to_owned(),
             });
@@ -245,7 +249,7 @@ impl Tool {
         let output: DownloadPrebuiltOutput = self
             .plugin
             .cache_func_with(
-                "download_prebuilt",
+                PluginFunction::DownloadPrebuilt,
                 DownloadPrebuiltInput {
                     context: self.create_context(),
                     install_dir: self.to_virtual_path(install_dir),
@@ -358,7 +362,7 @@ impl Tool {
             "Attempting to unpack archive",
         );
 
-        if self.plugin.has_func("unpack_archive").await {
+        if self.plugin.has_func(PluginFunction::UnpackArchive).await {
             options.on_phase_change.as_ref().inspect(|func| {
                 func(InstallPhase::Unpack {
                     file: download_filename.clone(),
@@ -367,7 +371,7 @@ impl Tool {
 
             self.plugin
                 .call_func_without_output(
-                    "unpack_archive",
+                    PluginFunction::UnpackArchive,
                     UnpackArchiveInput {
                         input_file: self.to_virtual_path(&download_file),
                         output_dir: self.to_virtual_path(install_dir),
@@ -437,7 +441,7 @@ impl Tool {
 
         // If this function is defined, it acts like an escape hatch and
         // takes precedence over all other install strategies
-        if self.plugin.has_func("native_install").await {
+        if self.plugin.has_func(PluginFunction::NativeInstall).await {
             debug!(tool = self.id.as_str(), "Installing tool natively");
 
             options.on_phase_change.as_ref().inspect(|func| {
@@ -449,7 +453,7 @@ impl Tool {
             let output: NativeInstallOutput = self
                 .plugin
                 .call_func_with(
-                    "native_install",
+                    PluginFunction::NativeInstall,
                     NativeInstallInput {
                         context: self.create_context(),
                         install_dir: self.to_virtual_path(&install_dir),
@@ -532,13 +536,13 @@ impl Tool {
             return Ok(false);
         }
 
-        if self.plugin.has_func("native_uninstall").await {
+        if self.plugin.has_func(PluginFunction::NativeUninstall).await {
             debug!(tool = self.id.as_str(), "Uninstalling tool natively");
 
             let output: NativeUninstallOutput = self
                 .plugin
                 .call_func_with(
-                    "native_uninstall",
+                    PluginFunction::NativeUninstall,
                     NativeUninstallInput {
                         context: self.create_context(),
                         uninstall_dir: self.to_virtual_path(&install_dir),

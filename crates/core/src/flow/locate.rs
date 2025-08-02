@@ -2,7 +2,9 @@ pub use super::locate_error::ProtoLocateError;
 use crate::helpers::{ENV_VAR, normalize_path_separators};
 use crate::layout::BinManager;
 use crate::tool::Tool;
-use proto_pdk_api::{ExecutableConfig, LocateExecutablesInput, LocateExecutablesOutput};
+use proto_pdk_api::{
+    ExecutableConfig, LocateExecutablesInput, LocateExecutablesOutput, PluginFunction,
+};
 use proto_shim::{get_exe_file_name, get_shim_file_name};
 use serde::Serialize;
 use starbase_utils::fs;
@@ -31,7 +33,7 @@ impl Tool {
         Ok(self
             .plugin
             .cache_func_with(
-                "locate_executables",
+                PluginFunction::LocateExecutables,
                 LocateExecutablesInput {
                     context: self.create_context(),
                     install_dir: self.to_virtual_path(self.get_product_dir()),
@@ -140,7 +142,7 @@ impl Tool {
             let output: LocateExecutablesOutput = self
                 .plugin
                 .cache_func_with(
-                    "locate_executables",
+                    PluginFunction::LocateExecutables,
                     LocateExecutablesInput {
                         context: self.create_context(),
                         install_dir: self.to_virtual_path(self.get_product_dir()),
@@ -270,7 +272,12 @@ impl Tool {
     /// Locate the directory that local executables are installed to.
     #[instrument(skip_all)]
     pub async fn locate_exes_dirs(&mut self) -> Result<Vec<PathBuf>, ProtoLocateError> {
-        if self.exes_dirs.is_empty() && self.plugin.has_func("locate_executables").await {
+        if self.exes_dirs.is_empty()
+            && self
+                .plugin
+                .has_func(PluginFunction::LocateExecutables)
+                .await
+        {
             let output = self.call_locate_executables().await?;
 
             #[allow(deprecated)]
@@ -350,7 +357,11 @@ impl Tool {
             return Ok(self.globals_dirs.clone());
         }
 
-        if !self.plugin.has_func("locate_executables").await {
+        if !self
+            .plugin
+            .has_func(PluginFunction::LocateExecutables)
+            .await
+        {
             return Ok(vec![]);
         }
 
@@ -430,7 +441,11 @@ impl Tool {
     #[instrument(skip_all)]
     pub async fn locate_globals_prefix(&mut self) -> Result<Option<String>, ProtoLocateError> {
         if self.globals_prefix.is_none() {
-            if !self.plugin.has_func("locate_executables").await {
+            if !self
+                .plugin
+                .has_func(PluginFunction::LocateExecutables)
+                .await
+            {
                 return Ok(None);
             }
 

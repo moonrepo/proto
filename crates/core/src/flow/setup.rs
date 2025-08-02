@@ -7,7 +7,7 @@ use crate::lockfile::LockRecord;
 use crate::tool::Tool;
 use crate::tool_manifest::ToolManifestVersion;
 use crate::tool_spec::ToolSpec;
-use proto_pdk_api::{SyncManifestInput, SyncManifestOutput};
+use proto_pdk_api::{PluginFunction, SyncManifestInput, SyncManifestOutput};
 use starbase_utils::fs;
 use std::collections::{BTreeMap, BTreeSet};
 use tracing::{debug, instrument};
@@ -224,7 +224,7 @@ impl Tool {
     /// Sync the local tool manifest with changes from the plugin.
     #[instrument(skip_all)]
     pub async fn sync_manifest(&mut self) -> Result<(), ProtoSetupError> {
-        if !self.plugin.has_func("sync_manifest").await {
+        if !self.plugin.has_func(PluginFunction::SyncManifest).await {
             return Ok(());
         }
 
@@ -233,7 +233,7 @@ impl Tool {
         let output: SyncManifestOutput = self
             .plugin
             .call_func_with(
-                "sync_manifest",
+                PluginFunction::SyncManifest,
                 SyncManifestInput {
                     context: self.create_context(),
                 },

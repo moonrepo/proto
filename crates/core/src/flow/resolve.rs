@@ -40,7 +40,7 @@ impl Tool {
                 versions = self
                     .plugin
                     .cache_func_with(
-                        "load_versions",
+                        PluginFunction::LoadVersions,
                         LoadVersionsInput {
                             context: self.create_unresolved_context(),
                             initial: initial_version.to_owned(),
@@ -71,7 +71,7 @@ impl Tool {
     /// Register the backend by acquiring necessary source files.
     #[instrument(skip_all)]
     pub async fn register_backend(&mut self) -> Result<(), ProtoResolveError> {
-        if !self.plugin.has_func("register_backend").await || self.backend_registered {
+        if !self.plugin.has_func(PluginFunction::RegisterBackend).await || self.backend_registered {
             return Ok(());
         }
 
@@ -82,7 +82,7 @@ impl Tool {
         let metadata: RegisterBackendOutput = self
             .plugin
             .cache_func_with(
-                "register_backend",
+                PluginFunction::RegisterBackend,
                 RegisterBackendInput {
                     context: self.create_unresolved_context(),
                     id: self.id.to_string(),
@@ -280,11 +280,11 @@ impl Tool {
             })
         };
 
-        if self.plugin.has_func("resolve_version").await {
+        if self.plugin.has_func(PluginFunction::ResolveVersion).await {
             let output: ResolveVersionOutput = self
                 .plugin
                 .call_func_with(
-                    "resolve_version",
+                    PluginFunction::ResolveVersion,
                     ResolveVersionInput {
                         context: self.create_unresolved_context(),
                         initial: initial_candidate.to_owned(),

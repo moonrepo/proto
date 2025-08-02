@@ -14,6 +14,166 @@ pub use checksum::*;
 pub use semver::{Version, VersionReq};
 pub use source::*;
 
+/// Enumeration of all available plugin functions that can be implemented by plugins.
+///
+/// This enum provides type-safe access to plugin function names and eliminates
+/// the risk of typos when calling plugin functions. Each variant corresponds to
+/// a specific plugin function with its associated input/output types.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum PluginFunction {
+    /// Register and configure a tool with proto.
+    ///
+    /// Called when proto first loads a plugin to get basic metadata about the tool
+    /// including its name, type, and configuration schema.
+    ///
+    /// **Input:** [`RegisterToolInput`] | **Output:** [`RegisterToolOutput`]
+    RegisterTool,
+
+    /// Register a backend with proto.
+    ///
+    /// Allows plugins to define custom backends for sourcing tools from locations
+    /// other than the default registry.
+    ///
+    /// **Input:** [`RegisterBackendInput`] | **Output:** [`RegisterBackendOutput`]
+    RegisterBackend,
+
+    /// Detect version files in a project.
+    ///
+    /// Returns a list of file patterns that should be checked for version information
+    /// when auto-detecting tool versions.
+    ///
+    /// **Input:** [`DetectVersionInput`] | **Output:** [`DetectVersionOutput`]
+    DetectVersionFiles,
+
+    /// Parse version information from files.
+    ///
+    /// Extracts version specifications from configuration files like `.nvmrc`,
+    /// `package.json`, `pyproject.toml`, etc.
+    ///
+    /// **Input:** [`ParseVersionFileInput`] | **Output:** [`ParseVersionFileOutput`]
+    ParseVersionFile,
+
+    /// Load available versions for a tool.
+    ///
+    /// Fetches the list of available versions that can be installed, including
+    /// version aliases like "latest" or "lts".
+    ///
+    /// **Input:** [`LoadVersionsInput`] | **Output:** [`LoadVersionsOutput`]
+    LoadVersions,
+
+    /// Resolve version specifications to concrete versions.
+    ///
+    /// Takes version requirements or aliases and resolves them to specific
+    /// installable versions.
+    ///
+    /// **Input:** [`ResolveVersionInput`] | **Output:** [`ResolveVersionOutput`]
+    ResolveVersion,
+
+    /// Download prebuilt tool archives.
+    ///
+    /// Provides URLs and metadata for downloading pre-compiled tool binaries
+    /// instead of building from source.
+    ///
+    /// **Input:** [`DownloadPrebuiltInput`] | **Output:** [`DownloadPrebuiltOutput`]
+    DownloadPrebuilt,
+
+    /// Provide build instructions for tools.
+    ///
+    /// Returns the steps needed to build a tool from source, including dependencies,
+    /// build commands, and environment requirements.
+    ///
+    /// **Input:** [`BuildInstructionsInput`] | **Output:** [`BuildInstructionsOutput`]
+    BuildInstructions,
+
+    /// Unpack downloaded archives.
+    ///
+    /// Handles custom unpacking logic for tool archives when the default extraction
+    /// methods are insufficient.
+    ///
+    /// **Input:** [`UnpackArchiveInput`] | **Output:** None
+    UnpackArchive,
+
+    /// Verify download checksums.
+    ///
+    /// Provides custom checksum verification logic for downloaded tool archives
+    /// to ensure integrity.
+    ///
+    /// **Input:** [`VerifyChecksumInput`] | **Output:** [`VerifyChecksumOutput`]
+    VerifyChecksum,
+
+    /// Native tool installation.
+    ///
+    /// Handles tool installation using the tool's own installation methods rather
+    /// than proto's standard process.
+    ///
+    /// **Input:** [`NativeInstallInput`] | **Output:** [`NativeInstallOutput`]
+    NativeInstall,
+
+    /// Native tool uninstallation.
+    ///
+    /// Handles tool removal using the tool's own uninstallation methods rather
+    /// than simple directory deletion.
+    ///
+    /// **Input:** [`NativeUninstallInput`] | **Output:** [`NativeUninstallOutput`]
+    NativeUninstall,
+
+    /// Locate tool executables.
+    ///
+    /// Identifies where executables are located within an installed tool and
+    /// configures them for proto's shim system.
+    ///
+    /// **Input:** [`LocateExecutablesInput`] | **Output:** [`LocateExecutablesOutput`]
+    LocateExecutables,
+
+    /// Sync the tool manifest.
+    ///
+    /// Allows plugins to update proto's inventory of installed versions with
+    /// external changes.
+    ///
+    /// **Input:** [`SyncManifestInput`] | **Output:** [`SyncManifestOutput`]
+    SyncManifest,
+
+    /// Sync shell profile configuration.
+    ///
+    /// Configures shell environment variables and PATH modifications needed for
+    /// the tool to work properly.
+    ///
+    /// **Input:** [`SyncShellProfileInput`] | **Output:** [`SyncShellProfileOutput`]
+    SyncShellProfile,
+}
+
+impl PluginFunction {
+    /// Get the string representation of the plugin function name.
+    ///
+    /// This returns the actual function name that should be used when calling
+    /// the plugin function via WASM.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::RegisterTool => "register_tool",
+            Self::RegisterBackend => "register_backend",
+            Self::DetectVersionFiles => "detect_version_files",
+            Self::ParseVersionFile => "parse_version_file",
+            Self::LoadVersions => "load_versions",
+            Self::ResolveVersion => "resolve_version",
+            Self::DownloadPrebuilt => "download_prebuilt",
+            Self::BuildInstructions => "build_instructions",
+            Self::UnpackArchive => "unpack_archive",
+            Self::VerifyChecksum => "verify_checksum",
+            Self::NativeInstall => "native_install",
+            Self::NativeUninstall => "native_uninstall",
+            Self::LocateExecutables => "locate_executables",
+            Self::SyncManifest => "sync_manifest",
+            Self::SyncShellProfile => "sync_shell_profile",
+        }
+    }
+}
+
+impl AsRef<str> for PluginFunction {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
 pub(crate) fn is_false(value: &bool) -> bool {
     !(*value)
 }
