@@ -180,7 +180,7 @@ impl Tool {
 
     /// Return true if this tool instance is a backend plugin.
     pub async fn is_backend_plugin(&self) -> bool {
-        if self.plugin.has_func("register_backend").await {
+        if self.plugin.has_func(PluginFunction::RegisterBackend).await {
             Backend::variants()
                 .iter()
                 .any(|var| var.to_string() == self.id.as_str())
@@ -242,7 +242,7 @@ impl Tool {
         let metadata: RegisterToolOutput = self
             .plugin
             .cache_func_with(
-                "register_tool",
+                PluginFunction::RegisterTool,
                 RegisterToolInput {
                     id: self.id.to_string(),
                 },
