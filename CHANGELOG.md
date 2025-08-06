@@ -17,6 +17,10 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Improved argument quoting for child processes to be based on the current shell.
+
 #### ⚙️ Internal
 
 - Updated dependencies.
