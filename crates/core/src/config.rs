@@ -390,42 +390,42 @@ impl ProtoConfig {
         if !self.plugins.contains_key("asdf") && is_allowed("asdf") {
             self.plugins.insert(
                 Id::raw("asdf"),
-                find_debug_locator_with_version("asdf_backend", "0.3.0"),
+                find_debug_locator_with_version("asdf_backend", "0.3.1"),
             );
         }
 
         if !self.plugins.contains_key("bun") && is_allowed("bun") {
             self.plugins.insert(
                 Id::raw("bun"),
-                find_debug_locator_with_version("bun_tool", "0.16.0"),
+                find_debug_locator_with_version("bun_tool", "0.16.1"),
             );
         }
 
         if !self.plugins.contains_key("deno") && is_allowed("deno") {
             self.plugins.insert(
                 Id::raw("deno"),
-                find_debug_locator_with_version("deno_tool", "0.15.4"),
+                find_debug_locator_with_version("deno_tool", "0.15.5"),
             );
         }
 
         if !self.plugins.contains_key("go") && is_allowed("go") {
             self.plugins.insert(
                 Id::raw("go"),
-                find_debug_locator_with_version("go_tool", "0.16.2"),
+                find_debug_locator_with_version("go_tool", "0.16.3"),
             );
         }
 
         if !self.plugins.contains_key("moon") && is_allowed("moon") {
             self.plugins.insert(
                 Id::raw("moon"),
-                find_debug_locator_with_version("moon_tool", "0.3.2"),
+                find_debug_locator_with_version("moon_tool", "0.3.3"),
             );
         }
 
         if !self.plugins.contains_key("node") && is_allowed("node") {
             self.plugins.insert(
                 Id::raw("node"),
-                find_debug_locator_with_version("node_tool", "0.17.0"),
+                find_debug_locator_with_version("node_tool", "0.17.1"),
             );
         }
 
@@ -433,7 +433,7 @@ impl ProtoConfig {
             if !self.plugins.contains_key(depman) && is_allowed(depman) {
                 self.plugins.insert(
                     Id::raw(depman),
-                    find_debug_locator_with_version("node_depman_tool", "0.16.0"),
+                    find_debug_locator_with_version("node_depman_tool", "0.16.1"),
                 );
             }
         }
@@ -441,42 +441,42 @@ impl ProtoConfig {
         if !self.plugins.contains_key("poetry") && is_allowed("poetry") {
             self.plugins.insert(
                 Id::raw("poetry"),
-                find_debug_locator_with_version("python_poetry_tool", "0.1.3"),
+                find_debug_locator_with_version("python_poetry_tool", "0.1.4"),
             );
         }
 
         if !self.plugins.contains_key("python") && is_allowed("python") {
             self.plugins.insert(
                 Id::raw("python"),
-                find_debug_locator_with_version("python_tool", "0.14.2"),
+                find_debug_locator_with_version("python_tool", "0.14.3"),
             );
         }
 
         if !self.plugins.contains_key("uv") && is_allowed("uv") {
             self.plugins.insert(
                 Id::raw("uv"),
-                find_debug_locator_with_version("python_uv_tool", "0.3.0"),
+                find_debug_locator_with_version("python_uv_tool", "0.3.1"),
             );
         }
 
         if !self.plugins.contains_key("ruby") && is_allowed("ruby") {
             self.plugins.insert(
                 Id::raw("ruby"),
-                find_debug_locator_with_version("ruby_tool", "0.2.2"),
+                find_debug_locator_with_version("ruby_tool", "0.2.3"),
             );
         }
 
         if !self.plugins.contains_key("rust") && is_allowed("rust") {
             self.plugins.insert(
                 Id::raw("rust"),
-                find_debug_locator_with_version("rust_tool", "0.13.3"),
+                find_debug_locator_with_version("rust_tool", "0.13.4"),
             );
         }
 
         if !self.plugins.contains_key(SCHEMA_PLUGIN_KEY) {
             self.plugins.insert(
                 Id::raw(SCHEMA_PLUGIN_KEY),
-                find_debug_locator_with_version("schema_tool", "0.17.4"),
+                find_debug_locator_with_version("schema_tool", "0.17.5"),
             );
         }
 

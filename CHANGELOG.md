@@ -19,6 +19,7 @@
 
 #### 🚀 Updates
 
+- Added unstable support for bubbling up logs from WASM plugins (when applicable).
 - Improved argument quoting for child processes to be based on the current shell.
 
 #### ⚙️ Internal
