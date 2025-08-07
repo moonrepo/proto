@@ -79,12 +79,12 @@ pub fn verify_checksum(
         // Checksum files on Windows are created with Get-FileHash,
         // which has a different file structure than Unix
         // https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/get-filehash?view=powershell-7.5
-        if line.starts_with("Hash") {
-            if let Some((_, hash)) = line.split_once(':') {
-                // The hash is all uppercase in the checksum file,
-                // but the one's we generate are not, so lowercase
-                return Ok(hash.trim().to_lowercase() == checksum_hash);
-            }
+        if line.starts_with("Hash")
+            && let Some((_, hash)) = line.split_once(':')
+        {
+            // The hash is all uppercase in the checksum file,
+            // but the one's we generate are not, so lowercase
+            return Ok(hash.trim().to_lowercase() == checksum_hash);
         }
     }
 

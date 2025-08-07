@@ -26,11 +26,10 @@ pub fn VersionsMap<'a>(props: &VersionsMapProps<'a>) -> impl Into<AnyElement<'a>
                         comments.push(format!("installed {}", at.format("%x")));
                     }
 
-                    if let Ok(Some(last_used)) = inventory.create_product(version).load_used_at() {
-                        if let Some(at) = create_datetime(last_used) {
+                    if let Ok(Some(last_used)) = inventory.create_product(version).load_used_at()
+                        && let Some(at) = create_datetime(last_used) {
                             comments.push(format!("last used {}", at.format("%x")));
                         }
-                    }
                 }
 
                 if props.default_version.is_some_and(|dv| dv == &version.to_unresolved_spec()) {

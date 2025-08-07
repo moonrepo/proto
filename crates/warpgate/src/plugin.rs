@@ -24,10 +24,10 @@ fn is_incompatible_runtime(error: &Error) -> bool {
         message.contains("unknown import") && message.contains("env::")
     };
 
-    if let Some(source) = error.source() {
-        if check(source.to_string()) {
-            return true;
-        }
+    if let Some(source) = error.source()
+        && check(source.to_string())
+    {
+        return true;
     }
 
     check(error.to_string())

@@ -265,13 +265,11 @@ fn replace_binaries(
 
     let mut output_dirs = vec![target_dir.to_path_buf()];
 
-    if relocate_current {
-        if let Ok(current) = env::current_exe() {
-            let current_dir = current.parent().unwrap();
+    if relocate_current && let Ok(current) = env::current_exe() {
+        let current_dir = current.parent().unwrap();
 
-            if current_dir != target_dir {
-                output_dirs.push(current_dir.to_path_buf());
-            }
+        if current_dir != target_dir {
+            output_dirs.push(current_dir.to_path_buf());
         }
     }
 

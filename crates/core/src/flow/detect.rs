@@ -116,23 +116,23 @@ impl Tool {
         // Env var takes highest priority
         let env_var = format!("{}_VERSION", self.get_env_var_prefix());
 
-        if let Ok(session_version) = env::var(&env_var) {
-            if !session_version.is_empty() {
-                debug!(
-                    tool = self.id.as_str(),
-                    env_var,
-                    version = session_version,
-                    "Detected version from environment variable",
-                );
+        if let Ok(session_version) = env::var(&env_var)
+            && !session_version.is_empty()
+        {
+            debug!(
+                tool = self.id.as_str(),
+                env_var,
+                version = session_version,
+                "Detected version from environment variable",
+            );
 
-                return Ok(UnresolvedVersionSpec::parse(&session_version)
-                    .map_err(|error| ProtoDetectError::InvalidDetectedVersionSpec {
-                        path: PathBuf::from(env_var),
-                        version: session_version,
-                        error: Box::new(error),
-                    })?
-                    .into());
-            }
+            return Ok(UnresolvedVersionSpec::parse(&session_version)
+                .map_err(|error| ProtoDetectError::InvalidDetectedVersionSpec {
+                    path: PathBuf::from(env_var),
+                    version: session_version,
+                    error: Box::new(error),
+                })?
+                .into());
         }
 
         // Traverse upwards and attempt to detect a version

@@ -46,15 +46,15 @@ pub async fn status(session: ProtoSession, _args: StatusArgs) -> AppResult {
 
         // Resolve a version based on the configured spec, and ignore errors
         // as they indicate a version could not be resolved!
-        if let Ok(version) = tool.resolve_version(&spec, false).await {
-            if !version.is_latest() {
-                if tool.is_installed() {
-                    item.is_installed = true;
-                    item.product_dir = Some(tool.get_product_dir());
-                }
-
-                item.resolved_version = Some(version);
+        if let Ok(version) = tool.resolve_version(&spec, false).await
+            && !version.is_latest()
+        {
+            if tool.is_installed() {
+                item.is_installed = true;
+                item.product_dir = Some(tool.get_product_dir());
             }
+
+            item.resolved_version = Some(version);
         }
 
         item.config_version = spec;
