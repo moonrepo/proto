@@ -49,17 +49,17 @@ impl Tool {
         let output = self.call_locate_executables().await?;
 
         for (name, config) in output.exes {
-            if config.primary {
-                if let Some(exe_path) = &config.exe_path {
-                    return Ok(Some(ExecutableLocation {
-                        path: self
-                            .get_product_dir()
-                            .join(normalize_path_separators(exe_path)),
-                        name,
-                        config,
-                        version: None,
-                    }));
-                }
+            if config.primary
+                && let Some(exe_path) = &config.exe_path
+            {
+                return Ok(Some(ExecutableLocation {
+                    path: self
+                        .get_product_dir()
+                        .join(normalize_path_separators(exe_path)),
+                    name,
+                    config,
+                    version: None,
+                }));
             }
         }
 
@@ -328,16 +328,16 @@ impl Tool {
                 }
             }
 
-            if self.globals_dir.is_none() {
-                if let Some(dir) = globals_dirs.last() {
-                    debug!(
-                        tool = self.id.as_str(),
-                        dir = ?dir,
-                        "No usable globals directory found, falling back to the last entry",
-                    );
+            if self.globals_dir.is_none()
+                && let Some(dir) = globals_dirs.last()
+            {
+                debug!(
+                    tool = self.id.as_str(),
+                    dir = ?dir,
+                    "No usable globals directory found, falling back to the last entry",
+                );
 
-                    self.globals_dir = Some(dir.to_owned());
-                }
+                self.globals_dir = Some(dir.to_owned());
             }
         }
 

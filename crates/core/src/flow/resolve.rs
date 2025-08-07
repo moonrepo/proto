@@ -16,7 +16,7 @@ impl Tool {
     pub async fn load_version_resolver(
         &self,
         initial_version: &UnresolvedVersionSpec,
-    ) -> Result<VersionResolver, ProtoResolveError> {
+    ) -> Result<VersionResolver<'_>, ProtoResolveError> {
         debug!(tool = self.id.as_str(), "Loading available versions");
 
         let mut versions = LoadVersionsOutput::default();
@@ -200,23 +200,23 @@ impl Tool {
         let mut candidate = spec.req.clone();
 
         // If requested, resolve the version from a lockfile
-        if spec.read_lockfile {
-            if let Some(record) = self.resolve_locked_record(spec)? {
-                let version = record
-                    .version
-                    .clone()
-                    .expect("Version missing from lockfile record!");
+        if spec.read_lockfile
+            && let Some(record) = self.resolve_locked_record(spec)?
+        {
+            let version = record
+                .version
+                .clone()
+                .expect("Version missing from lockfile record!");
 
-                debug!(
-                    tool = self.id.as_str(),
-                    spec = candidate.to_string(),
-                    "Inherited version {} from lockfile",
-                    version
-                );
+            debug!(
+                tool = self.id.as_str(),
+                spec = candidate.to_string(),
+                "Inherited version {} from lockfile",
+                version
+            );
 
-                self.version_locked = Some(record);
-                candidate = version.to_unresolved_spec();
-            }
+            self.version_locked = Some(record);
+            candidate = version.to_unresolved_spec();
         }
 
         // If we have a fully qualified semantic version,

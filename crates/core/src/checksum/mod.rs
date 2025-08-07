@@ -92,20 +92,20 @@ pub fn detect_checksum_algorithm(
 
             // Windows
             if line.contains(':') {
-                if let Some((label, value)) = line.split_once(':') {
-                    if label.trim() == "Algorithm" {
-                        algo = match value.trim() {
-                            "SHA256" => Some(ChecksumAlgorithm::Sha256),
-                            "SHA512" => Some(ChecksumAlgorithm::Sha512),
-                            other => {
-                                return Err(ProtoChecksumError::UnsupportedAlgorithm {
-                                    algo: other.into(),
-                                });
-                            }
-                        };
+                if let Some((label, value)) = line.split_once(':')
+                    && label.trim() == "Algorithm"
+                {
+                    algo = match value.trim() {
+                        "SHA256" => Some(ChecksumAlgorithm::Sha256),
+                        "SHA512" => Some(ChecksumAlgorithm::Sha512),
+                        other => {
+                            return Err(ProtoChecksumError::UnsupportedAlgorithm {
+                                algo: other.into(),
+                            });
+                        }
+                    };
 
-                        break;
-                    }
+                    break;
                 }
 
                 continue;

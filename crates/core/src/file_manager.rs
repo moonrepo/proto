@@ -139,11 +139,11 @@ impl ProtoFileManager {
         })
     }
 
-    pub fn get_lock(&self) -> Option<RwLockReadGuard<ProtoLock>> {
+    pub fn get_lock(&self) -> Option<RwLockReadGuard<'_, ProtoLock>> {
         self.locked.then(|| self.lock.read().unwrap())
     }
 
-    pub fn get_lock_mut(&self) -> Option<RwLockWriteGuard<ProtoLock>> {
+    pub fn get_lock_mut(&self) -> Option<RwLockWriteGuard<'_, ProtoLock>> {
         self.locked.then(|| self.lock.write().unwrap())
     }
 

@@ -47,27 +47,28 @@ pub fn locate_tool(id: &Id, proto: &ProtoEnvironment) -> Result<PluginLocator, P
     }
 
     // And finally the built-in plugins (must include global config)
-    if locator.is_none() {
-        if let Some(maybe_locator) = config.builtin_plugins().get(id) {
-            debug!(
-                plugin = maybe_locator.to_string(),
-                "Using a built-in plugin"
-            );
+    if locator.is_none()
+        && let Some(maybe_locator) = config.builtin_plugins().get(id)
+    {
+        debug!(
+            plugin = maybe_locator.to_string(),
+            "Using a built-in plugin"
+        );
 
-            locator = Some(maybe_locator.to_owned());
-        }
+        locator = Some(maybe_locator.to_owned());
     }
 
     // Search in registries
-    if locator.is_none() && !config.settings.registries.is_empty() {
-        if let Ok(maybe_locator) = PluginLocator::try_from(format!("registry://{id}")) {
-            debug!(
-                plugin = maybe_locator.to_string(),
-                "Using a registry plugin"
-            );
+    if locator.is_none()
+        && !config.settings.registries.is_empty()
+        && let Ok(maybe_locator) = PluginLocator::try_from(format!("registry://{id}"))
+    {
+        debug!(
+            plugin = maybe_locator.to_string(),
+            "Using a registry plugin"
+        );
 
-            locator = Some(maybe_locator.to_owned());
-        }
+        locator = Some(maybe_locator.to_owned());
     }
 
     let Some(mut locator) = locator else {

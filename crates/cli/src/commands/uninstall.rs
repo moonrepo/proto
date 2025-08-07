@@ -28,15 +28,14 @@ fn unpin_version(session: &ProtoSession, args: &UninstallArgs) -> Result<(), Pro
             }
 
             ProtoConfig::update_document(&file.path, |doc| {
-                if let Some(version) = doc.get(&args.id).and_then(|item| item.as_str()) {
-                    if args.spec.is_none()
+                if let Some(version) = doc.get(&args.id).and_then(|item| item.as_str())
+                    && (args.spec.is_none()
                         || args
                             .spec
                             .as_ref()
-                            .is_some_and(|spec| spec.to_string() == version)
-                    {
-                        doc.as_table_mut().remove(&args.id);
-                    }
+                            .is_some_and(|spec| spec.to_string() == version))
+                {
+                    doc.as_table_mut().remove(&args.id);
                 }
 
                 // if let Some(versions) = &mut config.versions {

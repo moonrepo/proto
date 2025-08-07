@@ -157,11 +157,13 @@ impl ProtoEnvironment {
             .collect())
     }
 
-    pub fn load_lock(&self) -> Result<Option<RwLockReadGuard<ProtoLock>>, ProtoConfigError> {
+    pub fn load_lock(&self) -> Result<Option<RwLockReadGuard<'_, ProtoLock>>, ProtoConfigError> {
         Ok(self.load_file_manager()?.get_lock())
     }
 
-    pub fn load_lock_mut(&self) -> Result<Option<RwLockWriteGuard<ProtoLock>>, ProtoConfigError> {
+    pub fn load_lock_mut(
+        &self,
+    ) -> Result<Option<RwLockWriteGuard<'_, ProtoLock>>, ProtoConfigError> {
         Ok(self.load_file_manager()?.get_lock_mut())
     }
 

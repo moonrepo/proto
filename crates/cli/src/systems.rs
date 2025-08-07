@@ -100,15 +100,13 @@ pub async fn check_for_new_version(
     // Only check every 12 hours instead of every invocation
     let cache_file = env.store.temp_dir.join(".last-version-check");
 
-    if cache_file.exists() {
-        if let Some(last_check) = fs::read_file(&cache_file)
+    if cache_file.exists()
+        && let Some(last_check) = fs::read_file(&cache_file)
             .ok()
             .and_then(|cache| cache.parse::<u128>().ok())
-        {
-            if (last_check + Duration::from_secs(43200).as_millis()) > now() {
-                return Ok(());
-            }
-        }
+        && (last_check + Duration::from_secs(43200).as_millis()) > now()
+    {
+        return Ok(());
     }
 
     // Otherwise fetch and compare versions

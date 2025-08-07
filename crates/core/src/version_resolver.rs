@@ -75,12 +75,11 @@ pub fn match_highest_version(req: &VersionReq, specs: &[&VersionSpec]) -> Option
     let mut highest_match: Option<VersionSpec> = None;
 
     for spec in specs {
-        if let Some(version) = spec.as_version() {
-            if req.matches(version)
-                && (highest_match.is_none() || highest_match.as_ref().is_some_and(|v| *spec > v))
-            {
-                highest_match = Some((*spec).clone());
-            }
+        if let Some(version) = spec.as_version()
+            && req.matches(version)
+            && (highest_match.is_none() || highest_match.as_ref().is_some_and(|v| *spec > v))
+        {
+            highest_match = Some((*spec).clone());
         }
     }
 
@@ -154,15 +153,15 @@ pub fn resolve_version(
             );
 
             // Check locally installed versions first
-            if !installed_versions.is_empty() {
-                if let Some(version) = match_highest_version(req, &installed_versions) {
-                    trace!(
-                        version = version.to_string(),
-                        "Resolved to locally installed version"
-                    );
+            if !installed_versions.is_empty()
+                && let Some(version) = match_highest_version(req, &installed_versions)
+            {
+                trace!(
+                    version = version.to_string(),
+                    "Resolved to locally installed version"
+                );
 
-                    return Some(version);
-                }
+                return Some(version);
             }
 
             // Otherwise we'll need to download from remote

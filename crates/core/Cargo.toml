@@ -6,7 +6,7 @@ license = "MIT"
 description = "Core proto APIs."
 homepage = "https://moonrepo.dev/proto"
 repository = "https://github.com/moonrepo/proto"
-rust-version = "1.88.0"
+rust-version = "1.89.0"
 
 [dependencies]
 proto_pdk_api = { version = "0.29.1", path = "../pdk-api", features = [

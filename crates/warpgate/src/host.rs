@@ -247,10 +247,10 @@ fn exec_command(
     let mut child = command.spawn()?;
     let pid = child.id();
 
-    if shell_command.pass_args_stdin {
-        if let Some(mut stdin) = child.stdin.take() {
-            stdin.write_all(command_line.as_bytes())?;
-        }
+    if shell_command.pass_args_stdin
+        && let Some(mut stdin) = child.stdin.take()
+    {
+        stdin.write_all(command_line.as_bytes())?;
     }
 
     trace!(

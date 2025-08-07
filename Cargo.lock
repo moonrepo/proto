@@ -1427,16 +1427,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fs4"
-version = "0.13.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8640e34b88f7652208ce9e88b1a37a2ae95227d84abec377ccd3c5cfeb141ed4"
-dependencies = [
- "rustix 1.0.8",
- "windows-sys 0.59.0",
-]
-
-[[package]]
 name = "futures"
 version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4252,9 +4242,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_archive"
-version = "0.11.4"
+version = "0.11.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b41c2cb938146d4f5ef458b595558626f898b87be96f7c341754b1c3ffd634e"
+checksum = "62a38bdc5a4567fd87ae2ff46e1e9986c537e480ed381e88f657ea5e0db82fa5"
 dependencies = [
  "binstall-tar",
  "bzip2",
@@ -4288,9 +4278,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_sandbox"
-version = "0.9.4"
+version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad0b8413b3a48b9039c1273d64b23c996ae3f12d9c4ba64b465e97323027a3cd"
+checksum = "842175bd0f6f0fe762494a6eb7d4f01238885feaf15a96f1fb5a662cf2feeaaa"
 dependencies = [
  "assert_cmd",
  "assert_fs",
@@ -4329,13 +4319,12 @@ dependencies = [
 
 [[package]]
 name = "starbase_utils"
-version = "0.11.14"
+version = "0.11.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61dd43190d1bc4fbaaee68a344e286106bb2165372f1963ae531659c80777f29"
+checksum = "259928ddc2924b2956513420ca6634e3700abc851c81c14083e5789380bcc3e0"
 dependencies = [
  "async-trait",
  "dirs 6.0.0",
- "fs4",
  "json-strip-comments",
  "jwalk",
  "miette 7.6.0",

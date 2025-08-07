@@ -737,10 +737,10 @@ impl ProtoConfig {
             base_vars.extend(self.env.clone());
         }
 
-        if let Some(tool_id) = &options.tool_id {
-            if let Some(tool_config) = self.tools.get(tool_id) {
-                base_vars.extend(tool_config.env.clone())
-            }
+        if let Some(tool_id) = &options.tool_id
+            && let Some(tool_config) = self.tools.get(tool_id)
+        {
+            base_vars.extend(tool_config.env.clone())
         }
 
         let mut vars = IndexMap::<String, Option<String>>::new();
