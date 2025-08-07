@@ -9,6 +9,7 @@ use starbase_utils::env::paths;
 use starbase_utils::fs;
 use std::collections::BTreeMap;
 use std::env;
+use std::io::Write;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::str::FromStr;
@@ -172,7 +173,12 @@ fn exec_command(
 
     let data = user_data.get()?;
     let data = data.lock().unwrap();
+
     let debug_output = env::var("WARPGATE_DEBUG_COMMAND").ok();
+    let should_stream = input.stream
+        || debug_output
+            .as_ref()
+            .is_some_and(|level| level == "all" || level == "stream");
 
     // Relative or absolute file path
     let maybe_exe = if input.command.contains('/') || input.command.contains('\\') {
@@ -213,25 +219,24 @@ fn exec_command(
         Some(name) => ShellType::from_str(&name)?.build(),
         None => get_default_shell().build(),
     };
+    let shell_command = shell.get_exec_command();
     let shell_exe_name = shell.to_string();
     let shell_exe_path = get_shell_exe_path(&shell_exe_name);
 
     // Create and execute command
+    let command_line = format!("{} {}", input.command, join_args(&shell, &input.args));
+
     let mut command = Command::new(&shell_exe_path);
-    command.args(shell.get_exec_command().shell_args);
-    command.arg(format!(
-        "{} {}",
-        input.command,
-        join_args(&shell, &input.args)
-    ));
+    command.args(shell_command.shell_args);
     command.envs(&input.env);
     command.current_dir(&cwd);
-    command.stdin(Stdio::null());
 
-    let should_stream = input.stream
-        || debug_output
-            .as_ref()
-            .is_some_and(|level| level == "all" || level == "stream");
+    if shell_command.pass_args_stdin {
+        command.stdin(Stdio::piped());
+    } else {
+        command.arg(&command_line);
+        command.stdin(Stdio::null());
+    }
 
     if should_stream {
         command.stderr(Stdio::inherit()).stdout(Stdio::inherit());
@@ -241,6 +246,12 @@ fn exec_command(
 
     let mut child = command.spawn()?;
     let pid = child.id();
+
+    if shell_command.pass_args_stdin {
+        if let Some(mut stdin) = child.stdin.take() {
+            stdin.write_all(command_line.as_bytes())?;
+        }
+    }
 
     trace!(
         plugin = &uuid,
