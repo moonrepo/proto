@@ -3,18 +3,19 @@ use crate::client_error::WarpgateClientError;
 use crate::helpers;
 use crate::plugin_error::WarpgatePluginError;
 use extism::{CurrentPlugin, Error, Function, UserData, Val, ValType};
-use starbase_shell::{BoxedShell, ShellType};
+use starbase_shell::{ShellType, join_args};
 use starbase_styles::{apply_style_tags, color};
 use starbase_utils::env::paths;
 use starbase_utils::fs;
 use std::collections::BTreeMap;
 use std::env;
+use std::io::Write;
 use std::path::PathBuf;
-use std::process::Stdio;
+use std::process::{Command, Stdio};
 use std::str::FromStr;
 use std::sync::{Arc, OnceLock};
 use std::time::Instant;
-use system_env::{create_process_command, find_command_on_path};
+use system_env::find_command_on_path;
 use tokio::runtime::Handle;
 use tracing::{debug, error, instrument, trace, warn};
 use warpgate_api::{
@@ -139,30 +140,16 @@ fn get_default_shell() -> ShellType {
     *SHELL_CACHE.get_or_init(ShellType::detect_with_fallback)
 }
 
-fn get_shell_bin_path(bin_name: &str) -> PathBuf {
+fn get_shell_exe_path(name: &str) -> PathBuf {
     // pwsh.exe isn't available on all Windows machines by default,
-    // but powershell.exe typically is
-    if bin_name == "pwsh" {
+    // but powershell.exe typically is!
+    if name == "pwsh" {
         return find_command_on_path("pwsh")
             .or_else(|| find_command_on_path("powershell"))
             .unwrap_or_else(|| "powershell".into());
     }
 
-    find_command_on_path(bin_name).unwrap_or_else(|| bin_name.into())
-}
-
-fn quote_shell_arg(shell: &BoxedShell, arg: &str) -> String {
-    // An option or already quoted
-    if arg.starts_with(['-', '"', '\'']) || arg.starts_with("$'") {
-        return arg.to_owned();
-    }
-
-    // Requires double quotes
-    if shell.requires_expansion(arg) || arg.contains(' ') {
-        return format!("\"{arg}\"");
-    }
-
-    arg.to_owned()
+    find_command_on_path(name).unwrap_or_else(|| name.into())
 }
 
 #[instrument(name = "host_func_exec_command", skip_all)]
@@ -186,10 +173,15 @@ fn exec_command(
 
     let data = user_data.get()?;
     let data = data.lock().unwrap();
+
     let debug_output = env::var("WARPGATE_DEBUG_COMMAND").ok();
+    let should_stream = input.stream
+        || debug_output
+            .as_ref()
+            .is_some_and(|level| level == "all" || level == "stream");
 
     // Relative or absolute file path
-    let maybe_bin = if input.command.contains('/') || input.command.contains('\\') {
+    let maybe_exe = if input.command.contains('/') || input.command.contains('\\') {
         let path = helpers::from_virtual_path(&data.virtual_paths, PathBuf::from(&input.command));
 
         if path.exists() {
@@ -208,7 +200,7 @@ fn exec_command(
         find_command_on_path(&input.command)
     };
 
-    let Some(bin) = &maybe_bin else {
+    let Some(exe) = &maybe_exe else {
         return Err(WarpgatePluginError::MissingCommand {
             command: input.command.clone(),
         }
@@ -227,31 +219,24 @@ fn exec_command(
         Some(name) => ShellType::from_str(&name)?.build(),
         None => get_default_shell().build(),
     };
-    let shell_bin = shell.to_string();
-    let shell_bin_path = get_shell_bin_path(&shell_bin);
+    let shell_command = shell.get_exec_command();
+    let shell_exe_name = shell.to_string();
+    let shell_exe_path = get_shell_exe_path(&shell_exe_name);
 
     // Create and execute command
-    let command_line = format!(
-        "{} {}",
-        input.command,
-        input
-            .args
-            .iter()
-            .map(|arg| quote_shell_arg(&shell, arg))
-            .collect::<Vec<_>>()
-            .join(" ")
-    );
+    let command_line = format!("{} {}", input.command, join_args(&shell, &input.args));
 
-    let mut command = create_process_command(&shell_bin_path, vec!["-c"]);
-    command.arg(command_line);
+    let mut command = Command::new(&shell_exe_path);
+    command.args(shell_command.shell_args);
     command.envs(&input.env);
     command.current_dir(&cwd);
-    command.stdin(Stdio::null());
 
-    let should_stream = input.stream
-        || debug_output
-            .as_ref()
-            .is_some_and(|level| level == "all" || level == "stream");
+    if shell_command.pass_args_stdin {
+        command.stdin(Stdio::piped());
+    } else {
+        command.arg(&command_line);
+        command.stdin(Stdio::null());
+    }
 
     if should_stream {
         command.stderr(Stdio::inherit()).stdout(Stdio::inherit());
@@ -262,10 +247,16 @@ fn exec_command(
     let mut child = command.spawn()?;
     let pid = child.id();
 
+    if shell_command.pass_args_stdin {
+        if let Some(mut stdin) = child.stdin.take() {
+            stdin.write_all(command_line.as_bytes())?;
+        }
+    }
+
     trace!(
         plugin = &uuid,
-        shell = &shell_bin,
-        command = &input.command,
+        shell = &shell_exe_name,
+        exe = &input.command,
         args = ?input.args,
         cwd = ?cwd,
         pid = pid,
@@ -294,8 +285,8 @@ fn exec_command(
 
     trace!(
         plugin = plugin.id().to_string(),
-        shell = ?shell_bin_path,
-        command = ?bin,
+        shell = ?shell_exe_path,
+        exe = ?exe,
         pid = pid,
         exit_code = output.exit_code,
         stderr = if debug_output.is_some() {
