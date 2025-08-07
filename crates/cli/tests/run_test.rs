@@ -607,14 +607,15 @@ backend = "asdf"
                 .run_bin(|cmd| {
                     cmd.arg("install").arg("zig").arg("asdf:0.13.0");
                 })
-                .debug();
+                .success();
 
-            let assert = sandbox.run_bin(|cmd| {
-                cmd.arg("run").arg("zig").arg("--").arg("version");
-            });
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("run").arg("zig").arg("--").arg("version");
+                })
+                .success();
 
-            assert.debug();
-            assert.success().stdout(predicate::str::contains("0.13.0"));
+            assert.stdout(predicate::str::contains("0.13.0"));
         }
     }
 }
