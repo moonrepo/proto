@@ -1,4 +1,4 @@
-use proto_core::{LockRecord, ProtoFileManager};
+use proto_core::{LockRecord, ProtoFileManager, ToolContext};
 use starbase_sandbox::create_empty_sandbox;
 use std::collections::BTreeMap;
 use version_spec::UnresolvedVersionSpec;
@@ -59,15 +59,15 @@ deno = "7.8.9"
             config.versions,
             BTreeMap::from_iter([
                 (
-                    Id::raw("node"),
+                    ToolContext::parse("node").unwrap(),
                     UnresolvedVersionSpec::parse("1.2.3").unwrap().into()
                 ),
                 (
-                    Id::raw("bun"),
+                    ToolContext::parse("bun").unwrap(),
                     UnresolvedVersionSpec::parse("4.5.6").unwrap().into()
                 ),
                 (
-                    Id::raw("deno"),
+                    ToolContext::parse("deno").unwrap(),
                     UnresolvedVersionSpec::parse("7.8.9").unwrap().into()
                 ),
             ])
@@ -128,11 +128,11 @@ bun = "1.2.3"
             config.versions,
             BTreeMap::from_iter([
                 (
-                    Id::raw("node"),
+                    ToolContext::parse("node").unwrap(),
                     UnresolvedVersionSpec::parse("1.2.3").unwrap().into()
                 ),
                 (
-                    Id::raw("deno"),
+                    ToolContext::parse("deno").unwrap(),
                     UnresolvedVersionSpec::parse("7.8.9").unwrap().into()
                 ),
             ])
@@ -178,7 +178,7 @@ bun = "1.2.3"
         assert_eq!(
             config.versions,
             BTreeMap::from_iter([(
-                Id::raw("node"),
+                ToolContext::parse("node").unwrap(),
                 UnresolvedVersionSpec::parse("1.2.3").unwrap().into()
             )])
         );
@@ -215,11 +215,11 @@ deno = "7.8.9"
             config.versions,
             BTreeMap::from_iter([
                 (
-                    Id::raw("node"),
+                    ToolContext::parse("node").unwrap(),
                     UnresolvedVersionSpec::parse("1.2.3").unwrap().into()
                 ),
                 (
-                    Id::raw("deno"),
+                    ToolContext::parse("deno").unwrap(),
                     UnresolvedVersionSpec::parse("7.8.9").unwrap().into()
                 ),
             ])
@@ -254,11 +254,11 @@ deno = "7.8.9"
             config.versions,
             BTreeMap::from_iter([
                 (
-                    Id::raw("node"),
+                    ToolContext::parse("node").unwrap(),
                     UnresolvedVersionSpec::parse("7.8.9").unwrap().into()
                 ),
                 (
-                    Id::raw("deno"),
+                    ToolContext::parse("deno").unwrap(),
                     UnresolvedVersionSpec::parse("7.8.9").unwrap().into()
                 ),
             ])
@@ -296,11 +296,11 @@ deno = "7.8.9"
             config.versions,
             BTreeMap::from_iter([
                 (
-                    Id::raw("node"),
+                    ToolContext::parse("node").unwrap(),
                     UnresolvedVersionSpec::parse("7.8.9").unwrap().into()
                 ),
                 (
-                    Id::raw("deno"),
+                    ToolContext::parse("deno").unwrap(),
                     UnresolvedVersionSpec::parse("7.8.9").unwrap().into()
                 ),
             ])
