@@ -416,7 +416,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
             .call_func_with(
                 HookFunction::PreRun,
                 RunHook {
-                    context: tool.create_context(),
+                    context: tool.create_plugin_context(),
                     globals_dir: globals_dir.map(|dir| tool.to_virtual_path(&dir)),
                     globals_prefix,
                     passthrough_args: args.passthrough.clone(),

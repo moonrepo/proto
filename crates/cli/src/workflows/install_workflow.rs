@@ -228,7 +228,7 @@ impl InstallWorkflow {
                 .call_func_without_output(
                     HookFunction::PreInstall,
                     InstallHook {
-                        context: tool.create_context(),
+                        context: tool.create_plugin_context(),
                         forced: params.force,
                         passthrough_args: params.passthrough_args.clone(),
                         pinned: params.pin_to.is_some(),
@@ -354,7 +354,7 @@ impl InstallWorkflow {
                 .call_func_without_output(
                     HookFunction::PostInstall,
                     InstallHook {
-                        context: tool.create_context(),
+                        context: tool.create_plugin_context(),
                         forced: params.force,
                         passthrough_args: params.passthrough_args.clone(),
                         pinned: params.pin_to.is_some(),
@@ -421,7 +421,7 @@ impl InstallWorkflow {
             .call_func_with(
                 PluginFunction::SyncShellProfile,
                 SyncShellProfileInput {
-                    context: tool.create_context(),
+                    context: tool.create_plugin_context(),
                     passthrough_args: params.passthrough_args.clone(),
                 },
             )

@@ -35,7 +35,7 @@ impl Tool {
             .cache_func_with(
                 PluginFunction::LocateExecutables,
                 LocateExecutablesInput {
-                    context: self.create_context(),
+                    context: self.create_plugin_context(),
                     install_dir: self.to_virtual_path(self.get_product_dir()),
                 },
             )
@@ -144,7 +144,7 @@ impl Tool {
                 .cache_func_with(
                     PluginFunction::LocateExecutables,
                     LocateExecutablesInput {
-                        context: self.create_context(),
+                        context: self.create_plugin_context(),
                         install_dir: self.to_virtual_path(self.get_product_dir()),
                     },
                 )

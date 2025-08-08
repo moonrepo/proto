@@ -186,7 +186,7 @@ impl Tool {
             .cache_func_with(
                 PluginFunction::DetectVersionFiles,
                 DetectVersionInput {
-                    context: self.create_unresolved_context(),
+                    context: self.create_plugin_unresolved_context(),
                 },
             )
             .await?;
@@ -224,7 +224,7 @@ impl Tool {
                         PluginFunction::ParseVersionFile,
                         ParseVersionFileInput {
                             content,
-                            context: self.create_unresolved_context(),
+                            context: self.create_plugin_unresolved_context(),
                             file: file.clone(),
                             path: self.to_virtual_path(&file_path),
                         },

@@ -30,7 +30,7 @@ fn generate_types() {
     generator.add::<VirtualPath>();
 
     // proto
-    generator.add::<ToolContext>();
+    generator.add::<PluginContext>();
     generator.add::<PluginType>();
     generator.add::<ToolInventoryMetadata>();
     generator.add::<RegisterToolInput>();

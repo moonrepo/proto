@@ -179,8 +179,9 @@ pub(crate) fn is_false(value: &bool) -> bool {
 }
 
 api_struct!(
-    /// Information about the current state of the tool.
-    pub struct ToolContext {
+    /// Information about the current state of the plugin,
+    /// after a version has been resolved.
+    pub struct PluginContext {
         /// The version of proto (the core crate) calling plugin functions.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub proto_version: Option<Version>,
@@ -197,8 +198,9 @@ api_struct!(
 );
 
 api_struct!(
-    /// Information about the current state of the tool.
-    pub struct ToolUnresolvedContext {
+    /// Information about the current state of the plugin,
+    /// before a version has been resolved.
+    pub struct PluginUnresolvedContext {
         /// The version of proto (the core crate) calling plugin functions.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         pub proto_version: Option<Version>,
@@ -331,7 +333,7 @@ api_struct!(
     /// Input passed to the `register_backend` function.
     pub struct RegisterBackendInput {
         /// Current tool context.
-        pub context: ToolUnresolvedContext,
+        pub context: PluginUnresolvedContext,
 
         /// ID of the tool, as it was configured.
         pub id: String,
@@ -361,7 +363,7 @@ api_struct!(
     /// Input passed to the `detect_version_files` function.
     pub struct DetectVersionInput {
         /// Current tool context.
-        pub context: ToolUnresolvedContext,
+        pub context: PluginUnresolvedContext,
     }
 );
 
@@ -386,7 +388,7 @@ api_struct!(
         pub content: String,
 
         /// Current tool context.
-        pub context: ToolUnresolvedContext,
+        pub context: PluginUnresolvedContext,
 
         /// Name of file that's being parsed.
         pub file: String,
@@ -413,7 +415,7 @@ api_struct!(
     /// Input passed to the `native_install` function.
     pub struct NativeInstallInput {
         /// Current tool context.
-        pub context: ToolContext,
+        pub context: PluginContext,
 
         /// Virtual directory to install to.
         pub install_dir: VirtualPath,
@@ -444,7 +446,7 @@ api_struct!(
     /// Input passed to the `native_uninstall` function.
     pub struct NativeUninstallInput {
         /// Current tool context.
-        pub context: ToolContext,
+        pub context: PluginContext,
 
         /// Virtual directory to uninstall from.
         pub uninstall_dir: VirtualPath,
@@ -471,7 +473,7 @@ api_struct!(
     /// Input passed to the `download_prebuilt` function.
     pub struct DownloadPrebuiltInput {
         /// Current tool context.
-        pub context: ToolContext,
+        pub context: PluginContext,
 
         /// Virtual directory to install to.
         pub install_dir: VirtualPath,
@@ -518,7 +520,7 @@ api_struct!(
     /// Input passed to the `unpack_archive` function.
     pub struct UnpackArchiveInput {
         /// Current tool context.
-        pub context: ToolContext,
+        pub context: PluginContext,
 
         /// Virtual path to the downloaded file.
         pub input_file: VirtualPath,
@@ -532,7 +534,7 @@ api_struct!(
     /// Output returned by the `verify_checksum` function.
     pub struct VerifyChecksumInput {
         /// Current tool context.
-        pub context: ToolContext,
+        pub context: PluginContext,
 
         /// Virtual path to the checksum file.
         pub checksum_file: VirtualPath,
@@ -562,7 +564,7 @@ api_struct!(
     /// Input passed to the `locate_executables` function.
     pub struct LocateExecutablesInput {
         /// Current tool context.
-        pub context: ToolContext,
+        pub context: PluginContext,
 
         /// Virtual directory the tool was installed to.
         pub install_dir: VirtualPath,
@@ -687,7 +689,7 @@ api_struct!(
     /// Input passed to the `load_versions` function.
     pub struct LoadVersionsInput {
         /// Current tool context.
-        pub context: ToolUnresolvedContext,
+        pub context: PluginUnresolvedContext,
 
         /// The alias or version currently being resolved.
         pub initial: UnresolvedVersionSpec,
@@ -765,7 +767,7 @@ api_struct!(
     /// Input passed to the `resolve_version` function.
     pub struct ResolveVersionInput {
         /// Current tool context.
-        pub context: ToolUnresolvedContext,
+        pub context: PluginUnresolvedContext,
 
         /// The alias or version currently being resolved.
         pub initial: UnresolvedVersionSpec,
@@ -793,7 +795,7 @@ api_struct!(
     /// Input passed to the `sync_manifest` function.
     pub struct SyncManifestInput {
         /// Current tool context.
-        pub context: ToolContext,
+        pub context: PluginContext,
     }
 );
 
@@ -815,7 +817,7 @@ api_struct!(
     /// Input passed to the `sync_shell_profile` function.
     pub struct SyncShellProfileInput {
         /// Current tool context.
-        pub context: ToolContext,
+        pub context: PluginContext,
 
         /// Arguments passed after `--` that was directly passed to the tool's binary.
         pub passthrough_args: Vec<String>,

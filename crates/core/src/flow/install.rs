@@ -88,7 +88,7 @@ impl Tool {
                         checksum_file: self.to_virtual_path(checksum_file),
                         download_file: self.to_virtual_path(download_file),
                         download_checksum: Some(checksum.clone()),
-                        context: self.create_context(),
+                        context: self.create_plugin_context(),
                     },
                 )
                 .await?;
@@ -144,7 +144,7 @@ impl Tool {
             .cache_func_with(
                 PluginFunction::BuildInstructions,
                 BuildInstructionsInput {
-                    context: self.create_context(),
+                    context: self.create_plugin_context(),
                     install_dir: self.to_virtual_path(install_dir),
                 },
             )
@@ -251,7 +251,7 @@ impl Tool {
             .cache_func_with(
                 PluginFunction::DownloadPrebuilt,
                 DownloadPrebuiltInput {
-                    context: self.create_context(),
+                    context: self.create_plugin_context(),
                     install_dir: self.to_virtual_path(install_dir),
                 },
             )
@@ -375,7 +375,7 @@ impl Tool {
                     UnpackArchiveInput {
                         input_file: self.to_virtual_path(&download_file),
                         output_dir: self.to_virtual_path(install_dir),
-                        context: self.create_context(),
+                        context: self.create_plugin_context(),
                     },
                 )
                 .await?;
@@ -455,7 +455,7 @@ impl Tool {
                 .call_func_with(
                     PluginFunction::NativeInstall,
                     NativeInstallInput {
-                        context: self.create_context(),
+                        context: self.create_plugin_context(),
                         install_dir: self.to_virtual_path(&install_dir),
                     },
                 )
@@ -544,7 +544,7 @@ impl Tool {
                 .call_func_with(
                     PluginFunction::NativeUninstall,
                     NativeUninstallInput {
-                        context: self.create_context(),
+                        context: self.create_plugin_context(),
                         uninstall_dir: self.to_virtual_path(&install_dir),
                     },
                 )

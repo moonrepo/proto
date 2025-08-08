@@ -235,7 +235,7 @@ impl Tool {
             .call_func_with(
                 PluginFunction::SyncManifest,
                 SyncManifestInput {
-                    context: self.create_context(),
+                    context: self.create_plugin_context(),
                 },
             )
             .await?;

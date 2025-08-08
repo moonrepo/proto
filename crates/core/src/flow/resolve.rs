@@ -42,7 +42,7 @@ impl Tool {
                     .cache_func_with(
                         PluginFunction::LoadVersions,
                         LoadVersionsInput {
-                            context: self.create_unresolved_context(),
+                            context: self.create_plugin_unresolved_context(),
                             initial: initial_version.to_owned(),
                         },
                     )
@@ -84,7 +84,7 @@ impl Tool {
             .cache_func_with(
                 PluginFunction::RegisterBackend,
                 RegisterBackendInput {
-                    context: self.create_unresolved_context(),
+                    context: self.create_plugin_unresolved_context(),
                     id: self.id.to_string(),
                 },
             )
@@ -286,7 +286,7 @@ impl Tool {
                 .call_func_with(
                     PluginFunction::ResolveVersion,
                     ResolveVersionInput {
-                        context: self.create_unresolved_context(),
+                        context: self.create_plugin_unresolved_context(),
                         initial: initial_candidate.to_owned(),
                     },
                 )
