@@ -69,7 +69,7 @@ impl Tool {
         checksum_public_key: Option<&str>,
     ) -> Result<Checksum, ProtoInstallError> {
         debug!(
-            tool = self.id.as_str(),
+            tool = self.context.as_str(),
             download_file = ?download_file,
             checksum_file = ?checksum_file,
             "Verifying checksum of downloaded file",
@@ -102,7 +102,7 @@ impl Tool {
 
         if verified {
             debug!(
-                tool = self.id.as_str(),
+                tool = self.context.as_str(),
                 "Successfully verified, checksum matches"
             );
 
@@ -125,7 +125,7 @@ impl Tool {
         options: InstallOptions,
     ) -> Result<LockRecord, ProtoInstallError> {
         debug!(
-            tool = self.id.as_str(),
+            tool = self.context.as_str(),
             "Installing tool by building from source"
         );
 
@@ -158,13 +158,14 @@ impl Tool {
                 system.manager = Some(*pm);
 
                 debug!(
-                    "Overwriting system package manager to {} for {}",
-                    pm, system.os
+                    tool = self.context.as_str(),
+                    "Overwriting system package manager to {} for {}", pm, system.os
                 );
             } else {
                 system.manager = None;
 
                 debug!(
+                    tool = self.context.as_str(),
                     "Disabling system package manager because {} was disabled for {}",
                     color::property("settings.build.system-package-manager"),
                     system.os
@@ -233,7 +234,7 @@ impl Tool {
         options: InstallOptions,
     ) -> Result<LockRecord, ProtoInstallError> {
         debug!(
-            tool = self.id.as_str(),
+            tool = self.context.as_str(),
             "Installing tool by downloading a pre-built archive"
         );
 
@@ -275,7 +276,7 @@ impl Tool {
             });
         });
 
-        debug!(tool = self.id.as_str(), "Downloading tool archive");
+        debug!(tool = self.context.as_str(), "Downloading tool archive");
 
         net::download_from_url_with_options(
             &download_url,
@@ -303,7 +304,7 @@ impl Tool {
                 });
             });
 
-            debug!(tool = self.id.as_str(), "Downloading tool checksum");
+            debug!(tool = self.context.as_str(), "Downloading tool checksum");
 
             net::download_from_url_with_options(
                 &checksum_url,
@@ -332,7 +333,7 @@ impl Tool {
             fs::write_file(&checksum_file, checksum.hash.as_deref().unwrap_or_default())?;
 
             debug!(
-                tool = self.id.as_str(),
+                tool = self.context.as_str(),
                 checksum = checksum.to_string(),
                 "Using provided checksum"
             );
@@ -356,7 +357,7 @@ impl Tool {
 
         // Attempt to unpack the archive
         debug!(
-            tool = self.id.as_str(),
+            tool = self.context.as_str(),
             download_file = ?download_file,
             install_dir = ?install_dir,
             "Attempting to unpack archive",
@@ -402,7 +403,7 @@ impl Tool {
         }
         // Not an archive, assume a binary and copy
         else {
-            let install_path = install_dir.join(get_exe_file_name(&self.id));
+            let install_path = install_dir.join(get_exe_file_name(self.get_id()));
 
             fs::rename(&download_file, &install_path)?;
             fs::update_perms(install_path, None)?;
@@ -420,7 +421,7 @@ impl Tool {
     ) -> Result<Option<LockRecord>, ProtoInstallError> {
         if self.is_installed() && !options.force {
             debug!(
-                tool = self.id.as_str(),
+                tool = self.context.as_str(),
                 "Tool already installed, continuing"
             );
 
@@ -442,7 +443,7 @@ impl Tool {
         // If this function is defined, it acts like an escape hatch and
         // takes precedence over all other install strategies
         if self.plugin.has_func(PluginFunction::NativeInstall).await {
-            debug!(tool = self.id.as_str(), "Installing tool natively");
+            debug!(tool = self.context.as_str(), "Installing tool natively");
 
             options.on_phase_change.as_ref().inspect(|func| {
                 func(InstallPhase::Native);
@@ -496,7 +497,7 @@ impl Tool {
                 self.verify_locked_record(&record)?;
 
                 debug!(
-                    tool = self.id.as_str(),
+                    tool = self.context.as_str(),
                     install_dir = ?install_dir,
                     "Successfully installed tool",
                 );
@@ -507,7 +508,7 @@ impl Tool {
             // Clean up if the install failed
             Err(error) => {
                 debug!(
-                    tool = self.id.as_str(),
+                    tool = self.context.as_str(),
                     install_dir = ?install_dir,
                     "Failed to install tool, cleaning up",
                 );
@@ -529,7 +530,7 @@ impl Tool {
 
         if !install_dir.exists() {
             debug!(
-                tool = self.id.as_str(),
+                tool = self.context.as_str(),
                 "Tool has not been installed, aborting"
             );
 
@@ -537,7 +538,7 @@ impl Tool {
         }
 
         if self.plugin.has_func(PluginFunction::NativeUninstall).await {
-            debug!(tool = self.id.as_str(), "Uninstalling tool natively");
+            debug!(tool = self.context.as_str(), "Uninstalling tool natively");
 
             let output: NativeUninstallOutput = self
                 .plugin
@@ -559,14 +560,17 @@ impl Tool {
         }
 
         debug!(
-            tool = self.id.as_str(),
+            tool = self.context.as_str(),
             install_dir = ?install_dir,
             "Deleting install directory"
         );
 
         fs::remove_dir_all(install_dir)?;
 
-        debug!(tool = self.id.as_str(), "Successfully uninstalled tool");
+        debug!(
+            tool = self.context.as_str(),
+            "Successfully uninstalled tool"
+        );
 
         Ok(true)
     }

@@ -1,6 +1,7 @@
 use crate::config::*;
 use crate::config_error::ProtoConfigError;
 use crate::lockfile::*;
+use crate::tool_context::ToolContext;
 use once_cell::sync::OnceCell;
 use schematic::{Config, PartialConfig};
 use serde::Serialize;
@@ -225,15 +226,17 @@ impl ProtoFileManager {
     }
 
     pub(crate) fn remove_proto_pins(&mut self) {
+        let context = ToolContext::parse(PROTO_PLUGIN_KEY).unwrap();
+
         self.entries.iter_mut().for_each(|dir| {
             if dir.location != PinLocation::Local {
                 dir.configs.iter_mut().for_each(|file| {
                     if let Some(versions) = &mut file.config.versions {
-                        versions.remove(PROTO_PLUGIN_KEY);
+                        versions.remove(&context);
                     }
 
                     if let Some(unknown) = &mut file.config.unknown {
-                        unknown.remove(PROTO_PLUGIN_KEY);
+                        unknown.remove(&context);
                     }
                 });
             }

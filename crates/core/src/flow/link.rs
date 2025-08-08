@@ -25,7 +25,7 @@ impl Tool {
 
         if force_create {
             debug!(
-                tool = self.id.as_str(),
+                tool = self.context.as_str(),
                 shims_dir = ?self.proto.store.shims_dir,
                 shim_version = SHIM_VERSION,
                 "Creating shims as they either do not exist, or are outdated"
@@ -71,7 +71,7 @@ impl Tool {
             }
 
             if !shim.config.primary {
-                shim_entry.parent = Some(self.id.to_string());
+                shim_entry.parent = Some(self.get_id().to_string());
 
                 // Only use --alt when the secondary executable exists
                 if shim.config.exe_path.is_some() {
@@ -100,7 +100,7 @@ impl Tool {
                 self.proto.store.create_shim(&shim_path)?;
 
                 debug!(
-                    tool = self.id.as_str(),
+                    tool = self.context.as_str(),
                     shim = ?shim_path,
                     shim_version = SHIM_VERSION,
                     "Creating shim"
@@ -124,7 +124,7 @@ impl Tool {
 
         if force {
             debug!(
-                tool = self.id.as_str(),
+                tool = self.context.as_str(),
                 bins_dir = ?self.proto.store.bin_dir,
                 "Creating symlinks to the original tool executables"
             );
@@ -152,7 +152,7 @@ impl Tool {
 
             if !input_path.exists() {
                 warn!(
-                    tool = self.id.as_str(),
+                    tool = self.context.as_str(),
                     source = ?input_path,
                     target = ?output_path,
                     "Unable to symlink binary, source file does not exist"
@@ -178,7 +178,7 @@ impl Tool {
 
             for (input_path, output_path) in to_create {
                 debug!(
-                    tool = self.id.as_str(),
+                    tool = self.context.as_str(),
                     source = ?input_path,
                     target = ?output_path,
                     "Creating binary symlink"

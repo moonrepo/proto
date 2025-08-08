@@ -2,7 +2,7 @@ use crate::config::SCHEMA_PLUGIN_KEY;
 use crate::env::ProtoEnvironment;
 use crate::loader_error::ProtoLoaderError;
 use crate::tool::Tool;
-use crate::tool_spec::Backend;
+use crate::tool_context::ToolContext;
 use convert_case::{Case, Casing};
 use rustc_hash::FxHashSet;
 use starbase_utils::{json, toml, yaml};
@@ -212,34 +212,20 @@ pub async fn load_tool_from_locator(
 }
 
 pub async fn load_tool(
-    id: &Id,
+    context: &ToolContext,
     proto: &ProtoEnvironment,
-    mut backend: Option<Backend>,
 ) -> Result<Tool, ProtoLoaderError> {
-    // Determine the backend plugin to use
-    if backend.is_none() {
-        let config = proto.load_config()?;
-
-        // Check the version spec first, as that takes priority
-        if let Some(spec) = config.versions.get(id) {
-            backend = spec.backend;
-        }
-
-        // Otherwise fallback to the tool config
-        if backend.is_none() {
-            backend = config.tools.get(id).and_then(|cfg| cfg.backend);
-        }
-    }
-
     // If backend is proto, use the tool's plugin,
     // otherwise use the backend plugin itself
-    let locator_id = match backend {
-        Some(be) => Id::raw(be.to_string()),
-        None => id.to_owned(),
-    };
+    let locator_id = context.backend.as_ref().unwrap_or(&context.id);
 
-    let mut tool = load_tool_from_locator(id, proto, locate_tool(&locator_id, proto)?).await?;
-    tool.resolve_backend(backend).await?;
+    let mut tool =
+        load_tool_from_locator(&context.id, proto, locate_tool(locator_id, proto)?).await?;
+
+    if let Some(backend) = &context.backend {
+        // TODO
+        // tool.resolve_backend(backend).await?;
+    }
 
     Ok(tool)
 }

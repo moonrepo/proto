@@ -21,14 +21,14 @@ impl Tool {
         let install_dir = self.get_product_dir();
 
         debug!(
-            tool = self.id.as_str(),
+            tool = self.context.as_str(),
             install_dir = ?install_dir,
             "Checking if tool is installed",
         );
 
         if self.is_installed() {
             debug!(
-                tool = self.id.as_str(),
+                tool = self.context.as_str(),
                 install_dir = ?install_dir,
                 "Tool has already been installed, locating binaries and shims",
             );
@@ -44,7 +44,7 @@ impl Tool {
             return Ok(true);
         }
 
-        debug!(tool = self.id.as_str(), "Tool has not been installed");
+        debug!(tool = self.context.as_str(), "Tool has not been installed");
 
         Ok(false)
     }
@@ -92,8 +92,8 @@ impl Tool {
 
         // Pin the global version
         ProtoConfig::update_document(self.proto.get_config_dir(PinLocation::Global), |doc| {
-            if !doc.contains_key(&self.id) {
-                doc[self.id.as_str()] = cfg::value(
+            if !doc.contains_key(self.get_id()) {
+                doc[self.get_id().as_str()] = cfg::value(
                     ToolSpec::new_backend(
                         self.metadata
                             .default_version
@@ -177,13 +177,13 @@ impl Tool {
         // Unpin global version if a match
         ProtoConfig::update_document(self.proto.get_config_dir(PinLocation::Global), |doc| {
             if doc
-                .get(&self.id)
+                .get(self.get_id())
                 .and_then(|item| item.as_str())
                 .is_some_and(|v| version == v)
             {
                 debug!("Unpinning global version");
 
-                doc.as_table_mut().remove(&self.id);
+                doc.as_table_mut().remove(self.get_id());
             }
 
             // if let Some(versions) = &mut config.versions {
@@ -210,7 +210,7 @@ impl Tool {
     #[instrument(skip_all)]
     pub async fn cleanup(&mut self) -> Result<(), ProtoSetupError> {
         debug!(
-            tool = self.id.as_str(),
+            tool = self.context.as_str(),
             "Cleaning up temporary files and downloads"
         );
 
@@ -228,7 +228,10 @@ impl Tool {
             return Ok(());
         }
 
-        debug!(tool = self.id.as_str(), "Syncing manifest with changes");
+        debug!(
+            tool = self.context.as_str(),
+            "Syncing manifest with changes"
+        );
 
         let output: SyncManifestOutput = self
             .plugin

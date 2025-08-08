@@ -2,6 +2,7 @@ use crate::env::ProtoEnvironment;
 use crate::helpers::get_proto_version;
 use crate::layout::{Inventory, Product};
 use crate::lockfile::LockRecord;
+use crate::tool_context::ToolContext;
 use crate::tool_error::ProtoToolError;
 use crate::tool_spec::Backend;
 use proto_pdk_api::*;
@@ -19,7 +20,10 @@ use warpgate::{
 pub type ToolMetadata = RegisterToolOutput;
 
 pub struct Tool {
+    #[deprecated]
     pub backend: Option<Backend>,
+    pub context: ToolContext,
+    #[deprecated]
     pub id: Id,
     pub locator: Option<PluginLocator>,
     pub metadata: ToolMetadata,
@@ -57,6 +61,7 @@ impl Tool {
             backend: None,
             backend_registered: false,
             cache: true,
+            context: ToolContext::default(), // TODO
             exe_file: None,
             exes_dirs: vec![],
             globals_dir: None,
@@ -145,9 +150,19 @@ impl Tool {
         self.cache = false;
     }
 
+    /// Return the tool identifier.
+    pub fn get_backend(&self) -> Option<&Id> {
+        self.context.backend.as_ref()
+    }
+
     /// Return the prefix for environment variable names.
     pub fn get_env_var_prefix(&self) -> String {
-        format!("PROTO_{}", self.id.to_uppercase().replace('-', "_"))
+        format!("PROTO_{}", self.get_id().to_uppercase().replace('-', "_"))
+    }
+
+    /// Return the tool identifier.
+    pub fn get_id(&self) -> &Id {
+        &self.context.id
     }
 
     /// Return an absolute path to the tool's inventory directory.
@@ -244,7 +259,7 @@ impl Tool {
             .cache_func_with(
                 PluginFunction::RegisterTool,
                 RegisterToolInput {
-                    id: self.id.to_string(),
+                    id: self.get_id().to_string(),
                 },
             )
             .await?;
@@ -267,13 +282,13 @@ impl Tool {
         let mut inventory = self
             .proto
             .store
-            .create_inventory(&self.id, &metadata.inventory)?;
+            .create_inventory(self.get_id(), &metadata.inventory)?;
 
         if let Some(override_dir) = &metadata.inventory.override_dir {
             let override_dir_path = override_dir.real_path();
 
             debug!(
-                tool = self.id.as_str(),
+                tool = self.context.as_str(),
                 override_virtual = ?override_dir,
                 override_real = ?override_dir_path,
                 "Attempting to override inventory directory"
@@ -303,7 +318,7 @@ impl Tool {
 impl fmt::Debug for Tool {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Tool")
-            .field("id", &self.id)
+            .field("id", self.get_id())
             .field("metadata", &self.metadata)
             .field("locator", &self.locator)
             .field("proto", &self.proto)

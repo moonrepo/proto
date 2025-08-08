@@ -17,7 +17,7 @@ impl Tool {
         &self,
         initial_version: &UnresolvedVersionSpec,
     ) -> Result<VersionResolver<'_>, ProtoResolveError> {
-        debug!(tool = self.id.as_str(), "Loading available versions");
+        debug!(tool = self.context.as_str(), "Loading available versions");
 
         let mut versions = LoadVersionsOutput::default();
         let mut cached = false;
@@ -31,7 +31,11 @@ impl Tool {
         if !cached {
             if is_offline() {
                 return Err(ProtoResolveError::RequiredInternetConnectionForVersion {
-                    command: format!("{}_VERSION=1.2.3 {}", self.get_env_var_prefix(), self.id),
+                    command: format!(
+                        "{}_VERSION=1.2.3 {}",
+                        self.get_env_var_prefix(),
+                        self.get_id()
+                    ),
                     bin_dir: self.proto.store.bin_dir.clone(),
                 });
             }
@@ -61,7 +65,7 @@ impl Tool {
 
         let config = self.proto.load_config()?;
 
-        if let Some(tool_config) = config.tools.get(&self.id) {
+        if let Some(tool_config) = config.tools.get(self.get_id()) {
             resolver.with_config(tool_config);
         }
 
@@ -111,7 +115,7 @@ impl Tool {
         // }
 
         debug!(
-            tool = self.id.as_str(),
+            tool = self.context.as_str(),
             backend_id,
             backend_dir = ?backend_dir,
             "Acquiring backend sources",
@@ -123,7 +127,7 @@ impl Tool {
                     src.url = config.rewrite_url(src.url);
 
                     debug!(
-                        tool = self.id.as_str(),
+                        tool = self.context.as_str(),
                         url = &src.url,
                         "Downloading backend archive",
                     );
@@ -142,7 +146,7 @@ impl Tool {
             }
             SourceLocation::Git(src) => {
                 debug!(
-                    tool = self.id.as_str(),
+                    tool = self.context.as_str(),
                     url = &src.url,
                     "Cloning backend repository",
                 );
@@ -192,7 +196,7 @@ impl Tool {
         self.resolve_backend(spec.backend).await?;
 
         debug!(
-            tool = self.id.as_str(),
+            tool = self.context.as_str(),
             initial_version = spec.to_string(),
             "Resolving a semantic version or alias",
         );
@@ -209,7 +213,7 @@ impl Tool {
                 .expect("Version missing from lockfile record!");
 
             debug!(
-                tool = self.id.as_str(),
+                tool = self.context.as_str(),
                 spec = candidate.to_string(),
                 "Inherited version {} from lockfile",
                 version
@@ -232,7 +236,7 @@ impl Tool {
             let version = candidate.to_resolved_spec();
 
             debug!(
-                tool = self.id.as_str(),
+                tool = self.context.as_str(),
                 spec = candidate.to_string(),
                 "Resolved to {} (without validation)",
                 version
@@ -249,7 +253,7 @@ impl Tool {
             .await?;
 
         debug!(
-            tool = self.id.as_str(),
+            tool = self.context.as_str(),
             spec = candidate.to_string(),
             "Resolved to {}",
             version
@@ -294,7 +298,7 @@ impl Tool {
 
             if let Some(candidate) = output.candidate {
                 debug!(
-                    tool = self.id.as_str(),
+                    tool = self.context.as_str(),
                     candidate = candidate.to_string(),
                     "Received a possible version or alias to use",
                 );
@@ -304,7 +308,7 @@ impl Tool {
 
             if let Some(candidate) = output.version {
                 debug!(
-                    tool = self.id.as_str(),
+                    tool = self.context.as_str(),
                     version = candidate.to_string(),
                     "Received an explicit version or alias to use",
                 );

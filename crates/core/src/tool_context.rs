@@ -1,9 +1,10 @@
 use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
 use std::fmt;
 use std::str::FromStr;
 use warpgate::{Id, WarpgatePluginError};
 
-#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(into = "String", try_from = "String")]
 pub struct ToolContext {
     /// ID of the backend that tool is sourced from.
@@ -11,11 +12,14 @@ pub struct ToolContext {
 
     /// ID of the tool itself.
     pub id: Id,
+
+    /// The original string. Primarily exists for traits!
+    original: String,
 }
 
 impl ToolContext {
-    pub fn new(id: Id) -> Self {
-        Self { backend: None, id }
+    pub fn as_str(&self) -> &str {
+        &self.original
     }
 
     pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, WarpgatePluginError> {
@@ -33,7 +37,11 @@ impl FromStr for ToolContext {
             (None, Id::new(value)?)
         };
 
-        Ok(Self { backend, id })
+        Ok(Self {
+            backend,
+            id,
+            original: value.into(),
+        })
     }
 }
 
@@ -55,6 +63,24 @@ impl Into<String> for ToolContext {
 impl AsRef<ToolContext> for ToolContext {
     fn as_ref(&self) -> &ToolContext {
         self
+    }
+}
+
+impl AsRef<str> for ToolContext {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+impl PartialOrd for ToolContext {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for ToolContext {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.original.cmp(&other.original)
     }
 }
 
