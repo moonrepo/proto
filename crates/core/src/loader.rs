@@ -39,8 +39,6 @@ pub fn locate_tool(id: &Id, proto: &ProtoEnvironment) -> Result<PluginLocator, P
 
     debug!(tool = id.as_str(), "Finding a configured plugin");
 
-    dbg!(id, &config, config.builtin_plugins());
-
     // Check config files for plugins
     if let Some(maybe_locator) = config.plugins.get(id) {
         debug!(plugin = maybe_locator.to_string(), "Found a plugin");

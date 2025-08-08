@@ -20,6 +20,7 @@ pub struct ToolContext {
 impl ToolContext {
     pub fn new(id: Id) -> Self {
         Self {
+            original: id.to_string(),
             id,
             ..Default::default()
         }
@@ -27,6 +28,7 @@ impl ToolContext {
 
     pub fn with_backend(id: Id, backend: Id) -> Self {
         Self {
+            original: format!("{backend}:{id}"),
             backend: Some(backend),
             id,
             ..Default::default()
