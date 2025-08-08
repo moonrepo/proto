@@ -5,7 +5,7 @@ use crate::session::ProtoSession;
 use crate::telemetry::{Metric, track_usage};
 use clap::Args;
 use iocraft::prelude::element;
-use proto_core::{Id, PROTO_PLUGIN_KEY, SemVer, UnresolvedVersionSpec, is_offline};
+use proto_core::{Id, PROTO_PLUGIN_KEY, SemVer, ToolContext, UnresolvedVersionSpec, is_offline};
 use semver::Version;
 use serde::Serialize;
 use starbase::AppResult;
@@ -152,7 +152,7 @@ pub async fn upgrade(session: ProtoSession, args: UpgradeArgs) -> AppResult {
             spec: Some(UnresolvedVersionSpec::Semantic(SemVer(target_version.clone())).into()),
             ..Default::default()
         },
-        Id::raw(PROTO_PLUGIN_KEY),
+        ToolContext::new(Id::raw(PROTO_PLUGIN_KEY)),
     )
     .await?;
 

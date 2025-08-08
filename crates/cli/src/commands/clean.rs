@@ -197,7 +197,7 @@ pub async fn clean_tool(
         for version in versions_to_clean {
             cleaned.push(StaleTool {
                 dir: inventory_dir.join(version.to_string()),
-                id: tool.id.to_string(),
+                id: tool.get_id().to_string(),
                 version: version.clone(),
             });
 
@@ -306,7 +306,7 @@ pub async fn internal_clean(
         debug!("Cleaning installed tools...");
 
         for tool in session.load_all_tools().await? {
-            if tool.id == PROTO_PLUGIN_KEY {
+            if tool.get_id() == PROTO_PLUGIN_KEY {
                 continue;
             }
 

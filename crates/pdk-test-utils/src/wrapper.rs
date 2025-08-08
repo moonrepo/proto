@@ -1,4 +1,4 @@
-use proto_core::{Backend, Tool};
+use proto_core::Tool;
 use proto_pdk_api::*;
 
 #[derive(Debug)]
@@ -7,11 +7,6 @@ pub struct WasmTestWrapper {
 }
 
 impl WasmTestWrapper {
-    pub async fn set_backend(&mut self, backend: Backend) {
-        self.tool.backend = Some(backend);
-        self.tool.register_backend().await.unwrap();
-    }
-
     pub async fn detect_version_files(&self, mut input: DetectVersionInput) -> DetectVersionOutput {
         input.context = self.prepare_unresolved_context(input.context);
 
