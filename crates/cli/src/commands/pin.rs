@@ -58,7 +58,7 @@ pub async fn pin(session: ProtoSession, args: PinArgs) -> AppResult {
             .to_unresolved_spec();
     }
 
-    let config_path = internal_pin(&mut tool, &spec, args.to).await?;
+    let config_path = internal_pin(&tool, &spec, args.to).await?;
 
     session.console.render(element! {
         Notice(variant: Variant::Success) {

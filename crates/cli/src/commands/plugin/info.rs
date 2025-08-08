@@ -2,9 +2,8 @@ use crate::components::*;
 use crate::session::{LoadToolOptions, ProtoSession};
 use clap::Args;
 use iocraft::prelude::element;
-use proto_core::ToolContext;
 use proto_core::{
-    ConfigMode, Id, PluginLocator, ProtoToolConfig, ToolManifest, ToolMetadata,
+    ConfigMode, Id, PluginLocator, ProtoToolConfig, ToolContext, ToolManifest, ToolMetadata,
     flow::locate::ExecutableLocation,
 };
 use serde::Serialize;

@@ -31,6 +31,7 @@ fn generate_types() {
 
     // proto
     generator.add::<PluginContext>();
+    generator.add::<PluginUnresolvedContext>();
     generator.add::<PluginType>();
     generator.add::<ToolInventoryMetadata>();
     generator.add::<RegisterToolInput>();

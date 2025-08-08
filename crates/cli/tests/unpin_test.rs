@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::{Id, ProtoConfig, UnresolvedVersionSpec};
+use proto_core::{ProtoConfig, ToolContext, UnresolvedVersionSpec};
 use starbase_sandbox::predicates::prelude::*;
 use std::collections::BTreeMap;
 use utils::*;
@@ -26,10 +26,10 @@ mod unpin_local {
         let sandbox = create_empty_proto_sandbox();
 
         ProtoConfig::update(sandbox.path(), |config| {
-            config
-                .versions
-                .get_or_insert(Default::default())
-                .insert(Id::raw("protostar"), UnresolvedVersionSpec::Canary.into());
+            config.versions.get_or_insert(Default::default()).insert(
+                ToolContext::parse("protostar").unwrap(),
+                UnresolvedVersionSpec::Canary.into(),
+            );
         })
         .unwrap();
 
@@ -41,7 +41,11 @@ mod unpin_local {
 
         let config = load_config(sandbox.path());
 
-        assert!(!config.versions.contains_key("protostar"));
+        assert!(
+            !config
+                .versions
+                .contains_key(&ToolContext::parse("protostar").unwrap())
+        );
     }
 
     #[test]
@@ -49,10 +53,10 @@ mod unpin_local {
         let sandbox = create_empty_proto_sandbox();
 
         ProtoConfig::update(sandbox.path(), |config| {
-            config
-                .versions
-                .get_or_insert(Default::default())
-                .insert(Id::raw("moonstone"), UnresolvedVersionSpec::Canary.into());
+            config.versions.get_or_insert(Default::default()).insert(
+                ToolContext::parse("moonstone").unwrap(),
+                UnresolvedVersionSpec::Canary.into(),
+            );
         })
         .unwrap();
 
@@ -66,7 +70,10 @@ mod unpin_local {
 
         assert_eq!(
             config.versions,
-            BTreeMap::from_iter([(Id::raw("moonstone"), UnresolvedVersionSpec::Canary.into())])
+            BTreeMap::from_iter([(
+                ToolContext::parse("moonstone").unwrap(),
+                UnresolvedVersionSpec::Canary.into()
+            )])
         );
     }
 }
@@ -79,10 +86,10 @@ mod unpin_global {
         let sandbox = create_empty_proto_sandbox();
 
         ProtoConfig::update(sandbox.path().join(".proto"), |config| {
-            config
-                .versions
-                .get_or_insert(Default::default())
-                .insert(Id::raw("protostar"), UnresolvedVersionSpec::Canary.into());
+            config.versions.get_or_insert(Default::default()).insert(
+                ToolContext::parse("protostar").unwrap(),
+                UnresolvedVersionSpec::Canary.into(),
+            );
         })
         .unwrap();
 
@@ -97,7 +104,11 @@ mod unpin_global {
 
         let config = load_config(sandbox.path().join(".proto"));
 
-        assert!(!config.versions.contains_key("protostar"));
+        assert!(
+            !config
+                .versions
+                .contains_key(&ToolContext::parse("protostar").unwrap())
+        );
     }
 }
 
@@ -109,10 +120,10 @@ mod unpin_user {
         let sandbox = create_empty_proto_sandbox();
 
         ProtoConfig::update(sandbox.path().join(".home"), |config| {
-            config
-                .versions
-                .get_or_insert(Default::default())
-                .insert(Id::raw("protostar"), UnresolvedVersionSpec::Canary.into());
+            config.versions.get_or_insert(Default::default()).insert(
+                ToolContext::parse("protostar").unwrap(),
+                UnresolvedVersionSpec::Canary.into(),
+            );
         })
         .unwrap();
 
@@ -124,6 +135,10 @@ mod unpin_user {
 
         let config = load_config(sandbox.path().join(".home"));
 
-        assert!(!config.versions.contains_key("protostar"));
+        assert!(
+            !config
+                .versions
+                .contains_key(&ToolContext::parse("protostar").unwrap())
+        );
     }
 }

@@ -3,7 +3,7 @@ use clap::Args;
 use indexmap::IndexMap;
 use miette::IntoDiagnostic;
 use proto_core::flow::setup::ProtoSetupError;
-use proto_core::{PROTO_PLUGIN_KEY, ProtoConfigEnvOptions, ToolContext, UnresolvedVersionSpec};
+use proto_core::{Id, PROTO_PLUGIN_KEY, ProtoConfigEnvOptions, ToolContext, UnresolvedVersionSpec};
 use rustc_hash::FxHashSet;
 use serde::Serialize;
 use starbase::AppResult;
@@ -165,7 +165,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
         );
     }
 
-    let proto_context = ToolContext::parse(PROTO_PLUGIN_KEY).unwrap();
+    let proto_context = ToolContext::new(Id::raw(PROTO_PLUGIN_KEY));
 
     if let Some(UnresolvedVersionSpec::Semantic(version)) =
         config.versions.get(&proto_context).map(|spec| &spec.req)

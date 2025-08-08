@@ -7,7 +7,7 @@ use starbase_console::ui::*;
 
 #[derive(Args, Clone, Debug)]
 pub struct UnaliasArgs {
-    #[arg(required = true, help = "Tool to alias")]
+    #[arg(required = true, help = "Tool to unalias")]
     context: ToolContext,
 
     #[arg(required = true, help = "Alias name")]

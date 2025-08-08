@@ -401,7 +401,7 @@ impl InstallWorkflow {
             let resolved_spec =
                 ToolSpec::new(self.tool.get_resolved_version().to_unresolved_spec());
 
-            internal_pin(&mut self.tool.tool, &resolved_spec, pin_to).await?;
+            internal_pin(&self.tool.tool, &resolved_spec, pin_to).await?;
         }
 
         Ok(pin)

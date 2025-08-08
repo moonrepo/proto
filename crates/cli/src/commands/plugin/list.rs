@@ -48,7 +48,7 @@ pub async fn list(session: ProtoSession, args: ListPluginsArgs) -> AppResult {
                 args.ids
                     .clone()
                     .into_iter()
-                    .map(|id| ToolContext::new(id))
+                    .map(ToolContext::new)
                     .collect::<Vec<_>>()
             }),
             inherit_local: true,

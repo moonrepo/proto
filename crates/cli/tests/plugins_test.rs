@@ -1,9 +1,9 @@
 mod utils;
 
 use proto_core::{
-    Id, PluginLocator, ProtoEnvironment, ProtoLoaderError, Tool, ToolSpec, UnresolvedVersionSpec,
-    flow::install::InstallOptions, load_tool_from_locator, warpgate::FileLocator,
-    warpgate::UrlLocator,
+    PluginLocator, ProtoEnvironment, ProtoLoaderError, Tool, ToolContext, ToolSpec,
+    UnresolvedVersionSpec, flow::install::InstallOptions, load_tool_from_locator,
+    warpgate::FileLocator, warpgate::UrlLocator,
 };
 use starbase_sandbox::assert_snapshot;
 use starbase_sandbox::predicates::prelude::*;
@@ -61,7 +61,7 @@ mod plugins {
             let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
             load_tool_from_locator(
-                Id::raw("moon"),
+                ToolContext::parse("moon").unwrap(),
                 env.to_owned(),
                 PluginLocator::File(Box::new(FileLocator {
                     file: "./tests/__fixtures__/moon-schema.toml".into(),
@@ -78,7 +78,7 @@ mod plugins {
             let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
             load_tool_from_locator(
-                Id::raw("moon"),
+                ToolContext::parse("moon").unwrap(),
                 env.to_owned(),
                 PluginLocator::File(Box::new(FileLocator {
                     file: "./tests/__fixtures__/moon-schema.json".into(),
@@ -95,7 +95,7 @@ mod plugins {
             let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
             load_tool_from_locator(
-                Id::raw("moon"),
+                ToolContext::parse("moon").unwrap(),
                 env.to_owned(),
                 PluginLocator::File(Box::new(FileLocator {
                     file: "./tests/__fixtures__/moon-schema.yaml".into(),
@@ -113,7 +113,7 @@ mod plugins {
             let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
             load_tool_from_locator(
-                Id::raw("moon"),
+                ToolContext::parse("moon").unwrap(),
                 env.to_owned(),
                 PluginLocator::File(Box::new(FileLocator {
                     file: "./some/fake/path.toml".into(),
@@ -128,7 +128,7 @@ mod plugins {
     async fn downloads_and_installs_plugin_from_url() {
         run_tests(|env| {
             load_tool_from_locator(
-                Id::raw("moon"),
+                ToolContext::parse("moon").unwrap(),
                 env.to_owned(),
                 PluginLocator::Url(Box::new(UrlLocator {
                     url: "https://raw.githubusercontent.com/moonrepo/moon/master/proto-plugin.toml"
@@ -144,7 +144,7 @@ mod plugins {
     async fn errors_for_broken_url() {
         run_tests(|env| {
             load_tool_from_locator(
-                Id::raw("moon"),
+                ToolContext::parse("moon").unwrap(),
                 env.to_owned(),
                 PluginLocator::Url(Box::new(UrlLocator {
                     url: "https://raw.githubusercontent.com/moonrepo/moon/some/fake/path.toml"

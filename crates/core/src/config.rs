@@ -850,7 +850,7 @@ fn find_debug_locator(name: &str) -> Option<PluginLocator> {
 
         if let Some(wasm_path) = find_wasm_file_with_name(name) {
             return Some(PluginLocator::File(Box::new(FileLocator {
-                file: fs::file_name(&wasm_path),
+                file: wasm_path.to_string_lossy().to_string(),
                 path: Some(wasm_path),
             })));
         }
