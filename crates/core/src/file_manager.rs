@@ -236,7 +236,7 @@ impl ProtoFileManager {
                     }
 
                     if let Some(unknown) = &mut file.config.unknown {
-                        unknown.remove(&context);
+                        unknown.remove(PROTO_PLUGIN_KEY);
                     }
                 });
             }

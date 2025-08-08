@@ -1,7 +1,7 @@
 use crate::config_error::ProtoConfigError;
 use crate::helpers::ENV_VAR_SUB;
 use crate::tool_context::ToolContext;
-use crate::tool_spec::{Backend, ToolSpec};
+use crate::tool_spec::ToolSpec;
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use schematic::{
@@ -224,7 +224,7 @@ pub struct ProtoToolConfig {
     pub aliases: BTreeMap<String, ToolSpec>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub backend: Option<Backend>,
+    pub backend: Option<Id>,
 
     #[setting(nested, merge = merge_indexmap)]
     #[serde(skip_serializing_if = "IndexMap::is_empty")]
@@ -328,7 +328,7 @@ pub struct ProtoConfig {
 
     #[setting(merge = merge_fxhashmap)]
     #[serde(flatten, skip_serializing)]
-    pub unknown: FxHashMap<ToolContext, TomlValue>,
+    pub unknown: FxHashMap<String, TomlValue>,
 
     #[setting(exclude, merge = merge::append_vec)]
     #[serde(skip)]
@@ -543,29 +543,30 @@ impl ProtoConfig {
             let mut error = ValidatorError { errors: vec![] };
 
             for (field, value) in fields {
-                // Versions show up in both flattened maps...
-                if config
-                    .versions
-                    .as_ref()
-                    .is_some_and(|versions| versions.contains_key(field))
-                {
-                    continue;
-                }
+                let message = if value.is_array() || value.is_table() {
+                    format!("unknown field `{field}`")
+                } else {
+                    match ToolContext::parse(field) {
+                        Ok(context) => {
+                            // Versions show up in both flattened maps...
+                            if config
+                                .versions
+                                .as_ref()
+                                .is_some_and(|versions| versions.contains_key(&context))
+                            {
+                                continue;
+                            } else {
+                                format!("invalid version value `{value}`")
+                            }
+                        }
+                        Err(error) => error.to_string(),
+                    }
+                };
 
-                // TODO
-                // let message = if value.is_array() || value.is_table() {
-                //     format!("unknown field `{field}`")
-                // } else {
-                //     match Id::new(field) {
-                //         Ok(_) => format!("invalid version value `{value}`"),
-                //         Err(e) => e.to_string(),
-                //     }
-                // };
-
-                // error.errors.push(ValidateError::with_path(
-                //     message,
-                //     ErrorPath::default().join_key(field),
-                // ));
+                error.errors.push(ValidateError::with_path(
+                    message,
+                    ErrorPath::default().join_key(field),
+                ));
             }
 
             if !error.errors.is_empty() {

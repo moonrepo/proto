@@ -742,7 +742,7 @@ value = "asdf:4.5.6"
                     ToolSpec {
                         backend: Some(Backend::Asdf),
                         req: UnresolvedVersionSpec::parse("4.5.6").unwrap(),
-                        res: None,
+                        version: None,
                         ..Default::default()
                     }
                 )])

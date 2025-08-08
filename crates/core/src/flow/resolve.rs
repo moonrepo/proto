@@ -1,11 +1,9 @@
 pub use super::resolve_error::ProtoResolveError;
-use crate::helpers::{is_offline, normalize_path_separators};
+use crate::helpers::is_offline;
 use crate::tool::Tool;
-use crate::tool_spec::{Backend, ToolSpec};
-use crate::utils::{archive, git};
+use crate::tool_spec::ToolSpec;
 use crate::version_resolver::VersionResolver;
 use proto_pdk_api::*;
-use starbase_utils::fs;
 use std::env;
 use tracing::{debug, instrument};
 
@@ -72,115 +70,6 @@ impl Tool {
         Ok(resolver)
     }
 
-    /// Register the backend by acquiring necessary source files.
-    #[instrument(skip_all)]
-    pub async fn register_backend(&mut self) -> Result<(), ProtoResolveError> {
-        if !self.plugin.has_func(PluginFunction::RegisterBackend).await || self.backend_registered {
-            return Ok(());
-        }
-
-        let Some(backend) = &self.backend else {
-            return Ok(());
-        };
-
-        let metadata: RegisterBackendOutput = self
-            .plugin
-            .cache_func_with(
-                PluginFunction::RegisterBackend,
-                RegisterBackendInput {
-                    context: self.create_plugin_unresolved_context(),
-                    id: self.id.to_string(),
-                },
-            )
-            .await?;
-
-        let Some(source) = metadata.source else {
-            self.backend_registered = true;
-
-            return Ok(());
-        };
-
-        let backend_id = metadata.backend_id;
-        let backend_dir = self
-            .proto
-            .store
-            .backends_dir
-            .join(backend.to_string()) // asdf
-            .join(&backend_id); // node
-        let update_perms = !backend_dir.exists();
-        let config = self.proto.load_config()?;
-
-        // if is_offline() {
-        //     return Err(ProtoEnvError::RequiredInternetConnection.into());
-        // }
-
-        debug!(
-            tool = self.context.as_str(),
-            backend_id,
-            backend_dir = ?backend_dir,
-            "Acquiring backend sources",
-        );
-
-        match source {
-            SourceLocation::Archive(mut src) => {
-                if !backend_dir.exists() {
-                    src.url = config.rewrite_url(src.url);
-
-                    debug!(
-                        tool = self.context.as_str(),
-                        url = &src.url,
-                        "Downloading backend archive",
-                    );
-
-                    archive::download_and_unpack(
-                        &src,
-                        &backend_dir,
-                        &self.proto.store.temp_dir,
-                        self.proto
-                            .get_plugin_loader()?
-                            .get_http_client()?
-                            .to_inner(),
-                    )
-                    .await?;
-                }
-            }
-            SourceLocation::Git(src) => {
-                debug!(
-                    tool = self.context.as_str(),
-                    url = &src.url,
-                    "Cloning backend repository",
-                );
-
-                git::clone_or_pull_repo(&src, &backend_dir).await?;
-            }
-        };
-
-        if update_perms {
-            for exe in metadata.exes {
-                let exe_path = backend_dir.join(normalize_path_separators(exe));
-
-                if exe_path.exists() {
-                    fs::update_perms(exe_path, None)?;
-                }
-            }
-        }
-
-        self.backend_registered = true;
-
-        Ok(())
-    }
-
-    /// Given a custom backend, resolve and register it to acquire necessary files.
-    pub async fn resolve_backend(
-        &mut self,
-        backend: Option<Backend>,
-    ) -> Result<(), ProtoResolveError> {
-        self.backend = backend;
-        self.register_backend().await?;
-
-        Ok(())
-    }
-
     /// Given an initial spec, resolve it to a fully qualifed and semantic version
     /// (or alias) according to the tool's ecosystem.
     #[instrument(skip(self))]
@@ -192,8 +81,6 @@ impl Tool {
         if self.version.is_some() {
             return Ok(self.get_resolved_version());
         }
-
-        self.resolve_backend(spec.backend).await?;
 
         debug!(
             tool = self.context.as_str(),

@@ -79,7 +79,7 @@ impl Tool {
 
         if let Some(records) = lock.tools.get_mut(self.get_id()) {
             records.retain(|record| {
-                !(record.backend == self.backend
+                !(record.backend == self.context.backend
                     && record.spec.as_ref().is_some_and(|spec| spec == version)
                     && record.version.as_ref().is_some_and(|ver| ver == version))
             });
@@ -124,7 +124,7 @@ impl Tool {
 
         if let Some(records) = lock.tools.get(self.get_id()) {
             for record in records {
-                if spec.backend == record.backend
+                if record.backend == self.context.backend
                     && record.version.is_some()
                     && record
                         .spec

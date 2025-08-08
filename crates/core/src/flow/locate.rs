@@ -112,7 +112,7 @@ impl Tool {
         bin_manager: BinManager,
         include_all_versions: bool,
     ) -> Result<Vec<ExecutableLocation>, ProtoLocateError> {
-        let original_backend = self.context.backend;
+        // let original_backend = self.context.backend;
         let original_version = self.get_resolved_version();
         let mut locations = vec![];
 
@@ -125,9 +125,10 @@ impl Tool {
         // Loop through each version, extract the locations,
         // and append it to the master list
         for (bucket_version, resolved_version) in versions {
-            if let Some(resolved_setting) = self.inventory.manifest.versions.get(resolved_version) {
-                self.backend = resolved_setting.lock.as_ref().and_then(|lock| lock.backend);
-            }
+            // TODO
+            // if let Some(resolved_setting) = self.inventory.manifest.versions.get(resolved_version) {
+            //     self.backend = resolved_setting.lock.as_ref().and_then(|lock| lock.backend);
+            // }
 
             // Locate the executables for this specific version,
             // as the logic in how they are located may have changed
@@ -180,7 +181,7 @@ impl Tool {
             }
         }
 
-        self.backend = original_backend;
+        // self.backend = original_backend;
         self.set_version(original_version);
 
         locations.sort_by(|a, d| a.name.cmp(&d.name));

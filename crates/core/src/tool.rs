@@ -2,12 +2,13 @@ use crate::env::ProtoEnvironment;
 use crate::helpers::get_proto_version;
 use crate::layout::{Inventory, Product};
 use crate::lockfile::LockRecord;
+use crate::normalize_path_separators;
 use crate::tool_context::ToolContext;
 use crate::tool_error::ProtoToolError;
-use crate::tool_spec::Backend;
+use crate::utils::{archive, git};
 use proto_pdk_api::*;
-use schematic::ConfigEnum;
 use starbase_styles::color;
+use starbase_utils::fs;
 use std::fmt::{self, Debug};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -20,11 +21,7 @@ use warpgate::{
 pub type ToolMetadata = RegisterToolOutput;
 
 pub struct Tool {
-    #[deprecated]
-    pub backend: Option<Backend>,
     pub context: ToolContext,
-    #[deprecated]
-    pub id: Id,
     pub locator: Option<PluginLocator>,
     pub metadata: ToolMetadata,
     pub plugin: Arc<PluginContainer>,
@@ -48,26 +45,24 @@ pub struct Tool {
 
 impl Tool {
     pub async fn new(
-        id: Id,
+        context: ToolContext,
         proto: Arc<ProtoEnvironment>,
         plugin: Arc<PluginContainer>,
     ) -> Result<Self, ProtoToolError> {
         debug!(
             "Created tool {} and its WASM runtime",
-            color::id(id.as_str())
+            color::id(context.as_str())
         );
 
         let mut tool = Tool {
-            backend: None,
             backend_registered: false,
             cache: true,
-            context: ToolContext::default(), // TODO
+            context,
             exe_file: None,
             exes_dirs: vec![],
             globals_dir: None,
             globals_dirs: vec![],
             globals_prefix: None,
-            id,
             inventory: Inventory::default(),
             locator: None,
             metadata: ToolMetadata::default(),
@@ -80,38 +75,42 @@ impl Tool {
 
         tool.register_tool().await?;
 
+        if tool.context.backend.is_some() {
+            tool.register_backend().await?;
+        }
+
         Ok(tool)
     }
 
     #[instrument(name = "new_tool", skip(proto, wasm))]
-    pub async fn load<I: AsRef<Id> + fmt::Debug, P: AsRef<ProtoEnvironment>>(
-        id: I,
+    pub async fn load<I: AsRef<ToolContext> + fmt::Debug, P: AsRef<ProtoEnvironment>>(
+        context: I,
         proto: P,
         wasm: Wasm,
     ) -> Result<Self, ProtoToolError> {
         let proto = proto.as_ref();
 
-        Self::load_from_manifest(id, proto, Self::create_plugin_manifest(proto, wasm)?).await
+        Self::load_from_manifest(context, proto, Self::create_plugin_manifest(proto, wasm)?).await
     }
 
-    pub async fn load_from_manifest<I: AsRef<Id>, P: AsRef<ProtoEnvironment>>(
-        id: I,
+    pub async fn load_from_manifest<I: AsRef<ToolContext>, P: AsRef<ProtoEnvironment>>(
+        context: I,
         proto: P,
         manifest: PluginManifest,
     ) -> Result<Self, ProtoToolError> {
-        let id = id.as_ref();
+        let context = context.as_ref();
         let proto = proto.as_ref();
 
         debug!(
             "Creating tool {} and instantiating plugin",
-            color::id(id.as_str())
+            color::id(context.as_str())
         );
 
         Self::new(
-            id.to_owned(),
+            context.to_owned(),
             Arc::new(proto.to_owned()),
             Arc::new(PluginContainer::new(
-                id.to_owned(),
+                context.id.clone(),
                 manifest,
                 create_host_functions(HostData {
                     cache_dir: proto.store.cache_dir.clone(),
@@ -195,13 +194,8 @@ impl Tool {
 
     /// Return true if this tool instance is a backend plugin.
     pub async fn is_backend_plugin(&self) -> bool {
-        if self.plugin.has_func(PluginFunction::RegisterBackend).await {
-            Backend::variants()
-                .iter()
-                .any(|var| var.to_string() == self.id.as_str())
-        } else {
-            false
-        }
+        self.plugin.has_func(PluginFunction::RegisterBackend).await
+            && self.context.backend.is_some()
     }
 
     /// Explicitly set the version to use.
@@ -294,9 +288,7 @@ impl Tool {
                 "Attempting to override inventory directory"
             );
 
-            if override_dir_path.is_none()
-                || override_dir_path.as_ref().is_some_and(|p| p.is_relative())
-            {
+            if override_dir_path.as_ref().is_none_or(|p| p.is_relative()) {
                 return Err(ProtoToolError::RequiredAbsoluteInventoryDir {
                     tool: metadata.name.clone(),
                     dir: override_dir_path.unwrap_or_else(|| PathBuf::from("<unknown>")),
@@ -310,6 +302,104 @@ impl Tool {
         self.product = inventory.create_product(&self.get_resolved_version());
         self.inventory = inventory;
         self.metadata = metadata;
+
+        Ok(())
+    }
+
+    /// Register the backend by acquiring necessary source files.
+    #[instrument(skip_all)]
+    pub async fn register_backend(&mut self) -> Result<(), ProtoToolError> {
+        if !self.plugin.has_func(PluginFunction::RegisterBackend).await || self.backend_registered {
+            return Ok(());
+        }
+
+        let Some(backend) = &self.context.backend else {
+            return Ok(());
+        };
+
+        let metadata: RegisterBackendOutput = self
+            .plugin
+            .cache_func_with(
+                PluginFunction::RegisterBackend,
+                RegisterBackendInput {
+                    context: self.create_plugin_unresolved_context(),
+                    id: self.get_id().to_string(),
+                },
+            )
+            .await?;
+
+        let Some(source) = metadata.source else {
+            self.backend_registered = true;
+
+            return Ok(());
+        };
+
+        let backend_id = metadata.backend_id;
+        let backend_dir = self
+            .proto
+            .store
+            .backends_dir
+            .join(backend.to_string()) // asdf
+            .join(&backend_id); // node
+        let update_perms = !backend_dir.exists();
+        let config = self.proto.load_config()?;
+
+        // if is_offline() {
+        //     return Err(ProtoEnvError::RequiredInternetConnection.into());
+        // }
+
+        debug!(
+            tool = self.context.as_str(),
+            backend_id,
+            backend_dir = ?backend_dir,
+            "Acquiring backend sources",
+        );
+
+        match source {
+            SourceLocation::Archive(mut src) => {
+                if !backend_dir.exists() {
+                    src.url = config.rewrite_url(src.url);
+
+                    debug!(
+                        tool = self.context.as_str(),
+                        url = &src.url,
+                        "Downloading backend archive",
+                    );
+
+                    archive::download_and_unpack(
+                        &src,
+                        &backend_dir,
+                        &self.proto.store.temp_dir,
+                        self.proto
+                            .get_plugin_loader()?
+                            .get_http_client()?
+                            .to_inner(),
+                    )
+                    .await?;
+                }
+            }
+            SourceLocation::Git(src) => {
+                debug!(
+                    tool = self.context.as_str(),
+                    url = &src.url,
+                    "Cloning backend repository",
+                );
+
+                git::clone_or_pull_repo(&src, &backend_dir).await?;
+            }
+        };
+
+        if update_perms {
+            for exe in metadata.exes {
+                let exe_path = backend_dir.join(normalize_path_separators(exe));
+
+                if exe_path.exists() {
+                    fs::update_perms(exe_path, None)?;
+                }
+            }
+        }
+
+        self.backend_registered = true;
 
         Ok(())
     }

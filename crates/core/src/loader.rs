@@ -166,15 +166,18 @@ pub fn load_schema_config(plugin_path: &Path) -> Result<json::JsonValue, ProtoLo
 
 #[instrument(name = "load_tool", skip(proto))]
 pub async fn load_tool_from_locator(
-    id: impl AsRef<Id> + Debug,
+    context: impl AsRef<ToolContext> + Debug,
     proto: impl AsRef<ProtoEnvironment>,
     locator: impl AsRef<PluginLocator> + Debug,
 ) -> Result<Tool, ProtoLoaderError> {
-    let id = id.as_ref();
+    let context = context.as_ref();
     let proto = proto.as_ref();
     let locator = locator.as_ref();
 
-    let plugin_path = proto.get_plugin_loader()?.load_plugin(id, locator).await?;
+    let plugin_path = proto
+        .get_plugin_loader()?
+        .load_plugin(&context.id, locator)
+        .await?;
     let plugin_ext = plugin_path.extension().and_then(|ext| ext.to_str());
 
     let mut manifest = match plugin_ext {
@@ -202,10 +205,10 @@ pub async fn load_tool_from_locator(
         _ => unimplemented!(),
     };
 
-    inject_default_manifest_config(id, &proto.home_dir, &mut manifest)?;
-    inject_proto_manifest_config(id, proto, &mut manifest)?;
+    inject_default_manifest_config(&context.id, &proto.home_dir, &mut manifest)?;
+    inject_proto_manifest_config(&context.id, proto, &mut manifest)?;
 
-    let mut tool = Tool::load_from_manifest(id, proto, manifest).await?;
+    let mut tool = Tool::load_from_manifest(context, proto, manifest).await?;
     tool.locator = Some(locator.to_owned());
 
     Ok(tool)
@@ -219,13 +222,7 @@ pub async fn load_tool(
     // otherwise use the backend plugin itself
     let locator_id = context.backend.as_ref().unwrap_or(&context.id);
 
-    let mut tool =
-        load_tool_from_locator(&context.id, proto, locate_tool(locator_id, proto)?).await?;
-
-    if let Some(backend) = &context.backend {
-        // TODO
-        // tool.resolve_backend(backend).await?;
-    }
+    let tool = load_tool_from_locator(&context, proto, locate_tool(locator_id, proto)?).await?;
 
     Ok(tool)
 }
