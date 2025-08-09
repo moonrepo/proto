@@ -3,7 +3,7 @@ mod utils;
 #[cfg(not(windows))]
 mod install_one_backend {
     use super::utils::*;
-    use proto_core::{Backend, ToolSpec, UnresolvedVersionSpec};
+    use proto_core::{ToolContext, ToolSpec, UnresolvedVersionSpec};
     use starbase_sandbox::predicates::prelude::*;
 
     #[test]
@@ -16,7 +16,7 @@ mod install_one_backend {
         // Install
         let assert = sandbox
             .run_bin(|cmd| {
-                cmd.arg("install").arg("zig").arg("asdf:0.13.0");
+                cmd.arg("install").arg("asdf:zig").arg("0.13.0");
             })
             .success();
 
@@ -30,8 +30,8 @@ mod install_one_backend {
         let assert = sandbox
             .run_bin(|cmd| {
                 cmd.arg("uninstall")
-                    .arg("zig")
-                    .arg("asdf:0.13.0")
+                    .arg("asdf:zig")
+                    .arg("0.13.0")
                     .arg("--yes");
             })
             .success();
@@ -50,8 +50,8 @@ mod install_one_backend {
         sandbox
             .run_bin(|cmd| {
                 cmd.arg("install")
-                    .arg("zig")
-                    .arg("asdf:0.13.0")
+                    .arg("asdf:zig")
+                    .arg("0.13.0")
                     .arg("--pin")
                     .arg("local");
             })
@@ -60,11 +60,11 @@ mod install_one_backend {
         let config = load_config(sandbox.path());
 
         assert_eq!(
-            config.versions.get("zig").unwrap(),
-            &ToolSpec::new_backend(
-                UnresolvedVersionSpec::parse("0.13.0").unwrap(),
-                Some(Backend::Asdf)
-            )
+            config
+                .versions
+                .get(&ToolContext::parse("asdf:zig").unwrap())
+                .unwrap(),
+            &ToolSpec::new(UnresolvedVersionSpec::parse("0.13.0").unwrap(),)
         );
     }
 
@@ -85,7 +85,7 @@ asdf-shortname = "newrelic-cli"
 
         let assert = sandbox
             .run_bin(|cmd| {
-                cmd.arg("install").arg("newrelic").arg("asdf:0.97.0");
+                cmd.arg("install").arg("asdf:newrelic").arg("0.97.0");
             })
             .success();
 
@@ -113,7 +113,7 @@ asdf-repository = "https://github.com/NeoHsu/asdf-newrelic-cli"
 
         let assert = sandbox
             .run_bin(|cmd| {
-                cmd.arg("install").arg("newrelic").arg("asdf:0.97.0");
+                cmd.arg("install").arg("asdf:newrelic").arg("0.97.0");
             })
             .success();
 

@@ -1,14 +1,14 @@
 use crate::session::ProtoSession;
 use clap::Args;
 use iocraft::element;
-use proto_core::{Id, PinLocation, ProtoConfig};
+use proto_core::{PinLocation, ProtoConfig, ToolContext};
 use starbase::AppResult;
 use starbase_console::ui::*;
 
 #[derive(Args, Clone, Debug)]
 pub struct UnaliasArgs {
-    #[arg(required = true, help = "ID of tool")]
-    id: Id,
+    #[arg(required = true, help = "Tool to unalias")]
+    context: ToolContext,
 
     #[arg(required = true, help = "Alias name")]
     alias: String,
@@ -19,12 +19,15 @@ pub struct UnaliasArgs {
 
 #[tracing::instrument(skip_all)]
 pub async fn unalias(session: ProtoSession, args: UnaliasArgs) -> AppResult {
-    let tool = session.load_tool(&args.id, None).await?;
+    let tool = session.load_tool(&args.context).await?;
     let mut value = None;
 
     let config_path = ProtoConfig::update_document(tool.proto.get_config_dir(args.from), |doc| {
         if let Some(tools) = doc.get_mut("tools").and_then(|item| item.as_table_mut()) {
-            if let Some(record) = tools.get_mut(&tool.id).and_then(|item| item.as_table_mut()) {
+            if let Some(record) = tools
+                .get_mut(tool.get_id().as_str())
+                .and_then(|item| item.as_table_mut())
+            {
                 if let Some(aliases) = record
                     .get_mut("aliases")
                     .and_then(|item| item.as_table_mut())
@@ -37,7 +40,7 @@ pub async fn unalias(session: ProtoSession, args: UnaliasArgs) -> AppResult {
                 }
 
                 if record.is_empty() {
-                    tools.remove(&tool.id);
+                    tools.remove(tool.get_id().as_str());
                 }
             }
 
@@ -62,7 +65,7 @@ pub async fn unalias(session: ProtoSession, args: UnaliasArgs) -> AppResult {
                     content: format!(
                         "Alias <id>{}</id> for <id>{}</id> not found in config <path>{}</path>",
                         args.alias,
-                        args.id,
+                        args.context,
                         config_path.display()
                     ),
                 )
@@ -77,7 +80,7 @@ pub async fn unalias(session: ProtoSession, args: UnaliasArgs) -> AppResult {
             StyledText(
                 content: format!(
                     "Removed <id>{}</id> alias <id>{}</id> <mutedlight>(with specification <versionalt>{}</versionalt>)</mutedlight> from config <path>{}</path>",
-                    args.id,
+                    args.context,
                     args.alias,
                     value.to_string(),
                     config_path.display()

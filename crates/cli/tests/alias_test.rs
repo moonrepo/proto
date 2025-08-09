@@ -1,8 +1,6 @@
 mod utils;
 
-use proto_core::{
-    Backend, Id, PartialProtoToolConfig, ProtoConfig, ToolSpec, UnresolvedVersionSpec,
-};
+use proto_core::{Id, PartialProtoToolConfig, ProtoConfig, ToolSpec, UnresolvedVersionSpec};
 use starbase_sandbox::predicates::prelude::*;
 use std::collections::BTreeMap;
 use utils::*;
@@ -120,12 +118,13 @@ mod alias_local {
             .stderr(predicate::str::contains("Cannot map an alias to itself."));
     }
 
-    #[cfg(not(windows))]
+    // Windows doesn't support asdf
+    #[cfg(unix)]
     mod backend {
         use super::*;
 
         #[test]
-        fn can_set_asdf() {
+        fn can_set() {
             let sandbox = create_empty_proto_sandbox();
             let config_file = sandbox.path().join(".prototools");
 
@@ -134,9 +133,9 @@ mod alias_local {
             sandbox
                 .run_bin(|cmd| {
                     cmd.arg("alias")
-                        .arg("act")
+                        .arg("asdf:act")
                         .arg("example")
-                        .arg("asdf:0.2")
+                        .arg("0.2")
                         .current_dir(sandbox.path());
                 })
                 .success();
@@ -150,7 +149,6 @@ mod alias_local {
                 BTreeMap::from_iter([(
                     "example".into(),
                     ToolSpec {
-                        backend: Some(Backend::Asdf),
                         req: UnresolvedVersionSpec::parse("0.2").unwrap(),
                         ..Default::default()
                     }

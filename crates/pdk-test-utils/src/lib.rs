@@ -5,7 +5,7 @@ mod wrapper;
 
 pub use config_builder::*;
 pub use proto_core::{
-    Backend, Id, ProtoConfig, ProtoConsole, ProtoEnvironment, Tool, ToolManifest, ToolSpec,
+    Id, ProtoConfig, ProtoConsole, ProtoEnvironment, Tool, ToolContext, ToolManifest, ToolSpec,
     UnresolvedVersionSpec, Version, VersionReq, VersionSpec, flow,
 };
 pub use proto_pdk_api::*;

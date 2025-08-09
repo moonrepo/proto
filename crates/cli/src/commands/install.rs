@@ -6,7 +6,7 @@ use crate::utils::tool_record::ToolRecord;
 use crate::workflows::{InstallOutcome, InstallWorkflowManager, InstallWorkflowParams};
 use clap::Args;
 use iocraft::prelude::element;
-use proto_core::{ConfigMode, Id, PinLocation, Tool, ToolSpec};
+use proto_core::{ConfigMode, Id, PinLocation, Tool, ToolContext, ToolSpec};
 use proto_pdk_api::{InstallStrategy, PluginFunction};
 use starbase::AppResult;
 use starbase_console::ui::*;
@@ -20,8 +20,8 @@ use tracing::{debug, info, instrument, trace};
 
 #[derive(Args, Clone, Debug, Default)]
 pub struct InstallArgs {
-    #[arg(help = "ID of a single tool to install")]
-    pub id: Option<Id>,
+    #[arg(help = "Single tool to install")]
+    pub context: Option<ToolContext>,
 
     #[arg(
         help = "When installing one tool, the version specification to install",
@@ -116,10 +116,12 @@ impl InstallArgs {
 
 pub fn enforce_requirements(
     tool: &Tool,
-    versions: &BTreeMap<Id, ToolSpec>,
+    versions: &BTreeMap<ToolContext, ToolSpec>,
 ) -> Result<(), ProtoCliError> {
     for require_id in &tool.metadata.requires {
-        if !versions.contains_key(require_id.as_str()) {
+        let require_ctx = ToolContext::parse(require_id)?;
+
+        if !versions.contains_key(&require_ctx) {
             return Err(ProtoCliError::InstallRequirementsNotMet {
                 tool: tool.get_name().to_owned(),
                 requires: require_id.to_owned(),
@@ -131,12 +133,14 @@ pub fn enforce_requirements(
 }
 
 #[instrument(skip(session))]
-pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> AppResult {
-    debug!(id = id.as_str(), "Loading tool");
+pub async fn install_one(
+    session: ProtoSession,
+    args: InstallArgs,
+    context: ToolContext,
+) -> AppResult {
+    debug!(tool = context.as_str(), "Loading tool");
 
-    let tool = session
-        .load_tool(&id, args.spec.as_ref().and_then(|spec| spec.backend))
-        .await?;
+    let tool = session.load_tool(&context).await?;
 
     // Attempt to detect a version if one was not provided,
     // otherwise fallback to "latest"
@@ -144,7 +148,7 @@ pub async fn install_one(session: ProtoSession, args: InstallArgs, id: Id) -> Ap
         spec.to_owned()
     } else if let Some((spec, _)) = tool.detect_version_from(&session.env.working_dir).await? {
         spec.into()
-    } else if let Some(spec) = session.load_config()?.versions.get(&tool.id) {
+    } else if let Some(spec) = session.load_config()?.versions.get(&context) {
         spec.to_owned()
     } else {
         ToolSpec::default()
@@ -265,14 +269,14 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
         if let Some(candidate) = &tool.detected_version {
             debug!("Detected version {} for {}", candidate, tool.get_name());
 
-            versions.insert(tool.id.clone(), candidate.to_owned());
+            versions.insert(tool.context.clone(), candidate.to_owned());
         }
     }
 
     // Filter down tools to only those that have a version
     let mut tools = tools
         .into_iter()
-        .filter(|tool| versions.contains_key(&tool.id))
+        .filter(|tool| versions.contains_key(&tool.context))
         .collect::<Vec<_>>();
 
     // And handle build/prebuilt modes
@@ -319,7 +323,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
     for tool in tools {
         enforce_requirements(&tool, &versions)?;
 
-        let Some(version) = versions.get(&tool.id) else {
+        let Some(version) = versions.get(&tool.context) else {
             continue;
         };
 
@@ -327,12 +331,15 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
         spec.read_lockfile = !args.update_lockfile;
         spec.write_lockfile = !args.internal;
 
-        let tool_id = tool.id.clone();
+        let tool_context = tool.context.clone();
         let topo_graph = topo_graph.clone();
         let mut workflow = workflow_manager.create_workflow(tool);
 
         let handle = set.spawn(async move {
-            while let Some(status) = topo_graph.check_install_status(&workflow.tool.id).await {
+            while let Some(status) = topo_graph
+                .check_install_status(workflow.tool.get_id())
+                .await
+            {
                 match status {
                     InstallStatus::ReqFailed(req_id) => {
                         workflow.progress_reporter.set_message(format!(
@@ -340,7 +347,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
                         ));
 
                         // Abort since requirement failed
-                        return InstallOutcome::FailedToInstall(workflow.tool.id.clone());
+                        return InstallOutcome::FailedToInstall(workflow.tool.get_id().clone());
                     }
                     InstallStatus::WaitingOnReqs(waiting_on) => {
                         workflow.progress_reporter.set_message(format!(
@@ -377,17 +384,17 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
                 .await
             {
                 Ok(outcome) => {
-                    topo_graph.mark_installed(&workflow.tool.id).await;
+                    topo_graph.mark_installed(workflow.tool.get_id()).await;
                     outcome
                 }
                 Err(error) => {
                     trace!(
                         "Failed to run {} install workflow: {error}",
-                        color::id(&workflow.tool.id)
+                        color::id(workflow.tool.get_id())
                     );
 
-                    topo_graph.mark_not_installed(&workflow.tool.id).await;
-                    InstallOutcome::FailedToInstall(workflow.tool.id.clone())
+                    topo_graph.mark_not_installed(workflow.tool.get_id()).await;
+                    InstallOutcome::FailedToInstall(workflow.tool.get_id().clone())
                 }
             }
         });
@@ -395,7 +402,7 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
         trace!(
             task_id = handle.id().to_string(),
             "Spawning {} in background task",
-            color::id(tool_id)
+            color::id(tool_context)
         );
     }
 
@@ -477,8 +484,8 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
 
 #[instrument(skip(session))]
 pub async fn install(session: ProtoSession, args: InstallArgs) -> AppResult {
-    match args.id.clone() {
-        Some(id) => install_one(session, args, id).await,
+    match args.context.clone() {
+        Some(context) => install_one(session, args, context).await,
         None => install_all(session, args).await,
     }
 }

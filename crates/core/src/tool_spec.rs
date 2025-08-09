@@ -1,27 +1,18 @@
 use crate::flow::resolve::ProtoResolveError;
-use schematic::{ConfigEnum, derive_enum};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
+use tracing::warn;
 use version_spec::{UnresolvedVersionSpec, VersionSpec};
-
-derive_enum!(
-    #[derive(Copy, ConfigEnum, Hash)]
-    pub enum Backend {
-        Asdf,
-    }
-);
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(into = "String", try_from = "String")]
 pub struct ToolSpec {
-    pub backend: Option<Backend>,
-
     /// Requested version/requirement.
     pub req: UnresolvedVersionSpec,
 
     /// Resolved version.
-    pub res: Option<VersionSpec>,
+    pub version: Option<VersionSpec>,
 
     /// Resolve a version from the lockfile?
     pub read_lockfile: bool,
@@ -41,14 +32,6 @@ impl ToolSpec {
         }
     }
 
-    pub fn new_backend(req: UnresolvedVersionSpec, backend: Option<Backend>) -> Self {
-        Self {
-            backend,
-            req,
-            ..Default::default()
-        }
-    }
-
     pub fn is_fully_qualified(&self) -> bool {
         matches!(
             self.req,
@@ -63,11 +46,11 @@ impl ToolSpec {
     }
 
     pub fn resolve(&mut self, res: VersionSpec) {
-        self.res = Some(res);
+        self.version = Some(res);
     }
 
     pub fn to_resolved_spec(&self) -> VersionSpec {
-        match self.res.clone() {
+        match self.version.clone() {
             Some(res) => res,
             None => self.req.to_resolved_spec(),
         }
@@ -77,9 +60,8 @@ impl ToolSpec {
 impl Default for ToolSpec {
     fn default() -> Self {
         Self {
-            backend: None,
             req: UnresolvedVersionSpec::default(),
-            res: None,
+            version: None,
             read_lockfile: true,
             resolve_from_manifest: true,
             write_lockfile: true,
@@ -91,25 +73,18 @@ impl FromStr for ToolSpec {
     type Err = ProtoResolveError;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
-        let (backend, spec) = if let Some((prefix, suffix)) = value.split_once(':') {
-            let backend = if prefix == "proto" {
-                None
-            } else if prefix == "asdf" {
-                Some(Backend::Asdf)
-            } else {
-                return Err(ProtoResolveError::UnknownBackend {
-                    backends: Backend::variants(),
-                    spec: value.to_owned(),
-                });
-            };
+        let spec = if let Some((_, suffix)) = value.split_once(':') {
+            warn!(
+                spec = value,
+                "Configuring the backend within the version is no longer supported; pass it in the identifer instead"
+            );
 
-            (backend, suffix)
+            suffix
         } else {
-            (None, value)
+            value
         };
 
         Ok(Self {
-            backend,
             req: UnresolvedVersionSpec::parse(spec).map_err(|error| {
                 ProtoResolveError::InvalidVersionSpec {
                     version: value.to_owned(),
@@ -168,14 +143,6 @@ impl AsRef<UnresolvedVersionSpec> for ToolSpec {
 
 impl fmt::Display for ToolSpec {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if let Some(backend) = self.backend {
-            match backend {
-                Backend::Asdf => {
-                    write!(f, "asdf:")?;
-                }
-            };
-        }
-
         write!(f, "{}", self.req)
     }
 }

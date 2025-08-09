@@ -107,7 +107,7 @@ impl InstallWorkflow {
             self.pin_version(&spec, &params.pin_to).await?;
             self.finish_progress(started);
 
-            return Ok(InstallOutcome::AlreadyInstalled(self.tool.id.clone()));
+            return Ok(InstallOutcome::AlreadyInstalled(self.tool.get_id().clone()));
         }
 
         // Run pre-install hooks
@@ -117,7 +117,7 @@ impl InstallWorkflow {
         let record = self.do_install(&spec, &params).await?;
 
         if record.is_none() {
-            return Ok(InstallOutcome::FailedToInstall(self.tool.id.clone()));
+            return Ok(InstallOutcome::FailedToInstall(self.tool.get_id().clone()));
         }
 
         let pinned = self.pin_version(&spec, &params.pin_to).await?;
@@ -130,7 +130,7 @@ impl InstallWorkflow {
         track_usage(
             &self.tool.proto,
             Metric::InstallTool {
-                id: self.tool.id.to_string(),
+                id: self.tool.get_id().to_string(),
                 plugin: self
                     .tool
                     .locator
@@ -144,7 +144,7 @@ impl InstallWorkflow {
         )
         .await?;
 
-        Ok(InstallOutcome::Installed(self.tool.id.clone()))
+        Ok(InstallOutcome::Installed(self.tool.get_id().clone()))
     }
 
     pub async fn install_with_logging(
@@ -164,7 +164,7 @@ impl InstallWorkflow {
             .tool
             .proto
             .working_dir
-            .join(format!("proto-{}-install.log", self.tool.id));
+            .join(format!("proto-{}-install.log", self.tool.get_id()));
 
         // Capture plugin calls
         let on_log = log.clone();
@@ -221,14 +221,14 @@ impl InstallWorkflow {
             log.add_header("Running pre-install hooks");
         });
 
-        unsafe { env::set_var("PROTO_INSTALL", tool.id.to_string()) };
+        unsafe { env::set_var("PROTO_INSTALL", tool.get_id().to_string()) };
 
         if tool.plugin.has_func(HookFunction::PreInstall).await {
             tool.plugin
                 .call_func_without_output(
                     HookFunction::PreInstall,
                     InstallHook {
-                        context: tool.create_context(),
+                        context: tool.create_plugin_context(),
                         forced: params.force,
                         passthrough_args: params.passthrough_args.clone(),
                         pinned: params.pin_to.is_some(),
@@ -354,7 +354,7 @@ impl InstallWorkflow {
                 .call_func_without_output(
                     HookFunction::PostInstall,
                     InstallHook {
-                        context: tool.create_context(),
+                        context: tool.create_plugin_context(),
                         forced: params.force,
                         passthrough_args: params.passthrough_args.clone(),
                         pinned: params.pin_to.is_some(),
@@ -398,12 +398,10 @@ impl InstallWorkflow {
         }
 
         if pin {
-            let resolved_spec = ToolSpec::new_backend(
-                self.tool.get_resolved_version().to_unresolved_spec(),
-                spec.backend,
-            );
+            let resolved_spec =
+                ToolSpec::new(self.tool.get_resolved_version().to_unresolved_spec());
 
-            internal_pin(&mut self.tool.tool, &resolved_spec, pin_to).await?;
+            internal_pin(&self.tool.tool, &resolved_spec, pin_to).await?;
         }
 
         Ok(pin)
@@ -421,7 +419,7 @@ impl InstallWorkflow {
             .call_func_with(
                 PluginFunction::SyncShellProfile,
                 SyncShellProfileInput {
-                    context: tool.create_context(),
+                    context: tool.create_plugin_context(),
                     passthrough_args: params.passthrough_args.clone(),
                 },
             )
@@ -471,7 +469,7 @@ impl InstallWorkflow {
         });
 
         if let Some(updated_profile) = profile_path {
-            let exported_content = shell::format_exports(&shell, &tool.id, exports);
+            let exported_content = shell::format_exports(&shell, tool.get_id(), exports);
 
             if shell::update_profile_if_not_setup(
                 &updated_profile,
@@ -534,8 +532,10 @@ impl InstallWorkflowManager {
     pub fn create_workflow(&mut self, tool: ToolRecord) -> InstallWorkflow {
         let workflow = InstallWorkflow::new(tool, self.console.clone());
 
-        self.progress_reporters
-            .insert(workflow.tool.id.clone(), workflow.progress_reporter.clone());
+        self.progress_reporters.insert(
+            workflow.tool.get_id().clone(),
+            workflow.progress_reporter.clone(),
+        );
 
         workflow
     }

@@ -34,7 +34,14 @@ pub async fn add(session: ProtoSession, args: AddPluginArgs) -> AppResult {
     // the recent addition!
     #[cfg(not(debug_assertions))]
     {
-        let tool = proto_core::load_tool_from_locator(&args.id, &session.env, &args.plugin).await?;
+        use proto_core::ToolContext;
+
+        let tool = proto_core::load_tool_from_locator(
+            ToolContext::parse(&args.id)?,
+            &session.env,
+            &args.plugin,
+        )
+        .await?;
 
         if !tool.metadata.deprecations.is_empty() {
             session.console.render(element! {

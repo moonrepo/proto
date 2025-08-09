@@ -2,7 +2,7 @@ use crate::config::SCHEMA_PLUGIN_KEY;
 use crate::env::ProtoEnvironment;
 use crate::loader_error::ProtoLoaderError;
 use crate::tool::Tool;
-use crate::tool_spec::Backend;
+use crate::tool_context::ToolContext;
 use convert_case::{Case, Casing};
 use rustc_hash::FxHashSet;
 use starbase_utils::{json, toml, yaml};
@@ -37,11 +37,15 @@ pub fn locate_tool(id: &Id, proto: &ProtoEnvironment) -> Result<PluginLocator, P
     let mut locator = None;
     let config = proto.load_config()?;
 
-    debug!(tool = id.as_str(), "Finding a configured plugin");
+    debug!(id = id.as_str(), "Finding a configured plugin");
 
     // Check config files for plugins
     if let Some(maybe_locator) = config.plugins.get(id) {
-        debug!(plugin = maybe_locator.to_string(), "Found a plugin");
+        debug!(
+            id = id.as_str(),
+            plugin = maybe_locator.to_string(),
+            "Found a plugin"
+        );
 
         locator = Some(maybe_locator.to_owned());
     }
@@ -51,6 +55,7 @@ pub fn locate_tool(id: &Id, proto: &ProtoEnvironment) -> Result<PluginLocator, P
         && let Some(maybe_locator) = config.builtin_plugins().get(id)
     {
         debug!(
+            id = id.as_str(),
             plugin = maybe_locator.to_string(),
             "Using a built-in plugin"
         );
@@ -64,6 +69,7 @@ pub fn locate_tool(id: &Id, proto: &ProtoEnvironment) -> Result<PluginLocator, P
         && let Ok(maybe_locator) = PluginLocator::try_from(format!("registry://{id}"))
     {
         debug!(
+            id = id.as_str(),
             plugin = maybe_locator.to_string(),
             "Using a registry plugin"
         );
@@ -166,15 +172,18 @@ pub fn load_schema_config(plugin_path: &Path) -> Result<json::JsonValue, ProtoLo
 
 #[instrument(name = "load_tool", skip(proto))]
 pub async fn load_tool_from_locator(
-    id: impl AsRef<Id> + Debug,
+    context: impl AsRef<ToolContext> + Debug,
     proto: impl AsRef<ProtoEnvironment>,
     locator: impl AsRef<PluginLocator> + Debug,
 ) -> Result<Tool, ProtoLoaderError> {
-    let id = id.as_ref();
+    let context = context.as_ref();
     let proto = proto.as_ref();
     let locator = locator.as_ref();
 
-    let plugin_path = proto.get_plugin_loader()?.load_plugin(id, locator).await?;
+    let plugin_path = proto
+        .get_plugin_loader()?
+        .load_plugin(&context.id, locator)
+        .await?;
     let plugin_ext = plugin_path.extension().and_then(|ext| ext.to_str());
 
     let mut manifest = match plugin_ext {
@@ -202,44 +211,24 @@ pub async fn load_tool_from_locator(
         _ => unimplemented!(),
     };
 
-    inject_default_manifest_config(id, &proto.home_dir, &mut manifest)?;
-    inject_proto_manifest_config(id, proto, &mut manifest)?;
+    inject_default_manifest_config(&context.id, &proto.home_dir, &mut manifest)?;
+    inject_proto_manifest_config(&context.id, proto, &mut manifest)?;
 
-    let mut tool = Tool::load_from_manifest(id, proto, manifest).await?;
+    let mut tool = Tool::load_from_manifest(context, proto, manifest).await?;
     tool.locator = Some(locator.to_owned());
 
     Ok(tool)
 }
 
 pub async fn load_tool(
-    id: &Id,
+    context: &ToolContext,
     proto: &ProtoEnvironment,
-    mut backend: Option<Backend>,
 ) -> Result<Tool, ProtoLoaderError> {
-    // Determine the backend plugin to use
-    if backend.is_none() {
-        let config = proto.load_config()?;
-
-        // Check the version spec first, as that takes priority
-        if let Some(spec) = config.versions.get(id) {
-            backend = spec.backend;
-        }
-
-        // Otherwise fallback to the tool config
-        if backend.is_none() {
-            backend = config.tools.get(id).and_then(|cfg| cfg.backend);
-        }
-    }
-
     // If backend is proto, use the tool's plugin,
     // otherwise use the backend plugin itself
-    let locator_id = match backend {
-        Some(be) => Id::raw(be.to_string()),
-        None => id.to_owned(),
-    };
+    let locator_id = context.backend.as_ref().unwrap_or(&context.id);
 
-    let mut tool = load_tool_from_locator(id, proto, locate_tool(&locator_id, proto)?).await?;
-    tool.resolve_backend(backend).await?;
+    let tool = load_tool_from_locator(&context, proto, locate_tool(locator_id, proto)?).await?;
 
     Ok(tool)
 }
