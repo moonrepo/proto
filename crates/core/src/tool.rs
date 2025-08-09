@@ -264,7 +264,7 @@ impl Tool {
             if actual_version < expected_version {
                 return Err(ProtoToolError::InvalidMinimumVersion {
                     tool: metadata.name,
-                    id: self.id.clone(),
+                    id: self.get_id().clone(),
                     expected: expected_version.to_string(),
                     actual: actual_version.to_string(),
                 }

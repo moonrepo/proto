@@ -118,6 +118,8 @@ mod alias_local {
             .stderr(predicate::str::contains("Cannot map an alias to itself."));
     }
 
+    // Windows doesn't support asdf
+    #[cfg(unix)]
     mod backend {
         use super::*;
 

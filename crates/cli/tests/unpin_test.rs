@@ -77,6 +77,8 @@ mod unpin_local {
         );
     }
 
+    // Windows doesn't support asdf
+    #[cfg(unix)]
     mod backend {
         use super::*;
 

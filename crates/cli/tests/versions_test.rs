@@ -89,6 +89,8 @@ mod versions {
         assert_eq!(output.lines().collect::<Vec<_>>().len(), 3);
     }
 
+    // Windows doesn't support asdf
+    #[cfg(unix)]
     mod backend {
         use super::*;
 

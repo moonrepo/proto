@@ -840,19 +840,20 @@ pub struct ProtoConfigEnvOptions {
     pub tool_id: Option<Id>,
 }
 
+#[cfg(any(debug_assertions, test))]
 fn find_debug_locator(name: &str) -> Option<PluginLocator> {
-    #[cfg(any(debug_assertions, test))]
-    {
-        use warpgate::{FileLocator, test_utils::find_wasm_file_with_name};
+    use warpgate::{FileLocator, test_utils::find_wasm_file_with_name};
 
-        if let Some(wasm_path) = find_wasm_file_with_name(name) {
-            return Some(PluginLocator::File(Box::new(FileLocator {
-                file: wasm_path.to_string_lossy().to_string(),
-                path: Some(wasm_path),
-            })));
-        }
-    }
+    find_wasm_file_with_name(name).map(|wasm_path| {
+        PluginLocator::File(Box::new(FileLocator {
+            file: wasm_path.to_string_lossy().to_string(),
+            path: Some(wasm_path),
+        }))
+    })
+}
 
+#[cfg(not(any(debug_assertions, test)))]
+fn find_debug_locator(_name: &str) -> Option<PluginLocator> {
     None
 }
 

@@ -158,6 +158,8 @@ moonstone = "2.0.0"
         )
     }
 
+    // Windows doesn't support asdf
+    #[cfg(unix)]
     mod backend {
         use super::*;
 
