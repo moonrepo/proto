@@ -1,23 +1,10 @@
 #[macro_export]
 macro_rules! create_plugin {
     ($sandbox:ident, $id:literal, $schema:expr) => {
-        if let Some((backend, id)) = $id.split_once(':') {
-            let backend = Backend::try_from(backend).unwrap();
-
-            let mut plugin = if let Some(schema) = $schema {
-                $sandbox.create_schema_plugin(id, schema).await
-            } else {
-                $sandbox.create_plugin(id).await
-            };
-
-            plugin.set_backend(backend).await;
-            plugin
+        if let Some(schema) = $schema {
+            $sandbox.create_schema_plugin($id, schema).await
         } else {
-            if let Some(schema) = $schema {
-                $sandbox.create_schema_plugin($id, schema).await
-            } else {
-                $sandbox.create_plugin($id).await
-            }
+            $sandbox.create_plugin($id).await
         }
     };
 }
@@ -56,7 +43,7 @@ macro_rules! generate_build_install_tests {
                     std::fs::read_to_string(
                         sandbox
                             .path()
-                            .join(format!("proto-{}-build.log", plugin.tool.id))
+                            .join(format!("proto-{}-build.log", plugin.tool.get_id()))
                     )
                     .unwrap()
                 );
@@ -70,7 +57,7 @@ macro_rules! generate_build_install_tests {
             let base_dir = sandbox
                 .proto_dir
                 .join("tools")
-                .join(plugin.tool.id.as_str())
+                .join(plugin.tool.get_id().as_str())
                 .join(version.to_string());
 
             assert_eq!(tool_dir, base_dir);
@@ -170,7 +157,7 @@ macro_rules! generate_native_install_tests {
             let base_dir = sandbox
                 .proto_dir
                 .join("tools")
-                .join(plugin.tool.id.as_str())
+                .join(plugin.tool.get_id().as_str())
                 .join(version.to_string());
 
             assert_eq!(tool_dir, base_dir);

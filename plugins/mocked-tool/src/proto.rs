@@ -123,10 +123,10 @@ pub fn native_install(
 
     // Check the version is valid and error otherwise
     // This is necessary since this would typically be handled by prebuilts
-    if let Some(inner) = version.as_version() {
-        if inner.major < 1 || inner.major > 6 || inner.minor > 10 || inner.patch > 15 {
-            return Err(plugin_err!("Invalid version {version}"));
-        }
+    if let Some(inner) = version.as_version()
+        && (inner.major < 1 || inner.major > 6 || inner.minor > 10 || inner.patch > 15)
+    {
+        return Err(plugin_err!("Invalid version {version}"));
     }
 
     // Create the primary executable

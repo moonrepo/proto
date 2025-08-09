@@ -546,9 +546,9 @@ FOURTH = "ignores-$FIRST-$PARENT"
                 .run_bin(|cmd| {
                     cmd.arg("run").arg("asdf:zig").arg("0.13");
                 })
-                .success();
+                .failure();
 
-            assert.failure().stderr(predicate::str::contains(
+            assert.stderr(predicate::str::contains(
                 "This project requires asdf:zig ~0.13",
             ));
         }
@@ -557,14 +557,14 @@ FOURTH = "ignores-$FIRST-$PARENT"
         fn errors_if_no_version_detected() {
             let sandbox = create_empty_proto_sandbox();
 
-            let assert = sandbox.run_bin(|cmd| {
-                cmd.arg("run").arg("asdf:zig");
-            });
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("run").arg("asdf:zig");
+                })
+                .failure();
 
-            assert.debug();
-
-            assert.failure().stderr(predicate::str::contains(
-                "This project requires asdf:zig ~0.13",
+            assert.stderr(predicate::str::contains(
+                "Failed to detect an applicable version",
             ));
         }
 

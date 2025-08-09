@@ -1,6 +1,5 @@
 use crate::wrapper::WasmTestWrapper;
-use proto_core::ToolContext;
-use proto_core::{ProtoEnvironment, Tool, inject_proto_manifest_config};
+use proto_core::{ProtoEnvironment, Tool, ToolContext, inject_proto_manifest_config};
 use starbase_sandbox::{Sandbox, create_empty_sandbox, create_sandbox};
 use std::fmt;
 use std::fs;
