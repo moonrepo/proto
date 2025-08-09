@@ -2,7 +2,7 @@ use crate::components::{Locator, SpecAliasesMap, VersionsMap};
 use crate::session::{LoadToolOptions, ProtoSession};
 use clap::Args;
 use iocraft::prelude::element;
-use proto_core::{ConfigMode, Id, PluginLocator, ProtoToolConfig, ToolManifest};
+use proto_core::{ConfigMode, Id, PluginLocator, ProtoToolConfig, ToolContext, ToolManifest};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Serialize;
 use starbase::AppResult;
@@ -36,12 +36,20 @@ pub async fn list(session: ProtoSession, args: ListPluginsArgs) -> AppResult {
 
     let mut tools = session
         .load_tools_with_options(LoadToolOptions {
-            ids: FxHashSet::from_iter(if args.ids.is_empty() {
+            tools: FxHashSet::from_iter(if args.ids.is_empty() {
                 // Use plugins instead of versions since we want to
                 // list all plugins currently in use, even built-ins
-                global_config.plugins.keys().cloned().collect::<Vec<_>>()
+                global_config
+                    .plugins
+                    .keys()
+                    .map(|id| ToolContext::new(id.to_owned()))
+                    .collect::<Vec<_>>()
             } else {
-                args.ids.clone()
+                args.ids
+                    .clone()
+                    .into_iter()
+                    .map(ToolContext::new)
+                    .collect::<Vec<_>>()
             }),
             inherit_local: true,
             inherit_remote: true,
@@ -49,14 +57,14 @@ pub async fn list(session: ProtoSession, args: ListPluginsArgs) -> AppResult {
         })
         .await?;
 
-    tools.sort_by(|a, d| a.id.cmp(&d.id));
+    tools.sort_by(|a, d| a.context.cmp(&d.context));
 
     if session.should_print_json() {
         let items = tools
             .into_iter()
             .map(|tool| {
                 (
-                    tool.id.clone(),
+                    tool.context.clone(),
                     PluginItem {
                         name: tool.get_name().to_owned(),
                         locator: tool.locator.clone(),
@@ -89,7 +97,7 @@ pub async fn list(session: ProtoSession, args: ListPluginsArgs) -> AppResult {
                         name: "ID",
                         value: element! {
                             StyledText(
-                                content: tool.id.to_string(),
+                                content: tool.context.to_string(),
                                 style: Style::Id
                             )
                         }.into_any()
@@ -135,7 +143,7 @@ pub async fn list(session: ProtoSession, args: ListPluginsArgs) -> AppResult {
                                 no_children: tool.installed_versions.is_empty()
                             ) {
                                 VersionsMap(
-                                    default_version: global_config.versions.get(&tool.id).map(|spec| &spec.req),
+                                    default_version: global_config.versions.get(&tool.context).map(|spec| &spec.req),
                                     inventory: &tool.inventory,
                                     versions: tool.installed_versions.iter().collect::<Vec<_>>(),
                                 )

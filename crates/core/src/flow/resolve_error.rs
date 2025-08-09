@@ -1,9 +1,6 @@
 use crate::config_error::ProtoConfigError;
 use crate::flow::lock::ProtoLockError;
 use crate::layout::ProtoLayoutError;
-use crate::tool_spec::Backend;
-use crate::utils::archive::ProtoArchiveError;
-use crate::utils::process::ProtoProcessError;
 use starbase_styles::{Style, Stylize};
 use starbase_utils::fs::FsError;
 use std::path::PathBuf;
@@ -12,10 +9,6 @@ use warpgate::{WarpgateHttpClientError, WarpgatePluginError};
 
 #[derive(Error, Debug, miette::Diagnostic)]
 pub enum ProtoResolveError {
-    #[diagnostic(transparent)]
-    #[error(transparent)]
-    Archive(#[from] Box<ProtoArchiveError>),
-
     #[diagnostic(transparent)]
     #[error(transparent)]
     Config(#[from] Box<ProtoConfigError>),
@@ -39,10 +32,6 @@ pub enum ProtoResolveError {
     #[diagnostic(transparent)]
     #[error(transparent)]
     Plugin(#[from] Box<WarpgatePluginError>),
-
-    #[diagnostic(transparent)]
-    #[error(transparent)]
-    Process(#[from] Box<ProtoProcessError>),
 
     #[diagnostic(code(proto::resolve::offline::version_required))]
     #[error(
@@ -79,23 +68,6 @@ pub enum ProtoResolveError {
         .version.style(Style::Hash),
     )]
     FailedVersionResolve { tool: String, version: String },
-
-    #[diagnostic(code(proto::resolve::unknown_backend))]
-    #[error(
-        "Unknown backend in tool specification {}. Only {} are supported.",
-        .spec.style(Style::Hash),
-        .backends.iter().map(|be| be.to_string().style(Style::Id)).collect::<Vec<_>>().join(", ")
-    )]
-    UnknownBackend {
-        backends: Vec<Backend>,
-        spec: String,
-    },
-}
-
-impl From<ProtoArchiveError> for ProtoResolveError {
-    fn from(e: ProtoArchiveError) -> ProtoResolveError {
-        ProtoResolveError::Archive(Box::new(e))
-    }
 }
 
 impl From<WarpgateHttpClientError> for ProtoResolveError {
@@ -131,11 +103,5 @@ impl From<ProtoLockError> for ProtoResolveError {
 impl From<WarpgatePluginError> for ProtoResolveError {
     fn from(e: WarpgatePluginError) -> ProtoResolveError {
         ProtoResolveError::Plugin(Box::new(e))
-    }
-}
-
-impl From<ProtoProcessError> for ProtoResolveError {
-    fn from(e: ProtoProcessError) -> ProtoResolveError {
-        ProtoResolveError::Process(Box::new(e))
     }
 }

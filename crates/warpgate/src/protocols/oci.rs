@@ -114,8 +114,8 @@ impl LoaderProtocol<RegistryLocator> for OciLoader {
         trace!(id = id.as_str(), "Scanning and loading from OCI registries");
 
         // Try the explicit registry first
-        if let Some(registry) = &locator.registry {
-            if let Some(from) = self
+        if let Some(registry) = &locator.registry
+            && let Some(from) = self
                 .pull_image(
                     id,
                     locator,
@@ -126,9 +126,8 @@ impl LoaderProtocol<RegistryLocator> for OciLoader {
                     false,
                 )
                 .await?
-            {
-                return Ok(from);
-            }
+        {
+            return Ok(from);
         }
 
         // Then try the configured registries

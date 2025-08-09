@@ -3,7 +3,7 @@ use crate::session::ProtoSession;
 use crate::telemetry::{Metric, track_usage};
 use clap::Args;
 use iocraft::element;
-use proto_core::{Id, ProtoConfig, ProtoConfigError, Tool, ToolSpec};
+use proto_core::{ProtoConfig, ProtoConfigError, Tool, ToolContext, ToolSpec};
 use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_utils::fs;
@@ -11,8 +11,8 @@ use tracing::{debug, instrument};
 
 #[derive(Args, Clone, Debug)]
 pub struct UninstallArgs {
-    #[arg(required = true, help = "ID of tool")]
-    id: Id,
+    #[arg(required = true, help = "Tool to uninstall")]
+    context: ToolContext,
 
     #[arg(help = "Version specification to uninstall")]
     spec: Option<ToolSpec>,
@@ -28,14 +28,16 @@ fn unpin_version(session: &ProtoSession, args: &UninstallArgs) -> Result<(), Pro
             }
 
             ProtoConfig::update_document(&file.path, |doc| {
-                if let Some(version) = doc.get(&args.id).and_then(|item| item.as_str())
+                if let Some(version) = doc
+                    .get(args.context.as_str())
+                    .and_then(|item| item.as_str())
                     && (args.spec.is_none()
                         || args
                             .spec
                             .as_ref()
                             .is_some_and(|spec| spec.to_string() == version))
                 {
-                    doc.as_table_mut().remove(&args.id);
+                    doc.as_table_mut().remove(args.context.as_str());
                 }
 
                 // if let Some(versions) = &mut config.versions {
@@ -60,7 +62,7 @@ async fn track_uninstall(tool: &Tool, all: bool) -> Result<(), ProtoCliError> {
     track_usage(
         &tool.proto,
         Metric::UninstallTool {
-            id: tool.id.to_string(),
+            id: tool.context.to_string(),
             plugin: tool
                 .locator
                 .as_ref()
@@ -78,7 +80,7 @@ async fn track_uninstall(tool: &Tool, all: bool) -> Result<(), ProtoCliError> {
 
 #[instrument(skip(session))]
 async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult {
-    let mut tool = session.load_tool(&args.id, None).await?;
+    let mut tool = session.load_tool(&args.context).await?;
     let inventory_dir = tool.get_inventory_dir();
     let version_count = tool.inventory.manifest.installed_versions.len();
     let skip_prompts = session.should_skip_prompts();
@@ -162,7 +164,7 @@ async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult 
 
 #[instrument(skip(session))]
 async fn uninstall_one(session: ProtoSession, args: UninstallArgs, spec: ToolSpec) -> AppResult {
-    let mut tool = session.load_tool(&args.id, spec.backend).await?;
+    let mut tool = session.load_tool(&args.context).await?;
 
     if !tool.is_setup(&spec).await? {
         session.console.render(element! {

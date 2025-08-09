@@ -1,6 +1,6 @@
 mod utils;
 
-use proto_core::UnresolvedVersionSpec;
+use proto_core::{ToolContext, UnresolvedVersionSpec};
 use std::fs;
 use utils::*;
 
@@ -158,12 +158,13 @@ moonstone = "2.0.0"
         )
     }
 
-    #[cfg(not(windows))]
+    // Windows doesn't support asdf
+    #[cfg(unix)]
     mod backend {
         use super::*;
 
         #[test]
-        fn can_set_asdf() {
+        fn can_set() {
             let sandbox = create_empty_proto_sandbox();
             let version_file = sandbox.path().join(".prototools");
 
@@ -171,14 +172,14 @@ moonstone = "2.0.0"
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("pin").arg("act").arg("asdf:0.2.70");
+                    cmd.arg("pin").arg("asdf:act").arg("0.2.70");
                 })
                 .success();
 
             assert!(version_file.exists());
             assert_eq!(
                 fs::read_to_string(version_file).unwrap(),
-                "act = \"asdf:0.2.70\"\n"
+                "\"asdf:act\" = \"0.2.70\"\n"
             )
         }
     }
@@ -209,7 +210,10 @@ mod pin_global {
         let config = load_config(sandbox.path().join(".proto"));
 
         assert_eq!(
-            config.versions.get("protostar").unwrap(),
+            config
+                .versions
+                .get(&ToolContext::parse("protostar").unwrap())
+                .unwrap(),
             &UnresolvedVersionSpec::parse("1.0.0").unwrap()
         );
     }
@@ -236,7 +240,10 @@ mod pin_global {
         let config = load_config(sandbox.path().join(".proto"));
 
         assert_eq!(
-            config.versions.get("protostar").unwrap(),
+            config
+                .versions
+                .get(&ToolContext::parse("protostar").unwrap())
+                .unwrap(),
             &UnresolvedVersionSpec::Alias("bundled".into())
         );
     }
@@ -263,7 +270,10 @@ mod pin_global {
         let config = load_config(sandbox.path().join(".proto"));
 
         assert_eq!(
-            config.versions.get("protostar").unwrap(),
+            config
+                .versions
+                .get(&ToolContext::parse("protostar").unwrap())
+                .unwrap(),
             &UnresolvedVersionSpec::parse("1.2").unwrap()
         );
     }
@@ -291,7 +301,10 @@ mod pin_global {
         let config = load_config(sandbox.path().join(".proto"));
 
         assert_eq!(
-            config.versions.get("protostar").unwrap(),
+            config
+                .versions
+                .get(&ToolContext::parse("protostar").unwrap())
+                .unwrap(),
             &UnresolvedVersionSpec::parse("5.10.15").unwrap()
         );
     }

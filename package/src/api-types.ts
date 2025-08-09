@@ -41,6 +41,8 @@ export interface ExecCommandInput {
 	 */
 	command?: string;
 	/** Override the current working directory. */
+	working_dir?: VirtualPath | null;
+	/** Override the current working directory. */
 	cwd?: VirtualPath | null;
 	/** Environment variables to pass to the command. */
 	env?: Record<string, string>;
@@ -83,8 +85,11 @@ export interface TestEnvironment {
 
 export type PluginLocator = string;
 
-/** Information about the current state of the tool. */
-export interface ToolContext {
+/**
+ * Information about the current state of the plugin,
+ * after a version has been resolved.
+ */
+export interface PluginContext {
 	/** The version of proto (the core crate) calling plugin functions. */
 	protoVersion?: string | null;
 	/** Virtual path to the tool's temporary directory. */
@@ -93,6 +98,20 @@ export interface ToolContext {
 	toolDir: VirtualPath;
 	/** Current version. Will be a "latest" alias if not resolved. */
 	version: VersionSpec;
+}
+
+/**
+ * Information about the current state of the plugin,
+ * before a version has been resolved.
+ */
+export interface PluginUnresolvedContext {
+	/** The version of proto (the core crate) calling plugin functions. */
+	protoVersion?: string | null;
+	/** Virtual path to the tool's temporary directory. */
+	tempDir: VirtualPath;
+	toolDir: VirtualPath;
+	/** Current version if defined. */
+	version?: VersionSpec | null;
 }
 
 /** Supported types of plugins. */
@@ -162,21 +181,10 @@ export interface RegisterToolOutput {
 	unstable?: Switch;
 }
 
-/** Information about the current state of the tool. */
-export interface ToolUnresolvedContext {
-	/** The version of proto (the core crate) calling plugin functions. */
-	protoVersion?: string | null;
-	/** Virtual path to the tool's temporary directory. */
-	tempDir: VirtualPath;
-	toolDir: VirtualPath;
-	/** Current version if defined. */
-	version?: VersionSpec | null;
-}
-
 /** Input passed to the `register_backend` function. */
 export interface RegisterBackendInput {
 	/** Current tool context. */
-	context: ToolUnresolvedContext;
+	context: PluginUnresolvedContext;
 	/** ID of the tool, as it was configured. */
 	id: string;
 }
@@ -229,7 +237,7 @@ export interface ParseVersionFileInput {
 	/** File contents to parse/extract a version from. */
 	content: string;
 	/** Current tool context. */
-	context: ToolUnresolvedContext;
+	context: PluginUnresolvedContext;
 	/** Name of file that's being parsed. */
 	file: string;
 	/** Virtual path to the file being parsed. */
@@ -248,7 +256,7 @@ export interface ParseVersionFileOutput {
 /** Input passed to the `native_install` function. */
 export interface NativeInstallInput {
 	/** Current tool context. */
-	context: ToolContext;
+	context: PluginContext;
 	/** Virtual directory to install to. */
 	installDir: VirtualPath;
 }
@@ -270,7 +278,7 @@ export interface NativeInstallOutput {
 /** Input passed to the `native_uninstall` function. */
 export interface NativeUninstallInput {
 	/** Current tool context. */
-	context: ToolContext;
+	context: PluginContext;
 	/** Virtual directory to uninstall from. */
 	uninstallDir: VirtualPath;
 }
@@ -288,7 +296,7 @@ export interface NativeUninstallOutput {
 /** Input passed to the `download_prebuilt` function. */
 export interface DownloadPrebuiltInput {
 	/** Current tool context. */
-	context: ToolContext;
+	context: PluginContext;
 	/** Virtual directory to install to. */
 	installDir: VirtualPath;
 }
@@ -326,7 +334,7 @@ export interface DownloadPrebuiltOutput {
 /** Input passed to the `unpack_archive` function. */
 export interface UnpackArchiveInput {
 	/** Current tool context. */
-	context: ToolContext;
+	context: PluginContext;
 	/** Virtual path to the downloaded file. */
 	inputFile: VirtualPath;
 	/** Virtual directory to unpack the archive into, or copy the binary to. */
@@ -338,7 +346,7 @@ export interface VerifyChecksumInput {
 	/** Virtual path to the checksum file. */
 	checksumFile: VirtualPath;
 	/** Current tool context. */
-	context: ToolContext;
+	context: PluginContext;
 	/**
 	 * A checksum of the downloaded file. The type of hash
 	 * is derived from the checksum file's extension, otherwise
@@ -358,7 +366,7 @@ export interface VerifyChecksumOutput {
 /** Input passed to the `locate_executables` function. */
 export interface LocateExecutablesInput {
 	/** Current tool context. */
-	context: ToolContext;
+	context: PluginContext;
 	/** Virtual directory the tool was installed to. */
 	installDir: VirtualPath;
 }
@@ -427,7 +435,7 @@ export interface LocateExecutablesOutput {
 /** Input passed to the `load_versions` function. */
 export interface LoadVersionsInput {
 	/** Current tool context. */
-	context: ToolUnresolvedContext;
+	context: PluginUnresolvedContext;
 	/** The alias or version currently being resolved. */
 	initial: UnresolvedVersionSpec;
 }
@@ -447,7 +455,7 @@ export interface LoadVersionsOutput {
 /** Input passed to the `resolve_version` function. */
 export interface ResolveVersionInput {
 	/** Current tool context. */
-	context: ToolUnresolvedContext;
+	context: PluginUnresolvedContext;
 	/** The alias or version currently being resolved. */
 	initial: UnresolvedVersionSpec;
 }
@@ -466,7 +474,7 @@ export interface ResolveVersionOutput {
 /** Input passed to the `sync_manifest` function. */
 export interface SyncManifestInput {
 	/** Current tool context. */
-	context: ToolContext;
+	context: PluginContext;
 }
 
 /** Output returned by the `sync_manifest` function. */
@@ -483,7 +491,7 @@ export interface SyncManifestOutput {
 /** Input passed to the `sync_shell_profile` function. */
 export interface SyncShellProfileInput {
 	/** Current tool context. */
-	context: ToolContext;
+	context: PluginContext;
 	/** Arguments passed after `--` that was directly passed to the tool's binary. */
 	passthroughArgs: string[];
 }
@@ -509,7 +517,7 @@ export interface SyncShellProfileOutput {
  */
 export interface InstallHook {
 	/** Current tool context. */
-	context: ToolContext;
+	context: PluginContext;
 	/** Whether the install was forced or not. */
 	forced: boolean;
 	/** Arguments passed after `--` that was directly passed to the tool's binary. */
@@ -526,7 +534,7 @@ export interface InstallHook {
  */
 export interface RunHook {
 	/** Current tool context. */
-	context: ToolContext;
+	context: PluginContext;
 	/** Path to the global packages directory for the tool, if found. */
 	globalsDir: VirtualPath | null;
 	/** A prefix applied to the file names of globally installed packages. */
@@ -551,7 +559,7 @@ export interface RunHookResult {
 /** Input passed to the `build_instructions` function. */
 export interface BuildInstructionsInput {
 	/** Current tool context. */
-	context: ToolContext;
+	context: PluginContext;
 	/** Virtual directory to install to. */
 	installDir: VirtualPath;
 }

@@ -1,7 +1,7 @@
 use indexmap::IndexMap;
 use proto_core::{
-    Backend, DetectStrategy, EnvVar, PartialEnvVar, PartialProtoSettingsConfig, PinLocation,
-    ProtoConfig, ProtoConfigEnvOptions, ProtoFileManager, ToolSpec,
+    DetectStrategy, EnvVar, PartialEnvVar, PartialProtoSettingsConfig, PinLocation, ProtoConfig,
+    ProtoConfigEnvOptions, ProtoFileManager, ToolContext, ToolSpec,
 };
 use schematic::RegexSetting;
 use starbase_sandbox::create_empty_sandbox;
@@ -106,16 +106,16 @@ pin-latest = "global"
     }
 
     #[test]
-    fn can_set_backend_with_version() {
+    fn can_set_backend_with_id() {
         let sandbox = create_empty_sandbox();
-        sandbox.create_file(".prototools", r#"node = "asdf:20.0.0""#);
+        sandbox.create_file(".prototools", r#""asdf:node" = "20.0.0""#);
 
         let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
+        let context = ToolContext::parse("asdf:node").unwrap();
 
         assert_eq!(
-            config.versions.unwrap().get("node").unwrap(),
+            config.versions.unwrap().get(&context).unwrap(),
             &ToolSpec {
-                backend: Some(Backend::Asdf),
                 req: UnresolvedVersionSpec::parse("20.0.0").unwrap(),
                 ..Default::default()
             }
@@ -280,11 +280,11 @@ kebab-case = "file://./camel.toml"
             config.versions.unwrap(),
             BTreeMap::from_iter([
                 (
-                    Id::raw("node"),
+                    ToolContext::parse("node").unwrap(),
                     UnresolvedVersionSpec::parse("12.0.0").unwrap().into()
                 ),
                 (
-                    Id::raw("rust"),
+                    ToolContext::parse("rust").unwrap(),
                     UnresolvedVersionSpec::Alias("stable".into()).into()
                 ),
             ])
@@ -318,11 +318,11 @@ kebab-case = "file://./camel.toml"
         let versions = config.versions.get_or_insert(Default::default());
 
         versions.insert(
-            Id::raw("node"),
+            ToolContext::parse("node").unwrap(),
             UnresolvedVersionSpec::parse("12.0.0").unwrap().into(),
         );
         versions.insert(
-            Id::raw("rust"),
+            ToolContext::parse("rust").unwrap(),
             UnresolvedVersionSpec::Alias("stable".into()).into(),
         );
 
@@ -691,63 +691,6 @@ builtin-plugins = []
     mod tool_config {
         use super::*;
         use rustc_hash::FxHashMap;
-
-        #[test]
-        fn can_set_backend() {
-            let sandbox = create_empty_sandbox();
-            sandbox.create_file(
-                ".prototools",
-                r#"
-[tools.node]
-backend = "asdf"
-"#,
-            );
-
-            let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
-
-            assert_eq!(
-                config
-                    .tools
-                    .unwrap()
-                    .get("node")
-                    .unwrap()
-                    .backend
-                    .as_ref()
-                    .unwrap(),
-                &Backend::Asdf
-            );
-        }
-
-        #[test]
-        fn can_set_backend_with_aliases() {
-            let sandbox = create_empty_sandbox();
-            sandbox.create_file(
-                ".prototools",
-                r#"
-[tools.node.aliases]
-value = "asdf:4.5.6"
-"#,
-            );
-
-            let config = ProtoFileManager::load(sandbox.path(), None, None)
-                .unwrap()
-                .get_merged_config()
-                .unwrap()
-                .to_owned();
-
-            assert_eq!(
-                config.tools.get("node").unwrap().aliases,
-                BTreeMap::from_iter([(
-                    "value".to_owned(),
-                    ToolSpec {
-                        backend: Some(Backend::Asdf),
-                        req: UnresolvedVersionSpec::parse("4.5.6").unwrap(),
-                        res: None,
-                        ..Default::default()
-                    }
-                )])
-            );
-        }
 
         #[test]
         fn can_set_extra_settings() {

@@ -18,10 +18,10 @@ fn detect_from_proto_config(
     file: &ProtoConfigFile,
 ) -> Result<Option<UnresolvedVersionSpec>, ProtoDetectError> {
     if let Some(versions) = &file.config.versions
-        && let Some(version) = versions.get(tool.id.as_str())
+        && let Some(version) = versions.get(&tool.context)
     {
         debug!(
-            tool = tool.id.as_str(),
+            tool = tool.context.as_str(),
             version = version.to_string(),
             file = ?file.path,
             "Detected version from {} file", PROTO_CONFIG_NAME
@@ -44,7 +44,7 @@ async fn detect_from_tool_ecosystem(
         .await?
     {
         debug!(
-            tool = tool.id.as_str(),
+            tool = tool.context.as_str(),
             version = version.to_string(),
             file = ?file,
             "Detected version from tool's ecosystem"
@@ -120,7 +120,7 @@ impl Tool {
             && !session_version.is_empty()
         {
             debug!(
-                tool = self.id.as_str(),
+                tool = self.context.as_str(),
                 env_var,
                 version = session_version,
                 "Detected version from environment variable",
@@ -137,7 +137,7 @@ impl Tool {
 
         // Traverse upwards and attempt to detect a version
         trace!(
-            tool = self.id.as_str(),
+            tool = self.context.as_str(),
             "Attempting to find version from {} files", PROTO_CONFIG_NAME
         );
 
@@ -186,7 +186,7 @@ impl Tool {
             .cache_func_with(
                 PluginFunction::DetectVersionFiles,
                 DetectVersionInput {
-                    context: self.create_unresolved_context(),
+                    context: self.create_plugin_unresolved_context(),
                 },
             )
             .await?;
@@ -199,7 +199,7 @@ impl Tool {
         }
 
         trace!(
-            tool = self.id.as_str(),
+            tool = self.context.as_str(),
             dir = ?current_dir,
             "Attempting to detect a version from directory"
         );
@@ -224,7 +224,7 @@ impl Tool {
                         PluginFunction::ParseVersionFile,
                         ParseVersionFileInput {
                             content,
-                            context: self.create_unresolved_context(),
+                            context: self.create_plugin_unresolved_context(),
                             file: file.clone(),
                             path: self.to_virtual_path(&file_path),
                         },
@@ -247,7 +247,7 @@ impl Tool {
             };
 
             debug!(
-                tool = self.id.as_str(),
+                tool = self.context.as_str(),
                 file = ?file_path,
                 version = version.to_string(),
                 "Detected a version"

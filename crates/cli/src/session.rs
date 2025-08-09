@@ -6,7 +6,7 @@ use crate::utils::progress_instance::ProgressInstance;
 use crate::utils::tool_record::ToolRecord;
 use async_trait::async_trait;
 use proto_core::{
-    Backend, ConfigMode, Id, ProtoConfig, ProtoEnvironment, SCHEMA_PLUGIN_KEY, ToolSpec,
+    ConfigMode, ProtoConfig, ProtoEnvironment, SCHEMA_PLUGIN_KEY, ToolContext, ToolSpec,
     load_schema_plugin_with_proto, load_tool, registry::ProtoRegistry,
 };
 use proto_core::{ProtoConfigError, ProtoLoaderError};
@@ -22,9 +22,9 @@ use tracing::debug;
 #[derive(Debug, Default)]
 pub struct LoadToolOptions {
     pub detect_version: bool,
-    pub ids: FxHashSet<Id>,
     pub inherit_local: bool,
     pub inherit_remote: bool,
+    pub tools: FxHashSet<ToolContext>,
 }
 
 pub type ProtoConsole = Console<EmptyReporter>;
@@ -80,23 +80,18 @@ impl ProtoSession {
         self.env.load_config_with_mode(mode)
     }
 
-    pub async fn load_tool(
-        &self,
-        id: &Id,
-        backend: Option<Backend>,
-    ) -> Result<ToolRecord, ProtoLoaderError> {
-        self.load_tool_with_options(id, backend, LoadToolOptions::default())
+    pub async fn load_tool(&self, context: &ToolContext) -> Result<ToolRecord, ProtoLoaderError> {
+        self.load_tool_with_options(context, LoadToolOptions::default())
             .await
     }
 
     #[tracing::instrument(name = "load_tool", skip(self))]
     pub async fn load_tool_with_options(
         &self,
-        id: &Id,
-        backend: Option<Backend>,
+        context: &ToolContext,
         options: LoadToolOptions,
     ) -> Result<ToolRecord, ProtoLoaderError> {
-        let mut record = ToolRecord::new(load_tool(id, &self.env, backend).await?);
+        let mut record = ToolRecord::new(load_tool(context, &self.env).await?);
 
         if options.inherit_remote {
             record.inherit_from_remote().await?;
@@ -109,11 +104,10 @@ impl ProtoSession {
         if options.detect_version {
             record.detect_version_and_source().await;
 
-            let mut spec = record
+            let spec = record
                 .detected_version
                 .clone()
                 .unwrap_or_else(|| ToolSpec::parse("*").unwrap());
-            spec.backend = backend;
 
             record.tool.resolve_version(&spec, false).await?;
         }
@@ -137,16 +131,21 @@ impl ProtoSession {
         // Gather the IDs of all possible tools. We can't just use the
         // `plugins` map, because some tools may not have a plugin entry,
         // for example, those using backends.
-        let mut ids = FxHashSet::default();
-        ids.extend(config.plugins.keys());
-        ids.extend(config.versions.keys());
+        let mut contexts = FxHashSet::default();
+        contexts.extend(
+            config
+                .plugins
+                .keys()
+                .map(|id| ToolContext::new(id.to_owned())),
+        );
+        contexts.extend(config.versions.keys().cloned());
 
         // If no filter IDs provided, inherit the IDs from the current
         // config for every tool that has a version. Otherwise, we'll
         // load all tools, even built-ins, when the user isn't using them.
         // This causes quite a performance hit.
-        if options.ids.is_empty() {
-            options.ids.extend(config.versions.keys().cloned());
+        if options.tools.is_empty() {
+            options.tools.extend(config.versions.keys().cloned());
         }
 
         // Download the schema plugin before loading plugins.
@@ -160,21 +159,20 @@ impl ProtoSession {
         let opt_inherit_remote = options.inherit_remote;
         let opt_detect_version = options.detect_version;
 
-        for id in ids {
-            if !options.ids.contains(id) {
+        for context in contexts {
+            if !options.tools.contains(&context) {
                 continue;
             }
 
             // These shouldn't be treated as a "normal plugin"
-            if id == SCHEMA_PLUGIN_KEY {
+            if context.id == SCHEMA_PLUGIN_KEY {
                 continue;
             }
 
-            let id = id.to_owned();
             let proto = Arc::clone(&self.env);
 
             set.spawn(async move {
-                let mut record = ToolRecord::new(load_tool(&id, &proto, None).await?);
+                let mut record = ToolRecord::new(load_tool(&context, &proto).await?);
 
                 if opt_inherit_remote {
                     record.inherit_from_remote().await?;
@@ -213,11 +211,16 @@ impl ProtoSession {
     ) -> Result<Vec<ToolRecord>, ProtoLoaderError> {
         let config = self.load_config()?;
 
-        let mut set = FxHashSet::default();
-        set.extend(config.versions.keys().collect::<Vec<_>>());
-        set.extend(config.plugins.keys().collect::<Vec<_>>());
+        let mut contexts = FxHashSet::default();
+        contexts.extend(
+            config
+                .plugins
+                .keys()
+                .map(|id| ToolContext::new(id.to_owned())),
+        );
+        contexts.extend(config.versions.keys().cloned());
 
-        options.ids = set.into_iter().cloned().collect();
+        options.tools = contexts;
 
         self.load_tools_with_options(options).await
     }

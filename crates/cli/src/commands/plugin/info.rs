@@ -3,7 +3,7 @@ use crate::session::{LoadToolOptions, ProtoSession};
 use clap::Args;
 use iocraft::prelude::element;
 use proto_core::{
-    ConfigMode, Id, PluginLocator, ProtoToolConfig, ToolManifest, ToolMetadata,
+    ConfigMode, Id, PluginLocator, ProtoToolConfig, ToolContext, ToolManifest, ToolMetadata,
     flow::locate::ExecutableLocation,
 };
 use serde::Serialize;
@@ -39,11 +39,11 @@ pub struct InfoPluginArgs {
 #[tracing::instrument(skip_all)]
 pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
     let global_config = session.load_config_with_mode(ConfigMode::Global)?;
+    let context = ToolContext::new(args.id.clone());
 
     let mut tool = session
         .load_tool_with_options(
-            &args.id,
-            None,
+            &context,
             LoadToolOptions {
                 detect_version: args.id != "asdf",
                 inherit_local: true,
@@ -66,7 +66,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
             globals_prefix: tool.locate_globals_prefix().await?,
             inventory_dir: tool.get_inventory_dir(),
             shims,
-            id: tool.id.clone(),
+            id: tool.get_id().clone(),
             name: tool.metadata.name.clone(),
             manifest: tool.inventory.manifest.clone(),
             metadata: tool.metadata.clone(),
@@ -93,7 +93,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
                     name: "ID",
                     value: element! {
                         StyledText(
-                            content: tool.id.to_string(),
+                            content: tool.get_id().to_string(),
                             style: Style::Id
                         )
                     }.into_any()
@@ -200,7 +200,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
                         )
                     }.into_any()
                 )
-                #(global_config.versions.get(&tool.id).map(|version| {
+                #(global_config.versions.get(&tool.context).map(|version| {
                     element! {
                         Entry(
                             name: "Fallback version",
@@ -317,7 +317,7 @@ pub async fn info(session: ProtoSession, args: InfoPluginArgs) -> AppResult {
                     no_children: tool.installed_versions.is_empty()
                 ) {
                     VersionsMap(
-                        default_version: global_config.versions.get(&tool.id).map(|spec| &spec.req),
+                        default_version: global_config.versions.get(&tool.context).map(|spec| &spec.req),
                         inventory: &tool.inventory,
                         versions: tool.installed_versions.iter().collect::<Vec<_>>(),
                     )

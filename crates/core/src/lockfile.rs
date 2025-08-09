@@ -1,4 +1,3 @@
-use crate::tool_spec::Backend;
 use proto_pdk_api::Checksum;
 use serde::{Deserialize, Serialize};
 use starbase_utils::fs;
@@ -17,7 +16,7 @@ pub const PROTO_LOCK_NAME: &str = ".protolock";
 #[serde(default)]
 pub struct LockRecord {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub backend: Option<Backend>,
+    pub backend: Option<Id>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub spec: Option<UnresolvedVersionSpec>,
@@ -34,7 +33,7 @@ pub struct LockRecord {
 }
 
 impl LockRecord {
-    pub fn new(backend: Option<Backend>) -> Self {
+    pub fn new(backend: Option<Id>) -> Self {
         Self {
             backend,
             ..Default::default()
@@ -58,9 +57,6 @@ impl LockRecord {
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct ProtoLock {
-    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
-    pub plugins: BTreeMap<Id, LockRecord>,
-
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub tools: BTreeMap<Id, Vec<LockRecord>>,
 
@@ -92,7 +88,7 @@ impl ProtoLock {
 
     #[instrument(name = "save_lock", skip(self))]
     pub fn save(&self) -> Result<(), TomlError> {
-        if self.plugins.is_empty() && self.tools.is_empty() {
+        if self.tools.is_empty() {
             debug!(file = ?self.path, "Removing lock file because its empty");
 
             fs::remove_file(&self.path)?;
