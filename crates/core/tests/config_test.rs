@@ -693,32 +693,6 @@ builtin-plugins = []
         use rustc_hash::FxHashMap;
 
         #[test]
-        fn can_set_backend() {
-            let sandbox = create_empty_sandbox();
-            sandbox.create_file(
-                ".prototools",
-                r#"
-[tools.node]
-backend = "asdf"
-"#,
-            );
-
-            let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
-
-            assert_eq!(
-                config
-                    .tools
-                    .unwrap()
-                    .get("node")
-                    .unwrap()
-                    .backend
-                    .as_ref()
-                    .unwrap(),
-                "asdf"
-            );
-        }
-
-        #[test]
         fn can_set_extra_settings() {
             let sandbox = create_empty_sandbox();
             sandbox.create_file(

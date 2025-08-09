@@ -76,6 +76,37 @@ mod unpin_local {
             )])
         );
     }
+
+    mod backend {
+        use super::*;
+
+        #[test]
+        fn can_remove() {
+            let sandbox = create_empty_proto_sandbox();
+
+            ProtoConfig::update(sandbox.path(), |config| {
+                config.versions.get_or_insert(Default::default()).insert(
+                    ToolContext::parse("asdf:act").unwrap(),
+                    UnresolvedVersionSpec::Canary.into(),
+                );
+            })
+            .unwrap();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("unpin").arg("asdf:act");
+                })
+                .success();
+
+            let config = load_config(sandbox.path());
+
+            assert!(
+                !config
+                    .versions
+                    .contains_key(&ToolContext::parse("asdf:act").unwrap())
+            );
+        }
+    }
 }
 
 mod unpin_global {

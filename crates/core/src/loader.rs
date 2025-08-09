@@ -37,11 +37,15 @@ pub fn locate_tool(id: &Id, proto: &ProtoEnvironment) -> Result<PluginLocator, P
     let mut locator = None;
     let config = proto.load_config()?;
 
-    debug!(tool = id.as_str(), "Finding a configured plugin");
+    debug!(id = id.as_str(), "Finding a configured plugin");
 
     // Check config files for plugins
     if let Some(maybe_locator) = config.plugins.get(id) {
-        debug!(plugin = maybe_locator.to_string(), "Found a plugin");
+        debug!(
+            id = id.as_str(),
+            plugin = maybe_locator.to_string(),
+            "Found a plugin"
+        );
 
         locator = Some(maybe_locator.to_owned());
     }
@@ -51,6 +55,7 @@ pub fn locate_tool(id: &Id, proto: &ProtoEnvironment) -> Result<PluginLocator, P
         && let Some(maybe_locator) = config.builtin_plugins().get(id)
     {
         debug!(
+            id = id.as_str(),
             plugin = maybe_locator.to_string(),
             "Using a built-in plugin"
         );
@@ -64,6 +69,7 @@ pub fn locate_tool(id: &Id, proto: &ProtoEnvironment) -> Result<PluginLocator, P
         && let Ok(maybe_locator) = PluginLocator::try_from(format!("registry://{id}"))
     {
         debug!(
+            id = id.as_str(),
             plugin = maybe_locator.to_string(),
             "Using a registry plugin"
         );

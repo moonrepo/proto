@@ -542,8 +542,23 @@ FOURTH = "ignores-$FIRST-$PARENT"
         fn errors_if_not_installed() {
             let sandbox = create_empty_proto_sandbox();
 
+            let assert = sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("run").arg("asdf:zig").arg("0.13");
+                })
+                .success();
+
+            assert.failure().stderr(predicate::str::contains(
+                "This project requires asdf:zig ~0.13",
+            ));
+        }
+
+        #[test]
+        fn errors_if_no_version_detected() {
+            let sandbox = create_empty_proto_sandbox();
+
             let assert = sandbox.run_bin(|cmd| {
-                cmd.arg("run").arg("zig").arg("asdf:0.13");
+                cmd.arg("run").arg("asdf:zig");
             });
 
             assert.debug();
@@ -554,42 +569,20 @@ FOURTH = "ignores-$FIRST-$PARENT"
         }
 
         #[test]
-        fn errors_if_no_version_detected() {
-            let sandbox = create_empty_proto_sandbox();
-            sandbox.create_file(
-                ".prototools",
-                r#"
-[tools.zig]
-backend = "asdf"
-"#,
-            );
-
-            let assert = sandbox
-                .run_bin(|cmd| {
-                    cmd.arg("run").arg("zig");
-                })
-                .failure();
-
-            assert.stderr(predicate::str::contains(
-                "Failed to detect an applicable version",
-            ));
-        }
-
-        #[test]
         fn runs_a_tool() {
             let sandbox = create_empty_proto_sandbox();
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install").arg("zig").arg("asdf:0.13.0");
+                    cmd.arg("install").arg("asdf:zig").arg("0.13.0");
                 })
                 .success();
 
             let assert = sandbox
                 .run_bin(|cmd| {
                     cmd.arg("run")
-                        .arg("zig")
-                        .arg("asdf:0.13.0")
+                        .arg("asdf:zig")
+                        .arg("0.13.0")
                         .arg("--")
                         .arg("version");
                 })
@@ -601,17 +594,17 @@ backend = "asdf"
         #[test]
         fn runs_a_tool_using_version_detection() {
             let sandbox = create_empty_proto_sandbox();
-            sandbox.create_file(".prototools", "zig = \"asdf:0.13.0\"");
+            sandbox.create_file(".prototools", "\"asdf:zig\" = \"0.13.0\"");
 
             sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("install").arg("zig").arg("asdf:0.13.0");
+                    cmd.arg("install").arg("asdf:zig").arg("0.13.0");
                 })
                 .success();
 
             let assert = sandbox
                 .run_bin(|cmd| {
-                    cmd.arg("run").arg("zig").arg("--").arg("version");
+                    cmd.arg("run").arg("asdf:zig").arg("--").arg("version");
                 })
                 .success();
 

@@ -36,7 +36,7 @@ mod alias_local {
                     .arg("1.0.0")
                     .current_dir(sandbox.path());
             })
-            .debug();
+            .success();
 
         assert!(config_file.exists());
 
@@ -76,7 +76,7 @@ mod alias_local {
                     .arg("example")
                     .arg("2.0.0");
             })
-            .debug();
+            .success();
 
         let config = load_config(sandbox.path());
 
@@ -122,7 +122,7 @@ mod alias_local {
         use super::*;
 
         #[test]
-        fn can_set_asdf() {
+        fn can_set() {
             let sandbox = create_empty_proto_sandbox();
             let config_file = sandbox.path().join(".prototools");
 

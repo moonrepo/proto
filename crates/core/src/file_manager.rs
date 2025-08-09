@@ -10,6 +10,7 @@ use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use tracing::debug;
+use warpgate::Id;
 
 #[derive(Debug, Serialize)]
 pub struct ProtoConfigFile {
@@ -226,7 +227,7 @@ impl ProtoFileManager {
     }
 
     pub(crate) fn remove_proto_pins(&mut self) {
-        let context = ToolContext::parse(PROTO_PLUGIN_KEY).unwrap();
+        let context = ToolContext::new(Id::raw(PROTO_PLUGIN_KEY));
 
         self.entries.iter_mut().for_each(|dir| {
             if dir.location != PinLocation::Local {

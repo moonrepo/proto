@@ -195,7 +195,6 @@ impl Tool {
     /// Return true if this tool instance is a backend plugin.
     pub async fn is_backend_plugin(&self) -> bool {
         self.plugin.has_func(PluginFunction::RegisterBackend).await
-            && self.context.backend.is_some()
     }
 
     /// Explicitly set the version to use.

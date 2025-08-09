@@ -31,7 +31,6 @@ impl ToolContext {
             original: format!("{backend}:{id}"),
             backend: Some(backend),
             id,
-            ..Default::default()
         }
     }
 

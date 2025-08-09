@@ -207,6 +207,7 @@ impl Tool {
             install_system_dependencies(&mut builder, &output).await?;
         } else {
             debug!(
+                tool = self.context.as_str(),
                 "Not installing system dependencies because {} was disabled",
                 color::property("settings.build.install-system-packages"),
             );

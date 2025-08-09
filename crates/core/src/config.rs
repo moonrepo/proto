@@ -223,9 +223,6 @@ pub struct ProtoToolConfig {
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub aliases: BTreeMap<String, ToolSpec>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub backend: Option<Id>,
-
     #[setting(nested, merge = merge_indexmap)]
     #[serde(skip_serializing_if = "IndexMap::is_empty")]
     pub env: IndexMap<String, EnvVar>,

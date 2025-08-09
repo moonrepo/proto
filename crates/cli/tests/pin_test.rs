@@ -162,7 +162,7 @@ moonstone = "2.0.0"
         use super::*;
 
         #[test]
-        fn can_set_asdf() {
+        fn can_set() {
             let sandbox = create_empty_proto_sandbox();
             let version_file = sandbox.path().join(".prototools");
 

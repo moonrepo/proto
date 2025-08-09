@@ -112,7 +112,6 @@ impl Tool {
         bin_manager: BinManager,
         include_all_versions: bool,
     ) -> Result<Vec<ExecutableLocation>, ProtoLocateError> {
-        // let original_backend = self.context.backend;
         let original_version = self.get_resolved_version();
         let mut locations = vec![];
 
