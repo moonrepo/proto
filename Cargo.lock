@@ -5135,7 +5135,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "version_spec"
-version = "0.9.4"
+version = "0.9.5"
 dependencies = [
  "compact_str 0.9.0",
  "human-sort",
