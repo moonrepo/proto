@@ -84,6 +84,41 @@ mod unalias_local {
             )])
         );
     }
+
+    // Windows doesn't support asdf
+    #[cfg(unix)]
+    mod backend {
+        use super::*;
+
+        #[test]
+        fn can_remove() {
+            let sandbox = create_empty_proto_sandbox();
+
+            ProtoConfig::update(sandbox.path(), |config| {
+                config.tools.get_or_insert(Default::default()).insert(
+                    Id::raw("act"),
+                    PartialProtoToolConfig {
+                        aliases: Some(BTreeMap::from_iter([(
+                            "example".into(),
+                            UnresolvedVersionSpec::parse("1.0.0").unwrap().into(),
+                        )])),
+                        ..Default::default()
+                    },
+                );
+            })
+            .unwrap();
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("unalias").arg("asdf:act").arg("example");
+                })
+                .success();
+
+            let config = load_config(sandbox.path());
+
+            assert!(!config.tools.contains_key("act"));
+        }
+    }
 }
 
 mod unalias_global {

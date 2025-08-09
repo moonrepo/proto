@@ -1,6 +1,7 @@
 use crate::config_error::ProtoConfigError;
 use crate::helpers::ENV_VAR_SUB;
-use crate::tool_spec::{Backend, ToolSpec};
+use crate::tool_context::ToolContext;
+use crate::tool_spec::ToolSpec;
 use indexmap::IndexMap;
 use rustc_hash::FxHashMap;
 use schematic::{
@@ -224,9 +225,6 @@ pub struct ProtoToolConfig {
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub aliases: BTreeMap<String, ToolSpec>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub backend: Option<Backend>,
-
     #[setting(nested, merge = merge_indexmap)]
     #[serde(skip_serializing_if = "IndexMap::is_empty")]
     pub env: IndexMap<String, EnvVar>,
@@ -325,7 +323,7 @@ pub struct ProtoConfig {
 
     #[setting(merge = merge::merge_btreemap)]
     #[serde(flatten)]
-    pub versions: BTreeMap<Id, ToolSpec>,
+    pub versions: BTreeMap<ToolContext, ToolSpec>,
 
     #[setting(merge = merge_fxhashmap)]
     #[serde(flatten, skip_serializing)]
@@ -544,21 +542,23 @@ impl ProtoConfig {
             let mut error = ValidatorError { errors: vec![] };
 
             for (field, value) in fields {
-                // Versions show up in both flattened maps...
-                if config
-                    .versions
-                    .as_ref()
-                    .is_some_and(|versions| versions.contains_key(field.as_str()))
-                {
-                    continue;
-                }
-
                 let message = if value.is_array() || value.is_table() {
                     format!("unknown field `{field}`")
                 } else {
-                    match Id::new(field) {
-                        Ok(_) => format!("invalid version value `{value}`"),
-                        Err(e) => e.to_string(),
+                    match ToolContext::parse(field) {
+                        Ok(context) => {
+                            // Versions show up in both flattened maps...
+                            if config
+                                .versions
+                                .as_ref()
+                                .is_some_and(|versions| versions.contains_key(&context))
+                            {
+                                continue;
+                            } else {
+                                format!("invalid version value `{value}`")
+                            }
+                        }
+                        Err(error) => error.to_string(),
                     }
                 };
 

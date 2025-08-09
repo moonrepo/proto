@@ -33,7 +33,7 @@ impl Tool {
         };
 
         let record = record.for_lockfile();
-        let records = lock.tools.entry(self.id.clone()).or_default();
+        let records = lock.tools.entry(self.get_id().to_owned()).or_default();
 
         // Find an existing record with the same spec
         match records
@@ -63,7 +63,7 @@ impl Tool {
             return Ok(());
         };
 
-        lock.tools.remove(&self.id);
+        lock.tools.remove(self.get_id());
         lock.save()?;
 
         Ok(())
@@ -77,9 +77,9 @@ impl Tool {
             return Ok(());
         };
 
-        if let Some(records) = lock.tools.get_mut(&self.id) {
+        if let Some(records) = lock.tools.get_mut(self.get_id()) {
             records.retain(|record| {
-                !(record.backend == self.backend
+                !(record.backend == self.context.backend
                     && record.spec.as_ref().is_some_and(|spec| spec == version)
                     && record.version.as_ref().is_some_and(|ver| ver == version))
             });
@@ -87,10 +87,10 @@ impl Tool {
 
         if lock
             .tools
-            .get(&self.id)
+            .get(self.get_id())
             .is_none_or(|records| records.is_empty())
         {
-            lock.tools.remove(&self.id);
+            lock.tools.remove(self.get_id());
         }
 
         lock.sort_records();
@@ -122,9 +122,9 @@ impl Tool {
             return Ok(None);
         };
 
-        if let Some(records) = lock.tools.get(&self.id) {
+        if let Some(records) = lock.tools.get(self.get_id()) {
             for record in records {
-                if spec.backend == record.backend
+                if record.backend == self.context.backend
                     && record.version.is_some()
                     && record
                         .spec
@@ -169,7 +169,7 @@ impl Tool {
         match (&install_record.checksum, &locked_record.checksum) {
             (Some(ir), Some(lr)) => {
                 debug!(
-                    tool = self.id.as_str(),
+                    tool = self.context.as_str(),
                     checksum = ir.to_string(),
                     locked_checksum = lr.to_string(),
                     "Verifying checksum against lockfile",

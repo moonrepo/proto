@@ -1,12 +1,12 @@
 use crate::wrapper::WasmTestWrapper;
-use proto_core::{Backend, ProtoEnvironment, Tool, inject_proto_manifest_config};
+use proto_core::{ProtoEnvironment, Tool, ToolContext, inject_proto_manifest_config};
 use starbase_sandbox::{Sandbox, create_empty_sandbox, create_sandbox};
 use std::fmt;
 use std::fs;
 use std::ops::Deref;
 use std::path::PathBuf;
 use warpgate::test_utils::*;
-use warpgate::{Id, Wasm, inject_default_manifest_config};
+use warpgate::{Wasm, inject_default_manifest_config};
 
 pub struct ProtoWasmSandbox {
     pub sandbox: Sandbox,
@@ -40,22 +40,16 @@ impl ProtoWasmSandbox {
         ConfigBuilder::new(&self.root, &self.home_dir)
     }
 
-    pub async fn create_plugin(&self, id: &str) -> WasmTestWrapper {
-        self.create_plugin_with_config(id, |_| {}).await
-    }
-
-    pub async fn create_plugin_with_backend(&self, id: &str, backend: Backend) -> WasmTestWrapper {
-        let mut plugin = self.create_plugin_with_config(id, |_| {}).await;
-        plugin.set_backend(backend).await;
-        plugin
+    pub async fn create_plugin(&self, context: &str) -> WasmTestWrapper {
+        self.create_plugin_with_config(context, |_| {}).await
     }
 
     pub async fn create_plugin_with_config(
         &self,
-        id: &str,
+        context: &str,
         mut op: impl FnMut(&mut ConfigBuilder),
     ) -> WasmTestWrapper {
-        let id = Id::new(id).unwrap();
+        let context = ToolContext::parse(context).unwrap();
         let mut proto = ProtoEnvironment::new_testing(&self.root).unwrap();
         proto.working_dir = self.root.clone();
 
@@ -63,8 +57,8 @@ impl ProtoWasmSandbox {
         let mut manifest =
             Tool::create_plugin_manifest(&proto, Wasm::file(&self.wasm_file)).unwrap();
 
-        inject_default_manifest_config(&id, &proto.home_dir, &mut manifest).unwrap();
-        inject_proto_manifest_config(&id, &proto, &mut manifest).unwrap();
+        inject_default_manifest_config(&context.id, &proto.home_dir, &mut manifest).unwrap();
+        inject_proto_manifest_config(&context.id, &proto, &mut manifest).unwrap();
 
         // Create config
         let mut config = self.create_config();
@@ -73,23 +67,29 @@ impl ProtoWasmSandbox {
         manifest.config.extend(config.build());
 
         WasmTestWrapper {
-            tool: Tool::load_from_manifest(id, proto, manifest).await.unwrap(),
+            tool: Tool::load_from_manifest(context, proto, manifest)
+                .await
+                .unwrap(),
         }
     }
 
-    pub async fn create_schema_plugin(&self, id: &str, schema_path: PathBuf) -> WasmTestWrapper {
-        self.create_schema_plugin_with_config(id, schema_path, |_| {})
+    pub async fn create_schema_plugin(
+        &self,
+        context: &str,
+        schema_path: PathBuf,
+    ) -> WasmTestWrapper {
+        self.create_schema_plugin_with_config(context, schema_path, |_| {})
             .await
     }
 
     #[allow(unused_variables)]
     pub async fn create_schema_plugin_with_config(
         &self,
-        id: &str,
+        context: &str,
         schema_path: PathBuf,
         mut op: impl FnMut(&mut ConfigBuilder),
     ) -> WasmTestWrapper {
-        self.create_plugin_with_config(id, move |config| {
+        self.create_plugin_with_config(context, move |config| {
             op(config);
 
             #[cfg(feature = "schema")]

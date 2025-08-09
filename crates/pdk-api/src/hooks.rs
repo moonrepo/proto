@@ -1,4 +1,4 @@
-use crate::api::ToolContext;
+use crate::api::PluginContext;
 use rustc_hash::FxHashMap;
 use std::path::PathBuf;
 use warpgate_api::*;
@@ -59,7 +59,7 @@ api_struct!(
     /// while a `proto install` command is running.
     pub struct InstallHook {
         /// Current tool context.
-        pub context: ToolContext,
+        pub context: PluginContext,
 
         /// Whether the install was forced or not.
         pub forced: bool,
@@ -80,7 +80,7 @@ api_struct!(
     /// or language binary is ran.
     pub struct RunHook {
         /// Current tool context.
-        pub context: ToolContext,
+        pub context: PluginContext,
 
         /// Path to the global packages directory for the tool, if found.
         pub globals_dir: Option<VirtualPath>,

@@ -1,5 +1,5 @@
 use proto_core::{
-    ProtoConfig, ProtoEnvironment, ProtoFileManager, Tool, UnresolvedVersionSpec,
+    ProtoConfig, ProtoEnvironment, ProtoFileManager, Tool, ToolContext, UnresolvedVersionSpec,
     flow::detect::{
         detect_version_first_available, detect_version_only_prototools,
         detect_version_prefer_prototools,
@@ -8,14 +8,13 @@ use proto_core::{
 };
 use starbase_sandbox::create_empty_sandbox;
 use std::path::Path;
-use warpgate::Id;
 
 mod version_detector {
     use super::*;
 
     async fn create_node(_root: &Path) -> Tool {
         load_tool_from_locator(
-            Id::raw("node"),
+            ToolContext::parse("node").unwrap(),
             ProtoEnvironment::new().unwrap(),
             ProtoConfig::default()
                 .builtin_plugins()

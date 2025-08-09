@@ -1,7 +1,8 @@
 mod utils;
 
 use proto_core::{
-    Id, LockRecord, PinLocation, ProtoConfig, ToolManifest, UnresolvedVersionSpec, VersionSpec,
+    LockRecord, PinLocation, ProtoConfig, ToolContext, ToolManifest, UnresolvedVersionSpec,
+    VersionSpec,
 };
 use proto_pdk_api::Checksum;
 use starbase_sandbox::predicates::prelude::*;
@@ -351,7 +352,10 @@ mod install_one {
         let config = load_config(sandbox.path().join(".proto"));
 
         assert_eq!(
-            config.versions.get("protostar").unwrap(),
+            config
+                .versions
+                .get(&ToolContext::parse("protostar").unwrap())
+                .unwrap(),
             &UnresolvedVersionSpec::parse("1.0.0").unwrap()
         );
         assert_eq!(
@@ -377,7 +381,12 @@ mod install_one {
         let manifest = ToolManifest::load(&manifest_file).unwrap();
         let config = load_config(sandbox.path().join(".proto"));
 
-        assert_eq!(config.versions.get("protostar"), None);
+        assert_eq!(
+            config
+                .versions
+                .get(&ToolContext::parse("protostar").unwrap()),
+            None
+        );
         assert_eq!(manifest.installed_versions, BTreeSet::default());
         assert!(
             !manifest
@@ -396,7 +405,7 @@ mod install_one {
 
             ProtoConfig::update(sandbox.path(), |config| {
                 config.versions.get_or_insert(Default::default()).insert(
-                    Id::raw("protostar"),
+                    ToolContext::parse("protostar").unwrap(),
                     UnresolvedVersionSpec::parse("1.0.0").unwrap().into(),
                 );
             })
@@ -421,7 +430,10 @@ mod install_one {
             let config = load_config(sandbox.path());
 
             assert_eq!(
-                config.versions.get("protostar").unwrap(),
+                config
+                    .versions
+                    .get(&ToolContext::parse("protostar").unwrap())
+                    .unwrap(),
                 &UnresolvedVersionSpec::parse("2.0.0").unwrap()
             );
             assert_eq!(
@@ -440,7 +452,7 @@ mod install_one {
 
             ProtoConfig::update(sandbox.path().join(".proto"), |config| {
                 config.versions.get_or_insert(Default::default()).insert(
-                    Id::raw("protostar"),
+                    ToolContext::parse("protostar").unwrap(),
                     UnresolvedVersionSpec::parse("1.0.0").unwrap().into(),
                 );
             })
@@ -466,7 +478,10 @@ mod install_one {
             let config = load_config(sandbox.path().join(".proto"));
 
             assert_eq!(
-                config.versions.get("protostar").unwrap(),
+                config
+                    .versions
+                    .get(&ToolContext::parse("protostar").unwrap())
+                    .unwrap(),
                 &UnresolvedVersionSpec::parse("2.0.0").unwrap()
             );
             assert_eq!(
@@ -485,7 +500,7 @@ mod install_one {
 
             ProtoConfig::update(sandbox.path(), |config| {
                 config.versions.get_or_insert(Default::default()).insert(
-                    Id::raw("protostar"),
+                    ToolContext::parse("protostar").unwrap(),
                     UnresolvedVersionSpec::parse("1.0.0").unwrap().into(),
                 );
             })
@@ -511,7 +526,10 @@ mod install_one {
             let config = load_config(sandbox.path());
 
             assert_eq!(
-                config.versions.get("protostar").unwrap(),
+                config
+                    .versions
+                    .get(&ToolContext::parse("protostar").unwrap())
+                    .unwrap(),
                 &UnresolvedVersionSpec::parse("2.0.0").unwrap()
             );
             assert_eq!(
@@ -536,7 +554,7 @@ mod install_one {
             // Manually change it to something else
             ProtoConfig::update(sandbox.path(), |config| {
                 config.versions.get_or_insert(Default::default()).insert(
-                    Id::raw("protostar"),
+                    ToolContext::parse("protostar").unwrap(),
                     UnresolvedVersionSpec::parse("5.0.0").unwrap().into(),
                 );
             })
@@ -554,7 +572,10 @@ mod install_one {
             let config = load_config(sandbox.path());
 
             assert_eq!(
-                config.versions.get("protostar").unwrap(),
+                config
+                    .versions
+                    .get(&ToolContext::parse("protostar").unwrap())
+                    .unwrap(),
                 &UnresolvedVersionSpec::parse("1.0.0").unwrap()
             );
         }
@@ -569,7 +590,7 @@ mod install_one {
                     Some(PinLocation::Local);
 
                 config.versions.get_or_insert(Default::default()).insert(
-                    Id::raw("protostar"),
+                    ToolContext::parse("protostar").unwrap(),
                     UnresolvedVersionSpec::parse("1.0.0").unwrap().into(),
                 );
             })
@@ -578,7 +599,7 @@ mod install_one {
             // Global
             ProtoConfig::update(sandbox.path().join(".proto"), |config| {
                 config.versions.get_or_insert(Default::default()).insert(
-                    Id::raw("protostar"),
+                    ToolContext::parse("protostar").unwrap(),
                     UnresolvedVersionSpec::parse("2.0.0").unwrap().into(),
                 );
             })
@@ -593,14 +614,20 @@ mod install_one {
             let global_config = load_config(sandbox.path().join(".proto"));
 
             assert_eq!(
-                global_config.versions.get("protostar").unwrap(),
+                global_config
+                    .versions
+                    .get(&ToolContext::parse("protostar").unwrap())
+                    .unwrap(),
                 &UnresolvedVersionSpec::parse("2.0.0").unwrap()
             );
 
             let local_config = load_config(sandbox.path());
 
             assert_ne!(
-                local_config.versions.get("protostar").unwrap(),
+                local_config
+                    .versions
+                    .get(&ToolContext::parse("protostar").unwrap())
+                    .unwrap(),
                 &UnresolvedVersionSpec::parse("1.0.0").unwrap()
             );
         }
@@ -615,7 +642,7 @@ mod install_one {
                     Some(PinLocation::Global);
 
                 config.versions.get_or_insert(Default::default()).insert(
-                    Id::raw("protostar"),
+                    ToolContext::parse("protostar").unwrap(),
                     UnresolvedVersionSpec::parse("1.0.0").unwrap().into(),
                 );
             })
@@ -624,7 +651,7 @@ mod install_one {
             // Global
             ProtoConfig::update(sandbox.path().join(".proto"), |config| {
                 config.versions.get_or_insert(Default::default()).insert(
-                    Id::raw("protostar"),
+                    ToolContext::parse("protostar").unwrap(),
                     UnresolvedVersionSpec::parse("2.0.0").unwrap().into(),
                 );
             })
@@ -639,14 +666,20 @@ mod install_one {
             let global_config = load_config(sandbox.path().join(".proto"));
 
             assert_ne!(
-                global_config.versions.get("protostar").unwrap(),
+                global_config
+                    .versions
+                    .get(&ToolContext::parse("protostar").unwrap())
+                    .unwrap(),
                 &UnresolvedVersionSpec::parse("2.0.0").unwrap()
             );
 
             let local_config = load_config(sandbox.path());
 
             assert_eq!(
-                local_config.versions.get("protostar").unwrap(),
+                local_config
+                    .versions
+                    .get(&ToolContext::parse("protostar").unwrap())
+                    .unwrap(),
                 &UnresolvedVersionSpec::parse("1.0.0").unwrap()
             );
         }
@@ -670,7 +703,12 @@ mod install_one {
 
             let local_config = load_config(sandbox.path());
 
-            assert_eq!(local_config.versions.get("protostar"), None);
+            assert_eq!(
+                local_config
+                    .versions
+                    .get(&ToolContext::parse("protostar").unwrap()),
+                None
+            );
         }
     }
 

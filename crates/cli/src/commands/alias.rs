@@ -3,15 +3,15 @@ use crate::session::ProtoSession;
 use clap::Args;
 use iocraft::prelude::element;
 use proto_core::{
-    Id, PinLocation, ProtoConfig, ToolSpec, UnresolvedVersionSpec, cfg, is_alias_name,
+    PinLocation, ProtoConfig, ToolContext, ToolSpec, UnresolvedVersionSpec, cfg, is_alias_name,
 };
 use starbase::AppResult;
 use starbase_console::ui::*;
 
 #[derive(Args, Clone, Debug)]
 pub struct AliasArgs {
-    #[arg(required = true, help = "ID of tool")]
-    id: Id,
+    #[arg(required = true, help = "Tool to alias")]
+    context: ToolContext,
 
     #[arg(required = true, help = "Alias name")]
     alias: String,
@@ -38,11 +38,11 @@ pub async fn alias(session: ProtoSession, args: AliasArgs) -> AppResult {
         .into());
     }
 
-    let tool = session.load_tool(&args.id, args.spec.backend).await?;
+    let tool = session.load_tool(&args.context).await?;
 
     let config_path = ProtoConfig::update_document(tool.proto.get_config_dir(args.to), |doc| {
         let tools = doc["tools"].or_insert(cfg::implicit_table());
-        let record = tools[tool.id.as_str()].or_insert(cfg::implicit_table());
+        let record = tools[tool.get_id().as_str()].or_insert(cfg::implicit_table());
         let aliases = record["aliases"].or_insert(cfg::implicit_table());
 
         aliases[&args.alias] = cfg::value(args.spec.to_string());
@@ -62,7 +62,7 @@ pub async fn alias(session: ProtoSession, args: AliasArgs) -> AppResult {
             StyledText(
                 content: format!(
                     "Added <id>{}</id> alias <id>{}</id> <mutedlight>(with specification <versionalt>{}</versionalt>)</mutedlight> to config <path>{}</path>",
-                    args.id,
+                    args.context,
                     args.alias,
                     args.spec.to_string(),
                     config_path.display()

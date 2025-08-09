@@ -3,7 +3,7 @@ use clap::Args;
 use indexmap::IndexMap;
 use miette::IntoDiagnostic;
 use proto_core::flow::setup::ProtoSetupError;
-use proto_core::{Id, ProtoConfigEnvOptions, UnresolvedVersionSpec};
+use proto_core::{Id, PROTO_PLUGIN_KEY, ProtoConfigEnvOptions, ToolContext, UnresolvedVersionSpec};
 use rustc_hash::FxHashSet;
 use serde::Serialize;
 use starbase::AppResult;
@@ -17,7 +17,7 @@ use tracing::warn;
 
 #[derive(Default, Serialize)]
 struct ActivateItem {
-    pub id: Id,
+    pub tool: ToolContext,
     pub paths: Vec<PathBuf>,
 }
 
@@ -105,7 +105,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
         })?);
 
     for mut tool in tools {
-        if !config.versions.contains_key(&tool.id) {
+        if !config.versions.contains_key(&tool.context) {
             continue;
         }
 
@@ -113,7 +113,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
         collection
             .env
             .extend(config.get_env_vars(ProtoConfigEnvOptions {
-                tool_id: Some(tool.id.clone()),
+                tool_id: Some(tool.get_id().clone()),
                 ..Default::default()
             })?);
 
@@ -141,7 +141,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
                 tool.product.track_used_at()?;
             }
 
-            item.id = tool.id.clone();
+            item.tool = tool.context.clone();
 
             Ok(item)
         });
@@ -165,8 +165,10 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
         );
     }
 
+    let proto_context = ToolContext::new(Id::raw(PROTO_PLUGIN_KEY));
+
     if let Some(UnresolvedVersionSpec::Semantic(version)) =
-        config.versions.get("proto").map(|spec| &spec.req)
+        config.versions.get(&proto_context).map(|spec| &spec.req)
     {
         collection
             .env

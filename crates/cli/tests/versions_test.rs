@@ -88,4 +88,24 @@ mod versions {
 
         assert_eq!(output.lines().collect::<Vec<_>>().len(), 3);
     }
+
+    // Windows doesn't support asdf
+    #[cfg(unix)]
+    mod backend {
+        use super::*;
+
+        #[test]
+        fn lists_remote_versions() {
+            let sandbox = create_empty_proto_sandbox();
+
+            let assert = sandbox.run_bin(|cmd| {
+                cmd.arg("versions").arg("asdf:zig");
+            });
+
+            // Without stderr
+            let output = output_to_string(&assert.inner.get_output().stdout);
+
+            assert!(output.split('\n').collect::<Vec<_>>().len() > 1);
+        }
+    }
 }

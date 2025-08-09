@@ -1,6 +1,7 @@
 use crate::config::*;
 use crate::config_error::ProtoConfigError;
 use crate::lockfile::*;
+use crate::tool_context::ToolContext;
 use once_cell::sync::OnceCell;
 use schematic::{Config, PartialConfig};
 use serde::Serialize;
@@ -9,6 +10,7 @@ use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use tracing::debug;
+use warpgate::Id;
 
 #[derive(Debug, Serialize)]
 pub struct ProtoConfigFile {
@@ -225,11 +227,13 @@ impl ProtoFileManager {
     }
 
     pub(crate) fn remove_proto_pins(&mut self) {
+        let context = ToolContext::new(Id::raw(PROTO_PLUGIN_KEY));
+
         self.entries.iter_mut().for_each(|dir| {
             if dir.location != PinLocation::Local {
                 dir.configs.iter_mut().for_each(|file| {
                     if let Some(versions) = &mut file.config.versions {
-                        versions.remove(PROTO_PLUGIN_KEY);
+                        versions.remove(&context);
                     }
 
                     if let Some(unknown) = &mut file.config.unknown {

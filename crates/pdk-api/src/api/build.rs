@@ -1,5 +1,5 @@
 use super::source::*;
-use crate::ToolContext;
+use crate::PluginContext;
 use derive_setters::Setters;
 use rustc_hash::FxHashMap;
 use semver::VersionReq;
@@ -11,7 +11,7 @@ api_struct!(
     /// Input passed to the `build_instructions` function.
     pub struct BuildInstructionsInput {
         /// Current tool context.
-        pub context: ToolContext,
+        pub context: PluginContext,
 
         /// Virtual directory to install to.
         pub install_dir: VirtualPath,

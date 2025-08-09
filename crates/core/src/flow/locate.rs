@@ -35,7 +35,7 @@ impl Tool {
             .cache_func_with(
                 PluginFunction::LocateExecutables,
                 LocateExecutablesInput {
-                    context: self.create_context(),
+                    context: self.create_plugin_context(),
                     install_dir: self.to_virtual_path(self.get_product_dir()),
                 },
             )
@@ -112,7 +112,6 @@ impl Tool {
         bin_manager: BinManager,
         include_all_versions: bool,
     ) -> Result<Vec<ExecutableLocation>, ProtoLocateError> {
-        let original_backend = self.backend;
         let original_version = self.get_resolved_version();
         let mut locations = vec![];
 
@@ -125,13 +124,10 @@ impl Tool {
         // Loop through each version, extract the locations,
         // and append it to the master list
         for (bucket_version, resolved_version) in versions {
-            if let Some(resolved_setting) = self.inventory.manifest.versions.get(resolved_version) {
-                self.backend = resolved_setting
-                    .lock
-                    .as_ref()
-                    .and_then(|lock| lock.backend)
-                    .or(resolved_setting.backend);
-            }
+            // TODO
+            // if let Some(resolved_setting) = self.inventory.manifest.versions.get(resolved_version) {
+            //     self.backend = resolved_setting.lock.as_ref().and_then(|lock| lock.backend);
+            // }
 
             // Locate the executables for this specific version,
             // as the logic in how they are located may have changed
@@ -144,7 +140,7 @@ impl Tool {
                 .cache_func_with(
                     PluginFunction::LocateExecutables,
                     LocateExecutablesInput {
-                        context: self.create_context(),
+                        context: self.create_plugin_context(),
                         install_dir: self.to_virtual_path(self.get_product_dir()),
                     },
                 )
@@ -184,7 +180,7 @@ impl Tool {
             }
         }
 
-        self.backend = original_backend;
+        // self.backend = original_backend;
         self.set_version(original_version);
 
         locations.sort_by(|a, d| a.name.cmp(&d.name));
@@ -234,18 +230,18 @@ impl Tool {
         }
 
         debug!(
-            tool = self.id.as_str(),
+            tool = self.context.as_str(),
             "Locating primary executable for tool"
         );
 
         let exe_file = if let Some(location) = self.resolve_primary_exe_location().await? {
             location.path
         } else {
-            self.get_product_dir().join(self.id.as_str())
+            self.get_product_dir().join(self.get_id().as_str())
         };
 
         if exe_file.exists() {
-            debug!(tool = self.id.as_str(), exe_path = ?exe_file, "Found an executable");
+            debug!(tool = self.context.as_str(), exe_path = ?exe_file, "Found an executable");
 
             self.exe_file = Some(exe_file.clone());
 
@@ -321,7 +317,7 @@ impl Tool {
                 });
 
                 if has_files {
-                    debug!(tool = self.id.as_str(), dir = ?dir, "Found a usable globals directory");
+                    debug!(tool = self.context.as_str(), dir = ?dir, "Found a usable globals directory");
 
                     self.globals_dir = Some(dir.to_owned());
                     break;
@@ -332,7 +328,7 @@ impl Tool {
                 && let Some(dir) = globals_dirs.last()
             {
                 debug!(
-                    tool = self.id.as_str(),
+                    tool = self.context.as_str(),
                     dir = ?dir,
                     "No usable globals directory found, falling back to the last entry",
                 );
@@ -366,7 +362,7 @@ impl Tool {
         }
 
         debug!(
-            tool = self.id.as_str(),
+            tool = self.context.as_str(),
             "Locating globals directories for tool"
         );
 
@@ -422,7 +418,7 @@ impl Tool {
         }
 
         debug!(
-            tool = self.id.as_str(),
+            tool = self.context.as_str(),
             dirs = ?resolved_dirs,
             "Located possible globals directories",
         );
