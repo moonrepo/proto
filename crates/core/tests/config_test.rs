@@ -192,7 +192,7 @@ bar = "https://moonrepo.dev/path/file.wasm"
         let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
 
         assert_eq!(
-            config.plugins.unwrap(),
+            config.plugins.unwrap().tools.unwrap(),
             BTreeMap::from_iter([
                 (
                     Id::raw("bar"),
@@ -213,6 +213,69 @@ bar = "https://moonrepo.dev/path/file.wasm"
     }
 
     #[test]
+    fn can_set_scoped_plugins() {
+        let sandbox = create_empty_sandbox();
+        sandbox.create_file(
+            ".prototools",
+            r#"
+[plugins.backends]
+foo = "github://moonrepo/foo"
+
+[plugins.tools]
+bar = "https://moonrepo.dev/path/file.wasm"
+
+[plugins]
+baz = "github://moonrepo/baz"
+qux = "https://moonrepo.dev/path/file.wasm"
+"#,
+        );
+
+        let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
+
+        assert_eq!(
+            config.plugins.as_ref().unwrap().backends.as_ref().unwrap(),
+            &BTreeMap::from_iter([(
+                Id::raw("foo"),
+                PluginLocator::GitHub(Box::new(GitHubLocator {
+                    repo_slug: "moonrepo/foo".into(),
+                    tag: None,
+                    project_name: None
+                }))
+            )])
+        );
+
+        assert_eq!(
+            config.plugins.as_ref().unwrap().tools.as_ref().unwrap(),
+            &BTreeMap::from_iter([(
+                Id::raw("bar"),
+                PluginLocator::Url(Box::new(UrlLocator {
+                    url: "https://moonrepo.dev/path/file.wasm".into()
+                }))
+            )])
+        );
+
+        assert_eq!(
+            config.plugins.as_ref().unwrap().legacy.as_ref().unwrap(),
+            &BTreeMap::from_iter([
+                (
+                    Id::raw("baz"),
+                    PluginLocator::GitHub(Box::new(GitHubLocator {
+                        repo_slug: "moonrepo/baz".into(),
+                        tag: None,
+                        project_name: None
+                    }))
+                ),
+                (
+                    Id::raw("qux"),
+                    PluginLocator::Url(Box::new(UrlLocator {
+                        url: "https://moonrepo.dev/path/file.wasm".into()
+                    }))
+                )
+            ])
+        );
+    }
+
+    #[test]
     fn updates_plugin_files_to_absolute() {
         let sandbox = create_empty_sandbox();
         sandbox.create_file(
@@ -226,7 +289,7 @@ foo = "file://../file.wasm"
         let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
 
         assert_eq!(
-            config.plugins.unwrap(),
+            config.plugins.unwrap().tools.unwrap(),
             BTreeMap::from_iter([(
                 Id::raw("foo"),
                 PluginLocator::File(Box::new(FileLocator {
@@ -291,7 +354,7 @@ kebab-case = "file://./camel.toml"
         );
 
         assert_eq!(
-            config.plugins.unwrap(),
+            config.plugins.unwrap().tools.unwrap(),
             BTreeMap::from_iter([
                 (
                     Id::raw("foo"),
@@ -315,7 +378,7 @@ kebab-case = "file://./camel.toml"
     fn formats_plugins_table() {
         let sandbox = create_empty_sandbox();
         let mut config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
-        let versions = config.versions.get_or_insert(Default::default());
+        let versions = config.versions.get_or_insert_default();
 
         versions.insert(
             ToolContext::parse("node").unwrap(),
@@ -326,7 +389,11 @@ kebab-case = "file://./camel.toml"
             UnresolvedVersionSpec::Alias("stable".into()).into(),
         );
 
-        let plugins = config.plugins.get_or_insert(Default::default());
+        let plugins = config
+            .plugins
+            .get_or_insert_default()
+            .tools
+            .get_or_insert_default();
 
         plugins.insert(
             Id::raw("foo"),
@@ -605,7 +672,7 @@ builtin-plugins = true
                 BuiltinPlugins::Enabled(true)
             );
 
-            assert_eq!(config.builtin_plugins().len(), 20);
+            assert_eq!(config.builtin_plugins().tools.len(), 19);
         }
 
         #[test]
@@ -627,9 +694,9 @@ builtin-plugins = ["node", "go"]
                 BuiltinPlugins::Allowed(vec!["node".into(), "go".into()])
             );
 
-            assert_eq!(config.builtin_plugins().len(), 8);
+            assert_eq!(config.builtin_plugins().tools.len(), 8);
             assert_eq!(
-                config.builtin_plugins().keys().collect::<Vec<_>>(),
+                config.builtin_plugins().tools.keys().collect::<Vec<_>>(),
                 [
                     "go",
                     "internal-schema",
@@ -662,7 +729,7 @@ builtin-plugins = false
                 BuiltinPlugins::Enabled(false)
             );
 
-            assert_eq!(config.builtin_plugins().len(), 6);
+            assert_eq!(config.builtin_plugins().tools.len(), 6);
         }
 
         #[test]
@@ -684,7 +751,7 @@ builtin-plugins = []
                 BuiltinPlugins::Allowed(vec![])
             );
 
-            assert_eq!(config.builtin_plugins().len(), 6);
+            assert_eq!(config.builtin_plugins().tools.len(), 6);
         }
     }
 

@@ -25,7 +25,7 @@ pub async fn add(session: ProtoSession, args: AddPluginArgs) -> AppResult {
 
         // config
         //     .plugins
-        //     .get_or_insert(Default::default())
+        //     .get_or_insert_default()
         //     .insert(args.id.clone(), args.plugin.clone());
     })?;
 

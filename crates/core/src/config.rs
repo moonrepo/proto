@@ -99,9 +99,9 @@ fn validate_default_registry(
     Ok(())
 }
 
-fn validate_reserved_words(
+fn validate_reserved_words<T>(
     value: &BTreeMap<Id, PluginLocator>,
-    _partial: &PartialProtoConfig,
+    _partial: &T,
     _context: &(),
     _finalize: bool,
 ) -> ValidateResult {
@@ -113,6 +113,15 @@ fn validate_reserved_words(
 
     Ok(())
 }
+
+derive_enum!(
+    #[derive(ConfigEnum, Copy, Default)]
+    pub enum PluginType {
+        Backend,
+        #[default]
+        Tool,
+    }
+);
 
 derive_enum!(
     #[derive(ConfigEnum, Copy, Default)]
@@ -303,6 +312,34 @@ pub struct ProtoSettingsConfig {
 #[derive(Clone, Config, Debug, Serialize)]
 #[config(allow_unknown_fields)]
 #[serde(rename_all = "kebab-case")]
+pub struct ProtoPluginsConfig {
+    #[setting(merge = merge::merge_btreemap, validate = validate_reserved_words)]
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub backends: BTreeMap<Id, PluginLocator>,
+
+    #[setting(merge = merge::merge_btreemap, validate = validate_reserved_words)]
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub tools: BTreeMap<Id, PluginLocator>,
+
+    // This is unfortunately required for flattening!
+    #[setting(merge = merge::merge_btreemap, validate = validate_reserved_words)]
+    #[serde(flatten, skip_serializing_if = "BTreeMap::is_empty")]
+    pub legacy: BTreeMap<Id, PluginLocator>,
+}
+
+impl ProtoPluginsConfig {
+    pub fn get(&self, id: &Id, ty: PluginType) -> Option<&PluginLocator> {
+        if ty == PluginType::Backend {
+            self.backends.get(id)
+        } else {
+            self.tools.get(id).or_else(|| self.legacy.get(id))
+        }
+    }
+}
+
+#[derive(Clone, Config, Debug, Serialize)]
+#[config(allow_unknown_fields)]
+#[serde(rename_all = "kebab-case")]
 pub struct ProtoConfig {
     #[setting(nested, merge = merge_indexmap)]
     #[serde(skip_serializing_if = "IndexMap::is_empty")]
@@ -312,9 +349,8 @@ pub struct ProtoConfig {
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub tools: BTreeMap<Id, ProtoToolConfig>,
 
-    #[setting(merge = merge::merge_btreemap, validate = validate_reserved_words)]
-    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
-    pub plugins: BTreeMap<Id, PluginLocator>,
+    #[setting(nested)]
+    pub plugins: ProtoPluginsConfig,
 
     #[setting(nested)]
     pub settings: ProtoSettingsConfig,
@@ -363,7 +399,7 @@ impl ProtoConfig {
         }
     }
 
-    pub fn builtin_plugins(&self) -> BTreeMap<Id, PluginLocator> {
+    pub fn builtin_plugins(&self) -> ProtoPluginsConfig {
         let mut config = ProtoConfig::default();
 
         // Inherit this setting in case builtins have been disabled
@@ -379,108 +415,113 @@ impl ProtoConfig {
         find_debug_locator_with_version("proto_tool", "0.5.4")
     }
 
+    pub fn builtin_schema_plugin(&self) -> PluginLocator {
+        find_debug_locator_with_version("schema_tool", "0.17.5")
+    }
+
     pub fn inherit_builtin_plugins(&mut self) {
         let is_allowed = |id: &str| match &self.settings.builtin_plugins {
             BuiltinPlugins::Enabled(state) => *state,
             BuiltinPlugins::Allowed(list) => list.iter().any(|aid| aid == id),
         };
 
-        if !self.plugins.contains_key("asdf") && is_allowed("asdf") {
-            self.plugins.insert(
+        let proto_locator = self.builtin_proto_plugin();
+        let schema_locator = self.builtin_schema_plugin();
+        let backends = &mut self.plugins.backends;
+        let tools = &mut self.plugins.tools;
+
+        if !backends.contains_key("asdf") && is_allowed("asdf") {
+            backends.insert(
                 Id::raw("asdf"),
                 find_debug_locator_with_version("asdf_backend", "0.3.1"),
             );
         }
 
-        if !self.plugins.contains_key("bun") && is_allowed("bun") {
-            self.plugins.insert(
+        if !tools.contains_key("bun") && is_allowed("bun") {
+            tools.insert(
                 Id::raw("bun"),
                 find_debug_locator_with_version("bun_tool", "0.16.1"),
             );
         }
 
-        if !self.plugins.contains_key("deno") && is_allowed("deno") {
-            self.plugins.insert(
+        if !tools.contains_key("deno") && is_allowed("deno") {
+            tools.insert(
                 Id::raw("deno"),
                 find_debug_locator_with_version("deno_tool", "0.15.5"),
             );
         }
 
-        if !self.plugins.contains_key("go") && is_allowed("go") {
-            self.plugins.insert(
+        if !tools.contains_key("go") && is_allowed("go") {
+            tools.insert(
                 Id::raw("go"),
                 find_debug_locator_with_version("go_tool", "0.16.3"),
             );
         }
 
-        if !self.plugins.contains_key("moon") && is_allowed("moon") {
-            self.plugins.insert(
+        if !tools.contains_key("moon") && is_allowed("moon") {
+            tools.insert(
                 Id::raw("moon"),
                 find_debug_locator_with_version("moon_tool", "0.3.3"),
             );
         }
 
-        if !self.plugins.contains_key("node") && is_allowed("node") {
-            self.plugins.insert(
+        if !tools.contains_key("node") && is_allowed("node") {
+            tools.insert(
                 Id::raw("node"),
                 find_debug_locator_with_version("node_tool", "0.17.1"),
             );
         }
 
         for depman in ["npm", "pnpm", "yarn"] {
-            if !self.plugins.contains_key(depman) && is_allowed(depman) {
-                self.plugins.insert(
+            if !tools.contains_key(depman) && is_allowed(depman) {
+                tools.insert(
                     Id::raw(depman),
                     find_debug_locator_with_version("node_depman_tool", "0.16.1"),
                 );
             }
         }
 
-        if !self.plugins.contains_key("poetry") && is_allowed("poetry") {
-            self.plugins.insert(
+        if !tools.contains_key("poetry") && is_allowed("poetry") {
+            tools.insert(
                 Id::raw("poetry"),
                 find_debug_locator_with_version("python_poetry_tool", "0.1.4"),
             );
         }
 
-        if !self.plugins.contains_key("python") && is_allowed("python") {
-            self.plugins.insert(
+        if !tools.contains_key("python") && is_allowed("python") {
+            tools.insert(
                 Id::raw("python"),
                 find_debug_locator_with_version("python_tool", "0.14.3"),
             );
         }
 
-        if !self.plugins.contains_key("uv") && is_allowed("uv") {
-            self.plugins.insert(
+        if !tools.contains_key("uv") && is_allowed("uv") {
+            tools.insert(
                 Id::raw("uv"),
                 find_debug_locator_with_version("python_uv_tool", "0.3.1"),
             );
         }
 
-        if !self.plugins.contains_key("ruby") && is_allowed("ruby") {
-            self.plugins.insert(
+        if !tools.contains_key("ruby") && is_allowed("ruby") {
+            tools.insert(
                 Id::raw("ruby"),
                 find_debug_locator_with_version("ruby_tool", "0.2.3"),
             );
         }
 
-        if !self.plugins.contains_key("rust") && is_allowed("rust") {
-            self.plugins.insert(
+        if !tools.contains_key("rust") && is_allowed("rust") {
+            tools.insert(
                 Id::raw("rust"),
                 find_debug_locator_with_version("rust_tool", "0.13.4"),
             );
         }
 
-        if !self.plugins.contains_key(SCHEMA_PLUGIN_KEY) {
-            self.plugins.insert(
-                Id::raw(SCHEMA_PLUGIN_KEY),
-                find_debug_locator_with_version("schema_tool", "0.17.5"),
-            );
+        if !tools.contains_key(SCHEMA_PLUGIN_KEY) {
+            tools.insert(Id::raw(SCHEMA_PLUGIN_KEY), schema_locator);
         }
 
-        if !self.plugins.contains_key(PROTO_PLUGIN_KEY) {
-            self.plugins
-                .insert(Id::raw(PROTO_PLUGIN_KEY), self.builtin_proto_plugin());
+        if !tools.contains_key(PROTO_PLUGIN_KEY) {
+            tools.insert(Id::raw(PROTO_PLUGIN_KEY), proto_locator);
         }
 
         #[cfg(all(any(debug_assertions, test), feature = "test-plugins"))]
@@ -488,10 +529,10 @@ impl ProtoConfig {
             let locator = find_debug_locator("proto_mocked_tool")
                 .expect("Test plugins not available. Run `just build-wasm` to build them!");
 
-            self.plugins.insert(Id::raw("moonbase"), locator.clone());
-            self.plugins.insert(Id::raw("moonstone"), locator.clone());
-            self.plugins.insert(Id::raw("protoform"), locator.clone());
-            self.plugins.insert(Id::raw("protostar"), locator);
+            tools.insert(Id::raw("moonbase"), locator.clone());
+            tools.insert(Id::raw("moonstone"), locator.clone());
+            tools.insert(Id::raw("protoform"), locator.clone());
+            tools.insert(Id::raw("protostar"), locator);
         }
     }
 
@@ -590,9 +631,19 @@ impl ProtoConfig {
         }
 
         if let Some(plugins) = &mut config.plugins {
-            for locator in plugins.values_mut() {
-                if let PluginLocator::File(inner) = locator {
-                    inner.path = Some(make_absolute(inner.get_unresolved_path(), path));
+            if let Some(backends) = &mut plugins.backends {
+                for locator in backends.values_mut() {
+                    if let PluginLocator::File(inner) = locator {
+                        inner.path = Some(make_absolute(inner.get_unresolved_path(), path));
+                    }
+                }
+            }
+
+            if let Some(tools) = &mut plugins.tools {
+                for locator in tools.values_mut() {
+                    if let PluginLocator::File(inner) = locator {
+                        inner.path = Some(make_absolute(inner.get_unresolved_path(), path));
+                    }
                 }
             }
         }

@@ -27,7 +27,8 @@ mod plugin_remove {
         ProtoConfig::update(sandbox.path(), |config| {
             config
                 .plugins
-                .get_or_insert(Default::default())
+                .get_or_insert_default()
+                .tools.get_or_insert_default()
                 .insert(
                     Id::raw("id"),
                     PluginLocator::Url(Box::new(UrlLocator {
@@ -45,7 +46,7 @@ mod plugin_remove {
 
         let config = load_config(sandbox.path());
 
-        assert!(!config.plugins.contains_key("id"));
+        assert!(!config.plugins.tools.contains_key("id"));
     }
 
     #[test]
@@ -55,7 +56,8 @@ mod plugin_remove {
         ProtoConfig::update(sandbox.path().join(".proto"), |config| {
             config
                 .plugins
-                .get_or_insert(Default::default())
+                .get_or_insert_default()
+                .tools.get_or_insert_default()
                 .insert(
                     Id::raw("id"),
                     PluginLocator::Url(Box::new(UrlLocator {
@@ -77,7 +79,7 @@ mod plugin_remove {
 
         let config = load_config(sandbox.path().join(".proto"));
 
-        assert!(!config.plugins.contains_key("id"));
+        assert!(!config.plugins.tools.contains_key("id"));
     }
 
     #[test]
@@ -87,7 +89,8 @@ mod plugin_remove {
         ProtoConfig::update(sandbox.path().join(".home"), |config| {
             config
                 .plugins
-                .get_or_insert(Default::default())
+                .get_or_insert_default()
+                .tools.get_or_insert_default()
                 .insert(
                     Id::raw("id"),
                     PluginLocator::Url(Box::new(UrlLocator {
@@ -111,6 +114,6 @@ mod plugin_remove {
 
         let config = load_config(sandbox.path().join(".home"));
 
-        assert!(!config.plugins.contains_key("id"));
+        assert!(!config.plugins.tools.contains_key("id"));
     }
 }

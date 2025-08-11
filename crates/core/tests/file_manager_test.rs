@@ -74,7 +74,7 @@ deno = "7.8.9"
         );
 
         assert_eq!(
-            config.plugins.get("node").unwrap(),
+            config.plugins.tools.get("node").unwrap(),
             &PluginLocator::File(Box::new(FileLocator {
                 file: "file://./node.toml".into(),
                 path: Some(sandbox.path().join("one/two/three/./node.toml"))
@@ -82,7 +82,7 @@ deno = "7.8.9"
         );
 
         assert_eq!(
-            config.plugins.get("bun").unwrap(),
+            config.plugins.tools.get("bun").unwrap(),
             &PluginLocator::File(Box::new(FileLocator {
                 file: "file://../bun.wasm".into(),
                 path: Some(sandbox.path().join("one/two/../bun.wasm"))
