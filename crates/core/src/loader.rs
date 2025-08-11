@@ -1,4 +1,4 @@
-use crate::config::SCHEMA_PLUGIN_KEY;
+use crate::config::{PluginType, SCHEMA_PLUGIN_KEY};
 use crate::env::ProtoEnvironment;
 use crate::loader_error::ProtoLoaderError;
 use crate::tool::Tool;
@@ -33,14 +33,18 @@ pub fn inject_proto_manifest_config(
 }
 
 #[instrument(skip(proto))]
-pub fn locate_tool(id: &Id, proto: &ProtoEnvironment) -> Result<PluginLocator, ProtoLoaderError> {
+pub fn locate_plugin(
+    id: &Id,
+    proto: &ProtoEnvironment,
+    ty: PluginType,
+) -> Result<PluginLocator, ProtoLoaderError> {
     let mut locator = None;
     let config = proto.load_config()?;
 
     debug!(id = id.as_str(), "Finding a configured plugin");
 
     // Check config files for plugins
-    if let Some(maybe_locator) = config.plugins.get(id) {
+    if let Some(maybe_locator) = config.plugins.get(id, ty) {
         debug!(
             id = id.as_str(),
             plugin = maybe_locator.to_string(),
@@ -52,7 +56,7 @@ pub fn locate_tool(id: &Id, proto: &ProtoEnvironment) -> Result<PluginLocator, P
 
     // And finally the built-in plugins (must include global config)
     if locator.is_none()
-        && let Some(maybe_locator) = config.builtin_plugins().get(id)
+        && let Some(maybe_locator) = config.builtin_plugins().get(id, ty)
     {
         debug!(
             id = id.as_str(),
@@ -93,12 +97,13 @@ pub async fn load_schema_plugin_with_proto(
     proto: impl AsRef<ProtoEnvironment>,
 ) -> Result<PathBuf, ProtoLoaderError> {
     let proto = proto.as_ref();
-    let schema_id = Id::raw(SCHEMA_PLUGIN_KEY);
-    let schema_locator = locate_tool(&schema_id, proto)?;
 
     let path = proto
         .get_plugin_loader()?
-        .load_plugin(schema_id, schema_locator)
+        .load_plugin(
+            Id::raw(SCHEMA_PLUGIN_KEY),
+            proto.load_config()?.builtin_schema_plugin(),
+        )
         .await?;
 
     Ok(path)
@@ -226,9 +231,12 @@ pub async fn load_tool(
 ) -> Result<Tool, ProtoLoaderError> {
     // If backend is proto, use the tool's plugin,
     // otherwise use the backend plugin itself
-    let locator_id = context.backend.as_ref().unwrap_or(&context.id);
+    let locator = match &context.backend {
+        Some(backend_id) => locate_plugin(backend_id, proto, PluginType::Backend)?,
+        None => locate_plugin(&context.id, proto, PluginType::Tool)?,
+    };
 
-    let tool = load_tool_from_locator(&context, proto, locate_tool(locator_id, proto)?).await?;
+    let tool = load_tool_from_locator(&context, proto, locator).await?;
 
     Ok(tool)
 }

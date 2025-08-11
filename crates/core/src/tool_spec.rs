@@ -4,10 +4,13 @@ use std::fmt;
 use std::str::FromStr;
 use tracing::warn;
 use version_spec::{UnresolvedVersionSpec, VersionSpec};
+use warpgate::Id;
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(into = "String", try_from = "String")]
 pub struct ToolSpec {
+    pub backend: Option<Id>,
+
     /// Requested version/requirement.
     pub req: UnresolvedVersionSpec,
 
@@ -60,6 +63,7 @@ impl ToolSpec {
 impl Default for ToolSpec {
     fn default() -> Self {
         Self {
+            backend: None,
             req: UnresolvedVersionSpec::default(),
             version: None,
             read_lockfile: true,
@@ -73,18 +77,19 @@ impl FromStr for ToolSpec {
     type Err = ProtoResolveError;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
-        let spec = if let Some((_, suffix)) = value.split_once(':') {
+        let (backend, spec) = if let Some((prefix, suffix)) = value.split_once(':') {
             warn!(
                 spec = value,
                 "Configuring the backend within the version is no longer supported; pass it in the identifer instead"
             );
 
-            suffix
+            (Some(Id::new(prefix)?), suffix)
         } else {
-            value
+            (None, value)
         };
 
         Ok(Self {
+            backend,
             req: UnresolvedVersionSpec::parse(spec).map_err(|error| {
                 ProtoResolveError::InvalidVersionSpec {
                     version: value.to_owned(),

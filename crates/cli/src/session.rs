@@ -135,6 +135,7 @@ impl ProtoSession {
         contexts.extend(
             config
                 .plugins
+                .tools
                 .keys()
                 .map(|id| ToolContext::new(id.to_owned())),
         );
@@ -215,6 +216,7 @@ impl ProtoSession {
         contexts.extend(
             config
                 .plugins
+                .tools
                 .keys()
                 .map(|id| ToolContext::new(id.to_owned())),
         );

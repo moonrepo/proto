@@ -71,7 +71,7 @@ pub fn create_empty_proto_sandbox_with_tools(ext: &str) -> ProtoSandbox {
             r#"
 moon-test = "1.0.0"
 
-[plugins]
+[plugins.tools]
 moon-test = "file://{}"
 "#,
             schema_path.to_string_lossy().replace("\\", "/")

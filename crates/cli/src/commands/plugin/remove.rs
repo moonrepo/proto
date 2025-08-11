@@ -2,7 +2,7 @@ use crate::error::ProtoCliError;
 use crate::session::ProtoSession;
 use clap::Args;
 use iocraft::prelude::element;
-use proto_core::{Id, PROTO_CONFIG_NAME, PinLocation, ProtoConfig};
+use proto_core::{Id, PROTO_CONFIG_NAME, PinLocation, PluginType, ProtoConfig};
 use starbase::AppResult;
 use starbase_console::ui::*;
 
@@ -13,6 +13,9 @@ pub struct RemovePluginArgs {
 
     #[arg(long, default_value_t, help = "Location of .prototools to remove from")]
     from: PinLocation,
+
+    #[arg(long = "type", default_value_t, help = "The type of plugin to remove")]
+    ty: PluginType,
 }
 
 #[tracing::instrument(skip_all)]
@@ -25,8 +28,22 @@ pub async fn remove(session: ProtoSession, args: RemovePluginArgs) -> AppResult 
     }
 
     let config_path = ProtoConfig::update_document(config_dir, |doc| {
+        let key = if args.ty == PluginType::Backend {
+            "backends"
+        } else {
+            "tools"
+        };
+
         if let Some(plugins) = doc.get_mut("plugins").and_then(|item| item.as_table_mut()) {
             plugins.remove(&args.id);
+
+            if let Some(table) = plugins.get_mut(key).and_then(|item| item.as_table_mut()) {
+                table.remove(&args.id);
+
+                if table.is_empty() {
+                    plugins.remove(key);
+                }
+            }
 
             if plugins.is_empty() {
                 doc.as_table_mut().remove("plugins");
@@ -42,18 +59,6 @@ pub async fn remove(session: ProtoSession, args: RemovePluginArgs) -> AppResult 
         }
 
         doc.as_table_mut().remove(&args.id);
-
-        // if let Some(plugins) = &mut config.plugins {
-        //     plugins.remove(&args.id);
-        // }
-
-        // if let Some(tools) = &mut config.tools {
-        //     tools.remove(&args.id);
-        // }
-
-        // if let Some(versions) = &mut config.versions {
-        //     versions.remove(&args.id);
-        // }
     })?;
 
     session.console.render(element! {

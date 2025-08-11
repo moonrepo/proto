@@ -106,7 +106,7 @@ impl Tool {
 
             // config
             //     .versions
-            //     .get_or_insert(Default::default())
+            //     .get_or_insert_default()
             //     .entry(self.id.clone())
             //     .or_insert_with(|| ToolSpec::new_backend(default_version, self.backend));
         })?;

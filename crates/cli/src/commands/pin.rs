@@ -32,7 +32,7 @@ pub async fn internal_pin(
 
         // config
         //     .versions
-        //     .get_or_insert(Default::default())
+        //     .get_or_insert_default()
         //     .insert(tool.id.clone(), spec.clone());
     })?;
 
