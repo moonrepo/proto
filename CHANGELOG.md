@@ -31,6 +31,7 @@
 
 - Added support for custom and third-party backend plugins, which can be configured with the new `[plugins.backends]` setting.
   - To differentiate between tool plugins, a new `[plugins.tools]` setting was also added. Existing plugins should continue to work without modification.
+  - Added a `--type` option to `proto plugin add` and `proto plugin remove`.
 
 ## 0.51.6
 
