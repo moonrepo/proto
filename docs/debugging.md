@@ -86,7 +86,7 @@ To start, build a debug target with `cargo build --target wasm32-wasip1`. This w
 To execute the debug `.wasm` file within proto, we need to configure a `.prototools` file that points to our newly built file, for example:
 
 ```toml
-[plugins]
+[plugins.tools]
 node-test = "file://./target/wasm32-wasip1/debug/node_plugin.wasm"
 ```
 

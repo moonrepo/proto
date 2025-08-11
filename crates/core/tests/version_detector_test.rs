@@ -18,6 +18,7 @@ mod version_detector {
             ProtoEnvironment::new().unwrap(),
             ProtoConfig::default()
                 .builtin_plugins()
+                .tools
                 .get("node")
                 .unwrap(),
         )

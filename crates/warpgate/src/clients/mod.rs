@@ -1,7 +1,7 @@
-mod http_client;
-mod http_client_error;
-mod oci_client;
+mod http;
+mod http_error;
+mod oci;
 
-pub use http_client::*;
-pub use http_client_error::*;
-pub use oci_client::*;
+pub use http::*;
+pub use http_error::*;
+pub use oci::*;

@@ -47,13 +47,13 @@ pub async fn alias(session: ProtoSession, args: AliasArgs) -> AppResult {
 
         aliases[&args.alias] = cfg::value(args.spec.to_string());
 
-        // let tool_configs = config.tools.get_or_insert(Default::default());
+        // let tool_configs = config.tools.get_or_insert_default();
 
         // tool_configs
         //     .entry(tool.id.clone())
         //     .or_default()
         //     .aliases
-        //     .get_or_insert(Default::default())
+        //     .get_or_insert_default()
         //     .insert(args.alias.clone(), args.spec.clone());
     })?;
 
