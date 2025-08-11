@@ -39,7 +39,7 @@ mod config {
         sandbox.create_file(
             ".prototools",
             r#"
-[plugins]
+[plugins.tools]
 proto = "file://./file.toml"
 "#,
         );
@@ -183,7 +183,7 @@ KEY = "value"
         sandbox.create_file(
             ".prototools",
             r#"
-[plugins]
+[plugins.tools]
 foo = "github://moonrepo/foo"
 bar = "https://moonrepo.dev/path/file.wasm"
 "#,
@@ -281,7 +281,7 @@ qux = "https://moonrepo.dev/path/file.wasm"
         sandbox.create_file(
             ".prototools",
             r#"
-[plugins]
+[plugins.tools]
 foo = "file://../file.wasm"
 "#,
         );
@@ -331,7 +331,7 @@ root-cert = "../cert.pem"
 node = "12.0.0"
 rust = "stable"
 
-[plugins]
+[plugins.tools]
 foo = "file://./test.toml"
 kebab-case = "file://./camel.toml"
 "#,
@@ -410,7 +410,7 @@ kebab-case = "file://./camel.toml"
             r#"node = "12.0.0"
 rust = "stable"
 
-[plugins]
+[plugins.tools]
 foo = "file://./test.toml"
 "#,
         );

@@ -16,7 +16,7 @@ mod file_manager {
             r#"
 node = "1.2.3"
 
-[plugins]
+[plugins.tools]
 node = "file://./node.toml"
 "#,
         );
@@ -24,7 +24,7 @@ node = "file://./node.toml"
         sandbox.create_file(
             "one/two/.prototools",
             r#"
-[plugins]
+[plugins.tools]
 bun = "file://../bun.wasm"
 "#,
         );
@@ -34,7 +34,7 @@ bun = "file://../bun.wasm"
             r#"
 bun = "4.5.6"
 
-[plugins]
+[plugins.tools]
 node = "file://../node.toml"
 "#,
         );

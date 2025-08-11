@@ -30,9 +30,10 @@ pub async fn add(session: ProtoSession, args: AddPluginArgs) -> AppResult {
         };
 
         // Convert legacy [plugins] to [plugins.tools]
-        if doc["plugins"]
-            .as_table()
-            .is_some_and(|table| !table.contains_key("backends") && !table.contains_key("tools"))
+        if doc.contains_key("plugins")
+            && doc["plugins"].as_table().is_some_and(|table| {
+                !table.contains_key("backends") && !table.contains_key("tools")
+            })
         {
             let existing = doc["plugins"].clone();
 
