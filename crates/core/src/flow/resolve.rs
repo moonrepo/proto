@@ -82,6 +82,15 @@ impl Tool {
             return Ok(self.get_resolved_version());
         }
 
+        // TODO: temporary, remove in v0.53!
+        if let Some(backend) = &spec.backend {
+            self.context.backend = Some(backend.to_owned());
+
+            self.register_backend()
+                .await
+                .map_err(|error| ProtoResolveError::Temp(error.to_string()))?;
+        }
+
         debug!(
             tool = self.context.as_str(),
             initial_version = spec.to_string(),
