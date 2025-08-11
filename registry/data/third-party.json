@@ -416,6 +416,19 @@
       ]
     },
     {
+      "id": "gcloud",
+      "locator": "github://ageha734/proto-gcloud",
+      "format": "wasm",
+      "name": "Goocle Cloud SDK",
+      "description": "The primary command-line tool for creating and managing Google Cloud resources.",
+      "author": "ageha734",
+      "homepageUrl": "https://cloud.google.com/sdk/docs",
+      "repositoryUrl": "https://github.com/ageha734/proto-gcloud",
+      "bins": [
+        "gcloud"
+      ]
+    },
+    {
       "id": "gh",
       "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/gh/plugin.toml",
       "format": "toml",
