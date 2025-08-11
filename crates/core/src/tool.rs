@@ -1,3 +1,4 @@
+use crate::config::PluginType;
 use crate::env::ProtoEnvironment;
 use crate::helpers::get_proto_version;
 use crate::layout::{Inventory, Product};
@@ -6,7 +7,10 @@ use crate::normalize_path_separators;
 use crate::tool_context::ToolContext;
 use crate::tool_error::ProtoToolError;
 use crate::utils::{archive, git};
-use proto_pdk_api::*;
+use proto_pdk_api::{
+    PluginContext, PluginFunction, PluginUnresolvedContext, RegisterBackendInput,
+    RegisterBackendOutput, RegisterToolInput, RegisterToolOutput, SourceLocation, VersionSpec,
+};
 use starbase_styles::color;
 use starbase_utils::fs;
 use std::fmt::{self, Debug};
@@ -26,6 +30,7 @@ pub struct Tool {
     pub metadata: ToolMetadata,
     pub plugin: Arc<PluginContainer>,
     pub proto: Arc<ProtoEnvironment>,
+    pub ty: PluginType,
     pub version: Option<VersionSpec>,
 
     // Store
@@ -69,6 +74,7 @@ impl Tool {
             plugin,
             product: Product::default(),
             proto,
+            ty: PluginType::Tool,
             version: None,
             version_locked: None,
         };
@@ -194,7 +200,7 @@ impl Tool {
 
     /// Return true if this tool instance is a backend plugin.
     pub async fn is_backend_plugin(&self) -> bool {
-        self.plugin.has_func(PluginFunction::RegisterBackend).await
+        self.ty == PluginType::Backend
     }
 
     /// Explicitly set the version to use.
@@ -398,6 +404,7 @@ impl Tool {
             }
         }
 
+        self.ty = PluginType::Backend;
         self.backend_registered = true;
 
         Ok(())
