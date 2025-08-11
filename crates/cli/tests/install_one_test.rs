@@ -404,7 +404,7 @@ mod install_one {
             let manifest_file = sandbox.path().join(".proto/tools/protostar/manifest.json");
 
             ProtoConfig::update(sandbox.path(), |config| {
-                config.versions.get_or_insert(Default::default()).insert(
+                config.versions.get_or_insert_default().insert(
                     ToolContext::parse("protostar").unwrap(),
                     UnresolvedVersionSpec::parse("1.0.0").unwrap().into(),
                 );
@@ -451,7 +451,7 @@ mod install_one {
             let manifest_file = sandbox.path().join(".proto/tools/protostar/manifest.json");
 
             ProtoConfig::update(sandbox.path().join(".proto"), |config| {
-                config.versions.get_or_insert(Default::default()).insert(
+                config.versions.get_or_insert_default().insert(
                     ToolContext::parse("protostar").unwrap(),
                     UnresolvedVersionSpec::parse("1.0.0").unwrap().into(),
                 );
@@ -499,7 +499,7 @@ mod install_one {
             let manifest_file = sandbox.path().join(".proto/tools/protostar/manifest.json");
 
             ProtoConfig::update(sandbox.path(), |config| {
-                config.versions.get_or_insert(Default::default()).insert(
+                config.versions.get_or_insert_default().insert(
                     ToolContext::parse("protostar").unwrap(),
                     UnresolvedVersionSpec::parse("1.0.0").unwrap().into(),
                 );
@@ -553,7 +553,7 @@ mod install_one {
 
             // Manually change it to something else
             ProtoConfig::update(sandbox.path(), |config| {
-                config.versions.get_or_insert(Default::default()).insert(
+                config.versions.get_or_insert_default().insert(
                     ToolContext::parse("protostar").unwrap(),
                     UnresolvedVersionSpec::parse("5.0.0").unwrap().into(),
                 );
@@ -586,10 +586,9 @@ mod install_one {
 
             // Local
             ProtoConfig::update(sandbox.path(), |config| {
-                config.settings.get_or_insert(Default::default()).pin_latest =
-                    Some(PinLocation::Local);
+                config.settings.get_or_insert_default().pin_latest = Some(PinLocation::Local);
 
-                config.versions.get_or_insert(Default::default()).insert(
+                config.versions.get_or_insert_default().insert(
                     ToolContext::parse("protostar").unwrap(),
                     UnresolvedVersionSpec::parse("1.0.0").unwrap().into(),
                 );
@@ -598,7 +597,7 @@ mod install_one {
 
             // Global
             ProtoConfig::update(sandbox.path().join(".proto"), |config| {
-                config.versions.get_or_insert(Default::default()).insert(
+                config.versions.get_or_insert_default().insert(
                     ToolContext::parse("protostar").unwrap(),
                     UnresolvedVersionSpec::parse("2.0.0").unwrap().into(),
                 );
@@ -638,10 +637,9 @@ mod install_one {
 
             // Local
             ProtoConfig::update(sandbox.path(), |config| {
-                config.settings.get_or_insert(Default::default()).pin_latest =
-                    Some(PinLocation::Global);
+                config.settings.get_or_insert_default().pin_latest = Some(PinLocation::Global);
 
-                config.versions.get_or_insert(Default::default()).insert(
+                config.versions.get_or_insert_default().insert(
                     ToolContext::parse("protostar").unwrap(),
                     UnresolvedVersionSpec::parse("1.0.0").unwrap().into(),
                 );
@@ -650,7 +648,7 @@ mod install_one {
 
             // Global
             ProtoConfig::update(sandbox.path().join(".proto"), |config| {
-                config.versions.get_or_insert(Default::default()).insert(
+                config.versions.get_or_insert_default().insert(
                     ToolContext::parse("protostar").unwrap(),
                     UnresolvedVersionSpec::parse("2.0.0").unwrap().into(),
                 );
@@ -690,8 +688,7 @@ mod install_one {
 
             // Local
             ProtoConfig::update(sandbox.path(), |config| {
-                config.settings.get_or_insert(Default::default()).pin_latest =
-                    Some(PinLocation::Local);
+                config.settings.get_or_insert_default().pin_latest = Some(PinLocation::Local);
             })
             .unwrap();
 

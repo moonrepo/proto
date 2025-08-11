@@ -1,7 +1,9 @@
 node = "latest"
 
-# [plugins]
+# [plugins.backends]
 # asdf = "file://../moonrepo/plugins/target/wasm32-wasip1/release/asdf_backend.wasm"
+
+# [plugins.tools]
 # deno-test = "file://../moonrepo/plugins/target/wasm32-wasip1/release/deno_tool.wasm"
 # go-test = "file://../moonrepo/plugins/target/wasm32-wasip1/release/go_tool.wasm"
 # node-test = "file://../moonrepo/plugins/target/wasm32-wasip1/release/node_tool.wasm"

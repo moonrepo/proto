@@ -26,7 +26,7 @@ mod unpin_local {
         let sandbox = create_empty_proto_sandbox();
 
         ProtoConfig::update(sandbox.path(), |config| {
-            config.versions.get_or_insert(Default::default()).insert(
+            config.versions.get_or_insert_default().insert(
                 ToolContext::parse("protostar").unwrap(),
                 UnresolvedVersionSpec::Canary.into(),
             );
@@ -53,7 +53,7 @@ mod unpin_local {
         let sandbox = create_empty_proto_sandbox();
 
         ProtoConfig::update(sandbox.path(), |config| {
-            config.versions.get_or_insert(Default::default()).insert(
+            config.versions.get_or_insert_default().insert(
                 ToolContext::parse("moonstone").unwrap(),
                 UnresolvedVersionSpec::Canary.into(),
             );
@@ -87,7 +87,7 @@ mod unpin_local {
             let sandbox = create_empty_proto_sandbox();
 
             ProtoConfig::update(sandbox.path(), |config| {
-                config.versions.get_or_insert(Default::default()).insert(
+                config.versions.get_or_insert_default().insert(
                     ToolContext::parse("asdf:act").unwrap(),
                     UnresolvedVersionSpec::Canary.into(),
                 );
@@ -119,7 +119,7 @@ mod unpin_global {
         let sandbox = create_empty_proto_sandbox();
 
         ProtoConfig::update(sandbox.path().join(".proto"), |config| {
-            config.versions.get_or_insert(Default::default()).insert(
+            config.versions.get_or_insert_default().insert(
                 ToolContext::parse("protostar").unwrap(),
                 UnresolvedVersionSpec::Canary.into(),
             );
@@ -153,7 +153,7 @@ mod unpin_user {
         let sandbox = create_empty_proto_sandbox();
 
         ProtoConfig::update(sandbox.path().join(".home"), |config| {
-            config.versions.get_or_insert(Default::default()).insert(
+            config.versions.get_or_insert_default().insert(
                 ToolContext::parse("protostar").unwrap(),
                 UnresolvedVersionSpec::Canary.into(),
             );

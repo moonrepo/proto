@@ -16,7 +16,7 @@ mod file_manager {
             r#"
 node = "1.2.3"
 
-[plugins]
+[plugins.tools]
 node = "file://./node.toml"
 "#,
         );
@@ -24,7 +24,7 @@ node = "file://./node.toml"
         sandbox.create_file(
             "one/two/.prototools",
             r#"
-[plugins]
+[plugins.tools]
 bun = "file://../bun.wasm"
 "#,
         );
@@ -34,7 +34,7 @@ bun = "file://../bun.wasm"
             r#"
 bun = "4.5.6"
 
-[plugins]
+[plugins.tools]
 node = "file://../node.toml"
 "#,
         );
@@ -74,7 +74,7 @@ deno = "7.8.9"
         );
 
         assert_eq!(
-            config.plugins.get("node").unwrap(),
+            config.plugins.tools.get("node").unwrap(),
             &PluginLocator::File(Box::new(FileLocator {
                 file: "file://./node.toml".into(),
                 path: Some(sandbox.path().join("one/two/three/./node.toml"))
@@ -82,7 +82,7 @@ deno = "7.8.9"
         );
 
         assert_eq!(
-            config.plugins.get("bun").unwrap(),
+            config.plugins.tools.get("bun").unwrap(),
             &PluginLocator::File(Box::new(FileLocator {
                 file: "file://../bun.wasm".into(),
                 path: Some(sandbox.path().join("one/two/../bun.wasm"))

@@ -20,12 +20,22 @@
 #### 💥 Breaking
 
 - Reworked how backends (asdf, etc) are configured. Instead of being prefixed on the version, they are now on the tool identifier. Example: `zig = "asdf:0.14"` -> `"asdf:zig" = "0.14"`
-  - Unfortunately, there was no simple way to support both patterns in parallel, so this is a hard break.
   - This opens the door for new functionality in the future, and also makes more logical sense.
+  - We tried to keep the old functionality intact as much as possible, but it may be buggy. We highly suggest migrating to the new format!
 - Removed the `[tools.*.backend]` setting, as it doesn't work with this new pattern.
 - **WASM API**
   - Renamed `ToolContext` to `PluginContext`.
   - Renamed `ToolUnresolvedContext` to `PluginUnresolvedContext`.
+
+#### 🚀 Updates
+
+- Added support for custom and third-party backend plugins, which can be configured with the new `[plugins.backends]` setting.
+  - To differentiate between tool plugins, a new `[plugins.tools]` setting was also added. Existing plugins should continue to work without modification.
+  - Added a `--type` option to `proto plugin add` and `proto plugin remove`.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
 
 ## 0.51.6
 

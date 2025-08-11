@@ -9,6 +9,10 @@ use warpgate::{WarpgateHttpClientError, WarpgatePluginError};
 
 #[derive(Error, Debug, miette::Diagnostic)]
 pub enum ProtoResolveError {
+    // TODO REMOVE!
+    #[error("{0}")]
+    Temp(String),
+
     #[diagnostic(transparent)]
     #[error(transparent)]
     Config(#[from] Box<ProtoConfigError>),

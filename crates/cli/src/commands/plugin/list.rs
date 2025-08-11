@@ -41,6 +41,7 @@ pub async fn list(session: ProtoSession, args: ListPluginsArgs) -> AppResult {
                 // list all plugins currently in use, even built-ins
                 global_config
                     .plugins
+                    .tools
                     .keys()
                     .map(|id| ToolContext::new(id.to_owned()))
                     .collect::<Vec<_>>()

@@ -26,7 +26,7 @@ mod unalias_local {
         let sandbox = create_empty_proto_sandbox();
 
         ProtoConfig::update(sandbox.path(), |config| {
-            config.tools.get_or_insert(Default::default()).insert(
+            config.tools.get_or_insert_default().insert(
                 Id::raw("protostar"),
                 PartialProtoToolConfig {
                     aliases: Some(BTreeMap::from_iter([(
@@ -55,7 +55,7 @@ mod unalias_local {
         let sandbox = create_empty_proto_sandbox();
 
         ProtoConfig::update(sandbox.path(), |config| {
-            config.tools.get_or_insert(Default::default()).insert(
+            config.tools.get_or_insert_default().insert(
                 Id::raw("protostar"),
                 PartialProtoToolConfig {
                     aliases: Some(BTreeMap::from_iter([(
@@ -95,7 +95,7 @@ mod unalias_local {
             let sandbox = create_empty_proto_sandbox();
 
             ProtoConfig::update(sandbox.path(), |config| {
-                config.tools.get_or_insert(Default::default()).insert(
+                config.tools.get_or_insert_default().insert(
                     Id::raw("act"),
                     PartialProtoToolConfig {
                         aliases: Some(BTreeMap::from_iter([(
@@ -129,7 +129,7 @@ mod unalias_global {
         let sandbox = create_empty_proto_sandbox();
 
         ProtoConfig::update(sandbox.path().join(".proto"), |config| {
-            config.tools.get_or_insert(Default::default()).insert(
+            config.tools.get_or_insert_default().insert(
                 Id::raw("protostar"),
                 PartialProtoToolConfig {
                     aliases: Some(BTreeMap::from_iter([(
@@ -166,7 +166,7 @@ mod unalias_user {
         let sandbox = create_empty_proto_sandbox();
 
         ProtoConfig::update(sandbox.path().join(".home"), |config| {
-            config.tools.get_or_insert(Default::default()).insert(
+            config.tools.get_or_insert_default().insert(
                 Id::raw("protostar"),
                 PartialProtoToolConfig {
                     aliases: Some(BTreeMap::from_iter([(

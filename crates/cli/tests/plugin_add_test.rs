@@ -44,7 +44,7 @@ mod plugin_add {
         let config = load_config(sandbox.path());
 
         assert_eq!(
-            config.plugins.get("id").unwrap(),
+            config.plugins.tools.get("id").unwrap(),
             &PluginLocator::Url(Box::new(UrlLocator {
                 url:
                     "https://github.com/moonrepo/plugins/releases/latest/download/example_plugin.wasm"
@@ -76,7 +76,7 @@ mod plugin_add {
         let config = load_config(sandbox.path().join(".proto"));
 
         assert_eq!(
-            config.plugins.get("id").unwrap(),
+            config.plugins.tools.get("id").unwrap(),
             &PluginLocator::Url(Box::new(UrlLocator {
                 url:
                     "https://github.com/moonrepo/plugins/releases/latest/download/example_plugin.wasm"
@@ -108,7 +108,7 @@ mod plugin_add {
         let config = load_config(sandbox.path().join(".home"));
 
         assert_eq!(
-            config.plugins.get("id").unwrap(),
+            config.plugins.tools.get("id").unwrap(),
             &PluginLocator::Url(Box::new(UrlLocator {
                 url:
                     "https://github.com/moonrepo/plugins/releases/latest/download/example_plugin.wasm"
