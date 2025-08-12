@@ -190,6 +190,19 @@
       ]
     },
     {
+      "id": "commitlint",
+      "locator": "https://raw.githubusercontent.com/ageha734/proto-plugins/refs/heads/master/toml/commitlint.toml",
+      "format": "toml",
+      "name": "commitlint",
+      "description": "A linter that checks whether commit messages comply with standards.",
+      "author": "ageha734",
+      "homepageUrl": "https://github.com/conventionalcommit/commitlint",
+      "repositoryUrl": "https://github.com/ageha734/proto-plugins",
+      "bins": [
+        "commitlint"
+      ]
+    },
+    {
       "id": "conan",
       "locator": "https://raw.githubusercontent.com/isaac10334/conan-proto/main/conan.toml",
       "format": "toml",
@@ -737,6 +750,32 @@
       ]
     },
     {
+      "id": "kustomize",
+      "locator": "https://raw.githubusercontent.com/ageha734/proto-plugins/refs/heads/master/toml/kustomize.toml",
+      "format": "toml",
+      "name": "kustomize",
+      "description": "A tool for customizing Kubernetes YAML files without using templates.",
+      "author": "ageha734",
+      "homepageUrl": "https://kustomize.io/",
+      "repositoryUrl": "https://github.com/ageha734/proto-plugins",
+      "bins": [
+        "kustomize"
+      ]
+    },
+    {
+      "id": "lefthook",
+      "locator": "https://raw.githubusercontent.com/ageha734/proto-plugins/refs/heads/master/toml/lefthook.toml",
+      "format": "toml",
+      "name": "lefthook",
+      "description": "A fast, multilingual Git hook manager.",
+      "author": "ageha734",
+      "homepageUrl": "https://lefthook.dev/",
+      "repositoryUrl": "https://github.com/ageha734/proto-plugins",
+      "bins": [
+        "lefthook"
+      ]
+    },
+    {
       "id": "mage",
       "locator": "https://raw.githubusercontent.com/Phault/proto-toml-plugins/main/mage/plugin.toml",
       "format": "toml",
@@ -1078,6 +1117,19 @@
       ]
     },
     {
+      "id": "terraform-docs",
+      "locator": "https://raw.githubusercontent.com/ageha734/proto-plugins/refs/heads/master/toml/terraform-docs.toml",
+      "format": "toml",
+      "name": "terraform-docs",
+      "description": "A utility to generate Terraform module documentation in various formats.",
+      "author": "ageha734",
+      "homepageUrl": "https://terraform-docs.io/",
+      "repositoryUrl": "https://github.com/ageha734/proto-plugins",
+      "bins": [
+        "terraform-docs"
+      ]
+    },
+    {
       "id": "terragrunt",
       "locator": "https://raw.githubusercontent.com/stk0vrfl0w/proto-toml-plugins/main/plugins/terragrunt.toml",
       "format": "toml",
@@ -1153,6 +1205,19 @@
       "repositoryUrl": "https://github.com/Phault/proto-toml-plugins",
       "bins": [
         "traefik"
+      ]
+    },
+    {
+      "id": "trivy",
+      "locator": "https://raw.githubusercontent.com/ageha734/proto-plugins/refs/heads/master/toml/trivy.toml",
+      "format": "toml",
+      "name": "trivy",
+      "description": "A comprehensive security scanner that detects vulnerabilities and misconfigurations in container images, file systems, Git repositories, and more.",
+      "author": "ageha734",
+      "homepageUrl": "https://trivy.dev",
+      "repositoryUrl": "https://github.com/ageha734/proto-plugins",
+      "bins": [
+        "trivy"
       ]
     },
     {
