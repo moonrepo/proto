@@ -13,8 +13,8 @@ use std::path::PathBuf;
 
 pub const SHIM_VERSION: u8 = 18;
 
-pub fn locate_proto_exe(bin: &str) -> Option<PathBuf> {
-    let bin = get_exe_file_name(bin);
+pub fn locate_proto_exe(exe_name: &str) -> Option<PathBuf> {
+    let exe_name = get_exe_file_name(exe_name);
     let mut lookup_dirs = vec![];
 
     // When in development, ensure we're using the target built proto,
@@ -81,7 +81,7 @@ pub fn locate_proto_exe(bin: &str) -> Option<PathBuf> {
     }
 
     for lookup_dir in lookup_dirs {
-        let file = lookup_dir.join(&bin);
+        let file = lookup_dir.join(&exe_name);
 
         if file.is_absolute() && file.exists() {
             return Some(file);

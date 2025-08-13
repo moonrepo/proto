@@ -77,30 +77,30 @@ pub fn is_command_on_path<T: AsRef<OsStr>>(name: T) -> bool {
     find_command_on_path(name.as_ref()).is_some()
 }
 
-/// Create a new process [`Command`] and append the provided arguments. If the provided binary
+/// Create a new process [`Command`] and append the provided arguments. If the provided executable
 /// name is not an absolute path, we'll attempt to find it on `PATH` using [`find_command_on_path`].
 ///
-/// Furthermore, if the binary path is a Windows script (`.ps1`, `.cmd`, `.bat`), we'll wrap
-/// the binary in a PowerShell command, and pass the original command via `-Command`.
+/// Furthermore, if the executable path is a Windows script (`.ps1`, `.cmd`, `.bat`), we'll wrap
+/// the executable in a PowerShell command, and pass the original command via `-Command`.
 pub fn create_process_command<T: AsRef<OsStr>, I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
-    bin: T,
+    exe: T,
     args: I,
 ) -> Command {
-    let bin = bin.as_ref();
+    let exe = exe.as_ref();
 
     // If an absolute path, use as-is, otherwise find the command
-    let bin_path = if bin
+    let exe_path = if exe
         .as_encoded_bytes()
         .iter()
         .any(|b| b.eq_ignore_ascii_case(&b'/') || b.eq_ignore_ascii_case(&b'\\'))
     {
-        PathBuf::from(bin)
+        PathBuf::from(exe)
     } else {
-        find_command_on_path(bin).unwrap_or_else(|| bin.into())
+        find_command_on_path(exe).unwrap_or_else(|| exe.into())
     };
 
     // If a Windows script, we must execute the command through powershell
-    match bin_path.extension().and_then(|ext| ext.to_str()) {
+    match exe_path.extension().and_then(|ext| ext.to_str()) {
         Some("ps1" | "cmd" | "bat") => {
             // This conversion is unfortunate...
             let args = args
@@ -111,11 +111,11 @@ pub fn create_process_command<T: AsRef<OsStr>, I: IntoIterator<Item = A>, A: AsR
             let mut cmd =
                 Command::new(find_command_on_path("pwsh").unwrap_or_else(|| "powershell".into()));
             cmd.arg("-Command");
-            cmd.arg(format!("{} {}", bin_path.display(), shell_words::join(args)).trim());
+            cmd.arg(format!("{} {}", exe_path.display(), shell_words::join(args)).trim());
             cmd
         }
         _ => {
-            let mut cmd = Command::new(bin_path);
+            let mut cmd = Command::new(exe_path);
             cmd.args(args);
             cmd
         }

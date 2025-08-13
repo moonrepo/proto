@@ -42,11 +42,7 @@ api_struct!(
     /// A command and its parameters to be executed as a child process.
     #[derive(Setters)]
     pub struct CommandInstruction {
-        /// The binary on `PATH`.
-        #[setters(into)]
-        pub bin: String,
-
-        /// If the binary should reference a builder executable.
+        /// If the executable should reference a builder executable.
         pub builder: bool,
 
         /// List of arguments.
@@ -57,6 +53,11 @@ api_struct!(
         #[serde(default, skip_serializing_if = "FxHashMap::is_empty")]
         pub env: FxHashMap<String, String>,
 
+        /// The executable on `PATH`.
+        #[setters(into)]
+        #[serde(alias = "bin")]
+        pub exe: String,
+
         /// The working directory.
         #[setters(strip_option)]
         #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -65,11 +66,11 @@ api_struct!(
 );
 
 impl CommandInstruction {
-    /// Create a new command with the binary and arguments.
-    pub fn new<I: IntoIterator<Item = V>, V: AsRef<str>>(bin: &str, args: I) -> Self {
+    /// Create a new command with the executable and arguments.
+    pub fn new<T: AsRef<str>, I: IntoIterator<Item = V>, V: AsRef<str>>(exe: T, args: I) -> Self {
         Self {
-            bin: bin.to_owned(),
             builder: false,
+            exe: exe.as_ref().to_owned(),
             args: args
                 .into_iter()
                 .map(|arg| arg.as_ref().to_owned())
@@ -79,8 +80,11 @@ impl CommandInstruction {
         }
     }
 
-    /// Create a new command that executes a binary from a builder with the arguments.
-    pub fn with_builder<I: IntoIterator<Item = V>, V: AsRef<str>>(id: &str, args: I) -> Self {
+    /// Create a new command that executes an executable from a builder with the arguments.
+    pub fn with_builder<T: AsRef<str>, I: IntoIterator<Item = V>, V: AsRef<str>>(
+        id: T,
+        args: I,
+    ) -> Self {
         let mut cmd = Self::new(id, args);
         cmd.builder = true;
         cmd
