@@ -64,10 +64,10 @@ async fn main() -> MainResult {
     let mut args = env::args_os().collect::<Vec<_>>();
 
     debug!(
-        bin = ?args.remove(0),
+        exe = ?args.remove(0),
         args = ?args,
         shim = env::var("PROTO_SHIM_NAME").ok(),
-        shim_bin = env::var("PROTO_SHIM_PATH").ok(),
+        shim_exe = env::var("PROTO_SHIM_PATH").ok(),
         pid = std::process::id(),
         "Running proto v{}",
         session.cli_version
