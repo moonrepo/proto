@@ -2,10 +2,10 @@ use proto_pdk_api::Checksum;
 use serde::{Deserialize, Serialize};
 use starbase_utils::fs;
 use starbase_utils::toml::{self, TomlError};
-use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
+use system_env::{SystemArch, SystemOS};
 use tracing::{debug, instrument};
 use version_spec::{UnresolvedVersionSpec, VersionSpec};
 use warpgate::Id;
@@ -17,6 +17,12 @@ pub const PROTO_LOCK_NAME: &str = ".protolock";
 pub struct LockRecord {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub backend: Option<Id>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub os: Option<SystemOS>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub arch: Option<SystemArch>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub spec: Option<UnresolvedVersionSpec>,
@@ -33,9 +39,11 @@ pub struct LockRecord {
 }
 
 impl LockRecord {
-    pub fn new(backend: Option<Id>) -> Self {
+    pub fn new(backend: Option<Id>, os: SystemOS, arch: SystemArch) -> Self {
         Self {
             backend,
+            os: Some(os),
+            arch: Some(arch),
             ..Default::default()
         }
     }
@@ -110,10 +118,20 @@ impl ProtoLock {
 
     pub fn sort_records(&mut self) {
         for records in self.tools.values_mut() {
-            records.sort_by(|a, d| match (a.spec.as_ref(), d.spec.as_ref()) {
-                (Some(a_spec), Some(d_spec)) => a_spec.cmp(d_spec),
-                _ => Ordering::Less,
+            records.sort_by_key(|record| {
+                (
+                    record.spec.clone(),
+                    record.backend.clone(),
+                    record.os,
+                    record.arch,
+                )
             });
+
+            // use std::cmp::Ordering;
+            // records.sort_by(|a, d| match (a.spec.as_ref(), d.spec.as_ref()) {
+            //     (Some(a_spec), Some(d_spec)) => a_spec.cmp(d_spec),
+            //     _ => Ordering::Less,
+            // });
         }
     }
 

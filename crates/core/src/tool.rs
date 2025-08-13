@@ -250,6 +250,11 @@ impl Tool {
         }
     }
 
+    /// Create an initial lock record.
+    pub fn create_lock_record(&self) -> LockRecord {
+        LockRecord::new(self.context.backend.clone(), self.proto.os, self.proto.arch)
+    }
+
     /// Register the tool by loading initial metadata and persisting it.
     #[instrument(skip_all)]
     pub async fn register_tool(&mut self) -> Result<(), ProtoToolError> {

@@ -36,14 +36,20 @@ impl Tool {
         let records = lock.tools.entry(self.get_id().to_owned()).or_default();
 
         // Find an existing record with the same spec
-        match records
-            .iter_mut()
-            .find(|existing| existing.backend == record.backend && existing.spec == record.spec)
-        {
+        match records.iter_mut().find(|existing| {
+            existing.backend == record.backend
+                && existing.spec == record.spec
+                && existing.os == record.os
+                && existing.arch == record.arch
+        }) {
             Some(existing) => {
                 // If the new record has a higher version,
                 // we should replace the existing record with it
-                if record.version.as_ref().unwrap() >= existing.version.as_ref().unwrap() {
+                if existing
+                    .version
+                    .as_ref()
+                    .is_none_or(|exv| record.version.as_ref().unwrap() > exv)
+                {
                     *existing = record;
                 }
             }
@@ -81,7 +87,12 @@ impl Tool {
             records.retain(|record| {
                 !(record.backend == self.context.backend
                     && record.spec.as_ref().is_some_and(|spec| spec == version)
-                    && record.version.as_ref().is_some_and(|ver| ver == version))
+                    && record.version.as_ref().is_some_and(|ver| ver == version)
+                    && record.os.as_ref().is_some_and(|os| os == &self.proto.os)
+                    && record
+                        .arch
+                        .as_ref()
+                        .is_some_and(|arch| arch == &self.proto.arch))
             });
         }
 
@@ -130,6 +141,11 @@ impl Tool {
                         .spec
                         .as_ref()
                         .is_some_and(|rec_spec| rec_spec == &spec.req)
+                    && record.os.as_ref().is_some_and(|os| os == &self.proto.os)
+                    && record
+                        .arch
+                        .as_ref()
+                        .is_some_and(|arch| arch == &self.proto.arch)
                 {
                     return Ok(Some(record.clone()));
                 }
