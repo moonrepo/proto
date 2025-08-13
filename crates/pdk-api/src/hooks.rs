@@ -27,7 +27,7 @@ pub enum HookFunction {
 
     /// Pre-run hook.
     ///
-    /// Called before executing a tool binary, allowing plugins to modify environment
+    /// Called before executing a tool's executable, allowing plugins to modify environment
     /// variables, validate runtime conditions, or perform setup.
     ///
     /// **Input:** [`RunHook`] | **Output:** [`RunHookResult`]
@@ -64,7 +64,7 @@ api_struct!(
         /// Whether the install was forced or not.
         pub forced: bool,
 
-        /// Arguments passed after `--` that was directly passed to the tool's binary.
+        /// Arguments passed after `--` that was directly passed to the tool's executable.
         pub passthrough_args: Vec<String>,
 
         /// Whether the resolved version was pinned.
@@ -77,7 +77,7 @@ api_struct!(
 
 api_struct!(
     /// Input passed to the `pre_run` hook, before a `proto run` command
-    /// or language binary is ran.
+    /// or language executable is ran.
     pub struct RunHook {
         /// Current tool context.
         pub context: PluginContext,
@@ -88,7 +88,7 @@ api_struct!(
         /// A prefix applied to the file names of globally installed packages.
         pub globals_prefix: Option<String>,
 
-        /// Arguments passed after `--` that was directly passed to the tool's binary.
+        /// Arguments passed after `--` that was directly passed to the tool's executable.
         pub passthrough_args: Vec<String>,
     }
 );

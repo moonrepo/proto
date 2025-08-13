@@ -297,7 +297,7 @@ impl Tool {
     }
 
     /// Return an absolute path to the globals directory that actually exists
-    /// and contains files (binaries).
+    /// and contains files (executables).
     #[instrument(skip_all)]
     pub async fn locate_globals_dir(&mut self) -> Result<Option<PathBuf>, ProtoLocateError> {
         if self.globals_dir.is_none() {

@@ -525,7 +525,7 @@ api_struct!(
         /// Virtual path to the downloaded file.
         pub input_file: VirtualPath,
 
-        /// Virtual directory to unpack the archive into, or copy the binary to.
+        /// Virtual directory to unpack the archive into, or copy the executable to.
         pub output_dir: VirtualPath,
     }
 );
@@ -572,7 +572,7 @@ api_struct!(
 );
 
 api_struct!(
-    /// Configuration for generated shim and symlinked binary files.
+    /// Configuration for generated shim and symlinked executable files.
     #[derive(Setters)]
     #[serde(default)]
     pub struct ExecutableConfig {
@@ -582,7 +582,7 @@ api_struct!(
         #[serde(skip_serializing_if = "Option::is_none")]
         pub exe_path: Option<PathBuf>,
 
-        /// The executable path to use for symlinking binaries instead of `exe_path`.
+        /// The executable path to use for symlinking instead of `exe_path`.
         /// This should only be used when `exe_path` is a non-standard executable.
         #[setters(strip_option)]
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -676,7 +676,7 @@ api_struct!(
         #[serde(skip_serializing_if = "Vec::is_empty")]
         pub globals_lookup_dirs: Vec<String>,
 
-        /// A string that all global binaries are prefixed with, and will be removed
+        /// A string that all global executables are prefixed with, and will be removed
         /// when listing and filtering available globals.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub globals_prefix: Option<String>,
@@ -819,7 +819,7 @@ api_struct!(
         /// Current tool context.
         pub context: PluginContext,
 
-        /// Arguments passed after `--` that was directly passed to the tool's binary.
+        /// Arguments passed after `--` that was directly passed to the tool's executable.
         pub passthrough_args: Vec<String>,
     }
 );

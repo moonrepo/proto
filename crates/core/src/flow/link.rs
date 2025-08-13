@@ -79,7 +79,7 @@ impl Tool {
                 }
             }
 
-            // Create the shim file by copying the source bin
+            // Create the shim file by copying the source executable
             if force_create || find_only && !shim.path.exists() {
                 to_create.push(shim.path);
             }

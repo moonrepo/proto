@@ -98,7 +98,7 @@ where
 }
 
 /// Load all Git tags from the provided remote URL.
-/// The `git` binary must exist on the host machine.
+/// The `git` executable must exist on the host machine.
 pub fn load_git_tags<U>(url: U) -> AnyResult<Vec<String>>
 where
     U: AsRef<str>,

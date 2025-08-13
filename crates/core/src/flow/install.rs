@@ -397,12 +397,12 @@ impl Tool {
             )?;
 
             // If the archive was `.gz` without tar or other formats,
-            // it's a single file, so assume a binary and update perms
+            // it's a single file, so assume a file and update perms
             if ext == "gz" && unpacked_path.is_file() {
                 fs::update_perms(unpacked_path, None)?;
             }
         }
-        // Not an archive, assume a binary and copy
+        // Not an archive, assume a file and copy
         else {
             let install_path = install_dir.join(get_exe_file_name(self.get_id()));
 

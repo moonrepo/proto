@@ -34,7 +34,7 @@ pub struct RunArgs {
     #[arg(
         long,
         hide = true,
-        help = "Name of an alternate (secondary) binary to run"
+        help = "Name of an alternate (secondary) executable to run"
     )]
     alt: Option<String>,
 
@@ -113,9 +113,9 @@ async fn get_tool_executable(tool: &Tool, alt: Option<&str>) -> miette::Result<E
 
                 if alt_exe_path.exists() {
                     debug!(
-                        bin = alt_name,
+                        exe = alt_name,
                         path = ?alt_exe_path,
-                        "Received an alternate binary to run with",
+                        "Received an alternate executable to run with",
                     );
 
                     return Ok(ExecutableConfig {
@@ -194,7 +194,7 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
         args.extend(base_args.iter().map(|arg| arg.as_ref()));
 
         debug!(
-            bin = ?parent_exe_path,
+            exe = ?parent_exe_path,
             args = ?args,
             pid = std::process::id(),
             "Running {}", tool.get_name(),
@@ -205,7 +205,7 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
         let args = base_args.iter().map(|arg| arg.as_ref()).collect::<Vec<_>>();
 
         debug!(
-            bin = ?exe_path,
+            exe = ?exe_path,
             args = ?args,
             pid = std::process::id(),
             "Running {}", tool.get_name(),
@@ -357,7 +357,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
         // If this is the proto tool running, continue instead of failing
         else if use_global_proto {
             debug!(
-                "No proto version detected or located, falling back to the global proto binary!"
+                "No proto version detected or located, falling back to the global proto executable!"
             );
         }
         // Otherwise fail with a not installed error
@@ -383,7 +383,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
         }
     }
 
-    // Determine the binary path to execute
+    // Determine the executable path to execute
     let exe_config = if use_global_proto {
         ExecutableConfig {
             exe_path: locate_proto_exe("proto"),

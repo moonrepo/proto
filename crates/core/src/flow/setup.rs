@@ -13,7 +13,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use tracing::{debug, instrument};
 
 impl Tool {
-    /// Return true if the tool has been setup (installed and binaries are located).
+    /// Return true if the tool has been setup (installed and executables are located).
     #[instrument(skip(self))]
     pub async fn is_setup(&mut self, spec: &ToolSpec) -> Result<bool, ProtoSetupError> {
         self.resolve_version(spec, true).await?;
