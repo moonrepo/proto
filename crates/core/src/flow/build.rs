@@ -949,13 +949,13 @@ pub async fn execute_instructions(
             }
             BuildInstruction::RunCommand(cmd) => {
                 let exe = if cmd.builder {
-                    builder_exes.get(&cmd.bin).cloned().ok_or_else(|| {
+                    builder_exes.get(&cmd.exe).cloned().ok_or_else(|| {
                         ProtoBuildError::MissingBuilder {
-                            id: cmd.bin.clone(),
+                            id: cmd.exe.clone(),
                         }
                     })?
                 } else {
-                    PathBuf::from(&cmd.bin)
+                    PathBuf::from(&cmd.exe)
                 };
 
                 builder.render_checkpoint(format!(
