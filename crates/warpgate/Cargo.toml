@@ -1,6 +1,6 @@
 [package]
 name = "warpgate"
-version = "0.26.2"
+version = "0.26.3"
 edition = "2024"
 license = "MIT"
 description = "Download, resolve, and manage Extism WASM plugins."
