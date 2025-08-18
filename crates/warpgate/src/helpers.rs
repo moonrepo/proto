@@ -7,7 +7,7 @@ use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use tracing::instrument;
-use warpgate_api::VirtualPath;
+use warpgate_api::{PluginLocator, UrlLocator, VirtualPath};
 
 /// Create a SHA256 hash key based on the provided URL and seed.
 pub fn create_cache_key(url: &str, seed: Option<&str>) -> String {
@@ -195,4 +195,33 @@ fn prepare_to_path(path: &Path) -> PathBuf {
 #[cfg(windows)]
 fn prepare_from_path(path: &Path) -> PathBuf {
     PathBuf::from(path.to_string_lossy().replace('/', "\\"))
+}
+
+#[doc(hidden)]
+pub fn find_debug_locator(name: &str) -> Option<PluginLocator> {
+    #[cfg(any(debug_assertions, test))]
+    {
+        use crate::test_utils::find_wasm_file_with_name;
+        use warpgate_api::FileLocator;
+
+        if let Some(wasm_path) = find_wasm_file_with_name(name) {
+            return Some(PluginLocator::File(Box::new(FileLocator {
+                file: format!("file://{}", wasm_path.display()),
+                path: Some(wasm_path),
+            })));
+        }
+    }
+
+    None
+}
+
+#[doc(hidden)]
+pub fn find_debug_locator_with_url_fallback(name: &str, version: &str) -> PluginLocator {
+    find_debug_locator(name).unwrap_or_else(|| {
+        PluginLocator::Url(Box::new(UrlLocator {
+            url: format!(
+                "https://github.com/moonrepo/plugins/releases/download/{name}-v{version}/{name}.wasm"
+            ),
+        }))
+    })
 }
