@@ -104,7 +104,7 @@ macro_rules! host_env {
 macro_rules! host_log {
     (input, $input:expr) => {
         unsafe {
-            host_log(Json($input))?;
+            host_log!(Json($input))?;
         };
     };
     (stdout, $($arg:tt)+) => {
@@ -121,8 +121,36 @@ macro_rules! host_log {
             ..HostLogInput::default()
         })
     };
+    (error, $($arg:tt)+) => {
+        host_log!(input, HostLogInput {
+            message: format!($($arg)+),
+            target: HostLogTarget::Error,
+            ..HostLogInput::default()
+        })
+    };
+    (warn, $($arg:tt)+) => {
+        host_log!(input, HostLogInput {
+            message: format!($($arg)+),
+            target: HostLogTarget::Warn,
+            ..HostLogInput::default()
+        })
+    };
+    (debug, $($arg:tt)+) => {
+        host_log!(input, HostLogInput {
+            message: format!($($arg)+),
+            target: HostLogTarget::Debug,
+            ..HostLogInput::default()
+        })
+    };
+    (trace, $($arg:tt)+) => {
+        host_log!(input, HostLogInput {
+            message: format!($($arg)+),
+            target: HostLogTarget::Trace,
+            ..HostLogInput::default()
+        })
+    };
     ($($arg:tt)+) => {
-        host_log!(input, format!($($arg)+).into())
+        host_log!(input, HostLogInput::new(format!($($arg)+)))
     };
 }
 
