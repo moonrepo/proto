@@ -5224,7 +5224,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_pdk"
-version = "0.15.2"
+version = "0.15.3"
 dependencies = [
  "extism-pdk",
  "serde",
