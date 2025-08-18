@@ -1,6 +1,6 @@
 [package]
 name = "warpgate_pdk"
-version = "0.15.1"
+version = "0.15.2"
 edition = "2024"
 license = "MIT"
 description = "Reusable WASM macros and functions for plugin developer kits."
