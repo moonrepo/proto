@@ -33,6 +33,7 @@
   - To differentiate between tool plugins, a new `[plugins.tools]` setting was also added. Existing plugins should continue to work without modification.
   - Added a `--type` option to `proto plugin add` and `proto plugin remove`.
 - Updated lockfiles to track `os` and `arch` information.
+  - For existing entries, we attempt to backfill these values. If you run into issues, delete the lockfile and regenerate it.
 
 #### ⚙️ Internal
 

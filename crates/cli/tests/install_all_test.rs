@@ -4,6 +4,7 @@ use proto_core::{LockRecord, ToolManifest, VersionSpec};
 use proto_pdk_api::Checksum;
 use starbase_sandbox::predicates::prelude::*;
 use std::path::Path;
+use system_env::{SystemArch, SystemOS};
 use utils::*;
 
 mod install_all {
@@ -211,6 +212,8 @@ moonbase = "3.0.0"
                     VersionSpec::parse("1.0.0").unwrap()
                 ),
                 LockRecord {
+                    // os: Some(SystemOS::default()),
+                    // arch: Some(SystemArch::default()),
                     // spec: Some(UnresolvedVersionSpec::parse("1.0.0").unwrap()),
                     // version: Some(VersionSpec::parse("1.0.0").unwrap()),
                     checksum: Some(Checksum::sha256(
@@ -226,6 +229,8 @@ moonbase = "3.0.0"
                     VersionSpec::parse("2.0.0").unwrap()
                 ),
                 LockRecord {
+                    // os: Some(SystemOS::default()),
+                    // arch: Some(SystemArch::default()),
                     // spec: Some(UnresolvedVersionSpec::parse("2.0.0").unwrap()),
                     // version: Some(VersionSpec::parse("2.0.0").unwrap()),
                     checksum: Some(Checksum::sha256(
@@ -241,6 +246,8 @@ moonbase = "3.0.0"
                     VersionSpec::parse("3.0.0").unwrap()
                 ),
                 LockRecord {
+                    // os: Some(SystemOS::default()),
+                    // arch: Some(SystemArch::default()),
                     // spec: Some(UnresolvedVersionSpec::parse("3.0.0").unwrap()),
                     // version: Some(VersionSpec::parse("3.0.0").unwrap()),
                     checksum: Some(Checksum::sha256(

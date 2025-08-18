@@ -88,11 +88,8 @@ impl Tool {
                 !(record.backend == self.context.backend
                     && record.spec.as_ref().is_some_and(|spec| spec == version)
                     && record.version.as_ref().is_some_and(|ver| ver == version)
-                    && record.os.as_ref().is_some_and(|os| os == &self.proto.os)
-                    && record
-                        .arch
-                        .as_ref()
-                        .is_some_and(|arch| arch == &self.proto.arch))
+                    && record.os == self.proto.os
+                    && record.arch == self.proto.arch)
             });
         }
 
@@ -141,11 +138,8 @@ impl Tool {
                         .spec
                         .as_ref()
                         .is_some_and(|rec_spec| rec_spec == &spec.req)
-                    && record.os.as_ref().is_some_and(|os| os == &self.proto.os)
-                    && record
-                        .arch
-                        .as_ref()
-                        .is_some_and(|arch| arch == &self.proto.arch)
+                    && record.os == self.proto.os
+                    && record.arch == self.proto.arch
                 {
                     return Ok(Some(record.clone()));
                 }
@@ -206,6 +200,20 @@ impl Tool {
             }
             _ => {}
         };
+
+        if install_record.os != locked_record.os {
+            return Err(ProtoLockError::MismatchedOs {
+                os: install_record.os.to_string(),
+                lockfile_os: locked_record.os.to_string(),
+            });
+        }
+
+        if install_record.arch != locked_record.arch {
+            return Err(ProtoLockError::MismatchedArch {
+                arch: install_record.arch.to_string(),
+                lockfile_arch: locked_record.arch.to_string(),
+            });
+        }
 
         Ok(())
     }
