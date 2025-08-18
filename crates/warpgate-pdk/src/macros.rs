@@ -104,7 +104,7 @@ macro_rules! host_env {
 macro_rules! host_log {
     (input, $input:expr) => {
         unsafe {
-            host_log!(Json($input))?;
+            host_log(Json($input))?;
         };
     };
     (stdout, $($arg:tt)+) => {
