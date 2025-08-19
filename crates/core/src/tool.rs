@@ -293,7 +293,7 @@ impl Tool {
 
             debug!(
                 tool = self.context.as_str(),
-                override_virtual = ?override_dir,
+                override_virtual = ?override_dir.real_path(),
                 override_real = ?override_dir_path,
                 "Attempting to override inventory directory"
             );
