@@ -237,8 +237,8 @@ version = "5.10.0"
             let records = lockfile.tools.get("protostar").unwrap();
 
             assert_eq!(records.len(), 2);
-            assert_record!(records[0], "^5.10", "5.10.0");
-            assert_record!(records[1], "^5.10", "5.10.15");
+            assert_record!(records[0], "^5.10", "5.10.15");
+            assert_record!(records[1], "^5.10", "5.10.0");
         }
 
         #[test]
@@ -264,6 +264,7 @@ checksum = "sha256:invalid"
                 .success();
 
             let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
+
             let records = lockfile.tools.get("protostar").unwrap();
 
             assert_eq!(records.len(), 1);

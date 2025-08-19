@@ -45,7 +45,7 @@ pub enum ProtoLockError {
 
     #[diagnostic(code(proto::install::mismatched_arch))]
     #[error(
-        "Operating system architecture mismatch! Received {} but expected {}.",
+        "System architecture mismatch! Received {} but expected {}.",
         .arch.style(Style::Hash),
         .lockfile_arch.style(Style::Hash),
     )]

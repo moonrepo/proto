@@ -48,7 +48,7 @@ impl Tool {
                 if existing
                     .version
                     .as_ref()
-                    .is_none_or(|exv| record.version.as_ref().unwrap() > exv)
+                    .is_none_or(|exv| record.version.as_ref().unwrap() >= exv)
                 {
                     *existing = record;
                 }

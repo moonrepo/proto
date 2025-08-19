@@ -4,7 +4,6 @@ use proto_core::{LockRecord, ToolManifest, VersionSpec};
 use proto_pdk_api::Checksum;
 use starbase_sandbox::predicates::prelude::*;
 use std::path::Path;
-use system_env::{SystemArch, SystemOS};
 use utils::*;
 
 mod install_all {

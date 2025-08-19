@@ -1,4 +1,7 @@
-node = "latest"
+node = "24.5.0"
+
+[settings]
+unstable-lockfile = true
 
 # [plugins.backends]
 # asdf = "file://../moonrepo/plugins/target/wasm32-wasip1/release/asdf_backend.wasm"
