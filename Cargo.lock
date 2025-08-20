@@ -3220,7 +3220,7 @@ dependencies = [
 
 [[package]]
 name = "proto_shim"
-version = "0.7.6"
+version = "0.7.7"
 dependencies = [
  "dirs 6.0.0",
  "windows-sys 0.60.2",
@@ -5212,7 +5212,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_api"
-version = "0.16.1"
+version = "0.16.2"
 dependencies = [
  "anyhow",
  "derive_setters",
@@ -5226,7 +5226,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate_pdk"
-version = "0.15.3"
+version = "0.15.4"
 dependencies = [
  "extism-pdk",
  "serde",

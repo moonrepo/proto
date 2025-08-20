@@ -11,7 +11,7 @@ rust-version = "1.85.0"
 [dependencies]
 system_env = { version = "0.8.3", path = "../system-env" }
 version_spec = { version = "0.9.5", path = "../version-spec" }
-warpgate_api = { version = "0.16.1", path = "../warpgate-api" }
+warpgate_api = { version = "0.16.2", path = "../warpgate-api" }
 derive_setters = { workspace = true }
 rustc-hash = { workspace = true }
 schematic = { workspace = true, features = [
