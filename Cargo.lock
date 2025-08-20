@@ -3190,7 +3190,7 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.29.2"
+version = "0.29.3"
 dependencies = [
  "derive_setters",
  "proto_pdk_api",
@@ -4484,7 +4484,7 @@ dependencies = [
 
 [[package]]
 name = "system_env"
-version = "0.8.2"
+version = "0.8.3"
 dependencies = [
  "regex",
  "schematic",
