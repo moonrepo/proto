@@ -36,9 +36,6 @@ pub struct LockRecord {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source: Option<String>,
-
-    #[serde(skip)]
-    pub ignore_os_arch: bool,
 }
 
 impl LockRecord {
@@ -62,14 +59,6 @@ impl LockRecord {
         let mut record = self.clone();
         record.source = None;
         record
-    }
-
-    pub fn inherit_options(&mut self, options: &ToolLockOptions) {
-        if options.ignore_os_arch {
-            self.os = None;
-            self.arch = None;
-            self.ignore_os_arch = true;
-        }
     }
 
     pub fn is_match(&self, other: &Self, options: &ToolLockOptions) -> bool {

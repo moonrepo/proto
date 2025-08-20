@@ -1214,7 +1214,7 @@
       "name": "trivy",
       "description": "A comprehensive security scanner that detects vulnerabilities and misconfigurations in container images, file systems, Git repositories, and more.",
       "author": "ageha734",
-      "homepageUrl": "https://trivy.dev",
+      "homepageUrl": "https://trivy.dev/",
       "repositoryUrl": "https://github.com/ageha734/proto-plugins",
       "bins": [
         "trivy"
