@@ -42,6 +42,22 @@ pub enum ProtoLockError {
         lockfile_checksum: String,
         source_url: String,
     },
+
+    #[diagnostic(code(proto::install::mismatched_arch))]
+    #[error(
+        "System architecture mismatch! Received {} but expected {}.",
+        .arch.style(Style::Hash),
+        .lockfile_arch.style(Style::Hash),
+    )]
+    MismatchedArch { arch: String, lockfile_arch: String },
+
+    #[diagnostic(code(proto::install::mismatched_os))]
+    #[error(
+        "Operating system mismatch! Received {} but expected {}.",
+        .os.style(Style::Hash),
+        .lockfile_os.style(Style::Hash),
+    )]
+    MismatchedOs { os: String, lockfile_os: String },
 }
 
 impl From<ProtoConfigError> for ProtoLockError {

@@ -2,7 +2,7 @@ use super::inventory::Inventory;
 use super::layout_error::ProtoLayoutError;
 use crate::tool_manifest::ToolManifest;
 use once_cell::sync::OnceCell;
-use proto_pdk_api::ToolInventoryMetadata;
+use proto_pdk_api::ToolInventoryOptions;
 use proto_shim::{create_shim, locate_proto_exe};
 use serde::Serialize;
 use starbase_utils::fs;
@@ -49,7 +49,7 @@ impl Store {
     pub fn create_inventory(
         &self,
         id: &Id,
-        config: &ToolInventoryMetadata,
+        config: &ToolInventoryOptions,
     ) -> Result<Inventory, ProtoLayoutError> {
         let dir = self.inventory_dir.join(id.as_str());
 

@@ -15,6 +15,7 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLockReadGuard, RwLockWriteGuard};
 use std::time::Duration;
+use system_env::{SystemArch, SystemOS};
 use tracing::debug;
 use warpgate::PluginLoader;
 
@@ -28,6 +29,9 @@ pub struct ProtoEnvironment {
     pub store: Store,
     pub test_only: bool,
     pub working_dir: PathBuf,
+
+    pub os: SystemOS,
+    pub arch: SystemArch,
 
     file_manager: Arc<OnceCell<ProtoFileManager>>,
     plugin_loader: Arc<OnceCell<PluginLoader>>,
@@ -73,6 +77,8 @@ impl ProtoEnvironment {
             plugin_loader: Arc::new(OnceCell::new()),
             test_only: env::var("PROTO_TEST").is_ok(),
             store: Store::new(root),
+            os: SystemOS::default(),
+            arch: SystemArch::default(),
         })
     }
 

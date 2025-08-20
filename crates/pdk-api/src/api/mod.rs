@@ -178,6 +178,10 @@ pub(crate) fn is_false(value: &bool) -> bool {
     !(*value)
 }
 
+pub(crate) fn is_default<T: Default + PartialEq>(value: &T) -> bool {
+    value == &T::default()
+}
+
 api_struct!(
     /// Information about the current state of the plugin,
     /// after a version has been resolved.
@@ -247,7 +251,7 @@ pub type ToolMetadataInput = RegisterToolInput;
 api_struct!(
     /// Controls aspects of the tool inventory.
     #[serde(default)]
-    pub struct ToolInventoryMetadata {
+    pub struct ToolInventoryOptions {
         /// Override the tool inventory directory (where all versions are installed).
         /// This is an advanced feature and should only be used when absolutely necessary.
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -267,6 +271,21 @@ api_unit_enum!(
         #[default]
         #[serde(alias = "DownloadPrebuilt")] // TEMP
         DownloadPrebuilt,
+    }
+);
+
+api_struct!(
+    /// Options related to lockfile integration.
+    #[serde(default)]
+    pub struct ToolLockOptions {
+        /// Ignore operating system and architecture values
+        /// when matching against records in the lockfile.
+        #[serde(skip_serializing_if = "is_false")]
+        pub ignore_os_arch: bool,
+
+        /// Do not record the install in the lockfile.
+        #[serde(skip_serializing_if = "is_false")]
+        pub no_record: bool,
     }
 );
 
@@ -291,8 +310,12 @@ api_struct!(
         pub deprecations: Vec<String>,
 
         /// Controls aspects of the tool inventory.
-        #[serde(default)]
-        pub inventory: ToolInventoryMetadata,
+        #[serde(default, skip_serializing_if = "is_default", alias = "inventory")]
+        pub inventory_options: ToolInventoryOptions,
+
+        /// Options for integrating with a lockfile.
+        #[serde(default, skip_serializing_if = "is_default")]
+        pub lock_options: ToolLockOptions,
 
         /// Minimum version of proto required to execute this plugin.
         #[serde(default, skip_serializing_if = "Option::is_none")]

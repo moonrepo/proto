@@ -6,7 +6,7 @@ use std::fmt;
 use std::process::Command;
 
 /// Architecture of the system environment.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
 #[serde(rename_all = "lowercase")]
 pub enum SystemArch {
@@ -65,7 +65,7 @@ impl fmt::Display for SystemArch {
 }
 
 /// Operating system of the current environment.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[cfg_attr(feature = "schematic", derive(schematic::Schematic))]
 #[serde(rename_all = "lowercase")]
 pub enum SystemOS {

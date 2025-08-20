@@ -197,7 +197,7 @@ impl Tool {
         // so allow proto to use any available version instead of failing
         unsafe { std::env::set_var(format!("{}_VERSION", self.get_env_var_prefix()), "*") };
 
-        let mut record = LockRecord::new(self.context.backend.clone());
+        let mut record = self.create_locked_record();
 
         // Step 0
         log_build_information(&mut builder, &output)?;
@@ -259,7 +259,7 @@ impl Tool {
             )
             .await?;
 
-        let mut record = LockRecord::new(self.context.backend.clone());
+        let mut record = self.create_locked_record();
 
         // Download the prebuilt
         let download_url = config.rewrite_url(output.download_url);
@@ -464,7 +464,7 @@ impl Tool {
                 .await?;
 
             if output.installed {
-                let mut record = LockRecord::new(self.context.backend.clone());
+                let mut record = self.create_locked_record();
                 record.checksum = output.checksum;
 
                 // Verify against lockfile

@@ -9,6 +9,7 @@ use starbase_sandbox::predicates::prelude::*;
 use std::collections::BTreeSet;
 use std::fs;
 use std::time::SystemTime;
+use system_env::{SystemArch, SystemOS};
 use utils::*;
 
 mod install_one {
@@ -820,6 +821,8 @@ mod install_one {
             assert_eq!(
                 lock,
                 LockRecord {
+                    os: Some(SystemOS::default()),
+                    arch: Some(SystemArch::default()),
                     // spec: Some(UnresolvedVersionSpec::parse("1.0.0").unwrap()),
                     // version: Some(VersionSpec::parse("1.0.0").unwrap()),
                     checksum: Some(Checksum::sha256(
