@@ -158,8 +158,8 @@ pub async fn install_one(
     spec.resolve_from_manifest = false;
 
     // Don't resolve the version from a lockfile
-    spec.read_lockfile = !args.update_lockfile;
-    spec.write_lockfile = !args.internal;
+    spec.resolve_from_lockfile = !args.update_lockfile;
+    spec.update_lockfile = !args.internal;
 
     // Load config including global versions,
     // so that our requirements can be satisfied
@@ -328,8 +328,8 @@ async fn install_all(session: ProtoSession, args: InstallArgs) -> AppResult {
         };
 
         let mut spec = version.clone();
-        spec.read_lockfile = !args.update_lockfile;
-        spec.write_lockfile = !args.internal;
+        spec.resolve_from_lockfile = !args.update_lockfile;
+        spec.update_lockfile = !args.internal;
 
         let tool_context = tool.context.clone();
         let topo_graph = topo_graph.clone();

@@ -1,3 +1,4 @@
+use super::ToolLockOptions;
 use super::source::*;
 use crate::PluginContext;
 use derive_setters::Setters;
@@ -153,6 +154,10 @@ api_struct!(
         /// dependencies have been installed.
         #[serde(skip_serializing_if = "Vec::is_empty")]
         pub instructions: Vec<BuildInstruction>,
+
+        /// Options for integrating with a lockfile.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pub lock_options: Option<ToolLockOptions>,
 
         /// List of requirements that must be met before dependencies are
         /// installed and instructions are executed.

@@ -18,13 +18,13 @@ pub struct ToolSpec {
     pub version: Option<VersionSpec>,
 
     /// Resolve a version from the lockfile?
-    pub read_lockfile: bool,
+    pub resolve_from_lockfile: bool,
 
     /// Resolve a version from the manifest?
     pub resolve_from_manifest: bool,
 
     /// Update the lockfile when applicable?
-    pub write_lockfile: bool,
+    pub update_lockfile: bool,
 }
 
 impl ToolSpec {
@@ -66,9 +66,9 @@ impl Default for ToolSpec {
             backend: None,
             req: UnresolvedVersionSpec::default(),
             version: None,
-            read_lockfile: true,
+            resolve_from_lockfile: true,
             resolve_from_manifest: true,
-            write_lockfile: true,
+            update_lockfile: true,
         }
     }
 }

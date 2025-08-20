@@ -3,7 +3,7 @@ use super::product::Product;
 use crate::helpers::{is_cache_enabled, is_offline};
 use crate::lockfile::LockRecord;
 use crate::tool_manifest::ToolManifest;
-use proto_pdk_api::{LoadVersionsOutput, ToolInventoryMetadata};
+use proto_pdk_api::{LoadVersionsOutput, ToolInventoryOptions};
 use starbase_utils::{fs, json};
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
@@ -12,7 +12,7 @@ use version_spec::VersionSpec;
 
 #[derive(Clone, Debug, Default)]
 pub struct Inventory {
-    pub config: ToolInventoryMetadata,
+    pub config: ToolInventoryOptions,
     pub dir: PathBuf,
     pub dir_original: Option<PathBuf>,
     pub manifest: ToolManifest,

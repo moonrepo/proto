@@ -3,6 +3,7 @@ mod utils;
 use proto_core::{ProtoLock, UnresolvedVersionSpec, VersionSpec};
 use proto_pdk_api::ChecksumAlgorithm;
 use starbase_sandbox::predicates::prelude::*;
+use system_env::{SystemArch, SystemOS};
 use utils::*;
 
 macro_rules! assert_record {
@@ -46,6 +47,8 @@ mod install_one_lockfile {
 
             let record = lockfile.tools.get("protostar").unwrap().first().unwrap();
 
+            assert_eq!(record.os.as_ref().unwrap(), &SystemOS::default());
+            assert_eq!(record.arch.as_ref().unwrap(), &SystemArch::default());
             assert_eq!(
                 record.spec.as_ref().unwrap(),
                 &UnresolvedVersionSpec::parse("5.0.0").unwrap()
@@ -163,11 +166,17 @@ mod install_one_lockfile {
             let sandbox = create_proto_sandbox("lockfile");
             sandbox.create_file(
                 ".protolock",
-                r#"
+                format!(
+                    r#"
 [[tools.protostar]]
+os = "{}"
+arch = "{}"
 spec = "^5.10"
 version = "5.10.0"
 "#,
+                    SystemOS::default(),
+                    SystemArch::default()
+                ),
             );
 
             sandbox
@@ -187,15 +196,52 @@ version = "5.10.0"
         }
 
         #[test]
-        fn doesnt_update_existing_spec_with_lower_version() {
+        fn updates_existing_spec_with_missing_os_arch() {
             let sandbox = create_proto_sandbox("lockfile");
             sandbox.create_file(
                 ".protolock",
                 r#"
 [[tools.protostar]]
 spec = "^5.10"
+version = "5.10.0"
+"#,
+            );
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install")
+                        .arg("protostar")
+                        .arg("^5.10")
+                        .arg("--update-lockfile");
+                })
+                .success();
+
+            let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
+            let records = lockfile.tools.get("protostar").unwrap();
+            let record = &records[0];
+
+            assert_eq!(records.len(), 1);
+            assert_record!(record, "^5.10", "5.10.15");
+            assert_eq!(record.os.as_ref().unwrap(), &SystemOS::default());
+            assert_eq!(record.arch.as_ref().unwrap(), &SystemArch::default());
+        }
+
+        #[test]
+        fn doesnt_update_existing_spec_with_lower_version() {
+            let sandbox = create_proto_sandbox("lockfile");
+            sandbox.create_file(
+                ".protolock",
+                format!(
+                    r#"
+[[tools.protostar]]
+os = "{}"
+arch = "{}"
+spec = "^5.10"
 version = "5.10.100"
 "#,
+                    SystemOS::default(),
+                    SystemArch::default()
+                ),
             );
 
             sandbox
@@ -219,12 +265,82 @@ version = "5.10.100"
             let sandbox = create_proto_sandbox("lockfile");
             sandbox.create_file(
                 ".protolock",
-                r#"
+                format!(
+                    r#"
 [[tools.protostar]]
+os = "{}"
+arch = "{}"
 backend = "asdf"
 spec = "^5.10"
 version = "5.10.0"
 "#,
+                    SystemOS::default(),
+                    SystemArch::default()
+                ),
+            );
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("protostar").arg("^5.10");
+                })
+                .success();
+
+            let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
+            let records = lockfile.tools.get("protostar").unwrap();
+
+            assert_eq!(records.len(), 2);
+            assert_record!(records[0], "^5.10", "5.10.15");
+            assert_record!(records[1], "^5.10", "5.10.0");
+        }
+
+        #[test]
+        fn doesnt_update_existing_spec_with_different_os() {
+            let sandbox = create_proto_sandbox("lockfile");
+            sandbox.create_file(
+                ".protolock",
+                format!(
+                    r#"
+[[tools.protostar]]
+os = "{}"
+arch = "{}"
+spec = "^5.10"
+version = "5.10.0"
+"#,
+                    SystemOS::Android,
+                    SystemArch::default()
+                ),
+            );
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("protostar").arg("^5.10");
+                })
+                .success();
+
+            let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
+            let records = lockfile.tools.get("protostar").unwrap();
+
+            assert_eq!(records.len(), 2);
+            assert_record!(records[0], "^5.10", "5.10.0");
+            assert_record!(records[1], "^5.10", "5.10.15");
+        }
+
+        #[test]
+        fn doesnt_update_existing_spec_with_different_arch() {
+            let sandbox = create_proto_sandbox("lockfile");
+            sandbox.create_file(
+                ".protolock",
+                format!(
+                    r#"
+[[tools.protostar]]
+os = "{}"
+arch = "{}"
+spec = "^5.10"
+version = "5.10.0"
+"#,
+                    SystemOS::default(),
+                    SystemArch::Mips64
+                ),
             );
 
             sandbox
@@ -246,12 +362,18 @@ version = "5.10.0"
             let sandbox = create_proto_sandbox("lockfile");
             sandbox.create_file(
                 ".protolock",
-                r#"
+                format!(
+                    r#"
 [[tools.protostar]]
+os = "{}"
+arch = "{}"
 spec = "5.10.0"
 version = "5.10.0"
 checksum = "sha256:invalid"
 "#,
+                    SystemOS::default(),
+                    SystemArch::default()
+                ),
             );
 
             sandbox
@@ -281,11 +403,17 @@ checksum = "sha256:invalid"
             let sandbox = create_proto_sandbox("lockfile");
             sandbox.create_file(
                 ".protolock",
-                r#"
+                format!(
+                    r#"
 [[tools.protostar]]
+os = "{}"
+arch = "{}"
 spec = "^5.10"
 version = "5.10.100"
 "#,
+                    SystemOS::default(),
+                    SystemArch::default()
+                ),
             );
 
             let assert = sandbox
@@ -302,12 +430,18 @@ version = "5.10.100"
             let sandbox = create_proto_sandbox("lockfile");
             sandbox.create_file(
                 ".protolock",
-                r#"
+                format!(
+                    r#"
 [[tools.protostar]]
+os = "{}"
+arch = "{}"
 spec = "5.10.0"
 version = "5.10.0"
 checksum = "sha256:invalid"
 "#,
+                    SystemOS::default(),
+                    SystemArch::default()
+                ),
             );
 
             let assert = sandbox
@@ -328,11 +462,17 @@ checksum = "sha256:invalid"
             let sandbox = create_proto_sandbox("lockfile");
             sandbox.create_file(
                 ".protolock",
-                r#"
+                format!(
+                    r#"
 [[tools.protostar]]
+os = "{}"
+arch = "{}"
 spec = "^5.10"
 version = "5.10.10"
 "#,
+                    SystemOS::default(),
+                    SystemArch::default()
+                ),
             );
 
             let assert = sandbox

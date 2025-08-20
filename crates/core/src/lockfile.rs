@@ -1,4 +1,4 @@
-use proto_pdk_api::Checksum;
+use proto_pdk_api::{Checksum, ToolLockOptions};
 use serde::{Deserialize, Serialize};
 use starbase_utils::fs;
 use starbase_utils::toml::{self, TomlError};
@@ -15,8 +15,11 @@ pub const PROTO_LOCK_NAME: &str = ".protolock";
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 #[serde(default)]
 pub struct LockRecord {
-    pub os: SystemOS,
-    pub arch: SystemArch,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub os: Option<SystemOS>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub arch: Option<SystemArch>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub backend: Option<Id>,
@@ -33,14 +36,17 @@ pub struct LockRecord {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source: Option<String>,
+
+    #[serde(skip)]
+    pub ignore_os_arch: bool,
 }
 
 impl LockRecord {
     pub fn new(backend: Option<Id>, os: SystemOS, arch: SystemArch) -> Self {
         Self {
             backend,
-            os,
-            arch,
+            os: Some(os),
+            arch: Some(arch),
             ..Default::default()
         }
     }
@@ -56,6 +62,56 @@ impl LockRecord {
         let mut record = self.clone();
         record.source = None;
         record
+    }
+
+    pub fn inherit_options(&mut self, options: &ToolLockOptions) {
+        if options.ignore_os_arch {
+            self.os = None;
+            self.arch = None;
+            self.ignore_os_arch = true;
+        }
+    }
+
+    pub fn is_match(&self, other: &Self, options: &ToolLockOptions) -> bool {
+        self.is_match_with(
+            other.backend.as_ref(),
+            other.spec.as_ref(),
+            other.os.as_ref(),
+            other.arch.as_ref(),
+            options,
+        )
+    }
+
+    pub fn is_match_with(
+        &self,
+        backend: Option<&Id>,
+        spec: Option<&UnresolvedVersionSpec>,
+        os: Option<&SystemOS>,
+        arch: Option<&SystemArch>,
+        options: &ToolLockOptions,
+    ) -> bool {
+        if self.backend.as_ref() != backend || self.spec.as_ref() != spec {
+            return false;
+        }
+
+        if options.ignore_os_arch {
+            // If the tool is ignoring os/arch but this record (in the lockfile)
+            // has an os/arch, then it shouldn't match
+            if self.os.is_some() || self.arch.is_some() {
+                return false;
+            }
+        } else {
+            // If thet tool is matching os/arch, then we need to ensure that this
+            // record (in the lockfile) matches the values, except for none,
+            // as none entries exist for backwards compatibility
+            if self.os.is_some() && self.os.as_ref() != os
+                || self.arch.is_some() && self.arch.as_ref() != arch
+            {
+                return false;
+            }
+        }
+
+        true
     }
 }
 
@@ -123,12 +179,6 @@ impl ProtoLock {
                     record.arch,
                 )
             });
-
-            // use std::cmp::Ordering;
-            // records.sort_by(|a, d| match (a.spec.as_ref(), d.spec.as_ref()) {
-            //     (Some(a_spec), Some(d_spec)) => a_spec.cmp(d_spec),
-            //     _ => Ordering::Less,
-            // });
         }
     }
 
