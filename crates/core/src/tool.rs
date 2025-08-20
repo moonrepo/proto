@@ -252,7 +252,17 @@ impl Tool {
 
     /// Create an initial lock record.
     pub fn create_locked_record(&self) -> LockRecord {
-        LockRecord::new(self.context.backend.clone(), self.proto.os, self.proto.arch)
+        let mut record = LockRecord {
+            backend: self.context.backend.clone(),
+            ..Default::default()
+        };
+
+        if !self.metadata.lock_options.ignore_os_arch {
+            record.os = Some(self.proto.os);
+            record.arch = Some(self.proto.arch);
+        }
+
+        record
     }
 
     /// Register the tool by loading initial metadata and persisting it.

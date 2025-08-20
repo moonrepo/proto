@@ -39,15 +39,6 @@ pub struct LockRecord {
 }
 
 impl LockRecord {
-    pub fn new(backend: Option<Id>, os: SystemOS, arch: SystemArch) -> Self {
-        Self {
-            backend,
-            os: Some(os),
-            arch: Some(arch),
-            ..Default::default()
-        }
-    }
-
     pub fn for_manifest(&self) -> Self {
         let mut record = self.clone();
         record.spec = None;

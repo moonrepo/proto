@@ -17,6 +17,10 @@ pub fn register_tool(Json(input): Json<RegisterToolInput>) -> FnResult<Json<Regi
         } else {
             vec![]
         },
+        lock_options: ToolLockOptions {
+            ignore_os_arch: input.id == "protoform",
+            ..Default::default()
+        },
         ..RegisterToolOutput::default()
     }))
 }

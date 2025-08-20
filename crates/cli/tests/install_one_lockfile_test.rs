@@ -162,6 +162,25 @@ mod install_one_lockfile {
         }
 
         #[test]
+        fn can_disable_os_arch_tracking() {
+            let sandbox = create_proto_sandbox("lockfile");
+
+            sandbox
+                .run_bin(|cmd| {
+                    cmd.arg("install").arg("protoform").arg("^5.0");
+                })
+                .success();
+
+            let lockfile = ProtoLock::load(sandbox.path().join(".protolock")).unwrap();
+            let records = lockfile.tools.get("protoform").unwrap();
+
+            assert_eq!(records.len(), 1);
+            assert_record!(records[0], "^5.0", "5.10.15");
+            assert!(records[0].os.is_none());
+            assert!(records[0].arch.is_none());
+        }
+
+        #[test]
         fn updates_existing_spec_with_higher_version() {
             let sandbox = create_proto_sandbox("lockfile");
             sandbox.create_file(

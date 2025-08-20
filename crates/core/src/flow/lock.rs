@@ -46,12 +46,6 @@ impl Tool {
             .find(|existing| existing.is_match(&record, &self.metadata.lock_options))
         {
             Some(existing) => {
-                // Backwards compatibility for records without an os/arch
-                if !self.metadata.lock_options.ignore_os_arch {
-                    existing.os.get_or_insert(self.proto.os);
-                    existing.arch.get_or_insert(self.proto.arch);
-                }
-
                 // If the new record has a higher version,
                 // we should replace the existing record with it
                 if existing
@@ -60,6 +54,15 @@ impl Tool {
                     .is_none_or(|exv| record.version.as_ref().unwrap() >= exv)
                 {
                     *existing = record;
+                }
+
+                // Backwards compatibility for records without an os/arch
+                if self.metadata.lock_options.ignore_os_arch {
+                    existing.os = None;
+                    existing.arch = None;
+                } else {
+                    existing.os.get_or_insert(self.proto.os);
+                    existing.arch.get_or_insert(self.proto.arch);
                 }
             }
             None => {
