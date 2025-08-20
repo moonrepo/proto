@@ -81,8 +81,6 @@ mod versions {
             cmd.arg("versions").arg("protostar").arg("--installed");
         });
 
-        assert.debug();
-
         // Without stderr
         let output = output_to_string(&assert.inner.get_output().stdout);
 

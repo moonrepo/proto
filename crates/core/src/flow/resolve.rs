@@ -100,7 +100,7 @@ impl Tool {
         let mut candidate = spec.req.clone();
 
         // If requested, resolve the version from a lockfile
-        if spec.read_lockfile
+        if spec.resolve_from_lockfile
             && let Some(record) = self.resolve_locked_record(spec)?
         {
             let version = record

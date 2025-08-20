@@ -1,11 +1,11 @@
-use proto_pdk_api::Checksum;
+use proto_pdk_api::{Checksum, ToolLockOptions};
 use serde::{Deserialize, Serialize};
 use starbase_utils::fs;
 use starbase_utils::toml::{self, TomlError};
-use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
+use system_env::{SystemArch, SystemOS};
 use tracing::{debug, instrument};
 use version_spec::{UnresolvedVersionSpec, VersionSpec};
 use warpgate::Id;
@@ -15,6 +15,12 @@ pub const PROTO_LOCK_NAME: &str = ".protolock";
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 #[serde(default)]
 pub struct LockRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub os: Option<SystemOS>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub arch: Option<SystemArch>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub backend: Option<Id>,
 
@@ -33,13 +39,6 @@ pub struct LockRecord {
 }
 
 impl LockRecord {
-    pub fn new(backend: Option<Id>) -> Self {
-        Self {
-            backend,
-            ..Default::default()
-        }
-    }
-
     pub fn for_manifest(&self) -> Self {
         let mut record = self.clone();
         record.spec = None;
@@ -51,6 +50,48 @@ impl LockRecord {
         let mut record = self.clone();
         record.source = None;
         record
+    }
+
+    pub fn is_match(&self, other: &Self, options: &ToolLockOptions) -> bool {
+        self.is_match_with(
+            other.backend.as_ref(),
+            other.spec.as_ref(),
+            other.os.as_ref(),
+            other.arch.as_ref(),
+            options,
+        )
+    }
+
+    pub fn is_match_with(
+        &self,
+        backend: Option<&Id>,
+        spec: Option<&UnresolvedVersionSpec>,
+        os: Option<&SystemOS>,
+        arch: Option<&SystemArch>,
+        options: &ToolLockOptions,
+    ) -> bool {
+        if self.backend.as_ref() != backend || self.spec.as_ref() != spec {
+            return false;
+        }
+
+        if options.ignore_os_arch {
+            // If the tool is ignoring os/arch but this record (in the lockfile)
+            // has an os/arch, then it shouldn't match
+            if self.os.is_some() || self.arch.is_some() {
+                return false;
+            }
+        } else {
+            // If thet tool is matching os/arch, then we need to ensure that this
+            // record (in the lockfile) matches the values, except for none,
+            // as none entries exist for backwards compatibility
+            if self.os.is_some() && self.os.as_ref() != os
+                || self.arch.is_some() && self.arch.as_ref() != arch
+            {
+                return false;
+            }
+        }
+
+        true
     }
 }
 
@@ -110,9 +151,13 @@ impl ProtoLock {
 
     pub fn sort_records(&mut self) {
         for records in self.tools.values_mut() {
-            records.sort_by(|a, d| match (a.spec.as_ref(), d.spec.as_ref()) {
-                (Some(a_spec), Some(d_spec)) => a_spec.cmp(d_spec),
-                _ => Ordering::Less,
+            records.sort_by_key(|record| {
+                (
+                    record.spec.clone(),
+                    record.backend.clone(),
+                    record.os,
+                    record.arch,
+                )
             });
         }
     }

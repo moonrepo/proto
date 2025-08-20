@@ -33,7 +33,8 @@ fn generate_types() {
     generator.add::<PluginContext>();
     generator.add::<PluginUnresolvedContext>();
     generator.add::<PluginType>();
-    generator.add::<ToolInventoryMetadata>();
+    generator.add::<ToolInventoryOptions>();
+    generator.add::<ToolLockOptions>();
     generator.add::<RegisterToolInput>();
     generator.add::<RegisterToolOutput>();
     generator.add::<RegisterBackendInput>();

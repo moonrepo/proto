@@ -32,6 +32,10 @@
 - Added support for custom and third-party backend plugins, which can be configured with the new `[plugins.backends]` setting.
   - To differentiate between tool plugins, a new `[plugins.tools]` setting was also added. Existing plugins should continue to work without modification.
   - Added a `--type` option to `proto plugin add` and `proto plugin remove`.
+- Updated lockfiles to track `os` and `arch` information.
+  - For existing entries, we attempt to backfill these values. If you run into issues, delete the lockfile and regenerate it.
+- **WASM API**
+  - Added a `RegisterToolOutput.lock_options` field, so that tools can customize how to interact with the lockfile.
 
 #### ⚙️ Internal
 

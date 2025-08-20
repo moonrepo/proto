@@ -118,7 +118,7 @@ export interface PluginUnresolvedContext {
 export type PluginType = 'command-line' | 'language' | 'dependency-manager' | 'version-manager';
 
 /** Controls aspects of the tool inventory. */
-export interface ToolInventoryMetadata {
+export interface ToolInventoryOptions {
 	/**
 	 * Override the tool inventory directory (where all versions are installed).
 	 * This is an advanced feature and should only be used when absolutely necessary.
@@ -126,6 +126,17 @@ export interface ToolInventoryMetadata {
 	overrideDir?: VirtualPath | null;
 	/** Suffix to append to all versions when labeling directories. */
 	versionSuffix?: string | null;
+}
+
+/** Options related to lockfile integration. */
+export interface ToolLockOptions {
+	/**
+	 * Ignore operating system and architecture values
+	 * when matching against records in the lockfile.
+	 */
+	ignoreOsArch?: boolean;
+	/** Do not record the install in the lockfile. */
+	noRecord?: boolean;
 }
 
 /** Input passed to the `register_tool` function. */
@@ -157,7 +168,11 @@ export interface RegisterToolOutput {
 	 */
 	deprecations?: string[];
 	/** Controls aspects of the tool inventory. */
-	inventory?: ToolInventoryMetadata;
+	inventory?: ToolInventoryOptions;
+	/** Controls aspects of the tool inventory. */
+	inventoryOptions?: ToolInventoryOptions;
+	/** Options for integrating with a lockfile. */
+	lockOptions?: ToolLockOptions;
 	/** Minimum version of proto required to execute this plugin. */
 	minimumProtoVersion?: string | null;
 	/** Human readable name of the tool. */
@@ -337,7 +352,7 @@ export interface UnpackArchiveInput {
 	context: PluginContext;
 	/** Virtual path to the downloaded file. */
 	inputFile: VirtualPath;
-	/** Virtual directory to unpack the archive into, or copy the binary to. */
+	/** Virtual directory to unpack the archive into, or copy the executable to. */
 	outputDir: VirtualPath;
 }
 
@@ -373,10 +388,10 @@ export interface LocateExecutablesInput {
 
 export type StringOrVec = string | string[];
 
-/** Configuration for generated shim and symlinked binary files. */
+/** Configuration for generated shim and symlinked executable files. */
 export interface ExecutableConfig {
 	/**
-	 * The executable path to use for symlinking binaries instead of `exe_path`.
+	 * The executable path to use for symlinking instead of `exe_path`.
 	 * This should only be used when `exe_path` is a non-standard executable.
 	 */
 	exeLinkPath?: string | null;
@@ -426,7 +441,7 @@ export interface LocateExecutablesOutput {
 	 */
 	globalsLookupDirs?: string[];
 	/**
-	 * A string that all global binaries are prefixed with, and will be removed
+	 * A string that all global executables are prefixed with, and will be removed
 	 * when listing and filtering available globals.
 	 */
 	globalsPrefix?: string | null;
@@ -492,7 +507,7 @@ export interface SyncManifestOutput {
 export interface SyncShellProfileInput {
 	/** Current tool context. */
 	context: PluginContext;
-	/** Arguments passed after `--` that was directly passed to the tool's binary. */
+	/** Arguments passed after `--` that was directly passed to the tool's executable. */
 	passthroughArgs: string[];
 }
 
@@ -520,7 +535,7 @@ export interface InstallHook {
 	context: PluginContext;
 	/** Whether the install was forced or not. */
 	forced: boolean;
-	/** Arguments passed after `--` that was directly passed to the tool's binary. */
+	/** Arguments passed after `--` that was directly passed to the tool's executable. */
 	passthroughArgs: string[];
 	/** Whether the resolved version was pinned. */
 	pinned: boolean;
@@ -530,7 +545,7 @@ export interface InstallHook {
 
 /**
  * Input passed to the `pre_run` hook, before a `proto run` command
- * or language binary is ran.
+ * or language executable is ran.
  */
 export interface RunHook {
 	/** Current tool context. */
@@ -539,7 +554,7 @@ export interface RunHook {
 	globalsDir: VirtualPath | null;
 	/** A prefix applied to the file names of globally installed packages. */
 	globalsPrefix: string | null;
-	/** Arguments passed after `--` that was directly passed to the tool's binary. */
+	/** Arguments passed after `--` that was directly passed to the tool's executable. */
 	passthroughArgs: string[];
 }
 
@@ -600,14 +615,16 @@ export type BuildInstruction = {
 	instruction: {
 		/** List of arguments. */
 		args?: string[];
-		/** The binary on `PATH`. */
-		bin: string;
-		/** If the binary should reference a builder executable. */
+		/** If the executable should reference a builder executable. */
 		builder: boolean;
 		/** The working directory. */
 		cwd?: string | null;
 		/** Map of environment variables. */
 		env?: Record<string, string>;
+		/** The executable on `PATH`. */
+		bin?: string;
+		/** The executable on `PATH`. */
+		exe: string;
 	};
 	type: 'run-command';
 } | {
@@ -667,6 +684,8 @@ export interface BuildInstructionsOutput {
 	 * dependencies have been installed.
 	 */
 	instructions?: BuildInstruction[];
+	/** Options for integrating with a lockfile. */
+	lockOptions?: ToolLockOptions | null;
 	/**
 	 * List of requirements that must be met before dependencies are
 	 * installed and instructions are executed.

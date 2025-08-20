@@ -27,7 +27,12 @@ use version_spec::VersionSpec;
 //      [ ] add locked label to table
 
 impl Tool {
+    #[instrument(skip(self))]
     pub fn insert_record_into_lockfile(&self, record: &LockRecord) -> Result<(), ProtoLockError> {
+        if self.metadata.lock_options.no_record {
+            return Ok(());
+        }
+
         let Some(mut lock) = self.proto.load_lock_mut()? else {
             return Ok(());
         };
@@ -38,13 +43,26 @@ impl Tool {
         // Find an existing record with the same spec
         match records
             .iter_mut()
-            .find(|existing| existing.backend == record.backend && existing.spec == record.spec)
+            .find(|existing| existing.is_match(&record, &self.metadata.lock_options))
         {
             Some(existing) => {
                 // If the new record has a higher version,
                 // we should replace the existing record with it
-                if record.version.as_ref().unwrap() >= existing.version.as_ref().unwrap() {
+                if existing
+                    .version
+                    .as_ref()
+                    .is_none_or(|exv| record.version.as_ref().unwrap() >= exv)
+                {
                     *existing = record;
+                }
+
+                // Backwards compatibility for records without an os/arch
+                if self.metadata.lock_options.ignore_os_arch {
+                    existing.os = None;
+                    existing.arch = None;
+                } else {
+                    existing.os.get_or_insert(self.proto.os);
+                    existing.arch.get_or_insert(self.proto.arch);
                 }
             }
             None => {
@@ -78,10 +96,18 @@ impl Tool {
         };
 
         if let Some(records) = lock.tools.get_mut(self.get_id()) {
+            let spec = version.to_unresolved_spec();
+
             records.retain(|record| {
-                !(record.backend == self.context.backend
-                    && record.spec.as_ref().is_some_and(|spec| spec == version)
-                    && record.version.as_ref().is_some_and(|ver| ver == version))
+                let matched = record.is_match_with(
+                    self.context.backend.as_ref(),
+                    Some(&spec),
+                    Some(&self.proto.os),
+                    Some(&self.proto.arch),
+                    &self.metadata.lock_options,
+                );
+
+                !(matched && record.version.as_ref().is_some_and(|ver| ver == version))
             });
         }
 
@@ -124,13 +150,15 @@ impl Tool {
 
         if let Some(records) = lock.tools.get(self.get_id()) {
             for record in records {
-                if record.backend == self.context.backend
-                    && record.version.is_some()
-                    && record
-                        .spec
-                        .as_ref()
-                        .is_some_and(|rec_spec| rec_spec == &spec.req)
-                {
+                let matched = record.is_match_with(
+                    self.context.backend.as_ref(),
+                    Some(&spec.req),
+                    Some(&self.proto.os),
+                    Some(&self.proto.arch),
+                    &self.metadata.lock_options,
+                );
+
+                if matched && record.version.is_some() {
                     return Ok(Some(record.clone()));
                 }
             }
@@ -190,6 +218,20 @@ impl Tool {
             }
             _ => {}
         };
+
+        if install_record.os != locked_record.os {
+            return Err(ProtoLockError::MismatchedOs {
+                os: install_record.os.unwrap_or_default().to_string(),
+                lockfile_os: locked_record.os.unwrap_or_default().to_string(),
+            });
+        }
+
+        if install_record.arch != locked_record.arch {
+            return Err(ProtoLockError::MismatchedArch {
+                arch: install_record.arch.unwrap_or_default().to_string(),
+                lockfile_arch: locked_record.arch.unwrap_or_default().to_string(),
+            });
+        }
 
         Ok(())
     }

@@ -171,6 +171,21 @@ impl ConfigBuilder {
         })
     }
 
+    pub fn host_with(&mut self, mut op: impl FnMut(&mut HostEnvironment)) -> &mut Self {
+        let os = HostOS::default();
+        let mut host = HostEnvironment {
+            arch: HostArch::default(),
+            ci: is_ci(),
+            libc: HostLibc::detect(os),
+            os,
+            home_dir: VirtualPath::default(),
+        };
+
+        op(&mut host);
+
+        self.host_environment(host)
+    }
+
     pub fn host_environment(&mut self, mut env: HostEnvironment) -> &mut Self {
         if env.home_dir.real_path().is_none() || env.home_dir.virtual_path().is_none() {
             env.home_dir = VirtualPath::Virtual {

@@ -74,7 +74,7 @@ pub async fn clean_tool(
 
     debug!("Checking {}", tool.get_name());
 
-    if tool.metadata.inventory.override_dir.is_some() {
+    if tool.metadata.inventory_options.override_dir.is_some() {
         debug!("Using an external inventory, skipping");
 
         return Ok(cleaned);

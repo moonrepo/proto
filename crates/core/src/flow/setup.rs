@@ -73,7 +73,7 @@ impl Tool {
         };
 
         // Add record to lockfile
-        if spec.write_lockfile {
+        if spec.update_lockfile {
             self.insert_record_into_lockfile(&record)?;
         }
 
@@ -137,7 +137,7 @@ impl Tool {
         }
 
         // Remove record from lockfile
-        if spec.write_lockfile {
+        if spec.update_lockfile {
             self.remove_version_from_lockfile(&version)?;
         }
 

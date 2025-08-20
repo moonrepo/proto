@@ -198,20 +198,22 @@ fn prepare_from_path(path: &Path) -> PathBuf {
 }
 
 #[doc(hidden)]
+#[cfg(any(debug_assertions, test))]
 pub fn find_debug_locator(name: &str) -> Option<PluginLocator> {
-    #[cfg(any(debug_assertions, test))]
-    {
-        use crate::test_utils::find_wasm_file_with_name;
-        use warpgate_api::FileLocator;
+    use crate::test_utils::find_wasm_file_with_name;
+    use warpgate_api::FileLocator;
 
-        if let Some(wasm_path) = find_wasm_file_with_name(name) {
-            return Some(PluginLocator::File(Box::new(FileLocator {
-                file: format!("file://{}", wasm_path.display()),
-                path: Some(wasm_path),
-            })));
-        }
-    }
+    find_wasm_file_with_name(name).map(|wasm_path| {
+        PluginLocator::File(Box::new(FileLocator {
+            file: format!("file://{}", wasm_path.display()),
+            path: Some(wasm_path),
+        }))
+    })
+}
 
+#[doc(hidden)]
+#[cfg(not(any(debug_assertions, test)))]
+pub fn find_debug_locator(_name: &str) -> Option<PluginLocator> {
     None
 }
 

@@ -250,6 +250,21 @@ impl Tool {
         }
     }
 
+    /// Create an initial lock record.
+    pub fn create_locked_record(&self) -> LockRecord {
+        let mut record = LockRecord {
+            backend: self.context.backend.clone(),
+            ..Default::default()
+        };
+
+        if !self.metadata.lock_options.ignore_os_arch {
+            record.os = Some(self.proto.os);
+            record.arch = Some(self.proto.arch);
+        }
+
+        record
+    }
+
     /// Register the tool by loading initial metadata and persisting it.
     #[instrument(skip_all)]
     pub async fn register_tool(&mut self) -> Result<(), ProtoToolError> {
@@ -281,14 +296,14 @@ impl Tool {
         let mut inventory = self
             .proto
             .store
-            .create_inventory(self.get_id(), &metadata.inventory)?;
+            .create_inventory(self.get_id(), &metadata.inventory_options)?;
 
-        if let Some(override_dir) = &metadata.inventory.override_dir {
+        if let Some(override_dir) = &metadata.inventory_options.override_dir {
             let override_dir_path = override_dir.real_path();
 
             debug!(
                 tool = self.context.as_str(),
-                override_virtual = ?override_dir,
+                override_virtual = ?override_dir.real_path(),
                 override_real = ?override_dir_path,
                 "Attempting to override inventory directory"
             );

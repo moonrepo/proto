@@ -9,7 +9,7 @@ repository = "https://github.com/moonrepo/proto"
 rust-version = "1.85.0"
 
 [dependencies]
-system_env = { version = "0.8.2", path = "../system-env" }
+system_env = { version = "0.8.3", path = "../system-env" }
 anyhow = { workspace = true }
 derive_setters = { workspace = true }
 rustc-hash = { workspace = true }
