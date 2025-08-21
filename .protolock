@@ -6,9 +6,3 @@ arch = "arm64"
 spec = "24.5.0"
 version = "24.5.0"
 checksum = "sha256:8b6379059b3347a9d0335dd682b0ec9eb7888e1a9c8b23483d3dd2c32e744420"
-
-[[tools.rust]]
-os = "macos"
-arch = "arm64"
-spec = "1.89.0"
-version = "1.89.0"

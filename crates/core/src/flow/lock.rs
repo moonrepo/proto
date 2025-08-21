@@ -219,17 +219,23 @@ impl Tool {
             _ => {}
         };
 
-        if install_record.os != locked_record.os {
+        if let Some(l_os) = install_record.os
+            && let Some(r_os) = locked_record.os
+            && l_os != r_os
+        {
             return Err(ProtoLockError::MismatchedOs {
-                os: install_record.os.unwrap_or_default().to_string(),
-                lockfile_os: locked_record.os.unwrap_or_default().to_string(),
+                os: l_os.to_string(),
+                lockfile_os: r_os.to_string(),
             });
         }
 
-        if install_record.arch != locked_record.arch {
+        if let Some(l_arch) = install_record.arch
+            && let Some(r_arch) = locked_record.arch
+            && l_arch != r_arch
+        {
             return Err(ProtoLockError::MismatchedArch {
-                arch: install_record.arch.unwrap_or_default().to_string(),
-                lockfile_arch: locked_record.arch.unwrap_or_default().to_string(),
+                arch: l_arch.to_string(),
+                lockfile_arch: r_arch.to_string(),
             });
         }
 
