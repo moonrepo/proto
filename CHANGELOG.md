@@ -26,6 +26,9 @@
 - **WASM API**
   - Renamed `ToolContext` to `PluginContext`.
   - Renamed `ToolUnresolvedContext` to `PluginUnresolvedContext`.
+  - Renamed `CommandInstruction.bin` field to `exe`.
+  - Renamed `RegisterToolOutput.inventory` field to `inventory_options`.
+  - Renamed `ToolInventoryMetadata` to `ToolInventoryOptions`.
 
 #### 🚀 Updates
 
@@ -33,7 +36,7 @@
   - To differentiate between tool plugins, a new `[plugins.tools]` setting was also added. Existing plugins should continue to work without modification.
   - Added a `--type` option to `proto plugin add` and `proto plugin remove`.
 - Updated lockfiles to track `os` and `arch` information.
-  - For existing entries, we attempt to backfill these values. If you run into issues, delete the lockfile and regenerate it.
+  - For existing entries, we attempt to backfill these values. If you run into issues, delete the lockfile and regenerate it with `--force`.
 - **WASM API**
   - Added a `RegisterToolOutput.lock_options` field, so that tools can customize how to interact with the lockfile.
 
