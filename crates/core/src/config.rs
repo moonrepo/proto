@@ -435,7 +435,7 @@ impl ProtoConfig {
         if !backends.contains_key("asdf") && is_allowed("asdf") {
             backends.insert(
                 Id::raw("asdf"),
-                find_debug_locator_with_url_fallback("asdf_backend", "0.3.1"),
+                find_debug_locator_with_url_fallback("asdf_backend", "0.3.2"),
             );
         }
 
@@ -478,7 +478,7 @@ impl ProtoConfig {
             if !tools.contains_key(depman) && is_allowed(depman) {
                 tools.insert(
                     Id::raw(depman),
-                    find_debug_locator_with_url_fallback("node_depman_tool", "0.16.1"),
+                    find_debug_locator_with_url_fallback("node_depman_tool", "0.16.2"),
                 );
             }
         }
@@ -486,7 +486,7 @@ impl ProtoConfig {
         if !tools.contains_key("poetry") && is_allowed("poetry") {
             tools.insert(
                 Id::raw("poetry"),
-                find_debug_locator_with_url_fallback("python_poetry_tool", "0.1.4"),
+                find_debug_locator_with_url_fallback("python_poetry_tool", "0.1.5"),
             );
         }
 
@@ -514,7 +514,7 @@ impl ProtoConfig {
         if !tools.contains_key("rust") && is_allowed("rust") {
             tools.insert(
                 Id::raw("rust"),
-                find_debug_locator_with_url_fallback("rust_tool", "0.13.4"),
+                find_debug_locator_with_url_fallback("rust_tool", "0.13.6"),
             );
         }
 
