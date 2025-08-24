@@ -107,6 +107,8 @@ pub async fn check_for_new_version(
         && (last_check + Duration::from_secs(43200).as_millis()) > now()
     {
         return Ok(());
+    } else {
+        fs::write_file(cache_file, now().to_string())?;
     }
 
     // Otherwise fetch and compare versions
@@ -141,9 +143,6 @@ pub async fn check_for_new_version(
             console.out.write_newline()?;
         }
     }
-
-    // And write the cache
-    fs::write_file(cache_file, now().to_string())?;
 
     Ok(())
 }

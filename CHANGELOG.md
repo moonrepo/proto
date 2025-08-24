@@ -17,6 +17,10 @@
 
 ## Unreleased
 
+#### 🐞 Fixes
+
+- Fixed an issue where the "new proto version check" would run more often than necessary.
+
 #### ⚙️ Internal
 
 - Updated dependencies.

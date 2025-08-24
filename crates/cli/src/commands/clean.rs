@@ -272,6 +272,15 @@ pub async fn clean_dir(dir: &Path, now: SystemTime, days: u64) -> miette::Result
     for file in fs::read_dir(dir)? {
         let path = file.path();
 
+        // Don't delete dot files/folders
+        if path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .is_some_and(|name| name.starts_with('.'))
+        {
+            continue;
+        }
+
         if path.is_file() {
             let bytes = fs::remove_file_if_stale(&path, duration, now)?;
 
