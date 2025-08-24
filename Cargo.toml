@@ -17,7 +17,7 @@ extism = ">=1.6.0" # Lower for consumers
 extism-pdk = "1.4.1"
 http-cache-reqwest = "0.16.0"
 human-sort = "0.2.2"
-indexmap = "2.10.0"
+indexmap = "2.11.0"
 iocraft = "0.7.10"
 # iocraft = { git = "https://github.com/ccbrown/iocraft.git", branch = "main" }
 miette = "7.6.0"
@@ -62,9 +62,9 @@ starbase_utils = { version = "0.11.15", default-features = false, features = [
     "net",
     "toml",
 ] }
-thiserror = "2.0.15"
+thiserror = "2.0.16"
 tokio = { version = "1.47.1", features = ["full", "tracing"] }
-toml_edit = "0.23.3"
+toml_edit = "0.23.4"
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.18", default-features = false }
 uuid = { version = "1.18.0", features = ["v4"] }
