@@ -58,7 +58,7 @@ starbase_console = { workspace = true }
 starbase_shell = { workspace = true }
 starbase_styles = { workspace = true }
 starbase_utils = { workspace = true }
-sysinfo = { version = "0.36.1", default-features = false, features = [
+sysinfo = { version = "0.37.0", default-features = false, features = [
     "system",
 ] }
 thiserror = { workspace = true }
