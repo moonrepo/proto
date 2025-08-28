@@ -168,22 +168,25 @@ impl PluginContainer {
         I: Debug + Serialize,
         O: Debug + DeserializeOwned,
     {
+        use scc::hash_map::Entry;
+
         let func = func.as_ref();
         let input = self.format_input(func, input)?;
         let cache_key = format!("{func}-{input}");
 
-        // Check if cache exists already
-        if let Some(data) = self.func_cache.get(&cache_key) {
-            return self.parse_output(func, data.get());
+        match self.func_cache.entry_async(cache_key).await {
+            // Check if cache exists already
+            Entry::Occupied(entry) => self.parse_output(func, entry.get()),
+            // Otherwise call the function and cache the result
+            Entry::Vacant(entry) => {
+                let data = self.call(func, input).await?;
+                let output: O = self.parse_output(func, &data)?;
+
+                entry.insert_entry(data);
+
+                Ok(output)
+            }
         }
-
-        // Otherwise call the function and cache the result
-        let data = self.call(func, input).await?;
-        let output: O = self.parse_output(func, &data)?;
-
-        let _ = self.func_cache.insert(cache_key, data);
-
-        Ok(output)
     }
 
     /// Call a function on the plugin with no input and return the output.
@@ -204,6 +207,7 @@ impl PluginContainer {
         O: Debug + DeserializeOwned,
     {
         let func = func.as_ref();
+
         self.parse_output(
             func,
             &self.call(func, self.format_input(func, input)?).await?,
@@ -222,7 +226,9 @@ impl PluginContainer {
         I: Debug + Serialize,
     {
         let func = func.as_ref();
+
         self.call(func, self.format_input(func, input)?).await?;
+
         Ok(())
     }
 

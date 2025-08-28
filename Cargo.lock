@@ -478,9 +478,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.5.45"
+version = "4.5.46"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1fc0e74a703892159f5ae7d3aac52c8e6c392f5ae5f359c70b5881d60aaac318"
+checksum = "2c5e4fcf9c21d2e544ca1ee9d8552de13019a42aa7dbf32747fa7aaf1df76e57"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -488,9 +488,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.5.44"
+version = "4.5.46"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3e7f4214277f3c7aa526a59dd3fbe306a370daee1f8b7b8c987069cd8e888a8"
+checksum = "fecb53a0e6fcfb055f686001bc2e2592fa527efaf38dbe81a6a9563562e57d41"
 dependencies = [
  "anstream",
  "anstyle",
@@ -2340,9 +2340,9 @@ checksum = "6a82ae493e598baaea5209805c49bbf2ea7de956d50d7da0da1164f9c6d28543"
 
 [[package]]
 name = "liblzma"
-version = "0.4.3"
+version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "272b875472a046e39ff7408374a5a050b112d2142211a0f54a295c0bd1c3c757"
+checksum = "10bf66f4598dc77ff96677c8e763655494f00ff9c1cf79e2eb5bb07bc31f807d"
 dependencies = [
  "liblzma-sys",
 ]
@@ -4244,9 +4244,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_archive"
-version = "0.11.5"
+version = "0.11.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62a38bdc5a4567fd87ae2ff46e1e9986c537e480ed381e88f657ea5e0db82fa5"
+checksum = "30b48445ac90aeb555ba22c72bc263447d5f4ef038adf1a0e17864fc2e170e72"
 dependencies = [
  "binstall-tar",
  "bzip2",
@@ -4280,9 +4280,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_sandbox"
-version = "0.9.5"
+version = "0.9.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "842175bd0f6f0fe762494a6eb7d4f01238885feaf15a96f1fb5a662cf2feeaaa"
+checksum = "3095bd96bf12199d06ad15ca2cb495134a63adc7c0057b5a4be9a43256434b76"
 dependencies = [
  "assert_cmd",
  "assert_fs",
@@ -4295,9 +4295,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_shell"
-version = "0.10.1"
+version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11a641524078c8d4928da6091be54b8c2e2ab6a7d31420d2ad158b2bd024ff94"
+checksum = "4aa42f6eab75a2663c19310093b22cc50b5a6ffcca920ccc5b46947972c1986b"
 dependencies = [
  "miette 7.6.0",
  "regex",
@@ -4321,9 +4321,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_utils"
-version = "0.11.15"
+version = "0.11.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "259928ddc2924b2956513420ca6634e3700abc851c81c14083e5789380bcc3e0"
+checksum = "26b1617ed04ea233b631026d45d9daefe2d19b42f5a0029b46528abe0a8285ca"
 dependencies = [
  "async-trait",
  "dirs 6.0.0",
@@ -4433,9 +4433,9 @@ dependencies = [
 
 [[package]]
 name = "sysinfo"
-version = "0.36.1"
+version = "0.37.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "252800745060e7b9ffb7b2badbd8b31cfa4aa2e61af879d0a3bf2a317c20217d"
+checksum = "07cec4dc2d2e357ca1e610cfb07de2fa7a10fc3e9fe89f72545f3d244ea87753"
 dependencies = [
  "libc",
  "memchr",
