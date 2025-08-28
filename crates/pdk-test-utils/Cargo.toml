@@ -11,7 +11,7 @@ rust-version = "1.89.0"
 [dependencies]
 proto_core = { version = "0.52.2", path = "../core" }
 proto_pdk_api = { version = "0.30.0", path = "../pdk-api" }
-warpgate = { version = "0.27.0", path = "../warpgate" }
+warpgate = { version = "0.27.1", path = "../warpgate" }
 extism = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

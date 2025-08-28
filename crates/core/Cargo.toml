@@ -17,7 +17,7 @@ system_env = { version = "0.8.3", path = "../system-env" }
 version_spec = { version = "0.9.5", path = "../version-spec", features = [
     "schematic",
 ] }
-warpgate = { version = "0.27.0", path = "../warpgate", features = [
+warpgate = { version = "0.27.1", path = "../warpgate", features = [
     "miette",
     "schematic",
 ] }
