@@ -23,7 +23,7 @@ iocraft = "0.7.10"
 miette = "7.6.0"
 oci-client = "0.15.0"
 once_cell = "1.21.3"
-docker_credential = { version = "1.0.1" }
+docker_credential = { version = "1.3.2" }
 regex = { version = "1.11.1", default-features = false, features = ["std"] }
 reqwest = { version = "0.12.23", default-features = false, features = [
     "charset",
