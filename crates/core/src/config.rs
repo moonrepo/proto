@@ -456,7 +456,7 @@ impl ProtoConfig {
         if !tools.contains_key("go") && is_allowed("go") {
             tools.insert(
                 Id::raw("go"),
-                find_debug_locator_with_url_fallback("go_tool", "0.16.3"),
+                find_debug_locator_with_url_fallback("go_tool", "0.16.4"),
             );
         }
 
@@ -478,7 +478,7 @@ impl ProtoConfig {
             if !tools.contains_key(depman) && is_allowed(depman) {
                 tools.insert(
                     Id::raw(depman),
-                    find_debug_locator_with_url_fallback("node_depman_tool", "0.16.2"),
+                    find_debug_locator_with_url_fallback("node_depman_tool", "0.16.3"),
                 );
             }
         }
@@ -623,13 +623,15 @@ impl ProtoConfig {
         fn make_absolute<T: AsRef<OsStr>>(file: T, current_path: &Path) -> PathBuf {
             let file = PathBuf::from(file.as_ref());
 
-            if file.is_absolute() {
+            let file = if file.is_absolute() {
                 file
             } else if let Some(dir) = current_path.parent() {
                 dir.join(file)
             } else {
                 PathBuf::from("/").join(file)
-            }
+            };
+
+            file
         }
 
         if let Some(plugins) = &mut config.plugins {
