@@ -282,8 +282,12 @@ impl Tool {
                     .push(self.get_product_dir().join(normalize_path_separators(dir)));
             } else {
                 for dir in output.exes_dirs {
-                    self.exes_dirs
-                        .push(self.get_product_dir().join(normalize_path_separators(dir)));
+                    if dir.to_str().is_some_and(|dir| dir == ".") {
+                        self.exes_dirs.push(self.get_product_dir());
+                    } else {
+                        self.exes_dirs
+                            .push(self.get_product_dir().join(normalize_path_separators(dir)));
+                    }
                 }
             }
         }
@@ -300,41 +304,43 @@ impl Tool {
     /// and contains files (executables).
     #[instrument(skip_all)]
     pub async fn locate_globals_dir(&mut self) -> Result<Option<PathBuf>, ProtoLocateError> {
-        if self.globals_dir.is_none() {
-            let globals_dirs = self.locate_globals_dirs().await?;
+        if self.globals_dir.is_some() {
+            return Ok(self.globals_dir.clone());
+        }
 
-            for dir in &globals_dirs {
-                if !dir.exists() {
-                    continue;
-                }
+        let globals_dirs = self.locate_globals_dirs().await?;
 
-                let has_files = fs::read_dir(dir).is_ok_and(|list| {
-                    !list
-                        .into_iter()
-                        .filter(|entry| entry.path().is_file())
-                        .collect::<Vec<_>>()
-                        .is_empty()
-                });
-
-                if has_files {
-                    debug!(tool = self.context.as_str(), dir = ?dir, "Found a usable globals directory");
-
-                    self.globals_dir = Some(dir.to_owned());
-                    break;
-                }
+        for dir in &globals_dirs {
+            if !dir.exists() {
+                continue;
             }
 
-            if self.globals_dir.is_none()
-                && let Some(dir) = globals_dirs.last()
-            {
-                debug!(
-                    tool = self.context.as_str(),
-                    dir = ?dir,
-                    "No usable globals directory found, falling back to the last entry",
-                );
+            let has_files = fs::read_dir(dir).is_ok_and(|list| {
+                !list
+                    .into_iter()
+                    .filter(|entry| entry.path().is_file())
+                    .collect::<Vec<_>>()
+                    .is_empty()
+            });
+
+            if has_files {
+                debug!(tool = self.context.as_str(), dir = ?dir, "Found a usable globals directory");
 
                 self.globals_dir = Some(dir.to_owned());
+                break;
             }
+        }
+
+        if self.globals_dir.is_none()
+            && let Some(dir) = globals_dirs.last()
+        {
+            debug!(
+                tool = self.context.as_str(),
+                dir = ?dir,
+                "No usable globals directory found, falling back to the last entry",
+            );
+
+            self.globals_dir = Some(dir.to_owned());
         }
 
         Ok(self.globals_dir.clone())

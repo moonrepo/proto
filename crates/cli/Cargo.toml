@@ -75,6 +75,9 @@ wasmtime = "~30.0.2"
 wasi-common = "~30.0.2"
 wiggle = "~30.0.2"
 
+# Overrides
+liblzma = { version = "0.4.4", features = ["static"] }
+
 [dev-dependencies]
 starbase_sandbox = { workspace = true }
 shared_child = "1.1.1"

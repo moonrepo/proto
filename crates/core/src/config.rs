@@ -456,7 +456,7 @@ impl ProtoConfig {
         if !tools.contains_key("go") && is_allowed("go") {
             tools.insert(
                 Id::raw("go"),
-                find_debug_locator_with_url_fallback("go_tool", "0.16.3"),
+                find_debug_locator_with_url_fallback("go_tool", "0.16.4"),
             );
         }
 
@@ -478,7 +478,7 @@ impl ProtoConfig {
             if !tools.contains_key(depman) && is_allowed(depman) {
                 tools.insert(
                     Id::raw(depman),
-                    find_debug_locator_with_url_fallback("node_depman_tool", "0.16.2"),
+                    find_debug_locator_with_url_fallback("node_depman_tool", "0.16.3"),
                 );
             }
         }
