@@ -623,15 +623,13 @@ impl ProtoConfig {
         fn make_absolute<T: AsRef<OsStr>>(file: T, current_path: &Path) -> PathBuf {
             let file = PathBuf::from(file.as_ref());
 
-            let file = if file.is_absolute() {
+            if file.is_absolute() {
                 file
             } else if let Some(dir) = current_path.parent() {
                 dir.join(file)
             } else {
                 PathBuf::from("/").join(file)
-            };
-
-            file
+            }
         }
 
         if let Some(plugins) = &mut config.plugins {
