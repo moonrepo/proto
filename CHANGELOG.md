@@ -20,6 +20,7 @@
 #### 🐞 Fixes
 
 - Potential fix for the "Failed to rename" error that occurs when downloading plugins. This error can easily trigger when parallel processes are all attempting to download the same plugins.
+- Fixed an issue where xz/liblzma was dynamically linked, instead of statically.
 
 #### ⚙️ Internal
 

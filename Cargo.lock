@@ -3093,6 +3093,7 @@ dependencies = [
  "extism",
  "indexmap",
  "iocraft",
+ "liblzma",
  "miette 7.6.0",
  "proto_core",
  "proto_pdk_api",
