@@ -15,6 +15,20 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🚀 Updates
+
+- Added a `--raw` flag to `proto debug config` and `proto debug env` for deeper debugging purposes.
+
+#### 🐞 Fixes
+
+- Fixed an issue where relative `file://` plugins would not resolve relative to the directory it's configured in.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.52.3
 
 #### 🐞 Fixes
