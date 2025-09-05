@@ -21,6 +21,10 @@
 
 - Added a `--raw` flag to `proto debug config` and `proto debug env` for deeper debugging purposes.
 
+#### 🐞 Fixes
+
+- Fixed an issue where relative `file://` plugins would not resolve relative to the directory it's configured in.
+
 ## 0.52.3
 
 #### 🐞 Fixes

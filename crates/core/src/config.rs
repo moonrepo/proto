@@ -22,7 +22,7 @@ use std::hash::Hash;
 use std::path::{Path, PathBuf};
 use system_env::{SystemOS, SystemPackageManager};
 use toml_edit::DocumentMut;
-use tracing::{debug, instrument};
+use tracing::{debug, instrument, trace};
 use warpgate::{
     HttpOptions, Id, PluginLocator, RegistryConfig, find_debug_locator_with_url_fallback,
 };
@@ -622,14 +622,27 @@ impl ProtoConfig {
         // Update file paths to be absolute
         fn make_absolute<T: AsRef<OsStr>>(file: T, current_path: &Path) -> PathBuf {
             let file = PathBuf::from(file.as_ref());
+            let mut log = true;
 
-            if file.is_absolute() {
-                file
+            let abs_file = if file.is_absolute() {
+                log = false;
+
+                file.clone()
             } else if let Some(dir) = current_path.parent() {
-                dir.join(file)
+                dir.join(&file)
             } else {
-                PathBuf::from("/").join(file)
+                std::env::current_dir().unwrap().join(&file)
+            };
+
+            if log {
+                trace!(
+                    in_file = ?file,
+                    out_file = ?abs_file,
+                    "Making file path absolute",
+                );
             }
+
+            abs_file
         }
 
         if let Some(plugins) = &mut config.plugins {
@@ -642,6 +655,14 @@ impl ProtoConfig {
             }
 
             if let Some(tools) = &mut plugins.tools {
+                for locator in tools.values_mut() {
+                    if let PluginLocator::File(inner) = locator {
+                        inner.path = Some(make_absolute(inner.get_unresolved_path(), path));
+                    }
+                }
+            }
+
+            if let Some(tools) = &mut plugins.legacy {
                 for locator in tools.values_mut() {
                     if let PluginLocator::File(inner) = locator {
                         inner.path = Some(make_absolute(inner.get_unresolved_path(), path));
