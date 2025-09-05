@@ -25,6 +25,10 @@
 
 - Fixed an issue where relative `file://` plugins would not resolve relative to the directory it's configured in.
 
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.52.3
 
 #### 🐞 Fixes
