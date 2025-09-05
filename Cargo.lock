@@ -3081,7 +3081,7 @@ dependencies = [
 
 [[package]]
 name = "proto_cli"
-version = "0.52.3"
+version = "0.52.4"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3136,7 +3136,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.52.3"
+version = "0.52.4"
 dependencies = [
  "clap",
  "convert_case",
@@ -3221,7 +3221,7 @@ dependencies = [
 
 [[package]]
 name = "proto_shim"
-version = "0.7.7"
+version = "0.7.8"
 dependencies = [
  "dirs 6.0.0",
  "windows-sys 0.61.0",
