@@ -2,6 +2,7 @@ use crate::commands::{
     ActivateArgs, AliasArgs, BinArgs, CleanArgs, CompletionsArgs, DiagnoseArgs, InstallArgs,
     MigrateArgs, OutdatedArgs, PinArgs, RegenArgs, RunArgs, SetupArgs, StatusArgs, UnaliasArgs,
     UninstallArgs, UnpinArgs, UpgradeArgs, VersionsArgs,
+    debug::{DebugConfigArgs, DebugEnvArgs},
     plugin::{AddPluginArgs, InfoPluginArgs, ListPluginsArgs, RemovePluginArgs, SearchPluginArgs},
 };
 use clap::builder::styling::{Color, Style, Styles};
@@ -331,10 +332,10 @@ pub enum DebugCommands {
         name = "config",
         about = "Debug all loaded .prototools config's for the current directory."
     )]
-    Config,
+    Config(DebugConfigArgs),
 
     #[command(name = "env", about = "Debug the current proto environment and store.")]
-    Env,
+    Env(DebugEnvArgs),
 }
 
 #[derive(Clone, Debug, Subcommand)]

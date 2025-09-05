@@ -1,11 +1,18 @@
 use crate::components::CodeBlock;
 use crate::session::ProtoSession;
+use clap::Args;
 use iocraft::prelude::*;
 use proto_core::{ProtoConfig, ProtoConfigFile};
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_utils::{json, toml};
+
+#[derive(Args, Clone, Debug)]
+pub struct DebugConfigArgs {
+    #[arg(long, help = "Dump raw configuration objects")]
+    raw: bool,
+}
 
 #[derive(Serialize)]
 struct DebugConfigResult<'a> {
@@ -14,10 +21,17 @@ struct DebugConfigResult<'a> {
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn config(session: ProtoSession) -> AppResult {
+pub async fn config(session: ProtoSession, args: DebugConfigArgs) -> AppResult {
     let env = &session.env;
     let manager = env.load_file_manager()?;
     let config = env.load_config()?;
+
+    if args.raw {
+        dbg!(manager);
+        dbg!(config);
+
+        return Ok(None);
+    }
 
     if session.should_print_json() {
         let result = DebugConfigResult {

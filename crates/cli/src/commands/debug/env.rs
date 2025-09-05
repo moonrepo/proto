@@ -1,5 +1,6 @@
 use crate::components::is_path_like;
 use crate::session::ProtoSession;
+use clap::Args;
 use iocraft::prelude::*;
 use proto_core::layout::Store;
 use proto_pdk_api::{HostArch, HostOS};
@@ -11,7 +12,19 @@ use std::collections::BTreeMap;
 use std::env;
 use std::path::PathBuf;
 
+#[derive(Args, Clone, Debug)]
+pub struct DebugEnvArgs {
+    #[arg(long, help = "Dump raw environment objects")]
+    raw: bool,
+}
+
 #[derive(Serialize)]
+struct DebugEnvResult<'a> {
+    store: &'a Store,
+    env: &'a EnvironmentInfo,
+}
+
+#[derive(Debug, Serialize)]
 struct EnvironmentInfo {
     arch: HostArch,
     configs: Vec<PathBuf>,
@@ -21,14 +34,8 @@ struct EnvironmentInfo {
     virtual_paths: BTreeMap<PathBuf, PathBuf>,
 }
 
-#[derive(Serialize)]
-struct DebugEnvResult<'a> {
-    store: &'a Store,
-    env: &'a EnvironmentInfo,
-}
-
 #[tracing::instrument(skip_all)]
-pub async fn env(session: ProtoSession) -> AppResult {
+pub async fn env(session: ProtoSession, args: DebugEnvArgs) -> AppResult {
     let env = &session.env;
     let manager = env.load_file_manager()?;
 
@@ -58,6 +65,13 @@ pub async fn env(session: ProtoSession) -> AppResult {
             .collect(),
         virtual_paths: env.get_virtual_paths(),
     };
+
+    if args.raw {
+        dbg!(env);
+        dbg!(environment);
+
+        return Ok(None);
+    }
 
     if session.should_print_json() {
         let result = DebugEnvResult {
