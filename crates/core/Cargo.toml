@@ -1,6 +1,6 @@
 [package]
 name = "proto_core"
-version = "0.52.4"
+version = "0.52.5"
 edition = "2024"
 license = "MIT"
 description = "Core proto APIs."
@@ -17,7 +17,7 @@ system_env = { version = "0.8.3", path = "../system-env" }
 version_spec = { version = "0.9.5", path = "../version-spec", features = [
     "schematic",
 ] }
-warpgate = { version = "0.27.2", path = "../warpgate", features = [
+warpgate = { version = "0.27.3", path = "../warpgate", features = [
     "miette",
     "schematic",
 ] }
