@@ -15,6 +15,16 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 🐞 Fixes
+
+- Fixed some `package.json` parsing issues for JavaScript related plugins.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
+
 ## 0.52.4
 
 #### 🚀 Updates
