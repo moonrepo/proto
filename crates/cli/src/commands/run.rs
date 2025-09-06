@@ -258,6 +258,24 @@ fn run_global_tool(
     Err(error)
 }
 
+fn inherit_version_env_vars(tool: &Tool, command: &mut Command) -> miette::Result<()> {
+    let config = tool.proto.load_config()?;
+
+    for (context, spec) in &config.versions {
+        command.env(
+            format!("PROTO_{}_VERSION", context.id.to_uppercase()),
+            spec.req.to_string(),
+        );
+    }
+
+    command.env(
+        format!("{}_VERSION", tool.get_env_var_prefix()),
+        tool.get_resolved_version().to_string(),
+    );
+
+    Ok(())
+}
+
 #[tracing::instrument(skip_all)]
 pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
     let mut tool = match session.load_tool(&args.context).await {
@@ -436,15 +454,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
     }
 
     if !use_global_proto {
-        command
-            .env(
-                format!("{}_VERSION", tool.get_env_var_prefix()),
-                tool.get_resolved_version().to_string(),
-            )
-            .env(
-                format!("{}_BIN", tool.get_env_var_prefix()),
-                exe_config.exe_path.as_ref().unwrap(),
-            );
+        inherit_version_env_vars(&tool, &mut command)?;
     }
 
     // Update the last used timestamp

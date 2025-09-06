@@ -17,6 +17,10 @@
 
 ## Unreleased
 
+#### 🚀 Updates
+
+- Updated `proto run` (and shims) to set `PROTO_*_VERSION` environment variables for all configured tool versions.
+
 #### 🐞 Fixes
 
 - Fixed some `package.json` parsing issues for JavaScript related plugins.
