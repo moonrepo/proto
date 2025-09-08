@@ -37,6 +37,7 @@ fn generate_types() {
     generator.add::<ToolLockOptions>();
     generator.add::<RegisterToolInput>();
     generator.add::<RegisterToolOutput>();
+    generator.add::<DefineToolConfigOutput>();
     generator.add::<RegisterBackendInput>();
     generator.add::<RegisterBackendOutput>();
     generator.add::<DetectVersionOutput>();

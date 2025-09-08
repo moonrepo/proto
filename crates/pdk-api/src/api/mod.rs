@@ -5,6 +5,7 @@ mod source;
 use crate::shapes::*;
 use derive_setters::Setters;
 use rustc_hash::FxHashMap;
+use schematic::Schema;
 use std::path::PathBuf;
 use version_spec::{CalVer, SemVer, SpecError, UnresolvedVersionSpec, VersionSpec};
 use warpgate_api::*;
@@ -292,10 +293,6 @@ api_struct!(
 api_struct!(
     /// Output returned by the `register_tool` function.
     pub struct RegisterToolOutput {
-        /// Schema shape of the tool's configuration.
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        pub config_schema: Option<schematic::Schema>,
-
         /// Default strategy to use when installing a tool.
         #[serde(default)]
         pub default_install_strategy: InstallStrategy,
@@ -349,6 +346,16 @@ api_struct!(
 
 #[deprecated(note = "Use `RegisterToolOutput` instead.")]
 pub type ToolMetadataOutput = RegisterToolOutput;
+
+pub type ConfigSchema = Schema;
+
+api_struct!(
+    /// Output returned from the `define_tool_config` function.
+    pub struct DefineToolConfigOutput {
+        /// Schema shape of the tool's configuration.
+        pub schema: ConfigSchema,
+    }
+);
 
 // BACKEND
 

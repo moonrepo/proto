@@ -15,6 +15,19 @@
 - [Rust](https://github.com/moonrepo/plugins/blob/master/tools/rust/CHANGELOG.md)
 - [Schema (TOML, JSON, YAML)](https://github.com/moonrepo/plugins/blob/master/tools/internal-schema/CHANGELOG.md)
 
+## Unreleased
+
+#### 💥 Breaking
+
+- **WASM API**
+  - Removed `RegisterToolOutput.config_schema` field. Use `define_tool_config` instead.
+
+#### 🚀 Updates
+
+- **WASM API**
+  - Added a `define_tool_config` plugin function.
+  - Added a `DefineToolConfigOutput` type.
+
 ## 0.52.5
 
 #### 🐞 Fixes
