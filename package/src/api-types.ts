@@ -152,8 +152,6 @@ export type Switch = boolean | string;
 
 /** Output returned by the `register_tool` function. */
 export interface RegisterToolOutput {
-	/** Schema shape of the tool's configuration. */
-	configSchema?: unknown | null;
 	/**
 	 * Default strategy to use when installing a tool.
 	 *
@@ -194,6 +192,12 @@ export interface RegisterToolOutput {
 	type: PluginType;
 	/** Whether this plugin is unstable or not. */
 	unstable?: Switch;
+}
+
+/** Output returned from the `define_tool_config` function. */
+export interface DefineToolConfigOutput {
+	/** Schema shape of the tool's configuration. */
+	schema: unknown;
 }
 
 /** Input passed to the `register_backend` function. */
@@ -684,8 +688,6 @@ export interface BuildInstructionsOutput {
 	 * dependencies have been installed.
 	 */
 	instructions?: BuildInstruction[];
-	/** Options for integrating with a lockfile. */
-	lockOptions?: ToolLockOptions | null;
 	/**
 	 * List of requirements that must be met before dependencies are
 	 * installed and instructions are executed.
