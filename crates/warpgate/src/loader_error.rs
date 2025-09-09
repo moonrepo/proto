@@ -1,8 +1,8 @@
 use crate::clients::WarpgateHttpClientError;
-use crate::id::Id;
 use oci_client::Reference;
 use oci_client::errors::OciDistributionError;
 use starbase_archive::ArchiveError;
+use starbase_id::Id;
 use starbase_styles::{Style, Stylize};
 use starbase_utils::fs::FsError;
 use starbase_utils::glob::GlobError;

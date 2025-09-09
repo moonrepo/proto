@@ -1,10 +1,10 @@
 use super::{LoadFrom, LoaderProtocol};
 use crate::clients::{HttpClient, WarpgateHttpClientError};
-use crate::id::Id;
 use crate::loader_error::WarpgateLoaderError;
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use starbase_archive::is_supported_archive_extension;
+use starbase_id::Id;
 use std::env;
 use std::path::PathBuf;
 use std::sync::Arc;

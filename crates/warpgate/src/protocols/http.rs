@@ -1,6 +1,6 @@
 use super::{LoadFrom, LoaderProtocol};
-use crate::id::Id;
 use crate::loader_error::WarpgateLoaderError;
+use starbase_id::Id;
 use tracing::trace;
 use warpgate_api::UrlLocator;
 

@@ -8,8 +8,8 @@ pub use github::*;
 pub use http::*;
 pub use oci::*;
 
-use crate::id::Id;
 use crate::loader_error::WarpgateLoaderError;
+use starbase_id::Id;
 use std::path::PathBuf;
 
 pub trait LoaderProtocol<T> {

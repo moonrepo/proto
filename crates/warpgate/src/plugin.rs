@@ -1,9 +1,9 @@
 use crate::helpers::{from_virtual_path, to_virtual_path};
-use crate::id::Id;
 use crate::plugin_error::WarpgatePluginError;
 use extism::{Error, Function, Manifest, Plugin};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
+use starbase_id::Id;
 use starbase_styles::{apply_style_tags, color};
 use starbase_utils::env::{bool_var, is_ci};
 use std::collections::BTreeMap;
