@@ -27,6 +27,7 @@
 - **WASM API**
   - Added a `define_tool_config` plugin function.
   - Added a `DefineToolConfigOutput` type.
+  - Added a `ToolInventoryOptions.scoped_backend_dir` field.
 
 ## 0.52.5
 

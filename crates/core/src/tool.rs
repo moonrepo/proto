@@ -306,10 +306,17 @@ impl Tool {
             }
         }
 
+        let inventory_id =
+            if metadata.inventory_options.scoped_backend_dir && self.context.backend.is_some() {
+                Id::raw(self.context.as_str().replace(':', "-"))
+            } else {
+                self.context.id.clone()
+            };
+
         let mut inventory = self
             .proto
             .store
-            .create_inventory(self.get_id(), &metadata.inventory_options)?;
+            .create_inventory(&inventory_id, &metadata.inventory_options)?;
 
         if let Some(override_dir) = &metadata.inventory_options.override_dir {
             let override_dir_path = override_dir.real_path();

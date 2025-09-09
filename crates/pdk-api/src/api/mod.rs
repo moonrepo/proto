@@ -258,6 +258,11 @@ api_struct!(
         #[serde(skip_serializing_if = "Option::is_none")]
         pub override_dir: Option<VirtualPath>,
 
+        /// When the inventory is backend managed, scope the inventory directory name
+        /// with the backend as a prefix.
+        #[serde(skip_serializing_if = "is_false")]
+        pub scoped_backend_dir: bool,
+
         /// Suffix to append to all versions when labeling directories.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub version_suffix: Option<String>,
