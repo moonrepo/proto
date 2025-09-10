@@ -1,6 +1,7 @@
 use crate::config::PluginType;
 use crate::env::ProtoEnvironment;
 use crate::helpers::get_proto_version;
+use crate::id::Id;
 use crate::layout::{Inventory, Product};
 use crate::lockfile::LockRecord;
 use crate::normalize_path_separators;
@@ -18,7 +19,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tracing::{debug, instrument};
 use warpgate::{
-    Id, PluginContainer, PluginLocator, PluginManifest, VirtualPath, Wasm,
+    PluginContainer, PluginLocator, PluginManifest, VirtualPath, Wasm,
     host::{HostData, create_host_functions},
 };
 
@@ -273,7 +274,7 @@ impl Tool {
             .cache_func_with(
                 PluginFunction::RegisterTool,
                 RegisterToolInput {
-                    id: self.get_id().to_string(),
+                    id: self.get_id().to_owned(),
                 },
             )
             .await?;
@@ -343,7 +344,7 @@ impl Tool {
                 PluginFunction::RegisterBackend,
                 RegisterBackendInput {
                     context: self.create_plugin_unresolved_context(),
-                    id: self.get_id().to_string(),
+                    id: self.get_id().to_owned(),
                 },
             )
             .await?;
@@ -360,7 +361,7 @@ impl Tool {
             .store
             .backends_dir
             .join(backend.to_string()) // asdf
-            .join(&backend_id); // node
+            .join(backend_id.as_str()); // node
         let update_perms = !backend_dir.exists();
         let config = self.proto.load_config()?;
 
@@ -370,7 +371,7 @@ impl Tool {
 
         debug!(
             tool = self.context.as_str(),
-            backend_id,
+            backend_id = ?backend_id,
             backend_dir = ?backend_dir,
             "Acquiring backend sources",
         );

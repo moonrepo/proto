@@ -1,5 +1,4 @@
 use crate::clients::WarpgateHttpClientError;
-use crate::id::Id;
 use oci_client::Reference;
 use oci_client::errors::OciDistributionError;
 use starbase_archive::ArchiveError;
@@ -9,6 +8,7 @@ use starbase_utils::glob::GlobError;
 use starbase_utils::net::NetError;
 use std::path::PathBuf;
 use thiserror::Error;
+use warpgate_api::Id;
 
 /// Loader errors.
 #[derive(Debug, Error)]

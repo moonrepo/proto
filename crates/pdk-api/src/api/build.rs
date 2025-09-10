@@ -5,7 +5,7 @@ use rustc_hash::FxHashMap;
 use semver::VersionReq;
 use std::path::PathBuf;
 use system_env::SystemDependency;
-use warpgate_api::{VirtualPath, api_enum, api_struct};
+use warpgate_api::{Id, VirtualPath, api_enum, api_struct};
 
 api_struct!(
     /// Input passed to the `build_instructions` function.
@@ -24,7 +24,7 @@ api_struct!(
     pub struct BuilderInstruction {
         /// Unique identifier for this builder.
         #[setters(into)]
-        pub id: String,
+        pub id: Id,
 
         /// Primary executable, relative from the source root.
         pub exe: PathBuf,

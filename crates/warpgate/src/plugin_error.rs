@@ -1,6 +1,6 @@
-use crate::id::Id;
 use starbase_styles::{Style, Stylize, apply_style_tags};
 use thiserror::Error;
+use warpgate_api::Id;
 
 /// Plugin/runtime errors.
 #[derive(Debug, Error)]
@@ -68,13 +68,6 @@ pub enum WarpgatePluginError {
         #[source]
         error: Box<serde_json::Error>,
     },
-
-    #[cfg_attr(feature = "miette", diagnostic(code(plugin::invalid_id)))]
-    #[error(
-        "Invalid plugin identifier {}. May only contain letters, numbers, dashes, and underscores.",
-        .0.style(Style::Id),
-    )]
-    InvalidID(String),
 
     #[cfg_attr(feature = "miette", diagnostic(code(plugin::wasm::missing_command)))]
     #[error(

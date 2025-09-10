@@ -1,5 +1,4 @@
 use crate::helpers::{from_virtual_path, to_virtual_path};
-use crate::id::Id;
 use crate::plugin_error::WarpgatePluginError;
 use extism::{Error, Function, Manifest, Plugin};
 use serde::de::DeserializeOwned;
@@ -15,7 +14,7 @@ use system_env::{SystemArch, SystemLibc, SystemOS};
 use tokio::sync::RwLock;
 use tokio::task::block_in_place;
 use tracing::{instrument, trace};
-use warpgate_api::{HostEnvironment, VirtualPath};
+use warpgate_api::{HostEnvironment, Id, VirtualPath};
 
 fn is_incompatible_runtime(error: &Error) -> bool {
     let check = |message: String| {

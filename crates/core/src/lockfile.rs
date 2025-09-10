@@ -1,3 +1,4 @@
+use crate::id::Id;
 use proto_pdk_api::{Checksum, ToolLockOptions};
 use serde::{Deserialize, Serialize};
 use starbase_utils::fs;
@@ -8,7 +9,6 @@ use std::path::{Path, PathBuf};
 use system_env::{SystemArch, SystemOS};
 use tracing::{debug, instrument};
 use version_spec::{UnresolvedVersionSpec, VersionSpec};
-use warpgate::Id;
 
 pub const PROTO_LOCK_NAME: &str = ".protolock";
 

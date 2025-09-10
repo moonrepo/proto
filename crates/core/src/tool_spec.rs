@@ -1,10 +1,10 @@
 use crate::flow::resolve::ProtoResolveError;
+use crate::id::*;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
 use tracing::warn;
 use version_spec::{UnresolvedVersionSpec, VersionSpec};
-use warpgate::Id;
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(into = "String", try_from = "String")]
@@ -83,7 +83,7 @@ impl FromStr for ToolSpec {
                 "Configuring the backend within the version is no longer supported; pass it in the identifer instead"
             );
 
-            (Some(Id::new(prefix)?), suffix)
+            (Some(ProtoId::format(prefix)?), suffix)
         } else {
             (None, value)
         };

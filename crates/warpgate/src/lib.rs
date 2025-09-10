@@ -1,7 +1,6 @@
 mod clients;
 mod helpers;
 pub mod host;
-mod id;
 mod loader;
 mod loader_error;
 mod plugin;
@@ -12,7 +11,6 @@ pub mod test_utils;
 
 pub use clients::*;
 pub use helpers::*;
-pub use id::*;
 pub use loader::*;
 pub use loader_error::*;
 pub use plugin::*;
@@ -22,6 +20,6 @@ pub use registry::*;
 pub use extism::{Manifest as PluginManifest, Wasm};
 pub use warpgate_api as api;
 pub use warpgate_api::{
-    FileLocator, GitHubLocator, PluginLocator, PluginLocatorError, RegistryLocator, UrlLocator,
+    FileLocator, GitHubLocator, Id, PluginLocator, PluginLocatorError, RegistryLocator, UrlLocator,
     VirtualPath,
 };

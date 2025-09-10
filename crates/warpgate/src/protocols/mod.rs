@@ -8,9 +8,9 @@ pub use github::*;
 pub use http::*;
 pub use oci::*;
 
-use crate::id::Id;
 use crate::loader_error::WarpgateLoaderError;
 use std::path::PathBuf;
+use warpgate_api::Id;
 
 pub trait LoaderProtocol<T> {
     type Data;

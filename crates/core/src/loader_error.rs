@@ -1,13 +1,14 @@
 use crate::config::PROTO_CONFIG_NAME;
 use crate::config_error::ProtoConfigError;
 use crate::flow::resolve::ProtoResolveError;
+use crate::id::Id;
 use crate::tool_error::ProtoToolError;
 use starbase_styles::{Style, Stylize};
 use starbase_utils::json::JsonError;
 use starbase_utils::toml::TomlError;
 use starbase_utils::yaml::YamlError;
 use thiserror::Error;
-use warpgate::{Id, WarpgateLoaderError, WarpgatePluginError};
+use warpgate::{WarpgateLoaderError, WarpgatePluginError};
 
 #[derive(Error, Debug, miette::Diagnostic)]
 pub enum ProtoLoaderError {

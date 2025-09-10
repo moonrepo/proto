@@ -6,7 +6,7 @@ use std::ffi::OsStr;
 use std::path::PathBuf;
 use std::vec;
 use warpgate_api::{
-    AnyResult, ExecCommandInput, ExecCommandOutput, HostEnvironment, HostOS, SendRequestInput,
+    AnyResult, ExecCommandInput, ExecCommandOutput, HostEnvironment, HostOS, Id, SendRequestInput,
     SendRequestOutput, TestEnvironment, VirtualPath, anyhow,
 };
 
@@ -226,8 +226,10 @@ where
 }
 
 /// Return the ID for the current plugin.
-pub fn get_plugin_id() -> AnyResult<String> {
-    Ok(config::get("plugin_id")?.expect("Missing plugin ID!"))
+pub fn get_plugin_id() -> AnyResult<Id> {
+    Ok(Id::raw(
+        config::get("plugin_id")?.expect("Missing plugin ID!"),
+    ))
 }
 
 /// Return information about the host environment.
