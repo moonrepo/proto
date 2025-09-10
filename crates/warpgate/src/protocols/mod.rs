@@ -9,8 +9,8 @@ pub use http::*;
 pub use oci::*;
 
 use crate::loader_error::WarpgateLoaderError;
-use starbase_id::Id;
 use std::path::PathBuf;
+use warpgate_api::Id;
 
 pub trait LoaderProtocol<T> {
     type Data;

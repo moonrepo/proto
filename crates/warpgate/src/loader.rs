@@ -6,7 +6,6 @@ use crate::loader_error::WarpgateLoaderError;
 use crate::protocols::{FileLoader, GitHubLoader, HttpLoader, LoadFrom, LoaderProtocol, OciLoader};
 use crate::registry::RegistryConfig;
 use once_cell::sync::OnceCell;
-use starbase_id::Id;
 use starbase_styles::color;
 use starbase_utils::{fs, path};
 use std::fmt::Debug;
@@ -14,7 +13,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 use tracing::{instrument, trace, warn};
-use warpgate_api::PluginLocator;
+use warpgate_api::{Id, PluginLocator};
 
 pub type OfflineChecker = Arc<fn() -> bool>;
 

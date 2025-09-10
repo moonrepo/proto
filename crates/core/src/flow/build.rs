@@ -3,6 +3,7 @@ use super::install::{InstallPhase, OnPhaseFn};
 use crate::config::ProtoConfig;
 use crate::env::{ProtoConsole, ProtoEnvironment};
 use crate::helpers::{extract_filename_from_url, normalize_path_separators};
+use crate::id::Id;
 use crate::lockfile::LockRecord;
 use crate::utils::log::LogWriter;
 use crate::utils::process::{self, ProcessResult, ProtoProcessError};
@@ -836,7 +837,7 @@ pub async fn execute_instructions(
                     item.id, item.git.url
                 ))?;
 
-                let builder_dir = proto.store.builders_dir.join(&item.id);
+                let builder_dir = proto.store.builders_dir.join(item.id.as_str());
 
                 checkout_git_repo(&item.git, &builder_dir, builder).await?;
 
@@ -859,7 +860,7 @@ pub async fn execute_instructions(
 
                     builder_exes.insert(
                         if exe_name.is_empty() {
-                            item.id.clone()
+                            item.id.to_string()
                         } else {
                             format!("{}:{exe_name}", item.id)
                         },
@@ -951,7 +952,7 @@ pub async fn execute_instructions(
                 let exe = if cmd.builder {
                     builder_exes.get(&cmd.exe).cloned().ok_or_else(|| {
                         ProtoBuildError::MissingBuilder {
-                            id: cmd.exe.clone(),
+                            id: Id::raw(&cmd.exe),
                         }
                     })?
                 } else {

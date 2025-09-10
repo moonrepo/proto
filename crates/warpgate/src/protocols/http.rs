@@ -1,8 +1,7 @@
 use super::{LoadFrom, LoaderProtocol};
 use crate::loader_error::WarpgateLoaderError;
-use starbase_id::Id;
 use tracing::trace;
-use warpgate_api::UrlLocator;
+use warpgate_api::{Id, UrlLocator};
 
 #[derive(Clone)]
 pub struct HttpLoader {}

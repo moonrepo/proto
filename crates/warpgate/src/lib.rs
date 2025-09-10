@@ -18,9 +18,8 @@ pub use plugin_error::*;
 pub use registry::*;
 
 pub use extism::{Manifest as PluginManifest, Wasm};
-pub use starbase_id::*;
 pub use warpgate_api as api;
 pub use warpgate_api::{
-    FileLocator, GitHubLocator, PluginLocator, PluginLocatorError, RegistryLocator, UrlLocator,
+    FileLocator, GitHubLocator, Id, PluginLocator, PluginLocatorError, RegistryLocator, UrlLocator,
     VirtualPath,
 };

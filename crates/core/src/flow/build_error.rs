@@ -1,3 +1,4 @@
+use crate::id::Id;
 use crate::utils::archive::ProtoArchiveError;
 use crate::utils::process::ProtoProcessError;
 use starbase_console::ConsoleError;
@@ -41,12 +42,16 @@ pub enum ProtoBuildError {
     },
 
     #[diagnostic(code(proto::install::build::missing_builder))]
-    #[error("Builder {} has not been installed.", .id.style(Style::Id))]
-    MissingBuilder { id: String },
+    #[error("Builder {} has not been installed.", .id.as_str().to_string().style(Style::Id))]
+    MissingBuilder { id: Id },
 
     #[diagnostic(code(proto::install::build::missing_builder_exe))]
-    #[error("Executable {} from builder {} does not exist.", .exe.style(Style::Path), .id.style(Style::Id))]
-    MissingBuilderExe { exe: PathBuf, id: String },
+    #[error(
+        "Executable {} from builder {} does not exist.",
+        .exe.style(Style::Path),
+        .id.to_string().style(Style::Id),
+    )]
+    MissingBuilderExe { exe: PathBuf, id: Id },
 
     #[diagnostic(code(proto::install::build::unmet_requirements))]
     #[error(

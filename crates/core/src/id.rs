@@ -8,6 +8,7 @@ use std::str::FromStr;
 use std::sync::LazyLock;
 use thiserror::Error;
 
+// The shared identifier.
 pub use warpgate::Id;
 
 static ID_PATTERN: LazyLock<Regex> =
@@ -95,29 +96,21 @@ impl FromStr for ProtoId {
     }
 }
 
-impl TryFrom<&str> for ProtoId {
-    type Error = ProtoIdError;
+macro_rules! gen_try_from {
+    ($ty:ty) => {
+        impl TryFrom<$ty> for ProtoId {
+            type Error = ProtoIdError;
 
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        ProtoId::new(value)
-    }
+            fn try_from(value: $ty) -> Result<Self, Self::Error> {
+                ProtoId::new(value)
+            }
+        }
+    };
 }
 
-impl TryFrom<String> for ProtoId {
-    type Error = ProtoIdError;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        ProtoId::new(value)
-    }
-}
-
-impl TryFrom<&String> for ProtoId {
-    type Error = ProtoIdError;
-
-    fn try_from(value: &String) -> Result<Self, Self::Error> {
-        ProtoId::new(value)
-    }
-}
+gen_try_from!(&str);
+gen_try_from!(String);
+gen_try_from!(&String);
 
 impl schematic::Schematic for ProtoId {
     fn schema_name() -> Option<String> {

@@ -5209,7 +5209,6 @@ dependencies = [
  "serde_json",
  "sha2",
  "starbase_archive",
- "starbase_id",
  "starbase_sandbox",
  "starbase_shell",
  "starbase_styles",

@@ -3,7 +3,6 @@ use crate::plugin_error::WarpgatePluginError;
 use extism::{Error, Function, Manifest, Plugin};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
-use starbase_id::Id;
 use starbase_styles::{apply_style_tags, color};
 use starbase_utils::env::{bool_var, is_ci};
 use std::collections::BTreeMap;
@@ -15,7 +14,7 @@ use system_env::{SystemArch, SystemLibc, SystemOS};
 use tokio::sync::RwLock;
 use tokio::task::block_in_place;
 use tracing::{instrument, trace};
-use warpgate_api::{HostEnvironment, VirtualPath};
+use warpgate_api::{HostEnvironment, Id, VirtualPath};
 
 fn is_incompatible_runtime(error: &Error) -> bool {
     let check = |message: String| {

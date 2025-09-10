@@ -2,13 +2,13 @@ use crate::clients::WarpgateHttpClientError;
 use oci_client::Reference;
 use oci_client::errors::OciDistributionError;
 use starbase_archive::ArchiveError;
-use starbase_id::Id;
 use starbase_styles::{Style, Stylize};
 use starbase_utils::fs::FsError;
 use starbase_utils::glob::GlobError;
 use starbase_utils::net::NetError;
 use std::path::PathBuf;
 use thiserror::Error;
+use warpgate_api::Id;
 
 /// Loader errors.
 #[derive(Debug, Error)]

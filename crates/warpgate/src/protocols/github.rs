@@ -4,12 +4,11 @@ use crate::loader_error::WarpgateLoaderError;
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use starbase_archive::is_supported_archive_extension;
-use starbase_id::Id;
 use std::env;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tracing::trace;
-use warpgate_api::GitHubLocator;
+use warpgate_api::{GitHubLocator, Id};
 
 #[derive(Clone)]
 pub struct GitHubLoader {
