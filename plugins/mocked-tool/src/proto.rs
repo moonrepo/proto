@@ -9,7 +9,7 @@ pub fn register_tool(Json(input): Json<RegisterToolInput>) -> FnResult<Json<Regi
     initialize_tracing();
 
     Ok(Json(RegisterToolOutput {
-        name: input.id.clone(),
+        name: input.id.to_string(),
         type_of: PluginType::CommandLine,
         plugin_version: Version::parse(env!("CARGO_PKG_VERSION")).ok(),
         requires: if input.id == "moonbase" {
@@ -166,7 +166,7 @@ pub fn locate_executables(
 
     // Executables
     output.exes.insert(
-        id.clone(),
+        id.to_string(),
         ExecutableConfig::new_primary(env.os.get_exe_name(&id)),
     );
 

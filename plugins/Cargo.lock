@@ -424,12 +424,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "clean-path"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aaa6b4b263a5d737e9bf6b7c09b72c41a5480aec4d7219af827f6564e950b6a5"
-
-[[package]]
 name = "cobs"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1026,7 +1020,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users 0.5.2",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.0",
 ]
 
 [[package]]
@@ -1965,9 +1959,9 @@ dependencies = [
 
 [[package]]
 name = "indexmap"
-version = "2.11.0"
+version = "2.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f2481980430f9f78649238835720ddccc57e52df14ffce1c6f37391d61b563e9"
+checksum = "206a8042aec68fa4a62e8d3f7aa4ceb508177d9324faf261e1959e495b7a1921"
 dependencies = [
  "equivalent",
  "hashbrown",
@@ -2014,9 +2008,9 @@ dependencies = [
 
 [[package]]
 name = "iocraft"
-version = "0.7.10"
+version = "0.7.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd8d3ddf4888a50fae057c96cca667a52bc529e56a19fc2300e09a1d5d955d5a"
+checksum = "0d2276ed525f48c3ebc83563eec6bdf726aa26d6a5f8ede6089e823f5649e6a7"
 dependencies = [
  "any_key",
  "bitflags",
@@ -2954,7 +2948,7 @@ dependencies = [
 
 [[package]]
 name = "proto_core"
-version = "0.52.4"
+version = "0.52.5"
 dependencies = [
  "convert_case",
  "docker_credential",
@@ -3602,9 +3596,9 @@ dependencies = [
 
 [[package]]
 name = "scc"
-version = "3.0.2"
+version = "3.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8a1d18997b68a1406b7d1e814b2f600ca7cd2dbeb5277347aa463928ab8fe1c"
+checksum = "5fd16f6e3f14db5e2d04969332b3eaabd54577b61bf9aae516251ed23b32cecb"
 dependencies = [
  "saa",
  "sdd",
@@ -4011,9 +4005,9 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "starbase_archive"
-version = "0.11.7"
+version = "0.11.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9e353b6780fad5ad5e474accc378b23610ad67e030f15b817fe204ff0a4ad18"
+checksum = "515ff796b6fadd3ac2cae2fb41cfbd5af57156bd66507a11ebe7645313b250df"
 dependencies = [
  "binstall-tar",
  "bzip2",
@@ -4046,14 +4040,24 @@ dependencies = [
 ]
 
 [[package]]
-name = "starbase_sandbox"
-version = "0.9.8"
+name = "starbase_id"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b88c2e076e49ed8c8a66e056b141d54327ffb555ad62f98746c389b5495c215"
+checksum = "68ddc6373f568b1c9f48231aaa3f7614e85eddfcf1789bdbdc5b10c969f04dd5"
+dependencies = [
+ "compact_str 0.9.0",
+ "schematic",
+ "serde",
+]
+
+[[package]]
+name = "starbase_sandbox"
+version = "0.9.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "54d385bce0fc50872188a339fc71b6b993ddfacbe13c597b55e3a508924997a0"
 dependencies = [
  "assert_cmd",
  "assert_fs",
- "clean-path",
  "insta",
  "predicates",
  "pretty_assertions",
@@ -4087,9 +4091,9 @@ dependencies = [
 
 [[package]]
 name = "starbase_utils"
-version = "0.11.17"
+version = "0.11.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4bdcb73d8de716fb79962598b8b112e87a42d21cade9cb798c215d03757e2c8c"
+checksum = "90254490024fedfefd98d513ef74bcca634e62d5e8d745259145fb81d8f7995b"
 dependencies = [
  "async-trait",
  "dirs 6.0.0",
@@ -4883,7 +4887,7 @@ dependencies = [
 
 [[package]]
 name = "warpgate"
-version = "0.27.2"
+version = "0.27.3"
 dependencies = [
  "async-trait",
  "compact_str 0.9.0",
@@ -4924,6 +4928,7 @@ dependencies = [
  "schematic",
  "serde",
  "serde_json",
+ "starbase_id",
  "system_env",
  "thiserror 2.0.16",
 ]
