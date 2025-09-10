@@ -1,132 +1,121 @@
-use crate::plugin_error::WarpgatePluginError;
-use compact_str::CompactString;
+use miette::Diagnostic;
 use regex::Regex;
-use serde::{Deserialize, Deserializer, Serialize, de};
+use serde::{Deserialize, Serialize};
+use starbase_styles::{Style, Stylize};
+use std::fmt;
+use std::ops::Deref;
+use std::str::FromStr;
 use std::sync::LazyLock;
-use std::{borrow::Borrow, fmt, ops::Deref, str::FromStr};
+use thiserror::Error;
+use warpgate::Id;
 
-#[doc(hidden)]
-pub static ID_PATTERN: LazyLock<Regex> =
+static ID_PATTERN: LazyLock<Regex> =
     LazyLock::new(|| Regex::new("^[a-zA-Z][a-zA-Z0-9-_]*$").unwrap());
 
-/// An identifier for plugins.
-#[derive(Clone, Default, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-pub struct Id(CompactString);
+#[derive(Error, Debug, Diagnostic)]
+#[diagnostic(code(proto::invalid_id))]
+#[error(
+    "Invalid plugin identifier {}. May only contain letters, numbers, dashes, and underscores.",
+    .0.style(Style::Id),
+)]
+pub struct ProtoIdError(String);
 
-impl Id {
-    pub fn new<S: AsRef<str>>(id: S) -> Result<Id, WarpgatePluginError> {
+/// An identifier for plugins.
+#[derive(Clone, Default, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[serde(into = "String", try_from = "String")]
+pub struct ProtoId(Id);
+
+impl ProtoId {
+    pub fn new<S: AsRef<str>>(id: S) -> Result<Self, ProtoIdError> {
         let id = id.as_ref();
 
         if !ID_PATTERN.is_match(id) {
-            return Err(WarpgatePluginError::InvalidID(id.to_owned()));
+            return Err(ProtoIdError(id.to_owned()));
         }
 
-        Ok(Self::raw(id))
+        Ok(ProtoId(Id::raw(id)))
     }
 
-    pub fn raw<S: AsRef<str>>(id: S) -> Id {
-        Id(CompactString::new(id))
-    }
-
-    pub fn as_str(&self) -> &str {
+    pub fn as_id(&self) -> &Id {
         &self.0
     }
-}
 
-#[cfg(feature = "schematic")]
-impl schematic::Schematic for Id {
-    fn build_schema(mut schema: schematic::SchemaBuilder) -> schematic::Schema {
-        schema.set_description("An identifier for plugins.");
-        schema.string_default()
+    pub fn to_id(&self) -> Id {
+        self.0.clone()
+    }
+
+    pub fn into_id(self) -> Id {
+        self.0
     }
 }
 
-impl fmt::Debug for Id {
+impl fmt::Debug for ProtoId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 
-impl fmt::Display for Id {
+impl fmt::Display for ProtoId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 
-impl AsRef<str> for Id {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
-
-// impl AsRef<String> for Id {
-//     fn as_ref(&self) -> &String {
-//         &self.0
-//     }
-// }
-
-impl AsRef<Id> for Id {
-    fn as_ref(&self) -> &Id {
-        self
-    }
-}
-
-impl Deref for Id {
-    type Target = str;
+impl Deref for ProtoId {
+    type Target = Id;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl PartialEq<str> for Id {
-    fn eq(&self, other: &str) -> bool {
-        self.0 == other
-    }
-}
-
-impl PartialEq<&str> for Id {
-    fn eq(&self, other: &&str) -> bool {
-        self.0 == other
-    }
-}
-
-impl PartialEq<String> for Id {
-    fn eq(&self, other: &String) -> bool {
-        self.0 == other
-    }
-}
-
-// Allows strings to be used for collection keys
-
-// impl Borrow<String> for Id {
-//     fn borrow(&self) -> &String {
-//         &self.0
-//     }
-// }
-
-impl Borrow<str> for Id {
-    fn borrow(&self) -> &str {
+impl AsRef<Id> for ProtoId {
+    fn as_ref(&self) -> &Id {
         &self.0
     }
 }
 
-// Parsing values
-
-impl FromStr for Id {
-    type Err = WarpgatePluginError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Id::new(s)
+impl From<ProtoId> for String {
+    fn from(value: ProtoId) -> Self {
+        value.to_string()
     }
 }
 
-impl<'de> Deserialize<'de> for Id {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        Id::new(String::deserialize(deserializer)?)
-            .map_err(|error| de::Error::custom(error.to_string()))
+impl FromStr for ProtoId {
+    type Err = ProtoIdError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        ProtoId::new(value)
+    }
+}
+
+impl TryFrom<&str> for ProtoId {
+    type Error = ProtoIdError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        ProtoId::new(value)
+    }
+}
+
+impl TryFrom<String> for ProtoId {
+    type Error = ProtoIdError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        ProtoId::new(value)
+    }
+}
+
+impl TryFrom<&String> for ProtoId {
+    type Error = ProtoIdError;
+
+    fn try_from(value: &String) -> Result<Self, Self::Error> {
+        ProtoId::new(value)
+    }
+}
+
+impl schematic::Schematic for ProtoId {
+    fn build_schema(mut schema: schematic::SchemaBuilder) -> schematic::Schema {
+        schema.set_description("An identifier for plugins.");
+        schema.string_default()
     }
 }
