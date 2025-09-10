@@ -3787,9 +3787,9 @@ dependencies = [
 
 [[package]]
 name = "scc"
-version = "3.0.2"
+version = "3.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8a1d18997b68a1406b7d1e814b2f600ca7cd2dbeb5277347aa463928ab8fe1c"
+checksum = "ebd5f3791d68f18b12d09c77f8eac70ee8222c85436d61639f9f089baffa2600"
 dependencies = [
  "saa",
  "sdd",
@@ -4282,11 +4282,12 @@ dependencies = [
 
 [[package]]
 name = "starbase_id"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6f435eaaea1b7a0eb01ff87393ebc3b323ad8aa4d78053f03334fc31e84e57f4"
+checksum = "68ddc6373f568b1c9f48231aaa3f7614e85eddfcf1789bdbdc5b10c969f04dd5"
 dependencies = [
  "compact_str 0.9.0",
+ "schematic",
  "serde",
 ]
 

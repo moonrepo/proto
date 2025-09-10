@@ -1,6 +1,7 @@
 use crate::config::PluginType;
 use crate::env::ProtoEnvironment;
 use crate::helpers::get_proto_version;
+use crate::id::Id;
 use crate::layout::{Inventory, Product};
 use crate::lockfile::LockRecord;
 use crate::normalize_path_separators;
@@ -18,7 +19,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tracing::{debug, instrument};
 use warpgate::{
-    Id, PluginContainer, PluginLocator, PluginManifest, VirtualPath, Wasm,
+    PluginContainer, PluginLocator, PluginManifest, VirtualPath, Wasm,
     host::{HostData, create_host_functions},
 };
 

@@ -7,7 +7,8 @@ use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::LazyLock;
 use thiserror::Error;
-use warpgate::Id;
+
+pub use warpgate::Id;
 
 static ID_PATTERN: LazyLock<Regex> =
     LazyLock::new(|| Regex::new("^[a-zA-Z][a-zA-Z0-9-_]*$").unwrap());
@@ -20,7 +21,8 @@ static ID_PATTERN: LazyLock<Regex> =
 )]
 pub struct ProtoIdError(String);
 
-/// An identifier for plugins.
+/// An identifier that ensures that it has been formatted correctly.
+/// Primarily used in configuration and serde flows.
 #[derive(Clone, Default, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(into = "String", try_from = "String")]
 pub struct ProtoId(Id);
@@ -34,6 +36,10 @@ impl ProtoId {
         }
 
         Ok(ProtoId(Id::raw(id)))
+    }
+
+    pub fn format<S: AsRef<str>>(id: S) -> Result<Id, ProtoIdError> {
+        Self::new(id).map(|id| id.into_id())
     }
 
     pub fn as_id(&self) -> &Id {
@@ -114,8 +120,11 @@ impl TryFrom<&String> for ProtoId {
 }
 
 impl schematic::Schematic for ProtoId {
+    fn schema_name() -> Option<String> {
+        Some("Id".into())
+    }
+
     fn build_schema(mut schema: schematic::SchemaBuilder) -> schematic::Schema {
-        schema.set_description("An identifier for plugins.");
         schema.string_default()
     }
 }

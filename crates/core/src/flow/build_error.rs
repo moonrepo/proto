@@ -41,7 +41,7 @@ pub enum ProtoBuildError {
     },
 
     #[diagnostic(code(proto::install::build::missing_builder))]
-    #[error("Builder {} has not been installed.",  .id.style(Style::Id))]
+    #[error("Builder {} has not been installed.", .id.style(Style::Id))]
     MissingBuilder { id: String },
 
     #[diagnostic(code(proto::install::build::missing_builder_exe))]

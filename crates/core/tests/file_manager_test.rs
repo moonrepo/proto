@@ -1,8 +1,8 @@
-use proto_core::{LockRecord, ProtoFileManager, ToolContext};
+use proto_core::{Id, LockRecord, ProtoFileManager, ToolContext};
 use starbase_sandbox::create_empty_sandbox;
 use std::collections::BTreeMap;
 use version_spec::UnresolvedVersionSpec;
-use warpgate::{FileLocator, Id, PluginLocator};
+use warpgate::{FileLocator, PluginLocator};
 
 mod file_manager {
     use super::*;
