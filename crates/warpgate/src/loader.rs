@@ -2,19 +2,18 @@ use crate::clients::*;
 use crate::helpers::{
     create_cache_key, determine_cache_extension, download_from_url_to_file, move_or_unpack_download,
 };
-use crate::id::Id;
 use crate::loader_error::WarpgateLoaderError;
 use crate::protocols::{FileLoader, GitHubLoader, HttpLoader, LoadFrom, LoaderProtocol, OciLoader};
 use crate::registry::RegistryConfig;
 use once_cell::sync::OnceCell;
 use starbase_styles::color;
-use starbase_utils::fs;
+use starbase_utils::{fs, path};
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 use tracing::{instrument, trace, warn};
-use warpgate_api::PluginLocator;
+use warpgate_api::{Id, PluginLocator};
 
 pub type OfflineChecker = Arc<fn() -> bool>;
 
@@ -126,16 +125,16 @@ impl PluginLoader {
         })
     }
 
-    /// Return an OCI client, or create it if it does not exist.
-    pub fn get_oci_client(&self) -> Result<&Arc<OciClient>, WarpgateHttpClientError> {
-        self.oci_client
-            .get_or_try_init(|| Ok(Arc::new(OciClient::default())))
-    }
-
     /// Return the HTTP client, or create it if it does not exist.
     pub fn get_http_client(&self) -> Result<&Arc<HttpClient>, WarpgateHttpClientError> {
         self.http_client
             .get_or_try_init(|| create_http_client_with_options(&self.http_options).map(Arc::new))
+    }
+
+    /// Return an OCI client, or create it if it does not exist.
+    pub fn get_oci_client(&self) -> Result<&Arc<OciClient>, WarpgateHttpClientError> {
+        self.oci_client
+            .get_or_try_init(|| Ok(Arc::new(OciClient::default())))
     }
 
     /// Load a plugin using the provided locator. File system plugins are loaded directly,
@@ -224,8 +223,7 @@ impl PluginLoader {
     pub fn create_cache_path(&self, id: &Id, hash: &str, ext: &str, is_latest: bool) -> PathBuf {
         self.plugins_dir.join(format!(
             "{}{}{hash}{ext}",
-            // Remove unwanted or unsafe file name characters
-            id.as_str().replace(['/', '@', '.', ' '], ""),
+            path::encode_component(id.as_str()),
             if is_latest { "-latest-" } else { "-" },
         ))
     }

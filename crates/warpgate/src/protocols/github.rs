@@ -1,6 +1,5 @@
 use super::{LoadFrom, LoaderProtocol};
 use crate::clients::{HttpClient, WarpgateHttpClientError};
-use crate::id::Id;
 use crate::loader_error::WarpgateLoaderError;
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
@@ -9,7 +8,7 @@ use std::env;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tracing::trace;
-use warpgate_api::GitHubLocator;
+use warpgate_api::{GitHubLocator, Id};
 
 #[derive(Clone)]
 pub struct GitHubLoader {

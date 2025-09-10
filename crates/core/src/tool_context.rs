@@ -1,8 +1,8 @@
+use crate::id::*;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::fmt;
 use std::str::FromStr;
-use warpgate::{Id, WarpgatePluginError};
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(into = "String", try_from = "String")]
@@ -38,19 +38,19 @@ impl ToolContext {
         &self.original
     }
 
-    pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, WarpgatePluginError> {
+    pub fn parse<T: AsRef<str>>(value: T) -> Result<Self, ProtoIdError> {
         Self::from_str(value.as_ref())
     }
 }
 
 impl FromStr for ToolContext {
-    type Err = WarpgatePluginError;
+    type Err = ProtoIdError;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         let (backend, id) = if let Some((prefix, suffix)) = value.split_once(':') {
-            (Some(Id::new(prefix)?), Id::new(suffix)?)
+            (Some(ProtoId::format(prefix)?), ProtoId::format(suffix)?)
         } else {
-            (None, Id::new(value)?)
+            (None, ProtoId::format(value)?)
         };
 
         Ok(Self {
@@ -62,7 +62,7 @@ impl FromStr for ToolContext {
 }
 
 impl TryFrom<String> for ToolContext {
-    type Error = WarpgatePluginError;
+    type Error = ProtoIdError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         Self::from_str(&value)

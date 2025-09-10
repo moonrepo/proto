@@ -1,5 +1,6 @@
 use crate::config_error::ProtoConfigError;
 use crate::flow::lock::ProtoLockError;
+use crate::id::ProtoIdError;
 use crate::layout::ProtoLayoutError;
 use starbase_styles::{Style, Stylize};
 use starbase_utils::fs::FsError;
@@ -24,6 +25,10 @@ pub enum ProtoResolveError {
     #[diagnostic(transparent)]
     #[error(transparent)]
     HttpClient(#[from] Box<WarpgateHttpClientError>),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Id(#[from] Box<ProtoIdError>),
 
     #[diagnostic(transparent)]
     #[error(transparent)]
@@ -107,5 +112,11 @@ impl From<ProtoLockError> for ProtoResolveError {
 impl From<WarpgatePluginError> for ProtoResolveError {
     fn from(e: WarpgatePluginError) -> ProtoResolveError {
         ProtoResolveError::Plugin(Box::new(e))
+    }
+}
+
+impl From<ProtoIdError> for ProtoResolveError {
+    fn from(e: ProtoIdError) -> ProtoResolveError {
+        ProtoResolveError::Id(Box::new(e))
     }
 }

@@ -1,5 +1,6 @@
 use crate::config::{PluginType, SCHEMA_PLUGIN_KEY};
 use crate::env::ProtoEnvironment;
+use crate::id::Id;
 use crate::loader_error::ProtoLoaderError;
 use crate::tool::Tool;
 use crate::tool_context::ToolContext;
@@ -9,7 +10,7 @@ use starbase_utils::{json, toml, yaml};
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use tracing::{debug, instrument, trace, warn};
-use warpgate::{Id, PluginLocator, PluginManifest, Wasm, inject_default_manifest_config};
+use warpgate::{PluginLocator, PluginManifest, Wasm, inject_default_manifest_config};
 
 #[instrument(skip(proto, manifest))]
 pub fn inject_proto_manifest_config(

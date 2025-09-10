@@ -6,6 +6,7 @@ mod env_error;
 mod file_manager;
 pub mod flow;
 mod helpers;
+mod id;
 pub mod layout;
 mod loader;
 mod loader_error;
@@ -25,6 +26,7 @@ pub use env::*;
 pub use env_error::*;
 pub use file_manager::*;
 pub use helpers::*;
+pub use id::*;
 pub use loader::*;
 pub use loader_error::*;
 pub use lockfile::*;
@@ -36,10 +38,12 @@ pub use tool_spec::*;
 pub use version_resolver::*;
 pub use version_spec::*;
 
-// Only export things consumers will actually need!
+// Only export things consumers will actually need
 pub use semver::{Version, VersionReq};
 pub use warpgate;
-pub use warpgate::{Id, PluginLocator, RegistryConfig};
+pub use warpgate::{
+    FileLocator, GitHubLocator, PluginLocator, RegistryConfig, RegistryLocator, UrlLocator,
+};
 
 // For document editing
 pub mod cfg {

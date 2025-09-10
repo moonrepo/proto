@@ -242,7 +242,7 @@ api_struct!(
     /// Input passed to the `register_tool` function.
     pub struct RegisterToolInput {
         /// ID of the tool, as it was configured.
-        pub id: String,
+        pub id: Id,
     }
 );
 
@@ -366,7 +366,7 @@ api_struct!(
         pub context: PluginUnresolvedContext,
 
         /// ID of the tool, as it was configured.
-        pub id: String,
+        pub id: Id,
     }
 );
 
@@ -374,7 +374,7 @@ api_struct!(
     /// Output returned by the `register_backend` function.
     pub struct RegisterBackendOutput {
         /// Unique identifier for this backend. Will be used as the folder name.
-        pub backend_id: String,
+        pub backend_id: Id,
 
         /// List of executables, relative from the backend directory,
         /// that will be executed in the context of proto.

@@ -16,8 +16,9 @@ rustc-hash = { workspace = true }
 schematic = { workspace = true, optional = true, features = ["schema", "json"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
+starbase_id = { workspace = true }
 thiserror = { workspace = true }
 
 [features]
 default = []
-schematic = ["dep:schematic", "system_env/schematic"]
+schematic = ["dep:schematic", "system_env/schematic", "starbase_id/schematic"]

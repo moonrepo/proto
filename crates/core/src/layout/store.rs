@@ -1,5 +1,6 @@
 use super::inventory::Inventory;
 use super::layout_error::ProtoLayoutError;
+use crate::id::Id;
 use crate::tool_manifest::ToolManifest;
 use once_cell::sync::OnceCell;
 use proto_pdk_api::ToolInventoryOptions;
@@ -10,7 +11,6 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tracing::instrument;
-use warpgate::Id;
 
 #[derive(Clone, Default, Serialize)]
 pub struct Store {

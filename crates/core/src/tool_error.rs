@@ -1,4 +1,5 @@
 use crate::config_error::ProtoConfigError;
+use crate::id::Id;
 use crate::layout::ProtoLayoutError;
 use crate::utils::archive::ProtoArchiveError;
 use crate::utils::process::ProtoProcessError;
@@ -6,7 +7,7 @@ use starbase_styles::{Style, Stylize};
 use starbase_utils::fs::FsError;
 use std::path::PathBuf;
 use thiserror::Error;
-use warpgate::{Id, WarpgateHttpClientError, WarpgatePluginError};
+use warpgate::{WarpgateHttpClientError, WarpgatePluginError};
 
 #[derive(Error, Debug, miette::Diagnostic)]
 pub enum ProtoToolError {

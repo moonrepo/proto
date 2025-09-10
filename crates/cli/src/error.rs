@@ -3,7 +3,7 @@ use proto_core::flow::resolve::ProtoResolveError;
 use proto_core::flow::setup::ProtoSetupError;
 use proto_core::layout::ProtoLayoutError;
 use proto_core::warpgate::WarpgatePluginError;
-use proto_core::{PROTO_CONFIG_NAME, ProtoConfigError};
+use proto_core::{PROTO_CONFIG_NAME, ProtoConfigError, ProtoIdError};
 use starbase_console::ConsoleError;
 use starbase_shell::ShellError;
 use starbase_styles::{Style, Stylize};
@@ -29,6 +29,10 @@ pub enum ProtoCliError {
 
     #[error(transparent)]
     Http(#[from] Box<reqwest::Error>),
+
+    #[diagnostic(transparent)]
+    #[error(transparent)]
+    Id(#[from] Box<ProtoIdError>),
 
     #[diagnostic(transparent)]
     #[error(transparent)]
@@ -165,6 +169,12 @@ impl From<ConsoleError> for ProtoCliError {
 impl From<FsError> for ProtoCliError {
     fn from(e: FsError) -> ProtoCliError {
         ProtoCliError::Fs(Box::new(e))
+    }
+}
+
+impl From<ProtoIdError> for ProtoCliError {
+    fn from(e: ProtoIdError) -> ProtoCliError {
+        ProtoCliError::Id(Box::new(e))
     }
 }
 

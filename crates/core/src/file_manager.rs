@@ -1,5 +1,6 @@
 use crate::config::*;
 use crate::config_error::ProtoConfigError;
+use crate::id::Id;
 use crate::lockfile::*;
 use crate::tool_context::ToolContext;
 use once_cell::sync::OnceCell;
@@ -10,7 +11,6 @@ use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use tracing::debug;
-use warpgate::Id;
 
 #[derive(Debug, Serialize)]
 pub struct ProtoConfigFile {

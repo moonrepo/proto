@@ -27,6 +27,10 @@
   },
   "additionalProperties": false,
   "definitions": {
+    "Id": {
+      "title": "Id",
+      "type": "string"
+    },
     "PluginAuthor": {
       "title": "PluginAuthor",
       "description": "Information about an author, either their name, or an object of additional fields.",
@@ -154,7 +158,11 @@
         },
         "id": {
           "description": "Suggested identifier of the plugin. This will become the primary binary/shim name, as well as the name used on the command line, and within environment variables.",
-          "type": "string"
+          "allOf": [
+            {
+              "$ref": "#/definitions/Id"
+            }
+          ]
         },
         "locator": {
           "description": "The location in which to acquire the plugin. More information: https://moonrepo.dev/docs/guides/wasm-plugins#configuring-plugin-locations",
