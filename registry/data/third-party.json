@@ -1312,6 +1312,19 @@
       ]
     },
     {
+      "id": "xurl",
+      "locator": "https://raw.githubusercontent.com/davearel/proto-plugins/main/xurl/plugin.toml",
+      "format": "toml",
+      "name": "xurl",
+      "description": "A curl-like command-line tool for interacting with the X (formerly Twitter) API, with built in authentication.",
+      "author": "davearel",
+      "homepageUrl": "https://github.com/xdevplatform/xurl",
+      "repositoryUrl": "https://github.com/davearel/proto-plugins/tree/main/xurl",
+      "bins": [
+        "xurl"
+      ]
+    },
+    {
       "id": "yq",
       "locator": "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/yq/plugin.toml",
       "format": "toml",
