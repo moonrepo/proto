@@ -218,6 +218,7 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
         .proto
         .load_config()?
         .get_env_vars(ProtoConfigEnvOptions {
+            backend_id: tool.get_backend().cloned(),
             check_process: true,
             include_shared: true,
             tool_id: Some(tool.get_id().clone()),

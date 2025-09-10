@@ -421,6 +421,7 @@ foo = "file://./test.toml"
 
         fn new_env_options() -> ProtoConfigEnvOptions {
             ProtoConfigEnvOptions {
+                backend_id: None,
                 check_process: true,
                 include_shared: true,
                 tool_id: None,
@@ -980,6 +981,7 @@ file = ".env.tool"
             assert_eq!(
                 config
                     .get_env_files(ProtoConfigEnvOptions {
+                        backend_id: None,
                         check_process: true,
                         include_shared: true,
                         tool_id: Some(Id::raw("node")),

@@ -32,6 +32,21 @@ pub const SCHEMA_PLUGIN_KEY: &str = "internal-schema";
 pub const PROTO_PLUGIN_KEY: &str = "proto";
 pub const ENV_FILE_KEY: &str = "file";
 
+fn merge_backends(
+    mut prev: BTreeMap<Id, PartialProtoBackendConfig>,
+    next: BTreeMap<Id, PartialProtoBackendConfig>,
+    context: &(),
+) -> MergeResult<BTreeMap<Id, PartialProtoBackendConfig>> {
+    for (key, value) in next {
+        prev.entry(key)
+            .or_default()
+            .merge(context, value)
+            .map_err(MergeError::new)?;
+    }
+
+    Ok(Some(prev))
+}
+
 fn merge_tools(
     mut prev: BTreeMap<Id, PartialProtoToolConfig>,
     next: BTreeMap<Id, PartialProtoToolConfig>,
@@ -229,6 +244,24 @@ pub struct ProtoBuildConfig {
 #[derive(Clone, Config, Debug, Serialize)]
 #[config(allow_unknown_fields)]
 #[serde(rename_all = "kebab-case")]
+pub struct ProtoBackendConfig {
+    #[setting(nested, merge = merge_indexmap)]
+    #[serde(skip_serializing_if = "IndexMap::is_empty")]
+    pub env: IndexMap<String, EnvVar>,
+
+    // Custom configuration to pass to plugins
+    #[setting(merge = merge_fxhashmap)]
+    #[serde(flatten, skip_serializing_if = "FxHashMap::is_empty")]
+    pub config: FxHashMap<String, JsonValue>,
+
+    #[setting(exclude, merge = merge::append_vec)]
+    #[serde(skip)]
+    _env_files: Vec<EnvFile>,
+}
+
+#[derive(Clone, Config, Debug, Serialize)]
+#[config(allow_unknown_fields)]
+#[serde(rename_all = "kebab-case")]
 pub struct ProtoToolConfig {
     #[setting(merge = merge::merge_btreemap)]
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
@@ -343,6 +376,10 @@ impl ProtoPluginsConfig {
 #[config(allow_unknown_fields)]
 #[serde(rename_all = "kebab-case")]
 pub struct ProtoConfig {
+    #[setting(nested, merge = merge_backends)]
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub backends: BTreeMap<Id, ProtoBackendConfig>,
+
     #[setting(nested, merge = merge_indexmap)]
     #[serde(skip_serializing_if = "IndexMap::is_empty")]
     pub env: IndexMap<String, EnvVar>,
@@ -707,6 +744,12 @@ impl ProtoConfig {
             Ok(())
         };
 
+        if let Some(backends) = &mut config.backends {
+            for backend in backends.values_mut() {
+                push_env_file(backend.env.as_mut(), &mut backend._env_files, 5)?;
+            }
+        }
+
         if let Some(tools) = &mut config.tools {
             for tool in tools.values_mut() {
                 push_env_file(tool.env.as_mut(), &mut tool._env_files, 5)?;
@@ -777,6 +820,12 @@ impl ProtoConfig {
 
         if options.include_shared {
             paths.extend(&self._env_files);
+        }
+
+        if let Some(backend_id) = &options.backend_id
+            && let Some(backend_config) = self.tools.get(backend_id)
+        {
+            paths.extend(&backend_config._env_files);
         }
 
         if let Some(tool_id) = &options.tool_id
@@ -909,6 +958,7 @@ impl ProtoConfig {
 
 #[derive(Clone, Default)]
 pub struct ProtoConfigEnvOptions {
+    pub backend_id: Option<Id>,
     pub check_process: bool,
     pub include_shared: bool,
     pub tool_id: Option<Id>,
