@@ -8,7 +8,6 @@ use starbase_utils::fs;
 use starbase_utils::json::{self, JsonError};
 use starbase_utils::net;
 use std::env;
-use std::ffi::{OsStr, OsString};
 use std::path::Path;
 use std::sync::{LazyLock, OnceLock};
 use std::time::SystemTime;
@@ -85,19 +84,6 @@ pub fn now() -> u128 {
         .duration_since(SystemTime::UNIX_EPOCH)
         .map(|d| d.as_millis())
         .unwrap_or(0)
-}
-
-pub fn normalize_path_separators<T: AsRef<OsStr>>(path: T) -> OsString {
-    let path = path.as_ref();
-
-    match path.to_str() {
-        Some(inner) => OsString::from(if cfg!(windows) {
-            inner.replace("/", "\\")
-        } else {
-            inner.replace("\\", "/")
-        }),
-        None => path.to_os_string(),
-    }
 }
 
 pub fn extract_filename_from_url<U: AsRef<str>>(url: U) -> String {

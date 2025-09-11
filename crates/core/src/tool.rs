@@ -4,7 +4,6 @@ use crate::helpers::get_proto_version;
 use crate::id::Id;
 use crate::layout::{Inventory, Product};
 use crate::lockfile::LockRecord;
-use crate::normalize_path_separators;
 use crate::tool_context::ToolContext;
 use crate::tool_error::ProtoToolError;
 use crate::utils::{archive, git};
@@ -13,7 +12,7 @@ use proto_pdk_api::{
     RegisterBackendOutput, RegisterToolInput, RegisterToolOutput, SourceLocation, VersionSpec,
 };
 use starbase_styles::color;
-use starbase_utils::fs;
+use starbase_utils::{fs, path};
 use std::fmt::{self, Debug};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -379,8 +378,8 @@ impl Tool {
             .proto
             .store
             .backends_dir
-            .join(backend.to_string()) // asdf
-            .join(backend_id.as_str()); // node
+            .join(path::encode_component(backend)) // asdf
+            .join(path::encode_component(&backend_id)); // node
         let update_perms = !backend_dir.exists();
         let config = self.proto.load_config()?;
 
@@ -431,7 +430,7 @@ impl Tool {
 
         if update_perms {
             for exe in metadata.exes {
-                let exe_path = backend_dir.join(normalize_path_separators(exe));
+                let exe_path = backend_dir.join(path::normalize_separators(exe));
 
                 if exe_path.exists() {
                     fs::update_perms(exe_path, None)?;
