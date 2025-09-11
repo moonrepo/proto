@@ -7,7 +7,7 @@ use proto_pdk_api::{
 };
 use proto_shim::{get_exe_file_name, get_shim_file_name};
 use serde::Serialize;
-use starbase_utils::fs;
+use starbase_utils::{fs, path};
 use std::env;
 use std::path::{Path, PathBuf};
 use tracing::{debug, instrument};
@@ -237,7 +237,8 @@ impl Tool {
         let exe_file = if let Some(location) = self.resolve_primary_exe_location().await? {
             location.path
         } else {
-            self.get_product_dir().join(self.get_id().as_str())
+            self.get_product_dir()
+                .join(path::exe_name(path::encode_component(self.get_id())))
         };
 
         if exe_file.exists() {

@@ -163,7 +163,7 @@ impl Tool {
 
     /// Return the prefix for environment variable names.
     pub fn get_env_var_prefix(&self) -> String {
-        format!("PROTO_{}", self.get_id().to_uppercase().replace('-', "_"))
+        format!("PROTO_{}", self.get_id().to_env_var())
     }
 
     /// Return the tool identifier.

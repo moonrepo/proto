@@ -55,6 +55,7 @@ pub fn inject_default_manifest_config(
 
     if !manifest.config.contains_key("host_environment") {
         let os = SystemOS::from_env();
+
         let env = serde_json::to_string(&HostEnvironment {
             arch: SystemArch::from_env(),
             ci: is_ci(),
