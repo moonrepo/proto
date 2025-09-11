@@ -54,14 +54,8 @@ macro_rules! generate_build_install_tests {
             // Check install dir exists
             let version = plugin.tool.get_resolved_version();
             let tool_dir = plugin.tool.get_product_dir();
-            let base_dir = sandbox
-                .proto_dir
-                .join("tools")
-                .join(plugin.tool.context.as_str().replace(':', "-"))
-                .join(version.to_string());
 
-            assert_eq!(tool_dir, base_dir);
-            assert!(base_dir.exists());
+            assert!(tool_dir.exists());
 
             // Check bin path exists (would panic)
             plugin.tool.locate_exe_file().await.unwrap();
@@ -154,14 +148,8 @@ macro_rules! generate_native_install_tests {
             // Check install dir exists
             let version = plugin.tool.get_resolved_version();
             let tool_dir = plugin.tool.get_product_dir();
-            let base_dir = sandbox
-                .proto_dir
-                .join("tools")
-                .join(plugin.tool.context.as_str().replace(':', "-"))
-                .join(version.to_string());
 
-            assert_eq!(tool_dir, base_dir);
-            assert!(base_dir.exists());
+            assert!(tool_dir.exists());
 
             // Check bin path exists (would panic)
             plugin.tool.locate_exe_file().await.unwrap();

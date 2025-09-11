@@ -81,12 +81,11 @@ async fn track_uninstall(tool: &Tool, all: bool) -> Result<(), ProtoCliError> {
 #[instrument(skip(session))]
 async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult {
     let mut tool = session.load_tool(&args.context).await?;
-    let inventory_dir = tool.get_inventory_dir();
     let version_count = tool.inventory.manifest.installed_versions.len();
     let skip_prompts = session.should_skip_prompts();
     let mut confirmed = false;
 
-    if !inventory_dir.exists() {
+    if !tool.get_inventory_dir().exists() {
         session.console.render(element! {
             Notice(variant: Variant::Caution) {
                 StyledText(
@@ -110,7 +109,7 @@ async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult 
                         "Uninstall all {} versions of {} at <path>{}</path>?",
                         version_count,
                         tool.get_name(),
-                        inventory_dir.display()
+                        tool.get_inventory_dir().display()
                     ),
                     on_confirm: &mut confirmed,
                 )
@@ -137,7 +136,7 @@ async fn uninstall_all(session: ProtoSession, args: UninstallArgs) -> AppResult 
     }
 
     // Delete inventory
-    fs::remove_dir_all(inventory_dir)?;
+    fs::remove_dir_all(tool.get_inventory_dir())?;
     fs::remove_dir_all(tool.get_temp_dir())?;
 
     // Remove from lockfile

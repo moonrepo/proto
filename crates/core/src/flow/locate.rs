@@ -124,11 +124,6 @@ impl Tool {
         // Loop through each version, extract the locations,
         // and append it to the master list
         for (bucket_version, resolved_version) in versions {
-            // TODO
-            // if let Some(resolved_setting) = self.inventory.manifest.versions.get(resolved_version) {
-            //     self.backend = resolved_setting.lock.as_ref().and_then(|lock| lock.backend);
-            // }
-
             // Locate the executables for this specific version,
             // as the logic in how they are located may have changed
             // between versions, and we simply can't rely on the
@@ -284,7 +279,7 @@ impl Tool {
             } else {
                 for dir in output.exes_dirs {
                     if dir.to_str().is_some_and(|dir| dir == ".") {
-                        self.exes_dirs.push(self.get_product_dir());
+                        self.exes_dirs.push(self.get_product_dir().to_path_buf());
                     } else {
                         self.exes_dirs
                             .push(self.get_product_dir().join(path::normalize_separators(dir)));
@@ -373,13 +368,13 @@ impl Tool {
             "Locating globals directories for tool"
         );
 
-        let install_dir = self.get_product_dir();
         let output = self.call_locate_executables().await?;
 
         // Set the prefix for simpler caching
         self.globals_prefix = output.globals_prefix;
 
         // Find all possible global directories that packages can be installed to
+        let install_dir = self.get_product_dir();
         let mut resolved_dirs = vec![];
 
         'outer: for dir_lookup in output.globals_lookup_dirs {
@@ -394,7 +389,7 @@ impl Tool {
                     "$CWD" | "$PWD" => self.proto.working_dir.clone(),
                     "$HOME" | "$USERHOME" | "$USERPROFILE" => self.proto.home_dir.clone(),
                     "$PROTO_HOME" | "$PROTO_ROOT" => self.proto.store.dir.clone(),
-                    "$TOOL_DIR" => install_dir.clone(),
+                    "$TOOL_DIR" => install_dir.to_path_buf(),
                     _ => match env::var_os(cap.get(1).unwrap().as_str()) {
                         Some(value) => PathBuf::from(value),
                         None => {

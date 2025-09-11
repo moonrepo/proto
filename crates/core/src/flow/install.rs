@@ -439,7 +439,7 @@ impl Tool {
         // Lock the temporary directory instead of the install directory,
         // because the latter needs to be clean for "build from source",
         // and the `.lock` file breaks that contract
-        let mut install_lock = fs::lock_directory(&temp_dir)?;
+        let mut install_lock = fs::lock_directory(temp_dir)?;
 
         // If this function is defined, it acts like an escape hatch and
         // takes precedence over all other install strategies
@@ -450,7 +450,7 @@ impl Tool {
                 func(InstallPhase::Native);
             });
 
-            fs::create_dir_all(&install_dir)?;
+            fs::create_dir_all(install_dir)?;
 
             let output: NativeInstallOutput = self
                 .plugin
@@ -458,7 +458,7 @@ impl Tool {
                     PluginFunction::NativeInstall,
                     NativeInstallInput {
                         context: self.create_plugin_context(),
-                        install_dir: self.to_virtual_path(&install_dir),
+                        install_dir: self.to_virtual_path(install_dir),
                     },
                 )
                 .await?;
@@ -483,12 +483,12 @@ impl Tool {
 
         // Build the tool from source
         let result = if matches!(options.strategy, InstallStrategy::BuildFromSource) {
-            self.build_from_source(&install_dir, &temp_dir, options)
+            self.build_from_source(install_dir, temp_dir, options)
                 .await
         }
         // Install from a prebuilt archive
         else {
-            self.install_from_prebuilt(&install_dir, &temp_dir, options)
+            self.install_from_prebuilt(install_dir, temp_dir, options)
                 .await
         };
 
@@ -516,8 +516,8 @@ impl Tool {
 
                 install_lock.unlock()?;
 
-                fs::remove_dir_all(&install_dir)?;
-                fs::remove_dir_all(&temp_dir)?;
+                fs::remove_dir_all(install_dir)?;
+                fs::remove_dir_all(temp_dir)?;
 
                 Err(error)
             }
@@ -547,7 +547,7 @@ impl Tool {
                     PluginFunction::NativeUninstall,
                     NativeUninstallInput {
                         context: self.create_plugin_context(),
-                        uninstall_dir: self.to_virtual_path(&install_dir),
+                        uninstall_dir: self.to_virtual_path(install_dir),
                     },
                 )
                 .await?;

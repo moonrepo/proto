@@ -128,7 +128,7 @@ async fn get_tool_executable(tool: &Tool, alt: Option<&str>) -> miette::Result<E
 
         return Err(ProtoCliError::RunMissingAltBin {
             bin: alt_name.to_owned(),
-            path: tool_dir,
+            path: tool_dir.to_path_buf(),
         }
         .into());
     }

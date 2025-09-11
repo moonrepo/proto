@@ -195,18 +195,18 @@ impl WasmTestWrapper {
         let tool_dir = if context.tool_dir.any_path().components().count() == 0 {
             self.tool.get_product_dir()
         } else {
-            context.tool_dir.any_path().to_path_buf()
+            context.tool_dir.any_path()
         };
 
         let temp_dir = if context.temp_dir.any_path().components().count() == 0 {
             self.tool.get_temp_dir()
         } else {
-            context.temp_dir.any_path().to_path_buf()
+            context.temp_dir.any_path()
         };
 
         PluginContext {
-            temp_dir: self.tool.to_virtual_path(&temp_dir),
-            tool_dir: self.tool.to_virtual_path(&tool_dir),
+            temp_dir: self.tool.to_virtual_path(temp_dir),
+            tool_dir: self.tool.to_virtual_path(tool_dir),
             ..context
         }
     }
@@ -218,11 +218,11 @@ impl WasmTestWrapper {
         let temp_dir = if context.temp_dir.any_path().components().count() == 0 {
             self.tool.get_temp_dir()
         } else {
-            context.temp_dir.any_path().to_path_buf()
+            context.temp_dir.any_path()
         };
 
         PluginUnresolvedContext {
-            temp_dir: self.tool.to_virtual_path(&temp_dir),
+            temp_dir: self.tool.to_virtual_path(temp_dir),
             ..context
         }
     }

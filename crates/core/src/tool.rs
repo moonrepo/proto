@@ -184,8 +184,8 @@ impl Tool {
 
     /// Return an absolute path to the tool's inventory directory.
     /// The inventory houses installed versions, the manifest, and more.
-    pub fn get_inventory_dir(&self) -> PathBuf {
-        self.inventory.dir.clone()
+    pub fn get_inventory_dir(&self) -> &Path {
+        &self.inventory.dir
     }
 
     /// Return a human readable name for the tool.
@@ -199,15 +199,13 @@ impl Tool {
     }
 
     /// Return an absolute path to a temp directory solely for this tool.
-    pub fn get_temp_dir(&self) -> PathBuf {
-        self.inventory
-            .temp_dir
-            .join(self.get_resolved_version().to_string())
+    pub fn get_temp_dir(&self) -> &Path {
+        &self.inventory.temp_dir
     }
 
     /// Return an absolute path to the tool's install directory for the currently resolved version.
-    pub fn get_product_dir(&self) -> PathBuf {
-        self.product.dir.clone()
+    pub fn get_product_dir(&self) -> &Path {
+        &self.product.dir
     }
 
     /// Return true if this tool instance is a backend plugin.
