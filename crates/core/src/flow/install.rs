@@ -404,7 +404,7 @@ impl Tool {
         // Not an archive, assume a file and copy
         else {
             let install_path =
-                install_dir.join(path::exe_name(path::encode_component(self.get_id())));
+                install_dir.join(path::exe_name(path::encode_component(self.get_file_name())));
 
             fs::rename(&download_file, &install_path)?;
             fs::update_perms(install_path, None)?;

@@ -156,7 +156,7 @@ impl Tool {
         self.cache = false;
     }
 
-    /// Return the tool identifier.
+    /// Return the backend identifier.
     pub fn get_backend(&self) -> Option<&Id> {
         self.context.backend.as_ref()
     }
@@ -164,6 +164,18 @@ impl Tool {
     /// Return the prefix for environment variable names.
     pub fn get_env_var_prefix(&self) -> String {
         format!("PROTO_{}", self.get_id().to_env_var())
+    }
+
+    /// Return the tool identifier for use within file names.
+    pub fn get_file_name(&self) -> &str {
+        let id = self.get_id().as_str();
+
+        // May be an npm package with a scope,
+        // so remove the scope and return the name
+        match id.rfind('/') {
+            Some(index) => &id[index + 1..],
+            None => id,
+        }
     }
 
     /// Return the tool identifier.

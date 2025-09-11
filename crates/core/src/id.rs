@@ -11,8 +11,11 @@ use thiserror::Error;
 // The shared identifier.
 pub use warpgate::Id;
 
+// Identifiers are typically alphanumeric characters, dashes, and underscores,
+// as they are used in directory and file names. However, we also need to support
+// npm/cargo/etc packages, so we expand the list of valid characters just a bit.
 static ID_PATTERN: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new("^[a-zA-Z][a-zA-Z0-9-_]*$").unwrap());
+    LazyLock::new(|| Regex::new("^(@[a-zA-Z][a-zA-Z0-9-_]*/)?[a-zA-Z][a-zA-Z0-9-_]*$").unwrap());
 
 #[derive(Error, Debug, Diagnostic)]
 #[diagnostic(code(proto::invalid_id))]

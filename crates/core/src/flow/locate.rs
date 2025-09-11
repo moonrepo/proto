@@ -238,7 +238,7 @@ impl Tool {
             location.path
         } else {
             self.get_product_dir()
-                .join(path::exe_name(path::encode_component(self.get_id())))
+                .join(path::exe_name(path::encode_component(self.get_file_name())))
         };
 
         if exe_file.exists() {
