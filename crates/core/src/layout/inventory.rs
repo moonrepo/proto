@@ -4,7 +4,7 @@ use crate::helpers::{is_cache_enabled, is_offline};
 use crate::lockfile::LockRecord;
 use crate::tool_manifest::ToolManifest;
 use proto_pdk_api::{LoadVersionsOutput, ToolInventoryOptions};
-use starbase_utils::{fs, json};
+use starbase_utils::{fs, json, path};
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
 use tracing::instrument;
@@ -29,7 +29,7 @@ impl Inventory {
         }
 
         Product {
-            dir: self.dir.join(name),
+            dir: self.dir.join(path::encode_component(name)),
             version: spec.to_owned(),
         }
     }
