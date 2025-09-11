@@ -6,7 +6,7 @@ use once_cell::sync::OnceCell;
 use proto_pdk_api::ToolInventoryOptions;
 use proto_shim::{create_shim, locate_proto_exe};
 use serde::Serialize;
-use starbase_utils::fs;
+use starbase_utils::{fs, path};
 use std::fmt;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -51,13 +51,13 @@ impl Store {
         id: &Id,
         config: &ToolInventoryOptions,
     ) -> Result<Inventory, ProtoLayoutError> {
-        let dir = self.inventory_dir.join(id.as_str());
+        let dir = self.inventory_dir.join(path::encode_component(id));
 
         Ok(Inventory {
             manifest: ToolManifest::load_from(&dir)?,
             dir,
             dir_original: None,
-            temp_dir: self.temp_dir.join(id.as_str()),
+            temp_dir: self.temp_dir.join(path::encode_component(id)),
             config: config.to_owned(),
         })
     }

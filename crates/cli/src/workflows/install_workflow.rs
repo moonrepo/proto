@@ -221,7 +221,7 @@ impl InstallWorkflow {
             log.add_header("Running pre-install hooks");
         });
 
-        unsafe { env::set_var("PROTO_INSTALL", tool.get_id().to_string()) };
+        unsafe { env::set_var("PROTO_INSTALL", tool.get_id()) };
 
         if tool.plugin.has_func(HookFunction::PreInstall).await {
             tool.plugin

@@ -9,10 +9,9 @@ use crate::tool::Tool;
 use crate::utils::archive;
 use crate::utils::log::LogWriter;
 use proto_pdk_api::*;
-use proto_shim::*;
 use starbase_styles::color;
 use starbase_utils::net::DownloadOptions;
-use starbase_utils::{fs, net};
+use starbase_utils::{fs, net, path};
 use std::path::Path;
 use std::sync::Arc;
 use system_env::System;
@@ -404,7 +403,8 @@ impl Tool {
         }
         // Not an archive, assume a file and copy
         else {
-            let install_path = install_dir.join(get_exe_file_name(self.get_id()));
+            let install_path =
+                install_dir.join(path::exe_name(path::encode_component(self.get_file_name())));
 
             fs::rename(&download_file, &install_path)?;
             fs::update_perms(install_path, None)?;
