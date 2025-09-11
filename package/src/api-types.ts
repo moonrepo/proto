@@ -124,6 +124,11 @@ export interface ToolInventoryOptions {
 	 * This is an advanced feature and should only be used when absolutely necessary.
 	 */
 	overrideDir?: VirtualPath | null;
+	/**
+	 * When the inventory is backend managed, scope the inventory directory name
+	 * with the backend as a prefix.
+	 */
+	scopedBackendDir?: boolean;
 	/** Suffix to append to all versions when labeling directories. */
 	versionSuffix?: string | null;
 }
@@ -139,10 +144,12 @@ export interface ToolLockOptions {
 	noRecord?: boolean;
 }
 
+export type Id = string;
+
 /** Input passed to the `register_tool` function. */
 export interface RegisterToolInput {
 	/** ID of the tool, as it was configured. */
-	id: string;
+	id: Id;
 }
 
 /** Supported strategies for installing a tool. */
@@ -205,7 +212,7 @@ export interface RegisterBackendInput {
 	/** Current tool context. */
 	context: PluginUnresolvedContext;
 	/** ID of the tool, as it was configured. */
-	id: string;
+	id: Id;
 }
 
 /** Source code is contained in an archive. */
@@ -233,7 +240,7 @@ export type SourceLocation = ArchiveSource | GitSource;
 /** Output returned by the `register_backend` function. */
 export interface RegisterBackendOutput {
 	/** Unique identifier for this backend. Will be used as the folder name. */
-	backendId: string;
+	backendId: Id;
 	/**
 	 * List of executables, relative from the backend directory,
 	 * that will be executed in the context of proto.
@@ -241,6 +248,12 @@ export interface RegisterBackendOutput {
 	exes?: string[];
 	/** Location in which to acquire source files for the backend. */
 	source?: SourceLocation | null;
+}
+
+/** Output returned from the `define_backend_config` function. */
+export interface DefineBackendConfigOutput {
+	/** Schema shape of the backend's configuration. */
+	schema: unknown;
 }
 
 /** Output returned by the `detect_version_files` function. */
@@ -593,7 +606,7 @@ export type BuildInstruction = {
 		/** The Git source location for the builder. */
 		git: GitSource;
 		/** Unique identifier for this builder. */
-		id: string;
+		id: Id;
 	};
 	type: 'install-builder';
 } | {

@@ -57,7 +57,7 @@ macro_rules! generate_build_install_tests {
             let base_dir = sandbox
                 .proto_dir
                 .join("tools")
-                .join(plugin.tool.get_id().as_str())
+                .join(plugin.tool.context.as_str().replace(':', "-"))
                 .join(version.to_string());
 
             assert_eq!(tool_dir, base_dir);
@@ -157,7 +157,7 @@ macro_rules! generate_native_install_tests {
             let base_dir = sandbox
                 .proto_dir
                 .join("tools")
-                .join(plugin.tool.get_id().as_str())
+                .join(plugin.tool.context.as_str().replace(':', "-"))
                 .join(version.to_string());
 
             assert_eq!(tool_dir, base_dir);

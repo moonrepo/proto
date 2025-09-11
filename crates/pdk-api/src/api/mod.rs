@@ -392,6 +392,14 @@ api_struct!(
     }
 );
 
+api_struct!(
+    /// Output returned from the `define_backend_config` function.
+    pub struct DefineBackendConfigOutput {
+        /// Schema shape of the backend's configuration.
+        pub schema: ConfigSchema,
+    }
+);
+
 // VERSION DETECTION
 
 api_struct!(
