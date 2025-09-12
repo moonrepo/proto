@@ -90,13 +90,11 @@ macro_rules! generate_download_install_tests {
                 .await
                 .unwrap();
 
-            let temp_dir = tool.get_temp_dir();
-
             tool.install(flow::install::InstallOptions::default())
                 .await
                 .unwrap();
 
-            assert!(temp_dir.exists());
+            assert!(tool.get_temp_dir().exists());
         }
 
         #[tokio::test(flavor = "multi_thread")]
@@ -115,7 +113,7 @@ macro_rules! generate_download_install_tests {
             tool.set_version(spec.clone());
             tool.inventory.manifest.installed_versions.insert(spec);
 
-            std::fs::create_dir_all(&tool.get_product_dir()).unwrap();
+            std::fs::create_dir_all(tool.get_product_dir()).unwrap();
 
             assert!(
                 tool.install(flow::install::InstallOptions::default())
@@ -147,14 +145,10 @@ macro_rules! generate_native_install_tests {
 
             // Check install dir exists
             let version = plugin.tool.get_resolved_version();
-            let tool_dir = plugin.tool.get_product_dir();
 
-            assert!(tool_dir.exists());
+            assert!(plugin.tool.get_product_dir().exists());
 
-            // Check bin path exists (would panic)
-            plugin.tool.locate_exe_file().await.unwrap();
-
-            // Check things exist
+            // Check executables exist
             for bin in plugin.tool.resolve_bin_locations(true).await.unwrap() {
                 assert!(bin.path.exists());
             }

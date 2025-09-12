@@ -5,24 +5,24 @@ expression: "fs::read_to_string(sandbox.path().join(\".proto/shims/registry.json
 {
   "node": {},
   "node-gyp": {
-    "alt_bin": true,
-    "parent": "npm"
+    "alt_exe": true,
+    "context": "npm"
   },
   "npm": {},
   "npx": {
-    "alt_bin": true,
-    "parent": "npm"
+    "alt_exe": true,
+    "context": "npm"
   },
   "pnpm": {},
   "pnpx": {
-    "parent": "pnpm",
     "before_args": [
       "dlx"
-    ]
+    ],
+    "context": "pnpm"
   },
   "yarn": {},
   "yarnpkg": {
-    "alt_bin": true,
-    "parent": "yarn"
+    "alt_exe": true,
+    "context": "yarn"
   }
 }

@@ -4,11 +4,11 @@ expression: "fs::read_to_string(sandbox.path().join(\".proto/shims/registry.json
 ---
 {
   "pip": {
-    "parent": "python",
     "before_args": [
       "-m",
       "pip"
-    ]
+    ],
+    "context": "python"
   },
   "poetry": {},
   "python": {}

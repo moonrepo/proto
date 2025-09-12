@@ -483,8 +483,7 @@ impl Tool {
 
         // Build the tool from source
         let result = if matches!(options.strategy, InstallStrategy::BuildFromSource) {
-            self.build_from_source(install_dir, temp_dir, options)
-                .await
+            self.build_from_source(install_dir, temp_dir, options).await
         }
         // Install from a prebuilt archive
         else {
