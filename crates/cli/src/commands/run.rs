@@ -4,6 +4,7 @@ use crate::session::ProtoSession;
 use clap::Args;
 use miette::IntoDiagnostic;
 use proto_core::flow::detect::ProtoDetectError;
+use proto_core::flow::locate::ProtoLocateError;
 use proto_core::{
     Id, PROTO_PLUGIN_KEY, ProtoConfigEnvOptions, ProtoEnvironment, ProtoLoaderError, Tool,
     ToolContext, ToolSpec,
@@ -33,10 +34,10 @@ pub struct RunArgs {
 
     #[arg(
         long,
-        hide = true,
-        help = "Name of an alternate (secondary) executable to run"
+        alias = "alt",
+        help = "File name of an alternate (secondary) executable to run"
     )]
-    alt: Option<String>,
+    exe: Option<String>,
 
     // Passthrough args (after --)
     #[arg(
@@ -134,11 +135,15 @@ async fn get_tool_executable(tool: &Tool, alt: Option<&str>) -> miette::Result<E
     }
 
     // Otherwise use the primary
-    let mut config = tool
-        .resolve_primary_exe_location()
-        .await?
-        .expect("Required executable information missing!")
-        .config;
+    let mut config = match tool.resolve_primary_exe_location().await? {
+        Some(inner) => inner.config,
+        None => {
+            return Err(ProtoLocateError::NoPrimaryExecutable {
+                tool: tool.get_name().into(),
+            }
+            .into());
+        }
+    };
 
     // We don't use `locate_exe_file` here because we need to handle
     // tools whose primary file is not executable, like JavaScript!
@@ -392,7 +397,7 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
             ..Default::default()
         }
     } else {
-        get_tool_executable(&tool, args.alt.as_deref()).await?
+        get_tool_executable(&tool, args.exe.as_deref()).await?
     };
 
     // Run before hook

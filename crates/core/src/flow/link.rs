@@ -69,12 +69,12 @@ impl Tool {
                 shim_entry.env_vars.extend(env_vars);
             }
 
-            if !shim.config.primary {
-                shim_entry.parent = Some(self.get_id().to_string());
+            if !shim.config.primary || shim.name != self.context.id.as_str() {
+                shim_entry.context = Some(self.context.to_string());
 
                 // Only use --alt when the secondary executable exists
                 if shim.config.exe_path.is_some() {
-                    shim_entry.alt_bin = Some(true);
+                    shim_entry.alt_exe = Some(true);
                 }
             }
 
