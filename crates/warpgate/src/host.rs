@@ -230,6 +230,18 @@ fn exec_command(
     command.envs(&input.env);
     command.current_dir(&cwd);
 
+    for (key, value) in &input.env {
+        if let Some(key) = key.strip_suffix('?') {
+            if env::var_os(key).is_none() {
+                command.env(key, value);
+            }
+        } else if let Some(key) = key.strip_suffix('!') {
+            command.env_remove(key);
+        } else {
+            command.env(key, value);
+        }
+    }
+
     if shell_command.pass_args_stdin {
         command.stdin(Stdio::piped());
     } else {
