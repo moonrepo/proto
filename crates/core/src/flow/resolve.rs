@@ -63,7 +63,7 @@ impl Tool {
 
         let config = self.proto.load_config()?;
 
-        if let Some(tool_config) = config.tools.get(self.get_id()) {
+        if let Some(tool_config) = config.get_tool_config(&self.context) {
             resolver.with_config(tool_config);
         }
 

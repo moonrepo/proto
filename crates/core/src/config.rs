@@ -66,6 +66,20 @@ pub struct ProtoConfig {
 }
 
 impl ProtoConfig {
+    pub fn get_backend_config(&self, context: &ToolContext) -> Option<&ProtoBackendConfig> {
+        context
+            .backend
+            .as_ref()
+            .and_then(|id| self.backends.get(id))
+    }
+
+    pub fn get_tool_config(&self, context: &ToolContext) -> Option<&ProtoToolConfig> {
+        // To avoid ID collisions between tools and backend managed tools,
+        // the latter's configuration must include the backend prefix.
+        // For example, "npm:node" instead of just "node" (collision).
+        self.tools.get(context.as_str())
+    }
+
     pub fn setup_env_vars(&self) {
         if env::var("PROTO_OFFLINE_OVERRIDE_HOSTS").is_err()
             && self.settings.offline.override_default_hosts
@@ -478,16 +492,14 @@ impl ProtoConfig {
             paths.extend(&self._env_files);
         }
 
-        if let Some(backend_id) = &options.backend_id
-            && let Some(backend_config) = self.tools.get(backend_id)
-        {
-            paths.extend(&backend_config._env_files);
-        }
+        if let Some(context) = options.context {
+            if let Some(backend_config) = self.get_backend_config(context) {
+                paths.extend(&backend_config._env_files);
+            }
 
-        if let Some(tool_id) = &options.tool_id
-            && let Some(tool_config) = self.tools.get(tool_id)
-        {
-            paths.extend(&tool_config._env_files);
+            if let Some(tool_config) = self.get_tool_config(context) {
+                paths.extend(&tool_config._env_files);
+            }
         }
 
         // Sort by weight so that we persist the order of env files
@@ -516,10 +528,14 @@ impl ProtoConfig {
             base_vars.extend(self.env.clone());
         }
 
-        if let Some(tool_id) = &options.tool_id
-            && let Some(tool_config) = self.tools.get(tool_id)
-        {
-            base_vars.extend(tool_config.env.clone())
+        if let Some(context) = options.context {
+            if let Some(backend_config) = self.get_backend_config(context) {
+                base_vars.extend(backend_config.env.clone())
+            }
+
+            if let Some(tool_config) = self.get_tool_config(context) {
+                base_vars.extend(tool_config.env.clone())
+            }
         }
 
         let mut vars = IndexMap::<String, Option<String>>::new();
@@ -613,9 +629,8 @@ impl ProtoConfig {
 }
 
 #[derive(Clone, Default)]
-pub struct ProtoConfigEnvOptions {
-    pub backend_id: Option<Id>,
+pub struct ProtoConfigEnvOptions<'ctx> {
+    pub context: Option<&'ctx ToolContext>,
     pub check_process: bool,
     pub include_shared: bool,
-    pub tool_id: Option<Id>,
 }

@@ -113,7 +113,7 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
         collection
             .env
             .extend(config.get_env_vars(ProtoConfigEnvOptions {
-                tool_id: Some(tool.get_id().clone()),
+                context: Some(&tool.context),
                 ..Default::default()
             })?);
 

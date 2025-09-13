@@ -25,7 +25,7 @@ pub fn inject_proto_manifest_config(
             .config
             .insert("proto_backend_id".to_string(), backend_id.to_string());
 
-        if let Some(backend_config) = config.backends.get(backend_id) {
+        if let Some(backend_config) = config.get_backend_config(context) {
             let value = json::format(&backend_config.config, false)?;
 
             trace!(config = %value, "Storing proto backend configuration");
@@ -40,7 +40,7 @@ pub fn inject_proto_manifest_config(
         .config
         .insert("proto_tool_id".to_string(), context.id.to_string());
 
-    if let Some(tool_config) = config.tools.get(&context.id) {
+    if let Some(tool_config) = config.get_tool_config(context) {
         let value = json::format(&tool_config.config, false)?;
 
         trace!(config = %value, "Storing proto tool configuration");

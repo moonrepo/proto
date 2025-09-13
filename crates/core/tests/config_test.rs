@@ -419,12 +419,11 @@ foo = "file://./test.toml"
     mod envs {
         use super::*;
 
-        fn new_env_options() -> ProtoConfigEnvOptions {
+        fn new_env_options() -> ProtoConfigEnvOptions<'static> {
             ProtoConfigEnvOptions {
-                backend_id: None,
+                context: None,
                 check_process: true,
                 include_shared: true,
-                tool_id: None,
             }
         }
 
@@ -981,10 +980,9 @@ file = ".env.tool"
             assert_eq!(
                 config
                     .get_env_files(ProtoConfigEnvOptions {
-                        backend_id: None,
+                        context: Some(&ToolContext::new(Id::raw("node"))),
                         check_process: true,
                         include_shared: true,
-                        tool_id: Some(Id::raw("node")),
                     })
                     .into_iter()
                     .cloned()
