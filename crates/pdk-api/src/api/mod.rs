@@ -460,6 +460,9 @@ api_struct!(
         /// Current tool context.
         pub context: PluginContext,
 
+        /// Whether the force install or not.
+        pub force: bool,
+
         /// Virtual directory to install to.
         pub install_dir: VirtualPath,
     }

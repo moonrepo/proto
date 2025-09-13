@@ -459,6 +459,7 @@ impl Tool {
                     NativeInstallInput {
                         context: self.create_plugin_context(),
                         install_dir: self.to_virtual_path(install_dir),
+                        force: options.force,
                     },
                 )
                 .await?;
