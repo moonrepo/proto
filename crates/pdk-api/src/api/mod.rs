@@ -30,6 +30,11 @@ pub enum PluginFunction {
     /// **Input:** [`RegisterToolInput`] | **Output:** [`RegisterToolOutput`]
     RegisterTool,
 
+    /// Define the tool configuration schema.
+    ///
+    /// **Input:** [`DefineToolConfigInput`] | **Output:** [`DefineToolConfigOutput`]
+    DefineToolConfig,
+
     /// Register a backend with proto.
     ///
     /// Allows plugins to define custom backends for sourcing tools from locations
@@ -37,6 +42,11 @@ pub enum PluginFunction {
     ///
     /// **Input:** [`RegisterBackendInput`] | **Output:** [`RegisterBackendOutput`]
     RegisterBackend,
+
+    /// Define the backend configuration schema.
+    ///
+    /// **Input:** [`DefineBackendConfigInput`] | **Output:** [`DefineBackendConfigOutput`]
+    DefineBackendConfig,
 
     /// Detect version files in a project.
     ///
@@ -141,6 +151,11 @@ pub enum PluginFunction {
     ///
     /// **Input:** [`SyncShellProfileInput`] | **Output:** [`SyncShellProfileOutput`]
     SyncShellProfile,
+
+    /// Setup the environment during activation or execution.
+    ///
+    /// **Input:** [`ActivateEnvironmentInput`] | **Output:** [`ActivateEnvironmentOutput`]
+    ActivateEnvironment,
 }
 
 impl PluginFunction {
@@ -151,7 +166,9 @@ impl PluginFunction {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::RegisterTool => "register_tool",
+            Self::DefineToolConfig => "define_tool_config",
             Self::RegisterBackend => "register_backend",
+            Self::DefineBackendConfig => "define_backend_config",
             Self::DetectVersionFiles => "detect_version_files",
             Self::ParseVersionFile => "parse_version_file",
             Self::LoadVersions => "load_versions",
@@ -165,6 +182,7 @@ impl PluginFunction {
             Self::LocateExecutables => "locate_executables",
             Self::SyncManifest => "sync_manifest",
             Self::SyncShellProfile => "sync_shell_profile",
+            Self::ActivateEnvironment => "activate_environment",
         }
     }
 }
@@ -726,6 +744,28 @@ api_struct!(
         /// when listing and filtering available globals.
         #[serde(skip_serializing_if = "Option::is_none")]
         pub globals_prefix: Option<String>,
+    }
+);
+
+api_struct!(
+    /// Input passed to the `activate_environment` function.
+    pub struct ActivateEnvironmentInput {
+        /// Current tool context.
+        pub context: PluginContext,
+    }
+);
+
+api_struct!(
+    /// Output returned by the `activate_environment` function.
+    #[serde(default)]
+    pub struct ActivateEnvironmentOutput {
+        /// Additional environment variables to set. Will overwrite any existing variables.
+        pub env: FxHashMap<String, String>,
+
+        /// Additional paths to prepend to `PATH`. Tool specific executables
+        /// and globals directories do NOT need to be included here, as they
+        /// are automatically included.
+        pub paths: Vec<PathBuf>,
     }
 );
 

@@ -9,13 +9,16 @@ use proto_core::{
     Id, PROTO_PLUGIN_KEY, ProtoConfigEnvOptions, ProtoEnvironment, ProtoLoaderError, Tool,
     ToolContext, ToolSpec,
 };
-use proto_pdk_api::{ExecutableConfig, HookFunction, RunHook, RunHookResult};
+use proto_pdk_api::{
+    ActivateEnvironmentInput, ActivateEnvironmentOutput, ExecutableConfig, HookFunction,
+    PluginFunction, RunHook, RunHookResult,
+};
 use proto_shim::{exec_command_and_replace, locate_proto_exe};
 use starbase::AppResult;
 use starbase_styles::color;
 use starbase_utils::{
-    env::{bool_var, paths},
-    fs, path,
+    env::{bool_var, paths as env_paths},
+    path,
 };
 use std::env;
 use std::ffi::OsStr;
@@ -401,17 +404,37 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
         get_tool_executable(&tool, args.exe.as_deref()).await?
     };
 
+    // Create the command
+    let mut command = create_command(&tool, &exe_config, &args.passthrough)?;
+    let mut paths = vec![];
+
+    // Setup environment
+    if tool
+        .plugin
+        .has_func(PluginFunction::ActivateEnvironment)
+        .await
+    {
+        let output: ActivateEnvironmentOutput = tool
+            .plugin
+            .call_func_with(
+                PluginFunction::ActivateEnvironment,
+                ActivateEnvironmentInput {
+                    context: tool.create_plugin_context(),
+                },
+            )
+            .await?;
+
+        command.envs(output.env);
+        paths.extend(output.paths);
+    }
+
     // Run before hook
-    let hook_result = if tool.plugin.has_func(HookFunction::PreRun).await {
+    if tool.plugin.has_func(HookFunction::PreRun).await {
         let globals_dir = tool.locate_globals_dir().await?;
         let globals_prefix = tool.locate_globals_prefix().await?;
 
-        // Ensure directory exists as some tools require it
-        if let Some(dir) = &globals_dir {
-            let _ = fs::create_dir_all(dir);
-        }
-
-        tool.plugin
+        let output: RunHookResult = tool
+            .plugin
             .call_func_with(
                 HookFunction::PreRun,
                 RunHook {
@@ -421,25 +444,17 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
                     passthrough_args: args.passthrough.clone(),
                 },
             )
-            .await?
-    } else {
-        RunHookResult::default()
+            .await?;
+
+        command.args(output.args);
+        command.envs(output.env);
+        paths.extend(output.paths);
     };
 
-    // Create and run the command
-    let mut command = create_command(&tool, &exe_config, &args.passthrough)?;
-
-    if let Some(hook_args) = hook_result.args {
-        command.args(hook_args);
-    }
-
-    if let Some(hook_env) = hook_result.env {
-        command.envs(hook_env);
-    }
-
-    if let Some(mut hook_paths) = hook_result.paths {
-        hook_paths.extend(paths());
-        command.env("PATH", env::join_paths(hook_paths).into_diagnostic()?);
+    // Run the command
+    if !paths.is_empty() {
+        paths.extend(env_paths());
+        command.env("PATH", env::join_paths(paths).into_diagnostic()?);
     }
 
     if !use_global_proto {

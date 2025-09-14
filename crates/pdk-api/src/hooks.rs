@@ -98,13 +98,13 @@ api_struct!(
     #[serde(default)]
     pub struct RunHookResult {
         /// Additional arguments to append to the running command.
-        pub args: Option<Vec<String>>,
+        pub args: Vec<String>,
 
         /// Additional environment variables to pass to the running command.
         /// Will overwrite any existing variables.
-        pub env: Option<FxHashMap<String, String>>,
+        pub env: FxHashMap<String, String>,
 
         /// Additional paths to prepend to `PATH` for the running command.
-        pub paths: Option<Vec<PathBuf>>,
+        pub paths: Vec<PathBuf>,
     }
 );

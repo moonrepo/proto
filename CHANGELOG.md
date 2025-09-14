@@ -28,10 +28,12 @@
 
 - Improved backend plugin support.
   - Added a `[backends.<id>]` setting for configuring the backend (not the tool) itself.
+  - Improved interoperability between plugins.
+- Added a mechanism for plugins to setup the environment during activation and execution workflows.
 - **WASM API**
   - Added a `get_backend_config` helper function to retrieve the backend configuration.
-  - Added a `define_tool_config` and `define_backend_config` plugin (guest) functions.
-  - Added a `DefineToolConfigOutput` and `DefineBackendConfigOutput` types.
+  - Added a `define_tool_config`, `define_backend_config`, and `activate_environment` plugin (guest) functions.
+  - Added a `DefineToolConfigOutput`, `DefineBackendConfigOutput`, `ActivateEnvironmentInput`, and `ActivateEnvironmentOutput` types.
   - Added a `ToolInventoryOptions.scoped_backend_dir` field.
   - Added a `NativeInstallInput.force` field.
 

@@ -339,6 +339,11 @@ impl Tool {
             self.globals_dir = Some(dir.to_owned());
         }
 
+        // Ensure directory exists as some tools require it
+        if let Some(dir) = &self.globals_dir {
+            let _ = fs::create_dir_all(dir);
+        }
+
         Ok(self.globals_dir.clone())
     }
 
