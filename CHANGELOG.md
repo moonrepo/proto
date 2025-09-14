@@ -30,9 +30,13 @@
   - Added a `[backends.<id>]` setting for configuring the backend (not the tool) itself.
 - **WASM API**
   - Added a `get_backend_config` helper function to retrieve the backend configuration.
-  - Added a `define_tool_config` and `define_backend_config` plugin (guest) function.
+  - Added a `define_tool_config` and `define_backend_config` plugin (guest) functions.
   - Added a `DefineToolConfigOutput` and `DefineBackendConfigOutput` types.
   - Added a `ToolInventoryOptions.scoped_backend_dir` field.
+
+#### ⚙️ Internal
+
+- Updated dependencies.
 
 ## 0.52.5
 
