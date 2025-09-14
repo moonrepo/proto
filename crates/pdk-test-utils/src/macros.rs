@@ -14,6 +14,8 @@ macro_rules! create_plugin {
 #[macro_export]
 macro_rules! check_install_success {
     ($plugin:ident) => {
+        $plugin.tool.locate_exe_file().await.unwrap();
+
         assert!($plugin.tool.get_product_dir().exists());
 
         for bin in $plugin.tool.resolve_bin_locations(true).await.unwrap() {

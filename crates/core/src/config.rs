@@ -421,15 +421,15 @@ impl ProtoConfig {
             Ok(())
         };
 
-        if let Some(backends) = &mut config.backends {
-            for backend in backends.values_mut() {
-                push_env_file(backend.env.as_mut(), &mut backend._env_files, 5)?;
-            }
-        }
-
         if let Some(tools) = &mut config.tools {
             for tool in tools.values_mut() {
                 push_env_file(tool.env.as_mut(), &mut tool._env_files, 5)?;
+            }
+        }
+
+        if let Some(backends) = &mut config.backends {
+            for backend in backends.values_mut() {
+                push_env_file(backend.env.as_mut(), &mut backend._env_files, 3)?;
             }
         }
 

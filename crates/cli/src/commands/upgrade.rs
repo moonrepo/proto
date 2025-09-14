@@ -11,7 +11,7 @@ use serde::Serialize;
 use starbase::AppResult;
 use starbase_console::ui::*;
 use starbase_styles::color;
-use starbase_utils::{fs, fs::FsError, json};
+use starbase_utils::{fs, fs::FsError, json, path};
 use std::env;
 use std::fmt::Debug;
 use std::path::Path;
@@ -257,12 +257,7 @@ fn replace_binaries(
 ) -> Result<bool, ProtoCliError> {
     let source_dir = source_dir.as_ref();
     let target_dir = target_dir.as_ref();
-    let bin_names = if cfg!(windows) {
-        vec!["proto.exe", "proto-shim.exe"]
-    } else {
-        vec!["proto", "proto-shim"]
-    };
-
+    let bin_names = vec![path::exe_name("proto"), path::exe_name("proto-shim")];
     let mut output_dirs = vec![target_dir.to_path_buf()];
 
     if relocate_current && let Ok(current) = env::current_exe() {
@@ -275,7 +270,7 @@ fn replace_binaries(
 
     let mut replaced = false;
 
-    for bin_name in bin_names {
+    for bin_name in &bin_names {
         let input_path = source_dir.join(bin_name);
 
         if !input_path.exists() {

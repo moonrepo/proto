@@ -3,6 +3,7 @@ use proto_core::{
     DetectStrategy, EnvVar, PartialEnvVar, PartialProtoSettingsConfig, PinLocation, ProtoConfig,
     ProtoConfigEnvOptions, ProtoFileManager, ToolContext, ToolSpec,
 };
+use rustc_hash::FxHashMap;
 use schematic::RegexSetting;
 use starbase_sandbox::create_empty_sandbox;
 use starbase_utils::json::JsonValue;
@@ -755,9 +756,205 @@ builtin-plugins = []
         }
     }
 
+    mod backend_config {
+        use super::*;
+
+        #[test]
+        fn can_set_extra_settings() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[backends.example]
+foo = "abc"
+bar = false
+"#,
+            );
+
+            let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
+
+            assert_eq!(
+                config
+                    .backends
+                    .unwrap()
+                    .get("example")
+                    .unwrap()
+                    .config
+                    .as_ref()
+                    .unwrap(),
+                &FxHashMap::from_iter([
+                    ("foo".to_owned(), JsonValue::String("abc".into())),
+                    ("bar".to_owned(), JsonValue::Bool(false)),
+                ])
+            );
+        }
+
+        #[test]
+        fn merges_plugin_settings() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                "a/b/.prototools",
+                r#"
+[backends.example]
+value = "b"
+"#,
+            );
+            sandbox.create_file(
+                "a/.prototools",
+                r#"
+[backends.example]
+depth = 1
+"#,
+            );
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[backends.example]
+value = "root"
+"#,
+            );
+
+            let config = ProtoFileManager::load(sandbox.path().join("a/b"), None, None)
+                .unwrap()
+                .get_merged_config()
+                .unwrap()
+                .to_owned();
+
+            assert_eq!(
+                config.backends.get("example").unwrap().config,
+                FxHashMap::from_iter([
+                    ("value".to_owned(), JsonValue::String("b".into())),
+                    ("depth".to_owned(), JsonValue::from(1)),
+                ])
+            );
+        }
+
+        #[test]
+        fn merges_env_vars() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                "a/b/.prototools",
+                r#"
+[backends.example.env]
+APP_ENV = "production"
+"#,
+            );
+            sandbox.create_file(
+                "a/.prototools",
+                r#"
+[env]
+APP_NAME = "middle"
+
+[backends.example.env]
+APP_ENV = "development"
+"#,
+            );
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[env]
+APP_TYPE = "ssg"
+
+[backends.example.env]
+APP_PATH = false
+"#,
+            );
+
+            let config = ProtoFileManager::load(sandbox.path().join("a/b"), None, None)
+                .unwrap()
+                .get_merged_config()
+                .unwrap()
+                .to_owned();
+
+            assert_eq!(config.env, {
+                let mut map = IndexMap::new();
+                map.insert("APP_NAME".into(), EnvVar::Value("middle".into()));
+                map.insert("APP_TYPE".into(), EnvVar::Value("ssg".into()));
+                map
+            });
+
+            assert_eq!(config.backends.get("example").unwrap().env, {
+                let mut map = IndexMap::new();
+                map.insert("APP_ENV".into(), EnvVar::Value("production".into()));
+                map.insert("APP_PATH".into(), EnvVar::State(false));
+                map
+            });
+        }
+
+        #[test]
+        fn gathers_env_files() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file("a/b/.env.b", "");
+            sandbox.create_file("a/b/.env.tool-b", "");
+            sandbox.create_file(
+                "a/b/.prototools",
+                r#"
+[env]
+file = ".env.b"
+
+[backends.example.env]
+file = ".env.tool-b"
+"#,
+            );
+            sandbox.create_file("a/.env.a", "");
+            sandbox.create_file("a/.env.tool-a", "");
+            sandbox.create_file(
+                "a/.prototools",
+                r#"
+[env]
+file = ".env.a"
+
+[backends.example.env]
+file = ".env.tool-a"
+"#,
+            );
+            sandbox.create_file(".env", "");
+            sandbox.create_file(".env.tool", "");
+            sandbox.create_file(
+                ".prototools",
+                r#"
+[env]
+file = ".env"
+
+[backends.example.env]
+file = ".env.tool"
+"#,
+            );
+
+            let config = ProtoFileManager::load(sandbox.path().join("a/b"), None, None)
+                .unwrap()
+                .get_merged_config()
+                .unwrap()
+                .to_owned();
+
+            assert_eq!(config.env, IndexMap::<String, EnvVar>::default());
+            assert_eq!(
+                config
+                    .get_env_files(ProtoConfigEnvOptions {
+                        context: Some(&ToolContext::with_backend(
+                            Id::raw("id"),
+                            Id::raw("example"),
+                        )),
+                        check_process: true,
+                        include_shared: true,
+                    })
+                    .into_iter()
+                    .cloned()
+                    .collect::<Vec<_>>(),
+                vec![
+                    sandbox.path().join(".env"),
+                    sandbox.path().join(".env.tool"),
+                    sandbox.path().join("a/.env.a"),
+                    sandbox.path().join("a/.env.tool-a"),
+                    sandbox.path().join("a/b/.env.b"),
+                    sandbox.path().join("a/b/.env.tool-b"),
+                ]
+            );
+        }
+    }
+
     mod tool_config {
         use super::*;
-        use rustc_hash::FxHashMap;
 
         #[test]
         fn can_set_extra_settings() {

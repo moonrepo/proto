@@ -33,6 +33,7 @@
   - Added a `define_tool_config` and `define_backend_config` plugin (guest) functions.
   - Added a `DefineToolConfigOutput` and `DefineBackendConfigOutput` types.
   - Added a `ToolInventoryOptions.scoped_backend_dir` field.
+  - Added a `NativeInstallInput.force` field.
 
 #### ⚙️ Internal
 
