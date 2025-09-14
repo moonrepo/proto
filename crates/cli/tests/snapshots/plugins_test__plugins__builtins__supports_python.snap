@@ -8,7 +8,7 @@ expression: "fs::read_to_string(sandbox.path().join(\".proto/shims/registry.json
       "-m",
       "pip"
     ],
-    "context": "python"
+    "parent": "python"
   },
   "python": {}
 }
