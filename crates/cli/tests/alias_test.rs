@@ -145,7 +145,7 @@ mod alias_local {
             let config = load_config(sandbox.path());
 
             assert_eq!(
-                config.tools.get("act").unwrap().aliases,
+                config.tools.get("asdf:act").unwrap().aliases,
                 BTreeMap::from_iter([(
                     "example".into(),
                     ToolSpec {

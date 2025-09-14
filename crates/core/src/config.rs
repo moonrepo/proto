@@ -77,7 +77,14 @@ impl ProtoConfig {
         // To avoid ID collisions between tools and backend managed tools,
         // the latter's configuration must include the backend prefix.
         // For example, "npm:node" instead of just "node" (collision).
-        self.tools.get(context.as_str())
+        if context.backend.is_some() {
+            self.tools
+                .get(context.as_str())
+                // TODO remove in v0.54
+                .or_else(|| self.tools.get(&context.id))
+        } else {
+            self.tools.get(context.as_str())
+        }
     }
 
     pub fn setup_env_vars(&self) {

@@ -15,7 +15,7 @@ use starbase::AppResult;
 use starbase_styles::color;
 use starbase_utils::{
     env::{bool_var, paths},
-    fs,
+    fs, path,
 };
 use std::env;
 use std::ffi::OsStr;
@@ -157,14 +157,16 @@ fn get_global_executable(env: &ProtoEnvironment, name: &str) -> Option<PathBuf> 
         return None;
     };
 
-    let exe_name = if cfg!(windows) {
-        format!("{name}.exe")
-    } else {
-        name.to_owned()
-    };
+    let exe_name = path::exe_name(name);
 
     for path_dir in env::split_paths(&system_path) {
         if path_dir.starts_with(&env.store.bin_dir) || path_dir.starts_with(&env.store.shims_dir) {
+            continue;
+        }
+
+        // Local development may have ~/.proto on PATH, so ignore!
+        #[cfg(debug_assertions)]
+        if path_dir.to_string_lossy().contains(".proto") {
             continue;
         }
 

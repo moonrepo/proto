@@ -19,6 +19,8 @@
 
 #### 💥 Breaking
 
+- Backend managed tools must now include the backend prefix when configuring in `[tools]`, to avoid naming collisions with non-backend tools. Example: `[tools."asdf:zig"]` instead of `[tools.zig]`.
+  - We'll temporarily support the old format until the next release, in which it will be removed completely.
 - **WASM API**
   - Removed `RegisterToolOutput.config_schema` field. Use `define_tool_config` instead.
 

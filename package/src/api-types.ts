@@ -44,7 +44,16 @@ export interface ExecCommandInput {
 	working_dir?: VirtualPath | null;
 	/** Override the current working directory. */
 	cwd?: VirtualPath | null;
-	/** Environment variables to pass to the command. */
+	/**
+	 * Environment variables to pass to the command. Variables
+	 * can customize behavior by appending one of the following
+	 * characters to the name:
+	 *
+	 * `?` - Will only set variable if it doesn't exist
+	 * in the current environment.
+	 * `!` - Will remove the variable from being inherited
+	 * by the child process.
+	 */
 	env?: Record<string, string>;
 	/** Mark the command as executable before executing. */
 	setExecutable?: boolean;
@@ -289,6 +298,8 @@ export interface ParseVersionFileOutput {
 export interface NativeInstallInput {
 	/** Current tool context. */
 	context: PluginContext;
+	/** Whether to force install or not. */
+	force: boolean;
 	/** Virtual directory to install to. */
 	installDir: VirtualPath;
 }

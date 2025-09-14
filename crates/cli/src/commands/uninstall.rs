@@ -39,18 +39,6 @@ fn unpin_version(session: &ProtoSession, args: &UninstallArgs) -> Result<(), Pro
                 {
                     doc.as_table_mut().remove(args.context.as_str());
                 }
-
-                // if let Some(versions) = &mut config.versions {
-                //     let remove = if let Some(version) = versions.get(&args.id) {
-                //         args.spec.is_none() || args.spec.as_ref().is_some_and(|spec| spec == version)
-                //     } else {
-                //         false
-                //     };
-
-                //     if remove {
-                //         versions.remove(&args.id);
-                //     }
-                // }
             })?;
         }
     }
