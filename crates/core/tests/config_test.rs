@@ -951,6 +951,61 @@ file = ".env.tool"
                 ]
             );
         }
+
+        #[test]
+        fn can_use_npm_package_names_as_ids() {
+            let sandbox = create_empty_sandbox();
+            sandbox.create_file(
+                ".prototools",
+                r#"
+"npm:typescript" = "*"
+"npm:@moonrepo/cli" = "*"
+
+[backends.npm]
+baz = false
+
+[tools."npm:typescript"]
+foo = "abc"
+
+[tools."npm:@moonrepo/cli"]
+bar = false
+"#,
+            );
+
+            let config = ProtoConfig::load_from(sandbox.path(), false).unwrap();
+
+            assert_eq!(
+                config.versions.as_ref().unwrap(),
+                &BTreeMap::from_iter([
+                    (
+                        ToolContext::parse("npm:typescript").unwrap(),
+                        ToolSpec::parse("*").unwrap(),
+                    ),
+                    (
+                        ToolContext::parse("npm:@moonrepo/cli").unwrap(),
+                        ToolSpec::parse("*").unwrap(),
+                    ),
+                ])
+            );
+
+            assert!(config.backends.as_ref().unwrap().get("npm").is_some());
+            assert!(
+                config
+                    .tools
+                    .as_ref()
+                    .unwrap()
+                    .get("npm:typescript")
+                    .is_some()
+            );
+            assert!(
+                config
+                    .tools
+                    .as_ref()
+                    .unwrap()
+                    .get("npm:@moonrepo/cli")
+                    .is_some()
+            );
+        }
     }
 
     mod tool_config {
