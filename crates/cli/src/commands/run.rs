@@ -1,19 +1,17 @@
 use crate::commands::install::{InstallArgs, install_one};
 use crate::error::ProtoCliError;
 use crate::session::ProtoSession;
+use crate::workflows::{ExecWorkflow, ExecWorkflowParams};
 use clap::Args;
 use miette::IntoDiagnostic;
 use proto_core::flow::detect::ProtoDetectError;
 use proto_core::flow::locate::ProtoLocateError;
 use proto_core::{
-    Id, PROTO_PLUGIN_KEY, ProtoConfigEnvOptions, ProtoEnvironment, ProtoLoaderError, Tool,
-    ToolContext, ToolSpec,
+    Id, PROTO_PLUGIN_KEY, ProtoEnvironment, ProtoLoaderError, Tool, ToolContext, ToolSpec,
 };
-use proto_pdk_api::{
-    ActivateEnvironmentInput, ActivateEnvironmentOutput, ExecutableConfig, HookFunction,
-    PluginFunction, RunHook, RunHookResult,
-};
+use proto_pdk_api::ExecutableConfig;
 use proto_shim::{exec_command_and_replace, locate_proto_exe};
+use rustc_hash::FxHashMap;
 use starbase::AppResult;
 use starbase_styles::color;
 use starbase_utils::{
@@ -194,7 +192,7 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
         .expect("Could not determine executable path.");
     let base_args = args.into_iter().collect::<Vec<_>>();
 
-    let mut command = if let Some(parent_exe_path) = &exe_config.parent_exe_name {
+    let command = if let Some(parent_exe_path) = &exe_config.parent_exe_name {
         let mut args = exe_config
             .parent_exe_args
             .iter()
@@ -223,25 +221,6 @@ fn create_command<I: IntoIterator<Item = A>, A: AsRef<OsStr>>(
 
         create_process_command(exe_path, args)
     };
-
-    for (key, value) in tool
-        .proto
-        .load_config()?
-        .get_env_vars(ProtoConfigEnvOptions {
-            context: Some(&tool.context),
-            check_process: true,
-            include_shared: true,
-        })?
-    {
-        match value {
-            Some(value) => {
-                command.env(key, value);
-            }
-            None => {
-                command.env_remove(key);
-            }
-        };
-    }
 
     Ok(command)
 }
@@ -406,62 +385,6 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
 
     // Create the command
     let mut command = create_command(&tool, &exe_config, &args.passthrough)?;
-    let mut paths = vec![];
-
-    // Setup environment
-    if tool
-        .plugin
-        .has_func(PluginFunction::ActivateEnvironment)
-        .await
-    {
-        let output: ActivateEnvironmentOutput = tool
-            .plugin
-            .call_func_with(
-                PluginFunction::ActivateEnvironment,
-                ActivateEnvironmentInput {
-                    context: tool.create_plugin_context(),
-                },
-            )
-            .await?;
-
-        command.envs(output.env);
-        paths.extend(output.paths);
-    }
-
-    // Run before hook
-    if tool.plugin.has_func(HookFunction::PreRun).await {
-        let globals_dir = tool.locate_globals_dir().await?;
-        let globals_prefix = tool.locate_globals_prefix().await?;
-
-        let output: RunHookResult = tool
-            .plugin
-            .call_func_with(
-                HookFunction::PreRun,
-                RunHook {
-                    context: tool.create_plugin_context(),
-                    globals_dir: globals_dir.map(|dir| tool.to_virtual_path(&dir)),
-                    globals_prefix,
-                    passthrough_args: args.passthrough.clone(),
-                },
-            )
-            .await?;
-
-        if let Some(value) = output.args {
-            command.args(value);
-        }
-        if let Some(value) = output.env {
-            command.envs(value);
-        }
-        if let Some(value) = output.paths {
-            paths.extend(value);
-        }
-    };
-
-    // Run the command
-    if !paths.is_empty() {
-        paths.extend(env_paths());
-        command.env("PATH", env::join_paths(paths).into_diagnostic()?);
-    }
 
     if !use_global_proto {
         command
@@ -475,9 +398,35 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
             );
     }
 
-    // Update the last used timestamp
-    if env::var("PROTO_SKIP_USED_AT").is_err() {
-        let _ = tool.product.track_used_at();
+    // Prepare environment
+    let config = session.load_config()?;
+    let context = tool.context.clone();
+    let mut workflow = ExecWorkflow::new(vec![tool], config);
+
+    workflow
+        .prepare_environment(
+            FxHashMap::from_iter([(context, spec)]),
+            ExecWorkflowParams {
+                activate_environment: true,
+                check_process_env: true,
+                passthrough_args: args.passthrough.clone(),
+                pre_run_hook: true,
+                ..Default::default()
+            },
+        )
+        .await?;
+
+    // Run the command
+    for (key, value) in workflow.env {
+        match value {
+            Some(value) => command.env(key, value),
+            None => command.env_remove(key),
+        };
+    }
+
+    if !workflow.paths.is_empty() {
+        workflow.paths.extend(env_paths());
+        command.env("PATH", env::join_paths(workflow.paths).into_diagnostic()?);
     }
 
     // Must be the last line!

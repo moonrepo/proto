@@ -1,58 +1,24 @@
 use crate::session::ProtoSession;
+use crate::workflows::{ExecWorkflow, ExecWorkflowParams};
 use clap::Args;
 use indexmap::IndexMap;
 use miette::IntoDiagnostic;
-use proto_core::flow::setup::ProtoSetupError;
-use proto_core::{Id, PROTO_PLUGIN_KEY, ProtoConfigEnvOptions, ToolContext, UnresolvedVersionSpec};
-use proto_pdk_api::{ActivateEnvironmentInput, ActivateEnvironmentOutput, PluginFunction};
+use proto_core::{Id, PROTO_PLUGIN_KEY, ToolContext, UnresolvedVersionSpec};
 use rustc_hash::FxHashSet;
 use serde::Serialize;
 use starbase::AppResult;
 use starbase_shell::{Hook, ShellType};
 use starbase_utils::env::paths;
 use starbase_utils::json;
+use std::collections::VecDeque;
 use std::env;
 use std::path::PathBuf;
-use tokio::task::JoinSet;
 use tracing::warn;
 
-#[derive(Default, Serialize)]
-struct ActivateItem {
-    pub tool: ToolContext,
-    pub env: IndexMap<String, String>,
-    pub paths: Vec<PathBuf>,
-}
-
-impl ActivateItem {
-    pub fn add_path(&mut self, path: PathBuf) {
-        // Only add paths that exist
-        if path.exists() {
-            self.paths.push(path);
-        }
-    }
-}
-
-#[derive(Default, Serialize)]
-struct ActivateCollection {
-    pub env: IndexMap<String, Option<String>>,
-    pub path: Option<String>,
-    #[serde(skip)]
-    pub paths: Vec<PathBuf>,
-}
-
-impl ActivateCollection {
-    pub fn collect(&mut self, item: ActivateItem) {
-        for (key, value) in item.env {
-            self.env.insert(key, Some(value));
-        }
-
-        // Don't use a set as we need to persist the order!
-        for path in item.paths {
-            if !self.paths.contains(&path) {
-                self.paths.push(path);
-            }
-        }
-    }
+#[derive(Serialize)]
+struct ActivateResult {
+    env: IndexMap<String, Option<String>>,
+    path: Option<String>,
 }
 
 #[derive(Args, Clone, Debug)]
@@ -99,95 +65,30 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
 
     // Load necessary tools so that we can extract info
     let tools = session.load_tools().await?;
-    let mut collection = ActivateCollection::default();
-    let mut set = JoinSet::<Result<ActivateItem, ProtoSetupError>>::new();
-
-    // Inherit shared environment variables
-    collection
-        .env
-        .extend(config.get_env_vars(ProtoConfigEnvOptions {
-            include_shared: true,
-            ..Default::default()
-        })?);
-
-    for mut tool in tools {
-        if !config.versions.contains_key(&tool.context) {
-            continue;
-        }
-
-        // Inherit tool environment variables
-        collection
-            .env
-            .extend(config.get_env_vars(ProtoConfigEnvOptions {
-                context: Some(&tool.context),
-                ..Default::default()
-            })?);
-
-        // Extract the version in a background thread
-        set.spawn(async move {
-            let mut item = ActivateItem::default();
-
-            // Detect a version, otherwise return early
-            let Ok(spec) = tool.detect_version().await else {
-                return Ok(item);
-            };
-
-            // Resolve the version and locate executables
-            if tool.is_setup(&spec).await? {
-                if tool
-                    .plugin
-                    .has_func(PluginFunction::ActivateEnvironment)
-                    .await
-                {
-                    let output: ActivateEnvironmentOutput = tool
-                        .plugin
-                        .call_func_with(
-                            PluginFunction::ActivateEnvironment,
-                            ActivateEnvironmentInput {
-                                context: tool.create_plugin_context(),
-                            },
-                        )
-                        .await?;
-
-                    item.env.extend(output.env);
-
-                    for path in output.paths {
-                        item.add_path(path);
-                    }
-                }
-
-                // Higher priority over globals
-                for exes_dir in tool.locate_exes_dirs().await? {
-                    item.add_path(exes_dir);
-                }
-
-                for globals_dir in tool.locate_globals_dirs().await? {
-                    item.add_path(globals_dir);
-                }
-
-                // Mark it as used so that auto-clean doesn't remove it!
-                tool.product.track_used_at()?;
-            }
-
-            item.tool = tool.context.clone();
-
-            Ok(item)
-        });
-    }
+    let mut workflow = ExecWorkflow::new(tools, config);
 
     // Put shims first so that they can detect newer versions
     if !args.no_shim {
-        collection.paths.push(session.env.store.shims_dir.clone());
+        workflow
+            .paths
+            .push_front(session.env.store.shims_dir.clone());
     }
 
-    // Aggregate our list of shell exports
-    while let Some(item) = set.join_next().await {
-        collection.collect(item.into_diagnostic()??);
-    }
+    // Aggregate our environment/shell exports
+    workflow
+        .prepare_environment(
+            Default::default(),
+            ExecWorkflowParams {
+                activate_environment: true,
+                detect_version: true,
+                ..Default::default()
+            },
+        )
+        .await?;
 
     // Inject necessary variables
-    if !collection.env.contains_key("PROTO_HOME") && env::var("PROTO_HOME").is_err() {
-        collection.env.insert(
+    if !workflow.env.contains_key("PROTO_HOME") && env::var("PROTO_HOME").is_err() {
+        workflow.env.insert(
             "PROTO_HOME".into(),
             session.env.store.dir.to_str().map(|root| root.to_owned()),
         );
@@ -198,14 +99,14 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
     if let Some(UnresolvedVersionSpec::Semantic(version)) =
         config.versions.get(&proto_context).map(|spec| &spec.req)
     {
-        collection
+        workflow
             .env
             .insert("PROTO_VERSION".into(), Some(version.to_string()));
-        collection
+        workflow
             .env
             .insert("PROTO_PROTO_VERSION".into(), Some(version.to_string()));
 
-        collection.paths.push(
+        workflow.paths.push_back(
             session
                 .env
                 .store
@@ -214,34 +115,37 @@ pub async fn activate(session: ProtoSession, args: ActivateArgs) -> AppResult {
                 .join(version.to_string()),
         );
     } else {
-        collection.env.insert("PROTO_VERSION".into(), None);
+        workflow.env.insert("PROTO_VERSION".into(), None);
     }
 
     // Put bins last as a last resort lookup
     if !args.no_bin {
-        collection.paths.push(session.env.store.bin_dir.clone());
+        workflow.paths.push_back(session.env.store.bin_dir.clone());
     }
 
     // Output/export the information for the chosen shell
     if args.export {
-        print_activation_exports(&session, &shell_type, collection)?;
+        print_activation_exports(&session, &shell_type, workflow)?;
 
         return Ok(None);
     }
 
     if session.should_print_json() {
-        collection.path = env::join_paths(reset_and_join_paths(
-            &session,
-            std::mem::take(&mut collection.paths),
-        ))
-        .into_diagnostic()?
-        .into_string()
-        .ok();
+        let result = ActivateResult {
+            path: env::join_paths(reset_and_join_paths(
+                &session,
+                std::mem::take(&mut workflow.paths),
+            ))
+            .into_diagnostic()?
+            .into_string()
+            .ok(),
+            env: workflow.env,
+        };
 
         session
             .console
             .out
-            .write_line(json::format(&collection, true)?)?;
+            .write_line(json::format(&result, true)?)?;
     }
 
     Ok(None)
@@ -302,7 +206,7 @@ fn print_activation_hook(
 fn print_activation_exports(
     session: &ProtoSession,
     shell_type: &ShellType,
-    info: ActivateCollection,
+    workflow: ExecWorkflow,
 ) -> miette::Result<()> {
     let shell = shell_type.build();
     let mut env_being_set = vec![];
@@ -311,14 +215,14 @@ fn print_activation_exports(
     // Remove previously set variables
     if let Ok(env_to_remove) = env::var("_PROTO_ACTIVATED_ENV") {
         for key in env_to_remove.split(',') {
-            if !info.env.contains_key(key) {
+            if !workflow.env.contains_key(key) {
                 output.push(shell.format_env_unset(key));
             }
         }
     }
 
     // Set/remove new variables
-    for (key, value) in info.env {
+    for (key, value) in workflow.env {
         if value.is_some() {
             env_being_set.push(key.clone());
         }
@@ -331,11 +235,11 @@ fn print_activation_exports(
     }
 
     // Set new `PATH`
-    if !info.paths.is_empty() {
+    if !workflow.paths.is_empty() {
         output.push(
             shell.format_env_set(
                 "_PROTO_ACTIVATED_PATH",
-                &info
+                &workflow
                     .paths
                     .iter()
                     .flat_map(|p| p.to_str())
@@ -344,7 +248,7 @@ fn print_activation_exports(
             ),
         );
 
-        let paths = reset_and_join_paths(session, info.paths);
+        let paths = reset_and_join_paths(session, workflow.paths);
 
         if !paths.is_empty() {
             output.push(shell.format_path_set(&paths));
@@ -356,7 +260,7 @@ fn print_activation_exports(
     Ok(())
 }
 
-fn reset_and_join_paths(session: &ProtoSession, join_paths: Vec<PathBuf>) -> Vec<String> {
+fn reset_and_join_paths(session: &ProtoSession, join_paths: VecDeque<PathBuf>) -> Vec<String> {
     let start_path = session.env.store.dir.join("activate-start");
     let stop_path = session.env.store.dir.join("activate-stop");
 
