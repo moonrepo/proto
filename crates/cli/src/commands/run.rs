@@ -446,9 +446,15 @@ pub async fn run(session: ProtoSession, args: RunArgs) -> AppResult {
             )
             .await?;
 
-        command.args(output.args);
-        command.envs(output.env);
-        paths.extend(output.paths);
+        if let Some(value) = output.args {
+            command.args(value);
+        }
+        if let Some(value) = output.env {
+            command.envs(value);
+        }
+        if let Some(value) = output.paths {
+            paths.extend(value);
+        }
     };
 
     // Run the command

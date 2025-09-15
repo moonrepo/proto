@@ -30,9 +30,11 @@ pub struct Checksum {
     pub algo: ChecksumAlgorithm,
 
     /// Public key.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub key: Option<String>,
 
     /// File hash / private key.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hash: Option<String>,
 }
 
